@@ -465,7 +465,8 @@ mixerEnableInputLine(HMIXEROBJ hMix, char *portname)
         MIXERCONTROL mc;
         MIXERLINE ml;
         MMRESULT  mmr;
-        UINT      i, matchingLine;
+        UINT      i, matchLine;
+        int       score, matchScore;
         
         ml.cbStruct = sizeof(ml);
         ml.dwDestination = dwMixDstRec;
@@ -500,12 +501,19 @@ mixerEnableInputLine(HMIXEROBJ hMix, char *portname)
         mcd.paDetails = mcdlText;
         mcd.cbDetails = sizeof(MIXERCONTROLDETAILS_LISTTEXT);
         mmr = mixerGetControlDetails(hMix, &mcd, MIXER_GETCONTROLDETAILSF_LISTTEXT | MIXER_OBJECTF_MIXER);
+        matchLine  = 0;
+        matchScore = 0;
+        /* Annoyingly enough the names of the mute controls do not exactly correspond
+         * to the names of the volume sliders.  So we look for most overlapping words.
+         */
         for(i = 0; i < mcd.cMultipleItems; i++) {
-                if (!strncmp(mcdlText[i].szName, portname, strlen(mcdlText[i].szName))) {
-                        matchingLine = i;
+                score = overlapping_words(mcdlText[i].szName, portname, 3);
+                if (score > matchScore) {
+                        matchLine  = i;
+                        matchScore = score;
                 }
-                debug_msg("%d - %s\n", i, mcdlText[i].szName);
         }
+        xfree(mcdlText);
 
         /* Now get control itself */
         mcd.cbStruct    = sizeof(mcd);
@@ -524,7 +532,7 @@ mixerEnableInputLine(HMIXEROBJ hMix, char *portname)
         }
         
         for(i = 0; i < mcd.cMultipleItems; i++) {
-                if (i == matchingLine) {
+                if (i == matchLine) {
                         mcdbState[i].fValue = FALSE;
                 } else {
                         mcdbState[i].fValue = TRUE;
@@ -1344,7 +1352,7 @@ w32sdk_audio_iport_set(audio_desc_t ad, audio_port_t port)
                 if (input_ports[i].port == port) {
                         /* save gain */
                         gain = mixerGetLineGain((HMIXEROBJ)hMixer, input_ports[iport].port);
-                        if (mixerGetLineName((HMIXEROBJ)hMixer, input_ports[iport].port, portname, MIXER_LONG_NAME_CHARS)) {
+                        if (mixerGetLineName((HMIXEROBJ)hMixer, input_ports[i].port, portname, MIXER_LONG_NAME_CHARS)) {
                                 mixerEnableInputLine((HMIXEROBJ)hMixer, portname);
                         }
                         mixerSetLineGain((HMIXEROBJ)hMixer, input_ports[i].port, gain);
