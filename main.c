@@ -84,16 +84,6 @@ signal_handler(int signal)
 }
 #endif
 
-static void heartbeat(session_struct *sp, u_int32 curr_time, u_int32 interval)
-{
-	static u_int32	prev_time;
-
-	if (curr_time - prev_time > (interval << 16)) {
-		mbus_qmsg(sp->mbus_engine_base, "(* * * *)", "mbus.hello", "", FALSE);
-		prev_time = curr_time;
-	}
-}
-
 int
 main(int argc, char *argv[])
 {
@@ -163,7 +153,7 @@ main(int argc, char *argv[])
 	ui_controller_init(sp[0], cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 	do {
 		network_process_mbus(sp[0]);
-		heartbeat(sp[0], ntp_time32(), 1);
+		mbus_heartbeat(sp[0]->mbus_engine_base, 1);
 		usleep(20000);
 	} while (sp[0]->wait_on_startup);
 
@@ -295,7 +285,7 @@ main(int argc, char *argv[])
 				mbus_recv(sp[i]->mbus_engine_conf, (void *) sp[i]);
 				mbus_recv(sp[i]->mbus_ui_conf    , (void *) sp[i]);
 			}
-			heartbeat(sp[i], ntp_time, 10);
+			mbus_heartbeat(sp[i]->mbus_engine_base, 10);
 
                         /* wait for mbus messages - closing audio device
                          * can timeout unprocessed messages as some drivers
