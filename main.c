@@ -156,6 +156,11 @@ main(int argc, char *argv[])
 		strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
         }
 
+	do {
+		network_process_mbus(sp, num_sessions, 500);
+		heartbeat(ntp_time32(), 1);
+	} while (sp[0]->wait_on_startup);
+
 	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
         ui_sampling_modes(sp[0]);
 	ui_codecs(sp[0]->encodings[0]);
@@ -172,10 +177,7 @@ main(int argc, char *argv[])
 	ui_load_settings();
         rtcp_clock_change(sp[0]);
 
-	do {
-		network_process_mbus(sp, num_sessions, 500);
-		heartbeat(ntp_time32(), 1);
-	} while (sp[0]->wait_on_startup);
+	network_process_mbus(sp, num_sessions, 500);
 
 	parse_late_options(argc, argv, sp);
 	for (i = 0; i < num_sessions; i++) {

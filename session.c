@@ -188,7 +188,6 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int sp_
 			}
 			if (strcmp(argv[i], "-wait") == 0) {
 				sp[s]->wait_on_startup = TRUE;
-				i++;
 			}
 			if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
 				sp[s]->ttl = atoi(argv[i + 1]);
