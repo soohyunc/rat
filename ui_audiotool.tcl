@@ -2243,7 +2243,6 @@ proc tool_version {tool} {
 		# Unknown tool version, so put out something which won't
 		# match with the current version string to force a reset
 		# of the saved parameters.
-	    	puts "*X*X*X tool failed regexp match: \"$tool\""
 		return "RAT v0.0.0"
 	}
 	regsub {(RAT v[0-9]+\.[0-9]+\.[0-9]+) [a-zA-Z]+} $tool {\1} v
