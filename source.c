@@ -759,7 +759,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         ts_t spt, delta_transit;
                         spt           = ts_mul(e->playout, 2);  /* Spike threshold */
                         spt           = ts_add(spt, spike_jump);
-                        delta_transit = ts_sub(transit, e->last_transit);
+                        delta_transit = ts_abs_diff(transit, e->last_transit);
                         if (ts_gt(delta_transit, spt)) {
 				/* Transit delay increased suddenly - this is a "spike" */
                                 debug_msg("Spike (%d > %d)\n", delta_transit.ticks, spt.ticks);
