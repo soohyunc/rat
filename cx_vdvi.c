@@ -47,7 +47,7 @@
 #include "stdio.h"
 
 #ifdef TEST_VDVI
-#define NUM_TESTS 1000
+#define NUM_TESTS 10000
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,30 +59,36 @@ static  u_char src[80], pad1[4],
 void
 check_padding()
 {
-        assert(pad1[0] == '\x77' && pad2[0] == '\x77' && pad3[0] == '\x77');
-        assert(pad1[1] == '\x77' && pad2[1] == '\x77' && pad3[1] == '\x77');
-        assert(pad1[2] == '\x77' && pad2[2] == '\x77' && pad3[2] == '\x77');
-        assert(pad1[3] == '\x77' && pad2[3] == '\x77' && pad3[3] == '\x77');
+        assert(pad1[0] == 0xff && pad2[0] == 0xff && pad3[0] == 0xff);
+        assert(pad1[1] == 0xff && pad2[1] == 0xff && pad3[1] == 0xff);
+        assert(pad1[2] == 0xff && pad2[2] == 0xff && pad3[2] == 0xff);
+        assert(pad1[3] == 0xff && pad2[3] == 0xff && pad3[3] == 0xff);
 }
 
 int main()
 {
-        int i, n, coded_len, out_len;
+        int i, n, coded_len, out_len, a, amp;
 
-        memset(pad1, 0x77, 4); /* Memory overwrite test */
-        memset(pad2, 0x77, 4);
-        memset(pad3, 0x77, 4);
+        memset(pad1, 0xff, 4); /* Memory overwrite test */
+        memset(pad2, 0xff, 4);
+        memset(pad3, 0xff, 4);
+
+        srandom(123213);
 
         for(n = 0; n < NUM_TESTS; n++) {
-                srand(150121*n);
-
+                amp = (random() &0x0f);
                 for(i = 0; i< 80; i++) {
-                        src[i] = random() & 0xff;
+                        a = (int)(amp * sin(M_PI * 2.0 * (float)i/16.0));
+                        assert(abs(a) < 16);
+                        src[i] = (a << 4) & 0xf0;
+                        a = amp;
+                        assert(abs(a) < 16);
+                        src[i] |= (a & 0x0f);
                 }
 
                 memcpy(safe, src, 80);
 
-                coded_len = vdvi_encode(src,  160, coded, 160);
+                coded_len = vdvi_encode(src, 160, coded, 160);
 
                 assert(!memcmp(src,safe,80));
 
@@ -90,6 +96,8 @@ int main()
                 out_len   = vdvi_decode(coded, 160, dst, 160);
                 
                 assert(!memcmp(src,safe,80));
+                assert(!memcmp(dst,safe,80)); /* dst matches sources */
+
                 assert(coded_len == out_len);
 
                 check_padding();
@@ -119,7 +127,7 @@ typedef struct {
 __inline static void
 bs_init(bs *b, char *buf, int bytes)
 {
-        b->buf    = b->pos = buf;
+        b->buf = b->pos = buf;
         b->len = bytes;
         b->bits_remain = 8;
 }
@@ -134,17 +142,19 @@ bs_put(bs* b, u_char in, u_int n_in)
         br = b->bits_remain;
         
         assert(n_in <= 8);
+
+        if (br == 0) {
+                br = 8;
+                p++;
+                *p = 0;
+        }
         
-        if (n_in >= br) {
+        if (n_in > br) {
                 t = n_in - br;
                 *p |= in >> t;
-                if ((unsigned)(p - b->buf) < (b->len - 1)) {
-                        p++;
-                        br = 8 - t;
-                        *p = in << br;
-                } else {
-                        /* buffer_full - don't clear way */
-                }
+                p++;
+                br = 8 - t;
+                *p = in << br;
         } else {
                 *p |= in << ( br - n_in);
                 br -= n_in;
@@ -233,11 +243,12 @@ vdvi_encode(u_char *dvi_buf, int dvi_samples, u_char *out, int out_bytes)
         int bytes_used;
 
         assert(dvi_samples == VDVI_SAMPLES_PER_FRAME);
-        
+
+        /* Worst case is 8 bits per sample -> VDVI_SAMPLES_PER_FRAME */
+        assert(out_bytes   == VDVI_SAMPLES_PER_FRAME); 
+
         memset(out, 0, out_bytes);
-
         bs_init(&dst, out, out_bytes);
-
         dvi_end = dvi_buf + dvi_samples / 2;
         dp      = dvi_buf;
         while (dp != dvi_end) {
@@ -267,6 +278,7 @@ vdvi_decode(unsigned char *in, int in_bytes, unsigned char *dvi_buf, int dvi_sam
         
         /* This code is ripe for optimization ... */
 
+        assert(in_bytes >= 40);
         assert(dvi_samples == VDVI_SAMPLES_PER_FRAME);
 
         memset(dvi_buf, 0, dvi_samples / 2);
@@ -307,6 +319,7 @@ vdvi_decode(unsigned char *in, int in_bytes, unsigned char *dvi_buf, int dvi_sam
 
         bytes_used  = (bin.pos - bin.buf);
         bytes_used += (bin.bits_remain != 8) ? 1 : 0;
+
         assert(bytes_used <= in_bytes);
         return bytes_used;
 }
