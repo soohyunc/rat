@@ -27,9 +27,7 @@ If you're on a supported platform, type:
 If you're porting to a new platform, you will wish to modify the Configure
 script to generate the appropriate entries in config.h and Makefile.osdep
 automatically. It is intended that most (all?) machine dependent stuff 
-should be done using this mechanism. Please send any modifications to the
-Configure script to c.perkins@cs.ucl.ac.uk, so they can be incorparated into
-future versions of RAT.
+should be done using this mechanism. 
 
 Please report bugs and suggestions to:
 rat-trap@cs.ucl.ac.uk
