@@ -207,6 +207,7 @@ static ts_t transit_reset;  /* Period after which new transit time taken     */
                             /* if source has been quiet.                     */
 static ts_t spike_jump;     /* Packet spike delay threshold (trigger).       */
 static ts_t spike_end;      /* Value of var when spike over                  */
+static ts_t repair_max_gap; /* Maximum stream gap repair is attempted for.   */
 static int  time_constants_inited = FALSE;
 
 static void
@@ -222,6 +223,7 @@ time_constants_init()
         transit_reset  = ts_map32(8000, 80000);
         spike_jump     = ts_map32(8000, 1600); 
         spike_end      = ts_map32(8000, 64);
+        repair_max_gap = ts_map32(8000, 3200); /* 400ms */
         time_constants_inited = TRUE;
 }
 
@@ -1371,7 +1373,7 @@ source_process(session_t 	 *sp,
         coded_unit  *cu;
         codec_state *cs;
         uint32_t     md_len;
-        ts_t         playout, step;
+        ts_t         playout, step, gap;
         int          success, hold_repair = 0;
         uint16_t     sample_rate, channels;
 
@@ -1400,17 +1402,21 @@ source_process(session_t 	 *sp,
                 assert(md     != NULL);
                 assert(md_len == sizeof(media_data));
 
-                /* Conditions for repair:                                     */
-                /* (a) playout point of unit is further away than expected.   */
-                /* (b) playout does not correspond to new talkspurt (don't    */
-                /*     fill between end of last talkspurt and start of next). */
-                /*     NB Use post_talkstart_units as talkspurts maybe longer */
-                /*     than timestamp wrap period and want to repair even if  */
-                /*     timestamps wrap.                                       */
-                /* (c) not start of a talkspurt.                              */
-                /* (d) don't have a hold on.                                  */
-                if (ts_gt(playout, src->next_played) &&
-                    ((ts_gt(src->next_played, src->talkstart) && ts_gt(playout, src->talkstart)) || src->post_talkstart_units > 100) &&
+                /* Conditions for repair:                                      */
+                /* (a) playout point of unit is further away than expected.    */
+                /* (b) playout point is not too far away (repair burns cycles) */
+                /* (c) playout does not correspond to new talkspurt (don't     */
+                /*     fill between end of last talkspurt and start of next).  */
+                /*     NB Use post_talkstart_units as talkspurts maybe longer  */
+                /*     than timestamp wrap period and want to repair even if   */
+                /*     timestamps wrap.                                        */
+                /* (d) not start of a talkspurt.                               */
+                /* (e) don't have a hold on.                                   */
+
+                gap = ts_sub(playout, src->next_played);
+                if ((ts_gt(gap, zero_ts) && ts_gt(repair_max_gap, gap)) &&
+                    ((ts_gt(src->next_played, src->talkstart) && 
+                      ts_gt(playout, src->talkstart)) || src->post_talkstart_units > 100) &&
                     (hold_repair == 0)) {
                         /* If repair was successful media_pos is moved,      */
                         /* so get data at media_pos again.                   */
