@@ -30,6 +30,8 @@
 #include "ui.h"
 #include "crypt.h"
 #include "source.h"
+#include "channel_types.h"
+#include "channel.h"
 
 #define PCKT_QUEUE_RTP_LEN  24
 #define PCKT_QUEUE_RTCP_LEN 12
@@ -402,9 +404,9 @@ rat3codec_to_rat4codec(const char *name)
         };
         n = sizeof(name_mappings)/sizeof(name_mappings[0]);
 
-        for(i = 0; i < n; i++) {
+        for(i = 0; i < n; i+=2) {
                 if (strncasecmp(name, name_mappings[i], 4) == 0) {
-                        return name_mappings[i];
+                        return name_mappings[i+1];
                 }
         }                        
 
@@ -471,23 +473,88 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                 i++;
                         }
 			if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
-                                codec_id_t cid;
-                                const char *codec_name;
+                                codec_id_t primary_cid, secondary_cid;
+                                cc_details ccd;
+                                const char *primary_name, *secondary_name;
+                                u_int16 upp, num_channel_coders, idx;
 
-                                codec_name = (char *) strtok(argv[i+1], "/");
-                                cid = codec_get_by_name(codec_name);
-                                if (codec_id_is_valid(cid) == FALSE) {
-                                        fprintf(stderr, "%s\n", codec_name);
-                                        codec_name = rat3codec_to_rat4codec(codec_name);
-                                        cid = codec_get_by_name(codec_name);
-                                        fprintf(stderr, "%s\n", codec_name);
-                                }
-                                if (cid) {
-                                        sp[i]->encodings[0]= codec_get_payload(cid);
+                                primary_name = (char *) strtok(argv[i+1], "/");
+                                primary_cid = codec_get_by_name(primary_name);
+                                if (!primary_cid) {
+                                        debug_msg("%s\n", primary_name);
+                                        primary_name = rat3codec_to_rat4codec(primary_name);
+                                        primary_cid  = codec_get_by_name(primary_name);
+                                        debug_msg("%s\n", primary_name);
                                 }
 
-                                printf("%s: not fully supported in this release\n", argv[i]);
-				i++;
+                                if (primary_cid) {
+                                        sp[s]->encodings[0] = codec_get_payload(primary_cid);
+                                }
+                                
+                                secondary_name = (char *) strtok(NULL, "/");
+                                /* increment argument counter here since if we bail out
+                                 * early because of issues with secondary we need
+                                 * argument counter to be in the right place.
+                                 */
+				i++;            
+
+                                if (secondary_name == NULL) {
+                                        /* Nothing was specified as a secondary 
+                                         * save state might be redundant so...
+                                         */
+                                        upp = channel_encoder_get_units_per_packet(sp[s]->channel_coder);
+                                        num_channel_coders = channel_get_coder_count();
+                                        for (idx = 0; idx < num_channel_coders; idx++) {
+                                                channel_get_coder_details(idx, &ccd);
+                                                if (tolower(ccd.name[0]) == 'n') {
+                                                        channel_encoder_destroy(&sp[s]->channel_coder);
+                                                        channel_encoder_create(ccd.descriptor, &sp[s]->channel_coder);
+                                                        channel_encoder_set_units_per_packet(sp[s]->channel_coder, upp);
+                                                        sp[s]->num_encodings = 1;
+                                                }
+                                        }
+                                        continue;
+                                }
+                                
+                                secondary_cid = codec_get_by_name(secondary_name);
+
+                                if (!secondary_cid) {
+                                        debug_msg("%s\n", secondary_name);
+                                        secondary_name = rat3codec_to_rat4codec(secondary_name);
+                                        secondary_cid  = codec_get_by_name(secondary_name);
+                                        debug_msg("%s\n", secondary_name);
+                                }
+                                
+                                if (!secondary_cid) {
+                                        /* specified secondary does not exist */
+                                        debug_msg("Secondary does not exist\n");
+                                        continue; 
+                                }
+                                
+                                upp = channel_encoder_get_units_per_packet(sp[s]->channel_coder);
+                                num_channel_coders = channel_get_coder_count();
+                                for(idx = 0; idx < num_channel_coders; idx++) {
+                                        channel_get_coder_details(idx, &ccd);
+                                        if (tolower(ccd.name[0]) == 'r') {
+                                                char *cmd;
+                                                channel_encoder_destroy(&sp[s]->channel_coder);
+                                                channel_encoder_create(ccd.descriptor, &sp[s]->channel_coder);
+                                                channel_encoder_set_units_per_packet(sp[s]->channel_coder, upp);
+                                                cmd = (char*)xmalloc(2 * (CODEC_LONG_NAME_LEN + 4));
+                                                sprintf(cmd, "%s/%d/%s/%d",
+                                                        primary_name,
+                                                        0,
+                                                        secondary_name,
+                                                        1);
+                                                if (channel_encoder_set_parameters(sp[s]->channel_coder, cmd) == 0) {
+                                                        debug_msg("Red command failed: %s\n", cmd);
+                                                }
+                                                xfree(cmd);
+                                                sp[s]->num_encodings = 2;
+                                                sp[s]->encodings[1] = codec_get_payload(secondary_cid);
+                                        }
+                                }
+
 			}
 		}
 	}
