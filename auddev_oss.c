@@ -310,7 +310,12 @@ oss_pair_devices(void)
 			if (oss_test_device_pair(i, i+1)) {
 				debug_msg("Combining %s and %s\n", devices[i].audio_rdev, devices[i+1].audio_wdev);
 				memcpy(devices[i].audio_wdev, devices[i+1].audio_wdev, 16);
-				memcpy(devices[i].mixer_wdev, devices[i+1].mixer_wdev, 16);
+				if (strlen(devices[i+1].mixer_wdev) != 0) {
+					debug_msg("Second mixer is valid\n");
+					memcpy(devices[i].mixer_wdev, devices[i+1].mixer_wdev, 16);
+				} else {
+					debug_msg("Second mixer is invalid - assuming first is okay\n");
+				}
 				devices[i].audio_rfd = -1;
 				devices[i].audio_wfd = -1;
 				devices[i].mixer_rfd = -1;
