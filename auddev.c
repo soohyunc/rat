@@ -474,9 +474,10 @@ audio_device_is_open(audio_desc_t ad)
 int
 audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
-        audio_format format;
-        int iface, device, dev_idx;
-        int success;
+        audio_format 	format;
+        int 		iface, device, dev_idx;
+        int 		success;
+	char 		s[50];
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(ifmt != NULL);
@@ -542,29 +543,25 @@ audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                  * actual device formats store requested formats */
                 if (!audio_format_match(ifmt, fmts[dev_idx][AUDDEV_ACT_IFMT])) {
                         fmts[dev_idx][AUDDEV_REQ_IFMT] = audio_format_dup(ifmt);
-#ifdef DEBUG
-                        {
-                                char s[50];
-                                audio_format_name(fmts[dev_idx][AUDDEV_REQ_IFMT], s, 50);
-                                debug_msg("Requested Input: %s\n", s);
-                                audio_format_name(fmts[dev_idx][AUDDEV_ACT_IFMT], s, 50);
-                                debug_msg("Actual Input:    %s\n", s);
-                        }
-#endif
-                }
+			audio_format_name(fmts[dev_idx][AUDDEV_REQ_IFMT], s, 50);
+			debug_msg("Requested Input: %s\n", s);
+			audio_format_name(fmts[dev_idx][AUDDEV_ACT_IFMT], s, 50);
+			debug_msg("Actual Input:    %s\n", s);
+                } else {
+			audio_format_name(fmts[dev_idx][AUDDEV_ACT_IFMT], s, 50);
+			debug_msg("Input:  %s\n", s);
+		}
 
                 if (!audio_format_match(ofmt, fmts[dev_idx][AUDDEV_ACT_OFMT])) {
                         fmts[dev_idx][AUDDEV_REQ_OFMT] = audio_format_dup(ofmt);
-#ifdef DEBUG
-                        {
-                                char s[50];
-                                audio_format_name(fmts[dev_idx][AUDDEV_REQ_OFMT], s, 50);
-                                debug_msg("Requested Output: %s\n", s);
-                                audio_format_name(fmts[dev_idx][AUDDEV_ACT_OFMT], s, 50);
-                                debug_msg("Actual Output:    %s\n", s);
-                        }
-#endif
-                }
+			audio_format_name(fmts[dev_idx][AUDDEV_REQ_OFMT], s, 50);
+			debug_msg("Requested Output: %s\n", s);
+			audio_format_name(fmts[dev_idx][AUDDEV_ACT_OFMT], s, 50);
+			debug_msg("Actual Output:    %s\n", s);
+                } else {
+			audio_format_name(fmts[dev_idx][AUDDEV_ACT_OFMT], s, 50);
+			debug_msg("Output: %s\n", s);
+		}
 
                 if (fmts[dev_idx][AUDDEV_REQ_IFMT] || fmts[dev_idx][AUDDEV_REQ_OFMT]) {
                         convert_buf[dev_idx] = (sample*)xmalloc(DEVICE_REC_BUF); /* is this in samples or bytes ? */

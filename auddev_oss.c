@@ -357,27 +357,17 @@ int
 oss_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 {
         int 		read_len, available;
-#ifndef	HAVE_ALSA_AUDIO
-        audio_buf_info 	info;
-#endif
+	audio_buf_info	info;
 
         assert(audio_fd[ad] > 0);        
 
-#ifdef	HAVE_ALSA_AUDIO
-	available = read_bytes;
-#else
         /* Figure out how many bytes we can read before blocking... */
         ioctl(audio_fd[ad], SNDCTL_DSP_GETISPACE, &info);
         available = min(info.bytes, read_bytes);
-#endif
 
         read_len  = read(audio_fd[ad], (char *)buf, available);
 	if (read_len < 0) {
-#ifdef HAVE_ALSA_AUDIO
-		usleep(1);	/* timing bug in RAT? */
-#else
                 perror("audio_read");
-#endif
 		return 0;
         }
 
@@ -484,12 +474,15 @@ oss_audio_iport_set(audio_desc_t ad, audio_port_t port)
 
         switch (port) {
 		case AUDIO_MICROPHONE: 
+			debug_msg("Trying to select microphone input...\n");
 			recsrc = SOUND_MASK_MIC;  
 			break;
 		case AUDIO_LINE_IN:    
+			debug_msg("Trying to select line input...\n");
 			recsrc = SOUND_MASK_LINE; 
 			break;
 		case AUDIO_CD:         
+			debug_msg("Trying to select CD input...\n");
 			recsrc = SOUND_MASK_CD;   
 			break;
 		default:
@@ -507,6 +500,7 @@ oss_audio_iport_set(audio_desc_t ad, audio_port_t port)
                 gain = oss_audio_get_igain(ad);
                 iport = port;
                 oss_audio_set_igain(ad, gain);
+		debug_msg("...okay\n");
         } else {
                 debug_msg("Audio device doesn't support recording from port %d\n", port);
         }
@@ -587,14 +581,13 @@ oss_set_mode(audio_desc_t ad, int speed, int stereo)
 		return FALSE;
         }
 	if (sp != speed) {
-		debug_msg("Sampling clock skew: %d should be %d\n", sp, speed);
+		debug_msg("Sampling clock skew %dHz should be %dHz\n", sp, speed);
 	}
 	if (((100 * abs(sp - speed)) / speed) > 5) {
 		debug_msg("Sampling clock skew of more than 5%, mode disabled\n");
 		return FALSE;
 	}
         
-	debug_msg("...enabled\n");
         return TRUE;
 }
 
