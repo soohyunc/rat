@@ -485,7 +485,7 @@ luigi_audio_supports(audio_desc_t ad, audio_format *fmt)
         return FALSE;
 }
 
-void
+int
 luigi_audio_query_devices()
 {
         FILE *f;
@@ -504,6 +504,7 @@ luigi_audio_query_devices()
                 }
                 fclose(f);
         }
+        return (ndev);
 }
 
 int
