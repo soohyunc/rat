@@ -293,6 +293,7 @@ repair(int repair, rx_queue_element_struct *ip)
 	static virgin = 1;
 
 	rx_queue_element_struct *pp;
+        u_int32 size;
 	int i;
 
 	if (virgin) {
@@ -322,9 +323,12 @@ repair(int repair, rx_queue_element_struct *ip)
 	if (!pp->native_count) decode_unit(pp); /* XXX should never happen */
 	
 	assert(!ip->native_count);
-	ip->native_data[0] = (sample*)xmalloc(ip->comp_data[0].cp->sample_size*
-					      ip->comp_data[0].cp->channels*
-					      ip->comp_data[0].cp->unit_len);
+
+        size  = ip->comp_data[0].cp->sample_size *
+                ip->comp_data[0].cp->channels*
+                ip->comp_data[0].cp->unit_len;
+        ip->native_size[0] = size;
+	ip->native_data[0] = (sample*)block_alloc(size);
 	ip->native_count   = 1;
 
 	switch(repair) {

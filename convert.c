@@ -178,8 +178,8 @@ convert_format(rx_queue_element_struct *ip, int to_freq, int to_channels)
                 /* just doing number of channels conversion */
                 size  = cp->unit_len * to_channels * sizeof(sample);
         }
-
-        ip->native_data[ip->native_count] = (sample*)xmalloc(size);
+        ip->native_size[ip->native_count] = size;
+        ip->native_data[ip->native_count] = (sample*)block_alloc(size);
         ip->native_count++;
 
         if (converter && scale) {

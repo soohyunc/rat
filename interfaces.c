@@ -106,7 +106,7 @@ free_rx_unit(rx_queue_element_struct **temp_ptr)
 
 	for (i = 0; i < (*temp_ptr)->native_count; i++) {
 		if ((*temp_ptr)->native_data[i]) {
-			xfree((*temp_ptr)->native_data[i]);
+			block_free((*temp_ptr)->native_data[i], (*temp_ptr)->native_size[i]);
 		}
 	}
 
