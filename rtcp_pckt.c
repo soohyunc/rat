@@ -305,8 +305,8 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->cname = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->cname, sdes->data, lenstr);
 						dbe->sentry->cname[lenstr] = '\0';
-						if (ssrc == sp->db->myssrc && sp->db->sdes[RTCP_SDES_CNAME - 1] &&
-								strcmp(dbe->sentry->cname, sp->db->sdes[RTCP_SDES_CNAME - 1])) { 
+						if (ssrc == sp->db->myssrc && sp->db->my_dbe->sentry->cname &&
+								strcmp(dbe->sentry->cname, sp->db->my_dbe->sentry->cname)) { 
 							sp->db->old_ssrc   = sp->db->myssrc;
 							sp->db->myssrc     = lrand48();
 							sp->db->pkt_count  = 0;
@@ -454,27 +454,27 @@ rtcp_packet_fmt_sdes(session_struct *sp, u_int8 * ptr)
         /* specification. In other words, NAME is sent in RTCP packets 1,  */
         /* 4, 7, 10, 13, 16, 19, while, say, EMAIL is used in RTCP packet  */
         /* 22."                                                            */
-	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_CNAME, sp->db->sdes[RTCP_SDES_CNAME-1]);
+	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_CNAME, sp->db->my_dbe->sentry->cname);
 	sp->db->sdes_pri_count++;
 	if ((sp->db->sdes_pri_count % 3) == 0) {
 		sp->db->sdes_sec_count++;
 		if ((sp->db->sdes_sec_count % 8) == 0) {
 			sp->db->sdes_ter_count++;
 			switch (sp->db->sdes_ter_count % 4) {
-			case 0 : if (sp->db->sdes[RTCP_SDES_EMAIL-1] != NULL) {
-			         	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_EMAIL, sp->db->sdes[RTCP_SDES_EMAIL-1]);
+			case 0 : if (sp->db->my_dbe->sentry->email != NULL) {
+			         	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_EMAIL, sp->db->my_dbe->sentry->email);
 			  	 	break;
 			 	 } else {
 				   	dprintf("Can't send RTCP SDES EMAIL: NULL pointer\n");
 				 }
-			case 1 : if (sp->db->sdes[RTCP_SDES_PHONE-1] != NULL) {
-			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_PHONE, sp->db->sdes[RTCP_SDES_PHONE-1]);
+			case 1 : if (sp->db->my_dbe->sentry->phone != NULL) {
+			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_PHONE, sp->db->my_dbe->sentry->phone);
 			  	   	break;
 			 	 } else {
 				   	dprintf("Can't send RTCP SDES PHONE: NULL pointer\n");
 			 	 }
-			case 2 : if (sp->db->sdes[RTCP_SDES_LOC-1] != NULL) {
-			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_LOC, sp->db->sdes[RTCP_SDES_LOC-1]);
+			case 2 : if (sp->db->my_dbe->sentry->loc != NULL) {
+			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_LOC, sp->db->my_dbe->sentry->loc);
 			  	   	break;
 			 	 } else {
 				   	dprintf("Can't send RTCP SDES LOC: NULL pointer\n");
@@ -489,14 +489,13 @@ rtcp_packet_fmt_sdes(session_struct *sp, u_int8 * ptr)
 			         abort();
 			}
 		} else {
-			if (sp->db->sdes[RTCP_SDES_NAME-1] != NULL) {
-				len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_NAME, sp->db->sdes[RTCP_SDES_NAME-1]);
+			if (sp->db->my_dbe->sentry->name != NULL) {
+				len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_NAME, sp->db->my_dbe->sentry->name);
 			} else {
 				dprintf("Can't send RTCP SDES NAME: NULL pointer\n");
 			}
 		}
 	}
-
 	hdr->length = htons(len / 4);
 	for (i = len; i < ((int)(len / 4) + 1) * 4; i++) {
 		ptr[i] = 0;

@@ -148,7 +148,6 @@ typedef struct s_rtcp_dbentry {
 
 typedef struct rtp_db_tag {
 	u_int32         	 myssrc;
-	char           		*sdes[RTP_NUM_SDES];
 	u_int32         	 old_ssrc;
 	u_int32         	 pkt_count;
 	u_int32         	 byte_count;

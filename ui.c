@@ -678,9 +678,11 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 	Tk_DefineBitmap(interp, Tk_GetUid("rat2"), rat2_bits, rat2_width, rat2_height);
 
 	ui_send(sp->ui_script);
+	while (Tcl_DoOneEvent(TCL_ALL_EVENTS | TCL_DONT_WAIT)) {
+		/* Processing Tcl events, to allow the UI to initialize... */
+	};
 
 	ecname = xstrdup(mbus_encode_str(cname));
-	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "init", "", TRUE);
 	sprintf(args, "%s", ecname); 					mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "my_cname",       args, TRUE);
 	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "address",        args, TRUE);
 	sprintf(args, "%s %s", ecname, mbus_encode_str(RAT_VERSION));	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_tool",    args, TRUE);
@@ -690,7 +692,7 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 	xfree(ecname);
 
 	ui_codecs(sp);
-        mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "load_settings", "", TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "load_settings", "", TRUE);
 
 	Tcl_ResetResult(interp);
 	return TRUE;

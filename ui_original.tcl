@@ -165,16 +165,6 @@ proc mbus_recv {cmd args} {
   }
 }
 
-proc mbus_recv_init {} {
-	# RAT has initialised itself, and we're now ready to go. 
-	# Perform any last minute initialisation...
-}
-
-proc mbus_recv_settings {} {
-    # dumps all settings
-    sync_engine_to_ui
-}
-
 proc mbus_recv_load_settings {} {
     load_settings
     check_rtcp_name
@@ -194,7 +184,7 @@ proc mbus_recv_codec_supported {args} {
 }
 
 proc mbus_recv_settings {args} {
-    sync_engine_2_ui
+    sync_engine_to_ui
 }
 
 proc mbus_recv_agc {args} {
@@ -317,13 +307,7 @@ proc mbus_recv_my_cname {cname} {
 	global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc num_cname
 
 	set my_cname $cname
-	init_source $cname
-
-	mbus_send "R" "source_name"  "[mbus_encode_str $cname] [mbus_encode_str $rtcp_name]"
-	mbus_send "R" "source_email" "[mbus_encode_str $cname] [mbus_encode_str $rtcp_email]"
-	mbus_send "R" "source_phone" "[mbus_encode_str $cname] [mbus_encode_str $rtcp_phone]"
-	mbus_send "R" "source_loc"   "[mbus_encode_str $cname] [mbus_encode_str $rtcp_loc]"
-
+	init_source  $cname
 	cname_update $cname
 }
 
