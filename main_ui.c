@@ -60,7 +60,9 @@ int main(int argc, char *argv[])
 	struct timeval	 timeout;
 
 #ifdef WIN32
+        HANDLE     hWakeUpEvent;
         TkWinXInit(hAppInstance);
+        hWakeUpEvent = CreateEvent(NULL, FALSE, FALSE, "Local\\RAT UI WakeUp Event");
 #endif
 
 	debug_msg("rat-ui started argc=%d\n", argc);
@@ -121,7 +123,13 @@ int main(int argc, char *argv[])
 		}
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 40000;
+        /* Throttle CPU usage */
+#ifdef WIN32
+                /* Just timeout waiting for event that never happens */
+                WaitForSingleObject(hWakeUpEvent, 40);
+#else
                 select(0, NULL, NULL, NULL, &timeout);
+#endif
 	}
 
 	/* Close things down nicely... */
