@@ -2222,7 +2222,7 @@ label     .about.rim.d.credits.f.f.4 -foreground blue -text Bad
 label     .about.rim.d.credits.f.f.5                  -text "Additional Contributions:"
 label     .about.rim.d.credits.f.f.6 -foreground blue -text Ugly
 for {set i 1} {$i<=6} {incr i} {
-    pack  .about.rim.d.credits.f.f.$i -side top -fill x -anchor n
+    pack  .about.rim.d.credits.f.f.$i -side top -fill x -expand 0 -anchor n
 }
 
 frame     .about.rim.d.feedback 
@@ -2320,16 +2320,15 @@ proc shuffle_rats {args} {
     # This should really animate the movement and play fruit-machine sounds.... :-)
     set r ""
     set end [llength $args]
-    set l 0 
-    while { $l < $end } {
-	set toget [expr abs([clock clicks]) % [llength $args]]
-	set r [format "%s%s  " $r [lindex $args $toget]]
-	set args [lreplace $args $toget $toget]
-	lappend used $toget
-	if {$l >0 && [expr ($l + 1) % 3] == 0} {
-	    set r "$r\n"
-	}
-	incr l
+    set l 1 
+    while { $l <= $end } {
+		set toget [expr abs([clock clicks]) % [llength $args]]
+		set r [format "%s%s  " $r [lindex $args $toget]]
+		set args [lreplace $args $toget $toget]
+		if {$l != $end && [expr $l % 3] == 0} {
+			set r "$r\n"
+		}
+		incr l
     }
     return $r
 }
