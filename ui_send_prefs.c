@@ -240,7 +240,7 @@ void
 ui_send_loopback_gain(session_t *sp, char *addr)
 {
 	if (!sp->ui_on) return;
-        ui_update_boolean(sp, addr, "tool.rat.loopback", sp->loopback_gain);
+        ui_update_boolean(sp, addr, "tool.rat.loopback.gain", sp->loopback_gain);
 }
 
 void
