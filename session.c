@@ -127,8 +127,9 @@ session_init(session_t *sp)
 
         conv                            = converter_get_details(0);
         sp->converter                   = conv->id;
-	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); 	/* this is the global clock */
-        assert(!(GLOBAL_CLOCK_FREQ%cf->format.sample_rate));                	/* just in case someone adds weird freq codecs */
+	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
+        sp->cur_ts   = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), 0);
+        assert(!(GLOBAL_CLOCK_FREQ % cf->format.sample_rate));               /* just in case someone adds weird freq codecs */
 	sp->mode         		= AUDIO_TOOL;	
         sp->rtp_session_count           = 0;
 	for (i = 0; i < MAX_LAYERS; i++) {
@@ -169,6 +170,8 @@ session_init(session_t *sp)
 
         strcpy(sp->title, "Untitled Session");
 	strcpy(sp->asc_address[0], "127.0.0.3");	/* Yeuch! This value should never be used! */
+
+
 }
 
 void
