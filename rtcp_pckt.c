@@ -356,7 +356,11 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 	rptr->jitter   = htonl((u_long) dbe->jitter);
 
 	rptr->lsr      = htonl(dbe->last_sr);
-	rptr->dlsr     = htonl(ntp_time32() - dbe->last_sr_rx);
+	if (dbe->last_sr_rx != 0) {
+		rptr->dlsr = htonl(ntp_time32() - dbe->last_sr_rx);
+	} else {
+		rptr->dlsr = 0;
+	}
 	return ptr + 24;
 }
 
@@ -511,7 +515,11 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 					dbe->last_rr_for_me = cur_time;
 					ui_update_loss(sp, dbe->sentry->ssrc, sp->db->my_dbe->sentry->ssrc, (int) ((rr->fraction_lost / 2.56)+0.5)); 
 					/* Work out the round-trip-time... */
-					debug_msg("rtt %x %f\n", ntohl(pkt->r.sr.ssrc), ((double) (real_time - rr->lsr - rr->dlsr)) / 65536.0);
+					if (rr->dlsr == 0) {
+						debug_msg("rtt unknown\n");
+					} else {
+						debug_msg("rtt %x %f\n", ntohl(pkt->r.sr.ssrc), ((double) (real_time - rr->lsr - rr->dlsr)) / 65536.0);
+					}
 				}
 			}
 			break;

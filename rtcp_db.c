@@ -220,7 +220,8 @@ rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 cur_time)
 	newdb->first_pckt_flag 		= TRUE;
         newdb->enc                      = -1;
         newdb->enc_fmt                  = NULL;
-	return (newdb);
+	newdb->last_sr_rx		= 0;
+	return newdb;
 }
 
 rtcp_dbentry   *
