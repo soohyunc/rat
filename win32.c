@@ -158,16 +158,6 @@ nice(int pri)
     return 0;
 }
 
-#ifdef NDEF
-void
-Tk_MainLoop()
-{
-    while (Tk_GetNumMainWindows() > 0) {
-	Tk_DoOneEvent(0);
-    }
-}
-#endif
-
 extern void TkWinXInit(HINSTANCE hInstance);
 extern int main(int argc, const char *argv[]);
 extern int __argc;
@@ -256,7 +246,6 @@ fprintf(FILE *f, const char *fmt, ...)
     if (f == stderr) {
 	retval = vsprintf(szTemp, fmt, ap);
 	OutputDebugString(szTemp);
-	ShowMessage(MB_ICONERROR, szTemp);
 	va_end (ap);
     }
     else
@@ -372,11 +361,7 @@ WinPutsCmd(clientData, interp, argc, argv)
 }
 
 int
-WinGetUserName(clientData, interp, argc, argv)
-    ClientData clientData;
-    Tcl_Interp *interp;			/* Current interpreter. */
-    int argc;				/* Number of arguments. */
-    char **argv;			/* Argument strings. */
+WinGetUserName(ClientData clientData, Tcl_Interp *interp, int argc, char **argv)
 {
     char user[256];
     int size = sizeof(user);
@@ -544,14 +529,14 @@ wru:
 }
 
 int
-RegGetValue(HKEY key, char *subkey, char *value, char *dst, int dlen)
+RegGetValue(HKEY* key, char *subkey, char *value, char *dst, int dlen)
 {
 	HKEY lkey;	
 	LONG r;
 	LONG len;
 	DWORD type;
 
-	r = RegOpenKeyEx(key, subkey, 0, KEY_READ, &lkey);
+	r = RegOpenKeyEx(*key, subkey, 0, KEY_READ, &lkey);
 
 	if (ERROR_SUCCESS == r) {
 		r = RegQueryValueEx(lkey, value, 0, &type, NULL, &len);
@@ -569,6 +554,20 @@ RegGetValue(HKEY key, char *subkey, char *value, char *dst, int dlen)
 	}
 	RegCloseKey(lkey);
 	return TRUE;
+}
+
+int 
+strncasecmp(const char *s1, const char *s2, int len)
+{
+        int match = 1;
+        while (len > 0 && 
+               (match = (tolower(*s1) - tolower(*s2))) == 0 &&
+                *s1) {
+                s1++;
+                s2++;
+                len--;
+        }
+        return (match);
 }
 
 #endif /* WIN32 */

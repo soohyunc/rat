@@ -268,6 +268,7 @@ extern "C" {
 int uname(struct utsname *);
 int getopt(int, char * const *, const char *);
 int strcasecmp(const char *, const char *);
+int strncasecmp(const char *, const char*, int len);
 int srandom(int);
 int random(void);
 double drand48();
@@ -278,6 +279,8 @@ int getgid(void);
 int getpid(void);
 int nice(int);
 time_t time(time_t *);
+
+int RegGetValue(HKEY *, char *, char*, char*, int);
 
 #define bcopy(from,to,len) memcpy(to,from,len)
 
