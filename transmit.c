@@ -85,6 +85,8 @@ typedef struct s_tx_buffer {
         tx_unit        *spare_ptr;     
         u_int32         spare_cnt;
         u_int32         alloc_cnt;
+        /* Statistics log */
+        double          mean_read_dur;
 } tx_buffer;
 
 static sample dummy_buf[DEVICE_REC_BUF];
@@ -243,6 +245,7 @@ tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
         tb->agc      = agc_create(sp);
         tb->unit_dur = unit_dur;
         tb->channels = channels;
+        tb->mean_read_dur = unit_dur;
 
         if (sp->mode != TRANSCODER) {
                 audio_drain(sp->audio_device);
@@ -336,6 +339,16 @@ tx_read_audio(session_struct *sp)
 			time_advance(sp->clock, 8000, read_dur);
 		}
         }
+        
+        if ((double)read_dur > 5.0 * sp->tb->mean_read_dur) {
+                debug_msg("Cleared transmit buffer because read_len big (%d cf %0.0f)\n",
+                          read_dur,
+                          sp->tb->mean_read_dur);
+                transmit_audit(sp->tb);
+        } else if (read_dur > 0) {
+                sp->tb->mean_read_dur += ((double)read_dur - sp->tb->mean_read_dur) / 8.0;
+        }
+
         return read_dur;
 }
 
