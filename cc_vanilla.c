@@ -53,7 +53,7 @@
 typedef struct {
         /* Encoder state is just buffering of media data to compose a packet */
         codec_id_t  codec_id;
-        u_int32     playout;
+        ts_t        playout;
         u_int32     nelem;
         media_data *elem[MAX_UNITS_PER_PACKET];
 } ve_state;
@@ -142,7 +142,7 @@ vanilla_encoder_output(ve_state *ve, struct s_playout_buffer *out)
                            (u_char*)cd, 
                            sizeof(channel_data), 
                            ve->playout);
-        debug_msg("added %u\n", ve->playout);
+        debug_msg("added %u\n", ve->playout.ticks);
 }
 
 int
@@ -151,7 +151,8 @@ vanilla_encoder_encode (u_char                  *state,
                         struct s_playout_buffer *out,
                         u_int32                  upp)
 {
-        u_int32     playout, m_len;
+        u_int32     m_len;
+        ts_t        playout;
         media_data *m;
         ve_state   *ve = (ve_state*)state;
 
@@ -203,7 +204,7 @@ vanilla_encoder_encode (u_char                  *state,
 
 
 __inline static void
-vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, u_int32 playout)
+vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, ts_t playout)
 {
         const codec_format_t *cf;
         codec_id_t            id;
@@ -239,7 +240,7 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, u_int32 p
         /* Now do other units which do not have state*/
         playout_step = codec_get_samples_per_frame(id);
         while(p < end) {
-                playout += playout_step;
+                playout = ts_add(playout, playout_step);
                 media_data_create(&m, 1);
 
                 assert(m->nrep == 1);
@@ -256,14 +257,15 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, u_int32 p
 }
 
 int
-vanilla_decoder_decode(u_char *state,
+vanilla_decoder_decode(u_char                  *state,
                        struct s_playout_buffer *in, 
                        struct s_playout_buffer *out, 
-                       u_int32 now)
+                       ts_t                     now)
 {
-        channel_unit           *cu;
-        channel_data         *c;
-        u_int32               playout, clen;
+        channel_unit *cu;
+        channel_data *c;
+        u_int32       clen;
+        ts_t          playout;
 
         assert(state == NULL); /* No decoder state needed */
                 

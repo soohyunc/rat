@@ -17,10 +17,10 @@ CC_OBJS    = new_channel.o channel_types.o cc_vanilla.o
 
 TOY_OBJS   = convert.o crypt.o render_3D.o repair.o sndfile.o 
 
-CORE_OBJS  = playout.o source.o mbus_engine.o audio.o cushion.o main.o \
+CORE_OBJS  = ts.o playout.o statistics.o source.o mbus_engine.o audio.o cushion.o main.o \
              mbus_ui.o mix.o net.o parameters.o pckt_queue.o \
              rtcp.o rtcp_db.o rtcp_pckt.o session.o \
-             statistics.o tcltk.o timers.o transmit.o transcoder.o \
+             tcltk.o timers.o transmit.o transcoder.o \
              ui.o ui_audiotool.o ui_transcoder.o
 
 OBJS = $(AUDIO_OBJS) $(CODEC_OBJS) $(CC_OBJS) $(TOY_OBJS) $(CORE_OBJS)

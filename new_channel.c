@@ -41,7 +41,7 @@
 #include "codec_types.h"
 #include "new_channel.h"
 #include "playout.h"
-
+#include "ts.h"
 #include "memory.h"
 
 typedef struct s_channel_state {
@@ -85,7 +85,7 @@ typedef struct {
         int     (*dec_decode)         (u_char                  *state, 
                                        struct s_playout_buffer *in, 
                                        struct s_playout_buffer *out,
-                                       u_int32                  now);
+                                       ts_t                     now);
         int     (*dec_peek)           (u_int8                   ccpt,
                                        u_char                  *data,
                                        u_int32                  len,
@@ -144,7 +144,7 @@ channel_get_null_coder(void)
 
 /* The create, destroy, and reset functions take the same arguments and so use
  * is_encoder to determine which function in the table to call.  It's dirty
- * but it saves typing.
+ * but it saves typing.  This should be undone at some time [oh]
  */
 
 int
@@ -280,7 +280,7 @@ int
 channel_decoder_decode(channel_state_t         *cs, 
                        struct s_playout_buffer *media_buffer, 
                        struct s_playout_buffer *channel_buffer,
-                       u_int32                  now)
+                       ts_t                     now)
 {
         assert(table[cs->coder].dec_decode != NULL);
         return table[cs->coder].dec_decode(cs->state, media_buffer, channel_buffer, now);

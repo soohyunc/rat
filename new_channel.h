@@ -86,7 +86,7 @@ int       channel_encoder_encode (struct s_channel_state  *cs,
 int       channel_decoder_decode (struct s_channel_state  *cs, 
                                   struct s_playout_buffer *channel_buffer,
                                   struct s_playout_buffer *media_buffer, 
-                                  u_int32                  now);
+                                  ts_t                     now);
 
 int       channel_decoder_matches (cc_id_t                 cid, 
                                    struct s_channel_state *cs);
