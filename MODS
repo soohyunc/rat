@@ -1469,6 +1469,8 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 	- Change G726-32 packing to fit AVT profile.  Because of packing order
 	  difference this and future versions will not be interoperable with
 	  previous RAT releases.
+	- Set initial cushion size to zero to force audio_rw_process to write
+	  an empty cushion of audio after device is opened.
 
 TODO -- They're features not bugs dammit!
 ----

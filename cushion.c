@@ -32,13 +32,13 @@ static const char cvsid[] =
 #define HISTORY_SIZE	 250
 #define MIN_COVER	 ((float)HISTORY_SIZE * SAFETY)
 #define CUSHION_MAX_MS	 500
-#define CUSHION_MIN_MS	 40
+#define CUSHION_MIN_MS	 50
 #define CUSHION_STEP_MS  10
 
 /* Initial cushion value is high, but should guarantee no interruptions and 
  * will come down during silent periods anyway
  */
-#define CUSHION_START_MS 70
+#define CUSHION_START_MS 40
 
 /* All cushion measurements are in sampling intervals, not samples ! [oth] */
 
@@ -70,7 +70,8 @@ cushion_create(cushion_t **c, uint16_t sample_rate)
         nc->cushion_min      = CUSHION_MIN_MS   * sample_rate / 1000;
         nc->cushion_max      = CUSHION_MAX_MS   * sample_rate / 1000;
         cushion_start        = CUSHION_START_MS * sample_rate / 1000;
-        nc->cushion_size     = nc->cushion_estimate = cushion_start;
+        nc->cushion_size     = 0;
+	nc->cushion_estimate = cushion_start;
 	nc->cushion_step     = CUSHION_STEP_MS  * sample_rate / 1000;
 
 	nc->read_history     = (uint32_t *)xmalloc(HISTORY_SIZE * sizeof(uint32_t));
@@ -167,7 +168,6 @@ cushion_update(cushion_t *c, uint32_t read_dur, int mode)
 #ifdef DEBUG_CUSHION
         debug_msg("size % 3d cur % 3d\n", c->cushion_size, c->cushion_estimate);
 #endif /* DEBUG_CUSHION */
-        assert(c->cushion_size     != 0);
         assert(c->cushion_estimate != 0);
 }
 
