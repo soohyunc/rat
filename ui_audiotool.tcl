@@ -159,15 +159,16 @@ proc mbus_recv {cmnd args} {
 		tool.rat.channels  		{eval mbus_recv_tool.rat.channels $args}
 		tool.rat.codec  		{eval mbus_recv_tool.rat.codec $args}
 		tool.rat.rate  			{eval mbus_recv_tool.rat.rate $args}
-		tool.rat.3d.enabled  		{eval mbus_recv_tool.rat.3d.enabled $args}
 		tool.rat.lecture.mode  		{eval mbus_recv_tool.rat.lecture.mode $args}
 		tool.rat.disable.audio.ctls  	{eval mbus_recv_tool.rat.disable.audio.ctls $args}
 		tool.rat.enable.audio.ctls  	{eval mbus_recv_tool.rat.enable.audio.ctls $args}
 		tool.rat.audio.buffered  	{eval mbus_recv_tool.rat.audio.buffered $args}
+		tool.rat.3d.enabled  		{eval mbus_recv_tool.rat.3d.enabled $args}
 		tool.rat.3d.azimuth.min         {eval mbus_recv_tool.rat.3d.azimuth.min $args}
 		tool.rat.3d.azimuth.max         {eval mbus_recv_tool.rat.3d.azimuth.max $args}
 		tool.rat.3d.filter.types        {eval mbus_recv_tool.rat.3d.filter.types   $args}
 		tool.rat.3d.filter.lengths      {eval mbus_recv_tool.rat.3d.filter.lengths $args}
+		tool.rat.3d.user.settings       {eval mbus_recv_tool.rat.3d.user.settings  $args}
 		audio.suppress.silence  	{eval mbus_recv_audio.suppress.silence $args}
 		audio.channel.coding  		{eval mbus_recv_audio.channel.coding $args}
 		audio.channel.repair 		{eval mbus_recv_audio.channel.repair $args}
@@ -471,11 +472,6 @@ proc mbus_recv_session.address {addr port ttl} {
     set session_address "Address: $addr Port: $port TTL: $ttl"
 }
 
-proc mbus_recv_tool.rat.3d.enabled {mode} {
-	global 3d_audio_var
-	set 3d_audio_var $mode
-}
-
 proc mbus_recv_tool.rat.lecture.mode {mode} {
 	global lecture_var
 	set lecture_var $mode
@@ -560,6 +556,11 @@ proc mbus_recv_tool.rat.audio.buffered {cname buffered} {
 # we don't update cname as source.packet.duration always follows 
 }
 
+proc mbus_recv_tool.rat.3d.enabled {mode} {
+	global 3d_audio_var
+	set 3d_audio_var $mode
+}
+
 proc mbus_recv_tool.rat.3d.azimuth.min {min} {
     global 3d_azimuth
     set 3d_azimuth(min) $min
@@ -579,6 +580,14 @@ proc mbus_recv_tool.rat.3d.filter.lengths {args} {
     global 3d_filter_lengths
     puts "$args"
     set 3d_filter_lengths [split $args ","]
+}
+
+proc mbus_recv_tool.rat.3d.user.settings {args} {
+    global filter_type filter_length azimuth
+    set cname                 [lindex $args 0]
+    set filter_type($cname)   [lindex $args 1]
+    set filter_length($cname) [lindex $args 2]
+    set azimuth($cname)       [lindex $args 3]
 }
 
 proc mbus_recv_rtp.source.packet.loss {dest srce loss} {
@@ -914,6 +923,9 @@ proc toggle_stats {cname} {
 	stats_add_field $win.df.reception.b "Units dropped (jitter): " JIT_TOGED($cname)
 
 # 3D settings
+	# Trigger engine to send details for this participant
+	mbus_send "R" "tool.rat.3d.user.settings.request" [mbus_encode_str $cname]
+
 	frame $win.df.3d -relief sunk
 	label $win.df.3d.advice -text "These options allow the rendering of the\nparticipant to be altered when 3D\nrendering is enabled."
 	checkbutton $win.df.3d.ext -text "3D Audio Rendering" -variable 3d_audio_var
@@ -967,7 +979,7 @@ proc toggle_stats {cname} {
 	pack   $win.df.3d.apply -side left -fill x -expand 1 -anchor s
 
 # Window Magic 
-	button $win.d -highlightthickness 0 -padx 0 -pady 0 -text "Dismiss" -command "destroy $win" 
+	button $win.d -highlightthickness 0 -padx 0 -pady 0 -text "Dismiss" -command "destroy $win; 3d_delete_parameters $cname" 
 	pack $win.d -side bottom -fill x
 	wm title $win "Participant $NAME($cname)"
 	wm resizable $win 1 0
@@ -982,6 +994,16 @@ proc 3d_send_parameters {cname} {
     mbus_send "R" "tool.rat.3d.user.settings" "[mbus_encode_str $cname] [mbus_encode_str $filter_type($cname)] $filter_length($cname) $azimuth($cname)"
 }
 
+proc 3d_delete_parameters {cname} {
+    global filter_type filter_length azimuth
+    
+# None of these should ever fail, but you can't be too defensive...
+    catch {
+	unset filter_type($cname)
+	unset filter_length($cname)
+	unset azimuth($cname)
+    }
+}
 
 proc do_quit {} {
 	catch {

@@ -66,26 +66,31 @@
 #define UPPER_AZIMUTH  90
 #define IDENTITY_FILTER 0
 
+typedef struct s_3d_filter {
+        char   name[16];
+        double elem[32];
+} three_d_filter_t;
 
-static char * filter_names[] = {"Identity",
-                                "HRTF",
-                                "Echo"};
+static three_d_filter_t base_filters[] = {
+        {"Identity", 
+         { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }
+        },
+        {"HRTF", 
+         { 0.063113, -0.107530, 0.315168, 0.015218, -0.300535, 1.000000, 0.359786, -0.601145, -0.676947,
+           -0.167251, 0.203305, 0.261645, 0.059649, 0.026661, -0.011648, -0.335958, -0.276208, 0.037719,
+           0.154546, 0.141399, -0.000902, -0.031835, -0.098318, -0.058072, -0.033449, 0.030325, 0.041670,
+           -0.001182, -0.019692, -0.031318, -0.028427, -0.003031 }
+        },
+        {"Echo", 
+         { 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+           0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+           0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+           0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }
+        }
+};
 
-#define NUM_FILTERS (sizeof(filter_names) / sizeof(filter_names[0]))
-
-typedef struct s_render_3D_dbentry {
-        short    azimuth;                             /* lateral angle of sound source */
-        short    delay;                               /* based on interaural time difference (ITD); derived from 'azimuth' */
-        float    attenuation;                         /* based on interaural intensity difference (IID); derived from 'azimuth' */
-        sample   ipsi_buf[MAX_PACKET_SAMPLES];        /* buffer for ipsi-lateral channel before merging into stereo buffer */
-        sample   contra_buf[MAX_PACKET_SAMPLES];      /* buffer for contra-lateral channel before merging into stereo buffer */
-        sample   tmp_buf[64];                         /* temporary storage for swapping samples */
-        sample   excess_buf[64];                      /* buffer for excess samples due to delay */
-        char     filter_name;
-        double   filter[MAX_RESPONSE_LENGTH];         /* filter used for convolution */
-        double   overlap_buf[MAX_RESPONSE_LENGTH];    /* overlap buffer due to filter operation on the mono signal */
-        int      response_length;
-} render_3D_dbentry;
+#define NUM_FILTERS (sizeof(base_filters) / sizeof(three_d_filter_t))
 
 int
 render_3D_filter_get_count()
@@ -96,8 +101,8 @@ render_3D_filter_get_count()
 char *
 render_3D_filter_get_name(int id)
 {
-        if (id >= 0 && id < (signed)NUM_FILTERS) return filter_names[id];
-        return filter_names[IDENTITY_FILTER];
+        if (id >= 0 && id < (signed)NUM_FILTERS) return base_filters[id].name;
+        return base_filters[IDENTITY_FILTER].name;
 }
 
 int
@@ -105,7 +110,7 @@ render_3D_filter_get_by_name(char *name)
 {
         int i;
         for(i = 0; i < (signed)NUM_FILTERS; i++) {
-                if (!strcasecmp(name, filter_names[i])) return i;
+                if (!strcasecmp(name, base_filters[i].name)) return i;
         }
         return IDENTITY_FILTER;
 }
@@ -139,6 +144,20 @@ render_3D_filter_get_upper_azimuth()
 {
         return UPPER_AZIMUTH;
 }
+
+typedef struct s_render_3D_dbentry {
+        u_char   filter_number;                       /* Index number of original filter */
+        short    azimuth;                             /* lateral angle of sound source */
+        short    delay;                               /* based on interaural time difference (ITD); derived from 'azimuth' */
+        float    attenuation;                         /* based on interaural intensity difference (IID); derived from 'azimuth' */
+        sample   ipsi_buf[MAX_PACKET_SAMPLES];        /* buffer for ipsi-lateral channel before merging into stereo buffer */
+        sample   contra_buf[MAX_PACKET_SAMPLES];      /* buffer for contra-lateral channel before merging into stereo buffer */
+        sample   tmp_buf[64];                         /* temporary storage for swapping samples */
+        sample   excess_buf[64];                      /* buffer for excess samples due to delay */
+        double   filter[MAX_RESPONSE_LENGTH];         /* filter used for convolution */
+        double   overlap_buf[MAX_RESPONSE_LENGTH];    /* overlap buffer due to filter operation on the mono signal */
+        int      response_length;
+} render_3D_dbentry;
 
 render_3D_dbentry *
 render_3D_init(session_struct *sp)
@@ -187,29 +206,8 @@ render_3D_set_parameters(struct s_render_3D_dbentry *p_3D_data, int sampling_rat
         double d_time;         /* delay in seconds. auxiliary to calculate delay in samples. */
         double d_intensity;    /* interaural intensity difference 0.0 <d_intensity < 1.0 */
 
-        double   filters[][32] = { { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
-                                   { 0.063113, -0.107530, 0.315168, 0.015218, -0.300535, 1.000000, 0.359786, -0.601145, -0.676947,
-                                     -0.167251, 0.203305, 0.261645, 0.059649, 0.026661, -0.011648, -0.335958, -0.276208, 0.037719,
-                                     0.154546, 0.141399, -0.000902, -0.031835, -0.098318, -0.058072, -0.033449, 0.030325, 0.041670,
-                                     -0.001182, -0.019692, -0.031318, -0.028427, -0.003031 },
-                                   { 0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                     0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 } };
-        double   *filter_set[NUM_FILTERS];
-
         debug_msg("rate %d azimuth %d filter %d length %d\n",
                   sampling_rate, azimuth, filter_number, length);
-
-        /* Identity filter */
-        filter_set[0] = *(filters+0);
-
-        /* HRTF filter */
-        filter_set[1] = *(filters+1);
-
-        /* simple echo filter */
-        filter_set[2] = *(filters+2);
 
         p_3D_data->azimuth = azimuth;
 
@@ -224,28 +222,23 @@ render_3D_set_parameters(struct s_render_3D_dbentry *p_3D_data, int sampling_rat
 
         /* fill up participant's response filter */
         p_3D_data->response_length = length;
-        switch(filter_number) {
-        case 0:
-                /* filter_set[0] is a pointer to the identity filter (decimation and extraction of MST are superfluous */
-                for (i=0; i<MAX_RESPONSE_LENGTH; i++) {
-                        p_3D_data->filter[i] = *(filter_set[0] + i);
-                }
-                break;
-        case 1:
-                /* filter_set[1] is a pointer to the HRTF data set and serves as input to decimation and extraction of MST */
-                /* the output of this operation goes into p_3D_data->filter[] */
-                /* right now it's only a copying of values */
-                for (i=0; i<MAX_RESPONSE_LENGTH; i++) {
-                        p_3D_data->filter[i] = *(filter_set[1] + i);
-                }
-                break;
-        case 2:
-                /* filter_set[2] is a pointer to a simple echo filter */
-                for (i=0; i<MAX_RESPONSE_LENGTH; i++) {
-                        p_3D_data->filter[i] = *(filter_set[2] + i);
-                }
-                break;
+
+        assert((unsigned)filter_number < NUM_FILTERS);
+
+        p_3D_data->filter_number = filter_number;
+
+        /* right now it's only a copying of values, later decimation */
+        for (i=0; i<MAX_RESPONSE_LENGTH; i++) {
+                p_3D_data->filter[i] = base_filters[filter_number].elem[i];
         }
+}
+
+void
+render_3D_get_parameters(struct s_render_3D_dbentry *p_3D_data, int *azimuth, int *filter_type, int *filter_length)
+{
+        *azimuth       = p_3D_data->azimuth;
+        *filter_type   = p_3D_data->filter_number;
+        *filter_length = p_3D_data->response_length;
 }
 
 #ifdef NDEF

@@ -191,6 +191,28 @@ static void rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct 
 	mbus_parse_done(sp->mbus_engine_conf);
 }
 
+static void
+rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_struct *sp)
+{
+        char *cname;
+        rtcp_dbentry *e = NULL;
+
+	UNUSED(srce);
+
+        mbus_parse_init(sp->mbus_engine_conf, args);
+	if (mbus_parse_str(sp->mbus_engine_conf, &cname)) {
+                mbus_decode_str(cname);
+                e = rtcp_get_dbentry_by_cname(sp, cname);
+        }
+        mbus_parse_done(sp->mbus_engine_conf);
+
+        if (e) {
+                ui_info_3d_settings(sp, e);
+        } else {
+                debug_msg("User with cname (%s) not found\n", cname);
+        }
+}
+
 static void rx_tool_rat_lecture(char *srce, char *args, session_struct *sp)
 {
 	int i;
@@ -986,6 +1008,7 @@ const char *rx_cmnd[] = {
 	"tool.rat.lecture",
 	"tool.rat.3d.enabled",
         "tool.rat.3d.user.settings",
+        "tool.rat.3d.user.settings.request",
 	"tool.rat.agc",
         "tool.rat.loopback",
         "tool.rat.echo.suppress",
@@ -1038,6 +1061,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_tool_rat_lecture,
 	rx_tool_rat_3d_enable,
         rx_tool_rat_3d_user_settings,
+        rx_tool_rat_3d_user_settings_req,
 	rx_tool_rat_agc,
         rx_tool_rat_audio_loopback,
         rx_tool_rat_echo_suppress,

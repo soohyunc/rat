@@ -56,6 +56,7 @@ void	          ui_info_mute(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	        ui_info_remove(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	      ui_info_activate(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	    ui_info_deactivate(struct session_tag *s, struct s_rtcp_dbentry *e);
+void  	    ui_info_3d_settings(struct session_tag *s, struct s_rtcp_dbentry *e);
 
 void	ui_show_audio_busy(struct session_tag *s);
 void	ui_hide_audio_busy(struct session_tag *s);

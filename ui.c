@@ -237,6 +237,27 @@ ui_info_deactivate(session_struct *sp, rtcp_dbentry *e)
 }
 
 void
+ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e)
+{
+        char *cname, *filter_name, *msg;
+        int   azimuth, filter_type, filter_length;
+
+        if (e->render_3D_data == NULL) {
+                e->render_3D_data = render_3D_init(sp);
+        }
+
+        render_3D_get_parameters(e->render_3D_data, &azimuth, &filter_type, &filter_length);
+        cname       = mbus_encode_str(e->sentry->cname);
+        filter_name = mbus_encode_str(render_3D_filter_get_name(filter_type));
+        msg = (char*)xmalloc(strlen(cname) + strlen(filter_name) + 10);
+        sprintf(msg, "%s %s %d %d", cname, filter_name, filter_length, azimuth);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.3d.user.settings", msg, TRUE);
+        xfree(cname);
+        xfree(filter_name);
+        xfree(msg);
+}
+
+void
 ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 {
 	char	*my_cname, *their_cname, *args, *mbes;

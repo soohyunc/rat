@@ -180,6 +180,13 @@ rtcp_get_dbentry_by_cname(session_struct *sp, char *cname)
 		dptr = dptr->next;
 	}
 
+        if (!dptr) {
+                dptr = sp->db->my_dbe;
+                if (!strcmp(dptr->sentry->cname, cname)) {
+			return (dptr);
+		}
+        }
+
 	return NULL;
 }
 
