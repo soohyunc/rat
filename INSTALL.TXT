@@ -1,13 +1,5 @@
-IMPORTANT
----------
+The Robust Audio Tool application depends on Tcl/Tk8.0 installed.
 
-For RAT to run on Windows you must have Tcl/Tk (version 8.0p2) installed.
-If have a different version of Tcl/Tk installed it is unlikely to work.
+As the setup completes Tcl/Tk8.0p2 will be installed on your machine.
 
-You can find this at:
 
-        ftp://ftp.scriptcs.com/pub/tcl/tcl8_0/tcl80p2.exe
-
-Or on the UCL ftp server at:
-
-        ftp://cs.ucl.ac.uk/mice/rat/tcl/tcl80p2.exe
