@@ -194,7 +194,7 @@ main(int argc, char *argv[])
                         if (sp[i]->sending_audio || sp[i]->last_tx_service_productive) {
                                 tx_send(sp[i], sp[1-i]->speakers_active);
                         }
-			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time);
+			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time, num_sessions);
 			service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, sp[i]->ms);
 			if (sp[i]->mode == TRANSCODER) {
 				service_rtcp(sp[i], sp[1-i], rtcp_pckt_queue_p[i], cur_time);
@@ -226,7 +226,7 @@ main(int argc, char *argv[])
                          * pause to drain before closing.
                          */
                         if (sp[i]->next_encoding != -1) {
-                                network_process_mbus(&sp[i], num_sessions, 100);
+                                network_process_mbus(sp, num_sessions, 100);
                                 audio_device_reconfigure(sp[i]);
                         }
 		}
