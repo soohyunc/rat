@@ -1385,7 +1385,7 @@ proc load_settings {} {
     load_setting attr rtpPhone rtcp_phone    ""
     load_setting attr rtpLoc   rtcp_loc      ""
     # transmission
-    load_setting attr audioFrequency         freq          "8kHz"
+    load_setting attr audioFrequency         freq          "8-kHz"
     load_setting attr audioChannels          channels      "Mono"
     load_setting attr audioPrimary           prenc         "GSM"
     load_setting attr audioUnits             upp           "2"
