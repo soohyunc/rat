@@ -305,7 +305,6 @@ adapt_playout(rtp_hdr_t *hdr,
 		rtp_time = sp->db->map_rtp_time + (((play_time - sp->db->map_ntp_time) * get_freq(src->clock)) >> 16);
                 playout = rtp_time;
 		src->playout = playout - hdr->ts;
-printf("\t%u\t%u\t%u\t%u\t%d\n", (unsigned int)hdr->ts,  (unsigned int)sendtime, (unsigned int)real_time, (unsigned int)playout, ntp_delay);
 	}
         else {
 		playout = hdr->ts + src->playout;
