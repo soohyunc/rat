@@ -513,7 +513,7 @@ parse_addr(char *arg, char **addr, int *rx_port, int *tx_port)
 		*rx_port = port;
         }
 
-        *tx_port = DEFAULT_RTP_PORT;
+        *tx_port = *rx_port;
         token = strtok(NULL, "/");
         if (token) {
                 port     = atoi(token);
