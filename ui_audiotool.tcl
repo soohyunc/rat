@@ -201,6 +201,8 @@ proc mbus_recv {cmnd args} {
 		tool.rat.playout.limit          {eval mbus_recv_tool.rat.playout.limit $args}
 		tool.rat.playout.min            {eval mbus_recv_tool.rat.playout.min   $args}
 		tool.rat.playout.max            {eval mbus_recv_tool.rat.playout.max   $args}
+		tool.rat.echo.suppress          {eval mbus_recv_tool.rat.echo.suppress $args}
+		tool.rat.loopback               {eval mbus_recv_tool.rat.loopback      $args}
 		audio.suppress.silence  	{eval mbus_recv_audio.suppress.silence $args}
 		audio.channel.coding  		{eval mbus_recv_audio.channel.coding $args}
 		audio.channel.repair 		{eval mbus_recv_audio.channel.repair $args}
@@ -1011,19 +1013,29 @@ proc mbus_recv_audio.file.record.alive {alive} {
 	}
 }
 
-proc mbus_recv_tool.rat.playout.limit {do_limit} {
+proc mbus_recv_tool.rat.playout.limit {e} {
     global limit_var
-    set limit_var $do_limit
+    set limit_var $e
 }
 
-proc mbus_recv_tool.rat.playout.min {lower_bound} {
+proc mbus_recv_tool.rat.playout.min {l} {
     global min_var
-    set min_var $lower_bound
+    set min_var $l
 }
 
-proc mbus_recv_tool.rat.playout.max {upper_bound} {
+proc mbus_recv_tool.rat.playout.max {u} {
     global max_var
-    set max_var $upper_bound
+    set max_var $u
+}
+
+proc mbus_recv_tool.rat.echo.suppress {e} {
+    global echo_var
+    set echo_var $e
+}
+
+proc mbus_recv_tool.rat.loopback {l} {
+    global audio_loop_var
+    set audio_loop_var $l
 }
 
 proc mbus_recv_mbus.quit {} {

@@ -45,6 +45,16 @@ static char *mbus_name_engine = NULL;
 static char *mbus_name_ui     = NULL;
 static char *mbus_name_video  = NULL;
 
+static void 
+ui_update_boolean(session_t *sp, const char *field, int boolval)
+{
+        if (boolval) {
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, field, "1", TRUE);
+        } else {
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, field, "0", TRUE);
+        }
+}
+
 static void ui_info_update_sdes(session_t *sp, char *item, const char *val, u_int32 ssrc)
 {
 	char *arg;
@@ -284,11 +294,7 @@ ui_update_output_port(session_t *sp)
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.port", mbes, TRUE);
         xfree(mbes);
 
-	if (sp->playing_audio) {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.mute", "0", TRUE);
-	} else {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.mute", "1", TRUE);
-	}
+        ui_update_boolean(sp, "audio.output.mute", !sp->playing_audio);
         ui_update_output_gain(sp);
 }
 
@@ -665,42 +671,26 @@ ui_sampling_modes(session_t *sp)
 static void
 ui_update_powermeter(session_t *sp)
 {
-	if (sp->meter) {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.powermeter", "1", TRUE);
-	} else {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.powermeter", "0", TRUE);
-	}
+        ui_update_boolean(sp, "tool.rat.powermeter", sp->meter);
 }
 
 static void
 ui_update_lipsync(session_t *sp) 
 {
-	if (sp->sync_on) {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.sync", "1", TRUE);
-	} else {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.sync", "0", TRUE);
-	}
+        ui_update_boolean(sp, "tool.rat.sync", sp->sync_on);
 }
 
 static void
 ui_update_silence(session_t *sp)
 {
-	if (sp->detect_silence) {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.suppress.silence", "1", TRUE);
-	} else {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.suppress.silence", "0", TRUE);
-	}
+        ui_update_boolean(sp, "audio.suppress.silence", sp->detect_silence);
 }
 
 static void
 ui_update_playout_bounds(session_t *sp)
 {
         char tmp[6];
-        if (sp->limit_playout) {
-                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.playout.limit", "1", TRUE);
-        } else {
-                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.playout.limit", "0", TRUE);
-        }
+        ui_update_boolean(sp, "tool.rat.playout.limit", sp->limit_playout);
         sprintf(tmp, "%4d", (int)sp->min_playout);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.playout.min", tmp, TRUE);
         sprintf(tmp, "%4d", (int)sp->max_playout);
@@ -710,11 +700,19 @@ ui_update_playout_bounds(session_t *sp)
 static void
 ui_update_agc(session_t *sp)
 {
-        if (sp->agc_on) {
-                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.agc", "1", TRUE);
-        } else {
-                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.agc", "0", TRUE);
-        }
+        ui_update_boolean(sp, "tool.rat.agc", sp->agc_on);
+}
+
+static void
+ui_update_audio_loopback(session_t *sp)
+{
+        ui_update_boolean(sp, "tool.rat.loopback", sp->loopback_gain);
+}
+
+static void
+ui_update_echo_suppression(session_t *sp)
+{
+        ui_update_boolean(sp, "tool.rat.echo.suppress", sp->echo_suppress);
 }
 
 void
@@ -737,12 +735,14 @@ ui_update(session_t *sp)
         ui_update_channel(sp);
         ui_repair(sp);
         ui_update_converter(sp);
+        ui_update_playout_bounds(sp);
         ui_update_lecture_mode(sp);
         ui_update_powermeter(sp);
         ui_update_lipsync(sp);
         ui_update_silence(sp);
         ui_update_agc(sp);
-        ui_update_playout_bounds(sp);
+        ui_update_audio_loopback(sp);
+        ui_update_echo_suppression(sp);
 }
 
 void
