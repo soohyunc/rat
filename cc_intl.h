@@ -52,7 +52,7 @@ void intl_qconfig    (struct session_tag *sp, struct s_intl_coder *s, char *buf,
 int  intl_encode     (struct session_tag *sp, cc_unit *in, cc_unit **out, struct s_intl_coder *s);
 int  intl_bps        (struct session_tag *sp, struct s_intl_coder *s);
 void intl_decode     (struct rx_element_tag *rx, struct s_intl_coder *s);
-int  intl_valsplit   (char *blk, unsigned int blen, cc_unit *cu, int *trailing);
+int  intl_valsplit   (char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inter_pkt_gap);
 int  intl_wrapped_pt (char *blk, unsigned int blen);
 void intl_reset      (struct s_intl_coder *s);
 

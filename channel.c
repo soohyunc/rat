@@ -96,6 +96,7 @@ vanilla_encode (session_struct *sp,
                 cc_state_t     *ccs)
 {
         vanilla_state *v;
+        int new_ts;
 
         UNUSED(sp);
 
@@ -105,11 +106,18 @@ vanilla_encode (session_struct *sp,
         if (v->last) {
                 clear_cc_unit(v->last,0);
                 block_free(v->last, sizeof(cc_unit));
+                new_ts = 0;
+        } else {
+                new_ts = CC_NEW_TS;
         }
 
         *out = v->last = *in;
-        
-        return TRUE;
+
+        if (*out) {
+                return CC_READY | new_ts;
+        } else {
+                return CC_NOT_READY;
+        }
 }
 
 static int 
@@ -127,7 +135,7 @@ vanilla_bitrate(session_struct *sp, cc_state_t *cs)
 }
 
 static int
-vanilla_valsplit(char *blk, unsigned int blen, cc_unit *u, int *trailing) 
+vanilla_valsplit(char *blk, unsigned int blen, cc_unit *u, int *trailing, int *inter_pkt_gap) 
 {
         codec_t *cp = get_codec(u->pt);
         int n = 0;
@@ -142,7 +150,7 @@ vanilla_valsplit(char *blk, unsigned int blen, cc_unit *u, int *trailing)
         if (n < 0) n = 0;
 
         (*trailing) = n;
-
+        (*inter_pkt_gap) = n * cp->unit_len;
         return (n);
 }
 
@@ -513,22 +521,23 @@ channel_decode(rx_queue_element_struct *u)
 }
 
 int
-validate_and_split(int pt, char *blk, unsigned int blen, cc_unit *u, int *trailing)
+validate_and_split(int pt, char *blk, unsigned int blen, cc_unit *u, int *trailing, int *inter_pkt_gap)
 {
-        /* The valsplit function serves 4 purposes:
+        /* The valsplit function serves 5 purposes (probably 4 more than it should):
          * 1) it validates the data.
          * 2) it works out the sizes of the discrete blocks that the pkt data 
          *    should be split into. 
          * 3) it sets units = the units per packet
          * 4) it sets the number of trailing units that the channel coder 
          *    gets proded with.
+         * 5) it fills in the expected gap between packets.
          */
         cc_coder_t *cc;
         if (!(cc = get_channel_coder(pt)))
                 return FALSE;
         u->cc = cc;
         u->pt = pt;
-        return cc->valsplit(blk, blen, u, trailing);
+        return cc->valsplit(blk, blen, u, trailing, inter_pkt_gap);
 }
 
 int
@@ -665,21 +674,31 @@ add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
         assert(u != NULL);
         assert(u->comp_count < MAX_ENCODINGS-1);
 
-        /* Sort adds compressed data to rx element. */
+        /* Look for appropriate place to add this data. */
+        i = 0;
+        while(i<u->comp_count && u->comp_data[i].cp->value > cp->value) 
+                i++;
+
+        /* we already have this type of data */
+        if (i < u->comp_count && u->comp_data[i].cp->pt == cp->pt) {
+                for(i=0;i<iovc;i++) 
+                        block_free(iov[i].iov_base, iov[i].iov_len);
+                memset(iov, 0, sizeof(struct iovec) * iovc);
+                return 0;
+        }
 
         /* We keep lower quality data in case of loss that
          * can be covered using channel coding generates lower
          * quality data and we need earlier state.
          */
 
-        i = 0;
-        while(i<u->comp_count && u->comp_data[i].cp->value > cp->value) 
-                i++;
-
         j = u->comp_count;
-        while(j>i)
-                memcpy(&u->comp_data[j], &u->comp_data[--j], sizeof(coded_unit));
-
+        while(j>i) {
+                memcpy(u->comp_data + j, 
+                       u->comp_data + (--j), 
+                       sizeof(coded_unit));
+        }
+        
         j = 0;
         if (iovc>1) {
                 u->comp_data[i].state     = iov[j].iov_base;
@@ -693,6 +712,7 @@ add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
         u->comp_data[i].data_len = iov[j++].iov_len;
         u->comp_data[i].cp       = cp;
         assert(u->comp_data[i].data_len == cp->max_unit_sz);
+
         memset(iov,0,j*sizeof(struct iovec));
 
         return (u->comp_count++);

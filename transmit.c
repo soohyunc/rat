@@ -56,35 +56,35 @@
 #include "transmit.h"
 
 typedef struct s_tx_unit {
-	struct s_tx_unit *next;
-	struct s_tx_unit *prev;
-	sample	*data;			/* pointer to raw data in read_buf */
-    u_int32  dur_used;              /* number of time intervals filled */
-	u_int16  energy;
-	u_char   silence;		/* First pass */
-	u_char   send;			/* Silence second pass */
-	u_int32  time;			/* timestamp */
+        struct s_tx_unit *next;
+        struct s_tx_unit *prev;
+        sample  *data;             /* pointer to raw data in read_buf */
+        u_int32  dur_used;         /* number of time intervals filled */
+        u_int16  energy;
+        u_char   silence;          /* First pass */
+        u_char   send;             /* Silence second pass */
+        u_int32  time;             /* timestamp */
 } tx_unit;
 
 typedef struct s_tx_buffer {
-	struct s_sd   *sd_info;
+        struct s_sd   *sd_info;
         struct s_vad  *vad;
         struct s_agc  *agc;
-	struct s_time *clock;
+        struct s_time *clock;
         u_int32        channels;
         u_int32        unit_dur; /* duration in sampling intervals (excludes channels) */
         /* These are pointers into same chain of tx_units */
-        tx_unit *head_ptr;
-        tx_unit	*tx_ptr;	/* Where transmission is */
-	tx_unit	*silence_ptr;	/* Where rules based silence is */
-        tx_unit	*last_ptr;	/* Where reading is */
+        tx_unit        *head_ptr;
+        tx_unit        *tx_ptr;             /* Where transmission is */
+        tx_unit        *silence_ptr;        /* Where rules based silence is */
+        tx_unit        *last_ptr;           /* Where reading is */
         /* Separate chain for spares */
-        tx_unit *spare_ptr;     
-        u_int32  spare_cnt;
-        u_int32  alloc_cnt;
+        tx_unit        *spare_ptr;     
+        u_int32         spare_cnt;
+        u_int32         alloc_cnt;
 } tx_buffer;
 
-static sample	dummy_buf[DEVICE_REC_BUF];
+static sample dummy_buf[DEVICE_REC_BUF];
 
 /* read buffer does own recycling of data so that if we change device 
  * unit size we do not tie up unnecessary memory as would happen with 
@@ -189,8 +189,8 @@ void
 tx_start(session_struct *sp)
 {
         tx_buffer *tb;
-	if (sp->sending_audio == TRUE || sp->have_device == FALSE)
-		return;
+        if (sp->sending_audio == TRUE || sp->have_device == FALSE)
+                return;
 
         tb = sp->tb;
 
@@ -201,8 +201,8 @@ tx_start(session_struct *sp)
 
         tb->head_ptr = tb->last_ptr = tx_unit_get(tb);
 
-	sp->sending_audio = TRUE;
-	sp->auto_lecture = 1;		/* Turn off */
+        sp->sending_audio = TRUE;
+        sp->auto_lecture = 1;                /* Turn off */
         sd_reset(tb->sd_info);
         agc_reset(tb->agc);
 }
@@ -210,41 +210,41 @@ tx_start(session_struct *sp)
 void
 tx_stop(session_struct *sp)
 {
-	struct timeval tv;
+        struct timeval tv;
 
-	if (sp->sending_audio == FALSE || sp->have_device == FALSE)
-		return;
-	sp->sending_audio              = FALSE;
+        if (sp->sending_audio == FALSE || sp->have_device == FALSE)
+                return;
+        sp->sending_audio              = FALSE;
         sp->last_tx_service_productive = 0;
         sp->transmit_audit_required    = TRUE;
-	gettimeofday(&tv, NULL);
-	sp->auto_lecture               = tv.tv_sec;
+        gettimeofday(&tv, NULL);
+        sp->auto_lecture               = tv.tv_sec;
         channel_encoder_reset(sp,sp->cc_encoding);
-	ui_input_level(0);
-	ui_info_deactivate(sp->db->my_dbe);
+        ui_input_level(0);
+        ui_info_deactivate(sp->db->my_dbe);
 }
 
 tx_buffer *
 tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
 {
-	tx_buffer *tb;
+        tx_buffer *tb;
 
-	tb = (tx_buffer*)xmalloc(sizeof(tx_buffer));
+        tb = (tx_buffer*)xmalloc(sizeof(tx_buffer));
         memset(tb, 0, sizeof(tx_buffer));
 
-	tb->clock    = sp->device_clock;
-	tb->sd_info  = sd_init    (unit_dur, (u_int16)get_freq(tb->clock));
-    tb->vad      = vad_create (unit_dur, (u_int16)get_freq(tb->clock));
-    tb->agc      = agc_create(sp);
-    tb->unit_dur = unit_dur;
-    tb->channels = channels;
+        tb->clock    = sp->device_clock;
+        tb->sd_info  = sd_init    (unit_dur, (u_int16)get_freq(tb->clock));
+        tb->vad      = vad_create (unit_dur, (u_int16)get_freq(tb->clock));
+        tb->agc      = agc_create(sp);
+        tb->unit_dur = unit_dur;
+        tb->channels = channels;
 
-	if (sp->mode != TRANSCODER) {
-		audio_drain(sp->audio_fd);
+        if (sp->mode != TRANSCODER) {
+                audio_drain(sp->audio_fd);
                 audio_read(sp->audio_fd, dummy_buf, DEVICE_REC_BUF);
-	}
+        }
 
-	return (tb);
+        return (tb);
 }
 
 void
@@ -284,22 +284,22 @@ int
 tx_read_audio(session_struct *sp)
 {
         tx_unit *u;
-	unsigned int	read_dur;
-	tx_buffer	*tb;
+        unsigned int        read_dur;
+        tx_buffer        *tb;
 
-	tb = sp->tb;
+        tb = sp->tb;
         read_dur = 0;
 
-	if (sp->sending_audio == FALSE) {
-		read_dur = audio_device_read(sp, dummy_buf, DEVICE_REC_BUF) / tb->channels;
+        if (sp->sending_audio == FALSE) {
+                read_dur = audio_device_read(sp, dummy_buf, DEVICE_REC_BUF) / tb->channels;
                 time_advance(sp->clock, get_freq(tb->clock), read_dur);
-	} else {
+        } else {
                 do {
                         u = tb->last_ptr;
                         assert(u);
                         u->dur_used += audio_device_read(sp, 
-                                                     u->data + u->dur_used * tb->channels,
-                                                     (tb->unit_dur - u->dur_used) * tb->channels) / tb->channels;
+                                                         u->data + u->dur_used * tb->channels,
+                                                         (tb->unit_dur - u->dur_used) * tb->channels) / tb->channels;
                         if (u->dur_used == tb->unit_dur) {
                                 read_dur += tb->unit_dur;
                                 time_advance(sp->clock, 
@@ -330,28 +330,28 @@ tx_process_audio(session_struct *sp)
                 /* Audio unbias not modified for stereo yet! */
                 audio_unbias(sp->bc, u->data, u->dur_used * tb->channels);
 
-		u->energy = avg_audio_energy(u->data, u->dur_used * tb->channels, tb->channels);
-        u->send   = FALSE;
+                u->energy = avg_audio_energy(u->data, u->dur_used * tb->channels, tb->channels);
+                u->send   = FALSE;
                 
-        /* we do silence detection and voice activity detection
-         * all the time.  agc depends on them and they are all 
-         * cheap.
-         */
-        u->silence = sd(tb->sd_info, (u_int16)u->energy);
-        to_send    = vad_to_get(tb->vad, (u_char)u->silence, (u_char)((sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF));           
-		agc_update(tb->agc, (u_int16)u->energy, vad_talkspurt_no(tb->vad));
+                /* we do silence detection and voice activity detection
+                 * all the time.  agc depends on them and they are all 
+                 * cheap.
+                 */
+                u->silence = sd(tb->sd_info, (u_int16)u->energy);
+                to_send    = vad_to_get(tb->vad, (u_char)u->silence, (u_char)((sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF));           
+                agc_update(tb->agc, (u_int16)u->energy, vad_talkspurt_no(tb->vad));
 
-		if (sp->detect_silence) {
+                if (sp->detect_silence) {
                         u_mark = u;
                         while(u_mark != NULL && to_send > 0) {
                                 u_mark->send = TRUE;
                                 u_mark = u_mark->prev;
                                 to_send --;
                         }
-		} else {
-			u->silence = FALSE;
+                } else {
+                        u->silence = FALSE;
                         u->send    = TRUE;
-		}
+                }
         }
         tb->silence_ptr = u;
 
@@ -364,25 +364,14 @@ tx_process_audio(session_struct *sp)
                 tx_buffer_trim(tb);
         }
 
-	return TRUE;
+        return TRUE;
 }
-
-static int
-new_ts(u_int32 last_time, u_int32 this_time, int encoding, int upp)
-{
-        codec_t *cp;
-        int diff, delta;
-        diff = this_time - last_time;
-        cp = get_codec(encoding);
-        delta = upp*cp->unit_len;
-        return (delta != diff);
-}  
 
 void
 tx_send(session_struct *sp, speaker_table *sa)
 {
-        int		units, i, n, ready, send, num_encodings;
-        tx_unit	       *u;
+        int                units, i, n, ready, send, num_encodings;
+        tx_unit               *u;
         rtp_hdr_t       rtp_header;
         cc_unit        *out;
         cc_unit        *collated[MAX_ENCODINGS];
@@ -405,7 +394,7 @@ tx_send(session_struct *sp, speaker_table *sa)
 
         rtp_header.cc = 0;
         if (sp->mode == TRANSCODER) {
-                speaker_table	*cs;
+                speaker_table        *cs;
                 for (cs = sa; cs && rtp_header.cc < 16; cs = cs->next) {
                         /* 2 is a magic number, WHITE in speaker_table.c */
                         if (cs->state == 2)
@@ -467,11 +456,12 @@ tx_send(session_struct *sp, speaker_table *sa)
                         rtp_header.p    = rtp_header.x = 0;
                         rtp_header.ssrc = htonl(rtcp_myssrc(sp));
                         rtp_header.pt   = out->pt;
-                        rtp_header.m    = new_ts(sp->last_depart_ts, 
-                                                  u->time, 
-                                                  sp->encodings[0], 
-                                                  collator_get_units(sp->collator));
-                                
+                        if (ready & CC_NEW_TS) {
+                                rtp_header.m = 1;
+                                dprintf("new talkspurt\n");
+                        } else {
+                                rtp_header.m = 0;
+                        }   
                         sp->last_depart_ts = u->time;
                         sp->db->pkt_count  += 1;
                         sp->db->byte_count += get_bytes(out);
@@ -492,7 +482,7 @@ tx_send(session_struct *sp, speaker_table *sa)
 void
 tx_update_ui(session_struct *sp)
 {
-	if (sp->meter && sp->tb->silence_ptr && sp->tb->silence_ptr->prev) {
+        if (sp->meter && sp->tb->silence_ptr && sp->tb->silence_ptr->prev) {
                 if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
                         ui_input_level(lin2db(sp->tb->silence_ptr->prev->energy, 100.0));
                 } else {
@@ -500,12 +490,12 @@ tx_update_ui(session_struct *sp)
                 }
         }
 
-	if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
-		ui_info_activate(sp->db->my_dbe);
-		sp->lecture = FALSE;
-		update_lecture_mode(sp);
-	} else {
-		ui_info_deactivate(sp->db->my_dbe);
+        if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
+                ui_info_activate(sp->db->my_dbe);
+                sp->lecture = FALSE;
+                update_lecture_mode(sp);
+        } else {
+                ui_info_deactivate(sp->db->my_dbe);
         }
 }
 

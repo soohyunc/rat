@@ -55,7 +55,7 @@ int  red_bps        (struct session_tag *sp, struct s_red_coder *r);
 int  red_encode     (struct session_tag *sp, cc_unit **coded, int num_coded, cc_unit **out, struct s_red_coder *r);
 void red_flush      (struct s_red_coder *r);
 void red_decode     (struct rx_element_tag *u);
-int  red_valsplit   (char *blk, unsigned int blen, cc_unit *u, int *trailing);
+int  red_valsplit   (char *blk, unsigned int blen, cc_unit *u, int *trailing, int *inter_pkt_gap);
 int  red_wrapped_pt (char *blk, unsigned int blen);
 void red_fix_encodings (struct session_tag *sp, struct s_red_coder *r);
 #endif

@@ -226,7 +226,7 @@ red_pack_hdr(char *h, char more, char pt, short offset, short len)
         assert(((~0 <<  7) & pt)     == 0);
         assert(((~0 << 14) & offset) == 0);
         assert(((~0 << 10) & len)    == 0);
-
+        assert(get_codec(pt));
         if (more) {
                 u_int32 *hdr = (u_int32*)h;
                 (*hdr)       = 0;
@@ -252,9 +252,12 @@ red_get_unit(red_coder_t *r, int unit_off, int pt)
 
         if (pos < 0) pos += MAX_RED_OFFSET;
 
-        assert(((r->head > r->tail) && (pos > r->tail)  && (pos <= r->head)) ||
-               ((r->head < r->tail) && ((pos > r->tail) || (pos <= r->head))));
-        
+        if (r->head > r->tail) {
+                if (pos > r->head || pos < r->tail) return NULL;
+        } else if (r->head < r->tail) {
+                if (pos > r->head && pos < r->tail) return NULL;
+        }
+
         for(i = 0; i<r->n[pos]; i++) {
                  if (r->c[pos][i]->pt == pt) return r->c[pos][i];
         }
@@ -278,10 +281,9 @@ red_available(red_coder_t *r) {
 int 
 red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, red_coder_t *r) 
 {
-        int i, avail;
+        int i, avail, new_ts;
         cc_unit *u;
         codec_t *cp;
-
 
         r->head = (r->head + 1) % MAX_RED_OFFSET;
         r->len++;
@@ -289,6 +291,13 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
         if (r->head == r->tail) {
                 r->tail = (r->tail + 1) % MAX_RED_OFFSET;
                 r->len--;
+        }
+
+        /* check if new talkspurt */
+        if (r->last_hdr_idx != 0) {
+                new_ts = 0;
+        } else {
+                new_ts = CC_NEW_TS;
         }
 
         /* get rid of old data */
@@ -301,7 +310,7 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
                  * when no data incoming.
                  */
                 *out = NULL;
-                return 0;
+                return CC_NOT_READY;
         }
 
         /* transfer new data into head */
@@ -358,7 +367,7 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
         }
 
         *out = &r->last;
-        return TRUE;
+        return CC_READY | new_ts;
 }
 
 __inline static int
@@ -393,9 +402,9 @@ red_decode(rx_queue_element_struct *u)
         
         do {
                 red_hdr = ntohl(*((u_int32*)cu->iov[hdr_idx].iov_base));
-                cp  = get_codec(RED_PT(red_hdr));
-                if (cp != NULL) {
-                        len = RED_LEN(red_hdr);
+                cp      = get_codec(RED_PT(red_hdr));
+                len     = RED_LEN(red_hdr);
+                if (cp != NULL && len != 0) {
                         off = RED_OFF(red_hdr);
                         su = get_rx_unit((max_off - off) / cp->unit_len, u->ccu[0]->pt, u);
                         data_idx += fragment_spread(cp, len, &cu->iov[data_idx], cu->iovc - data_idx, su);
@@ -438,7 +447,7 @@ red_bps(session_struct *sp, red_coder_t *r)
  */
 
 int
-red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing) {
+red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inter_pkt_gap) {
         int tlen, n, todo;
         int hdr_idx; 
         u_int32 red_hdr, max_off;
@@ -495,7 +504,8 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing) {
                cu->iov+MAX_RED_LAYERS, 
                sizeof(struct iovec)*(cu->iovc - hdr_idx));
 
-        (*trailing) = max_off/cp->unit_len + n;
+        (*trailing)      = max_off/cp->unit_len + n;
+        (*inter_pkt_gap) = cp->unit_len * n; 
 
         return (n);
 
@@ -518,8 +528,7 @@ red_wrapped_pt(char *blk, unsigned int blen)
 
         hdr  = (u_int32*)blk;
         todo = blen;
-
-        while (ntohl(*hdr)&0x80 && todo>0) {
+        while (RED_F(ntohl(*hdr)) && todo>0) {
                 hdr++;
                 todo -= 4;
         }

@@ -81,13 +81,13 @@ typedef struct s_rtcp_dbentry {
 	rtcp_user_rr	*rr;
 
 	int		mute;
-	u_int32         misordered;		/* For use in receiving redundancy */
+	u_int32         misordered;		
 	u_int32         duplicates;
 	u_int32         jit_TOGed;		/* TOGed = Thrown on the Ground */
 	short		cont_toged;		/* Toged in a row */
         short           playout_danger;         /* not enough audio in playout buffer */
 	u_int32         lost;			/* Old unused? */
-        
+        int             inter_pkt_gap;          /* expected time between pkt arrivals */
         struct s_cc_state       *cc_state_list;
 	struct s_codec_state	*state_list;
 	struct s_time		*clock;

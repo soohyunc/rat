@@ -54,6 +54,10 @@
 
 #define CC_UNITS 80
 
+#define CC_NOT_READY 0
+#define CC_READY     1
+#define CC_NEW_TS    2
+
 struct session_tag;
 struct s_coded_unit;
 struct s_cc_state;
@@ -76,7 +80,7 @@ typedef int  (*cc_bitrate_f)   (struct session_tag *sp, struct s_cc_state *ccs);
 typedef int  (*cc_encode_f)    (struct session_tag *sp, cc_unit **in, int num_coded, struct s_cc_unit **out, struct s_cc_state *ccs);
 typedef void (*cc_enc_reset_f) (struct s_cc_state *ccs);
 typedef void (*cc_free_f)      (struct s_cc_state *ccs);
-typedef int  (*cc_valsplit_f)  (char *blk, unsigned int blen, struct s_cc_unit *cu, int *trailing);
+typedef int  (*cc_valsplit_f)  (char *blk, unsigned int blen, struct s_cc_unit *cu, int *trailing, int *inter_pkt_gap);
 typedef int  (*cc_get_pt_f)    (char *blk, unsigned int blen);
 typedef void (*cc_dec_init_f)  (struct session_tag *sp, struct s_cc_state *ccs);
 typedef void (*cc_decode_f)    (struct rx_element_tag *sp, struct s_cc_state *ccs);
@@ -121,7 +125,7 @@ void  query_channel_coder  (struct session_tag *sp, int pt, char *buf, unsigned 
 
 void  get_bitrate (struct session_tag *sp, int pt);
 
-int   validate_and_split    (int pt, char *data, unsigned int data_len, cc_unit *u, int *trailing);
+int   validate_and_split    (int pt, char *data, unsigned int data_len, cc_unit *u, int *trailing, int *inter_pkt_gap);
 int   get_wrapped_payload   (int pt, char *data, int data_len); 
 
 void  clear_cc_unit         (cc_unit *u, int begin);

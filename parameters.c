@@ -401,18 +401,12 @@ agc_consider(agc_t *a)
                 a->new_gain = min(gain * AGC_PEAK_UPPER / a->peak, 99);
                 if ((gain - a->new_gain) > AGC_GAIN_SIG) {
                         a->change   = TRUE;
-#ifdef DEBUG_AGC
-                        dprintf("gain shift %d -> %d\n", gain, a->new_gain);
-#endif
                 }
         } else if (a->peak < AGC_PEAK_LOWER) {
                 gain        = audio_get_gain(a->sp->audio_fd);
                 a->new_gain = min(gain * AGC_PEAK_LOWER / a->peak, 99);
                 if ((a->new_gain - gain) > AGC_GAIN_SIG) {
                         a->change   = TRUE;
-#ifdef DEBUG_AGC
-                        dprintf("gain shift %d -> %d\n", gain, a->new_gain);
-#endif
                 }
         }
 }
@@ -440,6 +434,7 @@ agc_apply_changes(agc_t *a)
                 a->sp->input_gain = a->new_gain;
                 tx_igain_update(a->sp);
                 agc_reset(a);
+                a->change = FALSE;
                 return TRUE;
         }
         return FALSE;

@@ -11,34 +11,6 @@ LDLIBS = -R/usr/openwin/lib \
 OBJS = $(OBJDIR)/auddev_sparc.o
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-auddev_oss.o: assert.h config.h /usr/include/malloc.h /usr/include/stdio.h
-auddev_oss.o: /usr/include/sys/feature_tests.h /usr/include/sys/va_list.h
-auddev_oss.o: /usr/include/memory.h /usr/include/errno.h
-auddev_oss.o: /usr/include/sys/errno.h /usr/include/math.h
-auddev_oss.o: /usr/include/stdlib.h /usr/include/string.h
-auddev_oss.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
-auddev_oss.o: /usr/include/sys/machtypes.h /usr/include/sys/socket.h
-auddev_oss.o: /usr/include/sys/netconfig.h /usr/include/sys/uio.h
-auddev_oss.o: /usr/include/netinet/in.h /usr/include/sys/stream.h
-auddev_oss.o: /usr/include/sys/vnode.h /usr/include/sys/t_lock.h
-auddev_oss.o: /usr/include/sys/machlock.h /usr/include/sys/dki_lkinfo.h
-auddev_oss.o: /usr/include/sys/dl.h /usr/include/sys/sleepq.h
-auddev_oss.o: /usr/include/sys/turnstile.h /usr/include/sys/param.h
-auddev_oss.o: /usr/include/sys/unistd.h /usr/include/sys/pirec.h
-auddev_oss.o: /usr/include/sys/mutex.h /usr/include/sys/rwlock.h
-auddev_oss.o: /usr/include/sys/semaphore.h /usr/include/sys/condvar.h
-auddev_oss.o: /usr/include/sys/time.h /usr/include/sys/cred.h
-auddev_oss.o: /usr/include/vm/seg_enum.h /usr/include/sys/poll.h
-auddev_oss.o: /usr/include/sys/strmdep.h /usr/include/sys/byteorder.h
-auddev_oss.o: /usr/include/unistd.h /usr/include/sys/fcntl.h
-auddev_oss.o: /usr/include/sys/ioctl.h /usr/include/netdb.h
-auddev_oss.o: /usr/include/arpa/inet.h /usr/include/sys/stat.h
-auddev_oss.o: /usr/include/fcntl.h /usr/include/sys/audioio.h
-auddev_oss.o: /usr/include/sys/ioccom.h
-auddev_oss.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
-auddev_oss.o: /usr/demo/SOUND/include/multimedia/audio_types.h
-auddev_oss.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h audio.h
-auddev_oss.o: rat_types.h util.h sys/soundcard.h
 auddev_sgi.o: audio.h rat_types.h config.h assert.h /usr/include/malloc.h
 auddev_sgi.o: /usr/include/stdio.h /usr/include/sys/feature_tests.h
 auddev_sgi.o: /usr/include/sys/va_list.h /usr/include/memory.h
@@ -148,8 +120,8 @@ audio.o: /usr/include/sys/audioio.h /usr/include/sys/ioccom.h
 audio.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
 audio.o: /usr/demo/SOUND/include/multimedia/audio_types.h
 audio.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h
-cc_intl.o: assert.h /usr/include/stdlib.h /usr/include/sys/feature_tests.h
-cc_intl.o: /usr/include/string.h session.h rat_types.h config.h
+cc_intl.o: /usr/include/stdlib.h /usr/include/sys/feature_tests.h
+cc_intl.o: /usr/include/string.h assert.h session.h rat_types.h config.h
 cc_intl.o: /usr/include/malloc.h /usr/include/stdio.h
 cc_intl.o: /usr/include/sys/va_list.h /usr/include/memory.h
 cc_intl.o: /usr/include/errno.h /usr/include/sys/errno.h /usr/include/math.h
@@ -176,10 +148,10 @@ cc_intl.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
 cc_intl.o: /usr/demo/SOUND/include/multimedia/audio_types.h
 cc_intl.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h codec.h channel.h
 cc_intl.o: receive.h util.h cc_intl.h
-cc_red.o: assert.h /usr/include/stdlib.h /usr/include/sys/feature_tests.h
-cc_red.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
-cc_red.o: /usr/include/sys/machtypes.h /usr/include/sys/param.h
-cc_red.o: /usr/include/sys/unistd.h config.h /usr/include/malloc.h
+cc_red.o: /usr/include/sys/param.h /usr/include/sys/types.h
+cc_red.o: /usr/include/sys/feature_tests.h /usr/include/sys/isa_defs.h
+cc_red.o: /usr/include/sys/machtypes.h /usr/include/sys/unistd.h
+cc_red.o: /usr/include/stdlib.h assert.h config.h /usr/include/malloc.h
 cc_red.o: /usr/include/stdio.h /usr/include/sys/va_list.h
 cc_red.o: /usr/include/memory.h /usr/include/errno.h /usr/include/sys/errno.h
 cc_red.o: /usr/include/math.h /usr/include/string.h /usr/include/sys/socket.h
@@ -203,10 +175,10 @@ cc_red.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
 cc_red.o: /usr/demo/SOUND/include/multimedia/audio_types.h
 cc_red.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h session.h
 cc_red.o: rat_types.h codec.h channel.h receive.h util.h cc_red.h
-channel.o: /usr/include/stdlib.h /usr/include/sys/feature_tests.h
-channel.o: /usr/include/ctype.h /usr/include/sys/types.h
-channel.o: /usr/include/sys/isa_defs.h /usr/include/sys/machtypes.h config.h
-channel.o: assert.h /usr/include/malloc.h /usr/include/stdio.h
+channel.o: /usr/include/sys/types.h /usr/include/sys/feature_tests.h
+channel.o: /usr/include/sys/isa_defs.h /usr/include/sys/machtypes.h
+channel.o: /usr/include/stdlib.h /usr/include/ctype.h config.h assert.h
+channel.o: /usr/include/malloc.h /usr/include/stdio.h
 channel.o: /usr/include/sys/va_list.h /usr/include/memory.h
 channel.o: /usr/include/errno.h /usr/include/sys/errno.h /usr/include/math.h
 channel.o: /usr/include/string.h /usr/include/sys/socket.h
@@ -232,9 +204,9 @@ channel.o: /usr/demo/SOUND/include/multimedia/audio_types.h
 channel.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h session.h
 channel.o: rat_types.h receive.h codec.h channel.h util.h cc_red.h cc_intl.h
 channel.o: rtcp_pckt.h rtcp_db.h
-channel.o: /usr/include/sys/types.h /usr/include/sys/feature_tests.h
-channel.o: /usr/include/sys/isa_defs.h /usr/include/sys/machtypes.h
-channel.o: /usr/include/sys/uio.h rat_types.h config.h assert.h
+channel.o: /usr/include/sys/uio.h /usr/include/sys/feature_tests.h
+channel.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
+channel.o: /usr/include/sys/machtypes.h rat_types.h config.h assert.h
 channel.o: /usr/include/malloc.h /usr/include/stdio.h
 channel.o: /usr/include/sys/va_list.h /usr/include/memory.h
 channel.o: /usr/include/errno.h /usr/include/sys/errno.h /usr/include/math.h
@@ -847,28 +819,28 @@ main.o: interfaces.h rtcp_pckt.h rtcp_db.h rtcp.h net.h statistics.h
 main.o: rat_time.h parameters.h transmit.h speaker_table.h mix.h mbus.h
 main.o: mbus_ui.h mbus_engine.h
 mbus.o: /usr/include/strings.h /usr/include/sys/feature_tests.h
-mbus.o: /usr/include/ctype.h /usr/include/stdio.h /usr/include/sys/va_list.h
-mbus.o: /usr/include/stdlib.h /usr/include/string.h /usr/include/sys/time.h
-mbus.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
-mbus.o: /usr/include/sys/machtypes.h /usr/include/sys/socket.h
-mbus.o: /usr/include/sys/netconfig.h /usr/include/netinet/in.h
-mbus.o: /usr/include/sys/stream.h /usr/include/sys/vnode.h
-mbus.o: /usr/include/sys/t_lock.h /usr/include/sys/machlock.h
-mbus.o: /usr/include/sys/dki_lkinfo.h /usr/include/sys/dl.h
-mbus.o: /usr/include/sys/sleepq.h /usr/include/sys/turnstile.h
-mbus.o: /usr/include/sys/param.h /usr/include/sys/unistd.h
-mbus.o: /usr/include/sys/pirec.h /usr/include/sys/mutex.h
-mbus.o: /usr/include/sys/rwlock.h /usr/include/sys/semaphore.h
-mbus.o: /usr/include/sys/condvar.h /usr/include/sys/cred.h
-mbus.o: /usr/include/sys/uio.h /usr/include/vm/seg_enum.h
-mbus.o: /usr/include/sys/poll.h /usr/include/sys/strmdep.h
-mbus.o: /usr/include/sys/byteorder.h /usr/include/net/if.h
-mbus.o: /usr/include/sys/sockio.h /usr/include/sys/ioccom.h
-mbus.o: /usr/include/arpa/inet.h /usr/include/netdb.h /usr/include/unistd.h
-mbus.o: assert.h rat_types.h config.h /usr/include/malloc.h
-mbus.o: /usr/include/memory.h /usr/include/errno.h /usr/include/sys/errno.h
-mbus.o: /usr/include/math.h /usr/include/sys/fcntl.h /usr/include/sys/ioctl.h
-mbus.o: /usr/include/sys/stat.h /usr/include/fcntl.h
+mbus.o: /usr/include/sys/time.h /usr/include/sys/types.h
+mbus.o: /usr/include/sys/isa_defs.h /usr/include/sys/machtypes.h
+mbus.o: /usr/include/sys/socket.h /usr/include/sys/netconfig.h
+mbus.o: /usr/include/netinet/in.h /usr/include/sys/stream.h
+mbus.o: /usr/include/sys/vnode.h /usr/include/sys/t_lock.h
+mbus.o: /usr/include/sys/machlock.h /usr/include/sys/dki_lkinfo.h
+mbus.o: /usr/include/sys/dl.h /usr/include/sys/sleepq.h
+mbus.o: /usr/include/sys/turnstile.h /usr/include/sys/param.h
+mbus.o: /usr/include/sys/unistd.h /usr/include/sys/pirec.h
+mbus.o: /usr/include/sys/mutex.h /usr/include/sys/rwlock.h
+mbus.o: /usr/include/sys/semaphore.h /usr/include/sys/condvar.h
+mbus.o: /usr/include/sys/cred.h /usr/include/sys/uio.h
+mbus.o: /usr/include/vm/seg_enum.h /usr/include/sys/poll.h
+mbus.o: /usr/include/sys/strmdep.h /usr/include/sys/byteorder.h
+mbus.o: /usr/include/net/if.h /usr/include/arpa/inet.h /usr/include/netdb.h
+mbus.o: /usr/include/unistd.h /usr/include/ctype.h /usr/include/stdio.h
+mbus.o: /usr/include/sys/va_list.h /usr/include/stdlib.h
+mbus.o: /usr/include/string.h /usr/include/sys/sockio.h
+mbus.o: /usr/include/sys/ioccom.h assert.h rat_types.h config.h
+mbus.o: /usr/include/malloc.h /usr/include/memory.h /usr/include/errno.h
+mbus.o: /usr/include/sys/errno.h /usr/include/math.h /usr/include/sys/fcntl.h
+mbus.o: /usr/include/sys/ioctl.h /usr/include/sys/stat.h /usr/include/fcntl.h
 mbus.o: /usr/include/sys/audioio.h
 mbus.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
 mbus.o: /usr/demo/SOUND/include/multimedia/audio_types.h
@@ -904,7 +876,8 @@ mbus_engine.o: mbus_ui.h mbus.h ui_control.h net.h util.h transmit.h
 mbus_engine.o: session.h codec.h audio.h channel.h rtcp_pckt.h rtcp_db.h
 mbus_engine.o: repair.h crypt.h rat_time.h
 mbus_ui.o: /usr/include/stdio.h /usr/include/sys/feature_tests.h
-mbus_ui.o: /usr/include/sys/va_list.h mbus.h mbus_ui.h tcltk.h util.h
+mbus_ui.o: /usr/include/sys/va_list.h /usr/include/string.h mbus.h mbus_ui.h
+mbus_ui.o: tcltk.h util.h
 md5.o: config.h assert.h /usr/include/malloc.h /usr/include/stdio.h
 md5.o: /usr/include/sys/feature_tests.h /usr/include/sys/va_list.h
 md5.o: /usr/include/memory.h /usr/include/errno.h /usr/include/sys/errno.h
@@ -1444,4 +1417,296 @@ speaker_table.o: /usr/include/sys/ioctl.h /usr/include/netdb.h
 speaker_table.o: /usr/include/arpa/inet.h /usr/include/sys/stat.h
 speaker_table.o: /usr/include/fcntl.h /usr/include/sys/audioio.h
 speaker_table.o: /usr/include/sys/ioccom.h
-speaker_table.o: 
+speaker_table.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
+speaker_table.o: /usr/demo/SOUND/include/multimedia/audio_types.h
+speaker_table.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h channel.h
+speaker_table.o: session.h rtcp_pckt.h rtcp_db.h util.h ui_control.h
+speaker_table.o: rat_time.h transmit.h
+statistics.o: statistics.h rat_time.h rat_types.h config.h assert.h
+statistics.o: /usr/include/malloc.h /usr/include/stdio.h
+statistics.o: /usr/include/sys/feature_tests.h /usr/include/sys/va_list.h
+statistics.o: /usr/include/memory.h /usr/include/errno.h
+statistics.o: /usr/include/sys/errno.h /usr/include/math.h
+statistics.o: /usr/include/stdlib.h /usr/include/string.h
+statistics.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
+statistics.o: /usr/include/sys/machtypes.h /usr/include/sys/socket.h
+statistics.o: /usr/include/sys/netconfig.h /usr/include/sys/uio.h
+statistics.o: /usr/include/netinet/in.h /usr/include/sys/stream.h
+statistics.o: /usr/include/sys/vnode.h /usr/include/sys/t_lock.h
+statistics.o: /usr/include/sys/machlock.h /usr/include/sys/dki_lkinfo.h
+statistics.o: /usr/include/sys/dl.h /usr/include/sys/sleepq.h
+statistics.o: /usr/include/sys/turnstile.h /usr/include/sys/param.h
+statistics.o: /usr/include/sys/unistd.h /usr/include/sys/pirec.h
+statistics.o: /usr/include/sys/mutex.h /usr/include/sys/rwlock.h
+statistics.o: /usr/include/sys/semaphore.h /usr/include/sys/condvar.h
+statistics.o: /usr/include/sys/time.h /usr/include/sys/cred.h
+statistics.o: /usr/include/vm/seg_enum.h /usr/include/sys/poll.h
+statistics.o: /usr/include/sys/strmdep.h /usr/include/sys/byteorder.h
+statistics.o: /usr/include/unistd.h /usr/include/sys/fcntl.h
+statistics.o: /usr/include/sys/ioctl.h /usr/include/netdb.h
+statistics.o: /usr/include/arpa/inet.h /usr/include/sys/stat.h
+statistics.o: /usr/include/fcntl.h /usr/include/sys/audioio.h
+statistics.o: /usr/include/sys/ioccom.h
+statistics.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
+statistics.o: /usr/demo/SOUND/include/multimedia/audio_types.h
+statistics.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h session.h
+statistics.o: receive.h codec.h channel.h interfaces.h rtcp_pckt.h rtcp_db.h
+statistics.o: util.h audio.h cushion.h speaker_table.h ui_control.h mbus.h
+statistics.o: rat_time.h rat_types.h config.h assert.h /usr/include/malloc.h
+statistics.o: /usr/include/stdio.h /usr/include/sys/feature_tests.h
+statistics.o: /usr/include/sys/va_list.h /usr/include/memory.h
+statistics.o: /usr/include/errno.h /usr/include/sys/errno.h
+statistics.o: /usr/include/math.h /usr/include/stdlib.h /usr/include/string.h
+statistics.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
+statistics.o: /usr/include/sys/machtypes.h /usr/include/sys/socket.h
+statistics.o: /usr/include/sys/netconfig.h /usr/include/sys/uio.h
+statistics.o: /usr/include/netinet/in.h /usr/include/sys/stream.h
+statistics.o: /usr/include/sys/vnode.h /usr/include/sys/t_lock.h
+statistics.o: /usr/include/sys/machlock.h /usr/include/sys/dki_lkinfo.h
+statistics.o: /usr/include/sys/dl.h /usr/include/sys/sleepq.h
+statistics.o: /usr/include/sys/turnstile.h /usr/include/sys/param.h
+statistics.o: /usr/include/sys/unistd.h /usr/include/sys/pirec.h
+statistics.o: /usr/include/sys/mutex.h /usr/include/sys/rwlock.h
+statistics.o: /usr/include/sys/semaphore.h /usr/include/sys/condvar.h
+statistics.o: /usr/include/sys/time.h /usr/include/sys/cred.h
+statistics.o: /usr/include/vm/seg_enum.h /usr/include/sys/poll.h
+statistics.o: /usr/include/sys/strmdep.h /usr/include/sys/byteorder.h
+statistics.o: /usr/include/unistd.h /usr/include/sys/fcntl.h
+statistics.o: /usr/include/sys/ioctl.h /usr/include/netdb.h
+statistics.o: /usr/include/arpa/inet.h /usr/include/sys/stat.h
+statistics.o: /usr/include/fcntl.h /usr/include/sys/audioio.h
+statistics.o: /usr/include/sys/ioccom.h
+statistics.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
+statistics.o: /usr/demo/SOUND/include/multimedia/audio_types.h
+statistics.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h
+tcl2c.o: /usr/include/stdio.h /usr/include/sys/feature_tests.h
+tcl2c.o: /usr/include/sys/va_list.h
+tcltk.o: config.h assert.h /usr/include/malloc.h /usr/include/stdio.h
+tcltk.o: /usr/include/sys/feature_tests.h /usr/include/sys/va_list.h
+tcltk.o: /usr/include/memory.h /usr/include/errno.h /usr/include/sys/errno.h
+tcltk.o: /usr/include/math.h /usr/include/stdlib.h /usr/include/string.h
+tcltk.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
+tcltk.o: /usr/include/sys/machtypes.h /usr/include/sys/socket.h
+tcltk.o: /usr/include/sys/netconfig.h /usr/include/sys/uio.h
+tcltk.o: /usr/include/netinet/in.h /usr/include/sys/stream.h
+tcltk.o: /usr/include/sys/vnode.h /usr/include/sys/t_lock.h
+tcltk.o: /usr/include/sys/machlock.h /usr/include/sys/dki_lkinfo.h
+tcltk.o: /usr/include/sys/dl.h /usr/include/sys/sleepq.h
+tcltk.o: /usr/include/sys/turnstile.h /usr/include/sys/param.h
+tcltk.o: /usr/include/sys/unistd.h /usr/include/sys/pirec.h
+tcltk.o: /usr/include/sys/mutex.h /usr/include/sys/rwlock.h
+tcltk.o: /usr/include/sys/semaphore.h /usr/include/sys/condvar.h
+tcltk.o: /usr/include/sys/time.h /usr/include/sys/cred.h
+tcltk.o: /usr/include/vm/seg_enum.h /usr/include/sys/poll.h
+tcltk.o: /usr/include/sys/strmdep.h /usr/include/sys/byteorder.h
+tcltk.o: /usr/include/unistd.h /usr/include/sys/fcntl.h
+tcltk.o: /usr/include/sys/ioctl.h /usr/include/netdb.h
+tcltk.o: /usr/include/arpa/inet.h /usr/include/sys/stat.h
+tcltk.o: /usr/include/fcntl.h /usr/include/sys/audioio.h
+tcltk.o: /usr/include/sys/ioccom.h
+tcltk.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
+tcltk.o: /usr/demo/SOUND/include/multimedia/audio_types.h
+tcltk.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h version.h session.h
+tcltk.o: rat_types.h mbus.h mbus_ui.h util.h tcltk.h
+tcltk.o: /cs/research/mice/starship/common/solaris/include/tcl.h
+tcltk.o: /cs/research/mice/starship/common/solaris/include/tk.h
+tcltk.o: /usr/openwin/include/X11/Xlib.h /usr/openwin/include/X11/X.h
+tcltk.o: /usr/openwin/include/X11/Xfuncproto.h
+tcltk.o: /usr/openwin/include/X11/Xosdefs.h /usr/include/stddef.h xbm/mic.xbm
+tcltk.o: xbm/cd.xbm xbm/speaker.xbm xbm/head.xbm xbm/line_out.xbm
+tcltk.o: xbm/line_in.xbm xbm/rat_small.xbm
+time.o: /usr/include/math.h rat_types.h config.h assert.h
+time.o: /usr/include/malloc.h /usr/include/stdio.h
+time.o: /usr/include/sys/feature_tests.h /usr/include/sys/va_list.h
+time.o: /usr/include/memory.h /usr/include/errno.h /usr/include/sys/errno.h
+time.o: /usr/include/stdlib.h /usr/include/string.h /usr/include/sys/types.h
+time.o: /usr/include/sys/isa_defs.h /usr/include/sys/machtypes.h
+time.o: /usr/include/sys/socket.h /usr/include/sys/netconfig.h
+time.o: /usr/include/sys/uio.h /usr/include/netinet/in.h
+time.o: /usr/include/sys/stream.h /usr/include/sys/vnode.h
+time.o: /usr/include/sys/t_lock.h /usr/include/sys/machlock.h
+time.o: /usr/include/sys/dki_lkinfo.h /usr/include/sys/dl.h
+time.o: /usr/include/sys/sleepq.h /usr/include/sys/turnstile.h
+time.o: /usr/include/sys/param.h /usr/include/sys/unistd.h
+time.o: /usr/include/sys/pirec.h /usr/include/sys/mutex.h
+time.o: /usr/include/sys/rwlock.h /usr/include/sys/semaphore.h
+time.o: /usr/include/sys/condvar.h /usr/include/sys/time.h
+time.o: /usr/include/sys/cred.h /usr/include/vm/seg_enum.h
+time.o: /usr/include/sys/poll.h /usr/include/sys/strmdep.h
+time.o: /usr/include/sys/byteorder.h /usr/include/unistd.h
+time.o: /usr/include/sys/fcntl.h /usr/include/sys/ioctl.h
+time.o: /usr/include/netdb.h /usr/include/arpa/inet.h /usr/include/sys/stat.h
+time.o: /usr/include/fcntl.h /usr/include/sys/audioio.h
+time.o: /usr/include/sys/ioccom.h
+time.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
+time.o: /usr/demo/SOUND/include/multimedia/audio_types.h
+time.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h rat_time.h util.h
+transcoder.o: transcoder.h rat_types.h config.h assert.h
+transcoder.o: /usr/include/malloc.h /usr/include/stdio.h
+transcoder.o: /usr/include/sys/feature_tests.h /usr/include/sys/va_list.h
+transcoder.o: /usr/include/memory.h /usr/include/errno.h
+transcoder.o: /usr/include/sys/errno.h /usr/include/math.h
+transcoder.o: /usr/include/stdlib.h /usr/include/string.h
+transcoder.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
+transcoder.o: /usr/include/sys/machtypes.h /usr/include/sys/socket.h
+transcoder.o: /usr/include/sys/netconfig.h /usr/include/sys/uio.h
+transcoder.o: /usr/include/netinet/in.h /usr/include/sys/stream.h
+transcoder.o: /usr/include/sys/vnode.h /usr/include/sys/t_lock.h
+transcoder.o: /usr/include/sys/machlock.h /usr/include/sys/dki_lkinfo.h
+transcoder.o: /usr/include/sys/dl.h /usr/include/sys/sleepq.h
+transcoder.o: /usr/include/sys/turnstile.h /usr/include/sys/param.h
+transcoder.o: /usr/include/sys/unistd.h /usr/include/sys/pirec.h
+transcoder.o: /usr/include/sys/mutex.h /usr/include/sys/rwlock.h
+transcoder.o: /usr/include/sys/semaphore.h /usr/include/sys/condvar.h
+transcoder.o: /usr/include/sys/time.h /usr/include/sys/cred.h
+transcoder.o: /usr/include/vm/seg_enum.h /usr/include/sys/poll.h
+transcoder.o: /usr/include/sys/strmdep.h /usr/include/sys/byteorder.h
+transcoder.o: /usr/include/unistd.h /usr/include/sys/fcntl.h
+transcoder.o: /usr/include/sys/ioctl.h /usr/include/netdb.h
+transcoder.o: /usr/include/arpa/inet.h /usr/include/sys/stat.h
+transcoder.o: /usr/include/fcntl.h /usr/include/sys/audioio.h
+transcoder.o: /usr/include/sys/ioccom.h
+transcoder.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
+transcoder.o: /usr/demo/SOUND/include/multimedia/audio_types.h
+transcoder.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h audio.h util.h
+transcoder.o: rat_types.h config.h assert.h /usr/include/malloc.h
+transcoder.o: /usr/include/stdio.h /usr/include/sys/feature_tests.h
+transcoder.o: /usr/include/sys/va_list.h /usr/include/memory.h
+transcoder.o: /usr/include/errno.h /usr/include/sys/errno.h
+transcoder.o: /usr/include/math.h /usr/include/stdlib.h /usr/include/string.h
+transcoder.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
+transcoder.o: /usr/include/sys/machtypes.h /usr/include/sys/socket.h
+transcoder.o: /usr/include/sys/netconfig.h /usr/include/sys/uio.h
+transcoder.o: /usr/include/netinet/in.h /usr/include/sys/stream.h
+transcoder.o: /usr/include/sys/vnode.h /usr/include/sys/t_lock.h
+transcoder.o: /usr/include/sys/machlock.h /usr/include/sys/dki_lkinfo.h
+transcoder.o: /usr/include/sys/dl.h /usr/include/sys/sleepq.h
+transcoder.o: /usr/include/sys/turnstile.h /usr/include/sys/param.h
+transcoder.o: /usr/include/sys/unistd.h /usr/include/sys/pirec.h
+transcoder.o: /usr/include/sys/mutex.h /usr/include/sys/rwlock.h
+transcoder.o: /usr/include/sys/semaphore.h /usr/include/sys/condvar.h
+transcoder.o: /usr/include/sys/time.h /usr/include/sys/cred.h
+transcoder.o: /usr/include/vm/seg_enum.h /usr/include/sys/poll.h
+transcoder.o: /usr/include/sys/strmdep.h /usr/include/sys/byteorder.h
+transcoder.o: /usr/include/unistd.h /usr/include/sys/fcntl.h
+transcoder.o: /usr/include/sys/ioctl.h /usr/include/netdb.h
+transcoder.o: /usr/include/arpa/inet.h /usr/include/sys/stat.h
+transcoder.o: /usr/include/fcntl.h /usr/include/sys/audioio.h
+transcoder.o: /usr/include/sys/ioccom.h
+transcoder.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
+transcoder.o: /usr/demo/SOUND/include/multimedia/audio_types.h
+transcoder.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h
+transmit.o: config.h assert.h /usr/include/malloc.h /usr/include/stdio.h
+transmit.o: /usr/include/sys/feature_tests.h /usr/include/sys/va_list.h
+transmit.o: /usr/include/memory.h /usr/include/errno.h
+transmit.o: /usr/include/sys/errno.h /usr/include/math.h
+transmit.o: /usr/include/stdlib.h /usr/include/string.h
+transmit.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
+transmit.o: /usr/include/sys/machtypes.h /usr/include/sys/socket.h
+transmit.o: /usr/include/sys/netconfig.h /usr/include/sys/uio.h
+transmit.o: /usr/include/netinet/in.h /usr/include/sys/stream.h
+transmit.o: /usr/include/sys/vnode.h /usr/include/sys/t_lock.h
+transmit.o: /usr/include/sys/machlock.h /usr/include/sys/dki_lkinfo.h
+transmit.o: /usr/include/sys/dl.h /usr/include/sys/sleepq.h
+transmit.o: /usr/include/sys/turnstile.h /usr/include/sys/param.h
+transmit.o: /usr/include/sys/unistd.h /usr/include/sys/pirec.h
+transmit.o: /usr/include/sys/mutex.h /usr/include/sys/rwlock.h
+transmit.o: /usr/include/sys/semaphore.h /usr/include/sys/condvar.h
+transmit.o: /usr/include/sys/time.h /usr/include/sys/cred.h
+transmit.o: /usr/include/vm/seg_enum.h /usr/include/sys/poll.h
+transmit.o: /usr/include/sys/strmdep.h /usr/include/sys/byteorder.h
+transmit.o: /usr/include/unistd.h /usr/include/sys/fcntl.h
+transmit.o: /usr/include/sys/ioctl.h /usr/include/netdb.h
+transmit.o: /usr/include/arpa/inet.h /usr/include/sys/stat.h
+transmit.o: /usr/include/fcntl.h /usr/include/sys/audioio.h
+transmit.o: /usr/include/sys/ioccom.h
+transmit.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
+transmit.o: /usr/demo/SOUND/include/multimedia/audio_types.h
+transmit.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h codec.h
+transmit.o: rat_types.h channel.h session.h audio.h parameters.h ui_control.h
+transmit.o: util.h rtcp_pckt.h rtcp_db.h speaker_table.h net.h rat_time.h
+transmit.o: transmit.h
+transmit.o: config.h assert.h /usr/include/malloc.h /usr/include/stdio.h
+transmit.o: /usr/include/sys/feature_tests.h /usr/include/sys/va_list.h
+transmit.o: /usr/include/memory.h /usr/include/errno.h
+transmit.o: /usr/include/sys/errno.h /usr/include/math.h
+transmit.o: /usr/include/stdlib.h /usr/include/string.h
+transmit.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
+transmit.o: /usr/include/sys/machtypes.h /usr/include/sys/socket.h
+transmit.o: /usr/include/sys/netconfig.h /usr/include/sys/uio.h
+transmit.o: /usr/include/netinet/in.h /usr/include/sys/stream.h
+transmit.o: /usr/include/sys/vnode.h /usr/include/sys/t_lock.h
+transmit.o: /usr/include/sys/machlock.h /usr/include/sys/dki_lkinfo.h
+transmit.o: /usr/include/sys/dl.h /usr/include/sys/sleepq.h
+transmit.o: /usr/include/sys/turnstile.h /usr/include/sys/param.h
+transmit.o: /usr/include/sys/unistd.h /usr/include/sys/pirec.h
+transmit.o: /usr/include/sys/mutex.h /usr/include/sys/rwlock.h
+transmit.o: /usr/include/sys/semaphore.h /usr/include/sys/condvar.h
+transmit.o: /usr/include/sys/time.h /usr/include/sys/cred.h
+transmit.o: /usr/include/vm/seg_enum.h /usr/include/sys/poll.h
+transmit.o: /usr/include/sys/strmdep.h /usr/include/sys/byteorder.h
+transmit.o: /usr/include/unistd.h /usr/include/sys/fcntl.h
+transmit.o: /usr/include/sys/ioctl.h /usr/include/netdb.h
+transmit.o: /usr/include/arpa/inet.h /usr/include/sys/stat.h
+transmit.o: /usr/include/fcntl.h /usr/include/sys/audioio.h
+transmit.o: /usr/include/sys/ioccom.h
+transmit.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
+transmit.o: /usr/demo/SOUND/include/multimedia/audio_types.h
+transmit.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h session.h
+transmit.o: rat_types.h codec.h
+ui_control.o: config.h assert.h /usr/include/malloc.h /usr/include/stdio.h
+ui_control.o: /usr/include/sys/feature_tests.h /usr/include/sys/va_list.h
+ui_control.o: /usr/include/memory.h /usr/include/errno.h
+ui_control.o: /usr/include/sys/errno.h /usr/include/math.h
+ui_control.o: /usr/include/stdlib.h /usr/include/string.h
+ui_control.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
+ui_control.o: /usr/include/sys/machtypes.h /usr/include/sys/socket.h
+ui_control.o: /usr/include/sys/netconfig.h /usr/include/sys/uio.h
+ui_control.o: /usr/include/netinet/in.h /usr/include/sys/stream.h
+ui_control.o: /usr/include/sys/vnode.h /usr/include/sys/t_lock.h
+ui_control.o: /usr/include/sys/machlock.h /usr/include/sys/dki_lkinfo.h
+ui_control.o: /usr/include/sys/dl.h /usr/include/sys/sleepq.h
+ui_control.o: /usr/include/sys/turnstile.h /usr/include/sys/param.h
+ui_control.o: /usr/include/sys/unistd.h /usr/include/sys/pirec.h
+ui_control.o: /usr/include/sys/mutex.h /usr/include/sys/rwlock.h
+ui_control.o: /usr/include/sys/semaphore.h /usr/include/sys/condvar.h
+ui_control.o: /usr/include/sys/time.h /usr/include/sys/cred.h
+ui_control.o: /usr/include/vm/seg_enum.h /usr/include/sys/poll.h
+ui_control.o: /usr/include/sys/strmdep.h /usr/include/sys/byteorder.h
+ui_control.o: /usr/include/unistd.h /usr/include/sys/fcntl.h
+ui_control.o: /usr/include/sys/ioctl.h /usr/include/netdb.h
+ui_control.o: /usr/include/arpa/inet.h /usr/include/sys/stat.h
+ui_control.o: /usr/include/fcntl.h /usr/include/sys/audioio.h
+ui_control.o: /usr/include/sys/ioccom.h
+ui_control.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
+ui_control.o: /usr/demo/SOUND/include/multimedia/audio_types.h
+ui_control.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h version.h
+ui_control.o: session.h rat_types.h crypt.h rtcp_pckt.h rtcp_db.h util.h
+ui_control.o: repair.h codec.h audio.h mbus.h mbus_engine.h channel.h mix.h
+ui_control.o: transmit.h speaker_table.h ui_control.h
+util.o: /usr/include/stdio.h /usr/include/sys/feature_tests.h
+util.o: /usr/include/sys/va_list.h /usr/include/stdarg.h
+util.o: /usr/include/varargs.h config.h assert.h /usr/include/malloc.h
+util.o: /usr/include/memory.h /usr/include/errno.h /usr/include/sys/errno.h
+util.o: /usr/include/math.h /usr/include/stdlib.h /usr/include/string.h
+util.o: /usr/include/sys/types.h /usr/include/sys/isa_defs.h
+util.o: /usr/include/sys/machtypes.h /usr/include/sys/socket.h
+util.o: /usr/include/sys/netconfig.h /usr/include/sys/uio.h
+util.o: /usr/include/netinet/in.h /usr/include/sys/stream.h
+util.o: /usr/include/sys/vnode.h /usr/include/sys/t_lock.h
+util.o: /usr/include/sys/machlock.h /usr/include/sys/dki_lkinfo.h
+util.o: /usr/include/sys/dl.h /usr/include/sys/sleepq.h
+util.o: /usr/include/sys/turnstile.h /usr/include/sys/param.h
+util.o: /usr/include/sys/unistd.h /usr/include/sys/pirec.h
+util.o: /usr/include/sys/mutex.h /usr/include/sys/rwlock.h
+util.o: /usr/include/sys/semaphore.h /usr/include/sys/condvar.h
+util.o: /usr/include/sys/time.h /usr/include/sys/cred.h
+util.o: /usr/include/vm/seg_enum.h /usr/include/sys/poll.h
+util.o: /usr/include/sys/strmdep.h /usr/include/sys/byteorder.h
+util.o: /usr/include/unistd.h /usr/include/sys/fcntl.h
+util.o: /usr/include/sys/ioctl.h /usr/include/netdb.h
+util.o: /usr/include/arpa/inet.h /usr/include/sys/stat.h /usr/include/fcntl.h
+util.o: /usr/include/sys/audioio.h /usr/include/sys/ioccom.h
+util.o: /usr/demo/SOUND/include/multimedia/audio_encode.h
+util.o: /usr/demo/SOUND/include/multimedia/audio_types.h
+util.o: /usr/demo/SOUND/include/multimedia/audio_hdr.h util.h

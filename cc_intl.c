@@ -291,6 +291,7 @@ intl_encode(session_struct *sp,
             intl_coder_t   *s)
 {
         cc_unit *u;
+        int new_ts;
 
         UNUSED(sp);
 
@@ -307,6 +308,12 @@ intl_encode(session_struct *sp,
 
         if (s->cnt == 0) {
                 s->last.iovc = 1; /* reserve space for hdr */
+        }
+
+        if (il_empty(s->il)) {
+                new_ts = CC_NEW_TS;
+        } else {
+                new_ts = 0;
         }
 
         u = (cc_unit*)il_exchange(s->il,(char*)coded);
@@ -328,11 +335,11 @@ intl_encode(session_struct *sp,
                               collator_get_units(sp->collator));
                 (*out)  = &s->last;
                 s->mask = 0;
-                return TRUE;
+                return CC_READY | new_ts;
         }
 
         (*out) = NULL;
-        return FALSE;
+        return CC_NOT_READY;
 }
 
 static void
@@ -369,10 +376,10 @@ intl_decode(rx_queue_element_struct *u,
                 block_free(u->ccu[0]->iov[0].iov_base,
                            u->ccu[0]->iov[0].iov_len);
                 memset(u->ccu[0]->iov,0,sizeof(struct iovec));
-                mask = GET_MASK(hdr);
-                for(i = 0, idx = 1; i < s->il->n1; i++, mask>>=1) {
+                mask = GET_MASK(hdr) << (32 - GET_N1(hdr));
+                for(i = 0, idx = 1; i < s->il->n1; i++, mask<<=1) {
                         ccu = NULL;
-                        if (mask & 1) {
+                        if (mask & 0x80000000) {
                                 ccu     = (cc_unit*)block_alloc(sizeof(cc_unit));
                                 ccu->pt = s->src_pt;
                                 iovc    = (cp->sent_state_sz ? 1 : 0) + s->upl * cp->max_unit_sz;
@@ -434,10 +441,11 @@ intl_decode(rx_queue_element_struct *u,
  */
 
 int  
-intl_valsplit(char                *blk,
-              unsigned int         blen,
-              cc_unit             *cu,
-              int                 *trailing)
+intl_valsplit(char         *blk,
+              unsigned int  blen,
+              cc_unit      *cu,
+              int          *trailing,
+              int          *inter_pkt_gap)
 {
         u_int32 hdr, len;
         int i, upl, mask;
@@ -448,6 +456,7 @@ intl_valsplit(char                *blk,
         assert(cu->iovc == 0);
         cu->iov[0].iov_base = (caddr_t)blk;
         cu->iov[0].iov_len  = 4;
+        blen               -= 4;
 
         cp = get_codec(GET_PT(hdr));
         if (!cp) {
@@ -459,10 +468,10 @@ intl_valsplit(char                *blk,
         upl = GET_UPL(hdr);
         len = cp->max_unit_sz * upl + cp->sent_state_sz;
 
-        mask = GET_MASK(hdr);
+        mask = GET_MASK(hdr) << (32 - GET_N1(hdr));
         while(mask) {
-                if (mask & 1) fragment_sizes(cp, len, cu->iov, &cu->iovc, CC_UNITS);
-                mask >>= 1;
+                if (mask & 0x80000000) fragment_sizes(cp, len, cu->iov, &cu->iovc, CC_UNITS);
+                mask <<= 1;
         }
         
         for(i = 0, len = 0; i < cu->iovc; i++) len += cu->iov[i].iov_len;
@@ -473,7 +482,9 @@ intl_valsplit(char                *blk,
                 return 0;
         }
         
-        (*trailing) = (GET_N2(hdr) - GET_PHASE(hdr)) * GET_N1(hdr) * upl; 
+        (*trailing)      = (GET_N2(hdr) - GET_PHASE(hdr)) * GET_N1(hdr) * upl; 
+        (*inter_pkt_gap) = upl * GET_N1(hdr) * cp->unit_len;
+
         return GET_N1(hdr) * upl;
 }
 

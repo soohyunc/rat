@@ -109,7 +109,7 @@ split_block(u_int32 playout_pt,
 
         ccu = (cc_unit*)block_alloc(sizeof(cc_unit));
         memset(ccu,0,sizeof(cc_unit));
-        units = validate_and_split(hdr->pt, data_ptr, len, ccu, &trailing);
+        units = validate_and_split(hdr->pt, data_ptr, len, ccu, &trailing, &src->inter_pkt_gap);
 
         if (units <=0) {
 	    	dprintf("Validate and split failed!\n");
@@ -201,7 +201,7 @@ adapt_playout(rtp_hdr_t *hdr,
                    */
 		if ((hdr->m) || 
                     src->cont_toged > 4 || 
-                    ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * cp->unit_len * 8 + 1)) ||
+                    ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * src->inter_pkt_gap * 8 + 1)) ||
                     src->playout_danger) {
 #ifdef DEBUG
                         if (hdr->m) {
