@@ -595,8 +595,9 @@ ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered,
 
 	cname_e = mbus_encode_str(cname);
 
-	args = (char *) xmalloc(strlen(cname_e) + 40);
-	sprintf(args, "%s %6ld %6ld %6ld %9.6f %6d", cname_e, recv, lost, misordered, jitter, jit_tog);
+	/* I hate this function! */
+	args = (char *) xmalloc(strlen(cname_e) + 80);
+	sprintf(args, "%s %6ld %6ld %6ld %f %6d", cname_e, recv, lost, misordered, jitter, jit_tog);
 	mbus_engine_tx_queue(TRUE, "source.reception", args);
 	free(args);
 }

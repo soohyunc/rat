@@ -237,7 +237,6 @@ rtcp_getornew_dbentry(session_struct *sp, u_int32 ssrc, u_int32 addr, u_int32 cu
 	dbe = rtcp_get_dbentry(sp, ssrc);
 	if (dbe == NULL) {
 		dbe = rtcp_new_dbentry(sp, ssrc, addr, cur_time);
-		dprintf("Allocated dbe for 0x%lx\n", ssrc);
 	}
 	return dbe;
 }
