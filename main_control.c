@@ -168,10 +168,39 @@ static void kill_process(pid_t proc)
 #endif
 }
 
+static int
+address_is_valid(const char *candidate)
+{
+	char *addr, *p;
+	int   i, port, okay = TRUE;
+
+	addr = xstrdup(candidate);
+
+        addr = strtok(addr, "/");
+        if (udp_addr_valid(addr) == FALSE) {
+                usage("Invalid address\n");
+                okay = FALSE;
+        }
+	
+	/* rx_port then tx_port */
+	for (i = 0; i < 2; i++) {
+		p = strtok(NULL, "/");
+		if (p != NULL) {
+			port = atoi(p);
+			if (port < 1023 || port > 65536) {
+				usage("Port must be > 1023 and <= 65536\n");
+				okay = FALSE;
+			}
+		}
+	}
+        xfree(addr);
+        
+        return okay;
+}
+
 static int parse_options_early(int argc, const char **argv) 
 {
         int i;
-        char *addr;
         
         if (argc < 2) {
                 usage(NULL);
@@ -206,17 +235,8 @@ static int parse_options_early(int argc, const char **argv)
         /* 
          * Validate destination address.  Do it here before launching 
          * sub-processes and mbus.
-         */
-        
-        addr = xstrdup(argv[argc-1]);
-        addr = strtok(addr, "/");
-        if (udp_addr_valid(addr) == FALSE) {
-                usage("Invalid address\n");
-                return FALSE;
-        }
-        xfree(addr);
-        
-        return TRUE;
+         */     
+	return address_is_valid(argv[argc-1]);
 }
 
 /* Late Command Line Argument Functions */
@@ -470,23 +490,24 @@ parse_addr(char *arg, char **addr, int *rx_port, int *tx_port)
 {
         char *token;
         int   port;
+	
+	if (address_is_valid == FALSE) {
+		*addr    = NULL;
+		*rx_port = 0;
+		*tx_port = 0;
+		return FALSE;
+	}
 
-        *addr = (char *) strtok(arg, "/");
-        if (udp_addr_valid(*addr) == FALSE) {
-                usage("Invalid address\n");
-                return FALSE;
-        }
+	/* Address is definitely valid... */
 
+        *addr = (char *)strtok(arg, "/");
+     
         *rx_port = DEFAULT_RTP_PORT;
         token = strtok(NULL, "/");
         if (token) {
                 port     = atoi(token);
                 port    &= ~1; 
-                if (port < 1023) {
-                        usage("Port number must be > 1023.\nType rat -h for help\n");
-                        return FALSE;
-                }
-                *rx_port = port;
+		*rx_port = port;
         }
 
         *tx_port = DEFAULT_RTP_PORT;
@@ -494,10 +515,6 @@ parse_addr(char *arg, char **addr, int *rx_port, int *tx_port)
         if (token) {
                 port     = atoi(token);
                 port    &= ~1; 
-                if (port < 1023) {
-                        usage("Port number must be > 1023.\nType rat -h for help\n");
-                        return FALSE;
-                }
                 *tx_port = port;
         }
         return TRUE;
