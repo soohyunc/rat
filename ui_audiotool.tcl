@@ -1471,7 +1471,7 @@ proc mbus_recv_tool.rat.enable.audio.ctls {} {
 }
 bind all <ButtonPress-3>   {toggle in_mute_var; input_mute $in_mute_var}
 bind all <ButtonRelease-3> {toggle in_mute_var; input_mute $in_mute_var}
-bind all <q>               "do_quit"
+bind all <q>               {+if {[winfo class %W] != "Entry"} {do_quit}}
 
 # Override default tk behaviour
 wm protocol . WM_DELETE_WINDOW do_quit
