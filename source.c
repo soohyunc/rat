@@ -45,7 +45,6 @@ static const char cvsid[] =
 
 #define SKEW_ADAPT_THRESHOLD       5000
 #define SOURCE_YOUNG_AGE             20
-#define SOURCE_AUDIO_HISTORY_MS    1000
 #define NO_TOGED_CONT_FOR_PLAYOUT_RECALC 3
 
 #define SOURCE_COMPARE_WINDOW_SIZE 8
@@ -215,7 +214,7 @@ time_constants_init()
         /* We use these time constants *all* the time.   Initialize once     */
         zero_ts        = ts_map32(8000, 0);
         keep_source_ts = ts_map32(8000, 24000);
-        history_ts     = ts_map32(8000, 1000); 
+        history_ts     = ts_map32(8000, 2000); 
         bw_avg_period  = ts_map32(8000, 8000);
         skew_thresh    = ts_map32(8000, 320);
         skew_limit     = ts_map32(8000, 4000);
@@ -248,7 +247,6 @@ source_validate(source *s)
 	{
 		uint32_t	f;
 		f = ts_get_freq(s->pdbe->playout);
-
 	        assert((unsigned)s->pdbe->playout.ticks < 2 * f);
 	}
 #endif
@@ -866,7 +864,9 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
 
+/*
 		debug_msg("%d %d\n", timestamp_to_ms(playout), timestamp_to_ms(now));
+*/
 		sanity_check_playout_time(now, playout);
 
 		/* At this point we know the desired playout time for this packet, */
@@ -1364,9 +1364,9 @@ source_skew_adapt(source *src, media_data *md, timestamp_t playout)
 }
 
 static int
-source_repair(source     *src,
-              repair_id_t r,
-              timestamp_t        fill_ts) 
+source_repair(source		*src,
+              repair_id_t	r,
+              timestamp_t	fill_ts) 
 {
         media_data* fill_md, *prev_md;
         timestamp_t        prev_ts;
@@ -1376,7 +1376,18 @@ source_repair(source     *src,
         /* We repair one unit at a time since it may be all we need */
         if (pb_iterator_retreat(src->media_pos) == FALSE) {
                 /* New packet when source still active, but dry, e.g. new talkspurt */
-                debug_msg("Repair not possible no previous unit!\n");
+		timestamp_t start, end;
+                debug_msg("Repair not possible no previous unit!\n"); 
+		if (pb_get_start_ts(pb_iterator_get_playout_buffer(src->media_pos), 
+								   &start) &&
+		    pb_get_end_ts(pb_iterator_get_playout_buffer(src->media_pos),
+								 &end)) {
+			debug_msg("Range available [%d - %d] want %d\n",
+				  timestamp_to_ms(start),
+				  timestamp_to_ms(end),
+				  timestamp_to_ms(fill_ts));
+		}
+		    
 		source_validate(src);
                 return FALSE;
         }
@@ -1403,14 +1414,16 @@ source_repair(source     *src,
                 src->last_repair = fill_ts;
                 /* Advance to unit we just added */
                 pb_iterator_advance(src->media_pos);
+		debug_msg("Repair added %d\n", timestamp_to_ms(fill_ts));
         } else {
                 /* This should only ever fail at when source changes
                  * sample rate in less time than playout buffer
                  * timeout.  This should be a very very rare event...  
                  */
-                debug_msg("Repair add data failed (%d).\n", fill_ts.ticks);
+                debug_msg("Repair add data failed %d.\n", timestamp_to_ms(fill_ts));
                 media_data_destroy(&fill_md, sizeof(media_data));
                 src->consec_lost = 0;
+		src->hold_repair += 2; 
 		source_validate(src);
                 return FALSE;
         }
@@ -1418,11 +1431,10 @@ source_repair(source     *src,
         return TRUE;
 }
 
-static void
-repair_media_stream(session_t *sp, source *src, media_data *md, uint32_t md_len, timestamp_t playout)
+static int
+source_repair_required(source *src, timestamp_t playout)
 {
 	timestamp_t	 gap;
-        int          	 success;
 
 	/* Repair any gap in the audio stream. Conditions for repair:  */
 	/* (a) playout point of unit is further away than expected.    */
@@ -1439,31 +1451,14 @@ repair_media_stream(session_t *sp, source *src, media_data *md, uint32_t md_len,
 	    ((ts_gt(src->next_played, src->talkstart) && 
 	      ts_gt(playout, src->talkstart)) || src->post_talkstart_units > 100) &&
 	    (src->hold_repair == 0)) {
-		/* There is a gap in the media stream which we believe */
-		/* we can repair... If repair was successful media_pos */
-		/* is moved, so get data at src->media_pos again.      */
-		if (source_repair(src, sp->repair, src->next_played)) {
-			debug_msg("Repair succeeded (% 2d got % 6d exp % 6d talks % 6d)\n", 
-				  src->consec_lost, 
-				  playout.ticks, 
-				  src->next_played.ticks, 
-				  src->talkstart.ticks);
-			success = pb_iterator_get_at(src->media_pos, (u_char**)&md, &md_len, &playout);
-			assert(success);
-			assert(ts_eq(playout, src->next_played));
-		} else {
-			/* Repair failed for some reason.  Wait a    */
-			/* while before re-trying.                   */
-			debug_msg("Repair failed unexpectedly\n");
-			src->hold_repair += 2; 
-		}
-	} else {
-		/* The media stream is intact, no need to repair... */
-		if (src->hold_repair > 0) {
-			src->hold_repair--;
-		}
-		src->consec_lost = 0;
+		return TRUE;
 	}
+	/* Repair not needed, just maintain loss related variables */
+	if (src->hold_repair) {
+		src->hold_repair--;
+	}
+	src->consec_lost = 0;
+	return FALSE;
 }
 
 void
@@ -1516,6 +1511,24 @@ source_process(session_t 	 *sp,
         while (ts_gt(end_ts, src->next_played) && pb_iterator_advance(src->media_pos)) {
 		pb_iterator_get_at(src->media_pos, (u_char**)&md, &md_len, &playout);
 
+		if (source_repair_required(src, playout)) {
+			if (source_repair(src, sp->repair, src->next_played)) {
+				/* Repair moves media buffer iterator to start of repaired */
+				/* frames, need to get media iterator position */
+				int success;
+				debug_msg("Repair succeeded (% 2d got % 6d exp % 6d talks % 6d)\n", 
+					  src->consec_lost, 
+					  playout.ticks, 
+					  src->next_played.ticks, 
+					  src->talkstart.ticks);
+				success = pb_iterator_get_at(src->media_pos, 
+							     (u_char**)&md, &md_len, 
+							     &playout);
+				assert(success);
+				assert(ts_eq(playout, src->next_played));
+			}
+		}
+
 		/* At this point, md is the media data at the current playout point. */
 		/* There may be multiple representations of the data, for example if */
 		/* we are receiving a stream using redundancy.                       */
@@ -1526,8 +1539,6 @@ source_process(session_t 	 *sp,
 			assert(md->rep[i] != NULL);
 			assert(codec_is_native_coding(md->rep[i]->id) || codec_id_is_valid(md->rep[i]->id));
 		}
-
-		repair_media_stream(sp, src, md, md_len, playout);
 
                 if (ts_gt(playout, end_ts)) {
                         /* This playout point is after now so stop */
@@ -1629,7 +1640,7 @@ source_process(session_t 	 *sp,
                 src->samples_played += md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample));
                 xmemchk();
 
-                assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);		
+                assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
                 if (mix_put_audio(sp->ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
                         /* Sources sampling rate changed mid-flow? dump data */
                         /* make source look irrelevant, it should get        */
@@ -1638,6 +1649,7 @@ source_process(session_t 	 *sp,
                         /* A better way would be just to flush media then    */
                         /* invoke source_reconfigure if this is ever really  */
                         /* an issue.                                         */
+			debug_msg("flushing buffers ?\n");
                         pb_flush(src->media);
                         pb_flush(src->channel);
                 }
@@ -1651,7 +1663,7 @@ source_audit(source *src)
 {
 	source_validate(src);
         if (src->age != 0) {
-                /* Keep 1/8 seconds worth of audio */
+		source_validate(src);
                 pb_iterator_audit(src->media_pos, history_ts);
                 return TRUE;
         }
