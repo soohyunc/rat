@@ -134,7 +134,6 @@ session_init(session_t *sp)
 	sp->mbus_engine_addr		= NULL;
 	sp->mbus_engine			= NULL;
 	sp->mbus_ui_addr		= NULL;
-	sp->mbus_ui			= NULL;
 	sp->mbus_video_addr		= xstrdup("(media:video module:engine)");
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;

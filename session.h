@@ -103,10 +103,9 @@ typedef struct s_session {
         uint32_t             	 min_playout;
         uint32_t             	 max_playout;
         uint32_t             	 last_depart_ts;
-	char		   	*mbus_engine_addr;
 	struct mbus	   	*mbus_engine;
+	char		   	*mbus_engine_addr;
 	char		   	*mbus_ui_addr;
-	struct mbus	   	*mbus_ui;
 	char		   	*mbus_video_addr;
 	int		    	 loopback_gain;
 	char			*encrkey;
