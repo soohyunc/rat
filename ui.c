@@ -1065,6 +1065,8 @@ ui_initial_settings(session_t *sp)
 #ifdef NDEF /* This is done by load_settings() now... */
 	ui_load_settings(sp); 			network_process_mbus(sp);
 #endif
+        ui_update_converter(sp);
+        ui_update_repair(sp);
 }
 
 void 
