@@ -25,6 +25,7 @@ set titlefont     [font actual {helvetica 10}]
 set infofont      [font actual {helvetica 10}]
 set smallfont     [font actual {helvetica  8}]
 set verysmallfont [font actual {helvetica  8}]
+
 set speaker_highlight white
 
 option add *Entry.relief       sunken 
@@ -963,7 +964,7 @@ proc cname_update {cname} {
 #power meters
 
 # number of elements in the bargraphs...
-set bargraphTotalHeight 24
+set bargraphTotalHeight 12
 set bargraphRedHeight [expr $bargraphTotalHeight * 3 / 4] 
 
 proc bargraphCreate {bgraph} {
@@ -1269,38 +1270,39 @@ proc do_quit {} {
 
 # Initialise RAT MAIN window
 frame .r 
-frame .l 
+frame .l
 frame .l.t -relief sunken
 scrollbar .l.t.scr -relief flat -highlightthickness 0 -command ".l.t.list yview"
-canvas .l.t.list -highlightthickness 0 -bd 0 -relief raised -width $iwd -height 160 -yscrollcommand ".l.t.scr set" -yscrollincrement $iht
+canvas .l.t.list -highlightthickness 0 -bd 0 -relief sunk -width $iwd -height 160 -yscrollcommand ".l.t.scr set" -yscrollincrement $iht
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 
-frame .l.f -relief flat
+frame .l.f -relief raised
 label .l.f.title -font $infofont  -textvariable session_title
 label .l.f.addr  -font $smallfont -textvariable session_address
 
-frame  .l.s1 -bd 0
-label  .l.s1.tool -textvariable tool_name 
-button .l.s1.opts  -text "Options"   -command {wm deiconify .prefs; raise .prefs}
-button .l.s1.about -text "About"     -command {jiggle_credits; wm deiconify .about}
-button .l.s1.quit  -text "Quit"      -command do_quit
+frame  .st -bd 0
+label  .st.tool -textvariable tool_name 
+button .st.opts  -text "Options"   -command {wm deiconify .prefs; raise .prefs}
+button .st.about -text "About"     -command {jiggle_credits; wm deiconify .about}
+button .st.quit  -text "Quit"      -command do_quit
 
-frame .r.c
-frame .r.c.vol 
-frame .r.c.gain 
+frame .r.c -bd 0
+frame .r.c.vol -bd 0
+frame .r.c.gain -bd 0
 
-pack .r -side top -fill x
+pack .st -side bottom -fill x 
+pack .st.tool -side left -anchor w
+pack .st.quit .st.about .st.opts -side right -anchor w -padx 2 -pady 2
+
+pack .r -side bottom -fill x 
 pack .r.c -side top -fill x -expand 1
 pack .r.c.vol  -side top -fill x
 pack .r.c.gain -side top -fill x
 
 pack .l -side top -fill both -expand 1
-pack .l.f -side top -fill x -padx 2
+pack .l.f -side top -fill x -padx 2 -pady 2
 pack .l.f.title .l.f.addr -side top -fill x -pady 2
-pack .l.s1 -side bottom -fill x 
-pack .l.s1.tool -side left -anchor w
-pack  .l.s1.quit .l.s1.about .l.s1.opts -side right -anchor w -padx 2 -pady 2
 pack .l.t  -side top -fill both -expand 1 -padx 2
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
@@ -1310,14 +1312,14 @@ bind .l.t.list <Configure> {fix_scrollbar}
 set out_mute_var 0
 frame .r.c.vol.but
 frame .r.c.vol.gra
-checkbutton .r.c.vol.but.t1 -highlightthickness 0 -text "Receive" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $smallfont -width 8 -anchor w
-button .r.c.vol.but.l1 -highlightthickness 0 -command toggle_output_port -font $smallfont -width 10
+checkbutton .r.c.vol.but.t1 -highlightthickness 0 -text "Receive" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $infofont -width 8 -anchor w -relief raised
+button .r.c.vol.but.l1 -highlightthickness 0 -command toggle_output_port -font $infofont -width 10
 bargraphCreate .r.c.vol.gra.b1
-scale .r.c.vol.gra.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -showvalue false -width 10 -variable volume
+scale .r.c.vol.gra.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -showvalue false -width 8 -variable volume
 
-pack .r.c.vol.but -side left -fill both
-pack .r.c.vol.but.t1 -side top -fill both
-pack .r.c.vol.but.l1 -side top -fill both
+pack .r.c.vol.but -side left -fill both 
+pack .r.c.vol.but.t1 -side left -fill y
+pack .r.c.vol.but.l1 -side left -fill y
 
 pack .r.c.vol.gra -side left -fill both -expand 1
 pack .r.c.vol.gra.b1 -side top  -fill both -expand 1 -padx 1 -pady 1
@@ -1327,16 +1329,16 @@ pack .r.c.vol.gra.s1 -side bottom  -fill x -anchor s
 set in_mute_var 1
 
 frame .r.c.gain.but
-checkbutton .r.c.gain.but.t2 -highlightthickness 0 -text "Transmit" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $smallfont -width 8 -anchor w
-button .r.c.gain.but.l2 -highlightthickness 0 -command toggle_input_port -font $smallfont -width 10
+checkbutton .r.c.gain.but.t2 -highlightthickness 0 -text "Transmit" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $infofont -width 8 -anchor w -relief raised
+button .r.c.gain.but.l2 -highlightthickness 0 -command toggle_input_port -font $infofont -width 10
 
 frame .r.c.gain.gra
 bargraphCreate .r.c.gain.gra.b2
-scale .r.c.gain.gra.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -showvalue false -width 10 -variable gain -font $smallfont
+scale .r.c.gain.gra.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -showvalue false -width 8 -variable gain -font $smallfont
 
 pack .r.c.gain.but    -side left 
-pack .r.c.gain.but.t2 -side top -fill both
-pack .r.c.gain.but.l2 -side top -fill both
+pack .r.c.gain.but.t2 -side left -fill y
+pack .r.c.gain.but.l2 -side left -fill y
 
 pack .r.c.gain.gra -side left -fill both -expand 1
 pack .r.c.gain.gra.b2 -side top  -fill both -expand 1 -padx 1 -pady 1
@@ -2733,9 +2735,9 @@ add_help .l.t		"The participants in this session with you at the top.\nClick on 
 			 and with the middle\nbutton to mute that participant (the right button\nwill\
 			 toggle the transmission mute button, as usual)."
 
-add_help .l.s1.opts   	"Brings up another window allowing\nthe control of various options."
-add_help .l.s1.about  	"Brings up another window displaying\ncopyright & author information."
-add_help .l.s1.quit   	"Press to leave the session."
+add_help .st.opts   	"Brings up another window allowing\nthe control of various options."
+add_help .st.about  	"Brings up another window displaying\ncopyright & author information."
+add_help .st.quit   	"Press to leave the session."
 
 # preferences help
 add_help .prefs.m.f.m  "Click here to change the preference\ncategory."
