@@ -95,7 +95,7 @@ proc init_source {ssrc} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE SSRC num_ssrc 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER \
 		LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED BUFFER_SIZE PLAYOUT_DELAY \
-		GAIN MUTE
+		GAIN MUTE SKEW
 
 	# This is a debugging test -- old versions of the mbus used the
 	# cname to identify participants, whilst the newer version uses 
@@ -120,6 +120,7 @@ proc init_source {ssrc} {
 		set      DURATION($ssrc) ""
                 set   BUFFER_SIZE($ssrc) 0
                 set PLAYOUT_DELAY($ssrc) 0
+                set          SKEW($ssrc) 1.000
 		set    PCKTS_RECV($ssrc) 0
 		set    PCKTS_LOST($ssrc) 0
 		set    PCKTS_MISO($ssrc) 0
@@ -245,6 +246,7 @@ proc mbus_recv {cmnd args} {
 		tool.rat.lecture.mode  		{eval mbus_recv_tool.rat.lecture.mode $args}
 		tool.rat.audio.buffered  	{eval mbus_recv_tool.rat.audio.buffered $args}
 		tool.rat.audio.delay    	{eval mbus_recv_tool.rat.audio.delay $args}
+		tool.rat.audio.skew     	{eval mbus_recv_tool.rat.audio.skew $args}
 		tool.rat.3d.enabled  		{eval mbus_recv_tool.rat.3d.enabled $args}
 		tool.rat.3d.azimuth.min         {eval mbus_recv_tool.rat.3d.azimuth.min $args}
 		tool.rat.3d.azimuth.max         {eval mbus_recv_tool.rat.3d.azimuth.max $args}
@@ -882,6 +884,13 @@ proc mbus_recv_tool.rat.audio.delay {ssrc len} {
 # we don't update cname as source.packet.duration always follows 
 }
 
+proc mbus_recv_tool.rat.audio.skew {ssrc skew} {
+        global SKEW
+        init_source $ssrc
+        set SKEW($ssrc) [format "%.3f" $skew]
+# we don't update cname as source.packet.duration always follows 
+}
+
 proc mbus_recv_tool.rat.3d.enabled {mode} {
 	global 3d_audio_var
 	set 3d_audio_var $mode
@@ -959,7 +968,8 @@ proc mbus_recv_rtp.source.inactive {ssrc} {
 proc mbus_recv_rtp.source.remove {ssrc} {
     global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO \
 	    PCKTS_DUP JITTER BUFFER_SIZE PLAYOUT_DELAY LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED \
-	    num_ssrc loss_to_me_timer loss_from_me_timer GAIN MUTE HEARD_LOSS_TO_ME HEARD_LOSS_FROM_ME
+	    num_ssrc loss_to_me_timer loss_from_me_timer GAIN MUTE HEARD_LOSS_TO_ME HEARD_LOSS_FROM_ME \
+	    SKEW
 
     # Disable updating of loss diamonds. This has to be done before we destroy the
     # window representing the participant, else the background update may try to 
@@ -974,7 +984,7 @@ proc mbus_recv_rtp.source.remove {ssrc} {
 	unset CNAME($ssrc) NAME($ssrc) EMAIL($ssrc) PHONE($ssrc) LOC($ssrc) TOOL($ssrc) NOTE($ssrc)
 	unset CODEC($ssrc) DURATION($ssrc) PCKTS_RECV($ssrc) PCKTS_LOST($ssrc) PCKTS_MISO($ssrc) PCKTS_DUP($ssrc)
 	unset JITTER($ssrc) LOSS_TO_ME($ssrc) LOSS_FROM_ME($ssrc) INDEX($ssrc) JIT_TOGED($ssrc) BUFFER_SIZE($ssrc)
-	unset PLAYOUT_DELAY($ssrc) GAIN($ssrc) MUTE($ssrc) 
+	unset PLAYOUT_DELAY($ssrc) GAIN($ssrc) MUTE($ssrc) SKEW($ssrc)
 	incr num_ssrc -1
     }
     if { [info exists HEARD_LOSS_TO_ME($ssrc)] } {
@@ -1270,10 +1280,10 @@ proc info_timer {} {
 
 proc stats_add_field {widget label watchVar} {
     global statsfont
-    frame $widget -relief sunk 
+    frame $widget
     label $widget.l -text $label -font $statsfont -anchor w
     label $widget.w -textvariable $watchVar -font $statsfont
-    pack $widget -side top -fill x -expand 1 
+    pack $widget -side top -fill x -anchor n
     pack $widget.l -side left  -fill x -expand 1
     pack $widget.w -side right 
 }
@@ -1306,14 +1316,16 @@ proc toggle_stats {ssrc} {
 	pack $win.mf.l $win.mf.mb -side left
 	menu $win.mf.mb.menu -tearoff 0
 	$win.mf.mb.menu add command -label "Personal Details" -command "set_pane stats_pane($win) $win.df \"Personal Details\""
-	$win.mf.mb.menu add command -label "Reception"        -command "set_pane stats_pane($win) $win.df Reception"
+	$win.mf.mb.menu add command -label "Playout"          -command "set_pane stats_pane($win) $win.df Playout"
+	$win.mf.mb.menu add command -label "Decoder"          -command "set_pane stats_pane($win) $win.df Decoder"
 	$win.mf.mb.menu add command -label "Audio"            -command "set_pane stats_pane($win) $win.df Audio"
 	$win.mf.mb.menu add command -label "3D Positioning"   -command "set_pane stats_pane($win) $win.df \"3D Positioning\""
 
 	set stats_pane($win) "Personal Details"
-	frame $win.df 
-	frame $win.df.personal 
-	pack  $win.df $win.df.personal -fill x
+	frame $win.df
+	frame $win.df.personal -relief groove -bd 2
+	pack  $win.df -side top -anchor n -expand 1 -fill both
+	pack $win.df.personal -expand 1 -fill both
 
 	global NAME EMAIL PHONE LOC NOTE CNAME TOOL SSRC
 	stats_add_field $win.df.personal.1 "Name: "     NAME($ssrc)
@@ -1325,24 +1337,29 @@ proc toggle_stats {ssrc} {
 	stats_add_field $win.df.personal.7 "CNAME: "    CNAME($ssrc)
 	stats_add_field $win.df.personal.8 "SSRC: "     SSRC($ssrc)
 
-	frame $win.df.reception
-	global CODEC DURATION BUFFER_SIZE PLAYOUT_DELAY PCKTS_RECV PCKTS_LOST PCKTS_MISO \
-	       PCKTS_DUP LOSS_FROM_ME LOSS_TO_ME JITTER JIT_TOGED BUFFER_SIZE
-	stats_add_field $win.df.reception.1 "Audio encoding: "         CODEC($ssrc)
-	stats_add_field $win.df.reception.2 "Packet duration (ms): "   DURATION($ssrc)
-	stats_add_field $win.df.reception.3 "Buffered audio (ms): "     BUFFER_SIZE($ssrc)
-	stats_add_field $win.df.reception.5 "Arrival jitter (ms): "    JITTER($ssrc)
-	stats_add_field $win.df.reception.6 "Loss from me (%): "       LOSS_FROM_ME($ssrc)
-	stats_add_field $win.df.reception.7 "Loss to me (%): "         LOSS_TO_ME($ssrc)
-	stats_add_field $win.df.reception.8 "Packets received: "       PCKTS_RECV($ssrc)
-	stats_add_field $win.df.reception.9 "Packets lost: "           PCKTS_LOST($ssrc)
-	stats_add_field $win.df.reception.a "Packets misordered: "     PCKTS_MISO($ssrc)
-	stats_add_field $win.df.reception.b "Packets duplicated: "     PCKTS_DUP($ssrc)
-	stats_add_field $win.df.reception.c "Units dropped (jitter): " JIT_TOGED($ssrc)
+	frame $win.df.playout -relief groove -bd 2
+	global BUFFER_SIZE PLAYOUT_DELAY JITTER JIT_TOGED SKEW
+	stats_add_field $win.df.playout.1 "Actual Playout (ms): "    BUFFER_SIZE($ssrc)
+	stats_add_field $win.df.playout.2 "Target Playout (ms): "    PLAYOUT_DELAY($ssrc)
+	stats_add_field $win.df.playout.3 "Arrival jitter (ms): "    JITTER($ssrc)
+	stats_add_field $win.df.playout.4 "Units dropped (jitter): " JIT_TOGED($ssrc)
+	stats_add_field $win.df.playout.5 "Relative clock rate:"     SKEW($ssrc)
+
+	frame $win.df.decoder -relief groove -bd 2
+	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO \
+	       PCKTS_DUP LOSS_FROM_ME LOSS_TO_ME
+	stats_add_field $win.df.decoder.1 "Audio encoding: "         CODEC($ssrc)
+	stats_add_field $win.df.decoder.2 "Packet duration (ms): "   DURATION($ssrc)
+	stats_add_field $win.df.decoder.3 "Loss from me (%): "       LOSS_FROM_ME($ssrc)
+	stats_add_field $win.df.decoder.4 "Loss to me (%): "         LOSS_TO_ME($ssrc)
+	stats_add_field $win.df.decoder.5 "Packets received: "       PCKTS_RECV($ssrc)
+	stats_add_field $win.df.decoder.6 "Packets lost: "           PCKTS_LOST($ssrc)
+	stats_add_field $win.df.decoder.7 "Packets misordered: "     PCKTS_MISO($ssrc)
+	stats_add_field $win.df.decoder.8 "Packets duplicated: "     PCKTS_DUP($ssrc)
 
 # Audio settings
 	global GAIN MUTE
-	frame $win.df.audio -relief sunk	
+	frame $win.df.audio -relief groove -bd 2
 	label $win.df.audio.advice -text "The signal from the participant can\nbe scaled and muted with the controls below."
 	pack  $win.df.audio.advice
 
@@ -1359,13 +1376,13 @@ proc toggle_stats {ssrc} {
 	$win.df.audio.opts.gain_scale set [expr log10($GAIN($ssrc)) / log10(2)] 
 
 	button $win.df.audio.default -text "Default" -command "set MUTE($ssrc) 0; $win.df.audio.opts.gain_scale set 0.0; send_gain_and_mute $ssrc" 
-	pack   $win.df.audio.default -side right  -anchor e -padx 2 -pady 2
+	pack   $win.df.audio.default -side bottom  -anchor e -padx 2 -pady 2
 
 # 3D settings
 	# Trigger engine to send details for this participant
 	mbus_send "R" "tool.rat.3d.user.settings.request" [mbus_encode_str $ssrc]
 
-	frame $win.df.3d -relief sunk
+	frame $win.df.3d -relief groove -bd 2
 	label $win.df.3d.advice -text "These options allow the rendering of the\nparticipant to be altered when 3D\nrendering is enabled."
 	checkbutton $win.df.3d.ext -text "3D Audio Rendering" -variable 3d_audio_var
 	pack $win.df.3d.advice 
@@ -1376,7 +1393,7 @@ proc toggle_stats {ssrc} {
 
 	frame $win.df.3d.opts.filters
 	label $win.df.3d.opts.filters.l -text "Filter Type:"
-	pack $win.df.3d.opts.filters.l -side top -fill x -expand 1 -anchor w
+	pack $win.df.3d.opts.filters.l -side left -fill x -expand 1 -anchor w
 	global 3d_filters 3d_filter_lengths
 	
 	global filter_type
@@ -1387,13 +1404,13 @@ proc toggle_stats {ssrc} {
 	    radiobutton $win.df.3d.opts.filters.$cnt \
 		    -value "$i" -variable filter_type($ssrc) \
 		    -text "$i"
- 		pack $win.df.3d.opts.filters.$cnt -side top -anchor w
+ 		pack $win.df.3d.opts.filters.$cnt -side left -anchor w
 	    incr cnt
 	}
 
 	frame $win.df.3d.opts.lengths 
 	label $win.df.3d.opts.lengths.l -text "Filter Length:" -width 16
-	pack $win.df.3d.opts.lengths.l -side top -fill x -expand 1
+	pack $win.df.3d.opts.lengths.l -side left -fill x -expand 1
 	
 	global filter_length
 	set filter_length($ssrc) [lindex $3d_filter_lengths 0]
@@ -1403,28 +1420,28 @@ proc toggle_stats {ssrc} {
 	    radiobutton $win.df.3d.opts.lengths.$cnt \
 		    -value "$i" -variable filter_length($ssrc) \
 		    -text "$i"
-	    pack $win.df.3d.opts.lengths.$cnt -side top -anchor w
+	    pack $win.df.3d.opts.lengths.$cnt -side left -anchor w
 	    incr cnt
 	}
-	pack $win.df.3d.opts.filters -side left -expand 1 -anchor n
-	pack $win.df.3d.opts.lengths -side left -expand 1 -anchor n
+	pack $win.df.3d.opts.filters -side top -expand 1 -anchor n
+	pack $win.df.3d.opts.lengths -side top -expand 1 -anchor n
 	
 	global 3d_azimuth azimuth
 	scale $win.df.3d.azimuth -from $3d_azimuth(min) -to $3d_azimuth(max) \
 		-orient horizontal -label "Azimuth" -variable azimuth($ssrc)
-	pack  $win.df.3d.azimuth -fill x -expand 1 
+	pack  $win.df.3d.azimuth 
 
 	button $win.df.3d.apply -text "Apply" -command "3d_send_parameters $ssrc"
 	pack   $win.df.3d.apply -side bottom  -anchor e -padx 2 -pady 2
 
 # Window Magic
-	frame  $win.dis 
+	frame  $win.dis
 	button $win.dis.b -text "Dismiss" -command "destroy $win; 3d_delete_parameters $ssrc"
-	pack   $win.dis   -side bottom -anchor s -fill x -expand 1
+	pack   $win.dis   -side bottom -anchor e 
 	pack   $win.dis.b -side right -anchor e -padx 2 -pady 2
 	wm title $win "Participant $NAME($ssrc)"
-	wm resizable $win 1 0
-	constrain_window $win $statsfont 36 27
+	wm resizable $win 0 0
+	constrain_window $win $statsfont 36 26
     }
 }
 

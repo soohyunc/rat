@@ -166,6 +166,7 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
 {
         const rtcp_rr           *rr;
         u_int32                  fract_lost, my_ssrc, total_lost;
+        double                   skew_rate;
 	char			*args, *mbes;
         struct s_source      	*src;
         u_int32               	 buffered, delay;
@@ -196,15 +197,18 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
         if (src) {
                 buffered = ts_to_ms(source_get_audio_buffered(src));
                 delay    = ts_to_ms(source_get_playout_delay(src));
+                skew_rate = source_get_skew_rate(src);
         } else {
-                buffered = 0;
-                delay    = 0;
+                buffered  = 0;
+                delay     = 0;
+                skew_rate = 1.0;
         }
 
         debug_msg("buffer (%05d) calced (%05d)\n", buffered, delay);
 
         mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.audio.buffered", "\"%08lx\" %ld", pdbe->ssrc, buffered);
         mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", pdbe->ssrc, delay);
+        mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.audio.skew", "\"%08lx\" %.5f", pdbe->ssrc, skew_rate);
 
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
         rr = rtp_get_rr(sp->rtp_session[0], my_ssrc, pdbe->ssrc);
