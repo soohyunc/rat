@@ -319,9 +319,11 @@ adapt_playout(rtp_hdr_t *hdr,
                 src->playout_danger = FALSE;
 	}
 
+#ifdef NDEF
         if (hdr->seq - src->last_seq != 1) {
                 debug_msg("seq jump last (%ld) cur (%ld)\n", src->last_seq, hdr->seq);
         } 
+#endif
 
         src->last_ts        = hdr->ts;
         src->last_seq       = hdr->seq;
