@@ -61,6 +61,7 @@
 #include "rat_time.h"
 
 #define SECS_BETWEEN_1900_1970 2208988800u
+#define RTP_SSRC_EXPIRE 	70*8000
 
 /*
  * Sets the ntp 64 bit values, one 32 bit quantity at a time.
@@ -159,6 +160,281 @@ rtcp_check_rtcp_pkt(u_int8 *packet, int len)
 	}
 
 	return TRUE;
+}
+
+/*
+ * Fill out an SDES item.  I assume here that the item is a NULL terminated
+ * string.
+ */
+static int 
+rtcp_add_sdes_item(u_int8 *buf, int type, char *val)
+{
+	rtcp_sdes_item_t *shdr = (rtcp_sdes_item_t *) buf;
+	int             namelen;
+
+	if (val == NULL) {
+		debug_msg("Cannot format SDES item. type=%d val=%xp\n", type, val);
+		return 0;
+	}
+	shdr->type = type;
+	namelen = strlen(val);
+	shdr->length = namelen;
+	strcpy(shdr->data, val);
+	return namelen + 2;
+}
+
+/*
+ * Fill out a complete SDES packet.  This finds all set values in the
+ * database and compiles them into a complete SDES packet to be sent out.
+ */
+static u_int8 *
+rtcp_packet_fmt_sdes(session_struct *sp, u_int8 * ptr)
+{
+	rtcp_common_t  *hdr = (rtcp_common_t *) ptr;
+	int             i, len;
+
+	/* Format the SDES header... */
+	hdr->type  = 2;
+	hdr->p     = 0;
+	hdr->count = 1;
+	hdr->pt    = RTCP_SDES;
+	*((u_int32 *) ptr + 1) = htonl(sp->db->myssrc);
+	len = 8;
+
+	/* From draft-ietf-avt-profile-new-00:                             */
+	/* "Applications may use any of the SDES items described in the    */
+        /* RTP specification. While CNAME information is sent every        */
+        /* reporting interval, other items should be sent only every third */
+        /* reporting interval, with NAME sent seven out of eight times     */
+        /* within that slot and the remaining SDES items cyclically taking */
+        /* up the eighth slot, as defined in Section 6.2.2 of the RTP      */
+        /* specification. In other words, NAME is sent in RTCP packets 1,  */
+        /* 4, 7, 10, 13, 16, 19, while, say, EMAIL is used in RTCP packet  */
+        /* 22."                                                            */
+	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_CNAME, sp->db->my_dbe->sentry->cname);
+	sp->db->sdes_pri_count++;
+	if ((sp->db->sdes_pri_count % 3) == 0) {
+		sp->db->sdes_sec_count++;
+		if ((sp->db->sdes_sec_count % 8) == 0) {
+			sp->db->sdes_ter_count++;
+			switch (sp->db->sdes_ter_count % 4) {
+			case 0 : if (sp->db->my_dbe->sentry->email != NULL) {
+			         	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_EMAIL, sp->db->my_dbe->sentry->email);
+			  	 	break;
+				 }
+			case 1 : if (sp->db->my_dbe->sentry->phone != NULL) {
+			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_PHONE, sp->db->my_dbe->sentry->phone);
+			  	   	break;
+			 	 }
+			case 2 : if (sp->db->my_dbe->sentry->loc != NULL) {
+			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_LOC, sp->db->my_dbe->sentry->loc);
+			  	   	break;
+			 	 }
+			case 3 : if (sp->mode == TRANSCODER) {
+				 	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_TOOL, RAT_VERSION " " OSNAME " [Transcoder]");
+				 } else {
+				 	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_TOOL, RAT_VERSION " " OSNAME);
+				 }
+			}
+		} else {
+			if (sp->db->my_dbe->sentry->name != NULL) {
+				len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_NAME, sp->db->my_dbe->sentry->name);
+			}
+		}
+	}
+	hdr->length = htons((u_int16)(len / 4));
+	for (i = len; i < ((int)(len / 4) + 1) * 4; i++) {
+		ptr[i] = 0;
+	}
+	return ptr + 4 * ((int)(len / 4) + 1);
+}
+
+/*
+ * Create a "BYE" packet.
+ */
+static u_int8 *
+rtcp_packet_fmt_bye(u_int8 *ptr, u_int32 ssrc, rtcp_dbentry *ssrc_db)
+{
+	rtcp_t	     *pkt = (rtcp_t *) ptr;
+	rtcp_dbentry *entry;
+	u_short       count;
+
+	pkt->common.type   = 2;
+	pkt->common.p      = 0;
+	pkt->common.pt     = RTCP_BYE;
+	pkt->r.bye.src[0]  = htonl(ssrc);
+
+	count = 1;
+	for (entry = ssrc_db; entry != NULL; entry = entry->next) {
+		pkt->r.bye.src[count++] = htonl(entry->ssrc);
+	}
+	pkt->common.count  = count;
+	pkt->common.length = htons(count);
+
+	return ptr + 4 + (count * 4);
+}
+
+/*
+ * Format a sender report packet, from the information available in the
+ * database.
+ */
+static u_int8 *
+rtcp_packet_fmt_sr(session_struct *sp, u_int8 * ptr)
+{
+	rtcp_common_t  *hdr = (rtcp_common_t *) ptr;
+	u_int32		sec;
+	u_int32		frac;
+	hdr->type  = 2;
+	hdr->p     = 0;
+	hdr->count = 0;
+	hdr->pt    = RTCP_SR;
+	*((u_int32 *) ptr + 1) = htonl(sp->db->myssrc);
+	rtcp_ntp_format(&sec, &frac);
+	sp->db->map_ntp_time = (sec & 0xffff) << 16 | frac >> 16;
+	*((u_int32 *) ptr + 2) = htonl(sec);
+	*((u_int32 *) ptr + 3) = htonl(frac);
+
+	sp->db->map_rtp_time = get_time(sp->device_clock);
+	*((u_int32 *) ptr + 4) = htonl(sp->db->map_rtp_time);
+	*((u_int32 *) ptr + 5) = htonl(sp->db->pkt_count);
+	*((u_int32 *) ptr + 6) = htonl(sp->db->byte_count);
+	return ptr + 28;
+}
+
+/*
+ * Create a recipient report header.
+ */
+static u_int8 *
+rtcp_packet_fmt_rrhdr(session_struct *sp, u_int8 * ptr)
+{
+	rtcp_common_t  *hdr = (rtcp_common_t *) ptr;
+	u_int32         sec;
+	u_int32         frac;
+
+	/* Update local clock map */
+	rtcp_ntp_format(&sec, &frac);
+	sp->db->map_ntp_time = (sec & 0xffff) << 16 | frac >> 16;
+	sp->db->map_rtp_time = get_time(sp->device_clock);
+
+	hdr->type  = 2;
+	hdr->p     = 0;
+	hdr->count = 0;
+	hdr->pt    = RTCP_RR;
+	*((u_int32 *) ptr + 1) = htonl(sp->db->myssrc);
+	return ptr + 8;
+}
+
+/*
+ * Format a recipient report item, given the database item that this should
+ * refer to.
+ */
+static u_int8 *
+rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
+{
+	rtcp_rr_t      *rptr = (rtcp_rr_t *) ptr;
+	u_int32		ext_max, expected, expi, reci;
+	int32		losti;
+
+	ext_max = dbe->cycles + dbe->lastseqno;
+	expected = ext_max - dbe->firstseqno + 1;
+	dbe->lost_tot = expected - dbe->pckts_recv;
+
+	if (dbe->lost_tot < 0) dbe->lost_tot = 0;
+
+	expi = expected - dbe->expected_prior;
+	dbe->expected_prior = expected;
+	reci = dbe->pckts_recv - dbe->received_prior;
+	dbe->received_prior = dbe->pckts_recv;
+	losti = expi - reci;
+
+	if (expi == 0 || losti <= 0) {
+		dbe->lost_frac = 0;
+	} else {
+		dbe->lost_frac = (losti << 8) / expi;
+	}
+
+        if ((dbe->ui_last_update - get_time(dbe->clock)) >= (unsigned)get_freq(sp->device_clock)) {
+                double jit;
+                ui_update_duration(dbe->sentry->cname, dbe->units_per_packet * 20);
+                ui_update_loss(sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->lost_frac * 100) >> 8);
+                jit = ceil(dbe->jitter * 1000/get_freq(dbe->clock));
+                ui_update_reception(dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->duplicates, (u_int32)jit, dbe->jit_TOGed);
+                ui_update_stats(dbe, sp);
+                dbe->ui_last_update = get_time(dbe->clock);
+        }
+
+	rptr->ssrc     = htonl(dbe->ssrc);
+	rptr->loss     = htonl(dbe->lost_frac << 24 | (dbe->lost_tot & 0xffffff));
+	rptr->last_seq = htons((u_int16)(dbe->cycles + dbe->lastseqno));
+	rptr->jitter   = htonl((u_long) dbe->jitter);
+
+	rptr->lsr      = htonl(dbe->last_sr);
+	rptr->dlsr     = htonl(ntp_time32() - dbe->last_sr);
+	return ptr + 24;
+}
+
+static u_int8 *
+rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
+{
+	u_int8	       *packet 	= ptr;
+	rtcp_common_t  *hdr    	= (rtcp_common_t *) ptr;
+	rtcp_dbentry   *sptr 	= sp->db->ssrc_db;
+	rtcp_dbentry   *sptmp	= NULL;
+	u_int32		now 	= get_time(sp->device_clock);
+	u_short         packlen = 0;
+	u_short		offset	= 0;
+
+	sp->db->senders = 0;
+	if (sp->db->sending) {
+		ptr = rtcp_packet_fmt_sr(sp, ptr);
+		sp->db->senders++;
+	} else {
+		ptr = rtcp_packet_fmt_rrhdr(sp, ptr);
+	}
+	while (sptr) {
+		sptmp = sptr->next;	/* We may free things below */
+		if (now - sptr->last_active > RTP_SSRC_EXPIRE) {
+			rtcp_delete_dbentry(sp, sptr->ssrc);
+		} else {
+			if (sptr->is_sender) {
+				sp->db->senders++;
+				sptr->is_sender = 0;	/* Reset this every report time */
+				ptr = rtcp_packet_fmt_addrr(sp, ptr, sptr);
+				hdr->count++;
+				packlen = ptr - packet;
+				hdr->length = htons((u_int16)((packlen - offset) / 4 - 1));
+				if (packlen + 84 > MAX_PACKLEN) {
+					/* Too many sources sent data, and the result doesn't fit into a */
+					/* single SR/RR packet. We just ignore the excess here. Oh well. */
+					break;
+				}
+			}
+		}
+		sptr = sptmp;
+	}
+	packlen = ptr - (u_int8 *) packet;
+	hdr->length = htons((u_int16)((packlen - offset) / 4 - 1));
+	return ptr;
+}
+
+static void
+rtcp_forward(rtcp_t *pckt, session_struct *sp1, session_struct *sp2)
+{
+	u_int32  	packet[MAX_PACKLEN / 4];
+	u_int8         *ptr 	= (u_int8 *) packet;
+	int             packlen = 0;
+	/* XXX why are these ints */
+	u_int32		now 	= get_time(sp2->device_clock);
+
+	if (sp1 == NULL || sp1->mode != TRANSCODER || sp2->mode != TRANSCODER)
+		return;
+
+	ptr = rtcp_packet_fmt_srrr(sp2, ptr);
+	memcpy(ptr, pckt, (ntohs(pckt->common.length)+1)*4);
+	ptr += (ntohs(pckt->common.length)+1)*4;
+	packlen = ptr - (u_int8 *) packet;
+	net_write(sp1->rtcp_fd, sp1->net_maddress, sp1->rtcp_port, (u_int8 *)packet, packlen, PACKET_RTCP);
+	sp2->db->last_rpt = now;
 }
 
 
@@ -412,217 +688,6 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 }
 
 /*
- * Fill out an SDES item.  I assume here that the item is a NULL terminated
- * string.
- */
-int 
-rtcp_add_sdes_item(u_int8 *buf, int type, char *val)
-{
-	rtcp_sdes_item_t *shdr = (rtcp_sdes_item_t *) buf;
-	int             namelen;
-
-	if (val == NULL) {
-		debug_msg("Cannot format SDES item. type=%d val=%xp\n", type, val);
-		return 0;
-	}
-	shdr->type = type;
-	namelen = strlen(val);
-	shdr->length = namelen;
-	strcpy(shdr->data, val);
-	return namelen + 2;
-}
-
-/*
- * Fill out a complete SDES packet.  This finds all set values in the
- * database and compiles them into a complete SDES packet to be sent out.
- */
-u_int8 *
-rtcp_packet_fmt_sdes(session_struct *sp, u_int8 * ptr)
-{
-	rtcp_common_t  *hdr = (rtcp_common_t *) ptr;
-	int             i, len;
-
-	/* Format the SDES header... */
-	hdr->t ype  = 2;
-	hdr->p     = 0;
-	hdr->count = 1;
-	hdr->pt    = RTCP_SDES;
-	*((u_int32 *) ptr + 1) = htonl(sp->db->myssrc);
-	len = 8;
-
-	/* From draft-ietf-avt-profile-new-00:                             */
-	/* "Applications may use any of the SDES items described in the    */
-        /* RTP specification. While CNAME information is sent every        */
-        /* reporting interval, other items should be sent only every third */
-        /* reporting interval, with NAME sent seven out of eight times     */
-        /* within that slot and the remaining SDES items cyclically taking */
-        /* up the eighth slot, as defined in Section 6.2.2 of the RTP      */
-        /* specification. In other words, NAME is sent in RTCP packets 1,  */
-        /* 4, 7, 10, 13, 16, 19, while, say, EMAIL is used in RTCP packet  */
-        /* 22."                                                            */
-	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_CNAME, sp->db->my_dbe->sentry->cname);
-	sp->db->sdes_pri_count++;
-	if ((sp->db->sdes_pri_count % 3) == 0) {
-		sp->db->sdes_sec_count++;
-		if ((sp->db->sdes_sec_count % 8) == 0) {
-			sp->db->sdes_ter_count++;
-			switch (sp->db->sdes_ter_count % 4) {
-			case 0 : if (sp->db->my_dbe->sentry->email != NULL) {
-			         	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_EMAIL, sp->db->my_dbe->sentry->email);
-			  	 	break;
-				 }
-			case 1 : if (sp->db->my_dbe->sentry->phone != NULL) {
-			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_PHONE, sp->db->my_dbe->sentry->phone);
-			  	   	break;
-			 	 }
-			case 2 : if (sp->db->my_dbe->sentry->loc != NULL) {
-			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_LOC, sp->db->my_dbe->sentry->loc);
-			  	   	break;
-			 	 }
-			case 3 : if (sp->mode == TRANSCODER) {
-				 	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_TOOL, RAT_VERSION " " OSNAME " [Transcoder]");
-				 } else {
-				 	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_TOOL, RAT_VERSION " " OSNAME);
-				 }
-			}
-		} else {
-			if (sp->db->my_dbe->sentry->name != NULL) {
-				len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_NAME, sp->db->my_dbe->sentry->name);
-			}
-		}
-	}
-	hdr->length = htons((u_int16)(len / 4));
-	for (i = len; i < ((int)(len / 4) + 1) * 4; i++) {
-		ptr[i] = 0;
-	}
-	return ptr + 4 * ((int)(len / 4) + 1);
-}
-
-/*
- * Create a "BYE" packet.
- */
-u_int8 *
-rtcp_packet_fmt_bye(u_int8 *ptr, u_int32 ssrc, rtcp_dbentry *ssrc_db)
-{
-	rtcp_t	     *pkt = (rtcp_t *) ptr;
-	rtcp_dbentry *entry;
-	u_short       count;
-
-	pkt->common.type   = 2;
-	pkt->common.p      = 0;
-	pkt->common.pt     = RTCP_BYE;
-	pkt->r.bye.src[0]  = htonl(ssrc);
-
-	count = 1;
-	for (entry = ssrc_db; entry != NULL; entry = entry->next) {
-		pkt->r.bye.src[count++] = htonl(entry->ssrc);
-	}
-	pkt->common.count  = count;
-	pkt->common.length = htons(count);
-
-	return ptr + 4 + (count * 4);
-}
-
-/*
- * Format a sender report packet, from the information available in the
- * database.
- */
-u_int8 *
-rtcp_packet_fmt_sr(session_struct *sp, u_int8 * ptr)
-{
-	rtcp_common_t  *hdr = (rtcp_common_t *) ptr;
-	u_int32		sec;
-	u_int32		frac;
-	hdr->type  = 2;
-	hdr->p     = 0;
-	hdr->count = 0;
-	hdr->pt    = RTCP_SR;
-	*((u_int32 *) ptr + 1) = htonl(sp->db->myssrc);
-	rtcp_ntp_format(&sec, &frac);
-	sp->db->map_ntp_time = (sec & 0xffff) << 16 | frac >> 16;
-	*((u_int32 *) ptr + 2) = htonl(sec);
-	*((u_int32 *) ptr + 3) = htonl(frac);
-
-	sp->db->map_rtp_time = get_time(sp->device_clock);
-	*((u_int32 *) ptr + 4) = htonl(sp->db->map_rtp_time);
-	*((u_int32 *) ptr + 5) = htonl(sp->db->pkt_count);
-	*((u_int32 *) ptr + 6) = htonl(sp->db->byte_count);
-	return ptr + 28;
-}
-
-/*
- * Create a recipient report header.
- */
-u_int8 *
-rtcp_packet_fmt_rrhdr(session_struct *sp, u_int8 * ptr)
-{
-	rtcp_common_t  *hdr = (rtcp_common_t *) ptr;
-	u_int32         sec;
-	u_int32         frac;
-
-	/* Update local clock map */
-	rtcp_ntp_format(&sec, &frac);
-	sp->db->map_ntp_time = (sec & 0xffff) << 16 | frac >> 16;
-	sp->db->map_rtp_time = get_time(sp->device_clock);
-
-	hdr->type  = 2;
-	hdr->p     = 0;
-	hdr->count = 0;
-	hdr->pt    = RTCP_RR;
-	*((u_int32 *) ptr + 1) = htonl(sp->db->myssrc);
-	return ptr + 8;
-}
-
-/*
- * Format a recipient report item, given the database item that this should
- * refer to.
- */
-u_int8 *
-rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
-{
-	rtcp_rr_t      *rptr = (rtcp_rr_t *) ptr;
-	u_int32		ext_max, expected, expi, reci;
-	int32		losti;
-
-	ext_max = dbe->cycles + dbe->lastseqno;
-	expected = ext_max - dbe->firstseqno + 1;
-	dbe->lost_tot = expected - dbe->pckts_recv;
-
-	if (dbe->lost_tot < 0) dbe->lost_tot = 0;
-
-	expi = expected - dbe->expected_prior;
-	dbe->expected_prior = expected;
-	reci = dbe->pckts_recv - dbe->received_prior;
-	dbe->received_prior = dbe->pckts_recv;
-	losti = expi - reci;
-
-	if (expi == 0 || losti <= 0) {
-		dbe->lost_frac = 0;
-	} else {
-		dbe->lost_frac = (losti << 8) / expi;
-	}
-
-        if ((dbe->ui_last_update - get_time(dbe->clock)) >= (unsigned)get_freq(sp->device_clock)) {
-                double jit;
-                ui_update_duration(dbe->sentry->cname, dbe->units_per_packet * 20);
-                ui_update_loss(sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->lost_frac * 100) >> 8);
-                jit = ceil(dbe->jitter * 1000/get_freq(dbe->clock));
-                ui_update_reception(dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->duplicates, (u_int32)jit, dbe->jit_TOGed);
-                ui_update_stats(dbe, sp);
-                dbe->ui_last_update = get_time(dbe->clock);
-        }
-
-	rptr->ssrc     = htonl(dbe->ssrc);
-	rptr->loss     = htonl(dbe->lost_frac << 24 | (dbe->lost_tot & 0xffffff));
-	rptr->last_seq = htons((u_int16)(dbe->cycles + dbe->lastseqno));
-	rptr->jitter   = htonl((u_long) dbe->jitter);
-
-	rptr->lsr      = htonl(dbe->last_sr);
-	rptr->dlsr     = htonl(ntp_time32() - dbe->last_sr);
-	return ptr + 24;
-}
-
-/*
  * Calculate the RTCP report interval. This function is copied from rfc1889 [csp]
  */
 u_int32 rtcp_interval(int 	 members,
@@ -696,50 +761,6 @@ u_int32 rtcp_interval(int 	 members,
     return (u_int32) (t * (drand48() + 0.5)) * clock_freq;
 }
 
-static u_int8 *
-rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
-{
-	u_int8	       *packet 	= ptr;
-	rtcp_common_t  *hdr    	= (rtcp_common_t *) ptr;
-	rtcp_dbentry   *sptr 	= sp->db->ssrc_db;
-	rtcp_dbentry   *sptmp	= NULL;
-	u_int32		now 	= get_time(sp->device_clock);
-	u_short         packlen = 0;
-	u_short		offset	= 0;
-
-	sp->db->senders = 0;
-	if (sp->db->sending) {
-		ptr = rtcp_packet_fmt_sr(sp, ptr);
-		sp->db->senders++;
-	} else {
-		ptr = rtcp_packet_fmt_rrhdr(sp, ptr);
-	}
-	while (sptr) {
-		sptmp = sptr->next;	/* We may free things below */
-		if (now - sptr->last_active > RTP_SSRC_EXPIRE) {
-			rtcp_delete_dbentry(sp, sptr->ssrc);
-		} else {
-			if (sptr->is_sender) {
-				sp->db->senders++;
-				sptr->is_sender = 0;	/* Reset this every report time */
-				ptr = rtcp_packet_fmt_addrr(sp, ptr, sptr);
-				hdr->count++;
-				packlen = ptr - packet;
-				hdr->length = htons((u_int16)((packlen - offset) / 4 - 1));
-				if (packlen + 84 > MAX_PACKLEN) {
-					/* Too many sources sent data, and the result doesn't fit into a */
-					/* single SR/RR packet. We just ignore the excess here. Oh well. */
-					break;
-				}
-			}
-		}
-		sptr = sptmp;
-	}
-	packlen = ptr - (u_int8 *) packet;
-	hdr->length = htons((u_int16)((packlen - offset) / 4 - 1));
-	return ptr;
-}
-
 void 
 rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int16 port)
 {
@@ -807,25 +828,5 @@ rtcp_update(session_struct *sp, int fd, u_int32 addr, u_int16 port)
 		sp->db->sending      = FALSE;
 		sp->db->senders      = 0;
 	}
-}
-
-void
-rtcp_forward(rtcp_t *pckt, session_struct *sp1, session_struct *sp2)
-{
-	u_int32  	packet[MAX_PACKLEN / 4];
-	u_int8         *ptr 	= (u_int8 *) packet;
-	int             packlen = 0;
-	/* XXX why are these ints */
-	u_int32		now 	= get_time(sp2->device_clock);
-
-	if (sp1 == NULL || sp1->mode != TRANSCODER || sp2->mode != TRANSCODER)
-		return;
-
-	ptr = rtcp_packet_fmt_srrr(sp2, ptr);
-	memcpy(ptr, pckt, (ntohs(pckt->common.length)+1)*4);
-	ptr += (ntohs(pckt->common.length)+1)*4;
-	packlen = ptr - (u_int8 *) packet;
-	net_write(sp1->rtcp_fd, sp1->net_maddress, sp1->rtcp_port, (u_int8 *)packet, packlen, PACKET_RTCP);
-	sp2->db->last_rpt = now;
 }
 

@@ -191,20 +191,11 @@ typedef struct {
 } rtcp_t;
 
 
-#define RTP_SSRC_EXPIRE 	70*8000
-
 u_int32		ntp_time32(void);
 int 		rtcp_check_rtcp_pkt(u_int8 *packet, int len);
 void 		rtcp_decode_rtcp_pkt(struct session_tag *sp, struct session_tag *sp2, u_int8 *packet, int len, u_int32 cur_time);
-int 		rtcp_add_sdes_item(u_int8 * buf, int type, char * val);
-u_int8 	       *rtcp_packet_fmt_sdes(struct session_tag *sp, u_int8 * ptr);
-u_int8 	       *rtcp_packet_fmt_bye(u_int8 * ptr, u_int32 ssrc, struct s_rtcp_dbentry *ssrc_db);
-u_int8 	       *rtcp_packet_fmt_sr(struct session_tag *sp, u_int8 * ptr);
-u_int8 	       *rtcp_packet_fmt_rrhdr(struct session_tag *sp, u_int8 * ptr);
-u_int8         *rtcp_packet_fmt_addrr(struct session_tag *sp, u_int8 * ptr, struct s_rtcp_dbentry * dbe);
 void 		rtcp_exit(struct session_tag *sp1, struct session_tag *sp2, int fd, u_int32 addr, u_int16 port);
 u_int32  	rtcp_interval(int members, int senders, double rtcp_bw, int we_sent, int packet_size, int *avg_rtcp_size, int initial, u_int32 clock_freq);
 void 		rtcp_update(struct session_tag *sp, int fd, u_int32 addr, u_int16 port);
-void	 	rtcp_forward(rtcp_t *pckt, struct session_tag *sp1, struct session_tag *sp2);
 
 #endif
