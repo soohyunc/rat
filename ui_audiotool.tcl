@@ -388,6 +388,7 @@ set codecs {}
 set prencs  {}
 set secencs {}
 set layerencs {}
+set layerenc 1
 
 proc codec_get_name {nickname freq channels} {
     global codecs codec_nick_name codec_rate codec_channels
