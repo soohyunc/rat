@@ -80,11 +80,30 @@ network_init(session_struct *sp)
 {
         u_int8 i;
 
-        for (i=0; i<sp->layers; i++)
-        {
-                sp->rtp_socket[i]  = udp_init(sp->asc_address[i], sp->rx_rtp_port[i], sp->tx_rtp_port[i], sp->ttl); assert(sp->rtp_socket[i]  != NULL);
+        for(i = 0; i < sp->layers; i++) {
+                sp->rtp_socket[i]  = udp_init(sp->asc_address[i], 
+                                              sp->rx_rtp_port[i], 
+                                              sp->tx_rtp_port[i], 
+                                              sp->ttl); 
+                assert(sp->rtp_socket[i]  != NULL);
         }
-	sp->rtcp_socket = udp_init(sp->asc_address[0], sp->rx_rtcp_port, sp->tx_rtcp_port, sp->ttl); assert(sp->rtcp_socket != NULL);
+	sp->rtcp_socket = udp_init(sp->asc_address[0], 
+                                   sp->rx_rtcp_port, 
+                                   sp->tx_rtcp_port, sp->ttl); 
+        assert(sp->rtcp_socket != NULL);
+}
+
+void
+network_exit(session_struct *sp)
+{
+        u_int8 i;
+
+        for(i = 0; i < sp->layers; i++) {
+                udp_exit(sp->rtp_socket[i]);
+                sp->rtp_socket[i] = NULL;
+        }
+        udp_exit(sp->rtcp_socket);
+        sp->rtcp_socket = NULL;
 }
 
 void

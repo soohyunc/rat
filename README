@@ -170,18 +170,19 @@ algorithms can easily be added.
 Improved Statistics and diagnostic features 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Like other RTP-based audio tools, RAT provides reception quality statistics
-and user information for all participants in a conference. In addition, it
-has a graphical display of the loss to/from each participant, making
-diagnosis of problems a simple matter. 
+Like other RTP-based audio tools, RAT provides reception quality
+statistics and user information for all participants in a
+conference. In addition, it has a graphical display of the loss
+to/from each participant, making diagnosis of problems a simple
+matter.
 
 Conference coordination bus 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-RAT implements a conference coordination bus, whereby the user interface
-and media engine are separated, and communicate via an IPC mechanism. This
-allows for complete control of RAT by another process operating on the same
-host. Advantages of this split approach include: 
+RAT implements a conference coordination bus, whereby the user
+interface and media engine are separated, and communicate via an IPC
+mechanism. This allows for complete control of RAT by another process
+operating on the same host. Advantages of this split approach include:
 
 	- Customised user-interface: the existing RAT user interface can
 	  easily be replaced, with no loss of functionality.   
@@ -198,13 +199,14 @@ Transcoder operation
 ~~~~~~~~~~~~~~~~~~~~
 
 When the bandwidth available is not constant for all participants in a
-conference, or when some participants do not have multicast capable access,
-the RAT transcoder/gateway may be used. This connects two multicast groups,
-or one multicast group and a single unicast host. RTP packets received from
-either group are transcoded into the format specified for the other group,
-multiple sources are mixed together, and the resulting stream is
-transmitted to the other group. This allows for different codecs to be used
-in each group, meaning that the bandwidth requirements are different. 
+conference, or when some participants do not have multicast capable
+access, the RAT transcoder/gateway may be used. This connects two
+multicast groups, or one multicast group and a single unicast
+host. RTP packets received from either group are transcoded into the
+format specified for the other group, multiple sources are mixed
+together, and the resulting stream is transmitted to the other
+group. This allows for different codecs to be used in each group,
+meaning that the bandwidth requirements are different.
 
 Future research 
 ~~~~~~~~~~~~~~~
@@ -217,21 +219,20 @@ Future developments planned include:
 Project Background
 ~~~~~~~~~~~~~~~~~~
 
-UCL has a well-established multimedia and communications research group.
-One of the current research topics is multimedia conferencing applications
-over the Internet Mbone. We are in the process of developing a next
-generation audio tool, RAT, for use over the Internet, as part of a suite
-of integrated multimedia tools. The research is aimed at providing software
-systems on heterogeneous workstations (Unix and Windows based). The group
-has existing collaborative and industrially funded application piloting
-projects. 
+UCL has a well-established multimedia and communications research
+group.  One of the current research topics is multimedia conferencing
+applications over the Internet Mbone. We are in the process of
+developing a next generation audio tool, RAT, for use over the
+Internet, as part of a suite of integrated multimedia tools. The
+research is aimed at providing software systems on heterogeneous
+workstations (Unix and Windows based). The group has existing
+collaborative and industrially funded application piloting projects.
 
 Sponsors
 ~~~~~~~~
 
-The RAT project is funded by the EPSRC under the Multimedia and Networked
-Applications Programme, Bristish Telecommunications plc, and the European
-Commision (Telematics Applications Programme, Research Sector).  It has
-benefited from hardware donations by Hewlett-Packard and Sun Microsystems,
-and software donations by Microsoft.  
-
+The RAT project was funded by the EPSRC under the Multimedia and
+Networked Applications Programme, Bristish Telecommunications plc, and
+the European Commision (Telematics Applications Programme, Research
+Sector).  It has benefited from hardware donations by Hewlett-Packard
+and Sun Microsystems, and software donations by Microsoft.

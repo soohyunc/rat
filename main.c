@@ -88,7 +88,7 @@ main(int argc, char *argv[])
 	srand48(seed);
 	lbl_srandom(seed);
 
-	for (i = 0; i < 2;i++) {
+	for (i = 0; i < 2; i++) {
 		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
 		init_session(sp[i]);
 	}
@@ -153,7 +153,7 @@ main(int argc, char *argv[])
          * This stops lots of "skew" adaption at the start because the
          * playout buffer is too long.
          */
-        for(j=0; j<sp[0]->layers; j++) {
+        for(j = 0; j < sp[0]->layers; j++) {
                 read_and_discard(sp[0]->rtp_socket[j]);
         }
 	read_and_discard(sp[0]->rtcp_socket);
@@ -172,15 +172,15 @@ main(int argc, char *argv[])
 		timeout.tv_usec = 0;
 
                 udp_fd_zero();
-                for(j=0; j<sp[0]->layers; j++) 
+                for(j = 0; j < sp[0]->layers; j++) {
                         udp_fd_set(sp[0]->rtp_socket[j]);
+                }
                 udp_fd_set(sp[0]->rtcp_socket);
                         
                 while (udp_select(&timeout) > 0) {
-                        for(j=0; j<sp[0]->layers; j++) {
+                        for(j = 0; j < sp[0]->layers; j++) {
                                 if (udp_fd_isset(sp[0]->rtp_socket[j])) {
                                         read_and_enqueue(sp[0]->rtp_socket[j], sp[0]->cur_ts, sp[0]->rtp_pckt_queue, PACKET_RTP);
-                                        
                                 }
                         }
                         if (udp_fd_isset(sp[0]->rtcp_socket)) {
@@ -291,7 +291,9 @@ main(int argc, char *argv[])
 		mbus_exit(sp[0]->mbus_ui);
 		tcl_exit();
 	}
-        
+
+        network_exit(sp[0]);
+
         for(i = 0; i < 2; i++) {
                 end_session(sp[i]);
                 xfree(sp[i]);

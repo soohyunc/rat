@@ -199,8 +199,8 @@ static codec_fns_t codec_table[] = {
                 NULL,
                 NULL,
                 NULL,
-				wbs_max_layers,
-				wbs_get_layer,
+                wbs_max_layers,
+                wbs_get_layer,
                 wbs_combine_layer
         },
         {
