@@ -70,6 +70,7 @@
 #include "mbus.h"
 #include "mbus_ui.h"
 #include "mbus_engine.h"
+#include "crypt_random.h"
 
 int should_exit = FALSE;
 int thread_pri  = 2; /* Time Critical */
@@ -113,6 +114,7 @@ main(int argc, char *argv[])
 
 	gettimeofday(&time, NULL);
 	srand48(time.tv_usec);
+	lbl_srandom(time.tv_usec);
 
 	for (i = 0; i < 2;i++) {
 		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
