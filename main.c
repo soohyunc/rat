@@ -161,9 +161,9 @@ main(int argc, char *argv[])
 	srand48(time.tv_usec);
 	while (!(ssrc = lrand48()));	/* Making 0 a special value */
 
-	mbus_video_addr  = "(video engine   * *)";
-	mbus_engine_addr = "(audio engine rat 0)";
-	mbus_ui_addr     = "(audio     ui rat 0)";
+	mbus_video_addr  = (char *) xmalloc(30); sprintf(mbus_video_addr,  "(video engine   *  *)");
+	mbus_engine_addr = (char *) xmalloc(30); sprintf(mbus_engine_addr, "(audio engine rat %d)", (int) getpid());
+	mbus_ui_addr     = (char *) xmalloc(30); sprintf(mbus_ui_addr,     "(audio     ui rat %d)", (int) getpid());
 	mbus_engine      = mbus_init(0, mbus_handler_engine, NULL); mbus_addr(mbus_engine, mbus_engine_addr);
 	mbus_ui          = mbus_init(0, mbus_handler_ui,     NULL); mbus_addr(mbus_ui, mbus_ui_addr);
 	for (i = 0; i < num_sessions; i++) {
