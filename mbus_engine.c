@@ -35,6 +35,7 @@ static const char cvsid[] =
 #include "source.h"
 #include "sndfile.h"
 #include "voxlet.h"
+#include "tonegen.h"
 #include "timers.h"
 #include "util.h"
 #include "codec_types.h"
@@ -527,8 +528,8 @@ static void rx_audio_file_play_stop(char *srce, char *args, session_t *sp)
 
 static void rx_tool_rat_voxlet_play(char *srce, char *args, session_t *sp)
 {
-	char	*file;
-	struct mbus_parser	*mp;
+	char *file;
+	struct mbus_parser *mp;
 
 	UNUSED(srce);
         UNUSED(sp);
@@ -544,6 +545,36 @@ static void rx_tool_rat_voxlet_play(char *srce, char *args, session_t *sp)
 		debug_msg("mbus: usage \"tool.rat.voxlet.play <filename>\"\n");
 	}
 	mbus_parse_done(mp);
+}
+
+static void rx_tool_rat_tone_start(char *srce, char *args, session_t *sp)
+{
+        int freq, amp;
+	struct mbus_parser *mp;
+
+        UNUSED(srce);
+
+        if (sp->tone_generator) {
+                tonegen_destroy(&sp->tone_generator);
+        }
+
+        mp = mbus_parse_init(args);
+	if (mbus_parse_int(mp, &freq) &&
+            mbus_parse_int(mp, &amp)) {
+                tonegen_create(&sp->tone_generator, sp->ms, sp->clock, sp->pdb, (uint16_t)freq, (uint16_t)amp);
+        } else {
+                debug_msg("mbus: usage \"tool.rat.tone.start <freq> <amplitude>\"\n");
+        }
+        mbus_parse_done(mp);
+}
+
+static void rx_tool_rat_tone_stop(char *srce, char *args, session_t *sp)
+{
+        UNUSED(srce);
+        UNUSED(args);
+        if (sp->tone_generator) {
+                tonegen_destroy(&sp->tone_generator);
+        }
 }
 
 static void rx_audio_file_play_open(char *srce, char *args, session_t *sp)
@@ -1443,6 +1474,8 @@ static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 }
 
 static const mbus_cmd_tuple engine_cmds[] = {
+        { "tool.rat.tone.start",                   rx_tool_rat_tone_start },
+        { "tool.rat.tone.stop",                    rx_tool_rat_tone_stop },
 	{ "tool.rat.voxlet.play",                  rx_tool_rat_voxlet_play },
         { "session.title",                         rx_session_title },
         { "tool.rat.silence",                      rx_tool_rat_silence },

@@ -86,6 +86,7 @@ typedef struct s_session {
 	struct s_sndfile   	*in_file;
 	struct s_sndfile   	*out_file;
         struct s_voxlet         *local_file_player;
+        struct s_tonegen        *tone_generator;
 	audio_desc_t	    	 audio_device;
 	struct s_tx_buffer 	*tb;
         struct s_pdb       	*pdb; 				/* persistent participant information database.  */

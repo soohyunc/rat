@@ -46,6 +46,7 @@ static const char cvsid[] =
 #include "settings.h"
 #include "rtp.h"
 #include "rtp_callback.h"
+#include "tonegen.h"
 #include "voxlet.h"
 
 int 	 should_exit = FALSE;
@@ -257,6 +258,10 @@ int main(int argc, char *argv[])
                                 if (voxlet_play(sp->local_file_player, sp->cur_ts, cush_ts) == FALSE) {
                                         voxlet_destroy(&sp->local_file_player);
                                 }
+                        }
+                        /* Play loopback tone if present */
+                        if (sp->tone_generator) {
+                                tonegen_play(sp->tone_generator, sp->cur_ts, cush_ts);
                         }
                 } else {
                         /* Destroy localfile player if not playing audio */

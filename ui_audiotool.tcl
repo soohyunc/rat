@@ -1287,6 +1287,17 @@ proc send_gain_and_mute {ssrc} {
 	mbus_send "R" "rtp.source.mute" "[mbus_encode_str $ssrc] $MUTE($ssrc)"
 }
 
+proc send_tone_cmd {} {
+    global tonegen
+
+    if {$tonegen} {
+	# tone generator turned on (Note A, gain 16767 / 32768)
+	mbus_send "R" "tool.rat.tone.start" "440 16767"
+    } else {
+	mbus_send "R" "tool.rat.tone.stop" ""
+    }
+}
+
 proc fix_scrollbar {} {
 	global iht iwd fw
 
@@ -1920,14 +1931,14 @@ checkbutton $i.dd.cks.f.f.silence  -text "Silence Suppression"    -variable sile
 checkbutton $i.dd.cks.f.f.agc      -text "Automatic Gain Control" -variable agc_var 
 checkbutton $i.dd.cks.f.f.loop     -text "Audio Loopback"         -variable audio_loop_var
 checkbutton $i.dd.cks.f.f.suppress -text "Echo Suppression"       -variable echo_var
+checkbutton $i.dd.cks.f.f.tone     -text "Tone Test"              -variable tonegen        -command send_tone_cmd
 pack $i.dd.cks.f -fill x -side top -expand 1
 pack $i.dd.cks.f.f
-pack $i.dd.cks.f.f.silence $i.dd.cks.f.f.agc $i.dd.cks.f.f.loop $i.dd.cks.f.f.suppress -side top -anchor w
+pack $i.dd.cks.f.f.silence $i.dd.cks.f.f.agc $i.dd.cks.f.f.loop $i.dd.cks.f.f.suppress $i.dd.cks.f.f.tone -side top -anchor w
 
 # Codecs pane #################################################################
 set i .prefs.pane.codecs
 frame $i 
-
 
 frame $i.of -rel fl
 pack  $i.of -fill both -expand 1 -anchor w -pady 1 -side top
