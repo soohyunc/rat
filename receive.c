@@ -87,25 +87,18 @@ add_unit_to_interval(rx_queue_element_struct *ip, rx_queue_element_struct *ru)
          * if we have reached limit of number of ccu's or we have two or 
          * more with identical headers then we know we've had a duplicate.
          */
-        if (ip->mixed == FALSE) {
-                if ((ru->cc_pt == ip->cc_pt) &&
-                    (ip->ccu_cnt == 0 || ip->ccu_cnt < ip->ccu[ip->ccu_cnt - 1]->cc->max_cc_per_interval)) {
-                        while(ru->ccu_cnt>0 && 
-                              ip->ccu_cnt < ru->ccu[ru->ccu_cnt-1]->cc->max_cc_per_interval) {
-                                ip->ccu[ip->ccu_cnt++] = ru->ccu[--ru->ccu_cnt];
-                                ru->ccu[ru->ccu_cnt] = NULL;
-                        }
-                } else {
-                        debug_msg("rejected - compat (%d %d), mixed (%d), ccu_cnt %d",
-                                  ru->cc_pt, 
-                                  ip->cc_pt,
-                                  ip->mixed,
-                                  ip->ccu_cnt);
+        if (ip->mixed   == FALSE && 
+            ru->cc_pt   == ip->cc_pt && 
+            ip->ccu_cnt == 0) {
+                while(ru->ccu_cnt>0 && 
+                      ip->ccu_cnt < ru->ccu[ru->ccu_cnt-1]->cc->max_cc_per_interval) {
+                        ip->ccu[ip->ccu_cnt++] = ru->ccu[--ru->ccu_cnt];
+                        ru->ccu[ru->ccu_cnt] = NULL;
                 }
         } else {
-                ip->dbe_source[0]->duplicates++;
-                debug_msg("duplicate\n");
-        }
+                debug_msg("duplicate\n");        ip->dbe_source[0]->duplicates++;
+        
+        } 
 	free_rx_unit(&ru);
 }
 
@@ -291,10 +284,8 @@ playout_buffer_get(session_struct *sp, ppb_t *buf, u_int32 from, u_int32 to)
 
 	if (ip) {
 		if (ts_gt(ip->playoutpt, to)) {
-                        debug_msg("bailing\n");
 			return (NULL);
                 }
-                debug_msg("decoding\n");
 		buf->last_got = ip;
                 channel_decode(sp, ip);
 		decode_unit(ip);
@@ -378,8 +369,6 @@ find_participant_queue(ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, 
 		if (p->src == src)
 			return (p);
 	}
-
-	debug_msg("allocating new receive buffer (ssrc=%lx)\n", src->ssrc);
 
 	p = (ppb_t*)block_alloc(sizeof(ppb_t));
 	memset(p, 0, sizeof(ppb_t));
@@ -506,7 +495,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		/*
 		 * If we have already worked past this point then mix it!
 		 */
-                if (buf->last_got) debug_msg("last_got %ld playout %ld cur_time %ld buf->len %d\n", buf->last_got->playoutpt, up->playoutpt, cur_time, buf->len);
+
 		if (up && buf->last_got && up->mixed == FALSE
 		    && ts_gt(buf->last_got->playoutpt, up->playoutpt) 
 		    && ts_gt(up->playoutpt, cur_time)){
