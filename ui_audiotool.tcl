@@ -1522,9 +1522,9 @@ checkbutton .st.recp -bitmap reception -indicatoron 0 -variable matrix_on -comma
 checkbutton .st.help -bitmap balloon   -indicatoron 0 -variable help_on
 
 #-onvalue 1 -offvalue 0 -variable help_on -font $compfont -anchor w -padx 4
-button      .st.opts  -text "Options..." -command {wm deiconify .prefs; update_user_panel; raise .prefs}
-button      .st.about -text "About..."   -command {jiggle_credits; wm deiconify .about}
-button      .st.quit  -text "Quit"       -command do_quit
+button      .st.opts  -text "Options..." -pady 2 -command {wm deiconify .prefs; update_user_panel; raise .prefs}
+button      .st.about -text "About..."   -pady 2 -command {jiggle_credits; wm deiconify .about}
+button      .st.quit  -text "Quit"       -pady 2 -command do_quit
 
 frame .r.c -bd 0
 frame .r.c.rx -relief groove -bd 2
