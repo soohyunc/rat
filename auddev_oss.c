@@ -62,7 +62,7 @@ audio_format format;
 #define bat_to_device(x)  ((x) * 100 / MAX_AMP)
 #define device_to_bat(x)  ((x) * MAX_AMP / 100)
 
-int 
+static int 
 audio_open_rw(char rw)
 {
 	int  mode     = AFMT_S16_LE;			/* 16bit linear, little-endian */
@@ -172,6 +172,7 @@ audio_close(int audio_fd)
 void
 audio_drain(int audio_fd)
 {
+	UNUSED(audio_fd);
 }
 
 int
@@ -314,7 +315,7 @@ audio_read(int audio_fd, sample *buf, int samples)
 
 		/* Figure out how many bytes we can read before blocking... */
 		ioctl(audio_fd, SNDCTL_DSP_GETISPACE, &info);
-		if (info.bytes > (samples * BYTES_PER_SAMPLE)) {
+		if (info.bytes > (int) (samples * BYTES_PER_SAMPLE)) {
 			read_len = (samples * BYTES_PER_SAMPLE);
 		} else {
 			read_len = info.bytes;
@@ -413,6 +414,8 @@ void
 audio_set_oport(int audio_fd, int port)
 {
 	/* There appears to be no-way to select this with OSS... */
+	UNUSED(audio_fd);
+	UNUSED(port);
 	return;
 }
 
@@ -420,6 +423,7 @@ int
 audio_get_oport(int audio_fd)
 {
 	/* There appears to be no-way to select this with OSS... */
+	UNUSED(audio_fd);
 	return AUDIO_HEADPHONE;
 }
 
@@ -427,6 +431,7 @@ int
 audio_next_oport(int audio_fd)
 {
 	/* There appears to be no-way to select this with OSS... */
+	UNUSED(audio_fd);
 	return AUDIO_HEADPHONE;
 }
 
@@ -494,6 +499,7 @@ audio_set_iport(int audio_fd, int port)
 int
 audio_get_iport(int audio_fd)
 {
+	UNUSED(audio_fd);
 	return iport;
 }
 
@@ -519,6 +525,7 @@ audio_next_iport(int audio_fd)
 void
 audio_switch_out(int audio_fd, cushion_struct *ap)
 {
+	UNUSED(ap);
 	if (!audio_duplex(audio_fd) && !can_write) {
 		audio_close(audio_fd);
 		audio_open_rw(O_WRONLY);
