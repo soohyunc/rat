@@ -202,7 +202,7 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 			if (sp->sync_on) {
 				/* Communicate our playout delay to the video tool... */
 				real_playout = (convert_time(hdr->ts + src->playout - cur_time, src->clock, sp->device_clock) * 1000)/get_freq(sp->device_clock);
-				sprintf(pargs, "%s %ld", src->sentry->cname, real_playout);
+				sprintf(pargs, "%s %d", src->sentry->cname, real_playout);
 				dprintf("source_playout (%s)\n", pargs);
 				mbus_send(sp->mbus_engine, sp->mbus_video_addr, "source_playout", pargs, FALSE);
 				/* If the video tool is slower than us, then
