@@ -1013,6 +1013,11 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Add check audio in adjusted playout point packets can be played out
 	  and correct if would be dropped.
 	- Add failure return option for pattern matches used in skew detection.
+	- Add session_validate(), source_validate() and pdb_item_validate() 
+	  debugging routines. These mostly just check a magic number stored
+	  in the structure, to check that the structure hasn't been totally
+	  corrupted. There's a lot of scope for extending them in future...
+
 
 TODO -- They're features not bugs dammit!
 ----

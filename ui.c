@@ -131,6 +131,7 @@ ui_info_activate(session_t *sp, uint32_t ssrc)
 void
 ui_info_deactivate(session_t *sp, uint32_t ssrc)
 {
+	session_validate(sp);
         mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, TRUE, "rtp.source.inactive", "\"%08lx\"", ssrc);
 }
 
@@ -166,6 +167,7 @@ ui_update_stats(session_t *sp, uint32_t ssrc)
         uint32_t               	 buffered, delay;
         pdb_entry_t             *pdbe;
 
+	session_validate(sp);
         if (pdb_item_get(sp->pdb, ssrc, &pdbe) == FALSE) {
                 debug_msg("ui_update_stats: pdb entry does not exist (0x%08x)\n", ssrc);
                 return;
@@ -691,6 +693,7 @@ ui_update_echo_suppression(session_t *sp)
 void
 ui_update(session_t *sp)
 {
+	session_validate(sp);
 	mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, TRUE, "tool.rat.rate", "%3d", channel_encoder_get_units_per_packet(sp->channel_coder));
         
         ui_devices(sp);
@@ -759,6 +762,8 @@ ui_periodic_updates(session_t *sp, int elapsed_time)
 {
         static uint32_t power_time = 0;
         static uint32_t bps_time   = 0;
+
+	session_validate(sp);
 
         bps_time   += elapsed_time;
         if (bps_time > 10 * sp->meter_period) {

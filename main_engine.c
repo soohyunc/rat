@@ -175,6 +175,7 @@ int main(int argc, char *argv[])
                	tx_start(sp->tb);
         }
 
+	session_validate(sp);
 	xdoneinit();
 
 	while (!should_exit) {
@@ -225,6 +226,7 @@ int main(int argc, char *argv[])
 			int 		 sidx;
 			ts_t 		 cush_ts;
 
+			session_validate(sp);
 			cush_ts = ts_map32(get_freq(sp->device_clock), cushion_get_size(sp->cushion));
 			cush_ts = ts_add(sp->cur_ts, cush_ts);
 			scnt = (int)source_list_source_count(sp->active_sources);
@@ -258,6 +260,7 @@ int main(int argc, char *argv[])
 
                 /* Echo Suppression - cut off transmitter when receiving     */
                 /* audio, enable when stop receiving.                        */
+		session_validate(sp);
                 if (sp->echo_suppress) {
                         if (scnt > 0) {
                                 if (tx_is_sending(sp->tb)) {
@@ -310,6 +313,9 @@ int main(int argc, char *argv[])
 		if (!audio_is_ready(sp->audio_device)) {
 			audio_wait_for(sp->audio_device, 20);
 		}
+
+		/* Debugging sanity check of the session... */
+		session_validate(sp);
         }
 
 	settings_save(sp);
@@ -338,6 +344,7 @@ int main(int argc, char *argv[])
 		rtp_callback_exit(sp->rtp_session[j]);
 	}
 
+	session_validate(sp);
 	session_exit(sp);
         converters_free();
         audio_free_interfaces();

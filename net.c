@@ -23,6 +23,7 @@ void network_process_mbus(session_t *sp)
 	int		rc, c;
 	struct timeval	timeout;
 
+	session_validate(sp);
 	c = 0;
 	do {
 		timeout.tv_sec  = 0;

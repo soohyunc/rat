@@ -368,6 +368,9 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
         const audio_format* ofmt;
 	sample	*bufp;
 
+	session_validate(spi);
+	session_validate(spo);
+
         c = spi->cushion;
 
 	if ((read_dur = tx_read_audio(spi->tb)) <= 0) {

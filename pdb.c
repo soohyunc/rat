@@ -106,6 +106,7 @@ pdb_item_get(pdb_t *p, uint32_t id, pdb_entry_t **item)
         }
         assert(v != NULL);
         *item = (pdb_entry_t*)v;
+	pdb_item_validate(*item);
         return TRUE;
 }
 
@@ -127,6 +128,7 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, uint16_t freq, uint32_t id)
 
         /* Initialize elements of item here as necesary **********************/
 
+	item->magic           = 0xc001babe;
         item->ssrc            = id;
         item->render_3D_data  = NULL;
         item->enc             = -1;
@@ -155,6 +157,7 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, uint16_t freq, uint32_t id)
         item->spike_toged     = 0;
         item->spike_events    = 0;
 
+	pdb_item_validate(item);
         /*********************************************************************/
 
         if (btree_add(p->db, id, (void*)item) == FALSE) {
@@ -176,6 +179,7 @@ pdb_item_destroy(pdb_t *p, uint32_t id)
                 return FALSE;
         }
 
+	pdb_item_validate(item);
         assert(id == item->ssrc);
 
         /* clean up elements of item here ************************************/
@@ -201,3 +205,11 @@ pdb_item_destroy(pdb_t *p, uint32_t id)
         p->nelem--;
         return TRUE;
 }
+
+void
+pdb_item_validate(pdb_entry_t *item)
+{
+	assert(item != NULL);
+	assert(item->magic == 0xc001babe);
+}
+

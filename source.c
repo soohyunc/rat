@@ -99,6 +99,7 @@ typedef struct s_source {
         /* Playout stats (most in pdb_entry_t)                               */
 	u_char                      toged_cont;	     /* Toged in a row       */
         uint16_t                    toged_mask;      /* bitmap hist. of tog  */
+	uint32_t		    magic;	     /* For debugging        */
 } source;
 
 /* A linked list is used for sources and this is fine since we mostly expect */
@@ -225,9 +226,27 @@ time_constants_init()
 /* Source functions.  A source is an active audio source.                    */
 /*****************************************************************************/
 
+static void 
+source_validate(source *s)
+{
+	/* More debugging code... check the invarients of the soure. */
+	/* This is called from all the routines here... if anything  */
+	/* is trashing the source, this is supposed to detect it.    */
+	assert(s != NULL);
+	assert(s->magic == 0xface0ff);
+#ifdef DEBUG
+	assert(s->next != NULL);
+	assert(s->prev != NULL);
+        assert(s->pdbe != NULL);
+        assert(s->bps  >= 0);
+	assert((s->skew == SOURCE_SKEW_SLOW) || (s->skew == SOURCE_SKEW_FAST) ||( s->skew == SOURCE_SKEW_NONE));
+	assert((s->playout_mode == PLAYOUT_MODE_NORMAL) || (s->playout_mode == PLAYOUT_MODE_SPIKE));
+#endif
+}
+
 source*
 source_create(source_list    *plist, 
-              uint32_t         ssrc,
+              uint32_t        ssrc,
 	      pdb_t	     *pdb)
 {
         source *psrc;
@@ -249,6 +268,7 @@ source_create(source_list    *plist,
                 return NULL;
         }
         memset(psrc, 0, sizeof(source));
+	psrc->magic = 0xface0ff;
 
         if (pdb_item_get(pdb, ssrc, &psrc->pdbe) == FALSE) {
                 debug_msg("Persistent database item not found\n");
@@ -305,6 +325,7 @@ source_create(source_list    *plist,
 
         debug_msg("Created source decode path\n");
 
+	source_validate(psrc);
         return psrc;
 
         /* Failure fall throughs */
@@ -337,6 +358,8 @@ source_reconfigure(source        *src,
         uint16_t    src_rate, src_channels;
         codec_id_t            src_cid;
         const codec_format_t *src_cf;
+
+	source_validate(src);
 
         assert(src->pdbe != NULL);
 
@@ -399,11 +422,13 @@ source_reconfigure(source        *src,
         }
         src->byte_count = 0;
         src->bps        = 0.0;
+	source_validate(src);
 }
 
 void
 source_remove(source_list *plist, source *psrc)
 {
+	source_validate(psrc);
         assert(plist);
         assert(psrc);
         assert(source_get_by_ssrc(plist, psrc->pdbe->ssrc) != NULL);
@@ -431,6 +456,7 @@ source_remove(source_list *plist, source *psrc)
         block_free(psrc, sizeof(source));
 
         assert(source_get_by_ssrc(plist, psrc->pdbe->ssrc) == NULL);
+	source_validate(psrc);
 }
               
 /* Source Processing Routines ************************************************/
@@ -448,6 +474,7 @@ source_process_packet (source  *src,
         cc_id_t       cid;
         uint8_t        clayers;
 
+	source_validate(src);
         assert(src != NULL);
         assert(pckt != NULL);
 
@@ -553,6 +580,7 @@ done:
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
 
+	source_validate(src);
         return TRUE;
 }
 
@@ -573,6 +601,7 @@ source_close_log(void)
 static void
 source_playout_log(source *src, uint32_t ts, ts_t now)
 {
+	source_validate(src);
         if (psf == NULL) {
                 psf = fopen("playout.log", "w");
                 if (psf == NULL) {
@@ -595,6 +624,7 @@ source_playout_log(source *src, uint32_t ts, ts_t now)
                 ts_to_ms(src->spike_var),
                 ts_to_ms(now)
                 );
+	source_validate(src);
 }
 
 #endif /* SOURCE_LOG_PLAYOUT */
@@ -602,6 +632,7 @@ source_playout_log(source *src, uint32_t ts, ts_t now)
 static void
 source_update_toged(source *src, int toged)
 {
+	source_validate(src);
         src->toged_mask <<= 1;
         src->toged_mask |= toged;
         src->toged_cont = 0;
@@ -613,6 +644,7 @@ source_update_toged(source *src, int toged)
                         m >>= 1;
                 }
         }
+	source_validate(src);
 }
 
 static void
@@ -628,6 +660,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
         uint8_t         codec_pt;
         uint8_t         adjust_playout;
 
+	source_validate(src);
         e = src->pdbe;
         while(pktbuf_dequeue(src->pktbuf, &p)) {
                 adjust_playout = FALSE;
@@ -858,12 +891,14 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 src->packets_done++;
                 xfree(p);
         }
+	source_validate(src);
 }
 
 int
 source_add_packet (source     *src, 
                    rtp_packet *pckt)
 {
+	source_validate(src);
         src->byte_count += pckt->data_len;
         return pktbuf_enqueue(src->pktbuf, pckt);
 }
@@ -872,10 +907,13 @@ static void
 source_update_bps(source *src, ts_t now)
 {
         ts_t delta;
+
+	source_validate(src);
         if (!ts_valid(src->byte_count_start)) {
                 src->byte_count_start = now;
                 src->byte_count       = 0;
                 src->bps              = 0.0;
+		source_validate(src);
                 return;
         }
 
@@ -892,6 +930,7 @@ source_update_bps(source *src, ts_t now)
                 src->byte_count = 0;
                 src->byte_count_start = now;
         }
+	source_validate(src);
 }
 
 double 
@@ -1065,6 +1104,7 @@ source_check_buffering(source *src)
 {
         ts_t actual, desired, diff;
 
+	source_validate(src);
         if (src->post_talkstart_units < 20) {
                 /* If the source is new(ish) then not enough audio will be   */
                 /* in the playout buffer because it hasn't arrived yet.      */
@@ -1080,6 +1120,7 @@ source_check_buffering(source *src)
                 /* We're accumulating audio, their clock faster   */
                 src->skew = SOURCE_SKEW_FAST; 
                 src->skew_cnt++;
+		source_validate(src);
                 return TRUE;
         } else if (ts_gt(desired, actual)) {
                 /* We're short of audio, so their clock is slower */
@@ -1088,10 +1129,12 @@ source_check_buffering(source *src)
                 /* be invoked as we decode units late.            */
                 src->skew_adjust = diff;
                 src->skew = SOURCE_SKEW_SLOW;
+		source_validate(src);
                 return TRUE;
         }
         src->skew = SOURCE_SKEW_NONE;
         src->skew_adjust = zero_ts;
+	source_validate(src);
         return FALSE;
 }
 
@@ -1110,6 +1153,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
         uint16_t rate, channels;
         ts_t adjustment, frame_dur;
         
+	source_validate(src);
         assert(src);
         assert(md);
         assert(src->skew != SOURCE_SKEW_NONE);
@@ -1127,6 +1171,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
         if (i == md->nrep) {
                 /* don't adapt if unit has not been decoded (error) or       */
                 /* signal has too much energy                                */
+		source_validate(src);
                 return SOURCE_SKEW_NONE;
         }
 
@@ -1145,6 +1190,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                         if (recommend_skew_adjust_dur(md, TRUE, &adjustment) == FALSE) {
                                 /* No suitable adjustment found, and         */
                                 /* adjustment is not urgent so bail here...  */ 
+				source_validate(src);
                                 return src->skew;
                         }
                 } else {
@@ -1159,6 +1205,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                         /* adjustment needed is greater than adjustment      */
                         /* period that best matches dropable by signal       */
                         /* matching.                                         */
+			source_validate(src);
                         return SOURCE_SKEW_NONE;
                 }
                 debug_msg("dropping %d / %d samples\n", adjustment.ticks, src->skew_adjust.ticks);
@@ -1193,6 +1240,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
 
                 if (recommend_skew_adjust_dur(md, FALSE, &adjustment) == FALSE) {
                         debug_msg("bad match\n");
+			source_validate(src);
                         return src->skew;
                 }
 
@@ -1222,9 +1270,11 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
 
                 debug_msg("Playout buffer shift back %d samples.\n", adjustment.ticks);
                 src->skew = SOURCE_SKEW_NONE;
+		source_validate(src);
                 return SOURCE_SKEW_SLOW;
         }
 
+	source_validate(src);
         return SOURCE_SKEW_NONE;
 }
 
@@ -1237,10 +1287,12 @@ source_repair(source     *src,
         ts_t        prev_ts;
         uint32_t     success,  prev_len;
 
+	source_validate(src);
         /* We repair one unit at a time since it may be all we need */
         if (pb_iterator_retreat(src->media_pos) == FALSE) {
                 /* New packet when source still active, but dry, e.g. new talkspurt */
                 debug_msg("Repair not possible no previous unit!\n");
+		source_validate(src);
                 return FALSE;
         }
 
@@ -1274,8 +1326,10 @@ source_repair(source     *src,
                 debug_msg("Repair add data failed (%d).\n", fill_ts.ticks);
                 media_data_destroy(&fill_md, sizeof(media_data));
                 src->consec_lost = 0;
+		source_validate(src);
                 return FALSE;
         }
+	source_validate(src);
         return TRUE;
 }
 
@@ -1302,7 +1356,10 @@ source_process(session_t 	 *sp,
          * buffer shift occurs in middle of a loss.
          */
 
+	session_validate(sp);
+	source_validate(src);
         source_process_packets(sp, src, start_ts);
+	source_validate(src);
 
         /* Split channel coder units up into media units */
         if (pb_node_count(src->channel)) {
@@ -1462,12 +1519,14 @@ source_process(session_t 	 *sp,
                 assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
         }
         source_update_bps(src, start_ts);
+	source_validate(src);
         return;
 }
 
 int
 source_audit(source *src) 
 {
+	source_validate(src);
         if (src->age != 0) {
                 /* Keep 1/8 seconds worth of audio */
                 pb_iterator_audit(src->media_pos, history_ts);
@@ -1481,8 +1540,8 @@ source_get_audio_buffered (source *src)
 {
         /* Changes in avg_transit change amount of audio buffered. */
         /* It's how much transit is off from start.                */
-        ts_t delta;
-        delta = ts_sub(src->pdbe->transit, src->pdbe->avg_transit);
+        ts_t delta = ts_sub(src->pdbe->transit, src->pdbe->avg_transit);
+	source_validate(src);
         return ts_add(src->pdbe->playout, delta);
 }
 
@@ -1495,7 +1554,7 @@ source_get_playout_delay (source *src)
 int
 source_relevant(source *src, ts_t now)
 {
-        assert(src);
+	source_validate(src);
 
         if (pb_relevant(src->media, now) || pb_relevant(src->channel, now) || src->age < 50) {
                 return TRUE;
@@ -1513,21 +1572,25 @@ source_relevant(source *src, ts_t now)
 struct s_pb*
 source_get_decoded_buffer(source *src)
 {
+	source_validate(src);
         return src->media;
 }
 
 uint32_t
 source_get_ssrc(source *src)
 {
+	source_validate(src);
         return src->pdbe->ssrc;
 }
 
 double
 source_get_skew_rate(source *src)
 {
+	source_validate(src);
         if (src->samples_played) {
                 double r = (double)(src->samples_played + src->samples_added) / (double)src->samples_played;
                 return r;
         }
         return 1.0;
 }
+

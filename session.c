@@ -81,11 +81,11 @@ sanity_check_payloads(void)
 void
 session_init(session_t *sp)
 {
-	codec_id_t                cid;
+	codec_id_t                 cid;
         const codec_format_t      *cf   = NULL;
         const converter_details_t *conv = NULL;
         const cc_details_t        *ccd  = NULL;
-        uint8_t                     i;
+        uint8_t                    i;
 
 	memset(sp, 0, sizeof(session_t));
 
@@ -112,10 +112,10 @@ session_init(session_t *sp)
 		sp->rx_rtp_port[i] = sp->tx_rtp_port[i] = PORT_UNINIT;
                 sp->rtp_session[i] = NULL;
 	}
-	sp->rx_rtp_port[0] = 5004; /* Default ports per:             */
-	sp->tx_rtp_port[0] = 5004; /* draft-ietf-avt-profile-new-00  */
-        sp->rx_rtcp_port   = 5005;
-        sp->tx_rtcp_port   = 5005;
+	sp->rx_rtp_port[0] 		= 5004; /* Default ports per:             */
+	sp->tx_rtp_port[0] 		= 5004; /* draft-ietf-avt-profile-new-00  */
+        sp->rx_rtcp_port   		= 5005;
+        sp->tx_rtcp_port   		= 5005;
 	sp->ttl				= 16;
         sp->filter_loopback             = TRUE;
 	sp->playing_audio		= TRUE;
@@ -141,6 +141,7 @@ session_init(session_t *sp)
 	sp->loopback_gain		= 0;
 	sp->layers                      = 1;
 	sp->ui_activated		= FALSE;
+	sp->magic			= 0xcafebabe;				/* Magic number for debugging */
 
         source_list_create(&sp->active_sources);
 
@@ -160,5 +161,23 @@ session_exit(session_t *sp)
         channel_encoder_destroy(&sp->channel_coder);
         source_list_destroy(&sp->active_sources);
 	xfree(sp);
+}
+
+void
+session_validate(session_t *sp)
+{
+	/* Sanity check the session... the more checks we can add here the better, */
+	/* they're done once round the main loop and we can add calls to this at   */
+	/* any point we think our data structures are being corrupted. For speed,  */
+	/* we only check the magic number if we've not been built with debugging.  */
+	assert(sp != NULL);
+	assert(sp->magic == 0xcafebabe);
+#ifdef DEBUG
+	assert((sp->ttl >= 0) && (sp->ttl <= 255));
+	assert((sp->tx_rtp_port[0] % 2) == 0);
+	assert((sp->rx_rtp_port[0] % 2) == 0);
+	assert((sp->tx_rtcp_port % 2) == 1);
+	assert((sp->rx_rtcp_port % 2) == 1);
+#endif
 }
 

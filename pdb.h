@@ -75,6 +75,8 @@ typedef struct {
 	uint32_t        last_ntp_sec;	/* NTP timestamp */
 	uint32_t        last_ntp_frac;
 	uint32_t        last_rtp_ts;	/* RTP timestamp */
+	
+	uint32_t	magic;	/* For debugging */
 } pdb_entry_t;
 
 /* Functions for creating and destroying persistent database.  Return
@@ -101,6 +103,7 @@ int     pdb_item_create  (pdb_t *p,
                           uint32_t id);
 
 int     pdb_item_destroy (pdb_t *p, uint32_t id);
+void	pdb_item_validate(pdb_entry_t *item);
 
 uint32_t pdb_item_count   (pdb_t *p);
 

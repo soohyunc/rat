@@ -132,7 +132,7 @@ clean:
 	-rm -f $(RATVER)-media $(RATVER)-ui $(RATVER)
 
 distclean: clean
-	-rm -rf config.cache config.log config.status config.h Makefile
+	-rm -rf config.cache config.log config.status ratconf.h Makefile
 	-rm -rf core core-$(RATVER)-media core-$(RATVER)-ui
 
 etags:

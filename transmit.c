@@ -342,6 +342,7 @@ tx_process_audio(tx_buffer *tb)
         assert(tb->sending_audio);
         
         sp = tb->sp;
+	session_validate(sp);
 
         /* Do signal classification up until read point, that
          * is not a complete audio frame so cannot be done 
@@ -449,15 +450,13 @@ tx_send(tx_buffer *tb)
         struct s_pb_iterator    *cpos;
         channel_data            *cd;
         channel_unit            *cu;
-
-        session_t *sp;
-
-        tx_unit        *u;
-        ts_t            u_ts, u_sil_ts, delta;
-        ts_t            time_ts;
-        uint32_t         time_32, cd_len, freq;
-        uint32_t         u_len, units, i, j, k, n, send, encoding;
-        int success;
+        session_t 		*sp;
+        tx_unit        		*u;
+        ts_t            	 u_ts, u_sil_ts, delta;
+        ts_t            	 time_ts;
+        uint32_t         	 time_32, cd_len, freq;
+        uint32_t         	 u_len, units, i, j, k, n, send, encoding;
+        int 			 success;
         
         assert(pb_iterator_count(tb->audio_buffer) == 3);
 
@@ -484,6 +483,7 @@ tx_send(tx_buffer *tb)
         n = delta.ticks / tb->unit_dur;
 
         sp = tb->sp;
+	session_validate(sp);
         units = channel_encoder_get_units_per_packet(sp->channel_coder);
         freq  = get_freq(tb->clock);
         
