@@ -132,14 +132,23 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tcl_SetVar(interp, "argv0", argv[0], TCL_GLOBAL_ONLY);
 	Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
 
-	Tk_MainWindow(interp);
+	if (Tk_MainWindow(interp) != TCL_OK) {
+                fprintf(stderr, "%s\n", Tcl_GetStringResult(interp));
+                exit(-1);
+        }
 	/*
 	 * There is no easy way of preventing the Init functions from
 	 * loading the library files. Ignore error returns and load
 	 * built in versions.
 	 */
-	Tcl_Init(interp);
-	Tk_Init(interp);
+	if (Tcl_Init(interp) != TCL_OK) {
+                fprintf(stderr, "%s\n", Tcl_GetStringResult(interp));
+                exit(-1);
+        }
+        if (Tk_Init(interp) != TCL_OK) {
+                fprintf(stderr, "%s\n", Tcl_GetStringResult(interp));
+                exit(-1);
+        }
 
 	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) sp, NULL);
 	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, (ClientData) sp, NULL);
@@ -169,7 +178,7 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 		Tcl_Obj *audiotool_obj = Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool));
 		debug_msg("ui_script len %d bytes\n", len);
 		if (Tcl_EvalObj(interp, audiotool_obj) != TCL_OK) {
-			fprintf(stderr, "ui_audiotool error: %s\n", interp->result);
+			fprintf(stderr, "ui_audiotool error: %s\n", Tcl_GetStringResult(interp));
 		}
 	} else if (sp->mode == TRANSCODER) {
 		if (Tcl_EvalObj(interp, Tcl_NewStringObj(ui_transcoder, strlen(ui_transcoder))) != TCL_OK) {
