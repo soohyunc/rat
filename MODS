@@ -943,6 +943,10 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 	- Playout recalc trigger when jitter > playout.
 	- Device reconfig no longer resets ports if device unchanged.
 	- Shuffled front panel.  Added bps field.
+	- Changed source processing to use next_played rather than last_played.
+	  Cleans some processing issues up and allows for codecs with 
+	  non-constant frame durations.
+	- Added source_get_skew_rate to return relative skew.
 
 TODO -- They're features not bugs dammit!
 ----

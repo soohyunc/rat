@@ -74,6 +74,7 @@ ts_t             source_get_audio_buffered (struct s_source *src);
 ts_t             source_get_playout_delay  (struct s_source *src);
 
 double           source_get_bps            (struct s_source *src);
+double           source_get_skew_rate      (struct s_source *src);
 
 struct s_pb*
                  source_get_decoded_buffer (struct s_source *src);

@@ -64,7 +64,7 @@ typedef struct s_source {
         struct s_source            *prev;
         pdb_entry_t                *pdbe; /* persistent database entry */
         u_int32                     age;
-        ts_t                        last_played;
+        ts_t                        next_played; /* anticipated next unit   */
         ts_t                        last_repair;
         u_int16                     consec_lost;
         u_int32                     mean_energy;
@@ -81,6 +81,9 @@ typedef struct s_source {
         /* attempts to correct for clock skew between source and local host. */
         skew_t 			    skew;
         ts_t   			    skew_adjust;
+        /* Skew stats                                                        */
+        int32                       samples_played;
+        int32                       samples_added;
         /* b/w estimation variables                                          */
         u_int32                     byte_count;
         ts_t                        byte_count_start;
@@ -239,6 +242,8 @@ source_create(source_list    *plist,
         psrc->pdbe->cont_toged = 0; /* Reset continuous thrown on ground cnt */
         psrc->channel_state    = NULL;        
         psrc->skew             = SOURCE_SKEW_NONE;
+        psrc->samples_played   = 0;
+        psrc->samples_added    = 0;
 
         /* Allocate channel and media buffers                                */
         success = pb_create(&psrc->channel, 
@@ -676,13 +681,12 @@ source_process_packets(session_t *sp, source *src, ts_t now)
 
                 e->last_transit = transit;
 
-                /* If last_played is valid then enough audio is buffer for   */
-                /* the playout check to be sensible.                         */
-                if (ts_valid(src->last_played) &&
-                    ts_gt(src->last_played, playout)) {
-                        debug_msg("Packet late (%u > %u)- discarding\n", 
-                                  src->last_played.ticks,
-                                  playout.ticks);
+                if (src->packets_done == 0) {
+                        /* This is first packet so expect next played to have its */
+                        /* playout.                                               */
+                        src->next_played = playout;
+                } else if (ts_gt(src->next_played, playout)) {
+                        debug_msg("Packet late (compared to next_played)\n");
                         src->pdbe->cont_toged++;
                         src->pdbe->jit_toged++;
                         xfree(p);
@@ -706,6 +710,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         /* rtp_callback if cont_toged hits a critical       */
                         /* threshold.  It signifies current playout delay   */
                         /* is inappropriate.                                */
+                        debug_msg("Packet late (compared to now)\n");
                         src->pdbe->cont_toged++;
                         src->pdbe->jit_toged++;
                 } 
@@ -953,6 +958,8 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 pb_shift_forward(src->media,   adjustment);
                 pb_shift_forward(src->channel, adjustment);
 
+                src->samples_added     += adjustment.ticks;
+
                 src->pdbe->transit      = ts_sub(src->pdbe->transit, adjustment);
                 /* avg_transit and last_transit are fine.  Difference in     */
                 /* avg_transit and transit triggered this adjustment.        */
@@ -961,9 +968,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                         src->last_repair = ts_sub(src->last_repair, adjustment);
                 }
 
-                if (ts_valid(src->last_played)) {
-                        src->last_played = ts_sub(src->last_played, adjustment);
-                }
+                src->next_played = ts_sub(src->next_played, adjustment);
 
                 /* Remove skew adjustment from estimate of skew outstanding */
                 if (ts_gt(src->skew_adjust, adjustment)) {
@@ -990,14 +995,9 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                         src->skew_adjust = ts_sub(src->skew_adjust, adjustment);
                 }
 
-/* shouldn't have to make this adjustment since we are now adjusting
- * units in future only. 
-                src->last_played = ts_add(src->last_played, adjustment);
-                if (ts_valid(src->last_repair)) {
-                        src->last_repair = ts_add(src->last_repair, adjustment);
-                }
-                */
-                debug_msg("Playout buffer shift back %d (%d).\n", adjustment.ticks, src->last_played.ticks);
+                src->samples_added -= samples;
+
+                debug_msg("Playout buffer shift back %d samples.\n", adjustment.ticks);
                 src->skew = SOURCE_SKEW_NONE;
                 return SOURCE_SKEW_SLOW;
         }
@@ -1008,32 +1008,23 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
 static int
 source_repair(source     *src,
               repair_id_t r,
-              ts_t        step)
+              ts_t        fill_ts) 
 {
         media_data* fill_md, *prev_md;
-        ts_t        fill_ts,  prev_ts;
+        ts_t        prev_ts;
         u_int32     success,  prev_len;
 
-        /* Check for need to reset of consec_lost count */
-
-        if (ts_valid(src->last_repair) == FALSE || 
-            ts_eq(src->last_played, src->last_repair) == FALSE) {
-                src->consec_lost = 0;
+        /* We repair one unit at a time since it may be all we need */
+        if (pb_iterator_retreat(src->media_pos) == FALSE) {
+                /* New packet when source still active, but dry, e.g. new talkspurt */
+                debug_msg("Repair not possible no previous unit!\n");
+                return FALSE;
         }
 
-        /* We repair one unit at a time since it may be all we need */
-        pb_iterator_retreat(src->media_pos);
         pb_iterator_get_at(src->media_pos,
                            (u_char**)&prev_md,
                            &prev_len,
                            &prev_ts);
-
-        assert(prev_md != NULL);
-
-        if (!ts_eq(prev_ts, src->last_played)) {
-                debug_msg("prev_ts and last_played don't match\n");
-                return FALSE;
-        }
 
         media_data_create(&fill_md, 1);
         repair(r,
@@ -1041,32 +1032,23 @@ source_repair(source     *src,
                src->codec_states,
                prev_md,
                fill_md->rep[0]);
-        fill_ts = ts_add(src->last_played, step);
+
         success = pb_add(src->media, 
                          (u_char*)fill_md,
                          sizeof(media_data),
                          fill_ts);
+
         if (success) {
-                src->consec_lost ++;
+                src->consec_lost++;
                 src->last_repair = fill_ts;
+                /* Advance to unit we just added */
                 pb_iterator_advance(src->media_pos);
-#ifndef NDEBUG
-        /* Reusing prev_* - c'est mal, je sais */
-                pb_iterator_get_at(src->media_pos,
-                                   (u_char**)&prev_md,
-                                   &prev_len,
-                                   &prev_ts);
-                if (ts_eq(prev_ts, fill_ts) == FALSE) {
-                        debug_msg("Added at %d, but got %d when tried to get it back!\n", fill_ts.ticks, prev_ts.ticks);
-                        return FALSE;
-                }
-#endif
         } else {
                 /* This should only ever fail at when source changes
                  * sample rate in less time than playout buffer
                  * timeout.  This should be a very very rare event...  
                  */
-                debug_msg("Repair add data failed (%d), last_played %d.\n", fill_ts.ticks, src->last_played.ticks);
+                debug_msg("Repair add data failed (%d).\n", fill_ts.ticks);
                 media_data_destroy(&fill_md, sizeof(media_data));
                 src->consec_lost = 0;
                 return FALSE;
@@ -1086,9 +1068,10 @@ source_process(session_t *sp,
         media_data  *md;
         coded_unit  *cu;
         codec_state *cs;
-        u_int32     md_len, src_freq;
-        ts_t        playout, step, cutoff;
+        u_int32     md_len;
+        ts_t        playout, step;
         int         i, success, hold_repair = 0;
+        u_int16     sample_rate, channels;
 
         /* Note: hold_repair is used to stop repair occuring.
          * Occasionally, there is a race condition when the playout
@@ -1106,10 +1089,8 @@ source_process(session_t *sp,
                                        end_ts);
         }
 
-        src_freq = get_freq(src->pdbe->clock);
-        step = ts_map32(src_freq, src->pdbe->inter_pkt_gap / src->pdbe->units_per_packet);
-
-        while (pb_iterator_advance(src->media_pos)) {
+        while (ts_gt(end_ts, src->next_played) && 
+               pb_iterator_advance(src->media_pos)) {
                 pb_iterator_get_at(src->media_pos, 
                                    (u_char**)&md, 
                                    &md_len, 
@@ -1118,33 +1099,33 @@ source_process(session_t *sp,
                 assert(md_len == sizeof(media_data));
                 
                 /* Conditions for repair: 
-                 * (a) last_played has meaning. 
-                 * (b) playout point does not what we expect.
-                 * (c) repair type is not no repair.
-                 * (d) last decoded was not too long ago.
+                 * (a) playout point of unit is further away than expected.
+                 * (b) don't have a hold on.
                  */
-                cutoff = ts_sub(end_ts, ts_map32(src_freq, SOURCE_AUDIO_HISTORY_MS));
 
-                assert((ts_valid(src->last_played) == FALSE) || ts_eq(playout, src->last_played) == FALSE);
-
-                if (ts_valid(src->last_played) && 
-                    ts_gt(playout, ts_add(src->last_played, step)) &&
-                    ts_gt(src->last_played, cutoff) &&
+                if (ts_gt(playout, src->next_played) &&
                     hold_repair == 0) {
                         /* If repair was successful media_pos is moved,
                          * so get data at media_pos again.
                          */
-                        if (source_repair(src, repair_type, step) == FALSE) {
-                                hold_repair += 2; /* 1 works, but 2 is probably better */
+                        if (source_repair(src, repair_type, src->next_played) == TRUE) {
+                                debug_msg("Repair\n");
+                                success = pb_iterator_get_at(src->media_pos, 
+                                                             (u_char**)&md, 
+                                                             &md_len, 
+                                                             &playout);
+                                assert(success);
+                                assert(ts_eq(playout, src->next_played));
+                        } else {
+                                /* Repair failed for some reason.  Wait a while before */
+                                /* re-trying.                                          */
+                                hold_repair += 2; 
                         }
-                        debug_msg("Repair\n");
-                        success = pb_iterator_get_at(src->media_pos, 
-                                                     (u_char**)&md, 
-                                                     &md_len, 
-                                                     &playout);
-                        assert(success);
-                } else if (hold_repair > 0) {
-                        hold_repair --;
+                } else {
+                        if (hold_repair > 0) {
+                                hold_repair --;
+                        }
+                        src->consec_lost = 0;
                 }
 
                 if (ts_gt(playout, end_ts)) {
@@ -1234,6 +1215,12 @@ source_process(session_t *sp,
                                            src->pdbe->gain);
                 }
 
+                assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
+                codec_get_native_info(md->rep[md->nrep - 1]->id, &sample_rate, &channels);
+                step = ts_map32(sample_rate, md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample)));
+                src->next_played = ts_add(playout, step);
+                src->samples_played += md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample));
+
                 if (mix_process(ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
                         /* Sources sampling rate changed mid-flow? dump data */
                         /* make source look irrelevant, it should get        */
@@ -1245,8 +1232,6 @@ source_process(session_t *sp,
                         pb_flush(src->media);
                         pb_flush(src->channel);
                 }
-
-                src->last_played = playout;
         }
 
         source_update_bps(src, start_ts);
@@ -1290,10 +1275,10 @@ source_relevant(source *src, ts_t now)
 
         if (pb_relevant(src->media, now) || pb_relevant(src->channel, now) || src->age < 50) {
                 return TRUE;
-        } if (ts_valid(src->last_played)) {
+        } if (ts_valid(src->next_played)) {
                 /* Source is quiescent                                     */
                 ts_t quiet;        
-                quiet = ts_sub(now, src->last_played);
+                quiet = ts_sub(now, src->next_played);
                 if (ts_gt(keep_source_ts, quiet)) {
                         return TRUE;
                 }
@@ -1311,4 +1296,11 @@ u_int32
 source_get_ssrc(source *src)
 {
         return src->pdbe->ssrc;
+}
+
+double
+source_get_skew_rate(source *src)
+{
+        double r = (double)(src->samples_played + src->samples_added) / (double)src->samples_played;
+        return r;
 }
