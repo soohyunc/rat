@@ -451,13 +451,15 @@ AC_ARG_ENABLE(kame-ipv6,
 #-----------------------------------------------------------------------------
 # Check for UCL Multimedia Base (formerly common) library
 #-----------------------------------------------------------------------------
-COMMON_INC=${PARENT}/common/src
-COMMON_LIB=${PARENT}/common/src
+DEFAULT_COMMON_INC=${PARENT}/common/src
+DEFAULT_COMMON_LIB=${PARENT}/common/src
 
 AC_ARG_WITH(common,           
 	[  --with-common=DIR       specify location of UCL's common library],
 	[ COMMON_INC=$withval
-	  COMMON_LIB=$withval])
+	  COMMON_LIB=$withval],
+	[ COMMON_INC=${DEFAULT_COMMON_INC}
+	  COMMON_LIB=${DEFAULT_COMMON_LIB} ])
 
 FOUND_COMMON_H=no
 for h in ${COMMON_INC} ${COMMON_INC}/include
@@ -485,10 +487,10 @@ then
 	COMMON_LIB=${COMMON_LIB}/lib
 fi
 
+
 AC_CHECK_LIB(uclmmbase,
 	mbus_init,
 	[
-		EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_LIB}/libuclmmbase.a"
 		COMMON_LIB="-L${COMMON_LIB} -luclmmbase"
 	],
 	[
@@ -499,6 +501,7 @@ AC_CHECK_LIB(uclmmbase,
 #		exit
 	],
 	-L${COMMON_LIB})
+EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_LIB}/libuclmmbase.a"
 
 AC_SUBST(COMMON_INC)
 AC_SUBST(COMMON_LIB)
