@@ -55,10 +55,10 @@ libuclsndfile.a: $(SNDFILE_OBJS)
 $(RATVER)-media: $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engine.o ../common/libcommon.a
 	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engine.o ../common/libcommon.a __LDLIBS__ __CHECK_LIB__ -o $(RATVER)-media
 
-$(RATVER)-ui: $(TCL_OBJS) $(UI_OBJS)
+$(RATVER)-ui: $(TCL_OBJS) $(UI_OBJS) ../common/libcommon.a
 	$(CC) $(CFLAGS) $(TCL_OBJS) $(UI_OBJS) ../common/libcommon.a __LDLIBS__ __CHECK_LIB__ -o $(RATVER)-ui 
 
-$(RATVER)-new: $(CTRL_OBJS)
+$(RATVER)-new: $(CTRL_OBJS) ../common/libcommon.a
 	$(CC) $(CFLAGS) $(CTRL_OBJS) ../common/libcommon.a __LDLIBS__ __CHECK_LIB__ -o $(RATVER)-new
 
 .c.o:
