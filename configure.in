@@ -21,7 +21,7 @@ AC_SUBST(VERSION)
 OSTYPE=$host_os
 AC_SUBST(OSTYPE)
 
-# The following two macros cause autoconf to complain.
+dnl The following two macros cause autoconf to complain.
 AC_C_BIGENDIAN
 AC_C_CHAR_UNSIGNED
 
@@ -38,11 +38,15 @@ then
         fi
 fi
 
+#-----------------------------------------------------------------------------
 # Check for various headers                                                 
+#-----------------------------------------------------------------------------
 AC_CHECK_HEADERS(stdint.h inttypes.h stropts.h sys/filio.h malloc.h bstring.h)
 AC_CHECK_HEADERS(sys/sockio.h)
 
+#-----------------------------------------------------------------------------
 # Check for missing declarations
+#-----------------------------------------------------------------------------
 AC_MSG_CHECKING([for kill declaration])
 AC_EGREP_CPP(kill, [#include <signal.h>],
 	AC_MSG_RESULT(present), [
@@ -55,7 +59,9 @@ AC_EGREP_HEADER(gettimeofday, sys/time.h, AC_MSG_RESULT(present), [
     AC_DEFINE(GETTOD_NOT_DECLARED)
 ])
 
+#-----------------------------------------------------------------------------
 # Check for libraries                                                       
+#-----------------------------------------------------------------------------
 AC_SEARCH_LIBS(socket, socket)
 AC_SEARCH_LIBS(inet_addr, nsl)
 AC_SEARCH_LIBS(dlopen, dl)
@@ -64,15 +70,18 @@ AC_CHECK_FUNC(sin, MATHLIBS="", MATHLIBS="-lm")
 AC_CHECK_LIB(ieee, main, [MATHLIBS="-lieee $MATHLIBS"])
 AC_SUBST(MATHLIBS)
 
+#-----------------------------------------------------------------------------
 # Check for standard size types.  The defaults are only valid on some systems 
 # so we hope that <inttypes.h> exists when they're wrong.                   
-
+#-----------------------------------------------------------------------------
 AC_CHECK_TYPE(int8_t,  signed char)
 AC_CHECK_TYPE(int16_t, short)
 AC_CHECK_TYPE(int32_t, long)
 AC_CHECK_TYPE(int64_t, long long)
 
+#-----------------------------------------------------------------------------
 # Some systems have these in <stdint.h>, just to be difficult...
+#-----------------------------------------------------------------------------
 AC_CACHE_CHECK(for uint8_t in <stdint.h>, ucl_cv_uint8_t_in_stdint_h,
         AC_EGREP_HEADER(uint8_t,
                         stdint.h,
@@ -103,9 +112,10 @@ then
          AC_CHECK_TYPE(uint32_t,  unsigned int)
 fi
 
-#
+#-----------------------------------------------------------------------------
 # The (?which?) library does not work with unsigned characters.
 # Force the compiler to use signed chars.
+#-----------------------------------------------------------------------------
 if test $ac_cv_c_char_unsigned = yes
 then
         if test "$GCC" = yes
@@ -133,9 +143,12 @@ AC_CHECK_FUNC(usleep,,
 
 AC_SUBST(EXTRA_OBJ)
 
-# Audio device selection,  derived from host type.  Could be smart and probe 
-# what's there...                                                            
-
+#-----------------------------------------------------------------------------
+# Audio device selection, derived from host type.  Could be smart and probe 
+# what's there, but can't guarantee that build host has audio device(s).  RAT
+# probes devices at startup from those compiled in so this is not an issue
+# when re-distributing.
+#-----------------------------------------------------------------------------
 AU_INC=
 AU_LIB=
 AU_OBJ=
@@ -156,7 +169,7 @@ case "$target" in
 	;;
 *linux*)
 	AU_OBJ="$AU_OBJ auddev_oss.o"
-	AU_INC="/usr/include/sys"
+	AU_INC="-I/usr/include/sys"
 	AC_DEFINE(HAVE_OSS_AUDIO)
 	;;
 *freebsd*)
@@ -199,29 +212,39 @@ AC_PATH_XTRA
 # (e.g. Solaris).
 #------------------------------------------------------------------------------
 AC_CACHE_CHECK(whether X11 headers are broken, x11_cv_broken_headers, [
+	SAVED_CFLAGS=$CFLAGS
+	CFLAGS="$X_CFLAGS $CFLAGS"
+	AC_TRY_COMPILE([#include <X11/Xlib.h>
+	#include <X11/Xutil.h>],
+	return 0,
+	x11_cv_broken_headers=no,
+	x11_cv_broken_headers=yes)
+	CFLAGS=$SAVED_CFLAGS
+]);
+
+#------------------------------------------------------------------------------
+# If X headers look broken, check if we can use -istdinc.  If so replace 
+# -IXDIR with -istdincXDIR to suppress warnings.  NB it is possible to use
+# -fpermissive, but not in conjunction with -Werror since warnings are still
+# generated.  Could pull local headers through:
+#			 's/^\(extern\) \([[A-Za-z0-9]]*($\)/\1 int \2/' 
+#------------------------------------------------------------------------------
+if test $x11_cv_broken_headers = yes -a $GCC = "yes" ; then
+	SAVED_X_CFLAGS=X_CFLAGS
+	X_CFLAGS=`echo $X_CFLAGS | sed 's%-I%-istdinc%'`
+	AC_CACHE_CHECK(whether -istdinc fixes X11 headers, x11_cv_gcc_istdinc_works, [
 		SAVED_CFLAGS=$CFLAGS
 		CFLAGS="$X_CFLAGS $CFLAGS"
 		AC_TRY_COMPILE([#include <X11/Xlib.h>
 		#include <X11/Xutil.h>],
 		return 0,
-		x11_cv_broken_headers=no,
-		x11_cv_broken_headers=yes)
+		x11_cv_gcc_istdinc_works=yes,
+		x11_cv_gcc_istdinc_works=no)
 		CFLAGS=$SAVED_CFLAGS
-	]);
-#------------------------------------------------------------------------------
-# Attempt to make local fixed copies of headers.
-#------------------------------------------------------------------------------
-echo $x11_cv_broken_headers
-if test $x11_cv_broken_headers = yes ; then
-	if test ! -d ./X11 ; then
-		mkdir ./X11
-		for header in Xlib.h Xutil.h
-		do
-			cat $x_includes/X11/$header | sed 's/^\(extern\) \([[A-Za-z0-9]]*($\)/\1 int \2/' > X11/$header
-			echo "creating ./X11/$header"
-		done
+	])
+	if test $x11_cv_gcc_istdinc_works = no ; then
+		X_CFLAGS=$SAVED_X_CFLAGS
 	fi
-	X_CFLAGS="-I. $X_CFLAGS"
 fi
 
 AC_SUBST(X_CFLAGS)
@@ -246,7 +269,9 @@ AC_ARG_WITH(tcl,
 	[TCL_INC=$withval
 	 TCL_LIB=$withval])
 
+#-----------------------------------------------------------------------------
 # Depending on config expect tcl.h to be tcl source dir or include path
+#-----------------------------------------------------------------------------
 for i in $TCL_INC/generic $TCL_INC/include/tcl8.0 $TCL_INC/include $TCL_INC
 do
 	if test -d $i ; then
@@ -268,7 +293,9 @@ then
 	exit
 fi
 
+#-----------------------------------------------------------------------------
 # Guess most probable tcl lib location
+#-----------------------------------------------------------------------------
 for i in $TCL_LIB/unix $TCL_LIB/lib $TCL_LIB
 do
 	if test -d $i ; then
@@ -303,10 +330,11 @@ AC_ARG_WITH(tk,
 	[  --with-tk=DIR          specify location of Tk installation],
 	[TK_INC=$withval
 	 TK_LIB=$withval])
-
+#-----------------------------------------------------------------------------
 # Depending on config expect tk.h to be tk source dir or include path
 # AC_CHECK_HEADER(S) are totally inadequate since it is necessary to
 # include tcl.h, Xlib.h, Xutil.h before tk.h.
+#-----------------------------------------------------------------------------
 FOUND_TK_INC=0
 for i in $TK_INC/generic $TK_INC/include/tk8.0 $TK_INC/include $TK_INC
 do
@@ -361,8 +389,9 @@ AC_SUBST(TCL_LIB)
 AC_SUBST(TK_INC)
 AC_SUBST(TK_LIB)
 
-# XXX Add check for common 
-
+#-----------------------------------------------------------------------------
+# Check for UCL common library
+#-----------------------------------------------------------------------------
 COMMON_INC=${PARENT}/common
 COMMON_LIB=${PARENT}/common
 
@@ -416,7 +445,29 @@ AC_SUBST(COMMON_INC)
 AC_SUBST(COMMON_LIB)
 AC_SUBST(EXTERNAL_DEP)
 
-# Enable options 
+# GSM flag checks
+#-----------------------------------------------------------------------------
+# Check if Signed arithmetic shift right (SASR).  If SASR then -1 >> 1 == 1.
+# Return value from test program of zero indicates success.
+#-----------------------------------------------------------------------------
+AC_CACHE_CHECK(signed arithmetic shift right, gsm_cv_sasr,
+	AC_TRY_RUN([int main() { return (-1 >> 1) != -1;}], 
+		 gsm_cv_sasr=yes,
+		 gsm_cv_sasr=no))
+if test $gsm_cv_sasr = yes ; then
+	AC_DEFINE(SASR)
+fi
+
+#-----------------------------------------------------------------------------
+# GSM Options, almost certainly not sensible on all platforms, performance
+# tests in a configure script ?
+#-----------------------------------------------------------------------------
+AC_DEFINE(FAST)
+AC_DEFINE(USE_FLOAT_MUL)
+
+#-----------------------------------------------------------------------------
+# Assorted Enable options 
+#-----------------------------------------------------------------------------
 AC_ARG_ENABLE(profile,
         [  --enable-profile        enable profiling],
         [if test $enableval = yes
@@ -452,26 +503,6 @@ AC_ARG_ENABLE(debug-mem,
         then
                 AC_DEFINE(DEBUG_MEM)
         fi])
-
-
-# GSM flag checks
-#-----------------------------------------------------------------------------
-# Check if Signed arithmetic shift right (SASR).  If SASR then -1 >> 1 == 1.
-# Return value from test program of zero indicates success.
-#-----------------------------------------------------------------------------
-AC_CACHE_CHECK(signed arithmetic shift right, gsm_cv_sasr,
-	AC_TRY_RUN([int main() { return (-1 >> 1) != -1;}], 
-		 gsm_cv_sasr=yes,
-		 gsm_cv_sasr=no))
-if test $gsm_cv_sasr = yes ; then
-	AC_DEFINE(SASR)
-fi
-#-----------------------------------------------------------------------------
-# GSM Options, almost certainly not sensible on all platforms, performance
-# tests in a configure script ?
-#-----------------------------------------------------------------------------
-AC_DEFINE(FAST)
-AC_DEFINE(USE_FLOAT_MUL)
 
 AC_CONFIG_HEADER(config.h)
 

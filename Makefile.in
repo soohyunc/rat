@@ -5,7 +5,7 @@
 # Configure substitutes variables here... #####################################
 
 DEFS    = @DEFS@
-CFLAGS  = @X_CFLAGS@ @CFLAGS@ $(DEFS)
+CFLAGS  = @CFLAGS@ $(DEFS)
 LIBS    = @LIBS@ @MATHLIBS@
 LDLIBS  = 
 INCLUDE = @AU_INC@ @TCL_INC@ @TK_INC@ @COMMON_INC@
@@ -24,6 +24,7 @@ AU_LIB  = @AU_LIB@
 
 TCL_LIB    = @TCL_LIB@
 TK_LIB     = @TK_LIB@
+X_CFLAGS   = @X_CFLAGS@ 
 X_LIB      = @X_PRE_LIBS@ @X_LIBS@ -lX11 -lXext @X_EXTRA_LIBS@   
 COMMON_LIB = @COMMON_LIB@
 EXTRA_OBJ  = @EXTRA_OBJ@
@@ -93,7 +94,7 @@ $(RATVER): $(CTRL_OBJS) $(EXTERNAL_DEP)
 	$(CC) $(CFLAGS) $(CTRL_OBJS) $(COMMON_LIB) $(LIBS) -o $(RATVER)
 
 .c.o:
-	$(CC) $(CFLAGS) $(INCLUDE) -c $<
+	$(CC) $(CFLAGS) $(X_CFLAGS) $(INCLUDE) -c $<
 
 $(TCL_OBJS): $(TCL_SRCS)
 
@@ -131,7 +132,7 @@ clean:
 	-rm -f $(RATVER)-media $(RATVER)-ui $(RATVER)
 
 distclean: clean
-	-rm -rf config.cache config.log config.status config.h Makefile X11
+	-rm -rf config.cache config.log config.status config.h Makefile
 
 etags:
 	etags ../common/*.[ch] *.[ch]
