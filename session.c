@@ -222,17 +222,10 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                         /* Dynamic payload type mapping. Format: "-pt pt/codec/clock/channels" */
                         /* pt/codec must be specified. clock and channels are optional.        */
                         /* At present we only support "-pt .../redundancy"                     */
-                        codec_id_t cid;
-                        char *t;
-                        int pt;
-                        pt = atoi((char *) strtok(argv[i + 1], "/"));
-                        if ((pt > 127) || (pt < 96)) {
-                                printf("Dynamic payload types must be in the range 96-127.\n");
-                                usage();
-                        }
-                        t = (char *) strtok(NULL, "/");
-                        cid = codec_get_by_name(t);
-                        if (cid) {
+                        int 		 pt  = atoi((char *) strtok(argv[i + 1], "/"));
+                        char 		*t   = (char *) strtok(NULL, "/");
+                        codec_id_t 	 cid = codec_get_by_name(t);
+                        if (cid != 0) {
                                 codec_map_payload(cid, (u_char)pt);
                                 if (codec_get_payload(cid) != pt) {
                                         printf("Payload %d either in use or invalid.\n", pt);
