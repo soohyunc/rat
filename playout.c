@@ -203,6 +203,23 @@ pb_is_empty(pb_t *pb)
         return (pb->psentinel->next == pb->psentinel);
 }
 
+u_int32
+pb_node_count(pb_t *pb)
+{
+#ifndef NDEBUG
+        pb_node_t *stop, *curr;
+        u_int32 cnt = 0;
+        stop = pb->psentinel;
+        curr = pb->psentinel->prev;
+        while (curr != stop) {
+                cnt++;
+                curr = curr->prev;
+        }
+        assert(pb->n_nodes == cnt);
+#endif /* NDEBUG */
+        return pb->n_nodes;
+}
+
 u_int16
 pb_iterator_count(pb_t *pb)
 {
