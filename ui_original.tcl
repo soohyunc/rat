@@ -479,7 +479,7 @@ proc mbus_recv_source_mute {cname val} {
 }
 
 proc cname_update {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL INDEX
+	global CNAME NAME EMAIL LOC PHONE TOOL INDEX DEBUG
 	global ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME
 	global fw iht iwd my_cname mylosstimers his_or_her_losstimers
 
@@ -492,6 +492,9 @@ proc cname_update {cname} {
 
 	if {[winfo exists $cw]} {
 		$cw itemconfigure t -text $NAME($cname)
+		if {[regexp {^\{?RAT} $TOOL($cname)] && $DEBUG} {
+			$cw itemconfigure t -fill DarkSlateGrey
+		}
 	} else {
 		set thick 0
 		set l $thick
