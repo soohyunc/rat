@@ -28,7 +28,7 @@ typedef struct s_channel_state {
 } channel_state_t;
 
 typedef struct {
-        char    name[CC_NAME_LENGTH];
+        cc_details_t details;
         u_int8  pt;
         u_int8  layers;
         int     (*enc_create_state)   (u_char                **state,
@@ -74,97 +74,103 @@ typedef struct {
 #define CC_VANILLA_PT    255
 #define CC_LAYERED_PT    125
 
+#define CC_IDX_TO_ID(x) (((x)+1) | 0x0e00)
+#define CC_ID_TO_IDX(x) (((x)-1) & 0x000f)
+
 static const channel_coder_t table[] = {
         /* The vanilla coder goes first. Update channel_get_null_coder
          * and channel_coder_get_by_payload if it moves.
          */
-        {"None",     
-         CC_VANILLA_PT,
-         1,
-         vanilla_encoder_create, 
-         vanilla_encoder_destroy,
-         NULL,                   /* No parameters to set ...*/
-         NULL,                   /* ... or get. */
-         vanilla_encoder_reset,
-         vanilla_encoder_encode,
-         NULL,
-         NULL,
-         NULL,
-         vanilla_decoder_decode,
-         vanilla_decoder_peek,
-         vanilla_decoder_describe
+        {
+                {
+                        CC_IDX_TO_ID(0), 
+                        "None"
+                },
+                CC_VANILLA_PT,
+                1,
+                vanilla_encoder_create, 
+                vanilla_encoder_destroy,
+                NULL,                   /* No parameters to set ...*/
+                NULL,                   /* ... or get. */
+                vanilla_encoder_reset,
+                vanilla_encoder_encode,
+                NULL,
+                NULL,
+                NULL,
+                vanilla_decoder_decode,
+                vanilla_decoder_peek,
+                vanilla_decoder_describe
         },
-        {"Redundancy",
-         CC_REDUNDANCY_PT,
-         1,
-         redundancy_encoder_create,
-         redundancy_encoder_destroy,
-         redundancy_encoder_set_parameters,
-         redundancy_encoder_get_parameters,
-         redundancy_encoder_reset,
-         redundancy_encoder_encode,
-         NULL,
-         NULL,
-         NULL,
-         redundancy_decoder_decode,
-         redundancy_decoder_peek,
-         redundancy_decoder_describe
+        {
+                { 
+                        CC_IDX_TO_ID(1), 
+                        "Redundancy"
+                },
+                CC_REDUNDANCY_PT,
+                1,
+                redundancy_encoder_create,
+                redundancy_encoder_destroy,
+                redundancy_encoder_set_parameters,
+                redundancy_encoder_get_parameters,
+                redundancy_encoder_reset,
+                redundancy_encoder_encode,
+                NULL,
+                NULL,
+                NULL,
+                redundancy_decoder_decode,
+                redundancy_decoder_peek,
+                redundancy_decoder_describe
         },
-        {"Layering", 
-         CC_LAYERED_PT,
-         LAY_MAX_LAYERS,
-         layered_encoder_create,
-         layered_encoder_destroy,
-         layered_encoder_set_parameters,
-         layered_encoder_get_parameters,
-         layered_encoder_reset,
-         layered_encoder_encode,
-         NULL,
-         NULL,
-         NULL,
-         layered_decoder_decode,
-         layered_decoder_peek,
-         layered_decoder_describe
-        },
+        {
+                {
+                        CC_IDX_TO_ID(2),
+                        "Layering"
+                }, 
+                CC_LAYERED_PT,
+                LAY_MAX_LAYERS,
+                layered_encoder_create,
+                layered_encoder_destroy,
+                layered_encoder_set_parameters,
+                layered_encoder_get_parameters,
+                layered_encoder_reset,
+                layered_encoder_encode,
+                NULL,
+                NULL,
+                NULL,
+                layered_decoder_decode,
+                layered_decoder_peek,
+                layered_decoder_describe
+        }
 };
-
-#define CC_IDX_TO_ID(x) (((x)+1) | 0x0e00)
-#define CC_ID_TO_IDX(x) (((x)-1) & 0x000f)
 
 #define CC_NUM_CODERS (sizeof(table)/sizeof(table[0]))
 
-int
+u_int32
 channel_get_coder_count()
 {
         return (int)CC_NUM_CODERS;
 }
 
-int
-channel_get_coder_details(int idx, cc_details *ccd)
+const cc_details_t*
+channel_get_coder_details(u_int32 idx)
 {
-        if (idx >=  0 && 
-            idx < channel_get_coder_count()) {
-                ccd->descriptor = CC_IDX_TO_ID(idx);
-                strcpy(ccd->name, table[idx].name);
-                return TRUE;
-        }
-        return FALSE;
+        if (idx < CC_NUM_CODERS) {
+                return &table[idx].details;
+        } 
+        return NULL;
 }
 
-int
-channel_get_coder_identity(channel_state_t *cs, cc_details *ccd)
+const cc_details_t*
+channel_get_coder_identity(channel_state_t *cs)
 {
-        assert(cs != NULL);
-        assert(ccd != NULL);
-        ccd->descriptor = CC_IDX_TO_ID(cs->coder);
-        strcpy(ccd->name, table[cs->coder].name);
-        return TRUE;
+        assert(cs->coder < CC_NUM_CODERS);
+        return &table[cs->coder].details;
 }
 
-int
+const cc_details_t*
 channel_get_null_coder(void)
 {
-        return 0;
+        return &table[0].details;
 }
 
 /* The create, destroy, and reset functions take the same arguments and so use

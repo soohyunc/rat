@@ -70,9 +70,10 @@ sanity_check_payloads(void)
 {
         u_int32 i, j, n_codecs, n_channels;
         codec_id_t cid;
-        const codec_format_t *cf;
+        const codec_format_t *cf  = NULL;
+        const cc_details_t   *ccd = NULL;
         cc_id_t    ccid;
-        cc_details ccd;
+
         u_char pt;
 
         n_codecs = codec_get_number_of_codecs();
@@ -84,12 +85,12 @@ sanity_check_payloads(void)
                 if (pt != CODEC_PAYLOAD_DYNAMIC) {
                         ccid = channel_coder_get_by_payload(pt);
                         for(j = 0; j < n_channels; j++) {
-                                if ((int)j == channel_get_null_coder()) {
+                                ccd = channel_get_coder_details(j);
+                                if (ccd == channel_get_null_coder()) {
                                         continue;
                                 }
-                                channel_get_coder_details(j, &ccd);
-                                if (ccd.descriptor == ccid) {
-                                        debug_msg("clash with %s %s payload (%d)\n", cf->long_name, ccd.name, pt);
+                                if (ccd->descriptor == ccid) {
+                                        debug_msg("clash with %s %s payload (%d)\n", cf->long_name, ccd->name, pt);
                                         return FALSE;
                                 }
                         }
@@ -103,11 +104,11 @@ sanity_check_payloads(void)
 void
 session_init(session_t *sp)
 {
-	codec_id_t            cid;
-        const codec_format_t *cf;
-        const converter_details_t *conv;
-        cc_details            ccd;
-        u_int8                i;
+	codec_id_t                cid;
+        const codec_format_t      *cf   = NULL;
+        const converter_details_t *conv = NULL;
+        const cc_details_t        *ccd  = NULL;
+        u_int8                     i;
 
 	memset(sp, 0, sizeof(session_t));
 
@@ -121,8 +122,8 @@ session_init(session_t *sp)
         sp->encodings[0]		= codec_get_payload(cid);           	/* user chosen encoding for primary */
 	sp->num_encodings		= 1;                                	/* Number of encodings applied */
 
-        channel_get_coder_details(channel_get_null_coder(), &ccd);
-        channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+        ccd = channel_get_null_coder();
+        channel_encoder_create(ccd->descriptor, &sp->channel_coder);
 
         conv                            = converter_get_details(0);
         sp->converter                   = conv->id;
@@ -551,7 +552,7 @@ session_parse_late_options_common(int argc, char *argv[], session_t *sp[], int s
                         }
 			if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
                                 codec_id_t primary_cid, secondary_cid;
-                                cc_details ccd;
+                                const cc_details_t *ccd;
                                 const char *primary_name, *secondary_name;
                                 u_int16 upp, num_channel_coders, idx;
 
@@ -580,17 +581,10 @@ session_parse_late_options_common(int argc, char *argv[], session_t *sp[], int s
                                          * save state might be redundant so...
                                          */
                                         upp = channel_encoder_get_units_per_packet(sp[s]->channel_coder);
-                                        num_channel_coders = channel_get_coder_count();
-                                        for (idx = 0; idx < num_channel_coders; idx++) {
-                                                channel_get_coder_details(idx, &ccd);
-                                                if (tolower(ccd.name[0]) == 'n') {
-                                                        channel_encoder_destroy(&sp[s]->channel_coder);
-                                                        channel_encoder_create(ccd.descriptor, &sp[s]->channel_coder);
-                                                        channel_encoder_set_units_per_packet(sp[s]->channel_coder, upp);
-                                                        sp[s]->num_encodings = 1;
-                                                }
-                                        }
-                                        continue;
+                                        ccd = channel_get_null_coder();
+                                        channel_encoder_destroy(&sp[s]->channel_coder);
+                                        channel_encoder_create(ccd->descriptor, &sp[s]->channel_coder);
+                                        channel_encoder_set_units_per_packet(sp[s]->channel_coder, upp);
                                 }
                                 
                                 secondary_cid = codec_get_by_name(secondary_name);
@@ -611,11 +605,12 @@ session_parse_late_options_common(int argc, char *argv[], session_t *sp[], int s
                                 upp = channel_encoder_get_units_per_packet(sp[s]->channel_coder);
                                 num_channel_coders = channel_get_coder_count();
                                 for(idx = 0; idx < num_channel_coders; idx++) {
-                                        channel_get_coder_details(idx, &ccd);
-                                        if (tolower(ccd.name[0]) == 'r') {
+                                        ccd = channel_get_coder_details(idx);
+                                        /* Redundant channel coder is the only that begins with an 'r' */
+                                        if (tolower(ccd->name[0]) == 'r') {
                                                 char *cmd;
                                                 channel_encoder_destroy(&sp[s]->channel_coder);
-                                                channel_encoder_create(ccd.descriptor, &sp[s]->channel_coder);
+                                                channel_encoder_create(ccd->descriptor, &sp[s]->channel_coder);
                                                 channel_encoder_set_units_per_packet(sp[s]->channel_coder, upp);
                                                 cmd = (char*)xmalloc(2 * (CODEC_LONG_NAME_LEN + 4));
                                                 sprintf(cmd, "%s/%d/%s/%d",
@@ -631,7 +626,6 @@ session_parse_late_options_common(int argc, char *argv[], session_t *sp[], int s
                                                 sp[s]->encodings[1] = codec_get_payload(secondary_cid);
                                         }
                                 }
-
 			}
 		}
 	}

@@ -1123,9 +1123,10 @@ set_layered_parameters(session_t *sp, char *sec_enc, char *schan, char *sfreq, i
  */
 static void rx_audio_channel_coding(char *srce, char *args, session_t *sp)
 {
-        cc_details   ccd;
+        const cc_details_t *ccd;
         char        *coding, *sec_enc, *schan, *sfreq;
-        int          i, n, offset, layerenc;
+        int          offset, layerenc;
+        u_int32      i, n;
         u_int16      upp;
 
 	UNUSED(srce);
@@ -1133,19 +1134,18 @@ static void rx_audio_channel_coding(char *srce, char *args, session_t *sp)
         mbus_parse_init(sp->mbus_engine, args);
         if (mbus_parse_str(sp->mbus_engine, &coding)) {
                 mbus_decode_str(coding);
-
                 upp = channel_encoder_get_units_per_packet(sp->channel_coder);
                 n = channel_get_coder_count();
                 for(i = 0; i < n; i++) {
-                        channel_get_coder_details(i, &ccd);
-                        if (strncasecmp(ccd.name, coding, 3) == 0) {
-                                debug_msg("rx_audio_channel_coding: %d, %s\n", ccd.descriptor, &ccd.name);
-                                switch(tolower(ccd.name[0])) {
+                        ccd = channel_get_coder_details(i);
+                        if (strncasecmp(ccd->name, coding, 3) == 0) {
+                                debug_msg("rx_audio_channel_coding: 0x%08x, %s\n", ccd->descriptor, &ccd->name);
+                                switch(tolower(ccd->name[0])) {
                                 case 'n':   /* No channel coding */
                                         sp->num_encodings = 1;
                                         sp->layers = 1;
                                         channel_encoder_destroy(&sp->channel_coder);
-                                        channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+                                        channel_encoder_create(ccd->descriptor, &sp->channel_coder);
                                         channel_encoder_set_units_per_packet(sp->channel_coder, upp);
                                         break;
                                 case 'r':   /* Redundancy -> extra parameters */
@@ -1154,7 +1154,7 @@ static void rx_audio_channel_coding(char *srce, char *args, session_t *sp)
                                                 mbus_decode_str(sec_enc);
                                                 sp->layers = 1;
                                                 channel_encoder_destroy(&sp->channel_coder);
-                                                channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+                                                channel_encoder_create(ccd->descriptor, &sp->channel_coder);
                                                 channel_encoder_set_units_per_packet(sp->channel_coder, upp);
                                                 set_red_parameters(sp, sec_enc, offset);
                                         }
@@ -1168,7 +1168,7 @@ static void rx_audio_channel_coding(char *srce, char *args, session_t *sp)
                                                 mbus_decode_str(schan);
                                                 mbus_decode_str(sfreq);
                                                 channel_encoder_destroy(&sp->channel_coder);
-                                                channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+                                                channel_encoder_create(ccd->descriptor, &sp->channel_coder);
                                                 channel_encoder_set_units_per_packet(sp->channel_coder, upp);
                                                 set_layered_parameters(sp, sec_enc, schan, sfreq, layerenc);
                                         }
@@ -1180,8 +1180,8 @@ static void rx_audio_channel_coding(char *srce, char *args, session_t *sp)
         }
         mbus_parse_done(sp->mbus_engine);
 #ifdef DEBUG
-        channel_get_coder_identity(sp->channel_coder, &ccd);
-        debug_msg("***** %s\n", ccd.name);
+        ccd = channel_get_coder_identity(sp->channel_coder);
+        debug_msg("***** %s\n", ccd->name);
 #endif /* DEBUG */
 	ui_update_channel(sp);
 }

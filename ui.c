@@ -497,11 +497,11 @@ layering_update_end:
 void 
 ui_update_channel(session_t *sp) 
 {
-        cc_details cd;
+        const cc_details_t *ccd;
         char *mbes;
 
-        channel_get_coder_identity(sp->channel_coder, &cd);
-        switch(tolower(cd.name[0])) {
+        ccd = channel_get_coder_identity(sp->channel_coder);
+        switch(tolower(ccd->name[0])) {
         case 'n':
                 mbes = mbus_encode_str("none");
                 mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.channel.coding", mbes, TRUE);

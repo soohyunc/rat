@@ -288,18 +288,13 @@ audio_device_reconfigure(session_t *sp)
                 /* If using redundancy check it is still relevent */
                 if (sp->num_encodings > 1 && 
                     !codec_audio_formats_compatible(curr_config->primary, codec_get_by_payload(sp->encodings[1]))) {
-                        cc_details ccd;
-                        int null_idx;
-                        
+                        const cc_details_t *ccd;
                         channel_encoder_destroy(&sp->channel_coder);
-                        
-                        null_idx = channel_get_null_coder();
-                        channel_get_coder_details(null_idx, &ccd);
-                        
-                        channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+                        ccd = channel_get_null_coder();
+                        channel_encoder_create(ccd->descriptor, &sp->channel_coder);
                         sp->num_encodings = 1;
                 }
-                sp->render_3d     = curr_config->render_3d;
+                sp->render_3d = curr_config->render_3d;
         } else {
                 debug_msg("audio device reconfigure - nothing to do.\n");
                 if (tx_is_sending(sp->tb)) {

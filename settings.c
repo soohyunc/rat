@@ -357,8 +357,9 @@ setting_load_int(char *name, int default_value)
 void settings_load_early(session_t *sp)
 {
 	char				*name, *primary_codec, *port;
-	int				 i, freq, chan, n;
-	cc_details			 ccd;
+	int				 freq, chan;
+        u_int32                          i, n;
+	const cc_details_t              *ccd;
 	const audio_device_details_t    *add = NULL;
         const audio_port_details_t 	*apd = NULL;
         const converter_details_t       *cod = NULL;
@@ -392,7 +393,8 @@ void settings_load_early(session_t *sp)
         audio_device_reconfigure(sp);
 
         port = setting_load_str("audioOutputPort", "Headphone");
-        for(i = 0; i < audio_get_oport_count(sp->audio_device); i++) {
+        n    = audio_get_oport_count(sp->audio_device);
+        for(i = 0; i < n; i++) {
                 apd = audio_get_oport_details(sp->audio_device, i);
                 if (!strcasecmp(port, apd->name)) {
                         break;
@@ -401,7 +403,8 @@ void settings_load_early(session_t *sp)
         audio_set_oport(sp->audio_device, apd->port);
         
         port = setting_load_str("audioInputPort", "Microphone");
-        for(i = 0; i < audio_get_iport_count(sp->audio_device); i++) {
+        n    = audio_get_iport_count(sp->audio_device);
+        for(i = 0; i < n; i++) {
                 apd = audio_get_iport_details(sp->audio_device, i);
                 if (!strcasecmp(port, apd->name)) {
                         break;
@@ -416,9 +419,9 @@ void settings_load_early(session_t *sp)
 	name = setting_load_str("audioChannelCoding", "None");
         n    = channel_get_coder_count();
 	for (i = 0; i < n; i++ ) {
-		channel_get_coder_details(i, &ccd);
-		if (strcmp(ccd.name, name) == 0) {
-        		channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+		ccd = channel_get_coder_details(i);
+		if (strcmp(ccd->name, name) == 0) {
+        		channel_encoder_create(ccd->descriptor, &sp->channel_coder);
 			break;
 		}
 	}
@@ -572,14 +575,15 @@ static void setting_save_int(const char *name, const long val)
 void settings_save(session_t *sp)
 {
         const codec_format_t 		*pri_cf;
-        const audio_port_details_t      *iapd   = NULL;
-        const audio_port_details_t      *oapd   = NULL;
-        const audio_format 		*af     = NULL;
-        const repair_details_t          *repair = NULL;
+        const audio_port_details_t      *iapd      = NULL;
+        const audio_port_details_t      *oapd      = NULL;
+        const audio_format 		*af        = NULL;
+        const repair_details_t          *repair    = NULL;
         const converter_details_t       *converter = NULL;
-	const audio_device_details_t    *add    = NULL;
+	const audio_device_details_t    *add       = NULL;
+        const cc_details_t 		*ccd       = NULL;
 	codec_id_t	 		 pri_id;
-        cc_details 			 cd;
+   
 	int				 cc_len;
 	char				*cc_param;
 	int		 		 i;
@@ -591,7 +595,7 @@ void settings_save(session_t *sp)
         cc_len   = 2 * (CODEC_LONG_NAME_LEN + 4) + 1;
         cc_param = (char*) xmalloc(cc_len);
         channel_encoder_get_parameters(sp->channel_coder, cc_param, cc_len);
-        channel_get_coder_identity(sp->channel_coder, &cd);
+        ccd = channel_get_coder_identity(sp->channel_coder);
 
         n = converter_get_count();
         for (j = 0; j < n; j++) {
@@ -650,22 +654,22 @@ void settings_save(session_t *sp)
 	if (pri_cf->default_pt != CODEC_PAYLOAD_DYNAMIC) {
                 setting_save_str("audioPrimary",           pri_cf->short_name);
                 /* If vanilla channel coder don't save audioChannelParameters - it's rubbish */
-                if (strcmp(cd.name, "Vanilla") == 0) {
+                if (strcmp(ccd->name, "Vanilla") == 0) {
                         setting_save_str("audioChannelParameters", cc_param);
-                }
-                else {
+                } else {
                         setting_save_str("audioChannelParameters", "None");
                 }
 	}
 
 	setting_save_int("audioUnits", channel_encoder_get_units_per_packet(sp->channel_coder));
-	/* Don't save the layered channel coder - you need to start it from the command
-	line anyway */
-	if (strcmp(cd.name, "Layering") == 0) {
+	/* Don't save the layered channel coder - you need to start it */
+	/* from the command line anyway                                */
+	if (strcmp(ccd->name, "Layering") == 0) {
 		setting_save_str("audioChannelCoding", "Vanilla");
-	}
-	else setting_save_str("audioChannelCoding",     cd.name);
-	setting_save_str("audioChannelCoding",     cd.name);
+	} else {
+                setting_save_str("audioChannelCoding", ccd->name);
+        }
+	setting_save_str("audioChannelCoding",     ccd->name);
 	setting_save_str("audioRepair",            repair->name);
 	setting_save_str("audioAutoConvert",       converter->name);
 	setting_save_int("audioLimitPlayout",      sp->limit_playout);

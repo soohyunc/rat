@@ -19,9 +19,9 @@ typedef u_int32 cc_id_t;
 #define CC_NAME_LENGTH 32
 
 typedef struct {
-        cc_id_t descriptor;
-        char    name[CC_NAME_LENGTH];
-} cc_details;
+        cc_id_t    descriptor;
+        const char name[CC_NAME_LENGTH];
+} cc_details_t;
 
 /* In and out unit types.  On input channel encoder takes a playout buffer
  * of media_units and puts channel_units on the output playout buffer
