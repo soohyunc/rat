@@ -100,7 +100,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /I "..\common" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /I "..\tk-8.0\xlib\X11" /I "\DDK\inc" /I "..\MSR_IPv6_1.3\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /FR /YX /FD /I ../common /c
-# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "..\common" /I "..\tk-8.0\xlib\X11" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /I "\DDK\inc" /I "..\MUSICA\WINSOCK6" /D "_WINDOWS" /D "SASR" /D "DEBUG" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /D "MUSICA_IPV6" /D "_WINNT" /D "_POSIX" /FR /YX /FD /I ../common /c
+# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "..\common" /I "..\tk-8.0\xlib\X11" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /I "\DDK\inc" /I "..\MUSICA\WINSOCK6" /D "_WINDOWS" /D "SASR" /D "DEBUG" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /D "MUSICA_IPV6" /D "_WINNT" /D "_POSIX" /D "NEED_SNPRINTF" /FR /YX /FD /I ../common /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x809 /d "_DEBUG"

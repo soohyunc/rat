@@ -120,8 +120,8 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "ratmedia___Win32_Debug_Ipv6_Musica"
-# PROP Intermediate_Dir "Debug_Ipv6_Musica"
+# PROP Output_Dir "Debug_IPv6_Musica"
+# PROP Intermediate_Dir "Debug_IPv6_Musica"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /I "..\common" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /I "\DDK\inc" /D "_WINDOWS" /D "DEBUG" /D "WIN32" /D "_DEBUG" /D "DEBUG_MEM" /D "NEED_SNPRINTF" /YX /FD /GZ /c
