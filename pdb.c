@@ -157,6 +157,10 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, uint16_t freq, uint32_t id)
         item->spike_toged     = 0;
         item->spike_events    = 0;
 
+	item->sr_offset_valid = FALSE;
+	item->sr_offset_sec   = 0;
+	item->sr_offset_frac  = 0;
+
 	pdb_item_validate(item);
         /*********************************************************************/
 

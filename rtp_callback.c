@@ -145,6 +145,9 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
                 debug_msg("Source created\n");
         }
 
+	/* Calculate the relative playout delay, for this source. Needed for lip-sync. */
+
+	/* Discard packet if output is muted... no point wasting time decoding it... */
         if ((sp->playing_audio == FALSE) || (e->mute)) {
                 debug_msg("Packet discarded since output muted\n");
                 xfree(p);
@@ -152,6 +155,21 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
         }
 
         source_add_packet(s, p);
+}
+
+static void
+process_sr(session_t *sp, uint32_t ssrc, rtcp_sr *s)
+{
+        pdb_entry_t     *e;
+
+        if (pdb_item_get(sp->pdb, ssrc, &e) == FALSE) {
+                debug_msg("Sender report discarded: unknown source (0x%08x).\n", ssrc);
+                return;
+        }
+	
+	e->sr_offset_valid = TRUE;
+	e->sr_offset_sec   = s->ntp_sec - s->rtp_ts;
+	e->sr_offset_frac  = s->ntp_frac;
 }
 
 static void
@@ -265,8 +283,7 @@ rtp_callback(struct rtp *s, rtp_event *e)
 	case RX_RTCP_FINISH:
 		break;
 	case RX_SR:
-		/* SR's are stored by the RTP library - we don't need to */
-		/* do any other processing right now.                    */
+                process_sr(sp, e->ssrc, (rtcp_sr*)e->data);
 		break;
 	case RX_RR:
                 process_rr(sp, e->ssrc, (rtcp_rr*)e->data);
