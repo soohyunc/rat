@@ -368,7 +368,7 @@ proc codecs_matching {freq channels blocksize} {
 
 proc mbus_recv_tool.rat.codec.details {args} {
     catch {
-	global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc
+	global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc codec_caps
 	
 	set name [lindex $args 1]
 	if {[lsearch $codecs $name] == -1} {
@@ -382,6 +382,7 @@ proc mbus_recv_tool.rat.codec.details {args} {
 	set codec_state_size($name) [lindex $args 6]
 	set codec_data_size($name)  [lindex $args 7]
 	set codec_desc($name)       [lindex $args 8]
+	set codec_caps($name)       [lindex $args 9]
 	set stackup ""
     } details_error
 
@@ -435,7 +436,7 @@ proc reset_encodings {} {
 }
 
 proc update_codecs_displayed { } {
-    global freq ichannels codec_nick_name prenc codec_block_size
+    global freq ichannels codec_nick_name prenc codec_block_size codec_caps
 
     if {[string match $ichannels Mono]} {
 	set sample_channels 1
@@ -450,7 +451,10 @@ proc update_codecs_displayed { } {
 
     set friendly_names {}
     foreach {n} $long_names {
-	lappend friendly_names $codec_nick_name($n)
+	# only interested in codecs that can (e)ncode
+	if {[string first $codec_caps($n) ncode]} {
+	    lappend friendly_names $codec_nick_name($n)
+	}
     }
 
     update_primary_list $friendly_names
@@ -461,14 +465,17 @@ proc update_codecs_displayed { } {
     set friendly_names {}
     set found 0
     foreach {n} $long_names {
+	# Only display codecs of same or lower order as primary in primary list
 	if {$codec_nick_name($n) == $prenc} {
 	    set found 1
 	}
 	if {$found} {
-	    lappend friendly_names $codec_nick_name($n)
+	    if {[string first $codec_caps($n) ncode]} {
+		lappend friendly_names $codec_nick_name($n)
+	    }
 	}
     }
-
+    
     update_redundancy_list $friendly_names
 }
 
@@ -1735,7 +1742,9 @@ label $i.of.details.upper.l.1 -text "Sample Rate (Hz):" -anchor w
 label $i.of.details.upper.l.2 -text "Channels:"    -anchor w
 label $i.of.details.upper.l.3 -text "Bitrate (kbps):"     -anchor w
 label $i.of.details.upper.l.4 -text "RTP Payload:" -anchor w
-for {set idx 0} {$idx < 5} {incr idx} {
+label $i.of.details.upper.l.5 -text "Capability:" -anchor w
+
+for {set idx 0} {$idx < 6} {incr idx} {
     pack $i.of.details.upper.l.$idx -side top -fill x
 }
 
@@ -1746,7 +1755,9 @@ label $i.of.details.upper.r.1 -anchor w
 label $i.of.details.upper.r.2 -anchor w
 label $i.of.details.upper.r.3 -anchor w
 label $i.of.details.upper.r.4 -anchor w
-for {set idx 0} {$idx < 5} {incr idx} {
+label $i.of.details.upper.r.5 -anchor w
+
+for {set idx 0} {$idx < 6} {incr idx} {
     pack $i.of.details.upper.r.$idx -side top -fill x
 }
 
@@ -1773,7 +1784,7 @@ proc codecs_panel_fill {} {
 }
 
 proc codecs_panel_select { idx } {
-    global codecs codec_nick_name codec_rate codec_channels codec_pt codec_block_size codec_data_size codec_desc
+    global codecs codec_nick_name codec_rate codec_channels codec_pt codec_block_size codec_data_size codec_desc codec_caps
     
     set codec [lindex $codecs $idx]
     set root  .prefs.pane.codecs.of.details.upper.r
@@ -1786,7 +1797,8 @@ proc codecs_panel_select { idx } {
     $root.3 configure -text [format "%.1f" $kbps]
 
     $root.4 configure -text $codec_pt($codec)
-
+    $root.5 configure -text $codec_caps($codec)
+    
     .prefs.pane.codecs.of.details.desc.l configure -text "Description: $codec_desc($codec)"
 
 }

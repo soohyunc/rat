@@ -668,7 +668,9 @@ ui_update_key(session_struct *sp, char *key)
 void
 ui_update_codec(session_struct *sp, codec_id_t cid)
 {
-        char entry[255], *mbes[3];
+        const char *caps;
+        int can_enc, can_dec;
+        char pay[4];
 
         u_char pt;
         const codec_format_t *cf;
@@ -676,36 +678,38 @@ ui_update_codec(session_struct *sp, codec_id_t cid)
         cf  = codec_get_format(cid);
         assert(cf != NULL);
 
-        mbes[0] = mbus_encode_str(cf->long_name);
-        mbes[1] = mbus_encode_str(cf->short_name);
-        mbes[2] = mbus_encode_str(cf->description);
+        can_enc = codec_can_encode(cid);
+        can_dec = codec_can_decode(cid);
+
+        assert(can_enc || can_dec);
+        if (can_enc && can_dec) {
+                caps = "Encode and decode";
+        } else if (can_enc) {
+                caps = "Encode only";
+        } else if (can_dec) {
+                caps = "Decode only";
+        }
+
         pt = codec_get_payload(cid);
         if (payload_is_valid(pt)) {
-                sprintf(entry, 
-                        "%u %s %s %d %d %d %d %d %s",
-                        pt,
-                        mbes[0],
-                        mbes[1],
-                        cf->format.channels,
-                        cf->format.sample_rate,
-                        cf->format.bytes_per_block,
-                        cf->mean_per_packet_state_size,
-                        cf->mean_coded_frame_size,
-                        mbes[2]);
+                sprintf(pay, "%3d", pt);
         } else {
-                sprintf(entry, 
-                        "- %s %s %d %d %d %d %d %s",
-                        mbes[0],
-                        mbes[1],
-                        cf->format.channels,
-                        cf->format.sample_rate,
-                        cf->format.bytes_per_block,
-                        cf->mean_per_packet_state_size,
-                        cf->mean_coded_frame_size,
-                        mbes[2]);
+                sprintf(pay, "-");
         }
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.codec.details", entry, TRUE);
-        xfree(mbes[2]); xfree(mbes[1]); xfree(mbes[0]);
+        
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, 
+                   "tool.rat.codec.details",
+                   "%s %s %s %d %d %d %d %d %s %s",
+                   pay,                         
+                   cf->long_name,
+                   cf->short_name,
+                   cf->format.channels,
+                   cf->format.sample_rate,
+                   cf->format.bytes_per_block,
+                   cf->mean_per_packet_state_size,
+                   cf->mean_coded_frame_size,
+                   cf->description,
+                   caps);
 }
 
 static void
