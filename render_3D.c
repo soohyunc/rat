@@ -306,11 +306,8 @@ convolve(sample *signal, sample *answer, double *overlap, double *response, int 
 
 /* RAT specific */
 
-#include "session.h"
 #include "codec_types.h"
 #include "codec.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
 
 void
 render_3D(render_3D_dbentry *p_3D_data, coded_unit *in, coded_unit *out)

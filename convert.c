@@ -1379,7 +1379,7 @@ converter_format (converter_t *c, coded_unit *in, coded_unit *out)
         assert(out->data      == NULL);
         assert(out->data_len  == NULL);
 
-        out->id       = codec_get_l16_matching(cf->to_freq, cf->to_channels);
+        out->id       = codec_get_native_coding(cf->to_freq, cf->to_channels);
         out->data_len = sizeof(sample) * n_out;
         out->data     = (u_char*)block_alloc(out->data_len);
 
