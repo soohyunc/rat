@@ -95,7 +95,7 @@ new_time(ft_t *ft, int freq)
 	tp->ft = ft;
         tp->scale = 1;
 	change_freq(tp, freq);
-
+        assert(tp->scale != 0);
 	return (tp);
 }
 
@@ -167,7 +167,7 @@ ts_diff(u_int32 t1, u_int32 t2)
 u_int32
 convert_time(u_int32 ts, frtime_t *from, frtime_t *to)
 {
-        assert(to->freq % from->freq == 0);
+        assert(to->freq % from->freq == 0 || from->freq % to->freq == 0);
 
         if (from->freq == to->freq) {
                 return ts;

@@ -119,12 +119,11 @@ void	mix2_l8(int8 *v0, int8 *v1, size_t len);
 void	audio_zero(sample *buf, int len, deve_e type);
 int     read_write_audio(struct session_tag *spi, struct session_tag *spo, struct s_mix_info *ms);
 void	read_write_init(struct session_tag *session_pointer);
-void	audio_init(struct session_tag *sp);
 int	audio_device_read(struct session_tag *sp, sample *buf, int len);
 int	audio_device_write(struct session_tag *sp, sample *buf, int samples);
 int	audio_device_take(struct session_tag *sp);
 void	audio_device_give(struct session_tag *sp);
-void    audio_unbias(struct s_bias_ctl **bc, sample *buf, int len);
+void    audio_unbias(struct s_bias_ctl *bc, sample *buf, int len);
 void	pcmu_linear_init(void);
 
 /* Use the IRIX definition in all cases..... [csp] */

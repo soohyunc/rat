@@ -189,7 +189,7 @@ void
 tx_start(session_struct *sp)
 {
         tx_buffer *tb;
-	if (sp->sending_audio)
+	if (sp->sending_audio == TRUE || sp->have_device == FALSE)
 		return;
 
         tb = sp->tb;
@@ -211,7 +211,7 @@ tx_stop(session_struct *sp)
 {
 	struct timeval tv;
 
-	if (sp->sending_audio == FALSE)
+	if (sp->sending_audio == FALSE || sp->have_device == FALSE)
 		return;
 	sp->sending_audio = FALSE;
 	gettimeofday(&tv, NULL);
@@ -271,6 +271,9 @@ tx_destroy(session_struct *sp)
 
         xfree(tb);
         sp->tb = NULL;
+
+        clear_encoder_states    (&sp->state_list);
+        clear_cc_encoder_states (&sp->cc_state_list);
 }
 
 int
@@ -322,7 +325,7 @@ tx_process_audio(session_struct *sp)
 
         for(u = tb->silence_ptr; u != tb->last_ptr; u = u->next) {
                 /* Audio unbias not modified for stereo yet! */
-                audio_unbias(&sp->bc, u->data, u->dur_used * tb->channels);
+                audio_unbias(sp->bc, u->data, u->dur_used * tb->channels);
 
 		u->energy = avg_audio_energy(u->data, u->dur_used, tb->channels);
 
@@ -376,7 +379,13 @@ tx_send(session_struct *sp, speaker_table *sa)
         rtp_hdr_t	rtp_header;
         cc_unit             cu;
         tx_buffer	*tb = sp->tb;
-        
+
+        if (tb->silence_ptr == NULL) {
+                /* Don't you just hate fn's that do this! */
+                dprintf("nothing to do.\n");
+                return;
+        }
+
         if (tb->tx_ptr == NULL) {
                 tb->tx_ptr = tb->head_ptr;
         }

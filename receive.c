@@ -228,7 +228,6 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 
         assert(ip != NULL);
 
-
         /* If there's a gap between us and the units around us, because of 
          * loss or mis-ordering, fill in the units so that channel decoder
          * does not get out of sync.
@@ -338,6 +337,25 @@ clear_old_history(ppb_t **buf)
 		} else
 			buf = &(*buf)->next;
 	}
+}
+
+void
+destroy_playout_buffers(ppb_t **list)
+{
+        rx_queue_element_struct *r;
+        ppb_t *p = *list;
+
+        while(p) {
+                *list = (*list)->next;
+                r = p->head_ptr;
+                while(r) {
+                        p->head_ptr = p->head_ptr->next_ptr;
+                        free_rx_unit(&r);
+                        r = p->head_ptr;
+                }
+                xfree(p);
+                p = *list;
+        }
 }
 
 static ppb_t *

@@ -1274,10 +1274,10 @@ proc load_settings {} {
     # transmission
     load_setting attr audioFrequency        freq          "8kHz"
     load_setting attr audioChannels         channels      "Mono"
-    load_setting attr audioPrimary          prenc         "DVI-8K-MONO"
+    load_setting attr audioPrimary          prenc         "GSM"
     load_setting attr audioUnits            upp           "2"
     load_setting attr audioChannelCoding    channel_var   "None"
-    load_setting attr audioRedundancy       secenc        "DVI-8K-MONO"
+    load_setting attr audioRedundancy       secenc        "GSM"
     load_setting attr audioRedundancyOffset red_off       "1"
     load_setting attr audioInterleavingGap  int_gap       "4"
     load_setting attr audioSilence          silence_var   "1"

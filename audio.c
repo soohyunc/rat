@@ -1,8 +1,7 @@
 /*
  * FILE:     audio.c
  * PROGRAM:  RAT
- * AUTHOR:   Isidor Kouvelas
- * MODIFIED: V.J.Hardman + Colin Perkins + Orion Hodson
+ * AUTHOR:   Isidor Kouvelas / Colin Perkins / Orion Hodson
  *
  * Created parmaters.c by removing all silence detcetion etc.
  *
@@ -54,24 +53,41 @@
 #include "mix.h"
 #include "codec.h"
 #include "cushion.h"
+#include "rat_time.h"
+#include "receive.h"
 
 /* Zero buf used for writing zero chunks during cushion adaption */
 static sample* audio_zero_buf;
 
 typedef struct s_bias_ctl {
+        int   req;
         int   bias;
         int   ccnt;
 } bias_ctl;
 
+static bias_ctl *
+bias_ctl_create()
+{
+	bias_ctl *bc = (bias_ctl*)xmalloc(sizeof(bias_ctl));
+	memset(bc, 0 , sizeof(bias_ctl));
+        bc->req = TRUE;
+        return bc;
+}
+
+static void
+bias_ctl_destroy(bias_ctl *bc)
+{
+        xfree(bc);
+}
+
 void
-audio_unbias(bias_ctl **bcp, sample *buf, int len)
+audio_unbias(bias_ctl *bc, sample *buf, int len)
 {
 	int		i;
         long		sum = 0;
 	float		s1, s2;
-	bias_ctl	*bc = *bcp;
 
-	if (bc == NULL)
+	if (bc->req == FALSE)
 		return;
 
 	for(i = 0; i < len; i++) {
@@ -95,8 +111,7 @@ audio_unbias(bias_ctl **bcp, sample *buf, int len)
 	}
         
 	if (bc->ccnt == BD_CONSECUTIVE && bc->bias < BD_THRESHOLD) {
-		xfree(bc);
-		*bcp = NULL;
+                bc->req = FALSE;
 #ifdef DEBUG
 		printf("Bias correction not necessary.\n");
 #endif
@@ -154,13 +169,9 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
 
 	if (sp->have_device)
 		if (sp->mode == TRANSCODER) {
-			return (transcoder_write(sp->audio_fd, 
-                                                 buf, 
-                                                 dur*cp->channels));
+			return (transcoder_write (sp->audio_fd, buf, dur*cp->channels));
 		} else {
-			return (audio_write(sp->audio_fd, 
-                                            buf, 
-                                            dur * audio_get_channels()));
+			return (audio_write      (sp->audio_fd, buf, dur * audio_get_channels()));
 		}
 	else
 		return (dur * cp->channels);
@@ -177,7 +188,6 @@ audio_device_take(session_struct *sp)
         }
 
 	cp = get_codec(sp->encodings[0]);
-
 	format.encoding        = DEV_L16;
 	format.sample_rate     = cp->freq;
         format.bits_per_sample = 16;
@@ -189,7 +199,6 @@ audio_device_take(session_struct *sp)
                         return FALSE;
                 }
 		sp->have_device = TRUE;
-		return TRUE;
 	} else {
 		/* XXX should pass a pointer to format ???!!! */
 		if ((sp->audio_fd = audio_open(format)) == -1) {
@@ -208,7 +217,6 @@ audio_device_take(session_struct *sp)
 		if (sp->input_mode!=AUDIO_NO_DEVICE) {
 			audio_set_iport(sp->audio_fd, sp->input_mode);
 			audio_set_gain(sp->audio_fd, sp->input_gain);
-                        tx_igain_update(sp);
 		} else {
 			sp->input_mode=audio_get_iport(sp->audio_fd);
 			sp->input_gain=audio_get_gain(sp->audio_fd);
@@ -220,13 +228,30 @@ audio_device_take(session_struct *sp)
 			sp->output_mode=audio_get_oport(sp->audio_fd);
 			sp->output_gain=audio_get_volume(sp->audio_fd);
 		}
-
-		if (sp->ui_on) {
-			ui_hide_audio_busy(sp);
-			ui_update(sp);
-		}
-		return TRUE;
 	}
+        
+        if (audio_zero_buf == NULL) {
+                audio_zero_buf = (sample*) xmalloc (format.blocksize * sizeof(sample));
+                audio_zero(audio_zero_buf, format.blocksize, DEV_L16);
+        }
+
+        if ((sp->audio_fd != -1) && (sp->mode != TRANSCODER)) {
+                audio_non_block(sp->audio_fd);
+        }
+	sp->loop_delay = sp->loop_estimate = 20000;
+
+        /* We initialize the pieces above the audio device here since their parameters
+         * depend on what is set here
+         */
+        sp->device_clock = new_time(sp->clock, cp->freq);
+        sp->bc           = bias_ctl_create();
+	sp->tb           = tx_create(sp, cp->unit_len, cp->channels);
+        sp->ms           = mix_create(sp, 32640);
+        cushion_create(&sp->cushion, cp->unit_len);
+        tx_igain_update(sp);
+        ui_update(sp);
+        
+        return sp->have_device;
 }
 
 void
@@ -234,10 +259,8 @@ audio_device_give(session_struct *sp)
 {
 	gettimeofday(&sp->device_time, NULL);
 
-	if (sp->have_device && sp->keep_device == FALSE) {
-		if (sp->ui_on) {
-			ui_show_audio_busy(sp);
-		}
+	if (sp->have_device) {
+                tx_stop(sp);
 		if (sp->mode == TRANSCODER) {
 			transcoder_close(sp->audio_fd);
 		} else {
@@ -247,37 +270,25 @@ audio_device_give(session_struct *sp)
 		}
 		sp->audio_fd = -1;
 		sp->have_device = FALSE;
-	}
-}
-
-void
-read_write_init(session_struct *sp)
-{
-        codec_t *cp;
-        if ((sp->audio_fd != -1) && (sp->mode != TRANSCODER)) {
-                audio_non_block(sp->audio_fd);
+	} else {
+                return;
         }
-	sp->loop_delay = sp->loop_estimate = 20000;
 
-        cp = get_codec(sp->encodings[0]);
-	sp->tb = tx_create(sp, cp->unit_len, cp->channels);
+        if (audio_zero_buf) {
+                xfree(audio_zero_buf);
+                audio_zero_buf = NULL;
+        }
+        
+        bias_ctl_destroy(sp->bc);
+        sp->bc = NULL;
+
+        cushion_destroy(sp->cushion);
+        mix_destroy(sp->ms);
+        tx_destroy(sp);
+        destroy_playout_buffers(&sp->playout_buf_list);
+        free_time(sp->device_clock);
 }
 
-
-void 
-audio_init(session_struct *sp)
-{
-        u_int32 step_size = 640; /* nasty guess */
-
-        sp->input_mode  = AUDIO_NO_DEVICE;
-        sp->output_mode = AUDIO_NO_DEVICE;
-
-        audio_zero_buf  = (sample*) xmalloc ( sizeof(sample) * step_size );
-	audio_zero( audio_zero_buf, step_size, DEV_L16 );
-
-	sp->bc = (bias_ctl*)xmalloc(sizeof(bias_ctl));
-	memset(sp->bc, 0 , sizeof(bias_ctl));
-}
 
 /* This function needs to be modified to return some indication of how well
  * or not we are doing.                                                    
@@ -310,10 +321,15 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 		spi->last_zero  = FALSE;
 		spi->loop_delay = spi->loop_estimate;
 		assert(spi->loop_delay >= 0);
+                if (spi->have_device == FALSE) {
+                        /* no device means no cushion */
+                        return read_dur;
+                }
 	}
 
 	/* read_dur now reflects the amount of real time it took us to get
-	 * through the last cycle of processing. */
+	 * through the last cycle of processing. 
+         */
 
 	if (spo->lecture == TRUE && spo->auto_lecture == 0) {
                 cushion_update(c, read_dur, CUSHION_MODE_LECTURE);
@@ -370,7 +386,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                 /* cushion so loose some of the trailing silence.      */
                 if (diff < 0) {
                         read_dur -= cushion_step;
-                       cushion_step_down(c);
+                        cushion_step_down(c);
                         dprintf("Decreasing cushion\n");
                 }
                 audio_device_write(spo, bufp, read_dur);

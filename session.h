@@ -93,6 +93,7 @@ typedef struct session_tag {
 	struct s_fast_time	*clock;
 	struct s_time		*device_clock;
         struct s_cushion_struct *cushion;
+        struct s_mix_info       *ms;
 	int		rtp_seq;
 	int		encodings[MAX_ENCODINGS];
 	int		num_encodings;			/* 1 - MAX_ENC */
@@ -115,7 +116,6 @@ typedef struct session_tag {
 	FILE		*in_file;
 	FILE		*out_file;
 	int		have_device;
-	int		keep_device;
         int             input_gain;                 /* mike gain */
         int             output_gain;                /* speaker volume */
         int             input_mode;                 /* mike/line input */
@@ -123,7 +123,6 @@ typedef struct session_tag {
 	struct timeval	device_time;
 	int		audio_fd;
 	struct s_tx_buffer	*tb;
-	int			mix_count;
 	struct rtp_db_tag	*db;
 	struct s_participant_playout_buffer	*playout_buf_list;
         u_int32         min_playout;

@@ -78,7 +78,7 @@ typedef struct s_mix_info {
  * dont have to copy everything when we hit the boundaries..
  */
 mix_struct *
-mix_create(session_struct *sp, int buffer_length)
+mix_create(session_struct * sp, int buffer_length)
 {
 	mix_struct	*ms;
         codec_t         *cp;
@@ -92,7 +92,7 @@ mix_create(session_struct *sp, int buffer_length)
 	ms->mix_bur  = (sample *)xmalloc(3 * ms->buf_len * BYTES_PER_SAMPLE);
 	audio_zero(ms->mix_buffer, 3 * buffer_length , DEV_L16);
 	ms->mix_buffer += ms->buf_len;
-
+        ms->head_time = ms->tail_time = get_time(sp->device_clock);
 	return (ms);
 }
 

@@ -363,12 +363,17 @@ statistics(session_struct    *sp,
                         /* Discard packets from unknown participant */
                         goto release;
                 }
-        
                 rtcp_update_seq(src, hdr->seq);
 
+                if (sp->have_device == FALSE) {
+                        /* we don't have the audio device so there is no point
+                         * processing data any further.
+                         */
+                        goto release;
+                }
+
                 data_ptr =  (char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + extlen;
-        
-                len = e_ptr->len - 4 * (3 + hdr->cc) - extlen;
+                len      = e_ptr->len - 4 * (3 + hdr->cc) - extlen;
         
                 if (!(pcp = get_codec(hdr->pt))) {
                         /* this is either a channel coded block or we can't decode it */

@@ -88,7 +88,6 @@ main(int argc, char *argv[])
 	int            		 num_sessions, i, elapsed_time, alc = 0;
 	char			*cname;
 	session_struct 		*sp[2];
-	struct s_mix_info 	*ms[2];
 	struct timeval  	 time;
 	char			 mbus_engine_addr[30], mbus_ui_addr[30], mbus_video_addr[30];
 
@@ -138,19 +137,15 @@ main(int argc, char *argv[])
         if (sp[0]->ui_on) {
 		tcl_init(sp[0], argc, argv, mbus_engine_addr);
         }
-	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 
+	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
         ui_sampling_modes(sp[0]);
 	ui_codecs(sp[0]->encodings[0]);
 
 	for (i = 0; i < num_sessions; i++) {
 		network_init(sp[i]);
 		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
-		audio_init(sp[i]);
 		audio_device_take(sp[i]);
-                read_write_init(sp[i]);
-                cushion_create(&sp[i]->cushion);
-		ms[i] = mix_create(sp[i], 32640);
 	}
 	agc_table_init();
         set_converter(CONVERT_LINEAR);
@@ -177,9 +172,9 @@ main(int argc, char *argv[])
 	while (!should_exit) {
 		for (i = 0; i < num_sessions; i++) {
 			if (sp[i]->mode == TRANSCODER) {
-				elapsed_time = read_write_audio(sp[i], sp[1-i], ms[i]);
+				elapsed_time = read_write_audio(sp[i], sp[1-i], sp[i]->ms);
 			} else {
-				elapsed_time = read_write_audio(sp[i], sp[i], ms[i]);
+				elapsed_time = read_write_audio(sp[i], sp[i], sp[i]->ms);
 			}
 			cur_time = get_time(sp[i]->device_clock);
 			network_read(sp[i], netrx_queue_p[i], rtcp_pckt_queue_p[i], cur_time);
@@ -193,20 +188,17 @@ main(int argc, char *argv[])
                         if (sp[i]->sending_audio || sp[i]->last_tx_service_productive) {
                                 tx_send(sp[i], sp[1-i]->speakers_active);
                         }
-
 			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time);
-			service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, ms[i]);
-
+			service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, sp[i]->ms);
 			if (sp[i]->mode == TRANSCODER) {
 				service_rtcp(sp[i], sp[1-i], rtcp_pckt_queue_p[i], cur_time);
 			} else {
 				service_rtcp(sp[i],    NULL, rtcp_pckt_queue_p[i], cur_time);
 			}
-
 			mbus_engine_retransmit();
 			mbus_ui_retransmit();
-
 			/* Maintain last_sent dummy lecture var */
+
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {
 				if (!sp[i]->lecture && !sp[i]->sending_audio && sp[i]->auto_lecture != 0) {
 					gettimeofday(&time, NULL);
@@ -219,23 +211,18 @@ main(int argc, char *argv[])
 			} else {
 				alc++;
 			}
-
                 	if (sp[i]->ui_on) {
-				ui_update_powermeters(sp[i], ms[i], elapsed_time);
+				ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
 				tcl_process_events();
                 	} 
 		}
         }
+
 	for (i=0; i<num_sessions; i++) {
 		rtcp_exit(sp[i], sp[1-i], sp[i]->rtcp_fd, sp[i]->net_maddress, sp[i]->rtcp_port);
 		if (sp[i]->in_file  != NULL) fclose(sp[i]->in_file);
 		if (sp[i]->out_file != NULL) fclose(sp[i]->out_file);
-                tx_destroy(sp[i]);
-                cushion_destroy(sp[i]->cushion);
-                mix_destroy(ms[i]);
-		if (sp[i]->mode != TRANSCODER) {
-			audio_close(sp[i]->audio_fd);
-		}
+                audio_device_give(sp[i]);
 	}
 	network_process_mbus(sp, num_sessions, 1000);
 

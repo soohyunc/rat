@@ -421,11 +421,13 @@ get_cc_state(session_struct *sp, cc_state_t **lp, int pt, enum cc_e ed)
         cc_state_t *stp;
         cc_coder_t *cp;
 
+        xmemchk();
         for (stp = *lp; stp; stp = stp->next)
                 if (stp->pt == pt)
                         break;
     
         if (stp == 0) {
+                dprintf("creating list %d\n", pt);
                 stp = (cc_state_t *)xmalloc(sizeof(cc_state_t));
                 memset(stp, 0, sizeof(cc_state_t));
                 cp = get_channel_coder(pt);
@@ -471,6 +473,7 @@ clear_cc_state_list(cc_state_t **list, enum cc_e ed)
                         break;
                 }
                 xfree(stp);
+                stp = NULL;
         }
         *list = NULL;
 }

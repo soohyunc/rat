@@ -51,6 +51,7 @@
 #include "convert.h"
 #include "channel.h"
 #include "parameters.h"
+#include "audio.h"
 
 extern char ui_original[];
 
@@ -89,9 +90,11 @@ init_session(session_struct *sp)
         sp->encodings[0]		= cp->pt;	/* user chosen encoding for primary */
 	sp->num_encodings		= 1;		/* Number of encodings in packet */
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
-	sp->device_clock		= new_time(sp->clock, cp->freq);
+        sp->device_clock                = new_time(sp->clock, cp->freq);
         assert(!(GLOBAL_CLOCK_FREQ%cp->freq));                        /* just in case someone adds weird freq codecs */
 	sp->mode         		= AUDIO_TOOL;	
+        sp->input_mode                  = AUDIO_NO_DEVICE;
+        sp->output_mode                 = AUDIO_NO_DEVICE;
 	sp->net_maddress		= 0;		/* Same as above, can be used in a sendto */
 	sp->our_address			= 0;		/* our unicast address */
 	sp->rtp_port			= 5004;		/* default: draft-ietf-avt-profile-new-00 */
@@ -120,8 +123,6 @@ init_session(session_struct *sp)
 	sp->out_file  			= NULL;
 	sp->audio_fd               	= -1;
         sp->have_device                 = 0;
-        sp->keep_device                 = 0;
-	sp->mix_count   		= 0;
 	sp->rtp_seq			= lrand48() & 0xffff;
 	sp->speakers_active 		= NULL;
 	sp->ui_script			= ui_original;
@@ -147,10 +148,7 @@ void
 end_session(session_struct *sp)
 {
         codec_free_dynamic_payloads(&sp->dpt_list);
-        clear_encoder_states(&sp->state_list);
-        clear_cc_encoder_states(&sp->cc_state_list);
         free_fast_time(sp->clock);
-        free_time(sp->device_clock);
 }
 
 static void 

@@ -76,27 +76,27 @@ typedef struct s_cushion_struct {
 } cushion_t;
 
 int 
-cushion_create(cushion_t **c)
+cushion_create(cushion_t **c, int blockdur)
 {
-        int i, *ip, blocksize;
+        int i, *ip;
         cushion_t *nc;
 
         nc = (cushion_t*) xmalloc (sizeof(cushion_t));
         if (nc == NULL) goto bail_cushion;
 
-        blocksize = audio_get_blocksize() / audio_get_channels();
-        assert(blocksize > 0);
+        /* cushion operates independently of the number of channels */
+        assert(blockdur > 0);
 
-        nc->cushion_size     = 2 * blocksize;
-	nc->cushion_estimate = blocksize;
-	nc->cushion_step     = blocksize;
+        nc->cushion_size     = 2 * blockdur;
+	nc->cushion_estimate = blockdur;
+	nc->cushion_step     = blockdur;
 	nc->read_history     = (int *) xmalloc (HISTORY_SIZE * sizeof(int));
         if (nc->read_history == NULL) goto bail_history;
 
 	for (i = 0, ip = nc->read_history; i < HISTORY_SIZE; i++, ip++)
 		*ip = 4;
 
-        nc->histbins  = 16000 / blocksize;
+        nc->histbins  = 16000 / blockdur;
 	nc->histogram = (int *)xmalloc(nc->histbins * sizeof(int));
         if (nc->histogram == NULL) goto bail_histogram;
 

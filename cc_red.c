@@ -186,7 +186,6 @@ red_qconfig(session_struct    *sp,
                 
                 if ((fraglen + len) < blen) {
                         sprintf(buf + len, "%s", fragbuf);
-                        strcat(buf,fragbuf);
                         len += fraglen;
                 } else {
                         dprintf("Buffer too small!");
