@@ -56,6 +56,16 @@ signal_handler(int signal)
 }
 #endif
 
+static int tcl_process_events(session_struct *sp)
+{
+	int i = 0;
+
+        while (!audio_is_ready(sp->audio_device) && tcl_process_event() && i < 16) {
+                i++;
+        }
+        return i;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -100,7 +110,7 @@ main(int argc, char *argv[])
 			sprintf(mbus_ui_addr, "(media:audio module:ui app:rat instance:%lu)", (u_int32) getpid());
 			sp[0]->mbus_ui = mbus_init(mbus_ui_rx, NULL);
 			mbus_addr(sp[0]->mbus_ui, mbus_ui_addr);
-			tcl_init(sp[0], argc, argv, mbus_engine_addr);
+			tcl_init(sp[0]->mbus_ui, argc, argv, mbus_engine_addr);
 		} else {
 			strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
 		}

@@ -13,14 +13,11 @@
 #ifndef _TCLTK_H
 #define _TCLTK_H
 
-struct session_tag;
-
 void    tcl_send(char *command);
-int	tcl_init(struct session_tag *session_pointer, int argc, char **argv, char *mbus_engine_addr);
+int	tcl_init(struct mbus *mbus_ui, int argc, char **argv, char *mbus_engine_addr);
 void    tcl_exit(void);
 int	tcl_process_event(void);
 int     tcl_process_all_events(void);
-int	tcl_process_events(struct session_tag *session_pointer);
 int	tcl_active(void);
 
 #endif

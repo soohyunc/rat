@@ -16,15 +16,12 @@
 #include "auddev.h"
 #include "memory.h"
 #include "version.h"
-#include "session.h"
 #include "mbus.h"
 #include "mbus_ui.h"
 #include "tcltk.h"
 
 extern char 	ui_audiotool[];
 extern char	ui_transcoder[];
-
-#define MAX_TCL_EVENTS_TO_PROCESS 16
 
 /* Should probably have these functions inline here, rather than in win32.c??? [csp] */
 #ifdef WIN32		
@@ -33,8 +30,9 @@ int WinGetUserName(ClientData, Tcl_Interp*, int ac, char** av);
 int WinReg(ClientData clientdata, Tcl_Interp *interp, int ac, char **av);
 #endif
 
-Tcl_Interp *interp;	/* Interpreter for application. */
-char       *engine_addr;
+Tcl_Interp 	*interp;	/* Interpreter for application. */
+char       	*engine_addr;
+struct mbus	*mbus_ui;
 
 void
 tcl_send(char *command)
@@ -55,14 +53,11 @@ tcl_send(char *command)
 static int
 mbus_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 {
-	session_struct *sp = (session_struct *) ttp;
-
 	if (argc != 4) {
 		i->result = "mbus_send <reliable> <cmnd> <args>";
 		return TCL_ERROR;
 	}
-
-	mbus_qmsg(sp->mbus_ui, engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
+	mbus_qmsg((struct mbus *)ttp, engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
 	return TCL_OK;
 }
 
@@ -108,26 +103,16 @@ tcl_process_all_events()
 }
 
 int
-tcl_process_events(session_struct *sp)
-{
-	int i = 0;
-
-        while (!audio_is_ready(sp->audio_device) && tcl_process_event() && i < MAX_TCL_EVENTS_TO_PROCESS) {
-                i++;
-        }
-        return i;
-}
-
-int
 tcl_active(void)
 {
 	return (Tk_GetNumMainWindows() > 0);
 }
 
 int
-tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
+tcl_init(struct mbus *mbus_ui, int argc, char **argv, char *mbus_engine_addr)
 {
-	char		*cmd_line_args, buffer[10];
+	char	*cmd_line_args, buffer[10];
+	Tcl_Obj *audiotool_obj;
 
 	Tcl_FindExecutable(argv[0]);
 	interp        = Tcl_CreateInterp();
@@ -161,13 +146,13 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
                 exit(-1);
         }
 
-	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) sp, NULL);
-	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, (ClientData) sp, NULL);
+	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData *) mbus_ui, NULL);
+	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, NULL, NULL);
 #ifdef WIN32
         Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);
-        Tcl_CreateCommand(interp, "puts",        WinPutsCmd,     (ClientData)sp, NULL);
-        Tcl_CreateCommand(interp, "getusername", WinGetUserName, (ClientData)sp, NULL);
-	Tcl_CreateCommand(interp, "registry",    WinReg,         (ClientData)sp, NULL);
+        Tcl_CreateCommand(interp, "puts",        WinPutsCmd,     NULL, NULL);
+        Tcl_CreateCommand(interp, "getusername", WinGetUserName, NULL, NULL);
+	Tcl_CreateCommand(interp, "registry",    WinReg,         NULL, NULL);
 #else
 	Tcl_SetVar(interp, "win32", "0", TCL_GLOBAL_ONLY);
 #endif
@@ -184,21 +169,11 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tk_DefineBitmap(interp, Tk_GetUid("pause"), pause_bits, pause_width, pause_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("stop"),  stop_bits,  stop_width,  stop_height);
 
-	if (sp->mode == AUDIO_TOOL) {
-		int      len           = strlen(ui_audiotool);
-		Tcl_Obj *audiotool_obj = Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool));
-		debug_msg("ui_script len %d bytes\n", len);
-		if (Tcl_EvalObj(interp, audiotool_obj) != TCL_OK) {
-			fprintf(stderr, "ui_audiotool error: %s\n", Tcl_GetStringResult(interp));
-		}
-	} else if (sp->mode == TRANSCODER) {
-		if (Tcl_EvalObj(interp, Tcl_NewStringObj(ui_transcoder, strlen(ui_transcoder))) != TCL_OK) {
-			fprintf(stderr, "ui_transcoder error: %s\n", interp->result);
-		}
-	} else {
-		debug_msg("Unknown mode: huh?");
-		abort();
+	audiotool_obj = Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool));
+	if (Tcl_EvalObj(interp, audiotool_obj) != TCL_OK) {
+		fprintf(stderr, "ui_audiotool error: %s\n", Tcl_GetStringResult(interp));
 	}
+
 	while (tcl_process_event()) {
 		/* Processing Tcl events, to allow the UI to initialize... */
 	};
