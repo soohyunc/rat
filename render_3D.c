@@ -144,26 +144,58 @@ finger_exercise(sample *signal, sample *answer, int signal_length)
 }
 
 void
-externalise(rx_queue_element_struct *el)
+render_3D(rx_queue_element_struct *el, int no_channels)
 {
-        int     n_samples;
-        sample  *raw_buf, *proc_buf;
-        struct s_render_3D_dbentry  *part_3D_data;
+        int      n_samples;
+        sample   *raw_buf, *proc_buf;
+        struct   s_render_3D_dbentry  *part_3D_data;
+
+        /* - take rx_queue_element_struct el
+         * - set size of buffer by filling in 'el->native_size[el->native_count]'
+         * - add extra native_data buffer of that size
+         * - increment 'el->native_count'
+         * - render audio into that buffer created in step 3
+         */
+        if (el->native_count < MAX_NATIVE) {
+                el->native_size[el->native_count] = el->native_size[el->native_count-1];
+                el->native_data[el->native_count] = (sample *) block_alloc(el->native_size[el->native_count]);
+        }
+        el->native_count++;
 
         part_3D_data = el->dbe_source[0]->render_3D_data;
-        raw_buf = el->native_data[el->native_count - 2];
-        proc_buf = el->native_data[el->native_count - 1];
 
         assert(el->native_size[el->native_count - 1] == el->native_size[el->native_count - 2]);
 
-        n_samples = (int)el->native_size[el->native_count-1] / BYTES_PER_SAMPLE;
-	memset(proc_buf, 0, n_samples * sizeof(sample));
-
+        n_samples = (int) el->native_size[el->native_count-1] / BYTES_PER_SAMPLE;
+        
 #ifdef NDEF
-        finger_exercise(raw_buf, proc_buf, n_samples);
+        /* check if mixer is stereo using 'no_channels' ('1' is mono, '2' ist stereo). */
+        if (no_channels == 2) {
+                /* extract mono buffer from stereo buffer */
+                raw_buf = (sample *) block_alloc(el->native_size[el->native_count-1] / 2);
+                proc_buf = (sample *) block_alloc(el->native_size[el->native_count-1] / 2);
+                for (i=0; i<n_samples/2; i++) {
+                        raw_buf[i] = el->native_data[el->native_count - 2] + (2 * i);
+                }
+                /* Externalisation */
+                convolve(raw_buf, proc_buf, part_3D_data->overlap, part_3D_data->filter, RESPONSE_LENGTH, n_samples);
+
+                /* Lateralisation */
+                lateralise();
+        }
 #endif
 
-        convolve(raw_buf, proc_buf, part_3D_data->overlap, part_3D_data->filter, RESPONSE_LENGTH, n_samples);
+        if (no_channels == 1) {
+                raw_buf = el->native_data[el->native_count - 2];
+                proc_buf = el->native_data[el->native_count - 1];
+                memset(proc_buf, 0, n_samples * sizeof(sample));
+                xmemchk();
+                convolve(raw_buf, proc_buf, part_3D_data->overlap, part_3D_data->filter, RESPONSE_LENGTH, n_samples);
+                xmemchk();
+        }
+        block_check((char*)el->native_data[el->native_count - 1]);
+        block_check((char*)el->native_data[el->native_count - 2]);
+        xmemchk();
 }
 
 /*=============================================================================================
