@@ -850,7 +850,7 @@ ui_update_file_live(session_t *sp, char *mode, int valid)
 static void 
 ui_converters(session_t *sp)
 {
-        converter_details_t details;
+        const converter_details_t *details;
         char *mbes;
         int i, cnt;
 
@@ -859,8 +859,8 @@ ui_converters(session_t *sp)
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.converters.flush", "", TRUE);
 
         for (i = 0; i < cnt; i++) {
-                converter_get_details(i, &details);
-                mbes = mbus_encode_str(details.name);
+                details = converter_get_details(i);
+                mbes = mbus_encode_str(details->name);
                 mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.converters.add", mbes, TRUE);
                 xfree(mbes);
         }
@@ -869,16 +869,16 @@ ui_converters(session_t *sp)
 void
 ui_update_converter(session_t *sp)
 {
-        converter_details_t details;
+        const converter_details_t *details;
         char *mbes;
         int i, cnt;
 
         cnt = converter_get_count();
 
         for(i = 0; i < cnt; i++) {
-                converter_get_details(i, &details);
-                if (sp->converter == details.id) {
-                        mbes = mbus_encode_str(details.name);
+                details = converter_get_details(i);
+                if (sp->converter == details->id) {
+                        mbes = mbus_encode_str(details->name);
                         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.converter", mbes, TRUE);
                         xfree(mbes);
                         return;

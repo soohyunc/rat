@@ -70,6 +70,7 @@ typedef struct s_session {
         struct s_channel_state  *channel_coder;
 	int                 playing_audio;
 	int		    repair;           /* Packet repair */
+        converter_id_t      converter;
 	int		    lecture;          /* UI lecture mode */
 	int		    render_3d;
         int                 echo_suppress;
@@ -84,7 +85,6 @@ typedef struct s_session {
 	int		    agc_on;
         int                 ui_on;
 	char		   *ui_addr;
-        converter_id_t      converter;
 	struct s_sndfile   *in_file;
 	struct s_sndfile   *out_file;
 	audio_desc_t	    audio_device;

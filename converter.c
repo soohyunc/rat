@@ -36,7 +36,7 @@ typedef void (*cv_conv_do_f)   (const converter_fmt_t *c, u_char *state,
 typedef void (*cv_conv_free_f) (u_char **state, u_int32 *state_len);
 
 typedef struct s_pcm_converter{
-        char          *name;
+        converter_details_t details;
         u_char         enabled;
         cv_startup     startf;
         cv_shutdown    shutdownf;
@@ -59,55 +59,45 @@ typedef struct s_pcm_converter{
 pcm_converter_t converter_tbl[] = {
 #ifdef WIN32
         {
-         "Microsoft Converter", 
-         FALSE, 
-         acm_cv_startup, 
-         acm_cv_shutdown, 
-         acm_cv_create, 
-         acm_cv_convert,  
-         acm_cv_destroy 
+                {0, "Microsoft Converter"},
+                FALSE, 
+                acm_cv_startup, 
+                acm_cv_shutdown, 
+                acm_cv_create, 
+                acm_cv_convert,  
+                acm_cv_destroy 
         },
 #endif
         {
-         "High Quality",
-         TRUE,
-         sinc_startup,
-         sinc_shutdown,
-         sinc_create,
-         sinc_convert,
-         sinc_destroy
+                {1, "High Quality"},
+                TRUE,
+                sinc_startup,
+                sinc_shutdown,
+                sinc_create,
+                sinc_convert,
+                sinc_destroy
         },
         {
-         "Intermediate Quality",
-         TRUE,  
-         NULL,
-         NULL,
-         linear_create,
-         linear_convert,
-         linear_destroy
+                {2, "Intermediate Quality"},
+                TRUE,  
+                NULL,
+                NULL,
+                linear_create,
+                linear_convert,
+                linear_destroy
         },
         {
-         "Low Quality",
-         TRUE,
-         NULL,
-         NULL,
-         extra_create,
-         extra_convert,
-         extra_destroy
-        },
-        { /* This must be last converter */
-         "None",
-         TRUE,
-         NULL,
-         NULL,
-         NULL,
-         NULL,
-         NULL
+                {3, "Low Quality"},
+                TRUE,
+                NULL,
+                NULL,
+                extra_create,
+                extra_convert,
+                extra_destroy
         }
 };
 
 #define NUM_CONVERTERS sizeof(converter_tbl)/sizeof(pcm_converter_t)
-#define CONVERTER_NONE (NUM_CONVERTERS - 1)
 
 /* Index to converter_id_t mapping macros */
 #define CONVERTER_ID_TO_IDX(x) (((x)>>2) - 17)
@@ -125,10 +115,6 @@ converter_create(const converter_id_t   cid,
 
         if (tbl_idx >= NUM_CONVERTERS) {
                 debug_msg("Converter ID invalid\n");
-                return FALSE;
-        }
-
-        if (tbl_idx == CONVERTER_NONE) {
                 return FALSE;
         }
 
@@ -191,7 +177,8 @@ converters_init()
 
         for(i = 0; i < NUM_CONVERTERS; i++) {
                 if (converter_tbl[i].startf) {
-                        converter_tbl[i].enabled = converter_tbl[i].startf();
+                        converter_tbl[i].enabled    = converter_tbl[i].startf();
+                        converter_tbl[i].details.id = IDX_TO_CONVERTER_ID(i);
                 }
         }
 }
@@ -208,28 +195,20 @@ converters_free()
         }
 }
 
-int
-converter_get_details(u_int32 idx, converter_details_t *cd)
+const converter_details_t *
+converter_get_details(u_int32 idx)
 {
-        if (idx < NUM_CONVERTERS && cd != NULL) {
-                cd->id   = IDX_TO_CONVERTER_ID(idx);
-                cd->name = converter_tbl[idx].name;
-                return TRUE;
+        if (idx < NUM_CONVERTERS) {
+                return &converter_tbl[idx].details;
         }
         debug_msg("Getting invalid converter details\n");
-        return FALSE;
+        return NULL;
 }
 
 u_int32 
 converter_get_count()
 {
         return NUM_CONVERTERS;
-}
-
-converter_id_t
-converter_get_null_converter()
-{
-        return IDX_TO_CONVERTER_ID(CONVERTER_NONE);
 }
 
 #include "codec_types.h"

@@ -972,7 +972,7 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_t *sp)
 
 static void rx_tool_rat_converter(char *srce, char *args, session_t *sp)
 {
-        converter_details_t d;
+        const converter_details_t *d;
         u_int32             i, n;
         char               *name;
 
@@ -983,16 +983,15 @@ static void rx_tool_rat_converter(char *srce, char *args, session_t *sp)
                 mbus_decode_str(name);
                 n = converter_get_count();
                 for(i = 0; i < n; i++) {
-                        converter_get_details(i, &d);
-                        if (0 == strcasecmp(d.name,name)) {
+                        d = converter_get_details(i);
+                        if (0 == strcasecmp(d->name,name)) {
                                 break;
                         }
                 }
                 if (i == n) {
-                        converter_get_details(0, &d);
+                        d = converter_get_details(0);
                 }
-                sp->converter = d.id;
-
+                sp->converter = d->id;
 	} else {
 		debug_msg("mbus: usage \"tool.rat.converter <name>\"\n");
 	}

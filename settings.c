@@ -355,18 +355,19 @@ setting_load_int(char *name, int default_value)
 void settings_load_early(session_t *sp)
 {
 	audio_device_details_t		 ad;
-	char				*ad_name, *primary_codec, *cc_name, *port;
-	int				 i, freq, chan;
+	char				*name, *primary_codec, *port;
+	int				 i, freq, chan, n;
 	cc_details			 ccd;
         const audio_port_details_t 	*apd = NULL;
+        const converter_details_t       *cod = NULL;
         codec_id_t                       cid;
 
 	load_init();		/* Initial settings come from the common prefs file... */
         init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 
-	ad_name = setting_load_str("audioDevice", "No Audio Device");
+	name = setting_load_str("audioDevice", "No Audio Device");
         for(i = 0; i < audio_get_device_count(); i++) {
-                if (audio_get_device_details(i, &ad) && (strcmp(ad.name, ad_name) == 0)) {
+                if (audio_get_device_details(i, &ad) && (strcmp(ad.name, name) == 0)) {
 			audio_device_register_change_device(sp, ad.descriptor);
                         break;
                 }
@@ -407,10 +408,11 @@ void settings_load_early(session_t *sp)
         audio_set_igain(sp->audio_device, setting_load_int("audioInputGain",  75));
         tx_igain_update(sp->tb);
 
-	cc_name = setting_load_str("audioChannelCoding", "None");
-	for (i = 0; i < channel_get_coder_count(); i++ ) {
+	name = setting_load_str("audioChannelCoding", "None");
+        n    = channel_get_coder_count();
+	for (i = 0; i < n; i++ ) {
 		channel_get_coder_details(i, &ccd);
-		if (strcmp(ccd.name, cc_name) == 0) {
+		if (strcmp(ccd.name, name) == 0) {
         		channel_encoder_create(ccd.descriptor, &sp->channel_coder);
 			break;
 		}
@@ -423,7 +425,21 @@ void settings_load_early(session_t *sp)
 	channel_encoder_set_units_per_packet(sp->channel_coder, (u_int16) setting_load_int("audioUnits", 1));
 
         setting_load_str("audioRepair", "Pattern-Match");
-        setting_load_str("audioAutoConvert", "High Quality");
+
+        /* Set converter to be first available */
+        cod           = converter_get_details(0);
+        sp->converter = cod->id;
+        name          = setting_load_str("audioAutoConvert", "High Quality");
+        n             = (int)converter_get_count();
+        /* If converter setting name matches then override existing choice */
+        for(i = 0; i < n; i++) {
+                cod = converter_get_details(i);
+                if (strcasecmp(cod->name, name)) {
+                        sp->converter = cod->id;
+                        break;
+                }
+        }
+        
 	sp->limit_playout  = setting_load_int("audioLimitPlayout", 0);
 	sp->min_playout    = setting_load_int("audioMinPlayout", 0);
 	sp->max_playout    = setting_load_int("audioMaxPlayout", 2000);
@@ -544,7 +560,7 @@ void settings_save(session_t *sp)
         cc_details 			 cd;
 	int				 cc_len;
 	char				*cc_param;
-        converter_details_t  		 converter;
+        const converter_details_t       *converter;
 	int		 		 i;
 	audio_device_details_t		 ad;
         const audio_format 		*af;
@@ -559,8 +575,8 @@ void settings_save(session_t *sp)
         channel_get_coder_identity(sp->channel_coder, &cd);
 
         for(i = 0; i < (int) converter_get_count(); i++) {
-                converter_get_details(i, &converter);
-                if (sp->converter == converter.id) {
+                converter = converter_get_details(i);
+                if (sp->converter == converter->id) {
 			break;
                 }
         }
@@ -621,7 +637,7 @@ void settings_save(session_t *sp)
 	else setting_save_str("audioChannelCoding",     cd.name);
 	setting_save_str("audioChannelCoding",     cd.name);
 	setting_save_str("audioRepair",            repair_get_name((u_int16)sp->repair));
-	setting_save_str("audioAutoConvert",       converter.name);
+	setting_save_str("audioAutoConvert",       converter->name);
 	setting_save_int("audioLimitPlayout",      sp->limit_playout);
 	setting_save_int("audioMinPlayout",        sp->min_playout);
 	setting_save_int("audioMaxPlayout",        sp->max_playout);
