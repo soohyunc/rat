@@ -523,6 +523,18 @@ AC_ARG_ENABLE(debug-mem,
                 AC_DEFINE(DEBUG_MEM)
         fi])
 
+dnl Bug in autoconf 2.13:
+dnl If exec_prefix is not set it becomes '${prefix}'.  The following
+dnl test overrides default behaviour to do the write thing.
+
+if test "x$exec_prefix" = xNONE ; then
+	if test "x$prefix" = xNONE ; then
+		exec_prefix=$ac_default_prefix/bin
+	else
+		exec_prefix=$prefix/bin
+	fi
+fi
+
 AC_CONFIG_HEADER(ratconf.h:config.h.in)
 
 AC_OUTPUT(Makefile)
