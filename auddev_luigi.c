@@ -67,7 +67,14 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 luigi_error = 0;
 
                 LUIGI_AUDIO_IOCTL(audio_fd, AIOGCAP, &soundcaps[ad]);
-                debug_msg("DMA size %d\n", soundcaps[ad].bufsize);
+		debug_msg("soundcaps[%d].rate_min = %d\n", ad, soundcaps[ad].rate_min);
+		debug_msg("soundcaps[%d].rate_max = %d\n", ad, soundcaps[ad].rate_max);
+		debug_msg("soundcaps[%d].formats  = 0x%08lx\n", ad, soundcaps[ad].formats);
+                debug_msg("soundcaps[%d].bufsize  = %d\n", ad, soundcaps[ad].bufsize);
+		debug_msg("soundcaps[%d].mixers   = 0x%08lx\n", ad, soundcaps[ad].mixers);
+		debug_msg("soundcaps[%d].inputs   = 0x%08lx\n", ad, soundcaps[ad].inputs);
+		debug_msg("soundcaps[%d].left     = 0x%04lx\n", ad, soundcaps[ad].left);
+		debug_msg("soundcaps[%d].right    = 0x%04lx\n", ad, soundcaps[ad].right);
 
                 LUIGI_AUDIO_IOCTL(audio_fd,SNDCTL_DSP_RESET,0);
 
