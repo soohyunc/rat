@@ -55,8 +55,8 @@ static char the_dev[] = "/dev/dspX";
 static int audio_fd[OSS_MAX_DEVICES];
 
 
-#define OSS_MAX_SUPPORTED_FORMATS 8
-/* == 8k,16k,32,48k * mono, stereo */
+#define OSS_MAX_SUPPORTED_FORMATS 14
+/* == 8k,11k,16k,22k,32k,44.1k,48k * mono, stereo */
 static u_char       have_probed[OSS_MAX_DEVICES];
 static audio_format af_sup[OSS_MAX_DEVICES][OSS_MAX_SUPPORTED_FORMATS];
 static int          n_af_sup[OSS_MAX_DEVICES];
@@ -127,7 +127,7 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		}
 
 		if (ioctl(audio_fd[ad], SNDCTL_DSP_SETDUPLEX, 0) == -1) {
-			printf("Cannot enable full-duplex mode! Are you sure your hardware supports\n");
+			printf("Cannot enable full-duplex mode. Are you sure your hardware supports\n");
 			printf("full duplex operation? Look for the word `DUPLEX' in /dev/sndstat. \n");
                         return FALSE;
 		}
@@ -370,7 +370,7 @@ oss_audio_non_block(audio_desc_t ad)
 {
 	int  on = 1;
 
-        UNUSED(ad); assert(audio_fd[ad] > 0);
+        assert(audio_fd[ad] > 0);
 
 	if (ioctl(audio_fd[ad], FIONBIO, (char *)&on) < 0) {
 		debug_msg("Failed to set non-blocking mode on audio device!\n");
@@ -383,7 +383,7 @@ oss_audio_block(audio_desc_t ad)
 {
 	int  on = 0;
 
-        UNUSED(ad); assert(audio_fd[ad] > 0);
+        assert(audio_fd[ad] > 0);
 
 	if (ioctl(audio_fd[ad], FIONBIO, (char *)&on) < 0) {
 		debug_msg("Failed to set blocking mode on audio device!\n");
@@ -394,7 +394,7 @@ void
 oss_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
 	/* There appears to be no-way to select this with OSS... */
-        UNUSED(ad); assert(audio_fd[ad] > 0);
+        assert(audio_fd[ad] > 0);
 	UNUSED(port);
 	return;
 }
@@ -403,7 +403,7 @@ audio_port_t
 oss_audio_oport_get(audio_desc_t ad)
 {
 	/* There appears to be no-way to select this with OSS... */
-        UNUSED(ad); assert(audio_fd[ad] > 0);
+        assert(audio_fd[ad] > 0);
 	return out_ports[0].port;
 }
 
@@ -439,12 +439,18 @@ oss_audio_iport_set(audio_desc_t ad, audio_port_t port)
 	}
 
         switch (port) {
-        case AUDIO_MICROPHONE: recsrc = SOUND_MASK_MIC;  break;
-        case AUDIO_LINE_IN:    recsrc = SOUND_MASK_LINE; break;
-        case AUDIO_CD:         recsrc = SOUND_MASK_CD;   break;
-        default:
-                debug_msg("Port not recognized\n");
-                return;
+		case AUDIO_MICROPHONE: 
+			recsrc = SOUND_MASK_MIC;  
+			break;
+		case AUDIO_LINE_IN:    
+			recsrc = SOUND_MASK_LINE; 
+			break;
+		case AUDIO_CD:         
+			recsrc = SOUND_MASK_CD;   
+			break;
+		default:
+			debug_msg("Port not recognized\n");
+			return;
         }
 
         /* Can we select chosen port ? */
@@ -465,7 +471,7 @@ oss_audio_iport_set(audio_desc_t ad, audio_port_t port)
 audio_port_t
 oss_audio_iport_get(audio_desc_t ad)
 {
-        UNUSED(ad); assert(audio_fd[ad] > 0);
+        assert(audio_fd[ad] > 0);
 	return iport;
 }
 
@@ -492,7 +498,7 @@ oss_audio_select(audio_desc_t ad, int delay_us)
         fd_set rfds;
         struct timeval tv;
 
-        UNUSED(ad); assert(audio_fd[ad] > 0);
+        assert(audio_fd[ad] > 0);
         
         tv.tv_sec = 0;
         tv.tv_usec = delay_us;
@@ -520,41 +526,45 @@ oss_audio_is_ready(audio_desc_t ad)
 static int
 oss_set_mode(audio_desc_t ad, int speed, int stereo)
 {
-        int sp, st, success;
-        
-        ioctl(audio_fd[ad], SNDCTL_DSP_RESET, 0);
-        success = TRUE;
-        
-        /* We might want to set sample type here */
+        int sp, st;
+
 	debug_msg("Testing support for %dHz %s...\n", speed, stereo?"stereo":"mono");
+        ioctl(audio_fd[ad], SNDCTL_DSP_RESET, 0);
 
         st = stereo;
         if (ioctl(audio_fd[ad], SNDCTL_DSP_STEREO, &st) == -1 || st != stereo) {
-                success = FALSE;
+		return FALSE;
         }
 
         sp = speed;
         if (ioctl(audio_fd[ad], SNDCTL_DSP_SPEED, &sp) == -1) {
-                success = FALSE;
+		return FALSE;
         }
 	if (sp != speed) {
 		debug_msg("Sampling clock skew: %d should be %d\n", sp, speed);
 	}
+	if (((100 * abs(sp - speed)) / speed) > 5) {
+		debug_msg("Sampling clock skew of more than 5%, mode disabled\n");
+		return FALSE;
+	}
         
-        return success;
+        return TRUE;
 }
 
 static int
 oss_probe_formats(audio_desc_t ad)
 {
-        int speed, stereo;
-        for (speed = 8000; speed <= 48000; speed += 8000) {
-                if (speed == 24000 || speed == 40000) continue;
+	int	speed[] = {8000, 11025, 16000, 22050, 32000, 44100, 48000};
+        int 	stereo;
+	int	i;
+
+	for (i = 0; i < 7; i++) {
                 for (stereo = 0; stereo < 2; stereo++) {
-                        if (!oss_set_mode(ad, speed, stereo)) continue; /* Failed */
-                        af_sup[ad][n_af_sup[ad]].sample_rate = speed;
-                        af_sup[ad][n_af_sup[ad]].channels    = stereo + 1;
-                        n_af_sup[ad]++;
+                        if (oss_set_mode(ad, speed[i], stereo)) {
+				af_sup[ad][n_af_sup[ad]].sample_rate = speed[i];
+				af_sup[ad][n_af_sup[ad]].channels    = stereo + 1;
+				n_af_sup[ad]++;
+			}
                 }
         }
         return TRUE;
@@ -590,7 +600,7 @@ oss_audio_query_devices(void)
 			debug_msg("Cannot query mixer capabilities\n");
 		}
 	} else {
-		debug_msg("Cannot open /dev/mixer\n");
+		debug_msg("Cannot open /dev/mixer - no soundcard present?\n");
 	}
 
 	return ndev;
@@ -612,5 +622,4 @@ oss_get_device_name(audio_desc_t idx)
         return NULL;
 }
 
-
-#endif /* OSS */
+#endif
