@@ -62,6 +62,10 @@ struct _socket_udp {
 #endif
 };
 
+/*****************************************************************************/
+/* Support functions...                                                      */
+/*****************************************************************************/
+
 static void
 socket_error(char *msg)
 {
@@ -73,6 +77,14 @@ socket_error(char *msg)
 #endif
 	abort();
 }
+
+#ifdef NEED_INET_ATON
+static int inet_aton(const char *name, struct in_addr *addr)
+{
+	addr->s_addr = inet_addr(name);
+	return addr->s_addr == (in_addr_t) -1;
+}
+#endif
 
 /*****************************************************************************/
 /* IPv4 specific functions...                                                */

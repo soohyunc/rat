@@ -124,6 +124,7 @@ typedef int	fd_t;
 #endif /* FreeBSD */
 
 #ifdef Solaris
+#define NEED_INET_ATON
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/audioio.h>
