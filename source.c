@@ -370,7 +370,10 @@ source_add_packet (source *src,
         assert(pckt != NULL);
         assert(data_start != 0);
 
-        if (src->age != 0 &&
+        /* If last_played is valid then enough audio is buffer
+         * for the playout check to be sensible
+         */
+        if (ts_valid(src->last_played) &&
             ts_gt(src->last_played, playout)) {
                 debug_msg("Packet late (%u > %u)- discarding\n", 
                           src->last_played.ticks,
@@ -490,14 +493,13 @@ source_process(source *src, struct s_mix_info *ms, int repair_type, ts_t now)
                 assert(md_len == sizeof(media_data));
 
                 /* Conditions for repair: 
-                 * (a) buffer age is not zero (otherwise last_played
-                 *     has no meaning). 
+                 * (a) last_played has meaning. 
                  * (b) playout point does not what we expect.
                  * (c) repair type is not no repair.
                  * (d) last decoded was not too long ago.
                  */
                 cutoff = ts_sub(now, ts_map32(src_freq, HISTORY));
-                if (src->age != 0 && 
+                if (ts_valid(src->last_played) && 
                     ts_eq(playout, ts_add(src->last_played, step)) == FALSE &&
                     repair_type != REPAIR_TYPE_NONE &&
                     ts_gt(src->last_played, cutoff)) {
@@ -577,8 +579,6 @@ source_process(source *src, struct s_mix_info *ms, int repair_type, ts_t now)
 
                 src->last_played = playout;
                 success = pb_iterator_advance(src->media_pos);
-
-                assert(success);
         }
 
         src->age++;

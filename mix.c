@@ -134,6 +134,7 @@ mix_audio(sample *dst, sample *src, int len)
 static void
 mix_zero(mix_struct *ms, int offset, int len)
 {
+        assert(len < ms->buf_len);
 	if (offset + len > ms->buf_len) {
 		audio_zero(ms->mix_buffer + offset, ms->buf_len - offset, DEV_S16);
 		audio_zero(ms->mix_buffer, offset + len-ms->buf_len, DEV_S16);
@@ -204,6 +205,10 @@ mix_process(mix_struct          *ms,
         /* Zero ahead if necessary */
 
         new_head_time = ts_add(playout, ts_map32(ms->rate, nsamples / ms->channels));
+        if (ts_eq(ms->head_time, ms->tail_time)) {
+                ms->head_time = ms->tail_time = playout;
+        }
+
         if (ts_gt(new_head_time, ms->head_time))  {
                 int zeros;
                 delta = ts_sub(new_head_time, ms->head_time);
