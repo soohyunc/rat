@@ -174,7 +174,6 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 
 		/* Jitter calculation as in RTP draft 07 */
 		src->jitter = src->jitter + (((double) diff - src->jitter) / 16);
-		src->last_diff = diff;
 	}
 
 	if (ts_gt(hdr->ts, src->last_ts)) {
@@ -339,7 +338,8 @@ statistics(session_struct    *sp,
 		free_pckt_queue_element(&e_ptr);
 		return;
 	}
-	if (hdr->ssrc == sp->db->myssrc) {
+
+	if ((hdr->ssrc == sp->db->myssrc)&&!sp->no_filter_loopback) {
 		/* Discard loopback packets... */
 		free_pckt_queue_element(&e_ptr);
 		return;
