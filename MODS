@@ -939,6 +939,9 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 	  transit average, instead of monitoring playout buffer length which 
 	  is tainted by packet losses.
 	- Playout variable now refers to playout offset only.
+	- VAT style reduction in playout estimate when marker bit set.
+	- Playout recalc trigger when jitter > playout.
+	- Device reconfig no longer resets ports if device unchanged.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -978,13 +981,9 @@ TODO -- They're features not bugs dammit!
   may use a timer to send such messages every so often. 
 - Streaming option -S from command line to stream files, raw and sample based
   files would be good.
-- All supported codecs should have payload types by default.
 - Reimplement transcoder.
 - Add support for conversion between m*8000 and n*11025
 	- n*11025 sampling isn't well supported in general
-- Add mp3 decoder.  xaudio and ms acm decoders look v. easy to add.
-- Playout bug with overlapping audio reception.  Pushes incoming audio too
-  far back.  Mute source briefly to get around this.
 - Better code documentation.
 - Sample based codecs should accept frame lengths of 0-200ms, not just 
   multiples of frame lengths in tables.  Should add codec_is_sample_based 

@@ -203,6 +203,7 @@ int
 audio_device_reconfigure(session_t *sp)
 {
         audio_config prev_config, *curr_config, *new_config;
+        audio_port_t iport, oport;
         int change_req;
 
         assert(sp->new_config != NULL);
@@ -210,7 +211,6 @@ audio_device_reconfigure(session_t *sp)
         new_config = sp->new_config;
 
         change_req = FALSE;
-
         if (new_config->device == 0) {
                 /* No request to change audio device */
                 new_config->device = sp->audio_device;
@@ -218,6 +218,11 @@ audio_device_reconfigure(session_t *sp)
                 /* Request to change device */
                 change_req = TRUE;
                 debug_msg("Change device requested.\n");
+        }
+
+        if (sp->audio_device) {
+                iport = audio_get_iport(sp->audio_device);
+                iport = audio_get_oport(sp->audio_device);
         }
 
         if (new_config->primary == 0) {
@@ -273,7 +278,13 @@ audio_device_reconfigure(session_t *sp)
                         debug_msg("Fell back to safe config\n");
                 }
 
-                if (sp->audio_device != curr_config->device) {
+                debug_msg("0x%08x 0x%08x\n", prev_config.device, curr_config->device);
+
+                if (prev_config.device == curr_config->device) {
+                        debug_msg("Restoring ports\n");
+                        audio_set_iport(curr_config->device, iport);
+                        audio_set_iport(curr_config->device, oport);
+                } else {
                         const audio_port_details_t *papd;
                         /* Ports will be squiffy */
                         papd = audio_get_iport_details(curr_config->device, 0);
