@@ -138,7 +138,7 @@ main(int argc, char *argv[])
 	if (sp[0]->mode == AUDIO_TOOL) {
 		assert(num_sessions == 1);
 #ifdef WIN32
-		sprintf(mbus_engine_addr, "(audio engine rat %lu)", (u_int32 getpid());
+		sprintf(mbus_engine_addr, "(audio engine rat %lu)", (u_int32) getpid());
 		sprintf(mbus_ui_addr,     "(audio     ui rat %lu)", (u_int32) getpid());
 #else
 		sprintf(mbus_engine_addr, "(audio engine rat %ld)", (int32) getpid());
