@@ -1349,7 +1349,7 @@ toplevel  .chart
 canvas    .chart.c  -background white  -xscrollcommand {.chart.sb set} -yscrollcommand {.chart.sr set} 
 scrollbar .chart.sr -orient vertical   -command {.chart.c yview}
 scrollbar .chart.sb -orient horizontal -command {.chart.c xview}
-button    .chart.d  -text "Dismiss"    -command {wm withdraw .chart} -padx 0 -pady 0
+button    .chart.d  -text "Dismiss"    -command {set matrix_on 0; chart_show} -padx 0 -pady 0
 
 pack .chart.d  -side bottom -fill x    -expand 0 -anchor s
 pack .chart.sb -side bottom -fill x    -expand 0 -anchor s
