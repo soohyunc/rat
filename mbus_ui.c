@@ -18,6 +18,15 @@ extern char 	*e_addr;
 extern int	 ui_active;
 extern int	 should_exit;
 
+/* Mbus command reception function type */
+typedef void (*mbus_rx_proc)(char *srce, char *args, struct mbus *m);
+
+/* Tuple to associate string received with it's parsing fn */
+typedef struct {
+        const char   *rxname;
+        mbus_rx_proc  rxproc;
+} mbus_cmd_tuple;
+
 static void rx_tool_rat_addr_engine(char *srce, char *args, struct mbus *m)
 {
 	char	*addr;
@@ -55,23 +64,14 @@ static void rx_mbus_quit(char *srce, char *args, struct mbus *m)
 	debug_msg("Got mbus.quit() from %s\n", srce);
 }
 
-/* Note: These next two arrays MUST be in the same order! */
-
-const char *rx_cmnd[] = {
-	"tool.rat.addr.engine",
-	"mbus.hello",
-	"mbus.waiting",
-	"mbus.quit",
-	""
+static const mbus_cmd_tuple ui_cmds[] = {
+        { "tool.rat.addr.engine",                  rx_tool_rat_addr_engine },
+        { "mbus.hello",                            rx_mbus_hello },
+        { "mbus.waiting",                          rx_mbus_waiting },
+        { "mbus.quit",                             rx_mbus_quit },
 };
 
-static void (*rx_func[])(char *srce, char *args, struct mbus *m) = {
-	rx_tool_rat_addr_engine,
-	rx_mbus_hello,
-	rx_mbus_waiting,
-	rx_mbus_quit,
-        NULL
-};
+#define NUM_UI_CMDS sizeof(ui_cmds)/sizeof(ui_cmds[0])
 
 void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 {
@@ -80,9 +80,9 @@ void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 	struct mbus	*m = (struct mbus *) data;
 
 	/* Some commands are handled in C for now... */
-	for (i=0; strlen(rx_cmnd[i]) != 0; i++) {
-		if (strcmp(rx_cmnd[i], cmnd) == 0) {
-                        rx_func[i](srce, args, m);
+	for (i=0; i < NUM_UI_CMDS; i++) {
+		if (strcmp(ui_cmds[i].rxname, cmnd) == 0) {
+                        ui_cmds[i].rxproc(srce, args, m);
 			return;
 		} 
 	}

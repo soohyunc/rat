@@ -39,6 +39,15 @@
 
 extern int should_exit;
 
+/* Mbus command reception function type */
+typedef void (*mbus_rx_proc)(char *srce, char *args, session_t *sp);
+
+/* Tuple to associate string received with it's parsing fn */
+typedef struct {
+        const char   *rxname;
+        mbus_rx_proc  rxproc;
+} mbus_cmd_tuple;
+
 static void rx_session_title(char *srce, char *args, session_t *sp)
 {
 	char	*title;
@@ -1194,123 +1203,68 @@ static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 	UNUSED(sp);
 }
 
-/* Note: These next two arrays MUST be in the same order! */
-
-const char *rx_cmnd[] = {
-	"session.title",
-	"tool.rat.addr.ui",
-	"tool.rat.silence",
-	"tool.rat.lecture",
-	"tool.rat.3d.enabled",
-        "tool.rat.3d.user.settings",
-        "tool.rat.3d.user.settings.request",
-	"tool.rat.agc",
-        "tool.rat.loopback",
-        "tool.rat.echo.suppress",
-	"tool.rat.sync",       
-	"tool.rat.rate",          
-	"tool.rat.powermeter",
-        "tool.rat.converter",
-        "tool.rat.settings",
-	"tool.rat.codec",
-        "tool.rat.playout.limit",
-        "tool.rat.playout.min",            
-        "tool.rat.playout.max",            
-        "tool.rat.payload.set",
-	"audio.input.mute",
-	"audio.input.gain",
-	"audio.input.port",
-	"audio.output.mute",
-	"audio.output.gain",
-	"audio.output.port",
-        "audio.channel.coding",
-	"audio.channel.repair",
-        "audio.file.play.open",   
-        "audio.file.play.pause",
-        "audio.file.play.stop",
-        "audio.file.play.live",
-	"audio.file.record.open",
-        "audio.file.record.pause",
-	"audio.file.record.stop",
-        "audio.file.record.live",
-        "audio.device",
-        "security.encryption.key",             
-	"rtp.addr",
-        "rtp.source.name",
-	"rtp.source.email",
-	"rtp.source.phone",       
-	"rtp.source.loc",
-	"rtp.source.mute",
-	"rtp.source.gain",
-	"rtp.source.playout",
-	"mbus.quit",
-	"mbus.waiting",
-	"mbus.go",
-	"mbus.hello",             
-	""
+static const mbus_cmd_tuple engine_cmds[] = {
+        { "session.title",                         rx_session_title },
+        { "tool.rat.addr.ui",                      rx_tool_rat_addr_ui },
+        { "tool.rat.silence",                      rx_tool_rat_silence },
+        { "tool.rat.lecture",                      rx_tool_rat_lecture },
+        { "tool.rat.3d.enabled",                   rx_tool_rat_3d_enable },
+        { "tool.rat.3d.user.settings",             rx_tool_rat_3d_user_settings },
+        { "tool.rat.3d.user.settings.request",     rx_tool_rat_3d_user_settings_req },
+        { "tool.rat.agc",                          rx_tool_rat_agc },
+        { "tool.rat.loopback",                     rx_tool_rat_audio_loopback },
+        { "tool.rat.echo.suppress",                rx_tool_rat_echo_suppress },
+        { "tool.rat.sync",                         rx_tool_rat_sync },
+        { "tool.rat.rate",                         rx_tool_rat_rate },
+        { "tool.rat.powermeter",                   rx_tool_rat_powermeter },
+        { "tool.rat.converter",                    rx_tool_rat_converter },
+        { "tool.rat.settings",                     rx_tool_rat_settings },
+        { "tool.rat.codec",                        rx_tool_rat_codec },
+        { "tool.rat.playout.limit",                rx_tool_rat_playout_limit },
+        { "tool.rat.playout.min",                  rx_tool_rat_playout_min },
+        { "tool.rat.playout.max",                  rx_tool_rat_playout_max },
+        { "tool.rat.payload.set",                  rx_tool_rat_payload_set },
+        { "audio.input.mute",                      rx_audio_input_mute },
+        { "audio.input.gain",                      rx_audio_input_gain },
+        { "audio.input.port",                      rx_audio_input_port },
+        { "audio.output.mute",                     rx_audio_output_mute },
+        { "audio.output.gain",                     rx_audio_output_gain },
+        { "audio.output.port",                     rx_audio_output_port },
+        { "audio.channel.coding",                  rx_audio_channel_coding },
+        { "audio.channel.repair",                  rx_audio_channel_repair },
+        { "audio.file.play.open",                  rx_audio_file_play_open },
+        { "audio.file.play.pause",                 rx_audio_file_play_pause },
+        { "audio.file.play.stop",                  rx_audio_file_play_stop },
+        { "audio.file.play.live",                  rx_audio_file_play_live },
+        { "audio.file.record.open",                rx_audio_file_rec_open },
+        { "audio.file.record.pause",               rx_audio_file_rec_pause },
+        { "audio.file.record.stop",                rx_audio_file_rec_stop },
+        { "audio.file.record.live",                rx_audio_file_rec_live },
+        { "audio.device",                          rx_audio_device },
+        { "security.encryption.key",               rx_security_encryption_key },
+        { "rtp.addr",                              rx_rtp_addr },
+        { "rtp.source.name",                       rx_rtp_source_name },
+        { "rtp.source.email",                      rx_rtp_source_email },
+        { "rtp.source.phone",                      rx_rtp_source_phone },
+        { "rtp.source.loc",                        rx_rtp_source_loc },
+        { "rtp.source.mute",                       rx_rtp_source_mute },
+        { "rtp.source.gain",                       rx_rtp_source_gain },
+        { "rtp.source.playout",                    rx_rtp_source_playout },
+        { "mbus.quit",                             rx_mbus_quit },
+        { "mbus.waiting",                          rx_mbus_waiting },
+        { "mbus.go",                               rx_mbus_go },
+        { "mbus.hello",                            rx_mbus_hello },
 };
 
-static void (*rx_func[])(char *srce, char *args, session_t *sp) = {
-	rx_session_title,
-	rx_tool_rat_addr_ui,
-	rx_tool_rat_silence,
-	rx_tool_rat_lecture,
-	rx_tool_rat_3d_enable,
-        rx_tool_rat_3d_user_settings,
-        rx_tool_rat_3d_user_settings_req,
-	rx_tool_rat_agc,
-        rx_tool_rat_audio_loopback,
-        rx_tool_rat_echo_suppress,
-	rx_tool_rat_sync,
-	rx_tool_rat_rate,              
-	rx_tool_rat_powermeter,
-        rx_tool_rat_converter,
-        rx_tool_rat_settings,
-	rx_tool_rat_codec,
-        rx_tool_rat_playout_limit,
-        rx_tool_rat_playout_min,
-        rx_tool_rat_playout_max,                
-        rx_tool_rat_payload_set,
-	rx_audio_input_mute,
-	rx_audio_input_gain,
-	rx_audio_input_port,
-	rx_audio_output_mute,
-	rx_audio_output_gain,
-	rx_audio_output_port,
-        rx_audio_channel_coding,
-	rx_audio_channel_repair,
-        rx_audio_file_play_open,       
-        rx_audio_file_play_pause,
-        rx_audio_file_play_stop,                
-        rx_audio_file_play_live,
-        rx_audio_file_rec_open,
-	rx_audio_file_rec_pause,
-        rx_audio_file_rec_stop,
-        rx_audio_file_rec_live,
-	rx_audio_device,
-        rx_security_encryption_key,
-	rx_rtp_addr,
-	rx_rtp_source_name,
-	rx_rtp_source_email,
-	rx_rtp_source_phone,            
-	rx_rtp_source_loc,
-	rx_rtp_source_mute,
-        rx_rtp_source_gain,
-	rx_rtp_source_playout,
-	rx_mbus_quit,
-	rx_mbus_waiting,
-	rx_mbus_go,
-	rx_mbus_hello,
-        NULL
-};
+#define NUM_ENGINE_CMDS sizeof(engine_cmds)/sizeof(engine_cmds[0])
 
 void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 {
-	int i;
+        u_int32 i;
 
-	for (i=0; strlen(rx_cmnd[i]) != 0; i++) {
-		if (strcmp(rx_cmnd[i], cmnd) == 0) {
-                        rx_func[i](srce, args, (session_t *) data);
+        for (i = 0; i < NUM_ENGINE_CMDS; i++) {
+		if (strcmp(engine_cmds[i].rxname, cmnd) == 0) {
+                        engine_cmds[i].rxproc(srce, args, (session_t *) data);
 			return;
 		} 
 	}

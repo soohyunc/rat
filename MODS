@@ -914,12 +914,12 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	  and the user interface and media engine. This should remove many
 	  race conditions and generally clean things up and make them more
 	  reliable.
-	  	- use mbus_rendezvous_waiting() and mbus_rendezvous_go()
-		- do a real handshake between controller and the subprocesses
+	- use mbus_rendezvous_waiting() and mbus_rendezvous_go()
+	- do a real handshake between controller and the subprocesses
 	- Fix parsing of many command line options. NOTE: many of the options
 	  are parsed in a backwards incompatible manner now, to make the code
 	  cleaner. 
-
+	- Tuples for mbus command switches in mbus_{control,engine,ui}.
 
 
 TODO -- They're features not bugs dammit!

@@ -19,6 +19,15 @@
 
 extern int should_exit;
 
+/* Mbus command reception function type */
+typedef void (*mbus_rx_proc)(char *srce, char *args, void *data);
+
+/* Tuple to associate string received with it's parsing fn */
+typedef struct {
+        const char   *rxname;
+        mbus_rx_proc  rxproc;
+} mbus_cmd_tuple;
+
 static char *wait_token;
 static char *wait_addr;
 
@@ -71,29 +80,23 @@ static void rx_mbus_hello(char *srce, char *args, void *data)
 	UNUSED(data);
 }
 
-static const char *rx_cmnd[] = {
-	"mbus.quit",
-	"mbus.waiting",
-	"mbus.go",
-	"mbus.hello",             
-	""
+
+static const mbus_cmd_tuple control_cmds[] = {
+        { "mbus.quit",                             rx_mbus_quit },
+        { "mbus.waiting",                          rx_mbus_waiting },
+        { "mbus.go",                               rx_mbus_go },
+        { "mbus.hello",                            rx_mbus_hello },
 };
 
-static void (*rx_func[])(char *srce, char *args, void *data) = {
-	rx_mbus_quit,
-	rx_mbus_waiting,
-	rx_mbus_go,
-	rx_mbus_hello,
-        NULL
-};
+#define NUM_CONTROL_CMDS sizeof(control_cmds)/sizeof(control_cmds[0])
 
 void mbus_control_rx(char *srce, char *cmnd, char *args, void *data)
 {
-	int i;
+	u_int32 i;
 
-	for (i=0; strlen(rx_cmnd[i]) != 0; i++) {
-		if (strcmp(rx_cmnd[i], cmnd) == 0) {
-                        rx_func[i](srce, args, data);
+	for (i=0; i < NUM_CONTROL_CMDS; i++) {
+		if (strcmp(control_cmds[i].rxname, cmnd) == 0) {
+                        control_cmds[i].rxproc(srce, args, data);
 			return;
 		} 
 	}
