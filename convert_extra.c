@@ -54,48 +54,53 @@ extra_upsample(int offset, int channels, sample *src, int src_len, sample *dst, 
         switch(dstep) {
         case 6:
                 while (loop--) {
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        sp += channels;
                 }
                 break;
         case 5:
                 while (loop--) {
-                        
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        sp += channels;                
                 }
                 break;
         case 4:
                 while (loop--) {
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        sp += channels;                
                 }
                 break;
         case 3:
                 while (loop--) {
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        sp += channels;                
                 }
                 break;
         case 2:
                 while (loop--) {
-                        *dp = *sp; dp+=channels;
-                        *dp = *sp; dp+=channels;
+                        *dp = *sp; dp += channels;
+                        *dp = *sp; dp += channels;
+                        sp += channels;
                 }
                 break;
         case 1:
                 while (loop--) {
-                        *dp = *sp; dp+=channels;
+                        *dp = *sp; dp += channels;
+                        sp += channels;
                 }
                 break;
         }
