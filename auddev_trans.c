@@ -1,3 +1,4 @@
+
 /*****************************************************************************/
 /*                                                                           */
 /* FILE: auddev_trans.c                                                      */
@@ -6,7 +7,10 @@
 /*                                                                           */
 /* Contributed by Michael Wallbaum <wallbaum@informatik.rwth-aachen.de>      */
 /*                                                                           */
+/* Calculations of elapsed time corrected by Jakub Segen <segen@lucent.com>  */
+/*                                                                           */
 /*****************************************************************************/
+
 
 #ifndef HIDE_SOURCE_STRINGS
 static const char cvsid[] = 
@@ -29,12 +33,14 @@ typedef struct _bufdevInfo {
         audio_format ifmt;
         audio_format ofmt;
         int audio_fd;
-        struct timeval last_time;
+        struct timeval start_time;
         struct timeval curr_time;
         u_char         *channel;
         int             head;
         int             tail;
+        int last_bytes;
         int avail_bytes;
+        int leftover_bytes;
         int read_virgin;
         int igain;
         int ogain;
@@ -42,6 +48,7 @@ typedef struct _bufdevInfo {
 
 static bufdevInfo bufdev[MAXBUFDEVS];
 static uint32_t devIdMap[MAXBUFDEVS];
+
 
 static char *bufdevName[2] = {"Transcoder Port 1", "Transcoder Port 2"};
 
@@ -67,6 +74,7 @@ trans_audio_open_dev (audio_desc_t ad, audio_format *infmt, audio_format *outfmt
         bufdev[ad].tail = 0;
         bufdev[ad].avail_bytes = 0;
         bufdev[ad].read_virgin  = TRUE;
+        bufdev[ad].leftover_bytes = 0;
         bufdev[ad].channel = (u_char *) xmalloc(CHANNEL_SIZE * sizeof(u_char));
         for (i=0; i<CHANNEL_SIZE; i++) {
                 bufdev[ad].channel[i] = L16_AUDIO_ZERO;
@@ -132,7 +140,7 @@ trans_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
 void
 trans_audio_close(audio_desc_t ad)
 {
-	debug_msg("Close transcoder audio device\n");
+        debug_msg("Close transcoder audio device\n");
         ad = mapAudioDescToDeviceID(ad);
         if (bufdev[ad].audio_fd > 0)
                 bufdev[ad].audio_fd = -1;
@@ -148,6 +156,7 @@ trans_audio_drain(audio_desc_t ad)
 {
         ad = mapAudioDescToDeviceID(ad);
         bufdev[ad].read_virgin = TRUE;
+        bufdev[ad].leftover_bytes = 0;
         bufdev[ad].head = 0;
         bufdev[ad].tail = 0;
         bufdev[ad].avail_bytes = 0;
@@ -209,11 +218,10 @@ time_diff_to_bytes(struct timeval *start, struct timeval *end,  audio_format ifm
         int diff_ms, diff_bytes;
         diff_ms = (end->tv_sec  - start->tv_sec) * 1000 + (end->tv_usec - start->tv_usec) / 1000;
         diff_bytes = diff_ms * (ifmt.bits_per_sample / 8 ) * (ifmt.sample_rate / 1000) * ifmt.channels;
-
         return diff_bytes;
 }
 
-
+	int current_bytes;
 /*
  * Record audio data.
  */
@@ -232,21 +240,29 @@ trans_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
         assert(bufdev[ad].avail_bytes <= CHANNEL_SIZE);
 
         if (bufdev[ad].read_virgin == TRUE) {
-                gettimeofday(&(bufdev[ad].last_time), NULL);
+                gettimeofday(&(bufdev[ad].start_time), NULL);
                 bufdev[ad].avail_bytes = 0;
-                bufdev[ad].read_virgin = FALSE;
+		bufdev[ad].last_bytes = 0;
+		bufdev[ad].leftover_bytes = 0;
+		bufdev[ad].read_virgin = FALSE;
         }
         gettimeofday(&(bufdev[ad].curr_time), NULL);
-        read_size = time_diff_to_bytes(&(bufdev[ad].last_time), &(bufdev[ad].curr_time), bufdev[ad].ifmt);
 
-        if (read_size + bufdev[ad].avail_bytes < bufdev[ad].ifmt.bytes_per_block) {
-                return 0;
+	current_bytes = time_diff_to_bytes(&(bufdev[ad].start_time), &(bufdev[ad].curr_time), bufdev[ad].ifmt ); 
+	read_size = current_bytes - bufdev[ad].last_bytes;
+	
+        if (read_size + bufdev[ad].leftover_bytes < bufdev[ad].ifmt.bytes_per_block)  return 0; 
+	bufdev[ad].last_bytes = current_bytes;
+
+	if (buf_bytes > read_size + bufdev[ad].leftover_bytes) {
+	  read_size += bufdev[ad].leftover_bytes;
+	  bufdev[ad].leftover_bytes = 0;
+        } else {
+	  bufdev[ad].leftover_bytes += read_size - buf_bytes;
+	  read_size   = buf_bytes;
         }
-
-        if (read_size > buf_bytes) read_size = buf_bytes;
-
-        bufdev[ad].last_time = bufdev[ad].curr_time;
-
+        assert(bufdev[ad].leftover_bytes >= 0);
+		
         copy_size = bufdev[ad].avail_bytes;     /* The amount of data available in this module... */
         if (copy_size >= read_size) {
                 copy_size = read_size;
@@ -268,6 +284,7 @@ trans_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
         assert(bufdev[ad].head <= CHANNEL_SIZE);
         assert(bufdev[ad].tail <= CHANNEL_SIZE);
         assert(bufdev[ad].avail_bytes >= 0);
+
         return read_size;
 }
 
@@ -301,6 +318,7 @@ trans_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 
         assert(bufdev[ad].head <= CHANNEL_SIZE);
         assert(bufdev[ad].tail <= CHANNEL_SIZE);
+
         return write_bytes;
 }
 
@@ -425,27 +443,28 @@ int
 trans_audio_is_ready(audio_desc_t ad)
 {
         struct timeval now;
-        uint32_t diff;
+	int read_size; 
 
         ad = mapAudioDescToDeviceID(ad);
         gettimeofday(&now,NULL);
-        diff = (now.tv_sec  - bufdev[ad].last_time.tv_sec) * 1000 + (now.tv_usec - bufdev[ad].last_time.tv_usec)/1000;
-        diff *= (bufdev[ad].ifmt.bits_per_sample / 8) * bufdev[ad].ifmt.sample_rate / 1000 * bufdev[ad].ifmt.channels;
-
-        if ((diff + bufdev[ad].avail_bytes) > (unsigned)bufdev[ad].ifmt.bytes_per_block) return TRUE;
-
-        return FALSE;
+	
+	read_size = time_diff_to_bytes(&(bufdev[ad].start_time), &now, bufdev[ad].ifmt) - bufdev[ad].last_bytes;
+	if (read_size + bufdev[ad].leftover_bytes < bufdev[ad].ifmt.bytes_per_block) return FALSE;
+	else return TRUE;
 }
 
 static void 
 trans_audio_select(audio_desc_t ad, int delay_ms)
 {
-        int needed, dur;
+        struct timeval now;
+        int needed, dur, read_size;
 
         ad = mapAudioDescToDeviceID(ad);
-        needed = bufdev[ad].ifmt.bytes_per_block - bufdev[ad].avail_bytes;
+	gettimeofday(&now,NULL);
+	
+	read_size =  time_diff_to_bytes(&(bufdev[ad].start_time), &now, bufdev[ad].ifmt) - bufdev[ad].last_bytes;
+	needed = bufdev[ad].ifmt.bytes_per_block - bufdev[ad].leftover_bytes - read_size;
         assert(needed >= 0);
-
         dur = needed * 1000 * 8 / (bufdev[ad].ifmt.sample_rate * bufdev[ad].ifmt.bits_per_sample * bufdev[ad].ifmt.channels);
         dur = min(dur, delay_ms);
         usleep(dur * 1000);
@@ -475,6 +494,7 @@ trans_audio_device_name(audio_desc_t ad)
         ad = mapAudioDescToDeviceID(ad);
         return bufdevName[ad];
 }
+
 
 int
 trans_audio_supports(audio_desc_t ad, audio_format *fmt)
