@@ -45,6 +45,7 @@
  */
 
 #include "config_unix.h"
+#include "config_win32.h"
 #include "audio_types.h"
 #include "auddev_null.h"
 #include "assert.h"

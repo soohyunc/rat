@@ -60,6 +60,7 @@ static int audio_fd = -1;
 
 #define LUIGI_AUDIO_IOCTL(fd, cmd, val) if (ioctl((fd), (cmd), (val)) < 0) { \
                                             debug_msg("Failed %s\n",#cmd); \
+                                            luigi_error = __LINE__; \
                                                }
 
 #define LUIGI_MAX_AUDIO_NAME_LEN 32
@@ -68,6 +69,7 @@ static int audio_fd = -1;
 static int dev_ids[LUIGI_MAX_AUDIO_DEVICES];
 static char names[LUIGI_MAX_AUDIO_DEVICES][LUIGI_MAX_AUDIO_NAME_LEN];
 static int ndev = 0;
+static int luigi_error;
 
 int 
 luigi_audio_open(audio_desc_t ad, audio_format *fmt)
@@ -86,6 +88,9 @@ luigi_audio_open(audio_desc_t ad, audio_format *fmt)
         if (audio_fd >= 0) {
                 struct snd_size sz;
                 snd_capabilities soundcaps;
+                /* Ignore any earlier errors */
+                luigi_error = 0;
+
                 LUIGI_AUDIO_IOCTL(audio_fd, AIOGCAP, &soundcaps);
                 LUIGI_AUDIO_IOCTL(audio_fd,SNDCTL_DSP_RESET,0);
                 pa.play_rate   = pa.rec_rate   = format.sample_rate;
@@ -115,7 +120,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *fmt)
                         } else {
                                 fprintf(stderr,"Driver does not support stereo for this soundcard\n");
                                 luigi_audio_close(ad);
-                                return 0;
+                                return FALSE;
                         }
                 }
                 
@@ -135,10 +140,15 @@ luigi_audio_open(audio_desc_t ad, audio_format *fmt)
                 luigi_audio_set_iport(audio_fd, iport);
                 /* Turn off loopback from input to output... */
                 LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
-                {
-                        char            buf[64];
-                        read(audio_fd, buf, 64);
-                }			/* start... */
+
+                if (luigi_error != 0) {
+                        /* Failed somewhere in initialization - reset error and exit*/
+                        luigi_audio_close(ad);
+                        luigi_error = 0;
+                        return FALSE;
+                }
+                
+                read(audio_fd, thedev, 64);
                 return TRUE;
         } else {
                 perror("audio_open");
