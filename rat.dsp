@@ -4,7 +4,7 @@
 
 # TARGTYPE "Win32 (x86) Application" 0x0101
 
-CFG=rat - Win32 Debug IPv6
+CFG=rat - Win32 Debug IPv6 Musica
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
@@ -13,13 +13,14 @@ CFG=rat - Win32 Debug IPv6
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "rat.mak" CFG="rat - Win32 Debug IPv6"
+!MESSAGE NMAKE /f "rat.mak" CFG="rat - Win32 Debug IPv6 Musica"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
 !MESSAGE "rat - Win32 Release" (based on "Win32 (x86) Application")
 !MESSAGE "rat - Win32 Debug" (based on "Win32 (x86) Application")
 !MESSAGE "rat - Win32 Debug IPv6" (based on "Win32 (x86) Application")
+!MESSAGE "rat - Win32 Debug IPv6 Musica" (based on "Win32 (x86) Application")
 !MESSAGE 
 
 # Begin Project
@@ -44,7 +45,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "\src\common" /I "\src\tcl-8.0\generic" /I "\src\tk-8.0\generic" /I "\src\tk-8.0\xlib" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "SASR" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "\..\common" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "SASR" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x809 /d "NDEBUG"
@@ -54,7 +55,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 tcllib.lib tklib.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386 /libpath:"\src\common\Release" /libpath:"\src\tcl-8.0\win\Release" /libpath:"\src\tk-8.0\win\Release"
+# ADD LINK32 tcllib.lib tklib.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386 /libpath:"..\common\Release" /libpath:"..\tcl-8.0\win\Release" /libpath:"..\tk-8.0\win\Release"
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
 
@@ -70,7 +71,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "\src\common" /I "\src\tcl-8.0\generic" /I "\src\tk-8.0\generic" /I "\src\tk-8.0\xlib" /I "\DDK\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "DEBUG_MEM" /Fr /YX /FD /I ../common /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "..\common" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /I "\DDK\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "DEBUG_MEM" /Fr /YX /FD /I ../common /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x809 /d "_DEBUG"
@@ -80,7 +81,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 tcllib.lib tklib.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /libpath:"\src\common\Debug" /libpath:"\src\tcl-8.0\win\Debug" /libpath:"\src\tk-8.0\win\Debug"
+# ADD LINK32 tcllib.lib tklib.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /libpath:"..\common\Debug" /libpath:"..\tcl-8.0\win\Debug" /libpath:"..\tk-8.0\win\Debug"
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6"
@@ -97,8 +98,8 @@ LINK32=link.exe
 # PROP Intermediate_Dir "Debug_IPv6"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /I "c:\Program Files\Tcl\include" /I "c:\Program Files\Tcl\include\xlib" /I "c:\DDK\inc" /I "c:\src\msripv6\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /FR /YX /FD /c
-# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "\src\common" /I "\src\tcl-8.0\generic" /I "\src\tk-8.0\generic" /I "\src\tk-8.0\xlib" /I "\src\tk-8.0\xlib\X11" /I "\DDK\inc" /I "\src\MSR_IPv6_1.3\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /FR /YX /FD /I ../common /c
+# ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /I "c:\Program Files\Tcl\include" /I "c:\Program Files\Tcl\include\xlib" /I "c:\DDK\inc" /I "c:..\msripv6\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "..\common" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /I "..\tk-8.0\xlib\X11" /I "\DDK\inc" /I "..\MSR_IPv6_1.3\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /D "NEED_IN6_IS_ADDR_MULTICAST" /D "NEED_INET_PTON" /FR /YX /FD /I ../common /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x809 /d "_DEBUG"
@@ -107,8 +108,37 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 winmm.lib Ws2_32.lib msacm32.lib tcl80vc.lib tk80vc.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wship6.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"c:\src\rat32\rat" /libpath:"c:\Program Files\Tcl\lib" /libpath:".\win32" /libpath:"c:\src\msripv6\wship6\obj\i386\free"
-# ADD LINK32 tklib.lib tcllib.lib wship6.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"\src\tcl-8.0\win\Debug_IPv6" /libpath:"\src\tk-8.0\win\Debug_IPv6" /libpath:"\src\MSR_IPv6_1.3\wship6\obj\i386\free" /libpath:"\src\common\Debug"
+# ADD BASE LINK32 winmm.lib Ws2_32.lib msacm32.lib tcl80vc.lib tk80vc.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wship6.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"c:..\rat32\rat" /libpath:"c:\Program Files\Tcl\lib" /libpath:".\win32" /libpath:"c:..\msripv6\wship6\obj\i386\free"
+# ADD LINK32 tklib.lib tcllib.lib wship6.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"..\tcl-8.0\win\Debug_IPv6" /libpath:"..\tk-8.0\win\Debug_IPv6" /libpath:"..\MSR_IPv6_1.3\wship6\obj\i386\free" /libpath:"..\common\Debug"
+# SUBTRACT LINK32 /pdb:none /incremental:no /map /force
+
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6 Musica"
+
+# PROP BASE Use_MFC 0
+# PROP BASE Use_Debug_Libraries 1
+# PROP BASE Output_Dir "rat___Win32_Debug_IPv6_Musica"
+# PROP BASE Intermediate_Dir "rat___Win32_Debug_IPv6_Musica"
+# PROP BASE Ignore_Export_Lib 0
+# PROP BASE Target_Dir ""
+# PROP Use_MFC 0
+# PROP Use_Debug_Libraries 1
+# PROP Output_Dir "rat___Win32_Debug_IPv6_Musica"
+# PROP Intermediate_Dir "rat___Win32_Debug_IPv6_Musica"
+# PROP Ignore_Export_Lib 0
+# PROP Target_Dir ""
+# ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /I "..\common" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /I "..\tk-8.0\xlib\X11" /I "\DDK\inc" /I "..\MSR_IPv6_1.3\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /FR /YX /FD /I ../common /c
+# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "..\common" /I "..\tk-8.0\xlib\X11" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /I "\DDK\inc" /I "..\MUSICA_420\WINSOCK6" /D "_WINDOWS" /D "SASR" /D "DEBUG" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /D "MUSICA_IPV6" /D "_WINNT" /D "_POSIX" /FR /YX /FD /I ../common /c
+# ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
+# ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
+# ADD BASE RSC /l 0x809 /d "_DEBUG"
+# ADD RSC /l 0x809 /d "_DEBUG"
+BSC32=bscmake.exe
+# ADD BASE BSC32 /nologo
+# ADD BSC32 /nologo
+LINK32=link.exe
+# ADD BASE LINK32 tklib.lib tcllib.lib wship6.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"..\tcl-8.0\win\Debug_IPv6" /libpath:"..\tk-8.0\win\Debug_IPv6" /libpath:"..\MSR_IPv6_1.3\wship6\obj\i386\free" /libpath:"..\common\Debug"
+# SUBTRACT BASE LINK32 /pdb:none /incremental:no /map /force
+# ADD LINK32 tklib.lib tcllib.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib Lib44bsd.lib resolv.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"..\tcl-8.0\win\Debug_IPv6" /libpath:"..\tk-8.0\win\Debug_IPv6" /libpath:"..\common\Debug" /libpath:"..\MUSICA_420\WINSOCK6"
 # SUBTRACT LINK32 /pdb:none /incremental:no /map /force
 
 !ENDIF 
@@ -118,6 +148,7 @@ LINK32=link.exe
 # Name "rat - Win32 Release"
 # Name "rat - Win32 Debug"
 # Name "rat - Win32 Debug IPv6"
+# Name "rat - Win32 Debug IPv6 Musica"
 # Begin Group "C Source Files"
 
 # PROP Default_Filter ".c"
@@ -296,6 +327,11 @@ SOURCE=.\mbus_engine.c
 # ADD CPP /W3
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6"
+
+# ADD BASE CPP /W3
+# ADD CPP /W3
+
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6 Musica"
 
 # ADD BASE CPP /W3
 # ADD CPP /W3
@@ -754,7 +790,7 @@ InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_audiotool.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c
+	type $(InputDir)\ui_audiotool.tcl | ..\tcl-8.0\win\tcl2c\release\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c
 
 # End Custom Build
 
@@ -767,7 +803,7 @@ InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
-	type $(InputDir)\ui_at.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
+	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
 	
 # End Custom Build
 
@@ -780,7 +816,20 @@ InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
-	type $(InputDir)\ui_at.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
+	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
+	
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6 Musica"
+
+USERDEP__UI_AU="$(InputDir)\asfilebox.tcl"	
+# Begin Custom Build - Building audiotool ui
+InputDir=.
+InputPath=.\ui_audiotool.tcl
+
+"$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
+	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
 	
 # End Custom Build
 
@@ -798,7 +847,7 @@ InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
+	type $(InputDir)\ui_transcoder.tcl | ..\tcl-8.0\win\tcl2c\release\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
@@ -809,7 +858,7 @@ InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
+	type $(InputDir)\ui_transcoder.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
@@ -820,7 +869,18 @@ InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
+	type $(InputDir)\ui_transcoder.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6 Musica"
+
+# Begin Custom Build - Building transcoder ui
+InputDir=.
+InputPath=.\ui_transcoder.tcl
+
+"$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	type $(InputDir)\ui_transcoder.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
@@ -871,6 +931,23 @@ InputPath=.\Version
 # End Custom Build
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6"
+
+USERDEP__VERSI="win32\echo.txt"	"win32\set.txt"	"win32\null.txt"	
+# Begin Custom Build - Generating "version.h".
+InputPath=.\Version
+
+"version.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy win32\set.txt + VERSION win32\vergen.bat 
+	copy win32\vergen.bat + win32\null.txt win32\vergen.bat 
+	copy win32\vergen.bat + win32\echo.txt win32\vergen.bat 
+	win32\vergen.bat 
+	move win32\version.h version.h 
+	erase win32\version.h 
+	erase win32\vergen.bat 
+	
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6 Musica"
 
 USERDEP__VERSI="win32\echo.txt"	"win32\set.txt"	"win32\null.txt"	
 # Begin Custom Build - Generating "version.h".
