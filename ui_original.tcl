@@ -1194,7 +1194,7 @@ proc save_setting {f field var} {
     global win32 V rtpfname
     upvar #0 $var value
     if {$win32} {
-	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app) "*$field" "$value"
+	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field" "$value"
     } else {
 	puts $f "*$field: $value"
     }
