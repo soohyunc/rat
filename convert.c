@@ -231,9 +231,16 @@ int tbl_sz_dn[] = {8, 12, 16, 20, 24};
 #define SF2IDX(x) ((x)-2)
 #define IDX2SF(x) ((x)+2)
 
-typedef void (*srf_cf)(int offset, int channels, sample* src_buf, int src_len, sample* dst_buf, int dst_len, struct s_srf_filter_state *sf);
-
 struct s_srf_filter_state;
+
+typedef void (*srf_cf)(int     offset, 
+                       int     channels, 
+                       sample* src_buf, 
+                       int     src_len, 
+                       sample* dst_buf, 
+                       int     dst_len, 
+                       struct s_srf_filter_state *sf);
+
 
 typedef struct s_srf_filter_state {
         short   scale;
@@ -831,7 +838,7 @@ converter_format (converter_t *c, rx_queue_element_struct *ip)
         assert(ip->native_count);
         
         cf = c->conv_fmt;
-        ip->native_size[ip->native_count] = cf->to_channels * (int)ceil((double)ip->native_size[ip->native_count - 1] * (double)cf->to_freq / (double)cf->from_freq) / cf->from_channels;
+        ip->native_size[ip->native_count] = cf->to_channels * ceil((double)ip->native_size[ip->native_count - 1] * (double)cf->to_freq / (double)cf->from_freq) / cf->from_channels;
         ip->native_data[ip->native_count] = (sample*)block_alloc(ip->native_size[ip->native_count]);
         c->pcm_conv->cf_convert(c,
                                 ip->native_data[ip->native_count - 1], 
