@@ -207,7 +207,23 @@ SOURCE=.\codec_wbs.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\convert.c
+SOURCE=.\convert_acm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\convert_extra.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\convert_linear.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\convert_util.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\converter.c
 # End Source File
 # Begin Source File
 
@@ -517,7 +533,27 @@ SOURCE=.\config_win32.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\convert.h
+SOURCE=.\convert_acm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\convert_extra.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\convert_linear.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\convert_util.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\converter.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\converter_types.h
 # End Source File
 # Begin Source File
 
