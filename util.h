@@ -60,7 +60,8 @@ char	*_xstrdup(const char *s1, const char *filen, int line);
 void	*_block_alloc(unsigned size, const char *filen, int line);
 void	 _block_free(void *p, int size, int line);
 void	 block_release_all(void);
-void     block_trash_chk(void);
+void     block_trash_check(void);
+void     block_check(char *p);
 void	 _dprintf(const char *format, ...);
 
 #endif /* _UTIL_H_ */

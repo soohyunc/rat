@@ -238,6 +238,26 @@ typedef struct s_block {
  
 static block  *blocks[MAX_INDEX];
 static int     blocks_alloced;
+
+#ifdef DEBUG_MEM
+
+/* Block tracking for when things are going wrong */
+
+static struct iovec blk_out[1280];
+static int          nblks_out;
+
+static int
+get_blk_idx_from_ptr(char *addr)
+{
+        int i;
+        for(i = 0; i < nblks_out; i++) {
+                if (blk_out[i].iov_base == addr) {
+                        return i;
+                }
+        }
+        return -1;
+}
+#endif /* DEBUG_MEM */
  
 void *
 _block_alloc(unsigned int size, const char *filen, int line)
@@ -257,7 +277,7 @@ _block_alloc(unsigned int size, const char *filen, int line)
 	} else {
 #ifdef DEBUG_MEM
                 mem_item[naddr].blen = size;
-#endif
+#endif /* DEBUG_MEM */
 		p = (char *) _xmalloc(INDEX_TO_SIZE(i) + 8,filen,line);
 		*((int *)p) = INDEX_TO_SIZE(i);
 		p += 8;
@@ -267,6 +287,12 @@ _block_alloc(unsigned int size, const char *filen, int line)
 	if (size > *c) {
 		fprintf(stderr, "block_alloc: block is too small %d %d!\n", size, *c);
 	}
+#ifdef DEBUG_MEM
+        blk_out[nblks_out].iov_base = (char*)c;
+        blk_out[nblks_out].iov_len  = size;
+        debug_msg("Allocating (addr 0x%x, %d bytes).\n", (int)c, size);
+        nblks_out++;
+#endif /* DEBUG_MEM */
 	c++;
 	*c = size;
 	assert(p != NULL);
@@ -274,11 +300,12 @@ _block_alloc(unsigned int size, const char *filen, int line)
 }
 
 void
-block_trash_chk()
+block_trash_check()
 {
 #ifdef DEBUG_MEM
-        int i,n;
+        int i,n,*c;
         block *b;
+
         for(i = 0; i<MAX_INDEX;i++) {
                 b = blocks[i];
                 n = 0;
@@ -287,7 +314,24 @@ block_trash_chk()
                         assert(n++ < blocks_alloced);
                 }
         }
-#endif
+        for (i = 0; i<nblks_out; i++) {
+                c = (int*)blk_out[i].iov_base;
+                c++;
+                assert((unsigned int)*c == blk_out[i].iov_len);
+        }
+#endif  /* DEBUG_MEM */
+}
+
+void
+block_check(char *p)
+{
+#ifdef DEBUG_MEM
+        char *blk_base;
+        assert(p!=NULL);
+        blk_base = p-8;
+        assert(get_blk_idx_from_ptr(blk_base) != -1);
+#endif /* DEBUG_MEM */
+        UNUSED(p);
 }
  
 void
@@ -301,6 +345,18 @@ _block_free(void *p, int size, int line)
         UNUSED(line);
 
 	c = (int *)((char *)p - 8);
+
+#ifdef DEBUG_MEM
+        /* Just check this block was actually allocated with block_alloc */
+        debug_msg("Freeing block (addr 0x%x, %d bytes).\n", (int)c, *(c+1));
+        n = get_blk_idx_from_ptr((char*)c);
+        if (n == -1) {
+                debug_msg("Freeing block (addr 0x%x, %d bytes) that was not allocated with block_alloc(?)\n", (int)c, *(c+1));
+                xfree(c);
+                assert(n != -1);
+        }
+#endif
+
 	if (size > *c) {
 		fprintf(stderr, "block_free: block was too small! %d %d\n", size, *c);
 	}
@@ -325,10 +381,16 @@ _block_free(void *p, int size, int line)
         if (i >= 4) {
                 *((int*)p+1) = line;
         }
-#endif
+#endif /* DEBUG */
 	((block *)p)->next = blocks[i];
 	blocks[i] = (block *)p;
-        block_trash_chk();
+#ifdef DEBUG_MEM
+        c--;
+        i = get_blk_idx_from_ptr((char*)c);
+        assert(i != -1);
+        memmove(blk_out+i, blk_out + i + 1, sizeof(struct iovec) * (nblks_out - i)); 
+        nblks_out --;
+#endif /* DEBUG_MEM */
 }
 
 void
