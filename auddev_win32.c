@@ -1,9 +1,8 @@
 /*
 * FILE:	auddev_win32.c
 *
-* Win32 audio interface for RAT.
-*
 * Written by Orion Hodson and Isidor Kouvelas
+*
 * Some portions based on the VAT Win95 port by John Brezak.
 *
 * $Id$
@@ -38,15 +37,6 @@ extern int  thread_pri;
 static int  nLoopGain = 100;
 #define     MAX_DEV_NAME 64
 
-/* 
-* Mixer Code (C) 1998-99 Orion Hodson.
-*
-* no thanks to the person who wrote the microsoft documentation 
-* (circular and information starved) for the mixer, or the folks 
-* who conceived the api in the first place.  Some of the api works,
-* some doesn't.  Too bad documentation does not highlight this. Grrr!
-*/
-
 /* mcd_elem_t is a node used to store control state so 
  * we can restore mixer controls when device closes.
  */
@@ -70,6 +60,8 @@ static DWORD    dwRecLineID, dwVolLineID;
 static audio_port_details_t *input_ports, *loop_ports;
 static int                   n_input_ports, n_loop_ports;
 static int iport; /* Current input port */
+
+/* DEBUGGING FUNCTIONS ******************************************************/
 
 static const char *
 mixGetErrorText(MMRESULT mmr)
@@ -168,6 +160,10 @@ mixerDumpLineInfo(HMIXEROBJ hMix, DWORD dwLineID)
         }
         xfree(pmc);
 }
+
+/* CODE FOR SAVING CONTROL STATES WHEN CLAIMING DEVICE, SO WE CAN RESTORE THE 
+ * CONFIG WHEN WE RELEASE THE DEVICE.  CAN BE VERY DISCONCERTING FOR USERS 
+ * OTHERWISE *************************/
 
 int
 mcd_elem_add_control(mcd_elem_t **pplist, MIXERCONTROLDETAILS *pmcd)
@@ -322,6 +318,20 @@ mixSaveControls(UINT uMix, mcd_elem_t **pplist)
         }
 }
 
+/* CODE FOR CONTROLLING INPUT AND OUTPUT (LOOPBACK) LINES *******************
+ * NOTE: the control of input lines and output lines is slightly different
+ * because most card manufacturers put the volume and mute controls for output
+ * as controls on the same output line.  The selection of the input lines is
+ * controlled on the MUX control actually on the recording source, and the
+ * volume control is on a line for the the input port.  To match the input 
+ * select and the volume control we use the name of the line the volume
+ * control is assigned to, and this ties in with the names on the MUX.  This
+ * seems to be the only sensible way to correlate the two and IT ISN'T IN
+ * THE MSDN LIBRARY documentation.  I wasted a fair amount of time, trying
+ * to match the name of the volume control and names in the MUX list, and
+ * got this to work for all but one card.
+ */
+
 /* mixGetInputInfo - attempt to find corresponding wavein index
 * for mixer uMix and corresponding destination line of mixer.  
 * Returns TRUE if successful.
@@ -370,9 +380,9 @@ int mixGetInputInfo(UINT uMix, UINT *puWavIn, DWORD *pdwLineID)
 }
 
 /* mixGetOutputInfo - attempt to find corresponding waveout index
-* and corresponding destination line of mixer.  Returns TRUE if
-* successful.
-*/
+ * and corresponding destination line of mixer.  Returns TRUE if
+ * successful.
+ */
 int 
 mixGetOutputInfo(UINT uMix, UINT *puWavOut, DWORD *pdwLineID)
 {
@@ -436,7 +446,6 @@ mixerEnableInputLine(HMIXEROBJ hMix, char *portname)
         MIXERLINE ml;
         MMRESULT  mmr;
         UINT      i, matchLine;
-        int       score, matchScore;
         
         ml.cbStruct = sizeof(ml);
         ml.dwLineID = dwRecLineID;
@@ -471,16 +480,12 @@ mixerEnableInputLine(HMIXEROBJ hMix, char *portname)
         mcd.paDetails = mcdlText;
         mcd.cbDetails = sizeof(MIXERCONTROLDETAILS_LISTTEXT);
         mmr = mixerGetControlDetails(hMix, &mcd, MIXER_GETCONTROLDETAILSF_LISTTEXT | MIXER_OBJECTF_MIXER);
-        matchLine  = 0;
-        matchScore = 0;
-        /* Annoyingly enough the names of the mute controls do not exactly correspond
-         * to the names of the volume sliders.  So we look for most overlapping words.
-         */
+        
+        matchLine = 0;
         for(i = 0; i < mcd.cMultipleItems; i++) {
-                score = overlapping_words(mcdlText[i].szName, portname, 3);
-                if (score > matchScore) {
-                        matchLine  = i;
-                        matchScore = score;
+                if (!strcmp(mcdlText[i].szName, portname)) {
+                        matchLine = i;
+                        break;
                 }
         }
         xfree(mcdlText);
@@ -648,6 +653,7 @@ mixerGetLineGain(HMIXEROBJ hMix, DWORD dwLineID)
 static int
 mixerGetLineName(HMIXEROBJ hMix, DWORD dwLineID, char *szName, UINT uLen)
 {
+        MIXERLINE           ml;
         MIXERLINECONTROLS   mlc;
         MIXERCONTROL        mc;
         MMRESULT            mmr;
@@ -657,16 +663,22 @@ mixerGetLineName(HMIXEROBJ hMix, DWORD dwLineID, char *szName, UINT uLen)
         mlc.cbmxctrl      = sizeof(MIXERCONTROL);
         mlc.dwLineID      = dwLineID;
         mlc.dwControlType = MIXERCONTROL_CONTROLTYPE_VOLUME;
-        
+/*        
         mmr = mixerGetLineControls(hMix, &mlc, MIXER_GETLINECONTROLSF_ONEBYTYPE | MIXER_OBJECTF_HMIXER);
         if (mmr != MMSYSERR_NOERROR) {
                 debug_msg("Could not find volume control for line 0x%08x: %s\n", dwLineID, mixGetErrorText(mmr));
                 return FALSE;        
         }
-
-        debug_msg("\"%s\", \"%s\"\n", mc.szName, mc.szShortName);
-
-        strncpy(szName, mc.szName, uLen);
+*/
+        memset(&ml,0, sizeof(MIXERLINE));
+        ml.cbStruct = sizeof(MIXERLINE);
+        ml.dwLineID = dwLineID;
+        mmr = mixerGetLineInfo(hMix, &ml, MIXER_GETLINEINFOF_LINEID);
+        if (mmr != MMSYSERR_NOERROR) {
+                debug_msg("poo");
+        }
+        debug_msg("line name %s\n", ml.szName);
+        strncpy(szName, ml.szName, uLen);
         return TRUE;
 }
 
@@ -714,7 +726,7 @@ mixQueryControls(HMIXEROBJ hMix, DWORD dwLineID, audio_port_details_t** ppapd)
                         xfree(papd);
                         return 0;
                 }
-                strncpy(papd[i].name, mlc.szShortName, AUDIO_PORT_NAME_LENGTH);
+                strncpy(papd[i].name, mlc.szName, AUDIO_PORT_NAME_LENGTH);
                 papd[i].port = mlc.dwLineID;
         }
         
