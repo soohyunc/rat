@@ -203,6 +203,7 @@ static timestamp_t skew_thresh;    /* Significant size b4 consider playout adapt
 static timestamp_t skew_limit;     /* Upper bound, otherwise clock reset.           */
 static timestamp_t transit_reset;  /* Period after which new transit time taken     */
         	                   /* if source has been quiet.                     */
+static timestamp_t transit_jump;   /* If transit delta is bigger than this reset    */
 static timestamp_t spike_jump;     /* Packet spike delay threshold (trigger).       */
 static timestamp_t spike_end;      /* Value of var when spike over                  */
 static timestamp_t repair_max_gap; /* Maximum stream gap repair is attempted for.   */
@@ -219,6 +220,7 @@ time_constants_init()
         skew_thresh    = ts_map32(8000, 320);
         skew_limit     = ts_map32(8000, 4000);
         transit_reset  = ts_map32(8000, 80000);
+	transit_jump   = ts_map32(8000, 12000);
         spike_jump     = ts_map32(8000, 3000); 
         spike_end      = ts_map32(8000, 64);
         repair_max_gap = ts_map32(8000, 1600); /* 200ms */
@@ -784,10 +786,12 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
                 src_ts = ts_seq32_in(&e->seq, e->sample_rate, p->ts);
                 transit = ts_sub(now, src_ts);
 
-		if (src->packets_done == 0) {
+		if (src->packets_done == 0  || ts_gt(ts_abs_diff(transit, e->transit), transit_jump)) {
 			/* Need a fresh transit estimate */
+			debug_msg("transit_reset (big transit jump %d)\n", src->packets_done != 0);
 			e->transit = e->last_transit = e->last_last_transit = transit;
 			e->avg_transit = transit;
+			adjust_playout = TRUE;
 		}
 
 		/* Check neither we nor source has changed sampling rate */
