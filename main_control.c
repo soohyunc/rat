@@ -441,6 +441,7 @@ sigchld_handler(int signal)
         /* Child has terminated or stopped.  Try to shutdown nicely... */
         debug_msg("Caught signal SIGCHLD: %d\n", signal);
         should_exit = TRUE;
+	wait(NULL);	/* Buffy, the zombie slayer... */
 }
 
 #else
