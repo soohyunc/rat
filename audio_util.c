@@ -175,23 +175,28 @@ audio_mix_mmx(sample *dst, sample *src, int len)
         int tmp, endq, i;
 
         /* The end of where we can do quad sample addition */
-        endq  = ((len * sizeof(short)) / 4) * 4;
-
-        __asm {
-                mov esi, 0
-                mov eax, dst
-                mov ebx, src
-                jmp START_L1
-LOOP_L1:
-                add esi, 8
-START_L1:
-                movq   mm0, [eax + esi]
-                paddsw mm0, [ebx + esi]
-                movq [eax + esi], mm0
-                cmp             esi, endq
-                jb              LOOP_L1 
-                emms
-        }
+        endq  = ((len * sizeof(short)) / 8 - 1) * 8 ;
+	if (endq > 0) {
+	/* Order of these instructions is crucial for performance */
+		__asm {
+			mov esi, 0
+			mov eax, dst
+			mov ebx, src
+			jmp START
+LOOP_L1:        
+			add    esi, 8
+START:
+			movq   mm0, [eax + esi]
+			paddsw mm0, [ebx + esi]
+			movq  [eax + esi], mm0
+			cmp    esi, endq
+			jb     LOOP_L1 
+			emms
+		}
+		endq += 8;
+	} else {
+		endq = 0;
+	}
 
         for (i = endq / 2; i < len; i++) {
                 tmp = src[i] + dst[i];

@@ -1225,6 +1225,7 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	- Clean up and fix controller command line parsing.
 	- Remove timers.[ch] to give a single internal representation of time.
 	- Add creation time to mix_create and remove mixer re-sync function.
+	- Fix MMX mix bounds calculation.
 
 TODO -- They're features not bugs dammit!
 ----
