@@ -277,8 +277,9 @@ static channel_data *
 redundancy_encoder_output(red_enc_state *re, u_int32 upp)
 {
         struct s_pb_iterator *pbm;
-        channel_data *cd_part, *cd_out;
-        u_int32       i, units, lidx;
+        channel_data *cd_coded, *cd_ready, *cd_out;
+        u_char *u;
+        u_int32       i, units, lidx, data_idx, nhdr, len;
 
         pbm = re->media_pos;
         pb_iterator_ffwd(pbm);
@@ -288,64 +289,92 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
                 pb_iterator_retreat(pbm);
         }
 
-        channel_data_create(&cd_part, 0);
+        channel_data_create(&cd_coded, 0);
 
         for(lidx = 0; lidx < re->n_layers; lidx++) {
                 for(i = 0; i < re->layer[lidx].pkts_off * upp; i++) {
                         pb_iterator_retreat(pbm);
                 }
-                units = make_pdu(re->media_buffer, pbm, re->layer[lidx].cid, cd_part, upp);
+                units = make_pdu(re->media_buffer, pbm, re->layer[lidx].cid, cd_coded, upp);
                 if (units == 0) break;
                 assert(units == upp);
         }
 
         assert(lidx != 0);
 
-        /* cd_part contains pdu's for layer 0, layer 1, layer 2... in
-         * ascending order Now fill cd_out with pdu's with headers in
+        /* cd_coded contains pdu's for layer 0, layer 1, layer 2... in
+         * ascending order Now fill cd_ready with pdu's with headers in
          * protocol order layer n, n-1, .. 1.  Note we must transfer
-         * pointers from cd_part to cd_out and make pointers in
-         * cd_part null because channel_data_destroy will free the
-         * channel units referred to by cd_part. 
+         * pointers from cd_coded to cd_ready and make pointers in
+         * cd_coded null because channel_data_destroy will free the
+         * channel units referred to by cd_coded. 
          */
         
-        channel_data_create(&cd_out, 0);
+        channel_data_create(&cd_ready, 0);
 
         if (lidx != re->n_layers) {
                 /* Put maximum offset info if not present in the packet */
-                add_hdr(cd_out, RED_EXTRA, 
+                add_hdr(cd_ready, RED_EXTRA, 
                         re->layer[re->n_layers - 1].cid, 
                         re->layer[re->n_layers - 1].pkts_off * upp,
                         0);
         }
 
         /* Slot in redundant payloads and their headers */
-        while(lidx != 0) {
-                add_hdr(cd_out, RED_EXTRA,
+        nhdr     = lidx + cd_ready->nelem;
+        data_idx = lidx;
+        while(--lidx) {
+                add_hdr(cd_ready, RED_EXTRA,
                         re->layer[lidx].cid,
                         re->layer[lidx].pkts_off * upp,
-                        cd_part->elem[lidx]->data_len);
-                cd_out->elem[cd_out->nelem] = cd_part->elem[lidx];
-                cd_out->nelem ++;
-                cd_part->elem[lidx] = NULL;
+                        cd_coded->elem[lidx]->data_len);
+                cd_ready->elem[data_idx] = cd_coded->elem[lidx];
+                cd_coded->elem[lidx] = NULL;
+                data_idx++;
         }
 
         /* Now the primary and it's header */
-        add_hdr(cd_out, RED_PRIMARY,
+        add_hdr(cd_ready, RED_PRIMARY,
                 re->layer[lidx].cid,
                 re->layer[lidx].pkts_off * upp,
-                cd_part->elem[lidx]->data_len);
-        cd_out->elem[cd_out->nelem] = cd_part->elem[lidx];
-        cd_out->nelem++;
-        cd_part->elem[lidx] = NULL;
+                cd_coded->elem[lidx]->data_len);
+        cd_ready->elem[data_idx] = cd_coded->elem[lidx];
+        cd_coded->elem[lidx] = NULL;
+        data_idx++;
+        cd_ready->nelem = data_idx;
 
 #ifndef NDEBUG
-        for(i = 0; i < cd_part->nelem; i++) {
-                assert(cd_part->elem[i] == NULL);
+        for(i = 0; i < cd_coded->nelem; i++) {
+                assert(cd_coded->elem[i] == NULL);
         }
 #endif
-        cd_part->nelem = 0;
-        channel_data_destroy(&cd_part, sizeof(channel_data));
+        cd_coded->nelem = 0;
+        channel_data_destroy(&cd_coded, sizeof(channel_data));
+
+        /* Need to amalgamate data into one block since we want to
+         * free headers and keep data.
+         */
+
+        len = 0;
+        for(i = 0; i < cd_ready->nelem; i++) {
+                len += cd_ready->elem[i]->data_len;
+        }        
+
+        channel_data_create(&cd_out, 1);
+        cd_out->elem[0]->data     = (u_char*)block_alloc(len);
+        cd_out->elem[0]->data_len = len;   
+        u = cd_out->elem[0]->data;
+
+        for(i = 0; i < cd_ready->nelem; i++) {
+                memcpy(u, cd_ready->elem[i]->data, cd_ready->elem[i]->data_len);
+                u += cd_ready->elem[i]->data_len;
+                if (i >= nhdr) {
+                        cd_ready->elem[i]->data     = NULL;
+                        cd_ready->elem[i]->data_len = 0;
+                }
+        }
+        xmemchk();
+        channel_data_destroy(&cd_out, sizeof(channel_data));
 
         return cd_out;
 }
