@@ -734,6 +734,29 @@ mixQueryControls(HMIXEROBJ hMix, DWORD dwLineID, audio_port_details_t** ppapd)
         return (int)mlt.cConnections;
 }
 
+/* XXX make_microphone_first_port is a hack to make microphone 
+ * the first (default) port.  Of course this only works for
+ * english language drivers...
+ */
+
+static int
+make_microphone_first_port(audio_port_details_t *ports, int n_ports)
+{
+        audio_port_details_t tmp;
+        int i;
+        
+        for(i = 1; i < n_ports; i++) {
+                if (!strncasecmp("mic", ports[i].name, 3)) {
+                        memcpy(&tmp, ports + i, sizeof(tmp));
+                        memcpy(ports + i , ports, sizeof(ports[0]));
+                        memcpy(ports, &tmp, sizeof(ports[0]));
+                        return TRUE;
+                }
+        }
+
+        return FALSE;
+}
+
 static int 
 mixSetup(UINT uMixer)
 {
@@ -771,6 +794,8 @@ mixSetup(UINT uMixer)
                 return FALSE;
         }
         
+        make_microphone_first_port(input_ports, n_input_ports);
+
         if (loop_ports != NULL) {
                 xfree(loop_ports);
                 loop_ports   = NULL;
