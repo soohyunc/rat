@@ -22,10 +22,18 @@
 
 #include "config.h"
 
-#include <limits.h>
-#include <sys/time.h>
-#include <sys/resource.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
 
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+
+#include <limits.h>
 #include <pwd.h>
 #include <signal.h>
 #include <ctype.h>
@@ -58,32 +66,31 @@
 #include <sys/sockio.h>
 #endif
 
-#ifdef HAVE_INTTYPES_H
-#include <inttypes.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <netinet/in.h>
-#include <sys/time.h>
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+
+#ifdef GETTOD_NOT_DECLARED
+int gettimeofday(struct timeval *tp, void * );
+#endif
+
+#ifdef KILL_NOT_DECLARED
+int kill(pid_t pid, int sig);
+#endif
+
 extern int h_errno;
 
-#include <net/if.h>
-
 typedef unsigned char	byte;
-
 typedef char	ttl_t;
 typedef int	fd_t;
 
@@ -118,13 +125,6 @@ typedef int	fd_t;
 #include <multimedia/audio_encode.h>
 #include <multimedia/audio_hdr.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-int gettimeofday(struct timeval *tp, void * );
-#ifdef __cplusplus
-}
-#endif
 #endif
 
 #ifdef SunOS

@@ -26,6 +26,12 @@
  */
 #undef NEED_USLEEP
 
+/* 
+ * Missing declarations
+ */
+#undef GETTOD_NOT_DECLARED
+#undef KILL_NOT_DECLARED
+
 /*
  * If you don't have these types in <inttypes.h>, #define these to be
  * the types you do have.

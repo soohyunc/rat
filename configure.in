@@ -25,11 +25,18 @@ AC_SUBST(OSTYPE)
 AC_CHECK_HEADERS(stdint.h inttypes.h stropts.h sys/filio.h malloc.h bstring.h)
 AC_CHECK_HEADERS(sys/sockio.h)
 
-AC_MSG_CHECKING(kill in signal.h)
+# Check for missing declarations
+AC_MSG_CHECKING([for kill declaration])
 AC_EGREP_CPP(kill, [#include <signal.h>],
-	AC_MSG_RESULT(yes),
-	AC_MSG_RESULT(no)
-)
+	AC_MSG_RESULT(present), [
+	AC_MSG_RESULT(missing)
+	AC_DEFINE(KILL_NOT_DECLARED)
+])
+AC_MSG_CHECKING([for gettimeofday declaration])
+AC_EGREP_HEADER(gettimeofday, sys/time.h, AC_MSG_RESULT(present), [
+    AC_MSG_RESULT(missing)
+    AC_DEFINE(GETTOD_NOT_DECLARED)
+])
 
 # Check for libraries                                                       
 AC_SEARCH_LIBS(socket, socket)
@@ -135,6 +142,7 @@ case "$target" in
 	;;
 *linux*)
 	AU_OBJ="$AU_OBJ auddev_oss.o"
+	AU_INC="/usr/include/sys"
 	AC_DEFINE(HAVE_OSS_AUDIO)
 	;;
 *freebsd*)
@@ -193,8 +201,7 @@ do
 done
 
 AC_CHECK_HEADER(${TCL_INC}/tcl.h,
-	[TCL_INC=-I${TCL_INC}
-	 break],
+	TCL_INC=-I${TCL_INC},
 	TCL_INC=no)
 
 if test "$TCL_INC" = no 

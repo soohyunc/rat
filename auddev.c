@@ -13,12 +13,12 @@ M/*
 
 #include "config_unix.h"
 #include "config_win32.h"
+
 #include "memory.h"
 #include "debug.h"
 #include "audio_types.h"
 #include "audio_fmt.h"
 #include "auddev.h"
-
 #include "auddev_null.h"
 #include "auddev_luigi.h"
 #include "auddev_osprey.h"
@@ -265,9 +265,7 @@ audio_if_t audio_if_table[] = {
                 luigi_audio_wait_for,
                 luigi_audio_supports
         },
-
 #endif /* HAVE_LUIGI_AUDIO */
-
 #ifdef HAVE_PCA_AUDIO
         {
                 pca_audio_init,
@@ -1132,4 +1130,3 @@ audio_free_interfaces(void)
 
         return TRUE;
 }
-

@@ -31,7 +31,9 @@ EXTERNAL_DEP = @EXTERNAL_DEP@
 
 # Nothing below here set by configure #########################################
 
-AUDIO_OBJS   = $(AU_OBJ) auddev.o auddev_null.o audio_fmt.o audio_util.o auddev_trans.o
+AUDIO_OBJS   = $(AU_OBJ) auddev_null.o audio_fmt.o audio_util.o \
+               auddev_trans.o auddev.o
+
 CODEC_OBJS   = codec.o codec_state.o codec_dvi.o codec_gsm.o \
                codec_l16.o codec_g711.o codec_g726.o codec_lpc.o \
                codec_types.o codec_vdvi.o codec_wbs.o cx_dvi.o \
@@ -41,10 +43,13 @@ CODEC_OBJS   = codec.o codec_state.o codec_dvi.o codec_gsm.o \
                convert_sinc.o bitstream.o
 
 SNDFILE_OBJS = sndfile.o sndfile_au.o sndfile_raw.o sndfile_wav.o
+
 MEDIALIBS    = libuclaudio.a libuclcodec.a libuclsndfile.a 
 
 CHANNEL_OBJS = channel.o channel_types.o cc_vanilla.o cc_rdncy.o cc_layered.o
+
 TOY_OBJS     = render_3D.o repair.o 
+
 CORE_OBJS    = ts.o playout.o net.o source.o session.o \
                mbus_engine.o audio.o cushion.o mix.o \
                parameters.o timers.o transmit.o playout_calc.o \
@@ -52,12 +57,16 @@ CORE_OBJS    = ts.o playout.o net.o source.o session.o \
                pdb.o pktbuf.o $(EXTRA_OBJ)
 
 UI_OBJS      = tcltk.o mbus_ui.o main_ui.o
+
 CTRL_OBJS    = main_control.o mbus_control.o
+
 TCL_OBJS     = ui_audiotool.o ui_transcoder.o
+
 TCL_SRCS     = $(TCL_OBJS:%.o=%.c)
 
-ALL_OBJS     = $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) $(TOY_OBJS)\
-	       $(CORE_OBJS) $(UI_OBJS) $(CTRL_OBJS)
+ALL_OBJS     = $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) \
+               $(TOY_OBJS) $(CORE_OBJS) $(UI_OBJS) $(CTRL_OBJS)
+
 ALL_SRCS     = $(ALL_OBJS:%.o=%.c)
 
 all: version.h sdr2.plugin.S02.audio.rtp.-.rat-$(VERSION) rat-$(VERSION).spec $(RATVER) $(RATVER)-ui $(RATVER)-media
