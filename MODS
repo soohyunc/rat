@@ -1009,6 +1009,7 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	  send with TTL=15, making it useless for wide area.
 	- Fix assertion failures in source.c
 	- Cleanup code for updating SDES items in the UI
+	- Remove core files & directories on "make distclean"
 
 
 TODO -- They're features not bugs dammit!

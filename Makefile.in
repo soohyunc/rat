@@ -133,6 +133,7 @@ clean:
 
 distclean: clean
 	-rm -rf config.cache config.log config.status config.h Makefile
+	-rm -rf core core-$(RATVER)-media core-$(RATVER)-ui
 
 etags:
 	etags ../common/*.[ch] *.[ch]
