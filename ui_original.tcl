@@ -182,12 +182,8 @@ proc cb_recv_redundancy {args} {
 }
 
 proc cb_recv_repair {args} {
+  global repair_var
   set repair_var $args
-}
-
-proc cb_recv_repair {val} {
-	global repair_val
-	set repair_val $val
 }
 
 proc cb_recv_powermeter {type level} {
@@ -220,6 +216,7 @@ proc cb_recv_output {cmd args} {
 }
 
 proc cb_recv_half_duplex {} {
+	global output_var
 	set output_var {Mike mutes net}
   	mbus_send "R" "output" "mode [mbus_encode_str $output_var]"
 }
@@ -236,10 +233,12 @@ proc cb_recv_address {addr port ttl} {
 }
 
 proc cb_recv_lecture_mode {mode} {
+	global lecture_var
 	set lecture_var $mode
 }
 
 proc cb_recv_detect_silence {mode} {
+	global silence_var
 	set silence_var $mode
 }
 
