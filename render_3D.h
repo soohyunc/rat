@@ -45,7 +45,6 @@
 
 #include <math.h>
 #include "codec_types.h"
-struct rx_element_tag;
 struct s_render_3D_dbentry;
 
 int render_3D_filter_get_count(void);

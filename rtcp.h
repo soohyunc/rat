@@ -44,11 +44,14 @@
 #define _service_rtcp_h_
 
 struct session_tag;
-struct pckt_queue_tag;
+struct s_pckt_queue;
 
 char	*get_cname(void);
 u_int32  get_ssrc(void);
 
-void 	 service_rtcp(struct session_tag *sp, struct session_tag *sp2, struct s_pckt_queue *rtcp_pcktt_queue, u_int32 cur_time, u_int32 real_time);
+void 	 service_rtcp(struct session_tag *sp, 
+                      struct session_tag *sp2, 
+                      struct s_pckt_queue *rtcp_pckt_queue, 
+                      u_int32 cur_time, u_int32 real_time);
 
 #endif /* _service_rtcp_h_ */

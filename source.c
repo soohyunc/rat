@@ -40,7 +40,6 @@
 #include "config_win32.h"
 
 #include "playout.h"
-#include "source.h"
 
 #include "new_channel.h"
 #include "channel_types.h"
@@ -48,10 +47,23 @@
 #include "codec.h"
 #include "codec_state.h"
 #include "convert.h"
+#include "render_3D.h"
 #include "timers.h"
+
+#include "source.h"
 
 #include "debug.h"
 #include "util.h"
+
+/* And we include all of the below just so we can get at
+ * the render_3d_data field of the rtcp_dbentry for the source!
+ */
+#include "net_udp.h"
+#include "rtcp.h"
+#include "rtcp_pckt.h"
+#include "rtcp_db.h"
+
+void mix_add_audio(struct s_rtcp_dbentry*,coded_unit *,u_int32);
 
 typedef struct s_source {
         struct s_source            *next;
@@ -63,6 +75,7 @@ typedef struct s_source {
         struct s_codec_state_store *codec_states;
         struct s_playout_buffer    *channel;
         struct s_playout_buffer    *media;
+        struct s_converter         *converter;
 } source;
 
 /* A linked list is used for sources and this is fine since we mostly
@@ -147,7 +160,11 @@ source_get(source_list *plist, struct s_rtcp_dbentry *dbe)
 }
 
 source*
-source_create(source_list *plist, struct s_rtcp_dbentry *dbe)
+source_create(source_list    *plist, 
+              rtcp_dbentry   *dbe,
+              converter_id_t  conv_id,
+              u_int16         out_rate,
+              u_int16         out_channels)
 {
         source *psrc;
         int     success;
@@ -160,6 +177,7 @@ source_create(source_list *plist, struct s_rtcp_dbentry *dbe)
         
         if (psrc == NULL) return NULL;
 
+        memset(psrc, 0, sizeof(source));
         psrc->dbe           = dbe;
         psrc->channel_state = NULL;        
 
@@ -167,6 +185,7 @@ source_create(source_list *plist, struct s_rtcp_dbentry *dbe)
         success = playout_buffer_create(&psrc->channel,
                                         (playoutfreeproc)channel_data_destroy,
                                         0);
+
         if (!success) {
                 debug_msg("Failed to allocate channel buffer\n");
                 block_free(psrc, sizeof(source));
@@ -195,12 +214,15 @@ source_create(source_list *plist, struct s_rtcp_dbentry *dbe)
                 return NULL;
         }
 
-        /* List maintenance */
+        /* List maintenance    */
         psrc->next = plist->sentinel.next;
         psrc->prev = &plist->sentinel;
         psrc->next->prev = psrc;
         psrc->prev->next = psrc;
         plist->nsrcs++;
+
+        /* Configure converter */
+        source_reconfigure(psrc, conv_id, out_rate, out_channels);
 
         return psrc;
 }
@@ -293,8 +315,7 @@ source_process(source *src, u_int32 now)
         media_data  *md;
         coded_unit  *cu;
         codec_state *cs;
-        u_int32     playout, md_len, curr_frame;
-        int         i;
+        u_int32     playout, md_len;
 
         /* Split channel coder units up into media units */
         channel_decoder_decode(src->channel_state,
@@ -342,7 +363,8 @@ source_process(source *src, u_int32 now)
                         assert(cu != NULL);
                         memset(cu, 0, sizeof(coded_unit));
                         cs = codec_state_store_get(src->codec_states, md->rep[0]->id);
-                        codec_decoder_decode(cs, md->rep[0], cu);
+                        codec_decode(cs, md->rep[0], cu);
+                        xmemchk();
                         md->rep[md->nrep] = cu;
                         md->nrep++;
                 }
@@ -364,12 +386,29 @@ source_process(source *src, u_int32 now)
 
                 if (src->converter) {
                         /* convert frame */
-                        
+                        coded_unit *decoded, *render;
+                        decoded = md->rep[md->nrep - 1];
+                        assert(codec_is_native_coding(decoded->id));
+
+                        render = (coded_unit*)block_alloc(sizeof(coded_unit));
+                        memset(render, 0, sizeof(coded_unit));
+                        converter_process(src->converter,
+                                          decoded,
+                                          render);
+                        xmemchk();
+                        md->rep[md->nrep] = render;
+                        md->nrep++;
                 }
 
                 /* write to mixer */
 
+                cu = md->rep[md->nrep - 1];
+                assert(codec_is_native_coding(cu->id));
+                mix_add_audio(src->dbe, cu, playout);
         }
+
+        /* Get rid of stale data */
+        playout_buffer_audit(src->media);
 
         src->age++;
         src->last_played = now;

@@ -56,7 +56,15 @@ struct s_source* source_get (struct s_source_list  *list,
                              struct s_rtcp_dbentry *dbe);
 
 struct s_source* source_create (struct s_source_list  *list, 
-                                struct s_rtcp_dbentry *dbe);
+                                struct s_rtcp_dbentry *dbe,
+                                converter_id_t current_id,
+                                u_int16 out_rate,
+                                u_int16 out_channels);
+
+void             source_reconfigure(struct s_source* src,
+                                    converter_id_t   current_id,
+                                    u_int16          out_rate,
+                                    u_int16          out_channels);
 
 void             source_remove         (struct s_source_list *list,
                                         struct s_source      *src);
