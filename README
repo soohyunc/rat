@@ -1,13 +1,42 @@
 
 Robust-Audio Tool (RAT)
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Further information, and a list of frequently asked questions (with
 answers) is available from http://www-mice.cs.ucl.ac.uk/mice/rat/
 
-Installation: If you're on a supported platform, type
-	./configure
-	make
-and hopefully things will work.
+Build instructions are given below.  The main dependency is on Tcl/Tk
+which is used for the user interface.  This is available from
+http://www.sunscript.com/software/download.  This version of RAT was
+developed with Tcl/Tk8.0p2, earlier versions may not work.
+
+Building RAT (UNIX)
+~~~~~~~~~~~~~~~~~~~
+
+1. Edit Makefile.in and add your local tcl/tk paths.
+
+2. Type, ./configure
+
+3. make
+
+Look at configure to see the various build options.
+
+Building RAT (WINDOWS)
+~~~~~~~~~~~~~~~~~~~~~~
+
+1. Edit the file rat.dsw and change all path references
+   of tcl and tk to your local installations.
+
+2. Open rat.dsw from the developer studio.
+
+3. Build the tcl2c sub-project.  You only need to do this the first time
+   you install the sources. 
+
+4. Next, you build rat, click Build->Build rat.exe.  
+
+
+Feedback
+~~~~~~~~
 
 Send comments, suggestions and bug-reports to rat-trap@cs.ucl.ac.uk
 
