@@ -575,7 +575,7 @@ oss_audio_query_devices(void)
                                         strncpy(dev_name[ndev], name_start, OSS_MAX_NAME_LEN);
                                         purge_chars(dev_name[ndev],"\n");
                                         ndev++;
-                                        debug_msg("OSS device found (%s)\n", name_start);
+                                        debug_msg("OSS device found: %s", name_start);
                                 } else {
                                         break;
                                 }
