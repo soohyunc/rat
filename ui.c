@@ -566,17 +566,11 @@ mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 
 #include "xbm/ucl.xbm"
 #include "xbm/mic.xbm"
-#include "xbm/mic_mute.xbm"
 #include "xbm/cd.xbm"
-#include "xbm/cd_mute.xbm"
 #include "xbm/speaker.xbm"
-#include "xbm/speaker_mute.xbm"
 #include "xbm/head.xbm"
-#include "xbm/head_mute.xbm"
 #include "xbm/line_out.xbm"
-#include "xbm/line_out_mute.xbm"
 #include "xbm/line_in.xbm"
-#include "xbm/line_in_mute.xbm"
 #include "xbm/rat_small.xbm"
 #include "xbm/rat_med.xbm"
 #include "xbm/rat2.xbm"
@@ -662,17 +656,11 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 #endif
 	Tk_DefineBitmap(interp, Tk_GetUid("ucl"), ucl_bits, ucl_width, ucl_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("microphone"), mic_bits, mic_width, mic_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("microphone_mute"), mic_mute_bits, mic_mute_width, mic_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("cd"), cd_bits, cd_width, cd_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("cd_mute"), cd_mute_bits, cd_mute_width, cd_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("speaker"), speaker_bits, speaker_width, speaker_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("speaker_mute"), speaker_mute_bits, speaker_mute_width, speaker_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("headphone"), head_bits, head_width, head_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("headphone_mute"), head_mute_bits, head_mute_width, head_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("line_out"), line_out_bits, line_out_width, line_out_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("line_out_mute"), line_out_mute_bits, line_out_mute_width, line_out_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("line_in"), line_in_bits, line_in_width, line_in_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("line_in_mute"), line_in_mute_bits, line_in_mute_width, line_in_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("rat_small"), rat_small_bits, rat_small_width, rat_small_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("rat_med"),   rat_med_bits, rat_med_width, rat_med_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("rat2"), rat2_bits, rat2_width, rat2_height);
