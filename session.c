@@ -154,8 +154,11 @@ session_init(session_struct *sp)
 	sp->out_file  			= NULL;
 	sp->rtp_seq			= lrand48() & 0xffff;
 	sp->speakers_active 		= NULL;
+	sp->mbus_engine_addr		= NULL;
 	sp->mbus_engine			= NULL;
+	sp->mbus_ui_addr		= NULL;
 	sp->mbus_ui			= NULL;
+	sp->mbus_video_addr		= "(media:video module:engine)";
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
         sp->last_depart_ts              = 1;

@@ -100,7 +100,9 @@ typedef struct session_tag {
 	struct s_speaker_table	*speakers_active;
 	char		*mbus_engine_addr;
 	struct mbus	*mbus_engine;
+	char		*mbus_ui_addr;
 	struct mbus	*mbus_ui;
+	char		*mbus_video_addr;
         ts_t             cur_ts; /* current device time as timestamp */
 	int		 loopback_gain;
 	u_int8		 layers; /* number of layers */
