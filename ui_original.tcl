@@ -349,7 +349,7 @@ proc mbus_recv_source_tool {cname tool} {
 	init_source $cname
 	set TOOL($cname) $tool
 	if {[string compare $cname $my_cname] == 0} {
-		.r.b.v configure -text $tool
+	    wm title . $tool
 	}
 	cname_update $cname
 }
@@ -1116,7 +1116,7 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "source_email" "$my_cname_enc [mbus_encode_str $rtcp_email]"
     mbus_send "R" "source_phone" "$my_cname_enc [mbus_encode_str $rtcp_phone]"
     mbus_send "R" "source_loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
-    #--- note!
+    #--- note to appear here!
     
     #transmission details
     mbus_send "R" "output_mode"  [mbus_encode_str $output_var]
