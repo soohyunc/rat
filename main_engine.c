@@ -143,7 +143,7 @@ static void rendezvous_with_controller(session_t *sp[2])
 		done = TRUE;
 		for (j = 0; j < num_sessions; j++) {
 			timeout.tv_sec  = 0;
-			timeout.tv_usec = 100000;
+			timeout.tv_usec = 10000;
 			mbus_send(sp[j]->mbus_engine); 
 			mbus_recv(sp[j]->mbus_engine, (void *) sp[j], &timeout);
 			mbus_heartbeat(sp[j]->mbus_engine, 1);
@@ -185,7 +185,7 @@ static void rendezvous_with_controller(session_t *sp[2])
 		done = TRUE;
 		for (i = 0; i < num_sessions; i++) {
 			timeout.tv_sec  = 0;
-			timeout.tv_usec = 100000;
+			timeout.tv_usec = 20000;
 			mbus_qmsgf(sp[i]->mbus_engine, c_addr, FALSE, "mbus.waiting", "%s", token_e[i]);
 			mbus_send(sp[i]->mbus_engine); 
 			mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
