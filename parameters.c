@@ -133,6 +133,7 @@ sd_reset(sd_t *s)
         s->cnt    = 0;
         s->tot    = 0;
         s->tot_sq = 0;
+        s->thresh = 0xffff;
 }
 
 void
@@ -144,24 +145,28 @@ sd_destroy(sd_t *s)
 int
 sd(sd_t *s, u_int16 energy)
 {
-        if (s->cnt > s->parole) {
-                return (energy < s->thresh);
-        } else if (s->cnt < s->parole) {
-                s->tot    += energy;
-                s->tot_sq += (energy * energy);
-        } else {
-                u_int32 m,stdd;
+        s->tot    += energy;
+        s->tot_sq += (energy * energy);
+
+        if (s->cnt == s->parole) {
+                u_int32 m,stdd,trial_thresh;
                 m  = s->tot / s->cnt;
                 stdd = (sqrt(abs(m * m - s->tot_sq / s->cnt)));
-                s->thresh = (m + 3*stdd);
-                dprintf("Mean %d std dev %d Threshold %d, last energy %d\n", 
-                        m, 
-                        stdd,
-                        s->thresh, 
-                        energy);
+                trial_thresh = (m + 3 * stdd);
+                if (trial_thresh < (unsigned)(2*s->thresh)) {
+                        s->thresh = trial_thresh;
+                        s->tot = s->tot_sq = 0;
+                        s->cnt = 0;
+                        dprintf("Mean %d std dev %d Threshold %d, last energy %d\n", 
+                                m, 
+                                stdd,
+                                s->thresh, 
+                                energy);
+                }
         }
+
         s->cnt++;
-        return 1;
+        return (energy < s->thresh);
 }
 
 typedef struct {
