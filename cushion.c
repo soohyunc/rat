@@ -162,7 +162,9 @@ cushion_update(cushion_t *c, uint32_t read_dur, int mode)
         c->cushion_estimate = min(lower,upper) * c->cushion_step;
         c->cushion_estimate = max(c->cushion_estimate, c->cushion_min);
 
+#ifdef DEBUG_CUSHION
         debug_msg("size % 3d cur % 3d\n", c->cushion_size, c->cushion_estimate);
+#endif /* DEBUG_CUSHION */
         assert(c->cushion_size     != 0);
         assert(c->cushion_estimate != 0);
 }
