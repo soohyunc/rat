@@ -45,7 +45,13 @@
 #define SKEW_ADAPT_THRESHOLD       5000
 #define SOURCE_YOUNG_AGE             20
 #define SOURCE_AUDIO_HISTORY_MS    1000
-#define NO_CONT_TOGED_FOR_PLAYOUT_RECALC 4
+#define NO_CONT_TOGED_FOR_PLAYOUT_RECALC 2
+
+#define SOURCE_COMPARE_WINDOW_SIZE 8
+/* Match threshold is mean abs diff. lower score gives less noise, but less  */
+/* adaption..., might be better if threshold adapted with how much extra     */
+/* data we have buffered...                                                  */
+#define MATCH_THRESHOLD 1200
 
 /* constants for skew adjustment:
  SOURCE_SKEW_SLOW - denotes source clock appears slower than ours.
@@ -191,7 +197,7 @@ time_constants_init()
         history_ts     = ts_map32(8000, 1000); 
         bw_avg_period  = ts_map32(8000, 8000);
         skew_thresh    = ts_map32(8000, 160);
-        skew_limit     = ts_map32(8000, 2000);
+        skew_limit     = ts_map32(8000, 4000);
         time_constants_inited = TRUE;
 }
 
@@ -761,12 +767,6 @@ source_get_bps(source *src)
 /* be played i.e. first few samples to determine how much audio can be       */
 /* dropped with causing glitch.                                              */
 
-#define SOURCE_COMPARE_WINDOW_SIZE 8
-/* Match threshold is mean abs diff. lower score gives less noise, but less  */
-/* adaption..., might be better if threshold adapted with how much extra     */
-/* data we have buffered...                                                  */
-#define MATCH_THRESHOLD 1000
-
 static ts_t
 recommend_drop_dur(media_data *md) 
 {
@@ -807,6 +807,7 @@ recommend_drop_dur(media_data *md)
                 debug_msg("match score %d, drop dur %d\n", lowest_score/SOURCE_COMPARE_WINDOW_SIZE, lowest_begin);
                 return ts_map32(rate, lowest_begin);
         } else {
+                debug_msg("Score %d > Thresh %d\n", lowest_score/SOURCE_COMPARE_WINDOW_SIZE, MATCH_THRESHOLD);
                 return zero_ts;
         }
 }
@@ -869,7 +870,7 @@ source_check_buffering(source *src)
         desired = source_get_playout_delay(src);
         diff    = ts_abs_diff(actual, desired);
 
-        if (ts_gt(diff, skew_thresh) && ts_gt(skew_limit, diff)) {
+        if (ts_gt(diff, skew_thresh)) {
                 src->skew_adjust = diff;
                 if (ts_gt(actual, desired)) {
                         /* We're accumulating audio, their clock faster   */
@@ -930,11 +931,20 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                  * otherwise we might discard something we have not
                  * classified.  */
 
-                adjustment = recommend_drop_dur(md); 
+                if (ts_gt(skew_limit, src->skew_adjust)) {
+                        adjustment = recommend_drop_dur(md); 
+                } else {
+                        /* Things are really skewed.  We're more than        */
+                        /* skew_limit off of where we ought to be.  Just     */
+                        /* drop a frame and don't worry.                     */
+                        debug_msg("Dropping Frame\n");
+                        adjustment = ts_div(src->pdbe->frame_dur, 2);
+                }
+
                 if (ts_gt(adjustment, src->skew_adjust) || adjustment.ticks == 0) {
-                        /* adjustment needed is greater than adjustment period
-                         * that best matches dropable by signal matching.
-                         */
+                        /* adjustment needed is greater than adjustment      */
+                        /* period that best matches dropable by signal       */
+                        /* matching.                                         */
                         return SOURCE_SKEW_NONE;
                 }
                 debug_msg("dropping %d / %d samples\n", adjustment.ticks, src->skew_adjust.ticks);
