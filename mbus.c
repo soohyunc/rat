@@ -489,7 +489,7 @@ void mbus_recv(struct mbus *m, void *data)
 {
 	char	*ver, *src, *dst, *ack, *r, *cmd, *param;
 	char	 buffer[MBUS_BUF_SIZE];
-	int	 buffer_len, seq, i;
+	int	 buffer_len, seq, i, a;
 
 	memset(buffer, 0, MBUS_BUF_SIZE);
 	if ((buffer_len = recvfrom(m->fd, buffer, MBUS_BUF_SIZE, 0, NULL, NULL)) <= 0) {
@@ -522,16 +522,16 @@ void mbus_recv(struct mbus *m, void *data)
 		mbus_parse_done(m);
 		return;
 	}
-	/* Process any ACKs received */
-	mbus_parse_init(m, ack);
-	while (mbus_parse_int(m, &i)) {
-		mbus_ack_list_remove(m, src, dst, i);
-	}
-	mbus_parse_done(m);
 	/* Check if the message was addressed to us... */
 	for (i = 0; i < m->num_addr; i++) {
 		if (mbus_addr_match(m, m->addr[i], dst)) {
-			/* ...if it was, and an ACK was requested, send one... */
+			/* ...if so, process any ACKs received... */
+			mbus_parse_init(m, ack);
+			while (mbus_parse_int(m, &a)) {
+				mbus_ack_list_remove(m, src, dst, a);
+			}
+			mbus_parse_done(m);
+			/* ...if an ACK was requested, send one... */
 			if (strcmp(r, "R") == 0) {
 				mbus_send_ack(m, src, seq);
 			}
