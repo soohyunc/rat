@@ -986,7 +986,7 @@ frame $i
 frame $i.a -relief sunken
 frame $i.a.f 
 frame $i.a.f.f
-label $i.a.f.f.l -anchor w -justify left -text "You communication can be secured with triple\nDES encryption.  Only conference participants\nwith the same key can receive audio data when\nencryption is enabled."
+label $i.a.f.f.l -anchor w -justify left -text "Your communication can be secured with triple\nDES encryption.  Only conference participants\nwith the same key can receive audio data when\nencryption is enabled."
 pack $i.a.f.f.l
 pack $i.a -side top -fill both -expand 1 
 label $i.a.f.f.lbl -text "Key:"
@@ -1002,7 +1002,7 @@ frame $i
 frame $i.a -relief sunken 
 frame $i.a.f 
 frame $i.a.f.f
-label $i.a.f.f.l -anchor w -justify left -text "The following features maybe\ndisabled to conserve processing\npower."
+label $i.a.f.f.l -anchor w -justify left -text "The following features may be\ndisabled to conserve processing\npower."
 pack $i.a -side top -fill both -expand 1 
 pack $i.a.f -fill x -side left -expand 1
 checkbutton $i.a.f.f.power   -text "Powermeters active"       -variable meter_var
@@ -1170,6 +1170,11 @@ Copyright (C) 1996 Regents of the University of California
 This product includes software developed by the Computer
 Systems Engineering Group and by the Network Research Group
 at Lawrence Berkeley Laboratory.
+
+The WB-ADPCM algorithm was developed by British Telecommunications
+plc.  Permission has been granted to use it for non-commercial
+research and development projects.  BT retain the intellectual
+property rights to this algorithm.
 
 Encryption features of this software use the RSA Data
 Security, Inc. MD5 Message-Digest Algorithm.
@@ -1400,8 +1405,8 @@ proc load_settings {} {
     # device config
     load_setting attr audioOutputGain   volume       "50"
     load_setting attr audioInputGain    gain         "50"
-    load_setting attr audioOutputPort   output_port  "microphone"
-    load_setting attr audioInputPort    input_port   "speaker"
+    load_setting attr audioOutputPort   output_port  "speaker"
+    load_setting attr audioInputPort    input_port   "microphone"
     # we don't save the following but we can set them so if people
     # want to start with mic open then they add following attributes
     load_setting attr audioOutputMute   out_mute_var "0"
