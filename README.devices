@@ -61,12 +61,12 @@ Arguments: None.
 Returns:   TRUE if termination successful FALSE otherwise.
 Note:      This function should perform any last minute clean up necessary before
            termination.  Some hardware/drivers may get confused if not cleanly
-           shutdown.
+           shutdown. This function is optional and doesn't need to be implemented.
 
 --------------------------------------------------------------------------------
 int platform_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);
 
-Arguments: A unique desciptor, requested audio format. Both defined in
+Arguments: A unique desciptor and the requested audio formats. Both defined in
            audio_types.h.  If the device does not support the sample types of
            the input or output format, it should change the format type to one
            that it supports via the audio_format_change_encoding function and
@@ -75,7 +75,7 @@ Arguments: A unique desciptor, requested audio format. Both defined in
            made to any other fields in the input or output formats.
 Returns:   TRUE if device opened with requested format.  FALSE otherwise.
 Note:      It is intend the audio interface code keeps it own audio file 
-           descriptors within the scope of it's file.  The descriptor ad
+           descriptors within the scope of its file.  The descriptor ad
            corresponds to the index of the interface selected in the table
            of interfaces.  
 --------------------------------------------------------------------------------
@@ -168,13 +168,6 @@ Arguments: Descriptor to retrieve active output port from.
 Returns:   Selected audio output port number as defined in config_{unix,win32}.h
 
 --------------------------------------------------------------------------------
-int  platform_audio_next_oport(audio_desc_t ad);
-
-Arguments: Descriptor.
-Returns:   New audio output port number.
-Note:      This function should rotate the audio output port in use.
-
---------------------------------------------------------------------------------
 void platform_audio_set_iport(audio_desc_t ad, int port);
 
 Arguments: Descriptor and audio input port to change to.
@@ -186,28 +179,6 @@ int  platform_audio_get_iport(audio_desc_t ad);
 
 Arguments: Descriptor to retrieve active input port from.
 Returns:   Active input port.
-
---------------------------------------------------------------------------------
-int  platform_audio_next_iport(audio_desc_t ad);
-
-Arguments: Descriptor corresponding to input port to shift.
-Returns:   New input port number.
-
---------------------------------------------------------------------------------
-int  platform_audio_get_blocksize(audio_desc_t ad);
-
-Arguments: Descriptor.
-Returns:   Blocksize that the audio device has been configured to use.
-
---------------------------------------------------------------------------------
-int  platform_audio_get_channels(audio_desc_t ad);
-Arguments: Descriptor.
-Returns:   Number of channels in use by device corresponding to descriptor.
-
---------------------------------------------------------------------------------
-int  platform_audio_get_freq(audio_desc_t ad);
-Arguments: Descriptor.
-Returns:   Sampling frequency used by device corresponding to descriptor.
 
 --------------------------------------------------------------------------------
 int  platform_audio_is_ready(audio_desc_t ad);

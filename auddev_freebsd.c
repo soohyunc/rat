@@ -57,10 +57,8 @@ void    vox_audio_block(int audio_fd);
 int     vox_audio_requested(int audio_fd);
 void    vox_audio_set_oport(int audio_fd, int port);
 int     vox_audio_get_oport(int audio_fd);
-int     vox_audio_next_oport(int audio_fd);
 void    vox_audio_set_iport(int audio_fd, int port);
 int     vox_audio_get_iport(int audio_fd);
-int     vox_audio_next_iport(int audio_fd);
 int     vox_audio_duplex(int audio_fd);
 
 static int 
@@ -405,13 +403,6 @@ vox_audio_get_oport(int audio_fd)
 	return AUDIO_HEADPHONE;
 }
 
-int
-vox_audio_next_oport(int audio_fd)
-{
-	/* There appears to be no-way to select this with OSS... */
-	return AUDIO_HEADPHONE;
-}
-
 void
 vox_audio_set_iport(int audio_fd, int port)
 {
@@ -455,19 +446,6 @@ vox_audio_set_iport(int audio_fd, int port)
 int
 vox_audio_get_iport(int audio_fd)
 {
-	return iport;
-}
-
-int
-vox_audio_next_iport(int audio_fd)
-{
-	switch (iport) {
-	case AUDIO_MICROPHONE : vox_audio_set_iport(audio_fd, AUDIO_LINE_IN);
-		break;
-	case AUDIO_LINE_IN    : vox_audio_set_iport(audio_fd, AUDIO_MICROPHONE);
-		break;
-	default               : printf("Unknown audio source!\n");
-	}
 	return iport;
 }
 
@@ -784,16 +762,6 @@ pca_audio_get_oport(int audio_fd)
 }
 
 /*
- * Set next output port.
- */
-int
-pca_audio_next_oport(int audio_fd)
-{
-	/* There is only one port... */
-	return 0;
-}
-
-/*
  * Set input port.
  */
 void
@@ -812,15 +780,7 @@ pca_audio_get_iport(int audio_fd)
 	/* Hmm...hack attack */
 	return AUDIO_MICROPHONE;
 }
-/*
- * Get next input port...
- */
-int
-pca_audio_next_iport(int audio_fd)
-{
-	/* Hmm... */
-	return AUDIO_MICROPHONE;
-}
+
 /*
  * Return 1 if full duplex, 0 if half.
  */
@@ -1123,24 +1083,6 @@ audio_get_oport(int audio_fd)
 	}
 	return port;
 }
-int
-audio_next_oport(int audio_fd)
-{
-	int port;
-
-	port = 0;
-	switch(audio_device){
-	case DEV_VOXWARE:
-		port = vox_audio_next_oport(audio_fd);
-		break;
-	case DEV_PCA:
-		port = pca_audio_next_oport(audio_fd);
-		break;
-	default:
-		break;
-	}
-	return port;
-}
 void
 audio_set_iport(int audio_fd, int port)
 {
@@ -1168,24 +1110,6 @@ audio_get_iport(int audio_fd)
 		break;
 	case DEV_PCA:
 		port = pca_audio_get_iport(audio_fd);
-		break;
-	default:
-		break;
-	}
-	return port;
-}
-int
-audio_next_iport(int audio_fd)
-{
-	int port;
-
-	port = 0;
-	switch(audio_device){
-	case DEV_VOXWARE:
-		port = vox_audio_next_iport(audio_fd);
-		break;
-	case DEV_PCA:
-		port = pca_audio_next_iport(audio_fd);
 		break;
 	default:
 		break;

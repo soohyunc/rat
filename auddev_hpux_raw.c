@@ -283,21 +283,6 @@ audio_get_oport(int audio_fd)
   return port;
 }
 
-int
-audio_next_oport(int audio_fd)
-{
-  int port;
-
-  port = audio_get_oport(audio_fd);
-
-  if (audio_fd >= 0) {
-    if ((port <<= 1) > AUDIO_OUT_LINE)
-      port = AUDIO_OUT_SPEAKER;
-    audio_set_oport(audio_fd, port);
-  }
-  return port;
-}
-
 void
 audio_set_iport(int audio_fd, int port)
 {
@@ -317,21 +302,6 @@ audio_get_iport(int audio_fd)
     if (ioctl(audio_fd, AUDIO_GET_INPUT, &port) != 0) {
       perror("audio_set_oport: ioctl()");
     }
-  }
-  return port;
-}
-
-int
-audio_next_iport(int audio_fd)
-{
-  int port;
-
-  port = audio_get_iport(audio_fd);
-
-  if (audio_fd >= 0) {
-    if ((port <<= 1) > AUDIO_IN_LINE)
-      port = AUDIO_IN_MIKE;
-    audio_set_iport(audio_fd, port);
   }
   return port;
 }
