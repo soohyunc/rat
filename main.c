@@ -124,8 +124,8 @@ main(int argc, char *argv[])
 	cname        = get_cname();
 	ssrc         = get_ssrc();
 
-	sprintf(mbus_engine_addr, "(audio engine rat %d)", (int32) getpid());
-	sprintf(mbus_ui_addr,     "(audio     ui rat %d)", (int32) getpid());
+	sprintf(mbus_engine_addr, "(audio engine rat %ld)", (int32) getpid());
+	sprintf(mbus_ui_addr,     "(audio     ui rat %ld)", (int32) getpid());
 	sprintf(mbus_video_addr,  "(video engine   *  *)");
 
 	for (i = 0; i < num_sessions; i++) {
