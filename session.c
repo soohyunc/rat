@@ -355,7 +355,7 @@ static void parse_late_options_common(int argc, char *argv[], session_struct *sp
 				if (sp[s]->mbus_channel != 0) {
                                 	sp[s]->sync_on = TRUE;
 				} else {
-					printf("Lip-sync can only be used if an mbus channel is specified.\n");
+					printf("Lip-sync can only be used if an mbus channel is specified\n");
 					usage();
 				}
                         }
@@ -455,10 +455,7 @@ void parse_late_options(int argc, char *argv[], session_struct *sp[])
 		usage();
 	}
 	/* Set the mode of operation, and number of valid sessions, based on the first command line option. */
-	if (strcmp(argv[1], "-version") == 0) {
-		printf("%s\n", RAT_VERSION);
-		exit(0);
-	} else if (strcmp(argv[1], "-T") == 0) {
+	if (strcmp(argv[1], "-T") == 0) {
 		sp[0]->mode = TRANSCODER;
 		sp[1]->mode = TRANSCODER;
 		num_sessions= 2;
