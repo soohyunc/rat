@@ -9,7 +9,7 @@
 
 set script_error [ catch {
 
-#wm withdraw .
+wm withdraw .
 
 if {[string compare [info commands registry] "registry"] == 0} {
     set win32 1
