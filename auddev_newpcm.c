@@ -559,9 +559,16 @@ newpcm_audio_loopback_config(int gain)
 void
 newpcm_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
-	if (!newpcm_audio_is_ready(ad)) {
-		usleep((unsigned int)delay_ms * 1000);
-	}
+	struct timeval	timeout;
+	fd_set		fds;
+
+	timeout.tv_sec	= 0;
+	timeout.tv_usec	= 1000 * delay_ms;
+	
+	FD_ZERO(&fds);
+	FD_SET(audio_fd, &fds);
+	select(audio_fd + 1, &fds, 0, 0, &timeout);
+	UNUSED(ad);
 }
 
 int 
