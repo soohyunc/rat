@@ -227,6 +227,10 @@ SOURCE=.\cx_g726.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\cx_g726_16.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\cx_g726_24.c
 # End Source File
 # Begin Source File
