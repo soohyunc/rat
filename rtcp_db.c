@@ -335,6 +335,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 	if (dbptr->ssrc == ssrc) {
 		sp->db->ssrc_db = dbptr->next;
 		playout_buffer_remove(sp, &(sp->playout_buf_list), dbptr);
+		ui_info_remove(sp, dbptr);
 		rtcp_free_dbentry(dbptr);
 		return;
 	}
