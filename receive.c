@@ -444,8 +444,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 
 	for (buf = *buf_list; buf; buf = buf->next) {
 		cur_time = get_time(buf->src->clock);
-                /* Check this line [oth] */
-		cs = cushion_get_size(sp->cushion) * get_freq(buf->src->clock) / get_freq(sp->device_clock);
+		cs = cushion_get_size(sp->cushion);
 		while ((up = playout_buffer_get(buf, cur_time, cur_time + cs))) {
                     if (!up->comp_count  && sp->repair != REPAIR_NONE 
                         && up->prev_ptr != NULL && up->next_ptr != NULL

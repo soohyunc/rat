@@ -198,6 +198,7 @@ audio_device_take(session_struct *sp)
 	format.sample_rate     = cp->freq;
         format.bits_per_sample = 16;
 	format.num_channels    = cp->channels;
+        format.blocksize       = cp->unit_len * cp->channels;
 
 	if (sp->mode == TRANSCODER) {
 		if ((sp->audio_fd = transcoder_open()) == -1) {
@@ -210,6 +211,11 @@ audio_device_take(session_struct *sp)
 		if ((sp->audio_fd = audio_open(format)) == -1) {
 			return (FALSE);
 		}
+
+                if (sp->cushion == NULL) {
+                        cushion_new(&sp->cushion);
+                }
+
 		audio_drain(sp->audio_fd);
 		sp->have_device = TRUE;
 	
@@ -273,13 +279,11 @@ read_write_init(session_struct *sp)
 void 
 audio_init(session_struct *sp)
 {
-        u_int32 step_size;
+        u_int32 step_size = 640; /* nasty guess */
 
         sp->input_mode  = AUDIO_NO_DEVICE;
         sp->output_mode = AUDIO_NO_DEVICE;
 
-        cushion_new(&sp->cushion);
-        step_size       = cushion_get_step(sp->cushion);
         audio_zero_buf  = (sample*) xmalloc ( sizeof(sample) * step_size );
 	audio_zero( audio_zero_buf, step_size, DEV_L16 );
 
@@ -339,16 +343,18 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 	 * another silence gap...
 	 */
         cushion_size = cushion_get_size(c);
+
 	if ( cushion_size < read_dur ) {
+                int channels = audio_get_channels();
 		/* Use a step for the cushion to keep things nicely rounded   */
 		/* in the mixing. Round it up.                                */
                 new_cushion = cushion_use_estimate(c);
 		/* The mix routine also needs to know for how long the output */
 		/* went dry so that it can adjust the time.                   */
 		mix_get_new_cushion(ms, 
-                                    cushion_size, 
-                                    new_cushion, 
-                                    read_dur - cushion_size, 
+                                    cushion_size * channels, 
+                                    new_cushion  * channels, 
+                                    (read_dur - cushion_size) * channels, 
                                     &bufp);
 		audio_device_write(spo, bufp, new_cushion);
 		if ((spo->out_file) && (spo->flake_go == 0)) {
@@ -359,7 +365,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                         cushion_size);
 		cushion_size = new_cushion;
 	} else {
-		trailing_silence = mix_get_audio(ms, read_dur, &bufp);
+		trailing_silence = mix_get_audio(ms, read_dur * audio_get_channels(), &bufp);
                 cushion_step = cushion_get_step(c);
                 diff  = 0;
 

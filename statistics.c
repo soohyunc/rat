@@ -208,7 +208,7 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
                                 dprintf("Clipping %d to %d\n",var,maxv);
                                 var = maxv;
                         }
-			var += cushion_get_size(cushion) * get_freq(src->clock) / get_freq(sp->device_clock);
+			var += cushion_get_size(cushion);
 			if (src->clock!=sp->device_clock) {
 				var += cp->unit_len;
 			}

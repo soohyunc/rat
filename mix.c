@@ -100,7 +100,6 @@ static void
 mix_audio(sample *v0, sample *v1, int len)
 {
 	int	tmp;
-
         xmemchk();
 	for (; len > 0; len--) {
 		tmp = *v0 + *v1++;
@@ -228,9 +227,14 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
  *
  * This function was modified so that it returns the amount of
  * silence at the end of the buffer returned so that the cushion
+ * adjustment functions can use it to decrease the cushion.
+ *
  * Note: amount is number of samples to get and not sampling intervals!
+ */
 
-mix_get_audio(mix_struct *ms, int amount, sample **bufp)
+mix_get_audio(mix_struct *ms, 
+              int amount, 
+              sample **bufp)
 mix_get_audio(mix_struct *ms, int amount, sample **bufp)
 {
 	int	silence;
@@ -259,7 +263,7 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
                 xmemchk();
 		ms->head      += silence;
 		ms->head      %= ms->buf_len;
-		ms->dist      = amount;
+		ms->head_time += silence/ms->channels;
 		ms->dist       = amount;
 		assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
 	} else {

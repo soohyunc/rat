@@ -54,6 +54,7 @@ typedef Audio_hdr* audio_header_pointer;
 
 static audio_info_t	dev_info;
 static int 		mulaw_device = FALSE;	/* TRUE if the hardware can only do 8bit mulaw sampling */
+static int              blocksize;
 
 #define bat_to_device(x)	((x) * AUDIO_MAX_GAIN / MAX_AMP)
 #define device_to_bat(x)	((x) * MAX_AMP / AUDIO_MAX_GAIN)
@@ -88,8 +89,9 @@ audio_open(audio_format format)
 		dev_info.record.buffer_size = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
 #ifdef DEBUG
 		printf("Setting device buffer_size to %d\n", dev_info.play.buffer_size);
-#endif
-#endif
+#endif /* DEBUG */
+#endif /* SunOS_5 */
+                blocksize = format.blocksize;
                 switch (format.encoding) {
 		case DEV_PCMU:
 			dev_info.record.encoding = AUDIO_ENCODING_ULAW;
@@ -430,6 +432,18 @@ audio_duplex(int audio_fd)
 {
         UNUSED(audio_fd);
         return 1;
+}
+
+int 
+audio_blocksize(void)
+{
+        return blocksize;
+}
+
+int
+audio_get_channels(void)
+{
+        return dev_info.play.channels;
 }
 
 #endif /* SunOS */

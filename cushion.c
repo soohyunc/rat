@@ -43,6 +43,7 @@
 
 #include "rat_types.h"
 #include "cushion.h"
+#include "audio.h"
 #include "util.h"
 
 /*
@@ -56,7 +57,6 @@
 #else
 #define CUSHION_STEP	80
 #endif
-#define HISTOGRAM_SIZE	(16000 / CUSHION_STEP)
 #define HISTORY_SIZE	500
 #define MIN_COVER	((float)HISTORY_SIZE * SAFETY)
 
@@ -70,35 +70,43 @@ typedef struct s_cushion_struct {
 	int		*read_history;	/* Circular buffer of read lengths */
 	int		last_in;	/* Index of last added value */
 	int		*histogram;	/* Histogram of read lengths */
+        u_int32          histbins;      /* Number of bins in histogram */
 } cushion_t;
 
 int 
 cushion_new(cushion_t **c)
 {
-        int i, *ip;
-        (*c) = (cushion_t*) xmalloc (sizeof(cushion_t));
-        if (*c == NULL) goto bail_cushion;
+        int i, *ip, blocksize;
+        cushion_t *nc;
 
-        (*c)->cushion_size     = MIN_CUSHION;
-	(*c)->cushion_estimate = 160;
-	(*c)->cushion_step = CUSHION_STEP;
-	(*c)->read_history = (int *) xmalloc (HISTORY_SIZE * sizeof(int));
-        if ((*c)->read_history == NULL) goto bail_history;
+        nc = (cushion_t*) xmalloc (sizeof(cushion_t));
+        if (nc == NULL) goto bail_cushion;
 
-	for (i = 0, ip = (*c)->read_history; i < HISTORY_SIZE; i++, ip++)
+        blocksize = audio_blocksize() / audio_get_channels();
+        assert(blocksize > 0);
+
+        nc->cushion_size     = 2 * blocksize;
+	nc->cushion_estimate = blocksize;
+	nc->cushion_step     = blocksize;
+	nc->read_history     = (int *) xmalloc (HISTORY_SIZE * sizeof(int));
+        if (nc->read_history == NULL) goto bail_history;
+
+	for (i = 0, ip = nc->read_history; i < HISTORY_SIZE; i++, ip++)
 		*ip = 4;
 
-	(*c)->histogram = (int *)xmalloc(HISTOGRAM_SIZE * sizeof(int));
-        if ((*c)->histogram == NULL) goto bail_histogram;
+        nc->histbins  = 16000 / blocksize;
+	nc->histogram = (int *)xmalloc(nc->histbins * sizeof(int));
+        if (nc->histogram == NULL) goto bail_histogram;
 
-	memset((*c)->histogram, 0, HISTOGRAM_SIZE * sizeof(int));
-	(*c)->histogram[4] = HISTORY_SIZE;
-	(*c)->last_in = 0;
+	memset(nc->histogram, 0, nc->histbins * sizeof(int));
+	nc->histogram[4] = HISTORY_SIZE;
+	nc->last_in = 0;
 
+        *c = nc;
         return TRUE;
         /* error cleanups... */
-        bail_histogram: xfree((*c)->read_history);
-        bail_history:   xfree(*c);
+        bail_histogram: xfree(nc->read_history);
+        bail_history:   xfree(nc); 
         bail_cushion:   dprintf("Cushion allocation failed.\n");
                         return FALSE;
 }
@@ -122,7 +130,7 @@ cushion_update(cushion_t *c, u_int32 read_dur, int mode)
 
         /* Find lower and upper bounds for cushion... */
         idx = cnt = cover_idx = cover_cnt = 0;
-        while(idx < HISTOGRAM_SIZE && cnt < HISTORY_SIZE) {
+        while(idx < c->histbins && cnt < HISTORY_SIZE) {
                 if (cover_cnt < MIN_COVER) {
                         cover_cnt += c->histogram[idx];
                         cover_idx  = idx;
@@ -155,8 +163,13 @@ cushion_update(cushion_t *c, u_int32 read_dur, int mode)
  static void
 cushion_size_check(cushion_t *c)
 {
-        assert( c->cushion_size > MIN_CUSHION );
-        assert( c->cushion_size < MAX_CUSHION );
+        if (c->cushion_size < MIN_CUSHION) {
+                c->cushion_size = MIN_CUSHION;
+                dprintf("cushion boosted.");
+        } else if (c->cushion_size > MAX_CUSHION) {
+                c->cushion_size = MAX_CUSHION;
+                dprintf("cushion clipped.\n");
+        }
 }
 
  u_int32 
