@@ -83,7 +83,6 @@ typedef char		int8;
 typedef short		int16;
 typedef long		int32;
 typedef __int64		int64;
-typedef short		sample;
 typedef unsigned long	in_addr_t;
 
 #ifndef TRUE

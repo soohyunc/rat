@@ -43,36 +43,8 @@
 #ifndef _RAT_AUDIO_H_
 #define _RAT_AUDIO_H_
 
-/* This version of the code can only work with a constant device      */
-/* encoding. To use different encodings the parameters below have     */
-/* to be changed and the program recompiled.                          */
-/* The clock translation problems have to be taken into consideration */
-/* if different users use different base encodings...                 */
-typedef enum {
-	DEV_PCMU,
-	DEV_L8,
-	DEV_L16
-} deve_e;
+#include "audio_types.h"
 
-typedef struct s_audio_format {
-  deve_e encoding;
-  int    sample_rate; 		/* Should be one of 8000, 16000, 24000, 32000, 48000 */
-  int    bits_per_sample;	/* Should be 8 or 16 */
-  int    num_channels;  	/* Should be 1 or 2  */
-  int    blocksize;             /* size of unit we will read/write in */
-} audio_format;
-
-typedef int audio_desc_t;
-
-#define BYTES_PER_SAMPLE sizeof(sample)
-
-#define SAMPLING_RATE	8000
-#define PCMU_AUDIO_ZERO	127
-#define L16_AUDIO_ZERO	0
-
-#define MAX_AMP		100
-#define DEVICE_REC_BUF	16000
-#define DEVICE_BUF_UNIT	320
 
 #define BD_THRESHOLD    16
 #define BD_CONSECUTIVE  54

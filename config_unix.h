@@ -94,8 +94,6 @@ typedef short	int16;
 typedef long	int32;
 typedef long long int64;
 
-typedef short  sample;
-
 typedef char	ttl_t;
 typedef int	fd_t;
 

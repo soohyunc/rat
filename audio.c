@@ -991,7 +991,7 @@ audio_init_interfaces()
                 audio_add_interface(&aif_oss);
         }
 
-#endif /* Linux / W32SDK */
+#endif /* Linux / OSS */
 
 #if defined(WIN32)
         w32sdk_audio_query_devices();
@@ -1031,13 +1031,81 @@ audio_init_interfaces()
         }
 #endif /* WIN32 */
 
+#if defined(FreeBSD);
+        {
+                audio_if_t aif_luigi = {
+                        "Default Audio Device",
+                        NULL,
+                        NULL, 
+                        luigi_audio_open,
+                        luigi_audio_close,
+                        luigi_audio_drain,
+                        luigi_audio_duplex,
+                        luigi_audio_read,
+                        luigi_audio_write,
+                        luigi_audio_non_block,
+                        luigi_audio_block,
+                        luigi_audio_set_gain,
+                        luigi_audio_get_gain,
+                        luigi_audio_set_volume,
+                        luigi_audio_get_volume,
+                        luigi_audio_loopback,
+                        luigi_audio_set_oport,
+                        luigi_audio_get_oport,
+                        luigi_audio_next_oport,
+                        luigi_audio_set_iport,
+                        luigi_audio_get_iport,
+                        luigi_audio_next_iport,
+                        luigi_audio_get_blocksize,
+                        luigi_audio_get_channels,
+                        luigi_audio_get_freq,
+                        luigi_audio_is_ready,
+                        luigi_audio_wait_for,
+                };
+        }
+#endif /* FreeBSD */
+
+#if defined(HAVE_PCA);
+        {
+                audio_if_t aif_pca = {
+                        "PCA Audio Device",
+                        pca_audio_init,
+                        NULL, 
+                        pca_audio_open,
+                        pca_audio_close,
+                        pca_audio_drain,
+                        pca_audio_duplex,
+                        pca_audio_read,
+                        pca_audio_write,
+                        pca_audio_non_block,
+                        pca_audio_block,
+                        pca_audio_set_gain,
+                        pca_audio_get_gain,
+                        pca_audio_set_volume,
+                        pca_audio_get_volume,
+                        pca_audio_loopback,
+                        pca_audio_set_oport,
+                        pca_audio_get_oport,
+                        pca_audio_next_oport,
+                        pca_audio_set_iport,
+                        pca_audio_get_iport,
+                        pca_audio_next_iport,
+                        pca_audio_get_blocksize,
+                        pca_audio_get_channels,
+                        pca_audio_get_freq,
+                        pca_audio_is_ready,
+                        pca_audio_wait_for,
+                };
+        }
+#endif /* HAVE_PCA */
+
         UNUSED(i); /* Some if def combinations may mean that these do not get used */
         UNUSED(n);
 
         return 0;
 }
 
-int 
+
 audio_free_interfaces(void)
 {
         return TRUE;

@@ -50,7 +50,7 @@
 #include "assert.h"
 #include "debug.h"
 #include "memory.h"
-#include "audio.h"
+#include "audio_types.h"
 #include "auddev_oss.h"
 
 int	can_read  = FALSE;

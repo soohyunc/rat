@@ -44,7 +44,7 @@
 #include "config_unix.h"
 #include "assert.h"
 #include "debug.h"
-#include "audio.h"
+#include "audio_types.h"
 #include "auddev_sparc.h"
 #include "codec_g711.h"
 #include "cushion.h"
