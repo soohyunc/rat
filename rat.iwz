@@ -36,6 +36,7 @@ PACKLIST.EXE Ver=3.00.060
 Version=2.01
 DevTool=for Visual C++ 4.1
 Platform=Win32
+DisksBuilt=1
 DisksDir=rat\120MB\
 TabsVisit=1111111111111111100011
 LangNum=451

@@ -324,7 +324,6 @@ int main(int argc, char *argv[])
 	tx_stop(sp->tb);
 	if (sp->in_file  != NULL) snd_read_close (&sp->in_file);
 	if (sp->out_file != NULL) snd_write_close(&sp->out_file);
-	audio_device_release(sp, sp->audio_device);
         pdb_destroy(&sp->pdb);
 
 	for (j = 0; j < sp->rtp_session_count; j++) {
@@ -346,6 +345,7 @@ int main(int argc, char *argv[])
 	} while (!mbus_sent_all(sp->mbus_engine));
 	mbus_exit(sp->mbus_engine);
 
+	audio_device_release(sp, sp->audio_device);
 	session_validate(sp);
 	session_exit(sp);
         converters_free();

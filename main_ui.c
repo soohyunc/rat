@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 #endif
 	}
 
-	/* Close things down nicely... */
+	/* Close things down nicely... Tell the media engine we wish to detach... */
 	mbus_qmsgf(m, e_addr, TRUE, "tool.rat.ui.detach.request", "");
 	debug_msg("Waiting for tool.rat.ui.detach() from media engine...\n");
 	while (!got_detach) {
@@ -167,6 +167,7 @@ int main(int argc, char *argv[])
 	}
 	debug_msg("...got it\n");
 
+	/* Tell the controller it's time to quit... */
 	mbus_qmsgf(m, c_addr, TRUE, "mbus.quit", "");
 	do {
 		mbus_send(m);
@@ -175,6 +176,18 @@ int main(int argc, char *argv[])
 		timeout.tv_usec = 20000;
 		mbus_recv(m, NULL, &timeout);
 	} while (!mbus_sent_all(m));
+
+	debug_msg("Waiting for mbus.quit() from controller...\n");
+	should_exit = FALSE;
+	while (!should_exit) {
+		mbus_heartbeat(m, 1);
+		mbus_retransmit(m);
+		mbus_send(m);
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 10000;
+		mbus_recv(m, (void *) m, &timeout);
+	}
+	debug_msg("...got it\n");
 
 	mbus_qmsgf(m, "()", FALSE, "mbus.bye", "");
 	do {

@@ -385,10 +385,6 @@ static void terminate(struct mbus *m, char *addr, pid_t *pid)
 			timeout.tv_sec  = 0;
 			timeout.tv_usec = 20000;
 			mbus_recv(m, NULL, &timeout);
-			if (!mbus_addr_valid(m, addr)) {
-				debug_msg("[Process died]\n");
-				break;
-			}
 		} while (!mbus_sent_all(m));
 		debug_msg("...done\n");
 	} else {
