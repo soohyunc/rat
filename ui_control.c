@@ -409,8 +409,10 @@ ui_update_redundancy(session_struct *sp)
                 codec_name  = strtok(NULL,"/");
                 /* redundant coder returns long name convert to short*/
                 if (codec_name) {
-                        cp          = get_codec_byname(codec_name, sp);
-                        codec_name  = cp->short_name;
+                        dprintf("%s\n", codec_name);
+                        cp         = get_codec_byname(codec_name, sp);
+                        assert(cp);
+                        codec_name = cp->short_name;
                 }
                 offset = strtok(NULL,"/");
         } else {

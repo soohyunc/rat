@@ -166,14 +166,15 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
 }
 
 #define RED_FRAG_SZ 32
+
 void 
 red_qconfig(session_struct    *sp, 
             red_coder_t *r,
             char *buf, int blen) 
 {
-        char fragbuf[RED_FRAG_SZ];
         codec_t *cp;
         int i,fraglen,len;
+        char fragbuf[RED_FRAG_SZ];
 
         UNUSED(sp);
 
@@ -184,6 +185,7 @@ red_qconfig(session_struct    *sp,
                 fraglen = strlen(fragbuf);
                 
                 if ((fraglen + len) < blen) {
+                        sprintf(buf + len, "%s", fragbuf);
                         strcat(buf,fragbuf);
                         len += fraglen;
                 } else {
