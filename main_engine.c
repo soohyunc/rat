@@ -322,15 +322,17 @@ int main(int argc, char *argv[])
 
 	settings_save(sp);
 	tx_stop(sp->tb);
+
 	if (sp->in_file  != NULL) snd_read_close (&sp->in_file);
 	if (sp->out_file != NULL) snd_write_close(&sp->out_file);
-        pdb_destroy(&sp->pdb);
 
 	for (j = 0; j < sp->rtp_session_count; j++) {
 		rtp_send_bye(sp->rtp_session[j]);
 		rtp_done(sp->rtp_session[j]);
 		rtp_callback_exit(sp->rtp_session[j]);
 	}
+
+        pdb_destroy(&sp->pdb);
 
 	/* Inform other processes that we're about to quit... */
 	mbus_qmsgf(sp->mbus_engine, "()", FALSE, "mbus.bye", "");
