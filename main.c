@@ -317,6 +317,21 @@ main(int argc, char *argv[])
                 audio_device_give(sp[i]);
 		network_process_mbus(sp[i]);
 	}
+
+        if (sp[0]->mode == AUDIO_TOOL) {
+                if (sp[0]->mbus_engine_conf != sp[0]->mbus_engine_base) {
+                        mbus_exit(sp[0]->mbus_engine_conf);
+                }
+                mbus_exit(sp[0]->mbus_engine_base);
+
+                if (sp[0]->ui_on) {
+                        if (sp[0]->mbus_ui_base != sp[0]->mbus_ui_base) {
+                                mbus_exit(sp[0]->mbus_ui_conf);
+                        }
+                        mbus_exit(sp[0]->mbus_ui_base);
+                }
+        }
+
         
         if (sp[0]->ui_on) {
                 tcl_exit();
