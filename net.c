@@ -117,12 +117,16 @@ read_and_enqueue(socket_udp *s, u_int32 cur_time, struct s_pckt_queue *queue, in
         unsigned char      *data_in, *data_out, *tmp_data;
         int                 read_len;
         pckt_queue_element *pckt;
+	struct timeval      t;
+
+	t.tv_sec  = 0;
+	t.tv_usec = 0;
         
         assert(type == PACKET_RTP || type == PACKET_RTCP);
         while (1) {
 		data_in  = block_alloc(PACKET_LENGTH);
 		data_out = block_alloc(PACKET_LENGTH);
-		read_len = udp_recv(s, (char *) data_in, PACKET_LENGTH);
+		read_len = udp_recv(s, (char *) data_in, PACKET_LENGTH, &t);
 		if (read_len > 0) {
 			if (Null_Key()) {
 				tmp_data      = data_out;
