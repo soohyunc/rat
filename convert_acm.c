@@ -67,7 +67,7 @@ acm_conv_init_fmt (WAVEFORMATEX *pwfx, u_int16 nChannels, u_int16 nSamplesPerSec
 }
 
 int
-acm_cv_create (converter_fmt_t *cfmt, u_char *state, u_int32 *state_len)
+acm_cv_create (const converter_fmt_t *cfmt, u_char **state, u_int32 *state_len)
 {
         LPHACMSTREAM lpa;
         WAVEFORMATEX wfxSrc, wfxDst;
@@ -82,7 +82,7 @@ acm_cv_create (converter_fmt_t *cfmt, u_char *state, u_int32 *state_len)
                 return FALSE;
         }
 
-        *state     = (u_char*)lpa;
+        *state     = (u_char *)lpa;
         *state_len = sizeof(HACMSTREAM);
  
         return TRUE;
@@ -115,12 +115,12 @@ acm_cv_convert (const converter_fmt_t *cfmt, u_char *state, sample *src_buf, int
 void
 acm_cv_destroy (u_char **state, u_int32 *state_len)
 {
-        assert(state_len == sizeof(HACMSTREAM));
+        assert(*state_len == sizeof(HACMSTREAM));
 
         if (*state) {
                 xfree(*state);
-                state     = NULL;
-                state_len = 0;
+                state      = NULL;
+                *state_len = 0;
         }
 }
 
