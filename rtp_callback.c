@@ -177,6 +177,13 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
                 return;
         }
 
+	/* Discard packets that contain no data */
+	if (p->data_len == 0) {
+		printf("Zero length packet\n");
+		xfree(p);
+		return;
+	}
+
 	/* Remove any padding */
 	if (p->p) {
 		p->data_len -= p->data[p->data_len - 1];

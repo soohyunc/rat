@@ -1649,6 +1649,8 @@ v4.2.26	- Fix compilation on MacOS X 10.3.4
 	- Fix crash if getpwuid() fails <Grant.Likely@gdcanada.com>
 	- Add NetBSD audio driver, contributed by Brook Milligan at New Mexico
 	  State University <brook@nmsu.edu>
+	- Discard empty RTP packets
+
 
 
 TODO -- They're features not bugs dammit!
