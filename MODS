@@ -1327,6 +1327,9 @@ v4.2.4	- Further updates to OSS (i.e. Linux) audio support
 	  reported by Peter Parnes.
 	- Fix reception of packets with an RTP header extension. Reported by 
   	  Peter Parnes.
+	* Released 16 May 2000
+
+v4.2.5	- 
 
 
 TODO -- They're features not bugs dammit!
@@ -1411,4 +1414,12 @@ TODO -- They're features not bugs dammit!
   transcoder individually.
 - Crashes on WinNT if another version of Tcl/Tk is installed on the machine?
   Reported by Didier Lamballais <Didier.Lamballais@irisa.fr>.
+- Occasional crashes due to "too many blocks allocated" with many allocations
+  in channel_types.c:29, channel_types.c:34, playout.c:188 and source.c:893.
+  Seems to be due to packets being received off the network, but never played
+  out. Reported by Angel Mateo, and also observed at UCL. Not something I've
+  found a way of reproducing.
+- Problems with the configure script on Irix 6.2. Works for Orion, but not
+  for me. Must be something in the environment, or a software version issue
+  but I don't know what...
 
