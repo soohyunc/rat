@@ -76,33 +76,30 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		debug_msg("soundcaps[%d].left     = 0x%04lx\n", ad, soundcaps[ad].left);
 		debug_msg("soundcaps[%d].right    = 0x%04lx\n", ad, soundcaps[ad].right);
 
+		/* XXX why do we reset here ??? [oh] */
                 LUIGI_AUDIO_IOCTL(audio_fd,SNDCTL_DSP_RESET,0);
 
-                switch (soundcaps[ad].formats & (AFMT_FULLDUPLEX | AFMT_WEIRD)) {
-                case AFMT_FULLDUPLEX:
-                        /*
-                         * this entry for cards with decent full duplex.
-                         */
-                        break;
-                case AFMT_FULLDUPLEX | AFMT_WEIRD:
+		/* We used to check AFMT_FULLDUPLEX in soundcaps.  Since
+		 * the newpcm FreeBSD-4.0 audio driver this is no longer
+		 * a useful flag to check.  If device opens O_RDWR assume
+		 * full duplex.  May not be a sufficient check.
+		 */
+
+		if (soundcaps[ad].formats & AFMT_WEIRD) {
                         /* this is a sb16/32/64... 
                          * you can change either ifmt or ofmt to U8 
                          * NOTE: No other format supported in driver at this time!
                          * to work around broken hardware here.  By default
                          * we use the 16bit channel for output and 8bit
                          * for input since most people probably want to
-                         * list to the radio. 
+                         * listen to the radio. 
                          */
                         debug_msg("Weird Hardware\n");
 
                         audio_format_change_encoding(ifmt, DEV_U8);
-                        break;
-                default:		/* no full duplex... */
-                        fprintf(stderr, "Sorry driver does support full duplex for this soundcard\n");
-                        luigi_audio_close(ad);
-                        return FALSE;
-                }
-                
+		}
+
+                /* Setup input and output format settings */
                 assert(ofmt->channels == ifmt->channels);
                 memset(&pa, 0, sizeof(pa));
                 if (ifmt->channels == 2) {
@@ -180,7 +177,10 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 read(audio_fd, thedev, 64);
                 return TRUE;
         } else {
-                perror("audio_open");
+		fprintf(stderr, 
+			"Could not open device: %s (half-duplex?)\n", 
+			names[ad]);
+		perror("luigi_audio_open");
                 luigi_audio_close(ad);
                 return FALSE;
         }

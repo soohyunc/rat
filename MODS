@@ -1389,7 +1389,10 @@ v4.2.7	- Split main() in the controller into two parts: one for normal
 	- Fix arithmetic overflow problems in the bias removal code
 	- Remove spurious code in auddev_null.c which caused the NULL audio
 	  device to (incorrectly) generate non-silent a-law audio.
-
+	- Remove full duplex capability check in FreeBSD driver interface.
+	  Since newpcm in 4.0 that bit does not get set when querying device
+	  caps.  We now assume that if the device opens with O_RDWR it is
+	  full duplex (as I recall this was no guarantee with luigi pcm).
 
 TODO -- They're features not bugs dammit!
 ----
