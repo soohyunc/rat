@@ -193,7 +193,21 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 			xfree(tmp);
 		} else if  (strcmp(argv[i], "-sync") == 0) {
 		} else if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
+			if (strcmp(argv[i+1], "on") == 0) {
+				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.agc", "1");
+			} else if (strcmp(argv[i+1], "off") == 0) {
+				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.agc", "0");
+			} else {
+				printf("Usage: -agc on|off\n");
+			}
 		} else if ((strcmp(argv[i], "-silence") == 0) && (argc > i+1)) {
+			if (strcmp(argv[i+1], "on") == 0) {
+				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.silence", "1");
+			} else if (strcmp(argv[i+1], "off") == 0) {
+				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.silence", "0");
+			} else {
+				printf("Usage: -silence on|off\n");
+			}
 		} else if ((strcmp(argv[i], "-repair") == 0) && (argc > i+1)) {
 		} else if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
 			/* Set primary codec: "-f codec". You cannot set the   */
