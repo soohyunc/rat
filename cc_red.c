@@ -156,26 +156,33 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
         return TRUE;
 }
 
+#define RED_FRAG_SZ 32
 void 
 red_qconfig(session_struct    *sp, 
             red_coder_t *r,
             char *buf, int blen) 
 {
-        char lbuf[32];
+        char fragbuf[RED_FRAG_SZ];
         codec_t *cp;
-        int i;
+        int i,fraglen,len;
 
-        buf[0]=0;
-
+        len = 0;
         for(i=0;i<r->nlayers;i++) {
                 cp = get_codec(r->coding[i]);
-                sprintf(lbuf,"%s %d ", cp->name, r->offset[i]);
-                if ((strlen(buf)+strlen(lbuf))<blen) {
-                        strcat(buf,lbuf);
+                sprintf(fragbuf,"%s/%d/", cp->name, r->offset[i]);
+                fraglen = strlen(fragbuf);
+                
+                if ((fraglen + len) < blen) {
+                        strcat(buf,fragbuf);
+                        len += fraglen;
                 } else {
-                        sprintf(buf,"Buffer overflow");
-                        return;
+                        dprintf("Buffer too small!");
+                        break;
                 }
+        }
+        /* zap trailing slash */
+        if (len>0) {
+                buf[len-1] = '\0';
         }
 }
 
