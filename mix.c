@@ -197,6 +197,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	 * we mast clear the buffer ahead (or copy)
 	if (ts_gt(playout + len, ms->head_time)) {
 		diff = playout + len - ms->head_time;
+		diff = (playout - ms->head_time)*ms->channels + nsamples;
 		assert(diff > 0);
 		assert(diff < ms->buf_len);
 		mix_zero(ms, ms->head, diff);
@@ -205,6 +206,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 		ms->head_time += diff;
 		ms->head_time += diff/ms->channels;
 	}
+printf("head_time=%ld tail_time=%ld\n", ms->head_time, ms->tail_time);
 	mix_add(ms, buf, pos, len);
 	el->mixed = TRUE;
 }
