@@ -18,6 +18,7 @@ static char rcsid[] =
 #endif
 
 #include "config_win32.h"
+#include "debug.h"
 #include "tcl.h"
 #include "tk.h"
 #include "util.h"
@@ -132,6 +133,9 @@ static char argv0[255];		/* Buffer used to hold argv0. */
 
 char *__progname = "main";
 
+#define WS_VERSION_ONE MAKEWORD(1,1)
+#define WS_VERSION_TWO MAKEWORD(2,2)
+
 int APIENTRY
 WinMain(
     HINSTANCE hInstance,
@@ -142,10 +146,13 @@ WinMain(
     char *p;
     WSADATA WSAdata;
 
-    if (WSAStartup(MAKEWORD (1, 1), &WSAdata)) {
+    if (WSAStartup(WS_VERSION_TWO, &WSAdata) != 0 &&
+        WSAStartup(WS_VERSION_ONE, &WSAdata) != 0) {
     	perror("Windows Sockets init failed");
 	abort();
     }
+
+    debug_msg("WSAStartup OK: %s Status:%s\n", WSAdata.szDescription, WSAdata.szSystemStatus);
 
     TkWinXInit(hInstance);
 
