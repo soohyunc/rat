@@ -55,7 +55,7 @@ signal_handler(int signal)
 }
 #endif
 
-#define MBUS_ADDR_ENGINE "(media:audio module:engine app:rat instance:%5u)"
+#define MBUS_ADDR_ENGINE "(media:audio module:engine app:rat instance:%u)"
 
 static void parse_args(int argc, char *argv[])
 {
