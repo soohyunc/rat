@@ -150,6 +150,10 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\auddev_trans.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\audio.c
 # End Source File
 # Begin Source File
@@ -249,6 +253,10 @@ SOURCE=.\rtp_callback.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\rtp_dump.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\session.c
 # End Source File
 # Begin Source File
@@ -307,6 +315,10 @@ SOURCE=.\win32.c
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\auddev_trans.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\audio.h
@@ -418,6 +430,10 @@ SOURCE=.\rtcp_pckt.h
 # Begin Source File
 
 SOURCE=.\rtp_callback.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\rtp_dump.h
 # End Source File
 # Begin Source File
 

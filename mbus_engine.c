@@ -593,10 +593,13 @@ static void rx_tool_rat_logstats(char *srce, char *args, session_t *sp)
 			uname = pwent->pw_name;
 
 #else
+			char	user[100];
+			int	size = 100;
+
 			if (!GetUserName(user, &size)) {
 				uname = "UNKNOWN";
 			} else {
-				uname=(char*)user;
+				uname = (char *) user;
 			}
 #endif
 			gettimeofday(&t, NULL);
