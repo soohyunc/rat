@@ -20,11 +20,11 @@ if {[string compare [info commands registry] "registry"] == 0} {
 	option add *Entry.background 		gray70
 }
 
-set statsfont     {helvetica 10}
-set titlefont     {helvetica 10}
-set infofont      {helvetica 10}
-set smallfont     {helvetica  8}
-set verysmallfont {helvetica  8}
+set statsfont     [font actual {helvetica 10}]
+set titlefont     [font actual {helvetica 10}]
+set infofont      [font actual {helvetica 10}]
+set smallfont     [font actual {helvetica  8}]
+set verysmallfont [font actual {helvetica  8}]
 
 option add *Entry.relief       sunken 
 option add *borderWidth        1
@@ -731,7 +731,6 @@ proc mbus_recv_rtp.source.tool {cname tool} {
 	    # lose the platform stuff
 	    set tool_frag [split $tool]
 	    set tool_name "UCL [lindex $tool_frag 0] [lindex $tool_frag 1]"
-	    wm title . ""
 	}
 }
 
@@ -1199,7 +1198,7 @@ proc toggle_stats {cname} {
 	pack   $win.dis.b -side right -anchor e -padx 2 -pady 2
 	wm title $win "Participant $NAME($cname)"
 	wm resizable $win 1 0
-	constrain_window $win 0 250 21 0
+	constrain_window $win $statsfont 30 28
     }
 }
 
@@ -1373,12 +1372,30 @@ if ([info exists geometry]) {
         wm geometry . $geometry
 }
 
-proc constrain_window {win maxstr xpad ylines ypad} {
-    set fn [.prefs.buttons.apply cget -font]
-    set w  [expr [font measure $fn $maxstr] + $xpad]
-    set h  [expr $ylines * [font metrics $fn -linespace] + $ypad]
-    wm geometry $win [format "%sx%s" $w $h]
+proc averageCharacterWidth {font} {
+    set sample "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    set slen [string length $sample]
+    set wpc  [expr [font measure $font $sample] / $slen + 1]
+    return $wpc
 }
+
+# constrain_window - window, font, characters wide, characters high
+proc constrain_window {w font cW cH} {
+    
+    catch {
+            set wpc [averageCharacterWidth $font]
+            set hpc [font metrics $font -ascent]
+    
+        # Calculate dimensions
+            set width [expr $cW * $wpc]
+            set height [expr $cH * $hpc]
+            wm geometry $w [format "%sx%s" $width $height]
+            set dummy ""
+    } err
+    if {$err != ""} {
+        puts "Error: $err"
+    }
+} 
 
 proc tk_optionCmdMenu {w varName firstValue args} {
     upvar #0 $varName var
@@ -1436,7 +1453,7 @@ frame .prefs.pane -relief sunken
 pack  .prefs.pane -side left -fill both -expand 1 -padx 4 -pady 2
 
 # setup width of prefs panel
-constrain_window .prefs "XXXXXXXX48-kHzXXXStereoXXXLinear-16XXXUnitsXPerXPcktXXXXXXX" 0 12 128
+constrain_window .prefs $infofont 56 28
 
 # Personal Info Pane
 set i .prefs.pane.personal
@@ -1632,9 +1649,9 @@ pack  $i.of -fill both -expand 1 -anchor w -pady 1
 label $i.of.l -height 2 -width 40 -justify left -text "This panel shows the available codecs, their properties and allows\n their RTP payload types to be re-mapped." 
 pack $i.of.l -side top -fill x
 
-frame   $i.of.codecs 
+frame   $i.of.codecs
 
-pack    $i.of.codecs -side left -padx 2
+pack    $i.of.codecs -side left -padx 2 -fill y
 label   $i.of.codecs.l    -text "Codec" -relief raised
 listbox $i.of.codecs.lb -width 20 -yscrollcommand "$i.of.codecs.scroll set"
 scrollbar $i.of.codecs.scroll -command "$i.of.codecs.lb yview"
@@ -1645,7 +1662,7 @@ frame   $i.of.details
 pack    $i.of.details -side left -fill both -expand 1
 
 frame $i.of.details.upper
-pack $i.of.details.upper -fill x -pady 2
+pack $i.of.details.upper -fill x
 
 frame $i.of.details.desc
 pack $i.of.details.desc -side top -fill x
@@ -1686,8 +1703,10 @@ for {set idx 0} {$idx < 5} {incr idx} {
     pack $i.of.details.upper.r.$idx -side top -fill x
 }
 
-label $i.of.details.desc.l -text "Description:" -anchor w -wraplength 190 -justify left
+set descw [expr [averageCharacterWidth $infofont] * 30]
+label $i.of.details.desc.l -text "Description:" -anchor w -wraplength $descw -justify left
 pack $i.of.details.desc.l -side left -fill x
+unset descw
 
 bind $i.of.codecs.lb <1> {
     codecs_panel_select [%W index @%x,%y]
@@ -1861,7 +1880,7 @@ wm title     .about "About RAT"
 wm resizable .about 0 0
 set about_pane Copyright
 set_pane about_pane .about.rim.d "Credits" 
-constrain_window .about "XANDXFITNESSXFORXAXPARTICULARXPURPOSEXAREXDISCLAIMED.XINXNOXEVENTX" 0 21 28 
+constrain_window .about $infofont 70 25 
 
 .about.rim.d.copyright.f.f.blurb insert end {
 Copyright (C) 1995-1999 University College London
