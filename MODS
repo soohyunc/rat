@@ -882,8 +882,8 @@ v4.1.0  - Fixed slow memory leak reported by Emmanuel Duros.  Vanilla
         - Modified auddev_null on Win32 to use WaitForSingleObject rather
           than Sleep on Win32.  Reduces CPU considerably.
 	- Added colour to powermeters.
-	- Add fixed size packet buffer to make for easy discards when media engine
-          has blocked for an inordinate period.
+	- Add fixed size packet buffer to make for easy discards when media 
+	  engine has blocked for an inordinate period.
 	- Added source_get_bps (bits per second :-).
 	- Removed gain setting stuff from luigi_audio_open.  Problems reported
 	  by Bill Fenner and code purpose is defunct.
@@ -894,7 +894,9 @@ v4.1.0  - Fixed slow memory leak reported by Emmanuel Duros.  Vanilla
 
 v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum <wallbaum@informatik.rwth-aachen.de>
 	- Now send RTP BYE packets on exit
-
+	- Fixed converter table initialization.  Was not initializing 
+	  interpolation and extrapolation correctly after last consistency 
+	  update.
 
 TODO -- They're features not bugs dammit!
 ----

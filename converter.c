@@ -177,9 +177,9 @@ converters_init()
 
         for(i = 0; i < NUM_CONVERTERS; i++) {
                 if (converter_tbl[i].startf) {
-                        converter_tbl[i].enabled    = converter_tbl[i].startf();
-                        converter_tbl[i].details.id = IDX_TO_CONVERTER_ID(i);
+                        converter_tbl[i].enabled = converter_tbl[i].startf();
                 }
+                converter_tbl[i].details.id = IDX_TO_CONVERTER_ID(i);
         }
 }
 
