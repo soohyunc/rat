@@ -47,7 +47,7 @@ static void
 usage(char *szOffending)
 {
 #ifdef WIN32
-char win_usage[] = "\
+	char win_usage[] = "\
                       RAT is a multicast (or unicast) audio tool. It is best to start it\n\
                       using a multicast directory tool, like sdr or multikit. If desired RAT\n\
                       can be launched from the command line using:\n\n\
@@ -55,21 +55,19 @@ char win_usage[] = "\
                       where <address> is machine name, or a multicast IP address, and <port> is\n\
                       the connection identifier (an even number between 1024-65536).\n\n\
                       For more details see:\n\n\
-                      http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/FAQ.html\
+                      http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/faq.html\
                       ";
 
-if (szOffending == NULL) {
-        szOffending = win_usage;
-}
-
-MessageBox(NULL, szOffending, "RAT Usage", MB_ICONINFORMATION | MB_OK);
+	if (szOffending == NULL) {
+		szOffending = win_usage;
+	}
+	MessageBox(NULL, szOffending, "RAT v" RAT_VERSION " Usage", MB_ICONINFORMATION | MB_OK);
 #else
-printf("Usage: rat [options] -t <ttl> <addr>/<port>\n");
-if (szOffending) {
-        printf(szOffending);
-}
+	printf("Usage: rat [options] -t <ttl> <addr>/<port>\n");
+	if (szOffending) {
+		printf(szOffending);
+	}
 #endif
-
 }
 
 #ifdef NEED_SNPRINTF
@@ -184,7 +182,11 @@ static int parse_options_early(int argc, const char **argv)
         for (i = 1; i < argc; i++) {
                 if ((argv[i][0] == '-' || argv[i][0] == '/') &&
                         (argv[i][1] == 'v' || argv[i][1] == 'V')) {
+#ifdef WIN32
+			MessageBox(NULL, "RAT v" RAT_VERSION, "RAT Version", MB_OK);
+#else
                         printf("%s\n", "RAT v" RAT_VERSION);
+#endif
                         return FALSE;
                 } else if ((argv[i][0] == '-' || argv[i][0] == '/')&&
                         (argv[i][1] == '?' || argv[i][1] == 'h' || argv[i][1] == 'H')) {
