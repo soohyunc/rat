@@ -610,9 +610,9 @@ ui_update_video_playout(char *cname, int playout)
 	if (cname == NULL) return;
 
 	cname_e = mbus_encode_str(cname);
-	args    = (char *) xmalloc(8 + strlen(cname_e));
+	args    = (char *) xmalloc(14 + strlen(cname_e));
 
-	sprintf(args, "%s %6d", cname, playout);
+	sprintf(args, "%s %12d", cname_e, playout);
 	mbus_engine_tx(TRUE, mbus_name_video, "source_playout", args, FALSE);
 	xfree(args);
 }
