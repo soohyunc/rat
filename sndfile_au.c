@@ -54,7 +54,7 @@ sun_ntoh_hdr(sun_audio_filehdr *saf)
 }
 
 int /* Returns true if can decode header */
-sun_read_hdr(FILE *pf, char **state)
+sun_read_hdr(FILE *pf, char **state, sndfile_fmt_t *fmt)
 {
         sun_audio_filehdr afh;
 
@@ -82,6 +82,8 @@ sun_read_hdr(FILE *pf, char **state)
                 
                 /* Roll past header */
                 fseek(pf, afh.hdr_size, SEEK_SET);
+
+                sun_get_format(*state, fmt);
                 
                 return TRUE;
         }

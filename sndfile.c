@@ -28,7 +28,7 @@
 
 /* Generic file handling *********************************************************/
 
-typedef int (*pf_open_hdr)    (FILE *, char **state);
+typedef int (*pf_open_hdr)    (FILE *, char **state, sndfile_fmt_t *fmt);
 typedef int (*pf_read_audio)  (FILE *, char * state, sample *buf, int samples);
 typedef int (*pf_write_hdr)   (FILE *, char **state, const sndfile_fmt_t *);
 typedef int (*pf_write_audio) (FILE *, char * state, sample *buf, int samples);
@@ -86,7 +86,7 @@ typedef struct s_sndfile {
 } sndfile_t;
 
 int  
-snd_read_open (sndfile_t **sndfile, char *path) 
+snd_read_open (sndfile_t **sndfile, char *path, sndfile_fmt_t *fmt) 
 {
         sndfile_t *s;
         FILE       *fp;
@@ -112,7 +112,7 @@ snd_read_open (sndfile_t **sndfile, char *path)
         s->fp = fp;
         
         for(i = 0; i < NUM_SND_HANDLERS; i++) {
-                if (snd_handlers[i].open_hdr(fp,&s->state)) {
+                if (snd_handlers[i].open_hdr(fp,&s->state, fmt)) {
                         s->sfh    = snd_handlers + i;
                         s->action = SND_ACTION_PLAYING;
                         *sndfile = s;

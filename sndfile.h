@@ -36,7 +36,8 @@ extern "C" {
 struct s_sndfile;
 
 int  snd_read_open (struct s_sndfile **sf, 
-                    char    *path);
+                    char              *path,
+                    sndfile_fmt_t     *fmt);  /* fmt only used for conversion to l16 if file type is raw, maybe NULL */
 
 int  snd_read_close (struct s_sndfile **sf);
 

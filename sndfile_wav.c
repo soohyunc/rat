@@ -131,7 +131,7 @@ riff_proceed_to_chunk(FILE *fp, char *id)
 }
 
 int
-riff_read_hdr(FILE *fp, char **state)
+riff_read_hdr(FILE *fp, char **state, sndfile_fmt_t *fmt)
 {
         riff_chunk_hdr rch;
         wave_format wf;
@@ -214,6 +214,7 @@ riff_read_hdr(FILE *fp, char **state)
                 rs->cbRemain = chunk_size;
                 memcpy(&rs->wf, &wf, sizeof(wf));
                 *state = (char*)rs;
+                riff_get_format(*state, fmt);
                 return TRUE;
         }
 

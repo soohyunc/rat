@@ -444,7 +444,7 @@ static void rx_audio_file_play_open(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(sp->mbus_engine, &file)) {
                 mbus_decode_str(file);
                 if (sp->in_file) snd_read_close(&sp->in_file);
-                if (snd_read_open(&sp->in_file, file)) {
+                if (snd_read_open(&sp->in_file, file, NULL)) {
                         debug_msg("Hooray opened %s\n",file);
                 }
 	} else {

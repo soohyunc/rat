@@ -14,7 +14,7 @@
 #ifndef __SNDFILE_AU_H__
 #define __SNDFILE_AU_H__
 
-int sun_read_hdr(FILE *pf, char **state);                            /* Returns true if can decode header */
+int sun_read_hdr(FILE *pf, char **state, sndfile_fmt_t *fmt);        /* Returns true if can decode header */
 
 int sun_read_audio(FILE *pf, char* state, sample *buf, int samples); /* Returns the number of samples read */
 
