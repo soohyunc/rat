@@ -106,7 +106,7 @@ static void parse_args(int argc, char *argv[])
         while(i > 1 && c_addr[i - 1] != ':') {
                 i--;
         }
-        ppid = (pid_t)atoi(&c_addr[i]);
+        ppid = strtoul(&c_addr[i], NULL, 10);
 }
 
 static void 
