@@ -257,8 +257,6 @@ static codec_t codec_list[] = {
 	{""}
 };
 
-#define MAX_CODEC        128
-
 static codec_t cd[MAX_CODEC];
 
 typedef struct s_dpt {

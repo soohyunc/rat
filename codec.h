@@ -45,6 +45,8 @@
 
 #include "rat_types.h"
 
+#define MAX_CODEC        128
+
 #define DUMMY			255
 
 #define DVI_UNIT_SIZE		80
