@@ -98,6 +98,7 @@ extern int h_errno;
 #define AUDIO_LINE_OUT   4
 #define AUDIO_MICROPHONE 1
 #define AUDIO_LINE_IN    2
+#define AUDIO_CD         4
 #endif /* FreeBSD */
 
 #ifdef SunOS_5
@@ -158,6 +159,7 @@ time_t	time(time_t *tloc);
 #define AUDIO_LINE_OUT   4
 #define AUDIO_MICROPHONE 1
 #define AUDIO_LINE_IN    2
+#define AUDIO_CD         4
 int gethostname(char *name, int namelen);
 #endif
 
@@ -181,6 +183,7 @@ int gethostname(char *hostname, size_t size);
 #define AUDIO_LINE_OUT   4
 #define AUDIO_MICROPHONE 1
 #define AUDIO_LINE_IN    2
+#define AUDIO_CD         4
 #include <sys/stat.h>
 #include <fcntl.h>
 #endif /* Linux */

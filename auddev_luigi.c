@@ -338,6 +338,10 @@ audio_set_gain(int audio_fd, int gain)
 		if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_LINE), &volume) < 0)
 			perror("Setting gain");
 		break;
+	case AUDIO_CD:
+		if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_CD), &volume) < 0)
+			perror("Setting gain");
+		break;
 	}
 	return;
 }
@@ -357,6 +361,10 @@ audio_get_gain(int audio_fd)
 		break;
 	case AUDIO_LINE_IN:
 		if (ioctl(audio_fd, MIXER_READ(SOUND_MIXER_LINE), &volume) < 0)
+			perror("Getting gain");
+		break;
+	case AUDIO_CD:
+		if (ioctl(audio_fd, MIXER_READ(SOUND_MIXER_CD), &volume) < 0)
 			perror("Getting gain");
 		break;
 	}
@@ -379,6 +387,9 @@ audio_set_iport(int audio_fd, int port)
 		break;
 	case AUDIO_LINE_IN:
 		src = SOUND_MASK_LINE;
+		break;
+	case AUDIO_CD:
+		src = SOUND_MASK_CD;
 		break;
 	}
 
@@ -406,6 +417,9 @@ audio_next_iport(int audio_fd)
 		audio_set_iport(audio_fd, AUDIO_LINE_IN);
 		break;
 	case AUDIO_LINE_IN:
+		audio_set_iport(audio_fd, AUDIO_CD);
+		break;
+	case AUDIO_CD:
 		audio_set_iport(audio_fd, AUDIO_MICROPHONE);
 		break;
 	default:
