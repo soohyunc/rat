@@ -142,6 +142,8 @@ main(int argc, char *argv[])
 	
 	xdoneinit();
 
+        tcl_process_all_events(sp[0]);
+
 	while (!should_exit) {
 		for (i = 0; i < num_sessions; i++) {
 			if (sp[i]->mode == TRANSCODER) {
@@ -186,18 +188,15 @@ main(int argc, char *argv[])
                                 scnt = (int)source_list_source_count(sp[i]->active_sources);
                                 for(sidx = 0; sidx < scnt; sidx++) {
                                         s = source_list_get_source_no(sp[i]->active_sources, sidx);
-                                        source_check_buffering(s, sp[i]->cur_ts);
-                                        source_process(s, sp[i]->ms, sp[i]->render_3d, sp[i]->repair, cush_ts);
-                                        source_audit(s);
-                                        if (!source_relevant(s, cush_ts)) {
+                                        if (source_relevant(s, sp[i]->cur_ts)) {
+                                                source_check_buffering(s, sp[i]->cur_ts);
+                                                source_process(s, sp[i]->ms, sp[i]->render_3d, sp[i]->repair, cush_ts);
+                                                source_audit(s);
+                                        } else {
                                                 /* Remove source as stopped */
                                                 source_remove(sp[i]->active_sources, s);
                                                 sidx--;
                                                 scnt--;
-                                        } else {
-                                                /*
-                                                source_audit(s);
-                                                */
                                         }
                                 }
 			}

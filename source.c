@@ -41,7 +41,7 @@
 #include "rtcp_db.h"
 
 #define HISTORY                    1000
-#define SKEW_OFFENSES_BEFORE_ADAPT    3
+#define SKEW_OFFENSES_BEFORE_ADAPT    8 
 #define SOURCE_YOUNG_AGE             20
 
 /* constants for skew adjustment:
@@ -69,8 +69,6 @@ typedef struct s_source {
         ts_t   skew_adjust;
         int8   skew_offenses;
 } source;
-
-
 
 /* A linked list is used for sources and this is fine since we mostly
  * expect 1 or 2 sources to be simultaneously active and so efficiency
@@ -454,20 +452,27 @@ source_check_buffering(source *src, ts_t now)
         playout_dur = ts_sub(src->dbe->playout, src->dbe->delay_in_playout_calc);
         playout_ms  = ts_to_ms(playout_dur);
 
-        if (buf_ms >= 2 * playout_ms) {
+        if (buf_ms > playout_ms) {
                 /* buffer is longer than anticipated, src clock is faster */
                 src->skew = SOURCE_SKEW_FAST;
                 src->skew_adjust = ts_map32(8000, (buf_ms - playout_ms) * 8);
                 src->skew_offenses++;
-                debug_msg("have %d want %d\n", buf_ms, playout_ms);
+                debug_msg("%d, have %d want %d\n", src->skew_offenses, buf_ms, playout_ms);
         } else if (buf_ms <= 2 * playout_ms / 3) {
                 /* buffer is running dry so src clock is slower */
                 src->skew = SOURCE_SKEW_SLOW;
                 src->skew_adjust = ts_map32(8000, (playout_ms - buf_ms) * 8);
                 src->skew_offenses--;
-                debug_msg("have %d want %d\n", buf_ms, playout_ms);
+                debug_msg("%d, have %d want %d\n", src->skew_offenses, buf_ms, playout_ms);
         } else {
                 src->skew = SOURCE_SKEW_NONE;
+                if (src->skew_offenses != 0) {
+                        if (src->skew_offenses > 0) {
+                                src->skew_offenses--;
+                        } else {
+                                src->skew_offenses++;
+                        }
+                }
         }
 
         return TRUE;
@@ -831,11 +836,11 @@ source_relevant(source *src, ts_t now)
 {
         assert(src);
         
-        if (pb_relevant(src->media, now) ||
-            pb_relevant(src->channel, now)) {
+        if (!ts_eq(source_get_playout_delay(src, now), ts_map32(8000,0))) {
                 return TRUE;
         }
-        return FALSE;
+        
+        return pb_relevant(src->media, now) || pb_relevant(src->channel, now);
 }
 
 struct s_pb*
