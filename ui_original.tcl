@@ -55,7 +55,7 @@ set V(class) "Mbone Applications"
 set V(app)   "rat"
 
 set iht			16
-set iwd 		300
+set iwd 		250
 set cancel_info_timer 	0
 set num_cname		0
 set fw			.l.t.list.f
@@ -664,7 +664,7 @@ bind .l.t.list <Configure> {fix_scrollbar}
 
 # Device output controls
 set out_mute_var 0
-button .r.c.vol.t1 -highlightthickness 0 -pady 0 -text mute -command {toggle out_mute_var; output_mute $out_mute_var}
+button .r.c.vol.t1 -highlightthickness 0 -pady 0 -padx 0 -text mute -command {toggle out_mute_var; output_mute $out_mute_var}
 set output_port "speaker"
 button .r.c.vol.l1 -highlightthickness 0 -command toggle_output_port
 bargraphCreate .r.c.vol.b1
@@ -678,7 +678,7 @@ pack .r.c.vol.s1 -side top  -fill x -expand 1
 
 # Device input controls
 set in_mute_var 1
-button .r.c.gain.t2 -highlightthickness 0 -pady 0 -text mute -command {toggle in_mute_var; input_mute $in_mute_var}
+button .r.c.gain.t2 -highlightthickness 0 -pady 0 -padx 0 -text mute -command {toggle in_mute_var; input_mute $in_mute_var}
 set input_port "microphone"
 button .r.c.gain.l2 -highlightthickness 0 -command toggle_input_port 
 bargraphCreate .r.c.gain.b2

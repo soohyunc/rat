@@ -201,6 +201,11 @@ update_stats(rtcp_dbentry *e, session_struct *sp)
 	int	 l;
 	codec_t	*cp;
 
+	assert(sp->db->my_dbe->sentry->cname != NULL);
+	if (e->sentry->cname == NULL) {
+		return;
+	}
+
 	if (e->encs[0] != -1) {
 		cp = get_codec(e->encs[0]);
 		strcpy(encoding, cp->name);
