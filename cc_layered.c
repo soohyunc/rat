@@ -75,7 +75,7 @@ layered_encoder_set_parameters(u_char *state, char *cmd)
         lay_state *n, *cur;
         codec_id_t  cid;
         char *s;
-        u_int8 i, layers;
+        u_int8 layers;
         u_int32 nl;
         int success = FALSE;
 
@@ -97,8 +97,7 @@ layered_encoder_set_parameters(u_char *state, char *cmd)
         s = (char *) strtok(NULL, "/");
         layers = atoi(s);
 
-        i = codec_can_layer(cid);
-        if(layers>codec_can_layer(cid)) {
+        if(layers>codec_can_layer(cid) || layers>LAY_MAX_LAYERS) {
                 debug_msg("Too many layers (%d)\n", layers);
                 goto done;
         }
@@ -107,7 +106,7 @@ layered_encoder_set_parameters(u_char *state, char *cmd)
         layered_encoder_reset(state);
         /* Take bits from temporary encoder state we want */
         cur = (lay_state*)state;
-		cur->codec_id = n->codec_id;
+	cur->codec_id = n->codec_id;
         cur->n_layers = n->n_layers;
 
         success = TRUE;
@@ -131,7 +130,7 @@ layered_encoder_get_parameters(u_char *state, char *cmd, u_int32 cmd_len)
 
         l = (lay_state*)state;
         if (l->n_layers < 2) {
-                debug_msg("Using layered coder with 1 layer????\n");
+                debug_msg("Using layered coder with %d layers?\n", l->n_layers);
                 return FALSE;
         }
         
@@ -190,9 +189,7 @@ add_hdr(channel_unit *chu, u_int8 pt, u_int8 marker, u_int8 len, u_int8 total_le
         LAY_HDR32_SET_TOTLEN(*h, (u_int32)total_len);
         *h = htonl(*h);
         chu->data     = (u_char*)h;
-	chu->data_len = sizeof(*h);
-	
-/*	debug_msg("Added layer hdr: pt %d, marker %d, len %d, tot_len %d\n", pt, marker, len, total_len);*/
+		chu->data_len = sizeof(*h);
 }
 
 /* layered_encoder_output transfers media data into channel_unit */
@@ -224,9 +221,6 @@ layered_encoder_output(lay_state *le, struct s_pb *out)
                         memcpy(cd->elem[used]->data, le->elem[0]->rep[0]->state, le->elem[0]->rep[0]->state_len);
                         used++;
                 }
-                /* don't need to do this if media_data_destroy later
-                le->elem[0]->rep[0]->state     = NULL;
-                le->elem[0]->rep[0]->state_len = 0; */
         }
         
         for(j = 0; j < le->n_layers; j++) {
@@ -341,7 +335,7 @@ layered_encoder_encode (u_char      *state,
 
 /* This fn takes the channel_data, which should have all the received *
  * layers in its channel_units, and combines the channel_units into   *
- * one channel_unit, with zeros if a layer was not received.          */
+ * one coded_unit, with zeros if a layer was not received.            */
 
 static int
 layered_decoder_reorganise(channel_data *in, struct s_pb *out, ts_t playout)
@@ -580,8 +574,6 @@ layered_decoder_peek(u_int8   pkt_pt,
                 mrk = (u_int8)(LAY_HDR32_GET_MRK(hdr32));
                 blen = (u_int8)(LAY_HDR32_GET_LEN(hdr32));
                 totlen = (u_int8)(LAY_HDR32_GET_TOTLEN(hdr32));
-/*                debug_msg("pt = %d, mrk = %d, len = %d, totlen = %d\n", hdrpt, mrk, blen, totlen);
-                debug_msg("len = %d\n", len);*/
                 p+=4;
                 data += 4 + blen;
                 hdr32 = ntohl(*(u_int32*)p);

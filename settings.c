@@ -153,11 +153,11 @@ settings_table_destroy(void)
 
 /* SETTINGS CODE *************************************************************/
 
-void open_registry(void)
+static void open_registry(void)
 {
 #ifdef WIN32
         HKEY			key    = HKEY_CURRENT_USER;
-	LPCTSTR			subKey = "Software\\Mbone Applications\\rat";
+	LPCTSTR			subKey = "Software\\Mbone Applications\\common";
 	DWORD			disp;
 	char			buffer[SETTINGS_BUF_SIZE];
 	LONG			status;
@@ -176,7 +176,7 @@ void open_registry(void)
 #endif
 }
 
-void close_registry(void)
+static void close_registry(void)
 {
 #ifdef WIN32
 	LONG status;
@@ -191,6 +191,31 @@ void close_registry(void)
 	debug_msg("Closed registry entry...\n");
 #endif
 }
+
+static void init_part_two(void)
+{
+#ifdef WIN32
+        HKEY			key    = HKEY_CURRENT_USER;
+	LPCTSTR			subKey = "Software\\Mbone Applications\\rat";
+	DWORD			disp;
+	char			buffer[SETTINGS_BUF_SIZE];
+	LONG			status;
+
+        close_registry();
+	status = RegCreateKeyEx(key, subKey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &cfgKey, &disp);
+	if (status != ERROR_SUCCESS) {
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
+		debug_msg("Unable to open registry: %s\n", buffer);
+		abort();
+	}
+	if (disp == REG_CREATED_NEW_KEY) {
+		debug_msg("Created new registry entry...\n");
+	} else {
+		debug_msg("Opened existing registry entry...\n");
+	}
+#endif
+}
+
 
 static void load_init(void)
 {
@@ -341,7 +366,8 @@ void settings_load(session_struct *sp)
 	sp->db->my_dbe->sentry->email = xstrdup(setting_load_str("rtpEmail", ""));      /* here, since that updates the UI   */
 	sp->db->my_dbe->sentry->phone = xstrdup(setting_load_str("rtpPhone", ""));       /* and we don't want to do that yet. */
 	sp->db->my_dbe->sentry->loc   = xstrdup(setting_load_str("rtpLoc", ""));
-	sp->db->my_dbe->sentry->tool  = xstrdup(setting_load_str("audioTool", RAT_VERSION));
+        init_part_two();
+        sp->db->my_dbe->sentry->tool  = xstrdup(setting_load_str("audioTool", RAT_VERSION));
 
 	ad_name = setting_load_str("audioDevice", "No Audio Device");
         for(i = 0; i < audio_get_device_count(); i++) {
@@ -355,9 +381,8 @@ void settings_load(session_struct *sp)
 	chan = setting_load_int("audioChannelsIn", 1);
 
 	primary_codec = setting_load_str("audioPrimary", "GSM");
-	audio_device_register_change_primary(sp, codec_get_matching(primary_codec, freq, chan));
+	audio_device_register_change_primary(sp, codec_get_matching(primary_codec, (u_int16)freq, (u_int16)chan));
         if (sp->new_config != NULL) {
-                debug_msg("Settings change primary!\n");
 		audio_device_reconfigure(sp);
 	}
 
@@ -521,7 +546,8 @@ void settings_save(session_struct *sp)
 	setting_save_str("rtpEmail",               sp->db->my_dbe->sentry->email);
 	setting_save_str("rtpPhone",               sp->db->my_dbe->sentry->phone);
 	setting_save_str("rtpLoc",                 sp->db->my_dbe->sentry->loc);
-	setting_save_str("audioTool",              sp->db->my_dbe->sentry->tool);
+        init_part_two();
+        setting_save_str("audioTool",              sp->db->my_dbe->sentry->tool);
 	setting_save_str("audioDevice",            ad.name);
 	setting_save_int("audioFrequency",         af->sample_rate);
 	setting_save_int("audioChannelsIn",        af->channels); 
@@ -529,7 +555,7 @@ void settings_save(session_struct *sp)
 	setting_save_int("audioUnits",             channel_encoder_get_units_per_packet(sp->channel_coder)); 
 	setting_save_str("audioChannelCoding",     cd.name);
 	setting_save_str("audioChannelParameters", cc_param);
-	setting_save_str("audioRepair",            repair_get_name(sp->repair));
+	setting_save_str("audioRepair",            repair_get_name((u_int16)sp->repair));
 	setting_save_str("audioAutoConvert",       converter.name);
 	setting_save_int("audioLimitPlayout",      sp->limit_playout);
 	setting_save_int("audioMinPlayout",        sp->min_playout);
@@ -546,7 +572,6 @@ void settings_save(session_struct *sp)
 	setting_save_str("audioInputPort",         iapd->name); 
 	setting_save_int("audioPowermeters",       sp->meter);
 	setting_save_int("audioLipSync",           sp->sync_on);
-        setting_save_int("audioLayers",            sp->layers);
 	/* We do not save audioOutputMute and audioInputMute by default, but should */
 	/* recognize them when reloading.                                           */
 	save_done();

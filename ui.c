@@ -411,7 +411,7 @@ ui_update_layering(session_struct *sp)
 
         channel_encoder_get_parameters(sp->channel_coder, cmd, clen);
         
-        sec_enc = (char *) strtok(NULL, "/");
+        sec_enc = (char *) strtok(cmd, "/");
         layerenc = (char *) strtok(NULL, "/");
 
         if (sec_enc == NULL || layerenc == NULL) {
