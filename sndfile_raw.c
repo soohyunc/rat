@@ -21,7 +21,7 @@
 #include "sndfile_raw.h"
 
 typedef struct {
-        sndfile_fmt_t *fmt;
+        sndfile_fmt_t fmt;
 } raw_state_t;
 
 int /* Returns true if can decode header */
@@ -38,7 +38,7 @@ raw_read_hdr(FILE *pf, char **state, sndfile_fmt_t *fmt)
                 return FALSE;
         }
 
-        memcpy(rs->fmt, fmt, sizeof(raw_state_t));
+        memcpy(&rs->fmt, fmt, sizeof(raw_state_t));
         *state = (char*)rs;
         return TRUE;
 }
@@ -53,7 +53,7 @@ raw_read_audio(FILE *pf, char* state, sample *buf, int samples)
 
         rs = (raw_state_t*)state;
 
-        switch(rs->fmt->encoding) {
+        switch(rs->fmt.encoding) {
         case SNDFILE_ENCODING_PCMA:
         case SNDFILE_ENCODING_PCMU:
                 unit_sz = 1;
@@ -65,7 +65,7 @@ raw_read_audio(FILE *pf, char* state, sample *buf, int samples)
         
         samples_read = fread(buf, unit_sz, samples, pf);
 
-        switch(rs->fmt->encoding) {
+        switch(rs->fmt.encoding) {
         case SNDFILE_ENCODING_PCMA:
                 law = ((u_char*)buf) + samples_read - 1;
                 bp  = buf + samples_read - 1;
@@ -103,7 +103,7 @@ raw_write_hdr(FILE *fp, char **state, const sndfile_fmt_t *fmt)
                 return FALSE;
         }
 
-        memcpy(rs->fmt, fmt, sizeof(sndfile_fmt_t));        
+        memcpy(&rs->fmt, fmt, sizeof(sndfile_fmt_t));        
         *state = (char*)rs;
 
         /* Nothing to write to file */
@@ -121,7 +121,7 @@ raw_write_audio(FILE *fp, char *state, sample *buf, int samples)
 
         rs = (raw_state_t*)state;
 
-        switch(rs->fmt->encoding) {
+        switch(rs->fmt.encoding) {
         case SNDFILE_ENCODING_L16:
                 bytes_per_sample = (int)sizeof(sample);
                 if (ntohs(1) != 1) {
@@ -185,7 +185,7 @@ raw_get_format(char *state, sndfile_fmt_t *fmt)
                 return FALSE;
         }
        
-        memcpy(fmt, rs->fmt, sizeof(sndfile_fmt_t));
+        memcpy(fmt, &rs->fmt, sizeof(sndfile_fmt_t));
 
         return TRUE;
 }
