@@ -223,7 +223,7 @@ int net_write_iov(int fd, u_long addr, int port, struct iovec *iov, int len, int
 
 /* This function is used for both rtp and rtcp packets */
 static pckt_queue_element_struct *
-read_net(session_struct * sp, int fd, u_int32 cur_time, int type)
+read_net(session_struct * sp, int fd, u_int32 cur_time, int type, int *nbdecryption)
 {
 	char           *data_in, *data_out, *tmp_data;
 	struct sockaddr from;
@@ -238,7 +238,7 @@ read_net(session_struct * sp, int fd, u_int32 cur_time, int type)
 	 * We've got the parameter now, but I can't be bothered to fix the code :-) [csp]
 	 */
 
-	data_in = block_alloc(PACKET_LENGTH);
+	data_in  = block_alloc(PACKET_LENGTH);
 	data_out = block_alloc(PACKET_LENGTH);
 
 	fromlen = sizeof(from);
@@ -246,10 +246,10 @@ read_net(session_struct * sp, int fd, u_int32 cur_time, int type)
 		if (Null_Key()==0) {
 			switch (type) {
 			case PACKET_RTP:
-				Decrypt(data_in, data_out, &read_len);
+				*nbdecryption = Decrypt(data_in, data_out, &read_len);
 				break;
 			case PACKET_RTCP:
-				Decrypt_Ctrl(data_in, data_out, &read_len);
+				*nbdecryption = Decrypt_Ctrl(data_in, data_out, &read_len);
 				break;
 			default:
 				printf("oops. read_net type is broken!\n");
@@ -261,19 +261,18 @@ read_net(session_struct * sp, int fd, u_int32 cur_time, int type)
 			data_in = tmp_data;
 		}
 		pckt = (pckt_queue_element_struct *) block_alloc(sizeof(pckt_queue_element_struct));
-		pckt->len = read_len;
-		pckt->pckt_ptr = data_out;
-		pckt->next_pckt_ptr = NULL;
-		pckt->prev_pckt_ptr = NULL;
-		pckt->addr = ((struct sockaddr_in *) & from)->sin_addr.s_addr;
-		/* also need to timestamp the packet here */
+		pckt->len               = read_len;
+		pckt->pckt_ptr          = data_out;
+		pckt->next_pckt_ptr     = NULL;
+		pckt->prev_pckt_ptr     = NULL;
+		pckt->addr              = ((struct sockaddr_in *) & from)->sin_addr.s_addr;
 		pckt->arrival_timestamp = cur_time;
 		block_free(data_in, PACKET_LENGTH);
-		return (pckt);
+		return pckt;
 	} else {
 		block_free(data_in, PACKET_LENGTH);
 		block_free(data_out, PACKET_LENGTH);
-		return (NULL);
+		return NULL;
 	}
 }
 
@@ -282,7 +281,7 @@ read_net(session_struct * sp, int fd, u_int32 cur_time, int type)
 void
 read_packets_and_add_to_queue(session_struct * sp, int fd, u_int32 cur_time, pckt_queue_struct * queue, int type)
 {
-	int             l, nb;	/* Number of bytes to read */
+	int             l, nb, nbdecryption;
 	pckt_queue_element_struct pckt;
 	pckt_queue_element_struct *pckt_ptr = &pckt;
 
@@ -291,11 +290,12 @@ read_packets_and_add_to_queue(session_struct * sp, int fd, u_int32 cur_time, pck
 		perror("read_all.../FIONREAD");
 	}
 	for (l = 0; l < 2 && nb > 0; l++) {
-		if ((pckt_ptr = read_net(sp, fd, cur_time, type)) != NULL) {
+		if ((pckt_ptr = read_net(sp, fd, cur_time, type, &nbdecryption)) != NULL) {
 			/* There is a bug in SUNOS, IRIX and HPUX, which */
                         /* means that we need to subtract 16 more bytes  */
 			/* on each read to get it right...               */
 			nb -= pckt_ptr->len;
+			nb -= nbdecryption;
 #if defined(SunOS_4) || defined(IRIX) || defined(HPUX) || defined(FreeBSD)
 			nb -= 16;
 #endif

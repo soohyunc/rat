@@ -158,8 +158,13 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 	while (len > 0) {
 		len -= ntohs(pkt->common.length) + 1;
 		if (len < 0 || pkt->common.length == 0) {
-			/* something wrong with packet format */
-			break;
+#ifdef DEBUG
+			printf("rtcp_decode_rtcp_pkt: packet format is weird... this should never happen\n");
+			printf("since the packet has already gone through the header validation step... \n");
+			abort();
+#else
+			return;
+#endif
 		}
 		switch (pkt->common.pt) {
 		case RTCP_SR:

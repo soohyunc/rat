@@ -211,7 +211,7 @@ int Decrypt( const u_char* in, u_char* out, int* len)
 		*len -= pad;
 	}
 
-	return (pad);
+	return pad;
 }
 
 int Decrypt_Ctrl( const u_char* in, u_char* out, int* len)
@@ -236,6 +236,10 @@ int Decrypt_Ctrl( const u_char* in, u_char* out, int* len)
 *                                                                       *
 ************************************************************************/
 {
+	int pad=0;
+	rtcp_t *rtcp_p;
+	rtcp_t *current_p;
+
 	/* We are not using the IV */
 	u_char initVec[8] = {0,0,0,0,0,0,0,0};
 
@@ -252,7 +256,23 @@ int Decrypt_Ctrl( const u_char* in, u_char* out, int* len)
 	/* Strip off the first 4 bytes of the RTCP packet (random data) */
 	*len -= 4;
 	memcpy(out, (wrkbuf_+4), *len);
-	return 4;
+	rtcp_p = (rtcp_t *) out;
+	do {
+		current_p = rtcp_p;
+		rtcp_p    = (rtcp_t *) ((u_int32 *) rtcp_p + ntohs(rtcp_p->common.length) + 1);
+	} while (rtcp_p < (rtcp_t *) (out + *len) && 
+	rtcp_p->common.type == 2);
+	if (current_p->common.p == 1) {
+		current_p->common.p = 0;	/* Clear the padding bit. */
+		pad = out[*len - 1];
+		if (pad > 7 || pad == 0) {
+			++badpbit_;
+			return (0);
+		}
+		current_p->common.length = htons(((((ntohs(current_p->common.length)+1)*4)-pad)/4)-1);
+		*len -= pad;
+	}
+	return pad+4;
 }
 
 u_char* Encrypt_Ctrl( u_char* in, int* len)
