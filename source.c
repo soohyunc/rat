@@ -48,6 +48,8 @@
 #define NO_TOGED_CONT_FOR_PLAYOUT_RECALC 3
 
 #define SOURCE_COMPARE_WINDOW_SIZE 8
+#define SOURCE_MERGE_LEN_SAMPLES SOURCE_COMPARE_WINDOW_SIZE
+
 /* Match threshold is mean abs diff. lower score gives less noise, but less  */
 /* adaption..., might be better if threshold adapted with how much extra     */
 /* data we have buffered...                                                  */
@@ -955,8 +957,6 @@ recommend_skew_adjust_dur(media_data *md, int drop)
         return ts_map32(rate, matchlen);
 }
 
-#define SOURCE_MERGE_LEN_SAMPLES 5
-
 static void
 conceal_dropped_samples(media_data *md, ts_t drop_dur)
 {
@@ -1336,13 +1336,8 @@ source_process(session_t 	 *sp,
                 assert(md != NULL);
                 assert(md_len == sizeof(media_data));
 		assert(md->nrep < MAX_MEDIA_UNITS);
-                for(i = 0; i < md->nrep; i++) {
-                        if (codec_is_native_coding(md->rep[i]->id)) {
-                                break;
-                        }
-                }
 
-                if (i == md->nrep) {
+                if (codec_is_native_coding(md->rep[md->nrep - 1]->id) == FALSE) {
 			/* If we've got to here, we have no native coding for this unit */
                         /* We need to decode this unit, may not have to when repair has */
 			/* been used.                                                   */
@@ -1356,7 +1351,10 @@ source_process(session_t 	 *sp,
                         }
 #endif
                         cu = (coded_unit*) block_alloc(sizeof(coded_unit));
-                        /* Decode frame */
+                        /* Decode frame - use first representation available and make  */
+                        /* last coded_unit in current media_data. From here on         */
+                        /* codec_is_native_coding(md->rep[md->nrep - 1]) should always */
+                        /* be TRUE.                                                    */
                         assert(cu != NULL);
                         memset(cu, 0, sizeof(coded_unit));
                         cs = codec_state_store_get(src->codec_states, md->rep[0]->id);
@@ -1365,19 +1363,13 @@ source_process(session_t 	 *sp,
                         md->rep[md->nrep] = cu;
                         md->nrep++;
 		}
-		assert(md->nrep < MAX_MEDIA_UNITS);
-                for(i = 0; i < md->nrep; i++) {
-                        if (codec_is_native_coding(md->rep[i]->id)) {
-                                break;
-                        }
-                }
-		assert(i != md->nrep); /* Else we don't have a native coding yet, which would make no sense... */
-		assert(codec_is_native_coding(md->rep[i]->id));
+		assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
+		assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
 
                 if (render_3d && src->pdbe->render_3D_data) {
                         /* 3d rendering necessary */
                         coded_unit *decoded, *render;
-                        decoded = md->rep[i];
+                        decoded = md->rep[md->nrep - 1];
                         assert(codec_is_native_coding(decoded->id));
                         
                         render = (coded_unit*)block_alloc(sizeof(coded_unit));
@@ -1387,13 +1379,14 @@ source_process(session_t 	 *sp,
                         assert(md->rep[md->nrep] == NULL);
                         md->rep[md->nrep] = render;
                         md->nrep++;
+                        assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
+                        assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
                 }
-		assert(md->nrep < MAX_MEDIA_UNITS);
 
                 if (src->converter) {
                         /* convert frame */
                         coded_unit *decoded, *render;
-                        decoded = md->rep[i];
+                        decoded = md->rep[md->nrep - 1];
                         assert(codec_is_native_coding(decoded->id));
 
                         render = (coded_unit*) block_alloc(sizeof(coded_unit));
@@ -1402,8 +1395,9 @@ source_process(session_t 	 *sp,
                         assert(md->rep[md->nrep] == NULL);
                         md->rep[md->nrep] = render;
                         md->nrep++;
+                        assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
+                        assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
                 }
-		assert(md->nrep < MAX_MEDIA_UNITS);
 
                 if (src->skew != SOURCE_SKEW_NONE && source_skew_adapt(src, md, playout) != SOURCE_SKEW_NONE) {
                         /* We have skew and we have adjusted playout buffer  */
@@ -1412,22 +1406,24 @@ source_process(session_t 	 *sp,
                         pb_iterator_get_at(src->media_pos, (u_char**)&md, &md_len, &playout);
                         assert(md != NULL);
                         assert(md_len == sizeof(media_data));
+                        assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
+                        assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
                 }
 
-                if (src->pdbe->gain != 1.0 && codec_is_native_coding(md->rep[i]->id)) {
-                        audio_scale_buffer((sample*)md->rep[i]->data,
-                                           md->rep[i]->data_len / sizeof(sample),
+                if (src->pdbe->gain != 1.0 && codec_is_native_coding(md->rep[md->nrep - 1]->id)) {
+                        audio_scale_buffer((sample*)md->rep[md->nrep - 1]->data,
+                                           md->rep[md->nrep - 1]->data_len / sizeof(sample),
                                            src->pdbe->gain);
+                        assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
+                        assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
                 }
 
-                assert(codec_is_native_coding(md->rep[i]->id));
-
-                codec_get_native_info(md->rep[i]->id, &sample_rate, &channels);
-                step = ts_map32(sample_rate, md->rep[i]->data_len / (channels * sizeof(sample)));
+                codec_get_native_info(md->rep[md->nrep - 1]->id, &sample_rate, &channels);
+                step = ts_map32(sample_rate, md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample)));
                 src->next_played = ts_add(playout, step);
-                src->samples_played += md->rep[i]->data_len / (channels * sizeof(sample));
+                src->samples_played += md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample));
 
-                if (mix_process(ms, src->pdbe, md->rep[i], playout) == FALSE) {
+                if (mix_process(ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
                         /* Sources sampling rate changed mid-flow? dump data */
                         /* make source look irrelevant, it should get        */
                         /* destroyed and the recreated with proper decode    */
@@ -1438,6 +1434,8 @@ source_process(session_t 	 *sp,
                         pb_flush(src->media);
                         pb_flush(src->channel);
                 }
+                assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);		
+                assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
         }
         source_update_bps(src, start_ts);
         return;
