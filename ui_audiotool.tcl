@@ -943,6 +943,8 @@ proc mbus_recv_rtp.source.remove {ssrc} {
     catch {after cancel $loss_to_me_timer($ssrc)}
     catch {after cancel $loss_from_me_timer($ssrc)}
     
+    chart_remove $ssrc
+
     catch [destroy [window_plist $ssrc]]
     if { [info exists CNAME($ssrc)] } {
 	unset CNAME($ssrc) NAME($ssrc) EMAIL($ssrc) PHONE($ssrc) LOC($ssrc) TOOL($ssrc) NOTE($ssrc)
