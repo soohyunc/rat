@@ -462,16 +462,22 @@ rtcp_packet_fmt_sdes(session_struct *sp, u_int8 * ptr)
 			sp->db->sdes_ter_count++;
 			switch (sp->db->sdes_ter_count % 4) {
 			case 0 : if (sp->db->sdes[RTCP_SDES_EMAIL-1] != NULL) {
-			           len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_EMAIL, sp->db->sdes[RTCP_SDES_EMAIL-1]);
-			  	   break;
-			 	 }
+			         	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_EMAIL, sp->db->sdes[RTCP_SDES_EMAIL-1]);
+			  	 	break;
+			 	 } else {
+				   	dprintf("Can't send RTCP SDES EMAIL: NULL pointer\n");
+				 }
 			case 1 : if (sp->db->sdes[RTCP_SDES_PHONE-1] != NULL) {
-			           len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_PHONE, sp->db->sdes[RTCP_SDES_PHONE-1]);
-			  	   break;
+			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_PHONE, sp->db->sdes[RTCP_SDES_PHONE-1]);
+			  	   	break;
+			 	 } else {
+				   	dprintf("Can't send RTCP SDES PHONE: NULL pointer\n");
 			 	 }
 			case 2 : if (sp->db->sdes[RTCP_SDES_LOC-1] != NULL) {
-			           len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_LOC, sp->db->sdes[RTCP_SDES_LOC-1]);
-			  	   break;
+			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_LOC, sp->db->sdes[RTCP_SDES_LOC-1]);
+			  	   	break;
+			 	 } else {
+				   	dprintf("Can't send RTCP SDES LOC: NULL pointer\n");
 			 	 }
 			case 3 : if (sp->mode == TRANSCODER) {
 				 	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_TOOL, RAT_VERSION " " OSNAME " [Transcoder]");
@@ -483,7 +489,11 @@ rtcp_packet_fmt_sdes(session_struct *sp, u_int8 * ptr)
 			         abort();
 			}
 		} else {
-			len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_NAME, sp->db->sdes[RTCP_SDES_NAME-1]);
+			if (sp->db->sdes[RTCP_SDES_NAME-1] != NULL) {
+				len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_NAME, sp->db->sdes[RTCP_SDES_NAME-1]);
+			} else {
+				dprintf("Can't send RTCP SDES NAME: NULL pointer\n");
+			}
 		}
 	}
 
