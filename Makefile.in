@@ -63,7 +63,7 @@ release:
 	cvs tag release-`cat VERSION | sed "s/\./-/g"`
 
 tgz: rat-__VERSION__
-	tar cvf rat-__VERSION__-__OSTYPE__.tar README.* MODS COPYRIGHT rat-__VERSION__
+	tar cvf rat-__VERSION__-__OSTYPE__.tar README.* MODS COPYRIGHT INSTALL.TXT VERSION rat-__VERSION__
 	gzip -9v rat-__VERSION__-__OSTYPE__.tar
 
 depend: $(SRCS)
