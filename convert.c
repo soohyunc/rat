@@ -48,262 +48,184 @@
 #include "convert.h"
 #include "util.h"
 
-/* Perform sample rate and channel conversion. From length is in samples and
- * does not take into account the number of channels (i.e. you have to work
- * on twice the data for stereo).
- * conv_buf_len is length of buffer to put output and includes stereo etc.
- * Return value is number of samples to mix (i.e real length of buffer) and
- * includes number of channels.
- */
+static void (*ds)(short *,short *,short *,short *, int, int, int, int);
+static void (*us)(short *,short *,short *,short *, int, int, int, int);
 
-#define sgn(x) ((x>0.0) ? 1.0 : -1.0)
+/* Linear interpolation (sperm of the devil) */
+void
+upsample_linear(short *dst, short *src_prev, short *src, short *src_next, int src_len, int scale, int src_step, int dst_step)
+{
+    short *p,*ep;
+    float w1,w2,ws,tmp;
+    assert(p!=NULL);
+    if (src_prev) {
+        p = src_prev+(src_len-1)*src_step;
+    } else {
+        p = src;
+	}
 
-#define WIN_WIDTH   24
-#define DOWN_WIDTH   6
-/* tables to 2x,3x,4x,5x,6x up and downsample */
-#define N_WINDOWS    5
+    ep = src+src_len*src_step;
+    ws = 1.0f/((float)scale);
 
-#ifndef M_PI
-#define M_PI            3.14159265358979323846
-#endif /* M_PI */
-
-static float h_up[N_WINDOWS][2*WIN_WIDTH+1];
-static float h_down[N_WINDOWS][2*DOWN_WIDTH+1];
+    while(src<ep){
+        w1 = ws;
+        w2 = 1.0-ws;
+        tmp = 0;
+        while(w1<1.0) {
+            *dst = *p;
+/*(short)(w1*((float)*p)+w2*((float)*src));*/
+            dst += dst_step;
+            w1  += ws;
+            w2  -= ws;
+		}
+        p    = src;
+        src += src_step;
+        *dst = *p;
+        dst += dst_step;
+		}
+}
 
 void
-init_converter()
+downsample_linear(short *dst, short *src_prev, short *src, short *src_next, int src_len, int scale, int src_step, int dst_step)
 {
-	int i,j;
-	for(i=0;i<N_WINDOWS;i++) {
-		h_down[i][DOWN_WIDTH] = 0.0;
-		for(j=1;j<=DOWN_WIDTH;j++)
-			h_down[i][DOWN_WIDTH-j] = h_down[i][DOWN_WIDTH+j] = 
-				(1.0/(M_PI*(float)j))*sin(M_PI*(float)j/(float)(i+2));
-	}
-	return;
-}
+    register int tmp,j;
+    short *ep = src + src_len*src_step;
 
-#ifdef ucacoxh
+    printf("downsample linear %d %d\n",src_len,scale);
 
-static float* 
-get_converter_table(int from, int to)
-{
-	if (from>to) {
-		if (from%to) {
-			fprintf(stderr,"Cannot locate freq conversion table for %d to %d Hz.\n", from, to);
-			return NULL;
+    while(src<ep) {
+        tmp = 0;
+        j = 0;
+        while(j++<scale) {
+            tmp += *src;
+            src += src_step;
 		}
-		return h_down[from/to-2];
-	} else {
-		if (to%from) {
-			fprintf(stderr,"Cannot locate freq conversion table for %d to %d Hz.\n", from, to);
-			return NULL;
-		}
-		return h_up[to/from-2];
+        tmp /= scale;
+        *dst = tmp;
+        dst += dst_step;
 	}
 }
 
-static void
-mono_upsample(rx_queue_element_struct *ip, int scale, float *h)
+void
+set_converter(int mode)
 {
-	float *hsp, *hcp, *hep;
-	short *ssp, *sep, *scp, *sbp;
-	short *ossp, *osep, *oscp, *osbp;
-	short *dp;
-	float tmp;
-	int offset;
-	int lstep = WIN_WIDTH/scale;
-	hsp = h; 
-	hep = h+2*WIN_WIDTH+1;
-	/* first the left edge */
-#ifdef ucacoxh
-	ssp = ip->native_data[0];
-	dp  = ip->native_data[1]; 
-	if (ip->prev_ptr &&
-	    ip->prev_ptr->native_count &&
-	    ip->prev_ptr->native_data[0]) {
-		oscp = osbp = ossp = ip->prev_ptr->native_data[0] 
-			+ ip->prev_ptr->comp_data[0].cp->unit_len
-			- lstep;
-		osep = ossp + lstep;
-		sbp = scp = ssp;
-		while(osbp<osep) {
-			*dp++ = *sbp++;
-			osbp ++;
-			for(offset = scale-1;offset>0;offset--) {
-				oscp = osbp;
-				hcp = hsp + offset;
-				tmp = 0.0;
-				while(oscp<osep) {
-					tmp += (*hcp)*(*oscp);
-					hcp += scale;
-					oscp++;
+    switch (mode) {
+    case CONVERT_LINEAR:
+        ds = &downsample_linear;
+        us = &upsample_linear;
 				}
-				scp = ssp;
-				while(hcp<hep) {
-					tmp += (*hcp)*(*scp++);
-					hcp += scale;
-				}
-			}
-		}
-	}
-#endif ucacoxh
-	/* now the body ...*/
-	dp  = ip->native_data[1]+WIN_WIDTH;
-	sbp = scp = ip->native_data[0];
-	sep = ip->native_data[0]+ip->comp_data[0].cp->unit_len-2*lstep;
-	while(sbp<sep){
-		*dp++ = *(sbp+lstep);
-		assert(dp<=ip->native_data[1]+scale*ip->comp_data[0].cp->unit_len);
-		sbp++;
-		for(offset=scale-1;offset>0;offset--){
-			hcp = hsp + offset;
-			scp = sbp;
-			tmp = 0.0;
-			while(hcp<hep){
-				tmp += (*hcp)*(*scp);
-				hcp += scale;
-				scp ++;
-			}
-#ifdef DEBUG
-			if (tmp<-32768.0||tmp>32767.0) 
-				fprintf(stderr, "clipping % .4f\n",tmp);
-#endif
-			assert(tmp>=-32768.0 && tmp<32768);
-			*dp++ = tmp;
-
-			assert(dp<=ip->native_data[1]+scale*ip->comp_data[0].cp->unit_len);
-		}
-	}
-	sep = sep + lstep;
-
-	if (ip->next_ptr &&
-	    ip->next_ptr->native_count &&
-	    ip->next_ptr->native_data[0]) {
-		ossp = ip->next_ptr->native_data[0];
-		while(sbp<sep) {
-			*dp++ = *(sbp+lstep);
-			assert(dp<=ip->native_data[1]+scale*ip->comp_data[0].cp->unit_len);
-			sbp++;
-			for(offset=scale-1;offset>0;offset--){
-				scp = sbp;
-				hcp = hsp+offset;
-				tmp = 0.0;
-				while(scp<sep){
-					tmp += (*hcp)*(*scp);
-					hcp += scale;
-					scp++;
-				}
-				oscp = ossp;
-				while(hcp<hep) {
-					tmp += (*hcp)*(*oscp);
-					hcp += scale;
-					oscp++;
-				}
-				assert(tmp>=-32768.0 && tmp<32768);
-				*dp++=tmp;
-				assert(dp<=ip->native_data[1]+scale*ip->comp_data[0].cp->unit_len);
-			}
-		}
-	}
 }
-
-static void
-mono_downsample(rx_queue_element_struct *ip, int scale, float *h)
-{
-	short *scp, *sep, *ssp;
-	short *ossp, *osep;
-	short *dp,*dsp;
-	float *hcp,*hep;
-	float tmp;
-
-
-	dsp  = dp   = ip->native_data[1]; 
-	ssp  = scp = ip->native_data[0];
-	sep = ssp + ip->comp_data[0].cp->unit_len;
-	hep = h+2*DOWN_WIDTH+1;
-	hcp = h;
-
-	while(scp<sep) {
-		*dp++ = (short)(((int)(*scp++)+(*scp++))/2);
-	}
-
-/*	if (ip->prev_ptr &&
-	    ip->prev_ptr->native_count &&
-	    ip->prev_ptr->native_data[0]) {
-		ossp = ip->prev_ptr->native_data[0]+ip->prev_ptr->comp_data[0].cp->unit_len-DOWN_WIDTH;
-		osep = ip->prev_ptr->native_data[0]+ip->prev_ptr->comp_data[0].cp->unit_len;
-		while(ossp<osep){
-			tmp = 0.0;
-			scp = ossp;
-			hcp = h;
-			while(scp<osep)
-				tmp += (*scp++)*(*hcp++);
-			scp = ssp;
-			while(hcp<hep)
-				tmp += (*scp++)*(*hcp++);
-			*dp++=tmp;
-			ossp += scale;
-			
-		}
-		assert(dp==dsp+DOWN_WIDTH/scale);
-	}
-	*/
-
-	sep = ssp + ip->comp_data[0].cp->unit_len - 2*DOWN_WIDTH;
-	dp = dsp + DOWN_WIDTH/scale;
-	while(ssp<sep) {
-		scp = ssp;
-		hcp = h;
-		tmp = 0.0;
-		while(hcp<hep) 
-			tmp += (*hcp++)*(*scp++);
-
-		if (tmp<-32768.0) {
-			tmp = -32768.0;
-			printf("clipping -\n");
-		} else if (tmp>32767.0) {
-			tmp = 32767.0;
-			printf("clipping +\n");
-		}
-
-		*dp++ = (short) tmp;
-		ssp += scale;
-	}
-
-}
-
-#endif /* ucacoxh */
 
 int
 convert_format(rx_queue_element_struct *ip, int to_freq, int to_channels)
 {
-	int    len;
-	float *h;
-	assert(ip->native_data[0]);
-	assert(to_channels == 1);
-	assert(ip->comp_data[0].cp->freq != to_freq);
-	
-	len = ip->comp_data[0].cp->unit_len * to_freq / ip->comp_data[0].cp->freq;
-#ifdef ucacoxh
-	h = get_converter_table(ip->comp_data[0].cp->freq,to_freq);
-	if (h==NULL) {
-#ifdef DEBUG
-		fprintf(stderr, "Non integer sample rate conversion attempted %d -> %d\n",
-		       ip->comp_data[0].cp->freq,to_freq);
-#endif /* DEBUG */
-		return 0;
-	}
-	ip->native_data[1] = (short*)xmalloc(len*sizeof(sample));
-	memset(ip->native_data[1],0x70,len*sizeof(sample));
-	ip->native_count=2;
-	if (ip->comp_data[0].cp->freq < to_freq)
-		mono_upsample(ip,to_freq/ip->comp_data[0].cp->freq,h);
-	else 
-		mono_downsample(ip,ip->comp_data[0].cp->freq/to_freq,h);
+    register int i;
+    register short *p;
+    short *prev, *next;
+    int scale=0,size=0;
+    void (*converter)(short *, short*, short*, short *, int, int, int, int) = NULL;
 
-#endif /* ucacoxh */
-	return (len);
+    /* get audio blocks from side for conversion methods that need them */
+    if (ip->prev_ptr && ip->prev_ptr->native_data[ip->native_count-1])
+        prev = ip->prev_ptr->native_data[ip->native_count];
+    else 
+        prev = NULL;
+    if (ip->next_ptr && ip->next_ptr->native_data[ip->native_count-1])
+        next = ip->next_ptr->native_data[ip->native_count - 1];
+    else 
+        next = NULL;
+
+    if (ip->comp_data[0].cp->freq>to_freq && !(ip->comp_data[0].cp->freq%to_freq)) {
+        scale = ip->comp_data[0].cp->freq/to_freq;
+        size  = ip->comp_data[0].cp->unit_len*to_channels*sizeof(sample)/scale;
+        converter = ds;
+    } else if (ip->comp_data[0].cp->freq<to_freq && !(to_freq%ip->comp_data[0].cp->freq)) {
+        scale = to_freq/ip->comp_data[0].cp->freq;
+        size  = ip->comp_data[0].cp->unit_len*to_channels*sizeof(sample)*scale;
+        converter = us;
+	}
+    ip->native_data[ip->native_count++] = (sample*)xmalloc(size);    
+
+    if (converter && scale) {
+        if (to_channels == ip->comp_data[0].cp->channels) {
+            /* m channels to m channels */
+            for(i=0;i<to_channels;i++) 
+                (*converter)(ip->native_data[ip->native_count-1]+i,
+                      prev + i,
+                      ip->native_data[ip->native_count-2]+i,
+                      next + i,
+                      ip->comp_data[0].cp->unit_len,
+                      scale,
+                      to_channels,
+                      to_channels);
+        } else if (to_channels == 1) {
+            /* XXX 2 channels to 1 - we should do channel selection here [oth] */
+            assert(ip->comp_data[0].cp->channels == 2);
+            (*converter)(ip->native_data[ip->native_count-1],
+                  prev,
+                  ip->native_data[ip->native_count-2],
+                  next,
+                  ip->comp_data[0].cp->unit_len,
+                  scale,
+                  2,
+                  1);
+        } else if (to_channels == 2) {
+            /* XXX 1 channel to 2 */
+            assert(ip->comp_data[0].cp->channels == 1);
+            (*converter)(ip->native_data[ip->native_count-1],
+                  prev,
+                  ip->native_data[ip->native_count-2],
+                  next,
+                  ip->comp_data[0].cp->unit_len,
+                  scale,
+                  1,
+                  2);
+            p = ip->native_data[ip->native_count-1];
+            for(i=0;i<ip->comp_data[0].cp->unit_len;i++,p+=2)
+                *(p+1) = *p;
+        } else {
+            /* non-integer conversion attempted */
+            return 0;
+		}
+        return (size>>1);
+    } else if (ip->comp_data[0].cp->freq == to_freq) {
+        /* channel conversion only */
+        if (to_channels>ip->comp_data[0].cp->channels) {
+            /* 1 to 2 channels */
+            printf("1 to 2 channels\n");
+            assert(to_channels == 2);
+            size = ip->comp_data[0].cp->unit_len*2*sizeof(sample);
+            ip->native_data[ip->native_count++] = (sample*)xmalloc(size);
+            prev = ip->native_data[0];
+            p    = ip->native_data[1];
+            i = 0;
+            while(i++<ip->comp_data[0].cp->unit_len) {
+                *p = *(p+1) = *prev++;
+                p += 2;
+	}
+            return (size>>1);
+        } else if (to_channels<ip->comp_data[0].cp->channels) {
+            /* 2 to 1 channels */
+            printf("2 to 1 channels\n");
+            assert(ip->comp_data[0].cp->channels == 2);
+            size = ip->comp_data[0].cp->unit_len*sizeof(sample)/2;
+            ip->native_data[ip->native_count++] = (sample*)xmalloc(size);
+            prev = ip->native_data[0];
+            p    = ip->native_data[1];
+            i = 0;
+            while(i++<ip->comp_data[0].cp->unit_len) {
+                *p++  = *prev++;
+                prev += 2;
+		}
+            return (size>>1);
+        } else {
+#ifdef DEBUG
+            /* should never be here */
+            fprintf(stderr, "convert_format: neither sample rate conversion nor channel count conversion.");
+#endif            
+	}
+    }
+    return 0;
 }
 
 

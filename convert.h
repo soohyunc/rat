@@ -46,7 +46,11 @@
 #include "rat_types.h"
 #include "receive.h"
 
-void init_converter();
+#define CONVERT_LINEAR 0
+#define CONVERT_CUBIC  1
+#define CONVERT_LPF    2
+
+void set_converter(int mode);
 int convert_format(rx_queue_element_struct *ip, int to_freq, int to_channels);
 
 #endif /* _convert_h_ */
