@@ -103,7 +103,6 @@ add_unit_to_interval(rx_queue_element_struct *ip, rx_queue_element_struct *ru)
                 }
         } else {
                 debug_msg("duplicate\n");        ip->dbe_source[0]->duplicates++;
-        
         } 
 	free_rx_unit(&ru);
 }
@@ -134,6 +133,42 @@ add_or_get_interval(ppb_t *buf, rx_queue_element_struct *ru)
 	}
 	return (*ipp);
 }
+
+#ifdef DEBUG_PLAYOUT
+static void
+verify_playout_buffer(ppb_t* buf)
+{
+        rx_queue_element_struct *el;
+        u_int32 src_diff, playout_diff, buf_len = 0;
+
+        el = buf->head_ptr;
+        if (el && el->ccu[0] != NULL) assert(validate_cc_unit(el->ccu[0]));
+
+        while( el && el->next_ptr ) {
+                if (el->next_ptr->ccu[0] != NULL) assert(validate_cc_unit(el->next_ptr->ccu[0]));
+                if (ts_gt(el->src_ts, el->next_ptr->src_ts)) {
+                        src_diff = ts_abs_diff( el->next_ptr->src_ts, 
+                                                el->src_ts );
+                        debug_msg( "src_ts jump %08u.\n", 
+                                 src_diff );
+                }
+                if (ts_gt(el->playoutpt, el->next_ptr->playoutpt)) {
+                        playout_diff = ts_abs_diff( el->next_ptr->playoutpt,
+                                                    el->playoutpt );
+                        debug_msg( "out of order playout units by %08u.\n",
+                                 playout_diff );
+                }
+                el = el->next_ptr;
+                buf_len++;
+        }
+
+        if (buf->len != buf_len + 1) {
+                debug_msg("Buffer length estimate is wrong (%d %d)!\n",
+                        buf->len,
+                        buf_len + 1);
+        }
+}
+#endif /* DEBUG_PLAYOUT */
 
 #define MAX_FILLIN_UNITS 32
 
@@ -187,42 +222,11 @@ fillin_playout_buffer(ppb_t *buf,
         debug_msg("Allocated %d new units with separation %d\n",
                 units_made,
                 playout_step);
+        verify_playout_buffer(buf);
 #endif /* DEBUG_PLAYOUT */
         return units_made;
 }
 
-#ifdef DEBUG_PLAYOUT
-static void
-verify_playout_buffer(ppb_t* buf)
-{
-        rx_queue_element_struct *el;
-        u_int32 src_diff, playout_diff, buf_len = 0;
-
-        el = buf->head_ptr;
-        while( el && el->next_ptr ) {
-                if (ts_gt(el->src_ts, el->next_ptr->src_ts)) {
-                        src_diff = ts_abs_diff( el->next_ptr->src_ts, 
-                                                el->src_ts );
-                        debug_msg( "src_ts jump %08u.\n", 
-                                 src_diff );
-                }
-                if (ts_gt(el->playoutpt, el->next_ptr->playoutpt)) {
-                        playout_diff = ts_abs_diff( el->next_ptr->playoutpt,
-                                                    el->playoutpt );
-                        debug_msg( "out of order playout units by %08u.\n",
-                                 playout_diff );
-                }
-                el = el->next_ptr;
-                buf_len++;
-        }
-
-        if (buf->len != buf_len + 1) {
-                debug_msg("Buffer length estimate is wrong (%d %d)!\n",
-                        buf->len,
-                        buf_len + 1);
-        }
-}
-#endif /* DEBUG_PLAYOUT */
 
 static rx_queue_element_struct *
 playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
@@ -266,10 +270,6 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
                 ip->prev_ptr->playoutpt = ip->playoutpt;
         }
 
-#ifdef DEBUG_PLAYOUT
-        verify_playout_buffer(buf);
-#endif /* DEBUG_PLAYOUT */
-
 	return (ru);
 }
 
@@ -293,8 +293,15 @@ playout_buffer_get(session_struct *sp, ppb_t *buf, u_int32 from, u_int32 to)
 			return (NULL);
                 }
 		buf->last_got = ip;
+#ifdef DEBUG_PLAYOUT
+                verify_playout_buffer(buf);
+#endif
                 channel_decode(sp, ip);
 		decode_unit(ip);
+#ifdef DEBUG_PLAYOUT
+                verify_playout_buffer(buf);
+#endif
+
 	}
 	return (ip);
 }
@@ -355,6 +362,10 @@ clear_old_participant_history(session_struct *sp, ppb_t *buf)
 	rx_queue_element_struct *ip;
 	u_int32	cutoff, cur_time, adj;
 
+#ifdef DEBUG_PLAYOUT
+        verify_playout_buffer(buf);
+#endif
+
 	cur_time = get_time(buf->src->clock);
         if (sp->echo_suppress) {
                 adj = (get_freq(buf->src->clock)/1000) * SUPPRESS_LEN;
@@ -375,8 +386,13 @@ clear_old_participant_history(session_struct *sp, ppb_t *buf)
                 PB_SHRINK(buf);
 	}
 
+#ifdef DEBUG_PLAYOUT
+        verify_playout_buffer(buf);
+#endif
+
 	if (buf->head_ptr) {
 		buf->head_ptr->prev_ptr = NULL;
+                buf->tail_ptr->next_ptr = NULL;
 	} else {
 		buf->tail_ptr = NULL;
                 playout_buffer_destroy(sp, &sp->playout_buf_list, buf);
@@ -523,6 +539,10 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
 		up       = get_unit_off_rx_queue(receive_queue);
 		buf      = find_participant_queue(sp, buf_list, up->dbe_source[0], sp->encodings[0], up->dbe_source[0]->enc, sp->converter);
 		cur_time = get_time(buf->src->clock);
+
+#ifdef DEBUG_PLAYOUT
+                verify_playout_buffer(buf);
+#endif DEBUG_PLAYOUT
                 
 		/* This is to compensate for clock drift.
 		 * Same check should be made in case it is too early.
@@ -542,23 +562,25 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
 		} else {
 			up->dbe_source[0]->cont_toged = 0;
 		}
-#ifdef DEBUG_PLAYOUT
-                verify_playout_buffer(buf);
-#endif
+
 		up = playout_buffer_add(buf, up);
-#ifdef DEBUG_PLAYOUT
-                verify_playout_buffer(buf);
-#endif
 		/*
 		 * If we have already worked past this point then mix it!
 		 */
                 
 		if (up && buf->last_got && up->mixed == FALSE
 		    && ts_gt(buf->last_got->playoutpt, up->playoutpt) 
-		    && ts_gt(up->playoutpt, cur_time)){
+		    && ts_gt(up->playoutpt, cur_time)) {
                         debug_msg("Mixing late audio\n");
+                        assert(validate_cc_unit(up->ccu[0]));
+#ifdef DEBUG_PLAYOUT
+                        verify_playout_buffer(buf);
+#endif
                         channel_decode(sp, up);
 			decode_unit(up);
+#ifdef DEBUG_PLAYOUT
+                        verify_playout_buffer(buf);
+#endif
 			if (up->native_count) {
 				mix_do_one_chunk(sp, ms, up);
 			}
@@ -566,10 +588,8 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
 	}
         
 	/* If sp->cushion is NULL, it probably means we don't have access to the audio device... */
-	if (sp->cushion != NULL) {
-        	cs = cushion_get_size(sp->cushion);
-        	cu = cushion_get_step(sp->cushion);
-	}
+        cs = cushion_get_size(sp->cushion);
+        cu = cushion_get_step(sp->cushion);
         
         buf_next = NULL;
 	for (buf = *buf_list; buf; buf = buf_next) {
@@ -601,6 +621,10 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
                                   5 * cs / 4);
                         buf->src->playout_danger = TRUE;
                 }
+
+#ifdef DEBUG_PLAYOUT
+                                verify_playout_buffer(buf);
+#endif
                 
 		while ((up = playout_buffer_get(sp, buf, cur_time, cur_time + cs))) {
                         if (!up->comp_count  && sp->repair != REPAIR_NONE 

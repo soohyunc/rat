@@ -481,6 +481,17 @@ clear_cc_state_list(cc_state_t **list, enum cc_e ed)
         *list = NULL;
 }
 
+int
+validate_cc_unit(cc_unit *cu)
+{
+        int i, cnt;
+        
+        for(cnt = i = 0; i < cu->iovc; i++) {
+                if (cu->iov[i].iov_base && cu->iov[i].iov_len) cnt++;
+        }
+        return (cnt == cu->iovc);
+}
+
 void
 clear_cc_unit(cc_unit *cu, int start)
 {
@@ -550,7 +561,7 @@ channel_decode(session_struct *sp, rx_queue_element_struct *u)
 {
         static u_int32 hist_buf[HIST_SZ];
         static int     hist_idx;
-        int i, cnt;
+        int i;
         cc_state_t *stp;
         cc_coder_t *cc;
 
@@ -563,10 +574,7 @@ channel_decode(session_struct *sp, rx_queue_element_struct *u)
         hist_idx = (hist_idx + 1) % HIST_SZ;
         hist_buf[hist_idx] = u->src_ts;
 
-        for(cnt = i = 0; i < u->ccu[0]->iovc; i++) {
-                if (u->ccu[0]->iov[i].iov_base && u->ccu[0]->iov[i].iov_len) cnt++;
-        }
-        assert(cnt == u->ccu[0]->iovc);
+        assert(validate_cc_unit(u->ccu[0]));
 
         cc  = get_channel_coder(u->cc_pt);
         stp = get_cc_state(NULL, 
@@ -751,6 +759,7 @@ add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
                 for(i=0;i<iovc;i++) 
                         block_free(iov[i].iov_base, iov[i].iov_len);
                 memset(iov, 0, sizeof(struct iovec) * iovc);
+                debug_msg("Already had data this interval!\n");
                 return 0;
         }
 
@@ -914,10 +923,18 @@ fragment_sizes(codec_t *cp, char *blk, int blk_len, struct iovec *store, int *io
 }
 
 int 
-fragment_spread(codec_t *cp, int len, struct iovec *iov, int iovc, rx_queue_element_struct *u)
+fragment_spread(codec_t *cp, int len, struct iovec *iov, int iovc, rx_queue_element_struct *start)
 {
-        int done = 0, cc_pt;
+        int done = 0, cc_pt, i,cnt;
+        rx_queue_element_struct *u;
         assert(cp);
+
+        u = start;
+        for (cnt = i = 0; i<u->ccu[0]->iovc; i++) {
+                if (u->ccu[0]->iov[i].iov_base && u->ccu[0]->iov[i].iov_len)
+                        cnt++;
+        }
+        assert(cnt == u->ccu[0]->iovc);
 
         while(len > 0 && done < iovc) {
                 if (u) {
@@ -945,6 +962,17 @@ fragment_spread(codec_t *cp, int len, struct iovec *iov, int iovc, rx_queue_elem
         }
         assert(len == 0);
         assert(done <= iovc);
+        u = start;
+        
+        u->ccu[0]->iovc -= done;
+
+        if (u->ccu[0]) {
+                for (cnt = i = 0; i<u->ccu[0]->iovc; i++) {
+                        if (u->ccu[0]->iov[i].iov_base && u->ccu[0]->iov[i].iov_len)
+                                cnt++;
+                }
+                assert(cnt == u->ccu[0]->iovc);
+        }
 
         return done;
 }
