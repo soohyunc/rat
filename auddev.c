@@ -125,7 +125,7 @@ __inline static audio_if_t *
 audio_get_active_interface(int idx)
 {
         assert(idx < num_interfaces);
-        assert(active_interfaces[idx] != NULL);
+        assert(active_interfaces[selected_interface] != NULL);
 
         return active_interfaces[idx];
 }
@@ -153,6 +153,13 @@ audio_set_interface(int idx)
         }
 }
 
+int
+audio_get_null_interface()
+{
+        /* Null audio interface is always the last */
+        return num_interfaces - 1;
+}
+
 int 
 audio_get_interface()
 {
@@ -176,7 +183,13 @@ audio_open(audio_format *format)
 
         if (aif->audio_if_open(selected_interface, format)) {
                 /* Add selected interface to those active*/
-                active_interfaces[num_active_interfaces] = &audio_interfaces[selected_interface];
+                if (!aif->audio_if_duplex(AIF_IDX_TO_MAGIC(selected_interface))) {
+			printf("RAT v3.2.0 and later require a full duplex audio device, but \n");
+			printf("your %s only supports half-duplex operation. Sorry.\n", aif->name);
+                        aif->audio_if_close(AIF_IDX_TO_MAGIC(selected_interface));
+                        return 0;
+                }
+                active_interfaces[selected_interface] = &audio_interfaces[selected_interface];
                 r = AIF_IDX_TO_MAGIC(selected_interface);
                 num_active_interfaces++;
                 return r;
@@ -280,6 +293,9 @@ audio_set_gain(audio_desc_t ad, int gain)
         ad = AIF_MAGIC_TO_IDX(ad);
         aif = audio_get_active_interface(ad);
 
+        assert(gain >= 0);
+        assert(gain <= MAX_AMP);
+
         aif->audio_if_set_gain(ad, gain);
 }
 
@@ -287,11 +303,17 @@ int
 audio_get_gain(audio_desc_t ad)
 {
         audio_if_t *aif;
+        int gain;
         
         ad = AIF_MAGIC_TO_IDX(ad);
         aif = audio_get_active_interface(ad);
+        
+        gain = aif->audio_if_get_gain(ad);
 
-        return aif->audio_if_get_gain(ad);
+        assert(gain >= 0);
+        assert(gain <= MAX_AMP);
+
+        return gain;
 }
 
 void
@@ -302,6 +324,9 @@ audio_set_volume(audio_desc_t ad, int volume)
         ad = AIF_MAGIC_TO_IDX(ad);
         aif = audio_get_active_interface(ad);
 
+        assert(volume >= 0);
+        assert(volume <= MAX_AMP);
+
         aif->audio_if_set_volume(ad, volume);
 }
 
@@ -309,11 +334,16 @@ int
 audio_get_volume(audio_desc_t ad)
 {
         audio_if_t *aif;
+        int volume;
         
         ad = AIF_MAGIC_TO_IDX(ad);
         aif = audio_get_active_interface(ad);
 
-        return aif->audio_if_get_volume(ad);
+        volume = aif->audio_if_get_volume(ad);
+        assert(volume >= 0);
+        assert(volume <= MAX_AMP);
+
+        return volume;
 }
 
 void
@@ -323,6 +353,9 @@ audio_loopback(audio_desc_t ad, int gain)
         
         ad = AIF_MAGIC_TO_IDX(ad);
         aif = audio_get_active_interface(ad);
+
+        assert(gain >= 0);
+        assert(gain <= MAX_AMP);
 
         if (aif->audio_if_loopback) aif->audio_if_loopback(ad, gain);
 }
@@ -526,6 +559,7 @@ audio_add_interface(audio_if_t *aif_new)
 }
 
 #include "auddev_luigi.h"
+#include "auddev_null.h"
 #include "auddev_osprey.h"
 #include "auddev_oss.h"
 #include "auddev_pca.h"
@@ -793,6 +827,42 @@ audio_init_interfaces()
                 audio_add_interface(&aif_pca);                
         }
 #endif /* HAVE_PCA */
+        {
+                /* This is the null audio device - it should always go last so that
+                 * audio_get_null_interface works.  The idea being when we can't get hold
+                 * of a real device we fake one.  Prevents lots of problems elsewhere.
+                 */
+                audio_if_t aif_null = {
+                        "No Audio Device",
+                        NULL,
+                        NULL, 
+                        null_audio_open,
+                        null_audio_close,
+                        null_audio_drain,
+                        null_audio_duplex,
+                        null_audio_read,
+                        null_audio_write,
+                        null_audio_non_block,
+                        null_audio_block,
+                        null_audio_set_gain,
+                        null_audio_get_gain,
+                        null_audio_set_volume,
+                        null_audio_get_volume,
+                        null_audio_loopback,
+                        null_audio_set_oport,
+                        null_audio_get_oport,
+                        null_audio_next_oport,
+                        null_audio_set_iport,
+                        null_audio_get_iport,
+                        null_audio_next_iport,
+                        null_audio_get_blocksize,
+                        null_audio_get_channels,
+                        null_audio_get_freq,
+                        null_audio_is_ready,
+                        null_audio_wait_for,
+                };
+                audio_add_interface(&aif_null);                
+        }
 
         UNUSED(i); /* Some if def combinations may mean that these do not get used */
         UNUSED(n);
@@ -805,3 +875,4 @@ audio_free_interfaces(void)
 {
         return TRUE;
 }
+

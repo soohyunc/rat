@@ -56,6 +56,7 @@ int     audio_get_number_of_interfaces(void);
 char*   audio_get_interface_name(int idx);
 void    audio_set_interface(int idx);
 int     audio_get_interface(void);
+int     audio_get_null_interface(void); /* gets null dev interface */
 int     audio_device_supports    (audio_desc_t ad, u_int16 rate, u_int16 channels);
 
 /* Audio functions implemented by device interfaces */

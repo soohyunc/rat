@@ -1,8 +1,7 @@
 /*
- * FILE:    auddev_pca.c
+ * FILE:    auddev_null.c
  * PROGRAM: RAT
- * AUTHOR:  Jim Lowe (james@cs.uwm.edu) 
- * MODS: Orion Hodson
+ * AUTHOR:  Orion Hodson 
  *
  * $Revision$
  * $Date$
@@ -42,118 +41,43 @@
  */
 
 /*
- * PCA speaker support for FreeBSD.
- *
- * This is an output only device so we pretend we read audio...
- *
+ * NULL audio device. 
  */
-
-#include <pcaudioio.h>
 
 #include "config_unix.h"
 #include "audio_types.h"
-#include "auddev_pca.h"
-#include "codec_g711.h"
+#include "auddev_null.h"
 #include "assert.h"
 #include "memory.h"
 #include "debug.h"
 
-static audio_info_t dev_info;			/* For PCA device */
 static audio_format format;
-static int          audio_fd;
+static int audio_fd = -1;
 static struct timeval last_read_time;
 
-#define pca_bat_to_device(x)	((x) * AUDIO_MAX_GAIN / MAX_AMP)
-#define pca_device_to_bat(x)	((x) * MAX_AMP / AUDIO_MAX_GAIN)
+static int igain = 0, ogain = 0;
 
 int
-pca_audio_init()
+null_audio_open(audio_desc_t ad, audio_format *fmt)
 {
-        int audio_fd;
-        if ((audio_fd = open("/dev/pcaudio", O_WRONLY | O_NDELAY)) != -1) {
-                close(audio_fd);
-                return TRUE;
-        }
-        return FALSE;
-}
-
-/*
- * Try to open the audio device.
- * Return: valid file descriptor if ok, -1 otherwise.
- */
-
-int
-pca_audio_open(audio_desc_t ad, audio_format *fmt)
-{
-	audio_info_t tmp_info;
-
-        if (fmt->sample_rate != 8000 || fmt->num_channels != 1) {
-                return FALSE;
+        if (audio_fd != -1) {
+                debug_msg("Warning device not closed before opening.\n");
+                null_audio_close(ad);
         }
 
-	audio_fd = open("/dev/pcaudio", O_WRONLY | O_NDELAY );
-
-	if (audio_fd > 0) {
-		memcpy(&format, fmt, sizeof(format));
-		AUDIO_INITINFO(&dev_info);
-		dev_info.monitor_gain     = 0;
-		dev_info.play.sample_rate = 8000;
-		dev_info.play.channels    = 1;
-		dev_info.play.precision   = 8;
-		dev_info.play.gain	      = (AUDIO_MAX_GAIN - AUDIO_MIN_GAIN) * 0.75;
-		dev_info.play.port	      = 0;
-		switch(fmt->encoding) {
-		case DEV_PCMU:
-			assert(format.bits_per_sample == 8);
-			dev_info.play.encoding  = AUDIO_ENCODING_ULAW;
-			break;
-		case DEV_L16:
-			assert(format.bits_per_sample == 16);
-			dev_info.play.encoding  = AUDIO_ENCODING_ULAW;
-			break;
-		case DEV_L8:
-			assert(format.bits_per_sample == 8);
-			dev_info.play.encoding  = AUDIO_ENCODING_RAW;
-			break;
-		default:
-			printf("Unknown audio encoding in pca_audio_open: %x\n", format.encoding);
-                        pca_audio_close(ad);
-                        return FALSE;
-		}
-		memcpy(&tmp_info, &dev_info, sizeof(audio_info_t));
-		if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&tmp_info) < 0) {
-			perror("pca_audio_info: setting parameters");
-                        pca_audio_close(ad);
-			return FALSE;
-		}
-                return TRUE;
-	} else {
-		/* 
-		 * Because we opened the device with O_NDELAY, the wait
-		 * flag was not updaed so update it manually.
-		 */
-		audio_fd = open("/dev/pcaudioctl", O_WRONLY);
-		if (audio_fd < 0) {
-			AUDIO_INITINFO(&dev_info);
-			dev_info.play.waiting = 1;
-			(void)ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info);
-			close(audio_fd);
-		}
-		audio_fd = -1;
-	}
-	return FALSE;
+        memcpy(&format, fmt, sizeof(format));
+	return TRUE;
 }
 
 /*
  * Shutdown.
  */
 void
-pca_audio_close(audio_desc_t ad)
+null_audio_close(audio_desc_t ad)
 {
         UNUSED(ad);
 	if(audio_fd > 0)
-		(void)close(audio_fd);
-	audio_fd = -1;
+                audio_fd = -1;
 	return;
 }
 
@@ -161,7 +85,7 @@ pca_audio_close(audio_desc_t ad)
  * Flush input buffer.
  */
 void
-pca_audio_drain(audio_desc_t ad)
+null_audio_drain(audio_desc_t ad)
 {
         UNUSED(ad);
 	return;
@@ -171,10 +95,10 @@ pca_audio_drain(audio_desc_t ad)
  * Set record gain.
  */
 void
-pca_audio_set_gain(audio_desc_t ad, int gain)
+null_audio_set_gain(audio_desc_t ad, int gain)
 {
         UNUSED(ad);
-        UNUSED(gain);
+        igain = gain;
 	return;
 }
 
@@ -182,19 +106,16 @@ pca_audio_set_gain(audio_desc_t ad, int gain)
  * Get record gain.
  */
 int
-pca_audio_get_gain(audio_desc_t ad)
+null_audio_get_gain(audio_desc_t ad)
 {
         UNUSED(ad);
-	return 0;
+	return igain;
 }
 
 int
-pca_audio_duplex(audio_desc_t ad)
+null_audio_duplex(audio_desc_t ad)
 {
         UNUSED(ad);
-        /* LIE! LIE! LIE! LIE! 
-         * But we really only support full duplex devices
-         */
         return TRUE;
 }
 
@@ -202,14 +123,10 @@ pca_audio_duplex(audio_desc_t ad)
  * Set play gain.
  */
 void
-pca_audio_set_volume(audio_desc_t ad, int vol)
+null_audio_set_volume(audio_desc_t ad, int vol)
 {
         UNUSED(ad);
-        AUDIO_INITINFO(&dev_info);
-        dev_info.play.gain = pca_bat_to_device(vol);
-        if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) 
-                perror("pca_audio_set_volume");
-
+        ogain = vol;
 	return;
 }
 
@@ -217,25 +134,18 @@ pca_audio_set_volume(audio_desc_t ad, int vol)
  * Get play gain.
  */
 int
-pca_audio_get_volume(audio_desc_t ad)
+null_audio_get_volume(audio_desc_t ad)
 {
         UNUSED(ad);
-	AUDIO_INITINFO(&dev_info);
-	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
-		perror("pca_audio_get_volume");
-	return pca_device_to_bat(dev_info.play.gain);
+	return ogain;
 }
 
 /*
  * Record audio data.
  */
 int
-pca_audio_read(audio_desc_t ad, sample *buf, int samples)
+null_audio_read(audio_desc_t ad, sample *buf, int samples)
 {
-	/*
-	 * Reading data from internal PC speaker is a little difficult,
-	 * so just return the time (in audio samples) since the last time called.
-	 */
 	int	                diff;
 	struct timeval          curr_time;
 	static int              virgin = TRUE;
@@ -272,37 +182,11 @@ pca_audio_read(audio_desc_t ad, sample *buf, int samples)
  * Playback audio data.
  */
 int
-pca_audio_write(audio_desc_t ad, sample *buf, int samples)
+null_audio_write(audio_desc_t ad, sample *buf, int samples)
 {
-	int	 nbytes;
-	int    len;
-	u_char *p;
-	u_char play_buf[DEVICE_REC_BUF];
-
+        UNUSED(buf);
         UNUSED(ad);
 
-	for (nbytes = 0; nbytes < samples; nbytes++)
-		if(format.encoding == DEV_L16) 
-			play_buf[nbytes] = lintomulaw[(unsigned short)buf[nbytes]];
-		else
-			play_buf[nbytes] = buf[nbytes];
-
-	p = play_buf;
-	len = samples;
-	while (TRUE) {
-		if ((nbytes = write(audio_fd, p, len)) == len)
-			break;
-		if (errno == EWOULDBLOCK) {	/* XXX */
-			return 0;
-		}
-		if (errno != EINTR) {
-			perror("pca_audio_write");
-			return (samples - len);
-		}
-		len -= nbytes;
-		p += nbytes;
-	} 
-    
 	return samples;
 }
 
@@ -310,40 +194,28 @@ pca_audio_write(audio_desc_t ad, sample *buf, int samples)
  * Set options on audio device to be non-blocking.
  */
 void
-pca_audio_non_block(audio_desc_t ad)
+null_audio_non_block(audio_desc_t ad)
 {
-	int on = 1;
-
         UNUSED(ad);
-
-	if (ioctl(audio_fd, FIONBIO, (char *)&on) < 0)
-		perror("pca_audio_non_block");
- 
-	return;
+        debug_msg("null_audio_non_block");
 }
 
 /*
  * Set options on audio device to be blocking.
  */
 void
-pca_audio_block(audio_desc_t ad)
+null_audio_block(audio_desc_t ad)
 {
-	int on = 0;
-
         UNUSED(ad);
-
-	if (ioctl(audio_fd, FIONBIO, (char *)&on) < 0)
-		perror("pca_audio_block");
-	return;
+	debug_msg("null_audio_block");
 }
 
 /*
  * Set output port.
  */
 void
-pca_audio_set_oport(audio_desc_t ad, int port)
+null_audio_set_oport(audio_desc_t ad, int port)
 {
-	/* There is only one port... */
         UNUSED(ad); UNUSED(port);
 
 	return;
@@ -353,11 +225,9 @@ pca_audio_set_oport(audio_desc_t ad, int port)
  * Get output port.
  */
 int
-pca_audio_get_oport(audio_desc_t ad)
+null_audio_get_oport(audio_desc_t ad)
 {
-	/* There is only one port... */
         UNUSED(ad);
-
 	return AUDIO_SPEAKER;
 }
 
@@ -365,9 +235,8 @@ pca_audio_get_oport(audio_desc_t ad)
  * Set next output port.
  */
 int
-pca_audio_next_oport(audio_desc_t ad)
+null_audio_next_oport(audio_desc_t ad)
 {
-	/* There is only one port... */
         UNUSED(ad);
 	return AUDIO_SPEAKER;
 }
@@ -376,9 +245,8 @@ pca_audio_next_oport(audio_desc_t ad)
  * Set input port.
  */
 void
-pca_audio_set_iport(audio_desc_t ad, int port)
+null_audio_set_iport(audio_desc_t ad, int port)
 {
-	/* Hmmm.... */
         UNUSED(ad);
         UNUSED(port);
 	return;
@@ -388,9 +256,8 @@ pca_audio_set_iport(audio_desc_t ad, int port)
  * Get input port.
  */
 int
-pca_audio_get_iport(audio_desc_t ad)
+null_audio_get_iport(audio_desc_t ad)
 {
-	/* Hmm...hack attack */
         UNUSED(ad);
 	return AUDIO_MICROPHONE;
 }
@@ -399,9 +266,8 @@ pca_audio_get_iport(audio_desc_t ad)
  * Get next input port...
  */
 int
-pca_audio_next_iport(audio_desc_t ad)
+null_audio_next_iport(audio_desc_t ad)
 {
-	/* Hmm... */
         UNUSED(ad);
 	return AUDIO_MICROPHONE;
 }
@@ -410,7 +276,7 @@ pca_audio_next_iport(audio_desc_t ad)
  * Enable hardware loopback
  */
 void 
-pca_audio_loopback(audio_desc_t ad, int gain)
+null_audio_loopback(audio_desc_t ad, int gain)
 {
         UNUSED(ad);
         UNUSED(gain);
@@ -421,7 +287,7 @@ pca_audio_loopback(audio_desc_t ad, int gain)
  * Get device blocksize
  */
 int
-pca_audio_get_blocksize(audio_desc_t ad)
+null_audio_get_blocksize(audio_desc_t ad)
 {
         UNUSED(ad);
         return format.blocksize;
@@ -431,7 +297,7 @@ pca_audio_get_blocksize(audio_desc_t ad)
  * Get device channels
  */
 int
-pca_audio_get_channels(audio_desc_t ad)
+null_audio_get_channels(audio_desc_t ad)
 {
         UNUSED(ad);
         return format.num_channels;
@@ -441,7 +307,7 @@ pca_audio_get_channels(audio_desc_t ad)
  * Get device blocksize
  */
 int
-pca_audio_get_freq(audio_desc_t ad)
+null_audio_get_freq(audio_desc_t ad)
 {
         UNUSED(ad);
         return format.sample_rate;
@@ -452,7 +318,7 @@ pca_audio_get_freq(audio_desc_t ad)
  * if audio is ready.
  */
 int
-pca_audio_is_ready(audio_desc_t ad)
+null_audio_is_ready(audio_desc_t ad)
 {
         struct timeval now;
         u_int32 diff;
@@ -468,9 +334,9 @@ pca_audio_is_ready(audio_desc_t ad)
 }
 
 void
-pca_audio_wait_for(audio_desc_t ad, int delay_ms)
+null_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
-        if (pca_audio_is_ready(ad)) {
+        if (null_audio_is_ready(ad)) {
                 return;
         } else {
                 usleep(delay_ms * 1000);

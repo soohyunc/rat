@@ -60,7 +60,6 @@
 #include "rtcp_db.h"
 #include "transmit.h"
 
-
 typedef struct s_codec_state {
 	struct s_codec_state *next;
 	int	id;	/* Codec payload type */

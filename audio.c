@@ -237,16 +237,42 @@ audio_device_take(session_struct *sp)
                 }
 		sp->have_device = TRUE;
 	} else {
-		/* XXX should pass a pointer to format ???!!! */
-		if ((sp->audio_device = audio_open(&format)) == 0) {
-			return FALSE;
-		}
+		sp->audio_device = audio_open(&format);
 
-		if (audio_duplex(sp->audio_device) == FALSE) {
-			printf("RAT v3.2.0 and later require a full duplex audio device, but \n");
-			printf("your audio device only supports half-duplex operation. Sorry.\n");
-			return FALSE;
-		}
+                if (!sp->audio_device) {
+                        /* Maybe we cannot support this format. Try minimal
+                         * case - ulaw 8k.
+                         */
+                        audio_format fallback;
+                        cp = get_codec_by_name("PCMU-8K-MONO");
+                        assert(cp); /* in case someone changes codec name */
+
+                        sp->encodings[0] = cp->pt;
+
+                        fallback.encoding        = DEV_L16;
+                        fallback.sample_rate     = cp->freq;
+                        fallback.bits_per_sample = 16;
+                        fallback.num_channels    = cp->channels;
+                        fallback.blocksize       = cp->unit_len * cp->channels;
+                        sp->audio_device = audio_open(&fallback);
+                        
+                        if (sp->audio_device) {
+                                /* Make format consistent just in case. */
+                                memcpy(&format, &fallback, sizeof(audio_format));
+                                debug_msg("Could use requested format, but could use mulaw 8k\n");
+                        }
+                }
+
+                if (!sp->audio_device) {
+                        /* Both original request and fallback request to
+                         * device have failed.  This probably means device is in use.
+                         * So now use null device with original format requested.
+                         */
+                        audio_set_interface(audio_get_null_interface());
+                        sp->audio_device = audio_open(&format);
+                        debug_msg("Using null audio device\n");
+                        assert(sp->audio_device != 0);
+                }
 
 		audio_drain(sp->audio_device);
 		sp->have_device = TRUE;
