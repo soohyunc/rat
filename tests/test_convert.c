@@ -11,6 +11,7 @@
 #include "debug.h"
 #include "memory.h"
 #include "util.h"
+#include "audio_types.h"
 #include "codec_types.h"
 #include "codec.h"
 #include "converter_types.h"
@@ -19,12 +20,12 @@
 static int
 list_converters()
 {
-        converter_details_t cd;
+        const converter_details_t *cd;
         int i, n;
         n = converter_get_count();
         for(i = 0; i < n; i++) {
-                converter_get_details(i, &cd);
-                printf("%d %s\n", i, cd.name);
+                cd = converter_get_details(i);
+                printf("%d %s\n", i, cd->name);
         }
         fflush(stdout);
         exit(-1);
@@ -33,6 +34,11 @@ list_converters()
 static void
 usage()
 {
+	printf("test_convert [-list] -c <n> -ifmt <fmt> -ofmt <ofmt>\n"\
+	       "where:\n\t-list\t lists converters.\n" \
+	       "\t-c <n> \t selects converter n\n" \
+	       "\tand formats are of form \"rate=8000,channels=1\n");
+
         exit(-1);
 }
 
@@ -55,7 +61,7 @@ get_token(char *name, char *src, int src_len)
 }
 
 static int
-parse_fmt(char *fmt, u_int16 *channels, u_int16 *rate)
+parse_fmt(char *fmt, uint16_t *channels, uint16_t *rate)
 {
         char *f;
         int fmtlen;
@@ -76,13 +82,13 @@ parse_fmt(char *fmt, u_int16 *channels, u_int16 *rate)
 
         f = get_token("rate", fmt, fmtlen);
         if (f != NULL) {
-                *rate = (u_int16)(atoi(f));
+                *rate = (uint16_t)(atoi(f));
                 found++;
         }
 
         f = get_token("channels", fmt, fmtlen);
         if (f != NULL) {
-                *channels = (u_int16)(atoi(f));
+                *channels = (uint16_t)(atoi(f));
                 found++;
         }
 
@@ -92,7 +98,7 @@ parse_fmt(char *fmt, u_int16 *channels, u_int16 *rate)
 static void
 dump_frame(coded_unit *cu, int offset)
 {
-        u_int16 rate, channels;
+        uint16_t rate, channels;
         sample *src;
         int i, j, n;
         codec_get_native_info( cu->id, &rate, &channels);
@@ -117,7 +123,7 @@ static int
 test_converter(int idx, converter_fmt_t *cf)
 {
         struct s_converter *c;
-        converter_details_t cd;
+        const converter_details_t *cd;
         sample *src;
         coded_unit cu_in, cu_out;
         int i, j, n;
@@ -128,20 +134,20 @@ test_converter(int idx, converter_fmt_t *cf)
                 return FALSE;
         }
 
-        converter_get_details(idx, &cd);
-        printf("#Using %s\n", cd.name);
-        if (converter_create(cd.id, cf, &c) == FALSE) {
+        cd = converter_get_details(idx);
+        printf("#Using %s\n", cd->name);
+        if (converter_create(cd->id, cf, &c) == FALSE) {
                 fprintf(stderr, "Could not create converter\n");
                 return FALSE;
         }
 
         /* Allocate and initialize source buffer */
-        src = (sample*)xmalloc(TEST_FRAME_LEN * TEST_FRAMES * cf->from_channels * sizeof(sample));
+        src = (sample*)xmalloc(TEST_FRAME_LEN * TEST_FRAMES * cf->src_channels * sizeof(sample));
         for(i = 0; i < TEST_FRAME_LEN * TEST_FRAMES; i++) {
-                for(j = 0; j < cf->from_channels; j++) {
-                        src[i * cf->from_channels + j] = 16384 * 
-                                sin(64 *1000 * M_PI * i / (cf->from_freq * TEST_FRAME_LEN)) * 
-                                cos(16 *M_PI * i * 1000 / (TEST_FRAME_LEN * cf->from_freq));
+                for(j = 0; j < cf->src_channels; j++) {
+                        src[i * cf->src_channels + j] = 16384 * 
+                                sin(64 *1000 * M_PI * i / (cf->src_freq * TEST_FRAME_LEN)) * 
+                                cos(16 *M_PI * i * 1000 / (TEST_FRAME_LEN * cf->src_freq));
                 }
         }
 
@@ -149,12 +155,12 @@ test_converter(int idx, converter_fmt_t *cf)
         memset(&cu_out, 0, sizeof(cu_out));
 
         for(i = 0; i < TEST_FRAMES; i++) {
-                cu_in.id       = codec_get_native_coding(cf->from_freq, cf->from_channels);
-                cu_in.data     = (u_char*)(src + cf->from_channels * TEST_FRAME_LEN * i);
-                cu_in.data_len = cf->from_channels * TEST_FRAME_LEN * sizeof(sample);
+                cu_in.id       = codec_get_native_coding(cf->src_freq, cf->src_channels);
+                cu_in.data     = (u_char*)(src + cf->src_channels * TEST_FRAME_LEN * i);
+                cu_in.data_len = cf->src_channels * TEST_FRAME_LEN * sizeof(sample);
                 dump_frame(&cu_in, i * TEST_FRAME_LEN);
                 converter_process(c, &cu_in, &cu_out);
-                dump_frame(&cu_out, i * TEST_FRAME_LEN * cf->to_freq / cf->from_freq);
+                dump_frame(&cu_out, i * TEST_FRAME_LEN * cf->dst_freq / cf->src_freq);
                 block_free(cu_out.data, cu_out.data_len);
                 cu_out.data     = 0;
                 cu_out.data_len = 0;
@@ -191,13 +197,13 @@ main(int argc, char *argv[])
                         i+=2;
                         break;
                 case 'i':
-                        if (parse_fmt(argv[i+1], &cf.from_channels, &cf.from_freq) == FALSE) {
+                        if (parse_fmt(argv[i+1], &cf.src_channels, &cf.src_freq) == FALSE) {
                                 usage();
                         }
                         i+=2;
                         break;
                 case 'o':      
-                        if (parse_fmt(argv[i+1], &cf.to_channels, &cf.to_freq) == FALSE) {
+                        if (parse_fmt(argv[i+1], &cf.dst_channels, &cf.dst_freq) == FALSE) {
                                 usage();
                         }
                         i+=2;
