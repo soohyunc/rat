@@ -31,8 +31,8 @@ set speaker_highlight white
 option add *Entry.relief       sunken 
 option add *borderWidth        1
 option add *highlightThickness 0
-option add *Button*padX        4          
-option add *Button*padY        0          
+#option add *Button*padX        4          
+#option add *Button*padY        0          
 option add *font               $infofont
 option add *Menu*tearOff       0
 
