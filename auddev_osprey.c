@@ -57,13 +57,11 @@
 #include "audio_types.h"
 #include "auddev_osprey.h"
 
-static int blocksize;
 static audio_info_t     dev_info;
 audio_format            format;
 static int audio_available = 0;
 static int audioctl_fd     = -1;
 static int audio_fd        = -1;
-
 
 static void osprey_audio_service(void);
 
@@ -95,8 +93,6 @@ osprey_poll_handler(int signo)
  * and in oti_libaudio.h they are functions.
  */
 
-#ifdef NO_OSPREY_LINK
-
 static char *dlh;                /* Handle for dynamic library. */
 
 int (*oti_audio_getinfo)     (int fildes, Audio_info*);
@@ -124,11 +120,6 @@ int (*oti_audio_init) (char*, char*);
                   debug_msg("Failed to map %s (%s)\n",#symbol,dlerror()); \
                   errflag = 1; \
         }
-#else
-
-#include <oti_libaudio.h>
-
-#endif /* NO_OSPREY_LINK */
 
 /* This function attempts to locate the dynamic link library
  * libotiaudio.so, open it, and map function addresses to the
@@ -139,7 +130,6 @@ int
 osprey_audio_init()
 {
         int success;
-#ifdef NO_OSPREY_LINK
         char path[255], *locenv, otipath[] = "/libotiaudio.so";
         int err;
         dlh = NULL;
@@ -193,8 +183,6 @@ osprey_audio_init()
                 dlclose(dlh);
                 return FALSE;
         }
-
-#endif /* NO_OSPREY_LINK */
 
         success = oti_audio_init(NULL, NULL);
         if (success != AUDIO_SUCCESS) {
@@ -588,7 +576,7 @@ int
 osprey_audio_get_blocksize(audio_desc_t ad)
 {
         UNUSED(ad);
-        return blocksize;
+        return format.blocksize;
 }
 
 int
