@@ -154,24 +154,11 @@ audio_zero(sample *buf, int len, deve_e type)
 int
 audio_device_read(session_struct *sp, sample *buf, int samples)
 {
-	struct timeval	curr_time;
-	int		diff;
-
-	if (sp->have_device)
-		if (sp->mode == TRANSCODER) {
-			return (transcoder_read(sp->audio_fd, buf, samples));
-		} else {
-                        return (audio_read(sp->audio_fd, buf, samples));
-		}
-	else {
-		gettimeofday(&curr_time, NULL);
-		diff = ((u_int32)((curr_time.tv_sec - sp->device_time.tv_sec) * 1e6)
-			+ (curr_time.tv_usec - sp->device_time.tv_usec)) / 125;
-		memcpy(&sp->device_time, &curr_time, sizeof(struct timeval));
-		if (diff > samples)
-			diff = samples;
-		memset(buf, 0, samples * BYTES_PER_SAMPLE);
-		return (diff);
+	assert(sp->have_device);
+	if (sp->mode == TRANSCODER) {
+		return transcoder_read(sp->audio_fd, buf, samples);
+	} else {
+		return audio_read(sp->audio_fd, buf, samples);
 	}
 }
 
@@ -182,9 +169,9 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
 
 	if (sp->have_device)
 		if (sp->mode == TRANSCODER) {
-			return (transcoder_write (sp->audio_fd, buf, dur*cp->channels));
+			return transcoder_write(sp->audio_fd, buf, dur*cp->channels);
 		} else {
-			return (audio_write      (sp->audio_fd, buf, dur * audio_get_channels()));
+			return audio_write(sp->audio_fd, buf, dur * audio_get_channels());
 		}
 	else
 		return (dur * cp->channels);
@@ -251,7 +238,6 @@ audio_device_take(session_struct *sp)
         if ((sp->audio_fd != -1) && (sp->mode != TRANSCODER)) {
                 audio_non_block(sp->audio_fd);
         }
-        sp->loop_delay = sp->loop_estimate = 20000;
 
         /* We initialize the pieces above the audio device here since their parameters
          * depend on what is set here

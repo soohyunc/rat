@@ -113,8 +113,8 @@ init_session(session_struct *sp)
 	sp->agc_on			= FALSE;
         sp->ui_on                       = TRUE;
 	sp->ui_addr			= NULL;
-	sp->loop_delay			= -1;		/* Real initialisation is in init_audio.c */
-	sp->loop_estimate		= -1;		/* Real initialisation is in init_audio.c */
+	sp->loop_delay			= 20000;	/* Real initialisation is in init_audio.c */
+	sp->loop_estimate		= 20000;	/* Real initialisation is in init_audio.c */
 	sp->last_zero              	= FALSE;
 	sp->repair			= REPAIR_REPEAT;/* Packet repetition */
 	sp->meter			= TRUE;		/* Powermeter operation */

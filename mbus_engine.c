@@ -232,8 +232,10 @@ static void rx_input_gain(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_int(mbus_chan, &i)) {
 		sp->input_gain = i;
-		audio_set_gain(sp->audio_fd, sp->input_gain);
-                tx_igain_update(sp);
+		if (sp->have_device) {
+			audio_set_gain(sp->audio_fd, sp->input_gain);
+			tx_igain_update(sp);
+		}
 	} else {
 		printf("mbus: usage \"input_gain <integer>\"\n");
 	}

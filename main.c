@@ -184,7 +184,9 @@ main(int argc, char *argv[])
 			}
 			cur_time = get_time(sp[i]->device_clock);
 			network_read(sp[i], netrx_queue_p[i], rtcp_pckt_queue_p[i], cur_time);
-			tx_process_audio(sp[i]);
+			if (sp[i]->sending_audio) {
+				tx_process_audio(sp[i]);
+			}
 
 			if (!(sp[i]->playing_audio)) {
 				receive_unit_audit(rx_unit_queue_p[i]);
@@ -194,7 +196,7 @@ main(int argc, char *argv[])
                         if (sp[i]->sending_audio || sp[i]->last_tx_service_productive) {
                                 tx_send(sp[i], sp[1-i]->speakers_active);
                         }
-			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time, num_sessions);
+			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time);
 			service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, sp[i]->ms);
 			if (sp[i]->mode == TRANSCODER) {
 				service_rtcp(sp[i], sp[1-i], rtcp_pckt_queue_p[i], cur_time);

@@ -552,7 +552,7 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 	static u_int32 power_time = 0;
 
 	if (power_time > sp->meter_period) {
-		if (sp->meter) {
+		if (sp->meter && (ms != NULL)) {
 			mix_update_ui(ms);
 		}
 		clear_active_senders(sp);

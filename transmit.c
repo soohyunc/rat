@@ -283,35 +283,47 @@ tx_destroy(session_struct *sp)
 int
 tx_read_audio(session_struct *sp)
 {
-        tx_unit *u;
-        unsigned int        read_dur;
-        tx_buffer        *tb;
+        tx_unit 	*u;
+        unsigned int	 read_dur = 0;
 
-        tb = sp->tb;
-        read_dur = 0;
-
-        if (sp->sending_audio == FALSE) {
-                read_dur = audio_device_read(sp, dummy_buf, DEVICE_REC_BUF) / tb->channels;
-                time_advance(sp->clock, get_freq(tb->clock), read_dur);
-        } else {
+        if (sp->sending_audio) {
                 do {
-                        u = tb->last_ptr;
+                        u = sp->tb->last_ptr;
                         assert(u);
-                        u->dur_used += audio_device_read(sp, 
-                                                         u->data + u->dur_used * tb->channels,
-                                                         (tb->unit_dur - u->dur_used) * tb->channels) / tb->channels;
-                        if (u->dur_used == tb->unit_dur) {
-                                read_dur += tb->unit_dur;
-                                time_advance(sp->clock, 
-                                             get_freq(tb->clock), 
-                                             tb->unit_dur);
-                                tb->last_ptr = tx_unit_get(tb);
-                                u->next = tb->last_ptr;
+                        u->dur_used += audio_device_read(sp, u->data + u->dur_used * sp->tb->channels,
+                                                         (sp->tb->unit_dur - u->dur_used) * sp->tb->channels) / sp->tb->channels;
+                        if (u->dur_used == sp->tb->unit_dur) {
+                                read_dur += sp->tb->unit_dur;
+                                time_advance(sp->clock, get_freq(sp->tb->clock), sp->tb->unit_dur);
+                                sp->tb->last_ptr = tx_unit_get(sp->tb);
+                                u->next = sp->tb->last_ptr;
                                 u->next->prev = u;
                         } 
-                } while (u->dur_used == tb->unit_dur);
+                } while (u->dur_used == sp->tb->unit_dur);
+        } else {
+		if (sp->have_device) {
+			/* We're not sending, but have access to the audio device. Read the audio anyway. */
+			/* to get exact timing values, and then throw the data we've just read away...    */
+			read_dur = audio_device_read(sp, dummy_buf, DEVICE_REC_BUF) / sp->tb->channels;
+			time_advance(sp->clock, get_freq(sp->tb->clock), read_dur);
+	 	} else {
+			/* Fake the timing using gettimeofday... We don't have the audio device, so this */
+			/* can't rely on any of the values in sp->tb                                     */
+			/* This is hard-coded to 8kHz right now! */
+			struct timeval	curr_time;
+
+			gettimeofday(&curr_time, NULL);
+			read_dur = ((u_int32)((curr_time.tv_sec - sp->device_time.tv_sec) * 1e6)
+				+ (curr_time.tv_usec - sp->device_time.tv_usec)) / 125;
+			sp->device_time = curr_time;
+			if (read_dur > DEVICE_REC_BUF) {
+				read_dur = DEVICE_REC_BUF;
+			}
+			memset(dummy_buf, 0, DEVICE_REC_BUF * BYTES_PER_SAMPLE);
+			time_advance(sp->clock, 8000, read_dur);
+		}
         }
-        return (read_dur);
+        return read_dur;
 }
 
 int

@@ -486,8 +486,11 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		}
 	}
 
-        cs = cushion_get_size(sp->cushion);
-        cu = cushion_get_step(sp->cushion);
+	/* If sp->cushion is NULL, it probably means we don't have access to the audio device... */
+	if (sp->cushion != NULL) {
+        	cs = cushion_get_size(sp->cushion);
+        	cu = cushion_get_step(sp->cushion);
+	}
 
 	for (buf = *buf_list; buf; buf = buf->next) {
 		cur_time = get_time(buf->src->clock);
