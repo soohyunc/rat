@@ -482,21 +482,16 @@ proc cname_update {cname} {
 		bind $cw <Control-Button-1> "toggle_mute $cw $cname"
 	}
 
-	# XXX This is not very efficient
-	if {[info exists my_cname] && [string compare $cname $my_cname]} {
-		foreach i [pack slaves $fw] {
-			set u [string toupper $NAME($cname)]
-			if {[string compare $u [string toupper [$i itemcget t -text]]] < 0 && [string compare $i [window_plist $my_cname]] != 0} {
-				pack $cw -before $i
-				break
-			}
-		}
-	} else {
+	# Add this participant to the list. We no longer sort the list, since it
+	# used stupid amounts of processor power...
+	if {[info exists my_cname] && ([string compare $cname $my_cname] == 0)} {
+		# Pack ourself first in the list...
 		if {[pack slaves $fw] != ""} {
 			pack $cw -before [lindex [pack slaves $fw] 0]
 		}
+	} else {
+		pack $cw -fill x
 	}
-	pack $cw -fill x
 
 	fix_scrollbar
 	update_stats $cname
