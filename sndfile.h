@@ -70,6 +70,10 @@ int  snd_write_audio (struct s_snd_file **sf,
                       sample *buf, 
                       u_int16 buf_len);
 
+u_int16  snd_get_channels(struct s_snd_file *sf);
+
+u_int16  snd_get_rate    (struct s_snd_file *sf);
+
 int  snd_pause (struct s_snd_file *sf);
 
 int  snd_resume (struct s_snd_file *sf);

@@ -68,6 +68,7 @@ typedef struct {
 
 /* Define the magic number */
 #define	SUN_AUDIO_FILE_MAGIC		((u_int32)0x2e736e64)
+#define SUN_AUDIO_UNKNOWN_SIZE          ((u_int32)(~0))
 
 /* Define the encoding fields */
 /* We only support trivial conversions */
@@ -174,24 +175,33 @@ sun_read_audio(FILE *pf, char* state, sample *buf, int samples)
 static int
 sun_write_hdr(FILE *fp, char **state, int freq, int channels)
 {
-        sun_audio_filehdr saf;
+        sun_audio_filehdr *saf;
 
-        UNUSED(state);
-
-        saf.magic     = SUN_AUDIO_FILE_MAGIC;
-        saf.hdr_size  = sizeof(sun_audio_filehdr);
-        saf.data_size = 0; /* Optional - we could fill this in when the file closes */
-        saf.encoding  = SUN_AUDIO_FILE_ENCODING_LINEAR_16;
-        saf.sample_rate = freq;
-        saf.channels  = channels;
-        
-        sun_ntoh_hdr(&saf);
-        
-        if (fwrite(&saf, sizeof(sun_audio_filehdr), 1, fp)) {
-                return TRUE;
-        } else {
+        saf = (sun_audio_filehdr*)xmalloc(sizeof(sun_audio_filehdr));
+        if (!saf) {
+                debug_msg("failed to allocate sun audio file header\n");
                 return FALSE;
         }
+                
+        *state = (char*)saf;
+        saf->magic     = SUN_AUDIO_FILE_MAGIC;
+        saf->hdr_size  = sizeof(sun_audio_filehdr);
+        saf->data_size = SUN_AUDIO_UNKNOWN_SIZE; /* Optional - we could fill this in when the file closes */
+        saf->encoding  = SUN_AUDIO_FILE_ENCODING_LINEAR_16;
+        saf->sample_rate = freq;
+        saf->channels  = channels;
+
+        sun_ntoh_hdr(saf);
+        if (fwrite(saf, sizeof(sun_audio_filehdr), 1, fp)) {
+                sun_ntoh_hdr(saf);
+                return TRUE;
+        } else {
+                xfree(saf);
+                *state = NULL;
+                return FALSE;
+        }
+
+
 }
 
 static int
@@ -234,6 +244,20 @@ sun_free_state(char **state)
         return TRUE;
 }
 
+static u_int16
+sun_get_channels(char *state)
+{
+        sun_audio_filehdr *saf = (sun_audio_filehdr*)state;
+        return (u_int16)saf->channels;
+}
+
+static u_int16
+sun_get_rate(char *state)
+{
+        sun_audio_filehdr *saf = (sun_audio_filehdr*)state;
+        return (u_int16)saf->sample_rate;
+}
+
 /* Microsoft WAV file handling (severly restricted subset) 
  * Spec. was a text file called RIFF-format
  * Mirrored lots of places, try http://ftpsearch.ntnu.no/
@@ -250,7 +274,6 @@ typedef struct {
         u_int32 ckId; /* First four characters of chunk type e.g RIFF, WAVE, LIST */
         u_int32 ckSize;
 } riff_chunk;
-
 
 typedef struct {
         riff_chunk rc;
@@ -291,7 +314,7 @@ typedef struct {
 #endif
 
 #define btoll(x) (((x) >> 24) | (((x)&0x00ff0000) >> 8) | (((x)&0x0000ff00) << 8) | ((x) << 24))
-#define btols(x) (((x) >> 8) | ((x) << 8))
+#define btols(x) (((x) >> 8) | ((x&0xff) << 8))
 
 static void
 wave_fix_hdr(wave_format *wf)
@@ -340,7 +363,7 @@ riff_read_hdr(FILE *fp, char **state)
 {
         riff_chunk_hdr rch;
         wave_format wf;
-        int chunk_size;
+        u_int32 chunk_size;
 
         riff_state *rs;
 
@@ -462,14 +485,10 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
         case MS_AUDIO_FILE_ENCODING_PCM:
                 if (htons(1) == 1) {
                         for(i = 0; i < samples_read; i++) {
-                                buf[i] = (u_int16)btols(buf[i]);
+                                buf[i] = (u_int16)btols((u_char)buf[i]);
                         }
                 }
                 break;
-        }
-
-        if (samples_read != samples) {
-                memset(buf+samples_read, 0, sizeof(sample) * (samples - samples_read));
         }
 
         rs->cbRemain -= samples * unit_sz;
@@ -523,13 +542,13 @@ riff_write_audio(FILE *fp, char *state, sample *buf, int samples)
 {
         int i;
         riff_state *rs = (riff_state*)state;
-
-        if (ntohs(1) == 1) {
+        
+        if (ntohs(1) == 1) { 
                 /* If we are on a big endian machine fix samples before
                  * writing them out.  
                  */
                 for(i = 0; i < samples; i++) {
-                        buf[i] = (u_int16)btols(buf[i]);
+                        buf[i] = (u_int16)btols((u_int16)buf[i]);
                 }
         }
 
@@ -541,10 +560,10 @@ riff_write_audio(FILE *fp, char *state, sample *buf, int samples)
                  * ordering.
                  */
                 for(i = 0; i < samples; i++) {
-                        buf[i] = (u_int16)btols(buf[i]);
+                        buf[i] = (u_int16)btols((u_int16)buf[i]);
                 }
         }
-
+        
         return TRUE;
 }
 
@@ -612,6 +631,20 @@ riff_free_state(char **state)
         return TRUE;
 }
 
+static u_int16
+riff_get_channels(char *state)
+{
+        wave_format *wf = (wave_format*)state;
+        return wf->wChannels;
+}
+
+static u_int16
+riff_get_rate(char *state)
+{
+        wave_format *wf = (wave_format*)state;
+        return (u_int16)wf->dwSamplesPerSec;
+}
+
 /* Generic file handling *********************************************************/
 
 typedef int (*pf_open_hdr)    (FILE *, char **state);
@@ -620,6 +653,8 @@ typedef int (*pf_write_hdr)   (FILE *, char **state, int freq,    int channels);
 typedef int (*pf_write_audio) (FILE *, char * state, sample *buf, int samples);
 typedef int (*pf_write_end)   (FILE *, char *state);
 typedef int (*pf_free_state)  (char **state);
+typedef u_int16 (*pf_get_channels)(char *state);
+typedef u_int16 (*pf_get_rate)    (char *state);
 
 typedef struct s_file_handler {
         char name[12];           /* Sound handler name        */
@@ -630,6 +665,8 @@ typedef struct s_file_handler {
         pf_write_audio write_audio;
         pf_write_end   write_end;
         pf_free_state  free_state;
+        pf_get_channels get_channels;
+        pf_get_rate     get_rate;
 } snd_file_handler_t;
 
 /* Sound file handlers */
@@ -643,7 +680,9 @@ static snd_file_handler_t snd_handlers[] = {
          sun_write_hdr,
          sun_write_audio,
          NULL, /* No post write handling required */
-         sun_free_state},
+         sun_free_state,
+         sun_get_channels,
+         sun_get_rate},
         {"MS RIFF",
          "wav",
          riff_read_hdr,
@@ -651,7 +690,9 @@ static snd_file_handler_t snd_handlers[] = {
          riff_write_hdr,
          riff_write_audio,
          riff_write_end,
-         riff_free_state
+         riff_free_state,
+         riff_get_channels,
+         riff_get_rate
         }
 };
 
@@ -677,8 +718,11 @@ snd_read_open (snd_file_t **snd_file, char *path)
                 debug_msg("File not closed before opening\n");
                 snd_read_close(snd_file);
         }
-
+#ifdef WIN32
         fp = fopen(path, "rb");
+#else
+        fp = fopen(path, "r");
+#endif
         if (!fp) {
                 debug_msg("Could not open %s\n",path);
                 return FALSE;
@@ -736,10 +780,11 @@ snd_read_audio(snd_file_t **sf, sample *buf, u_int16 samples)
 
         if (samples_read != samples) {
                 /* Looks like the end of the line */
+                memset(buf+samples_read, 0, sizeof(sample) * (samples - samples_read));
                 snd_read_close(sf);
         }
 
-        return TRUE;
+        return samples_read;
 }
 
 int
@@ -753,8 +798,11 @@ snd_write_open (snd_file_t **sf, char *path, char *extension, u_int16 freq, u_in
                 debug_msg("File not closed before opening\n");
                 snd_write_close(sf);
         }
-
+#ifdef WIN32
         fp = fopen(path, "wb");
+#else
+        fp = fopen(path, "w");
+#endif
         if (!fp) {
                 debug_msg("Could not open %s\n",path);
                 return FALSE;
@@ -813,6 +861,18 @@ snd_write_audio(snd_file_t **pps, sample *buf, u_int16 buf_len)
         return TRUE;
 }
 
+u_int16
+snd_get_channels(snd_file_t *sf)
+{
+        return sf->sfh->get_channels(sf->state);
+}
+
+u_int16
+snd_get_rate(snd_file_t *sf)
+{
+        return sf->sfh->get_rate(sf->state);
+}
+
 int 
 snd_pause(snd_file_t  *sf)
 {
@@ -847,16 +907,20 @@ main(int argc, char*argv[])
 {
         snd_file_t *ssrc, *sdst;
         sample buf[160];
-        
+        int samples_read;
         ssrc = sdst = NULL;
 
         if (argc == 3) {
                 codec_g711_init();
                 snd_read_open(&ssrc, argv[1]);
-                snd_write_open(&sdst, argv[2], get_extension(argv[2]), 8000, 1);
+                if (ssrc) {
+                        snd_write_open(&sdst, argv[2], get_extension(argv[2]), snd_get_rate(ssrc), snd_get_channels(ssrc));
+                }
                 while(ssrc && sdst) {
-                        snd_read_audio(&ssrc, buf, 160);
-                        snd_write_audio(&sdst, buf, 160);
+                        samples_read = snd_read_audio(&ssrc, buf, 80);
+                        snd_write_audio(&sdst, buf, (u_int16)samples_read);
+                        debug_msg("%d\n", samples_read);
+                        memset(buf,0,sizeof(sample)*80);
                 }
                 if (sdst) {
                         snd_write_close(&sdst);
