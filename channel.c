@@ -872,10 +872,11 @@ fragment_spread(codec_t *cp, int len, struct iovec *iov, int iovc, rx_queue_elem
 {
         int done = 0, cc_pt;
         assert(cp);
-        assert(u);
-        cc_pt = u->cc_pt;
+
+
         while(len > 0 && done < iovc) {
                 if (u) {
+                        cc_pt = u->cc_pt;
                         if (done != 0 || (done == 0 && cp->sent_state_sz == 0)) {
                                 len -= iov[done].iov_len;
                                 add_comp_data(u, cp->pt, iov+done, 1);

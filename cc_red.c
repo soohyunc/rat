@@ -482,7 +482,6 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing) {
         
         if ((n = fragment_sizes(cp, todo, cu->iov, &cu->iovc, CC_UNITS)) < 0) goto fail;
 
-
         /* label hdr and data starts */
         cu->hdr_idx  = 0;
         cu->data_idx = hdr_idx; 
@@ -491,7 +490,6 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing) {
         memcpy(cu->iov+hdr_idx, 
                cu->iov+MAX_RED_LAYERS, 
                sizeof(struct iovec)*(cu->iovc - hdr_idx));
-        xmemchk();
 
         (*trailing) = max_off/cp->unit_len + n;
 
