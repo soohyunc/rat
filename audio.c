@@ -358,8 +358,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 		}
 		spi->last_zero  = TRUE;
 		spi->loop_delay = 1000;
-                debug_msg("read 0 bytes\n");
-		return (0);
+		return 0;
 	} else {
 		if (read_dur > 160 && spi->loop_estimate > 5000) {
 			spi->loop_estimate -= 250;
