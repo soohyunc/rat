@@ -1,7 +1,5 @@
 #
-#	Makefile for the RAT project. 
-#
-# Note: On many systems (eg: HP-UX 9.x and FreeBSD) this REQUIRES GNU make
+# Makefile for the RAT project. This probably requires GNU make.
 #
 
 DEFS = -DDEBUG
@@ -26,69 +24,21 @@ CFLAGS = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror $(INCS) $(DEF
 CC     = gcc
 LDFLAGS= $(PROFILE) $(OPTS)
 LDLIBS=  $(LDLIBS)
-RANLIB = ranlib
 
 # Not sure these are correct for anything other than a sparc??? [csp]
 GSMFLAGS   = -DSASR -DFAST -DUSE_FLOAT_MUL
 
 include Makefile_$(OSTYPE)_$(OSMVER)
 
-OBJS  += convert.o \
-	 time.o \
-	 codec.o \
-         repair.o \
-         receive.o \
-         transmit.o \
-         codec_lpc.o \
-         codec_adpcm.o \
-         codec_wbs.o \
-         channel.o \
-         cc_red.o \
-         cc_intl.o \
-         rtcp_db.o \
-         rtcp_pckt.o \
-         qfDES.o \
-         gsm_add.o \
-         gsm_create.o \
-         gsm_encode.o \
-         gsm_preprocess.o \
-         gsm_table.o \
-         gsm_code.o \
-         gsm_decode.o \
-         gsm_long_term.o \
-         gsm_rpe.o \
-         gsm_destroy.o \
-         gsm_lpc.o \
-         gsm_short_term.o \
-         audio.o \
-	 cushion.o \
-         session.o \
-         tabulaw.o \
-         tabalaw.o \
-         util.o \
-         interfaces.o \
-         statistics.o \
-         mix.o \
-         parameters.o \
-         ui_original.o \
-         tcl_libs.o \
-	 tcltk.o \
-         rtcp.o \
-         speaker_table.o \
-         net.o \
-         ui_control.o \
-         transcoder.o \
-	 crypt.o \
-         crypt_random.o \
-         md5.o \
-	 mbus.o \
-	 mbus_ui.o \
-	 mbus_engine.o \
-         main.o
+OBJS  += convert.o time.o codec.o repair.o receive.o transmit.o codec_lpc.o codec_adpcm.o codec_wbs.o   \
+         channel.o cc_red.o cc_intl.o rtcp_db.o rtcp_pckt.o qfDES.o gsm_add.o gsm_create.o gsm_encode.o \
+         gsm_preprocess.o gsm_table.o gsm_code.o gsm_decode.o gsm_long_term.o gsm_rpe.o gsm_destroy.o   \
+         gsm_lpc.o gsm_short_term.o audio.o cushion.o session.o tabulaw.o tabalaw.o util.o interfaces.o \
+         statistics.o mix.o parameters.o ui_original.o tcl_libs.o tcltk.o rtcp.o speaker_table.o net.o  \
+         ui_control.o transcoder.o crypt.o crypt_random.o md5.o mbus.o mbus_ui.o mbus_engine.o main.o
 
-rat-$(OSTYPE)-$(OSVERS): $(OBJS) $(GSMOBJS) $(RATOBJS)
-	rm -f rat-$(OSTYPE)-$(OSVERS)
-	$(CC) $(RATOBJS) $(OBJS) $(GSMOBJS) $(LDLIBS) $(LDFLAGS) -o rat-$(OSTYPE)-$(OSVERS)
+rat: $(OBJS)
+	$(CC) $(OBJS) $(LDLIBS) $(LDFLAGS) -o rat
 
 %.o: %.c session.h
 	$(CC) $(CFLAGS) $(GSMFLAGS) -c $*.c -o $*.o
@@ -105,27 +55,20 @@ tcltk.o:	      	xbm/line_in.xbm
 tcltk.o:	      	xbm/rat_med.xbm
 tcltk.o:	      	xbm/rat_small.xbm
 
-tcl2c-$(OSTYPE)-$(OSVERS): tcl2c.c
-	$(CC) -o tcl2c-$(OSTYPE)-$(OSVERS) tcl2c.c
+tcl2c: tcl2c.c
+	$(CC) -o tcl2c tcl2c.c
 
-ui_original.o: ui_original.tcl tcl2c-$(OSTYPE)-$(OSVERS)
-	cat ui_original.tcl | tcl2c-$(OSTYPE)-$(OSVERS) ui_original > ui_original.c
+ui_original.o: ui_original.tcl tcl2c
+	cat ui_original.tcl | tcl2c ui_original > ui_original.c
 	$(CC) $(CFLAGS) -c ui_original.c -o ui_original.o
 
-tcl_libs.o: tcl2c-$(OSTYPE)-$(OSVERS)
-	cat tcl/*.tcl tk/*.tcl | tcl2c-$(OSTYPE)-$(OSVERS) TCL_LIBS > tcl_libs.c
+tcl_libs.o: tcl2c
+	cat tcl/*.tcl tk/*.tcl | tcl2c TCL_LIBS > tcl_libs.c
 	$(CC) $(CFLAGS) -c tcl_libs.c -o tcl_libs.o
 
 clean:
-	-rm -f *.o
-	-rm -f tcl_libs.c
-	-rm -f ui_original.c
-	-rm -f tcl2c-$(OSTYPE)-$(OSVERS)
-	-rm -f rat-$(OSTYPE)-$(OSVERS)
+	-rm -f $(OBJS) tcl_libs.c ui_original.c tcl2c rat
 
 tags:
-	ctags -e *.[ch]
-
-depend:
-	makedepend $(DEFS) $(INCS) -f Makefile_$(OSTYPE)_$(OSMVER) *.[ch]
+	etags *.[ch]
 

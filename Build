@@ -70,8 +70,8 @@ echo "OSMVER=$OSMVER"
 
 cmd="${MAKE:=make} OSTYPE=$OSTYPE OSMVER=$OSMVER OSVERS=$OSVERS"
 case $1 in
-  rat   ) echo "Running: $cmd rat-${OSTYPE}-${OSVERS}"
-          eval time $cmd rat-${OSTYPE}-${OSVERS}
+  rat   ) echo "Running: $cmd rat"
+          eval time $cmd rat
           exit
           ;;
   tags|clean) echo "Running: $cmd $1"
