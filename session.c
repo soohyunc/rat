@@ -56,18 +56,18 @@ init_session(session_struct *sp)
 	cid = codec_get_by_name("DVI-8K-Mono");
         assert(cid);
         cf  = codec_get_format(cid);
-        sp->encodings[0]		= codec_get_payload(cid);           /* user chosen encoding for primary */
-	sp->num_encodings		= 1;                                /* Number of encodings applied */
+        sp->encodings[0]		= codec_get_payload(cid);           	/* user chosen encoding for primary */
+	sp->num_encodings		= 1;                                	/* Number of encodings applied */
 
         channel_get_coder_details(channel_get_null_coder(), &ccd);
         channel_encoder_create(ccd.descriptor, &sp->channel_coder);
 
         sp->converter                   = converter_get_null_converter();
-	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
-        assert(!(GLOBAL_CLOCK_FREQ%cf->format.sample_rate));                        /* just in case someone adds weird freq codecs */
+	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); 	/* this is the global clock */
+        assert(!(GLOBAL_CLOCK_FREQ%cf->format.sample_rate));                	/* just in case someone adds weird freq codecs */
 	sp->mode         		= AUDIO_TOOL;	
-	sp->rtp_port			= 5004;		/* default: draft-ietf-avt-profile-new-00 */
-	sp->rtcp_port			= 5005;		/* default: draft-ietf-avt-profile-new-00 */
+	sp->rtp_port			= 5004;					/* default: draft-ietf-avt-profile-new-00 */
+	sp->rtcp_port			= 5005;					/* default: draft-ietf-avt-profile-new-00 */
         sp->rtp_pckt_queue              = pckt_queue_create(PCKT_QUEUE_RTP_LEN);
         sp->rtcp_pckt_queue             = pckt_queue_create(PCKT_QUEUE_RTCP_LEN);
 	sp->ttl				= 16;
@@ -83,7 +83,7 @@ init_session(session_struct *sp)
 	sp->agc_on			= FALSE;
         sp->ui_on                       = TRUE;
 	sp->ui_addr			= NULL;
-	sp->meter			= TRUE;		/* Powermeter operation */
+	sp->meter			= TRUE;					/* Powermeter operation */
         sp->drop                        = 0.0;
 	sp->in_file 			= NULL;
 	sp->out_file  			= NULL;

@@ -208,6 +208,7 @@ s@__CHECK_LIB__@$CHECK_LIB@
 EOF
 
 sed -f Makefile.sed Makefile.in >> Makefile
+rm  -f Makefile.sed
 
 # Create version.h
 echo "Generating version.h"
