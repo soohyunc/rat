@@ -18,6 +18,7 @@
 #include "config_win32.h"
 #include "debug.h"
 #include "mbus.h"
+#include "mbus_parser.h"
 #include "version.h"
 #include "mbus_control.h"
 #include "crypt_random.h"

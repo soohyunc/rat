@@ -15,6 +15,7 @@
 #include "config_win32.h"
 #include "debug.h"
 #include "mbus.h"
+#include "mbus_parser.h"
 #include "mbus_control.h"
 
 extern int 	 should_exit;
@@ -75,15 +76,17 @@ static void rx_mbus_waiting(char *srce, char *args, void *data)
 
 static void rx_mbus_go(char *srce, char *args, void *data)
 {
-	struct mbus *m = (struct mbus *) data;
-	char	*t;
+	struct mbus_parser	*mp;
+	char			*t;
 
-	mbus_parse_init(m, args);
-	mbus_parse_str(m, &t);
+	UNUSED(data);
+
+	mp = mbus_parse_init(args);
+	mbus_parse_str(mp, &t);
 	if (strcmp(mbus_decode_str(t), wait_token) == 0) {
 		wait_addr = xstrdup(srce);
 	}
-	mbus_parse_done(m);
+	mbus_parse_done(mp);
 }
 
 static void rx_mbus_hello(char *srce, char *args, void *data)

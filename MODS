@@ -1046,6 +1046,7 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Add assorted debugging code
 	- Fix reception of RTP packets with padding (this is what caused a
 	  crash when using the GSM codec with encryption).
+	- Update for changes in the mbus library.
 
 
 TODO -- They're features not bugs dammit!

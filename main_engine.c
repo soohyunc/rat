@@ -35,6 +35,7 @@
 #include "mix.h"
 #include "sndfile.h"
 #include "mbus.h"
+#include "mbus_parser.h"
 #include "mbus_ui.h"
 #include "mbus_engine.h"
 #include "crypt_random.h"

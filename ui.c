@@ -30,6 +30,7 @@
 #include "audio_fmt.h"
 #include "auddev.h"
 #include "mbus.h"
+#include "mbus_parser.h"
 #include "mbus_engine.h"
 #include "transmit.h"
 #include "pdb.h"

@@ -11,6 +11,7 @@
 #include "config_win32.h"
 #include "debug.h"
 #include "mbus.h"
+#include "mbus_parser.h"
 #include "mbus_ui.h"
 #include "tcltk.h"
 
@@ -19,7 +20,7 @@ extern int	 ui_active;
 extern int	 should_exit;
 
 /* Mbus command reception function type */
-typedef void (*mbus_rx_proc)(char *srce, char *args, struct mbus *m);
+typedef void (*mbus_rx_proc)(char *srce, char *args);
 
 /* Tuple to associate string received with it's parsing fn */
 typedef struct {
@@ -27,47 +28,44 @@ typedef struct {
         mbus_rx_proc  rxproc;
 } mbus_cmd_tuple;
 
-static void rx_tool_rat_addr_engine(char *srce, char *args, struct mbus *m)
+static void rx_tool_rat_addr_engine(char *srce, char *args)
 {
-	char	*addr;
+	char			*addr;
+	struct mbus_parser	*mp;
 
 	UNUSED(srce);
 
-	mbus_parse_init(m, args);
-	if (mbus_parse_str(m, &addr)) {
+	mp = mbus_parse_init(args);
+	if (mbus_parse_str(mp, &addr)) {
 		e_addr = xstrdup(mbus_decode_str(addr));
 	} else {
 		debug_msg("mbus: usage \"tool.rat.addr.engine <addr>\"\n");
 	}
-	mbus_parse_done(m);
+	mbus_parse_done(mp);
 }
 
-static void rx_mbus_hello(char *srce, char *args, struct mbus *m)
+static void rx_mbus_hello(char *srce, char *args)
 {
 	UNUSED(srce);
 	UNUSED(args);
-	UNUSED(m);
 }
 
-static void rx_mbus_waiting(char *srce, char *args, struct mbus *m)
+static void rx_mbus_waiting(char *srce, char *args)
 {
 	UNUSED(srce);
 	UNUSED(args);
-	UNUSED(m);
 }
 
-static void rx_mbus_quit(char *srce, char *args, struct mbus *m)
+static void rx_mbus_quit(char *srce, char *args)
 {
 	UNUSED(args);
-	UNUSED(m);
 	should_exit = TRUE;
 	debug_msg("Got mbus.quit() from %s\n", srce);
 }
 
-static void rx_mbus_bye(char *srce, char *args, struct mbus *m)
+static void rx_mbus_bye(char *srce, char *args)
 {
 	UNUSED(args);
-	UNUSED(m);
 	UNUSED(srce);
 }
 
@@ -85,12 +83,13 @@ void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 {
 	char        	 command[1500];
 	unsigned int 	 i;
-	struct mbus	*m = (struct mbus *) data;
+
+	UNUSED(data);
 
 	/* Some commands are handled in C for now... */
 	for (i=0; i < NUM_UI_CMDS; i++) {
 		if (strcmp(ui_cmds[i].rxname, cmnd) == 0) {
-                        ui_cmds[i].rxproc(srce, args, m);
+                        ui_cmds[i].rxproc(srce, args);
 			return;
 		} 
 	}

@@ -17,6 +17,7 @@
 #include "memory.h"
 #include "version.h"
 #include "mbus.h"
+#include "mbus_parser.h"
 #include "mbus_ui.h"
 #include "tcltk.h"
 #include "util.h"

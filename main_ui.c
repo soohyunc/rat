@@ -15,6 +15,7 @@
 #include "config_win32.h"
 #include "debug.h"
 #include "mbus.h"
+#include "mbus_parser.h"
 #include "mbus_ui.h"
 #include "tcl.h"
 #include "tk.h"
