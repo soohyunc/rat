@@ -130,11 +130,13 @@ main(int argc, char *argv[])
 	ui_update(sp[0]);			/* ...and push those to the UI */
 	network_process_mbus(sp[0]);
         
+#ifdef NDEF
         if (sp[0]->new_config != NULL) {
                 network_process_mbus(sp[0]);
                 audio_device_reconfigure(sp[0]);
                 network_process_mbus(sp[0]);
         }
+#endif
 
 #ifdef NDEF
         ui_final_settings(sp[0]);

@@ -609,16 +609,6 @@ ui_sampling_modes(session_struct *sp)
 void
 ui_update(session_struct *sp)
 {
-	static   int 	done=0;
-
-	/*XXX solaris seems to give a different volume back to what we   */
-	/*    actually set.  So don't even ask if it's not the first time*/
-	if (done==0) {
-                ui_update_input_gain(sp);
-                ui_update_output_gain(sp);
-		done=1;
-	} 
-
 	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "tool.rat.rate", "%3d", channel_encoder_get_units_per_packet(sp->channel_coder));
         
         ui_devices(sp);

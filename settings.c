@@ -22,6 +22,7 @@
 #include "session.h"
 #include "repair.h"
 #include "timers.h"
+#include "transmit.h"
 #include "codec_types.h"
 #include "codec.h"
 #include "audio.h"
@@ -265,8 +266,16 @@ void settings_load(session_struct *sp)
 	primary_long  = (char *) xmalloc(strlen(primary_codec) + 10);
 	sprintf(primary_long, "%s/%4d/%1d", primary_codec, freq, chan);
 	audio_device_register_change_primary(sp, codec_get_by_name(primary_long));
+        if (sp->new_config != NULL) {
+		audio_device_reconfigure(sp);
+	}
         xfree(primary_long);
-        primary_long = NULL;
+
+        audio_set_ogain(sp->audio_device, setting_load_int("audioOutputGain", 75));
+        audio_set_igain(sp->audio_device, setting_load_int("audioInputGain",  75));
+        tx_igain_update(sp->tb);
+        setting_load_str("audioOutputPort", "Headphone");
+        setting_load_str("audioInputPort", "Microphone");
 
 	cc_name = setting_load_str("audioChannelCoding", "None");
 	for (i = 0; i < channel_get_coder_count(); i++ ) {
@@ -291,10 +300,6 @@ void settings_load(session_struct *sp)
 	sp->agc_on         = setting_load_int("audioAGC", 0);
 	sp->loopback_gain  = setting_load_int("audioLoopback", 0);
 	sp->echo_suppress  = setting_load_int("audioEchoSuppress", 0);
-        setting_load_int("audioOutputGain", 75);
-        setting_load_int("audioInputGain", 75);
-        setting_load_str("audioOutputPort", "Headphone");
-        setting_load_str("audioInputPort", "Microphone");
 	sp->meter          = setting_load_int("audioPowermeters", 1);
 	sp->sync_on        = setting_load_int("audioLipSync", 0);
         setting_load_int("audioOutputMute", 1);
