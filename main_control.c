@@ -3,6 +3,8 @@
  * PROGRAM: RAT - controller
  * AUTHOR:  Colin Perkins 
  *
+ * Win32 process watching and SIGCHLD handling OH.
+ *
  * This is the main program for the RAT controller.  It starts the 
  * media engine and user interface, and controls them via the mbus.
  *
@@ -251,7 +253,6 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 	mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
 	xfree(addr);
 
-
 	/* Parse late command line parameters... */
 	for (i = 1; i < argc; i++) {
                 if ((strcmp(argv[i], "-allowloopback") == 0) || (strcmp(argv[i], "-allow_loopback") == 0)) {
@@ -407,7 +408,46 @@ sigint_handler(int signal)
 	kill_process(pid_engine);
         exit(-1);
 }
-#endif
+#else
+
+/* Can use waitForMultipleObject to check liveness of child processes */
+#define NUM_CHILD_PROCS 2
+
+static void
+win32_check_children_running(void)
+{
+        HANDLE hProc[NUM_CHILD_PROCS];
+        DWORD  dwResult;
+
+        hProc[0] = (HANDLE)pid_ui;
+        hProc[1] = (HANDLE)pid_engine;
+
+        dwResult = WaitForMultipleObjects(NUM_CHILD_PROCS, hProc, FALSE, 0);
+        if (dwResult >= WAIT_OBJECT_0 && dwResult < WAIT_OBJECT_0 + NUM_CHILD_PROCS) {
+                debug_msg("Process %lu is no longer running\n", 
+                        (uint32_t)hProc[dwResult - WAIT_OBJECT_0]);
+                kill_process(pid_ui);
+                kill_process(pid_engine);
+                exit(-1);
+                return;
+        }
+        
+        if (dwResult >= WAIT_ABANDONED_0 && dwResult < WAIT_ABANDONED_0 + NUM_CHILD_PROCS) {
+                debug_msg("Process %lu wait abandoned\n",
+                        (uint32_t)hProc[dwResult - WAIT_ABANDONED_0]);
+                return; /* Nothing to do, process quit already */
+        }
+        
+        if (dwResult == WAIT_FAILED) {
+                debug_msg("Wait failed\n");
+                return;
+        }
+
+        assert(dwResult == WAIT_TIMEOUT);
+        return;
+}
+
+#endif /* WIN32 */
 
 int main(int argc, char *argv[])
 {
@@ -415,7 +455,7 @@ int main(int argc, char *argv[])
 	char		 c_addr[60], token_ui[20], token_engine[20];
         int		 seed = (gethostid() << 8) | (getpid() & 0xff);
 	struct timeval	 timeout;
-
+ 
 #ifndef WIN32
  	signal(SIGINT, sigint_handler); 
  	signal(SIGCHLD, sigchld_handler); 
@@ -446,6 +486,9 @@ int main(int argc, char *argv[])
                         mbus_retransmit(m);
                         timeout.tv_sec  = 0;
                         timeout.tv_usec = 20000;
+#ifdef WIN32
+                        win32_check_children_running();
+#endif
                         mbus_recv(m, NULL, &timeout);
                 }        
                 terminate(m, u_addr, &pid_ui);
