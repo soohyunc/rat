@@ -1361,7 +1361,11 @@ v4.2.6	- Compilation fixes for Win32 contributed by Marcin Michalak.
 
 v4.2.7	- Split main() in the controller into two parts: one for normal
 	  operation as an audio tool, one for operation as a transcoder.
-	- Add missing initialization of reversal buffer for repetition plus.
+	- Add extra debugging code to transmit.c
+	- Fix buffer overflow in tx_unit_create()
+	- Add missing initialization of reversal buffer for repetition plus
+	  (problem reported by Lingfen Sun).
+
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1464,4 +1468,6 @@ TODO -- They're features not bugs dammit!
 - Occasional weird behaviour of the playout buffer, where sources are
   buffered for several _minutes_ before being played out? Reported by
   Steven Dawson on the CAIRN list.
+- RTP packets sent three times when playing from a file. Reported by Paxton
+  Smith. Due to bias_remove() in tx_process_audio()???
 

@@ -386,8 +386,7 @@ pb_iterator_detach_at (pb_iterator_t *pi,
         iterators   = &pi->buffer->iterators[0]; 
         n_iterators = pi->buffer->n_iterators;
         for(i = 0; i < n_iterators; i++) {
-                if (iterators[i].node == pi->node &&
-                    iterators + i != pi) {
+                if (iterators[i].node == pi->node && iterators + i != pi) {
                         debug_msg("Eek removing node that another iterator is using...danger!\n");
                         iterators[i].node = iterators[i].node->prev;
                 }
@@ -400,6 +399,13 @@ pb_iterator_detach_at (pb_iterator_t *pi,
         curr_node->next->prev = curr_node->prev;
         curr_node->prev->next = curr_node->next;
         
+#ifdef DEBUG
+	curr_node->next     = NULL;
+	curr_node->prev     = NULL;
+	curr_node->magic    = 0;
+	curr_node->data     = NULL;
+	curr_node->data_len = 0;
+#endif
         block_free(curr_node, sizeof(pb_node_t));
         pi->node = next_node;
         pi->buffer->n_nodes--;
@@ -491,7 +497,7 @@ pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
         pb_node_t *stop, *curr, *next;
         pb_t      *pb;
 
-#ifndef NDEBUG
+#ifdef DEBUG
         /* If we are debugging we check we are not deleting
          * nodes pointed to by other iterators since this *BAD*
          */
@@ -510,7 +516,7 @@ pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
                 cutoff = ts_sub(pi->node->playout, history_len);
                 while(ts_gt(cutoff, curr->playout)) {
                         /* About to erase a block an iterator is using! */
-#ifndef NDEBUG
+#ifdef DEBUG
                         for(i = 0; i < n_iterators; i++) {
                                 assert(iterators[i].node != curr);
                         }
@@ -525,7 +531,6 @@ pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
                         removed ++;
                 }
         }
-        
         return removed;
 }
 
