@@ -96,6 +96,7 @@ static char *ac97_devices[] = {
 	"OSS: AudioPCI 97 (STAC9708)",
 	"OSS: AudioPCI 97 (CRY13/0x43525913)",
 	"OSS: AudioPCI 97 (CS4297A)",
+	"OSS: Realtek ALC650E",
 	0
 };
 
