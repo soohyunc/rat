@@ -190,8 +190,8 @@ process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
 
         /* Calculate rtt estimate */
 
-        if (pdb_item_get(sp->pdb, ssrc, &e) &&
-            r->ssrc == rtp_my_ssrc(sp->rtp_session[0]) &&
+        if (r->ssrc == rtp_my_ssrc(sp->rtp_session[0]) &&
+            pdb_item_get(sp->pdb, ssrc, &e) &&
             r->lsr != 0) {
                 uint32_t ntp_sec, ntp_frac, ntp32;
 
@@ -204,9 +204,8 @@ process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
                 } else {
                         e->avg_rtt += (e->last_rtt - e->avg_rtt) / 8.0;
                 }
-
                 if (sp->mbus_engine != NULL) {
-                        ui_update_rtt(sp,  ssrc, e->avg_rtt);
+                        ui_update_rtt(sp, ssrc, e->avg_rtt);
                 }
         }
 

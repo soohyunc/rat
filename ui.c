@@ -208,7 +208,6 @@ ui_update_stats(session_t *sp, uint32_t ssrc)
         mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.audio.skew", "\"%08lx\" %.5f", pdbe->ssrc, skew_rate);
         mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.spike.events", "\"%08lx\" %ld", pdbe->ssrc, pdbe->spike_events);
         mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.spike.toged", "\"%08lx\" %ld",  pdbe->ssrc, pdbe->spike_toged);
-
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
         rr = rtp_get_rr(sp->rtp_session[0], my_ssrc, pdbe->ssrc);
         if (rr != NULL) {
@@ -224,6 +223,12 @@ ui_update_stats(session_t *sp, uint32_t ssrc)
                             pdbe->misordered, pdbe->duplicates, 
                             ts_to_ms(pdbe->jitter), pdbe->jit_toged);
         ui_update_duration(sp, pdbe->ssrc, pdbe->inter_pkt_gap * 1000 / get_freq(pdbe->clock));
+}
+
+void
+ui_update_rtt(session_t *sp, uint32_t ssrc, double rtt_sec) 
+{
+        mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.rtt", "\"%08lx\" %6ld", ssrc, (uint32_t) (1000 * rtt_sec));
 }
 
 void
@@ -787,14 +792,6 @@ ui_update_reception(session_t *sp, uint32_t ssrc, uint32_t recv, uint32_t lost, 
 {
 	mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "rtp.source.reception", "\"%08lx\" %6ld %6ld %6ld %6ld %6ld %6d", 
 		  ssrc, recv, lost, misordered, duplicates, jitter, jit_tog);
-}
-
-void
-ui_update_rtt(session_t *sp, uint32_t ssrc, double rtt_sec)
-{
-        uint32_t rtt_ms;
-        rtt_ms = (uint32_t)(1000 * rtt_sec);
-        mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "rtp.source.rtt", "\"%08lx\" %6ld", ssrc, rtt_ms);
 }
 
 void
