@@ -678,8 +678,8 @@ button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"     -comm
 button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"      -command do_quit
 
 frame .r.c
-frame .r.c.vol  
-frame .r.c.gain
+frame .r.c.vol 
+frame .r.c.gain 
 
 pack .r -side top -fill x
 pack .r.c -side top -fill x -expand 1
@@ -1172,6 +1172,7 @@ Security, Inc. MD5 Message-Digest Algorithm.
 }
 
 proc shuffle_rats {args} {
+    # This should really animate the movement and play fruit-machine sounds.... :-)
     set r ""
     set end [llength $args]
     set l 0 
