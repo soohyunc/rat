@@ -1298,6 +1298,7 @@ v4.2.3	- Change the session struct to be a two element array in main_engine.c
 	- Update "make installer" target
 	* Released 3 May 2000
 
+v4.2.4	- 
 
 
 TODO -- They're features not bugs dammit!
