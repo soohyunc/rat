@@ -24,16 +24,16 @@ int main(int argc, char *argv[])
 	inf = fopen(argv[1], "r");
 	c = fgetc(inf);
 	l = 1;
-	printf("char encoded_binaries[] = {0x%02x", c);
+	printf("char encoded_binaries[] = \"\\x%02x", c);
 	while (1) {
 		c = fgetc(inf);
 		if (feof(inf)) {
 			break;
 		}
-		printf(", 0x%02x", c);
+		printf("\\x%02x", c);
 		l++;
 	}
-	printf("};\n");
+	printf("\";\n");
 	printf("int encoded_length = %d;\n", l);
 	printf("char encoded_filename[] = \"%s\";\n", argv[1]);
 	fclose(inf);
