@@ -78,7 +78,7 @@ typedef struct s_mix_info {
  * dont have to copy everything when we hit the boundaries..
  */
 mix_struct *
-init_mix(session_struct *sp, int buffer_length)
+mix_create(session_struct *sp, int buffer_length)
 {
 	mix_struct	*ms;
         codec_t         *cp;
@@ -94,6 +94,13 @@ init_mix(session_struct *sp, int buffer_length)
 	ms->mix_buffer += ms->buf_len;
 
 	return (ms);
+}
+
+void
+mix_destroy(mix_struct *ms)
+{
+        xfree(ms->mix_buffer - ms->buf_len);
+        xfree(ms);
 }
 
 static void

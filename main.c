@@ -143,7 +143,7 @@ main(int argc, char *argv[])
 		audio_init(sp[i]);
 		audio_device_take(sp[i]);
                 read_write_init(sp[i]);
-		ms[i] = init_mix(sp[i], 32640);
+		ms[i] = mix_create(sp[i], 32640);
 	}
 	agc_table_init();
         set_converter(CONVERT_LINEAR);
@@ -228,11 +228,18 @@ main(int argc, char *argv[])
 		if (sp[i]->in_file  != NULL) fclose(sp[i]->in_file);
 		if (sp[i]->out_file != NULL) fclose(sp[i]->out_file);
                 read_device_destroy(sp[i]);
+                mix_destroy(ms[i]);
 		if (sp[i]->mode != TRANSCODER) {
 			audio_close(sp[i]->audio_fd);
 		}
 	}
 	network_process_mbus(sp, num_sessions, 1000);
+
+        for(i = 0; i<2; i++) {
+                end_session(sp[i]);
+                xfree(sp[i]);
+        }
+
 	xmemdmp();
 	return 0;
 }

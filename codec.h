@@ -101,6 +101,7 @@ struct s_codec *get_codec(int pt);
 struct s_codec *get_codec_byname(char *name, struct session_tag *sp);
 void	set_dynamic_payload(struct s_dpt **listp, char *name, int pt);
 int	get_dynamic_payload(struct s_dpt **listp, char *name);
+void    codec_free_dynamic_payloads(struct s_dpt **dpt_list);
 void	codec_init(struct session_tag *sp);
 void	encoder(struct session_tag *sp, sample *data, int coding, coded_unit *c);
 void    reset_encoder(struct session_tag *sp, int coding);

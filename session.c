@@ -142,6 +142,14 @@ init_session(session_struct *sp)
 	strcpy(sp->asc_address, "127.0.0.3");	/* Yeuch! This value should never be used! */
 }
 
+void
+end_session(session_struct *sp)
+{
+        codec_free_dynamic_payloads(&sp->dpt_list);
+        free_fast_time(sp->clock);
+        free_time(sp->device_clock);
+}
+
 static void 
 parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 {

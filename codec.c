@@ -353,6 +353,18 @@ get_dynamic_payload(dpt **dpt_list, char *name)
 }
 
 void
+codec_free_dynamic_payloads(dpt **dpt_list)
+{
+        dpt *elem = *dpt_list;
+        while(elem) {
+                dpt_list = &elem->next;
+                xfree(elem->name);
+                xfree(elem);
+                elem = *dpt_list;
+        }
+}
+
+void
 codec_init(session_struct *sp)
 {
 	static	inited = 0;

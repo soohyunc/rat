@@ -70,6 +70,12 @@ new_fast_time(int freq)
 	return (ft);
 }
 
+void
+free_fast_time(ft_t *ft)
+{
+        xfree(ft);
+}
+
 __inline void
 time_advance(ft_t *ft, int freq, u_int32 time)
 {
