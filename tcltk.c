@@ -50,11 +50,6 @@
 #include <tcl.h>
 #include <tk.h>
 
-#ifdef TclX
-#include "tclExtend.h"
-extern char	profrep[];
-#endif
-
 extern char 	ui_audiotool[];
 extern char	ui_transcoder[];
 extern char	TCL_LIBS[];
@@ -189,14 +184,6 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	if (Tcl_EvalObj(interp, Tcl_NewStringObj(TCL_LIBS, strlen(TCL_LIBS))) != TCL_OK) {
 		fprintf(stderr, "TCL_LIBS error: %s\n", interp->result);
 	}
-
-#ifdef TclX
-	Tclx_Init(interp);
-	Tkx_Init(interp);
-	if (Tcl_EvalObj(interp, Tcl_NewStringObj(profrep, strlen(profrep))) != TCL_OK) {
-		fprintf(stderr, "profrep error: %s\n", interp->result);
-	}
-#endif
 
 	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) sp, NULL);
 	Tcl_CreateCommand(interp, "mbus_qmsg",	     mbus_qmsg_cmd,   (ClientData) sp, NULL);

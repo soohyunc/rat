@@ -2,7 +2,7 @@
 # Makefile for the RAT project. This probably requires GNU make.
 #
 
-CFLAGS         = __WFLAGS__ __INCLUDE__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_FLAG__ __DEFS__ -D__OSTYPE__ -DSASR -DFAST -DUSE_FLOAT_MUL __TCLX__
+CFLAGS         = __WFLAGS__ __INCLUDE__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_FLAG__ __DEFS__ -D__OSTYPE__ -DSASR -DFAST -DUSE_FLOAT_MUL
 CC             = __CC__
 
 OBJS = time.o codec.o convert.o repair.o codec_lpc.o codec_adpcm.o codec_wbs.o codec_g711.o  \
@@ -11,10 +11,10 @@ OBJS = time.o codec.o convert.o repair.o codec_lpc.o codec_adpcm.o codec_wbs.o c
        gsm_lpc.o gsm_short_term.o receive.o transmit.o audio.o cushion.o session.o util.o interfaces.o \
        statistics.o mix.o parameters.o ui_audiotool.o ui_transcoder.o tcl_libs.o tcltk.o rtcp.o       \
        speaker_table.o net.o ui_control.o transcoder.o crypt.o crypt_random.o md5.o mbus.o mbus_ui.o  \
-       mbus_engine.o main.o __AUDIO__ __TCLX_OBJS__
+       mbus_engine.o main.o __AUDIO__ 
 
 rat: $(OBJS)
-	$(CC) $(OBJS) __TCLX_LIBS__ __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat
+	$(CC) $(OBJS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat
 
 %.o: %.c session.h
 	$(CC) $(CFLAGS) -c $*.c
@@ -46,12 +46,8 @@ tcl_libs.o: tcl2c/tcl2c
 	cat tcl/*.tcl tk/*.tcl | tcl2c/tcl2c TCL_LIBS > tcl_libs.c
 	$(CC) $(CFLAGS) -c tcl_libs.c -o tcl_libs.o
 
-profrep.o: tcl2c/tcl2c
-	cat profrep.tcl | tcl2c/tcl2c profrep > profrep.c
-	$(CC) $(CFLAGS) -c profrep.c -o profrep.o
-
 clean:
-	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c profrep.c version.h Makefile tcl2c/tcl2c rat 
+	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile tcl2c/tcl2c rat 
 
 etags:
 	etags *.[ch]

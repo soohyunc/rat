@@ -822,8 +822,8 @@ rtcp_forward(rtcp_t *pckt, session_struct *sp1, session_struct *sp2)
 		return;
 
 	ptr = rtcp_packet_fmt_srrr(sp2, ptr);
-	memcpy(ptr, pckt, (pckt->common.length+1)*4);
-	ptr += (pckt->common.length+1)*4;
+	memcpy(ptr, pckt, (ntohs(pckt->common.length)+1)*4);
+	ptr += (ntohs(pckt->common.length)+1)*4;
 	packlen = ptr - (u_int8 *) packet;
 	net_write(sp1->rtcp_fd, sp1->net_maddress, sp1->rtcp_port, (u_int8 *)packet, packlen, PACKET_RTCP);
 	sp2->db->last_rpt = now;
