@@ -55,7 +55,7 @@
  * larger. Sensible values are between 0.9 and 1
  */
 #define SAFETY		0.90
-#ifdef SunOS_4
+#ifdef SunOS
 #define CUSHION_STEP	160
 #else
 #define CUSHION_STEP	80

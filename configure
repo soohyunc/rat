@@ -41,6 +41,11 @@ VERSION=`cat VERSION`
 OSTYPE=`uname -s`
 case $OSTYPE in
   SunOS                  ) OSTYPE=`uname -s`_`uname -r | awk -F. '{print $1}'`
+  			   if [ $OSTYPE = SunOS_4 ]; then
+			   	OSTYPE=SunOS
+			   elif [ $OSTYPE = SunOS_5 ]; then
+			   	OSTYPE=Solaris
+			   fi
                            ;;
   HP-UX                  ) OSTYPE=HPUX
                            ;;
@@ -57,7 +62,7 @@ echo "Configuring RAT v$VERSION for $OSTYPE"
 GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
 
 case $OSTYPE in
-  SunOS_4 ) CC="gcc"
+  SunOS   ) CC="gcc"
             WFLAGS=$GCCWFLAGS
 	    INCLUDE="-I/cs/research/mice/starship/common/sun4/include -I/usr/ucl/X11/include -I/usr/demo/SOUND"
 	    LDLIBS="/cs/research/mice/starship/common/sun4/lib/libtk80.a /cs/research/mice/starship/common/sun4/lib/libtcl80.a -L/usr/openwin/lib -lXext -lX11 -L/usr/demo/SOUND -laudio -lm"
@@ -67,7 +72,7 @@ case $OSTYPE in
 	    OPTIMIZE="-O4"
 	    PROFILE="-pg"
             ;;
-  SunOS_5 ) CC="gcc -pipe"
+  Solaris ) CC="gcc -pipe"
             WFLAGS=$GCCWFLAGS
 	    INCLUDE="-I/cs/research/mice/starship/common/solaris/include -I/usr/demo/SOUND/include -I/usr/openwin/include"
 	    LDLIBS="-L/cs/research/mice/starship/common/solaris/lib -ltk8.0 -ltcl8.0 -L/usr/openwin/lib -lXext -lX11 -L/usr/demo/SOUND/lib -laudio -lsocket -ldl -lnsl -lm"

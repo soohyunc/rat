@@ -73,7 +73,6 @@ typedef u_int	fd_t;
 
 #define USERNAMELEN	8
 
-#define OSNAME "WIN32"
 #define DIFF_BYTE_ORDER	1
 
 #include <time.h>		/* For clock_t */

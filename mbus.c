@@ -336,7 +336,7 @@ static fd_t mbus_socket_init(unsigned short channel)
 	int                reuse =  1;
 	char               loop  =  1;
 	fd_t               fd    = -1;
-#if defined(IRIX) || defined(HPUX) || defined(FreeBSD) || defined(Linux) || defined(SunOS_5)
+#if defined(IRIX) || defined(HPUX) || defined(FreeBSD) || defined(Linux) || defined(Solaris)
 	int		   rbuf  = 65535;
 #endif
 
@@ -355,7 +355,7 @@ static fd_t mbus_socket_init(unsigned short channel)
 		return -1;
 	}
 #endif
-#if defined(IRIX) || defined(HPUX) || defined(FreeBSD) || defined(Linux) || defined(SunOS_5)
+#if defined(IRIX) || defined(HPUX) || defined(FreeBSD) || defined(Linux) || defined(Solaris)
 	if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char *) &rbuf, sizeof(rbuf)) < 0) {
 		perror("mbus: setsockopt SO_RCVBUF");
 		return -1;

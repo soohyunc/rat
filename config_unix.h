@@ -94,7 +94,6 @@ typedef int	fd_t;
 #define min(a, b)	(((a) < (b))? (a): (b))
 
 #ifdef FreeBSD
-#define OSNAME "FreeBSD"
 #include <unistd.h>
 #include <stdlib.h>
 #define DIFF_BYTE_ORDER  1
@@ -108,8 +107,7 @@ typedef int	fd_t;
 #include <machine/soundcard.h>
 #endif /* FreeBSD */
 
-#ifdef SunOS_5
-#define OSNAME "Solaris"
+#ifdef Solaris
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/audioio.h>
@@ -126,9 +124,8 @@ int gethostname(char *name, int namelen);
 #endif
 #endif
 
-#ifdef SunOS_4
+#ifdef SunOS
 #define AUDIO_CD         4
-#define OSNAME "SunOS"
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 7
 #include <ctype.h>
@@ -173,7 +170,6 @@ int	toupper(int c);
 #endif
 
 #ifdef IRIX
-#define OSNAME "IRIX"
 #include <bstring.h>     /* Needed for FDZERO on IRIX only */
 #include <audio.h>
 #define AUDIO_SPEAKER    0
@@ -186,7 +182,6 @@ int gethostname(char *name, int namelen);
 #endif
 
 #ifdef HPUX
-#define OSNAME "HPUX"
 #include <unistd.h>
 #include <sys/audio.h>
 #define AUDIO_SPEAKER    AUDIO_OUT_SPEAKER
@@ -198,7 +193,6 @@ int gethostname(char *hostname, size_t size);
 #endif
 
 #ifdef Linux
-#define OSNAME           "Linux"
 #define DIFF_BYTE_ORDER  1
 #define AUDIO_SPEAKER    0
 #define AUDIO_HEADPHONE  1

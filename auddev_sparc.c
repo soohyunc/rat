@@ -82,13 +82,13 @@ audio_open(audio_format format)
 		dev_info.record.port        = AUDIO_MICROPHONE;
 		dev_info.play.balance       = AUDIO_MID_BALANCE;
 		dev_info.record.balance     = AUDIO_MID_BALANCE;
-#ifdef SunOS_5
+#ifdef Solaris
 		dev_info.play.buffer_size   = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
 		dev_info.record.buffer_size = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
 #ifdef DEBUG
 		printf("Setting device buffer_size to %d\n", dev_info.play.buffer_size);
 #endif /* DEBUG */
-#endif /* SunOS_5 */
+#endif /* Solaris */
                 blocksize = format.blocksize;
                 switch (format.encoding) {
 		case DEV_PCMU:

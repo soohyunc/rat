@@ -314,7 +314,7 @@ read_packets_and_add_to_queue(fd_t fd, u_int32 cur_time, pckt_queue_struct * que
 			/* on each read to get it right...               */
 			nb -= pckt_ptr->len;
 			nb -= nbdecryption;
-#if defined(SunOS_4) || defined(IRIX) || defined(HPUX) || defined(FreeBSD)
+#if defined(SunOS) || defined(IRIX) || defined(HPUX) || defined(FreeBSD)
 			nb -= 16;
 #endif
 			put_on_pckt_queue(pckt_ptr, queue);
