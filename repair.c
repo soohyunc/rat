@@ -317,8 +317,6 @@ repair(int                         repair,
                         fmt.channels        = channels;
                         fmt.bytes_per_block = p->data_len;
 
-                        debug_msg("rate %d channels %d\n", rate, channels);
-
                         /* Pointer tweaking to get data in format repair function
                          * expects.
                          */

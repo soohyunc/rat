@@ -707,8 +707,6 @@ source_repair(source *src,
         ts_t        fill_ts,  prev_ts;
         u_int32     success,  prev_len;
 
-        debug_msg("Step %d\n", step.ticks);
-
         /* Check for need to reset of consec_lost count */
 
         if (ts_valid(src->last_repair) == FALSE || 
@@ -738,10 +736,12 @@ source_repair(source *src,
                fill_md->rep[0]);
         fill_ts = ts_add(src->last_played, step);
 
+#ifdef NDEF
         debug_msg("lp %d (%d) fl %d (%d) delta %d (%d)\n", 
                   src->last_played.ticks,  ts_get_freq(src->last_played),
                   fill_ts.ticks,           ts_get_freq(fill_ts),
                   step.ticks,              ts_get_freq(step));
+#endif
 
         success = pb_add(src->media, 
                          (u_char*)fill_md,
