@@ -2172,11 +2172,15 @@ frame     .about.rim.d.feedback.f -relief flat
 frame     .about.rim.d.feedback.f.f
 pack      .about.rim.d.feedback.f -fill both -expand 1
 pack      .about.rim.d.feedback.f.f -side left -fill x -expand 1
-label     .about.rim.d.feedback.f.f.1                  -text "Comments, suggestions, and bug-reports should be sent to:"
-label     .about.rim.d.feedback.f.f.2 -foreground blue -text "rat-trap@cs.ucl.ac.uk\n"
-label     .about.rim.d.feedback.f.f.3                  -text "Further information is available on the world-wide web at:"
-label     .about.rim.d.feedback.f.f.4 -foreground blue -text "http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/\n"
-for {set i 1} {$i<=4} {incr i} {
+label     .about.rim.d.feedback.f.f.1                  -text "A mailing list exists for general comments and discussion:"
+label     .about.rim.d.feedback.f.f.2 -foreground blue -text "rat-users@cs.ucl.ac.uk"
+label     .about.rim.d.feedback.f.f.3                  -text "This list is open to all, you are encouraged to subscribe"
+label     .about.rim.d.feedback.f.f.4                  -text "(send mail to rat-users-request@cs.ucl.ac.uk to join).\n"
+label     .about.rim.d.feedback.f.f.5                  -text "To reach the tool developers, send email to:"
+label     .about.rim.d.feedback.f.f.6 -foreground blue -text "rat-trap@cs.ucl.ac.uk\n"
+label     .about.rim.d.feedback.f.f.7                  -text "Further information is available on the world-wide web at:"
+label     .about.rim.d.feedback.f.f.8 -foreground blue -text "http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/\n"
+for {set i 1} {$i<=8} {incr i} {
     pack  .about.rim.d.feedback.f.f.$i -side top -fill x
 }
 
