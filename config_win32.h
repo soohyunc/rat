@@ -10,11 +10,11 @@
  * All rights reserved.
  *
  */
-#include <process.h>
 #ifdef WIN32
 #ifndef _CONFIG_WIN32_H
 #define _CONFIG_WIN32_H
 
+#include <process.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <memory.h>

@@ -48,16 +48,20 @@ static void parse_args(int argc, char *argv[])
 	}
 }
 
+#ifdef WIN32
 extern HINSTANCE hAppInstance;
 extern int       TkWinXInit(HINSTANCE);
 extern void      TkWinXCleanup(HINSTANCE);
+#endif
 
 int main(int argc, char *argv[])
 {
 	struct mbus	*m;
 	struct timeval	 timeout;
 
+#ifdef WIN32
         TkWinXInit(hAppInstance);
+#endif
 
 	debug_msg("rat-ui started argc=%d\n", argc);
 	parse_args(argc, argv);
@@ -128,7 +132,9 @@ int main(int argc, char *argv[])
 		mbus_recv(m, NULL, &timeout);
 	} while (!mbus_sent_all(m));
         
+#ifdef WIN32
         TkWinXCleanup(hAppInstance);
+#endif
         return 0;
 }
 
