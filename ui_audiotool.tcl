@@ -571,7 +571,7 @@ proc cname_update {cname} {
 
 # number of elements in the bargraphs...
 set bargraphTotalHeight 24
-set bargraphRedHeight [expr $bargraphTotalHeight * 0.75] 
+set bargraphRedHeight [expr $bargraphTotalHeight * 3 / 4] 
 
 proc bargraphCreate {bgraph} {
 	global oh$bgraph bargraphTotalHeight
