@@ -133,6 +133,7 @@ int main(int argc, char *argv[])
 		mbus_recv(sp[0]->mbus_engine, NULL, &timeout);
 		mbus_send(sp[0]->mbus_engine);
 		mbus_heartbeat(sp[0]->mbus_engine, 1);
+		mbus_retransmit(sp[0]->mbus_engine);
 	}
 	debug_msg("Address %s is valid\n", c_addr);
 
@@ -148,6 +149,7 @@ int main(int argc, char *argv[])
 		mbus_recv(sp[0]->mbus_engine, sp[0]->mbus_engine, &timeout);
 		mbus_send(sp[0]->mbus_engine);
 		mbus_heartbeat(sp[0]->mbus_engine, 1);
+		mbus_retransmit(sp[0]->mbus_engine);
 	}
 	mbus_cmd_handler(sp[0]->mbus_engine, mbus_engine_rx);
 	mbus_qmsgf(sp[0]->mbus_engine, c_addr, TRUE, "mbus.go", "%s", token_e);
@@ -165,6 +167,7 @@ int main(int argc, char *argv[])
 		mbus_recv(sp[0]->mbus_engine, NULL, &timeout);
 		mbus_send(sp[0]->mbus_engine);
 		mbus_heartbeat(sp[0]->mbus_engine, 1);
+		mbus_retransmit(sp[0]->mbus_engine);
 	}
 	return 0;
 }

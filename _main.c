@@ -98,7 +98,7 @@ static void inform_addrs(struct mbus *m, char *e_addr, char *u_addr)
 	} while (!mbus_sent_all(m));
 }
 
-static void parse_options_e(int argc, char *argv[], char *e_addr, struct mbus *m)
+static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[])
 {
 	int	i;
 	char	*addr, *rx_port, *tx_port;
@@ -132,17 +132,9 @@ static void parse_options_e(int argc, char *argv[], char *e_addr, struct mbus *m
 		tx_port = rx_port;
 	}
 	debug_msg("addr=%s rx_port=%s tx_port=%s\n", addr, rx_port, tx_port);
+	UNUSED(m);
 	UNUSED(e_addr);
-	UNUSED(m);
-}
-
-static void parse_options_u(int argc, char *argv[], char *u_addr, struct mbus *m)
-{
-	/* Parse those command line parameters which are intended for the user interface. */
-	UNUSED(argc);
-	UNUSED(argv);
 	UNUSED(u_addr);
-	UNUSED(m);
 }
 
 int main(int argc, char *argv[])
@@ -163,9 +155,7 @@ int main(int argc, char *argv[])
 	e_addr = fork_process(m, ENGINE_NAME, m_addr, &pid_engine);
 
 	inform_addrs(m, e_addr, u_addr);
-
-	parse_options_e(argc, argv, e_addr, m);
-	parse_options_u(argc, argv, u_addr, m);
+	parse_options(m, e_addr, u_addr, argc, argv);
 
 	while (1) {
 		sleep(1);

@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
 		mbus_recv(m, NULL, &timeout);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
+		mbus_retransmit(m);
 	}
 	debug_msg("Address %s is valid\n", c_addr);
 
@@ -79,6 +80,7 @@ int main(int argc, char *argv[])
 		mbus_recv(m, m, &timeout);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
+		mbus_retransmit(m);
 	}
 	mbus_cmd_handler(m, mbus_ui_rx);
 	mbus_qmsgf(m, c_addr, TRUE, "mbus.go", "%s", token_e);
@@ -91,6 +93,7 @@ int main(int argc, char *argv[])
 		mbus_recv(m, NULL, &timeout);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
+		mbus_retransmit(m);
 		tcl_process_all_events();
 	}
 }
