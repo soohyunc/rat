@@ -776,7 +776,7 @@ proc mbus_recv_enable_audio_ctls {} {
 	.r.c.gain.s2 configure -state normal
 }
 
-bind all <ButtonPress-3> "toggle_send"
+bind all <ButtonPress-3>   "toggle_send"
 bind all <ButtonRelease-3> "toggle_send"
 bind all <q> {destroy .}
 
