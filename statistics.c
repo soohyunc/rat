@@ -167,6 +167,7 @@ adapt_playout(rtp_hdr_t *hdr,
               rtcp_dbentry *src,
 	      session_struct *sp, 
               struct s_cushion_struct *cushion, 
+	      u_int32 cur_time,
 	      u_int32 real_time)
 {
 	u_int32	playout, var;
@@ -177,7 +178,7 @@ adapt_playout(rtp_hdr_t *hdr,
 	u_int32	ntptime, sendtime, play_time;
         int     ntp_delay;
 	u_int32	rtp_time;
-
+        
 	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
 	delay = arrival_ts - hdr->ts;
         
@@ -189,6 +190,7 @@ adapt_playout(rtp_hdr_t *hdr,
 		src->last_ts         = hdr->ts - 1;
                 src->playout_ceil    = 0;
 		hdr->m               = TRUE;
+		src->msgno = 0;
 	} else {
 		diff       = abs(delay - src->delay);
 		src->delay = delay;
@@ -197,14 +199,20 @@ adapt_playout(rtp_hdr_t *hdr,
 	}
 
 	if (sp->sync_on) {
+		//real_time = ntp_time32(); /* cur_time should be passed be adapt_playout instead [dm] */
 		/* calculate delay in absolute (real) time [dm] */ 
 		ntptime = (src->last_ntp_sec & 0xffff) << 16 | src->last_ntp_frac >> 16;
-		if (hdr->ts >= src->last_rtp_ts) 
-			sendtime = ntptime + ((hdr->ts - src->last_rtp_ts) << 16) / get_freq(src->clock);
-		else {
-			printf("smaller\n");
-			sendtime = ntptime + ((src->last_rtp_ts - hdr->ts) << 16) / get_freq(src->clock);
+		if (hdr->ts > src->last_rtp_ts) {
+#ifdef WIN32
+			sendtime = ntptime + ((__int64)(hdr->ts - src->last_rtp_ts) << 16) / get_freq(src->clock);
+#else
+			sendtime = ntptime + ((long long)(hdr->ts - src->last_rtp_ts) << 16) / get_freq(src->clock);
+#endif
 		}
+/*		else {
+			sendtime = ntptime + ((long long)(src->last_rtp_ts - hdr->ts) << 16) / get_freq(src->clock);
+		}
+*/
 		ntp_delay = real_time - sendtime; 
 		if (src->first_pckt_flag == TRUE) { 
 			src->sync_playout_delay = ntp_delay;
@@ -259,14 +267,12 @@ adapt_playout(rtp_hdr_t *hdr,
                                 
 				/* Communicate our playout delay to the video tool... */
                                 ui_update_video_playout(src->sentry->cname, src->sync_playout_delay);
-				src->last_sync_msg = ntp_time32(); 
-				//printf("RAT-->%d\n", src->sync_playout_delay);
 		
 				/* If the video tool is slower than us, then
                                  * adjust to match it...  src->video_playout is
                                  * the delay of the video in real time 
 				*/
-				printf("ad = %d\tvd = %d\n", src->sync_playout_delay, src->video_playout);
+				printf("ad=%d\tvd=%d\n", src->sync_playout_delay, src->video_playout);
                                 if (src->video_playout_received == TRUE &&
                                     src->video_playout > src->sync_playout_delay) {
                                         src->sync_playout_delay = src->video_playout;
@@ -274,16 +280,6 @@ adapt_playout(rtp_hdr_t *hdr,
 
 			}
 		} else {
-			/* if it's more than 1 sec since we last sent a mbus message 
-		 	 * to the video, then send one to keep it up to date
-		 	 */
-			if (sp->sync_on) {
-				if (real_time - src->last_sync_msg > 65536) {
-					ui_update_video_playout(src->sentry->cname, src->sync_playout_delay);
-					printf("sending update\n");
-					src->last_sync_msg = ntp_time32();
-				}
-			}
 			/* Do not set encoding on TS start packets as they do not show if redundancy is used...   */
                         /*	src->encoding = hdr->pt; */
 		}
@@ -468,7 +464,7 @@ statistics(session_struct    *sp,
                         update_req   = TRUE;
                 }
                 
-                playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
+                playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, cur_time, real_time);
                 src->units_per_packet = split_block(playout_pt, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
                 
                 if (!src->units_per_packet) {
