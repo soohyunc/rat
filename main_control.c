@@ -193,6 +193,12 @@ static void inform_addrs(struct mbus *m, char *e_addr, char *u_addr)
 static int parse_options_early(int argc, const char **argv) 
 {
         int i;
+
+        if (argc < 2) {
+                usage(NULL);
+                return FALSE;
+        }
+
         /* DOS and UNIX style command flags for usage and version */        
         for (i = 0; i < argc; i++) {
                 if ((argv[i][0] == '-' || argv[i][0] == '/') &&
@@ -205,6 +211,7 @@ static int parse_options_early(int argc, const char **argv)
                         return FALSE;
                 }
         }
+
         return TRUE;
 }
 
