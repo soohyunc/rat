@@ -1222,6 +1222,7 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  again!
 	- Fix phase skips of tone generator.
 	- Add RTP flush after device reconfiguration.
+	- Clean up and fix controller command line parsing.
 
 TODO -- They're features not bugs dammit!
 ----

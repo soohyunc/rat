@@ -1,9 +1,7 @@
 /*
 * FILE:    main.c
 * PROGRAM: RAT - controller
-* AUTHOR:  Colin Perkins 
-*
-* Win32 process watching and SIGCHLD handling OH.
+* AUTHOR:  Colin Perkins / Orion Hodson
 *
 * This is the main program for the RAT controller.  It starts the 
 * media engine and user interface, and controls them via the mbus.
@@ -42,6 +40,8 @@ static const char cvsid[] =
 char	*u_addr, *e_addr;
 pid_t	 pid_ui, pid_engine;
 int	 should_exit;
+
+static int ttl = 15;
 
 static void 
 usage(char *szOffending)
@@ -179,26 +179,34 @@ static int parse_options_early(int argc, const char **argv)
         }
         
         /* DOS and UNIX style command flags for usage and version */        
-        for (i = 1; i < argc; i++) {
-                if ((argv[i][0] == '-' || argv[i][0] == '/') &&
-                        (argv[i][1] == 'v' || argv[i][1] == 'V')) {
+        for (i = 1; i < argc && (argv[i][0] == '-' || argv[i][0] == '/'); i++) {
+                if (tolower(argv[i][1]) == 'v') {
 #ifdef WIN32
 			MessageBox(NULL, "RAT v" RAT_VERSION, "RAT Version", MB_OK);
 #else
                         printf("%s\n", "RAT v" RAT_VERSION);
 #endif
                         return FALSE;
-                } else if ((argv[i][0] == '-' || argv[i][0] == '/')&&
-                        (argv[i][1] == '?' || argv[i][1] == 'h' || argv[i][1] == 'H')) {
+                } else if (argv[i][1] == '?' || tolower(argv[i][1]) == 'h') {
                         usage(NULL);
                         return FALSE;
+                } else if (argv[i][1] == 't') {
+                        /* 
+                         * Handle ttl here because it is reqd before rtp address 
+                         * can be sent. 
+                         */
+                        ttl = atoi(argv[i+1]);
+                        if (ttl < 0 || ttl > 255) {
+                                usage("Usage: -t 0-255.\n");
+                                return FALSE;
+                        }
                 }
         }
         
         /* 
-        * Validate destination address.  Do it here before launching 
-        * sub-processes and mbus.
-        */
+         * Validate destination address.  Do it here before launching 
+         * sub-processes and mbus.
+         */
         
         addr = xstrdup(argv[argc-1]);
         addr = strtok(addr, "/");
@@ -211,166 +219,323 @@ static int parse_options_early(int argc, const char **argv)
         return TRUE;
 }
 
-static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[])
+/* Late Command Line Argument Functions */
+
+static int 
+cmd_layers(struct mbus *m, char *addr, int argc, char *argv[])
 {
-        int		 i;
-        int		 ttl = 15;
-        char		*addr, *port, *tmp;
-        int              tx_port, rx_port;
+        int layers;
+        assert(argc == 1);
+        layers = atoi(argv[0]);
+        if (layers > 1) {
+                mbus_qmsgf(m, addr, TRUE, "tool.rat.layers", "%d", argv[0]);
+                return TRUE;
+        }
+        UNUSED(argc);
+        return FALSE;
+}
+
+static int 
+cmd_allowloop(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        assert(argc == 0);
+        mbus_qmsgf(m, addr, TRUE, "tool.rat.filter.loopback", "0");
+        UNUSED(argc);
+        UNUSED(argv);
+        return TRUE;
+}
+
+static int 
+cmd_session_name(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        char *enc_name;
+        assert(argc == 1);
+        enc_name = mbus_encode_str(argv[0]);
+        mbus_qmsgf(m, addr, TRUE, "session.title", enc_name);
+        xfree(enc_name);
+        UNUSED(argc);
+        return TRUE;
+}
+
+static int
+cmd_payload_map(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        const char *compat;
+        char       *codec;
+        int         codec_pt;
+
+        assert(argc == 1);
+        /* Dynamic payload type mapping. Format: "-pt pt/codec" */
+        /* Codec is of the form "pcmu-8k-mono"                  */
+        codec_pt = atoi((char*)strtok(argv[0], "/"));
+        compat   = codec_get_compatible_name(strtok(NULL, "/"));
+        if (compat == NULL) {
+                usage("Usage: -pt <pt>/<codec>");
+                return FALSE;
+        }
+        codec = mbus_encode_str(compat);
+        mbus_qmsgf(m, addr, TRUE, "tool.rat.payload.set", "%s %d", codec, codec_pt);
+        xfree(codec);
+
+        UNUSED(argc);
+        return TRUE;
+}
+
+static int
+cmd_crypt(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        char *key;
+
+        assert(argc == 1);
+        key = mbus_encode_str(argv[0]);
+        mbus_qmsgf(m, addr, TRUE, "security.encryption.key", key);
+        xfree(key);
+
+        UNUSED(argc);
+        return TRUE;
+}
+
+static int
+cmd_agc(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        assert(argc == 1);
+        if (strcmp(argv[0], "on") == 0) {
+                mbus_qmsgf(m, addr, TRUE, "tool.rat.agc", "1");
+                return TRUE;
+        } else if (strcmp(argv[0], "off") == 0) {
+                mbus_qmsgf(m, addr, TRUE, "tool.rat.agc", "0");
+                return TRUE;
+        }
+        UNUSED(argc);
+        usage("Usage: -agc on|off\n");
+        return FALSE;
+}
+
+static int
+cmd_silence(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        assert(argc == 1);
+        if (strcmp(argv[0], "on") == 0) {
+                mbus_qmsgf(m, addr, TRUE, "tool.rat.silence", "1");
+                return TRUE;
+        } else if (strcmp(argv[0], "off") == 0) {
+                mbus_qmsgf(m, addr, TRUE, "tool.rat.silence", "0");
+                return TRUE;
+        } 
+        UNUSED(argc);
+        usage("Usage: -silence on|off\n");
+        return FALSE;
+}
+
+static int
+cmd_repair(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        char *repair;
+        assert(argc == 1);
+        repair = mbus_encode_str(argv[0]);
+        mbus_qmsgf(m, addr, TRUE, "audio.channel.repair", repair);
+        xfree(repair);
+        UNUSED(argc);
+        return TRUE;
+}
+
+static int
+cmd_primary(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        /* Set primary codec: "-f codec". You cannot set the   */
+        /* redundant codec with this option, use "-r" instead. */
+        char *firstname, *realname, *name, *freq, *chan;
+        
+        assert(argc == 1);
+        /* Break at trailing / in case user attempting old syntax */
+        firstname = (char*)strtok(argv[0], "/");
+        
+        /* The codec should be of the form "pcmu-8k-mono".     */
+        realname = xstrdup(codec_get_compatible_name(firstname));
+        name     = (char*)strtok(realname, "-");
+        freq     = (char*)strtok(NULL, "-");
+        chan     = (char*)strtok(NULL, "");
+        if (freq != NULL && chan != NULL) {
+                debug_msg("codec: %s %s %s\n", name, freq, chan);
+                name    = mbus_encode_str(name);
+                freq    = mbus_encode_str(freq);
+                chan    = mbus_encode_str(chan);
+                mbus_qmsgf(m, addr, TRUE, "tool.rat.codec", "%s %s %s", name, freq, chan);
+                xfree(name);
+                xfree(freq);
+                xfree(chan);
+        }
+        xfree(realname);
+        return TRUE;
+}
+
+static int
+cmd_redundancy(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        const char *compat;
+        char       *redundancy, *codec;
+        int         offset;
+
+        assert(argc == 1);
+        /* Set channel coding to redundancy: "-r codec/offset" */
+        compat = codec_get_compatible_name((const char*)strtok(argv[0], "/"));
+        offset = atoi((char*)strtok(NULL, ""));
+
+        if (offset > 0) {
+                redundancy = mbus_encode_str("redundancy");
+                codec      = mbus_encode_str(compat);
+                mbus_qmsgf(m, addr, TRUE, "audio.channel.coding", "%s %s %d", redundancy, codec, offset);
+                xfree(redundancy);
+                xfree(codec);
+                return TRUE;
+        }
+        UNUSED(argc);
+        usage("Usage: -r <codec>/<offset>");
+        return FALSE;
+}
+
+typedef struct {
+        const char *cmdname;                               /* Command line flag */
+        int       (*cmd_proc)(struct mbus *m, char *addr, int argc, char *argv[]); /* TRUE = success, FALSE otherwise */
+        int        argc;                                   /* No. of args       */
+} args_handler;
+
+static args_handler late_args[] = {
+        { "-l",              cmd_layers,       1 },
+        { "-allowloopback",  cmd_allowloop,    0 },
+        { "-allow_loopback", cmd_allowloop,    0 },
+        { "-C",              cmd_session_name, 1 },
+        { "-pt",             cmd_payload_map,  1 },
+        { "-crypt",          cmd_crypt,        1 },
+        { "-K",              cmd_crypt,        1 },
+        { "-agc",            cmd_agc,          1 },
+        { "-silence",        cmd_silence,      1 },
+        { "-repair",         cmd_repair,       1 },
+        { "-f",              cmd_primary,      1 },
+        { "-r",              cmd_redundancy,   1 },
+        { "-ttl",            NULL,             1 }, /* handled in parse early args */
+};
+
+static uint32_t late_args_cnt = sizeof(late_args)/sizeof(late_args[0]);
+
+static const args_handler *
+get_late_args_handler(char *cmdname)
+{
+        uint32_t j;
+        for (j = 0; j < late_args_cnt; j++) {
+                if (strcmp(cmdname, late_args[j].cmdname) == 0) {
+                        return late_args + j;
+                }
+        }
+        return NULL;
+}
+
+static int address_count(int argc, char *argv[])
+{
+        const args_handler *a;
+        int                 i;
+        
+        for (i = 0; i < argc; i++) {
+                a = get_late_args_handler(argv[i]);
+                if (a == NULL) {
+                        break;
+                }
+                i += a->argc;
+        }
+        
+        return argc - i;
+}
+
+static void
+parse_non_addr(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        const args_handler *a;
+        int                 i;
+        
+        for (i = 0; i < argc; i++) {
+                a = get_late_args_handler(argv[i]);
+                if (a == NULL) {
+                        break;
+                }
+                if (a->cmd_proc && (argc - i) > a->argc) {
+                        a->cmd_proc(m, addr, a->argc, argv + i + 1);
+                }
+                i += a->argc;
+        }
+        return;
+}
+
+static int 
+parse_addr(char *arg, char **addr, int *rx_port, int *tx_port)
+{
+        char *token;
+        int   port;
+
+        *addr = (char *) strtok(arg, "/");
+        if (udp_addr_valid(*addr) == FALSE) {
+                usage("Invalid address\n");
+                return FALSE;
+        }
+
+        *rx_port = DEFAULT_RTP_PORT;
+        token = strtok(NULL, "/");
+        if (token) {
+                port     = atoi(token);
+                port    &= ~1; 
+                if (port < 1023) {
+                        usage("Port number must be > 1023.\nType rat -h for help\n");
+                        return FALSE;
+                }
+                *rx_port = port;
+        }
+
+        *tx_port = DEFAULT_RTP_PORT;
+        token = strtok(NULL, "/");
+        if (token) {
+                port     = atoi(token);
+                port    &= ~1; 
+                if (port < 1023) {
+                        usage("Port number must be > 1023.\nType rat -h for help\n");
+                        return FALSE;
+                }
+                *tx_port = port;
+        }
+        return TRUE;
+}
+
+static int 
+parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[])
+{
+        char		*addr;
+        int              i, naddr, rx_port, tx_port;
         struct timeval	 timeout;
-	int              addrs;
         
         if (argc < 2) {
                 usage(NULL);
                 return FALSE;
         }
-        
-        /* Parse the list of addresses/ports at the end of the command line. */
+        argc -= 1; /* Skip process name */
+        argv += 1;
 
-        /* There may be more than one address/port if layering - this parsing *
-           isn't particularly foolproof and is pretty ugly.                   */
-        /* Note that the number of layers still needs to be passed explicitly *
-           using -l n, so that we can keep sp->rtp_session_count separate     *
-           from sp->layers. This is in case something else needs to have more *
-           than one address passed at the command-line.                       */
-
-        addrs = 0;
-        for (i = argc-1; i > 0; i--) {
-                if(strchr(argv[i], '/')!=NULL) {
-		/* So it's got a "/" in it. That doesn't necessarily mean it's an address... */
-		      if((strcmp(argv[i-1], "-f")!=0) && (strcmp(argv[i-1], "-pt")!=0) && (strcmp(argv[i-1], "-r")!=0)) {
-			    addrs++;
-		      }
-		} else {
-		      break;
-		}
+        naddr = address_count(argc, argv);
+        if (naddr < 1) {
+                usage(NULL);
+                return FALSE;
         }
 
-        /* Parse early command line parameters. These are things which we can */
-        /* do before the media engine knows its RTP session information.      */
-        /* We check the number of layers here so that the different RTP       *
-           sessions can be initialised properly (if layering they all need    *
-           to have the same source ID).                                       */
-
-        for (i = 1; i < argc; i++) {
-                if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
-                        ttl = atoi(argv[i+1]);
-                        if (ttl < 0 || ttl > 255) {
-                                usage("Usage: -t 0-255.\n");
-                                return FALSE;
-                        }
-                        i++;
-                } else if ((strcmp(argv[i], "-l") == 0) && (argc > i+1)) {
-                        mbus_qmsgf(m, e_addr, TRUE, "tool.rat.layers", "%d", argv[i+1]);
-			i++;
+        /* Send address to engine before parsing other args.  They need to context to be relevent */
+        for(i = 0; i < naddr; i++) {
+                if (parse_addr(argv[argc - naddr + i], &addr, &rx_port, &tx_port) == FALSE) {
+                        usage(NULL);
+                        return FALSE;
                 }
-        }
-        
-	for (i = addrs; i > 0; i--) {
-	        addr    = (char *) strtok(argv[argc-i], "/");
-		rx_port = DEFAULT_RTP_PORT;
-		port    = (char *) strtok(NULL, "/");
-		if (port != NULL) {
-		        rx_port = atoi(port);
-		}
-		port    = (char *) strtok(NULL, "/");
-		if (port != NULL) {
-		        tx_port = atoi(port);
-		} else {
-		        tx_port = rx_port;
-		}
-		/* Fix odd numbered ports to the next lower port... */
-		if (rx_port % 2) rx_port--;
-		if (tx_port % 2) tx_port--;
-        
-		/* Send the RTP address to the media engine... */
 		addr    = mbus_encode_str(addr);
 		mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
+		fprintf(stderr, "rtp.addr %s %d %d %d\n", addr, rx_port, tx_port, ttl);
 		xfree(addr);
-	}
-        
-        /* Parse late command line parameters... */
-        for (i = 1; i < argc; i++) {
-                if ((strcmp(argv[i], "-allowloopback") == 0) || (strcmp(argv[i], "-allow_loopback") == 0)) {
-                        mbus_qmsgf(m, e_addr, TRUE, "tool.rat.filter.loopback", "0");
-                } else if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
-                        tmp = mbus_encode_str(argv[i+1]);
-                        mbus_qmsgf(m, e_addr, TRUE, "session.title", tmp);
-                        xfree(tmp);
-                } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
-                        /* Dynamic payload type mapping. Format: "-pt pt/codec" */
-                        /* Codec is of the form "pcmu-8k-mono"                  */
-                        int         pt    = atoi((char*)strtok(argv[i+1], "/"));
-                        const char *codec = codec_get_compatible_name((const char*)strtok(NULL, "/"));
-                        if (codec != NULL) {
-                                mbus_qmsgf(m, e_addr, TRUE, "tool.rat.payload.set", "\"%s\" %d", codec, pt);
-                        } else {
-                                usage("Usage: -pt <pt>/<codec>");
-                        }
-                } else if (((strcmp(argv[i], "-K") == 0) || strcmp(argv[i], "-crypt") == 0) && (argc > i+1)) {
-                        tmp = mbus_encode_str(argv[i+1]);
-                        mbus_qmsgf(m, e_addr, TRUE, "security.encryption.key", tmp);
-                        xfree(tmp);
-                } else if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
-                        if (strcmp(argv[i+1], "on") == 0) {
-                                mbus_qmsgf(m, e_addr, TRUE, "tool.rat.agc", "1");
-                        } else if (strcmp(argv[i+1], "off") == 0) {
-                                mbus_qmsgf(m, e_addr, TRUE, "tool.rat.agc", "0");
-                        } else {
-                                usage("Usage: -agc on|off\n");
-                                return FALSE;
-                        }
-                } else if ((strcmp(argv[i], "-silence") == 0) && (argc > i+1)) {
-                        if (strcmp(argv[i+1], "on") == 0) {
-                                mbus_qmsgf(m, e_addr, TRUE, "tool.rat.silence", "1");
-                        } else if (strcmp(argv[i+1], "off") == 0) {
-                                mbus_qmsgf(m, e_addr, TRUE, "tool.rat.silence", "0");
-                        } else {
-                                usage("Usage: -silence on|off\n");
-                                return FALSE;
-                        }
-                } else if ((strcmp(argv[i], "-repair") == 0) && (argc > i+1)) {
-                        tmp = mbus_encode_str(argv[i+1]);
-                        mbus_qmsgf(m, e_addr, TRUE, "audio.channel.repair", tmp);
-                        xfree(tmp);
-                } else if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
-                        /* Set primary codec: "-f codec". You cannot set the   */
-                        /* redundant codec with this option, use "-r" instead. */
-                        
-                        /* Strip trailing / in case user attempting old syntax */
-                        char *firstname = (char*)strtok(argv[i+1], "/");
-                        
-                        /* The codec should be of the form "pcmu-8k-mono".     */
-                        char *realname  = xstrdup(codec_get_compatible_name(firstname));
-                        char *name = (char*)strtok(realname, "-");
-                        char *freq = (char*)strtok(NULL, "-");
-                        char *chan = (char*)strtok(NULL, "");
-                        if (freq != NULL && chan != NULL) {
-                                debug_msg("codec: %s %s %s\n", name, freq, chan);
-                                name = mbus_encode_str(name);
-                                freq = mbus_encode_str(freq);
-                                chan = mbus_encode_str(chan);
-                                mbus_qmsgf(m, e_addr, TRUE, "tool.rat.codec", "%s %s %s", name, chan, freq);
-                                xfree(name);
-                                xfree(freq);
-                                xfree(chan);
-                        }
-                        xfree(realname);
-                } else if ((strcmp(argv[i], "-r") == 0) && (argc > i+1)) {
-                        /* Set channel coding to redundancy: "-r codec/offset" */
-                        const char *codec  = codec_get_compatible_name((const char*)strtok(argv[i+1], "/"));
-                        int   offset = atoi((char*)strtok(NULL, ""));
-                        if (offset != 0) {
-                                codec  = mbus_encode_str(codec);
-                                mbus_qmsgf(m, e_addr, TRUE, "audio.channel.coding", "\"redundancy\" %s %d", codec, offset);
-                        } else {
-                                usage("Usage: -r <codec>/<offset>");
-                        }
-			xfree((void *)codec);
-                } else if ((strcmp(argv[i], "-i") == 0) && (argc > i+1)) {
-                        /* Set channel coding to interleaved */
-                }
         }
+
+        parse_non_addr(m, e_addr, argc, argv);
         
         /* Synchronize with the sub-processes... */
         do {
@@ -420,8 +585,6 @@ static void terminate(struct mbus *m, char *addr, pid_t *pid)
         }
         *pid = 0;
 }
-
-
 
 #ifndef WIN32
 
