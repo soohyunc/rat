@@ -1507,6 +1507,7 @@ TODO -- They're features not bugs dammit!
 	rat-4.2.4-media: source.c:1588: source_process: Assertion `md->nrep < 5 && md->nrep > 0' failed.
   FYI, I just triggered this same failure inadvertently at another site by 
   transmitting at 48khz when they were set to receive at 16khz. (Bob Olson).
+  Also reported by Justin Pietsch.
 - RTCP validation code is incorrect (Vladimir Brauner):
 	The issue is located into RAT RTCP validating function code : The
 	"r < end && p== 1" test could himself be ok, but the following "if

@@ -1470,6 +1470,7 @@ source_process(session_t 	 *sp,
         uint32_t     md_len;
         timestamp_t  playout, step;
         uint16_t     sample_rate, channels;
+	int	     i;
 
         /* Note: src->hold_repair is used to stop repair occuring.
          * Occasionally, there is a race condition when the playout
@@ -1488,13 +1489,13 @@ source_process(session_t 	 *sp,
         }
 	source_validate(src);
 
-        /* Split channel coder units up into media units. This takes units from    */
-	/* the channel decoder input buffer (src->channel) and, after decoding,    */
-	/* adds them to the media buffer (src->media). The channel decoder may     */
-	/* the units for some time in-between these two buffers e.g. if there is j */
-	/* a block interleaver, output will not start until a complete block has   */
-	/* been read in. Any intermediate buffer is hidden within the channel      */
-	/* decoder, and is not visible here.                                       */
+        /* Split channel coder units up into media units. This takes units from     */
+	/* the channel decoder input buffer (src->channel) and, after decoding,     */
+	/* adds them to the media buffer (src->media). The channel decoder may keep */
+	/* the units for some time in-between these two buffers e.g. if there is j  */
+	/* a block interleaver, output will not start until a complete block has    */
+	/* been read in. Any intermediate buffer is hidden within the channel       */
+	/* decoder, and is not visible here.                                        */
         if (pb_node_count(src->channel)) {
                 channel_decoder_decode(src->channel_state, src->channel, src->media, end_ts);
         }
@@ -1506,9 +1507,17 @@ source_process(session_t 	 *sp,
 	/* mixes the data ready for playout.                                       */
         while (ts_gt(end_ts, src->next_played) && pb_iterator_advance(src->media_pos)) {
 		pb_iterator_get_at(src->media_pos, (u_char**)&md, &md_len, &playout);
-		/* At this point, md is the media data at the current playout point */
+
+		/* At this point, md is the media data at the current playout point. */
+		/* There may be multiple representations of the data, for example if */
+		/* we are receiving a stream using redundancy.                       */
                 assert(md     != NULL);
                 assert(md_len == sizeof(media_data));
+		assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
+		for(i = 0; i < md->nrep; i++) {
+			assert(md->rep[i] != NULL);
+			assert(codec_id_is_valid(md->rep[i]->id));
+		}
 
 		repair_media_stream(sp, src, md, md_len, playout);
 
@@ -1521,18 +1530,19 @@ source_process(session_t 	 *sp,
                 assert(md != NULL);
                 assert(md_len == sizeof(media_data));
 		assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
+		for(i = 0; i < md->nrep; i++) {
+			assert(md->rep[i] != NULL);
+			assert(codec_id_is_valid(md->rep[i]->id));
+		}
 
                 if (codec_is_native_coding(md->rep[md->nrep - 1]->id) == FALSE) {
 			/* If we've got to here, we have no native coding for this unit */
                         /* We need to decode this unit, may not have to when repair has */
 			/* been used.                                                   */
-                        int i;
                         for(i = 0; i < md->nrep; i++) {
                                 /* If there is a native coding this unit has already */
 				/* been decoded and this would be a bug.             */
-                                assert(md->rep[i] != NULL);
                                 assert(codec_is_native_coding(md->rep[i]->id) == FALSE);
-                                assert(codec_id_is_valid(md->rep[i]->id));
                         }
 
                         /* Decode frame - use first representation available and make  */
@@ -1591,6 +1601,9 @@ source_process(session_t 	 *sp,
                         }
                 }
 
+		/* From here on we're working with the native coded media... */
+		assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
+
                 if (src->skew != SOURCE_SKEW_NONE && source_skew_adapt(src, md, playout) != SOURCE_SKEW_NONE) {
 			/* We have skew and we have adjusted playout buffer  */
 			/* timestamps, so re-get unit to get correct         */
@@ -1608,6 +1621,7 @@ source_process(session_t 	 *sp,
                 src->samples_played += md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample));
                 xmemchk();
 
+                assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);		
                 if (mix_put_audio(sp->ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
                         /* Sources sampling rate changed mid-flow? dump data */
                         /* make source look irrelevant, it should get        */
@@ -1619,8 +1633,6 @@ source_process(session_t 	 *sp,
                         pb_flush(src->media);
                         pb_flush(src->channel);
                 }
-                assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);		
-                assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
 		source_validate(src);
         }
         source_update_bps(src, start_ts);

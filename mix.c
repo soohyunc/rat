@@ -170,17 +170,17 @@ mix_put_audio(mixer_t     *ms,
               coded_unit  *frame,
               timestamp_t         playout)
 {
-        static int      hits;
         sample          *samples;
-
-        int32_t         pos;
-        uint32_t        nticks, nsamples;
-        uint16_t        channels, rate;
-        timestamp_t            frame_period, playout_end, delta;
+        int32_t          pos;
+        uint32_t         nticks, nsamples;
+        uint16_t         channels, rate;
+        timestamp_t	 frame_period, playout_end, delta;
 
         mix_verify(ms);
-        hits++;
-        codec_get_native_info(frame->id, &rate, &channels);
+        if (!codec_get_native_info(frame->id, &rate, &channels)) {
+		debug_msg("Cannot mix non-native media\n");
+		abort();
+	}
 
         if (rate != ms->info.sample_rate || channels != ms->info.channels) {
                 /* This should only occur if source changes sample rate
