@@ -138,6 +138,9 @@ add_hdr(channel_unit *chu, int hdr_type, codec_id_t cid, u_int32 uo, u_int32 len
         u_int32 so;             /* sample time offset */
         u_char  pt;
 
+        assert(chu != NULL);
+        assert(chu->data == NULL);
+
         pt = codec_get_payload(cid);
         assert(payload_is_valid(cid));
 
@@ -155,7 +158,7 @@ add_hdr(channel_unit *chu, int hdr_type, codec_id_t cid, u_int32 uo, u_int32 len
                 RED_HDR32_SET_LEN(*h, len);
                 *h = htonl(*h);
                 chu->data     = (u_char*)h;
-                chu->data_len = 4;
+                chu->data_len = sizeof(*h);
         } else {
                 u_char *h;
                 assert(hdr_type == RED_PRIMARY);
@@ -163,7 +166,7 @@ add_hdr(channel_unit *chu, int hdr_type, codec_id_t cid, u_int32 uo, u_int32 len
                 RED_HDR8_INIT(*h);
                 RED_HDR8_SET_PT(*h, pt);
                 chu->data     = h;
-                chu->data_len = 1;
+                chu->data_len = sizeof(*h);
         }
 }
 
@@ -188,42 +191,40 @@ make_pdu(struct s_pb_iterator *pbi,
                 success = pb_iterator_get_at(p, (u_char**)&md, &md_len, &playout);
                 assert(success); /* We could rewind this far so must be able to get something! */
                 
-                for(j = 0; j < md->nrep; j++) {
-                        if (md->rep[j]->id != cid) {
-                                continue;
-                        }
-                        if (i == 0 && md->rep[j]->state != NULL) {
-                                /* This is first unit in block so we want state */
-                                out->elem[used]->data     = md->rep[j]->state;
-                                out->elem[used]->data_len = md->rep[j]->state_len;
-                                md->rep[j]->state     = NULL;
-                                md->rep[j]->state_len = 0;
-                                used++;
-                        }
-                        assert(used < out->nelem);
-                        out->elem[used]->data     = md->rep[j]->data;
-                        out->elem[used]->data_len = md->rep[j]->data_len;
-                        md->rep[j]->data     = NULL;
-                        md->rep[j]->data_len = 0;
-                        used++;
-                        assert(used <= out->nelem);
+                /* Find first compatible coding */
+                for(j = 0; j < md->nrep && md->rep[j]->id != cid; j++);
+                if (j == md->nrep) {
+                        /* could not find coding */
+                        debug_msg("coding not found\n");
+                        break;
                 }
+
+                if (i == 0 && md->rep[j]->state != NULL) {
+                        /* This is first unit in block so we want state */
+                        assert(out->elem[used]->data == NULL);
+                        out->elem[used]->data     = md->rep[j]->state;
+                        out->elem[used]->data_len = md->rep[j]->state_len;
+                        md->rep[j]->state     = NULL;
+                        md->rep[j]->state_len = 0;
+                        used++;
+                }
+                assert(used < out->nelem);
+                assert(out->elem[used]->data == NULL);
+                out->elem[used]->data     = md->rep[j]->data;
+                out->elem[used]->data_len = md->rep[j]->data_len;
+                md->rep[j]->data     = NULL;
+                md->rep[j]->data_len = 0;
+                md->rep[j]->id       = 0; /* nobble this unit since we have taken it's data */
+                used++;
+                assert(used <= out->nelem);
+                
+                pb_iterator_advance(p);
         }
 
         pb_iterator_destroy(pb_iterator_get_playout_buffer(pbi), &p);
-        return used;
-}
+        xmemchk();
 
-static u_int32
-channel_data_bytes(channel_data *cd)
-{
-        u_int32 len, i;
-        
-        len = 0;
-        for(i = 0; i < cd->nelem; i++) {
-                len += cd->elem[i]->data_len;
-        }
-        return len;
+        return used;
 }
 
 static channel_data *
@@ -246,6 +247,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
         }
 
         offset = 0;
+        layers = 0;
         for (i = 0; (u_int32)i < re->n_layers; i++) {
                 /* Move back to start of this layer */
                 while (offset < re->layer[i].pkts_off * upp) {
@@ -258,6 +260,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
                          */
                         break;
                 }
+                xmemchk();
                 /* need upp data elements + 1 for state */
                 channel_data_create(&cd_coded[i], upp + 1); 
                 success = make_pdu(pbm, upp, re->layer[i].cid, cd_coded[i]);
@@ -294,6 +297,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
                         re->layer[re->n_layers - 1].pkts_off * upp,
                         channel_data_bytes(cd_coded[i]));
                 used++;
+                i--;
         }
 
         add_hdr(cd_out->elem[used], 
@@ -307,17 +311,21 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
 
         for(i = layers - 1; i >= 0; i--) {
                 j = 0;
-                while(cd_coded[i]->elem[i]->data != NULL) {
+                while(cd_coded[i]->elem[j]->data != NULL) {
+                        assert(cd_out->elem[used]->data == NULL);
                         cd_out->elem[used]->data       =  cd_coded[i]->elem[j]->data;
                         cd_out->elem[used]->data_len   =  cd_coded[i]->elem[j]->data_len;
                         cd_coded[i]->elem[j]->data     = NULL;
                         cd_coded[i]->elem[j]->data_len = 0;
                         used++;
+                        assert(used <= cd_out->nelem);
                         j++;
                 }
                 assert(used <= cd_out->nelem);
                 channel_data_destroy(&cd_coded[i], sizeof(channel_data));
         }
+
+        pb_iterator_audit(pbm, re->history); /* Clear old rubbish */
 
         return  cd_out;
 }
@@ -361,7 +369,6 @@ redundancy_encoder_encode (u_char      *state,
                 }
         }
 
-        pb_iterator_audit(pi, re->history);
         pb_iterator_destroy(in, &pi);
 
         return TRUE;
