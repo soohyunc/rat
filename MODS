@@ -1341,7 +1341,6 @@ v4.2.5	- Fix assert failure in auddev_trans.c, contributed by Jakub Segen
 TODO -- They're features not bugs dammit!
 ----
 
-- Fix multiple instances on same machine.
 - Assorted audio driver problems:
 	- FreeBSD driver bug on SoundBlaster 16 has small write buffers 
 	  and stops working full duplex mode after a time.  Hard to fix because
@@ -1373,7 +1372,6 @@ TODO -- They're features not bugs dammit!
   not sure if this is a feature of Tk or the window manager, but there's 
   little we can do about it.
 - Reimplement transcoder.
-	- Merge transcoder fixes from Jakub Segen
 	- Convertors need to be moved into the session struct, rather than being 
 	  statically allocated.
 	- settings load/save code needs to be updated for the transcoder. We should 
