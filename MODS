@@ -1102,7 +1102,9 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Tweak source ageing, to fix problems with users being hilighted
 	  after they finish speaking. Problem occured if less than 50
 	  packets arrived in a talkspurt.
-
+	- Save settings now passes through settings file, replacing entries
+	  RAT has update values for, and then appends entries not in settings
+	  file.
 
 TODO -- They're features not bugs dammit!
 ----

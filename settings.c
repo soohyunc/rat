@@ -39,11 +39,6 @@ typedef struct s_hash_tuple {
         struct s_hash_tuple *next;
 } hash_tuple;
 
-typedef struct s_hash_chain {
-        uint32_t nelem;
-        hash_tuple *head;
-} hash_chain;
-
 #define SETTINGS_READ_SIZE 100
 #define SETTINGS_TABLE_SIZE 11
 
@@ -53,8 +48,7 @@ static HKEY cfgKey;
 #endif
 
 #ifndef WIN32
-static hash_chain *table;          /* Use hashtable to load settings    */
-static FILE       *settings_file;  /* static file pointer used during save */
+static hash_tuple **table;          /* Use hashtable to load settings    */
 #endif
 
 /* SETTINGS HASH CODE ********************************************************/
@@ -90,11 +84,51 @@ settings_table_add(char *key, char *value)
 
         /* Add to table */
         row      = t->hash % SETTINGS_TABLE_SIZE;
-        t->next  = table[row].head;
-        table[row].head = t;
-        table[row].nelem++;
+        t->next  = table[row];
+        table[row] = t;
 #endif
 }
+
+static void
+settings_table_remove(char *key)
+{
+#ifndef WIN32
+        hash_tuple **t, *e;
+        uint32_t hash;
+        int row;
+
+        hash = setting_hash(key);
+        row  = hash % SETTINGS_TABLE_SIZE;
+        t    = &table[row];
+        while((*t) != NULL) {
+                if (((*t)->hash == hash) && 
+                    (strcmp(key, (*t)->key) == 0)) {
+                        e = *t;
+                        *t = e->next;
+                        xfree(e->key);
+                        xfree(e->value);
+                        xfree(e);
+                } else {
+                        t = &(*t)->next;
+                }
+        }
+#endif /* WIN32 */
+}
+
+static char* settings_table_first_key()
+{
+#ifndef WIN32
+        int i;
+
+        for (i = 0; i < SETTINGS_TABLE_SIZE; i++) {
+                if (table[i] != NULL) {
+                        return table[i]->key;
+                }
+        }
+#endif
+        return NULL;
+}
+
 
 /* settings_table_lookup points value at actual value */
 /* and return TRUE if key found.                      */
@@ -103,11 +137,13 @@ settings_table_lookup(char *key, char **value)
 {
 #ifndef WIN32
         hash_tuple *t;
+        int          row;
         uint32_t     hash;
 
         hash = setting_hash(key);
+        row  = hash % SETTINGS_TABLE_SIZE;
 
-        t = table[hash % SETTINGS_TABLE_SIZE].head;
+        t = table[row];
         while(t != NULL) {
                 if (t->hash == hash && strcmp(key, t->key) == 0) {
                         *value = t->value;
@@ -116,16 +152,16 @@ settings_table_lookup(char *key, char **value)
                 t = t->next;
         }
         *value = NULL;
-        return FALSE;
 #endif
+        return FALSE;
 }
 
 static void
 settings_table_create()
 {
 #ifndef WIN32
-        table = (hash_chain*)xmalloc(sizeof(hash_chain) * SETTINGS_TABLE_SIZE);
-        memset(table, 0, sizeof(hash_chain) * SETTINGS_TABLE_SIZE);
+        table = (hash_tuple**)xmalloc(sizeof(hash_tuple*) * SETTINGS_TABLE_SIZE);
+        memset(table, 0, sizeof(hash_tuple*) * SETTINGS_TABLE_SIZE);
 #endif
 }
 
@@ -137,13 +173,13 @@ settings_table_destroy(void)
         int i;
 
         for(i = SETTINGS_TABLE_SIZE-1; i >= 0; i--) {
-                t = table[i].head;
+                t = table[i];
                 while (t != NULL) {
-                        table[i].head = t->next;
+                        table[i] = t->next;
                         xfree(t->key);
                         xfree(t->value);
                         xfree(t);
-                        t = table[i].head;
+                        t = table[i];
                 }
         }
         xfree(table);
@@ -202,14 +238,13 @@ static void init_part_two(void)
 
 #define SETTINGS_FILE_RTP 0
 #define SETTINGS_FILE_RAT 1
+#define SETTINGS_FILE_TMP 2
 
-static FILE *
-settings_file_open(uint32_t type, char *mode)
+static char *settings_file_name(uint32_t type)
 {
-        char *fmt[] = {"%s/.RTPdefaults", "%s/.RATdefaults"};        
-	char *filen;
-        FILE *sfile;
+        const char  *fmt[] = {"%s/.RTPdefaults", "%s/.RATdefaults", "%s/.RATtmp"};
         struct passwd	*p;	
+        char *filen;
 
         if (type < sizeof(fmt)/sizeof(fmt[0])) {
                 p = getpwuid(getuid());
@@ -217,8 +252,20 @@ settings_file_open(uint32_t type, char *mode)
                         perror("Unable to get passwd entry");
                         return NULL;
                 }
-                filen = (char *) xmalloc(strlen(p->pw_dir) + strlen(fmt[type]) + 1);
+                filen = (char *)xmalloc(strlen(p->pw_dir) + strlen(fmt[type]) + 1);
                 sprintf(filen, fmt[type], p->pw_dir);
+                return filen;
+        }
+        return NULL;
+}
+
+static FILE *
+settings_file_open(uint32_t type, char *mode)
+{
+        FILE *sfile;
+        char *filen;
+
+        if ((filen = settings_file_name(type)) != NULL) {
                 sfile = fopen(filen, mode);
                 xfree(filen);
                 return sfile;
@@ -243,38 +290,35 @@ static void load_init(void)
         uint32_t          i;
         settings_table_create();
 
-	/* The getpwuid() stuff is to determine the users home directory, into which we */
-	/* write the settings file. The struct returned by getpwuid() is statically     */
-	/* allocated, so it's not necessary to free it afterwards.                      */
-
         i = 0;
-        while ((sfile = settings_file_open(i, "r")) != NULL) {
-                buffer = xmalloc(SETTINGS_READ_SIZE+1);
-                buffer[100] = '\0';
-                while(fgets(buffer, SETTINGS_READ_SIZE, sfile) != NULL) {
-                        if (buffer[0] != '*') {
-                                debug_msg("Garbage ignored: %s\n", buffer);
-                                continue;
+        for (i = 0; i < 2; i++) {
+                if ((sfile = settings_file_open(i, "r")) != NULL) {
+                        buffer = xmalloc(SETTINGS_READ_SIZE+1);
+                        buffer[100] = '\0';
+                        while(fgets(buffer, SETTINGS_READ_SIZE, sfile) != NULL) {
+                                if (buffer[0] != '*') {
+                                        debug_msg("Garbage ignored: %s\n", buffer);
+                                        continue;
+                                }
+                                key   = (char *) strtok(buffer, ":"); 
+                                if (key == NULL) {
+                                        continue;
+                                }
+                                key = key + 1;               /* skip asterisk */
+                                value = (char *) strtok(NULL, "\n");
+                                if (value == NULL) {
+                                        continue;
+                                }
+                                while (*value != '\0' && isascii((int)*value) && isspace((int)*value)) {
+                                        /* skip leading spaces, and stop skipping if
+                                         * not ascii*/
+                                        value++;             
+                                }
+                                settings_table_add(key, value);
                         }
-                        key   = (char *) strtok(buffer, ":"); 
-                        if (key == NULL) {
-                                continue;
-                        }
-                        key = key + 1;               /* skip asterisk */
-                        value = (char *) strtok(NULL, "\n");
-                        if (value == NULL) {
-                                continue;
-                        }
-                        while (*value != '\0' && isascii((int)*value) && isspace((int)*value)) {
-                                /* skip leading spaces, and stop skipping if
-                                 * not ascii*/
-                                value++;             
-                        }
-                        settings_table_add(key, value);
+                        settings_file_close(sfile);
+                        xfree(buffer);
                 }
-                settings_file_close(sfile);
-                xfree(buffer);
-                i++;
         }
 #else
         open_registry("Software\\Mbone Applications\\common");
@@ -544,7 +588,7 @@ static void
 save_init_rtp(void)
 {
 #ifndef WIN32
-        settings_file = settings_file_open(SETTINGS_FILE_RTP, "w");
+        settings_table_create();
 #else
         open_registry("Software\\Mbone Applications\\common");
 #endif
@@ -556,16 +600,137 @@ save_init_rat(void)
 /* We assume this function gets called after save_init_rtp so */
 /* file/registry need closing before use.                     */
 #ifndef WIN32
-        settings_file = settings_file_open(SETTINGS_FILE_RAT, "w");
+        settings_table_create();
 #else
         open_registry("Software\\Mbone Applications\\rat");
 #endif
 }
 
-static void save_done(void)
+#ifndef WIN32
+static void
+cr_terminate(char *s, int slen)
+{
+        int i;
+        for (i = 0; i < slen; i++) {
+                if (s[i] == '\0' || s[i] == '\n') break;
+        }
+        
+        if (s[i] == '\n') {
+                return;
+        } else if (i + 1 >= slen) {
+                i = i - 1;
+        }
+        s[i] = '\n';
+        s[i + 1] = '\0'; 
+}
+#endif /* WIN32 */
+
+static void save_done(uint32_t type) 
 {
 #ifndef WIN32
-	settings_file_close(settings_file);
+        /* settings table has entries we want to write.  Settings file
+         * may contain comments and info for other apps, therefore read
+         * file one line at a time, see if write update line if we have one
+         * and output to a new file.  Then copy from one to the other.
+         */
+        char linebuf[255], keybuf[255], *key, *value, *tmpname;
+        FILE *n = settings_file_open(SETTINGS_FILE_TMP, "w");
+        FILE *o = settings_file_open(type, "r");
+
+        if (n == NULL) {
+                debug_msg("Could not open temporary settings file\n");
+                goto save_stops_here;
+        }
+
+        if (o != NULL) {
+                while (fgets(linebuf, sizeof(linebuf)/sizeof(linebuf[0]), o) != NULL) {
+                        debug_msg("Read: %s\n", linebuf);
+                        cr_terminate(linebuf, sizeof(linebuf)/sizeof(linebuf[0]));
+                        if (linebuf[0] != '*') {
+                                fprintf(n, linebuf);
+                        } else {
+                                strcpy(keybuf, linebuf);
+                                key = keybuf + 1;       /* Ignore asterisk */
+                                key = strtok(key, ":"); /* key ends at colon */
+                                if (settings_table_lookup(key, &value)) {
+                                        /* We have a newer value */
+                                        debug_msg("Newer value for key %s\n", key);
+                                        fprintf(n, "*%s: %s\n", key, value);
+                                        settings_table_remove(key);
+                                } else {
+                                        /* We have no ideas about this value */
+                                        fprintf(n, linebuf);
+                                }
+                        }
+                }
+        }
+
+        if ((key = settings_table_first_key()) != NULL) {
+                do {
+                        /* Write out stuff not written out already */
+                        if (settings_table_lookup(key, &value)) {
+                                debug_msg("Writing unreplaced: %s %s\n", key, value);
+                                fprintf(n, "*%s: %s\n", key, value);
+                        }
+                        settings_table_remove(key);
+                } while ((key = settings_table_first_key()) != NULL);
+        }
+
+        settings_file_close(n);
+        if (o) {
+                settings_file_close(o);
+        }
+        o = settings_file_open(type, "w+");
+        n = settings_file_open(SETTINGS_FILE_TMP, "r");
+        if (o && n) {
+                debug_msg("Opened settings file\n");
+                while(feof(n) == 0) {
+                        if (fgets(linebuf, sizeof(linebuf)/sizeof(linebuf[0]), n)) {
+                                char *x;
+                                x = linebuf;
+                                /* Don't use fprintf because user 
+                                 * may have format modifiers in values (ugh)
+                                 */
+                                while (*x != '\0') {
+                                        fwrite(x, 1, 1, o);
+                                        x++;
+                                }
+                        }
+                }
+        } else {
+                debug_msg("Failed to open settings file\n");
+        }
+        fflush(n);
+
+save_stops_here:
+        if (o) {
+                settings_file_close(o);
+        }
+        if (n) {
+                settings_file_close(n);
+        }
+        settings_table_destroy();
+
+        tmpname = settings_file_name(SETTINGS_FILE_TMP);
+        unlink(tmpname);
+        xfree(tmpname);
+#endif
+        UNUSED(type);
+}
+
+static void save_done_rtp(void)
+{
+#ifndef WIN32
+        save_done(SETTINGS_FILE_RTP);
+#else
+        close_registry();
+#endif
+}
+
+static void save_done_rat(void)
+{
+#ifndef WIN32
+        save_done(SETTINGS_FILE_RAT);
 #else
         close_registry();
 #endif
@@ -579,7 +744,7 @@ setting_save_str(const char *name, const char *val)
         if (val == NULL) {
                 val = "";
         }
-	fprintf(settings_file, "*%s: %s\n", name, val);
+        settings_table_add((char*)name, (char*)val);
 #else
         int status;
         char buffer[SETTINGS_BUF_SIZE];
@@ -600,7 +765,10 @@ setting_save_str(const char *name, const char *val)
 static void setting_save_int(const char *name, const long val)
 {
 #ifndef WIN32
-	fprintf(settings_file, "*%s: %ld\n", name, val);
+        char sval[12];
+	sprintf(sval, "%ld", val);
+        settings_table_add((char*)name, sval);
+        xmemchk();
 #else
         LONG status;
         char buffer[SETTINGS_BUF_SIZE];
@@ -686,7 +854,7 @@ void settings_save(session_t *sp)
         setting_save_str("rtpPhone", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PHONE));
         setting_save_str("rtpLoc",   rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC));
         setting_save_str("rtpNote",  rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NOTE));
-        save_done();
+        save_done_rtp();
         
         save_init_rat();
         setting_save_str("audioTool", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_TOOL));
@@ -696,7 +864,7 @@ void settings_save(session_t *sp)
 	
 	/* If we save a dynamically mapped codec we crash when we reload on startup */
 	if (pri_cf->default_pt != CODEC_PAYLOAD_DYNAMIC) {
-                setting_save_str("audioPrimary",           pri_cf->short_name);
+                setting_save_str("audioPrimary", pri_cf->short_name);
 	}
 
 	setting_save_int("audioUnits", channel_encoder_get_units_per_packet(sp->channel_coder));
@@ -706,10 +874,8 @@ void settings_save(session_t *sp)
 		setting_save_str("audioChannelCoding", "Vanilla");
 	} else {
                 setting_save_str("audioChannelCoding", ccd->name);
-
         }
         setting_save_str("audioChannelParameters", cc_param);
-
 	setting_save_str("audioRepair",            repair->name);
 	setting_save_str("audioAutoConvert",       converter->name);
 	setting_save_int("audioLimitPlayout",      sp->limit_playout);
@@ -728,7 +894,7 @@ void settings_save(session_t *sp)
 	setting_save_int("audioPowermeters",       sp->meter);
 	/* We do not save audioOutputMute and audioInputMute by default, but should */
 	/* recognize them when reloading.                                           */
-	save_done();
+	save_done_rat();
         xfree(cc_param);
 }
 
