@@ -277,14 +277,24 @@ typedef struct {
 #define MS_AUDIO_FILE_ENCODING_ALAW (0x0006)
 /* In the spec IBM u/alaw are 0x0102/0x0101 but this seems to be outdated. */
 
-#ifndef WIN32
-#define MAKEFOURCC(a, b, c, d) \
-		(((u_int32)(char)(a) <<24 )| ((u_int32)(char)(b) << 16) | \
-		((u_int32)(char)(c) << 8) | (u_int32)(char)(d))
-#endif
-
 #define btoll(x) (((x) >> 24) | (((x)&0x00ff0000) >> 8) | (((x)&0x0000ff00) << 8) | ((x) << 24))
 #define btols(x) (((x) >> 8) | ((x&0xff) << 8))
+
+#ifndef WIN32
+static u_int32
+MAKEFOURCC(char a, char b, char c, char d)
+{
+        u_int32 r;
+        if (htons(1) == 1) {
+		r = (((u_int32)(char)(a) <<24 )| ((u_int32)(char)(b) << 16) |
+                     ((u_int32)(char)(c) << 8) | (u_int32)(char)(d));
+        } else {
+                r = (((u_int32)(char)(d) <<24 )| ((u_int32)(char)(c) << 16) |
+                     ((u_int32)(char)(b) << 8) | (u_int32)(char)(a));
+        }
+        return r;
+}
+#endif /* WIN32 */
 
 static void
 wave_fix_hdr(wave_format *wf)
@@ -346,6 +356,11 @@ riff_read_hdr(FILE *fp, char **state)
 
         if (MAKEFOURCC('R','I','F','F') != rch.rc.ckId ||
             MAKEFOURCC('W','A','V','E') != rch.type) {
+                u_int32 riff = MAKEFOURCC('R','I','F','F');
+                u_int32 wave = MAKEFOURCC('W','A','V','E');
+
+                debug_msg("Riff 0x%08x 0x%08x\n", riff, rch.rc.ckId);
+                debug_msg("Wave 0x%08x 0x%08x\n", wave, rch.type);
                 debug_msg("Not WAVE file\n");
                 return FALSE;
         }
