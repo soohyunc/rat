@@ -99,7 +99,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /I "c:\Program Files\Tcl\include" /I "c:\Program Files\Tcl\include\xlib" /I "c:\DDK\inc" /I "c:..\msripv6\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /FR /YX /FD /c
-# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "..\common" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /I "..\tk-8.0\xlib\X11" /I "\DDK\inc" /I "..\MSR_IPv6_1.3\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /D "NEED_IN6_IS_ADDR_MULTICAST" /D "NEED_INET_PTON" /FR /YX /FD /I ../common /c
+# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "..\common" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /I "..\tk-8.0\xlib\X11" /I "\DDK\inc" /I "..\MSR_IPv6_1.3\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /FR /YX /FD /I ../common /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x809 /d "_DEBUG"
@@ -790,7 +790,7 @@ InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_audiotool.tcl | ..\tcl-8.0\win\tcl2c\release\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c
+	type $(InputDir)\ui_audiotool.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c
 
 # End Custom Build
 
@@ -803,7 +803,7 @@ InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
-	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
+	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
 	
 # End Custom Build
 
@@ -816,7 +816,7 @@ InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
-	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
+	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
 	
 # End Custom Build
 
@@ -847,7 +847,7 @@ InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | ..\tcl-8.0\win\tcl2c\release\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
+	type $(InputDir)\ui_transcoder.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
@@ -858,7 +858,7 @@ InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
+	type $(InputDir)\ui_transcoder.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
@@ -869,7 +869,7 @@ InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
+	type $(InputDir)\ui_transcoder.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 

@@ -142,7 +142,7 @@ tcl_init(struct mbus *mbus_ui, int argc, char **argv, char *mbus_engine_addr)
                 exit(-1);
         }
 
-	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData *) mbus_ui, NULL);
+	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) mbus_ui, NULL);
 	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, NULL, NULL);
 #ifdef WIN32
         Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);
