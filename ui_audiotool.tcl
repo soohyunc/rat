@@ -828,14 +828,15 @@ proc mbus_recv_rtp.source.remove {cname} {
     catch {after cancel $loss_from_me_timer($cname)}
     
     catch [destroy [window_plist $cname]]
-    
-    unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname) NOTE($cname)
-    unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname) PCKTS_DUP($cname)
-    unset JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname) JIT_TOGED($cname) BUFFER_SIZE($cname)
-    unset PLAYOUT_DELAY($cname)
+    if { [info exists CNAME($cname)] } {
+	unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname) NOTE($cname)
+	unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname) PCKTS_DUP($cname)
+	unset JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname) JIT_TOGED($cname) BUFFER_SIZE($cname)
+	unset PLAYOUT_DELAY($cname)
 
-    incr num_cname -1
-    chart_redraw $num_cname
+	incr num_cname -1
+	chart_redraw $num_cname
+    }
 }
 
 proc mbus_recv_rtp.source.mute {cname val} {
