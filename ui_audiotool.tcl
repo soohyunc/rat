@@ -995,6 +995,7 @@ proc bargraphSetHeight {bgraph height} {
 }
 
 proc bargraphState {bgraph state} {
+    upvar #0 oh$bgraph oh 
     if {[winfo exists $bgraph]} {
 	global bargraphTotalHeight
 	for { set i 0 } { $i < $bargraphTotalHeight} {incr i} {
@@ -1004,6 +1005,7 @@ proc bargraphState {bgraph state} {
 	    $bgraph.inner0 config -bg green
 	}
     }
+    set oh 0
 }
 
 proc toggle {varname} {
