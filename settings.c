@@ -538,12 +538,28 @@ void settings_load_early(session_t *sp)
 	load_done();
 }
 
+static int
+settings_username(char *n, uint32_t nlen)
+{
+#ifdef WIN32
+        return GetUserName(n, &nlen);
+#else
+        struct passwd *p;
+        p = getpwuid(getuid());
+        if (p != NULL && p->pw_name != NULL) {
+                strncpy(n, p->pw_name, nlen);
+                return TRUE;
+        }
+        return FALSE;
+#endif        
+}
+
 void settings_load_late(session_t *sp)
 {
         uint32_t my_ssrc;
         struct   utsname u;
         char     hostfmt[] = RAT_VERSION " %s %s (%s)";
-        char    *field;
+        char    *field, username[32];
 	load_init();		/* Initial settings come from the common prefs file... */
 
         /*
@@ -552,7 +568,11 @@ void settings_load_late(session_t *sp)
          * so it should override saved settings.
          */
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
-	field = setting_load_str("rtpName", "Unknown");
+
+        if (settings_username(username, sizeof(username)) == FALSE) {
+                sprintf(username, "Unknown");
+        }
+	field = setting_load_str("rtpName", username);
         if (rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME) == NULL) {
                 rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME,  field, strlen(field));
         }
@@ -620,6 +640,7 @@ cr_terminate(char *s, int slen)
         } else if (i + 1 >= slen) {
                 i = i - 1;
         }
+
         s[i] = '\n';
         s[i + 1] = '\0'; 
 }
@@ -644,7 +665,6 @@ static void save_done(uint32_t type)
 
         if (o != NULL) {
                 while (fgets(linebuf, sizeof(linebuf)/sizeof(linebuf[0]), o) != NULL) {
-                        debug_msg("Read: %s\n", linebuf);
                         cr_terminate(linebuf, sizeof(linebuf)/sizeof(linebuf[0]));
                         if (linebuf[0] != '*') {
                                 fprintf(n, linebuf);
@@ -654,7 +674,6 @@ static void save_done(uint32_t type)
                                 key = strtok(key, ":"); /* key ends at colon */
                                 if (settings_table_lookup(key, &value)) {
                                         /* We have a newer value */
-                                        debug_msg("Newer value for key %s\n", key);
                                         fprintf(n, "*%s: %s\n", key, value);
                                         settings_table_remove(key);
                                 } else {
@@ -669,7 +688,6 @@ static void save_done(uint32_t type)
                 do {
                         /* Write out stuff not written out already */
                         if (settings_table_lookup(key, &value)) {
-                                debug_msg("Writing unreplaced: %s %s\n", key, value);
                                 fprintf(n, "*%s: %s\n", key, value);
                         }
                         settings_table_remove(key);
@@ -683,7 +701,6 @@ static void save_done(uint32_t type)
         o = settings_file_open(type, "w+");
         n = settings_file_open(SETTINGS_FILE_TMP, "r");
         if (o && n) {
-                debug_msg("Opened settings file\n");
                 while(feof(n) == 0) {
                         if (fgets(linebuf, sizeof(linebuf)/sizeof(linebuf[0]), n)) {
                                 char *x;

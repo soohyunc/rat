@@ -1105,6 +1105,7 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Save settings now passes through settings file, replacing entries
 	  RAT has update values for, and then appends entries not in settings
 	  file.
+	- Add use of username when no RTPdefault exists for participant name.
 
 TODO -- They're features not bugs dammit!
 ----
