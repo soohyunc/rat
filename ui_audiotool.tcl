@@ -1236,7 +1236,7 @@ proc toggle_stats {ssrc} {
 	pack   $win.dis.b -side right -anchor e -padx 2 -pady 2
 	wm title $win "Participant $NAME($ssrc)"
 	wm resizable $win 1 0
-	constrain_window $win $statsfont 30 28
+	constrain_window $win $statsfont 36 27
     }
 }
 
