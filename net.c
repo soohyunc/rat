@@ -143,12 +143,20 @@ int read_and_discard(socket_udp *s)
 void network_process_mbus(session_struct *sp)
 {
 	/* Process outstanding Mbus messages. */
-	int	rc;
+	int	rc, c;
+
+	c = 0;
 	do {
-		mbus_send(sp->mbus_ui);
+		mbus_send(sp->mbus_ui); 
 		rc  = mbus_recv(sp->mbus_engine, (void *) sp); 
-		mbus_send(sp->mbus_engine);
+		mbus_send(sp->mbus_engine); 
                 rc |= mbus_recv(sp->mbus_ui, (void *) sp); 
-	} while (rc);
+		if (rc) {
+			c = 0;
+		} else {
+			c++;
+		}
+		usleep(10000);
+	} while (c < 10);
 }
 
