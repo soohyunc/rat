@@ -234,7 +234,7 @@ static u_int16 total_fmts_supported;
 #define CODEC_VALID_IFS(id)           (id & 0x00ff0000)
 #define CODEC_VALID_FMT(id)           (id & 0x0000ffff)
 
-__inline int
+int
 codec_id_is_valid(codec_id_t id)
 {
         u_int32 ifs, fmt;
@@ -605,7 +605,7 @@ codec_decode(codec_state *cs,
         return success;
 }
 
-__inline int
+int
 codec_decoder_can_repair (codec_id_t id) 
 {
         u_int16 ifs;
@@ -905,7 +905,7 @@ codec_get_matching(const char *short_name, u_int16 freq, u_int16 channels)
  * raw units.
  */
 
-__inline codec_id_t 
+codec_id_t 
 codec_get_native_coding(u_int16 sample_rate, u_int16 channels)
 {
         codec_id_t cid;
@@ -923,14 +923,14 @@ codec_get_native_coding(u_int16 sample_rate, u_int16 channels)
         return cid;
 }
 
-__inline int
+int
 codec_is_native_coding(codec_id_t cid)
 {
         return (CODEC_GET_IFS_INDEX(cid) == NUM_CODEC_INTERFACES &&
                 CODEC_GET_FMT_INDEX(cid) < 12);
 }
 
-__inline int 
+int 
 codec_get_native_info(codec_id_t cid, 
                       u_int16   *p_rate, 
                       u_int16   *p_channels)

@@ -637,7 +637,7 @@ tx_igain_update(tx_buffer *tb)
         agc_reset(tb->agc);
 }
 
-__inline int
+int
 tx_is_sending(tx_buffer *tb)
 {
         return tb->sending_audio;

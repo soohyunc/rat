@@ -472,7 +472,7 @@ pb_relevant (struct s_pb *pb, ts_t now)
 
 /* Timestamp info functions **************************************************/
 
-__inline int
+int
 pb_get_start_ts(pb_t *pb, ts_t *ts)
 {
         assert(pb);
@@ -485,7 +485,7 @@ pb_get_start_ts(pb_t *pb, ts_t *ts)
         return FALSE;
 }
 
-__inline int
+int
 pb_get_end_ts(pb_t *pb, ts_t *ts)
 {
         assert(pb);
@@ -498,7 +498,7 @@ pb_get_end_ts(pb_t *pb, ts_t *ts)
         return FALSE;
 }
 
-__inline int
+int
 pb_iterator_get_ts(pb_iterator_t *pbi, ts_t *ts)
 {
         assert(pbi);

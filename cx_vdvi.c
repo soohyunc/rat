@@ -90,7 +90,7 @@ typedef struct {
         u_int   len;    /* length of bitstream in bytes */
 } bs;
 
-__inline static void
+static void
 bs_init(bs *b, u_char *buf, int blen)
 {
         b->buf    = b->pos = buf;
@@ -98,7 +98,7 @@ bs_init(bs *b, u_char *buf, int blen)
         b->len    = blen;
 }
 
-__inline static void
+static void
 bs_put(bs* b, u_char bits, u_int nbits)
 {
         assert(nbits != 0 && nbits <= 8);
@@ -122,7 +122,7 @@ bs_put(bs* b, u_char bits, u_int nbits)
         assert((u_int)(b->pos - b->buf) <= b->len);
 }
 
-__inline static u_char
+static u_char
 bs_get(bs *b, u_int nbits)
 {
         u_char out;

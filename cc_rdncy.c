@@ -677,7 +677,7 @@ redundancy_decoder_describe (u_int8   pkt_pt,
         return TRUE;        
 }
 
-__inline static void
+static void
 place_unit(media_data *md, coded_unit *cu)
 {
 #ifdef DEBUG_REDUNDANCY
@@ -722,7 +722,7 @@ done:
         return md;
 }
 
-__inline static void
+static void
 red_split_unit(u_char  ppt,        /* Primary payload type */
                u_char  bpt,        /* Block payload type   */
                u_char *b,          /* Block pointer        */
@@ -784,7 +784,7 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
         }
 }
 
-__inline static void
+static void
 redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
 {
         const codec_format_t *cf;

@@ -110,8 +110,8 @@ pb_iterator_get_playout_buffer(struct s_pb_iterator*);
 /* Return the times of interest for playout buffer in ts, returns
  * TRUE or FALSE depending on whether request successful
  */
-__inline int pb_get_start_ts     (struct s_pb *pb, ts_t *ts);
-__inline int pb_get_end_ts       (struct s_pb *pb, ts_t *ts);
-__inline int pb_iterator_get_ts  (struct s_pb_iterator *pbi, ts_t *ts);
+int pb_get_start_ts     (struct s_pb *pb, ts_t *ts);
+int pb_get_end_ts       (struct s_pb *pb, ts_t *ts);
+int pb_iterator_get_ts  (struct s_pb_iterator *pbi, ts_t *ts);
 
 #endif /* __UCLMM_PLAYOUT_BUFFER_H__ */

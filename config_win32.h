@@ -71,9 +71,6 @@ typedef unsigned long	in_addr_t;
 #include "crypt_random.h"
 #include "usleep.h"
 
-#define inline
-#define __inline     
-
 #define srand48	lbl_srandom
 #define lrand48 lbl_random
 

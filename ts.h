@@ -23,26 +23,26 @@ typedef struct {
  * This be used for mapping offsets, not timestamps (see
  * below) */
 
-__inline ts_t     ts_map32(u_int32 freq, u_int32 ts32);
+ts_t     ts_map32(u_int32 freq, u_int32 ts32);
 
 /* Addition and subtraction operations */
-__inline ts_t     ts_add      (ts_t ts1, ts_t ts2);
-__inline ts_t     ts_sub      (ts_t ts1, ts_t ts2);
-__inline ts_t     ts_abs_diff (ts_t ts1, ts_t ts2);
+ts_t     ts_add      (ts_t ts1, ts_t ts2);
+ts_t     ts_sub      (ts_t ts1, ts_t ts2);
+ts_t     ts_abs_diff (ts_t ts1, ts_t ts2);
 
 /* ts_gt = timestamp greater than */
-__inline int      ts_gt(ts_t t1, ts_t t2);
-__inline int      ts_eq(ts_t t1, ts_t t2);
+int      ts_gt(ts_t t1, ts_t t2);
+int      ts_eq(ts_t t1, ts_t t2);
 
 /* ts_convert changes timebase of a timestamp */
-__inline ts_t     ts_convert(u_int32 new_freq, ts_t ts);
+ts_t     ts_convert(u_int32 new_freq, ts_t ts);
 
 /* Conversion to milliseconds */
-__inline u_int32  ts_to_ms(ts_t t1);
+u_int32  ts_to_ms(ts_t t1);
 
 /* Debugging functions */
-__inline int      ts_valid(ts_t t1);
-__inline u_int32  ts_get_freq(ts_t t1);
+int      ts_valid(ts_t t1);
+u_int32  ts_get_freq(ts_t t1);
 
 typedef struct {
         ts_t    last_ts;

@@ -226,7 +226,7 @@ converter_get_count()
         return NUM_CONVERTERS;
 }
 
-__inline converter_id_t
+converter_id_t
 converter_get_null_converter()
 {
         return IDX_TO_CONVERTER_ID(CONVERTER_NONE);

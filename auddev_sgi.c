@@ -168,7 +168,7 @@ sgi_audio_get_igain(audio_desc_t ad)
 
 	cmd[0] = AL_LEFT_INPUT_ATTEN;
 	ALgetparams(AL_DEFAULT_DEVICE, cmd, 2L);
-	return (255 - SGI_DEVICE_TO_RAT(cmd[1]));
+	return (MAX_AMP - SGI_DEVICE_TO_RAT(cmd[1]));
 }
 
 void

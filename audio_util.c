@@ -53,7 +53,7 @@ bias_ctl_destroy(bias_ctl *bc)
         xfree(bc);
 }
 
-__inline static void
+static void
 prefilter(bias_ctl *pf, sample *buf, register int len, int step)
 {
         register int y0, y1, y2;

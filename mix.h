@@ -46,7 +46,7 @@ void mix_update_ui       (struct session_tag *sp, struct s_mix_info *ms);
 
 int  mix_active          (struct s_mix_info *ms);
 
-__inline int
+int
      mix_compatible(struct s_mix_info *ms, int sample_rate, int sample_channels);
 
 #endif /* _mix_h_ */

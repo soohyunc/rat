@@ -52,7 +52,7 @@ ticker tickers[] = {
 
 #define TS_CHECK_BITS 0x07
 
-__inline ts_t
+ts_t
 ts_map32(u_int32 freq, u_int32 ticks32)
 {
         u_int32 i;
@@ -73,7 +73,7 @@ ts_map32(u_int32 freq, u_int32 ticks32)
         return out;
 }
 
-__inline static ts_t
+static ts_t
 ts_rebase(u_int32 new_idx, ts_t t)
 {
         /* Use 64 bit quantity as temporary since 
@@ -101,7 +101,7 @@ ts_rebase(u_int32 new_idx, ts_t t)
         return t;
 }
 
-__inline int
+int
 ts_gt(ts_t t1, ts_t t2)
 {
         u_int32 half_range, x1, x2;
@@ -128,7 +128,7 @@ ts_gt(ts_t t1, ts_t t2)
         }
 }
 
-__inline int
+int
 ts_eq(ts_t t1, ts_t t2)
 {
         assert(ts_valid(t1));
@@ -144,7 +144,7 @@ ts_eq(ts_t t1, ts_t t2)
         return (t2.ticks == t1.ticks);
 }
 
-__inline ts_t
+ts_t
 ts_add(ts_t t1, ts_t t2)
 {
         u_int32 ticks;
@@ -165,7 +165,7 @@ ts_add(ts_t t1, ts_t t2)
         return t1;
 }
 
-__inline ts_t
+ts_t
 ts_sub(ts_t t1, ts_t t2)
 {
         ts_t out;
@@ -199,7 +199,7 @@ ts_sub(ts_t t1, ts_t t2)
         return out;
 }
 
-__inline ts_t
+ts_t
 ts_abs_diff(ts_t t1, ts_t t2)
 {
         if (ts_gt(t1, t2)) {
@@ -209,7 +209,7 @@ ts_abs_diff(ts_t t1, ts_t t2)
         }
 }
 
-__inline ts_t 
+ts_t 
 ts_convert(u_int32 new_freq, ts_t ts)
 {
         u_int32 i;
@@ -229,7 +229,7 @@ ts_convert(u_int32 new_freq, ts_t ts)
         return out;
 }
 
-__inline u_int32
+u_int32
 ts_to_ms(ts_t t1)
 {
         u_int32 r;
@@ -239,7 +239,7 @@ ts_to_ms(ts_t t1)
 }
 
 
-__inline int 
+int 
 ts_valid(ts_t t1)
 {
         return ((unsigned)t1.idx < TS_NUM_TICKERS && 
@@ -247,7 +247,7 @@ ts_valid(ts_t t1)
                 (unsigned)t1.ticks < tickers[t1.idx].wrap);
 }
 
-__inline u_int32
+u_int32
 ts_get_freq(ts_t t1)
 {
         assert(ts_valid(t1));
@@ -263,7 +263,7 @@ ts_get_freq(ts_t t1)
 
 #define TS_WRAP_32 0x7fffffff
 
-static __inline
+static 
 int ts32_gt(u_int32 a, u_int32 b)
 {
         u_int32 diff;

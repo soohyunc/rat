@@ -336,13 +336,13 @@ vad_reset(vad_t* v)
         v->post_cnt = 0;
 }
 
-__inline u_char
+u_char
 vad_in_talkspurt(vad_t *v)
 {
         return (v->state == VAD_SPURT) ? TRUE : FALSE;
 }
 
-__inline u_int32
+u_int32
 vad_talkspurt_no(vad_t *v)
 {
         return v->spurt_cnt;

@@ -113,7 +113,6 @@ typedef int	fd_t;
 extern "C" {
 #endif
 int gettimeofday(struct timeval *tp, void * );
-int gethostname(char *name, int namelen);
 #ifdef __cplusplus
 }
 #endif
@@ -170,7 +169,6 @@ int	toupper(int c);
 #include <bstring.h>     /* Needed for FDZERO on IRIX only */
 #include <audio.h>
 #include "usleep.h"
-int gethostname(char *name, int namelen);
 #endif
 
 #ifdef HPUX

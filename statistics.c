@@ -82,7 +82,7 @@ update_database(session_struct *sp, u_int32 ssrc)
 	return dbe_source;
 }
 
-static inline u_int32
+static u_int32
 statistics_variable_component(rtcp_dbentry            *src,
                               session_struct          *sp, 
                               struct s_cushion_struct *cushion) 

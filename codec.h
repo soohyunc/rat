@@ -22,7 +22,7 @@ u_int32    codec_get_number_of_codecs (void);
 codec_id_t codec_get_codec_number     (u_int32 num);
 
 /* Use this function to check if codec id is valid / corrupted */
-__inline 
+
 int codec_id_is_valid(codec_id_t id);
 
 /* Use these functions to see what formats a codec supports
@@ -57,7 +57,7 @@ int  codec_decode          (codec_state* cs,
                             coded_unit*  out_native);
 
 /* Repair related */
-__inline 
+
 int  codec_decoder_can_repair (codec_id_t id);
 int  codec_decoder_repair     (codec_id_t id, 
                                codec_state *cs,
@@ -85,13 +85,10 @@ codec_id_t codec_get_first_mapped_with(u_int16 sample_rate, u_int16 channels);
 codec_id_t codec_get_by_name      (const char *name);
 codec_id_t codec_get_matching     (const char *short_name, u_int16 sample_rate, u_int16 channels);
 
-__inline
 codec_id_t codec_get_native_coding (u_int16 sample_rate, u_int16 channels);
 
-__inline
 int        codec_is_native_coding  (codec_id_t id);
 
-__inline
 int        codec_get_native_info   (codec_id_t cid, 
                                     u_int16 *sample_rate, 
                                     u_int16 *channels);

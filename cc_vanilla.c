@@ -181,7 +181,7 @@ vanilla_encoder_encode (u_char      *state,
 }
 
 
-__inline static void
+static void
 vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
 {
         const codec_format_t *cf;

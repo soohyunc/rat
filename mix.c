@@ -465,7 +465,7 @@ mix_active(mix_struct *ms)
         return !ts_eq(ms->head_time, ms->tail_time);
 }
 
-__inline int
+int
 mix_compatible(mix_struct *ms, int rate, int channels)
 {
         assert(rate > 10);
