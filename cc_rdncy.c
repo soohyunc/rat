@@ -550,7 +550,7 @@ redundancy_decoder_peek(uint8_t   pkt_pt,
                 p    += 4; /* goto next hdr */
                 data += 4 + blen;
                 hdr32 = ntohl(*(uint32_t*)p);
-                assert(((uint32_t)data - (uint32_t)buf) <= len);
+                assert(((unsigned long)data - (unsigned long)buf) <= len);
         }
 
         *pt = *p;
@@ -572,7 +572,7 @@ redundancy_decoder_peek(uint8_t   pkt_pt,
         data += cf->mean_per_packet_state_size;
         dlen -= cf->mean_per_packet_state_size;
 
-        assert(((uint32_t)data - (uint32_t)buf) <= len);
+        assert(((unsigned long)data - (unsigned long)buf) <= len);
 
         units = 0;        
         while (dlen != 0) {
@@ -581,7 +581,7 @@ redundancy_decoder_peek(uint8_t   pkt_pt,
                 data += blen;
                 dlen -= blen;
                 units ++;
-                assert(((uint32_t)data - (uint32_t)buf) <= len);
+                assert(((unsigned long)data - (unsigned long)buf) <= len);
         }
 
         *upp = units;

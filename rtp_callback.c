@@ -341,7 +341,7 @@ rtp_callback_proc(struct rtp *s, rtp_event *e)
         if (sp == NULL) {
                 /* Should only happen when SOURCE_CREATED is generated in */
                 /* rtp_init.                                              */
-                debug_msg("Could not find session (0x%08x)\n", (uint32_t)s);
+                debug_msg("Could not find session (0x%08lx)\n", (unsigned long)s);
                 return;
         }
 
