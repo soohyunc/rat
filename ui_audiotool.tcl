@@ -3,7 +3,7 @@
 # All rights reserved.
 #
 # $Revision$
-# 
+#
 # Full terms and conditions of the copyright appear below.
 #
 
@@ -30,7 +30,7 @@ set verysmallfont [font actual {helvetica  8}]
 
 set speaker_highlight white
 
-option add *Entry.relief       sunken 
+option add *Entry.relief       sunken
 option add *borderWidth        1
 option add *highlightThickness 0
 option add *font               $infofont
@@ -123,8 +123,8 @@ proc init_source {ssrc} {
                 set   BUFFER_SIZE($ssrc) 0
                 set PLAYOUT_DELAY($ssrc) 0
                 set          SKEW($ssrc) 1.000
-		set   SPIKE_EVENTS($ssrc) 0	    
-		set   SPIKE_TOGED($ssrc) 0	    
+		set   SPIKE_EVENTS($ssrc) 0
+		set   SPIKE_TOGED($ssrc) 0
 	        set           RTT($ssrc) ""
 		set    PCKTS_RECV($ssrc) 0
 		set    PCKTS_LOST($ssrc) 0
@@ -194,7 +194,7 @@ proc toggle_iport {} {
 
     set len [llength $iports]
 # lsearch returns -1 if not found, index otherwise
-    set idx [lsearch -exact $iports $iport] 
+    set idx [lsearch -exact $iports $iport]
 
     if {$idx != -1} {
 	incr idx
@@ -209,8 +209,8 @@ proc incr_port {varname listname delta} {
     upvar $listname ports
     set len [llength $ports]
     # lsearch returns -1 if not found, index otherwise
-    set idx [lsearch -exact $ports $port] 
-    
+    set idx [lsearch -exact $ports $port]
+
     if {$idx != -1} {
 	incr idx $delta
 	if {$idx < 0} {
@@ -235,7 +235,7 @@ proc mbus_heartbeat {} {
 # Reception of Mbus messages...
 
 proc mbus_recv {cmnd args} {
-	# This is not the most efficient way of doing this, since we could call mbus_recv_... 
+	# This is not the most efficient way of doing this, since we could call mbus_recv_...
 	# directly from the C code. It does, however, make it explicit which Mbus commands we
 	# understand.
 	switch $cmnd {
@@ -362,10 +362,10 @@ proc change_channels {new_channels} {
 proc update_channels_displayed {} {
     global freq channel_support
 
-    set m1 .prefs.pane.audio.dd.sampling.ch_in.mb.m 
+    set m1 .prefs.pane.audio.dd.sampling.ch_in.mb.m
     $m1 delete 0 last
     set s [lsearch -glob $channel_support *$freq*]
-    
+
     foreach i [lrange [split [lindex $channel_support $s] ","] 1 2] {
 	 $m1 add command -label "$i" -command "change_channels $i"
     }
@@ -412,13 +412,13 @@ proc codec_get_name {nickname freq channels} {
 		$codec_rate($c)     == $freq && \
 		$codec_channels($c) == $channels} {
 	    return $c
-	} 
+	}
     }
 }
 
 proc codecs_loosely_matching {freq channels} {
     global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc
-    
+
     set x {}
 
     foreach {c} $codecs {
@@ -447,10 +447,10 @@ proc codecs_matching {freq channels blocksize} {
 }
 
 proc mbus_recv_tool.rat.codecs.flush {args} {
-    global codecs 
-    
+    global codecs
+
     set codecs {}
-    
+
     set cvars [list codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc codec_caps codec_layers ]
     foreach c $cvars {
 	global $c
@@ -464,7 +464,7 @@ proc mbus_recv_tool.rat.codecs.flush {args} {
 proc mbus_recv_tool.rat.codecs.add {args} {
     catch {
 	global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc codec_caps codec_layers
-	
+
 	set name [lindex $args 1]
 	if {[lsearch $codecs $name] == -1} {
 	    lappend codecs $name
@@ -591,7 +591,7 @@ proc update_codecs_displayed { } {
 	    }
 	}
     }
-    
+
     update_redundancy_list $friendly_names
 
 	# Assume that all codecs of one type support the same number of layers
@@ -676,7 +676,7 @@ proc mbus_recv_tool.rat.format.in {arg} {
     global freq ichannels
 #expect arg to be <sample_type>,<sample rate>,<mono/stereo>
     set e [split $arg ","]
-    
+
     set freq      [lindex $e 1]
     set ichannels [lindex $e 2]
 }
@@ -733,7 +733,7 @@ proc mbus_recv_audio.input.gain {new_gain} {
 }
 
 proc mbus_recv_audio.input.ports.flush {} {
-    global iports 
+    global iports
     set iports [list]
 }
 
@@ -751,9 +751,9 @@ proc mbus_recv_audio.input.mute {val} {
     global in_mute_var
     set in_mute_var $val
     if {$val} {
-        bargraph::disable .r.c.tx.au.pow.bar 
+        bargraph::disable .r.c.tx.au.pow.bar
     } else {
-        bargraph::enable .r.c.tx.au.pow.bar 
+        bargraph::enable .r.c.tx.au.pow.bar
     }
 }
 
@@ -828,7 +828,7 @@ proc mbus_recv_tool.rat.silence.threshold {thresh} {
 }
 
 proc mbus_recv_rtp.ssrc {ssrc} {
-	global my_ssrc 
+	global my_ssrc
 
 	set my_ssrc $ssrc
 	init_source $ssrc
@@ -862,7 +862,7 @@ proc mbus_recv_rtp.source.name {ssrc name} {
 }
 
 proc mbus_recv_rtp.source.email {ssrc email} {
-	global EMAIL 
+	global EMAIL
 	init_source $ssrc
 	set EMAIL($ssrc) $email
 }
@@ -926,13 +926,13 @@ proc mbus_recv_rtp.source.packet.duration {ssrc packet_duration} {
 proc mbus_recv_tool.rat.audio.buffered {ssrc buffered} {
         global BUFFER_SIZE
         init_source $ssrc
-        set BUFFER_SIZE($ssrc) $buffered 
+        set BUFFER_SIZE($ssrc) $buffered
 }
 
 proc mbus_recv_tool.rat.audio.delay {ssrc len} {
         global PLAYOUT_DELAY
         init_source $ssrc
-        set PLAYOUT_DELAY($ssrc) $len 
+        set PLAYOUT_DELAY($ssrc) $len
 }
 
 proc mbus_recv_tool.rat.audio.skew {ssrc skew} {
@@ -1011,7 +1011,7 @@ proc mbus_recv_rtp.source.packet.loss {dest srce loss} {
 
 proc mbus_recv_rtp.source.reception {ssrc packets_recv packets_lost packets_miso packets_dup jitter jit_tog} {
 	global PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER JIT_TOGED
-	init_source $ssrc 
+	init_source $ssrc
 	set PCKTS_RECV($ssrc) $packets_recv
 	set PCKTS_LOST($ssrc) $packets_lost
 	set PCKTS_MISO($ssrc) $packets_miso
@@ -1022,13 +1022,13 @@ proc mbus_recv_rtp.source.reception {ssrc packets_recv packets_lost packets_miso
 
 proc mbus_recv_rtp.source.active {ssrc} {
 	global speaker_highlight
-	init_source $ssrc 
+	init_source $ssrc
 	ssrc_update $ssrc
 	[window_plist $ssrc] configure -background $speaker_highlight
 }
 
 proc mbus_recv_rtp.source.inactive {ssrc} {
-	init_source $ssrc 
+	init_source $ssrc
 	ssrc_update $ssrc
 	[window_plist $ssrc] configure -background [.l.t.list cget -bg]
 }
@@ -1038,7 +1038,7 @@ proc mbus_recv_rtp.source.remove {ssrc} {
     set did_remove 0
 
     # Disable updating of loss diamonds. This has to be done before we destroy the
-    # window representing the participant, else the background update may try to 
+    # window representing the participant, else the background update may try to
     # access a window which has been destroyed...
 
     catch {after cancel $loss_to_me_timer($ssrc)}
@@ -1057,7 +1057,7 @@ proc mbus_recv_rtp.source.remove {ssrc} {
 	if {[info exists v($ssrc)]} {
 	    unset v($ssrc)
 	    set did_remove 1
-	} 
+	}
     }
 
     catch [destroy [window_plist $ssrc]]
@@ -1093,7 +1093,7 @@ proc mbus_recv_audio.file.play.ready {name} {
 }
 
 proc mbus_recv_audio.file.play.alive {alive} {
-    
+
     global play_file
 
     if {$alive} {
@@ -1118,7 +1118,7 @@ proc mbus_recv_audio.file.record.alive {alive} {
 		after 200 file_rec_live
 	} else {
 		set rec_file(state) end
-		file_enable_record                                          
+		file_enable_record
 	}
 }
 
@@ -1212,9 +1212,9 @@ proc set_loss_from_me {ssrc loss} {
 
 proc ssrc_update {ssrc} {
 	# This procedure updates the on-screen representation of
-	# a participant. 
+	# a participant.
 	global NAME LOSS_TO_ME LOSS_FROM_ME HEARD_LOSS_FROM_ME HEARD_LOSS_TO_ME
-	global fw iht iwd my_ssrc 
+	global fw iht iwd my_ssrc
 
 	set cw [window_plist $ssrc]
 
@@ -1318,7 +1318,7 @@ proc stats_add_field {widget label watchVar} {
     label $widget.w -textvariable $watchVar -font $statsfont
     pack $widget -side top -fill x -anchor n
     pack $widget.l -side left  -fill x -expand 1
-    pack $widget.w -side right 
+    pack $widget.w -side right
 }
 
 proc ssrc_set_gain {ssrc gain} {
@@ -1340,11 +1340,11 @@ proc toggle_stats {ssrc} {
     } else {
 	global stats_pane
 	# Window does not exist so create it
-	toplevel $win 
+	toplevel $win
 	frame $win.mf
 	pack $win.mf -padx 0 -pady 0
 	label $win.mf.l -text "Category:"
-	
+
 	menubutton $win.mf.mb -menu $win.mf.mb.menu -indicatoron 1 -textvariable stats_pane($win) -relief raised -width 16
 	pack $win.mf.l $win.mf.mb -side left
 	menu $win.mf.mb.menu -tearoff 0
@@ -1410,9 +1410,9 @@ proc toggle_stats {ssrc} {
 	label $win.df.audio.opts.gain_text -textvariable GAIN($ssrc) -width 4
 	pack  $win.df.audio.opts.title $win.df.audio.opts.gain_scale $win.df.audio.opts.gain_text -side left
 
-	$win.df.audio.opts.gain_scale set [expr log10($GAIN($ssrc)) / log10(2)] 
+	$win.df.audio.opts.gain_scale set [expr log10($GAIN($ssrc)) / log10(2)]
 
-	button $win.df.audio.default -text "Default" -command "set MUTE($ssrc) 0; $win.df.audio.opts.gain_scale set 0.0; send_gain_and_mute $ssrc" 
+	button $win.df.audio.default -text "Default" -command "set MUTE($ssrc) 0; $win.df.audio.opts.gain_scale set 0.0; send_gain_and_mute $ssrc"
 	pack   $win.df.audio.default -side bottom  -anchor e -padx 2 -pady 2
 
 # 3D settings
@@ -1422,17 +1422,17 @@ proc toggle_stats {ssrc} {
 	frame $win.df.3d -relief groove -bd 2
 	label $win.df.3d.advice -text "These options allow the rendering of the\nparticipant to be altered when 3D\nrendering is enabled."
 	checkbutton $win.df.3d.ext -text "3D Audio Rendering" -variable 3d_audio_var
-	pack $win.df.3d.advice 
-	pack $win.df.3d.ext 
+	pack $win.df.3d.advice
+	pack $win.df.3d.ext
 
-	frame $win.df.3d.opts 
-	pack $win.df.3d.opts -side top 
+	frame $win.df.3d.opts
+	pack $win.df.3d.opts -side top
 
 	frame $win.df.3d.opts.filters
 	label $win.df.3d.opts.filters.l -text "Filter Type:"
 	pack $win.df.3d.opts.filters.l -side left -fill x -expand 1 -anchor n
 	global 3d_filters 3d_filter_lengths
-	
+
 	global filter_type
 	set filter_type($ssrc) [lindex $3d_filters 0]
 
@@ -1445,13 +1445,13 @@ proc toggle_stats {ssrc} {
 	    incr cnt
 	}
 
-	frame $win.df.3d.opts.lengths 
+	frame $win.df.3d.opts.lengths
 	label $win.df.3d.opts.lengths.l -text "Length:"
 	pack $win.df.3d.opts.lengths.l -side left -fill x -expand 1 -anchor n
-	
+
 	global filter_length
 	set filter_length($ssrc) [lindex $3d_filter_lengths 0]
-	
+
 	set cnt 0
 	foreach i $3d_filter_lengths {
 	    radiobutton $win.df.3d.opts.lengths.$cnt \
@@ -1462,13 +1462,13 @@ proc toggle_stats {ssrc} {
 	}
 	pack $win.df.3d.opts.filters -side left -expand 1 -anchor n -fill x
 	pack $win.df.3d.opts.lengths -side right -expand 1 -anchor n -fill x
-	
+
 	global 3d_azimuth azimuth
 	frame $win.df.3d.azi
 	label $win.df.3d.azi.lab -text "Azimuth:"
 	scale $win.df.3d.azi.sca -from $3d_azimuth(min) -to $3d_azimuth(max) \
 		-orient horizontal -variable azimuth($ssrc)
-	pack  $win.df.3d.azi 
+	pack  $win.df.3d.azi
 	pack $win.df.3d.azi.lab $win.df.3d.azi.sca -side left
 
 	button $win.df.3d.apply -text "Apply" -command "3d_send_parameters $ssrc"
@@ -1491,7 +1491,7 @@ proc 3d_send_parameters {ssrc} {
 
 proc 3d_delete_parameters {ssrc} {
     global filter_type filter_length azimuth
-    
+
 # None of these should ever fail, but you can't be too defensive...
     catch {
 	unset filter_type($ssrc)
@@ -1518,7 +1518,7 @@ proc toggle_chart {} {
 }
 
 # Initialise RAT MAIN window
-frame .r 
+frame .r
 frame .l
 frame .l.t -relief groove -bd 2
 scrollbar .l.t.scr -relief flat -highlightthickness 0 -command ".l.t.list yview"
@@ -1532,7 +1532,7 @@ label .l.f.addr  -bd 0 -textvariable session_address
 
 frame       .st -bd 0
 
-checkbutton .st.file -bitmap disk      -indicatoron 0 -variable files_on  -command file_show 
+checkbutton .st.file -bitmap disk      -indicatoron 0 -variable files_on  -command file_show
 checkbutton .st.recp -bitmap reception -indicatoron 0 -variable matrix_on -command toggle_chart
 checkbutton .st.help -bitmap balloon   -indicatoron 0 -variable help_on
 
@@ -1558,7 +1558,7 @@ pack .r.c.tx -side left -fill x -expand 1
 pack .l -side top -fill both -expand 1
 pack .l.f -side bottom -fill x -padx 2 -pady 2
 pack .l.f.title .l.f.addr -side top -pady 2 -anchor w -fill x
-pack .l.t  -side top -fill both -expand 1 -padx 2 
+pack .l.t  -side top -fill both -expand 1 -padx 2
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
 bind .l.t.list <Configure> {fix_scrollbar}
@@ -1573,7 +1573,7 @@ pack .r.c.rx.au -side bottom -expand 1 -fill both
 
 checkbutton .r.c.rx.net.on -highlightthickness 0 -text "Listen" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $compfont -width 5 -anchor w -padx 4
 label       .r.c.rx.net.bw -textv bps_in -font $compfont -anchor e -width 8
-pack .r.c.rx.net.on -side left 
+pack .r.c.rx.net.on -side left
 pack .r.c.rx.net.bw -side right -fill x -expand 1
 
 frame  .r.c.rx.au.port -bd 0
@@ -1594,7 +1594,7 @@ pack   .r.c.rx.au.port.vval .r.c.rx.au.port.vlabel -side right
 frame  .r.c.rx.au.pow -relief sunk -bd 2
 bargraph::create .r.c.rx.au.pow.bar
 scale .r.c.rx.au.pow.sli -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -showvalue false -width 8 -variable volume -resolution 4 -bd 0 -troughcolor black -sliderl 16
-pack .r.c.rx.au.pow .r.c.rx.au.pow.bar .r.c.rx.au.pow.sli -side top -fill both -expand 1 
+pack .r.c.rx.au.pow .r.c.rx.au.pow.bar .r.c.rx.au.pow.sli -side top -fill both -expand 1
 
 # Device input controls
 set in_mute_var 1
@@ -1607,7 +1607,7 @@ pack .r.c.tx.au -side bottom -expand 1 -fill both
 
 checkbutton .r.c.tx.net.on -highlightthickness 0 -text "Talk" -onvalue 0 -offvalue 1 -variable in_mute_var -command {input_mute $in_mute_var} -font $compfont -width 5 -anchor w -padx 4
 label       .r.c.tx.net.bw -textv bps_out -font $compfont -anchor e -width 8
-pack .r.c.tx.net.on -side left 
+pack .r.c.tx.net.on -side left
 pack .r.c.tx.net.bw -side right -fill x -expand 1
 
 frame  .r.c.tx.au.port -bd 0
@@ -1618,14 +1618,14 @@ label  .r.c.tx.au.port.vlabel -text "Gain"
 label  .r.c.tx.au.port.vval   -textv gain -width 3 -justify right
 pack   .r.c.tx.au.port -side top -fill x -expand 1
 pack   .r.c.tx.au.port.l2 -side left -fill y
-pack   .r.c.tx.au.port.l1 -side left -fill x -expand 0 
+pack   .r.c.tx.au.port.l1 -side left -fill x -expand 0
 pack   .r.c.tx.au.port.l0 -side left -fill y
 pack   .r.c.tx.au.port.vval .r.c.tx.au.port.vlabel -side right
 
 frame  .r.c.tx.au.pow -relief sunk -bd 2
 bargraph::create .r.c.tx.au.pow.bar
 scale .r.c.tx.au.pow.sli -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -showvalue false -width 8 -variable gain -resolution 4 -bd 0 -sliderl 16 -troughco black
-pack .r.c.tx.au.pow .r.c.tx.au.pow.bar .r.c.tx.au.pow.sli -side top -fill both -expand 1 
+pack .r.c.tx.au.pow .r.c.tx.au.pow.bar .r.c.tx.au.pow.sli -side top -fill both -expand 1
 
 bind all <ButtonPress-3>   {toggle in_mute_var; input_mute $in_mute_var}
 bind all <ButtonRelease-3> {toggle in_mute_var; input_mute $in_mute_var}
@@ -1652,11 +1652,11 @@ proc averageCharacterWidth {font} {
 
 # constrain_window - window, font, characters wide, characters high
 proc constrain_window {w font cW cH} {
-    
+
     catch {
             set wpc [averageCharacterWidth $font]
             set hpc [font metrics $font -ascent]
-    
+
         # Calculate dimensions
             set width [expr $cW * $wpc]
             set height [expr $cH * $hpc]
@@ -1666,16 +1666,16 @@ proc constrain_window {w font cW cH} {
     if {$err != ""} {
         bgerror "Error: $err"
     }
-} 
+}
 
 proc tk_optionCmdMenu {w varName firstValue args} {
     upvar #0 $varName var
- 
+
     if ![info exists var] {
         set var $firstValue
     }
     menubutton $w -textvariable $varName -indicatoron 1 -menu $w.menu \
-            -relief raised -bd 2 -highlightthickness 2 -anchor c 
+            -relief raised -bd 2 -highlightthickness 2 -anchor c
 
     menu $w.menu -tearoff 0
     $w.menu add command -label $firstValue -command "set $varName \"$firstValue\""
@@ -1687,7 +1687,7 @@ proc tk_optionCmdMenu {w varName firstValue args} {
 
 
 ###############################################################################
-# Preferences Panel 
+# Preferences Panel
 #
 
 set prefs_pane "Personal"
@@ -1698,12 +1698,12 @@ wm withdraw  .prefs
 
 frame .prefs.m
 pack .prefs.m -side top -fill x -expand 0 -padx 2 -pady 2
-frame .prefs.m.f 
-pack .prefs.m.f -padx 0 -pady 0 
+frame .prefs.m.f
+pack .prefs.m.f -padx 0 -pady 0
 label .prefs.m.f.t -text "Category: "
 pack .prefs.m.f.t -pady 2 -side left
 menubutton .prefs.m.f.m -menu .prefs.m.f.m.menu -indicatoron 1 -textvariable prefs_pane -relief raised -width 14
-pack .prefs.m.f.m -side top 
+pack .prefs.m.f.m -side top
 menu .prefs.m.f.m.menu -tearoff 0
 .prefs.m.f.m.menu add command -label "Personal"     -command {set_pane prefs_pane .prefs.pane "Personal"}
 .prefs.m.f.m.menu add command -label "Transmission" -command {set_pane prefs_pane .prefs.pane "Transmission"; update_codecs_displayed}
@@ -1714,7 +1714,7 @@ menu .prefs.m.f.m.menu -tearoff 0
 .prefs.m.f.m.menu add command -label "Interface"    -command {set_pane prefs_pane .prefs.pane "Interface"}
 
 frame  .prefs.buttons
-pack   .prefs.buttons       -side bottom -fill x 
+pack   .prefs.buttons       -side bottom -fill x
 button .prefs.buttons.bye   -text "Cancel" -command {sync_ui_to_engine; wm withdraw .prefs}
 button .prefs.buttons.apply -text "Apply" -command {wm withdraw .prefs; sync_engine_to_ui}
 pack   .prefs.buttons.bye .prefs.buttons.apply -side right -padx 2 -pady 2
@@ -1733,8 +1733,8 @@ frame $i
 pack $i -fill both -expand 1 -pady 2 -padx 2
 
 frame $i.a
-frame $i.a.f -rel fl 
-pack $i.a -side top -fill both -expand 1 
+frame $i.a.f -rel fl
+pack $i.a -side top -fill both -expand 1
 pack $i.a.f -side left -fill x -expand 1
 
 frame $i.a.f.f -rel fl
@@ -1760,11 +1760,11 @@ entry $i.a.f.f.ents.email -width 28 -highlightthickness 0 -textvariable rtcp_ema
 entry $i.a.f.f.ents.phone -width 28 -highlightthickness 0 -textvariable rtcp_phone
 entry $i.a.f.f.ents.loc   -width 28 -highlightthickness 0 -textvariable rtcp_loc
 entry $i.a.f.f.ents.note  -width 28 -highlightthickness 0 -textvariable rtcp_note
-pack $i.a.f.f.ents.name $i.a.f.f.ents.email $i.a.f.f.ents.phone $i.a.f.f.ents.loc $i.a.f.f.ents.note -anchor n -expand 0 
+pack $i.a.f.f.ents.name $i.a.f.f.ents.email $i.a.f.f.ents.phone $i.a.f.f.ents.loc $i.a.f.f.ents.note -anchor n -expand 0
 
 proc update_user_panel {} {
     global my_ssrc NAME EMAIL PHONE LOC NOTE PRIV
-    global rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note 
+    global rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note
     if {[info exists my_ssrc]} {
         set rtcp_name  $NAME($my_ssrc)
         set rtcp_email $EMAIL($my_ssrc)
@@ -1777,12 +1777,12 @@ proc update_user_panel {} {
 # Transmission Pane ###########################################################
 set i .prefs.pane.transmission
 frame $i
-frame $i.dd 
-frame $i.cc 
-frame $i.cc.van 
-frame $i.cc.red 
+frame $i.dd
+frame $i.cc
+frame $i.cc.van
+frame $i.cc.red
 frame $i.cc.layer
-frame $i.cc.int 
+frame $i.cc.int
 label $i.intro -text "This panel allows you to select codecs for transmission.  The choice\nof codecs available depends on the sampling rate and channels\nin the audio panel."
 frame $i.title1-f -relief raised
 label $i.title1-f.l -text "Audio Encoding"
@@ -1800,12 +1800,12 @@ pack $i.cc.van $i.cc.red $i.cc.layer -fill x -anchor w -pady 0
 frame $i.dd.units
 frame $i.dd.pri
 
-pack $i.dd.units $i.dd.pri -side right -fill x 
+pack $i.dd.units $i.dd.pri -side right -fill x
 
 label $i.dd.pri.l -text "Encoding:"
 menubutton $i.dd.pri.m -menu $i.dd.pri.m.menu -indicatoron 1 -textvariable prenc -relief raised -width 13
 pack $i.dd.pri.l $i.dd.pri.m -side top
-# fill in codecs 
+# fill in codecs
 menu $i.dd.pri.m.menu -tearoff 0
 
 label $i.dd.units.l -text "Units:"
@@ -1814,24 +1814,24 @@ $i.dd.units.m configure -width 13 -highlightthickness 0 -bd 1
 pack $i.dd.units.l $i.dd.units.m -side top -fill x
 
 radiobutton $i.cc.van.rb -text "No Loss Protection" -justify right -value none        -variable channel_var
-radiobutton $i.cc.red.rb -text "Redundancy"         -justify right -value redundancy  -variable channel_var 
+radiobutton $i.cc.red.rb -text "Redundancy"         -justify right -value redundancy  -variable channel_var
 radiobutton $i.cc.layer.rb -text "Layering"			-justify right -value layering    -variable channel_var
 radiobutton $i.cc.int.rb -text "Interleaving"       -justify right -value interleaved -variable channel_var -state disabled
 pack $i.cc.van.rb $i.cc.red.rb $i.cc.layer.rb $i.cc.int.rb -side left -anchor nw -padx 2
 
-frame $i.cc.red.fc 
+frame $i.cc.red.fc
 label $i.cc.red.fc.l -text "Encoding:"
 menubutton $i.cc.red.fc.m -textvariable secenc -indicatoron 1 -menu $i.cc.red.fc.m.menu -relief raised -width 13
 menu $i.cc.red.fc.m.menu -tearoff 0
 
-frame $i.cc.red.u 
+frame $i.cc.red.u
 label $i.cc.red.u.l -text "Offset in Pkts:"
-tk_optionCmdMenu $i.cc.red.u.m red_off "1" "2" "4" "8" 
-$i.cc.red.u.m configure -width 13 -highlightthickness 0 -bd 1 
-pack $i.cc.red.u -side right -anchor e -fill y 
-pack $i.cc.red.u.l $i.cc.red.u.m -fill x 
+tk_optionCmdMenu $i.cc.red.u.m red_off "1" "2" "4" "8"
+$i.cc.red.u.m configure -width 13 -highlightthickness 0 -bd 1
+pack $i.cc.red.u -side right -anchor e -fill y
+pack $i.cc.red.u.l $i.cc.red.u.m -fill x
 pack $i.cc.red.fc -side right
-pack $i.cc.red.fc.l $i.cc.red.fc.m 
+pack $i.cc.red.fc.l $i.cc.red.fc.m
 
 frame $i.cc.layer.fc
 label $i.cc.layer.fc.l -text "Layers:"
@@ -1842,12 +1842,12 @@ pack $i.cc.layer.fc.l $i.cc.layer.fc.m
 
 frame $i.cc.int.zz
 label $i.cc.int.zz.l -text "Units:"
-tk_optionCmdMenu $i.cc.int.zz.m int_units 2 4 6 8 
+tk_optionCmdMenu $i.cc.int.zz.m int_units 2 4 6 8
 $i.cc.int.zz.m configure -width 13 -highlightthickness 0 -bd 1 -state disabled
 
 frame $i.cc.int.fc
-label $i.cc.int.fc.l -text "Separation:" 
-tk_optionCmdMenu $i.cc.int.fc.m int_gap 2 4 6 8 
+label $i.cc.int.fc.l -text "Separation:"
+tk_optionCmdMenu $i.cc.int.fc.m int_gap 2 4 6 8
 $i.cc.int.fc.m configure -width 13 -highlightthickness 0 -bd 1 -state disabled
 
 pack $i.cc.int.fc $i.cc.int.zz -side right
@@ -1856,7 +1856,7 @@ pack $i.cc.int.zz.l $i.cc.int.zz.m -fill x -expand 1
 
 # Reception Pane ##############################################################
 set i .prefs.pane.reception
-frame $i 
+frame $i
 frame $i.r -rel f
 frame $i.o -rel f
 frame $i.c -rel f
@@ -1871,34 +1871,34 @@ tk_optionCmdMenu $i.r.ms convert_var {}
 
 $i.r.m  configure -width 20 -bd 1
 $i.r.ms configure -width 20 -bd 1
-pack $i.r.l $i.r.m $i.r.ls $i.r.ms -side top 
+pack $i.r.l $i.r.m $i.r.ls $i.r.ms -side top
 
 frame $i.o.f
 checkbutton $i.o.f.cb -text "Limit Playout Delay" -variable limit_var
 frame $i.o.f.fl
-label $i.o.f.fl.l1 -text "Minimum Delay (ms)" 
+label $i.o.f.fl.l1 -text "Minimum Delay (ms)"
 scale $i.o.f.fl.scmin -orient horizontal -from 0 -to 1000    -variable min_var -font $smallfont
-frame $i.o.f.fr 
-label $i.o.f.fr.l2 -text "Maximum Delay (ms)"            
+frame $i.o.f.fr
+label $i.o.f.fr.l2 -text "Maximum Delay (ms)"
 scale $i.o.f.fr.scmax -orient horizontal -from 1000 -to 2000 -variable max_var -font $smallfont
 pack $i.o.f
 pack $i.o.f.cb -side top -fill x
 pack $i.o.f.fl $i.o.f.fr -side left
 pack $i.o.f.fl.l1 $i.o.f.fl.scmin $i.o.f.fr.l2 $i.o.f.fr.scmax -side top -fill x -expand 1
 
-frame $i.c.f 
-frame $i.c.f.f 
+frame $i.c.f
+frame $i.c.f.f
 checkbutton $i.c.f.f.lec -text "Lecture Mode"       -variable lecture_var
 checkbutton $i.c.f.f.ext -text "3D Audio Rendering" -variable 3d_audio_var
 
 pack $i.c.f -fill x -side left -expand 1
-pack $i.c.f.f 
+pack $i.c.f.f
 pack $i.c.f.f.lec -side top  -anchor w
 pack $i.c.f.f.ext -side top  -anchor w
 
 # Audio #######################################################################
 set i .prefs.pane.audio
-frame $i 
+frame $i
 frame $i.dd -rel fl
 pack $i.dd -fill both -expand 1 -anchor w -pady 1
 
@@ -1915,8 +1915,8 @@ menubutton $i.dd.device.mdev -menu $i.dd.device.mdev.menu -indicatoron 1 \
 pack $i.dd.device.mdev -fill x -expand 1
 menu $i.dd.device.mdev.menu -tearoff 0
 
-frame $i.dd.sampling  
-pack  $i.dd.sampling 
+frame $i.dd.sampling
+pack  $i.dd.sampling
 
 frame $i.dd.sampling.freq
 frame $i.dd.sampling.ch_in
@@ -1927,20 +1927,20 @@ label $i.dd.sampling.ch_in.l  -text "Channels:"
 pack $i.dd.sampling.freq.l $i.dd.sampling.ch_in.l -fill x
 
 menubutton $i.dd.sampling.freq.mb -menu $i.dd.sampling.freq.mb.m -indicatoron 1 \
-                                  -textvariable freq -relief raised 
+                                  -textvariable freq -relief raised
 pack $i.dd.sampling.freq.mb -side left -fill x -expand 1
-menu $i.dd.sampling.freq.mb.m 
+menu $i.dd.sampling.freq.mb.m
 
 menubutton $i.dd.sampling.ch_in.mb -menu $i.dd.sampling.ch_in.mb.m -indicatoron 1 \
-                                  -textvariable ichannels -relief raised 
+                                  -textvariable ichannels -relief raised
 pack $i.dd.sampling.ch_in.mb -side left -fill x -expand 1
-menu $i.dd.sampling.ch_in.mb.m 
+menu $i.dd.sampling.ch_in.mb.m
 
 frame $i.dd.cks
-pack $i.dd.cks -fill both -expand 1 
-frame $i.dd.cks.f 
+pack $i.dd.cks -fill both -expand 1
+frame $i.dd.cks.f
 frame $i.dd.cks.f.f
-frame $i.dd.cks.f.f.silence 
+frame $i.dd.cks.f.f.silence
 frame $i.dd.cks.f.f.other
 
 frame $i.dd.cks.f.f.silence.upper
@@ -1949,7 +1949,7 @@ radiobutton $i.dd.cks.f.f.silence.upper.r0 -text "Off"       -value "Off" -varia
 radiobutton $i.dd.cks.f.f.silence.upper.r1 -text "Automatic" -value "Automatic" -variable silence_var -command send_silence_params
 radiobutton $i.dd.cks.f.f.silence.upper.r2 -text "Manual"    -value "Manual" -variable silence_var    -command send_silence_params
 
-frame $i.dd.cks.f.f.silence.lower 
+frame $i.dd.cks.f.f.silence.lower
 scale $i.dd.cks.f.f.silence.lower.s -from 1 -to 500 -orient h -showvalue 0 -variable manual_silence_thresh -command send_silence_params
 label $i.dd.cks.f.f.silence.lower.ind -textvar manual_silence_thresh -width 5
 label $i.dd.cks.f.f.silence.lower.title -text "Manual Silence Threshold:"
@@ -1960,7 +1960,7 @@ pack $i.dd.cks.f.f.silence.upper.title -side top -fill x
 pack $i.dd.cks.f.f.silence.upper.r0 $i.dd.cks.f.f.silence.upper.r1 $i.dd.cks.f.f.silence.upper.r2 -side left
 
 label $i.dd.cks.f.f.other.title -text "Additional Audio Options:"
-checkbutton $i.dd.cks.f.f.other.agc      -text "Automatic Gain Control" -variable agc_var 
+checkbutton $i.dd.cks.f.f.other.agc      -text "Automatic Gain Control" -variable agc_var
 checkbutton $i.dd.cks.f.f.other.loop     -text "Audio Loopback"         -variable audio_loop_var
 checkbutton $i.dd.cks.f.f.other.suppress -text "Echo Suppression"       -variable echo_var
 checkbutton $i.dd.cks.f.f.other.tone     -text "Tone Test"              -variable tonegen        -command send_tone_cmd
@@ -1975,12 +1975,12 @@ pack $i.dd.cks.f.f.other.agc $i.dd.cks.f.f.other.loop $i.dd.cks.f.f.other.suppre
 
 # Codecs pane #################################################################
 set i .prefs.pane.codecs
-frame $i 
+frame $i
 
 frame $i.of -rel fl
 pack  $i.of -fill both -expand 1 -anchor w -pady 1 -side top
 
-message $i.of.l -width 30c -justify left -text "This panel shows available codecs and allows RTP payload re-mapping." 
+message $i.of.l -width 30c -justify left -text "This panel shows available codecs and allows RTP payload re-mapping."
 pack $i.of.l -side top -fill x
 
 frame   $i.of.codecs
@@ -1991,7 +1991,7 @@ label   $i.of.codecs.l.l -text "Codec"
 listbox $i.of.codecs.lb -width 20 -yscrollcommand "$i.of.codecs.scroll set" -relief fl -bg white
 scrollbar $i.of.codecs.scroll -command "$i.of.codecs.lb yview" -rel fl
 pack    $i.of.codecs.l $i.of.codecs.l.l -side top -fill x
-pack    $i.of.codecs.scroll $i.of.codecs.lb -side left -fill both 
+pack    $i.of.codecs.scroll $i.of.codecs.lb -side left -fill both
 
 frame   $i.of.details -bd 0
 pack    $i.of.details -side left -fill both -expand 1 -anchor n
@@ -2002,12 +2002,12 @@ pack $i.of.details.upper -fill x
 frame $i.of.details.desc
 pack $i.of.details.desc -side top -fill x
 
-frame $i.of.details.pt 
+frame $i.of.details.pt
 pack $i.of.details.pt -side bottom -fill x -anchor s
 label $i.of.details.pt.l -anchor w -text "RTP payload:"
 pack  $i.of.details.pt.l -side left -anchor w
 
-entry $i.of.details.pt.e -width 4 
+entry $i.of.details.pt.e -width 4
 pack  $i.of.details.pt.e -side left -padx 4
 
 button $i.of.details.pt.b -text "Map Codec" -command map_codec
@@ -2017,7 +2017,7 @@ frame $i.of.details.upper.l0 -relief raised
 label $i.of.details.upper.l0.l -text "Details"
 pack $i.of.details.upper.l0 $i.of.details.upper.l0.l -side top -fill x -expand 1
 
-frame $i.of.details.upper.l 
+frame $i.of.details.upper.l
 pack $i.of.details.upper.l -side left
 label $i.of.details.upper.l.0 -text "Short name:"  -anchor w
 label $i.of.details.upper.l.1 -text "Sample Rate (Hz):" -anchor w
@@ -2071,7 +2071,7 @@ set last_selected_codec -1
 
 proc codecs_panel_select { idx } {
     global codecs codec_nick_name codec_rate codec_channels codec_pt codec_block_size codec_data_size codec_desc codec_caps codec_layers
-    global last_selected_codec 
+    global last_selected_codec
 
     set last_selected_codec $idx
 
@@ -2088,7 +2088,7 @@ proc codecs_panel_select { idx } {
     $root.4 configure -text $codec_pt($codec)
     $root.5 configure -text $codec_caps($codec)
     $root.6 configure -text $codec_layers($codec)
-    
+
     .prefs.pane.codecs.of.details.desc.l configure -text "Description: $codec_desc($codec)"
 
 }
@@ -2118,13 +2118,13 @@ proc map_codec {} {
 
 # Security Pane ###############################################################
 set i .prefs.pane.security
-frame $i 
+frame $i
 frame $i.a -rel fl
-frame $i.a.f 
+frame $i.a.f
 frame $i.a.f.f
 label $i.a.f.f.l -anchor w -justify left -text "Your communication can be secured with\nDES encryption.  Only conference participants\nwith the same key can receive audio data when\nencryption is enabled."
 pack $i.a.f.f.l
-pack $i.a -side top -fill both -expand 1 
+pack $i.a -side top -fill both -expand 1
 label $i.a.f.f.lbl -text "Key:"
 entry $i.a.f.f.e -width 28 -textvariable key
 checkbutton $i.a.f.f.cb -text "Enabled" -variable key_var
@@ -2134,12 +2134,12 @@ pack $i.a.f.f.lbl $i.a.f.f.e $i.a.f.f.cb -side left -pady 4 -padx 2 -fill x
 
 # Interface Pane ##############################################################
 set i .prefs.pane.interface
-frame $i 
+frame $i
 frame $i.a -rel fl
-frame $i.a.f 
+frame $i.a.f
 frame $i.a.f.f
 label $i.a.f.f.l -anchor w -justify left -text "The following features may be\ndisabled to conserve processing\npower."
-pack $i.a -side top -fill both -expand 1 
+pack $i.a -side top -fill both -expand 1
 pack $i.a.f -fill x -side left -expand 1
 checkbutton $i.a.f.f.power   -text "Powermeters active"       -variable meter_var
 checkbutton $i.a.f.f.balloon -text "Balloon help"             -variable help_on
@@ -2147,7 +2147,7 @@ checkbutton $i.a.f.f.matrix  -text "Reception quality matrix" -variable matrix_o
 checkbutton $i.a.f.f.plist   -text "Participant list"         -variable plist_on  -command toggle_plist
 checkbutton $i.a.f.f.fwin    -text "File Control Window"      -variable files_on  -command file_show
 pack $i.a.f.f $i.a.f.f.l
-pack $i.a.f.f.power $i.a.f.f.balloon $i.a.f.f.matrix $i.a.f.f.plist $i.a.f.f.fwin -side top -anchor w 
+pack $i.a.f.f.power $i.a.f.f.balloon $i.a.f.f.matrix $i.a.f.f.plist $i.a.f.f.fwin -side top -anchor w
 
 proc set_pane {p base desc} {
     upvar 1 $p pane
@@ -2175,7 +2175,7 @@ menu .about.m.f.mb.menu -tearoff 0
 .about.m.f.mb.menu add command -label "Feedback"  -command {set_pane about_pane .about.rim.d "Feedback"  }
 .about.m.f.mb.menu add command -label "Copyright" -command {set_pane about_pane .about.rim.d "Copyright" }
 
-pack .about.m.f 
+pack .about.m.f
 pack .about.m.f.l .about.m.f.mb -side left
 
 frame     .about.rim.d.copyright
@@ -2189,11 +2189,11 @@ pack      .about.rim.d.copyright.f.f -expand 1 -fill both
 pack      .about.rim.d.copyright.f.f.scroll -side left -fill y -expand 1
 pack      .about.rim.d.copyright.f.f.blurb -side left -fill y -expand 1
 
-frame     .about.rim.d.credits 
+frame     .about.rim.d.credits
 frame     .about.rim.d.credits.f -relief flat
-frame     .about.rim.d.credits.f.f 
+frame     .about.rim.d.credits.f.f
 pack      .about.rim.d.credits.f -fill both -expand 1
-pack      .about.rim.d.credits.f.f -side left -fill x -expand 1 
+pack      .about.rim.d.credits.f.f -side left -fill x -expand 1
 label     .about.rim.d.credits.f.f.1                  -text "The Robust-Audio Tool was developed in the Department of\nComputer Science, University College London.\n\nProject Supervision:"
 label     .about.rim.d.credits.f.f.2 -foreground blue -text Good
 label     .about.rim.d.credits.f.f.3                  -text "Development Team:"
@@ -2204,7 +2204,7 @@ for {set i 1} {$i<=6} {incr i} {
     pack  .about.rim.d.credits.f.f.$i -side top -fill x -expand 0 -anchor n
 }
 
-frame     .about.rim.d.feedback 
+frame     .about.rim.d.feedback
 frame     .about.rim.d.feedback.f -relief flat
 frame     .about.rim.d.feedback.f.f
 pack      .about.rim.d.feedback.f -fill both -expand 1
@@ -2227,15 +2227,15 @@ wm resizable .about 0 0
 wm protocol  .about WM_DELETE_WINDOW {wm withdraw .about}
 
 set about_pane Copyright
-set_pane about_pane .about.rim.d "Credits" 
-constrain_window .about $infofont 64 25 
+set_pane about_pane .about.rim.d "Credits"
+constrain_window .about $infofont 64 25
 
 .about.rim.d.copyright.f.f.blurb insert end \
 {Copyright (C) 1995-2002 University College London
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
-modification, is permitted provided that the following conditions 
+modification, is permitted provided that the following conditions
 are met:
 
 1. Redistributions of source code must retain the above copyright
@@ -2301,7 +2301,7 @@ proc shuffle_rats {args} {
     # This should really animate the movement and play fruit-machine sounds.... :-)
     set r ""
     set end [llength $args]
-    set l 1 
+    set l 1
     while { $l <= $end } {
 		set toget [expr abs([clock clicks]) % [llength $args]]
 		set r [format "%s%s  " $r [lindex $args $toget]]
@@ -2329,11 +2329,11 @@ proc sync_ui_to_engine {} {
 
 proc sync_engine_to_ui {} {
     # make audio engine concur with ui
-    global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note 
+    global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note
     global prenc upp channel_var secenc layerenc red_off int_gap int_units
     global agc_var audio_loop_var echo_var
-    global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
-    global meter_var gain volume iport oport 
+    global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var
+    global meter_var gain volume iport oport
     global in_mute_var out_mute_var ichannels freq key key_var
     global audio_device received
 
@@ -2350,7 +2350,7 @@ proc sync_engine_to_ui {} {
     mbus_recv_rtp.source.phone $my_ssrc "$rtcp_phone"
     mbus_recv_rtp.source.loc   $my_ssrc "$rtcp_loc"
     mbus_recv_rtp.source.note  $my_ssrc "$rtcp_note"
-    
+
     #transmission details
     mbus_send "R" "tool.rat.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"
     mbus_send "R" "tool.rat.rate"         $upp
@@ -2386,7 +2386,7 @@ proc sync_engine_to_ui {} {
     #Interface
     mbus_send "R" "tool.rat.powermeter"   $meter_var
 
-    #device 
+    #device
     mbus_send "R" "audio.device"        [mbus_encode_str "$audio_device"]
     if {$received(gain)} {
 	mbus_send "R" "audio.input.gain"    $gain
@@ -2439,7 +2439,7 @@ proc mtrace {src dst} {
 	scrollbar .mtrace-$src-$dst.sb -command ".mtrace-$src-$dst.t xview" -orient horizontal
 	scrollbar .mtrace-$src-$dst.sr -command ".mtrace-$src-$dst.t yview" -orient vertical
 	pack .mtrace-$src-$dst.sb -fill x    -expand 0 -side bottom -anchor s
-	pack .mtrace-$src-$dst.sr -fill y    -expand 0 -side right  -anchor e 
+	pack .mtrace-$src-$dst.sr -fill y    -expand 0 -side right  -anchor e
 	pack .mtrace-$src-$dst.t  -fill both -expand 1 -side left   -anchor w
 
 	wm title .mtrace-$src-$dst "mtrace from $src_addr to $dst_addr via group $group_addr"
@@ -2456,7 +2456,7 @@ chart::create
 #
 
 #
-# File Control Window 
+# File Control Window
 #
 
 set play_file(state) end
@@ -2468,22 +2468,22 @@ catch {
     frame .file.rec  -relief groove -bd 2
     pack  .file.play -side top -pady 2 -padx 2 -fill x -expand 1
     pack  .file.rec  -side top -pady 2 -padx 2 -fill x -expand 1
-    
+
     label .file.play.l -text "Playback"
     pack  .file.play.l -side top -fill x
-    label .file.rec.l -text "Record"   
+    label .file.rec.l -text "Record"
     pack  .file.rec.l -side top -fill x
 
     wm withdraw .file
     wm title	.file "RAT File Control"
     wm protocol .file WM_DELETE_WINDOW "set files_on 0; file_show"
-    
+
     foreach action { play rec } {
 	frame  .file.$action.buttons
 	pack   .file.$action.buttons
 	button .file.$action.buttons.disk -bitmap disk -command "fileDialog $action"
 	pack   .file.$action.buttons.disk -side left -padx 2 -pady 2 -anchor n
-	
+
 	foreach cmd "$action pause stop" {
 	    button .file.$action.buttons.$cmd -bitmap $cmd -state disabled -command file_$action\_$cmd
 	    pack   .file.$action.buttons.$cmd -side left -padx 2 -pady 2 -anchor n -fill x
@@ -2500,32 +2500,32 @@ if {$fwinerr != {}} {
 
 proc fileDialog {cmdbox} {
     global win32 tcl_platform
-    
+
 	set defaultExtension au
 	set defaultLocation  .
 
     switch -glob $tcl_platform(os) {
-	SunOS    { 
+	SunOS    {
 		if [file exists /usr/demo/SOUND/sounds] { set defaultLocation /usr/demo/SOUND/sounds }
 		}
-	Windows* { 
+	Windows* {
 		if [file exists C:/Windows/Media]       { set defaultLocation C:/Windows/Media }
 		set defaultExtension wav
 		}
 	}
-    
+
     set types {
 		{"NeXT/Sun Audio files"	"au"}
 		{"Microsoft RIFF files"	"wav"}
 		{"All files"		"*"}
     }
-    
+
     if {![string compare $cmdbox "play"]} {
 		catch { asFileBox .playfilebox  -defaultextension $defaultExtension -command file_open_$cmdbox -directory $defaultLocation -extensions $types } asferror
     } else {
 		catch { asFileBox .recfilebox   -defaultextension $defaultExtension -command file_open_$cmdbox  -extensions $types -force_extension 1 } asferror
     }
-	
+
 	if {$asferror != ""} {
 		bgerror "$asferror"
 	}
@@ -2533,7 +2533,7 @@ proc fileDialog {cmdbox} {
 
 proc file_show {} {
     global files_on
-    
+
     if {$files_on} {
 	 	wm deiconify .file
     } else {
@@ -2558,7 +2558,7 @@ proc file_open_play {path} {
     mbus_send "R" "audio.file.play.pause" 1
     set play_file(state) paused
     set play_file(name) $path
-    
+
     # Test whether file is still playing/valid
     after 200 file_play_live
 }
@@ -2581,7 +2581,7 @@ proc file_enable_play { } {
     .file.play.buttons.pause  configure -state disabled
     .file.play.buttons.stop   configure -state disabled
     .file.play.buttons.status configure -text "Ready to play."
-}	
+}
 
 proc file_enable_record { } {
     .file.rec.buttons.rec configure -state normal
@@ -2592,7 +2592,7 @@ proc file_enable_record { } {
 
 proc file_play_play {} {
 	global play_file
-	
+
 	catch {
 		if {$play_file(state) == "paused"} {
 			mbus_send "R" "audio.file.play.pause" 0
@@ -2613,7 +2613,7 @@ proc file_play_play {} {
 
 proc file_play_pause {} {
     global play_file
-    
+
     .file.play.buttons.play   configure -state normal
     .file.play.buttons.pause  configure -state disabled
     .file.play.buttons.stop   configure -state normal
@@ -2624,7 +2624,7 @@ proc file_play_pause {} {
 
 proc file_play_stop {} {
 	global play_file
-	
+
 	set play_file(state) end
 	file_enable_play
 	mbus_send "R" "audio.file.play.stop" ""
@@ -2632,7 +2632,7 @@ proc file_play_stop {} {
 
 proc file_rec_rec {} {
 	global rec_file
-	
+
 	catch {
 		if {$rec_file(state) == "paused"} {
 			mbus_send "R" "audio.file.record.pause" 0
@@ -2653,7 +2653,7 @@ proc file_rec_rec {} {
 
 proc file_rec_pause {} {
     global rec_file
-    
+
     .file.rec.buttons.rec    configure -state normal
     .file.rec.buttons.pause  configure -state disabled
     .file.rec.buttons.stop   configure -state normal
@@ -2664,7 +2664,7 @@ proc file_rec_pause {} {
 
 proc file_rec_stop {} {
 	global rec_file
-	
+
 	set rec_file(state) end
 	file_enable_record
 	mbus_send "R" "audio.file.record.stop" ""
@@ -2733,7 +2733,7 @@ help::add $i.dd.cks.f.f.silence.upper.r1\
 help::add $i.dd.cks.f.f.silence.upper.r2\
 			 "Only audio above a manually set threshold is\ntransmitted when the input is unmuted." "suppress_silence_manual.au"
 help::add $i.dd.cks.f.f.silence.lower.s\
-			 "Sets the manual threshold silence detection threshold." "suppress_silence_manual_thresh.au"	
+			 "Sets the manual threshold silence detection threshold." "suppress_silence_manual_thresh.au"
 
 help::add $i.dd.cks.f.f.other.agc	 "Enables automatic control of the volume\nof the sound you send." "agc.au"
 help::add $i.dd.cks.f.f.other.loop "Enables hardware for loopback of audio input." "audio_loopback.au"
@@ -2813,8 +2813,8 @@ proc rendezvous_with_media_engine {} {
 	mbus_send "R" "rtp.query" ""
 }
 
-} script_error_evalution ]
+} script_evaluation_error ]
 
 if {$script_error != 0} {
-        bgerror "$script_error"
+        bgerror "$script_evaluation_error"
 }
