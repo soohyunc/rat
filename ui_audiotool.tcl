@@ -544,7 +544,6 @@ proc mbus_recv_tool.rat.format.in {arg} {
     
     set freq      [lindex $e 1]
     set ichannels [lindex $e 2]
-    puts "tool.rat.format.in \"$freq\" \"$ichannels\""
 }
 
 proc mbus_recv_tool.rat.codec {arg} {
