@@ -316,6 +316,7 @@ mixerEnableInputLine(HMIXEROBJ hMix, DWORD lineNo)
         mmr = mixerGetControlDetails(hMix, &mcd, MIXER_GETCONTROLDETAILSF_VALUE|MIXER_OBJECTF_MIXER);
         if (mmr != MMSYSERR_NOERROR) {
                 debug_msg("mixerGetControlDetails: %s\n", mixGetErrorText(mmr));
+                xfree(mcdbState);
                 return FALSE;
         }
         
@@ -326,11 +327,15 @@ mixerEnableInputLine(HMIXEROBJ hMix, DWORD lineNo)
                         mcdbState[i].fValue = FALSE;
                 }
         }
+        
         mmr = mixerSetControlDetails(hMix, &mcd, MIXER_OBJECTF_MIXER);
         if (mmr != MMSYSERR_NOERROR) {
                 debug_msg("mixerSetControlDetails: %s\n", mixGetErrorText(mmr));
+                xfree(mcdbState);
                 return FALSE;
         }
+        
+        xfree(mcdbState);
         return TRUE;
 }
 
@@ -361,14 +366,15 @@ mixerEnableOutputLine(HMIXEROBJ hMix, DWORD dwLineID, int state)
                         debug_msg("Could not get mute control for line 0x%08x: %s\n", 
                                 dwLineID,
                                 mixGetErrorText(mmr));
+                        mixerDumpLineInfo(hMix, dwLineID);
                         return FALSE;
                 }
         }
         
         mcd.cbStruct       = sizeof(mcd);
-        mcd.dwControlID    = mlc.dwControlID;
+        mcd.dwControlID    = mc.dwControlID;
         mcd.cChannels      = 1;
-        mcd.cMultipleItems = 0;
+        mcd.cMultipleItems = mc.cMultipleItems;
         mcd.cbDetails      = sizeof(MIXERCONTROLDETAILS_BOOLEAN);
         mcd.paDetails      = &mcdbState;
         mcdbState.fValue   = !((UINT)state);
@@ -543,7 +549,7 @@ mixSetup(UINT uMixer)
                 n_loop_ports = 0;
         }
         
-        n_loop_ports = mixQueryControls((HMIXEROBJ)hMixer, MIXER_DESTINATION_INPUT, &loop_ports);
+        n_loop_ports = mixQueryControls((HMIXEROBJ)hMixer, MIXER_DESTINATION_OUTPUT, &loop_ports);
         debug_msg("Loop ports %d\n", n_loop_ports);
         if (n_loop_ports == 0) {
                 return 0;
@@ -1085,16 +1091,28 @@ w32sdk_audio_oport_details(audio_desc_t ad, int idx)
 void 
 w32sdk_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
-        int i, gain;
+        int i, j, gain;
         UNUSED(ad);
 
         for(i = 0; i < n_input_ports; i++) {
                 if (input_ports[i].port == port) {
                         /* save gain */
                         gain = mixerGetLineGain((HMIXEROBJ)hMixer, input_ports[iport].port);
+                        
                         /* Select new line and restore saved gain */
                         mixerEnableInputLine((HMIXEROBJ)hMixer, i);
                         mixerSetLineGain((HMIXEROBJ)hMixer, input_ports[i].port, gain);
+
+                        /* Do loopback */
+                        for(j = 0; j < n_loop_ports; j++) {
+                                if (strcmp(loop_ports[j].name, input_ports[iport].name) == 0) {
+                                        mixerEnableOutputLine((HMIXEROBJ)hMixer, loop_ports[j].port, 0);
+                                }
+                                if (strcmp(loop_ports[j].name, input_ports[i].name) == 0 && nLoopGain != 0) {
+                                        mixerEnableOutputLine((HMIXEROBJ)hMixer, loop_ports[j].port, 1);
+                                        mixerSetLineGain((HMIXEROBJ)hMixer, loop_ports[j].port, nLoopGain); 
+                                }
+                        }
                         iport = i;
                         return;
                 }
