@@ -331,7 +331,7 @@ playout_buffer_destroy(session_struct *sp, ppb_t **list, ppb_t *buf)
                 pb = pb->next;
         }
 
-        if (*list == NULL && sp->echo_was_sending) {
+        if (*list == NULL && sp->echo_was_sending && sp->echo_suppress) {
                 debug_msg("Echo suppressor unmuting (%d).\n", sp->echo_was_sending);
                 if (sp->echo_was_sending) {
                         tx_start(sp);
