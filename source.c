@@ -41,7 +41,7 @@
 #include "rtcp_db.h"
 
 #define HISTORY                    1000
-#define SKEW_OFFENSES_BEFORE_ADAPT    8 
+#define SKEW_OFFENSES_BEFORE_ADAPT    4 
 #define SOURCE_YOUNG_AGE             20
 
 /* constants for skew adjustment:
@@ -487,7 +487,7 @@ source_check_buffering(source *src, ts_t now)
  * returns TRUE if adaption happened and false otherwise.
  */
 
-#define SKEW_ADAPT_THRESHOLD  2000
+#define SKEW_ADAPT_THRESHOLD  1000
 
 static int
 source_skew_adapt(source *src, media_data *md)
@@ -594,8 +594,14 @@ source_repair(source *src,
                            (u_char**)&prev_md,
                            &prev_len,
                            &prev_ts);
+
         assert(prev_md != NULL);
-        assert(ts_eq(prev_ts, src->last_played));
+
+        if (!ts_eq(prev_ts, src->last_played)) {
+                debug_msg("prev_ts and last_played don't match\n");
+                return;
+        }
+        
 
         media_data_create(&fill_md, 1);
         repair(repair_type,
@@ -614,11 +620,15 @@ source_repair(source *src,
                 pb_iterator_advance(src->media_pos);
 
 #ifndef NDEBUG
-        /* Reusing prev_* - bad style */
+        /* Reusing prev_* - c'est mal, je sais */
                 pb_iterator_get_at(src->media_pos,
                                    (u_char**)&prev_md,
                                    &prev_len,
                                    &prev_ts);
+                if (ts_eq(prev_ts, fill_ts) == FALSE) {
+                        debug_msg("Looks like playout point was recalculated and triggered repair\n");
+                }
+                
                 assert(ts_eq(prev_ts, fill_ts));
 #endif
         } else {
