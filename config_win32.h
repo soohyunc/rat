@@ -96,6 +96,7 @@ typedef unsigned long	in_addr_t;
 #define DIFF_BYTE_ORDER	1
 #define NEED_INET_ATON
 #define NEED_INET_PTON
+#define NEED_IN6_IS_ADDR_MULTICAST
 
 #include <time.h>		/* For clock_t */
 

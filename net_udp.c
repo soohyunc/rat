@@ -99,13 +99,22 @@ static int inet_pton(int family, const char *name, void *addr)
 		return 0;
 #ifdef HAVE_IPv6
 	} else if (family == AF_INET6) {
-		return -1;
+		return inet6_addr(name, addr);
 #endif
 	} else {
+		debug_msg("Unknown address family\n");
 		return -1;
 	}
 }
 #endif
+
+#ifdef NEED_IN6_IS_ADDR_MULTICAST
+static int IN6_IS_ADDR_MULTICAST(unsigned char addr[16])
+{
+	return addr[0] == 0xff;
+}
+#endif
+
 
 /*****************************************************************************/
 /* IPv4 specific functions...                                                */
@@ -120,7 +129,7 @@ static socket_udp *udp_init4(char *addr, u_int16 port, int ttl)
 	s->addr  = addr;
 	s->port  = port;
 	s->ttl   = ttl;
-	if (!inet_pton(AF_INET, addr, &s->addr4)) {
+	if (inet_pton(AF_INET, addr, &s->addr4) != 1) {
 		struct hostent *h = gethostbyname(addr);
 		if (h == NULL) {
 			return NULL;
@@ -207,9 +216,10 @@ static socket_udp *udp_init6(char *addr, u_int16 port, int ttl)
 	s->addr  = addr;
 	s->port  = port;
 	s->ttl   = ttl;
-	if (!inet_pton(AF_INET6, addr, &s->addr6)) {
+	if (inet_pton(AF_INET6, addr, &s->addr6) != 1) {
 		/* We should probably try to do a DNS lookup on the name */
 		/* here, but I'm trying to get the basics going first... */
+		debug_msg("IPv6 address conversion failed\n");
 		return NULL;	
 	}
 	s->fd = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -227,6 +237,7 @@ static socket_udp *udp_init6(char *addr, u_int16 port, int ttl)
 		abort();
 	}
 #endif
+#ifdef NDEF
 	s_in.sin6_family = AF_INET6;
 	s_in.sin6_port   = htons(port);
 	memcpy(s_in.sin6_addr.s6_addr, &s->addr6, sizeof(struct in6_addr));
@@ -234,6 +245,7 @@ static socket_udp *udp_init6(char *addr, u_int16 port, int ttl)
 		socket_error("bind");
 		abort();
 	}
+#endif
 	if (IN6_IS_ADDR_MULTICAST(s->addr6.s6_addr)) {
 		char              loop = 1;
 		struct ipv6_mreq  imr;
@@ -254,6 +266,7 @@ static socket_udp *udp_init6(char *addr, u_int16 port, int ttl)
 			abort();
 		}
 	}
+	assert(s != NULL);
 	return s;
 #else
 	UNUSED(addr);
