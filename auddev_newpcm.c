@@ -249,7 +249,7 @@ newpcm_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 	    if (this_read == -1) break;
 	    done += this_read;
 	} while (this_read == len && (done + this_read < read_bytes));
-	
+
 	return done;
 }
 
@@ -360,8 +360,8 @@ newpcm_audio_set_ogain(audio_desc_t ad, int vol)
 
         UNUSED(ad); assert(audio_fd > 0);
 
+	vol = RAT_TO_DEVICE(vol);
 	volume = vol << 8 | vol;
-
 	lgport = -1;
 	op = oport;
 	while (op > 0) {
@@ -387,14 +387,14 @@ newpcm_audio_get_ogain(audio_desc_t ad)
 	}
 
 	NEWPCM_AUDIO_IOCTL(audio_fd, MIXER_READ(lgport), &volume);
-
-	if (volume > 100 || volume < 100) {
-		debug_msg("gain out of bounds (%d %d--%d)" \
+	volume = DEVICE_TO_RAT(volume & 0xff);
+	if (volume > 100 || volume < 0) {
+		debug_msg("gain out of bounds (%08x %d--%d)" \
 			  "mixer entry not implemented?", volume, 0, 100);  
 		volume = 100;
 	} 
 
-	return DEVICE_TO_RAT(volume); /* Extract left channel volume */
+	return volume;
 }
 
 void
@@ -437,7 +437,8 @@ newpcm_audio_oport_details(audio_desc_t ad, int idx)
 void
 newpcm_audio_set_igain(audio_desc_t ad, int gain)
 {
-	int volume = RAT_TO_DEVICE(gain) << 8 | RAT_TO_DEVICE(gain);
+	int volume = RAT_TO_DEVICE(gain);
+	volume |= (volume << 8);
 
         UNUSED(ad); assert(audio_fd > 0);
 	newpcm_audio_loopback_config(gain);
@@ -451,12 +452,13 @@ newpcm_audio_get_igain(audio_desc_t ad)
 
         UNUSED(ad); assert(audio_fd > 0);
 	NEWPCM_AUDIO_IOCTL(audio_fd, SOUND_MIXER_READ_RECLEV, &volume);
-	if (volume > 100 || volume < 100) {
+	volume = DEVICE_TO_RAT(volume & 0xff); 
+	if (volume > 100 || volume < 0) {
 		debug_msg("gain out of bounds (%d %d--%d)" \
 			  "mixer entry not implemented?", volume, 0, 100);  
 		volume = 100;
 	} 
-	return (DEVICE_TO_RAT(volume));
+	return volume;
 }
 
 void

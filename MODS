@@ -1455,6 +1455,7 @@ v4.2.11	- Fix port restoration when changing device (Shirasaki Yasuhiro)
 	- Break up newpcm writes to n separate writes of blocksize rather
 	  than one big write as current newpcm debug code complains if
 	  this is done.
+	- Fix erroneous debug messages for gain settings in newpcm.
 
 TODO -- They're features not bugs dammit!
 ----
