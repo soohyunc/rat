@@ -295,7 +295,7 @@ tx_read_audio(tx_buffer *tb)
                         if (u->dur_used == tb->unit_dur) {
                                 read_dur += tb->unit_dur;
                                 if (sp->in_file) {
-                                        tx_read_sndfile(sp, freq, tb->channels, u);
+                                        tx_read_sndfile(sp, (uint16_t)freq, tb->channels, u);
                                 }
                                 time_advance(sp->clock, freq, tb->unit_dur);
                                 u_ts = ts_add(u_ts, ts_map32(freq, tb->unit_dur));
@@ -718,9 +718,9 @@ tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *
                 const converter_fmt_t *actual;
                 coded_unit in, out;
 
-                target.src_channels = sfmt.channels;
-                target.src_freq     = sfmt.sample_rate;
-                target.dst_channels = tx_channels;
+                target.src_channels = (uint16_t)sfmt.channels;
+                target.src_freq     = (uint16_t)sfmt.sample_rate;
+                target.dst_channels = (uint16_t)tx_channels;
                 target.dst_freq     = tx_freq;
 
                 /* Check if existing converter exists and whether valid */
@@ -766,7 +766,7 @@ tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *
                 /* Get the sound from file */
                 samples_read = snd_read_audio(&sp->in_file,
                                               (sample*)in.data,
-                                              in.data_len / sizeof(sample));
+                                              (uint16_t)(in.data_len / sizeof(sample)));
 
                 if (samples_read == 0) {
                         /* File is paused */
@@ -792,6 +792,6 @@ tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *
         } else {
                 snd_read_audio(&sp->in_file,
                                u->data,
-                               u->dur_used * tx_channels);
+                               (uint16_t)(u->dur_used * tx_channels));
         }
 }
