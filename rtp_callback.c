@@ -351,6 +351,9 @@ rtp_callback(struct rtp *s, rtp_event *e)
 	case RX_SDES:
                 process_sdes(sp, e->ssrc, (rtcp_sdes_item*)e->data);
 		break;
+        case RX_APP:
+                debug_msg("Received and ignored application specific report from %08x\n", e->ssrc);
+                break;
 	case RX_BYE:
 	case SOURCE_DELETED:
                 process_delete(sp, e->ssrc);
