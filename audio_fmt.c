@@ -52,7 +52,8 @@ audio_format_get_common(audio_format* ifmt,
         switch(comfmt->encoding) {
         case DEV_PCMU: comfmt->bits_per_sample = 8;  break;
         case DEV_S16:  comfmt->bits_per_sample = 16; break;
-        case DEV_S8:   return 0; /* not supported currently */
+        case DEV_U8:
+        case DEV_S8:   return FALSE; /* not supported currently */
         }
         comfmt->channels = max(ifmt->channels, ofmt->channels);
 
@@ -290,6 +291,7 @@ audio_format_change_encoding(audio_format *cur, deve_e new_enc)
         switch (new_enc) {
         case DEV_S16:  bits_per_sample = 16; break;
         case DEV_S8:
+        case DEV_U8:
         case DEV_PCMU: bits_per_sample = 8;  break;
         }
         
@@ -307,6 +309,7 @@ deve_get_name(deve_e encoding)
         case DEV_PCMU: return "8-bit mu-law";
         case DEV_S16:  return "16-bit signed linear";
         case DEV_S8:   return "8-bit signed linear";
+        case DEV_U8:   return "8-bit unsigned linear";
         }
         return NULL;
 }

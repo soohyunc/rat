@@ -21,9 +21,10 @@
 /* if different users use different base encodings...                 */
 
 typedef enum {
-	DEV_PCMU,
-	DEV_S8,
-	DEV_S16
+	DEV_PCMU, /* mu-law (8 bits) */
+	DEV_S8,   /* signed 8 bits   */
+        DEV_U8,   /* unsigned 8 bits */
+	DEV_S16   /* signed 16 bits  */
 } deve_e;
 
 typedef struct s_audio_format {
