@@ -190,7 +190,6 @@ adapt_playout(rtp_hdr_t *hdr,
 		src->last_ts         = hdr->ts - 1;
                 src->playout_ceil    = 0;
 		hdr->m               = TRUE;
-		src->msgno = 0;
 	} else {
 		diff       = abs(delay - src->delay);
 		src->delay = delay;
