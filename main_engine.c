@@ -318,6 +318,17 @@ int main(int argc, char *argv[])
 			/* pause to drain before closing.                   */
 			network_process_mbus(sp);
 			if (audio_device_reconfigure(sp)) {
+				int saved_playing_audio = sp->playing_audio;
+				/* Device reconfig takes a second or two, discard
+				 * data that has arrived during this time
+				 */
+				sp->playing_audio = 0;
+				timeout.tv_sec  = 0;
+				timeout.tv_usec = 0;
+				for (j = 0; j < sp->rtp_session_count; j++) {
+					while(rtp_recv(sp->rtp_session[j], &timeout, cur_time));
+				}
+				sp->playing_audio = saved_playing_audio;
 				/* Device reconfigured so decode paths of all sources */
 				/* are misconfigured. Delete the source, and incoming */
 				/* data will drive the correct new path.              */
