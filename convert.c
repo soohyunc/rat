@@ -60,6 +60,60 @@ typedef struct s_converter_fmt{
         u_int16 to_freq;
 } converter_fmt_t;
 
+/* Mono-Stereo Conversion ****************************************************/ 
+/* Note src_len is length block in number of samples i.e
+ *                                              nChannels * nSamplingIntervals 
+ */
+
+static void
+converter_change_channels (sample *src, 
+                           int src_len, 
+                           int src_channels, 
+                           sample *dst, 
+                           int dst_len, 
+                           int dst_channels)
+{
+        int i;
+        sample *s, *d;
+        int t;
+        assert(src_channels == 1 || src_channels == 2);
+        assert(dst_channels == 1 || dst_channels == 2);
+        assert(dst_channels != src_channels);
+        assert(src_len/src_channels == dst_len/dst_channels);
+        
+        /* nb we run backwards through bufs so inplace conversion
+         * works if necessary.
+         */
+
+        switch(src_channels) {
+        case 1:
+                s = src + src_len - 1; 
+                d = dst + dst_len - 1;
+                for(i = 0; i < src_len; i++) {
+                        *d-- = *s;
+                        *d-- = *s--;
+                }
+                break;
+        case 2:
+                s = src + src_len - 1;
+                d = dst + dst_len - 1;
+                for(i = 0; i < src_len; i++) {
+                        t    = *s--;
+                        t   += *s--;
+                        t   /= 2;
+                        *d-- = t;
+                }
+                break;
+        }
+}
+
+static int
+gcd (int a, int b)
+{
+        if (b) return gcd(b, a%b);
+        return 0;
+}
+
 #ifdef WIN32
 
 /* WINDOWS ACM CONVERSION CODE **********************************************/
@@ -67,7 +121,7 @@ typedef struct s_converter_fmt{
 static HACMDRIVER hDrv;
 
 static BOOL CALLBACK 
-getPCMConverter(HACMDRIVERID hadid, DWORD dwInstance, DWORD fdwSupport)
+getPCMConverter (HACMDRIVERID hadid, DWORD dwInstance, DWORD fdwSupport)
 {
         if (fdwSupport & ACMDRIVERDETAILS_SUPPORTF_CONVERTER) {
                 ACMDRIVERDETAILS add;
@@ -81,7 +135,7 @@ getPCMConverter(HACMDRIVERID hadid, DWORD dwInstance, DWORD fdwSupport)
 }
 
 static int 
-acm_conv_load(void)
+acm_conv_load (void)
 {
      acmDriverEnum(getPCMConverter, 0L, 0L);
      if (hDrv) return TRUE;
@@ -89,16 +143,16 @@ acm_conv_load(void)
 }
 
 static void 
-acm_conv_unload(void)
+acm_conv_unload (void)
 {
         if (hDrv) acmDriverClose(hDrv, 0);
         hDrv = 0;
 }
 
 void
-acm_conv_init_fmt(WAVEFORMATEX *pwfx, u_int16 nChannels, u_int16 nSamplesPerSec)
+acm_conv_init_fmt (WAVEFORMATEX *pwfx, u_int16 nChannels, u_int16 nSamplesPerSec)
 {
-       pwfx->wFormatTag = WAVE_FORMAT_PCM;
+       pwfx->wFormatTag      = WAVE_FORMAT_PCM;
        pwfx->nChannels       = nChannels;
        pwfx->nSamplesPerSec  = nSamplesPerSec;
        pwfx->nAvgBytesPerSec = nSamplesPerSec * nChannels * sizeof(sample);
@@ -107,7 +161,7 @@ acm_conv_init_fmt(WAVEFORMATEX *pwfx, u_int16 nChannels, u_int16 nSamplesPerSec)
 }
 
 static int
-acm_conv_init(converter_t *c)
+acm_conv_init (converter_t *c)
 {
         LPHACMSTREAM lpa;
         WAVEFORMATEX wfxSrc, wfxDst;
@@ -123,7 +177,7 @@ acm_conv_init(converter_t *c)
 }
 
 static void
-acm_conv_do(converter_t *c, sample *src_buf, int src_len, sample *dst_buf, int dst_len)
+acm_convert (converter_t *c, sample *src_buf, int src_len, sample *dst_buf, int dst_len)
 {
         ACMSTREAMHEADER ash;
         LPHACMSTREAM    lphs;
@@ -141,7 +195,6 @@ acm_conv_do(converter_t *c, sample *src_buf, int src_len, sample *dst_buf, int d
             acmStreamConvert(*lphs, &ash, ACM_STREAMCONVERTF_BLOCKALIGN)) {
                 memset(dst_buf, 0, dst_len * sizeof(sample));
         }
-        xmemchk();
         return;
 }
 
@@ -156,6 +209,410 @@ acm_conv_free(converter_t *c)
 }
 
 #endif /* WIN32 */
+
+/* FILTERED SAMPLE RATE CONVERSION CODE *************************************/
+
+#define SRF_FILTW_SCALE  6 
+#define SRF_NTABLES      5
+#define SRF_SCALE        256
+
+/* Tables are for M = 2, 3, 4, 5(not used), 6 */
+int **srf_tbl_up;
+int **srf_tbl_dn;
+
+/* If you want better quality make tbl sizes bigger (costs more),
+ * stick to multiples of these sizes otherwise converter becomes
+ * a noise generator.
+ */
+
+int tbl_sz_up[] = {8, 12, 16, 20, 24};
+int tbl_sz_dn[] = {8, 12, 16, 20, 24};
+
+#define SF2IDX(x) ((x)-2)
+#define IDX2SF(x) ((x)+2)
+
+typedef void (*srf_cf)(int offset, int channels, sample* src_buf, int src_len, sample* dst_buf, struct s_srf_filter_state *sf);
+
+typedef struct s_srf_filter_state {
+        short   scale;
+        short   tbl_idx;
+        int*    tbl;
+        srf_cf  convert_f;
+        sample *last;
+        short   last_sz;
+        short   phase;
+        short   dst_freq;
+} srf_filter_state_t;
+
+typedef struct s_srf_state {
+        srf_filter_state_t *fs;
+        int                 steps;      /* number of steps conversion takes */
+        sample             *tmp_buf;
+        int                 tmp_sz;
+} srf_state_t;
+
+static int 
+srf_tbl_init(void)
+{
+        int i,j;
+        double f;
+        srf_tbl_up = (int**)xmalloc(sizeof(int*)*SRF_NTABLES);
+        srf_tbl_dn = (int**)xmalloc(sizeof(int*)*SRF_NTABLES);
+
+        for(i = 0; i < SRF_NTABLES; i++) {
+                srf_tbl_up[i] = (int*)xmalloc(sizeof(int)*tbl_sz_up[i]);
+                srf_tbl_dn[i] = (int*)xmalloc(sizeof(int)*tbl_sz_dn[i]);
+                srf_tbl_up[i][0] = SRF_SCALE;
+                for(j = 1; j < tbl_sz_up[i]; j++) {
+                        f = M_PI * (double)j / (double)IDX2SF(i);
+                        srf_tbl_up[i][j] = (int)((double)SRF_SCALE * sin(f)/ f);
+                }
+                srf_tbl_dn[i][0] = (int)((double)SRF_SCALE * (1.0 / (double)(i+2))); 
+                for(j = 1; j < tbl_sz_dn[i]; j++) {
+                        f = M_PI * (double)j / (double)IDX2SF(i);
+                        srf_tbl_up[i][j] = (int)((double)SRF_SCALE * sin(f)/ f);
+                        srf_tbl_dn[i][j] = IDX2SF(i) * ((int)((double)SRF_SCALE * sin(f)/ f));
+                }
+        }
+
+        return TRUE;
+}
+
+static void
+srf_tbl_free (void)
+{
+        int i;
+        for(i = 0; i < SRF_NTABLES; i++) {
+                xfree(srf_tbl_up[i]);
+                xfree(srf_tbl_dn[i]);
+        }
+        xfree(srf_tbl_up);
+        xfree(srf_tbl_dn);
+}
+
+static void
+srf_downsample(int offset, int channels, sample *src, int src_len, sample *dst, srf_filter_state_t *sf)
+{
+        sample *src_c, *src_l, *src_r, *src_e;
+        int *h_c, *h, *h_e;
+        int win_sz, result, i;
+        int src_step;
+
+        win_sz = 2 * tbl_sz_dn[sf->tbl_idx] - 1;
+        h_c = srf_tbl_dn[sf->tbl_idx];
+        h_e = srf_tbl_dn[sf->tbl_idx] + tbl_sz_dn[sf->tbl_idx];
+        
+        src_c    = sf->last + offset + (tbl_sz_dn[sf->tbl_idx] * channels)/2;
+        src_e    = sf->last + win_sz * channels;     
+        src_step = channels * IDX2SF(sf->tbl_idx);
+
+        assert(win_sz * channels == sf->last_sz);
+        dst   += offset;
+
+        /* Stage 1: RHS of filter overlaps with last and current block */
+
+        /* Stage 2: LHS of filter overlaps last and current */
+
+        /* Stage 3: Filter completely within last block */
+        UNUSED(result);
+        UNUSED(src_l);
+        UNUSED(h);
+        UNUSED(src_r);
+        UNUSED(i);
+}
+
+static void
+srf_upsample(int offset, int channels, sample *src, int src_len, sample *dst, srf_filter_state_t *sf)
+{
+        sample *src_c, *src_l = NULL, *src_r = NULL, *src_e = NULL;
+        int win_sz, result, i;
+        int *h_c, *h_l, *h_r, *h_e;
+        
+        win_sz = 2 * tbl_sz_up[sf->tbl_idx] - 1;
+        h_c = srf_tbl_up[sf->tbl_idx];
+        h_e = srf_tbl_up[sf->tbl_idx] + tbl_sz_up[sf->tbl_idx];
+
+        src_c  = sf->last + offset + (tbl_sz_up[sf->tbl_idx] * channels)/2; 
+        src_e  = sf->last + win_sz * channels;
+        assert(win_sz * channels == sf->last_sz);
+
+        dst   += offset;
+
+        /* Stage One: Right hand side of window overlaps with last buffer and current,
+         *            left hand side of window completely within last.
+         */
+        assert(sf->phase == 0);
+        
+        while(src_c < src_e) {
+                if (sf->phase == 0) {
+                        *dst      = *src_c;
+                        dst      += channels;
+                        sf->phase = 1;
+                }
+                h_l = h_c + sf->phase;
+                h_r = h_c + sf->scale - sf->phase;
+                src_l = src_c;
+                result = 0;
+                
+                while(h_l < h_e) {
+                        result += (*h_l) * (*src_l);
+                        src_l  -= channels;
+                        h_l++;
+                }
+                src_r = src_c + channels;
+                assert(src_r < src_e);
+                i = (src_e - src_c)/channels;
+                
+                while(i) {
+                        assert(src_r < src_e);
+                        result += (*src_r) * (*h_r);
+                        src_r++;
+                        h_r++;
+                        i--;
+                }
+                
+                src_r = src + offset;
+                while(h_r < h_e) {
+                        result += (*src_r) * (*h_r);
+                        src_r++;
+                        h_r++;
+                }
+
+                *dst = (short)(result/SRF_SCALE);
+                dst += channels;
+                sf->phase++;
+                if (sf->phase == sf->scale) {
+                        sf->phase =0; 
+                        src_c+= channels;
+                }
+        }
+
+        /* Stage Two: Left hand side of window overlaps with last buffer and current,
+         *            right hand side of window completely within current.
+         */
+        assert(sf->phase == 0);
+
+        src_c = src   + offset;
+        src_e = src_c + win_sz * channels;
+
+        while(src_c < src_e) {
+                if (sf->phase == 0) {
+                        *dst      = *src_c;
+                        dst      += channels;
+                        sf->phase = 1;
+                }
+                h_l = h_c + sf->phase;
+                h_r = h_c + sf->scale - sf->phase;
+                src_r = src_c + channels;
+                
+                result = 0;
+                while(h_r < h_e) {
+                        result += (*src_r) * (*h_r);
+                        src_r  += channels;
+                        h_r    ++;
+                }
+
+                src_l = src_c;
+                while(src_l >= src) {
+                        result += (*src_l) * (*h_l);
+                        src_l  -= channels;
+                        h_l    ++;
+                }
+
+                src_l = sf->last + sf->last_sz - channels + offset;
+                while(h_l < h_e) {
+                        result += (*src_l) * (*h_l);
+                        src_l  -= channels;
+                        h_l    ++;
+                }
+                
+                *dst = (short)(result/SRF_SCALE);
+                dst += channels;
+                sf->phase++;
+                if (sf->phase == sf->scale) {
+                        sf->phase = 0;
+                        src_c += channels;
+                }
+        }
+
+        /* Stage Three: All of window within current buffer. */
+        assert(sf->phase == 0);
+        src_e = src + src_len - tbl_sz_up[sf->tbl_idx] * channels;
+
+        while(src_c < src_e) {
+                if (sf->phase == 0) {
+                        *dst = *src_c;
+                        dst += channels;
+                }
+                src_l = src_c;
+                src_r = src_c + channels;
+                h_l   = h_c   + sf->phase;
+                h_r   = h_c   + sf->scale - sf->phase;
+                result = 0;
+                while (h_r != h_e) {
+                        result += (*src_l)*(*h_l) + (*src_r)*(*h_r);
+                        src_l  -= channels;
+                        src_r  += channels;
+                        h_l++;
+                        h_r++;
+                }
+                *dst = (short)(result / SRF_SCALE);
+                dst += channels;
+                sf->phase++;
+                if (sf->phase == sf->scale) {
+                        sf->phase = 1;
+                        src_c += channels;
+                }
+        }
+
+        src_c = src + src_len - win_sz;
+        if (offset == 0) {
+                memcpy(sf->last,src_c,win_sz);
+        } else {
+                src_c++;
+                dst = sf->last++;
+                while(src_c < src + src_len) {
+                        *dst = *src_c;
+                        src_c += channels;
+                        dst   += channels;
+                }
+        }
+        xmemchk();
+}
+
+static 
+void srf_init_filter(srf_filter_state_t *sf, int src_freq, int dst_freq, int channels)
+{
+        if (src_freq > dst_freq) {
+                sf->scale     = src_freq / dst_freq;
+                sf->tbl_idx   = (SF2IDX(src_freq/dst_freq));
+                sf->tbl       = srf_tbl_dn[sf->tbl_idx];
+                sf->convert_f = srf_downsample;
+                sf->last_sz   = (2 * tbl_sz_dn[sf->tbl_idx] - 1) * channels;
+                sf->last      = (sample *) xmalloc (sf->last_sz * sizeof(sample));
+                sf->phase     = 0;
+                sf->dst_freq  = dst_freq;
+        } else {
+                sf->scale     = dst_freq / src_freq;
+                sf->tbl_idx   = (SF2IDX(dst_freq/src_freq));
+                sf->tbl       = srf_tbl_up[sf->tbl_idx];
+                sf->convert_f = srf_upsample;
+                sf->last_sz   = (2 * tbl_sz_up[sf->tbl_idx] - 1) * channels;
+                sf->last      = (sample *) xmalloc (sf->last_sz * sizeof(sample));
+                sf->phase     = 0;
+                sf->dst_freq  = dst_freq;
+        }
+        memset(sf->last, 0, sizeof(sample) * sf->last_sz);
+}
+
+/* This code is written so that if we do non-integer rate conversion 
+ * we downsample to lowest common divisor, and then upsample again.
+ * 
+ * This is really the wrong thing to do, we should upsample to a 
+ * common multiple, then downsample, but this requires much more
+ * work and memory.  The reality for RAT is that we only ever convert 
+ * between multiples of 8K, so the only problem is with conversion 
+ * between 32K and 48K.  For sake of argument, most computer audio 
+ * hardware isn't good enough too tell either way, so we'll take the 
+ * cheap ticket.
+ */
+
+static int 
+srf_init (converter_t *c)
+{
+        srf_state_t *s;
+        int denom, src_freq, dst_freq, src_channels, dst_channels;
+
+        assert(c->conv_fmt->from_freq % 8000 == 0);
+        assert(c->conv_fmt->to_freq   % 8000 == 0);
+        
+        if (c->conv_fmt->to_freq == c->conv_fmt->from_freq) {
+                c->data     = NULL;
+                c->data_len = 0;
+                return TRUE;
+        }
+
+        s = (srf_state_t*) xmalloc(sizeof(srf_state_t));
+        memset(s, 0, sizeof(srf_state_t));
+        
+        c->data     = (char*)s;
+        c->data_len = sizeof(srf_state_t);
+        
+        src_freq     = c->conv_fmt->from_freq;
+        src_channels = c->conv_fmt->from_channels; 
+        dst_freq     = c->conv_fmt->to_freq;
+        dst_channels = c->conv_fmt->to_channels; 
+
+        denom = gcd(src_freq, dst_freq);
+        if (denom == 8000) {
+                s->fs    = (srf_filter_state_t*)xmalloc(sizeof(srf_filter_state_t));
+                s->steps = 1;
+                srf_init_filter(s->fs,    src_freq, dst_freq, src_channels);
+        } else {
+                s->fs    = (srf_filter_state_t*)xmalloc(sizeof(srf_filter_state_t) * 2);
+                s->steps = 2;
+                srf_init_filter(s->fs,    src_freq, denom,    src_channels);
+                srf_init_filter(s->fs+ 1, denom,    dst_freq, dst_channels);
+        }
+
+        return TRUE;
+}
+
+static void
+srf_convert (converter_t  *c, sample* src_buf, int src_len, sample *dst_buf, int dst_len)
+{
+        int channels = c->conv_fmt->from_channels;
+        
+        if (c->conv_fmt->from_channels == 2 && c->conv_fmt->to_channels == 1) {
+                /* stereo->mono then sample rate change */
+                converter_change_channels(src_buf, src_len, 2, src_buf, src_len / 2, 1); 
+                src_len /= 2;
+                channels = 1;
+        }
+
+        if (c->data) {
+                srf_state_t *s = (srf_state_t*)c->data;
+                int i;
+                if (s->steps == 1) {
+                        for (i = 0; i < channels; i++)  {
+                                s->fs[0].convert_f(i, channels, src_buf, src_len, dst_buf, s->fs);
+                        }
+                } else {
+                        assert(s->steps == 2);
+                        if (s->tmp_buf == NULL) {
+                                s->tmp_sz  = src_len * c->conv_fmt->from_freq / s->fs->dst_freq;
+                                s->tmp_buf = (sample*)xmalloc(sizeof(sample) * s->tmp_sz);
+                        }
+                        for(i = 0; i < channels; i++) {
+                                s->fs[0].convert_f(i, channels, src_buf, src_len, s->tmp_buf, s->fs);
+                        }
+                        for(i = 0; i < channels; i++) {
+                                s->fs[1].convert_f(i, channels, s->tmp_buf, s->tmp_sz, dst_buf, s->fs);
+                        }
+                }
+        }
+
+        if (c->conv_fmt->from_channels == 2 && c->conv_fmt->to_channels == 1) {
+                /* sample rate change before mono-> stereo */
+                converter_change_channels(dst_buf, dst_len, 1, dst_buf, dst_len * 2, 2);
+        }
+}
+
+static void 
+srf_free (converter_t *c)
+{
+        int i;
+        srf_state_t *s = (srf_state_t*)c->data;
+        assert(c->data_len == sizeof(srf_state_t));
+        for(i = 0; i < s->steps; i++)  {
+                if (s->fs[i].last) xfree(s->fs[i].last);
+        }
+        xfree(s->fs);
+        if (s->tmp_buf) xfree(s->tmp_buf);
+        xfree(s);
+        c->data     = NULL;
+        c->data_len = 0;
+}
 
 static int 
 linear_init (converter_t *c)
@@ -180,6 +637,7 @@ linear_free (converter_t *c)
         UNUSED(c);
 }
 
+
 typedef int  (*pcm_startup)     (void);  /* converter specific one time initialization */
 typedef void (*pcm_cleanup)     (void);  /* converter specific one time cleanup */
 typedef int  (*pcm_conv_init_f) (converter_t *c);
@@ -198,10 +656,10 @@ typedef struct s_pcm_converter{
         int      data_len;
 } pcm_converter_t;
 
-#define CONVERT_NONE     0
+#define CONVERT_NONE     255
 #define CONVERT_PLATFORM 1
-#define CONVERT_LINEAR   2
-#define CONVERT_LINEARF  3
+#define CONVERT_SRF      2
+#define CONVERT_LINEAR   3
 #define CONVERT_CUBIC    4
 
 /* In this table of converters the platform specific converters should go at the
@@ -212,10 +670,11 @@ typedef struct s_pcm_converter{
 
 pcm_converter_t converter_tbl[] = {
 #ifdef WIN32
-        {CONVERT_PLATFORM, "MS PCM Converter", FALSE, acm_conv_load, acm_conv_unload, acm_conv_init, acm_conv_do,  acm_conv_free, sizeof(HACMSTREAM)},
+        {CONVERT_PLATFORM, "MS Converter", FALSE, acm_conv_load, acm_conv_unload, acm_conv_init, acm_convert,  acm_conv_free, sizeof(HACMSTREAM)},
 #endif
-        {CONVERT_LINEAR  , "Linear",           TRUE , NULL,          NULL,            linear_init, linear_convert, linear_free,   0},
-        {CONVERT_NONE    , "None",             FALSE, NULL,          NULL,            NULL,        NULL,           NULL,          0}
+        {CONVERT_SRF     , "Filtered",     TRUE,  srf_tbl_init,  srf_tbl_free,    srf_init,    srf_convert,       srf_free,      0},
+        {CONVERT_LINEAR  , "Linear",       TRUE , NULL,          NULL,            linear_init, linear_convert, linear_free,   0},
+        {CONVERT_NONE    , "None",         FALSE, NULL,          NULL,            NULL,        NULL,           NULL,          0}
 };
 
 converter_t *
