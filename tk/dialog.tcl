@@ -3,10 +3,10 @@
 # This file defines the procedure tk_dialog, which creates a dialog
 # box containing a bitmap, a message, and one or more buttons.
 #
-# SCCS: @(#) dialog.tcl 1.26 96/05/07 09:30:31
+# SCCS: @(#) dialog.tcl 1.33 97/06/06 11:20:04
 #
 # Copyright (c) 1992-1993 The Regents of the University of California.
-# Copyright (c) 1994-1996 Sun Microsystems, Inc.
+# Copyright (c) 1994-1997 Sun Microsystems, Inc.
 #
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -30,7 +30,7 @@
 #		bottom of the dialog box.
 
 proc tk_dialog {w title text bitmap default args} {
-    global tkPriv
+    global tkPriv tcl_platform
 
     # 1. Create the top-level window and divide it into top
     # and bottom parts.
@@ -47,9 +47,17 @@ proc tk_dialog {w title text bitmap default args} {
     # even though its grab keeps the rest of the application from being used.
 
     wm transient $w [winfo toplevel [winfo parent $w]]
-    frame $w.bot -relief raised -bd 1
+    if {$tcl_platform(platform) == "macintosh"} {
+	unsupported1 style $w dBoxProc
+    }
+
+    frame $w.bot
+    frame $w.top
+    if {$tcl_platform(platform) == "unix"} {
+	$w.bot configure -relief raised -bd 1
+	$w.top configure -relief raised -bd 1
+    }
     pack $w.bot -side bottom -fill both
-    frame $w.top -relief raised -bd 1
     pack $w.top -side top -fill both -expand 1
 
     # 2. Fill the top part with bitmap and message (use the option
@@ -58,11 +66,16 @@ proc tk_dialog {w title text bitmap default args} {
 
     option add *Dialog.msg.wrapLength 3i widgetDefault
     label $w.msg -justify left -text $text
-    catch {$w.msg configure -font \
-		-Adobe-Times-Medium-R-Normal--*-180-*-*-*-*-*-*
+    if {$tcl_platform(platform) == "macintosh"} {
+	$w.msg configure -font system
+    } else {
+	$w.msg configure -font {Times 18}
     }
     pack $w.msg -in $w.top -side right -expand 1 -fill both -padx 3m -pady 3m
     if {$bitmap != ""} {
+	if {($tcl_platform(platform) == "macintosh") && ($bitmap == "error")} {
+	    set bitmap "stop"
+	}
 	label $w.bitmap -bitmap $bitmap
 	pack $w.bitmap -in $w.top -side left -padx 3m -pady 3m
     }
@@ -73,13 +86,18 @@ proc tk_dialog {w title text bitmap default args} {
     foreach but $args {
 	button $w.button$i -text $but -command "set tkPriv(button) $i"
 	if {$i == $default} {
-	    frame $w.default -relief sunken -bd 1
-	    raise $w.button$i $w.default
-	    pack $w.default -in $w.bot -side left -expand 1 -padx 3m -pady 2m
-	    pack $w.button$i -in $w.default -padx 2m -pady 2m
+	    $w.button$i configure -default active
 	} else {
-	    pack $w.button$i -in $w.bot -side left -expand 1 \
-		    -padx 3m -pady 2m
+	    $w.button$i configure -default normal
+	}
+	grid $w.button$i -in $w.bot -column $i -row 0 -sticky ew -padx 10
+	grid columnconfigure $w.bot $i
+	# We boost the size of some Mac buttons for l&f
+	if {$tcl_platform(platform) == "macintosh"} {
+	    set tmp [string tolower $but]
+	    if {($tmp == "ok") || ($tmp == "cancel")} {
+		grid columnconfigure $w.bot $i -minsize [expr 59 + 20]
+	    }
 	}
 	incr i
     }

@@ -3,7 +3,7 @@
 # Initialization script normally executed in the interpreter for each
 # Tk-based application.  Arranges class bindings for widgets.
 #
-# SCCS: @(#) tk.tcl 1.87 96/09/30 09:28:02
+# SCCS: @(#) tk.tcl 1.98 97/10/28 15:21:04
 #
 # Copyright (c) 1992-1994 The Regents of the University of California.
 # Copyright (c) 1994-1996 Sun Microsystems, Inc.
@@ -13,14 +13,16 @@
 
 # Insist on running with compatible versions of Tcl and Tk.
 
-package require -exact Tk 4.2
-package require -exact Tcl 7.6
+package require -exact Tk 8.0
+package require -exact Tcl 8.0
 
 # Add Tk's directory to the end of the auto-load search path, if it
 # isn't already on the path:
 
-if {[lsearch -exact $auto_path $tk_library] < 0} {
-    lappend auto_path $tk_library
+if {[info exists auto_path]} {
+    if {[lsearch -exact $auto_path $tk_library] < 0} {
+	lappend auto_path $tk_library
+    }
 }
 
 # Turn off strict Motif look and feel as a default.
@@ -38,13 +40,23 @@ set tk_strictMotif 0
 # screen -		The name of the new screen.
 
 proc tkScreenChanged screen {
-    set disp [file rootname $screen]
+    set x [string last . $screen]
+    if {$x > 0} {
+	set disp [string range $screen 0 [expr $x - 1]]
+    } else {
+	set disp $screen
+    }
+
     uplevel #0 upvar #0 tkPriv.$disp tkPriv
     global tkPriv
+    global tcl_platform
+
     if [info exists tkPriv] {
 	set tkPriv(screen) $screen
 	return
     }
+    set tkPriv(activeMenu) {}
+    set tkPriv(activeItem) {}
     set tkPriv(afterId) {}
     set tkPriv(buttons) 0
     set tkPriv(buttonWindow) {}
@@ -54,14 +66,21 @@ proc tkScreenChanged screen {
     set tkPriv(initPos) {}
     set tkPriv(inMenubutton) {}
     set tkPriv(listboxPrev) {}
+    set tkPriv(menuBar) {}
     set tkPriv(mouseMoved) 0
     set tkPriv(oldGrab) {}
     set tkPriv(popup) {}
     set tkPriv(postedMb) {}
     set tkPriv(pressX) 0
     set tkPriv(pressY) 0
+    set tkPriv(prevPos) 0
     set tkPriv(screen) $screen
     set tkPriv(selectMode) char
+    if {[string compare $tcl_platform(platform) "unix"] == 0} {
+	set tkPriv(tearoff) 1
+    } else {
+	set tkPriv(tearoff) 0
+    }
     set tkPriv(window) {}
 }
 
@@ -123,21 +142,21 @@ switch $tcl_platform(platform) {
 # ----------------------------------------------------------------------
 
 if {$tcl_platform(platform) != "macintosh"} {
-#    source $tk_library/button.tcl
-#    source $tk_library/entry.tcl
-#    source $tk_library/listbox.tcl
-#    source $tk_library/menu.tcl
-#    source $tk_library/scale.tcl
-#    source $tk_library/scrlbar.tcl
-#    source $tk_library/text.tcl
+#   source $tk_library/button.tcl
+#   source $tk_library/entry.tcl
+#   source $tk_library/listbox.tcl
+#   source $tk_library/menu.tcl
+#   source $tk_library/scale.tcl
+#   source $tk_library/scrlbar.tcl
+#   source $tk_library/text.tcl
 }
 
 # ----------------------------------------------------------------------
 # Default bindings for keyboard traversal.
 # ----------------------------------------------------------------------
 
-bind all <Tab> {focus [tk_focusNext %W]}
-bind all <Shift-Tab> {focus [tk_focusPrev %W]}
+bind all <Tab> {tkTabToWindow [tk_focusNext %W]}
+bind all <Shift-Tab> {tkTabToWindow [tk_focusPrev %W]}
 
 # tkCancelRepeat --
 # This procedure is invoked to cancel an auto-repeat action described
@@ -152,4 +171,19 @@ proc tkCancelRepeat {} {
     global tkPriv
     after cancel $tkPriv(afterId)
     set tkPriv(afterId) {}
+}
+
+# tkTabToWindow --
+# This procedure moves the focus to the given widget.  If the widget
+# is an entry, it selects the entire contents of the widget.
+#
+# Arguments:
+# w - Window to which focus should be set.
+
+proc tkTabToWindow {w} {
+    if {"[winfo class $w]" == "Entry"} {
+	$w select range 0 end
+	$w icur end
+    }
+    focus $w
 }

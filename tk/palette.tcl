@@ -3,9 +3,9 @@
 # This file contains procedures that change the color palette used
 # by Tk.
 #
-# SCCS: @(#) palette.tcl 1.4 96/12/04 10:00:17
+# SCCS: @(#) palette.tcl 1.11 97/06/23 20:35:44
 #
-# Copyright (c) 1995 Sun Microsystems, Inc.
+# Copyright (c) 1995-1997 Sun Microsystems, Inc.
 #
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -23,7 +23,7 @@
 # option names and values.  The name for an option is the one used
 # for the option database, such as activeForeground, not -activeforeground.
 
-proc tk_setPalette args {
+proc tk_setPalette {args} {
     global tkPalette
 
     # Create an array that has the complete new palette.  If some colors
@@ -91,14 +91,37 @@ proc tk_setPalette args {
 	set new(selectColor) #b03060
     }
 
+    # let's make one of each of the widgets so we know what the 
+    # defaults are currently for this platform.
+    toplevel .___tk_set_palette
+    wm withdraw .___tk_set_palette
+    foreach q {button canvas checkbutton entry frame label listbox menubutton menu message \
+		 radiobutton scale scrollbar text} {
+	$q .___tk_set_palette.$q
+    }
+
     # Walk the widget hierarchy, recoloring all existing windows.
     # The option database must be set according to what we do here, 
     # but it breaks things if we set things in the database while 
     # we are changing colors...so, tkRecolorTree now returns the
     # option database changes that need to be made, and they
     # need to be evalled here to take effect.
+    # We have to walk the whole widget tree instead of just 
+    # relying on the widgets we've created above to do the work
+    # because different extensions may provide other kinds
+    # of widgets that we don't currently know about, so we'll
+    # walk the whole hierarchy just in case.
 
     eval [tkRecolorTree . new]
+
+    catch {destroy .___tk_set_palette}
+
+    # Change the option database so that future windows will get the
+    # same colors.
+
+    foreach option [array names new] {
+	option add *$option $new($option) widgetDefault
+    }
 
     # Save the options in the global variable tkPalette, for use the
     # next time we change the options.
@@ -139,10 +162,10 @@ proc tkRecolorTree {w colors} {
 	    }
 	    set chosencolor [winfo rgb . [lindex $value 4]]
 	    if {[string match $defaultcolor $chosencolor]} {
-		# Change the option database so that future windows will get the
-		# same colors.
-		
-		append result ";\noption add *[winfo class $w].$dbOption $c($dbOption)"
+		# Change the option database so that future windows will get
+		# the same colors.
+		append result ";\noption add [list \
+		    *[winfo class $w].$dbOption $c($dbOption) 60]"
 		$w configure $option $c($dbOption)
 	    }
 	}

@@ -11,7 +11,7 @@
 #	files by clicking on the file icons or by entering a filename
 #	in the "Filename:" entry.
 #
-# SCCS: @(#) tkfbox.tcl 1.4 96/08/28 22:17:21
+# SCCS: @(#) tkfbox.tcl 1.13 97/10/01 14:51:01
 #
 # Copyright (c) 1994-1996 Sun Microsystems, Inc.
 #
@@ -164,8 +164,15 @@ proc tkIconList_DeleteAll {w} {
     catch {unset data(rect)}
     catch {unset data(list)}
     catch {unset itemList}
+    set data(maxIW) 1
+    set data(maxIH) 1
+    set data(maxTW) 1
+    set data(maxTH) 1
     set data(numItems) 0
     set data(curItem)  {}
+    set data(noScroll) 1
+    $data(sbar) set 0.0 1.0
+    $data(canvas) xview moveto 0
 }
 
 # Adds an icon into the IconList with the designated image and text
@@ -176,7 +183,8 @@ proc tkIconList_Add {w image text} {
     upvar #0 $w:textList textList
 
     set iTag [$data(canvas) create image 0 0 -image $image -anchor nw]
-    set tTag [$data(canvas) create text  0 0 -text  $text  -anchor nw]
+    set tTag [$data(canvas) create text  0 0 -text  $text  -anchor nw \
+	-font $data(font)]
     set rTag [$data(canvas) create rect  0 0 0 0 -fill "" -outline ""]
     
     set b [$data(canvas) bbox $iTag]
@@ -222,30 +230,34 @@ proc tkIconList_Arrange {w} {
     set H [winfo height $data(canvas)]
     set pad [expr [$data(canvas) cget -highlightthickness] + \
 	[$data(canvas) cget -bd]]
+    if {$pad < 2} {
+	set pad 2
+    }
 
     incr W -[expr $pad*2]
     incr H -[expr $pad*2]
 
-    set dx [expr $data(maxIW) + $data(maxTW) + 4]
+    set dx [expr $data(maxIW) + $data(maxTW) + 8]
     if {$data(maxTH) > $data(maxIH)} {
 	set dy $data(maxTH)
     } else {
 	set dy $data(maxIH)
     }
+    incr dy 2
     set shift [expr $data(maxIW) + 4]
 
     set x [expr $pad * 2]
     set y [expr $pad * 1]
     set usedColumn 0
-    foreach pair $data(list) {
+    foreach sublist $data(list) {
 	set usedColumn 1
-	set iTag [lindex $pair 0]
-	set tTag [lindex $pair 1]
-	set rTag [lindex $pair 2]
-	set iW   [lindex $pair 3]
-	set iH   [lindex $pair 4]
-	set tW   [lindex $pair 5]
-	set tH   [lindex $pair 6]
+	set iTag [lindex $sublist 0]
+	set tTag [lindex $sublist 1]
+	set rTag [lindex $sublist 2]
+	set iW   [lindex $sublist 3]
+	set iH   [lindex $sublist 4]
+	set tW   [lindex $sublist 5]
+	set tH   [lindex $sublist 6]
 
 	set i_dy [expr ($dy - $iH)/2]
 	set t_dy [expr ($dy - $tH)/2]
@@ -256,7 +268,7 @@ proc tkIconList_Arrange {w} {
 	$data(canvas) coords $rTag $x $y [expr $x+$dx] [expr $y+$dy]
 
 	incr y $dy
-	if {[expr $y + $dy] >= $H} {
+	if {[expr $y + $dy] > $H} {
 	    set y [expr $pad * 1]
 	    incr x $dx
 	    set usedColumn 0
@@ -618,7 +630,7 @@ proc tkIconList_Reset {w} {
 #
 proc tkFDialog {args} {
     global tkPriv
-    set w .__tk_filedialog
+    set w __tk_filedialog
     upvar #0 $w data
 
     if ![string compare [lindex [info level 0] 0] tk_getOpenFile] {
@@ -628,6 +640,12 @@ proc tkFDialog {args} {
     }
 
     tkFDialog_Config $w $type $args
+
+    if {![string compare $data(-parent) .]} {
+        set w .$w
+    } else {
+        set w $data(-parent).$w
+    }
 
     # (re)create the dialog box if necessary
     #
@@ -651,12 +669,11 @@ proc tkFDialog {args} {
 	}
 	tkFDialog_SetFilter $w [lindex $data(-filetypes) 0]
 	$data(typeMenuBtn) config -state normal
-	$data(typeMenuLab) config -fg [$data(typeMenuBtn) cget -fg]
+	$data(typeMenuLab) config -state normal
     } else {
 	set data(filter) "*"
-	$data(typeMenuBtn) config -state disabled
-	$data(typeMenuLab) config -fg \
-	    [$data(typeMenuBtn) cget -disabledforeground]
+	$data(typeMenuBtn) config -state disabled -takefocus 0
+	$data(typeMenuLab) config -state disabled
     }
 
     tkFDialog_UpdateWhenIdle $w
@@ -771,35 +788,34 @@ proc tkFDialog_Config {w type argList} {
     }
 }
 
-
-# Get image files from the library directory.
-#
-proc tkFDialog_GetImgFile {w file} {
-    global tk_library env
-
-    if [info exists tk_library] {
-	if [file exists [file join $tk_library $file]] {
-	    return [file join $tk_library $file]
-	}
-    }
-    return $file
-}
-
 proc tkFDialog_Create {w} {
-    upvar #0 $w data
+    set dataName [lindex [split $w .] end]
+    upvar #0 $dataName data
     global tk_library
 
     toplevel $w -class TkFDialog
-
-    set updir @[tkFDialog_GetImgFile $w updir.xbm]
 
     # f1: the frame with the directory option menu
     #
     set f1 [frame $w.f1]
     label $f1.lab -text "Directory:" -under 0
     set data(dirMenuBtn) $f1.menu
-    set data(dirMenu) [tk_optionMenu $f1.menu [format %s(selectPath) $w] ""]
-    set data(upBtn) [button $f1.up -bitmap $updir]
+    set data(dirMenu) [tk_optionMenu $f1.menu [format %s(selectPath) $dataName] ""]
+    set data(upBtn) [button $f1.up]
+    if ![info exists tkPriv(updirImage)] {
+	set tkPriv(updirImage) [image create bitmap -data {
+#define updir_width 28
+#define updir_height 16
+static char updir_bits[] = {
+   0x00, 0x00, 0x00, 0x00, 0x80, 0x1f, 0x00, 0x00, 0x40, 0x20, 0x00, 0x00,
+   0x20, 0x40, 0x00, 0x00, 0xf0, 0xff, 0xff, 0x01, 0x10, 0x00, 0x00, 0x01,
+   0x10, 0x02, 0x00, 0x01, 0x10, 0x07, 0x00, 0x01, 0x90, 0x0f, 0x00, 0x01,
+   0x10, 0x02, 0x00, 0x01, 0x10, 0x02, 0x00, 0x01, 0x10, 0x02, 0x00, 0x01,
+   0x10, 0xfe, 0x07, 0x01, 0x10, 0x00, 0x00, 0x01, 0x10, 0x00, 0x00, 0x01,
+   0xf0, 0xff, 0xff, 0x01};}]
+    }
+    $data(upBtn) config -image $tkPriv(updirImage)
+
     $f1.menu config -takefocus 1 -highlightthickness 2
  
     pack $data(upBtn) -side right -padx 4 -fill both
@@ -814,15 +830,35 @@ proc tkFDialog_Create {w} {
 
     # f2: the frame with the OK button and the "file name" field
     #
-    set f2 [frame $w.f2]
-    label $f2.lab -text "File name:" -anchor e -width 14 -under 6
+    set f2 [frame $w.f2 -bd 0]
+    label $f2.lab -text "File name:" -anchor e -width 14 -under 5 -pady 0
     set data(ent) [entry $f2.ent]
+
+    # The font to use for the icons. The default Canvas font on Unix
+    # is just deviant.
+    global $w.icons
+    set $w.icons(font) [$data(ent) cget -font]
 
     # f3: the frame with the cancel button and the file types field
     #
-    set f3 [frame $w.f3]
-    set data(typeMenuLab) [label $f3.lab -text "Files of type:" \
-	-anchor e -width 14 -under 9]
+    set f3 [frame $w.f3 -bd 0]
+
+    # The "File of types:" label needs to be grayed-out when
+    # -filetypes are not specified. The label widget does not support
+    # grayed-out text on monochrome displays. Therefore, we have to
+    # use a button widget to emulate a label widget (by setting its
+    # bindtags)
+
+    set data(typeMenuLab) [button $f3.lab -text "Files of type:" \
+	-anchor e -width 14 -under 9 \
+	-bd [$f2.lab cget -bd] \
+	-highlightthickness [$f2.lab cget -highlightthickness] \
+	-relief [$f2.lab cget -relief] \
+	-padx [$f2.lab cget -padx] \
+	-pady [$f2.lab cget -pady]]
+    bindtags $data(typeMenuLab) [list $data(typeMenuLab) Label \
+	    [winfo toplevel $data(typeMenuLab)] all]
+
     set data(typeMenuBtn) [menubutton $f3.menu -indicatoron 1 -menu $f3.menu.m]
     set data(typeMenu) [menu $data(typeMenuBtn).m -tearoff 0]
     $data(typeMenuBtn) config -takefocus 1 -highlightthickness 2 \
@@ -830,14 +866,16 @@ proc tkFDialog_Create {w} {
 
     # the okBtn is created after the typeMenu so that the keyboard traversal
     # is in the right order
-    set data(okBtn)     [button $f2.ok     -text OK     -under 0 -width 6]
-    set data(cancelBtn) [button $f3.cancel -text Cancel -under 0 -width 6]
+    set data(okBtn)     [button $f2.ok     -text OK     -under 0 -width 6 \
+	-default active -pady 3]
+    set data(cancelBtn) [button $f3.cancel -text Cancel -under 0 -width 6\
+	-default normal -pady 3]
 
     # pack the widgets in f2 and f3
     #
     pack $data(okBtn) -side right -padx 4 -anchor e
     pack $f2.lab -side left -padx 4
-    pack $f2.ent -expand yes -fill both -padx 2 -pady 2
+    pack $f2.ent -expand yes -fill x -padx 2 -pady 0
     
     pack $data(cancelBtn) -side right -padx 4 -anchor w
     pack $data(typeMenuLab) -side left -padx 4
@@ -848,7 +886,7 @@ proc tkFDialog_Create {w} {
     pack $f1 -side top -fill x -pady 4
     pack $f3 -side bottom -fill x
     pack $f2 -side bottom -fill x
-    pack $data(icons) -expand yes -fill both -padx 4 -pady 2
+    pack $data(icons) -expand yes -fill both -padx 4 -pady 1
 
     # Set up the event handlers
     #
@@ -861,14 +899,18 @@ proc tkFDialog_Create {w} {
     trace variable data(selectPath) w "tkFDialog_SetPath $w"
 
     bind $w <Alt-d> "focus $data(dirMenuBtn)"
-    bind $w <Alt-t> "focus $data(typeMenuBtn)"
-    bind $w <Alt-n>  "focus $data(ent)"
+    bind $w <Alt-t> [format {
+	if {"[%s cget -state]" == "normal"} {
+	    focus %s
+	}
+    } $data(typeMenuBtn) $data(typeMenuBtn)]
+    bind $w <Alt-n> "focus $data(ent)"
     bind $w <KeyPress-Escape> "tkButtonInvoke $data(cancelBtn)"
+    bind $w <Alt-c> "tkButtonInvoke $data(cancelBtn)"
     bind $w <Alt-o> "tkFDialog_InvokeBtn $w Open"
     bind $w <Alt-s> "tkFDialog_InvokeBtn $w Save"
 
     wm protocol $w WM_DELETE_WINDOW "tkFDialog_CancelCmd $w"
-
 
     # Build the focus group for all the entries
     #
@@ -885,7 +927,7 @@ proc tkFDialog_Create {w} {
 #	due to multiple concurrent events.
 #
 proc tkFDialog_UpdateWhenIdle {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     if [info exists data(updateId)] {
 	return
@@ -901,7 +943,8 @@ proc tkFDialog_UpdateWhenIdle {w} {
 #	directories.
 #
 proc tkFDialog_Update {w} {
-    upvar #0 $w data
+    set dataName [winfo name $w]
+    upvar #0 $dataName data
     global tk_library tkPriv
 
     # This proc may be called within an idle handler. Make sure that the
@@ -914,10 +957,12 @@ proc tkFDialog_Update {w} {
 
     set TRANSPARENT_GIF_COLOR [$w cget -bg]
     if ![info exists tkPriv(folderImage)] {
-	set tkPriv(folderImage) \
-	    [image create photo -file [tkFDialog_GetImgFile $w folder.gif]]
-	set tkPriv(fileImage)  \
-	    [image create photo -file [tkFDialog_GetImgFile $w textfile.gif]]
+	set tkPriv(folderImage) [image create photo -data {
+R0lGODlhEAAMAKEAAAD//wAAAPD/gAAAACH5BAEAAAAALAAAAAAQAAwAAAIghINhyycvVFsB
+QtmS3rjaH1Hg141WaT5ouprt2HHcUgAAOw==}]
+	set tkPriv(fileImage)   [image create photo -data {
+R0lGODlhDAAMAKEAALLA3AAAAP//8wAAACH5BAEAAAAALAAAAAAMAAwAAAIgRI4Ha+IfWHsO
+rSASvJTGhnhcV3EJlo3kh53ltF5nAhQAOw==}]
     }
     set folder $tkPriv(folderImage)
     set file   $tkPriv(fileImage)
@@ -930,7 +975,7 @@ proc tkFDialog_Update {w} {
 	# should have been checked before tkFDialog_Update is called, so
 	# we normally won't come to here. Anyways, give an error and abort
 	# action.
-	tk_messageBox -type ok -message \
+	tk_messageBox -type ok -parent $data(-parent) -message \
 	    "Cannot change to the directory \"$data(selectPath)\".\nPermission denied."\
 	    -icon warning
 	cd $appPWD
@@ -950,14 +995,14 @@ proc tkFDialog_Update {w} {
 
     # Make the dir list
     #
-    foreach f [lsort -command tclSortNoCase [glob -nocomplain .* *]] {
+    foreach f [lsort -dictionary [glob -nocomplain .* *]] {
 	if ![string compare $f .] {
 	    continue
 	}
 	if ![string compare $f ..] {
 	    continue
 	}
-	if [file isdir $f] {
+	if [file isdir ./$f] {
 	    if ![info exists hasDoneDir($f)] {
 		tkIconList_Add $data(icons) $folder $f
 		set hasDoneDir($f) 1
@@ -967,16 +1012,16 @@ proc tkFDialog_Update {w} {
     # Make the file list
     #
     if ![string compare $data(filter) *] {
-	set files [lsort -command tclSortNoCase \
+	set files [lsort -dictionary \
 	    [glob -nocomplain .* *]]
     } else {
-	set files [lsort -command tclSortNoCase \
+	set files [lsort -dictionary \
 	    [eval glob -nocomplain $data(filter)]]
     }
 
     set top 0
     foreach f $files {
-	if ![file isdir $f] {
+	if ![file isdir ./$f] {
 	    if ![info exists hasDoneFile($f)] {
 		tkIconList_Add $data(icons) $file $f
 		set hasDoneFile($f) 1
@@ -996,7 +1041,7 @@ proc tkFDialog_Update {w} {
     }
 
     $data(dirMenu) delete 0 end
-    set var [format %s(selectPath) $w]
+    set var [format %s(selectPath) $dataName]
     foreach path $list {
 	$data(dirMenu) add command -label $path -command [list set $var $path]
     }
@@ -1016,7 +1061,7 @@ proc tkFDialog_Update {w} {
 # 	Sets data(selectPath) without invoking the trace procedure
 #
 proc tkFDialog_SetPathSilently {w path} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     trace vdelete  data(selectPath) w "tkFDialog_SetPath $w"
     set data(selectPath) $path
@@ -1027,15 +1072,14 @@ proc tkFDialog_SetPathSilently {w path} {
 # This proc gets called whenever data(selectPath) is set
 #
 proc tkFDialog_SetPath {w name1 name2 op} {
-    upvar #0 $w data
-
+    upvar #0 [winfo name $w] data
     tkFDialog_UpdateWhenIdle $w
 }
 
 # This proc gets called whenever data(filter) is set
 #
 proc tkFDialog_SetFilter {w type} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
     upvar \#0 $data(icons) icons
 
     set data(filter) [lindex $type 1]
@@ -1059,6 +1103,7 @@ proc tkFDialog_SetFilter {w type} {
 # Arguments:
 #	context:  the current directory you are in
 #	text:	  the text entered by the user
+#	defaultext: the default extension to add to files with no extension
 #
 # Return vaue:
 #	[list $flag $directory $file]
@@ -1077,12 +1122,26 @@ proc tkFDialog_SetFilter {w type} {
 #	directory may not be the same as context, because text may contain
 #	a subdirectory name
 #
-proc tkFDialogResolveFile {context text} {
+proc tkFDialogResolveFile {context text defaultext} {
 
     set appPWD [pwd]
-    set path [file join $context $text]
+
+    set path [tkFDialog_JoinFile $context $text]
+
+    if {[file ext $path] == ""} {
+	set path "$path$defaultext"
+    }
 
     if [catch {file exists $path}] {
+	return [list ERROR $path ""]
+    }
+
+    if [catch {if [file exists $path] {}}] {
+	# This "if" block can be safely removed if the following code returns
+	# an error. It currently (7/22/97) doesn't
+	#
+	#	file exists ~nonsuchuser
+	#
 	return [list ERROR $path ""]
     }
 
@@ -1140,7 +1199,7 @@ proc tkFDialogResolveFile {context text} {
 # entry box is the selection.
 #
 proc tkFDialog_EntFocusIn {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     if [string compare [$data(ent) get] ""] {
 	$data(ent) selection from 0
@@ -1160,7 +1219,7 @@ proc tkFDialog_EntFocusIn {w} {
 }
 
 proc tkFDialog_EntFocusOut {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     $data(ent) selection clear
 }
@@ -1169,14 +1228,15 @@ proc tkFDialog_EntFocusOut {w} {
 # Gets called when user presses Return in the "File name" entry.
 #
 proc tkFDialog_ActivateEnt {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     set text [string trim [$data(ent) get]]
-    set list [tkFDialogResolveFile $data(selectPath) $text]
+    set list [tkFDialogResolveFile $data(selectPath) $text \
+		  $data(-defaultextension)]
     set flag [lindex $list 0]
     set path [lindex $list 1]
     set file [lindex $list 2]
-    
+
     case $flag {
 	OK {
 	    if ![string compare $file ""] {
@@ -1195,7 +1255,7 @@ proc tkFDialog_ActivateEnt {w} {
 	}
 	FILE {
 	    if ![string compare $data(type) open] {
-		tk_messageBox -icon warning -type ok \
+		tk_messageBox -icon warning -type ok -parent $data(-parent) \
 		    -message "File \"[file join $path $file]\" does not exist."
 		$data(ent) select from 0
 		$data(ent) select to   end
@@ -1207,14 +1267,14 @@ proc tkFDialog_ActivateEnt {w} {
 	    }
 	}
 	PATH {
-	    tk_messageBox -icon warning -type ok \
+	    tk_messageBox -icon warning -type ok -parent $data(-parent) \
 		-message "Directory \"$path\" does not exist."
 	    $data(ent) select from 0
 	    $data(ent) select to   end
 	    $data(ent) icursor end
 	}
 	CHDIR {
-	    tk_messageBox -type ok -message \
+	    tk_messageBox -type ok -parent $data(-parent) -message \
 	       "Cannot change to the directory \"$path\".\nPermission denied."\
 		-icon warning
 	    $data(ent) select from 0
@@ -1222,7 +1282,7 @@ proc tkFDialog_ActivateEnt {w} {
 	    $data(ent) icursor end
 	}
 	ERROR {
-	    tk_messageBox -type ok -message \
+	    tk_messageBox -type ok -parent $data(-parent) -message \
 	       "Invalid file name \"$path\"."\
 		-icon warning
 	    $data(ent) select from 0
@@ -1235,7 +1295,7 @@ proc tkFDialog_ActivateEnt {w} {
 # Gets called when user presses the Alt-s or Alt-o keys.
 #
 proc tkFDialog_InvokeBtn {w key} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     if ![string compare [$data(okBtn) cget -text] $key] {
 	tkButtonInvoke $data(okBtn)
@@ -1245,21 +1305,34 @@ proc tkFDialog_InvokeBtn {w key} {
 # Gets called when user presses the "parent directory" button
 #
 proc tkFDialog_UpDirCmd {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     if [string compare $data(selectPath) "/"] {
 	set data(selectPath) [file dirname $data(selectPath)]
     }
 }
 
+# Join a file name to a path name. The "file join" command will break
+# if the filename begins with ~
+#
+proc tkFDialog_JoinFile {path file} {
+    if {[string match {~*} $file] && [file exists $path/$file]} {
+	return [file join $path ./$file]
+    } else {
+	return [file join $path $file]
+    }
+}
+
+
+
 # Gets called when user presses the "OK" button
 #
 proc tkFDialog_OkCmd {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     set text [tkIconList_Get $data(icons)]
     if [string compare $text ""] {
-	set file [file join $data(selectPath) $text]
+	set file [tkFDialog_JoinFile $data(selectPath) $text]
 	if [file isdirectory $file] {
 	    tkFDialog_ListInvoke $w $text
 	    return
@@ -1272,7 +1345,7 @@ proc tkFDialog_OkCmd {w} {
 # Gets called when user presses the "Cancel" button
 #
 proc tkFDialog_CancelCmd {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
     global tkPriv
 
     set tkPriv(selectFilePath) ""
@@ -1282,13 +1355,13 @@ proc tkFDialog_CancelCmd {w} {
 # keys, etc)
 #
 proc tkFDialog_ListBrowse {w text} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     if {$text == ""} {
 	return
     }
 
-    set file [file join $data(selectPath) $text]
+    set file [tkFDialog_JoinFile $data(selectPath) $text]
     if ![file isdirectory $file] {
 	$data(ent) delete 0 end
 	$data(ent) insert 0 $text
@@ -1307,17 +1380,18 @@ proc tkFDialog_ListBrowse {w text} {
 # Return key, etc)
 #
 proc tkFDialog_ListInvoke {w text} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     if {$text == ""} {
 	return
     }
 
-    set file [file join $data(selectPath) $text]
+    set file [tkFDialog_JoinFile $data(selectPath) $text]
+
     if [file isdirectory $file] {
 	set appPWD [pwd]
 	if [catch {cd $file}] {
-	    tk_messageBox -type ok -message \
+	    tk_messageBox -type ok -parent $data(-parent) -message \
 	       "Cannot change to the directory \"$file\".\nPermission denied."\
 		-icon warning
 	} else {
@@ -1339,18 +1413,19 @@ proc tkFDialog_ListInvoke {w text} {
 #	script that calls tk_getOpenFile or tk_getSaveFile
 #
 proc tkFDialog_Done {w {selectFilePath ""}} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
     global tkPriv
 
     if ![string compare $selectFilePath ""] {
-	set selectFilePath [file join $data(selectPath) $data(selectFile)]
+	set selectFilePath [tkFDialog_JoinFile $data(selectPath) \
+		$data(selectFile)]
 	set tkPriv(selectFile)     $data(selectFile)
 	set tkPriv(selectPath)     $data(selectPath)
 
 	if {[file exists $selectFilePath] && 
 	    ![string compare $data(type) save]} {
 
-	    set reply [tk_messageBox -icon warning -type yesno \
+	    set reply [tk_messageBox -icon warning -type yesno -parent $data(-parent) \
 	        -message "File \"$selectFilePath\" already exists.\nDo you want to overwrite it?"]
 	    if ![string compare $reply "no"] {
 		return

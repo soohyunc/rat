@@ -2,10 +2,10 @@
 #
 # This file contains procedures that implement tear-off menus.
 #
-# SCCS: @(#) tearoff.tcl 1.10 96/08/09 16:55:07
+# SCCS: @(#) tearoff.tcl 1.20 97/08/21 14:49:27
 #
 # Copyright (c) 1994 The Regents of the University of California.
-# Copyright (c) 1994-1995 Sun Microsystems, Inc.
+# Copyright (c) 1994-1997 Sun Microsystems, Inc.
 #
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,11 +16,14 @@
 # that is identical to the given menu (including nested submenus).
 # The new torn-off menu exists as a toplevel window managed by the
 # window manager.  The return value is the name of the new menu.
+# The window is created at the point specified by x and y
 #
 # Arguments:
 # w -			The menu to be torn-off (duplicated).
+# x -			x coordinate where window is created
+# y -			y coordinate where window is created
 
-proc tkTearOffMenu w {
+proc tkTearOffMenu {w {x 0} {y 0}} {
     # Find a unique name to use for the torn-off menu.  Find the first
     # ancestor of w that is a toplevel but not a menu, and use this as
     # the parent of the new menu.  This guarantees that the torn off
@@ -28,6 +31,13 @@ proc tkTearOffMenu w {
     # it a child of the ancestor, rather than a child of the menu, it
     # can continue to live even if the menu is deleted;  it will go
     # away when the toplevel goes away.
+
+    if {$x == 0} {
+    	set x [winfo rootx $w]
+    }
+    if {$y == 0} {
+    	set y [winfo rooty $w]
+    }
 
     set parent [winfo parent $w]
     while {([winfo toplevel $parent] != $parent)
@@ -44,25 +54,31 @@ proc tkTearOffMenu w {
 	}
     }
 
-    tkMenuDup $w $menu
-    $menu configure -transient 0
+    $w clone $menu tearoff
 
     # Pick a title for the new menu by looking at the parent of the
     # original: if the parent is a menu, then use the text of the active
     # entry.  If it's a menubutton then use its text.
 
     set parent [winfo parent $w]
-    switch [winfo class $parent] {
-	Menubutton {
-	    wm title $menu [$parent cget -text]
-	}
-	Menu {
-	    wm title $menu [$parent entrycget active -label]
+    if {[$menu cget -title] != ""} {
+    	wm title $menu [$menu cget -title]
+    } else {
+    	switch [winfo class $parent] {
+	    Menubutton {
+	    	wm title $menu [$parent cget -text]
+	    }
+	    Menu {
+	    	wm title $menu [$parent entrycget active -label]
+	    }
 	}
     }
 
-    $menu configure -tearoff 0
-    $menu post [winfo x $w] [winfo y $w]
+    $menu post $x $y
+
+    if {[winfo exists $menu] == 0} {
+	return ""
+    }
 
     # Set tkPriv(focus) on entry:  otherwise the focus will get lost
     # after keyboard invocation of a sub-menu (it will stay on the
@@ -79,6 +95,7 @@ proc tkTearOffMenu w {
     if {$cmd != ""} {
 	uplevel #0 $cmd $w $menu
     }
+    return $menu
 }
 
 # tkMenuDup --
@@ -91,10 +108,13 @@ proc tkTearOffMenu w {
 # dst -			Name to use for topmost menu in duplicate
 #			hierarchy.
 
-proc tkMenuDup {src dst} {
-    set cmd [list menu $dst]
+proc tkMenuDup {src dst type} {
+    set cmd [list menu $dst -type $type]
     foreach option [$src configure] {
 	if {[llength $option] == 2} {
+	    continue
+	}
+	if {[string compare [lindex $option 0] "-type"] == 0} {
 	    continue
 	}
 	lappend cmd [lindex $option 0] [lindex $option 4]
@@ -110,10 +130,6 @@ proc tkMenuDup {src dst} {
 	    lappend cmd [lindex $option 0] [lindex $option 4]
 	}
 	eval $cmd
-	if {[$src type $i] == "cascade"} {
-	    tkMenuDup [$src entrycget $i -menu] $dst.m$i
-	    $dst entryconfigure $i -menu $dst.m$i
-	}
     }
 
     # Duplicate the binding tags and bindings from the source menu.

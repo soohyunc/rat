@@ -3,7 +3,7 @@
 # This file defines the default bindings for Tk scrollbar widgets.
 # It also provides procedures that help in implementing the bindings.
 #
-# SCCS: @(#) scrlbar.tcl 1.23 96/04/16 11:42:23
+# SCCS: @(#) scrlbar.tcl 1.26 96/11/30 17:19:16
 #
 # Copyright (c) 1994 The Regents of the University of California.
 # Copyright (c) 1994-1996 Sun Microsystems, Inc.
@@ -17,7 +17,8 @@
 #-------------------------------------------------------------------------
 
 # Standard Motif bindings:
-
+if {($tcl_platform(platform) != "windows") &&
+    ($tcl_platform(platform) != "macintosh")} {
 bind Scrollbar <Enter> {
     if $tk_strictMotif {
 	set tkPriv(activeBg) [%W cget -activebackground]
@@ -28,8 +29,14 @@ bind Scrollbar <Enter> {
 bind Scrollbar <Motion> {
     %W activate [%W identify %x %y]
 }
+
+# The "info exists" command in the following binding handles the
+# situation where a Leave event occurs for a scrollbar without the Enter
+# event.  This seems to happen on some systems (such as Solaris 2.4) for
+# unknown reasons.
+
 bind Scrollbar <Leave> {
-    if $tk_strictMotif {
+    if {$tk_strictMotif && [info exists tkPriv(activeBg)]} {
 	%W config -activebackground $tkPriv(activeBg)
     }
     %W activate {}
@@ -122,7 +129,7 @@ bind Scrollbar <Home> {
 bind Scrollbar <End> {
     tkScrollToPos %W 1
 }
-
+}
 # tkScrollButtonDown --
 # This procedure is invoked when a button is pressed in a scrollbar.
 # It changes the way the scrollbar is displayed and takes actions

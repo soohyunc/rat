@@ -4,7 +4,7 @@
 #	Unix platform. This implementation is used only if the
 #	"tk_strictMotif" flag is set.
 #
-# SCCS: @(#) xmfbox.tcl 1.5 96/10/04 17:09:24
+# SCCS: @(#) xmfbox.tcl 1.6 97/10/01 15:06:07
 #
 # Copyright (c) 1996 Sun Microsystems, Inc.
 #
@@ -27,7 +27,7 @@
 #
 proc tkMotifFDialog {args} {
     global tkPriv
-    set w .__tk_filedialog
+    set w __tk_filedialog
     upvar #0 $w data
 
     if ![string compare [lindex [info level 0] 0] tk_getOpenFile] {
@@ -37,6 +37,12 @@ proc tkMotifFDialog {args} {
     }
 
     tkMotifFDialog_Config $w $type $args
+
+    if {![string compare $data(-parent) .]} {
+        set w .$w
+    } else {
+        set w $data(-parent).$w
+    }
 
     # (re)create the dialog box if necessary
     #
@@ -159,7 +165,8 @@ proc tkMotifFDialog_Config {w type argList} {
 }
 
 proc tkMotifFDialog_Create {w} {
-    upvar #0 $w data
+    set dataName [lindex [split $w .] end]
+    upvar #0 $dataName data
 
     # 1: Create the dialog ...
     #
@@ -276,7 +283,7 @@ proc tkMotifFDialog_MakeSList {w f label under cmd} {
 }
 
 proc tkMotifFDialog_BrowseDList {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     focus $data(dList)
     if ![string compare [$data(dList) curselection] ""] {
@@ -310,7 +317,7 @@ proc tkMotifFDialog_BrowseDList {w} {
 }
 
 proc tkMotifFDialog_ActivateDList {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     if ![string compare [$data(dList) curselection] ""] {
 	return
@@ -347,7 +354,7 @@ proc tkMotifFDialog_ActivateDList {w} {
 }
 
 proc tkMotifFDialog_BrowseFList {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     focus $data(fList)
     if ![string compare [$data(fList) curselection] ""] {
@@ -370,7 +377,7 @@ proc tkMotifFDialog_BrowseFList {w} {
 }
 
 proc tkMotifFDialog_ActivateFList {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     if ![string compare [$data(fList) curselection] ""] {
 	return
@@ -384,7 +391,7 @@ proc tkMotifFDialog_ActivateFList {w} {
 }
 
 proc tkMotifFDialog_ActivateFEnt {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     set list [tkMotifFDialog_InterpFilter $w]
     set data(selectPath) [lindex $list 0]
@@ -394,7 +401,7 @@ proc tkMotifFDialog_ActivateFEnt {w} {
 }
 
 proc tkMotifFDialog_InterpFilter {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     set text [string trim [$data(fEnt) get]]
     # Perform tilde substitution
@@ -424,7 +431,7 @@ proc tkMotifFDialog_InterpFilter {w} {
 
 proc tkMotifFDialog_ActivateSEnt {w} {
     global tkPriv
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     set selectFilePath [string trim [$data(sEnt) get]]
     set selectFile     [file tail    $selectFilePath]
@@ -481,13 +488,13 @@ proc tkMotifFDialog_ActivateSEnt {w} {
 
 
 proc tkMotifFDialog_OkCmd {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     tkMotifFDialog_ActivateSEnt $w
 }
 
 proc tkMotifFDialog_FilterCmd {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     tkMotifFDialog_ActivateFEnt $w
 }
@@ -510,7 +517,7 @@ proc tkMotifFDialog_CancelCmd {w} {
 #	"-selection" flag
 #
 proc tkMotifFDialog_Update {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     $data(fEnt) delete 0 end
     $data(fEnt) insert 0 [file join $data(selectPath) $data(filter)]
@@ -521,7 +528,7 @@ proc tkMotifFDialog_Update {w} {
 }
 
 proc tkMotifFDialog_LoadFiles {w} {
-    upvar #0 $w data
+    upvar #0 [winfo name $w] data
 
     $data(dList) delete 0 end
     $data(fList) delete 0 end

@@ -3,9 +3,9 @@
 #	Implements messageboxes for platforms that do not have native
 #	messagebox support.
 #
-# SCCS: @(#) msgbox.tcl 1.4 96/09/05 11:30:30
+# SCCS: @(#) msgbox.tcl 1.8 97/07/28 17:20:01
 #
-# Copyright (c) 1994-1996 Sun Microsystems, Inc.
+# Copyright (c) 1994-1997 Sun Microsystems, Inc.
 #
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -26,7 +26,7 @@
 #	See the user documentation for details on what tk_messageBox does.
 #
 proc tkMessageBox {args} {
-    global tkPriv 
+    global tkPriv tcl_platform
 
     set w tkPrivMsgBox
     upvar #0 $w data
@@ -50,6 +50,15 @@ proc tkMessageBox {args} {
 
     if {[lsearch {info warning error question} $data(-icon)] == -1} {
 	error "invalid icon \"$data(-icon)\", must be error, info, question or warning"
+    }
+    if {$tcl_platform(platform) == "macintosh"} {
+	if {$data(-icon) == "error"} {
+	    set data(-icon) "stop"
+	} elseif {$data(-icon) == "warning"} {
+	    set data(-icon) "caution"
+	} elseif {$data(-icon) == "info"} {
+	    set data(-icon) "note"
+	}
     }
 
     if ![winfo exists $data(-parent)] {
@@ -133,11 +142,18 @@ proc tkMessageBox {args} {
     wm iconname $w Dialog
     wm protocol $w WM_DELETE_WINDOW { }
     wm transient $w $data(-parent)
+    if {$tcl_platform(platform) == "macintosh"} {
+	unsupported1 style $w dBoxProc
+    }
 
-    frame $w.bot -relief raised -bd 1
+    frame $w.bot
     pack $w.bot -side bottom -fill both
-    frame $w.top -relief raised -bd 1
+    frame $w.top
     pack $w.top -side top -fill both -expand 1
+    if {$tcl_platform(platform) != "macintosh"} {
+	$w.bot configure -relief raised -bd 1
+	$w.top configure -relief raised -bd 1
+    }
 
     # 4. Fill the top part with bitmap and message (use the option
     # database for -wraplength so that it can be overridden by
@@ -171,14 +187,10 @@ proc tkMessageBox {args} {
 	eval button $w.$name $opts -command [list "set tkPriv(button) $name"]
 
 	if ![string compare $name $data(-default)] {
-	    frame $w.default -relief sunken -bd 1
-	    raise $w.$name $w.default
-	    pack $w.default -in $w.bot -side left -expand 1 -padx 3m -pady 2m
-	    pack $w.$name -in $w.default -padx 2m -pady 2m
-	} else {
-	    pack $w.$name -in $w.bot -side left -expand 1 \
-		-padx 3m -pady 2m
+	    $w.$name configure -default active
 	}
+	pack $w.$name -in $w.bot -side left -expand 1 \
+	    -padx 3m -pady 2m
 
 	# create the binding for the key accelerator, based on the underline
 	#

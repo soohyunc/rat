@@ -3,10 +3,10 @@
 # This file defines the default bindings for Tk entry widgets and provides
 # procedures that help in implementing those bindings.
 #
-# SCCS: @(#) entry.tcl 1.43 96/08/23 14:07:15
+# SCCS: @(#) entry.tcl 1.49 97/09/17 19:08:48
 #
 # Copyright (c) 1992-1994 The Regents of the University of California.
-# Copyright (c) 1994-1996 Sun Microsystems, Inc.
+# Copyright (c) 1994-1997 Sun Microsystems, Inc.
 #
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -33,24 +33,28 @@
 #-------------------------------------------------------------------------
 
 bind Entry <<Cut>> {
-    if {[selection own -displayof %W] == "%W"} {
+    if {![catch {set data [string range [%W get] [%W index sel.first]\
+		 [expr [%W index sel.last] - 1]]}]} {
 	clipboard clear -displayof %W
-	catch {
-	    clipboard append -displayof %W [selection get -displayof %W]
-	    %W delete sel.first sel.last
-	}
+	clipboard append -displayof %W $data
+	%W delete sel.first sel.last
     }
 }
 bind Entry <<Copy>> {
-    if {[selection own -displayof %W] == "%W"} {
+    if {![catch {set data [string range [%W get] [%W index sel.first]\
+		 [expr [%W index sel.last] - 1]]}]} {
 	clipboard clear -displayof %W
-	catch {
-	    clipboard append -displayof %W [selection get -displayof %W]
-	}
+	clipboard append -displayof %W $data
     }
 }
 bind Entry <<Paste>> {
+    global tcl_platform
     catch {
+	if {"$tcl_platform(platform)" != "unix"} {
+	    catch {
+		%W delete sel.first sel.last
+	    }
+	}
 	%W insert insert [selection get -displayof %W -selection CLIPBOARD]
 	tkEntrySeeInsert %W
     }
@@ -125,19 +129,17 @@ bind Entry <Shift-Right> {
     tkEntrySeeInsert %W
 }
 bind Entry <Control-Left> {
-    tkEntrySetCursor %W \
-	    [string wordstart [%W get] [expr [%W index insert] - 1]]
+    tkEntrySetCursor %W [tkEntryPreviousWord %W insert]
 }
 bind Entry <Control-Right> {
-    tkEntrySetCursor %W [string wordend [%W get] [%W index insert]]
+    tkEntrySetCursor %W [tkEntryNextWord %W insert]
 }
 bind Entry <Shift-Control-Left> {
-    tkEntryKeySelect %W \
-	    [string wordstart [%W get] [expr [%W index insert] - 1]]
+    tkEntryKeySelect %W [tkEntryPreviousWord %W insert]
     tkEntrySeeInsert %W
 }
 bind Entry <Shift-Control-Right> {
-    tkEntryKeySelect %W [string wordend [%W get] [%W index insert]]
+    tkEntryKeySelect %W [tkEntryNextWord %W insert]
     tkEntrySeeInsert %W
 }
 bind Entry <Home> {
@@ -184,7 +186,6 @@ bind Entry <Control-slash> {
 bind Entry <Control-backslash> {
     %W selection clear
 }
-
 bind Entry <KeyPress> {
     tkEntryInsert %W %A
 }
@@ -201,6 +202,9 @@ bind Entry <Escape> {# nothing}
 bind Entry <Return> {# nothing}
 bind Entry <KP_Enter> {# nothing}
 bind Entry <Tab> {# nothing}
+if {$tcl_platform(platform) == "macintosh"} {
+	bind Entry <Command-KeyPress> {# nothing}
+}
 
 bind Entry <Insert> {
     catch {tkEntryInsert %W [selection get -displayof %W]}
@@ -250,24 +254,27 @@ bind Entry <Control-t> {
 }
 bind Entry <Meta-b> {
     if !$tk_strictMotif {
-	tkEntrySetCursor %W \
-		[string wordstart [%W get] [expr [%W index insert] - 1]]
+	tkEntrySetCursor %W [tkEntryPreviousWord %W insert]
     }
 }
 bind Entry <Meta-d> {
     if !$tk_strictMotif {
-	%W delete insert [string wordend [%W get] [%W index insert]]
+	%W delete insert [tkEntryNextWord %W insert]
     }
 }
 bind Entry <Meta-f> {
     if !$tk_strictMotif {
-	tkEntrySetCursor %W [string wordend [%W get] [%W index insert]]
+	tkEntrySetCursor %W [tkEntryNextWord %W insert]
     }
 }
 bind Entry <Meta-BackSpace> {
     if !$tk_strictMotif {
-	%W delete [string wordstart [%W get] [expr [%W index insert] - 1]] \
-		insert
+	%W delete [tkEntryPreviousWord %W insert] insert
+    }
+}
+bind Entry <Meta-Delete> {
+    if !$tk_strictMotif {
+	%W delete [tkEntryPreviousWord %W insert] insert
     }
 }
 
@@ -361,12 +368,19 @@ proc tkEntryMouseSelect {w x} {
 	}
 	word {
 	    if {$cur < [$w index anchor]} {
-		$w selection range [string wordstart [$w get] $cur] \
-			[string wordend [$w get] [expr $anchor-1]]
+		set before [tcl_wordBreakBefore [$w get] $cur]
+		set after [tcl_wordBreakAfter [$w get] [expr $anchor-1]]
 	    } else {
-		$w selection range [string wordstart [$w get] $anchor] \
-			[string wordend [$w get] [expr $cur - 1]]
+		set before [tcl_wordBreakBefore [$w get] $anchor]
+		set after [tcl_wordBreakAfter [$w get] [expr $cur - 1]]
 	    }
+	    if {$before < 0} {
+		set before 0
+	    }
+	    if {$after < 0} {
+		set after end
+	    }
+	    $w selection range $before $after
 	}
 	line {
 	    $w selection range 0 end
@@ -542,3 +556,52 @@ proc tkEntryTranspose w {
     $w insert insert $new
     tkEntrySeeInsert $w
 }
+
+# tkEntryNextWord --
+# Returns the index of the next word position after a given position in the
+# entry.  The next word is platform dependent and may be either the next
+# end-of-word position or the next start-of-word position after the next
+# end-of-word position.
+#
+# Arguments:
+# w -		The entry window in which the cursor is to move.
+# start -	Position at which to start search.
+
+if {$tcl_platform(platform) == "windows"}  {
+    proc tkEntryNextWord {w start} {
+	set pos [tcl_endOfWord [$w get] [$w index $start]]
+	if {$pos >= 0} {
+	    set pos [tcl_startOfNextWord [$w get] $pos]
+	}
+	if {$pos < 0} {
+	    return end
+	}
+	return $pos
+    }
+} else {
+    proc tkEntryNextWord {w start} {
+	set pos [tcl_endOfWord [$w get] [$w index $start]]
+	if {$pos < 0} {
+	    return end
+	}
+	return $pos
+    }
+}
+
+# tkEntryPreviousWord --
+#
+# Returns the index of the previous word position before a given
+# position in the entry.
+#
+# Arguments:
+# w -		The entry window in which the cursor is to move.
+# start -	Position at which to start search.
+
+proc tkEntryPreviousWord {w start} {
+    set pos [tcl_startOfPreviousWord [$w get] [$w index $start]]
+    if {$pos < 0} {
+	return 0
+    }
+    return $pos
+}
+

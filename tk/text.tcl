@@ -3,10 +3,10 @@
 # This file defines the default bindings for Tk text widgets and provides
 # procedures that help in implementing the bindings.
 #
-# SCCS: @(#) text.tcl 1.46 96/08/23 14:07:32
+# SCCS: @(#) text.tcl 1.58 97/09/17 18:54:56
 #
 # Copyright (c) 1992-1994 The Regents of the University of California.
-# Copyright (c) 1994-1996 Sun Microsystems, Inc.
+# Copyright (c) 1994-1997 Sun Microsystems, Inc.
 #
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -116,10 +116,10 @@ bind Text <Shift-Down> {
     tkTextKeySelect %W [tkTextUpDownLine %W 1]
 }
 bind Text <Control-Left> {
-    tkTextSetCursor %W [%W index {insert - 1c wordstart}]
+    tkTextSetCursor %W [tkTextPrevPos %W insert tcl_startOfPreviousWord]
 }
 bind Text <Control-Right> {
-    tkTextSetCursor %W [%W index {insert wordend}]
+    tkTextSetCursor %W [tkTextNextWord %W insert]
 }
 bind Text <Control-Up> {
     tkTextSetCursor %W [tkTextPrevPara %W insert]
@@ -128,10 +128,10 @@ bind Text <Control-Down> {
     tkTextSetCursor %W [tkTextNextPara %W insert]
 }
 bind Text <Shift-Control-Left> {
-    tkTextKeySelect %W [%W index {insert - 1c wordstart}]
+    tkTextKeySelect %W [tkTextPrevPos %W insert tcl_startOfPreviousWord]
 }
 bind Text <Shift-Control-Right> {
-    tkTextKeySelect %W [%W index {insert wordend}]
+    tkTextKeySelect %W [tkTextNextWord %W insert]
 }
 bind Text <Shift-Control-Up> {
     tkTextKeySelect %W [tkTextPrevPara %W insert]
@@ -191,6 +191,7 @@ bind Text <Tab> {
 bind Text <Shift-Tab> {
     # Needed only to keep <Tab> binding from triggering;  doesn't
     # have to actually do anything.
+    break
 }
 bind Text <Control-Tab> {
     focus [tk_focusNext %W]
@@ -251,7 +252,7 @@ bind Text <<Paste>> {
     tk_textPaste %W
 }
 bind Text <<Clear>> {
-    %W delete sel.first sel.last
+    catch {%W delete sel.first sel.last}
 }
 bind Text <Insert> {
     catch {tkTextInsert %W [selection get -displayof %W]}
@@ -270,6 +271,9 @@ bind Text <Meta-KeyPress> {# nothing}
 bind Text <Control-KeyPress> {# nothing}
 bind Text <Escape> {# nothing}
 bind Text <KP_Enter> {# nothing}
+if {$tcl_platform(platform) == "macintosh"} {
+	bind Text <Command-KeyPress> {# nothing}
+}
 
 # Additional emacs-like bindings:
 
@@ -328,24 +332,28 @@ bind Text <Control-t> {
 	tkTextTranspose %W
     }
 }
+
+if {$tcl_platform(platform) != "windows"} {
 bind Text <Control-v> {
     if !$tk_strictMotif {
 	tkTextScrollPages %W 1
     }
 }
+}
+
 bind Text <Meta-b> {
     if !$tk_strictMotif {
-	tkTextSetCursor %W {insert - 1c wordstart}
+	tkTextSetCursor %W [tkTextPrevPos %W insert tcl_startOfPreviousWord]
     }
 }
 bind Text <Meta-d> {
     if !$tk_strictMotif {
-	%W delete insert {insert wordend}
+	%W delete insert [tkTextNextWord %W insert]
     }
 }
 bind Text <Meta-f> {
     if !$tk_strictMotif {
-	tkTextSetCursor %W {insert wordend}
+	tkTextSetCursor %W [tkTextNextWord %W insert]
     }
 }
 bind Text <Meta-less> {
@@ -360,13 +368,53 @@ bind Text <Meta-greater> {
 }
 bind Text <Meta-BackSpace> {
     if !$tk_strictMotif {
-	%W delete {insert -1c wordstart} insert
+	%W delete [tkTextPrevPos %W insert tcl_startOfPreviousWord] insert
     }
 }
 bind Text <Meta-Delete> {
     if !$tk_strictMotif {
-	%W delete {insert -1c wordstart} insert
+	%W delete [tkTextPrevPos %W insert tcl_startOfPreviousWord] insert
     }
+}
+
+# Macintosh only bindings:
+
+# if text black & highlight black -> text white, other text the same
+if {$tcl_platform(platform) == "macintosh"} {
+bind Text <FocusIn> {
+    %W tag configure sel -borderwidth 0
+    %W configure -selectbackground systemHighlight -selectforeground systemHighlightText
+}
+bind Text <FocusOut> {
+    %W tag configure sel -borderwidth 1
+    %W configure -selectbackground white -selectforeground black
+}
+bind Text <Option-Left> {
+    tkTextSetCursor %W [tkTextPrevPos %W insert tcl_startOfPreviousWord]
+}
+bind Text <Option-Right> {
+    tkTextSetCursor %W [tkTextNextWord %W insert]
+}
+bind Text <Option-Up> {
+    tkTextSetCursor %W [tkTextPrevPara %W insert]
+}
+bind Text <Option-Down> {
+    tkTextSetCursor %W [tkTextNextPara %W insert]
+}
+bind Text <Shift-Option-Left> {
+    tkTextKeySelect %W [tkTextPrevPos %W insert tcl_startOfPreviousWord]
+}
+bind Text <Shift-Option-Right> {
+    tkTextKeySelect %W [tkTextNextWord %W insert]
+}
+bind Text <Shift-Option-Up> {
+    tkTextKeySelect %W [tkTextPrevPara %W insert]
+}
+bind Text <Shift-Option-Down> {
+    tkTextKeySelect %W [tkTextNextPara %W insert]
+}
+
+# End of Mac only bindings
 }
 
 # A few additional bindings of my own.
@@ -455,7 +503,7 @@ proc tkTextButton1 {w x y} {
 # y - 		Mouse y position.
 
 proc tkTextSelectTo {w x y} {
-    global tkPriv
+    global tkPriv tcl_platform
 
     set cur [tkTextClosestGap $w $x $y]
     if [catch {$w index anchor}] {
@@ -477,11 +525,11 @@ proc tkTextSelectTo {w x y} {
 	}
 	word {
 	    if [$w compare $cur < anchor] {
-		set first [$w index "$cur wordstart"]
-		set last [$w index "anchor - 1c wordend"]
+		set first [tkTextPrevPos $w "$cur + 1c" tcl_wordBreakBefore]
+		set last [tkTextNextPos $w "anchor" tcl_wordBreakAfter]
 	    } else {
-		set first [$w index "anchor wordstart"]
-		set last [$w index "$cur -1c wordend"]
+		set first [tkTextPrevPos $w anchor tcl_wordBreakBefore]
+		set last [tkTextNextPos $w "$cur - 1c" tcl_wordBreakAfter]
 	    }
 	}
 	line {
@@ -495,6 +543,11 @@ proc tkTextSelectTo {w x y} {
 	}
     }
     if {$tkPriv(mouseMoved) || ($tkPriv(selectMode) != "char")} {
+	if {$tcl_platform(platform) != "unix" && [$w compare $cur < anchor]} {
+	    $w mark set insert $first
+	} else {
+	    $w mark set insert $last
+	}
 	$w tag remove sel 0.0 $first
 	$w tag add sel $first $last
 	$w tag remove sel $last end
@@ -847,11 +900,9 @@ proc tkTextTranspose w {
 # w -		Name of a text widget.
 
 proc tk_textCopy w {
-    if {[selection own -displayof $w] == "$w"} {
+    if {![catch {set data [$w get sel.first sel.last]}]} {
 	clipboard clear -displayof $w
-	catch {
-	    clipboard append -displayof $w [selection get -displayof $w]
-	}
+	clipboard append -displayof $w $data
     }
 }
 
@@ -864,12 +915,10 @@ proc tk_textCopy w {
 # w -		Name of a text widget.
 
 proc tk_textCut w {
-    if {[selection own -displayof $w] == "$w"} {
+    if {![catch {set data [$w get sel.first sel.last]}]} {
 	clipboard clear -displayof $w
-	catch {
-	    clipboard append -displayof $w [selection get -displayof $w]
-	    $w delete sel.first sel.last
-	}
+	clipboard append -displayof $w $data
+	$w delete sel.first sel.last
     }
 }
 
@@ -881,8 +930,81 @@ proc tk_textCut w {
 # w -		Name of a text widget.
 
 proc tk_textPaste w {
+    global tcl_platform
     catch {
-	$w insert insert [selection get -displayof $w \
-		-selection CLIPBOARD]
+	if {"$tcl_platform(platform)" != "unix"} {
+	    catch {
+		$w delete sel.first sel.last
+	    }
+	}
+	$w insert insert [selection get -displayof $w -selection CLIPBOARD]
     }
 }
+
+# tkTextNextWord --
+# Returns the index of the next word position after a given position in the
+# text.  The next word is platform dependent and may be either the next
+# end-of-word position or the next start-of-word position after the next
+# end-of-word position.
+#
+# Arguments:
+# w -		The text window in which the cursor is to move.
+# start -	Position at which to start search.
+
+if {$tcl_platform(platform) == "windows"}  {
+    proc tkTextNextWord {w start} {
+	tkTextNextPos $w [tkTextNextPos $w $start tcl_endOfWord] \
+	    tcl_startOfNextWord
+    }
+} else {
+    proc tkTextNextWord {w start} {
+	tkTextNextPos $w $start tcl_endOfWord
+    }
+}
+
+# tkTextNextPos --
+# Returns the index of the next position after the given starting
+# position in the text as computed by a specified function.
+#
+# Arguments:
+# w -		The text window in which the cursor is to move.
+# start -	Position at which to start search.
+# op -		Function to use to find next position.
+
+proc tkTextNextPos {w start op} {
+    set text ""
+    set cur $start
+    while {[$w compare $cur < end]} {
+	set text "$text[$w get $cur "$cur lineend + 1c"]"
+	set pos [$op $text 0]
+	if {$pos >= 0} {
+	    return [$w index "$start + $pos c"]
+	}
+	set cur [$w index "$cur lineend +1c"]
+    }
+    return end
+}
+
+# tkTextPrevPos --
+# Returns the index of the previous position before the given starting
+# position in the text as computed by a specified function.
+#
+# Arguments:
+# w -		The text window in which the cursor is to move.
+# start -	Position at which to start search.
+# op -		Function to use to find next position.
+
+proc tkTextPrevPos {w start op} {
+    set text ""
+    set cur $start
+    while {[$w compare $cur > 0.0]} {
+	set text "[$w get "$cur linestart - 1c" $cur]$text"
+	set pos [$op $text end]
+	if {$pos >= 0} {
+	    return [$w index "$cur linestart - 1c + $pos c"]
+	}
+	set cur [$w index "$cur linestart - 1c"]
+    }
+    return 0.0
+}
+

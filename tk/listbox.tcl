@@ -3,7 +3,7 @@
 # This file defines the default bindings for Tk listbox widgets
 # and provides procedures that help in implementing those bindings.
 #
-# SCCS: @(#) listbox.tcl 1.19 96/09/17 13:43:19
+# SCCS: @(#) listbox.tcl 1.21 97/06/10 17:13:55
 #
 # Copyright (c) 1994 The Regents of the University of California.
 # Copyright (c) 1994-1995 Sun Microsystems, Inc.
@@ -261,9 +261,14 @@ proc tkListboxMotion {w el} {
 #		one under the pointer).  Must be in numerical form.
 
 proc tkListboxBeginExtend {w el} {
-    if {([$w cget -selectmode] == "extended")
-	    && [$w selection includes anchor]} {
-	tkListboxMotion $w $el
+    if {[$w cget -selectmode] == "extended"} {
+	if {[$w selection includes anchor]} {
+	    tkListboxMotion $w $el
+	} else {
+	    # No selection yet; simulate the begin-select operation.
+
+	    tkListboxBeginSelect $w $el
+	}
     }
 }
 
