@@ -70,7 +70,6 @@ int              source_add_packet     (struct s_source *src,
 
 int              source_process        (struct s_source *src,
                                         u_int32          now);
-                                        
 
 u_int32          source_buffer_length_ms (struct s_source *src);
 

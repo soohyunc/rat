@@ -45,32 +45,41 @@
 
 struct s_coded_unit;
 
-typedef struct s_converter {
-        struct s_pcm_converter *pcm_conv;
-        struct s_converter_fmt *conv_fmt;
-        char                   *data;
-        int                     data_len;
-} converter_t;
+typedef struct s_converter_fmt {
+        u_int16 from_channels;
+        u_int16 from_freq;
+        u_int16 to_channels;
+        u_int16 to_freq;
+} converter_fmt_t;
+
+typedef u_int32 converter_id_t;
+
+typedef struct {
+        converter_id_t id;
+        const char*    name;
+} converter_details_t;
+
+struct  s_converter;
 
 /* Application pcm conversion functions */
 void         converters_init(void);
 void         converters_free(void);
 
 /* Participant specific pcm conversion functions */
-converter_t* converter_create  (struct s_pcm_converter *pc, 
-                                int                     from_channels, 
-                                int                     from_freq, 
-                                int                     to_channels, 
-                                int                     to_freq);
+struct s_converter* converter_create  (converter_id_t   id, 
+                                       converter_fmt_t *cf);
 
-int           converter_format  (converter_t *c, 
-                                 struct s_coded_unit *in, 
-                                 struct s_coded_unit *out);
-void          converter_destroy (converter_t **c);
+const converter_fmt_t*          
+             converter_get_format(struct s_converter  *c);
+
+int          converter_process   (struct s_converter  *c, 
+                                  struct s_coded_unit *in, 
+                                  struct s_coded_unit *out);
+void         converter_destroy   (struct s_converter **c);
 
 /* Converter selection functions */
-struct s_pcm_converter* converter_get_byname(char *name);
-int                     converter_get_count(void);
-const char*             converter_get_name(int idx);
+u_int32 converter_get_count(void);
+int     converter_get_details(u_int32              idx, 
+                              converter_details_t *cd);
 
 #endif /* _convert_h_ */

@@ -45,13 +45,19 @@
 #include "memory.h"
 #include "util.h"
 #include "convert.h"
+#include "debug.h"
 
-typedef struct s_converter_fmt{
-        u_int16 from_channels;
-        u_int16 from_freq;
-        u_int16 to_channels;
-        u_int16 to_freq;
-} converter_fmt_t;
+typedef struct s_converter {
+        struct s_pcm_converter *pcm_conv;
+        struct s_converter_fmt *conv_fmt;
+        char                   *data;
+        int                     data_len;
+} converter_t;
+
+/* Index to converter_id_t mapping macros */
+
+#define CONVERTER_ID_TO_IDX(x) ((x+17) << 2)
+#define IDX_TO_CONVERTER_ID(x) (((x)>>2) - 17)
 
 /* Mono-Stereo Conversion ****************************************************/ 
 /* Note src_len is length block in number of samples i.e
@@ -1164,7 +1170,6 @@ typedef void (*pcm_conv_do_f)   (converter_t *c, sample* src_buf, int src_len, s
 typedef void (*pcm_conv_free_f) (converter_t *c);
 
 typedef struct s_pcm_converter{
-        u_char  id;
         char    *name;
         u_char  enabled;
         pcm_startup     cf_start;
@@ -1175,12 +1180,6 @@ typedef struct s_pcm_converter{
         int      data_len;
 } pcm_converter_t;
 
-#define CONVERT_NONE     255
-#define CONVERT_PLATFORM 1
-#define CONVERT_SRF      2
-#define CONVERT_LINEAR   3
-#define CONVERT_EXTRA    4
-
 /* In this table of converters the platform specific converters should go at the
  * beginning, before the default (and worst) linear interpolation conversion.  The
  * intension is to have a mechanism which enables/disables more complex default schemes
@@ -1189,7 +1188,7 @@ typedef struct s_pcm_converter{
 
 pcm_converter_t converter_tbl[] = {
 #ifdef WIN32
-        {CONVERT_PLATFORM, 
+        {
          "Microsoft Converter", 
          FALSE, 
          acm_conv_load, 
@@ -1197,10 +1196,11 @@ pcm_converter_t converter_tbl[] = {
          acm_conv_init, 
          acm_convert,  
          acm_conv_free, 
-         sizeof(HACMSTREAM)},
+         sizeof(HACMSTREAM)
+        },
 #endif
 #ifdef SRF_GOOD
-        {CONVERT_SRF, 
+        {
          "High Quality",
          TRUE,
          srf_tbl_init,
@@ -1208,9 +1208,10 @@ pcm_converter_t converter_tbl[] = {
          srf_init,
          srf_convert,
          srf_free,
-         2 * sizeof(srf_state_t)},
+         2 * sizeof(srf_state_t)
+        },
 #endif /* SRF_GOOD */
-        {CONVERT_LINEAR,
+        {
          "Intermediate Quality",
          TRUE,  
          NULL,
@@ -1218,8 +1219,9 @@ pcm_converter_t converter_tbl[] = {
          linear_init,
          linear_convert,
          linear_free,
-         2 * sizeof(li_state_t)},
-        {CONVERT_EXTRA,
+         2 * sizeof(li_state_t)
+        },
+        {
          "Low Quality",
          TRUE,
          NULL,
@@ -1227,8 +1229,9 @@ pcm_converter_t converter_tbl[] = {
          extra_init,
          extra_convert,
          extra_free,
-         2 * sizeof(extra_state_t)},
-        {CONVERT_NONE,
+         2 * sizeof(extra_state_t)
+        },
+        {
          "None",
          TRUE,
          NULL,
@@ -1236,17 +1239,35 @@ pcm_converter_t converter_tbl[] = {
          NULL,
          NULL,
          NULL,
-         0}
+         0
+        }
 };
 
+#define NUM_CONVERTERS sizeof(converter_tbl)/sizeof(pcm_converter_t)
+#define CONVERTER_NONE (NUM_CONVERTERS - 1)
+
 converter_t *
-converter_create(pcm_converter_t *pc, int from_channels, int from_freq, int to_channels, int to_freq)
+converter_create(converter_id_t   cid, 
+                 converter_fmt_t *in_fmt)
 {
         converter_t     *c  = NULL;
         converter_fmt_t *cf = NULL;
+        pcm_converter_t *pc;
+        u_int32          tbl_idx;
         
-        if (pc == NULL || pc->id == CONVERT_NONE) return NULL;
+        tbl_idx = CONVERTER_ID_TO_IDX(cid);
+
+        if (tbl_idx >= NUM_CONVERTERS) {
+                debug_msg("Converter ID invalid\n");
+                return NULL;
+        }
+
+        if (tbl_idx == CONVERTER_NONE) return NULL;
+
+        pc = converter_tbl + tbl_idx;
         
+        assert(in_fmt != NULL);
+
         c  = (converter_t*)xmalloc(sizeof(converter_t));
 
         if (c == NULL) {
@@ -1260,10 +1281,7 @@ converter_create(pcm_converter_t *pc, int from_channels, int from_freq, int to_c
                 return NULL;
         }
 
-        cf->from_channels = from_channels;
-        cf->from_freq     = from_freq;
-        cf->to_channels   = to_channels;
-        cf->to_freq       = to_freq;
+        memcpy(cf, in_fmt, sizeof(converter_fmt_t));
 
         c->pcm_conv = pc;
         c->conv_fmt = cf;
@@ -1298,8 +1316,11 @@ converter_destroy(converter_t **c)
 void         
 converters_init()
 {
-        pcm_converter_t *pc = converter_tbl;
-        while(pc->id != CONVERT_NONE) {
+        pcm_converter_t *pc, *end;
+
+        pc  = converter_tbl;
+        end = converter_tbl + NUM_CONVERTERS;
+        while(pc != end) {
                 if (pc->cf_start) pc->enabled = pc->cf_start();
                 pc++;
         }
@@ -1308,59 +1329,39 @@ converters_init()
 void
 converters_free()
 {
-        pcm_converter_t *pc = converter_tbl;
-        while(pc->id != CONVERT_NONE) {
+        pcm_converter_t *pc, *end;
+
+        pc  = converter_tbl;
+        end = converter_tbl + NUM_CONVERTERS;
+        while(pc != end) {
                 if (pc->cf_clean) pc->cf_clean();
                 pc++;
         }
 }
 
-pcm_converter_t *
-converter_get_byname(char *name)
+int
+converter_get_details(u_int32 idx, converter_details_t *cd)
 {
-        pcm_converter_t *pc;
-
-        pc = converter_tbl;
-        while(strcmp(name, pc->name) && pc->id != CONVERT_NONE) pc++;
-        return pc;
+        if (idx < NUM_CONVERTERS) {
+                cd->id   = IDX_TO_CONVERTER_ID(idx);
+                cd->name = converter_tbl[idx].name;
+                return TRUE;
+        }
+        debug_msg("Getting invalid converter details\n");
+        return FALSE;
 }
 
-int 
+u_int32 
 converter_get_count()
 {
-        int count = 1; /* convert_none always there */
-        pcm_converter_t *pc = converter_tbl;
-
-        do {
-                if (pc->enabled) count ++;
-                pc++;
-        } while (pc->id != CONVERT_NONE);
-
-        return count;
-}
-
-const char *
-converter_get_name(int idx)
-{
-       pcm_converter_t *pc = converter_tbl;
-       int count = 0;
-
-       do {
-               if (pc->enabled) {
-                       if (count == idx) break;
-                       count ++;
-               }
-               pc++;
-       } while (pc->id != CONVERT_NONE);
-       
-       return pc->name;
+        return NUM_CONVERTERS;
 }
 
 #include "codec_types.h"
 #include "codec.h"
 
 int
-converter_format (converter_t *c, coded_unit *in, coded_unit *out)
+converter_process (converter_t *c, coded_unit *in, coded_unit *out)
 {
         converter_fmt_t *cf;
         u_int32          n_in, n_out;
@@ -1392,120 +1393,9 @@ converter_format (converter_t *c, coded_unit *in, coded_unit *out)
         return TRUE;
 }
 
-#ifdef DEBUG_CONVERT
-
-#define SRC_LEN 160
-
-/* a.out <converter idx> <input rate> <input channels> <output rate> <output channels> */
-static pcm_converter_t *
-converter_get_by_idx(int idx)
+const converter_fmt_t*
+converter_get_format (converter_t *c)
 {
-        char buf[255], *pb;
-        converter_get_names(buf, 255);
-        pb = strtok(buf, "/");
-        while(idx > 0) {
-                pb = strtok(NULL, "/");
-                idx--;
-        }
-        assert(pb);
-        return converter_get_byname(pb);
+        assert(c != NULL);
+        return c->conv_fmt;
 }
-
-static void 
-fill_data(sample *buf, int buf_len, int channels) 
-{
-        register int i, j, r;
-        for(i = 0; i < buf_len; i ++) {
-                r = (32767.0 * sin(2* M_PI * i / SRC_LEN));
-                for(j = 0; j < channels; j++) {
-                        *buf++ = r;
-                }
-        }
-}
-
-void 
-display_data(sample *buf, int buf_len, int channels) 
-{
-        int i;
-
-        switch(channels) {
-        case 1:
-                for(i = 0; i < buf_len; i++) {
-                        printf("% 3d % 5d             \n", i, buf[i]);
-                }
-                break;
-        case 2:
-                buf_len /= channels;
-                for(i = 0; i < buf_len; i++) {
-                        printf("% 3d % 5d % 5d\n", i, buf[2*i], buf[2*i + 1]);
-                }
-                break;
-        }
-        printf("\n");
-}
-
-void 
-display_time_diff(struct timeval *t1, struct timeval *t2)
-{
-        float diff = (t2->tv_sec  - t1->tv_sec)*1.0 + (t2->tv_usec - t1->tv_usec)*1e-6;
-        printf("Took %f seconds\n", diff);
-}
-
-
-int 
-main(int argc, char **argv)
-{
-        rx_queue_element_struct *rx = NULL;
-        pcm_converter_t *pc = NULL;
-        converter_t     *c = NULL;
-        struct rusage r1, r2;
-
-        int idx, in_rate, in_channels, out_rate, out_channels;
-
-        assert(argc == 6);
-        idx          = atoi(argv[1]);
-        in_rate      = atoi(argv[2]);
-        in_channels  = atoi(argv[3]);
-        out_rate     = atoi(argv[4]);
-        out_channels = atoi(argv[5]);
-        assert(in_rate  % 8000 == 0);
-        assert(out_rate % 8000 == 0);
-        assert(in_channels  == 1 || in_channels  == 2);
-        assert(out_channels == 1 || out_channels == 2);
-
-        converters_init();
-
-        pc = converter_get_by_idx(idx);
-        
-        assert(pc);
-        printf("# Converter %s\n", pc->name);
-        c = converter_create(pc, in_channels, in_rate, out_channels, out_rate);
-
-        rx = (rx_queue_element_struct*)xmalloc(sizeof(rx_queue_element_struct));
-        memset(rx,0,sizeof(rx_queue_element_struct));
-
-        rx->native_data[0] = (sample*)block_alloc(sizeof(sample) * in_channels * SRC_LEN);
-        rx->native_size[0] = in_channels * SRC_LEN * sizeof(sample);
-        rx->native_count   = 1;
-        fill_data(rx->native_data[0], SRC_LEN,in_channels);
-        getrusage(RUSAGE_SELF,&r1);
-        converter_format(c, rx);
-        getrusage(RUSAGE_SELF,&r2);
-        printf("#");display_time_diff(&r1.ru_utime, &r2.ru_utime);
-
-        display_data(rx->native_data[0], rx->native_size[0] / sizeof(sample), in_channels);
-        display_data(rx->native_data[1], rx->native_size[1] / sizeof(sample), out_channels);
-        
-        block_free(rx->native_data[0], rx->native_size[0]);
-        block_free(rx->native_data[1], rx->native_size[1]);
-        xfree(rx);
-
-        converter_destroy(&c);
-        converters_free();
-
-        return 1;
-}
-
-#endif /* DEBUG_CONVERT */
-
-

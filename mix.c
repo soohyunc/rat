@@ -413,7 +413,6 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 	mix_get_audio(ms, new_cushion_size * ms->channels, bufp);
 }
 
-
 #define POWER_METER_SAMPLES 160
 
 void

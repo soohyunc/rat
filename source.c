@@ -47,6 +47,7 @@
 #include "codec_types.h"
 #include "codec.h"
 #include "codec_state.h"
+#include "convert.h"
 #include "timers.h"
 
 #include "debug.h"
@@ -55,6 +56,8 @@
 typedef struct s_source {
         struct s_source            *next;
         struct s_source            *prev;
+        u_int32                     age;
+        u_int32                     last_played;
         struct s_rtcp_dbentry      *dbe;
         struct s_channel_state     *channel_state;
         struct s_codec_state_store *codec_states;
@@ -241,6 +244,15 @@ source_add_packet (source *src,
         assert(pckt != NULL);
         assert(data_start != NULL);
 
+        if (src->age != 0 &&
+            ts_gt(src->last_played, playout)) {
+                debug_msg("Packet late (%u > %u)- discarding\n", 
+                          src->last_played,
+                          playout);
+                /* Up src->dbe jitter toged */
+                return FALSE;
+        }
+
         if (channel_data_create(&cd, 1) == 0) {
                 return FALSE;
         }
@@ -276,7 +288,7 @@ source_add_packet (source *src,
 }
 
 int
-source_process(source *src, u_int32 render_3d, u_int32 now)
+source_process(source *src, u_int32 now)
 {
         media_data  *md;
         coded_unit  *cu;
@@ -294,7 +306,7 @@ source_process(source *src, u_int32 render_3d, u_int32 now)
                 assert(md != NULL);
                 assert(md_len == sizeof(media_data));
 
-                if (src->age != 0 && playout != src->last_playout + src->last_unit_dur) {
+                if (src->age != 0 && playout != src->last_played + src->last_unit_dur) {
                         /* Repair necessary 
                          * - create unit at src->last_playout + src->last_unit_dur;
                          * - write repair data
@@ -350,7 +362,7 @@ source_process(source *src, u_int32 render_3d, u_int32 now)
                         md->nrep++;
                 }
 
-                if () {
+                if (src->converter) {
                         /* convert frame */
                         
                 }
@@ -358,6 +370,9 @@ source_process(source *src, u_int32 render_3d, u_int32 now)
                 /* write to mixer */
 
         }
+
+        src->age++;
+        src->last_played = now;
         
         return TRUE;
 }
