@@ -375,8 +375,6 @@ audio_device_reconfigure(session_struct *sp)
                 audio_device_take(sp);
                 channel_set_coder(sp, sp->encodings[0]);
         }
-
-        ui_update(sp);
 }
 
 

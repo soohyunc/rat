@@ -408,7 +408,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 					debug_msg("Configure interleaver %d %s\n", pt, argv[i+1]);
 					config_channel_coder(sp[s], pt, argv[i+1]);
 					channel_set_coder(sp[s], pt);
-					ui_update_interleaving(sp[s]);
+					ui_update_channel(sp[s]);
 				} else {
 					printf("Can't determine interleaver payload type\n");
 					abort();
@@ -425,9 +425,8 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 				debug_msg("Configure redundancy %s\n", cfg);
                             	config_channel_coder(sp[s], pt, cfg);
 				channel_set_coder(sp[s], pt);
-				ui_update_channel(sp[s]);
 				ui_update_primary(sp[s]);
-				ui_update_redundancy(sp[s]);
+				ui_update_channel(sp[s]);
                             	i++;
                         }
 			if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
@@ -483,7 +482,6 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 					channel_set_coder(sp[s], red_pt);
                                 }
 				ui_update_primary(sp[s]);
-				ui_update_redundancy(sp[s]);
 				ui_update_channel(sp[s]);
 				i++;
 			}

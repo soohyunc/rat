@@ -381,34 +381,6 @@ ui_repair(session_struct *sp)
 }
 
 void
-ui_update_interleaving(session_struct *sp)
-{
-        int pt, isep, iu;
-        char buf[128], *sep=NULL, *units = NULL, *dummy, args[80];
-
-        pt = get_cc_pt(sp,"INTERLEAVER");
-        if (pt != -1) {
-                query_channel_coder(sp, pt, buf, 128);
-                dummy  = strtok(buf,"/");
-                units  = strtok(NULL,"/");
-                sep    = strtok(NULL,"/");
-        } else {
-                debug_msg("Could not find interleaving channel coder!\n");
-        }
-        
-        if (units != NULL && sep != NULL) {
-                iu   = atoi(units);
-                isep = atoi(sep);
-        } else {
-                iu   = 4;
-                isep = 4;
-        }
-
-        sprintf(args,"%d %d",iu, isep);
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.interleaving", args, TRUE);        
-}
-
-void
 ui_update_frequency(session_struct *sp)
 {
 	codec_t *pcp;
@@ -456,7 +428,35 @@ ui_update_primary(session_struct *sp)
         xfree(mbes);
 }
 
-void
+static void
+ui_update_interleaving(session_struct *sp)
+{
+        int pt, isep, iu;
+        char buf[128], *sep=NULL, *units = NULL, *dummy, args[80];
+
+        pt = get_cc_pt(sp,"INTERLEAVER");
+        if (pt != -1) {
+                query_channel_coder(sp, pt, buf, 128);
+                dummy  = strtok(buf,"/");
+                units  = strtok(NULL,"/");
+                sep    = strtok(NULL,"/");
+        } else {
+                debug_msg("Could not find interleaving channel coder!\n");
+        }
+        
+        if (units != NULL && sep != NULL) {
+                iu   = atoi(units);
+                isep = atoi(sep);
+        } else {
+                iu   = 4;
+                isep = 4;
+        }
+
+        sprintf(args,"\"interleaved\" %d %d",iu, isep);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.coding", args, TRUE);        
+}
+
+static void
 ui_update_redundancy(session_struct *sp)
 {
         int  pt;
@@ -494,10 +494,10 @@ ui_update_redundancy(session_struct *sp)
 
 	codec_name = mbus_encode_str(codec_name);
 
-	args = (char *) xmalloc(strlen(codec_name) + 4);
-        sprintf(args,"%s %2d", codec_name, ioff);
-        assert(strlen(args) < (strlen(codec_name) + 4));
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.redundancy", args, TRUE);
+	args = (char *) xmalloc(strlen(codec_name) + 16);
+        sprintf(args,"\"redundant\" %s %2d", codec_name, ioff);
+        assert(strlen(args) < (strlen(codec_name) + 16));
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.coding", args, TRUE);
 	xfree(codec_name);
         xfree(args);
 }
@@ -506,27 +506,18 @@ void
 ui_update_channel(session_struct *sp) 
 {
         cc_coder_t *ccp;
-        char       *mbes = NULL;
 
         ccp = get_channel_coder(sp->cc_encoding);
-        assert(ccp != NULL);
-        switch(ccp->name[0]) {
-        case 'V':
-                mbes = mbus_encode_str("none");
-                break;
-        case 'R':
-                mbes = mbus_encode_str("redundant");
-                break;
-        case 'I':
-                mbes = mbus_encode_str("interleaved");
-                break;
-        default:
-                debug_msg("Channel coding failed mapping.\n");
-                return;
+	if (strcmp(ccp->name, "VANILLA") == 0) {
+        	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.coding", "\"none\"", TRUE);
+	} else if (strcmp(ccp->name, "REDUNDANCY") == 0) {
+                ui_update_redundancy(sp);
+        } else if (strcmp(ccp->name, "INTERLEAVER") == 0) {
+                ui_update_interleaving(sp);
+        } else {
+                debug_msg("Channel coding failed mapping (%s)\n", ccp->name);
+                abort();
         }
-
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.coding", mbes, TRUE);
-        if (mbes) xfree(mbes);
 }
 
 void
@@ -617,8 +608,6 @@ ui_update(session_struct *sp)
         ui_update_frequency(sp);
         ui_update_channels(sp);
 	ui_update_primary(sp);
-        ui_update_redundancy(sp);
-        ui_update_interleaving(sp);
         ui_update_channel(sp);
         ui_repair(sp);
 }

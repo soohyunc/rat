@@ -179,14 +179,12 @@ tool.rat.load.settings
 
 	Used in the initialisation process.
 
-tool.rat.interleaving
 tool.rat.codec
 tool.rat.codec.supported
-tool.rat.redundancy
 tool.rat.redundancy.supported
 
 	Control which codecs are used for transmission. Should be replaced
-	by audio.channel.coding, audio.channel.repair, etc.
+	by audio.channel.coding, etc.
 
 tool.rat.converter
 tool.rat.converter.supported

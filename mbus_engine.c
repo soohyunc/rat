@@ -695,78 +695,6 @@ static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine_conf);
 }
 
-static void
-rx_tool_rat_interleaving(char *srce, char *args, session_struct *sp)
-{
-        int units, separation, cc_pt;
-        char config[80];
-
-	UNUSED(srce);
-        
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &units) &&
-            mbus_parse_int(sp->mbus_engine_conf, &separation)) {
-                cc_pt        = get_cc_pt(sp,"INTERLEAVER");
-                sprintf(config, "%d/%d", units, separation);
-                debug_msg("config %s\n", config);
-                config_channel_coder(sp, cc_pt, config);
-        } else {
-                printf("mbus: usage \"tool.rat.interleaving <codec> <separation in units>\"\n");
-        }
-        mbus_parse_done(sp->mbus_engine_conf);
-        ui_update_interleaving(sp);
-}
-
-static codec_t*
-validate_redundant_codec(codec_t *primary, codec_t *redundant) 
-{
-        assert(primary != NULL);
-        
-        if ((redundant == NULL) ||                       /* passed junk */
-            (!codec_compatible(primary, redundant)) ||   /* passed incompatible codec */
-            (redundant->unit_len > primary->unit_len)) { /* passed higher bandwidth codec */
-                return primary;
-        }
-        return redundant;
-}
-
-static void 
-rx_tool_rat_redundancy(char *srce, char *args, session_struct *sp)
-{
-	char	*codec;
-        int      offset, cc_pt, rpt;
-	char	 config[80];
-	codec_t *rcp, *pcp;
-
-	UNUSED(srce);
-
-        mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &codec) && 
-            mbus_parse_int(sp->mbus_engine_conf, &offset)) {
-                if (offset<=0) offset = 0;;
-                pcp = get_codec_by_pt(sp->encodings[0]);
-		rpt = codec_matching(mbus_decode_str(codec), pcp->freq, pcp->channels);
-		if (rpt != -1) {
-			rcp = get_codec_by_pt(rpt);
-		} else {
-			/* Specified secondary codec doesn't exist. Make it the same */
-			/* as the primary, and hope that's a sensible choice.        */
-			rcp = pcp;
-		}
-                assert(rcp != NULL);
-                /* Check redundancy makes sense... */
-                rcp = validate_redundant_codec(pcp,rcp);
-                sprintf(config,"%s/0/%s/%d", pcp->name, rcp->name, offset);
-                debug_msg("Configuring redundancy %s\n", config);
-                cc_pt = get_cc_pt(sp,"REDUNDANCY");
-                config_channel_coder(sp, cc_pt, config);
-        } else {
-                printf("mbus: usage \"tool.rat.redundancy <codec> <offset in units>\"\n");
-        }                
-	mbus_parse_done(sp->mbus_engine_conf);
-        ui_update_redundancy(sp);
-}
-
 static void 
 rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
 {
@@ -812,7 +740,6 @@ rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
                 if (codec_compatible(next_cp, cp)) {
                         sp->encodings[0] = pt;
                         ui_update_primary(sp);
-                        ui_update_redundancy(sp);
                 } else {
                         /* just register we want to make a change */
                         sp->next_encoding = pt;
@@ -918,9 +845,25 @@ static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine_conf);
 }
 
+static codec_t*
+validate_redundant_codec(codec_t *primary, codec_t *redundant) 
+{
+        assert(primary != NULL);
+        
+        if ((redundant == NULL) ||                       /* passed junk */
+            (!codec_compatible(primary, redundant)) ||   /* passed incompatible codec */
+            (redundant->unit_len > primary->unit_len)) { /* passed higher bandwidth codec */
+                return primary;
+        }
+        return redundant;
+}
+
 static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
 {
-        char *channel;
+        char	*channel, *codec;
+        int 	 units, separation, cc_pt, offset, rpt;
+        char 	 config[80];
+	codec_t *rcp, *pcp;
 
 	UNUSED(srce);
 
@@ -931,8 +874,36 @@ static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
                         channel_set_coder(sp, get_cc_pt(sp, "VANILLA"));
                 } else if (strcmp(channel, "redundant") == 0) {
                         channel_set_coder(sp, get_cc_pt(sp, "REDUNDANCY"));
+			if (mbus_parse_str(sp->mbus_engine_conf, &codec) && mbus_parse_int(sp->mbus_engine_conf, &offset)) {
+				if (offset<=0) offset = 0;;
+				pcp = get_codec_by_pt(sp->encodings[0]);
+				rpt = codec_matching(mbus_decode_str(codec), pcp->freq, pcp->channels);
+				if (rpt != -1) {
+					rcp = get_codec_by_pt(rpt);
+				} else {
+					/* Specified secondary codec doesn't exist. Make it the same */
+					/* as the primary, and hope that's a sensible choice.        */
+					rcp = pcp;
+				}
+				assert(rcp != NULL);
+				/* Check redundancy makes sense... */
+				rcp = validate_redundant_codec(pcp,rcp);
+				sprintf(config,"%s/0/%s/%d", pcp->name, rcp->name, offset);
+				debug_msg("Configuring redundancy %s\n", config);
+				cc_pt = get_cc_pt(sp,"REDUNDANCY");
+				config_channel_coder(sp, cc_pt, config);
+			} else {
+				printf("mbus: usage \"audio.channel.coding \"redundant\" <codec> <offset in units>\"\n");
+			}                
                 } else if (strcmp(channel, "interleaved") == 0) {
-                        channel_set_coder(sp, get_cc_pt(sp, "INTERLEAVER"));
+			cc_pt = get_cc_pt(sp,"INTERLEAVER");
+                        channel_set_coder(sp, cc_pt);
+			if (mbus_parse_int(sp->mbus_engine_conf, &units) && mbus_parse_int(sp->mbus_engine_conf, &separation)) {
+				sprintf(config, "%d/%d", units, separation);
+				config_channel_coder(sp, cc_pt, config);
+			} else {
+				printf("mbus: usage \"audio.channel.coding \"interleaved\" <units> <separation>\"\n");
+			}
                 } else {
 			debug_msg("scheme %s not recognized\n", channel);
 			abort();
@@ -941,6 +912,7 @@ static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
                 printf("mbus: usage \"audio.channel.coding <scheme>\"\n");
         }
         mbus_parse_done(sp->mbus_engine_conf);
+	ui_update_channel(sp);
 }
 
 static void rx_tool_rat_settings(char *srce, char *args, session_struct *sp)
@@ -998,8 +970,6 @@ const char *rx_cmnd[] = {
 	"tool.rat.powermeter",
         "tool.rat.converter",
         "tool.rat.settings",
-        "tool.rat.interleaving",
-	"tool.rat.redundancy",
 	"tool.rat.codec",
         "tool.rat.sampling",
         "tool.rat.playout.limit",
@@ -1051,8 +1021,6 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_tool_rat_powermeter,
         rx_tool_rat_converter,
         rx_tool_rat_settings,
-        rx_tool_rat_interleaving,
-	rx_tool_rat_redundancy,
 	rx_tool_rat_codec,
         rx_tool_rat_sampling,
         rx_tool_rat_playout_limit,

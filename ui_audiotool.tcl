@@ -158,8 +158,6 @@ proc mbus_recv {cmnd args} {
 		tool.rat.channels  		{eval mbus_recv_tool.rat.channels $args}
 		tool.rat.codec  		{eval mbus_recv_tool.rat.codec $args}
 		tool.rat.rate  			{eval mbus_recv_tool.rat.rate $args}
-		tool.rat.redundancy  		{eval mbus_recv_tool.rat.redundancy $args}
-		tool.rat.interleaving  		{eval mbus_recv_tool.rat.interleaving $args}
 		tool.rat.externalise  		{eval mbus_recv_tool.rat.externalise $args}
 		tool.rat.lecture.mode  		{eval mbus_recv_tool.rat.lecture.mode $args}
 		tool.rat.disable.audio.ctls  	{eval mbus_recv_tool.rat.disable.audio.ctls $args}
@@ -371,21 +369,19 @@ proc mbus_recv_tool.rat.rate {arg} {
     set upp $arg
 }
 
-proc mbus_recv_tool.rat.redundancy {new_codec new_off} {
-    global secenc red_off
-    set secenc  $new_codec
-    set red_off $new_off
-}
-
-proc mbus_recv_tool.rat.interleaving {units separation} {
-    global int_units int_gap
-    set int_units $units
-    set int_gap $separation
-}
-
-proc mbus_recv_audio.channel.coding {channel} {
-    global channel_var
+proc mbus_recv_audio.channel.coding {channel args} {
+    global channel_var secenc red_off int_units int_gap
     set channel_var $channel
+    switch $channel {
+    	redundant {
+		set secenc  [lindex $args 0]
+		set red_off [lindex $args 1]
+	}
+	interleaved {
+		set int_units [lindex $args 0]
+		set int_gap   [lindex $args 1]
+	}
+    }
 }
 
 proc mbus_recv_audio.channel.repair {arg} {
@@ -1475,7 +1471,7 @@ proc sync_engine_to_ui {} {
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
     global meter_var sync_var gain volume input_port output_port 
     global in_mute_var out_mute_var channels freq key key_var
-	global audio_device
+    global audio_device
 
     set my_cname_enc [mbus_encode_str $my_cname]
     #rtcp details
@@ -1487,11 +1483,13 @@ proc sync_engine_to_ui {} {
     #transmission details
     mbus_send "R" "tool.rat.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
     mbus_send "R" "tool.rat.rate"         $upp
-    mbus_send "R" "tool.rat.redundancy"   "[mbus_encode_str $secenc] $red_off"
-    mbus_send "R" "tool.rat.interleaving" "$int_gap $int_units"
 
-    # channel.code announcement  MUST go after config of channel coders communicated
-    mbus_send "R" "audio.channel.coding" [mbus_encode_str $channel_var]
+    switch $channel_var {
+    	none        {mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var]"}
+	redundant   {mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var] [mbus_encode_str $secenc] $red_off"}
+	interleaved {mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var] $int_gap $int_units"}
+    	*           {error "unknown channel coding scheme $channel_var"}
+    }
 
     mbus_send "R" "tool.rat.silence"       $silence_var
     mbus_send "R" "tool.rat.agc"           $agc_var
