@@ -262,7 +262,7 @@ SOURCE=.\net.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\new_channel.c
+SOURCE=.\channel.c
 # End Source File
 # Begin Source File
 
@@ -482,7 +482,7 @@ SOURCE=.\net.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\new_channel.h
+SOURCE=.\channel.h
 # End Source File
 # Begin Source File
 

@@ -1,5 +1,5 @@
 /*
- * FILE:      new_channel.h
+ * FILE:      channel.h
  * AUTHOR(S): Orion Hodson 
  *	
  * $Revision$

@@ -1,5 +1,5 @@
 /*
- * FILE:      new_channel.c
+ * FILE:      channel.c
  * AUTHOR(S): Orion Hodson 
  *	
  * $Revision$
@@ -39,7 +39,7 @@
 #include "config_win32.h"
 
 #include "codec_types.h"
-#include "new_channel.h"
+#include "channel.h"
 #include "playout.h"
 #include "ts.h"
 #include "memory.h"

@@ -51,7 +51,7 @@
 #include "codec_types.h"
 #include "codec.h"
 #include "channel_types.h"
-#include "new_channel.h"
+#include "channel.h"
 #include "pckt_queue.h"
 #include "convert.h"
 #include "parameters.h"

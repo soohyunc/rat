@@ -51,7 +51,7 @@
 #include "codec.h"
 #include "audio.h"
 #include "session.h"
-#include "new_channel.h"
+#include "channel.h"
 #include "convert.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"

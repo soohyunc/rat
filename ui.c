@@ -59,7 +59,7 @@
 #include "mbus.h"
 #include "mbus_engine.h"
 #include "channel_types.h"
-#include "new_channel.h"
+#include "channel.h"
 #include "mix.h"
 #include "transmit.h"
 #include "ui.h"

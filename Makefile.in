@@ -13,7 +13,7 @@ CODEC_OBJS = codec.o codec_state.o codec_adpcm.o codec_gsm.o \
              codec_vdvi.o codec_wbs.o cx_dvi.o cx_gsm.o cx_lpc.o \
              cx_vdvi.o cx_wbs.o
 
-CC_OBJS    = new_channel.o channel_types.o cc_vanilla.o
+CC_OBJS    = channel.o channel_types.o cc_vanilla.o
 
 TOY_OBJS   = convert.o crypt.o render_3D.o repair.o sndfile.o 
 

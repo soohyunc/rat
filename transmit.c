@@ -49,7 +49,7 @@
 #include "codec_state.h"
 #include "playout.h"
 #include "channel_types.h"
-#include "new_channel.h"
+#include "channel.h"
 #include "session.h"
 #include "audio.h"
 #include "audio_util.h"

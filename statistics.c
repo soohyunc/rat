@@ -43,7 +43,7 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "codec_types.h"
-#include "new_channel.h"
+#include "channel.h"
 #include "convert.h"
 #include "codec.h"
 #include "debug.h"

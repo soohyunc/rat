@@ -42,7 +42,7 @@
 #include "ts.h"
 #include "playout.h"
 
-#include "new_channel.h"
+#include "channel.h"
 #include "channel_types.h"
 #include "codec_types.h"
 #include "codec.h"
