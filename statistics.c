@@ -200,7 +200,6 @@ adapt_playout(rtp_hdr_t *hdr,
                 diff       = abs(delay - src->delay) / abs(hdr->seq - src->last_seq);
                 /* Jitter calculation as in RTP spec */
                 src->jitter += (((double) diff - src->jitter) / 16.0);
-                debug_msg("diff %d, real diff %d, jitter %.4f\n", diff, abs(delay - src->delay), src->jitter);
                 src->delay = delay;
 	}
 
