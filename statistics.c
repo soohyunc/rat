@@ -257,15 +257,6 @@ adapt_playout(rtp_hdr_t *hdr,
 #endif
 			var = (u_int32) src->jitter * 3;
 
-                        minv = sp->min_playout * get_freq(src->clock) / 1000;
-                        maxv = sp->max_playout * get_freq(src->clock) / 1000; 
-
-                        assert(maxv > minv);
-                        if (sp->limit_playout) {
-                                var = max(minv, var);
-                                var = min(maxv, var);
-                        }
-
                         if (src->playout_danger) {
                                 /* This is usually a sign that src clock is 
                                  * slower than ours. */
@@ -274,6 +265,15 @@ adapt_playout(rtp_hdr_t *hdr,
                         } else {
                                 var = max(var, cushion_get_size(cushion));
                                 debug_msg("Playout var (%ld)\n", var);
+                        }
+
+                        minv = sp->min_playout * get_freq(src->clock) / 1000;
+                        maxv = sp->max_playout * get_freq(src->clock) / 1000; 
+
+                        assert(maxv > minv);
+                        if (sp->limit_playout) {
+                                var = max(minv, var);
+                                var = min(maxv, var);
                         }
 
                         assert(var > 0);

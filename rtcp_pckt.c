@@ -603,9 +603,11 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 	}
 
         if ((dbe->ui_last_update - get_time(dbe->clock)) >= (unsigned)get_freq(sp->device_clock)) {
+                double jit;
                 ui_update_duration(dbe->sentry->cname, dbe->units_per_packet * 20);
                 ui_update_loss(sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->lost_frac * 100) >> 8);
-                ui_update_reception(dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->duplicates, dbe->jitter * 1000/get_freq(dbe->clock), dbe->jit_TOGed);
+                jit = ceil(dbe->jitter * 1000/get_freq(dbe->clock));
+                ui_update_reception(dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->duplicates, (u_int32)jit, dbe->jit_TOGed);
                 ui_update_stats(dbe, sp);
                 dbe->ui_last_update = get_time(dbe->clock);
         }

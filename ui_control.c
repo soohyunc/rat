@@ -639,7 +639,7 @@ ui_update_loss(char *srce, char *dest, int loss)
 }
 
 void
-ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, double jitter, int jit_tog)
+ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog)
 {
 	char	*cname_e, *args;
 
@@ -649,7 +649,7 @@ ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered,
 
 	/* I hate this function! */
 	args = (char *) xmalloc(strlen(cname_e) + 88);
-	sprintf(args, "%s %6ld %6ld %6ld %6ld %f %6d", cname_e, recv, lost, misordered, duplicates, jitter, jit_tog);
+	sprintf(args, "%s %6ld %6ld %6ld %6ld %6ld %6d", cname_e, recv, lost, misordered, duplicates, jitter, jit_tog);
 	mbus_engine_tx_queue(TRUE, "source.reception", args);
 	xfree(args);
         xfree(cname_e);

@@ -77,7 +77,7 @@ void	ui_update_stats(struct s_rtcp_dbentry *e, struct session_tag *sp);
 void	ui_update_lecture_mode(struct session_tag *session_pointer);
 void	ui_update(struct session_tag *session_pointer);
 void	ui_update_loss(char *srce, char *dest, int loss);
-void	ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, double jitter, int jit_tog);
+void	ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog);
 void	ui_update_duration(char *cname, int duration);
 
 void	ui_update_video_playout(char *cname, int playout);

@@ -11,14 +11,14 @@ catch {profile on}
 
 if {[string compare [info commands registry] "registry"] == 0} {
 	set win32 1
-	set statsfont     {courier 10}
+	set statsfont     {helvetica 10}
 	set titlefont     {helvetica 10}
 	set infofont      {helvetica 10}
 	set smallfont     {helvetica  8}
 	set verysmallfont {helvetica  8}
 } else {
 	set win32 0
-	set statsfont     -*-courier-medium-r-*-*-12-*-*-*-*-*-iso8859-1
+	set statsfont     -*-helvetica-normal-r-normal--10-*-p-*-iso8859-1
 	set titlefont     -*-helvetica-medium-r-normal--14-*-p-*-iso8859-1
 	set infofont      -*-helvetica-medium-r-normal--12-*-p-*-iso8859-1
 	set smallfont     -*-helvetica-medium-r-normal--10-*-p-*-iso8859-1
@@ -366,21 +366,18 @@ proc mbus_recv_source.email {cname email} {
 	global EMAIL
 	init_source $cname
 	set EMAIL($cname) $email
-	update_stats $cname
 }
 
 proc mbus_recv_source.phone {cname phone} {
 	global PHONE
 	init_source $cname
 	set PHONE($cname) $phone
-	update_stats $cname
 }
 
 proc mbus_recv_source.loc {cname loc} {
 	global LOC
 	init_source $cname
 	set LOC($cname) $loc
-	update_stats $cname
 }
 
 proc mbus_recv_source.tool {cname tool} {
@@ -390,28 +387,24 @@ proc mbus_recv_source.tool {cname tool} {
 	if {[string compare $cname $my_cname] == 0} {
 	    wm title . "UCL $tool"
 	}
-	update_stats $cname
 }
 
 proc mbus_recv_source.note {cname note} {
 	global NOTE
 	init_source $cname
 	set NOTE($cname) $note
-	update_stats $cname
 }
 
 proc mbus_recv_source.codec {cname codec} {
 	global CODEC
 	init_source $cname
 	set CODEC($cname) $codec
-	update_stats $cname
 }
 
 proc mbus_recv_source.packet.duration {cname packet_duration} {
 	global DURATION
 	init_source $cname
 	set DURATION($cname) $packet_duration
-	update_stats $cname
 }
 
 proc mbus_recv_source.audio.buffered {cname buffered} {
@@ -447,7 +440,6 @@ proc mbus_recv_source.reception {cname packets_recv packets_lost packets_miso pa
 	set PCKTS_DUP($cname)  $packets_dup
 	set JITTER($cname) $jitter
 	set JIT_TOGED($cname) $jit_tog
-	update_stats $cname
 }
 
 proc mbus_recv_source.active.now {cname} {
@@ -570,8 +562,6 @@ proc cname_update {cname} {
 		fix_scrollbar
 	}
 
-	update_stats $cname
-
 	set_loss_to_me $cname $LOSS_TO_ME($cname)
 	catch {after cancel $mylosstimers($cname)}
 	set mylosstimers($cname) [after 7500 set_loss_to_me \"$cname\" 101]
@@ -667,58 +657,68 @@ proc info_timer {} {
 	}
 }
 
-proc update_stats {cname} {
-	if {![winfo exists [window_stats $cname]]} {
-		# Nothing to update...
-		return
-	}
-	global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION 
-	global PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME JIT_TOGED BUFFER_SIZE
-	if {$LOSS_TO_ME($cname) != 101} {
-		set loss_to_me "$LOSS_TO_ME($cname)%"
-	} else {
-		set loss_to_me   "unknown"
-	}
-	if {$LOSS_FROM_ME($cname) != 101} {
-		set loss_from_me "$LOSS_FROM_ME($cname)%"
-	} else {
-		set loss_from_me "unknown"
-	}
-	[window_stats $cname].m configure -text " Name:                        $NAME($cname)\n\
-						  Email:                       $EMAIL($cname)\n\
-						  Phone:                       $PHONE($cname)\n\
-						  Location:                    $LOC($cname)\n\
-						  Tool:                        $TOOL($cname)\n\
-						  Note:			       $NOTE($cname)\n\
-						  CNAME:                       $CNAME($cname)\n\
-						  Audio Encoding:              $CODEC($cname)\n\
-						  Packet duration:             $DURATION($cname)ms\n\
-						  Buffered Audio:              $BUFFER_SIZE($cname)ms\n\
-						  Total packets received:      $PCKTS_RECV($cname)\n\
-						  Total packets lost:          $PCKTS_LOST($cname)\n\
-						  Total packets misordered:    $PCKTS_MISO($cname)\n\
-						  Total packets duplicated:    $PCKTS_DUP($cname)\n\
-						  Current packet loss to me:   $loss_to_me\n\
-						  Current packet loss from me: $loss_from_me\n\
-						  Network timing jitter:       $JITTER($cname)\n\
-						  Total units lost (jitter):   $JIT_TOGED($cname)\n"
+proc stats_add_field {widget label watchVar} {
+    global statsfont
+    frame $widget -relief sunk 
+    label $widget.l -text $label -font $statsfont
+    label $widget.w -textvariable $watchVar -font $statsfont
+    pack $widget -side top -fill x -expand 1 
+    pack $widget.l  -side left
+    pack $widget.w -side right 
 }
 
 proc toggle_stats {cname} {
-	global statsfont
-	if {[winfo exists [window_stats $cname]]} {
-		destroy [window_stats $cname]
-	} else {
-		# Window does not exist so create it
-		toplevel [window_stats $cname]
-		message [window_stats $cname].m -width 600 -font $statsfont
-		pack [window_stats $cname].m -side top
-		button [window_stats $cname].d -highlightthickness 0 -padx 0 -pady 0 -text "Dismiss" -command "destroy [window_stats $cname]" 
-		pack [window_stats $cname].d -side bottom -fill x
-		wm title [window_stats $cname] "RAT user info"
-		wm resizable [window_stats $cname] 0 0
-		update_stats $cname
-	}
+    global statsfont
+    set win [window_stats $cname]
+    if {[winfo exists $win]} {
+	destroy $win
+    } else {
+	global stats_pane
+	# Window does not exist so create it
+	toplevel $win 
+	frame $win.mf
+	pack $win.mf -padx 0 -pady 0
+	label $win.mf.l -text "Category:"
+	
+	menubutton $win.mf.mb -menu $win.mf.mb.menu -indicatoron 1 -textvariable stats_pane($win) -relief raised -width 16
+	pack $win.mf.l $win.mf.mb -side left
+	menu $win.mf.mb.menu -tearoff 0
+	$win.mf.mb.menu add command -label "Personal Details" -command "set_pane stats_pane($win) $win.df \"Personal Details\""
+	$win.mf.mb.menu add command -label "Reception" -command "set_pane stats_pane($win) $win.df Reception"
+
+	set stats_pane($win) "Personal Details"
+	frame $win.df 
+	frame $win.df.personal
+	pack  $win.df $win.df.personal
+	global NAME EMAIL PHONE LOC NOTE CNAME 
+	stats_add_field $win.df.personal.1 "Name: "     NAME($cname)
+	stats_add_field $win.df.personal.2 "Email: "    EMAIL($cname)
+	stats_add_field $win.df.personal.3 "Phone: "    PHONE($cname)
+	stats_add_field $win.df.personal.4 "Location: " LOC($cname)
+	stats_add_field $win.df.personal.5 "Note: "     NOTE($cname)
+	stats_add_field $win.df.personal.6 "CName: "    CNAME($cname)
+
+	frame $win.df.reception
+	global CODEC DURATION BUFFER_SIZE PCKTS_RECV PCKTS_LOST PCKTS_MISO \
+	       PCKTS_DUP LOSS_FROM_ME LOSS_TO_ME JITTER JIT_TOGED
+	stats_add_field $win.df.reception.1 "Audio encoding: "         CODEC($cname)
+	stats_add_field $win.df.reception.2 "Packet duration (ms): "   DURATION($cname)
+	stats_add_field $win.df.reception.3 "Buffer length (ms): "     BUFFER_SIZE($cname)
+	stats_add_field $win.df.reception.4 "Arrival jitter (ms): "    JITTER($cname)
+	stats_add_field $win.df.reception.5 "Loss from me (%): "       LOSS_FROM_ME($cname)
+	stats_add_field $win.df.reception.6 "Loss to me (%): "         LOSS_TO_ME($cname)
+	stats_add_field $win.df.reception.7 "Packets received: "       PCKTS_RECV($cname)
+	stats_add_field $win.df.reception.8 "Packets lost: "           PCKTS_LOST($cname)
+	stats_add_field $win.df.reception.9 "Packets misordered: "     PCKTS_MISO($cname)
+	stats_add_field $win.df.reception.a "Packets duplicated: "     PCKTS_DUP($cname)
+	stats_add_field $win.df.reception.b "Units dropped (jitter): " JIT_TOGED($cname)
+
+	button $win.d -highlightthickness 0 -padx 0 -pady 0 -text "Dismiss" -command "destroy $win" 
+	pack $win.d -side bottom -fill x
+	wm title $win "Participant $NAME($cname)"
+	wm resizable $win 0 0
+	constrain_window $win 0 200 20 0
+    }
 }
 
 proc do_quit {} {
@@ -1093,9 +1093,9 @@ pack $i.a.f.f.power $i.a.f.f.video $i.a.f.f.balloon $i.a.f.f.matrix $i.a.f.f.pli
 
 proc set_pane {p base name} {
     upvar 1 $p pane
-    set tpane [string tolower $pane]
+    set tpane [string tolower [lindex [split $pane] 0]]
     pack forget $base.$tpane
-    set tpane [string tolower $name]
+    set tpane [string tolower [lindex [split $name] 0]]
     pack $base.$tpane -fill both -expand 1 -padx 2 -pady 2
     set pane $name
 }
