@@ -68,6 +68,7 @@ typedef struct s_rtcp_dbentry {
         u_int16         inter_pkt_gap;          /* expected time between pkt arrivals */
         u_char          enc;
         char*           enc_fmt;
+        cc_id_t         channel_coder_id;       /* channel_coder of last received packet */
 
 	/* Variables for playout time calculation */
 	int		video_playout;		/* Playout delay in the video tool -- for lip-sync [csp] */
@@ -78,7 +79,6 @@ typedef struct s_rtcp_dbentry {
         ts_t            delay_in_playout_calc;  /* Delay used for last playout point calculation */
 	u_int16         last_seq;		/* Last packet sequence number */
         ts_t            last_arr;               /* Last packet arrival time    */
-
 	int		loss_from_me;		/* Loss rate that this receiver heard from me */
 	u_int32		last_rr_for_me;
 

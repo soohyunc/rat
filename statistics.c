@@ -402,6 +402,13 @@ statistics_channel_extract(session_struct     *sp,
                 }
         }
 
+        if (dbe->channel_coder_id != ccid) {
+                debug_msg("Channel coding changed\n");
+                dbe->channel_coder_id = ccid;
+                dbe->update_req = TRUE;
+        }
+
+
         if (dbe->enc != codec_pt) {
                 debug_msg("Format changed\n");
                 change_freq(dbe->clock, cf->format.sample_rate);

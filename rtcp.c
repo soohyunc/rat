@@ -18,6 +18,7 @@
 #include "net_udp.h"
 #include "rtcp.h"
 #include "session.h"
+#include "channel_types.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "timers.h"

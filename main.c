@@ -17,6 +17,7 @@
 #include "memory.h"
 #include "codec_types.h"
 #include "codec.h"
+#include "channel_types.h"
 #include "session.h"
 #include "audio.h"
 #include "auddev.h"

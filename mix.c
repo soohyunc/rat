@@ -23,6 +23,7 @@
 #include "audio_util.h"
 #include "audio_fmt.h"
 #include "timers.h"
+#include "channel_types.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "source.h"
