@@ -37,9 +37,9 @@ AUDIO_OBJS   = $(AU_OBJ) auddev_null.o audio_fmt.o audio_util.o \
 
 CODEC_OBJS   = codec.o codec_state.o codec_dvi.o codec_gsm.o \
                codec_l16.o codec_g711.o codec_g726.o codec_lpc.o \
-               codec_types.o codec_vdvi.o codec_wbs.o cx_dvi.o \
+               codec_types.o codec_vdvi.o codec_wbs.o \
                cx_g726.o cx_g726_16.o cx_g726_24.o cx_g726_32.o cx_g726_40.o \
-               cx_gsm.o cx_lpc.o cx_vdvi.o cx_wbs.o \
+               cx_gsm.o cx_lpc.o cx_vdvi.o cx_wbs.o cx_dvi.o \
                converter.o convert_util.o convert_extra.o convert_linear.o \
                convert_sinc.o bitstream.o
 
@@ -59,7 +59,7 @@ CORE_OBJS    = ts.o playout.o net.o source.o session.o \
 
 UI_OBJS      = tcltk.o mbus_ui.o main_ui.o
 
-CTRL_OBJS    = main_control.o mbus_control.o
+CTRL_OBJS    = main_control.o mbus_control.o codec_compat.o
 
 TCL_OBJS     = ui_audiotool.o ui_transcoder.o
 
