@@ -36,7 +36,7 @@ pktbuf_create(struct s_pktbuf **ppb, uint16_t size)
                 return FALSE;
         }
         
-        pb->buf = (rtp_packet**)xmalloc(sizeof(rtp_packet) * size);
+        pb->buf = (rtp_packet**)xmalloc(sizeof(rtp_packet*) * size);
         if (pb->buf == NULL) {
                 xfree(pb);
                 return FALSE;
@@ -66,6 +66,7 @@ pktbuf_destroy(struct s_pktbuf **ppb)
                         xfree(pb->buf[i]);
                 }
         }
+        xfree(pb->buf);
         xfree(pb);
         *ppb = NULL;
 }

@@ -1073,6 +1073,8 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Add filter on rtt values to avoid displaying garbage values from rtp
 	  misimplementations.
 	- Fix participant muting (reported by Bob Olson).
+	- Correct size of pb->buf allocation in pktbuf.c.
+	- Fix slow memory leak in pktbuf (didn't free pb->buf).
 
 TODO -- They're features not bugs dammit!
 ----
