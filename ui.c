@@ -39,6 +39,7 @@
 #include "render_3D.h"
 #include "source.h"
 #include "net.h"
+#include "util.h" /* purge_chars */
 
 static char *mbus_name_engine = NULL;
 static char *mbus_name_ui     = NULL;
@@ -580,16 +581,18 @@ ui_output_ports(session_t *sp)
 static void
 ui_devices(session_t *sp)
 {
-        audio_device_details_t ad;
-        char *mbes;
+        const audio_device_details_t *add;
+        char *mbes, dev_name[AUDIO_DEVICE_NAME_LENGTH];
         int i,nDev;
 
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.devices.flush", "", TRUE);
-        
         nDev = audio_get_device_count();
+
         for(i = 0; i < nDev; i++) {
-                if (!audio_get_device_details(i, &ad)) continue;
-                mbes = mbus_encode_str(ad.name);
+                add  = audio_get_device_details(i);
+                strcpy(dev_name, add->name);
+                purge_chars(dev_name, "[]()");
+                mbes = mbus_encode_str(dev_name);
                 mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.devices.add", mbes, TRUE);
                 xfree(mbes);
         }
@@ -598,22 +601,23 @@ ui_devices(session_t *sp)
 static void
 ui_device(session_t *sp)
 {
-        audio_device_details_t ad;
-        char                  *mbes, *cur_dev;
-        int                    i, n;
-
-        cur_dev = NULL;
+        const audio_device_details_t *add;
+        char                         *mbes;
+        u_int32                       i, n;
 
         n = audio_get_device_count();
-        for(i = 0; i < audio_get_device_count(); i++) {
-                if (audio_get_device_details(i, &ad) && sp->audio_device == ad.descriptor) {
-                        cur_dev = ad.name;
+        for(i = 0; i < n; i++) {
+                add = audio_get_device_details(i);
+                if (sp->audio_device == add->descriptor) {
                         break;
                 }
         }
 
-        if (cur_dev) {
-                mbes = mbus_encode_str(cur_dev);
+        if (i != n) {
+                char dev_name[AUDIO_DEVICE_NAME_LENGTH];
+                strcpy(dev_name, add->name);
+                purge_chars(dev_name, "()[]");
+                mbes = mbus_encode_str(dev_name);
                 mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.device", mbes, TRUE);
                 xfree(mbes);
                 ui_input_ports(sp);

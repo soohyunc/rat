@@ -646,9 +646,9 @@ rx_audio_device(char *srce, char *args, session_t *sp)
 		s = mbus_decode_str(s);
                 purge_chars(s, "[]()");
                 if (s) {
-                        audio_device_details_t details;
+                        const audio_device_details_t *add;
                         audio_desc_t           first_dev_desc = 0;
-                        int i, n, stop_at_first_device = FALSE;
+                        u_int32 i, n, stop_at_first_device = FALSE;
                         dev_name[0] = 0;
                         first_dev_name[0] = 0;
                         n = audio_get_device_count();
@@ -662,12 +662,12 @@ rx_audio_device(char *srce, char *args, session_t *sp)
 
                         for(i = 0; i < n; i++) {
                                 /* Brackets are a problem so purge them */
-                                if (!audio_get_device_details(i, &details)) continue;
-                                strncpy(dev_name, details.name, AUDIO_DEVICE_NAME_LENGTH);
+                                add = audio_get_device_details(i);
+                                strncpy(dev_name, add->name, AUDIO_DEVICE_NAME_LENGTH);
                                 purge_chars(dev_name, "[]()");
                                 if (first_dev_name[0] == 0) {
                                         strncpy(first_dev_name, dev_name, AUDIO_DEVICE_NAME_LENGTH);
-                                        first_dev_desc = details.descriptor;
+                                        first_dev_desc = add->descriptor;
                                 }
 
                                 if (!strcmp(s, dev_name) | stop_at_first_device) {
@@ -676,7 +676,7 @@ rx_audio_device(char *srce, char *args, session_t *sp)
                         }
                         if (i < n) {
                                 /* Found device looking for */
-                                audio_device_register_change_device(sp, details.descriptor);
+                                audio_device_register_change_device(sp, add->descriptor);
                         } else if (first_dev_name[0]) {
                                 /* Have a fall back */
                                 audio_device_register_change_device(sp, first_dev_desc);

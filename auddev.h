@@ -21,13 +21,14 @@
 #include "audio_types.h"
 
 /* Audio interface fn's for dealing with multiple devices/device interfaces */
-int     audio_init_interfaces       (void);
-int     audio_free_interfaces       (void);
-int     audio_get_device_count      (void);
-int     audio_get_device_details    (int idx, audio_device_details_t *desc);
-int     audio_get_null_device       (void); /* gets null dev interface */
-int     audio_device_supports       (audio_desc_t ad, u_int16 rate, u_int16 channels);
-int     audio_device_is_open        (audio_desc_t ad);
+int     audio_init_interfaces    (void);
+int     audio_free_interfaces    (void);
+u_int32 audio_get_device_count   (void);
+const audio_device_details_t*
+        audio_get_device_details (u_int32 idx);
+int     audio_get_null_device    (void); /* gets null dev interface */
+int     audio_device_supports    (audio_desc_t ad, u_int16 rate, u_int16 channels);
+int     audio_device_is_open     (audio_desc_t ad);
 
 /* Audio functions implemented by device interfaces */
 int     audio_open          (audio_desc_t ad, audio_format *in_format, audio_format *out_format);

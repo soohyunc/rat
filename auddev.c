@@ -342,7 +342,8 @@ audio_if_t audio_if_table[] = {
  * audio interfaces table.  Audio open returns index to these */
 static audio_desc_t active_device_desc[INITIAL_AUDIO_INTERFACES];
 static int active_devices;
-static int actual_devices, actual_interfaces;
+static u_int32 actual_devices, actual_interfaces;
+static audio_device_details_t *dev_details;
 
 #define MAX_ACTIVE_DEVICES   2
 
@@ -382,36 +383,21 @@ static u_int32 samples_read[MAX_ACTIVE_DEVICES], samples_written[MAX_ACTIVE_DEVI
  *
  *****************************************************************************/
 
-int
+u_int32
 audio_get_device_count()
 {
         return actual_devices;
 }
 
-int
-audio_get_device_details(int idx, audio_device_details_t *add)
+const audio_device_details_t *
+audio_get_device_details(u_int32 idx)
 {
-        int 		 iface = 0;
-	int 		 devs  = 0;
-        const char 	*name  = NULL;
+        assert(idx < actual_devices);
 
-        assert(idx < actual_devices && idx >= 0);
-        assert(add != NULL);
-
-        /* Find interface device number idx belongs to */
-        while((devs = audio_if_table[iface].audio_if_dev_cnt()) && idx >= devs) {
-                iface++;
-                idx -= devs;
+        if (idx < actual_devices) {
+                return &dev_details[idx];
         }
-
-        assert(devs != 0);
-
-        add->descriptor = AIF_MAKE_DESC(iface, idx);
-        assert(audio_if_table[iface].audio_if_dev_name != NULL);
-        name = audio_if_table[iface].audio_if_dev_name(idx);
-        assert(name != NULL);
-        strncpy(add->name, name, AUDIO_DEVICE_NAME_LENGTH);
-        return TRUE;
+        return NULL;
 }
 
 audio_desc_t
@@ -1075,7 +1061,13 @@ audio_get_samples_written(audio_desc_t ad)
 int
 audio_init_interfaces(void)
 {
-        u_int32 i, j, n, devs[INITIAL_AUDIO_INTERFACES];
+        static int inited = 0;
+        u_int32 i, j, k, n, devs[INITIAL_AUDIO_INTERFACES];
+
+        if (inited) {
+                return 0;
+        }
+        inited++;
 
         actual_devices = 0;
         actual_interfaces = INITIAL_AUDIO_INTERFACES;
@@ -1101,6 +1093,20 @@ audio_init_interfaces(void)
                         j++;
                 }
         }
+
+        /* Create device details table and fill it in */
+        dev_details = (audio_device_details_t*)xmalloc(sizeof(audio_device_details_t) * actual_devices);
+        k = 0;
+        for (i = 0; i < actual_interfaces; i++) {
+                n = audio_if_table[i].audio_if_dev_cnt();
+                assert(n > 0);
+                for (j = 0; j < n; j++) {
+                        dev_details[k].name       = audio_if_table[i].audio_if_dev_name(j);
+                        dev_details[k].descriptor = AIF_MAKE_DESC(i, j);
+                        k++;
+                }
+        }
+        assert(k == actual_devices);
 
         return TRUE;
 }

@@ -29,6 +29,7 @@
 #include "settings.h"
 #include "converter.h"
 #include "rtp.h"
+#include "util.h"
 
 typedef struct s_hash_tuple {
         u_int32 hash;
@@ -355,22 +356,24 @@ setting_load_int(char *name, int default_value)
 
 void settings_load_early(session_t *sp)
 {
-	audio_device_details_t		 ad;
 	char				*name, *primary_codec, *port;
 	int				 i, freq, chan, n;
 	cc_details			 ccd;
+	const audio_device_details_t    *add = NULL;
         const audio_port_details_t 	*apd = NULL;
         const converter_details_t       *cod = NULL;
-        const repair_details_t          *r;
+        const repair_details_t          *r   = NULL;
         codec_id_t                       cid;
 
 	load_init();		/* Initial settings come from the common prefs file... */
         init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 
 	name = setting_load_str("audioDevice", "No Audio Device");
-        for(i = 0; i < audio_get_device_count(); i++) {
-                if (audio_get_device_details(i, &ad) && (strcmp(ad.name, name) == 0)) {
-			audio_device_register_change_device(sp, ad.descriptor);
+        n = (int)audio_get_device_count();
+        for(i = 0; i < n; i++) {
+                add = audio_get_device_details(i);
+                if (strcmp(add->name, name) == 0) {
+			audio_device_register_change_device(sp, add->descriptor);
                         break;
                 }
         }
@@ -569,11 +572,12 @@ static void setting_save_int(const char *name, const long val)
 void settings_save(session_t *sp)
 {
         const codec_format_t 		*pri_cf;
-        const audio_port_details_t 	*iapd = NULL, *oapd = NULL;
-        const audio_format 		*af;
+        const audio_port_details_t      *iapd   = NULL;
+        const audio_port_details_t      *oapd   = NULL;
+        const audio_format 		*af     = NULL;
         const repair_details_t          *repair = NULL;
-        const converter_details_t       *converter;
-	audio_device_details_t		 ad;
+        const converter_details_t       *converter = NULL;
+	const audio_device_details_t    *add    = NULL;
 	codec_id_t	 		 pri_id;
         cc_details 			 cd;
 	int				 cc_len;
@@ -605,8 +609,10 @@ void settings_save(session_t *sp)
                 }
         }
 
-        for (i = 0; i < audio_get_device_count(); i++) {
-                if (audio_get_device_details(i, &ad) && sp->audio_device == ad.descriptor) {
+        n = (int)audio_get_device_count();
+        for (i = 0; i < n; i++) {
+                add = audio_get_device_details(i);
+                if (sp->audio_device == add->descriptor) {
                         break;
                 }
         }
@@ -636,9 +642,9 @@ void settings_save(session_t *sp)
 
         init_part_two();
         setting_save_str("audioTool", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_TOOL));
-	setting_save_str("audioDevice",            ad.name);
-	setting_save_int("audioFrequency",         af->sample_rate);
-	setting_save_int("audioChannelsIn",        af->channels); 
+	setting_save_str("audioDevice",     add->name);
+	setting_save_int("audioFrequency",  af->sample_rate);
+	setting_save_int("audioChannelsIn", af->channels); 
 	
 	/* If we save a dynamically mapped codec we crash when we reload on startup */
 	if (pri_cf->default_pt != CODEC_PAYLOAD_DYNAMIC) {
