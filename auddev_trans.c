@@ -20,6 +20,9 @@ static const char cvsid[] =
 #include "memory.h"
 #include "debug.h"
 
+/* Global variable, defined in main_engine.c. If num_sessions == 2, we are a transcoder */
+extern int num_sessions;
+
 #define MAXBUFDEVS 2
 
 typedef struct _bufdevInfo {
@@ -50,8 +53,7 @@ static int
 trans_audio_open_dev (audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
 {
         /* Open a fake audio channel. The value we return is used to identify the */
-        /* channel for the other routines in this module. The #ifdefs in net.c    */
-        /* prevent it being used in a select().                                   */
+        /* channel for the other routines in this module.                         */
         /* Note: We must open EXACTLY two channels, before the other routines in  */
         /*       this module function correctly.                                  */
         int i;
@@ -92,6 +94,11 @@ trans_audio_init()
 {
         audio_format af;
         unsigned int i;
+
+	if (num_sessions != 2) {
+		debug_msg("Cannot open transcoder audio device: not a transcoder\n");
+		return 0;
+	}
 
 	debug_msg("Initialize transcoder audio device\n");
         af.bits_per_sample = 16;
@@ -455,6 +462,10 @@ trans_audio_wait_for(audio_desc_t ad, int delay_ms)
 int
 trans_audio_device_count()
 {
+	if (num_sessions != 2) {
+		/* If we're not running as a transcoder, we don't support any devices... */
+		return 0;
+	}
         return MAXBUFDEVS;
 }
 

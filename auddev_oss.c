@@ -126,7 +126,7 @@ oss_probe_mixer_device(int i, struct oss_device *device)
 	mixer_info	info;
 	struct stat	s;
 	int		valid_mixer = FALSE;
-	int		fd;
+	int		fd, d;
 
 	sprintf(device->mixer_rdev, "/dev/mixer%d", i);
 	fd = open(device->mixer_rdev, O_RDWR);
@@ -161,11 +161,25 @@ oss_probe_mixer_device(int i, struct oss_device *device)
 	if (ioctl(fd, SOUND_MIXER_READ_DEVMASK, &device->dev_mask) != 0) {
 		debug_msg("cannot query mixer dev mask %s\n", strerror(errno));
 		device->dev_mask = 0;
+	} else {
+		debug_msg("device mask for %s:\n", device->mixer_rdev);
+		for (d = 0; d < SOUND_MIXER_NRDEVICES; d++) {
+			if (device->dev_mask & (1 << d)) {
+				debug_msg("  %d %s\n", d, oss_mixer_channels[d]);
+			}
+		}
 	}
 
 	if (ioctl(fd, SOUND_MIXER_READ_RECMASK, &device->rec_mask) != 0) {
 		debug_msg("cannot query mixer rec mask %s\n", strerror(errno));
 		device->rec_mask = 0;
+	} else {
+		debug_msg("recording mask for %s:\n", device->mixer_rdev);
+		for (d = 0; d < SOUND_MIXER_NRDEVICES; d++) {
+			if (device->rec_mask & (1 << d)) {
+				debug_msg("  %d %s\n", d, oss_mixer_channels[d]);
+			}
+		}
 	}
 
 	device->mixer_rfd = -1;
@@ -273,8 +287,8 @@ oss_test_device_pair(int rdev, int wdev)
 		return FALSE;
 	}
 
-	close(devices[rdev].audio_rfd); devices[rdev].audio_rfd = 0;
-	close(devices[wdev].audio_wfd); devices[wdev].audio_wfd = 0;
+	close(devices[rdev].audio_rfd); devices[rdev].audio_rfd = -1;
+	close(devices[wdev].audio_wfd); devices[wdev].audio_wfd = -1;
 	return TRUE;
 }
 
@@ -297,13 +311,18 @@ oss_pair_devices(void)
 				debug_msg("Combining %s and %s\n", devices[i].audio_rdev, devices[i+1].audio_wdev);
 				memcpy(devices[i].audio_wdev, devices[i+1].audio_wdev, 16);
 				memcpy(devices[i].mixer_wdev, devices[i+1].mixer_wdev, 16);
-				devices[i].duplex   = OSS_DUPLEX_PAIR;
-				/* We may have to do something smarter here... */
-				devices[i].rec_mask = devices[i+1].rec_mask;
-				for (j = i+1; j < num_devices - 1; j++) {
+				devices[i].audio_rfd = -1;
+				devices[i].audio_wfd = -1;
+				devices[i].mixer_rfd = -1;
+				devices[i].mixer_wfd = -1;
+				devices[i].duplex    = OSS_DUPLEX_PAIR;
+				devices[i].rec_mask  = devices[i+1].rec_mask;
+				xfree(devices[i+1].name);
+				/* Move the rest of the device table up... */
+				for (j = i+1; j < (num_devices - 1); j++) {
 					devices[j] = devices[j+1];
 				}
-				xfree(devices[i+1].name);
+				xmemchk();
 				num_devices--;
 			} else {
 				debug_msg("Cannot pair %s and %s\n", devices[i].audio_rdev, devices[i+1].audio_wdev);
@@ -802,16 +821,11 @@ oss_audio_oport_details(audio_desc_t ad, int idx)
 void
 oss_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
-	int recmask, portmask;
+	int portmask;
 	int recsrc;
 	int gain;
 
         UNUSED(ad); assert(devices[ad].mixer_rfd > 0);
-
-	if (ioctl(devices[ad].mixer_rfd, MIXER_READ(SOUND_MIXER_RECMASK), &recmask) == -1) {
-		debug_msg("WARNING: Unable to read recording mask!\n");
-		return;
-	}
 
         switch (port) {
 		case AUDIO_MICROPHONE: 
@@ -832,7 +846,7 @@ oss_audio_iport_set(audio_desc_t ad, audio_port_t port)
         }
 
         /* Can we select chosen port ? */
-        if (recmask & recsrc) {
+        if (devices[ad].rec_mask & recsrc) {
                 portmask = recsrc;
                 if ((ioctl(devices[ad].mixer_rfd, MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & portmask)) {
                         debug_msg("WARNING: Unable to select recording source!\n");
@@ -843,7 +857,7 @@ oss_audio_iport_set(audio_desc_t ad, audio_port_t port)
                 oss_audio_set_igain(ad, gain);
 		debug_msg("...okay\n");
         } else {
-                debug_msg("Audio device doesn't support recording from port %d\n", port);
+                debug_msg("Audio device doesn't support recording from port %d (%s)\n", port, oss_mixer_channels[port]);
         }
 }
 

@@ -74,38 +74,6 @@ typedef struct {
 } audio_if_t;
 
 audio_if_t audio_if_table[] = {
-#ifdef IS_TRANSCODER
-	{
-                trans_audio_init,
-                NULL, 
-                trans_audio_device_count,
-                trans_audio_device_name,
-                trans_audio_open,
-                trans_audio_close,
-                trans_audio_drain,
-                trans_audio_duplex,
-                trans_audio_read,
-                trans_audio_write,
-                trans_audio_non_block,
-                trans_audio_block,
-                trans_audio_set_igain,
-                trans_audio_get_igain,
-                trans_audio_set_ogain,
-                trans_audio_get_ogain,
-                trans_audio_loopback,
-                trans_audio_oport_set,
-                trans_audio_oport_get,
-                trans_audio_oport_details,
-                trans_audio_oport_count,
-                trans_audio_iport_set,
-                trans_audio_iport_get,
-                trans_audio_iport_details,
-                trans_audio_iport_count,
-                trans_audio_is_ready,
-                trans_audio_wait_for,
-                trans_audio_supports
-	}
-#else /* IS_TRANSCODER */
 #ifdef HAVE_SGI_AUDIO
         {
                 NULL, 
@@ -362,6 +330,36 @@ audio_if_t audio_if_table[] = {
                 pca_audio_supports
         },
 #endif /* HAVE_PCA_AUDIO */
+	{
+                trans_audio_init,
+                NULL, 
+                trans_audio_device_count,
+                trans_audio_device_name,
+                trans_audio_open,
+                trans_audio_close,
+                trans_audio_drain,
+                trans_audio_duplex,
+                trans_audio_read,
+                trans_audio_write,
+                trans_audio_non_block,
+                trans_audio_block,
+                trans_audio_set_igain,
+                trans_audio_get_igain,
+                trans_audio_set_ogain,
+                trans_audio_get_ogain,
+                trans_audio_loopback,
+                trans_audio_oport_set,
+                trans_audio_oport_get,
+                trans_audio_oport_details,
+                trans_audio_oport_count,
+                trans_audio_iport_set,
+                trans_audio_iport_get,
+                trans_audio_iport_details,
+                trans_audio_iport_count,
+                trans_audio_is_ready,
+                trans_audio_wait_for,
+                trans_audio_supports
+	},
         {
                 /* This is the null audio device - it should always go last so that
                  * audio_get_null_device works.  The idea being when we can't get hold
@@ -396,7 +394,6 @@ audio_if_t audio_if_table[] = {
                 null_audio_wait_for,
                 null_audio_supports
         }
-#endif /* IS_TRANSCODER */
 };
 
 #define INITIAL_AUDIO_INTERFACES (sizeof(audio_if_table)/sizeof(audio_if_t))

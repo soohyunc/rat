@@ -43,7 +43,7 @@ struct s_source* source_create             (struct s_source_list  *list,
 
 void             source_reconfigure        (struct s_source* src,
                                             converter_id_t   current_id,
-                                            int              render_3D_enabled,
+		                            int              render_3d,
                                             uint16_t         out_rate,
                                             uint16_t         out_channels);
 
@@ -57,9 +57,6 @@ int              source_check_buffering    (struct s_source   *src);
 
 void             source_process            (struct s_session  *sp,
                                             struct s_source   *src,
-                                            struct s_mixer    *ms,
-                                            int                render_3d,
-                                            repair_id_t        repair,
                                             ts_t               start_ts,
                                             ts_t               end_ts);
 

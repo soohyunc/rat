@@ -266,6 +266,7 @@ setting_load_int(const char *name, int default_value)
 
 void settings_load_early(session_t *sp)
 {
+	/* FIXME: This needs to be updated for the transcoder */
 	char				*name, *param, *primary_codec, *port, *silence;
 	int				 freq, chan, mute;
         uint32_t                         i, n, success, device_exists;
@@ -295,8 +296,7 @@ void settings_load_early(session_t *sp)
 		}
 	}
 
-        if (strcmp(name, "No Audio Device") == 0 || 
-	    device_exists == FALSE) {
+        if (strcmp(name, "No Audio Device") == 0 || device_exists == FALSE) {
 		add = audio_get_device_details(0);
         }
 
@@ -451,6 +451,7 @@ settings_username(char *n, uint32_t nlen)
 
 void settings_load_late(session_t *sp)
 {
+	/* FIXME: This needs to be updated for the transcoder */
         uint32_t my_ssrc;
         struct   utsname u;
         char     hostfmt[] = "RAT v" RAT_VERSION " %s %s (%s)";
@@ -699,6 +700,7 @@ static void setting_save_int(const char *name, const long val)
 
 void settings_save(session_t *sp)
 {
+	/* FIXME: This needs to be updated for the transcoder */
         const codec_format_t 		*pri_cf;
         const audio_port_details_t      *iapd      = NULL;
         const audio_port_details_t      *oapd      = NULL;

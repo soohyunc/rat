@@ -355,9 +355,9 @@ fail_create_channel:
 void
 source_reconfigure(source        *src,
                    converter_id_t conv_id,
-                   int            render_3d,
-                   uint16_t        out_rate,
-                   uint16_t        out_channels)
+		   int            render_3d,
+                   uint16_t       out_rate,
+                   uint16_t       out_channels)
 {
         uint16_t    src_rate, src_channels;
         codec_id_t            src_cid;
@@ -1399,9 +1399,6 @@ source_repair(source     *src,
 void
 source_process(session_t 	 *sp,
                source            *src, 
-               struct s_mixer    *ms, 
-               int                render_3d, 
-               repair_id_t        repair_type, 
                ts_t               start_ts,    /* Real-world time           */
                ts_t               end_ts)      /* Real-world time + cushion */
 {
@@ -1457,7 +1454,7 @@ source_process(session_t 	 *sp,
                     (hold_repair == 0)) {
                         /* If repair was successful media_pos is moved,      */
                         /* so get data at media_pos again.                   */
-                        if (source_repair(src, repair_type, src->next_played) == TRUE) {
+                        if (source_repair(src, sp->repair, src->next_played) == TRUE) {
                                 debug_msg("Repair % 2d got % 6d exp % 6d talks % 6d\n", 
                                           src->consec_lost, 
                                           playout.ticks, 
@@ -1519,7 +1516,7 @@ source_process(session_t 	 *sp,
                         assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
                         assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
 
-                        if (render_3d && src->pdbe->render_3D_data) {
+                        if (sp->render_3d && src->pdbe->render_3D_data) {
                                 /* 3d rendering necessary */
                                 coded_unit *decoded, *render;
                                 decoded = md->rep[md->nrep - 1];
@@ -1577,7 +1574,7 @@ source_process(session_t 	 *sp,
                 src->samples_played += md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample));
                 xmemchk();
 
-                if (mix_put_audio(ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
+                if (mix_put_audio(sp->ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
                         /* Sources sampling rate changed mid-flow? dump data */
                         /* make source look irrelevant, it should get        */
                         /* destroyed and the recreated with proper decode    */
