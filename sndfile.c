@@ -272,6 +272,11 @@ snd_write_audio(sndfile_t **pps, sample *buf, u_int16 buf_len)
 
         if (ps->action & SND_ACTION_PAUSED) return FALSE;
 
+        if (buf_len == 0) {
+                /* We succeeded although we didn't write anything */
+                return TRUE;
+        }
+
         success = ps->sfh->write_audio(ps->fp, ps->state, buf, buf_len);
         if (!success) {
                 debug_msg("Closing file\n");
