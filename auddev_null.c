@@ -261,7 +261,7 @@ null_audio_oport_details(audio_desc_t ad, int idx)
  * Set input port.
  */
 void
-null_audio_iport_set(audio_desc_t ad, int port)
+null_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
         UNUSED(ad);
         UNUSED(port);
@@ -271,7 +271,7 @@ null_audio_iport_set(audio_desc_t ad, int port)
 /*
  * Get input port.
  */
-int
+audio_port_t
 null_audio_iport_get(audio_desc_t ad)
 {
         UNUSED(ad);

@@ -1247,6 +1247,7 @@ proc configure_input_port {port} {
     if {$bitmap != ""} {
 	.r.c.gain.l2 configure -bitmap $bitmap
     } else {
+	.r.c.gain.l2 configure -bitmap ""
 	.r.c.gain.l2 configure -text $port
     }
     set input_port $port
@@ -1259,6 +1260,7 @@ proc configure_output_port {port} {
     if {$bitmap != ""} {
 	.r.c.vol.l1 configure -bitmap $bitmap
     } else {
+	.r.c.vol.l1 configure -bitmap ""
 	.r.c.vol.l1 configure -text $port
     }
     set output_port $port

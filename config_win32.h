@@ -54,8 +54,6 @@
 #include <string.h>
 #include <winsock2.h>
 
-#include "audio_types.h"
-
 #ifdef HAVE_IPv6
 #include <ws2ip6.h>
 #endif
@@ -99,16 +97,10 @@ typedef unsigned long	in_addr_t;
 #define NEED_IN6_IS_ADDR_MULTICAST
 
 #include <time.h>		/* For clock_t */
+#include "audio_types.h"
 
 #define inline
 #define __inline     
-
-#define AUDIO_MICROPHONE	1
-#define AUDIO_LINE_IN		2
-#define AUDIO_CD            4
-#define AUDIO_SPEAKER		0
-#define AUDIO_HEADPHONE		1
-#define AUDIO_LINE_OUT		4
 
 #define srand48	srand
 #define lrand48 rand

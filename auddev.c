@@ -891,7 +891,7 @@ audio_loopback(audio_desc_t ad, int gain)
 }
 
 void
-audio_set_oport(audio_desc_t ad, int port)
+audio_set_oport(audio_desc_t ad, audio_port_t port)
 {
         int iface, device;
 
@@ -904,7 +904,7 @@ audio_set_oport(audio_desc_t ad, int port)
         audio_if_table[iface].audio_if_set_oport(device, port);
 }
 
-int
+audio_port_t
 audio_get_oport(audio_desc_t ad)
 {
         int iface, device;
@@ -947,7 +947,7 @@ audio_get_oport_count(audio_desc_t ad)
 }
 
 void
-audio_set_iport(audio_desc_t ad, int port)
+audio_set_iport(audio_desc_t ad, audio_port_t port)
 {
         int iface, device;
 
@@ -960,7 +960,7 @@ audio_set_iport(audio_desc_t ad, int port)
         audio_if_table[iface].audio_if_set_iport(device, port);
 }
 
-int
+audio_port_t
 audio_get_iport(audio_desc_t ad)
 {
         int iface, device;
