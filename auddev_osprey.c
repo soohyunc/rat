@@ -117,6 +117,9 @@ osprey_audio_init()
 
         if (!dlh) {
                 char* ldpath = getenv("LD_LIBRARY_PATH");
+                if (ldpath == NULL) {
+                        return FALSE;
+                }
                 locenv = strtok(ldpath, ":");
                 do {
                         path[0] = 0;
@@ -125,7 +128,9 @@ osprey_audio_init()
                         dlh = dlopen(path, RTLD_NOW);
                         locenv = strtok(NULL, ":");
                 } while (!dlh && locenv);
-                if (!dlh) return 0; /* Could not get it */
+                if (!dlh) {
+                        return FALSE; /* Could not get it */
+                }
         }
 
         /* Map functions */
