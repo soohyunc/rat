@@ -572,7 +572,7 @@ void settings_save(session_struct *sp)
 	  setting_save_str("audioChannelParameters", cc_param);
 	}
 
-	setting_save_int("audioUnits",             channel_encoder_get_units_per_packet(sp->channel_coder))
+	setting_save_int("audioUnits",             channel_encoder_get_units_per_packet(sp->channel_coder));
 	setting_save_str("audioChannelCoding",     cd.name);
 	setting_save_str("audioRepair",            repair_get_name((u_int16)sp->repair));
 	setting_save_str("audioAutoConvert",       converter.name);
