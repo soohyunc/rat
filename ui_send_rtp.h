@@ -16,6 +16,7 @@ void ui_send_rtp_phone      (session_t *sp, char *addr, uint32_t ssrc);
 void ui_send_rtp_loc        (session_t *sp, char *addr, uint32_t ssrc);
 void ui_send_rtp_tool       (session_t *sp, char *addr, uint32_t ssrc);
 void ui_send_rtp_note       (session_t *sp, char *addr, uint32_t ssrc);
+void ui_send_rtp_priv       (session_t *sp, char *addr, uint32_t ssrc);
 void ui_send_rtp_mute       (session_t *sp, char *addr, uint32_t ssrc);
 void ui_send_rtp_gain       (session_t *sp, char *addr, uint32_t ssrc);
 void ui_send_rtp_remove     (session_t *sp, char *addr, uint32_t ssrc);

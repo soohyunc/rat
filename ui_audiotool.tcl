@@ -93,7 +93,7 @@ proc tvar {name element op} {
 # trace variable gain w tvar
 
 proc init_source {ssrc} {
-	global CNAME NAME EMAIL LOC PHONE TOOL NOTE SSRC num_ssrc 
+	global CNAME NAME EMAIL LOC PHONE TOOL NOTE PRIV SSRC num_ssrc 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP \
                JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED BUFFER_SIZE \
 	       PLAYOUT_DELAY GAIN MUTE SKEW SPIKE_EVENTS SPIKE_TOGED RTT
@@ -115,6 +115,7 @@ proc init_source {ssrc} {
 		set           LOC($ssrc) ""
 		set          TOOL($ssrc) ""
 		set 	     NOTE($ssrc) ""
+		set 	     PRIV($ssrc) ""
 		set         CODEC($ssrc) unknown
 		set          GAIN($ssrc) 1.0
 		set          MUTE($ssrc) 0
@@ -310,17 +311,18 @@ proc mbus_recv {cmnd args} {
 		rtp.source.loc  		{eval mbus_recv_rtp.source.loc $args}
 		rtp.source.tool  		{eval mbus_recv_rtp.source.tool $args}
 		rtp.source.note  		{eval mbus_recv_rtp.source.note $args}
+		rtp.source.priv  		{eval mbus_recv_rtp.source.priv $args}
 		rtp.source.codec  		{eval mbus_recv_rtp.source.codec $args}
 		rtp.source.packet.duration  	{eval mbus_recv_rtp.source.packet.duration $args}
 		rtp.source.packet.loss  	{eval mbus_recv_rtp.source.packet.loss $args}
 		rtp.source.reception  		{eval mbus_recv_rtp.source.reception $args}
-		rtp.source.active  			{eval mbus_recv_rtp.source.active $args}
-		rtp.source.inactive			{eval mbus_recv_rtp.source.inactive $args}
-		rtp.source.mute				{eval mbus_recv_rtp.source.mute $args}
-		rtp.source.gain				{eval mbus_recv_rtp.source.gain $args}
-		rtp.source.rtt				{eval mbus_recv_rtp.source.rtt $args}
+		rtp.source.active  		{eval mbus_recv_rtp.source.active $args}
+		rtp.source.inactive		{eval mbus_recv_rtp.source.inactive $args}
+		rtp.source.mute			{eval mbus_recv_rtp.source.mute $args}
+		rtp.source.gain			{eval mbus_recv_rtp.source.gain $args}
+		rtp.source.rtt			{eval mbus_recv_rtp.source.rtt $args}
 		security.encryption.key 	{eval mbus_recv_security.encryption.key $args}
-		default						{bgerror "Unknown mbus command $cmnd"}
+		default				{bgerror "Unknown mbus command $cmnd"}
 	}
 }
 
@@ -877,6 +879,12 @@ proc mbus_recv_rtp.source.loc {ssrc loc} {
 	set LOC($ssrc) $loc
 }
 
+proc mbus_recv_rtp.source.priv {ssrc priv} {
+	global PRIV
+	init_source $ssrc
+	set PRIV($ssrc) $priv
+}
+
 proc mbus_recv_rtp.source.tool {ssrc tool} {
 	global TOOL my_ssrc tool_name
 	init_source $ssrc
@@ -1036,7 +1044,7 @@ proc mbus_recv_rtp.source.remove {ssrc} {
     catch {after cancel $loss_to_me_timer($ssrc)}
     catch {after cancel $loss_from_me_timer($ssrc)}
 
-    set pvars [list CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV    \
+    set pvars [list CNAME NAME EMAIL LOC PHONE TOOL NOTE PRIV CODEC DURATION PCKTS_RECV    \
 	    PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER BUFFER_SIZE PLAYOUT_DELAY  \
 	    LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED loss_to_me_timer \
 	    loss_from_me_timer GAIN MUTE HEARD_LOSS_TO_ME HEARD_LOSS_FROM_ME  \
@@ -1352,15 +1360,16 @@ proc toggle_stats {ssrc} {
 	pack  $win.df -side top -anchor n -expand 1 -fill both
 	pack $win.df.personal -expand 1 -fill both
 
-	global NAME EMAIL PHONE LOC NOTE CNAME TOOL SSRC
+	global NAME EMAIL PHONE LOC NOTE PRIV CNAME TOOL SSRC
 	stats_add_field $win.df.personal.1 "Name: "     NAME($ssrc)
 	stats_add_field $win.df.personal.2 "Email: "    EMAIL($ssrc)
 	stats_add_field $win.df.personal.3 "Phone: "    PHONE($ssrc)
 	stats_add_field $win.df.personal.4 "Location: " LOC($ssrc)
 	stats_add_field $win.df.personal.5 "Note: "     NOTE($ssrc)
-	stats_add_field $win.df.personal.6 "Tool: "     TOOL($ssrc)
-	stats_add_field $win.df.personal.7 "CNAME: "    CNAME($ssrc)
-	stats_add_field $win.df.personal.8 "SSRC: "     SSRC($ssrc)
+	stats_add_field $win.df.personal.6 "Priv: "     PRIV($ssrc)
+	stats_add_field $win.df.personal.7 "Tool: "     TOOL($ssrc)
+	stats_add_field $win.df.personal.8 "CNAME: "    CNAME($ssrc)
+	stats_add_field $win.df.personal.9 "SSRC: "     SSRC($ssrc)
 
 	frame $win.df.playout -relief groove -bd 2
 	global BUFFER_SIZE PLAYOUT_DELAY JITTER JIT_TOGED SKEW
@@ -1739,23 +1748,23 @@ frame $i.a.f.f.ents
 pack  $i.a.f.f.lbls -side left -fill y
 pack  $i.a.f.f.ents -side right
 
-label $i.a.f.f.lbls.1  -text "Name:"     -anchor w
+label $i.a.f.f.lbls.1 -text "Name:"     -anchor w
 label $i.a.f.f.lbls.2 -text "Email:"    -anchor w
 label $i.a.f.f.lbls.3 -text "Phone:"    -anchor w
-label $i.a.f.f.lbls.4   -text "Location:" -anchor w
-label $i.a.f.f.lbls.5  -text "Note:" -anchor w
+label $i.a.f.f.lbls.4 -text "Location:" -anchor w
+label $i.a.f.f.lbls.5 -text "Note:" -anchor w
 pack $i.a.f.f.lbls.1 $i.a.f.f.lbls.2 $i.a.f.f.lbls.3 $i.a.f.f.lbls.4 $i.a.f.f.lbls.5 -fill x -anchor w -side top
 
-entry $i.a.f.f.ents.name -width 28 -highlightthickness 0 -textvariable rtcp_name
+entry $i.a.f.f.ents.name  -width 28 -highlightthickness 0 -textvariable rtcp_name
 entry $i.a.f.f.ents.email -width 28 -highlightthickness 0 -textvariable rtcp_email
 entry $i.a.f.f.ents.phone -width 28 -highlightthickness 0 -textvariable rtcp_phone
-entry $i.a.f.f.ents.loc  -width 28 -highlightthickness 0 -textvariable rtcp_loc
+entry $i.a.f.f.ents.loc   -width 28 -highlightthickness 0 -textvariable rtcp_loc
 entry $i.a.f.f.ents.note  -width 28 -highlightthickness 0 -textvariable rtcp_note
 pack $i.a.f.f.ents.name $i.a.f.f.ents.email $i.a.f.f.ents.phone $i.a.f.f.ents.loc $i.a.f.f.ents.note -anchor n -expand 0 
 
 proc update_user_panel {} {
-    global my_ssrc NAME EMAIL PHONE LOC NOTE
-    global rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note
+    global my_ssrc NAME EMAIL PHONE LOC NOTE PRIV
+    global rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note 
     if {[info exists my_ssrc]} {
         set rtcp_name  $NAME($my_ssrc)
         set rtcp_email $EMAIL($my_ssrc)
@@ -2320,7 +2329,7 @@ proc sync_ui_to_engine {} {
 
 proc sync_engine_to_ui {} {
     # make audio engine concur with ui
-    global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note
+    global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note 
     global prenc upp channel_var secenc layerenc red_off int_gap int_units
     global agc_var audio_loop_var echo_var
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
@@ -2333,7 +2342,7 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "rtp.source.email" "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_email]"
     mbus_send "R" "rtp.source.phone" "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_phone]"
     mbus_send "R" "rtp.source.loc"   "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_loc]"
-    mbus_send "R" "rtp.source.note"   "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_note]"
+    mbus_send "R" "rtp.source.note"  "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_note]"
 
     #cheat to update my details right away (it's disgusting)
     mbus_recv_rtp.source.name  $my_ssrc "$rtcp_name"

@@ -1535,6 +1535,11 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 	  probing.
 	- Fixed re-use of "thedev" string in newpcm_audio_open that caused 
 	  device name to be trashed.  Reported by Lars Eggert.  Thanks!
+	- Fix RTCP bandwidth fraction estimation (Timur Friedman)
+	- Add support for displaying RTCP SDES PRIV items (we send a test
+	  item also).
+
+
 
 TODO -- They're features not bugs dammit!
 ----

@@ -293,7 +293,7 @@ process_sdes(session_t *sp, uint32_t ssrc, rtcp_sdes_item *d)
                 ui_send_rtp_note(sp, sp->mbus_ui_addr, ssrc);
                 break;
         case RTCP_SDES_PRIV:
-                debug_msg("Discarding private data from (0x%08x)", ssrc);
+		ui_send_rtp_priv(sp, sp->mbus_ui_addr, ssrc);
                 break;
         default:
                 debug_msg("Ignoring SDES type (0x%02x) from (0x%08x).\n", ssrc);

@@ -84,6 +84,22 @@ void ui_send_rtp_note(session_t *sp, char *addr, uint32_t ssrc)
 	ui_info_update_sdes(sp, addr, "rtp.source.note", rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_NOTE), ssrc);
 }
 
+void ui_send_rtp_priv(session_t *sp, char *addr, uint32_t ssrc)
+{
+	char	priv[255];
+	char	l;
+	int	i;
+
+	strncpy(priv, rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_PRIV), 255);
+	l = priv[0];
+	for (i=1; i<(int)l+1; i++) {
+		priv[i-1] = priv[i];
+	}
+	priv[(int)l] = '/';
+
+	ui_info_update_sdes(sp, addr, "rtp.source.priv", priv, ssrc);
+}
+
 void 
 ui_send_rtp_gain(session_t *sp, char *addr, uint32_t ssrc)
 {
