@@ -85,7 +85,7 @@ static void rx_tool_rat_addr_ui(char *srce, char *args, session_t *sp)
 
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &addr)) {
-		sp->mbus_ui_addr = mbus_decode_str(addr);
+		sp->mbus_ui_addr = xstrdup(mbus_decode_str(addr));
 	} else {
 		debug_msg("mbus: usage \"tool.rat.addr.ui <addr>\"\n");
 	}
@@ -732,11 +732,9 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 	mbus_parse_int(sp->mbus_engine, &ttl);
 	mbus_parse_done(sp->mbus_engine);
 
-	sp->rtp_session[0] = rtp_init(addr, rx_port, ttl, 64000, rtp_callback);
+	sp->rtp_session[0] = rtp_init(addr, rx_port, tx_port, ttl, 64000, rtp_callback);
 	sp->rtp_session_count++;
 	rtp_callback_init(sp->rtp_session[0], sp);
-
-	debug_msg("RTP code ignores tx_port\n");
 }
 
 
@@ -1193,7 +1191,6 @@ static void rx_mbus_quit(char *srce, char *args, session_t *sp)
 	UNUSED(args);
 	UNUSED(srce);
 	UNUSED(sp);
-	ui_quit(sp);
         should_exit = TRUE;
 }
 
