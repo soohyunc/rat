@@ -2,7 +2,7 @@ Summary: UCL Robust-Audio Tool
 Name: rat
 Version: VERSION
 Release: 1
-Source: http://www-mice.cs.ucl.ac.uk/multimedia/software/rat-4.0/VERSION/rat-VERSION.tar.gz
+Source: http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/VERSION/rat-VERSION.tar.gz
 Copyright: Copyright (c) 1995-99 University College London
 Group: X11/Applications/Networking
 Packager: Colin Perkins <c.perkins@cs.ucl.ac.uk>
@@ -36,7 +36,7 @@ to discover advertised multicast sessions. For these
 purposes, it is recommended you use RAT in conjunction 
 with the Session Directory (SDR), or a similar application. 
 
-See http://www-mice.cs.ucl.ac.uk/multimedia/software/rat-4.0/
+See http://www-mice.cs.ucl.ac.uk/multimedia/software/rat
 
 %prep
 
@@ -61,6 +61,8 @@ cd ..
 %install
 
 install -m 755 rat/rat-VERSION 		/usr/bin/rat-VERSION
+install -m 755 rat/rat-VERSION-media 	/usr/bin/rat-VERSION-media
+install -m 755 rat/rat-VERSION-ui 	/usr/bin/rat-VERSION-ui
 install -m 644 rat/README    		/usr/doc/rat-VERSION/README
 install -m 644 rat/README.devices	/usr/doc/rat-VERSION/README.devices
 install -m 644 rat/README.files		/usr/doc/rat-VERSION/README.files
@@ -72,6 +74,8 @@ install -m 644 rat/man/man1/rat.1	/usr/man/man1/rat.1
 
 %files 
 /usr/bin/rat-VERSION
+/usr/bin/rat-VERSION-media
+/usr/bin/rat-VERSION-ui
 /usr/doc/rat-VERSION/README
 /usr/doc/rat-VERSION/README.devices
 /usr/doc/rat-VERSION/README.files
