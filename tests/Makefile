@@ -1,6 +1,6 @@
 
 CC = gcc
-DEBUG=-fbounds-checking -g
+DEBUG=-g
 INCLUDE = -I.. -I../../common
 CFLAGS  = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror -g -fsigned-char  -DHAVE_PCA -DDEBUG -DFreeBSD -DSASR -DFAST -DUSE_FLOAT_MUL -DDEBUG_MEM
 LIBS = -L../../common -lm -lcommon
@@ -16,6 +16,11 @@ CHANNEL_OBJS = ../cc_vanilla.o ../new_channel.o ../channel_types.o
 UTIL_OBJS = ../timers.o ../playout.o ../ts.o
 
 3D_OBJS = test_3d.o ../render_3D.o
+
+RDNCY_OBJS = ../cc_rdncy.o ../channel_types.o test_rdncy.o
+
+test_rdncy: $(RDNCY_OBJS) $(CODEC_OBJS) $(UTIL_OBJS)
+	$(CC) $(DEBUG) -o $@ $(RDNCY_OBJS) $(CODEC_OBJS) $(UTIL_OBJS) $(LIBS)
 
 test_3d: $(3D_OBJS) $(CODEC_OBJS)
 	$(CC) $(DEBUG)  -o $@  $(3D_OBJS) $(CODEC_OBJS) $(LIBS)
@@ -37,7 +42,7 @@ test_ts: $(UTIL_OBJS) test_ts.o
 	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(CODEC_OBJS) $(3D_OBJS) test_3d test_codecs native \
-	test_channel *.o
+	rm -rf $(CODEC_OBJS) $(3D_OBJS) $(RDNCY_OBJS) $(UTIL_OBJS) test_3d \
+		test_codecs native test_channel *.o
 
 
