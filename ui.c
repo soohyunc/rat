@@ -104,7 +104,7 @@ ui_info_update_name(rtcp_dbentry *e, session_struct *sp)
 	char *arg   = xstrdup(mbus_encode_str(e->sentry->name));
 
 	sprintf(args, "%s %s", cname, arg);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_name", args, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_name", args, TRUE);
 	xfree(cname);
 	xfree(arg);
 }
@@ -113,7 +113,7 @@ void
 ui_info_update_cname(rtcp_dbentry *e, session_struct *sp)
 {
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_exists", args, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_exists", args, TRUE);
 }
 
 void
@@ -123,7 +123,7 @@ ui_info_update_email(rtcp_dbentry *e, session_struct *sp)
 	char *arg   = xstrdup(mbus_encode_str(e->sentry->email));
 
 	sprintf(args, "%s %s", cname, arg);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_email", args, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_email", args, TRUE);
 	xfree(cname);
 	xfree(arg);
 }
@@ -135,7 +135,7 @@ ui_info_update_phone(rtcp_dbentry *e, session_struct *sp)
 	char *arg   = xstrdup(mbus_encode_str(e->sentry->phone));
 
 	sprintf(args, "%s %s", cname, arg);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_phone", args, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_phone", args, TRUE);
 	xfree(cname);
 	xfree(arg);
 }
@@ -147,7 +147,7 @@ ui_info_update_loc(rtcp_dbentry *e, session_struct *sp)
 	char *arg   = xstrdup(mbus_encode_str(e->sentry->loc));
 
 	sprintf(args, "%s %s", cname, arg);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_loc", args, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_loc", args, TRUE);
 	xfree(cname);
 	xfree(arg);
 }
@@ -159,7 +159,7 @@ ui_info_update_tool(rtcp_dbentry *e, session_struct *sp)
 	char *arg   = xstrdup(mbus_encode_str(e->sentry->tool));
 
 	sprintf(args, "%s %s", cname, arg);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_tool", args, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_tool", args, TRUE);
 	xfree(cname);
 	xfree(arg);
 }
@@ -168,28 +168,28 @@ void
 ui_info_remove(rtcp_dbentry *e, session_struct *sp)
 {
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_remove", args, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_remove", args, TRUE);
 }
 
 void
 ui_info_activate(rtcp_dbentry *e, session_struct *sp)
 {
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_active_now", args, FALSE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_active_now", args, FALSE);
 }
 
 void
 ui_info_gray(rtcp_dbentry *e, session_struct *sp)
 {
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_active_recent", args, FALSE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_active_recent", args, FALSE);
 }
 
 void
 ui_info_deactivate(rtcp_dbentry *e, session_struct *sp)
 {
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_inactive", args, FALSE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_inactive", args, FALSE);
 }
 
 void
@@ -217,9 +217,9 @@ update_stats(rtcp_dbentry *e, session_struct *sp)
 	}
 
 	sprintf(args, "%s %s", mbus_encode_str(e->sentry->cname), encoding);                       
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_encoding", args, FALSE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_encoding", args, FALSE);
 	sprintf(args, "%s %ld", mbus_encode_str(e->sentry->cname), (e->lost_frac * 100) >> 8); 
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_loss_to_me", args, FALSE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_loss_to_me", args, FALSE);
 }
 
 void
@@ -227,22 +227,22 @@ ui_update_input_port(session_struct *sp)
 {
 	switch (sp->input_mode) {
 	case AUDIO_MICROPHONE:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_port", "microphone", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_port", "microphone", FALSE);
 		break;
 	case AUDIO_LINE_IN:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_port", "line_in", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_port", "line_in", FALSE);
 		break;
 	case AUDIO_CD:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_port", "cd", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_port", "cd", FALSE);
 		break;
 	default:
 		fprintf(stderr, "Invalid input port!\n");
 		return ;
 	}
 	if (sp->sending_audio) {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_mute", "0", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_mute", "0", FALSE);
 	} else {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_mute", "1", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_mute", "1", FALSE);
 	}
 }
 
@@ -251,22 +251,22 @@ ui_update_output_port(session_struct *sp)
 {
 	switch (sp->output_mode) {
 	case AUDIO_SPEAKER:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_port", "speaker", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_port", "speaker", FALSE);
 		break;
 	case AUDIO_HEADPHONE:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_port", "headphone", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_port", "headphone", FALSE);
 		break;
 	case AUDIO_LINE_OUT:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_port", "line_out", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_port", "line_out", FALSE);
 		break;
 	default:
 		fprintf(stderr, "Invalid output port!\n");
 		return;
 	}
 	if (sp->playing_audio) {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_mute", "0", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_mute", "0", FALSE);
 	} else {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_mute", "1", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_mute", "1", FALSE);
 	}
 }
 
@@ -279,7 +279,7 @@ ui_input_level(int level, session_struct *sp)
 	if (ol == level)
 		return;
 	sprintf(args, "%d", level);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "powermeter_input", args, FALSE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "powermeter_input", args, FALSE);
 	ol = level;
 }
 
@@ -292,7 +292,7 @@ ui_output_level(int level, session_struct *sp)
 	if (ol == level) 
                 return;
 	sprintf(args, "%d", level);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "powermeter_output", args, FALSE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "powermeter_output", args, FALSE);
 	ol = level;
 }
 
@@ -335,7 +335,7 @@ ui_codecs(session_struct *sp)
                 a += strlen(codec[i]->name) + 1;
         }
 
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "codec_supported", arg, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "codec_supported", arg, TRUE);
 }
 
 static void
@@ -343,13 +343,13 @@ ui_repair(session_struct *sp)
 {
         switch(sp->repair) {
         case REPAIR_NONE:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "repair", "None", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "repair", "None", FALSE);
                 break;
         case REPAIR_REPEAT:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "repair", "PacketRepetition", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "repair", "PacketRepetition", FALSE);
                 break;
 	case REPAIR_PATTERN_MATCH:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "repair", "PatternMatching", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "repair", "PatternMatching", FALSE);
                 break;
         }
 }
@@ -367,25 +367,25 @@ ui_update(session_struct *sp)
 	/*XXX solaris seems to give a different volume back to what we   */
 	/*    actually set.  So don't even ask if it's not the first time*/
 	if (done==0) {
-	        sprintf(args, "%d", audio_get_volume(sp->audio_fd)); mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_gain", args, TRUE);
-		sprintf(args, "%d", audio_get_gain(sp->audio_fd));   mbus_send(sp->mbus_engine, sp->mbus_ui_addr,  "input_gain", args, TRUE);
+	        sprintf(args, "%d", audio_get_volume(sp->audio_fd)); mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_gain", args, TRUE);
+		sprintf(args, "%d", audio_get_gain(sp->audio_fd));   mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr,  "input_gain", args, TRUE);
 	} else {
-	        sprintf(args, "%d", sp->output_gain); mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_gain", args, TRUE);
-		sprintf(args, "%d", sp->input_gain ); mbus_send(sp->mbus_engine, sp->mbus_ui_addr,  "input_gain", args, TRUE);
+	        sprintf(args, "%d", sp->output_gain); mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_gain", args, TRUE);
+		sprintf(args, "%d", sp->input_gain ); mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr,  "input_gain", args, TRUE);
 	}
 
 	ui_update_output_port(sp);
 	if (sp->playing_audio) {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_mute", "0", TRUE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_mute", "0", TRUE);
 	} else {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_mute", "1", TRUE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_mute", "1", TRUE);
 	}
 
 	ui_update_input_port(sp);
 	if (sp->sending_audio) {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_mute", "0", TRUE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_mute", "0", TRUE);
 	} else {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_mute", "1", TRUE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_mute", "1", TRUE);
 	}
 
         /* Transmission Options */
@@ -393,15 +393,15 @@ ui_update(session_struct *sp)
 		/* If we're using a real audio device, check if it's half duplex... */
 		if (audio_duplex(sp->audio_fd) == FALSE) {
 			sp->voice_switching = MIKE_MUTES_NET;
-			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "half_duplex", "", TRUE);
+			mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "half_duplex", "", TRUE);
 		}
 	}
         
 	cp = get_codec(sp->encodings[0]);
 	sprintf(args, "%s", mbus_encode_str(cp->name));
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "primary", args, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "primary", args, TRUE);
         sprintf(args, "%d", get_units_per_packet(sp));
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "rate", args, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "rate", args, TRUE);
 
         ui_repair(sp);
 
@@ -412,13 +412,13 @@ ui_update(session_struct *sp)
 void
 ui_show_audio_busy(session_struct *sp)
 {
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "disable_audio_ctls", "", TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "disable_audio_ctls", "", TRUE);
 }
 
 void
 ui_hide_audio_busy(session_struct *sp)
 {
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "enable_audio_ctls", "", TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "enable_audio_ctls", "", TRUE);
 }
 
 static int
@@ -431,7 +431,7 @@ mbus_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 		return TCL_ERROR;
 	}
 
-	mbus_send(sp->mbus_ui, sp->mbus_engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
+	mbus_send(sp->mbus_ui_chan, sp->mbus_engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
 	return TCL_OK;
 }
 
@@ -572,17 +572,17 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 	ui_send(sp->ui_script);
 
 	ecname = xstrdup(mbus_encode_str(cname));
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "init", "", TRUE);
-	sprintf(args, "%s", ecname); 					mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "my_cname",       args, TRUE);
-	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "address",        args, TRUE);
-	sprintf(args, "%s %s", ecname, mbus_encode_str(RAT_VERSION));	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_tool",    args, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "init", "", TRUE);
+	sprintf(args, "%s", ecname); 					mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "my_cname",       args, TRUE);
+	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "address",        args, TRUE);
+	sprintf(args, "%s %s", ecname, mbus_encode_str(RAT_VERSION));	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_tool",    args, TRUE);
 #ifndef NDEBUG
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "debug", "", TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "debug", "", TRUE);
 #endif
 	xfree(ecname);
 
 	ui_codecs(sp);
-        mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "load_settings", "", TRUE);
+        mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "load_settings", "", TRUE);
 
 	Tcl_ResetResult(interp);
 	return TRUE;
@@ -593,7 +593,7 @@ update_lecture_mode(session_struct *sp)
 {
 	/* Update the UI to reflect the lecture mode setting...*/
 	sprintf(args, "%d", sp->lecture);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "lecture_mode", args, TRUE);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "lecture_mode", args, TRUE);
 }
 
 

@@ -210,7 +210,7 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 				real_playout = (convert_time(hdr->ts + src->playout - cur_time, src->clock, sp->device_clock) * 1000)/get_freq(sp->device_clock);
 				sprintf(pargs, "%s %d", src->sentry->cname, real_playout);
 				dprintf("source_playout (%s)\n", pargs);
-				mbus_send(sp->mbus_engine, sp->mbus_video_addr, "source_playout", pargs, FALSE);
+				mbus_send(sp->mbus_engine_chan, sp->mbus_video_addr, "source_playout", pargs, FALSE);
 				/* If the video tool is slower than us, then
 				 * adjust to match it...  src->video_playout is
 				 * the delay of the video, converted to the clock 

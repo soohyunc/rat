@@ -146,11 +146,14 @@ typedef struct session_tag {
         int             flake_go;                   /* counter used to avoid dropping at start */
         int             flake_os;                   /* number outstanding */
         char            *ui_script;
-	struct mbus	*mbus_engine;
-	struct mbus	*mbus_ui;
+	struct mbus	*mbus_engine_base;
+	struct mbus	*mbus_engine_chan;
+	struct mbus	*mbus_ui_base;
+	struct mbus	*mbus_ui_chan;
 	char		*mbus_engine_addr;
 	char		*mbus_ui_addr;
 	char		*mbus_video_addr;
+	int		 mbus_channel;
 } session_struct;
 
 void init_session(session_struct *sp);

@@ -102,8 +102,6 @@ main(int argc, char *argv[])
 	struct hostent 		*hent;
 	struct in_addr  	 iaddr;
 	struct timeval  	 time;
-	struct mbus		*mbus_engine, *mbus_ui;
-	char			*mbus_engine_addr, *mbus_ui_addr, *mbus_video_addr;
 
 #define NEW_QUEUE(T,Q) T  Q[2]; \
                        T *Q##_ptr[2];
@@ -161,17 +159,22 @@ main(int argc, char *argv[])
 	srand48(time.tv_usec);
 	while (!(ssrc = lrand48()));	/* Making 0 a special value */
 
-	mbus_video_addr  = (char *) xmalloc(30); sprintf(mbus_video_addr,  "(video engine   *  *)");
-	mbus_engine_addr = (char *) xmalloc(30); sprintf(mbus_engine_addr, "(audio engine rat %d)", (int) getpid());
-	mbus_ui_addr     = (char *) xmalloc(30); sprintf(mbus_ui_addr,     "(audio     ui rat %d)", (int) getpid());
-	mbus_engine      = mbus_init(0, mbus_handler_engine, NULL); mbus_addr(mbus_engine, mbus_engine_addr);
-	mbus_ui          = mbus_init(0, mbus_handler_ui,     NULL); mbus_addr(mbus_ui, mbus_ui_addr);
 	for (i = 0; i < num_sessions; i++) {
-		sp[i]->mbus_engine      = mbus_engine;
-		sp[i]->mbus_ui          = mbus_ui;
-		sp[i]->mbus_engine_addr = mbus_engine_addr;
-		sp[i]->mbus_ui_addr     = mbus_ui_addr;
-		sp[i]->mbus_video_addr  = mbus_video_addr;
+		sp[i]->mbus_engine_addr = (char *) xmalloc(30); sprintf(sp[i]->mbus_engine_addr, "(audio engine rat %d)", (int) getpid());
+		sp[i]->mbus_ui_addr     = (char *) xmalloc(30); sprintf(sp[i]->mbus_ui_addr,     "(audio     ui rat %d)", (int) getpid());
+		sp[i]->mbus_video_addr  = (char *) xmalloc(30); sprintf(sp[i]->mbus_video_addr,  "(video engine   *  *)");
+
+		sp[i]->mbus_engine_base = mbus_init(                  0, mbus_handler_engine, NULL); mbus_addr(sp[i]->mbus_engine_base, sp[i]->mbus_engine_addr);
+		sp[i]->mbus_ui_base     = mbus_init(                  0, mbus_handler_ui,     NULL); mbus_addr(sp[i]->mbus_ui_base    , sp[i]->mbus_ui_addr);
+
+		if (sp[i]->mbus_channel == 0) {
+			dprintf("No mbus channel specified, using the base for all messages...\n");
+			sp[i]->mbus_engine_chan = sp[i]->mbus_engine_base;
+			sp[i]->mbus_ui_chan     = sp[i]->mbus_ui_base;
+		} else {
+			sp[i]->mbus_engine_chan = mbus_init(sp[i]->mbus_channel, mbus_handler_engine, NULL); mbus_addr(sp[i]->mbus_engine_chan, sp[i]->mbus_engine_addr);
+			sp[i]->mbus_ui_chan     = mbus_init(sp[i]->mbus_channel, mbus_handler_ui,     NULL); mbus_addr(sp[i]->mbus_ui_chan    , sp[i]->mbus_ui_addr);
+		}
 	}
 
 	for (i = 0; i < num_sessions; i++) {
@@ -299,8 +302,10 @@ main(int argc, char *argv[])
 			}
 
 			/* Schedule any outstanding retransmissions of mbus messages... */
-			mbus_retransmit(sp[i]->mbus_engine);
-			mbus_retransmit(sp[i]->mbus_ui);
+			mbus_retransmit(sp[i]->mbus_engine_base);
+			mbus_retransmit(sp[i]->mbus_engine_chan);
+			mbus_retransmit(sp[i]->mbus_ui_base);
+			mbus_retransmit(sp[i]->mbus_ui_chan);
 
 			/* Maintain last_sent dummy lecture var */
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {
