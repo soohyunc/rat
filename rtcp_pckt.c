@@ -221,7 +221,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 					my_cname    = strdup(mbus_encode_str(dbe->sentry->cname));
 					their_cname = strdup(mbus_encode_str(other_source->sentry->cname));
 					sprintf(args, "%s %s %d", my_cname, their_cname, (int) ((rr->fraction_lost / 2.56)+0.5));
-					mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_loss_from", args, FALSE);
+					mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source.packet.loss", args, FALSE);
 					free(my_cname);
 					free(their_cname);
 				} else {
@@ -261,7 +261,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 					my_cname    = strdup(mbus_encode_str(dbe->sentry->cname));
 					their_cname = strdup(mbus_encode_str(other_source->sentry->cname));
 					sprintf(args, "%s %s %d", my_cname, their_cname, (int) ((rr->fraction_lost / 2.56)+0.5));
-					mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_loss_from", args, FALSE);
+					mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source.packet.loss", args, FALSE);
 					free(my_cname);
 					free(their_cname);
 				} else {
@@ -274,8 +274,12 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				/* Need to store stats in ssrc's db not r.rr.ssrc's */
 				dbe->loss_from_me = (ntohl(pkt->r.rr.rr[0].loss) >> 24) & 0xff;
 				dbe->last_rr_for_me = cur_time;
-				sprintf(args, "%s %d", mbus_encode_str(dbe->sentry->cname), (dbe->loss_from_me*100)>>8);
-				mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_loss_from_me", args, FALSE);
+				my_cname    = strdup(mbus_encode_str(sp->db->my_dbe->sentry->cname));
+				their_cname = strdup(mbus_encode_str(dbe->sentry->cname));
+				sprintf(args, "%s %s %d", their_cname, my_cname, (dbe->loss_from_me*100)>>8);
+				mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source.packet.loss", args, FALSE);
+				free(my_cname);
+				free(their_cname);
 			}
 			break;
 		case RTCP_BYE:
@@ -590,6 +594,7 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 	rtcp_rr_t      *rptr = (rtcp_rr_t *) ptr;
 	u_int32		ext_max, expected, expi, reci;
 	int32		losti;
+	char	       *my_cname, *their_cname;
 
 	ext_max = dbe->cycles + dbe->lastseqno;
 	expected = ext_max - dbe->firstseqno + 1;
@@ -608,14 +613,18 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 	} else {
 		dbe->lost_frac = (losti << 8) / expi;
 	}
-	sprintf(args, "%s %d",  mbus_encode_str(dbe->sentry->cname), dbe->units_per_packet * 20); 	mbus_qmsg(sp->mbus_engine_chan, "source_packet_duration", args);
-	sprintf(args, "%s %ld", mbus_encode_str(dbe->sentry->cname), dbe->pckts_recv); 			mbus_qmsg(sp->mbus_engine_chan, "source_packets_recv", args);
-	sprintf(args, "%s %ld", mbus_encode_str(dbe->sentry->cname), dbe->lost_tot); 			mbus_qmsg(sp->mbus_engine_chan, "source_packets_lost", args);
-	sprintf(args, "%s %ld", mbus_encode_str(dbe->sentry->cname), dbe->misordered); 			mbus_qmsg(sp->mbus_engine_chan, "source_packets_miso", args);
-	sprintf(args, "%s %ld", mbus_encode_str(dbe->sentry->cname), dbe->jit_TOGed); 			mbus_qmsg(sp->mbus_engine_chan, "source_jitter_drop", args);
-	sprintf(args, "%s %f",  mbus_encode_str(dbe->sentry->cname), dbe->jitter); 			mbus_qmsg(sp->mbus_engine_chan, "source_jitter", args);
-	sprintf(args, "%s %ld", mbus_encode_str(dbe->sentry->cname), (dbe->lost_frac * 100) >> 8); 	
-	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_loss_to_me", args, FALSE);
+	sprintf(args, "%s %d",  mbus_encode_str(dbe->sentry->cname), dbe->units_per_packet * 20); 	
+	mbus_qmsg(sp->mbus_engine_chan, "source.packet.duration", args)
+
+	my_cname    = strdup(mbus_encode_str(sp->db->my_dbe->sentry->cname));
+	their_cname = strdup(mbus_encode_str(dbe->sentry->cname));
+	sprintf(args, "%s %s %ld", my_cname, their_cname, (dbe->lost_frac * 100) >> 8);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source.packet.loss", args, FALSE);
+	free(my_cname);
+	free(their_cname);
+
+	sprintf(args, "%s %ld %ld %ld %f", mbus_encode_str(dbe->sentry->cname), dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->jitter);
+	mbus_qmsg(sp->mbus_engine_chan, "source.reception", args);
 
 	rptr->ssrc     = htonl(dbe->ssrc);
 	rptr->loss     = htonl(dbe->lost_frac << 24 | (dbe->lost_tot & 0xffffff));
