@@ -5,7 +5,8 @@ Further information, and a list of frequently asked questions (with
 answers) is available from http://www-mice.cs.ucl.ac.uk/mice/rat/
 
 Installation: If you're on a supported platform, type
-	./Build rat
+	./configure
+	make
 and hopefully things will work.
 
 Send comments, suggestions and bug-reports to rat-trap@cs.ucl.ac.uk

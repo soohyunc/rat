@@ -41,8 +41,6 @@
  * SUCH DAMAGE.
  */
 
-#ifdef SunOS
-
 #include "assert.h"
 #include "audio.h"
 #include "cushion.h"
@@ -452,4 +450,3 @@ audio_get_freq()
         return dev_info.play.sample_rate;
 }
 
-#endif /* SunOS */
