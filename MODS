@@ -1641,6 +1641,7 @@ v4.2.24 - Added a rtp_promiscuous_mode setting to .RTPdefaults
 v4.2.25 - Fix gcc3.3.x pointer alias warnings.
 	- Change vnsprintf replacement to use vsprint rather than sprintf.
 	- Fix top-level catch diagnostic in ui_audiotool.tcl.
+	* 12 January 2004
 
 TODO -- They're features not bugs dammit!
 ----
