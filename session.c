@@ -42,6 +42,7 @@
  */
 
 #include <ctype.h>
+#include <netdb.h>
 #include "config.h"
 #include "version.h"
 #include "session.h"
@@ -84,7 +85,7 @@ init_session(session_struct *sp)
 	set_dynamic_payload(&sp->dpt_list, "L16-48K-STEREO", PT_L16_48K_STEREO);
 
 	codec_init(sp);
-	cp = get_codec_byname("DVI-8K-MONO",sp);
+	cp = get_codec_by_name("DVI-8K-MONO",sp);
         channel_set_coder(sp, PT_VANILLA);
         sp->last_depart_ts              = 1;
         sp->encodings[0]		= cp->pt;	/* user chosen encoding for primary */
@@ -139,7 +140,7 @@ init_session(session_struct *sp)
 		abort();
 	}
 	if ((addr = gethostbyname(hostname)) == NULL) {
-		herror("Cannot get host address");
+		perror("Cannot get host address");
 		abort();
 	}
 	memcpy(&netaddr, addr->h_addr, 4);
@@ -290,7 +291,7 @@ parse_early_options_transcoder(int argc, char *argv[], session_struct *sp[])
 			char *pu;
 			for (pu = p; *pu; pu++)
 					*pu = toupper(*pu);
-			if ((cp = get_codec_byname(p,sp[i])) == NULL)
+			if ((cp = get_codec_by_name(p,sp[i])) == NULL)
 				usage();
 			else {
 				sp[i]->encodings[j]  = cp->pt;
@@ -437,7 +438,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                         *pu = toupper(*pu);
 				}
                                 pu = argv[i+1];
-                                if ((cp = get_codec_byname(pu,sp[s])) != NULL) {
+                                if ((cp = get_codec_by_name(pu,sp[s])) != NULL) {
                                         change_freq(sp[s]->device_clock, cp->freq);
                                         sp[s]->encodings[0]  = cp->pt;
 					sp[s]->num_encodings = 1;

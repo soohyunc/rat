@@ -465,7 +465,7 @@ ui_update_redundancy(session_struct *sp)
                         codec_name  = strtok(NULL,"/");
                         /* redundant coder returns long name convert to short*/
                         if (codec_name) {
-                                cp         = get_codec_byname(codec_name, sp);
+                                cp         = get_codec_by_name(codec_name, sp);
                                 assert(cp);
                                 codec_name = cp->short_name;
                         }
@@ -721,14 +721,15 @@ static char *
 ui_get_codecs(int pt, char *buf, int loose) 
 {
 	codec_t	*codec[10],*sel;
-	int 	 i, nc;
+	u_int32	 i,nc, cnt;
         char *bp = buf;
-
+        
+        cnt = get_codec_count();
         sel = get_codec(pt);
         
-        for (nc=i=0; i<MAX_CODEC; i++) {
-                codec[nc] = get_codec(i);
-                if (codec[nc] != NULL ) {
+        for (nc = i = 0; i< cnt ; i++) {
+                codec[nc] = get_codec_by_index(i);
+                if (codec[nc] != NULL && codec[nc]->encode != NULL) {
                         if (loose == TRUE && codec_loosely_compatible(sel,codec[nc])) {
                                 /* Picking out primary codecs, i.e. not bothered 
                                  * about sample size and block sizes matching.

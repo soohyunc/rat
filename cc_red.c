@@ -153,7 +153,7 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
 
         s = strtok(cmd, "/");
         do {
-                cp = get_codec_byname(s,sp);
+                cp = get_codec_by_name(s,sp);
                 if (!cp) {
                         debug_msg("Codec not recognized.\n");
                         abort();

@@ -304,6 +304,8 @@ gsm_decoding(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 static codec_t codec_list[] = {
 	{"LPC-8K-MONO", "LPC",           2,       7, 8000, 2, 1, 0, 160, LPCTXSIZE, NULL, lpc_encode, FREE, lpc_decode_init, lpc_decode, lpc_decode_free},
 	{"GSM-8K-MONO", "GSM",           4,       3, 8000, 2, 1, 0, 160, 33, gsm_init, gsm_encoding, gsm_free, gsm_init, gsm_decoding, gsm_free},
+        {"G723.1-8K-MONO", "G723.1(6.3kb/s)",  6, 4, 8000, 2, 1, 0, 240, 24, NULL, NULL, FREE, NULL, NULL, FREE},
+        {"G723.1-8K-MONO", "G723.1(5.3kb/s)",  5, 4, 8000, 2, 1, 0, 240, 20, NULL, NULL, FREE, NULL, NULL, FREE},
         {"PCMA-8K-MONO", "A-Law",        8,       8, 8000, 2, 1, 0, 160, 160, NULL, alaw_encode, FREE, NULL, alaw_decode, FREE},
 	{"PCMU-8K-MONO", "Mu-Law",       9,       0, 8000, 2, 1, 0, 160, 160, NULL, ulaw_encode, FREE, NULL, ulaw_decode, FREE},
 	{"DVI-8K-MONO",  "DVI-ADPCM",    7,       5, 8000, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_free, dvi_init, dvi_decode, dvi_free},
@@ -322,7 +324,8 @@ static codec_t codec_list[] = {
 	{""}
 };
 
-static codec_t cd[MAX_CODEC];
+static codec_t *cd     = NULL;
+static u_int32  codecs = 0;
 
 typedef struct s_dpt {
 	struct s_dpt *next;
@@ -391,26 +394,25 @@ codec_free_dynamic_payloads(dpt **dpt_list)
 void
 codec_init(session_struct *sp)
 {
-	static	int inited = 0;
-	codec_t	*cp;
 	int	pt;
+        u_int32 idx;
 
-	if (inited) {
+	if (cd) {
 		return;
 	}
-	inited = 1;
 
-	memset(&cd, 0, MAX_CODEC * sizeof(codec_t));
-
-	for (cp = codec_list; *cp->name != 0; cp++) {
-		if (cp->pt == DYNAMIC) {
-			if ((pt = get_dynamic_payload(&sp->dpt_list, cp->name)) == DYNAMIC)
-				continue;
-		} else {
-			pt = cp->pt;
+        codecs = sizeof(codec_list) / sizeof(codec_t);
+        cd     = (codec_t*)xmalloc(sizeof(codec_list));
+        memcpy(cd, codec_list, sizeof(codec_list));
+        
+	for (idx = 0; idx < codecs; idx++) {
+		if (cd[idx].pt == DYNAMIC) {
+			if ((pt = get_dynamic_payload(&sp->dpt_list, cd[idx].name)) == DYNAMIC) {
+                                debug_msg("Dynamic payload for %s not found.\n", cd[idx].name);
+                                cd[idx].encode = NULL; /* Do not encode without payload number */
+                        }
+                        cd[idx].pt = pt;
 		}
-		memcpy(&cd[pt], cp, sizeof(codec_t));
-		cd[pt].pt = pt;
 	}
 #ifdef WIN32
         acmInit();
@@ -421,29 +423,50 @@ codec_init(session_struct *sp)
 codec_t *
 get_codec(int pt)
 {
+        /* This code just went inefficient as G.723.1 has different
+         * codings for same payload type.  We used to have a big table
+         * indexed by payload but can't do this now.  
+         */
+        
+        u_int32 i = 0;
+
 	assert(pt >= 0 && pt < MAX_CODEC);
-	if (cd[pt].name != 0) {
-		return &cd[pt];
-	} else {
-		return NULL;
-	}
+
+        while(i < codecs) {
+                if (cd[i].pt == pt) return (cd + i);
+                i++;
+        }
+
+        return NULL;
 }
 
 codec_t *
-get_codec_byname(char *name, session_struct *sp)
+get_codec_by_index(u_int32 idx)
 {
-	int i;
+        assert(idx < codecs);
+        return cd + idx;
+}
+
+codec_t *
+get_codec_by_name(char *name, session_struct *sp)
+{
+	u_int32 i;
 
         UNUSED(sp);
 
-	for (i = 0; i < MAX_CODEC; i++) {
+	for (i = 0; i < codecs; i++) {
             if (cd[i].name && strcasecmp(name, cd[i].name) == 0)
                 return (&cd[i]);
 	}
-#ifdef DEBUG_CODEC
-	printf("get_codec_byname: codec \"%s\" not found.\n", name);
-#endif
+
+	debug_msg("codec \"%s\" not found.\n", name);
+
 	return NULL;
+}
+
+u_int32 get_codec_count()
+{
+        return codecs;
 }
 
 enum co_e {
@@ -607,10 +630,10 @@ codec_compatible(codec_t *c1, codec_t *c2)
 int
 codec_first_with(int freq, int channels)
 {
-        int pt;
-        for(pt = 0; pt < MAX_CODEC; pt++) {
-                if (cd[pt].name && cd[pt].freq == freq && cd[pt].channels == channels) {
-                        return pt;
+        u_int32 idx;
+        for(idx = 0; idx < codecs; idx++) {
+                if (cd[idx].name && cd[idx].freq == freq && cd[idx].channels == channels) {
+                        return cd[idx].pt;
                 }
         }
         return -1;
@@ -626,32 +649,32 @@ codec_matching(char *short_name, int freq, int channels)
 	/* with rat-v3.0.                                                [csp] */
 	/* This is not quite as inefficient as it looks, since stage 1 will    */
 	/* almost always find a match.                                         */
-        int 	 pt;
+        u_int32	 idx;
 	char	*long_name;
 
 	/* Stage 1: Try the designated short names... */
-        for(pt = 0; pt < MAX_CODEC; pt++) {
-                if (cd[pt].freq == freq && cd[pt].channels == channels && !strcasecmp(short_name, cd[pt].short_name)) {
-			assert(cd[pt].name != NULL);
-                        return pt;
+        for(idx = 0; idx < codecs; idx++) {
+                if (cd[idx].freq == freq && cd[idx].channels == channels && !strcasecmp(short_name, cd[idx].short_name)) {
+			assert(cd[idx].name != NULL);
+                        return cd[idx].pt;
                 }
         }
 
 	/* Stage 2: Try to generate a matching name... */
 	long_name = (char *) xmalloc(strlen(short_name) + 12);
 	sprintf(long_name, "%s-%dK-%s", short_name, freq/1000, channels==1?"MONO":"STEREO");
-        for(pt = 0; pt < MAX_CODEC; pt++) {
-                if (cd[pt].freq == freq && cd[pt].channels == channels && !strcasecmp(long_name, cd[pt].name)) {
-                        return pt;
+        for(idx = 0; idx < codecs; idx++) {
+                if (cd[idx].freq == freq && cd[idx].channels == channels && !strcasecmp(long_name, cd[idx].name)) {
+                        return cd[idx].pt;
                 }
         }
 
 	/* Stage 3: Nasty hack... PCM->PCMU for compatibility with sdr and old rat versions */
 	if (strcasecmp(short_name, "pcm") == 0) {
 		sprintf(long_name, "PCMU-%dK-%s", freq/1000, channels==1?"MONO":"STEREO");
-		for(pt = 0; pt < MAX_CODEC; pt++) {
-			if (cd[pt].freq == freq && cd[pt].channels == channels && !strcasecmp(long_name, cd[pt].name)) {
-				return pt;
+		for(idx = 0; idx < codecs; idx++) {
+			if (cd[idx].freq == freq && cd[idx].channels == channels && !strcasecmp(long_name, cd[idx].name)) {
+				return cd[idx].pt;
 			}
 		}
 	}

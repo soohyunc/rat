@@ -104,7 +104,9 @@ typedef struct s_codec {
 } codec_t;
 
 struct s_codec *get_codec(int pt);
-struct s_codec *get_codec_byname(char *name, struct session_tag *sp);
+struct s_codec *get_codec_by_name(char *name, struct session_tag *sp);
+struct s_codec *get_codec_by_index(u_int32 idx);
+u_int32         get_codec_count(void);
 void	set_dynamic_payload(struct s_dpt **listp, char *name, int pt);
 int	get_dynamic_payload(struct s_dpt **listp, char *name);
 void    codec_free_dynamic_payloads(struct s_dpt **dpt_list);
