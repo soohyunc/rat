@@ -236,7 +236,7 @@ audio_if_t audio_if_table[] = {
 #endif /* HAVE_ALSA_AUDIO */
 #ifdef HAVE_OSS_AUDIO
         {
-                oss_audio_query_devices, 
+                oss_audio_init, 
                 NULL,
                 oss_get_device_count,
                 oss_get_device_name,
