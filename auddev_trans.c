@@ -8,6 +8,11 @@
 /*                                                                           */
 /*****************************************************************************/
 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
+
 #include "config_unix.h"
 #include "config_win32.h"
 #include "audio_types.h"
@@ -51,6 +56,8 @@ trans_audio_open_dev (audio_desc_t ad, audio_format *infmt, audio_format *outfmt
         /*       this module function correctly.                                  */
         int i;
 
+	debug_msg("Open transcoder audio device\n");
+
         ad = mapAudioDescToDeviceID(ad);
         assert(ad >= 0);
 
@@ -86,6 +93,7 @@ trans_audio_init()
         audio_format af;
         unsigned int i;
 
+	debug_msg("Initialize transcoder audio device\n");
         af.bits_per_sample = 16;
         af.bytes_per_block = 320;
         af.channels        = 1;
@@ -114,13 +122,10 @@ trans_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
  * Shutdown.
  */
  
-#ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
-	"$Id$";
-#endif /* HIDE_SOURCE_STRINGS */
 void
 trans_audio_close(audio_desc_t ad)
 {
+	debug_msg("Close transcoder audio device\n");
         ad = mapAudioDescToDeviceID(ad);
         if (bufdev[ad].audio_fd > 0)
                 bufdev[ad].audio_fd = -1;

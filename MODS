@@ -1277,7 +1277,17 @@ v4.2.2  - Catch mbus initialization failure and warn user in ui, control,
 	- Fix RTP SR timestamps and RTP jitter calculation
 	* Released 17 April 2000.
 
-v4.2.3	- 
+v4.2.3	- Change the session struct to be a two element array in main_engine.c
+	- Change all references to sp-> into sp[0]-> in main() of the media engine
+	- A few trivial changes to the initialization sequence, in support
+	  of the transcoder. There are a number of things which will hinder
+	  this:
+	  	- mbus_rendezvous_waiting() and mbus_rendezvous_go() are
+		  incompatible with another mbus needing to run in parallel.
+		- some parts of the code are non-reentrant (i.e. use static
+		  variables) and will have to be fixed
+	  it's probably not too bad, though. All are wrapped in #ifdef
+	  IS_TRANSCODER, for now.
 
 
 TODO -- They're features not bugs dammit!

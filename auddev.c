@@ -29,6 +29,7 @@ static const char cvsid[] =
 #include "auddev_sgi.h"
 #include "auddev_sparc.h"
 #include "auddev_win32.h"
+#include "auddev_trans.h"
 
 typedef struct {
         int  (*audio_if_init)(void);                 /* Test and initialize audio interface (OPTIONAL)    */
@@ -72,8 +73,39 @@ typedef struct {
         int  (*audio_if_format_supported)(int, audio_format *);
 } audio_if_t;
 
-
 audio_if_t audio_if_table[] = {
+#ifdef IS_TRANSCODER
+	{
+                trans_audio_init,
+                NULL, 
+                trans_audio_device_count,
+                trans_audio_device_name,
+                trans_audio_open,
+                trans_audio_close,
+                trans_audio_drain,
+                trans_audio_duplex,
+                trans_audio_read,
+                trans_audio_write,
+                trans_audio_non_block,
+                trans_audio_block,
+                trans_audio_set_igain,
+                trans_audio_get_igain,
+                trans_audio_set_ogain,
+                trans_audio_get_ogain,
+                trans_audio_loopback,
+                trans_audio_oport_set,
+                trans_audio_oport_get,
+                trans_audio_oport_details,
+                trans_audio_oport_count,
+                trans_audio_iport_set,
+                trans_audio_iport_get,
+                trans_audio_iport_details,
+                trans_audio_iport_count,
+                trans_audio_is_ready,
+                trans_audio_wait_for,
+                trans_audio_supports
+	}
+#else /* IS_TRANSCODER */
 #ifdef HAVE_SGI_AUDIO
         {
                 NULL, 
@@ -201,7 +233,6 @@ audio_if_t audio_if_table[] = {
                 alsa_audio_wait_for,
                 alsa_audio_supports
         },
-
 #endif /* HAVE_ALSA_AUDIO */
 #ifdef HAVE_OSS_AUDIO
         {
@@ -234,7 +265,6 @@ audio_if_t audio_if_table[] = {
                 oss_audio_wait_for,
                 oss_audio_supports
         },
-
 #endif /* HAVE_OSS_AUDIO */
 #ifdef WIN32
         {
@@ -268,7 +298,6 @@ audio_if_t audio_if_table[] = {
                 w32sdk_audio_supports
         },
 #endif /* WIN32 */
-
 #ifdef HAVE_LUIGI_AUDIO
         {
                 luigi_audio_query_devices,
@@ -367,6 +396,7 @@ audio_if_t audio_if_table[] = {
                 null_audio_wait_for,
                 null_audio_supports
         }
+#endif /* IS_TRANSCODER */
 };
 
 #define INITIAL_AUDIO_INTERFACES (sizeof(audio_if_table)/sizeof(audio_if_t))
@@ -461,6 +491,7 @@ get_active_device_index(audio_desc_t ad)
                 }
         }
 
+	debug_msg("Device %d is not active\n", (int) ad);
         return -1;
 }
 
@@ -499,7 +530,6 @@ audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 
         dev_idx   = active_devices;
 
-        assert(get_active_device_index(ad) == -1);
         assert(audio_if_table[iface].audio_if_open);
 
         if (audio_format_get_common(ifmt, ofmt, &format) == FALSE) {
@@ -1139,6 +1169,7 @@ audio_init_interfaces(void)
                 for (j = 0; j < n; j++) {
                         dev_details[k].name       = xstrdup(audio_if_table[i].audio_if_dev_name(j));
                         dev_details[k].descriptor = AIF_MAKE_DESC(i, j);
+			debug_msg("Added \"%s\" to audio device table\n", dev_details[k].name);
                         k++;
                 }
         }
