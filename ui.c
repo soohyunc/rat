@@ -692,7 +692,11 @@ ui_update_duration(session_struct *sp, u_int32 ssrc, int duration)
 void 
 ui_update_video_playout(session_struct *sp, u_int32 ssrc, int playout)
 {
+	rtcp_dbentry	*dbe = rtcp_get_dbentry(sp, ssrc);
+	char 		*arg = mbus_encode_str(dbe->sentry->cname);
+	mbus_qmsgf(sp->mbus_engine, mbus_name_video, FALSE, "rtp.source.cname",   "\"%08lx\" %s",   ssrc, arg);
 	mbus_qmsgf(sp->mbus_engine, mbus_name_video, FALSE, "rtp.source.playout", "\"%08lx\" %12d", ssrc, playout);
+	xfree(arg);
 }
 
 void	
