@@ -39,6 +39,7 @@
 #include "assert.h"
 #include "config_unix.h"
 #include "config_win32.h"
+#include "debug.h"
 #include "net_udp.h"
 
 #define IPv4	4
@@ -187,12 +188,10 @@ static int udp_recv4(socket_udp *s, char *buffer, int buflen)
 /* IPv6 specific functions...                                                */
 /*****************************************************************************/
 
-#ifdef NDEF
 static socket_udp *udp_init6(char *addr, int port, int ttl)
 {
 	return NULL;
 }
-#endif
 
 static int udp_send6(socket_udp *s, char *buffer, int buflen)
 {
@@ -218,7 +217,14 @@ static int udp_recv6(socket_udp *s, char *buffer, int buflen)
 
 socket_udp *udp_init(char *addr, int port, int ttl)
 {
-	return udp_init4(addr, port, ttl);
+	socket_udp *res;
+
+	if (strchr(addr, ':') == NULL) {
+		res = udp_init4(addr, port, ttl);
+	} else {
+		res = udp_init6(addr, port, ttl);
+	}
+	return res;
 }
 
 int udp_send(socket_udp *s, char *buffer, int buflen)
