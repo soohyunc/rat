@@ -8,7 +8,7 @@
 #       used instead of the default "make". Use this to give a path
 #       to gnu make, for example.
 #
-# Copyright (c) 1996,1997 University College London
+# Copyright (c) 1996-98 University College London
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -74,7 +74,7 @@ case $1 in
           eval time $cmd rat-${OSTYPE}-${OSVERS}
           exit
           ;;
-  depend|tags|tar|clean) echo "Running: $cmd $1"
+  tags|clean) echo "Running: $cmd $1"
           eval $cmd $1
           exit
           ;;
@@ -84,10 +84,7 @@ echo "                                                "
 echo "Usage: Build <target>                           "
 echo "Possible values of <target> are:                "
 echo "  rat   : Configure and build RAT               "
-echo "  depend: Derive depenency information          "
-echo "  dist  : Make distribution files               "
 echo "  tags  : Rebuild tags file                     "
-echo "  tar   : Build compressed tar file             "
 echo "  clean : Remove old object files               "
 echo "The build will use make, unless the environment "
 echo "variable MAKE is set, in which case it will take"
