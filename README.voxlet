@@ -11,7 +11,8 @@ audible help messages.
 
 When the media engine receive the command to play a voxlet, it searches in
 the directory specified by the VOXLETDIR environment variable, and plays the
-file with the given name, if found.
+file with the given name, if found. If the VOXLETDIR variable is not set,
+the directory /usr/local/share/voxlets is searched (on windows, \voxlets).
 
 The following filenames are used in the balloon help system:
 	tx_gain.au tx_port.au tx_port.au tx_mute.au tx_powermeter.au

@@ -8,13 +8,6 @@ catch {
 # Full terms and conditions of the copyright appear below.
 #
 
-# This is a temporary variable for audio balloon help testing/development.
-if [info exists env(VOXLETDIR)] {
-	set VOXLET_DIR $env(VOXLET)
-} else {
-	set VOXLET_DIR /usr/local/share/voxlet/
-}
-
 #wm withdraw .
 
 if {[string compare [info commands registry] "registry"] == 0} {
@@ -2770,9 +2763,9 @@ proc hide_help {window} {
 }
 
 proc add_help {window text clip} {
-	global help_text help_clip VOXLET_DIR
+	global help_text help_clip 
 	set help_text($window)  $text
-	set help_clip($window)  $VOXLET_DIR/$clip
+	set help_clip($window)  $clip
 	bind $window <Enter>    "+show_help $window"
 	bind $window <Leave>    "+hide_help $window"
 }

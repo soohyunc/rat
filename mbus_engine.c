@@ -539,13 +539,9 @@ static void rx_tool_rat_voxlet_play(char *srce, char *args, session_t *sp)
                 if (sp->local_file_player) {
                         voxlet_destroy(&sp->local_file_player);
                 }
-                if (voxlet_create(&sp->local_file_player, sp->ms, sp->clock, sp->pdb, file)) {
-                        debug_msg("Opened: %s\n", file);
-                } else {
-                        debug_msg("Failed to open: %s\n", file);
-                }
+                voxlet_create(&sp->local_file_player, sp->ms, sp->clock, sp->pdb, file);
 	} else {
-		debug_msg("mbus: usage \"tool.rat.local.file.play <filename>\"\n");
+		debug_msg("mbus: usage \"tool.rat.voxlet.play <filename>\"\n");
 	}
 	mbus_parse_done(mp);
 }

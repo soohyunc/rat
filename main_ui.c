@@ -125,6 +125,9 @@ int main(int argc, char *argv[])
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 10000;
 		mbus_recv(m, (void *) m, &timeout);
+		while (Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS)) {
+			/* Process Tcl/Tk events... */
+		}
 	} while (e_addr == NULL);
 	mbus_qmsgf(m, e_addr, TRUE, "mbus.go", "\"rat-ui-requested\"");
 	debug_msg("...got it\n");

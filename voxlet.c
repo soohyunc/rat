@@ -58,13 +58,26 @@ voxlet_create  (voxlet_t          **ppv,
         sndfile_fmt_t        sfmt;
         voxlet_t            *pv;
         pdb_entry_t         *pdbe;
+	char                *filename, *voxdir;
+
+	voxdir = getenv("VOXLETDIR");
+	if (voxdir == NULL) {
+#ifdef WIN32
+		voxdir = "\voxlets";
+#else
+		voxdir = "/usr/local/share/voxlets";
+#endif
+	}
+
+	filename = (char *) xmalloc(strlen(voxdir) + strlen(sndfile) + 2);
+	sprintf(filename, "%s/%s", voxdir, sndfile);
 
         sound = NULL; /* snd_read_open attempts to close otherwise (yuk!) */
-        if (snd_read_open(&sound, (char*)sndfile, NULL) == 0 ||
-            snd_get_format(sound, &sfmt) == 0) {
-                debug_msg("voxlet could not open: %s\n", sndfile);
+        if (snd_read_open(&sound, (char*)filename, NULL) == 0 || snd_get_format(sound, &sfmt) == 0) {
+		xfree(filename);
                 return FALSE;
         }
+	xfree(filename);
 
         if (pdb_item_create(pdb, clock, 8000, VOXLET_SSRC_ID) == FALSE ||
             pdb_item_get(pdb, VOXLET_SSRC_ID, &pdbe) == FALSE) {
