@@ -79,11 +79,13 @@ media_data_destroy(media_data **ppmd, u_int32 md_size)
 int
 coded_unit_dup(coded_unit *dst, coded_unit *src)
 {
-        assert(src);
-        assert(dst);
-        assert(src->data_len != NULL);
+        assert(dst != NULL);
+        assert(src != NULL);
+        assert(src->data_len != 0);
+
         dst->data     = (u_char*)block_alloc(src->data_len);
         dst->data_len = src->data_len;
+
         memcpy(dst->data, src->data, src->data_len);
 
         if (src->state_len != 0) {
