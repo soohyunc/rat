@@ -681,7 +681,10 @@ __inline static void
 place_unit(media_data *md, coded_unit *cu)
 {
         assert(md->nrep < MAX_MEDIA_UNITS);
-        md->rep[md->nrep] = cu;
+        if (md->nrep) {
+                memmove(md->rep + 1, md->rep, sizeof(md->rep[0]) * md->nrep);
+        }
+        md->rep[0] = cu;
         md->nrep++;
 }
 
