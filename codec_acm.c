@@ -94,6 +94,41 @@ static HACMDRIVERID hDrvID[ACM_MAX_DYNAMIC];
 static HACMDRIVER   hDrv[ACM_MAX_DYNAMIC];
 static int nDrvOpen;
 
+static const char *
+acmGetError(int e)
+{
+        switch (e) {
+#ifdef DEBUG
+        case ACMERR_NOTPOSSIBLE:      return "The requested operation cannot be performed.";
+        case ACMERR_BUSY:             return "Busy.";         
+        case ACMERR_UNPREPARED:       return "Structure unprepared.";
+        case ACMERR_CANCELED:         return "Cancelled";
+      
+        case MMSYSERR_BADDEVICEID:    return "device ID out of range";
+        case MMSYSERR_NOTENABLED :    return "driver failed enable";
+        case MMSYSERR_ALLOCATED:      return "device already allocated";
+        case MMSYSERR_INVALHANDLE:    return "device handle is invalid";
+        case MMSYSERR_NODRIVER:       return "no device driver present";
+        case MMSYSERR_NOMEM:          return "memory allocation error";
+        case MMSYSERR_NOTSUPPORTED:   return "function isn't supported";
+        case MMSYSERR_BADERRNUM:      return "error value out of range";
+        case MMSYSERR_INVALFLAG:      return "invalid flag passed";
+        case MMSYSERR_INVALPARAM:     return "invalid parameter passed";
+        case MMSYSERR_HANDLEBUSY:     return "handle being used simultaneously on another thread (eg callback)";
+        case MMSYSERR_INVALIDALIAS:   return "specified alias not found";
+        case MMSYSERR_BADDB:          return "bad registry database";
+        case MMSYSERR_KEYNOTFOUND:    return "registry key not found";
+        case MMSYSERR_READERROR:      return "registry read error";
+        case MMSYSERR_WRITEERROR:     return "registry write error";
+        case MMSYSERR_DELETEERROR:    return "registry delete error";
+        case MMSYSERR_VALNOTFOUND:    return "registry value not found";
+        case MMSYSERR_NODRIVERCB:     return "driver does not call DriverCallback";
+#endif
+        default:                   
+                return "Error not found.\n";
+        }
+}
+
 static int 
 acmAcceptableRate(int rate) 
 {
@@ -117,22 +152,8 @@ acmFrameMetrics(HACMSTREAM has, WORD wBitsPerSample, DWORD dwSamplesPerSec, DWOR
                 mmr = acmStreamSize(has, dwSrcSize, &dwDstSize, ACM_STREAMSIZEF_SOURCE);
         }
         
-        switch(mmr) {
-        case 0:
-                break;
-        case MMSYSERR_INVALFLAG:
-                printf("Invalid flag\n");
-                break;
-        case MMSYSERR_INVALHANDLE:
-                printf("Invalid handle\n");
-                break;
-        case MMSYSERR_INVALPARAM:
-                printf("Invalid parameter\n");
-                break;
-        default:
-                printf("Something not documented happened.\n");
-        }
-        (*piFrameSize) = dwDstSize;
+        if (mmr) debug_msg(acmGetError(mmr));
+                (*piFrameSize) = dwDstSize;
         
         /* some codecs return frame size irrespective of source block size (groan!) */
         (*piSamplesPerFrame) = dwSamplesPerSec * dwDstSize / dwBytesPerSec;
@@ -144,38 +165,39 @@ BOOL CALLBACK
 acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance, DWORD fdwSupport)
 {
         MMRESULT mmr;
-        LPWAVEFORMATEX lpwfx;
+        WAVEFORMATEX wfxDst;
         int i;
         /* So we have a format now we need frame sizes (if pertinent)   */
         
-        lpwfx = pafd->pwfx;
+        /* Copy this because ACM calls can trash it */
+        memcpy(&wfxDst, pafd->pwfx, sizeof(WAVEFORMATEX));
         
         /* We use a crude guess at whether format of pafd->pwfx is PCM,
         * only interested in 16-bit (rat's native format) PCM to other 
         * format (and vice-versa) here.
         */
-        if (acmAcceptableRate(lpwfx->nSamplesPerSec)) {
+        if (acmAcceptableRate(wfxDst.nSamplesPerSec)) {
                 HACMSTREAM has = 0;
                 WAVEFORMATEX wfxPCM;
                 int          iIOAvail = 0;
                 int          iType, iSamplesPerFrame = 0, iFrameSize = 0, iFixedHdrSize = 0;
                 
                 /* This is a dumb test but frame based codecs are inconsistent in their bits per sample reported */
-                if ((lpwfx->wBitsPerSample & 0x07)||(lpwfx->nBlockAlign == lpwfx->nChannels * lpwfx->wBitsPerSample/8)) {
+                if ((wfxDst.wBitsPerSample & 0x07)||(wfxDst.nBlockAlign == wfxDst.nChannels * wfxDst.wBitsPerSample/8)) {
                         iType = CODEC_ACM_SAMPLE;
                 } else   {
                         iType = CODEC_ACM_FRAME;
                 } 
                 
                 wfxPCM.wFormatTag      = WAVE_FORMAT_PCM;
-                wfxPCM.nChannels       = lpwfx->nChannels;
-                wfxPCM.nSamplesPerSec  = lpwfx->nSamplesPerSec;
+                wfxPCM.nChannels       = wfxDst.nChannels;
+                wfxPCM.nSamplesPerSec  = wfxDst.nSamplesPerSec;
                 wfxPCM.wBitsPerSample  = 16;
                 wfxPCM.nBlockAlign     = wfxPCM.nChannels * wfxPCM.wBitsPerSample / 8;
                 wfxPCM.nAvgBytesPerSec = wfxPCM.nBlockAlign * wfxPCM.nSamplesPerSec;
                 wfxPCM.cbSize          = 0;
                 
-                mmr = acmStreamOpen(&has, hadActive, &wfxPCM, lpwfx, NULL, 0L, 0L, 0);
+                mmr = acmStreamOpen(&has, hadActive, &wfxPCM, &wfxDst, NULL, 0L, 0L, ACM_STREAMOPENF_QUERY);
                 /* We usually fail because we cannot convert format in real-time, e.g.
                  * MPEG Layer III on this machine above 16kHz.  These don't appear
                  * to be related to machine type (?).
@@ -197,14 +219,18 @@ acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance,
                                 break;
                         }
                         acmStreamClose(has, 0);
+                
+                        mmr = acmStreamOpen(&has, hadActive, &wfxDst, &wfxPCM, NULL, 0L, 0L, ACM_STREAMOPENF_QUERY);
+                
+                        if (0 == mmr) {
+                                iIOAvail |= CODEC_ACM_OUTPUT;
+                                acmStreamClose(has,0);
+                        } else {
+                                debug_msg("%s\n",acmGetError(mmr));
+                        }
+                } else {
+                        debug_msg("%s\n",acmGetError(mmr));
                 }
-                
-                mmr = acmStreamOpen(&has, hadActive, lpwfx, &wfxPCM, NULL, 0L, 0L, ACM_STREAMOPENF_QUERY);
-                
-                if (0 == mmr) iIOAvail |= CODEC_ACM_OUTPUT;
-                
-                acmStreamClose(has,0);
-
                 if (iIOAvail != (CODEC_ACM_OUTPUT|CODEC_ACM_INPUT)) {
                         return TRUE;
                 }
@@ -217,7 +243,7 @@ acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance,
                                 /* This code is a little naive. */
                                 known_codecs[i].status = CODEC_ACM_PRESENT;
                                 known_codecs[i].had    = hadid;
-                                memcpy(&known_codecs[i].wfx, lpwfx, sizeof(WAVEFORMATEX));
+                                memcpy(&known_codecs[i].wfx, &wfxDst, sizeof(WAVEFORMATEX));
                                 debug_msg("Added %s\n", known_codecs[i].szShortName);
                         }
                 }
@@ -261,27 +287,20 @@ acmCodecCaps(HACMDRIVERID hadid)
         printf("   Supports %u filter formats\n", add.cFilterTags);
         
         if (acmDriverOpen(&hadActive, hadid, 0)) return;
-        if (acmMetrics((HACMOBJ)hadActive, ACM_METRIC_MAX_SIZE_FORMAT, &dwSize)) return;
-        
-        pwf = (WAVEFORMATEX*)xmalloc(dwSize);
-        memset(pwf, 0, dwSize);
-        pwf->cbSize     = LOWORD(dwSize) - sizeof(WAVEFORMATEX);
-        pwf->wFormatTag = WAVE_FORMAT_UNKNOWN;
-        
-        memset(&afd,0,sizeof(ACMFORMATDETAILS));
-        afd.cbStruct = sizeof(ACMFORMATDETAILS);
-        afd.pwfx = pwf;
-        afd.cbwfx = dwSize;
-        afd.dwFormatTag = WAVE_FORMAT_UNKNOWN;
-        printf("\tInput Formats (suggested):\n");
-        switch(acmFormatEnum(hadActive, &afd, acmFormatEnumProc, ACM_FORMATENUMF_INPUT, 0)) {
-        case ACMERR_NOTPOSSIBLE:   printf("not possible\n");   break;
-        case MMSYSERR_INVALFLAG:   printf("invalid flag\n");   break;
-        case MMSYSERR_INVALHANDLE: printf("invalid handle\n"); break;
-        case MMSYSERR_INVALPARAM:  printf("invalid param\n");  break;
+        if (!acmMetrics((HACMOBJ)hadActive, ACM_METRIC_MAX_SIZE_FORMAT, &dwSize)){ 
+                pwf = (WAVEFORMATEX*)xmalloc(dwSize);
+                memset(pwf, 0, dwSize);
+                pwf->cbSize     = LOWORD(dwSize) - sizeof(WAVEFORMATEX);
+                pwf->wFormatTag = WAVE_FORMAT_UNKNOWN;
+                memset(&afd,0,sizeof(ACMFORMATDETAILS));
+                afd.cbStruct = sizeof(ACMFORMATDETAILS);
+                afd.pwfx  = pwf;
+                afd.cbwfx = dwSize;
+                afd.dwFormatTag = WAVE_FORMAT_UNKNOWN;
+                printf("\tInput Formats (suggested):\n");
+                acmFormatEnum(hadActive, &afd, acmFormatEnumProc, ACM_FORMATENUMF_INPUT, 0);
+                xfree(pwf);
         }
-        
-        xfree(pwf);
         acmDriverClose(hadActive,0);
 }
 
@@ -307,7 +326,7 @@ acmGetDriverByID(HACMDRIVERID hid)
 }
 
 static int
-acmOpenDriver(HACMDRIVERID hid)
+acmSecureDriver(HACMDRIVERID hid)
 {
         if (acmGetDriverByID(hid) || 
             acmDriverOpen(&hDrv[nDrvOpen], hid, 0)) {
@@ -329,7 +348,7 @@ acmCodecsInit(void)
 
         for(i = 0; i < ACM_MAX_DYNAMIC; i++) {
                 if (!known_codecs[i].status & CODEC_ACM_PRESENT ||
-                        !acmOpenDriver(known_codecs[i].had))     {
+                        !acmSecureDriver(known_codecs[i].had))     {
                         cp = get_codec_by_pt(codec_matching(known_codecs[i].szRATCodecName,
                                                               known_codecs[i].nSamplesPerSec,
                                                               known_codecs[i].nChannels));
@@ -343,17 +362,11 @@ acmCodecsInit(void)
 void
 acmStartup()
 {
-        MMRESULT mmr;
         DWORD dwCodecs = 0, dwDrivers = 0;
         
-        mmr = acmMetrics(NULL, ACM_METRIC_COUNT_CODECS, &dwCodecs);
-        if (mmr) {
-                fprintf(stderr, "ACM Codecs not available.\n");
-                return;
-        } else {
-                fprintf(stderr, "There are %d ACM codecs\n", dwCodecs);
-        }
+        acmMetrics(NULL, ACM_METRIC_COUNT_CODECS, &dwCodecs);
         acmMetrics(NULL, ACM_METRIC_COUNT_DRIVERS, &dwDrivers);
+        debug_msg("There are %d ACM codecs in %d drivers\n", dwCodecs, dwDrivers);
         phCodecID = (HACMDRIVERID*)xmalloc(sizeof(HACMDRIVER)*dwCodecs);
         acmDriverEnum(acmDriverEnumProc, 0L, 0L);
         acmCodecsInit();        
