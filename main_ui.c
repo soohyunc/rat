@@ -155,6 +155,7 @@ int main(int argc, char *argv[])
 		timeout.tv_usec = 20000;
 		mbus_recv(m, NULL, &timeout);
 	} while (!mbus_sent_all(m));
+	mbus_exit(m);
         
 #ifdef WIN32
         TkWinXCleanup(hAppInstance);
