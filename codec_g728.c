@@ -81,7 +81,7 @@ void
 g728_encoder_destroy(uint16_t idx, u_char **s)
 {
         assert(idx < G728_NUM_FORMATS);
-	assert(*s = NULL);
+	assert(*s == NULL);
         UNUSED(idx);
 }
 
@@ -92,7 +92,7 @@ g728_encoder_do(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *
 	int16_t		cw;
 	int		i;
 
-        assert(encoder_state = NULL);
+        assert(encoder_state == NULL);
         assert(inbuf);
         assert(idx < G728_NUM_FORMATS);
 
@@ -132,7 +132,7 @@ void
 g728_decoder_destroy(uint16_t idx, u_char **s)
 {
         assert(idx < G728_NUM_FORMATS);
-	assert(*s = NULL);
+	assert(*s == NULL);
         UNUSED(idx);
 }
 
