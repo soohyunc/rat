@@ -1,5 +1,7 @@
 /*
  * Define this if your C library doesn't have usleep.
+ *
+ * $Id$
  */
 #undef NEED_USLEEP
 

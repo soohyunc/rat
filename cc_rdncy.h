@@ -2,12 +2,11 @@
  * FILE:      cc_rdncy.h
  * AUTHOR(S): Orion Hodson 
  *	
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef __CC_RDNCY_H__

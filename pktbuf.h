@@ -1,13 +1,11 @@
 /*
  * FILE:      pktbuf.h
  * AUTHOR(S): Orion Hodson 
- *      
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 /* This provides a finite length buffer for queueing packets.  It is   */

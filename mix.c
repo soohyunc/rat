@@ -4,13 +4,14 @@
  * AUTHOR:      Isidor Kouvelas 
  * MODIFIED BY: Orion Hodson + Colin Perkins 
  *
- * $Revision$
- * $Date$
- *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
- *
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 #include "config_unix.h"
 #include "config_win32.h"
@@ -392,7 +393,6 @@ mix_get_audio(mix_struct *ms, int request, sample **bufp)
 /*
  * We need the amount of time we went dry so that we can make a time
  * adjustment to keep in sync with the receive buffer etc...
- *
  */
 void
 mix_get_new_cushion(mix_struct *ms, 

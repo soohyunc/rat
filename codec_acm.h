@@ -2,13 +2,11 @@
  * FILE:    codec_acm.h
  * PROGRAM: RAT
  * AUTHOR:  O.Hodson
- * 
- * $Revision$
- * $Date$
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #if  !defined(_CODEC_ACM_H_)

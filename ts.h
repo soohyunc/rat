@@ -1,13 +1,11 @@
 /*
  * FILE:    ts.h
  * AUTHORS: Orion Hodson
- * 
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef __TS_H__

@@ -2,13 +2,11 @@
  * FILE:    rtp_callback.h
  * PROGRAM: RAT
  * AUTHOR:  Colin Perkins / Orion Hodson
- * 
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef __RTP_CALLBACK_H__

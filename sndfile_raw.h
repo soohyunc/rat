@@ -3,12 +3,10 @@
  * PROGRAM: RAT
  * AUTHOR:  Orion Hodson
  *
- * $Revision$
- * $Date$
- *
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef __SNDFILE_RAW_H__

@@ -3,13 +3,14 @@
  * PROGRAM:  RAT
  * AUTHOR:   Orion Hodson
  *
- * $Revision$
- * $Date$
- *
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
- *
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 #include <sys/audioio.h>
 

@@ -1,10 +1,11 @@
 /*
  * FILE:    codec_compat.h
  * AUTHORS: Orion Hodson
- * 
+ *
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 /* Backward compatibility name mapping for earlier MBONE audio applications */

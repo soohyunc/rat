@@ -2,13 +2,11 @@
  * FILE:    convert_util.h
  * PROGRAM: RAT
  * AUTHOR:  O.Hodson <O.Hodson@cs.ucl.ac.uk>
- * 
- * $Revision$
- * $Date$
  *
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef __CONVERT_UTIL__

@@ -3,12 +3,10 @@
  * PROGRAM: RAT
  * AUTHOR:  Orion Hodson / Colin Perkins / Isidor Kouvelas
  *
- * $Revision$
- * $Date$
- *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef _RAT_AUDIO_H_

@@ -6,6 +6,7 @@
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef _UI_UPDATE_H

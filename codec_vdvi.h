@@ -1,10 +1,11 @@
 /*
  * FILE:    codec_vdvi.h
  * AUTHORS: Orion Hodson
- * 
+ *
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 /* Just wrote the RAT interface, see codec_dvi.c for coder copyright [oth] */

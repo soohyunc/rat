@@ -2,12 +2,11 @@
  * FILE:      cc_layered.h
  * AUTHOR(S): Orion Hodson + Tristan Henderson 
  *	
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef __CC_LAYER_H__

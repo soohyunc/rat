@@ -1,3 +1,13 @@
+/*
+ * FILE:    sndfile_types.h
+ * PROGRAM: RAT
+ * AUTHOR:  Orion Hodson
+ *
+ * Copyright (c) 1998-2000 University College London
+ * All rights reserved.
+ *
+ * $Id$
+ */
 
 #ifndef __SNDFILE_TYPES_H__
 #define __SNDFILE_TYPES_H__

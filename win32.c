@@ -1,14 +1,17 @@
 /*
  * Copyright (c) 1996 The Regents of the University of California.
  * All rights reserved.
- * 
  *
  * This module contributed by John Brezak <brezak@apollo.hp.com>.
  * January 31, 1996
  *
  * Additional contributions Orion Hodson (UCL) 1996-98.
- *
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 #ifdef WIN32
 

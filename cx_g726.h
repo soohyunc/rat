@@ -22,13 +22,14 @@
  * Sun Microsystems, Inc.
  * 2550 Garcia Avenue
  * Mountain View, California  94043
+ *
+ * $Id$
  */
 
 /*
  * cx_g726.h
  *
  * Header file for CCITT conversion routines.
- *
  */
 #ifndef _G726_H
 #define	_G726_H

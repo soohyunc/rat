@@ -2,12 +2,11 @@
  * FILE:      cc_vanilla.h
  * AUTHOR(S): Orion Hodson 
  *	
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef __CC_VANILLA_H__

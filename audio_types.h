@@ -3,12 +3,10 @@
  * PROGRAM:  RAT
  * AUTHOR:   Orion Hodson
  *
- * $Revision$
- * $Date$
- *
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef _RAT_AUDIO_TYPES_H_

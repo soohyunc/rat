@@ -23,6 +23,11 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 /*
  * g72x.c
@@ -127,7 +132,6 @@ g726_init_state(
  * predictor_zero()
  *
  * computes the estimated signal from 6-zero predictor.
- *
  */
 int
 predictor_zero(
@@ -145,7 +149,6 @@ predictor_zero(
  * predictor_pole()
  *
  * computes the estimated signal from 2-pole predictor.
- *
  */
 int
 predictor_pole(
@@ -158,7 +161,6 @@ predictor_pole(
  * step_size()
  *
  * computes the quantization step size of the adaptive quantizer.
- *
  */
 int
 step_size(

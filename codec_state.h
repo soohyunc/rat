@@ -2,13 +2,11 @@
  * FILE:    codec_state.h
  * PROGRAM: RAT
  * AUTHOR:  Orion Hodson
- * 
- * $Revision$
- * $Date$
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef __CODEC_STATE_H__

@@ -2,13 +2,11 @@
  * FILE:    render_3D.h
  * PROGRAM: RAT
  * AUTHORS: Marcus Iken
- * 
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef __RENDER_3D_H__

@@ -2,9 +2,6 @@
  * FILE:    pdb.h
  * PROGRAM: RAT
  * AUTHOR:  O.Hodson
- * 
- * $Revision$
- * $Date$
  *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
@@ -13,6 +10,8 @@
  * information on conference participants that is not contained in the
  * RTCP database.  Entries are stored in a binary table, identified with
  * a unique 32 bit unsigned identifer (probably the same as SSRC).
+ *
+ * $Id$
  */
 
 #ifndef __PERSIST_DB_H__

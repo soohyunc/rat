@@ -23,6 +23,11 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 /*
  * g711.c
@@ -144,7 +149,6 @@ linear2alaw(
 
 /*
  * alaw2linear() - Convert an A-law value to 16-bit linear PCM
- *
  */
 static int
 alaw2linear(

@@ -3,6 +3,11 @@
  * Universitaet Berlin.  See the accompanying file "COPYRIGHT" for
  * details.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 #include "config_unix.h"
 #include "config_win32.h"
@@ -119,7 +124,6 @@ word gsm_norm(longword a )
  * with minimum of
  * minimum of 1073741824  (01000000000000000000000000000000) and 
  * maximum of 2147483647  (01111111111111111111111111111111)
- *
  *
  * and for negative values on the interval with
  * minimum of -2147483648 (-10000000000000000000000000000000) and
@@ -297,7 +301,7 @@ word gsm_FAC[8]	= { 18431, 20479, 22527, 24575, 26623, 28671, 30719, 32767 };
 
 
 /*	4.2.0 .. 4.2.3	PREPROCESSING SECTION
- *  
+ *
  *  	After A-law to linear conversion (or directly from the
  *   	Ato D converter) the following scaling is assumed for
  * 	input to the RPE-LTP algorithm:

@@ -23,6 +23,11 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 /*
  * g726_24.c
@@ -35,7 +40,6 @@
  * ADPCM coding algorithm.  Essentially, this implementation is identical to
  * the bit level description except for a few deviations which take advantage
  * of workstation attributes, such as hardware 2's complement arithmetic.
- *
  */
 #define _PRIVATE_G726_
 #include "cx_g726.h"

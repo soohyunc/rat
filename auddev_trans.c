@@ -6,8 +6,6 @@
 /*                                                                           */
 /* Contributed by Michael Wallbaum <wallbaum@informatik.rwth-aachen.de>      */
 /*                                                                           */
-/* $Id$                                                                      */
-/*                                                                           */
 /*****************************************************************************/
 
 #include "config_unix.h"
@@ -115,6 +113,11 @@ trans_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
 /*
  * Shutdown.
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 void
 trans_audio_close(audio_desc_t ad)
 {

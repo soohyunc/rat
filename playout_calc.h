@@ -2,13 +2,11 @@
  * FILE:    playout_calc.h
  * PROGRAM: RAT
  * AUTHOR:  Orion Hodson
- * 
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef __PLAYOUT_CALC_H__

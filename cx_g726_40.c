@@ -23,6 +23,11 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 /*
  * g726_40.c
@@ -43,7 +48,6 @@
  * As outlined in the G.726 Recommendation, the algorithm is broken
  * down into modules.  Each section of code below is preceded by
  * the name of the module which it is implementing.
- *
  */
 
 #define _PRIVATE_G726_

@@ -1,10 +1,11 @@
 /*
  * FILE:    codec_l16.h
  * AUTHORS: Orion Hodson
- * 
+ *
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef _CODEC_L16_H_

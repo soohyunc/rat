@@ -2,13 +2,11 @@
  * FILE:    settings.h
  * PROGRAM: RAT
  * AUTHORS: Colin Perkins 
- * 
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 void settings_load_early(session_t *sp);

@@ -3,13 +3,14 @@
  *	PROGRAM: RAT
  *	AUTHOR:	 O. Hodson
  *
- *	$Revision$
- *	$Date$
- *
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
- *
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 #include "config_unix.h"
 #include "config_win32.h"
@@ -66,7 +67,6 @@ lin2vu(uint16_t energy, int range, int io_dir)
  *    volume, or click on start talking button.  This can be false
  *    when the source is music, or the speaker is a politician, 
  *    project leader, etc...
- *    
  */
 
 /* snapshot in ms to adjust silence threshold */

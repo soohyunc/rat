@@ -2,13 +2,11 @@
  * FILE:    time.h
  * PROGRAM: RAT
  * AUTHOR:  I.Kouvelas
- * 
- * $Revision$
- * $Date$
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef _TIMERS_H

@@ -1,8 +1,11 @@
 /*
  * These are for the RAT project:
- * $Revision$
- * $Date$
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 /***********************************************************
 Copyright 1992 by Stichting Mathematisch Centrum, Amsterdam, The

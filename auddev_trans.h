@@ -1,14 +1,12 @@
-/*****************************************************************************/
-/*                                                                           */
-/* FILE: auddev_trans.h                                                      */
-/*                                                                           */
-/* Transcoder audio device.                                                  */
-/*                                                                           */
-/* Contributed by Michael Wallbaum <wallbaum@informatik.rwth-aachen.de>      */
-/*                                                                           */
-/* $Id$                                                                      */
-/*                                                                           */
-/*****************************************************************************/
+/*
+ * FILE: auddev_trans.h
+ * PROGRAM: RAT
+ * AUTHOR: Michael Wallbaum <wallbaum@informatik.rwth-aachen.de>     
+ *
+ * Transcoder audio device.
+ *
+ * $Id$
+ */
 
 #ifndef _AUDDEV_TRANS_H_
 #define _AUDDEV_TRANS_H_

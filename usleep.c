@@ -2,17 +2,18 @@
  * FILE:    usleep.c
  * PROGRAM: RAT
  * AUTHORS: Colin Perkins 
- * 
+ *
  * Some platforms, notably Win32 and Irix 5.3 don't have a usleep
  * system call. This file provides a workaround.
  *
- * $Revision$
- * $Date$
- * 
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
- *
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 #include "config_unix.h"
 #include "config_win32.h"

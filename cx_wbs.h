@@ -1,3 +1,14 @@
+/*
+ * FILE: cx_wbs.h
+ * PROGRAM: RAT
+ * AUTHOR: Markus Iken
+ *
+ * Copyright (c) 1998-2000 University College London
+ * All rights reserved.
+ *
+ * $Id$
+ */
+
 #ifndef _SUBBAND_H_
 #define _SUBBAND_H_
 

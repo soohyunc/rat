@@ -2,12 +2,11 @@
  * FILE:      channel_types.h
  * AUTHOR(S): Orion Hodson 
  *	
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 #ifndef __CHANNEL_TYPES_H__
 #define __CHANNEL_TYPES_H__

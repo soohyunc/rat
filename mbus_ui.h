@@ -1,10 +1,11 @@
 /*
  * FILE:    mbus_ui.h
  * AUTHORS: Colin Perkins
- * 
+ *
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef _MBUS_UI_H

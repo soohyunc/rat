@@ -2,13 +2,11 @@
  * FILE:    convert_types.h
  * PROGRAM: RAT
  * AUTHOR:  O.Hodson
- * 
- * $Revision$
- * $Date$
  *
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef __CONVERT_TYPES_H__

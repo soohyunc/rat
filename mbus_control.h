@@ -2,13 +2,11 @@
  * FILE:    mbus_control.h
  * PROGRAM: RAT - controller
  * AUTHOR:  Colin Perkins 
- * 
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef _MBUS_CONTROL_H

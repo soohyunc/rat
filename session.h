@@ -2,13 +2,11 @@
  * FILE:    session.h
  * PROGRAM: RAT
  * AUTHORS: Vicky Hardman + Isidor Kouvelas + Colin Perkins + Orion Hodson
- * 
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef _session_h_

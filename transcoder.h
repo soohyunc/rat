@@ -3,12 +3,10 @@
  * PROGRAM:  Rat
  * AUTHOR:   Colin Perkins
  *
- * $Revision$
- * $Date$
- *
  * Copyright (C) 1996-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef _TRANSCODER

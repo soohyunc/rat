@@ -2,14 +2,15 @@
  * FILE:    mbus_control.c
  * PROGRAM: RAT - controller
  * AUTHOR:  Colin Perkins 
- * 
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
- *
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 #include "config_unix.h"
 #include "config_win32.h"

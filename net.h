@@ -3,12 +3,10 @@
  * PROGRAM: RAT
  * AUTHOR:  Colin Perkins / Orion Hodson
  *
- * $Revision$
- * $Date$
- *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef _RAT_NET_H_

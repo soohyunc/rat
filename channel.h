@@ -2,12 +2,11 @@
  * FILE:      channel.h
  * AUTHOR(S): Orion Hodson 
  *	
- * $Revision$
- * $Date$
- * 
+ *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef   __NEW_CHANNEL_H__

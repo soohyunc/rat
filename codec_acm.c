@@ -2,14 +2,15 @@
  * FILE:    codec_acm.c
  * PROGRAM: RAT
  * AUTHOR:  O.Hodson
- * 
- * $Revision$
- * $Date$
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
- *
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 #ifdef WIN32
 #include "config_win32.h"
@@ -39,7 +40,7 @@ typedef struct s_acm_codec {
 } acm_codec_t;
 
 /* These are codecs in the codec table in codec.c.
-*
+ *
 * A random curiosity is that the ITU call the upper
 * bitrate G723.1 a 6.3kbs coder in all documentation
 * whereas microsoft call it 6.4kbs coder and it is :-)

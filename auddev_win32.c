@@ -1,16 +1,19 @@
 /*
-* FILE:	auddev_win32.c
-*
-* Reworked by Orion Hodson from RAT 3.0 code.
-*
-* Assorted fixes and multilingual comments from Michael Wallbaum <wallbaum@informatik.rwth-aachen.de>
-*
-* $Id$
-*
-* Copyright (c) 1995-2000 University College London
-* All rights reserved.
-*
-*/
+ * FILE:	auddev_win32.c
+ *
+ * Reworked by Orion Hodson from RAT 3.0 code.
+ *
+ * Assorted fixes and multilingual comments from Michael Wallbaum 
+ * <wallbaum@informatik.rwth-aachen.de>
+ *
+ * Copyright (c) 1995-2000 University College London
+ * All rights reserved.
+ */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 #ifdef WIN32
 

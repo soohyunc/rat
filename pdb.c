@@ -2,9 +2,6 @@
  * FILE:    pdb.c
  * PROGRAM: RAT
  * AUTHOR:  O.Hodson
- * 
- * $Revision$
- * $Date$
  *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
@@ -15,6 +12,11 @@
  * with a unique 32 bit unsigned identifer (probably the same as
  * SSRC).
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 #include "config_unix.h"
 #include "config_win32.h"

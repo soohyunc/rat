@@ -2,13 +2,11 @@
  *  config-unix.h
  *
  *  Unix specific definitions and includes for RAT.
- *  
- *  $Revision$
- *  $Date$
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
+ * $Id$
  */
 
 #ifndef WIN32

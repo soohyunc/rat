@@ -4,19 +4,19 @@
  * AUTHOR:  Jim Lowe (james@cs.uwm.edu) 
  * MODS: Orion Hodson
  *
- * $Revision$
- * $Date$
- *
  * Copyright (c) 1996-2000 University College London
  * All rights reserved.
- *
  */
+ 
+#ifndef HIDE_SOURCE_STRINGS
+static const char cvsid[] = 
+	"$Id$";
+#endif /* HIDE_SOURCE_STRINGS */
 
 /*
  * PCA speaker support for FreeBSD.
  *
  * This is an output only device so we pretend we read audio...
- *
  */
 
 #include <machine/pcaudioio.h>
