@@ -553,7 +553,7 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
 
 #ifdef DEBUG_PLAYOUT
                 verify_playout_buffer(buf);
-#endif DEBUG_PLAYOUT
+#endif /* DEBUG_PLAYOUT */
                 
 		/* This is to compensate for clock drift.
 		 * Same check should be made in case it is too early.
