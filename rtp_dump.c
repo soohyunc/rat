@@ -70,8 +70,8 @@ void rtpdump_callback(FILE *logger, rtp_event *e)
 	switch (e->type) {
 		case RX_RTP:
 			rtpdump_header(logger, "rtp       ", e);
-			fprintf(logger, "-v %d -p %d -x %d -cc %d -m %d -pt %d -seq %u -ts %u -payload_len %d\n",
-			        p->v, p->p, p->x, p->cc, p->m, p->pt, p->seq, (unsigned) p->ts, p->data_len);
+			fprintf(logger, "-v %d -p %d -x %d -cc %d -m %d -pt %d -seq %u -ts %u -payload_len %d\n", 
+                                p->fields.v, p->fields.p, p->fields.x, p->fields.cc, p->fields.m, p->fields.pt, p->fields.seq, (unsigned) p->fields.ts, p->meta.data_len);
 			break;
 		case RX_RTCP_START:
 			rtpdump_header(logger, "rtcp_start", e);

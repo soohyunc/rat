@@ -725,8 +725,8 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
         while(pktbuf_dequeue(src->pktbuf, &p)) {
                 adjust_playout = FALSE;
 
-                ccid = channel_coder_get_by_payload((u_char)p->pt);
-                if (channel_verify_and_stat(ccid, (u_char)p->pt, p->data, p->data_len, &units_per_packet, &codec_pt) == FALSE) {
+                ccid = channel_coder_get_by_payload((u_char)p->fields.pt);
+                if (channel_verify_and_stat(ccid, (u_char)p->fields.pt, p->meta.data, p->meta.data_len, &units_per_packet, &codec_pt) == FALSE) {
                         debug_msg("Packet discarded for ssrc 0x%08lx: packet failed channel verify.\n", e->ssrc);
                         xfree(p);
                         continue;
@@ -741,7 +741,7 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
 			/* this source, and so these have not been initialized). We  */
 			/* reconfigure the source and update the user interface...   */
 			const audio_format   	*dev_fmt = audio_get_ofmt(sp->audio_device);
-			channel_describe_data(ccid, codec_pt, p->data, p->data_len, src->pdbe->enc_fmt, src->pdbe->enc_fmt_len);
+                        channel_describe_data(ccid, codec_pt, p->meta.data, p->meta.data_len, src->pdbe->enc_fmt, src->pdbe->enc_fmt_len);
                         source_reconfigure(src, ccid, codec_pt, units_per_packet, sp->converter, sp->render_3d,
                                            (uint32_t)dev_fmt->sample_rate,
                                            (uint16_t)dev_fmt->channels);
@@ -763,7 +763,7 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
 		/* calculation.                                                */
 
 		/* Marker bit set: explicit indication of new talkspurt */
-                if (p->m) {
+                if (p->fields.m) {
                         adjust_playout = TRUE;
                         debug_msg("Adjusting playout: marker bit set\n");
                 }
@@ -771,8 +771,8 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
 		/* Check for change in timestamp-sequence number relationship. */
 		/* This is an implicit indication of a new talkspurt (e.g. if  */
 		/* the packet containing the marker bit was lost.              */
-                delta_seq = p->seq - e->last_seq;
-                delta_ts  = p->ts  - e->last_ts;
+                delta_seq = p->fields.seq - e->last_seq;
+                delta_ts  = p->fields.ts  - e->last_ts;
                 if (delta_seq * e->inter_pkt_gap != delta_ts) {
                         debug_msg("Adjusting playout: sequence number/timestamp realignment\n");
                         adjust_playout = TRUE;
@@ -783,7 +783,7 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
 		/* because our time representation is shorter than    */
 		/* RTP's 32bits.  Mapping use first order differences */
 		/* to update time representation                      */
-                src_ts = ts_seq32_in(&e->seq, e->sample_rate, p->ts);
+                src_ts = ts_seq32_in(&e->seq, e->sample_rate, p->fields.ts);
                 transit = ts_sub(now, src_ts);
 
 		if (src->packets_done == 0  || ts_gt(ts_abs_diff(transit, e->transit), transit_jump)) {
@@ -940,11 +940,11 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
 			/* This packet arrived in time to be played out. We  */
 			/* add it to the channel decoder buffer at the point */
 			/* determined by the playout delay.                  */
-                        u_char  *u = (u_char*)block_alloc(p->data_len);
-                        memcpy(u, p->data, p->data_len);
-                        if (source_process_packet(src, u, p->data_len, codec_pt, playout) == FALSE) {
+                        u_char  *u = (u_char*)block_alloc(p->meta.data_len);
+                        memcpy(u, p->meta.data, p->meta.data_len);
+                        if (source_process_packet(src, u, p->meta.data_len, codec_pt, playout) == FALSE) {
 				debug_msg("Unwanted packet?\n");
-                                block_free(u, (int)p->data_len);
+                                block_free(u, (int)p->meta.data_len);
                         }
                         source_update_toged(src, 0);
                 }
@@ -957,11 +957,11 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
 		}
 
                 /* Update persistent database fields... */
-                if (e->last_seq > p->seq) {
+                if (e->last_seq > p->fields.seq) {
                         e->misordered++;
                 }
-                e->last_seq          = p->seq;
-                e->last_ts           = p->ts;
+                e->last_seq          = p->fields.seq;
+                e->last_ts           = p->fields.ts;
                 e->last_arr          = now;
                 e->last_last_transit = e->last_transit;
                 e->last_transit      = transit;
@@ -987,7 +987,7 @@ source_add_packet (source     *src,
                    rtp_packet *pckt)
 {
 	source_validate(src);
-        src->byte_count += pckt->data_len;
+        src->byte_count += pckt->meta.data_len;
         return pktbuf_enqueue(src->pktbuf, pckt);
 }
 

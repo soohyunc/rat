@@ -1652,6 +1652,16 @@ v4.2.26	- Fix compilation on MacOS X 10.3.4
 	  State University <brook@nmsu.edu>
 	- Add Linux ALSA 0.9+/final audio driver, contributed by Steve Smith
 	  at the University of Sydney <ssmith@vislab.usyd.edu.au>
+	- Fix RTP packet structures.  The struct used to decode RTP had 
+	  the 'interesting' implementation feature of putting a bunch of
+	  management variables at the front and calculating the offset in
+	  memory to the actual data. Unfortunately this completely failed
+	  to take account of such things and pointer alignments and structure
+	  padding, and only worked in 32 bits by coincidence.  It completely 
+	  fails when compiled for 64-bit.  Reworked this to be a bit more 
+	  explicit about what it's doing and using the standard offsetof 
+	  macro to calculate offsets. Patch from Steve Smith at the
+	  University of Sydney.
 
 
 

@@ -81,7 +81,7 @@ pktbuf_enqueue(struct s_pktbuf *pb, rtp_packet *p)
 	uint32_t    psize;
 
         assert(p != NULL);
-	playout = ts_seq32_in(&pb->rtp_sequencer, 8000 /* Arbitrary */, p->ts);
+        playout = ts_seq32_in(&pb->rtp_sequencer, 8000 /* Arbitrary */, p->fields.ts);
 	psize   = sizeof(rtp_packet);
 
 	if (!pb_add(pb->rtp_buffer, (u_char*)p, psize, playout)) {
