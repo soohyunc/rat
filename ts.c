@@ -27,9 +27,9 @@ typedef struct {
  * ranging from 0..2M.  We can compare timestamps simply by scaling up
  * from lower frequency clocks to higher frequency clocks.
  *
- * As defined in ts.h we use 25 bits as full range of ticks.  In
- * reality, the highest frequency clock coded (90k) uses just under
- * the full 25 bit range ,0..floor (2^25-1 / 90000). All other clocks use
+ * As defined in ts.h we use 26 bits as full range of ticks.  In
+ * reality, the highest frequency clock coded (96k) uses under
+ * the full 26 bit range ,0..floor (2^26-1 / 90000). All other clocks use
  * less than this.  The range corresponds to 372 seconds which is ample for
  * media playout concerns.
  *
@@ -47,12 +47,13 @@ ticker tickers[] = {
         {  40000, 0x00e30d00 },
         {  44100, 0x00fa52d0 },
         {  48000, 0x01107600 },
-        {  90000, 0x01fedd40 }
+        {  90000, 0x01fedd40 },
+        {  96000, 2 * 0x01107600 },
 };
 
 #define TS_NUM_TICKERS (sizeof(tickers)/sizeof(ticker))
 
-#define TS_CHECK_BITS 0x07
+#define TS_CHECK_BITS 0x03
 
 timestamp_t
 ts_map32(uint32_t freq, uint32_t ticks32)

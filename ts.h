@@ -12,8 +12,8 @@
 #define __TS_H__
 
 typedef struct {
-        uint32_t ticks:25;
-        uint32_t check:3;
+        uint32_t ticks:26;
+        uint32_t check:2;
         uint32_t idx:4;
 } timestamp_t;
 
