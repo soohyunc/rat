@@ -91,7 +91,12 @@ static int
 sock_init(u_long inaddr, u_short port, int t_flag)
 {
 	struct sockaddr_in sinme;
+	/* This should be char under winsock2 but it doesn't work.... */
+#ifdef WIN32
+	int				ttl = t_flag;
+#else
 	char            ttl = (char)t_flag;
+#endif
 	fd_t            tmp_fd;
 	int             multi = FALSE;
 	int             reuse = 1;
