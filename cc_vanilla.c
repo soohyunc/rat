@@ -156,6 +156,7 @@ vanilla_encoder_encode (u_char      *state,
         struct      s_pb_iterator *pi;
         media_data *m;
         ve_state   *ve = (ve_state*)state;
+        int n = 0;
 
         assert(upp != 0 && upp <= MAX_UNITS_PER_PACKET);
 
@@ -166,6 +167,7 @@ vanilla_encoder_encode (u_char      *state,
                 /* Remove element from playout buffer - it belongs to
                  * the vanilla encoder now.
                  */
+                n++;
                 if (ve->nelem == 0) {
                         /* If it's the first unit make a note of it's
                          *  playout */
@@ -204,6 +206,8 @@ vanilla_encoder_encode (u_char      *state,
         }
 
         pb_iterator_destroy(in, &pi);
+
+        debug_msg("%d\n", n);
 
         return TRUE;
 }

@@ -66,8 +66,8 @@ typedef struct s_pb_iterator {
 typedef struct s_pb {
 
         pb_node_t      sentinel;         /* Stores head and tail */
-        pb_node_t     *psentinel;        /* pointer to sentinel - saves address calc in link
-                                          * processing.
+        pb_node_t     *psentinel;        /* pointer to sentinel - saves 
+                                          * address calc in link ops.
                                           */
         /* Free proc for data added, so we don't leak when buffer destroyed 
          * and so we can audit the buffer
@@ -130,11 +130,16 @@ pb_flush (pb_t *pb)
 
         while(curr != stop) {
                 next = curr->next;
+                curr->next->prev = curr->prev;
+                curr->prev->next = curr->next;
                 pb->freeproc(&curr->data, curr->data_len);
                 assert(curr->data == NULL);
                 block_free(curr, sizeof(pb_node_t));
                 curr = next;
         }
+        
+        assert(stop->next == stop);
+        assert(stop->prev == stop);
 
         /* Reset all iterators */
         n_iterators = pb->n_iterators;

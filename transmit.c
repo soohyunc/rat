@@ -165,8 +165,6 @@ tx_create(tx_buffer     **ntb,
                 tb->channels = channels;
                 tb->mean_read_dur = unit_dur;
                 
-                codec_state_store_create(&tb->state_store, ENCODER);
-                
                 pb_create(&tb->audio_buffer,
                           (playoutfreeproc)tx_unit_destroy);
 
@@ -194,10 +192,6 @@ tx_destroy(tx_buffer **ptb)
         sd_destroy(tb->sd_info);
         vad_destroy(tb->vad);
         agc_destroy(tb->agc);
-
-        if (tb->state_store) {
-                codec_state_store_destroy(&tb->state_store);
-        }
 
         pb_destroy(&tb->audio_buffer);
         pb_destroy(&tb->media_buffer);
@@ -238,6 +232,7 @@ tx_start(tx_buffer *tb)
         /* Add one unit to media buffer to kick off audio reading */
         unit_start = ts_map32(get_freq(tb->clock), rand());
         tx_unit_create(tb, &tu_new, tb->unit_dur * tb->channels);
+        assert(ts_valid(unit_start));
         pb_add(tb->audio_buffer, 
                (u_char*)tu_new,
                sizeof(tx_unit),
@@ -245,6 +240,9 @@ tx_start(tx_buffer *tb)
 
         /* And then put reading iterator on it */
         pb_iterator_advance(tb->reading);
+
+        assert(tb->state_store == NULL);
+        codec_state_store_create(&tb->state_store, ENCODER);
 }
 
 void
@@ -254,7 +252,6 @@ tx_stop(tx_buffer *tb)
 
         /* Again not sure why this is here */
         if (tb->sending_audio == FALSE) {
-                debug_msg("Why?");
                 return;
         }
 
@@ -263,8 +260,8 @@ tx_stop(tx_buffer *tb)
         codec_state_store_destroy(&tb->state_store);
         channel_encoder_reset(tb->sp->channel_coder);
         ui_input_level(tb->sp, 0);
-        tx_update_ui(tb);
         tb->sending_audio = FALSE;
+        tx_update_ui(tb);
         
         /* Detach iterators      */
         pb_iterator_destroy(tb->audio_buffer, &tb->transmit);
@@ -448,6 +445,7 @@ tx_send(tx_buffer *tb)
         ts_t            time_ts;
         u_int32         time_32, cd_len, freq;
         u_int32         u_len, units, i, n, send, encoding;
+        int success;
 
         if (pb_iterators_equal(tb->silence, tb->transmit)) {
                 /* Nothing to do */
@@ -467,6 +465,8 @@ tx_send(tx_buffer *tb)
         assert(ts_gt(u_sil_ts, u_ts));
         delta = ts_sub(u_sil_ts, u_ts);
         n = delta.ticks / tb->unit_dur;
+
+        debug_msg("n = %d\n", n);
 
         rtp_header.cc = 0;
         sp->last_tx_service_productive = 0;    
@@ -495,7 +495,8 @@ tx_send(tx_buffer *tb)
                 
                 for (i = 0;i < units; i++) {
                         media_data *m;
-                        pb_iterator_get_at(tb->transmit, (u_char**)&u, &u_len, &u_ts);
+                        success = pb_iterator_get_at(tb->transmit, (u_char**)&u, &u_len, &u_ts);
+                        assert(success);
                         if (send) {
                                 media_data_create(&m, sp->num_encodings);
                                 for(encoding = 0; encoding < (u_int32)sp->num_encodings; encoding ++) {
@@ -508,11 +509,14 @@ tx_send(tx_buffer *tb)
                         } else {
                                 media_data_create(&m, 0);
                         }
-                        pb_add(tb->media_buffer, 
-                               (u_char*)m, 
-                               sizeof(media_data), 
-                               u_ts);
-                        pb_iterator_advance(tb->transmit);
+                        assert(m != NULL);
+                        success = pb_add(tb->media_buffer, 
+                                         (u_char*)m, 
+                                         sizeof(media_data), 
+                                         u_ts);
+                        assert(success);
+                        success = pb_iterator_advance(tb->transmit);
+                        assert(success);
                 }
                 n -= units;
         }
@@ -523,10 +527,12 @@ tx_send(tx_buffer *tb)
 
         pb_iterator_create(tb->channel_buffer, &cpos);
         while(pb_iterator_get_at(cpos, (u_char**)&cd, &cd_len, &time_ts)) {
-                pb_iterator_detach_at(cpos, 
-                                      (u_char**)&cd, 
-                                      &cd_len, 
-                                      &time_ts);
+                if (pb_iterator_detach_at(cpos, 
+                                          (u_char**)&cd, 
+                                          &cd_len, 
+                                          &time_ts) == FALSE){
+                        debug_msg("Failed to detach\n");
+                }
                 assert(cd->nelem == 1);
                 cu = cd->elem[0];
                 rtp_header.type = 2;
@@ -577,7 +583,7 @@ tx_update_ui(tx_buffer *tb)
         static int            active = FALSE;
         session_struct       *sp     = tb->sp;
 
-        if (sp->meter) {
+        if (sp->meter && tb->sending_audio) {
                 struct s_pb_iterator *prev;  
                 tx_unit              *u;
                 u_int32               u_len;

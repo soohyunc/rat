@@ -250,7 +250,9 @@ main(int argc, char *argv[])
                                                 sidx--;
                                                 scnt--;
                                         } else {
+                                                /*
                                                 source_audit(s);
+                                                */
                                         }
                                 }
 			}
