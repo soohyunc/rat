@@ -976,7 +976,9 @@ proc toggle_stats {cname} {
 }
 
 proc 3d_send_parameters {cname} {
-    global azimuth filter_type filter_length
+    global azimuth filter_type filter_length 3d_audio_var
+
+    mbus_send "R" "tool.rat.3d.enabled"   $3d_audio_var
     mbus_send "R" "tool.rat.3d.user.settings" "[mbus_encode_str $cname] [mbus_encode_str $filter_type($cname)] $filter_length($cname) $azimuth($cname)"
 }
 

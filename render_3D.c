@@ -193,10 +193,10 @@ render_3D_set_parameters(struct s_render_3D_dbentry *p_3D_data, int sampling_rat
                                      -0.167251, 0.203305, 0.261645, 0.059649, 0.026661, -0.011648, -0.335958, -0.276208, 0.037719,
                                      0.154546, 0.141399, -0.000902, -0.031835, -0.098318, -0.058072, -0.033449, 0.030325, 0.041670,
                                      -0.001182, -0.019692, -0.031318, -0.028427, -0.003031 },
-                                   { 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                     0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                     0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                     0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 } };
+                                   { 0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                     0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 } };
         double   *filter_set[NUM_FILTERS];
 
         debug_msg("rate %d azimuth %d filter %d length %d\n",
@@ -322,7 +322,7 @@ render_3D(rx_queue_element_struct *el, int no_channels)
                         p_3D_data->contra_buf[i] = (short)((double)p_3D_data->contra_buf[i]*p_3D_data->attenuation);
                 }
                 /* apply ITD to contralateral buffer: delay mechanisam. */
-                memcpy(p_3D_data->tmp_buf, p_3D_data->contra_buf+((n_samples/2)-1)-p_3D_data->delay, p_3D_data->delay*sizeof(sample));
+                memcpy(p_3D_data->tmp_buf, p_3D_data->contra_buf+((n_samples/2))-p_3D_data->delay, p_3D_data->delay*sizeof(sample));
                 memmove(p_3D_data->contra_buf+p_3D_data->delay, p_3D_data->contra_buf, ((n_samples/2)-p_3D_data->delay)*sizeof(sample));
                 memcpy(p_3D_data->contra_buf, p_3D_data->excess_buf, p_3D_data->delay*sizeof(sample));
                 memcpy(p_3D_data->excess_buf, p_3D_data->tmp_buf, p_3D_data->delay*sizeof(sample));
