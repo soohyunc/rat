@@ -522,6 +522,7 @@ static void func_source_playout(char *srce, char *args, session_struct *sp)
 		for (e = sp->db->ssrc_db; e != NULL; e = e->next) {
 			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) break;
 		}
+                e->video_playout_received = TRUE;
 		e->video_playout = (playout * get_freq(e->clock)) / 1000;
 	} else {
 		printf("mbus: usage \"source_playout <cname> <playout>\"\n");

@@ -223,7 +223,8 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 				 * the delay of the video, converted to the clock 
 				 * base of that participant.
 				 */
-				if (src->video_playout > src->playout) {
+				if (src->video_playout_received == TRUE && 
+                                    src->video_playout > src->playout) {
 					src->playout = src->video_playout;
 				}
 			}
