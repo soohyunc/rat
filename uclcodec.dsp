@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "..\common" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -86,110 +86,353 @@ LIB32=link.exe -lib
 # Begin Source File
 
 SOURCE=.\codec.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\codec_dvi.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\codec_g711.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\codec_g726.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\codec_gsm.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\codec_l16.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\codec_lpc.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\codec_state.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\codec_types.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\codec_vdvi.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\codec_wbs.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\convert_acm.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\convert_extra.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\convert_linear.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\convert_sinc.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\convert_util.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\converter.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\cx_dvi.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\cx_g726.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\cx_g726_16.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\cx_g726_24.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\cx_g726_32.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\cx_g726_40.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\cx_gsm.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\cx_lpc.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\cx_vdvi.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\cx_wbs.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # End Group
 # Begin Group "Header Files"

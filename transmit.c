@@ -563,7 +563,7 @@ tx_send(tx_buffer *tb)
                         data_len = 0;
                         /* determine data length for packet.  This is a   */  
                         /* little over complicated because of layering... */
-                        for(i = j; i < cd->nelem; i += sp->layers) {
+                        for(i = j, k=0; i < cd->nelem; i += sp->layers) {
                                 data_len += (int) cd->elem[i]->data_len;
                                 k++;
                         }
