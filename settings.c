@@ -280,14 +280,21 @@ void settings_load_early(session_t *sp)
         init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 
 	name = setting_load_str("audioDevice", "No Audio Device");
-        n = (int)audio_get_device_count();
-        for(i = 0; i < n; i++) {
-                add = audio_get_device_details(i);
-                if (strcmp(add->name, name) == 0) {
-			audio_device_register_change_device(sp, add->descriptor);
-                        break;
+        add = audio_get_device_details(0); /* Fallback first device */
+        /* User may not have audio device entry in the         */
+        /* settings file, or have "No Audio Device" there.  In */
+        /* either case try to use first available device, if   */
+        /* it's in use we'll fallback to dummy device anyway.  */
+        if (strcmp(name, "No Audio Device")) {
+                n = (int)audio_get_device_count();
+                for(i = 0; i < n; i++) {
+                        add = audio_get_device_details(i);
+                        if (strcmp(add->name, name) == 0) {
+                                break;
+                        }
                 }
         }
+        audio_device_register_change_device(sp, add->descriptor);
 
 	freq = setting_load_int("audioFrequency", 8000);
 	chan = setting_load_int("audioChannelsIn", 1);

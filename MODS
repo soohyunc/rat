@@ -1143,6 +1143,7 @@ v4.1.7	- Update ALSA detection in configure script
 	- Add audio clip support to balloon help.
 	- Tidied mixer interface and cleaned session_struct out.
 	- Fix mixer wrap handling for multi-channel.
+	- Fix default device if not present in saved settings.
 
 TODO -- They're features not bugs dammit!
 ----
