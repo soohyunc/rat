@@ -103,6 +103,7 @@ init_session(session_struct *sp)
 	sp->receive_audit_required	= FALSE;
 	sp->voice_switching		= FULL_DUPLEX;	 /* NETMUTESMIKE etc. */
 	sp->detect_silence		= TRUE;
+	sp->sync_on			= FALSE;
 	sp->agc_on			= FALSE;
         sp->ui_on                       = TRUE;
 	sp->ui_response			= 15;
@@ -150,6 +151,9 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 
 	for (i = 1; i < argc; i++) {
 		for (s = 0; s < sp_size; s++) {
+                        if ((strcmp(argv[i], "-sync")) == 0) {
+                                sp[s]->sync_on = TRUE;
+                        }
                         if ((strcmp(argv[i], "-allowloopback")) == 0) {
                                 sp[s]->no_filter_loopback = 1;
                         }

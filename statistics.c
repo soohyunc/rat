@@ -55,6 +55,7 @@
 #include "codec.h"
 #include "channel.h"
 #include "ui.h"
+#include "mbus.h"
 
 static rtcp_dbentry *
 update_database(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
@@ -109,10 +110,8 @@ split_block(u_int32 playout_pt,
         units = validate_and_split(hdr->pt, data_ptr, len, ccu, &trailing);
 
         if (units <=0) {
-#ifdef DEBUG
-            fprintf(stderr,"%s:%d validate and split failed.\n",__FILE__,__LINE__);
-#endif
-            block_free(ccu,sizeof(cc_unit));
+	    	dprintf("Validate and split failed!\n");
+            	block_free(ccu,sizeof(cc_unit));
 		return 0;
 	}
 
@@ -159,11 +158,13 @@ split_block(u_int32 playout_pt,
 
 static u_int32
 adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
-	      session_struct *sp, cushion_struct *cushion)
+	      session_struct *sp, cushion_struct *cushion, u_int32 cur_time)
 {
 	u_int32	playout, var;
 	int	delay, diff;
 	codec_t	*cp;
+	char	pargs[1500];
+	int	real_playout;
 
 	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
 	delay = arrival_ts - hdr->ts;
@@ -194,9 +195,25 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 				var = 8000;
 			}
 			var += cushion->cushion_size * get_freq(src->clock) / get_freq(sp->device_clock);
-			if (src->clock!=sp->device_clock) 
+			if (src->clock!=sp->device_clock) {
 				var += cp->unit_len;
+			}
 			src->playout = src->delay + var;
+			if (sp->sync_on) {
+				/* Communicate our playout delay to the video tool... */
+				real_playout = (convert_time(hdr->ts + src->playout - cur_time, src->clock, sp->device_clock) * 1000)/get_freq(sp->device_clock);
+				sprintf(pargs, "%s %ld", src->sentry->cname, real_playout);
+				dprintf("source_playout (%s)\n", pargs);
+				mbus_send(sp->mbus_engine, sp->mbus_video_addr, "source_playout", pargs, FALSE);
+				/* If the video tool is slower than us, then
+				 * adjust to match it...  src->video_playout is
+				 * the delay of the video, converted to the clock 
+				 * base of that participant.
+				 */
+				if (src->video_playout > src->playout) {
+					src->playout = src->video_playout;
+				}
+			}
 		} else {
 			/* Do not set encoding on TS start packets as they do not show if redundancy is used...   */
 			src->encoding = hdr->pt;
@@ -205,10 +222,10 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 		src->last_seq = hdr->seq;
 	}
 
-	/* Calculate the playout point in local source time for this packet */
+	/* Calculate the playout point in local source time for this packet. */
 	playout = hdr->ts + src->playout;
 
-	return (playout);
+	return playout;
 }
 
 int
@@ -341,7 +358,7 @@ statistics(session_struct    *sp,
 		update_req   = TRUE;
 	}
 
-	playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion);
+	playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, cur_time);
 	src->units_per_packet = split_block(playout_pt, pcp, data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
 	
         if (!src->units_per_packet) {
@@ -352,6 +369,4 @@ statistics(session_struct    *sp,
 	if (update_req) update_stats(src, sp);
 	free_pckt_queue_element(&e_ptr);
 }
-
-
 

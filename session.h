@@ -111,6 +111,7 @@ typedef struct session_tag {
 	int		detect_silence;
 	int             meter;                      /* if powermeters are on */
 	struct s_bias_ctl *bc;
+	int		sync_on;
 	int		agc_on;
         int             ui_on;
         int		ui_response;
@@ -147,6 +148,7 @@ typedef struct session_tag {
 	struct mbus	*mbus_ui;
 	char		*mbus_engine_addr;
 	char		*mbus_ui_addr;
+	char		*mbus_video_addr;
 } session_struct;
 
 void init_session(session_struct *sp);

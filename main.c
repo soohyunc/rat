@@ -103,7 +103,7 @@ main(int argc, char *argv[])
 	struct in_addr  	 iaddr;
 	struct timeval  	 time;
 	struct mbus		*mbus_engine, *mbus_ui;
-	char			*mbus_engine_addr, *mbus_ui_addr;
+	char			*mbus_engine_addr, *mbus_ui_addr, *mbus_video_addr;
 
 #define NEW_QUEUE(T,Q) T  Q[2]; \
                        T *Q##_ptr[2];
@@ -161,6 +161,7 @@ main(int argc, char *argv[])
 	srand48(time.tv_usec);
 	while (!(ssrc = lrand48()));	/* Making 0 a special value */
 
+	mbus_video_addr  = "(video engine   * *)";
 	mbus_engine_addr = "(audio engine rat 0)";
 	mbus_ui_addr     = "(audio     ui rat 0)";
 	mbus_engine      = mbus_init(0, mbus_handler_engine, NULL); mbus_addr(mbus_engine, mbus_engine_addr);
@@ -170,6 +171,7 @@ main(int argc, char *argv[])
 		sp[i]->mbus_ui          = mbus_ui;
 		sp[i]->mbus_engine_addr = mbus_engine_addr;
 		sp[i]->mbus_ui_addr     = mbus_ui_addr;
+		sp[i]->mbus_video_addr  = mbus_video_addr;
 	}
 
 	for (i = 0; i < num_sessions; i++) {

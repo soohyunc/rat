@@ -411,6 +411,24 @@ static void func_source_unmute(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
+static void func_source_playout(char *srce, char *args, session_struct *sp)
+{
+	rtcp_dbentry	*e;
+	char		*cname;
+	int	 	 playout;
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &cname) && mbus_parse_int(sp->mbus_engine, &playout)) {
+		for (e = sp->db->ssrc_db; e != NULL; e = e->next) {
+			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) break;
+		}
+		e->video_playout = (playout * get_freq(e->clock)) / 1000;
+	} else {
+		printf("mbus: usage \"source_loc <cname> <loc>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+}
+
 static void func_redundancy(char *srce, char *args, session_struct *sp)
 {
 	char	*codec;
@@ -526,6 +544,7 @@ char *mbus_cmnd[] = {
 	"source_loc",
 	"source_mute",
 	"source_unmute",
+	"source_playout",
 	"redundancy",
 	"primary",
 	"codec_query",
@@ -558,6 +577,7 @@ void (*mbus_func[])(char *srce, char *args, session_struct *sp) = {
 	func_source_loc,
 	func_source_mute,
 	func_source_unmute,
+	func_source_playout,
 	func_redundancy,
 	func_primary,
 	func_codec_query,

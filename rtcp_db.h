@@ -99,6 +99,7 @@ typedef struct s_rtcp_dbentry {
 	int		encs[10];		/* Different encodings in packet */
 
 	/* Variables for playout time calculation */
+	int		video_playout;		/* Playout delay in the video tool -- for lip-sync [csp] */
 	int             playout;		/* Playout delay for this talkspurt */
 	int             delay;			/* Average delay for this participant */
 	u_int32         last_ts;		/* Last packet timestamp */
