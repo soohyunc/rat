@@ -20,6 +20,7 @@ static char rcsid[] =
 #include "config_win32.h"
 #include "tcl.h"
 #include "tk.h"
+#include "util.h"
 
 int
 uname(struct utsname *ub)
@@ -319,6 +320,7 @@ WinGetUserName(ClientData clientData, Tcl_Interp *interp, int argc, char **argv)
 	Tcl_AppendResult(interp, "GetUserName failed", NULL);
 	return TCL_ERROR;
     }
+    purge_chars(user, " \"`'![]");
     Tcl_AppendResult(interp, user, NULL);
     return TCL_OK;
 }

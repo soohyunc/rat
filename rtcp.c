@@ -21,6 +21,7 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "timers.h"
+#include "util.h"
 
 void 
 service_rtcp(session_struct      *sp,
@@ -63,6 +64,8 @@ char *get_cname(socket_udp *s)
 	char           		*uname;
 	char	       		*hname;
 	char			*cname;
+        char *pname;
+
 #ifndef WIN32
 	struct passwd  		*pwent;
 #endif
@@ -77,14 +80,26 @@ char *get_cname(socket_udp *s)
 	pwent = getpwuid(getuid());
 	uname = pwent->pw_name;
 #endif
-	if (uname != NULL) {
-		sprintf(cname, "%s@", uname);
-	}
 
-	/* Now the hostname. Must be dotted-quad IP address. */
+        /* Get host name */
 	hname = udp_host_addr(s);
-	strcpy(cname + strlen(cname), hname);
+
+	if (uname != NULL) {
+                /* We have to purge chars that will cause problems for tcl, like quotes,
+                 * This is only a problem because we made a design mistake - using cname
+                 * rather than ssrc as the associative array index.  If there is ever 
+                 * a "free" day then maybe it'll get fixed.
+                 */
+                pname = xstrdup(uname);
+                purge_chars(pname, "\"\'`");
+        } else {
+                pname = xstrdup("Unknown");
+        }
+          
+	sprintf(cname, "%s@%s", pname, hname);
+	
 	xfree(hname);
+        xfree(pname);
 	return cname;
 }
 
