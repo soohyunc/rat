@@ -1193,16 +1193,16 @@ menu .prefs.m.f.m.menu -tearoff 0
 
 frame  .prefs.buttons
 pack   .prefs.buttons       -side bottom -fill x 
-button .prefs.buttons.bye   -text "Cancel" -command {sync_ui_to_engine; wm withdraw .prefs} -padx 4 -pady 0 -highlightthickness 0
-button .prefs.buttons.apply -text "Apply Preferences" -command {wm withdraw .prefs; sync_engine_to_ui} -padx 4 -pady 0 -highlightthickness 0
-button .prefs.buttons.save  -text "Save & Apply Preferences" -command {save_settings; wm withdraw .prefs; sync_engine_to_ui} -padx 4 -pady 0 -highlightthickness 0
+button .prefs.buttons.bye   -text "Cancel" -command {sync_ui_to_engine; wm withdraw .prefs}
+button .prefs.buttons.apply -text "Apply" -command {wm withdraw .prefs; sync_engine_to_ui}
+button .prefs.buttons.save  -text "Save & Apply" -command {save_settings; wm withdraw .prefs; sync_engine_to_ui}
 pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side right -padx 2 -pady 2
 
 frame .prefs.pane -relief sunken
 pack  .prefs.pane -side left -fill both -expand 1 -padx 4 -pady 2
 
 # setup width of prefs panel
-constrain_window .prefs "XXXXXXXXXXXXXX48-kHzXXXStereoXXXLinear-16XXXUnitsXPerXPcktXXXXXXXXXXXXX" 0 12 128
+constrain_window .prefs "XXXXXXXX48-kHzXXXStereoXXXLinear-16XXXUnitsXPerXPcktXXXXXXX" 0 12 128
 
 # Personal Info Pane
 set i .prefs.pane.personal
