@@ -1506,7 +1506,7 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 	  is not supported.
 	* Released 14 January 2001.
 
-4.2.13	-
+4.2.13	- Fix spurious assert in G726 decoder
 
 
 

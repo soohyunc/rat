@@ -197,7 +197,6 @@ g726_unpack(u_char *cw, u_char *buf, u_char num_cw, int bps)
 		i++;
 	}
 
-	assert(cw[0] == 0);
 	for(i = 0; i < num_cw; i++) {
 		cw[i] = (buf[x] >> bits) & mask;
 		bits += bps;
