@@ -390,7 +390,7 @@ codec_free_dynamic_payloads(dpt **dpt_list)
 void
 codec_init(session_struct *sp)
 {
-	static	inited = 0;
+	static	int inited = 0;
 	codec_t	*cp;
 	int	pt;
 

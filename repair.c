@@ -290,7 +290,7 @@ void
 repair(int repair, rx_queue_element_struct *ip)
 {
 	static codec_t *gsmcp, *lpccp;
-	static virgin = 1;
+	static int virgin = 1;
 
 	rx_queue_element_struct *pp;
         u_int32 size;
