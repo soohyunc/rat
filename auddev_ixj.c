@@ -96,10 +96,11 @@ ixj_probe_mixer_device(int i, struct ixj_device *device)
 	/* corresponding mixer device.                         */
 	UNUSED(i);
 	debug_msg("QuickNet has no mixer\n");
-	memset(device->mixer_dev, 0, 16);
-	fd = open("/dev/phone0", O_RDWR);
+	sprintf(device->mixer_dev, "/dev/phone0");
+	fd = open(device->mixer_dev, O_RDWR);
 	if (fd < 0) {
-		debug_msg("Can not open %s\n", device->audio_dev);
+		device->mixer_fd = -1;
+		debug_msg("Can not open %s\n", device->mixer_dev);
 		return FALSE;
 	}
 	device->name = (char *) xmalloc(IXJ_MAX_NAME_LEN + 6);
@@ -108,7 +109,7 @@ ixj_probe_mixer_device(int i, struct ixj_device *device)
 	ioctl(fd, IXJCTL_DSP_VERSION, &ver);
 	close(fd);
 	sprintf(device->name, "IXJ: DSP type 0x%x, DSP Version 0x%x", dsp, ver);
-	return FALSE;
+	return TRUE;
 }
 
 static int
@@ -210,56 +211,32 @@ ixj_configure_device(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 	mode = deve2oss(ifmt->encoding);
 	switch(mode)
 	  {
-	    case G723_63:
-	      devices[ad].frame_len = 24;
-	      break;
-	    case G723_53:
-	      devices[ad].frame_len = 20;
-	      break;
-	    case TS85:
-	      devices[ad].frame_len = 32;
-	      break;
-	    case TS48:
-	      devices[ad].frame_len = 18;
-	      break;
-	    case TS41:
-	      devices[ad].frame_len = 16;
-	      break;
-	    case G728:
-	      devices[ad].frame_len = 96;
-	      break;
-	    case G729:
-	      ioctl(devices[ad].audio_fd, PHONE_FRAME, 10);
-	      devices[ad].frame_len = 10;
-	      break;
-	    case G729B:
-	      ioctl(devices[ad].audio_fd, PHONE_FRAME, 10);
-	      devices[ad].frame_len = 12;
-	      break;
 	    case ULAW:
-	      devices[ad].frame_len = 240;
+	      devices[ad].frame_len = 160;
 	      break;
 	    case ALAW:
-	      devices[ad].frame_len = 240;
+	      devices[ad].frame_len = 160;
 	      break;
 	    case LINEAR16:
-	      devices[ad].frame_len = 480;
+	      devices[ad].frame_len = 320;
 	      break;
 	    case LINEAR8:
-	      devices[ad].frame_len = 240;
-	      break;
-	    case WSS:
-	      devices[ad].frame_len = 240;
+	      devices[ad].frame_len = 160;
 	      break;
 	    default:
 	      debug_msg("Illegal CODEC %d\n", mode);
 	  }
+	/* This low-level IOCTL calling sets the sample to 20ms */
+	ioctl(devices[ad].audio_fd, PHONE_FRAME, 20);
+	ioctl(devices[ad].audio_fd, PHONE_PLAY_DEPTH, 2);
+	ioctl(devices[ad].audio_fd, PHONE_REC_DEPTH, 2);
+	ioctl(devices[ad].audio_fd, IXJCTL_DSP_IDLE);
 	if((ioctl(devices[ad].audio_fd, PHONE_REC_CODEC, mode) == -1)) {
 
 		if (ifmt->encoding == DEV_S16) {
 			audio_format_change_encoding(ifmt, DEV_PCMU);
 			audio_format_change_encoding(ofmt, DEV_PCMU);
-			devices[ad].frame_len = 240;
+			devices[ad].frame_len = 160;
 			if ((ioctl(devices[ad].audio_fd, PHONE_REC_CODEC, mode) == -1)) {
 				debug_msg("No Luck setting format\n");
 				return FALSE;
@@ -273,11 +250,14 @@ ixj_configure_device(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 //	}
 	ioctl(devices[ad].audio_fd, PHONE_PLAY_CODEC, mode);
 	ioctl(devices[ad].audio_fd, PHONE_PLAY_START);
-
+// This sets the card up OK for EC, but it appears these cards like to jitter :(
 	if(getenv("IXJ_AEC") != 0) {
 		debug_msg("AEC environment found\n");
 		mode = atoi(getenv("IXJ_AEC"));
 		switch(mode) {
+			case 0:
+      				mode = AEC_OFF;
+      				break;
 			case 1:
       				mode = AEC_LOW;
       				break;
@@ -294,8 +274,13 @@ ixj_configure_device(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
       				mode = AEC_AGC;
       				break;
 		}
+		ioctl(devices[ad].audio_fd, IXJCTL_AEC_START, 1);
 		ioctl(devices[ad].audio_fd, IXJCTL_AEC_START, mode);
 		debug_msg("AEC set to %d\n", mode);
+	} else {
+		ioctl(devices[ad].audio_fd, IXJCTL_AEC_START, 1);
+		ioctl(devices[ad].audio_fd, IXJCTL_AEC_STOP);
+		debug_msg("AEC turned off\n");
 	}
 
 	stereo = ifmt->channels - 1; 
@@ -485,10 +470,11 @@ ixj_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 		memcpy(buf, mybuf, read_bytes);
 		memcpy(mybuf, &mybuf[read_bytes], offset - read_bytes);
 		offset = offset - read_bytes;
+//		debug_msg("Return lie %d\n", read_bytes);
 		return read_bytes;
 	}
 
-	debug_msg("Reading %d bytes requested\n", read_bytes);
+//	debug_msg("Reading %d bytes requested\n", read_bytes);
 	read_len=0;
 	if(ioctl(devices[ad].audio_fd, PHONE_HOOKSTATE) || ixjiport != 1) {
 	  read_len  = read(devices[ad].audio_fd, &mybuf[offset], devices[ad].frame_len);
@@ -505,7 +491,7 @@ ixj_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 		offset = offset - available;
 	}
 
-	if(read_len) debug_msg("Got %d of %d available  frame_len=%d , read_bytes=%d\n", read_len,  available, devices[ad].frame_len, read_bytes);
+//	if(read_len > 0) debug_msg("Got %d of %d available  frame_len=%d , read_bytes=%d\n", read_len,  available, devices[ad].frame_len, read_bytes);
 
         return available;
 }
@@ -528,13 +514,13 @@ ixj_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 	memcpy(&mybuf[offset], buf, write_bytes);
 	offset += write_bytes;
 	if(offset < devices[ad].frame_len) {
-		debug_msg("Writing lie of %d bytes\n", write_bytes);
+//		debug_msg("Writing lie of %d bytes\n", write_bytes);
 		return write_bytes;
 	}
         
-	debug_msg("Writing %d bytes to %d, offset=%d\n", write_bytes, devices[ad].audio_fd, offset);
-	errno=0;
+//	debug_msg("Writing %d bytes to %d, offset=%d\n", write_bytes, devices[ad].audio_fd, offset);
         while (1) {
+		errno=0;
 		if(offset < devices[ad].frame_len) break;
 
 		if(ioctl(devices[ad].audio_fd, PHONE_HOOKSTATE) || ixjiport != 1) {
@@ -543,7 +529,7 @@ ixj_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 			if(done > 0) {
 				memcpy(mybuf, &mybuf[done], offset - done);
 				offset -= done;
-			}	
+			} else done=0;
 			return min(write_bytes, done);
                   }
 		} else {
@@ -554,9 +540,9 @@ ixj_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 			memcpy(mybuf, &mybuf[done], offset - done);
 			offset -= done;
 		}
-		debug_msg("Offset now %d, done=%d\n", offset, done);
+//		if(errno == 0) debug_msg("Offset now %d, done=%d, errno=%d, frame=%d\n", offset, done, errno, devices[ad].frame_len);
         }
-	debug_msg("Writing %d bytes, offset left at %d\n", write_bytes, offset);
+//	debug_msg("Writing %d bytes, offset left at %d errno=%d\n", write_bytes, offset, errno);
         return write_bytes;
 }
 
