@@ -157,8 +157,8 @@ WinMain(
 
     if (WSAStartup(WS_VERSION_TWO, &WSAdata) != 0 &&
         WSAStartup(WS_VERSION_ONE, &WSAdata) != 0) {
-    	perror("Windows Sockets init failed");
-	abort();
+    	MessageBox(NULL, "Windows Socket initialization failed. TCP/IP stack\nis not installed or is damaged.", "Network Error", MB_OK | MB_ICONERROR);
+        exit(-1);
     }
 
     debug_msg("WSAStartup OK: %sz\nStatus:%s\n", WSAdata.szDescription, WSAdata.szSystemStatus);
