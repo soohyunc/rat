@@ -197,7 +197,7 @@ ui_info_deactivate(rtcp_dbentry *e)
 void
 update_stats(rtcp_dbentry *e, session_struct *sp)
 {
-	char	 encoding[100], *p, *my_cname, *their_cname;
+	char	 encoding[100], *p, *my_cname, *their_cname, *args;
 	int	 l;
 	codec_t	*cp;
 
@@ -206,6 +206,7 @@ update_stats(rtcp_dbentry *e, session_struct *sp)
 		return;
 	}
 
+	memset(encoding, '\0', 100);
 	if (e->encs[0] != -1) {
 		cp = get_codec(e->encs[0]);
 		strcpy(encoding, cp->name);
@@ -223,15 +224,21 @@ update_stats(rtcp_dbentry *e, session_struct *sp)
 		*encoding = 0;
 	}
 
-	sprintf(args, "%s %s", mbus_encode_str(e->sentry->cname), encoding);                       
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.codec", args, FALSE);
 
 	my_cname    = strdup(mbus_encode_str(sp->db->my_dbe->sentry->cname));
 	their_cname = strdup(mbus_encode_str(e->sentry->cname));
-	sprintf(args, "%s %s %ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);
+
+	args = (char *) xmalloc(strlen(their_cname) + strlen(encoding) + 2);
+	sprintf(args, "%s %s", their_cname, encoding);                       
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.codec", args, FALSE);
+	xfree(args);
+
+	args = (char *) xmalloc(strlen(their_cname) + strlen(my_cname) + 11);
+	sprintf(args, "%s %s %8ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.packet.loss", args, FALSE);
 	free(my_cname);
 	free(their_cname);
+	xfree(args);
 }
 
 void
@@ -286,11 +293,15 @@ void
 ui_input_level(int level)
 {
 	static int	ol;
+	char		args[4];
+
         assert(level>=0 && level <=100);
 
-	if (ol == level)
+	if (ol == level) {
 		return;
-	sprintf(args, "%d", level);
+	}
+
+	sprintf(args, "%3d", level);
 	mbus_engine_tx(TRUE, mbus_name_ui, "powermeter.input", args, FALSE);
 	ol = level;
 }
@@ -299,11 +310,14 @@ void
 ui_output_level(int level)
 {
 	static int	ol;
+	char		args[4];
         assert(level>=0 && level <=100);
 
-	if (ol == level) 
+	if (ol == level) {
                 return;
-	sprintf(args, "%d", level);
+	}
+
+	sprintf(args, "%3d", level);
 	mbus_engine_tx(TRUE, mbus_name_ui, "powermeter.output", args, FALSE);
 	ol = level;
 }
@@ -356,9 +370,10 @@ void
 ui_update_frequency(session_struct *sp)
 {
 	codec_t *pcp;
+	char	 args[7];
 
 	pcp = get_codec(sp->encodings[0]);
-	sprintf(args, "%d-kHz", pcp->freq/1000);
+	sprintf(args, "%2d-kHz", pcp->freq/1000);
 	mbus_engine_tx(TRUE, mbus_name_ui, "frequency", mbus_encode_str(args), FALSE);
 }
 
@@ -366,6 +381,7 @@ void
 ui_update_channels(session_struct *sp)
 {
 	codec_t *pcp;
+	char	 args[7];
         
 	pcp = get_codec(sp->encodings[0]);
         switch(pcp->channels) {
@@ -388,8 +404,7 @@ ui_update_primary(session_struct *sp)
 	codec_t *pcp;
 
 	pcp = get_codec(sp->encodings[0]);
-	sprintf(args, "%s", mbus_encode_str(pcp->short_name));
-	mbus_engine_tx(TRUE, mbus_name_ui, "primary", args, FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "primary", xstrdup(mbus_encode_str(pcp->short_name)), FALSE);
 }
 
 void
@@ -397,7 +412,7 @@ ui_update_redundancy(session_struct *sp)
 {
         int  pt;
         int  ioff;
-        char buf[128], *codec_name=NULL, *offset=NULL, *dummy;
+        char buf[128], *codec_name=NULL, *offset=NULL, *dummy, *args;
 
         pt = get_cc_pt(sp,"REDUNDANCY");
         if (pt != -1) { 
@@ -426,8 +441,12 @@ ui_update_redundancy(session_struct *sp)
                 ioff  = 1;
         } 
 
-        sprintf(args,"%s %d", mbus_encode_str(codec_name), ioff);
+	codec_name = mbus_encode_str(codec_name);
+
+	args = (char *) xmalloc(strlen(codec_name) + 4);
+        sprintf(args,"%s %2d", codec_name, ioff);
         mbus_engine_tx(TRUE, mbus_name_ui, "redundancy", args, TRUE);
+	xfree(args);
 }
 
 static void 
@@ -458,21 +477,26 @@ ui_update_channel(session_struct *sp)
 void
 ui_update_input_gain(session_struct *sp)
 {
-        sprintf(args, "%d", audio_get_gain(sp->audio_fd));   
+	char	args[4];
+
+        sprintf(args, "%3d", audio_get_gain(sp->audio_fd));   
         mbus_engine_tx_queue(TRUE,  "input.gain", args);
 }
 
 void
 ui_update_output_gain(session_struct *sp)
 {
-        sprintf(args, "%d", audio_get_volume(sp->audio_fd)); 
+	char	args[4];
+
+        sprintf(args, "%3d", audio_get_volume(sp->audio_fd)); 
         mbus_engine_tx_queue(TRUE, "output.gain", args);
 }
 
 void
 ui_update(session_struct *sp)
 {
-	static   int done=0;
+	static   int 	done=0;
+	char	 	args[4];
 
 	/*XXX solaris seems to give a different volume back to what we   */
 	/*    actually set.  So don't even ask if it's not the first time*/
@@ -481,11 +505,11 @@ ui_update(session_struct *sp)
                 ui_update_output_gain(sp);
 		done=1;
 	} else {
-	        sprintf(args, "%d", sp->output_gain); mbus_engine_tx_queue(TRUE, "output.gain", args);
-		sprintf(args, "%d", sp->input_gain ); mbus_engine_tx_queue(TRUE,  "input.gain", args);
+	        sprintf(args, "%3d", sp->output_gain); mbus_engine_tx_queue(TRUE, "output.gain", args);
+		sprintf(args, "%3d", sp->input_gain ); mbus_engine_tx_queue(TRUE,  "input.gain", args);
 	}
 
-        sprintf(args, "%d", collator_get_units(sp->collator));
+        sprintf(args, "%3d", collator_get_units(sp->collator));
 	mbus_engine_tx_queue(TRUE, "rate", args);
 
 	ui_update_output_port(sp);
@@ -517,7 +541,8 @@ void
 update_lecture_mode(session_struct *sp)
 {
 	/* Update the UI to reflect the lecture mode setting...*/
-	sprintf(args, "%d", sp->lecture);
+	char	args[2];
+	sprintf(args, "%1d", sp->lecture);
 	mbus_engine_tx(TRUE, mbus_name_ui, "lecture.mode", args, TRUE);
 }
 
@@ -544,7 +569,7 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 void
 ui_update_loss(char *srce, char *dest, int loss)
 {
-	char	*srce_e, *dest_e;
+	char	*srce_e, *dest_e, *args;
 
 	if ((srce == NULL) || (dest == NULL)) {
 		return;
@@ -552,9 +577,11 @@ ui_update_loss(char *srce, char *dest, int loss)
 
  	srce_e = xstrdup(mbus_encode_str(srce));
 	dest_e = xstrdup(mbus_encode_str(dest));
-	sprintf(args, "%s %s %d", srce_e, dest_e, loss);
+	args   = (char *) xmalloc(strlen(srce_e) + strlen(dest_e) + 6);
+	sprintf(args, "%s %s %3d", srce_e, dest_e, loss);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.packet.loss", args, FALSE);
 
+	xfree(args);
 	xfree(srce_e);
 	xfree(dest_e);
 }
@@ -562,16 +589,16 @@ ui_update_loss(char *srce, char *dest, int loss)
 void
 ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, double jitter, int jit_tog)
 {
-	char	*cname_e, *t_args;
+	char	*cname_e, *args;
 
 	if (cname == NULL) return;
 
 	cname_e = mbus_encode_str(cname);
 
-	sprintf(args, "%s %6ld %6ld %6ld %6f %6d", cname_e, recv, lost, misordered, jitter, jit_tog);
-        t_args = strdup(args);
-	mbus_engine_tx_queue(TRUE, "source.reception", t_args);
-	free(t_args);
+	args = (char *) xmalloc(strlen(cname_e) + 40);
+	sprintf(args, "%s %6ld %6ld %6ld %9.6f %6d", cname_e, recv, lost, misordered, jitter, jit_tog);
+	mbus_engine_tx_queue(TRUE, "source.reception", args);
+	free(args);
 }
 
 void
@@ -658,6 +685,8 @@ ui_get_codecs(int pt, char *buf, int loose)
 void 
 ui_codecs(int pt)
 {
+	char	args[64];	/* Hope that's big enough... :-) */
+
         ui_get_codecs(pt, args, TRUE);
         mbus_encode_str(args);
 	mbus_engine_tx(TRUE, mbus_name_ui, "codec.supported", args, TRUE);
@@ -694,8 +723,13 @@ ui_controller_init(char *cname, char *name_engine, char *name_ui, char *name_vid
 void
 ui_title(session_struct *sp) 
 {
+	char	*addr, *args;
+
         mbus_engine_tx(TRUE, mbus_name_ui, "session.title", mbus_encode_str(sp->title), TRUE);
-        sprintf(args, "%s %d %d", mbus_encode_str(sp->asc_address), sp->rtp_port, sp->ttl);
+
+	addr = mbus_encode_str(sp->asc_address);
+	args = (char *) xmalloc(strlen(addr) + 11);
+        sprintf(args, "%s %5d %3d", addr, sp->rtp_port, sp->ttl);
         mbus_engine_tx(TRUE, mbus_name_ui, "session.address", args, TRUE);
 }
 

@@ -178,7 +178,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 	u_int32			ssrc;
 	u_int32			*alignptr;
 	int			i, lenstr;
-	rtcp_user_rr            *rr;
+	rtcp_user_rr            *rr, *tmp_rr;
 
 	len /= 4;
 	while (len > 0) {
@@ -206,8 +206,11 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 
 			/* Store the reception statistics for that user... */
 			/* Clear the old RR list... */
-			for (rr = dbe->rr; rr != NULL; rr = rr->next) {
+			rr = dbe->rr;
+			while (rr != NULL) {
+				tmp_rr = rr->next;
 				xfree(rr);
+				rr = tmp_rr;
 			}
 			dbe->rr = NULL;
 			/* Fill in the new RR list... */
@@ -239,8 +242,11 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 
 			/* Store the reception statistics for that user... */
 			/* Clear the old RR list... */
-			for (rr = dbe->rr; rr != NULL; rr = rr->next) {
+			rr = dbe->rr;
+			while (rr != NULL) {
+				tmp_rr = rr->next;
 				xfree(rr);
+				rr = tmp_rr;
 			}
 			dbe->rr = NULL;
 			/* Fill in the new RR list... */

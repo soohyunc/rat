@@ -639,7 +639,7 @@ char *mbus_encode_str(const char *s)
 	static int	 encode_buflen = 0;
 
 	int l = strlen(s);
-	if (encode_buflen < l) {
+	if (encode_buflen < (l + 3)) {
 		if (encode_buffer != NULL) {
 			xfree(encode_buffer);
 		}
