@@ -112,6 +112,29 @@ repetition(sample             **audio_buf,
         return TRUE;
 }
 
+static int
+repair_none(sample             **audio_buf, 
+            const audio_format **audio_fmt, 
+            int                  nbufs,
+            int                  missing,
+            int                  consec_lost)
+{
+
+        if ((audio_buf[missing - 1] == NULL) || 
+            (nbufs < 2)) {
+                debug_msg("no prior audio\n");
+                return FALSE;
+        }
+        
+        memset(audio_buf[missing], 
+               0, 
+               audio_fmt[missing]->bytes_per_block);
+        
+        UNUSED(consec_lost);
+        
+        return TRUE;
+}
+
 /* Noise subsitution is about the worst way to repair loss.
  * It's here as a reference point, let's hope nobody uses it!
  */
@@ -266,8 +289,8 @@ single_side_pattern_match(sample **audio_buf, const audio_format **audio_fmt, in
         return TRUE;
 }
 
-#define REPAIR_ID_TO_IDX(x) (((x) - 1001) >> 2)
-#define IDX_TO_REPAIR_ID(x) (((x) << 2) + 1001)
+#define REPAIR_ID_TO_IDX(x) ((x) - 1001)
+#define IDX_TO_REPAIR_ID(x) ((x) + 1001)
 
 static repair_scheme schemes[] = {
         {
@@ -281,7 +304,7 @@ static repair_scheme schemes[] = {
                 noise_substitution},
         {
                 {"None",          IDX_TO_REPAIR_ID(3)},
-                NULL
+                repair_none
         } 
 };
 
@@ -324,10 +347,7 @@ repair(repair_id_t                 r,
         r = REPAIR_ID_TO_IDX(r);
         assert((unsigned)r < REPAIR_NUM_SCHEMES);
 
-        if (schemes[r].action == NULL) {
-                /* Nothing to do - this must be repair scheme "none" */
-                return FALSE;
-        } else if (prev->nrep == 0) {
+        if (prev->nrep == 0) {
                 debug_msg("No data to repair from\n");
                 return FALSE;
         }
