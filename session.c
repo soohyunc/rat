@@ -183,6 +183,7 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                                 fprintf(stderr, "ttl must be in the range 0 to 255.\n");
                                 usage();
                         }
+			debug_msg("Set TTL to %d\n", ttl);
                         for(s = 0; s < num_sessions; s++) {
                                 sp[s]->ttl = ttl;
                         }
@@ -236,7 +237,7 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                         }
                         i++;
                 } else {
-                        break;
+                        continue;
                 }
                 args_processed += i - lasti;
                 lasti = i;
@@ -355,7 +356,7 @@ parse_early_options(int argc, char *argv[], session_struct *sp[])
         if (parse_early_options_common(argc, argv, sp, num_sessions) > argc - 2) {
                 /* parse_early_options commmon returns number of args processed.
                  * At least two argv[0] (the appname) and argv[argc - 1] (address)
-                 * should not be processed.  Other args may not ve processed, but
+                 * should not be processed.  Other args may not be processed, but
                  * these should be picked up by parse_late_* or the audiotool/transcoder
                  * specific bits.  Hopefully more people will RTFM.
                  */
@@ -430,18 +431,15 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                 sp[s]->repair = repair_get_by_name(argv[i+1]);
                         }
                         if ((strcmp(argv[i], "-interleave") == 0) && (argc > i+1)) {
-                                printf("%s: not supported in this release\n", 
-                                       argv[i]);
+                                printf("%s: not supported in this release\n", argv[i]);
                             	i++;
 			}
                         if ((strcmp(argv[i], "-redundancy") == 0) && (argc > i+1)) {
-                                printf("%s: not supported in this release\n", 
-                                       argv[i]);
+                                printf("%s: not supported in this release\n", argv[i]);
                                 i++;
                         }
 			if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
-                                printf("%s: not supported in this release\n", 
-                                       argv[i]);
+                                printf("%s: not supported in this release\n", argv[i]);
 				i++;
 			}
 		}
