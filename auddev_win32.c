@@ -78,11 +78,13 @@
 #define rat_to_device(x)	((x) * 255 / MAX_AMP)
 #define device_to_rat(x)	((x) * MAX_AMP / 255)
 
+#define W32SDK_MAX_DEVICES 3
+static  int have_probed[W32SDK_MAX_DEVICES];
+static  int w32sdk_probe_formats(audio_desc_t ad, UINT uInID, UINT uOutID);
+
 static int		error = 0;
 static char		errorText[MAXERRORLENGTH];
 extern int thread_pri;
-static WAVEFORMATEX	format;
-static int		duplex;
 static int              nLoopGain = 100;
 #define MAX_DEV_NAME 64
 
@@ -123,7 +125,6 @@ static u_int32  nMixIn, nMixOut, nMixInID, curMixIn;
 static int32	play_vol, rec_vol;
 
 static HMIXER hMixIn, hMixOut;
-static UINT   uWavIn, uWavOut;
 
 static MapEntry meInputs[] = {
         {"mic",  AUDIO_MICROPHONE},
@@ -194,11 +195,12 @@ mixGetErrorText(MMRESULT mmr, char *szMsg, int cbMsg)
                 case MIXERR_INVALLINE:     sprintf(szMsg, "invalid line\n");    break;
                 case MIXERR_INVALCONTROL:  sprintf(szMsg, "invalid control\n"); break;
                 case MIXERR_INVALVALUE:    sprintf(szMsg, "invalid value\n");   break;
+                case WAVERR_BADFORMAT:     sprintf(szMsg, "bad format\n");      break;
                 case MMSYSERR_BADDEVICEID: sprintf(szMsg, "bad device id\n");   break;
                 case MMSYSERR_INVALFLAG:   sprintf(szMsg, "invalid flag\n");    break;
                 case MMSYSERR_INVALHANDLE: sprintf(szMsg, "invalid handle\n");  break;
                 case MMSYSERR_INVALPARAM:  sprintf(szMsg, "invalid param\n");   break;
-                case MMSYSERR_NODRIVER:    sprintf(szMsg, "no driver!\n");      break;               
+                case MMSYSERR_NODRIVER:    sprintf(szMsg, "no driver!\n");      break;
         }
 }
 
@@ -401,7 +403,7 @@ mixGetControls(HMIXER hMix, char *szDstName, int nDst, MixCtls *mcMix, int *nMix
 }
 
 static void 
-mixSetup()
+mixSetup(UINT uId)
 {
         MIXERCAPS m;
         MMRESULT  res;
@@ -427,13 +429,13 @@ mixSetup()
                 }
                 
                 if (res == MMSYSERR_NOERROR){
-                        if ((unsigned)i == uWavIn) {
+                        if ((unsigned)i == uId) {
                                 hMixIn  = hMix;
                                 nDstIn  = m.cDestinations;
                                 doClose = FALSE;
                                 debug_msg("Input mixer %s destinations %d\n", m.szPname, nDstIn); 
                         }
-                        if ((unsigned)i == uWavOut) {
+                        if ((unsigned)i == uId) {
                                 hMixOut = hMix;
                                 nDstOut = m.cDestinations;
                                 doClose = FALSE;
@@ -465,7 +467,7 @@ static int      write_hdrs_used;
 static HWAVEOUT	shWaveOut;
 
 static int
-w32sdk_audio_open_out()
+w32sdk_audio_open_out(UINT uId, WAVEFORMATEX *pwfx)
 {
 	int		i;
 	WAVEHDR		*whp;
@@ -474,7 +476,7 @@ w32sdk_audio_open_out()
 	if (shWaveOut)
 		return (TRUE);
 
-	error = waveOutOpen(&shWaveOut, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL);
+	error = waveOutOpen(&shWaveOut, uId, pwfx, 0, 0, CALLBACK_NULL);
 	if (error) {
 #ifdef DEBUG
 		waveOutGetErrorText(error, errorText, sizeof(errorText));
@@ -623,7 +625,7 @@ static u_char	*read_mem;
 static HWAVEIN	shWaveIn;
 
 static int
-w32sdk_audio_open_in()
+w32sdk_audio_open_in(UINT uId, WAVEFORMATEX *pwfx)
 {
 	WAVEHDR	*whp;
 	int	     l;
@@ -638,8 +640,8 @@ w32sdk_audio_open_in()
 	read_hdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks); 
 
         error = waveInOpen(&shWaveIn, 
-                           WAVE_MAPPER, 
-                           &format,
+                           uId, 
+                           pwfx,
                            (unsigned long)waveInProc,
                            0,
                            CALLBACK_FUNCTION);
@@ -762,7 +764,7 @@ int
 w32sdk_audio_open(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
 {
         static int virgin;
-        WAVEFORMATEX tfmt;
+        WAVEFORMATEX owfx, wfx;
 	
         if (audio_dev_open) {
                 debug_msg("Device not closed! Fix immediately");
@@ -772,38 +774,46 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
         assert(audio_format_match(fmt, ofmt));
         if (fmt->encoding != DEV_S16) return FALSE; /* Only support L16 for time being */
 
-        uWavIn = uWavOut = (UINT)ad;
-        mixSetup();
+        mixSetup((UINT)ad); /* ad == device number (0, n-1) */
 
-        format.wFormatTag      = WAVE_FORMAT_PCM;
-	format.nChannels       = (WORD)fmt->channels;
-	format.nSamplesPerSec  = fmt->sample_rate;
-	format.wBitsPerSample  = (WORD)fmt->bits_per_sample;
-        smplsz                 = format.wBitsPerSample / 8;
-        format.nAvgBytesPerSec = format.nChannels * format.nSamplesPerSec * smplsz;
-	format.nBlockAlign     = (WORD)(format.nChannels * smplsz);
-	format.cbSize          = 0;
+        wfx.wFormatTag      = WAVE_FORMAT_PCM;
+	wfx.nChannels       = (WORD)fmt->channels;
+	wfx.nSamplesPerSec  = fmt->sample_rate;
+	wfx.wBitsPerSample  = (WORD)fmt->bits_per_sample;
+        smplsz                 = wfx.wBitsPerSample / 8;
+        wfx.nAvgBytesPerSec = wfx.nChannels * wfx.nSamplesPerSec * smplsz;
+	wfx.nBlockAlign     = (WORD)(wfx.nChannels * smplsz);
+	wfx.cbSize          = 0;
         
-        memcpy(&tfmt, &format, sizeof(format));
-        /* Use 1 sec device buffer */
-	
+        memcpy(&owfx, &wfx, sizeof(wfx));
+        
+        /* Use 1 sec device buffer */	
         blksz  = fmt->bytes_per_block;
-	nblks  = format.nAvgBytesPerSec / blksz;
+	nblks  = wfx.nAvgBytesPerSec / blksz;
 	
-        if (w32sdk_audio_open_in() == FALSE)   return FALSE;
+        if (w32sdk_audio_open_in((UINT)ad, &wfx) == FALSE){
+                debug_msg("Open input failed\n");
+                return FALSE;
+        }
         
-        if ((duplex = w32sdk_audio_open_out()) == FALSE) {
+        assert(memcmp(&owfx, &wfx, sizeof(WAVEFORMATEX)) == 0);
+
+        if (w32sdk_audio_open_out((UINT)ad, &wfx) == FALSE) {
+                debug_msg("Open output failed\n");
                 w32sdk_audio_close_in();
                 return FALSE;
         }
+
+        if (!have_probed[ad]) {
+             UINT uInID, uOutID;
+             assert(waveInGetID(shWaveIn,   &uInID)  == 0);
+             assert(waveOutGetID(shWaveOut, &uOutID) == 0);
+             have_probed[ad] = w32sdk_probe_formats(ad, uInID, uOutID);
+        }
+
         /* because i've seen these get corrupted... */
-        assert(tfmt.wFormatTag      == format.wFormatTag);
-        assert(tfmt.nChannels       == format.nChannels);
-        assert(tfmt.nSamplesPerSec  == format.nSamplesPerSec);
-        assert(tfmt.wBitsPerSample  == format.wBitsPerSample);
-        assert(tfmt.nAvgBytesPerSec == format.nAvgBytesPerSec);
-        assert(tfmt.nBlockAlign     == format.nBlockAlign);
-	
+        assert(memcmp(&owfx, &wfx, sizeof(WAVEFORMATEX)) == 0);
+        
 	switch(thread_pri) {
 	case 1:
 		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
@@ -841,7 +851,7 @@ int
 w32sdk_audio_duplex(audio_desc_t ad)
 {
         UNUSED(ad);
-	return (duplex);
+	return (TRUE);
 }
 
 void
@@ -1038,6 +1048,7 @@ void
 w32sdk_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
         DWORD   dwPeriod;
+        int cnt = 4;
         
         dwPeriod = (DWORD)delay_ms/2;
         /* The blocks we are passing to the audio interface are of duration dwPeriod.
@@ -1047,10 +1058,75 @@ w32sdk_audio_wait_for(audio_desc_t ad, int delay_ms)
          * delay.  If anyone has more time this is worth looking into.
          */
 
-        if (!w32sdk_audio_is_ready(ad)) {
+        while (!w32sdk_audio_is_ready(ad) && cnt--) {
                 Sleep(dwPeriod);
-        }
+        } 
 }
+
+
+/* Probing support */
+
+static audio_format af_sup[W32SDK_MAX_DEVICES][10];
+static int          n_af_sup[W32SDK_MAX_DEVICES];
+
+int
+w32sdk_probe_format(UINT uId, int rate, int channels)
+{
+        WAVEFORMATEX wfx;
+        
+        wfx.cbSize = 0; /* PCM format */
+        wfx.wFormatTag      = WAVE_FORMAT_PCM;
+        wfx.wBitsPerSample  = 16; /* 16 bit linear */
+        wfx.nChannels       = channels;
+        wfx.nSamplesPerSec  = rate;
+        wfx.nBlockAlign     = wfx.wBitsPerSample / 8 * wfx.nChannels;
+        wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
+
+        if (waveOutOpen(NULL, (UINT)shWaveIn, &wfx, (UINT)NULL, (UINT)NULL, WAVE_FORMAT_QUERY)) {
+                debug_msg("%d %d supported\n", rate, channels);
+                return TRUE;
+        }
+        
+        debug_msg("%d %d not supported\n", rate, channels);
+        return FALSE;      
+}
+
+int 
+w32sdk_probe_formats(audio_desc_t ad, UINT uInID, UINT uOutID) 
+{
+        int rate, channels;
+
+        UNUSED(uInID);
+        UNUSED(uOutID);
+
+        for (rate = 8000; rate <= 48000; rate+=8000) {
+                if (rate == 24000 || rate == 40000) continue;
+                for(channels = 1; channels <= 2; channels++) {
+                        if (w32sdk_probe_format((UINT)ad, rate, channels)) {
+                                af_sup[ad][n_af_sup[ad]].sample_rate = rate;
+                                af_sup[ad][n_af_sup[ad]].channels    = channels;
+                                n_af_sup[ad]++;
+                        }
+                }
+        }
+        return (n_af_sup[ad] ? TRUE : FALSE); /* Managed to find at least 1 we support */
+        /* We have this test since if we cannot get device now (because in use elsewhere)
+         * we will want to test it later */
+}
+
+int
+w32sdk_audio_supports(audio_desc_t ad, audio_format *paf)
+{
+        int i;
+        for(i = 0; i < n_af_sup[ad]; i++) {
+                if (af_sup[ad][i].sample_rate  == paf->sample_rate &&
+                        af_sup[ad][i].channels == paf->channels) {
+                        return TRUE;
+                }
+        }
+        return FALSE;
+}
+
 
 #define W32SDK_MAX_NAME_LEN 32
 #define W32SDK_MAX_DEVS      3

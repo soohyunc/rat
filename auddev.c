@@ -812,7 +812,7 @@ audio_init_interfaces()
                         w32sdk_audio_next_iport,
                         w32sdk_audio_is_ready,
                         w32sdk_audio_wait_for,
-                        NULL
+                        w32sdk_audio_supports
                 };
                 strcpy(aif_w32sdk.name, w32sdk_get_device_name(i));
                 audio_add_interface(&aif_w32sdk);

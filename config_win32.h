@@ -174,6 +174,8 @@ int nice(int);
 int usleep(unsigned int);
 time_t time(time_t *);
 
+const char * w32_make_version_info(char * rat_verion);
+
 #define strcasecmp  _stricmp
 #define strncasecmp _strnicmp
 

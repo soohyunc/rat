@@ -64,6 +64,7 @@ int  w32sdk_audio_get_iport  (audio_desc_t ad);
 int  w32sdk_audio_next_iport (audio_desc_t ad);
 int  w32sdk_audio_is_ready  (audio_desc_t ad);
 void w32sdk_audio_wait_for  (audio_desc_t ad, int delay_ms);
+int  w32sdk_audio_supports  (audio_desc_t ad, audio_format *paf);
 
 /* Functions to get names of win32 devices */
 void  w32sdk_audio_query_devices (void);       /* This fn works out what we have           */

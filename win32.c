@@ -461,4 +461,37 @@ usleep(unsigned int usec)
         if (dur) Sleep(dur);
         return 0;
 }
+
+#define MAX_VERSION_STRING_LEN 64
+const char*
+w32_make_version_info(char *szRatVer) 
+{
+        static char szVer[MAX_VERSION_STRING_LEN];
+        OSVERSIONINFO oi;
+
+        /* This could be better */
+
+        oi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+        GetVersionEx(&oi);
+
+        switch(oi.dwPlatformId) {
+        case VER_PLATFORM_WIN32_NT:
+                sprintf(szVer, "%s Windows NT (%d.%d)", szRatVer, oi.dwMajorVersion, oi.dwMinorVersion);
+                break;
+        case VER_PLATFORM_WIN32_WINDOWS:
+                if (oi.dwMajorVersion > 4 ||
+                   (oi.dwMajorVersion == 4 && oi.dwMinorVersion > 0)) {
+                        sprintf(szVer, "%s Windows 98 (%d.%d)", szRatVer, oi.dwMajorVersion, oi.dwMinorVersion);
+                } else {
+                        sprintf(szVer, "%s Windows 95 (%d.%d)", szRatVer, oi.dwMajorVersion, oi.dwMinorVersion);
+                }
+                break;
+        default:
+                /* No idea what this could be :-)*/
+                sprintf(szVer, "%s Windows (Unknown)", szRatVer);
+        }
+
+        return szVer;
+}
+
 #endif /* WIN32 */

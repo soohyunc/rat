@@ -430,8 +430,13 @@ rtcp_init(session_struct *sp, char *cname, u_int32 ssrc, u_int32 cur_time)
 
 	sp->db->my_dbe                = rtcp_new_dbentry_noqueue(sp->db->myssrc, cur_time);
 	sp->db->my_dbe->sentry->cname = xstrdup(cname);
+#ifdef WIN32
+        /* Would like to know exactly what they are running for W32 and
+         * not just what the build platform was. */
+        sp->db->my_dbe->sentry->tool  = xstrdup(w32_make_version_info(RAT_VERSION));
+#else
 	sp->db->my_dbe->sentry->tool  = xstrdup(RAT_VERSION);
-
+#endif
 	sp->db->last_rpt     = get_time(sp->device_clock);
 	sp->db->initial_rtcp = TRUE;
 	sp->db->sending      = FALSE;
