@@ -791,16 +791,6 @@ ui_update_duration(session_t *sp, uint32_t ssrc, int duration)
 }
 
 
-void 
-ui_update_video_playout(session_t *sp, uint32_t ssrc, int playout)
-{
-        const char *cname = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_CNAME);
-	char *arg = mbus_encode_str(cname);
-	mbus_qmsgf(sp->mbus_engine, sp->mbus_video_addr, FALSE, "rtp.source.cname",   "\"%08lx\" %s",   ssrc, arg);
-	mbus_qmsgf(sp->mbus_engine, sp->mbus_video_addr, FALSE, "rtp.source.playout", "\"%08lx\" %12d", ssrc, playout);
-	xfree(arg);
-}
-
 void
 ui_update_key(session_t *sp, char *key)
 {

@@ -65,11 +65,6 @@ typedef struct {
         uint32_t        misordered;
         uint32_t        jit_toged;                   /* Packets discarded because late ("Thrown on ground") */
 
-	/* Variables for playout time calculation */
-	int		video_playout;		     /* Playout delay in the video tool -- for lip-sync [csp] */
-        u_char          video_playout_received:1;    /* video playout is relevent */
-	int		sync_playout_delay;	     /* same interpretation as delay, used when sync is on [dm] */
-
 	/* Mapping between rtp time and NTP time for this sender */
 	int             mapping_valid;
 	uint32_t        last_ntp_sec;	/* NTP timestamp */

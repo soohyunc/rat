@@ -790,29 +790,6 @@ static void rx_rtp_source_gain(char *srce, char *args, session_t *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_rtp_source_playout(char *srce, char *args, session_t *sp)
-{
-	pdb_entry_t	*pdbe;
-	char		*ssrc;
-	int	 	 playout;
-
-	UNUSED(srce);
-
-	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_str(sp->mbus_engine, &ssrc) && mbus_parse_int(sp->mbus_engine, &playout)) {
-		ssrc = mbus_decode_str(ssrc);
-                if (pdb_item_get(sp->pdb, strtoul(ssrc, 0, 16), &pdbe)) {
-                        pdbe->video_playout_received = TRUE;
-			pdbe->video_playout          = playout;
-		} else {
-			debug_msg("Unknown source 0x%08lx\n", ssrc);
-		}
-	} else {
-		debug_msg("mbus: usage \"rtp_source_playout <ssrc> <playout>\"\n");
-	}
-	mbus_parse_done(sp->mbus_engine);
-}
-
 static void 
 rx_tool_rat_codec(char *srce, char *args, session_t *sp)
 {
@@ -1260,7 +1237,6 @@ static const mbus_cmd_tuple engine_cmds[] = {
         { "rtp.source.note",                       rx_rtp_source_note },
         { "rtp.source.mute",                       rx_rtp_source_mute },
         { "rtp.source.gain",                       rx_rtp_source_gain },
-        { "rtp.source.playout",                    rx_rtp_source_playout },
         { "mbus.quit",                             rx_mbus_quit },
 	{ "mbus.bye",                              rx_mbus_bye },
         { "mbus.waiting",                          rx_mbus_waiting },
