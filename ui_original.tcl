@@ -683,8 +683,8 @@ frame .r.c.gain
 
 pack .r -side top -fill x
 pack .r.c -side top -fill x -expand 1
-pack .r.c.gain -side top -fill x
 pack .r.c.vol  -side top -fill x
+pack .r.c.gain -side top -fill x
 
 pack .l -side top -fill both -expand 1
 pack .l.f -side top -fill x
@@ -740,9 +740,8 @@ proc mbus_recv_enable.audio.ctls {} {
 	.r.c.gain.l2 configure -state normal
 	.r.c.gain.s2 configure -state normal
 }
-
-bind all <ButtonPress-3>   "input_mute 0"
-bind all <ButtonRelease-3> "input_mute 1"
+bind all <ButtonPress-3>   {toggle in_mute_var; input_mute $in_mute_var}
+bind all <ButtonRelease-3> {toggle in_mute_var; input_mute $in_mute_var}
 bind all <q>               "do_quit"
 
 wm iconbitmap . rat_small
