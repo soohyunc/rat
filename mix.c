@@ -254,7 +254,7 @@ mix_put_audio(mixer_t     *ms,
 				playout   = ts_add(playout, delta);
                         } else {
                                 debug_msg("Skipped unit\n");
-				return FALSE;
+				return TRUE; /* Nothing to do but no fmt change */
 			}
                 } else {
 			debug_msg("Gap between units %d %d ssrc 0x%08x\n", 

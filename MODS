@@ -1471,6 +1471,9 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 	  previous RAT releases.
 	- Set initial cushion size to zero to force audio_rw_process to write
 	  an empty cushion of audio after device is opened.
+	- Change mix_put_audio return value when gap detected.  Was returning
+	  TRUE which indicates mixer and source formats not compatible, this
+	  caused source media and channel buffers to be wrongly flushed.  
 
 TODO -- They're features not bugs dammit!
 ----
