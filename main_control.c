@@ -32,6 +32,7 @@
 
 #define DEFAULT_RTP_PORT 5004
 
+char	*u_addr, *e_addr;
 pid_t	 pid_ui, pid_engine;
 int	 should_exit;
 
@@ -148,9 +149,10 @@ static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_
 static void kill_process(pid_t proc)
 {
 	if (proc == 0) {
-		debug_msg("Process %d already marked as dead\n", proc);
+		debug_msg("Process already dead\n", proc);
 		return;
 	}
+	debug_msg("Killing process %d\n", proc);
 #ifdef WIN32
 	/* This doesn't close down DLLs or free resources, so we have to  */
 	/* hope it doesn't get called. With any luck everything is closed */
@@ -337,10 +339,11 @@ static void mbus_err_handler(int seqnum, int reason)
         }
 }
 
-static void terminate(struct mbus *m, char *addr)
+static void terminate(struct mbus *m, char *addr, pid_t *pid)
 {
 	if (mbus_addr_valid(m, addr)) {
 		/* This is a valid address, ask that process to quit. */
+		debug_msg("Sending mbus.quit() to %s\n", addr);
 		mbus_qmsgf(m, addr, TRUE, "mbus.quit", "");
 		do {
 			struct timeval	 timeout;
@@ -354,6 +357,7 @@ static void terminate(struct mbus *m, char *addr)
 	} else {
 		/* That process has already terminated, do nothing. */
 	}
+	*pid = 0;
 }
 
 #ifndef WIN32
@@ -372,7 +376,6 @@ int main(int argc, char *argv[])
 {
 	struct mbus	*m;
 	char		 c_addr[60], token_ui[20], token_engine[20];
-	char		*u_addr, *e_addr;
         int		 seed = (gethostid() << 8) | (getpid() & 0xff);
 	struct timeval	 timeout;
 
@@ -405,8 +408,8 @@ int main(int argc, char *argv[])
                         timeout.tv_usec = 20000;
                         mbus_recv(m, NULL, &timeout);
                 }        
-                terminate(m, u_addr);
-                terminate(m, e_addr);
+                terminate(m, u_addr, &pid_ui);
+                terminate(m, e_addr, &pid_engine);
         }
 
 	kill_process(pid_ui);

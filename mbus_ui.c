@@ -64,11 +64,19 @@ static void rx_mbus_quit(char *srce, char *args, struct mbus *m)
 	debug_msg("Got mbus.quit() from %s\n", srce);
 }
 
+static void rx_mbus_bye(char *srce, char *args, struct mbus *m)
+{
+	UNUSED(args);
+	UNUSED(m);
+	UNUSED(srce);
+}
+
 static const mbus_cmd_tuple ui_cmds[] = {
-        { "tool.rat.addr.engine",                  rx_tool_rat_addr_engine },
-        { "mbus.hello",                            rx_mbus_hello },
-        { "mbus.waiting",                          rx_mbus_waiting },
-        { "mbus.quit",                             rx_mbus_quit },
+        { "tool.rat.addr.engine",	rx_tool_rat_addr_engine },
+        { "mbus.hello",			rx_mbus_hello },
+        { "mbus.waiting",		rx_mbus_waiting },
+        { "mbus.quit",			rx_mbus_quit },
+	{ "mbus.bye",			rx_mbus_bye }
 };
 
 #define NUM_UI_CMDS sizeof(ui_cmds)/sizeof(ui_cmds[0])

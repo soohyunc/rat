@@ -1190,10 +1190,20 @@ static void rx_tool_rat_settings(char *srce, char *args, session_t *sp)
 
 static void rx_mbus_quit(char *srce, char *args, session_t *sp)
 {
+	/* mbus.quit() means that we should quit */
 	UNUSED(args);
 	UNUSED(srce);
 	UNUSED(sp);
         should_exit = TRUE;
+	debug_msg("Media engine got mbus.quit()\n");
+}
+
+static void rx_mbus_bye(char *srce, char *args, session_t *sp)
+{
+	/* mbus.bye() means that the sender of the message is about to quit */
+	UNUSED(args);
+	UNUSED(srce);
+	UNUSED(sp);
 }
 
 static void rx_mbus_waiting(char *srce, char *args, session_t *sp)
@@ -1267,6 +1277,7 @@ static const mbus_cmd_tuple engine_cmds[] = {
         { "rtp.source.gain",                       rx_rtp_source_gain },
         { "rtp.source.playout",                    rx_rtp_source_playout },
         { "mbus.quit",                             rx_mbus_quit },
+	{ "mbus.bye",                              rx_mbus_bye },
         { "mbus.waiting",                          rx_mbus_waiting },
         { "mbus.go",                               rx_mbus_go },
         { "mbus.hello",                            rx_mbus_hello },

@@ -94,7 +94,7 @@ mbus_error_handler(int seqnum, int reason)
 
 int main(int argc, char *argv[])
 {
-	uint32_t		 cur_time = 0, ntp_time = 0;
+	uint32_t	 cur_time = 0, ntp_time = 0;
 	int            	 seed, elapsed_time, alc = 0, scnt = 0;
 	session_t 	*sp;
 	struct timeval   time;
@@ -332,23 +332,17 @@ int main(int argc, char *argv[])
 	audio_device_release(sp, sp->audio_device);
         pdb_destroy(&sp->pdb);
 
-	/* Inform our controller that we're quiting. It will deal with shutting down the UI, */
-	/* if it is necessary to do that.                                                    */
-	if (mbus_addr_valid(sp->mbus_engine, c_addr)) {
-		mbus_qmsgf(sp->mbus_engine, c_addr, TRUE, "mbus.quit", "");
+	/* Inform other processes that we're about to quit... */
+	mbus_qmsgf(sp->mbus_engine, "()", FALSE, "mbus.bye", "");
+	mbus_send(sp->mbus_engine);
+	do {
+		struct timeval	 timeout;
 		mbus_send(sp->mbus_engine);
-		do {
-			struct timeval	 timeout;
-			mbus_send(sp->mbus_engine);
-			mbus_heartbeat(sp->mbus_engine, 1);
-			mbus_retransmit(sp->mbus_engine);
-			timeout.tv_sec  = 0;
-			timeout.tv_usec = 20000;
-			mbus_recv(sp->mbus_engine, sp, &timeout);
-		} while (!mbus_sent_all(sp->mbus_engine));
-	}
-
-	network_process_mbus(sp);
+		mbus_retransmit(sp->mbus_engine);
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 20000;
+		mbus_recv(sp->mbus_engine, sp, &timeout);
+	} while (!mbus_sent_all(sp->mbus_engine));
 	mbus_exit(sp->mbus_engine);
         sp->mbus_engine = NULL;
 

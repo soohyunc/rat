@@ -147,10 +147,9 @@ int main(int argc, char *argv[])
 	}
 
 	/* Close things down nicely... */
-	mbus_qmsgf(m, c_addr, TRUE, "mbus.quit", "");
+	mbus_qmsgf(m, "()", FALSE, "mbus.bye", "");
 	do {
 		mbus_send(m);
-		mbus_heartbeat(m, 1);
 		mbus_retransmit(m);
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 20000;

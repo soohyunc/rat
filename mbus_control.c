@@ -17,7 +17,9 @@
 #include "mbus.h"
 #include "mbus_control.h"
 
-extern int should_exit;
+extern int 	 should_exit;
+extern char	*u_addr, *e_addr;
+extern pid_t	 pid_ui, pid_engine;
 
 /* Mbus command reception function type */
 typedef void (*mbus_rx_proc)(char *srce, char *args, void *data);
@@ -43,6 +45,17 @@ char *mbus_control_wait_done(void)
 }
 
 static void rx_mbus_quit(char *srce, char *args, void *data)
+{
+	UNUSED(srce);
+	UNUSED(args);
+	UNUSED(data);
+
+	/* We mark ourselves as ready to exit. The main() will */
+	/* cleanup and terminate all our subprocesses.         */
+	should_exit = TRUE;
+}
+
+static void rx_mbus_bye(char *srce, char *args, void *data)
 {
 	UNUSED(srce);
 	UNUSED(args);
@@ -82,7 +95,7 @@ static void rx_mbus_hello(char *srce, char *args, void *data)
 
 static const mbus_cmd_tuple control_cmds[] = {
         { "mbus.quit",                             rx_mbus_quit },
-        { "mbus.bye",                              rx_mbus_quit },
+        { "mbus.bye",                              rx_mbus_bye },
         { "mbus.waiting",                          rx_mbus_waiting },
         { "mbus.go",                               rx_mbus_go },
         { "mbus.hello",                            rx_mbus_hello },

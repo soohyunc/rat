@@ -1475,7 +1475,6 @@ proc do_quit {} {
 		profile off pdat
 		profrep pdat cpu
 	}
-	mbus_send "R" "mbus.quit" ""
 	destroy .
 }
 
