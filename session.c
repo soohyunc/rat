@@ -76,7 +76,6 @@ init_session(session_struct *sp)
 	codec_id_t            cid;
         const codec_format_t *cf;
         cc_details            ccd; 
-        converter_details_t   conv_details;
 
 	memset(sp, 0, sizeof(session_struct));
 
@@ -92,8 +91,7 @@ init_session(session_struct *sp)
         channel_get_coder_details(channel_get_null_coder(), &ccd);
         channel_encoder_create(ccd.descriptor, &sp->channel_coder);
 
-        converter_get_details(0, &conv_details);
-        sp->converter                   = conv_details.id;
+        sp->converter                   = converter_get_null_converter();
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
         assert(!(GLOBAL_CLOCK_FREQ%cf->format.sample_rate));                        /* just in case someone adds weird freq codecs */
 	sp->mode         		= AUDIO_TOOL;	

@@ -58,10 +58,19 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "audio.h"
+#include "mix.h"
 #include "cushion.h"
 #include "codec.h"
 #include "ui.h"
 #include "statistics.h"
+
+static converter_id_t null_converter;
+
+void
+statistics_init()
+{
+        null_converter = converter_get_null_converter();
+}
 
 static rtcp_dbentry *
 update_database(session_struct *sp, u_int32 ssrc)
@@ -385,6 +394,8 @@ statistics_channel_extract(session_struct *sp,
                            u_int32       len)
 {
         cc_id_t ccid;
+        const codec_format_t *cf;
+        codec_id_t            id;
         u_int16 upp;
         u_int8  codec_pt;
         assert(dbe != NULL);
@@ -405,15 +416,17 @@ statistics_channel_extract(session_struct *sp,
                 dbe->update_req       = TRUE;
         }
 
+        id = codec_get_by_payload(codec_pt);
+        cf = codec_get_format(id);
+
+        if (mix_compatible(sp->ms, cf->format.sample_rate, cf->format.channels) == FALSE && 
+            sp->converter == null_converter) {
+                debug_msg("Rejected - needs sample rate conversion\n");
+                return FALSE;
+        }
+
         if (dbe->enc != codec_pt) {
-                const codec_format_t *cf;
-                codec_id_t            id;
-
-                id = codec_get_by_payload(codec_pt);
-                cf = codec_get_format(id);
-
                 change_freq(dbe->clock, cf->format.sample_rate);
-
                 dbe->enc             = codec_pt;
                 dbe->inter_pkt_gap   = dbe->units_per_packet * (u_int16)codec_get_samples_per_frame(id);
                 dbe->first_pckt_flag = TRUE;
@@ -433,10 +446,10 @@ statistics_channel_extract(session_struct *sp,
 }
 
 void
-statistics(session_struct          *sp,
-	   struct s_pckt_queue     *rtp_pckt_queue,
-	   struct s_cushion_struct *cushion,
-	   u_int32	            ntp_time)
+statistics_process(session_struct          *sp,
+                   struct s_pckt_queue     *rtp_pckt_queue,
+                   struct s_cushion_struct *cushion,
+                   u_int32	            ntp_time)
 {
 	/*
 	 * We expect to take in an RTP packet, and decode it - read fields
@@ -454,19 +467,19 @@ statistics(session_struct          *sp,
          * 
          */
 
-        ts_t                arr_ts, src_ts;
+        ts_t                  arr_ts, src_ts;
 
-	rtp_hdr_t	   *hdr;
-	u_char		   *data_ptr;
-	int		    len;
-	rtcp_dbentry	   *sender = NULL;
-        const audio_format* af;
+	rtp_hdr_t	     *hdr;
+	u_char		     *data_ptr;
+	int		      len;
+	rtcp_dbentry	     *sender = NULL;
+        const audio_format   *afout;
 
 	pckt_queue_element *pckt;
         struct s_source *src;
         int pkt_cnt = 0;
 
-        af = audio_get_ofmt(sp->audio_device);
+        afout = audio_get_ofmt(sp->audio_device);
 
 	/* Process incoming packets */
         while( (pckt = pckt_dequeue(rtp_pckt_queue)) != NULL ) {
@@ -532,8 +545,8 @@ statistics(session_struct          *sp,
                                             pckt->sender,
                                             sp->converter,
                                             sp->render_3d,
-                                            (u_int16)af->sample_rate,
-                                            (u_int16)af->channels);
+                                            (u_int16)afout->sample_rate,
+                                            (u_int16)afout->channels);
                         assert(src != NULL);
                 }
 

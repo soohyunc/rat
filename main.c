@@ -117,6 +117,7 @@ main(int argc, char *argv[])
 
         audio_init_interfaces();
         converters_init();
+        statistics_init();
 
 	if (sp[0]->mode == AUDIO_TOOL) {
 		sprintf(mbus_engine_addr, "(media:audio module:engine app:rat instance:%lu)", (u_int32) getpid());
@@ -205,10 +206,10 @@ main(int argc, char *argv[])
                         }
 
                         /* Process incoming packets */
-                        statistics(sp[i], 
-                                   sp[i]->rtp_pckt_queue, 
-                                   sp[i]->cushion, 
-                                   ntp_time);
+                        statistics_process(sp[i], 
+                                           sp[i]->rtp_pckt_queue, 
+                                           sp[i]->cushion, 
+                                           ntp_time);
 
                         /* Process and mix active sources */
 			if (sp[i]->playing_audio) {
@@ -273,7 +274,14 @@ main(int argc, char *argv[])
                                  * pause to drain before closing.
                                  */
                                 network_process_mbus(sp[i]);
-                                audio_device_reconfigure(sp[i]);
+                                if (audio_device_reconfigure(sp[i])) {
+                                        /* Device reconfigured so
+                                         * decode paths of all sources
+                                         * are misconfigured.  Delete
+                                         * and incoming data will
+                                         * drive correct new path */
+                                        source_list_clear(sp[i]->active_sources);
+                                }
                         }
                         
                         /* Choke CPU usage */

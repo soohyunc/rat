@@ -1231,7 +1231,7 @@ pcm_converter_t converter_tbl[] = {
          extra_free,
          2 * sizeof(extra_state_t)
         },
-        {
+        { /* This must be last converter */
          "None",
          TRUE,
          NULL,
@@ -1355,6 +1355,12 @@ u_int32
 converter_get_count()
 {
         return NUM_CONVERTERS;
+}
+
+__inline converter_id_t
+converter_get_null_converter()
+{
+        return IDX_TO_CONVERTER_ID(CONVERTER_NONE);
 }
 
 #include "codec_types.h"

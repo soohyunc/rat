@@ -59,10 +59,12 @@ struct pckt_queue_tag;
 struct rx_queue_tag;
 struct s_cushion_struct;
 
-void statistics(struct session_tag *session_pointer, 
-		struct s_pckt_queue *rtp_pckt_queue,
-		struct s_cushion_struct *cushion,
-		u_int32 real_time);
+void statistics_init(void);
+
+void statistics_process(struct session_tag *session_pointer, 
+                        struct s_pckt_queue *rtp_pckt_queue,
+                        struct s_cushion_struct *cushion,
+                        u_int32 real_time);
 
 #endif /* _rat_statistics_h_ */
 

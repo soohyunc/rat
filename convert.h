@@ -82,4 +82,7 @@ u_int32 converter_get_count(void);
 int     converter_get_details(u_int32              idx, 
                               converter_details_t *cd);
 
+__inline converter_id_t
+        converter_get_null_converter(void);
+
 #endif /* _convert_h_ */
