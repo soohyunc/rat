@@ -88,7 +88,7 @@ typedef struct s_minibuf {
 
 typedef struct s_read_buffer {
 	struct s_minibuf *lbuf;	/* Last minibuf in list ALWAYS THERE! */
-	sd_t	*sd_info;
+	struct s_sd *sd_info;
 	int	talkspurt;	/* Whether we are in a talkspurt */
 	int	posthang;	/* Posthang packet counter */
 	tx_unit	*last_ptr;	/* Where reading is */
@@ -338,7 +338,7 @@ process_read_audio(session_struct *sp)
 		/* Do first pass of silence supression */
 		u->energy = avg_audio_energy(u->data, rb->lbuf->unit_size);
 		if (sp->detect_silence) {
-			u->silence = sd(rb->sd_info, u->energy, FALSE);
+			u->silence = sd(rb->sd_info, u->energy);
 		} else {
 			u->silence = FALSE;
 		}

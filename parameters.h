@@ -41,39 +41,16 @@
  * SUCH DAMAGE.
  */
 
-
 #ifndef _RAT_PARAMETERS_H_
 #define _RAT_PARAMETERS_H_
 
-/*
- * This version of the code can only work with a constant device
- * encoding. To use different encodings the parameters below have
- * to be changed and the program recompiled.
- * The clock translation problems have to be taken into consideration
- * if different users use different base encodings...
- */
-
-/*From Nevot code - Henning Schulzerinne*/
-
-#define SD_BINS   256
-#define SD_SCALE  (32768/SD_BINS)
-#define SD_COUNTS 0.25f 
-
-typedef struct {
-	int	echo_th;	/* additional energy needed if echo cancellation is on */
-	int	hyst;		/* non-silent if this much above long-term average */
-	int	max_avg;	/* maximum tracked average (upper limit on silence) */
-	int	interval;	/* adjustment interval (packets) */
-	int	avg;		/* current average energy */
-	int	count;		/* consecutive packets above threshold */
-        u_char  sbins[SD_BINS];      /* loose measure of freq dist */
-} sd_t;
+struct s_sd;
 
 u_int16	avg_audio_energy(short *buf, int samples);
 double  lin2db(u_int16 avg_energy, double peak);
-sd_t	*sd_init(void);
+struct  s_sd *sd_init(void);
 void	set_silence_params(char *s);
-int	sd(sd_t *s, int energy, int echo);
+int	sd(struct s_sd *s, int energy);
 
 #endif /* _RAT_PARAMETERS_H_ */
 

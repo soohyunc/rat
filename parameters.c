@@ -45,6 +45,15 @@
 #include "parameters.h"
 #include "audio.h"
 #include "util.h"
+#include "math.h"
+
+#define SD_BINS   256
+#define SD_SCALE  (32768/SD_BINS)
+#define SD_COUNTS 0.25f 
+
+typedef struct s_sd {
+        u_char  sbins[SD_BINS];      /* loose measure of freq dist */
+} sd_t;
 
 #define STEP	16
 
@@ -61,11 +70,19 @@ avg_audio_energy(short *buf, int samples)
         return ((u_int16)(e*STEP/samples));
 }
 
+/* ad hoc values - aesthetically better than 0.1, 0.01, 0.001, and so on */
+#define DB_BIAS     (0.005)
+#define DB_BIAS_LOG (-2.3f)
+
 double 
 lin2db(u_int16 energy, double peak)
 {
-        /* not really db */
-        return peak*(log10(energy+1)/log10(65535));
+        float quasi_db;
+
+        quasi_db = ( -DB_BIAS_LOG + 
+                    log10(DB_BIAS+(float)energy/65535.0f) 
+                   ) / -DB_BIAS_LOG;
+        return (peak * quasi_db);
 }
 
 sd_t *
@@ -77,7 +94,7 @@ sd_init(void)
 }
 
 int
-sd(sd_t *s, int energy, int echo)
+sd(sd_t *s, int energy)
 {
         u_int32 maxb,c,thresh;
         assert(energy>=0 && energy<65535);
