@@ -1277,9 +1277,9 @@ canvas .l.t.list -highlightthickness 0 -bd 0 -relief sunk -width $iwd -height 16
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 
-frame .l.f -relief flat
-label .l.f.title -textvariable session_title
-label .l.f.addr  -textvariable session_address
+frame .l.f -relief flat -bd 0
+label .l.f.title -bd 0 -textvariable session_title
+label .l.f.addr  -bd 0 -textvariable session_address
 
 frame  .st -bd 0
 label  .st.tool -textvariable tool_name 

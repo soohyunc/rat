@@ -7,7 +7,7 @@
  * direct connection between the user interface and the media engine now, all
  * updates are done via the conference bus.
  *
- * Copyright (c) 1995-98 University College London
+ * Copyright (c) 1995-99 University College London
  * All rights reserved.
  *
  */
@@ -1118,3 +1118,4 @@ ui_quit(session_struct *sp)
 {
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "mbus.quit", "", TRUE);
 }
+
