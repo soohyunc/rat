@@ -200,8 +200,17 @@ main(int argc, char *argv[])
 		mbus_retransmit(sp[0]->mbus_engine);
 		mbus_heartbeat(sp[0]->mbus_engine, 10);
 
-                tx_process_audio(sp[0]->tb);
+		/* Choke CPU usage */
+		if (!audio_is_ready(sp[0]->audio_device)) {
+			audio_wait_for(sp[0]->audio_device, 10);
+		}
+
+		elapsed_time  = audio_rw_process(sp[0], sp[0], sp[0]->ms);
+		cur_time      = get_time(sp[0]->device_clock);
+		sp[0]->cur_ts = ts_seq32_in(&sp[0]->decode_sequencer, get_freq(sp[0]->device_clock), cur_time);
+
                 if (tx_is_sending(sp[0]->tb)) {
+                        tx_process_audio(sp[0]->tb);
                         tx_send(sp[0]->tb);
                 }
 
@@ -239,15 +248,6 @@ main(int argc, char *argv[])
 				}
 			}
 		}
-
-		/* Choke CPU usage */
-		if (!audio_is_ready(sp[0]->audio_device)) {
-			audio_wait_for(sp[0]->audio_device, 10);
-		}
-
-		elapsed_time  = audio_rw_process(sp[0], sp[0], sp[0]->ms);
-		cur_time      = get_time(sp[0]->device_clock);
-		sp[0]->cur_ts = ts_seq32_in(&sp[0]->decode_sequencer, get_freq(sp[0]->device_clock), cur_time);
 
 		if (alc >= 50) {
 			if (!sp[0]->lecture && tx_is_sending(sp[0]->tb) && sp[0]->auto_lecture != 0) {

@@ -329,53 +329,53 @@ tx_process_audio(tx_buffer *tb)
         ts_t                  u_ts;
         int                   to_send;
         
+        assert(tb->sending_audio);
+        
         sp = tb->sp;
 
-	if (tb->sending_audio) {
-                /* Do signal classification up until read point, that
-                 * is not a complete audio frame so cannot be done 
-                 */
-                assert(pb_iterator_count(tb->audio_buffer) == 3);
-                pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
-                while (pb_iterators_equal(tb->silence, tb->reading) == FALSE) {
-			bias_remove(tb->bc, u->data, u->dur_used * tb->channels);
-			u->energy = avg_audio_energy(u->data, u->dur_used * tb->channels, tb->channels);
-			u->send   = FALSE;
+        /* Do signal classification up until read point, that
+         * is not a complete audio frame so cannot be done 
+         */
+        assert(pb_iterator_count(tb->audio_buffer) == 3);
+        pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
+        while (pb_iterators_equal(tb->silence, tb->reading) == FALSE) {
+                bias_remove(tb->bc, u->data, u->dur_used * tb->channels);
+                u->energy = avg_audio_energy(u->data, u->dur_used * tb->channels, tb->channels);
+                u->send   = FALSE;
+                
+                /* Silence classification on this block */
+                u->silence = sd(tb->sd_info, (u_int16)u->energy);
 
-                        /* Silence classification on this block */
-			u->silence = sd(tb->sd_info, (u_int16)u->energy);
-
-                        /* Pass decision to voice activity detector (damps transients, etc) */
-			to_send    = vad_to_get(tb->vad, 
-                                                (u_char)u->silence, 
-                                                (u_char)((sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF));           
-			agc_update(tb->agc, (u_int16)u->energy, vad_talkspurt_no(tb->vad));
-
-			if (sp->detect_silence) {
-                                if (to_send != 0) {
-                                        pb_iterator_dup(&marker, tb->silence);
-                                        while(u != NULL && to_send != 0) {
-                                                u->send = TRUE;
-                                                to_send --;
-                                                pb_iterator_retreat(marker);
-                                                pb_iterator_get_at(marker, (u_char**)&u, &u_len, &u_ts);
-                                        }
-                                        pb_iterator_destroy(tb->audio_buffer, &marker);
+                /* Pass decision to voice activity detector (damps transients, etc) */
+                to_send    = vad_to_get(tb->vad, 
+                                        (u_char)u->silence, 
+                                        (u_char)((sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF));           
+                agc_update(tb->agc, (u_int16)u->energy, vad_talkspurt_no(tb->vad));
+                
+                if (sp->detect_silence) {
+                        if (to_send != 0) {
+                                pb_iterator_dup(&marker, tb->silence);
+                                while(u != NULL && to_send != 0) {
+                                        u->send = TRUE;
+                                        to_send --;
+                                        pb_iterator_retreat(marker);
+                                        pb_iterator_get_at(marker, (u_char**)&u, &u_len, &u_ts);
                                 }
-                                assert(pb_iterator_count(tb->audio_buffer) == 3);
-			} else {
-				u->silence = FALSE;
-				u->send    = TRUE;
-			}
-                        pb_iterator_advance(tb->silence);
-                        pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
+                                pb_iterator_destroy(tb->audio_buffer, &marker);
+                        }
+                        assert(pb_iterator_count(tb->audio_buffer) == 3);
+                } else {
+                        u->silence = FALSE;
+                        u->send    = TRUE;
                 }
+                pb_iterator_advance(tb->silence);
+                pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
+        }
 
-		if (sp->agc_on == TRUE && 
-		    agc_apply_changes(tb->agc) == TRUE) {
-			ui_update_input_gain(sp);
-		}
-	}
+        if (sp->agc_on == TRUE && 
+            agc_apply_changes(tb->agc) == TRUE) {
+                ui_update_input_gain(sp);
+        }
 
         return TRUE;
 }
