@@ -677,22 +677,19 @@ red_media_data_create_or_get(struct s_pb *p, ts_t playout)
         media_data *md;
         u_int32     md_len, success;
         ts_t        md_playout;
-        
-        pb_iterator_create(p, &pi);
-        pb_iterator_advance(pi);
-        
-        /* This would probably be quicker starting at back and coming
-         * forward. */
 
-        while(pb_iterator_get_at(pi, (u_char**)&md, &md_len, &md_playout)) {
-                assert(md != NULL);
-                assert(md_len == sizeof(media_data));
+        pb_iterator_create(p, &pi);
+        /* iterator is attached to sentinel - can move back or forwards */
+
+        while(pb_iterator_retreat(pi)) {
+                success = pb_iterator_get_at(pi, (u_char**)&md, &md_len, &md_playout);
+                assert(success);
                 if (ts_eq(md_playout, playout)) {
                         goto done;
-                } else if (ts_gt(md_playout,playout)) {
+                } else if (ts_gt(playout, md_playout)) {
+                        /* we have gone too far back */
                         break;
                 }
-                pb_iterator_advance(pi); 
         }
 
         /* Not found in playout buffer */
@@ -720,13 +717,13 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
         u_char     *p,*pe;
         ts_t        step;
 
-        pid = codec_get_payload(pid);
+        pid = codec_get_by_payload(ppt);
         if (!pid) {
                 debug_msg("Payload not recognized\n");
                 return;
         }
 
-        cid = codec_get_payload(bpt);
+        cid = codec_get_by_payload(bpt);
         if (!cid) {
                 debug_msg("Payload not recognized\n");
                 return;
