@@ -607,6 +607,7 @@ osprey_audio_device_count()
 const char*
 osprey_audio_device_name(audio_desc_t ad)
 {
+        UNUSED(ad);
         return "Osprey Audio Device";
 }
 

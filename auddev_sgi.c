@@ -70,6 +70,7 @@ sgi_audio_device_count()
 const char*
 sgi_audio_device_name(audio_desc_t ad)
 {
+        UNUSED(ad);
         return "SGI Audio Device";
 }
 

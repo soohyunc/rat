@@ -76,6 +76,7 @@ pca_audio_device_count()
 const char*
 pca_audio_device_name(audio_desc_t ad)
 {
+        UNUSED(ad);
         return "PCA Audio Device";
 }
 

@@ -84,6 +84,7 @@ sparc_audio_device_count()
 const char*
 sparc_audio_device_name(audio_desc_t ad)
 {
+        UNUSED(ad);
         return "Sun Audio Device";
 }
 
