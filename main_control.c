@@ -380,8 +380,6 @@ int main(int argc, char *argv[])
  	signal(SIGINT, signal_handler); 
 #endif
 
-        debug_set_core_dir(argv[0]);
-
 	srand48(seed);
 	m = mbus_init(mbus_control_rx, mbus_err_handler);
 	snprintf(c_addr, 60, "(media:audio module:control app:rat instance:%lu)", (unsigned long) getpid());
