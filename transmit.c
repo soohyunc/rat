@@ -511,7 +511,7 @@ tx_send(tx_buffer *tb)
                                           &time_ts) == FALSE){
                         debug_msg("Failed to detach\n");
                 }
-                assert(cd->nelem == 1);
+
                 cu = cd->elem[0];
                 rtp_header.type = 2;
                 rtp_header.seq  = (u_int16)htons(sp->rtp_seq++);
