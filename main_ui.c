@@ -84,9 +84,8 @@ int main(int argc, char *argv[])
 	parse_args(argc, argv);
 	tcl_init1(argc, argv);
 
-	m = mbus_init(mbus_ui_rx, mbus_error_handler);
 	sprintf(m_addr, "(media:audio module:ui app:rat instance:%lu)", (unsigned long) getpid());
-	mbus_addr(m, m_addr);
+	m = mbus_init(mbus_ui_rx, mbus_error_handler, m_addr);
 
 	/* The first stage is to wait until we hear from our controller. The address of the */
 	/* controller is passed to us via a command line parameter, and we just wait until  */
