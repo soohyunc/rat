@@ -956,7 +956,7 @@ find_local_match(sample *buffer, uint16_t wstart, uint16_t wlen, uint16_t sstart
         }
 
         if (score_min / wlen < MATCH_THRESHOLD) {
-                return i_min;
+                return i_min / channels;
         }
         return -1;
 }
@@ -1011,7 +1011,8 @@ recommend_skew_adjust_dur(media_data *md, int drop, ts_t *adjust)
                 }
                 matchlen = samples - matchlen - SOURCE_COMPARE_WINDOW_SIZE;
         }
-
+        assert(matchlen >= 0);
+        assert(matchlen <= samples);
         *adjust = ts_map32(rate, matchlen);
         return TRUE;
 }
