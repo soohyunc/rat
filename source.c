@@ -443,6 +443,7 @@ recommend_drop_dur(media_data *md)
         i = 0;
         j = samples / 16;
         lowest_score = 0xffffffff;
+        lowest_begin = 0;
         while (j < samples - SOURCE_COMPARE_WINDOW_SIZE) {
                 score = 0;
                 for (i = 0; i < SOURCE_COMPARE_WINDOW_SIZE; i++) {
@@ -702,8 +703,6 @@ source_repair(source *src,
             ts_eq(src->last_played, src->last_repair) == FALSE) {
                 src->consec_lost = 0;
         }
-
-        debug_msg("Repair %d\n", src->consec_lost);
 
         /* We repair one unit at a time since it may be all we need */
         pb_iterator_retreat(src->media_pos);
