@@ -28,12 +28,14 @@
 #ifdef MUSICA_IPV6
 #include <winsock6.h>
 #else
-#include <ws2ip6.h>
-#endif
-
-#endif
-#ifndef MUSICA_IPV6
+#ifdef WIN2K_IPV6
 #include <ws2tcpip.h>
+#include <tpipv6.h>
+#else
+#include <ws2ip6.h>
+#include <ws2tcpip.h>
+#endif
+#endif
 #endif
 
 #include <mmreg.h>
