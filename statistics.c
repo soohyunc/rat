@@ -52,7 +52,6 @@
 #include "util.h"
 #include "audio.h"
 #include "cushion.h"
-#include "speaker_table.h"
 #include "codec.h"
 #include "channel.h"
 #include "ui_control.h"
@@ -139,7 +138,6 @@ split_block(u_int32 playout_pt,
 		for (j = 0, k = 1; j < hdr->cc; j++) {
 			p->dbe_source[k] = update_database(sp, ntohl(hdr->csrc[j]));
 			if (p->dbe_source[k] != NULL) {
-				mark_active_sender(p->dbe_source[k], sp);
 				k++;
 			}
 		}
@@ -156,7 +154,7 @@ split_block(u_int32 playout_pt,
                 }
                 put_on_rx_queue(p, unitsrx_queue_ptr);
 	}
-        mark_active_sender(src, sp);
+
 	return (units);
 }
 

@@ -53,6 +53,7 @@
 #include "convert.h"
 #include "cushion.h"
 #include "transmit.h"
+#include "ui_control.h"
 
 typedef struct s_participant_playout_buffer {
 	struct s_participant_playout_buffer *next;
@@ -408,7 +409,9 @@ find_participant_queue(ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, 
         p->creation_time = get_time(src->clock);
 	p->next          = *list;
 	*list            = p;
-
+        
+        ui_info_activate(src);
+        
         cp_dev = get_codec_by_pt(dev_pt);
         cp_src = get_codec_by_pt(src_pt);
         assert(cp_dev);
@@ -451,6 +454,7 @@ playout_buffer_remove(ppb_t **list, rtcp_dbentry *src)
 		}
 		block_free(*list, sizeof(ppb_t));
 		*list = tmp;
+                ui_info_deactivate(src);
 	}
 
 	if (*list == NULL) return;
@@ -472,6 +476,7 @@ playout_buffer_remove(ppb_t **list, rtcp_dbentry *src)
 			}
 			block_free(curr, sizeof(ppb_t));
 			curr = prev->next;
+                        ui_info_deactivate(src);
 		} else {
 			prev = curr;
 			curr = curr->next;
@@ -641,6 +646,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		if ((*bufp)->head_ptr == NULL) {
 			buf = *bufp;
 			*bufp = buf->next;
+                        ui_info_deactivate(buf->src);
 			block_free(buf, sizeof(ppb_t));
 		} else {
 			bufp = &(*bufp)->next;

@@ -212,8 +212,6 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
         }
 
         buf = el->native_data[el->native_count - 1];
-        if (el->playoutpt != playout) debug_msg("playout_pt %ld playout %ld\n", el->playoutpt, playout);
-
 
 	if (ts_gt(ms->tail_time, playout)) {
 #ifdef DEBUG_MIX

@@ -62,7 +62,6 @@
 #include "statistics.h"
 #include "parameters.h"
 #include "transmit.h"
-#include "speaker_table.h"
 #include "mix.h"
 #include "mbus.h"
 #include "mbus_ui.h"
@@ -227,7 +226,7 @@ main(int argc, char *argv[])
 			}
 
                         if (sp[i]->sending_audio || sp[i]->last_tx_service_productive) {
-                                tx_send(sp[i], sp[1-i]->speakers_active);
+                                tx_send(sp[i]);
                         }
 			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, real_time);
 			if (sp[i]->playing_audio) {

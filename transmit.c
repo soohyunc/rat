@@ -50,7 +50,6 @@
 #include "util.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
-#include "speaker_table.h"
 #include "net.h"
 #include "rat_time.h"
 #include "transmit.h"
@@ -380,7 +379,7 @@ tx_process_audio(session_struct *sp)
 }
 
 void
-tx_send(session_struct *sp, speaker_table *sa)
+tx_send(session_struct *sp)
 {
         int                units, i, n, ready, send, num_encodings;
         tx_unit               *u;
@@ -405,15 +404,16 @@ tx_send(session_struct *sp, speaker_table *sa)
         n = (tb->silence_ptr->time - tb->tx_ptr->time) / tb->unit_dur;
 
         rtp_header.cc = 0;
+
+/*
         if (sp->mode == TRANSCODER) {
                 speaker_table        *cs;
                 for (cs = sa; cs && rtp_header.cc < 16; cs = cs->next) {
-                        /* 2 is a magic number, WHITE in speaker_table.c */
                         if (cs->state == 2)
                                 rtp_header.csrc[rtp_header.cc++] = htonl(cs->dbe->ssrc);
                 }
         }
-
+        */
         sp->last_tx_service_productive = 0;    
         units = collator_get_units(sp->collator);
         

@@ -55,7 +55,6 @@
 #include "rtcp_db.h"
 #include "session.h"
 #include "util.h"
-#include "speaker_table.h"
 #include "ui_control.h"
 #include "rat_time.h"
 #include "receive.h"
@@ -303,8 +302,6 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 	debug_msg("Removing RTCP database entry for SSRC 0x%lx\n", ssrc);
 	if (dbptr->ssrc == ssrc) {
 		sp->db->ssrc_db = dbptr->next;
-		check_active_leave(sp, dbptr);
-		ui_info_remove(dbptr);
 		playout_buffer_remove(&(sp->playout_buf_list), dbptr);
 		rtcp_free_dbentry(dbptr);
 		return;
@@ -313,9 +310,6 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 		if (dbptr->next->ssrc == ssrc) {
 			tmp = dbptr->next;
 			dbptr->next = dbptr->next->next;
-			/* Remove it from the participants list IK */
-			check_active_leave(sp, tmp);
-			ui_info_remove(tmp);
 			playout_buffer_remove(&(sp->playout_buf_list), dbptr);
 			rtcp_free_dbentry(tmp);
 			sp->db->members--;

@@ -454,11 +454,6 @@ proc mbus_recv_source.active.now {cname} {
 	cname_update $cname
 }
 
-proc mbus_recv_source.active.recent {cname} {
-	catch [[window_plist $cname] configure -background gray95]
-	cname_update $cname
-}
-
 proc mbus_recv_source.inactive {cname} {
 	catch [[window_plist $cname] configure -background gray85]
 	cname_update $cname

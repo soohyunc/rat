@@ -57,7 +57,6 @@
 #include "channel.h"
 #include "mix.h"
 #include "transmit.h"
-#include "speaker_table.h"
 #include "ui_control.h"
 #include "rat_time.h"
 
@@ -206,18 +205,6 @@ ui_info_activate(rtcp_dbentry *e)
         
         cname = mbus_encode_str(e->sentry->cname);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.now", cname, FALSE);
-        xfree(cname);
-}
-
-void
-ui_info_gray(rtcp_dbentry *e)
-{
-        char *cname;
-	
-        if (e->sentry->cname == NULL) return;
-        
-        cname = mbus_encode_str(e->sentry->cname);
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.recent", cname, FALSE);
         xfree(cname);
 }
 
@@ -608,8 +595,6 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 		if (sp->meter && (ms != NULL)) {
 			mix_update_ui(ms);
 		}
-		clear_active_senders(sp);
-
                 if (sp->sending_audio) {
 			tx_update_ui(sp);
 		}

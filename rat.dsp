@@ -404,14 +404,6 @@ SOURCE=.\session.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\speaker_table.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\speaker_table.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\statistics.c
 # End Source File
 # Begin Source File

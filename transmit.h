@@ -58,7 +58,7 @@ int                   tx_read_audio    (struct session_tag *sp);
 int                   tx_process_audio (struct session_tag *sp);
 void                  tx_start (struct session_tag *sp);
 void                  tx_stop  (struct session_tag *sp);
-void                  tx_send  (struct session_tag *sp, struct s_speaker_table *sa);
+void                  tx_send  (struct session_tag *sp);
 void                  tx_update_ui    (struct session_tag *sp);
 void                  tx_igain_update (struct session_tag *sp);
 
