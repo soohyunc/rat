@@ -26,21 +26,27 @@ int thread_pri  = 2; /* Time Critical */
 #define UI_NAME     "rat-"##VERSION_NUM##"-ui"
 #define ENGINE_NAME "rat-"##VERSION_NUM##"-media"
 
-static pid_t fork_process(char *proc_name, char *ctrl_name)
+static pid_t fork_process(struct mbus *m, char *proc_name, char *ctrl_name)
 {
-	pid_t	pid;
+	pid_t		pid;
+	struct timeval	timeout;
 
 	pid = fork();
 	if (pid == -1) {
 		perror("Cannot fork");
 		abort();
 	} else if (pid == 0) {
-		execl(proc_name, proc_name, "-ctrl", ctrl_name);
+		execl(proc_name, proc_name, "-ctrl", ctrl_name, "-token", "foo");
 		perror("Cannot execute subprocess");
 		exit(1);
 	}
-	/* We should wait for the sub-process to send us an mbus message */
-	/* at this point...                                              */
+	while (1) {
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 500000;
+		mbus_recv(m, NULL, &timeout);
+		mbus_send(m);
+		mbus_heartbeat(m, 1);
+	}	
 	return pid;
 }
 
@@ -72,8 +78,8 @@ int main(int argc, char *argv[])
 	snprintf(m_addr, 60, "(media:audio module:control app:rat instance:%lu)", (u_int32) getpid());
 	mbus_addr(m, m_addr);
 
-	pid_ui     = fork_process(UI_NAME,     m_addr);
-	pid_engine = fork_process(ENGINE_NAME, m_addr);
+	pid_ui     = fork_process(m, UI_NAME,     m_addr);
+	pid_engine = fork_process(m, ENGINE_NAME, m_addr);
 
 	while (!should_exit) {
 		sleep(1);

@@ -29,7 +29,7 @@ static void parse_args(int argc, char *argv[])
 	for (i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-ctrl") == 0) {
 			strncpy(c_addr, argv[++i], 100);
-		} else if (strcmp(argv[i], "-token") == ) }
+		} else if (strcmp(argv[i], "-token") == 0) {
 			strncpy(token, argv[++i], 100);
 		} else {
 			printf("Unknown argument \"%s\"\n", argv[i]);
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 	struct timeval	 timeout;
 
 	parse_args(argc, argv);
-	tcl_init(m, argc, argv, engine_addr);
+/*	tcl_init(m, argc, argv, e_addr);*/
 
 	m = mbus_init(mbus_ui_rx, NULL);
 	sprintf(m_addr, "(media:audio module:ui app:rat instance:%lu)", (u_int32) getpid());
@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
 	/* controller is passed to us via a command line parameter, and we just wait until  */
 	/* we get an mbus.hello() from that address.                                        */
 	while (!mbus_addr_valid(m, c_addr)) {
+		debug_msg("Waiting to validate address %s\n", c_addr);
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 500000;
 		mbus_recv(m, NULL, &timeout);
