@@ -38,6 +38,7 @@
  * SUCH DAMAGE.
  */
 
+#ifdef FreeBSD
 #include "assert.h"
 #include "config.h"
 #include "audio.h"
@@ -48,7 +49,7 @@ static int can_read = FALSE;
 static int can_write = FALSE;
 static int iport = AUDIO_MICROPHONE;
 static audio_format format;
-
+static snd_chan_param pa;
 #define BLOCKSIZE 320
 
 #define bat_to_device(x) ((x) * 100 / MAX_AMP)
@@ -57,80 +58,95 @@ static audio_format format;
 int 
 audio_open_rw(char rw)
 {
-	int mode     = AFMT_S16_LE;	/* 16bit linear, little-endian */
-	int stereo   = format.num_channels - 1;
-	int speed    = format.sample_rate;
-	int frag     = BLOCKSIZE;
-	int volume, audio_fd;
+    int             volume = 100;
+    int             reclb = 0;
+    int             audio_fd = -1;
 
-	switch (rw) {
-	case O_RDONLY:
-		can_read  = TRUE;
-		can_write = FALSE;
-		break;
-	case O_WRONLY:
-		can_read  = FALSE;
-		can_write = TRUE;
-		break;
-	case O_RDWR:
-		can_read  = TRUE;
-		can_write = TRUE;
-		break;
-	default:
-		abort();
-	}
+    int             d = -1;	/* unit number for audio device */
+    char            buf[64];
+    char           *thedev;
 
-	audio_fd = open("/dev/audio", rw /*| O_NDELAY*/);
-	if (audio_fd > 0) {
-		if (ioctl(audio_fd, SNDCTL_DSP_SETBLKSIZE, &frag) == -1) {
-			printf("Cannot set fragment size (ignored)\n");
-		}
-		if ((ioctl(audio_fd, SNDCTL_DSP_SETFMT, &mode) == -1) || (mode != AFMT_S16_LE)) { 
-			printf("ERROR: Audio device doesn't support 16bit linear format!\n");
-			exit(1);
-		}
-		if ((ioctl(audio_fd, SNDCTL_DSP_STEREO, &stereo) == -1) || (stereo != (format.num_channels - 1))) {
-			printf("ERROR: Audio device doesn't support %d channels!\n", format.num_channels);
-			exit(1);
-		}
-		if ((ioctl(audio_fd, SNDCTL_DSP_SPEED, &speed) == -1) || (speed != format.sample_rate)) {
-			printf("ERROR: Audio device doesn't support %d sampling rate!\n", format.sample_rate);
-			exit(1);
-		}
+    switch (rw) {
+    case O_RDONLY:
+	can_read = TRUE;
+	can_write = FALSE;
+	break;
+    case O_WRONLY:
+	can_read = FALSE;
+	can_write = TRUE;
+	break;
+    case O_RDWR:
+	can_read = TRUE;
+	can_write = TRUE;
+	break;
+    default:
+	abort();
+    }
 
-		/* Turn off loopback from input to output... */
-		volume = 0;
-		ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &volume);
+    thedev = getenv("AUDIODEV");
+    if (thedev == NULL)
+	thedev = "/dev/audio";
+    else if (thedev[0] >= '0') {
+	d = atoi(thedev);
+	sprintf(buf, "/dev/audio%d", d);
+	thedev = buf;
+    }
+    audio_fd = open(thedev, rw);
+    if (audio_fd >= 0) {
+	struct snd_size sz;
+	snd_capabilities soundcaps;
 
-		/* Zero all inputs */
-		ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_CD), &volume);
-		ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_MIC), &volume);
-		ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_LINE), &volume);
+	ioctl(audio_fd, AIOGCAP, &soundcaps);
+	pa.play_rate = pa.rec_rate = 8000;
+	pa.play_format = pa.rec_format = AFMT_S16_LE;
+	sz.play_size = BLOCKSIZE;
+	sz.rec_size = BLOCKSIZE;
 
-		/* Zero all outputs */
-		ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_SYNTH), &volume);
-		ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_OGAIN), &volume);
-		ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_PCM), &volume);
-
-		volume = 85 << 8 | 85;
-		ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_VOLUME), &volume);
-		ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_IGAIN), &volume);
-
-		/* Select microphone input. We can't select output source... */
-		audio_set_iport(audio_fd, iport);
-
-		/* Set global gain/volume. */
-		audio_set_volume(audio_fd, 75);
-		audio_set_gain(audio_fd, 75);
-
-		read(audio_fd, &speed, sizeof(speed));
-		return (audio_fd);
-	} else {
+	switch (soundcaps.formats & (AFMT_FULLDUPLEX | AFMT_WEIRD)) {
+	case AFMT_FULLDUPLEX:
+	    /*
+	     * this entry for cards with decent full duplex.
+	     */
+	    break;
+	case AFMT_FULLDUPLEX | AFMT_WEIRD:
+	    /* this is the sb16... */
+	    pa.play_format = AFMT_S8;
+	    sz.play_size = BLOCKSIZE / 2;
+	    break;
+	default:		/* no full duplex... */
+	    if (rw == O_RDWR) {
+		fprintf(stderr, "sorry no full duplex support here\n");
 		close(audio_fd);
-		can_read  = FALSE;
-		can_write = FALSE;
-		return (-1);
+		return -1;
+	    }
 	}
+	ioctl(audio_fd, AIOSFMT, &pa);
+	ioctl(audio_fd, AIOSSIZE, &sz);
+
+	/* Set global gain/volume to maximum values. This may fail on */
+	/* some cards, but shouldn't cause any harm when it does..... */
+	ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_PCM), &volume);
+	ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_IGAIN), &volume);
+	/* Set the gain/volume properly. We use the controls for the  */
+	/* specific mixer channel to do this, relative to the global  */
+	/* maximum gain/volume we've just set...                      */
+	audio_set_gain(audio_fd, MAX_AMP / 2);
+	audio_set_volume(audio_fd, MAX_AMP / 2);
+	/* Select microphone input. We can't select output source...  */
+	audio_set_iport(audio_fd, iport);
+	/* Turn off loopback from input to output... */
+	ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
+	{
+	    char            buf[64];
+	    read(audio_fd, buf, 64);
+	}			/* start... */
+	return audio_fd;
+    } else {
+	perror("audio_open");
+	close(audio_fd);
+	return -1;
+    }
+
 }
 
 int
@@ -165,48 +181,61 @@ audio_drain(int audio_fd)
 int
 audio_duplex(int audio_fd)
 {
-	return (TRUE);
+    /*
+     * Find out if the device supports full-duplex operation. The device must
+     * be open to do this, so if we're passed -1 as a file-descriptor we open
+     * the device, do the ioctl, and then close it again...
+     */
+    snd_capabilities soundcaps;
+    int             fd = audio_fd;
+
+    if (audio_fd == -1)
+	fd = audio_open_rw(O_RDWR);
+    ioctl(fd, AIOGCAP, &soundcaps);
+    if (audio_fd == -1)
+	close(fd);
+    return (soundcaps.formats & AFMT_FULLDUPLEX) ? 1 : 0;
+
 }
 
 int
 audio_read(int audio_fd, sample *buf, int samples)
 {
 	if (can_read) {
-		int l1, len, len0;
-		char *base = (char *) buf;
-
+		int             l1, len, len0;
+		char           *base = (char *) buf;
 		/* Figure out how many bytes we can read before blocking... */
 		ioctl(audio_fd, FIONREAD, &len);
 		if (len > (samples * BYTES_PER_SAMPLE))
 			len = (samples * BYTES_PER_SAMPLE);
-
 		/* Read the data... */
-		for (len0 = len; len ; len -= l1, base += l1) {
+		for (len0 = len; len; len -= l1, base += l1) {
 			if ((l1 = read(audio_fd, base, len)) < 0) {
 				return 0;
 			}
 		}
-
 		return len0 / BYTES_PER_SAMPLE;
 	} else {
 		/* The value returned should indicate the time (in audio samples) */
 		/* since the last time read was called.                           */
-		int                   i;
-		int                   diff;
+		int             i;
+		int             diff;
 		static struct timeval last_time;
 		static struct timeval curr_time;
-		static int            first_time = 0;
-
+		static int      first_time = 0;
+		
 		if (first_time == 0) {
 			gettimeofday(&last_time, NULL);
 			first_time = 1;
 		}
 		gettimeofday(&curr_time, NULL);
 		diff = (((curr_time.tv_sec - last_time.tv_sec) * 1e6) + (curr_time.tv_usec - last_time.tv_usec)) / 125;
-		if (diff > samples) diff = samples;
-		if (diff <      80) diff = 80;
+		if (diff > samples)
+			diff = samples;
+		if (diff < 80)
+			diff = 80;
 		xmemchk();
-		for (i=0; i<diff; i++) {
+		for (i = 0; i < diff; i++) {
 			buf[i] = L16_AUDIO_ZERO;
 		}
 		xmemchk();
@@ -218,26 +247,37 @@ audio_read(int audio_fd, sample *buf, int samples)
 int
 audio_write(int audio_fd, sample *buf, int samples)
 {
-	int    done, len;
-	char  *p;
-
+	int             done, len, slen;
+	char           *p;
+	
 	if (can_write) {
-		p   = (char *) buf;
+		p = (char *) buf;
+		slen = BYTES_PER_SAMPLE;
 		len = samples * BYTES_PER_SAMPLE;
+		if (pa.play_format != AFMT_S16_LE) {
+			/* soundblaster... S16 -> S8 */
+			int             i;
+			short          *src = (short *) buf;
+			char           *dst = (char *) buf;
+			for (i = 0; i < samples; i++)
+				dst[i] = src[i] >> 8;
+			len = samples;
+			slen = 1;
+		}
 		while (1) {
 			if ((done = write(audio_fd, p, len)) == len) {
 				break;
 			}
 			if (errno != EINTR) {
 				perror("Error writing device");
-				return samples - ((len - done) / BYTES_PER_SAMPLE);
+				return samples - ((len - done) / slen);
 			}
 			len -= done;
-			p   += done;
+			p += done;
 		}
-		return (samples);
+		return samples;
 	} else {
-		return (samples);
+		return samples;
 	}
 }
 
@@ -245,14 +285,12 @@ audio_write(int audio_fd, sample *buf, int samples)
 void
 audio_non_block(int audio_fd)
 {
-	int  on = 1;
-
-	if (audio_fd < 0)
-		return;
-	if (ioctl(audio_fd, FIONBIO, (char *)&on) < 0) {
+	int             frag = 1;
 #ifdef DEBUG
-		fprintf(stderr, "Failed to set non-blocking mode on audio device!\n");
+	fprintf(stderr, "called audio_non_block\n");
 #endif
+	if (ioctl(audio_fd, SNDCTL_DSP_NONBLOCK, &frag) == -1) {
+		perror("Setting non blocking i/o");
 	}
 }
 
@@ -260,15 +298,14 @@ audio_non_block(int audio_fd)
 void
 audio_block(int audio_fd)
 {
-	int  on = 0;
-
-	if (audio_fd < 0)
-		return;
-	if (ioctl(audio_fd, FIONBIO, (char *)&on) < 0) {
+	int             frag = 0;
 #ifdef DEBUG
-		fprintf(stderr, "Failed to set blocking mode on audio device!\n");
+	fprintf(stderr, "called audio_block\n");
 #endif
+	if (ioctl(audio_fd, SNDCTL_DSP_NONBLOCK, &frag) == -1) {
+		perror("Setting blocking i/o");
 	}
+
 }
 
 
@@ -367,6 +404,9 @@ audio_get_gain(int audio_fd)
 		if (ioctl(audio_fd, MIXER_READ(SOUND_MIXER_CD), &volume) < 0)
 			perror("Getting gain");
 		break;
+	default:
+		printf("ERROR: Unknown iport in audio_set_gain!\n");
+		abort();
 	}
 	return (device_to_bat(volume & 0xff));
 }
@@ -445,3 +485,5 @@ audio_switch_in(int audio_fd)
 		audio_open_rw(O_RDONLY);
 	}
 }
+
+#endif

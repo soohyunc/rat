@@ -50,10 +50,12 @@
 #include "gsm.h"
 #include "codec_lpc.h"
 
-/* fade duration in ms */
+/* fade and pitch measures in ms */
 #define FADE_DURATION   320.0
+#define MIN_PITCH         2.0
+
 #define ALPHA             0.9
-#define MATCH_LEN         5    
+#define MATCH_LEN         20    
 #define MAX_BUF_LEN       1024
 
 char *
@@ -146,50 +148,78 @@ repeat_block(short *src_buf, int rep_len, rx_queue_element_struct *ip, int chann
 	}
 }
 
+/* Based on 'Waveform Subsititution Techniques for Recovering Missing Speech
+ *           Segments in Packet Voice Communications', Goodman, D.J., et al,
+ *           IEEE Trans Acoustics, Speech and Signal Processing, Vol ASSP-34,
+ *           Number 6, pages 1440-47, December 1986. (see also follow up by 
+ *           Waseem 1988)
+ * Equation (7) as this is cheapest.  Should stretch across multiple 
+ * previous units  so that it has a chance to work at higher frequencies. 
+ * Should also have option for 2 sided repair with interpolation.[oth]
+ */
+
 static void
 pm_repair(rx_queue_element_struct *pp, rx_queue_element_struct *ip, int channel)
 {
-	static short x[MAX_BUF_LEN],*xp,*xp1;
+	static float mb[MAX_BUF_LEN], *mbp;
 	short *src = pp->native_data[0] + channel;
+	register short *bp;
 	int len = pp->comp_data[0].cp->unit_len, step = pp->comp_data[0].cp->channels;
-	int norm = 0;
 	register int   i,j;
-	register short prev;
+	register int norm;
+	int pos = 0,min_pitch;
+	float score, target = 1e6;
 
-	unsigned int sc=0,score=0xffffffff, pos=-1;
-
-	/* ewa for cheap (though distorted lpf) */
-	xp = x;
-	prev = *xp = *src;
-	i = 0;
-	while(i++<len) {
-		*xp = ALPHA * prev + (1-ALPHA) * (*src);
-		prev = *xp++;
-		src += step;
+	norm = 0;
+	bp = src + (len-MATCH_LEN)*step;
+	i=0;
+	/* determine match buffer*/
+	while(i++<MATCH_LEN){
+		norm += abs(*bp);
+		bp   += step;
 	}
-
-	i = len-2*MATCH_LEN;
+	bp = src + (len-MATCH_LEN)*step;
+	mbp = mb;
+	i=0;
+	while(i++<MATCH_LEN){
+		*mbp++ = (float)*bp/(float)norm;
+		bp    += step;
+	}
+	/* hit off normalization */
+	min_pitch = ip->comp_data[0].cp->freq*MIN_PITCH/1000;
+	i = (len-MATCH_LEN-min_pitch)*step;
+	bp = src + i;
+	j=0;
+	while(j++<MATCH_LEN) {
+		norm += abs(*bp);
+		bp   += step;
+	}
+	bp = src + i;
 	while(i>0) {
-		sc = 0;
+		score = 0.0;
 		j = 0;
-		xp  = x+i;
-		xp1 = x+len-MATCH_LEN; 
-		while(j++<MATCH_LEN)
-			sc += abs(*xp++ - *xp1++);
-		if (sc<score) {
-			score = sc;
-			pos   =  i;
+		mbp = mb;
+		while(j++<MATCH_LEN) {
+			score += fabs((float)*bp/(float)norm - *mbp++);
+			bp    += step;
 		}
+		if (score<target) {
+			pos = i/step;
+			target = score;
+		}
+		norm -= abs(*(bp+step));
+		bp -= (MATCH_LEN+1)*step;
+		norm += abs(*bp);
+		i -= step;
 	}
-	norm=0;
-	xp = x + len-MATCH_LEN;
-	for(i=0;i<MATCH_LEN;i++)
-		norm+=abs(*xp++);
 
 #ifdef DEBUG_REPAIR
-	fprintf(stderr,"match score %.4f\n", (1.0 - (float)sc/(float)norm));
+	fprintf(stderr,"match score %.4f period %d \n", target, len-MATCH_LEN-pos);
 #endif
-	repeat_block(pp->native_data[0]+step*pos, len - pos, ip, channel);
+	repeat_block(pp->native_data[0]+(MATCH_LEN+pos)*step, 
+		     len-MATCH_LEN-pos, /*period*/ 
+		     ip, 
+		     channel);
 }
 
 static void

@@ -506,12 +506,18 @@ void cb_recv_repair(char *srce, char *mesg, session_struct *sp)
         if (!strcmp(mesg, "None")) {
 		sp->repair = REPAIR_NONE;
                 sprintf(comm, "repair {None}");
-                cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-        } else {
+        } else if (!strcmp(mesg,"Packet")){
 		sp->repair = REPAIR_REPEAT;
                 sprintf(comm, "repair {Packet Repetition}");
-                cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-        } 
+        } else if (!strcmp(mesg,"Pattern")){
+		sp->repair = REPAIR_PATTERN_MATCH;
+                sprintf(comm, "repair {Pattern Match}");
+	} else {
+		fprintf(stderr,"cv_recv_repair: %s unrecognized",mesg);
+		return;
+	}
+	
+	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 }
 
 void cb_recv_powermeter(char *srce, char *mesg, session_struct *sp)
