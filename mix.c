@@ -195,18 +195,26 @@ mix_process(mix_struct          *ms,
         if (!ts_eq(expected_playout, playout)) {
                 if (ts_gt(expected_playout, playout)) {
                         delta = ts_sub(expected_playout, playout);
+#ifdef DEBUG_MIX
                         debug_msg("Overlapping units\n");
+#endif /* DEBUG_MIX */
                         if (ts_gt(frame_period, delta)) {
                                 u_int32  trim = delta.ticks * ms->channels;
                                 samples  += trim;
                                 nsamples -= trim;
+#ifdef DEBUG_MIX
                                 debug_msg("Trimmed %d samples\n", trim);
+#endif /* DEBUG_MIX */
                         } else {
+#ifdef DEBUG_MIX
                                 debug_msg("Skipped unit\n");
+#endif /* DEBUG_MIX */
                         }
                 } else {
                         if (expected_playout.ticks - playout.ticks != 0) {
+#ifdef DEBUG_MIX
                                 debug_msg("Gap between units %d %d\n", expected_playout.ticks, playout.ticks);
+#endif /* DEBUG_MIX */
                         }
                 }
         }

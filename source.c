@@ -543,7 +543,6 @@ source_skew_adapt(source *src, media_data *md)
                 } else {
                         src->skew = SOURCE_SKEW_NONE;
                 }
-                debug_msg("Playout buffer shifted forward 1 unit\n");
                 return TRUE;
         } else if (src->skew == SOURCE_SKEW_SLOW) {
                 /* Buffer going dry so just chuck it all back by however much,
