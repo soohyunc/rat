@@ -175,6 +175,10 @@ case "$target" in
 *freebsd*)
 	# PC Speaker device on FreeBSD
 	AC_CHECK_HEADERS(machine/pcaudioio.h)
+	if test $ac_cv_header_machine_h="yes" ; then
+		AU_OBJ="$AU_OBJ auddev_pca.o"
+		AC_DEFINE(HAVE_PCA_AUDIO)
+	fi
 	# Luigi's driver
 	AU_OBJ="$AU_OBJ auddev_luigi.o"
 	AC_DEFINE(HAVE_LUIGI_AUDIO)

@@ -80,6 +80,9 @@
 /* Define if you have the <malloc.h> header file.  */
 #undef HAVE_MALLOC_H
 
+/* Define if you have the <soundcard.h> header file.  */
+#undef HAVE_SOUNDCARD_H
+
 /* Define if you have the <stdint.h> header file.  */
 #undef HAVE_STDINT_H
 
@@ -91,6 +94,9 @@
 
 /* Define if you have the <sys/sockio.h> header file.  */
 #undef HAVE_SYS_SOCKIO_H
+
+/* Define if you have the <sys/soundcard.h> header file.  */
+#undef HAVE_SYS_SOUNDCARD_H
 
 #ifndef WORDS_BIGENDIAN
 #define WORDS_SMALLENDIAN

@@ -19,8 +19,7 @@
  *
  */
 
-#include <pcaudioio.h>
-
+#include <machine/pcaudioio.h>
 #include "config_unix.h"
 #include "audio_types.h"
 #include "audio_fmt.h"
