@@ -272,7 +272,7 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 	b                = (char *) xmalloc(MBUS_BUF_SIZE);
 	bp		 = b;
 	sprintf(bp, "mbus/1.0 %6d R (%s) (%s) ()\n", curr->seqn, curr->srce, curr->dest);
-	bp += strlen(curr->srce) + strlen(curr->dest) + 27;
+	bp += strlen(curr->srce) + strlen(curr->dest) + 28;
 	for (i = 0; i < curr->qmsg_size; i++) {
 		assert(curr->qmsg_cmnd[i] != NULL);
 		assert(curr->qmsg_args[i] != NULL);
