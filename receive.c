@@ -265,7 +265,7 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 }
 
 static rx_queue_element_struct *
-playout_buffer_get(ppb_t *buf, u_int32 from, u_int32 to)
+playout_buffer_get(session_struct *sp, ppb_t *buf, u_int32 from, u_int32 to)
 {
 	rx_queue_element_struct *ip;
 
@@ -284,7 +284,7 @@ playout_buffer_get(ppb_t *buf, u_int32 from, u_int32 to)
 			return (NULL);
 
 		buf->last_got = ip;
-                channel_decode(ip);
+                channel_decode(sp, ip);
 		decode_unit(ip);
 	}
 	return (ip);
@@ -475,7 +475,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		if (up && buf->last_got && up->mixed == FALSE
 		    && ts_gt(buf->last_got->playoutpt, up->playoutpt)
 		    && ts_gt(up->playoutpt, cur_time)){
-                        channel_decode(up);
+                        channel_decode(sp, up);
 			decode_unit(up);
                         debug_msg("Mixing late audio\n");
 			if (up->native_count) {
@@ -515,7 +515,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                 }
 #endif /* DEBUG_PLAYOUT_BROKEN */
                 chunks_mixed = 0;
-		while ((up = playout_buffer_get(buf, cur_time, cur_time + cs))) {
+		while ((up = playout_buffer_get(sp, buf, cur_time, cur_time + cs))) {
                     if (!up->comp_count  && sp->repair != REPAIR_NONE 
                         && up->prev_ptr != NULL && up->next_ptr != NULL
                         && up->prev_ptr->native_count) 

@@ -83,7 +83,7 @@ typedef void (*cc_free_f)      (struct s_cc_state *ccs);
 typedef int  (*cc_valsplit_f)  (char *blk, unsigned int blen, struct s_cc_unit *cu, int *trailing, int *inter_pkt_gap);
 typedef int  (*cc_get_pt_f)    (char *blk, unsigned int blen);
 typedef void (*cc_dec_init_f)  (struct session_tag *sp, struct s_cc_state *ccs);
-typedef void (*cc_decode_f)    (struct rx_element_tag *sp, struct s_cc_state *ccs);
+typedef void (*cc_decode_f)    (struct session_tag *sp, struct rx_element_tag* u, struct s_cc_state *ccs);
 
 typedef struct s_cc_coder {
     char            *name;
@@ -117,7 +117,7 @@ struct s_cc_coder *get_channel_coder (int pt);
 
 void  channel_set_coder     (struct session_tag *sp, int cc_pt);
 int   channel_encode        (struct session_tag *sp, int pt, cc_unit **coded, int num_coded, cc_unit **out);
-void  channel_decode        (struct rx_element_tag *rx);
+void  channel_decode        (struct session_tag *sp, struct rx_element_tag *rx);
 void  channel_encoder_reset (struct session_tag *sp, int cc_pt);
 
 void  config_channel_coder (struct session_tag *sp, int pt, char *cmd);

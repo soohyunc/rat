@@ -198,7 +198,7 @@ adapt_playout(rtp_hdr_t *hdr,
 	}
 
 	if (ts_gt(hdr->ts, src->last_ts)) {
-		cp = get_codec(src->encs[0]);
+		cp = get_codec(src->enc);
 		/* IF (a) TS start 
                    OR (b) we've thrown 4 consecutive packets away 
                    OR (c) ts have jumped by 8 packets worth 
@@ -415,13 +415,13 @@ statistics(session_struct    *sp,
                         goto release;
                 }
                 
-                if ((src->encs[0] == -1) || (compat==0))
+                if ((src->enc == -1) || (compat==0))
                         receiver_change_format(src, pcp);
                 
-                if (src->encs[0] != pcp->pt) {
+                if (src->enc != pcp->pt) {
                         /* we should tell update more about coded format */
-                        src->encs[0] = pcp->pt;
-                        debug_msg("src enc %d pcp enc %d\n", src->encs[0], pcp->pt);
+                        src->enc = pcp->pt;
+                        debug_msg("src enc %d pcp enc %d\n", src->enc, pcp->pt);
                         update_req   = TRUE;
                 }
                 

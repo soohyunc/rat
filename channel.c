@@ -154,15 +154,38 @@ vanilla_valsplit(char *blk, unsigned int blen, cc_unit *u, int *trailing, int *i
         return (n);
 }
 
+#define VANILLA_NO_PT 0xff;
+typedef struct {
+        char pt;
+        session_struct *sp;
+} v_dec_st;
+ 
 static void 
-vanilla_decode(rx_queue_element_struct *u, cc_state_t *ccs)
+vanilla_dec_init(session_struct *sp, cc_state_t *cs)
+{
+        v_dec_st *v;
+
+        UNUSED (sp);
+
+        cs->s = (char*)xmalloc(sizeof(v_dec_st));
+        v     = (v_dec_st*) cs->s;
+        v->pt = VANILLA_NO_PT;
+}
+
+static void 
+vanilla_dec_free(cc_state_t *cs)
+{
+        xfree(cs->s);
+}
+
+static void 
+vanilla_decode(session_struct *sp, rx_queue_element_struct *u, cc_state_t *ccs)
 {
         int i,len,iovc;
         struct iovec *iov;
         codec_t *cp;
-
-        UNUSED(ccs);
-
+        v_dec_st *v;
+        
         if (!u->ccu_cnt) return;
 
         cp = get_codec(u->ccu[0]->pt);
@@ -175,20 +198,38 @@ vanilla_decode(rx_queue_element_struct *u, cc_state_t *ccs)
                 len += iov[i].iov_len;
 
         fragment_spread(cp, len, iov, iovc, u);
+        v = (v_dec_st*)ccs->s;
+        if (cp->pt != v->pt) {
+                v->pt = cp->pt;
+                rtcp_set_encoder_format(sp, u->dbe_source[0], cp->name);
+        }
 }
 
 static void 
-red_init(session_struct *sp, cc_state_t *cs) 
+red_enc_init(session_struct *sp, cc_state_t *cs) 
 {
         UNUSED(sp);
 
-        cs->s = (char*)red_create();
+        cs->s = (char*)red_enc_create();
 } 
 
 static void
-red_free(cc_state_t *cs)
+red_enc_free(cc_state_t *cs)
 {
-        red_destroy((struct s_red_coder*) cs->s);
+        red_enc_destroy((struct s_red_coder*) cs->s);
+}
+
+static void 
+red_dec_init(session_struct *sp, cc_state_t *cs)
+{
+        UNUSED(sp);
+        cs->s = (char*)red_dec_create();
+}
+
+static void
+red_dec_free(cc_state_t *cs)
+{
+        red_dec_destroy((struct s_red_dec_state*)cs->s);
 }
 
 static void
@@ -230,13 +271,12 @@ red_bitrate(session_struct *sp,
 }
 
 static void
-red_decoder(rx_queue_element_struct *u,
+red_decoder(session_struct *sp,
+            rx_queue_element_struct *u,
             cc_state_t              *cs)
 {
-        UNUSED(cs);
-
         if (!u->ccu_cnt) return;
-        red_decode(u);
+        red_decode(sp, u, (struct s_red_dec_state*)cs->s);
 }
 
 static void 
@@ -295,10 +335,11 @@ intl_bitrate(session_struct *sp,
 }
 
 static void
-intl_decoder(rx_queue_element_struct *u,
+intl_decoder(session_struct *sp,
+             rx_queue_element_struct *u,
              cc_state_t              *cs)
 {
-        intl_decode(u,(struct s_intl_coder*)cs->s);
+        intl_decode(sp, u, (struct s_intl_coder*)cs->s);
 }
 
 #define N_CC_CODERS 3
@@ -320,25 +361,25 @@ static cc_coder_t cc_list[] = {
          1,
          vanilla_valsplit,
          NULL,
-         NULL,
+         vanilla_dec_init,
          vanilla_decode,
-         NULL },
+         vanilla_dec_free },
         {"REDUNDANCY", 
          PT_REDUNDANCY,
          CC_ID_REDUNDANCY,
-         red_init,
+         red_enc_init,
          red_configure,
          red_query,
          red_bitrate,
          red_encoder,
          red_reset,
-         red_free,
+         red_enc_free,
          1,
          red_valsplit,
          red_wrapped_pt,
-         NULL,
+         red_dec_init,
          red_decoder,
-         NULL },
+         red_dec_free },
         {"INTERLEAVER",
          PT_INTERLEAVED,
          CC_ID_INTERLEAVER,
@@ -507,7 +548,7 @@ channel_encode(session_struct *sp,
 }
 
 void 
-channel_decode(rx_queue_element_struct *u)
+channel_decode(session_struct *sp, rx_queue_element_struct *u)
 {
         cc_state_t *stp;
         cc_coder_t *cc;
@@ -517,7 +558,7 @@ channel_decode(rx_queue_element_struct *u)
                            u->cc_pt,
                            DECODE);
         assert(u);
-        cc->decode(u, stp);
+        cc->decode(sp, u, stp);
 }
 
 int

@@ -52,6 +52,8 @@
 #include "codec.h"
 #include "channel.h"
 #include "receive.h"
+#include "rtcp_pckt.h"
+#include "rtcp_db.h"
 #include "util.h"
 #include "cc_red.h"
 
@@ -117,7 +119,7 @@ red_flush(red_coder_t *r)
 }
 
 red_coder_t *
-red_create(void)
+red_enc_create(void)
 {
         red_coder_t *r = (red_coder_t*)xmalloc(sizeof(red_coder_t));
         memset(r,0,sizeof(red_coder_t));
@@ -125,7 +127,7 @@ red_create(void)
 }
 
 void
-red_destroy(red_coder_t *r)
+red_enc_destroy(red_coder_t *r)
 {
         red_flush(r);
         xfree(r);
@@ -386,12 +388,32 @@ red_max_offset(cc_unit *ccu)
         return max_off;
 }
 
+#define RED_MAX_RECV 5
+typedef struct s_red_dec_state {
+        int n;
+        char encs[RED_MAX_RECV];
+} red_dec_state;
+
+red_dec_state *
+red_dec_create()
+{
+        red_dec_state *r = (red_dec_state*)xmalloc(sizeof(red_dec_state));
+        r->n = 0;
+        return r;
+}
+
 void
-red_decode(rx_queue_element_struct *u)
+red_dec_destroy(red_dec_state *r)
+{
+        xfree(r);
+}
+
+void
+red_decode(session_struct *sp, rx_queue_element_struct *u, red_dec_state *r)
 {
         /* Second system 1 Old system 0 */
         rx_queue_element_struct *su;
-        int i, max_off, hdr_idx, data_idx, off, len;
+        int i, max_off, hdr_idx, data_idx, off, len, update_req;
         u_int32 red_hdr;
         codec_t *cp;
         cc_unit *cu = u->ccu[0];
@@ -404,6 +426,8 @@ red_decode(rx_queue_element_struct *u)
                 return;
         }
         
+        update_req = FALSE;
+
         do {
                 red_hdr = ntohl(*((u_int32*)cu->iov[hdr_idx].iov_base));
                 cp      = get_codec(RED_PT(red_hdr));
@@ -412,6 +436,16 @@ red_decode(rx_queue_element_struct *u)
                         off = RED_OFF(red_hdr);
                         su = get_rx_unit((max_off - off) / cp->unit_len, u->ccu[0]->pt, u);
                         data_idx += fragment_spread(cp, len, &cu->iov[data_idx], cu->iovc - data_idx, su);
+                } else {
+                        if (cp==NULL) debug_msg("pt %d not decodable\n", cp->pt);
+                }
+                if ((hdr_idx >= 0          && 
+                     hdr_idx<RED_MAX_RECV) && 
+                    cp                     &&
+                    cp->pt != r->encs[hdr_idx]) {
+                        r->encs[hdr_idx] = cp->pt;
+                        r->n = hdr_idx+1;
+                        update_req = TRUE;
                 }
                 hdr_idx++;
         } while (cu->iov[hdr_idx].iov_len != 1);
@@ -425,6 +459,33 @@ red_decode(rx_queue_element_struct *u)
         su = get_rx_unit(max_off / cp->unit_len, u->cc_pt, u);
         data_idx += fragment_spread(cp, len, &cu->iov[data_idx], cu->iovc - data_idx, su);
         assert(data_idx == cu->iovc);
+
+        if ((hdr_idx >= 0          && 
+             hdr_idx<RED_MAX_RECV) && 
+            cp                     &&
+            cp->pt != r->encs[hdr_idx]) {
+                r->encs[hdr_idx] = cp->pt;
+                update_req = TRUE;
+        }
+
+        if (update_req) {
+                /* this is not nice, running out of time... */
+                char fmt[100];
+                sprintf(fmt, "REDUNDANCY(");
+                len = 11;
+                r->n = hdr_idx + 1;
+                for(i = 0; i < r->n; i++) {
+                        cp = get_codec(r->encs[r->n - 1 - i]);
+                        if (cp) {
+                                sprintf(fmt+len, "%s,",cp->name);
+                                len += strlen(cp->name) + 1;
+                        } else {
+                                debug_msg("pt %d not recognized\n", r->encs[r->n - 1 - i]);
+                        }
+                } 
+                sprintf(fmt+len-1,")");
+                rtcp_set_encoder_format(sp, u->dbe_source[0], fmt);
+        }
 }    
 
 int

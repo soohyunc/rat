@@ -197,41 +197,27 @@ ui_info_deactivate(rtcp_dbentry *e)
 void
 update_stats(rtcp_dbentry *e, session_struct *sp)
 {
-	char	 encoding[100], *p, *my_cname, *their_cname, *args;
-	int	 l;
-	codec_t	*cp;
+	char	*my_cname, *their_cname, *args;
 
 	assert(sp->db->my_dbe->sentry->cname != NULL);
+
 	if (e->sentry->cname == NULL) {
 		return;
 	}
 
-	memset(encoding, '\0', 100);
-	if (e->encs[0] != -1) {
-		cp = get_codec(e->encs[0]);
-		strcpy(encoding, cp->name);
-		for (l = 1, p = encoding; l < 3 && e->encs[l] != -1; l++) {
-			p += strlen(p);
-			*p++ = '+';
-			cp = get_codec(e->encs[l]);
-			if (cp != NULL) {
-				strcpy(p, cp->name);
-			} else {
-				*p++ = '?';
-			}
-		}
-	} else {
-		*encoding = 0;
-	}
-
-
 	my_cname    = strdup(mbus_encode_str(sp->db->my_dbe->sentry->cname));
 	their_cname = strdup(mbus_encode_str(e->sentry->cname));
 
-	args = (char *) xmalloc(strlen(their_cname) + strlen(encoding) + 2);
-	sprintf(args, "%s %s", their_cname, encoding);                       
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.codec", args, FALSE);
-	xfree(args);
+        if (e->enc_fmt) {
+                args = (char *) xmalloc(strlen(their_cname) + strlen(e->enc_fmt) + 2);
+                sprintf(args, "%s %s", their_cname, e->enc_fmt);
+        } else {
+                args = (char *) xmalloc(strlen(their_cname) + 7 + 2);
+                sprintf(args, "%s unknown", their_cname);
+        }
+
+        mbus_engine_tx(TRUE, mbus_name_ui, "source.codec", args, FALSE);
+        xfree(args);
 
 	args = (char *) xmalloc(strlen(their_cname) + strlen(my_cname) + 11);
 	sprintf(args, "%s %s %8ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);

@@ -94,9 +94,9 @@ typedef struct s_rtcp_dbentry {
 	struct s_time		*clock;
 
 	u_int32         last_mixed_playout;	/* from device_clock */
-
 	int		units_per_packet;
-	int		encs[3];		/* Different encodings in packet */
+        int             enc;
+        char*           enc_fmt;
         u_int32         ui_last_update;            
 	/* Variables for playout time calculation */
 	int		video_playout;		/* Playout delay in the video tool -- for lip-sync [csp] */
@@ -179,5 +179,6 @@ void 			 rtcp_delete_dbentry(struct session_tag *sp, u_int32 ssrc);
 int 			 rtcp_set_attribute(struct session_tag *sp, int type, char *val);
 void			 rtcp_free_dbentry(rtcp_dbentry *dbptr);
 void                     rtcp_clock_change(struct session_tag *sp);
+void                     rtcp_set_encoder_format(struct session_tag *sp, rtcp_dbentry *e, char *new_fmt);
 #endif
 

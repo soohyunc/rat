@@ -48,6 +48,8 @@
 #include "receive.h"
 #include "util.h"
 #include "cc_intl.h"
+#include "rtcp_pckt.h"
+#include "rtcp_db.h"
 
 /*- code pertaining to interleaver only
  * ------------------------------------- 
@@ -346,10 +348,15 @@ intl_encode(session_struct *sp,
         return CC_NOT_READY;
 }
 
-static void
-intl_compat_chk(u_int32        hdr, 
+static int
+intl_compat_chk(session_struct *sp,
+                rx_queue_element_struct *u,
+                u_int32        hdr, 
                 intl_coder_t  *s)
 {
+        char fmt[100];
+        codec_t *cp;
+
         if (GET_N1(hdr) != s->il->n2 ||
             GET_N2(hdr) != s->il->n1 ||
             GET_PT(hdr) != s->src_pt || 
@@ -363,11 +370,19 @@ intl_compat_chk(u_int32        hdr,
                 s->il     = il_create(GET_N2(hdr),GET_N1(hdr));
                 s->src_pt = (u_char)GET_PT(hdr);
                 s->upl    = GET_UPL(hdr);
+                cp = get_codec(s->src_pt);
+                if (cp) {
+                        sprintf(fmt, "INTERLEAVED(%s,%dx%d)", cp->name, s->il->n2, s->il->n1);
+                        rtcp_set_encoder_format(sp, u->dbe_source[0], fmt);
+                }
+                return FALSE;
         }
+        return TRUE;
 }
 
 void
-intl_decode(rx_queue_element_struct *u,
+intl_decode(session_struct *sp,
+            rx_queue_element_struct *u,
             intl_coder_t            *s)
 {
         rx_queue_element_struct *su;
@@ -385,7 +400,7 @@ intl_decode(rx_queue_element_struct *u,
         if (u->ccu_cnt) {
                 block_trash_chk();
                 hdr = ntohl(*(u_int32*)u->ccu[0]->iov[0].iov_base);
-                intl_compat_chk(hdr,s);
+                intl_compat_chk(sp, u, hdr, s);
                 /* free interleaver header */
                 block_free(u->ccu[0]->iov[0].iov_base,
                            u->ccu[0]->iov[0].iov_len);

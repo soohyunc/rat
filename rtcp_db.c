@@ -180,7 +180,6 @@ static rtcp_dbentry *
 rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 addr, u_int32 cur_time)
 {
 	rtcp_dbentry   *newdb;
-	int		i;
 
 #ifdef LOG_PARTICIPANTS
 	printf("JOIN: ssrc=%lx addr=%lx time=%ld\n", ssrc, addr, cur_time);
@@ -195,13 +194,10 @@ rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 addr, u_int32 cur_time)
 	newdb->sentry->addr 		= addr;
 	newdb->firstseqno 		= 1;	/* So that "expected packets" starts out 0 */
 	newdb->last_active 		= cur_time;
-
-	for (i=0; i<10; i++) {
-		newdb->encs[i]		= -1;
-	}
 	newdb->first_pckt_flag 		= TRUE;
 	newdb->info_index 		= -1;		/* Indicate it is not entered in UI o list yet IK */
-
+        newdb->enc                      = -1;
+        newdb->enc_fmt                  = NULL;
 	return (newdb);
 }
 
@@ -269,6 +265,9 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 		if (dbptr->sentry->tool)  xfree(dbptr->sentry->tool);
 		xfree(dbptr->sentry);
 	}
+
+        if (dbptr->enc_fmt != NULL) xfree(dbptr->enc_fmt);
+
 	if (dbptr->rr != NULL) {
 		rtcp_user_rr	*rr, *tmp_rr;
 		rr = dbptr->rr;
@@ -325,6 +324,17 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 		}
 		dbptr = dbptr->next;
 	}
+}
+
+void
+rtcp_set_encoder_format(session_struct *sp, rtcp_dbentry *e, char *enc_fmt)
+{
+        if (e->enc_fmt) {
+                xfree(enc_fmt);
+        }
+        e->enc_fmt = xstrdup(enc_fmt);
+        debug_msg("%s\n", enc_fmt);
+        update_stats(e, sp);
 }
 
 /*
