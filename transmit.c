@@ -224,7 +224,7 @@ tx_stop(session_struct *sp)
         sp->auto_lecture               = tv.tv_sec;
         channel_encoder_reset(sp,sp->cc_encoding);
         ui_input_level(sp, 0);
-        ui_info_deactivate(sp, sp->db->my_dbe);
+        tx_update_ui(sp);
 }
 
 tx_buffer *
@@ -410,7 +410,6 @@ tx_send(session_struct *sp)
                 tb->tx_ptr = tb->head_ptr;
         }
 
-        assert(tb->silence_ptr != NULL);
         n = (tb->silence_ptr->time - tb->tx_ptr->time) / tb->unit_dur;
 
         rtp_header.cc = 0;
@@ -513,9 +512,10 @@ tx_update_ui(session_struct *sp)
                         if (active == TRUE) ui_input_level(sp, 0);
                 }
         }
-
+        debug_msg("In talkspurt (%d) Detecting Silence (%d)\n",
+                  vad_in_talkspurt(sp->tb->vad), sp->detect_silence);
         if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
-                if (active == FALSE) { 
+                if (active == FALSE) {
                         ui_info_activate(sp, sp->db->my_dbe);
                         sp->lecture = FALSE;
                         ui_update_lecture_mode(sp);
@@ -526,6 +526,11 @@ tx_update_ui(session_struct *sp)
                         ui_info_deactivate(sp, sp->db->my_dbe);
                         active = FALSE;
                 }
+        }
+
+        if (sp->sending_audio == FALSE) {
+                ui_info_deactivate(sp, sp->db->my_dbe);
+                active = FALSE;
         }
 }
 
