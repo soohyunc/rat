@@ -1,4 +1,4 @@
-M/*
+/*
  * FILE:     auddev.c
  * PROGRAM:  RAT
  * AUTHOR:   Orion Hodson 
