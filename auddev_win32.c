@@ -190,7 +190,7 @@ mixSetIPort(MixCtls *mcMix)
         assert(mcMix);
         
         curMixIn = (mcMix - mcMixIn);
-        audio_set_gain(0, play_vol);
+
         /* now make sure line is selected */
         if (strncasecmp(mcMixIn->szName, "rec", 3) != 0) return 0;
         for(i = 0; i < mcMixIn->nCtls; i++) {
@@ -797,7 +797,7 @@ audio_set_gain(int audio_fd, int level)
                         mcd.cbDetails      = sizeof(MIXERCONTROLDETAILS_UNSIGNED);
                         mcd.paDetails      = &mcduDevLevel;
                         mcduDevLevel.dwValue = ((mcMixIn[curMixIn].dwUpperBound[i] - mcMixIn[curMixIn].dwLowerBound[i])/100) * level + mcMixIn[curMixIn].dwLowerBound[i];
-                        fprintf(stderr, "%d %d\n", level, mcduDevLevel.dwValue);
+                        fprintf(stderr, "audio_set_gain rat %d dev %d\n", level, mcduDevLevel.dwValue);
                         play_vol   = level;
                         r = mixerSetControlDetails(hMixIn, &mcd, MIXER_OBJECTF_HMIXER);
                         switch (r) {
@@ -820,6 +820,7 @@ audio_set_gain(int audio_fd, int level)
 int
 audio_get_gain(int audio_fd)
 {
+        fprintf(stderr, "audio_get_gain: %d\n", rec_vol);
 	return (rec_vol);
 }
 

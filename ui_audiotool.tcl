@@ -727,7 +727,7 @@ button .r.c.vol.t1 -highlightthickness 0 -pady 0 -padx 0 -text mute -command {to
 set output_port "speaker"
 button .r.c.vol.l1 -highlightthickness 0 -command toggle_output_port
 bargraphCreate .r.c.vol.b1
-scale .r.c.vol.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -relief raised -showvalue false -width 10
+scale .r.c.vol.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -relief raised -showvalue false -width 10 -variable volume
 label .r.c.vol.ml -text "Reception is muted" -relief sunken
 
 pack .r.c.vol.l1 -side left -fill y
@@ -741,7 +741,7 @@ button .r.c.gain.t2 -highlightthickness 0 -pady 0 -padx 0 -text mute -command {t
 set input_port "microphone"
 button .r.c.gain.l2 -highlightthickness 0 -command toggle_input_port 
 bargraphCreate .r.c.gain.b2
-scale .r.c.gain.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10
+scale .r.c.gain.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10 -variable gain
 label .r.c.gain.ml -text "Transmission is muted" -relief sunken
 
 pack .r.c.gain.l2 -side left -fill y
@@ -1304,12 +1304,15 @@ proc save_setting {f field var} {
     global win32 V rtpfname
     upvar #0 $var value
     if {$win32 == 0} {
-		puts $f "*$field: $value"
+		catch { puts $f "*$field: $value" }
     } else {
 		if {[string first "rtp" "$field"] == -1} {
-			catch {registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field" "$value"} fail
+			set fail [catch {registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field" "$value"} errmsg ]
 		} else {
-			catch {registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\common" "*$field" "$value"} fail
+			set fail [catch {registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\common" "*$field" "$value"} errmsg ]
+		}
+		if {$fail} {
+			puts "registry set failed:\n$errmsg"
 		}
 	}
 }
@@ -1365,7 +1368,7 @@ proc save_settings {} {
     save_setting $f  audioInputPort    input_port
 
     if {$win32 == 0} {
-	close $f
+	    close $f
     }
 }
 
@@ -1381,7 +1384,7 @@ proc load_setting {attrname field var default} {
 			set fail [ catch { set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\common  *$field]" } msg ]
 		}
 		if {$fail} {
-			puts "Failed to get $field reason $msg";
+			puts "Failed to get $field reason $msg\n";
 			set tmp ""
 		} else {
 			puts "$field $var $tmp"
@@ -1441,7 +1444,6 @@ proc load_settings {} {
     load_setting attr audioHelpOn       help_on       "1"
     load_setting attr audioMatrixOn     matrix_on     "0"
     load_setting attr audioPlistOn      plist_on      "1"
-
     # device config
     load_setting attr audioOutputGain   volume       "50"
     load_setting attr audioInputGain    gain         "50"
@@ -1463,8 +1465,10 @@ proc load_settings {} {
     load_setting attr audioRedundancyOffset  red_off       "1"
     load_setting attr audioInterleavingGap   int_gap       "4"
     load_setting attr audioInterleavingUnits int_units     "4"
+	
 	global prenc channels freq
 	mbus_send "R" "primary" "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
+	
 	global      in_mute_var   out_mute_var
 	input_mute  $in_mute_var
 	output_mute $out_mute_var
