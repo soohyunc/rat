@@ -5,21 +5,19 @@
  * This code was inspired by audio implementation in VAT from OpenMash.
  */
 
-#include <string.h>
-#include <AudioToolbox/DefaultAudioOutput.h>
-#include <AudioToolbox/AudioConverter.h>
-#include <CoreAudio/CoreAudio.h>
-#include "audio.h"
-#include "auddev_macosx.h"
+#include "ratconf.h"
 #include "config_unix.h"
 #include "debug.h"
 #include "memory.h"
 #include "audio_types.h"
 #include "audio_fmt.h"
+#include "auddev_macosx.h"
 #include "util.h"
 #include "decim_3528kHz_8kHz.inc"
-//#include "logmaker.h"
-#include "inttypes.h"
+
+#include <AudioToolbox/DefaultAudioOutput.h>
+#include <AudioToolbox/AudioConverter.h>
+#include <CoreAudio/CoreAudio.h>
 
 struct device
 {
