@@ -94,7 +94,7 @@ static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_
 	}
 #else
 #ifdef DEBUG_FORK
-	debug_msg("%s -ctrl %s -token %s\n", proc_name, ctrl_addr, token);
+	debug_msg("%s -ctrl '%s' -token %s\n", proc_name, ctrl_addr, token);
 	UNUSED(pid);
 #else
 	*pid = fork();

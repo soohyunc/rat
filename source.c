@@ -1,6 +1,8 @@
 /*
  * FILE:      source.c
  * AUTHOR(S): Orion Hodson 
+ *
+ * Layering support added by Tristan Henderson.
  *	
  * $Revision$
  * $Date$
@@ -28,11 +30,13 @@
 #include "ts.h"
 #include "channel_types.h"
 #include "pdb.h"
+#include "pktbuf.h"
 #include "source.h"
 #include "debug.h"
 #include "util.h"
 #include "net_udp.h"
 #include "mix.h"
+#include "rtp.h"
 
 #define SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER  8 
 #define SKEW_OFFENSES_BEFORE_EXPANDING_BUFFER    3
@@ -56,6 +60,7 @@ typedef struct s_source {
         u_int16                     consec_lost;
         u_int32                     mean_energy;
         ts_sequencer                seq;
+        struct s_pktbuf            *pktbuf;
         struct s_channel_state     *channel_state;
         struct s_codec_state_store *codec_states;
         struct s_pb                *channel;
@@ -218,6 +223,12 @@ source_create(source_list    *plist,
                 goto fail_create_states;
         }
 
+        success = pktbuf_create(&psrc->pktbuf, 4); 
+        if (!success) {
+                debug_msg("Failed to allocate packet buffer\n");
+                goto fail_pktbuf;
+        }
+
         /* List maintenance    */
         psrc->next = plist->sentinel.next;
         psrc->prev = &plist->sentinel;
@@ -237,6 +248,8 @@ source_create(source_list    *plist,
         return psrc;
 
         /* Failure fall throughs */
+fail_pktbuf:
+        codec_state_store_destroy(&psrc->codec_states); 
 fail_create_states:
         pb_iterator_destroy(psrc->media, &psrc->media_pos);        
 fail_create_iterator:
@@ -349,6 +362,7 @@ source_remove(source_list *plist, source *psrc)
         pb_destroy(&psrc->channel);
         pb_destroy(&psrc->media);
         codec_state_store_destroy(&psrc->codec_states);
+        pktbuf_destroy(&psrc->pktbuf);
         plist->nsrcs--;
 
         debug_msg("Destroying source decode path\n");
@@ -361,12 +375,12 @@ source_remove(source_list *plist, source *psrc)
 /* Source Processing Routines ************************************************/
 
 /* Returns true if fn takes ownership responsibility for data */
-int
-source_add_packet (source *src, 
-                   u_char *pckt, 
-                   u_int32 pckt_len, 
-                   u_int8  payload,
-                   ts_t    playout)
+static int
+source_process_packet (source *src, 
+                       u_char *pckt, 
+                       u_int32 pckt_len, 
+                       u_int8  payload,
+                       ts_t    playout)
 {
         channel_data *cd;
         channel_unit *cu;
@@ -507,6 +521,40 @@ done:
 
         return TRUE;
 }
+
+static void
+source_process_packets(source *src)
+{
+        ts_t    timestamp;
+        u_char  payload;
+        u_char *data,   *u;
+        u_int32 datalen, ulen;
+        rtp_packet *p;
+
+        while(pktbuf_dequeue(src->pktbuf, &timestamp, &payload, &data, &datalen)) {
+                p    = (rtp_packet*)data;
+                ulen = p->data_len;
+                u    = (u_char*)block_alloc((int)ulen);
+                /* Would be great if memcpy occured after validation in source_process_packet */
+                memcpy(u, p->data, p->data_len);
+                if (source_process_packet(src, u, ulen, payload, timestamp) == FALSE) {
+                        block_free(u, (int)ulen);
+                }
+                xfree(data);
+        }
+
+}
+
+int
+source_add_packet (source *src, 
+                   u_char *pckt, 
+                   u_int32 pckt_len, 
+                   u_int8  payload,
+                   ts_t    playout)
+{
+        return pktbuf_enqueue(src->pktbuf, playout, payload, pckt, pckt_len);
+}
+
 
 /* recommend_drop_dur does quick pattern match with audio that is
  * about to be played i.e. first few samples to determine how much
@@ -865,6 +913,8 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
          * point is recalculated causing overlap, and when playout
          * buffer shift occurs in middle of a loss.
          */
+        
+        source_process_packets(src);
 
         /* Split channel coder units up into media units */
         if (pb_node_count(src->channel)) {

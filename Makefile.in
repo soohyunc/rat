@@ -27,7 +27,7 @@ CORE_OBJS    = ts.o playout.o net.o source.o session.o \
                mbus_engine.o audio.o cushion.o mix.o \
                parameters.o timers.o transmit.o playout_calc.o \
                transcoder.o ui.o rtp_callback.o usleep.o settings.o \
-               pdb.o
+               pdb.o pktbuf.o
 
 UI_OBJS      = tcltk.o mbus_ui.o main_ui.o
 CTRL_OBJS    = main_control.o mbus_control.o

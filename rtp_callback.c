@@ -236,12 +236,7 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                 e->jit_toged  ++;
                 e->cont_toged ++;
         } else {
-                u_int32 ulen = p->data_len;
-                u_char *u    = block_alloc(ulen);
-                memcpy(u, p->data, p->data_len);
-                if (source_add_packet(s, u, ulen, (u_char)p->pt, playout) == FALSE) {
-                        block_free(u, ulen);
-                }
+                source_add_packet(s, (u_char*)p, RTP_MAX_PACKET_LEN, (u_char)p->pt, playout);
                 e->cont_toged = 0;
         }
 
@@ -252,7 +247,6 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
         e->last_seq = p->seq;
         e->last_ts  = p->ts;
         e->last_arr = sp->cur_ts;
-        xfree(p);
 }
 
 static void
