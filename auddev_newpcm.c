@@ -35,6 +35,7 @@ static int audio_fd = -1;
                                             debug_msg("Failed %s - line %d\n",#cmd, __LINE__); \
                                             newpcm_error = __LINE__; \
                                                }
+#define IN_RANGE(x,l,u) ((x) >= (l) && (x) <= (u))
 
 #define NEWPCM_MAX_AUDIO_NAME_LEN 32
 #define NEWPCM_MAX_AUDIO_DEVICES  3
@@ -107,6 +108,28 @@ newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 case DEV_S16:  pa.play_format |= AFMT_S16_LE; break;
                 case DEV_U8:   pa.play_format |= AFMT_U8;     break;
                 }
+
+		/* Check rate is supported (driver does not and
+		 * appears to mis-report actual rate) */
+		if ((IN_RANGE((uint32_t)ofmt->sample_rate, 
+			      soundcaps[ad].rate_min, 
+			      soundcaps[ad].rate_max) == 0) || 
+		    (IN_RANGE((uint32_t)ifmt->sample_rate, 
+			      soundcaps[ad].rate_min, 
+			      soundcaps[ad].rate_max) == 0)) {
+			debug_msg("(%d or %d) out of range %d -- %d Hz\n",
+				  ofmt->sample_rate,
+				  ifmt->sample_rate,
+				  soundcaps[ad].rate_min,
+				  soundcaps[ad].rate_max);
+			if (ofmt->sample_rate == 8000 || ifmt->sample_rate == 8000) {
+				fprintf(stderr, "8000Hz sampling not supported by soundcard.  This is the default rate\nfor RTP voice applications.\n");
+			}
+			newpcm_audio_close(ad);
+			return FALSE;
+		}
+
+		/* Now set rate */
                 pa.play_rate = ofmt->sample_rate;
                 pa.rec_rate = ifmt->sample_rate;
                 NEWPCM_AUDIO_IOCTL(audio_fd, AIOSFMT, &pa);
@@ -245,11 +268,10 @@ newpcm_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 
         done = write(audio_fd, (void*)buf, write_bytes);
         if (done != write_bytes && errno != EINTR) {
-                /* Only ever seen this with soundblaster cards.
-                 * Driver occasionally packs in reading.  Seems to be
-                 * no way to reset cleanly whilst running, even
-                 * closing device, waiting a few 100ms and re-opening
-                 * seems to fail.  
+                /* Only ever seen this with soundblaster cards and CS461x cards that
+		 * opened at 8kHz even though minimum rate was 11.025kHz.  We now
+                 * bounds check the device rates when opened, hopefully this will
+		 * not re-occur.
                  */
                 perror("Error writing device.");
 		fprintf(stderr, "Please email this message to rat-trap@cs.ucl.ac.uk with output of:\n\t uname -a\n\t cat /dev/sndstat\n");
@@ -444,7 +466,11 @@ newpcm_audio_iport_set(audio_desc_t ad, audio_port_t port)
 
 	debug_msg("port 0x%08x recmask 0x%08x\n", port, recmask);
 
-	assert((port & recmask) != 0);
+	if ((port & recmask) == 0) {
+		debug_msg("Port 0x%08d not in recmask 0x%08d\n",
+			  port, recmask);
+		return;
+	}
 
 	if (ioctl(audio_fd, SOUND_MIXER_WRITE_RECSRC, &port) < 0) {
 		perror("Unable to write record mask\n");

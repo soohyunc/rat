@@ -1446,10 +1446,12 @@ v4.2.10 - Added auddev_newpcm.[ch] with newpcm style mixer control.  Includes
 	* Released 1 November 2000
 
 v4.2.11	- Fix port restoration when changing device (Shirasaki Yasuhiro)
-
-
-
-
+	- Remove assert that made duff port restoration core dump in newpcm, 
+	  just check port is correct range, if not print warning.
+	- Add check that requested sampling rate is within device
+	  capabilities on newpcm.  Driver does not do bounds checking when 
+	  setting rate and will mis-report actual rate when a duff rate has 
+	  been set (reported by Lars Eggert).
 
 TODO -- They're features not bugs dammit!
 ----
