@@ -796,7 +796,7 @@ ui_controller_init(char *cname, char *name_engine, char *name_ui, char *name_vid
 	mbus_name_video  = name_video;
 
 	my_cname = mbus_encode_str(cname);
-	mbus_engine_tx(TRUE, mbus_name_ui, "my.cname", my_cname, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.cname", my_cname, TRUE);
         xfree(my_cname);
 }
 
