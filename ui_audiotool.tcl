@@ -1840,8 +1840,8 @@ add_help $i.a.f.f.balloon "If you can see this, balloon help\nis enabled. If not
 add_help $i.a.f.f.matrix  "Displays a chart showing the reception\nquality reported by all participants"
 add_help $i.a.f.f.plist   "Hides the list of participants"
 
-add_help .chart		"This chart displays the reception quality reported\nby all session\
-			 participants. Looking along a row\ngives the quality that participant\
-			 received from all\nother participants in the session: green is\
-			 good\nquality, orange medium quality, and red poor quality\naudio."
+add_help .chart		"This chart displays the reception quality reported\n by all session\
+                         participants. Looking along a row\n gives the quality with which that\
+			 participant was\n received by all other participants in the session:\n green\
+			 is good quality, orange medium quality, and\n red poor quality audio."
 
