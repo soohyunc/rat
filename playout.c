@@ -184,6 +184,19 @@ pb_shift_forward(pb_t *pb, ts_t delta)
         }
 }
 
+void
+pb_shift_units_back_after(pb_t *pb, ts_t ref_ts, ts_t delta)
+{
+        pb_node_t *stop, *curr;
+
+        stop = pb->psentinel;
+        curr = pb->psentinel->prev;
+        while(curr != stop && ts_gt(curr->playout, ref_ts)) {
+                curr->playout = ts_add(curr->playout, delta);
+                curr = curr->prev;
+        }
+}
+
 int
 pb_is_empty(pb_t *pb)
 {

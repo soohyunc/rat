@@ -38,6 +38,7 @@ int  pb_is_empty (struct s_pb *pb);
 
 void pb_shift_back(struct s_pb *pb, ts_t delta);
 void pb_shift_forward(struct s_pb *pb, ts_t delta);
+void pb_shift_units_back_after(struct s_pb *pb, ts_t ref_time, ts_t delta);
 
 u_int16 pb_iterator_count(struct s_pb *pb);
 

@@ -40,7 +40,8 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 
-#define SKEW_OFFENSES_BEFORE_ADAPT    8 
+#define SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER  8 
+#define SKEW_OFFENSES_BEFORE_EXPANDING_BUFFER    3
 #define SKEW_ADAPT_THRESHOLD       2000
 #define SOURCE_YOUNG_AGE             20
 #define SOURCE_AUDIO_HISTORY_MS    1000
@@ -504,6 +505,10 @@ source_check_buffering(source *src, ts_t now)
                 /* buffer is running dry so src clock is slower */
                 src->skew = SOURCE_SKEW_SLOW;
                 src->skew_adjust = ts_map32(8000, (playout_ms - buf_ms) * 8);
+                if (src->skew_offenses > 0) {
+                        /* Reset offenses for faster operation */
+                        src->skew_offenses = 0;
+                }
                 src->skew_offenses--;
                 debug_msg("%d, have %d want %d\n", src->skew_offenses, buf_ms, playout_ms);
         } else {
@@ -526,11 +531,11 @@ source_check_buffering(source *src, ts_t now)
  * Might want to be more sophisticated and put a silence detector in
  * rather than static threshold.
  *
- * returns TRUE if adaption happened and false otherwise.
+ * Returns what adaption type occurred.
  */
 
-static int
-source_skew_adapt(source *src, media_data *md)
+static skew_t
+source_skew_adapt(source *src, media_data *md, ts_t playout)
 {
         u_int32 i, e = 0, samples = 0;
         u_int16 rate, channels;
@@ -542,8 +547,8 @@ source_skew_adapt(source *src, media_data *md)
 
         for(i = 0; i < md->nrep; i++) {
                 if (codec_get_native_info(md->rep[i]->id, &rate, &channels)) {
-                        samples = md->rep[i]->data_len / sizeof(sample);
-                        e = avg_audio_energy((sample*)md->rep[i]->data, samples, channels);
+                        samples = md->rep[i]->data_len / (channels * sizeof(sample));
+                        e = avg_audio_energy((sample*)md->rep[i]->data, samples * channels, channels);
                         break;
                 }
         }
@@ -552,7 +557,7 @@ source_skew_adapt(source *src, media_data *md)
                 /* don't adapt if unit has not been decoded (error) or
                  *  signal has too much energy 
                  */
-                return FALSE;
+                return SOURCE_SKEW_NONE;
         }
 
         /* When we are making the adjustment we must shift playout
@@ -562,12 +567,18 @@ source_skew_adapt(source *src, media_data *md)
          */
 
         if (src->skew == SOURCE_SKEW_FAST &&
-            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_ADAPT) {
+            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER) {
                 /* source is fast so we need to bring units forward.
                  * Should only move forward at most a single unit
                  * otherwise we might discard something we have not
                  * classified.  */
                 adjustment = ts_map32(8000, samples / 8);
+                if (ts_gt(adjustment, src->skew_adjust)) {
+                        /* adjustment needed is less than adjustment period
+                         * used.
+                         */
+                        return SOURCE_SKEW_NONE;
+                }
                 pb_shift_forward(src->media,   adjustment);
                 pb_shift_forward(src->channel, adjustment);
                 src->dbe->playout               = ts_sub(src->dbe->playout, adjustment);
@@ -592,29 +603,38 @@ source_skew_adapt(source *src, media_data *md)
 
                 conceal_dropped_samples(md, adjustment);
 
-                return TRUE;
-        } else if (src->skew == SOURCE_SKEW_SLOW) {
-                /* Buffer going dry so just chuck it all back by however much,
-                 * not entirely sure this is the best strategy at the moment.
-                 */
-                
-                adjustment = src->skew_adjust;
-                pb_shift_back(src->media, adjustment);
-                pb_shift_back(src->channel, adjustment);
+                return SOURCE_SKEW_FAST;
+        } else if (src->skew == SOURCE_SKEW_SLOW && 
+                   abs(src->skew_offenses) >= SKEW_OFFENSES_BEFORE_EXPANDING_BUFFER) {
+                adjustment = ts_map32(rate, samples);
+                if (ts_gt(src->skew_adjust, adjustment)) {
+                        adjustment = ts_map32(rate, samples * 2);
+                }
+                pb_shift_units_back_after(src->media,   playout, adjustment);
+                pb_shift_units_back_after(src->channel, playout, adjustment);
                 src->dbe->playout               = ts_add(src->dbe->playout, adjustment);
                 src->dbe->delay_in_playout_calc = ts_add(src->dbe->delay_in_playout_calc, adjustment);
-                src->last_played = ts_add(src->last_played, adjustment);
-                src->skew_offenses = 0;
 
+                if (ts_gt(adjustment, src->skew_adjust)) {
+                        src->skew_adjust = ts_map32(8000, 0);
+                } else {
+                        src->skew_adjust = ts_sub(src->skew_adjust, adjustment);
+                }
+                
+                src->skew_offenses /= 2;
+/* shouldn't have to make this adjustment since we are now adjusting
+ * units in future only. 
+                src->last_played = ts_add(src->last_played, adjustment);
                 if (ts_valid(src->last_repair)) {
                         src->last_repair = ts_add(src->last_repair, adjustment);
                 }
+                */
                 debug_msg("Playout buffer shift back\n");
                 src->skew = SOURCE_SKEW_NONE;
-                return TRUE;
+                return SOURCE_SKEW_SLOW;
         }
 
-        return FALSE;
+        return SOURCE_SKEW_NONE;
 }
 
 static int
@@ -819,7 +839,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         md->nrep++;
                 }
 
-                if (src->skew != SOURCE_SKEW_NONE && source_skew_adapt(src, md) == TRUE) {
+                if (src->skew != SOURCE_SKEW_NONE && source_skew_adapt(src, md, playout) != SOURCE_SKEW_NONE) {
                         /* We have skew and we have adjusted playout
                          *  buffer timestamps, so re-get unit to get
                          *  correct timestamp info */

@@ -294,19 +294,14 @@ tx_read_audio(tx_buffer *tb)
         } else {
                 /* We're not sending, but have access to the audio device. Read the audio anyway. */
                 /* to get exact timing values, and then throw the data we've just read away...    */
-                read_dur = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 4) / sp->tb->channels;
+                read_dur = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 16) / sp->tb->channels;
                 time_advance(sp->clock, get_freq(sp->tb->clock), read_dur);
         }
         
         if ((double)read_dur > 3.0 * sp->tb->mean_read_dur) {
-                debug_msg("Should clear transmit buffer because read_len big (%d cf %0.0f)\n",
+                debug_msg("read_len big (%d cf %0.0f)\n",
                           read_dur,
                           sp->tb->mean_read_dur);
-                if (tb->sending_audio) {
-                        tx_stop(tb);
-                        tx_start(tb);
-                        debug_msg("Flushed transmit buffer\n");
-                }
         } 
 
         if (read_dur) {
@@ -331,7 +326,6 @@ tx_process_audio(tx_buffer *tb)
         sp = tb->sp;
 
 	if (tb->sending_audio) {
-                
                 /* Do signal classification up until read point, that
                  * is not a complete audio frame so cannot be done 
                  */
