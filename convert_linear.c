@@ -50,17 +50,25 @@ linear_upsample(int offset, int channels,
         
         loop = min(src_len/channels, dst_len/(channels*l->scale));
 
+        /* On some platforms divisions by powers of 2 is way quicker */
+        /* than other divisions.  To improve interpolation perf.     */
+        /* approximate fractions which are not powers of two         */
+        /* i.e. 1 / 3 ->  5 / 16                                     */
+        /*      1 / 5 ->  6 / 32                                     */
+        /*      1 / 6 -> 11 / 64                                     */
+
         switch (l->scale) {
         case 6:
                 while(loop--) {
                         register int il, ic;
                         il = *last; ic = *sp;
-                        r = 5 * il + 1 * ic; r /= 6; *dp = (sample)r; dp += channels;
-                        r = 4 * il + 2 * ic; r /= 6; *dp = (sample)r; dp += channels;
-                        r = 3 * il + 3 * ic; r /= 6; *dp = (sample)r; dp += channels;
-                        r = 2 * il + 4 * ic; r /= 6; *dp = (sample)r; dp += channels;
-                        r = 1 * il + 5 * ic; r /= 6; *dp = (sample)r; dp += channels;
-                        *dp = (sample)ic; dp += channels;
+
+                        r = 55 * il + 11 * ic; r /= 64; *dp = (sample)r; dp += channels;
+                        r = 44 * il + 22 * ic; r /= 64; *dp = (sample)r; dp += channels;
+                        r = 33 * il + 33 * ic; r /= 64; *dp = (sample)r; dp += channels;
+                        r = 22 * il + 44 * ic; r /= 64; *dp = (sample)r; dp += channels;
+                        r = 11 * il + 55 * ic; r /= 64; *dp = (sample)r; dp += channels;
+                        r =           66 * ic; r /= 64; *dp = (sample)r; dp += channels;
                         last = sp;
                         sp += channels;
                 }
@@ -69,11 +77,11 @@ linear_upsample(int offset, int channels,
                 while(loop--) {
                         register int il, ic;
                         il = *last; ic = *sp;
-                        r = 4 * il + 1 * ic; r /= 5; *dp = (sample)r; dp += channels;
-                        r = 3 * il + 2 * ic; r /= 5; *dp = (sample)r; dp += channels;
-                        r = 2 * il + 3 * ic; r /= 5; *dp = (sample)r; dp += channels;
-                        r = 1 * il + 4 * ic; r /= 5; *dp = (sample)r; dp += channels;
-                        *dp = (sample)ic; dp += channels;
+                        r = 24 * il +  6 * ic; r /= 32; *dp = (sample)r; dp += channels;
+                        r = 18 * il + 12 * ic; r /= 32; *dp = (sample)r; dp += channels;
+                        r = 12 * il + 18 * ic; r /= 32; *dp = (sample)r; dp += channels;
+                        r =  6 * il + 24 * ic; r /= 32; *dp = (sample)r; dp += channels;
+                        r =           30 * ic; r /= 32; *dp = (sample)r; dp += channels;
                         last = sp;
                         sp  += channels;
                 }
@@ -94,9 +102,9 @@ linear_upsample(int offset, int channels,
                 while(loop--) {
                         register int il, ic;
                         il = *last; ic = *sp;
-                        r = 2 * il + 1 * ic; r /= 3; *dp = (sample)r; dp += channels;
-                        r = 1 * il + 2 * ic; r /= 3; *dp = (sample)r; dp += channels;
-                        *dp = (sample)ic; dp += channels;
+                        r = 10 * il +  5 * ic; r /= 16; *dp = (sample)r; dp += channels;
+                        r =  5 * il + 10 * ic; r /= 16; *dp = (sample)r; dp += channels;
+                        r =           15 * ic; r /= 16; *dp = (sample)r; dp += channels;
                         last = sp;
                         sp  += channels;
                 }
