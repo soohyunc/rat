@@ -76,13 +76,15 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 case AFMT_FULLDUPLEX | AFMT_WEIRD:
                         /* this is a sb16/32/64... 
                          * you can change either ifmt or ofmt to U8 
+                         * NOTE: No other format supported in driver at this time!
                          * to work around broken hardware here.  By default
                          * we use the 16bit channel for output and 8bit
                          * for input since most people probably want to
                          * list to the radio. 
                          */
                         debug_msg("Weird Hardware\n");
-                        audio_format_change_encoding(ofmt, DEV_U8); 
+
+                        audio_format_change_encoding(ifmt, DEV_U8);
                         break;
                 default:		/* no full duplex... */
                         fprintf(stderr, "Sorry driver does support full duplex for this soundcard\n");
@@ -223,7 +225,8 @@ luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 
         done = write(audio_fd, (void*)buf, write_bytes);
         if (done != write_bytes && errno != EINTR) {
-                perror("Error writing device");
+                perror("Error writing device. Reset device attempted.");
+                ioctl(audio_fd,SNDCTL_DSP_RESET,0);
                 return (write_bytes - done);
         }
 
