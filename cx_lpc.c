@@ -5,6 +5,15 @@
  * Copyright (c) 1995,1996 University College London
  * All rights reserved.
  *
+ * This code was originally pulled from VAT source.  Berkeley license 
+ * removed since code did not originate at Berkeley/LBL.
+ *
+ * Main modifications are:
+ * - Elimination static variable declarations that cause state overlap
+ *   problems when coding/decoding multiple streams simultaneously.
+ * - Array bound overrun fixes.
+ * - Assorted complier warning fixes.
+ *
  */
 
 #include "config_win32.h"
@@ -104,10 +113,19 @@ calc_pitch(float *w, float *per)
 
 	for (i = 0, j = 0; i < BUFLEN; i += DOWN)
 		d[j++] = w[i];
+        assert(PITCHORDER <= MAXPER + 1);
 	auto_correl(d, BUFLEN / DOWN, PITCHORDER, r);
 	durbin(r, PITCHORDER, k, &g);
 	inverse_filter(d, k);
+        /* Note diff from lpc.c in VAT:                                   */
+        /* Paramter 3 to auto_correl is MAXPER, rather than VAT's         */
+        /* MAXPER + 1 which causes buffer overrun                         */
 	auto_correl(d, BUFLEN / DOWN, MAXPER, r);
+
+        /* Note diff from lpc.c in VAT:                                   */
+        /* rpos is defined to be 1 at start to prevent potential illegal  */
+        /* memory dereference when defining rm.  Same with rp so rmax     */
+        /* search uses a terminating value of MAXPER rather than MAXPER+1 */
 	rpos = 1;
 	rmax = 0.0;
 	for (i = MINPER; i < MAXPER; i++) {
@@ -121,13 +139,13 @@ calc_pitch(float *w, float *per)
 	rp = r[rpos + 1];
 	rval = rmax / r[0];
 
-	a = 0.5f * rm - rmax + 0.5f * rp;
-	b = -0.5f * rm * (2.0f * rpos + 1.0f) + 
-	    2.0f * rpos * rmax + 0.5f * rp * (1.0f - 2.0f * rpos);
-	c = 0.5f * rm * (rpos * rpos + rpos) +
+        a = 0.5f * rm - rmax + 0.5f * rp;
+        b = -0.5f * rm * (2.0f * rpos + 1.0f) +
+            2.0f * rpos * rmax + 0.5f * rp * (1.0f - 2.0f * rpos);
+        c = 0.5f * rm * (rpos * rpos + rpos) +
 	    rmax * (1.0f - rpos * rpos) + 0.5f * rp * (rpos * rpos - rpos);
 
-	x = -b / (2.0f * a);
+        x = -b / (2.0f * a);
 	y = a * x * x + b * x + c;
 	x *= DOWN;
 
@@ -141,21 +159,6 @@ calc_pitch(float *w, float *per)
 		vuv = (vuv & 1) * 2;
 	}
 }
-
-#ifdef DEBUG_LPC
-static void
-dump_state(FILE* f, lpc_intstate_t *state)
-{
-	int i;
-	double *p;
-	fprintf(f, "% .4f\t% .4f\t", state->Oldper, state->OldG);
-	p = state->Oldk+1;
-	for(i=1;i<=LPC_FILTORDER;i++,p++)
-		fprintf(f, "% .4f\t", *p);
-	fprintf(f, "\n");
-	return;
-}
-#endif
 
 void
 lpc_init()
@@ -249,8 +252,8 @@ lpc_analyze(const short *buf, lpc_encstate_t *enc, lpc_txstate_t *params)
 		params->k[i] = (char)(k[i + 1] * 128.0f);
 	}
 
-	memcpy(s, s + FRAMESIZE, (BUFLEN - FRAMESIZE) * sizeof(float));
-	memcpy(y, y + FRAMESIZE, (BUFLEN - FRAMESIZE) * sizeof(float));
+	memcpy(s, s + FRAMESIZE, (BUFLEN - FRAMESIZE) * sizeof(s[0]));
+	memcpy(y, y + FRAMESIZE, (BUFLEN - FRAMESIZE) * sizeof(y[0]));
 }
 
 double drand48(void);
@@ -363,5 +366,3 @@ lpc_extend_synthesize(short *buf, int len, lpc_intstate_t* s)
                 *buf++ = (short)((int)(f * 32768) & 0xffff);
 	}
 }
-
-
