@@ -422,28 +422,29 @@ g711_get_format(u_int16 idx)
 int
 g711_encode (u_int16 idx, u_char *state, sample *in, coded_unit *out)
 {
-        int len, remain;
-        u_char *p;
+        int len;
+        u_char *p, *pe;
 
         assert(idx < G711_NUM_FORMATS);
         UNUSED(state);
 
         /* No difference between A-law and U-law sizes */
-        remain = len = cs[idx].mean_coded_frame_size;
+        len = cs[idx].mean_coded_frame_size;
         
         out->state     = NULL;
         out->state_len = 0;
         out->data      = (u_char*)block_alloc(len);
         out->data_len  = len;
 
-        p = out->data;
+        p  = out->data;
+        pe = out->data + len;
         if (G711_IS_MULAW(idx)) {
-                while(remain--) {
+                while(p != pe) {
                         *p = s2u(*in);
                         p++; in++;
                 }
         } else {
-                while(remain--) {
+                while(p != pe) {
                         *p = s2a(*in);
                         p++; in++;
                 }
@@ -455,22 +456,23 @@ g711_encode (u_int16 idx, u_char *state, sample *in, coded_unit *out)
 int
 g711_decode(u_int16 idx, u_char *state, coded_unit *in, sample *out)
 {
-        int len, remain;
-        u_char *p;
+        int len;
+        u_char *p, *pe;
 
         assert(idx < G711_NUM_FORMATS);
         UNUSED(state);
 
-        len = remain = cs[idx].mean_coded_frame_size;
+        len = cs[idx].mean_coded_frame_size;
 
-        p = in->data;
+        p  = in->data;
+        pe = in->data + len;
         if (G711_IS_MULAW(idx)) {
-                while(remain--) {
+                while(p != pe) {
                         *out = u2s(*p);
                         out++; p++;
                 }
         } else {
-                while(remain--) {
+                while(p != pe) {
                         *out = a2s(*p);
                         out++; p++;
                 }
