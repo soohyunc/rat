@@ -1,9 +1,7 @@
 /*
 * FILE:	auddev_win32.c
 *
-* Written by Orion Hodson and Isidor Kouvelas
-*
-* Some portions based on the VAT Win95 port by John Brezak.
+* Reworked by Orion Hodson from RAT 3.0 code.
 *
 * $Id$
 *
@@ -813,77 +811,106 @@ mixSetup(UINT uMixer)
         return TRUE;
 }
 
+/* Global variables used by read and write processing                                    */
 static int blksz;
 static int nblks;
 static int smplsz;
-/* AUDIO OUTPUT RELATED FN's ********************************/
 
-static WAVEHDR *write_hdrs, *write_curr, *write_tail;
-static u_char  *write_mem;
-static int      write_hdrs_used;
-static HWAVEOUT	shWaveOut;
+/* AUDIO OUTPUT RELATED FN's                                                             */
+static HWAVEOUT	shWaveOut;         /* Handle for wave output                             */
+static WAVEHDR *whWriteHdrs;       /* Pointer to blovk of wavehdr's alloced for writing  */
+static u_char  *lpWriteData;       /* Pointer to raw audio data buffer                   */
+static WAVEHDR *whWriteFreeList;   /* List of free write prepared wave headers           */
+
+void CALLBACK waveOutProc(
+  HWAVEOUT hwo,      
+  UINT uMsg,         
+  DWORD dwInstance,   
+  DWORD dwParam1,    
+  DWORD dwParam2) {
+        WAVEHDR *whDone, **whTail;
+        switch(uMsg) {
+        case WOM_DONE:
+                whDone = (WAVEHDR*)dwParam1;
+                whDone->dwFlags &= ~WHDR_DONE;     /* Clear flag            */
+                /* waveOutProc is invoked via MMTASK and can occur at any   */
+                /* point in the application execution.  We add to the tail  */
+                /* of the free headers list because win32sdk_audio_write    */
+                /* maybe playing with head, and we corrupt list if we touch */
+                /* the portion being added.                                 */
+                whTail = &whWriteFreeList;         
+                while (*whTail != NULL) {         
+                        whTail = &((*whTail)->lpNext);   
+                }
+                *whTail = whDone;
+                whDone->lpNext = NULL;
+        }
+}
 
 static int
 w32sdk_audio_open_out(UINT uId, WAVEFORMATEX *pwfx)
 {
+        MMRESULT        mmr;
         int		i;
-        WAVEHDR		*whp;
-        u_char		*bp;
         
-        if (shWaveOut)
+        if (shWaveOut) {
                 return (TRUE);
+        }
         
-        error = waveOutOpen(&shWaveOut, uId, pwfx, 0, 0, CALLBACK_NULL);
-        if (error) {
-#ifdef DEBUG
-                waveOutGetErrorText(error, errorText, sizeof(errorText));
-                debug_msg("waveOutOpen: (%d) %s\n", error, errorText);
-#endif
+        mmr = waveOutOpen(&shWaveOut, uId, pwfx, (DWORD)waveOutProc, 0, CALLBACK_FUNCTION);
+        if (mmr != MMSYSERR_NOERROR) {
+                waveOutGetErrorText(mmr, errorText, sizeof(errorText));
+                debug_msg("waveOutOpen: (%d) %s\n", mmr, errorText);
                 return (FALSE);
         }
         
-        if (write_mem != NULL) xfree(write_mem);
-        write_mem = (u_char*)xmalloc(nblks * blksz);
-        memset(write_mem, 0, nblks * blksz);
-        if (write_hdrs != NULL) xfree(write_hdrs);
-        write_hdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks);
-        memset(write_hdrs, 0, sizeof(WAVEHDR)*nblks);
-        for (i = 0, whp = write_hdrs, bp = write_mem; i < nblks; i++, whp++, bp += blksz) {
-                whp->dwFlags        = 0;
-                whp->dwBufferLength = blksz;
-                whp->lpData         = (char*)bp;
-                error = waveOutPrepareHeader(shWaveOut, whp, sizeof(WAVEHDR));
-                if (error) {
-                        waveOutGetErrorText(error, errorText, sizeof(errorText));
-                        debug_msg("Win32Audio: waveOutPrepareHeader: %s\n", errorText);
-                        exit(1);
-                }
+        if (lpWriteData != NULL) {
+                xfree(lpWriteData);
         }
-        write_tail      = write_curr = write_hdrs;
-        write_hdrs_used = 0;
+        lpWriteData = (u_char*)xmalloc(nblks * blksz);
+        memset(lpWriteData, 0, nblks * blksz);
+        
+        if (whWriteHdrs != NULL) {
+                xfree(whWriteHdrs);
+        }
+        whWriteHdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks);
+        memset(whWriteHdrs, 0, sizeof(WAVEHDR)*nblks);
+
+        whWriteFreeList = NULL;
+
+        for (i = 0; i < nblks; i++) {
+                whWriteHdrs[i].dwFlags        = 0;
+                whWriteHdrs[i].dwBufferLength = blksz;
+                whWriteHdrs[i].lpData         = lpWriteData + i * blksz;
+                whWriteHdrs[i].dwUser         = i; /* For debugging purposes */
+                mmr = waveOutPrepareHeader(shWaveOut, &whWriteHdrs[i], sizeof(WAVEHDR));
+                assert(mmr == MMSYSERR_NOERROR);
+                whWriteHdrs[i].lpNext = whWriteFreeList;
+                whWriteFreeList = &whWriteHdrs[i];
+        }
+
         return (TRUE);
 }
 
 static void
 w32sdk_audio_close_out()
 {
-        int	i;
-        WAVEHDR		*whp;
+        int i;
         
-        if (shWaveOut == 0)
+        if (shWaveOut == 0) {
                 return;
-        
+        }
         waveOutReset(shWaveOut);
-        
-        for (i = 0, whp = write_hdrs; i < nblks; i++, whp++)
-                if (whp->dwFlags & WHDR_PREPARED)
-                        waveOutUnprepareHeader(shWaveOut, whp, sizeof(WAVEHDR));
-                
-                (void) waveOutClose(shWaveOut);
-                xfree(write_hdrs); write_hdrs = NULL;
-                xfree(write_mem);  write_mem  = NULL;
-                xmemchk();
-                shWaveOut = 0;
+        for (i = 0; i < nblks; i++) {
+                if (whWriteHdrs[i].dwFlags & WHDR_PREPARED) {
+                        waveOutUnprepareHeader(shWaveOut, &whWriteHdrs[i], sizeof(WAVEHDR));
+                }
+        }
+        xfree(whWriteHdrs); whWriteHdrs = NULL;
+        xfree(lpWriteData); lpWriteData  = NULL;
+        whWriteFreeList = NULL;
+        xmemchk();
+        shWaveOut = 0;
 }
 
 #define WRITE_ERROR_STILL_PLAYING 33
@@ -891,90 +918,55 @@ w32sdk_audio_close_out()
 int
 w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
 {
-        int		error, len, done;
+        WAVEHDR   *whNext;
+        MMRESULT   mmr;
+        int        done, this_write;
         
-        UNUSED(ad);
-        
-        assert(shWaveOut != 0);
-        
-        while (write_tail->dwFlags & WHDR_DONE) {
-                write_tail->dwFlags &= ~WHDR_DONE;
-                write_hdrs_used--;
-                write_tail++;
-                if (write_tail >= write_hdrs + nblks)
-                        write_tail = write_hdrs;
-        }
-        
-        if (write_hdrs_used > 4*nblks/5) {
-                /* Not sure I trust write_hdrs_used as a measure */
-                WAVEHDR *who;
-                int i, cnt;
-                who = write_hdrs;
-                i = cnt = 0;
-                while (i < nblks) {
-                        if (!(who->dwFlags & WHDR_DONE)) {
-                                cnt++;
-                        }
-                        i++;
-                }
-                debug_msg("Counted %d used\n", cnt);
-                debug_msg("Running out of write buffers %d used\n", write_hdrs_used);
-                /* probably want assert(cnt == write_hdrs_used) here */
-        }
-        
+        /* THis is slightly ugly because we handle writes of any size, not just */
+        /* multiples of blksz. RAT likes to write multiples of the cushion step */
+        /* size which is usually 1/2 device blksz.                              */
+               
         done = 0;
-        while (buf_bytes > 0) {
-                if (write_curr->dwFlags & WHDR_DONE) {
-                        /* Have overdone it! */
-                        debug_msg("w32sdk_audio_write, reached end of buffer (%06d bytes remain)\n", buf_bytes);
-                        return (done);
+        while(whWriteFreeList != NULL && done < buf_bytes) {
+                this_write = min(buf_bytes - done, blksz);
+                memcpy(whWriteFreeList->lpData, 
+                        buf + done,
+                        this_write);
+                done  += this_write;
+                whWriteFreeList->dwBufferLength = this_write; /* XXX Unprepare and prepare needed ? */                
+                whNext = whWriteFreeList->lpNext;
+                mmr    = waveOutWrite(shWaveOut, whWriteFreeList, sizeof(WAVEHDR));
+                whWriteFreeList       = whNext;
+                if (mmr == WRITE_ERROR_STILL_PLAYING) {
+                        debug_msg("Device filled\n");
+                        break;
                 }
-                
-                len = (buf_bytes > blksz) ? blksz: buf_bytes;
-                
-                memcpy(write_curr->lpData, buf, len);
-                buf += len;
-                
-                error = waveOutWrite(shWaveOut, write_curr, sizeof(WAVEHDR));
-                
-                if (error == WRITE_ERROR_STILL_PLAYING) { /* We've filled device buffer ? */
-                        debug_msg("Win32Audio - device filled. Discarding %d bytes.\n",
-                                buf_bytes);
-                                /* we return as if we wrote everything out
-                                * to give buffer a little breathing room
-                        */
-                        return done;
-                } else if (error) {
-                        waveOutGetErrorText(error, errorText, sizeof(errorText));
-                        debug_msg("Win32Audio: waveOutWrite (%d): %s\n", error,	errorText);
-                        return (buf_bytes);
-                }
-                
-                write_curr++;
-                write_hdrs_used++;
-                if (write_curr >= write_hdrs + nblks) {
-                        write_curr = write_hdrs;
-                }
-                
-                done      += blksz;
-                buf_bytes -= blksz;
+                assert(mmr == MMSYSERR_NOERROR);
         }
-        return (done);
+
+        if (done != buf_bytes) {
+                assert(whWriteFreeList == NULL || mmr == WRITE_ERROR_STILL_PLAYING);
+                /* XXX With a 1 second buffer this should never happen! */
+                debug_msg("Write overflow %d > %d bytes\n", buf_bytes, done);
+        }
+        return done;
 }
 
 /* AUDIO INPUT RELATED FN's *********************************/
 
-static unsigned char audio_ready = 0;
+static HWAVEIN	shWaveIn;              /* Handle for wave input                                */
+static WAVEHDR	*whReadHdrs;           /* Pointer to block of wavehdr's allocated for reading  */
+static u_char	*lpReadData;           /* Pointer to raw audio data buffer                     */
+static WAVEHDR  *whReadList;           /* List of wave headers that have been read but not     */
+                                       /* given to the application.                            */ 
+static int       nBytesUsedAtReadHead; /* Number of bytes that have already been read at head  */
+static HANDLE    hAudioReady;          /* Audio Ready Event */
 
 int
 w32sdk_audio_is_ready(audio_desc_t ad)
 {
         UNUSED(ad);
-        if (audio_ready>nblks/5) {
-                debug_msg("Lots of audio available (%d blocks)\n", audio_ready);
-        }
-        assert(audio_ready >= 0);
-        return audio_ready;
+        return (whReadList != NULL);
 }
 
 static void CALLBACK
@@ -984,81 +976,79 @@ waveInProc(HWAVEIN hwi,
            DWORD   dwParam1,
            DWORD   dwParam2)
 {
-        UNUSED(dwInstance);
-        UNUSED(dwParam1);
-        UNUSED(dwParam2);
-        UNUSED(hwi);
+        WAVEHDR *whRead, **whInsert;
         
         switch(uMsg) {
         case WIM_DATA:
-                audio_ready++;
+                whRead = (WAVEHDR*)dwParam1;
+                whRead->dwFlags &= ~WHDR_DONE;
+                whRead->dwUser   = whRead - whReadHdrs; /* For debugging - offset in whReadhdrs */
+                whRead->lpNext   = NULL;                /* Will be tail of whReadList */
+                whInsert = &whReadList;
+                while(*whInsert != NULL) {
+                        whInsert = &((*whInsert)->lpNext);
+                }
+                *whInsert = whRead;
+                SetEvent(hAudioReady);
                 break;
         default:
                 ;  /* nothing to do currently */
         }
+        UNUSED(dwInstance);
+        UNUSED(dwParam2);
+        UNUSED(hwi);
         
         return;
 }
 
-static WAVEHDR	*read_hdrs, *read_curr;
-static u_char	*read_mem;
-static HWAVEIN	shWaveIn;
 
 static int
 w32sdk_audio_open_in(UINT uId, WAVEFORMATEX *pwfx)
 {
-        WAVEHDR	*whp;
-        int	     l;
-        u_char  *bp;
+        MMRESULT mmr;
+        int      i;
         
         if (shWaveIn) return (TRUE);
         
-        if (read_mem != NULL) xfree(read_mem);
-        read_mem = (u_char*)xmalloc(nblks * blksz);
+        if (lpReadData != NULL) xfree(lpReadData);
+        lpReadData = (u_char*)xmalloc(nblks * blksz);
         
-        if (read_hdrs != NULL) xfree(read_hdrs);
-        read_hdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks); 
+        if (whReadHdrs != NULL) xfree(whReadHdrs);
+        whReadHdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks); 
         
-        error = waveInOpen(&shWaveIn, 
-                uId, 
-                pwfx,
-                (unsigned long)waveInProc,
-                0,
-                CALLBACK_FUNCTION);
-        if (error != MMSYSERR_NOERROR) {
-                waveInGetErrorText(error, errorText, sizeof(errorText));
-                debug_msg("waveInOpen: (%d) %s\n", error, errorText);
+        mmr = waveInOpen(&shWaveIn, 
+                         uId, 
+                         pwfx,
+                         (DWORD)waveInProc,
+                         0,
+                         CALLBACK_FUNCTION);
+        if (mmr != MMSYSERR_NOERROR) {
+                waveInGetErrorText(mmr, errorText, sizeof(errorText));
+                debug_msg("waveInOpen: (%d) %s\n", mmr, errorText);
                 return (FALSE);
         }
         
-        /* Provide buffers for reading */
-        audio_ready = 0;
-        for (l = 0, whp = read_hdrs, bp = read_mem; l < nblks; l++, whp++, bp += blksz) {
-                whp->lpData = (char*)bp;
-                whp->dwBufferLength = blksz;
-                whp->dwFlags = 0;
-                error = waveInPrepareHeader(shWaveIn, whp, sizeof(WAVEHDR));
-                if (error) {
-                        waveInGetErrorText(error, errorText, sizeof(errorText));
-                        debug_msg("waveInPrepareHeader: (%d) %s\n", error, errorText);
-                        exit(1);
-                }
-                error = waveInAddBuffer(shWaveIn, whp, sizeof(WAVEHDR));
-                if (error) {
-                        waveInGetErrorText(error, errorText, sizeof(errorText));
-                        debug_msg("waveInAddBuffer: (%d) %s\n", error, errorText);
-                        exit(1);
-                }
+        /* Initialize wave headers */
+        for (i = 0; i < nblks; i++) {
+                whReadHdrs[i].lpData         = lpReadData + i * blksz;
+                whReadHdrs[i].dwBufferLength = blksz;
+                whReadHdrs[i].dwFlags        = 0;
+                mmr = waveInPrepareHeader(shWaveIn, &whReadHdrs[i], sizeof(WAVEHDR));
+                assert(mmr == MMSYSERR_NOERROR);               
+                mmr = waveInAddBuffer(shWaveIn, &whReadHdrs[i], sizeof(WAVEHDR));
+                assert(mmr == MMSYSERR_NOERROR);
         }
-        read_curr = read_hdrs;
-        
+
+        whReadList           = NULL;
+        nBytesUsedAtReadHead = 0;
+
         error = waveInStart(shWaveIn);
         if (error) {
                 waveInGetErrorText(error, errorText, sizeof(errorText));
                 debug_msg("Win32Audio: waveInStart: (%d) %s\n", error, errorText);
                 exit(1);
         }
-        
+        hAudioReady = CreateEvent(NULL, TRUE, FALSE, "RAT Audio Ready");
         return (TRUE);
 }
 
@@ -1066,7 +1056,6 @@ static void
 w32sdk_audio_close_in()
 {
         int		i;
-        WAVEHDR		*whp;
         
         if (shWaveIn == 0)
                 return;
@@ -1074,60 +1063,88 @@ w32sdk_audio_close_in()
         waveInStop(shWaveIn);
         waveInReset(shWaveIn);
         
-        for (i = 0, whp = read_hdrs; i < nblks; i++, whp++)
-                if (whp->dwFlags & WHDR_PREPARED)
-                        waveInUnprepareHeader(shWaveIn, whp, sizeof(WAVEHDR));
-                
-                waveInClose(shWaveIn);
-                shWaveIn = 0;
-                xfree(read_hdrs); read_hdrs = NULL;
-                xfree(read_mem);  read_mem  = NULL;
-                xmemchk();
+        for (i = 0; i < nblks; i++) {
+                if (whReadHdrs[i].dwFlags & WHDR_PREPARED) {
+                        waveInUnprepareHeader(shWaveIn, &whReadHdrs[i], sizeof(WAVEHDR));
+                }
+        }
+        
+        whReadList = NULL;
+
+        waveInClose(shWaveIn);           shWaveIn = 0;
+        xfree(whReadHdrs);               whReadHdrs = NULL;
+        xfree(lpReadData);               lpReadData  = NULL;
+        
+        xmemchk();
 }
 
 int
 w32sdk_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
-        static int virgin = 0;
-        int len = 0;
+        WAVEHDR *whNext;
+        MMRESULT mmr;
+        int done = 0, this_read;
         
-        UNUSED(ad); 
+        /* This is slightly ugle because we want to be able to operate when     */
+        /* buf_bytes has any value, not just a multiple of blksz.  In principle */
+        /* we do this so the device blksz does not have to match application    */
+        /* blksz.  I.e. can reduce process usage by using larger blocks at      */
+        /* device whilst the app operates on smaller blocks.                    */
+
+        while(whReadList != NULL && done < buf_bytes) {
+                this_read = min(blksz - nBytesUsedAtReadHead, buf_bytes - done);
+                memcpy(buf + done, 
+                       whReadList->lpData + nBytesUsedAtReadHead, 
+                       this_read);
+                done                 += this_read;
+                nBytesUsedAtReadHead += this_read;
+                if (nBytesUsedAtReadHead == blksz) {
+                        /* Finished with the block give it device */
+                        whNext = whReadList->lpNext;
+                        mmr = waveInAddBuffer(shWaveIn, whReadList, sizeof(WAVEHDR)); 
+                        assert(mmr == MMSYSERR_NOERROR);
+                        nBytesUsedAtReadHead = 0;
+                        whReadList = whNext;
+                }
+        }
+
+        UNUSED(ad);
+        assert(done <= buf_bytes);
+        return done;
+}
+
+void
+w32sdk_audio_drain(audio_desc_t ad)
+{
+        WAVEHDR *whNext;
+        MMRESULT mmr;
         
-        if (!virgin) {
-                debug_msg("ready %d\n", audio_ready);
-                virgin++;
+        mmr = waveInStop(shWaveIn);
+        assert(mmr == MMSYSERR_NOERROR);
+        
+        while(whReadList != NULL) {
+                /* Careful updating list incase waveInAddBuffer corrupts header */
+                whNext = whReadList->lpNext;
+                mmr = waveInAddBuffer(shWaveIn, whReadList, sizeof(WAVEHDR));
+                assert(mmr == MMSYSERR_NOERROR);
+                whReadList = whNext;
         }
         
-        assert(buf_bytes >= blksz);
-        buf_bytes -= buf_bytes % blksz;
-        
-        if (audio_ready) {
-                while ((read_curr->dwFlags & WHDR_DONE) && len < buf_bytes) {
-                        memcpy(buf, read_curr->lpData, blksz);
-                        buf += blksz;
-                        len += blksz;
-                        read_curr->dwFlags &= ~WHDR_DONE;
-                        error = waveInAddBuffer(shWaveIn, read_curr, sizeof(WAVEHDR));
-                        if (error) {
-                                waveInGetErrorText(error, errorText, sizeof(errorText));
-                                debug_msg("waveInAddBuffer: (%d) %s\n", error, errorText);
-                                exit(1);
-                        }
-                        read_curr++;
-                        if (read_curr == read_hdrs + nblks) read_curr = read_hdrs;
-                        if (audio_ready > 0) audio_ready--;
-                }
-#ifdef DEBUG
-                if (audio_ready > 3*nblks/4) {
-                        int i,used;
-                        for(i=0,used=0;i<nblks;i++) 
-                                if (read_hdrs[i].dwFlags & WHDR_DONE) used++;
-                                debug_msg("RB small %d of %d len %d, ready %d\n", used, nblks, len, audio_ready);
-                }
-#endif
+        mmr = waveInStart(shWaveIn);
+        assert(mmr == MMSYSERR_NOERROR);
+        UNUSED(ad);
+}
+
+void
+w32sdk_audio_wait_for(audio_desc_t ad, int delay_ms)
+{        
+        if (whReadList == NULL) {
+                WaitForSingleObject(hAudioReady, INFINITE);
+                ResetEvent(hAudioReady);
+                /* Sleep(delay_ms); */
         }
-        
-        return (len);
+        UNUSED(ad);
+        UNUSED(delay_ms);
 }
 
 static int audio_dev_open = 0;
@@ -1193,25 +1210,15 @@ w32sdk_audio_open_mixer(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
                 return FALSE;
         }
 
-        /* because i've seen these get corrupted... */
+        /* because these get can corrupted... */
         assert(memcmp(&owfx, &wfx, sizeof(WAVEFORMATEX)) == 0);
+    
+        /* Set process priority as high as we can go without special permissions on */
+        /* on NT.  Although this priority may seem anti-social, it's not that bad   */
+        /* since we block whilst waiting for audio events.                          */
+        SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
         
-        switch(thread_pri) {
-        case 1:
-                SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
-                debug_msg("Above Normal Priority\n");
-                break;
-        case 2:
-                SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-                debug_msg("Time Critical Priority\n");
-                break;
-        case 3:
-                SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
-                debug_msg("Highest Thread Priority\n"); /* Kiss all processes bye-bye ;-) */
-                break;
-        default:
-                break;
-        }
+        /* SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);  */
 
         if (!have_probed[ad]) {
                 have_probed[ad] = w32sdk_probe_formats(ad);
@@ -1267,24 +1274,6 @@ w32sdk_audio_duplex(audio_desc_t ad)
         return (TRUE);
 }
 
-void
-w32sdk_audio_drain(audio_desc_t ad)
-{
-        /* We should STOP and clear buffers here */
-        while(read_curr->dwFlags & WHDR_DONE) {
-                read_curr->dwFlags &= ~WHDR_DONE;
-                error = waveInAddBuffer(shWaveIn, read_curr, sizeof(WAVEHDR));
-                if (error) {
-                        waveInGetErrorText(error, errorText, sizeof(errorText));
-                        debug_msg("waveInAddBuffer: (%d) %s\n", error, errorText);
-                        exit(1);
-                }
-                read_curr++;
-                if (read_curr == read_hdrs + nblks) read_curr = read_hdrs;
-                if (audio_ready > 0) audio_ready--;     
-        }
-        assert(audio_ready == 0);
-}
 
 void
 w32sdk_audio_non_block(audio_desc_t ad)
@@ -1454,26 +1443,6 @@ w32sdk_audio_get_igain(audio_desc_t ad)
         return mixerGetLineGain((HMIXEROBJ)hMixer, input_ports[iport].port);
 }
 
-
-void
-w32sdk_audio_wait_for(audio_desc_t ad, int delay_ms)
-{
-        DWORD   dwPeriod;
-        int cnt = 4;
-        
-        dwPeriod = (DWORD)delay_ms/2;
-        /* The blocks we are passing to the audio interface are of duration dwPeriod.
-        * dwPeriod is usually around 20ms (8kHz), but mmtask often doesn't give
-        * us audio that often, more like every 40ms.  In order to make UI more responsive we
-        * block for half specified delay as the process of blocking seems to incur noticeable
-        * delay.  If anyone has more time this is worth looking into.
-        */
-        
-        while (!w32sdk_audio_is_ready(ad) && cnt--) {
-                Sleep(dwPeriod);
-        } 
-}
-
 /* Probing support */
 
 static audio_format af_sup[W32SDK_MAX_DEVICES][10];
@@ -1516,9 +1485,10 @@ w32sdk_probe_formats(audio_desc_t ad)
                         }
                 }
         }
-        return (n_af_sup[ad] ? TRUE : FALSE); /* Managed to find at least 1 we support */
-                                              /* We have this test since if we cannot get device now (because in use elsewhere)
-        * we will want to test it later */
+        return (n_af_sup[ad] ? TRUE : FALSE); /* Managed to find at least 1 we support    */
+                                              /* We have this test since if we cannot get */
+                                              /* device now (because in use elsewhere)    */
+                                              /* we will want to test it later            */
 }
 
 int
