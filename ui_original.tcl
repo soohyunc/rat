@@ -556,16 +556,16 @@ proc cname_update {cname} {
 #power meters
 
 # number of elements in the bargraphs...
-set bargraphHeight 32
+set bargraphHeight 24
 
 proc bargraphCreate {bgraph} {
 	global oh$bgraph bargraphHeight
 
 	frame $bgraph -bg black
-	frame $bgraph.inner0 -width 8 -height 6 -bg green
+	frame $bgraph.inner0 -width 4 -height 6 -bg green
 	pack $bgraph.inner0 -side left -padx 1 -fill both -expand true
 	for {set i 1} {$i < $bargraphHeight} {incr i} {
-		frame $bgraph.inner$i -width 8 -height 8 -bg black
+		frame $bgraph.inner$i -width 4 -height 8 -bg black
 		pack $bgraph.inner$i -side left -padx 1 -fill both -expand true
 	}
 	set oh$bgraph 0
