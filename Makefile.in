@@ -42,7 +42,7 @@ ui_audiotool.c: ui_audiotool.tcl tcl2c/tcl2c
 	cat asfilebox.tcl ui_audiotool.tcl | tcl2c/tcl2c ui_audiotool > ui_audiotool.c
 
 clean:
-	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile tcl2c/tcl2c rat 
+	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile Makefile.sed tcl2c/tcl2c rat 
 
 etags:
 	etags *.[ch]
