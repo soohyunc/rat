@@ -68,12 +68,13 @@ typedef unsigned long	in_addr_t;
 
 #include <time.h>		/* For clock_t */
 #include "audio_types.h"
+#include "crypt_random.h"
 
 #define inline
 #define __inline     
 
-#define srand48	srand
-#define lrand48 rand
+#define srand48	lbl_srandom
+#define lrand48 lbl_random
 
 #ifdef NDEBUG
 #define assert(x) if ((x) == 0) fprintf(stderr, "%s:%u: failed assertion\n", __FILE__, __LINE__)
@@ -132,7 +133,7 @@ int srandom(int);
 int random(void);
 double drand48();
 int gettimeofday(struct timeval *p, struct timezone *z);
-int gethostid(void);
+unsigned long gethostid(void);
 int getuid(void);
 int getgid(void);
 int getpid(void);
