@@ -222,9 +222,20 @@ proc mbus_recv_rate {args} {
     set upp $args
 }
 
-proc mbus_recv_redundancy {args} {
-  global secenc
-  set secenc $args
+proc mbus_recv_redundancy {new_codec new_off} {
+    global secenc red_off
+    set secenc  $new_codec
+    set red_off $new_off
+}
+
+proc mbus_recv_interleaving {separation} {
+    global int_gap
+    set int_gap $separation
+}
+
+proc mbus_recv_channel_code {channel} {
+    global channel_var
+    set channel_var $channel
 }
 
 proc mbus_recv_repair {args} {
@@ -720,7 +731,7 @@ pack .r.c.vol  -side top -fill x
 
 pack .l -side left -fill both -expand 1
 pack .l.s1 -side bottom -fill x
-pack .l.s1.opts .l.s1.about .l.s1.quit .l.s1.audio -side left -fill x -expand 1
+pack .l.s1.opts .l.s1.about .l.s1.quit -side left -fill x -expand 1
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
 bind .l.t.list <Configure> {fix_scrollbar}
@@ -819,9 +830,9 @@ menu .prefs.m.f.mb.menu -tearoff 0
 
 frame  .prefs.buttons
 pack   .prefs.buttons       -side bottom -fill x 
-button .prefs.buttons.bye   -text "Cancel" -command {sync_ui_to_engine} 
-button .prefs.buttons.apply -text "Apply"  -command {sync_engine_to_ui}
-button .prefs.buttons.save  -text "OK"     -command {save_settings; wm withdraw .prefs}
+button .prefs.buttons.bye   -text "Cancel"  -command {sync_ui_to_engine} 
+button .prefs.buttons.apply -text "Apply"   -command {sync_engine_to_ui}
+button .prefs.buttons.save  -text "Dismiss" -command {save_settings; wm withdraw .prefs}
 pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side left -fill x -expand 1
 
 frame .prefs.pane -relief sunken
@@ -900,14 +911,14 @@ tk_optionMenu $i.dd.units.m upp 1 2 4 8
 $i.dd.units.m configure -width 13 -highlightthickness 0 -bd 1
 pack $i.dd.units.l $i.dd.units.m -side top -fill x
 
-radiobutton $i.cc.van.rb -value 0 -variable channel -text "No Loss Protection" -justify right -value "None" -variable channel_var
-radiobutton $i.cc.red.rb -value 1 -variable channel -text "Redundant" -justify right -value "Redundant" -variable channel_var 
+radiobutton $i.cc.van.rb -text "No Loss Protection" -justify right -value "None" -variable channel_var
+radiobutton $i.cc.red.rb -text "Redundancy" -justify right -value "Redundancy" -variable channel_var 
 frame $i.cc.red.fc 
 label $i.cc.red.fc.l -text "Encoding:"
 menubutton $i.cc.red.fc.mb -textvariable secenc -indicatoron 1 -menu $i.cc.red.fc.mb.menu -relief raised -width 13
 menu $i.cc.red.fc.mb.menu -tearoff 0
 
-radiobutton $i.cc.int.rb -value 2 -variable channel -text "Interleaved" -value Interleaved -variable channel_var
+radiobutton $i.cc.int.rb -text "Interleaving" -value Interleaving -variable channel_var
 
 pack $i.cc.van.rb $i.cc.red.rb $i.cc.int.rb -side left -anchor nw -padx 2
 
@@ -1141,9 +1152,8 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "primary"      [mbus_encode_str $prenc]
     mbus_send "R" "rate"         $upp
     mbus_send "R" "channel_code" [mbus_encode_str $channel_var]
-    mbus_send "R" "redundancy"   [mbus_encode_str $secenc]
-    mbus_send "R" "red_offset"   $red_off
-    mbus_send "R" "int_gap"      $int_gap
+    mbus_send "R" "redundancy"   "[mbus_encode_str $secenc] $red_off"
+    mbus_send "R" "interleaving" $int_gap
     mbus_send "R" "silence"      $silence_var
     mbus_send "R" "agc"          $agc_var
 
@@ -1507,7 +1517,6 @@ proc show_help {window} {
 		# for .help and leave for $window, making us hide_help which removes the
 		# help window, giving us a window enter for $window making us popup the
 		# help again.....
-
 		if {[winfo width $window] > [winfo height $window]} {
 		    set xpos [expr [winfo pointerx $window] + 10]
 		    set ypos [expr [winfo rooty    $window] + [winfo height $window] + 4]
@@ -1573,7 +1582,7 @@ add_help .prefs.m.f.mb  "Click here to change the preference\ncategory."
 set i .prefs.buttons
 add_help $i.bye         "Cancel changes."
 add_help $i.apply       "Apply changes."
-add_help $i.save        "Save preferences and dismiss window."
+add_help $i.save        "Dismiss window."
 
 # user help
 set i .prefs.pane.personal.a.f.f.ents

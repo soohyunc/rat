@@ -187,7 +187,7 @@ new_intl_coder(session_struct *sp)
         t = (intl_coder_t*)xmalloc(sizeof(intl_coder_t));
         memset(t,0,sizeof(intl_coder_t));
         t->il = create_il(4,4);
-        t->src_pt = -1;
+        t->src_pt = sp->encodings[0];
         return t;
 }
 

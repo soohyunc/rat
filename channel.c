@@ -205,7 +205,7 @@ vanilla_decode(rx_queue_element_struct *u, cc_state_t *ccs)
     iov = u->ccu[0]->iov;
     n  = u->ccu[0]->iovc;
 
-    for(i=0; i<n; i++, u=get_rx_unit(1,PT_VANILLA,u)) {
+    for(i=0; i<n && u; i++, u=get_rx_unit(1,PT_VANILLA,u)) {
         if (i==0 && cp->sent_state_sz) {
             add_comp_data(u,pt,iov,2);
             i++;
@@ -213,6 +213,8 @@ vanilla_decode(rx_queue_element_struct *u, cc_state_t *ccs)
             add_comp_data(u,pt,iov+i,1);
         }
     }
+    if (i<n) 
+            dprintf("vanilla decode - unit not found\n");
 }
 
 static void 
@@ -232,7 +234,7 @@ red_query(session_struct    *sp,
           struct s_cc_state *cs,
           char *buf, int blen) 
 {
-    return red_qconfig(sp,(struct s_red_coder*)cs->s,buf,blen);
+    red_qconfig(sp,(struct s_red_coder*)cs->s,buf,blen);
 }
 
 static int
@@ -452,6 +454,7 @@ channel_decode(rx_queue_element_struct *u)
                        &u->dbe_source[0]->cc_state_list, 
                        u->cc_pt,
                        DECODE);
+    assert(u);
     cc->decode(u, stp);
 }
 

@@ -469,75 +469,91 @@ static void func_source_playout(char *srce, char *args, session_struct *sp)
 		}
 		e->video_playout = (playout * get_freq(e->clock)) / 1000;
 	} else {
-		printf("mbus: usage \"source_loc <cname> <loc>\"\n");
+		printf("mbus: usage \"source_playout <cname> <playout>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_chan);
 }
 
-static void func_redundancy(char *srce, char *args, session_struct *sp)
+static void
+func_interleaving(char *srce, char *args, session_struct *sp)
 {
-	char	*codec;
-	char	 arg[80];
-	codec_t *cp, *pcp;
+        int separation, cc_pt;
+        codec_t *pcp;
+        char config[80];
 
 	mbus_parse_init(sp->mbus_engine_chan, args);
-	if (mbus_parse_str(sp->mbus_engine_chan, &codec)) {
-		cp = get_codec_byname(mbus_decode_str(codec), sp);
-		if (cp != NULL) {
-			pcp = get_codec(sp->encodings[0]);
-			if (pcp->value < cp->value) {
-				/* Current primary scheme and requested redundancy */
-				/* do not match so do not change redundancy scheme */
-				cp = get_codec(sp->encodings[1]);
-				if (sp->num_encodings > 1) {
-					sprintf(arg, "%s", mbus_encode_str(cp->name));
-				} else {
-					sprintf(arg, "\"NONE\"");
-				}
-				mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "redundancy", arg, FALSE);
-			} else {
-				sp->encodings[1]  = cp->pt;
-				sp->num_encodings = 2;
-			}
-			sprintf(arg, "%s", mbus_encode_str(cp->name));
-			mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "redundancy", arg, FALSE);
-		} else {
-			sp->num_encodings = 1;
-		}
-	} else {
-		printf("mbus: usage \"redundancy <codec>\"\n");
-	}
+	if (mbus_parse_int(sp->mbus_engine_chan, &separation)) {
+                cc_pt        = get_cc_pt(sp,"INTERLEAVER");
+                pcp          = get_codec(sp->encodings[0]);
+                sprintf(config, "%s/%d/%d", pcp->name, get_units_per_packet(sp), separation);
+                config_channel_coder(sp, cc_pt, config);
+        } else {
+                printf("mbus: usage \"interleaving <codec> <separation in units>\"\n");
+        }
+        mbus_parse_done(sp->mbus_engine_chan);
+        ui_update_interleaving(sp);
+}
+
+static codec_t*
+validate_redundant_codec(codec_t *primary, codec_t *redundant) 
+{
+        assert(primary != NULL);
+        
+        if ((redundant == NULL) ||                       /* passed junk */
+            (!codec_compatible(primary, redundant)) ||   /* passed incompatible codec */
+            (redundant->unit_len > primary->unit_len)) { /* passed higher bandwidth codec */
+                return primary;
+        }
+        return redundant;
+}
+
+static void 
+func_redundancy(char *srce, char *args, session_struct *sp)
+{
+	char	*codec;
+        int      offset, cc_pt;
+	char	 config[80];
+	codec_t *rcp, *pcp;
+
+	mbus_parse_init(sp->mbus_engine_chan, args);
+	if (mbus_parse_str(sp->mbus_engine_chan, &codec) && 
+            mbus_parse_int(sp->mbus_engine_chan, &offset)) {
+                assert(offset>0);
+                pcp    = get_codec(sp->encodings[0]);
+		rcp    = get_codec_byname(mbus_decode_str(codec), sp);
+                /* Check redundancy makes sense... */
+                rcp    = validate_redundant_codec(pcp,rcp);
+                offset = offset*get_units_per_packet(sp); /* units-to-packets */
+                sprintf(config,"%s/0/%s/%d", pcp->name, rcp->name, offset);
+                cc_pt = get_cc_pt(sp,"REDUNDANCY");
+                config_channel_coder(sp, cc_pt, config);
+        } else {
+                printf("mbus: usage \"redundancy <codec> <offset in units>\"\n");
+        }                
 	mbus_parse_done(sp->mbus_engine_chan);
+        ui_update_redundancy(sp);
 }
 
 static void func_primary(char *srce, char *args, session_struct *sp)
 {
 	char	*codec;
 	char	 arg[80];
-	codec_t *cp, *scp;
+	codec_t *pcp;
 
 	mbus_parse_init(sp->mbus_engine_chan, args);
 	if (mbus_parse_str(sp->mbus_engine_chan, &codec)) {
-		cp = get_codec_byname(mbus_decode_str(codec), sp);
-		if (cp != NULL) {
-			sp->encodings[0] = cp->pt;
-			if (sp->num_encodings > 1) {
-				scp = get_codec(sp->encodings[1]);
-				if (cp->value < scp->value) {
-					/* Current redundancy scheme and requested primary do not match so change redundancy scheme */
-					sp->encodings[1] = sp->encodings[0];
-					sprintf(arg, "%s", mbus_encode_str(cp->name));
-					mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "redundancy", arg, FALSE);
-				}
-			}
-			sprintf(arg, "%s", mbus_encode_str(cp->name));
-			mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "primary", arg, FALSE);
-		} else {
-			sp->num_encodings = 1;
-		}
-	} else {
+		pcp = get_codec_byname(mbus_decode_str(codec), sp);
+                if (pcp != NULL) {
+			sp->encodings[0] = pcp->pt;
+                } else {
+                        pcp = get_codec(sp->encodings[0]);
+                        sprintf(arg, "%s", mbus_encode_str(pcp->name));
+                        mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "primary", arg, FALSE);
+                }
+        } else {
 		printf("mbus: usage \"primary <codec>\"\n");
 	}
+        ui_update_redundancy(sp);
 	mbus_parse_done(sp->mbus_engine_chan);
 }
 
@@ -590,13 +606,13 @@ static void func_channel_code(char *srce, char *args, session_struct *sp)
                 channel = mbus_decode_str(channel);
                 switch(channel[0]) {
                 case 'N':
-                        sp->cc_encoding = PT_VANILLA;
+                        sp->cc_encoding = get_cc_pt(sp,"VANILLA");
                         break;
                 case 'R':
-                        sp->cc_encoding = PT_REDUNDANCY;
+                        sp->cc_encoding = get_cc_pt(sp,"REDUNDANCY");
                         break;
                 case 'I':
-                        sp->cc_encoding = PT_INTERLEAVED;
+                        sp->cc_encoding = get_cc_pt(sp,"INTERLEAVER");
                         break;
                 default:
                         printf("%s %d: scheme %s not recognized.\n",__FILE__,__LINE__,channel);
@@ -641,6 +657,7 @@ char *mbus_cmnd[] = {
 	"source_loc",
 	"source_mute",
 	"source_playout",
+        "interleaving",
 	"redundancy",
 	"primary",
         "min_playout",
@@ -680,6 +697,7 @@ void (*mbus_func[])(char *srce, char *args, session_struct *sp) = {
 	func_source_loc,
 	func_source_mute,
 	func_source_playout,
+        func_interleaving,
 	func_redundancy,
 	func_primary,
         func_min_playout,

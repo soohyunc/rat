@@ -355,6 +355,90 @@ ui_repair(session_struct *sp)
 }
 
 void
+ui_update_interleaving(session_struct *sp)
+{
+        int pt, isep;
+        char buf[128], *sep=NULL, *dummy, args[80];
+
+        pt = get_cc_pt(sp,"INTERLEAVER");
+        if (pt != -1) {
+                query_channel_coder(sp, pt, buf, 128);
+                dummy  = strtok(buf,"/");
+                dummy  = strtok(NULL,"/");
+                sep    = strtok(NULL,"/");
+        } else {
+                dprintf("Could not find interleaving channel coder!\n");
+        }
+        
+        if (sep != NULL) {
+                isep = atoi(sep);
+        } else {
+                isep = 4; /* default */
+        }
+
+        sprintf(args,"%d",isep);
+        mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "interleaving", args, TRUE);        
+}
+
+void
+ui_update_redundancy(session_struct *sp)
+{
+        int  pt;
+        int  ioff;
+        char buf[128], *codec=NULL, *offset=NULL, *dummy, args[80];
+
+        pt = get_cc_pt(sp,"REDUNDANCY");
+        if (pt != -1) { 
+                query_channel_coder(sp, pt, buf, 128);
+                dummy  = strtok(buf,"/");
+                dummy  = strtok(NULL,"/");
+                codec  = strtok(NULL,"/");
+                offset = strtok(NULL,"/");
+        } else {
+                dprintf("Could not find redundant channel coder!\n");
+        } 
+
+        if (codec != NULL && offset != NULL) {
+                ioff  = atoi(offset);
+                ioff /= get_units_per_packet(sp);
+        } else {
+                codec_t *pcp;
+                pcp   = get_codec(sp->encodings[0]);
+                codec = pcp->name;
+                ioff  = 1;
+        } 
+
+        sprintf(args,"%s %d", mbus_encode_str(codec), ioff);
+        mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "redundancy", args, TRUE);
+}
+
+void 
+ui_update_channel(session_struct *sp) 
+{
+        cc_coder_t *ccp;
+        char args[80];
+
+        ccp = get_channel_coder(sp->cc_encoding);
+        assert(ccp != NULL);
+        switch(ccp->name[0]) {
+        case 'V':
+                sprintf(args, mbus_encode_str("No Loss Protection"));
+                break;
+        case 'R':
+                sprintf(args, mbus_encode_str("Redundancy"));
+                break;
+        case 'I':
+                sprintf(args, mbus_encode_str("Interleaving"));
+                break;
+        default:
+                dprintf("Channel coding failed mapping.\n");
+                return;
+        }
+        mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "channel_code", args, TRUE);
+}
+
+
+void
 ui_update(session_struct *sp)
 {
 	static   int done=0;
@@ -403,6 +487,9 @@ ui_update(session_struct *sp)
         sprintf(args, "%d", get_units_per_packet(sp));
 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "rate", args, TRUE);
 
+        ui_update_redundancy(sp);
+        ui_update_interleaving(sp);
+        ui_update_channel(sp);
         ui_repair(sp);
 
 	done=1;

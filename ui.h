@@ -73,6 +73,8 @@ void	        ui_input_level(int level, struct session_tag *sp);
 void	       ui_output_level(int level, struct session_tag *sp);
 void 	  ui_update_input_port(struct session_tag *sp);
 void 	 ui_update_output_port(struct session_tag *sp);
+void	  ui_update_redundancy(struct session_tag *sp);
+void	  ui_update_interleaving(struct session_tag *sp);
 
 void	update_stats(struct s_rtcp_dbentry *e, struct session_tag *sp);
 
