@@ -34,17 +34,17 @@ static void
 init_drop(int seed, double d)
 {
   int ndrop     = (int)(d * DROP_ARRAY_SIZE);
-  int rand_ceil = RANDOM_END - (RANDOM_END % DROP_ARRAY_SIZE);
-  int r;
+  unsigned int rand_ceil = RANDOM_END - (RANDOM_END % DROP_ARRAY_SIZE);
+  unsigned int r;
 
   memset(drop_priv, 0, DROP_ARRAY_SIZE);
-  srandom(seed);
+  srand48(seed);
 
   while (ndrop != 0) {
     /* Keep picking numbers until we get one in range and
      * that has not already been picked.
      */
-      while( (r = random()) > rand_ceil && 
+      while( (r = (mrand48() & 0x7fffffff)) > rand_ceil && 
 	     drop_priv[r % DROP_ARRAY_SIZE]);
       drop_priv[r % DROP_ARRAY_SIZE] = 1;
       ndrop --;
