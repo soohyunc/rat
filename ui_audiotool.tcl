@@ -1548,8 +1548,9 @@ frame  .prefs.buttons
 pack   .prefs.buttons       -side bottom -fill x 
 button .prefs.buttons.bye   -text "Cancel" -command {sync_ui_to_engine; wm withdraw .prefs}
 button .prefs.buttons.apply -text "Apply" -command {wm withdraw .prefs; sync_engine_to_ui}
-button .prefs.buttons.save  -text "Save & Apply" -command {save_settings; wm withdraw .prefs; sync_engine_to_ui}
-pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side right -padx 2 -pady 2
+#button .prefs.buttons.save  -text "Save & Apply" -command {save_settings; wm withdraw .prefs; sync_engine_to_ui}
+#pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side right -padx 2 -pady 2
+pack   .prefs.buttons.bye .prefs.buttons.apply -side right -padx 2 -pady 2
 
 wm protocol .prefs WM_DELETE_WINDOW {sync_ui_to_engine; wm withdraw .prefs}
 
@@ -2626,7 +2627,7 @@ add_help .prefs.m.f.m  "Click here to change the preference\ncategory."
 set i .prefs.buttons
 add_help $i.bye         "Cancel changes."
 add_help $i.apply       "Apply changes."
-add_help $i.save        "Save and apply changes."
+#add_help $i.save        "Save and apply changes."
 
 # user help
 set i .prefs.pane.personal.a.f.f.ents

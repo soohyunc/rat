@@ -569,7 +569,13 @@ void settings_save(session_struct *sp)
 	/* If we save a dynamically mapped codec we crash when we reload on startup */
 	if(pri_cf->default_pt!=CODEC_PAYLOAD_DYNAMIC) {
 	  setting_save_str("audioPrimary",           pri_cf->short_name);
-	  setting_save_str("audioChannelParameters", cc_param);
+	  /* If vanilla channel coder don't save audioChannelParameters - it's rubbish */
+	   if(strcmp(cd.name, "Vanilla")==0) {
+	     setting_save_str("audioChannelParameters", cc_param);
+	   }
+	   else {
+	     setting_save_str("audioChannelParameters", "None");
+	   }
 	}
 
 	setting_save_int("audioUnits",             channel_encoder_get_units_per_packet(sp->channel_coder));
