@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 		timeout.tv_usec = 0;
                 for (j = 0; j < sp->rtp_session_count; j++) {
                         while(rtp_recv(sp->rtp_session[j], &timeout, cur_time));
-                        rtp_send_ctrl(sp->rtp_session[j], cur_time);
+                        rtp_send_ctrl(sp->rtp_session[j], cur_time, NULL);
                         rtp_update(sp->rtp_session[j]);
                 }
 
