@@ -28,6 +28,8 @@ static struct timeval last_read_time;
 
 static int avail_bytes; /* Number of bytes available because of under read */
 
+static int read_virgin = 1;
+
 static int igain = 0, ogain = 0;
 
 int
@@ -42,6 +44,7 @@ null_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
         memcpy(&ofmt, outfmt, sizeof(ofmt));
 
         avail_bytes = 0;
+        read_virgin  = TRUE;
 
 	return TRUE;
 }
@@ -65,7 +68,7 @@ void
 null_audio_drain(audio_desc_t ad)
 {
         UNUSED(ad);
-        avail_bytes = 0;
+        read_virgin = TRUE;
 	return;
 }
 
@@ -118,6 +121,17 @@ null_audio_get_ogain(audio_desc_t ad)
 	return ogain;
 }
 
+static int
+time_diff_to_bytes(struct timeval *start, struct timeval *end)
+{
+        int diff_ms, diff_bytes;
+        diff_ms = (end->tv_sec  - start->tv_sec) * 1000 + (end->tv_usec - start->tv_usec) / 1000;
+        diff_bytes = diff_ms * (ifmt.bits_per_sample / 8 ) * (ifmt.sample_rate / 1000) * ifmt.channels;
+
+        return diff_bytes;
+}
+
+
 /*
  * Record audio data.
  */
@@ -126,19 +140,17 @@ null_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
 	int	                read_bytes;
 	struct timeval          curr_time;
-	static int              virgin = TRUE;
 
         UNUSED(ad);
 
-	if (virgin) {
+	if (read_virgin) {
 		gettimeofday(&last_read_time, NULL);
-		virgin = FALSE;
+                avail_bytes = 0;
+		read_virgin = FALSE;
 	}
 
 	gettimeofday(&curr_time, NULL);
-	read_bytes  = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000 + (curr_time.tv_usec - last_read_time.tv_usec) / 1000;
-        /* diff from ms to samples */
-        read_bytes *= (ifmt.bits_per_sample / 8 ) * (ifmt.sample_rate / 1000) * ifmt.channels;
+        read_bytes = time_diff_to_bytes(&last_read_time, &curr_time);
 
         if (read_bytes + avail_bytes < ifmt.bytes_per_block) {
                 return 0;
@@ -159,6 +171,7 @@ null_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
         memcpy(&last_read_time, &curr_time, sizeof(struct timeval));
         memset(buf, 0, read_bytes);
         xmemchk();
+
         return read_bytes;
 }
 
@@ -305,16 +318,31 @@ null_audio_is_ready(audio_desc_t ad)
 	diff = (now.tv_sec  - last_read_time.tv_sec) * 1000 + (now.tv_usec - last_read_time.tv_usec)/1000;
         diff *= (ifmt.bits_per_sample / 8) * ifmt.sample_rate / 1000 * ifmt.channels;
 
-        if (diff + avail_bytes > (unsigned)ifmt.bytes_per_block) return TRUE;
+        if ((diff + avail_bytes) > (unsigned)ifmt.bytes_per_block) return TRUE;
 
         return FALSE;
+}
+
+static void 
+null_audio_select(audio_desc_t ad, int delay_ms)
+{
+        int needed, dur;
+
+        UNUSED(ad);
+
+        needed = ifmt.bytes_per_block - avail_bytes;
+        assert(needed >= 0);
+
+        dur = needed * 1000 * 8 / (ifmt.sample_rate * ifmt.bits_per_sample * ifmt.channels);
+        dur = min(dur, delay_ms);
+        usleep(dur * 1000);
 }
 
 void
 null_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
         if (null_audio_is_ready(ad) == FALSE) {
-                usleep(delay_ms * 1000);
+                null_audio_select(ad, delay_ms);
         }
 }
 
