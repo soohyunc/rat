@@ -410,6 +410,7 @@ source_add_packet (source *src,
 
         if (pb_add(src->channel, (u_char*)cd, sizeof(channel_data), playout) == FALSE) {
                 debug_msg("Packet addition failed - duplicate ?\n");
+                src->dbe->duplicates++;
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
 
