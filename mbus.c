@@ -270,6 +270,7 @@ struct mbus *mbus_init(char *addr, void (*handler)(char *, char *, char *, void 
 	m->ack_list     = NULL;
 	m->handler      = handler;
 	m->num_addr     = 0;
+	m->parse_depth  = 0;
 	for (i = 0; i < MBUS_MAX_ADDR; i++) m->addr[i]         = NULL;
 	for (i = 0; i <   MBUS_MAX_PD; i++) m->parse_buffer[i] = NULL;
 	mbus_addr(m, addr);
