@@ -7,9 +7,9 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -59,8 +59,8 @@ typedef struct s_tx_buffer {
         struct s_vad         *vad;
         struct s_agc         *agc;
         struct s_bias_ctl    *bc;
-        struct s_pb          *media_buffer; 
-        struct s_pb          *channel_buffer; 
+        struct s_pb          *media_buffer;
+        struct s_pb          *channel_buffer;
 
         struct s_pb          *audio_buffer; /* Audio buffer and it's iterators... */
         struct s_pb_iterator *reading;      /* ...current read point iterator     */
@@ -151,9 +151,9 @@ tx_unit_destroy(tx_unit **ptu, uint32_t len)
 }
 
 int
-tx_create(tx_buffer **ntb, 
+tx_create(tx_buffer **ntb,
           session_t  *sp,
-	  uint32_t    sample_rate,     
+	  uint32_t    sample_rate,
           uint16_t    channels,
           uint16_t    unit_dur)
 {
@@ -175,7 +175,7 @@ tx_create(tx_buffer **ntb,
                 tb->agc           = agc_create(sp);
                 sp->auto_sd       = sd_init(unit_dur, sample_rate);
                 sp->manual_sd     = manual_sd_init(unit_dur, sample_rate, sp->manual_sd_thresh);
-                
+
                 pb_create(&tb->audio_buffer, (playoutfreeproc)tx_unit_destroy);
                 pb_create(&tb->media_buffer, (playoutfreeproc)media_data_destroy);
                 pb_create(&tb->channel_buffer, (playoutfreeproc)channel_data_destroy);
@@ -228,7 +228,7 @@ tx_start(tx_buffer *tb)
         tb->sending_audio = TRUE;
 
         /* Turn off auto lecture */
-        tb->sp->auto_lecture = 1;       
+        tb->sp->auto_lecture = 1;
 
         /* Reset signal classification and auto-scaling */
         sd_reset(tb->sp->auto_sd);
@@ -292,10 +292,10 @@ tx_stop(tx_buffer *tb)
 int
 tx_read_audio(tx_buffer *tb)
 {
-        session_t *sp;
-        tx_unit   *u;
-	timestamp_t       u_ts;
-        uint32_t   read_dur = 0, this_read, ulen;
+        session_t   *sp;
+        tx_unit     *u;
+	timestamp_t  u_ts;
+        uint32_t     read_dur = 0, this_read, ulen;
 
 	tx_buffer_validate(tb);
 
@@ -304,12 +304,14 @@ tx_read_audio(tx_buffer *tb)
                 int filled_unit;
                 assert(pb_iterator_count(tb->audio_buffer) == 3);
                 do {
-                        if (pb_iterator_get_at(tb->reading, (u_char**)&u, &ulen, &u_ts) == FALSE) {
+                        u_char *u_get;
+                        if (pb_iterator_get_at(tb->reading, &u_get, &ulen, &u_ts) == FALSE) {
                                 debug_msg("Reading iterator failed to get unit!\n");
                         }
+                        u = (tx_unit*)u_get;
                         assert(u != NULL);
 
-                        this_read = audio_read(sp->audio_device, 
+                        this_read = audio_read(sp->audio_device,
                                                u->data + u->dur_used * tb->channels,
                                                (tb->unit_dur - u->dur_used) * tb->channels) / tb->channels;
                         assert(this_read <= tb->unit_dur - u->dur_used);
@@ -334,9 +336,9 @@ tx_read_audio(tx_buffer *tb)
                 assert(pb_iterator_count(tb->audio_buffer) == 3);
         } else {
                 int this_read = 0;
-                /* We're not sending, but have access to the audio device. 
-                 * Read the audio anyway to get exact values, and then 
-                 * throw the data we've just read away...    
+                /* We're not sending, but have access to the audio device.
+                 * Read the audio anyway to get exact values, and then
+                 * throw the data we've just read away...
                  */
                 do {
                         this_read = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 4) / sp->tb->channels;
@@ -353,7 +355,7 @@ tx_read_audio(tx_buffer *tb)
                         tx_start(tb);
                 }
         }
-        
+
         if (read_dur) {
                 sp->tb->mean_read_dur += ((double)read_dur - sp->tb->mean_read_dur) / 8.0;
         }
@@ -366,19 +368,21 @@ int
 tx_process_audio(tx_buffer *tb)
 {
         struct s_pb_iterator *marker;
+        u_char               *u_get;
         tx_unit              *u;
         uint32_t              u_len;
-        timestamp_t                  u_ts;
+        timestamp_t           u_ts;
         int                   to_send;
-        
+
 	tx_buffer_validate(tb);
         assert(tb->sending_audio);
-        
+
         /* Do signal classification up until read point, that
-         * is not a complete audio frame so cannot be done 
+         * is not a complete audio frame so cannot be done
          */
         assert(pb_iterator_count(tb->audio_buffer) == 3);
-        pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
+        pb_iterator_get_at(tb->silence, &u_get, &u_len, &u_ts);
+        u = (tx_unit*)u_get;
         while (pb_iterators_equal(tb->silence, tb->reading) == FALSE) {
 		assert(u->dur_used == tb->unit_dur);
 		if (u->live_capture) {
@@ -388,7 +392,7 @@ tx_process_audio(tx_buffer *tb)
 		}
                 u->energy = audio_avg_energy(u->data, u->dur_used * tb->channels, tb->channels);
                 u->send   = FALSE;
-                
+
                 /* Silence classification on this block */
 		assert(u->silence == -1);	/* We should only do this once per block... */
                 switch(tb->sp->silence_detection) {
@@ -396,8 +400,8 @@ tx_process_audio(tx_buffer *tb)
                         u->silence = sd(tb->sp->auto_sd, (uint16_t)u->energy);
                         break;
                 case SILENCE_DETECTION_MANUAL:
-                        u->silence = manual_sd(tb->sp->manual_sd, 
-                                               (uint16_t)u->energy, 
+                        u->silence = manual_sd(tb->sp->manual_sd,
+                                               (uint16_t)u->energy,
                                                audio_abs_max(u->data, u->dur_used * tb->channels));
                         break;
 		case SILENCE_DETECTION_OFF:
@@ -405,13 +409,13 @@ tx_process_audio(tx_buffer *tb)
 			break;
                 }
 		assert((u->silence == 0) || (u->silence == 1));
-                                               
+
                 /* Pass decision to voice activity detector (damps transients, etc) */
-                to_send = vad_to_get(tb->vad, 
-                                     (u_char)u->silence, 
-                                     (u_char)((tb->sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF));           
+                to_send = vad_to_get(tb->vad,
+                                     (u_char)u->silence,
+                                     (u_char)((tb->sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF));
                 agc_update(tb->agc, (uint16_t)u->energy, vad_talkspurt_no(tb->vad));
-                
+
                 if (tb->sp->silence_detection != SILENCE_DETECTION_OFF) {
                         if (to_send != 0) {
                                 pb_iterator_dup(&marker, tb->silence);
@@ -419,7 +423,8 @@ tx_process_audio(tx_buffer *tb)
                                         u->send = TRUE;
                                         to_send --;
                                         pb_iterator_retreat(marker);
-                                        pb_iterator_get_at(marker, (u_char**)&u, &u_len, &u_ts);
+                                        pb_iterator_get_at(marker, &u_get, &u_len, &u_ts);
+                                        u = (tx_unit*)u_get;
                                 }
                                 pb_iterator_destroy(tb->audio_buffer, &marker);
                         }
@@ -429,7 +434,8 @@ tx_process_audio(tx_buffer *tb)
                         u->send    = TRUE;
                 }
                 pb_iterator_advance(tb->silence);
-                pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
+                pb_iterator_get_at(tb->silence, &u_get, &u_len, &u_ts);
+                u = (tx_unit*)u_get;
         }
 
         if (tb->sp->agc_on == TRUE && agc_apply_changes(tb->agc) == TRUE) {
@@ -441,12 +447,12 @@ tx_process_audio(tx_buffer *tb)
 }
 
 static int
-tx_encode(struct s_codec_state_store *css, 
-          sample     *buf, 
-          uint32_t     dur_used,
-          uint32_t     encoding,
-          u_char     *payloads, 
-          coded_unit **coded)
+tx_encode(struct s_codec_state_store  *css,
+          sample                      *buf,
+          uint32_t                     dur_used,
+          uint32_t                     encoding,
+          u_char                      *payloads,
+          coded_unit                 **coded)
 {
         codec_id_t id;
         uint32_t    i;
@@ -458,7 +464,7 @@ tx_encode(struct s_codec_state_store *css,
          * i.e. we are using redundancy.  Don't want to code
          * twice since it screws up encoder state.
          */
-        
+
         for (i = 0; i < encoding; i++) {
                 if (coded[i]->id == id) {
                         break;
@@ -469,21 +475,21 @@ tx_encode(struct s_codec_state_store *css,
                 const codec_format_t *cf;
                 coded_unit native;
                 codec_state *cs;
-                
+
                 /* Unit does not exist already */
                 cf = codec_get_format(id);
-                
+
                 /* native is a temporary coded_unit that we use to pass to
                  * codec_encode since this take a 'native' (raw) coded unit as
                  * input and fills in coded with the transformed data.
                  */
-                native.id        = codec_get_native_coding((uint32_t)cf->format.sample_rate, 
+                native.id        = codec_get_native_coding((uint32_t)cf->format.sample_rate,
                                                            (uint16_t)cf->format.channels);
                 native.state     = NULL;
                 native.state_len = 0;
                 native.data      = (u_char*)buf;
                 native.data_len  = (uint16_t)(dur_used * sizeof(sample) * cf->format.channels);
-                
+
                 /* Get codec state from those stored for us */
                 cs = codec_state_store_get(css, id);
                 return codec_encode(cs, &native, coded[encoding]);
@@ -496,34 +502,36 @@ tx_encode(struct s_codec_state_store *css,
 void
 tx_send(tx_buffer *tb)
 {
-        struct s_pb_iterator    *cpos;
-        channel_data            *cd;
-        channel_unit            *cu;
-        tx_unit        		*u;
-        timestamp_t            	 u_ts, u_sil_ts, delta;
-        timestamp_t            	 time_ts;
-        uint32_t         	 time_32, cd_len;
-        uint32_t         	 u_len, units, i, j, k, n, send, encoding;
-        int 			 success;
-	char			*extn;
-	uint16_t		 extn_len, extn_type;
-        
+        struct s_pb_iterator *cpos;
+        channel_data         *cd;
+        channel_unit         *cu;
+        u_char               *u_get, *cd_get;
+        tx_unit              *u;
+        timestamp_t           u_ts, u_sil_ts, delta;
+        timestamp_t           time_ts;
+        uint32_t              time_32, cd_len;
+        uint32_t              u_len, units, i, j, k, n, send, encoding;
+        int 		      success;
+	char		     *extn;
+	uint16_t	      extn_len, extn_type;
+
 	tx_buffer_validate(tb);
         assert(pb_iterator_count(tb->audio_buffer) == 3);
 
         if (pb_iterators_equal(tb->silence, tb->transmit)) {
                 return;
-        } 
+        }
 
-        pb_iterator_get_at(tb->silence,  (u_char**)&u, &u_len, &u_sil_ts);
-        pb_iterator_get_at(tb->transmit, (u_char**)&u, &u_len, &u_ts);
-
+        pb_iterator_get_at(tb->silence,  &u_get, &u_len, &u_sil_ts);
+        u = (tx_unit*)u_get;
+        pb_iterator_get_at(tb->transmit, &u_get, &u_len, &u_ts);
+        u = (tx_unit*)u_get;
         assert(ts_gt(u_sil_ts, u_ts));
 
         delta = ts_sub(u_sil_ts, u_ts);
         n     = delta.ticks / tb->unit_dur;
         units = channel_encoder_get_units_per_packet(tb->sp->channel_coder);
-        
+
         while(n >= units) {
 		/* We have accumulated at least enough audio to fill an RTP packet. */
 		/* The following code processes one packet's worth of audio, and if */
@@ -531,7 +539,8 @@ tx_send(tx_buffer *tb)
 		/* encoded and placed onto the transmission queue: tb->media_buffer */
                 send = FALSE;
                 for (i = 0; i < units; i++) {
-                        pb_iterator_get_at(tb->transmit, (u_char**)&u, &u_len, &u_ts);
+                        pb_iterator_get_at(tb->transmit, &u_get, &u_len, &u_ts);
+                        u = (tx_unit*)u_get;
 			assert((u->silence == 0) || (u->silence == 1)); /* We MUST have done silence detection before transmit */
                         if (u->send) {
                                 send = TRUE;
@@ -545,14 +554,15 @@ tx_send(tx_buffer *tb)
                         pb_iterator_retreat(tb->transmit);
                         i--;
                 }
-                
+
                 for (i = 0;i < units; i++) {
                         media_data *m;
-                        success = pb_iterator_get_at(tb->transmit, (u_char**)&u, &u_len, &u_ts);
+                        success = pb_iterator_get_at(tb->transmit, &u_get, &u_len, &u_ts);
+                        u = (tx_unit*)u_get;
                         assert(success);
 			assert((u->silence == 0) || (u->silence == 1)); /* We MUST have done silence detection before transmit */
                         if (send) {
-				assert(u->encoded == FALSE); 
+				assert(u->encoded == FALSE);
                                 media_data_create(&m, tb->sp->num_encodings);
                                 for(encoding = 0; encoding < (uint32_t)tb->sp->num_encodings; encoding ++) {
                                         tx_encode(tb->state_store, u->data, u->dur_used, encoding, tb->sp->encodings, m->rep);
@@ -583,12 +593,13 @@ tx_send(tx_buffer *tb)
 	/* Pull units out of tb->channel_buffer and transmit them... */
         pb_iterator_create(tb->channel_buffer, &cpos);
         pb_iterator_advance(cpos);
-        while(pb_iterator_detach_at(cpos, (u_char**)&cd, &cd_len, &time_ts)) {
+        while(pb_iterator_detach_at(cpos, &cd_get, &cd_len, &time_ts)) {
                 uint32_t csrc[16];
                 char *data, pt;
                 int   data_len, done;
                 int  marker;
 
+                cd = (channel_data*)cd_get;
                 /* Set up fields for RTP header */
                 cu = cd->elem[0];
                 pt = channel_coder_get_payload(tb->sp->channel_coder, cu->pt);
@@ -598,8 +609,8 @@ tx_send(tx_buffer *tb)
                         debug_msg("new talkspurt (%d - %d != %d)\n", time_32, tb->sp->last_depart_ts, units * tb->unit_dur);
                 } else {
                         marker = 0;
-                }   
-                
+                }
+
                 /* layer loop starts here */
                 for(j = 0; j < (uint32_t)tb->sp->layers; j++) {
 			assert(tb->sp->layers == 1); /* FIXME */
@@ -615,7 +626,7 @@ tx_send(tx_buffer *tb)
 			extn_type = 0;
 #endif
                         data_len = 0;
-                        /* determine data length for packet.  This is a   */  
+                        /* determine data length for packet.  This is a   */
                         /* little over complicated because of layering... */
                         for(i = j, k=0; i < cd->nelem; i += tb->sp->layers) {
                                 data_len += (int) cd->elem[i]->data_len;
@@ -637,7 +648,7 @@ tx_send(tx_buffer *tb)
 			}
                 }
                 /* layer loop ends here */
-                
+
                 tb->sp->last_depart_ts  = time_32;
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
@@ -656,21 +667,22 @@ tx_send(tx_buffer *tb)
                 assert(pb_iterator_count(buf) == 3);
         }
 
-        assert(pb_iterator_count(tb->audio_buffer) == 3);        
+        assert(pb_iterator_count(tb->audio_buffer) == 3);
         n = pb_iterator_audit(tb->transmit, u_ts);
 }
 
 void
 tx_update_ui(tx_buffer *tb)
 {
-        session_t	*sp           = tb->sp;
+        session_t *sp = tb->sp;
 
 	tx_buffer_validate(tb);
         if (sp->meter && tb->sending_audio) {
-                struct s_pb_iterator *prev;  
+                struct s_pb_iterator *prev;
+                u_char               *u_get;
                 tx_unit              *u;
-                uint32_t               u_len;
-                timestamp_t                  u_ts;
+                uint32_t              u_len;
+                timestamp_t           u_ts;
 
                 /* Silence point should be upto read point here so use last
                  * completely read unit.
@@ -682,8 +694,9 @@ tx_update_ui(tx_buffer *tb)
                         pb_iterator_destroy(tb->audio_buffer, &prev);
                         return;
                 }
-                if (pb_iterator_get_at(prev, (u_char**)&u, &u_len, &u_ts) &&
+                if (pb_iterator_get_at(prev, &u_get, &u_len, &u_ts) &&
                     (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->silence_detection == SILENCE_DETECTION_OFF)) {
+                        u = (tx_unit*)u_get;
                         ui_send_audio_input_powermeter(sp, sp->mbus_ui_addr, lin2vu(u->energy, 100, VU_INPUT));
                 } else {
                         ui_send_audio_input_powermeter(sp, sp->mbus_ui_addr, 0);
@@ -751,7 +764,7 @@ tx_get_bps(tx_buffer *tb)
         }
 }
 
-static void 
+static void
 tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *u)
 {
         sndfile_fmt_t sfmt;
@@ -805,10 +818,10 @@ tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *
                 in.id        = codec_get_native_coding(target.src_freq, target.src_channels);
                 in.state     = NULL;
                 in.state_len = 0;
-                in.data_len  = sizeof(sample) * dst_samples * 
+                in.data_len  = sizeof(sample) * dst_samples *
                         (target.src_freq * target.src_channels) /
                         (target.dst_freq * target.dst_channels);
-                        
+
                 in.data      = (u_char*)block_alloc(in.data_len);
 
                 /* Get the sound from file */

@@ -1,14 +1,14 @@
 /*
  * FILE:      cc_rdncy.c
- * AUTHOR(S): Orion Hodson 
- *	
+ * AUTHOR(S): Orion Hodson
+ *
  *
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -47,8 +47,8 @@ static const char cvsid[] =
 #define RED_HDR8_GET_PT(z)     (z)
 
 typedef struct s_red_layer {
-        codec_id_t          cid;
-        uint32_t             pkts_off;
+        codec_id_t cid;
+        uint32_t   pkts_off;
 } red_layer;
 
 typedef struct {
@@ -57,8 +57,8 @@ typedef struct {
         struct s_pb          *media_buffer;
         struct s_pb_iterator *media_pos;
         uint32_t              units_ready;
-        timestamp_t                  history; /* How much audio history is needed for coding */
-        timestamp_t                  last_in; /* timestamp of last media unit accepted */
+        timestamp_t           history; /* How much audio history is needed for coding */
+        timestamp_t           last_in; /* timestamp of last media unit accepted */
 } red_enc_state;
 
 int
@@ -86,7 +86,7 @@ redundancy_encoder_create(u_char **state, uint32_t *len)
                 goto fail_pb_iterator;
         }
 
-        re->n_layers    = 0;        
+        re->n_layers    = 0;
         re->units_ready = 0;
 
         return TRUE;
@@ -106,7 +106,7 @@ void
 redundancy_encoder_destroy(u_char **state, uint32_t len)
 {
         red_enc_state *re = *((red_enc_state**)state);
-        
+
         assert(len == sizeof(red_enc_state));
 
         pb_iterator_destroy(re->media_buffer,
@@ -122,7 +122,7 @@ int
 redundancy_encoder_reset(u_char *state)
 {
         red_enc_state *re = (red_enc_state*)state;
-        
+
         pb_flush(re->media_buffer);
         re->units_ready = 0;
 
@@ -178,6 +178,7 @@ make_pdu(struct s_pb_iterator *pbi,
 {
         struct s_pb_iterator *p;
         uint32_t        i, j, md_len, used;
+        u_char        *md_get;
         media_data    *md;
         timestamp_t           playout;
         int            success;
@@ -186,7 +187,8 @@ make_pdu(struct s_pb_iterator *pbi,
 
         used = 0;
         for (i = 0; i < upp; i++) {
-                success = pb_iterator_get_at(p, (u_char**)&md, &md_len, &playout);
+                success = pb_iterator_get_at(p, &md_get, &md_len, &playout);
+                md = (media_data*)md_get;
                 assert(success); /* We could rewind this far so must be able to get something! */
 
                 /* Find first compatible coding */
@@ -215,7 +217,7 @@ make_pdu(struct s_pb_iterator *pbi,
                 md->rep[j]->id       = 0; /* nobble this unit since we have taken it's data */
                 used++;
                 assert(used <= out->nelem);
-                
+
                 pb_iterator_advance(p);
         }
 
@@ -238,7 +240,7 @@ redundancy_encoder_output(red_enc_state *re, uint32_t upp)
 
         /*** Stage 1: Packing coded audio units ******************************/
 
-        /* Rewind iterator to start of first pdu */ 
+        /* Rewind iterator to start of first pdu */
         for(i = 1; (uint32_t)i < upp; i++) {
                 success = pb_iterator_retreat(pbm);
                 assert(success);
@@ -258,7 +260,7 @@ redundancy_encoder_output(red_enc_state *re, uint32_t upp)
                 }
                 xmemchk();
                 /* need upp data elements + 1 for state */
-                channel_data_create(&cd_coded[i], upp + 1); 
+                channel_data_create(&cd_coded[i], upp + 1);
                 success = make_pdu(pbm, upp, re->layer[i].cid, cd_coded[i]);
                 /* make_pdu may fail because coding not available */
                 if (success == FALSE) {
@@ -280,9 +282,9 @@ redundancy_encoder_output(red_enc_state *re, uint32_t upp)
         used = 0;
         if ((uint32_t)layers != re->n_layers) {
                 /* Add max offset if we didn't make all units */
-                add_hdr(cd_out->elem[used], 
-                        RED_EXTRA, 
-                        re->layer[re->n_layers - 1].cid, 
+                add_hdr(cd_out->elem[used],
+                        RED_EXTRA,
+                        re->layer[re->n_layers - 1].cid,
                         re->layer[re->n_layers - 1].pkts_off * upp,
                         0);
                 used++;
@@ -290,16 +292,16 @@ redundancy_encoder_output(red_enc_state *re, uint32_t upp)
 
         i = layers - 1;
         while (i > 0) {
-                add_hdr(cd_out->elem[used], 
-                        RED_EXTRA, 
-                        re->layer[re->n_layers - 1].cid, 
+                add_hdr(cd_out->elem[used],
+                        RED_EXTRA,
+                        re->layer[re->n_layers - 1].cid,
                         re->layer[re->n_layers - 1].pkts_off * upp,
                         channel_data_bytes(cd_coded[i]));
                 used++;
                 i--;
         }
 
-        add_hdr(cd_out->elem[used], 
+        add_hdr(cd_out->elem[used],
                 RED_PRIMARY,
                 re->layer[0].cid,
                 re->layer[0].pkts_off * upp,
@@ -335,6 +337,7 @@ redundancy_encoder_encode (u_char      *state,
         uint32_t        m_len;
         timestamp_t           playout;
         struct s_pb_iterator *pi;
+        u_char         *m_get;
         media_data     *m;
         red_enc_state  *re = (red_enc_state*)state;
 
@@ -344,7 +347,8 @@ redundancy_encoder_encode (u_char      *state,
 
         assert(pi != NULL);
         pb_iterator_advance(pi);
-        while(pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout)) {
+        while(pb_iterator_detach_at(pi, &m_get, &m_len, &playout)) {
+                m = (media_data*)m_get;
                 /* Remove element from playout buffer - it belongs to
                  * the redundancy encoder now.  */
 #ifdef DEBUG_REDUNDANCY
@@ -361,7 +365,7 @@ redundancy_encoder_encode (u_char      *state,
                 re->last_in = playout;
 
                 if (m->nrep > 0) {
-                        pb_add(re->media_buffer, 
+                        pb_add(re->media_buffer,
                                (u_char*)m,
                                m_len,
                                playout);
@@ -385,7 +389,7 @@ redundancy_encoder_encode (u_char      *state,
                         cd = redundancy_encoder_output(re, upp);
                         assert(cd != NULL);
                         s  = pb_add(out, (u_char*)cd, sizeof(channel_data), playout);
-#ifdef DEBUG_REDUNDANCY 
+#ifdef DEBUG_REDUNDANCY
                         debug_msg("Ready %d, Added %d\n", re->units_ready, playout.ticks);
 #endif /* DEBUG_REDUNDANCY */
                         assert(s);
@@ -400,11 +404,12 @@ redundancy_encoder_encode (u_char      *state,
 /* Redundancy {get,set} parameters expects strings like:
  *            dvi-8k-mono/0/lpc-8k-mono/2
  * where number is the offset in number of units.
- */ 
+ */
 
 int
 redundancy_encoder_set_parameters(u_char *state, char *cmd)
 {
+        u_char *encbuf;
         red_enc_state *n, *cur;
         const codec_format_t *cf;
         uint32_t nl, po;
@@ -416,7 +421,8 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
         assert(cmd   != NULL);
 
         /* Create a temporary encoder, try to set it's params */
-        redundancy_encoder_create((u_char**)&n, &nl);
+        redundancy_encoder_create(&encbuf, &nl);
+        n = (red_enc_state*)encbuf;
         assert(n != NULL);
 
         s = (char *) strtok(cmd, "/");
@@ -433,7 +439,7 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
                 debug_msg("offset too big\n");
                 goto done;
         }
-        
+
         n->layer[0].cid       = cid;
         n->layer[0].pkts_off  = po;
         n->n_layers           = 1;
@@ -457,7 +463,7 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
                         debug_msg("offset too big\n");
                         goto done;
                 }
-        
+
                 n->layer[n->n_layers].cid      = cid;
                 n->layer[n->n_layers].pkts_off = po;
                 n->n_layers ++;
@@ -473,16 +479,17 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
         /* work out history = duration of audio frame * maximum offset */
         cf = codec_get_format(cur->layer[cur->n_layers - 1].cid);
         cur->history = ts_map32(cf->format.sample_rate,
-                                codec_get_samples_per_frame(cur->layer[cur->n_layers - 1].cid) * 
+                                codec_get_samples_per_frame(cur->layer[cur->n_layers - 1].cid) *
                                 cur->layer[cur->n_layers - 1].pkts_off);
 
         success = TRUE;
 done:
-        redundancy_encoder_destroy((u_char**)&n, nl);
+        encbuf = (u_char*)n;
+        redundancy_encoder_destroy(&encbuf, nl);
         return success;
 }
 
-int 
+int
 redundancy_encoder_get_parameters(u_char *state, char *buf, uint32_t blen)
 {
         const codec_format_t *cf;
@@ -499,7 +506,7 @@ redundancy_encoder_get_parameters(u_char *state, char *buf, uint32_t blen)
                 debug_msg("Redundancy encoder has not had parameters set!\n");
                 return FALSE;
         }
-        
+
         *buf = '\0';
 	flen = 0;
 
@@ -535,7 +542,7 @@ redundancy_decoder_peek(uint8_t   pkt_pt,
         codec_id_t            cid;
         u_char               *p, *data;
         uint32_t               hdr32, dlen, blen;
-        uint16_t               units;        
+        uint16_t               units;
         assert(buf != NULL);
         assert(upp != NULL);
         assert(pt  != NULL);
@@ -557,7 +564,7 @@ redundancy_decoder_peek(uint8_t   pkt_pt,
         data += 1; /* step over payload field of primary */
 
         cid = codec_get_by_payload(*pt);
-        
+
         if (!cid) {
                 debug_msg("Codec not found\n");
                 return FALSE;
@@ -574,7 +581,7 @@ redundancy_decoder_peek(uint8_t   pkt_pt,
 
         assert(((unsigned long)data - (unsigned long)buf) <= len);
 
-        units = 0;        
+        units = 0;
         while (dlen != 0) {
                 blen = codec_peek_frame_size(cid, p, (uint16_t)dlen);
                 assert(blen != 0);
@@ -611,7 +618,7 @@ redundancy_decoder_describe (uint8_t   pkt_pt,
         u_char  *p, pt;
 
         UNUSED(pkt_pt);
-        
+
         *out = '\0';
         slen = 0;
 
@@ -631,7 +638,7 @@ redundancy_decoder_describe (uint8_t   pkt_pt,
 
                 cf = codec_get_format(cid);
                 assert(cf != NULL);
-                
+
                 nlen = strlen(cf->long_name);
 
                 if (slen + nlen >=  out_len) {
@@ -659,9 +666,9 @@ redundancy_decoder_describe (uint8_t   pkt_pt,
 
         cf = codec_get_format(cid);
         assert(cf != NULL);
-                
+
         nlen = strlen(cf->long_name);
-        
+
         if (slen + nlen >=  out_len) {
                 debug_msg("Out of buffer space\n");
                 return FALSE;
@@ -674,7 +681,7 @@ redundancy_decoder_describe (uint8_t   pkt_pt,
         /* Axe trailing separator */
         out[slen-1] = '\0';
 
-        return TRUE;        
+        return TRUE;
 }
 
 static int
@@ -687,13 +694,13 @@ place_unit(media_data *md, coded_unit *cu)
         debug_msg("%d %s\n", md->nrep, cf->long_name);
 #endif /* DEBUG_REDUNDANCY */
         assert(md->nrep < MAX_MEDIA_UNITS);
-        
+
         for (i = 0; i < md->nrep; i++) {
                 if (md->rep[i]->id == cu->id) {
                         return FALSE;
                 }
         }
-        
+
         if (md->nrep > 0 && codec_is_native_coding(md->rep[md->nrep - 1]->id)) {
                 /* Buffer shifts can mean redundancy is received after primary decoded.  */
                 /* Just discard. i.e. pkt 1 (t1 t0) pkt2 (t2 t1), if pkt2 arrives after  */
@@ -714,15 +721,17 @@ static media_data *
 red_media_data_create_or_get(struct s_pb *p, timestamp_t playout)
 {
         struct s_pb_iterator *pi;
-        media_data *md;
-        uint32_t     md_len, success;
-        timestamp_t        md_playout;
+        u_char               *md_get;
+        media_data           *md;
+        uint32_t              md_len, success;
+        timestamp_t           md_playout;
 
         pb_iterator_create(p, &pi);
         /* iterator is attached to sentinel - can move back or forwards */
 
         while(pb_iterator_retreat(pi)) {
-                success = pb_iterator_get_at(pi, (u_char**)&md, &md_len, &md_playout);
+                success = pb_iterator_get_at(pi, &md_get, &md_len, &md_playout);
+                md = (media_data*)md_get;
                 assert(success);
                 if (ts_eq(md_playout, playout)) {
                         goto done;
@@ -768,7 +777,7 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
                 debug_msg("Payload not recognized\n");
                 return;
         }
-        
+
         if (!codec_audio_formats_compatible(pid, cid)) {
                 debug_msg("Primary (%d) and redundant (%d) not compatible\n", ppt, bpt);
                 return;
@@ -777,7 +786,7 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
         cf = codec_get_format(cid);
         assert(cf != NULL);
         step = ts_map32(cf->format.sample_rate, codec_get_samples_per_frame(cid));
-        
+
         p  = b;
         pe = b + blen;
         while(p < pe) {
@@ -801,7 +810,7 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
                 if (md->nrep == MAX_MEDIA_UNITS) continue;
                 if (place_unit(md, cu) == TRUE) {
                         playout = ts_add(playout, step);
-                } else {                
+                } else {
                         /* unit could not be placed - destroy */
                         if (cu->state_len) {
                                 block_free(cu->state, cu->state_len);
@@ -842,7 +851,7 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, timestamp_t playo
 
         /* Max offset should be in first header.  Want max offset
          * as we nobble timestamps to be:
-         *              playout + max_offset - this_offset 
+         *              playout + max_offset - this_offset
          */
 
         cid   = codec_get_by_payload(ppt);
@@ -873,24 +882,25 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, timestamp_t playo
                 dp += blen;
                 hdr32 = ntohl(*(uint32_t*)hp);
         }
-        
+
         this_playout = ts_add(playout, ts_max_off);
         hp += 1;
         blen = (uint32_t) (de - dp);
         red_split_unit(ppt, ppt, dp, blen, this_playout, out);
         xmemchk();
 }
-                          
+
 int
-redundancy_decoder_decode(u_char      *state,
+redundancy_decoder_decode(u_char       *state,
                            struct s_pb *in,
                            struct s_pb *out,
-                           timestamp_t         now)
+                           timestamp_t  now)
 {
         struct s_pb_iterator *pi;
+        u_char               *c_get;
         channel_data         *c;
-        uint32_t               clen;
-        timestamp_t                  cplayout;
+        uint32_t              clen;
+        timestamp_t           cplayout;
 
         pb_iterator_create(in, &pi);
         assert(pi != NULL);
@@ -898,19 +908,21 @@ redundancy_decoder_decode(u_char      *state,
         assert(state == NULL); /* No decoder state necesssary */
         UNUSED(state);
 
-        while(pb_iterator_get_at(pi, (u_char**)&c, &clen, &cplayout)) {
+        while(pb_iterator_get_at(pi, &c_get, &clen, &cplayout)) {
+                c = (channel_data*)c_get;
                 assert(c != NULL);
                 assert(clen == sizeof(channel_data));
                 if (ts_gt(cplayout, now)) {
                         break;
                 }
-                pb_iterator_detach_at(pi, (u_char**)&c, &clen, &cplayout);
+                pb_iterator_detach_at(pi, &c_get, &clen, &cplayout);
+                c = (channel_data*)c_get;
                 assert(c->nelem == 1);
                 redundancy_decoder_output(c->elem[0], out, cplayout);
                 channel_data_destroy(&c, sizeof(channel_data));
         }
-        
+
         pb_iterator_destroy(in, &pi);
         return TRUE;
 }
-        
+

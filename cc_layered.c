@@ -1,14 +1,14 @@
 /*
  * FILE:      cc_layered.c
- * AUTHOR(S): Orion Hodson + Tristan Henderson 
- *	
+ * AUTHOR(S): Orion Hodson + Tristan Henderson
+ *
  *
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -32,7 +32,7 @@ static const char cvsid[] =
 #define LAY_HDR32_SET_MRK(x,y) (x) |= ((y)<<12)
 #define LAY_HDR32_SET_LEN(x,y) (x) |= (y)
 #define LAY_HDR32_GET_PT(z)    (((z) >> 24) & 0x7f)
-#define LAY_HDR32_GET_MRK(z)   (((z) >> 12) & 0xfff) 
+#define LAY_HDR32_GET_MRK(z)   (((z) >> 12) & 0xfff)
 #define LAY_HDR32_GET_LEN(z)   ((z) & 0xfff)
 
 typedef struct {
@@ -70,30 +70,32 @@ layered_encoder_destroy(u_char **state, uint32_t len)
 int
 layered_encoder_set_parameters(u_char *state, char *cmd)
 {
-        lay_state *n, *cur;
+        u_char     *nbuf;
+        lay_state  *n, *cur;
         codec_id_t  cid;
-        char *s;
-        uint8_t layers;
-        uint32_t nl;
+        char       *s;
+        uint8_t     layers;
+        uint32_t    nl;
         int success = FALSE;
 
         assert(state != NULL);
         assert(cmd   != NULL);
 
         /* Create a temporary encoder, try to set its params */
-        layered_encoder_create((u_char**)&n, &nl);
+        layered_encoder_create(&nbuf, &nl);
+        n = (lay_state*)nbuf;
         assert(n != NULL);
 
-		if(strcmp(cmd, "None")==0) { /*might happen from load_settings */
-			debug_msg("layered codec not recognised\n");
-			goto done;
-		}
+        if(strcmp(cmd, "None")==0) { /*might happen from load_settings */
+                debug_msg("layered codec not recognised\n");
+                goto done;
+        }
 
         s = (char *) strtok(cmd, "/");
-		if(s==NULL) {
-			debug_msg("layered_codec_not_recognised\n");
-			goto done;
-		}
+        if(s==NULL) {
+                debug_msg("layered_codec_not_recognised\n");
+                goto done;
+        }
         cid = codec_get_by_name(s);
         if (!codec_id_is_valid(cid)) {
                 debug_msg("layered codec not recognized\n");
@@ -109,7 +111,7 @@ layered_encoder_set_parameters(u_char *state, char *cmd)
                 goto done;
         }
         n->n_layers = layers;
-        
+
         layered_encoder_reset(state);
         /* Take bits from temporary encoder state we want */
         cur = (lay_state*)state;
@@ -119,7 +121,8 @@ layered_encoder_set_parameters(u_char *state, char *cmd)
         success = TRUE;
 
 done:
-        layered_encoder_destroy((u_char**)&n, nl);
+        nbuf = (u_char*)n;
+        layered_encoder_destroy(&nbuf, nl);
         return success;
 }
 
@@ -140,7 +143,7 @@ layered_encoder_get_parameters(u_char *state, char *cmd, uint32_t cmd_len)
                 debug_msg("Using layered coder with %d layers?\n", l->n_layers);
                 return FALSE;
         }
-        
+
         *cmd = '\0';
 		flen = 0;
 
@@ -169,7 +172,7 @@ layered_encoder_reset(u_char *state)
                 media_data_destroy(&le->elem[i], sizeof(media_data));
         }
         le->nelem = 0;
-        
+
        /* Should we be resetting the number of layers? *
         * This is only called in tx_stop().            */
         /*le->n_layers = 1; */
@@ -184,10 +187,10 @@ static void
 add_hdr(channel_unit *chu, uint8_t pt, uint16_t marker, uint16_t len)
 {
         uint32_t *h;
-        
+
         assert(chu != NULL);
         assert(chu->data == NULL);
-        
+
         h = (uint32_t*)block_alloc(4);
 
         LAY_HDR32_INIT(*h);
@@ -210,15 +213,15 @@ layered_encoder_output(lay_state *le, struct s_pb *out)
         uint8_t j;
         uint16_t cd_len[LAY_MAX_LAYERS], markers[LAY_MAX_LAYERS];
         coded_unit *lu;
-        
+
         /* We have state for first unit and data for all others */
         channel_data_create(&cd, (le->nelem + 2)*(le->n_layers));
-        
+
         /* Fill in payload */
         cd->elem[0]->pt           = codec_get_payload(le->codec_id);
-        
+
         used = 0;
-        
+
         /* leave space for headers */
         used += le->n_layers;
 
@@ -231,7 +234,7 @@ layered_encoder_output(lay_state *le, struct s_pb *out)
                         used++;
                 }
         }
-        
+
         for(j = 0; j < le->n_layers; j++) {
                 cd_len[j] = 0;
         }
@@ -267,16 +270,16 @@ layered_encoder_output(lay_state *le, struct s_pb *out)
         le->nelem = 0;
         assert(lu->data_len == 0);
         block_free(lu, sizeof(coded_unit));
-        
+
         for(j=0; j<le->n_layers; j++) {
                 add_hdr(cd->elem[j], cd->elem[0]->pt, markers[j], cd_len[j]);
         }
-        
+
         assert(used <= cd->nelem);
-        
-        pb_add(out, 
-                (u_char*)cd, 
-                sizeof(channel_data), 
+
+        pb_add(out,
+                (u_char*)cd,
+                sizeof(channel_data),
                 le->playout);
 }
 
@@ -286,21 +289,23 @@ layered_encoder_encode (u_char      *state,
                         struct s_pb *out,
                         uint32_t      upp)
 {
-        uint32_t     m_len;
-        timestamp_t        playout;
+        uint32_t                   m_len;
+        timestamp_t                playout;
         struct      s_pb_iterator *pi;
-        media_data *m;
-        lay_state   *le = (lay_state*)state;
+        u_char                    *m_get;
+        media_data                *m;
+        lay_state                 *le = (lay_state*)state;
 
         assert(upp != 0 && upp <= MAX_UNITS_PER_PACKET);
 
         pb_iterator_create(in, &pi);
         pb_iterator_advance(pi); /* Move to first element */
 
-        while(pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout)) {
+        while(pb_iterator_detach_at(pi, &m_get, &m_len, &playout)) {
                 /* Remove element from playout buffer - it belongs to
                  * the layered encoder now.
                  */
+                m = (media_data*)m_get;
                 assert(m != NULL);
 
                 if (le->nelem == 0) {
@@ -315,10 +320,10 @@ layered_encoder_encode (u_char      *state,
                                 continue;
                         }
                 } else {
-                        /* Check for early send required:      
-                         * (a) if this unit has no media respresentations 
+                        /* Check for early send required:
+                         * (a) if this unit has no media respresentations
                          *     e.g. end of talkspurt.
-                         * (b) codec type of incoming unit is different 
+                         * (b) codec type of incoming unit is different
                          *     from what is on queue.
                          */
                         if (m->nrep == 0) {
@@ -328,14 +333,14 @@ layered_encoder_encode (u_char      *state,
                         } else if (m->rep[0]->id != le->codec_id) {
                                 layered_encoder_output(le, out);
                         }
-                } 
+                }
 
                 assert(m_len == sizeof(media_data));
 
-                le->codec_id = m->rep[0]->id;                
+                le->codec_id = m->rep[0]->id;
                 le->elem[le->nelem] = m;
                 le->nelem++;
-                
+
                 if (le->nelem >= (uint32_t)upp) {
                         layered_encoder_output(le, out);
                 }
@@ -364,7 +369,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, timestamp_t playo
         uint16_t len[LAY_MAX_LAYERS], mrk[LAY_MAX_LAYERS];
         media_data           *m;
         timestamp_t                  playout_step;
-        
+
         media_data_create(&m, 1);
         assert(m->nrep == 1);
 
@@ -382,7 +387,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, timestamp_t playo
         * join the layers together into one media_data, and then get
         * out of here.
         */
-        
+
         p[0] = in->elem[0]->data;
         hdr32 = ntohl(*(uint32_t*)p[0]);
         if(hdr32 & LAY_HDR32_PAT) {
@@ -395,10 +400,10 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, timestamp_t playo
                 debug_msg("Invalid layered header\n");
 		goto done;
         }
-        
+
         for(i=1; i<in->nelem; i++) {
                 p[i] = in->elem[i]->data;
-                
+
                 hdr32 = ntohl(*(uint32_t*)p[i]);
                 if(hdr32 & LAY_HDR32_PAT) {
                         if(hdrpt != (uint8_t)(LAY_HDR32_GET_PT(hdr32))) {
@@ -415,7 +420,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, timestamp_t playo
                 }
         }
         end  = in->elem[in->nelem-1]->data + in->elem[in->nelem-1]->data_len;
-        
+
         /* if layers missing say so */
         if(in->nelem!=LAY_MAX_LAYERS) {
                 debug_msg("Not all layers arrived:\n");
@@ -423,7 +428,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, timestamp_t playo
                         debug_msg("marker[%d] = %d\n", i, mrk[i]);
                 }
         }
-        
+
         /* Everything matches, so we'll use the first layer's details */
 
         cu = (coded_unit*)block_alloc(sizeof(coded_unit));
@@ -445,7 +450,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, timestamp_t playo
                 for(i=0; i<in->nelem; i++)
                         p[i] += cf->mean_per_packet_state_size;
         }
-        
+
         data_len = codec_peek_frame_size(id, p[0], (uint16_t)(len[0]));
         m->rep[0]->id = cu->id = id;
         cu->data = (u_char*)block_alloc(data_len);
@@ -453,7 +458,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, timestamp_t playo
         memset(cu->data, 0, data_len);
 
         /* join the layers up here */
-        
+
         for(i=0; i<in->nelem; i++) {
                 memcpy(cu->data + mrk[i], p[i], len[i]);
                 p[i] += len[i];
@@ -497,7 +502,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, timestamp_t playo
                 }
 
                 codec_combine_layer(id, cu, m->rep[0], in->nelem, mrk);
-                
+
                 block_free(cu->data, cu->data_len);
                 cu->data     = 0;
                 cu->data_len = 0;
@@ -537,21 +542,23 @@ done:
 
 int
 layered_decoder_decode(u_char      *state,
-                       struct s_pb *in, 
-                       struct s_pb *out, 
-                       timestamp_t         now)
+                       struct s_pb *in,
+                       struct s_pb *out,
+                       timestamp_t  now)
 {
         struct s_pb_iterator *pi;
-        channel_data *c;
-        uint32_t       clen;
-        timestamp_t          playout;
+        u_char               *c_get;
+        channel_data         *c;
+        uint32_t              clen;
+        timestamp_t           playout;
 
         UNUSED(state);
 
         pb_iterator_create(in, &pi);
         assert(pi != NULL);
-        
-        while(pb_iterator_get_at(pi, (u_char**)&c, &clen, &playout)) {
+
+        while(pb_iterator_get_at(pi, &c_get, &clen, &playout)) {
+                c = (channel_data*)c_get;
                 assert(c != NULL);
                 assert(clen == sizeof(channel_data));
 
@@ -559,7 +566,7 @@ layered_decoder_decode(u_char      *state,
                         /* Playout point of unit is after now.  Stop! */
                         break;
                 }
-                pb_iterator_detach_at(pi, (u_char**)&c, &clen, &playout);
+                pb_iterator_detach_at(pi, &c_get, &clen, &playout);
                 layered_decoder_reorganise(c, out, playout);
         }
 
@@ -584,7 +591,7 @@ layered_decoder_peek(uint8_t   pkt_pt,
         assert(upp != NULL);
         assert(pt  != NULL);
         UNUSED(pkt_pt);
-        
+
         p = data = buf;
 
         hdr32 = ntohl(*(uint32_t*)p);
@@ -603,7 +610,7 @@ layered_decoder_peek(uint8_t   pkt_pt,
                 goto fail;
         }
 
-        /* I'm haven't decided what exactly to do here yet, so for   
+        /* I'm haven't decided what exactly to do here yet, so for
          * the time being if the header seems OK we return TRUE. The
          * options are:
          * (i) have a new function codec_peek_layer_frame_size
@@ -611,13 +618,13 @@ layered_decoder_peek(uint8_t   pkt_pt,
          * (iii) just check that length of packet matches what is in
          *       the header
          * But what to do about *upp?
-         * The problem is that codec_peek_frame_size, if used with 
+         * The problem is that codec_peek_frame_size, if used with
          * codec_vdvi, calls vdvi_decode, assuming a complete frame.
          * Of course we only have one layer at this stage, so the
          * decode function will fail. I am going to ignore this for
          * the time being.
          */
-        
+
         *pt = hdrpt;
         cid = codec_get_by_payload(*pt);
         if (cid) {
@@ -640,9 +647,9 @@ layered_decoder_peek(uint8_t   pkt_pt,
                         done += blen;
                         unit ++;
                 }
-                
+
 /*                assert(done <= len);*/
-                
+
                 if (done != len) goto fail;
                 *upp = (uint16_t)unit;
                 return TRUE;
@@ -660,7 +667,7 @@ fail:
 /* Just returns the long name of the codec.
  * Could display number of layers if really bothered.
  */
-int 
+int
 layered_decoder_describe (uint8_t   pkt_pt,
                           u_char  *data,
                           uint32_t  data_len,
@@ -680,7 +687,7 @@ layered_decoder_describe (uint8_t   pkt_pt,
                 hdrpt = (uint8_t)(LAY_HDR32_GET_PT(hdr32));
                 mrk = (uint16_t)(LAY_HDR32_GET_MRK(hdr32));
                 blen = (uint16_t)(LAY_HDR32_GET_LEN(hdr32));
-                
+
                 pri_id = codec_get_by_payload(hdrpt);
                 if(pri_id) {
                         pri_cf = codec_get_format(pri_id);

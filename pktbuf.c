@@ -1,13 +1,13 @@
 /*
  * FILE:      pktbuf.c
- * AUTHOR(S): Orion Hodson 
+ * AUTHOR(S): Orion Hodson
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -25,18 +25,17 @@ static const char cvsid[] =
 static void pktbuf_free_rtp(u_char **mem, uint32_t memsz);
 
 struct s_pktbuf {
-	struct s_pb		*rtp_buffer;
-	struct s_pb_iterator	*rtp_iterator;
-	ts_sequencer		rtp_sequencer;
-        uint16_t		max_packets;
-	
+	struct s_pb	     *rtp_buffer;
+	struct s_pb_iterator *rtp_iterator;
+	ts_sequencer	      rtp_sequencer;
+        uint16_t	      max_packets;
 };
 
 int
 pktbuf_create(struct s_pktbuf **ppb, uint16_t size)
 {
         struct s_pktbuf *pb;
-        
+
         pb = (struct s_pktbuf*)xmalloc(sizeof(struct s_pktbuf));
         if (pb == NULL) {
                 return FALSE;
@@ -68,32 +67,34 @@ pktbuf_destroy(struct s_pktbuf **ppb)
         *ppb = NULL;
 }
 
-static void 
+static void
 pktbuf_free_rtp(u_char **data, uint32_t data_bytes) {
 	assert(data_bytes == sizeof(rtp_packet));
 	xfree(*data);
 	*data = NULL;
 }
 
-int 
+int
 pktbuf_enqueue(struct s_pktbuf *pb, rtp_packet *p)
 {
-	timestamp_t	playout;
-	uint32_t	psize;
+	timestamp_t playout;
+	uint32_t    psize;
 
         assert(p != NULL);
 	playout = ts_seq32_in(&pb->rtp_sequencer, 8000 /* Arbitrary */, p->ts);
 	psize   = sizeof(rtp_packet);
-	
+
 	if (!pb_add(pb->rtp_buffer, (u_char*)p, psize, playout)) {
-		pktbuf_free_rtp((u_char**)&p, psize);
+                u_char* pp = (u_char*)p;
+		pktbuf_free_rtp(&pp, psize);
 		return TRUE;
 	}
 
 	if (pb_node_count(pb->rtp_buffer) > pb->max_packets) {
 		debug_msg("RTP packet queue overflow\n");
 		if (pktbuf_dequeue(pb, &p)) {
-			pktbuf_free_rtp((u_char**)&p, psize);
+                        u_char* pp = (u_char*)p;
+			pktbuf_free_rtp(&pp, psize);
 			return TRUE;
 		}
 		/* NOTREACHED */
@@ -104,11 +105,11 @@ pktbuf_enqueue(struct s_pktbuf *pb, rtp_packet *p)
         return TRUE;
 }
 
-int 
+int
 pktbuf_dequeue(struct s_pktbuf *pb, rtp_packet **pp)
 {
-	timestamp_t	playout;
-	uint32_t	psize;
+	timestamp_t playout;
+	uint32_t    psize;
 
 	if (pb_iterator_rwd(pb->rtp_iterator) == FALSE) {
 		return FALSE;
@@ -122,8 +123,8 @@ int
 pktbuf_peak_last(pktbuf_t   *pb,
                  rtp_packet **pp)
 {
-	timestamp_t	playout;
-	uint32_t	psize;
+	timestamp_t playout;
+	uint32_t    psize;
 
 	if (pb_iterator_ffwd(pb->rtp_iterator) == FALSE) {
 		return FALSE;
@@ -132,7 +133,7 @@ pktbuf_peak_last(pktbuf_t   *pb,
 	return TRUE;
 }
 
-uint16_t 
+uint16_t
 pktbuf_get_count(pktbuf_t *pb)
 {
         return (uint16_t)pb_node_count(pb->rtp_buffer);

@@ -123,6 +123,7 @@ vanilla_encoder_encode (u_char      *state,
         uint32_t     m_len;
         timestamp_t        playout;
         struct      s_pb_iterator *pi;
+	u_char     *m_get;
         media_data *m;
         ve_state   *ve = (ve_state*)state;
 
@@ -131,10 +132,11 @@ vanilla_encoder_encode (u_char      *state,
         pb_iterator_create(in, &pi);
         pb_iterator_advance(pi); /* Move to first element */
 
-        while(pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout)) {
+        while(pb_iterator_detach_at(pi, &m_get, &m_len, &playout)) {
                 /* Remove element from playout buffer - it belongs to
                  * the vanilla encoder now.
                  */
+                m = (media_data*)m_get;
                 assert(m != NULL);
 
                 if (ve->nelem == 0) {
@@ -231,6 +233,7 @@ vanilla_decoder_decode(u_char      *state,
 {
         struct s_pb_iterator *pi;
         channel_unit *cu;
+        u_char       *c_get;
         channel_data *c;
         uint32_t       clen;
         timestamp_t          playout;
@@ -241,7 +244,8 @@ vanilla_decoder_decode(u_char      *state,
         pb_iterator_create(in, &pi);
         assert(pi != NULL);
         
-        while(pb_iterator_get_at(pi, (u_char**)&c, &clen, &playout)) {
+        while(pb_iterator_get_at(pi, &c_get, &clen, &playout)) {
+                c = (channel_data*)c_get;
                 assert(c != NULL);
                 assert(clen == sizeof(channel_data));
 
@@ -249,7 +253,9 @@ vanilla_decoder_decode(u_char      *state,
                         /* Playout point of unit is after now.  Stop! */
                         break;
                 }
-                pb_iterator_detach_at(pi, (u_char**)&c, &clen, &playout);
+                pb_iterator_detach_at(pi, &c_get, &clen, &playout);
+                c = (channel_data*)c_get;
+                assert(c != NULL);
                 
                 assert(c->nelem == 1);
                 cu = c->elem[0];
