@@ -1396,6 +1396,7 @@ v4.2.7	- Split main() in the controller into two parts: one for normal
 	  on Solaris8.
 	- Cleanup and document the receiver source processing (starting 
 	  with the source_process() function and friends).
+	* Released 6 August 2000
 
 
 
