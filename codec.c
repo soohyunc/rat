@@ -371,12 +371,14 @@ get_dynamic_payload(dpt **dpt_list, char *name)
 void
 codec_free_dynamic_payloads(dpt **dpt_list)
 {
-        dpt *elem = *dpt_list;
-        while(elem) {
-                dpt_list = &elem->next;
+	dpt	*elem, *tmp_elem;
+
+        elem = *dpt_list;
+        while(elem != NULL) {
+                tmp_elem = elem->next;
                 xfree(elem->name);
                 xfree(elem);
-                elem = *dpt_list;
+                elem = tmp_elem;
         }
 }
 
