@@ -431,15 +431,15 @@ int
 pca_audio_is_ready(audio_desc_t ad)
 {
         struct timeval now;
-        u_int32 diff;
+        u_int32 read_bytes;
 
         UNUSED(ad);
 
         gettimeofday(&now,NULL);
-	diff = (now.tv_sec  - last_read_time.tv_sec) * 1000 + (now.tv_usec - last_read_time.tv_usec)/1000;
+	read_bytes = (now.tv_sec  - last_read_time.tv_sec) * 1000 + (now.tv_usec - last_read_time.tv_usec)/1000;
         read_bytes *= dev_info.play.sample_rate / 1000 * dev_info.play.precision / 8 * dev_info.play.channels;
 
-        if (diff + avail_bytes > (unsigned)bytes_per_block) return TRUE;
+        if (read_bytes + avail_bytes > (unsigned)bytes_per_block) return TRUE;
         return FALSE;
 }
 
