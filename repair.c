@@ -312,18 +312,19 @@ repair_get_count()
 
 /* RAT droppings - everything below here depends on RAT code base */
 
-
 int
-repair(int                         repair, 
+repair(repair_id_t                 r, 
        int                         consec_lost,
        struct s_codec_state_store *states,
        media_data                 *prev, 
        coded_unit                 *missing)
 {
         int          src, success;
-        assert((unsigned)repair < REPAIR_NUM_SCHEMES);
 
-        if (schemes[repair].action == NULL) {
+        r = REPAIR_ID_TO_IDX(r);
+        assert((unsigned)r < REPAIR_NUM_SCHEMES);
+
+        if (schemes[r].action == NULL) {
                 /* Nothing to do - this must be repair scheme "none" */
                 return FALSE;
         } else if (prev->nrep == 0) {
@@ -390,7 +391,7 @@ repair(int                         repair,
                         bufs[0] = (sample*) p->data;
                         bufs[1] = (sample*) missing->data;
 
-                        schemes[repair].action(bufs, pfmts, 2, 1, consec_lost);
+                        schemes[r].action(bufs, pfmts, 2, 1, consec_lost);
                         return TRUE;
                 }
         }

@@ -18,8 +18,8 @@
 #include "codec_state.h"
 #include "repair_types.h"
 
-int repair(int                          repair,
-           int                          consec_lost,
+int repair(repair_id_t                 r,
+           int                         consec_lost,
            struct s_codec_state_store *states,
            media_data                  *prev, 
            coded_unit                  *missing);

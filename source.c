@@ -781,9 +781,9 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
 }
 
 static int
-source_repair(source *src,
-              int     repair_type,
-              ts_t    step)
+source_repair(source     *src,
+              repair_id_t r,
+              ts_t        step)
 {
         media_data* fill_md, *prev_md;
         ts_t        fill_ts,  prev_ts;
@@ -811,7 +811,7 @@ source_repair(source *src,
         }
 
         media_data_create(&fill_md, 1);
-        repair(repair_type,
+        repair(r,
                src->consec_lost,
                src->codec_states,
                prev_md,
@@ -873,7 +873,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
                 u_int16 j, n;
                 n = repair_get_count();
                 for(j = 0; j < n; j++) {
-                        r = repair_get_details(i);
+                        r = repair_get_details(j);
                         if (strcasecmp("none", r->name)) {
                                 repair_none = r->id;
                                 break;
