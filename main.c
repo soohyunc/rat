@@ -123,7 +123,7 @@ main(int argc, char *argv[])
 	sp[0]->db = rtcp_init(sp[0]->device_clock, cname, ssrc, 0);
         rtcp_clock_change(sp[0]);
 
-	load_settings(sp[0]);
+	settings_load(sp[0]);
         ui_initial_settings(sp[0]);
 
 	parse_late_options(argc, argv, sp);	/* Things which can override the settings we just loaded... */
@@ -275,7 +275,7 @@ main(int argc, char *argv[])
 		}
         }
 
-	save_settings(sp[0]);
+	settings_save(sp[0]);
 	tx_stop(sp[0]->tb);
 	rtcp_exit(sp[0], NULL, sp[0]->rtcp_socket);
 	if (sp[0]->in_file  != NULL) snd_read_close (&sp[0]->in_file);
