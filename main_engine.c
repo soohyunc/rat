@@ -128,8 +128,8 @@ int main(int argc, char *argv[])
 	settings_load_early(sp);
 
 	/* Initialise our mbus interface... once this is done we can talk to our controller */
-	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, (uint32_t) getpid());
 	sp->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 3);
+	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, (uint32_t) getpid());
 	sp->mbus_engine      = mbus_init(mbus_engine_rx, mbus_error_handler, sp->mbus_engine_addr);
 
 	/* The first stage is to wait until we hear from our controller. The address of the */
