@@ -430,8 +430,8 @@ AC_ARG_ENABLE(kame-ipv6,
 #-----------------------------------------------------------------------------
 # Check for UCL Multimedia Base (formerly common) library
 #-----------------------------------------------------------------------------
-COMMON_INC=${PARENT}/common
-COMMON_LIB=${PARENT}/common
+COMMON_INC=${PARENT}/common/src
+COMMON_LIB=${PARENT}/common/src
 
 AC_ARG_WITH(common,           
 	[  --with-common=DIR       specify location of UCL's common library],
