@@ -209,7 +209,6 @@ proc mbus_recv_converter.supported {arg} {
     set converters [split $arg "/"]
     foreach c $converters {
 	.prefs.pane.reception.r.ms.menu add command -label $c -command "set convert_var \"$c\""
-	puts "$c"
     }
 }
 

@@ -744,7 +744,7 @@ extra_init (converter_t *c)
 static void
 extra_convert (converter_t  *c, sample* src_buf, int src_len, sample *dst_buf, int dst_len)
 {
-        register short *sp, *se, *dp;
+        register short *sp, *se, *dp, *de;
         int i, channels;
 
         UNUSED(dst_len);
@@ -758,18 +758,17 @@ extra_convert (converter_t  *c, sample* src_buf, int src_len, sample *dst_buf, i
         }
 
         if (c->conv_fmt->from_freq < c->conv_fmt->to_freq) {
-                register int lim, dup;
-                lim = c->conv_fmt->to_freq / c->conv_fmt->from_freq;
+                register int dstep;
+                dstep = channels * c->conv_fmt->to_freq / c->conv_fmt->from_freq;
                 se = src_buf + src_len;
                 for(i = 0; i < channels; i++) {
                         sp = src_buf + i;
                         dp = dst_buf + i;
                         while(sp < se) {
-                                dup = 0;
-                                while(dup < lim) {
+                                de = dp + dstep;
+                                while(dp < de) {
                                         *dp = *sp;
                                         dp += channels;
-                                        dup++;
                                 }
                                 sp += channels;
                         }
