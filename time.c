@@ -139,7 +139,7 @@ convert_time(u_int32 ts, frtime_t *from, frtime_t *to)
         } else if (from->freq < to->freq) {
                 return ts * (to->freq / from->freq);
         } else {
-                return ts * (from->freq / to->freq);
+                return ts / (from->freq / to->freq);
         }
 }
 

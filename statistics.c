@@ -283,9 +283,6 @@ adapt_playout(rtp_hdr_t *hdr,
                                  * or, difference in time stamps is less than 1 sec,
                                  * we don't want playout point to be before that of existing data.
                                  */
-                                debug_msg("delay (%lu) var (%lu) playout (%lu)\n", 
-                                          src->delay, var, src->playout
-                                        );
                                 src->playout = max((unsigned)src->playout, src->delay + var);
                         } else {
                                 debug_msg("delay (%lu) var (%lu)\n", src->delay, var);

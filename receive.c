@@ -635,7 +635,6 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                         }
 		}
 		clear_old_participant_history(buf);
-
 	}
 
 	for (bufp = buf_list; *bufp;) {
