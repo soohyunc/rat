@@ -844,7 +844,9 @@ audio_loopback(audio_desc_t ad, int gain)
         assert(gain >= 0);
         assert(gain <= MAX_AMP);
 
-        if (audio_if_table[iface].audio_if_loopback) audio_if_table[iface].audio_if_loopback(device, gain);
+        if (audio_if_table[iface].audio_if_loopback) {
+                audio_if_table[iface].audio_if_loopback(device, gain);
+        }
 }
 
 void

@@ -295,6 +295,8 @@ audio_device_reconfigure(session_t *sp)
                         audio_set_oport(curr_config->device, papd->port);
                 }
 
+                audio_loopback(curr_config->device, sp->loopback_gain);
+
                 sp->audio_device  = curr_config->device;
                 sp->encodings[0]  = codec_get_payload(curr_config->primary);
 

@@ -485,6 +485,7 @@ void settings_load_early(session_t *sp)
 	sp->detect_silence = setting_load_int("audioSilence", 1);
 	sp->agc_on         = setting_load_int("audioAGC", 0);
 	sp->loopback_gain  = setting_load_int("audioLoopback", 0);
+        audio_loopback(sp->audio_device, sp->loopback_gain);
 	sp->echo_suppress  = setting_load_int("audioEchoSuppress", 0);
 	sp->meter          = setting_load_int("audioPowermeters", 1);
 /* Ignore saved render_3d setting.  Break initial device config stuff.  V.fiddly to fix. */
