@@ -950,9 +950,15 @@ proc mbus_recv_rtp.source.remove {ssrc} {
 	unset CNAME($ssrc) NAME($ssrc) EMAIL($ssrc) PHONE($ssrc) LOC($ssrc) TOOL($ssrc) NOTE($ssrc)
 	unset CODEC($ssrc) DURATION($ssrc) PCKTS_RECV($ssrc) PCKTS_LOST($ssrc) PCKTS_MISO($ssrc) PCKTS_DUP($ssrc)
 	unset JITTER($ssrc) LOSS_TO_ME($ssrc) LOSS_FROM_ME($ssrc) INDEX($ssrc) JIT_TOGED($ssrc) BUFFER_SIZE($ssrc)
-	unset PLAYOUT_DELAY($ssrc) GAIN($ssrc) MUTE($ssrc) HEARD_LOSS_TO_ME($ssrc) HEARD_LOSS_FROM_ME($ssrc)
+	unset PLAYOUT_DELAY($ssrc) GAIN($ssrc) MUTE($ssrc) 
 	incr num_ssrc -1
     }
+    if { [info exists HEARD_LOSS_TO_ME($ssrc)] } {
+	unset HEARD_LOSS_TO_ME($ssrc)
+    } 
+    if { [info exists HEARD_LOSS_FROM_ME($ssrc)] } {
+	unset HEARD_LOSS_FROM_ME($ssrc)
+    } 
 }
 
 proc mbus_recv_rtp.source.mute {ssrc val} {
