@@ -284,7 +284,7 @@ update(
 {
 	int		cnt;
 	short		mag, exp;	/* Adaptive predictor, FLOAT A */
-	short		a2p;		/* LIMC */
+	short		a2p=0;		/* LIMC */
 	short		a1ul;		/* UPA1 */
 	short		pks1;  /* UPA2 */
 	short		fa1;
