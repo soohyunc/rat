@@ -38,6 +38,8 @@ extern int  thread_pri;
 static int  nLoopGain = 100;
 #define     MAX_DEV_NAME 64
 
+static UINT mapAudioDescToMixerID(audio_desc_t ad);
+
 /* mcd_elem_t is a node used to store control state so 
  * we can restore mixer controls when device closes.
  */
@@ -1127,13 +1129,13 @@ w32sdk_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 
 static int audio_dev_open = 0;
 
-int
-w32sdk_audio_open(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
+static int
+w32sdk_audio_open_mixer(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
 {
         static int virgin;
         WAVEFORMATEX owfx, wfx;
         UINT uWavIn, uWavOut;
-        
+
         if (audio_dev_open) {
                 debug_msg("Device not closed! Fix immediately");
                 w32sdk_audio_close(ad);
@@ -1187,11 +1189,7 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
                 w32sdk_audio_close_in();
                 return FALSE;
         }
-        
-        if (!have_probed[ad]) {
-                have_probed[ad] = w32sdk_probe_formats(ad);
-        }
-        
+
         /* because i've seen these get corrupted... */
         assert(memcmp(&owfx, &wfx, sizeof(WAVEFORMATEX)) == 0);
         
@@ -1211,13 +1209,24 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
         default:
                 break;
         }
-        
+
+        if (!have_probed[ad]) {
+                have_probed[ad] = w32sdk_probe_formats(ad);
+        }
+ 
         audio_dev_open = TRUE;
         return TRUE;
 }
 
-void
-w32sdk_audio_close(audio_desc_t ad)
+int 
+w32sdk_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
+{
+        ad = mapAudioDescToMixerID(ad);
+        return w32sdk_audio_open_mixer(ad, ifmt, ofmt);
+}
+
+static void
+w32sdk_audio_close_mixer(audio_desc_t ad)
 {
         UNUSED(ad);
         
@@ -1240,6 +1249,12 @@ w32sdk_audio_close(audio_desc_t ad)
         mixRestoreControls(ad, &control_list);
 
         audio_dev_open = FALSE;
+}
+
+void
+w32sdk_audio_close(audio_desc_t ad)
+{
+        w32sdk_audio_close_mixer(ad);
 }
 
 int
@@ -1507,6 +1522,7 @@ int
 w32sdk_audio_supports(audio_desc_t ad, audio_format *paf)
 {
         int i;
+        ad = mapAudioDescToMixerID(ad);
         for(i = 0; i < n_af_sup[ad]; i++) {
                 if (af_sup[ad][i].sample_rate  == paf->sample_rate &&
                         af_sup[ad][i].channels == paf->channels) {
@@ -1516,13 +1532,22 @@ w32sdk_audio_supports(audio_desc_t ad, audio_format *paf)
         return FALSE;
 }
 
-static int nMixersWithFullDuplex = 0;
+static int   nMixersWithFullDuplex = 0;
+static UINT *mixerIdMap;
+
+static UINT 
+mapAudioDescToMixerID(audio_desc_t ad)
+{
+        return mixerIdMap[ad];
+}
 
 int
 w32sdk_audio_init()
 {
         audio_format af;
         unsigned int i;
+
+        mixerIdMap = (UINT*)xmalloc(sizeof(UINT) * mixerGetNumDevs());
 
         af.bits_per_sample = 16;
         af.bytes_per_block = 320;
@@ -1531,11 +1556,13 @@ w32sdk_audio_init()
         af.sample_rate     = 8000;
         
         for(i = 0; i < mixerGetNumDevs(); i++) {
-                if (w32sdk_audio_open(i, &af, &af)) {
-                        w32sdk_audio_close(i);
+                if (w32sdk_audio_open_mixer(i, &af, &af)) {
+                        w32sdk_audio_close_mixer(i);
+                        mixerIdMap[nMixersWithFullDuplex] = i;
                         nMixersWithFullDuplex++;
                 }
         }
+
         return nMixersWithFullDuplex;
 }
 
@@ -1543,7 +1570,7 @@ int
 w32sdk_get_device_count()
 {
         /* We are only interested in devices with mixers */
-        return (int)mixerGetNumDevs();
+        return (int)nMixersWithFullDuplex;
 }
 
 static char tmpname[MAXPNAMELEN];
@@ -1552,7 +1579,7 @@ char *
 w32sdk_get_device_name(int idx)
 {
         MIXERCAPS mc;
-        
+        idx = mapAudioDescToMixerID(idx);
         if ((UINT)idx < mixerGetNumDevs()) {
                 mixerGetDevCaps((UINT)idx, &mc, sizeof(mc));
                 strcpy(tmpname, mc.szPname);
