@@ -128,7 +128,6 @@ rtp_rtt_calc(uint32_t arr, uint32_t dep, uint32_t delay)
         uint32_t delta;
 
         /* rtt = arr - dep - delay */
-        debug_msg("rtt arr - dep %lu  delay %lu\n", arr - dep, delay);
         delta = ntp32_sub(arr,   dep);
         delta = ntp32_sub(delta, delay);
         /*
