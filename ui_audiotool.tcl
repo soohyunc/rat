@@ -432,8 +432,8 @@ proc mbus_recv_source.inactive {cname} {
 }
 
 proc mbus_recv_source.remove {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
-	global num_cname
+	global CNAME NAME EMAIL LOC PHONE TOOL CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER 
+	global LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED num_cname 
 
 	catch [destroy [window_plist $cname]]
 	unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname)
@@ -523,7 +523,7 @@ proc cname_update {cname} {
 	}
 	catch {after cancel $his_or_her_losstimers($cname)}
 	if {$LOSS_FROM_ME($cname)<=100} {
-		set his_or_her_losstimers($cname) [after 30000 "set LOSS_FROM_ME($cname) 101; cname_update $cname"]
+		set his_or_her_losstimers($cname) [after 10000 "set LOSS_FROM_ME($cname) 101; cname_update $cname"]
 	}
 }
 
