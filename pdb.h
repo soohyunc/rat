@@ -50,7 +50,7 @@ typedef struct {
         ts_t            last_last_transit;
         ts_t            avg_transit;
         cc_id_t         channel_coder_id;            /* channel_coder of last received packet    */
-	ts_t            last_mixed;                  /* Used to check mixing                     */
+	ts_t            next_mix;                  /* Used to check mixing                     */
 	ts_t            playout;                     /* Playout delay for this talkspurt         */
         ts_sequencer    seq;                         /* Mapper from RTP time rep to rat time rep */
         uint32_t        spike_events;                /* Number of spike events                   */
