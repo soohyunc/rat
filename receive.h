@@ -55,6 +55,8 @@ typedef struct rx_element_tag {
 	struct rx_element_tag  *next_ptr;
 	struct rx_element_tag  *prev_ptr;
 	u_int32        	playoutpt;		     /* target play out point */
+        u_int32         src_ts;                      /* source timestamp used to prevent jumps in playout
+                                                      * breaking sequence of units into channel coders */
 	int		dbe_source_count;	     /* Num elements of the following array that are used. Will be >= 1 */
 	struct s_rtcp_dbentry   *dbe_source[16];     /* originator info */
 	int             unit_size;		     /* in samples */
