@@ -304,7 +304,7 @@ const audio_port_details_t*
 sgi_audio_oport_details(audio_desc_t ad, int idx)
 {
         UNUSED(ad);
-        assert(idx < SGI_NUM_OPORTS && idx >= 0);
+        assert((unsigned)idx < SGI_NUM_OPORTS && idx >= 0);
         return &out_ports[idx];
 }
 

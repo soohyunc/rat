@@ -49,6 +49,8 @@ case $OSTYPE in
                            ;;
   HP-UX                  ) OSTYPE=HPUX
                            ;;
+  IRIX64		 ) OSTYPE=IRIX
+                           ;;
   Linux | IRIX | FreeBSD | NetBSD ) 
                            ;;
   *                      ) echo "$OSTYPE"
@@ -87,15 +89,15 @@ case $OSTYPE in
 	    OPTIMIZE="-O4"
 	    PROFILE="-pg"
             ;;
-  IRIX    ) CC="cc"
-            WFLAGS="-fullwarn -w2"
-	    INCLUDE="-I/usr/ucl/X11/include"
+  IRIX    ) CC="gcc"
+            WFLAGS=$GCCWFLAGS
+	    INCLUDE=""
 	    LDLIBS="-L/usr/lib/X11 -lX11 -laudio -lm"
 	    AUDIO="auddev_sgi.o"
 	    DEBUG="-g"
-	    CHAR="-signed"
-	    OPTIMIZE="-O2"
-	    PROFILE=""
+	    CHAR="-fsigned-char"
+	    OPTIMIZE="-O$"
+	    PROFILE="-pg"
             ;;
   Linux   ) CC="gcc"
             WFLAGS=$GCCWFLAGS
