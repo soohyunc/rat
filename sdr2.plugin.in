@@ -1,7 +1,9 @@
 #
-# FILE:   sdr plugin for rat-VERSION
-# PROGRAM:RAT
-# AUTHOR: Colin Perkins
+# FILE:    sdr plugin for rat-VERSION
+# PROGRAM: RAT
+# AUTHOR:  Colin Perkins
+#
+# This should be installed as $HOME/.sdr/plugins/sdr2.plugin.S02.audio.rtp.-.rat-VERSION
 #
 # $Revision$
 # $Date$
@@ -44,10 +46,7 @@ cryptflag:-K
 fmt:0
 {
 	fmtname:PCM u-law 8kHz mono
-	macro:PRIMARY
-	{
-		value:pcm
-	}
+	flags: -f pcmu-8k-mono
 	@expand:ptime
 }
 
@@ -59,10 +58,7 @@ fmt:2
 		attrvalue:2 G726-32/8000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-32-8k-mono
-			}
+			flags:-f g726-32-8k-mono
 		}
 	}
 	@expand:ptime
@@ -71,70 +67,49 @@ fmt:2
 fmt:3
 {
 	fmtname:GSM 8kHz mono
-	macro:PRIMARY
-	{
-		value:gsm
-	}
+	flags:-f gsm
 	@expand:ptime
 }
 
 fmt:5
 {
 	fmtname:DVI 8kHz mono
-	macro:PRIMARY
-	{
-		value:dvi
-	}
+	flags:-f dvi
 	@expand:ptime
 }
 
 fmt:6
 {
 	fmtname:DVI 16kHz mono
-	macro:PRIMARY
-	{
-		value:dvi-16k-mono
-	}
+	flags:-f dvi-16k-mono
 	@expand:ptime
 }
 
 fmt:7
 {
 	fmtname:LPC 8kHz mono
-	macro:PRIMARY
-	{
-		value:lpc
-	}
+	flags:-f lpc
 	@expand:ptime
 }
 
 fmt:8
 {
 	fmtname:PCM a-law 8kHz mono
-	macro:PRIMARY
-	{
-		value:pcma-8k-mono
-	}
+	flags:-f pcma-8k-mono
 	@expand:ptime
 }
 
 fmt:16
 {
 	fmtname:DVI 11kHz mono
-	macro:PRIMARY
-	{
-		value:dvi-11k-mono
-	}
+	flags:-f dvi-11k-mono
 	@expand:ptime
 }
 
 fmt:17
 {
 	fmtname:DVI 22kHz mono
-	macro:PRIMARY
-	{
-		value:dvi-22k-mono
-	}
+	flags:-f dvi-22k-mono
 	@expand:ptime
 }
 
@@ -146,10 +121,7 @@ fmt:77
 		attrvalue:77 VDVI/8000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:vdvi-8k-mono
-			}
+			flags:-f vdvi-8k-mono
 		}
 	}
 	@expand:ptime
@@ -163,10 +135,7 @@ fmt:78
 		attrvalue:78 VDVI/16000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:vdvi-16k-mono
-			}
+			flags:-f vdvi-16k-mono
 		}
 	}
 	@expand:ptime
@@ -180,10 +149,7 @@ fmt:79
 		attrvalue:79 VDVI/32000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:vdvi-32k-mono
-			}
+			flags:-f vdvi-32k-mono
 		}
 	}
 	@expand:ptime
@@ -197,10 +163,7 @@ fmt:80
 		attrvalue:80 VDVI/48000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:vdvi-48k-mono
-			}
+			flags:-f vdvi-48k-mono
 		}
 	}
 	@expand:ptime
@@ -214,10 +177,7 @@ fmt:81
 		attrvalue:81 DVI/32000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:dvi-32k-mono
-			}
+			flags:-f dvi-32k-mono
 		}
 	}
 	@expand:ptime
@@ -231,10 +191,7 @@ fmt:82
 		attrvalue:82 DVI/48000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:dvi-48k-mono
-			}
+			flags:-f dvi-48k-mono
 		}
 	}
 	@expand:ptime
@@ -248,10 +205,7 @@ fmt:83
 		attrvalue:83 PCMU/8000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcmu-8k-stereo
-			}
+			flags:-f pcmu-8k-stereo
 		}
 	}
 	@expand:ptime
@@ -265,10 +219,7 @@ fmt:84
 		attrvalue:84 PCMU/16000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcmu-16k-mono
-			}
+			flags:-f pcmu-16k-mono
 		}
 	}
 	@expand:ptime
@@ -282,10 +233,7 @@ fmt:85
 		attrvalue:85 PCMU/16000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcmu-16k-stereo
-			}
+			flags:-f pcmu-16k-stereo
 		}
 	}
 	@expand:ptime
@@ -299,10 +247,7 @@ fmt:86
 		attrvalue:86 PCMU/32000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcmu-32k-mono
-			}
+			flags:-f pcmu-32k-mono
 		}
 	}
 	@expand:ptime
@@ -316,10 +261,7 @@ fmt:87
 		attrvalue:87 PCMU/32000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcmu-32k-stereo
-			}
+			flags:-f pcmu-32k-stereo
 		}
 	}
 	@expand:ptime
@@ -333,10 +275,7 @@ fmt:88
 		attrvalue:88 PCMU/48000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcmu-48k-mono
-			}
+			flags:-f pcmu-48k-mono
 		}
 	}
 	@expand:ptime
@@ -350,10 +289,7 @@ fmt:89
 		attrvalue:89 PCMU/48000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcmu-48k-stereo
-			}
+			flags:-f pcmu-48k-stereo
 		}
 	}
 	@expand:ptime
@@ -367,10 +303,7 @@ fmt:90
 		attrvalue:90 PCMA/8000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcma-8k-stereo
-			}
+			flags:-f pcma-8k-stereo
 		}
 	}
 	@expand:ptime
@@ -384,10 +317,7 @@ fmt:91
 		attrvalue:91 PCMA/16000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcma-16k-mono
-			}
+			flags:-f pcma-16k-mono
 		}
 	}
 	@expand:ptime
@@ -401,10 +331,7 @@ fmt:92
 		attrvalue:92 PCMA/32000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcma-32k-mono
-			}
+			flags:-f pcma-32k-mono
 		}
 	}
 	@expand:ptime
@@ -418,10 +345,7 @@ fmt:93
 		attrvalue:93 PCMA/32000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcma-32k-stereo
-			}
+			flags:-f pcma-32k-stereo
 		}
 	}
 	@expand:ptime
@@ -435,10 +359,7 @@ fmt:94
 		attrvalue:94 PCMA/48000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcma-48k-mono
-			}
+			flags:-f pcma-48k-mono
 		}
 	}
 	@expand:ptime
@@ -452,10 +373,7 @@ fmt:95
 		attrvalue:95 PCMA/48000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcma-48k-stereo
-			}
+			flags:-f pcma-48k-stereo
 		}
 	}
 	@expand:ptime
@@ -469,10 +387,7 @@ fmt:96
 		attrvalue:96 G726-16/8000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-16-8k-mono
-			}
+			flags:-f g726-16-8k-mono
 		}
 	}
 	@expand:ptime
@@ -486,10 +401,7 @@ fmt:97
 		attrvalue:97 G726-16/16000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-16-16k-mono
-			}
+			flags:-f g726-16-16k-mono
 		}
 	}
 	@expand:ptime
@@ -503,10 +415,7 @@ fmt:98
 		attrvalue:98 G726-16/32000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-16-32k-mono
-			}
+			flags:-f g726-16-32k-mono
 		}
 	}
 	@expand:ptime
@@ -520,10 +429,7 @@ fmt:99
 		attrvalue:99 G726-16/48000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-16-48k-mono
-			}
+			flags:-f g726-16-48k-mono
 		}
 	}
 	@expand:ptime
@@ -537,10 +443,7 @@ fmt:100
 		attrvalue:100 G726-24/8000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-24-8k-mono
-			}
+			flags:-f g726-24-8k-mono
 		}
 	}
 	@expand:ptime
@@ -554,10 +457,7 @@ fmt:101
 		attrvalue:101 G726-24/16000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-24-16k-mono
-			}
+			flags:-f g726-24-16k-mono
 		}
 	}
 	@expand:ptime
@@ -571,10 +471,7 @@ fmt:102
 		attrvalue:102 G726-24/32000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-24-32k-mono
-			}
+			flags:-f g726-24-32k-mono
 		}
 	}
 	@expand:ptime
@@ -588,10 +485,7 @@ fmt:103
 		attrvalue:103 G726-24/48000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-24-48k-mono
-			}
+			flags:-f g726-24-48k-mono
 		}
 	}
 	@expand:ptime
@@ -605,10 +499,7 @@ fmt:104
 		attrvalue:104 G726-32/16000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-32-16k-mono
-			}
+			flags:-f g726-32-16k-mono
 		}
 	}
 	@expand:ptime
@@ -622,10 +513,7 @@ fmt:105
 		attrvalue:105 G726-32/32000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-32-32k-mono
-			}
+			flags:-f g726-32-32k-mono
 		}
 	}
 	@expand:ptime
@@ -639,10 +527,7 @@ fmt:106
 		attrvalue:106 G726-32/48000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-32-48k-mono
-			}
+			flags:-f g726-32-48k-mono
 		}
 	}
 	@expand:ptime
@@ -656,10 +541,7 @@ fmt:107
 		attrvalue:107 G726-40/8000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-40-8k-mono
-			}
+			flags:-f g726-40-8k-mono
 		}
 	}
 	@expand:ptime
@@ -673,10 +555,7 @@ fmt:108
 		attrvalue:108 G726-40/16000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-40-16k-mono
-			}
+			flags:-f g726-40-16k-mono
 		}
 	}
 	@expand:ptime
@@ -690,10 +569,7 @@ fmt:109
 		attrvalue:109 WBS/16000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:wbs-16k-mono
-			}
+			flags:-f wbs-16k-mono
 		}
 	}
 	@expand:ptime
@@ -707,10 +583,7 @@ fmt:110
 		attrvalue:110 G726-40/32000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-40-32k-mono
-			}
+			flags:-f g726-40-32k-mono
 		}
 	}
 	@expand:ptime
@@ -724,10 +597,7 @@ fmt:111
 		attrvalue:111 L16/8000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:l16-8k-stereo
-			}
+			flags:-f l16-8k-stereo
 		}
 	}
 	@expand:ptime
@@ -741,10 +611,7 @@ fmt:112
 		attrvalue:112 L16/16000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:l16-16k-mono
-			}
+			flags:-f l16-16k-mono
 		}
 	}
 	@expand:ptime
@@ -758,10 +625,7 @@ fmt:113
 		attrvalue:113 L16/16000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:l16-16k-stereo
-			}
+			flags:-f l16-16k-stereo
 		}
 	}
 	@expand:ptime
@@ -775,10 +639,7 @@ fmt:114
 		attrvalue:114 L16/32000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:l16-32k-mono
-			}
+			flags:-f l16-32k-mono
 		}
 	}
 	@expand:ptime
@@ -792,10 +653,7 @@ fmt:115
 		attrvalue:115 L16/32000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:l16-32k-stereo
-			}
+			flags:-f l16-32k-stereo
 		}
 	}
 	@expand:ptime
@@ -809,10 +667,7 @@ fmt:116
 		attrvalue:116 L16/48000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:l16-48k-mono
-			}
+			flags:-f l16-48k-mono
 		}
 	}
 	@expand:ptime
@@ -826,10 +681,7 @@ fmt:117
 		attrvalue:117 L16/48000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:l16-48k-stereo
-			}
+			flags:-f l16-48k-stereo
 		}
 	}
 	@expand:ptime
@@ -843,10 +695,7 @@ fmt:118
 		attrvalue:118 GSM/16000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:gsm-16k-mono
-			}
+			flags:-f gsm-16k-mono
 		}
 	}
 	@expand:ptime
@@ -860,10 +709,7 @@ fmt:119
 		attrvalue:119 GSM/32000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:gsm-32k-mono
-			}
+			flags:-f gsm-32k-mono
 		}
 	}
 	@expand:ptime
@@ -877,10 +723,7 @@ fmt:120
 		attrvalue:120 G726-40/48000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:g726-40-48k-mono
-			}
+			flags:-f g726-40-48k-mono
 		}
 	}
 	@expand:ptime
@@ -907,7 +750,7 @@ fmt:120
 #			attrvaluename:PCMU-8k-MONO
 #			macro:PRIMARY
 #			{
-#				value:pcm
+#				flags:-f pcm
 #			}
 #		}
 #		attrvalue:5
@@ -916,7 +759,7 @@ fmt:120
 #			attrvaluename:DVI-8k-MONO
 #			macro:PRIMARY
 #			{
-#				value:dvi
+#				flags:-f dvi
 #			}
 #		}
 #	}
@@ -929,7 +772,7 @@ fmt:120
 #			attrvaluename:DVI-8k-MONO
 #			macro:SECONDARY
 #			{
-#				value:/dvi
+#				flags:-f /dvi
 #			}
 #		}
 #		attrvalue:7
@@ -937,7 +780,7 @@ fmt:120
 #			attrvaluename:LPC-8k-MONO
 #			macro:SECONDARY
 #			{
-#				value:/lpc
+#				flags:-f /lpc
 #			}
 #		}
 #	}
@@ -952,10 +795,7 @@ fmt:122
 		attrvalue:122 L16/8000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:l16
-			}
+			flags:-f l16-8k-mono
 		}
 	}
 	@expand:ptime
@@ -969,10 +809,7 @@ fmt:123
 		attrvalue:123 GSM/48000/1
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:gsm-48k-mono
-			}
+			flags:-f gsm-48k-mono
 		}
 	}
 	@expand:ptime
@@ -986,138 +823,11 @@ fmt:124
 		attrvalue:124 PCMA/16000/2
 		{
 			def:true
-			macro:PRIMARY
-			{
-				value:pcma-16k-stereo
-			}
+			flags:-f pcma-16k-stereo
 		}
 	}
 	@expand:ptime
 }
 
-# Handle dynamic payload types...
-fmt:*(DYNAMIC)
-{
-	hidden:true
-	withattr:rtpmap:$(DYNAMIC) red/8000
-	withattr:rtpmap:$(DYNAMIC) red/16000
-	withattr:rtpmap:$(DYNAMIC) red/32000
-	withattr:rtpmap:$(DYNAMIC) red/48000
-	withattr:rtpmap:$(DYNAMIC) WBS/16000/1
-	withattr:rtpmap:$(DYNAMIC) L16/8000/1
-	withattr:rtpmap:$(DYNAMIC) L16/8000/2
-	withattr:rtpmap:$(DYNAMIC) L16/16000/1
-	withattr:rtpmap:$(DYNAMIC) L16/16000/2
-	withattr:rtpmap:$(DYNAMIC) L16/32000/1
-	withattr:rtpmap:$(DYNAMIC) L16/32000/2
-	withattr:rtpmap:$(DYNAMIC) L16/48000/1
-	withattr:rtpmap:$(DYNAMIC) L16/48000/2
-	attr:rtpmap
-	{
-		attrvalue:$(DYNAMIC) red/8000
-		{
-			flags:-pt $(DYNAMIC)/redundancy
-		}
-		attrvalue:$(DYNAMIC) red/16000
-		{
-			flags:-pt $(DYNAMIC)/redundancy
-		}
-		attrvalue:$(DYNAMIC) red/32000
-		{
-			flags:-pt $(DYNAMIC)/redundancy
-		}
-		attrvalue:$(DYNAMIC) red/48000
-		{
-			flags:-pt $(DYNAMIC)/redundancy
-		}
-		attrvalue:$(DYNAMIC) WBS/16000/1
-		{
-			flags:-pt $(DYNAMIC)/WBS/16000/1
-			macro:PRIMARY
-			{
-				value:$(DYNAMIC)
-			}
-		}
-		attrvalue:$(DYNAMIC) L16/8000/1
-		{
-			flags:-pt $(DYNAMIC)/L16/8000/1
-			macro:PRIMARY
-			{
-				value:$(DYNAMIC)
-			}
-		}
-		attrvalue:$(DYNAMIC) L16/8000/2
-		{
-			flags:-pt $(DYNAMIC)/L16/8000/2
-			macro:PRIMARY
-			{
-				value:$(DYNAMIC)
-			}
-		}
-		attrvalue:$(DYNAMIC) L16/16000/1
-		{
-			flags:-pt $(DYNAMIC)/L16/16000/1
-			macro:PRIMARY
-			{
-				value:$(DYNAMIC)
-			}
-		}
-		attrvalue:$(DYNAMIC) L16/16000/2
-		{
-			flags:-pt $(DYNAMIC)/L16/16000/2
-			macro:PRIMARY
-			{
-				value:$(DYNAMIC)
-			}
-		}
-		attrvalue:$(DYNAMIC) L16/32000/1
-		{
-			flags:-pt $(DYNAMIC)/L16/32000/1
-			macro:PRIMARY
-			{
-				value:$(DYNAMIC)
-			}
-		}
-		attrvalue:$(DYNAMIC) L16/32000/2
-		{
-			flags:-pt $(DYNAMIC)/L16/32000/2
-			macro:PRIMARY
-			{
-				value:$(DYNAMIC)
-			}
-		}
-		attrvalue:$(DYNAMIC) L16/48000/1
-		{
-			flags:-pt $(DYNAMIC)/L16/48000/1
-			macro:PRIMARY
-			{
-				value:$(DYNAMIC)
-			}
-		}
-		attrvalue:$(DYNAMIC) L16/48000/2
-		{
-			flags:-pt $(DYNAMIC)/L16/48000/2
-			macro:PRIMARY
-			{
-				value:$(DYNAMIC)
-			}
-		}
-	}
-	attr:rtpred1
-	{
-		macro:PRIMARY
-		{
-			value:$(VALUE)
-		}
-	}
-	attr:rtpred2
-	{
-		macro:SECONDARY
-		{
-			value:/$(VALUE)
-		}
-	}
-}
-
-flags:$(CRYPTKEY) -C $(SESSNAME) -t $(TTL) -f $(PRIMARY) $(ADDRESS)/$(PORT)
+flags:$(CRYPTKEY) -C $(SESSNAME) -t $(TTL) $(ADDRESS)/$(PORT)
 

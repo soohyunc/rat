@@ -1110,6 +1110,8 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
           Frode Kileng.
 	- Fix rtp.source.active for local user in response to rtp.query(), 
 	  didn't highlight local users transmit state.
+	- Update SDR plugin
+
 
 TODO -- They're features not bugs dammit!
 ----
