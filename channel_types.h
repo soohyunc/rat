@@ -52,4 +52,6 @@ int  channel_data_create  (channel_data **cd,
 void channel_data_destroy (channel_data **cd, 
                            u_int32        cdsize);
 
+u_int32 channel_data_bytes(channel_data *cd);
+
 #endif /* __CHANNEL_TYPES_H__ */

@@ -63,7 +63,29 @@ channel_data_destroy(channel_data **ppcd, u_int32 cd_size)
                 }
                 assert(pcu->data_len == 0);
                 block_free(pcu, sizeof(channel_unit));
+                pcd->elem[i] = NULL;
         }
+
+#ifdef DEBUG
+        while (i < MAX_CHANNEL_UNITS) {
+                assert(pcd->elem[i] == NULL);
+                i++;
+        }
+#endif
+
         block_free(pcd, sizeof(channel_data));
         *ppcd = NULL;
 }
+
+u_int32
+channel_data_bytes(channel_data *cd)
+{
+        u_int32 len, i;
+        
+        len = 0;
+        for(i = 0; i < cd->nelem; i++) {
+                len += cd->elem[i]->data_len;
+        }
+        return len;
+}
+
