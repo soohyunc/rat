@@ -43,6 +43,8 @@
 #ifndef __UCLMM_PLAYOUT_BUFFER_H__
 #define __UCLMM_PLAYOUT_BUFFER_H__
 
+#include "ts.h"
+
 struct s_playout_buffer;
 
 typedef void (*playoutfreeproc)(u_char**, u_int32);
@@ -57,7 +59,7 @@ int playout_buffer_destroy (struct s_playout_buffer **pb);
 int playout_buffer_add     (struct s_playout_buffer *pb, 
                             u_char*                  data, 
                             u_int32                  datalen,
-                            u_int32                  playout);
+                            ts_t                     playout);
 
 void playout_buffer_flush (struct s_playout_buffer *pb);
 
@@ -72,29 +74,29 @@ void playout_buffer_flush (struct s_playout_buffer *pb);
 int playout_buffer_advance (struct s_playout_buffer *pb, 
                             u_char                 **data, 
                             u_int32                 *datalen, 
-                            u_int32                 *playout);
+                            ts_t                    *playout);
 
 int playout_buffer_get     (struct s_playout_buffer *pb, 
                             u_char                 **data, 
                             u_int32                 *datalen, 
-                            u_int32                 *playout);
+                            ts_t                    *playout);
 
 int playout_buffer_rewind  (struct s_playout_buffer *pb, 
                             u_char                 **data, 
                             u_int32                 *datalen, 
-                            u_int32                 *playout);
+                            ts_t                    *playout);
 
 /* Removes data from playout point and puts it in *data */
 int playout_buffer_remove  (struct s_playout_buffer *pb, 
                             u_char                 **data, 
                             u_int32                 *datalen, 
-                            u_int32                 *playout); 
+                            ts_t                    *playout); 
 
 /* Trims data more than history_len before playout point    */
 int playout_buffer_audit    (struct s_playout_buffer *pb);
 
 /* Returns whether playout buffer has data to be played out */
 int playout_buffer_relevent (struct s_playout_buffer *pb, 
-                             u_int32                  now);
+                             ts_t                     now);
 
 #endif /* __UCLMM_PLAYOUT_BUFFER_H__ */

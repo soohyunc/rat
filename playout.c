@@ -44,14 +44,14 @@
 #include "memory.h"
 #include "util.h"
 #include "playout.h"
-#include "timers.h"       /* For ts_gt */
+#include "ts.h"
 
 /* Playout buffer types ******************************************************/
 
 typedef struct s_pb_node {
         struct s_pb_node* prev;
         struct s_pb_node* next;
-        u_int32           playout;    /* playout  timestamp */
+        ts_t              playout;    /* playout  timestamp */
         u_char           *data;
         u_int32           data_len;
 } pb_node_t;
@@ -116,7 +116,7 @@ playout_buffer_flush (playout_buffer *pb)
 /* Iterator functions ********************************************************/
 
 int 
-playout_buffer_add (playout_buffer *pb, u_char *data, u_int32 data_len, u_int32 playout)
+playout_buffer_add (playout_buffer *pb, u_char *data, u_int32 data_len, ts_t playout)
 {
         pb_node_t *curr, *stop, *made;
         
@@ -129,14 +129,16 @@ playout_buffer_add (playout_buffer *pb, u_char *data, u_int32 data_len, u_int32 
         }
 
         /* Check if unit already exists */
-        if (curr != stop && curr->playout == playout) {
+        if (curr != stop && ts_eq(curr->playout, playout)) {
                 debug_msg("playout_buffer_add failed: Unit (%u) already exists\n", playout);
                 return FALSE;
         }
 
         /* Check if we are inserting before playout point */
         if (pb->pp != stop && ts_gt(pb->pp->playout, playout)) {
-                debug_msg("Warning: unit (%u) before playout point (%u).\n", playout, pb->pp->playout);
+                debug_msg("Warning: unit (%u) before playout point (%u).\n", 
+                          playout.ticks, 
+                          pb->pp->playout.ticks);
         }
 
         made = (pb_node_t*)block_alloc(sizeof(pb_node_t));
@@ -155,9 +157,10 @@ playout_buffer_add (playout_buffer *pb, u_char *data, u_int32 data_len, u_int32 
 }
 
 int 
-playout_buffer_remove (playout_buffer *pb, u_char **data, u_int32 *data_len, u_int32 *playout)
+playout_buffer_remove (playout_buffer *pb, u_char **data, u_int32 *data_len, ts_t *playout)
 {
         pb_node_t *curr = pb->pp;
+
         if (curr == &pb->sentinel) {
                 debug_msg("Attempting to detach non-exist playout point.\n");
                 return FALSE;
@@ -181,7 +184,7 @@ playout_buffer_remove (playout_buffer *pb, u_char **data, u_int32 *data_len, u_i
 }
 
 int
-playout_buffer_get (playout_buffer *pb, u_char **data, u_int32 *data_len, u_int32 *playout)
+playout_buffer_get (playout_buffer *pb, u_char **data, u_int32 *data_len, ts_t *playout)
 {
         pb_node_t* sentinel = &pb->sentinel;
         
@@ -204,11 +207,12 @@ playout_buffer_get (playout_buffer *pb, u_char **data, u_int32 *data_len, u_int3
         /* There is data on the list */
         *data     = NULL;
         *data_len = 0;
-        *playout  = 0;
+        memset(playout, 0, sizeof(ts_t));
         return FALSE;
 }
 
-int playout_buffer_advance(playout_buffer *pb, u_char **data, u_int32 *data_len, u_int32 *playout)
+int 
+playout_buffer_advance(playout_buffer *pb, u_char **data, u_int32 *data_len, ts_t *playout)
 {
         pb_node_t* sentinel = &pb->sentinel;
  
@@ -222,11 +226,11 @@ int playout_buffer_advance(playout_buffer *pb, u_char **data, u_int32 *data_len,
        /* There is no next... */
         *data     = NULL;
         *data_len = 0;
-        *playout  = 0;
+        memset(playout, 0, sizeof(ts_t));
         return FALSE;
 }
 
-int playout_buffer_rewind(playout_buffer *pb, u_char **data, u_int32 *data_len, u_int32 *playout)
+int playout_buffer_rewind(playout_buffer *pb, u_char **data, u_int32 *data_len, ts_t *playout)
 {
         pb_node_t* sentinel = &pb->sentinel;
 
@@ -240,7 +244,7 @@ int playout_buffer_rewind(playout_buffer *pb, u_char **data, u_int32 *data_len, 
         /* There is no previous */
         *data     = NULL;
         *data_len = 0;
-        *playout  = 0;
+        memset(playout, 0, sizeof(ts_t));
         return FALSE;
 }
 
@@ -249,12 +253,12 @@ int playout_buffer_rewind(playout_buffer *pb, u_char **data, u_int32 *data_len, 
 int
 playout_buffer_audit(playout_buffer *pb)
 {
-        u_int32 cutoff;
+        ts_t cutoff;
         pb_node_t *stop, *curr, *next;
 
         stop = &pb->sentinel;
         if (pb->pp != stop) {
-                cutoff = pb->pp->playout - pb->history_len;
+                cutoff = ts_add(pb->pp->playout, -pb->history_len);
                 curr = stop->next; /* head */
                 while(curr != stop && ts_gt(cutoff, curr->playout)) {
                         next = curr->next;
@@ -270,95 +274,15 @@ playout_buffer_audit(playout_buffer *pb)
 }
 
 int
-playout_buffer_relevent (struct s_playout_buffer *pb, u_int32 now)
+playout_buffer_relevent (struct s_playout_buffer *pb, ts_t now)
 {
         pb_node_t *last;
+
         last = pb->sentinel.prev; /* tail */
+
         if (last == &pb->sentinel || ts_gt(now, last->playout)) {
                 return FALSE;
         }
+
         return TRUE;
 }
-
-#ifdef TEST_PLAYOUT
-
-void datafree(u_char **data, u_int32 datalen)
-{
-        *data = NULL;
-}
-
-#define OFFSET 0xffffffef  /* 0 */
-
-int main()
-{
-        playout_buffer *p;
-        pb_node_t      *iter;
-        u_char *data;
-        u_int32 playout, data_len;
-
-        playout_buffer_create (&p, datafree, 5);
-        playout_buffer_add    (p, NULL, 0, 10 + OFFSET);
-        playout_buffer_add    (p, NULL, 0, 20 + OFFSET);
-        playout_buffer_add    (p, NULL, 0, 15 + OFFSET);
-        playout_buffer_add    (p, NULL, 0, 17 + OFFSET);
-        playout_buffer_add    (p, NULL, 0, 22 + OFFSET);
-        playout_buffer_add    (p, NULL, 0, 12 + OFFSET);
-        playout_buffer_add    (p, NULL, 0, 11 + OFFSET);
-        playout_buffer_add    (p, NULL, 0, 15 + OFFSET);
-        playout_buffer_add    (p, NULL, 0, 11 + OFFSET);
-        playout_buffer_add    (p, NULL, 0, 18 + OFFSET); 
-
-        debug_msg("Forward order\n");
-        playout = 0;
-        playout_buffer_get(p, &data, &data_len, &playout);
-        debug_msg("%u\n", playout);
-        
-        while(playout_buffer_advance(p, &data, &data_len, &playout)) {
-                debug_msg("%u\n", playout);
-        }
-
-        playout_buffer_audit(p);
-        debug_msg("Auditing\n");
-        debug_msg("Backward order\n");
-        playout_buffer_get(p, &data, &data_len, &playout);
-        debug_msg("%u\n", playout);
-        while(playout_buffer_rewind(p, &data, &data_len, &playout)) {
-                debug_msg("%u\n", playout);
-        }
-
-        debug_msg("Forward order\n");
-        playout = 0;
-        playout_buffer_get(p, &data, &data_len, &playout);
-        debug_msg("%u\n", playout);
-        
-        while(playout_buffer_advance(p, &data, &data_len, &playout)) {
-                debug_msg("%u\n", playout);
-        }
-
-        debug_msg("Detaching exercise \n");
-        playout_buffer_rewind(p, &data, &data_len, &playout);
-        playout_buffer_remove(p, &data, &data_len, &playout);
-        debug_msg("Detached playout %d\n", playout);
-        
-        while(playout_buffer_rewind(p, &data, &data_len, &playout)); 
-
-        debug_msg("Forward order\n");
-        playout = 0;
-        playout_buffer_get(p, &data, &data_len, &playout);
-        debug_msg("%u\n", playout);
-        
-        while(playout_buffer_advance(p, &data, &data_len, &playout)) {
-                debug_msg("%u\n", playout);
-        }
-
-        debug_msg("Backward order\n");
-        playout_buffer_get(p, &data, &data_len, &playout);
-        debug_msg("%u\n", playout);
-        while(playout_buffer_rewind(p, &data, &data_len, &playout)) {
-                debug_msg("%u\n", playout);
-        }
-        
-        playout_buffer_destroy(&p);
-}
-
-#endif TEST_PLAYOUT
