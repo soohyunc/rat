@@ -138,7 +138,6 @@ settings_table_destroy(void)
                 t = table[i].head;
                 while (t != NULL) {
                         table[i].head = t->next;
-                        debug_msg("Freeing %s %s\n", t->key, t->value);
                         xfree(t->key);
                         xfree(t->value);
                         xfree(t);
