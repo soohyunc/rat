@@ -424,10 +424,12 @@ source_process(source *src, int repair_type, ts_t now)
         src_freq = get_freq(src->dbe->clock);
         step = ts_map32(src_freq,src->dbe->inter_pkt_gap / src->dbe->units_per_packet);
 
-        while(playout_buffer_get(src->media, 
-                                 (u_char**)&md, 
-                                 &md_len, 
-                                 &playout)) {
+        success = playout_buffer_get(src->media, 
+                                     (u_char**)&md, 
+                                     &md_len, 
+                                     &playout); 
+
+        while(success) {
                 assert(md != NULL);
                 assert(md_len == sizeof(media_data));
 
@@ -482,7 +484,7 @@ source_process(source *src, int repair_type, ts_t now)
                         break;
                 }
 
-                success = playout_buffer_remove(src->media, (u_char**)&md, &md_len, &playout);
+                success = playout_buffer_get(src->media, (u_char**)&md, &md_len, &playout);
 
                 assert(success);
 
@@ -542,6 +544,10 @@ source_process(source *src, int repair_type, ts_t now)
                         md->rep[md->nrep] = render;
                         md->nrep++;
                 }
+                success = playout_buffer_advance(src->media, 
+                                                 (u_char**)&md,
+                                                 &md_len,
+                                                 &playout);
         }
 
         /* Get rid of stale data */

@@ -455,9 +455,18 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                     mix_active(ms) == FALSE && 
                     source_list_source_count(spi->active_sources) == 0) {
                         /* Only decrease cushion if not playing anything out */
+#ifdef DEBUG
+                        u_int32 old_cushion;
+                        old_cushion = cushion_get_size(c);
+#endif
                         read_dur -= cushion_step;
                         cushion_step_down(c);
-                        debug_msg("Decreasing cushion\n");
+#ifdef DEBUG
+                        if (cushion_get_size(c) != old_cushion) {
+                                debug_msg("Decreasing cushion\n");
+                        }
+#endif
+                        
                 }
                 audio_device_write(spo, bufp, read_dur);
                 /*

@@ -316,9 +316,9 @@ adapt_playout(rtp_hdr_t               *hdr,
 		play_time = sendtime + src->sync_playout_delay;
 		rtp_time = sp->db->map_rtp_time + (((play_time - sp->db->map_ntp_time) * get_freq(src->clock)) >> 16);
                 playout  = ts_map32(src_freq, rtp_time);
-		src->playout = ts_sub(playout, ts_map32(src_freq, hdr->ts));
+		src->playout = ts_sub(playout, src_ts);
 	} else {
-		playout = ts_add(ts_map32(src_freq, hdr->ts), src->playout);
+		playout = ts_add(src_ts, src->playout);
 	}
 
         if (ts_gt(arr_ts, playout)) {

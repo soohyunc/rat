@@ -257,6 +257,7 @@ mix_process(session_struct  *sp,
                 } 
 
         process_next:
+                debug_msg("Mixed.\n");
                 dbe->last_mixed = playout;
         } while(playout_buffer_advance(buffer, (u_char**)&md, &md_len, &playout) && !ts_gt(playout, now));
         UNUSED(sp);

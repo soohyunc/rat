@@ -252,7 +252,9 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, ts_t play
 
                 memcpy(m->rep[0]->data, p, data_len);
                 p += data_len;
-                playout_buffer_add(out, (u_char *)m, sizeof(media_data), playout);
+                if (playout_buffer_add(out, (u_char *)m, sizeof(media_data), playout) == FALSE) {
+                        debug_msg("Vanilla decode failed\n");
+                }
         }
         assert(p == end);
 }
