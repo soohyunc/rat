@@ -116,17 +116,6 @@ typedef int	fd_t;
 #include <sys/audioio.h>
 #endif
 
-#ifdef Solaris
-#define NEED_INET_ATON
-#define NEED_INET_PTON
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/audioio.h>
-#include <multimedia/audio_encode.h>
-#include <multimedia/audio_hdr.h>
-
-#endif
-
 #ifdef SunOS
 #define NEED_INET_PTON
 #define AUDIO_CD         4

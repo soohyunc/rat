@@ -18,7 +18,17 @@
 #include "audio_fmt.h"
 #include "auddev_sparc.h"
 #include "codec_g711.h"
-#include "cushion.h"
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/audioio.h>
+#include <multimedia/audio_encode.h>
+#include <multimedia/audio_hdr.h>
+
+#ifndef AUDIO_CD
+#define AUDIO_CD 4
+#endif
 
 static audio_info_t	dev_info;
 
