@@ -259,8 +259,13 @@ static void rx_tool_rat_echo_suppress(char *srce, char *args, session_t *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->echo_suppress = i;
-                if (sp->echo_suppress) {
-                        source_list_clear(sp->active_sources);
+                if (sp->echo_suppress     == FALSE && 
+                    sp->echo_tx_active    == TRUE  && 
+                    tx_is_sending(sp->tb) == FALSE) {
+                        /* Suppressor has just been disabled,  transmitter  */
+                        /* is in suppressed state and would otherwise be    */
+                        /* active.  Therefore start it up now.              */
+                        tx_start(sp->tb);
                 }
 	} else {
 		debug_msg("mbus: usage \"tool.rat.echo.suppress <boolean>\"\n");
@@ -301,7 +306,8 @@ static void rx_audio_input_mute(char *srce, char *args, session_t *sp)
                                 tx_start(sp->tb);
                         }
 		}
-                sp->echo_was_sending = i;
+                /* Keep echo suppressor informed of change */
+                sp->echo_tx_active = !i;
 		ui_update_input_port(sp);
 	} else {
 		debug_msg("mbus: usage \"audio.input.mute <boolean>\"\n");

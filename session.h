@@ -74,7 +74,7 @@ typedef struct s_session {
 	int		    lecture;          /* UI lecture mode */
 	int		    render_3d;
         int                 echo_suppress;
-        int                 echo_was_sending; /* Mute state when suppressing */
+        int                 echo_tx_active; /* Mute state when suppressing */
 	int                 auto_lecture;     /* Used for dummy lecture mode */
  	int                 receive_audit_required;
 	int                 detect_silence;

@@ -921,7 +921,7 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	  cleaner. 
 	- Tuples for mbus command switches in mbus_{control,engine,ui}.
 	* 2 November 1999
-
+	- Added echo suppression back, it fell out of code base at some point.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -976,4 +976,3 @@ TODO -- They're features not bugs dammit!
 - Should use the empty RRs coming back from receivers who are not seeing
   traffic, and display this in the loss matrix.
 - Layering is broken (hasn't been updated for multiple processes, etc)
-

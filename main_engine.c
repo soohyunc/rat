@@ -236,6 +236,25 @@ int main(int argc, char *argv[])
 			}
 		}
 
+                /* Echo Suppression - cut off transmitter when receiving     */
+                /* audio, enable when stop receiving.                        */
+
+                if (sp->echo_suppress) {
+                        if (source_list_source_count(sp->active_sources) > 0) {
+                                if (tx_is_sending(sp->tb)) {
+                                        tx_stop(sp->tb);
+                                        sp->echo_tx_active = TRUE;
+                                }
+                        } else if (sp->echo_tx_active) {
+                                /* Transmitter was stopped because we were   */
+                                /* playing out audio.  Restart it.           */
+                                if (tx_is_sending(sp->tb) == FALSE) {
+                                        tx_start(sp->tb);
+                                }
+                                sp->echo_tx_active = FALSE;
+                        }
+                }
+
 		if (alc >= 50) {
 			if (!sp->lecture && tx_is_sending(sp->tb) && sp->auto_lecture != 0) {
 				gettimeofday(&time, NULL);

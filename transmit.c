@@ -178,6 +178,7 @@ tx_start(tx_buffer *tb)
         /* Not sure why this is here (?) */
         if (tb->sending_audio) {
                 debug_msg("Why? Fix");
+                abort();
                 return;
         }
 
