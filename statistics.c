@@ -290,9 +290,9 @@ adapt_playout(rtp_hdr_t *hdr,
 
                         assert(var > 0);
                         
-                        if (playout_buffer_exists(sp->playout_buf_list , src) || 
+                        if (playout_buffer_duration(sp->playout_buf_list , src) != 0|| 
                             hdr->ts - src->last_ts < (unsigned)get_freq(src->clock)) {
-                                /* If playout buffer exists 
+                                /* If playout buffer is not empty
                                  * or, difference in time stamps is less than 1 sec,
                                  * we don't want playout point to be before that of existing data.
                                  */
@@ -455,7 +455,6 @@ statistics(session_struct    *sp,
 
                 if (sp->playing_audio == FALSE) {
                         /* Don't decode audio if we are not playing it! */
-                        debug_msg("Muted: Not decoding packets\n");
                         goto release;
                 }
         
