@@ -126,6 +126,9 @@ PROFILE2=""
 DEFS=""
 CHECK_FLAG=""
 CHECK_LIB=""
+TCLX_LIBS=""
+TCLX_OBJS=""
+TCLX=""
 while test $# -gt 0
 do
 	if [ $1 = "-debug" ]; then
@@ -143,6 +146,11 @@ do
 		CHECK_FLAG=-fbounds-checking
 		CHECK_LIB=-lcheck
 		echo "Enabled bounds checking option"
+	elif [ $1 = "-tclx" ]; then
+		TCLX_LIBS="-ltclx8.0.2 -ltkx8.0.2"
+		TCLX_OBJS="profrep.o"
+		TCLX="-DTclX"
+		echo "Enabled TclX support"
 	else 
 		DEFS="$DEFS $1"
 		echo "Added $1 compile flag"
@@ -168,6 +176,9 @@ cat Makefile.in \
 | sed "s@__DEFS__@$DEFS@" \
 | sed "s@__CHECK_FLAG__@$CHECK_FLAG@" \
 | sed "s@__CHECK_LIB__@$CHECK_LIB@" \
+| sed "s@__TCLX_LIBS__@$TCLX_LIBS@" \
+| sed "s@__TCLX_OBJS__@$TCLX_OBJS@" \
+| sed "s@__TCLX__@$TCLX@" \
 >> Makefile
 
 # Create version.h

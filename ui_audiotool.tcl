@@ -7,6 +7,8 @@
 # Full terms and conditions of the copyright appear below.
 #
 
+catch {profile on}
+
 if {[string compare [info commands registry] "registry"] == 0} {
 	set win32 1
 	set statsfont     {courier 10}
@@ -704,6 +706,10 @@ proc toggle_stats {cname} {
 }
 
 proc do_quit {} {
+	catch {
+		profile off pdat
+		profrep pdat real
+	}
 	save_settings 
 	destroy .
 	mbus_send "R" "quit" ""
