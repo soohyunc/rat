@@ -192,7 +192,6 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
                 } else if  (strcmp(argv[i], "-seed") == 0) {
                 } else if  (strcmp(argv[i], "-codecs") == 0) {
                 } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
-                } else if ((strcmp(argv[i], "-l") == 0) && (argc > i+1)) { 
 		} else if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
 			tmp = mbus_encode_str(argv[i+1]);
 			mbus_qmsgf(m, e_addr, TRUE, "security.encryption.key", tmp);
@@ -205,9 +204,27 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 		} else if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
 		} else if ((strcmp(argv[i], "-silence") == 0) && (argc > i+1)) {
 		} else if ((strcmp(argv[i], "-repair") == 0) && (argc > i+1)) {
-		} else if ((strcmp(argv[i], "-interleave") == 0) && (argc > i+1)) {
-		} else if ((strcmp(argv[i], "-redundancy") == 0) && (argc > i+1)) {
 		} else if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
+			/* Set primary codec: "-f codec". You cannot set the   */
+			/* redundant codec with this option, use "-r" instead. */
+			/* The codec should be of the form "pcmu-8k-mono".     */
+			char *name = strtok(argv[i+1], "-");
+			char *freq = strtok(NULL, "-");
+			char *chan = strtok(NULL, "");
+
+			name = mbus_encode_str(name);
+			freq = mbus_encode_str(freq);
+			chan = mbus_encode_str(chan);
+			mbus_qmsgf(m, e_addr, TRUE, "tool.rat.codec", "%s %s %s", name, freq, chan);
+			xfree(name);
+			xfree(freq);
+			xfree(chan);
+		} else if ((strcmp(argv[i], "-r") == 0) && (argc > i+1)) {
+			/* Set channel coding to redundancy: "-r codec/offset" */
+                } else if ((strcmp(argv[i], "-l") == 0) && (argc > i+1)) { 
+			/* Set channel coding to layered */
+		} else if ((strcmp(argv[i], "-i") == 0) && (argc > i+1)) {
+			/* Set channel coding to interleaved */
                 }
         }
 

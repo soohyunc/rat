@@ -144,9 +144,8 @@ session_init(session_t *sp)
 
         source_list_create(&sp->active_sources);
 
+	sp->title = "Untitled session";
 	strcpy(sp->asc_address[0], "127.0.0.3");	/* Yeuch! This value should never be used! */
-
-
 }
 
 void
@@ -453,37 +452,6 @@ session_parse_early_options(int argc, char *argv[], session_t *sp[])
 }
 
 /************************************************************************************************************/
-/* This function is a bit of a nasty hack, it does everything
- * the other code avoids, ie explicitly name codecs. Not sure this
- * should go here but...
- */
-
-static const char*
-rat3codec_to_rat4codec(const char *name)
-{
-        int i, n;
-
-        const char* name_mappings[] = { "pcm",  "PCMU-8K-Mono",
-                                        "pcmu", "PCMU-8K-Mono",
-                                        "ulaw", "PCMU-8K-Mono",
-                                        "pcma", "PCMA-8K-Mono",
-                                        "alaw", "PCMA-8K-Mono",
-                                        "dvi",  "DVI-8K-Mono",
-                                        "gsm",  "GSM-8K-Mono",
-                                        "lpc",  "LPC-8K-Mono",
-                                        "l16",  "L16-8K-Mono"
-        };
-        n = sizeof(name_mappings)/sizeof(name_mappings[0]);
-
-        for(i = 0; i < n; i+=2) {
-                if (strncasecmp(name, name_mappings[i], 4) == 0) {
-                        return name_mappings[i+1];
-                }
-        }                        
-
-        return NULL;
-}
-
 /************************************************************************************************************/
 
 static void 
