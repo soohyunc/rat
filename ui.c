@@ -65,7 +65,7 @@
 #include "ui.h"
 #include "timers.h"
 #include "render_3D.h"
-#include "receive.h"
+#include "source.h"
 
 static char *mbus_name_engine = NULL;
 static char *mbus_name_ui     = NULL;
@@ -265,8 +265,11 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 	char	*my_cname, *their_cname, *args, *mbes;
 	codec_id_t            pri_id;
         const codec_format_t *pri_cf;
+        struct s_source      *src;
+        u_int32               buffered, delay;
 
-        if (sp->db->my_dbe->sentry == NULL || sp->db->my_dbe->sentry->cname == NULL) {
+        if (sp->db->my_dbe->sentry == NULL || 
+            sp->db->my_dbe->sentry->cname == NULL) {
                 debug_msg("Warning sentry or name == NULL\n");
                 return;
         }
@@ -288,20 +291,60 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
                 args = (char *) xmalloc(strlen(their_cname) + 7 + 2);
                 sprintf(args, "%s unknown", their_cname);
         }
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.codec", args, FALSE);
+
+        mbus_qmsg(sp->mbus_engine_base, 
+                  mbus_name_ui, 
+                  "rtp.source.codec", 
+                  args, 
+                  FALSE);
+
         xfree(args);
 
-        /* args size is for source.packet.loss, tool.rat.audio.buffered size always less */
+        /* args size is for source.packet.loss,
+         * tool.rat.audio.buffered size always less 
+         */
+
 	args = (char *) xmalloc(strlen(their_cname) + strlen(my_cname) + 11);
+
+        src = source_get_by_rtcp_dbentry(sp->active_sources, e);
+        if (src) {
+                buffered = ts_to_ms(source_get_audio_buffered (src));
+                delay    = ts_to_ms(source_get_playout_delay  (src));
+        } else {
+                buffered = 0;
+                delay    = 0;
+        }
+
+        sprintf(args, 
+                "%s %ld", 
+                their_cname, 
+                buffered);
+        mbus_qmsg(sp->mbus_engine_base, 
+                  mbus_name_ui, 
+                  "tool.rat.audio.buffered", 
+                  args, 
+                  FALSE);
         
-        sprintf(args, "%s %ld", their_cname, receive_buffer_duration_ms(sp->receive_buf_list, e));
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.audio.buffered", args, FALSE);
+        sprintf(args, 
+                "%s %ld", 
+                their_cname, 
+                delay);
+        mbus_qmsg(sp->mbus_engine_base, 
+                  mbus_name_ui, 
+                  "tool.rat.audio.delay", 
+                  args, 
+                  FALSE);
 
-        sprintf(args, "%s %ld", their_cname, receive_buffer_delay_ms(sp->receive_buf_list, e));
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.audio.delay", args, FALSE);
-
-	sprintf(args, "%s %s %8ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
+	sprintf(args, 
+                "%s %s %8ld", 
+                my_cname, 
+                their_cname, 
+                (e->lost_frac * 100) >> 8);
+	mbus_qmsg(sp->mbus_engine_base, 
+                  mbus_name_ui, 
+                  "rtp.source.packet.loss", 
+                  args, 
+                  FALSE);
 
 	xfree(my_cname);
 	xfree(their_cname);
@@ -438,9 +481,11 @@ ui_update_primary(session_struct *sp)
         xfree(mbes);
 }
 
+/*
 static void
 ui_update_interleaving(session_struct *sp)
 {
+
         int pt, isep, iu;
         char buf[128], *sep=NULL, *units = NULL, *dummy, args[80];
 
@@ -464,6 +509,8 @@ ui_update_interleaving(session_struct *sp)
 
         sprintf(args,"\"interleaved\" %d %d",iu, isep);
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.coding", args, TRUE);        
+
+        UNUSED(sp);
 }
 
 static void
@@ -480,7 +527,7 @@ ui_update_redundancy(session_struct *sp)
                         dummy  = strtok(buf,"/");
                         dummy  = strtok(NULL,"/");
                         codec_name  = strtok(NULL,"/");
-                        /* redundant coder returns long name convert to short*/
+                         redundant coder returns long name convert to short
                         if (codec_name) {
                                 const codec_format_t *cf;
                                 codec_id_t            cid;
@@ -516,12 +563,18 @@ ui_update_redundancy(session_struct *sp)
 	xfree(codec_name);
         xfree(args);
 }
+*/
 
 void 
 ui_update_channel(session_struct *sp) 
 {
+/*
         cc_coder_t *ccp;
-
+        */
+        mbus_qmsg(sp->mbus_engine_base, 
+                  mbus_name_ui, 
+                  "audio.channel.coding", "\"none\"", TRUE);
+/*
         ccp = get_channel_coder(sp->cc_encoding);
 	if (strcmp(ccp->name, "VANILLA") == 0) {
         	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.coding", "\"none\"", TRUE);
@@ -533,6 +586,7 @@ ui_update_channel(session_struct *sp)
                 debug_msg("Channel coding failed mapping (%s)\n", ccp->name);
                 abort();
         }
+        */
 }
 
 void
@@ -945,6 +999,7 @@ ui_update_file_live(session_struct *sp, char *mode, int valid)
 static void 
 ui_converters(session_struct *sp)
 {
+        converter_details_t details;
         char buf[255], *mbes;
         int i, cnt;
 
@@ -953,12 +1008,16 @@ ui_converters(session_struct *sp)
         buf[0] = '\0';
         
         for (i = 0; i <= cnt; i++) {
-                strcat(buf, converter_get_name(i));
+                converter_get_details(i, &details);
+                strcat(buf, details.name);
                 if (i != cnt) strcat(buf, ",");
         }
         
         mbes = mbus_encode_str(buf);
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.converter.supported", mbes, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, 
+                  mbus_name_ui, 
+                  "tool.rat.converter.supported", 
+                  mbes, TRUE);
         xfree(mbes);
 }
 

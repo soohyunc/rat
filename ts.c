@@ -258,6 +258,16 @@ ts_convert(u_int32 new_freq, ts_t ts)
         return out;
 }
 
+__inline u_int32
+ts_to_ms(ts_t t1)
+{
+        u_int32 r;
+        assert(ts_valid(t1));
+        r = t1.ticks / (ts_get_freq(t1) / 1000);
+        return r;
+}
+
+
 __inline int 
 ts_valid(ts_t t1)
 {
@@ -349,13 +359,4 @@ ts_seq32_out(ts_sequencer *s, u_int32 freq, ts_t curr_ts)
         s->last_ts = curr_ts;
         return s->last_32;
 }
-
-
-
-
-
-
-
-
-
 

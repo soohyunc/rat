@@ -61,6 +61,10 @@
 #include "timers.h"
 #include "transmit.h"
 
+/* All this code can be greatly simplified and reduced by making
+ * better use of the playout buffer structure in playout.h.
+ */
+
 typedef struct s_tx_unit {
         struct s_tx_unit *next;
         struct s_tx_unit *prev;
@@ -93,6 +97,13 @@ typedef struct s_tx_buffer {
         u_int32         alloc_cnt;
         /* Statistics log */
         double          mean_read_dur;
+        /* These are a hack because we use playout buffer
+         * which expects time units of type ts_t so we need
+         * to be able to map to and from 32 bit no for
+         * packet timestamp */
+        ts_sequencer    down_seq;  /* used for 32 -> ts_t */
+        ts_sequencer    up_seq;    /* used for ts_t -> 32 */
+
 } tx_buffer;
 
 static sample dummy_buf[DEVICE_REC_BUF];
@@ -212,10 +223,14 @@ tx_start(session_struct *sp)
 
         tb->head_ptr = tb->last_ptr = tx_unit_get(tb);
         sp->sending_audio = TRUE;
-        sp->auto_lecture = 1;       /* Turn off auto lecture */
+
+        /* Turn off auto lecture */
+        sp->auto_lecture = 1;       
         sd_reset(tb->sd_info);
         agc_reset(tb->agc);
-        audio_drain(sp->audio_device);  /* Clear any audio that may have accumulated */
+        
+        /* Clear any audio that may have accumulated */
+        audio_drain(sp->audio_device);  
 }
 
 void
@@ -239,6 +254,7 @@ tx_buffer *
 tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
 {
         tx_buffer *tb;
+        ts_t       no_history;
 
         tb = (tx_buffer*)xmalloc(sizeof(tx_buffer));
         memset(tb, 0, sizeof(tx_buffer));
@@ -263,12 +279,16 @@ tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
                 codec_state_store_create(&sp->state_store, ENCODER);
         }
 
+        /* We don't want to store any of this data here,
+         * use a dummy history length 
+         */
+        no_history = ts_map32(8000, 0);
         playout_buffer_create(&tb->media_buf,
                               (playoutfreeproc)media_data_destroy,
-                              sizeof(media_data));
+                              no_history);
         playout_buffer_create(&tb->channel_buf,
                               (playoutfreeproc)channel_data_destroy,
-                              sizeof(channel_data));
+                              no_history);
 
         return (tb);
 }
@@ -413,11 +433,14 @@ tx_process_audio(session_struct *sp)
 
 static int
 tx_encode(struct s_codec_state_store *css, 
-          sample *buf, 
-          u_char payload, 
-          coded_unit *cu)
+          sample     *buf, 
+          u_int32     dur_used,
+          u_char      payload, 
+          coded_unit *coded)
 {
         codec_id_t id;
+        coded_unit native;
+
         codec_state *cs;
         const codec_format_t *cf;
 
@@ -425,8 +448,21 @@ tx_encode(struct s_codec_state_store *css,
         assert(id);
 
         cf = codec_get_format(id);
+
+        /* native is a temporary coded_unit that we use to pass to
+         * codec_encode since this take a 'native' (raw) coded unit as
+         * input and fills in coded with the transformed data.
+         */
+        native.id        = codec_get_native_coding(cf->format.sample_rate, 
+                                                   cf->format.channels);
+        native.state     = NULL;
+        native.state_len = 0;
+        native.data      = (u_char*)buf;
+        native.data_len  = dur_used * sizeof(sample) * cf->format.channels;
+
+        /* Get codec state from those stored for us */
         cs = codec_state_store_get(css, id);
-        return codec_encode(cs, buf, (u_int16)cf->format.bytes_per_block, cu);
+        return codec_encode(cs, &native, coded);
 }
 
 void
@@ -439,7 +475,8 @@ tx_send(session_struct *sp)
         channel_data   *cd;
         channel_unit   *cu;
         struct iovec    ovec[2];
-        u_int32         time, cd_len;
+        ts_t            time_ts;
+        u_int32         time_32, cd_len, freq;
 
         if (tb->silence_ptr == NULL) {
                 /* Don't you just hate fn's that do this! */
@@ -450,20 +487,20 @@ tx_send(session_struct *sp)
                 tb->tx_ptr = tb->head_ptr;
         }
 
-        /* Silence pointer time should always be ahead of transmitted time
-         * since we can't make a decision to send without having done 
-         * silence determination first.
+        /* Silence pointer time should always be ahead of transmitted
+         * time since we can't make a decision to send without having
+         * done silence determination first.  
          */
-        
-        assert(ts_gt(tb->silence_ptr->time, tb->tx_ptr->time));
+
         n = (tb->silence_ptr->time - tb->tx_ptr->time) / tb->unit_dur;
-        
+
         assert((unsigned)n <= tb->alloc_cnt); 
 
         rtp_header.cc = 0;
 
         sp->last_tx_service_productive = 0;    
         units = channel_encoder_get_units_per_packet(sp->channel_coder);
+        freq  = get_freq(tb->clock);
         
         while(n > units) {
                 send = FALSE;
@@ -473,7 +510,7 @@ tx_send(session_struct *sp)
                                 break;
                         }
                 }
-                
+
                 for (i = 0, u = tb->tx_ptr; i < units; i++, u=u->next) {
                         media_data *m;
                         if (send) {
@@ -481,13 +518,18 @@ tx_send(session_struct *sp)
                                 for(encoding = 0; encoding < sp->num_encodings; encoding ++) {
                                         tx_encode(sp->state_store, 
                                                   u->data, 
+                                                  u->dur_used,
                                                   sp->encodings[encoding], 
                                                   m->rep[encoding]);
                                 }
                         } else {
                                 media_data_create(&m, 0);
                         }
-                        playout_buffer_add(tb->media_buf, (u_char*)m, sizeof(media_data), tb->tx_ptr->time);
+                        time_ts = ts_seq32_in(&tb->down_seq, freq, tb->tx_ptr->time);
+                        playout_buffer_add(tb->media_buf, 
+                                           (u_char*)m, 
+                                           sizeof(media_data), 
+                                           time_ts);
                 }
                 n -= units;
                 tb->tx_ptr = u;
@@ -495,18 +537,20 @@ tx_send(session_struct *sp)
 
         channel_encoder_encode(sp->channel_coder, tb->media_buf, tb->channel_buf);
 
-        while(playout_buffer_get(tb->channel_buf, (u_char**)&cd, &cd_len, &time)) {
-                playout_buffer_remove(tb->channel_buf, (u_char**)&cd, &cd_len, &time);
+        while(playout_buffer_get(tb->channel_buf, (u_char**)&cd, &cd_len, &time_ts)) {
+                playout_buffer_remove(tb->channel_buf, (u_char**)&cd, &cd_len, &time_ts);
                 assert(cd->nelem == 1);
                 cu = cd->elem[0];
                 rtp_header.type = 2;
                 rtp_header.seq  = (u_int16)htons(sp->rtp_seq++);
-                rtp_header.ts   = htonl(time);
                 rtp_header.p    = rtp_header.x = 0;
                 rtp_header.ssrc = htonl(rtcp_myssrc(sp));
                 rtp_header.pt   = cu->pt;
+
+                time_32 = ts_seq32_out(&tb->up_seq, freq, time_ts);
+                rtp_header.ts   = htonl(time_32);
                 
-                if (time - sp->last_depart_ts != units * tb->unit_dur) {
+                if (time_32 - sp->last_depart_ts != units * tb->unit_dur) {
                         rtp_header.m = 1;
                         debug_msg("new talkspurt\n");
                 } else {
@@ -521,7 +565,7 @@ tx_send(session_struct *sp)
                 if (sp->drop == 0.0 || drand48() >= sp->drop) {
                         net_write_iov(sp->rtp_socket, ovec, 2, PACKET_RTP);
                 }
-                sp->last_depart_ts = u->time;
+                sp->last_depart_ts  = time_32;
                 sp->db->pkt_count  += 1;
                 sp->db->byte_count += cu->data_len;
                 sp->db->sending     = TRUE;
@@ -568,4 +612,8 @@ tx_igain_update(session_struct *sp)
         sd_reset(sp->tb->sd_info);
         agc_reset(sp->tb->agc);
 }
+
+
+
+
 

@@ -139,7 +139,7 @@ read_and_enqueue(socket_udp *s, ts_t cur_ts, struct s_pckt_queue *queue, int typ
 		pckt = pckt_queue_element_create();
 		pckt->len               = read_len;
 		pckt->pckt_ptr          = data_out;
-		pckt->arrival = cur_time;
+		pckt->arrival = cur_ts;
 		pckt_enqueue(queue, pckt);
 		block_free(data_in, PACKET_LENGTH);
 	} else {

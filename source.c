@@ -475,3 +475,18 @@ source_get_sequencer(source *src)
         return &src->seq;
 }
 
+ts_t
+source_get_audio_buffered (source *src)
+{
+        /* To be written */
+        UNUSED(src);
+        return (ts_map32(8000,0));
+}
+
+ts_t
+source_get_playout_delay (source *src)
+{
+        /* To be written */
+        UNUSED(src);
+        return (ts_map32(8000,0));
+}

@@ -91,7 +91,8 @@ int              source_relevant           (struct s_source *src,
 
 ts_sequencer*    source_get_sequencer      (struct s_source *src);
 
-u_int32          source_buffer_length_ms   (struct s_source *src);
+ts_t             source_get_audio_buffered (struct s_source *src);
+ts_t             source_get_playout_delay  (struct s_source *src);
 
 struct s_playout_buffer*
                  source_get_decoded_buffer (struct s_source *src);

@@ -66,6 +66,9 @@ __inline int      ts_eq(ts_t t1, ts_t t2);
 /* ts_convert changes timebase of a timestamp */
 __inline ts_t     ts_convert(u_int32 new_freq, ts_t ts);
 
+/* Conversion to milliseconds */
+__inline u_int32  ts_to_ms(ts_t t1);
+
 /* Debugging functions */
 __inline int      ts_valid(ts_t t1);
 __inline u_int32  ts_get_freq(ts_t t1);

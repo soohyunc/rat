@@ -99,4 +99,8 @@ int playout_buffer_audit    (struct s_playout_buffer *pb);
 int playout_buffer_relevent (struct s_playout_buffer *pb, 
                              ts_t                     now);
 
+/* Return the times of interest for playout buffer */
+ts_t playout_buffer_get_playout_ts (struct s_playout_buffer *pb);
+ts_t playout_buffer_get_end_ts     (struct s_playout_buffer *pb);
+
 #endif /* __UCLMM_PLAYOUT_BUFFER_H__ */
