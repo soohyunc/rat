@@ -16,6 +16,8 @@
 #include "debug.h"
 #include "rtp.h"
 #include "rtp_callback.h"
+#include "rtp_queue.h"
+#include "session.h"
 
 /* We need to be able to resolve the rtp session to a rat session in */
 /* order to get persistent participant information, etc.  We use a   */
@@ -101,6 +103,7 @@ get_session(struct rtp *rtps)
 void rtp_callback(struct rtp *s, rtp_event *e)
 {
         struct s_session *sp;
+        
 	assert(s != NULL);
 	assert(e != NULL);
 
@@ -109,7 +112,8 @@ void rtp_callback(struct rtp *s, rtp_event *e)
 
 	switch (e->type) {
 	case RX_RTP:
-		break;
+                rtp_enqueue(sp->rtp_pckt_queue, (rtp_packet*)e->data);
+                break;
 	case RX_SR:
 		break;
 	case RX_RR:
