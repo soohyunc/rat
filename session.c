@@ -126,6 +126,8 @@ init_session(session_struct *sp)
 	sp->speakers_active 		= NULL;
 	sp->ui_script			= ui_original;
 	sp->mbus_channel		= 0;
+	sp->min_playout			= 0;
+	sp->max_playout			= 1000;
 
 	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {
 		perror("Cannot get hostname!");
