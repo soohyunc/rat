@@ -1049,7 +1049,8 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Update for changes in the mbus library.
 	- Add format conversions for a-law devices.
 	- Incorporated auddev_atm.c and wrote auddev_atm.h.
-	
+	* Released 31 January 2000
+
 TODO -- They're features not bugs dammit!
 ----
 
