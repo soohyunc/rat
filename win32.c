@@ -13,8 +13,6 @@ static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
-#ifdef WIN32
-
 #ifndef lint
 static char rcsid[] =
     "@(#) $Header$ (LBL)";
@@ -22,8 +20,6 @@ static char rcsid[] =
 
 #include "config_win32.h"
 #include "debug.h"
-#include "tcl.h"
-#include "tk.h"
 #include "util.h"
 
 int
@@ -130,68 +126,7 @@ nice(int pri)
     return 0;
 }
 
-extern int main(int argc, const char *argv[]);
-extern int __argc;
-extern char **__argv;
-
-static char argv0[255];		/* Buffer used to hold argv0. */
-
-HINSTANCE hAppInstance;
-
-char *__progname = "main";
-
-#define WS_VERSION_ONE MAKEWORD(1,1)
-#define WS_VERSION_TWO MAKEWORD(2,2)
-
-int APIENTRY
-WinMain(
-    HINSTANCE hInstance,
-    HINSTANCE hPrevInstance,
-    LPSTR lpszCmdLine,
-    int nCmdShow)
-{
-    char *p;
-    WSADATA WSAdata;
-    int r;
-    if (WSAStartup(WS_VERSION_TWO, &WSAdata) != 0 &&
-        WSAStartup(WS_VERSION_ONE, &WSAdata) != 0) {
-    	MessageBox(NULL, "Windows Socket initialization failed. TCP/IP stack\nis not installed or is damaged.", "Network Error", MB_OK | MB_ICONERROR);
-        exit(-1);
-    }
-
-    debug_msg("WSAStartup OK: %sz\nStatus:%s\n", WSAdata.szDescription, WSAdata.szSystemStatus);
-
-    hAppInstance = hInstance;
-
-    /*
-     * Increase the application queue size from default value of 8.
-     * At the default value, cross application SendMessage of WM_KILLFOCUS
-     * will fail because the handler will not be able to do a PostMessage!
-     * This is only needed for Windows 3.x, since NT dynamically expands
-     * the queue.
-     */
-    SetMessageQueue(64);
-
-    GetModuleFileName(NULL, argv0, 255);
-    p = argv0;
-    __progname = strrchr(p, '/');
-    if (__progname != NULL) {
-	__progname++;
-    }
-    else {
-	__progname = strrchr(p, '\\');
-	if (__progname != NULL) {
-	    __progname++;
-	} else {
-	    __progname = p;
-	}
-    }
-    
-    r = main(__argc, (const char**)__argv);
-
-    WSACleanup();
-    return r;
-}
+extern char *__progname;
 
 void
 ShowMessage(int level, char *msg)
@@ -256,4 +191,58 @@ perror(const char *msg)
     }
 }
 
-#endif /* WIN32 */
+extern int main(int argc, const char *argv[]);
+extern int __argc;
+extern char **__argv;
+
+static char argv0[255];		/* Buffer used to hold argv0. */
+
+HINSTANCE hAppInstance;
+HINSTANCE hAppPrevInstance;
+
+char *__progname = "main";
+
+#define WS_VERSION_ONE MAKEWORD(1,1)
+#define WS_VERSION_TWO MAKEWORD(2,2)
+
+int APIENTRY
+WinMain(
+    HINSTANCE hInstance,
+    HINSTANCE hPrevInstance,
+    LPSTR lpszCmdLine,
+    int nCmdShow)
+{
+    char *p;
+    WSADATA WSAdata;
+    int r;
+    if (WSAStartup(WS_VERSION_TWO, &WSAdata) != 0 &&
+        WSAStartup(WS_VERSION_ONE, &WSAdata) != 0) {
+    	MessageBox(NULL, "Windows Socket initialization failed. TCP/IP stack\nis not installed or is damaged.", "Network Error", MB_OK | MB_ICONERROR);
+        exit(-1);
+    }
+
+    debug_msg("WSAStartup OK: %sz\nStatus:%s\n", WSAdata.szDescription, WSAdata.szSystemStatus);
+
+    hAppInstance     = hInstance;
+    hAppPrevInstance = hAppPrevInstance; 
+
+    GetModuleFileName(NULL, argv0, 255);
+    p = argv0;
+    __progname = strrchr(p, '/');
+    if (__progname != NULL) {
+	__progname++;
+    }
+    else {
+	__progname = strrchr(p, '\\');
+	if (__progname != NULL) {
+	    __progname++;
+	} else {
+	    __progname = p;
+	}
+    }
+    
+    r = main(__argc, (const char**)__argv);
+
+    WSACleanup();
+    return r;
+}

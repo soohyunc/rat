@@ -60,7 +60,7 @@ static void parse_args(int argc, char *argv[])
         while(i > 1 && c_addr[i - 1] != ':') {
                 i--;
         }
-        ppid = (pid_t)atoi(&c_addr[i]);
+        ppid = (pid_t)strtoul(&c_addr[i], NULL, 10);
 }
 
 #ifdef WIN32
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 10000;
 		mbus_recv(m, (void *) m, &timeout);
-	}
+        }
 	debug_msg("...got it\n");
 
 	mbus_qmsgf(m, "()", FALSE, "mbus.bye", "");

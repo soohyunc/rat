@@ -1117,6 +1117,13 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	  common library files asarray.[ch].
         - Fix -allowloopback option.
         - Add controller checks for child process termination on Win32. 
+        - Add message loop and watch for WM_DESTROY to controller.  Will now
+          shutdown engine and ui when Win32 task manager sends these.  NB,
+          Visual Studio debugger terminates processes and still leaves
+          children running.  AFAIK there is no way for children to spot this,
+          i.e. WaitForSingleObject watching process does not appear to work
+          for children watching parents.
+        - Use _vsnprintf for snprintf functionality on Win32.
 
 TODO -- They're features not bugs dammit!
 ----
