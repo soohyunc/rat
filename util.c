@@ -66,7 +66,9 @@ static int   init  = 0;
 
 void xdoneinit(void) 
 {
+#ifdef DEBUG_MEM
 	init = tick++;
+#endif
 }
 	
 void xmemchk(void)
@@ -247,7 +249,9 @@ _block_alloc(unsigned size, char *filen, int line)
 		p = (char *)blocks[i];
 		blocks[i] = blocks[i]->next;
 	} else {
+#ifdef DEBUG_MEM
                 mem_item[naddr].blen = size;
+#endif
 		p = _xmalloc(INDEX_TO_SIZE(i) + 8,filen,line);
 		*((int *)p) = INDEX_TO_SIZE(i);
 		p += 8;
