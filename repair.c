@@ -404,7 +404,8 @@ repair(repair_id_t                 r,
                 const audio_format *pfmts[2];
                 audio_format        fmt;
                 coded_unit  *p;
-                uint16_t      rate, channels;
+                uint32_t      rate;
+		uint16_t      channels;
                 sample      *bufs[2];
 
                 p = prev->rep[src];

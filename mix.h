@@ -18,7 +18,7 @@
 typedef struct s_mixer mixer_t;
 
 typedef struct {
-        uint16_t sample_rate;
+        uint32_t sample_rate;
         uint16_t channels;
         uint32_t buffer_length;
 } mixer_info_t;

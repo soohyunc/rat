@@ -731,7 +731,7 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_t *sp)
                 if (sp->out_file) snd_write_close(&sp->out_file);
 
                 sf_fmt.encoding    = SNDFILE_ENCODING_L16;
-                sf_fmt.sample_rate = (uint16_t)ofmt->sample_rate;
+                sf_fmt.sample_rate = (uint32_t)ofmt->sample_rate;
                 sf_fmt.channels    = (uint16_t)ofmt->channels;
 #ifdef WIN32
                 if (snd_write_open(&sp->out_file, file, "wav", &sf_fmt)) {
@@ -1275,7 +1275,7 @@ set_red_parameters(session_t *sp, char *sec_enc, int offset)
 
         pri_id = codec_get_by_payload(sp->encodings[0]);
         pcf    = codec_get_format(pri_id);
-        red_id = codec_get_matching(sec_enc, (uint16_t)pcf->format.sample_rate, (uint16_t)pcf->format.channels);
+        red_id = codec_get_matching(sec_enc, (uint32_t)pcf->format.sample_rate, (uint16_t)pcf->format.channels);
         if (!codec_id_is_valid(red_id)) {
                 debug_msg("Failed to get redundant codec requested (%s)\n", sec_enc);
                 red_id = pri_id;  /* Use same as primary */

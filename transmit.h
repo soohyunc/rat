@@ -21,7 +21,7 @@ struct s_minibuf;
 
 int   tx_create      (struct s_tx_buffer **tb,
                       struct s_session    *sp,
-		      uint16_t             sample_rate,
+		      uint32_t             sample_rate,
                       uint16_t             channels,
                       uint16_t             unit_size); 
 

@@ -407,7 +407,7 @@ source_reconfigure(source        *src,
          */
         src_cid = codec_get_by_payload(src->pdbe->enc);
         src_cf  = codec_get_format(src_cid);
-        src_rate     = (uint16_t)src_cf->format.sample_rate;
+        src_rate     = (uint32_t)src_cf->format.sample_rate;
         src_channels = (uint16_t)src_cf->format.channels;
 
         if (render_3d) {
@@ -740,7 +740,7 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
 			const audio_format   	*dev_fmt = audio_get_ofmt(sp->audio_device);
 			channel_describe_data(ccid, codec_pt, p->data, p->data_len, src->pdbe->enc_fmt, src->pdbe->enc_fmt_len);
                         source_reconfigure(src, ccid, codec_pt, units_per_packet, sp->converter, sp->render_3d,
-                                           (uint16_t)dev_fmt->sample_rate,
+                                           (uint32_t)dev_fmt->sample_rate,
                                            (uint16_t)dev_fmt->channels);
 			if (sp->mbus_engine) {
 				ui_send_stats(sp, sp->mbus_ui_addr, src->pdbe->ssrc);
@@ -1055,7 +1055,8 @@ static int32_t
 recommend_skew_adjust_dur(media_data *md, int drop, timestamp_t *adjust) 
 {
         int16_t matchlen;
-        uint16_t rate, channels, samples;
+        uint32_t rate;
+	uint16_t channels, samples;
         sample *buffer;
         int16_t i;
 
@@ -1112,7 +1113,8 @@ conceal_dropped_samples(media_data *md, timestamp_t drop_dur)
         /* continuous.  So we blend samples that would have been played if   */
         /* they weren't dropped with where signal continues after the drop.  */
         uint32_t drop_samples;
-        uint16_t rate, channels;
+        uint32_t rate;
+	uint16_t channels;
         int32_t i;
         sample *new_start, *buf;
 
@@ -1140,7 +1142,8 @@ conceal_dropped_samples(media_data *md, timestamp_t drop_dur)
 static void
 conceal_inserted_samples(media_data *omd, media_data *imd, timestamp_t insert_dur)
 {
-        uint16_t rate, channels;
+        uint32_t rate;
+	uint16_t channels;
         uint32_t dst_samples, src_samples, skip;
         int32_t  i;
         sample *dst, *src;
@@ -1234,7 +1237,8 @@ static skew_t
 source_skew_adapt(source *src, media_data *md, timestamp_t playout)
 {
         uint32_t i = 0, e = 0, samples = 0;
-        uint16_t rate, channels;
+        uint32_t rate;
+	uint16_t channels;
         timestamp_t adjustment, frame_dur;
         
 	source_validate(src);
@@ -1477,7 +1481,8 @@ source_process(session_t 	 *sp,
         codec_state *cs;
         uint32_t     md_len;
         timestamp_t  playout, step;
-        uint16_t     sample_rate, channels;
+        uint32_t     sample_rate;
+	uint16_t     channels;
 	int	     i;
 
         /* Note: src->hold_repair is used to stop repair occuring.

@@ -500,7 +500,7 @@ riff_get_format(char *state, sndfile_fmt_t *fmt)
                 break;
         }
 
-        fmt->sample_rate = (uint16_t)wf->dwSamplesPerSec;
+        fmt->sample_rate = (uint32_t)wf->dwSamplesPerSec;
         fmt->channels    = wf->wChannels;
 
         return TRUE;

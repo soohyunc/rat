@@ -678,7 +678,7 @@ codec_decode(codec_state *cs,
         cf = codec_get_format(id);
         assert(out->state == NULL);
         assert(out->data  == NULL);
-        rate     = (uint16_t)cf->format.sample_rate;
+        rate     = (uint32_t)cf->format.sample_rate;
         channels = (uint16_t)cf->format.channels;
         out->id       = codec_get_native_coding(rate, channels);
         out->data_len = cf->format.bytes_per_block;
@@ -882,7 +882,7 @@ codec_get_by_payload (u_char pt)
 
 /* For compatibility only */
 codec_id_t 
-codec_get_first_mapped_with(uint16_t sample_rate, uint16_t channels)
+codec_get_first_mapped_with(uint32_t sample_rate, uint16_t channels)
 {
         const codec_format_t *cf;
         int pt;
@@ -922,7 +922,7 @@ codec_get_by_name(const char *name)
 
 
 codec_id_t
-codec_get_matching(const char *short_name, uint16_t freq, uint16_t channels)
+codec_get_matching(const char *short_name, uint32_t freq, uint16_t channels)
 {
         /* This has been changed to try really hard to find a matching codec.
          * The reason is that it's now called as part of the command-line      
@@ -1002,7 +1002,7 @@ static uint16_t max_channels = 2;
  * units.  */
 
 codec_id_t 
-codec_get_native_coding(uint16_t sample_rate, uint16_t channels)
+codec_get_native_coding(uint32_t sample_rate, uint16_t channels)
 {
         codec_id_t cid;
         uint32_t i, index;
@@ -1032,7 +1032,7 @@ codec_is_native_coding(codec_id_t cid)
 
 int 
 codec_get_native_info(codec_id_t cid, 
-                      uint16_t   *p_rate, 
+                      uint32_t   *p_rate, 
                       uint16_t   *p_channels)
 {
         uint32_t i, c, index;

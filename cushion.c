@@ -55,7 +55,7 @@ typedef struct s_cushion_struct {
 } cushion_t;
 
 int 
-cushion_create(cushion_t **c, uint16_t sample_rate)
+cushion_create(cushion_t **c, uint32_t sample_rate)
 {
         int i;
         uint32_t cushion_start;

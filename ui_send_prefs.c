@@ -165,7 +165,7 @@ ui_send_codec_list(session_t *sp, char *addr)
         }
 }
 
-static uint16_t sample_rates[] = {
+static uint32_t sample_rates[] = {
 	8000, 11025, 16000, 22050, 32000, 44100, 48000
 };
 #define NUM_RATES (sizeof(sample_rates) / sizeof(sample_rates[0]))

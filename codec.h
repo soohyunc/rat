@@ -82,18 +82,18 @@ u_char     codec_get_payload    (codec_id_t id);
 codec_id_t codec_get_by_payload (u_char pt);
 
 /* For compatibility only */
-codec_id_t codec_get_first_mapped_with(uint16_t sample_rate, uint16_t channels);
+codec_id_t codec_get_first_mapped_with(uint32_t sample_rate, uint16_t channels);
 
 /* Name to codec mappings */
 codec_id_t codec_get_by_name      (const char *name);
-codec_id_t codec_get_matching     (const char *short_name, uint16_t sample_rate, uint16_t channels);
+codec_id_t codec_get_matching     (const char *short_name, uint32_t sample_rate, uint16_t channels);
 
-codec_id_t codec_get_native_coding (uint16_t sample_rate, uint16_t channels);
+codec_id_t codec_get_native_coding (uint32_t sample_rate, uint16_t channels);
 
 int        codec_is_native_coding  (codec_id_t id);
 
 int        codec_get_native_info   (codec_id_t cid, 
-                                    uint16_t *sample_rate, 
+                                    uint32_t *sample_rate, 
                                     uint16_t *channels);
 /* For layered codecs */
 uint8_t     codec_can_layer         (codec_id_t id);

@@ -37,7 +37,7 @@ typedef struct {
         u_char          enc;
         char*           enc_fmt;
         int             enc_fmt_len;
-	uint16_t        sample_rate;
+	uint32_t        sample_rate;
         uint32_t        last_ts;
         uint32_t        last_seq;
         timestamp_t            last_arr;                    /* timestamp_t representation of last_ts */

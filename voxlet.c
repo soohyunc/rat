@@ -122,7 +122,7 @@ voxlet_create  (voxlet_t          **ppv,
                         cd = converter_get_details(0);
                 }
 
-                cf.src_freq     = (uint16_t)sfmt.sample_rate;
+                cf.src_freq     = (uint32_t)sfmt.sample_rate;
                 cf.src_channels = (uint16_t)sfmt.channels;
                 cf.dst_freq     = mi->sample_rate;
                 cf.dst_channels = mi->channels;
@@ -199,7 +199,7 @@ voxlet_play(voxlet_t *pv, timestamp_t start, timestamp_t end)
         safety = ts_map32(8000, 320); 
 
         /* Initialize src for reading chunk of sound file */
-        src.id        = codec_get_native_coding((uint16_t)sfmt.sample_rate, (uint16_t)sfmt.channels);
+        src.id        = codec_get_native_coding((uint32_t)sfmt.sample_rate, (uint16_t)sfmt.channels);
         src.state     = NULL;
         src.state_len = 0;
         src.data_len  = sizeof(sample) * samples;

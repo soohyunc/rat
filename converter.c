@@ -238,7 +238,7 @@ converter_process (converter_t *c, coded_unit *in, coded_unit *out)
         assert(c->magic == MAGIC);
 #ifdef DEBUG
         {
-                uint16_t sample_rate, channels;
+                uint32_t sample_rate, channels;
                 codec_get_native_info(in->id, &sample_rate, &channels);
                 assert(sample_rate == c->cfmt->src_freq);
                 assert(channels == c->cfmt->src_channels);

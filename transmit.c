@@ -69,7 +69,7 @@ typedef struct s_tx_buffer {
 
         struct s_codec_state_store *state_store;    /* Encoder states        */
         uint32_t              sending_audio:1;
-	uint16_t              sample_rate;
+	uint32_t              sample_rate;
         uint16_t              channels;
         uint16_t              unit_dur; /* dur. in sampling intervals (excludes channels) */
 
@@ -153,7 +153,7 @@ tx_unit_destroy(tx_unit **ptu, uint32_t len)
 int
 tx_create(tx_buffer **ntb, 
           session_t  *sp,
-	  uint16_t    sample_rate,     
+	  uint32_t    sample_rate,     
           uint16_t    channels,
           uint16_t    unit_dur)
 {
@@ -477,7 +477,7 @@ tx_encode(struct s_codec_state_store *css,
                  * codec_encode since this take a 'native' (raw) coded unit as
                  * input and fills in coded with the transformed data.
                  */
-                native.id        = codec_get_native_coding((uint16_t)cf->format.sample_rate, 
+                native.id        = codec_get_native_coding((uint32_t)cf->format.sample_rate, 
                                                            (uint16_t)cf->format.channels);
                 native.state     = NULL;
                 native.state_len = 0;
@@ -764,7 +764,7 @@ tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *
                 coded_unit in, out;
 
                 target.src_channels = (uint16_t)sfmt.channels;
-                target.src_freq     = (uint16_t)sfmt.sample_rate;
+                target.src_freq     = (uint32_t)sfmt.sample_rate;
                 target.dst_channels = (uint16_t)tx_channels;
                 target.dst_freq     = tx_freq;
 

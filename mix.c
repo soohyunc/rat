@@ -168,12 +168,13 @@ int
 mix_put_audio(mixer_t     *ms,
               pdb_entry_t *pdbe,
               coded_unit  *frame,
-              timestamp_t         playout)
+              timestamp_t  playout)
 {
         sample          *samples;
         int32_t          pos;
         uint32_t         nticks, nsamples;
-        uint16_t         channels, rate;
+        uint16_t         channels;
+	uint32_t         rate;
         timestamp_t	 frame_period, playout_end, delta;
 
         mix_verify(ms);
