@@ -14,6 +14,7 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
+#include "audio_types.h"
 #include "converter_types.h"
 #include "convert_acm.h"
 #include "util.h"
