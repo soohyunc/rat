@@ -1,12 +1,13 @@
 /*
- * FILE: mix.c
- * PROGRAM: RAT/Mixer
- * AUTHOR: Isidor Kouvelas 
+ * FILE:        mix.c
+ * PROGRAM:     RAT
+ * AUTHOR:      Isidor Kouvelas 
  * MODIFIED BY: Orion Hodson + Colin Perkins 
+ *
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -73,8 +74,8 @@ typedef struct s_mix_info {
 /*
  * Initialise the circular buffer that is used in mixing.
  * The buffer length should be as big as the largest possible
- * device coushion used (and maybe some more).
- * We allocate space three time the requested one so that we
+ * device cushion used (and maybe some more).
+ * We allocate space three times the requested one so that we
  * dont have to copy everything when we hit the boundaries..
  */
 mix_struct *
@@ -129,18 +130,6 @@ mix_audio(sample *dst, sample *src, int len)
 }
 
 static void
-mix_add(mix_struct *ms, sample *buf, int offset, int len)
-{
-	if (offset + len > ms->buf_len) {
-		mix_audio(ms->mix_buffer + offset, buf, ms->buf_len - offset);
-		mix_audio(ms->mix_buffer, buf, offset + len - ms->buf_len);
-	} else {
-		mix_audio(ms->mix_buffer + offset, buf, len);
-	}
-        xmemchk();
-}
-
-static void
 mix_zero(mix_struct *ms, int offset, int len)
 {
 	if (offset + len > ms->buf_len) {
@@ -153,8 +142,11 @@ mix_zero(mix_struct *ms, int offset, int len)
 }
 
 /*
+ * This function takes a `unit' of data, up-/down-samples it as needed
+ * to match the audio device, and mixes it ready for playout.
+ *
  * This function assumes that packets come in order without missing or
- * duplicates! Starts of talkspurts should allways be signaled.
+ * duplicates! Starts of talkspurts should always be signaled.
  */
 
 void
@@ -164,6 +156,14 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	codec_t	*from, *to;
         const codec_format_t *cf_from, *cf_to;
 	sample	*buf;
+	if (sp->mode == AUDIO_TOOL && !sp->have_device && (audio_device_take(sp) == FALSE)) {
+		/* We don't have access to the audio device, so there's no   */
+		/* point mixing this unit since we can't play it out anyway. */
+		/* We should send out an Mbus request for the audio device   */
+		/* at this point...                                    [csp] */
+		return;
+	}
+
 
 	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
 
@@ -192,7 +192,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	/* If it is too late... */
 
 	if (ts_gt(ms->tail_time, playout)) {
-	    	fprintf(stderr,"Unit arrived late in mix %ld - %ld = %ld (dist = %d)\n", ms->tail_time, playout, ms->tail_time - playout, ms->dist);
+#ifdef DEBUG_MIX
 	    	debug_msg("Unit arrived late in mix %ld - %ld = %ld (dist = %d)\n", ms->tail_time, playout, ms->tail_time - playout, ms->dist);
 #endif
 	    	return;
@@ -201,21 +201,23 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	/* This should never really happen but you can't be too careful :-)
 	 * It can happen when switching unit size... */
 	if (ts_gt(el->dbe_source[0]->last_mixed_playout + dur, playout))
-		fprintf(stderr,"New unit overlaps with previous by %ld samples\n", el->dbe_source[0]->last_mixed_playout + dur - playout);
+		debug_msg("New unit overlaps with previous by %ld samples\n", el->dbe_source[0]->last_mixed_playout + dur - playout);
 #endif
         }
 
 #ifdef DEBUG_MIX
-		fprintf(stderr,"Gap between units %ld samples\n", playout - el->dbe_source[0]->last_mixed_playout - dur);
+	if (ts_gt(playout, el->dbe_source[0]->last_mixed_playout + dur))
 		debug_msg("Gap between units %ld samples\n", playout - el->dbe_source[0]->last_mixed_playout - dur);
 #endif
 
-		if (el->dbe_source[i] != NULL)
+	for (i=0; i < el->dbe_source_count; i++) {
 		if (el->dbe_source[i] != NULL) {
+			el->dbe_source[i]->last_mixed_playout = playout;
 		}
 	}
-	if (el->dbe_source[0]->mute)
+
 	if (el->dbe_source[0]->mute) {
+		return;
 	}
 
 	/* Convert playout to position in buffer */
@@ -240,10 +242,22 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 		ms->head %= ms->buf_len;
 		ms->head_time += diff/ms->channels;
 	}
-	mix_add(ms, buf, pos, nsamples);
+	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+
+	/* Do the mixing... */
+	if (pos + nsamples > ms->buf_len) {
+		mix_audio(ms->mix_buffer + pos, buf, ms->buf_len - pos);
+		mix_audio(ms->mix_buffer, buf, pos + nsamples - ms->buf_len);
+	} else {
+		mix_audio(ms->mix_buffer + pos, buf, nsamples);
+	}
 	el->mixed = TRUE;
 }
 
+/*
+ * The mix_get_audio function returns a pointer to "amount" samples of mixed 
+ * audio data, suitable for playout (ie: you can do audio_device_write() with
+ * the returned data).
  *
  * This function was modified so that it returns the amount of
  * silence at the end of the buffer returned so that the cushion
@@ -252,9 +266,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
  * Note: amount is number of samples to get and not sampling intervals!
  */
 
-mix_get_audio(mix_struct *ms, 
-              int amount, 
-              sample **bufp)
+int
 mix_get_audio(mix_struct *ms, int amount, sample **bufp)
 {
 	int	silence;
@@ -329,8 +341,6 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
  * We need the amount of time we went dry so that we can make a time
  * adjustment to keep in sync with the receive buffer etc...
  *
-
-
  */
 void
 mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
@@ -401,6 +411,7 @@ mix_update_ui(session_struct *sp, mix_struct *ms)
 
 int
 mix_active(mix_struct *ms)
-        return (ms->head_time == ms->tail_time ? FALSE : TRUE);
+{
 }
+
 }

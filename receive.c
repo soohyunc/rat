@@ -477,7 +477,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 	 */
 	rx_queue_element_struct	*up;
 	ppb_t			*buf, **bufp;
-	u_int32			cur_time, cs, cu, chunks_mixed;
+	u_int32			cur_time, cs, cu;
 
         cs = cu = 0;
         
@@ -515,10 +515,6 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 			decode_unit(up);
 			if (up->native_count) {
 				mix_do_one_chunk(sp, ms, up);
-				if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
-					/* Request device using the mbus... */
-				}
-				up->mixed = TRUE;
 			}
 		}
 	}
@@ -549,31 +545,25 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                         memcpy(&last_foo, &foo, sizeof(struct timeval));
                 }
 #endif /* DEBUG_PLAYOUT_BROKEN */
-                chunks_mixed = 0;
 		while ((up = playout_buffer_get(sp, buf, cur_time, cur_time + cs))) {
                     if (!up->comp_count  && sp->repair != REPAIR_NONE 
                         && up->prev_ptr != NULL && up->next_ptr != NULL
                         && up->prev_ptr->native_count) 
                         repair(sp->repair, up);
 #ifdef DEBUG_PLAYOUT
-                    if (up->prev_ptr) 
-                    {
+                    if (up->prev_ptr) {
                             u_int32 src_diff = ts_abs_diff(up->prev_ptr->src_ts,up->src_ts);
-                            if (src_diff != up->unit_size) 
-                            {
+                            if (src_diff != up->unit_size) {
                                     debug_msg("src_ts jump %08d\n",src_diff);
                             }
                     }
 #endif /* DEBUG_PLAYOUT */
                     
-                    if (up->native_count && up->mixed == FALSE) {
-                        mix_do_one_chunk(sp, ms, up);
-                        if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
-				/* Request device using the mbus... */
-                        }
-                        up->mixed = TRUE;
-                        chunks_mixed++;
-                    } else { debug_msg("already mixed\n"); }
+                    	if (up->native_count && up->mixed == FALSE) {
+                        	mix_do_one_chunk(sp, ms, up);
+                    	} else { 
+		    		debug_msg("already mixed\n"); 
+			}
 		}
 		clear_old_participant_history(buf);
 
@@ -600,3 +590,4 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		}
 	}
 }
+
