@@ -175,9 +175,9 @@ ui_send_audio_output_mute(session_t *sp, char *addr)
 {
 	if (!sp->ui_on) return;
 	if (sp->playing_audio) {
-		mbus_qmsg(sp->mbus_engine, addr, "audio.output.mute", "1", TRUE);
-	} else {
 		mbus_qmsg(sp->mbus_engine, addr, "audio.output.mute", "0", TRUE);
+	} else {
+		mbus_qmsg(sp->mbus_engine, addr, "audio.output.mute", "1", TRUE);
 	}
 }
 
