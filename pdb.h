@@ -19,6 +19,7 @@
 #define __PERSIST_DB_H__
 
 /* RAT specific includes for entries in pdb_entry_t */
+#include "channel_types.h"
 #include "codec_types.h"
 #include "timers.h"
 #include "ts.h"

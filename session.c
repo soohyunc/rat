@@ -23,12 +23,12 @@
 #include "codec.h"
 #include "channel_types.h"
 #include "channel.h"
-#include "rtp_queue.h"
 #include "converter.h"
 #include "parameters.h"
 #include "audio.h"
 #include "pdb.h"
 #include "ui.h"
+#include "rtp.h"
 #include "source.h"
 #include "channel_types.h"
 #include "channel.h"
@@ -136,7 +136,6 @@ session_init(session_t *sp)
 	sp->tx_rtp_port[0] = 5004; /* draft-ietf-avt-profile-new-00  */
         sp->rx_rtcp_port   = 5005;
         sp->tx_rtcp_port   = 5005;
-        rtp_queue_create(&sp->rtp_pckt_queue, PCKT_QUEUE_RTP_LEN);
 	sp->ttl				= 16;
         sp->filter_loopback             = TRUE;
 	sp->playing_audio		= TRUE;
@@ -179,7 +178,6 @@ session_exit(session_t *sp)
                 xfree(sp->device_clock);
                 sp->device_clock = NULL;
         }
-        rtp_queue_destroy(&sp->rtp_pckt_queue);
         channel_encoder_destroy(&sp->channel_coder);
         source_list_destroy(&sp->active_sources);
 }

@@ -14,10 +14,13 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "debug.h"
+#include "audio_types.h"
+#include "auddev.h"
 #include "rtp.h"
 #include "rtp_callback.h"
-#include "rtp_queue.h"
 #include "session.h"
+#include "pdb.h"
+#include "source.h"
 #include "ui.h"
 
 /* We need to be able to resolve the rtp session to a rat session in */
@@ -105,6 +108,45 @@ get_session(struct rtp *rtps)
 /* Callback utility functions                                                */
 
 static void
+process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
+{
+        struct s_source *s;
+        pdb_entry_t     *e;
+
+        if (sp->filter_loopback && 
+            ssrc == rtp_my_ssrc(sp->rtp_session[0])) {
+                /* This packet is from us and we are filtering our own       */
+                /* packets.                                                  */
+                xfree(p);
+        }
+
+        if (sp->playing_audio == FALSE) {
+                /* We are not playing audio out */
+                debug_msg("Packet discarded: audio output muted.\n");
+                xfree(p);
+        }
+
+        if (pdb_item_get(sp->pdb, ssrc, &e) == FALSE ||
+            e->mute) {
+                /* We do not know who this source is, or it is muted */
+                debug_msg("Packet discarded: unknown/muted source (0x%08x).\n",
+                          ssrc);
+                xfree(p);
+        }
+
+        s = source_get_by_ssrc(sp->active_sources, ssrc);
+        if (s == NULL) {
+                const audio_format *dev_fmt;
+                dev_fmt = audio_get_ofmt(sp->audio_device);
+                source_create(sp->active_sources, ssrc, sp->pdb, sp->converter,
+                              sp->render_3d, (u_int16)dev_fmt->sample_rate,
+                              (u_int16)dev_fmt->channels);
+        }
+
+        xfree(p);
+}
+
+static void
 process_sdes(session_t *sp, u_int32 ssrc, rtcp_sdes_item *d)
 {
         if (sp->mbus_engine == NULL) {
@@ -170,7 +212,7 @@ rtp_callback(struct rtp *s, rtp_event *e)
 
 	switch (e->type) {
 	case RX_RTP:
-                rtp_enqueue(sp->rtp_pckt_queue, (rtp_packet*)e->data);
+                process_rtp_data(sp, e->ssrc, (rtp_packet*)e->data);
                 break;
 	case RX_SR:
 		break;

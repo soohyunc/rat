@@ -28,7 +28,6 @@ struct s_pckt_queue; /* pckt_queue is being removed */
 #include "tcltk.h"
 #include "pdb.h"
 #include "ui.h"
-#include "rtp_queue.h"
 #include "rtp.h"
 #include "rtp_callback.h"
 #include "timers.h"

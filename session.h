@@ -17,7 +17,6 @@
 #include "net_udp.h"
 #include "ts.h"
 #include "converter.h"
-#include "rtp_queue.h"
 
 /* This will have to be raised in the future */
 #define MAX_LAYERS      2
@@ -59,7 +58,6 @@ typedef struct s_session {
         struct rtp     *rtp_session[MAX_LAYERS];
         int             rtp_session_count;
 	u_int8          layers; /* number of layers == rtp_session_count */
-        rtp_queue_t    *rtp_pckt_queue;
         int             filter_loopback;
 	struct s_fast_time	*clock;
 	struct s_time		*device_clock;
