@@ -757,7 +757,7 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int1
 	ptr = rtcp_packet_fmt_bye(ptr, sp1->db->myssrc, sp1->mode == TRANSCODER? sp2->db->ssrc_db: NULL);
 	net_write(fd, addr, port, (u_int8 *) packet, ptr - (u_int8 *) packet, PACKET_RTCP);
 
-	/* Free the participant database... */
+	dprintf("Freeing participant database...\n");
 	rtcp_free_dbentry(sp1->db->my_dbe);
 	while ((src = sp1->db->ssrc_db) != NULL) {
 		rtcp_delete_dbentry(sp1, src->ssrc);
@@ -768,6 +768,7 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int1
 			rtcp_delete_dbentry(sp2, src->ssrc);
 		}
 	}
+	dprintf("...done\n");
 }
 
 /*

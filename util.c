@@ -297,14 +297,18 @@ block_release_all(void)
 {
     int i;
     char *p,*q;
+
+    printf("Freeing memory: "); fflush(stdout);
     for(i=0;i<MAX_INDEX;i++) {
         p = (char*)blocks[i];
         while(p) {
             q = (char*)((block*)p)->next;
             xfree(p-8);
+	    printf("+"); fflush(stdout);
             p = q;
         }
     }
+    printf("\n");
 }
 
 void _dprintf(const char *format, ...)
