@@ -190,7 +190,7 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 	char		*addr, *rx_port, *tx_port, *tmp;
 	struct timeval	 timeout;
 
-        if (argc < 2 || !isdigit(argv[argc-1][0])) {
+        if (argc < 2) {
                 usage(NULL);
                 return FALSE;
         }
