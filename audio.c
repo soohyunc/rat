@@ -277,7 +277,6 @@ audio_device_take(session_struct *sp)
         cushion_create(&sp->cushion, cp->unit_len);
         tx_igain_update(sp);
         ui_update(sp);
-
         return sp->have_device;
 }
 

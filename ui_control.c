@@ -372,6 +372,7 @@ ui_update_frequency(session_struct *sp)
 
 	pcp = get_codec(sp->encodings[0]);
 	sprintf(args, "%d-kHz", pcp->freq/1000);
+        assert(strlen(args) < 7);
 	mbus_engine_tx(TRUE, mbus_name_ui, "frequency", mbus_encode_str(args), FALSE);
 }
 
@@ -443,6 +444,7 @@ ui_update_redundancy(session_struct *sp)
 
 	args = (char *) xmalloc(strlen(codec_name) + 4);
         sprintf(args,"%s %2d", codec_name, ioff);
+        assert(strlen(args) < (strlen(codec_name) + 4));
         mbus_engine_tx(TRUE, mbus_name_ui, "redundancy", args, TRUE);
 	xfree(args);
 }
@@ -469,6 +471,7 @@ ui_update_channel(session_struct *sp)
                 debug_msg("Channel coding failed mapping.\n");
                 return;
         }
+        assert(strlen(args) < 80);
         mbus_engine_tx(TRUE, mbus_name_ui, "channel.code", args, TRUE);
 }
 
@@ -477,7 +480,8 @@ ui_update_input_gain(session_struct *sp)
 {
 	char	args[4];
 
-        sprintf(args, "%3d", audio_get_gain(sp->audio_fd));   
+        sprintf(args, "%3d", audio_get_gain(sp->audio_fd)); 
+        assert(strlen(args) < 4);
         mbus_engine_tx_queue(TRUE,  "input.gain", args);
 }
 
@@ -487,6 +491,7 @@ ui_update_output_gain(session_struct *sp)
 	char	args[4];
 
         sprintf(args, "%3d", audio_get_volume(sp->audio_fd)); 
+        assert(strlen(args) < 4);
         mbus_engine_tx_queue(TRUE, "output.gain", args);
 }
 
@@ -504,10 +509,13 @@ ui_update(session_struct *sp)
 		done=1;
 	} else {
 	        sprintf(args, "%3d", sp->output_gain); mbus_engine_tx_queue(TRUE, "output.gain", args);
+                assert(strlen(args) < 4);
 		sprintf(args, "%3d", sp->input_gain ); mbus_engine_tx_queue(TRUE,  "input.gain", args);
+                assert(strlen(args) < 4);
 	}
 
         sprintf(args, "%3d", collator_get_units(sp->collator));
+        assert(strlen(args) < 4);
 	mbus_engine_tx_queue(TRUE, "rate", args);
 
 	ui_update_output_port(sp);

@@ -433,8 +433,8 @@ audio_open_out()
 			exit(1);
 		}
 	}
-	write_tail = write_curr = write_hdrs;
-
+	write_tail      = write_curr = write_hdrs;
+        write_hdrs_used = 0;
 	return (TRUE);
 }
 
@@ -456,6 +456,7 @@ audio_close_out()
 	(void) waveOutClose(shWaveOut);
 	xfree(write_hdrs); write_hdrs = NULL;
 	xfree(write_mem);  write_mem  = NULL;
+        xmemchk();
 	shWaveOut = 0;
 }
 
@@ -590,7 +591,8 @@ audio_open_in()
 	}
 
 	/* Provide buffers for reading */
-	for (l = 0, whp = read_hdrs, bp = read_mem; l < nblks; l++, whp++, bp += blksz) {
+        audio_ready = 0;
+        for (l = 0, whp = read_hdrs, bp = read_mem; l < nblks; l++, whp++, bp += blksz) {
 		whp->lpData = bp;
 		whp->dwBufferLength = blksz;
 		whp->dwFlags = 0;
@@ -639,12 +641,19 @@ audio_close_in()
 	shWaveIn = 0;
 	xfree(read_hdrs); read_hdrs = NULL;
 	xfree(read_mem);  read_mem  = NULL;
+        xmemchk();
 }
 
 int
 audio_read(int audio_fd, sample *buf, int samples)
 {
+        static int virgin = 0;
         int len = 0;
+
+        if (!virgin) {
+                fprintf(stderr,"ready %d\n", audio_ready);
+                virgin++;
+        }
 
         if (shWaveIn == 0) {
         /* officially we dont support half-duplex anymore but just in case */
@@ -692,15 +701,16 @@ audio_read(int audio_fd, sample *buf, int samples)
 		        if (read_curr == read_hdrs + nblks) read_curr = read_hdrs;
 		        if (audio_ready > 0) audio_ready--;
                 }
-        
-                if (audio_ready && len < samples && ~read_curr->dwFlags & WHDR_DONE) {
+#ifdef DEBUG
+                if (audio_ready > 3*nblks/4) {
                         char msg[255];
                         int i,used;
                         for(i=0,used=0;i<nblks;i++) 
                                 if (read_hdrs[i].dwFlags & WHDR_DONE) used++;
-                        sprintf(msg, "Read buffer too small used %d of %d, samples %d len %d, ready %d\n", used, nblks, samples, len, audio_ready);
+                        sprintf(msg, "RB small %d of %d, samples %d len %d, ready %d\n", used, nblks, samples, len, audio_ready);
 		        OutputDebugString(msg);	
                 }
+#endif
 	}
 
 	return (len);
@@ -716,6 +726,7 @@ int audio_get_channels()
 int
 audio_open(audio_format fmt)
 {
+        WAVEFORMATEX tfmt;
 	format.wFormatTag      = WAVE_FORMAT_PCM;
 	format.nChannels       = fmt.num_channels;
 	format.nSamplesPerSec  = fmt.sample_rate;
@@ -725,14 +736,22 @@ audio_open(audio_format fmt)
 	format.nBlockAlign     = format.nChannels * smplsz;
 	format.cbSize          = 0;
 
+        memcpy(&tfmt, &format, sizeof(format));
         /* Use 1 sec device buffer */
 	blksz  = fmt.blocksize * smplsz;
 	nblks  = format.nAvgBytesPerSec / blksz;
 
 	if (audio_open_in() == FALSE)   return -1;
 	duplex = audio_open_out();
-
-	if (mixerGetNumDevs()) {
+        
+        assert(tfmt.wFormatTag      == format.wFormatTag);
+        assert(tfmt.nChannels       == format.nChannels);
+        assert(tfmt.nSamplesPerSec  == format.nSamplesPerSec);
+        assert(tfmt.wBitsPerSample  == format.wBitsPerSample);
+        assert(tfmt.nAvgBytesPerSec == format.nAvgBytesPerSec);
+        assert(tfmt.nBlockAlign     == format.nBlockAlign);
+	
+        if (mixerGetNumDevs()) {
             mixSetup();    
 	}
 

@@ -233,7 +233,9 @@ printf(const char *fmt, ...)
     va_start (ap, fmt);
     retval = vsprintf(szTemp, fmt, ap);
     OutputDebugString(szTemp);
+#ifndef DEBUG
     ShowMessage(MB_ICONINFORMATION, szTemp);
+#endif
     va_end (ap);
 
     return(retval);

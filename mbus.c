@@ -141,13 +141,18 @@ static void mbus_ack_list_check(struct mbus *m)
 {
 #ifndef NDEBUG
 	struct mbus_ack *curr = m->ack_list;
-	int		 i    = 0;
+	int		 i    = 0, j;
 
 	assert(((m->ack_list == NULL) && (m->ack_list_size == 0)) || ((m->ack_list != NULL) && (m->ack_list_size > 0)));
 	while (curr != NULL) {
 		if (curr->prev != NULL) assert(curr->prev->next == curr);
 		if (curr->next != NULL) assert(curr->next->prev == curr);
 		if (curr->prev == NULL) assert(curr == m->ack_list);
+                assert(curr->qmsg_size < MBUS_MAX_QLEN);
+                for(j = 0; j < curr->qmsg_size; j++) {
+                        assert(curr->qmsg_cmnd[j] != NULL);
+                        assert(curr->qmsg_args[j] != NULL);
+                }
 		curr = curr->next;
 		i++;
 	}
