@@ -301,7 +301,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						break;
 					case RTCP_SDES_NAME:
 						if (dbe->sentry->name) {
-							if (strncmp(dbe->sentry->name, sdes->data, lenstr) != 0) {
+							if (!strncmp(dbe->sentry->name, sdes->data, lenstr)) {
 								break;
 							}
 							xfree(dbe->sentry->name);
