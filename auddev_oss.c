@@ -5,7 +5,7 @@
  *
  * From revision 1.25 of auddev_linux.c
  *
- * $Revision$
+ * $Revisio: 1.1.1.1 $
  * $Date$
  *
  * Copyright (c) 1996,1997 University College London
@@ -122,8 +122,10 @@ audio_open_rw(char rw)
 		/* Turn off loopback from input to output... This only works  */
 		/* on a few cards, but shouldn't cause problems on the others */
 		ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
-		read(audio_fd, buffer, 2);	/* Device driver bug: we must read some data before the ioctl */
+		/* Device driver bug: we must read some data before the ioctl */
 		/* to tell us how much data is waiting works....              */
+		read(audio_fd, buffer, 2 * format.num_channels);	
+		/* Okay, now we're done...                                    */
 		return audio_fd;
 	} else {
 		close(audio_fd);
@@ -216,14 +218,21 @@ audio_set_gain(int audio_fd, int gain)
 		return;
 	}
 	switch (iport) {
-	case AUDIO_MICROPHONE : if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_MIC), &volume) == -1) {
-		perror("Setting gain");
-	}
-	return;
-	case AUDIO_LINE_IN    : if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_LINE), &volume) == -1) {
-		perror("Setting gain");
-	}
-	return;
+	case AUDIO_MICROPHONE : 
+		if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_MIC), &volume) == -1) {
+			perror("Setting gain");
+		}
+		return;
+	case AUDIO_LINE_IN : 
+		if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_LINE), &volume) == -1) {
+			perror("Setting gain");
+		}
+		return;
+	case AUDIO_CD:
+		if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_CD), &volume) < 0) {
+			perror("Setting gain");
+		}
+		return;
 	}
 	printf("ERROR: Unknown iport in audio_set_gain!\n");
 	abort();
@@ -238,15 +247,23 @@ audio_get_gain(int audio_fd)
 		return (0);
 	}
 	switch (iport) {
-	case AUDIO_MICROPHONE : if (ioctl(audio_fd, MIXER_READ(SOUND_MIXER_MIC), &volume) == -1) {
-		perror("Getting gain");
-	}
-	break;
-	case AUDIO_LINE_IN    : if (ioctl(audio_fd, MIXER_READ(SOUND_MIXER_LINE), &volume) == -1) {
-		perror("Getting gain");
-	}
-	break;
-	default               : printf("ERROR: Unknown iport in audio_set_gain!\n");
+	case AUDIO_MICROPHONE : 
+		if (ioctl(audio_fd, MIXER_READ(SOUND_MIXER_MIC), &volume) == -1) {
+			perror("Getting gain");
+		}
+		break;
+	case AUDIO_LINE_IN : 
+		if (ioctl(audio_fd, MIXER_READ(SOUND_MIXER_LINE), &volume) == -1) {
+			perror("Getting gain");
+		}
+		break;
+	case AUDIO_CD:
+		if (ioctl(audio_fd, MIXER_READ(SOUND_MIXER_CD), &volume) < 0) {
+			perror("Getting gain");
+		}
+		break;
+	default : 
+		printf("ERROR: Unknown iport in audio_set_gain!\n");
 		abort();
 	}
 	return device_to_bat(volume & 0xff);
@@ -292,19 +309,12 @@ audio_read(int audio_fd, sample *buf, int samples)
 			printf("Cannot read audio device capabilities...\n");
 			abort();
 		}
-		if ((caps & DSP_CAP_REALTIME) && !(caps & DSP_CAP_BATCH)) {
-			/* This is a realtime audio device, and we have precise    */
-			/* information on the number of samples available to read. */
-			ioctl(audio_fd, SNDCTL_DSP_GETISPACE, &info);
-			if (info.bytes > (samples * BYTES_PER_SAMPLE)) {
-				read_len = (samples * BYTES_PER_SAMPLE);
-			} else {
-				read_len = info.bytes;
-			}
+		/* Figure out how much we can read... */
+		ioctl(audio_fd, SNDCTL_DSP_GETISPACE, &info);
+		if (info.bytes > (samples * BYTES_PER_SAMPLE)) {
+			read_len = (samples * BYTES_PER_SAMPLE);
 		} else {
-			/* This device does not support the ioctl telling us how */
-			/* many samples are available to read... This is bad...  */
-			read_len = samples * BYTES_PER_SAMPLE;
+			read_len = info.bytes;
 		}
 		if ((len = read(audio_fd, (char *)buf, read_len)) < 0) {
 			perror("audio_read");
@@ -457,6 +467,20 @@ audio_set_iport(int audio_fd, int port)
 			printf("Audio device doesn't support recording from line-input\n");
 		}
 		break;
+	case AUDIO_CD:
+		if (recmask & SOUND_MASK_CD) {
+			recsrc = SOUND_MASK_CD;
+			if ((ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & SOUND_MASK_LINE)){
+				printf("WARNING: Unable to select recording source!\n");
+				return;
+			}
+			gain = audio_get_gain(audio_fd);
+			iport = port;
+			audio_set_gain(audio_fd, gain);
+		} else {
+			printf("Audio device doesn't support recording from CD\n");
+		}
+		break;
 	default : 
 		printf("audio_set_port: unknown port!\n");
 		abort();
@@ -474,11 +498,17 @@ int
 audio_next_iport(int audio_fd)
 {
 	switch (iport) {
-	case AUDIO_MICROPHONE : audio_set_iport(audio_fd, AUDIO_LINE_IN);
+	case AUDIO_MICROPHONE : 
+		audio_set_iport(audio_fd, AUDIO_LINE_IN);
 		break;
-	case AUDIO_LINE_IN    : audio_set_iport(audio_fd, AUDIO_MICROPHONE);
+	case AUDIO_LINE_IN : 
+		audio_set_iport(audio_fd, AUDIO_CD);
 		break;
-	default               : printf("Unknown audio source!\n");
+	case AUDIO_CD : 
+		audio_set_iport(audio_fd, AUDIO_MICROPHONE);
+		break;
+	default : 
+		printf("Unknown audio source!\n");
 	}
 	return iport;
 }
