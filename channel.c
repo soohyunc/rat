@@ -88,8 +88,10 @@ typedef struct {
 
 static void 
 vanilla_init(session_struct *sp, cc_state_t *cs) {
-    cs->s = (char*)xmalloc(sizeof(vanilla_state));
-    memset(cs->s,0,sizeof(vanilla_state));
+        UNUSED(sp);
+
+        cs->s = (char*)xmalloc(sizeof(vanilla_state));
+        memset(cs->s,0,sizeof(vanilla_state));
 } 
 
 void
@@ -157,6 +159,9 @@ vanilla_bitrate(session_struct *sp, cc_state_t *cs)
 {
     int pps, upp;
     codec_t *cp;
+
+    UNUSED(cs);
+
     cp = get_codec(sp->encodings[0]);
     pps = cp->freq / cp->unit_len;
     upp = get_units_per_packet(sp);
@@ -164,10 +169,12 @@ vanilla_bitrate(session_struct *sp, cc_state_t *cs)
 }
 
 static int
-vanilla_valsplit(char *blk, int blen, cc_unit *u, int *trailing) 
+vanilla_valsplit(char *blk, unsigned int blen, cc_unit *u, int *trailing) 
 {
     codec_t *cp = get_codec(u->src_pt);
     int n = 0;
+
+    UNUSED(blk);
 
     assert(!u->iovc);
     if (cp) {
@@ -196,6 +203,8 @@ vanilla_decode(rx_queue_element_struct *u, cc_state_t *ccs)
     struct iovec *iov;
     codec_t *cp;
 
+    UNUSED(ccs);
+
     if (!u->ccu_cnt) return;
 
     pt = u->ccu[0]->src_pt;
@@ -220,6 +229,8 @@ vanilla_decode(rx_queue_element_struct *u, cc_state_t *ccs)
 static void 
 red_init(session_struct *sp, cc_state_t *cs) 
 {
+        UNUSED(sp);
+
     cs->s = (char*)new_red_coder();
 } 
 
@@ -232,7 +243,8 @@ red_configure(session_struct *sp, cc_state_t *cs, char *cmd)
 static void 
 red_query(session_struct    *sp, 
           struct s_cc_state *cs,
-          char *buf, int blen) 
+          char *buf, 
+          unsigned int blen) 
 {
     red_qconfig(sp,(struct s_red_coder*)cs->s,buf,blen);
 }
@@ -257,6 +269,8 @@ static void
 red_decoder(rx_queue_element_struct *u,
             cc_state_t              *cs)
 {
+        UNUSED(cs);
+
     if (!u->ccu_cnt) return;
     red_decode(u);
 }
@@ -282,7 +296,8 @@ intl_configure(session_struct *sp, cc_state_t *cs, char *cmd)
 static void 
 intl_query(session_struct    *sp, 
            struct s_cc_state *cs,
-           char *buf, int blen) 
+           char *buf, 
+           unsigned int blen) 
 {
     intl_qconfig(sp,(struct s_intl_coder*)cs->s,buf,blen);
 }
@@ -459,7 +474,7 @@ channel_decode(rx_queue_element_struct *u)
 }
 
 int
-validate_and_split(int pt, char *blk, int blen, cc_unit *u, int *trailing)
+validate_and_split(int pt, char *blk, unsigned int blen, cc_unit *u, int *trailing)
 {
     /* The valsplit function serves 4 purposes:
      * 1) it validates the data.
@@ -499,7 +514,7 @@ config_channel_coder(session_struct *sp, int pt, char *cmd)
 }
 
 void
-query_channel_coder(session_struct *sp, int pt, char *buf, int blen)
+query_channel_coder(session_struct *sp, int pt, char *buf, unsigned int blen)
 {
     cc_state_t *stp;
     cc_coder_t *cc;
@@ -571,7 +586,7 @@ get_rx_unit(int n, int cc_pt, rx_queue_element_struct *u)
      */
     while(n>0 && 
           u->next_ptr && 
-          (u->next_ptr->playoutpt - u->playoutpt) == u->unit_size &&
+          (u->next_ptr->src_ts - u->src_ts) == u->unit_size &&
           u->next_ptr->unit_size == u->unit_size &&
           u->next_ptr->talk_spurt_start == FALSE) {
         if (u->ccu_cnt && u->ccu[0]->cc->pt != cc_pt) break;

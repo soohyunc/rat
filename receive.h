@@ -59,7 +59,7 @@ typedef struct rx_element_tag {
                                                       * breaking sequence of units into channel coders */
 	int		dbe_source_count;	     /* Num elements of the following array that are used. Will be >= 1 */
 	struct s_rtcp_dbentry   *dbe_source[16];     /* originator info */
-	int             unit_size;		     /* in samples */
+	u_int32         unit_size;		     /* in samples */
         cc_unit        *ccu[MAX_CC_PER_INTERVAL];    /* channel coded units */
         int             ccu_cnt;                     /* number of channel coded units */
         int             cc_pt;                       /* payload of channel coded unit (needed by proding rx units only) */
@@ -91,6 +91,6 @@ void service_receiver(struct s_cushion_struct *cushion, struct session_tag *sp,
 		 struct rx_queue_tag *receive_queue,
 		 struct s_participant_playout_buffer **buf_list,
 		 struct s_mix_info *ms);
-void clear_old_history(struct s_participant_playout_buffer **buf, struct session_tag *sp);
+void clear_old_history(struct s_participant_playout_buffer **buf);
 
 #endif /* _RECEIVE_H_ */

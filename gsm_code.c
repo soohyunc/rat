@@ -64,7 +64,7 @@ void Gsm_Coder(
 					 Nc++,
 					 bc++);
 
-		Gsm_RPE_Encoding	( S,
+		Gsm_RPE_Encoding	( 
 					e + 5,	/* e	  ][0..39][ IN/OUT */
 					  xmaxc++, Mc++, xMc );
 		/*

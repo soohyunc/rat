@@ -65,6 +65,8 @@ l16_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
   	int i;
 	sample *d;
 
+        UNUSED(s);
+
 	d = (sample *)c->data;
 	/* As this codec can deal with variable unit sizes
 	 * let the table dictate what we do. */
@@ -79,6 +81,9 @@ l16_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 {
 	int	i;
 	sample	*p = (sample *)c->data;
+
+        UNUSED(s);
+
 	for (i = 0; i < cp->unit_len*cp->channels; i++) {
 		*data++ = ntohs(*p);
 		p++;
@@ -90,6 +95,9 @@ ulaw_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 {
 	int	i;
 	u_char	*p = c->data;
+
+        UNUSED(s);
+
 	for (i = 0; i < cp->unit_len; i++)
 		*p++ = lintomulaw[(unsigned short)*data++];
 }
@@ -99,6 +107,9 @@ ulaw_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 {
 	int	i;
 	u_char	*sc = (u_char *)c->data;
+
+        UNUSED(s);
+
 	for(i = 0; i < cp->unit_len; i++) {
 		*data++ = u2s(*sc);
 		sc++;
@@ -110,6 +121,9 @@ alaw_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 {
 	int	i;
 	u_char	*p = c->data;
+
+        UNUSED(s);
+
 	for (i = 0; i < cp->unit_len; i++,data++)
 		*p++ = s2a(*data);
 }
@@ -119,6 +133,9 @@ alaw_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 {
 	int	i;
 	u_char	*sc = (u_char *)c->data;
+
+        UNUSED(s);
+
 	for(i = 0; i < cp->unit_len; i++, sc++) {
 		*data++ = a2s(*sc);
 	}
@@ -127,6 +144,8 @@ alaw_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 static void
 dvi_init(session_struct *sp, state_t *s, codec_t *c)
 {
+        UNUSED(sp);
+
 	s->s = xmalloc(c->sent_state_sz);
 	memset(s->s, 0, c->sent_state_sz);
 }
@@ -158,9 +177,12 @@ typedef struct s_wbs_state {
 } wbs_t;
 
 static void
-wbs_init(session_struct *sp, state_t *s,codec_t *c)
+wbs_init(session_struct *sp, state_t *s, codec_t *c)
 {
 	wbs_t *wsp;
+
+        UNUSED(sp);
+        UNUSED(c);
 
 	s->s = xmalloc(sizeof(wbs_t));
 	wsp = (wbs_t *)s->s;
@@ -172,6 +194,8 @@ wbs_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 {
 	subband_struct SubBandData;
 	wbs_t *wsp;
+
+        UNUSED(cp);
 
 	wsp = (wbs_t *)s->s;
 	memcpy(c->state, &wsp->state, WBS_STATE_SIZE);
@@ -197,6 +221,9 @@ wbs_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 static void
 lpc_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 {
+        UNUSED(s);
+        UNUSED(cp);
+
 	lpc_analyze(data, (lpc_txstate_t *)c->data);
 	((lpc_txstate_t *)c->data)->period = htons(((lpc_txstate_t *)c->data)->period);
 }
@@ -204,6 +231,9 @@ lpc_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 static void
 lpc_decode_init(session_struct *sp, state_t *s, codec_t *c)
 {
+        UNUSED(sp);
+        UNUSED(c);
+
 	s->s = (char*) xmalloc (sizeof(lpc_intstate_t));
 	lpc_init((lpc_intstate_t*)s->s);
 }
@@ -211,6 +241,8 @@ lpc_decode_init(session_struct *sp, state_t *s, codec_t *c)
 static void
 lpc_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 {
+        UNUSED(cp);
+
 	((lpc_txstate_t *)c->data)->period = htons(((lpc_txstate_t *)c->data)->period);
 	lpc_synthesize(data, (lpc_txstate_t*)c->data, (lpc_intstate_t*)s->s);
 }
@@ -218,18 +250,25 @@ lpc_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 static void
 gsm_init(session_struct *sp, state_t *s, codec_t *c)
 {
+        UNUSED(sp);
+        UNUSED(c);
+
 	s->s = (char *)gsm_create();
 }
 
 static void
 gsm_encoding(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 {
+        UNUSED(cp);
+
 	gsm_encode((gsm)s->s, data, (gsm_byte *)c->data); 
 }
 
 static void
 gsm_decoding(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 {
+        UNUSED(cp);
+
 	gsm_decode((gsm)s->s, (gsm_byte*)c->data, (gsm_signal*)data);
 }
 
@@ -352,6 +391,8 @@ get_codec_byname(char *name, session_struct *sp)
 {
 	int i;
 
+        UNUSED(sp);
+
 	for (i = 0; i < MAX_CODEC; i++) {
             if (cd[i].name && strcasecmp(name, cd[i].name) == 0)
                 return (&cd[i]);
@@ -424,7 +465,11 @@ encoder(session_struct *sp, sample *data, int coding, coded_unit *c)
 void
 reset_encoder(session_struct *sp, int coding)
 {
+        UNUSED(sp);
+        UNUSED(coding);
+        /* should write this soon! */
 
+        dprintf("reset encoder called and no code exists here!");
 }
 
 void
@@ -462,10 +507,10 @@ clear_coded_unit(coded_unit *u)
 int
 codec_compatible(codec_t *c1, codec_t *c2)
 {
-	return c1->freq == c2->freq
-		&& c1->channels == c2->channels
-		&& c1->unit_len == c2->unit_len
-		&& c1->sample_size == c2->sample_size;
+	return ((c1->freq == c2->freq)                  &&
+                (c1->channels == c2->channels)          &&
+		(c1->unit_len == c2->unit_len)          &&
+		(c1->sample_size == c2->sample_size));
 }
 
 

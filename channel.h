@@ -68,9 +68,9 @@ typedef int  (*cc_config_f)(struct session_tag *sp,
                             struct s_cc_state *ccs, 
                             char *cmd);
 typedef void (*cc_query_f)(struct session_tag *sp,
-                           struct s_cc_state *ccs,
+                           struct s_cc_state  *ccs,
                            char *buf,
-                           int blen);
+                           unsigned int       blen);
 typedef int  (*cc_bitrate_f)(struct session_tag *sp,
                              struct s_cc_state *ccs);
 typedef int  (*cc_encode_f)(struct session_tag *sp, 
@@ -79,11 +79,11 @@ typedef int  (*cc_encode_f)(struct session_tag *sp,
                             struct s_cc_state  *ccs);
 typedef void (*cc_enc_reset_f)(struct s_cc_state *ccs);
 typedef int  (*cc_valsplit_f)(char *blk, 
-                              int  blen, 
+                              unsigned int  blen, 
                               struct s_cc_unit *cu,
                               int *trailing);
 typedef int  (*cc_get_pt_f)(char *blk,
-                            int blen);
+                            unsigned int blen);
 typedef void (*cc_dec_init_f)(struct s_cc_state *ccs);
 typedef void (*cc_decode_f)(struct rx_element_tag *sp,
                             struct s_cc_state *ccs);
@@ -129,12 +129,12 @@ void  config_channel_coder(struct session_tag *sp,
 void  query_channel_coder(struct session_tag *sp, 
                           int pt, 
                           char *buf, 
-                          int blen);
+                          unsigned int blen);
 void  get_bitrate(struct session_tag *sp, 
                   int pt);
 int   validate_and_split(int pt, 
                          char *data, 
-                         int data_len, 
+                         unsigned int data_len, 
                          cc_unit *u, 
                          int *trailing);
 int   get_wrapped_payload(int pt, 

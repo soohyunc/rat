@@ -206,14 +206,12 @@ extern void Gsm_Long_Term_Synthesis_Filtering (
 		word	* drp); 	/* [-120..-1] IN, [0..40] OUT 	*/
 
 void Gsm_RPE_Decoding (
-	struct gsm_state *S,
 		word xmaxcr,
 		word Mcr,
 		word * xMcr,  /* [0..12], 3 bits             IN      */
 		word * erp); /* [0..39]                     OUT     */
 
 void Gsm_RPE_Encoding (
-		struct gsm_state * S,
 		word    * e,            /* -5..-1][0..39][40..44     IN/OUT  */
 		word    * xmaxc,        /*                              OUT */
 		word    * Mc,           /*                              OUT */

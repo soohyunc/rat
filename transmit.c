@@ -269,7 +269,7 @@ read_change_unit_size(read_buffer *rb, int unit_size)
 int
 read_device(session_struct *sp)
 {
-	int		read_len;
+	unsigned int	read_len;
 	read_buffer	*rb;
 	static sample	dummy_buf[DEVICE_REC_BUF];
 	codec_t		*cp;
@@ -550,6 +550,7 @@ transmitter_update_ui(session_struct *sp)
 {
 	if (sp->meter && sp->rb->silence_ptr && sp->rb->silence_ptr->prev)
 		ui_input_level(lin2db(sp->rb->silence_ptr->prev->energy, 100.0), sp);
+
 	if (sp->rb->talkspurt) {
 		ui_info_activate(sp->db->my_dbe, sp);
 		sp->lecture = FALSE;

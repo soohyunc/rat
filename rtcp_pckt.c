@@ -280,7 +280,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 		case RTCP_BYE:
 			rtcp_forward(pkt, sp2, sp);
 			for (i = 0; i < pkt->common.count; i++) {
-				rtcp_delete_dbentry(sp, ntohl(pkt->r.bye.src[i]), cur_time);
+				rtcp_delete_dbentry(sp, ntohl(pkt->r.bye.src[i]));
 			}
 			break;
 		case RTCP_SDES:
@@ -712,7 +712,7 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 	while (sptr) {
 		sptmp = sptr->next;	/* We may free things below */
 		if (now - sptr->last_active > RTP_SSRC_EXPIRE) {
-			rtcp_delete_dbentry(sp, sptr->ssrc, now);
+			rtcp_delete_dbentry(sp, sptr->ssrc);
 		} else {
 			if (sptr->is_sender) {	/* Is this an active source? */
 				sp->db->senders++;
@@ -750,12 +750,12 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int1
 	/* Free the participant database... */
 	rtcp_free_dbentry(sp1->db->my_dbe);
 	while ((src = sp1->db->ssrc_db) != NULL) {
-		rtcp_delete_dbentry(sp1, src->ssrc, get_time(sp1->device_clock));
+		rtcp_delete_dbentry(sp1, src->ssrc);
 	}
 	if (sp1->mode == TRANSCODER) {
 		rtcp_free_dbentry(sp2->db->my_dbe);
 		while ((src = sp2->db->ssrc_db) != NULL) {
-			rtcp_delete_dbentry(sp2, src->ssrc, get_time(sp2->device_clock));
+			rtcp_delete_dbentry(sp2, src->ssrc);
 		}
 	}
 }

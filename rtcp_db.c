@@ -264,7 +264,7 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 }
 
 void 
-rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
+rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 {
 	/*
  	 * This function remove a participant from the RTCP database, and frees the

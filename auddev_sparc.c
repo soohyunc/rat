@@ -45,6 +45,7 @@
 
 #include "assert.h"
 #include "audio.h"
+#include "util.h"
 
 #include <multimedia/audio_hdr.h>
 
@@ -411,19 +412,23 @@ audio_next_iport(int audio_fd)
 void
 audio_switch_out(int audio_fd, cushion_struct *ap)
 {
+        UNUSED(audio_fd);
+        UNUSED(ap);
   /* Full duplex device: do nothing! */
 }
    
 void
 audio_switch_in(int audio_fd)
 {
+        UNUSED(audio_fd);
   /* Full duplex device: do nothing! */
 }
 
 int
 audio_duplex(int audio_fd)
 {
-  return 1;
+        UNUSED(audio_fd);
+        return 1;
 }
 
 #endif /* SunOS */

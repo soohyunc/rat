@@ -223,12 +223,6 @@ pm_repair(rx_queue_element_struct *pp, rx_queue_element_struct *ip, int channel)
 }
 
 static void
-pr_repair(rx_queue_element_struct *pp, rx_queue_element_struct *ip, int channel)
-{
-
-}
-
-static void
 repeat_lpc(rx_queue_element_struct *pp, rx_queue_element_struct *ip)
 {
 	lpc_txstate_t	*lp=NULL;
@@ -346,10 +340,6 @@ repair(int repair, rx_queue_element_struct *ip)
 	case REPAIR_PATTERN_MATCH:
 		for(i=0;i<pp->comp_data[0].cp->channels;i++)
 			pm_repair(pp,ip,i);
-		break;
-	case REPAIR_PITCH_REPEAT:
-		for(i=0;i<pp->comp_data[0].cp->channels;i++)
-			pr_repair(pp,ip,i);
 		break;
         } 
         return;

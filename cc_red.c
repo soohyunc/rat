@@ -119,6 +119,8 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
         char *s;
         codec_t *cp;
         int   i;
+
+        UNUSED(sp);
         
         flush_red(r);
 
@@ -165,6 +167,8 @@ red_qconfig(session_struct    *sp,
         char fragbuf[RED_FRAG_SZ];
         codec_t *cp;
         int i,fraglen,len;
+
+        UNUSED(sp);
 
         len = 0;
         for(i=0;i<r->nlayers;i++) {
@@ -476,19 +480,20 @@ red_bps(session_struct *sp, red_coder_t *r)
  */
 
 int
-red_valsplit(char *blk, int blen, cc_unit *cu, int *trailing) {
-        int tlen, n, max_off;
+red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing) {
+        int tlen, n, todo;
         int hdr_idx, data_idx; 
-        u_int32 red_hdr;
+        u_int32 red_hdr, max_off;
         codec_t *cp;
     
         assert(!cu->iovc);
         max_off = 0;
         hdr_idx = 0;
         data_idx = MAX_RED_LAYERS;
-        while(RED_F((red_hdr=ntohl(*((u_int32*)blk)))) && blen >0) {
+        todo     = blen;
+        while(RED_F((red_hdr=ntohl(*((u_int32*)blk)))) && todo >0) {
                 cu->iov[hdr_idx++].iov_len = 4;
-                blen -= 4;
+                todo -= 4;
                 blk  += 4;
 
                 cp = get_codec(RED_PT(red_hdr));
@@ -499,36 +504,36 @@ red_valsplit(char *blk, int blen, cc_unit *cu, int *trailing) {
                 tlen = RED_LEN(red_hdr);
                 if (cp->sent_state_sz) {
                         cu->iov[data_idx++].iov_len = cp->sent_state_sz;
-                        blen -= cp->sent_state_sz;
+                        todo -= cp->sent_state_sz;
                         tlen -= cp->sent_state_sz;
                 }
-                while(blen>0 && tlen>0) {
+                while(todo>0 && tlen>0) {
                         cu->iov[data_idx++].iov_len = cp->max_unit_sz;
-                        blen -= cp->max_unit_sz;
+                        todo -= cp->max_unit_sz;
                         tlen -= cp->max_unit_sz;
                 }
         }
 
-        if (blen == 0) goto fail;
+        if (todo == 0) goto fail;
         cp = get_codec((*blk)&0x7f);
         if (!cp) goto fail;
 
         cu->iov[hdr_idx++].iov_len = 1;
-        blen -= 1;
+        todo -= 1;
 
         if (cp->sent_state_sz) {
                 cu->iov[data_idx++].iov_len = cp->sent_state_sz;
-                blen -= cp->sent_state_sz;
+                todo -= cp->sent_state_sz;
         }
 
         n =  0;
-        while(blen>0) {
+        while(todo>0) {
                 cu->iov[data_idx++].iov_len = cp->max_unit_sz;
-                blen -= cp->max_unit_sz;
+                todo -= cp->max_unit_sz;
                 n++;
         }
 
-        if (blen||hdr_idx>MAX_RED_LAYERS) goto fail; 
+        if (todo||hdr_idx>MAX_RED_LAYERS) goto fail; 
 
         /* push headers and data against each other */
         cu->iovc = hdr_idx + data_idx - MAX_RED_LAYERS;
@@ -550,15 +555,19 @@ fail:
 }
 
 int
-red_wrapped_pt(char *blk, int blen)
+red_wrapped_pt(char *blk, unsigned int blen)
 {
         u_int32 *hdr;
-        hdr = (u_int32*)blk;
-        while (ntohl(*hdr)&0x80 && blen>0) {
+        int todo;
+
+        hdr  = (u_int32*)blk;
+        todo = blen;
+
+        while (ntohl(*hdr)&0x80 && todo>0) {
                 hdr++;
-                blen -= 4;
+                todo -= 4;
         }
-        return (blen ? RED_PT(ntohl(*hdr)) : -1);
+        return (todo ? RED_PT(ntohl(*hdr)) : -1);
 }
 
 

@@ -83,10 +83,59 @@ add_unit_to_interval(rx_queue_element_struct *ip, rx_queue_element_struct *ru)
                   ip->ccu_cnt < ru->ccu[--ru->ccu_cnt]->cc->max_cc_per_interval) {
                 ip->ccu[ip->ccu_cnt++] = ru->ccu[ru->ccu_cnt];
                 ru->ccu[ru->ccu_cnt] = NULL;
-	}
+            }
 	}
 	free_rx_unit(&ru);
 }
+
+#ifdef ucacoxh
+
+#define HALF_TS_CYCLE 0x80000000
+int
+ts_cmp(u_int32 ts1, u_int32 ts2)
+{
+        u_int32 d1,d2,dmin;
+
+        d1 = ts2 - ts1;
+        d2 = ts1 - ts2;
+
+        /* look for smallest difference between ts (timestamps are unsigned) */
+        if (d1<d2) {
+                dmin = d1;
+        } else if (d1>d2) {
+                dmin = d2;
+        } else {
+                dmin = 0;
+        }
+
+        /* if either d1 or d2 have wrapped dmin > HALF_TS_CYCLE */
+
+        if (dmin<HALF_TS_CYCLE) {
+                if (ts1>ts2) return  1;
+                if (ts1<ts2) return -1;
+                return 0;
+        } else if (ts1<ts2) {
+                /* Believe t1 to have been wrapped and therefore greater */
+                return 1; 
+        } else {
+                /* believe t2 to have been wrapped and therefore greater */
+                return -1;
+        }
+}
+
+void 
+verify_playout_buffer(ppb_t *buf)
+{
+        rx_queue_element_struct *ip;
+        ip = buf->head_ptr;
+        while(ip != NULL && ip->next_ptr != NULL) {
+                assert(ts_cmp(ip->src_ts,ip->next_ptr->src_ts) < 0); 
+                assert(ts_cmp(ip->playoutpt,ip->next_ptr->playoutpt) <= 0); 
+                ip = ip->next_ptr;
+        }
+}
+
+#endif
 
 static rx_queue_element_struct *
 add_or_get_interval(ppb_t *buf, rx_queue_element_struct *ru)
@@ -94,10 +143,12 @@ add_or_get_interval(ppb_t *buf, rx_queue_element_struct *ru)
 	rx_queue_element_struct	**ipp;
 
 	ipp = &buf->head_ptr;
-	while (*ipp && ts_gt(ru->playoutpt, (*ipp)->playoutpt))
+        /* we look on src_ts to ensure correct ordering through decode path */
+	while (*ipp && ts_gt(ru->src_ts, (*ipp)->src_ts))
 		ipp = &((*ipp)->next_ptr);
 
-	if (*ipp == NULL || (*ipp)->playoutpt != ru->playoutpt) {
+	if (*ipp == NULL || (*ipp)->src_ts != ru->src_ts) {
+                /* interval didn't already exist */
 		ru->next_ptr = *ipp;
 		if (*ipp == NULL) {
 			ru->prev_ptr = buf->tail_ptr;
@@ -106,6 +157,31 @@ add_or_get_interval(ppb_t *buf, rx_queue_element_struct *ru)
 			ru->prev_ptr = (*ipp)->prev_ptr;
 			(*ipp)->prev_ptr = ru;
 		}
+                /* remove overlap in playout points if existent */
+                
+                if ((ru->prev_ptr != NULL) &&
+                    ts_gt(ru->prev_ptr->playoutpt,ru->playoutpt)) {
+                        dprintf("cur playout shifted %u (%u) -> %u (%u)\n", 
+                                ru->playoutpt, 
+                                ru->src_ts,
+                                ru->prev_ptr->playoutpt,
+                                ru->prev_ptr->src_ts);
+                        ru->playoutpt = ru->prev_ptr->playoutpt;
+                } 
+                if ((ru->next_ptr != NULL) &&
+                    ts_gt(ru->playoutpt,ru->next_ptr->playoutpt)) {
+                        dprintf("next playout shifted %u (%u) -> %u (%u)\n", 
+                                ru->next_ptr->playoutpt, 
+                                ru->next_ptr->src_ts,
+                                ru->playoutpt,
+                                ru->src_ts);
+                        ru->next_ptr->playoutpt = ru->playoutpt;
+                }
+                
+#ifdef ucacoxh
+                verify_playout_buffer(buf);
+#endif
+
 		*ipp = ru;
 	}
 	return (*ipp);
@@ -115,13 +191,10 @@ static rx_queue_element_struct *
 playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 {
 	rx_queue_element_struct	*ip;
-
+        
 	if ((ip = add_or_get_interval(buf, ru)) != ru) {
 		add_unit_to_interval(ip, ru);
 	}
-
-	/* Check here if there is any unit overlap */
-	ru = ip;
 	return (ru);
 }
 
@@ -182,7 +255,7 @@ clear_old_participant_history(ppb_t *buf)
 }
 
 void
-clear_old_history(ppb_t **buf, session_struct *sp)
+clear_old_history(ppb_t **buf)
 {
 	ppb_t	*p;
 
@@ -325,7 +398,6 @@ service_receiver(cushion_struct *cushion, session_struct *sp, rx_queue_struct *r
 		cur_time = get_time(buf->src->clock);
 		cs = cushion->cushion_size * get_freq(buf->src->clock) / get_freq(sp->device_clock);
 		while ((up = playout_buffer_get(buf, cur_time, cur_time + cs))) {
-
                     if (!up->comp_count  && sp->repair != REPAIR_NONE 
                         && up->prev_ptr != NULL && up->next_ptr != NULL
                         && up->prev_ptr->native_count) 

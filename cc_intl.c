@@ -172,7 +172,8 @@ free_il(struct s_il *s)
 #define GET_PHASE(x) ((x)&0x3ff)
 
 typedef struct s_intl_coder {
-        int src_pt, cnt;
+        u_int32 src_pt;
+        int cnt; 
         u_int16 mask;
         u_int32 intl_hdr;
         il_t *il;  
@@ -237,9 +238,12 @@ void
 intl_qconfig(session_struct    *sp, 
              intl_coder_t      *s,
              char              *buf, 
-             int                blen) 
+             unsigned int       blen) 
 {
         codec_t *cp;
+
+        UNUSED(sp);
+
         cp = get_codec(s->src_pt);
         sprintf(buf,"%s/%d/%d",cp->name,s->il->n1,s->il->n2);
         assert(strlen(buf)<blen);
@@ -251,6 +255,8 @@ intl_bps(session_struct        *sp,
 {
         int ups, upp, us;
         codec_t *cp;
+
+        UNUSED(sp);
     
         upp = s->il->n1;
         cp  = get_codec(s->src_pt);
@@ -272,7 +278,7 @@ intl_encode(session_struct *sp,
         codec_t *cp;
         coded_unit *u;
 
-        if (s->src_pt != sp->encodings[0]) {
+        if (s->src_pt != (u_int32)sp->encodings[0]) {
                 /* we don't have any of this data. for the time being we
                  * flush interleaver, but we could wait for start of new
                  * talkspurt before effecting change to new codec. 
@@ -355,7 +361,8 @@ intl_decode(rx_queue_element_struct *u,
         u_int32     hdr;
         codec_t    *cp;
         coded_unit *cu;
-        int i,j,iovc,m,p,ep,units;
+        int i,j,iovc,m,p,ep;
+        u_int32 units;
         struct iovec iov[2];
 
         /* we got a packet */
@@ -410,7 +417,7 @@ intl_decode(rx_queue_element_struct *u,
         }
 
         su = u;
-        for(i=0, j=1; i < units; i++) {
+        for(i=0, j=1; i < (int)units; i++) {
                 cu = NULL;
                 if (m & 0x80000000) {  
                         cu = (coded_unit*)block_alloc(sizeof(coded_unit));
@@ -457,20 +464,21 @@ intl_decode(rx_queue_element_struct *u,
 
 int  
 intl_valsplit(char                *blk,
-              int                  blen,
+              unsigned int         blen,
               cc_unit             *cu,
               int                 *trailing)
 {
         u_int32 hdr;
-        int i, m, units;
+        int i, m, units, todo;
         codec_t *cp;
-    
+
+        todo = blen;
         hdr  = ntohl(*((u_int32*)blk));
 
         assert(cu->iovc == 0);
         cu->iov[0].iov_base = (caddr_t)blk;
         cu->iov[0].iov_len  = 4;
-        blen               -= 4;
+        todo               -= 4;
 
         cp = get_codec(GET_PT(hdr));
         if (!cp) {
@@ -487,15 +495,15 @@ intl_valsplit(char                *blk,
                 if (m&0x80000000) {
                         if (cp->sent_state_sz) { 
                                 cu->iov[cu->iovc++].iov_len = cp->sent_state_sz;
-                                blen                       -= cp->sent_state_sz;
+                                todo                       -= cp->sent_state_sz;
                         }
                         cu->iov[cu->iovc++].iov_len = cp->max_unit_sz;
-                        blen                       -= cp->max_unit_sz;
+                        todo                       -= cp->max_unit_sz;
                 }
                 m<<=1;
         }
 
-        if (blen != 0) {
+        if (todo != 0) {
 #ifdef DEBUG
                 fprintf(stderr,"%s:%d Incorrect block length.\n", __FILE__, __LINE__);
 #endif
@@ -507,9 +515,11 @@ intl_valsplit(char                *blk,
 }
 
 int
-intl_wrapped_pt(char *blk,
-                int   blen)
+intl_wrapped_pt(char          *blk,
+                unsigned int   blen)
 {
+        UNUSED(blen);
+
         return (GET_PT(ntohl(*((u_int32*)blk))));
 }
 

@@ -244,7 +244,7 @@ main(int argc, char *argv[])
 					      	sp[i]->playout_buf_list != NULL;
 			} else {
 				receive_unit_audit(rx_unit_queue_ptr[i]);
-			        clear_old_history(&sp[i]->playout_buf_list, sp[i]);
+			        clear_old_history(&sp[i]->playout_buf_list);
 				receive_active_flag = FALSE;
 			}
 

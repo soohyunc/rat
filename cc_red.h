@@ -52,7 +52,7 @@ int  red_config(struct session_tag    *sp,
 void red_qconfig(struct session_tag   *sp, 
                  struct s_red_coder   *r, 
                  char                 *cmd, 
-                 int                   blen);
+                 unsigned int          blen);
 int  red_bps(struct session_tag       *sp, 
              struct s_red_coder       *r); 
 int  red_encode(session_struct        *sp, 
@@ -61,9 +61,9 @@ int  red_encode(session_struct        *sp,
                 struct s_red_coder    *r);
 void red_decode(struct rx_element_tag *u);
 int  red_valsplit(char                *blk, 
-                  int                  blen, 
+                  unsigned int         blen, 
                   cc_unit             *u, 
                   int                 *trailing);
 int  red_wrapped_pt(char              *blk, 
-                    int                blen);
+                    unsigned int       blen);
 #endif

@@ -65,38 +65,51 @@ upsample_linear(short *dst,
     short *p,*ep;
     float w1,w2,ws,tmp;
 
+    UNUSED(src_next);
+    UNUSED(src_prev);
+
     if (src_prev) {
         p = src_prev+(src_len-1)*src_step;
     } else {
         p = src;
     }
-
+    
     ep = src+src_len*src_step;
     ws = 1.0f/((float)scale);
-
+    
     while(src<ep){
         w1 = ws;
         w2 = 1.0-ws;
         tmp = 0;
         while(w1<1.0) {
-            *dst = *p;
+                *dst = *p;
 /*(short)(w1*((float)*p)+w2*((float)*src));*/
-            dst += dst_step;
-            w1  += ws;
-            w2  -= ws;
-		}
+                dst += dst_step;
+                w1  += ws;
+                w2  -= ws;
+        }
         p    = src;
         src += src_step;
         *dst = *p;
         dst += dst_step;
-		}
+    }
 }
 
 void
-downsample_linear(short *dst, short *src_prev, short *src, short *src_next, int src_len, int scale, int src_step, int dst_step)
+downsample_linear(short *dst, 
+                  short *src_prev, 
+                  short *src, 
+                  short *src_next, 
+                  int src_len, 
+                  int scale, 
+                  int src_step, 
+                  int dst_step)
 {
     register int tmp,j;
     short *ep = src + src_len*src_step;
+
+    UNUSED(src_next);
+    UNUSED(src_prev);
 
     printf("downsample linear %d %d\n",src_len,scale);
 

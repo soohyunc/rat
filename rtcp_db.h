@@ -182,7 +182,7 @@ int 			 rtcp_update_seq(rtcp_dbentry *s, u_int16 seq);
 struct s_rtcp_dbentry   *rtcp_get_dbentry(struct session_tag *sp, u_int32 ssrc);
 struct s_rtcp_dbentry   *rtcp_new_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 addr, u_int32 cur_time);
 struct s_rtcp_dbentry   *rtcp_getornew_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 addr, u_int32 cur_time);
-void 			 rtcp_delete_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 cur_time);
+void 			 rtcp_delete_dbentry(struct session_tag *sp, u_int32 ssrc);
 int 			 rtcp_set_attribute(struct session_tag *sp, int type, char *val);
 void			 rtcp_free_dbentry(rtcp_dbentry *dbptr);
 

@@ -208,6 +208,9 @@ printf("malloc %d %s %d\n", size, filen, line);
 	assert(((char *) (p+2)) != NULL);
 	return (char *) (p+2);
 #else
+        UNUSED(filen);
+        UNUSED(line);
+        
 	return (char *) malloc(size);
 #endif
 }
