@@ -256,43 +256,4 @@ perror(const char *msg)
     }
 }
 
-
-#define MAX_VERSION_STRING_LEN 256
-const char*
-w32_make_version_info(char *szRatVer) 
-{
-	char		platform[64];
-        static char	szVer[MAX_VERSION_STRING_LEN];
-        OSVERSIONINFO	oi;
-
-        oi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-        GetVersionEx(&oi);
-
-        switch(oi.dwPlatformId) {
-	        case VER_PLATFORM_WIN32_NT:
-			sprintf(platform, "Windows NT");
-			break;
-		case VER_PLATFORM_WIN32_WINDOWS:
-			if (oi.dwMinorVersion > 0) {
-				sprintf(platform, "Windows 98");
-			} else {
-				sprintf(platform, "Windows 95");
-			}
-			break;
-		case  VER_PLATFORM_WIN32s:
-			sprintf(platform, "Win32s");
-		        break;
-		default:
-			sprintf(platform, "Windows (unknown)");
-        }
-
-	sprintf(szVer, "%s %s %d.%d %s", 
-		szRatVer, 
-		platform, 
-		oi.dwMajorVersion, 
-		oi.dwMinorVersion, 
-		oi.szCSDVersion);
-        return szVer;
-}
-
 #endif /* WIN32 */
