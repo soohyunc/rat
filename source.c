@@ -661,6 +661,22 @@ source_process_packets(session_t *sp, source *src, ts_t now)
 
 	source_validate(src);
         e = src->pdbe;
+
+        /* Timing of startup is such that sometimes we get huge burst of packets */
+        /* between source creation and first round of packet processing.  Causes */
+        /* too much audio to be buffered and skew adjustment make lots of adjust */
+        /* actions unnecessarily.                                                */
+        if (src->packets_done == 0) {
+                int16_t discarded = 0;
+                while(pktbuf_get_count(src->pktbuf) > 1) {
+                        pktbuf_dequeue(src->pktbuf, &p);
+                        discarded++;
+                        xfree(p);
+                }
+                debug_msg("Discarded %d surplus packets\n", discarded);
+
+        }
+
         while(pktbuf_dequeue(src->pktbuf, &p)) {
                 adjust_playout = FALSE;
                 
