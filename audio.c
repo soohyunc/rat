@@ -462,7 +462,7 @@ audio_wait_for(session_struct *sp)
         codec_t *cp;
         
         cp = get_codec_by_pt(sp->encodings[0]);
-        dwPeriod = cp->unit_len * 1000 / get_freq(sp->device_clock);
+        dwPeriod = cp->unit_len / 2  * 1000 / get_freq(sp->device_clock);
         /* The blocks we are passing to the audio interface are of duration dwPeriod.
          * dwPeriod is usually around 20ms (8kHz), but mmtask often doesn't give
          * us audio that often, more like every 40ms.
@@ -478,7 +478,7 @@ audio_wait_for(session_struct *sp)
 
         cp         = get_codec_by_pt(sp->encodings[0]);
         tv.tv_sec  = 0;
-        tv.tv_usec = cp->unit_len * 1000 / get_freq(sp->device_clock);
+        tv.tv_usec = cp->unit_len / 2 * 1000 / get_freq(sp->device_clock);
 
         FD_ZERO(&rfds);
         FD_SET(sp->audio_fd,&rfds);
