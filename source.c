@@ -1011,9 +1011,9 @@ recommend_skew_adjust_dur(media_data *md, int drop, ts_t *adjust)
                 /* start just past search window and finish at end of frame */
                 matchlen = find_local_match((sample*)md->rep[i]->data, 
                                             0, 
-                                            SOURCE_COMPARE_WINDOW_SIZE * channels,
-                                            SOURCE_COMPARE_WINDOW_SIZE * channels,
-                                            (samples - SOURCE_COMPARE_WINDOW_SIZE) * channels,
+                                            (uint16_t)(SOURCE_COMPARE_WINDOW_SIZE * channels),
+                                            (uint16_t)(SOURCE_COMPARE_WINDOW_SIZE * channels),
+                                            (uint16_t)((samples - SOURCE_COMPARE_WINDOW_SIZE) * channels),
                                             channels);
                 if (matchlen == -1) {
                         return FALSE;
@@ -1021,11 +1021,11 @@ recommend_skew_adjust_dur(media_data *md, int drop, ts_t *adjust)
         } else {
                 /* match with last samples of frame.  Start at the start of   */
                 /* frame and finish just before search window.                */
-                matchlen = find_local_match((sample*)md->rep[i]->data,                             /* buffer */
-                                            (samples - SOURCE_COMPARE_WINDOW_SIZE) * channels,     /* wstart */
-                                            SOURCE_COMPARE_WINDOW_SIZE * channels,                 /* wlen   */
-                                            0,                                                     /* sstart */
-                                            (samples - 2 * SOURCE_COMPARE_WINDOW_SIZE) * channels, /* slen   */
+                matchlen = find_local_match((sample*)md->rep[i]->data,                                         /* buffer */
+                                            (uint16_t)((samples - SOURCE_COMPARE_WINDOW_SIZE) * channels),     /* wstart */
+                                            (uint16_t)(SOURCE_COMPARE_WINDOW_SIZE * channels),                 /* wlen   */
+                                            0,                                                                 /* sstart */
+                                            (uint16_t)((samples - 2 * SOURCE_COMPARE_WINDOW_SIZE) * channels), /* slen   */
                                             channels);
                 /* Want to measure from where frames will overlap.            */
                 if (matchlen == -1) {
