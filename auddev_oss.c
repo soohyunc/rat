@@ -53,7 +53,7 @@ int	bytes_per_block;
 static int ndev;
 char   dev_name[OSS_MAX_DEVICES][OSS_MAX_NAME_LEN];
 
-static char the_dev[] = "/dev/dspX";
+static char the_dev[] = "/dev/dspWX";
 static int audio_fd[OSS_MAX_DEVICES];
 
 
@@ -98,19 +98,28 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 return FALSE;
         }
 
-        sprintf(the_dev, "/dev/dsp%d", ad);
+        sprintf(the_dev, "/dev/dspW%d", ad);
 
 	audio_fd[ad] = open(the_dev, O_RDWR | O_NDELAY);
 	if (audio_fd[ad] > 0) {
 		/* Note: The order in which the device is set up is important! Don't */
 		/*       reorder this code unless you really know what you're doing! */
+
+                /* Set 20 ms blocksize - only modulates read sizes */
+                bytes_per_block = 20 * (ifmt->sample_rate / 1000) * (ifmt->bits_per_sample / 8);
+                /* Round to the nearest legal frag size (next power of two lower...) */
+                frag |= (int) (log(bytes_per_block)/log(2));
+                debug_msg("frag=%x bytes_per_block=%d\n", frag, bytes_per_block);
+		if ((ioctl(audio_fd[ad], SNDCTL_DSP_SETFRAGMENT, &frag) == -1)) {
+			debug_msg("Cannot set the fragement size\n");
+		}
+
 		if (ioctl(audio_fd[ad], SNDCTL_DSP_SETDUPLEX, 0) == -1) {
-			fprintf(stderr, "ERROR: Cannot enable full-duplex mode!\n");
+			debug_msg("Cannot enable full-duplex mode!\n");
                         return FALSE;
 		}
 
                 mode = deve2oss(ifmt->encoding);
-                
 		if ((ioctl(audio_fd[ad], SNDCTL_DSP_SETFMT, &mode) == -1)) {
                         if (ifmt->encoding == DEV_S16) {
                                 audio_format_change_encoding(ifmt, DEV_PCMU);
@@ -128,26 +137,17 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                         have_probed[ad] = TRUE;
                 }
 
-                /* 20 ms blocksize - only modulates read sizes */
-                bytes_per_block = 20 * (ifmt->sample_rate / 1000) * (ifmt->bits_per_sample / 8);
-                /* Round to the nearest legal frag size (next power of two lower...) */
-                frag |= (int) (log(bytes_per_block)/log(2));
-                debug_msg("frag=%x bytes_per_block=%d\n", frag, bytes_per_block);
-		if ((ioctl(audio_fd[ad], SNDCTL_DSP_SETFRAGMENT, &frag) == -1)) {
-			fprintf(stderr, "ERROR: Cannot set the fragement size\n");
-		}
-
                 stereo = ifmt->channels - 1; 
                 assert(stereo == 0 || stereo == 1);
 		if ((ioctl(audio_fd[ad], SNDCTL_DSP_STEREO, &stereo) == -1) || (stereo != (ifmt->channels - 1))) {
-			printf("ERROR: Audio device doesn't support %d channels!\n", ifmt->channels);
+			debug_msg("Audio device doesn't support %d channels!\n", ifmt->channels);
                         oss_audio_close(ad);
                         return FALSE;
 		}
 
                 speed = ifmt->sample_rate;
 		if ((ioctl(audio_fd[ad], SNDCTL_DSP_SPEED, &speed) == -1) || (speed != ifmt->sample_rate)) {
-			printf("ERROR: Audio device doesn't support %d sampling rate!\n", ifmt->sample_rate);
+			debug_msg("Audio device doesn't support %d sampling rate in full duplex!\n", ifmt->sample_rate);
                         oss_audio_close(ad);
                         return FALSE;
 		}
@@ -190,6 +190,7 @@ oss_audio_drain(audio_desc_t ad)
         assert(ad < OSS_MAX_DEVICES);
         assert(audio_fd[ad] > 0);
 
+	debug_msg("Draining audio buffer...\n");
         while(oss_audio_read(ad, buf, 160) == 160);
 }
 
