@@ -326,7 +326,7 @@ process_delete(session_t *sp, rtp_event *e)
 }
 
 void 
-rtp_callback(struct rtp *s, rtp_event *e)
+rtp_callback_proc(struct rtp *s, rtp_event *e)
 {
         struct s_session *sp;
 	int		  i;
