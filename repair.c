@@ -40,6 +40,8 @@ typedef struct {
 /* fade in ms */
 #define FADE_DURATION   320.0f
 
+static int  codec_specific_repair_allowed = TRUE;
+
 static void
 fade_buffer(sample *buffer, const audio_format *fmt, int consec_lost)
 {
@@ -275,7 +277,8 @@ repair(int                         repair,
          * not make sense with a native (raw) encoding so check
          * that first 
          */
-        if (codec_is_native_coding(prev->rep[0]->id) == FALSE && 
+        if (codec_specific_repair_allowed &&
+            codec_is_native_coding(prev->rep[0]->id) == FALSE && 
             codec_decoder_can_repair(prev->rep[0]->id) &&
             prev->rep[0]->id == missing->id) {
                 codec_state *st;
@@ -333,3 +336,14 @@ repair(int                         repair,
         return FALSE;
 }
 
+void
+repair_set_codec_specific_allowed(int allowed)
+{
+        codec_specific_repair_allowed = allowed;
+}
+
+int
+repair_get_codec_specific_allowed(void)
+{
+        return codec_specific_repair_allowed;
+}

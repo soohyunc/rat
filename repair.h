@@ -28,6 +28,9 @@ u_int16         repair_get_count   (void);
 const char     *repair_get_name    (u_int16 scheme);
 u_int16         repair_get_by_name (const char *name);
 
+void repair_set_codec_specific_allowed(int allowed);
+int  repair_get_codec_specific_allowed(void);
+
 /* Zero is no repair mechanism */
 #define REPAIR_TYPE_NONE 2
 
