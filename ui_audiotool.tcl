@@ -1354,7 +1354,6 @@ proc toggle_stats {ssrc} {
 	stats_add_field $win.df.playout.5 "Spike Events:"             SPIKE_EVENTS($ssrc)
 	stats_add_field $win.df.playout.6 "Packets Dropped (spike):"  SPIKE_TOGED($ssrc)
 	stats_add_field $win.df.playout.7 "Relative Clock Rate:"      SKEW($ssrc)
-	stats_add_field $win.df.playout.8 "Round Trip Time (ms):"     RTT($ssrc)
 
 	frame $win.df.decoder -relief groove -bd 2
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO \
@@ -1367,6 +1366,7 @@ proc toggle_stats {ssrc} {
 	stats_add_field $win.df.decoder.6 "Packets lost: "           PCKTS_LOST($ssrc)
 	stats_add_field $win.df.decoder.7 "Packets misordered: "     PCKTS_MISO($ssrc)
 	stats_add_field $win.df.decoder.8 "Packets duplicated: "     PCKTS_DUP($ssrc)
+	stats_add_field $win.df.decoder.9 "Round Trip Time (ms):"    RTT($ssrc)
 
 # Audio settings
 	global GAIN MUTE

@@ -128,6 +128,7 @@ rtp_rtt_calc(uint32_t arr, uint32_t dep, uint32_t delay)
         uint32_t delta;
 
         /* rtt = arr - dep - delay */
+        debug_msg("rtt arr - dep %lu  delay %lu\n", arr - dep, delay);
         delta = ntp32_sub(arr,   dep);
         delta = ntp32_sub(delta, delay);
         /*
@@ -186,19 +187,29 @@ static void
 process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
 {
         pdb_entry_t  *e;
-        uint32_t fract_lost;
+        uint32_t fract_lost, my_ssrc;
 
         /* Calculate rtt estimate */
-
-        if (r->ssrc == rtp_my_ssrc(sp->rtp_session[0]) &&
+        my_ssrc =  rtp_my_ssrc(sp->rtp_session[0]);
+        if (r->ssrc == my_ssrc &&
+            r->ssrc != ssrc    && /* filter self reports */
             pdb_item_get(sp->pdb, ssrc, &e) &&
             r->lsr != 0) {
                 uint32_t ntp_sec, ntp_frac, ntp32;
-
+                double rtt;
                 ntp64_time(&ntp_sec, &ntp_frac);
                 ntp32 = ntp64_to_ntp32(ntp_sec, ntp_frac);
                 
-                e->last_rtt = rtp_rtt_calc(ntp32, r->lsr, r->dlsr);
+                rtt = rtp_rtt_calc(ntp32, r->lsr, r->dlsr);
+                /*
+                 * Filter out blatantly wrong rtt values.  Some tools might not
+                 * implement dlsr and lsr (broken) or forget to do byte-swapping (grr)
+                 */
+                if (rtt < 100.0) {
+                        e->last_rtt = rtt;
+                } else {
+                        debug_msg("Junk rtt (%f secs) - receiver rtp misimplementation?\n");
+                }
                 if (e->avg_rtt == 0.0) {
                         e->avg_rtt = e->last_rtt;
                 } else {
