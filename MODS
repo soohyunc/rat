@@ -1236,7 +1236,10 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 
 4.2.1   - Fix handling of 8bit PCM .WAV files (unsigned 8bit, not signed).
         - Fix shuffle participants not to print newline if last entry.
-        
+	- Fix parsing of -t flag, was mis-coded as -ttl in layering command
+	  line parsing changes in 4.2.0.
+	* Release 6 April 2000.
+
 TODO -- They're features not bugs dammit!
 ----
 
