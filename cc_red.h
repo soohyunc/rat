@@ -46,24 +46,13 @@ struct s_red_coder;
 struct rx_element_tag;
 
 struct s_red_coder *new_red_coder(void);
-int  red_config(struct session_tag    *sp, 
-                struct s_red_coder    *r, 
-                char                  *cmd);
-void red_qconfig(struct session_tag   *sp, 
-                 struct s_red_coder   *r, 
-                 char                 *cmd, 
-                 int          	       blen);
-int  red_bps(struct session_tag       *sp, 
-             struct s_red_coder       *r); 
-int  red_encode(session_struct        *sp, 
-                sample                *raw, 
-                cc_unit               *cu, 
-                struct s_red_coder    *r);
-void red_decode(struct rx_element_tag *u);
-int  red_valsplit(char                *blk, 
-                  unsigned int         blen, 
-                  cc_unit             *u, 
-                  int                 *trailing);
-int  red_wrapped_pt(char              *blk, 
-                    unsigned int       blen);
+void free_red_coder (struct s_red_coder *r);
+
+int  red_config     (struct session_tag *sp, struct s_red_coder *r, char *cmd);
+void red_qconfig    (struct session_tag *sp, struct s_red_coder *r, char *cmd, int blen);
+int  red_bps        (struct session_tag *sp, struct s_red_coder *r); 
+int  red_encode     (session_struct *sp, sample *raw, cc_unit *cu, struct s_red_coder *r);
+void red_decode     (struct rx_element_tag *u);
+int  red_valsplit   (char *blk, unsigned int blen, cc_unit *u, int *trailing);
+int  red_wrapped_pt (char *blk, unsigned int blen);
 #endif

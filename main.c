@@ -136,6 +136,8 @@ main(int argc, char *argv[])
 		tcl_init(sp[0], argc, argv, mbus_engine_addr);
         }
 	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
+
+        ui_sampling_modes(sp[0]);
 	ui_codecs(sp[0]);
 
 	for (i = 0; i < num_sessions; i++) {

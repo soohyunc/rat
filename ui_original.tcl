@@ -166,13 +166,32 @@ proc mbus_recv_load.settings {} {
     toggle_plist
 }
 
+proc change_sampling { arg } {
+    global sampling
+    set sampling $arg
+}
+
+proc mbus_recv_sampling.supported {args} {
+    set sample_modes [split $args]
+    .prefs.pane.transmission.dd.sampling.m.menu delete 0 last
+    foreach s $sample_modes {
+	.prefs.pane.transmission.dd.sampling.m.menu add command -label $s -command "change_sampling $s"
+    }
+}
+
 proc mbus_recv_codec.supported {args} {
     # We now have a list of codecs which this RAT supports...
     set codecs [split $args]
     foreach c $codecs {
 	.prefs.pane.transmission.dd.pri.m.menu    add command -label $c -command "set prenc $c; validate_red_codecs"
-	.prefs.pane.transmission.cc.red.fc.m.menu add command -label $c -command "set secenc $c"
     }    
+}
+
+proc mbus_recv_redundancy.supported {args} {
+    set codecs [split $args]
+    foreach c $codecs {
+	.prefs.pane.transmission.cc.red.fc.m.menu add command -label $c -command "set secenc $c"
+    }
 }
 
 proc mbus_recv_agc {args} {
@@ -809,8 +828,16 @@ pack $i.cc $i.cc.van $i.cc.red -fill x -anchor w -pady 1
 pack $i.cc.int -fill x -anchor w -pady 0
 pack $i.cks -fill both -expand 1 -anchor w -pady 1
 
+frame $i.dd.sampling
+pack  $i.dd.sampling -side left
+label $i.dd.sampling.l -text "Sampling:"
+menubutton $i.dd.sampling.m -menu $i.dd.sampling.m.menu -indicatoron 1 -textvariable sampling -relief raised -width 13
+pack $i.dd.sampling.l $i.dd.sampling.m -side top
+# fill in sampling rates / channels
+menu $i.dd.sampling.m.menu -tearoff 0
+
 frame $i.dd.pri
-pack $i.dd.pri -side left
+pack  $i.dd.pri -side left
 label $i.dd.pri.l -text "Encoding:"
 menubutton $i.dd.pri.m -menu $i.dd.pri.m.menu -indicatoron 1 -textvariable prenc -relief raised -width 13
 pack $i.dd.pri.l $i.dd.pri.m -side top

@@ -570,35 +570,67 @@ codec_bw_cmp(const void *a, const void *b)
         } 
         return 0;
 }
- 
-void 
-ui_codecs(session_struct *sp)
+
+static char *
+ui_get_codecs(session_struct *sp, char *buf, int loose) 
 {
-	char	 arg[1000], *a;
 	codec_t	*codec[10],*sel;
 	int 	 i, nc;
-
-	a = &arg[0];
+        
         sel = get_codec(sp->encodings[0]);
         
-	for (nc=i=0; i<MAX_CODEC; i++) {
-		codec[nc] = get_codec(i);
-		if (codec[nc] != NULL && codec_compatible(sel,codec[nc])) {
-                        nc++;
-                        assert(nc<10); 
-		}
-	}
-
+        for (nc=i=0; i<MAX_CODEC; i++) {
+                codec[nc] = get_codec(i);
+                if (codec[nc] != NULL ) {
+                        if (loose == TRUE && codec_loosely_compatible(sel,codec[nc])) {
+                                /* Picking out primary codecs, i.e. not bothered 
+                                 * about sample size and block sizes matching.
+                                 */
+                                nc++;
+                                assert(nc<10); 
+                        } else if (codec_compatible(sel, codec[nc])) {
+                                /* Picking out redundant codecs where we are 
+                                 * fussed about sample and block size matching.
+                                 */
+                                nc++;
+                                assert(nc<10);
+                        }
+                }
+        }
+        
         /* sort by bw as this makes handling of acceptable redundant codecs easier in ui */
         qsort(codec,nc,sizeof(codec_t*),codec_bw_cmp);
         for(i=0;i<nc;i++) {
-                sprintf(a, " %s", codec[i]->name);
-                a += strlen(codec[i]->name) + 1;
+                sprintf(buf, " %s", codec[i]->name);
+                buf += strlen(codec[i]->name) + 1;
         }
 
-	mbus_engine_tx(TRUE, mbus_name_ui, "codec.supported", arg, TRUE);
+        return buf;
 }
 
+
+void 
+ui_codecs(session_struct *sp)
+{
+	char	 arg[1000];
+
+        ui_get_codecs(sp, arg, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "codec.supported", arg, TRUE);
+        ui_get_codecs(sp, arg, FALSE);
+        mbus_engine_tx(TRUE, mbus_name_ui, "redundancy.supported", arg, TRUE);
+}
+
+void
+ui_sampling_modes(session_struct *sp)
+{
+        UNUSED(sp);
+        /* this is just a quick con job for the moment */
+	mbus_engine_tx(TRUE, 
+                       mbus_name_ui, 
+                       "sampling.supported", 
+                       " 8kHz-Mono 8kHz-Stereo 16kHz-Mono 16kHz-Stereo 32kHz-Mono 32kHz-Stereo 48kHz-Mono 48kHz-Stereo", 
+                       TRUE);
+}
 
 void
 ui_controller_init(char *cname, char *name_engine, char *name_ui, char *name_video)

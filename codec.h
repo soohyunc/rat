@@ -1,7 +1,7 @@
 /*
  * FILE:    codec.h
  * PROGRAM: RAT
- * AUTHOR:  Isidor Kouvelas
+ * AUTHOR:  Isidor Kouvelas / Orion Hodson
  *
  * $Revision$
  * $Date$
@@ -73,6 +73,7 @@ typedef struct s_coded_unit {
 } coded_unit;
 
 typedef void (*init_f)(struct session_tag *sp, struct s_codec_state *s, struct s_codec *c);
+typedef void (*free_f)(struct s_codec_state *s);
 typedef void (*code_f)(sample *in, coded_unit *c, struct s_codec_state *s, struct s_codec *cp);
 typedef void (*dec_f)(struct s_coded_unit *c, sample *data, struct s_codec_state *s, struct s_codec *cp);
 
@@ -93,8 +94,10 @@ typedef struct s_codec {
 	int	max_unit_sz;	/* Maximum size of coded unit in bytes */
 	init_f	enc_init;
 	code_f	encode;
+        free_f  enc_free;
 	init_f	dec_init;
 	dec_f	decode;
+        free_f  dec_free;
 } codec_t;
 
 struct s_codec *get_codec(int pt);
@@ -107,7 +110,10 @@ void	encoder(struct session_tag *sp, sample *data, int coding, coded_unit *c);
 void    reset_encoder(struct session_tag *sp, int coding);
 void	decode_unit(struct rx_element_tag *u);
 void	clear_coded_unit(coded_unit *u);
+void    clear_encoder_states(struct s_codec_state **list);
+void    clear_decoder_states(struct s_codec_state **list);
 int	codec_compatible(struct s_codec *c1, struct s_codec *c2);
+int     codec_loosely_compatible(struct s_codec *c1, struct s_codec *c2);
 
 #endif /* _RAT_CODEC_H_ */
 

@@ -252,6 +252,13 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 	if (dbptr->clock) {
 		free_time(dbptr->clock);
 	}
+        if (dbptr->state_list) {
+                clear_decoder_states(&dbptr->state_list);
+        }
+        if (dbptr->cc_state_list) {
+                clear_cc_decoder_states(&dbptr->cc_state_list);
+        }
+        
 	if (dbptr->sentry != NULL) {
 		if (dbptr->sentry->cname) xfree(dbptr->sentry->cname);
 		if (dbptr->sentry->name)  xfree(dbptr->sentry->name);

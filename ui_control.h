@@ -77,6 +77,7 @@ void	ui_update_duration(char *cname, int duration);
 void	update_video_playout(char *cname, int playout);
 
 void	ui_codecs(struct session_tag *sp);
+void    ui_sampling_modes(struct session_tag *sp);
 void	ui_controller_init(char *cname, char *name_engine, char *name_ui, char *name_video);
 void	ui_load_settings(void);
 void    ui_quit(void);

@@ -80,6 +80,12 @@ new_red_coder(void)
         return r;
 }
 
+void
+free_red_coder(red_coder_t *r)
+{
+        xfree(r);
+}
+
 static void
 clear_red_headers(red_coder_t *r) 
 {
@@ -381,7 +387,7 @@ red_decode(rx_queue_element_struct *u)
                 i = 0;
                 su = u;
                 while(++i<MAX_RED_OFFSET && 
-                      ((su=get_rx_unit(1,cu->cc->pt,su))) &&
+                      ((su = get_rx_unit(1, cu->cc->pt, su))) &&
                         max_off == -1) {
                         if (su->ccu_cnt) {
                                 max_off = red_max_offset(su->ccu[0]);

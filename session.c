@@ -147,6 +147,8 @@ void
 end_session(session_struct *sp)
 {
         codec_free_dynamic_payloads(&sp->dpt_list);
+        clear_encoder_states(&sp->state_list);
+        clear_cc_encoder_states(&sp->cc_state_list);
         free_fast_time(sp->clock);
         free_time(sp->device_clock);
 }

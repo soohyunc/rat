@@ -196,6 +196,15 @@ new_intl_coder(session_struct *sp)
 }
 
 void
+free_intl_coder(intl_coder_t *t)
+{
+        if (t->il) {
+                free_il(t->il);
+        }
+        xfree(t);
+}
+
+void
 intl_reset(intl_coder_t *s)
 {
         coded_unit *u;

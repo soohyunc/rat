@@ -62,31 +62,17 @@ typedef struct s_cc_unit {
     int          src_pt;   /* used by vanilla channel coder to know source coding*/
 } cc_unit;
 
-typedef void (*cc_init_f)(struct session_tag *sp, 
-                          struct s_cc_state *ccs);
-typedef int  (*cc_config_f)(struct session_tag *sp, 
-                            struct s_cc_state *ccs, 
-                            char *cmd);
-typedef void (*cc_query_f)(struct session_tag *sp,
-                           struct s_cc_state  *ccs,
-                           char *buf,
-                           unsigned int       blen);
-typedef int  (*cc_bitrate_f)(struct session_tag *sp,
-                             struct s_cc_state *ccs);
-typedef int  (*cc_encode_f)(struct session_tag *sp, 
-                            sample             *raw, 
-                            struct s_cc_unit   *cu, 
-                            struct s_cc_state  *ccs);
-typedef void (*cc_enc_reset_f)(struct s_cc_state *ccs);
-typedef int  (*cc_valsplit_f)(char *blk, 
-                              unsigned int  blen, 
-                              struct s_cc_unit *cu,
-                              int *trailing);
-typedef int  (*cc_get_pt_f)(char *blk,
-                            unsigned int blen);
-typedef void (*cc_dec_init_f)(struct session_tag *sp, struct s_cc_state *ccs);
-typedef void (*cc_decode_f)(struct rx_element_tag *sp,
-                            struct s_cc_state *ccs);
+typedef void (*cc_init_f)      (struct session_tag *sp, struct s_cc_state *ccs);
+typedef int  (*cc_config_f)    (struct session_tag *sp, struct s_cc_state *ccs, char *cmd);
+typedef void (*cc_query_f)     (struct session_tag *sp, struct s_cc_state *ccs, char *buf, unsigned int blen);
+typedef int  (*cc_bitrate_f)   (struct session_tag *sp, struct s_cc_state *ccs);
+typedef int  (*cc_encode_f)    (struct session_tag *sp, sample *raw, struct s_cc_unit *cu, struct s_cc_state *ccs);
+typedef void (*cc_enc_reset_f) (struct s_cc_state *ccs);
+typedef void (*cc_free_f)      (struct s_cc_state *ccs);
+typedef int  (*cc_valsplit_f)  (char *blk, unsigned int blen, struct s_cc_unit *cu, int *trailing);
+typedef int  (*cc_get_pt_f)    (char *blk, unsigned int blen);
+typedef void (*cc_dec_init_f)  (struct session_tag *sp, struct s_cc_state *ccs);
+typedef void (*cc_decode_f)    (struct rx_element_tag *sp, struct s_cc_state *ccs);
 
 typedef struct s_cc_coder {
     char            *name;
@@ -98,77 +84,58 @@ typedef struct s_cc_coder {
     cc_bitrate_f     bitrate;
     cc_encode_f      encode;
     cc_enc_reset_f   enc_reset;
+    cc_free_f        enc_free;
 /* decoder related */
     int              max_cc_per_interval;
     cc_valsplit_f    valsplit; 
     cc_get_pt_f      get_wrapped_pt;
     cc_dec_init_f    dec_init;
     cc_decode_f      decode;
+    cc_free_f        dec_free;
 } cc_coder_t;
 
 #define MAX_CC_PER_INTERVAL 2
 
-void  set_units_per_packet(struct session_tag *sp, 
-                           int n);
-int   get_units_per_packet(struct session_tag *sp);
-int   get_bytes(cc_unit *u);
-int   get_cc_pt(struct session_tag *sp, 
-                char *name);
-int   set_cc_pt(char *name, 
-                int pt);
-struct s_cc_coder *
-      get_channel_coder(int pt);
-int   channel_code(struct session_tag *sp, 
-                   cc_unit *u, 
-                   int pt, 
-                   sample *raw);
-void  channel_decode(struct rx_element_tag *rx);
-void  config_channel_coder(struct session_tag *sp, 
-                           int pt, 
-                           char *cmd);
-void  query_channel_coder(struct session_tag *sp, 
-                          int pt, 
-                          char *buf, 
-                          unsigned int blen);
-void  get_bitrate(struct session_tag *sp, 
-                  int pt);
-int   validate_and_split(int pt, 
-                         char *data, 
-                         unsigned int data_len, 
-                         cc_unit *u, 
-                         int *trailing);
-int   get_wrapped_payload(int pt, 
-                          char *data, 
-                          int data_len); 
-void  reset_channel_encoder(struct session_tag *sp, 
-                            int cc_pt);
-void  clear_cc_unit(cc_unit *u, 
-                    int begin);
+void  set_units_per_packet (struct session_tag *sp, int n);
+int   get_units_per_packet (struct session_tag *sp);
 
+int   get_bytes (cc_unit *u);
+
+int   get_cc_pt (struct session_tag *sp, char *name);
+int   set_cc_pt (char *name, int pt);
+
+struct s_cc_coder *get_channel_coder (int pt);
+
+int   channel_code   (struct session_tag *sp, cc_unit *u, int pt, sample *raw);
+void  channel_decode (struct rx_element_tag *rx);
+void  reset_channel_encoder (struct session_tag *sp, int cc_pt);
+
+void  config_channel_coder (struct session_tag *sp, int pt, char *cmd);
+void  query_channel_coder  (struct session_tag *sp, int pt, char *buf, unsigned int blen);
+
+void  get_bitrate (struct session_tag *sp, int pt);
+
+int   validate_and_split    (int pt, char *data, unsigned int data_len, cc_unit *u, int *trailing);
+int   get_wrapped_payload   (int pt, char *data, int data_len); 
+
+void  clear_cc_unit         (cc_unit *u, int begin);
+
+void  clear_cc_encoder_states (struct s_cc_state **list);
+void  clear_cc_decoder_states (struct s_cc_state **list);
 
 /* fn's only for use by channel decoders */
 
-int   add_comp_data(struct rx_element_tag *u, 
-                    int pt, 
-                    struct iovec *iov,
-                    int iovc);
-
-struct rx_element_tag *get_rx_unit(int n, 
-                                   int cc_pt, 
-                                   struct rx_element_tag *u);
+int   add_comp_data (struct rx_element_tag *u, int pt, struct iovec *iov, int iovc);
+struct rx_element_tag *get_rx_unit (int n, int cc_pt, struct rx_element_tag *u);
 
 /* defines for coded_unit_to_iov */
 
 #define INCLUDE_STATE    1
 #define NO_INCLUDE_STATE 0
 
-int    coded_unit_to_iov(coded_unit   *cu, 
-                         struct iovec *iov,
-                         int inc_state); 
+int    coded_unit_to_iov(coded_unit *cu, struct iovec *iov, int inc_state); 
+int    iov_to_coded_unit(struct iovec *iov, coded_unit *cu, int pt);
 
-int    iov_to_coded_unit(struct iovec *iov,  
-                         coded_unit   *cu, 
-                         int pt);
 #endif
 
 
