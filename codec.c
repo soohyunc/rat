@@ -44,7 +44,7 @@
 #include "config_win32.h"
 #include "assert.h"
 #include "codec.h"
-#include "gsm.h"
+#include "codec_gsm.h"
 #include "codec_acm.h"
 #include "codec_adpcm.h"
 #include "codec_g711.h"

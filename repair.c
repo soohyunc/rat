@@ -46,7 +46,7 @@
 #include "util.h"
 #include "repair.h"
 #include "receive.h"
-#include "gsm.h"
+#include "codec_gsm.h"
 #include "codec_lpc.h"
 
 /* fade and pitch measures in ms */
