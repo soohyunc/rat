@@ -1371,4 +1371,8 @@ TODO -- They're features not bugs dammit!
 - Crashes on FreeBSD 4.0
 	- instrument the auddev_luigi code, to give more info in case that
 	  is the culprit (I think that FreeBSD 4.0 updated the drivers?)
+- option to allow operation on odd-numbered RTP ports
+	- should be a "-not-really-standards-compliant" option, which also 
+	  turns off things like the requirement to receive for RTCP packets 
+	  before accepting a stream.
 
