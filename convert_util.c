@@ -31,13 +31,16 @@ converter_change_channels (sample *src,
                            int dst_len, 
                            int dst_channels)
 {
-        int i;
-        sample *s, *d;
+        int di, si;
         int t;
         assert(src_channels == 1 || src_channels == 2);
         assert(dst_channels == 1 || dst_channels == 2);
         assert(dst_channels != src_channels);
         assert(src_len/src_channels == dst_len/dst_channels);
+
+        if (src_len == 0) {
+                return;
+        }
 
         /* Differing directions of conversions means we can do in place        
          * conversion if necessary.
@@ -45,23 +48,22 @@ converter_change_channels (sample *src,
 
         switch(src_channels) {
         case 1:
-                s = &src[src_len - 1]; /* clumsy syntax so not to break bounds-checker in debug */
-                d = &dst[dst_len - 1];
-                for(i = 0; i < src_len; i++) {
-                        *d-- = *s;
-                        *d-- = *s--;
-                }
+                di = dst_len - 1;
+                si = src_len - 1;
+                do {
+                        dst[di--] = src[si];
+                        dst[di--] = src[si--];
+                } while (si != 0);
                 break;
         case 2:
-                s = src;
-                d = dst;
-                src_len /= 2;
-                for(i = 0; i < src_len; i++) {
-                        t    = *s++;
-                        t   += *s++;
-                        t   /= 2;
-                        *d++ = t;
-                }
+                si = 0;
+                di = 0;
+                do {
+                        t  = src[si++];
+                        t += src[si++];
+                        t /= 2;
+                        dst[di++] = t;
+                } while (si != src_len);
                 break;
         }
         UNUSED(dst_channels);
