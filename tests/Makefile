@@ -5,6 +5,8 @@ INCLUDE = -I.. -I../../common
 CFLAGS  = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror -g -fsigned-char  -DHAVE_PCA -DDEBUG -DFreeBSD -DSASR -DFAST -DUSE_FLOAT_MUL -DDEBUG_MEM
 LIBS = -L../../common -lm -lcommon
 
+CHANNEL_OBJS = ../cc_vanilla.o ../new_channel.o ../channel_types.o
+
 CODEC_OBJS = ../codec.o ../codec_state.o ../codec_dvi.o ../codec_gsm.o \
              ../codec_l16.o ../codec_g711.o ../codec_lpc.o ../codec_types.o \
              ../codec_vdvi.o ../codec_wbs.o ../cx_dvi.o ../cx_gsm.o \
@@ -14,13 +16,19 @@ CODEC_OBJS = ../codec.o ../codec_state.o ../codec_dvi.o ../codec_gsm.o \
              ../converter.o ../convert_linear.o ../convert_util.o \
              ../convert_extra.o ../convert_sinc.o
 
-CHANNEL_OBJS = ../cc_vanilla.o ../new_channel.o ../channel_types.o
+
+REPAIR_OBJS  = ../repair.o
+
+SNDFILE_OBJS = ../sndfile.o ../sndfile_raw.o ../sndfile_au.o ../sndfile_wav.o
 
 UTIL_OBJS = ../timers.o ../playout.o ../ts.o
 
 3D_OBJS = test_3d.o ../render_3D.o
 
 RDNCY_OBJS = ../cc_rdncy.o ../channel_types.o test_rdncy.o
+
+test_repair: $(CODEC_OBJS) $(REPAIR_OBJS) $(SNDFILE_OBJS) test_repair.o 
+	$(CC) $(DEBUG)  -o $@ $(CODEC_OBJS) $(REPAIR_OBJS) $(SNDFILE_OBJS) $(LIBS) test_repair.o
 
 test_convert: $(CODEC_OBJS) test_convert.o
 	$(CC) $(DEBUG)  -o $@ $(CODEC_OBJS) $(LIBS) test_convert.o
