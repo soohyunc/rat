@@ -315,15 +315,15 @@ static repair_scheme schemes[] = {
                 single_side_pattern_match
         },
         {
-                {"Repeat",        IDX_TO_REPAIR_ID(2)},
+                {"Repeat",        IDX_TO_REPAIR_ID(1)},
                 repetition
         },
         {
-                {"Noise",         IDX_TO_REPAIR_ID(3)},
+                {"Noise",         IDX_TO_REPAIR_ID(2)},
                 noise_substitution
         },
         {
-                {"None",          IDX_TO_REPAIR_ID(4)},
+                {"None",          IDX_TO_REPAIR_ID(3)},
                 repair_none
         } 
 };
