@@ -141,6 +141,38 @@ static codec_fns_t codec_table[] = {
         {
                 NULL,
                 NULL,
+                gsm_get_formats_count,
+                gsm_get_format,
+                gsm_state_create,
+                gsm_state_destroy,
+                gsm_encoder,
+                NULL,
+                gsm_state_create,
+                gsm_state_destroy,
+                gsm_decoder,
+                NULL,
+                NULL,
+                gsm_repair
+        },
+        {
+                lpc_setup,
+                NULL,
+                lpc_get_formats_count,
+                lpc_get_format,
+                lpc_encoder_state_create,
+                lpc_encoder_state_destroy,
+                lpc_encoder,
+                NULL,
+                lpc_decoder_state_create,
+                lpc_decoder_state_destroy,
+                lpc_decoder,
+                NULL,
+                NULL,
+                lpc_repair
+        },
+        {
+                NULL,
+                NULL,
                 dvi_get_formats_count,
                 dvi_get_format,
                 dvi_state_create,
@@ -169,38 +201,6 @@ static codec_fns_t codec_table[] = {
                 NULL,
                 vdvi_peek_frame_size,
                 NULL
-        },
-        {
-                NULL,
-                NULL,
-                gsm_get_formats_count,
-                gsm_get_format,
-                gsm_state_create,
-                gsm_state_destroy,
-                gsm_encoder,
-                NULL,
-                gsm_state_create,
-                gsm_state_destroy,
-                gsm_decoder,
-                NULL,
-                NULL,
-                gsm_repair
-        },
-        {
-                NULL,
-                NULL,
-                lpc_get_formats_count,
-                lpc_get_format,
-                NULL,
-                NULL,
-                lpc_encoder,
-                NULL,
-                lpc_decoder_state_create,
-                lpc_decoder_state_destroy,
-                lpc_decoder,
-                NULL,
-                NULL,
-                lpc_repair
         },
         {
                 NULL,
@@ -917,9 +917,10 @@ codec_get_native_info(codec_id_t cid,
                       u_int16   *p_channels)
 {
         if (codec_is_native_coding(cid)) {
-                *p_rate     = ((CODEC_GET_FMT_INDEX(cid)>>1)+2) * 4000;
+                u_int32 f = CODEC_GET_FMT_INDEX(cid);
+                *p_rate   = (u_int16)(f - (f&0x01)+2) * 4000;
                 assert(*p_rate % 8000 == 0 && *p_rate <= 48000);
-                *p_channels = (CODEC_GET_FMT_INDEX(cid)&0x01) + 1;
+                *p_channels = (u_int16)(f&0x01) + 1;
                 assert(*p_channels == 1 || *p_channels == 2);
                 return TRUE;
         }

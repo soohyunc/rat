@@ -41,7 +41,8 @@
 #include "cx_lpc.h"
 /* For M_PI on W32 (euk!) */
 #include "config_win32.h"
-
+#include "assert.h"
+#include "debug.h"
 
 #define MAXWINDOW	1000	/* Max analysis window length */
 #define FS		8000.0f	/* Sampling rate */
@@ -59,11 +60,13 @@
 
 #define BUFLEN		((FRAMESIZE * 3) / 2)
 
-static float s[MAXWINDOW], y[MAXWINDOW], h[MAXWINDOW];
-static float fa[6], u, u1, yp1, yp2;
+static float h[MAXWINDOW];
+static float fa[6];
 
 #define BIAS 0x84		/* define the add-in bias for 16 bit samples */
 #define CLIP 32635
+
+#include "stdio.h"
 
 static void
 auto_correl(float *w, int n, int p, float *r)
@@ -73,7 +76,7 @@ auto_correl(float *w, int n, int p, float *r)
 	for (k = 0; k <= p; k++) {
 		nk = n - k;
 		r[k] = 0.0f;
-		for (i = 0; i < nk; i++)
+		for (i = 0; i < nk; i++) 
 			r[k] += w[i] * w[i + k];
 	}
 }
@@ -173,7 +176,6 @@ calc_pitch(float *w, float *per)
 	}
 }
 
-
 #ifdef DEBUG_LPC
 static void
 dump_state(FILE* f, lpc_intstate_t *state)
@@ -190,29 +192,42 @@ dump_state(FILE* f, lpc_intstate_t *state)
 #endif
 
 void
-lpc_init(lpc_intstate_t* state)
+lpc_init()
 {
-	int     i;
-	float   r, v, w, wcT;
+        float   r, v, w, wcT;
+        int     i;
 
-	for (i = 0; i < BUFLEN; i++) {
-		s[i] = 0.0;
-		h[i] = (float)WSCALE * (0.54f - 0.46f *
-		       (float)cos(2 * (float)M_PI * i / (BUFLEN - 1.0f)));
-	}
-	wcT = 2 * (float)M_PI * FC / FS;
-	r = 0.36891079f * wcT;
-	v = 0.18445539f * wcT;
-	w = 0.92307712f * wcT;
-	fa[1] = -(float)exp(-r);
-	fa[2] = 1.0f + fa[1];
-	fa[3] = -2.0f * (float)exp(-v) * (float)cos(w);
-	fa[4] = (float)exp(-2.0f * v);
-	fa[5] = 1.0f + fa[3] + fa[4];
+        for (i = 0; i < BUFLEN; i++) {
+                h[i] = (float)WSCALE * (0.54f - 0.46f * 
+                                        (float)cos(2.0f * (float)M_PI * (float)i / (BUFLEN - 1.0f)));
+        }
+ 
+        wcT = 2 * (float)M_PI * FC / FS;
+        r = 0.36891079f * wcT;
+        v = 0.18445539f * wcT;
+        w = 0.92307712f * wcT;
+        fa[1] = -(float)exp(-r);
+        fa[2] = 1.0f + fa[1];
+        fa[3] = -2.0f * (float)exp(-v) * (float)cos(w);
+        fa[4] = (float)exp(-2.0f * v);
+        fa[5] = 1.0f + fa[3] + fa[4];
+}
 
-	u1 = 0.0f;
-	yp1 = 0.0f;
-	yp2 = 0.0f;
+void
+lpc_enc_init(lpc_encstate_t *enc)
+{
+	int        i;
+        enc->u = enc->u1 = enc->yp1 = enc->yp2 = 0.0f;
+        for(i = 0; i < BUFLEN; i++) {
+                enc->raw[i]      = 0.0f;
+                enc->filtered[i] = 0.0f;
+        }
+}
+
+void
+lpc_dec_init(lpc_intstate_t* state)
+{
+        int i;
 
 	state->Oldper = 0.0f;
 	state->OldG = 0.0f;
@@ -224,25 +239,41 @@ lpc_init(lpc_intstate_t* state)
 }
 
 void
-lpc_analyze(const short *buf, lpc_txstate_t *params)
+lpc_analyze(const short *buf, lpc_encstate_t *enc, lpc_txstate_t *params)
 {
 	int     i, j;
 	float   w[MAXWINDOW], r[LPC_FILTORDER + 1];
 	float   per, G, k[LPC_FILTORDER + 1];
+        float *s, *y, u, u1, yp1, yp2;
 
-	for (i = 0, j = BUFLEN - FRAMESIZE; i < FRAMESIZE; i++, j++) {
-		s[j] = ((float)*buf++) / 32768.0f;
+        u   = enc->u;
+        u1  = enc->u1;
+        yp1 = enc->yp1;
+        yp2 = enc->yp2;
+
+        s = enc->raw;
+        y = enc->filtered;
+
+        /* Removed i from loop - redundant */
+	for (j = BUFLEN - FRAMESIZE; j < BUFLEN; j++) {
+		s[j] = ((float)(*buf++)) / 32768.0f;
 		u = fa[2] * s[j] - fa[1] * u1;
 		y[j] = fa[5] * u1 - fa[3] * yp1 - fa[4] * yp2;
-		u1 = u;
+		u1  = u;
 		yp2 = yp1;
 		yp1 = y[j];
 	}
 
+        enc->u   = u;
+        enc->u1  = u1;
+        enc->yp1 = yp1;
+        enc->yp2 = yp2;
+
 	calc_pitch(y, &per);
 
-	for (i = 0; i < BUFLEN; i++)
+	for (i = 0; i < BUFLEN; i++) {
 		w[i] = s[i] * h[i];
+        }
 	auto_correl(w, BUFLEN, LPC_FILTORDER, r);
 	durbin(r, LPC_FILTORDER, k, &G);
 
@@ -251,8 +282,8 @@ lpc_analyze(const short *buf, lpc_txstate_t *params)
 	for (i = 0; i < LPC_FILTORDER; i++)
 		params->k[i] = (char)(k[i + 1] * 128.0f);
 
-	memcpy(s, s + FRAMESIZE, (BUFLEN - FRAMESIZE) * sizeof(s[0]));
-	memcpy(y, y + FRAMESIZE, (BUFLEN - FRAMESIZE) * sizeof(y[0]));
+	memcpy(s, s + FRAMESIZE, (BUFLEN - FRAMESIZE) * sizeof(float));
+	memcpy(y, y + FRAMESIZE, (BUFLEN - FRAMESIZE) * sizeof(float));
 }
 
 double drand48(void);
@@ -260,7 +291,7 @@ double drand48(void);
 void
 lpc_synthesize(short *buf, lpc_txstate_t *params, lpc_intstate_t* state)
 {
-	int i, j, op;
+	int i, j;
 	register double u, f, per, G, NewG, Ginc, Newper, perinc;
 	double k[LPC_FILTORDER + 1], Newk[LPC_FILTORDER + 1],
 	       kinc[LPC_FILTORDER + 1];
@@ -316,17 +347,12 @@ lpc_synthesize(short *buf, lpc_txstate_t *params, lpc_intstate_t* state)
 		}
 		state->bp[0] = f;
 		
-		op = (int)(f * 32767.0);
-		if (op > 32767) {
-			op = 32767; 
-		} else if (op < -32768) {
-			op = -32768;
-		}
-		*buf++ = (short)op;
+		*buf++ = (short)((int)(f * 32768) & 0xffff);
 
 		Newper += perinc;
 		NewG += Ginc;
 	}
+
 	state->Oldper = per;
 	state->OldG = G;
 	for (i = 1; i <= LPC_FILTORDER; i++)
@@ -338,7 +364,7 @@ lpc_synthesize(short *buf, lpc_txstate_t *params, lpc_intstate_t* state)
 void
 lpc_extend_synthesize(short *buf, int len, lpc_intstate_t* s)
 {
-	int i, j, op;
+	int i, j;
         register double u, f;
         
 	if (s->Oldper == 0) {
@@ -367,14 +393,7 @@ lpc_extend_synthesize(short *buf, int len, lpc_intstate_t* s)
 			s->bp[j] = b;
 		}
 		s->bp[0] = f;
-		
-		op = (int)(f * 32767.0);
-		if (op > 32767) {
-			op = 32767; 
-		} else if (op < -32768) {
-			op = -32768;
-		}
-		*buf++ = (short)op;
+                *buf++ = (short)((int)(f * 32768) & 0xffff);
 	}
 }
 

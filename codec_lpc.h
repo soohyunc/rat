@@ -42,6 +42,10 @@
 u_int16                      lpc_get_formats_count (void);
 const struct s_codec_format* lpc_get_format(u_int16 idx);
 
+void lpc_setup(void);
+
+int  lpc_encoder_state_create  (u_int16 idx, u_char **state);
+void lpc_encoder_state_destroy (u_int16 idx, u_char **state);
 int  lpc_encoder (u_int16 idx, u_char *state, sample *in, coded_unit *out);
 
 int  lpc_decoder_state_create  (u_int16 idx, u_char **state);

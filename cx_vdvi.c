@@ -6,7 +6,7 @@
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995-98 University College London
+ * Copyright (c) 1998-99 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@
 #include "stdio.h"
 
 #ifdef TEST_VDVI
-#define NUM_TESTS 100000
+#define NUM_TESTS 1000
 
 #include "assert.h"
 #include <stdio.h>
@@ -244,15 +244,16 @@ vdvi_encode(u_char *dvi_buf, int dvi_samples, u_char *out, int out_bytes)
         dp      = dvi_buf;
         while (dp != dvi_end) {
                 t = *dp;
-                s1 = (*dp  & 0xf0) >> 4;
-                s2 = (*dp  & 0x0f);
+                s1 = (t & 0xf0) >> 4;
+                s2 = (t & 0x0f);
                 bs_put(&dst, (u_char)dmap[s1], dmap_bits[s1]);
                 bs_put(&dst, (u_char)dmap[s2], dmap_bits[s2]);
                 assert(*dp == t);
                 dp ++;
         }
         /* Return number of bytes used */
-        bytes_used = (dst.pos - dst.buf) + (dst.bits_remain != 8) ? 1 : 0;
+        bytes_used  = (dst.pos - dst.buf);
+        bytes_used += (dst.bits_remain != 8) ? 1 : 0;
         assert(bytes_used <= out_bytes);
         return bytes_used;
 }
@@ -306,7 +307,8 @@ vdvi_decode(unsigned char *in, int in_bytes, unsigned char *dvi_buf, int dvi_sam
 
         }
 
-        bytes_used = (bin.pos - bin.buf) + (bin.bits_remain != 8) ? 1 : 0;
+        bytes_used  = (bin.pos - bin.buf);
+        bytes_used += (bin.bits_remain != 8) ? 1 : 0;
         assert(bytes_used <= in_bytes);
         return bytes_used;
 }

@@ -40,6 +40,7 @@
 #define _LPC_H_
 
 #define FRAMESIZE 160
+#define BUFLEN   ((FRAMESIZE * 3) / 2)
 
 #define LPC_FILTORDER		10
 
@@ -51,6 +52,7 @@ typedef struct {
 	char k[LPC_FILTORDER];
 	char pad;
 } lpc_txstate_t;
+
 #define LPCTXSIZE 14
 
 /*
@@ -64,9 +66,25 @@ typedef struct {
 	int pitchctr;
 } lpc_intstate_t;
 
-void lpc_init(lpc_intstate_t* state);
-void lpc_analyze(const short *buf, lpc_txstate_t *params);
+/* Added encoder state by removing static buffers
+ * that are used for storing float represetantions
+ * of audio from previous frames.  Multiple coders
+ * will no longer interfere. It's all filter state.
+ */
+typedef struct {
+        float u, u1, yp1, yp2;
+        float raw[BUFLEN];
+        float filtered[BUFLEN];
+} lpc_encstate_t;
+
+void lpc_init(void);
+void lpc_enc_init(lpc_encstate_t* state);
+void lpc_dec_init(lpc_intstate_t* state);
+void lpc_analyze(const short *buf, lpc_encstate_t *enc, lpc_txstate_t *params);
 void lpc_synthesize(short *buf, lpc_txstate_t *params, lpc_intstate_t* state);
 void lpc_extend_synthesize(short *buf, int len, lpc_intstate_t* state);
 
-#endif /* _codec_lpc_h_ */
+#endif /* _LPC_H_ */
+
+
+

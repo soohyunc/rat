@@ -167,7 +167,6 @@ vdvi_decoder(u_int16 idx, u_char *decoder_state, coded_unit *c, sample *data)
 	}
 
         len = vdvi_decode(c->data, c->data_len, dvi_buf, 160);
-        assert(len == 160);
 
         samples = cs[idx].format.bytes_per_block / sizeof(sample);
 	adpcm_decoder(dvi_buf, data, samples, (struct adpcm_state*)decoder_state);

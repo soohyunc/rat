@@ -1,5 +1,5 @@
 /*
- * FILE:    codec_gsm.h
+ * FILE:    codec_lpc.c
  * AUTHORS: Orion Hodson
  * 
  * Copyright (c) 1998 University College London
@@ -69,13 +69,39 @@ lpc_get_format(u_int16 idx)
         return &cs[idx];
 }
 
+void
+lpc_setup(void)
+{
+        lpc_init();
+}
+
+int
+lpc_encoder_state_create(u_int16 idx, u_char **state)
+{
+        assert(idx < LPC_NUM_FORMATS);
+        UNUSED(idx);
+        *state = (u_char*) xmalloc(sizeof(lpc_encstate_t));
+        lpc_enc_init((lpc_encstate_t*) *state);
+        return sizeof(lpc_encstate_t);
+}
+
+void
+lpc_encoder_state_destroy(u_int16 idx, u_char **state)
+{
+        assert(idx < LPC_NUM_FORMATS);
+        UNUSED(idx);
+        
+        xfree(*state);
+        *state = (u_char*)NULL;
+}
+
 int
 lpc_decoder_state_create(u_int16 idx, u_char **state)
 {
         assert(idx < LPC_NUM_FORMATS);
         UNUSED(idx);
         *state = (u_char*) xmalloc(sizeof(lpc_intstate_t));
-        lpc_init((lpc_intstate_t*) *state);
+        lpc_dec_init((lpc_intstate_t*) *state);
         return sizeof(lpc_intstate_t);
 }
 
@@ -93,7 +119,6 @@ int
 lpc_encoder  (u_int16 idx, u_char *state, sample *in, coded_unit *out)
 {
         assert(idx < LPC_NUM_FORMATS);
-        assert(state == NULL); /* No encoder state */
         assert(in);
         assert(out);
         UNUSED(idx);
@@ -104,7 +129,9 @@ lpc_encoder  (u_int16 idx, u_char *state, sample *in, coded_unit *out)
         out->data      = (u_char*)block_alloc(LPCTXSIZE);
         out->data_len  = LPCTXSIZE;
 
-        lpc_analyze((const short*)in, (lpc_txstate_t*)out->data);
+        lpc_analyze((const short*)in, 
+                    (lpc_encstate_t*)state, 
+                    (lpc_txstate_t*)out->data);
         return out->data_len;
 }
 
