@@ -230,14 +230,7 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 	rx_queue_element_struct	*ip;
 
 	if ((ip = add_or_get_interval(buf, ru)) != ru) {
-                assert(ip->prev_ptr == NULL || (u_int32)ip->prev_ptr > 0x0000ffffu);
-                assert(ip->next_ptr == NULL || (u_int32)ip->next_ptr > 0x0000ffffu);
-                assert(ru->prev_ptr == NULL || (u_int32)ru->prev_ptr > 0x0000ffffu);
-                assert(ru->next_ptr == NULL || (u_int32)ru->next_ptr > 0x0000ffffu);
-
 		add_unit_to_interval(ip, ru);
-                assert(ip->prev_ptr == NULL || (u_int32)ip->prev_ptr > 0x0000ffffu);
-                assert(ip->next_ptr == NULL || (u_int32)ip->next_ptr > 0x0000ffffu);
 	}
 
         assert(ip != NULL);
@@ -486,12 +479,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 #ifdef DEBUG_PLAYOUT
                 verify_playout_buffer(buf);
 #endif
-                assert(up->prev_ptr == NULL || (u_int32)up->prev_ptr > 0x0000ffffu);
-                assert(up->next_ptr == NULL || (u_int32)up->next_ptr > 0x0000ffffu);
-
 		up = playout_buffer_add(buf, up);
-                assert(up->prev_ptr == NULL || (u_int32)up->prev_ptr > 0x0000ffffu);
-                assert(up->next_ptr == NULL || (u_int32)up->next_ptr > 0x0000ffffu);
 #ifdef DEBUG_PLAYOUT
                 verify_playout_buffer(buf);
 #endif
@@ -501,8 +489,8 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		if (up && buf->last_got && up->mixed == FALSE
 		    && ts_gt(buf->last_got->playoutpt, up->playoutpt)
 		    && ts_gt(up->playoutpt, cur_time)){
-                        assert(up->prev_ptr == NULL || (u_int32)up->prev_ptr > 0x0000ffffu);
-                        assert(up->next_ptr == NULL || (u_int32)up->next_ptr > 0x0000ffffu);
+                        assert(up->prev_ptr == NULL);
+                        assert(up->next_ptr == NULL);
                         channel_decode(sp, up);
 			decode_unit(up);
                         debug_msg("Mixing late audio\n");

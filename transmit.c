@@ -509,8 +509,7 @@ tx_update_ui(session_struct *sp)
                         self_active = TRUE;
                 }
                 sp->lecture = FALSE;
-                update_lecture_mode(sp);
-
+                ui_update_lecture_mode(sp);
         } else {
                 if (self_active == TRUE) {
                         ui_info_deactivate(sp->db->my_dbe);

@@ -195,13 +195,14 @@ ui_info_deactivate(rtcp_dbentry *e)
 }
 
 void
-update_stats(rtcp_dbentry *e, session_struct *sp)
+ui_update_stats(rtcp_dbentry *e, session_struct *sp)
 {
 	char	*my_cname, *their_cname, *args;
 
 	assert(sp->db->my_dbe->sentry->cname != NULL);
 
 	if (e->sentry->cname == NULL) {
+                debug_msg("sentry->cname null\n");
 		return;
 	}
 
@@ -215,7 +216,6 @@ update_stats(rtcp_dbentry *e, session_struct *sp)
                 args = (char *) xmalloc(strlen(their_cname) + 7 + 2);
                 sprintf(args, "%s unknown", their_cname);
         }
-
         mbus_engine_tx(TRUE, mbus_name_ui, "source.codec", args, FALSE);
         xfree(args);
 
@@ -524,7 +524,7 @@ ui_hide_audio_busy(void)
 
 
 void
-update_lecture_mode(session_struct *sp)
+ui_update_lecture_mode(session_struct *sp)
 {
 	/* Update the UI to reflect the lecture mode setting...*/
 	char	args[2];
@@ -573,7 +573,7 @@ ui_update_loss(char *srce, char *dest, int loss)
 }
 
 void
-ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, double jitter, int jit_tog)
+ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, double jitter, int jit_tog)
 {
 	char	*cname_e, *args;
 
@@ -582,8 +582,8 @@ ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered,
 	cname_e = mbus_encode_str(cname);
 
 	/* I hate this function! */
-	args = (char *) xmalloc(strlen(cname_e) + 80);
-	sprintf(args, "%s %6ld %6ld %6ld %f %6d", cname_e, recv, lost, misordered, jitter, jit_tog);
+	args = (char *) xmalloc(strlen(cname_e) + 88);
+	sprintf(args, "%s %6ld %6ld %6ld %6ld %f %6d", cname_e, recv, lost, misordered, duplicates, jitter, jit_tog);
 	mbus_engine_tx_queue(TRUE, "source.reception", args);
 	xfree(args);
 }
@@ -604,7 +604,7 @@ ui_update_duration(char *cname, int duration)
 }
 
 void 
-update_video_playout(char *cname, int playout)
+ui_update_video_playout(char *cname, int playout)
 {
 	char	*cname_e, *args;
 

@@ -157,7 +157,6 @@ vanilla_valsplit(char *blk, unsigned int blen, cc_unit *u, int *trailing, int *i
 #define VANILLA_NO_PT 0xff;
 typedef struct {
         char pt;
-        session_struct *sp;
 } v_dec_st;
  
 static void 
@@ -685,10 +684,10 @@ get_rx_unit(int n, int cc_pt, rx_queue_element_struct *u)
                 }
 #ifdef DEBUG
                 if (n>0) {
-                        if (u->next_ptr == NULL)                                debug_msg("Nothing follows\n");
-                        else if (u->next_ptr->src_ts-u->src_ts != u->unit_size) debug_msg("ts jump\n");
-                        else if (u->next_ptr->unit_size != u->unit_size)        debug_msg("fmt change\n");
-                        else if (u->next_ptr->talk_spurt_start)                 debug_msg("New Talkspurt\n");
+                        if (u->next_ptr == NULL)                                  debug_msg("Nothing follows\n");
+                        else if (u->next_ptr->src_ts - u->src_ts != u->unit_size) debug_msg("ts jump %ld\n", u->next_ptr->src_ts - u->src_ts);
+                        else if (u->next_ptr->unit_size != u->unit_size)          debug_msg("fmt change\n");
+                        else if (u->next_ptr->talk_spurt_start)                   debug_msg("New Talkspurt\n");
                 }
 #endif
         } else if (n < 0) {

@@ -119,15 +119,11 @@ split_block(u_int32 playout_pt,
 	}
 
         for(i=0;i<ccu->iovc;i++) {
-                block_trash_chk();
                 ccu->iov[i].iov_base = (caddr_t)block_alloc(ccu->iov[i].iov_len);
-                block_trash_chk();
                 memcpy(ccu->iov[i].iov_base, 
                        data_ptr,
                        ccu->iov[i].iov_len);
-                block_trash_chk();
                 data_ptr += ccu->iov[i].iov_len;
-                block_trash_chk();
         }
 
         for(i=0;i<trailing;i++) {
@@ -149,7 +145,7 @@ split_block(u_int32 playout_pt,
 		}
 		p->dbe_source_count = k;
                 p->native_count = 0;
-                if (i==0) {
+                if (i == 0) {
                     p->ccu[0]  = ccu;
                     p->ccu_cnt = 1;
                     p->talk_spurt_start = talks;
@@ -242,7 +238,7 @@ adapt_playout(rtp_hdr_t *hdr,
 			if (sp->sync_on) {
 				/* Communicate our playout delay to the video tool... */
 				real_playout = (convert_time(hdr->ts + src->playout - cur_time, src->clock, sp->device_clock) * 1000)/get_freq(sp->device_clock);
-				update_video_playout(src->sentry->cname, real_playout);
+				ui_update_video_playout(src->sentry->cname, real_playout);
 
 				/* If the video tool is slower than us, then
 				 * adjust to match it...  src->video_playout is
@@ -322,10 +318,11 @@ rtp_header_validation(rtp_hdr_t *hdr, int *len, int *extlen)
 static void
 receiver_change_format(rtcp_dbentry *dbe, codec_t *cp)
 {
-        debug_msg("Changing Format.\n");
-	dbe->first_pckt_flag = TRUE;
+        debug_msg("Changing Format. %d %d\n", dbe->enc, cp->pt);
+        dbe->first_pckt_flag = TRUE;
+        dbe->enc             = cp->pt;
 	change_freq(dbe->clock, cp->freq);
-}
+}  
 
 void
 statistics(session_struct    *sp,
@@ -415,7 +412,7 @@ statistics(session_struct    *sp,
                         goto release;
                 }
                 
-                if ((src->enc == -1) || (compat==0))
+                if ((src->enc == -1) || (src->enc != pcp->pt))
                         receiver_change_format(src, pcp);
                 
                 if (src->enc != pcp->pt) {
@@ -432,7 +429,7 @@ statistics(session_struct    *sp,
                         goto release;
                 }
         
-                if (update_req) update_stats(src, sp);
+                if (update_req) ui_update_stats(src, sp);
         release:
                 free_pckt_queue_element(&e_ptr);
         }

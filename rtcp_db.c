@@ -333,8 +333,8 @@ rtcp_set_encoder_format(session_struct *sp, rtcp_dbentry *e, char *enc_fmt)
                 xfree(e->enc_fmt);
         }
         e->enc_fmt = xstrdup(enc_fmt);
-        debug_msg("%s\n", enc_fmt);
-        update_stats(e, sp);
+        debug_msg("%s\n", e->enc_fmt);
+        ui_update_stats(e, sp);
 }
 
 /*

@@ -41,7 +41,7 @@ set fw			.l.t.list.f
 
 proc init_source {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL num_cname 
-	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
+	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
 
 	if {[array names INDEX $cname] != $cname} {
 		# This is a source we've not seen before...
@@ -56,6 +56,7 @@ proc init_source {cname} {
 		set   PCKTS_RECV($cname) "0"
 		set   PCKTS_LOST($cname) "0"
 		set   PCKTS_MISO($cname) "0"
+		set   PCKTS_DUP($cname)  "0"
 		set       JITTER($cname) "0"
 		set    JIT_TOGED($cname) "0"
 		set   LOSS_TO_ME($cname) "101"
@@ -399,12 +400,13 @@ proc mbus_recv_source.packet.loss {dest srce loss} {
 	cname_update $dest
 }
 
-proc mbus_recv_source.reception {cname packets_recv packets_lost packets_miso jitter jit_tog} {
-	global PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER JIT_TOGED
+proc mbus_recv_source.reception {cname packets_recv packets_lost packets_miso packets_dup jitter jit_tog} {
+	global PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER JIT_TOGED
 	init_source $cname 
 	set PCKTS_RECV($cname) $packets_recv
 	set PCKTS_LOST($cname) $packets_lost
 	set PCKTS_MISO($cname) $packets_miso
+	set PCKTS_DUP($cname)  $packets_dup
 	set JITTER($cname) $jitter
 	set JIT_TOGED($cname) $jit_tog
 	cname_update $cname
@@ -426,12 +428,12 @@ proc mbus_recv_source.inactive {cname} {
 }
 
 proc mbus_recv_source.remove {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
+	global CNAME NAME EMAIL LOC PHONE TOOL CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
 	global num_cname
 
 	catch [destroy [window_plist $cname]]
 	unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname)
-	unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname)
+	unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname) PCKTS_DUP($cname)
 	unset JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname) JIT_TOGED($cname)
 	incr num_cname -1
 	chart_redraw $num_cname
@@ -452,7 +454,7 @@ proc mbus_recv_quit {} {
 
 proc cname_update {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL INDEX 
-	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO LOSS_TO_ME LOSS_FROM_ME
+	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP LOSS_TO_ME LOSS_FROM_ME
 	global fw iht iwd my_cname mylosstimers his_or_her_losstimers
 
 	if {[array names INDEX $cname] != $cname} {
@@ -603,7 +605,7 @@ proc info_timer {} {
 
 proc update_stats {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL
-	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER LOSS_TO_ME LOSS_FROM_ME JIT_TOGED
+	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME JIT_TOGED
 
 	if {$LOSS_TO_ME($cname) == 101} {
 		set loss_to_me "unknown"
@@ -629,6 +631,7 @@ proc update_stats {cname} {
 				        	          Total packets received:      $PCKTS_RECV($cname)\n\
 				        	          Total packets lost:          $PCKTS_LOST($cname)\n\
 				        	          Total packets misordered:    $PCKTS_MISO($cname)\n\
+				        	          Total packets duplicates:    $PCKTS_DUP($cname)\n\
 				        	          Current packet loss to me:   $loss_to_me\n\
 						          Current packet loss from me: $loss_from_me\n\
 				        	          Network timing jitter:       $JITTER($cname)\n\
