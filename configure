@@ -108,6 +108,7 @@ case $OSTYPE in
             WFLAGS=$GCCWFLAGS
 	    INCLUDE="-I/usr/X11R6/include -I/usr/local/include"
 	    LDLIBS="-L/usr/X11R6/lib -lXext -lX11 -lm"
+	    TCL_LIBS="../tk-8.0/unix/libtk80.a ../tcl-8.0/unix/libtcl80.a"
 	    AUDIO="auddev_luigi.o"
 	    DEBUG="-g"
 	    CHAR="-fsigned-char"
@@ -165,8 +166,8 @@ cat Makefile.in \
 | sed "s@__OSTYPE__@$OSTYPE@" \
 | sed "s@__CC__@$CC@" \
 | sed "s@__WFLAGS__@$WFLAGS@" \
-| sed "s@__INCLUDE__@$INCLUDE $TCL_INCL@" \
-| sed "s@__LDLIBS__@$LDLIBS $TCL_LIBS@" \
+| sed "s@__INCLUDE__@$TCL_INCL $INCLUDE@" \
+| sed "s@__LDLIBS__@$TCL_LIBS $LDLIBS@" \
 | sed "s@__AUDIO__@$AUDIO@" \
 | sed "s@__CHAR__@$CHAR@" \
 | sed "s@__DEBUG__@$DEBUG2@" \
