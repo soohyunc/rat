@@ -178,6 +178,7 @@ main(int argc, char *argv[])
 		network_init(sp[i]);
 		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
 		audio_device_take(sp[i]);
+		audio_device_give(sp[i]);
 	}
 
 	ui_info_update_cname(sp[0]->db->my_dbe);
@@ -250,7 +251,7 @@ main(int argc, char *argv[])
 			} else {
 				alc++;
 			}
-			ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
+			if (sp[i]->have_device) ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
                 	if (sp[i]->ui_on) {
 				tcl_process_events();
 				mbus_ui_retransmit();

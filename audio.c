@@ -313,8 +313,6 @@ audio_device_give(session_struct *sp)
         mix_destroy(sp->ms);
         tx_destroy(sp);
         destroy_playout_buffers(&sp->playout_buf_list);
-        free_time(sp->device_clock); 
-        sp->device_clock = NULL;
 }
 
 void
