@@ -659,7 +659,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 }
 
                 playout = playout_calc(sp, e->ssrc, transit, adjust_playout);
-                if (p->m && ts_gt(playout, e->frame_dur)) {
+                if ((p->m || src->packets_done == 0) && ts_gt(playout, e->frame_dur)) {
                         /* Packets are likely to be compressed at talkspurt start */
                         /* because of VAD going back and grabbing frames.         */
                         playout = ts_sub(playout, e->frame_dur);

@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 	tcl_init2(m, e_addr);
 	while (!should_exit) {
 		timeout.tv_sec  = 0;
-		timeout.tv_usec = 10000;
+		timeout.tv_usec = 0;
 		mbus_recv(m, NULL, &timeout);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
@@ -119,6 +119,9 @@ int main(int argc, char *argv[])
 		if (Tk_GetNumMainWindows() == 0) {
 			should_exit = TRUE;
 		}
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 40000;
+                select(0, NULL, NULL, NULL, &timeout);
 	}
 
 	/* Close things down nicely... */
