@@ -554,9 +554,8 @@ tx_send(tx_buffer *tb)
                         ovec[i+1].iov_base = cd->elem[i]->data;
                         ovec[i+1].iov_len  = cd->elem[i]->data_len;
                 }
-                if (sp->drop == 0.0 || drand48() >= sp->drop) {
-                        net_write_iov(sp->rtp_socket, ovec, cd->nelem + 1, PACKET_RTP);
-                }
+
+                net_write_iov(sp->rtp_socket, ovec, cd->nelem + 1, PACKET_RTP);
                 block_free(ovec, u_len);
 
                 sp->last_depart_ts  = time_32;

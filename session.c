@@ -87,7 +87,6 @@ init_session(session_struct *sp)
         sp->ui_on                       = TRUE;
 	sp->ui_addr			= NULL;
 	sp->meter			= TRUE;					/* Powermeter operation */
-        sp->drop                        = 0.0;
 	sp->in_file 			= NULL;
 	sp->out_file  			= NULL;
 	sp->rtp_seq			= lrand48() & 0xffff;
@@ -178,16 +177,6 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                                 usage();
                         }
                         i++;
-                } else if ((strcmp(argv[i], "-drop") == 0) && (argc > i+1)) {
-                        double drop;
-                        drop = atof(argv[++i]);
-                        if (drop > 1.0) {
-                                drop = drop/100.0;
-                        }
-                        printf("Drop probability %.4f\n", drop);
-                        for(s = 0; s < num_sessions; s++) {
-                                sp[s]->drop = drop;
-                        }
                 } else if (strcmp(argv[i], "-seed") == 0) {
                         srand48(atoi(argv[++i]));
                 } else if (strcmp(argv[i], "-codecs") == 0) {

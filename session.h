@@ -79,7 +79,6 @@ typedef struct session_tag {
         int             ui_on;
 	char		*ui_addr;
         converter_id_t  converter;
-        double          drop;             /* Flakeaway drop percentage [0,1] */
 	struct s_snd_file *in_file;
 	struct s_snd_file *out_file;
 	audio_desc_t	audio_device;
