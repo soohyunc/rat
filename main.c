@@ -1,7 +1,7 @@
 /*
  * FILE:    main.c
  * PROGRAM: RAT
- * AUTHORS: Vicky Hardman + Isidor Kouvelas + Colin Perkins
+ * AUTHORS: Vicky Hardman + Isidor Kouvelas + Colin Perkins + Orion Hodson
  * 
  * $Revision$
  * $Date$
@@ -54,6 +54,7 @@
 #include "transmit.h"
 #include "util.h"
 #include "audio.h"
+#include "convert.h"
 #include "ui.h"
 #include "mix.h"
 #include "interfaces.h"
@@ -199,6 +200,7 @@ main(int argc, char *argv[])
 		ms[i] = init_mix(sp[i], 32640);
 	}
 	agc_table_init();
+        set_converter(CONVERT_LINEAR);
 	/* Show the interface before starting processing */
         if (sp[0]->ui_on) {
                 while(Tcl_DoOneEvent(TCL_DONT_WAIT | TK_X_EVENTS | TCL_IDLE_EVENTS)) {
