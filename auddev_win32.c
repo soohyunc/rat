@@ -116,7 +116,7 @@ typedef struct {
 } MixCtls;
 
 typedef struct {
-        char szName[5];
+        char szName[12];
         int  nID;
 } MapEntry;
 
@@ -131,6 +131,7 @@ static MapEntry meInputs[] = {
         {"mic",  AUDIO_MICROPHONE},
         {"line", AUDIO_LINE_IN},
         {"cd",   AUDIO_CD},
+        {"analog cd", AUDIO_CD},
         {"",0}
 };
 
@@ -170,12 +171,18 @@ nameToMixCtls(char *szName, MixCtls *mcMix, int nMix)
 static MixCtls *
 audioIDToMixCtls(int id, MapEntry *meMap, MixCtls *mcMix, int nMix)
 {
-        int j;
+        int i,j;
         const char *szName;
        
         if ((const char*)NULL == (szName = audioIDToName(id, meMap))) return (MixCtls*)NULL;
         for(j = 0; j < nMix; j++) {
-                if (strncasecmp(szName,mcMix[j].szName, 3)==0) return (mcMix + j); 
+                i = 0;
+                while(meMap[i].szName[0] != 0) {
+                        if (meMap[i].nID == id && 
+                                strncasecmp(meMap[i].szName,mcMix[j].szName, strlen(meMap[i].szName))==0) 
+                                return (mcMix + j); 
+                        i++;
+                }
         }
         return (MixCtls *)NULL;
 }
@@ -333,8 +340,7 @@ mixSetup()
                 j = 0;
                 while(j < 32 && (mixName[j] = tolower(m.szPname[j]))) j++;
                 
-                if (res == MMSYSERR_NOERROR && 
-                    strstr(mixName, "mixer")){
+                if (res == MMSYSERR_NOERROR){
                         if ((unsigned)i == uWavIn) {
                                 hMixIn  = hMix;
                                 nDstIn  = m.cDestinations;
