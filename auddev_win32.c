@@ -236,26 +236,6 @@ done_multi1:            xfree(ltInputs);
         return 0;
 }
 
-static int 
-mixNameMatch(char *s1, char *s2)
-{
-        char szS1[255], szS2[255];
-        char *szS1begin, *szS1end, *szS2begin, *szS2end;
-        
-        /* Audio device looks like "<card> sound <unique id>", whilst mixer
-         * looks like "<card> mixer <unique id>"
-         */
-        strcpy(szS1, s1); strcpy(szS2, s2);
-        szS1end = strrchr(szS1, ' ');
-        if (szS1end != NULL) szS1end++;
-        szS2end = strrchr(szS2, ' ');
-        if (szS2end != NULL) szS2end++;
-        szS1begin = strtok(szS1, " ");
-        szS2begin = strtok(szS2, " ");
-
-        return (strcmp(szS1begin, szS2begin)|strcmp(szS1end, szS2end));
-}
-
 static void
 mixGetControls(HMIXER hMix, char *szDstName, int nDst, MixCtls *mcMix, int *nMix)
 {
@@ -271,7 +251,7 @@ mixGetControls(HMIXER hMix, char *szDstName, int nDst, MixCtls *mcMix, int *nMix
                 ml.dwDestination = i;
                 ml.cbStruct = sizeof(MIXERLINE);
                 res = mixerGetLineInfo(hMix, &ml, MIXER_GETLINEINFOF_DESTINATION);
-                if (res != MMSYSERR_NOERROR || strcmp(ml.szShortName, szDstName) != 0) continue;
+                if (res != MMSYSERR_NOERROR || strncmp(ml.szShortName, szDstName, strlen(szDstName)) != 0) continue;
                 
                 if (ml.cControls) {
                         /* Get controls of mixer itself - for input this is 
@@ -338,7 +318,8 @@ mixSetup()
         MMRESULT  res;
         HMIXER    hMix;
 	
-        int i, nDevs, nDstIn, nDstOut;
+        int i,j, nDevs, nDstIn, nDstOut;
+        char mixName[32];
 
         if (hMixIn)  {mixerClose(hMixIn);  hMixIn  = 0;}
         if (hMixOut) {mixerClose(hMixOut); hMixOut = 0;}
@@ -349,9 +330,13 @@ mixSetup()
                 /* Strictly we don't need to open mixer here */
                 mixerOpen(&hMix, i, (unsigned long)NULL, (unsigned long)NULL, MIXER_OBJECTF_MIXER);
                 res = mixerGetDevCaps(i,  &m, sizeof(m));
+                
+                j = 0;
+                while(j < 32 && (mixName[j] = tolower(m.szPname[j]))) j++;
+                
                 if (res == MMSYSERR_NOERROR && 
-                    (strstr(m.szPname, "Mixer")||strstr(m.szPname, "mixer")||strstr(m.szPname,"MIXER"))){
-                        if (mixNameMatch(m.szPname, szDevOut)==0 || (unsigned)i == uWavIn) {
+                    strstr(mixName, "mixer")){
+                        if ((unsigned)i == uWavIn) {
                                 hMixIn  = hMix;
                                 nDstIn  = m.cDestinations;
                                 doClose = FALSE;
@@ -359,7 +344,7 @@ mixSetup()
                                 fprintf(stderr, "Input mixer %s\n", m.szPname); 
 #endif /* DEBUG_WIN32_AUDIO */
                         }
-                        if (mixNameMatch(m.szPname, szDevOut)==0 || (unsigned)i == uWavOut) {
+                        if ((unsigned)i == uWavOut) {
                                 hMixOut = hMix;
                                 nDstOut = m.cDestinations;
                                 doClose = FALSE;
@@ -739,14 +724,20 @@ audio_open(audio_format fmt)
                 uNumDevs = waveOutGetNumDevs();
                 for (uDevId = 0; uDevId < uNumDevs; uDevId++) {
                        waveOutGetDevCaps(uDevId, &woc, sizeof(woc));
-                       if (strcmp(woc.szPname, szDevOut) == 0) uWavOut = uDevId;
+                       if (strcmp(woc.szPname, szDevOut) == 0) {
+                               uWavOut = uDevId;
+                               break;
+                       }
                 }
                 
                 uWavIn   = WAVE_MAPPER;
                 uNumDevs = waveInGetNumDevs();
                 for (uDevId = 0; uDevId < uNumDevs; uDevId++) {
                        waveInGetDevCaps(uDevId, &wic, sizeof(wic));
-                       if (strcmp(wic.szPname, szDevIn) == 0) uWavIn = uDevId;
+                       if (strcmp(wic.szPname, szDevIn) == 0) {
+                               uWavIn = uDevId;
+                               break;
+                       }
                 }
                 
                 if (mixerGetNumDevs()) {
