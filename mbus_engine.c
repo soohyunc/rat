@@ -597,12 +597,13 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
 
 static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
 {
-	char	*arg, *cname;
+	char	*arg;
+	u_int32	 ssrc;
 
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
+	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && (ssrc == sp->db->myssrc) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_NAME,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"rtp_source_name <cname> <name>\"\n");
@@ -612,12 +613,13 @@ static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
 
 static void rx_rtp_source_email(char *srce, char *args, session_struct *sp)
 {
-	char	*arg, *cname;
+	char	*arg;
+	u_int32	 ssrc;
 
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
+	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && (ssrc == sp->db->myssrc) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_EMAIL,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"rtp_source_email <cname> <email>\"\n");
@@ -627,12 +629,13 @@ static void rx_rtp_source_email(char *srce, char *args, session_struct *sp)
 
 static void rx_rtp_source_phone(char *srce, char *args, session_struct *sp)
 {
-	char	*arg, *cname;
+	char	*arg;
+	u_int32	 ssrc;
 
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
+	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && (ssrc == sp->db->myssrc) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_PHONE,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"rtp_source_phone <cname> <phone>\"\n");
@@ -642,12 +645,13 @@ static void rx_rtp_source_phone(char *srce, char *args, session_struct *sp)
 
 static void rx_rtp_source_loc(char *srce, char *args, session_struct *sp)
 {
-	char	*arg, *cname;
+	char	*arg;
+	u_int32	 ssrc;
 
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
+	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && (ssrc == sp->db->myssrc) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_LOC,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"rtp_source_loc <cname> <loc>\"\n");
@@ -658,15 +662,14 @@ static void rx_rtp_source_loc(char *srce, char *args, session_struct *sp)
 static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
 {
 	rtcp_dbentry	*e;
-	char		*cname;
+	u_int32		 ssrc;
 	int		 i;
 
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_str(sp->mbus_engine, &cname) && mbus_parse_int(sp->mbus_engine, &i)) {
-		mbus_decode_str(cname);
-                e = rtcp_get_dbentry_by_cname(sp, cname);
+	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && mbus_parse_int(sp->mbus_engine, &i)) {
+                e = rtcp_get_dbentry(sp, ssrc);
                 if (e) {
                         e->mute = i;
                         ui_info_mute(sp, e);

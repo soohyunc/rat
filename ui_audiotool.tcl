@@ -42,52 +42,52 @@ set V(app)   "rat"
 set iht			16
 set iwd 		250
 set cancel_info_timer 	0
-set num_cname		0
+set num_ssrc		0
 set fw			.l.t.list.f
 set input_ports         [list]
 set output_ports        [list]
 
-proc init_source {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL NOTE num_cname 
+proc init_source {ssrc} {
+	global CNAME NAME EMAIL LOC PHONE TOOL NOTE num_ssrc 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER \
 		LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED BUFFER_SIZE PLAYOUT_DELAY
 
-	if {[array names INDEX $cname] != [list $cname]} {
+	if {[array names INDEX $ssrc] != [list $ssrc]} {
 		# This is a source we've not seen before...
-		set        CNAME($cname) $cname
-		set         NAME($cname) $cname
-		set        EMAIL($cname) ""
-		set        PHONE($cname) ""
-		set          LOC($cname) ""
-		set         TOOL($cname) ""
-		set	    NOTE($cname) ""
-		set        CODEC($cname) unknown
-		set     DURATION($cname) ""
-                set  BUFFER_SIZE($cname) 0
-                set PLAYOUT_DELAY($cname) 0
-		set   PCKTS_RECV($cname) 0
-		set   PCKTS_LOST($cname) 0
-		set   PCKTS_MISO($cname) 0
-		set   PCKTS_DUP($cname)  0
-		set       JITTER($cname) 0
-		set    JIT_TOGED($cname) 0
-		set   LOSS_TO_ME($cname) 101
-		set LOSS_FROM_ME($cname) 101
-		set        INDEX($cname) $num_cname
-		incr num_cname
-		chart_enlarge $num_cname 
-		chart_label   $cname
+		set        CNAME($ssrc) ""
+		set         NAME($ssrc) "$ssrc"
+		set        EMAIL($ssrc) ""
+		set        PHONE($ssrc) ""
+		set          LOC($ssrc) ""
+		set         TOOL($ssrc) ""
+		set	    NOTE($ssrc) ""
+		set        CODEC($ssrc) unknown
+		set     DURATION($ssrc) ""
+                set  BUFFER_SIZE($ssrc) 0
+                set PLAYOUT_DELAY($ssrc) 0
+		set   PCKTS_RECV($ssrc) 0
+		set   PCKTS_LOST($ssrc) 0
+		set   PCKTS_MISO($ssrc) 0
+		set   PCKTS_DUP($ssrc)  0
+		set       JITTER($ssrc) 0
+		set    JIT_TOGED($ssrc) 0
+		set   LOSS_TO_ME($ssrc) 101
+		set LOSS_FROM_ME($ssrc) 101
+		set        INDEX($ssrc) $num_ssrc
+		incr num_ssrc
+		chart_enlarge $num_ssrc 
+		chart_label   $ssrc
 	}
 }
 
-proc window_plist {cname} {
+proc window_plist {ssrc} {
     	global fw
-	regsub -all {@|\.} $cname {-} foo
+	regsub -all {@|\.} $ssrc {-} foo
 	return $fw.source-$foo
 }
 
-proc window_stats {cname} {
-	regsub -all {[\. ]} $cname {-} foo
+proc window_stats {ssrc} {
+	regsub -all {[\. ]} $ssrc {-} foo
 	return .stats$foo
 }
 
@@ -203,7 +203,7 @@ proc mbus_recv {cmnd args} {
 		audio.device                    {eval mbus_recv_audio_device $args}
 		session.title  			{eval mbus_recv_session.title $args}
 		session.address  		{eval mbus_recv_session.address $args}
-		rtp.cname  			{eval mbus_recv_rtp.cname $args}
+		rtp.ssrc  			{eval mbus_recv_rtp.ssrc $args}
 		rtp.source.exists  		{eval mbus_recv_rtp.source.exists $args}
 		rtp.source.remove  		{eval mbus_recv_rtp.source.remove $args}
 		rtp.source.name  		{eval mbus_recv_rtp.source.name $args}
@@ -652,51 +652,51 @@ proc mbus_recv_audio.suppress.silence {mode} {
 	set silence_var $mode
 }
 
-proc mbus_recv_rtp.cname {cname} {
-	global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc num_cname
+proc mbus_recv_rtp.ssrc {ssrc} {
+	global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc num_ssrc
 
-	set my_cname $cname
-	init_source  $cname
-	cname_update $cname
+	set my_ssrc  $ssrc
+	init_source  $ssrc
+	ssrc_update $ssrc
 }
 
-proc mbus_recv_rtp.source.exists {cname} {
-	init_source $cname
-	chart_label $cname
-	cname_update $cname
+proc mbus_recv_rtp.source.exists {ssrc} {
+	init_source $ssrc
+	chart_label $ssrc
+	ssrc_update $ssrc
 }
 
-proc mbus_recv_rtp.source.name {cname name} {
+proc mbus_recv_rtp.source.name {ssrc name} {
 	global NAME
-	init_source $cname
-	set NAME($cname) $name
-	chart_label $cname
-	cname_update $cname
+	init_source $ssrc
+	set NAME($ssrc) $name
+	chart_label $ssrc
+	ssrc_update $ssrc
 }
 
-proc mbus_recv_rtp.source.email {cname email} {
+proc mbus_recv_rtp.source.email {ssrc email} {
 	global EMAIL
-	init_source $cname
-	set EMAIL($cname) $email
+	init_source $ssrc
+	set EMAIL($ssrc) $email
 }
 
-proc mbus_recv_rtp.source.phone {cname phone} {
+proc mbus_recv_rtp.source.phone {ssrc phone} {
 	global PHONE
-	init_source $cname
-	set PHONE($cname) $phone
+	init_source $ssrc
+	set PHONE($ssrc) $phone
 }
 
-proc mbus_recv_rtp.source.loc {cname loc} {
+proc mbus_recv_rtp.source.loc {ssrc loc} {
 	global LOC
-	init_source $cname
-	set LOC($cname) $loc
+	init_source $ssrc
+	set LOC($ssrc) $loc
 }
 
-proc mbus_recv_rtp.source.tool {cname tool} {
-	global TOOL my_cname
-	init_source $cname
-	set TOOL($cname) $tool
-	if {[string compare $cname $my_cname] == 0} {
+proc mbus_recv_rtp.source.tool {ssrc tool} {
+	global TOOL my_ssrc
+	init_source $ssrc
+	set TOOL($ssrc) $tool
+	if {[string compare $ssrc $my_ssrc] == 0} {
 	    global tool_name
 	    # tool name looks like RAT x.x.x platform ....
 	    # lose the platform stuff
@@ -705,35 +705,35 @@ proc mbus_recv_rtp.source.tool {cname tool} {
 	}
 }
 
-proc mbus_recv_rtp.source.note {cname note} {
+proc mbus_recv_rtp.source.note {ssrc note} {
 	global NOTE
-	init_source $cname
-	set NOTE($cname) $note
+	init_source $ssrc
+	set NOTE($ssrc) $note
 }
 
-proc mbus_recv_rtp.source.codec {cname codec} {
+proc mbus_recv_rtp.source.codec {ssrc codec} {
 	global CODEC
-	init_source $cname
-	set CODEC($cname) $codec
+	init_source $ssrc
+	set CODEC($ssrc) $codec
 }
 
-proc mbus_recv_rtp.source.packet.duration {cname packet_duration} {
+proc mbus_recv_rtp.source.packet.duration {ssrc packet_duration} {
 	global DURATION
-	init_source $cname
-	set DURATION($cname) $packet_duration
+	init_source $ssrc
+	set DURATION($ssrc) $packet_duration
 }
 
-proc mbus_recv_tool.rat.audio.buffered {cname buffered} {
+proc mbus_recv_tool.rat.audio.buffered {ssrc buffered} {
         global BUFFER_SIZE
-        init_source $cname
-        set BUFFER_SIZE($cname) $buffered 
+        init_source $ssrc
+        set BUFFER_SIZE($ssrc) $buffered 
 # we don't update cname as source.packet.duration always follows 
 }
 
-proc mbus_recv_tool.rat.audio.delay {cname len} {
+proc mbus_recv_tool.rat.audio.delay {ssrc len} {
         global PLAYOUT_DELAY
-        init_source $cname
-        set PLAYOUT_DELAY($cname) $len 
+        init_source $ssrc
+        set PLAYOUT_DELAY($ssrc) $len 
 # we don't update cname as source.packet.duration always follows 
 }
 
@@ -764,89 +764,89 @@ proc mbus_recv_tool.rat.3d.filter.lengths {args} {
 
 proc mbus_recv_tool.rat.3d.user.settings {args} {
     global filter_type filter_length azimuth
-    set cname                 [lindex $args 0]
-    set filter_type($cname)   [lindex $args 1]
-    set filter_length($cname) [lindex $args 2]
-    set azimuth($cname)       [lindex $args 3]
+    set ssrc                 [lindex $args 0]
+    set filter_type($ssrc)   [lindex $args 1]
+    set filter_length($ssrc) [lindex $args 2]
+    set azimuth($ssrc)       [lindex $args 3]
 }
 
 proc mbus_recv_rtp.source.packet.loss {dest srce loss} {
-	global losstimers my_cname LOSS_FROM_ME LOSS_TO_ME
+	global losstimers my_ssrc LOSS_FROM_ME LOSS_TO_ME
 	init_source $srce
 	init_source $dest
 	catch {after cancel $losstimers($srce,$dest)}
 	chart_set $srce $dest $loss
 	set losstimers($srce,$dest) [after 7500 chart_set \"$srce\" \"$dest\" 101]
-	if {[string compare $dest $my_cname] == 0} {
+	if {[string compare $dest $my_ssrc] == 0} {
 		set LOSS_TO_ME($srce) $loss
 	}
-	if {[string compare $srce $my_cname] == 0} {
+	if {[string compare $srce $my_ssrc] == 0} {
 		set LOSS_FROM_ME($dest) $loss
 	}
-	cname_update $srce
-	cname_update $dest
+	ssrc_update $srce
+	ssrc_update $dest
 }
 
-proc mbus_recv_rtp.source.reception {cname packets_recv packets_lost packets_miso packets_dup jitter jit_tog} {
+proc mbus_recv_rtp.source.reception {ssrc packets_recv packets_lost packets_miso packets_dup jitter jit_tog} {
 	global PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER JIT_TOGED
-	init_source $cname 
-	set PCKTS_RECV($cname) $packets_recv
-	set PCKTS_LOST($cname) $packets_lost
-	set PCKTS_MISO($cname) $packets_miso
-	set PCKTS_DUP($cname)  $packets_dup
-	set JITTER($cname) $jitter
-	set JIT_TOGED($cname) $jit_tog
+	init_source $ssrc 
+	set PCKTS_RECV($ssrc) $packets_recv
+	set PCKTS_LOST($ssrc) $packets_lost
+	set PCKTS_MISO($ssrc) $packets_miso
+	set PCKTS_DUP($ssrc)  $packets_dup
+	set JITTER($ssrc) $jitter
+	set JIT_TOGED($ssrc) $jit_tog
 }
 
-proc mbus_recv_rtp.source.active {cname} {
+proc mbus_recv_rtp.source.active {ssrc} {
     global speaker_highlight
-    catch [[window_plist $cname] configure -background $speaker_highlight]
-    cname_update $cname
+    catch [[window_plist $ssrc] configure -background $speaker_highlight]
+    ssrc_update $ssrc
 }
 
-proc mbus_recv_rtp.source.inactive {cname} {
+proc mbus_recv_rtp.source.inactive {ssrc} {
     global speaker_highlight
     catch {
-	set w [window_plist $cname]
+	set w [window_plist $ssrc]
 	if { [$w cget -bg] == $speaker_highlight } {
 	    $w configure -bg grey90
 	    after 60 "catch {$w configure -background grey88}"
 	    after 120 "catch {$w configure -background [.l.t.list cget -bg]}"
 	}
     }
-    cname_update $cname
+    ssrc_update $ssrc
 }
 
-proc mbus_recv_rtp.source.remove {cname} {
+proc mbus_recv_rtp.source.remove {ssrc} {
     global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO \
 	    PCKTS_DUP JITTER BUFFER_SIZE PLAYOUT_DELAY LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED \
-	    num_cname loss_to_me_timer loss_from_me_timer
+	    num_ssrc loss_to_me_timer loss_from_me_timer
 
     # Disable updating of loss diamonds. This has to be done before we destroy the
     # window representing the participant, else the background update may try to 
     # access a window which has been destroyed...
-    catch {after cancel $loss_to_me_timer($cname)}
-    catch {after cancel $loss_from_me_timer($cname)}
+    catch {after cancel $loss_to_me_timer($ssrc)}
+    catch {after cancel $loss_from_me_timer($ssrc)}
     
-    catch [destroy [window_plist $cname]]
-    if { [info exists CNAME($cname)] } {
-	unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname) NOTE($cname)
-	unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname) PCKTS_DUP($cname)
-	unset JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname) JIT_TOGED($cname) BUFFER_SIZE($cname)
-	unset PLAYOUT_DELAY($cname)
+    catch [destroy [window_plist $ssrc]]
+    if { [info exists CNAME($ssrc)] } {
+	unset CNAME($ssrc) NAME($ssrc) EMAIL($ssrc) PHONE($ssrc) LOC($ssrc) TOOL($ssrc) NOTE($ssrc)
+	unset CODEC($ssrc) DURATION($ssrc) PCKTS_RECV($ssrc) PCKTS_LOST($ssrc) PCKTS_MISO($ssrc) PCKTS_DUP($ssrc)
+	unset JITTER($ssrc) LOSS_TO_ME($ssrc) LOSS_FROM_ME($ssrc) INDEX($ssrc) JIT_TOGED($ssrc) BUFFER_SIZE($ssrc)
+	unset PLAYOUT_DELAY($ssrc)
 
-	incr num_cname -1
-	chart_redraw $num_cname
+	incr num_ssrc -1
+	chart_redraw $num_ssrc
     }
 }
 
-proc mbus_recv_rtp.source.mute {cname val} {
+proc mbus_recv_rtp.source.mute {ssrc val} {
 	global iht
 
 	if {$val} {
-		[window_plist $cname] create line [expr $iht + 2] [expr $iht / 2] 500 [expr $iht / 2] -tags a -width 2.0 -fill gray95
+		[window_plist $ssrc] create line [expr $iht + 2] [expr $iht / 2] 500 [expr $iht / 2] -tags a -width 2.0 -fill gray95
 	} else {
-		catch [[window_plist $cname] delete a]
+		catch [[window_plist $ssrc] delete a]
 	}
 }
 
@@ -891,50 +891,50 @@ proc mbus_recv_mbus.quit {} {
 
 #############################################################################################################
 
-proc set_loss_to_me {cname loss} {
+proc set_loss_to_me {ssrc loss} {
 	global prev_loss_to_me loss_to_me_timer
 
-	catch {after cancel $loss_to_me_timer($cname)}
-	set loss_to_me_timer($cname) [after 7500 catch \"[window_plist $cname] itemconfigure h -fill grey\"]
+	catch {after cancel $loss_to_me_timer($ssrc)}
+	set loss_to_me_timer($ssrc) [after 7500 catch \"[window_plist $ssrc] itemconfigure h -fill grey\"]
 
 	if {$loss < 5} {
-		catch [[window_plist $cname] itemconfigure m -fill green]
+		catch [[window_plist $ssrc] itemconfigure m -fill green]
 	} elseif {$loss < 10} {
-		catch [[window_plist $cname] itemconfigure m -fill orange]
+		catch [[window_plist $ssrc] itemconfigure m -fill orange]
 	} elseif {$loss <= 100} {
-		catch [[window_plist $cname] itemconfigure m -fill red]
+		catch [[window_plist $ssrc] itemconfigure m -fill red]
 	} else {
-		catch [[window_plist $cname] itemconfigure m -fill grey]
+		catch [[window_plist $ssrc] itemconfigure m -fill grey]
 	}
 }
 
-proc set_loss_from_me {cname loss} {
+proc set_loss_from_me {ssrc loss} {
 	global prev_loss_from_me loss_from_me_timer
 
-	catch {after cancel $loss_from_me_timer($cname)}
-	set loss_from_me_timer($cname) [after 7500 catch \"[window_plist $cname] itemconfigure h -fill grey\"]
+	catch {after cancel $loss_from_me_timer($ssrc)}
+	set loss_from_me_timer($ssrc) [after 7500 catch \"[window_plist $ssrc] itemconfigure h -fill grey\"]
 
 	if {$loss < 5} {
-		catch [[window_plist $cname] itemconfigure h -fill green]
+		catch [[window_plist $ssrc] itemconfigure h -fill green]
 	} elseif {$loss < 10} {
-		catch [[window_plist $cname] itemconfigure h -fill orange]
+		catch [[window_plist $ssrc] itemconfigure h -fill orange]
 	} elseif {$loss <= 100} {
-		catch [[window_plist $cname] itemconfigure h -fill red]
+		catch [[window_plist $ssrc] itemconfigure h -fill red]
 	} else {
-		catch [[window_plist $cname] itemconfigure h -fill grey]
+		catch [[window_plist $ssrc] itemconfigure h -fill grey]
 	}
 }
 
-proc cname_update {cname} {
+proc ssrc_update {ssrc} {
 	# This procedure updates the on-screen representation of
 	# a participant. 
 	global NAME LOSS_TO_ME LOSS_FROM_ME
-	global fw iht iwd my_cname 
+	global fw iht iwd my_ssrc 
 
-	set cw [window_plist $cname]
+	set cw [window_plist $ssrc]
 
 	if {[winfo exists $cw]} {
-		$cw itemconfigure t -text $NAME($cname)
+		$cw itemconfigure t -text $NAME($ssrc)
 	} else {
 		# Add this participant to the list...
 		set thick 0
@@ -942,23 +942,23 @@ proc cname_update {cname} {
 		set h [expr $iht / 2 + $thick]
 		set f [expr $iht + $thick]
 		canvas $cw -width $iwd -height $f -highlightthickness $thick
-		$cw create text [expr $f + 2] $h -anchor w -text $NAME($cname) -fill black -tag t
+		$cw create text [expr $f + 2] $h -anchor w -text $NAME($ssrc) -fill black -tag t
 		$cw create polygon $l $h $h $l $h $f -outline black -fill grey50 -tag m
 		$cw create polygon $f $h $h $l $h $f -outline black -fill grey50 -tag h
 
-		bind $cw <Button-1>         "toggle_stats \"$cname\""
-		bind $cw <Button-2>         "toggle_mute $cw \"$cname\""
-		bind $cw <Control-Button-1> "toggle_mute $cw \"$cname\""
+		bind $cw <Button-1>         "toggle_stats \"$ssrc\""
+		bind $cw <Button-2>         "toggle_mute $cw \"$ssrc\""
+		bind $cw <Control-Button-1> "toggle_mute $cw \"$ssrc\""
 
-		if {[info exists my_cname] && ([string compare $cname $my_cname] == 0) && ([pack slaves $fw] != "")} {
+		if {[info exists my_ssrc] && ([string compare $ssrc $my_ssrc] == 0) && ([pack slaves $fw] != "")} {
 			pack $cw -before [lindex [pack slaves $fw] 0] -fill x
 		}
 		pack $cw -fill x
 		fix_scrollbar
 	}
 
-	set_loss_to_me $cname $LOSS_TO_ME($cname)
-	set_loss_from_me $cname $LOSS_FROM_ME($cname)
+	set_loss_to_me $ssrc $LOSS_TO_ME($ssrc)
+	set_loss_from_me $ssrc $LOSS_FROM_ME($ssrc)
 }
 
 #power meters
@@ -1033,12 +1033,12 @@ proc toggle_plist {} {
 	wm deiconify .
 }
 
-proc toggle_mute {cw cname} {
+proc toggle_mute {cw ssrc} {
 	global iht
 	if {[$cw gettags a] == ""} {
-		mbus_send "R" "rtp.source.mute" "[mbus_encode_str $cname] 1"
+		mbus_send "R" "rtp.source.mute" "$ssrc 1"
 	} else {
-		mbus_send "R" "rtp.source.mute" "[mbus_encode_str $cname] 0"
+		mbus_send "R" "rtp.source.mute" "$ssrc 0"
 	}
 }
 
@@ -1076,9 +1076,9 @@ set 3d_azimuth(max) 0
 set 3d_filters        [list "Not Available"]
 set 3d_filter_lengths [list "0"]
 
-proc toggle_stats {cname} {
+proc toggle_stats {ssrc} {
     global statsfont
-    set win [window_stats $cname]
+    set win [window_stats $ssrc]
     if {[winfo exists $win]} {
 	destroy $win
     } else {
@@ -1102,33 +1102,33 @@ proc toggle_stats {cname} {
 	pack  $win.df $win.df.personal -fill x
 
 	global NAME EMAIL PHONE LOC NOTE CNAME TOOL
-	stats_add_field $win.df.personal.1 "Name: "     NAME($cname)
-	stats_add_field $win.df.personal.2 "Email: "    EMAIL($cname)
-	stats_add_field $win.df.personal.3 "Phone: "    PHONE($cname)
-	stats_add_field $win.df.personal.4 "Location: " LOC($cname)
-	stats_add_field $win.df.personal.5 "Note: "     NOTE($cname)
-	stats_add_field $win.df.personal.6 "Tool: "     TOOL($cname)
-	stats_add_field $win.df.personal.7 "CNAME: "    CNAME($cname)
+	stats_add_field $win.df.personal.1 "Name: "     NAME($ssrc)
+	stats_add_field $win.df.personal.2 "Email: "    EMAIL($ssrc)
+	stats_add_field $win.df.personal.3 "Phone: "    PHONE($ssrc)
+	stats_add_field $win.df.personal.4 "Location: " LOC($ssrc)
+	stats_add_field $win.df.personal.5 "Note: "     NOTE($ssrc)
+	stats_add_field $win.df.personal.6 "Tool: "     TOOL($ssrc)
+	stats_add_field $win.df.personal.7 "CNAME: "    CNAME($ssrc)
 
 	frame $win.df.reception
 	global CODEC DURATION BUFFER_SIZE PLAYOUT_DELAY PCKTS_RECV PCKTS_LOST PCKTS_MISO \
 	       PCKTS_DUP LOSS_FROM_ME LOSS_TO_ME JITTER JIT_TOGED
-	stats_add_field $win.df.reception.1 "Audio encoding: "         CODEC($cname)
-	stats_add_field $win.df.reception.2 "Packet duration (ms): "   DURATION($cname)
-	stats_add_field $win.df.reception.3 "Playout delay (ms): "     PLAYOUT_DELAY($cname)
-	stats_add_field $win.df.reception.4 "Buffer length (ms): "     BUFFER_SIZE($cname)
-	stats_add_field $win.df.reception.5 "Arrival jitter (ms): "    JITTER($cname)
-	stats_add_field $win.df.reception.6 "Loss from me (%): "       LOSS_FROM_ME($cname)
-	stats_add_field $win.df.reception.7 "Loss to me (%): "         LOSS_TO_ME($cname)
-	stats_add_field $win.df.reception.8 "Packets received: "       PCKTS_RECV($cname)
-	stats_add_field $win.df.reception.9 "Packets lost: "           PCKTS_LOST($cname)
-	stats_add_field $win.df.reception.a "Packets misordered: "     PCKTS_MISO($cname)
-	stats_add_field $win.df.reception.b "Packets duplicated: "     PCKTS_DUP($cname)
-	stats_add_field $win.df.reception.c "Units dropped (jitter): " JIT_TOGED($cname)
+	stats_add_field $win.df.reception.1 "Audio encoding: "         CODEC($ssrc)
+	stats_add_field $win.df.reception.2 "Packet duration (ms): "   DURATION($ssrc)
+	stats_add_field $win.df.reception.3 "Playout delay (ms): "     PLAYOUT_DELAY($ssrc)
+	stats_add_field $win.df.reception.4 "Buffer length (ms): "     BUFFER_SIZE($ssrc)
+	stats_add_field $win.df.reception.5 "Arrival jitter (ms): "    JITTER($ssrc)
+	stats_add_field $win.df.reception.6 "Loss from me (%): "       LOSS_FROM_ME($ssrc)
+	stats_add_field $win.df.reception.7 "Loss to me (%): "         LOSS_TO_ME($ssrc)
+	stats_add_field $win.df.reception.8 "Packets received: "       PCKTS_RECV($ssrc)
+	stats_add_field $win.df.reception.9 "Packets lost: "           PCKTS_LOST($ssrc)
+	stats_add_field $win.df.reception.a "Packets misordered: "     PCKTS_MISO($ssrc)
+	stats_add_field $win.df.reception.b "Packets duplicated: "     PCKTS_DUP($ssrc)
+	stats_add_field $win.df.reception.c "Units dropped (jitter): " JIT_TOGED($ssrc)
 
 # 3D settings
 	# Trigger engine to send details for this participant
-	mbus_send "R" "tool.rat.3d.user.settings.request" [mbus_encode_str $cname]
+	mbus_send "R" "tool.rat.3d.user.settings.request" [mbus_encode_str $ssrc]
 
 	frame $win.df.3d -relief sunk
 	label $win.df.3d.advice -text "These options allow the rendering of the\nparticipant to be altered when 3D\nrendering is enabled."
@@ -1145,12 +1145,12 @@ proc toggle_stats {cname} {
 	global 3d_filters 3d_filter_lengths
 	
 	global filter_type
-	set filter_type($cname) [lindex $3d_filters 0]
+	set filter_type($ssrc) [lindex $3d_filters 0]
 
 	set cnt 0
 	foreach i $3d_filters {
 	    radiobutton $win.df.3d.opts.filters.$cnt \
-		    -value "$i" -variable filter_type($cname) \
+		    -value "$i" -variable filter_type($ssrc) \
 		    -text "$i"
  		pack $win.df.3d.opts.filters.$cnt -side top -anchor w
 	    incr cnt
@@ -1161,12 +1161,12 @@ proc toggle_stats {cname} {
 	pack $win.df.3d.opts.lengths.l -side top -fill x -expand 1
 	
 	global filter_length
-	set filter_length($cname) [lindex $3d_filter_lengths 0]
+	set filter_length($ssrc) [lindex $3d_filter_lengths 0]
 	
 	set cnt 0
 	foreach i $3d_filter_lengths {
 	    radiobutton $win.df.3d.opts.lengths.$cnt \
-		    -value "$i" -variable filter_length($cname) \
+		    -value "$i" -variable filter_length($ssrc) \
 		    -text "$i"
 	    pack $win.df.3d.opts.lengths.$cnt -side top -anchor w
 	    incr cnt
@@ -1176,38 +1176,38 @@ proc toggle_stats {cname} {
 	
 	global 3d_azimuth azimuth
 	scale $win.df.3d.azimuth -from $3d_azimuth(min) -to $3d_azimuth(max) \
-		-orient horizontal -label "Azimuth" -variable azimuth($cname)
+		-orient horizontal -label "Azimuth" -variable azimuth($ssrc)
 	pack  $win.df.3d.azimuth -fill x -expand 1 
 
-	button $win.df.3d.apply -text "Apply" -command "3d_send_parameters $cname"
+	button $win.df.3d.apply -text "Apply" -command "3d_send_parameters $ssrc"
 	pack   $win.df.3d.apply -side bottom  -anchor e -padx 2 -pady 2
 
 # Window Magic
 	frame  $win.dis 
-	button $win.dis.b -text "Dismiss" -command "destroy $win; 3d_delete_parameters $cname"
+	button $win.dis.b -text "Dismiss" -command "destroy $win; 3d_delete_parameters $ssrc"
 	pack   $win.dis   -side bottom -anchor s -fill x -expand 1
 	pack   $win.dis.b -side right -anchor e -padx 2 -pady 2
-	wm title $win "Participant $NAME($cname)"
+	wm title $win "Participant $NAME($ssrc)"
 	wm resizable $win 1 0
 	constrain_window $win $statsfont 30 28
     }
 }
 
-proc 3d_send_parameters {cname} {
+proc 3d_send_parameters {ssrc} {
     global azimuth filter_type filter_length 3d_audio_var
 
     mbus_send "R" "tool.rat.3d.enabled"   $3d_audio_var
-    mbus_send "R" "tool.rat.3d.user.settings" "[mbus_encode_str $cname] [mbus_encode_str $filter_type($cname)] $filter_length($cname) $azimuth($cname)"
+    mbus_send "R" "tool.rat.3d.user.settings" "$ssrc [mbus_encode_str $filter_type($ssrc)] $filter_length($ssrc) $azimuth($ssrc)"
 }
 
-proc 3d_delete_parameters {cname} {
+proc 3d_delete_parameters {ssrc} {
     global filter_type filter_length azimuth
     
 # None of these should ever fail, but you can't be too defensive...
     catch {
-	unset filter_type($cname)
-	unset filter_length($cname)
-	unset azimuth($cname)
+	unset filter_type($ssrc)
+	unset filter_length($ssrc)
+	unset azimuth($ssrc)
     }
 }
 
@@ -1987,7 +1987,7 @@ proc sync_ui_to_engine {} {
 
 proc sync_engine_to_ui {} {
     # make audio engine concur with ui
-    global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc 
+    global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc 
     global prenc upp channel_var secenc red_off int_gap int_units
     global silence_var agc_var audio_loop_var echo_var
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
@@ -1995,12 +1995,11 @@ proc sync_engine_to_ui {} {
     global in_mute_var out_mute_var ichannels freq key key_var
     global audio_device
 
-    set my_cname_enc [mbus_encode_str $my_cname]
     #rtcp details
-    mbus_send "R" "rtp.source.name"  "$my_cname_enc [mbus_encode_str $rtcp_name]"
-    mbus_send "R" "rtp.source.email" "$my_cname_enc [mbus_encode_str $rtcp_email]"
-    mbus_send "R" "rtp.source.phone" "$my_cname_enc [mbus_encode_str $rtcp_phone]"
-    mbus_send "R" "rtp.source.loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
+    mbus_send "R" "rtp.source.name"  "$my_ssrc [mbus_encode_str $rtcp_name]"
+    mbus_send "R" "rtp.source.email" "$my_ssrc [mbus_encode_str $rtcp_email]"
+    mbus_send "R" "rtp.source.phone" "$my_ssrc [mbus_encode_str $rtcp_phone]"
+    mbus_send "R" "rtp.source.loc"   "$my_ssrc [mbus_encode_str $rtcp_loc]"
     
     #transmission details
     mbus_send "R" "tool.rat.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"
@@ -2072,7 +2071,7 @@ proc save_setting {f field var} {
 }
 
 proc save_settings {} {
-    global rtpfname win32 TOOL my_cname
+    global rtpfname win32 TOOL my_ssrc
 
     set f 0
     if {$win32 == 0} {
@@ -2087,7 +2086,7 @@ proc save_settings {} {
     save_setting $f rtpEmail    rtcp_email
     save_setting $f rtpPhone    rtcp_phone
     save_setting $f rtpLoc      rtcp_loc
-    save_setting $f audioTool   TOOL($my_cname)
+    save_setting $f audioTool   TOOL($my_ssrc)
 
     # transmission
     save_setting $f audioFrequency         freq
@@ -2186,7 +2185,7 @@ proc tool_version {tool} {
 }
 
 proc load_settings {} {
-    global rtpfname win32 my_cname TOOL
+    global rtpfname win32 my_ssrc TOOL
 
     set attr(zero) ""
     if {$win32 == 0} {
@@ -2212,7 +2211,7 @@ proc load_settings {} {
     # If the version of the saved settings is different 
     # from those the current version use defaults.
     global audio_tool
-    if {[tool_version $audio_tool] != [tool_version $TOOL($my_cname)]} {
+    if {[tool_version $audio_tool] != [tool_version $TOOL($my_ssrc)]} {
     	puts "New version of tool ([tool_version $audio_tool]), resetting preferences"
 	foreach i [array names attr audio*] {
 	    unset attr($i)
@@ -2403,20 +2402,20 @@ proc chart_set {dest srce val} {
   .chart.c create rectangle $xv $yv [expr $xv + $chart_boxsize - 2] [expr $yv + $chart_boxsize - 2] -fill $colour -outline $colour
 }
 
-proc chart_label {cname} {
+proc chart_label {ssrc} {
   global CNAME NAME INDEX chart_size chart_boxsize chart_xoffset chart_yoffset chart_font
 
-  set pos $INDEX($cname)
-  set val $NAME($cname)
+  set pos $INDEX($ssrc)
+  set val $NAME($ssrc)
   if {[string length $val] == 0} {
-    set val $CNAME($cname)
+    set val $CNAME($ssrc)
   }
 
   if {($pos > $chart_size) || ($pos < 0)} return
 
   set ypos [expr $chart_yoffset + ($chart_boxsize * $pos) + ($chart_boxsize / 2)]
-  .chart.c delete cname_$cname
-  .chart.c create text 2 $ypos -text [string range $val 0 25] -anchor w -font $chart_font -tag cname_$cname
+  .chart.c delete ssrc_$ssrc
+  .chart.c create text 2 $ypos -text [string range $val 0 25] -anchor w -font $chart_font -tag ssrc_$ssrc
 }
 
 proc chart_redraw {size} {

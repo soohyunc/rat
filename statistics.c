@@ -233,7 +233,7 @@ adapt_playout(rtp_hdr_t               *hdr,
                                 
 				/* Communicate our playout delay to
                                    the video tool... */
-                                ui_update_video_playout(sp, src->sentry->cname, src->sync_playout_delay);
+                                ui_update_video_playout(sp, src->sentry->ssrc, src->sync_playout_delay);
 		
 				/* If the video tool is slower than
                                  * us, then adjust to match it...

@@ -4,7 +4,7 @@
  * AUTHOR:  Isidor Kouvelas + Colin Perkins + Orion Hodson
  * 	
  * This file contains routines which update the user interface. There is no 
- * direct connection between the user interface and the media engine now, all
+ * direct connection between the user interface and the media engine: all
  * updates are done via the conference bus.
  *
  * Copyright (c) 1995-99 University College London
@@ -45,177 +45,87 @@ static char *mbus_name_engine = NULL;
 static char *mbus_name_ui     = NULL;
 static char *mbus_name_video  = NULL;
 
-/*
- * Update the on screen information for the given participant
- *
- * Note: We must be careful, since the Mbus code uses the CNAME
- *       for communication with the UI. In a few cases we have
- *       valid state for a participant (ie: we've received an 
- *       RTCP packet for that SSRC), but do NOT know their CNAME.
- *       (For example, if the first packet we receive from a source
- *       is an RTCP BYE piggybacked with an empty RR). In those 
- *       cases, we just ignore the request and send nothing to the 
- *       UI. [csp]
- */
-
-void
-ui_info_update_name(session_struct *sp, rtcp_dbentry *e)
+static void ui_info_update_sdes(session_struct *sp, char *item, char *val, u_int32 ssrc)
 {
-	char *cname, *name, *args;
-
-	if (e->sentry->cname == NULL) return;
-
-	cname = mbus_encode_str(e->sentry->cname);
-	name  = mbus_encode_str(e->sentry->name);
-        args = (char*)xmalloc(strlen(cname) + strlen(name) + 2);
-        
-	sprintf(args, "%s %s", cname, name);
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.name", args, TRUE);
-	xfree(cname);
-	xfree(name);
-        xfree(args);
-}
-
-void
-ui_info_update_cname(session_struct *sp, rtcp_dbentry *e)
-{
-        char *cname;
-	
-        if (e->sentry->cname == NULL) return;
-        
-        cname = mbus_encode_str(e->sentry->cname);
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.exists", cname, TRUE);
-        xfree(cname);
-}
-
-void
-ui_info_update_email(session_struct *sp, rtcp_dbentry *e)
-{
-	char *cname, *arg, *args;
-
-	if (e->sentry->cname == NULL) return;
-
-	cname = mbus_encode_str(e->sentry->cname);
-	arg   = mbus_encode_str(e->sentry->email);
-        args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
-	sprintf(args, "%s %s", cname, arg);
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.email", args, TRUE);
-	xfree(cname);
+	char *arg   = mbus_encode_str(val);
+        char *args = (char*)xmalloc(strlen(arg) + 10);
+	sprintf(args, "%08ld %s", ssrc, arg);
+	mbus_qmsg(sp->mbus_engine, mbus_name_ui, item, args, TRUE);
 	xfree(arg);
         xfree(args);
 }
 
-void
-ui_info_update_phone(session_struct *sp, rtcp_dbentry *e)
+void ui_info_update_cname(session_struct *sp, rtcp_dbentry *e)
 {
-	char *cname, *arg, *args;
-
-	if (e->sentry->cname == NULL) return;
-
-	cname = mbus_encode_str(e->sentry->cname);
-	arg   = mbus_encode_str(e->sentry->phone);
-        args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
-	sprintf(args, "%s %s", cname, arg);
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.phone", args, TRUE);
-	xfree(cname);
-	xfree(arg);
-        xfree(args);
+	ui_info_update_sdes(sp, "rtp.source.cname", e->sentry->cname, e->sentry->ssrc);
 }
 
-void
-ui_info_update_loc(session_struct *sp, rtcp_dbentry *e)
+void ui_info_update_name(session_struct *sp, rtcp_dbentry *e)
 {
-	char *cname, *arg, *args;
-
-	if (e->sentry->cname == NULL) return;
-
-	cname = mbus_encode_str(e->sentry->cname);
-	arg   = mbus_encode_str(e->sentry->loc);
-        args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
-	sprintf(args, "%s %s", cname, arg);
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.loc", args, TRUE);
-	xfree(cname);
-	xfree(arg);
-        xfree(args);
+	ui_info_update_sdes(sp, "rtp.source.name", e->sentry->name, e->sentry->ssrc);
 }
 
-void
-ui_info_update_tool(session_struct *sp, rtcp_dbentry *e)
+void ui_info_update_email(session_struct *sp, rtcp_dbentry *e)
 {
-	char *cname = mbus_encode_str(e->sentry->cname);
-	char *arg   = mbus_encode_str(e->sentry->tool);
-        char *args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
-	sprintf(args, "%s %s", cname, arg);
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.tool", args, TRUE);
-	xfree(cname);
-	xfree(arg);
-        xfree(args);
+	ui_info_update_sdes(sp, "rtp.source.email", e->sentry->email, e->sentry->ssrc);
 }
 
-void
-ui_info_update_note(session_struct *sp, rtcp_dbentry *e)
+void ui_info_update_phone(session_struct *sp, rtcp_dbentry *e)
 {
-	char *cname = mbus_encode_str(e->sentry->cname);
-	char *arg   = mbus_encode_str(e->sentry->note);
-        char *args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
-	sprintf(args, "%s %s", cname, arg);
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.note", args, TRUE);
-	xfree(cname);
-	xfree(arg);
-        xfree(args);
+	ui_info_update_sdes(sp, "rtp.source.phone", e->sentry->phone, e->sentry->ssrc);
+}
+
+void ui_info_update_loc(session_struct *sp, rtcp_dbentry *e)
+{
+	ui_info_update_sdes(sp, "rtp.source.loc", e->sentry->loc, e->sentry->ssrc);
+}
+
+void ui_info_update_tool(session_struct *sp, rtcp_dbentry *e)
+{
+	ui_info_update_sdes(sp, "rtp.source.tool", e->sentry->tool, e->sentry->ssrc);
+}
+
+void ui_info_update_note(session_struct *sp, rtcp_dbentry *e)
+{
+	ui_info_update_sdes(sp, "rtp.source.note", e->sentry->note, e->sentry->ssrc);
 }
 
 void
 ui_info_mute(session_struct *sp, rtcp_dbentry *e)
 {
-	char *cname = mbus_encode_str(e->sentry->cname);
-        char *args = (char*)xmalloc(strlen(cname) + 4);
-	sprintf(args, "%s %2d", cname, e->mute);
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.mute", args, TRUE);
-	xfree(cname);
-        xfree(args);
+        char arg[10];
+        sprintf(arg, "%08ld", e->sentry->ssrc);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.mute", arg, TRUE);
 }
 
 void
 ui_info_remove(session_struct *sp, rtcp_dbentry *e)
 {
-        char *cname;
-	
-        if (e->sentry->cname == NULL) return;
-	
-        cname = mbus_encode_str(e->sentry->cname);
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.remove", cname, TRUE);
-        xfree(cname);
+        char arg[10];
+        sprintf(arg, "%08ld", e->sentry->ssrc);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.remove", arg, TRUE);
 }
 
 void
 ui_info_activate(session_struct *sp, rtcp_dbentry *e)
 {
-        char *cname;
-	
-        if (e->sentry->cname == NULL) return;
-        
-        cname = mbus_encode_str(e->sentry->cname);
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.active", cname, FALSE);
-        xfree(cname);
+        char arg[10];
+        sprintf(arg, "%08ld", e->sentry->ssrc);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.active", arg, TRUE);
 }
 
 void
 ui_info_deactivate(session_struct *sp, rtcp_dbentry *e)
 {
-        char *cname;
-
-	if (e->sentry->cname == NULL) return;
-	
-        cname = mbus_encode_str(e->sentry->cname);
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.inactive", cname, FALSE);
-        xfree(cname);
+        char arg[10];
+        sprintf(arg, "%08ld", e->sentry->ssrc);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.inactive", arg, TRUE);
 }
 
 void
 ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e)
 {
-        char *cname, *filter_name, *msg;
+        char *filter_name, *msg;
         int   azimuth, filter_type, filter_length;
 
         if (e->render_3D_data == NULL) {
@@ -223,12 +133,10 @@ ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e)
         }
 
         render_3D_get_parameters(e->render_3D_data, &azimuth, &filter_type, &filter_length);
-        cname       = mbus_encode_str(e->sentry->cname);
         filter_name = mbus_encode_str(render_3D_filter_get_name(filter_type));
-        msg = (char*)xmalloc(strlen(cname) + strlen(filter_name) + 10);
-        sprintf(msg, "%s %s %d %d", cname, filter_name, filter_length, azimuth);
+        msg = (char*)xmalloc(strlen(filter_name) + 18);
+        sprintf(msg, "%08ld %s %d %d", e->sentry->ssrc, filter_name, filter_length, azimuth);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.3d.user.settings", msg, TRUE);
-        xfree(cname);
         xfree(filter_name);
         xfree(msg);
 }
@@ -236,38 +144,26 @@ ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e)
 void
 ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 {
-	char	*my_cname, *their_cname, *args, *mbes;
-        struct s_source      *src;
-        u_int32               buffered, delay;
+	char			*args, *mbes;
+        struct s_source      	*src;
+        u_int32               	 buffered, delay;
 
-        if (sp->db->my_dbe->sentry == NULL || 
-            sp->db->my_dbe->sentry->cname == NULL) {
+        if (sp->db->my_dbe->sentry == NULL) {
                 debug_msg("Warning sentry or name == NULL\n");
                 return;
         }
 
-	if (e->sentry->cname == NULL) {
-		return;
-	}
-
-	my_cname    = mbus_encode_str(sp->db->my_dbe->sentry->cname);
-	their_cname = mbus_encode_str(e->sentry->cname);
-
         if (e->enc_fmt) {
 		mbes = mbus_encode_str(e->enc_fmt);
-                args = (char *) xmalloc(strlen(their_cname) + strlen(mbes) + 2);
-                sprintf(args, "%s %s", their_cname, mbes);
+                args = (char *) xmalloc(strlen(mbes) + 10);
+                sprintf(args, "%08ld %s", e->sentry->ssrc, mbes);
                 xfree(mbes);
         } else {
-                args = (char *) xmalloc(strlen(their_cname) + 7 + 2);
-                sprintf(args, "%s unknown", their_cname);
+                args = (char *) xmalloc(17);
+                sprintf(args, "%08ld unknown", e->sentry->ssrc);
         }
 
-        mbus_qmsg(sp->mbus_engine, 
-                  mbus_name_ui, 
-                  "rtp.source.codec", 
-                  args, 
-                  FALSE);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.codec", args, FALSE);
 
         xfree(args);
 
@@ -275,7 +171,7 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
          * tool.rat.audio.buffered size always less 
          */
 
-	args = (char *) xmalloc(strlen(their_cname) + strlen(my_cname) + 11);
+	args = (char *) xmalloc(27);
 
         src = source_get_by_rtcp_dbentry(sp->active_sources, e);
         if (src) {
@@ -286,49 +182,25 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
                 delay    = 0;
         }
 
-        sprintf(args, 
-                "%s %ld", 
-                their_cname, 
-                buffered);
-        mbus_qmsg(sp->mbus_engine, 
-                  mbus_name_ui, 
-                  "tool.rat.audio.buffered", 
-                  args, 
-                  FALSE);
+        sprintf(args, "%08ld %ld", e->sentry->ssrc, buffered);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.audio.buffered", args, FALSE);
         
-        sprintf(args, 
-                "%s %ld", 
-                their_cname, 
-                delay);
-        mbus_qmsg(sp->mbus_engine, 
-                  mbus_name_ui, 
-                  "tool.rat.audio.delay", 
-                  args, 
-                  FALSE);
+        sprintf(args, "%08ld %ld", e->sentry->ssrc, delay);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.audio.delay", args, FALSE);
 
-	sprintf(args, 
-                "%s %s %8ld", 
-                my_cname, 
-                their_cname, 
-                (e->lost_frac * 100) >> 8);
-	mbus_qmsg(sp->mbus_engine, 
-                  mbus_name_ui, 
-                  "rtp.source.packet.loss", 
-                  args, 
-                  FALSE);
+	sprintf(args, "%08ld %08ld %8ld", sp->db->my_dbe->sentry->ssrc, e->sentry->ssrc, (e->lost_frac * 100) >> 8);
+	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
 
-	xfree(my_cname);
-	xfree(their_cname);
 	xfree(args);
 }
 
 void
 ui_update_input_port(session_struct *sp)
 {
-        const audio_port_details_t *apd;
-        audio_port_t port;
-        char        *mbes; 
-        int          i, n, found;
+        const audio_port_details_t 	*apd;
+        audio_port_t 			 port;
+        char        			*mbes; 
+        int          			 i, n, found;
         
         port = audio_get_iport(sp->audio_device);
 
@@ -362,10 +234,10 @@ ui_update_input_port(session_struct *sp)
 void
 ui_update_output_port(session_struct *sp)
 {
-        const audio_port_details_t *apd;
-        audio_port_t port;
-        char        *mbes; 
-        int          i, n, found;
+        const audio_port_details_t 	*apd;
+        audio_port_t 			 port;
+        char        			*mbes; 
+        int          			 i, n, found;
         
         port = audio_get_oport(sp->audio_device);
 
@@ -443,8 +315,8 @@ ui_repair(session_struct *sp)
 void
 ui_update_device_config(session_struct *sp)
 {
-        char          fmt_buf[64], *mbes;
-        const audio_format *af;
+        char          		 fmt_buf[64], *mbes;
+        const audio_format 	*af;
 
         af = audio_get_ifmt(sp->audio_device);
         if (af && audio_format_name(af, fmt_buf, 64)) {
@@ -824,52 +696,27 @@ ui_update_loss(session_struct *sp, char *srce, char *dest, int loss)
 }
 
 void
-ui_update_reception(session_struct *sp, char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog)
+ui_update_reception(session_struct *sp, u_int32 ssrc, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog)
 {
-	char	*cname_e, *args;
-
-	if (cname == NULL) return;
-
-	cname_e = mbus_encode_str(cname);
-
-	/* I hate this function! */
-	args = (char *) xmalloc(strlen(cname_e) + 88);
-	sprintf(args, "%s %6ld %6ld %6ld %6ld %6ld %6d", cname_e, recv, lost, misordered, duplicates, jitter, jit_tog);
+	char	args[100];
+	sprintf(args, "%08ld %6ld %6ld %6ld %6ld %6ld %6d", ssrc, recv, lost, misordered, duplicates, jitter, jit_tog);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.reception", args, FALSE);
-	xfree(args);
-        xfree(cname_e);
 }
 
 void
-ui_update_duration(session_struct *sp, char *cname, int duration)
+ui_update_duration(session_struct *sp, u_int32 ssrc, int duration)
 {
-	char	*cname_e, *args;
-
-	if (cname == NULL) return;
-
-	cname_e = mbus_encode_str(cname);
-	args    = (char *) xmalloc(5 + strlen(cname_e));
-
-	sprintf(args, "%s %3d", cname_e, duration);
+	char	args[15];
+	sprintf(args, "%08ld %3d", ssrc, duration);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.packet.duration", args, FALSE);
-	xfree(args);
-        xfree(cname_e);
 }
 
 void 
-ui_update_video_playout(session_struct *sp, char *cname, int playout)
+ui_update_video_playout(session_struct *sp, u_int32 ssrc, int playout)
 {
-	char	*cname_e, *args;
-
-	if (cname == NULL) return;
-
-	cname_e = mbus_encode_str(cname);
-	args    = (char *) xmalloc(14 + strlen(cname_e));
-
-	sprintf(args, "%s %12d", cname_e, playout);
-	mbus_qmsg(sp->mbus_engine, mbus_name_video, "source_playout", args, FALSE);
-	xfree(args);
-        xfree(cname_e);
+	char	args[22];
+	sprintf(args, "%08ld %12d", ssrc, playout);
+	mbus_qmsg(sp->mbus_engine, mbus_name_video, "rtp.source.playout", args, FALSE);
 }
 
 void	
@@ -1020,17 +867,16 @@ ui_repair_schemes(session_struct *sp)
 }
 
 void
-ui_controller_init(session_struct *sp, char *cname, char *name_engine, char *name_ui, char *name_video)
+ui_controller_init(session_struct *sp, u_int32 ssrc, char *name_engine, char *name_ui, char *name_video)
 {
-	char	*my_cname;
+	char	my_ssrc[10];
 
 	mbus_name_engine = name_engine;
 	mbus_name_ui     = name_ui;
 	mbus_name_video  = name_video;
 
-	my_cname = mbus_encode_str(cname);
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.cname", my_cname, TRUE);
-        xfree(my_cname);
+	sprintf(my_ssrc, "%08ld", ssrc);
+	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.ssrc", my_ssrc, TRUE);
 }
 
 static void

@@ -48,10 +48,10 @@ void	ui_update_stats(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	ui_update_lecture_mode(struct session_tag *session_pointer);
 void	ui_update(struct session_tag *session_pointer);
 void	ui_update_loss(struct session_tag *s, char *srce, char *dest, int loss);
-void	ui_update_reception(struct session_tag *s, char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog);
-void	ui_update_duration(struct session_tag *s, char *cname, int duration);
+void	ui_update_reception(struct session_tag *s, u_int32 ssrc, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog);
+void	ui_update_duration(struct session_tag *s, u_int32 ssrc, int duration);
 
-void	ui_update_video_playout(struct session_tag *s, char *cname, int playout);
+void	ui_update_video_playout(struct session_tag *s, u_int32 ssrc, int playout);
 void	ui_update_sync(struct session_tag *s, int sync);
 void	ui_update_key(struct session_tag *s, char *key);
 
@@ -59,7 +59,7 @@ void    ui_update_playback_file(struct session_tag *s, char *name);
 void    ui_update_record_file(struct session_tag *s, char *name);
 void    ui_update_file_live(struct session_tag *s, char *mode, int valid);
 void    ui_update_codec(struct session_tag *s, codec_id_t cid);
-void	ui_controller_init(struct session_tag *s, char *cname, char *name_engine, char *name_ui, char *name_video);
+void	ui_controller_init(struct session_tag *s, u_int32 ssrc, char *name_engine, char *name_ui, char *name_video);
 void    ui_initial_settings(struct session_tag *s);
 void    ui_quit(struct session_tag *s);
 

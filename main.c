@@ -110,7 +110,7 @@ main(int argc, char *argv[])
 	}
 	sprintf(mbus_video_addr, "(media:video module:engine)");
 
-	ui_controller_init(sp[0], cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
+	ui_controller_init(sp[0], ssrc, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 	do {
 		network_process_mbus(sp[0]);
 		mbus_heartbeat(sp[0]->mbus_engine, 1);
