@@ -162,6 +162,10 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 
 	for (i = 1; i < argc; i++) {
 		for (s = 0; s < sp_size; s++) {
+			if ((strcmp(argv[i], "-ui") == 0) && (argc > i+1)) {
+				sp[s]->ui_on   = FALSE;
+				sp[s]->ui_addr = strdup(argv[i+1]);
+			}
                         if ((strcmp(argv[i], "-allowloopback")) == 0) {
                                 sp[s]->filter_loopback = FALSE;
                         }
@@ -287,10 +291,6 @@ parse_options_audio_tool(int argc, char *argv[], session_struct *sp)
 	char *p;
 
 	for (i = 1; i < argc; i++) {
-		if ((strcmp(argv[i], "-ui") == 0) && (argc > i+1)) {
-			sp->ui_on   = FALSE;
-			sp->ui_addr = strdup(argv[i+1]);
-		}
 		if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
        			if (strcmp(argv[i+1], "on") == 0) {
        				sp->agc_on = TRUE;
