@@ -38,21 +38,21 @@ static codec_format_t cs[] = {
 
 #define GSM_NUM_FORMATS (sizeof(cs)/sizeof(codec_format_t))
 
-u_int16
+u_int16_t
 gsm_get_formats_count()
 {
         return GSM_NUM_FORMATS;
 }
 
 const codec_format_t*
-gsm_get_format(u_int16 idx)
+gsm_get_format(u_int16_t idx)
 {
         assert(idx < GSM_NUM_FORMATS);
         return &cs[idx];
 }
 
 int
-gsm_state_create(u_int16 idx, u_char **state)
+gsm_state_create(u_int16_t idx, u_char **state)
 {
         assert(idx < GSM_NUM_FORMATS);
         UNUSED(idx);
@@ -61,7 +61,7 @@ gsm_state_create(u_int16 idx, u_char **state)
 }
 
 void
-gsm_state_destroy(u_int16 idx, u_char **state)
+gsm_state_destroy(u_int16_t idx, u_char **state)
 {
         assert(idx < GSM_NUM_FORMATS);
         UNUSED(idx);
@@ -71,7 +71,7 @@ gsm_state_destroy(u_int16 idx, u_char **state)
 }
 
 int
-gsm_encoder  (u_int16 idx, u_char *state, sample *in, coded_unit *out)
+gsm_encoder  (u_int16_t idx, u_char *state, sample *in, coded_unit *out)
 {
         assert(idx < GSM_NUM_FORMATS);
         assert(state);
@@ -89,7 +89,7 @@ gsm_encoder  (u_int16 idx, u_char *state, sample *in, coded_unit *out)
 }
 
 int
-gsm_decoder (u_int16 idx, u_char *state, coded_unit *in, sample *out)
+gsm_decoder (u_int16_t idx, u_char *state, coded_unit *in, sample *out)
 {
         assert(idx < GSM_NUM_FORMATS);
         assert(state);
@@ -102,7 +102,7 @@ gsm_decoder (u_int16 idx, u_char *state, coded_unit *in, sample *out)
 }
 
 int  
-gsm_repair (u_int16 idx, u_char *state, u_int16 consec_lost,
+gsm_repair (u_int16_t idx, u_char *state, u_int16_t consec_lost,
             coded_unit *prev, coded_unit *missing, coded_unit *next)
 {
 	/* GSM 06.11 repair mechanism */

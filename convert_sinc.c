@@ -39,7 +39,7 @@
 
 #define SINC_CYCLES     5
 
-static int32 *upfilter[SINC_MAX_CHANGE], *downfilter[SINC_MAX_CHANGE];
+static int32_t *upfilter[SINC_MAX_CHANGE], *downfilter[SINC_MAX_CHANGE];
 
 int 
 sinc_startup (void)
@@ -53,8 +53,8 @@ sinc_startup (void)
         for (m = SINC_MIN_CHANGE; m < SINC_MAX_CHANGE; m++) {
                 w = 2 * m * SINC_CYCLES + 1;
                 c = w/2;
-                upfilter[m]     = (int32*)xmalloc(sizeof(int32) * w);
-                downfilter[m]   = (int32*)xmalloc(sizeof(int32) * w);
+                upfilter[m]     = (int32_t*)xmalloc(sizeof(int32_t) * w);
+                downfilter[m]   = (int32_t*)xmalloc(sizeof(int32_t) * w);
                 for (k = -c; k <= +c; k++) {
                         if (k != 0) {
                                 dv = sin(M_PI * k / m) / (M_PI * k / (double)m);
@@ -62,8 +62,8 @@ sinc_startup (void)
                                 dv = 1.0;
                         }
                         ham = 0.54 + 0.46 * cos(2.0*k*M_PI/ (double)w);
-                        upfilter[m][k + c]   =  (int32)(ham * SINC_SCALE * dv);
-                        downfilter[m][k + c] =  (int32)(ham * SINC_SCALE * dv / (double)m);
+                        upfilter[m][k + c]   =  (int32_t)(ham * SINC_SCALE * dv);
+                        downfilter[m][k + c] =  (int32_t)(ham * SINC_SCALE * dv / (double)m);
                 }
         }
         return TRUE;
@@ -100,12 +100,12 @@ static void sinc_downsample_stereo (struct s_filter_state *s,
 typedef void (*sinc_cf)(struct s_filter_state *s, sample *src, int src_len, sample *dst, int dst_len);
 
 typedef struct s_filter_state {
-        int32  *filter;
-        u_int16 taps;
+        int32_t  *filter;
+        u_int16_t taps;
         sample *hold_buf;     /* used to hold samples from previous round. */
-        u_int16 hold_bytes;
+        u_int16_t hold_bytes;
         sinc_cf fn;           /* function to be used */
-        u_int16 scale;        /* ratio of sampling rates */
+        u_int16_t scale;        /* ratio of sampling rates */
 } filter_state_t;
 
 typedef struct {
@@ -151,7 +151,7 @@ sinc_free_filter(filter_state_t *fs)
 }
 
 int 
-sinc_create (const converter_fmt_t *cfmt, u_char **state, u_int32 *state_len)
+sinc_create (const converter_fmt_t *cfmt, u_char **state, u_int32_t *state_len)
 {
         sinc_state_t *s;
         int denom, steps, g;
@@ -184,7 +184,7 @@ sinc_create (const converter_fmt_t *cfmt, u_char **state, u_int32 *state_len)
 }
 
 void 
-sinc_destroy (u_char **state, u_int32 *state_len)
+sinc_destroy (u_char **state, u_int32_t *state_len)
 {
         int i;
 
@@ -287,8 +287,8 @@ sinc_upsample_mono (struct s_filter_state *fs,
 {
         sample *work_buf, *out;
         int     work_len;
-        int32   tmp, si_start, si_end, si, hold_bytes;
-        int32  *h, hi_start, hi_end, hi;
+        int32_t   tmp, si_start, si_end, si, hold_bytes;
+        int32_t  *h, hi_start, hi_end, hi;
 
         hold_bytes = fs->taps / fs->scale * sizeof(sample);
         work_len   = src_len + hold_bytes / sizeof(sample);
@@ -620,8 +620,8 @@ sinc_upsample_mono (struct s_filter_state *fs,
         sample *large_buf;
 
         int     work_len, i, large_buf_len;
-        int32   tmp, si_start, si_end, hold_bytes;
-        int32  *h;
+        int32_t   tmp, si_start, si_end, hold_bytes;
+        int32_t  *h;
 
         hold_bytes = fs->taps / fs->scale * sizeof(sample);
         work_len   = src_len + hold_bytes / sizeof(sample);
@@ -677,8 +677,8 @@ sinc_upsample_stereo (struct s_filter_state *fs,
 {
         sample *work_buf, *out;
         int     work_len;
-        int32   tmp[2], si_start, si_end, si, hold_bytes;
-        int32  *h, hi_start, hi_end, hi;
+        int32_t   tmp[2], si_start, si_end, si, hold_bytes;
+        int32_t  *h, hi_start, hi_end, hi;
 
         hold_bytes = fs->taps / fs->scale * sizeof(sample) * 2;
         work_len   = src_len + hold_bytes / sizeof(sample);
@@ -1083,7 +1083,7 @@ sinc_downsample_mono(struct s_filter_state *fs,
                       sample *src, int src_len,
                       sample *dst, int dst_len)
 {
-        int32 *hc, *he, t, work_len;
+        int32_t *hc, *he, t, work_len;
 
         sample *work_buf, *ss, *sc, *de, *d;
 
@@ -1128,7 +1128,7 @@ sinc_downsample_stereo(struct s_filter_state *fs,
                        sample *src, int src_len,
                        sample *dst, int dst_len)
 {
-        int32 *hc, *he, t0, t1, work_len;
+        int32_t *hc, *he, t0, t1, work_len;
 
         sample *work_buf, *ss, *sc, *d, *de;
 

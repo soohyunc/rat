@@ -24,17 +24,17 @@
    Portions of the definitions come from the Sun's header file audio_filehdr.h ***/
 
 typedef struct {
-	u_int32		magic;		/* magic number */
-	u_int32		hdr_size;	/* size of this header */
-	u_int32		data_size;	/* length of data (optional) */
-	u_int32		encoding;	/* data encoding format */
-	u_int32		sample_rate;	/* samples per second */
-	u_int32		channels;	/* number of interleaved channels */
+	u_int32_t		magic;		/* magic number */
+	u_int32_t		hdr_size;	/* size of this header */
+	u_int32_t		data_size;	/* length of data (optional) */
+	u_int32_t		encoding;	/* data encoding format */
+	u_int32_t		sample_rate;	/* samples per second */
+	u_int32_t		channels;	/* number of interleaved channels */
 } sun_audio_filehdr;
 
 /* Define the magic number */
-#define	SUN_AUDIO_FILE_MAGIC		((u_int32)0x2e736e64)
-#define SUN_AUDIO_UNKNOWN_SIZE          ((u_int32)(~0))
+#define	SUN_AUDIO_FILE_MAGIC		((u_int32_t)0x2e736e64)
+#define SUN_AUDIO_UNKNOWN_SIZE          ((u_int32_t)(~0))
 
 /* Define the encoding fields */
 /* We only support trivial conversions */
@@ -45,9 +45,9 @@ typedef struct {
 static void 
 sun_ntoh_hdr(sun_audio_filehdr *saf)
 {
-        u_int32 *pi;
+        u_int32_t *pi;
         int j;
-        pi = (u_int32*)saf;
+        pi = (u_int32_t*)saf;
         for(j = 0; j < 6; j++) {
                 pi[j] = htonl(pi[j]);
         }

@@ -55,12 +55,12 @@ typedef unsigned char	byte;
  * the definitions below are valid for 32-bit architectures and will have to
  * be adjusted for 16- or 64-bit architectures
  */
-typedef u_char		u_int8;
-typedef u_short		u_int16;
-typedef u_long		u_int32;
-typedef char		int8;
-typedef short		int16;
-typedef long		int32;
+typedef u_char		u_int8_t;
+typedef u_short		u_int16_t;
+typedef u_long		u_int32_t;
+typedef char		int8_t;
+typedef short		int16_t;
+typedef long		int32_t;
 typedef __int64		int64;
 typedef unsigned long	in_addr_t;
 

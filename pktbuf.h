@@ -28,7 +28,7 @@
 typedef struct s_pktbuf pktbuf_t;
 
 int     pktbuf_create    (pktbuf_t **ppb, 
-                          u_int16    maxpackets);
+                          u_int16_t    maxpackets);
 
 void    pktbuf_destroy   (pktbuf_t **ppb);
 
@@ -42,6 +42,6 @@ int     pktbuf_dequeue   (pktbuf_t *pb,
 /* to check when determining offset between source time and local time.     */
 int     pktbuf_peak_last (pktbuf_t *pb,
                           rtp_packet **p);
-u_int16 pktbuf_get_count (pktbuf_t *pb);
+u_int16_t pktbuf_get_count (pktbuf_t *pb);
 
 #endif /* __PKTBUF_H__ */

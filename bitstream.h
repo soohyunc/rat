@@ -30,10 +30,10 @@ int  bs_attach     (bitstream_t *b,
 
 int  bs_put        (bitstream_t *b,
                     u_char       bits,
-                    u_int8       nbits);
+                    u_int8_t       nbits);
 
 u_char bs_get      (bitstream_t *b,
-                    u_int8  nbits);
+                    u_int8_t  nbits);
 
 int  bs_bytes_used (bitstream_t *b);
 

@@ -29,7 +29,7 @@
 
 struct s_pdb {
         btree_t *db;
-        u_int32  nelem;
+        u_int32_t  nelem;
 };
 
 int 
@@ -58,7 +58,7 @@ int
 pdb_destroy(pdb_t **pp)
 {
         pdb_t   *p = *pp;
-        u_int32 id;
+        u_int32_t id;
         
         while(pdb_get_first_id(p, &id)) {
                 if (pdb_item_destroy(p, id) == FALSE) {
@@ -77,26 +77,26 @@ pdb_destroy(pdb_t **pp)
         return TRUE;
 }
 
-u_int32
+u_int32_t
 pdb_item_count(pdb_t *p)
 {
         return p->nelem;
 }
 
 int
-pdb_get_first_id(pdb_t *p, u_int32 *id)
+pdb_get_first_id(pdb_t *p, u_int32_t *id)
 {
         return btree_get_min_key(p->db, id);
 }
 
 int
-pdb_get_next_id(pdb_t *p, u_int32 cur, u_int32 *next)
+pdb_get_next_id(pdb_t *p, u_int32_t cur, u_int32_t *next)
 {
         return btree_get_next_key(p->db, cur, next);
 }
 
 int
-pdb_item_get(pdb_t *p, u_int32 id, pdb_entry_t **item)
+pdb_item_get(pdb_t *p, u_int32_t id, pdb_entry_t **item)
 {
         void *v;
         if (btree_find(p->db, id, &v) == FALSE) {
@@ -109,7 +109,7 @@ pdb_item_get(pdb_t *p, u_int32 id, pdb_entry_t **item)
 }
 
 int
-pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16 freq, u_int32 id)
+pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16_t freq, u_int32_t id)
 {
         pdb_entry_t *item;
         ts_t         zero_ts;
@@ -163,7 +163,7 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16 freq, u_int32 id)
 }
 
 int
-pdb_item_destroy(pdb_t *p, u_int32 id)
+pdb_item_destroy(pdb_t *p, u_int32_t id)
 {
         pdb_entry_t *item;
 

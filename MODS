@@ -956,6 +956,11 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 		(b) source quiet for longer than transit_reset period.
 		(c) playout re-calc triggered by toged_cont.
 	- toged_cont is now no. thrown on ground in last 8 packets.
+	- Global change of integer types, and removal of compatibility defines:
+		u_int8	-> u_int8_t
+		u_int16	-> u_int16_t
+		u_int32	-> u_int32_t
+	  and the same for the signed varients.
 
 TODO -- They're features not bugs dammit!
 ----

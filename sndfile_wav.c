@@ -33,13 +33,13 @@
  */
 
 typedef struct {
-        u_int32 ckId; /* First four characters of chunk type e.g RIFF, WAVE, LIST */
-        u_int32 ckSize;
+        u_int32_t ckId; /* First four characters of chunk type e.g RIFF, WAVE, LIST */
+        u_int32_t ckSize;
 } riff_chunk;
 
 typedef struct {
         riff_chunk rc;
-        u_int32    type;
+        u_int32_t    type;
 } riff_chunk_hdr;
 
 /* Note PCM_FORMAT_SIZE is 18 bytes as it has no extra information
@@ -49,13 +49,13 @@ typedef struct {
 #define PCM_FORMAT_SIZE 18
 
 typedef struct {
-        u_int16 wFormatTag;
-        u_int16 wChannels;
-        u_int32 dwSamplesPerSec;
-        u_int32 dwAvgBytesPerSec;
-        u_int16 wBlockAlign;
-        u_int16 wBitsPerSample;
-        u_int16 cbExtra;
+        u_int16_t wFormatTag;
+        u_int16_t wChannels;
+        u_int32_t dwSamplesPerSec;
+        u_int32_t dwAvgBytesPerSec;
+        u_int16_t wBlockAlign;
+        u_int16_t wBitsPerSample;
+        u_int16_t cbExtra;
 } wave_format; /* Same as WAVEFORMATEX */
 
 typedef struct {
@@ -73,16 +73,16 @@ typedef struct {
 #define btols(x) (((x) >> 8) | ((x&0xff) << 8))
 
 #ifndef WIN32
-static u_int32
+static u_int32_t
 MAKEFOURCC(char a, char b, char c, char d)
 {
-        u_int32 r;
+        u_int32_t r;
         if (htons(1) == 1) {
-		r = (((u_int32)(char)(a) <<24 )| ((u_int32)(char)(b) << 16) |
-                     ((u_int32)(char)(c) << 8) | (u_int32)(char)(d));
+		r = (((u_int32_t)(char)(a) <<24 )| ((u_int32_t)(char)(b) << 16) |
+                     ((u_int32_t)(char)(c) << 8) | (u_int32_t)(char)(d));
         } else {
-                r = (((u_int32)(char)(d) <<24 )| ((u_int32)(char)(c) << 16) |
-                     ((u_int32)(char)(b) << 8) | (u_int32)(char)(a));
+                r = (((u_int32_t)(char)(d) <<24 )| ((u_int32_t)(char)(c) << 16) |
+                     ((u_int32_t)(char)(b) << 8) | (u_int32_t)(char)(a));
         }
         return r;
 }
@@ -93,13 +93,13 @@ wave_fix_hdr(wave_format *wf)
 {
         /* If we are a big endian machine convert from little endian */
         if (htonl(1) == 1) {
-                wf->wFormatTag       = (u_int16)btols(wf->wFormatTag);
-                wf->wChannels        = (u_int16)btols(wf->wChannels);
+                wf->wFormatTag       = (u_int16_t)btols(wf->wFormatTag);
+                wf->wChannels        = (u_int16_t)btols(wf->wChannels);
                 wf->dwSamplesPerSec  = btoll(wf->dwSamplesPerSec);
                 wf->dwAvgBytesPerSec = btoll(wf->dwAvgBytesPerSec);
-                wf->wBlockAlign      = (u_int16)btols(wf->wBlockAlign);
-                wf->wBitsPerSample   = (u_int16)btols(wf->wBitsPerSample);
-                wf->cbExtra          = (u_int16)btols(wf->cbExtra);
+                wf->wBlockAlign      = (u_int16_t)btols(wf->wBlockAlign);
+                wf->wBitsPerSample   = (u_int16_t)btols(wf->wBitsPerSample);
+                wf->cbExtra          = (u_int16_t)btols(wf->cbExtra);
         }
 }
 
@@ -111,11 +111,11 @@ riff_fix_chunk_hdr(riff_chunk *rc)
         }
 }
 
-static u_int32
+static u_int32_t
 riff_proceed_to_chunk(FILE *fp, char *id)
 {
         riff_chunk rc;
-        u_int32 ckId;
+        u_int32_t ckId;
 
         ckId = MAKEFOURCC(id[0],id[1],id[2],id[3]);
         
@@ -135,7 +135,7 @@ riff_read_hdr(FILE *fp, char **state, sndfile_fmt_t *fmt)
 {
         riff_chunk_hdr rch;
         wave_format wf;
-        u_int32 chunk_size;
+        u_int32_t chunk_size;
 
         riff_state *rs;
 
@@ -148,8 +148,8 @@ riff_read_hdr(FILE *fp, char **state, sndfile_fmt_t *fmt)
 
         if (MAKEFOURCC('R','I','F','F') != rch.rc.ckId ||
             MAKEFOURCC('W','A','V','E') != rch.type) {
-                u_int32 riff = MAKEFOURCC('R','I','F','F');
-                u_int32 wave = MAKEFOURCC('W','A','V','E');
+                u_int32_t riff = MAKEFOURCC('R','I','F','F');
+                u_int32_t wave = MAKEFOURCC('W','A','V','E');
 
                 debug_msg("Riff 0x%08x 0x%08x\n", riff, rch.rc.ckId);
                 debug_msg("Wave 0x%08x 0x%08x\n", wave, rch.type);
@@ -263,7 +263,7 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
         case MS_AUDIO_FILE_ENCODING_L16:
                 if (htons(1) == 1) {
                         for(i = 0; i < samples_read; i++) {
-                                buf[i] = (u_int16)btols((u_char)buf[i]);
+                                buf[i] = (u_int16_t)btols((u_char)buf[i]);
                         }
                 }
                 break;
@@ -308,10 +308,10 @@ riff_write_hdr(FILE *fp, char **state, const sndfile_fmt_t *fmt)
         }
 
         rs->cbUsed = 0;
-        rs->wf.wChannels        = (u_int16)fmt->channels;
+        rs->wf.wChannels        = (u_int16_t)fmt->channels;
         rs->wf.dwSamplesPerSec  = fmt->sample_rate;
         rs->wf.dwAvgBytesPerSec = fmt->sample_rate * fmt->channels * rs->wf.wBitsPerSample / 8;
-        rs->wf.wBlockAlign      = (u_int16)(fmt->channels * rs->wf.wBitsPerSample / 8);
+        rs->wf.wBlockAlign      = (u_int16_t)(fmt->channels * rs->wf.wBitsPerSample / 8);
        
         hdr_len = sizeof(riff_chunk_hdr) /* RIFF header */
                 + 2 * sizeof(riff_chunk) /* Sub-block ("data") */
@@ -346,7 +346,7 @@ riff_write_audio(FILE *fp, char *state, sample *buf, int samples)
                          * writing them out.  
                          */
                         for(i = 0; i < samples; i++) {
-                                l16buf[i] = (u_int16)btols((u_int16)buf[i]);
+                                l16buf[i] = (u_int16_t)btols((u_int16_t)buf[i]);
                         }
                         outbuf = (u_char*)l16buf;
                 } else {
@@ -410,13 +410,13 @@ riff_write_end(FILE *fp, char *state)
          * must be written out in correct order */
         if (htonl(1) == 1) {
                 wave_fix_hdr(&rs->wf);
-                fwrite(&rs->wf.wFormatTag,       sizeof(u_int16), 1, fp);
-                fwrite(&rs->wf.wChannels,        sizeof(u_int16), 1, fp);
-                fwrite(&rs->wf.dwSamplesPerSec,  sizeof(u_int32), 1, fp);
-                fwrite(&rs->wf.dwAvgBytesPerSec, sizeof(u_int32), 1, fp);
-                fwrite(&rs->wf.wBlockAlign,      sizeof(u_int16), 1, fp);
-                fwrite(&rs->wf.wBitsPerSample,   sizeof(u_int16), 1, fp);
-                fwrite(&rs->wf.cbExtra,          sizeof(u_int16), 1, fp);
+                fwrite(&rs->wf.wFormatTag,       sizeof(u_int16_t), 1, fp);
+                fwrite(&rs->wf.wChannels,        sizeof(u_int16_t), 1, fp);
+                fwrite(&rs->wf.dwSamplesPerSec,  sizeof(u_int32_t), 1, fp);
+                fwrite(&rs->wf.dwAvgBytesPerSec, sizeof(u_int32_t), 1, fp);
+                fwrite(&rs->wf.wBlockAlign,      sizeof(u_int16_t), 1, fp);
+                fwrite(&rs->wf.wBitsPerSample,   sizeof(u_int16_t), 1, fp);
+                fwrite(&rs->wf.cbExtra,          sizeof(u_int16_t), 1, fp);
         } else {
                 fwrite(&rs->wf, PCM_FORMAT_SIZE, 1, fp);
         }
@@ -465,7 +465,7 @@ riff_get_format(char *state, sndfile_fmt_t *fmt)
                 break;
         }
 
-        fmt->sample_rate = (u_int16)wf->dwSamplesPerSec;
+        fmt->sample_rate = (u_int16_t)wf->dwSamplesPerSec;
         fmt->channels    = wf->wChannels;
 
         return TRUE;

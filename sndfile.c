@@ -97,7 +97,7 @@ typedef struct s_sndfile {
         FILE *fp;
         char *state;
         sndfile_handler_t *sfh;
-        u_int32 action; /* Playing, recording, paused */
+        u_int32_t action; /* Playing, recording, paused */
 } sndfile_t;
 
 int  
@@ -160,7 +160,7 @@ snd_read_close(sndfile_t **sf)
 }
 
 int
-snd_read_audio(sndfile_t **sf, sample *buf, u_int16 samples)
+snd_read_audio(sndfile_t **sf, sample *buf, u_int16_t samples)
 {
         sndfile_handler_t *sfh;
         int samples_read;
@@ -265,7 +265,7 @@ snd_write_close(sndfile_t **pps)
 }
 
 int  
-snd_write_audio(sndfile_t **pps, sample *buf, u_int16 buf_len)
+snd_write_audio(sndfile_t **pps, sample *buf, u_int16_t buf_len)
 {
         sndfile_t *ps = *pps;
         int success;

@@ -41,7 +41,7 @@ vu_table_init()
 }
 
 int 
-lin2vu(u_int16 energy, int range, int io_dir)
+lin2vu(u_int16_t energy, int range, int io_dir)
 {
         static double v[2];
         double gain;
@@ -75,25 +75,25 @@ lin2vu(u_int16 energy, int range, int io_dir)
 #define SD_RAISE_COUNT  10
 
 typedef struct s_sd {
-        u_int32 parole_period;
-        int32 tot, tot_sq;
-        u_int32 history;
-        int32 thresh;
-        int32 m;
+        u_int32_t parole_period;
+        int32_t tot, tot_sq;
+        u_int32_t history;
+        int32_t thresh;
+        int32_t m;
         double mds;
         double ltmds;
-        u_int32 lt_cnt;  /* Number intervals less than threshold        */
-        u_int32 lt_max;  /* Maximum energy of those less than threshold */
-        u_int32 gt_cnt;  /* Number intervals more than threshold        */
-        u_int32 gt_min;  /* Minimum energy of those less than threshold */
-        u_int32 peak;
-        u_int32 eval_period;
-        u_int32 eval_cnt;
-        u_int32 cnt;
+        u_int32_t lt_cnt;  /* Number intervals less than threshold        */
+        u_int32_t lt_max;  /* Maximum energy of those less than threshold */
+        u_int32_t gt_cnt;  /* Number intervals more than threshold        */
+        u_int32_t gt_min;  /* Minimum energy of those less than threshold */
+        u_int32_t peak;
+        u_int32_t eval_period;
+        u_int32_t eval_cnt;
+        u_int32_t cnt;
 } sd_t;
 
 sd_t *
-sd_init(u_int16 blk_dur, u_int16 freq)
+sd_init(u_int16_t blk_dur, u_int16_t freq)
 {
 	sd_t *s = (sd_t *)xmalloc(sizeof(sd_t));
         s->parole_period = SD_PAROLE_PERIOD * freq / (blk_dur*1000) + 1;
@@ -105,7 +105,7 @@ sd_init(u_int16 blk_dur, u_int16 freq)
 void
 sd_reset(sd_t *s)
 {
-        u_int32 tmp = s->parole_period;
+        u_int32_t tmp = s->parole_period;
         memset(s, 0, sizeof(sd_t));
         s->parole_period = tmp;
         s->eval_period   = 4 * tmp;
@@ -133,7 +133,7 @@ sd_dup(sd_t *s)
 #define SD_RES 8
 
 int
-sd(sd_t *s, u_int16 energy)
+sd(sd_t *s, u_int16_t energy)
 {
         energy = vu_tbl[L16TOQ3(energy)];
 
@@ -187,8 +187,8 @@ typedef struct {
 typedef struct s_vad {
         /* limits */
         vad_limit_t limit[2];
-        u_int32 tick;
-        u_int32 spurt_cnt;
+        u_int32_t tick;
+        u_int32_t spurt_cnt;
         /* state */
         u_char state;
         u_char sig_cnt;
@@ -196,7 +196,7 @@ typedef struct s_vad {
 } vad_t;
 
 vad_t *
-vad_create(u_int16 blockdur, u_int16 freq)
+vad_create(u_int16_t blockdur, u_int16_t freq)
 {
         vad_t *v = (vad_t*)xmalloc(sizeof(vad_t));
         memset(v,0,sizeof(vad_t));
@@ -213,9 +213,9 @@ vad_create(u_int16 blockdur, u_int16 freq)
 #define VAD_POST_CONF   200
 
 void
-vad_config(vad_t *v, u_int16 blockdur, u_int16 freq)
+vad_config(vad_t *v, u_int16_t blockdur, u_int16_t freq)
 {
-        u_int32 time_ms;
+        u_int32_t time_ms;
 
         assert(blockdur != 0);
         assert(freq     != 0);
@@ -241,7 +241,7 @@ vad_destroy(vad_t *v)
 #define VAD_SILENT        0
 #define VAD_SPURT         1
 
-u_int16
+u_int16_t
 vad_to_get(vad_t *v, u_char silence, u_char mode)
 {
         vad_limit_t *l = &v->limit[mode];
@@ -285,7 +285,7 @@ vad_to_get(vad_t *v, u_char silence, u_char mode)
         return 0; /* never arrives here */
 }
 
-u_int16
+u_int16_t
 vad_max_could_get(vad_t *v)
 {
         if (v->state == VAD_SILENT) {
@@ -309,7 +309,7 @@ vad_in_talkspurt(vad_t *v)
         return (v->state == VAD_SPURT) ? TRUE : FALSE;
 }
 
-u_int32
+u_int32_t
 vad_talkspurt_no(vad_t *v)
 {
         return v->spurt_cnt;
@@ -331,9 +331,9 @@ vad_dump(vad_t *v)
 #define AGC_PEAK_UPPER   14000
 
 typedef struct s_agc {
-        u_int16 peak;
-        u_int16 cnt;
-        u_int32 spurtno;
+        u_int16_t peak;
+        u_int16_t cnt;
+        u_int32_t spurtno;
         u_char  new_gain;
         u_char  change;
         session_t *sp; /* this is unpleasant to have and i wrote it! */
@@ -373,7 +373,7 @@ agc_reset(agc_t *a)
 static void 
 agc_consider(agc_t *a)
 {
-        int32 gain;
+        int32_t gain;
 
         a->change = FALSE;
         if (a->peak > AGC_PEAK_UPPER) {
@@ -392,7 +392,7 @@ agc_consider(agc_t *a)
 }
 
 void
-agc_update(agc_t *a, u_int16 energy, u_int32 spurtno)
+agc_update(agc_t *a, u_int16_t energy, u_int32_t spurtno)
 {
         a->peak = max(a->peak, energy);
         if (a->spurtno != spurtno) {

@@ -112,7 +112,7 @@ static u_int dmap[16]   = { 0x00, 0x02, 0x0c, 0x1c,
                             0x3d, 0x7d, 0xfd, 0xff
 };
 
-static u_int8 dmap_bits[16] = {   2,    3,    4,    5,
+static u_int8_t dmap_bits[16] = {   2,    3,    4,    5,
                                   6,    7,    8,    8,
                                   2,    3,    4,    5,
                                   6,    7,    8,    8

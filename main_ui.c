@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 	tcl_init1(argc, argv);
 
 	m = mbus_init(mbus_ui_rx, mbus_error_handler);
-	sprintf(m_addr, "(media:audio module:ui app:rat instance:%lu)", (u_int32) getpid());
+	sprintf(m_addr, "(media:audio module:ui app:rat instance:%lu)", (unsigned long) getpid());
 	mbus_addr(m, m_addr);
 
 	/* The first stage is to wait until we hear from our controller. The address of the */

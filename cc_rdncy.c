@@ -48,21 +48,21 @@
 
 typedef struct s_red_layer {
         codec_id_t          cid;
-        u_int32             pkts_off;
+        u_int32_t             pkts_off;
 } red_layer;
 
 typedef struct {
         red_layer            layer[RED_MAX_LAYERS];
-        u_int32              n_layers;
+        u_int32_t              n_layers;
         struct s_pb          *media_buffer;
         struct s_pb_iterator *media_pos;
-        u_int32               units_ready;
+        u_int32_t               units_ready;
         ts_t                  history; /* How much audio history is needed for coding */
         ts_t                  last_in; /* timestamp of last media unit accepted */
 } red_enc_state;
 
 int
-redundancy_encoder_create(u_char **state, u_int32 *len)
+redundancy_encoder_create(u_char **state, u_int32_t *len)
 {
         red_enc_state *re = (red_enc_state*)xmalloc(sizeof(red_enc_state));
 
@@ -103,7 +103,7 @@ fail_alloc:
 }
 
 void
-redundancy_encoder_destroy(u_char **state, u_int32 len)
+redundancy_encoder_destroy(u_char **state, u_int32_t len)
 {
         red_enc_state *re = *((red_enc_state**)state);
         
@@ -131,9 +131,9 @@ redundancy_encoder_reset(u_char *state)
 
 /* Adds header to next free slot in channel_data */
 static void
-add_hdr(channel_unit *chu, int hdr_type, codec_id_t cid, u_int32 uo, u_int32 len)
+add_hdr(channel_unit *chu, int hdr_type, codec_id_t cid, u_int32_t uo, u_int32_t len)
 {
-        u_int32 so;             /* sample time offset */
+        u_int32_t so;             /* sample time offset */
         u_char  pt;
 
         assert(chu != NULL);
@@ -148,10 +148,10 @@ add_hdr(channel_unit *chu, int hdr_type, codec_id_t cid, u_int32 uo, u_int32 len
         assert(len <= RED_MAX_LEN );
 
         if (hdr_type == RED_EXTRA) {
-                u_int32 *h;
-                h = (u_int32*)block_alloc(4);
+                u_int32_t *h;
+                h = (u_int32_t*)block_alloc(4);
                 RED_HDR32_INIT(*h);
-                RED_HDR32_SET_PT(*h, (u_int32)pt);
+                RED_HDR32_SET_PT(*h, (u_int32_t)pt);
                 RED_HDR32_SET_OFF(*h, so);
                 RED_HDR32_SET_LEN(*h, len);
                 *h = htonl(*h);
@@ -170,14 +170,14 @@ add_hdr(channel_unit *chu, int hdr_type, codec_id_t cid, u_int32 uo, u_int32 len
 
 /* make_pdu - converts a string of coded units into a channel_unit */
 
-static u_int32
+static u_int32_t
 make_pdu(struct s_pb_iterator *pbi,
-         u_int32               upp,
+         u_int32_t               upp,
          codec_id_t            cid,
          channel_data         *out)
 {
         struct s_pb_iterator *p;
-        u_int32        i, j, md_len, used;
+        u_int32_t        i, j, md_len, used;
         media_data    *md;
         ts_t           playout;
         int            success;
@@ -226,11 +226,11 @@ make_pdu(struct s_pb_iterator *pbi,
 }
 
 static channel_data *
-redundancy_encoder_output(red_enc_state *re, u_int32 upp)
+redundancy_encoder_output(red_enc_state *re, u_int32_t upp)
 {
         struct s_pb_iterator *pbm;
         channel_data         *cd_coded[RED_MAX_LAYERS], *cd_out;
-        u_int32               offset ;
+        u_int32_t               offset ;
         int                   i, j, layers, success = 0,  used = 0;
 
         pbm = re->media_pos;
@@ -239,14 +239,14 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
         /*** Stage 1: Packing coded audio units ******************************/
 
         /* Rewind iterator to start of first pdu */ 
-        for(i = 1; (u_int32)i < upp; i++) {
+        for(i = 1; (u_int32_t)i < upp; i++) {
                 success = pb_iterator_retreat(pbm);
                 assert(success);
         }
 
         offset = 0;
         layers = 0;
-        for (i = 0; (u_int32)i < re->n_layers; i++) {
+        for (i = 0; (u_int32_t)i < re->n_layers; i++) {
                 if (re->units_ready <= re->layer[i].pkts_off * upp) {
                         break;
                 }
@@ -278,7 +278,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
 
         /*** Stage 2: Packing redundancy headers *****************************/
         used = 0;
-        if ((u_int32)layers != re->n_layers) {
+        if ((u_int32_t)layers != re->n_layers) {
                 /* Add max offset if we didn't make all units */
                 add_hdr(cd_out->elem[used], 
                         RED_EXTRA, 
@@ -330,9 +330,9 @@ int
 redundancy_encoder_encode (u_char      *state,
                            struct s_pb *in,
                            struct s_pb *out,
-                           u_int32      upp)
+                           u_int32_t      upp)
 {
-        u_int32        m_len;
+        u_int32_t        m_len;
         ts_t           playout;
         struct s_pb_iterator *pi;
         media_data     *m;
@@ -407,7 +407,7 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
 {
         red_enc_state *n, *cur;
         const codec_format_t *cf;
-        u_int32 nl, po;
+        u_int32_t nl, po;
         codec_id_t  cid;
         char *s;
         int success = FALSE;
@@ -483,11 +483,11 @@ done:
 }
 
 int 
-redundancy_encoder_get_parameters(u_char *state, char *buf, u_int32 blen)
+redundancy_encoder_get_parameters(u_char *state, char *buf, u_int32_t blen)
 {
         const codec_format_t *cf;
         red_enc_state *r;
-        u_int32 i, used, flen;
+        u_int32_t i, used, flen;
 
         char frag[CODEC_LONG_NAME_LEN+5]; /* XXX/nn/\0 + 1*/
 
@@ -507,7 +507,7 @@ redundancy_encoder_get_parameters(u_char *state, char *buf, u_int32 blen)
                 cf = codec_get_format(r->layer[i].cid);
                 assert(cf != NULL);
                 sprintf(frag,
-                        "%s/%ld/",
+                        "%s/%d/",
                         cf->long_name,
                         r->layer[i].pkts_off);
                 flen += strlen(frag);
@@ -525,17 +525,17 @@ redundancy_encoder_get_parameters(u_char *state, char *buf, u_int32 blen)
 }
 
 int
-redundancy_decoder_peek(u_int8   pkt_pt,
+redundancy_decoder_peek(u_int8_t   pkt_pt,
                         u_char  *buf,
-                        u_int32  len,
-                        u_int16  *upp,
-                        u_int8   *pt)
+                        u_int32_t  len,
+                        u_int16_t  *upp,
+                        u_int8_t   *pt)
 {
         const codec_format_t *cf;
         codec_id_t            cid;
         u_char               *p, *data;
-        u_int32               hdr32, dlen, blen;
-        u_int16               units;        
+        u_int32_t               hdr32, dlen, blen;
+        u_int16_t               units;        
         assert(buf != NULL);
         assert(upp != NULL);
         assert(pt  != NULL);
@@ -544,13 +544,13 @@ redundancy_decoder_peek(u_int8   pkt_pt,
          * advance data pointer past them.
          */
         p = data = buf;
-        hdr32 = ntohl(*(u_int32*)p);
+        hdr32 = ntohl(*(u_int32_t*)p);
         while ((hdr32 & RED_HDR32_PAT)) {
                 blen = RED_HDR32_GET_LEN(hdr32);
                 p    += 4; /* goto next hdr */
                 data += 4 + blen;
-                hdr32 = ntohl(*(u_int32*)p);
-                assert(((u_int32)data - (u_int32)buf) <= len);
+                hdr32 = ntohl(*(u_int32_t*)p);
+                assert(((u_int32_t)data - (u_int32_t)buf) <= len);
         }
 
         *pt = *p;
@@ -564,7 +564,7 @@ redundancy_decoder_peek(u_int8   pkt_pt,
         }
 
         /* Primary data length */
-        dlen = len - (u_int32)(data - buf);
+        dlen = len - (u_int32_t)(data - buf);
 
         cf = codec_get_format(cid);
         assert(cf);
@@ -572,16 +572,16 @@ redundancy_decoder_peek(u_int8   pkt_pt,
         data += cf->mean_per_packet_state_size;
         dlen -= cf->mean_per_packet_state_size;
 
-        assert(((u_int32)data - (u_int32)buf) <= len);
+        assert(((u_int32_t)data - (u_int32_t)buf) <= len);
 
         units = 0;        
         while (dlen != 0) {
-                blen = codec_peek_frame_size(cid, p, (u_int16)dlen);
+                blen = codec_peek_frame_size(cid, p, (u_int16_t)dlen);
                 assert(blen != 0);
                 data += blen;
                 dlen -= blen;
                 units ++;
-                assert(((u_int32)data - (u_int32)buf) <= len);
+                assert(((u_int32_t)data - (u_int32_t)buf) <= len);
         }
 
         *upp = units;
@@ -599,15 +599,15 @@ redundancy_decoder_peek(u_int8   pkt_pt,
  */
 
 int
-redundancy_decoder_describe (u_int8   pkt_pt,
+redundancy_decoder_describe (u_int8_t   pkt_pt,
                              u_char  *data,
-                             u_int32  data_len,
+                             u_int32_t  data_len,
                              char    *out,
-                             u_int32  out_len)
+                             u_int32_t  out_len)
 {
         const codec_format_t *cf;
         codec_id_t            cid;
-        u_int32 hdr32, slen, blksz, off, nlen;
+        u_int32_t hdr32, slen, blksz, off, nlen;
         u_char  *p, pt;
 
         UNUSED(pkt_pt);
@@ -616,7 +616,7 @@ redundancy_decoder_describe (u_int8   pkt_pt,
         slen = 0;
 
         p   = data;
-        hdr32 = ntohl(*((u_int32*)p));
+        hdr32 = ntohl(*((u_int32_t*)p));
         while (hdr32 & RED_HDR32_PAT) {
                 pt    = (u_char)RED_HDR32_GET_PT(hdr32);
                 off   = RED_HDR32_GET_OFF(hdr32);
@@ -625,7 +625,7 @@ redundancy_decoder_describe (u_int8   pkt_pt,
 
                 if (cid == 0) {
                         p += 4;
-                        hdr32 = ntohl(*((u_int32*)p));
+                        hdr32 = ntohl(*((u_int32_t*)p));
                         continue;
                 }
 
@@ -647,8 +647,8 @@ redundancy_decoder_describe (u_int8   pkt_pt,
                 slen++;
                 out[nlen+1] = '\0';
                 p += 4;
-                assert((u_int32)(p - data) < data_len);
-                hdr32 = ntohl(*((u_int32*)p));
+                assert((u_int32_t)(p - data) < data_len);
+                hdr32 = ntohl(*((u_int32_t*)p));
         }
 
         pt  = *p;
@@ -695,7 +695,7 @@ red_media_data_create_or_get(struct s_pb *p, ts_t playout)
 {
         struct s_pb_iterator *pi;
         media_data *md;
-        u_int32     md_len, success;
+        u_int32_t     md_len, success;
         ts_t        md_playout;
 
         pb_iterator_create(p, &pi);
@@ -726,7 +726,7 @@ static void
 red_split_unit(u_char  ppt,        /* Primary payload type */
                u_char  bpt,        /* Block payload type   */
                u_char *b,          /* Block pointer        */
-               u_int32 blen,       /* Block len            */
+               u_int32_t blen,       /* Block len            */
                ts_t    playout,    /* Block playout time   */
                struct s_pb *out)   /* media buffer         */
 {
@@ -773,7 +773,7 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
                         cu->state_len = 0;
                 }
 
-                cu->data_len = (u_int16)codec_peek_frame_size(cid, p, (u_int16)(pe - p));
+                cu->data_len = (u_int16_t)codec_peek_frame_size(cid, p, (u_int16_t)(pe - p));
                 cu->data     = block_alloc(cu->data_len);
                 memcpy(cu->data, p, cu->data_len);
                 p += cu->data_len;
@@ -790,14 +790,14 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
         const codec_format_t *cf;
         codec_id_t cid;
         u_char  *hp, *dp, *de, ppt, bpt;
-        u_int32 hdr32, blen, boff;
+        u_int32_t hdr32, blen, boff;
         ts_t ts_max_off, ts_blk_off, this_playout;
 
         hp = dp = chu->data;
         de = chu->data + chu->data_len;
 
         /* move data pointer past header */
-        while (ntohl(*((u_int32*)dp)) & RED_HDR32_PAT) {
+        while (ntohl(*((u_int32_t*)dp)) & RED_HDR32_PAT) {
                 dp += 4;
         }
 
@@ -826,7 +826,7 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
         cf = codec_get_format(cid);
         assert(cf != NULL);
 
-        hdr32 = ntohl(*(u_int32*)hp);
+        hdr32 = ntohl(*(u_int32_t*)hp);
         ts_max_off = ts_map32(cf->format.sample_rate, RED_HDR32_GET_OFF(hdr32));
 	blen = 0;
 
@@ -843,12 +843,12 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
                 red_split_unit(ppt, bpt, dp, blen, this_playout, out);
                 xmemchk();
                 dp += blen;
-                hdr32 = ntohl(*(u_int32*)hp);
+                hdr32 = ntohl(*(u_int32_t*)hp);
         }
         
         this_playout = ts_add(playout, ts_max_off);
         hp += 1;
-        blen = (u_int32) (de - dp);
+        blen = (u_int32_t) (de - dp);
         red_split_unit(ppt, ppt, dp, blen, this_playout, out);
         xmemchk();
 }
@@ -861,7 +861,7 @@ redundancy_decoder_decode(u_char      *state,
 {
         struct s_pb_iterator *pi;
         channel_data         *c;
-        u_int32               clen;
+        u_int32_t               clen;
         ts_t                  cplayout;
 
         pb_iterator_create(in, &pi);

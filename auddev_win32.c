@@ -55,7 +55,7 @@ static mcd_elem_t *control_list;
 #define MIX_MAX_CTLS 8
 #define MIX_MAX_GAIN 100
 
-static int32	play_vol, rec_vol;
+static int32_t	play_vol, rec_vol;
 static HMIXER   hMixer;
 
 static DWORD    dwRecLineID, dwVolLineID; 

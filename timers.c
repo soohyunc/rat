@@ -20,8 +20,8 @@
 
 typedef struct s_fast_time {
 	int freq;
-	u_int32	low;
-	u_int32 high;
+	u_int32_t	low;
+	u_int32_t high;
 } ft_t;
 
 typedef struct s_time {
@@ -48,9 +48,9 @@ free_fast_time(ft_t *ft)
 }
 
 void
-time_advance(ft_t *ft, int freq, u_int32 time)
+time_advance(ft_t *ft, int freq, u_int32_t time)
 {
-	u_int32 tmp = ft->low;
+	u_int32_t tmp = ft->low;
 	ft->low += time * ft->freq / freq;
 	if (ft->low < tmp)
 		ft->high++;
@@ -92,10 +92,10 @@ get_freq(frtime_t *tp)
 }
 
 /* Calculates time scaled to tp->freq units */
-u_int32
+u_int32_t
 get_time(frtime_t *tp)
 {
-	u_int32	t;
+	u_int32_t	t;
 	t = tp->ft->low / tp->scale + tp->ft->high * tp->scale;
 	return (t);
 }

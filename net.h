@@ -15,7 +15,7 @@
 #define _RAT_NET_H_
 
 void    network_process_mbus(struct s_session *sp);
-u_int32 ntp_time32(void);
+u_int32_t ntp_time32(void);
 
 #endif /* _RAT_NET_H_ */
 

@@ -19,7 +19,7 @@
 struct  s_pb;
 struct  s_pb_iterator;
 
-typedef void (*playoutfreeproc)(u_char** memblk, u_int32 blksize);
+typedef void (*playoutfreeproc)(u_char** memblk, u_int32_t blksize);
 
 /* All functions return TRUE on success, and FALSE on failure */
 int pb_create  (struct s_pb     **pb, 
@@ -29,7 +29,7 @@ int pb_destroy (struct s_pb **pb);
 
 int pb_add    (struct s_pb *pb, 
                u_char*      data, 
-               u_int32      datalen,
+               u_int32_t      datalen,
                ts_t         playout);
 
 void pb_flush (struct s_pb *pb);
@@ -39,13 +39,13 @@ int  pb_is_empty (struct s_pb *pb);
 /* pb_node_count is a debugging function to count (and verify) how
  * many nodes are used in a given playout buffer.
  */
-u_int32 pb_node_count (struct s_pb *pb);
+u_int32_t pb_node_count (struct s_pb *pb);
 
 void pb_shift_back(struct s_pb *pb, ts_t delta);
 void pb_shift_forward(struct s_pb *pb, ts_t delta);
 void pb_shift_units_back_after(struct s_pb *pb, ts_t ref_time, ts_t delta);
 
-u_int16 pb_iterator_count(struct s_pb *pb);
+u_int16_t pb_iterator_count(struct s_pb *pb);
 
 /*
  * These following three functions return data stored in the playout buffer.  
@@ -70,13 +70,13 @@ pb_iterator_dup (struct s_pb_iterator **pbi_dst,
 int
 pb_iterator_get_at (struct s_pb_iterator *pbi,
                     u_char              **data,
-                    u_int32              *datalen, 
+                    u_int32_t              *datalen, 
                     ts_t                 *playout);
 
 int
 pb_iterator_detach_at (struct s_pb_iterator *pbi,
                        u_char              **data,
-                       u_int32              *datalen, 
+                       u_int32_t              *datalen, 
                        ts_t                 *playout);
 
 /* Single step movements */

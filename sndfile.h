@@ -43,7 +43,7 @@ int  snd_read_close (struct s_sndfile **sf);
 
 int  snd_read_audio (struct s_sndfile **sf, 
                      sample *buf, 
-                     u_int16 buf_len);
+                     u_int16_t buf_len);
 
 int  snd_write_open (struct s_sndfile **sf,
                      char         *path,
@@ -54,7 +54,7 @@ int  snd_write_close (struct s_sndfile **sf);
 
 int  snd_write_audio (struct s_sndfile **sf, 
                       sample *buf, 
-                      u_int16 buf_len);
+                      u_int16_t buf_len);
 
 int  snd_pause (struct s_sndfile *sf);
 int  snd_resume (struct s_sndfile *sf);

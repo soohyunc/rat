@@ -198,8 +198,8 @@ noise_substitution(sample             **audio_buf,
 #define MAX_MATCH_WINDOW    64
 #define MIN_PITCH            5
 
-static u_int16 
-get_match_length(sample *buf, const audio_format *fmt, u_int16 window_length)
+static u_int16_t 
+get_match_length(sample *buf, const audio_format *fmt, u_int16_t window_length)
 {
         /* Only do first channel */
         float fwin[MAX_MATCH_WINDOW], fbuf[MAX_MATCH_WINDOW], fnorm, score, target = 1e6;
@@ -253,14 +253,14 @@ get_match_length(sample *buf, const audio_format *fmt, u_int16 window_length)
                         best_match = i / fmt->channels;
                 } 
         }
-        return (u_int16)(samples - best_match - window_length);
+        return (u_int16_t)(samples - best_match - window_length);
 }
 
 static int
 single_side_pattern_match(sample **audio_buf, const audio_format **audio_fmt, int nbufs,
                           int missing, int consec_lost)
 {
-        u_int16 match_length;
+        u_int16_t match_length;
         sample *pat, *dst;
         int remain;
 
@@ -319,7 +319,7 @@ static repair_scheme schemes[] = {
 #include "repair.h"
 
 const repair_details_t*
-repair_get_details(u_int16 i)
+repair_get_details(u_int16_t i)
 {
         if (i < REPAIR_NUM_SCHEMES) {
                 return &schemes[i].details;
@@ -327,7 +327,7 @@ repair_get_details(u_int16 i)
         return NULL;
 }
 
-u_int16
+u_int16_t
 repair_get_count()
 {
         return REPAIR_NUM_SCHEMES;
@@ -368,7 +368,7 @@ repair(repair_id_t                 r,
                 st = codec_state_store_get(states, prev->rep[0]->id);
                 success = codec_decoder_repair(prev->rep[0]->id, 
                                                st,
-                                               (u_int16)consec_lost,
+                                               (u_int16_t)consec_lost,
                                                prev->rep[0],
                                                missing,
                                                NULL);
@@ -384,7 +384,7 @@ repair(repair_id_t                 r,
                         const audio_format *pfmts[2];
                         audio_format        fmt;
                         coded_unit  *p;
-                        u_int16      rate, channels;
+                        u_int16_t      rate, channels;
                         sample      *bufs[2];
 
                         p = prev->rep[src];

@@ -25,8 +25,8 @@ int repair(repair_id_t                 r,
            coded_unit                  *missing);
 
 
-u_int16                 repair_get_count   (void);
-const repair_details_t *repair_get_details (u_int16 n);
+u_int16_t                 repair_get_count   (void);
+const repair_details_t *repair_get_details (u_int16_t n);
 
 void repair_set_codec_specific_allowed(int allowed);
 int  repair_get_codec_specific_allowed(void);

@@ -28,20 +28,20 @@
 typedef struct s_pdb pdb_t;
  
 typedef struct {
-        u_int32         ssrc;                        /* Unique Id */
+        u_int32_t         ssrc;                        /* Unique Id */
         u_char          first_mix:1;
         struct s_render_3D_dbentry  *render_3D_data; /* Participant 3d state */
         double          gain;                        /* Participant gain */
 	u_char		mute:1;                      /* source muted */
 	struct s_time  *clock;
-	u_int16		units_per_packet;
-        u_int16         inter_pkt_gap;               /* expected time between pkt arrivals */
+	u_int16_t		units_per_packet;
+        u_int16_t         inter_pkt_gap;               /* expected time between pkt arrivals */
         ts_t            frame_dur;
         u_char          enc;
         char*           enc_fmt;
         int             enc_fmt_len;
-        u_int32         last_ts;
-        u_int32         last_seq;
+        u_int32_t         last_ts;
+        u_int32_t         last_seq;
         ts_t            last_arr;                    /* ts_t representation of last_ts */
 
         /* Playout info */
@@ -58,10 +58,10 @@ typedef struct {
         ts_t            last_ui_update;              /* Used for periodic update of packet counts, etc */
 
         /* Packet info */
-        u_int32         received;
-        u_int32         duplicates;
-        u_int32         misordered;
-        u_int32         jit_toged;                   /* Packets discarded because late ("Thrown on ground") */
+        u_int32_t         received;
+        u_int32_t         duplicates;
+        u_int32_t         misordered;
+        u_int32_t         jit_toged;                   /* Packets discarded because late ("Thrown on ground") */
 
 	/* Variables for playout time calculation */
 	int		video_playout;		     /* Playout delay in the video tool -- for lip-sync [csp] */
@@ -70,9 +70,9 @@ typedef struct {
 
 	/* Mapping between rtp time and NTP time for this sender */
 	int             mapping_valid;
-	u_int32         last_ntp_sec;	/* NTP timestamp */
-	u_int32         last_ntp_frac;
-	u_int32         last_rtp_ts;	/* RTP timestamp */
+	u_int32_t         last_ntp_sec;	/* NTP timestamp */
+	u_int32_t         last_ntp_frac;
+	u_int32_t         last_rtp_ts;	/* RTP timestamp */
 } pdb_entry_t;
 
 /* Functions for creating and destroying persistent database.  Return
@@ -84,22 +84,22 @@ int pdb_destroy (pdb_t **p);
 /* pdb_get_{first,next}_id attempt to get keys from database.  Return
  * TRUE on succes and fill in id.  FALSE on failure.  */
 
-int pdb_get_first_id (pdb_t *p, u_int32 *id);
+int pdb_get_first_id (pdb_t *p, u_int32_t *id);
 
-int pdb_get_next_id  (pdb_t *p, u_int32 cur_id, u_int32 *next_id);
+int pdb_get_next_id  (pdb_t *p, u_int32_t cur_id, u_int32_t *next_id);
 
 /* Functions for manipulating persistent database items. id is key in
  * database and must be unique. */
 
-int     pdb_item_get     (pdb_t *p, u_int32 id, pdb_entry_t **item);
+int     pdb_item_get     (pdb_t *p, u_int32_t id, pdb_entry_t **item);
 
 int     pdb_item_create  (pdb_t *p, 
                           struct s_fast_time *clock, 
-                          u_int16 freq, 
-                          u_int32 id);
+                          u_int16_t freq, 
+                          u_int32_t id);
 
-int     pdb_item_destroy (pdb_t *p, u_int32 id);
+int     pdb_item_destroy (pdb_t *p, u_int32_t id);
 
-u_int32 pdb_item_count   (pdb_t *p);
+u_int32_t pdb_item_count   (pdb_t *p);
 
 #endif /* __PERSIST_DB_H__ */

@@ -167,7 +167,7 @@ audio_device_attempt_config(session_t *sp, audio_config *config)
 
         success = audio_open(config->device, inf, ouf);
         if (success) {
-                u_int16 unit_len;
+                u_int16_t unit_len;
                 assert(sp->device_clock == NULL);
                 assert(sp->ms           == NULL);
                 assert(sp->tb           == NULL);
@@ -179,7 +179,7 @@ audio_device_attempt_config(session_t *sp, audio_config *config)
                 sp->device_clock = new_time(sp->clock, inf->sample_rate);
                 sp->meter_period = inf->sample_rate / 15;
                 unit_len         = inf->bytes_per_block * 8 / (inf->bits_per_sample*inf->channels); 
-                tx_create(&sp->tb, sp, sp->device_clock, (u_int16)unit_len, (u_int16)inf->channels);
+                tx_create(&sp->tb, sp, sp->device_clock, (u_int16_t)unit_len, (u_int16_t)inf->channels);
                 cushion_create(&sp->cushion, unit_len);
                 mix_create(&sp->ms, ouf->sample_rate, ouf->channels, 32640);
 
@@ -345,7 +345,7 @@ audio_device_write(session_t *sp, sample *buf, int dur)
         assert(dur >= 0);
 
         if (sp->out_file) {
-                snd_write_audio(&sp->out_file, buf, (u_int16)(dur * ofmt->channels));
+                snd_write_audio(&sp->out_file, buf, (u_int16_t)(dur * ofmt->channels));
         }
 
         len =  audio_write(sp->audio_device, buf, dur * ofmt->channels);
@@ -361,7 +361,7 @@ audio_device_write(session_t *sp, sample *buf, int dur)
 int
 audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
 {
-        u_int32 cushion_size, read_dur;
+        u_int32_t cushion_size, read_dur;
         struct s_cushion_struct *c;
 	int	trailing_silence, new_cushion, cushion_step, diff;
         const audio_format* ofmt;
@@ -439,7 +439,7 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
                     mix_active(ms) == FALSE && 
                     source_list_source_count(spi->active_sources) == 0) {
                         /* Only decrease cushion if not playing anything out */
-                        u_int32 old_cushion;
+                        u_int32_t old_cushion;
                         old_cushion = cushion_get_size(c);
                         if (read_dur > (unsigned)cushion_step) {
                                 cushion_step_down(c);

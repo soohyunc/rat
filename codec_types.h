@@ -16,7 +16,7 @@
 
 #define CODEC_PAYLOAD_DYNAMIC   255
 
-typedef u_int32 codec_id_t;
+typedef u_int32_t codec_id_t;
 
 typedef struct {
         u_char    *state;
@@ -32,17 +32,17 @@ typedef struct s_codec_format {
         char         long_name[CODEC_LONG_NAME_LEN];
         char         description[CODEC_DESCRIPTION_LEN];
         u_char       default_pt;
-        u_int16      mean_per_packet_state_size;
-        u_int16      mean_coded_frame_size;
+        u_int16_t      mean_per_packet_state_size;
+        u_int16_t      mean_coded_frame_size;
         const audio_format format;
 } codec_format_t;
 
 typedef struct s_coded_unit {
         codec_id_t id;
 	u_char  *state;
-	u_int16  state_len;
+	u_int16_t  state_len;
 	u_char	*data;
-	u_int16  data_len;
+	u_int16_t  data_len;
 } coded_unit;
 
 #define MAX_MEDIA_UNITS  5
@@ -50,16 +50,16 @@ typedef struct s_coded_unit {
  * coded audio for a given time interval.
  */
 typedef struct {
-        u_int8      nrep;
+        u_int8_t      nrep;
         coded_unit *rep[MAX_MEDIA_UNITS];
 } media_data;
 
 int  media_data_create    (media_data **m, int nrep);
-void media_data_destroy   (media_data **m, u_int32 md_size);
+void media_data_destroy   (media_data **m, u_int32_t md_size);
 
 int  coded_unit_dup       (coded_unit *dst, coded_unit *src);
 
-void coded_unit_layer_split (coded_unit *in, coded_unit *out, u_int8 layer, u_int8 *layer_markers);
+void coded_unit_layer_split (coded_unit *in, coded_unit *out, u_int8_t layer, u_int8_t *layer_markers);
 
 #endif /* _CODEC_TYPES_H_ */
 

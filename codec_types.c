@@ -45,7 +45,7 @@ media_data_create(media_data **ppmd, int nrep)
 }
 
 void 
-media_data_destroy(media_data **ppmd, u_int32 md_size)
+media_data_destroy(media_data **ppmd, u_int32_t md_size)
 {
         media_data *pmd;
         coded_unit *pcu;
@@ -113,12 +113,12 @@ coded_unit_dup(coded_unit *dst, coded_unit *src)
 
 
 void
-coded_unit_layer_split(coded_unit *in, coded_unit *out, u_int8 layer, u_int8 *layer_markers)
+coded_unit_layer_split(coded_unit *in, coded_unit *out, u_int8_t layer, u_int8_t *layer_markers)
 {
-        u_int16 tmp_datalen;
-        u_int8 i;
+        u_int16_t tmp_datalen;
+        u_int8_t i;
 
-        tmp_datalen = (u_int16)(layer_markers[layer] - layer_markers[layer-1]);
+        tmp_datalen = (u_int16_t)(layer_markers[layer] - layer_markers[layer-1]);
 
         out->data = (u_char*)block_alloc(tmp_datalen);
         out->data_len = tmp_datalen;

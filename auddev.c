@@ -342,7 +342,7 @@ audio_if_t audio_if_table[] = {
  * audio interfaces table.  Audio open returns index to these */
 static audio_desc_t active_device_desc[INITIAL_AUDIO_INTERFACES];
 static int active_devices;
-static u_int32 actual_devices, actual_interfaces;
+static u_int32_t actual_devices, actual_interfaces;
 static audio_device_details_t *dev_details;
 
 #define MAX_ACTIVE_DEVICES   2
@@ -362,7 +362,7 @@ static audio_format* fmts[MAX_ACTIVE_DEVICES][AUDDEV_NUM_FORMATS];
 static sample*       convert_buf[MAX_ACTIVE_DEVICES]; /* used if conversions used */
 
 /* Counters for samples read/written */
-static u_int32 samples_read[MAX_ACTIVE_DEVICES], samples_written[MAX_ACTIVE_DEVICES];
+static u_int32_t samples_read[MAX_ACTIVE_DEVICES], samples_written[MAX_ACTIVE_DEVICES];
 
 /* We map indexes outside range for file descriptors so people don't attempt
  * to circumvent audio interface.  If something is missing it should be added
@@ -383,14 +383,14 @@ static u_int32 samples_read[MAX_ACTIVE_DEVICES], samples_written[MAX_ACTIVE_DEVI
  *
  *****************************************************************************/
 
-u_int32
+u_int32_t
 audio_get_device_count()
 {
         return actual_devices;
 }
 
 const audio_device_details_t *
-audio_get_device_details(u_int32 idx)
+audio_get_device_details(u_int32_t idx)
 {
         assert(idx < actual_devices);
 
@@ -991,7 +991,7 @@ audio_wait_for(audio_desc_t ad, int delay_ms)
 /* Code for adding/initialising/removing audio ifaces */
 
 int
-audio_device_supports(audio_desc_t ad, u_int16 rate, u_int16 channels)
+audio_device_supports(audio_desc_t ad, u_int16_t rate, u_int16_t channels)
 {
         int iface, device;
 
@@ -1019,11 +1019,11 @@ audio_device_supports(audio_desc_t ad, u_int16 rate, u_int16 channels)
         return TRUE;
 }
 
-u_int32
+u_int32_t
 audio_get_device_time(audio_desc_t ad)
 {
         audio_format *fmt;
-        u_int32       samples_per_block;
+        u_int32_t       samples_per_block;
         int dev = get_active_device_index(ad);
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
@@ -1040,7 +1040,7 @@ audio_get_device_time(audio_desc_t ad)
         return (samples_read[dev]/samples_per_block) * samples_per_block;
 }
 
-u_int32
+u_int32_t
 audio_get_samples_read(audio_desc_t ad)
 {
         int dev = get_active_device_index(ad);
@@ -1049,7 +1049,7 @@ audio_get_samples_read(audio_desc_t ad)
         return samples_read[dev];
 }
 
-u_int32
+u_int32_t
 audio_get_samples_written(audio_desc_t ad)
 {
         int dev = get_active_device_index(ad);
@@ -1062,7 +1062,7 @@ int
 audio_init_interfaces(void)
 {
         static int inited = 0;
-        u_int32 i, j, k, n, devs[INITIAL_AUDIO_INTERFACES];
+        u_int32_t i, j, k, n, devs[INITIAL_AUDIO_INTERFACES];
 
         if (inited) {
                 return 0;
@@ -1114,7 +1114,7 @@ audio_init_interfaces(void)
 int
 audio_free_interfaces(void)
 {
-        u_int32 i;
+        u_int32_t i;
 
         for(i = 0; i < INITIAL_AUDIO_INTERFACES; i++) {
                 if (audio_if_table[i].audio_if_free) {

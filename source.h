@@ -30,23 +30,23 @@ void             source_list_destroy (struct s_source_list **pplist);
 
 void             source_list_clear   (struct s_source_list *plist);
 
-u_int32          source_list_source_count(struct s_source_list *plist);
+u_int32_t          source_list_source_count(struct s_source_list *plist);
 
 struct s_source* source_list_get_source_no (struct s_source_list *plist,
-                                            u_int32               src_no);
+                                            u_int32_t               src_no);
 
 struct s_source* source_get_by_ssrc (struct s_source_list  *list,
-                                     u_int32                ssrc);
+                                     u_int32_t                ssrc);
 
 struct s_source* source_create             (struct s_source_list  *list, 
-                                            u_int32                ssrc,
+                                            u_int32_t                ssrc,
 					    pdb_t		  *pdb);
 
 void             source_reconfigure        (struct s_source* src,
                                             converter_id_t   current_id,
                                             int              render_3D_enabled,
-                                            u_int16          out_rate,
-                                            u_int16          out_channels);
+                                            u_int16_t          out_rate,
+                                            u_int16_t          out_channels);
 
 void             source_remove             (struct s_source_list *list,
                                             struct s_source      *src);
@@ -79,6 +79,6 @@ double           source_get_skew_rate      (struct s_source *src);
 struct s_pb*
                  source_get_decoded_buffer (struct s_source *src);
 
-u_int32          source_get_ssrc           (struct s_source *src);
+u_int32_t          source_get_ssrc           (struct s_source *src);
 
 #endif /* __SOURCE_H__ */

@@ -45,7 +45,7 @@ typedef struct {
         const char  *name;
 } audio_device_details_t;
 
-typedef u_int32 audio_port_t;
+typedef u_int32_t audio_port_t;
 
 #define AUDIO_PORT_NAME_LENGTH 20
 

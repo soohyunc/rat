@@ -119,7 +119,7 @@ get_session(struct rtp *rtps)
 /* Callback utility functions                                                */
 
 static void
-process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
+process_rtp_data(session_t *sp, u_int32_t ssrc, rtp_packet *p)
 {
         struct s_source *s;
         pdb_entry_t     *e;
@@ -162,9 +162,9 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
 }
 
 static void
-process_rr(session_t *sp, u_int32 ssrc, rtcp_rr *r)
+process_rr(session_t *sp, u_int32_t ssrc, rtcp_rr *r)
 {
-        u_int32 fract_lost;
+        u_int32_t fract_lost;
         /* Just update loss statistic in UI for this report if there */
         /* is somewhere to send them.                                */
         if (sp->mbus_engine != NULL) {
@@ -175,7 +175,7 @@ process_rr(session_t *sp, u_int32 ssrc, rtcp_rr *r)
 
 
 static void
-process_rr_timeout(session_t *sp, u_int32 ssrc, rtcp_rr *r)
+process_rr_timeout(session_t *sp, u_int32_t ssrc, rtcp_rr *r)
 {
         /* Just update loss statistic in UI for this report if there */
         /* is somewhere to send them.                                */
@@ -185,7 +185,7 @@ process_rr_timeout(session_t *sp, u_int32 ssrc, rtcp_rr *r)
 }
 
 static void
-process_sdes(session_t *sp, u_int32 ssrc, rtcp_sdes_item *d)
+process_sdes(session_t *sp, u_int32_t ssrc, rtcp_sdes_item *d)
 {
         pdb_entry_t *e;
 
@@ -231,15 +231,15 @@ process_sdes(session_t *sp, u_int32 ssrc, rtcp_sdes_item *d)
 }
 
 static void
-process_create(session_t *sp, u_int32 ssrc)
+process_create(session_t *sp, u_int32_t ssrc)
 {
-	if (pdb_item_create(sp->pdb, sp->clock, (u_int16)get_freq(sp->device_clock), ssrc) == FALSE) {
+	if (pdb_item_create(sp->pdb, sp->clock, (u_int16_t)get_freq(sp->device_clock), ssrc) == FALSE) {
 		debug_msg("Unable to create source 0x%08lx\n", ssrc);
 	}
 }
 
 static void
-process_delete(session_t *sp, u_int32 ssrc)
+process_delete(session_t *sp, u_int32_t ssrc)
 {
         if (ssrc != rtp_my_ssrc(sp->rtp_session[0]) &&
             sp->mbus_engine != NULL) {
@@ -259,7 +259,7 @@ rtp_callback(struct rtp *s, rtp_event *e)
         if (sp == NULL) {
                 /* Should only happen when SOURCE_CREATED is generated in */
                 /* rtp_init.                                              */
-                debug_msg("Could not find session (0x%08x)\n", (u_int32)s);
+                debug_msg("Could not find session (0x%08x)\n", (u_int32_t)s);
                 return;
         }
 

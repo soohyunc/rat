@@ -23,8 +23,8 @@ struct s_channel_state;
  * and channel_get_coder_details copies details of idx'th coder into ccd.
  */
 
-u_int32             channel_get_coder_count   (void);
-const cc_details_t* channel_get_coder_details (u_int32 idx);
+u_int32_t             channel_get_coder_count   (void);
+const cc_details_t* channel_get_coder_details (u_int32_t idx);
 const cc_details_t* channel_get_null_coder    (void);
 
 /* channel_get_coder_identity fills coder name and descriptor into ccd */
@@ -44,8 +44,8 @@ int       _channel_coder_reset       (struct s_channel_state *cs,  int is_encode
 #define   channel_encoder_destroy(cs)     _channel_coder_destroy (cs, TRUE)
 #define   channel_encoder_reset(cs)       _channel_coder_reset   (cs, TRUE)
 
-int       channel_encoder_set_units_per_packet (struct s_channel_state *cs, u_int16);
-u_int16   channel_encoder_get_units_per_packet (struct s_channel_state *cs);
+int       channel_encoder_set_units_per_packet (struct s_channel_state *cs, u_int16_t);
+u_int16_t   channel_encoder_get_units_per_packet (struct s_channel_state *cs);
 
 int       channel_encoder_set_parameters (struct s_channel_state *cs, char *cmd);
 int       channel_encoder_get_parameters (struct s_channel_state *cs, char *cmd, int cmd_len);
@@ -67,31 +67,31 @@ int       channel_decoder_decode (struct s_channel_state  *cs,
 int       channel_decoder_matches (cc_id_t                 cid, 
                                    struct s_channel_state *cs);
 
-int       channel_get_compatible_codec (u_int8  pt, 
+int       channel_get_compatible_codec (u_int8_t  pt, 
                                         u_char *data, 
-                                        u_int32 data_len);
+                                        u_int32_t data_len);
 
 int       channel_verify_and_stat (cc_id_t  cid,
-                                   u_int8   pktpt,
+                                   u_int8_t   pktpt,
                                    u_char  *data,
-                                   u_int32  data_len,
-                                   u_int16 *units_per_packet,
+                                   u_int32_t  data_len,
+                                   u_int16_t *units_per_packet,
                                    u_char  *codec_pt);
 
 int       channel_describe_data   (cc_id_t cid,
-                                   u_int8  pktpt,
+                                   u_int8_t  pktpt,
                                    u_char *data,
-                                   u_int32 data_len,
+                                   u_int32_t data_len,
                                    char   *outstr,
-                                   u_int32 out_len);
+                                   u_int32_t out_len);
                                    
 
 /* Payload mapping functions */
-cc_id_t   channel_coder_get_by_payload (u_int8 pt);
-u_int8    channel_coder_get_payload    (struct s_channel_state* st, u_int8 media_pt);   
-int       channel_coder_exist_payload  (u_int8 pt);
+cc_id_t   channel_coder_get_by_payload (u_int8_t pt);
+u_int8_t    channel_coder_get_payload    (struct s_channel_state* st, u_int8_t media_pt);   
+int       channel_coder_exist_payload  (u_int8_t pt);
 
 /* Layered coding functions */
-u_int8    channel_coder_get_layers     (cc_id_t cid);
+u_int8_t    channel_coder_get_layers     (cc_id_t cid);
 
 #endif /* __NEW_CHANNEL_H__ */

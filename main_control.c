@@ -383,7 +383,7 @@ int main(int argc, char *argv[])
 	srand48(seed);
 
 	m = mbus_init(mbus_control_rx, mbus_err_handler);
-	snprintf(c_addr, 60, "(media:audio module:control app:rat instance:%lu)", (u_int32) getpid());
+	snprintf(c_addr, 60, "(media:audio module:control app:rat instance:%lu)", (unsigned long) getpid());
 	mbus_addr(m, c_addr);
 
 	sprintf(token_ui,     "rat-token-%08lx", lrand48());

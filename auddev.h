@@ -23,11 +23,11 @@
 /* Audio interface fn's for dealing with multiple devices/device interfaces */
 int     audio_init_interfaces    (void);
 int     audio_free_interfaces    (void);
-u_int32 audio_get_device_count   (void);
+u_int32_t audio_get_device_count   (void);
 const audio_device_details_t*
-        audio_get_device_details (u_int32 idx);
+        audio_get_device_details (u_int32_t idx);
 int     audio_get_null_device    (void); /* gets null dev interface */
-int     audio_device_supports    (audio_desc_t ad, u_int16 rate, u_int16 channels);
+int     audio_device_supports    (audio_desc_t ad, u_int16_t rate, u_int16_t channels);
 int     audio_device_is_open     (audio_desc_t ad);
 
 /* Audio functions implemented by device interfaces */
@@ -67,8 +67,8 @@ const audio_format* audio_get_ofmt (audio_desc_t ad);
  * number of whole sample blocks.
  */
 
-u_int32 audio_get_device_time     (audio_desc_t ad);
-u_int32 audio_get_samples_written (audio_desc_t ad);
-u_int32 audio_get_samples_read    (audio_desc_t ad);
+u_int32_t audio_get_device_time     (audio_desc_t ad);
+u_int32_t audio_get_samples_written (audio_desc_t ad);
+u_int32_t audio_get_samples_read    (audio_desc_t ad);
 
 #endif /* _AUDDEV_H_ */

@@ -19,16 +19,16 @@
 
 struct s_pktbuf {
         rtp_packet **buf;    /* Pointer to rtp packets                      */
-        u_int16      insert; /* Next insertion point (FIFO circular buffer) */
-        u_int16      buflen; /* Max number of packets                       */
-        u_int16      used;   /* Actual number of packets buffered           */
+        u_int16_t      insert; /* Next insertion point (FIFO circular buffer) */
+        u_int16_t      buflen; /* Max number of packets                       */
+        u_int16_t      used;   /* Actual number of packets buffered           */
 };
 
 int
-pktbuf_create(struct s_pktbuf **ppb, u_int16 size)
+pktbuf_create(struct s_pktbuf **ppb, u_int16_t size)
 {
         struct s_pktbuf *pb;
-        u_int32          i;
+        u_int32_t          i;
         
         pb = (struct s_pktbuf*)xmalloc(sizeof(struct s_pktbuf));
         if (pb == NULL) {
@@ -57,7 +57,7 @@ void
 pktbuf_destroy(struct s_pktbuf **ppb)
 {
         struct s_pktbuf *pb;
-        u_int32 i;
+        u_int32_t i;
 
         pb = *ppb;
         for(i = 0; i < pb->buflen; i++) {
@@ -96,7 +96,7 @@ pktbuf_enqueue(struct s_pktbuf *pb, rtp_packet *p)
 int 
 pktbuf_dequeue(struct s_pktbuf *pb, rtp_packet **pp)
 {
-        u_int32 idx = (pb->insert + pb->buflen - pb->used) % pb->buflen;
+        u_int32_t idx = (pb->insert + pb->buflen - pb->used) % pb->buflen;
 
         *pp = pb->buf[idx];
         if (*pp) {
@@ -108,9 +108,9 @@ pktbuf_dequeue(struct s_pktbuf *pb, rtp_packet **pp)
 }
 
 static int 
-timestamp_greater(u_int32 t1, u_int32 t2)
+timestamp_greater(u_int32_t t1, u_int32_t t2)
 {
-        u_int32 delta = t1 - t2;
+        u_int32_t delta = t1 - t2;
         
         if (delta < 0x7fffffff && delta != 0) {
                 return TRUE;
@@ -122,7 +122,7 @@ int
 pktbuf_peak_last(pktbuf_t   *pb,
                  rtp_packet **pp)
 {
-        u_int32     idx, max_idx;
+        u_int32_t     idx, max_idx;
 
         max_idx = idx = (pb->insert + pb->buflen - pb->used) % pb->buflen;
         if (pb->buf[idx] == NULL) {
@@ -144,7 +144,7 @@ pktbuf_peak_last(pktbuf_t   *pb,
         return TRUE;
 }
 
-u_int16 
+u_int16_t 
 pktbuf_get_count(pktbuf_t *pb)
 {
         return pb->used;

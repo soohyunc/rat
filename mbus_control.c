@@ -92,7 +92,7 @@ static const mbus_cmd_tuple control_cmds[] = {
 
 void mbus_control_rx(char *srce, char *cmnd, char *args, void *data)
 {
-	u_int32 i;
+	u_int32_t i;
 
 	for (i=0; i < NUM_CONTROL_CMDS; i++) {
 		if (strcmp(control_cmds[i].rxname, cmnd) == 0) {

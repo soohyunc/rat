@@ -26,14 +26,14 @@ static codec_format_t cs[] = {
 
 #define LPC_NUM_FORMATS (sizeof(cs)/sizeof(codec_format_t))
 
-u_int16
+u_int16_t
 lpc_get_formats_count()
 {
         return LPC_NUM_FORMATS;
 }
 
 const codec_format_t*
-lpc_get_format(u_int16 idx)
+lpc_get_format(u_int16_t idx)
 {
         assert(idx < LPC_NUM_FORMATS);
         return &cs[idx];
@@ -46,7 +46,7 @@ lpc_setup(void)
 }
 
 int
-lpc_encoder_state_create(u_int16 idx, u_char **state)
+lpc_encoder_state_create(u_int16_t idx, u_char **state)
 {
         assert(idx < LPC_NUM_FORMATS);
         UNUSED(idx);
@@ -56,7 +56,7 @@ lpc_encoder_state_create(u_int16 idx, u_char **state)
 }
 
 void
-lpc_encoder_state_destroy(u_int16 idx, u_char **state)
+lpc_encoder_state_destroy(u_int16_t idx, u_char **state)
 {
         assert(idx < LPC_NUM_FORMATS);
         UNUSED(idx);
@@ -66,7 +66,7 @@ lpc_encoder_state_destroy(u_int16 idx, u_char **state)
 }
 
 int
-lpc_decoder_state_create(u_int16 idx, u_char **state)
+lpc_decoder_state_create(u_int16_t idx, u_char **state)
 {
         assert(idx < LPC_NUM_FORMATS);
         UNUSED(idx);
@@ -76,7 +76,7 @@ lpc_decoder_state_create(u_int16 idx, u_char **state)
 }
 
 void
-lpc_decoder_state_destroy(u_int16 idx, u_char **state)
+lpc_decoder_state_destroy(u_int16_t idx, u_char **state)
 {
         assert(idx < LPC_NUM_FORMATS);
         UNUSED(idx);
@@ -86,7 +86,7 @@ lpc_decoder_state_destroy(u_int16 idx, u_char **state)
 }
 
 int
-lpc_encoder  (u_int16 idx, u_char *state, sample *in, coded_unit *out)
+lpc_encoder  (u_int16_t idx, u_char *state, sample *in, coded_unit *out)
 {
         assert(idx < LPC_NUM_FORMATS);
         assert(in);
@@ -106,7 +106,7 @@ lpc_encoder  (u_int16 idx, u_char *state, sample *in, coded_unit *out)
 }
 
 int
-lpc_decoder (u_int16 idx, u_char *state, coded_unit *in, sample *out)
+lpc_decoder (u_int16_t idx, u_char *state, coded_unit *in, sample *out)
 {
         assert(idx < LPC_NUM_FORMATS);
         assert(state);
@@ -121,7 +121,7 @@ lpc_decoder (u_int16 idx, u_char *state, coded_unit *in, sample *out)
 }
 
 int  
-lpc_repair (u_int16 idx, u_char *state, u_int16 consec_lost,
+lpc_repair (u_int16_t idx, u_char *state, u_int16_t consec_lost,
             coded_unit *prev, coded_unit *missing, coded_unit *next)
 {
         lpc_txstate_t *lps;

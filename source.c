@@ -63,15 +63,15 @@ typedef struct s_source {
         struct s_source            *next;
         struct s_source            *prev;
         pdb_entry_t                *pdbe;       /* persistent database entry */
-        u_int32                     age;
+        u_int32_t                     age;
         ts_t                        next_played; /* anticipated next unit    */
         ts_t                        last_repair;
         ts_t                        talkstart;  /* start of latest talkspurt */
-        u_int32                     post_talkstart_units;
-        u_int16                     consec_lost;
-        u_int32                     mean_energy;
+        u_int32_t                     post_talkstart_units;
+        u_int16_t                     consec_lost;
+        u_int32_t                     mean_energy;
         struct s_pktbuf            *pktbuf;
-        u_int32                     packets_done;
+        u_int32_t                     packets_done;
         struct s_channel_state     *channel_state;
         struct s_codec_state_store *codec_states;
         struct s_pb                *channel;
@@ -83,15 +83,15 @@ typedef struct s_source {
         skew_t 			    skew;
         ts_t   			    skew_adjust;
         /* Skew stats                                                        */
-        int32                       samples_played;
-        int32                       samples_added;
+        int32_t                       samples_played;
+        int32_t                       samples_added;
         /* b/w estimation variables                                          */
-        u_int32                     byte_count;
+        u_int32_t                     byte_count;
         ts_t                        byte_count_start;
         double                      bps;
         /* Playout stats (most in pdb_entry_t)                               */
 	u_char                      toged_cont;	     /* Toged in a row       */
-        u_int16                     toged_mask;      /* bitmap hist. of tog  */
+        u_int16_t                     toged_mask;      /* bitmap hist. of tog  */
 } source;
 
 /* A linked list is used for sources and this is fine since we mostly expect */
@@ -100,7 +100,7 @@ typedef struct s_source {
 
 typedef struct s_source_list {
         source  sentinel;
-        u_int16 nsrcs;
+        u_int16_t nsrcs;
 } source_list;
 
 /*****************************************************************************/
@@ -141,14 +141,14 @@ source_list_destroy(source_list **pplist)
         *pplist = NULL;
 }
 
-u_int32
+u_int32_t
 source_list_source_count(source_list *plist)
 {
         return plist->nsrcs;
 }
 
 source*
-source_list_get_source_no(source_list *plist, u_int32 n)
+source_list_get_source_no(source_list *plist, u_int32_t n)
 {
         source *curr = NULL;
 
@@ -166,7 +166,7 @@ source_list_get_source_no(source_list *plist, u_int32 n)
 }
 
 source*
-source_get_by_ssrc(source_list *plist, u_int32 ssrc)
+source_get_by_ssrc(source_list *plist, u_int32_t ssrc)
 {
         source *curr = NULL, *stop = NULL;
         
@@ -217,7 +217,7 @@ time_constants_init()
 
 source*
 source_create(source_list    *plist, 
-              u_int32         ssrc,
+              u_int32_t         ssrc,
 	      pdb_t	     *pdb)
 {
         source *psrc;
@@ -320,10 +320,10 @@ void
 source_reconfigure(source        *src,
                    converter_id_t conv_id,
                    int            render_3d,
-                   u_int16        out_rate,
-                   u_int16        out_channels)
+                   u_int16_t        out_rate,
+                   u_int16_t        out_channels)
 {
-        u_int16    src_rate, src_channels;
+        u_int16_t    src_rate, src_channels;
         codec_id_t            src_cid;
         const codec_format_t *src_cf;
 
@@ -342,8 +342,8 @@ source_reconfigure(source        *src,
          */
         src_cid = codec_get_by_payload(src->pdbe->enc);
         src_cf  = codec_get_format(src_cid);
-        src_rate     = (u_int16)src_cf->format.sample_rate;
-        src_channels = (u_int16)src_cf->format.channels;
+        src_rate     = (u_int16_t)src_cf->format.sample_rate;
+        src_channels = (u_int16_t)src_cf->format.channels;
 
         if (render_3d) {
                 assert(out_channels == 2);
@@ -428,14 +428,14 @@ source_remove(source_list *plist, source *psrc)
 static int
 source_process_packet (source *src, 
                        u_char *pckt, 
-                       u_int32 pckt_len, 
-                       u_int8  payload,
+                       u_int32_t pckt_len, 
+                       u_int8_t  payload,
                        ts_t    playout)
 {
         channel_data *cd;
         channel_unit *cu;
         cc_id_t       cid;
-        u_int8        clayers;
+        u_int8_t        clayers;
 
         assert(src != NULL);
         assert(pckt != NULL);
@@ -460,8 +460,8 @@ source_process_packet (source *src,
         clayers = channel_coder_get_layers(cid);
         if (clayers > 1) {
                 struct s_pb_iterator *pi;
-                u_int8 i;
-                u_int32 clen;
+                u_int8_t i;
+                u_int32_t clen;
                 int dup;
                 ts_t lplayout;
                 pb_iterator_create(src->channel, &pi);
@@ -563,7 +563,7 @@ done:
 #ifdef SOURCE_LOG_PLAYOUT
 
 static FILE *psf; /* Playout stats file */
-static u_int32 t0;
+static u_int32_t t0;
 
 static void
 source_close_log(void)
@@ -575,7 +575,7 @@ source_close_log(void)
 }
 
 static void
-source_playout_log(source *src, u_int32 ts)
+source_playout_log(source *src, u_int32_t ts)
 {
         if (psf == NULL) {
                 psf = fopen("playout.log", "w");
@@ -623,8 +623,8 @@ source_process_packets(session_t *sp, source *src, ts_t now)
         pdb_entry_t     *e;
         rtp_packet      *p;
         cc_id_t          ccid = -1;
-        u_int16          units_per_packet = -1;
-        u_int32          delta_ts, delta_seq;
+        u_int16_t          units_per_packet = -1;
+        u_int32_t          delta_ts, delta_seq;
         u_char           codec_pt;
         int              adjust_playout;
 
@@ -653,7 +653,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         const codec_format_t *cf;
                         const audio_format   *dev_fmt;
                         codec_id_t           cid;
-                        u_int32              samples_per_frame;
+                        u_int32_t              samples_per_frame;
 
                         cid = codec_get_by_payload(codec_pt);
                         cf  = codec_get_format(cid);
@@ -665,7 +665,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         e->channel_coder_id = ccid;        
                         samples_per_frame   = codec_get_samples_per_frame(cid);
                         debug_msg("Samples per frame %d rate %d\n", samples_per_frame, cf->format.sample_rate);
-                        e->inter_pkt_gap    = e->units_per_packet * (u_int16)samples_per_frame;
+                        e->inter_pkt_gap    = e->units_per_packet * (u_int16_t)samples_per_frame;
                         e->frame_dur        = ts_map32(cf->format.sample_rate, samples_per_frame);
 
                         debug_msg("Encoding change\n");
@@ -681,8 +681,8 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         source_reconfigure(src, 
                                            sp->converter, 
                                            sp->render_3d,
-                                           (u_int16)dev_fmt->sample_rate,
-                                           (u_int16)dev_fmt->channels);
+                                           (u_int16_t)dev_fmt->sample_rate,
+                                           (u_int16_t)dev_fmt->channels);
                         adjust_playout = TRUE;
                 }
                 
@@ -848,8 +848,8 @@ source_get_bps(source *src)
 static ts_t
 recommend_drop_dur(media_data *md) 
 {
-        u_int32 score, lowest_score, lowest_begin;
-        u_int16 rate, channels;
+        u_int32_t score, lowest_score, lowest_begin;
+        u_int16_t rate, channels;
         sample *buffer;
         int i, j,samples;
 
@@ -896,9 +896,9 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         /* We are dropping drop_dur samples and want signal to be            */
         /* continuous.  So we blend samples that would have been played if   */
         /* they weren't dropped with where signal continues after the drop.  */
-        u_int32 drop_samples;
-        u_int16 rate, channels;
-        int32 tmp, a, b, i, merge_len;
+        u_int32_t drop_samples;
+        u_int16_t rate, channels;
+        int32_t tmp, a, b, i, merge_len;
         sample *new_start, *old_start;
 
         i = md->nrep - 1;
@@ -972,8 +972,8 @@ source_check_buffering(source *src)
 static skew_t
 source_skew_adapt(source *src, media_data *md, ts_t playout)
 {
-        u_int32 i, e = 0, samples = 0;
-        u_int16 rate, channels;
+        u_int32_t i, e = 0, samples = 0;
+        u_int16_t rate, channels;
         ts_t adjustment;
 
         assert(src);
@@ -1081,7 +1081,7 @@ source_repair(source     *src,
 {
         media_data* fill_md, *prev_md;
         ts_t        prev_ts;
-        u_int32     success,  prev_len;
+        u_int32_t     success,  prev_len;
 
         /* We repair one unit at a time since it may be all we need */
         if (pb_iterator_retreat(src->media_pos) == FALSE) {
@@ -1137,10 +1137,10 @@ source_process(session_t *sp,
         media_data  *md;
         coded_unit  *cu;
         codec_state *cs;
-        u_int32     md_len;
+        u_int32_t     md_len;
         ts_t        playout, step;
         int         i, success, hold_repair = 0;
-        u_int16     sample_rate, channels;
+        u_int16_t     sample_rate, channels;
 
         /* Note: hold_repair is used to stop repair occuring.
          * Occasionally, there is a race condition when the playout
@@ -1368,7 +1368,7 @@ source_get_decoded_buffer(source *src)
         return src->media;
 }
 
-u_int32
+u_int32_t
 source_get_ssrc(source *src)
 {
         return src->pdbe->ssrc;

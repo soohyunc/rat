@@ -307,7 +307,7 @@ render_3D(render_3D_dbentry *p_3D_data, coded_unit *in, coded_unit *out)
         sample   *proc_buf;
         sample   *mono_raw = NULL, *mono_filtered;  /* auxiliary buffers in case of stereo */
         int       mono_buf_len = 0; /* Mono buffer length in samples */
-        u_int16   n_channels, n_rate;
+        u_int16_t   n_channels, n_rate;
 
         assert(codec_is_native_coding(in->id));
 
@@ -341,7 +341,7 @@ render_3D(render_3D_dbentry *p_3D_data, coded_unit *in, coded_unit *out)
                 /* Convert stereo input to mono input */
                 {
                         sample *s, *d;
-                        int32   tmp,i,j;
+                        int32_t   tmp,i,j;
                         s  = (sample*)in->data;
                         d  = mono_raw;
 

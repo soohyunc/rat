@@ -167,7 +167,7 @@ linear_init_state(li_state_t *l, int channels, int src_freq, int dst_freq)
 }
 
 int 
-linear_create (const converter_fmt_t *cfmt, u_char **state, u_int32 *state_len)
+linear_create (const converter_fmt_t *cfmt, u_char **state, u_int32_t *state_len)
 {
         li_state_t *l;
         int denom, steps, g;
@@ -264,7 +264,7 @@ linear_convert (const converter_fmt_t *cfmt,
 }
 
 void 
-linear_destroy (u_char **state, u_int32 *state_len)
+linear_destroy (u_char **state, u_int32_t *state_len)
 {
         int i;
 

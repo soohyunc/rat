@@ -133,7 +133,7 @@ rx_tool_rat_3d_user_settings(char *srce, char *args, session_t *sp)
         char 			*filter_name;
         int 			 filter_type, filter_length, azimuth, freq;
 	char			*ss;
-        u_int32                  ssrc;
+        u_int32_t                  ssrc;
 
         UNUSED(srce);
 
@@ -171,7 +171,7 @@ static void
 rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_t *sp)
 {
 	char		*ss;
-        u_int32          ssrc;
+        u_int32_t          ssrc;
 
 	UNUSED(srce);
 
@@ -282,7 +282,7 @@ static void rx_tool_rat_rate(char *srce, char *args, session_t *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_int(sp->mbus_engine, &i)) {
                 assert(sp->channel_coder != NULL);
-                channel_encoder_set_units_per_packet(sp->channel_coder, (u_int16)i);
+                channel_encoder_set_units_per_packet(sp->channel_coder, (u_int16_t)i);
 	} else {
 		debug_msg("mbus: usage \"tool.rat.rate <integer>\"\n");
 	}
@@ -441,7 +441,7 @@ static void rx_audio_output_port(char *srce, char *args, session_t *sp)
 static void rx_audio_channel_repair(char *srce, char *args, session_t *sp)
 {
         const repair_details_t *r;
-        u_int16 i, n;
+        u_int16_t i, n;
 	char	*s;
 
 	UNUSED(srce);
@@ -578,8 +578,8 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_t *sp)
                 if (sp->out_file) snd_write_close(&sp->out_file);
 
                 sf_fmt.encoding = SNDFILE_ENCODING_L16;
-                sf_fmt.sample_rate = (u_int16)get_freq(sp->device_clock);
-                sf_fmt.channels = (u_int16)ofmt->channels;
+                sf_fmt.sample_rate = (u_int16_t)get_freq(sp->device_clock);
+                sf_fmt.channels = (u_int16_t)ofmt->channels;
 #ifdef WIN32
                 if (snd_write_open(&sp->out_file, file, "wav", &sf_fmt)) {
                         debug_msg("Hooray opened %s\n",file);
@@ -642,7 +642,7 @@ rx_audio_device(char *srce, char *args, session_t *sp)
                 if (s) {
                         const audio_device_details_t *add = NULL;
                         audio_desc_t           first_dev_desc = 0;
-                        u_int32 i, n, stop_at_first_device = FALSE;
+                        u_int32_t i, n, stop_at_first_device = FALSE;
                         dev_name[0] = 0;
                         first_dev_name[0] = 0;
                         n = audio_get_device_count();
@@ -682,10 +682,10 @@ rx_audio_device(char *srce, char *args, session_t *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, u_int8 type)
+static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, u_int8_t type)
 {
 	char	*arg, *ss;
-        u_int32 ssrc;
+        u_int32_t ssrc;
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
@@ -725,7 +725,7 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 	mbus_parse_int(sp->mbus_engine, &ttl);
 	mbus_parse_done(sp->mbus_engine);
 
-	sp->rtp_session[0] = rtp_init(addr, (u_int16)rx_port, (u_int16)tx_port, ttl, 64000, rtp_callback, NULL);
+	sp->rtp_session[0] = rtp_init(addr, (u_int16_t)rx_port, (u_int16_t)tx_port, ttl, 64000, rtp_callback, NULL);
 	sp->rtp_session_count++;
 	rtp_callback_init(sp->rtp_session[0], sp);
 }
@@ -856,7 +856,7 @@ rx_tool_rat_codec(char *srce, char *args, session_t *sp)
         }
 
         freq = atoi(sfreq) * 1000;
-        next_cid = codec_get_matching(short_name, (u_int16)freq, (u_int16)channels);
+        next_cid = codec_get_matching(short_name, (u_int16_t)freq, (u_int16_t)channels);
 
         if (next_cid && codec_get_payload(next_cid) != 255) {
                 cid     = codec_get_by_payload ((u_char)sp->encodings[0]);
@@ -936,7 +936,7 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_t *sp)
                 }
                 
                 /* Don't allow payloads to be mapped to channel_coder payloads - it doesn't seem to work */
-                if (channel_coder_exist_payload((u_int8)new_pt)) {
+                if (channel_coder_exist_payload((u_int8_t)new_pt)) {
                         debug_msg("Channel coder payload specified\n");
                         mbus_parse_done(sp->mbus_engine);
                         return;
@@ -974,7 +974,7 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_t *sp)
 static void rx_tool_rat_converter(char *srce, char *args, session_t *sp)
 {
         const converter_details_t *d = NULL;
-        u_int32             i, n;
+        u_int32_t             i, n;
         char               *name;
 
 	UNUSED(srce);
@@ -1016,7 +1016,7 @@ set_red_parameters(session_t *sp, char *sec_enc, int offset)
 
         pri_id = codec_get_by_payload(sp->encodings[0]);
         pcf    = codec_get_format(pri_id);
-        red_id = codec_get_matching(sec_enc, (u_int16)pcf->format.sample_rate, (u_int16)pcf->format.channels);
+        red_id = codec_get_matching(sec_enc, (u_int16_t)pcf->format.sample_rate, (u_int16_t)pcf->format.channels);
         if (!codec_id_is_valid(red_id)) {
                 debug_msg("Failed to get redundant codec requested (%s)\n", sec_enc);
                 red_id = pri_id;  /* Use same as primary */
@@ -1060,7 +1060,7 @@ set_layered_parameters(session_t *sp, char *sec_enc, char *schan, char *sfreq, i
         freq = atoi(sfreq) * 1000;
         pri_id = codec_get_by_payload(sp->encodings[0]);
         pcf    = codec_get_format(pri_id);
-        lay_id = codec_get_matching(sec_enc, (u_int16)freq, (u_int16)channels);
+        lay_id = codec_get_matching(sec_enc, (u_int16_t)freq, (u_int16_t)channels);
         if(lay_id == 0) {
                 debug_msg("Can't find layered codec (%s) - need to change primary codec\n", sec_enc);
         }
@@ -1117,8 +1117,8 @@ static void rx_audio_channel_coding(char *srce, char *args, session_t *sp)
         const cc_details_t *ccd;
         char        *coding, *sec_enc, *schan, *sfreq;
         int          offset, layerenc;
-        u_int32      i, n;
-        u_int16      upp;
+        u_int32_t      i, n;
+        u_int16_t      upp;
 
 	UNUSED(srce);
 
@@ -1272,7 +1272,7 @@ static const mbus_cmd_tuple engine_cmds[] = {
 
 void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 {
-        u_int32 i;
+        u_int32_t i;
 
         for (i = 0; i < NUM_ENGINE_CMDS; i++) {
 		if (strcmp(engine_cmds[i].rxname, cmnd) == 0) {

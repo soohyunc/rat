@@ -23,30 +23,30 @@ struct s_session;
 #define VU_OUTPUT 1
 
 void    vu_table_init(void);
-int     lin2vu(u_int16 avg_energy, int peak, int io_dir);
+int     lin2vu(u_int16_t avg_energy, int peak, int io_dir);
 
-struct  s_sd *sd_init (u_int16 blk_dur, u_int16 freq);
+struct  s_sd *sd_init (u_int16_t blk_dur, u_int16_t freq);
 void    sd_destroy    (struct s_sd *s);
 void	sd_reset      (struct s_sd *s);
-int	sd            (struct s_sd *s, u_int16 energy);
+int	sd            (struct s_sd *s, u_int16_t energy);
 struct  s_sd *sd_dup  (struct s_sd *s);
 
 #define VAD_MODE_LECT     0
 #define VAD_MODE_CONF     1
 
-struct s_vad * vad_create        (u_int16 blockdur, u_int16 freq);
-void           vad_config        (struct s_vad *v, u_int16 blockdur, u_int16 freq);
+struct s_vad * vad_create        (u_int16_t blockdur, u_int16_t freq);
+void           vad_config        (struct s_vad *v, u_int16_t blockdur, u_int16_t freq);
 void           vad_reset         (struct s_vad *v);
 void           vad_destroy       (struct s_vad *v);
-u_int16        vad_to_get        (struct s_vad *v, u_char silence, u_char mode);
-u_int16        vad_max_could_get (struct s_vad *v);
+u_int16_t        vad_to_get        (struct s_vad *v, u_char silence, u_char mode);
+u_int16_t        vad_max_could_get (struct s_vad *v);
 u_char         vad_in_talkspurt  (struct s_vad *v);
-u_int32        vad_talkspurt_no  (struct s_vad *v);
+u_int32_t        vad_talkspurt_no  (struct s_vad *v);
 void           vad_dump          (struct s_vad *v);
 
 struct s_agc * agc_create        (struct s_session *sp);
 void           agc_destroy       (struct s_agc *a);
-void           agc_update        (struct s_agc *a, u_int16 energy, u_int32 spurtno);
+void           agc_update        (struct s_agc *a, u_int16_t energy, u_int32_t spurtno);
 void           agc_reset         (struct s_agc *a);
 u_char         agc_apply_changes (struct s_agc *a);
 

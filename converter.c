@@ -24,16 +24,16 @@ typedef struct s_converter {
         int                     idx;
         struct s_converter_fmt *cfmt;
         u_char                 *state;
-        u_int32                 state_len;
+        u_int32_t                 state_len;
 } converter_t;
 
 typedef int  (*cv_startup)     (void);  /* converter specific one time initialization */
 typedef void (*cv_shutdown)    (void);  /* converter specific one time cleanup */
-typedef int  (*cv_conv_init_f) (const converter_fmt_t *c, u_char **state, u_int32 *state_len);
+typedef int  (*cv_conv_init_f) (const converter_fmt_t *c, u_char **state, u_int32_t *state_len);
 typedef void (*cv_conv_do_f)   (const converter_fmt_t *c, u_char *state, 
                                 sample* src_buf, int src_len, 
                                 sample *dst_buf, int dst_len);
-typedef void (*cv_conv_free_f) (u_char **state, u_int32 *state_len);
+typedef void (*cv_conv_free_f) (u_char **state, u_int32_t *state_len);
 
 typedef struct s_pcm_converter{
         converter_details_t details;
@@ -109,7 +109,7 @@ converter_create(const converter_id_t   cid,
                  converter_t          **cvtr)
 {
         converter_t *c  = NULL;
-        u_int32      tbl_idx;
+        u_int32_t      tbl_idx;
         
         tbl_idx = CONVERTER_ID_TO_IDX(cid);
 
@@ -173,7 +173,7 @@ converter_destroy(converter_t **cvtr)
 void         
 converters_init()
 {
-        u_int32 i = 0;
+        u_int32_t i = 0;
 
         for(i = 0; i < NUM_CONVERTERS; i++) {
                 if (converter_tbl[i].startf) {
@@ -186,7 +186,7 @@ converters_init()
 void
 converters_free()
 {
-        u_int32 i = 0;
+        u_int32_t i = 0;
 
         for(i = 0; i < NUM_CONVERTERS; i++) {
                 if (converter_tbl[i].shutdownf) {
@@ -196,7 +196,7 @@ converters_free()
 }
 
 const converter_details_t *
-converter_get_details(u_int32 idx)
+converter_get_details(u_int32_t idx)
 {
         if (idx < NUM_CONVERTERS) {
                 return &converter_tbl[idx].details;
@@ -205,7 +205,7 @@ converter_get_details(u_int32 idx)
         return NULL;
 }
 
-u_int32 
+u_int32_t 
 converter_get_count()
 {
         return NUM_CONVERTERS;
@@ -218,11 +218,11 @@ int
 converter_process (converter_t *c, coded_unit *in, coded_unit *out)
 {
         converter_fmt_t *cf;
-        u_int32          n_in, n_out;
+        u_int32_t          n_in, n_out;
 
 #ifdef DEBUG
         {
-                u_int16 sample_rate, channels;
+                u_int16_t sample_rate, channels;
                 codec_get_native_info(in->id, &sample_rate, &channels);
                 assert(sample_rate == c->cfmt->src_freq);
                 assert(channels == c->cfmt->from_channels);

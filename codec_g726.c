@@ -108,21 +108,21 @@ typedef struct {
         bitstream_t *bs;
 } g726_t;
 
-u_int16
+u_int16_t
 g726_get_formats_count()
 {
-        return (u_int16)G726_NUM_FORMATS;
+        return (u_int16_t)G726_NUM_FORMATS;
 }
 
 const codec_format_t *
-g726_get_format(u_int16 idx)
+g726_get_format(u_int16_t idx)
 {
         assert(idx < G726_NUM_FORMATS);
         return &cs[idx];
 }
 
 int 
-g726_state_create(u_int16 idx, u_char **s)
+g726_state_create(u_int16_t idx, u_char **s)
 {
         g726_t *g;
 
@@ -153,7 +153,7 @@ g726_state_create(u_int16 idx, u_char **s)
 }
 
 void
-g726_state_destroy(u_int16 idx, u_char **s)
+g726_state_destroy(u_int16_t idx, u_char **s)
 {
         g726_t *g;
 
@@ -169,7 +169,7 @@ g726_state_destroy(u_int16 idx, u_char **s)
 }
 
 int
-g726_encode(u_int16 idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
+g726_encode(u_int16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 {
         register sample *s;
         g726_t *g;
@@ -223,7 +223,7 @@ g726_encode(u_int16 idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 }
 
 int
-g726_decode(u_int16 idx, u_char *decoder_state, coded_unit *c, sample *data)
+g726_decode(u_int16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
 {
         int cw,i;
         sample *dst;

@@ -24,8 +24,8 @@ struct s_minibuf;
 int   tx_create      (struct s_tx_buffer **tb,
                       struct s_session  *sp,
                       struct s_time       *clock,
-                      u_int16 unit_size, 
-                      u_int16 channels);
+                      u_int16_t unit_size, 
+                      u_int16_t channels);
 
 void  tx_destroy     (struct s_tx_buffer **tb);
 void  tx_start       (struct s_tx_buffer  *tb);

@@ -57,7 +57,7 @@ bs_attach(bitstream_t *b,
 int  
 bs_put(bitstream_t *b,
        u_char       bits,
-       u_int8       nbits)
+       u_int8_t       nbits)
 {
         assert(nbits != 0 && nbits <= 8);
         
@@ -83,7 +83,7 @@ bs_put(bitstream_t *b,
 
 u_char  
 bs_get(bitstream_t *b,
-       u_int8  nbits)
+       u_int8_t  nbits)
 {
         u_char out;
 

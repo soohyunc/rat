@@ -40,21 +40,21 @@ static codec_format_t cs[] = {
 
 #define DVI_NUM_FORMATS sizeof(cs)/sizeof(codec_format_t)
 
-u_int16
+u_int16_t
 dvi_get_formats_count()
 {
-        return (u_int16)DVI_NUM_FORMATS;
+        return (u_int16_t)DVI_NUM_FORMATS;
 }
 
 const codec_format_t *
-dvi_get_format(u_int16 idx)
+dvi_get_format(u_int16_t idx)
 {
         assert(idx < DVI_NUM_FORMATS);
         return &cs[idx];
 }
 
 int 
-dvi_state_create(u_int16 idx, u_char **s)
+dvi_state_create(u_int16_t idx, u_char **s)
 {
         struct adpcm_state *as;
         int                 sz;
@@ -72,7 +72,7 @@ dvi_state_create(u_int16 idx, u_char **s)
 }
 
 void
-dvi_state_destroy(u_int16 idx, u_char **s)
+dvi_state_destroy(u_int16_t idx, u_char **s)
 {
         UNUSED(idx);
         assert(idx < DVI_NUM_FORMATS);
@@ -81,7 +81,7 @@ dvi_state_destroy(u_int16 idx, u_char **s)
 }
 
 int
-dvi_encode(u_int16 idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
+dvi_encode(u_int16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 {
         int samples;
 
@@ -107,7 +107,7 @@ dvi_encode(u_int16 idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 
 
 int
-dvi_decode(u_int16 idx, u_char *decoder_state, coded_unit *c, sample *data)
+dvi_decode(u_int16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
 {
         int samples; 
         assert(decoder_state);
