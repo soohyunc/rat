@@ -735,8 +735,9 @@ add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
         j = u->comp_count;
         while(j>i) {
                 memcpy(u->comp_data + j, 
-                       u->comp_data + (--j), 
+                       u->comp_data + (j-1), 
                        sizeof(coded_unit));
+                j--;
         }
         
         j = 0;
