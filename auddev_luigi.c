@@ -95,8 +95,8 @@ audio_open_rw(char rw)
     if (audio_fd >= 0) {
 	struct snd_size sz;
 	snd_capabilities soundcaps;
-
 	ioctl(audio_fd, AIOGCAP, &soundcaps);
+        ioctl(audio_fd,SNDCTL_DSP_RESET,0);
 	pa.play_rate = pa.rec_rate = 8000;
 	pa.play_format = pa.rec_format = AFMT_S16_LE;
 	sz.play_size = BLOCKSIZE;
