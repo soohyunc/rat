@@ -92,21 +92,21 @@ static int mbus_addr_match(char *a, char *b)
 	assert(b != NULL);
 
 	while ((*a != '\0') && (*b != '\0')) {
-		while (isspace(*a)) a++;
-		while (isspace(*b)) b++;
+		while (isspace((u_char)*a)) a++;
+		while (isspace((u_char)*b)) b++;
 		if (*a == '*') {
 			a++;
-			if ((*a != '\0') && !isspace(*a)) {
+			if ((*a != '\0') && !isspace((u_char)*a)) {
 				return FALSE;
 			}
-			while(!isspace(*b) && (*b != '\0')) b++;
+			while(!isspace((u_char)*b) && (*b != '\0')) b++;
 		}
 		if (*b == '*') {
 			b++;
-			if ((*b != '\0') && !isspace(*b)) {
+			if ((*b != '\0') && !isspace((u_char)*b)) {
 				return FALSE;
 			}
-			while(!isspace(*a) && (*a != '\0')) a++;
+			while(!isspace((u_char)*a) && (*a != '\0')) a++;
 		}
 		if (*a != *b) {
 			return FALSE;
@@ -540,7 +540,7 @@ int mbus_parse_lst(struct mbus *m, char **l)
 	int inlst = FALSE;
 
 	*l = m->parse_buffer[m->parse_depth];
-        while (isspace(*m->parse_buffer[m->parse_depth])) {
+        while (isspace((u_char)*m->parse_buffer[m->parse_depth])) {
                 m->parse_buffer[m->parse_depth]++;
         }
 	if (*m->parse_buffer[m->parse_depth] != '(') {
@@ -570,7 +570,7 @@ int mbus_parse_lst(struct mbus *m, char **l)
 
 int mbus_parse_str(struct mbus *m, char **s)
 {
-        while (isspace(*m->parse_buffer[m->parse_depth])) {
+        while (isspace((u_char)*m->parse_buffer[m->parse_depth])) {
                 m->parse_buffer[m->parse_depth]++;
         }
 	if (*m->parse_buffer[m->parse_depth] != '"') {
@@ -591,14 +591,14 @@ int mbus_parse_str(struct mbus *m, char **s)
 
 static int mbus_parse_sym(struct mbus *m, char **s)
 {
-        while (isspace(*m->parse_buffer[m->parse_depth])) {
+        while (isspace((u_char)*m->parse_buffer[m->parse_depth])) {
                 m->parse_buffer[m->parse_depth]++;
         }
-	if (!isalpha(*m->parse_buffer[m->parse_depth])) {
+	if (!isalpha((u_char)*m->parse_buffer[m->parse_depth])) {
 		return FALSE;
 	}
 	*s = m->parse_buffer[m->parse_depth]++;
-	while (!isspace(*m->parse_buffer[m->parse_depth]) && (*m->parse_buffer[m->parse_depth] != '\0')) {
+	while (!isspace((u_char)*m->parse_buffer[m->parse_depth]) && (*m->parse_buffer[m->parse_depth] != '\0')) {
 		m->parse_buffer[m->parse_depth]++;
 	}
 	*m->parse_buffer[m->parse_depth] = '\0';
@@ -614,7 +614,7 @@ int mbus_parse_int(struct mbus *m, int *i)
 	if (p == m->parse_buffer[m->parse_depth]) {
 		return FALSE;
 	}
-	if (!isspace(*p) && (*p != '\0')) {
+	if (!isspace((u_char)*p) && (*p != '\0')) {
 		return FALSE;
 	}
 	m->parse_buffer[m->parse_depth] = p;
@@ -629,7 +629,7 @@ int mbus_parse_flt(struct mbus *m, double *d)
 	if (p == m->parse_buffer[m->parse_depth]) {
 		return FALSE;
 	}
-	if (!isspace(*p) && (*p != '\0')) {
+	if (!isspace((u_char)*p) && (*p != '\0')) {
 		return FALSE;
 	}
 	m->parse_buffer[m->parse_depth] = p;

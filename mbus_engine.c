@@ -433,18 +433,18 @@ static void rx_play_stop(char *srce, char *args, session_struct *sp)
 	sp->in_file = NULL;
 }
 
-static void rx_play_file(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_play_open(char *srce, char *args, session_struct *sp)
 {
 	char	*file;
 
 	UNUSED(srce);
+        UNUSED(sp);
 
 	mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_str(mbus_chan, &file)) {
-		file = mbus_decode_str(file);
-		sp->in_file = fopen(file, "r");
+                debug_msg(file);
 	} else {
-		printf("mbus: usage \"play_file <filename>\"\n");
+		printf("mbus: usage \"audio.file.play.open <filename>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
@@ -463,18 +463,18 @@ static void rx_rec_stop(char *srce, char *args, session_struct *sp)
 	sp->out_file = NULL;
 }
 
-static void rx_rec_file(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_rec_open(char *srce, char *args, session_struct *sp)
 {
 	char	*file;
 
 	UNUSED(srce);
+        UNUSED(sp);
 
 	mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_str(mbus_chan, &file)) {
-		file = mbus_decode_str(file);
-		sp->out_file = fopen(file, "w");
+                debug_msg(file);
 	} else {
-		printf("mbus: usage \"rec_file <filename>\"\n");
+		printf("mbus: usage \"audio.file.record.open <filename>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
@@ -893,9 +893,9 @@ const char *rx_cmnd[] = {
 	"repair",
 	"update.key",
 	"play.stop",
-	"play.file",
+	"audio.file.play.open",
 	"rec.stop",
-	"rec.file",
+	"audio.file.record.open",
 	"rtp.source.name",
 	"rtp.source.email",
 	"rtp.source.phone",
@@ -941,9 +941,9 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_repair,
 	rx_update_key,
 	rx_play_stop,
-	rx_play_file,
+	rx_audio_file_play_open,
 	rx_rec_stop,
-	rx_rec_file,
+	rx_audio_file_rec_open,
 	rx_rtp_source_name,
 	rx_rtp_source_email,
 	rx_rtp_source_phone,

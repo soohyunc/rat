@@ -1862,13 +1862,11 @@ proc fileDialog {cmdbox} {
 	{"All files"		"*"}
     }
     
-    set foo "foo"    
+
     if {![string compare $cmdbox "play"]} {
-	catch {  asFileBox .playfilebox  -command puts  -extensions $types } foo
-	puts "$foo"
+	catch {  asFileBox .playfilebox  -command file_open_$cmdbox  -extensions $types }
     } else {
-	catch {  asFileBox .recfilebox  -command puts  -extensions $types -force_extension 1 } foo
-	puts "$foo"
+	catch {  asFileBox .recfilebox   -command file_open_$cmdbox  -extensions $types -force_extension 1 }
     }
 }
 
@@ -1880,6 +1878,14 @@ proc file_show {} {
     } else {
  	wm withdraw .file
     }
+}
+
+proc file_open_play {path} {
+    mbus_send "R" "audio.file.play.open" "$path"
+}
+
+proc file_open_rec {path} {
+    mbus_send "R" "audio.file.record.open" "$path"
 }
 
 #
