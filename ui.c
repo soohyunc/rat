@@ -134,7 +134,7 @@ ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e)
 
         render_3D_get_parameters(e->render_3D_data, &azimuth, &filter_type, &filter_length);
         filter_name = mbus_encode_str(render_3D_filter_get_name(filter_type));
-        msg = (char*)xmalloc(strlen(filter_name) + 18);
+        msg = (char*)xmalloc(strlen(filter_name) + 64);
         sprintf(msg, "\"%08lx\" %s %d %d", e->sentry->ssrc, filter_name, filter_length, azimuth);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.3d.user.settings", msg, TRUE);
         xfree(filter_name);
