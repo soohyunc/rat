@@ -308,7 +308,7 @@ repair(int repair, rx_queue_element_struct *ip)
 		fprintf(stderr,"repair: no previous unit\n");
 #endif
 	}
-	ip->dummy = 1;
+	ip->dummy = TRUE;
 
 	if (pp->comp_data[0].cp) {
 		ip->comp_data[0].cp = pp->comp_data[0].cp;
