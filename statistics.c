@@ -334,8 +334,13 @@ statistics(session_struct    *sp,
 
 	/* Get database entry of participant that sent this packet */
 	src = update_database(sp, hdr->ssrc, cur_time);
-	/* Uncknown participant */
 	if (src == NULL) {
+		/* Discard packets from unknown participant */
+		free_pckt_queue_element(&e_ptr);
+		return;
+	}
+	if (hdr->ssrc == sp->db->myssrc) {
+		/* Discard loopback packets... */
 		free_pckt_queue_element(&e_ptr);
 		return;
 	}

@@ -64,7 +64,6 @@ network_init(session_struct *sp)
 {
 	struct in_addr in;
 	struct hostent *h;
-        char loop;
 	sp->net_maddress = get_net_addr(sp->asc_address);  
 
 	if (inet_addr(sp->asc_address) != INADDR_NONE) {
@@ -80,16 +79,6 @@ network_init(session_struct *sp)
 	sp->our_address  = get_net_addr(NULL);
 	sp->rtp_fd  = sock_init(sp->net_maddress, sp->rtp_port,  sp->ttl);
 	sp->rtcp_fd = sock_init(sp->net_maddress, sp->rtcp_port, sp->ttl);
-	if (IN_MULTICAST(ntohl(sp->net_maddress))) {
-		sp->filter_loopback = TRUE;
-		loop = 1;
-		setsockopt(sp->rtcp_fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop));
-                if (sp->loopback_rtp) {
-                        loop = 1;
-                        setsockopt(sp->rtp_fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop));
-                }
-	}
-
 }
 
 u_long 
@@ -159,7 +148,7 @@ sock_init(u_long inaddr, int port, int t_flag)
 	}
 
 	if (multi) {
-		char            loop = 0;
+		char            loop = 1;
 		struct ip_mreq  imr;
 
 		memcpy((char *) &imr.imr_multiaddr.s_addr, (char *) &inaddr, sizeof(inaddr));
@@ -245,8 +234,7 @@ read_net(session_struct * sp, int fd, u_int32 cur_time, int type)
 	data_out = block_alloc(PACKET_LENGTH);
 
 	fromlen = sizeof(from);
-	if ((read_len = recvfrom(fd, data_in, PACKET_LENGTH, 0, &from, &fromlen)) > 0
-			&& (sp->filter_loopback == 0 || ((struct sockaddr_in *) & from)->sin_addr.s_addr != sp->our_address)) {
+	if ((read_len = recvfrom(fd, data_in, PACKET_LENGTH, 0, &from, &fromlen)) > 0) {
 		if (Null_Key()==0) {
 			switch (type) {
 			case PACKET_RTP:
