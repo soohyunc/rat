@@ -187,7 +187,10 @@ make_pdu(struct s_pb_iterator *pbi,
         for (i = 0; i < upp; i++) {
                 success = pb_iterator_get_at(p, (u_char**)&md, &md_len, &playout);
                 assert(success); /* We could rewind this far so must be able to get something! */
-                
+
+#ifdef DEBUG_REDUNDANCY
+                debug_msg("playout %d\n", playout.ticks);
+#endif /* DEBUG_REDUNDANCY */
                 /* Find first compatible coding */
                 for(j = 0; j < md->nrep && md->rep[j]->id != cid; j++);
                 if (j == md->nrep) {
@@ -246,16 +249,14 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
         offset = 0;
         layers = 0;
         for (i = 0; (u_int32)i < re->n_layers; i++) {
+                if (re->units_ready <= re->layer[i].pkts_off * upp) {
+                        break;
+                }
                 /* Move back to start of this layer */
                 while (offset < re->layer[i].pkts_off * upp) {
                         success = pb_iterator_retreat(pbm);
+                        if (success == FALSE) break;
                         offset++;
-                }
-                if (success == FALSE) {
-                        /* Stop immediately if we cannot move back since 
-                         * layers are ordered by offset.
-                         */
-                        break;
                 }
                 xmemchk();
                 /* need upp data elements + 1 for state */
@@ -269,6 +270,9 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
                 layers++;
         }
 
+#ifdef DEBUG_REDUNDANCY
+        debug_msg("end of data collection\n");
+#endif /* DEBUG_REDUNDANCY */
         assert(layers != 0);
 
         /* Create channel_data unit that will get output */
