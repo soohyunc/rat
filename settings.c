@@ -18,7 +18,6 @@ static const char cvsid[] =
 #include "ts.h"
 #include "channel.h"
 #include "net_udp.h"
-#include "timers.h"
 #include "session.h"
 #include "repair.h"
 #include "transmit.h"

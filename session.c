@@ -18,7 +18,6 @@ static const char cvsid[] =
 #include "memory.h"
 #include "version.h"
 #include "session.h"
-#include "timers.h"
 #include "repair.h"
 #include "codec_types.h"
 #include "codec.h"
@@ -107,8 +106,6 @@ session_init(session_t *sp)
 
         conv                            = converter_get_details(0);
         sp->converter                   = conv->id;
-	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
-        assert(!(GLOBAL_CLOCK_FREQ % cf->format.sample_rate));               /* just in case someone adds weird freq codecs */
 	sp->mode         		= AUDIO_TOOL;	
         sp->rtp_session_count           = 0;
 	for (i = 0; i < MAX_LAYERS; i++) {
@@ -157,11 +154,6 @@ void
 session_exit(session_t *sp)
 {
         codec_exit();
-        free_fast_time(sp->clock);
-        if (sp->device_clock) {
-                xfree(sp->device_clock);
-                sp->device_clock = NULL;
-        }
         if (sp->local_file_player) {
                 voxlet_destroy(&sp->local_file_player);
         }

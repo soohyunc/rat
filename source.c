@@ -27,7 +27,6 @@ static const char cvsid[] =
 #include "audio_util.h"
 #include "render_3D.h"
 #include "repair.h"
-#include "timers.h"
 #include "ts.h"
 #include "channel_types.h"
 #include "pdb.h"
@@ -721,8 +720,6 @@ source_process_packets(session_t *sp, source *src, ts_t now)
 
                         cid = codec_get_by_payload(codec_pt);
                         cf  = codec_get_format(cid);
-                        /* Fix clock.                                        */
-                        change_freq(e->clock, cf->format.sample_rate);
                         /* Fix details.                                      */
                         e->enc              = codec_pt;
                         e->units_per_packet = units_per_packet;
@@ -734,6 +731,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
 			channel_decoder_create(e->channel_coder_id, &(src->channel_state));
                         samples_per_frame   = codec_get_samples_per_frame(cid);
                         debug_msg("Samples per frame %d rate %d\n", samples_per_frame, cf->format.sample_rate);
+			e->sample_rate      = cf->format.sample_rate;
                         e->inter_pkt_gap    = e->units_per_packet * (uint16_t)samples_per_frame;
                         e->frame_dur        = ts_map32(cf->format.sample_rate, samples_per_frame);
                         /* Get string describing encoding.                   */
@@ -775,7 +773,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
 		 * because our time representation is shorter than
 		 * RTP's 32bits.  Mapping use first order differences
 		 * to update time representation */
-                src_ts = ts_seq32_in(&e->seq, get_freq(e->clock), p->ts);
+                src_ts = ts_seq32_in(&e->seq, e->sample_rate, p->ts);
                 transit = ts_sub(now, src_ts);
 
 		/* Check neither we nor source has changed sampling rate */

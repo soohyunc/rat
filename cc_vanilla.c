@@ -24,8 +24,6 @@ static const char cvsid[] =
 #include "util.h"
 #include "debug.h"
 
-#include "timers.h"
-
 typedef struct {
         /* Encoder state is just buffering of media data to compose a packet */
         codec_id_t  codec_id;

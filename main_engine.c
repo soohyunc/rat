@@ -31,7 +31,6 @@ static const char cvsid[] =
 #include "ui_send_audio.h"
 #include "ui_send_stats.h"
 #include "net.h"
-#include "timers.h"
 #include "parameters.h"
 #include "transmit.h"
 #include "source.h"
@@ -111,7 +110,7 @@ mbus_error_handler(int seqnum, int reason)
 
 int main(int argc, char *argv[])
 {
-	uint32_t	 cur_time = 0, ntp_time = 0;
+	uint32_t	 ntp_time = 0;
 	int            	 seed, elapsed_time, alc = 0, scnt = 0;
 	session_t 	*sp;
 	struct timeval   time;
@@ -140,7 +139,6 @@ int main(int argc, char *argv[])
 	session_init(sp);
         audio_device_get_safe_config(&sp->new_config);
         audio_device_reconfigure(sp);
-        sp->cur_ts = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), 0);
         assert(audio_device_is_open(sp->audio_device));
 
 	/* Initialise our mbus interface... once this is done we can talk to our controller */
@@ -167,7 +165,7 @@ int main(int argc, char *argv[])
                 debug_msg("Failed to create persistent database\n");
                 abort();
         }
-        pdb_item_create(sp->pdb, sp->clock, (uint16_t)get_freq(sp->device_clock), rtp_my_ssrc(sp->rtp_session[0])); 
+        pdb_item_create(sp->pdb, ts_get_freq(sp->cur_ts), rtp_my_ssrc(sp->rtp_session[0])); 
 	settings_load_late(sp);
 
 	session_validate(sp);
@@ -180,9 +178,7 @@ int main(int argc, char *argv[])
 
                 /* Process audio */
 		elapsed_time = audio_rw_process(sp, sp, sp->ms);
-		cur_time = get_time(sp->device_clock);
-		ntp_time = ntp_time32();
-		sp->cur_ts   = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), cur_time);
+		ntp_time     = ntp_time32();
 
                 if (tx_is_sending(sp->tb)) {
                         tx_process_audio(sp->tb);
@@ -193,8 +189,8 @@ int main(int argc, char *argv[])
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 0;
                 for (j = 0; j < sp->rtp_session_count; j++) {
-                        while(rtp_recv(sp->rtp_session[j], &timeout, cur_time));
-                        rtp_send_ctrl(sp->rtp_session[j], cur_time, NULL);
+                        while(rtp_recv(sp->rtp_session[j], &timeout, ntp_time));
+                        rtp_send_ctrl(sp->rtp_session[j], ntp_time, NULL);
                         rtp_update(sp->rtp_session[j]);
                 }
 
@@ -208,9 +204,7 @@ int main(int argc, char *argv[])
 
                 /* Process audio */
 		elapsed_time += audio_rw_process(sp, sp, sp->ms);
-		cur_time      = get_time(sp->device_clock);
 		ntp_time      = ntp_time32();
-		sp->cur_ts    = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), cur_time);
 
                 if (tx_is_sending(sp->tb)) {
                         tx_process_audio(sp->tb);
@@ -224,7 +218,7 @@ int main(int argc, char *argv[])
 			ts_t 		 cush_ts;
 
 			session_validate(sp);
-			cush_ts = ts_map32(get_freq(sp->device_clock), cushion_get_size(sp->cushion));
+			cush_ts = ts_map32(ts_get_freq(sp->cur_ts), cushion_get_size(sp->cushion));
 			cush_ts = ts_add(sp->cur_ts, cush_ts);
 			scnt = (int)source_list_source_count(sp->active_sources);
 			for(sidx = 0; sidx < scnt; sidx++) {
@@ -326,7 +320,7 @@ int main(int argc, char *argv[])
 				timeout.tv_sec  = 0;
 				timeout.tv_usec = 0;
 				for (j = 0; j < sp->rtp_session_count; j++) {
-					while(rtp_recv(sp->rtp_session[j], &timeout, cur_time));
+					while(rtp_recv(sp->rtp_session[j], &timeout, ntp_time));
 				}
 				sp->playing_audio = saved_playing_audio;
 				/* Device reconfigured so decode paths of all sources */

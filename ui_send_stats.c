@@ -94,7 +94,7 @@ ui_send_stats(session_t *sp, char *addr, uint32_t ssrc)
 	mbus_qmsgf(sp->mbus_engine, addr, FALSE, "rtp.source.reception", "\"%08lx\" %6ld %6ld %6ld %6ld %6ld %6d", 
 		  pdbe->ssrc, pdbe->received, total_lost, pdbe->misordered, pdbe->duplicates, ts_to_ms(pdbe->jitter), pdbe->jit_toged);
 	mbus_qmsgf(sp->mbus_engine, addr, FALSE, "rtp.source.packet.duration", "\"%08lx\" %3d", 
-	           pdbe->ssrc, pdbe->inter_pkt_gap * 1000 / get_freq(pdbe->clock));
+	           pdbe->ssrc, pdbe->inter_pkt_gap * 1000 / pdbe->sample_rate);
 }
 
 void

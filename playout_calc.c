@@ -32,9 +32,8 @@ playout_variable_component(session_t *sp, pdb_entry_t *e)
 /* the playout point.                                                        */
 /*****************************************************************************/
 {
-        uint32_t var32, freq, cushion;
+        uint32_t var32, cushion;
 
-        freq  = get_freq(e->clock);
         var32 = e->inter_pkt_gap / 2;
 
         cushion = cushion_get_size(sp->cushion);
@@ -44,13 +43,13 @@ playout_variable_component(session_t *sp, pdb_entry_t *e)
         
         if (sp->limit_playout) {
                 uint32_t minv, maxv;
-                minv = sp->min_playout * freq / 1000;
-                maxv = sp->max_playout * freq / 1000;
+                minv = sp->min_playout * e->sample_rate / 1000;
+                maxv = sp->max_playout * e->sample_rate / 1000;
                 var32 = max(minv, var32);
                 var32 = min(maxv, var32);
         }
 
-        return ts_map32(freq, var32);
+        return ts_map32(e->sample_rate, var32);
 } 
 
 

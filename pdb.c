@@ -26,7 +26,6 @@ static const char cvsid[] =
 #include "channel_types.h"
 #include "audio_types.h"
 #include "codec_types.h"
-#include "timers.h"
 #include "session.h"
 #include "pdb.h"
 
@@ -113,7 +112,7 @@ pdb_item_get(pdb_t *p, uint32_t id, pdb_entry_t **item)
 }
 
 int
-pdb_item_create(pdb_t *p, struct s_fast_time *clock, uint16_t freq, uint32_t id)
+pdb_item_create(pdb_t *p, uint16_t freq, uint32_t id)
 {
         pdb_entry_t *item;
         ts_t         zero_ts;
@@ -136,9 +135,9 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, uint16_t freq, uint32_t id)
         item->enc             = -1;
         item->enc_fmt_len     = 2 * (CODEC_LONG_NAME_LEN + 1);
         item->enc_fmt         = xmalloc(item->enc_fmt_len);
+	item->sample_rate     = freq;
         item->gain            = 1.0;
         item->mute            = 0;
-	item->clock           = new_time(clock, freq);
         zero_ts               = ts_map32(8000, 0);
         item->last_ui_update  = zero_ts;
         item->first_mix       = TRUE;
@@ -190,10 +189,6 @@ pdb_item_destroy(pdb_t *p, uint32_t id)
 
         if (item->render_3D_data != NULL) {
                 render_3D_free(&item->render_3D_data);
-        }
-
-        if (item->clock) {
-                free_time(item->clock);
         }
 
         if (item->enc_fmt != NULL) {

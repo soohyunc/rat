@@ -25,8 +25,6 @@ static const char cvsid[] =
 #include "util.h"
 #include "debug.h"
 
-#include "timers.h"
-
 #define RED_MAX_LAYERS 3
 #define RED_MAX_OFFSET 16383u
 #define RED_MAX_LEN    1023u

@@ -20,7 +20,6 @@
 /* RAT specific includes for entries in pdb_entry_t */
 #include "channel_types.h"
 #include "codec_types.h"
-#include "timers.h"
 #include "ts.h"
 #include "render_3D.h"
 
@@ -32,13 +31,13 @@ typedef struct {
         struct s_render_3D_dbentry  *render_3D_data; /* Participant 3d state */
         double          gain;                        /* Participant gain */
 	u_char	        mute:1;                      /* source muted */
-	struct s_time  *clock;
 	uint16_t        units_per_packet;
         uint16_t        inter_pkt_gap;               /* expected time between pkt arrivals */
         ts_t            frame_dur;
         u_char          enc;
         char*           enc_fmt;
         int             enc_fmt_len;
+	uint16_t        sample_rate;
         uint32_t        last_ts;
         uint32_t        last_seq;
         ts_t            last_arr;                    /* ts_t representation of last_ts */
@@ -50,14 +49,13 @@ typedef struct {
         ts_t            last_last_transit;
         ts_t            avg_transit;
         cc_id_t         channel_coder_id;            /* channel_coder of last received packet    */
-	ts_t            next_mix;                  /* Used to check mixing                     */
+	ts_t            next_mix;                    /* Used to check mixing                     */
 	ts_t            playout;                     /* Playout delay for this talkspurt         */
         ts_sequencer    seq;                         /* Mapper from RTP time rep to rat time rep */
         uint32_t        spike_events;                /* Number of spike events                   */
         uint32_t        spike_toged;                 /* Number of packets dropped in spike mode  */
         double          last_rtt;
         double          avg_rtt;
-
 
         /* Display Info */
         ts_t            last_ui_update;              /* Used for periodic update of packet counts, etc */
@@ -90,7 +88,6 @@ int pdb_get_next_id  (pdb_t *p, uint32_t cur_id, uint32_t *next_id);
 int     pdb_item_get     (pdb_t *p, uint32_t id, pdb_entry_t **item);
 
 int     pdb_item_create  (pdb_t *p, 
-                          struct s_fast_time *clock, 
                           uint16_t freq, 
                           uint32_t id);
 

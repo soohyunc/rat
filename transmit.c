@@ -34,7 +34,6 @@ static const char cvsid[] =
 #include "ui_send_audio.h"
 #include "ui_send_prefs.h"
 #include "rtp.h"
-#include "timers.h"
 #include "transmit.h"
 #include "util.h"
 
@@ -54,7 +53,6 @@ typedef struct s_tx_buffer {
         struct s_session     *sp;
         struct s_vad         *vad;
         struct s_agc         *agc;
-        struct s_time        *clock;
         struct s_bias_ctl    *bc;
         struct s_pb          *media_buffer; 
         struct s_pb          *channel_buffer; 
@@ -63,9 +61,10 @@ typedef struct s_tx_buffer {
         struct s_pb_iterator *silence;      /* Silence classification iterator */
         struct s_pb_iterator *transmit;     /* Transmission point iterator     */
         struct s_codec_state_store *state_store;    /* Encoder states        */
-        uint32_t        sending_audio:1;
-        uint16_t channels;
-        uint16_t unit_dur; /* dur. in sampling intervals (excludes channels) */
+        uint32_t              sending_audio:1;
+	uint16_t              sample_rate;
+        uint16_t              channels;
+        uint16_t              unit_dur; /* dur. in sampling intervals (excludes channels) */
 
         /* Statistics log */
         double          mean_read_dur;
@@ -121,31 +120,27 @@ tx_unit_destroy(tx_unit **ptu, uint32_t len)
 }
 
 int
-tx_create(tx_buffer     **ntb, 
-          session_t *sp,
-          struct s_time  *clock,
-          uint16_t         unit_dur, 
-          uint16_t         channels)
+tx_create(tx_buffer **ntb, 
+          session_t  *sp,
+	  uint16_t    sample_rate,     
+          uint16_t    channels,
+          uint16_t    unit_dur)
 {
         tx_buffer *tb;
-        uint16_t    freq;
 
         tb = (tx_buffer*)xmalloc(sizeof(tx_buffer));
         if (tb) {
                 memset(tb, 0, sizeof(tx_buffer));
                 debug_msg("Unit duration %d channels %d\n", unit_dur, channels);
                 tb->sp          = sp;
-                tb->clock       = clock;
-                freq            = (uint16_t)get_freq(clock);
-                tb->bc          = bias_ctl_create(channels, freq);
-                tb->vad         = vad_create(unit_dur, freq);
-                tb->agc         = agc_create(sp);
-                tb->unit_dur    = unit_dur;
+		tb->sample_rate = sample_rate;
                 tb->channels    = channels;
-                tb->mean_read_dur = unit_dur;
-
-                sp->auto_sd   = sd_init(unit_dur, freq);
-                sp->manual_sd = manual_sd_init(unit_dur, freq, sp->manual_sd_thresh);
+                tb->unit_dur    = tb->mean_read_dur = unit_dur;
+                tb->bc          = bias_ctl_create(channels, sample_rate);
+                tb->vad         = vad_create(unit_dur, sample_rate);
+                tb->agc         = agc_create(sp);
+                sp->auto_sd     = sd_init(unit_dur, sample_rate);
+                sp->manual_sd   = manual_sd_init(unit_dur, sample_rate, sp->manual_sd_thresh);
                 
                 pb_create(&tb->audio_buffer, (playoutfreeproc)tx_unit_destroy);
                 pb_create(&tb->media_buffer, (playoutfreeproc)media_data_destroy);
@@ -267,10 +262,10 @@ tx_stop(tx_buffer *tb)
 int
 tx_read_audio(tx_buffer *tb)
 {
-        session_t  *sp;
-        tx_unit 	*u;
-        uint32_t          read_dur = 0, this_read, ulen, freq;
-        ts_t             u_ts;
+        session_t *sp;
+        tx_unit   *u;
+	ts_t       u_ts;
+        uint32_t   read_dur = 0, this_read, ulen;
 
         assert(tb->channels > 0 && tb->channels <= 2);
 
@@ -278,7 +273,6 @@ tx_read_audio(tx_buffer *tb)
         if (tb->sending_audio) {
                 int filled_unit;
                 assert(pb_iterator_count(tb->audio_buffer) == 3);
-                freq = get_freq(tb->clock);
                 do {
                         if (pb_iterator_get_at(tb->reading, (u_char**)&u, &ulen, &u_ts) == FALSE) {
                                 debug_msg("Reading iterator failed to get unit!\n");
@@ -295,11 +289,11 @@ tx_read_audio(tx_buffer *tb)
                         if (u->dur_used == tb->unit_dur) {
                                 read_dur += tb->unit_dur;
                                 if (sp->in_file) {
-                                        tx_read_sndfile(sp, (uint16_t)freq, tb->channels, u);
+                                        tx_read_sndfile(sp, tb->sample_rate, tb->channels, u);
                                 }
-                                time_advance(sp->clock, freq, tb->unit_dur);
-                                u_ts = ts_add(u_ts, ts_map32(freq, tb->unit_dur));
-                                tx_unit_create(tb, &u, tb->unit_dur * tb->channels);
+				sp->cur_ts = ts_add(sp->cur_ts, ts_map32(tb->sample_rate, tb->unit_dur));
+                                u_ts       = sp->cur_ts;
+				tx_unit_create(tb, &u, tb->unit_dur * tb->channels);
                                 pb_add(tb->audio_buffer, (u_char*)u, ulen, u_ts);
                                 pb_iterator_advance(tb->reading);
                                 filled_unit = TRUE;
@@ -314,7 +308,7 @@ tx_read_audio(tx_buffer *tb)
                         this_read = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 4) / sp->tb->channels;
                         read_dur += this_read;
                 } while (this_read > 0);
-                time_advance(sp->clock, get_freq(sp->tb->clock), read_dur);
+		sp->cur_ts = ts_add(sp->cur_ts, ts_map32(tb->sample_rate, read_dur));
         }
 
         if (read_dur >= (uint32_t)(DEVICE_REC_BUF / (4 * tb->channels))) {
@@ -469,7 +463,7 @@ tx_send(tx_buffer *tb)
         tx_unit        		*u;
         ts_t            	 u_ts, u_sil_ts, delta;
         ts_t            	 time_ts;
-        uint32_t         	 time_32, cd_len, freq;
+        uint32_t         	 time_32, cd_len;
         uint32_t         	 u_len, units, i, j, k, n, send, encoding;
         int 			 success;
         
@@ -500,7 +494,6 @@ tx_send(tx_buffer *tb)
         sp = tb->sp;
 	session_validate(sp);
         units = channel_encoder_get_units_per_packet(sp->channel_coder);
-        freq  = get_freq(tb->clock);
         
         while(n > units) {
                 send = FALSE;
@@ -564,7 +557,7 @@ tx_send(tx_buffer *tb)
                 /* Set up fields for RTP header */
                 cu = cd->elem[0];
                 pt = channel_coder_get_payload(sp->channel_coder, cu->pt);
-                time_32 = ts_seq32_out(&tb->up_seq, freq, time_ts);
+                time_32 = ts_seq32_out(&tb->up_seq, tb->sample_rate, tb->sp->cur_ts);
                 if (time_32 - sp->last_depart_ts != units * tb->unit_dur) {
                         marker = 1;
                         debug_msg("new talkspurt\n");
@@ -605,7 +598,7 @@ tx_send(tx_buffer *tb)
          * by the channel encoding stage and tb->channel is drained
          * in the act of transmission with pbi_detach_at call.
          */
-        u_ts = ts_map32(get_freq(tb->clock), 2 * units * tb->unit_dur);
+        u_ts = ts_map32(tb->sample_rate, 2 * units * tb->unit_dur);
 
         {
                 struct s_pb *buf;

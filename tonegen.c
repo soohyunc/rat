@@ -48,7 +48,6 @@ static const uint32_t TONEGEN_SSRC_ID = 0xefff0fff; /* 1 in 4 billion */
 int  
 tonegen_create  (tonegen_t          **ppt, 
                  struct s_mixer     *ms, 
-                 struct s_fast_time *clock, 
                  struct s_pdb       *pdb, 
                  uint16_t            tonefreq,
                  uint16_t            toneamp)
@@ -56,7 +55,7 @@ tonegen_create  (tonegen_t          **ppt,
         tonegen_t           *pt;
         pdb_entry_t         *pdbe;
 
-        if (pdb_item_create(pdb, clock, 8000, TONEGEN_SSRC_ID) == FALSE ||
+        if (pdb_item_create(pdb, 8000, TONEGEN_SSRC_ID) == FALSE ||
             pdb_item_get(pdb, TONEGEN_SSRC_ID, &pdbe) == FALSE) {
                 debug_msg("tonegen could not create spoof participant\n");
                 return FALSE;

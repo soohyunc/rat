@@ -63,8 +63,7 @@ typedef struct s_session {
         int             	 rtp_session_count;
 	uint8_t          	 layers; 			/* number of layers == rtp_session_count */
         int             	 filter_loopback;
-	struct s_fast_time	*clock;
-	struct s_time		*device_clock;
+        ts_t                	 cur_ts; 			/* current device time */
         struct s_cushion_struct *cushion;
         struct s_audio_config   *new_config;
         struct s_mixer          *ms;
@@ -109,7 +108,6 @@ typedef struct s_session {
 	char		   	*mbus_ui_addr;
 	struct mbus	   	*mbus_ui;
 	char		   	*mbus_video_addr;
-        ts_t                	 cur_ts; 			/* current device time as timestamp */
 	int		    	 loopback_gain;
 	char			*encrkey;
 	uint32_t		 magic;				/* Magic number for debugging purposes */

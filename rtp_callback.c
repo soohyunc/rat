@@ -294,7 +294,7 @@ process_sdes(session_t *sp, uint32_t ssrc, rtcp_sdes_item *d)
 static void
 process_create(session_t *sp, uint32_t ssrc)
 {
-	if (pdb_item_create(sp->pdb, sp->clock, (uint16_t)get_freq(sp->device_clock), ssrc) == FALSE) {
+	if (pdb_item_create(sp->pdb, ts_get_freq(sp->cur_ts), ssrc) == FALSE) {
 		debug_msg("Unable to create source 0x%08lx\n", ssrc);
 	}
 }

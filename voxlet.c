@@ -49,7 +49,6 @@ static const uint32_t VOXLET_SSRC_ID = 0xffff0000; /* 1 in 4 billion */
 int  
 voxlet_create  (voxlet_t          **ppv, 
                 struct s_mixer     *ms, 
-                struct s_fast_time *clock, 
                 struct s_pdb       *pdb, 
                 const char         *sndfile)
 {
@@ -79,7 +78,7 @@ voxlet_create  (voxlet_t          **ppv,
         }
 	xfree(filename);
 
-        if (pdb_item_create(pdb, clock, 8000, VOXLET_SSRC_ID) == FALSE ||
+        if (pdb_item_create(pdb, 8000, VOXLET_SSRC_ID) == FALSE ||
             pdb_item_get(pdb, VOXLET_SSRC_ID, &pdbe) == FALSE) {
                 debug_msg("voxlet could not create spoof participant\n");
                 snd_read_close(&sound);

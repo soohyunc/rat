@@ -547,7 +547,7 @@ ui_send_audio_3d_settings(session_t *sp, char *addr, uint32_t ssrc)
         }
 
         if (p->render_3D_data == NULL) {
-                p->render_3D_data = render_3D_init(get_freq(sp->device_clock));
+                p->render_3D_data = render_3D_init(ts_get_freq(sp->cur_ts));
         }
 
         render_3D_get_parameters(p->render_3D_data, &azimuth, &filter_type, &filter_length);

@@ -25,8 +25,6 @@ static const char cvsid[] =
 #include "util.h"
 #include "debug.h"
 
-#include "timers.h"
-
 #define LAY_HDR32_PAT 0x80000000
 
 #define LAY_HDR32_INIT(x)      (x)  = LAY_HDR32_PAT

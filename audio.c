@@ -35,7 +35,6 @@ static const char cvsid[] =
 #include "mix.h"
 #include "cushion.h"
 #include "source.h"
-#include "timers.h"
 #include "sndfile.h"
 #include "tonegen.h"
 #include "voxlet.h"
@@ -74,9 +73,6 @@ audio_device_release(session_t *sp, audio_desc_t the_dev)
 	if (sp->local_file_player) {
 		voxlet_destroy(&sp->local_file_player);
 	}
-
-        free_time(sp->device_clock);
-        sp->device_clock = NULL;
 
         cushion_destroy(&sp->cushion);
         mix_destroy(&sp->ms);
@@ -185,7 +181,6 @@ audio_device_attempt_config(session_t *sp, audio_config *config)
         if (success) {
                 mixer_info_t  mi;
                 uint16_t unit_len;
-                assert(sp->device_clock == NULL);
                 assert(sp->ms           == NULL);
                 assert(sp->tb           == NULL);
                 assert(sp->cushion      == NULL);
@@ -193,11 +188,11 @@ audio_device_attempt_config(session_t *sp, audio_config *config)
                 audio_non_block(config->device);
 
                 /* Initialize read and write components */
-                sp->device_clock = new_time(sp->clock, inf->sample_rate);
                 sp->meter_period = inf->sample_rate / 15;
                 unit_len         = inf->bytes_per_block * 8 / (inf->bits_per_sample*inf->channels); 
-                tx_create(&sp->tb, sp, sp->device_clock, (uint16_t)unit_len, (uint16_t)inf->channels);
+                tx_create(&sp->tb, sp, (uint16_t)inf->sample_rate, (uint16_t)inf->channels, (uint16_t)unit_len);
                 cushion_create(&sp->cushion, unit_len);
+		sp->cur_ts       = ts_map32(inf->sample_rate, 0);
                 mi.sample_rate   = ouf->sample_rate;
                 mi.channels      = ouf->channels;
                 mi.buffer_length = 32640;

@@ -36,7 +36,6 @@ static const char cvsid[] =
 #include "sndfile.h"
 #include "voxlet.h"
 #include "tonegen.h"
-#include "timers.h"
 #include "util.h"
 #include "codec_types.h"
 #include "channel_types.h"
@@ -168,9 +167,9 @@ rx_audio_3d_user_settings(char *srce, char *args, session_t *sp)
 
                 if (pdb_item_get(sp->pdb, ssrc, &p)) {
                         filter_type = render_3D_filter_get_by_name(filter_name);
-                        freq        = get_freq(sp->device_clock);
+                        freq        = ts_get_freq(sp->cur_ts);
                         if (p->render_3D_data == NULL) {
-                                p->render_3D_data = render_3D_init(get_freq(sp->device_clock));
+                                p->render_3D_data = render_3D_init(freq);
                         }
                         render_3D_set_parameters(p->render_3D_data, 
                                                  freq, 
@@ -561,7 +560,7 @@ static void rx_tool_rat_voxlet_play(char *srce, char *args, session_t *sp)
                 if (sp->local_file_player) {
                         voxlet_destroy(&sp->local_file_player);
                 }
-                voxlet_create(&sp->local_file_player, sp->ms, sp->clock, sp->pdb, file);
+                voxlet_create(&sp->local_file_player, sp->ms, sp->pdb, file);
 	} else {
 		debug_msg("mbus: usage \"tool.rat.voxlet.play <filename>\"\n");
 	}
@@ -582,7 +581,7 @@ static void rx_tool_rat_tone_start(char *srce, char *args, session_t *sp)
         mp = mbus_parse_init(args);
 	if (mbus_parse_int(mp, &freq) &&
             mbus_parse_int(mp, &amp)) {
-                tonegen_create(&sp->tone_generator, sp->ms, sp->clock, sp->pdb, (uint16_t)freq, (uint16_t)amp);
+                tonegen_create(&sp->tone_generator, sp->ms, sp->pdb, (uint16_t)freq, (uint16_t)amp);
         } else {
                 debug_msg("mbus: usage \"tool.rat.tone.start <freq> <amplitude>\"\n");
         }
@@ -679,9 +678,9 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_t *sp)
                 mbus_decode_str(file);
                 if (sp->out_file) snd_write_close(&sp->out_file);
 
-                sf_fmt.encoding = SNDFILE_ENCODING_L16;
-                sf_fmt.sample_rate = (uint16_t)get_freq(sp->device_clock);
-                sf_fmt.channels = (uint16_t)ofmt->channels;
+                sf_fmt.encoding    = SNDFILE_ENCODING_L16;
+                sf_fmt.sample_rate = (uint16_t)ofmt->sample_rate;
+                sf_fmt.channels    = (uint16_t)ofmt->channels;
 #ifdef WIN32
                 if (snd_write_open(&sp->out_file, file, "wav", &sf_fmt)) {
                         debug_msg("Hooray opened %s\n",file);

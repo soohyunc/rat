@@ -22,7 +22,6 @@ static const char cvsid[] =
 #include "codec.h"
 #include "audio_util.h"
 #include "audio_fmt.h"
-#include "timers.h"
 #include "channel_types.h"
 #include "pdb.h"
 #include "source.h"
