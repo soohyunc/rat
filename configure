@@ -217,7 +217,8 @@ rm  -f Makefile.sed
 
 # Create version.h
 echo "Generating version.h"
-echo \#define RAT_VERSION \"RAT v$VERSION $OSTYPE\" > version.h
+echo \#define RAT_VERSION \"RAT v$VERSION $OSTYPE\"  > version.h
+echo \#define VERSION_NUM \"$VERSION\"              >> version.h
 
 # Create the sdr plugin
 echo "Generating sdr plugin"
