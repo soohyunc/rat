@@ -410,6 +410,8 @@ void settings_load_early(session_t *sp)
         audio_loopback(sp->audio_device, sp->loopback_gain);
 	sp->echo_suppress     = setting_load_int("audioEchoSuppress", 0);
 	sp->meter             = setting_load_int("audioPowermeters", 1);
+    sp->rtp_promiscuous_mode     = setting_load_int("rtpPromiscuousMode", 1);
+
 /* Ignore saved render_3d setting.  Break initial device config stuff.  V.fiddly to fix. */
 /*	sp->render_3d      = setting_load_int("audio3dRendering", 0);                    */
 
@@ -592,6 +594,7 @@ static void save_done(uint32_t type)
                         }
                 }
         }
+
 
         while ((ckey = asarray_get_key_no(aa, 0)) != NULL) {
                 /* Write out stuff not written out already */
