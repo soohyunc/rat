@@ -986,6 +986,7 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 	- Implement reverse reconsideration of RTCP reporting interval
 	- Implement encryption in the RTP code
 	- Fix redundancy decoder
+	- Fix path searching when starting subprocesses
 
 
 TODO -- They're features not bugs dammit!

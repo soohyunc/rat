@@ -132,7 +132,7 @@ static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_
 		perror("Cannot fork");
 		abort();
 	} else if (*pid == 0) {
-		execl(proc_name, proc_name, "-ctrl", ctrl_addr, "-token", token, NULL);
+		execlp(proc_name, proc_name, "-ctrl", ctrl_addr, "-token", token, NULL);
 		perror("Cannot execute subprocess");
 		/* Note: this MUST NOT be exit() or abort(), since they affect the standard */
 		/* IO channels in the parent process (fork duplicates file descriptors, but */
