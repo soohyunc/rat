@@ -48,6 +48,7 @@ typedef uint32_t audio_port_t;
 
 #define AUDIO_PORT_NAME_LENGTH 20
 
+#define AUDIO_PORT_PHONE      "Phone"
 #define AUDIO_PORT_SPEAKER    "Speaker"
 #define AUDIO_PORT_HEADPHONE  "Headphone"
 #define AUDIO_PORT_LINE_OUT   "Line-Out"

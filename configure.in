@@ -179,7 +179,7 @@ case "$target" in
 	# Do we have telephony drivers?
 	AC_CHECK_HEADER(linux/telephony.h,[
 		AC_MSG_CHECKING([for recent telephony drivers])
-		AC_EGREP_HEADER(PHONE_PLAY_VOLUME_LINEAR, linux/telephony.h,[ 
+		AC_EGREP_HEADER(PHONE_CID, linux/telephony.h,[ 
 			AC_MSG_RESULT(present)
 			AU_OBJ="$AU_OBJ auddev_ixj.o"
 			AC_DEFINE(HAVE_IXJ_AUDIO)

@@ -1593,6 +1593,8 @@ v4.2.19 - Fix off-by-one error when removing half duplex audio devices in
 
 v4.2.20	- Fix forgotton malloc in auddev_oss.c mixer allocation (patch from
 	  Eric Gerlach)
+	- Fix configure script to detect PhoneJack audio devices
+	- Add PHONE type to audio_types.h
 
 
 
