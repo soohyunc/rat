@@ -35,22 +35,13 @@
 # SUCH DAMAGE.
 #
 
-option add *background 			gray80 		widgetDefault
-option add *foreground 			black 		widgetDefault
-option add *selectBackground 		gray85 		widgetDefault
-option add *Scale.sliderForeground 	gray80 		widgetDefault
-option add *Scale.activeForeground 	gray85 		widgetDefault
-option add *Scale.background 		gray80		widgetDefault
 option add *Entry.background 		gray70 		widgetDefault
 option add *Entry.relief                sunken          widgetDefault
-option add *Text.background             gray70          widgetDefault
 option add *Menu*selectColor 		forestgreen 	widgetDefault
 option add *Radiobutton*selectColor 	forestgreen 	widgetDefault
 option add *Checkbutton*selectColor 	forestgreen 	widgetDefault
 option add *borderWidth 		1 
 option add *highlightThickness		0
-option add *activeBackground            grey80          widgetDefault
-option add *activeForeground            black           widgetDefault
 option add *padx			0
 option add *pady			0
 
