@@ -214,7 +214,7 @@ rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 cur_time)
 	rtcp_dbentry   *newdb;
 
 #ifdef LOG_PARTICIPANTS
-	printf("JOIN: ssrc=%lx addr=%lx time=%ld\n", ssrc, addr, cur_time);
+	printf("JOIN: ssrc=%lx time=%ld\n", ssrc,  cur_time);
 #endif
 
 	newdb = (rtcp_dbentry *)xmalloc(sizeof(rtcp_dbentry));
@@ -320,9 +320,10 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
  	 */
 	rtcp_dbentry   *dbptr = sp->db->ssrc_db;
 	rtcp_dbentry   *next;
+        rtcp_dbentry  **pprev = &sp->db->ssrc_db; /* Used to fix list */
 
 #ifdef LOG_PARTICIPANTS
-	printf("BYE: ssrc=%lx time=%ld\n", ssrc, cur_time);
+	printf("BYE: ssrc=%lx time=%ld\n", ssrc, get_time(sp->device_clock));
 #endif
 
 	if (dbptr == NULL) {
@@ -340,10 +341,12 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
                                                        dbptr);
                         if (s) source_remove(sp->active_sources, s);
                         ui_info_remove(sp, dbptr);
+                        *pprev = dbptr->next;
                         rtcp_free_dbentry(dbptr);
 			sp->db->members--;
                         return;
                 }
+                pprev = &dbptr;
                 dbptr = next;
         }
 }
