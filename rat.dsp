@@ -333,6 +333,14 @@ SOURCE=.\sndfile.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\sndfile_au.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\sndfile_wav.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\source.c
 # End Source File
 # Begin Source File
@@ -606,6 +614,14 @@ SOURCE=.\session.h
 # Begin Source File
 
 SOURCE=.\sndfile.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\sndfile_au.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\sndfile_wav.h
 # End Source File
 # Begin Source File
 
