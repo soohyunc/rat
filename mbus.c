@@ -500,26 +500,32 @@ void mbus_recv(struct mbus *m, void *data)
 	/* Parse the header */
 	if (!mbus_parse_sym(m, &ver) || (strcmp(ver, "mbus/1.0") != 0)) {
 		mbus_parse_done(m);
+                dprintf("Parser failed version: %s\n",ver);
 		return;
 	}
 	if (!mbus_parse_int(m, &seq)) {
 		mbus_parse_done(m);
+                dprintf("Parser failed seq: %s\n", seq);
 		return;
 	}
 	if (!mbus_parse_sym(m, &r)) {
 		mbus_parse_done(m);
+                dprintf("Parser failed reliable: %s\n", seq);
 		return;
 	}
 	if (!mbus_parse_lst(m, &src)) {
 		mbus_parse_done(m);
+                dprintf("Parser failed seq: %s\n", src);
 		return;
 	}
 	if (!mbus_parse_lst(m, &dst)) {
 		mbus_parse_done(m);
+                dprintf("Parser failed dst: %s\n", dst);
 		return;
 	}
 	if (!mbus_parse_lst(m, &ack)) {
 		mbus_parse_done(m);
+                dprintf("Parser failed ack: %s\n", ack);
 		return;
 	}
 	/* Check if the message was addressed to us... */
