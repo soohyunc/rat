@@ -47,7 +47,7 @@
 #include "cx_lpc.h"
 
 static codec_format_t cs[] = {
-        {"LPC", "LPC-8K-MONO", 
+        {"LPC", "LPC-8K-Mono", 
          "Pitch excited linear prediction codec. Contributed by R. Frederick and implemented by R. Zuckerman.",
          7, 0, LPCTXSIZE,
          {DEV_S16, 8000, 16, 1, 160 * BYTES_PER_SAMPLE}}

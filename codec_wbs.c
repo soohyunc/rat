@@ -47,7 +47,7 @@
 #include "cx_wbs.h"
 
 static codec_format_t cs[] = {
-        {"WBS", "WBS-16K-MONO",  
+        {"WBS", "WBS-16K-Mono",  
          "Wide band speech coder. (c) Markus Iken, University College London, 1997-98.", 
          /* NB payload 109 for backward compatibility */
          109, WBS_STATE_SIZE, WBS_UNIT_SIZE, 

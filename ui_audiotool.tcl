@@ -312,16 +312,7 @@ proc mbus_recv_tool.rat.sampling.supported {arg} {
 
 # CODEC HANDLING ##############################################################
 
-set codecs "none"
-set codec_nick_name(none)  "none"
-set codec_channels(none)   0 
-set codec_rate(none)       0
-set codec_pt(none)         -
-set codec_state_size(none) 0
-set codec_data_size(none)  0
-set codec_block_size(none) 0 
-set codec_desc(none)       0
-
+set codecs {}
 set prencs  {}
 set secencs {}
 
@@ -1346,6 +1337,7 @@ menu .prefs.m.f.m.menu -tearoff 0
 .prefs.m.f.m.menu add command -label "Transmission" -command {set_pane prefs_pane .prefs.pane "Transmission"}
 .prefs.m.f.m.menu add command -label "Reception"    -command {set_pane prefs_pane .prefs.pane "Reception"}
 .prefs.m.f.m.menu add command -label "Audio"        -command {set_pane prefs_pane .prefs.pane "Audio"}
+.prefs.m.f.m.menu add command -label "Codecs"        -command {set_pane prefs_pane .prefs.pane "Codecs"; codecs_panel_fill}
 .prefs.m.f.m.menu add command -label "Security"     -command {set_pane prefs_pane .prefs.pane "Security"}
 .prefs.m.f.m.menu add command -label "Interface"    -command {set_pane prefs_pane .prefs.pane "Interface"}
 
@@ -1546,6 +1538,82 @@ checkbutton $i.cks.f.f.suppress -text "Echo Suppression"       -variable echo_va
 pack $i.cks.f -fill x -side top -expand 1
 pack $i.cks.f.f
 pack $i.cks.f.f.silence $i.cks.f.f.agc $i.cks.f.f.loop $i.cks.f.f.suppress -side top -anchor w
+
+# Codecs pane #################################################################
+set i .prefs.pane.codecs
+frame $i 
+frame $i.of -relief sunken
+pack  $i.of -fill both -expand 1 -anchor w -pady 1
+
+label $i.of.l -height 2 -width 40 -justify left -text "This panel shows the available codecs, their properties and allows\n their RTP payload types to be re-mapped." 
+pack $i.of.l -side top -fill x
+
+frame   $i.of.codecs 
+
+pack    $i.of.codecs -side left -padx 2
+label   $i.of.codecs.l    -text "Codec" -relief raised
+listbox $i.of.codecs.lb -width 20 -yscrollcommand "$i.of.codecs.scroll set"
+scrollbar $i.of.codecs.scroll -command "$i.of.codecs.lb yview"
+pack    $i.of.codecs.l -side top -fill x
+pack    $i.of.codecs.lb $i.of.codecs.scroll -side left -fill both 
+
+frame   $i.of.details 
+pack    $i.of.details -side left -fill both -expand 1
+
+frame $i.of.details.upper
+pack $i.of.details.upper -fill x -pady 2
+label $i.of.details.upper.l0 -text "Details" -relief raised
+pack $i.of.details.upper.l0 -side top -fill x -expand 1
+
+frame $i.of.details.upper.l 
+pack $i.of.details.upper.l -side left
+label $i.of.details.upper.l.0 -text "Short name:"  -anchor w
+label $i.of.details.upper.l.1 -text "Sample Rate:" -anchor w
+label $i.of.details.upper.l.2 -text "Channels:"    -anchor w
+label $i.of.details.upper.l.3 -text "Bitrate:"     -anchor w
+label $i.of.details.upper.l.4 -text "RTP Payload:" -anchor w
+for {set idx 0} {$idx < 5} {incr idx} {
+    pack $i.of.details.upper.l.$idx -side top -fill x
+}
+
+frame $i.of.details.upper.r
+pack $i.of.details.upper.r -side left -fill x -expand 1
+label $i.of.details.upper.r.0 -anchor w
+label $i.of.details.upper.r.1 -anchor w
+label $i.of.details.upper.r.2 -anchor w
+label $i.of.details.upper.r.3 -anchor w
+label $i.of.details.upper.r.4 -anchor w
+for {set idx 0} {$idx < 5} {incr idx} {
+    pack $i.of.details.upper.r.$idx -side top -fill x
+}
+
+bind $i.of.codecs.lb <1> {
+    codecs_panel_select [%W index @%x,%y]
+}
+
+proc codecs_panel_fill {} {
+    global codecs
+
+    .prefs.pane.codecs.of.codecs.lb delete 0 end
+
+    foreach {c} $codecs {
+	.prefs.pane.codecs.of.codecs.lb insert end $c
+	puts "$c"
+    }
+}
+
+proc codecs_panel_select { idx } {
+    global codecs codec_nick_name codec_rate codec_channels codec_pt
+    
+    set codec [lindex $codecs $idx]
+    set root  .prefs.pane.codecs.of.details.upper.r
+    $root.0 configure -text $codec_nick_name($codec)
+    $root.1 configure -text $codec_rate($codec)
+    $root.2 configure -text $codec_channels($codec)
+    $root.4 configure -text $codec_pt($codec)
+
+    puts "$idx"
+}
 
 # Security Pane ###############################################################
 set i .prefs.pane.security

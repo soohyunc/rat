@@ -47,19 +47,19 @@
 #include "cx_gsm.h"
 
 static codec_format_t cs[] = {
-        {"GSM", "GSM-8K-MONO", 
+        {"GSM", "GSM-8K-Mono", 
          "Full rate GSM speech codec. (c) 1992 J. Degener and C. Bormann, Technische Universitaet Berlin.",
          3, 0, GSM_FRAMESIZE,
          {DEV_S16, 8000, 16, 1, 160 * BYTES_PER_SAMPLE}},
-        {"GSM", "GSM-16K-MONO", 
+        {"GSM", "GSM-16K-Mono", 
          "Full rate GSM speech codec - overclocked. (c) 1992 J. Degener and C. Bormann, Technische Universitaet Berlin.",
          CODEC_PAYLOAD_DYNAMIC, 0, GSM_FRAMESIZE,
          {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}},
-        {"GSM", "GSM-32K-MONO", 
+        {"GSM", "GSM-32K-Mono", 
          "Full rate GSM speech codec - overclocked. (c) 1992 J. Degener and C. Bormann, Technische. Universitaet Berlin.",
          CODEC_PAYLOAD_DYNAMIC, 0, GSM_FRAMESIZE,
          {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}},
-        {"GSM", "GSM-48K-MONO", 
+        {"GSM", "GSM-48K-Mono", 
          "Full rate GSM speech codec - overclocked. (c) 1992 J. Degener and C. Bormann, Technische Universitaet Berlin.",
          CODEC_PAYLOAD_DYNAMIC, 0, GSM_FRAMESIZE,
          {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}}

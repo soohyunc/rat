@@ -82,7 +82,7 @@ init_session(session_struct *sp)
 	codec_init();
         vu_table_init();
 
-	cid = codec_get_by_name("DVI-8K-MONO");
+	cid = codec_get_by_name("DVI-8K-Mono");
         assert(cid);
         cf  = codec_get_format(cid);
         sp->encodings[0]		= codec_get_payload(cid);           /* user chosen encoding for primary */

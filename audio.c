@@ -342,7 +342,7 @@ audio_device_get_safe_config(audio_config **ppac)
         if (ac_create(ppac)) {
                 audio_config *pac = *ppac;
                 pac->device  = audio_get_null_device();
-                pac->primary = codec_get_by_name("PCMU-8K-MONO");
+                pac->primary = codec_get_by_name("PCMU-8K-Mono");
                 pac->render_3d = FALSE;
                 assert(pac->primary); 
                 return TRUE;
