@@ -40,7 +40,6 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "net_udp.h"
-#include "util.h"
 
 #define IPv4	4
 #define IPv6	6
