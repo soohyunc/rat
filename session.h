@@ -86,8 +86,8 @@ typedef struct session_tag {
 	char            maddress[16];
 	u_long          net_maddress;			/* Same as above, can be used in a sendto */
 	u_long          our_address;			/* our unicast address */
-	int             rtp_port;
-	int             rtcp_port;
+	u_short		rtp_port;
+	u_short		rtcp_port;
         int             filter_loopback;
 	int             ttl;
 	fd_t            rtp_fd;

@@ -88,7 +88,7 @@ struct mbus_ack {
 };
 
 struct mbus {
-	int		 fd;
+	fd_t		 fd;
 	unsigned short	 channel;
 	int		 num_addr;
 	char		*addr[MBUS_MAX_ADDR];
@@ -349,14 +349,14 @@ void mbus_retransmit(struct mbus *m)
         
 }
 
-static int mbus_socket_init(unsigned short channel)
+static fd_t mbus_socket_init(unsigned short channel)
 {
 	struct sockaddr_in sinme;
 	struct ip_mreq     imr;
 	char               ttl   =  0;
 	int                reuse =  1;
 	char               loop  =  1;
-	int                fd    = -1;
+	fd_t               fd    = -1;
 #ifndef SunOS_4
 	int		   rbuf  = 65535;
 #endif
@@ -470,7 +470,7 @@ void mbus_addr(struct mbus *m, char *addr)
 	mbus_parse_done(m);
 }
 
-int mbus_fd(struct mbus *m)
+fd_t mbus_fd(struct mbus *m)
 {
 	return m->fd;
 }

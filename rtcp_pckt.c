@@ -506,7 +506,7 @@ rtcp_packet_fmt_bye(u_int8 *ptr, u_int32 ssrc, rtcp_dbentry *ssrc_db)
 {
 	rtcp_t	     *pkt = (rtcp_t *) ptr;
 	rtcp_dbentry *entry;
-	int           count;
+	u_short       count;
 
 	pkt->common.type   = 2;
 	pkt->common.p      = 0;
@@ -704,8 +704,8 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 	rtcp_dbentry   *sptr 	= sp->db->ssrc_db;
 	rtcp_dbentry   *sptmp	= NULL;
 	u_int32		now 	= get_time(sp->device_clock);
-	int             packlen = 0;
-	int		offset	= 0;
+	u_short         packlen = 0;
+	u_short		offset	= 0;
 
 	sp->db->senders = 0;
 	if (sp->db->sending) {

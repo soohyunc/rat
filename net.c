@@ -88,14 +88,10 @@ get_net_addr(char *dhost)
 }
 
 static int
-sock_init(u_long inaddr, int port, int t_flag)
+sock_init(u_long inaddr, u_short port, int t_flag)
 {
 	struct sockaddr_in sinme;
-#ifndef WIN32
 	char            ttl = (char)t_flag;
-#else
-	int		ttl = t_flag;
-#endif
 	fd_t            tmp_fd;
 	int             multi = FALSE;
 	int             reuse = 1;
@@ -176,7 +172,7 @@ network_init(session_struct *sp)
 }
 
 int
-net_write(fd_t fd, u_long addr, int port, unsigned char *msg, int msglen, int type)
+net_write(fd_t fd, u_long addr, u_short port, unsigned char *msg, int msglen, int type)
 {
 	struct sockaddr_in  	 name;
 	int             	 ret;
@@ -205,7 +201,7 @@ net_write(fd_t fd, u_long addr, int port, unsigned char *msg, int msglen, int ty
 }
 
 #define MAXPACKETSIZE    (1500-28)
-int net_write_iov(fd_t fd, u_long addr, int port, struct iovec *iov, int len, int type)
+int net_write_iov(fd_t fd, u_long addr, u_short port, struct iovec *iov, int len, int type)
 {
 	unsigned char  wrkbuf[MAXPACKETSIZE];
 	unsigned char *cp;

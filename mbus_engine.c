@@ -39,6 +39,7 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include "config.h"
 #include "rat_types.h"
 #include "mbus_engine.h"
 #include "mbus_ui.h"
@@ -955,7 +956,7 @@ void mbus_engine_init(char *name_engine, int channel)
 	}
 }
 
-int  mbus_engine_fd(int channel)
+fd_t mbus_engine_fd(int channel)
 {
 	if (channel == 0) {
 		return mbus_fd(mbus_base);

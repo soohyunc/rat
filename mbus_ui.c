@@ -38,6 +38,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "config.h"
 #include "mbus.h"
 #include "mbus_ui.h"
 #include "tcltk.h"
@@ -92,7 +93,7 @@ void mbus_ui_init(char *name_ui, int channel)
 	}
 }
 
-int  mbus_ui_fd(int channel)
+fd_t mbus_ui_fd(int channel)
 {
 	if (channel == 0) {
 		return mbus_fd(mbus_base);
