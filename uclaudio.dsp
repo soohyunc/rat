@@ -125,6 +125,10 @@ SOURCE=.\audio_fmt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\audio_types.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\audio_util.h
 # End Source File
 # End Group
