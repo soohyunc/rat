@@ -79,25 +79,6 @@ uname(struct utsname *ub)
     return 0;
 }
 
-int gettimeofday(struct timeval *p, struct timezone *z)
-{
-    TIME_ZONE_INFORMATION tz;
-    GetTimeZoneInformation(&tz);
-	if (p) {
-		extern void TclpGetTime(Tcl_Time*);
-		Tcl_Time t;
-
-		TclpGetTime(&t);
-		p->tv_sec = t.sec;
-		p->tv_usec = t.usec;
-    }
-    if (z) {
-	z->tz_minuteswest = tz.Bias ;
-	z->tz_dsttime = tz.StandardBias != tz.Bias;
-    }
-    return 0;
-}
-
 uid_t
 getuid(void) 
 { 
