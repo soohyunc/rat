@@ -291,6 +291,8 @@ newpcm_mixer_init(int fd)
 
 	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_RECMASK, &recmask);
 
+	/* Remove Vol from Rec mask - it is a play control! */
+	recmask = recmask & ~SOUND_MASK_VOLUME;
 	if (recmask & SOUND_MASK_MIC) {
 		iport = SOUND_MASK_MIC;
 	} else {
@@ -301,7 +303,7 @@ newpcm_mixer_init(int fd)
 	}
 
 	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_DEVMASK, &devmask);
-	playmask = devmask & ~recmask & ~SOUND_MASK_RECLEV;
+	playmask = devmask & ~recmask & ~SOUND_MASK_RECLEV ;
 	debug_msg("devmask 0x%08x recmask 0x%08x playmask 0x%08x\n",
 		  devmask,
 		  recmask,
@@ -569,6 +571,8 @@ newpcm_audio_query_devices()
 	if (newpcm == FALSE) {
 		ndev = 0; /* Should be using Luigi's interface */
 	}
+
+	printf("XXX %d newpcm devices - newpcm (%d)\n", ndev, newpcm);
 
         return (ndev);
 }
