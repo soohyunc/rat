@@ -392,21 +392,28 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                         printf("Unsupported -repair option: %s\n", argv[i++]);
                                 }
                         }
-                        if ((strcmp(argv[i], "-channel") == 0) && (argc > i+2)) {
-				/* Takes "-channel redundancy  codec/offset/..." */
-				/* or    "-channel interleaver codec/n1/n2"      */
-                            	int pt = get_cc_pt(sp[s], argv[i+1]);
-                            	channel_set_coder(sp[s], pt);
-                            	config_channel_coder(sp[s], pt, argv[i+2]);
-                            	i += 2;
+                        if ((strcmp(argv[i], "-interleave") == 0) && (argc > i+1)) {
+				abort(); /* This needs fixing.... */
+                            	i++;
+			}
+                        if ((strcmp(argv[i], "-redundancy") == 0) && (argc > i+1)) {
+				/* Takes "-redundancy  redundant_codec/offset" */
+				codec_t	*pcp = get_codec(sp[s]->encodings[0]);
+                            	int      pt  = get_cc_pt(sp[s], "redundancy");
+				char     cfg[80];
+
+				sprintf(cfg, "%s/0/%s", pcp->name, argv[i+1]);
+				debug_msg("Configure redundancy %s\n", cfg);
+                            	config_channel_coder(sp[s], pt, cfg);
+				ui_update_channel(sp[s]);
 				ui_update_primary(sp[s]);
 				ui_update_redundancy(sp[s]);
-        			ui_update_interleaving(sp[s]);
-				ui_update_channel(sp[s]);
+                            	i++;
                         }
 			if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
 				codec_t *cp;
-				char *pu;
+				char    *pu;
+				int	 pt;
                                 for (pu = argv[i+1]; *pu; pu++) {
                                         *pu = toupper(*pu);
 				}
@@ -415,13 +422,45 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                         change_freq(sp[s]->device_clock, cp->freq);
                                         sp[s]->encodings[0]  = cp->pt;
 					sp[s]->num_encodings = 1;
-				} else if ((cp = get_codec(codec_matching(pu, 8000, 1))) != NULL) {
+					debug_msg("Configure codec %d\n", sp[s]->encodings[0]);
+					ui_update_primary(sp[s]);
+				} else if (((pt = codec_matching(pu, 8000, 1)) != -1) && ((cp = get_codec(pt)) != NULL)) {
                                         change_freq(sp[s]->device_clock, cp->freq);
                                         sp[s]->encodings[0]  = cp->pt;
 					sp[s]->num_encodings = 1;
+					debug_msg("Configure codec %d\n", sp[s]->encodings[0]);
+					ui_update_primary(sp[s]);
                                 } else {
-					printf("Unknown codec %s\n", pu);
-                                        usage();
+					/* This is not a valid codec name. One last chance: it might be a */
+					/* combined codec and redundancy specifier such as "dvi+lpc" used */
+					/* by sdr. Try to parse it that way, just in case...        [csp] */
+					char *pri_name = strtok(argv[i+1], "+");
+					char *sec_name = strtok(NULL, "+");
+					int   pri_pt, sec_pt;
+					codec_t *pri_cp, *sec_cp;
+					char     cfg[80];
+
+					if (pri_name == NULL || sec_name == NULL) {
+						printf("Unknown codec\n");
+						usage();
+					}
+					if (((pri_pt = codec_matching(pri_name, 8000, 1)) == -1) || ((pri_cp = get_codec(pri_pt)) == NULL)) {
+						printf("Unknown primary codec\n");
+						usage();
+					}
+					if (((sec_pt = codec_matching(sec_name, 8000, 1)) == -1) || ((sec_cp = get_codec(sec_pt)) == NULL)) {
+						printf("Unknown redundant codec\n");
+						usage();
+					}
+                                        change_freq(sp[s]->device_clock, pri_cp->freq);
+                                        sp[s]->encodings[0]  = pri_cp->pt;
+					sp[s]->num_encodings = 1;
+					sprintf(cfg, "%s/0/%s/1", pri_cp->name, sec_cp->name);
+					debug_msg("Configuring codec+redundancy: %s+%s\n", pri_name, sec_name);
+					config_channel_coder(sp[s], get_cc_pt(sp[s], "redundancy"), cfg);
+					ui_update_channel(sp[s]);
+					ui_update_primary(sp[s]);
+					ui_update_redundancy(sp[s]);
                                 }
 				i++;
 			}
