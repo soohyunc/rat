@@ -31,9 +31,28 @@ static const char cvsid[] =
 #endif
 
 #ifdef HAVE_ALSA_AUDIO
-extern int alsa_get_device_count();
-static void alsa_mute_mic(audio_desc_t ad);
-#endif
+#include <sys/asoundlib.h>
+#include "auddev_alsa.h"
+
+static void
+alsa_mute_mic(audio_desc_t ad)
+{
+	snd_mixer_gid_t mic;
+	snd_mixer_group_t group;
+	snd_mixer_t *CurMixer = 0;
+	
+
+	snd_mixer_open(&CurMixer, ad, 0);	/* assume mixer 0 */
+	memset(&mic, 0, sizeof(mic));
+	strcpy(mic.name, SND_MIXER_IN_MIC);
+	memset(&group, 0, sizeof(group));
+	group.gid = mic;
+	snd_mixer_group_read(CurMixer, &group);
+	group.mute = SND_MIXER_CHN_MASK_STEREO;
+	snd_mixer_group_write(CurMixer, &group);
+	snd_mixer_close(CurMixer);
+}
+#endif	/* HAVE_ALSA_AUDIO */
 
 enum { AUDIO_SPEAKER, AUDIO_HEADPHONE, AUDIO_LINE_OUT, AUDIO_MICROPHONE, AUDIO_LINE_IN, AUDIO_CD};
 
@@ -246,9 +265,9 @@ oss_audio_set_igain(audio_desc_t ad, int gain)
 		if (ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_MIC), &volume) == -1) {
 			perror("Setting gain");
 		}
-#ifdef	HAVE_ALSA_AUDIO
+#ifdef HAVE_ALSA_AUDIO
 		alsa_mute_mic(ad);
-#endif	/* HAVE_ALSA_AUDIO */
+#endif
 		return;
 	case AUDIO_LINE_IN : 
 		if (ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_LINE), &volume) == -1) {
@@ -315,9 +334,9 @@ oss_audio_loopback(audio_desc_t ad, int gain)
 
         gain = gain << 8 | gain;
         if (ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_IMIX), &gain) == -1) {
-#ifndef	HAVE_ALSA_AUDIO
+#if defined(DEBUG) && !defined(HAVE_ALSA_AUDIO)
                 perror("loopback");
-#endif	/* HAVE_ALSA_AUDIO */
+#endif
         }
 }
 
@@ -340,30 +359,25 @@ oss_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
         int 		read_len, available;
 #ifndef	HAVE_ALSA_AUDIO
         audio_buf_info 	info;
-#endif	/* HAVE_ALSA_AUDIO */
+#endif
 
         assert(audio_fd[ad] > 0);        
 
 #ifdef	HAVE_ALSA_AUDIO
 	available = read_bytes;
-#else	/* HAVE_ALSA_AUDIO */
+#else
         /* Figure out how many bytes we can read before blocking... */
         ioctl(audio_fd[ad], SNDCTL_DSP_GETISPACE, &info);
-
         available = min(info.bytes, read_bytes);
-#endif	/* HAVE_ALSA_AUDIO */
+#endif
+
         read_len  = read(audio_fd[ad], (char *)buf, available);
-#ifndef	HAVE_ALSA_AUDIO
-	if (read_len != available) {
-		debug_msg("Amount of audio read != amount available\n");
-	}
-#endif	/* HAVE_ALSA_AUDIO */
 	if (read_len < 0) {
-#ifdef	HAVE_ALSA_AUDIO
-		usleep(1);	/* timing bug is RAT? */
-#else	/* HAVE_ALSA_AUDIO */
+#ifdef HAVE_ALSA_AUDIO
+		usleep(1);	/* timing bug in RAT? */
+#else
                 perror("audio_read");
-#endif	/* HAVE_ALSA_AUDIO */
+#endif
 		return 0;
         }
 
@@ -641,11 +655,11 @@ int
 oss_get_device_count()
 {
 #ifdef HAVE_ALSA_AUDIO
-  if (alsa_get_device_count() > 0)
-    return 0;
+	if (alsa_get_device_count() > 0) {
+		return 0;
+	}
 #endif
-  
-    return ndev;
+	return ndev;
 }
 
 char *
@@ -658,26 +672,3 @@ oss_get_device_name(audio_desc_t idx)
         return NULL;
 }
 
-#ifdef	HAVE_ALSA_AUDIO
-#include <sys/asoundlib.h>
-
-static
-void
-alsa_mute_mic(audio_desc_t ad)
-{
-	snd_mixer_gid_t mic;
-	snd_mixer_group_t group;
-	snd_mixer_t *CurMixer = 0;
-	
-
-	snd_mixer_open(&CurMixer, ad, 0);	/* assume mixer 0 */
-	memset(&mic, 0, sizeof(mic));
-	strcpy(mic.name, SND_MIXER_IN_MIC);
-	memset(&group, 0, sizeof(group));
-	group.gid = mic;
-	snd_mixer_group_read(CurMixer, &group);
-	group.mute = SND_MIXER_CHN_MASK_STEREO;
-	snd_mixer_group_write(CurMixer, &group);
-	snd_mixer_close(CurMixer);
-}
-#endif	/* HAVE_ALSA_AUDIO */
