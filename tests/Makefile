@@ -2,8 +2,8 @@
 CC = gcc
 DEBUG=-g
 INCLUDE = -I.. -I../../common
-CFLAGS  = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror -g -fsigned-char  -DHAVE_PCA -DDEBUG -DFreeBSD -DSASR -DFAST -DUSE_FLOAT_MUL -DDEBUG_MEM
-LIBS = -L../../common -lm -lcommon
+CFLAGS  = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror -g -fsigned-char -DSASR -DFAST -DUSE_FLOAT_MUL -DDEBUG_MEM
+LIBS = -L../../common -lm -luclmmbase
 
 CHANNEL_OBJS = ../cc_vanilla.o ../new_channel.o ../channel_types.o
 
@@ -14,7 +14,7 @@ CODEC_OBJS = ../codec.o ../codec_state.o ../codec_dvi.o ../codec_gsm.o \
              ../cx_g726.o ../cx_g726_16.o ../cx_g726_24.o ../cx_g726_32.o \
              ../cx_g726_40.o \
              ../converter.o ../convert_linear.o ../convert_util.o \
-             ../convert_extra.o ../convert_sinc.o
+             ../convert_extra.o ../convert_sinc.o ../bitstream.o
 
 REPAIR_OBJS  = ../repair.o ../audio_util.o
 

@@ -4,6 +4,7 @@
 #include "codec_types.h"
 #include "codec_state.h"
 #include "codec.h"
+#include "repair_types.h"
 #include "repair.h"
 #include "sndfile_types.h"
 #include "sndfile.h"
@@ -27,6 +28,7 @@
 #define RANDOM_END 0x7fffffff
 
 static unsigned char drop_priv[DROP_ARRAY_SIZE];
+static int units_per_packet = 1;
 
 static void 
 init_drop(int seed, double d)
@@ -55,7 +57,7 @@ do_drop()
   static long int idx;
   int d;
   
-  d   = drop_priv[idx];
+  d   = drop_priv[idx / units_per_packet];
   idx = (idx + 1) % DROP_ARRAY_SIZE;
 
   return d;
@@ -142,7 +144,7 @@ decode_and_write(struct s_sndfile           *sf_out,
 static void
 test_repair(struct s_sndfile *sf_out, 
             codec_id_t        cid,
-            int               repair_type,
+            repair_id_t       repair_type,
             struct s_sndfile *sf_in)
 {
         codec_state                *encoder;        
@@ -151,11 +153,16 @@ test_repair(struct s_sndfile *sf_out,
         coded_unit                 *cu;
         int                         consec_lost = 0;
         const codec_format_t       *cf;
-        int                         repair_none;
+        uint16_t                    i;
+        repair_id_t                 repair_none;
 
-        repair_none = repair_get_by_name("None");
-        if (repair_none != 3) {
-                exit(-1);
+        for (i = 0; i < repair_get_count(); i++) {
+                const repair_details_t *rd;
+                rd = repair_get_details(i);
+                if (strcasecmp(rd->name, "none") == 0) {
+                        repair_none = rd->id;
+                        break;
+                }
         }
 
         codec_encoder_create(cid, &encoder);
@@ -233,7 +240,8 @@ where options are:
 \t-codecs to list available codecs
 \t-repairs to list available repair schemes
 \t-n to disable codec specific repair (default csra permitted)
-\t-s <seed> to set seed of rng (default 0)\n");
+\t-s <seed> to set seed of rng (default 0)
+\t-u <units> set audio frames per packet (default 1 == 20ms)\n");
         exit(-1);
 } 
 
@@ -244,11 +252,13 @@ list_repairs(void)
          * Does not have get_format get_details type fn, just get_name
          * (grumble, grumble, time, grumble) */
 
+        const repair_details_t *rd;
         uint16_t i, cnt;
 
         cnt = repair_get_count();
         for(i = 0; i < cnt; i++) {
-                printf("%s\n", repair_get_name(i));
+                rd = repair_get_details(i);
+                printf("%s\n", rd->name);
         }
 
         return;
@@ -290,12 +300,31 @@ list_codecs(void)
         return;
 }
 
+static void
+resolve_repair(char *reqname, repair_id_t *rid, const char **actualname)
+{
+        uint16_t i,n;
+        const repair_details_t *rd;
+
+        n = repair_get_count();
+        for (i = 0; i < n; i++) {
+                rd = repair_get_details(i);
+                if (strcasecmp(rd->name, reqname) == 0) {
+                        *rid = rd->id;
+                        *actualname = rd->name;
+                        return;
+                }
+        }
+        fprintf(stderr, "Repair type %s not recognized\n", reqname);
+        exit(-1);
+}
+
 int 
 main(int argc, char *argv[])
 {
         const char *codec_name, *repair_name;
         codec_id_t cid;
-        int repair_type = -1;
+        repair_id_t rid;
         struct s_sndfile *sf_in = NULL, *sf_out = NULL;
         sndfile_fmt_t     sff;
         double drop = 0.0;
@@ -324,7 +353,6 @@ main(int argc, char *argv[])
                         if (argc - ac < 1) {
                                 usage();
                         } 
-
                         switch(argv[ac][1]) {
                         case 's':
                                 seed = atoi(argv[++ac]);
@@ -340,8 +368,10 @@ main(int argc, char *argv[])
                                 csra = FALSE;
                                 break;
                         case 'r':
-                                repair_type = repair_get_by_name(argv[++ac]);
-                                repair_name = argv[ac];
+                                resolve_repair(argv[++ac], &rid, &repair_name);
+                                break;
+                        case 'u':
+                                units_per_packet = atoi(argv[++ac]);
                                 break;
                         default:
                                 usage();
@@ -381,25 +411,21 @@ main(int argc, char *argv[])
                 exit(-1);
         }
 
-        if (strcasecmp(repair_name, repair_get_name(repair_type))) {
-                fprintf(stderr, "Repair %s not recognized\n", repair_name);
-                exit(-1);
-        }
-
         printf("# Parameters
 #\tseed: %ld
 #\tdrop: %.2f
 #\tcodec:  %s
+#\tunits per packet: %d
 #\trepair: %s
 #\tcodec specific repair (when available): %d
 #\tsource file: %s
 #\tdestination file %s\n",
-seed, drop, codec_name, repair_name, csra, argv[argc - 2], argv[argc - 1]);
+seed, drop, codec_name, units_per_packet, repair_name, csra, argv[argc - 2], argv[argc - 1]);
 
 	repair_set_codec_specific_allowed(csra);
 
 	init_drop(seed, drop);
-        test_repair(sf_out, cid, repair_type, sf_in);
+        test_repair(sf_out, cid, rid, sf_in);
 
         /* snd_read_close(&sf_in) not needed because files gets closed
          * at eof automatically. 
