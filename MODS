@@ -1205,6 +1205,8 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 
 4.1.9	- fix configure script handling of X_CFLAGS during broken header tests
 	  reported by Atanu.
+	- remove variable component (e->playout) from spike threshold in source 
+	  processing, believe this is part of the bad spike messages (160>nnnnn).
 
 TODO -- They're features not bugs dammit!
 ----

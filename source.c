@@ -220,7 +220,7 @@ time_constants_init()
         skew_thresh    = ts_map32(8000, 320);
         skew_limit     = ts_map32(8000, 4000);
         transit_reset  = ts_map32(8000, 80000);
-        spike_jump     = ts_map32(8000, 1600); 
+        spike_jump     = ts_map32(8000, 2000); 
         spike_end      = ts_map32(8000, 64);
         repair_max_gap = ts_map32(8000, 3200); /* 400ms */
         time_constants_inited = TRUE;
@@ -696,6 +696,19 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         continue;
                 }
 
+		/* We have a heap of conditions to check before we get
+		 * to the playout calculation.  These are primarily to
+		 * detect whether we have a new talkspurt as indicated
+		 * by marker bit, or an implicit new talkspurt
+		 * indicated by change in relationship between
+		 * timestamps or sequence numbers, or whether the
+		 * config has changed at the receiver or sender.
+		 *
+		 * We also have to check for "spikes" in packet
+		 * arrivals as we do not want to consider these
+		 * packets in the playout calculation.
+		 */
+
                 if (e->channel_coder_id != ccid || 
                     e->enc              != codec_pt || 
                     e->units_per_packet != units_per_packet ||
@@ -740,28 +753,34 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                                            (uint16_t)dev_fmt->channels);
                         adjust_playout = TRUE;
 		}
+
+		/* Marker bit set: explicit indication of new talkspurt */
+                if (p->m) {
+                        adjust_playout = TRUE;
+                        debug_msg("New Talkspurt: %lu\n", p->ts);
+                }
                 
-		/* Check for talkspurt start: indicated either by the marker bit,  */
-		/* or by a change in the relationship between timestamps and       */
-		/* sequence numbers.                                               */
+		/* Check for change in timestamp-sequence number
+		 * relationship: implicit indication of new talkspurt */
+
                 delta_seq = p->seq - e->last_seq;
                 delta_ts  = p->ts  - e->last_ts;
                 if (delta_seq * e->inter_pkt_gap != delta_ts) {
                         debug_msg("Seq no / timestamp realign (%lu * %lu != %lu)\n", delta_seq, e->inter_pkt_gap, delta_ts);
                         adjust_playout = TRUE;
                 }
-                if (p->m) {
-                        adjust_playout = TRUE;
-                        debug_msg("New Talkspurt: %lu\n", p->ts);
-                }
 
+		/* transit is differnece between our clock and their
+		 * clock. Note, we have to put through sequencer
+		 * because our time representation is shorter than
+		 * RTP's 32bits.  Mapping use first order differences
+		 * to update time representation */
                 src_ts = ts_seq32_in(&e->seq, get_freq(e->clock), p->ts);
                 transit = ts_sub(now, src_ts);
 
+		/* Check neither we nor source has changed sampling rate */
 		if (ts_get_freq(transit) != ts_get_freq(e->last_transit)) {
-			/* Either source or we have changed sampling rate */
 			adjust_playout = TRUE;
-			/* Force reset of average transit */
 			e->received = 0;
 			debug_msg("Sampling rate change - either local or remote\n");
 		}
@@ -770,11 +789,8 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 /* Adaptive Playout Mechanisms for Packetized Audio Applications   */
                 /* in Wide-Area Networks, IEEE Infocom 1994, pp 680-688.           */
                 if (adjust_playout == FALSE) {
-                        ts_t spt, delta_transit;
-                        spt           = ts_mul(e->playout, 2);  /* Spike threshold */
-                        spt           = ts_add(spt, spike_jump);
                         delta_transit = ts_abs_diff(transit, e->last_transit);
-                        if (ts_gt(delta_transit, spt)) {
+                        if (ts_gt(delta_transit, spike_jump)) {
 				/* Transit delay increased suddenly - this is a "spike" */
                                 debug_msg("Spike (%d, %dHz) > (%d, %dHz))\n", 
 					  delta_transit.ticks, ts_get_freq(delta_transit),
@@ -830,7 +846,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 } else {
                         playout = e->playout;
                 }
-
+ 
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
 
