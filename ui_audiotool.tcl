@@ -771,9 +771,9 @@ proc mbus_recv_audio.output.mute {val} {
 }
 
 proc mbus_recv_session.title {title} {
-    global session_title
+    global session_title tool_name
     set session_title \"$title\"
-    wm title . "RAT: $title"
+    wm title . "$tool_name: $title"
     wm deiconify .
 }
 
@@ -854,7 +854,7 @@ proc mbus_recv_rtp.source.tool {ssrc tool} {
 	    # tool name looks like RAT x.x.x platform ....
 	    # lose the platform stuff
 	    set tool_frag [split $tool]
-	    set tool_name "UCL [lindex $tool_frag 0] [lindex $tool_frag 1]"
+	    set tool_name "[lindex $tool_frag 0] [lindex $tool_frag 1]"
 	}
 }
 
@@ -1472,12 +1472,9 @@ proc toggle_stats {ssrc} {
 	pack   $win.df.3d.apply -side bottom  -anchor e -padx 2 -pady 2
 
 # Window Magic
-	frame  $win.dis
-	button $win.dis.b -text "Dismiss" -command "destroy $win; 3d_delete_parameters $ssrc"
-	pack   $win.dis   -side bottom -anchor e 
-	pack   $win.dis.b -side right -anchor e -padx 2 -pady 2
 	wm title $win "Participant $NAME($ssrc)"
 #	wm resizable $win 1 1
+	wm protocol  $win WM_DELETE_WINDOW "destroy $win; 3d_delete_parameters $ssrc"
 	constrain_window $win $statsfont 36 24
     }
 }
@@ -1521,18 +1518,18 @@ frame .l.f -relief groove -bd 2
 label .l.f.title -bd 0 -textvariable session_title -justify center
 label .l.f.addr  -bd 0 -textvariable session_address
 
-frame  .st -bd 0
-label  .st.tool -textvariable tool_name -font $infofont -justify center -pady 0
-button .st.opts  -text "Options"   -command {wm deiconify .prefs; update_user_panel; raise .prefs}
-button .st.about -text "About"     -command {jiggle_credits; wm deiconify .about}
-button .st.quit  -text "Quit"      -command do_quit
+frame       .st -bd 0
+checkbutton .st.help -highlightthickness 0 -text "Balloon help" -onvalue 1 -offvalue 0 -variable help_on -font $compfont -anchor w -padx 4
+button      .st.opts  -text "Options..." -command {wm deiconify .prefs; update_user_panel; raise .prefs}
+button      .st.about -text "About..."   -command {jiggle_credits; wm deiconify .about}
+button      .st.quit  -text "Quit"       -command do_quit
 
 frame .r.c -bd 0
 frame .r.c.rx -relief groove -bd 2
 frame .r.c.tx -relief groove -bd 2
 
 pack .st -side bottom -fill x -padx 2 -pady 0
-pack .st.tool -side left -fill both -expand 1 
+pack .st.help -side left -fill both -expand 1 
 
 pack .st.quit .st.about .st.opts -side right -anchor w -padx 2 -pady 2
 
@@ -1610,6 +1607,7 @@ bind all <q>               {+if {[winfo class %W] != "Entry"} {do_quit}}
 
 # Override default tk behaviour
 wm protocol . WM_DELETE_WINDOW do_quit
+wm title    . Initializing...
 
 if {$win32 == 0} {
 	wm iconbitmap . rat_small
@@ -2156,9 +2154,6 @@ for {set i 1} {$i<=6} {incr i} {
     pack  .about.rim.d.credits.f.f.$i -side top -fill x -anchor n
 }
 
-button    .about.dismiss -text Dismiss -command "wm withdraw .about"
-pack      .about.dismiss -side bottom -anchor e -padx 2 -pady 2
-
 frame     .about.rim.d.feedback 
 frame     .about.rim.d.feedback.f -relief flat
 frame     .about.rim.d.feedback.f.f
@@ -2175,6 +2170,8 @@ for {set i 1} {$i<=4} {incr i} {
 wm withdraw  .about
 wm title     .about "About RAT"
 wm resizable .about 0 0
+wm protocol  .about WM_DELETE_WINDOW {wm withdraw .about}
+
 set about_pane Copyright
 set_pane about_pane .about.rim.d "Credits" 
 constrain_window .about $infofont 64 25 
@@ -2525,7 +2522,6 @@ set rec_file(state) end
 
 catch {
     toplevel .file
-    wm protocol .file WM_DELETE_WINDOW {set files_on 0; file_show}
     frame .file.play -relief groove -bd 2
     frame .file.rec  -relief groove -bd 2
     pack  .file.play -side top -pady 2 -padx 2 -fill x -expand 1
@@ -2536,11 +2532,9 @@ catch {
     label .file.rec.l -text "Record"   
     pack  .file.rec.l -side top -fill x
 
-    button .file.dismiss -text Dismiss -command "set files_on 0; file_show"
-    pack   .file.dismiss -side bottom -anchor e -padx 2 -pady 2
-    
     wm withdraw .file
     wm title	.file "RAT File Control"
+    wm protocol .file WM_DELETE_WINDOW "set files_on 0; file_show"
     
     foreach action { play rec } {
 	frame  .file.$action.buttons

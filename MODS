@@ -1146,6 +1146,11 @@ v4.1.7	- Update ALSA detection in configure script
 	- Fix default device if not present in saved settings.
 	- Add support for rtp.source.mute ("ALL" 0|1), which is much more efficient
 	  than iterating all sources over the mbus.
+	- Fix handling of WM_DELETE_WINDOW for the about box
+	- Fix handling of WM_DELETE_WINDOW for participant popup boxes
+	- Remove all "Dismiss" buttons - just close the windows instead
+	- Add balloon help button to the main window, moving the application name 
+	  to the title bar
 
 
 TODO -- They're features not bugs dammit!
