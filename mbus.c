@@ -36,6 +36,7 @@
  * SUCH DAMAGE.
  */
 
+#include <strings.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -435,7 +436,7 @@ char *mbus_decode_str(char *s)
 	assert(s[0]   == '\"');
 	assert(s[l-1] == '\"');
 
-	memmove(s, s+1, l-2);
+	bcopy(s+1, s, l-2);
 	s[l-2] = '\0';
 	return s;
 }

@@ -112,6 +112,7 @@ int gethostname(char *name, int namelen);
 #endif
 
 #ifdef SunOS_4
+#define AUDIO_CD         4
 #define OSNAME "SunOS"
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 7

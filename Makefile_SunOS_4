@@ -6,6 +6,7 @@ LDLIBS = /cs/research/mice/starship/common/sun4/lib/libtk42.a \
          -L/usr/openwin/lib -lXext -lX11 \
          -L/usr/demo/SOUND -laudio \
          -lm
+OBJS = $(OBJDIR)/auddev_sparc.o
 
 CRYPTFLAGS = -mv8 -D__svr4__ -DSIGRET=void
 
