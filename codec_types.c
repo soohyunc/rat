@@ -85,6 +85,32 @@ media_data_destroy(media_data **ppmd, uint32_t md_size)
         *ppmd = NULL;
 }
 
+/* media_data_dup duplicate a media data unit.  Copies data from src to a    */
+/* new unit dst.  Returns TRUE on success.                                   */
+int 
+media_data_dup(media_data **dst, media_data *src)
+{
+        media_data *m;
+        uint8_t    i;
+
+        if (media_data_create(&m, src->nrep) == FALSE) {
+                *dst = NULL;
+                return FALSE;
+        }
+
+        for(i = 0; i < src->nrep; i++) {
+                if (coded_unit_dup(m->rep[i], src->rep[i]) == FALSE) {
+                        goto media_dup_failure;
+                }
+        }
+        *dst = m;
+        return TRUE;
+
+media_dup_failure:
+        media_data_destroy(&m, sizeof(media_data));
+        return FALSE;
+}
+
 int
 coded_unit_dup(coded_unit *dst, coded_unit *src)
 {
