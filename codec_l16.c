@@ -46,10 +46,10 @@ static codec_format_t cs[] = {
          115, 0, 640, {DEV_S16,  32000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}}, /* 5 ms */
         {"Linear-16", "L16-44K-Mono",  
          "Linear 16 uncompressed audio, please do not use wide area.", 
-         10, 0, 320, {DEV_S16,  44100, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 3.6 ms */
+         11, 0, 320, {DEV_S16,  44100, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 3.6 ms */
         {"Linear-16", "L16-44K-Stereo",  
          "Linear 16 uncompressed audio, please do not use wide area.", 
-         11, 0, 640, {DEV_S16,  44100, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}}, /* 3.6 ms */
+         10, 0, 640, {DEV_S16,  44100, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}}, /* 3.6 ms */
         {"Linear-16", "L16-48K-Mono",  
          "Linear 16 uncompressed audio, please do not use wide area.", 
          116, 0, 320, {DEV_S16,  48000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 3.3 ms */
