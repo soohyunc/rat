@@ -303,9 +303,19 @@ sinc_upsample_mono (struct s_filter_state *fs,
                src_len * sizeof(sample));
         
         /* Save last samples in src into hold_buf for next time */
-        memcpy(fs->hold_buf, 
-               src + src_len - hold_bytes / sizeof(sample), 
-               hold_bytes);
+        if (src_len >= (int)(hold_bytes / sizeof(sample))) {
+                memcpy(fs->hold_buf, 
+                       src + src_len - hold_bytes / sizeof(sample), 
+                       hold_bytes);
+        } else {
+                /* incoming chunk was shorter than hold buffer */
+                memmove(fs->hold_buf,
+                        fs->hold_buf + src_len,
+                        hold_bytes - src_len * sizeof(sample));
+                memcpy(fs->hold_buf + hold_bytes / sizeof(sample) - src_len,
+                       src,
+                       src_len * sizeof(sample));
+        }
 
         h      = fs->filter;
         hi_end = fs->taps;
@@ -634,11 +644,21 @@ sinc_upsample_mono (struct s_filter_state *fs,
         memcpy(work_buf + hold_bytes / sizeof(sample), 
                src, 
                src_len * sizeof(sample));
-        
+
         /* Save last samples in src into hold_buf for next time */
-        memcpy(fs->hold_buf, 
-               src + src_len - hold_bytes / sizeof(sample), 
-               hold_bytes);
+        if (src_len >= (int)(hold_bytes / sizeof(sample))) {
+                memcpy(fs->hold_buf, 
+                       src + src_len - hold_bytes / sizeof(sample), 
+                       hold_bytes);
+        } else {
+                /* incoming chunk was shorter than hold buffer */
+                memmove(fs->hold_buf,
+                        fs->hold_buf + src_len,
+                        hold_bytes - src_len * sizeof(sample));
+                memcpy(fs->hold_buf + hold_bytes / sizeof(sample) - src_len,
+                       src,
+                       src_len * sizeof(sample));
+        }
 
         h = fs->filter;
 
@@ -691,11 +711,21 @@ sinc_upsample_stereo (struct s_filter_state *fs,
         memcpy(work_buf + hold_bytes / sizeof(sample), 
                src, 
                src_len * sizeof(sample));
-        
+
         /* Save last samples in src into hold_buf for next time */
-        memcpy(fs->hold_buf, 
-               src + src_len - hold_bytes / sizeof(sample), 
-               hold_bytes);
+        if (src_len >= (int)(hold_bytes / sizeof(sample))) {
+                memcpy(fs->hold_buf, 
+                       src + src_len - hold_bytes / sizeof(sample), 
+                       hold_bytes);
+        } else {
+                /* incoming chunk was shorter than hold buffer */
+                memmove(fs->hold_buf,
+                        fs->hold_buf + src_len,
+                        hold_bytes - src_len * sizeof(sample));
+                memmove(fs->hold_buf + hold_bytes / sizeof(sample) - src_len,
+                        src,
+                        src_len * sizeof(sample));
+        }
 
         h      = fs->filter;
         hi_end = fs->taps;
@@ -1095,8 +1125,21 @@ sinc_downsample_mono(struct s_filter_state *fs,
         /* Get samples into work_buf */
         memcpy(work_buf, fs->hold_buf, fs->hold_bytes);
         memcpy(work_buf + fs->hold_bytes / sizeof(sample), src, src_len * sizeof(sample));
+
         /* Save last samples in src into hold_buf for next time */
-        memcpy(fs->hold_buf, src + src_len - fs->hold_bytes / sizeof(sample), fs->hold_bytes);
+        if (src_len >= (int)(fs->hold_bytes / sizeof(sample))) {
+                memcpy(fs->hold_buf, 
+                       src + src_len - fs->hold_bytes / sizeof(sample), 
+                       fs->hold_bytes);
+        } else {
+                /* incoming chunk was shorter than hold buffer */
+                memmove(fs->hold_buf,
+                        fs->hold_buf + src_len,
+                        fs->hold_bytes - src_len * sizeof(sample));
+                memcpy(fs->hold_buf + fs->hold_bytes / sizeof(sample) - src_len,
+                       src,
+                       src_len * sizeof(sample));
+        }
 
         d  = dst;
         de = dst + dst_len;
@@ -1140,9 +1183,21 @@ sinc_downsample_stereo(struct s_filter_state *fs,
         /* Get samples into work_buf */
         memcpy(work_buf, fs->hold_buf, fs->hold_bytes);
         memcpy(work_buf + fs->hold_bytes / sizeof(sample), src, src_len * sizeof(sample));
-        
+
         /* Save last samples in src into hold_buf for next time */
-        memcpy(fs->hold_buf, src + src_len - fs->hold_bytes / sizeof(sample), fs->hold_bytes);
+        if (src_len >= (int)(fs->hold_bytes / sizeof(sample))) {
+                memcpy(fs->hold_buf, 
+                       src + src_len - fs->hold_bytes / sizeof(sample), 
+                       fs->hold_bytes);
+        } else {
+                /* incoming chunk was shorter than hold buffer */
+                memmove(fs->hold_buf,
+                        fs->hold_buf + src_len,
+                        fs->hold_bytes - src_len * sizeof(sample));
+                memcpy(fs->hold_buf + fs->hold_bytes / sizeof(sample) - src_len,
+                       src,
+                       src_len * sizeof(sample));
+        }
 
         d  = dst;
         de = dst + dst_len;

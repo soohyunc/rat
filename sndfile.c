@@ -310,15 +310,14 @@ snd_valid_format(sndfile_fmt_t *fmt)
                 return FALSE;
         }
 
-        if (fmt->encoding != SNDFILE_ENCODING_PCMU &&
-            fmt->encoding != SNDFILE_ENCODING_PCMA &&
-            fmt->encoding != SNDFILE_ENCODING_L16) {
-                debug_msg("Invalid encoding %d  - pcmu (%d) pcma (%d) l16 (%d)\n",
-                          fmt->encoding,
-                          SNDFILE_ENCODING_PCMU,
-                          SNDFILE_ENCODING_PCMA,
-                          SNDFILE_ENCODING_L16);
-                          
+        switch (fmt->encoding) {
+        case SNDFILE_ENCODING_PCMU:
+        case SNDFILE_ENCODING_PCMA:
+        case SNDFILE_ENCODING_L8:
+        case SNDFILE_ENCODING_L16:
+                break;
+        default:
+                debug_msg("Invalid encoding %d\n", fmt->encoding);
                 return FALSE;
         }
 

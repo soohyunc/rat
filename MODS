@@ -1172,10 +1172,13 @@ v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	  process.
 	- Add checks for sibling and parent process in ui and engine so proc's
 	  don't wait for messages that are never going to come.
-	- Change skew correction code to use audio_blend rather than repeat 
-	  procedure in situ.  Fixes a memory corruption bug.
-	- Add null handler for RX_APP to rtp_callback, Circumvents abort call.
+	- Change skew correction code to use audio_blend rather than repeat procedure
+	  in situ.  Fixes a memory corruption bug.
+	- Add null handler for RX_APP to rtp_callback, circumvents abort call.
 	- Add linear8 to sndfile import and export functions.
+	- Add handling to sinc_converter for conversion chunks that are smaller than
+	  hold buffer size.  We can now convert a sample at a time if desired rather 
+	  than blocks of at least the duration of the hold buffer.
 
 TODO -- They're features not bugs dammit!
 ----
