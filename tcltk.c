@@ -108,18 +108,15 @@ tcl_active(void)
 	return (Tk_GetNumMainWindows() > 0);
 }
 
-int
-tcl_init(struct mbus *mbus_ui, int argc, char **argv, char *mbus_engine_addr)
+int 
+tcl_init1(int argc, char **argv)
 {
 	char		*cmd_line_args, buffer[10];
-	Tcl_Obj 	*audiotool_obj;
-	struct timeval	 timeout;
 
 	Tcl_FindExecutable(argv[0]);
 	interp        = Tcl_CreateInterp();
 	cmd_line_args = Tcl_Merge(argc - 1, argv + 1);
 	Tcl_SetVar(interp, "argv", cmd_line_args, TCL_GLOBAL_ONLY);
-	engine_addr   = xstrdup(mbus_engine_addr);
 #ifndef WIN32
 	ckfree(cmd_line_args); 
 #endif
@@ -141,9 +138,6 @@ tcl_init(struct mbus *mbus_ui, int argc, char **argv, char *mbus_engine_addr)
                 fprintf(stderr, "%s\n", Tcl_GetStringResult(interp));
                 exit(-1);
         }
-
-	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) mbus_ui, NULL);
-	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, NULL, NULL);
 #ifdef WIN32
         Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);
         Tcl_CreateCommand(interp, "puts",        WinPutsCmd,     NULL, NULL);
@@ -164,22 +158,25 @@ tcl_init(struct mbus *mbus_ui, int argc, char **argv, char *mbus_engine_addr)
 	Tk_DefineBitmap(interp, Tk_GetUid("rec"),  rec_bits,  rec_width,  rec_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("pause"), pause_bits, pause_width, pause_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("stop"),  stop_bits,  stop_width,  stop_height);
+	tcl_process_all_events();
+	return TRUE;
+}
+
+int 
+tcl_init2(struct mbus *mbus_ui, char *mbus_engine_addr)
+{
+	Tcl_Obj 	*audiotool_obj;
+	engine_addr   = xstrdup(mbus_engine_addr);
+
+	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) mbus_ui, NULL);
+	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, NULL, NULL);
 
 	audiotool_obj = Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool));
 	if (Tcl_EvalObj(interp, audiotool_obj) != TCL_OK) {
 		fprintf(stderr, "ui_audiotool error: %s\n", Tcl_GetStringResult(interp));
 	}
 
-	while (tcl_process_event()) {
-		/* Processing Tcl events, to allow the UI to initialize... */
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 250000;
-		mbus_recv(mbus_ui, NULL, &timeout);
-		mbus_send(mbus_ui);
-		mbus_heartbeat(mbus_ui, 1);
-		mbus_retransmit(mbus_ui);
-	};
-
+	tcl_process_all_events();
 	Tcl_ResetResult(interp);
 	return TRUE;
 }

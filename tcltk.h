@@ -14,7 +14,8 @@
 #define _TCLTK_H
 
 void    tcl_send(char *command);
-int	tcl_init(struct mbus *mbus_ui, int argc, char **argv, char *mbus_engine_addr);
+int 	tcl_init1(int argc, char **argv);
+int	tcl_init2(struct mbus *mbus_ui, char *mbus_engine_addr);
 void    tcl_exit(void);
 int	tcl_process_event(void);
 int     tcl_process_all_events(void);

@@ -22,6 +22,8 @@ char	*e_addr = NULL;
 char	 m_addr[100];
 char	*c_addr, *token, *token_e; 
 
+int	 ui_active = FALSE;
+
 static void parse_args(int argc, char *argv[])
 {
 	int 	i;
@@ -50,6 +52,7 @@ int main(int argc, char *argv[])
 
 	debug_msg("rat-ui started argc=%d\n", argc);
 	parse_args(argc, argv);
+	tcl_init1(argc, argv);
 
 	m = mbus_init(mbus_ui_rx, NULL);
 	sprintf(m_addr, "(media:audio module:ui app:rat instance:%lu)", (u_int32) getpid());
@@ -99,7 +102,8 @@ int main(int argc, char *argv[])
 	}
 	debug_msg("Done configuration\n");
 
-	tcl_init(m, argc, argv, e_addr);
+	ui_active = TRUE;
+	tcl_init2(m, e_addr);
 	while (1) {
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 10000;

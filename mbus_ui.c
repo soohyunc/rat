@@ -51,7 +51,8 @@ void mbus_ui_wait_handler(char *srce, char *cmnd, char *args, void *data)
 	}
 }
 
-extern char *e_addr;
+extern char 	*e_addr;
+extern int	 ui_active;
 
 void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 {
@@ -72,13 +73,17 @@ void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 		}
 		mbus_parse_done(m);
 	} else {
-		/* Pass it to the Tcl code to deal with... */
-		sprintf(command, "mbus_recv %s %s", cmnd, args);
-		for (i = 0; i < (unsigned)strlen(command); i++) {
-			if (command[i] == '[') command[i] = '(';
-			if (command[i] == ']') command[i] = ')';
+		if (ui_active) {
+			/* Pass it to the Tcl code to deal with... */
+			sprintf(command, "mbus_recv %s %s", cmnd, args);
+			for (i = 0; i < (unsigned)strlen(command); i++) {
+				if (command[i] == '[') command[i] = '(';
+				if (command[i] == ']') command[i] = ')';
+			}
+			tcl_send(command);
+		} else {
+			debug_msg("Got early mbus command %s (%s)\n", cmnd, args);
 		}
-		tcl_send(command);
 	}
 }
 
