@@ -15,6 +15,12 @@ AC_HEADER_STDC
 AC_C_CONST
 AC_TYPE_SIZE_T
 
+VERSION=`cat VERSION`
+AC_SUBST(VERSION)
+
+OSTYPE=$host_os
+AC_SUBST(OSTYPE)
+
 # Check for various headers                                                 
 AC_CHECK_HEADERS(stdint.h inttypes.h stropts.h sys/filio.h malloc.h)
 AC_CHECK_HEADERS(sys/sockio.h)
@@ -177,7 +183,7 @@ AC_ARG_WITH(tcl,
 	  TCL_LIB=$withval/lib])
 
 AC_CHECK_HEADER(${TCL_INC}/tcl.h,
-	TCL_INC=-I${TCL_INC}/tcl8.0,
+	TCL_INC=-I${TCL_INC},
 	[AC_CHECK_HEADER(${TCL_INC}/tcl8.0/tcl.h,
 		TCL_INC=-I${TCL_INC}/tcl8.0,
 		[ 
@@ -218,7 +224,7 @@ AC_ARG_WITH(tk,
 # Could use AC_TRY_CPP with $ac_x_include/Xlib.h, etc... for time being just
 # check for existence...autoconf generates a warning here.
 AC_CHECK_FILE($TK_INC/tk.h,
-	TK_INC=-I${TK_INC}/tk8.0,
+	TK_INC=-I${TK_INC},
 	[
 		AC_CHECK_FILE($TK_INC/tk8.0/tk.h,
 		TK_INC=-I${TK_INC}/tk8.0,
