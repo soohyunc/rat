@@ -1,7 +1,8 @@
 #
 # Makefile for the RAT project. This requires GNU make on many systems.
 #
-
+# $Id$
+#
 # Configure substitutes variables here... #####################################
 
 DEFS    = @DEFS@
