@@ -58,6 +58,7 @@
 #include "audio.h"
 #include "ui.h"
 #include "crypt.h"
+#include "source.h"
 
 static void 
 usage(void)
@@ -137,6 +138,8 @@ init_session(session_struct *sp)
         sp->next_selected_device        = -1;
         sp->last_depart_ts              = 1;
 
+        source_list_create(&sp->active_sources);
+
         strcpy(sp->title, "<Untitled Session>");
         
 	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {
@@ -167,6 +170,7 @@ end_session(session_struct *sp)
         pckt_queue_destroy(&sp->rtp_pckt_queue);
         pckt_queue_destroy(&sp->rtcp_pckt_queue);
         channel_encoder_destroy(&sp->channel_coder);
+        source_list_destroy(&sp->active_sources);
 }
 
 static void 
