@@ -495,7 +495,6 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			dbe->last_active = cur_time;
 			dbe->last_sr     = ((dbe->last_ntp_sec & 0xffff) << 16) | (((dbe->last_ntp_frac & 0xffff0000) >> 16) & 0xffffffff);
 			dbe->last_sr_rx  = real_time;
-			debug_msg("%x %x %x\n", dbe->last_sr, dbe->last_ntp_sec, dbe->last_ntp_frac);
 
 			/* Store the reception statistics for that user... */
 			/* Clear the old RR list... */
