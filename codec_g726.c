@@ -221,7 +221,7 @@ g726_encode(u_int16 idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
                         cw    = g726_40_encoder(*s++, AUDIO_ENCODING_LINEAR, gs); /* 5 */
                         *dst |= (u_char)(cw >> 1);
                         dst++;
-                        *dst  = (u_char)((cw & 1) << 7);
+                        *dst  = (u_char)(cw << 7);
                         cw    = g726_40_encoder(*s++, AUDIO_ENCODING_LINEAR, gs); /* 6 */
                         *dst |= (u_char)(cw << 2);
                         cw    = g726_40_encoder(*s++, AUDIO_ENCODING_LINEAR, gs); /* 7 */
@@ -320,15 +320,15 @@ g726_decode(u_int16 idx, u_char *decoder_state, coded_unit *c, sample *data)
                         cw  = (*s & 0x3e) >> 1;                               /* 3 */
                         cw  = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw  = *s++ << 4;                                      /* 4 */
+                        cw  = (*s++ & 0x01) << 4;                             /* 4 */
                         cw |= (*s >> 4);
                         cw  = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw  = *s++ << 1;                                      /* 5 */
+                        cw  = (*s++ & 0x0f) << 1;                             /* 5 */
                         cw |= (*s >> 7);
                         cw  = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw  = (*s & 0x7c);                                    /* 6 */
+                        cw  = (*s & 0x7c) >> 2;                               /* 6 */
                         cw  = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
                         cw  = (*s++ & 0x03) << 3;                             /* 7 */
