@@ -261,17 +261,20 @@ adapt_playout(rtp_hdr_t *hdr,
                         }
 #endif
 			var = (u_int32) src->jitter * 3;
+                        
+                        debug_msg("jitter %d\n", var / 3);
 
                         if (var < (unsigned)src->inter_pkt_gap) {
                                 debug_msg("var (%d) < inter_pkt_gap (%d)\n", var, src->inter_pkt_gap);
                                 var = src->inter_pkt_gap;
                         }
-                        
+
                         if (src->playout_danger) {
-                                var = max(var, 3 * cushion_get_size(cushion));
+                                var = max(var, 2 * cushion_get_size(cushion));
                         } else {
                                 var = max(var, 3 * cushion_get_size(cushion) / 2);
                         }
+                        debug_msg("Cushion %d\n", cushion_get_size(cushion));
                         minv = sp->min_playout * get_freq(src->clock) / 1000;
                         maxv = sp->max_playout * get_freq(src->clock) / 1000; 
 
@@ -388,7 +391,6 @@ adapt_playout(rtp_hdr_t *hdr,
 
 /*        debug_msg("Playout delay (%.2f) cushion (%.2f) jitter buf (%.2f)\n", 
                   (float)(playout - arrival_ts)/get_freq(src->clock), 1.0 * cushion_get_size(cushion) / get_freq(src->clock), 3 * src->jitter / get_freq(src->clock)); */
-
 	return playout;
 }
 
@@ -558,7 +560,7 @@ statistics(session_struct      *sp,
 			goto release;
                 }
         
-                if ((src->enc == -1) || (src->enc != codec_get_payload(cid)))
+                if ((src->enc == 0xff) || (src->enc != codec_get_payload(cid)))
                         receiver_change_format(src, cid);
                 
                 if (src->enc != codec_get_payload(cid)) {
