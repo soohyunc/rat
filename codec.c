@@ -365,6 +365,12 @@ codec_can_encode(codec_id_t id)
         if (codec_table[ifs].cx_can_encode) {
                 /* cx_can_encode only needs to exist if encoder and decoder are asymmetric */
                 return codec_table[ifs].cx_can_encode(CODEC_GET_FMT_INDEX(id));
+        } else {
+                const codec_format_t *cf;
+                cf = codec_get_format(id);
+                if (cf->format.sample_rate % 8000) {
+                        return FALSE; /* only m * 8k at the moment */
+                }
         }
         
         return TRUE;
@@ -383,6 +389,12 @@ codec_can_decode(codec_id_t id)
         if (codec_table[ifs].cx_can_decode) {
                 /* cx_can_encode only needs to exist if encoder and decoder are asymmetric */
                 return codec_table[ifs].cx_can_decode(CODEC_GET_FMT_INDEX(id));
+        }  else {
+                const codec_format_t *cf;
+                cf = codec_get_format(id);
+                if (cf->format.sample_rate % 8000) {
+                        return FALSE; /* Only m * 8k at moment */
+                }
         }
         
         return TRUE;

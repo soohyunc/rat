@@ -1504,7 +1504,7 @@ frame .prefs.pane -relief sunken
 pack  .prefs.pane -side left -fill both -expand 1 -padx 4 -pady 2
 
 # setup width of prefs panel
-constrain_window .prefs $infofont 56 28
+constrain_window .prefs $infofont 56 30
 
 # Personal Info Pane
 set i .prefs.pane.personal

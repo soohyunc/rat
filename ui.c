@@ -678,7 +678,6 @@ ui_update_codec(session_struct *sp, codec_id_t cid)
         can_enc = codec_can_encode(cid);
         can_dec = codec_can_decode(cid);
 
-        assert(can_enc || can_dec);
         caps = NULL;
         if (can_enc && can_dec) {
                 caps = mbus_encode_str("Encode and decode");
@@ -686,11 +685,13 @@ ui_update_codec(session_struct *sp, codec_id_t cid)
                 caps = mbus_encode_str("Encode only");
         } else if (can_dec) {
                 caps = mbus_encode_str("Decode only");
+        } else {
+                caps = mbus_encode_str("Not available");
         }
 
         pt = codec_get_payload(cid);
         if (payload_is_valid(pt)) {
-                sprintf(pay, "%3d", pt);
+                sprintf(pay, "%d", pt);
         } else {
                 sprintf(pay, "-");
         }
