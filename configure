@@ -225,7 +225,7 @@ s@__CC__@$CC@g
 s@__AR__@$AR@
 s@__RANLIB__@$RANLIB@
 s@__WFLAGS__@$WFLAGS@g
-s@__INCLUDE__@$TCL_INCL $INCLUDE -I../common@g
+s@__INCLUDE__@-I../common $TCL_INCL $INCLUDE @g
 s@__LDLIBS__@$TCL_LIBS -L../common -lcommon $LDLIBS@g
 s@__AUDIO__@$AUDIO@g
 s@__CHAR__@$CHAR@g
