@@ -52,6 +52,7 @@
 #include "new_channel.h"
 #include "session.h"
 #include "audio.h"
+#include "audio_util.h"
 #include "sndfile.h"
 #include "parameters.h"
 #include "ui.h"

@@ -49,7 +49,7 @@
 #include "session.h"
 #include "codec_types.h"
 #include "codec.h"
-#include "audio.h"
+#include "audio_util.h"
 #include "audio_fmt.h"
 #include "timers.h"
 #include "rtcp_pckt.h"
@@ -75,6 +75,9 @@ typedef struct s_mix_info {
         int      channels;      /* number of channels being mixed. */
         int      rate;          /* Sampling frequency */
 } mix_struct;
+
+typedef void (*mix_f)(sample *buf, sample *incoming, int len);
+static mix_f audio_mix_fn;
 
 #define ROUND_UP(x, y)  (x) % (y) > 0 ? (x) - (x) % (y) : (x)
 
@@ -104,6 +107,13 @@ mix_create(session_struct * sp, int buffer_length)
 	audio_zero(ms->mix_buffer, 3 * buffer_length , DEV_S16);
 	ms->mix_buffer += ms->buf_len;
         ms->head_time = ms->tail_time = ts_map32(ms->rate, 0);
+
+        audio_mix_fn = audio_mix;
+#ifdef WIN32
+        if (mmx_present()) {
+                audio_mix_fn = audio_mix_mmx;
+        }
+#endif /* WIN32 */
 	return (ms);
 }
 
@@ -112,23 +122,6 @@ mix_destroy(mix_struct *ms)
 {
         xfree(ms->mix_buffer - ms->buf_len);
         xfree(ms);
-}
-
-static void
-mix_audio(sample *dst, sample *src, int len)
-{
-	int tmp;
-        sample *src_e;
-
-        src_e = src + len;
-        while (src != src_e) {
-                tmp = *dst + *src++;
-                if (tmp > 32767)
-                        tmp = 32767;
-                else if (tmp < -32768)
-                        tmp = -32768;
-                *dst++ = tmp;
-        }
 }
 
 static void
@@ -228,18 +221,18 @@ mix_process(mix_struct          *ms,
         }
         
         if (pos + nsamples > (u_int32)ms->buf_len) { 
-                mix_audio(ms->mix_buffer + pos, 
-                          samples, 
-                          ms->buf_len - pos); 
+                audio_mix_fn(ms->mix_buffer + pos, 
+                             samples, 
+                             ms->buf_len - pos); 
                 xmemchk();
-                mix_audio(ms->mix_buffer, 
-                          samples + (ms->buf_len - pos) * ms->channels, 
-                          pos + nsamples - ms->buf_len); 
+                audio_mix_fn(ms->mix_buffer, 
+                             samples + (ms->buf_len - pos) * ms->channels, 
+                             pos + nsamples - ms->buf_len); 
                 xmemchk();
         } else { 
-                mix_audio(ms->mix_buffer + pos, 
-                          samples, 
-                          nsamples); 
+                audio_mix_fn(ms->mix_buffer + pos, 
+                             samples, 
+                             nsamples); 
                 xmemchk();
         } 
         dbe->last_mixed = playout;

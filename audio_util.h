@@ -40,28 +40,27 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _RAT_AUDIO_H_
-#define _RAT_AUDIO_H_
+#ifndef __AUDIO_UTIL_H__
+#define __AUDIO_UTIL_H__
 
-#include "audio_types.h"
-#include "auddev.h"
+void	audio_zero   (sample *buf, int len, deve_e type);
 
-#define AUDIO_NO_DEVICE -1
+void    audio_mix    (sample *dst, sample *in, int len);
 
-/* Structures used in function declarations below */
-struct s_cushion_struct;
-struct session_tag;
+#ifdef WIN32
+BOOL    mmx_present();
+void    audio_mix_mmx(sample *dst, sample *in, int len);
+#endif
 
-struct s_mix_info;
+/* Biasing operations */
 
-/* General audio processing functions */
+struct s_bias_ctl;
 
-int     read_write_audio (struct session_tag *spi, struct session_tag *spo, struct s_mix_info *ms);
-void    read_write_init  (struct session_tag *session_pointer);
+struct s_bias_ctl*
+        bias_ctl_create(int channels, int freq);
 
-int     audio_device_write       (struct session_tag *sp, sample *buf, int samples);
-int     audio_device_take        (struct session_tag *sp, audio_desc_t ad);
-void	audio_device_give        (struct session_tag *sp);
-void    audio_device_reconfigure (struct session_tag *sp);
+void    bias_ctl_destroy(struct s_bias_ctl *bc);
 
-#endif /* _RAT_AUDIO_H_ */
+void    audio_unbias (struct s_bias_ctl *bc, sample *buf, int len);
+
+#endif /* __AUDIO_UTIL_H__ */

@@ -45,11 +45,12 @@
 #include "memory.h"
 #include "debug.h"
 #include "audio.h"
+#include "audio_fmt.h"
+#include "audio_util.h"
 #include "session.h"
 #include "transcoder.h"
 #include "ui.h"
 #include "transmit.h"
-#include "audio_fmt.h"
 #include "codec_types.h"
 #include "codec.h"
 #include "mix.h"
@@ -60,128 +61,6 @@
 
 /* Zero buf used for writing zero chunks during cushion adaption */
 static sample* audio_zero_buf;
-
-#define C0 +0.46363718
-#define C1 -0.92724705
-#define C2 +0.46363718
-#define D1 -1.9059465
-#define D2 +0.9114024
-
-#define IC0 +475
-#define IC1 -950
-#define IC2 +475
-#define ID1 -1952
-#define ID2 +933
-
-typedef struct s_bias_ctl {
-        /* for 8k pre-filtering */
-        sample y1, y2;
-        sample x1, x2;
-        /* for rest */
-        sample lta;
-        u_char step;
-        int    freq;
-} bias_ctl;
-
-static bias_ctl *
-bias_ctl_create(int channels, int freq)
-{
-        bias_ctl *bc = (bias_ctl*)xmalloc(channels*sizeof(bias_ctl));
-        memset(bc, 0, channels*sizeof(bias_ctl));
-        bc->step = channels;
-        bc->freq = freq;
-        return bc;
-}
-
-__inline static void
-prefilter(bias_ctl *pf, sample *buf, register int len, int step)
-{
-        register int y0, y1, y2;
-        register int x0, x1, x2;
-
-        y1 = pf->y1;
-        y2 = pf->y2;
-        x1 = pf->x1;
-        x2 = pf->x2;
-        
-        while(len-- != 0) {
-                x0 = *buf;
-                y0 = (IC0 * x0 + IC1 * x1 + IC2 * x2 - ID1 * y1 - ID2 * y2) >> 10;
-                *buf = y0 << 1;
-                buf += step;                
-                y2 = y1; y1 = y0;
-                x2 = x1; x1 = x0;
-        }
-
-        pf->y1 = y1;
-        pf->y2 = y2;
-        pf->x1 = x1;
-        pf->x2 = x2;
-}
-
-static void
-remove_lta(bias_ctl *bc, sample *buf, register int len, int step)
-{
-        int  m, samples;
-        m = 0;
-        samples = len;
-
-        while (len-- > 0) {
-                m += *buf;
-                *buf -= bc->lta;
-                buf += step;
-        }
-
-        bc->lta -= (bc->lta - m / samples) >> 3;
-}
-
-static void
-bias_ctl_destroy(bias_ctl *bc)
-{
-        xfree(bc);
-}
-
-void
-audio_unbias(bias_ctl *bc, sample *buf, int len)
-{
-        if (bc->freq == 8000) {
-                if (bc->step == 1) {
-                        prefilter(bc, buf, len, 1);
-                } else {
-                        len /= bc->step;
-                        prefilter(bc  , buf  , len, 2);
-                        prefilter(bc+1, buf+1, len, 2);
-                }
-        } else {
-
-                if (bc->step == 1) {
-                        remove_lta(bc, buf, len, 1); 
-                } else {
-                        remove_lta(bc  , buf  , len / 2, 2);
-                        remove_lta(bc+1, buf+1, len / 2, 2);
-                }
-        }
-} 
-
-void
-audio_zero(sample *buf, int len, deve_e type)
-{
-	assert(len>=0);
-	switch(type) {
-	case DEV_PCMU:
-		memset(buf, PCMU_AUDIO_ZERO, len);
-		break;
-	case DEV_S8:
-		memset(buf, 0, len);
-		break;
-	case DEV_S16:
-		memset(buf, 0, 2*len);
-		break;
-	default:
-		fprintf(stderr, "%s:%d Type not recognized", __FILE__, __LINE__);
-		break;
-	}
-}
 
 int
 audio_device_write(session_struct *sp, sample *buf, int dur)

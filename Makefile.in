@@ -6,7 +6,7 @@ CFLAGS         = __WFLAGS__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_
 INCLUDE        = __INCLUDE__
 CC             = __CC__
 
-AUDIO_OBJS = __AUDIO__ auddev.o auddev_null.o audio_fmt.o 
+AUDIO_OBJS = __AUDIO__ auddev.o auddev_null.o audio_fmt.o audio_util.o
 
 CODEC_OBJS = codec.o codec_state.o codec_adpcm.o codec_gsm.o \
              codec_l16.o codec_g711.o codec_lpc.o codec_types.o \
