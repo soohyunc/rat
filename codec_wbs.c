@@ -165,6 +165,8 @@ int wbs_get_layer (uint16_t idx, coded_unit *in, uint8_t layer, uint16_t *marker
         }
   
         /* don't care about state */
+	out->state = NULL;
+	out->state_len = 0;
         
         tmp_out = (coded_unit*)block_alloc(sizeof(coded_unit));
         tmp_out->data      = (u_char*)block_alloc(in->data_len);
