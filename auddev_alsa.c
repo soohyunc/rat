@@ -1738,7 +1738,7 @@ alsa_audio_init()
 		ratCard->cardNumber = card;
 		ratCard->pcmDevice = 0;
 		snprintf(ratCard->name, sizeof(ratCard->name),
-			 "%s (alsa %s)",
+			 "ALSA: %s (%s)",
 			 info.name, info.id);
 		if (info.mixerdevs > 0)
 		    ratCard->mixerDevice = 0;
