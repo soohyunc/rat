@@ -75,7 +75,6 @@ resamp(int interp_factor_L, int decim_factor_M, int num_taps_per_phase,
        double *const p_Z, int num_inp, const double *p_inp,
        double *p_out, int *p_num_out)
 {
-	//debug_msg("macosx resamp\n");
     int tap, num_out, num_new_samples, phase_num = *p_current_phase;
     const double *p_coeff;
     double sum;
@@ -214,7 +213,6 @@ static OSStatus
 outputRenderer(void *inRefCon, AudioUnitRenderActionFlags inActionFlags, const AudioTimeStamp *inTimeStamp, 
                UInt32 inBusNumber, AudioBuffer *ioData) 
 {
-	//debug_msg("macosx outputRenderer\n");
 	int i;
 	SInt16* ip = (SInt16*)ioData->mData;
 
@@ -264,10 +262,7 @@ outputRenderer(void *inRefCon, AudioUnitRenderActionFlags inActionFlags, const A
 int macosx_audio_init(void)/* Test and initialize audio interface */
 {
 	int num_devices;
-	//debug_msg("begin macosx_audio_init");
 	num_devices = macosx_audio_device_count();
-	//debug_msg("number of macosx_audio: %d", num_devices);
-	//return 0;
 	if (num_devices < 1) {
 		return 0;
 	}
@@ -281,17 +276,14 @@ int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 	UInt32   propertySize;
 	Boolean  writable;
 	obtained_ = false;
-	debug_msg("begin macosx_audio_open");
 	add = ad;
 	//dev[0] = devices[ad];
 	UNUSED(ofmt);
-	debug_msg("macosx_audio_open\n");
 
 	// Get the default input device ID. 
 	err = AudioHardwareGetPropertyInfo(kAudioHardwarePropertyDefaultInputDevice, &propertySize, &writable);              
 	if (err != noErr)
 	{
-		debug_msg("error AudioHardwareGetPropertyInfo");
 		return 0;
 	};
 	err = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultInputDevice, &propertySize, &(devices[ad].inputDeviceID_));
@@ -332,7 +324,6 @@ int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 	/*
 	int bufferByteSize = 8192;
 	propertySize = sizeof(bufferByteSize);
-	debug_msg("trying to set buffersize to %d\n", bufferByteSize);
 	err = AudioDeviceSetProperty(devices[ad].inputDeviceID_, NULL, 0, true, kAudioDevicePropertyBufferSize, propertySize, &bufferByteSize);
 	if (err != noErr) debug_msg("err: Set kAudioDevicePropertyBufferSize to %d\n", bufferByteSize);
 	else debug_msg("sucessfully set kAudioDevicePropertyBufferSize to %d\n", bufferByteSize);
@@ -457,8 +448,6 @@ int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 
 void macosx_audio_close(audio_desc_t ad)
 {
-	debug_msg("macosx_audio_close\n");
-	
 	OSStatus err = noErr;
 	// Stop the audio devices.
 	err = AudioDeviceStop(devices[ad].inputDeviceID_, audioIOProc);
@@ -477,21 +466,18 @@ void macosx_audio_close(audio_desc_t ad)
 void macosx_audio_drain(audio_desc_t ad)
 {
 	UNUSED(ad);
-	debug_msg("macosx_audio_drain\n");
 	macosx_audio_read(ad, NULL, 10000000);
 };
 
 int  macosx_audio_duplex(audio_desc_t ad)
 {
 	UNUSED(ad);
-	debug_msg("macosx_audio_duplex\n");
 	return 1;
 }
 
 void macosx_audio_set_igain(audio_desc_t ad,int level)
 {
 	UNUSED(ad);
-	debug_msg("macosx_audio_set_igain\n");
 	// Remember the record gain.
 	//devices[ad].rgain_ = level;
 	devices[ad].inputGain_ = level; /// inputGainDivisor_;
@@ -500,7 +486,6 @@ void macosx_audio_set_igain(audio_desc_t ad,int level)
 void macosx_audio_set_ogain(audio_desc_t ad,int vol)
 {
 	UNUSED(ad);
-	debug_msg("macosx_audio_set_ogain\n");
 	OSStatus err = noErr;
 	// Remember the playback gain.
 	//devices[ad].pgain_ = level;
@@ -515,20 +500,17 @@ void macosx_audio_set_ogain(audio_desc_t ad,int vol)
 int  macosx_audio_get_igain(audio_desc_t ad)
 {
 	UNUSED(ad);
-	debug_msg("macosx_audio_get_igain\n");
 	return devices[ad].inputGain_;
 };
 
 int  macosx_audio_get_ogain(audio_desc_t ad)
 {
 	UNUSED(ad);
-	debug_msg("macosx_audio_get_ogain\n");
 	return devices[ad].outputGain_;
 }
 
 void macosx_audio_loopback(audio_desc_t ad, int gain)
 {
-	debug_msg("macosx_audio_loopback\n");
 	UNUSED(ad);
 	UNUSED(gain);
 };
@@ -638,19 +620,16 @@ int macosx_audio_write(audio_desc_t ad, u_char* data, int write_bytes)
 
 void macosx_audio_non_block(audio_desc_t ad)
 {
-    debug_msg("macosx_audio_non_block\n");
     UNUSED(ad);
 };
 
 void macosx_audio_block(audio_desc_t ad)
 {
-	debug_msg("macosx_audio_block\n");
 	UNUSED(ad);
 };
 
 void macosx_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
-	debug_msg("macosx_audio_oport_set\n");
 	UNUSED(ad);
 	UNUSED(port);
 };
@@ -658,14 +637,12 @@ void macosx_audio_oport_set(audio_desc_t ad, audio_port_t port)
 audio_port_t macosx_audio_oport_get(audio_desc_t ad) 
 {
 	UNUSED(ad);
-	debug_msg("macosx_audio_oport_get\n");
 	return AUDIO_OUT;
 };
 
 int  macosx_audio_oport_count(audio_desc_t ad)
 {
 	UNUSED(ad);
-	debug_msg("macosx_audio_oport_count\n");
 	return 1;
 };
 
@@ -673,7 +650,6 @@ const audio_port_details_t* macosx_audio_oport_details(audio_desc_t ad, int idx)
 {
 	UNUSED(ad);
 	UNUSED(idx);
-	debug_msg("macosx_audio_oport_details\n");
 	return &oport;
 };
 
@@ -681,20 +657,17 @@ void macosx_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
 	UNUSED(ad);
 	UNUSED(port);
-	debug_msg("macosx_audio_iport_set\n");
 };
 
 audio_port_t macosx_audio_iport_get(audio_desc_t ad)
 {
 	UNUSED(ad);
-	debug_msg("macosx_audio_iport_get\n");
 	return AUDIO_IN;
 }
 
 int  macosx_audio_iport_count(audio_desc_t ad)
 {
 	UNUSED(ad);
-	debug_msg("macosx_audio_iport_count\n");
 	return 1;
 };
 
@@ -702,7 +675,6 @@ const audio_port_details_t* macosx_audio_iport_details(audio_desc_t ad, int idx)
 {
 	UNUSED(ad);
 	UNUSED(idx);
-	debug_msg("macosx_audio_iport_details\n");
 	return &iport;
 };
 
@@ -713,7 +685,6 @@ int  macosx_audio_is_ready(audio_desc_t ad)
 }
 
 void macosx_audio_wait_for(audio_desc_t ad, int delay_ms) {
-//	debug_msg("macosx_audio_wait_for\n");
 	struct timeval tv;
 	
 	UNUSED(ad);
@@ -726,7 +697,6 @@ void macosx_audio_wait_for(audio_desc_t ad, int delay_ms) {
 
 int  macosx_audio_supports(audio_desc_t ad, audio_format *fmt)
 {
-	debug_msg("macosx_audio_supports\n");
 	UNUSED(ad);
 	if (fmt->encoding != DEV_S16) {
 		return 0;
@@ -738,7 +708,6 @@ int macosx_audio_device_count(void)
 /* Then this one tells us the number of 'em */
 {
 
-    debug_msg("macosx_audio_device_count\n");
     OSStatus err = noErr;
     UInt32 theSize;
     err = AudioHardwareGetPropertyInfo ( kAudioHardwarePropertyDevices, &theSize, NULL );
@@ -751,7 +720,6 @@ int macosx_audio_device_count(void)
 char *macosx_audio_device_name(audio_desc_t idx)	/* Then this one tells us the name          */
 {
 	UNUSED(idx);
-	debug_msg("macosx_audio_device_name\n");
     char *name;
     name = (char *) malloc(sizeof(char)*128);
     /*
