@@ -221,6 +221,9 @@ rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 cur_time)
         newdb->enc                      = -1;
         newdb->enc_fmt                  = NULL;
 	newdb->last_sr_rx		= 0;
+
+        /* This is not the right place for this */
+        newdb->gain                     = 1.0;
 	return newdb;
 }
 

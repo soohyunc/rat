@@ -14,6 +14,7 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "audio_util.h"
+#include "debug.h"
 
 #define C0 +0.46363718
 #define C1 -0.92724705
@@ -273,4 +274,14 @@ avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
         return (u_int16)(e1*ENERGY_CALC_STEP/samples);
 }
 
+/* not going to simd this one */
 
+void
+audio_scale_buffer(sample *buf, int len, double scale)
+{
+        int i;
+        debug_msg("scaling %f\n", scale);
+        for(i = 0; i < len; i++) {
+                buf[i] = (sample)((double)buf[i] * scale);
+        }
+}

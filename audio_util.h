@@ -23,6 +23,8 @@ BOOL    mmx_present();
 void    audio_mix_mmx(sample *dst, sample *in, int len);
 #endif
 
+void    audio_scale_buffer(sample *buf, int len, double scale); 
+
 /* Biasing operations */
 
 struct s_bias_ctl;

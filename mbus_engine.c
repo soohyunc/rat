@@ -719,6 +719,29 @@ static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
+static void rx_rtp_source_gain(char *srce, char *args, session_struct *sp)
+{
+	rtcp_dbentry	*e;
+	char		*ssrc;
+        double           g;
+
+	UNUSED(srce);
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &ssrc) && mbus_parse_flt(sp->mbus_engine, &g)) {
+		ssrc = mbus_decode_str(ssrc);
+                e = rtcp_get_dbentry(sp, strtoul(ssrc, 0, 16));
+		if (e != NULL) {
+                        debug_msg("Recied gain %f\n", g);
+                        e->gain = g;
+                } else {
+			debug_msg("Unknown source 0x%08lx\n", ssrc);
+		}
+	} else {
+		debug_msg("mbus: usage \"rtp_source_gain <ssrc> <bool>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+}
 
 static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
 {
@@ -1180,6 +1203,7 @@ const char *rx_cmnd[] = {
 	"rtp.source.phone",       
 	"rtp.source.loc",
 	"rtp.source.mute",
+	"rtp.source.gain",
 	"rtp.source.playout",
 	"mbus.quit",
 	"mbus.waiting",
@@ -1230,6 +1254,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_rtp_source_phone,            
 	rx_rtp_source_loc,
 	rx_rtp_source_mute,
+        rx_rtp_source_gain,
 	rx_rtp_source_playout,
 	rx_mbus_quit,
 	rx_mbus_waiting,

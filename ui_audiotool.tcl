@@ -50,7 +50,8 @@ set output_ports        [list]
 proc init_source {ssrc} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE SSRC num_ssrc 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER \
-		LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED BUFFER_SIZE PLAYOUT_DELAY
+		LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED BUFFER_SIZE PLAYOUT_DELAY \
+		GAIN MUTE
 
 	# This is a debugging test -- old versions of the mbus used the
 	# cname to identify participants, whilst the newer version uses 
@@ -70,6 +71,8 @@ proc init_source {ssrc} {
 		set          TOOL($ssrc) ""
 		set 	     NOTE($ssrc) ""
 		set         CODEC($ssrc) unknown
+		set          GAIN($ssrc) 1.0
+		set          MUTE($ssrc) 0
 		set      DURATION($ssrc) ""
                 set   BUFFER_SIZE($ssrc) 0
                 set PLAYOUT_DELAY($ssrc) 0
@@ -234,6 +237,7 @@ proc mbus_recv {cmnd args} {
 		rtp.source.active  		{eval mbus_recv_rtp.source.active $args}
 		rtp.source.inactive  		{eval mbus_recv_rtp.source.inactive $args}
 		rtp.source.mute  		{eval mbus_recv_rtp.source.mute $args}
+		rtp.source.gain  		{eval mbus_recv_rtp.source.gain $args}
 		security.encryption.key 	{eval mbus_recv_security.encryption.key $args}
 		default				{puts "Unknown mbus command $cmnd"}
 	}
@@ -818,6 +822,12 @@ proc mbus_recv_rtp.source.codec {ssrc codec} {
 	set CODEC($ssrc) $codec
 }
 
+proc mbus_recv_rtp.source.gain {ssrc gain} {
+	global GAIN
+	init_source $ssrc
+	set GAIN($ssrc) $gain
+}
+
 proc mbus_recv_rtp.source.packet.duration {ssrc packet_duration} {
 	global DURATION
 	init_source $ssrc
@@ -915,7 +925,7 @@ proc mbus_recv_rtp.source.inactive {ssrc} {
 proc mbus_recv_rtp.source.remove {ssrc} {
     global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO \
 	    PCKTS_DUP JITTER BUFFER_SIZE PLAYOUT_DELAY LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED \
-	    num_ssrc loss_to_me_timer loss_from_me_timer
+	    num_ssrc loss_to_me_timer loss_from_me_timer GAIN MUTE
 
     # Disable updating of loss diamonds. This has to be done before we destroy the
     # window representing the participant, else the background update may try to 
@@ -928,7 +938,7 @@ proc mbus_recv_rtp.source.remove {ssrc} {
 	unset CNAME($ssrc) NAME($ssrc) EMAIL($ssrc) PHONE($ssrc) LOC($ssrc) TOOL($ssrc) NOTE($ssrc)
 	unset CODEC($ssrc) DURATION($ssrc) PCKTS_RECV($ssrc) PCKTS_LOST($ssrc) PCKTS_MISO($ssrc) PCKTS_DUP($ssrc)
 	unset JITTER($ssrc) LOSS_TO_ME($ssrc) LOSS_FROM_ME($ssrc) INDEX($ssrc) JIT_TOGED($ssrc) BUFFER_SIZE($ssrc)
-	unset PLAYOUT_DELAY($ssrc)
+	unset PLAYOUT_DELAY($ssrc) GAIN($ssrc) MUTE($ssrc)
 
 	incr num_ssrc -1
 	chart_redraw $num_ssrc
@@ -936,8 +946,8 @@ proc mbus_recv_rtp.source.remove {ssrc} {
 }
 
 proc mbus_recv_rtp.source.mute {ssrc val} {
-	global iht
-
+	global iht MUTE
+	set MUTE($ssrc) $val
 	if {$val} {
 		[window_plist $ssrc] create line [expr $iht + 2] [expr $iht / 2] 500 [expr $iht / 2] -tags a -width 2.0 -fill gray95
 	} else {
@@ -1141,6 +1151,12 @@ proc toggle_mute {cw ssrc} {
 	}
 }
 
+proc send_gain_and_mute {ssrc} {
+	global GAIN MUTE
+	mbus_send "R" "rtp.source.gain" "[mbus_encode_str $ssrc] $GAIN($ssrc)"
+	mbus_send "R" "rtp.source.mute" "[mbus_encode_str $ssrc] $MUTE($ssrc)"
+}
+
 proc fix_scrollbar {} {
 	global iht iwd fw
 
@@ -1170,6 +1186,12 @@ proc stats_add_field {widget label watchVar} {
     pack $widget.w -side right 
 }
 
+proc ssrc_set_gain {ssrc gain} {
+    global GAIN
+    set    GAIN($ssrc) [format "%.2f " [expr pow (2, $gain)]]
+    send_gain_and_mute $ssrc
+}
+
 set 3d_azimuth(min) 0
 set 3d_azimuth(max) 0
 set 3d_filters        [list "Not Available"]
@@ -1193,6 +1215,7 @@ proc toggle_stats {ssrc} {
 	menu $win.mf.mb.menu -tearoff 0
 	$win.mf.mb.menu add command -label "Personal Details" -command "set_pane stats_pane($win) $win.df \"Personal Details\""
 	$win.mf.mb.menu add command -label "Reception"        -command "set_pane stats_pane($win) $win.df Reception"
+	$win.mf.mb.menu add command -label "Audio"            -command "set_pane stats_pane($win) $win.df Audio"
 	$win.mf.mb.menu add command -label "3D Positioning"   -command "set_pane stats_pane($win) $win.df \"3D Positioning\""
 
 	set stats_pane($win) "Personal Details"
@@ -1224,6 +1247,27 @@ proc toggle_stats {ssrc} {
 	stats_add_field $win.df.reception.a "Packets misordered: "     PCKTS_MISO($ssrc)
 	stats_add_field $win.df.reception.b "Packets duplicated: "     PCKTS_DUP($ssrc)
 	stats_add_field $win.df.reception.c "Units dropped (jitter): " JIT_TOGED($ssrc)
+
+# Audio settings
+	global GAIN MUTE
+	frame $win.df.audio -relief sunk	
+	label $win.df.audio.advice -text "The signal from the participant can\nbe scaled and muted with the controls below."
+	pack  $win.df.audio.advice
+
+	checkbutton $win.df.audio.mute -text "Mute" -variable MUTE($ssrc) -command "send_gain_and_mute $ssrc"
+	pack $win.df.audio.mute
+
+	frame $win.df.audio.opts
+	pack  $win.df.audio.opts -side top
+	label $win.df.audio.opts.title -text "Gain"
+	scale $win.df.audio.opts.gain_scale -showvalue 0 -orient h -from -3 -to +3 -resolution 0.25 -command "ssrc_set_gain $ssrc"
+	label $win.df.audio.opts.gain_text -textvariable GAIN($ssrc) -width 4
+	pack  $win.df.audio.opts.title $win.df.audio.opts.gain_scale $win.df.audio.opts.gain_text -side left
+
+	$win.df.audio.opts.gain_scale set [expr log10($GAIN($ssrc)) / log10(2)] 
+
+	button $win.df.audio.default -text "Default" -command "set MUTE($ssrc) 0; $win.df.audio.opts.gain_scale set 0.0; send_gain_and_mute $ssrc" 
+	pack   $win.df.audio.default -side right  -anchor e -padx 2 -pady 2
 
 # 3D settings
 	# Trigger engine to send details for this participant

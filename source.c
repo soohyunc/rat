@@ -1007,6 +1007,12 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         assert(md_len == sizeof(media_data));
                 }
 
+                if (src->dbe->gain != 1.0 && codec_is_native_coding(md->rep[md->nrep - 1]->id)) {
+                        audio_scale_buffer((sample*)md->rep[md->nrep - 1]->data,
+                                           md->rep[md->nrep - 1]->data_len / sizeof(sample),
+                                           src->dbe->gain);
+                }
+
                 if (mix_process(ms, src->dbe, md->rep[md->nrep - 1], playout) == FALSE) {
                         /* Sources sampling rate changed mid-flow?,
                          * dump data, make source look irrelevant, it

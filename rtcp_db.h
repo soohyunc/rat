@@ -82,6 +82,8 @@ typedef struct s_rtcp_dbentry {
 	int		loss_from_me;		/* Loss rate that this receiver heard from me */
 	u_int32		last_rr_for_me;
 
+        double          gain;                   /* Participant gain */
+
 	/* The variables must be properly set up for first data packet */
 	/* - zero is no good                                           */
 

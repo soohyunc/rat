@@ -87,6 +87,12 @@ void ui_info_update_note(session_struct *sp, rtcp_dbentry *e)
 	ui_info_update_sdes(sp, "rtp.source.note", e->sentry->note, e->sentry->ssrc);
 }
 
+void 
+ui_info_gain(session_struct *sp, rtcp_dbentry *e)
+{
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.gain", "\"%08lx\" %.2f", e->sentry->ssrc, e->gain);
+}
+
 void
 ui_info_mute(session_struct *sp, rtcp_dbentry *e)
 {
