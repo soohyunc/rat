@@ -302,6 +302,10 @@ source_reconfigure(source        *src,
                         src->dbe->render_3D_data = render_3D_init((int)src_rate);
                 }
                 assert(src->dbe->render_3D_data);
+                /* Render 3d is before sample rate/channel conversion,
+                 * and output 2 channels.
+                 */
+                src_channels = 2;
         } else {
                 /* Rendering is switched off so destroy info */
                 if (src->dbe->render_3D_data != NULL) {
@@ -316,7 +320,6 @@ source_reconfigure(source        *src,
 
         if (src_rate != out_rate || src_channels != out_channels) {
                 converter_fmt_t c;
-
                 c.from_freq     = src_rate;
                 c.from_channels = src_channels;
                 c.to_freq       = out_rate;
@@ -335,7 +338,13 @@ source_remove(source_list *plist, source *psrc)
         psrc->next->prev = psrc->prev;
         psrc->prev->next = psrc->next;
 
-        if (psrc->channel_state) channel_decoder_destroy(&psrc->channel_state);
+        if (psrc->channel_state) {
+                channel_decoder_destroy(&psrc->channel_state);
+        }
+
+        if (psrc->converter) {
+                converter_destroy(&psrc->converter);
+        }
 
         pb_iterator_destroy(psrc->media, &psrc->media_pos);
         pb_destroy(&psrc->channel);
@@ -661,7 +670,8 @@ source_get_playout_delay (source *src)
 
         if (pb_get_start_ts(src->channel,  &start) &&
             pb_get_end_ts(src->channel, &end)) {
-                assert(ts_gt(end, start));
+                assert(ts_gt(end, start) || ts_eq(end, start));
+                
                 return ts_sub(end, start);
         }
 
