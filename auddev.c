@@ -463,8 +463,7 @@ audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
         assert(ifmt != NULL);
         assert(ofmt != NULL);
 
-        if ((ofmt->sample_rate != ifmt->sample_rate) ||
-            (ofmt->encoding == DEV_S8 || ifmt->encoding == DEV_S8)) {
+        if (ofmt->sample_rate != ifmt->sample_rate) {
                 /* Fail on things we don't support */
                 debug_msg("Not supported\n");
                 return 0;

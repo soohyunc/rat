@@ -74,9 +74,9 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                          */
                         break;
                 case AFMT_FULLDUPLEX | AFMT_WEIRD:
-                        /* this is the sb16... */
+                        /* this is a sb16/32/64... */
                         debug_msg("Weird Hardware\n");
-                        audio_format_change_encoding(ofmt, DEV_S8);
+                        audio_format_change_encoding(ofmt, DEV_U8);
                         break;
                 default:		/* no full duplex... */
                         fprintf(stderr, "Sorry driver does support full duplex for this soundcard\n");
@@ -96,12 +96,14 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 case DEV_PCMU: pa.rec_format = AFMT_MU_LAW; break;
                 case DEV_S8:   pa.rec_format = AFMT_S8;     break;
                 case DEV_S16:  pa.rec_format = AFMT_S16_LE; break;
+                case DEV_U8:   pa.rec_format = AFMT_U8;     break;
                 }
 
                 switch(ofmt->encoding) {
                 case DEV_PCMU: pa.play_format = AFMT_MU_LAW; break;
                 case DEV_S8:   pa.play_format = AFMT_S8;     break;
                 case DEV_S16:  pa.play_format = AFMT_S16_LE; break;
+                case DEV_U8:   pa.rec_format = AFMT_U8;     break;
                 }
                 pa.play_rate = ofmt->sample_rate;
                 pa.rec_rate = ifmt->sample_rate;
