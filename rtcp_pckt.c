@@ -635,7 +635,7 @@ u_int32 rtcp_interval(int 	 members,
     double RTCP_MIN_TIME           = 5.0;				/* Min time between report, in seconds    */
     double RTCP_SENDER_BW_FRACTION = 0.25;				/* Fraction of RTCP bandwidth used for SR */
     double RTCP_RCVR_BW_FRACTION   = (1-RTCP_SENDER_BW_FRACTION);	/* Fraction of RTCP bandwidth used for RR */
-    double RTCP_SIZE_GAIN          = (1.0/16.0);			/*					  */
+    int    RTCP_SIZE_GAIN          = 16;			 	/*					  */
     double t;                   					/* interval                               */
     double rtcp_min_time 	   = RTCP_MIN_TIME;			/*                                        */
     int n;                      					/* no. of members for computation         */
@@ -673,7 +673,7 @@ u_int32 rtcp_interval(int 	 members,
 
     /* Update the average size estimate by the size of the report */
     /* packet we just sent.                                       */
-    *avg_rtcp_size += (packet_size - *avg_rtcp_size)*RTCP_SIZE_GAIN;
+    *avg_rtcp_size += (packet_size - *avg_rtcp_size) / RTCP_SIZE_GAIN;
 
     /* The effective number of sites times the average packet size is */
     /* the total number of octets sent when each site sends a report. */
@@ -747,7 +747,7 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int1
 
 	/* Send an RTCP BYE packet... */
 	ptr = rtcp_packet_fmt_srrr(sp1, ptr);
-	ptr = rtcp_packet_fmt_bye(ptr, sp1->db->myssrc, sp1->mode == TRANSCODER? sp2->db->ssrc_db: NULL);
+	ptr = rtcp_packet_fmt_bye(ptr, sp1->db->myssrc, sp1->mode == TRANSCODER? sp2->db->ssrc_db: (rtcp_dbentry *) NULL);
 	net_write(fd, addr, port, packet, ptr - packet, PACKET_RTCP);
 
 	rtcp_free_dbentry(sp1->db->my_dbe);
@@ -782,7 +782,7 @@ rtcp_update(session_struct *sp, int fd, u_int32 addr, u_int16 port)
 	if (sp->db->old_ssrc) {
 		/* Our SSRC has changed, so send a BYE packet for that SSRC */
 		ptr = rtcp_packet_fmt_srrr(sp, ptr);
-		ptr = rtcp_packet_fmt_bye(ptr, sp->db->old_ssrc, sp->mode==TRANSCODER?sp->db->ssrc_db:NULL);
+		ptr = rtcp_packet_fmt_bye(ptr, sp->db->old_ssrc, sp->mode==TRANSCODER?sp->db->ssrc_db:(rtcp_dbentry *)NULL);
 		packlen = ptr - (u_int8 *) packet;
 		net_write(fd, addr, port, (u_int8 *) packet, packlen, PACKET_RTCP);
 		sp->db->last_rpt = now;

@@ -62,29 +62,7 @@
 #define INADDR_NONE     0xffffffff
 #endif
 
-void 
-network_init(session_struct *sp)
-{
-	struct in_addr in;
-	struct hostent *h;
-	sp->net_maddress = get_net_addr(sp->asc_address);  
-
-	if (inet_addr(sp->asc_address) != INADDR_NONE) {
-		strcpy(sp->maddress, sp->asc_address);
-	} else if ((h = gethostbyname(sp->asc_address))!=NULL) {
-		memcpy(&in.s_addr, *(h->h_addr_list), sizeof(in.s_addr));
-		sprintf(sp->maddress, "%s", inet_ntoa(in));
-	} else {
-		fprintf(stderr, "Could not resolve hostname (h_errno = %d): %s", h_errno, sp->asc_address);
-		exit(-1);
-	}
-	
-	sp->our_address  = get_net_addr(NULL);
-	sp->rtp_fd  = sock_init(sp->net_maddress, sp->rtp_port,  sp->ttl);
-	sp->rtcp_fd = sock_init(sp->net_maddress, sp->rtcp_port, sp->ttl);
-}
-
-u_long 
+static u_long 
 get_net_addr(char *dhost)
 {
 	char            dhosta[MAXHOSTNAMELEN];
@@ -97,20 +75,19 @@ get_net_addr(char *dhost)
 	}
 	if ((inaddr = inet_addr(dhost)) == INADDR_NONE) {
 		if ((addr = gethostbyname(dhost)) == NULL) {
-			fprintf(stderr, "bad hostname(h_errno = %d): %s\n", \
-				h_errno, dhost);
+			fprintf(stderr, "bad hostname(h_errno = %d): %s\n", h_errno, dhost);
 			exit(-1);
 		}
 #ifndef h_addr
 		memcpy(&inaddr, addr->h_addr, sizeof(inaddr));
-#else				/* h_addr */
+#else
 		memcpy(&inaddr, addr->h_addr_list[0], sizeof(inaddr));
-#endif				/* h_addr */
+#endif
 	}
-	return (inaddr);
+	return inaddr;
 }
 
-int
+static int
 sock_init(u_long inaddr, int port, int t_flag)
 {
 	struct sockaddr_in sinme;
@@ -174,6 +151,28 @@ sock_init(u_long inaddr, int port, int t_flag)
 			perror("setsockopt IP_MULTICAST_TTL");
 	}
 	return tmp_fd;
+}
+
+void 
+network_init(session_struct *sp)
+{
+	struct in_addr in;
+	struct hostent *h;
+	sp->net_maddress = get_net_addr(sp->asc_address);  
+
+	if (inet_addr(sp->asc_address) != INADDR_NONE) {
+		strcpy(sp->maddress, sp->asc_address);
+	} else if ((h = gethostbyname(sp->asc_address))!=NULL) {
+		memcpy(&in.s_addr, *(h->h_addr_list), sizeof(in.s_addr));
+		sprintf(sp->maddress, "%s", inet_ntoa(in));
+	} else {
+		fprintf(stderr, "Could not resolve hostname (h_errno = %d): %s", h_errno, sp->asc_address);
+		exit(-1);
+	}
+	
+	sp->our_address  = get_net_addr(NULL);
+	sp->rtp_fd  = sock_init(sp->net_maddress, sp->rtp_port,  sp->ttl);
+	sp->rtcp_fd = sock_init(sp->net_maddress, sp->rtcp_port, sp->ttl);
 }
 
 int
@@ -384,11 +383,7 @@ network_read(session_struct    *sp,
 			tvp = &timeout;
 		}
 #endif
-#if defined(HPUX) && !defined (HPUX_10)
-		if (select(sel_fd, (int *) &rfds, NULL, NULL, tvp) > 0) {
-#else
 		if (select(sel_fd, &rfds, (fd_set *) 0, (fd_set *) 0, tvp) > 0) {
-#endif
 			if (FD_ISSET(sp->rtp_fd, &rfds)) {
 				read_packets_and_add_to_queue(sp->rtp_fd, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
 			}
@@ -461,11 +456,7 @@ void network_process_mbus(session_struct *sp[], int num_sessions, int delay)
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = delay;
 		tvp = &timeout;
-#ifdef HPUX
-		rc = select(sel_fd, (int *) &rfds, NULL, NULL, tvp);
-#else
 		rc = select(sel_fd, &rfds, (fd_set *) 0, (fd_set *) 0, tvp);
-#endif
 		if (rc > 0) {
 			for (i=0; i<num_sessions; i++) {
                         	if (FD_ISSET(mbus_engine_fd(0), &rfds)) {

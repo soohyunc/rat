@@ -45,9 +45,6 @@
 
 #define UNUSED(x)	(x=x)
 
-#define strsave(s)	strcpy(xmalloc(strlen(s) + 1), s)
-
-
 #define xmalloc(x)	_xmalloc(x,__FILE__,__LINE__)
 #define block_alloc(x)	_block_alloc(x,__FILE__,__LINE__)
 #define block_free(x,y) _block_free(x,y,__LINE__)

@@ -152,7 +152,7 @@ dvi_init(session_struct *sp, state_t *s, codec_t *c)
 {
         UNUSED(sp);
 
-	s->s = xmalloc(c->sent_state_sz);
+	s->s = (char *) xmalloc(c->sent_state_sz);
 	memset(s->s, 0, c->sent_state_sz);
 }
 
@@ -196,7 +196,7 @@ wbs_init(session_struct *sp, state_t *s, codec_t *c)
         UNUSED(sp);
         UNUSED(c);
 
-	s->s = xmalloc(sizeof(wbs_t));
+	s->s = (char *) xmalloc(sizeof(wbs_t));
 	wsp = (wbs_t *)s->s;
 	wbs_state_init(&wsp->state, wsp->qmf_lo, wsp->qmf_hi, &wsp->ns);
 }
@@ -342,7 +342,7 @@ set_dynamic_payload(dpt **dpt_list, char *name, int pt)
 	}
 	if (p == 0) {
 		p = (dpt *)xmalloc(sizeof(dpt));
-		p->name = strsave(name);
+		p->name = strcpy((char *) xmalloc(strlen(name) + 1), name);
 		p->next = *dpt_list;
 		*dpt_list = p;
 #ifdef DEBUG_CODEC
@@ -536,9 +536,9 @@ encoder(session_struct *sp, sample *data, int coding, coded_unit *c)
 	c->cp = cp;
 	stp = get_codec_state(sp, &sp->state_list, cp->pt, ENCODE);
 
-	c->state = cp->sent_state_sz > 0? block_alloc(cp->sent_state_sz) : NULL;
+	c->state = cp->sent_state_sz > 0 ? (u_char *) block_alloc(cp->sent_state_sz) : (u_char *) NULL;
 	c->state_len = cp->sent_state_sz;
-	c->data = block_alloc(cp->max_unit_sz);
+	c->data = (u_char *) block_alloc(cp->max_unit_sz);
 	c->data_len = cp->max_unit_sz;
 
 	cp->encode(data, c, stp, cp);

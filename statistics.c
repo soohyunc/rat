@@ -174,8 +174,9 @@ adapt_playout(rtp_hdr_t *hdr,
 
 	int	delay, diff;
 	codec_t	*cp;
-	u_int32	ntptime, sendtime, play_time;
-        int     ntp_delay;
+	u_int32	ntptime, play_time;
+	u_int32	sendtime = 0;
+        int     ntp_delay = 0;
 	u_int32	rtp_time;
 #ifdef WIN32
 	__int64 since_last_sr;
@@ -210,14 +211,11 @@ adapt_playout(rtp_hdr_t *hdr,
 		ntptime = (src->last_ntp_sec & 0xffff) << 16 | src->last_ntp_frac >> 16;
 		if (hdr->ts > src->last_rtp_ts) {
 			since_last_sr = hdr->ts - src->last_rtp_ts;	
-			since_last_sr = (since_last_sr << 16) / get_freq(src->clock);
-			sendtime = ntptime + since_last_sr; /* (since_last_sr << 16) / get_freq(src->clock); */
-		}
-		else {
+		} else {
 			since_last_sr = src->last_rtp_ts - hdr->ts;
-			since_last_sr = (since_last_sr << 16) / get_freq(src->clock);
-			sendtime = ntptime + since_last_sr; /* (since_last_sr << 16) / get_freq(src->clock); */
 		}
+		since_last_sr = (since_last_sr << 16) / get_freq(src->clock);
+		sendtime = ntptime + since_last_sr; /* (since_last_sr << 16) / get_freq(src->clock); */
 
 		ntp_delay = real_time - sendtime; 
 

@@ -702,7 +702,7 @@ get_rx_unit(int n, int cc_pt, rx_queue_element_struct *u)
                 }
         }
         if (n) debug_msg("unit %d not found\n", n);
-        return n ? NULL : u;
+        return n ? (rx_queue_element_struct *) NULL : u;
 }
 
 int
@@ -742,14 +742,14 @@ add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
         
         j = 0;
         if (iovc>1) {
-                u->comp_data[i].state     = iov[j].iov_base;
+                u->comp_data[i].state     = (u_char *) iov[j].iov_base;
                 u->comp_data[i].state_len = iov[j++].iov_len;
                 assert(u->comp_data[i].state_len == cp->sent_state_sz);
         } else {
                 u->comp_data[i].state     = NULL;
                 u->comp_data[i].state_len = 0;
         }
-        u->comp_data[i].data     = iov[j].iov_base;
+        u->comp_data[i].data     = (u_char *) iov[j].iov_base;
         u->comp_data[i].data_len = iov[j++].iov_len;
         u->comp_data[i].cp       = cp;
 

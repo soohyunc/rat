@@ -258,7 +258,7 @@ _block_alloc(unsigned int size, const char *filen, int line)
 #ifdef DEBUG_MEM
                 mem_item[naddr].blen = size;
 #endif
-		p = _xmalloc(INDEX_TO_SIZE(i) + 8,filen,line);
+		p = (char *) _xmalloc(INDEX_TO_SIZE(i) + 8,filen,line);
 		*((int *)p) = INDEX_TO_SIZE(i);
 		p += 8;
                 blocks_alloced++;

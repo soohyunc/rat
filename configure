@@ -54,9 +54,11 @@ esac
 
 echo "Configuring RAT v$VERSION for $OSTYPE"
 
+GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Wcast-align -Wmissing-declarations -Werror"
+
 case $OSTYPE in
   SunOS_4 ) CC="gcc"
-            WFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
+            WFLAGS=$GCCWFLAGS
 	    INCLUDE="-I/cs/research/mice/starship/common/sun4/include -I/usr/ucl/X11/include -I/usr/demo/SOUND"
 	    LDLIBS="/cs/research/mice/starship/common/sun4/lib/libtk80.a /cs/research/mice/starship/common/sun4/lib/libtcl80.a -L/usr/openwin/lib -lXext -lX11 -L/usr/demo/SOUND -laudio -lm"
 	    AUDIO="auddev_sparc.o"
@@ -66,7 +68,7 @@ case $OSTYPE in
 	    PROFILE="-pg"
             ;;
   SunOS_5 ) CC="gcc -pipe"
-            WFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
+            WFLAGS=$GCCWFLAGS
 	    INCLUDE="-I/cs/research/mice/starship/common/solaris/include -I/usr/demo/SOUND/include -I/usr/openwin/include"
 	    LDLIBS="-L/cs/research/mice/starship/common/solaris/lib -ltk8.0 -ltcl8.0 -L/usr/openwin/lib -lXext -lX11 -L/usr/demo/SOUND/lib -laudio -lsocket -ldl -lnsl -lm -lcheck"
 	    AUDIO="auddev_sparc.o"
@@ -86,7 +88,7 @@ case $OSTYPE in
 	    PROFILE=""
             ;;
   Linux   ) CC="gcc"
-            WFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
+            WFLAGS=$GCCWFLAGS
 	    INCLUDE="-I/usr/X11R6/include -I/cs/research/mice/starship/common/linux/include"
 	    LDLIBS="-L/cs/research/mice/starship/common/linux/lib -ltk8.0 -ltcl8.0 -L/usr/X11R6/lib -lX11 -lm -ldl"
 	    AUDIO="auddev_oss.o"
@@ -96,7 +98,7 @@ case $OSTYPE in
 	    PROFILE="-pg"
             ;;
   FreeBSD ) CC="gcc"
-            WFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
+            WFLAGS=$GCCWFLAGS
 	    INCLUDE="-I/usr/X11R6/include -I/cs/research/mice/starship/common/FreeBSD/include -I/usr/local/include"
 	    LDLIBS="-L/cs/research/mice/starship/common/freebsd/lib -ltk80 -ltcl80 -L/usr/X11R6/lib -lXext -lX11 -lm"
 	    AUDIO="auddev_luigi.o"
@@ -106,7 +108,7 @@ case $OSTYPE in
 	    PROFILE="-pg"
             ;;
   HPUX    ) CC="gcc"
-            WFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
+            WFLAGS=$GCCWFLAGS
 	    INCLUDE="-I/usr/include/X11 -I/cs/research/mice/starship/common/hpux/include/"
 	    LDLIBS="/cs/research/mice/starship/common/hpux/lib/libtk8.0.a /cs/research/mice/starship/common/hpux/lib/libtcl8.0.a -L/usr/lib/X11R5 -lXext -lX11 -lAlib -lm -ldld"
 	    AUDIO="auddev_hpux_raw.o"

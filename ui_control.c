@@ -349,7 +349,7 @@ ui_output_level(int level)
 static void
 ui_repair(session_struct *sp)
 {
-	char	*repair;
+	char	*repair = NULL;
 
         switch(sp->repair) {
         case REPAIR_NONE:

@@ -17,7 +17,7 @@ rat: $(OBJS)
 	$(CC) $(OBJS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ -o rat
 
 %.o: %.c session.h
-	$(CC) $(CFLAGS) -c $*.c -o $*.o
+	$(CC) $(CFLAGS) -c $*.c
 
 init_session.o: 	version.h
 rtcp.o:      		version.h
