@@ -126,8 +126,6 @@ fillin_playout_buffer(rx_queue_element_struct *from,
         u_int32 playout_step, units_made = 0;
         
         assert(ts_abs_diff(from->src_ts,to->src_ts) % to->unit_size == 0);
-        assert(from->unit_size == 160);
-        assert(to->unit_size   == 160);
 
         playout_step = ts_abs_diff(from->playoutpt, to->playoutpt) * 
                 from->unit_size / ts_abs_diff(from->src_ts, to->src_ts);
