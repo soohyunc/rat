@@ -209,12 +209,10 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				rr->jitter        = ntohl(pkt->r.sr.rr[i].jitter);
 				rr->lsr           = ntohl(pkt->r.sr.rr[i].lsr);
 				rr->dlsr          = ntohl(pkt->r.sr.rr[i].dlsr);
-				dbe->rr    = rr;
-				other_source = rtcp_get_dbentry(sp, rr->ssrc);
-				if ((dbe->sentry->cname != NULL) && (other_source != NULL)) {
+				dbe->rr      = rr;
+				other_source = rtcp_getorew_dbentry(sp, rr->ssrc, addr, cur_time);
+				if (dbe->sentry->cname != NULL) {
 					ui_update_loss(dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
-				} else {
-					dprintf("Unknown source found when parsing RTCP SR\n");
 				}
 			}
 			break;
@@ -245,11 +243,9 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				rr->lsr           = ntohl(pkt->r.rr.rr[i].lsr);
 				rr->dlsr          = ntohl(pkt->r.rr.rr[i].dlsr);
 				dbe->rr = rr;
-				other_source =  rtcp_get_dbentry(sp, rr->ssrc);
-				if ((dbe->sentry->cname != NULL) && (other_source != NULL)) {
+				other_source =  rtcp_getornew_dbentry(sp, rr->ssrc, addr, cur_time);
+				if (dbe->sentry->cname != NULL) {
 					ui_update_loss(dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
-				} else {
-					dprintf("Unknown source found when parsing RTCP RR\n");
 				}
 			}
 
