@@ -1051,6 +1051,10 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Incorporated auddev_atm.c and wrote auddev_atm.h.
 	* Released 31 January 2000
 
+v4.1.4	- Fix dependencies in Makefile for rpm target
+	- Fix handling of odd numbered RTP ports (pick next lower port).
+
+
 TODO -- They're features not bugs dammit!
 ----
 
@@ -1085,9 +1089,6 @@ TODO -- They're features not bugs dammit!
 - Disabling participant list doesn't work if the window has been resized:
   not sure if this is a feature of Tk or the window manager, but there's 
   little we can do about it.
-- Playout delays may be out of date in both tools (rat & vic) when lip-sync 
-  is enabled and when no talkspurt has been sent/received for a while (e.g 
-  when the speaker stops talking for a while)
 - When silence suppression is off, then no mbus lip-sync messages are exchanged
   between rat & vic since this is done on a per-talkspurt basis by rat.  We 
   may use a timer to send such messages every so often. 
@@ -1109,4 +1110,5 @@ TODO -- They're features not bugs dammit!
   rather than a specific bug, and the correct solution is to get everyone
   to update to rat-4.x
 - Handling of SSRC collisions is broken
+- The "-version" option is broken.
 

@@ -53,7 +53,7 @@ using a multicast directory tool, like sdr or multikit. If desired RAT\n\
 can be launched from the command line using:\n\n\
 rat <address>/<port>\n\n\
 where <address> is machine name, or a multicast IP address, and <port> is\n\
-the connection identifier (a number between 1024-65536).\n\n\
+the connection identifier (an even number between 1024-65536).\n\n\
 For more details see:\n\n\
 http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/FAQ.html\
 ";
@@ -216,6 +216,9 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 	} else {
                 tx_port = rx_port;
         }
+	/* Fix odd numbered ports to the next lower port... */
+	if (rx_port % 2) rx_port--;
+	if (tx_port % 2) tx_port--;
 
 	/* Parse early command line parameters. These are things which we can */
 	/* do before the media engine knows its RTP session information.      */

@@ -148,7 +148,7 @@ tgz: $(RATVER) $(RATVER)-ui $(RATVER)-media
 	tar cf $(RATVER)-$(OSTYPE).tar README.* MODS COPYRIGHT INSTALL.TXT VERSION $(RATVER) $(RATVER)-ui $(RATVER)-media
 	gzip -9 $(RATVER)-$(OSTYPE).tar
 
-rpm: $(RATVER) $(RATVER)-ui $(RATVER)-media 
+rpm: tgz
 	@${ECHO} "Building $(RATVER).rpm -- this almost certainly needs to run as root on RedHat Linux"
 	install -m 644 $(RATVER)-$(OSTYPE).tar.gz /usr/src/redhat/SOURCES/rat-4.1.2.tar.gz
 	rpm -bb $(RATVER).spec
