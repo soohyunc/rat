@@ -76,7 +76,7 @@ void
 null_audio_close(audio_desc_t ad)
 {
         UNUSED(ad);
-	if(audio_fd > 0)
+	if (audio_fd > 0)
                 audio_fd = -1;
 	return;
 }

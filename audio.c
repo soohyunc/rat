@@ -357,14 +357,28 @@ audio_device_reconfigure(session_struct *sp)
         u_int16 oldpt    = sp->encodings[0];
         audio_device_give(sp);
         tx_stop(sp);
-        sp->encodings[0] = sp->next_encoding;
-        if (audio_device_take(sp) == FALSE) {
-                /* we failed, fallback */
-                sp->encodings[0] = oldpt;
+        
+        if (sp->next_selected_device != -1) {
+                audio_set_interface(sp->next_selected_device);
+                sp->next_selected_device = -1;
+        } 
+        
+        if (sp->next_encoding != -1) {
+                /* Changing encoding */
+                sp->encodings[0] = sp->next_encoding;
+                if (audio_device_take(sp) == FALSE) {
+                        /* we failed, fallback */
+                        sp->encodings[0] = oldpt;
+                        audio_device_take(sp);
+                }
+                channel_set_coder(sp, sp->encodings[0]);
+                sp->next_encoding = -1;
+        } else {
+                /* Just changing device */
                 audio_device_take(sp);
+                channel_set_coder(sp, sp->encodings[0]);
         }
-        channel_set_coder(sp, sp->encodings[0]);
-        sp->next_encoding = -1;
+
         ui_update(sp);
 }
 

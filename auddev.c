@@ -176,7 +176,7 @@ audio_open(audio_format *format)
         assert(aif->audio_if_open);
 
         /* Have we probed supported formats for this card ? */
-        if (am_probing == FALSE && AUDIO_HAVE_PROBED(selected_interface) == AUDIO_FMT_ZERO) {
+        if (am_probing == FALSE && AUDIO_HAVE_PROBED(if_support[selected_interface]) == AUDIO_FMT_ZERO) {
                 /* First time we open device expect some latency... */
                 audio_probe_support(selected_interface);
         }
@@ -502,6 +502,8 @@ audio_probe_support(int idx)
 
         audio_set_interface(idx);
 
+        debug_msg("Probing interface %s\n", audio_get_interface_name(audio_get_interface()));
+
         format.encoding        = DEV_L16;
         format.bits_per_sample = 16;
         format.blocksize       = 320;
@@ -541,7 +543,7 @@ audio_device_supports(audio_desc_t ad, u_int16 rate, u_int16 channels)
                 return FALSE;
         }
         supported = AUDIO_GET_FMT_SUPPORT(if_support[ad], rate, channels) ? 1 : 0;
-        debug_msg("rate %d channels %d support %d\n", rate, channels, supported);
+        debug_msg("%s rate %d channels %d support %d\n", audio_get_interface_name(ad), rate, channels, supported);
         return supported;
 }
 

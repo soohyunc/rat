@@ -546,21 +546,36 @@ static void
 rx_audio_device(char *srce, char *args, session_struct *sp)
 {
         char	*s;
+        int next_device;
 
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
 		s = mbus_decode_str(s);
-		debug_msg("Audio device: %s (not implemented).\n", s);
+                next_device = -1;
+                if (s) {
+                        int i, n;
+                        n = audio_get_number_of_interfaces();
+                        for(i = 0; i < n; i++) {
+                                if (!strcmp(s, audio_get_interface_name(i))) {
+                                        next_device = i;
+                                        break;
+                                }
+                        }
+                }
+                        
+		debug_msg("Next audio device: %s (%d).\n", s, next_device);
                 /* We should close audio device, transmitter, etc
                  * Then find corresponding audio interface, select it,
                  * and re-open the device.
                  */
 	} else {
-		printf("mbus: usage \"tool.rat.repair None|Repetition\"\n");
+		printf("mbus: usage \"audio.device <string>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
+        
+        sp->next_selected_device = next_device;
 }
 
 static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)

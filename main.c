@@ -282,7 +282,7 @@ main(int argc, char *argv[])
                          * can timeout unprocessed messages as some drivers
                          * pause to drain before closing.
                          */
-                        if (sp[i]->next_encoding != -1) {
+                        if (sp[i]->next_encoding != -1 || sp[i]->next_selected_device != -1) {
                                 network_process_mbus(sp[i]);
                                 audio_device_reconfigure(sp[i]);
                         }

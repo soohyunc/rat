@@ -137,6 +137,8 @@ init_session(session_struct *sp)
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
 	sp->wait_on_startup		= FALSE;
+        sp->next_selected_device        = -1;
+
         strcpy(sp->title, "<Untitled Session>");
         
 	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {
