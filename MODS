@@ -1123,5 +1123,6 @@ TODO -- They're features not bugs dammit!
   rather than a specific bug, and the correct solution is to get everyone
   to update to rat-4.x
 - Handling of SSRC collisions is broken
-
+- Sometime see messages of the form "source.c:767 Spike (160 > 2708390)"
+  and hear nothing. Something uninitialized in the source?
 
