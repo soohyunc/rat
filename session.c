@@ -258,6 +258,31 @@ parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
 		sp->rtp_port &= ~1;
 		sp->rtcp_port = sp->rtp_port + 1;
 	}
+
+	if (inet_addr(sp->asc_address) == 0xffffffff &&
+	    gethostbyname(sp->asc_address) == NULL) {
+#ifdef WIN32
+	  char win_err[255];
+	  sprintf(win_err, "%s is not a valid address", sp->asc_address);
+	  MessageBox(NULL, win_err,  "RAT - Command line error", MB_OK | MB_ICONERROR);
+#else
+	  fprintf(stderr, "%s is not a valid address\n", sp->asc_address);
+#endif
+	  exit(-1);
+	}
+
+	if (atoi(p) > 0xfffe) {
+#ifdef WIN32
+	  char win_err[255];
+	  sprintf(win_err, "Port should be in the range (1024-65535)");
+	  MessageBox(NULL, win_err,  "RAT - Command line error", MB_OK | MB_ICONERROR);
+#else
+	  fprintf(stderr, "Port should be in the range (1024-65535)\n");
+#endif
+
+	  exit(-1);
+	}
+
 }
 
 static void 
