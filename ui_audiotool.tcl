@@ -1818,7 +1818,7 @@ pack .about.m.f.l .about.m.f.mb -side left
 frame     .about.rim.d.copyright
 frame     .about.rim.d.copyright.f
 frame     .about.rim.d.copyright.f.f
-text      .about.rim.d.copyright.f.f.blurb -height 15 -yscrollcommand ".about.rim.d.copyright.f.f.scroll set"
+text      .about.rim.d.copyright.f.f.blurb -height 14 -yscrollcommand ".about.rim.d.copyright.f.f.scroll set"
 scrollbar .about.rim.d.copyright.f.f.scroll -command ".about.rim.d.copyright.f.f.blurb yview"
 
 pack      .about.rim.d.copyright.f -expand 1 -fill both
