@@ -1242,10 +1242,14 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 
 4.2.2   - Catch mbus initialization failure and warn user in ui, control, 
 	  and engine.
+	- Round ttl to maximum of 127.
+	- Change parse_args_early in main_control.c to pass over all args.
+	  (problem reported by Didier Lambllais).
 
 TODO -- They're features not bugs dammit!
 ----
 
+- Fix multiple instances on same machine.
 - Assorted audio driver problems:
 	- FreeBSD driver bug on SoundBlaster 16 has small write buffers 
 	  and stops working full duplex mode after a time.  Hard to fix because
