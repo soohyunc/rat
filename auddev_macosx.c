@@ -1,8 +1,11 @@
 /*
- * FILE:     auddev_maxosx.c
+ * FILE:     auddev_macosx.c
  * PROGRAM:  RAT 4
  * AUTHOR:   Juraj Sucik <juraj.sucik@cnl.tuke.sk>
  * This code was inspired by audio implementation in VAT from OpenMash.
+ *
+ * $Revision$
+ * $Date$
  */
 
 #include "ratconf.h"
