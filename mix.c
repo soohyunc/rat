@@ -215,13 +215,11 @@ mix_put_audio(mixer_t     *ms,
 
         mix_verify(ms);
 
-#ifdef DEBUG_MIX
 	if (ts_gt(ms->tail_time, playout)) {
 		debug_msg("playout before tail (%d %dkHz < %d %dkHz)\n", 
 			  playout.ticks, ts_get_freq(playout),
 			  ms->tail_time.ticks, ts_get_freq(ms->tail_time));
 	}
-#endif /* DEBUG_MIX */
 
         samples  = (sample*)frame->data;
         nsamples = frame->data_len / sizeof(sample);
@@ -243,15 +241,13 @@ mix_put_audio(mixer_t     *ms,
 				 * samples that need to be written and correct playout
 				 * so they are written to the correct place.
 				 */
-
 				delta     = ts_convert(ms->info.sample_rate, delta);
 				trim      = delta.ticks * ms->info.channels;
 				debug_msg("Mixer trimmed %d samples (Expected playout %d got %d) ssrc (0x%08x)\n",
 					  trim, pdbe->next_mix.ticks, playout.ticks, pdbe->ssrc);
                                 samples  += trim;
-				playout   = ts_add(playout, delta);
-                                assert(nsamples > trim);
 				nsamples -= trim;
+				playout   = ts_add(playout, delta);
                         } else {
                                 debug_msg("Skipped unit\n");
 				return FALSE;
@@ -302,8 +298,8 @@ mix_put_audio(mixer_t     *ms,
 int
 mix_get_audio(mixer_t *ms, int request, sample **bufp)
 {
-        int        silence, amount;
-        ts_t    delta;
+        int  silence, amount;
+        ts_t delta;
 
         xmemchk();
         mix_verify(ms);
@@ -320,7 +316,10 @@ mix_get_audio(mixer_t *ms, int request, sample **bufp)
                  * now so zero the rest of the buffer and move the head.
                  */
 #ifdef DEBUG_MIX
-                debug_msg("Insufficient audio: %d < %d\n", ms->dist, amount);
+                if (!ts_eq(ms->head_time, ms->tail_time)) {
+                        /* Only print message if not-silent */
+                        debug_msg("Insufficient audio: %d < %d\n", ms->dist, amount);
+                }
 #endif /* DEBUG_MIX */
                 silence = amount - ms->dist;
 		new_head_time = ts_add(ms->head_time,
@@ -353,7 +352,6 @@ mix_get_audio(mixer_t *ms, int request, sample **bufp)
                 xmemchk();
 #ifdef DEBUG_MIX
                 debug_msg("Copying start of mix len: %d\n", ms->tail + amount - ms->buf_len);
-
 #endif /* DEBUG_MIX */
         }
 
@@ -384,16 +382,12 @@ mix_new_cushion(mixer_t *ms,
 {
         int diff, elapsed_time;
 
-        mix_verify(ms);
-#ifdef DEBUG_MIX
         debug_msg("Getting new cushion %d old %d\n", new_cushion_size, last_cushion_size);
-#endif
 
+        mix_verify(ms);
         elapsed_time = (last_cushion_size + dry_time);
         diff = abs(new_cushion_size - elapsed_time) * ms->info.channels;
-#ifdef DEBUG_MIX
-        debug_msg("new cushion size %d\n",new_cushion_size);
-#endif
+
         if (new_cushion_size > elapsed_time) {
                 /*
                  * New cushion is larger so move tail back to get
