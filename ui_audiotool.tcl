@@ -1516,7 +1516,12 @@ label .l.f.title -bd 0 -textvariable session_title -justify center
 label .l.f.addr  -bd 0 -textvariable session_address
 
 frame       .st -bd 0
-checkbutton .st.help -highlightthickness 0 -text "Balloon help" -onvalue 1 -offvalue 0 -variable help_on -font $compfont -anchor w -padx 4
+
+checkbutton .st.file -bitmap disk      -indicatoron 0 -variable files_on  -command file_show 
+checkbutton .st.recp -bitmap reception -indicatoron 0 -variable matrix_on -command chart_show
+checkbutton .st.help -bitmap balloon   -indicatoron 0 -variable help_on
+
+#-onvalue 1 -offvalue 0 -variable help_on -font $compfont -anchor w -padx 4
 button      .st.opts  -text "Options..." -command {wm deiconify .prefs; update_user_panel; raise .prefs}
 button      .st.about -text "About..."   -command {jiggle_credits; wm deiconify .about}
 button      .st.quit  -text "Quit"       -command do_quit
@@ -1526,7 +1531,7 @@ frame .r.c.rx -relief groove -bd 2
 frame .r.c.tx -relief groove -bd 2
 
 pack .st -side bottom -fill x -padx 2 -pady 0
-pack .st.help -side left -fill both -expand 1 
+pack .st.file .st.recp .st.help -side left -anchor e -padx 2 -pady 2
 
 pack .st.quit .st.about .st.opts -side right -anchor w -padx 2 -pady 2
 

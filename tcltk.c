@@ -269,6 +269,8 @@ mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 #include "xbm/stop.xbm"
 #include "xbm/left.xbm"
 #include "xbm/right.xbm"
+#include "xbm/balloon.xbm"
+#include "xbm/reception.xbm"
 
 int 
 tcl_init1(int argc, char **argv)
@@ -317,6 +319,8 @@ tcl_init1(int argc, char **argv)
 	Tk_DefineBitmap(interp, Tk_GetUid("stop"),  stop_bits,  stop_width,  stop_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("left"),  left_bits,  left_width, left_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("right"), right_bits, right_width,  right_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("balloon"), balloon_bits, balloon_width,  balloon_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("reception"), reception_bits, reception_width,  reception_height);
 
 	audiotool_obj = Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool));
 	if (Tcl_EvalObj(interp, audiotool_obj) != TCL_OK) {
