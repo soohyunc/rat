@@ -355,8 +355,8 @@ audio_read(int audio_fd, sample *buf, int samples)
 int
 audio_write(int audio_fd, sample *buf, int samples)
 {
-	int    done, len;
-	char  *p;
+	int    		 done, len;
+	char  		*p;
 
 	if (can_write) {
 		p   = (char *) buf;
