@@ -182,7 +182,7 @@ static void rendezvous_with_controller(session_t *sp[2])
 	}
 
 	do {
-		done = FALSE;
+		done = TRUE;
 		for (i = 0; i < num_sessions; i++) {
 			timeout.tv_sec  = 0;
 			timeout.tv_usec = 20000;
@@ -191,7 +191,7 @@ static void rendezvous_with_controller(session_t *sp[2])
 			mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
 			mbus_heartbeat(sp[i]->mbus_engine, 1);
 			mbus_retransmit(sp[i]->mbus_engine);
-			done |= !sp[i]->mbus_go;
+			done &= !sp[i]->mbus_go;
 		}
 	} while (!done);
 	debug_msg("Got all needed mbus.go() messages from controller\n");
@@ -229,7 +229,6 @@ int main(int argc, char *argv[])
 
 	/* Initialize the session structure, and all session specific data */
 	for (i = 0; i < num_sessions; i++) {
-		debug_msg("Initializing session %d\n", i);
 		sp[i] = (session_t *) xmalloc(sizeof(session_t));
 		session_init(sp[i]);
 		audio_device_get_safe_config(&sp[i]->new_config);
@@ -239,7 +238,7 @@ int main(int argc, char *argv[])
 		/* Initialise our mbus interface... once this is done we can talk to our controller */
 		sp[i]->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 15);
 		sprintf(sp[i]->mbus_engine_addr, MBUS_ADDR_ENGINE, i, (unsigned long) ppid);
-		sp[i]->mbus_engine      = mbus_init(mbus_engine_rx, mbus_error_handler, sp[i]->mbus_engine_addr);
+		sp[i]->mbus_engine = mbus_init(mbus_engine_rx, mbus_error_handler, sp[i]->mbus_engine_addr);
 		if (sp[i]->mbus_engine == NULL) {
 			fatal_error("RAT v" RAT_VERSION, "Could not initialize Mbus: Is multicast enabled?");
 			return FALSE;
@@ -252,14 +251,14 @@ int main(int argc, char *argv[])
 	/* FIXME: probably needs updating for the transcoder so we can */
 	/* have different saved settings for each domain.              */
 	for (i = 0; i < num_sessions; i++) {
-		settings_load_early(sp[0]);
-		if (pdb_create(&sp[0]->pdb) == FALSE) {
+		settings_load_early(sp[i]);
+		if (pdb_create(&sp[i]->pdb) == FALSE) {
 			debug_msg("Failed to create participant database\n");
 			abort();
 		}
-		pdb_item_create(sp[0]->pdb, (uint16_t)ts_get_freq(sp[0]->cur_ts), rtp_my_ssrc(sp[0]->rtp_session[0])); 
-		settings_load_late(sp[0]);
-		session_validate(sp[0]);
+		pdb_item_create(sp[i]->pdb, (uint16_t)ts_get_freq(sp[i]->cur_ts), rtp_my_ssrc(sp[i]->rtp_session[0])); 
+		settings_load_late(sp[i]);
+		session_validate(sp[i]);
 	}
 
 	xmemchk();
@@ -271,7 +270,11 @@ int main(int argc, char *argv[])
 			alc++;
 
 			/* Process audio */
-			elapsed_time = audio_rw_process(sp[i], sp[i], sp[i]->ms);
+			if (num_sessions == 2) {
+				elapsed_time = audio_rw_process(sp[i], sp[1-i], sp[i]->ms);
+			} else {
+				elapsed_time = audio_rw_process(sp[i], sp[i], sp[i]->ms);
+			}
 
 			if (tx_is_sending(sp[i]->tb)) {
 				tx_process_audio(sp[i]->tb);

@@ -40,7 +40,7 @@ static const char cvsid[] =
 
 #define DEFAULT_RTP_PORT 5004
 
-char       *u_addr, *e_addr;
+char       *u_addr, *e_addr[2];
 pid_t       pid_ui, pid_engine;
 int         should_exit;
 
@@ -235,7 +235,7 @@ parse_addr(char *arg, char **addr, int *rx_port, int *tx_port)
 }
 
 static int
-parse_addresses(struct mbus *m, char *e_addr, int argc, char *argv[])
+parse_addresses(struct mbus *m, char *e_addr[2], int argc, char *argv[])
 {
         char		*addr;
         int              i, naddr, rx_port, tx_port;
@@ -260,7 +260,10 @@ parse_addresses(struct mbus *m, char *e_addr, int argc, char *argv[])
                         return FALSE;
                 }
 		addr    = mbus_encode_str(addr);
-		mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
+		mbus_qmsgf(m, e_addr[0], TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
+		if (e_addr[1] != NULL) {
+			mbus_qmsgf(m, e_addr[1], TRUE, "rtp.addr", "\"224.1.2.3\" 1234 1234 1");
+		}
 		xfree(addr);
         }
         return TRUE;
@@ -497,16 +500,22 @@ int main(int argc, char *argv[])
         fork_process(ENGINE_NAME, c_addr, &pid_engine, num_sessions, token_e);
 	for (i = 0; i < num_sessions; i++) {
 		debug_msg("Waiting for %s from media engine...\n", token_e[i]);
-		e_addr = mbus_rendezvous_waiting(m, "()", token_e[i], m);
+		e_addr[i] = mbus_rendezvous_waiting(m, "()", token_e[i], m);
 		debug_msg("...got it\n");
 	}
 
         if (parse_addresses(m, e_addr, argc, argv) == TRUE) {
+		char *peer = mbus_rendezvous_go(m, token_u[0], (void *) m); 
+		debug_msg("User interface is %s\n", peer);
 		for (i = 0; i < num_sessions; i++) {
-			mbus_rendezvous_go(m, token_e[i], (void *) m);
+			peer = mbus_rendezvous_go(m, token_e[i], (void *) m);
+			debug_msg("Media engine %d is %s\n", i, peer);
 		}
-                mbus_rendezvous_go(m, token_u[0], (void *) m); 
-                parse_options_late(m, e_addr, argc, argv);
+		debug_msg("Parsing options\n");
+		for (i = 0; i < num_sessions; i++) {
+			parse_options_late(m, e_addr[i], argc, argv);
+		}
+		debug_msg("Entering main loop\n");
 		final_iters = 25;
                 should_exit = FALSE;
                 while (final_iters > 0) {
@@ -525,7 +534,9 @@ int main(int argc, char *argv[])
 			}
                 }        
                 terminate(m, u_addr, &pid_ui);
-                terminate(m, e_addr, &pid_engine);
+		for (i = 0; i < num_sessions; i++) {
+			terminate(m, e_addr[i], &pid_engine);
+		}
         }
         
         kill_process(pid_ui);

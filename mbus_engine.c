@@ -1503,8 +1503,9 @@ static void rx_mbus_go(char *srce, char *args, session_t *sp)
 			sp->mbus_ui_addr = xstrdup(srce);
 		} else if (strcmp(sd, sp->mbus_go_token) == 0) {
 			sp->mbus_go = FALSE;
+			debug_msg("Got required mbus.go(%s)\n", sd);
 		} else {
-			debug_msg("Got mbus.go(%s)\n", sd);
+			debug_msg("Got spurious mbus.go(%s)\n", sd);
 		}
 	} else {
 		debug_msg("mbus: usage \"mbus.go(token)\"\n");
