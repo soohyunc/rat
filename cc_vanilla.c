@@ -128,9 +128,6 @@ vanilla_encoder_encode (u_char      *state,
 
         assert(upp != 0 && upp <= MAX_UNITS_PER_PACKET);
 
-        pb_verify(in);
-        pb_verify(out);
-
         pb_iterator_create(in, &pi);
         pb_iterator_advance(pi); /* Move to first element */
 
@@ -179,9 +176,6 @@ vanilla_encoder_encode (u_char      *state,
         }
 
         pb_iterator_destroy(in, &pi);
-
-        pb_verify(in);
-        pb_verify(out);
 
         return TRUE;
 }
