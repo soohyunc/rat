@@ -1335,7 +1335,9 @@ v4.2.5	- Fix assert failure in auddev_trans.c, contributed by Jakub Segen
 	- Rewrite code to rendezvous with the controller in the media engine,
 	  to support future transcoder operation.
 	- Cleanup main_control.c - code moved into process.c and cmd_parser.c
+	* Released 16 June 2000
 
+v4.2.6	- 
 
 
 TODO -- They're features not bugs dammit!
