@@ -308,6 +308,7 @@ audio_device_reconfigure(session_struct *sp)
         }
 
         /* Update ui */
+	ui_update(sp);
         tx_igain_update(sp->tb);
 
         ac_destroy(&sp->new_config);
