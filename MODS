@@ -1182,7 +1182,6 @@ TODO -- They're features not bugs dammit!
 - Should use the empty RRs coming back from receivers who are not seeing
   traffic, and display this in the loss matrix.
 - Layering is broken (hasn't been updated for multiple processes, etc)
-- Sometimes sources are not de-highlighted when they stop speaking.
 - Weird interaction with rat-3.0.x -- seems that we can generate packets 
   which some instances of rat-3.0 won't play. You get some people in the
   session who's tools report receiving your data, but they don't play it
@@ -1192,8 +1191,16 @@ TODO -- They're features not bugs dammit!
 - Handling of SSRC collisions is broken
 - Sometime see messages of the form "source.c:767 Spike (160 > 2708390)"
   and hear nothing.
-- -allowloopback option is broken
 - mtrace doesn't work?
 - RTT estimate gets confused when others talk.
-- Controller needs to be smarter on Win32 about handling terminate messages
-  from system.  At present terminating controller leaves ui and engine running.
+- Difficult to query codecs via the mbus, we need to support:
+       tool.rat.codecs.request()
+       tool.rat.codecs.flush()
+       tool.rat.codecs.add()
+  like we do with the converters and repairers.
+- Add support for rtp.source.mute (ALL 0|1), which is much more efficient
+  than iterating all sources over the mbus.
+- Add rtp.addr.query() message support to media engine.
+- Make rtp.addr() with an rx_port of 0, when sent to the media engine, mean
+  that the media engine should get the kernel to select a receive RTP port.
+
