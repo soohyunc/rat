@@ -107,7 +107,7 @@ void	audio_set_iport(int audio_fd, int port);
 int	audio_get_iport(int audio_fd);
 int	audio_next_iport(int audio_fd);
 int	audio_duplex(int audio_fd);
-int	audio_blocksize(void);
+int	audio_get_blocksize(void);
 int	audio_get_channels(void);
 int     audio_get_freq(void);
 

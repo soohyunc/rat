@@ -97,10 +97,9 @@ audio_open_rw(char rw)
 	snd_capabilities soundcaps;
 	ioctl(audio_fd, AIOGCAP, &soundcaps);
         ioctl(audio_fd,SNDCTL_DSP_RESET,0);
-	pa.play_rate = pa.rec_rate = 8000;
+	pa.play_rate   = pa.rec_rate   = format.sample_rate;
 	pa.play_format = pa.rec_format = AFMT_S16_LE;
-	sz.play_size = BLOCKSIZE;
-	sz.rec_size = BLOCKSIZE;
+	sz.play_size   = sz.rec_size   = format.blocksize;
 
 	switch (soundcaps.formats & (AFMT_FULLDUPLEX | AFMT_WEIRD)) {
 	case AFMT_FULLDUPLEX:
@@ -111,7 +110,7 @@ audio_open_rw(char rw)
 	case AFMT_FULLDUPLEX | AFMT_WEIRD:
 	    /* this is the sb16... */
 	    pa.play_format = AFMT_S8;
-	    sz.play_size = BLOCKSIZE / 2;
+	    sz.play_size = format.blocksize / 2;
 	    break;
 	default:		/* no full duplex... */
 	    if (rw == O_RDWR) {
@@ -474,7 +473,7 @@ audio_next_iport(int audio_fd)
 }
 
 void
-audio_switch_out(int audio_fd, cushion_struct *ap)
+audio_switch_out(int audio_fd, struct s_cushion_struct *ap)
 {
 	UNUSED(ap);
 	if (!audio_duplex(audio_fd) && !can_write) {
@@ -490,6 +489,24 @@ audio_switch_in(int audio_fd)
 		audio_close(audio_fd);
 		audio_open_rw(O_RDONLY);
 	}
+}
+
+int
+audio_get_blocksize()
+{
+        return format.blocksize;
+}
+
+int
+audio_get_channels()
+{
+        return format.num_channels;
+}
+
+int
+audio_get_freq()
+{
+        return format.sample_rate;
 }
 
 #endif

@@ -195,7 +195,7 @@ audio_device_take(session_struct *sp)
 	audio_format    format;
 
         if (sp->have_device) {
-                return TRUE;
+                return (TRUE);
         }
 
 	cp = get_codec(sp->encodings[0]);
@@ -215,8 +215,6 @@ audio_device_take(session_struct *sp)
 	} else {
 		/* XXX should pass a pointer to format ???!!! */
 		if ((sp->audio_fd = audio_open(format)) == -1) {
-			ui_show_audio_busy(sp);
-			ui_update(sp);
 			return FALSE;
 		}
 
@@ -236,6 +234,7 @@ audio_device_take(session_struct *sp)
 		if (sp->input_mode!=AUDIO_NO_DEVICE) {
 			audio_set_iport(sp->audio_fd, sp->input_mode);
 			audio_set_gain(sp->audio_fd, sp->input_gain);
+                        read_device_igain_update(sp);
 		} else {
 			sp->input_mode=audio_get_iport(sp->audio_fd);
 			sp->input_gain=audio_get_gain(sp->audio_fd);
@@ -287,8 +286,7 @@ read_write_init(session_struct *sp)
 	sp->loop_delay = sp->loop_estimate = 20000;
 
         cp = get_codec(sp->encodings[0]);
-	/* 160 = 20ms @ 8000KHz and 1 channel */
-	sp->rb = read_device_init(sp, cp->unit_len * cp->channels);
+	sp->rb = read_device_init(sp, cp->unit_len, cp->channels);
 }
 
 
@@ -363,62 +361,62 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 
 	if ( cushion_size < read_dur ) {
 		/* Use a step for the cushion to keep things nicely rounded   */
-		/* in the mixing. Round it up.                                */
+ /* in the mixing. Round it up.                                */
                 new_cushion = cushion_use_estimate(c);
-		/* The mix routine also needs to know for how long the output */
-		/* went dry so that it can adjust the time.                   */
-		mix_get_new_cushion(ms, 
+                /* The mix routine also needs to know for how long the output */
+                /* went dry so that it can adjust the time.                   */
+                mix_get_new_cushion(ms, 
                                     cushion_size, 
                                     new_cushion, 
                                     (read_dur - cushion_size), 
                                     &bufp);
-		audio_device_write(spo, bufp, new_cushion);
-		if ((spo->out_file) && (spo->flake_go == 0)) {
-			fwrite(bufp, BYTES_PER_SAMPLE, new_cushion, spo->out_file);
-		}
+                audio_device_write(spo, bufp, new_cushion);
+                if ((spo->out_file) && (spo->flake_go == 0)) {
+                        fwrite(bufp, BYTES_PER_SAMPLE, new_cushion, spo->out_file);
+                }
                 dprintf("catch up! read_dur(%d) > cushion_size(%d)\n",
                         read_dur,
                         cushion_size);
-		cushion_size = new_cushion;
-	} else {
-		trailing_silence = mix_get_audio(ms, read_dur * channels, &bufp);
+                cushion_size = new_cushion;
+ } else {
+                trailing_silence = mix_get_audio(ms, read_dur * channels, &bufp)
+;
                 cushion_step = cushion_get_step(c);
                 diff  = 0;
 
-		if (trailing_silence > cushion_step) {
-			/* Check whether we need to adjust the cushion */
-			diff = cushion_diff_estimate_size(c);
-			if (abs(diff) < cushion_step) {
-				diff = 0;
-			}
-		} 
+                if (trailing_silence > cushion_step) {
+                        /* Check whether we need to adjust the cushion */
+                        diff = cushion_diff_estimate_size(c);
+                        if (abs(diff) < cushion_step) {
+                                diff = 0;
+                        }
+                } 
 
-		/* If diff is less than zero then we must decrease the */
-		/* cushion so loose some of the trailing silence.      */
-		if (diff < 0) {
-			read_dur -= cushion_step;
-			cushion_step_down(c);
+                /* If diff is less than zero then we must decrease the */
+                /* cushion so loose some of the trailing silence.      */
+                if (diff < 0) {
+                        read_dur -= cushion_step;
+                       cushion_step_down(c);
                         dprintf("Decreasing cushion\n");
-		}
-		audio_device_write(spo, bufp, read_dur);
-		if (spo->out_file && (spo->flake_go == 0)) {
-			fwrite(bufp, BYTES_PER_SAMPLE, read_dur, spo->out_file);
+                }
+                audio_device_write(spo, bufp, read_dur);
+                if (spo->out_file && (spo->flake_go == 0)) {
+                        fwrite(bufp, BYTES_PER_SAMPLE, read_dur, spo->out_file);
                         spo->flake_os-=read_dur;
-		}
-		/*
-		 * If diff is greater than zero then we must increase the
-		 * cushion so increase the amount of trailing silence.
-		 */
-		if (diff > 0) {
-			audio_device_write(spo, audio_zero_buf, cushion_step);
-			if ((spo->out_file) && (spo->flake_go == 0)){
-				fwrite(audio_zero_buf, BYTES_PER_SAMPLE, cushion_step, spo->out_file);
+                }
+                /*
+                 * If diff is greater than zero then we must increase the
+                 * cushion so increase the amount of trailing silence.
+                 */
+                if (diff > 0) {
+                        audio_device_write(spo, audio_zero_buf, cushion_step);
+                        if ((spo->out_file) && (spo->flake_go == 0)){
+                                fwrite(audio_zero_buf, BYTES_PER_SAMPLE, cushion_step, spo->out_file);
                                 spo->flake_os -= cushion_step;
-			}
-			cushion_step_up(c);
+                        }
+                        cushion_step_up(c);
                         dprintf("Increasing cushion.\n");
-		}
-	}
-	return (read_dur);
+                }
+        }
+        return (read_dur);
 }
-
