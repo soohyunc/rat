@@ -172,8 +172,6 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
         u_int32               	 buffered, delay;
         pdb_entry_t             *pdbe;
 
-        debug_msg("ui_update_stats (0x%08x)\n", ssrc);
-
         if (pdb_item_get(sp->pdb, ssrc, &pdbe) == FALSE) {
                 debug_msg("ui_update_stats: pdb entry does not exist (0x%08x)\n", ssrc);
                 return;
@@ -203,8 +201,6 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
                 delay     = 0;
                 skew_rate = 1.0;
         }
-
-        debug_msg("buffer (%05d) calced (%05d)\n", buffered, delay);
 
         mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.audio.buffered", "\"%08lx\" %ld", pdbe->ssrc, buffered);
         mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", pdbe->ssrc, delay);

@@ -695,10 +695,10 @@ proc mbus_recv_audio.output.powermeter {level} {
 	bargraphSetHeight .r.c.rx.au.pow.bar  [expr ($level * $bargraphTotalHeight) / 100]
 }
 
-proc mbus_recv_audio.input.gain {gain} {
-    global received
+proc mbus_recv_audio.input.gain {new_gain} {
+    global received gain
     set received(gain) 1
-    .r.c.rx.au.pow.sli set $gain
+    set gain $new_gain
 }
 
 proc mbus_recv_audio.input.ports.flush {} {
@@ -722,10 +722,10 @@ proc mbus_recv_audio.input.mute {val} {
     bargraphState .r.c.tx.au.pow.bar [expr ! $val]
 }
 
-proc mbus_recv_audio.output.gain {gain} {
-    global received
+proc mbus_recv_audio.output.gain {new_gain} {
+    global received volume
     set received(volume) 1
-    .r.c.rx.au.pow.sli set $gain
+    set volume $new_gain
 }
 
 proc mbus_recv_audio.output.port {port} {
@@ -2233,7 +2233,7 @@ proc sync_engine_to_ui {} {
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
     global meter_var sync_var gain volume iport oport 
     global in_mute_var out_mute_var ichannels freq key key_var
-    global audio_device
+    global audio_device received
 
     #rtcp details
     mbus_send "R" "rtp.source.name"  "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_name]"
@@ -2288,8 +2288,12 @@ proc sync_engine_to_ui {} {
 
     #device 
     mbus_send "R" "audio.device"        [mbus_encode_str "$audio_device"]
-    mbus_send "R" "audio.input.gain"    $gain
-    mbus_send "R" "audio.output.gain"   $volume
+    if {$received(gain)} {
+	mbus_send "R" "audio.input.gain"    $gain
+    }
+    if {$received(volume)} {
+	mbus_send "R" "audio.output.gain"   $volume
+    }
     mbus_send "R" "audio.input.port"    [mbus_encode_str $iport]
     mbus_send "R" "audio.output.port"   [mbus_encode_str $oport]
     mbus_send "R" "audio.input.mute"    $in_mute_var
