@@ -93,9 +93,6 @@ main(int argc, char *argv[])
 		session_init(sp[i]);
 	}
 	session_parse_early_options(argc, argv, sp);
-	network_init(sp[0]);
-	cname = get_cname(sp[0]->rtp_socket[0]);
-	ssrc  = get_ssrc();
 
         audio_init_interfaces();
         converters_init();
@@ -118,8 +115,13 @@ main(int argc, char *argv[])
         audio_device_get_safe_config(&sp[0]->new_config);
         audio_device_reconfigure(sp[0]);
         assert(audio_device_is_open(sp[0]->audio_device));
+
+	network_init(sp[0]);
+	cname = get_cname(sp[0]->rtp_socket[0]);
+	ssrc  = get_ssrc();
 	sp[0]->db = rtcp_init(sp[0]->device_clock, cname, ssrc, 0);
         rtcp_clock_change(sp[0]);
+
 	network_process_mbus(sp[0]);
 
 	settings_load(sp[0]);
