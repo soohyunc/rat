@@ -795,7 +795,7 @@ InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
-	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
+	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
 	
 # End Custom Build
 
