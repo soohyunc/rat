@@ -55,7 +55,7 @@
 #include "convert.h"
 #include "cushion.h"
 #include "transmit.h"
-#include "ui_control.h"
+#include "ui.h"
 
 typedef struct s_participant_playout_buffer {
 	struct s_participant_playout_buffer *next;

@@ -59,7 +59,7 @@
 #include "mbus.h"
 #include "mbus_ui.h"
 #include "mbus_engine.h"
-#include "ui_control.h"
+#include "ui.h"
 
 #ifndef INADDR_NONE
 #define INADDR_NONE     0xffffffff

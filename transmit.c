@@ -48,7 +48,7 @@
 #include "session.h"
 #include "audio.h"
 #include "parameters.h"
-#include "ui_control.h"
+#include "ui.h"
 #include "util.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"

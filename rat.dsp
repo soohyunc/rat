@@ -544,11 +544,11 @@ InputPath=.\ui_audiotool.tcl
 # End Source File
 # Begin Source File
 
-SOURCE=.\ui_control.c
+SOURCE=.\ui.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ui_control.h
+SOURCE=.\ui.h
 # End Source File
 # Begin Source File
 

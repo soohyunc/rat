@@ -58,7 +58,7 @@
 #include "rtcp_db.h"
 #include "session.h"
 #include "util.h"
-#include "ui_control.h"
+#include "ui.h"
 #include "rat_time.h"
 #include "receive.h"
 

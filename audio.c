@@ -50,7 +50,7 @@
 #include "util.h"
 #include "session.h"
 #include "transcoder.h"
-#include "ui_control.h"
+#include "ui.h"
 #include "transmit.h"
 #include "mix.h"
 #include "codec.h"

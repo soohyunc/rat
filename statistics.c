@@ -57,7 +57,7 @@
 #include "cushion.h"
 #include "codec.h"
 #include "channel.h"
-#include "ui_control.h"
+#include "ui.h"
 #include "mbus.h"
 
 static rtcp_dbentry *

@@ -50,7 +50,7 @@
 #include "cushion.h"
 #include "convert.h"
 #include "tcltk.h"
-#include "ui_control.h"
+#include "ui.h"
 #include "interfaces.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"

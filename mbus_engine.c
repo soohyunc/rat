@@ -44,7 +44,7 @@
 #include "mbus_engine.h"
 #include "mbus_ui.h"
 #include "mbus.h"
-#include "ui_control.h"
+#include "ui.h"
 #include "net.h"
 #include "util.h"
 #include "transmit.h"

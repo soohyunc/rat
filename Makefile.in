@@ -5,13 +5,13 @@
 CFLAGS         = __WFLAGS__ __INCLUDE__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_FLAG__ __DEFS__ -D__OSTYPE__ -DSASR -DFAST -DUSE_FLOAT_MUL
 CC             = __CC__
 
-OBJS = time.o codec.o convert.o repair.o codec_lpc.o codec_adpcm.o codec_wbs.o codec_g711.o  \
-       channel.o cc_red.o cc_intl.o rtcp_db.o rtcp_pckt.o qfDES.o gsm_add.o gsm_create.o gsm_encode.o \
-       gsm_preprocess.o gsm_table.o gsm_code.o gsm_decode.o gsm_long_term.o gsm_rpe.o gsm_destroy.o   \
+OBJS = time.o codec.o convert.o repair.o codec_lpc.o codec_adpcm.o codec_wbs.o codec_g711.o channel.o  \
+       cc_red.o cc_intl.o rtcp_db.o rtcp_pckt.o qfDES.o gsm_add.o gsm_create.o gsm_encode.o            \
+       gsm_preprocess.o gsm_table.o gsm_code.o gsm_decode.o gsm_long_term.o gsm_rpe.o gsm_destroy.o    \
        gsm_lpc.o gsm_short_term.o receive.o transmit.o audio.o cushion.o session.o util.o interfaces.o \
-       statistics.o mix.o parameters.o ui_audiotool.o ui_transcoder.o tcl_libs.o tcltk.o rtcp.o       \
-       net.o ui_control.o transcoder.o crypt.o crypt_random.o md5.o mbus.o mbus_ui.o  \
-       mbus_engine.o main.o __AUDIO__ 
+       statistics.o mix.o parameters.o ui_audiotool.o ui_transcoder.o tcl_libs.o tcltk.o rtcp.o        \
+       net.o ui.o transcoder.o crypt.o crypt_random.o md5.o mbus.o mbus_ui.o  mbus_engine.o main.o     \
+       __AUDIO__ 
 
 rat: $(OBJS)
 	$(CC) $(OBJS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat

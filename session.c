@@ -54,7 +54,7 @@
 #include "parameters.h"
 #include "audio.h"
 #include "util.h"
-#include "ui_control.h"
+#include "ui.h"
 #include "crypt.h"
 
 static void 
