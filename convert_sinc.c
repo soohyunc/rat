@@ -115,29 +115,31 @@ typedef struct {
         filter_state_t fs[2]; /* Filter states used for each step    */
 } sinc_state_t;
 
+/* sinc_init_filter -  * selects filter to use. */
+
 static void
-sinc_init_filter(filter_state_t *fs, int channels, int src_rate, int dst_rate)
+sinc_init_filter(filter_state_t *fs, const converter_fmt_t *cfmt)
 {
-        if (src_rate < dst_rate) {
-                assert(dst_rate / src_rate < SINC_MAX_CHANGE);
-                fs->scale  = dst_rate/src_rate;
+        if (cfmt->src_freq < cfmt->dst_freq) {
+                assert(cfmt->dst_freq / cfmt->src_freq < SINC_MAX_CHANGE);
+                fs->scale  = cfmt->dst_freq/cfmt->src_freq;
                 fs->filter = upfilter[fs->scale];
-                fs->taps   = 2 * SINC_CYCLES * (dst_rate/src_rate) + 1;
-                fs->hold_bytes = fs->taps * channels * sizeof(sample);
+                fs->taps   = 2 * SINC_CYCLES * (cfmt->dst_freq/cfmt->src_freq) + 1;
+                fs->hold_bytes = fs->taps * cfmt->src_channels * sizeof(sample);
                 fs->hold_buf   = (sample*)block_alloc(fs->hold_bytes);
-                switch(channels) {
+                switch(cfmt->src_channels) {
                 case 1:   fs->fn = sinc_upsample_mono;   break;
                 case 2:   fs->fn = sinc_upsample_stereo; break;
                 default:  abort();
                 }                        
-        } else if (src_rate > dst_rate) {
-                assert(src_rate / dst_rate < SINC_MAX_CHANGE);
-                fs->scale  = src_rate/dst_rate;
+        } else if (cfmt->src_freq > cfmt->dst_freq) {
+                assert(cfmt->src_freq / cfmt->dst_freq < SINC_MAX_CHANGE);
+                fs->scale  = cfmt->src_freq/cfmt->dst_freq;
                 fs->filter = downfilter[fs->scale];
-                fs->taps   = 2 * SINC_CYCLES * (src_rate/dst_rate) + 1;
-                fs->hold_bytes = fs->taps * channels * sizeof(sample);
+                fs->taps   = 2 * SINC_CYCLES * (cfmt->src_freq/cfmt->dst_freq) + 1;
+                fs->hold_bytes = fs->taps * cfmt->src_channels * sizeof(sample);
                 fs->hold_buf = (sample*)block_alloc(fs->hold_bytes);
-                switch(channels) {
+                switch(cfmt->src_channels) {
                 case 1:   fs->fn = sinc_downsample_mono;   break;
                 case 2:   fs->fn = sinc_downsample_stereo; break;
                 default:  abort();
@@ -155,8 +157,9 @@ sinc_free_filter(filter_state_t *fs)
 int 
 sinc_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 {
-        sinc_state_t *s;
-        int denom, steps, g;
+	converter_fmt_t	sfmt, ufmt;
+        sinc_state_t	*s;
+        int		steps, g;
 
 	if (((cfmt->src_freq % 8000) == 0 && (cfmt->dst_freq % 8000)) ||
 	    ((cfmt->src_freq % 11025) == 0 && (cfmt->dst_freq % 11025))) {
@@ -173,14 +176,28 @@ sinc_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
         memset(s, 0, sizeof(sinc_state_t));
         s->steps = steps;
 
+	sfmt = *cfmt;
+
+	if (sfmt.src_channels != sfmt.dst_channels) {
+		/* In addition to rate conversion, this requires
+		 * channel number conversion, this can happen
+		 * either side of rate conversion - see sinc_convert() */
+		if (sfmt.src_channels == 2 && sfmt.dst_channels == 1) {
+			sfmt.src_channels = 1; /* Stereo->Mono, R1->R2 */
+		} 
+	}
+
         switch(s->steps) {
         case 1:
-                sinc_init_filter(s->fs, cfmt->src_channels, cfmt->src_freq, cfmt->dst_freq);
+                sinc_init_filter(s->fs, &sfmt);
                 break;
         case 2:
-                denom = g;
-                sinc_init_filter(s->fs,     cfmt->src_channels, cfmt->src_freq, denom);
-                sinc_init_filter(s->fs + 1, cfmt->src_channels, denom,           cfmt->dst_freq);                
+		ufmt = sfmt;
+		ufmt.dst_freq = g;
+                sinc_init_filter(s->fs,     &ufmt);
+		ufmt = sfmt;
+		ufmt.src_freq = g;
+                sinc_init_filter(s->fs + 1, &ufmt);
                 break;
         }
         *state     = (u_char*)s;
@@ -734,7 +751,7 @@ sinc_upsample_stereo (struct s_filter_state *fs,
         hi_end = fs->taps;
 
         si_start = 0;
-        si_end   = work_len - (fs->taps / fs->scale);
+        si_end   = work_len - (fs->taps / fs->scale) * 2;
         out      = dst;
 
         switch (fs->scale) {
@@ -1180,12 +1197,15 @@ sinc_downsample_stereo(struct s_filter_state *fs,
 
         sample *work_buf, *ss, *sc, *d, *de;
 
-        work_len = src_len + 2 * (fs->taps - fs->scale);
+/*        work_len = src_len + 2 * (fs->taps - fs->scale); */
+	work_len = src_len + fs->hold_bytes / sizeof(sample);
         work_buf = (sample*)block_alloc(work_len * sizeof(sample));
 
         /* Get samples into work_buf */
         memcpy(work_buf, fs->hold_buf, fs->hold_bytes);
+	xmemchk();
         memcpy(work_buf + fs->hold_bytes / sizeof(sample), src, src_len * sizeof(sample));
+	xmemchk();
 
         /* Save last samples in src into hold_buf for next time */
         if (src_len >= (int)(fs->hold_bytes / sizeof(sample))) {
@@ -1208,7 +1228,7 @@ sinc_downsample_stereo(struct s_filter_state *fs,
 
         he = fs->filter + fs->taps;
 
-        while (d != de) {
+        while (d < de) {
                 t0 = t1 = 0;
                 hc = fs->filter;
                 sc = ss;

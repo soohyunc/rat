@@ -232,7 +232,8 @@ int
 converter_process (converter_t *c, coded_unit *in, coded_unit *out)
 {
         converter_fmt_t *cf;
-        uint32_t          n_in, n_out;
+        uint32_t        n_in, n_out;
+	uint32_t	ticks_in, ticks_out;
 
         assert(c->magic == MAGIC);
 #ifdef DEBUG
@@ -250,9 +251,12 @@ converter_process (converter_t *c, coded_unit *in, coded_unit *out)
 
         cf = c->cfmt;
 
-        n_in  = in->data_len / sizeof(sample);
-        n_out = n_in * cf->dst_channels * cf->dst_freq / (cf->src_channels * cf->src_freq); 
+	ticks_in = in->data_len / (sizeof(sample) * cf->src_channels);
+	ticks_out = ticks_in * cf->dst_freq / cf->src_freq;
 
+        n_in  = ticks_in  * cf->src_channels;
+        n_out = ticks_out * cf->dst_channels;
+	
         assert(converter_format_valid(cf));
         assert(out->state     == NULL);
         assert(out->state_len == 0);

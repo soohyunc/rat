@@ -1508,6 +1508,15 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 
 4.2.13	- Fix spurious assert in G726 decoder
 	- Fix G726-40 unpack (bits per sample mis-represented as 3!)
+	- Fix sinc converter selection bug.  Should fix:
+		- Crash in convert_sinc.c:
+			convert_sinc.c:134: failed assertion
+			convert_sinc.c:122: failed assertion
+			rat-4.2.8-media: util.c:87: _block_alloc: Assertion `size > 0' failed.  
+		  reported by Greg Herlein.
+		- Another crash in convert_sinc.c:
+			convert_sinc.c:1107: sinc_upsample_stereo: Assertion `out == dst + dst_len' failed.
+		  reported by <thavaqos@yahoo.com>
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1591,13 +1600,5 @@ TODO -- They're features not bugs dammit!
 - Excessive end-to-end delay on Windows? Gerry Wolfson. [The scale of delay
   is order of magnitude greater than observed on UCL machines, direct sound
   sound driver anyone...].
-- Crash in convert_sinc.c:
-	convert_sinc.c:134: failed assertion
-	convert_sinc.c:122: failed assertion
-	rat-4.2.8-media: util.c:87: _block_alloc: Assertion `size > 0' failed.  
-  reported by Greg Herlein.
-- Another crash in convert_sinc.c:
-	convert_sinc.c:1107: sinc_upsample_stereo: Assertion `out == dst + dst_len' failed.
-  reported by <thavaqos@yahoo.com>
 - Crash when playing .wav files? <thavaqos@yahoo.com> 
 
