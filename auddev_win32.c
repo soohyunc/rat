@@ -251,13 +251,14 @@ mixerDumpLineInfo(HMIXEROBJ hMix, DWORD dwLineID)
         mmr = mixerGetLineControls((HMIXEROBJ)hMix, &mlc, MIXER_GETLINECONTROLSF_ALL | MIXER_OBJECTF_HMIXER);
         if (mmr != MMSYSERR_NOERROR) {
                 debug_msg(mixGetErrorText(mmr));
+                xfree(pmc);
                 return;
         }
 
         for(i = 0; i < ml.cControls; i++) {
                 debug_msg("- %u %s\t\t %s\n", i, pmc[i].szName, mixGetControlType(pmc[i].dwControlType));
         }
-
+        xfree(pmc);
 }
 
 /* mixerEnableInputLine - enables the lineNo'th input line.  The mute controls for
@@ -949,11 +950,24 @@ void
 w32sdk_audio_close(audio_desc_t ad)
 {
 	UNUSED(ad);
-	debug_msg("Closing input device.\n");
+	
+        debug_msg("Closing input device.\n");
 	w32sdk_audio_close_in();
-	debug_msg("Closing output device.\n");
+	
+        debug_msg("Closing output device.\n");
 	w32sdk_audio_close_out();
-	audio_dev_open = FALSE;
+        
+        if (input_ports != NULL) {
+                xfree(input_ports);
+                input_ports = NULL;
+        }
+
+        if (loop_ports != NULL) {
+                xfree(loop_ports);
+                loop_ports = NULL;
+        }
+	
+        audio_dev_open = FALSE;
 }
 
 int

@@ -2112,12 +2112,20 @@ proc load_setting {attrname field var default} {
 	# who has the tcl manual? is the only way to pass arrays thru upvar...
 	if {$win32} {
 		if {[string first "rtp" "$field"] == -1} {
-			set fail [ catch { set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app) *$field]" } msg ]
+			catch { 
+				set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app) *$field]" 
+				set tmp [string trim $tmp \"]
+				set nerr 0
+			} fail
 		} else {
-			set fail [ catch { set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\common  *$field]" } msg ]
+			catch { 
+				set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\common  *$field]" 
+				set tmp [string trim $tmp \"]
+				set nerr 0
+			} fail
 		}
-		if {$fail} {
-			puts "Failed to get $field reason $msg\n";
+		if {$fail != 0} {
+			puts "Failed to get $field\n";
 			set tmp ""
 		} else {
 			puts "$field $var $tmp"
