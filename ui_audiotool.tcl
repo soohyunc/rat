@@ -484,7 +484,7 @@ proc mbus_recv_audio.output.mute {val} {
 proc mbus_recv_session.title {title} {
     global session_title
     set session_title $title
-    wm title . "[wm title .]: $title"
+    wm title . "RAT: $title"
 }
 
 proc mbus_recv_session.address {addr port ttl} {
@@ -547,7 +547,12 @@ proc mbus_recv_rtp.source.tool {cname tool} {
 	init_source $cname
 	set TOOL($cname) $tool
 	if {[string compare $cname $my_cname] == 0} {
-	    wm title . "UCL $tool"
+	    global tool_name
+	    # tool name looks like RAT x.x.x platform ....
+	    # lose the platform stuff
+	    set tool_frag [split $tool]
+	    set tool_name "UCL [lindex $tool_frag 0] [lindex $tool_frag 1]"
+	    wm title . ""
 	}
 }
 
@@ -1048,6 +1053,7 @@ label .l.f.title -font $infofont  -textvariable session_title
 label .l.f.addr  -font $smallfont -textvariable session_address
 
 frame  .l.s1 -bd 0
+label  .l.s1.tool -textvariable tool_name 
 button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options"   -command {wm deiconify .prefs; raise .prefs}
 button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"     -command {jiggle_credits; wm deiconify .about}
 button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"      -command do_quit
@@ -1063,9 +1069,9 @@ pack .r.c.gain -side top -fill x
 
 pack .l -side top -fill both -expand 1
 pack .l.f -side top -fill x
-pack .l.f.title .l.f.addr -side top -fill x
-pack .l.s1 -side bottom -fill x
-pack .l.s1.opts .l.s1.about .l.s1.quit -side left -fill x -expand 1
+pack .l.f.title .l.f.addr -side top -fill x -pady 2
+pack .l.s1 -side bottom -fill x 
+pack .l.s1.tool .l.s1.opts .l.s1.about .l.s1.quit -side left -fill x -expand 1 -anchor w -padx 2 -pady 2
 pack .l.t  -side top -fill both -expand 1
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
