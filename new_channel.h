@@ -3,34 +3,7 @@
 #define   __NEW_CHANNEL_H__
 
 #include "playout.h"
-
-#define CC_NAME_LENGTH 16
-
-typedef u_int32 cc_id_t;
-
-typedef struct {
-        cc_id_t descriptor;
-        char    name [CC_NAME_LENGTH];
-} cc_details;
-
-#define MAX_MEDIA_UNITS   3
-#define MAX_CHANNEL_UNITS 3
-
-typedef struct {
-        u_int8      nelem;
-        coded_unit *cu[MAX_MEDIA_UNITS];
-} media_data;
-
-typedef struct {
-        u_int   pt;
-        u_char *data;
-        u_int16 data_len;
-} channel_unit;
-
-typedef struct {
-        u_int8 nelem;
-        coded_unit *cu[MAX_CHANNEL_UNITS];
-}
+#include "channel_types.h"
 
 struct s_channel_state;
 
@@ -42,26 +15,39 @@ struct s_channel_state;
 int       channel_get_coder_count   (void);
 int       channel_get_coder_details (int idx, cc_details *ccd);
 
-int       channel_coder_create      (cc_id_t id, struct s_channel_state **cs);
-int       channel_coder_destory     (struct s_channel_state **cs);
+/* Don't use these two functions directly use macros channel_encoder_{create, destory, reset},
+ * and channel_encoder_{create, destory, reset} instead.
+ */
 
-/* These are for coder specific parameters */
-int       channel_coder_set_parameters (struct s_channel_state *cs, char *cmd);
-int       channel_coder_get_parameters (struct s_channel_state *cs, char *cmd, int cmd_len);
+int       channel_coder_create      (cc_id_t id, struct s_channel_state **cs, int is_encoder);
+void      channel_coder_destory     (struct s_channel_state **cs, int is_encoder);
+int       channel_coder_reset       (struct s_channel_state *cs,  int is_encoder);   
 
-/* This is a universal parameter */
-int       channel_coder_set_units_per_packet (struct s_channel_state *cs, u_int16);
-u_int16   channel_coder_get_units_per_packet (struct s_channel_state *cs);
+/* Encoder specifics *********************************************************/
 
-int       channel_coder_encode (struct s_channel_state  *cs, 
-                                struct s_playout_buffer *media_buffer, 
-                                struct s_playout_buffer *channel_buffer,
-                                u_int32                  now);
-int       channel_coder_decode (struct s_channel_state  *cs, 
-                                struct s_playout_buffer *media_buffer, 
-                                struct s_playout_buffer *channel_buffer,
-                                u_int32                  now);
-int       channel_coder_reset  (struct s_channel_state  *cs);
+#define   channel_encoder_create(id, cs)  channel_coder_create  (id, cs, TRUE)
+#define   channel_encoder_destroy(cs)     channel_coder_destroy (cs, TRUE)
+#define   channel_encoder_reset(cs)       channel_coder_reset   (cs, TRUE)
+
+int       channel_encoder_set_units_per_packet (struct s_channel_state *cs, u_int16);
+u_int16   channel_encoder_get_units_per_packet (struct s_channel_state *cs);
+
+int       channel_encoder_set_parameters (struct s_channel_state *cs, char *cmd);
+int       channel_encoder_get_parameters (struct s_channel_state *cs, char *cmd, int cmd_len);
+
+int       channel_encoder_encode (struct s_channel_state  *cs, 
+                                  struct s_playout_buffer *media_buffer, 
+                                  struct s_playout_buffer *channel_buffer);
+
+/* Decoder specifics *********************************************************/
+#define   channel_decoder_create(id, cs)  channel_coder_create  (id, cs, FALSE)
+#define   channel_decoder_destroy(cs)     channel_coder_destroy (cs, FALSE)
+#define   channel_decoder_reset(cs)       channel_coder_reset   (cs, FALSE)
+
+int       channel_decoder_decode (struct s_channel_state  *cs, 
+                                  struct s_playout_buffer *channel_buffer,
+                                  struct s_playout_buffer *media_buffer, 
+                                  u_int32                  now);
 
 /* Payload mapping functions */
 cc_id_t   channel_coder_get_by_payload (u_int8 payload);
