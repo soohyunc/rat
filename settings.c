@@ -252,10 +252,10 @@ static void load_init(void)
                         debug_msg("Garbage ignored: %s\n", buffer);
                         continue;
                 }
-                key   = strtok(buffer, ":"); 
+                key   = (char *) strtok(buffer, ":"); 
                 assert(key != NULL);
                 key = key + 1;               /* skip asterisk */
-                value = strtok(NULL, "\n");
+                value = (char *) strtok(NULL, "\n");
                 assert(value != NULL);
                 while (*value != '\0' && isspace((int) *value)) {
                         value++;             /* skip leading whitespace */
