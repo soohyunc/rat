@@ -123,7 +123,9 @@ main(int argc, char *argv[])
 	sp[0]->db = rtcp_init(sp[0]->device_clock, cname, ssrc, 0);
         rtcp_clock_change(sp[0]);
 
+	load_settings(sp[0]);
         ui_initial_settings(sp[0]);		/* Load settings... */
+
 	parse_late_options(argc, argv, sp);	/* Things which can override the settings we just loaded... */
 	ui_update(sp[0]);			/* ...and push those to the UI */
 	network_process_mbus(sp[0]);

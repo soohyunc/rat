@@ -32,16 +32,9 @@
 FILE	*settings_file;
 #endif
 
-void load_settings(session_struct *sp)
+static void load_init(void)
 {
-	UNUSED(sp);
-}
-
-static void save_init(void)
-{
-#ifdef WIN32
-	/* Do something complicated with the registry... */
-#else
+#ifndef WIN32
 	struct passwd	*p;	
 	char		*filen;
 
@@ -53,7 +46,154 @@ static void save_init(void)
 		perror("Unable to get passwd entry");
 		abort();
 	}
-	filen = (char *) xmalloc(strlen(p->pw_dir) + 6);
+	filen = (char *) xmalloc(strlen(p->pw_dir) + 15);
+	sprintf(filen, "%s/.RTPdefaults", p->pw_dir);
+	settings_file = fopen(filen, "r");
+#else
+#endif
+}
+
+static void load_done(void)
+{
+#ifdef WIN32
+#else
+	fclose(settings_file);
+#endif
+}
+
+#ifndef WIN32
+static void load_setting(char **n, char **v)
+{
+	static char *buffer = NULL;
+	
+	if (buffer == NULL) {
+		buffer = (char *) xmalloc(100);
+	}
+
+	if (fgets(buffer, 100, settings_file) != NULL) {
+		assert(buffer[0] == '*');
+		*n = strtok(buffer, ":") + 1;
+		*v = strtok(NULL, "\n");
+		while ((**v == ' ') && (*v < (buffer + 100))) {
+			(*v)++;
+		}
+	}
+}
+#endif
+
+static char *load_str_setting(char *name, char *default_value)
+{
+#ifndef WIN32
+	char	*n, *v;
+	/* First try, see if it's the next entry in the file... (optimize the common case) */
+	load_setting(&n, &v);
+	if (strcmp(name, n) == 0) {
+		goto found_it;
+	}
+	/* No? Rewind to the beginning, and search through the entire list... */
+	fseek(settings_file, 0, SEEK_SET);
+	while (!feof(settings_file)) {
+		load_setting(&n, &v);
+		if (strcmp(name, n) == 0) {
+			goto found_it;
+		}
+	}
+	/* The setting we're looking for isn't in the preferences file... */
+	return NULL;
+found_it:
+	if (v == NULL) {
+		return xstrdup(default_value);
+	} else {
+		return xstrdup(v);
+	}
+#else
+#endif
+}
+
+static int load_int_setting(char *name, int default_value)
+{
+#ifndef WIN32
+	char	*n, *v;
+	/* First try, see if it's the next entry in the file... (optimize the common case) */
+	load_setting(&n, &v);
+	if (strcmp(name, n) == 0) {
+		goto found_it;
+	}
+	/* No? Rewind to the beginning, and search through the entire list... */
+	fseek(settings_file, 0, SEEK_SET);
+	while (!feof(settings_file)) {
+		load_setting(&n, &v);
+		if (strcmp(name, n) == 0) {
+			goto found_it;
+		}
+	}
+	/* The setting we're looking for isn't in the preferences file... */
+	return NULL;
+found_it:
+	if (v == NULL) {
+		return default_value;
+	} else {
+		return atoi(v);
+	}
+#else
+#endif
+}
+
+void load_settings(session_struct *sp)
+{
+	load_init();
+	/* We don't use rtcp_set_attribute() here, since that updates the UI and we */
+	/* don't want to do that yet...                                             */
+	sp->db->my_dbe->sentry->name  = load_str_setting("rtpName", "Unknown");
+	sp->db->my_dbe->sentry->email = load_str_setting("rtpEmail", "");
+	sp->db->my_dbe->sentry->phone = load_str_setting("rtpPhone", "");
+	sp->db->my_dbe->sentry->loc   = load_str_setting("rtpLoc", "");
+	sp->db->my_dbe->sentry->tool  = load_str_setting("audioTool", RAT_VERSION);
+
+	load_str_setting("audioPrimary", "GSM");
+	load_int_setting("audioUnits", 2);
+	load_str_setting("audioChannelCoding", "None");
+	load_str_setting("audioChannelParameters", "None");
+	load_str_setting("audioRepair", "Pattern-Match");
+	load_str_setting("audioAutoConvert", "High Quality");
+	sp->limit_playout  = load_int_setting("audioLimitPlayout", 0);
+	sp->min_playout    = load_int_setting("audioMinPlayout", 0);
+	sp->max_playout    = load_int_setting("audioMaxPlayout", 2000);
+	sp->lecture        = load_int_setting("audioLecture", 0);
+	sp->render_3d      = load_int_setting("audio3dRendering", 0);
+	load_str_setting("audioDevice", "No Audio Device");
+	load_int_setting("audioFrequency", 8000);
+	load_int_setting("audioChannelsIn", 1);
+	sp->detect_silence = load_int_setting("audioSilence", 1);
+	sp->agc_on         = load_int_setting("audioAGC", 0);
+	sp->loopback_gain  = load_int_setting("audioLoopback", 0);
+	sp->echo_suppress  = load_int_setting("audioEchoSuppress", 0);
+	load_int_setting("audioOutputGain", 75);
+	load_int_setting("audioInputGain", 75);
+	load_str_setting("audioOutputPort", "Headphone");
+	load_str_setting("audioInputPort", "Microphone");
+	sp->meter          = load_int_setting("audioPowermeters", 1);
+	sp->sync_on        = load_int_setting("audioLipSync", 0);
+	load_int_setting("audioOutputMute", 1);
+	load_int_setting("audioInputMute", 1);
+	load_done();
+}
+
+static void save_init(void)
+{
+#ifndef WIN32
+	struct passwd	*p;	
+	char		*filen;
+
+	/* The getpwuid() stuff is to determine the users home directory, into which we */
+	/* write the settings file. The struct returned by getpwuid() is statically     */
+	/* allocated, so it's not necessary to free it afterwards.                      */
+	p = getpwuid(getuid());
+	if (p == NULL) {
+		perror("Unable to get passwd entry");
+		abort();
+	}
+	filen = (char *) xmalloc(strlen(p->pw_dir) + 15);
 	sprintf(filen, "%s/.RTPdefaults", p->pw_dir);
 	settings_file = fopen(filen, "w");
 #endif
@@ -61,28 +201,25 @@ static void save_init(void)
 
 static void save_done(void)
 {
-#ifdef WIN32
-	/* Do something complicated with the registry... */
-#else
+#ifndef WIN32
 	fclose(settings_file);
+#else
 #endif
 }
 
 static void save_str_setting(const char *name, const char *val)
 {
-#ifdef WIN32
-	/* Do something complicated with the registry... */
-#else
+#ifndef WIN32
 	fprintf(settings_file, "*%s: %s\n", name, val);
+#else
 #endif
 }
 
 static void save_int_setting(const char *name, const long val)
 {
-#ifdef WIN32
-	/* Do something complicated with the registry... */
-#else
+#ifndef WIN32
 	fprintf(settings_file, "*%s: %ld\n", name, val);
+#else
 #endif
 }
 
@@ -165,6 +302,8 @@ void save_settings(session_struct *sp)
 	save_str_setting("audioInputPort",         iapd->name); 
 	save_int_setting("audioPowermeters",       sp->meter);
 	save_int_setting("audioLipSync",           sp->sync_on);
+	/* We do not save audioOutputMute and audioInputMute by default, but should */
+	/* recognize them when reloading.                                           */
 	save_done();
 }
 
