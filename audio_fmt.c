@@ -156,11 +156,21 @@ convert_buffer_channels(audio_format *src,
                                 tmp += *s/2; s++;
                                 *d++ = tmp;
                         }
+                } else if (src->encoding == DEV_U8) {
+                        u_char *s = src_buf;
+                        u_char *d = dst_buf;
+                        while (s != se) {
+                                *d  = *s >> 1; s++;
+                                *d += *s >> 1; s++;
+                                d++;
+                        }
                 } else {
                         debug_msg("Sample type not recognized\n");
                         assert(0);
                 }
         }
+
+        xmemchk();
 
         return out_bytes;
 }
@@ -170,66 +180,142 @@ convert_buffer_sample_type(audio_format *src, u_char *src_buf, int src_bytes,
                            audio_format *dst, u_char *dst_buf, int dst_bytes)
 {
         u_char *se;
+        u_char *src8, *dst8;          /* 8 bit source and destination buffers */
+        sample *src16, *dst16, tmp16; /* 16 bit source and destintion buffers, plus temp */
+
         int out_bytes;
 
         out_bytes = src_bytes * dst->bits_per_sample / src->bits_per_sample;
 
-        assert(out_bytes <= dst_bytes);
-        assert(src_buf   != dst_buf);
-        assert(dst->encoding == DEV_S16 || 
-               dst->encoding == DEV_S8  ||
-               dst->encoding == DEV_PCMU);
+        src8 = dst8 = se = NULL;
+        src16 = dst16 = NULL;
+
+        if (out_bytes < dst_bytes) {
+                debug_msg("Conversion failed: output buffer too small (%d < %d)\n", out_bytes, dst_bytes);
+                return 0;
+        }
+
+        if (src_buf == dst_buf) {
+                debug_msg("Conversion failed: source buffer and destination buffer are the same\n");
+                return 0;
+        }
 
         se = src_buf + src_bytes;
 
-        if (src->encoding == DEV_S16) {
-                sample *s = (sample*)src_buf;
-                u_char *d = dst_buf;
-                if (dst->encoding == DEV_PCMU) {
-                        while((u_char*)s < se) {
-                                *d = s2u(*s);
-                                s++; d++;
+        switch (src->encoding) {
+        case DEV_S16:
+                src16 = (sample*)src_buf;
+                dst8  = dst_buf;
+                switch (dst->encoding) {
+                case DEV_PCMU:
+                        while((u_char*)src16 < se) {
+                                *dst8 = s2u(*src16);
+                                src16++; dst8++;
                         }
-                } else if (dst->encoding == DEV_S8) {
-                        while((u_char*)s < se) {
-                                *d = *s >> 8;
-                                s++; d++;
+                        break;
+                case DEV_S8:
+                        while((u_char*)src16 < se) {
+                                *dst8 = *src16 >> 8;
+                                src16++; dst8++;
                         }
+                        break;
+                case DEV_U8:
+                        while((u_char*)src16 < se) {
+                                *dst8 = (*src16 >> 8) + 128;
+                                src16++; dst8++;
+                        }
+                        break;
+                case DEV_S16:
+                        break; /* Nothing to do! */
                 }
-        } else if (src->encoding  == DEV_PCMU) {
-                u_char *s = src_buf;
-                if (dst->encoding == DEV_S16) {
-                        sample *d = (sample*)dst_buf;
-                        while(s < se) {
-                                *d = u2s(*s);
-                                s++; d++;
+                break;
+        case DEV_PCMU:
+                src8 = src_buf;
+                switch (dst->encoding) {
+                case DEV_S16:
+                        dst16 = (sample*)dst_buf;
+                        while(src8 < se) {
+                                *dst16 = u2s(*src8);
+                                src8++; dst16++;
                         }
-                } else if (dst->encoding == DEV_S8) {
-                        u_char *d = dst_buf;
-                        sample  tmp;
-                        while(s < se) {
-                                tmp = u2s(*s);
-                                *d  = (u_char)(tmp >> 8);
-                                s++; d++;
+                        break;
+                case DEV_S8:
+                        dst8 = dst_buf;
+                        while(src8 < se) {
+                                tmp16 = u2s(*src8);
+                                *dst8 = (u_char)(tmp16 >> 8);
+                                src8++; dst8++;
                         }
+                break;
+                case DEV_U8:
+                        dst8 = dst_buf;
+                        while(src8 < se) {
+                                tmp16 = u2s(*src8);
+                                *dst8 = (u_char)((tmp16 >> 8) + 128);
+                                src8++; dst8++;
+                        }
+                        break;
+                case DEV_PCMU:
+                        break; /* Nothing to do! */
                 }
-        } else if (src->encoding == DEV_S8) {
-                u_char *s = src_buf;
-                if (dst->encoding == DEV_S16) {
-                        sample *d = (sample*)dst_buf;
-                        while (s < se) {
-                                *d = *s << 8;
-                                s++; d++;
+                break;
+        case DEV_S8:
+                src8 = src_buf;
+                switch (dst->encoding) {
+                case DEV_S16:
+                        dst16 = (sample*)dst_buf;
+                        while (src8 < se) {
+                                *dst16 = *src8 << 8;
+                                src8++; dst16++;
                         }
-                } else if (dst->encoding == DEV_PCMU) {
-                        u_char *d = dst_buf;
-                        sample tmp;
-                        while(s < se) {
-                                tmp = *s << 8;
-                                *d  = s2u(tmp);
-                                s++; d++;
+                        break;
+                case DEV_PCMU:
+                        dst8 = dst_buf;
+                        while(src8 < se) {
+                                tmp16 = *src8 << 8;
+                                *dst8 = s2u(tmp16);
+                                src8++; dst8++;
                         }
+                        break;
+                case DEV_U8:
+                        dst8 = dst_buf;
+                        while(src8 < se) {
+                                *dst8 = *src8 + 128;
+                                src8++; dst8++;
+                        }
+                        break;
+                case DEV_S8:
+                        break; /* Nothing to do! */
                 }
+                break;
+        case DEV_U8:
+                src8 = src_buf;
+                switch(dst->encoding) {
+                case DEV_S8:
+                        dst8 = dst_buf;
+                        while (src8 < se) {
+                                *dst8 = *src8 - 128;
+                                src8++; dst8++;
+                        }
+                        break;
+                case DEV_S16:
+                        dst16 = (sample*)dst_buf;
+                        while(src8 < se) {
+                                *dst16 = (sample)((*src8 - 128) << 8);
+                                src8++; dst16++;
+                        }
+                        break;
+                case DEV_PCMU:
+                        dst8 = dst_buf;
+                        while(src8 < se) {
+                                tmp16 = (sample)((*src8 - 128) << 8);
+                                *dst8 = s2u(tmp16);
+                                src8++; dst8++;
+                        }
+                case DEV_U8:
+                        break; /* Nothing to do! */
+                }
+                break;
         }
         return out_bytes;
 }
@@ -260,7 +346,9 @@ audio_format_buffer_convert(audio_format *src,
                 xmemchk();
                 return out_bytes;
         } else {
-                /* Additional buffer needed - do everything in steps */
+                /* Additional buffer needed since we have to change
+                 * channels and sample type- do everything in steps 
+                 */
 #define AF_TMP_BUF_SZ   160
 #define AF_TMP_BUF_SMPLS 80                
                 u_char ibuf[AF_TMP_BUF_SZ];
