@@ -46,6 +46,7 @@ static int dev_ids[LUIGI_MAX_AUDIO_DEVICES];
 static char names[LUIGI_MAX_AUDIO_DEVICES][LUIGI_MAX_AUDIO_NAME_LEN];
 static int ndev = 0;
 static int luigi_error;
+static audio_format *input_format, *output_format, *tmp_format;
 
 int 
 luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
@@ -146,6 +147,22 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                         return FALSE;
                 }
 
+                /* Store format in case we have to re-open device because
+                 * of driver bug.  Careful with freeing format as input format
+                 * could be static input_format if device reset during write.
+                 */
+                tmp_format = audio_format_dup(ifmt);
+                if (input_format != NULL) {
+                        audio_format_free(&input_format);
+                }
+                input_format = tmp_format;
+
+                tmp_format = audio_format_dup(ofmt);
+                if (output_format != NULL) {
+                        audio_format_free(&output_format);
+                }
+                output_format = tmp_format;
+
                 /* Turn off loopback from input to output... not fatal so
                  * after error check.
                  */
@@ -225,8 +242,13 @@ luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 
         done = write(audio_fd, (void*)buf, write_bytes);
         if (done != write_bytes && errno != EINTR) {
-                perror("Error writing device. Reset device attempted.");
-                ioctl(audio_fd,SNDCTL_DSP_RESET,0);
+                /* Only ever seen this with soundblaster cards.
+                 * Driver occasionally packs in reading.  Seems to be
+                 * no way to reset cleanly whilst running, even
+                 * closing device, waiting a few 100ms and re-opening
+                 * seems to fail.  
+                 */
+                perror("Error writing device.");
                 return (write_bytes - done);
         }
 
