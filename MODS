@@ -1404,4 +1404,7 @@ TODO -- They're features not bugs dammit!
 		tx_send(sp[i]->tb);
 	}
   ...twice in the main loop?
+- On linux we get "playout.c:86: pb_validate:Assertion 'pb->magic==0x83838383' 
+  failed" when enabling the microphone to transmit. Reported by Christa
+  Wenger, Marcos Bedinelli and Fang Yuan.
 
