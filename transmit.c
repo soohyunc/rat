@@ -417,7 +417,7 @@ tx_send(tx_buffer *tb)
 
         tx_unit        *u;
         rtp_hdr_t       rtp_header;
-        struct iovec    ovec[2];
+        struct iovec    *ovec;
         ts_t            u_ts, u_sil_ts, delta;
         ts_t            time_ts;
         u_int32         time_32, cd_len, freq;
@@ -529,14 +529,20 @@ tx_send(tx_buffer *tb)
                         rtp_header.m = 0;
                 }   
                 
+                u_len = sizeof(struct iovec) * (cd->nelem + 1);
+                ovec = (struct iovec *)block_alloc(u_len);
+                
                 ovec[0].iov_base = (caddr_t)&rtp_header;
                 ovec[0].iov_len  = 12 + rtp_header.cc*4;
-                ovec[1].iov_base = cu->data;
-                ovec[1].iov_len  = cu->data_len;
-
-                if (sp->drop == 0.0 || drand48() >= sp->drop) {
-                        net_write_iov(sp->rtp_socket, ovec, 2, PACKET_RTP);
+                for(i = 0; i < cd->nelem; i++) {
+                        ovec[i+1].iov_base = cd->elem[i]->data;
+                        ovec[i+1].iov_len  = cd->elem[i]->data_len;
                 }
+                if (sp->drop == 0.0 || drand48() >= sp->drop) {
+                        net_write_iov(sp->rtp_socket, ovec, cd->nelem + 1, PACKET_RTP);
+                }
+                block_free(ovec, u_len);
+
                 sp->last_depart_ts  = time_32;
                 sp->db->pkt_count  += 1;
                 sp->db->byte_count += cu->data_len;
