@@ -197,7 +197,11 @@ adapt_playout(rtp_hdr_t *hdr,
                         src->jitter  = 240; 
                 }
 	} else {
-                diff       = abs(delay - src->delay) / abs(hdr->seq - src->last_seq);
+                if (hdr->seq != src->last_seq) {
+                        diff       = abs(delay - src->delay) / abs(hdr->seq - src->last_seq);
+                } else { /* Duplicate */
+                        diff       = abs(delay - src->delay);
+                }
                 /* Jitter calculation as in RTP spec */
                 src->jitter += (((double) diff - src->jitter) / 16.0);
                 src->delay = delay;
