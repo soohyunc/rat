@@ -54,29 +54,22 @@
 #include "auddev_oss.h"
 #include "util.h"
 
-
-/* Aren't these defined in soundcard.h ? */
-#define AUDIO_SPEAKER    0
-#define AUDIO_HEADPHONE  1
-#define AUDIO_LINE_OUT   4
-#define AUDIO_MICROPHONE 1
-#define AUDIO_LINE_IN    2
-#define AUDIO_CD         4
+enum { AUDIO_SPEAKER, AUDIO_HEADPHONE, AUDIO_LINE_OUT, AUDIO_MICROPHONE, AUDIO_LINE_IN, AUDIO_CD};
 
 /* Info to match port id's to port name's */
-static const audio_port_details out_ports[] = {
-        {AUDIO_SPEAKER,   AUDIO_PORT_SPEAKER}
-};
-
-#define NUM_OUT_PORTS (sizeof(out_ports)/(sizeof(out_ports[0])))
-
-static const audio_port_details in_ports[] = {
+static audio_port_details_t in_ports[] = {
         {AUDIO_MICROPHONE, AUDIO_PORT_MICROPHONE},
-        {AUDIO_LINE_IN,    AUDIO_PORT_LINEIN},
+        {AUDIO_LINE_IN,    AUDIO_PORT_LINE_IN},
         {AUDIO_CD,         AUDIO_PORT_CD}
 };
 
 #define NUM_IN_PORTS (sizeof(in_ports)/(sizeof(in_ports[0])))
+
+static audio_port_details_t out_ports[] = {
+        {AUDIO_SPEAKER,   AUDIO_PORT_SPEAKER}
+};
+
+#define NUM_OUT_PORTS (sizeof(out_ports)/(sizeof(out_ports[0])))
 
 int	iport     = AUDIO_MICROPHONE;
 int	bytes_per_block;
@@ -192,7 +185,7 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_VOLUME), &volume);
 		ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_RECLEV), &volume);
 		/* Select microphone input. We can't select output source...  */
-		oss_audio_set_iport(ad, iport);
+		oss_audio_iport_set(ad, iport);
 		/* Turn off loopback from input to output... This only works  */
 		/* on a few cards, but shouldn't cause problems on the others */
 		ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
@@ -418,7 +411,7 @@ oss_audio_oport_get(audio_desc_t ad)
 {
 	/* There appears to be no-way to select this with OSS... */
         UNUSED(ad); assert(audio_fd[ad] > 0);
-	return out_ports[0]->port;
+	return out_ports[0].port;
 }
 
 int 
@@ -432,7 +425,7 @@ const audio_port_details_t*
 oss_audio_oport_details(audio_desc_t ad, int idx)
 {
         UNUSED(ad);
-        if (idx >= 0 && idx < NUM_OUT_PORTS) {
+        if (idx >= 0 && idx < (int)NUM_OUT_PORTS) {
                 return &out_ports[idx];
         }
         return NULL;
@@ -494,7 +487,7 @@ const audio_port_details_t*
 oss_audio_iport_details(audio_desc_t ad, int idx)
 {
         UNUSED(ad);
-        if (idx >= 0 && idx < NUM_IN_PORTS) {
+        if (idx >= 0 && idx < (int)NUM_IN_PORTS) {
                 return &in_ports[idx];
         }
         return NULL;
