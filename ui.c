@@ -64,7 +64,7 @@ static void ui_info_update_sdes(session_t *sp, char *item, const char *val, uint
                 val = "Unknown";
         }
         arg = mbus_encode_str(val);
-	mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, TRUE, item, "\"%08lx\" %s", ssrc, arg);
+	mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, item, "\"%08lx\" %s", ssrc, arg);
 	xfree(arg);
 }
 
