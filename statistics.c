@@ -235,15 +235,33 @@ rtp_header_validation(rtp_hdr_t *hdr, int length, session_struct *sp)
 
 	/* If padding or header-extension is set, we punt on this one... */
 	/* We should really deal with it though...                       */
-	if (hdr->p || hdr->x) {
+	if (hdr->x) {
 #ifdef DEBUG
-		printf("rtp_header_validation: p or x bit set\n");
+		printf("rtp_header_validation: x bit set\n");
 #endif
 		return FALSE;
 	}
 
 	/* Check the length is consistent... We have to check for 20,40,60,80ms packets*/
 	pl = (length - 12) - (hdr->cc * 4);	/* Size of the payload... */
+	if (hdr->p) {
+		int pad = *((unsigned char *)hdr + length - 1);
+
+		if (pad < 1) {
+#ifdef DEBUG
+			printf("rtp_header_validation: padding but 0 len\n");
+#endif
+			return FALSE;
+		}
+		pl -= pad;
+		if (pl < 1) {
+#ifdef DEBUG
+			printf("rtp_header_validation: whole pkt padding\n");
+#endif
+			return FALSE;
+		}
+	}
+
 	if (hdr->pt == sp->redundancy_pt) {
 		data  = (int *)hdr + 3 + hdr->cc;
 		while ((red_hdr = ntohl(*data)) & 0x80000000) {
