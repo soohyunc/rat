@@ -208,9 +208,7 @@ void
 tcl_process_events(void)
 {
 	int i;
-	for (i=0; i<16; i++) {
-		tcl_process_event();
-	}
+	for (i=0; i<16 && tcl_process_event(); i++) ;
 }
 
 int
