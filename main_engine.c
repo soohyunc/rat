@@ -159,9 +159,8 @@ static void rendezvous_with_controller(session_t *sp[2])
 	/* FIXME: Needs updating for transcoder... */
 	sp[0]->mbus_go       = TRUE;
 	sp[0]->mbus_go_token = token;
-	debug_msg("Waiting for mbus.go(%s) from controller...\n", token);
+	debug_msg("Waiting for mbus.go(%s) from controller...\n", token_e);
 	do {
-		char 		*token_e = mbus_encode_str(token);
 		struct timeval	 timeout;
 
 		timeout.tv_sec  = 0;
