@@ -1,14 +1,15 @@
 /*
- * FILE:    pckt_queue.c
- * PROGRAM: RAT
- * AUTHOR:  Orion Hodson
+ * FILE:     pckt_queue.c
+ * PROGRAM:  RAT
+ * AUTHOR:   Orion Hodson
+ * MODIFIED: COlin Perkins
  * 
  * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, is permitted, for non-commercial use only, provided
- * that the following conditions are met:
+ * modification, is permitted provided that the following conditions 
+ * are met:
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
@@ -37,7 +38,6 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-#include "assert.h"
 #include "pckt_queue.h"
 #include "receive.h"
 #include "util.h"
@@ -57,12 +57,20 @@ pckt_queue *
 pckt_queue_create(int len)
 {
         pckt_queue *p = (pckt_queue*)xmalloc(sizeof(pckt_queue));
+	int         i;
+
+	assert(len > 0);
+
         assert(p != NULL);
         memset(p, 0, sizeof(pckt_queue));
 
         p->buf  = (pckt_queue_element **)xmalloc(len * sizeof(pckt_queue_element*));
         p->buf_len = len;
         assert(p->buf != NULL);
+
+	for (i=0; i<len; i++) {
+		p->buf[i] = NULL;
+	}
 
         return p;
 }
@@ -154,7 +162,4 @@ pckt_queue_element_free(pckt_queue_element ** pe)
         block_free(*pe, sizeof(pckt_queue_element));
         (*pe) = NULL;
 }
-
-
-
 
