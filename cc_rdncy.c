@@ -25,11 +25,6 @@
 
 #include "timers.h"
 
-/* This is pap.  Have run out of time.  Apologies if you ever end
- * up here... [oh]  Whole design is a bit squiffy - too many memory
- * copies.   
- */
-
 #define RED_MAX_LAYERS 3
 #define RED_MAX_OFFSET 16383u
 #define RED_MAX_LEN    1023u
@@ -353,10 +348,21 @@ redundancy_encoder_encode (u_char      *state,
                 pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout);
                 assert(m != NULL);
 
-                pb_add(re->media_buffer, 
-                       (u_char*)m,
-                       m_len,
-                       playout);
+                if (m->nrep > 0) {
+                        pb_add(re->media_buffer, 
+                               (u_char*)m,
+                               m_len,
+                               playout);
+                } else {
+                        /* Incoming unit has no data so transmission is
+                         * not happening.
+                         */
+                        media_data_destroy(&m, sizeof(media_data));
+                        pb_flush(re->media_buffer);
+                        re->units_ready = 0;
+                        continue;
+                }
+
                 re->units_ready++;
 
                 if ((re->units_ready % upp) == 0) {
