@@ -89,8 +89,7 @@ proc init_source {ssrc} {
 		set         INDEX($ssrc) $num_ssrc
 		set          SSRC($ssrc) $ssrc
 		incr num_ssrc
-		chart_enlarge $num_ssrc 
-		chart_label   $ssrc
+		chart_add   $ssrc
 	}
 }
 
@@ -752,7 +751,7 @@ proc mbus_recv_rtp.ssrc {ssrc} {
 
 proc mbus_recv_rtp.source.exists {ssrc} {
 	init_source $ssrc
-	chart_label $ssrc
+	chart_add $ssrc
 	ssrc_update $ssrc
 }
 
@@ -763,7 +762,7 @@ proc mbus_recv_rtp.source.cname {ssrc cname} {
 	if {[string compare $NAME($ssrc) $SSRC($ssrc)] == 0} {
 		set NAME($ssrc) $cname
 	}
-	chart_label $ssrc
+	chart_label $ssrc $NAME($ssrc)
 	ssrc_update $ssrc
 }
 
@@ -771,7 +770,7 @@ proc mbus_recv_rtp.source.name {ssrc name} {
 	global NAME rtcp_name my_ssrc
 	init_source $ssrc
 	set NAME($ssrc) $name
-	chart_label $ssrc
+	chart_label $ssrc $name
 	ssrc_update $ssrc
 	if {[string compare $ssrc $my_ssrc] == 0} {
 		set rtcp_name $name
@@ -950,7 +949,6 @@ proc mbus_recv_rtp.source.remove {ssrc} {
 	unset JITTER($ssrc) LOSS_TO_ME($ssrc) LOSS_FROM_ME($ssrc) INDEX($ssrc) JIT_TOGED($ssrc) BUFFER_SIZE($ssrc)
 	unset PLAYOUT_DELAY($ssrc) GAIN($ssrc) MUTE($ssrc) HEARD_LOSS_TO_ME($ssrc) HEARD_LOSS_FROM_ME($ssrc)
 	incr num_ssrc -1
-	chart_redraw $num_ssrc
     }
 }
 
@@ -2240,141 +2238,86 @@ proc sync_engine_to_ui {} {
 # Routines to display the "chart" of RTCP RR statistics...
 #
 
-set chart_font    6x10
-set chart_size    1
-set chart_boxsize 15
-set chart_xoffset 180
-set chart_yoffset 17
-
 toplevel  .chart
-wm protocol .chart WM_DELETE_WINDOW    {set matrix_on 0; chart_show}
 canvas    .chart.c  -background white  -xscrollcommand {.chart.sb set} -yscrollcommand {.chart.sr set} 
+frame     .chart.c.f 
 scrollbar .chart.sr -orient vertical   -command {.chart.c yview}
 scrollbar .chart.sb -orient horizontal -command {.chart.c xview}
-button    .chart.d  -text "Dismiss"    -command {set matrix_on 0; chart_show}
 
-pack .chart.d  -side bottom -expand 0 -anchor e -padx 2 -pady 2
-pack .chart.sb -side bottom -fill x    -expand 0 -anchor s
-pack .chart.sr -side right  -fill y    -expand 0 -anchor e
-pack .chart.c  -side left   -fill both -expand 1 -anchor n
+pack .chart.sb -side bottom -fill x -expand 0 -anchor s
+pack .chart.sr -side right  -fill y -expand 0 -anchor e
+pack .chart.c  -side left   -fill x -expand 1 -anchor n
+pack .chart.c.f
 
-# Add a few labels to the chart...
-.chart.c create text 2 [expr ($chart_boxsize / 2) + 2] -anchor w -text "Sender:" -font $chart_font 
-.chart.c create line $chart_xoffset [expr $chart_boxsize + 2] $chart_xoffset 2
-.chart.c create line $chart_xoffset 2 2 2
-
-proc chart_enlarge {new_size} {
-  global chart_size
-  global chart_boxsize
-  global chart_xoffset
-  global chart_yoffset
-  global chart_font
-
-  if {$new_size < $chart_size} {
-    return
-  }
-  
-  for {set i 0} {$i <= $new_size} {incr i} {
-    set s1 $chart_xoffset
-    set s2 [expr $chart_yoffset + ($chart_boxsize * $i)]
-    set s3 [expr $chart_xoffset + ($chart_boxsize * $new_size)]
-    set s4 [expr $chart_xoffset + ($chart_boxsize * $i)]
-    set s5 $chart_yoffset
-    set s6 [expr $chart_yoffset + ($chart_boxsize * $new_size)]
-    .chart.c create line $s1 $s2 $s3 $s2
-    .chart.c create line $s4 $s5 $s4 $s6 
-  }
-
-  for {set i 0} {$i < $new_size} {incr i} {
-    set s1 $chart_xoffset
-    set s2 [expr $chart_yoffset + ($chart_boxsize * $i)]
-    set s3 [expr $chart_xoffset + ($chart_boxsize * $new_size)]
-    set s4 [expr $chart_xoffset + ($chart_boxsize * $i)]
-    set s5 $chart_yoffset
-    set s6 [expr $chart_yoffset + ($chart_boxsize * $new_size)]
-    .chart.c create text [expr $chart_xoffset - 2] [expr $s2 + ($chart_boxsize / 2)] -text $i -anchor e -font $chart_font
-    .chart.c create text [expr $s4 + ($chart_boxsize / 2)] [expr $chart_yoffset - 2] -text $i -anchor s -font $chart_font
-  }
-  .chart.c configure -scrollregion "0 0 [expr $s3 + 1] [expr $s6 + 1]"
-  set chart_size $new_size
+proc mtrace {src dst} {
+	#puts "mtrace $src $dst"
 }
 
-proc chart_set {dest srce val} {
-  global INDEX chart_size chart_boxsize chart_xoffset chart_yoffset my_ssrc
-
-  if {[array names INDEX $srce] != [list $srce]} {
-    return
-  }
-  if {[array names INDEX $dest] != [list $dest]} {
-    return
-  }
-  set x $INDEX($srce)
-  set y $INDEX($dest)
-
-  if {($x > $chart_size) || ($x < 0)} return
-  if {($y > $chart_size) || ($y < 0)} return
-
-  set xv [expr ($x * $chart_boxsize) + $chart_xoffset + 1]
-  set yv [expr ($y * $chart_boxsize) + $chart_yoffset + 1]
-
-  if {$val < 5} {
-    set colour green
-  } elseif {$val < 10} {
-    set colour orange
-  } elseif {$val <= 100} {
-    set colour red
-  } else {
-    set colour white
-  }
-
-  .chart.c create rectangle $xv $yv [expr $xv + $chart_boxsize - 2] [expr $yv + $chart_boxsize - 2] -fill $colour -outline $colour
+proc chart_add {ssrc} {
+	frame  .chart.c.f.$ssrc
+	frame  .chart.c.f.$ssrc.f
+	button .chart.c.f.$ssrc.l -width 25 -text $ssrc -padx 0 -pady 0 -anchor w -relief flat -command "toggle_stats $ssrc"
+	pack   .chart.c.f.$ssrc.f -expand 0 -anchor e -side right
+	pack   .chart.c.f.$ssrc.l -expand 1 -anchor w -fill x -side left
+	pack   .chart.c.f.$ssrc   -expand 1 -anchor n -fill x -side top
+	foreach s [pack slaves .chart.c.f] {
+		regsub {.chart.c.f.(.*)} $s {\1} s
+		button .chart.c.f.$s.f.$ssrc -width 4 -text "" -background white -padx 0 -pady 0 -command "mtrace $s $ssrc"
+		pack   .chart.c.f.$s.f.$ssrc -expand 0 -side left
+		if {![winfo exists .chart.c.f.$ssrc.f.$s]} {
+			button .chart.c.f.$ssrc.f.$s -width 4 -text "" -background white -padx 0 -pady 0 -command "mtrace $ssrc $s"
+			pack   .chart.c.f.$ssrc.f.$s -expand 0 -side left
+		}
+	}
+	.chart.c configure -scrollregion "0 0 [.chart.c.f cget -width] 100"
 }
 
-proc chart_label {ssrc} {
-  global CNAME NAME INDEX chart_size chart_boxsize chart_xoffset chart_yoffset chart_font
-
-  set pos $INDEX($ssrc)
-  set val $NAME($ssrc)
-  if {[string length $val] == 0} {
-    set val $CNAME($ssrc)
-  }
-
-  if {($pos > $chart_size) || ($pos < 0)} return
-
-  set ypos [expr $chart_yoffset + ($chart_boxsize * $pos) + ($chart_boxsize / 2)]
-  .chart.c delete ssrc_$ssrc
-  .chart.c create text 2 $ypos -text [string range $val 0 25] -anchor w -font $chart_font -tag ssrc_$ssrc
+proc chart_remove {ssrc} {
+	destroy .chart.c.f.$ssrc
+	foreach s [pack slaves .chart.c.f] {
+		regsub {.chart.c.f.(.*)} $s {\1} s
+		destroy .chart.c.f.$s.f.$ssrc
+	}
 }
 
-proc chart_redraw {size} {
-  # This is not very efficient... [csp]
-  global CNAME NAME INDEX chart_size chart_boxsize chart_xoffset chart_yoffset chart_font
+proc chart_label {ssrc label} {
+	.chart.c.f.$ssrc.l configure -text $label
+}
 
-  .chart.c delete all
-  set chart_size 0
-  chart_enlarge $size
-  set j 0
-  foreach i [array names CNAME] {
-    set INDEX($i) $j
-    chart_label $i
-    incr j
-  }
+proc chart_set {src dst val} {
+	if {$val < 5} {
+		set colour green
+		set txtval "$val%"
+	} elseif {$val < 10} {
+		set colour orange
+		set txtval "$val%"
+	} elseif {$val <= 100} {
+		set colour red
+		set txtval "$val%"
+	} else {
+		set colour white
+		set txtval ""
+	}
+	.chart.c.f.$src.f.$dst configure -background $colour -text "$txtval"
 }
 
 proc chart_show {} {
-	global matrix_on
-	if {$matrix_on} {
-		wm deiconify .chart
-	} else {
-		wm withdraw .chart
-	}
+        global matrix_on
+        if {$matrix_on} {
+                wm deiconify .chart
+        } else {
+                wm withdraw .chart
+        }
 }
 
 wm withdraw .chart
 wm title    .chart "Reception quality matrix"
 wm geometry .chart 320x200
+wm protocol .chart WM_DELETE_WINDOW    {set matrix_on 0; chart_show}
 
-chart_enlarge 1
+set matrix_on 1
+chart_show
+
 
 #
 # End of RTCP RR chart routines
