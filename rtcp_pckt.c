@@ -179,6 +179,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 	u_int32			*alignptr;
 	int			i, lenstr;
 	rtcp_user_rr            *rr, *tmp_rr;
+	u_int32			sec, frac;
 
 	len /= 4;
 	while (len > 0) {
@@ -203,6 +204,12 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			dbe->last_ntp_sec  = ntohl(pkt->r.sr.ntp_sec);
 			dbe->last_ntp_frac = ntohl(pkt->r.sr.ntp_frac);
 			dbe->last_rtp_ts   = ntohl(pkt->r.sr.rtp_ts);
+
+			/* Update local clock map, need it for the sync [dm] */
+		        rtcp_ntp_format(&sec, &frac);
+			sp->db->map_ntp_time = (sec & 0xffff) << 16 | frac >> 16;
+			sp->db->map_rtp_time = get_time(sp->device_clock);
+
 
 			/* Store the reception statistics for that user... */
 			/* Clear the old RR list... */
