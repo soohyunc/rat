@@ -1092,42 +1092,34 @@ proc ssrc_update {ssrc} {
 
 #power meters
 
-# number of elements in the bargraphs...
-set bargraphTotalHeight 12
-set bargraphRedHeight [expr $bargraphTotalHeight * 3 / 4] 
+# Colors
+set bargraphLitColors [list   #008800 #008800 #008800 #008800 #008800 #008800 #008800 #008800 #008800 #008800 #008800 #339f00 #66b600 #99cd00 #cce400 #ffff00 #ffcc00 #ff9900 #ff6600 #ff3300]
+set bargraphUnlitColors [list #004400 #004400 #004400 #004400 #004400 #004400 #004400 #004400 #004400 #004400 #004400 #194f00 #335b00 #4c6600 #667200 #7f7f00 #7f6600 #7f4c00 #7f3300 #7f1900]
+set bargraphTotalHeight [llength $bargraphLitColors]
 
 proc bargraphCreate {bgraph} {
-	global oh$bgraph bargraphTotalHeight
+	global oh$bgraph bargraphTotalHeight bargraphUnlitColors
 
 	frame $bgraph -relief sunk -bg black
 	for {set i 0} {$i < $bargraphTotalHeight} {incr i} {
-		frame $bgraph.inner$i -bg black
-		pack $bgraph.inner$i -side left -fill both -expand true
+		frame $bgraph.inner$i -bg "[lindex $bargraphUnlitColors $i]" -width 2 -height 8
+		pack $bgraph.inner$i -side left -fill both -expand true -padx 1 -pady 1
 	}
 	set oh$bgraph 0
 }
 
 proc bargraphSetHeight {bgraph height} {
 	upvar #0 oh$bgraph oh 
-	global bargraphTotalHeight bargraphRedHeight
+	global bargraphTotalHeight bargraphLitColors bargraphUnlitColors
 
 	if {$oh > $height} {
 		for {set i [expr $height]} {$i <= $oh} {incr i} {
-			$bgraph.inner$i config -bg black
+			$bgraph.inner$i config -bg "[lindex $bargraphUnlitColors $i]"
 		}
 	} else {
-		if {$bargraphRedHeight > $height} {
-			for {set i [expr $oh]} {$i <= $height} {incr i} {
-				$bgraph.inner$i config -bg green
-			}
-		} else {
-			for {set i [expr $oh]} {$i <= $bargraphRedHeight} {incr i} {
-				$bgraph.inner$i config -bg green
-			}
-			for {set i $bargraphRedHeight} {$i <= $height} {incr i} {
-				$bgraph.inner$i config -bg red
-			}
-		}
+	    for {set i [expr $oh]} {$i <= $height} {incr i} {
+		$bgraph.inner$i config -bg  "[lindex $bargraphLitColors $i]"
+	    }
 	}
 	set oh $height
 }
@@ -1135,12 +1127,15 @@ proc bargraphSetHeight {bgraph height} {
 proc bargraphState {bgraph state} {
     upvar #0 oh$bgraph oh 
     if {[winfo exists $bgraph]} {
-	global bargraphTotalHeight
-	for { set i 0 } { $i < $bargraphTotalHeight} {incr i} {
-	    $bgraph.inner$i config -bg black
-	}
+	global bargraphTotalHeight bargraphUnlitColors
 	if {$state} {
-	    $bgraph.inner0 config -bg green
+	    for { set i 0 } { $i < $bargraphTotalHeight} {incr i} {
+		$bgraph.inner$i config -bg "[lindex $bargraphUnlitColors $i]"
+	    }
+	} else {
+	    for { set i 0 } { $i < $bargraphTotalHeight} {incr i} {
+		$bgraph.inner$i config -bg black
+	    }
 	}
     }
     set oh 0
