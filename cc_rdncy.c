@@ -662,32 +662,12 @@ redundancy_decoder_describe (u_int8   pkt_pt,
         return TRUE;        
 }
 
-static u_char 
-red_get_primary_pt(u_char *p)
-{
-        u_int32 hdr32;
-        hdr32 = ntohl(*(u_int32*)p);
-        while(hdr32 & RED_HDR32_PAT) {
-                p += 4;
-                hdr32 = ntohl(*(u_int32*)p);
-        }
-        return *p;
-}
-
 __inline static void
-place_unit(media_data *md, coded_unit *cu, int pos)
+place_unit(media_data *md, coded_unit *cu)
 {
-        assert(pos <= md->nrep);
-
-        if (md->rep) {
-                memmove(md->rep + pos + 1, 
-                       md->rep + pos, 
-                       sizeof(coded_unit) * (md->nrep - pos));
-        }
-        assert(md->rep[pos] == NULL);
-        md->rep[pos] = cu;
-        md->nrep ++;
-        assert(md->nrep <= MAX_MEDIA_UNITS);
+        assert(md->nrep < MAX_MEDIA_UNITS);
+        md->rep[md->nrep] = cu;
+        md->nrep++;
 }
 
 static media_data *
@@ -767,28 +747,25 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
                 cu = (coded_unit*)block_alloc(sizeof(coded_unit));
                 cu->id = cid;
                 if (p == b && cf->mean_per_packet_state_size) {
-                        cu->state     = p;
                         cu->state_len = cf->mean_per_packet_state_size;
+                        cu->state     = block_alloc(cu->state_len);
+                        memcpy(cu->state, p, cu->state_len);
                         p            += cu->state_len;
                 } else {
                         cu->state     = NULL;
                         cu->state_len = 0;
                 }
-                cu->data     = p;
+
                 cu->data_len = codec_peek_frame_size(cid, p, (u_int32)(pe - p));
+                cu->data     = block_alloc(cu->data_len);
+                memcpy(cu->data, p, cu->data_len);
                 p += cu->data_len;
 
                 md = red_media_data_create_or_get(out, playout);
 
                 if (md->nrep == MAX_MEDIA_UNITS) continue;
 
-                if (bpt == ppt || md->nrep == 0) {
-                        /* This is primary, or primary not present already */
-                        place_unit(md, cu, 0);
-                } else {
-                        /* This secondary and goes second since primary present */
-                        place_unit(md, cu, 1);
-                }
+                place_unit(md, cu);
                 
                 playout = ts_add(playout, step);
         }
@@ -799,32 +776,45 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
 {
         const codec_format_t *cf;
         codec_id_t cid;
-        u_char  *p, *pe, bpt, ppt;
+        u_char  *hp, *dp, *de, ppt, bpt;
         u_int32 hdr32, blen, boff;
-        ts_t ts_mo, ts_bo, this_playout;
+        ts_t ts_max_off, ts_blk_off, this_playout;
 
-        p  = chu->data + chu->data_start;
-        pe = chu->data + chu->data_len;
+        hp = dp  = chu->data + chu->data_start;
+        de = chu->data + chu->data_len;
+
+        /* move data pointer past header */
+        while (ntohl(*((u_int32*)dp)) & RED_HDR32_PAT) {
+                dp += 4;
+        }
+
+        if (dp == hp) {
+                debug_msg("Not a redundant block\n");
+                return;
+        }
+
+        /* At this point dp points to primary payload type.
+         * This is a most useful quantity... */
+        ppt   = *dp;
+        dp += 1;
+        assert(dp < de);
 
         /* Max offset should be in first header.  Want max offset
          * as we nobble timestamps to be:
          *              playout + max_offset - this_offset 
          */
 
-        hdr32 = ntohl(*(u_int32*)p);
-        assert(hdr32 & RED_HDR32_PAT);
-
-        ppt   = red_get_primary_pt(p);
         cid   = codec_get_by_payload(ppt);
-        if (!cid) {
-                debug_msg("Primary not recognized. Bailing out.\n");
+        if (codec_id_is_valid(cid) == FALSE) {
+                debug_msg("Primary not recognized.\n");
                 return;
         }
 
         cf = codec_get_format(cid);
         assert(cf != NULL);
 
-        ts_mo = ts_map32(cf->format.sample_rate, RED_HDR32_GET_OFF(hdr32));
+        hdr32 = ntohl(*(u_int32*)hp);
+        ts_max_off = ts_map32(cf->format.sample_rate, RED_HDR32_GET_OFF(hdr32));
 	blen = 0;
 
         while (hdr32 & RED_HDR32_PAT) {
@@ -833,19 +823,21 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
                 bpt   = (u_char)RED_HDR32_GET_PT(hdr32);
 
                 /* Calculate playout point = playout + max_offset - offset */
-                ts_bo = ts_map32(cf->format.sample_rate, boff);
-                this_playout = ts_add(playout, ts_mo);
-                this_playout = ts_sub(this_playout, ts_bo);
+                ts_blk_off = ts_map32(cf->format.sample_rate, boff);
+                this_playout = ts_add(playout, ts_max_off);
+                this_playout = ts_sub(this_playout, ts_blk_off);
 
-                p += 4; /* hdr */
-                red_split_unit(ppt, bpt, p, blen, playout, out);
-                p += blen;
-                hdr32 = ntohl(*(u_int32*)p);
+                hp += 4; /* hdr */
+                red_split_unit(ppt, bpt, dp, blen, playout, out);
+                xmemchk();
+                dp += blen;
+                hdr32 = ntohl(*(u_int32*)hp);
         }
         
-        this_playout = ts_add(playout, ts_mo);
-        p += 1;
-        red_split_unit(ppt, ppt, p, blen, playout, out);
+        this_playout = ts_add(playout, ts_max_off);
+        hp += 1;
+        red_split_unit(ppt, ppt, dp, blen, playout, out);
+        xmemchk();
 }
                           
 int
