@@ -173,7 +173,7 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tcl_Init(interp);
 	Tk_Init(interp);
 
-	if (Tcl_VarEval(interp, TCL_LIBS, NULL) != TCL_OK) {
+	if (Tcl_EvalObj(interp, Tcl_NewStringObj(TCL_LIBS, strlen(TCL_LIBS))) != TCL_OK) {
 		fprintf(stderr, "TCL_LIBS error: %s\n", interp->result);
 	}
 
