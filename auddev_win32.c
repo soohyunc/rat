@@ -1272,9 +1272,9 @@ w32sdk_audio_open_mixer_probe(audio_desc_t ad, audio_format *fmt, audio_format *
         
         memcpy(&owfx, &wfx, sizeof(wfx));
         
-        /* Use 1 sec device buffer */	
+        /* Use 1/8 sec device buffer */	
         blksz  = fmt->bytes_per_block;
-        nblks  = wfx.nAvgBytesPerSec / blksz;
+        nblks  = (wfx.nAvgBytesPerSec / blksz) / 8;
         
         if (w32sdk_audio_open_in_probe(uWavIn, &wfx, probe) == FALSE){
                 debug_msg("Open input failed\n");

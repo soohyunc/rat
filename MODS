@@ -1614,6 +1614,7 @@ v4.2.21	- Fix FreeBSD support to work with 4.5-RELEASE (Orion Hodson)
 	* 15 April 2002
 
 v4.2.22	- Fix compilation on Debian/SPARC (David Martinez/Petter Reinholdsten)
+	- Reduce device buffer to 1/8 second on Win32 (Justin Binns)
 
 
 TODO -- They're features not bugs dammit!
