@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 	parse_args(argc, argv);
 	tcl_init1(argc, argv);
 
-	sprintf(m_addr, "(media:audio module:ui app:rat instance:%lu)", (unsigned long) ppid);
+	sprintf(m_addr, "(media:audio module:ui app:rat id:%lu)", (unsigned long) ppid);
 	m = mbus_init(mbus_ui_rx, mbus_error_handler, m_addr);
 
 	/* Next, we signal to the controller that we are ready to go. It should be sending  */

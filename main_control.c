@@ -568,7 +568,7 @@ int main(int argc, char *argv[])
         }
         
         srand48(seed);
-        snprintf(c_addr, 60, "(media:audio module:control app:rat instance:%lu)", (unsigned long) getpid());
+        snprintf(c_addr, 60, "(media:audio module:control app:rat id:%lu)", (unsigned long) getpid());
         m = mbus_init(mbus_control_rx, mbus_err_handler, c_addr);
         
         sprintf(token_ui,     "rat-token-%08lx", lrand48());
