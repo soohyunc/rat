@@ -271,7 +271,8 @@ red_available(red_coder_t *r) {
         cc_unit *u;
 
         i = 0;
-        while ((u = red_get_unit(r, r->offset[i], r->coding[i])) != NULL) 
+        while (((u = red_get_unit(r, r->offset[i], r->coding[i])) != NULL) && 
+               i < r->nlayers)
                 i++;
 
         return i;
@@ -322,6 +323,7 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
         }
 
         avail = red_available(r);
+        assert(avail <= r->nlayers);
 
         cp = get_codec(r->coding[0]);
 
@@ -358,6 +360,7 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
                 r->last.iovc++;
                 r->last_hdr_idx++;
         }
+        assert(r->last_hdr_idx <= r->nlayers);
 
         /* pack data */
         while(avail-- > 0) {
@@ -472,6 +475,9 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
                         goto fail;
                 }
                 todo -= tlen;
+#ifdef DEBUG
+                assert(hdr_idx <= 2);
+#endif
         }
         
         if (hdr_idx >= MAX_RED_LAYERS || todo <= 0) {

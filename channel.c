@@ -732,6 +732,7 @@ channel_set_coder(session_struct *sp, int pt)
         } else {
                 sp->num_encodings = 1;
         }
+        dprintf("%s\n", cc->name);
 }
 
 typedef struct s_collator {
