@@ -47,6 +47,7 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
 #include "crypt.h"
 #include "net.h"
 #include "session.h"
@@ -61,6 +62,18 @@
 #ifndef INADDR_NONE
 #define INADDR_NONE     0xffffffff
 #endif
+
+static void
+socket_error(char *msg)
+{
+#ifdef WIN32
+	int e = WSAGetLastError();
+	printf("ERROR: %s (%d)\n", msg, e);
+#else
+	perror(msg);
+#endif
+	abort();
+}
 
 static u_long 
 get_net_addr(char *dhost)
@@ -93,7 +106,7 @@ sock_init(u_long inaddr, u_short port, int t_flag)
 	struct sockaddr_in sinme;
 	/* This should be char under winsock2 but it doesn't work.... */
 #ifdef WIN32
-	int				ttl = t_flag;
+	int		ttl = t_flag;
 #else
 	char            ttl = (char)t_flag;
 #endif
@@ -101,7 +114,7 @@ sock_init(u_long inaddr, u_short port, int t_flag)
 	int             multi = FALSE;
 	int             reuse = 1;
 
-	assert(port > 1024); 	/* ports < 1024 are reserved on unix */
+	assert(port > 1023); 	/* ports < 1024 are reserved on unix */
 
 	/*
 	 * Must examine inaddr to see if this is a multicast address and set
@@ -112,17 +125,17 @@ sock_init(u_long inaddr, u_short port, int t_flag)
 	memset((char *) &sinme, 0, sizeof(sinme));
 
 	if ((tmp_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		perror("socket");
+		socket_error("socket");
 		exit(1);
 	}
 
-	if (setsockopt(tmp_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) < 0) {
-		perror("setsockopt SO_REUSEADDR");
+	if (setsockopt(tmp_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) != 0) {
+		socket_error("setsockopt SO_REUSEADDR");
 		exit(1);
 	}
 #ifdef SO_REUSEPORT
-	if (setsockopt(tmp_fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) < 0) {
-		perror("setsockopt SO_REUSEPORT");
+	if (setsockopt(tmp_fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) != 0) {
+		socket_error("setsockopt SO_REUSEPORT");
 		return -1;
 	}
 #endif
@@ -130,9 +143,8 @@ sock_init(u_long inaddr, u_short port, int t_flag)
 	sinme.sin_family = AF_INET;
 	sinme.sin_addr.s_addr = htonl(INADDR_ANY);
 	sinme.sin_port = htons(port);
-	if (bind(tmp_fd, (struct sockaddr *) & sinme, sizeof(sinme)) < 0) {
-		perror("bind");
-		exit(1);
+	if (bind(tmp_fd, (struct sockaddr *) & sinme, sizeof(sinme)) != 0) {
+		socket_error("bind");
 	}
 
 	if (multi) {
@@ -142,14 +154,15 @@ sock_init(u_long inaddr, u_short port, int t_flag)
 		imr.imr_multiaddr.s_addr = inaddr;
 		imr.imr_interface.s_addr = htonl(INADDR_ANY);
 
-		if (setsockopt(tmp_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) == -1) {
-			fprintf(stderr, "IP multicast join failed!\n");
+		if (setsockopt(tmp_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
+			socket_error("IP multicast join failed");
 		}
 
 		setsockopt(tmp_fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop));
 
-		if (setsockopt(tmp_fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0)
-			perror("setsockopt IP_MULTICAST_TTL");
+		if (setsockopt(tmp_fd, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &ttl, sizeof(ttl)) != 0) {
+			socket_error("setsockopt IP_MULTICAST_TTL");
+		}
 	}
 	return tmp_fd;
 }
@@ -178,7 +191,7 @@ net_write(fd_t fd, u_long addr, u_short port, unsigned char *msg, int msglen, in
 	name.sin_family = AF_INET;
 	name.sin_port = htons(port);
 	if ((ret = sendto(fd, (char *) encrypted_msg, msglen, 0, (struct sockaddr *) & name, sizeof(name))) < 0) {
-		perror("net_write: sendto");
+		socket_error("net_write: sendto");
 	}
 	return ret;
 }
@@ -290,7 +303,7 @@ read_packets_and_add_to_queue(fd_t fd, u_int32 cur_time, pckt_queue_struct * que
 
 #ifndef WIN32
 	if (ioctl(fd, FIONREAD, (caddr_t) & nb) != 0) {
-		perror("read_all.../FIONREAD");
+		socket_error("read_all.../FIONREAD");
 	}
 	for (l = 0; l < 2 && nb > 0; l++) {
 		if ((pckt_ptr = read_net(fd, cur_time, type, &nbdecryption)) != NULL) {
@@ -475,7 +488,7 @@ void network_process_mbus(session_struct *sp[], int num_sessions, int delay)
 		} else if (rc == 0) {
 			return;
 		} else {
-			perror("Waiting for Mbus to settle");
+			socket_error("Waiting for Mbus to settle");
 			abort();
 		}
 	}
