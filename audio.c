@@ -196,7 +196,7 @@ audio_device_attempt_config(session_t *sp, audio_config *config)
                 mi.sample_rate   = ouf->sample_rate;
                 mi.channels      = ouf->channels;
                 mi.buffer_length = 32640;
-                mix_create(&sp->ms, &mi);
+                mix_create(&sp->ms, &mi, sp->cur_ts);
 
                 if (zero_buf == NULL) {
                         zero_buf = (sample*)xmalloc(unit_len * sizeof(sample));

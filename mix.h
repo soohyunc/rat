@@ -27,7 +27,8 @@ struct s_source;
 struct s_rtcp_dbentry;
 
 int  mix_create    (mixer_t            **ms, 
-                    const mixer_info_t  *mi);
+                    const mixer_info_t  *mi,
+		    ts_t                 now);
 
 const mixer_info_t* 
      mix_query     (const mixer_t      *ms);

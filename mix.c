@@ -24,7 +24,6 @@ static const char cvsid[] =
 #include "audio_fmt.h"
 #include "channel_types.h"
 #include "pdb.h"
-#include "source.h"
 #include "mix.h"
 #include "playout.h"
 #include "debug.h"
@@ -34,19 +33,13 @@ static const char cvsid[] =
 #define MIX_MAGIC 0x81654620
 
 struct s_mixer {
-        int   buf_len;        /* Length of circular buffer               */
-        int   head, tail;     /* Index to head and tail of buffer        */
-        ts_t  head_time;      /* Time of latest sample in buffer.        */
-                              /* In fact pad_time has to be taken into   */
-                              /* account to get the actual value.        */
-        ts_t tail_time;       /* Current time                            */
-        int  dist;            /* Distance between head and tail.         */
-                              /* We must make sure that this is kept     */ 
-                              /* equal to value of the device cushion    */
-                              /* unless there is no audio to mix.        */
-        sample  *mix_buffer;  /* The buffer containing mixed audio data. */
+        int          buf_len;              /* Length of circular buffer                */
+        int          head, tail;           /* Index to head and tail samples in buffer */
+        ts_t         head_time, tail_time; /* Time rep of head and tail                */
+        int          dist;                 /* Distance between head and tail. (for debug)  */
+        sample      *mix_buffer;           /* The buffer containing mixed audio data. */
         mixer_info_t info;      
-        uint32_t     magic;   /* Debug check value                       */
+        uint32_t     magic;                /* Debug check value                       */
 };
 
 typedef void (*mix_f)(sample *buf, sample *incoming, int len);
@@ -86,7 +79,8 @@ mix_verify(const mixer_t *ms)
  */
 int
 mix_create(mixer_t            **ppms, 
-           const mixer_info_t  *pmi)
+           const mixer_info_t  *pmi,
+	   ts_t                 now)
 {
         mixer_t *pms;
 
@@ -99,7 +93,7 @@ mix_create(mixer_t            **ppms,
                 pms->mix_buffer  = (sample *)xmalloc(3 * pms->buf_len * BYTES_PER_SAMPLE);
                 audio_zero(pms->mix_buffer, 3 * pms->info.buffer_length , DEV_S16);
                 pms->mix_buffer += pms->buf_len;
-                pms->head_time = pms->tail_time = ts_map32(pms->info.sample_rate, 0);
+                pms->head_time = pms->tail_time = ts_convert(pms->info.sample_rate, now);
                 *ppms = pms;
 
                 audio_mix_fn = audio_mix;
@@ -109,6 +103,7 @@ mix_create(mixer_t            **ppms,
                 }
 #endif /* WIN32 */
                 mix_verify(pms);
+		debug_msg("Mixer created.  Aligned to %d %dkHz\n", now.ticks, ts_get_freq(now));
                 return TRUE;
         }
         return FALSE;
@@ -123,6 +118,9 @@ mix_destroy(mixer_t **ppms)
         pms = *ppms;
         assert(pms);
         mix_verify(pms);
+	debug_msg("Mixer destroyed.  Head %d %dkHz Tail %d %dkHz\n", 
+		  pms->head_time.ticks, ts_get_freq(pms->head_time),
+		  pms->tail_time.ticks, ts_get_freq(pms->tail_time));
         xfree(pms->mix_buffer - pms->buf_len); /* yuk! ouch! splat! */
         xfree(pms);
         *ppms = NULL;
@@ -162,17 +160,6 @@ mix_advance_head(mixer_t *ms, ts_t new_head_time)
 	mix_verify(ms);
 }
 
-static void
-mix_align(mixer_t *ms, ts_t new_time)
-{
-	mix_verify(ms);
-	ms->head_time = ms->tail_time = new_time;
-	assert(ms->head == ms->tail);
-	ms->head = ms->tail;
-	ms->dist = 0;
-	mix_verify(ms);
-}
-
 /* mix_put_audio mixes a single audio frame into mix buffer.  It returns
  * TRUE if incoming audio frame is compatible with mix, FALSE
  * otherwise.  */
@@ -187,17 +174,14 @@ mix_put_audio(mixer_t     *ms,
         sample          *samples;
 
         int32_t         pos;
-        uint32_t        nticks, nsamples, original_head;
+        uint32_t        nticks, nsamples;
         uint16_t        channels, rate;
         ts_t            frame_period, playout_end, delta;
-        ts_t            orig_head_time;
 
         mix_verify(ms);
         hits++;
         codec_get_native_info(frame->id, &rate, &channels);
 
-        orig_head_time = ms->head_time;
-        original_head  = ms->head;
         if (rate != ms->info.sample_rate || channels != ms->info.channels) {
                 /* This should only occur if source changes sample rate
                  * mid-stream and before buffering runs dry in end host.
@@ -231,10 +215,13 @@ mix_put_audio(mixer_t     *ms,
 
         mix_verify(ms);
 
-        /* If mixer has been out of use, fire it up */
-        if (ts_eq(ms->head_time, ms->tail_time)) {
-                mix_align(ms, playout);
-        }
+#ifdef DEBUG_MIX
+	if (ts_gt(ms->tail_time, playout)) {
+		debug_msg("playout before tail (%d %dkHz < %d %dkHz)\n", 
+			  playout.ticks, ts_get_freq(playout),
+			  ms->tail_time.ticks, ts_get_freq(ms->tail_time));
+	}
+#endif /* DEBUG_MIX */
 
         samples  = (sample*)frame->data;
         nsamples = frame->data_len / sizeof(sample);
@@ -256,10 +243,10 @@ mix_put_audio(mixer_t     *ms,
 				 * samples that need to be written and correct playout
 				 * so they are written to the correct place.
 				 */
-				delta = ts_convert(ms->info.sample_rate, delta);
-				trim = delta.ticks * ms->info.channels;
+				delta     = ts_convert(ms->info.sample_rate, delta);
+				trim      = delta.ticks * ms->info.channels;
                                 samples  += trim;
-				playout = ts_add(playout, delta);
+				playout   = ts_add(playout, delta);
                                 assert(nsamples > trim);
 				nsamples -= trim;
 				debug_msg("Mixer trimmed %d samples (Expected playout %d got %d) ssrc (0x%08x)\n", trim, pdbe->next_mix.ticks, playout.ticks, pdbe->ssrc);
@@ -321,32 +308,22 @@ mix_get_audio(mixer_t *ms, int request, sample **bufp)
         amount = request;
         assert(amount < ms->buf_len);
         if (amount > ms->dist) {
+		ts_t new_head_time;
                 /*
-                  * If we dont have enough to give one of two things
+		 * If we dont have enough to give one of two things
                  * must have happened.
                  * a) There was silence :-)
                  * b) There wasn't enough time to decode the stuff...
                  * In either case we will have to return silence for
                  * now so zero the rest of the buffer and move the head.
                  */
-                silence = amount - ms->dist;
 #ifdef DEBUG_MIX
                 debug_msg("Insufficient audio: %d < %d\n", ms->dist, amount);
 #endif /* DEBUG_MIX */
-                if (ms->head + silence > ms->buf_len) {
-                        audio_zero(ms->mix_buffer + ms->head, ms->buf_len - ms->head, DEV_S16);
-                        audio_zero(ms->mix_buffer, silence + ms->head - ms->buf_len, DEV_S16);
-                } else {
-                        audio_zero(ms->mix_buffer + ms->head, silence, DEV_S16);
-                }
-                xmemchk();
-                mix_verify(ms);
-                ms->head      += silence;
-                ms->head      %= ms->buf_len;
-                ms->head_time  = ts_add(ms->head_time,
-                                        ts_map32(ms->info.sample_rate, silence/ms->info.channels));
-                ms->dist       = amount;
-                mix_verify(ms);
+                silence = amount - ms->dist;
+		new_head_time = ts_add(ms->head_time,
+				       ts_map32(ms->info.sample_rate, silence/ms->info.channels));
+		mix_advance_head(ms, new_head_time);
         } else {
                 silence = 0;
         }
@@ -377,15 +354,6 @@ mix_get_audio(mixer_t *ms, int request, sample **bufp)
 
 #endif /* DEBUG_MIX */
         }
-
-#ifdef DEBUG_MIX
-/*
-        debug_msg("Head %u (%d), tail %u (%d)\n", (uint32_t) ms->head, 
-                  ms->head_time.ticks, 
-                  (uint32_t)ms->tail,
-                  ms->tail_time.ticks);
-                  */
-#endif /* DEBUG_MIX */
 
         mix_verify(ms);
 
