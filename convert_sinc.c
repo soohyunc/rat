@@ -28,8 +28,8 @@
  * used in filter coefficients == (1 << SINC_ROLL)
  */
 
-#define SINC_SCALE 4096
-#define SINC_ROLL    12
+#define SINC_SCALE 1024
+#define SINC_ROLL    10
 
 /* Integer changes between 2 and 6 times 8-16-24-32-40-48 */
 
