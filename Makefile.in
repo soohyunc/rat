@@ -24,7 +24,7 @@ SRCS := $(OBJS:%.o=%.c)
 TCL_OBJS = ui_audiotool.o ui_transcoder.o
 TCL_SRCS := $(OBJS:%.o=%.c)
 
-rat: $(OBJS) $(TCL_OBJS) 
+rat: $(OBJS) $(TCL_OBJS) ../common/libcommon.a 
 	$(CC) $(OBJS) $(TCL_OBJS) $(CFLAGS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat
 
 .c.o:
