@@ -55,7 +55,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 shell32.lib uclmm.lib wsock32.lib Ws2_32.lib kernel32.lib user32.lib tcllib.lib tklib.lib advapi32.lib gdi32.lib comdlg32.lib /nologo /subsystem:windows /machine:I386 /libpath:"..\common\release" /libpath:"..\tcl-8.0\win\release" /libpath:"..\tk-8.0\win\release"
+# ADD LINK32 shell32.lib uclmm.lib wsock32.lib Ws2_32.lib kernel32.lib user32.lib tcllib.lib tklib.lib advapi32.lib gdi32.lib comdlg32.lib /nologo /subsystem:windows /incremental:yes /machine:I386 /libpath:"..\common\release" /libpath:"..\tcl-8.0\win\release" /libpath:"..\tk-8.0\win\release"
 
 !ELSEIF  "$(CFG)" == "ratui - Win32 Debug"
 
@@ -82,6 +82,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib tklib.lib tcllib.lib kernel32.lib user32.lib advapi32.lib gdi32.lib comdlg32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:".\Debug" /libpath:"..\common\Debug" /libpath:"..\tcl-8.0\win\Debug" /libpath:"..\tk-8.0\win\Debug"
+# SUBTRACT LINK32 /incremental:no
 
 !ELSEIF  "$(CFG)" == "ratui - Win32 Debug IPv6"
 
@@ -109,6 +110,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib tklib.lib tcllib.lib kernel32.lib user32.lib advapi32.lib gdi32.lib comdlg32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:".\Debug" /libpath:"..\common\Debug" /libpath:"..\tcl-8.0\win\Debug" /libpath:"..\tk-8.0\win\Debug"
 # ADD LINK32 tklib.lib tcllib.lib gdi32.lib comdlg32.lib uclmm.lib winmm.lib wship6.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib advapi32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:".\Debug" /libpath:"..\common\Debug_IPv6" /libpath:"..\tcl-8.0\win\Debug_IPv6" /libpath:"..\tk-8.0\win\Debug_IPv6" /libpath:"..\IPv6kit\lib"
+# SUBTRACT LINK32 /incremental:no
 
 !ELSEIF  "$(CFG)" == "ratui - Win32 Debug IPv6 Musica"
 
@@ -136,6 +138,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 tklib.lib tcllib.lib gdi32.lib comdlg32.lib uclmm.lib winmm.lib wship6.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib advapi32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:".\Debug" /libpath:"..\common\Debug" /libpath:"..\tcl-8.0\win\Debug" /libpath:"..\tk-8.0\win\Debug" /libpath:"..\IPv6kit\lib"
 # ADD LINK32 tklib.lib tcllib.lib gdi32.lib comdlg32.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib advapi32.lib lib44bsd.lib Resolv.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:".\Debug" /libpath:"..\tcl-8.0\win\Debug_IPv6" /libpath:"..\tk-8.0\win\Debug_IPv6" /libpath:"..\common\Debug" /libpath:"..\MUSICA\WINSOCK6"
+# SUBTRACT LINK32 /incremental:no
 
 !ENDIF 
 
@@ -154,11 +157,11 @@ SOURCE=.\fatal_error.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\mbus_ui.h
+SOURCE=.\mbus_ui.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\tcltk.h
+SOURCE=.\tcltk.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"
@@ -183,7 +186,7 @@ InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
+	copy asfilebox.tcl + uicomponent_bargraph.tcl + uicomponent_chart.tcl + uicomponent_help.tcl + ui_audiotool.tcl ui_at.tcl 
 	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
 	
 # End Custom Build
@@ -196,7 +199,7 @@ InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
+	copy asfilebox.tcl + uicomponent_bargraph.tcl + uicomponent_chart.tcl + uicomponent_help.tcl + ui_audiotool.tcl ui_at.tcl 
 	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
 	
 # End Custom Build
@@ -209,7 +212,7 @@ InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
+	copy asfilebox.tcl + uicomponent_bargraph.tcl + uicomponent_chart.tcl + uicomponent_help.tcl + ui_audiotool.tcl ui_at.tcl 
 	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
 	
 # End Custom Build
@@ -222,7 +225,7 @@ InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
+	copy asfilebox.tcl + uicomponent_bargraph.tcl + uicomponent_chart.tcl + uicomponent_help.tcl + ui_audiotool.tcl ui_at.tcl 
 	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
 	
 # End Custom Build
@@ -280,6 +283,18 @@ InputPath=.\ui_transcoder.tcl
 
 !ENDIF 
 
+# End Source File
+# Begin Source File
+
+SOURCE=.\uicomponent_bargraph.tcl
+# End Source File
+# Begin Source File
+
+SOURCE=.\uicomponent_chart.tcl
+# End Source File
+# Begin Source File
+
+SOURCE=.\uicomponent_help.tcl
 # End Source File
 # End Group
 # Begin Group "Source Files"
@@ -395,3 +410,4 @@ InputPath=.\VERSION
 # End Source File
 # End Target
 # End Project
+

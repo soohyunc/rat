@@ -1432,13 +1432,13 @@ v4.2.9	- Fix spurious assertions in source.c -- I think (hope?) this will fix th
 v4.2.10 - Added auddev_newpcm.[ch] with newpcm style mixer control.  Includes
 	  support for loopback and preservation of mixer settings so mixer is
 	  returned to original state upon exit. [oh]
-
-	  Note: both driver interfaces (luigi, newpcm) are pulled in
-	  by configure and this is possible whilst luigi pcm and
-	  newpcm maintain the same function call interface.  This may
-	  break in future.  Both are necessary because mixer operation
-	  is not consistent between the two interfaces.
+		  Note: both driver interfaces (luigi, newpcm) are pulled in
+		  by configure and this is possible whilst luigi pcm and
+		  newpcm maintain the same function call interface.  This may
+		  break in future.  Both are necessary because mixer operation
+		  is not consistent between the two interfaces.
 	- Catch SIGTERM and SIGHUP on unix (Robert Olson)
+	- Update Windows project file ratui.dsp (Paxton Smith)
 
 
 
