@@ -742,7 +742,7 @@ source_repair(source *src,
                                    &prev_len,
                                    &prev_ts);
                 if (ts_eq(prev_ts, fill_ts) == FALSE) {
-                        debug_msg("Looks like playout point was recalculated and triggered repair\n");
+                        debug_msg("Added at %d, but got %d when tried to get it back!\n", fill_ts.ticks, prev_ts.ticks);
                         return FALSE;
                 }
                 
@@ -752,7 +752,7 @@ source_repair(source *src,
                  * sample rate in less time than playout buffer
                  * timeout.  This should be a very very rare event...  
                  */
-                debug_msg("Repair add data failed (%d).\n", fill_ts.ticks);
+                debug_msg("Repair add data failed (%d), last_played %d.\n", fill_ts.ticks, src->last_played.ticks);
                 media_data_destroy(&fill_md, sizeof(media_data));
                 src->consec_lost = 0;
                 return FALSE;
@@ -965,11 +965,12 @@ source_get_playout_delay (source *src, ts_t now)
 {
         ts_t end;
 
-        /* Current playout is pretty close to src->media_pos point,
-         * delay is diff between this and last packet received.
-         */
+        /* Note at start of a source_process this will use the end of
+         * the channel coder buffer, but after source process it often
+         * uses end of media since all in channel buffer has been
+         * processed.  */
 
-        if (pb_get_end_ts(src->channel, &end) && 
+        if ((pb_get_end_ts(src->channel, &end) || pb_get_end_ts(src->media, &end)) &&
             ts_gt(end, now)) {
                 return ts_sub(end, now);
         }
