@@ -18,7 +18,6 @@ static char rcsid[] =
 #endif
 
 #include "config_win32.h"
-#include <winsock2.h>
 #include "debug.h"
 #include "tcl.h"
 #include "tk.h"
