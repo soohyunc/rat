@@ -10,14 +10,17 @@ DEFS = -DDEBUG -DDEBUG_MEM
 # -DNDEBUG -DTEST -DGSM -DDEBUG_REPAIR
 # -DDEBUG_RTP -DREPEAT -DLOG_PARTICIPANTS
 
+OPTS= 
+#-O -O2 -O3 -O4 
+
 PROFILE=
 # -pg
 
 DEFS += -D$(OSTYPE) -D$(OSTYPE)_$(OSMVER)
 # If your code doesn't compile with all these -W... flags, fix the code don't remove the warnings!
-CFLAGS = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror $(INCS) $(DEFS) -g -fsigned-char -pipe $(PROFILE) 
+CFLAGS = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror $(INCS) $(DEFS) -g -fsigned-char -pipe $(PROFILE) $(OPTS)
 CC     = gcc
-LDFLAGS= $(PROFILE)
+LDFLAGS= $(PROFILE) $(OPTS)
 LDLIBS=  $(LDLIBS) -lm 
 RANLIB = ranlib
 
