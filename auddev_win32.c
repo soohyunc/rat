@@ -950,10 +950,17 @@ w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
                 assert(mmr == MMSYSERR_NOERROR);
         }
 
+        assert(done <= buf_bytes);
         if (done != buf_bytes) {
-                assert(whWriteFreeList == NULL || mmr == WRITE_ERROR_STILL_PLAYING);
-                /* XXX With a 1 second buffer this should never happen! */
                 debug_msg("Write overflow %d > %d bytes\n", buf_bytes, done);
+                if (whWriteFreeList != NULL) {
+                        debug_msg("Out of write buffers\n");
+                }
+                if (mmr == WRITE_ERROR_STILL_PLAYING) {
+                        debug_msg("Write Error: still playing\n");
+                }
+                assert(whWriteFreeList == NULL || mmr == WRITE_ERROR_STILL_PLAYING);
+                /* XXX With a 1 second buffer this should never happen! */              
         }
         return done;
 }
