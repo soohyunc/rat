@@ -68,7 +68,7 @@ echo "OSTYPE=$OSTYPE"
 echo "OSVERS=$OSVERS"
 echo "OSMVER=$OSMVER"
 
-cmd="${MAKE:=make} OSTYPE=$OSTYPE OSMVER=$OSMVER OSVERS=$OSVERS USER=`whoami`"
+cmd="${MAKE:=make} OSTYPE=$OSTYPE OSMVER=$OSMVER OSVERS=$OSVERS"
 case $1 in
   rat   ) echo "Running: $cmd rat-${OSTYPE}-${OSVERS}"
           eval time $cmd rat-${OSTYPE}-${OSVERS}
@@ -78,21 +78,6 @@ case $1 in
           eval $cmd $1
           exit
           ;;
-  dist)   rm -rf dist/*
-          mkdir dist/bin; mkdir dist/man; mkdir dist/man/man1
-	  cd dist
-	  cp ../man/man1/rat.1 man/man1/rat.1
-	  cp ../README ../MODS ../COPYRIGHT .
-	  for i in `ls ../bin/${USER}/`
-	  do
-	    echo "Making distribution $i"
-	    cp ../bin/${USER}/$i bin/rat
-	    tar chf $i.tar README MODS COPYRIGHT bin man
-	    gzip $i.tar
-	  done
-	  rm -rf README MODS bin man
-	  exit
-	  ;;
 esac
 
 echo "                                                "

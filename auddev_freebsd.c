@@ -46,7 +46,6 @@
 
 
 #ifdef FreeBSD
-#ifdef ucacoxh
 #include <assert.h>
 #include <machine/pcaudioio.h>
 
@@ -1238,6 +1237,5 @@ audio_duplex(int audio_fd)
 	return duplex;
 }
 #endif /* FreeBSD */
-#endif /* ucacoxh */
 
 
