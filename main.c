@@ -218,7 +218,9 @@ main(int argc, char *argv[])
 	/* and send an RTCP BYE packet if we're interrupted...                               [csp] */
 	signal(SIGINT, signal_handler);
 #endif
-        
+	
+	xdoneinit();
+
 	for (;;) {
 		for (i = 0; i < num_sessions; i++) {
 			if (sp[i]->mode == TRANSCODER) {

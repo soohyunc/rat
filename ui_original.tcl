@@ -199,10 +199,8 @@ proc mbus_recv_init {} {
 	mbus_send "R" "codec_query" ""
 }
 
-proc mbus_recv_codec {cmd args} {
-	switch $cmd {
-		supported {puts stdout "This RAT supports the following codecs $args"}
-	}
+proc mbus_recv_codec_supported {codecs} {
+	puts stdout "This RAT supports the following codecs $codecs"
 }
 
 proc mbus_recv_agc {args} {
@@ -440,7 +438,7 @@ proc mbus_recv_source_active_recent {cname} {
 	cname_update $cname
 }
 
-proc mbus_recv_source_active_inactive {cname} {
+proc mbus_recv_source_inactive {cname} {
 	catch [[window_plist $cname] configure -background gray80]
 	cname_update $cname
 }

@@ -50,6 +50,7 @@
 #define xstrdup(x)	_xstrdup(x,__FILE__,__LINE__)
 #define dprintf		_dprintf("%s:%d ", __FILE__, __LINE__), _dprintf
 
+void 	 xdoneinit(void);
 void	 xmemchk(void);
 void     xmemdmp(void);
 void	 xfree(void *x);

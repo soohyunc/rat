@@ -497,7 +497,7 @@ static void func_codec_query(char *srce, char *args, session_struct *sp)
 			a += strlen(codec->name) + 1;
 		}
 	}
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "codec-supported", arg, TRUE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "codec_supported", arg, TRUE);
 }
 
 char *mbus_cmnd[] = {

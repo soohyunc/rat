@@ -61,8 +61,14 @@ static alloc_blk mem_item[MAX_ADDRS];
 
 static int   naddr = 0;
 static int   tick  = 0;
+static int   init  = 0;
 #endif
 
+void xdoneinit(void) 
+{
+	init = tick++;
+}
+	
 void xmemchk(void)
 {
 #ifdef DEBUG_MEM
@@ -107,18 +113,19 @@ void xmemdmp(void)
 		abort();
 	}
         for (i=0; i<naddr; i++) {
-            printf("%5d",i);                                         fflush(stdout);
-            printf("  addr: %p", mem_item[i].addr);                  fflush(stdout);
-            printf("  size: %5d", *mem_item[i].addr);                fflush(stdout);
-            printf("  age: %6d", tick - mem_item[i].est);            fflush(stdout);
-            printf("  file: %s", mem_item[i].filen);                 fflush(stdout);
-            printf(":%d", mem_item[i].line);                         fflush(stdout);
+            printf("%5d",i);                              fflush(stdout);
+            printf("  addr: %p", mem_item[i].addr);       fflush(stdout);
+            printf("  size: %5d", *mem_item[i].addr);     fflush(stdout);
+            printf("  age: %6d", tick - mem_item[i].est); fflush(stdout);
+            printf("  file: %s", mem_item[i].filen);      fflush(stdout);
+            printf(":%d", mem_item[i].line);              fflush(stdout);
             if (mem_item[i].blen != 0) { 
                 printf("  \tblen %d", mem_item[i].blen);   
                 fflush(stdout);
             }
             printf("\n");
         }
+	printf("Program initialisation finished at age %6d\n", tick-init);
 #endif
 }
 

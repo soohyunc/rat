@@ -706,18 +706,29 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 	return ptr;
 }
 
-/*
- * Send the appropriate BYE packet.
- */
 void 
 rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int16 port)
 {
-	u_int32         packet[MAX_PACKLEN / 4];
-	u_int8         *ptr = (u_int8 *) packet;
+	u_int32          packet[MAX_PACKLEN / 4];
+	u_int8          *ptr = (u_int8 *) packet;
+	rtcp_dbentry	*src;
 
+	/* Send an RTCP BYE packet... */
 	ptr = rtcp_packet_fmt_srrr(sp1, ptr);
 	ptr = rtcp_packet_fmt_bye(ptr, sp1->db->myssrc, sp1->mode == TRANSCODER? sp2->db->ssrc_db: NULL);
 	net_write(fd, addr, port, (u_int8 *) packet, ptr - (u_int8 *) packet, PACKET_RTCP);
+
+	/* Free the participant database... */
+	rtcp_free_dbentry(sp1->db->my_dbe);
+	while ((src = sp1->db->ssrc_db) != NULL) {
+		rtcp_delete_dbentry(sp1, src->ssrc, get_time(sp1->device_clock));
+	}
+	if (sp1->mode == TRANSCODER) {
+		rtcp_free_dbentry(sp2->db->my_dbe);
+		while ((src = sp2->db->ssrc_db) != NULL) {
+			rtcp_delete_dbentry(sp2, src->ssrc, get_time(sp2->device_clock));
+		}
+	}
 }
 
 /*

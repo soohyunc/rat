@@ -239,26 +239,31 @@ rtcp_getornew_dbentry(session_struct *sp, u_int32 ssrc, u_int32 addr, u_int32 cu
 /*
  * Removes memory associated with an SSRC database item.
  */
-static void 
+void 
 rtcp_free_dbentry(rtcp_dbentry *dbptr)
 {
-	ssrc_entry     *sse;
+	assert(dbptr != NULL);
 
 	if (dbptr->clock) {
 		free_time(dbptr->clock);
 	}
-
-	if (dbptr && (sse = dbptr->sentry)) {
-		if (sse->cname) xfree(sse->cname);
-		if (sse->name)  xfree(sse->name);
-		if (sse->email) xfree(sse->email);
-		if (sse->phone) xfree(sse->phone);
-		if (sse->loc)   xfree(sse->loc);
-		if (sse->txt)   xfree(sse->txt);
-		if (sse->tool)  xfree(sse->tool);
-		xfree(sse);
+	if (dbptr->sentry != NULL) {
+		if (dbptr->sentry->cname) xfree(dbptr->sentry->cname);
+		if (dbptr->sentry->name)  xfree(dbptr->sentry->name);
+		if (dbptr->sentry->email) xfree(dbptr->sentry->email);
+		if (dbptr->sentry->phone) xfree(dbptr->sentry->phone);
+		if (dbptr->sentry->loc)   xfree(dbptr->sentry->loc);
+		if (dbptr->sentry->txt)   xfree(dbptr->sentry->txt);
+		if (dbptr->sentry->tool)  xfree(dbptr->sentry->tool);
+		xfree(dbptr->sentry);
 	}
-	xfree(dbptr);	/* IK 5/7/97. Not done before?! */
+	if (dbptr->rr != NULL) {
+		rtcp_user_rr	*rr;
+		for (rr = dbptr->rr; rr != NULL; rr = rr->next) {
+			xfree(rr);
+		}
+	}
+	xfree(dbptr);
 }
 
 void 
@@ -316,41 +321,35 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
 int 
 rtcp_set_attribute(session_struct *sp, int type, char *val)
 {
-	if (type < 2 || type > RTP_NUM_SDES || !val || !*val) {
-		return -1;
-	}
+	assert(val != NULL);
+	assert(sp->db->my_dbe != NULL);
 
-	if (type == RTCP_SDES_LOC && sp->db->my_dbe != NULL) {
+	switch (type) {
+	case RTCP_SDES_LOC :
 		if (sp->db->my_dbe->sentry->loc) xfree(sp->db->my_dbe->sentry->loc);
 		sp->db->my_dbe->sentry->loc = xstrdup(val);
 		ui_info_update_loc(sp->db->my_dbe, sp);
-	}
-
-	if (type == RTCP_SDES_PHONE && sp->db->my_dbe != NULL) {
+		break;
+	case RTCP_SDES_PHONE :
 		if (sp->db->my_dbe->sentry->phone) xfree(sp->db->my_dbe->sentry->phone);
 		sp->db->my_dbe->sentry->phone = xstrdup(val);
 		ui_info_update_phone(sp->db->my_dbe, sp);
-	}
-
-	if (type == RTCP_SDES_EMAIL && sp->db->my_dbe != NULL) {
+		break;
+	case RTCP_SDES_EMAIL :
 		if (sp->db->my_dbe->sentry->email) xfree(sp->db->my_dbe->sentry->email);
 		sp->db->my_dbe->sentry->email = xstrdup(val);
 		ui_info_update_email(sp->db->my_dbe, sp);
-	}
-
-	if (type == RTCP_SDES_NAME && sp->db->my_dbe != NULL) {
+		break;
+	case RTCP_SDES_NAME :
 		if (sp->db->my_dbe->sentry->name) xfree(sp->db->my_dbe->sentry->name);
 		sp->db->my_dbe->sentry->name = xstrdup(val);
 		ui_info_update_name(sp->db->my_dbe, sp);
+		break;
+	default :
+		dprintf("Unknown SDES attribute type! (This should never happen)\n");
+		break;
 	}
-
-	type--;
-	if (sp->db->sdes[type]) {
-		xfree(sp->db->sdes[type]);
-	}
-	sp->db->sdes[type] = xmalloc(strlen(val) + 1);
-	strcpy(sp->db->sdes[type], val);
-	return 1;
+	return 0;
 }
 
 /*
