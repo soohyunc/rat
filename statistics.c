@@ -289,7 +289,7 @@ adapt_playout(rtp_hdr_t *hdr,
                         } else {
                                 debug_msg("delay (%lu) var (%lu)\n", src->delay, var);
                                 src->playout = src->delay + var;
-                                debug_msg("src playout %d\n", src->playout);
+                                debug_msg("src playout %lu\n", src->playout);
                         }
 
 			if (sp->sync_on && src->mapping_valid) {
