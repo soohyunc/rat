@@ -114,6 +114,9 @@ main(int argc, char *argv[])
 	INIT_QUEUE(pckt_queue_struct, rtcp_pckt_queue)
 	INIT_QUEUE(rx_queue_struct,   rx_unit_queue)
 
+	gettimeofday(&time, NULL);
+	srand48(time.tv_usec);
+
 	sprintf(mbus_engine_addr, "(audio engine rat %d)", (int) getpid());
 	sprintf(mbus_ui_addr,     "(audio     ui rat %d)", (int) getpid());
 	sprintf(mbus_video_addr,  "(video engine   *  *)");

@@ -122,7 +122,7 @@ init_session(session_struct *sp)
         sp->have_device                 = 0;
         sp->keep_device                 = 0;
 	sp->mix_count   		= 0;
-	sp->rtp_seq			= rand()&0xffff;/* Let's hope srand() has been called, and that rand() is really random [csp] */
+	sp->rtp_seq			= lrand48() & 0xffff;
 	sp->speakers_active 		= NULL;
 	sp->ui_script			= ui_original;
 	sp->mbus_channel		= 0;

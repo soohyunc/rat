@@ -120,13 +120,6 @@ char *get_cname(void)
 
 u_int32 get_ssrc(void)
 {
-	u_int32		ssrc;
-	struct timeval 	time;
-
-	gettimeofday(&time, NULL);
-	srand48(time.tv_usec);
-	while (!(ssrc = lrand48()));	/* Making 0 a special value */
-
-	return ssrc;
+	return lrand48();
 }
 

@@ -49,7 +49,7 @@ struct session_tag;
 struct pckt_queue_tag;
 
 char	*get_cname(void);
-u_int32	 get_ssrc(void);
+u_int32  get_ssrc(void);
 
 void 	 service_rtcp(struct session_tag    *sp,
              struct session_tag    *sp2,
