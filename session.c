@@ -361,17 +361,6 @@ parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
 				exit(-1);
 			}
 		}
-                if (inet_addr(sp->asc_address[i]) == INADDR_NONE && gethostbyname(sp->asc_address[i]) == NULL) {
-#ifdef WIN32
-                        char win_err[255];
-                        sprintf(win_err, "%s is not a valid address", sp->asc_address[i]);
-                        MessageBox(NULL, win_err,  "RAT - Command line error", MB_OK | MB_ICONERROR);
-#else
-                        fprintf(stderr, "%s is not a valid address\n", sp->asc_address[i]);
-#endif
-                        exit(-1);
-                }
-
 	}
 }
 
