@@ -6,6 +6,8 @@
  * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
+ * $Revision$
+ * $Date$
  */
 
 #ifndef _TCLTK_H
