@@ -224,15 +224,19 @@ WinMain(
     debug_msg("WSAStartup OK: %sz\nStatus:%s\n", WSAdata.szDescription, WSAdata.szSystemStatus);
 
     hAppInstance     = hInstance;
-    hAppPrevInstance = hAppPrevInstance; 
+    hAppPrevInstance = hPrevInstance; 
 
-    GetModuleFileName(NULL, argv0, 255);
+    SetMessageQueue(64);
+
+    if (GetModuleFileName(NULL, argv0, 255) == 0) {
+	    MessageBox(NULL, "GetModuleFileName failed\n", "Random Error", MB_OK | MB_ICONERROR);
+	    exit(-1);
+    }
     p = argv0;
     __progname = strrchr(p, '/');
     if (__progname != NULL) {
 	__progname++;
-    }
-    else {
+    } else {
 	__progname = strrchr(p, '\\');
 	if (__progname != NULL) {
 	    __progname++;
