@@ -1398,6 +1398,7 @@ v4.2.7	- Split main() in the controller into two parts: one for normal
 	  with the source_process() function and friends).
 	* Released 6 August 2000
 
+v4.2.8	-
 
 
 TODO -- They're features not bugs dammit!
