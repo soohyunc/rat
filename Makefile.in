@@ -9,7 +9,7 @@ AR      = __AR__
 RANLIB  = __RANLIB__
 RATVER  = rat-__VERSION__
 
-AUDIO_OBJS   = __AUDIO__ auddev.o auddev_null.o audio_fmt.o audio_util.o
+AUDIO_OBJS   = __AUDIO__ auddev.o auddev_null.o audio_fmt.o audio_util.o auddev_trans.o
 CODEC_OBJS   = codec.o codec_state.o codec_dvi.o codec_gsm.o \
                codec_l16.o codec_g711.o codec_g726.o codec_lpc.o \
                codec_types.o codec_vdvi.o codec_wbs.o cx_dvi.o \
