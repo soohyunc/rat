@@ -21,6 +21,23 @@ AC_SUBST(VERSION)
 OSTYPE=$host_os
 AC_SUBST(OSTYPE)
 
+# The following two macros cause autoconf to complain.
+AC_C_BIGENDIAN
+AC_C_CHAR_UNSIGNED
+
+#------------------------------------------------------------------------------
+# GCC-specific warning flags:  Set these early so all tests use arguments that
+# application builds with. 
+#------------------------------------------------------------------------------
+if test "$GCC" = yes
+then
+        CFLAGS="$CFLAGS -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
+        if test -f .devel
+        then
+                CFLAGS="$CFLAGS -Werror"
+        fi
+fi
+
 # Check for various headers                                                 
 AC_CHECK_HEADERS(stdint.h inttypes.h stropts.h sys/filio.h malloc.h bstring.h)
 AC_CHECK_HEADERS(sys/sockio.h)
@@ -41,6 +58,7 @@ AC_EGREP_HEADER(gettimeofday, sys/time.h, AC_MSG_RESULT(present), [
 # Check for libraries                                                       
 AC_SEARCH_LIBS(socket, socket)
 AC_SEARCH_LIBS(inet_addr, nsl)
+AC_SEARCH_LIBS(dlopen, dl)
 
 AC_CHECK_FUNC(sin, MATHLIBS="", MATHLIBS="-lm")
 AC_CHECK_LIB(ieee, main, [MATHLIBS="-lieee $MATHLIBS"])
@@ -85,9 +103,6 @@ then
          AC_CHECK_TYPE(uint32_t,  unsigned int)
 fi
 
-# The following two macros cause autoconf to complain.
-AC_C_BIGENDIAN
-AC_C_CHAR_UNSIGNED
 #
 # The (?which?) library does not work with unsigned characters.
 # Force the compiler to use signed chars.
@@ -131,7 +146,6 @@ case "$target" in
 	O1KHOME="/opt/SUNWo1kp"
 	AC_ARG_WITH(sun-audio,    [  --with-sun-audio=DIR    specify Sun audio support home], SUNAUDIOHOME=$withval)
 	AU_INC="$AU_INC -I$SUNAUDIOHOME/include"
-	AU_LIB="$AU_LIB -L$SUNAUDIOHOME/lib -lsound"
 	AU_OBJ="$AU_OBJ auddev_sparc.o" 
 	AC_DEFINE(HAVE_SPARC_AUDIO)
 	AC_ARG_WITH(osprey-audio, [  --with-osprey=DIR       specify Osprey (Sunvideo Plus PCI) support home], O1KHOME=$withval)
@@ -179,17 +193,36 @@ AC_SUBST(X_LIBS)
 AC_SUBST(X_EXTRA_LIBS)
 AC_SUBST(X_PRE_LIBS)
 
-# TCL/TK 
-# Hopefully using UCL modified Tcl/Tk.
+#------------------------------------------------------------------------------
+# Check if X headers are broken.  GCC 2.95 and up reject headers that don't
+# have omit types, X11 headers have implicit int declarations on some systems
+# (e.g. Solaris).
+#------------------------------------------------------------------------------
+AC_MSG_CHECKING(whether X11 headers are broken)
+SAVED_CFLAGS=$CFLAGS
+CFLAGS="$X_CFLAGS $CFLAGS"
+AC_TRY_COMPILE([#include <X11/Xlib.h>
+#include <X11/Xutil.h>],
+	return 0,
+	AC_MSG_RESULT(no),
+	AC_MSG_RESULT(yes))
+CFLAGS=$SAVED_CFLAGS
 
+# TCL/TK 
+#------------------------------------------------------------------------------
+# We could be dealing with a source installation or a full installation.
+# Expect a source installation to have headers in TCL8_HOME/generic and libs in
+# TCL8_HOME/unix.  A full installation should have headers in 
+# ROOT/include/tcl8.0, or ROOT/include, and have libraries be in ROOT/lib
+#------------------------------------------------------------------------------
 PARENT=`echo $PWD | sed -e 's%/[[^/]]*$%%'`
 TCL_INC=${PARENT}/tcl-8.0
 TCL_LIB=${PARENT}/tcl-8.0
 
 AC_ARG_WITH(tcl,           
 	[  --with-tcl=DIR          specify location of Tcl installation],
-	[ TCL_INC=$withval
-	  TCL_LIB=$withval])
+	[TCL_INC=$withval
+	 TCL_LIB=$withval])
 
 # Depending on config expect tcl.h to be tcl source dir or include path
 for i in $TCL_INC/generic $TCL_INC/include/tcl8.0 $TCL_INC/include $TCL_INC
@@ -246,8 +279,8 @@ TK_LIB=${PARENT}/tk-8.0
 
 AC_ARG_WITH(tk,           
 	[  --with-tk=DIR          specify location of Tk installation],
-	[ TK_INC=$withval
-	  TK_LIB=$withval])
+	[TK_INC=$withval
+	 TK_LIB=$withval])
 
 # Depending on config expect tk.h to be tk source dir or include path
 # AC_CHECK_HEADER(S) are totally inadequate since it is necessary to
@@ -398,15 +431,6 @@ AC_ARG_ENABLE(debug-mem,
                 AC_DEFINE(DEBUG_MEM)
         fi])
 
-# GCC-specific warning flags 
-if test "$GCC" = yes
-then
-        CFLAGS="$CFLAGS -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
-        if test -f .devel
-        then
-                CFLAGS="$CFLAGS -Werror"
-        fi
-fi
 
 # GSM flag checks
 #-----------------------------------------------------------------------------
