@@ -44,8 +44,6 @@
 #include "net.h"
 #include "mbus.h"
 
-#define MBUS_ADDR 	0xe0ffdeef	/* 224.255.222.239 */
-#define MBUS_PORT 	47000
 #define MBUS_BUF_SIZE	1024
 #define MBUS_MAX_ADDR	10
 #define MBUS_MAX_PD	10
@@ -224,42 +222,21 @@ static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seq
 #endif
 }
 
-int mbus_waiting_acks(struct mbus *m)
-{
-	/* Returns TRUE if we are waiting for ACKs for any reliable
-	 * messages we sent out.
-	 */
-	mbus_ack_list_check(m);
-	if (m->ack_list != NULL) debug_msg("Waiting for ACKs on mbus 0x%p...\n", m);
-	return (m->ack_list != NULL);
-}
-
 static void mbus_send_ack(struct mbus *m, char *dest, int seqnum)
 {
 	char			buffer[96];
-	struct sockaddr_in	saddr;
-	u_long			addr = MBUS_ADDR;
 
-	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
-	saddr.sin_family = AF_INET;
-	saddr.sin_port   = htons((short)(MBUS_PORT+m->channel));
 	sprintf(buffer, "mbus/1.0 %d U (%s) (%s) (%d)\n", ++m->seqnum, m->addr[0], dest, seqnum);
-        assert(strlen(buffer) < 96);
 	udp_send(m->s, buffer, strlen(buffer));
 }
 
 static void resend(struct mbus *m, struct mbus_ack *curr) 
 {
-	struct sockaddr_in	 saddr;
-	u_long			 addr = MBUS_ADDR;
 	char			*b, *bp;
 	int			 i;
         
-	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
-	saddr.sin_family = AF_INET;
-	saddr.sin_port   = htons((short)(MBUS_PORT+m->channel));
-	b                = (char *) xmalloc(MBUS_BUF_SIZE);
-	bp		 = b;
+	b  = (char *) xmalloc(MBUS_BUF_SIZE);
+	bp = b;
 	sprintf(bp, "mbus/1.0 %6d R (%s) (%s) ()\n", curr->seqn, curr->srce, curr->dest);
 	bp += strlen(curr->srce) + strlen(curr->dest) + 28;
 	for (i = 0; i < curr->qmsg_size; i++) {
@@ -272,10 +249,19 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
         
         sprintf(bp, "%s (%s)\n", curr->cmnd, curr->args);
 	bp += strlen(curr->cmnd) + strlen(curr->args) + 4;
-        assert(strlen(b) < MBUS_BUF_SIZE);
 	udp_send(m->s, b, strlen(b));
 	curr->rtcnt++;
         xfree(b);
+}
+
+int mbus_waiting_acks(struct mbus *m)
+{
+	/* Returns TRUE if we are waiting for ACKs for any reliable
+	 * messages we sent out.
+	 */
+	mbus_ack_list_check(m);
+	if (m->ack_list != NULL) debug_msg("Waiting for ACKs on mbus 0x%p...\n", m);
+	return (m->ack_list != NULL);
 }
 
 void mbus_retransmit(struct mbus *m)
@@ -366,8 +352,6 @@ void mbus_send(struct mbus *m)
 void mbus_qmsg(struct mbus *m, char *dest, const char *cmnd, const char *args, int reliable)
 {
 	char			*buffer, *bufp;
-	struct sockaddr_in	 saddr;
-	u_long			 addr = MBUS_ADDR;
 	int			 i;
 
 	assert(dest != NULL);
@@ -381,9 +365,6 @@ void mbus_qmsg(struct mbus *m, char *dest, const char *cmnd, const char *args, i
 		mbus_ack_list_insert(m, m->addr[0], dest, cmnd, args, m->seqnum);
 	}
 
-	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
-	saddr.sin_family = AF_INET;
-	saddr.sin_port   = htons((short)(MBUS_PORT+m->channel));
 	buffer           = (char *) xmalloc(MBUS_BUF_SIZE);
 	bufp		 = buffer;
 
@@ -569,72 +550,76 @@ int mbus_recv(struct mbus *m, void *data)
 {
 	char			*ver, *src, *dst, *ack, *r, *cmd, *param;
 	char			 buffer[MBUS_BUF_SIZE];
-	int			 buffer_len, seq, i, a;
+	int			 buffer_len, seq, i, a, rx;
 
-	memset(buffer, 0, MBUS_BUF_SIZE);
-	buffer_len = udp_recv(m->s, buffer, MBUS_BUF_SIZE);
-	if (buffer_len <= 0) {
-		return FALSE;
-	}
+	rx = FALSE;
+	while (1) {
+		memset(buffer, 0, MBUS_BUF_SIZE);
+		buffer_len = udp_recv(m->s, buffer, MBUS_BUF_SIZE);
+		if (buffer_len > 0) {
+			rx = TRUE;
+		} else {
+			return rx;
+		}
 
-	mbus_parse_init(m, buffer);
-	/* Parse the header */
-	if (!mbus_parse_sym(m, &ver) || (strcmp(ver, "mbus/1.0") != 0)) {
-		mbus_parse_done(m);
-                debug_msg("Parser failed version: %s\n",ver);
-		return FALSE;
-	}
-	if (!mbus_parse_int(m, &seq)) {
-		mbus_parse_done(m);
-                debug_msg("Parser failed seq: %s\n", seq);
-		return FALSE;
-	}
-	if (!mbus_parse_sym(m, &r)) {
-		mbus_parse_done(m);
-                debug_msg("Parser failed reliable: %s\n", seq);
-		return FALSE;
-	}
-	if (!mbus_parse_lst(m, &src)) {
-		mbus_parse_done(m);
-                debug_msg("Parser failed seq: %s\n", src);
-		return FALSE;
-	}
-	if (!mbus_parse_lst(m, &dst)) {
-		mbus_parse_done(m);
-                debug_msg("Parser failed dst: %s\n", dst);
-		return FALSE;
-	}
-	if (!mbus_parse_lst(m, &ack)) {
-		mbus_parse_done(m);
-                debug_msg("Parser failed ack: %s\n", ack);
-		return FALSE;
-	}
-	/* Check if the message was addressed to us... */
-	for (i = 0; i < m->num_addr; i++) {
-		if (mbus_addr_match(m->addr[i], dst)) {
-			/* ...if so, process any ACKs received... */
-			mbus_parse_init(m, ack);
-			while (mbus_parse_int(m, &a)) {
-				mbus_ack_list_remove(m, src, dst, a);
-			}
+		mbus_parse_init(m, buffer);
+		/* Parse the header */
+		if (!mbus_parse_sym(m, &ver) || (strcmp(ver, "mbus/1.0") != 0)) {
 			mbus_parse_done(m);
-			/* ...if an ACK was requested, send one... */
-			if (strcmp(r, "R") == 0) {
-				mbus_send_ack(m, src, seq);
-			}
-			/* ...and process the commands contained in the message */
-			while (mbus_parse_sym(m, &cmd)) {
-				if (mbus_parse_lst(m, &param) == FALSE) {
-					debug_msg("Unable to parse mbus command paramaters...\n");
-					debug_msg("cmd = %s\n", cmd);
-					debug_msg("arg = %s\n", param);
-					break;
+			debug_msg("Parser failed version: %s\n",ver);
+			return FALSE;
+		}
+		if (!mbus_parse_int(m, &seq)) {
+			mbus_parse_done(m);
+			debug_msg("Parser failed seq: %s\n", seq);
+			return FALSE;
+		}
+		if (!mbus_parse_sym(m, &r)) {
+			mbus_parse_done(m);
+			debug_msg("Parser failed reliable: %s\n", seq);
+			return FALSE;
+		}
+		if (!mbus_parse_lst(m, &src)) {
+			mbus_parse_done(m);
+			debug_msg("Parser failed seq: %s\n", src);
+			return FALSE;
+		}
+		if (!mbus_parse_lst(m, &dst)) {
+			mbus_parse_done(m);
+			debug_msg("Parser failed dst: %s\n", dst);
+			return FALSE;
+		}
+		if (!mbus_parse_lst(m, &ack)) {
+			mbus_parse_done(m);
+			debug_msg("Parser failed ack: %s\n", ack);
+			return FALSE;
+		}
+		/* Check if the message was addressed to us... */
+		for (i = 0; i < m->num_addr; i++) {
+			if (mbus_addr_match(m->addr[i], dst)) {
+				/* ...if so, process any ACKs received... */
+				mbus_parse_init(m, ack);
+				while (mbus_parse_int(m, &a)) {
+					mbus_ack_list_remove(m, src, dst, a);
 				}
-				m->cmd_handler(src, cmd, param, data);
+				mbus_parse_done(m);
+				/* ...if an ACK was requested, send one... */
+				if (strcmp(r, "R") == 0) {
+					mbus_send_ack(m, src, seq);
+				}
+				/* ...and process the commands contained in the message */
+				while (mbus_parse_sym(m, &cmd)) {
+					if (mbus_parse_lst(m, &param) == FALSE) {
+						debug_msg("Unable to parse mbus command paramaters...\n");
+						debug_msg("cmd = %s\n", cmd);
+						debug_msg("arg = %s\n", param);
+						break;
+					}
+					m->cmd_handler(src, cmd, param, data);
+				}
 			}
 		}
+		mbus_parse_done(m);
 	}
-	mbus_parse_done(m);
-	return TRUE;
 }
 
