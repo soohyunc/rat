@@ -14,7 +14,8 @@ Building RAT (UNIX)
 
 1. Edit the configure script and add your local Tcl/Tk paths.
 2. Type "./configure"
-3. Type "make"
+3. Type "make depend"
+4. Type "make"
 
 Look at configure to see the various build options.
 

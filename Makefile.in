@@ -2,10 +2,14 @@
 # Makefile for the RAT project. This probably requires GNU make.
 #
 
-CFLAGS         = __WFLAGS__ __INCLUDE__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_FLAG__ __DEFS__ -D__OSTYPE__ -DSASR -DFAST -DUSE_FLOAT_MUL
+CFLAGS         = __WFLAGS__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_FLAG__ __DEFS__ -D__OSTYPE__ -DSASR -DFAST -DUSE_FLOAT_MUL
+INCLUDE        = __INCLUDE__
 CC             = __CC__
 
-OBJS = auddev.o auddev_null.o __AUDIO__ audio.o audio_fmt.o \
+
+
+OBJS = __AUDIO__ \
+       auddev.o auddev_null.o audio.o audio_fmt.o \
        channel.o codec.o codec_state.o codec_adpcm.o codec_gsm.o \
        codec_l16.o codec_g711.o codec_lpc.o codec_vdvi.o codec_wbs.o \
        cx_dvi.o cx_gsm.o cx_lpc.o cx_vdvi.o cx_wbs.o \
@@ -13,36 +17,29 @@ OBJS = auddev.o auddev_null.o __AUDIO__ audio.o audio_fmt.o \
        mbus_ui.o mix.o net.o parameters.o pckt_queue.o \
        receive.o render_3D.o repair.o rtcp.o rtcp_db.o rtcp_pckt.o \
        session.o sndfile.o statistics.o tcltk.o timers.o transmit.o \
-       transcoder.o ui.o ui_audiotool.o ui_transcoder.o 
+       transcoder.o ui.o 
 
-rat: $(OBJS)
-	$(CC) $(OBJS) $(CFLAGS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat
+SRCS := $(OBJS:%.o=%.c)
 
-%.o: %.c session.h config_unix.h config_win32.h
-	$(CC) $(CFLAGS) -c $*.c
+TCL_OBJS = ui_audiotool.o ui_transcoder.o
+TCL_SRCS := $(OBJS:%.o=%.c)
 
-init_session.o: 	version.h
-rtcp.o:      		version.h
-tcltk.o:    		version.h
-tcltk.o:      		xbm/ucl.xbm
-tcltk.o:	      	xbm/mic.xbm
-tcltk.o:	      	xbm/speaker.xbm
-tcltk.o:	      	xbm/head.xbm
-tcltk.o:	      	xbm/line_out.xbm
-tcltk.o:	      	xbm/line_in.xbm
-tcltk.o:	      	xbm/rat_med.xbm
-tcltk.o:	      	xbm/rat_small.xbm
+rat: $(OBJS) $(TCL_OBJS) 
+	$(CC) $(OBJS) $(TCL_OBJS) $(CFLAGS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat
+
+.c.o:
+	$(CC) $(INCLUDE) $(CFLAGS) -c $<
 
 tcl2c/tcl2c: tcl2c/tcl2c.c
 	$(CC) -o tcl2c/tcl2c tcl2c/tcl2c.c
 
-ui_audiotool.o: ui_audiotool.tcl asfilebox.tcl tcl2c/tcl2c
-	cat asfilebox.tcl ui_audiotool.tcl | tcl2c/tcl2c ui_audiotool > ui_audiotool.c
-	$(CC) $(CFLAGS) -c ui_audiotool.c -o ui_audiotool.o
+$(TCL_OBJS): $(TCL_SRCS)
 
-ui_transcoder.o: ui_transcoder.tcl tcl2c/tcl2c
+ui_transcoder.c: ui_transcoder.tcl tcl2c/tcl2c
 	cat ui_transcoder.tcl | tcl2c/tcl2c ui_transcoder > ui_transcoder.c
-	$(CC) $(CFLAGS) -c ui_transcoder.c -o ui_transcoder.o
+
+ui_audiotool.c: ui_audiotool.tcl tcl2c/tcl2c
+	cat asfilebox.tcl ui_audiotool.tcl | tcl2c/tcl2c ui_audiotool > ui_audiotool.c
 
 clean:
 	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile tcl2c/tcl2c rat 
@@ -60,3 +57,5 @@ tgz: rat
 	tar cvf rat-`cat VERSION`-__OSTYPE__.tar README.* MODS COPYRIGHT rat
 	gzip -9v rat-`cat VERSION`-__OSTYPE__.tar
 
+depend: $(SRCS)
+	makedepend $(INCLUDE) $(SRCS)
