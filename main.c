@@ -46,8 +46,6 @@
 #include <signal.h>
 #endif
 #include <math.h>
-#include <tcl.h>
-#include <tk.h>
 
 #include "session.h"
 #include "receive.h"
@@ -71,10 +69,7 @@
 #include "mbus_ui.h"
 #include "mbus_engine.h"
 
-/* Global variable: if TRUE, rat will exit on the next iteration of the main loop [csp] */
 int should_exit = FALSE;
-
-extern Tcl_Interp *interp; 
 int thread_pri;
 
 #ifndef WIN32
@@ -215,7 +210,7 @@ main(int argc, char *argv[])
         set_converter(CONVERT_LINEAR);
 	/* Show the interface before starting processing */
         if (sp[0]->ui_on) {
-                while(Tcl_DoOneEvent(TCL_DONT_WAIT | TK_X_EVENTS | TCL_IDLE_EVENTS)) {
+		while (tcl_process_event()) {
 			network_process_mbus(sp, num_sessions, 20);
 		}
                 ui_update(sp[0]);
@@ -346,14 +341,13 @@ main(int argc, char *argv[])
 
 			/* Process UI Might want to not update every cycle, or bring up to date in one go... */
                 	if (sp[i]->ui_on) {
-                        	if (Tk_GetNumMainWindows() > 0) {
-                                	for (l = sp[i]->ui_response; l > 0; l--) {
-                                        	if (!Tcl_DoOneEvent(TCL_ALL_EVENTS | TCL_DONT_WAIT)) {
-                                                	break;
+				if (tcl_active()) {
+					for (l = 16; l > 0; l--) {
+						if (!tcl_process_event()) {
+               						break;
 						}
-                                	}
-                        	} else {
-					/* Someone's closed the main RAT window... */
+					}
+				} else {
 					should_exit = TRUE;
 				}
                 	} 
@@ -364,8 +358,8 @@ main(int argc, char *argv[])
 
 			/* Exit? */
 			if (should_exit && !waiting_on_mbus(sp, num_sessions)) {
-				if (Tk_GetNumMainWindows() > 0) {
-					Tcl_Eval(interp, "destroy .");
+				if (tcl_active()) {
+					tcl_send("destroy .");
 				}
 				for (i=0; i<num_sessions; i++) {
                                 	if (sp[i]->in_file  != NULL) fclose(sp[i]->in_file);

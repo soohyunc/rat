@@ -56,7 +56,8 @@ extern char		TCL_LIBS[];
 
 static char args[1000];
 
-#ifdef WIN32
+/* Should probably have these functions inline here, rather than in win32.c??? [csp] */
+#ifdef WIN32		
 int WinPutRegistry(ClientData, Tcl_Interp*, int ac, char** av);
 int WinGetRegistry(ClientData, Tcl_Interp*, int ac, char** av);
 int WinPutsCmd(ClientData, Tcl_Interp*, int ac, char** av);
@@ -206,5 +207,17 @@ tcl_init(session_struct *sp, char *cname, int argc, char **argv)
 
 	Tcl_ResetResult(interp);
 	return TRUE;
+}
+
+int
+tcl_process_event(void)
+{
+	return Tcl_DoOneEvent(TCL_DONT_WAIT | TK_X_EVENTS | TCL_IDLE_EVENTS);
+}
+
+int
+tcl_active(void)
+{
+	return (Tk_GetNumMainWindows() > 0);
 }
 
