@@ -215,9 +215,13 @@ static int parse_options_early(int argc, const char **argv)
                 return FALSE;
         }
         
-        /* DOS and UNIX style command flags for usage and version */        
-        for (i = 1; i < argc && (argv[i][0] == '-' || argv[i][0] == '/'); i++) {
-                if (tolower(argv[i][1]) == 'v') {
+        /* Iterate over all args and pick out anything needed before
+         * launching other processes.
+         */
+        for (i = 1; i < argc; i++) {
+                if (argv[i][0] != '-' && argv[i][0] != '/') {
+                        continue;
+                } else if (tolower(argv[i][1]) == 'v') {
 #ifdef WIN32
 			MessageBox(NULL, "RAT v" RAT_VERSION, "RAT Version", MB_OK);
 #else
@@ -227,14 +231,21 @@ static int parse_options_early(int argc, const char **argv)
                 } else if (argv[i][1] == '?' || tolower(argv[i][1]) == 'h') {
                         usage(NULL);
                         return FALSE;
-                } else if (argv[i][1] == 't') {
+                } else if (argv[i][1] == 't' && i + 1 < argc) {
                         /* 
-                         * Handle ttl here because it is reqd before rtp address 
-                         * can be sent. 
+                         * Handle ttl here because it is required before rtp 
+                         * address can be sent. 
                          */
-                        ttl = atoi(argv[i+1]);
-                        if (ttl < 0 || ttl > 255) {
-                                usage("Usage: -t 0-255.\n");
+                        i++;
+                        ttl = atoi(argv[i]);
+                        /* Hack because 128 is max ttl in rtp library 
+                         * previous versions are 0-255.
+                         */
+                        if (ttl > 127) {
+                                ttl = 127;
+                        }
+                        if (ttl < 0 || ttl > 127) {
+                                usage("Usage: -t 0-127.\n");
                                 return FALSE;
                         }
                 }
@@ -444,7 +455,7 @@ static args_handler late_args[] = {
         { "-repair",         cmd_repair,       1 },
         { "-f",              cmd_primary,      1 },
         { "-r",              cmd_redundancy,   1 },
-        { "-t",            NULL,             1 }, /* handled in parse early args */
+        { "-t",              NULL,             1 }, /* handled in parse early args */
 };
 
 static uint32_t late_args_cnt = sizeof(late_args)/sizeof(late_args[0]);
@@ -473,7 +484,6 @@ static int address_count(int argc, char *argv[])
                 }
                 i += a->argc;
         }
-        
         return argc - i;
 }
 
@@ -561,7 +571,6 @@ parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[]
 		mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
 		xfree(addr);
         }
-
         parse_non_addr(m, e_addr, argc, argv);
         
         /* Synchronize with the sub-processes... */
