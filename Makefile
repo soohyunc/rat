@@ -110,11 +110,11 @@ tcl2c-$(OSTYPE)-$(OSVERS): tcl2c.c
 
 ui_original.o: ui_original.tcl tcl2c-$(OSTYPE)-$(OSVERS)
 	cat ui_original.tcl | tcl2c-$(OSTYPE)-$(OSVERS) ui_original > ui_original.c
-	$(CC) $(CFLAGS) -c ui_original.c -o $(OBJDIR)/ui_original.o
+	$(CC) $(CFLAGS) -c ui_original.c -o ui_original.o
 
 tcl_libs.o: tcl2c-$(OSTYPE)-$(OSVERS)
 	cat tcl/*.tcl tk/*.tcl | tcl2c-$(OSTYPE)-$(OSVERS) TCL_LIBS > tcl_libs.c
-	$(CC) $(CFLAGS) -c tcl_libs.c -o $(OBJDIR)/tcl_libs.o
+	$(CC) $(CFLAGS) -c tcl_libs.c -o tcl_libs.o
 
 clean:
 	-rm -f *.o
