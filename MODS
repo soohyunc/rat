@@ -1334,5 +1334,16 @@ TODO -- They're features not bugs dammit!
   that the media engine should get the kernel to select a receive RTP port.
 - Rework media engine initialization, so we can query it before sending
   rtp.addr()
-
+- If a receiving stream contains a lot of jitter and out-of-order
+  packets it crashes sometimes. (jitter around 1000 ms and random
+  out-of-order). 
+- send doesn't always send. Several times when I turn on the mic nothing
+  is sent. The mic-volumebar doesn't move. Turning on-off a couple of
+  times help (couple = 1-3 times). 
+- when rat starts it turns of "playback-mute" on the mic input which
+  gives feedback for the mic. Muting it via the audio control turns of the
+  feedback. Note that record-mute and playback-mute is not the same thing.
+- packets with a header extension are silently thrown away. 
+- If you click talk while Rat is initializing you get a Tk error window
+  when it has finished initialisation. 
 
