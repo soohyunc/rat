@@ -157,6 +157,13 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 {
 	char		*cmd_line_args, buffer[10];
 
+        /* There's a nasty in the pre-compiled library code that goes
+         * looking here and sourcing tcl files, but we have all the ones
+         * we need already precompiled in.
+         */
+        putenv("TCL_LIBRARY=");
+        putenv("TK_LIBRARY=");
+        
 	Tcl_FindExecutable(argv[0]);
 	interp        = Tcl_CreateInterp();
 	engine_addr   = xstrdup(mbus_engine_addr);
