@@ -303,10 +303,11 @@ audio_device_take(session_struct *sp, audio_desc_t device)
         sp->meter_period = format.sample_rate / 15;
         sp->bc           = bias_ctl_create(format.channels, format.sample_rate);
         unit_len         = format.bytes_per_block * 8 / (format.bits_per_sample*format.channels); 
-        sp->tb           = tx_create(sp, (u_int16)unit_len, (u_int16)format.channels);
+        tx_create(&sp->tb, sp, sp->device_clock, (u_int16)unit_len, (u_int16)format.channels);
+        assert(sp->tb != NULL);
         sp->ms           = mix_create(sp, 32640);
         cushion_create(&sp->cushion, unit_len);
-        tx_igain_update(sp);
+        tx_igain_update(sp->tb);
         ui_update(sp);
         return (failures == 0);
 }
@@ -316,7 +317,7 @@ audio_device_give(session_struct *sp)
 {
 	gettimeofday(&sp->device_time, NULL);
 
-        tx_stop(sp);
+        tx_stop(sp->tb);
         if (sp->mode == TRANSCODER) {
                 transcoder_close(sp->audio_device);
         } else {
@@ -335,7 +336,7 @@ audio_device_give(session_struct *sp)
 
         cushion_destroy(sp->cushion);
         mix_destroy(sp->ms);
-        tx_destroy(sp);
+        tx_destroy(&sp->tb);
         source_list_clear(sp->active_sources);
 }
 
@@ -389,7 +390,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 	sample	*bufp;
 
         c = spi->cushion;
-	if ((read_dur = tx_read_audio(spi)) <= 0) {
+	if ((read_dur = tx_read_audio(spi->tb)) <= 0) {
 		return 0;
 	} else {
                 if (!spi->audio_device) {

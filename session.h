@@ -128,7 +128,7 @@ typedef struct session_tag {
         u_int32                              min_playout;
         u_int32                              max_playout;
         int              cc_encoding;
-        int              last_depart_ts;
+        u_int32          last_depart_ts;
 	struct s_speaker_table	*speakers_active;
 	struct mbus	*mbus_engine_base;
 	struct mbus	*mbus_engine_conf;

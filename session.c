@@ -110,7 +110,6 @@ init_session(session_struct *sp)
 	sp->rtp_socket			= NULL;
 	sp->rtcp_socket			= NULL;
         sp->filter_loopback             = TRUE;
-	sp->sending_audio		= FALSE;
 	sp->playing_audio		= TRUE;
 	sp->lecture			= FALSE;
 	sp->auto_lecture		= 0;

@@ -181,9 +181,9 @@ main(int argc, char *argv[])
 	}
 	network_process_mbus(sp[0]);
 
-        if (!sp[0]->sending_audio && (sp[0]->mode != AUDIO_TOOL)) {
+        if (tx_is_sending(sp[0]->tb) && (sp[0]->mode != AUDIO_TOOL)) {
 		for (i=0; i<num_sessions; i++) {
-                	tx_start(sp[i]);
+                	tx_start(sp[i]->tb);
 		}
         }
 	
@@ -217,10 +217,10 @@ main(int argc, char *argv[])
 				}
 			}
 
-			tx_process_audio(sp[i]);
+			tx_process_audio(sp[i]->tb);
 
-                        if (sp[i]->sending_audio || sp[i]->last_tx_service_productive) {
-                                tx_send(sp[i]);
+                        if (tx_is_sending(sp[i]->tb) || sp[i]->last_tx_service_productive) {
+                                tx_send(sp[i]->tb);
                         }
 
                         /* Process incoming packets */
@@ -261,7 +261,7 @@ main(int argc, char *argv[])
 			}
 
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {
-				if (!sp[i]->lecture && !sp[i]->sending_audio && sp[i]->auto_lecture != 0) {
+				if (!sp[i]->lecture && tx_is_sending(sp[i]->tb) && sp[i]->auto_lecture != 0) {
 					gettimeofday(&time, NULL);
 					if (time.tv_sec - sp[i]->auto_lecture > 120) {
 						sp[i]->auto_lecture = 0;
@@ -307,7 +307,7 @@ main(int argc, char *argv[])
         }
 
 	for (i=0; i<num_sessions; i++) {
-                tx_stop(sp[i]);
+                tx_stop(sp[i]->tb);
 		rtcp_exit(sp[i], sp[1-i], sp[i]->rtcp_socket);
 		if (sp[i]->in_file  != NULL) snd_read_close (&sp[i]->in_file);
 		if (sp[i]->out_file != NULL) snd_write_close(&sp[i]->out_file);

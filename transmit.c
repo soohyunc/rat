@@ -72,7 +72,6 @@ typedef struct s_tx_unit {
         u_int16  energy;
         u_char   silence;          /* First pass */
         u_char   send;             /* Silence second pass */
-        media_data *media;         /* Coded audio representation */
 } tx_unit;
 
 typedef struct s_tx_buffer {
@@ -81,8 +80,10 @@ typedef struct s_tx_buffer {
         struct s_vad         *vad;
         struct s_agc         *agc;
         struct s_time        *clock;
-        struct s_pb          *audio_buffer; 
+
+        struct s_pb          *media_buffer; 
         struct s_pb          *channel_buffer; 
+        struct s_pb          *audio_buffer; /* Audio buffer and it's iterators */
         struct s_pb_iterator *reading;  /* Current read point iterator     */
         struct s_pb_iterator *silence;  /* Silence classification iterator */
         struct s_pb_iterator *transmit; /* Transmission point iterator     */
@@ -124,9 +125,6 @@ tx_unit_destroy(tx_unit **ptu, u_int32 len)
         assert(tu != NULL);
         assert(len == sizeof(tx_unit));
 
-        if (tu->media) {
-                media_data_destroy(&tu->media, sizeof(media_data));
-        }
         block_free(tu, sizeof(tx_unit));
         *ptu = NULL;
 }
@@ -162,6 +160,9 @@ tx_create(tx_buffer     **ntb,
                 pb_create(&tb->audio_buffer,
                           (playoutfreeproc)tx_unit_destroy);
 
+                pb_create(&tb->media_buffer,
+                          (playoutfreeproc)media_data_destroy);
+
                 pb_create(&tb->channel_buffer,
                           (playoutfreeproc)channel_data_destroy);
 
@@ -189,6 +190,7 @@ tx_destroy(tx_buffer **ptb)
         }
 
         pb_destroy(&tb->audio_buffer);
+        pb_destroy(&tb->media_buffer);
         pb_destroy(&tb->channel_buffer);
 
         xfree(tb);
@@ -252,7 +254,7 @@ tx_stop(tx_buffer *tb)
         codec_state_store_destroy(&tb->state_store);
         channel_encoder_reset(tb->sp->channel_coder);
         ui_input_level(tb->sp, 0);
-        tx_update_ui(tb->sp);
+        tx_update_ui(tb);
         tb->sending_audio = FALSE;
         
         /* Detach iterators      */
@@ -262,6 +264,7 @@ tx_stop(tx_buffer *tb)
 
         /* Drain playout buffers */
         pb_flush(tb->audio_buffer);
+        pb_flush(tb->media_buffer);
         pb_flush(tb->channel_buffer);
 }
 
@@ -422,18 +425,20 @@ tx_encode(struct s_codec_state_store *css,
 void
 tx_send(tx_buffer *tb)
 {
+        struct s_pb_iterator    *cpos;
+        channel_data            *cd;
+        channel_unit            *cu;
+
         session_struct *sp;
-        int             units, i, n, send, encoding;
         
+
         tx_unit        *u;
         rtp_hdr_t       rtp_header;
-        channel_data   *cd;
-        channel_unit   *cu;
         struct iovec    ovec[2];
         ts_t            u_ts, u_sil_ts, delta;
         ts_t            time_ts;
         u_int32         time_32, cd_len, freq;
-        u_int32         u_len;
+        u_int32         u_len, units, i, n, send, encoding;
 
         if (pb_iterators_equal(tb->silence, tb->transmit)) {
                 /* Nothing to do */
@@ -484,7 +489,7 @@ tx_send(tx_buffer *tb)
                         pb_iterator_get_at(tb->transmit, (u_char**)&u, &u_len, &u_ts);
                         if (send) {
                                 media_data_create(&m, sp->num_encodings);
-                                for(encoding = 0; encoding < sp->num_encodings; encoding ++) {
+                                for(encoding = 0; encoding < (u_int32)sp->num_encodings; encoding ++) {
                                         tx_encode(tb->state_store, 
                                                   u->data, 
                                                   u->dur_used,
@@ -494,16 +499,25 @@ tx_send(tx_buffer *tb)
                         } else {
                                 media_data_create(&m, 0);
                         }
-                        u->media = m;
+                        pb_add(tb->media_buffer, 
+                               (u_char*)m, 
+                               sizeof(media_data), 
+                               u_ts);
                         pb_iterator_advance(tb->transmit);
                 }
                 n -= units;
         }
 
-        channel_encoder_encode(sp->channel_coder, tb->media_buf, tb->channel_buf);
+        channel_encoder_encode(sp->channel_coder, 
+                               tb->media_buffer, 
+                               tb->channel_buffer);
 
-        while(playout_buffer_get(tb->channel_buf, (u_char**)&cd, &cd_len, &time_ts)) {
-                playout_buffer_remove(tb->channel_buf, (u_char**)&cd, &cd_len, &time_ts);
+        pb_iterator_new(tb->channel_buffer, &cpos);
+        while(pb_iterator_get_at(cpos, (u_char**)&cd, &cd_len, &time_ts)) {
+                pb_iterator_detach_at(cpos, 
+                                      (u_char**)&cd, 
+                                      &cd_len, 
+                                      &time_ts);
                 assert(cd->nelem == 1);
                 cu = cd->elem[0];
                 rtp_header.type = 2;
@@ -537,16 +551,39 @@ tx_send(tx_buffer *tb)
                 sp->last_tx_service_productive = 1;
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
+        pb_iterator_destroy(tb->channel_buffer, &cpos);
+
+        /* Drain tb->audio, remove every older than silence position
+         * by two packets worth of audio.  Note tb->media is drained
+         * by the channel encoding stage and tb->channel is drained
+         * in the act of transmission with pbi_detach_at call.
+         */
+        u_ts = ts_map32(get_freq(tb->clock), 2 * units * tb->unit_dur);
+        pb_iterator_audit(tb->silence, u_ts);
 }
 
 void
-tx_update_ui(session_struct *sp)
+tx_update_ui(tx_buffer *tb)
 {
-        static int active = FALSE;
+        static int            active = FALSE;
+        session_struct       *sp     = tb->sp;
 
-        if (sp->meter && sp->tb->silence_ptr && sp->tb->silence_ptr->prev) {
-                if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
-                        ui_input_level(sp, lin2vu(sp->tb->silence_ptr->prev->energy, 100, VU_INPUT));
+        if (sp->meter) {
+                struct s_pb_iterator *prev;  
+                tx_unit              *u;
+                u_int32               u_len;
+                ts_t                  u_ts;
+
+                /* Silence point should be upto read point here so use last
+                 * completely read unit.
+                 */
+
+                pb_iterator_dup(&prev, tb->silence);
+                pb_iterator_retreat(prev);
+
+                if (pb_iterator_get_at(prev, (u_char**)u, &u_len, &u_ts) &&
+                    (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE)) {
+                        ui_input_level(sp, lin2vu(u->energy, 100, VU_INPUT));
                 } else {
                         if (active == TRUE) ui_input_level(sp, 0);
                 }
@@ -565,17 +602,21 @@ tx_update_ui(session_struct *sp)
                 }
         }
 
-        if (sp->sending_audio == FALSE) {
+        if (tb->sending_audio == FALSE) {
                 ui_info_deactivate(sp, sp->db->my_dbe);
                 active = FALSE;
         }
 }
 
 void
-tx_igain_update(session_struct *sp)
+tx_igain_update(tx_buffer *tb)
 {
-        sd_reset(sp->tb->sd_info);
-        agc_reset(sp->tb->agc);
+        sd_reset(tb->sd_info);
+        agc_reset(tb->agc);
 }
- 
- 
+
+__inline int
+tx_is_sending(tx_buffer *tb)
+{
+        return tb->sending_audio;
+}

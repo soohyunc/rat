@@ -59,12 +59,14 @@ int   tx_create      (struct s_tx_buffer **tb,
 void  tx_destroy     (struct s_tx_buffer **tb);
 void  tx_start       (struct s_tx_buffer  *tb);
 void  tx_stop        (struct s_tx_buffer  *tb);
-int   tx_is_sending  (struct s_tx_buffer  *tb);
+
+__inline int   
+      tx_is_sending  (struct s_tx_buffer  *tb);
 
 int   tx_read_audio    (struct s_tx_buffer *tb);
 int   tx_process_audio (struct s_tx_buffer *tb);
 void  tx_send          (struct s_tx_buffer *tb);
-void  tx_update_ui     (struct session_tag *sp);
-void  tx_igain_update  (struct session_tag *sp);
+void  tx_update_ui     (struct s_tx_buffer *tb);
+void  tx_igain_update  (struct s_tx_buffer *tb);
 
 #endif /* _transmit_h_ */
