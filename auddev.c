@@ -49,36 +49,44 @@
 #include "auddev.h"
 
 typedef struct {
-        int  (*audio_if_init)(void);                 /* Test and initialize audio interface (OPTIONAL)  */
-        int  (*audio_if_free)(void);                 /* Free audio interface (OPTIONAL)                 */
-        int  (*audio_if_dev_cnt)(void);              /* Device count for interface (REQUIRED) */
+        int  (*audio_if_init)(void);                 /* Test and initialize audio interface (OPTIONAL)    */
+        int  (*audio_if_free)(void);                 /* Free audio interface (OPTIONAL)                   */
+        int  (*audio_if_dev_cnt)(void);              /* Device count for interface (REQUIRED)             */
         const char* 
-             (*audio_if_dev_name)(int);              /* Device name query (REQUIRED) */
+             (*audio_if_dev_name)(int);              /* Device name query (REQUIRED)                      */
 
-        int  (*audio_if_open)(int, audio_format *ifmt, audio_format *ofmt); /* Open device with formats */
-        void (*audio_if_close)(int);                 /* Close device (REQUIRED) */
-        void (*audio_if_drain)(int);                 /* Drain device (REQUIRED) */
-        int  (*audio_if_duplex)(int);                /* Device full duplex (REQUIRED) */
+        int  (*audio_if_open)(int, audio_format *ifmt, audio_format *ofmt); /* Open device with formats   */
+        void (*audio_if_close)(int);                 /* Close device (REQUIRED)                           */
+        void (*audio_if_drain)(int);                 /* Drain device (REQUIRED)                           */
+        int  (*audio_if_duplex)(int);                /* Device full duplex (REQUIRED)                     */
 
-        int  (*audio_if_read) (int, u_char*, int);   /* Read samples (REQUIRED)  */
-        int  (*audio_if_write)(int, u_char*, int);   /* Write samples (REQUIRED) */
-        void (*audio_if_non_block)(int);             /* Set device non-blocking (REQUIRED) */
-        void (*audio_if_block)(int);                 /* Set device blocking (REQUIRED)     */
+        int  (*audio_if_read) (int, u_char*, int);   /* Read samples (REQUIRED)                           */
+        int  (*audio_if_write)(int, u_char*, int);   /* Write samples (REQUIRED)                          */
+        void (*audio_if_non_block)(int);             /* Set device non-blocking (REQUIRED)                */
+        void (*audio_if_block)(int);                 /* Set device blocking (REQUIRED)                    */
 
-        void (*audio_if_set_igain)(int,int);          /* Set input gain (REQUIRED)  */
-        int  (*audio_if_get_igain)(int);              /* Get input gain (REQUIRED)  */
-        void (*audio_if_set_ogain)(int,int);        /* Set output gain (REQUIRED) */
-        int  (*audio_if_get_ogain)(int);            /* Get output gain (REQUIRED) */
-        void (*audio_if_loopback)(int, int);         /* Enable hardware loopback (OPTIONAL) */
+        void (*audio_if_set_igain)(int,int);          /* Set input gain (REQUIRED)                        */
+        int  (*audio_if_get_igain)(int);              /* Get input gain (REQUIRED)                        */
+        void (*audio_if_set_ogain)(int,int);          /* Set output gain (REQUIRED)                       */
+        int  (*audio_if_get_ogain)(int);              /* Get output gain (REQUIRED)                       */
+        void (*audio_if_loopback)(int, int);          /* Enable hardware loopback (OPTIONAL)              */
 
-        void (*audio_if_set_oport)(int, int);        /* Set output port (REQUIRED)        */
-        int  (*audio_if_get_oport)(int);             /* Get output port (REQUIRED)        */
-        int  (*audio_if_next_oport)(int);            /* Go to next output port (REQUIRED) */
-        void (*audio_if_set_iport)(int, int);        /* Set input port (REQUIRED)         */
-        int  (*audio_if_get_iport)(int);             /* Get input port (REQUIRED)         */
-        int  (*audio_if_next_iport)(int);            /* Go to next itput port (REQUIRED)  */
-        int  (*audio_if_is_ready)(int);              /* Poll for audio availability (REQUIRED)   */
-        void (*audio_if_wait_for)(int, int);         /* Wait until audio is available (REQUIRED) */
+        void (*audio_if_set_oport)(int, audio_port_t); /* Set output port (REQUIRED)                      */
+        audio_port_t
+             (*audio_if_get_oport)(int);               /* Get output port (REQUIRED)                      */
+        const audio_port_details_t*
+             (*audio_if_get_oport_details)(int, int);  /* Get details of port (REQUIRED)                  */
+        int  (*audio_if_get_oport_count)(int);         /* Get number of output ports (REQUIRED)           */
+
+        void (*audio_if_set_iport)(int, audio_port_t); /* Set input port (REQUIRED)                       */
+        audio_port_t
+             (*audio_if_get_iport)(int);               /* Get input port (REQUIRED)                       */
+        const audio_port_details_t*
+             (*audio_if_get_iport_details)(int, int);  /* Get details of port (REQUIRED)                  */
+        int  (*audio_if_get_iport_count)(int);          /* Get number of input ports (REQUIRED)            */
+
+        int  (*audio_if_is_ready)(int);              /* Poll for audio availability (REQUIRED)            */
+        void (*audio_if_wait_for)(int, int);         /* Wait until audio is available (REQUIRED)          */
         int  (*audio_if_format_supported)(int, audio_format *);
 } audio_if_t;
 
@@ -111,12 +119,14 @@ audio_if_t audio_if_table[] = {
                 sgi_audio_set_ogain,
                 sgi_audio_get_ogain,
                 sgi_audio_loopback,
-                sgi_audio_set_oport,
-                sgi_audio_get_oport,
-                sgi_audio_next_oport,
-                sgi_audio_set_iport,
-                sgi_audio_get_iport,
-                sgi_audio_next_iport,
+                sgi_audio_oport_set,
+                sgi_audio_oport_get,
+                sgi_audio_oport_details,
+                sgi_audio_oport_count,
+                sgi_audio_iport_set,
+                sgi_audio_iport_get,
+                sgi_audio_iport_details,
+                sgi_audio_iport_count,
                 sgi_audio_is_ready,
                 sgi_audio_wait_for,
                 NULL
@@ -141,12 +151,14 @@ audio_if_t audio_if_table[] = {
                 sparc_audio_set_ogain,
                 sparc_audio_get_ogain,
                 sparc_audio_loopback,
-                sparc_audio_set_oport,
-                sparc_audio_get_oport,
-                sparc_audio_next_oport,
-                sparc_audio_set_iport,
-                sparc_audio_get_iport,
-                sparc_audio_next_iport,
+                sparc_audio_oport_set,
+                sparc_audio_oport_get,
+                sparc_audio_oport_details,
+                sparc_audio_oport_count,
+                sparc_audio_iport_set,
+                sparc_audio_iport_get,
+                sparc_audio_details_iport,
+                sparc_audio_count_iport,
                 sparc_audio_is_ready,
                 sparc_audio_wait_for,
                 NULL
@@ -171,12 +183,14 @@ audio_if_t audio_if_table[] = {
                 osprey_audio_set_ogain,
                 osprey_audio_get_ogain,
                 osprey_audio_loopback,
-                osprey_audio_set_oport,
-                osprey_audio_get_oport,
-                osprey_audio_next_oport,
-                osprey_audio_set_iport,
-                osprey_audio_get_iport,
-                osprey_audio_next_iport,
+                osprey_audio_oport_set,
+                osprey_audio_oport_get,
+                osprey_audio_oport_details,
+                osprey_audio_oport_count,
+                osprey_audio_iport_set,
+                osprey_audio_iport_get,
+                osprey_audio_iport_details,
+                osprey_audio_iport_count,
                 osprey_audio_is_ready,
                 osprey_audio_wait_for,
                 NULL
@@ -201,12 +215,14 @@ audio_if_t audio_if_table[] = {
                 oss_audio_set_ogain,
                 oss_audio_get_ogain,
                 oss_audio_loopback,
-                oss_audio_set_oport,
-                oss_audio_get_oport,
-                oss_audio_next_oport,
-                oss_audio_set_iport,
-                oss_audio_get_iport,
-                oss_audio_next_iport,
+                oss_audio_oport_set,
+                oss_audio_oport_get,
+                oss_audio_oport_details,
+                oss_audio_oport_count,
+                oss_audio_iport_set,
+                oss_audio_iport_get,
+                oss_audio_iport_details,
+                oss_audio_iport_count,
                 oss_audio_is_ready,
                 oss_audio_wait_for,
                 oss_audio_supports
@@ -233,12 +249,14 @@ audio_if_t audio_if_table[] = {
                 w32sdk_audio_set_ogain,
                 w32sdk_audio_get_ogain,
                 w32sdk_audio_loopback,
-                w32sdk_audio_set_oport,
-                w32sdk_audio_get_oport,
-                w32sdk_audio_next_oport,
-                w32sdk_audio_set_iport,
-                w32sdk_audio_get_iport,
-                w32sdk_audio_next_iport,
+                w32sdk_audio_oport_set,
+                w32sdk_audio_oport_get,
+                w32sdk_audio_oport_details,
+                w32sdk_audio_oport_count,
+                w32sdk_audio_iport_set,
+                w32sdk_audio_iport_get,
+                w32sdk_audio_iport_details,
+                w32sdk_audio_iport_count,
                 w32sdk_audio_is_ready,
                 w32sdk_audio_wait_for,
                 w32sdk_audio_supports
@@ -264,12 +282,14 @@ audio_if_t audio_if_table[] = {
                 luigi_audio_set_ogain,
                 luigi_audio_get_ogain,
                 luigi_audio_loopback,
-                luigi_audio_set_oport,
-                luigi_audio_get_oport,
-                luigi_audio_next_oport,
-                luigi_audio_set_iport,
-                luigi_audio_get_iport,
-                luigi_audio_next_iport,
+                luigi_audio_oport_set,
+                luigi_audio_oport_get,
+                luigi_audio_oport_details,
+                luigi_audio_oport_count,
+                luigi_audio_iport_set,
+                luigi_audio_iport_get,
+                luigi_audio_iport_details,
+                luigi_audio_iport_count,
                 luigi_audio_is_ready,
                 luigi_audio_wait_for,
                 luigi_audio_supports
@@ -296,12 +316,14 @@ audio_if_t audio_if_table[] = {
                 pca_audio_set_ogain,
                 pca_audio_get_ogain,
                 pca_audio_loopback,
-                pca_audio_set_oport,
-                pca_audio_get_oport,
-                pca_audio_next_oport,
-                pca_audio_set_iport,
-                pca_audio_get_iport,
-                pca_audio_next_iport,
+                pca_audio_oport_set,
+                pca_audio_oport_get,
+                pca_audio_oport_details,
+                pca_audio_oport_count,
+                pca_audio_iport_set,
+                pca_audio_iport_get,
+                pca_audio_iport_details,
+                pca_audio_iport_count,
                 pca_audio_is_ready,
                 pca_audio_wait_for,
                 pca_audio_supports
@@ -329,12 +351,14 @@ audio_if_t audio_if_table[] = {
                 null_audio_set_ogain,
                 null_audio_get_ogain,
                 null_audio_loopback,
-                null_audio_set_oport,
-                null_audio_get_oport,
-                null_audio_next_oport,
-                null_audio_set_iport,
-                null_audio_get_iport,
-                null_audio_next_iport,
+                null_audio_oport_set,
+                null_audio_oport_get,
+                null_audio_oport_details,
+                null_audio_oport_count,
+                null_audio_iport_set,
+                null_audio_iport_get,
+                null_audio_iport_details,
+                null_audio_iport_count,
                 null_audio_is_ready,
                 null_audio_wait_for,
                 null_audio_supports
@@ -894,8 +918,8 @@ audio_get_oport(audio_desc_t ad)
         return (audio_if_table[iface].audio_if_get_oport(device));
 }
 
-int     
-audio_next_oport(audio_desc_t ad)
+const audio_port_details_t*
+audio_get_oport_details(audio_desc_t ad, int port_idx)
 {
         int iface, device;
 
@@ -905,7 +929,21 @@ audio_next_oport(audio_desc_t ad)
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
 
-        return (audio_if_table[iface].audio_if_next_oport(device));
+        return (audio_if_table[iface].audio_if_get_oport_details(device, port_idx));
+}
+
+int
+audio_get_oport_count(audio_desc_t ad)
+{
+        int iface, device;
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
+        
+        return audio_if_table[iface].audio_if_get_oport_count(device);
 }
 
 void
@@ -936,8 +974,8 @@ audio_get_iport(audio_desc_t ad)
         return (audio_if_table[iface].audio_if_get_iport(device));
 }
 
-int
-audio_next_iport(audio_desc_t ad)
+const audio_port_details_t*
+audio_get_iport_details(audio_desc_t ad, int port_idx)
 {
         int iface, device;
 
@@ -947,7 +985,21 @@ audio_next_iport(audio_desc_t ad)
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
 
-        return (audio_if_table[iface].audio_if_next_iport(device));
+        return (audio_if_table[iface].audio_if_get_iport_details(device, port_idx));
+}
+
+int
+audio_get_iport_count(audio_desc_t ad)
+{
+        int iface, device;
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
+        
+        return audio_if_table[iface].audio_if_get_iport_count(device);
 }
 
 int

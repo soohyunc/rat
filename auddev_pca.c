@@ -331,14 +331,27 @@ pca_audio_block(audio_desc_t ad)
 	return;
 }
 
+#define PCA_SPEAKER    0x0101
+#define PCA_MICROPHONE 0x0201
+
+static audio_port_details_t in_ports[] = {
+        { PCA_MICROPHONE, AUDIO_PORT_MICROPHONE}
+};
+
+static audio_port_details_t out_ports[] = {
+        { PCA_SPEAKER,    AUDIO_PORT_SPEAKER}
+};
+
 /*
  * Set output port.
  */
 void
-pca_audio_set_oport(audio_desc_t ad, int port)
+pca_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
 	/* There is only one port... */
         UNUSED(ad); UNUSED(port);
+
+        assert(port == PCA_SPEAKER);
 
 	return;
 }
@@ -346,31 +359,36 @@ pca_audio_set_oport(audio_desc_t ad, int port)
 /*
  * Get output port.
  */
-int
-pca_audio_get_oport(audio_desc_t ad)
+audio_port_t
+pca_audio_oport_get(audio_desc_t ad)
 {
 	/* There is only one port... */
         UNUSED(ad);
 
-	return AUDIO_SPEAKER;
+	return out_ports[0].port;
 }
 
-/*
- * Set next output port.
- */
 int
-pca_audio_next_oport(audio_desc_t ad)
+pca_audio_oport_count(audio_desc_t ad)
 {
-	/* There is only one port... */
         UNUSED(ad);
-	return AUDIO_SPEAKER;
+        return 1;
+}
+
+const audio_port_details_t*
+pca_audio_oport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        UNUSED(idx);
+        assert(idx == 0);
+        return &out_ports[0];
 }
 
 /*
  * Set input port.
  */
 void
-pca_audio_set_iport(audio_desc_t ad, int port)
+pca_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
 	/* Hmmm.... */
         UNUSED(ad);
@@ -381,23 +399,28 @@ pca_audio_set_iport(audio_desc_t ad, int port)
 /*
  * Get input port.
  */
-int
-pca_audio_get_iport(audio_desc_t ad)
+audio_port_t
+pca_audio_iport_get(audio_desc_t ad)
 {
 	/* Hmm...hack attack */
         UNUSED(ad);
-	return AUDIO_MICROPHONE;
+	return in_ports[0].port;
 }
 
-/*
- * Get next input port...
- */
 int
-pca_audio_next_iport(audio_desc_t ad)
+pca_audio_iport_count(audio_desc_t ad)
 {
-	/* Hmm... */
         UNUSED(ad);
-	return AUDIO_MICROPHONE;
+        return 1;
+}
+
+const audio_port_details_t*
+pca_audio_iport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        UNUSED(idx);
+        assert(idx == 0);
+        return &in_ports[0];
 }
 
 /*

@@ -47,27 +47,36 @@ int  luigi_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format *
 void luigi_audio_close      (audio_desc_t ad);
 void luigi_audio_drain      (audio_desc_t ad);
 int  luigi_audio_duplex     (audio_desc_t ad);
-void luigi_audio_set_igain   (audio_desc_t ad, int gain);
-int  luigi_audio_get_igain   (audio_desc_t ad);
-void luigi_audio_set_ogain (audio_desc_t ad, int vol);
-int  luigi_audio_get_ogain (audio_desc_t ad);
+
+void luigi_audio_set_igain  (audio_desc_t ad, int gain);
+int  luigi_audio_get_igain  (audio_desc_t ad);
+void luigi_audio_set_ogain  (audio_desc_t ad, int vol);
+int  luigi_audio_get_ogain  (audio_desc_t ad);
 void luigi_audio_loopback   (audio_desc_t ad, int gain);
+
 int  luigi_audio_read       (audio_desc_t ad, u_char *buf, int buf_len);
 int  luigi_audio_write      (audio_desc_t ad, u_char *buf, int buf_len);
 void luigi_audio_non_block  (audio_desc_t ad);
 void luigi_audio_block      (audio_desc_t ad);
-void luigi_audio_set_oport  (audio_desc_t ad, int port);
-int  luigi_audio_get_oport  (audio_desc_t ad);
-int  luigi_audio_next_oport (audio_desc_t ad);
-void luigi_audio_set_iport  (audio_desc_t ad, int port);
-int  luigi_audio_get_iport  (audio_desc_t ad);
-int  luigi_audio_next_iport (audio_desc_t ad);
+
+void luigi_audio_oport_set  (audio_desc_t ad, audio_port_t port);
+int  luigi_audio_oport_get  (audio_desc_t ad);
+int  luigi_audio_oport_count   (audio_desc_t ad);
+const audio_port_details_t*
+     luigi_audio_oport_details (audio_desc_t ad, int idx);
+
+void luigi_audio_iport_set  (audio_desc_t ad, audio_port_t port);
+int  luigi_audio_iport_get  (audio_desc_t ad);
+int  luigi_audio_iport_count   (audio_desc_t ad);
+const audio_port_details_t*
+     luigi_audio_iport_details (audio_desc_t ad, int idx);
+
 int  luigi_audio_is_ready  (audio_desc_t ad);
 void luigi_audio_wait_for  (audio_desc_t ad, int delay_ms);
 int  luigi_audio_supports  (audio_desc_t ad, audio_format *f);
 
 /* Functions to get names of devices */
-int        luigi_audio_query_devices (void);
+int         luigi_audio_query_devices (void);
 int         luigi_get_device_count    (void);
 const char *luigi_get_device_name     (audio_desc_t ad);
 

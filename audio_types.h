@@ -73,6 +73,22 @@ typedef struct {
         char         name[AUDIO_DEVICE_NAME_LENGTH + 1];
 } audio_device_details_t;
 
+typedef int audio_port_t;
+
+#define AUDIO_PORT_NAME_LENGTH 20
+
+#define AUDIO_PORT_SPEAKER    "Speaker"
+#define AUDIO_PORT_HEADPHONE  "Headphone"
+#define AUDIO_PORT_LINE_OUT   "Line-Out"
+#define AUDIO_PORT_MICROPHONE "Microphone"
+#define AUDIO_PORT_LINE_IN    "Line-In"
+#define AUDIO_PORT_CD         "CD"
+
+typedef struct {
+        audio_port_t port;
+        char         name[AUDIO_PORT_NAME_LENGTH + 1];
+} audio_port_details_t;
+
 #define BYTES_PER_SAMPLE sizeof(sample)
 #define PCMU_AUDIO_ZERO	127
 #define L16_AUDIO_ZERO	0

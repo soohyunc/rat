@@ -52,14 +52,17 @@
 #define SAMSIG		7500.0
 #define BASEOFF         0x0a7f
 
+#define SGI_OPORT_SPEAKER    0x0101
+#define SGI_IPORT_MICROPHONE 0x0201
+#define SGI_IPORT_LINE_IN    0x0202
+
 #define RAT_TO_SGI_DEVICE(x)	((x) * 255 / MAX_AMP)
 #define SGI_DEVICE_TO_RAT(x)	((x) * MAX_AMP / 255)
 
 static int      audio_fd = -1;
 static ALport	rp = NULL, wp = NULL;	/* Read and write ports */
-static int	iport = AUDIO_MICROPHONE;
 static int      bytes_per_block;
-
+static audio_port_t iport = SGI_IPORT_MICROPHONE;
 
 int
 sgi_audio_device_count()
@@ -288,78 +291,93 @@ sgi_audio_block(audio_desc_t ad)
 	non_block = 0;
 }
 
-void
-sgi_audio_set_oport(audio_desc_t ad, int port)
-{
-        UNUSED(ad); assert(audio_fd > 0);
+static audio_port_details_t out_ports[] = {
+        { SGI_OPORT_SPEAKER, AUDIO_PORT_SPEAKER}
+};
+
+#define SGI_NUM_OPORTS (sizeof(out_ports)/sizeof(out_ports[0]))
+
+static audio_port_details_t in_ports[] = {
+        { SGI_IPORT_MICROPHONE, AUDIO_PORT_MICROPHONE },
+        { SGI_IPORT_LINE_IN,    AUDIO_PORT_LINE_IN }
 }
 
-int
-sgi_audio_get_oport(audio_desc_t ad)
-{
-        UNUSED(ad); assert(audio_fd > 0);
-
-	return (AUDIO_SPEAKER);
-}
-
-int
-sgi_audio_next_oport(audio_desc_t ad)
-{
-        UNUSED(ad); assert(audio_fd > 0);
-
-	return (AUDIO_SPEAKER);
-}
+#define SGI_NUM_IPORTS (sizeof(in_ports)/sizeof(in_ports[0]))
 
 void
-sgi_audio_set_iport(audio_desc_t ad, int port)
+sgi_audio_oport_set(audio_desc_t ad, audio_port_t port)
+{
+        UNUSED(ad); assert(audio_fd > 0);
+        assert(port == SGI_OPORT_SPEAKER);
+        unused(port);
+}
+
+audio_port_t
+sgi_audio_oport_get(audio_desc_t ad)
+{
+        UNUSED(ad); assert(audio_fd > 0);
+
+	return (SGI_OPORT_SPEAKER);
+}
+
+int 
+sgi_audio_oport_count(audio_desc_t ad) 
+{
+        UNUSED(ad);
+        return (int)SGI_NUM_OPORTS;
+}
+
+const 
+audio_port_details_t(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        assert(idx < SGI_NUM_OPORTS && idx >= 0);
+        return &out_ports[idx];
+}
+
+void
+sgi_audio_iport_set(audio_desc_t ad, audio_desc_t port)
 {
 	long pvbuf[2];
 
         UNUSED(ad); assert(audio_fd > 0);
 
         switch(port) {
-        case AUDIO_MICROPHONE: 
-                pvbuf[0] = AL_INPUT_SOURCE;
-                pvbuf[1] = AL_INPUT_MIC;
-                ALsetparams(AL_DEFAULT_DEVICE, pvbuf, 2);
-                iport = AUDIO_MICROPHONE;
-                break;
-        case AUDIO_LINE_IN: 
+        case SGI_IPORT_LINE_IN: 
                 pvbuf[0] = AL_INPUT_SOURCE;
                 pvbuf[1] = AL_INPUT_LINE;
                 ALsetparams(AL_DEFAULT_DEVICE, pvbuf, 2);
-                iport = AUDIO_LINE_IN;
                 break;
+        case SGI_IPORT_MICROPHONE: 
         default:
-                printf("Illegal input port!\n");
-                abort();
+                pvbuf[0] = AL_INPUT_SOURCE;
+                pvbuf[1] = AL_INPUT_MIC;
+                ALsetparams(AL_DEFAULT_DEVICE, pvbuf, 2);
+                break;
         }
+        iport = port;
 }
 
-int
-sgi_audio_get_iport(audio_desc_t ad)
+audio_port_t
+sgi_audio_iport_get(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
-
 	return iport;
 }
 
 int
-sgi_audio_next_iport(audio_desc_t ad)
+sgi_audio_iport_count(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
+        return (int)SGI_NUM_IPORTS;
+}
 
-        switch (iport) {
-        case AUDIO_MICROPHONE:
-                sgi_audio_set_iport(ad, AUDIO_LINE_IN);
-                break;
-        case AUDIO_LINE_IN:
-                sgi_audio_set_iport(ad, AUDIO_MICROPHONE);
-                break;
-        default:
-                printf("Unknown audio source!\n");
-        }
-        return iport;
+const audio_port_details_t*
+sgi_audio_iport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        assert(idx < (int)SGI_NUM_IPORTS && idx >= 0);
+        return &in_ports[idx];
 }
 
 void 

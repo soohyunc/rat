@@ -337,28 +337,33 @@ static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
 
 static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
 {
+        const audio_port_details_t *apd;
 	char	*s;
-
+        int      i, n, found;
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &s)) {
 		s = mbus_decode_str(s);
-		if (strcmp(s, "microphone") == 0) {
-			audio_set_iport(sp->audio_device, AUDIO_MICROPHONE);
-		} else if (strcmp(s, "cd") == 0) {
-			audio_set_iport(sp->audio_device, AUDIO_CD);
-		} else if (strcmp(s, "line_in") == 0) {
-			audio_set_iport(sp->audio_device, AUDIO_LINE_IN);
-		} else {
-			debug_msg("unknown input port %s\n", s);
-			abort();
-		}
-		ui_update_input_port(sp);
+                n = audio_get_iport_count(sp->audio_device);
+                found = FALSE;
+                for(i = 0; i < n; i++) {
+                        apd = audio_get_iport_details(sp->audio_device, i);
+                        if (!strcasecmp(s, apd->name)) {
+                                found = TRUE;
+                                break;
+                        }
+                }
+                if (found == FALSE) {
+                        debug_msg("%s does not match any port names\n", s);
+                        apd = audio_get_iport_details(sp->audio_device, 0);
+                }
+                audio_set_iport(sp->audio_device, apd->port);
 	} else {
 		debug_msg("mbus: usage \"audio.input.port <port>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine);
+        ui_update_input_port(sp);
 }
 
 static void rx_audio_output_mute(char *srce, char *args, session_struct *sp)
@@ -395,22 +400,30 @@ static void rx_audio_output_gain(char *srce, char *args, session_struct *sp)
 
 static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
 {
-	char	*s;
+        const audio_port_details_t *apd;
+	char *s;
+        int   i, n, found;
 
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &s)) {
 		s = mbus_decode_str(s);
-		if (strcmp(s, "speaker") == 0) {
-			audio_set_oport(sp->audio_device, AUDIO_SPEAKER);
-		}
-		if (strcmp(s, "headphone") == 0) {
-			audio_set_oport(sp->audio_device, AUDIO_HEADPHONE);
-		}
-		if (strcmp(s, "line_out") == 0) {
-			audio_set_oport(sp->audio_device, AUDIO_LINE_OUT);
-		}
+                n     = audio_get_oport_count(sp->audio_device);
+                found = FALSE;                
+
+                for(i = 0; i < n; i++) {
+                        apd = audio_get_oport_details(sp->audio_device, i);
+                        if (!strcasecmp(s, apd->name)) {
+                                found = TRUE;
+                                break;
+                        }
+                }
+                if (found == FALSE) {
+                        debug_msg("%s does not match any port names\n", s);
+                        apd = audio_get_oport_details(sp->audio_device, 0);
+                }
+                audio_set_oport(sp->audio_device, apd->port);
 	} else {
 		printf("mbus: usage \"audio.output.port <port>\"\n");
 	}

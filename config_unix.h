@@ -126,12 +126,6 @@ typedef int	fd_t;
 #include <unistd.h>
 #include <stdlib.h>
 #define DIFF_BYTE_ORDER  1
-#define AUDIO_SPEAKER    0
-#define AUDIO_HEADPHONE  1
-#define AUDIO_LINE_OUT   4
-#define AUDIO_MICROPHONE 1
-#define AUDIO_LINE_IN    2
-#define AUDIO_CD         4
 #include <machine/pcaudioio.h>
 #include <machine/soundcard.h>
 #endif /* FreeBSD */
@@ -205,12 +199,6 @@ int	toupper(int c);
 #define NEED_INET_PTON
 #include <bstring.h>     /* Needed for FDZERO on IRIX only */
 #include <audio.h>
-#define AUDIO_SPEAKER    0
-#define AUDIO_HEADPHONE  1
-#define AUDIO_LINE_OUT   4
-#define AUDIO_MICROPHONE 1
-#define AUDIO_LINE_IN    2
-#define AUDIO_CD         4
 int gethostname(char *name, int namelen);
 #endif
 

@@ -209,11 +209,22 @@ null_audio_block(audio_desc_t ad)
 	debug_msg("null_audio_block");
 }
 
+#define NULL_SPEAKER    0x0101
+#define NULL_MICROPHONE 0x0201
+
+static audio_port_details_t out_ports[] = {
+        {NULL_SPEAKER, AUDIO_PORT_SPEAKER}
+};
+
+static audio_port_details_t in_ports[] = {
+        {NULL_MICROPHONE, AUDIO_PORT_MICROPHONE}
+};
+
 /*
  * Set output port.
  */
 void
-null_audio_set_oport(audio_desc_t ad, int port)
+null_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
         UNUSED(ad); UNUSED(port);
 
@@ -223,28 +234,34 @@ null_audio_set_oport(audio_desc_t ad, int port)
 /*
  * Get output port.
  */
-int
-null_audio_get_oport(audio_desc_t ad)
+
+audio_port_t
+null_audio_oport_get(audio_desc_t ad)
 {
         UNUSED(ad);
-	return AUDIO_SPEAKER;
+	return out_ports[0].port;
 }
 
-/*
- * Set next output port.
- */
 int
-null_audio_next_oport(audio_desc_t ad)
+null_audio_oport_count(audio_desc_t ad)
 {
         UNUSED(ad);
-	return AUDIO_SPEAKER;
+        return 1;
+}
+
+const audio_port_details_t*
+null_audio_oport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        assert(idx == 0);
+        return &out_ports[0];
 }
 
 /*
  * Set input port.
  */
 void
-null_audio_set_iport(audio_desc_t ad, int port)
+null_audio_iport_set(audio_desc_t ad, int port)
 {
         UNUSED(ad);
         UNUSED(port);
@@ -255,20 +272,25 @@ null_audio_set_iport(audio_desc_t ad, int port)
  * Get input port.
  */
 int
-null_audio_get_iport(audio_desc_t ad)
+null_audio_iport_get(audio_desc_t ad)
 {
         UNUSED(ad);
-	return AUDIO_MICROPHONE;
+	return in_ports[0].port;
 }
 
-/*
- * Get next input port...
- */
 int
-null_audio_next_iport(audio_desc_t ad)
+null_audio_iport_count(audio_desc_t ad)
 {
         UNUSED(ad);
-	return AUDIO_MICROPHONE;
+        return 1;
+}
+
+const audio_port_details_t*
+null_audio_iport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        assert(idx == 0);
+        return &in_ports[0];
 }
 
 /*

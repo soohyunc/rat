@@ -42,6 +42,9 @@ set iwd 		250
 set cancel_info_timer 	0
 set num_cname		0
 set fw			.l.t.list.f
+set input_ports         [list]
+set output_ports        [list]
+
 
 proc init_source {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE num_cname 
@@ -129,30 +132,31 @@ proc set_gain {new_gain} {
 }
 
 proc toggle_input_port {} {
-  global input_port
-	
-  switch $input_port {
-  	microphone {set input_port "line_in"}
-	line_in    {set input_port "cd"}
-	cd         {set input_port "microphone"}
-	*          {error "unknown port $input_port"}
-  }
-  
-  mbus_send "R" "audio.input.port" [mbus_encode_str $input_port]
+    global input_port input_ports
+
+    set len [llength $input_ports]
+# lsearch returns -1 if not found, index otherwise
+    set idx [lsearch -exact $input_ports $input_port] 
+    
+    incr idx
+    set idx [expr $idx % $len]
+    set port [lindex $input_ports $idx]
+
+    mbus_send "R" "audio.input.port" [mbus_encode_str $port]
 }
- 
 
 proc toggle_output_port {} {
-  global output_port
-  
-  switch $output_port {
-  	speaker   {set output_port "line_out"}
-	line_out  {set output_port "headphone"}
-	headphone {set output_port "speaker"}
-	*         {error "unknown port $output_port"}
-  }
+    global output_port output_ports
 
-  mbus_send "R" "audio.output.port" [mbus_encode_str $output_port]
+    set len [llength $output_ports]
+# lsearch returns -1 if not found, index otherwise
+    set idx [lsearch -exact $output_ports $output_port] 
+    
+    incr idx
+    set idx [expr $idx % $len]
+    set port [lindex $output_ports $idx]
+
+    mbus_send "R" "audio.output.port" [mbus_encode_str $port]
 }
 
 proc mbus_heartbeat {} {
@@ -196,18 +200,22 @@ proc mbus_recv {cmnd args} {
 		audio.channel.repair 		{eval mbus_recv_audio.channel.repair $args}
 		audio.input.gain  		{eval mbus_recv_audio.input.gain $args}
 		audio.input.port  		{eval mbus_recv_audio.input.port $args}
+		audio.input.ports.add           {eval mbus_recv_audio.input.ports.add $args}
+		audio.input.ports.flush         {eval mbus_recv_audio.input.ports.flush $args}
 		audio.input.mute  		{eval mbus_recv_audio.input.mute $args}
 		audio.input.powermeter  	{eval mbus_recv_audio.input.powermeter $args}
 		audio.output.gain  		{eval mbus_recv_audio.output.gain $args}
 		audio.output.port  		{eval mbus_recv_audio.output.port $args}
+		audio.output.ports.add          {eval mbus_recv_audio.output.ports.add $args}
+		audio.output.ports.flush        {eval mbus_recv_audio.output.ports.flush $args}
 		audio.output.mute  		{eval mbus_recv_audio.output.mute $args}
 		audio.output.powermeter  	{eval mbus_recv_audio.output.powermeter $args}
 		audio.file.play.ready   	{eval mbus_recv_audio.file.play.ready   $args}
 		audio.file.play.alive   	{eval mbus_recv_audio.file.play.alive $args}
 		audio.file.record.ready 	{eval mbus_recv_audio.file.record.ready $args}
 		audio.file.record.alive 	{eval mbus_recv_audio.file.record.alive $args}
-		audio.devices               {eval mbus_recv_audio_devices $args}
-		audio.device                {eval mbus_recv_audio_device $args}
+		audio.devices                   {eval mbus_recv_audio_devices $args}
+		audio.device                    {eval mbus_recv_audio_device $args}
 		session.title  			{eval mbus_recv_session.title $args}
 		session.address  		{eval mbus_recv_session.address $args}
 		rtp.cname  			{eval mbus_recv_rtp.cname $args}
@@ -578,11 +586,26 @@ proc mbus_recv_audio.input.gain {new_gain} {
     .r.c.gain.s2 set $gain
 }
 
+proc mbus_recv_audio.input.ports.flush {} {
+    global input_ports 
+    set input_ports [list]
+}
+
+proc mbus_recv_audio.input.ports.add {port} {
+    global input_ports
+    lappend input_ports "$port"
+    puts "Input ports $input_ports"
+}
+
 proc mbus_recv_audio.input.port {device} {
-	global input_port
-	set input_port $device
-	.r.c.gain.l2 configure -bitmap $device
-	puts "set iport $input_port"
+    set err ""
+    catch {
+	configure_input_port $device
+	set tmp ""
+    } err
+	if {$err != ""} {
+	    puts "error: $err"
+	}
 }
 
 proc mbus_recv_audio.input.mute {val} {
@@ -606,8 +629,25 @@ proc mbus_recv_audio.output.gain {gain} {
 
 proc mbus_recv_audio.output.port {device} {
 	global output_port
-	set output_port $device
-	.r.c.vol.l1 configure -bitmap $device
+    set err ""
+    catch {
+	configure_output_port $device
+	set a ""
+    } err
+	if {$err != ""} {
+	    puts "Output port error: $err"
+	}
+}
+
+proc mbus_recv_audio.output.ports.flush {} {
+    global output_ports
+    set output_ports [list]
+}
+
+proc mbus_recv_audio.output.ports.add {port} {
+    global output_ports
+    lappend output_ports "$port"
+    puts "Output ports $output_ports"
 }
 
 proc mbus_recv_audio.output.mute {val} {
@@ -1181,6 +1221,49 @@ proc 3d_delete_parameters {cname} {
     }
 }
 
+proc bitmap_input_port {port} {
+    set port [string tolower $port]
+    switch -glob $port {
+	mic* {return "microphone"}
+	lin* {return "line_in"}
+	cd*  {return "cd"}
+	default {return ""}
+    }
+}
+
+proc bitmap_output_port {port} {
+    set port [string tolower $port]
+    switch -glob $port {
+	speak* {return "speaker"}
+	lin*   {return "line_out"}
+	head*  {return "headphone"}
+	default {return ""}
+    }
+}
+
+proc configure_input_port {port} {
+    global input_port
+    set bitmap [bitmap_input_port $port]
+    if {$bitmap != ""} {
+	.r.c.gain.l2 configure -bitmap $bitmap
+    } else {
+	.r.c.gain.l2 configure -text $port
+    }
+    set input_port $port
+}
+
+proc configure_output_port {port} {
+    global output_port
+    set bitmap [bitmap_output_port $port]
+
+    if {$bitmap != ""} {
+	.r.c.vol.l1 configure -bitmap $bitmap
+    } else {
+	.r.c.vol.l1 configure -text $port
+    }
+    set output_port $port
+}
+
 proc do_quit {} {
 	catch {
 		profile off pdat
@@ -1233,7 +1316,6 @@ bind .l.t.list <Configure> {fix_scrollbar}
 # Device output controls
 set out_mute_var 0
 button .r.c.vol.t1 -highlightthickness 0 -pady 0 -padx 0 -text mute -command {toggle out_mute_var; output_mute $out_mute_var}
-set output_port "speaker"
 button .r.c.vol.l1 -pady 0 -padx 0 -highlightthickness 0 -command toggle_output_port
 bargraphCreate .r.c.vol.b1
 scale .r.c.vol.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -relief raised -showvalue false -width 10 -variable volume
@@ -1247,7 +1329,7 @@ pack .r.c.vol.s1 -side top  -fill x -expand 1
 # Device input controls
 set in_mute_var 1
 button .r.c.gain.t2 -highlightthickness 0 -pady 0 -padx 0 -text mute -command {toggle in_mute_var; input_mute $in_mute_var}
-set input_port "microphone"
+
 button .r.c.gain.l2 -highlightthickness 0 -command toggle_input_port 
 bargraphCreate .r.c.gain.b2
 scale .r.c.gain.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10 -variable gain

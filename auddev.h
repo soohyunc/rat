@@ -72,12 +72,17 @@ int	audio_read          (audio_desc_t ad, sample *buf, int samples);
 int	audio_write         (audio_desc_t ad, sample *buf, int samples);
 void	audio_non_block     (audio_desc_t ad);
 void	audio_block         (audio_desc_t ad);
-void	audio_set_oport     (audio_desc_t ad, int port);
-int	audio_get_oport     (audio_desc_t ad);
-int	audio_next_oport    (audio_desc_t ad);
-void	audio_set_iport     (audio_desc_t ad, int port);
-int	audio_get_iport     (audio_desc_t ad);
-int	audio_next_iport    (audio_desc_t ad);
+
+void	                    audio_set_oport         (audio_desc_t ad, audio_port_t);
+audio_port_t                audio_get_oport         (audio_desc_t ad);
+int	                    audio_get_oport_count   (audio_desc_t ad);
+const audio_port_details_t* audio_get_oport_details (audio_desc_t ad, int port_idx);
+
+void	                    audio_set_iport         (audio_desc_t ad, audio_port_t);
+audio_port_t                audio_get_iport         (audio_desc_t ad);
+int	                    audio_get_iport_count   (audio_desc_t ad);
+const audio_port_details_t* audio_get_iport_details (audio_desc_t ad, int port_idx);
+
 int     audio_is_ready      (audio_desc_t ad);
 void    audio_wait_for      (audio_desc_t ad, int granularity_ms);
 

@@ -352,20 +352,32 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 void
 ui_update_input_port(session_struct *sp)
 {
-	switch (audio_get_iport(sp->audio_device)) {
-	case AUDIO_MICROPHONE:
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.input.port", "\"microphone\"", TRUE);
-		break;
-	case AUDIO_LINE_IN:
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.input.port", "\"line_in\"", TRUE);
-		break;	
-	case AUDIO_CD:
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.input.port", "\"cd\"", TRUE);
-		break;
-	default:
-		fprintf(stderr, "Invalid input port!\n");
-		return ;
-	}
+        const audio_port_details_t *apd;
+        audio_port_t port;
+        char        *mbes; 
+        int          i, n, found;
+        
+        port = audio_get_iport(sp->audio_device);
+
+        found = FALSE;
+        n = audio_get_iport_count(sp->audio_device);
+        for(i = 0; i < n; i++) {
+                apd = audio_get_iport_details(sp->audio_device, i);
+                if (apd->port == port) {
+                        found = TRUE;
+                        break;
+                }
+        }
+
+        if (found == FALSE) {
+                debug_msg("Port %d not found!\n", port);
+                apd = audio_get_iport_details(sp->audio_device, 0);
+        }
+
+        mbes = mbus_encode_str(apd->name);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.input.port", mbes, TRUE);
+        xfree(mbes);
+
 	if (tx_is_sending(sp->tb)) {
 		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.input.mute", "0", TRUE);
 	} else {
@@ -376,20 +388,33 @@ ui_update_input_port(session_struct *sp)
 void
 ui_update_output_port(session_struct *sp)
 {
-	switch (audio_get_oport(sp->audio_device)) {
-	case AUDIO_SPEAKER:
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.port", "speaker", TRUE);
-		break;
-	case AUDIO_HEADPHONE:
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.port", "headphone", TRUE);
-		break;
-	case AUDIO_LINE_OUT:
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.port", "line_out", TRUE);
-		break;
-	default:
-		fprintf(stderr, "Invalid output port!\n");
-		return;
-	}
+        const audio_port_details_t *apd;
+        audio_port_t port;
+        char        *mbes; 
+        int          i, n, found;
+        
+        port = audio_get_oport(sp->audio_device);
+
+        found = FALSE;
+        n = audio_get_oport_count(sp->audio_device);
+        for(i = 0; i < n; i++) {
+                apd = audio_get_oport_details(sp->audio_device, i);
+                if (apd->port == port) {
+                        found = TRUE;
+                        break;
+                }
+        }
+
+        if (found == FALSE) {
+                debug_msg("Port %d not found!\n", port);
+                apd = audio_get_oport_details(sp->audio_device, 0);
+        }
+
+        mbes = mbus_encode_str(apd->name);
+
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.port", mbes, TRUE);
+        xfree(mbes);
+
 	if (sp->playing_audio) {
 		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.mute", "0", TRUE);
 	} else {
@@ -607,6 +632,42 @@ ui_update_3d_enabled(session_struct *sp)
 }
 
 static void
+ui_input_ports(session_struct *sp)
+{
+        const audio_port_details_t *apd;
+        char *mbes;
+        int i, n;
+        
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.input.ports.flush", "", TRUE);
+
+        n = audio_get_iport_count(sp->audio_device);
+        for(i = 0; i < n; i++) {
+                apd = audio_get_iport_details(sp->audio_device, i);
+                mbes = mbus_encode_str(apd->name);
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.input.ports.add", mbes, TRUE);
+                xfree(mbes);
+        }
+}
+
+static void
+ui_output_ports(session_struct *sp)
+{
+        const audio_port_details_t *apd;
+        char *mbes;
+        int i, n;
+        
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.ports.flush", "", TRUE);
+
+        n = audio_get_oport_count(sp->audio_device);
+        for(i = 0; i < n; i++) {
+                apd = audio_get_oport_details(sp->audio_device, i);
+                mbes = mbus_encode_str(apd->name);
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.ports.add", mbes, TRUE);
+                xfree(mbes);
+        }
+}
+
+static void
 ui_devices(session_struct *sp)
 {
         audio_device_details_t ad;
@@ -648,6 +709,8 @@ ui_device(session_struct *sp)
                 mbes = mbus_encode_str(cur_dev);
                 mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.device", mbes, TRUE);
                 xfree(mbes);
+                ui_input_ports(sp);
+                ui_output_ports(sp);
         }
 }
 

@@ -48,11 +48,17 @@
 #include "memory.h"
 #include "debug.h"
 
-static int iport = AUDIO_MICROPHONE;
+#define LUIGI_SPEAKER    0x101
+#define LUIGI_MICROPHONE 0x201
+#define LUIGI_LINE_IN    0x202
+#define LUIGI_CD         0x203
+
+static int iport = LUIGI_MICROPHONE;
 static snd_chan_param pa;
 static struct snd_size sz;
 
 static int audio_fd = -1;
+
 
 #define RAT_TO_DEVICE(x) ((x) * 100 / MAX_AMP)
 #define DEVICE_TO_RAT(x) ((x) * MAX_AMP / 100)
@@ -150,7 +156,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 luigi_audio_set_igain(audio_fd, MAX_AMP / 2);
                 luigi_audio_set_ogain(audio_fd, MAX_AMP / 2);
                 /* Select microphone input. We can't select output source...  */
-                luigi_audio_set_iport(audio_fd, iport);
+                luigi_audio_iport_set(audio_fd, iport);
                 /* Turn off loopback from input to output... */
                 LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
 
@@ -299,26 +305,35 @@ luigi_audio_loopback(audio_desc_t ad, int gain)
 }
 
 void
-luigi_audio_set_oport(audio_desc_t ad, int port)
+luigi_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
 	UNUSED(ad); assert(audio_fd > 0);
-	UNUSED(port);
-
+        UNUSED(port);
 	return;
 }
 
 int
-luigi_audio_get_oport(audio_desc_t ad)
+luigi_audio_oport_get(audio_desc_t ad)
 {
 	UNUSED(ad); assert(audio_fd > 0);
-	return AUDIO_HEADPHONE;
+	return LUIGI_SPEAKER;
 }
 
 int
-luigi_audio_next_oport(audio_desc_t ad)
+luigi_audio_oport_count(audio_desc_t ad)
 {
-	UNUSED(ad); assert(audio_fd > 0);
-	return AUDIO_HEADPHONE;
+        UNUSED(ad);
+        return 1;
+}
+
+static const audio_port_details_t out_ports[] = {{ LUIGI_SPEAKER, AUDIO_PORT_SPEAKER }};
+
+const audio_port_details_t*
+luigi_audio_oport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        UNUSED(idx);
+        return out_ports;
 }
 
 void
@@ -329,15 +344,15 @@ luigi_audio_set_igain(audio_desc_t ad, int gain)
         UNUSED(ad); assert(audio_fd > 0);
 
 	switch (iport) {
-	case AUDIO_MICROPHONE:
+	case LUIGI_MICROPHONE:
 		if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_MIC), &volume) < 0)
 			perror("Setting gain");
 		break;
-	case AUDIO_LINE_IN:
+	case LUIGI_LINE_IN:
 		if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_LINE), &volume) < 0)
 			perror("Setting gain");
 		break;
-	case AUDIO_CD:
+	case LUIGI_CD:
 		if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_CD), &volume) < 0) {
 			perror("Setting gain");
                 }
@@ -354,13 +369,13 @@ luigi_audio_get_igain(audio_desc_t ad)
         UNUSED(ad); assert(audio_fd > 0);
 
 	switch (iport) {
-	case AUDIO_MICROPHONE:
+	case LUIGI_MICROPHONE:
 		LUIGI_AUDIO_IOCTL(audio_fd, MIXER_READ(SOUND_MIXER_MIC), &volume);
 		break;
-	case AUDIO_LINE_IN:
+	case LUIGI_LINE_IN:
 		LUIGI_AUDIO_IOCTL(audio_fd, MIXER_READ(SOUND_MIXER_LINE), &volume);
 		break;
-	case AUDIO_CD:
+	case LUIGI_CD:
 		LUIGI_AUDIO_IOCTL(audio_fd, MIXER_READ(SOUND_MIXER_CD), &volume);
 		break;
 	default:
@@ -369,8 +384,16 @@ luigi_audio_get_igain(audio_desc_t ad)
 	return (DEVICE_TO_RAT(volume & 0xff));
 }
 
+static audio_port_details_t in_ports[] = {
+        { LUIGI_MICROPHONE, AUDIO_PORT_MICROPHONE},
+        { LUIGI_LINE_IN,    AUDIO_PORT_LINE_IN},
+        { LUIGI_CD,         AUDIO_PORT_CD}
+};
+
+#define NUM_IN_PORTS (sizeof(in_ports)/sizeof(in_ports[0]))
+
 void
-luigi_audio_set_iport(audio_desc_t ad, int port)
+luigi_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
 	int recmask, gain, src;
 
@@ -382,13 +405,13 @@ luigi_audio_set_iport(audio_desc_t ad, int port)
 	}
 
 	switch (port) {
-	case AUDIO_MICROPHONE:
+	case LUIGI_MICROPHONE:
 		src = SOUND_MASK_MIC;
 		break;
-	case AUDIO_LINE_IN:
+	case LUIGI_LINE_IN:
 		src = SOUND_MASK_LINE;
 		break;
-	case AUDIO_CD:
+	case LUIGI_CD:
 		src = SOUND_MASK_CD;
 		break;
 	}
@@ -404,40 +427,26 @@ luigi_audio_set_iport(audio_desc_t ad, int port)
 	luigi_audio_set_igain(ad, gain);
 }
 
-int
-luigi_audio_get_iport(audio_desc_t ad)
+audio_port_t
+luigi_audio_iport_get(audio_desc_t ad)
 {
 	UNUSED(ad); assert(audio_fd > 0);
 	return iport;
 }
 
 int
-luigi_audio_next_iport(audio_desc_t ad)
+luigi_audio_iport_count(audio_desc_t ad)
 {
-        int target = 0;
-        UNUSED(ad); assert(audio_fd > 0);
+        UNUSED(ad);
+        return NUM_IN_PORTS;
+}
 
-	switch (iport) {
-	case AUDIO_MICROPHONE:
-                target = AUDIO_LINE_IN;
-		break;
-	case AUDIO_LINE_IN:
-                target = AUDIO_CD;
-		break;
-	case AUDIO_CD:
-		target = AUDIO_MICROPHONE;
-		break;
-	default:
-		printf("Unknown audio source!\n");
-	}
-
-        luigi_audio_set_iport(ad, target);
-        if (iport != target) {
-                /* We may not have line or cd but should always have mic */
-                luigi_audio_set_iport(ad, AUDIO_MICROPHONE);
-        }
-
-	return (iport);
+const audio_port_details_t *
+luigi_audio_iport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        assert(idx < (int)NUM_IN_PORTS && idx >= 0);
+        return in_ports + idx;
 }
 
 void
