@@ -499,7 +499,11 @@ void settings_load_late(session_t *sp)
         rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PHONE, field, strlen(field));
 	field = setting_load_str("rtpLoc", "");
         rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC,   field, strlen(field));
-        field = RAT_VERSION;
+#ifdef WIN32
+	field = (char *) w32_make_version_info(RAT_VERSION);
+#else
+	field = RAT_VERSION;
+#endif
 	rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_TOOL,  field, strlen(field));
         init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 	load_done();

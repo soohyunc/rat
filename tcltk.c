@@ -136,6 +136,7 @@ tcl_init1(int argc, char **argv)
 	Tk_DefineBitmap(interp, Tk_GetUid("rec"),  rec_bits,  rec_width,  rec_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("pause"), pause_bits, pause_width, pause_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("stop"),  stop_bits,  stop_width,  stop_height);
+	Tcl_Eval(interp, "wm withdraw .");
         while (Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS)) {
 		/* Process Tcl/Tk events */
 	}

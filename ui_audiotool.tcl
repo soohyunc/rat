@@ -2803,3 +2803,6 @@ if { $script_error != "" } {
     destroy .
     exit -1
 }
+
+wm deiconify .
+

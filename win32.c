@@ -424,35 +424,41 @@ RegGetValue(HKEY* key, char *subkey, char *value, char *dst, int dlen)
         return TRUE;
 }
 
-#define MAX_VERSION_STRING_LEN 64
+#define MAX_VERSION_STRING_LEN 256
 const char*
 w32_make_version_info(char *szRatVer) 
 {
-        static char szVer[MAX_VERSION_STRING_LEN];
-        OSVERSIONINFO oi;
-
-        /* This could be better */
+	char		platform[64];
+        static char	szVer[MAX_VERSION_STRING_LEN];
+        OSVERSIONINFO	oi;
 
         oi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
         GetVersionEx(&oi);
 
         switch(oi.dwPlatformId) {
-        case VER_PLATFORM_WIN32_NT:
-                sprintf(szVer, "%s Windows NT (%d.%d)", szRatVer, oi.dwMajorVersion, oi.dwMinorVersion);
-                break;
-        case VER_PLATFORM_WIN32_WINDOWS:
-                if (oi.dwMajorVersion > 4 ||
-                   (oi.dwMajorVersion == 4 && oi.dwMinorVersion > 0)) {
-                        sprintf(szVer, "%s Windows 98 (%d.%d)", szRatVer, oi.dwMajorVersion, oi.dwMinorVersion);
-                } else {
-                        sprintf(szVer, "%s Windows 95 (%d.%d)", szRatVer, oi.dwMajorVersion, oi.dwMinorVersion);
-                }
-                break;
-        default:
-                /* No idea what this could be :-)*/
-                sprintf(szVer, "%s Windows (Unknown... beta tester, huh?)", szRatVer);
+	        case VER_PLATFORM_WIN32_NT:
+			sprintf(platform, "Windows NT");
+			break;
+		case VER_PLATFORM_WIN32_WINDOWS:
+			if (oi.dwMinorVersion > 0) {
+				sprintf(platform, "Windows 98");
+			} else {
+				sprintf(platform, "Windows 95");
+			}
+			break;
+		case  VER_PLATFORM_WIN32s:
+			sprintf(platform, "Win32s");
+		        break;
+		default:
+			sprintf(platform, "Windows (unknown)");
         }
 
+	sprintf(szVer, "%s %s %d.%d %s", 
+		szRatVer, 
+		platform, 
+		oi.dwMajorVersion, 
+		oi.dwMinorVersion, 
+		oi.szCSDVersion);
         return szVer;
 }
 
