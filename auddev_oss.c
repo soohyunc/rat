@@ -535,7 +535,7 @@ audio_switch_in(int audio_fd)
 }
 
 int
-audio_blocksize(void)
+audio_get_blocksize(void)
 {
 	return blocksize;
 }
