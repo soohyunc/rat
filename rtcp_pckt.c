@@ -340,7 +340,7 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
                 } else {
                         ui_update_duration(sp, dbe->sentry->ssrc, dbe->units_per_packet * 20);
                 }
-                ui_update_loss(sp, sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->lost_frac * 100) >> 8);
+                ui_update_loss(sp, sp->db->my_dbe->sentry->ssrc, dbe->sentry->ssrc, (dbe->lost_frac * 100) >> 8);
                 jit = ceil(dbe->jitter * 1000/get_freq(dbe->clock));
                 ui_update_reception(sp, dbe->sentry->ssrc, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->duplicates, (u_int32)jit, dbe->jit_TOGed);
                 ui_update_stats(sp, dbe);
@@ -502,14 +502,14 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				dbe->rr      = rr;
 				other_source = rtcp_getornew_dbentry(sp, rr->ssrc, cur_time);
 				if (dbe->sentry->cname != NULL) {
-					ui_update_loss(sp, dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
+					ui_update_loss(sp, dbe->sentry->ssrc, other_source->sentry->ssrc, (int) ((rr->fraction_lost / 2.56)+0.5));
 				}
 				/* is it reporting on my traffic? */
 				if ((rr->ssrc == sp->db->myssrc) && (dbe->sentry->cname != NULL)) {
 					/* Need to store stats in ssrc's db */
 					dbe->loss_from_me = rr->fraction_lost;
 					dbe->last_rr_for_me = cur_time;
-					ui_update_loss(sp, dbe->sentry->cname, sp->db->my_dbe->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5)); 
+					ui_update_loss(sp, dbe->sentry->ssrc, sp->db->my_dbe->sentry->ssrc, (int) ((rr->fraction_lost / 2.56)+0.5)); 
 					/* Work out the round-trip-time... */
 					debug_msg("rtt %x %f\n", ntohl(pkt->r.sr.ssrc), ((double) (real_time - rr->lsr - rr->dlsr)) / 65536.0);
 				}
@@ -547,14 +547,14 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				dbe->rr = rr;
 				other_source =  rtcp_getornew_dbentry(sp, rr->ssrc, cur_time);
 				if (dbe->sentry->cname != NULL) {
-					ui_update_loss(sp, dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
+					ui_update_loss(sp, dbe->sentry->ssrc, other_source->sentry->ssrc, (int) ((rr->fraction_lost / 2.56)+0.5));
 				}
 				/* is it reporting on my traffic? */
 				if ((rr->ssrc == sp->db->myssrc) && (dbe->sentry->cname != NULL)) {
 					/* Need to store stats in ssrc's db not r.rr.ssrc's */
 					dbe->loss_from_me = rr->fraction_lost;
 					dbe->last_rr_for_me = cur_time;
-					ui_update_loss(sp, dbe->sentry->cname, sp->db->my_dbe->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5)); 
+					ui_update_loss(sp, dbe->sentry->ssrc, sp->db->my_dbe->sentry->ssrc, (int) ((rr->fraction_lost / 2.56)+0.5)); 
 					/* Work out the round-trip-time... */
 					debug_msg("rtt %x %f\n", ntohl(pkt->r.rr.ssrc), ((double) (real_time - rr->lsr - rr->dlsr)) / 65536.0);
 				}

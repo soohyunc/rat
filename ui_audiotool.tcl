@@ -48,32 +48,41 @@ set input_ports         [list]
 set output_ports        [list]
 
 proc init_source {ssrc} {
-	global CNAME NAME EMAIL LOC PHONE TOOL NOTE num_ssrc 
+	global CNAME NAME EMAIL LOC PHONE TOOL NOTE SSRC num_ssrc 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER \
 		LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED BUFFER_SIZE PLAYOUT_DELAY
 
+	# This is a debugging test -- old versions of the mbus used the
+	# cname to identify participants, whilst the newer version uses 
+	# the ssrc.  This check detects if old style commands are being
+	# used and raises an error if so.
+	if [regexp {.*@[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} "$ssrc"] {
+		error "ssrc $ssrc invalid"
+	}
+
 	if {[array names INDEX $ssrc] != [list $ssrc]} {
 		# This is a source we've not seen before...
-		set        CNAME($ssrc) ""
-		set         NAME($ssrc) "$ssrc"
-		set        EMAIL($ssrc) ""
-		set        PHONE($ssrc) ""
-		set          LOC($ssrc) ""
-		set         TOOL($ssrc) ""
-		set	    NOTE($ssrc) ""
-		set        CODEC($ssrc) unknown
-		set     DURATION($ssrc) ""
-                set  BUFFER_SIZE($ssrc) 0
+		set         CNAME($ssrc) ""
+		set          NAME($ssrc) "$ssrc"
+		set         EMAIL($ssrc) ""
+		set         PHONE($ssrc) ""
+		set           LOC($ssrc) ""
+		set          TOOL($ssrc) ""
+		set 	     NOTE($ssrc) ""
+		set         CODEC($ssrc) unknown
+		set      DURATION($ssrc) ""
+                set   BUFFER_SIZE($ssrc) 0
                 set PLAYOUT_DELAY($ssrc) 0
-		set   PCKTS_RECV($ssrc) 0
-		set   PCKTS_LOST($ssrc) 0
-		set   PCKTS_MISO($ssrc) 0
-		set   PCKTS_DUP($ssrc)  0
-		set       JITTER($ssrc) 0
-		set    JIT_TOGED($ssrc) 0
-		set   LOSS_TO_ME($ssrc) 101
-		set LOSS_FROM_ME($ssrc) 101
-		set        INDEX($ssrc) $num_ssrc
+		set    PCKTS_RECV($ssrc) 0
+		set    PCKTS_LOST($ssrc) 0
+		set    PCKTS_MISO($ssrc) 0
+		set     PCKTS_DUP($ssrc) 0
+		set        JITTER($ssrc) 0
+		set     JIT_TOGED($ssrc) 0
+		set    LOSS_TO_ME($ssrc) 101
+		set  LOSS_FROM_ME($ssrc) 101
+		set         INDEX($ssrc) $num_ssrc
+		set          SSRC($ssrc) $ssrc
 		incr num_ssrc
 		chart_enlarge $num_ssrc 
 		chart_label   $ssrc
@@ -206,6 +215,7 @@ proc mbus_recv {cmnd args} {
 		rtp.ssrc  			{eval mbus_recv_rtp.ssrc $args}
 		rtp.source.exists  		{eval mbus_recv_rtp.source.exists $args}
 		rtp.source.remove  		{eval mbus_recv_rtp.source.remove $args}
+		rtp.source.cname  		{eval mbus_recv_rtp.source.cname $args}
 		rtp.source.name  		{eval mbus_recv_rtp.source.name $args}
 		rtp.source.email  		{eval mbus_recv_rtp.source.email $args}
 		rtp.source.phone  		{eval mbus_recv_rtp.source.phone $args}
@@ -666,6 +676,14 @@ proc mbus_recv_rtp.source.exists {ssrc} {
 	ssrc_update $ssrc
 }
 
+proc mbus_recv_rtp.source.cname {ssrc cname} {
+	global CNAME
+	init_source $ssrc
+	set CNAME($ssrc) $cname
+	chart_label $ssrc
+	ssrc_update $ssrc
+}
+
 proc mbus_recv_rtp.source.name {ssrc name} {
 	global NAME
 	init_source $ssrc
@@ -1101,7 +1119,7 @@ proc toggle_stats {ssrc} {
 	frame $win.df.personal 
 	pack  $win.df $win.df.personal -fill x
 
-	global NAME EMAIL PHONE LOC NOTE CNAME TOOL
+	global NAME EMAIL PHONE LOC NOTE CNAME TOOL SSRC
 	stats_add_field $win.df.personal.1 "Name: "     NAME($ssrc)
 	stats_add_field $win.df.personal.2 "Email: "    EMAIL($ssrc)
 	stats_add_field $win.df.personal.3 "Phone: "    PHONE($ssrc)
@@ -1109,6 +1127,7 @@ proc toggle_stats {ssrc} {
 	stats_add_field $win.df.personal.5 "Note: "     NOTE($ssrc)
 	stats_add_field $win.df.personal.6 "Tool: "     TOOL($ssrc)
 	stats_add_field $win.df.personal.7 "CNAME: "    CNAME($ssrc)
+	stats_add_field $win.df.personal.8 "SSRC: "     SSRC($ssrc)
 
 	frame $win.df.reception
 	global CODEC DURATION BUFFER_SIZE PLAYOUT_DELAY PCKTS_RECV PCKTS_LOST PCKTS_MISO \

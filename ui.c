@@ -677,22 +677,12 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 }
 
 void
-ui_update_loss(session_struct *sp, char *srce, char *dest, int loss)
+ui_update_loss(session_struct *sp, u_int32 srce, u_int32 dest, int loss)
 {
-	char	*srce_e, *dest_e, *args;
+	char	args[30];
 
-	if ((srce == NULL) || (dest == NULL)) {
-		return;
-	}
-
- 	srce_e = mbus_encode_str(srce);
-	dest_e = mbus_encode_str(dest);
-	args   = (char *) xmalloc(strlen(srce_e) + strlen(dest_e) + 6);
-	sprintf(args, "%s %s %3d", srce_e, dest_e, loss);
+	sprintf(args, "%08ld %08ld %3d", srce, dest, loss);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
-	xfree(args);
-	xfree(srce_e);
-	xfree(dest_e);
 }
 
 void

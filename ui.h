@@ -47,7 +47,7 @@ void	ui_update_powermeters(struct session_tag *sp, struct s_mix_info *ms, int el
 void	ui_update_stats(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	ui_update_lecture_mode(struct session_tag *session_pointer);
 void	ui_update(struct session_tag *session_pointer);
-void	ui_update_loss(struct session_tag *s, char *srce, char *dest, int loss);
+void	ui_update_loss(struct session_tag *sp, u_int32 srce, u_int32 dest, int loss);
 void	ui_update_reception(struct session_tag *s, u_int32 ssrc, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog);
 void	ui_update_duration(struct session_tag *s, u_int32 ssrc, int duration);
 
