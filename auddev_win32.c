@@ -846,7 +846,6 @@ audio_set_gain(int audio_fd, int level)
                         mcd.cbDetails      = sizeof(MIXERCONTROLDETAILS_UNSIGNED);
                         mcd.paDetails      = &mcduDevLevel;
                         mcduDevLevel.dwValue = ((mcMixIn[curMixIn].dwUpperBound[i] - mcMixIn[curMixIn].dwLowerBound[i])/100) * level + mcMixIn[curMixIn].dwLowerBound[i];
-                        fprintf(stderr, "audio_set_gain rat %d dev %d\n", level, mcduDevLevel.dwValue);
                         play_vol   = level;
                         r = mixerSetControlDetails((HMIXEROBJ)hMixIn, &mcd, MIXER_OBJECTF_HMIXER);
                         switch (r) {
