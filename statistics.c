@@ -167,6 +167,7 @@ adapt_playout(rtp_hdr_t *hdr,
               rtcp_dbentry *src,
 	      session_struct *sp, 
               struct s_cushion_struct *cushion, 
+	      u_int32 cur_time,
 	      u_int32 real_time)
 {
 	u_int32	playout, var;
@@ -175,7 +176,7 @@ adapt_playout(rtp_hdr_t *hdr,
 	int	delay, diff;
 	codec_t	*cp;
 	u_int32	ntptime, sendtime, play_time;
-        int     ntp_delay;
+        int     ntp_delay, since_last_sr;
 	u_int32	rtp_time;
         
 	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
@@ -200,16 +201,14 @@ adapt_playout(rtp_hdr_t *hdr,
 		/* calculate delay in absolute (real) time [dm] */ 
 		ntptime = (src->last_ntp_sec & 0xffff) << 16 | src->last_ntp_frac >> 16;
 		if (hdr->ts > src->last_rtp_ts) {
-#ifdef WIN32
-			sendtime = ntptime + ((__int64)(hdr->ts - src->last_rtp_ts) << 16) / get_freq(src->clock);
-#else
-			sendtime = ntptime + ((long long)(hdr->ts - src->last_rtp_ts) << 16) / get_freq(src->clock);
-#endif
+			since_last_sr = hdr->ts - src->last_rtp_ts;	
+			sendtime = ntptime + (since_last_sr << 16) / get_freq(src->clock);
 		}
-/*		else {
-			sendtime = ntptime + ((long long)(src->last_rtp_ts - hdr->ts) << 16) / get_freq(src->clock);
+		else {
+			since_last_sr = src->last_rtp_ts - hdr->ts;
+			sendtime = ntptime + (since_last_sr << 16) / get_freq(src->clock);
 		}
-*/
+
 		ntp_delay = real_time - sendtime; 
 		if (src->first_pckt_flag == TRUE) { 
 			src->sync_playout_delay = ntp_delay;
@@ -311,6 +310,7 @@ adapt_playout(rtp_hdr_t *hdr,
                         src->first_pckt_flag = TRUE;
                 }
         }
+printf("\t%u\t%u\t%u\t%u\t%d\t%u\n", (unsigned int)hdr->ts,  (unsigned int)sendtime, (unsigned int)real_time, (unsigned int)playout, ntp_delay, (unsigned int)src->playout_ceil);
 	return playout;
 }
 
@@ -461,7 +461,7 @@ statistics(session_struct    *sp,
                         update_req   = TRUE;
                 }
                 
-                playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
+                playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, cur_time, real_time);
                 src->units_per_packet = split_block(playout_pt, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
                 
                 if (!src->units_per_packet) {
