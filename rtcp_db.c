@@ -158,6 +158,8 @@ int rtcp_dbentry_valid(session_struct *sp, rtcp_dbentry *dbe)
 	return FALSE;
 #else
 	/* :-) */
+	UNUSED(sp);
+	UNUSED(dbe);
 	return TRUE;
 #endif
 }
