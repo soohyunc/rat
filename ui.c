@@ -95,13 +95,26 @@ ui_send(char *command)
 
 /*
  * Update the on screen information for the given participant
+ *
+ * Note: We must be careful, since the Mbus code uses the CNAME
+ *       for communication with the UI. In a few cases we have
+ *       valid state for a participant (ie: we've received an 
+ *       RTCP packet for that SSRC), but do NOT know their CNAME.
+ *       (For example, if the first packet we receive from a source
+ *       is an RTCP BYE piggybacked with an empty RR). In those 
+ *       cases, we just ignore the request and send nothing to the 
+ *       UI. [csp]
  */
 
 void
 ui_info_update_name(rtcp_dbentry *e, session_struct *sp)
 {
-	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
-	char *arg   = xstrdup(mbus_encode_str(e->sentry->name));
+	char *cname, *arg;
+
+	if (e->sentry->cname == NULL) return;
+
+	cname = xstrdup(mbus_encode_str(e->sentry->cname));
+	arg   = xstrdup(mbus_encode_str(e->sentry->name));
 
 	sprintf(args, "%s %s", cname, arg);
 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_name", args, TRUE);
@@ -112,6 +125,7 @@ ui_info_update_name(rtcp_dbentry *e, session_struct *sp)
 void
 ui_info_update_cname(rtcp_dbentry *e, session_struct *sp)
 {
+	if (e->sentry->cname == NULL) return;
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_exists", args, TRUE);
 }
@@ -119,8 +133,12 @@ ui_info_update_cname(rtcp_dbentry *e, session_struct *sp)
 void
 ui_info_update_email(rtcp_dbentry *e, session_struct *sp)
 {
-	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
-	char *arg   = xstrdup(mbus_encode_str(e->sentry->email));
+	char *cname, *arg;
+
+	if (e->sentry->cname == NULL) return;
+
+	cname = xstrdup(mbus_encode_str(e->sentry->cname));
+	arg   = xstrdup(mbus_encode_str(e->sentry->email));
 
 	sprintf(args, "%s %s", cname, arg);
 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_email", args, TRUE);
@@ -131,8 +149,12 @@ ui_info_update_email(rtcp_dbentry *e, session_struct *sp)
 void
 ui_info_update_phone(rtcp_dbentry *e, session_struct *sp)
 {
-	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
-	char *arg   = xstrdup(mbus_encode_str(e->sentry->phone));
+	char *cname, *arg;
+
+	if (e->sentry->cname == NULL) return;
+
+	cname = xstrdup(mbus_encode_str(e->sentry->cname));
+	arg   = xstrdup(mbus_encode_str(e->sentry->phone));
 
 	sprintf(args, "%s %s", cname, arg);
 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_phone", args, TRUE);
@@ -143,8 +165,12 @@ ui_info_update_phone(rtcp_dbentry *e, session_struct *sp)
 void
 ui_info_update_loc(rtcp_dbentry *e, session_struct *sp)
 {
-	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
-	char *arg   = xstrdup(mbus_encode_str(e->sentry->loc));
+	char *cname, *arg;
+
+	if (e->sentry->cname == NULL) return;
+
+	cname = xstrdup(mbus_encode_str(e->sentry->cname));
+	arg   = xstrdup(mbus_encode_str(e->sentry->loc));
 
 	sprintf(args, "%s %s", cname, arg);
 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_loc", args, TRUE);
@@ -167,6 +193,7 @@ ui_info_update_tool(rtcp_dbentry *e, session_struct *sp)
 void
 ui_info_remove(rtcp_dbentry *e, session_struct *sp)
 {
+	if (e->sentry->cname == NULL) return;
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_remove", args, TRUE);
 }
@@ -174,6 +201,7 @@ ui_info_remove(rtcp_dbentry *e, session_struct *sp)
 void
 ui_info_activate(rtcp_dbentry *e, session_struct *sp)
 {
+	if (e->sentry->cname == NULL) return;
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_active_now", args, FALSE);
 }
@@ -181,6 +209,7 @@ ui_info_activate(rtcp_dbentry *e, session_struct *sp)
 void
 ui_info_gray(rtcp_dbentry *e, session_struct *sp)
 {
+	if (e->sentry->cname == NULL) return;
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_active_recent", args, FALSE);
 }
@@ -188,6 +217,7 @@ ui_info_gray(rtcp_dbentry *e, session_struct *sp)
 void
 ui_info_deactivate(rtcp_dbentry *e, session_struct *sp)
 {
+	if (e->sentry->cname == NULL) return;
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_inactive", args, FALSE);
 }

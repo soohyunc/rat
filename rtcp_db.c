@@ -229,9 +229,6 @@ rtcp_getornew_dbentry(session_struct *sp, u_int32 ssrc, u_int32 addr, u_int32 cu
 	dbe = rtcp_get_dbentry(sp, ssrc);
 	if (!dbe) {
 		dbe = rtcp_new_dbentry(sp, ssrc, addr, cur_time);
-#ifdef NDEF		/* We don't have ui_info_update anymore! [csp]*/
-		ui_info_update(dbe);	/* HACK */
-#endif
 	}
 	return dbe;
 }
