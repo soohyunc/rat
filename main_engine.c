@@ -104,6 +104,8 @@ int main(int argc, char *argv[])
  	signal(SIGINT, signal_handler); 
 #endif
 
+        debug_set_core_dir(argv[0]);
+
         seed = (gethostid() << 8) | (getpid() & 0xff);
 	srand48(seed);
 	lbl_srandom(seed);

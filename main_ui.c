@@ -77,6 +77,8 @@ int main(int argc, char *argv[])
         hWakeUpEvent = CreateEvent(NULL, FALSE, FALSE, "Local\\RAT UI WakeUp Event");
 #endif
 
+        debug_set_core_dir(argv[0]);
+
 	debug_msg("rat-ui started argc=%d\n", argc);
 	parse_args(argc, argv);
 	tcl_init1(argc, argv);
