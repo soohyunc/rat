@@ -298,10 +298,15 @@ tx_read_audio(tx_buffer *tb)
                 time_advance(sp->clock, get_freq(sp->tb->clock), read_dur);
         }
         
-        if ((double)read_dur > 5.0 * sp->tb->mean_read_dur) {
+        if ((double)read_dur > 3.0 * sp->tb->mean_read_dur) {
                 debug_msg("Should clear transmit buffer because read_len big (%d cf %0.0f)\n",
                           read_dur,
                           sp->tb->mean_read_dur);
+                if (tb->sending_audio) {
+                        tx_stop(tb);
+                        tx_start(tb);
+                        debug_msg("Flushed transmit buffer\n");
+                }
         } 
 
         if (read_dur) {
