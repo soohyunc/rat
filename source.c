@@ -245,7 +245,12 @@ source_validate(source *s)
         assert(s->bps  >= 0);
 	assert((s->skew == SOURCE_SKEW_SLOW) || (s->skew == SOURCE_SKEW_FAST) ||( s->skew == SOURCE_SKEW_NONE));
 	assert((s->playout_mode == PLAYOUT_MODE_NORMAL) || (s->playout_mode == PLAYOUT_MODE_SPIKE));
-        assert((unsigned)s->pdbe->playout.ticks < 2 * ts_get_freq(s->pdbe->playout));
+	{
+		uint32_t	f;
+		f = ts_get_freq(s->pdbe->playout);
+
+	        assert((unsigned)s->pdbe->playout.ticks < 2 * f);
+	}
 #endif
 }
 
@@ -860,6 +865,9 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
  
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
+
+		debug_msg("%d %d\n", timestamp_to_ms(playout), timestamp_to_ms(now));
+		sanity_check_playout_time(now, playout);
 
 		/* At this point we know the desired playout time for this packet, */
 		/* and adjust_playout is set if this has changed from the previous */
