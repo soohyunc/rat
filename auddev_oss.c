@@ -76,7 +76,7 @@ int	bytes_per_block;
 
 /* Magic to get device names from OSS */
 
-#define OSS_MAX_DEVICES 3
+#define OSS_MAX_DEVICES   4
 #define OSS_MAX_NAME_LEN 64
 
 static int ndev;
@@ -177,14 +177,12 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 bytes_per_block = 20 * (ifmt->sample_rate / 1000) * (ifmt->bits_per_sample / 8);
                 /* Round to the nearest legal frag size (next power of two lower...) */
                 frag |= (int) (log(bytes_per_block)/log(2));
-                debug_msg("frag=%x bytes_per_block=%d\n", frag, bytes_per_block);
 		if ((ioctl(audio_fd[ad], SNDCTL_DSP_SETFRAGMENT, &frag) == -1)) {
-			printf("Cannot set the fragement size\n");
+			printf("auddev_oss: Cannot set fragement size (frag=%x bytes_per_block=%d)\n", frag, bytes_per_block);
 		}
 
 		if (ioctl(audio_fd[ad], SNDCTL_DSP_SETDUPLEX, 0) == -1) {
-			printf("Cannot enable full-duplex mode. Are you sure your hardware supports\n");
-			printf("full duplex operation? Look for the word `DUPLEX' in /dev/sndstat. \n");
+			printf("auddev_oss: Audio device doesn't support full duplex operation\n");
                         return FALSE;
 		}
 
@@ -197,7 +195,7 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                                         oss_audio_close(ad);
                                         return FALSE;
                                 }
-                                debug_msg("Using mu-law\n");
+                                printf("auddev_oss: Audio device doesn't support 16bit audio, using 8 bit PCMU\n");
                         }
 		}
 
@@ -209,14 +207,14 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 stereo = ifmt->channels - 1; 
                 assert(stereo == 0 || stereo == 1);
 		if ((ioctl(audio_fd[ad], SNDCTL_DSP_STEREO, &stereo) == -1) || (stereo != (ifmt->channels - 1))) {
-			printf("Audio device doesn't support %d channels!\n", ifmt->channels);
+			printf("auddev_oss: Audio device doesn't support %d channels!\n", ifmt->channels);
                         oss_audio_close(ad);
                         return FALSE;
 		}
 
                 speed = ifmt->sample_rate;
 		if (ioctl(audio_fd[ad], SNDCTL_DSP_SPEED, &speed) == -1) {
-			printf("Audio device doesn't support %dHz sampling rate in full duplex!\n", ifmt->sample_rate);
+			printf("auddev_oss: Audio device doesn't support %dHz sampling rate in full duplex!\n", ifmt->sample_rate);
                         oss_audio_close(ad);
                         return FALSE;
 		}
@@ -238,7 +236,7 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		read(audio_fd[ad], buffer, 128);	
 		return audio_fd[ad];
 	} else {
-		printf("Unable to open %s\n", the_dev);
+		printf("auddev_oss: Unable to open %s\n", the_dev);
 		return FALSE;
 	}
 }
@@ -266,7 +264,6 @@ oss_audio_drain(audio_desc_t ad)
         assert(ad < OSS_MAX_DEVICES);
         assert(audio_fd[ad] > 0);
 
-	debug_msg("Draining audio buffer...\n");
         while(oss_audio_read(ad, buf, 160) == 160);
 }
 
@@ -326,7 +323,7 @@ oss_audio_set_igain(audio_desc_t ad, int gain)
 		}
 		return;
 	}
-	printf("ERROR: Unknown iport in audio_set_igain!\n");
+	printf("auddev_oss: ERROR: Unknown iport in audio_set_igain!\n");
 	abort();
 }
 
@@ -356,7 +353,7 @@ oss_audio_get_igain(audio_desc_t ad)
 		}
 		break;
 	default : 
-		printf("ERROR: Unknown iport in audio_set_igain!\n");
+		printf("auddev_oss: ERROR: Unknown iport in audio_set_igain!\n");
 		abort();
 	}
 	return device_to_bat(volume & 0xff);
@@ -417,7 +414,7 @@ oss_audio_loopback(audio_desc_t ad, int gain)
         gain = gain << 8 | gain;
         if (ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_IMIX), &gain) == -1) {
 #if defined(DEBUG) && !defined(HAVE_ALSA_AUDIO)
-                perror("loopback");
+                perror("auddev_oss: audio loopback");
 #endif
         }
 }
@@ -697,21 +694,20 @@ oss_audio_query_devices(void)
 	int	 	fd;
 	mixer_info	info;
 
-	debug_msg("Query audio devices...\n");
 	ndev = 0;
+
 	fd = open("/dev/mixer", O_RDWR);
 	if (fd > 0) {
 		if (ioctl(fd, SOUND_MIXER_INFO, &info) == 0) {
 			strncpy(dev_name[ndev], info.name, OSS_MAX_NAME_LEN);
-			purge_chars(dev_name[ndev],"\n");
-			debug_msg("Mixer device found: %s\n", dev_name[ndev]);
+			debug_msg("Found audio mixer: %s [%s]\n", info.name, info.id);
 			ndev++;
 		} else {
-			debug_msg("Cannot query mixer capabilities\n");
+			printf("auddev_oss: Cannot query mixer capabilities\n");
 		}
 		close(fd);
 	} else {
-		debug_msg("Cannot open /dev/mixer - no soundcard present?\n");
+		printf("auddev_oss: Cannot open /dev/mixer - no soundcard present?\n");
 	}
 
 	return ndev;
