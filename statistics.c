@@ -167,7 +167,6 @@ adapt_playout(rtp_hdr_t *hdr,
               rtcp_dbentry *src,
 	      session_struct *sp, 
               struct s_cushion_struct *cushion, 
-	      u_int32 cur_time,
 	      u_int32 real_time)
 {
 	u_int32	playout, var;
@@ -199,7 +198,6 @@ adapt_playout(rtp_hdr_t *hdr,
 	}
 
 	if (sp->sync_on) {
-		//real_time = ntp_time32(); /* cur_time should be passed be adapt_playout instead [dm] */
 		/* calculate delay in absolute (real) time [dm] */ 
 		ntptime = (src->last_ntp_sec & 0xffff) << 16 | src->last_ntp_frac >> 16;
 		if (hdr->ts >= src->last_rtp_ts) 
@@ -471,7 +469,7 @@ statistics(session_struct    *sp,
                         update_req   = TRUE;
                 }
                 
-                playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, cur_time, real_time);
+                playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
                 src->units_per_packet = split_block(playout_pt, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
                 
                 if (!src->units_per_packet) {
