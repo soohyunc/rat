@@ -69,10 +69,12 @@ audio_open_rw(char rw)
 	int stereo   = format.num_channels - 1;		/* 0=mono, 1=stereo            */
 	int speed    = format.sample_rate;
 	int volume   = (100<<8)|100;
+#ifdef NDEF
 	int frag     = 0x7fff0007; 			/* unlimited number of 128 byte fragments */
+#endif
 	int reclb    = 0;
 	int audio_fd = -1;
-	char buffer[128];					/* sigh. */
+	char buffer[128];				/* sigh. */
 
 	switch (rw) {
 	case O_RDONLY: 
@@ -102,10 +104,12 @@ audio_open_rw(char rw)
 			printf("       in this case, so this error should never happen......\n");
 			exit(1);
 		}
+#ifdef NDEF
 		if ((ioctl(audio_fd, SNDCTL_DSP_SETFRAGMENT, &frag) == -1)) {
 			printf("ERROR: Cannot set the fragement size\n");
 			exit(1);
 		}
+#endif
 		if ((ioctl(audio_fd, SNDCTL_DSP_SETFMT, &mode) == -1) || (mode != AFMT_S16_LE)) { 
 			printf("ERROR: Audio device doesn't support 16bit linear format!\n");
 			exit(1);
