@@ -1438,6 +1438,9 @@ v4.2.10 - Added auddev_newpcm.[ch] with newpcm style mixer control.  Includes
 	  newpcm maintain the same function call interface.  This may
 	  break in future.  Both are necessary because mixer operation
 	  is not consistent between the two interfaces.
+	- Catch SIGTERM and SIGHUP on unix (Robert Olson)
+
+
 
 TODO -- They're features not bugs dammit!
 ----

@@ -468,6 +468,8 @@ int main(int argc, char *argv[])
 #else
         signal(SIGCHLD, sigchld_handler); 
         signal(SIGINT, sigint_handler);
+	signal(SIGTERM, sigint_handler);
+	signal(SIGHUP, sigint_handler);
 #endif
 
 	/* We have two modes: one for operation as a transcoder, one */
