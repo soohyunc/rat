@@ -832,7 +832,6 @@ static int smplsz;
 static HWAVEOUT	shWaveOut;         /* Handle for wave output                             */
 static WAVEHDR *whWriteHdrs;       /* Pointer to blovk of wavehdr's alloced for writing  */
 static u_char  *lpWriteData;       /* Pointer to raw audio data buffer                   */
-static WAVEHDR *whWriteFreeList;   /* List of free write prepared wave headers           */
 
 void CALLBACK waveOutProc(
   HWAVEOUT hwo,      
@@ -840,22 +839,12 @@ void CALLBACK waveOutProc(
   DWORD dwInstance,   
   DWORD dwParam1,    
   DWORD dwParam2) {
-        WAVEHDR *whDone, **whTail;
-        switch(uMsg) {
-        case WOM_DONE:
-                whDone = (WAVEHDR*)dwParam1;
-                whDone->dwFlags &= ~WHDR_DONE;     /* Clear flag            */
-                /* waveOutProc is invoked via MMTASK and can occur at any   */
-                /* point in the application execution.  We add to the tail  */
-                /* of the free headers list because win32sdk_audio_write    */
-                /* maybe playing with head, and we corrupt list if we touch */
-                /* the portion being added.                                 */
-                whTail = &whWriteFreeList;         
-                while (*whTail != NULL) {         
-                        whTail = &((*whTail)->lpNext);   
-                }
-                *whTail = whDone;
-                whDone->lpNext = NULL;
+        
+	WAVEHDR *whDone;
+        
+	switch(uMsg) {
+        case WOM_DONE:        
+		whDone = (WAVEHDR*)dwParam1;
         }
 }
 
@@ -888,17 +877,14 @@ w32sdk_audio_open_out(UINT uId, WAVEFORMATEX *pwfx)
         whWriteHdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks);
         memset(whWriteHdrs, 0, sizeof(WAVEHDR)*nblks);
 
-        whWriteFreeList = NULL;
-
         for (i = 0; i < nblks; i++) {
                 whWriteHdrs[i].dwFlags        = 0;
                 whWriteHdrs[i].dwBufferLength = blksz;
                 whWriteHdrs[i].lpData         = lpWriteData + i * blksz;
                 whWriteHdrs[i].dwUser         = i; /* For debugging purposes */
                 mmr = waveOutPrepareHeader(shWaveOut, &whWriteHdrs[i], sizeof(WAVEHDR));
-                assert(mmr == MMSYSERR_NOERROR);
-                whWriteHdrs[i].lpNext = whWriteFreeList;
-                whWriteFreeList = &whWriteHdrs[i];
+                whWriteHdrs[i].dwFlags |= WHDR_DONE; /* Mark buffer as done - used to find free buffers */
+		assert(mmr == MMSYSERR_NOERROR);
         }
 
         return (TRUE);
@@ -912,16 +898,20 @@ w32sdk_audio_close_out()
         if (shWaveOut == 0) {
                 return;
         }
-        waveOutReset(shWaveOut);
-        for (i = 0; i < nblks; i++) {
+        
+	waveOutReset(shWaveOut);
+        
+	for (i = 0; i < nblks; i++) {
                 if (whWriteHdrs[i].dwFlags & WHDR_PREPARED) {
                         waveOutUnprepareHeader(shWaveOut, &whWriteHdrs[i], sizeof(WAVEHDR));
                 }
         }
-        waveOutClose(shWaveOut);
-        xfree(whWriteHdrs); whWriteHdrs = NULL;
+        
+	waveOutClose(shWaveOut);
+        
+	xfree(whWriteHdrs); whWriteHdrs = NULL;
         xfree(lpWriteData); lpWriteData  = NULL;
-        whWriteFreeList = NULL;
+      
         xmemchk();
         shWaveOut = 0;
 }
@@ -943,10 +933,25 @@ const char *waveOutError(MMRESULT mmr)
 	}
 }
 
+WAVEHDR *
+w32sdk_audio_write_free_buffer()
+{
+	int	 i;
+
+	for (i = 0; i < nblks; i++) {
+		assert(whWriteHdrs[i].dwFlags & WHDR_PREPARED);
+		if (whWriteHdrs[i].dwFlags & WHDR_DONE) {
+			whWriteHdrs[i].dwFlags &= WHDR_PREPARED;
+			return &whWriteHdrs[i];
+		}
+	}
+	return NULL;
+}
+
 int
 w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
 {
-        WAVEHDR   *whNext;
+        WAVEHDR   *whCur;
         MMRESULT   mmr;
         int        done, this_write;
         
@@ -955,20 +960,19 @@ w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
         /* size which is usually 1/2 device blksz.                              */
                
         done = 0;
-        while(whWriteFreeList != NULL && done < buf_bytes) {
-                this_write = min(buf_bytes - done, blksz);
-                memcpy(whWriteFreeList->lpData, 
+        while(done < buf_bytes) {
+                whCur = w32sdk_audio_write_free_buffer();
+		if (whCur == NULL) {
+			debug_msg("Write/Right out of buffers ???\n");
+			break;
+		}
+		this_write = min(buf_bytes - done, (int)blksz);
+		whCur->dwBufferLength = this_write;
+                memcpy(whCur->lpData, 
                         buf + done,
                         this_write);
                 done  += this_write;
-                whWriteFreeList->dwBufferLength = this_write; /* XXX Unprepare and prepare needed ? */                
-                whNext = whWriteFreeList->lpNext;
-		mmr    = waveOutUnprepareHeader(shWaveOut, whWriteFreeList, sizeof(WAVEHDR));
-		assert(mmr == MMSYSERR_NOERROR);
-		mmr    = waveOutPrepareHeader(shWaveOut, whWriteFreeList, sizeof(WAVEHDR));
-		assert(mmr == MMSYSERR_NOERROR);
-                mmr    = waveOutWrite(shWaveOut, whWriteFreeList, sizeof(WAVEHDR));
-                whWriteFreeList       = whNext;
+                mmr    = waveOutWrite(shWaveOut, whCur, sizeof(WAVEHDR));
                 if (mmr == WRITE_ERROR_STILL_PLAYING) {
                         debug_msg("Device filled\n");
                         break;
@@ -977,18 +981,7 @@ w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
         }
 
         assert(done <= buf_bytes);
-        if (done != buf_bytes) {
-		WAVEHDR *iter = whWriteFreeList;
-		int count = 0;
-		while (iter != NULL) {
-			iter = iter->lpNext;
-			count++;
-		}
-                assert(whWriteFreeList == NULL || mmr == WRITE_ERROR_STILL_PLAYING);
-                /* XXX With a 1 second buffer this should never happen! */
-		debug_msg("Write overflow %d > %d bytes (free %d) (mmr %d)\n", buf_bytes, done, count, mmr);
-		debug_msg("waveOutError: %s\n", waveOutError(mmr));
-        }
+       
         return done;
 }
 

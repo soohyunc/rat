@@ -154,10 +154,6 @@ SOURCE=.\audio.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bitstream.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\cc_layered.c
 # End Source File
 # Begin Source File
@@ -318,10 +314,6 @@ SOURCE=.\audio.h
 # Begin Source File
 
 SOURCE=.\audio_types.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\bitstream.h
 # End Source File
 # Begin Source File
 
