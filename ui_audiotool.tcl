@@ -557,6 +557,9 @@ proc update_codecs_displayed { } {
 
     set sample_rate [string trimright $freq -kHz]
     set sample_rate [expr $sample_rate * 1000]
+    if {[expr $sample_rate % 11000] == 0} {
+	set sample_rate [expr $sample_rate * 11025 / 11000]
+    }
 
     set long_names [codecs_loosely_matching $sample_rate $sample_channels]
 

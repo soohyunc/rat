@@ -148,7 +148,9 @@ converter_create(const converter_id_t   cid,
         /* Initialize */
         if ((converter_tbl[tbl_idx].initf) && 
             (converter_tbl[tbl_idx].initf(cfmt, &c->state, &c->state_len) == FALSE)) {
-                converter_destroy(&c);
+		xfree(c->cfmt);
+		xfree(c);
+		debug_msg("Failed to create converter\n");
                 return FALSE;
         }
 

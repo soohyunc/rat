@@ -147,13 +147,13 @@ extra_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
         extra_state_t *e;
         int denom, steps, g;
 
-        g = gcd(cfmt->src_freq, cfmt->dst_freq);
-        if ((cfmt->src_freq % g) != 0 ||
-            (cfmt->dst_freq % g)   != 0) {
-                debug_msg("Integer rate conversion supported only\n");
-                return FALSE;
-        }
+	if (((cfmt->src_freq % 8000) == 0 && (cfmt->dst_freq % 8000)) ||
+	    ((cfmt->src_freq % 11025) == 0 && (cfmt->dst_freq % 11025))) {
+		/* 11025 - 8000 not supported */
+		return FALSE;
+	}
 
+        g        = gcd(cfmt->src_freq, cfmt->dst_freq);
         steps    = conversion_steps(cfmt->src_freq, cfmt->dst_freq);
         e        = (extra_state_t*)xmalloc(steps * sizeof(extra_state_t));
         e->steps = steps;

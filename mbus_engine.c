@@ -1053,6 +1053,16 @@ static void rx_rtp_source_gain(char *srce, char *args, session_t *sp)
 	mbus_parse_done(mp);
 }
 
+static int
+string_to_freq(const char *str) {
+	int freq = atoi(str) * 1000;
+	if ((freq % 11000) == 0) {
+		freq /= 11000;
+		freq *= 11025;
+	}
+	return freq;
+}
+
 static void 
 rx_tool_rat_codec(char *srce, char *args, session_t *sp)
 {
@@ -1085,7 +1095,7 @@ rx_tool_rat_codec(char *srce, char *args, session_t *sp)
                 channels = 0;
         }
 
-        freq = atoi(sfreq) * 1000;
+        freq = string_to_freq(sfreq);
         assert(channels != 0);
         assert(freq     != 0);
         next_cid = codec_get_matching(short_name, (uint16_t)freq, (uint16_t)channels);
@@ -1306,7 +1316,7 @@ set_layered_parameters(session_t *sp, char *sec_enc, char *schan, char *sfreq, i
                 channels = 0;
         }
 
-        freq = atoi(sfreq) * 1000;
+        freq = string_to_freq(sfreq);
         pri_id = codec_get_by_payload(sp->encodings[0]);
         pcf    = codec_get_format(pri_id);
         lay_id = codec_get_matching(sec_enc, (uint16_t)freq, (uint16_t)channels);

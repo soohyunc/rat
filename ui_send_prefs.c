@@ -165,25 +165,32 @@ ui_send_codec_list(session_t *sp, char *addr)
         }
 }
 
+static uint16_t sample_rates[] = {
+	8000, 11025, 16000, 22050, 32000, 44100, 48000
+};
+#define NUM_RATES (sizeof(sample_rates) / sizeof(sample_rates[0]))
+
 void
 ui_send_sampling_mode_list(session_t *sp, char *addr)
 {
 	char	*mbes;
         char    modes[255]="";
         char    tmp[22];
-        uint16_t rate, channels, support, zap;
+        uint16_t channels, support, zap, i;
         
 	if (!sp->ui_on) return;
-        for(rate = 8000; rate <=48000; rate += 8000) {
+
+	for(i =  0; i < NUM_RATES; i++) {
                 support = 0;
-                if (rate == 24000 || rate == 40000) continue;
                 for(channels = 1; channels <= 2; channels++) {
-                        if (audio_device_supports(sp->audio_device, rate, channels)) support += channels;
+                        if (audio_device_supports(sp->audio_device, sample_rates[i], channels)) {
+				support += channels;
+			}
                 }
                 switch(support) {
-                case 3: sprintf(tmp, "%d-kHz,Mono,Stereo ", rate/1000); break; 
-                case 2: sprintf(tmp, "%d-kHz,Stereo ", rate/1000);      break;
-                case 1: sprintf(tmp, "%d-kHz,Mono ", rate/1000);        break;
+                case 3: sprintf(tmp, "%d-kHz,Mono,Stereo ", sample_rates[i]/1000); break; 
+                case 2: sprintf(tmp, "%d-kHz,Stereo ", sample_rates[i]/1000);      break;
+                case 1: sprintf(tmp, "%d-kHz,Mono ", sample_rates[i]/1000);        break;
                 case 0: continue;
                 }
                 strcat(modes, tmp);
