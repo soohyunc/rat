@@ -8,6 +8,7 @@ CC      = @CC@
 AR      = @AR@
 RANLIB  = @RANLIB@
 RATVER  = rat-@VERSION@
+ECHO   ?= echo
 
 AUDIO_OBJS   = @AUDIO@ auddev.o auddev_null.o audio_fmt.o audio_util.o auddev_trans.o
 CODEC_OBJS   = codec.o codec_state.o codec_dvi.o codec_gsm.o \
