@@ -262,7 +262,6 @@ ui_update_stats(rtcp_dbentry *e, session_struct *sp)
         
         sprintf(args, "%s %ld", their_cname, playout_buffer_duration(sp->playout_buf_list, e));
         mbus_engine_tx(TRUE, mbus_name_ui, "source.audio.buffered", args, FALSE);
-        
 
 	sprintf(args, "%s %s %8ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.packet.loss", args, FALSE);

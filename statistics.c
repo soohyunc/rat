@@ -236,14 +236,14 @@ adapt_playout(rtp_hdr_t *hdr,
                    THEN adapt playout and communicate it
                    */
 		if ((hdr->m) || 
-                    src->cont_toged > 4 || 
+                    src->cont_toged || 
                     ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * src->inter_pkt_gap * 8 + 1)) ||
                     src->playout_danger) {
 #ifdef DEBUG
                         if (hdr->m) {
                                 debug_msg("New talkspurt\n");
-                        } else if (src->cont_toged > 4) {
-                                debug_msg("Cont_toged > 4\n");
+                        } else if (src->cont_toged) {
+                                debug_msg("Cont_toged\n");
                         } else if (src->playout_danger) {
                                 debug_msg("playout danger\n");
                         } else {
@@ -261,7 +261,11 @@ adapt_playout(rtp_hdr_t *hdr,
                                 var = min(maxv, var);
                         }
 
-			var += cushion_get_size(cushion);
+                        if (src->playout_danger) {
+                                var += 3 * cushion_get_size(cushion) / 2;
+                        } else {
+                                var += cushion_get_size(cushion);
+                        }
 			if (src->clock!=sp->device_clock) {
 				var += cp->unit_len;
 			}

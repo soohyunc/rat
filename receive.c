@@ -568,6 +568,13 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                         memcpy(&last_foo, &foo, sizeof(struct timeval));
                 }
 #endif /* DEBUG_PLAYOUT_BROKEN */
+                if ((buf->tail_ptr->playoutpt - cur_time) < 5*cs/4) {
+                        debug_msg("Less audio buffered (%ld) than cushion safety (%ld)!\n", 
+                                  buf->tail_ptr->playoutpt - cur_time,
+                                  5 * cs / 4);
+                        buf->src->playout_danger = TRUE;
+                }
+
 		while ((up = playout_buffer_get(sp, buf, cur_time, cur_time + cs))) {
                         if (!up->comp_count  && sp->repair != REPAIR_NONE 
                             && up->prev_ptr != NULL && up->next_ptr != NULL
@@ -583,7 +590,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 #endif /* DEBUG_PLAYOUT */
                         
                         if (up->native_count && up->mixed == FALSE) {
-                            mix_do_one_chunk(sp, ms, up);
+                                mix_do_one_chunk(sp, ms, up);
                         } else { 
                                 if (up->native_count) {
                                         debug_msg("already mixed\n"); 
@@ -591,7 +598,18 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                                         if (up->comp_count) {
                                                 debug_msg("Not decoded ?\n");
                                         } else {
-                                                debug_msg("No data for block\n");
+                                                rx_queue_element_struct *srch;
+                                                assert(up->comp_data[0].data == NULL);
+                                                assert(up->ccu_cnt == 0);
+                                                debug_msg("No data for block, buf len %ld, cushion size %ld\n", 
+                                                          playout_buffer_duration(buf, buf->src), 
+                                                          cs);
+                                                srch = up;
+                                                while(srch != NULL) {
+                                                        printf("%ld %d\n", srch->playoutpt, srch->comp_count);
+                                                        srch = srch->next_ptr;
+                                                }
+                                                printf("\n");
                                         }
                                 }
                         }
@@ -609,6 +627,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                         debug_msg("source clock is relatively slow len %d concern len %d hist %x\n", buf->len, buf->src->playout_ceil/(2*cu), buf->hist);
                         buf->src->playout_danger = TRUE;
                 }
+
 	}
 
 	for (bufp = buf_list; *bufp;) {
