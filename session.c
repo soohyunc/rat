@@ -248,27 +248,20 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
                                 }
                         }
 			if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
-				int   j = 0;
-				char *p = strtok(argv[i+1], "/");
 				codec_t *cp;
 				char *pu;
-				while ((p != NULL) && (j < 5)) {
-					for (pu = p; *pu; pu++)
-						*pu = toupper(*pu);
-					if ((cp = get_codec_byname(p,sp[s])) == NULL)
-						usage();
-					else {
-						/* Check that codec is compatible with encodings[0] */
-						if (j == 0)
-							change_freq(sp[s]->device_clock, cp->freq);
-						sp[s]->encodings[j]  = cp->pt;
-						sp[s]->num_encodings = ++j;
-					}
-					p = strtok(NULL, "/");
-				}
+                                for (pu = argv[i+1]; *pu; pu++)
+                                        *pu = toupper(*pu);
+                                pu = argv[i+1];
+                                if ((cp = get_codec_byname(pu,sp[s])) != NULL) {
+                                        change_freq(sp[s]->device_clock, cp->freq);
+                                        sp[s]->encodings[0]  = cp->pt;
+                                        sp[s]->num_encodings = 1;
+                                } else {
+                                        usage();
+                                }
 				i++;
 			}
-                        
                 }
 	}
 }
