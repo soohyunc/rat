@@ -126,17 +126,16 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
         u_int16          units_per_packet;
         u_char           codec_pt;
         ts_t             playout, src_ts;
-        int              new_spurt;
+        int              adjust_playout;
         u_int32          delta_seq, delta_ts;
 
-        new_spurt = p->m;
+        adjust_playout = p->m;
 
         if (p->m) {
                 debug_msg("New talkspurt\n");
         }
 
-        if (sp->filter_loopback && 
-            ssrc == rtp_my_ssrc(sp->rtp_session[0])) {
+        if (sp->filter_loopback && ssrc == rtp_my_ssrc(sp->rtp_session[0])) {
                 /* This packet is from us and we are filtering our own       */
                 /* packets.                                                  */
                 xfree(p);
@@ -183,13 +182,11 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                 e->enc              = codec_pt;
                 e->units_per_packet = units_per_packet;
                 e->channel_coder_id = ccid;        
-                e->inter_pkt_gap    = e->units_per_packet * 
-                        (u_int16)codec_get_samples_per_frame(cid);
-                new_spurt           = 1;
+                e->inter_pkt_gap    = e->units_per_packet * (u_int16)codec_get_samples_per_frame(cid);
+                adjust_playout      = TRUE;
                 debug_msg("Encoding change\n");
                 /* Get string describing encoding               */
-                channel_describe_data(ccid, codec_pt, p->data, p->data_len, 
-                                      e->enc_fmt, e->enc_fmt_len);
+                channel_describe_data(ccid, codec_pt, p->data, p->data_len, e->enc_fmt, e->enc_fmt_len);
                 if (sp->mbus_engine) {
                         ui_update_stats(sp, ssrc);
                 }
@@ -203,7 +200,7 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                                   sp->converter, sp->render_3d, 
                                   (u_int16)dev_fmt->sample_rate,
                                   (u_int16)dev_fmt->channels);
-                new_spurt = 1;
+                adjust_playout = TRUE;
                 debug_msg("Source created\n");
         }
         
@@ -216,11 +213,11 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                           delta_seq,
                           e->inter_pkt_gap,
                           delta_ts);
-                new_spurt = 1;
+                adjust_playout = TRUE;
         }
 
         src_ts = ts_seq32_in(source_get_sequencer(s), get_freq(e->clock), p->ts);
-        playout = playout_calc(sp, ssrc, src_ts, new_spurt);
+        playout = playout_calc(sp, ssrc, src_ts, adjust_playout);
         e->last_seq = p->seq;
         e->last_ts  = p->ts;
         e->last_arr = sp->cur_ts;
@@ -232,16 +229,7 @@ process_sdes(session_t *sp, u_int32 ssrc, rtcp_sdes_item *d)
 {
         pdb_entry_t *e;
 
-        if (pdb_item_get(sp->pdb, ssrc, &e) == FALSE) {
-                /* RAT knows nothing about sender so create a persistent     */
-                /* database entry for them.                                  */
-                pdb_item_create(sp->pdb, 
-                                sp->clock, 
-                                get_freq(sp->device_clock), 
-                                ssrc);
-                debug_msg("Created persisent database entry (0x%08x).\n", 
-                          ssrc);
-        }
+	assert(pdb_item_get(sp->pdb, ssrc, &a) == TRUE);
 
         if (sp->mbus_engine == NULL) {
                 /* Nowhere to send updates to, so ignore them.               */
@@ -275,13 +263,19 @@ process_sdes(session_t *sp, u_int32 ssrc, rtcp_sdes_item *d)
                 ui_info_update_note(sp, ssrc);
                 break;
         case RTCP_SDES_PRIV:
-                debug_msg("Discarding private data from (0x%08x)", 
-                          ssrc);
+                debug_msg("Discarding private data from (0x%08x)", ssrc);
                 break;
         default:
-                debug_msg("Ignoring SDES type (0x%02x) from (0x%08x).\n", 
-                          ssrc);
+                debug_msg("Ignoring SDES type (0x%02x) from (0x%08x).\n", ssrc);
         }
+}
+
+static void
+process_create(session_t *sp, u_int32 ssrc)
+{
+	if (pdb_item_create(sp->pdb, sp->clock, get_freq(sp->device_clock), ssrc) == FALSE) {
+		debug_msg("Unable to create source 0x%08lx\n", ssrc);
+	}
 }
 
 static void
@@ -322,6 +316,9 @@ rtp_callback(struct rtp *s, rtp_event *e)
 	case RX_BYE:
 	case SOURCE_DELETED:
                 process_delete(sp, e->ssrc);
+		break;
+	case SOURCE_CREATED:
+		process_create(sp, e->ssrc);
 		break;
 	default:
 		debug_msg("Unknown RTP event (type=%d)\n", e->type);
