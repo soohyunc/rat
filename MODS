@@ -1218,6 +1218,10 @@ TODO -- They're features not bugs dammit!
 	  G722, and "CD Quality" audio: it may do, but you can't access them.
 	- SGI O2's don't have autosensing audio interface selection like 
 	  Indy's.
+	- Does not run on Windows 2000.  Appears to have problems with mixer
+	  MS may have tightened up requirements relative to 9x/NT.  Almost
+	  certainly need to run debug version of Win2K to find out.
+ 
 - 3d renderer should decimate when using sampling rates other than
   that for which it was originally designed for.
 - 3d renderer could use finite precision maths for better performance 
