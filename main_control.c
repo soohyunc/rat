@@ -241,8 +241,8 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
                 } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
 			/* Dynamic payload type mapping. Format: "-pt pt/codec" */
 			/* Codec is of the form "pcmu-8k-mono"                  */
-			int	 pt    = atoi(strtok(argv[i+1], "/"));
-			char	*codec = strtok(NULL, "/");
+			int	 pt    = atoi((char*)strtok(argv[i+1], "/"));
+			char	*codec = (char*)strtok(NULL, "/");
 
 			mbus_qmsgf(m, e_addr, TRUE, "tool.rat.payload.set", "\"%s\" %d", codec, pt);
 		} else if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
@@ -284,9 +284,9 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 			/* Set primary codec: "-f codec". You cannot set the   */
 			/* redundant codec with this option, use "-r" instead. */
 			/* The codec should be of the form "pcmu-8k-mono".     */
-			char *name = strtok(argv[i+1], "-");
-			char *freq = strtok(NULL, "-");
-			char *chan = strtok(NULL, "");
+			char *name = (char*)strtok(argv[i+1], "-");
+			char *freq = (char*)strtok(NULL, "-");
+			char *chan = (char*)strtok(NULL, "");
 
 			name = mbus_encode_str(name);
 			freq = mbus_encode_str(freq);
@@ -297,8 +297,8 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 			xfree(chan);
 		} else if ((strcmp(argv[i], "-r") == 0) && (argc > i+1)) {
 			/* Set channel coding to redundancy: "-r codec/offset" */
-			char *codec  = strtok(argv[i+1], "/");
-			int   offset = atoi(strtok(NULL, ""));
+			char *codec  = (char*)strtok(argv[i+1], "/");
+			int   offset = atoi((char*)strtok(NULL, ""));
 
 			codec  = mbus_encode_str(codec);
 			mbus_qmsgf(m, e_addr, TRUE, "audio.channel.coding", "\"redundancy\" %s %d", codec, offset);
