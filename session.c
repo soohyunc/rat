@@ -112,6 +112,7 @@ init_session(session_struct *sp)
 	sp->sync_on			= FALSE;
 	sp->agc_on			= FALSE;
         sp->ui_on                       = TRUE;
+	sp->ui_addr			= NULL;
 	sp->loop_delay			= -1;		/* Real initialisation is in init_audio.c */
 	sp->loop_estimate		= -1;		/* Real initialisation is in init_audio.c */
 	sp->last_zero              	= FALSE;
@@ -280,9 +281,16 @@ parse_options_audio_tool(int argc, char *argv[], session_struct *sp)
 	char *p;
 
 	for (i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-no_ui") == 0) {
-                        sp->ui_on = FALSE;
-                }
+		if ((strcmp(argv[i], "-ui") == 0) && (argc > i+1)) {
+       			if (strcmp(argv[i+1], "off") == 0) {
+                        	sp->ui_on   = FALSE;
+				sp->ui_addr = NULL;
+       				i++;
+       			} else {
+				sp->ui_on   = FALSE;
+				sp->ui_addr = strdup(argv[i+1]);
+       			}
+		}
 		if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
        			if (strcmp(argv[i+1], "on") == 0) {
        				sp->agc_on = TRUE;

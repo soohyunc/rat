@@ -476,11 +476,6 @@ ui_update(session_struct *sp)
 {
 	static   int done=0;
 
-	if (!sp->ui_on) {
-		/* UI is disabled, do nothing... */
-		return;
-	}
-
 	/*XXX solaris seems to give a different volume back to what we   */
 	/*    actually set.  So don't even ask if it's not the first time*/
 	if (done==0) {
@@ -508,15 +503,15 @@ ui_update(session_struct *sp)
 }
 
 void
-ui_show_audio_busy(session_struct *sp)
+ui_show_audio_busy(void)
 {
-	if (sp->ui_on) mbus_engine_tx(TRUE, mbus_name_ui, "disable.audio.ctls", "", TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "disable.audio.ctls", "", TRUE);
 }
 
 void
-ui_hide_audio_busy(session_struct *sp)
+ui_hide_audio_busy(void)
 {
-	if (sp->ui_on) mbus_engine_tx(TRUE, mbus_name_ui, "enable.audio.ctls", "", TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "enable.audio.ctls", "", TRUE);
 }
 
 
@@ -525,7 +520,7 @@ update_lecture_mode(session_struct *sp)
 {
 	/* Update the UI to reflect the lecture mode setting...*/
 	sprintf(args, "%d", sp->lecture);
-	if (sp->ui_on) mbus_engine_tx(TRUE, mbus_name_ui, "lecture.mode", args, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "lecture.mode", args, TRUE);
 }
 
 void

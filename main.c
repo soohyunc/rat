@@ -115,10 +115,6 @@ main(int argc, char *argv[])
 	gettimeofday(&time, NULL);
 	srand48(time.tv_usec);
 
-	sprintf(mbus_engine_addr, "(audio engine rat %d)", (int) getpid());
-	sprintf(mbus_ui_addr,     "(audio     ui rat %d)", (int) getpid());
-	sprintf(mbus_video_addr,  "(video engine   *  *)");
-
 	for (i = 0; i < 2;i++) {
 		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
 		init_session(sp[i]);
@@ -128,13 +124,19 @@ main(int argc, char *argv[])
 	cname        = get_cname();
 	ssrc         = get_ssrc();
 
+	sprintf(mbus_engine_addr, "(audio engine rat %d)", (int) getpid());
+	sprintf(mbus_ui_addr,     "(audio     ui rat %d)", (int) getpid());
+	sprintf(mbus_video_addr,  "(video engine   *  *)");
+
 	for (i = 0; i < num_sessions; i++) {
 		mbus_engine_init(mbus_engine_addr, sp[i]->mbus_channel);
-		mbus_ui_init(mbus_ui_addr, sp[i]->mbus_channel);
 	}
 
         if (sp[0]->ui_on) {
+		mbus_ui_init(mbus_ui_addr, sp[i]->mbus_channel);
 		tcl_init(sp[0], argc, argv, mbus_engine_addr);
+	} else {
+		strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
         }
 
 	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
@@ -197,8 +199,6 @@ main(int argc, char *argv[])
 			} else {
 				service_rtcp(sp[i],    NULL, rtcp_pckt_queue_p[i], cur_time);
 			}
-			mbus_engine_retransmit();
-			mbus_ui_retransmit();
 
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {
 				if (!sp[i]->lecture && !sp[i]->sending_audio && sp[i]->auto_lecture != 0) {
@@ -212,10 +212,13 @@ main(int argc, char *argv[])
 			} else {
 				alc++;
 			}
+			ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
                 	if (sp[i]->ui_on) {
-				ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
 				tcl_process_events();
+				mbus_ui_retransmit();
                 	}
+			mbus_engine_retransmit();
+
                         /* wait for mbus messages - closing audio device
                          * can timeout unprocessed messages as some drivers
                          * pause to drain before closing.

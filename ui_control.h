@@ -56,8 +56,8 @@ void	      ui_info_activate(struct s_rtcp_dbentry *e);
 void	          ui_info_gray(struct s_rtcp_dbentry *e);
 void	    ui_info_deactivate(struct s_rtcp_dbentry *e);
 
-void	ui_show_audio_busy(struct session_tag *sp);
-void	ui_hide_audio_busy(struct session_tag *sp);
+void	ui_show_audio_busy(void);
+void	ui_hide_audio_busy(void);
 void	ui_input_level(int level);
 void	ui_output_level(int level);
 void    ui_update_input_gain(struct session_tag *sp);

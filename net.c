@@ -334,10 +334,14 @@ network_read(session_struct    *sp,
 	sel_fd = sp->rtp_fd;
 	sel_fd = max(sel_fd, sp->rtcp_fd);
 	sel_fd = max(sel_fd, mbus_engine_fd(0));
-     	sel_fd = max(sel_fd, mbus_ui_fd(0));
+     	if (sp->ui_on) {
+		sel_fd = max(sel_fd, mbus_ui_fd(0));
+	}
 	if (sp->mbus_channel != 0) {
 		sel_fd = max(sel_fd, mbus_engine_fd(TRUE));
-     		sel_fd = max(sel_fd, mbus_ui_fd(TRUE));
+     		if (sp->ui_on) {
+			sel_fd = max(sel_fd, mbus_ui_fd(TRUE));
+		}
 	}
 #if !defined(WIN32)
 	if (sp->mode == AUDIO_TOOL) {
@@ -351,10 +355,14 @@ network_read(session_struct    *sp,
 		FD_SET(sp->rtp_fd,  &rfds);
 		FD_SET(sp->rtcp_fd, &rfds);
                 FD_SET(mbus_engine_fd(0), &rfds);
-     		FD_SET(mbus_ui_fd(0),     &rfds);
+     		if (sp->ui_on) {
+			FD_SET(mbus_ui_fd(0),     &rfds);
+		}
 		if (sp->mbus_channel != 0) {
                 	FD_SET(mbus_engine_fd(TRUE), &rfds);
-     			FD_SET(mbus_ui_fd(TRUE),     &rfds);
+     			if (sp->ui_on) {
+     				FD_SET(mbus_ui_fd(TRUE),     &rfds);
+			}
 		}
 #if defined(WIN32) || defined(HPUX) || defined(Linux) 
 		timeout.tv_sec  = 0;
@@ -386,14 +394,14 @@ network_read(session_struct    *sp,
                         if (FD_ISSET(mbus_engine_fd(FALSE), &rfds)) {
      				mbus_recv(mbus_engine(FALSE), (void *) sp);
      			}
-     			if (FD_ISSET(mbus_ui_fd(FALSE), &rfds)) {
+     			if (sp->ui_on && FD_ISSET(mbus_ui_fd(FALSE), &rfds)) {
      				mbus_recv(mbus_ui(FALSE), (void *) sp);
      			}
 			if (sp->mbus_channel != 0) {
                         	if (FD_ISSET(mbus_engine_fd(TRUE), &rfds)) {
      					mbus_recv(mbus_engine(TRUE), (void *) sp);
      				}
-     				if (FD_ISSET(mbus_ui_fd(TRUE), &rfds)) {
+     				if (sp->ui_on && FD_ISSET(mbus_ui_fd(TRUE), &rfds)) {
      					mbus_recv(mbus_ui(TRUE), (void *) sp);
      				}
 			}
@@ -420,10 +428,14 @@ void network_process_mbus(session_struct *sp[], int num_sessions, int delay)
 
 	for (i=0; i<num_sessions; i++) {
 		sel_fd = mbus_engine_fd(0);
-     		sel_fd = max(sel_fd, mbus_ui_fd(0));
+		if (sp[i]->ui_on) {
+			sel_fd = max(sel_fd, mbus_ui_fd(0));
+		}
 		if (sp[i]->mbus_channel != 0) {
 			sel_fd = max(sel_fd, mbus_engine_fd(TRUE));
-     			sel_fd = max(sel_fd, mbus_ui_fd(TRUE));
+     			if (sp[i]->ui_on) {
+				sel_fd = max(sel_fd, mbus_ui_fd(TRUE));
+			}
 		}
 		sel_fd++;
 	}
@@ -432,10 +444,14 @@ void network_process_mbus(session_struct *sp[], int num_sessions, int delay)
 		FD_ZERO(&rfds);
 		for (i=0; i<num_sessions; i++) {	
                 	FD_SET(mbus_engine_fd(0), &rfds);
-     			FD_SET(mbus_ui_fd(0),     &rfds);
+     			if (sp[i]->ui_on) {
+				FD_SET(mbus_ui_fd(0),     &rfds);
+			}
 			if (sp[i]->mbus_channel != 0) {
                 		FD_SET(mbus_engine_fd(TRUE), &rfds);
-     				FD_SET(mbus_ui_fd(TRUE),     &rfds);
+     				if (sp[i]->ui_on) {
+     					FD_SET(mbus_ui_fd(TRUE),     &rfds);
+				}
 			}
 		}
 		timeout.tv_sec  = 0;
@@ -451,14 +467,14 @@ void network_process_mbus(session_struct *sp[], int num_sessions, int delay)
                         	if (FD_ISSET(mbus_engine_fd(0), &rfds)) {
      					mbus_recv(mbus_engine(0), (void *) sp[i]);
      				}
-     				if (FD_ISSET(mbus_ui_fd(0), &rfds)) {
+     				if (sp[i]->ui_on && FD_ISSET(mbus_ui_fd(0), &rfds)) {
      					mbus_recv(mbus_ui(0), (void *) sp[i]);
      				}
 				if (sp[i]->mbus_channel != 0) {
                         		if (FD_ISSET(mbus_engine_fd(TRUE), &rfds)) {
      						mbus_recv(mbus_engine(TRUE), (void *) sp[i]);
      					}
-     					if (FD_ISSET(mbus_ui_fd(TRUE), &rfds)) {
+     					if (sp[i]->ui_on && FD_ISSET(mbus_ui_fd(TRUE), &rfds)) {
      						mbus_recv(mbus_ui(TRUE), (void *) sp[i]);
      					}
 				}

@@ -303,9 +303,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 	if (dbptr->ssrc == ssrc) {
 		sp->db->ssrc_db = dbptr->next;
 		check_active_leave(sp, dbptr);
-		if (sp->ui_on) {
-			ui_info_remove(dbptr);
-		}
+		ui_info_remove(dbptr);
 		playout_buffer_remove(&(sp->playout_buf_list), dbptr);
 		rtcp_free_dbentry(dbptr);
 		return;
@@ -316,9 +314,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 			dbptr->next = dbptr->next->next;
 			/* Remove it from the participants list IK */
 			check_active_leave(sp, tmp);
-			if (sp->ui_on) {
-				ui_info_remove(tmp);
-			}
+			ui_info_remove(tmp);
 			playout_buffer_remove(&(sp->playout_buf_list), dbptr);
 			rtcp_free_dbentry(tmp);
 			sp->db->members--;

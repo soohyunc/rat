@@ -115,6 +115,7 @@ typedef struct session_tag {
 	int		sync_on;
 	int		agc_on;
         int             ui_on;
+	char		*ui_addr;
         int             auto_convert;               /* channel + rate conversion enabled ? */
         float           drop;                       /* Flakeaway drop percentage [0,1] */
 	FILE		*in_file;
@@ -139,9 +140,9 @@ typedef struct session_tag {
         int              units_per_pckt;
         int              last_depart_ts;
 	struct s_speaker_table	*speakers_active;
-	int		last_zero;		/* audio.c */
-	long		loop_delay;
-	long		loop_estimate;
+	int		 last_zero;		/* audio.c */
+	long		 loop_delay;
+	long		 loop_estimate;
 	int		 mbus_channel;
 } session_struct;
 

@@ -304,9 +304,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 							sp->db->pkt_count  = 0;
 							sp->db->byte_count = 0;
 						}
-                                                if (sp->ui_on) {
-                                                        ui_info_update_cname(dbe);
-                                                }
+                                                ui_info_update_cname(dbe);
 						break;
 					case RTCP_SDES_NAME:
 						if (dbe->sentry->name) {
@@ -318,9 +316,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->name = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->name, sdes->data, lenstr);
 						dbe->sentry->name[lenstr] = '\0';
-                                                if (sp->ui_on) {
-                                                        ui_info_update_name(dbe);
-                                                }
+                                                ui_info_update_name(dbe);
 						break;
 					case RTCP_SDES_EMAIL:
 						if (dbe->sentry->email) {
@@ -332,9 +328,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->email = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->email, sdes->data, lenstr);
 						dbe->sentry->email[lenstr] = '\0';
-                                                if (sp->ui_on) {
-                                                        ui_info_update_email(dbe);
-                                                }
+                                                ui_info_update_email(dbe);
 						break;
 					case RTCP_SDES_PHONE:
 						if (dbe->sentry->phone) {
@@ -346,9 +340,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->phone = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->phone, sdes->data, lenstr);
 						dbe->sentry->phone[lenstr] = '\0';
-                                                if (sp->ui_on) {
-                                                        ui_info_update_phone(dbe);
-                                                }
+                                                ui_info_update_phone(dbe);
 						break;
 					case RTCP_SDES_LOC:
 						if (dbe->sentry->loc) {
@@ -360,9 +352,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->loc = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->loc, sdes->data, lenstr);
 						dbe->sentry->loc[lenstr] = '\0';
-                                                if (sp->ui_on) {
-                                                        ui_info_update_loc(dbe);
-                                                 }
+                                                ui_info_update_loc(dbe);
 						break;
 					case RTCP_SDES_TOOL:
 						if (dbe->sentry->tool) {
@@ -374,9 +364,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->tool = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->tool, sdes->data, lenstr);
 						dbe->sentry->tool[lenstr] = '\0';
-                                                if (sp->ui_on) {
-                                                        ui_info_update_tool(dbe);
-                                                }
+                                                ui_info_update_tool(dbe);
 						break;
 					default:
 						dprintf("SDES packet type %d ignored\n", sdes->type);

@@ -82,16 +82,12 @@ void mark_active_sender(rtcp_dbentry *src, session_struct *sp)
 		st->state = OFF;
 		st->count = 0;
 		sp->speakers_active = st;
-		if (sp->ui_on) {
-			ui_info_activate(st->dbe);
-		}
+		ui_info_activate(st->dbe);
 		return;
 	}
 	/* This threshold should probably be tuneable... */
 	if (st->count > 25) {
-		if (sp->ui_on) {
-			ui_info_activate(st->dbe);
-		}
+		ui_info_activate(st->dbe);
 		st->state = WHITE;
 		st->count = 0;
 	} else {
@@ -113,18 +109,14 @@ void clear_active_senders(session_struct *sp)
 			break;
 		}
 		if (ts_gt(cur_time, (*stp)->dbe->LAST_ACTIVE + get_freq(sp->device_clock) * GRAY_DELAY / 1000) && (*stp)->state != GRAY) {
-			if (sp->ui_on) {
-				ui_info_gray((*stp)->dbe);
-			}
+			ui_info_gray((*stp)->dbe);
 			(*stp)->state = GRAY;
 		}
 	}
 	if (*stp) {
 		st = *stp;
 		*stp = st->next;
-		if (sp->ui_on) {
-			ui_info_deactivate(st->dbe);
-		}
+		ui_info_deactivate(st->dbe);
 		block_free(st, sizeof(speaker_table));
 	}
 }
@@ -140,9 +132,7 @@ void check_active_leave(session_struct *sp, rtcp_dbentry *e)
 	if (*stp) {
 		st = *stp;
 		*stp = st->next;
-		if (sp->ui_on) {
-			ui_info_deactivate(st->dbe);
-		}
+		ui_info_deactivate(st->dbe);
 		block_free(st, sizeof(speaker_table));
 	}
 }
