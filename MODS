@@ -1059,4 +1059,11 @@ TODO -- They're features not bugs dammit!
 - Should use the empty RRs coming back from receivers who are not seeing
   traffic, and display this in the loss matrix.
 - Layering is broken (hasn't been updated for multiple processes, etc)
+- Sometimes sources are not de-highlighted when they stop speaking.
+- Weird interaction with rat-3.0.x -- seems that we can generate packets 
+  which some instances of rat-3.0 won't play. You get some people in the
+  session who's tools report receiving your data, but they don't play it
+  out. Suspect we're hitting the limitations of the old playout algorithm,
+  rather than a specific bug, and the correct solution is to get everyone
+  to update to rat-4.x
 
