@@ -298,17 +298,7 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 	if ((sendto(m->fd, b, strlen(b), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
 		perror("mbus_send: sendto");
 	}
-        if (m == mbus_ui(FALSE)) {
-                fprintf(stderr, "mbus_ui(base) ");
-        } else if (m == mbus_ui(TRUE)) {
-                fprintf(stderr, "mbus_ui(chan) ");
-        } else if (m == mbus_engine(FALSE)) {
-                fprintf(stderr, "mbus_engine(base) ");
-        } else if (m == mbus_engine(TRUE)) {
-                fprintf(stderr, "mbus_engine(chan) ");
-        }    
 
-        fprintf(stderr, "resending %s\n", b);
 	curr->rtcnt++;
 	
         xfree(b);
