@@ -131,13 +131,6 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
                 return;
         }
 
-        if (sp->playing_audio == FALSE) {
-                /* We are not playing audio out */
-                debug_msg("Packet discarded: audio output muted.\n");
-                xfree(p);
-                return;
-        }
-
         if (pdb_item_get(sp->pdb, ssrc, &e) == FALSE) {
                 debug_msg("Packet discarded: unknown source (0x%08x).\n", ssrc);
                 xfree(p);
@@ -145,12 +138,6 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
         }
         e->received++;
         
-        if (e->mute) {
-                debug_msg("Packet discarded: source muted (0x%08x).\n", ssrc);
-                xfree(p);
-                return;
-        }
-
         s = source_get_by_ssrc(sp->active_sources, ssrc);
         if (s == NULL) {
                 s = source_create(sp->active_sources, ssrc, sp->pdb);
@@ -158,15 +145,13 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
                 debug_msg("Source created\n");
         }
 
-        source_add_packet(s, p);
-}
+        if ((sp->playing_audio == FALSE) || (e->mute)) {
+                debug_msg("Packet discarded since output muted\n");
+                xfree(p);
+                return;
+        }
 
-static void
-process_sr(session_t *sp, uint32_t ssrc, rtcp_sr *s)
-{
-	UNUSED(sp);
-	UNUSED(ssrc);
-	UNUSED(s);
+        source_add_packet(s, p);
 }
 
 static void
@@ -280,7 +265,8 @@ rtp_callback(struct rtp *s, rtp_event *e)
 	case RX_RTCP_FINISH:
 		break;
 	case RX_SR:
-                process_sr(sp, e->ssrc, (rtcp_sr*)e->data);
+		/* SR's are stored by the RTP library - we don't need to */
+		/* do any other processing right now.                    */
 		break;
 	case RX_RR:
                 process_rr(sp, e->ssrc, (rtcp_rr*)e->data);
