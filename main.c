@@ -58,7 +58,6 @@
 #include "ui.h"
 #include "mix.h"
 #include "interfaces.h"
-#include "lbl_confbus.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "rtcp.h"
@@ -135,10 +134,6 @@ main(int argc, char *argv[])
 		init_session(sp[i]);
 	}
 	num_sessions = parse_options(argc, argv, sp);
-
-	if (sp[0]->mode == AUDIO_TOOL) {
-		lbl_cb_init(sp[0]);
-	}
 
 	/* Set the CNAME. This is "user@hostname" or just "hostname" if the username cannot be found. */
 	/* First, fill in the username.....                                                           */
@@ -286,11 +281,6 @@ main(int argc, char *argv[])
 			}
 			rtcp_update(sp[i], sp[i]->rtcp_fd, sp[i]->net_maddress, sp[i]->rtcp_port);
 	
-			if (sp[0]->mode == AUDIO_TOOL) {
-				/* LBL Conference bus... */
-				lbl_cb_read(sp[i]);
-			}
-
 			if (power_time == 0 && sp[i]->ui_on) {
 				if (sp[i]->meter)
 					mix_update_ui(ms[i], sp[i]);
@@ -353,7 +343,6 @@ main(int argc, char *argv[])
 					if (sp[i]->mode != TRANSCODER) {
                                 		audio_close(sp[i]->audio_fd);
 					}
-					lbl_cb_send_release(sp[i], 0);
 				}
                                 xmemdmp();
                                 return 0;

@@ -66,7 +66,6 @@ OBJS  += $(OBJDIR)/convert.o \
 	 $(OBJDIR)/ui_relate.o \
          $(OBJDIR)/tcl_libs.o \
          $(OBJDIR)/rtcp.o \
-         $(OBJDIR)/lbl_confbus.o \
          $(OBJDIR)/speaker_table.o \
          $(OBJDIR)/net.o \
          $(OBJDIR)/ui.o \

@@ -50,7 +50,6 @@
 #include "repair.h"
 #include "mix.h"
 #include "audio.h"
-#include "lbl_confbus.h"
 #include "transmit.h"
 
 typedef struct s_participant_playout_buffer {
@@ -332,8 +331,7 @@ service_receiver(cushion_struct *cushion, session_struct *sp, rx_queue_struct *r
 			if (up->native_count) {
 				mix_do_one_chunk(sp, ms, up);
 				if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
-					/* I hope the cb code suppresses some of these */
-					lbl_cb_send_request(sp);
+					/* Request device using the mbus... */
 				}
 				up->mixed = TRUE;
 			}
@@ -352,8 +350,7 @@ service_receiver(cushion_struct *cushion, session_struct *sp, rx_queue_struct *r
                     if (up->native_count && up->mixed == FALSE) {
                         mix_do_one_chunk(sp, ms, up);
                         if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
-                            /* I hope the cb code suppresses some of these */
-                            lbl_cb_send_request(sp);
+				/* Request device using the mbus... */
                         }
                         up->mixed = TRUE;
                     }

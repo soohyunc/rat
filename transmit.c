@@ -553,12 +553,6 @@ transmitter_update_ui(session_struct *sp)
 		ui_input_level(log10((double)1.0 + (double)sp->rb->silence_ptr->prev->energy / (double)127) * 67, sp);
 	if (sp->rb->talkspurt) {
 		ui_info_activate(sp->db->my_dbe, sp);
-#ifdef NDEF
-		if (sp->mode == AUDIO_TOOL) {
-			lbl_cb_send_focus(sp, cname);
-		}
-#endif
-		/* Disable lecture mode... */
 		sp->lecture = FALSE;
 		update_lecture_mode(sp);
 	} else

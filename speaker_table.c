@@ -47,7 +47,6 @@
 #include "rtcp_db.h"
 #include "util.h"
 #include "ui.h"
-#include "lbl_confbus.h"
 #include "rat_time.h"
 #include "transmit.h"
 
@@ -86,7 +85,6 @@ void mark_active_sender(rtcp_dbentry *src, session_struct *sp)
 		if (sp->ui_on) {
 			ui_info_activate(st->dbe, sp);
 		}
-		lbl_cb_send_focus(sp, st->dbe->sentry->cname);
 	}
 	if (st->state != WHITE) {
 		if (sp->ui_on) {

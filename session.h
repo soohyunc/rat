@@ -140,10 +140,6 @@ typedef struct session_tag {
 	int		last_zero;		/* audio.c */
 	long		loop_delay;
 	long		loop_estimate;
-	int 		lbl_cb_base_socket;
-	int 		lbl_cb_channel_socket;
-	int 		lbl_cb_channel;
-	int		lbl_cb_priority;
         int             flake_go;                   /* counter used to avoid dropping at start */
         int             flake_os;                   /* number outstanding */
         char            *ui_script;

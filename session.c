@@ -51,7 +51,6 @@
 #include "convert.h"
 #include "channel.h"
 #include "ui.h"
-#include "lbl_confbus.h"
 #include "parameters.h"
 
 extern char ui_original[];
@@ -122,10 +121,6 @@ init_session(session_struct *sp)
 	sp->mix_count   		= 0;
 	sp->rtp_seq			= rand()&0xffff;/* Let's hope srand() has been called, and that rand() is really random [csp] */
 	sp->speakers_active 		= NULL;
-	sp->lbl_cb_base_socket		= -1;		/* LBL conference bus support */
-	sp->lbl_cb_channel_socket	= -1;
-	sp->lbl_cb_channel		= -1;
-        sp->lbl_cb_priority             = 100;
 	sp->ui_script			= ui_original;
 	sp->mbus_engine			= NULL;
 	sp->mbus_ui			= NULL;
@@ -283,14 +278,6 @@ parse_options_audio_tool(int argc, char *argv[], session_struct *sp)
 			if (strcmp(argv[i+1],     "anna") == 0) sp->ui_script = ui_anna;
 			if (strcmp(argv[i+1],   "relate") == 0) sp->ui_script = ui_relate;
 			if (strcmp(argv[i+1],   "ReLaTe") == 0) sp->ui_script = ui_relate;
-		}
-		if ((strcmp(argv[i], "-lbl_channel") == 0) && (argc > i+1)) {
-			lbl_cb_init_channel(sp, atoi(argv[i + 1]));
-			i++;
-		}
-		if ((strcmp(argv[i], "-lbl_priority") == 0) && (argc > i+1)) {
-			sp->lbl_cb_priority = atoi(argv[i + 1]);
-			i++;
 		}
 		if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
        			if (strcmp(argv[i+1], "on") == 0) {

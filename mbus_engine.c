@@ -44,7 +44,6 @@
 #include "util.h"
 #include "transmit.h"
 #include "audio.h"
-#include "lbl_confbus.h"
 #include "codec.h"
 #include "channel.h"
 #include "rtcp_pckt.h"
@@ -98,7 +97,7 @@ static void func_get_audio(char *srce, char *args, session_struct *sp)
 	}
 
 	if (audio_device_take(sp) == FALSE) {
-		lbl_cb_send_demand(sp);
+		/* Request device using the mbus... */
 	}
 }
 
