@@ -39,6 +39,21 @@
 
 extern int should_exit;
 
+static void rx_session_title(char *srce, char *args, session_t *sp)
+{
+	char	*title;
+
+	UNUSED(srce);
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &title)) {
+		sp->title = xstrdup(mbus_decode_str(title));
+	} else {
+		debug_msg("mbus: usage \"session.title <title>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+}
+
 static void rx_tool_rat_addr_ui(char *srce, char *args, session_t *sp)
 {
 	/* tool.rat.addr.ui ("addr") */
@@ -1182,6 +1197,7 @@ static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 /* Note: These next two arrays MUST be in the same order! */
 
 const char *rx_cmnd[] = {
+	"session.title",
 	"tool.rat.addr.ui",
 	"tool.rat.silence",
 	"tool.rat.lecture",
@@ -1235,6 +1251,7 @@ const char *rx_cmnd[] = {
 };
 
 static void (*rx_func[])(char *srce, char *args, session_t *sp) = {
+	rx_session_title,
 	rx_tool_rat_addr_ui,
 	rx_tool_rat_silence,
 	rx_tool_rat_lecture,

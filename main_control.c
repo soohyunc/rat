@@ -158,7 +158,7 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 {
 	int		 i;
 	int		 ttl = 15;
-	char		*addr, *rx_port, *tx_port;
+	char		*addr, *rx_port, *tx_port, *tmp;
 	struct timeval	 timeout;
 
 	/* Parse the list of addresses/ports at the end of the command line... */
@@ -178,6 +178,9 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
                 if ((strcmp(argv[i], "-ui") == 0) && (argc > i+1)) {
                 } else if  (strcmp(argv[i], "-allowloopback") == 0) {
                 } else if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
+			tmp = mbus_encode_str(argv[i+1]);
+			mbus_qmsgf(m, e_addr, TRUE, "session.title", tmp);
+			xfree(tmp);
                 } else if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
                         ttl = atoi(argv[i+1]);
                         if (ttl > 255) {

@@ -49,7 +49,7 @@ extern int thread_pri;
 typedef struct s_session {
         short           id;   /* unique session id */
 	int		mode; /* audio tool, transcoder */
-        char            title[SESSION_TITLE_LEN+1];
+        char            *title;
 	char            asc_address[MAX_LAYERS][MAXHOSTNAMELEN+1];  
 	u_short	        rx_rtp_port[MAX_LAYERS];
 	u_short	        tx_rtp_port[MAX_LAYERS];

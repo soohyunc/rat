@@ -36,29 +36,6 @@
 #define PCKT_QUEUE_RTP_LEN  24
 #define PCKT_QUEUE_RTCP_LEN 12
 
-static void 
-usage(void)
-{
-#ifdef WIN32
-        char win_usage[] = "\
-RAT is a multicast (or unicast) audio tool. It is best to start it\n\
-using a multicast directory tool, like sdr or multikit. If desired RAT\n\
-can be launched from the command line using:\n\n\
-rat <address>/<port>\n\n\
-where <address> is machine name, or a multicast IP address, and <port> is\n\
-the connection identifier (a number between 1024-65536).\n\n\
-For more details see:\n\n\
-http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/FAQ.html\
-";
-        MessageBox(NULL, win_usage, "RAT Usage", MB_ICONINFORMATION | MB_OK);
-        WSACleanup();
-#else
-        printf("Usage: rat [options] -t <ttl> <addr>/<port>\n");
-#endif
-	exit(1);
-}
-
-
 /* sanity_check_payloads checks for overlapping payload maps between
  * channel coders and codecs.  Necessary because I don't trust myself
  * to not overlap payloads, and other people should not have to worry
@@ -167,7 +144,6 @@ session_init(session_t *sp)
 
         source_list_create(&sp->active_sources);
 
-        strcpy(sp->title, "Untitled Session");
 	strcpy(sp->asc_address[0], "127.0.0.3");	/* Yeuch! This value should never be used! */
 
 
@@ -185,6 +161,32 @@ session_exit(session_t *sp)
         channel_encoder_destroy(&sp->channel_coder);
         source_list_destroy(&sp->active_sources);
 }
+
+/**************************************************************************************************/
+#ifdef NDEF 
+
+static void 
+usage(void)
+{
+#ifdef WIN32
+        char win_usage[] = "\
+RAT is a multicast (or unicast) audio tool. It is best to start it\n\
+using a multicast directory tool, like sdr or multikit. If desired RAT\n\
+can be launched from the command line using:\n\n\
+rat <address>/<port>\n\n\
+where <address> is machine name, or a multicast IP address, and <port> is\n\
+the connection identifier (a number between 1024-65536).\n\n\
+For more details see:\n\n\
+http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/FAQ.html\
+";
+        MessageBox(NULL, win_usage, "RAT Usage", MB_ICONINFORMATION | MB_OK);
+        WSACleanup();
+#else
+        printf("Usage: rat [options] -t <ttl> <addr>/<port>\n");
+#endif
+	exit(1);
+}
+
 
 static int 
 session_parse_early_options_common(int argc, char *argv[], session_t *sp[], int num_sessions)
@@ -687,4 +689,5 @@ void session_parse_late_options(int argc, char *argv[], session_t *sp[])
                 }
 	}
 }
+#endif
 
