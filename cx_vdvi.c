@@ -13,7 +13,9 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
+#include "bitstream.h"
 #include "cx_vdvi.h"
+
 
 #ifdef TEST_VDVI
 #define NUM_TESTS 100000
@@ -81,86 +83,6 @@ int main()
 }
 #endif /* TEST_DVI */
 
-/* Bitstream structure to make life a little easier */
-
-typedef struct {
-        u_char *buf;    /* head of bitstream            */
-        u_char *pos;    /* current byte in bitstream    */
-        u_int   remain; /* bits remaining               */
-        u_int   len;    /* length of bitstream in bytes */
-} bs;
-
-static void
-bs_init(bs *b, u_char *buf, int blen)
-{
-        b->buf    = b->pos = buf;
-        b->remain = 8;
-        b->len    = blen;
-}
-
-static void
-bs_put(bs* b, u_char bits, u_int nbits)
-{
-        assert(nbits != 0 && nbits <= 8);
-        
-        if (b->remain == 0) {
-                b->pos++;
-                b->remain = 8;
-        }
-
-        if (nbits > b->remain) {
-                u_int over = nbits - b->remain;
-                (*b->pos) |= (bits >> over);
-                b->pos++;
-                b->remain = 8 - over;
-                (*b->pos)  = (bits << b->remain);
-        } else {
-                (*b->pos) |= bits << (b->remain - nbits);
-                b->remain -= nbits;
-        }
-        
-        assert((u_int)(b->pos - b->buf) <= b->len);
-}
-
-static u_char
-bs_get(bs *b, u_int nbits)
-{
-        u_char out;
-
-        if (b->remain == 0) {
-                b->pos++;
-                b->remain = 8;
-        }
-
-        if (nbits > b->remain) {
-                /* Get high bits */
-                out = *b->pos;
-                out <<= (8 - b->remain);
-                out >>= (8 - nbits);
-                b->pos++;
-                b->remain += 8 - nbits;
-                out |= (*b->pos) >> b->remain;
-        } else {
-                out = *b->pos;
-                out <<= (8 - b->remain);
-                out >>= (8 - nbits);
-                b->remain -= nbits;
-        }
-
-        assert((u_int)(b->pos - b->buf) <= b->len);
-        return out;
-}
-
-static u_int 
-bs_used(bs *b)
-{
-        u_int used = (u_int)(b->pos - b->buf);
-        if (b->remain != 8) {
-                used++;
-        }
-        return used;
-}
-
 /* VDVI translations as defined in draft-ietf-avt-profile-new-00.txt 
 
 DVI4  VDVI        VDVI  VDVI
@@ -197,62 +119,47 @@ static int dmap_bits[16] = {   2,    3,    4,    5,
 };
 
 int
-vdvi_encode(u_char *dvi_buf, int dvi_samples, u_char *out, int out_bytes)
+vdvi_encode(u_char *dvi_buf, u_int dvi_samples, bitstream_t *bs)
 {
         register u_char s1, s2;
         u_char *dvi_end, *dp, t;
-        bs dst;
         int bytes_used;
 
         assert(dvi_samples == VDVI_SAMPLES_PER_FRAME);
 
         /* Worst case is 8 bits per sample -> VDVI_SAMPLES_PER_FRAME */
-        assert(out_bytes   == VDVI_SAMPLES_PER_FRAME); 
 
-        memset(out, 0, out_bytes);
-        bs_init(&dst, out, out_bytes);
         dvi_end = dvi_buf + dvi_samples / 2;
         dp      = dvi_buf;
         while (dp != dvi_end) {
                 t = *dp;
                 s1 = (t & 0xf0) >> 4;
                 s2 = (t & 0x0f);
-                bs_put(&dst, (u_char)dmap[s1], dmap_bits[s1]);
-                bs_put(&dst, (u_char)dmap[s2], dmap_bits[s2]);
+                bs_put(bs, (u_char)dmap[s1], dmap_bits[s1]);
+                bs_put(bs, (u_char)dmap[s2], dmap_bits[s2]);
                 assert(*dp == t);
                 dp ++;
         }
         /* Return number of bytes used */
-        bytes_used  = bs_used(&dst);
-        assert(bytes_used <= out_bytes);
+        bytes_used  = bs_bytes_used(bs);
         return bytes_used;
 }
 
 int /* Returns number of bytes in in_bytes used to generate dvi_samples */
-vdvi_decode(unsigned char *in, int in_bytes, unsigned char *dvi_buf, int dvi_samples)
+vdvi_decode(bitstream_t *bs, unsigned char *dvi_buf, u_int dvi_samples)
 {
-        bs bout;
-        bs bin;
         u_char cw, cb;
-        u_int i;
-        int bytes_used;
+        u_int i, j, bytes_used;
         
         /* This code is ripe for optimization ... */
-
-        assert(in_bytes >= 40);
         assert(dvi_samples == VDVI_SAMPLES_PER_FRAME);
 
-        memset(dvi_buf, 0, dvi_samples / 2);
-
-        bs_init(&bin, in, in_bytes);
-        bs_init(&bout, dvi_buf, dvi_samples / 2);
-        
-        while(dvi_samples) {
+        for(j = 0; j < dvi_samples; j++) {
 #ifdef TEST_DVI
                 check_padding();
 #endif
                 cb = 2;
-                cw = bs_get(&bin, 2);
+                cw = bs_get(bs, 2);
                 do {
                         for(i = 0; i < 16; i++) {
                                 if (dmap_bits[i] != cb) continue;
@@ -260,7 +167,7 @@ vdvi_decode(unsigned char *in, int in_bytes, unsigned char *dvi_buf, int dvi_sam
                         }
                         cb++;
                         cw <<=1;
-                        cw |= bs_get(&bin, 1);
+                        cw |= bs_get(bs, 1);
                         assert(cb <= 8);
 #ifdef TEST_DVI
                 check_padding();
@@ -270,71 +177,18 @@ vdvi_decode(unsigned char *in, int in_bytes, unsigned char *dvi_buf, int dvi_sam
 #ifdef TEST_DVI
                 check_padding();
 #endif
-                bs_put(&bout, (u_char)i, 4);
-                dvi_samples--;
+                if (j & 0x01) {
+                        dvi_buf[j/2] |= i;
+                } else {
+                        dvi_buf[j/2]  = i << 4;
+                }
 #ifdef TEST_DVI
                 check_padding();
 #endif
-
         }
 
-        bytes_used = bs_used(&bin);
+        bytes_used = bs_bytes_used(bs);
 
-        assert(bytes_used <= in_bytes);
+        assert(bytes_used <= dvi_samples);
         return bytes_used;
 }
-
-#ifdef TEST_BS
-#define NUM_TESTS 1000
-#define TEST_SIZE 10000
-
-int main()
-{
-        int i,n;
-        u_char tmp[TEST_SIZE];
-        u_int  src[TEST_SIZE];
-        u_int  bits_used ;
-        u_int  d;
-        struct rusage r1, r2;
-
-        bs     b;
-        getrusage(0, &r1);
-        for(n = 0; n < NUM_TESTS; n++) {
-                srand(n * 2510101); 
-
-                memset(tmp, 0, TEST_SIZE);
-                bs_init(&b, tmp, TEST_SIZE);
-                bits_used = 0;
-                for(i = 0; i < TEST_SIZE; i++) {
-                        src[i] = random() & 0x0f;
-                        bs_put(&b, dmap[src[i]], dmap_bits[src[i]]);
-/*                printf("%2d %03d.%02d 0x%02x %d\n", i, bits_used / 8, bits_used % 8, 
-                  dmap[src[i]] ,dmap_bits[src[i]]);
-                  */
-                        bits_used += dmap_bits[src[i]];
-                        assert(b.bits_remain == (8 - (bits_used % 8)));
-                }
-                /* rewind bs */
-                bs_init(&b, tmp, TEST_SIZE);
-                bits_used = 0;
-                for(i = 0; i < TEST_SIZE; i++) {
-                        d = bs_get(&b, dmap_bits[src[i]]);
-                        bits_used += dmap_bits[src[i]];
-                        assert(d == dmap[src[i]]);
-                        assert(b.bits_remain == (8 - (bits_used % 8)));
-                }
-        }
-        getrusage(0, &r2);
-        printf("%u samples took %u us(u) %u us(s)\n",
-               NUM_TESTS * TEST_SIZE,
-               (r2.ru_utime.tv_sec - r1.ru_utime.tv_sec) * 1000000 + r2.ru_utime.tv_usec - r1.ru_utime.tv_usec,
-               (r2.ru_stime.tv_sec - r1.ru_stime.tv_sec) * 1000000 + r2.ru_stime.tv_usec - r1.ru_stime.tv_usec);
-
-        return 0;
-}
-
-#endif /* TEST_BS */
-
-
-
-

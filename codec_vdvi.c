@@ -16,7 +16,9 @@
 #include "codec_types.h"
 #include "codec_vdvi.h"
 #include "cx_dvi.h"
+#include "bitstream.h"
 #include "cx_vdvi.h"
+
 
 #define CODEC_PAYLOAD_NO(x) x
 
@@ -54,20 +56,34 @@ vdvi_get_format(u_int16 idx)
         return &cs[idx];
 }
 
+typedef struct {
+        struct adpcm_state *as;
+        bitstream_t        *bs;
+} vdvi_state_t;
+
 int 
 vdvi_state_create(u_int16 idx, u_char **s)
 {
-        struct adpcm_state *as;
-        int                 sz;
+        vdvi_state_t *v;
 
         if (idx < VDVI_NUM_FORMATS) {
-                sz = sizeof(struct adpcm_state);
-                as = (struct adpcm_state*)xmalloc(sz);
-                if (as) {
-                        memset(as, 0, sz);
-                        *s = (u_char*)as;
-                        return sz;
+                v = (vdvi_state_t*)xmalloc(sizeof(vdvi_state_t));
+                if (v == NULL) {
+                        return FALSE;
                 }
+                v->as = (struct adpcm_state*)xmalloc(sizeof(struct adpcm_state));
+                if (v->as == NULL) {
+                        xfree(v);
+                        return FALSE;
+                }
+                memset(v->as, 0, sizeof(struct adpcm_state));
+                if (bs_create(&v->bs) == FALSE) {
+                        xfree(v->as);
+                        xfree(v);
+                        return FALSE;
+                }
+                *s = (unsigned char*)v;
+                return TRUE;
         }
         return 0;
 }
@@ -75,10 +91,14 @@ vdvi_state_create(u_int16 idx, u_char **s)
 void
 vdvi_state_destroy(u_int16 idx, u_char **s)
 {
-        UNUSED(idx);
-        assert(idx < VDVI_NUM_FORMATS);
-        xfree(*s);
+        vdvi_state_t *v;
+
+        v = (vdvi_state_t*)*s;
+        xfree(v->as);
+        bs_destroy(&v->bs);
+        xfree(v);
         *s = (u_char*)NULL;
+        UNUSED(idx);
 }
 
 /* Buffer of maximum length of vdvi coded data - never know how big
@@ -92,16 +112,19 @@ vdvi_encoder(u_int16 idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 
         u_char dvi_buf[80];
         u_char vdvi_buf[160];
+        vdvi_state_t *v;
 
         assert(encoder_state);
         assert(inbuf);
         assert(idx < VDVI_NUM_FORMATS);
         UNUSED(idx);
+
+        v = (vdvi_state_t*)encoder_state;
         
         /* Transfer state and fix ordering */
         c->state     = (u_char*)block_alloc(sizeof(struct adpcm_state));
         c->state_len = sizeof(struct adpcm_state);
-        memcpy(c->state, encoder_state, sizeof(struct adpcm_state));
+        memcpy(c->state, v->as, sizeof(struct adpcm_state));
 
         /* Fix coded state for byte ordering */
 	((struct adpcm_state*)c->state)->valprev = htons(((struct adpcm_state*)c->state)->valprev);
@@ -110,10 +133,11 @@ vdvi_encoder(u_int16 idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
         
         assert(samples == 160);
 
-        adpcm_coder(inbuf, dvi_buf, samples, (struct adpcm_state*)encoder_state);
+        adpcm_coder(inbuf, dvi_buf, samples, v->as);
 
-        len = vdvi_encode(dvi_buf, 160, vdvi_buf, 160);
-
+        bs_attach(v->bs, vdvi_buf, sizeof(vdvi_buf)/sizeof(vdvi_buf[0]));
+        memset(vdvi_buf, 0, sizeof(vdvi_buf)/sizeof(vdvi_buf[0]));
+        len = vdvi_encode(dvi_buf, 160, v->bs);
         c->data     = (u_char*)block_alloc(len); 
         c->data_len = len;
         memcpy(c->data, vdvi_buf, len);
@@ -126,22 +150,26 @@ vdvi_decoder(u_int16 idx, u_char *decoder_state, coded_unit *c, sample *data)
 {
         int samples, len; 
         u_char dvi_buf[80];
+        vdvi_state_t *v;
 
         assert(decoder_state);
         assert(c);
         assert(data);
         assert(idx < VDVI_NUM_FORMATS);
 
+        v = (vdvi_state_t*)decoder_state;
+
 	if (c->state_len > 0) {
 		assert(c->state_len == sizeof(struct adpcm_state));
-		memcpy(decoder_state, c->state, sizeof(struct adpcm_state));
-		((struct adpcm_state*)decoder_state)->valprev = ntohs(((struct adpcm_state*)decoder_state)->valprev);
+		memcpy(v->as, c->state, sizeof(struct adpcm_state));
+		v->as->valprev = ntohs(v->as->valprev);
 	}
 
-        len = vdvi_decode(c->data, c->data_len, dvi_buf, 160);
+        bs_attach(v->bs, c->data, c->data_len);
+        len = vdvi_decode(v->bs, dvi_buf, 160);
 
         samples = cs[idx].format.bytes_per_block / sizeof(sample);
-	adpcm_decoder(dvi_buf, data, samples, (struct adpcm_state*)decoder_state);
+	adpcm_decoder(dvi_buf, data, samples, v->as);
 
         return samples;
 }
@@ -149,13 +177,17 @@ vdvi_decoder(u_int16 idx, u_char *decoder_state, coded_unit *c, sample *data)
 int
 vdvi_peek_frame_size(u_int16 idx, u_char *data, int data_len)
 {
-        u_char dvi_buf[80];
-        int len;
+        bitstream_t *bs;
+        u_char       dvi_buf[80];
+        int          len;
 
         UNUSED(idx);
 
-        len = vdvi_decode(data, data_len, dvi_buf, 160);
-
+        bs_create(&bs);
+        bs_attach(bs, data, data_len);
+        len = vdvi_decode(bs, dvi_buf, 160);
+        bs_destroy(&bs);
         assert(len <= data_len);
         return len;
 }
+
