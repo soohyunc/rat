@@ -68,10 +68,9 @@ static void rx_mbus_bye(char *srce, char *args, void *data)
         /* Find last colon */
         for (i = 0, lc = NULL; srce[i] != 0; i++) {
                 if (srce[i] == ':') {
-                        lc = srce;
+                        lc = srce + i;
                 }
         }
-
         assert(lc != NULL);
         /* Skip past colon, next char should okay for atoi */
         pid_msgsrc = atoi(lc + 1);
