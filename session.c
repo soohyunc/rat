@@ -49,6 +49,7 @@ For more details see:\n\n\
 http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/FAQ.html\
 ";
         MessageBox(NULL, win_usage, "RAT Usage", MB_ICONINFORMATION | MB_OK);
+        WSACleanup();
 #else
         printf("Usage: rat [options] -t <ttl> <addr>/<port>\n");
 #endif

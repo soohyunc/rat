@@ -154,7 +154,7 @@ WinMain(
 {
     char *p;
     WSADATA WSAdata;
-
+    int r;
     if (WSAStartup(WS_VERSION_TWO, &WSAdata) != 0 &&
         WSAStartup(WS_VERSION_ONE, &WSAdata) != 0) {
     	MessageBox(NULL, "Windows Socket initialization failed. TCP/IP stack\nis not installed or is damaged.", "Network Error", MB_OK | MB_ICONERROR);
@@ -189,7 +189,9 @@ WinMain(
 	}
     }
     
-    return main(__argc, (const char**)__argv);
+    r = main(__argc, (const char**)__argv);
+    WSACleanup();
+    return r;
 }
 
 void
