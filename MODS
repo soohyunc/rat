@@ -1551,7 +1551,8 @@ v4.2.14	- Add "-noui" option to start the media engine without user interface
 	- Update configure to remove need for patching in FreeBSD ports 
 	  collection.
 	- Add shell script target "rat" as target in Makefile.  Again to
-	  make FreeBSD ports work less, well zero :-D.
+	  make FreeBSD ports less effort, like zero :-D.
+	* Released 6 April 2001
 
 TODO -- They're features not bugs dammit!
 ----
