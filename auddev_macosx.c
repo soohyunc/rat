@@ -142,6 +142,13 @@ audioIOProc(AudioDeviceID inDevice, const AudioTimeStamp* inNow,
 	    AudioBufferList* outOutputData, const AudioTimeStamp* inOutputTime, 
 	    void* inClientData)
 {
+    UNUSED(inDevice);
+    UNUSED(inNow);
+    UNUSED(inInputTime);
+    UNUSED(outOutputData);
+    UNUSED(inOutputTime);
+    UNUSED(inClientData);
+
     //If input is provided, copy it into the read buffer.
     if (inInputData != NULL && inInputData->mNumberBuffers > 0) {
         // Get the input data.
@@ -215,6 +222,11 @@ outputRenderer(void *inRefCon, AudioUnitRenderActionFlags inActionFlags, const A
 {
 	int i;
 	SInt16* ip = (SInt16*)ioData->mData;
+
+	UNUSED(inRefCon);
+	UNUSED(inActionFlags);
+	UNUSED(inTimeStamp);
+	UNUSED(inBusNumber);
 
 	int requestedFrames = ioData->mDataByteSize / devices[add].mashStreamBasicDescription_.mBytesPerFrame;
        	//int requestedFrames = ioData->mDataByteSize / 2;
