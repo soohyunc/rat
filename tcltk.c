@@ -49,7 +49,6 @@
 
 extern char 	ui_audiotool[];
 extern char	ui_transcoder[];
-extern char	TCL_LIBS[];
 
 /* Should probably have these functions inline here, rather than in win32.c??? [csp] */
 #ifdef WIN32		
@@ -149,13 +148,6 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 {
 	char		*cmd_line_args, buffer[10];
 
-        /* There's a nasty in the pre-compiled library code that goes
-         * looking here and sourcing tcl files, but we have all the ones
-         * we need already precompiled in.
-         */
-        putenv("TCL_LIBRARY=");
-        putenv("TK_LIBRARY=");
-        
 	Tcl_FindExecutable(argv[0]);
 	interp        = Tcl_CreateInterp();
 	engine_addr   = xstrdup(mbus_engine_addr);
@@ -178,9 +170,6 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	 */
 	Tcl_Init(interp);
 	Tk_Init(interp);
-	if (Tcl_EvalObj(interp, Tcl_NewStringObj(TCL_LIBS, strlen(TCL_LIBS))) != TCL_OK) {
-		fprintf(stderr, "TCL_LIBS error: %s\n", interp->result);
-	}
 
 	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) sp, NULL);
 	Tcl_CreateCommand(interp, "mbus_qmsg",	     mbus_qmsg_cmd,   (ClientData) sp, NULL);

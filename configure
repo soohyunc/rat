@@ -60,12 +60,14 @@ esac
 echo "Configuring RAT v$VERSION for $OSTYPE"
 
 GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Wno-implicit"
+TCL_LIBS="../tk-8.0/unix/libtk8.0.a ../tcl-8.0/unix/libtcl8.0.a"
+TCL_INCL="-I../tk-8.0/generic -I../tcl-8.0/generic"
 
 case $OSTYPE in
   SunOS   ) CC="gcc"
             WFLAGS=$GCCWFLAGS
-	    INCLUDE="-I/cs/research/mice/starship/common/sun4/include -I/usr/ucl/X11/include -I/usr/demo/SOUND"
-	    LDLIBS="/cs/research/mice/starship/common/sun4/lib/libtk80.a /cs/research/mice/starship/common/sun4/lib/libtcl80.a -L/usr/openwin/lib -lXext -lX11 -L/usr/demo/SOUND -laudio -lm"
+	    INCLUDE="-I/usr/ucl/X11/include -I/usr/demo/SOUND"
+	    LDLIBS="-lXext -lX11 -L/usr/demo/SOUND -laudio -lm"
 	    AUDIO="auddev_sparc.o"
 	    DEBUG="-g"
 	    CHAR="-fsigned-char"
@@ -74,8 +76,8 @@ case $OSTYPE in
             ;;
   Solaris ) CC="/opt/ucl/bin/gcc -pipe"
             WFLAGS=$GCCWFLAGS
-	    INCLUDE="-I/cs/research/mice/starship/common/solaris/include -I/usr/demo/SOUND/include -I/usr/openwin/include"
-	    LDLIBS="-L/cs/research/mice/starship/common/solaris/lib -ltk8.0 -ltcl8.0 -L/usr/openwin/lib -lXext -lX11 -L/usr/demo/SOUND/lib -laudio -lsocket -ldl -lnsl -lm"
+	    INCLUDE="-I/usr/demo/SOUND/include -I/usr/openwin/include"
+	    LDLIBS="-L/usr/openwin/lib -lXext -lX11 -L/usr/demo/SOUND/lib -laudio -lsocket -ldl -lnsl -lm"
 	    AUDIO="auddev_sparc.o"
 	    DEBUG="-g"
 	    CHAR="-fsigned-char"
@@ -84,8 +86,8 @@ case $OSTYPE in
             ;;
   IRIX    ) CC="cc"
             WFLAGS="-fullwarn"
-	    INCLUDE="-I/usr/ucl/X11/include -I/cs/research/mice/starship/common/irix/include"
-	    LDLIBS="-L/cs/research/mice/starship/common/irix/lib -ltk8.0 -ltcl8.0 -L/usr/lib/X11 -lX11 -laudio -lm"
+	    INCLUDE="-I/usr/ucl/X11/include"
+	    LDLIBS="-L/usr/lib/X11 -lX11 -laudio -lm"
 	    AUDIO="auddev_sgi.o"
 	    DEBUG="-g"
 	    CHAR="-signed"
@@ -94,8 +96,8 @@ case $OSTYPE in
             ;;
   Linux   ) CC="gcc"
             WFLAGS=$GCCWFLAGS
-	    INCLUDE="-I/usr/X11R6/include -I/cs/research/mice/starship/common/linux/include"
-	    LDLIBS="-L/cs/research/mice/starship/common/linux/lib -ltk8.0 -ltcl8.0 -L/usr/X11R6/lib -lX11 -lm -ldl"
+	    INCLUDE="-I/usr/X11R6/include"
+	    LDLIBS="-L/usr/X11R6/lib -lX11 -lm -ldl"
 	    AUDIO="auddev_oss.o"
 	    DEBUG="-g"
 	    CHAR="-fsigned-char"
@@ -104,8 +106,8 @@ case $OSTYPE in
             ;;
   FreeBSD ) CC="gcc"
             WFLAGS=$GCCWFLAGS
-	    INCLUDE="-I/usr/X11R6/include -I/cs/research/mice/starship/common/FreeBSD/include -I/usr/local/include"
-	    LDLIBS="-L/cs/research/mice/starship/common/freebsd/lib -ltk80 -ltcl80 -L/usr/X11R6/lib -lXext -lX11 -lm"
+	    INCLUDE="-I/usr/X11R6/include -I/usr/local/include"
+	    LDLIBS="-L/usr/X11R6/lib -lXext -lX11 -lm"
 	    AUDIO="auddev_luigi.o"
 	    DEBUG="-g"
 	    CHAR="-fsigned-char"
@@ -114,8 +116,8 @@ case $OSTYPE in
             ;;
   HPUX    ) CC="gcc"
             WFLAGS=$GCCWFLAGS
-	    INCLUDE="-I/usr/include/X11 -I/cs/research/mice/starship/common/hpux/include/"
-	    LDLIBS="/cs/research/mice/starship/common/hpux/lib/libtk8.0.a /cs/research/mice/starship/common/hpux/lib/libtcl8.0.a -L/usr/lib/X11R5 -lXext -lX11 -lAlib -lm -ldld"
+	    INCLUDE="-I/usr/include/X11"
+	    LDLIBS="-L/usr/lib/X11R5 -lXext -lX11 -lAlib -lm -ldld"
 	    AUDIO="auddev_hpux_raw.o"
 	    DEBUG="-g"
 	    CHAR="-fsigned-char"
@@ -163,8 +165,8 @@ cat Makefile.in \
 | sed "s@__OSTYPE__@$OSTYPE@" \
 | sed "s@__CC__@$CC@" \
 | sed "s@__WFLAGS__@$WFLAGS@" \
-| sed "s@__INCLUDE__@$INCLUDE@" \
-| sed "s@__LDLIBS__@$LDLIBS@" \
+| sed "s@__INCLUDE__@$INCLUDE $TCL_INCL@" \
+| sed "s@__LDLIBS__@$LDLIBS $TCL_LIBS@" \
 | sed "s@__AUDIO__@$AUDIO@" \
 | sed "s@__CHAR__@$CHAR@" \
 | sed "s@__DEBUG__@$DEBUG2@" \
