@@ -341,19 +341,19 @@ unsigned char lintoalaw[8192];
 void 
 g711_init()
 {
-        int i;
+        int32_t i;
         
         for(i = 0; i < 256; i++)
                 mulawtolin[i] = ulaw2linear((unsigned char)i);
 
         for(i = -32767; i < 32768; i++) 
-                lintomulaw[(unsigned short)i] = linear2ulaw(i);
+                lintomulaw[(unsigned short)i] = linear2ulaw((sample)i);
 
         for(i = 0; i < 256; i++) 
                 alawtolin[i] = alaw2linear((unsigned char)i);
 
         for(i = -32767; i < 32768; i+= 8) 
-                lintoalaw[(unsigned short)i>>3] = linear2alaw(i);
+                lintoalaw[(unsigned short)i>>3] = linear2alaw((sample)i);
 
 }
 
