@@ -47,8 +47,6 @@
 #include "audio.h"
 #include "util.h"
 
-#if defined(Linux)
-
 #include <sys/soundcard.h>
 
 int	can_read  = FALSE;
@@ -79,6 +77,7 @@ audio_open_rw(char rw)
 	fragsize = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
 	/* Round to the nearest legal frag size (next power of two lower...) */
 	frag |= (int) (log(fragsize)/log(2));
+	dprintf("frag=%x fragsize=%d\n", frag, fragsize);
 
 	switch (rw) {
 	case O_RDONLY: 
@@ -106,23 +105,23 @@ audio_open_rw(char rw)
 			printf("ERROR: Cannot enable full-duplex mode!\n");
 			printf("       RAT should automatically select half-duplex operation\n");
 			printf("       in this case, so this error should never happen......\n");
-			exit(1);
+			abort();
 		}
 		if ((ioctl(audio_fd, SNDCTL_DSP_SETFRAGMENT, &frag) == -1)) {
 			printf("ERROR: Cannot set the fragement size\n");
-			exit(1);
+			abort();
 		}
 		if ((ioctl(audio_fd, SNDCTL_DSP_SETFMT, &mode) == -1) || (mode != AFMT_S16_LE)) { 
 			printf("ERROR: Audio device doesn't support 16bit linear format!\n");
-			exit(1);
+			abort();
 		}
 		if ((ioctl(audio_fd, SNDCTL_DSP_STEREO, &stereo) == -1) || (stereo != (format.num_channels - 1))) {
 			printf("ERROR: Audio device doesn't support %d channels!\n", format.num_channels);
-			exit(1);
+			abort();
 		}
 		if ((ioctl(audio_fd, SNDCTL_DSP_SPEED, &speed) == -1) || (speed != format.sample_rate)) {
 			printf("ERROR: Audio device doesn't support %d sampling rate!\n", format.sample_rate);
-			exit(1);
+			abort();
 		}
 		/* Set global gain/volume to maximum values. This may fail on */
 		/* some cards, but shouldn't cause any harm when it does..... */ 
@@ -211,9 +210,7 @@ audio_duplex(int audio_fd)
 
 	is_duplex = info & DSP_CAP_DUPLEX;
 	done_test = TRUE;
-#ifdef DEBUG
-	printf("%s duplex audio\n", is_duplex?"Full":"Half");
-#endif
+	dprintf("%s duplex audio\n", is_duplex?"Full":"Half");
 	return is_duplex;
 }
 
@@ -355,10 +352,10 @@ audio_read(int audio_fd, sample *buf, int samples)
 int
 audio_write(int audio_fd, sample *buf, int samples)
 {
-	int    		 done, len;
-	char  		*p;
-
 	if (can_write) {
+		int    		 done, len;
+		char  		*p;
+
 		p   = (char *) buf;
 		len = samples * BYTES_PER_SAMPLE;
 		while (1) {
@@ -388,9 +385,7 @@ audio_non_block(int audio_fd)
 		return;
 	}
 	if (ioctl(audio_fd, FIONBIO, (char *)&on) < 0) {
-#ifdef DEBUG
-		fprintf(stderr, "Failed to set non-blocking mode on audio device!\n");
-#endif
+		dprintf("Failed to set non-blocking mode on audio device!\n");
 	}
 }
 
@@ -404,9 +399,7 @@ audio_block(int audio_fd)
 		return;
 	}
 	if (ioctl(audio_fd, FIONBIO, (char *)&on) < 0) {
-#ifdef DEBUG
-		fprintf(stderr, "Failed to set blocking mode on audio device!\n");
-#endif
+		dprintf("Failed to set blocking mode on audio device!\n");
 	}
 }
 
@@ -443,7 +436,7 @@ audio_set_iport(int audio_fd, int port)
 	int gain;
 
 	if (ioctl(audio_fd, MIXER_READ(SOUND_MIXER_RECMASK), &recmask) == -1) {
-		printf("WARNING: Unable to read recording mask!\n");
+		dprintf("WARNING: Unable to read recording mask!\n");
 		return;
 	}
 	switch (port) {
@@ -451,46 +444,46 @@ audio_set_iport(int audio_fd, int port)
 		if (recmask & SOUND_MASK_MIC) {
 			recsrc = SOUND_MASK_MIC;
 			if ((ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & SOUND_MASK_MIC)) {
-				printf("WARNING: Unable to select recording source!\n");
+				dprintf("WARNING: Unable to select recording source!\n");
 				return;
 			}
 			gain = audio_get_gain(audio_fd);
 			iport = port;
 			audio_set_gain(audio_fd, gain);
 		} else {
-			printf("Audio device doesn't support recording from microphone\n");
+			dprintf("Audio device doesn't support recording from microphone\n");
 		}
 		break;
 	case AUDIO_LINE_IN : 
 		if (recmask & SOUND_MASK_LINE) {
 			recsrc = SOUND_MASK_LINE;
 			if ((ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & SOUND_MASK_LINE)){
-				printf("WARNING: Unable to select recording source!\n");
+				dprintf("WARNING: Unable to select recording source!\n");
 				return;
 			}
 			gain = audio_get_gain(audio_fd);
 			iport = port;
 			audio_set_gain(audio_fd, gain);
 		} else {
-			printf("Audio device doesn't support recording from line-input\n");
+			dprintf("Audio device doesn't support recording from line-input\n");
 		}
 		break;
 	case AUDIO_CD:
 		if (recmask & SOUND_MASK_CD) {
 			recsrc = SOUND_MASK_CD;
 			if ((ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & SOUND_MASK_LINE)){
-				printf("WARNING: Unable to select recording source!\n");
+				dprintf("WARNING: Unable to select recording source!\n");
 				return;
 			}
 			gain = audio_get_gain(audio_fd);
 			iport = port;
 			audio_set_gain(audio_fd, gain);
 		} else {
-			printf("Audio device doesn't support recording from CD\n");
+			dprintf("Audio device doesn't support recording from CD\n");
 		}
 		break;
 	default : 
-		printf("audio_set_port: unknown port!\n");
+		dprintf("audio_set_port: unknown port!\n");
 		abort();
 	};
 	return;
@@ -517,7 +510,7 @@ audio_next_iport(int audio_fd)
 		audio_set_iport(audio_fd, AUDIO_MICROPHONE);
 		break;
 	default : 
-		printf("Unknown audio source!\n");
+		dprintf("Unknown audio source!\n");
 	}
 	return iport;
 }
@@ -541,4 +534,3 @@ audio_switch_in(int audio_fd)
 	}
 }
 
-#endif
