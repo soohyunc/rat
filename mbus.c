@@ -337,6 +337,7 @@ void mbus_parse_done(struct mbus *m)
 int mbus_parse_lst(struct mbus *m, char **l)
 {
 	int instr = FALSE;
+	int inlst = FALSE;
 
 	*l = m->parse_buffer[m->parse_depth];
         while (isspace(*m->parse_buffer[m->parse_depth])) {
@@ -347,13 +348,20 @@ int mbus_parse_lst(struct mbus *m, char **l)
 	}
 	*(m->parse_buffer[m->parse_depth]) = ' ';
 	while (*m->parse_buffer[m->parse_depth] != '\0') {
+		if ((*m->parse_buffer[m->parse_depth] == '(') && (*(m->parse_buffer[m->parse_depth]-1) != '\\')) {
+			inlst = !inlst;
+		}
 		if ((*m->parse_buffer[m->parse_depth] == '"') && (*(m->parse_buffer[m->parse_depth]-1) != '\\')) {
 			instr = !instr;
 		}
 		if ((*m->parse_buffer[m->parse_depth] == ')') && (*(m->parse_buffer[m->parse_depth]-1) != '\\') && !instr) {
-			*m->parse_buffer[m->parse_depth] = '\0';
-			m->parse_buffer[m->parse_depth]++;
-			return TRUE;
+			if (inlst) {
+				inlst = !inlst;
+			} else {
+				*m->parse_buffer[m->parse_depth] = '\0';
+				m->parse_buffer[m->parse_depth]++;
+				return TRUE;
+			}
 		}
 		m->parse_buffer[m->parse_depth]++;
 	}
