@@ -3890,7 +3890,7 @@ then
 	COMMON_LIB=${COMMON_LIB}/lib
 fi
 
-
+COMMON_DEP="${COMMON_LIB}/libuclmmbase.a"
 echo $ac_n "checking for mbus_init in -luclmmbase""... $ac_c" 1>&6
 echo "configure:3896: checking for mbus_init in -luclmmbase" >&5
 ac_lib_var=`echo uclmmbase'_'mbus_init | sed 'y%./+-%__p_%'`
@@ -3940,7 +3940,8 @@ else
 	
 fi
 
-EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_LIB}/libuclmmbase.a"
+
+EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_DEP}"
 
 
 
@@ -3952,7 +3953,7 @@ EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_LIB}/libuclmmbase.a"
 # Return value from test program of zero indicates success.
 #-----------------------------------------------------------------------------
 echo $ac_n "checking signed arithmetic shift right""... $ac_c" 1>&6
-echo "configure:3956: checking signed arithmetic shift right" >&5
+echo "configure:3957: checking signed arithmetic shift right" >&5
 if eval "test \"`echo '$''{'gsm_cv_sasr'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -3960,11 +3961,11 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 3964 "configure"
+#line 3965 "configure"
 #include "confdefs.h"
 int main() { return (-1 >> 1) != -1;}
 EOF
-if { (eval echo configure:3968: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:3969: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   gsm_cv_sasr=yes
 else
@@ -4007,7 +4008,7 @@ G728_LIB=${G728_DIR}
 EXTRA_CODEC_OBJ=
 
 echo $ac_n "checking for g728_encoder_init in -lg728""... $ac_c" 1>&6
-echo "configure:4011: checking for g728_encoder_init in -lg728" >&5
+echo "configure:4012: checking for g728_encoder_init in -lg728" >&5
 ac_lib_var=`echo g728'_'g728_encoder_init | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -4015,7 +4016,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lg728 -L${G728_LIB} -lm $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 4019 "configure"
+#line 4020 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -4026,7 +4027,7 @@ int main() {
 g728_encoder_init()
 ; return 0; }
 EOF
-if { (eval echo configure:4030: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:4031: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else

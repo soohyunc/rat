@@ -1548,6 +1548,10 @@ v4.2.14	- Add "-noui" option to start the media engine without user interface
 	  following recent common library changes.
         - Fixed all MSVC warnings about implicit type conversions.
         - Update MSVC project files to reflect new paths in common library.
+	- Update configure to remove need for patching in FreeBSD ports 
+	  collection.
+	- Add shell script target "rat" as target in Makefile.  Again to
+	  make FreeBSD ports work less, well zero :-D.
 
 TODO -- They're features not bugs dammit!
 ----
