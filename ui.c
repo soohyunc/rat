@@ -81,7 +81,7 @@ static char *mbus_name_video  = NULL;
  */
 
 void
-ui_info_update_name(rtcp_dbentry *e)
+ui_info_update_name(session_struct *sp, rtcp_dbentry *e)
 {
 	char *cname, *name, *args;
 
@@ -92,26 +92,26 @@ ui_info_update_name(rtcp_dbentry *e)
         args = (char*)xmalloc(strlen(cname) + strlen(name) + 2);
         
 	sprintf(args, "%s %s", cname, name);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.name", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.name", args, TRUE);
 	xfree(cname);
 	xfree(name);
         xfree(args);
 }
 
 void
-ui_info_update_cname(rtcp_dbentry *e)
+ui_info_update_cname(session_struct *sp, rtcp_dbentry *e)
 {
         char *cname;
 	
         if (e->sentry->cname == NULL) return;
         
         cname = mbus_encode_str(e->sentry->cname);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.exists", cname, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.exists", cname, TRUE);
         xfree(cname);
 }
 
 void
-ui_info_update_email(rtcp_dbentry *e)
+ui_info_update_email(session_struct *sp, rtcp_dbentry *e)
 {
 	char *cname, *arg, *args;
 
@@ -121,14 +121,14 @@ ui_info_update_email(rtcp_dbentry *e)
 	arg   = mbus_encode_str(e->sentry->email);
         args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.email", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.email", args, TRUE);
 	xfree(cname);
 	xfree(arg);
         xfree(args);
 }
 
 void
-ui_info_update_phone(rtcp_dbentry *e)
+ui_info_update_phone(session_struct *sp, rtcp_dbentry *e)
 {
 	char *cname, *arg, *args;
 
@@ -138,14 +138,14 @@ ui_info_update_phone(rtcp_dbentry *e)
 	arg   = mbus_encode_str(e->sentry->phone);
         args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.phone", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.phone", args, TRUE);
 	xfree(cname);
 	xfree(arg);
         xfree(args);
 }
 
 void
-ui_info_update_loc(rtcp_dbentry *e)
+ui_info_update_loc(session_struct *sp, rtcp_dbentry *e)
 {
 	char *cname, *arg, *args;
 
@@ -155,76 +155,76 @@ ui_info_update_loc(rtcp_dbentry *e)
 	arg   = mbus_encode_str(e->sentry->loc);
         args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.loc", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.loc", args, TRUE);
 	xfree(cname);
 	xfree(arg);
         xfree(args);
 }
 
 void
-ui_info_update_tool(rtcp_dbentry *e)
+ui_info_update_tool(session_struct *sp, rtcp_dbentry *e)
 {
 	char *cname = mbus_encode_str(e->sentry->cname);
 	char *arg   = mbus_encode_str(e->sentry->tool);
         char *args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.tool", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.tool", args, TRUE);
 	xfree(cname);
 	xfree(arg);
         xfree(args);
 }
 
 void
-ui_info_update_note(rtcp_dbentry *e)
+ui_info_update_note(session_struct *sp, rtcp_dbentry *e)
 {
 	char *cname = mbus_encode_str(e->sentry->cname);
 	char *arg   = mbus_encode_str(e->sentry->note);
         char *args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.note", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.note", args, TRUE);
 	xfree(cname);
 	xfree(arg);
         xfree(args);
 }
 
 void
-ui_info_remove(rtcp_dbentry *e)
+ui_info_remove(session_struct *sp, rtcp_dbentry *e)
 {
         char *cname;
 	
         if (e->sentry->cname == NULL) return;
 	
         cname = mbus_encode_str(e->sentry->cname);
-        mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.remove", cname, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.remove", cname, TRUE);
         xfree(cname);
 }
 
 void
-ui_info_activate(rtcp_dbentry *e)
+ui_info_activate(session_struct *sp, rtcp_dbentry *e)
 {
         char *cname;
 	
         if (e->sentry->cname == NULL) return;
         
         cname = mbus_encode_str(e->sentry->cname);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.active", cname, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.active", cname, FALSE);
         xfree(cname);
 }
 
 void
-ui_info_deactivate(rtcp_dbentry *e)
+ui_info_deactivate(session_struct *sp, rtcp_dbentry *e)
 {
         char *cname;
 
 	if (e->sentry->cname == NULL) return;
 	
         cname = mbus_encode_str(e->sentry->cname);
-        mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.inactive", cname, FALSE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.inactive", cname, FALSE);
         xfree(cname);
 }
 
 void
-ui_update_stats(rtcp_dbentry *e, session_struct *sp)
+ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 {
 	char	*my_cname, *their_cname, *args;
 
@@ -244,17 +244,17 @@ ui_update_stats(rtcp_dbentry *e, session_struct *sp)
                 args = (char *) xmalloc(strlen(their_cname) + 7 + 2);
                 sprintf(args, "%s unknown", their_cname);
         }
-        mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.codec", args, FALSE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.codec", args, FALSE);
         xfree(args);
 
         /* args size is for source.packet.loss, source.audio.buffered size always less */
 	args = (char *) xmalloc(strlen(their_cname) + strlen(my_cname) + 11);
         
         sprintf(args, "%s %ld", their_cname, playout_buffer_duration(sp->playout_buf_list, e));
-        mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.audio.buffered", args, FALSE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.audio.buffered", args, FALSE);
 
 	sprintf(args, "%s %s %8ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
 
 	xfree(my_cname);
 	xfree(their_cname);
@@ -266,22 +266,22 @@ ui_update_input_port(session_struct *sp)
 {
 	switch (sp->input_mode) {
 	case AUDIO_MICROPHONE:
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.port", "microphone", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.port", "microphone", TRUE);
 		break;
 	case AUDIO_LINE_IN:
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.port", "line_in", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.port", "line_in", TRUE);
 		break;	
 	case AUDIO_CD:
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.port", "cd", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.port", "cd", TRUE);
 		break;
 	default:
 		fprintf(stderr, "Invalid input port!\n");
 		return ;
 	}
 	if (sp->sending_audio) {
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.mute", "0", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.mute", "0", TRUE);
 	} else {
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.mute", "1", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.mute", "1", TRUE);
 	}
 }
 
@@ -290,27 +290,27 @@ ui_update_output_port(session_struct *sp)
 {
 	switch (sp->output_mode) {
 	case AUDIO_SPEAKER:
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.port", "speaker", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.output.port", "speaker", TRUE);
 		break;
 	case AUDIO_HEADPHONE:
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.port", "headphone", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.output.port", "headphone", TRUE);
 		break;
 	case AUDIO_LINE_OUT:
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.port", "line_out", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.output.port", "line_out", TRUE);
 		break;
 	default:
 		fprintf(stderr, "Invalid output port!\n");
 		return;
 	}
 	if (sp->playing_audio) {
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.mute", "0", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.output.mute", "0", TRUE);
 	} else {
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.mute", "1", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.output.mute", "1", TRUE);
 	}
 }
 
 void
-ui_input_level(int level)
+ui_input_level(session_struct *sp, int level)
 {
 	static int	ol;
 	char		args[4];
@@ -322,12 +322,12 @@ ui_input_level(int level)
 	}
 
 	sprintf(args, "%3d", level);
-	mbus_engine_tx(TRUE, mbus_name_ui, "audio.powermeter.input", args, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.powermeter.input", args, FALSE);
 	ol = level;
 }
 
 void
-ui_output_level(int level)
+ui_output_level(session_struct *sp, int level)
 {
 	static int	ol;
 	char		args[4];
@@ -338,7 +338,7 @@ ui_output_level(int level)
 	}
 
 	sprintf(args, "%3d", level);
-	mbus_engine_tx(TRUE, mbus_name_ui, "audio.powermeter.output", args, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.powermeter.output", args, FALSE);
 	ol = level;
 }
 
@@ -358,7 +358,7 @@ ui_repair(session_struct *sp)
 		repair = mbus_encode_str("Pattern Matching");
                 break;
         }
-	mbus_engine_tx(TRUE, mbus_name_ui, "repair", repair, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "repair", repair, FALSE);
 	xfree(repair);
 }
 
@@ -387,7 +387,7 @@ ui_update_interleaving(session_struct *sp)
         }
 
         sprintf(args,"%d %d",iu, isep);
-        mbus_engine_tx(TRUE, mbus_name_ui, "interleaving", args, TRUE);        
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "interleaving", args, TRUE);        
 }
 
 void
@@ -400,7 +400,7 @@ ui_update_frequency(session_struct *sp)
 	sprintf(args, "%d-kHz", pcp->freq/1000);
         assert(strlen(args) < 7);
         mbes = mbus_encode_str(args);
-	mbus_engine_tx(TRUE, mbus_name_ui, "frequency", mbes, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "frequency", mbes, FALSE);
         xfree(mbes);
 }
 
@@ -422,7 +422,7 @@ ui_update_channels(session_struct *sp)
                 debug_msg("UI not ready for %d channels\n", pcp->channels);
                 return;
         }
-	mbus_engine_tx(TRUE, mbus_name_ui, "channels", mbes, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "channels", mbes, FALSE);
         xfree(mbes);
 }       
 
@@ -434,7 +434,7 @@ ui_update_primary(session_struct *sp)
 
 	pcp = get_codec_by_pt(sp->encodings[0]);
 	mbes = mbus_encode_str(pcp->short_name);
-        mbus_engine_tx(TRUE, mbus_name_ui, "audio.codec", mbes, FALSE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.codec", mbes, FALSE);
         xfree(mbes);
 }
 
@@ -479,7 +479,7 @@ ui_update_redundancy(session_struct *sp)
 	args = (char *) xmalloc(strlen(codec_name) + 4);
         sprintf(args,"%s %2d", codec_name, ioff);
         assert(strlen(args) < (strlen(codec_name) + 4));
-        mbus_engine_tx(TRUE, mbus_name_ui, "redundancy", args, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "redundancy", args, TRUE);
 	xfree(codec_name);
         xfree(args);
 }
@@ -507,7 +507,7 @@ ui_update_channel(session_struct *sp)
                 return;
         }
 
-        mbus_engine_tx(TRUE, mbus_name_ui, "audio.channel.coding", mbes, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.coding", mbes, TRUE);
         if (mbes) xfree(mbes);
 }
 
@@ -518,7 +518,7 @@ ui_update_input_gain(session_struct *sp)
 
         sprintf(args, "%3d", audio_get_gain(sp->audio_fd)); 
         assert(strlen(args) < 4);
-        mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.gain", args, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.gain", args, TRUE);
 }
 
 void
@@ -528,7 +528,7 @@ ui_update_output_gain(session_struct *sp)
 
         sprintf(args, "%3d", audio_get_volume(sp->audio_fd)); 
         assert(strlen(args) < 4);
-        mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.gain", args, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.output.gain", args, TRUE);
 }
 
 void
@@ -544,20 +544,20 @@ ui_update(session_struct *sp)
                 ui_update_output_gain(sp);
 		done=1;
 	} else {
-	        sprintf(args, "%3d", sp->output_gain); mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.gain", args, TRUE);
+	        sprintf(args, "%3d", sp->output_gain); mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.output.gain", args, TRUE);
                 assert(strlen(args) < 4);
-		sprintf(args, "%3d", sp->input_gain ); mbus_engine_tx(TRUE, mbus_name_ui,  "audio.input.gain", args, TRUE);
+		sprintf(args, "%3d", sp->input_gain ); mbus_qmsg(sp->mbus_engine_base, mbus_name_ui,  "audio.input.gain", args, TRUE);
                 assert(strlen(args) < 4);
 	}
 
         sprintf(args, "%3d", collator_get_units(sp->collator));
         assert(strlen(args) < 4);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rate", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rate", args, TRUE);
 
 	ui_update_output_port(sp);
 	ui_update_input_port(sp);
-        ui_codecs(sp->encodings[0]);
-        ui_converters();
+        ui_codecs(sp, sp->encodings[0]);
+        ui_converters(sp);
         ui_update_frequency(sp);
         ui_update_channels(sp);
 	ui_update_primary(sp);
@@ -568,15 +568,15 @@ ui_update(session_struct *sp)
 }
 
 void
-ui_show_audio_busy(void)
+ui_show_audio_busy(session_struct *sp)
 {
-	mbus_engine_tx(TRUE, mbus_name_ui, "disable.audio.ctls", "", TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "disable.audio.ctls", "", TRUE);
 }
 
 void
-ui_hide_audio_busy(void)
+ui_hide_audio_busy(session_struct *sp)
 {
-	mbus_engine_tx(TRUE, mbus_name_ui, "enable.audio.ctls", "", TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "enable.audio.ctls", "", TRUE);
 }
 
 
@@ -586,7 +586,7 @@ ui_update_lecture_mode(session_struct *sp)
 	/* Update the UI to reflect the lecture mode setting...*/
 	char	args[2];
 	sprintf(args, "%1d", sp->lecture);
-	mbus_engine_tx(TRUE, mbus_name_ui, "lecture.mode", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "lecture.mode", args, TRUE);
 }
 
 void
@@ -596,7 +596,7 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 
 	if (power_time > sp->meter_period) {
 		if (sp->meter && (ms != NULL)) {
-			mix_update_ui(ms);
+			mix_update_ui(sp, ms);
 		}
                 if (sp->sending_audio) {
 			tx_update_ui(sp);
@@ -608,7 +608,7 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 }
 
 void
-ui_update_loss(char *srce, char *dest, int loss)
+ui_update_loss(session_struct *sp, char *srce, char *dest, int loss)
 {
 	char	*srce_e, *dest_e, *args;
 
@@ -620,14 +620,14 @@ ui_update_loss(char *srce, char *dest, int loss)
 	dest_e = mbus_encode_str(dest);
 	args   = (char *) xmalloc(strlen(srce_e) + strlen(dest_e) + 6);
 	sprintf(args, "%s %s %3d", srce_e, dest_e, loss);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
 	xfree(args);
 	xfree(srce_e);
 	xfree(dest_e);
 }
 
 void
-ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog)
+ui_update_reception(session_struct *sp, char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog)
 {
 	char	*cname_e, *args;
 
@@ -638,13 +638,13 @@ ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered,
 	/* I hate this function! */
 	args = (char *) xmalloc(strlen(cname_e) + 88);
 	sprintf(args, "%s %6ld %6ld %6ld %6ld %6ld %6d", cname_e, recv, lost, misordered, duplicates, jitter, jit_tog);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.reception", args, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.reception", args, FALSE);
 	xfree(args);
         xfree(cname_e);
 }
 
 void
-ui_update_duration(char *cname, int duration)
+ui_update_duration(session_struct *sp, char *cname, int duration)
 {
 	char	*cname_e, *args;
 
@@ -654,13 +654,13 @@ ui_update_duration(char *cname, int duration)
 	args    = (char *) xmalloc(5 + strlen(cname_e));
 
 	sprintf(args, "%s %3d", cname_e, duration);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.packet.duration", args, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.packet.duration", args, FALSE);
 	xfree(args);
         xfree(cname_e);
 }
 
 void 
-ui_update_video_playout(char *cname, int playout)
+ui_update_video_playout(session_struct *sp, char *cname, int playout)
 {
 	char	*cname_e, *args;
 
@@ -670,25 +670,25 @@ ui_update_video_playout(char *cname, int playout)
 	args    = (char *) xmalloc(14 + strlen(cname_e));
 
 	sprintf(args, "%s %12d", cname_e, playout);
-	mbus_engine_tx(TRUE, mbus_name_video, "source_playout", args, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_video, "source_playout", args, FALSE);
 	xfree(args);
         xfree(cname_e);
 }
 
 void	
-ui_update_sync(int sync)
+ui_update_sync(session_struct *sp, int sync)
 {
 	if (sync) {
-		mbus_engine_tx(TRUE, mbus_name_ui, "sync", "1", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "sync", "1", TRUE);
 	} else {
-		mbus_engine_tx(TRUE, mbus_name_ui, "sync", "0", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "sync", "0", TRUE);
 	}
 }
 
 void
-ui_update_key(char *key)
+ui_update_key(session_struct *sp, char *key)
 {
-	mbus_engine_tx(TRUE, mbus_name_ui, "update_key", key, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "update_key", key, TRUE);
 }
 
 static int
@@ -750,25 +750,25 @@ ui_get_codecs(int pt, char *buf, unsigned int buf_len, int loose)
 }
 
 void
-ui_update_playback_file(char *name)
+ui_update_playback_file(session_struct *sp, char *name)
 {
         char *mbes;
         mbes = mbus_encode_str(name);
-        mbus_engine_tx(TRUE, mbus_name_ui, "audio.file.play.ready", mbes, TRUE); 
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.file.play.ready", mbes, TRUE); 
         xfree(mbes);
 }
 
 void
-ui_update_record_file(char *name)
+ui_update_record_file(session_struct *sp, char *name)
 {
         char *mbes;
         mbes = mbus_encode_str(name);
-        mbus_engine_tx(TRUE, mbus_name_ui, "audio.file.record.ready", mbes, TRUE); 
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.file.record.ready", mbes, TRUE); 
         xfree(mbes);
 }
 
 void
-ui_update_file_live(char *mode, int valid)
+ui_update_file_live(session_struct *sp, char *mode, int valid)
 {
         char cmd[32], arg[2];
         
@@ -776,31 +776,31 @@ ui_update_file_live(char *mode, int valid)
         
         sprintf(cmd, "audio.file.%s.alive", mode);
         sprintf(arg, "%1d", valid); 
-        mbus_engine_tx(TRUE, mbus_name_ui, cmd, arg, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, cmd, arg, TRUE);
 }
 
 void 
-ui_codecs(int pt)
+ui_codecs(session_struct *sp, int pt)
 {
 	char	args[256], *mbes;	/* Hope that's big enough... :-) */
 
         ui_get_codecs(pt, args, 256, TRUE);
         mbes = mbus_encode_str(args);
-	mbus_engine_tx(TRUE, mbus_name_ui, "audio.codec.supported", mbes, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.codec.supported", mbes, TRUE);
         xfree(mbes);
         ui_get_codecs(pt, args, 256, FALSE);
         mbes = mbus_encode_str(args);
-        mbus_engine_tx(TRUE, mbus_name_ui, "audio.redundancy.supported", mbes, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.redundancy.supported", mbes, TRUE);
         xfree(mbes);
 }
 
 void 
-ui_converters()
+ui_converters(session_struct *sp)
 {
         char buf[255], *mbes;
         if (converter_get_names(buf, 255)) {
                 mbes = mbus_encode_str(buf);
-                mbus_engine_tx(TRUE, mbus_name_ui, "converter.supported", mbes, TRUE);
+                mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "converter.supported", mbes, TRUE);
                 xfree(mbes);
         }
 }
@@ -813,12 +813,12 @@ ui_sampling_modes(session_struct *sp)
         UNUSED(sp);
         /* this is just a quick con job for the moment */
 	freqs = mbus_encode_str("8-kHz 16-kHz 32-kHz 48-kHz");
-	mbus_engine_tx(TRUE, mbus_name_ui, "frequencies.supported", freqs, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "frequencies.supported", freqs, TRUE);
 	xfree(freqs);
 }
 
 void
-ui_controller_init(char *cname, char *name_engine, char *name_ui, char *name_video)
+ui_controller_init(session_struct *sp, char *cname, char *name_engine, char *name_ui, char *name_video)
 {
 	char	*my_cname;
 
@@ -827,7 +827,7 @@ ui_controller_init(char *cname, char *name_engine, char *name_ui, char *name_vid
 	mbus_name_video  = name_video;
 
 	my_cname = mbus_encode_str(cname);
-	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.cname", my_cname, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.cname", my_cname, TRUE);
         xfree(my_cname);
 }
 
@@ -837,27 +837,27 @@ ui_title(session_struct *sp)
 	char	*addr, *args, *title;
 
         title = mbus_encode_str(sp->title);
-        mbus_engine_tx(TRUE, mbus_name_ui, "session.title", title, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "session.title", title, TRUE);
         xfree(title);
 
 	addr = mbus_encode_str(sp->asc_address);
 	args = (char *) xmalloc(strlen(addr) + 11);
         sprintf(args, "%s %5d %3d", addr, sp->rtp_port, sp->ttl);
-        mbus_engine_tx(TRUE, mbus_name_ui, "session.address", args, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "session.address", args, TRUE);
 	xfree(args);
         xfree(addr);
 }
 
 void
-ui_load_settings()
+ui_load_settings(session_struct *sp)
 {
-	mbus_engine_tx(TRUE, mbus_name_ui, "load.settings", "", TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "load.settings", "", TRUE);
 }
 
 void 
-ui_quit(void)
+ui_quit(session_struct *sp)
 {
-	mbus_engine_tx(TRUE, mbus_name_ui, "quit", "", TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "quit", "", TRUE);
 }
 
 

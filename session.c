@@ -128,6 +128,8 @@ init_session(session_struct *sp)
         sp->have_device                 = 0;
 	sp->rtp_seq			= lrand48() & 0xffff;
 	sp->speakers_active 		= NULL;
+	sp->mbus_engine_base		= NULL;
+	sp->mbus_engine_conf		= NULL;
 	sp->mbus_channel		= 0;
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
@@ -356,7 +358,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 			}
 			if ((strcmp(argv[i], "-crypt") == 0) && (argc > i+1)) {
 				Set_Key(argv[i+1]);
-				ui_update_key(argv[i+1]);
+				ui_update_key(sp[s], argv[i+1]);
 				i++;
 			}
                         if (strcmp(argv[i], "-sync") == 0) {

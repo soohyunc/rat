@@ -329,7 +329,7 @@ rtcp_set_encoder_format(session_struct *sp, rtcp_dbentry *e, char *enc_fmt)
                 xfree(e->enc_fmt);
         }
         e->enc_fmt = xstrdup(enc_fmt);
-        ui_update_stats(e, sp);
+        ui_update_stats(sp, e);
 }
 
 /*
@@ -345,27 +345,27 @@ rtcp_set_attribute(session_struct *sp, int type, char *val)
 	case RTCP_SDES_LOC :
 		if (sp->db->my_dbe->sentry->loc) xfree(sp->db->my_dbe->sentry->loc);
 		sp->db->my_dbe->sentry->loc = xstrdup(val);
-		ui_info_update_loc(sp->db->my_dbe);
+		ui_info_update_loc(sp, sp->db->my_dbe);
 		break;
 	case RTCP_SDES_PHONE :
 		if (sp->db->my_dbe->sentry->phone) xfree(sp->db->my_dbe->sentry->phone);
 		sp->db->my_dbe->sentry->phone = xstrdup(val);
-		ui_info_update_phone(sp->db->my_dbe);
+		ui_info_update_phone(sp, sp->db->my_dbe);
 		break;
 	case RTCP_SDES_EMAIL :
 		if (sp->db->my_dbe->sentry->email) xfree(sp->db->my_dbe->sentry->email);
 		sp->db->my_dbe->sentry->email = xstrdup(val);
-		ui_info_update_email(sp->db->my_dbe);
+		ui_info_update_email(sp, sp->db->my_dbe);
 		break;
 	case RTCP_SDES_NAME :
 		if (sp->db->my_dbe->sentry->name) xfree(sp->db->my_dbe->sentry->name);
 		sp->db->my_dbe->sentry->name = xstrdup(val);
-		ui_info_update_name(sp->db->my_dbe);
+		ui_info_update_name(sp, sp->db->my_dbe);
 		break;
 	case RTCP_SDES_NOTE :
 		if (sp->db->my_dbe->sentry->note) xfree(sp->db->my_dbe->sentry->note);
 		sp->db->my_dbe->sentry->note = xstrdup(val);
-		ui_info_update_note(sp->db->my_dbe);
+		ui_info_update_note(sp, sp->db->my_dbe);
 		break;
 	default :
 		debug_msg("Unknown SDES attribute type! (This should never happen)\n");

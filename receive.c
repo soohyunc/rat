@@ -303,7 +303,7 @@ playout_buffer_destroy(session_struct *sp, ppb_t **list, ppb_t *buf)
         ppb_t *pb, *lpb;
         rx_queue_element_struct *nrx;
 
-        ui_info_deactivate(buf->src);
+        ui_info_deactivate(sp, buf->src);
 
         debug_msg("Destroying playout buffer\n");
 
@@ -445,7 +445,7 @@ find_participant_queue(session_struct *sp, ppb_t **list, rtcp_dbentry *src, int 
 	p->next          = *list;
 	*list            = p;
         
-        ui_info_activate(src);
+        ui_info_activate(sp, src);
         
         cp_dev = get_codec_by_pt(dev_pt);
         cp_src = get_codec_by_pt(src_pt);

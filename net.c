@@ -175,10 +175,10 @@ network_read(session_struct    *sp,
 	read_and_enqueue(sp->rtp_socket, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
 	read_and_enqueue(sp->rtcp_socket, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
 
-	mbus_recv(mbus_engine(FALSE), (void *) sp);
+	mbus_recv(sp->mbus_engine_base, (void *) sp);
 	mbus_recv(mbus_ui(FALSE), (void *) sp);
 	if (sp->mbus_channel != 0) {
-		mbus_recv(mbus_engine(TRUE), (void *) sp);
+		mbus_recv(sp->mbus_engine_conf, (void *) sp);
 		mbus_recv(mbus_ui(TRUE), (void *) sp);
 	}
 }
@@ -189,10 +189,10 @@ void network_process_mbus(session_struct *sp)
 	int	rc;
 
 	do {
-		rc  = mbus_recv(mbus_engine(0), (void *) sp); mbus_send(mbus_engine(0));
+		rc  = mbus_recv(sp->mbus_engine_base, (void *) sp); mbus_send(sp->mbus_engine_base);
 		rc |= mbus_recv(    mbus_ui(0), (void *) sp); mbus_send(mbus_ui(0));
 		if (sp->mbus_channel != 0) {
-			rc |= mbus_recv(mbus_engine(TRUE), (void *) sp); mbus_send(mbus_engine(TRUE));
+			rc |= mbus_recv(sp->mbus_engine_conf, (void *) sp); mbus_send(sp->mbus_engine_conf);
 			rc |= mbus_recv(    mbus_ui(TRUE), (void *) sp); mbus_send(mbus_ui(TRUE));
 		}
 	} while (rc);

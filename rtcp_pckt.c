@@ -354,11 +354,11 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 
         if ((dbe->ui_last_update - get_time(dbe->clock)) >= (unsigned)get_freq(sp->device_clock)) {
                 double jit;
-                ui_update_duration(dbe->sentry->cname, dbe->units_per_packet * 20);
-                ui_update_loss(sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->lost_frac * 100) >> 8);
+                ui_update_duration(sp, dbe->sentry->cname, dbe->units_per_packet * 20);
+                ui_update_loss(sp, sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->lost_frac * 100) >> 8);
                 jit = ceil(dbe->jitter * 1000/get_freq(dbe->clock));
-                ui_update_reception(dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->duplicates, (u_int32)jit, dbe->jit_TOGed);
-                ui_update_stats(dbe, sp);
+                ui_update_reception(sp, dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->duplicates, (u_int32)jit, dbe->jit_TOGed);
+                ui_update_stats(sp, dbe);
                 dbe->ui_last_update = get_time(dbe->clock);
         }
 
@@ -510,7 +510,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				dbe->rr      = rr;
 				other_source = rtcp_getornew_dbentry(sp, rr->ssrc, cur_time);
 				if (dbe->sentry->cname != NULL) {
-					ui_update_loss(dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
+					ui_update_loss(sp, dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
 				}
 			}
 			break;
@@ -546,7 +546,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				dbe->rr = rr;
 				other_source =  rtcp_getornew_dbentry(sp, rr->ssrc, cur_time);
 				if (dbe->sentry->cname != NULL) {
-					ui_update_loss(dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
+					ui_update_loss(sp, dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
 				}
 			}
 
@@ -555,7 +555,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				/* Need to store stats in ssrc's db not r.rr.ssrc's */
 				dbe->loss_from_me = (ntohl(pkt->r.rr.rr[0].loss) >> 24) & 0xff;
 				dbe->last_rr_for_me = cur_time;
-				ui_update_loss(dbe->sentry->cname, sp->db->my_dbe->sentry->cname, (dbe->loss_from_me*100)>>8);
+				ui_update_loss(sp, dbe->sentry->cname, sp->db->my_dbe->sentry->cname, (dbe->loss_from_me*100)>>8);
 			}
 			break;
 		case RTCP_BYE:
@@ -593,7 +593,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 							sp->db->pkt_count  = 0;
 							sp->db->byte_count = 0;
 						}
-                                                ui_info_update_cname(dbe);
+                                                ui_info_update_cname(sp, dbe);
 						break;
 					case RTCP_SDES_NAME:
 						if (dbe->sentry->name) {
@@ -605,7 +605,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->name = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->name, sdes->data, lenstr);
 						dbe->sentry->name[lenstr] = '\0';
-                                                ui_info_update_name(dbe);
+                                                ui_info_update_name(sp, dbe);
 						break;
 					case RTCP_SDES_EMAIL:
 						if (dbe->sentry->email) {
@@ -617,7 +617,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->email = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->email, sdes->data, lenstr);
 						dbe->sentry->email[lenstr] = '\0';
-                                                ui_info_update_email(dbe);
+                                                ui_info_update_email(sp, dbe);
 						break;
 					case RTCP_SDES_PHONE:
 						if (dbe->sentry->phone) {
@@ -629,7 +629,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->phone = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->phone, sdes->data, lenstr);
 						dbe->sentry->phone[lenstr] = '\0';
-                                                ui_info_update_phone(dbe);
+                                                ui_info_update_phone(sp, dbe);
 						break;
 					case RTCP_SDES_LOC:
 						if (dbe->sentry->loc) {
@@ -641,7 +641,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->loc = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->loc, sdes->data, lenstr);
 						dbe->sentry->loc[lenstr] = '\0';
-                                                ui_info_update_loc(dbe);
+                                                ui_info_update_loc(sp, dbe);
 						break;
 					case RTCP_SDES_TOOL:
 						if (dbe->sentry->tool) {
@@ -653,7 +653,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->tool = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->tool, sdes->data, lenstr);
 						dbe->sentry->tool[lenstr] = '\0';
-                                                ui_info_update_tool(dbe);
+                                                ui_info_update_tool(sp, dbe);
 						break;
 					case RTCP_SDES_NOTE:
 						if (dbe->sentry->note) {
@@ -665,7 +665,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->note = (char *) xmalloc(lenstr + 1);
 						memcpy(dbe->sentry->note, sdes->data, lenstr);
 						dbe->sentry->note[lenstr] = '\0';
-                                                ui_info_update_note(dbe);
+                                                ui_info_update_note(sp, dbe);
 						break;
 					default:
 						debug_msg("SDES packet type %d ignored\n", sdes->type);

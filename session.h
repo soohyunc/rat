@@ -145,6 +145,8 @@ typedef struct session_tag {
 	int		 last_zero;		/* audio.c */
 	long		 loop_delay;
 	long		 loop_estimate;
+	struct mbus	*mbus_engine_base;
+	struct mbus	*mbus_engine_conf;
 	int		 mbus_channel;
 	int		 wait_on_startup;
 } session_struct;

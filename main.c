@@ -78,12 +78,12 @@ signal_handler(int signal)
 }
 #endif
 
-static void heartbeat(u_int32 curr_time, u_int32 interval)
+static void heartbeat(session_struct *sp, u_int32 curr_time, u_int32 interval)
 {
 	static u_int32	prev_time;
 
 	if (curr_time - prev_time > (interval << 16)) {
-		mbus_engine_tx(FALSE, "(* * * *)", "mbus.hello", "", FALSE);
+		mbus_qmsg(sp->mbus_engine_base, "(* * * *)", "mbus.hello", "", FALSE);
 		prev_time = curr_time;
 	}
 }
@@ -133,28 +133,17 @@ main(int argc, char *argv[])
 
         converters_init();
 
-	if (sp[0]->mode == AUDIO_TOOL) {
-		assert(num_sessions == 1);
-#ifdef WIN32
-		sprintf(mbus_engine_addr, "(audio engine rat %lu)", (u_int32) getpid());
-		sprintf(mbus_ui_addr,     "(audio     ui rat %lu)", (u_int32) getpid());
-#else
-		sprintf(mbus_engine_addr, "(audio engine rat %ld)", (int32) getpid());
-		sprintf(mbus_ui_addr,     "(audio     ui rat %ld)", (int32) getpid());
-#endif
-		sprintf(mbus_video_addr,  "(video engine   *  *)");
-		mbus_engine_init(mbus_engine_addr, sp[0]->mbus_channel);
+	sprintf(mbus_engine_addr, "(audio engine rat %ld)", (int32) getpid());
+	sprintf(mbus_ui_addr,     "(audio     ui rat %ld)", (int32) getpid());
+	sprintf(mbus_video_addr,  "(video engine   *  *)");
+	
+	sp[0]->mbus_engine_base = mbus_init(0, mbus_engine_rx, NULL); 
+	mbus_addr(sp[0]->mbus_engine_base, mbus_engine_addr);
+	if (sp[0]->mbus_channel == 0) {
+		sp[0]->mbus_engine_conf = sp[0]->mbus_engine_base;
 	} else {
-		assert(num_sessions == 2);
-#ifdef WIN32
-		sprintf(mbus_engine_addr, "(audio transcoder rat %lu)", (u_int32) getpid());
-		sprintf(mbus_ui_addr,     "(audio         ui rat %lu)", (u_int32) getpid());
-#else
-		sprintf(mbus_engine_addr, "(audio transcoder rat %ld)", (int32) getpid());
-		sprintf(mbus_ui_addr,     "(audio         ui rat %ld)", (int32) getpid());
-#endif
-		/* This should probably use a separate mbus_transcoder_init() function */
-		mbus_engine_init(mbus_engine_addr, sp[0]->mbus_channel);
+		sp[0]->mbus_engine_conf = mbus_init((short)sp[0]->mbus_channel, mbus_engine_rx, NULL); 
+		mbus_addr(sp[0]->mbus_engine_conf, mbus_engine_addr);
 	}
 
         if (sp[0]->ui_on) {
@@ -164,14 +153,14 @@ main(int argc, char *argv[])
 		strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
         }
 
-	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
+	ui_controller_init(sp[0], cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 	do {
 		network_process_mbus(sp[0]);
-		heartbeat(ntp_time32(), 1);
+		heartbeat(sp[0], ntp_time32(), 1);
 	} while (sp[0]->wait_on_startup);
 
         ui_sampling_modes(sp[0]);
-	ui_codecs(sp[0]->encodings[0]);
+	ui_codecs(sp[0], sp[0]->encodings[0]);
 
 	for (i = 0; i < num_sessions; i++) {
 		network_init(sp[i]);
@@ -179,10 +168,10 @@ main(int argc, char *argv[])
 		audio_device_take(sp[i]);
 	}
 
-	ui_info_update_cname(sp[0]->db->my_dbe);
-	ui_info_update_tool(sp[0]->db->my_dbe);
+	ui_info_update_cname(sp[0], sp[0]->db->my_dbe);
+	ui_info_update_tool(sp[0], sp[0]->db->my_dbe);
         ui_title(sp[0]);
-	ui_load_settings();
+	ui_load_settings(sp[0]);
         rtcp_clock_change(sp[0]);
 
 	network_process_mbus(sp[0]);
@@ -259,8 +248,9 @@ main(int argc, char *argv[])
 				tcl_process_events();
 				mbus_ui_retransmit();
                 	}
-			mbus_engine_retransmit();
-			heartbeat(real_time, 10);
+			mbus_send(sp[0]->mbus_engine_base); mbus_retransmit(sp[0]->mbus_engine_base);
+			mbus_send(sp[0]->mbus_engine_conf); mbus_retransmit(sp[0]->mbus_engine_conf);
+			heartbeat(sp[0], real_time, 10);
 
                         /* wait for mbus messages - closing audio device
                          * can timeout unprocessed messages as some drivers

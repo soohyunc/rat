@@ -296,7 +296,7 @@ adapt_playout(rtp_hdr_t *hdr,
 				src->sync_playout_delay = ntp_delay + ((var << 16) / get_freq(src->clock));
                                 
 				/* Communicate our playout delay to the video tool... */
-                                ui_update_video_playout(src->sentry->cname, src->sync_playout_delay);
+                                ui_update_video_playout(sp, src->sentry->cname, src->sync_playout_delay);
 		
 				/* If the video tool is slower than us, then
                                  * adjust to match it...  src->video_playout is
@@ -494,7 +494,7 @@ statistics(session_struct    *sp,
                 block_trash_check();
 
                 if (update_req && (src->units_per_packet != 0)) {
-                	ui_update_stats(src, sp);
+                	ui_update_stats(sp, src);
                 }
                 pkt_cnt++;
         release:

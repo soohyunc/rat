@@ -45,21 +45,21 @@ struct s_rtcp_dbentry;
 struct s_cbaddr;
 struct s_mix_info;
 
-void	   ui_info_update_name(struct s_rtcp_dbentry *e);
-void	  ui_info_update_cname(struct s_rtcp_dbentry *e);
-void	  ui_info_update_email(struct s_rtcp_dbentry *e);
-void	  ui_info_update_phone(struct s_rtcp_dbentry *e);
-void	    ui_info_update_loc(struct s_rtcp_dbentry *e);
-void	   ui_info_update_tool(struct s_rtcp_dbentry *e);
-void	   ui_info_update_note(struct s_rtcp_dbentry *e);
-void	        ui_info_remove(struct s_rtcp_dbentry *e);
-void	      ui_info_activate(struct s_rtcp_dbentry *e);
-void	    ui_info_deactivate(struct s_rtcp_dbentry *e);
+void	   ui_info_update_name(struct session_tag *s, struct s_rtcp_dbentry *e);
+void	  ui_info_update_cname(struct session_tag *s, struct s_rtcp_dbentry *e);
+void	  ui_info_update_email(struct session_tag *s, struct s_rtcp_dbentry *e);
+void	  ui_info_update_phone(struct session_tag *s, struct s_rtcp_dbentry *e);
+void	    ui_info_update_loc(struct session_tag *s, struct s_rtcp_dbentry *e);
+void	   ui_info_update_tool(struct session_tag *s, struct s_rtcp_dbentry *e);
+void	   ui_info_update_note(struct session_tag *s, struct s_rtcp_dbentry *e);
+void	        ui_info_remove(struct session_tag *s, struct s_rtcp_dbentry *e);
+void	      ui_info_activate(struct session_tag *s, struct s_rtcp_dbentry *e);
+void	    ui_info_deactivate(struct session_tag *s, struct s_rtcp_dbentry *e);
 
-void	ui_show_audio_busy(void);
-void	ui_hide_audio_busy(void);
-void	ui_input_level(int level);
-void	ui_output_level(int level);
+void	ui_show_audio_busy(struct session_tag *s);
+void	ui_hide_audio_busy(struct session_tag *s);
+void	ui_input_level(struct session_tag *s, int level);
+void	ui_output_level(struct session_tag *s, int level);
 void    ui_update_input_gain(struct session_tag *sp);
 void    ui_update_output_gain(struct session_tag *sp);
 void 	ui_update_input_port(struct session_tag *sp);
@@ -72,27 +72,27 @@ void	ui_update_interleaving(struct session_tag *sp);
 void	ui_update_channel(struct session_tag *sp) ;
 void	ui_update_powermeters(struct session_tag *sp, struct s_mix_info *ms, int elapsed_time);
 
-void	ui_update_stats(struct s_rtcp_dbentry *e, struct session_tag *sp);
+void	ui_update_stats(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	ui_update_lecture_mode(struct session_tag *session_pointer);
 void	ui_update(struct session_tag *session_pointer);
-void	ui_update_loss(char *srce, char *dest, int loss);
-void	ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog);
-void	ui_update_duration(char *cname, int duration);
+void	ui_update_loss(struct session_tag *s, char *srce, char *dest, int loss);
+void	ui_update_reception(struct session_tag *s, char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog);
+void	ui_update_duration(struct session_tag *s, char *cname, int duration);
 
-void	ui_update_video_playout(char *cname, int playout);
-void	ui_update_sync(int sync);
-void	ui_update_key(char *key);
+void	ui_update_video_playout(struct session_tag *s, char *cname, int playout);
+void	ui_update_sync(struct session_tag *s, int sync);
+void	ui_update_key(struct session_tag *s, char *key);
 
-void    ui_update_playback_file(char *name);
-void    ui_update_record_file(char *name);
-void    ui_update_file_live(char *mode, int valid);
+void    ui_update_playback_file(struct session_tag *s, char *name);
+void    ui_update_record_file(struct session_tag *s, char *name);
+void    ui_update_file_live(struct session_tag *s, char *mode, int valid);
 
-void	ui_codecs(int pt);
-void    ui_converters(void);
+void	ui_codecs(struct session_tag *s, int pt);
+void    ui_converters(struct session_tag *s);
 void    ui_sampling_modes(struct session_tag *sp);
 void    ui_title(struct session_tag *sp);
-void	ui_controller_init(char *cname, char *name_engine, char *name_ui, char *name_video);
-void	ui_load_settings(void);
-void    ui_quit(void);
+void	ui_controller_init(struct session_tag *s, char *cname, char *name_engine, char *name_ui, char *name_video);
+void	ui_load_settings(struct session_tag *s);
+void    ui_quit(struct session_tag *s);
 
 #endif

@@ -422,7 +422,7 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 
 #define POWER_METER_SAMPLES 160
 
-mix_update_ui(mix_struct *ms)
+void
 mix_update_ui(session_struct *sp, mix_struct *ms)
 {
 	sample	*bp;
@@ -431,7 +431,7 @@ mix_update_ui(session_struct *sp, mix_struct *ms)
 		bp = ms->mix_buffer + ms->buf_len - POWER_METER_SAMPLES * ms->channels;
 	} else {
 		bp = ms->mix_buffer + ms->tail - POWER_METER_SAMPLES;
-	ui_output_level(lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
+	}
 	ui_output_level(sp, lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
 }
 
