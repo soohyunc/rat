@@ -56,7 +56,6 @@ void             source_remove             (struct s_source_list *list,
 int              source_add_packet         (struct s_source *src, 
                                             u_char          *pckt, 
                                             u_int32          pckt_len,
-                                            u_int32          data_start,
                                             u_int8           payload,
                                             ts_t             playout);
 

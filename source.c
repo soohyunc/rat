@@ -76,6 +76,11 @@ typedef struct s_source_list {
         u_int16 nsrcs;
 } source_list;
 
+
+/****************************************************************************/
+/* Source List functions.  Source List is used as a container for sources   */
+/****************************************************************************/
+
 int
 source_list_create(source_list **pplist)
 {
@@ -150,6 +155,10 @@ source_get_by_ssrc(source_list *plist, u_int32 ssrc)
  
         return NULL;
 }
+
+/****************************************************************************/
+/* Source functions.  A source is an active audio source.                   */
+/****************************************************************************/
 
 source*
 source_create(source_list    *plist, 
@@ -356,7 +365,6 @@ int
 source_add_packet (source *src, 
                    u_char *pckt, 
                    u_int32 pckt_len, 
-                   u_int32 data_start,
                    u_int8  payload,
                    ts_t    playout)
 {
@@ -424,10 +432,9 @@ source_add_packet (source *src,
                         }
 
                         cu = (channel_unit*)block_alloc(sizeof(channel_unit));
-                        cu->data = pckt;
-                        cu->data_start = data_start;
+                        cu->data     = pckt;
                         cu->data_len = pckt_len;
-                        cu->pt = payload;
+                        cu->pt       = payload;
 
                         dup = 0;
 
@@ -473,7 +480,6 @@ source_add_packet (source *src,
         
         cu               = cd->elem[0];
         cu->data         = pckt;
-        cu->data_start   = data_start;
         cu->data_len     = pckt_len;
         cu->pt           = payload;
 

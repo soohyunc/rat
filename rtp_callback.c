@@ -233,13 +233,13 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
         if (ts_gt(sp->cur_ts, playout)) {
                 /* The playout point for this packet has already gone */
                 /* so it get's discarded.                             */
-                e->jit_toged ++;
+                e->jit_toged  ++;
                 e->cont_toged ++;
         } else {
                 u_int32 ulen = p->data_len;
                 u_char *u    = block_alloc(ulen);
                 memcpy(u, p->data, p->data_len);
-                if (source_add_packet(s, u, ulen, 0, (u_char)p->pt, playout) == FALSE) {
+                if (source_add_packet(s, u, ulen, (u_char)p->pt, playout) == FALSE) {
                         block_free(u, ulen);
                 }
                 e->cont_toged = 0;

@@ -383,7 +383,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, ts_t playout)
         * out of here.
         */
         
-        p[0] = in->elem[0]->data + in->elem[0]->data_start;
+        p[0] = in->elem[0]->data;
         hdr32 = ntohl(*(u_int32*)p[0]);
         if(hdr32 & LAY_HDR32_PAT) {
                 hdrpt = (u_int8)(LAY_HDR32_GET_PT(hdr32));
@@ -397,7 +397,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, ts_t playout)
         }
         
         for(i=1; i<in->nelem; i++) {
-                p[i] = in->elem[i]->data + in->elem[i]->data_start;
+                p[i] = in->elem[i]->data;
                 
                 hdr32 = ntohl(*(u_int32*)p[i]);
                 if(hdr32 & LAY_HDR32_PAT) {

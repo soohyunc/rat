@@ -793,7 +793,7 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
         u_int32 hdr32, blen, boff;
         ts_t ts_max_off, ts_blk_off, this_playout;
 
-        hp = dp  = chu->data + chu->data_start;
+        hp = dp = chu->data;
         de = chu->data + chu->data_len;
 
         /* move data pointer past header */
