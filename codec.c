@@ -29,7 +29,9 @@ static const char cvsid[] =
 #include "codec_gsm.h"
 #include "codec_lpc.h"
 #include "codec_vdvi.h"
+#ifndef REMOVE_WBS_CODEC	
 #include "codec_wbs.h"
+#endif
 #include "codec_g728.h"
 
 /* Codec class initialization - hey didn't c++ happen somewhere along the 
@@ -230,6 +232,11 @@ static codec_fns_t codec_table[] = {
                 NULL,
                 NULL
         },
+#ifndef REMOVE_WBS_CODEC
+	/* The WB-ADPCM algorithm was developed by British Telecommunications */
+	/* plc.  Permission has been granted to use it for non-commercial     */
+	/* research and development projects.  BT retain the intellectual     */
+	/* property rights to this algorithm.                                 */
         {
                 NULL,
                 NULL,
@@ -249,6 +256,7 @@ static codec_fns_t codec_table[] = {
                 wbs_get_layer,
                 wbs_combine_layer
         },
+#endif
         {
                 NULL,
                 NULL,
