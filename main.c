@@ -65,7 +65,7 @@ main(int argc, char *argv[])
 	session_struct 		*sp[2];
 	struct timeval  	 time;
 	struct timeval      	 timeout;
-	char			 mbus_engine_addr[50], mbus_ui_addr[50], mbus_video_addr[50];
+	char			 mbus_engine_addr[100], mbus_ui_addr[100], mbus_video_addr[100];
         
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
