@@ -161,6 +161,7 @@ session_init(session_struct *sp)
         sp->last_depart_ts              = 1;
 	sp->loopback_gain		= 0;
 	sp->layers                      = 1;
+	sp->ui_activated		= FALSE;
 
         source_list_create(&sp->active_sources);
 

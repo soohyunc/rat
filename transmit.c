@@ -623,15 +623,23 @@ tx_update_ui(tx_buffer *tb)
                 pb_iterator_destroy(tb->audio_buffer, &prev);
                 assert(pb_iterator_count(tb->audio_buffer) == 3);
         }
-        if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
-		ui_info_activate(sp, sp->db->my_dbe);
+	/* This next routine is really inefficient - we only need do ui_info_activate() */
+	/* when the state changes, else we flood the mbus with redundant messages.      */
+        if ((vad_in_talkspurt(sp->tb->vad) == TRUE) || (sp->detect_silence == FALSE)) {
+		if (!sp->ui_activated) {
+			sp->ui_activated = TRUE;
+			ui_info_activate(sp, sp->db->my_dbe);
+		}
 		if (sp->lecture) {
 			sp->lecture = FALSE;
 			ui_update_lecture_mode(sp);
 		}
         } else {
-		ui_info_deactivate(sp, sp->db->my_dbe);
-        }
+		if (sp->ui_activated) {
+			sp->ui_activated = FALSE;
+			ui_info_deactivate(sp, sp->db->my_dbe);
+        	}
+	}
 
         if (tb->sending_audio == FALSE) {
                 ui_info_deactivate(sp, sp->db->my_dbe);

@@ -80,6 +80,7 @@ typedef struct session_tag {
 	int		detect_silence;
 	int             meter;                      /* if powermeters are on */
         u_int32         meter_period; 
+	int		ui_activated;
 	int		sync_on;
 	int		agc_on;
         int             ui_on;
