@@ -190,6 +190,24 @@ static void inform_addrs(struct mbus *m, char *e_addr, char *u_addr)
 	} while (!mbus_sent_all(m));
 }
 
+static int parse_options_early(int argc, const char **argv) 
+{
+        int i;
+        /* DOS and UNIX style command flags for usage and version */        
+        for (i = 0; i < argc; i++) {
+                if ((argv[i][0] == '-' || argv[i][0] == '/') &&
+                    (argv[i][1] == 'v' || argv[i][1] == 'V')) {
+                        printf("%s\n", RAT_VERSION);
+                        return FALSE;
+                } else if ((argv[i][0] == '-' || argv[i][0] == '/')&&
+                           (argv[i][1] == '?' || argv[i][1] == 'h' || argv[i][1] == 'H')) {
+                        usage(NULL);
+                        return FALSE;
+                }
+        }
+        return TRUE;
+}
+
 static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[])
 {
 	int		 i;
@@ -390,7 +408,6 @@ signal_handler(int signal)
 }
 #endif
 
-
 int main(int argc, char *argv[])
 {
 	struct mbus	*m;
@@ -401,6 +418,10 @@ int main(int argc, char *argv[])
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
 #endif
+
+        if (parse_options_early(argc, (const char**)argv) == FALSE) {
+                return FALSE;
+        }
 
 	srand48(seed);
 	snprintf(c_addr, 60, "(media:audio module:control app:rat instance:%lu)", (unsigned long) getpid());

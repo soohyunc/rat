@@ -1054,6 +1054,7 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 v4.1.4	- Fix dependencies in Makefile for rpm target
 	- Fix handling of odd numbered RTP ports (pick next lower port).
 	- Fix loopback setting load and carry thru when changing device.
+	- Fix version command line option.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1110,5 +1111,5 @@ TODO -- They're features not bugs dammit!
   rather than a specific bug, and the correct solution is to get everyone
   to update to rat-4.x
 - Handling of SSRC collisions is broken
-- The "-version" option is broken.
+
 
