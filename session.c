@@ -135,10 +135,13 @@ init_session(session_struct *sp)
         strcpy(sp->title, "<Untitled Session>");
         
 	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {
-		perror("Cannot get hostname!");
+		perror("Cannot get hostname");
 		abort();
 	}
-	addr = gethostbyname(hostname);
+	if ((addr = gethostbyname(hostname)) == NULL) {
+		herror("Cannot get host address");
+		abort();
+	}
 	memcpy(&netaddr, addr->h_addr, 4);
 	sp->ipaddr = ntohl(netaddr);
 
