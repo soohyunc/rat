@@ -62,13 +62,14 @@ int
 newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
 	audio_buf_info	abi;
-	char		*thedev;
+	const char	*thedev;
+	char		kick_off[64]; /* initial read buffer */
 	int		frag;
  
 	assert(ad >= 0 && ad < ndev); 
 	thedev = names[ad];
 
-	debug_msg("Opening %s\n", thedev);
+	debug_msg("Opening \"%s\" device index %d\n", thedev, ad);
 
 	audio_fd = open(thedev, O_RDWR);
 	if (audio_fd >= 0) {
@@ -195,11 +196,11 @@ newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		 */
 		newpcm_audio_loopback(ad, 0);
 
-		read(audio_fd, thedev, 64);
+		read(audio_fd, kick_off, sizeof(kick_off)/sizeof(kick_off[0]));
 		return TRUE;
 	} else {
 		fprintf(stderr, 
-			"Could not open device: %s (half-duplex?)\n", 
+			"Could not open device: \"%s\" (half-duplex?)\n", 
 			names[ad]);
 		perror("newpcm_audio_open");
 		newpcm_audio_close(ad);
@@ -699,7 +700,10 @@ char *
 newpcm_get_device_name(audio_desc_t idx)
 {
 	if (idx >=0 && idx < ndev) {
-		return names[idx];
+		/* XXX this fn used to return (const char*) - grrr! */
+		static char dummy[NEWPCM_MAX_AUDIO_NAME_LEN];
+		strcpy(dummy, names[idx]);
+		return dummy;
 	}	
 	return NULL;
 }
