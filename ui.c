@@ -699,16 +699,6 @@ ui_update_video_playout(session_struct *sp, u_int32 ssrc, int playout)
 	xfree(arg);
 }
 
-void	
-ui_update_sync(session_struct *sp, int sync)
-{
-	if (sync) {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.sync", "1", TRUE);
-	} else {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.sync", "0", TRUE);
-	}
-}
-
 void
 ui_update_key(session_struct *sp, char *key)
 {
@@ -976,6 +966,21 @@ ui_3d_options(session_struct *sp)
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "tool.rat.3d.azimuth.max", "%d", render_3D_filter_get_upper_azimuth());
 }
 
+static void
+ui_update_options(session_struct *sp)
+{
+	if (sp->meter) {
+		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.powermeter", "1", TRUE);
+	} else {
+		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.powermeter", "0", TRUE);
+	}
+	if (sp->sync_on) {
+		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.sync", "1", TRUE);
+	} else {
+		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.sync", "0", TRUE);
+	}
+}
+
 void
 ui_initial_settings(session_struct *sp)
 {
@@ -992,6 +997,7 @@ ui_initial_settings(session_struct *sp)
 	ui_info_update_loc(sp,   sp->db->my_dbe); 	network_process_mbus(sp);
 	ui_info_update_tool(sp,  sp->db->my_dbe); 	network_process_mbus(sp);
         ui_title(sp); 					network_process_mbus(sp);
+	ui_update_options(sp); 				network_process_mbus(sp);
 #ifdef NDEF /* This is done by load_settings() now... */
 	ui_load_settings(sp); 				network_process_mbus(sp);
 #endif

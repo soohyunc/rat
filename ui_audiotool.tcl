@@ -179,6 +179,7 @@ proc mbus_recv {cmnd args} {
 		tool.rat.repair			{eval mbus_recv_tool.rat.repair $args}
 		tool.rat.repairs.flush		{eval mbus_recv_tool.rat.repairs.flush $args}
 		tool.rat.repairs.add		{eval mbus_recv_tool.rat.repairs.add $args}
+		tool.rat.powermeter		{eval mbus_recv_tool.rat.powermeter $args}
 		tool.rat.agc  			{eval mbus_recv_tool.rat.agc $args}
 		tool.rat.sync  			{eval mbus_recv_tool.rat.sync $args}
 		tool.rat.format.in              {eval mbus_recv_tool.rat.format.in $args}
@@ -575,6 +576,11 @@ proc mbus_recv_audio_devices_add {arg} {
 proc mbus_recv_audio_device {arg} {
 	global audio_device
 	set audio_device $arg
+}
+
+proc mbus_recv_tool.rat.powermeter {arg} {
+	global meter_var
+	set meter_var $arg
 }
 
 proc mbus_recv_tool.rat.agc {arg} {
