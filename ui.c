@@ -274,16 +274,11 @@ void
 ui_input_level(int level, session_struct *sp)
 {
 	static int	ol;
+        assert(level>=0 && level <=100);
 
-	if (level > 15)
-		level = 15;
 	if (ol == level)
 		return;
-
-	/* The UI now expects powermeters as percentages, but the rest of
-	 * the code produces something which goes from 0-15. The "* 6.66"
-	 * is a magic conversion factor... */
-	sprintf(args, "%d", (int) (level * 6.66));
+	sprintf(args, "%d", level);
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "powermeter_input", args, FALSE);
 	ol = level;
 }
@@ -292,14 +287,11 @@ void
 ui_output_level(int level, session_struct *sp)
 {
 	static int	ol;
+        assert(level>=0 && level <=100);
 
-	if (level > 15) level = 15;
-	if (ol == level) return;
-
-	/* The UI now expects powermeters as percentages, but the rest of
-	 * the code produces something which goes from 0-15. The "* 6.66"
-	 * is a magic conversion factor... */
-	sprintf(args, "%d", (int) (level * 6.66));
+	if (ol == level) 
+                return;
+	sprintf(args, "%d", level);
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "powermeter_output", args, FALSE);
 	ol = level;
 }
