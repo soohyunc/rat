@@ -101,7 +101,6 @@ typedef struct s_rtcp_dbentry {
         u_char          video_playout_received; /* video playout is relevent */
 	int		sync_playout_delay;	/* same interpretation as delay, used when sync is on [dm] */
 	int 		msgno;
-	u_int32		last_sync_msg;		/* ntp ts of the last sync msg to video */
 	int32           playout;		/* Playout delay for this talkspurt */
 	int             delay;			/* Average delay for this participant */
 	u_int32         last_ts;		/* Last packet timestamp */
@@ -114,9 +113,6 @@ typedef struct s_rtcp_dbentry {
 
 	/* The variables must be properly set up for first data packet */
 	/* - zero is no good                                           */
-
-	/* For UI stats display */
-	int             info_index;
 
 	u_int32		expected_prior;
 	u_int32		received_prior;
@@ -149,7 +145,6 @@ typedef struct rtp_db_tag {
 	u_int32         	 pckts_received;
 	u_int32         	 misordered;
 	u_int32         	 duplicates;
-	u_int32         	 TOGed;				/* TOGed = Thrown on the Ground 	*/
 	rtcp_dbentry   		*my_dbe;			/* For my info in UI 			*/
 	rtcp_dbentry   		*ssrc_db;			/* Other participants...	        */
 	u_int32			 members;			/* Number of other participants...	*/
@@ -161,9 +156,6 @@ typedef struct rtp_db_tag {
 	int             	 sending;			/* TRUE if we are sending data...	*/
 	u_int32         	 map_rtp_time;			/*					*/
 	u_int32         	 map_ntp_time;			/*					*/
-	u_int32         	 sec_count;			/* no of redundant packets decoded 	*/
-	u_int32         	 dummy_count;			/* no of dummy packets decoded 		*/
-	u_int32         	 normal_count;			/* no primary packets decoded 		*/
 	int			 initial_rtcp;			/* TRUE until we've sent an RTCP packet */
 	u_int32			 sdes_pri_count;
 	u_int32			 sdes_sec_count;
@@ -175,8 +167,8 @@ void 			 rtcp_init(struct session_tag *sp, char *cname, u_int32 ssrc, u_int32 cu
 void                     rtcp_db_exit(struct session_tag *sp);
 int 			 rtcp_update_seq(rtcp_dbentry *s, u_int16 seq);
 struct s_rtcp_dbentry   *rtcp_get_dbentry(struct session_tag *sp, u_int32 ssrc);
-struct s_rtcp_dbentry   *rtcp_new_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 addr, u_int32 cur_time);
-struct s_rtcp_dbentry   *rtcp_getornew_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 addr, u_int32 cur_time);
+struct s_rtcp_dbentry   *rtcp_new_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 cur_time);
+struct s_rtcp_dbentry   *rtcp_getornew_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 cur_time);
 void 			 rtcp_delete_dbentry(struct session_tag *sp, u_int32 ssrc);
 int 			 rtcp_set_attribute(struct session_tag *sp, int type, char *val);
 void			 rtcp_free_dbentry(rtcp_dbentry *dbptr);

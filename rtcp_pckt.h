@@ -195,7 +195,7 @@ typedef struct {
 
 u_int32		ntp_time32(void);
 int 		rtcp_check_rtcp_pkt(u_int8 *packet, int len);
-void 		rtcp_decode_rtcp_pkt(struct session_tag *sp, struct session_tag *sp2, u_int8 *packet, int len, u_int32 addr, u_int32 cur_time);
+void 		rtcp_decode_rtcp_pkt(struct session_tag *sp, struct session_tag *sp2, u_int8 *packet, int len, u_int32 cur_time);
 int 		rtcp_add_sdes_item(u_int8 * buf, int type, char * val);
 u_int8 	       *rtcp_packet_fmt_sdes(struct session_tag *sp, u_int8 * ptr);
 u_int8 	       *rtcp_packet_fmt_bye(u_int8 * ptr, u_int32 ssrc, struct s_rtcp_dbentry *ssrc_db);

@@ -177,7 +177,7 @@ rtcp_myssrc(session_struct *sp)
  * V.J.Hardman 28/03/95 - extra stats added
  */
 static rtcp_dbentry *
-rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 addr, u_int32 cur_time)
+rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 cur_time)
 {
 	rtcp_dbentry   *newdb;
 
@@ -191,23 +191,21 @@ rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 addr, u_int32 cur_time)
 	newdb->sentry 			= (ssrc_entry *) xmalloc(sizeof(ssrc_entry));
 	memset(newdb->sentry, 0, sizeof(ssrc_entry));
 	newdb->sentry->ssrc 		= ssrc;
-	newdb->sentry->addr 		= addr;
 	newdb->firstseqno 		= 1;	/* So that "expected packets" starts out 0 */
 	newdb->last_active 		= cur_time;
 	newdb->first_pckt_flag 		= TRUE;
-	newdb->info_index 		= -1;		/* Indicate it is not entered in UI o list yet IK */
         newdb->enc                      = -1;
         newdb->enc_fmt                  = NULL;
 	return (newdb);
 }
 
 rtcp_dbentry   *
-rtcp_new_dbentry(session_struct *sp, u_int32 ssrc, u_int32 addr, u_int32 cur_time)
+rtcp_new_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
 {
 	rtcp_dbentry   *newdb;
 	rtcp_dbentry   *dbptr;
 
-	newdb = rtcp_new_dbentry_noqueue(ssrc, addr, cur_time);
+	newdb = rtcp_new_dbentry_noqueue(ssrc, cur_time);
 	newdb->clock = new_time(sp->clock, get_freq(sp->device_clock));
 	if (!sp->db->ssrc_db) {
 		sp->db->ssrc_db = newdb;
@@ -227,12 +225,12 @@ rtcp_new_dbentry(session_struct *sp, u_int32 ssrc, u_int32 addr, u_int32 cur_tim
  * not exist yet.
  */
 rtcp_dbentry   *
-rtcp_getornew_dbentry(session_struct *sp, u_int32 ssrc, u_int32 addr, u_int32 cur_time)
+rtcp_getornew_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
 {
 	rtcp_dbentry   *dbe;
 	dbe = rtcp_get_dbentry(sp, ssrc);
 	if (dbe == NULL) {
-		dbe = rtcp_new_dbentry(sp, ssrc, addr, cur_time);
+		dbe = rtcp_new_dbentry(sp, ssrc, cur_time);
 	}
 	return dbe;
 }
@@ -402,10 +400,9 @@ rtcp_init(session_struct *sp, char *cname, u_int32 ssrc, u_int32 cur_time)
 
 	sp->db->myssrc = ssrc;
 
-	sp->db->my_dbe                = rtcp_new_dbentry_noqueue(sp->db->myssrc, 0, cur_time);
+	sp->db->my_dbe                = rtcp_new_dbentry_noqueue(sp->db->myssrc, cur_time);
 	sp->db->my_dbe->sentry->cname = xstrdup(cname);
 	sp->db->my_dbe->sentry->tool  = xstrdup(RAT_VERSION);
-	sp->db->my_dbe->info_index = 0;
 
 	sp->db->last_rpt     = get_time(sp->device_clock);
 	sp->db->initial_rtcp = TRUE;

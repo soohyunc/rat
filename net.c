@@ -149,28 +149,6 @@ sock_init(u_long inaddr, u_short port, int t_flag)
 	return tmp_fd;
 }
 
-void 
-network_init(session_struct *sp)
-{
-	struct in_addr in;
-	struct hostent *h;
-	sp->net_maddress = get_net_addr(sp->asc_address);  
-
-	if (inet_addr(sp->asc_address) != INADDR_NONE) {
-		strcpy(sp->maddress, sp->asc_address);
-	} else if ((h = gethostbyname(sp->asc_address))!=NULL) {
-		memcpy(&in.s_addr, *(h->h_addr_list), sizeof(in.s_addr));
-		sprintf(sp->maddress, "%s", inet_ntoa(in));
-	} else {
-		fprintf(stderr, "Could not resolve hostname (h_errno = %d): %s", h_errno, sp->asc_address);
-		exit(-1);
-	}
-	
-	sp->our_address  = get_net_addr(NULL);
-	sp->rtp_fd  = sock_init(sp->net_maddress, sp->rtp_port,  sp->ttl);
-	sp->rtcp_fd = sock_init(sp->net_maddress, sp->rtcp_port, sp->ttl);
-}
-
 int
 net_write(fd_t fd, u_long addr, u_short port, unsigned char *msg, int msglen, int type)
 {
@@ -219,13 +197,33 @@ int net_write_iov(fd_t fd, u_long addr, u_short port, struct iovec *iov, int len
 	return net_write(fd, addr, port, wrkbuf, cp - wrkbuf, type);
 }
 
+void 
+network_init(session_struct *sp)
+{
+	struct in_addr in;
+	struct hostent *h;
+	sp->net_maddress = get_net_addr(sp->asc_address);  
+
+	if (inet_addr(sp->asc_address) != INADDR_NONE) {
+		strcpy(sp->maddress, sp->asc_address);
+	} else if ((h = gethostbyname(sp->asc_address))!=NULL) {
+		memcpy(&in.s_addr, *(h->h_addr_list), sizeof(in.s_addr));
+		sprintf(sp->maddress, "%s", inet_ntoa(in));
+	} else {
+		fprintf(stderr, "Could not resolve hostname (h_errno = %d): %s", h_errno, sp->asc_address);
+		exit(-1);
+	}
+	
+	sp->rtp_fd  = sock_init(sp->net_maddress, sp->rtp_port,  sp->ttl);
+	sp->rtcp_fd = sock_init(sp->net_maddress, sp->rtcp_port, sp->ttl);
+}
+
 /* This function is used for both rtp and rtcp packets */
 static pckt_queue_element_struct *
 read_net(fd_t fd, u_int32 cur_time, int type, int *nbdecryption)
 {
 	unsigned char			*data_in, *data_out, *tmp_data;
-	struct sockaddr 		 from;
-	int             		 fromlen, read_len;
+	int             		 read_len;
 	pckt_queue_element_struct 	*pckt;
 
 	/*
@@ -239,8 +237,7 @@ read_net(fd_t fd, u_int32 cur_time, int type, int *nbdecryption)
 	data_in  = block_alloc(PACKET_LENGTH);
 	data_out = block_alloc(PACKET_LENGTH);
 
-	fromlen = sizeof(from);
-	if ((read_len = recvfrom(fd, data_in, PACKET_LENGTH, 0, &from, &fromlen)) > 0) {
+	if ((read_len = recvfrom(fd, data_in, PACKET_LENGTH, 0, 0, 0)) > 0) {
 		if (Null_Key()==0) {
 			switch (type) {
 			case PACKET_RTP:
@@ -264,7 +261,6 @@ read_net(fd_t fd, u_int32 cur_time, int type, int *nbdecryption)
 		pckt->pckt_ptr          = data_out;
 		pckt->next_pckt_ptr     = NULL;
 		pckt->prev_pckt_ptr     = NULL;
-		pckt->addr              = ((struct sockaddr_in *) & from)->sin_addr.s_addr;
 		pckt->arrival_timestamp = cur_time;
 		block_free(data_in, PACKET_LENGTH);
 		return pckt;

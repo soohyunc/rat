@@ -49,10 +49,9 @@
 typedef struct pckt_queue_element_tag {
 	struct pckt_queue_element_tag *next_pckt_ptr;
 	struct pckt_queue_element_tag *prev_pckt_ptr;
-	u_int32                        addr;
 	int                            len;
 	u_int32                        arrival_timestamp;
-	u_int8                          *pckt_ptr;
+	u_int8                        *pckt_ptr;
 } pckt_queue_element_struct;
 
 typedef struct pckt_queue_tag {

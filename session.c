@@ -98,7 +98,6 @@ init_session(session_struct *sp)
         sp->input_mode                  = AUDIO_NO_DEVICE;
         sp->output_mode                 = AUDIO_NO_DEVICE;
 	sp->net_maddress		= 0;		/* Same as above, can be used in a sendto */
-	sp->our_address			= 0;		/* our unicast address */
 	sp->rtp_port			= 5004;		/* default: draft-ietf-avt-profile-new-00 */
 	sp->rtcp_port			= 5005;		/* default: draft-ietf-avt-profile-new-00 */
 	sp->ttl				= 16;
