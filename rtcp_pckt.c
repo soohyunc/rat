@@ -311,6 +311,8 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 	u_int32		ext_max, expected, expi, reci;
 	int32		losti;
 
+	assert(rtcp_dbentry_valid(sp, dbe));
+
 	ext_max = dbe->cycles + dbe->lastseqno;
 	expected = ext_max - dbe->firstseqno + 1;
 	dbe->lost_tot = expected - dbe->pckts_recv;
@@ -385,6 +387,7 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 	while (sptr) {
 		sptmp = sptr->next;	/* We may free things below */
 		if (now - sptr->last_active > expiry && sp->db->my_dbe != sptr) {
+			assert(sp->db->myssrc != sptr->ssrc);
 			rtcp_delete_dbentry(sp, sptr->ssrc);
 		} else {
 			if (sptr->is_sender) {
