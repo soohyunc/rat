@@ -1296,6 +1296,7 @@ v4.2.3	- Change the session struct to be a two element array in main_engine.c
 	- Add support for "-logstats" option, to log RTP and codec statistics
 	  to a file.
 	- Update "make installer" target
+	* Released 3 May 2000
 
 
 
