@@ -7,7 +7,7 @@
 # Full terms and conditions of the copyright appear below.
 #
 
-catch {profile on}
+wm withdraw .
 
 if {[string compare [info commands registry] "registry"] == 0} {
 	set win32 1
@@ -625,6 +625,8 @@ proc toggle_plist {} {
 	} else {
 		pack forget .l.t
 	}
+	update
+	wm deiconify .
 }
 
 proc toggle_mute {cw cname} {
@@ -762,10 +764,10 @@ pack .l.f -side top -fill x
 pack .l.f.title .l.f.addr -side top -fill x
 pack .l.s1 -side bottom -fill x
 pack .l.s1.opts .l.s1.about .l.s1.quit -side left -fill x -expand 1
+pack .l.t  -side top -fill both -expand 1
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
 bind .l.t.list <Configure> {fix_scrollbar}
-# .l.t is packed by toggle_plist, when the .RTPdefaults file is read...
 
 # Device output controls
 set out_mute_var 0
