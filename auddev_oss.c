@@ -882,12 +882,14 @@ oss_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
         
         p   = (char *) buf;
         len = write_bytes;
+	errno = 0;
         while (1) {
                 if ((done = write(devices[ad].audio_wfd, p, len)) == len) {
                         break;
                 }
-                if (errno != EINTR) {
+		if (errno != EINTR && errno != EAGAIN) {
 			perror("audio_write");
+			if(done < 0) done=0;
 			return write_bytes - (len - done);
                 }
                 len -= done;
