@@ -50,7 +50,6 @@ static snd_capabilities soundcaps[LUIGI_MAX_AUDIO_DEVICES];
 int 
 luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
-        int             volume = 100;
         int             reclb = 0;
         
         char            thedev[64];
@@ -134,13 +133,6 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                  * fail on some cards, but shouldn't cause any harm
                  * when it does..... */
 
-                LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_PCM), &volume);
-                LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_IGAIN), &volume);
-                /* Set the gain/volume properly. We use the controls for the  */
-                /* specific mixer channel to do this, relative to the global  */
-                /* maximum gain/volume we've just set...                      */
-                luigi_audio_set_igain(audio_fd, MAX_AMP / 2);
-                luigi_audio_set_ogain(audio_fd, MAX_AMP / 2);
                 /* Select microphone input. We can't select output source...  */
                 luigi_audio_iport_set(audio_fd, iport);
 
@@ -363,17 +355,12 @@ luigi_audio_set_igain(audio_desc_t ad, int gain)
 
 	switch (iport) {
 	case LUIGI_MICROPHONE:
-		if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_MIC), &volume) < 0)
-			perror("Setting gain");
-		break;
+                LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_MIC), &volume);
 	case LUIGI_LINE_IN:
-		if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_LINE), &volume) < 0)
-			perror("Setting gain");
+                LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_LINE), &volume);
 		break;
 	case LUIGI_CD:
-		if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_CD), &volume) < 0) {
-			perror("Setting gain");
-                }
+                LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_CD), &volume);
 		break;
 	}
 	return;
