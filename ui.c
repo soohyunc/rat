@@ -660,7 +660,11 @@ ui_update_sync(session_struct *sp, int sync)
 void
 ui_update_key(session_struct *sp, char *key)
 {
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "security.encryption.key", key, TRUE);
+	char	*key_e;
+
+	key_e = mbus_encode_str(key);
+	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "security.encryption.key", key_e, TRUE);
+	xfree(key_e);
 }
 
 void
