@@ -264,7 +264,8 @@ convert_buffer_sample_type(audio_format *src, u_char *src_buf, int src_bytes,
                                 *dst8 = (u_char)(tmp16 >> 8);
                                 src8++; dst8++;
                         }
-                break;
+                        assert((dst8 - dst_buf) == (src8 - src_buf));
+                        break;
                 case DEV_U8:
                         dst8 = dst_buf;
                         while(src8 < se) {
@@ -423,7 +424,6 @@ audio_format_buffer_convert(audio_format *src,
                         convert_buffer_sample_type (src, src_buf, src_bytes, dst, dst_buf, dst_bytes); 
                 }
                 xmemchk();
-                return out_bytes;
         } else {
                 /* Additional buffer needed since we have to change
                  * channels and sample type- do everything in steps 
@@ -442,6 +442,7 @@ audio_format_buffer_convert(audio_format *src,
                         xmemchk();
                         dst_bytes -= ret;
                         dst_buf   += ret;
+                        done      += ret;
                 }
                 assert(done == out_bytes);
                 assert(dst_bytes >= 0);

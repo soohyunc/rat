@@ -1093,6 +1093,7 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Fix shutdown sequence.
 	- Patch G711 A-law, Sun's code was wrong and you only notice when 
 	  speaking with real h/w implementations.
+	- Fix two step sample format conversion assertion failure.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1150,5 +1151,5 @@ TODO -- They're features not bugs dammit!
   to update to rat-4.x
 - Handling of SSRC collisions is broken
 - Sometime see messages of the form "source.c:767 Spike (160 > 2708390)"
-  and hear nothing. Something uninitialized in the source?
-
+  and hear nothing.
+- Need to propagate quit messages on Win32 and check for liveness.
