@@ -542,7 +542,7 @@ recommend_drop_dur(media_data *md)
                 for (i = 0; i < SOURCE_COMPARE_WINDOW_SIZE; i++) {
                         score += abs(buffer[i * channels] - buffer[(j+i) * channels]);
                 }
-                if (score < lowest_score) {
+                if (score <= lowest_score) {
                         lowest_score = score;
                         lowest_begin = j;
                 }
@@ -588,16 +588,12 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         new_start = (sample*)md->rep[i]->data + drop_samples;
         old_start = (sample*)md->rep[i]->data;
 
-        for(i = SOURCE_MERGE_LEN_SAMPLES; old_start + i <= new_start; i++) {
-                old_start[i] = 32767;
-        }
-
         merge_len = SOURCE_MERGE_LEN_SAMPLES * channels;
         for (i = 0; i < merge_len; i++) {
                 a   = (merge_len - i) * old_start[i] / merge_len;
                 b   = i * new_start[i]/ merge_len;
                 tmp =  (sample)(a + b);
-                new_start[i] = (sample)tmp;
+                new_start[i] = tmp;
         }
         debug_msg("dropped %d samples\n", drop_samples);
 }
@@ -609,14 +605,7 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
 int
 source_check_buffering(source *src, ts_t now)
 {
-        ts_t    buf_end;
-        u_int32 buf_ms, playout_ms;
-
-        if (ts_eq(src->pdbe->last_arr, now) == FALSE) { 
-                /* We are only interested in adaption if we are sure
-                 * source is still sending. */
-                return FALSE; 
-        } 
+        ts_t actual, desired, low;
 
         if (src->age < SOURCE_YOUNG_AGE) {
                 /* If the source is new(ish) then not enough audio
@@ -627,32 +616,37 @@ source_check_buffering(source *src, ts_t now)
                 return FALSE;
         }
 
-        if ((pb_get_end_ts(src->media, &buf_end) == FALSE) ||
-            ts_gt(now, buf_end)) {
-                /* Buffer is probably dry so no adaption will help */
-                return FALSE;
-        }
+        actual  = source_get_audio_buffered(src, now);
+        desired = source_get_playout_delay(src);
+        low     = ts_sub(desired, ts_div(desired, 3)); /* low = 2 / 3 desired */
 
-        buf_ms      = ts_to_ms(source_get_audio_buffered(src, now));
-        playout_ms  = ts_to_ms(source_get_playout_delay(src));
-
-        if (buf_ms > playout_ms) {
-                /* buffer is longer than anticipated, src clock is faster */
+        if (ts_gt(actual, desired)) {
+                /* buffer maybe longer than anticipated, src clock is faster */
+                ts_t delta, igap;
                 src->skew = SOURCE_SKEW_FAST;
-                src->skew_adjust = ts_map32(8000, (buf_ms - playout_ms) * 8);
-                src->skew_offenses++;
-        } else if (buf_ms <= 2 * playout_ms / 3) {
+                delta = ts_sub(actual, desired);
+                igap  = ts_map32(get_freq(src->pdbe->clock), src->pdbe->inter_pkt_gap);
+                if (ts_gt(delta, igap)) {
+                        src->skew_offenses++;
+                        src->skew = SOURCE_SKEW_FAST;
+                        src->skew_adjust = delta;
+                }
+        } else if (ts_gt(low, actual)) {
                 /* buffer is running dry so src clock is slower */
-                src->skew = SOURCE_SKEW_SLOW;
-                src->skew_adjust = ts_map32(8000, (playout_ms - buf_ms) * 8);
+                src->skew        = SOURCE_SKEW_SLOW;
+                src->skew_adjust = ts_sub(desired, actual);
                 if (src->skew_offenses > 0) {
-                        /* Reset offenses for faster operation */
+                        /* Reset offenses for faster operation    */
+                        /* We care about not going dry.  We don't */
+                        /* care quite so passionately about being */
+                        /* over the desired level.                */
                         src->skew_offenses = 0;
                 }
                 src->skew_offenses--;
         } else {
                 src->skew = SOURCE_SKEW_NONE;
                 if (src->skew_offenses != 0) {
+                        /* Retreat slowly from opinion */
                         if (src->skew_offenses > 0) {
                                 src->skew_offenses--;
                         } else {
@@ -707,18 +701,19 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
          */
 
         if (src->skew == SOURCE_SKEW_FAST &&
-            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER && 
-                2*e <=  src->mean_energy) {
+            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER /* && 
+                2*e <=  src->mean_energy */) {
                 /* source is fast so we need to bring units forward.
                  * Should only move forward at most a single unit
                  * otherwise we might discard something we have not
                  * classified.  */
 
-                adjustment =  recommend_drop_dur(md); 
+                adjustment = recommend_drop_dur(md); 
                 if (ts_gt(adjustment, src->skew_adjust) || adjustment.ticks == 0) {
                         /* adjustment needed is greater than adjustment period
                          * that best matches dropable by signal matching.
                          */
+                        src->skew_offenses = 0;
                         return SOURCE_SKEW_NONE;
                 }
                 debug_msg("dropping %d / %d samples\n", adjustment.ticks, src->skew_adjust.ticks);
@@ -772,7 +767,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                         src->last_repair = ts_add(src->last_repair, adjustment);
                 }
                 */
-                debug_msg("Playout buffer shift back\n");
+                debug_msg("Playout buffer shift back %d. *-*-*\n", adjustment.ticks);
                 src->skew = SOURCE_SKEW_NONE;
                 return SOURCE_SKEW_SLOW;
         }
@@ -817,14 +812,6 @@ source_repair(source     *src,
                prev_md,
                fill_md->rep[0]);
         fill_ts = ts_add(src->last_played, step);
-
-#ifdef NDEF
-        debug_msg("lp %d (%d) fl %d (%d) delta %d (%d)\n", 
-                  src->last_played.ticks,  ts_get_freq(src->last_played),
-                  fill_ts.ticks,           ts_get_freq(fill_ts),
-                  step.ticks,              ts_get_freq(step));
-#endif
-
         success = pb_add(src->media, 
                          (u_char*)fill_md,
                          sizeof(media_data),
@@ -866,6 +853,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
         u_int32     md_len, src_freq;
         ts_t        playout, step, cutoff;
         int         i, success, hold_repair = 0;
+        int         new_source = !ts_valid(src->last_played);
 
         /* Note: hold_repair is used to stop repair occuring.
          * Occasionally, there is a race condition when the playout
@@ -1022,6 +1010,10 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
                 src->last_played = playout;
         }
 
+        if (new_source) {
+                debug_msg("New source has received %d packets\n", src->age);
+        }
+
         UNUSED(i); /* Except for debugging */
         
         return TRUE;
@@ -1055,10 +1047,11 @@ source_get_audio_buffered (source *src, ts_t now)
         /* we have buffered is the difference between now and the channel unit */
         /* end plus the length of the unit.                                    */
         if (pb_get_end_ts(src->channel, &last)) {
-
                 int freq = get_freq(src->pdbe->clock);
                 extra    = ts_map32(freq, src->pdbe->inter_pkt_gap);
+/*
                 last     = ts_add(last, extra);
+                */
                 return ts_sub(last, now);
         }
         /* Else if we have an end time for a media unit then the very last audio */
@@ -1066,7 +1059,9 @@ source_get_audio_buffered (source *src, ts_t now)
         if (pb_get_end_ts(src->media, &last)) {
                 int freq = get_freq(src->pdbe->clock);
                 extra    = ts_map32(freq, src->pdbe->inter_pkt_gap / src->pdbe->units_per_packet);
+/*
                 last     = ts_add(last, extra);
+                */
                 if (ts_gt(last, now)) {
                         return ts_sub(last, now);
                 }
