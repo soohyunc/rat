@@ -9,7 +9,7 @@
  
 #ifndef HIDE_SOURCE_STRINGS
 static const char cvsid[] = 
-	"$Id$";
+"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
 #include "config_unix.h"
@@ -31,10 +31,12 @@ static int audio_fd = -1;
 #define RAT_TO_DEVICE(x) ((x) * 100 / MAX_AMP)
 #define DEVICE_TO_RAT(x) ((x) * MAX_AMP / 100)
 
-#define NEWPCM_AUDIO_IOCTL(fd, cmd, val) if (ioctl((fd), (cmd), (val)) < 0) { \
-                                            debug_msg("Failed %s - line %d\n",#cmd, __LINE__); \
-                                            newpcm_error = __LINE__; \
-                                               }
+#define NEWPCM_AUDIO_IOCTL(fd, cmd, val) \
+	if (ioctl((fd), (cmd), (val)) < 0) { \
+		debug_msg("Failed %s - line %d\n",#cmd, __LINE__); \
+		newpcm_error = __LINE__; \
+	}
+
 #define IN_RANGE(x,l,u) ((x) >= (l) && (x) <= (u))
 
 #define NEWPCM_MAX_AUDIO_NAME_LEN 32
@@ -55,58 +57,60 @@ static void newpcm_audio_loopback_config(int gain);
 int 
 newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
-        char            thedev[64];
-        
-        assert(ad >= 0 && ad < ndev); 
+	audio_buf_info	abi;
+	char		thedev[64];
+	int		frag;
+ 
+	assert(ad >= 0 && ad < ndev); 
 	sprintf(thedev, "/dev/audio%d", dev_ids[ad]);
 
-        debug_msg("Opening %s\n", thedev);
+	debug_msg("Opening %s\n", thedev);
 
-        audio_fd = open(thedev, O_RDWR);
-        if (audio_fd >= 0) {
-                /* Ignore any earlier errors */
-                newpcm_error = 0;
+	audio_fd = open(thedev, O_RDWR);
+	if (audio_fd >= 0) {
+		/* Ignore any earlier errors */
+		newpcm_error = 0;
 
 		newpcm_mixer_save(audio_fd);
 
-                NEWPCM_AUDIO_IOCTL(audio_fd, AIOGCAP, &soundcaps[ad]);
+		NEWPCM_AUDIO_IOCTL(audio_fd, AIOGCAP, &soundcaps[ad]);
 		debug_msg("soundcaps[%d].rate_min = %d\n", ad, soundcaps[ad].rate_min);
 		debug_msg("soundcaps[%d].rate_max = %d\n", ad, soundcaps[ad].rate_max);
 		debug_msg("soundcaps[%d].formats  = 0x%08lx\n", ad, soundcaps[ad].formats);
-                debug_msg("soundcaps[%d].bufsize  = %d\n", ad, soundcaps[ad].bufsize);
+		debug_msg("soundcaps[%d].bufsize  = %d\n", ad, soundcaps[ad].bufsize);
 		debug_msg("soundcaps[%d].mixers   = 0x%08lx\n", ad, soundcaps[ad].mixers);
 		debug_msg("soundcaps[%d].inputs   = 0x%08lx\n", ad, soundcaps[ad].inputs);
 		debug_msg("soundcaps[%d].left     = 0x%04lx\n", ad, soundcaps[ad].left);
 		debug_msg("soundcaps[%d].right    = 0x%04lx\n", ad, soundcaps[ad].right);
 
-                /* Setup input and output format settings */
-                assert(ofmt->channels == ifmt->channels);
-                memset(&pa, 0, sizeof(pa));
-                if (ifmt->channels == 2) {
-                        if (!soundcaps[ad].formats & AFMT_STEREO) {
-                                fprintf(stderr,"Driver does not support stereo for this soundcard\n");
-                                newpcm_audio_close(ad);
-                                return FALSE;
-                        }
-                        pa.rec_format  = AFMT_STEREO;
-                        pa.play_format = AFMT_STEREO;
-                }
+		/* Setup input and output format settings */
+		assert(ofmt->channels == ifmt->channels);
+		memset(&pa, 0, sizeof(pa));
+		if (ifmt->channels == 2) {
+			if (!soundcaps[ad].formats & AFMT_STEREO) {
+				fprintf(stderr,"Driver does not support stereo for this soundcard\n");
+				newpcm_audio_close(ad);
+				return FALSE;
+			}
+			pa.rec_format  = AFMT_STEREO;
+			pa.play_format = AFMT_STEREO;
+		}
 
-                switch(ifmt->encoding) {
-                case DEV_PCMU: pa.rec_format |= AFMT_MU_LAW; break;
-                case DEV_PCMA: pa.rec_format |= AFMT_A_LAW;  break;
-                case DEV_S8:   pa.rec_format |= AFMT_S8;     break;
-                case DEV_S16:  pa.rec_format |= AFMT_S16_LE; break;
-                case DEV_U8:   pa.rec_format |= AFMT_U8;     break;
-                }
+		switch(ifmt->encoding) {
+		case DEV_PCMU: pa.rec_format |= AFMT_MU_LAW; break;
+		case DEV_PCMA: pa.rec_format |= AFMT_A_LAW;  break;
+		case DEV_S8:   pa.rec_format |= AFMT_S8;     break;
+		case DEV_S16:  pa.rec_format |= AFMT_S16_LE; break;
+		case DEV_U8:   pa.rec_format |= AFMT_U8;     break;
+		}
 
-                switch(ofmt->encoding) {
-                case DEV_PCMU: pa.play_format |= AFMT_MU_LAW; break;
-                case DEV_PCMA: pa.play_format |= AFMT_A_LAW;  break;
-                case DEV_S8:   pa.play_format |= AFMT_S8;     break;
-                case DEV_S16:  pa.play_format |= AFMT_S16_LE; break;
-                case DEV_U8:   pa.play_format |= AFMT_U8;     break;
-                }
+		switch(ofmt->encoding) {
+		case DEV_PCMU: pa.play_format |= AFMT_MU_LAW; break;
+		case DEV_PCMA: pa.play_format |= AFMT_A_LAW;  break;
+		case DEV_S8:   pa.play_format |= AFMT_S8;     break;
+		case DEV_S16:  pa.play_format |= AFMT_S16_LE; break;
+		case DEV_U8:   pa.play_format |= AFMT_U8;     break;
+		}
 
 		/* Check rate is supported (driver does not and
 		 * appears to mis-report actual rate) */
@@ -129,128 +133,139 @@ newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		}
 
 		/* Now set rate */
-                pa.play_rate = ofmt->sample_rate;
-                pa.rec_rate = ifmt->sample_rate;
-                NEWPCM_AUDIO_IOCTL(audio_fd, AIOSFMT, &pa);
+		pa.play_rate = ofmt->sample_rate;
+		pa.rec_rate = ifmt->sample_rate;
+		NEWPCM_AUDIO_IOCTL(audio_fd, AIOSFMT, &pa);
 
-/*
-		sz.play_size = 1;
-		while(sz.play_size < ofmt->bytes_per_block)
-		    sz.play_size <<= 1;
-		sz.rec_size = sz.play_size;
-*/
-                sz.play_size = ofmt->bytes_per_block; 
-		sz.rec_size  = ifmt->bytes_per_block;
-                NEWPCM_AUDIO_IOCTL(audio_fd, AIOSSIZE, &sz);
+		/* Device buffer allocation - use
+		 * SNDCTL_DSP_SETFRAGMENT because it creates as more
+		 * frags for secondary buffer, making it possible to
+		 * achieve fill levels set by cushion.  */
 
-                NEWPCM_AUDIO_IOCTL(audio_fd, AIOGSIZE, &sz);
-                debug_msg("rec size %d, play size %d bytes\n",
-                          sz.rec_size, sz.play_size);
+		/* fragsz [15:0] = log2(fragsz) */
+		frag = 2;
+		while((1 << frag) < ifmt->bytes_per_block)
+			frag ++;
+		frag --; /* Round down to nearest less than blocksize */
+		
+		/* fragsz [31:16] = number of frags (just lots, okay :-) */
+		frag |= 0x00ff0000;
 
-                if (newpcm_error != 0) {
-                        /* Failed somewhere in initialization - reset error and exit*/
-                        newpcm_audio_close(ad);
-                        newpcm_error = 0;
-                        return FALSE;
-                }
+		NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SETFRAGMENT, &frag);
+		NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_GETOSPACE, &abi);
+		debug_msg("fragments %d fragstotal %d fragsize %d bytes %d\n",
+			  abi.fragments, abi.fragstotal, 
+			  abi.fragsize, abi.bytes);
 
-                /* Store format in case we have to re-open device because
-                 * of driver bug.  Careful with freeing format as input format
-                 * could be static input_format if device reset during write.
-                 */
-                tmp_format = audio_format_dup(ifmt);
-                if (input_format != NULL) {
-                        audio_format_free(&input_format);
-                }
-                input_format = tmp_format;
+		/* sz is global and used throughout fn's */
+		NEWPCM_AUDIO_IOCTL(audio_fd, AIOGSIZE, &sz);
+		debug_msg("rec size %d, play size %d bytes\n",
+			  sz.rec_size, sz.play_size);
 
-                tmp_format = audio_format_dup(ofmt);
-                if (output_format != NULL) {
-                        audio_format_free(&output_format);
-                }
-                output_format = tmp_format;
+		if (newpcm_error != 0) {
+			/* Failed somewhere in initialization - reset error and exit*/
+			newpcm_audio_close(ad);
+			newpcm_error = 0;
+			return FALSE;
+		}
+
+		/* Store format in case we have to re-open device because
+		 * of driver bug.  Careful with freeing format as input format
+		 * could be static input_format if device reset during write.
+		 */
+		tmp_format = audio_format_dup(ifmt);
+		if (input_format != NULL) {
+			audio_format_free(&input_format);
+		}
+		input_format = tmp_format;
+
+		tmp_format = audio_format_dup(ofmt);
+		if (output_format != NULL) {
+			audio_format_free(&output_format);
+		}
+		output_format = tmp_format;
 
 		newpcm_mixer_init(audio_fd);
-                /* Turn off loopback from input to output... not fatal so
-                 * after error check.
-                 */
+		/* Turn off loopback from input to output... not fatal so
+		 * after error check.
+		 */
 		newpcm_audio_loopback(ad, 0);
 
-                read(audio_fd, thedev, 64);
-                return TRUE;
-        } else {
+		read(audio_fd, thedev, 64);
+		return TRUE;
+	} else {
 		fprintf(stderr, 
 			"Could not open device: %s (half-duplex?)\n", 
 			names[ad]);
 		perror("newpcm_audio_open");
-                newpcm_audio_close(ad);
-                return FALSE;
-        }
+		newpcm_audio_close(ad);
+		return FALSE;
+	}
 }
 
 /* Close the audio device */
 void
 newpcm_audio_close(audio_desc_t ad)
 {
-        UNUSED(ad);
+	UNUSED(ad);
 	
 	if (audio_fd < 0) {
-                debug_msg("Device already closed!\n");
-                return;
-        }
-        if (input_format != NULL) {
-                audio_format_free(&input_format);
-        }
-        if (output_format != NULL) {
-                audio_format_free(&output_format);
-        }
+		debug_msg("Device already closed!\n");
+		return;
+	}
+	if (input_format != NULL) {
+		audio_format_free(&input_format);
+	}
+	if (output_format != NULL) {
+		audio_format_free(&output_format);
+	}
 	newpcm_mixer_restore(audio_fd);
 	newpcm_audio_drain(audio_fd);
 	close(audio_fd);
-        audio_fd = -1;
+	audio_fd = -1;
 }
 
 /* Flush input buffer */
 void
 newpcm_audio_drain(audio_desc_t ad)
 {
-        u_char buf[4];
-        int pre, post;
-        
-        assert(audio_fd > 0);
+	u_char buf[4];
+	int pre, post;
+	 
+	assert(audio_fd > 0);
 
-        NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &pre);
-        NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_RESET, 0);
-        NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SYNC, 0);
-        NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &post);
-        debug_msg("audio drain: %d -> %d\n", pre, post);
-        read(audio_fd, buf, sizeof(buf));
+	NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &pre);
+	NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_RESET, 0);
+	NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SYNC, 0);
+	NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &post);
+	debug_msg("audio drain: %d -> %d\n", pre, post);
+	read(audio_fd, buf, sizeof(buf));
 
-        UNUSED(ad);
+	UNUSED(ad);
 }
 
 int
 newpcm_audio_duplex(audio_desc_t ad)
 {
-        /* We only ever open device full duplex! */
-        UNUSED(ad);
-        return TRUE;
+	/* We only ever open device full duplex! */
+	UNUSED(ad);
+	return TRUE;
 }
 
 int
 newpcm_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 {
-        int done, this_read;
-        int len;
+	int done, this_read;
+	int len;
 
-        UNUSED(ad); assert(audio_fd > 0);
+	UNUSED(ad); assert(audio_fd > 0);
 
 	done = 0;
 	len = min(read_bytes, sz.rec_size);
 	do {
-	    this_read = read(audio_fd, buf + done, len);
-	    if (this_read == -1) break;
-	    done += this_read;
+		this_read = read(audio_fd, buf + done, len);
+		if (this_read == -1) break;
+		done += this_read;
 	} while (this_read == len && (done + this_read < read_bytes));
 
 	return done;
@@ -261,15 +276,15 @@ newpcm_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 {
 	int done, wrote;
 
-        UNUSED(ad); assert(audio_fd > 0);
+	UNUSED(ad); assert(audio_fd > 0);
 
 	done = 0;
 	while (done < write_bytes) {
-	    wrote = write(audio_fd, 
-			  buf + done, 
-			  min(sz.play_size, write_bytes - done));
-	    if (wrote == -1) break;
-	    done += wrote;
+		wrote = write(audio_fd, 
+			      buf + done, 
+			      min(sz.play_size, write_bytes - done));
+		if (wrote == -1) break;
+		done += wrote;
 	}
 	return done;
 }
@@ -278,22 +293,22 @@ newpcm_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 void
 newpcm_audio_non_block(audio_desc_t ad)
 {
-	int             frag = 1;
+	int	      frag = 1;
 
 	UNUSED(ad); assert(audio_fd != -1);
 
-        NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_NONBLOCK, &frag);
+	NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_NONBLOCK, &frag);
 }
 
 /* Set ops on audio device to be blocking */
 void
 newpcm_audio_block(audio_desc_t ad)
 {
-  	int             frag = 0;
-        
-        UNUSED(ad); assert(audio_fd > 0);
-        
-        NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_NONBLOCK, &frag);
+  	int	      frag = 0;
+	 
+	UNUSED(ad); assert(audio_fd > 0);
+	 
+	NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_NONBLOCK, &frag);
 } 
 
 
@@ -361,7 +376,7 @@ newpcm_audio_set_ogain(audio_desc_t ad, int vol)
 {
 	int volume, lgport, op;
 
-        UNUSED(ad); assert(audio_fd > 0);
+	UNUSED(ad); assert(audio_fd > 0);
 
 	vol = RAT_TO_DEVICE(vol);
 	volume = vol << 8 | vol;
@@ -380,7 +395,7 @@ newpcm_audio_get_ogain(audio_desc_t ad)
 {
 	int volume, lgport, op;
 
-        UNUSED(ad); assert(audio_fd > 0);
+	UNUSED(ad); assert(audio_fd > 0);
 
 	lgport = -1;
 	op     = oport;
@@ -418,7 +433,7 @@ newpcm_audio_oport_get(audio_desc_t ad)
 int
 newpcm_audio_oport_count(audio_desc_t ad)
 {
-        UNUSED(ad);
+	UNUSED(ad);
 	return newpcm_count_ports(playmask);
 }
 
@@ -434,7 +449,7 @@ newpcm_audio_oport_details(audio_desc_t ad, int idx)
 	ap.port = 1 << lgmask;
 	sprintf(ap.name, "%s", port_names[lgmask]);
 
-        return &ap;
+	return &ap;
 }
 
 void
@@ -443,7 +458,7 @@ newpcm_audio_set_igain(audio_desc_t ad, int gain)
 	int volume = RAT_TO_DEVICE(gain);
 	volume |= (volume << 8);
 
-        UNUSED(ad); assert(audio_fd > 0);
+	UNUSED(ad); assert(audio_fd > 0);
 	newpcm_audio_loopback_config(gain);
 	NEWPCM_AUDIO_IOCTL(audio_fd, SOUND_MIXER_WRITE_RECLEV, &volume);
 }
@@ -453,7 +468,7 @@ newpcm_audio_get_igain(audio_desc_t ad)
 {
 	int volume;
 
-        UNUSED(ad); assert(audio_fd > 0);
+	UNUSED(ad); assert(audio_fd > 0);
 	NEWPCM_AUDIO_IOCTL(audio_fd, SOUND_MIXER_READ_RECLEV, &volume);
 	volume = DEVICE_TO_RAT(volume & 0xff); 
 	if (volume > 100 || volume < 0) {
@@ -514,14 +529,14 @@ newpcm_audio_iport_details(audio_desc_t ad, int idx)
 	ap.port = 1 << lgmask;
 	sprintf(ap.name, "%s", port_names[lgmask]);
 
-        return &ap;
+	return &ap;
 }
 
 void
 newpcm_audio_loopback(audio_desc_t ad, int gain)
 {
-        UNUSED(ad); assert(audio_fd > 0);
-        loop = gain;
+	UNUSED(ad); assert(audio_fd > 0);
+	loop = gain;
 }
 
 static void
@@ -544,82 +559,84 @@ newpcm_audio_loopback_config(int gain)
 void
 newpcm_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
-        if (!newpcm_audio_is_ready(ad)) {
-                usleep((unsigned int)delay_ms * 1000);
-        }
+	if (!newpcm_audio_is_ready(ad)) {
+		usleep((unsigned int)delay_ms * 1000);
+	}
 }
 
 int 
 newpcm_audio_is_ready(audio_desc_t ad)
 {
-        int avail;
+	int avail;
 
-        UNUSED(ad);
+	UNUSED(ad);
 
-        NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &avail);
+	NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &avail);
 
-        return (avail >= sz.rec_size);
+	return (avail >= sz.rec_size);
 }
 
 int 
 newpcm_audio_supports(audio_desc_t ad, audio_format *fmt)
 {
-        snd_capabilities s;
+	snd_capabilities s;
 
-        UNUSED(ad);
+	UNUSED(ad);
 
-        NEWPCM_AUDIO_IOCTL(audio_fd, AIOGCAP, &s);
-        if (!newpcm_error) {
-                if ((unsigned)fmt->sample_rate < s.rate_min || (unsigned)fmt->sample_rate > s.rate_max) return FALSE;
-                if (fmt->channels == 1) return TRUE;                    /* Always supports mono */
-                assert(fmt->channels == 2);
-                if (s.formats & AFMT_STEREO) return TRUE;
-        }
-        return FALSE;
+	NEWPCM_AUDIO_IOCTL(audio_fd, AIOGCAP, &s);
+	if (!newpcm_error) {
+		if ((unsigned)fmt->sample_rate < s.rate_min || (unsigned)fmt->sample_rate > s.rate_max) return FALSE;
+		if (fmt->channels == 1) 
+			return TRUE;	/* Always supports mono */
+		assert(fmt->channels == 2);
+		if (s.formats & AFMT_STEREO) 
+			return TRUE;
+	}
+	return FALSE;
 }
 
 int
 newpcm_audio_query_devices()
 {
-        FILE *f;
-        char buf[128], *p;
-        int n, newpcm = FALSE;
+	FILE *f;
+	char buf[128], *p;
+	int n, newpcm = FALSE;
 
-        f = fopen("/dev/sndstat", "r");
-        if (f) {
-                while (!feof(f) && ndev < NEWPCM_MAX_AUDIO_DEVICES) {
-                        p = fgets(buf, 128, f);
-                        n = sscanf(buf, "pcm%d: <%[A-z0-9 ]>", dev_ids + ndev, names[ndev]);
-                        if (p && n == 2) {
-                                debug_msg("dev (%d) name (%s)\n", dev_ids[ndev], names[ndev]);
-                                ndev++;
-                        } else if (strstr(buf, "newpcm")) {
+	f = fopen("/dev/sndstat", "r");
+	if (f) {
+		while (!feof(f) && ndev < NEWPCM_MAX_AUDIO_DEVICES) {
+			p = fgets(buf, 128, f);
+			n = sscanf(buf, "pcm%d: <%[A-z0-9 ]>", dev_ids + ndev, names[ndev]);
+			if (p && n == 2) {
+				debug_msg("dev (%d) name (%s)\n", dev_ids[ndev], names[ndev]);
+				ndev++;
+			} else if (strstr(buf, "newpcm")) {
 				newpcm = TRUE;
 			} 
-                }
-                fclose(f);
-        }
+		}
+		fclose(f);
+	}
 
 	if (newpcm == FALSE) {
 		ndev = 0; /* Should be using Luigi's interface */
 	}
 
-        return (ndev);
+	return (ndev);
 }
 
 int
 newpcm_get_device_count()
 {
-        return ndev;
+	return ndev;
 }
 
 char *
 newpcm_get_device_name(audio_desc_t idx)
 {
-        if (idx >=0 && idx < ndev) {
-                return names[idx];
-        }
-        return NULL;
+	if (idx >=0 && idx < ndev) {
+		return names[idx];
+	}	
+	return NULL;
 }
 
 /* Functions to save and restore recording source and mixer levels */
@@ -645,8 +662,8 @@ static void
 newpcm_mixer_restore(int fd)
 {
 	int devmask, i;
-	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_WRITE_RECSRC, &saved_rec_mask); 
 
+	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_WRITE_RECSRC, &saved_rec_mask); 
 	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_DEVMASK, &devmask);
 	for (i = 0; i < SOUND_MIXER_NRDEVICES; i++) {
 		if ((1 << i) & devmask) {
