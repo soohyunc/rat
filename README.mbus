@@ -1,6 +1,9 @@
 Message bus commands known by RAT
 =================================
 
+$Revision$
+$Date$
+
 This document documents the message bus commands known by RAT. It does not
 define the mbus transport mechanism, that is defined in a companion document
 draft-ietf-mmusic-mbus-transport-00.txt (not all features of that draft are
@@ -110,14 +113,12 @@ audio.output.powermeter (percentage)
 audio.channel.coding (coding)
 
 	Indicate the channel coding scheme being used/to be used. Legal
-	values of coding are "No Loss Protection", "Redundancy" and
-	"Interleaving".
+	values of coding are "none", "redundant" and "interleaved".
 
 audio.channel.repair (repair)
 
 	Indicate the error concealment scheme being used/to be used. Legal
-	values of repair are "None", "Packet Repetition" and "Pattern
-	Matching".
+	values of repair are "none", "repetition" and "pattern-match".
 
 audio.suppress.silence (boolean)
 

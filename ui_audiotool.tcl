@@ -1115,9 +1115,9 @@ tk_optionCmdMenu $i.dd.units.m upp 1 2 4 8
 $i.dd.units.m configure -width 13 -highlightthickness 0 -bd 1
 pack $i.dd.units.l $i.dd.units.m -side top -fill x
 
-radiobutton $i.cc.van.rb -text "No Loss Protection" -justify right -value "No Loss Protection" -variable channel_var
-radiobutton $i.cc.red.rb -text "Redundancy" -justify right -value "Redundancy" -variable channel_var 
-radiobutton $i.cc.int.rb -text "Interleaving" -value Interleaving -variable channel_var
+radiobutton $i.cc.van.rb -text "No Loss Protection" -justify right -value none        -variable channel_var
+radiobutton $i.cc.red.rb -text "Redundancy"         -justify right -value redundant   -variable channel_var 
+radiobutton $i.cc.int.rb -text "Interleaving"       -justify right -value interleaved -variable channel_var
 pack $i.cc.van.rb $i.cc.red.rb $i.cc.int.rb -side left -anchor nw -padx 2
 
 frame $i.cc.red.fc 
@@ -1159,7 +1159,7 @@ pack $i.r -side top -fill x -pady 0 -ipady 1
 pack $i.o -side top -fill both  -pady 1
 pack $i.c -side top -fill both  -pady 1 -expand 1
 label $i.r.l -text "Repair Scheme:"
-tk_optionCmdMenu $i.r.m repair_var {None} {Packet Repetition} {Pattern Matching}
+tk_optionCmdMenu $i.r.m repair_var {none} {repetition} {pattern-match}
 
 label $i.r.ls -text "Sample Rate Conversion"
 tk_optionCmdMenu $i.r.ms convert_var {None}
@@ -1692,7 +1692,7 @@ proc load_settings {} {
     unset audio_tool
 
     # reception
-    load_setting attr audioRepair       repair_var    "Packet Repetition"
+    load_setting attr audioRepair       repair_var    "repetition"
     load_setting attr audioLimitPlayout limit_var     "0"
     load_setting attr audioMinPlayout   min_var       "0"
     load_setting attr audioMaxPlayout   max_var       "2000"
@@ -1727,7 +1727,7 @@ proc load_settings {} {
     load_setting attr audioChannels          channels      "Mono"
     load_setting attr audioPrimary           prenc         "GSM"
     load_setting attr audioUnits             upp           "2"
-    load_setting attr audioChannelCoding     channel_var   "None"
+    load_setting attr audioChannelCoding     channel_var   "none"
     load_setting attr audioRedundancy        secenc        "GSM"
     load_setting attr audioRedundancyOffset  red_off       "1"
     load_setting attr audioInterleavingGap   int_gap       "4"

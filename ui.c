@@ -367,13 +367,13 @@ ui_repair(session_struct *sp)
 
         switch(sp->repair) {
         case REPAIR_NONE:
-		repair = mbus_encode_str("None");
+		repair = mbus_encode_str("none");
                 break;
         case REPAIR_REPEAT:
-		repair = mbus_encode_str("Packet Repetition");
+		repair = mbus_encode_str("repetition");
                 break;
 	case REPAIR_PATTERN_MATCH:
-		repair = mbus_encode_str("Pattern Matching");
+		repair = mbus_encode_str("pattern-match");
                 break;
         }
 	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.repair", repair, FALSE);
@@ -512,13 +512,13 @@ ui_update_channel(session_struct *sp)
         assert(ccp != NULL);
         switch(ccp->name[0]) {
         case 'V':
-                mbes = mbus_encode_str("No Loss Protection");
+                mbes = mbus_encode_str("none");
                 break;
         case 'R':
-                mbes = mbus_encode_str("Redundancy");
+                mbes = mbus_encode_str("redundant");
                 break;
         case 'I':
-                mbes = mbus_encode_str("Interleaving");
+                mbes = mbus_encode_str("interleaved");
                 break;
         default:
                 debug_msg("Channel coding failed mapping.\n");

@@ -392,11 +392,11 @@ static void rx_tool_rat_repair(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
 		s = mbus_decode_str(s);
-		if (strcmp(s,              "None") == 0) sp->repair = REPAIR_NONE;
-		if (strcmp(s, "Packet Repetition") == 0) sp->repair = REPAIR_REPEAT;
-        	if (strcmp(s,  "Pattern Matching") == 0) sp->repair = REPAIR_PATTERN_MATCH;
+		if (strcmp(s,          "none") == 0) sp->repair = REPAIR_NONE;
+		if (strcmp(s,    "repetition") == 0) sp->repair = REPAIR_REPEAT;
+        	if (strcmp(s, "pattern-match") == 0) sp->repair = REPAIR_PATTERN_MATCH;
 	} else {
-		printf("mbus: usage \"tool.rat.repair None|Repetition\"\n");
+		printf("mbus: usage \"tool.rat.repair none|repetition|pattern-match\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
 }
@@ -920,18 +920,15 @@ static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
         mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_str(sp->mbus_engine_conf, &channel)) {
                 channel = mbus_decode_str(channel);
-                switch(channel[0]) {
-                case 'N':
+		if (strcmp(channel, "none") == 0) {
                         channel_set_coder(sp, get_cc_pt(sp, "VANILLA"));
-                        break;
-                case 'R':
+                } else if (strcmp(channel, "redundant") == 0) {
                         channel_set_coder(sp, get_cc_pt(sp, "REDUNDANCY"));
-                        break;
-                case 'I':
+                } else if (strcmp(channel, "interleaved") == 0) {
                         channel_set_coder(sp, get_cc_pt(sp, "INTERLEAVER"));
-                        break;
-                default:
-                        printf("%s %d: scheme %s not recognized.\n",__FILE__,__LINE__,channel);
+                } else {
+			debug_msg("scheme %s not recognized\n", channel);
+			abort();
                 }
         } else {
                 printf("mbus: usage \"audio.channel.coding <scheme>\"\n");
