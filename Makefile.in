@@ -51,7 +51,7 @@ profrep.o: tcl2c
 	$(CC) $(CFLAGS) -c profrep.c -o profrep.o
 
 clean:
-	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile tcl2c rat 
+	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c profrep.c version.h Makefile tcl2c/tcl2c rat 
 
 etags:
 	etags *.[ch]
