@@ -3,6 +3,18 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
+Project: "common"=..\common\common.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "rat"=.\rat.dsp - Package Owner=<4>
 
 Package=<5>
@@ -14,11 +26,44 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name tcl2c
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name common
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name tcllib
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name tklib
+    End Project Dependency
 }}}
 
 ###############################################################################
 
 Project: "tcl2c"=.\tcl2c\tcl2c.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "tcllib"="..\tcl-8.0\win\tcllib.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "tklib"="..\tk-8.0\win\tklib.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
