@@ -78,8 +78,13 @@ int net_write_iov(socket_udp *s, struct iovec *iov, int len, int type)
 void 
 network_init(session_struct *sp)
 {
-	sp->rtp_socket  = udp_init(sp->asc_address, sp->rx_rtp_port,  sp->tx_rtp_port,  sp->ttl); assert(sp->rtp_socket  != NULL);
-	sp->rtcp_socket = udp_init(sp->asc_address, sp->rx_rtcp_port, sp->tx_rtcp_port, sp->ttl); assert(sp->rtcp_socket != NULL);
+        u_int8 i;
+
+        for (i=0; i<sp->layers; i++)
+        {
+                sp->rtp_socket[i]  = udp_init(sp->asc_address[i], sp->rx_rtp_port[i], sp->tx_rtp_port[i], sp->ttl); assert(sp->rtp_socket[i]  != NULL);
+        }
+	sp->rtcp_socket = udp_init(sp->asc_address[0], sp->rx_rtcp_port, sp->tx_rtcp_port, sp->ttl); assert(sp->rtcp_socket != NULL);
 }
 
 void

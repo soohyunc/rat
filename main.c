@@ -76,6 +76,7 @@ main(int argc, char *argv[])
 	struct timeval  	 time;
 	struct timeval      	 timeout;
 	char			 mbus_engine_addr[100], mbus_ui_addr[100], mbus_video_addr[100];
+        u_int8                   j;
 
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
@@ -92,7 +93,7 @@ main(int argc, char *argv[])
 	}
 	parse_early_options(argc, argv, sp);
 	network_init(sp[0]);
-	cname = get_cname(sp[0]->rtp_socket);
+	cname = get_cname(sp[0]->rtp_socket[0]);
 	ssrc  = get_ssrc();
 
         audio_init_interfaces();
@@ -136,7 +137,7 @@ main(int argc, char *argv[])
 	network_process_mbus(sp[0]);
 
         if (tx_is_sending(sp[0]->tb)) {
-               	tx_start(sp[i]->tb);
+               	tx_start(sp[0]->tb);
         }
 
         /* dump buffered packets - it usually takes at least 1 second
@@ -144,7 +145,9 @@ main(int argc, char *argv[])
          * This stops lots of "skew" adaption at the start because the
          * playout buffer is too long.
          */
-	read_and_discard(sp[0]->rtp_socket);
+        for(j=0; j<sp[0]->layers; j++) {
+                read_and_discard(sp[0]->rtp_socket[j]);
+        }
 	read_and_discard(sp[0]->rtcp_socket);
 
         i = tcl_process_all_events();
@@ -160,24 +163,32 @@ main(int argc, char *argv[])
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 0;
 
-		udp_fd_zero();
-		udp_fd_set(sp[0]->rtp_socket);
-		udp_fd_set(sp[0]->rtcp_socket);
+                udp_fd_zero();
+                for(j=0; j<sp[0]->layers; j++) 
+                        udp_fd_set(sp[0]->rtp_socket[j]);
+                udp_fd_set(sp[0]->rtcp_socket);
+                        
+                while (udp_select(&timeout) > 0) {
+                        for(j=0; j<sp[0]->layers; j++) {
+                                if (udp_fd_isset(sp[0]->rtp_socket[j])) {
+                                        read_and_enqueue(sp[0]->rtp_socket[j], sp[0]->cur_ts, sp[0]->rtp_pckt_queue, PACKET_RTP);
+                                        
+                                }
+                        }
+                        if (udp_fd_isset(sp[0]->rtcp_socket)) {
+                                read_and_enqueue(sp[0]->rtcp_socket, sp[0]->cur_ts, sp[0]->rtcp_pckt_queue, PACKET_RTCP);
+                        }
+                }
+                        
+                tx_process_audio(sp[0]->tb);
+                if (tx_is_sending(sp[0]->tb)) {
+                        tx_send(sp[0]->tb);
+                }
 
-		while (udp_select(&timeout) > 0) {
-			if (udp_fd_isset(sp[0]->rtp_socket)) {
-				read_and_enqueue(sp[0]->rtp_socket , sp[0]->cur_ts, sp[0]->rtp_pckt_queue, PACKET_RTP);
-			}
-			if (udp_fd_isset(sp[0]->rtcp_socket)) {
-				read_and_enqueue(sp[0]->rtcp_socket, sp[0]->cur_ts, sp[0]->rtcp_pckt_queue, PACKET_RTCP);
-			}
-		}
-
-		tx_process_audio(sp[0]->tb);
-		if (tx_is_sending(sp[0]->tb)) {
-			tx_send(sp[0]->tb);
-		}
-
+                        /* Need to either:                               *
+                         * (i) join layers together by this stage        *
+                         * (ii) modify statistics_process to join layers */
+                        
 		/* Process incoming packets */
 		statistics_process(sp[0], sp[0]->rtp_pckt_queue, sp[0]->cushion, ntp_time, sp[0]->cur_ts);
 
@@ -260,7 +271,7 @@ main(int argc, char *argv[])
         }
 
 	tx_stop(sp[0]->tb);
-	rtcp_exit(sp[0], sp[1-i], sp[0]->rtcp_socket);
+	rtcp_exit(sp[0], NULL, sp[0]->rtcp_socket);
 	if (sp[0]->in_file  != NULL) snd_read_close (&sp[0]->in_file);
 	if (sp[0]->out_file != NULL) snd_write_close(&sp[0]->out_file);
 	audio_device_release(sp[0], sp[0]->audio_device);

@@ -397,6 +397,52 @@ redundancy_update_end:
         xfree(cmd);
 }
 
+static void
+ui_update_layering(session_struct *sp)
+{
+        const codec_format_t *lcf;
+        codec_id_t            lcid;
+        char *cmd, *out, *sec_enc, *layerenc, *mbes;
+        
+        int clen;
+
+        clen = 2 * (CODEC_LONG_NAME_LEN + 4) + 1;
+        cmd  = (char*)xmalloc(clen);
+
+        channel_encoder_get_parameters(sp->channel_coder, cmd, clen);
+        
+        sec_enc = (char *) strtok(NULL, "/");
+        layerenc = (char *) strtok(NULL, "/");
+
+        if (sec_enc == NULL || layerenc == NULL) {
+                goto layering_update_end;
+        }
+
+        lcid    = codec_get_by_name(sec_enc);
+        if (!codec_id_is_valid(lcid)) {
+                   goto layering_update_end;
+        }
+        
+        lcf = codec_get_format(lcid);
+        out = (char*)xmalloc(clen);
+
+        mbes = mbus_encode_str("layering");
+        sprintf(out, "%s ", mbes);
+        xfree(mbes);
+
+        mbes = mbus_encode_str(lcf->short_name);
+        strcat(out, mbes);
+        xfree(mbes);
+
+        strcat(out, " ");
+        strcat(out, layerenc);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.channel.coding", out, TRUE);
+        xfree(out);
+
+layering_update_end:
+        xfree(cmd);
+}
+
 void 
 ui_update_channel(session_struct *sp) 
 {
@@ -409,9 +455,15 @@ ui_update_channel(session_struct *sp)
                 mbes = mbus_encode_str("none");
                 mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.channel.coding", mbes, TRUE);
                 xfree(mbes);
+                debug_msg("ui_update_channel: n\n");
                 break;
         case 'r':
                 ui_update_redundancy(sp);
+                debug_msg("ui_update_channel: r\n");
+                break;
+        case 'l':
+                ui_update_layering(sp);
+                debug_msg("ui_update_channel: l\n");
                 break;
         }
         return;
@@ -671,7 +723,7 @@ void
 ui_update_codec(session_struct *sp, codec_id_t cid)
 {
         char 			*caps, *long_name_e, *short_name_e, *pay_e, *descr_e;
-        int 			 can_enc, can_dec;
+        int 			 can_enc, can_dec, layers;
         char 			 pay[4];
         u_char 			 pt;
         const codec_format_t	*cf;
@@ -703,10 +755,11 @@ ui_update_codec(session_struct *sp, codec_id_t cid)
 	long_name_e  = mbus_encode_str(cf->long_name);
 	short_name_e = mbus_encode_str(cf->short_name);
 	descr_e      = mbus_encode_str(cf->description);
+        layers       = codec_can_layer(cid);
 
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, 
                    "tool.rat.codec.details",
-                   "%s %s %s %d %d %d %d %d %s %s",
+                   "%s %s %s %d %d %d %d %d %s %s %d",
                    pay_e,
                    long_name_e,
                    short_name_e,
@@ -716,7 +769,8 @@ ui_update_codec(session_struct *sp, codec_id_t cid)
                    cf->mean_per_packet_state_size,
                    cf->mean_coded_frame_size,
                    descr_e,
-                   caps);
+                   caps,
+                   layers);
 	xfree(caps);
 	xfree(pay_e);
 	xfree(long_name_e);
@@ -856,8 +910,8 @@ ui_title(session_struct *sp)
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "session.title", title, TRUE);
         xfree(title);
 
-	addr = mbus_encode_str(sp->asc_address);
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "session.address", "%s %5d %3d", addr, sp->rx_rtp_port, sp->ttl);
+	addr = mbus_encode_str(sp->asc_address[0]);
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "session.address", "%s %5d %3d", addr, sp->rx_rtp_port[0], sp->ttl);
         xfree(addr);
 }
 

@@ -92,4 +92,16 @@ int        codec_is_native_coding  (codec_id_t id);
 int        codec_get_native_info   (codec_id_t cid, 
                                     u_int16 *sample_rate, 
                                     u_int16 *channels);
+/* For layered codecs */
+u_int8     codec_can_layer         (codec_id_t id);
+int        codec_get_layer         (codec_id_t id,
+                                    coded_unit *cu_whole,
+                                    u_int8 layer,
+                                    u_int8 *markers,
+                                    coded_unit *cu_layer);
+int        codec_combine_layer     (codec_id_t id,
+                                    coded_unit *cu_layer,
+                                    coded_unit *whole);
+
+
 #endif /* _CODEC_H_ */

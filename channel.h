@@ -90,4 +90,7 @@ int       channel_describe_data   (cc_id_t cid,
 cc_id_t   channel_coder_get_by_payload (u_int8 pt);
 u_int8    channel_coder_get_payload    (struct s_channel_state* st, u_int8 media_pt);   
 
+/* Layered coding functions */
+u_int8    channel_coder_get_layers     (cc_id_t cid);
+
 #endif /* __NEW_CHANNEL_H__ */

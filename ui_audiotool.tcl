@@ -342,6 +342,7 @@ proc mbus_recv_tool.rat.sampling.supported {arg} {
 set codecs {}
 set prencs  {}
 set secencs {}
+set layerencs {}
 
 proc codec_get_name {nickname freq channels} {
     global codecs codec_nick_name codec_rate codec_channels
@@ -387,7 +388,7 @@ proc codecs_matching {freq channels blocksize} {
 
 proc mbus_recv_tool.rat.codec.details {args} {
     catch {
-	global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc codec_caps
+	global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc codec_caps codec_layers
 	
 	set name [lindex $args 1]
 	if {[lsearch $codecs $name] == -1} {
@@ -402,6 +403,7 @@ proc mbus_recv_tool.rat.codec.details {args} {
 	set codec_data_size($name)  [lindex $args 7]
 	set codec_desc($name)       [lindex $args 8]
 	set codec_caps($name)       [lindex $args 9]
+	set codec_layers($name)		[lindex $args 10]
 	set stackup ""
     } details_error
 
@@ -448,14 +450,31 @@ proc update_redundancy_list {arg} {
     }
 }
 
+proc update_layer_list {arg} {
+    global layerenc layerencs
+
+    .prefs.pane.transmission.cc.layer.fc.m.menu delete 0 last
+    set layerencs {}
+
+    for {set i 1} {$i <= $arg} {incr i} {
+	.prefs.pane.transmission.cc.layer.fc.m.menu add command -label $i -command "set layerenc \"$i\""
+	lappend layerencs $i
+	}
+	if {$layerenc > $arg} {
+	#new codec doesn't support as many layers
+	set layerenc $arg
+	}
+}
+
 proc reset_encodings {} {
-    global prenc prencs secenc secencs
+    global prenc prencs secenc secencs layerenc layerencs
     set prenc  [lindex $prencs 0]
     set secenc [lindex $secencs 0]
+	set layerenc [lindex $layerencs 0]
 }
 
 proc update_codecs_displayed { } {
-    global freq ichannels codec_nick_name prenc codec_block_size codec_caps
+    global freq ichannels codec_nick_name prenc codec_block_size codec_caps codec_layers
 
     if {[string match $ichannels Mono]} {
 	set sample_channels 1
@@ -496,6 +515,14 @@ proc update_codecs_displayed { } {
     }
     
     update_redundancy_list $friendly_names
+
+	# Assume that all codecs of one type support the same number of layers
+	foreach {n} $long_names {
+	if {$codec_nick_name($n) == $prenc} {
+	break
+	}
+	}
+	update_layer_list $codec_layers($n)
 }
 
 proc change_sampling { } {
@@ -592,7 +619,7 @@ proc mbus_recv_tool.rat.rate {arg} {
 }
 
 proc mbus_recv_audio.channel.coding {args} {
-    global channel_var secenc red_off int_units int_gap
+    global channel_var secenc red_off int_units int_gap prenc layerenc
 
     set channel_var [lindex $args 0]
 
@@ -604,6 +631,11 @@ proc mbus_recv_audio.channel.coding {args} {
 	interleaved {
 		set int_units [lindex $args 1]
 		set int_gap   [lindex $args 2]
+	}
+	layering {
+#		should we be playing with primary encoding?
+#		set prenc	  [lindex $args 1]
+		set layerenc  [lindex $args 2]
 	}
     }
 }
@@ -1567,6 +1599,7 @@ frame $i.dd
 frame $i.cc 
 frame $i.cc.van 
 frame $i.cc.red 
+frame $i.cc.layer
 frame $i.cc.int 
 label $i.intro -text "This panel allows you to select codecs for transmission.  The choice\nof codecs available depends on the sampling rate and channels\nin the audio panel."
 label $i.title1 -relief raised -text "Audio Encoding"
@@ -1578,7 +1611,7 @@ label $i.title2 -relief raised -text "Channel Coding Options"
 pack $i.title2 -fill x -side top
 pack $i.cc -fill x -anchor w -pady 1
 
-pack $i.cc.van $i.cc.red -fill x -anchor w -pady 0
+pack $i.cc.van $i.cc.red $i.cc.layer -fill x -anchor w -pady 0
 # interleaving panel $i.cc.int not packed since interleaving isn't support in this release
 frame $i.dd.units
 frame $i.dd.pri
@@ -1598,8 +1631,9 @@ pack $i.dd.units.l $i.dd.units.m -side top -fill x
 
 radiobutton $i.cc.van.rb -text "No Loss Protection" -justify right -value none        -variable channel_var
 radiobutton $i.cc.red.rb -text "Redundancy"         -justify right -value redundancy  -variable channel_var 
+radiobutton $i.cc.layer.rb -text "Layering"			-justify right -value layering    -variable channel_var
 radiobutton $i.cc.int.rb -text "Interleaving"       -justify right -value interleaved -variable channel_var -state disabled
-pack $i.cc.van.rb $i.cc.red.rb $i.cc.int.rb -side left -anchor nw -padx 2
+pack $i.cc.van.rb $i.cc.red.rb $i.cc.layer.rb $i.cc.int.rb -side left -anchor nw -padx 2
 
 frame $i.cc.red.fc 
 label $i.cc.red.fc.l -text "Encoding:"
@@ -1614,6 +1648,13 @@ pack $i.cc.red.u -side right -anchor e -fill y
 pack $i.cc.red.u.l $i.cc.red.u.m -fill x 
 pack $i.cc.red.fc -side right
 pack $i.cc.red.fc.l $i.cc.red.fc.m 
+
+frame $i.cc.layer.fc
+label $i.cc.layer.fc.l -text "Layers:"
+menubutton $i.cc.layer.fc.m -textvariable layerenc -indicatoron 1 -menu $i.cc.layer.fc.m.menu -relief raised -width 13
+menu $i.cc.layer.fc.m.menu -tearoff 0
+pack $i.cc.layer.fc -side right
+pack $i.cc.layer.fc.l $i.cc.layer.fc.m
 
 frame $i.cc.int.zz
 label $i.cc.int.zz.l -text "Units:"
@@ -1772,8 +1813,9 @@ label $i.of.details.upper.l.2 -text "Channels:"    -anchor w
 label $i.of.details.upper.l.3 -text "Bitrate (kbps):"     -anchor w
 label $i.of.details.upper.l.4 -text "RTP Payload:" -anchor w
 label $i.of.details.upper.l.5 -text "Capability:" -anchor w
+label $i.of.details.upper.l.6 -text "Layers:" -anchor w
 
-for {set idx 0} {$idx < 6} {incr idx} {
+for {set idx 0} {$idx < 7} {incr idx} {
     pack $i.of.details.upper.l.$idx -side top -fill x
 }
 
@@ -1785,8 +1827,9 @@ label $i.of.details.upper.r.2 -anchor w
 label $i.of.details.upper.r.3 -anchor w
 label $i.of.details.upper.r.4 -anchor w
 label $i.of.details.upper.r.5 -anchor w
+label $i.of.details.upper.r.6 -anchor w
 
-for {set idx 0} {$idx < 6} {incr idx} {
+for {set idx 0} {$idx < 7} {incr idx} {
     pack $i.of.details.upper.r.$idx -side top -fill x
 }
 
@@ -1815,7 +1858,7 @@ proc codecs_panel_fill {} {
 set last_selected_codec -1
 
 proc codecs_panel_select { idx } {
-    global codecs codec_nick_name codec_rate codec_channels codec_pt codec_block_size codec_data_size codec_desc codec_caps
+    global codecs codec_nick_name codec_rate codec_channels codec_pt codec_block_size codec_data_size codec_desc codec_caps codec_layers
     global last_selected_codec 
 
     set last_selected_codec $idx
@@ -1832,6 +1875,7 @@ proc codecs_panel_select { idx } {
 
     $root.4 configure -text $codec_pt($codec)
     $root.5 configure -text $codec_caps($codec)
+    $root.6 configure -text $codec_layers($codec)
     
     .prefs.pane.codecs.of.details.desc.l configure -text "Description: $codec_desc($codec)"
 
@@ -2074,7 +2118,7 @@ proc sync_ui_to_engine {} {
 proc sync_engine_to_ui {} {
     # make audio engine concur with ui
     global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc 
-    global prenc upp channel_var secenc red_off int_gap int_units
+    global prenc upp channel_var secenc layerenc red_off int_gap int_units
     global silence_var agc_var audio_loop_var echo_var
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
     global meter_var sync_var gain volume input_port output_port 
@@ -2095,6 +2139,7 @@ proc sync_engine_to_ui {} {
     	none         {mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var]"}
 	redundancy   {mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var] [mbus_encode_str $secenc] $red_off"}
 	interleaved {mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var] $int_gap $int_units"}
+	layering	{mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var] [mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq] $layerenc"}
     	*           {error "unknown channel coding scheme $channel_var"}
     }
 
@@ -2180,6 +2225,7 @@ proc save_settings {} {
     save_setting $f audioPrimary           prenc
     save_setting $f audioUnits             upp
     save_setting $f audioChannelCoding     channel_var
+	save_setting $f audioLayers			   layerenc
     save_setting $f audioRedundancy        secenc
     save_setting $f audioRedundancyOffset  red_off
     save_setting $f audioInterleavingGap   int_gap
@@ -2344,6 +2390,7 @@ proc load_settings {} {
     load_setting attr audioPrimary           prenc         "GSM"
     load_setting attr audioUnits             upp           "2"
     load_setting attr audioChannelCoding     channel_var   "none"
+	load_setting attr audioLayers			 layerenc	   "1"
     load_setting attr audioRedundancy        secenc        "GSM"
     load_setting attr audioRedundancyOffset  red_off       "1"
     load_setting attr audioInterleavingGap   int_gap       "4"
@@ -2351,9 +2398,9 @@ proc load_settings {} {
     #device
     global audio_device
     load_setting attr audioDevice            audio_device  "No Audio Device"
-
+  
     if {$audio_device == "No Audio Device"} {
-	set audio_device "first"
+ 		set audio_device "first"
     }
 
     global prenc ichannels freq
@@ -2867,10 +2914,10 @@ set i .prefs.pane.transmission
 
 add_help $i.dd.units.m	"Sets the duration of each packet sent.\nThere is a fixed per-packet\
                          overhead, so\nmaking this larger will reduce the total\noverhead.\
-			 The effects of packet loss are\nmore noticable with large packets."
+						 The effects of packet loss are\nmore noticable with large packets."
 add_help $i.dd.pri.m	"Changes the primary audio compression\nscheme. The list is arranged\
                          with high-\nquality, high-bandwidth choices at the\ntop, and\
-			 poor-quality, lower-bandwidth\nchoices at the bottom."
+						 poor-quality, lower-bandwidth\nchoices at the bottom."
 add_help $i.cc.van.rb	"Sets no channel coding."
 add_help $i.cc.red.rb	"Piggybacks earlier units of audio into packets\n\
 			 to protect against packet loss. Some audio\n\
@@ -2880,6 +2927,10 @@ add_help $i.cc.red.fc.m \
 			"Sets the format of the piggybacked data."
 add_help $i.cc.red.u.m \
 			"Sets the offset of the piggybacked data."
+add_help $i.cc.layer.fc.m  "Sets the number of discrete layers which will\nbe sent. You need\
+						    to start RAT with the options\n-l n <address>/<port> <address>/<port>,\nwhere\
+						    n is the number of layers and there is an\naddress and port for each layer.\
+							NB: this is only\nsupported by the WBS codec at present."
 add_help $i.cc.int.fc.m \
 			"Sets the separation of adjacent units within\neach packet. Larger values correspond\
 			 to longer\ndelays."

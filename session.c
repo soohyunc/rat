@@ -66,7 +66,8 @@ init_session(session_struct *sp)
 	char                  hostname[MAXHOSTNAMELEN + 1];
 	codec_id_t            cid;
         const codec_format_t *cf;
-        cc_details            ccd; 
+        cc_details            ccd;
+        u_int8                i;
 
 	memset(sp, 0, sizeof(session_struct));
 
@@ -86,14 +87,17 @@ init_session(session_struct *sp)
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); 	/* this is the global clock */
         assert(!(GLOBAL_CLOCK_FREQ%cf->format.sample_rate));                	/* just in case someone adds weird freq codecs */
 	sp->mode         		= AUDIO_TOOL;	
-	sp->rx_rtp_port			= 5004;					/* default: draft-ietf-avt-profile-new-00 */
-	sp->tx_rtp_port			= 5004;					/* default: draft-ietf-avt-profile-new-00 */
+	for (i=0; i<MAX_LAYERS; i++) {
+		sp->rx_rtp_port[i] = sp->tx_rtp_port[i] = PORT_UNINIT;
+                sp->rtp_socket[i] = NULL;
+	}
+	sp->rx_rtp_port[0]		= 5004;					/* default: draft-ietf-avt-profile-new-00 */
+	sp->tx_rtp_port[0]		= 5004;					/* default: draft-ietf-avt-profile-new-00 */
 	sp->rx_rtcp_port		= 5005;					/* default: draft-ietf-avt-profile-new-00 */
 	sp->tx_rtcp_port		= 5005;					/* default: draft-ietf-avt-profile-new-00 */
         sp->rtp_pckt_queue              = pckt_queue_create(PCKT_QUEUE_RTP_LEN);
         sp->rtcp_pckt_queue             = pckt_queue_create(PCKT_QUEUE_RTCP_LEN);
 	sp->ttl				= 16;
-	sp->rtp_socket			= NULL;
 	sp->rtcp_socket			= NULL;
         sp->filter_loopback             = TRUE;
 	sp->playing_audio		= TRUE;
@@ -115,6 +119,7 @@ init_session(session_struct *sp)
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
         sp->last_depart_ts              = 1;
+	sp->layers                      = 1;
 
         source_list_create(&sp->active_sources);
 
@@ -131,7 +136,7 @@ init_session(session_struct *sp)
 	memcpy(&netaddr, addr->h_addr, 4);
 	sp->ipaddr = ntohl(netaddr);
 
-	strcpy(sp->asc_address, "127.0.0.3");	/* Yeuch! This value should never be used! */
+	strcpy(sp->asc_address[0], "127.0.0.3");	/* Yeuch! This value should never be used! */
 }
 
 void
@@ -235,6 +240,18 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                                 printf("Codec %s not recognized, check name.\n", t);
                         }
                         i++;
+                } else if ((strcmp(argv[i], "-l") == 0) && (argc > i+1)) { 
+                        /* Layering. Format: "-l num_layers" */
+                        int lay = atoi(argv[i+1]);
+                        if(lay > MAX_LAYERS) {
+                                printf("%d is too many layers - maximum is %d.\n", lay, MAX_LAYERS);
+                                usage();
+                        }
+                        debug_msg("Configuring %d layers\n", sp[s]->layers);
+                        for(s = 0; s < num_sessions; s++) {
+                                sp[s]->layers = lay;
+                        }
+                        i++;
                 } else {
                         continue;
                 }
@@ -250,45 +267,74 @@ parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
 {
 	/* Parse command-line options specific to the audio tool */
 	char *p;
+        u_int8 i, j;
+        u_short port[2];
 
-	p = (char *) strtok(argv[argc - 1], "/");
-	strcpy(sp->asc_address, p);
-	if ((p = (char *) strtok(NULL, "/")) != NULL) {
-		sp->rx_rtp_port = atoi(p);
-		sp->rx_rtp_port &= ~1;
-		sp->rx_rtcp_port = sp->rx_rtp_port + 1;
+        if((sp->layers > 1) && (argc < 3 + sp->layers)) { /* rat -l layers address/port address/port... */
+                usage();
+        }
 
-		sp->tx_rtp_port  = sp->rx_rtp_port;
-		sp->tx_rtcp_port = sp->rx_rtcp_port;
-	} else {
-		usage();
-	}
-	if (atoi(p) > 0xfffe) {
+        for (i=0; i<sp->layers; i++) {
+                p = (char *) strtok(argv[argc + i - sp->layers], "/");
+                strcpy(sp->asc_address[i], p);
+                if((p = (char *) strtok(NULL, "/")) != NULL) {
+                        sp->rx_rtp_port[i] = atoi(p);
+                        sp->rx_rtp_port[i] &= ~1;
+                        
+                        sp->tx_rtp_port[i]  = sp->rx_rtp_port[i];
+                }
+                else {
+                        usage();
+                }
+                if ((p = (char *) strtok(NULL, "/")) != NULL) {
+                        sp->tx_rtp_port[i] = atoi(p);
+                        sp->tx_rtp_port[i] &= ~1;
+                }
+                debug_msg("rx_rtp_port[%d] = %d, tx_rtp_port[%d] = %d\n", i, sp->rx_rtp_port[i], i, sp->tx_rtp_port[i]);
+        }
+        sp->rx_rtcp_port = sp->rx_rtp_port[0] + 1;
+        sp->tx_rtcp_port = sp->tx_rtp_port[0] + 1;
+
+        /* Check for conflicts */
+
+        for (i=0; i<sp->layers; i++) {
+		port[0] = sp->rx_rtp_port[i];
+		port[1] = sp->tx_rtp_port[i];
+                if(port[0] > 0xfffe || port[1] > 0xfffe) {
 #ifdef WIN32
-	  char win_err[255];
-	  sprintf(win_err, "Port should be in the range (1024-65535)");
-	  MessageBox(NULL, win_err,  "RAT - Command line error", MB_OK | MB_ICONERROR);
+                        char win_err[255];
+                        sprintf(win_err, "Port should be in the range (1024-65535)");
+                        MessageBox(NULL, win_err,  "RAT - Command line error", MB_OK | MB_ICONERROR);
 #else
-	  fprintf(stderr, "Port should be in the range (1024-65535)\n");
+                        fprintf(stderr, "Port should be in the range (1024-65535)\n");
 #endif
 
-	  exit(-1);
-	}
-	if ((p = (char *) strtok(NULL, "/")) != NULL) {
-		sp->tx_rtp_port = atoi(p);
-		sp->tx_rtp_port &= ~1;
-		sp->tx_rtcp_port = sp->tx_rtp_port + 1;
-	}
-
-	if (inet_addr(sp->asc_address) == 0xffffffff && gethostbyname(sp->asc_address) == NULL) {
+                        exit(-1);
+                }
+		for(j=0;j<sp->layers;j++)
+		{
+			if(i!=j && (port[0]==sp->rx_rtp_port[j] || port[0]==sp->rx_rtcp_port || port[1]==sp->tx_rtp_port[j] || port[1]==sp->tx_rtcp_port)) {
 #ifdef WIN32
-	  char win_err[255];
-	  sprintf(win_err, "%s is not a valid address", sp->asc_address);
-	  MessageBox(NULL, win_err,  "RAT - Command line error", MB_OK | MB_ICONERROR);
+				char win_err[255];
+				sprintf(win_err, "Ports collide - don't forget to leave space for RTCP");
+				MessageBox(NULL, win_err, "RAT - Command line error", MB_OK | MB_ICONERROR);
 #else
-	  fprintf(stderr, "%s is not a valid address\n", sp->asc_address);
+				fprintf(stderr, "Ports collide; don't forget to leave a space for RTCP.\n");
 #endif
-	  exit(-1);
+				exit(-1);
+			}
+		}
+                if (inet_addr(sp->asc_address[i]) == 0xffffffff && gethostbyname(sp->asc_address[i]) == NULL) {
+#ifdef WIN32
+                        char win_err[255];
+                        sprintf(win_err, "%s is not a valid address", sp->asc_address[i]);
+                        MessageBox(NULL, win_err,  "RAT - Command line error", MB_OK | MB_ICONERROR);
+#else
+                        fprintf(stderr, "%s is not a valid address\n", sp->asc_address[i]);
+#endif
+                        exit(-1);
+                }
+
 	}
 }
 
@@ -306,14 +352,14 @@ parse_early_options_transcoder(int argc, char *argv[], session_struct *sp[])
 	for (i = 0; i < 2; i++) {
 		/* addr */
 		p = (char *) strtok(argv[argc-i-1], "/");
-		strcpy(sp[i]->asc_address, p);
+		strcpy(sp[i]->asc_address[0], p);
 		/* port */
 		if ((p = (char *) strtok(NULL, "/")) != NULL) {
-			sp[i]->rx_rtp_port  = atoi(p);
-			sp[i]->rx_rtp_port &= ~1;
-			sp[i]->rx_rtcp_port = sp[i]->rx_rtp_port + 1;
+			sp[i]->rx_rtp_port[0]  = atoi(p);
+			sp[i]->rx_rtp_port[0] &= ~1;
+			sp[i]->rx_rtcp_port = sp[i]->rx_rtp_port[0] + 1;
 
-			sp[i]->tx_rtp_port  = sp[i]->rx_rtp_port;
+			sp[i]->tx_rtp_port[0]  = sp[i]->rx_rtp_port[0];
 			sp[i]->tx_rtcp_port = sp[i]->rx_rtcp_port;
 		} else {
 			continue;
@@ -344,7 +390,7 @@ parse_early_options_transcoder(int argc, char *argv[], session_struct *sp[])
 int
 parse_early_options(int argc, char *argv[], session_struct *sp[])
 {
-	int	i, num_sessions = 0;
+	int	i, j, num_sessions = 0;
 
 	if (argc < 2) {
 		usage();
@@ -381,10 +427,12 @@ parse_early_options(int argc, char *argv[], session_struct *sp[])
 	}
 
 	for (i=0; i<num_sessions; i++) {
-		if (sp[i]->rx_rtp_port == 0) {
-			usage();
-		}
-	}
+                for(j=0; j<sp[i]->layers; j++) {
+                        if (sp[i]->rx_rtp_port[j] == 0) {
+                                usage();
+                        }
+                }
+        }
 	return num_sessions;
 }
 
@@ -591,7 +639,7 @@ static void parse_late_options_transcoder(int argc, char *argv[], session_struct
 
 void parse_late_options(int argc, char *argv[], session_struct *sp[])
 {
-	int	i, num_sessions = 0;
+	int	i, j, num_sessions = 0;
 
 	if (argc < 2) {
 		usage();
@@ -614,9 +662,11 @@ void parse_late_options(int argc, char *argv[], session_struct *sp[])
 		default        : abort();
 	}
 	for (i=0; i<num_sessions; i++) {
-		if (sp[i]->rx_rtp_port == 0) {
-			usage();
-		}
+                for(j=0; j<sp[i]->layers; j++) {
+                        if (sp[i]->rx_rtp_port[j] == 0) {
+                                usage();
+                        }
+                }
 	}
 }
 

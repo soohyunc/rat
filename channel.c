@@ -21,7 +21,7 @@
 
 typedef struct s_channel_state {
         u_int16 coder;              /* Index of coder in coder table      */
-        u_char *state;              /* Pointer to state relevent to coder */
+        u_char *state;              /* Pointer to state relevant to coder */
         u_int32 state_len;          /* The size of that state             */
         u_int8  units_per_packet:7; /* The number of units per packet     */
         u_int8  is_encoder:1;       /* For debugging                      */
@@ -30,7 +30,7 @@ typedef struct s_channel_state {
 typedef struct {
         char    name[CC_NAME_LENGTH];
         u_int8  pt;
-
+        u_int8  layers;
         int     (*enc_create_state)   (u_char                **state,
                                        u_int32                *len);
         void    (*enc_destroy_state)  (u_char                **state, 
@@ -68,9 +68,11 @@ typedef struct {
 
 #include "cc_vanilla.h"
 #include "cc_rdncy.h"
+#include "cc_layered.h"
 
 #define CC_REDUNDANCY_PT 121
 #define CC_VANILLA_PT    255
+#define CC_LAYERED_PT    125
 
 static const channel_coder_t table[] = {
         /* The vanilla coder goes first. Update channel_get_null_coder
@@ -78,6 +80,7 @@ static const channel_coder_t table[] = {
          */
         {"None",     
          CC_VANILLA_PT,
+         1,
          vanilla_encoder_create, 
          vanilla_encoder_destroy,
          NULL,                   /* No parameters to set ...*/
@@ -93,6 +96,7 @@ static const channel_coder_t table[] = {
         },
         {"Redundancy",
          CC_REDUNDANCY_PT,
+         1,
          redundancy_encoder_create,
          redundancy_encoder_destroy,
          redundancy_encoder_set_parameters,
@@ -105,6 +109,22 @@ static const channel_coder_t table[] = {
          redundancy_decoder_decode,
          redundancy_decoder_peek,
          redundancy_decoder_describe
+        },
+        {"Layering", 
+         CC_LAYERED_PT,
+         LAY_MAX_LAYERS,
+         layered_encoder_create,
+         layered_encoder_destroy,
+         layered_encoder_set_parameters,
+         layered_encoder_get_parameters,
+         layered_encoder_reset,
+         layered_encoder_encode,
+         NULL,
+         NULL,
+         NULL,
+         layered_decoder_decode,
+         layered_decoder_peek,
+         layered_decoder_describe
         },
 };
 
@@ -361,3 +381,12 @@ channel_coder_get_payload(channel_state_t *st, u_int8 media_pt)
         }
         return table[st->coder].pt;
 }
+
+u_int8
+channel_coder_get_layers(cc_id_t cid)
+{
+        u_int32 idx = CC_ID_TO_IDX(cid);
+        assert(idx < CC_NUM_CODERS);
+
+        return (table[idx].layers);
+} 

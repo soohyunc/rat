@@ -950,6 +950,75 @@ set_red_parameters(session_struct *sp, char *sec_enc, int offset)
         sp->encodings[1]  = codec_get_payload(red_id);
 }
 
+
+/* This fn is excessively complicated because when rat is first started up
+ * and sync_engine_to_ui is called, tool.rat.codec is processed, but the loaded
+ * codec is not passed back to the UI before audio.channel.coding is sent. Thus
+ * the first time that the channel coder settings are loaded, the wrong primary
+ * encoding is sent. To get around this we have to send the codec name, channels
+ * and frequency. Ideally this would be sorted, and then we would just have to 
+ * send the number of layers to the layered channel coder. But that can wait.
+ */
+
+static void
+set_layered_parameters(session_struct *sp, char *sec_enc, char *schan, char *sfreq, int layerenc)
+{
+        const codec_format_t *pcf, *lcf;
+        codec_id_t            pri_id, lay_id;
+        char *cmd;
+        int      freq, channels;
+        int   clen, ports_ok, i;
+        assert(layerenc>0);
+
+        if (strcasecmp(schan, "mono") == 0) {
+                channels = 1;
+        } else if (strcasecmp(schan, "stereo") == 0) {
+                channels = 2;
+        } else {
+                channels = 0;
+        }
+
+        freq = atoi(sfreq) * 1000;
+        pri_id = codec_get_by_payload(sp->encodings[0]);
+        pcf    = codec_get_format(pri_id);
+        lay_id = codec_get_matching(sec_enc, (u_int16)freq, (u_int16)channels);
+        if(lay_id == 0) {
+                debug_msg("Can't find layered codec (%s) - need to change primary codec\n", sec_enc);
+        }
+        if (pri_id!=lay_id) {
+                debug_msg("Layered codec (%s) not same as primary codec (%s)\n", sec_enc, pcf->short_name);
+                /* this should be uncommented out if the load settings problem (see above) is fixed */
+                /*lay_id = pri_id; */
+        }                    
+        lcf = codec_get_format(lay_id);
+        
+        if(layerenc<=MAX_LAYERS) {
+                ports_ok = PORT_UNINIT;
+                for(i=0;i<layerenc;i++) {
+                        if(sp->rx_rtp_port[i]==PORT_UNINIT) ports_ok = i;
+                }
+                if(ports_ok!=PORT_UNINIT) {
+                        layerenc = ports_ok;
+                        debug_msg("Too many layers - ports not inited - forcing %d layers\n", ports_ok);
+                }
+        }
+        
+        clen = CODEC_LONG_NAME_LEN + 4;
+        cmd  = (char*)xmalloc(clen);
+        sprintf(cmd, "%s/%d", lcf->long_name, layerenc);
+ 
+        xmemchk();
+        if (channel_encoder_set_parameters(sp->channel_coder, cmd) == 0) {
+                debug_msg("Layered command failed: %s\n", cmd);
+        }
+        xmemchk();
+        xfree(cmd);
+        /* Now tweak session parameters */
+        sp->layers = layerenc;
+        sp->num_encodings = 1;
+        sp->encodings[0]  = codec_get_payload(lay_id);
+}
+
 /* This function is a bit nasty because it has to coerce what the
  * mbus gives us into something the channel coders understand.  In addition,
  * we assume we know what channel coders are which kind of defies point
@@ -958,8 +1027,8 @@ set_red_parameters(session_struct *sp, char *sec_enc, int offset)
 static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
 {
         cc_details   ccd;
-        char        *coding, *sec_enc;
-        int          i, n, offset;
+        char        *coding, *sec_enc, *schan, *sfreq;
+        int          i, n, offset, layerenc;
         u_int16      upp;
 
 	UNUSED(srce);
@@ -973,21 +1042,38 @@ static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
                 for(i = 0; i < n; i++) {
                         channel_get_coder_details(i, &ccd);
                         if (strncasecmp(ccd.name, coding, 3) == 0) {
+                                debug_msg("rx_audio_channel_coding: %d, %s\n", ccd.descriptor, &ccd.name);
                                 switch(tolower(ccd.name[0])) {
                                 case 'n':   /* No channel coding */
                                         sp->num_encodings = 1;
+                                        sp->layers = 1;
                                         channel_encoder_destroy(&sp->channel_coder);
                                         channel_encoder_create(ccd.descriptor, &sp->channel_coder);
                                         channel_encoder_set_units_per_packet(sp->channel_coder, upp);
-                                break;
+                                        break;
                                 case 'r':   /* Redundancy -> extra parameters */
                                         if (mbus_parse_str(sp->mbus_engine, &sec_enc) &&
-                                            mbus_parse_int(sp->mbus_engine, &offset)) {
+                                                mbus_parse_int(sp->mbus_engine, &offset)) {
                                                 mbus_decode_str(sec_enc);
+                                                sp->layers = 1;
                                                 channel_encoder_destroy(&sp->channel_coder);
                                                 channel_encoder_create(ccd.descriptor, &sp->channel_coder);
                                                 channel_encoder_set_units_per_packet(sp->channel_coder, upp);
                                                 set_red_parameters(sp, sec_enc, offset);
+                                        }
+                                        break;
+                                case 'l':       /*Layering */
+                                        if (mbus_parse_str(sp->mbus_engine, &sec_enc) &&
+                                                mbus_parse_str(sp->mbus_engine, &schan) &&
+                                                mbus_parse_str(sp->mbus_engine, &sfreq) &&
+                                                mbus_parse_int(sp->mbus_engine, &layerenc)) {
+                                                mbus_decode_str(sec_enc);
+                                                mbus_decode_str(schan);
+                                                mbus_decode_str(sfreq);
+                                                channel_encoder_destroy(&sp->channel_coder);
+                                                channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+                                                channel_encoder_set_units_per_packet(sp->channel_coder, upp);
+                                                set_layered_parameters(sp, sec_enc, schan, sfreq, layerenc);
                                         }
                                         break;
                                 }

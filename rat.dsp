@@ -147,6 +147,10 @@ SOURCE=.\audio_util.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\cc_layered.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\cc_rdncy.c
 # End Source File
 # Begin Source File
@@ -466,6 +470,10 @@ SOURCE=.\audio_types.h
 # Begin Source File
 
 SOURCE=.\audio_util.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cc_layered.h
 # End Source File
 # Begin Source File
 

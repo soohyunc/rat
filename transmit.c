@@ -443,7 +443,7 @@ tx_send(tx_buffer *tb)
         ts_t            u_ts, u_sil_ts, delta;
         ts_t            time_ts;
         u_int32         time_32, cd_len, freq;
-        u_int32         u_len, units, i, n, send, encoding;
+        u_int32         u_len, units, i, j, k, n, send, encoding;
         int success;
         
         assert(pb_iterator_count(tb->audio_buffer) == 3);
@@ -545,23 +545,29 @@ tx_send(tx_buffer *tb)
                         rtp_header.m = 0;
                 }   
                 
-                u_len = sizeof(struct iovec) * (cd->nelem + 1);
-                ovec = (struct iovec *)block_alloc(u_len);
-                
-                ovec[0].iov_base = (caddr_t)&rtp_header;
-                ovec[0].iov_len  = 12 + rtp_header.cc*4;
-                for(i = 0; i < cd->nelem; i++) {
-			/* The cast below is needed for Irix 5.3, but isn't  */
-			/* necessary for other platforms. Doesn't seem to be */
-			/* a problem though, so we'll try it. [csp, problem  */
-			/* reported by David Balazic]                        */
-                        ovec[i+1].iov_base = (char *) cd->elem[i]->data;
-                        ovec[i+1].iov_len  = cd->elem[i]->data_len;
+                /* layer loop starts here */
+                for(j=0; j<(u_int32)sp->layers; j++) {
+                        
+                        u_len = sizeof(struct iovec) * (cd->nelem/sp->layers + 1);
+                        ovec = (struct iovec *)block_alloc(u_len);
+                        
+                        ovec[0].iov_base = (caddr_t)&rtp_header;
+                        ovec[0].iov_len  = 12 + rtp_header.cc*4;
+                        for(i = j, k = 1; i < cd->nelem; i+=sp->layers) {
+                                /* The cast below is needed for Irix 5.3, but isn't  */
+                                /* necessary for other platforms. Doesn't seem to be */
+                                /* a problem though, so we'll try it. [csp, problem  */
+                                /* reported by David Balazic]                        */
+                                ovec[k].iov_base = (char *) cd->elem[i]->data;
+                                ovec[k].iov_len  = cd->elem[i]->data_len;
+                                k++;
+                        }
+                        
+                        net_write_iov(sp->rtp_socket[j], ovec, cd->nelem/sp->layers + 1, PACKET_RTP);
+                        block_free(ovec, u_len);
                 }
-
-                net_write_iov(sp->rtp_socket, ovec, cd->nelem + 1, PACKET_RTP);
-                block_free(ovec, u_len);
-
+                /* layer loop ends here */
+                
                 sp->last_depart_ts  = time_32;
                 sp->db->pkt_count  += 1;
                 sp->db->byte_count += channel_data_bytes(cd);

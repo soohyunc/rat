@@ -63,6 +63,12 @@ typedef int     (*cx_repair_f)            (u_int16 idx,
                                            coded_unit *missing,
                                            coded_unit *next);
 
+/* For layered codecs */
+typedef u_int8		(*cx_can_layer_f)	  (void);
+typedef int             (*cx_get_layer_f)         (coded_unit *cu_whole, u_int8 layer,
+                                                   u_int8 *markers, coded_unit *cu_layer);
+typedef int             (*cx_combine_layer_f)     (coded_unit *cu_layer, coded_unit *cu_whole);
+
 typedef struct s_codec_fns {
         cx_init_f               cx_init;
         cx_exit_f               cx_exit;
@@ -78,6 +84,9 @@ typedef struct s_codec_fns {
         cx_can_decode_f         cx_can_decode;
         cx_peek_size_f          cx_peek_size;
         cx_repair_f             cx_repair;
+	cx_can_layer_f	        cx_can_layer;
+        cx_get_layer_f          cx_get_layer;
+        cx_combine_layer_f      cx_combine_layer;
 } codec_fns_t;
 
 static codec_fns_t codec_table[] = {
@@ -95,6 +104,9 @@ static codec_fns_t codec_table[] = {
                 l16_decode,
                 NULL,
                 NULL,
+                NULL,
+                NULL,
+                NULL,
                 NULL
         },
         {       g711_init,
@@ -108,6 +120,9 @@ static codec_fns_t codec_table[] = {
                 NULL,
                 NULL,
                 g711_decode,
+                NULL,
+                NULL,
+                NULL,
                 NULL,
                 NULL,
                 NULL
@@ -126,6 +141,9 @@ static codec_fns_t codec_table[] = {
                 g726_decode,
                 NULL,
                 NULL,
+                NULL,
+                NULL,
+                NULL,
                 NULL
         },
         {
@@ -140,6 +158,9 @@ static codec_fns_t codec_table[] = {
                 dvi_state_create,
                 dvi_state_destroy,
                 dvi_decode,
+                NULL,
+                NULL,
+                NULL,
                 NULL,
                 NULL,
                 NULL
@@ -158,6 +179,9 @@ static codec_fns_t codec_table[] = {
                 vdvi_decoder,
                 NULL,
                 vdvi_peek_frame_size,
+                NULL,
+                NULL,
+                NULL,
                 NULL
         },
         {
@@ -174,7 +198,10 @@ static codec_fns_t codec_table[] = {
                 wbs_decoder,
                 NULL,
                 NULL,
-                NULL
+                NULL,
+				wbs_max_layers,
+				wbs_get_layer,
+                wbs_combine_layer
         },
         {
                 NULL,
@@ -190,7 +217,10 @@ static codec_fns_t codec_table[] = {
                 gsm_decoder,
                 NULL,
                 NULL,
-                gsm_repair
+                gsm_repair,
+                NULL,
+                NULL,
+                NULL
         },
         {
                 lpc_setup,
@@ -206,7 +236,10 @@ static codec_fns_t codec_table[] = {
                 lpc_decoder,
                 NULL,
                 NULL,
-                lpc_repair
+                lpc_repair,
+                NULL,
+                NULL,
+                NULL
         }
 };
 
@@ -599,7 +632,7 @@ codec_decode(codec_state *cs,
 
         /* Decode */
         xmemchk();
-        success =  codec_table[ifs].cx_decode(fmt, cs->state, in, (sample*)out->data);
+        success = codec_table[ifs].cx_decode(fmt, cs->state, in, (sample*)out->data);
         xmemchk();
 
         return success;
@@ -944,4 +977,41 @@ codec_get_native_info(codec_id_t cid,
                 return TRUE;
         }
         return FALSE;
+}
+
+/* Layered codecs ***********************************************************/
+u_int8
+codec_can_layer(codec_id_t id)
+{
+        u_int16 ifs;
+
+        ifs = CODEC_GET_IFS_INDEX(id);
+
+        assert(codec_id_is_valid(id));                
+        assert(ifs < NUM_CODEC_INTERFACES);
+
+        if (codec_table[ifs].cx_can_layer) {
+                return codec_table[ifs].cx_can_layer();
+        }
+        return 1;
+
+}
+
+int
+codec_get_layer(codec_id_t id, coded_unit *cu_whole, u_int8 layer, u_int8 *markers, coded_unit *cu_layer)
+{
+        int ifs = CODEC_GET_IFS_INDEX(id);
+        if (codec_table[ifs].cx_get_layer) {
+                return codec_table[ifs].cx_get_layer(cu_whole, layer, markers, cu_layer);
+        }
+        return FALSE;
+}
+
+int
+codec_combine_layer (codec_id_t id, coded_unit *cu_layer, coded_unit *cu_whole)
+{
+        int ifs = CODEC_GET_IFS_INDEX(id);
+
+        assert(codec_table[ifs].cx_combine_layer);
+        return codec_table[ifs].cx_combine_layer(cu_layer, cu_whole);
 }

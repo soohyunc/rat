@@ -366,6 +366,7 @@ source_add_packet (source *src,
         channel_data *cd;
         channel_unit *cu;
         cc_id_t       cid;
+        u_int8        clayers;
 
         assert(src != NULL);
         assert(pckt != NULL);
@@ -381,6 +382,87 @@ source_add_packet (source *src,
                           playout.ticks);
                 /* Up src->dbe jitter toged */
                 return FALSE;
+        }
+
+        /* Need to check:
+         * (i) if layering is enabled
+         * (ii) if channel_data exists for this playout point (if pb_iterator_get_at...)
+         * Then need to:
+         * (i) create cd if doesn't exist
+         * (ii) add packet to cd->elem[layer]
+         * We work out layer number by deducting the base port
+         * no from the port no this packet came from
+         * But what if layering on one port? 
+         */
+
+        /* Or we could:
+         * (i) check if cd exists for this playout point
+         * (ii) if so, memcmp() to see if this packet already exists (ugh!)
+         */
+
+        cid = channel_coder_get_by_payload(payload);
+        clayers = channel_coder_get_layers(cid);
+        if(clayers>1) {
+                struct s_pb_iterator *pi;
+                u_int8 i;
+                u_int32 clen;
+                int dup;
+                ts_t lplayout;
+                pb_iterator_create(src->channel, &pi);
+                while(pb_iterator_advance(pi)) {
+                        pb_iterator_get_at(pi, (u_char**)&cd, &clen, &lplayout);
+                       /* if lplayout==playout there is already channel_data for this playout point */
+                        if(!ts_eq(playout, lplayout)) continue;
+                        pb_iterator_detach_at(pi, (u_char**)&cd, &clen, &lplayout);
+                        assert(cd->nelem >= 1);
+
+                       /* if this channel_data is full, this new packet must *
+                        * be a duplicate, so we don't need to check          */
+                        if(cd->nelem >= clayers) {
+                                debug_msg("source_add_packet failed - duplicate layer\n");
+                                src->dbe->duplicates++;
+                                pb_iterator_destroy(src->channel, &pi);
+                                goto done;
+                        }
+
+                        cu = (channel_unit*)block_alloc(sizeof(channel_unit));
+                        cu->data = pckt;
+                        cu->data_start = data_start;
+                        cu->data_len = pckt_len;
+                        cu->pt = payload;
+
+                        dup = 0;
+
+                       /* compare existing channel_units to this one */
+
+                        for(i=0; i<cd->nelem; i++) {
+                                if(cu->data_len!=cd->elem[i]->data_len) break;
+                                if(memcmp(cu->data, cd->elem[i]->data, cu->data_len)==0) dup=1;
+                        }
+
+                       /* duplicate, so stick the channel_data back on *
+                        * the playout buffer and swiftly depart        */
+                        if(dup) {
+                                debug_msg("source_add_packet failed - duplicate layer\n");
+                                src->dbe->duplicates++;
+                                /* destroy temporary channel_unit */
+                                block_free(cu->data, cu->data_len);
+                                cu->data_len = 0;
+                                block_free(cu, sizeof(channel_unit));
+                                pb_iterator_destroy(src->channel, &pi);
+                                goto done;
+                        }
+
+                       /* add this layer if not a duplicate           *
+                        * NB: layers are not added in order, and thus *
+                        * have to be reorganised in the layered       *
+                        * channel coder                               */
+                        cd->elem[cd->nelem] = cu;
+                        cd->nelem++;
+                        pb_iterator_destroy(src->channel, &pi);
+                        goto done;
+                }
+                pb_iterator_destroy(src->channel, &pi);
         }
 
         if (channel_data_create(&cd, 1) == 0) {
@@ -409,7 +491,7 @@ source_add_packet (source *src,
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
 
-        if (pb_add(src->channel, (u_char*)cd, sizeof(channel_data), playout) == FALSE) {
+done:   if (pb_add(src->channel, (u_char*)cd, sizeof(channel_data), playout) == FALSE) {
                 debug_msg("Packet addition failed - duplicate ?\n");
                 src->dbe->duplicates++;
                 channel_data_destroy(&cd, sizeof(channel_data));

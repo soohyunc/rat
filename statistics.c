@@ -353,7 +353,7 @@ statistics_channel_extract(session_struct     *sp,
                 debug_msg("No channel decoder\n");
                 return FALSE;
         }
-
+        
         if (!channel_verify_and_stat(ccid,pt,data,len,&upp,&codec_pt)) {
                 debug_msg("Failed verify and stat\n");
                 return FALSE;

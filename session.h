@@ -18,11 +18,16 @@
 #include "ts.h"
 #include "converter.h"
 
+/* This will have to be raised in the future */
+#define MAX_LAYERS      2
+
 #define MAX_ENCODINGS	7
 #define MAX_NATIVE      4
 
 #define MAX_PACKET_SAMPLES	1280
 #define PACKET_LENGTH		MAX_PACKET_SAMPLES + 100
+
+#define PORT_UNINIT     0
 
 /* Rat mode def's */
 #define AUDIO_TOOL              1
@@ -44,12 +49,12 @@ typedef struct session_tag {
         short           id;                             /* idx of this session_tag - nasty hack - we know session_structs allocated as an array of 2 */
 	int		mode;                           /* audio tool, transcoder */
         char            title[SESSION_TITLE_LEN+1];
-	char            asc_address[MAXHOSTNAMELEN+1];  /* their ascii name if unicast */
-	u_short		         rx_rtp_port;
-	u_short		         tx_rtp_port;
+	char            asc_address[MAX_LAYERS][MAXHOSTNAMELEN+1];  /* their ascii name if unicast */
+	u_short		         rx_rtp_port[MAX_LAYERS];
+	u_short		         tx_rtp_port[MAX_LAYERS];
 	u_short		         rx_rtcp_port;
 	u_short		         tx_rtcp_port;
-	socket_udp              *rtp_socket;
+	socket_udp              *rtp_socket[MAX_LAYERS];
 	socket_udp              *rtcp_socket;
         struct s_pckt_queue     *rtp_pckt_queue;
         struct s_pckt_queue     *rtcp_pckt_queue;
@@ -97,6 +102,7 @@ typedef struct session_tag {
 	struct mbus	*mbus_engine;
 	struct mbus	*mbus_ui;
         ts_t             cur_ts; /* current device time as timestamp */
+	u_int8		 layers; /* number of layers */
 } session_struct;
 
 void init_session(session_struct *sp);

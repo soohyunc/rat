@@ -101,3 +101,31 @@ coded_unit_dup(coded_unit *dst, coded_unit *src)
 
         return TRUE;
 }
+
+
+void
+coded_unit_layer_split(coded_unit *in, coded_unit *out, u_int8 layer, u_int8 *layer_markers)
+{
+        u_int16 tmp_datalen;
+        u_int8 i;
+
+        tmp_datalen = (u_int16)(layer_markers[layer] - layer_markers[layer-1]);
+
+        out->data = (u_char*)block_alloc(tmp_datalen);
+        out->data_len = tmp_datalen;
+
+        for(i=layer_markers[layer-1];i<layer_markers[layer];i++) {
+                out->data[i-layer_markers[layer-1]] = in->data[i];
+        }
+        
+        if (in->state_len != 0) {
+                out->state     = (u_char*)block_alloc(in->state_len);
+                out->state_len = in->state_len;
+                memcpy(out->state, in->state, in->state_len);
+        } else {
+                in->state     = NULL;
+                in->state_len = 0;
+        }
+
+        out->id = in->id;
+}

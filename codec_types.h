@@ -59,5 +59,7 @@ void media_data_destroy   (media_data **m, u_int32 md_size);
 
 int  coded_unit_dup       (coded_unit *dst, coded_unit *src);
 
+void coded_unit_layer_split (coded_unit *in, coded_unit *out, u_int8 layer, u_int8 *layer_markers);
+
 #endif /* _CODEC_TYPES_H_ */
 
