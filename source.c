@@ -758,6 +758,14 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 src_ts = ts_seq32_in(&e->seq, get_freq(e->clock), p->ts);
                 transit = ts_sub(now, src_ts);
 
+		if (ts_get_freq(transit) != ts_get_freq(e->last_transit)) {
+			/* Either source or we have changed sampling rate */
+			adjust_playout = TRUE;
+			/* Force reset of average transit */
+			e->received = 0;
+			debug_msg("Sampling rate change - either local or remote\n");
+		}
+
                 /* Spike adaptation - Ramjee, Kurose, Towsley, and Schulzerinne.   */
                 /* Adaptive Playout Mechanisms for Packetized Audio Applications   */
                 /* in Wide-Area Networks, IEEE Infocom 1994, pp 680-688.           */
@@ -805,6 +813,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 if (adjust_playout && (ts_gt(ts_sub(now, e->last_arr), transit_reset) || (e->received < 20))) {
                         /* Source has been quiet for a long time.  Discard   */
                         /* old average transit estimate.                     */
+			debug_msg("avg transit reset (%d -> %d)\n", ts_to_ms(transit), ts_to_ms(e->avg_transit));
                         e->avg_transit = transit;
                 }
 
@@ -840,7 +849,10 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                                 /* cause problems for redundancy decoder.     */
                                 /* Don't take any chances.                    */
                                 ts_t overlap = ts_sub(src->next_played, playout);
-                                debug_msg("Overlap %d us\n", ts_to_us(overlap));
+                                debug_msg("Overlap %d us (next_played %d (%dhz) playout %d (%dHz))\n", 
+					  ts_to_us(overlap), 
+					  src->next_played.ticks, ts_get_freq(src->next_played),
+					  playout.ticks, ts_get_freq(playout));
                                 e->playout   = ts_add(e->playout, overlap);
                                 playout      = ts_add(playout, overlap);
                         }

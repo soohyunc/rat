@@ -1198,8 +1198,7 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  and gets confirmation from the user that they accept the conditions,
 	  before extracting the .tar.gz file. Use "make installer" to build and
 	  then distribute the rat-4.1.8-installer binary only.
-
-
+	- Add transit estimate reset when device format changes at either end.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1249,7 +1248,6 @@ TODO -- They're features not bugs dammit!
 - Handling of SSRC collisions is broken
 - Sometime see messages of the form "source.c:767 Spike (160 > 2708390)"
   and hear nothing.
-- Fix skew and transit info in pdb when device format changes at either end.
 - Make rtp.addr() with an rx_port of 0, when sent to the media engine, mean
   that the media engine should get the kernel to select a receive RTP port.
 - Rework media engine initialization, so we can query it before sending
