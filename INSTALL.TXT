@@ -15,6 +15,10 @@ follows:
 	install -m 755 rat-4.1.2-ui    /usr/local/bin
 	install -m 755 rat-4.1.2-media /usr/local/bin
 replacing "4.1.2-Solaris" with the version number and platform of your choice.
+Note:
+  1) The front-end binary ("rat-4.1.2" in this example) can be renamed if
+  desired. The application will not work if the other binaries are renamed.
+  2) All three binaries must be installed in a directory in your search path.
 
 The Linux version may be distributed as a RedHat ".rpm" file. You may install
 this using "rpm -Uvh rat-4.1.2.rpm", replacing 4.1.2 with the current version
