@@ -160,9 +160,10 @@ static void load_init(void)
 	filen = (char *) xmalloc(strlen(p->pw_dir) + 15);
 	sprintf(filen, "%s/.RTPdefaults", p->pw_dir);
 	sfile = fopen(filen, "r");
+        xfree(filen);
 
         if (sfile == NULL) {
-                debug_msg("No file to open: %s\n", filen);
+                debug_msg("No file to open\n");
                 return;
         }
 
@@ -185,6 +186,8 @@ static void load_init(void)
                 settings_table_add(key, value);
         }
         fclose(sfile);
+        xfree(buffer);
+
 #else
 #endif
 }
@@ -241,11 +244,11 @@ void settings_load(session_struct *sp)
 	cc_details		 ccd;
 
 	load_init();
-	sp->db->my_dbe->sentry->name  = setting_load_str("rtpName", "Unknown");		/* We don't use rtcp_set_attribute() */ 
-	sp->db->my_dbe->sentry->email = setting_load_str("rtpEmail", "");		/* here, since that updates the UI   */
-	sp->db->my_dbe->sentry->phone = setting_load_str("rtpPhone", "");		/* and we don't want to do that yet. */
-	sp->db->my_dbe->sentry->loc   = setting_load_str("rtpLoc", "");
-	sp->db->my_dbe->sentry->tool  = setting_load_str("audioTool", RAT_VERSION);
+	sp->db->my_dbe->sentry->name  = xstrdup(setting_load_str("rtpName", "Unknown"));/* We don't use rtcp_set_attribute() */ 
+	sp->db->my_dbe->sentry->email = xstrdup(setting_load_str("rtpEmail", ""));      /* here, since that updates the UI   */
+	sp->db->my_dbe->sentry->phone = xstrdup(setting_load_str("rtpPhone", ""));       /* and we don't want to do that yet. */
+	sp->db->my_dbe->sentry->loc   = xstrdup(setting_load_str("rtpLoc", ""));
+	sp->db->my_dbe->sentry->tool  = xstrdup(setting_load_str("audioTool", RAT_VERSION));
 
 	ad_name = setting_load_str("audioDevice", "No Audio Device");
         for(i = 0; i < audio_get_device_count(); i++) {
@@ -257,10 +260,13 @@ void settings_load(session_struct *sp)
 
 	freq = setting_load_int("audioFrequency", 8000);
 	chan = setting_load_int("audioChannelsIn", 1);
+
 	primary_codec = setting_load_str("audioPrimary", "GSM");
 	primary_long  = (char *) xmalloc(strlen(primary_codec) + 10);
 	sprintf(primary_long, "%s/%4d/%1d", primary_codec, freq, chan);
 	audio_device_register_change_primary(sp, codec_get_by_name(primary_long));
+        xfree(primary_long);
+        primary_long = NULL;
 
 	cc_name = setting_load_str("audioChannelCoding", "None");
 	for (i = 0; i < channel_get_coder_count(); i++ ) {
@@ -316,6 +322,7 @@ save_init(void)
 	filen = (char *) xmalloc(strlen(p->pw_dir) + 15);
 	sprintf(filen, "%s/.RTPdefaults", p->pw_dir);
 	settings_file = fopen(filen, "w");
+        xfree(filen);
 #endif
 }
 
@@ -364,6 +371,9 @@ void settings_save(session_struct *sp)
         cc_param = (char*) xmalloc(cc_len);
         channel_encoder_get_parameters(sp->channel_coder, cc_param, cc_len);
         channel_get_coder_identity(sp->channel_coder, &cd);
+
+        xfree(cc_param);
+        cc_param = NULL;
 
         for(i = 0; i < (int) converter_get_count(); i++) {
                 converter_get_details(i, &converter);
