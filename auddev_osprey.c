@@ -55,11 +55,10 @@
 #include "assert.h"
 #include "debug.h"
 #include "audio_types.h"
+#include "audio_fmt.h"
 #include "auddev_osprey.h"
 
 static audio_info_t     dev_info;
-audio_format            format;
-static int audio_available = 0;
 static int audioctl_fd     = -1;
 static int audio_fd        = -1;
 
@@ -193,23 +192,35 @@ osprey_audio_init()
         return TRUE;
 }
 
+static void af2apri(audio_format *fmt, audio_prinfo_t *ap)
+{
+        assert(fmt);
+        assert(ap);
+        ap->sample_rate = fmt->sample_rate;
+        ap->channels    = fmt->channels;
+        ap->precision   = fmt->bits_per_sample;
+	ap->buffer_size   = DEVICE_BUF_UNIT * (fmt->sample_rate / 8000) * (fmt->bits_per_sample / 8);
+
+        switch(fmt->encoding) {
+        case DEV_PCMU: ap->encoding = AUDIO_ENCODING_ULAW;   assert(ap->precision == 8);  break;
+        case DEV_S8:   ap->encoding = AUDIO_ENCODING_LINEAR; assert(ap->precision == 8);  break;
+        case DEV_S16:  ap->encoding = AUDIO_ENCODING_LINEAR; assert(ap->precision == 16); break;
+        default: debug_msg("Format not recognized\n"); assert(0); 
+        }
+}
+
+
 /* Try to open the audio device.                        */
 /* Returns a TRUE if ok, FALSE otherwise.               */
 int
-osprey_audio_open(audio_desc_t ad, audio_format *fmt)
+osprey_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
-        Audio_hdr ah_play, ah_record;
-
         char audctl_device[16] = "/dev/o1kctl0";
         char audio_device[16]  = "/dev/o1k0";
 
         if (audio_fd != -1) {
                 osprey_audio_close(ad);
                 debug_msg("Osprey device was not closed\n");
-        }
-
-        if (fmt->channels != 1 || fmt->sample_rate != 8000 || fmt->bits_per_sample != 16) {
-                return FALSE;
         }
 
         signal(SIGPOLL, osprey_poll_handler);
@@ -240,60 +251,34 @@ osprey_audio_open(audio_desc_t ad, audio_format *fmt)
         }
 #endif /* OSPREY_USE_SIGNALS */
 
-        memcpy(&format, fmt, sizeof(audio_format));
-
         AUDIO_INITINFO(&dev_info);
-        if (oti_audio_getinfo(audio_fd, &dev_info) != AUDIO_SUCCESS)
+        dev_info.monitor_gain       = 0;
+        dev_info.output_muted       = 0; /* 0==not muted */
+        af2apri(ifmt, &dev_info.record);
+        af2apri(ofmt, &dev_info.play);
+        dev_info.play.gain          = (AUDIO_MAX_GAIN - AUDIO_MIN_GAIN) * 0.75;
+        dev_info.record.gain        = (AUDIO_MAX_GAIN - AUDIO_MIN_GAIN) * 0.75;
+        dev_info.play.port          = AUDIO_HEADPHONE;
+        dev_info.record.port        = AUDIO_MICROPHONE;
+        dev_info.play.balance       = AUDIO_MID_BALANCE;
+        dev_info.record.balance     = AUDIO_MID_BALANCE;
+
+        if (oti_audio_setinfo(audio_fd, &dev_info) != AUDIO_SUCCESS) {
                 perror("Setting info");
-
-        dev_info.play.buffer_size   = 8000 /*fmt->sample_rate*/;
-        dev_info.record.buffer_size = 8000 /*fmt->sample_rate*/;
-
-        if (oti_audio_setinfo(audio_fd, &dev_info) != AUDIO_SUCCESS)
-                perror("Setting info");
-
-        ah_play.sample_rate      = fmt->sample_rate; 
-        ah_play.samples_per_unit = 1;
-        ah_play.bytes_per_unit   = 2;
-        ah_play.channels         = fmt->channels;
-        ah_play.encoding         = AUDIO_ENCODING_LINEAR;
-        ah_play.endian           = AUDIO_ENDIAN_BIG;
-        ah_play.data_size        = AUDIO_UNKNOWN_SIZE; /* No effect */
-        memcpy(&ah_record, &ah_play, sizeof(ah_play));
-
-        if (oti_audio_set_play_config(audio_fd, &ah_play) != AUDIO_SUCCESS) {
-                debug_msg("Error setting play config\n");
-                osprey_audio_close(ad);
-                return FALSE;
-        }
-
-        if (oti_audio_set_record_config(audio_fd, &ah_record) != AUDIO_SUCCESS) {
-                debug_msg("Error setting play config\n");
-                osprey_audio_close(ad);
-                return FALSE;
-        }
-
-
-        /*      {
-                int eofm = 0;
-                oti_audio_set_play_eof(audio_fd, &eofm);
-        } */
-
-/*        oti_audio_pause_record(audio_fd);
+                if (ifmt->encoding == DEV_S16) {
+                        debug_msg("Attempting ulaw...\n");
+                        audio_format_change_encoding(ifmt, DEV_PCMU);
+                        audio_format_change_encoding(ofmt, DEV_PCMU);
+                        af2apri(ifmt, &dev_info.record);
+                        af2apri(ofmt, &dev_info.play);
+                        if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) {
+                                perror("Setting MULAW audio paramterts");
+                                osprey_audio_close(0);
+                                return FALSE;
+                        }
+                }
+        }       
         
-        AUDIO_INITINFO(&dev_info);
-        dev_info.record.pause = 0;
-        dev_info.record.samples = 0;
-        dev_info.record.error = 0;
-        dev_info.play.pause = 0;
-        dev_info.play.samples = 0;
-        dev_info.play.error = 0;
-        oti_audio_setinfo(audio_fd, &dev_info);
-        
-        oti_audio_flush_record(audio_fd);  */
-
-        oti_audio_resume(audio_fd);
-
         return TRUE;
 }
 
@@ -402,9 +387,9 @@ osprey_audio_loopback(audio_desc_t ad, int gain)
 }
 
 int
-osprey_audio_read(audio_desc_t ad, sample *buf, int samples)
+osprey_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
-        int len = 0, error;
+        int len = 0;
 
         UNUSED(ad); assert(audio_fd > 0);
 
@@ -413,49 +398,35 @@ osprey_audio_read(audio_desc_t ad, sample *buf, int samples)
                 return 0;
         }
 
-        len = samples;
-        len /= BYTES_PER_SAMPLE;
+        len = min(buf_bytes, len);
 
-        if (len >= format.bytes_per_block) {
-                len = min(samples, len);
-                oti_audio_get_record_error(audio_fd, &error);
-                if (error){
-                        error = 0;
-                        oti_audio_set_record_error(audio_fd, &error);
-                        debug_msg("Underflow\n");
-                }
+        len = oti_read(audio_fd, (char *)buf, len * BYTES_PER_SAMPLE);
 
-                len = oti_read(audio_fd, (char *)buf, len * BYTES_PER_SAMPLE);
+        if (len < 0) {
+                debug_msg("read failed\n", len); 
+                return 0;
+        } 
 
-                if (len < 0) {
-                        debug_msg("read failed\n", len); 
-                        return 0;
-                } 
-
-                audio_available--;
-                return (len / BYTES_PER_SAMPLE);
-        }
-
-        return 0;
+        return max(0,len);
 }
 
 int
-osprey_audio_write(audio_desc_t ad, sample *buf, int samples)
+osprey_audio_write(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
-        int done = 0, len = samples;
+        int done = 0, len = buf_bytes;
 
         UNUSED(ad); assert(audio_fd > 0);
 
-	while (1) {
+	while (len > 0) {
 		if ((done = oti_write(audio_fd, buf, len)) == len)
 			break;
 		if (errno != EINTR)
-			return (samples - ((len - done) / BYTES_PER_SAMPLE));
+			return (buf_bytes - done);
 		len -= done;
 		buf += done;
 	}
 
-	return (samples);
+	return (buf_bytes);
 }
 
 /* Set ops on audio device to be non-blocking */
@@ -573,27 +544,6 @@ osprey_audio_duplex(audio_desc_t ad)
 }
 
 int 
-osprey_audio_get_bytes_per_block(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return format.bytes_per_block;
-}
-
-int
-osprey_audio_get_channels(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return dev_info.play.channels;
-}
-
-int
-osprey_audio_get_freq(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return dev_info.play.sample_rate;
-}
-
-int 
 osprey_audio_is_ready(audio_desc_t ad)
 {
         int len;
@@ -610,13 +560,13 @@ osprey_audio_is_ready(audio_desc_t ad)
         }
         debug_msg("%d bytes ready\n", len);
 
-        return len/BYTES_PER_SAMPLE;
+        return len;
 }
 
 void
 osprey_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
-        int len, us;
+        int len;
         struct timeval tv;
 
 #ifdef OSPREY_USE_SIGNALS
@@ -625,15 +575,10 @@ osprey_audio_wait_for(audio_desc_t ad, int delay_ms)
 
         len = osprey_audio_is_ready(ad);
         
-        if (len >= format.bytes_per_block) return;
-
         if (len != 0) {
-                us = 1000000 * len / (format.channels * BYTES_PER_SAMPLE * format.sample_rate);
-                us= min(delay_ms * 1000, us);
-        } else {
-                us = delay_ms;
-        }                
-        
+                return;
+        }
+
         tv.tv_sec = 0;
         tv.tv_usec = delay_ms * 1000;
         select(0, NULL, NULL, NULL, &tv); 
@@ -646,10 +591,7 @@ osprey_audio_service()
 
         if (inservice) return;
         inservice = TRUE;
-
-        audio_available++;
-
-        debug_msg("Audio available %d\n", audio_available);
+        debug_msg("osprey audio service\n");
 
         inservice = FALSE;
 }

@@ -5,7 +5,7 @@
 CFLAGS         = __WFLAGS__ __INCLUDE__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_FLAG__ __DEFS__ -D__OSTYPE__ -DSASR -DFAST -DUSE_FLOAT_MUL
 CC             = __CC__
 
-OBJS = auddev.o auddev_null.o __AUDIO__ audio.o audio_fmt.o cc_red.o 
+OBJS = auddev.o auddev_null.o __AUDIO__ audio.o audio_fmt.o cc_red.o \
        cc_intl.o channel.o codec.o codec_adpcm.o codec_gsm.o codec_g711.o \
        codec_lpc.o codec_wbs.o convert.o crypt.o crypt_random.o \
        cushion.o debug.o interfaces.o main.o mbus.o mbus_engine.o \

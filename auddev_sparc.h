@@ -43,7 +43,7 @@
 #ifndef _AUDDEV_SPARC_H_
 #define _AUDDEV_SPARC_H_
 
-int  sparc_audio_open       (audio_desc_t ad, audio_format* format);
+int  sparc_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);
 void sparc_audio_close      (audio_desc_t ad);
 void sparc_audio_drain      (audio_desc_t ad);
 int  sparc_audio_duplex     (audio_desc_t ad);
@@ -52,8 +52,8 @@ int  sparc_audio_get_gain   (audio_desc_t ad);
 void sparc_audio_set_volume (audio_desc_t ad, int vol);
 int  sparc_audio_get_volume (audio_desc_t ad);
 void sparc_audio_loopback   (audio_desc_t ad, int gain);
-int  sparc_audio_read       (audio_desc_t ad, sample *buf, int samples);
-int  sparc_audio_write      (audio_desc_t ad, sample *buf, int samples);
+int  sparc_audio_read       (audio_desc_t ad, u_char *buf, int in_bytes);
+int  sparc_audio_write      (audio_desc_t ad, u_char *buf, int out_bytes);
 void sparc_audio_non_block  (audio_desc_t ad);
 void sparc_audio_block      (audio_desc_t ad);
 void sparc_audio_set_oport  (audio_desc_t ad, int port);

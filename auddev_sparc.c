@@ -45,30 +45,33 @@
 #include "assert.h"
 #include "debug.h"
 #include "audio_types.h"
+#include "audio_fmt.h"
 #include "auddev_sparc.h"
 #include "codec_g711.h"
 #include "cushion.h"
 
 static audio_info_t	dev_info;
-static int              bytes_per_block = 0;
 
 static int audio_fd = -1; 
 
 #define bat_to_device(x)	((x) * AUDIO_MAX_GAIN / MAX_AMP)
 #define device_to_bat(x)	((x) * MAX_AMP / AUDIO_MAX_GAIN)
 
-static 
-void af2apri(audio_format *fmt, audio_prinfo_t *ap)
+static void af2apri(audio_format *fmt, audio_prinfo_t *ap)
 {
         assert(fmt);
         assert(ap);
-        pr->sample_rate = fmt->sample_rate;
-        pr->channels    = fmt->channels;
-        pr->precision   = fmt->bits_per_sample;
+        ap->sample_rate = fmt->sample_rate;
+        ap->channels    = fmt->channels;
+        ap->precision   = fmt->bits_per_sample;
+#ifdef Solaris
+	ap->buffer_size   = DEVICE_BUF_UNIT * (fmt->sample_rate / 8000) * (fmt->bits_per_sample / 8);
+#endif /* Solaris */
+
         switch(fmt->encoding) {
-        case DEV_PCMU: pr->encoding = AUDIO_ENCODING_ULAW;   assert(pr->precision == 8);  break;
-        case DEV_S8:   pr->encoding = AUDIO_ENCODING_LINEAR; assert(pr->precesion == 8);  break;
-        case DEV_S16:  pr->encoding = AUDIO_ENCODING_LINEAR; assert(pr->precision == 16); break;
+        case DEV_PCMU: ap->encoding = AUDIO_ENCODING_ULAW;   assert(ap->precision == 8);  break;
+        case DEV_S8:   ap->encoding = AUDIO_ENCODING_LINEAR; assert(ap->precision == 8);  break;
+        case DEV_S16:  ap->encoding = AUDIO_ENCODING_LINEAR; assert(ap->precision == 16); break;
         default: debug_msg("Format not recognized\n"); assert(0); 
         }
 }
@@ -92,37 +95,30 @@ sparc_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format* ofmt)
 		AUDIO_INITINFO(&dev_info);
 		dev_info.monitor_gain       = 0;
 		dev_info.output_muted       = 0; /* 0==not muted */
-                af2pri(ifmt, &dev_info.record);
-                af2pri(ofmt, &dev_info.play);
+                af2apri(ifmt, &dev_info.record);
+                af2apri(ofmt, &dev_info.play);
 		dev_info.play.gain          = (AUDIO_MAX_GAIN - AUDIO_MIN_GAIN) * 0.75;
 		dev_info.record.gain        = (AUDIO_MAX_GAIN - AUDIO_MIN_GAIN) * 0.75;
 		dev_info.play.port          = AUDIO_HEADPHONE;
 		dev_info.record.port        = AUDIO_MICROPHONE;
 		dev_info.play.balance       = AUDIO_MID_BALANCE;
 		dev_info.record.balance     = AUDIO_MID_BALANCE;
-#ifdef Solaris
-		dev_info.play.buffer_size   = DEVICE_BUF_UNIT * (format->sample_rate / 8000) * (format->bits_per_sample / 8);
-		dev_info.record.buffer_size = DEVICE_BUF_UNIT * (format->sample_rate / 8000) * (format->bits_per_sample / 8);
-
-#endif /* Solaris */
-                bytes_per_block = format->bytes_per_block;
 
 		memcpy(&tmp_info, &dev_info, sizeof(audio_info_t));
 		if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&tmp_info) < 0) {
-			if (format->encoding == DEV_S16) {
-#ifdef DEBUG
+			if (ifmt->encoding == DEV_S16) {
 				debug_msg("Old hardware detected: can't do 16 bit audio, trying 8 bit...\n");
-#endif
                                 audio_format_change_encoding(ifmt, DEV_PCMU);
                                 audio_format_change_encoding(ofmt, DEV_PCMU);
-                                af2pri(ifmt, &dev_info.record);
-                                af2pri(ofmt, &dev_info.play);
+                                af2apri(ifmt, &dev_info.record);
+                                af2apri(ofmt, &dev_info.play);
 				if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) {
-					perror("Setting MULAW audio paramterts");
+					perror("Setting MULAW audio parameters");
+                                        sparc_audio_close(audio_fd);
 					return FALSE;
 				}
 			} else {
-				perror("Setting audio paramterts");
+				perror("Setting audio parameters");
 				return FALSE;
 			}
 		}
