@@ -863,7 +863,7 @@ set_red_parameters(session_struct *sp, char *sec_enc, int offset)
 
         pri_id = codec_get_by_payload(sp->encodings[0]);
         pcf    = codec_get_format(pri_id);
-        red_id = codec_get_matching(sec_enc, pcf->format.sample_rate, pcf->format.channels);
+        red_id = codec_get_matching(sec_enc, (u_int16)pcf->format.sample_rate, (u_int16)pcf->format.channels);
         if (!codec_id_is_valid(red_id)) {
                 debug_msg("Failed to get redundant codec requested (%s)\n", sec_enc);
                 red_id = pri_id;  /* Use same as primary */
