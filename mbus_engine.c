@@ -795,6 +795,7 @@ static void rx_alive(char *srce, char *args, session_struct *sp)
 	/* Ignore "alive" messages... */
 	UNUSED(args);
 	UNUSED(srce);
+	UNUSED(sp);
 }
 
 const char *rx_cmnd[] = {
