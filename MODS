@@ -1072,6 +1072,7 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Add check in settings that sdes values read in are not already set.
 	- Add filter on rtt values to avoid displaying garbage values from rtp
 	  misimplementations.
+	- Fix participant muting (reported by Bob Olson).
 
 TODO -- They're features not bugs dammit!
 ----

@@ -718,7 +718,7 @@ static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, uint8_t ty
             mbus_parse_str(mp, &arg)) {
                 uint32_t my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
 		ss = mbus_decode_str(ss);
-                if (isalpha(ss[0])) {
+                if (isalpha((int)ss[0])) {
                         /*
                          * Allow alpha so people can do my_src, me,
                          * local_user, whatever.  Let the mbus police
@@ -805,7 +805,26 @@ static void rx_rtp_source_mute(char *srce, char *args, session_t *sp)
 	if (mbus_parse_str(mp, &ssrc) && mbus_parse_int(mp, &i)) {
 		ssrc = mbus_decode_str(ssrc);
                 if (pdb_item_get(sp->pdb, strtoul(ssrc, 0, 16), &pdbe)) {
+                        struct s_source *s;
+                        s = source_get_by_ssrc(sp->active_sources, pdbe->ssrc);
                         pdbe->mute = i;
+                        debug_msg("mute ssrc 0x%08x (%d)\n", pdbe->ssrc, i);
+                        /*
+                         * Sources are active whilst packets are
+                         * arriving and maintaining statistics on
+                         * sender.  This is good, but we need to
+                         * remove source when changing mute state, if
+                         * packets are still arriving source will be
+                         * recreated when next packet arrives.  When
+                         * muting we want to remove source to stop
+                         * audio already buffered from playing.  When
+                         * unmuting want to remove source to
+                         * initialize state, particularly timestamps
+                         * of last repair etc.  
+                         */
+                        if (s != NULL) {
+                                source_remove(sp->active_sources, s);
+                        }
                         ui_info_mute(sp, pdbe->ssrc);
                 } else {
 			debug_msg("Unknown source 0x%08lx\n", ssrc);

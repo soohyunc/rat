@@ -1381,6 +1381,9 @@ source_process(session_t 	 *sp,
 	session_validate(sp);
 	source_validate(src);
         source_process_packets(sp, src, start_ts);
+        if (src->packets_done == 0) {
+                return;
+        }
 	source_validate(src);
 
         /* Split channel coder units up into media units */
