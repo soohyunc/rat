@@ -114,20 +114,36 @@ rtcp_check_rtcp_pkt(u_int8 *packet, int len)
 	int	 last = 0;
 
 	/* All RTCP packets must be compound packets (RFC1889, section 6.1) */
-	if (((ntohs(pkt->common.length) + 1) * 4) == len) return FALSE;
+	if (((ntohs(pkt->common.length) + 1) * 4) == len) {
+		dprintf("Bogus RTCP packet: not a compound packet\n");
+		return FALSE;
+	}
 
-	/* Check the RTP version, payload type and padding of the first in  */
-	/* the compund RTCP packet...                                       */
-	if (pkt->common.type != 2) return FALSE;
-	if (pkt->common.p    != 0) return FALSE;
-	if ((pkt->common.pt != RTCP_SR) && (pkt->common.pt != RTCP_RR)) return FALSE;
+	/* Check the RTCP version, payload type and padding of the first in  */
+	/* the compund RTCP packet...                                        */
+	if (pkt->common.type != 2) {
+		dprintf("Bogus RTCP packet: version number != 2 in the first sub-packet\n");
+		return FALSE;
+	}
+	if (pkt->common.p != 0) {
+		dprintf("Bogus RTCP packet: padding bit is set, and this is the first packet in the compound\n");
+		return FALSE;
+	}
+	if ((pkt->common.pt != RTCP_SR) && (pkt->common.pt != RTCP_RR)) {
+		dprintf("Bogus RTCP packet: compund packet does not start with SR or RR\n");
+		return FALSE;
+	}
 
 	/* Check all following parts of the compund RTCP packet. The RTP version */
 	/* number must be 2, and the padding bit must be zero on all apart from  */
 	/* the last packet.                                                      */
 	do {
-		if (r->common.type != 2) return FALSE;
+		if (r->common.type != 2) {
+			dprintf("Bogus RTCP packet: version number != 2\n");
+			return FALSE;
+		}
 		if (last == 1) {
+			dprintf("Bogus RTCP packet: padding bit was set before the last packet in the compound\n");
 			return FALSE;
 		}
 		if (r->common.p == 1) last = 1;
@@ -137,8 +153,10 @@ rtcp_check_rtcp_pkt(u_int8 *packet, int len)
 
 	/* Check that the length of the packets matches the length of the UDP */
 	/* packet in which they were received...                              */
-	if (r != end) return FALSE;
-	if (l != len) return FALSE;
+	if ((r != end) || (l != len))  {
+		dprintf("Bogus RTCP packet: length of RTCP packet does not match length of UDP packet\n");
+		return FALSE;
+	}
 
 	return TRUE;
 }

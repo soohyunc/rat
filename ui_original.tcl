@@ -721,8 +721,9 @@ set cryptpos [lsearch $argv "-crypt"]
 if {$cryptpos == -1} then {
   set key_var 0
 } else {
-  set key   [lindex $argv [expr $cryptpos + 1]]
-  UpdateKey [lindex $argv [expr $cryptpos + 1]] .b.crypt
+  set key     [lindex $argv [expr $cryptpos + 1]]
+  set key_var 1
+  mbus_send "R" "update.key" [mbus_encode_str $key]
 }
 
 ###############################################################################
