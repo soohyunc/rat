@@ -154,6 +154,10 @@ LINK32=link.exe
 # PROP Default_Filter ".c"
 # Begin Source File
 
+SOURCE=.\codec_compat.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\main_control.c
 # End Source File
 # Begin Source File
@@ -168,6 +172,10 @@ SOURCE=.\win32.c
 # Begin Group "C Header Files"
 
 # PROP Default_Filter ".h"
+# Begin Source File
+
+SOURCE=.\codec_compat.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\config_win32.h
