@@ -52,8 +52,8 @@ typedef struct {
         codec_id_t id;
 } codec_state;
 
-#define CODEC_SHORT_NAME_LEN   12
-#define CODEC_LONG_NAME_LEN    20
+#define CODEC_SHORT_NAME_LEN   16
+#define CODEC_LONG_NAME_LEN    32
 #define CODEC_DESCRIPTION_LEN 128
 
 typedef struct s_codec_format {
