@@ -62,24 +62,23 @@ static int audio_fd = -1;
                                             debug_msg("Failed %s\n",#cmd); \
                                                }
 
+#define LUIGI_MAX_AUDIO_NAME_LEN 32
+#define LUIGI_MAX_AUDIO_DEVICES  3
+
+static int dev_ids[LUIGI_MAX_AUDIO_DEVICES];
+static char names[LUIGI_MAX_AUDIO_DEVICES][LUIGI_MAX_AUDIO_NAME_LEN];
+static int ndev = 0;
+
 int 
 luigi_audio_open(audio_desc_t ad, audio_format *fmt)
 {
         int             volume = 100;
         int             reclb = 0;
         
-        int             d = -1;	/* unit number for audio device */
-        char            buf[64];
-        char           *thedev;
+        char            thedev[64];
         
-        thedev = getenv("AUDIODEV");
-        if (thedev == NULL)
-                thedev = "/dev/audio";
-        else if (thedev[0] >= '0') {
-                d = atoi(thedev);
-	sprintf(buf, "/dev/audio%d", d);
-	thedev = buf;
-        }
+        assert(ad >= 0 && ad < ndev); 
+	sprintf(thedev, "/dev/audio%d", dev_ids[ad]);
         
         memcpy(&format, fmt, sizeof(audio_format));
         
@@ -489,4 +488,40 @@ luigi_audio_is_ready(audio_desc_t ad)
         return luigi_audio_select(ad, 0);
 }
 
-#endif
+void
+luigi_audio_query_devices()
+{
+        FILE *f;
+        char buf[128], *p;
+        int n;
+
+        f = fopen("/dev/sndstat", "r");
+        if (f) {
+                while (!feof(f) && ndev < LUIGI_MAX_AUDIO_DEVICES) {
+                        p = fgets(buf, 128, f);
+                        n = sscanf(buf, "pcm%d: <%[A-z0-9 ]>", dev_ids + ndev, names[ndev]);
+                        if (p && n == 2) {
+                                debug_msg("dev (%d) name (%s)\n", dev_ids[ndev], names[ndev]);
+                                ndev++;
+                        }
+                }
+                fclose(f);
+        }
+}
+
+int
+luigi_get_device_count()
+{
+        return ndev;
+}
+
+char *
+luigi_get_device_name(int idx)
+{
+        if (idx >=0 && idx < ndev) {
+                return names[idx];
+        }
+        return NULL;
+}
+
+#endif /* FreeBSD */

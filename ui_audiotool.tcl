@@ -180,6 +180,8 @@ proc mbus_recv {cmnd args} {
 		audio.file.play.alive   	{eval mbus_recv_audio.file.play.alive $args}
 		audio.file.record.ready 	{eval mbus_recv_audio.file.record.ready $args}
 		audio.file.record.alive 	{eval mbus_recv_audio.file.record.alive $args}
+		audio.devices               {eval mbus_recv_audio_devices $args}
+		audio.device                {eval mbus_recv_audio_device $args}
 		session.title  			{eval mbus_recv_session.title $args}
 		session.address  		{eval mbus_recv_session.address $args}
 		rtp.cname  			{eval mbus_recv_rtp.cname $args}
@@ -279,6 +281,30 @@ proc mbus_recv_tool.rat.converter.supported {arg} {
     foreach c $converters {
 	.prefs.pane.reception.r.ms.menu add command -label $c -command "set convert_var \"$c\""
     }
+}
+
+proc mbus_recv_audio_devices {arg} {
+	global audio_device
+	
+	set m .prefs.pane.audio.dd.device.mdev
+	set max_len 0
+	
+	$m.menu delete 0 last
+	set devices [split $arg ","]
+	foreach d $devices {
+		$m.menu add command -label "$d" -command "set audio_device \"$d\""
+		set len [string length "$d"]
+		if [expr $len > $max_len] {
+			set max_len $len
+		}
+	}
+	$m configure -width $max_len
+}
+
+proc mbus_recv_audio_device {arg} {
+	global audio_device
+
+	set audio_device $arg
 }
 
 proc mbus_recv_tool.rat.agc {arg} {
@@ -1141,6 +1167,16 @@ frame $i
 frame $i.dd -relief sunken 
 pack $i.dd -fill both -expand 1 -anchor w -pady 1
 
+frame $i.dd.device
+pack $i.dd.device -side top -fill x
+
+label $i.dd.device.l -text "Audio Device:"
+pack  $i.dd.device.l -side top -fill x
+menubutton $i.dd.device.mdev -menu $i.dd.device.mdev.menu -indicatoron 1 \
+                                -textvariable audio_device -relief raised -width 32
+pack $i.dd.device.mdev 
+menu $i.dd.device.mdev.menu -tearoff 0
+
 frame $i.dd.sampling  
 pack  $i.dd.sampling 
 
@@ -1411,6 +1447,7 @@ proc sync_engine_to_ui {} {
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
     global meter_var sync_var gain volume input_port output_port 
     global in_mute_var out_mute_var channels freq key key_var
+	global audio_device
 
     set my_cname_enc [mbus_encode_str $my_cname]
     #rtcp details
@@ -1454,6 +1491,7 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "tool.rat.sync"         $sync_var
 
     #device 
+	mbus_send "R" "audio.device"        [mbus_encode_str "$audio_device"]
     mbus_send "R" "audio.input.gain"    $gain
     mbus_send "R" "audio.output.gain"   $volume
     mbus_send "R" "audio.input.port"    [mbus_encode_str $input_port]
@@ -1536,6 +1574,7 @@ proc save_settings {} {
     save_setting $f audioFilesOn     files_on
 
     # device 
+	save_setting $f  audioDevice       audio_device
     save_setting $f  audioOutputGain   volume
     save_setting $f  audioInputGain    gain
     save_setting $f  audioOutputPort   output_port
@@ -1665,6 +1704,8 @@ proc load_settings {} {
     load_setting attr audioRedundancyOffset  red_off       "1"
     load_setting attr audioInterleavingGap   int_gap       "4"
     load_setting attr audioInterleavingUnits int_units     "4"
+	#device
+	load_setting attr audioDevice            audio_device  "Unknown"
 	
 	global prenc channels freq
 	mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
@@ -2146,6 +2187,7 @@ add_help $i.loc      	"Enter your location for transmission\nto other participan
 
 #audio help
 set i .prefs.pane.audio
+add_help $i.dd.device.mdev "Selects preferred audio device."
 add_help $i.dd.sampling.mfreq \
                         "Sets the sampling rate of the audio device.\nThis changes the available codecs."
 add_help $i.dd.sampling.mchannels \

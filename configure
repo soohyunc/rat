@@ -130,7 +130,7 @@ esac
 
 # Does linux have pca? FreeBSD does...
 if [ -r /usr/include/machine/pcaudioio.h ] ; then
-    DEFS="$DEFS HAVE_PCA"
+    DEFS="$DEFS -DHAVE_PCA"
     AUDIO="$AUDIO auddev_pca.o"
     INCLUDE="$INCLUDE -I/usr/include/machine"
     echo "PCA Audio support found"

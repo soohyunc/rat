@@ -542,6 +542,27 @@ static void rx_audio_file_rec_live(char *srce, char *args, session_struct *sp)
         ui_update_file_live(sp, "record", (sp->out_file) ? 1 : 0);
 }
 
+static void 
+rx_audio_device(char *srce, char *args, session_struct *sp)
+{
+        char	*s;
+
+	UNUSED(srce);
+
+	mbus_parse_init(sp->mbus_engine_conf, args);
+	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
+		s = mbus_decode_str(s);
+		debug_msg("Audio device: %s (not implemented).\n", s);
+                /* We should close audio device, transmitter, etc
+                 * Then find corresponding audio interface, select it,
+                 * and re-open the device.
+                 */
+	} else {
+		printf("mbus: usage \"tool.rat.repair None|Repetition\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine_conf);
+}
+
 static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
 {
 	char	*arg, *cname;
@@ -974,7 +995,8 @@ const char *rx_cmnd[] = {
         "audio.file.record.pause",
 	"audio.file.record.stop",
         "audio.file.record.live",
-	"security.encryption.key",             
+        "audio.device",
+        "security.encryption.key",             
         "rtp.source.name",
 	"rtp.source.email",
 	"rtp.source.phone",       
@@ -1026,7 +1048,8 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_audio_file_rec_pause,
         rx_audio_file_rec_stop,
         rx_audio_file_rec_live,
-	rx_security_encryption_key,
+	rx_audio_device,
+        rx_security_encryption_key,
 	rx_rtp_source_name,
 	rx_rtp_source_email,
 	rx_rtp_source_phone,            

@@ -618,10 +618,10 @@ audio_open(audio_format *format)
         aif = &audio_interfaces[selected_interface];
         assert(aif->audio_if_open);
 
-        if (aif->audio_if_open(num_active_interfaces, format)) {
+        if (aif->audio_if_open(selected_interface, format)) {
                 /* Add selected interface to those active*/
                 active_interfaces[num_active_interfaces] = &audio_interfaces[selected_interface];
-                r = AIF_IDX_TO_MAGIC(num_active_interfaces);
+                r = AIF_IDX_TO_MAGIC(selected_interface);
                 num_active_interfaces++;
                 return r;
         }
@@ -911,14 +911,9 @@ audio_add_interface(audio_if_t *aif_new)
 #include "auddev_sparc.h"
 #include "auddev_oss.h"
 #include "auddev_win32.h"
-
-#ifdef HAVE_PCA
+#include "auddev_luigi.h"
 #include "auddev_pca.h"
-#endif /* HAVE_PCA */
-
-#ifdef HAVE_OSPREY
 #include "auddev_oti.h"
-#endif /* HAVE_OSPREY */
 
 int
 audio_init_interfaces()
@@ -961,36 +956,36 @@ audio_init_interfaces()
 
 #ifdef HAVE_OSPREY
         {
-                audio_if_t aif_oti = {
+                audio_if_t aif_osprey = {
                         "Osprey Audio Device",
+                        osprey_audio_init, 
                         NULL, 
-                        NULL, 
-                        oti_audio_open,
-                        oti_audio_close,
-                        oti_audio_drain,
-                        oti_audio_duplex,
-                        oti_audio_read,
-                        oti_audio_write,
-                        oti_audio_non_block,
-                        oti_audio_block,
-                        oti_audio_set_gain,
-                        oti_audio_get_gain,
-                        oti_audio_set_volume,
-                        oti_audio_get_volume,
-                        oti_audio_loopback,
-                        oti_audio_set_oport,
-                        oti_audio_get_oport,
-                        oti_audio_next_oport,
-                        oti_audio_set_iport,
-                        oti_audio_get_iport,
-                        oti_audio_next_iport,
-                        oti_audio_get_blocksize,
-                        oti_audio_get_channels,
-                        oti_audio_get_freq,
-                        oti_audio_is_ready,
-                        oti_audio_wait_for,
+                        osprey_audio_open,
+                        osprey_audio_close,
+                        osprey_audio_drain,
+                        osprey_audio_duplex,
+                        osprey_audio_read,
+                        osprey_audio_write,
+                        osprey_audio_non_block,
+                        osprey_audio_block,
+                        osprey_audio_set_gain,
+                        osprey_audio_get_gain,
+                        osprey_audio_set_volume,
+                        osprey_audio_get_volume,
+                        osprey_audio_loopback,
+                        osprey_audio_set_oport,
+                        osprey_audio_get_oport,
+                        osprey_audio_next_oport,
+                        osprey_audio_set_iport,
+                        osprey_audio_get_iport,
+                        osprey_audio_next_iport,
+                        osprey_audio_get_blocksize,
+                        osprey_audio_get_channels,
+                        osprey_audio_get_freq,
+                        osprey_audio_is_ready,
+                        osprey_audio_wait_for,
                 };
-                audio_add_interface(&aif_oti);
+                audio_add_interface(&aif_osprey);
         }
 #endif /* HAVE_OSPREY */
 
@@ -1073,7 +1068,9 @@ audio_init_interfaces()
 #endif /* WIN32 */
 
 #if defined(FreeBSD)
-        {
+        luigi_audio_query_devices();
+        n = luigi_get_device_count();
+        for (i = 0; i < n; i++) {
                 audio_if_t aif_luigi = {
                         "Default Audio Device",
                         NULL,
@@ -1103,6 +1100,8 @@ audio_init_interfaces()
                         luigi_audio_is_ready,
                         luigi_audio_wait_for,
                 };
+                strcpy(aif_luigi.name, luigi_get_device_name(i));
+                audio_add_interface(&aif_luigi);
         }
 #endif /* FreeBSD */
 
@@ -1137,6 +1136,7 @@ audio_init_interfaces()
                         pca_audio_is_ready,
                         pca_audio_wait_for,
                 };
+                audio_add_interface(&aif_pca);                
         }
 #endif /* HAVE_PCA */
 

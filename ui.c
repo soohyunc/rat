@@ -532,6 +532,42 @@ ui_update_output_gain(session_struct *sp)
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.output.gain", args, TRUE);
 }
 
+static void
+ui_devices(session_struct *sp)
+{
+        int i,nDev;
+        char buf[255] = "", *this_dev, *mbes;
+        
+        nDev = audio_get_number_of_interfaces();
+        for(i = 0; i < nDev; i++) {
+                this_dev = audio_get_interface_name(i);
+                if (this_dev) {
+                        strcat(buf, this_dev);
+                        strcat(buf, ",");
+                }
+        }
+        i = strlen(buf);
+        if (i != 0) buf[i-1] = '\0';
+
+        mbes = mbus_encode_str(buf);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.devices", mbes, TRUE);
+        xfree(mbes);
+}
+
+static void
+ui_device(session_struct *sp)
+{
+        char *mbes, *cur_dev;
+        cur_dev = audio_get_interface_name(audio_get_interface());
+
+        if (cur_dev) {
+                mbes = mbus_encode_str(cur_dev);
+                mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.device", mbes, TRUE);
+                xfree(mbes);
+        }
+
+}
+
 void
 ui_update(session_struct *sp)
 {
@@ -558,6 +594,8 @@ ui_update(session_struct *sp)
 	ui_update_output_port(sp);
 	ui_update_input_port(sp);
         ui_codecs(sp, sp->encodings[0]);
+        ui_devices(sp);
+        ui_device(sp);
         ui_converters(sp);
         ui_update_frequency(sp);
         ui_update_channels(sp);
