@@ -451,7 +451,11 @@ mix_update_ui(session_struct *sp, mix_struct *ms)
 	} else {
 		bp = ms->mix_buffer + ms->tail - POWER_METER_SAMPLES;
 	}
-	ui_output_level(sp, lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
+        if (sp->playing_audio) {
+                ui_output_level(sp, lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
+        } else {
+                ui_output_level(sp, 0);
+        }
 }
 
 int
