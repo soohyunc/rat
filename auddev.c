@@ -519,6 +519,8 @@ audio_probe_support(int idx)
                         if (ad) {
                                 AUDIO_ADD_FMT_SUPPORT(support, rate, channels);
                                 audio_close(ad);
+                        } else {
+                                printf("%s failed rate %d channels %d\n", audio_get_interface_name(idx), rate, channels);
                         }
                 }
         }

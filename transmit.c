@@ -293,6 +293,7 @@ tx_read_audio(session_struct *sp)
                 do {
                         u = sp->tb->last_ptr;
                         assert(u);
+                        assert(sp->tb->channels > 0 && sp->tb->channels <= 2);
                         this_read = audio_device_read(sp, u->data + u->dur_used * sp->tb->channels,
                                                       (sp->tb->unit_dur - u->dur_used) * sp->tb->channels) / sp->tb->channels;
                         if (sp->in_file) {

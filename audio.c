@@ -229,7 +229,7 @@ audio_device_take(session_struct *sp)
 	format.sample_rate     = cp->freq;
         format.bits_per_sample = 16;
 	format.num_channels    = cp->channels;
-        format.blocksize       = cp->unit_len * cp->channels;
+        format.blocksize       = cp->unit_len * cp->channels * BYTES_PER_SAMPLE;
 
 	if (sp->mode == TRANSCODER) {
 		if ((sp->audio_device = transcoder_open()) == 0) {
@@ -253,7 +253,7 @@ audio_device_take(session_struct *sp)
                         fallback.sample_rate     = cp->freq;
                         fallback.bits_per_sample = 16;
                         fallback.num_channels    = cp->channels;
-                        fallback.blocksize       = cp->unit_len * cp->channels;
+                        fallback.blocksize       = cp->unit_len * cp->channels * BYTES_PER_SAMPLE;
                         sp->audio_device = audio_open(&fallback);
                         
                         if (sp->audio_device) {
