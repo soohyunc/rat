@@ -292,6 +292,7 @@ static args_handler late_args[] = {
         { "-f",              cmd_primary,      1 },
         { "-r",              cmd_redundancy,   1 },
         { "-t",              NULL,             1 }, /* handled in parse early args  */
+	{ "-noui",           NULL,             0 }, /* handled in parse early args  */
 	{ "-T",	             NULL,             0 }, /* transcoder: special handling */
 };
 

@@ -43,6 +43,7 @@ static const char cvsid[] =
 char       *u_addr, *e_addr[2];
 pid_t       pid_ui, pid_engine;
 int         should_exit;
+int	    ui_enabled = TRUE;
 
 static int ttl = 15;
 
@@ -143,7 +144,9 @@ static int parse_options_early(int argc, const char **argv)
                                 usage("Usage: -t 0-127.\n");
                                 return FALSE;
                         }
-                }
+                } else if (strcmp(argv[i], "-noui") == 0) {
+			ui_enabled = FALSE;
+		}
         }
         
         /* 
@@ -493,9 +496,11 @@ int main(int argc, char *argv[])
                 return FALSE;
         }
         
-	token_u[0] = generate_token();
-        fork_process(UI_NAME, c_addr, &pid_ui, 1, token_u);
-	u_addr = mbus_rendezvous_waiting(m, "()", token_u[0], m);
+	if (ui_enabled) {
+		token_u[0] = generate_token();
+		fork_process(UI_NAME, c_addr, &pid_ui, 1, token_u);
+		u_addr = mbus_rendezvous_waiting(m, "()", token_u[0], m);
+	}
 
 	token_e[0] = generate_token();
 	token_e[1] = generate_token();
@@ -507,8 +512,12 @@ int main(int argc, char *argv[])
 	}
 
         if (parse_addresses(m, e_addr, argc, argv) == TRUE) {
-		char *peer = mbus_rendezvous_go(m, token_u[0], (void *) m); 
-		debug_msg("User interface is %s\n", peer);
+		char	*peer;
+
+		if (ui_enabled) {
+			peer = mbus_rendezvous_go(m, token_u[0], (void *) m); 
+			debug_msg("User interface is %s\n", peer);
+		}
 		for (i = 0; i < num_sessions; i++) {
 			peer = mbus_rendezvous_go(m, token_e[i], (void *) m);
 			debug_msg("Media engine %d is %s\n", i, peer);
@@ -535,13 +544,17 @@ int main(int argc, char *argv[])
 				final_iters--;
 			}
                 }        
-                terminate(m, u_addr, &pid_ui);
+		if (ui_enabled) {
+			terminate(m, u_addr, &pid_ui);
+		}
 		for (i = 0; i < num_sessions; i++) {
 			terminate(m, e_addr[i], &pid_engine);
 		}
         }
         
-        kill_process(pid_ui);
+	if (ui_enabled) {
+		kill_process(pid_ui);
+	}
         kill_process(pid_engine);
         
 #ifdef WIN32
