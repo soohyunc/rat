@@ -26,9 +26,9 @@ read_and_encode(coded_unit        *out,
                 struct s_sndfile  *sf_in)
 {
         const codec_format_t *cf;
-        sample *buf;
+        coded_unit           dummy;
+        sample               *buf;
         u_int16 req_samples, act_samples;
-        coded_unit           *dummy;
 
         req_samples = codec_get_samples_per_frame(encoder->id);
         buf         = (sample*)block_alloc(sizeof(sample) * req_samples);
@@ -40,18 +40,21 @@ read_and_encode(coded_unit        *out,
         }
 
         cf = codec_get_format(encoder->id);
-        dummy->id = codec_get_native_coding((u_int16)cf->format.sample_rate, 
+        assert(cf != NULL);
+        dummy.id = codec_get_native_coding((u_int16)cf->format.sample_rate, 
                                             (u_int16)cf->format.channels);
-        dummy->state     = NULL;
-        dummy->state_len = 0;
-        dummy->data      = (u_char*)buf;
-        dummy->data_len  = req_samples * sizeof(short);
+        dummy.state     = NULL;
+        dummy.state_len = 0;
+        dummy.data      = (u_char*)buf;
+        dummy.data_len  = req_samples * sizeof(short);
 
         assert(out != NULL);
 
-        if (codec_encode(encoder, dummy, out) == FALSE) {
+        if (codec_encode(encoder, &dummy, out) == FALSE) {
                 abort();
         }
+
+        block_free(dummy.data, dummy.data_len);
 
         return (sf_in != NULL);
 }
@@ -162,8 +165,12 @@ test_repair(struct s_sndfile *sf_out,
 static void
 usage(void)
 {
-        fprintf(stderr, "test_repair [options] -c <codec> -r <repair> -d <rate> -s <seed> <src_file> <dst_file>
-where options are -codecs and -repairs to list available\n");
+        fprintf(stderr, "test_repair [options] -c <codec> -r <repair> -d <rate> <src_file> <dst_file>
+where options are:
+\t-codecs to list available codecs
+\t-repairs to list available repair schemes
+\t-n to disable codec specific repair (default csra permitted)
+\t-s <seed> to set seed of rng (default 0)\n");
         exit(-1);
 } 
 
@@ -220,19 +227,18 @@ list_codecs(void)
         return;
 }
 
-
-
 int 
 main(int argc, char *argv[])
 {
         const char *codec_name, *repair_name;
         codec_id_t cid;
         int repair_type = -1;
-        struct s_sndfile *sf_in, *sf_out;
+        struct s_sndfile *sf_in = NULL, *sf_out = NULL;
         sndfile_fmt_t     sff;
         double drop = 0.0;
         int ac, did_query = FALSE;
-        long seed;
+        int csra  = TRUE; /* codec specific repair allowed */
+        long seed = 100;
 
         codec_init();
 
@@ -252,7 +258,6 @@ main(int argc, char *argv[])
                         }
                         did_query = TRUE;
                 } else {
-                        /* All single arguments take parameters */
                         if (argc - ac < 1) {
                                 usage();
                         } 
@@ -267,6 +272,9 @@ main(int argc, char *argv[])
                         case 'c':
                                 cid  = codec_get_by_name(argv[++ac]);
                                 codec_name = argv[ac];
+                                break;
+                        case 'n':
+                                csra = FALSE;
                                 break;
                         case 'r':
                                 repair_type = repair_get_by_name(argv[++ac]);
@@ -288,18 +296,18 @@ main(int argc, char *argv[])
                 usage();
         }
 
-        ac++;
+
         if (snd_read_open(&sf_in, argv[ac], NULL) == FALSE) {
                 fprintf(stderr, "Could not open %s\n", argv[ac]);
                 exit(-1);
         }
+        ac++;
 
         if (snd_get_format(sf_in, &sff) == FALSE) {
                 fprintf(stderr, "Failed to get format of %s\n", argv[ac]);
                 exit(-1);
         }
 
-        ac++;
         if (snd_write_open(&sf_out, argv[ac], "au", &sff) == FALSE) {
                 fprintf(stderr, "Could not open %s\n", argv[ac]);
                 exit(-1);
@@ -320,20 +328,23 @@ main(int argc, char *argv[])
 #\tdrop: %.2f
 #\tcodec:  %s
 #\trepair: %s
+#\tcodec specific repair (when available): %d
 #\tsource file: %s
 #\tdestination file %s\n",
-seed, drop, codec_name, repair_name, argv[argc - 2], argv[argc - 1]);
+seed, drop, codec_name, repair_name, csra, argv[argc - 2], argv[argc - 1]);
 
         srand48(seed);
+        repair_set_codec_specific_allowed(csra);
 
         test_repair(sf_out, drop, cid, repair_type, sf_in);
 
         /* snd_read_close(&sf_in) not needed because files gets closed
          * at eof automatically. 
          */
-        snd_write_close(&sf_in);
+        snd_write_close(&sf_out);
 
         codec_exit();
+        xmemdmp();
 
         return 0;
 }
