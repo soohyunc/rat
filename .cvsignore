@@ -1,0 +1,10 @@
+Makefile
+rat-4.2.24
+rat-4.2.24-ui
+rat-4.2.24.spec
+ratconf.h
+sdr2.plugin.S02.audio.rtp.-.rat-*
+ui_audiotool.c
+ui_transcoder.c
+version.h
+
