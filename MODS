@@ -1066,7 +1066,10 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Fix controller only quits upon hearing byes from one of it's 
 	  children.
 	- Add playout buffer debugging/validation code
-
+	- Add engine parsing of sdes commands accept my_ssrc as an acceptable
+	  ssrc identifier.  Then control does not need to know to set name,
+	  etc, from command line.
+	- Add check in settings that sdes values read in are not already set.
 
 TODO -- They're features not bugs dammit!
 ----

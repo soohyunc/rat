@@ -500,15 +500,28 @@ void settings_load_late(session_t *sp)
         char   *field;
 	load_init();		/* Initial settings come from the common prefs file... */
 
+        /*
+         * We check to see it SDES items are set first.  If they are
+         * then presumeably it has come from the command line and
+         * so it should override saved settings.
+         */
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
 	field = setting_load_str("rtpName", "Unknown");
-        rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME,  field, strlen(field));
+        if (rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME) == NULL) {
+                rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME,  field, strlen(field));
+        }
 	field = setting_load_str("rtpEmail", "");
-        rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_EMAIL, field, strlen(field));
+        if (rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_EMAIL) == NULL) {
+                rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_EMAIL, field, strlen(field));
+        }
 	field = setting_load_str("rtpPhone", "");
-        rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PHONE, field, strlen(field));
+        if (rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PHONE) == NULL) {
+                rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PHONE, field, strlen(field));
+        }
 	field = setting_load_str("rtpLoc", "");
-        rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC,   field, strlen(field));
+        if (rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC) == NULL) {
+                rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC,   field, strlen(field));
+        }
 #ifdef WIN32
 	field = (char *) w32_make_version_info(RAT_VERSION);
 #else

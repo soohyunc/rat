@@ -708,17 +708,27 @@ rx_audio_device(char *srce, char *args, session_t *sp)
 
 static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, uint8_t type)
 {
-	char	*arg, *ss;
-        uint32_t ssrc;
-	struct mbus_parser	*mp;
+        char	           *arg, *ss;
+        uint32_t           ssrc;
+	struct mbus_parser *mp;
 	UNUSED(srce);
 
 	mp = mbus_parse_init(args);
 	if (mbus_parse_str(mp, &ss) && 
             mbus_parse_str(mp, &arg)) {
+                uint32_t my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
 		ss = mbus_decode_str(ss);
-                ssrc = strtoul(ss, 0, 16);
-		if (ssrc == rtp_my_ssrc(sp->rtp_session[0])) {
+                if (isalpha(ss[0])) {
+                        /*
+                         * Allow alpha so people can do my_src, me,
+                         * local_user, whatever.  Let the mbus police
+                         * pick something sane.
+                         */
+                        ssrc = my_ssrc;
+                } else {
+                        ssrc = strtoul(ss, 0, 16);
+                }
+		if (ssrc == my_ssrc) {
                         char *value;
                         int i, vlen;
                         value = mbus_decode_str(arg);
