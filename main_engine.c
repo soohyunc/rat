@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 
 	/* Initialise our mbus interface... once this is done we can talk to our controller */
 	sp->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 10);
-	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, ppid);
+	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, (unsigned long) ppid);
 	sp->mbus_engine      = mbus_init(mbus_engine_rx, mbus_error_handler, sp->mbus_engine_addr);
 
 	/* The first stage is to wait until we hear from our controller. The address of the */
