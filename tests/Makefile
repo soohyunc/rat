@@ -1,8 +1,8 @@
 CC = gcc
 DEBUG=-g
-INCLUDE = -I.. -I../../common
+INCLUDE = -I.. -I../../common -I../../common/src
 CFLAGS  = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror -g -fsigned-char -DSASR -DFAST -DUSE_FLOAT_MUL -DDEBUG_MEM
-LIBS = -L../../common -lm -luclmmbase
+LIBS = -L../../common/src -lm -luclmmbase
 
 CHANNEL_OBJS = ../cc_vanilla.o ../new_channel.o ../channel_types.o
 
