@@ -40,7 +40,6 @@ static const char cvsid[] =
 
 #define DEFAULT_RTP_PORT 5004
 
-const char *appname;
 char       *u_addr, *e_addr;
 pid_t       pid_ui, pid_engine;
 int         should_exit;
@@ -276,7 +275,7 @@ static void mbus_err_handler(int seqnum, int reason)
         if (should_exit == FALSE) {
                 char msg[64];
                 sprintf(msg, "Could not send mbus message (%d:%d)\n", seqnum, reason);
-                fatal_error(appname, msg);
+                fatal_error("RAT v" RAT_VERSION, msg);
                 kill_process(pid_ui);
                 kill_process(pid_engine);
                 abort();
@@ -433,6 +432,7 @@ win32_create_null_window()
 
 #endif /* WIN32 */
 
+#ifdef NDEF
 static int main_transcoder(int argc, char *argv[])
 {
 	/* This is the main function when we are the transcoder controller. The command line */
@@ -443,22 +443,38 @@ static int main_transcoder(int argc, char *argv[])
 	UNUSED(argc);
 	return 0;
 }
+#endif
 
-static int main_audiotool(int argc, char *argv[])
+static char *generate_token(void)
+{
+	char	*t = (char *) xmalloc(21);
+	sprintf(t, "rat-token-%08lx", lrand48());
+	return t;
+}
+
+int main(int argc, char *argv[])
 {
         struct mbus	*m;
-        char		 c_addr[60], token_ui[20], token_engine[20];
+        char		 c_addr[60], *token_u[2], *token_e[2];
         int		 seed = (gethostid() << 8) | (getpid() & 0xff), final_iters;
         struct timeval	 timeout;
+	int		 i, num_sessions = 0;
 
-        appname = get_appname(argv[0]);
-        
 #ifdef WIN32
         win32_create_null_window(); /* Needed to listen to messages */
 #else
         signal(SIGCHLD, sigchld_handler); 
         signal(SIGINT, sigint_handler);
 #endif
+
+	/* We have two modes: one for operation as a transcoder, one */
+	/* when working as a normal end-system audio tool. We choose */
+	/* based on the first command line argument supplied.        */
+	if ((argc > 2) && (strcmp(argv[1], "-T") == 0)) {
+		num_sessions = 2;
+	} else {
+		num_sessions = 1;
+	}
 
         if (parse_options_early(argc, (const char**)argv) == FALSE) {
                 return FALSE;
@@ -468,18 +484,28 @@ static int main_audiotool(int argc, char *argv[])
         snprintf(c_addr, 60, "(media:audio module:control app:rat id:%lu)", (unsigned long) getpid());
         m = mbus_init(mbus_control_rx, mbus_err_handler, c_addr);
         if (m == NULL) {
-                fatal_error(appname, "Could not initialize Mbus: Is multicast enabled?");
+                fatal_error("RAT v" RAT_VERSION, "Could not initialize Mbus: Is multicast enabled?");
                 return FALSE;
         }
         
-        sprintf(token_ui,     "rat-token-%08lx", lrand48());
-        sprintf(token_engine, "rat-token-%08lx", lrand48());
-        
-        u_addr = fork_process(m, UI_NAME,     c_addr, &pid_ui,     token_ui);
-        e_addr = fork_process(m, ENGINE_NAME, c_addr, &pid_engine, token_engine);
+	token_u[0] = generate_token();
+        fork_process(UI_NAME, c_addr, &pid_ui, 1, token_u);
+	u_addr = mbus_rendezvous_waiting(m, "()", token_u[0], m);
+
+	token_e[0] = generate_token();
+	token_e[1] = generate_token();
+        fork_process(ENGINE_NAME, c_addr, &pid_engine, num_sessions, token_e);
+	for (i = 0; i < num_sessions; i++) {
+		debug_msg("Waiting for %s from media engine...\n", token_e[i]);
+		e_addr = mbus_rendezvous_waiting(m, "()", token_e[i], m);
+		debug_msg("...got it\n");
+	}
+
         if (parse_addresses(m, e_addr, argc, argv) == TRUE) {
-                mbus_rendezvous_go(m, token_engine, (void *) m);
-                mbus_rendezvous_go(m, token_ui,     (void *) m); 
+		for (i = 0; i < num_sessions; i++) {
+			mbus_rendezvous_go(m, token_e[i], (void *) m);
+		}
+                mbus_rendezvous_go(m, token_u[0], (void *) m); 
                 parse_options_late(m, e_addr, argc, argv);
 		final_iters = 25;
                 should_exit = FALSE;
@@ -508,19 +534,10 @@ static int main_audiotool(int argc, char *argv[])
 #ifdef WIN32
         WSACleanup();
 #endif
+	xfree(token_u[0]);
+	xfree(token_e[0]);
+	xfree(token_e[1]);
         debug_msg("Controller exit\n");
         return 0;
-}
-
-int main(int argc, char *argv[])
-{
-	/* We have two controllers: one for operation as a transcoder, one */
-	/* when working as a normal end-system audio tool. We choose based */
-	/* on the first command line argument supplied.                    */
-	if ((argc > 2) && (strcmp(argv[1], "-T") == 0)) {
-		return main_transcoder(argc, argv);
-	} else {
-		return main_audiotool(argc, argv);
-	}
 }
 

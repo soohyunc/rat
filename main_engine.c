@@ -46,13 +46,13 @@ static const char cvsid[] =
 #include "tonegen.h"
 #include "voxlet.h"
 #include "fatal_error.h"
+#include "version.h"
 
 #include "mbus_parser.h"
 #include "mbus.h"
 #include "util.h"
 
-const char 	*appname;
-char		*c_addr, *token, *token_e; /* Could be in the session struct */
+char		*c_addr, *token[2], *token_e[2]; /* Could be in the session struct */
 int         	 should_exit = FALSE; 
 int		 mbus_shutdown_error = FALSE;
 int		 num_sessions = 1;
@@ -68,22 +68,25 @@ signal_handler(int signal)
 }
 #endif
 
-#define MBUS_ADDR_ENGINE "(media:audio module:engine app:rat id:%lu)"
+#define MBUS_ADDR_ENGINE "(media:audio module:engine app:rat session:%d id:%lu)"
 
 static void parse_args(int argc, char *argv[])
 {
-	int 	i;
+	int 	i, tc;
 
-	if ((argc != 5)  && (argc != 6)) {
-		printf("Usage: %s [-T] -ctrl <addr> -token <token>\n", argv[0]);
+	if ((argc != 5)  && (argc != 8)) {
+		printf("Usage: rat-%s-media [-T] -ctrl <addr> -token <token> [-token <token>]\n", RAT_VERSION);
 		exit(1);
 	}
+	tc = 0;
 	for (i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-ctrl") == 0) {
 			c_addr = xstrdup(argv[++i]);
 		} else if (strcmp(argv[i], "-token") == 0) {
-			token   = xstrdup(argv[++i]);
-			token_e = mbus_encode_str(token);
+			token[tc]   = xstrdup(argv[++i]);
+			token_e[tc] = mbus_encode_str(token[tc]);
+			debug_msg("token[%d] = %s\n", tc, token[tc]);
+			tc++;
 		} else if (strcmp(argv[i], "-T") == 0) {
 			/* Enable transcoder... */
 			debug_msg("Enabled transcoder support\n");
@@ -113,7 +116,7 @@ mbus_error_handler(int seqnum, int reason)
         if (should_exit == FALSE) {
                 char msg[64];
                 sprintf(msg, "MBUS message failed (%d:%d)\n", seqnum, reason);
-                fatal_error(appname, msg);
+                fatal_error("RAT v" RAT_VERSION, msg);
                 abort();
         } 
 	mbus_shutdown_error = TRUE;
@@ -124,62 +127,66 @@ mbus_error_handler(int seqnum, int reason)
 
 static void rendezvous_with_controller(session_t *sp[2])
 {
-	int		i, done;
+	int		i, j, done;
 	struct timeval	timeout;
 
 	/* Signal to the controller that we are ready to go. It should be sending us an     */
 	/* mbus.waiting(foo) where "foo" is the same as the "-token" argument we were       */
 	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
-	debug_msg("Waiting for mbus.waiting(%s) from controller...\n", token);
+	/* This gets complicated, because we may have two instances of the mbus active.     */
 	for (i = 0; i < num_sessions; i++) {
+		debug_msg("Need mbus.waiting(%s) from controller...\n", token[i]);
 		sp[i]->mbus_waiting       = TRUE;
-		sp[i]->mbus_waiting_token = token;
+		sp[i]->mbus_waiting_token = token[i];
 	}
 	do {
-		done = FALSE;
-		for (i = 0; i < num_sessions; i++) {
+		done = TRUE;
+		for (j = 0; j < num_sessions; j++) {
 			timeout.tv_sec  = 0;
 			timeout.tv_usec = 10000;
-			mbus_send(sp[i]->mbus_engine); 
-			mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
-			mbus_heartbeat(sp[i]->mbus_engine, 1);
-			mbus_retransmit(sp[i]->mbus_engine);
-			done |= !sp[i]->mbus_waiting;
+			mbus_send(sp[j]->mbus_engine); 
+			mbus_recv(sp[j]->mbus_engine, (void *) sp[j], &timeout);
+			mbus_heartbeat(sp[j]->mbus_engine, 1);
+			mbus_retransmit(sp[j]->mbus_engine);
+			done &= !sp[j]->mbus_waiting;
+			if (!sp[j]->mbus_waiting) {
+				debug_msg("Sending mbus.go(%s) to controller...\n", token[j]);
+				mbus_qmsgf(sp[j]->mbus_engine, c_addr, TRUE, "mbus.go", "%s", token_e[j]);
+			}
 		}
 	} while (!done);
-	debug_msg("...got it\n");
+	debug_msg("Got all needed mbus.waiting() messages from controller\n");
 
-	debug_msg("Sending mbus.go(%s) to controller...\n", token);
 	for (i = 0; i < num_sessions; i++) {
-		mbus_qmsgf(sp[i]->mbus_engine, c_addr, TRUE, "mbus.go", "%s", token_e);
+		do {
+			done = FALSE;
+			for (i = 0; i < num_sessions; i++) {
+				mbus_heartbeat(sp[i]->mbus_engine, 1);
+				mbus_retransmit(sp[i]->mbus_engine);
+				mbus_send(sp[i]->mbus_engine);
+				timeout.tv_sec  = 0;
+				timeout.tv_usec = 10000;
+				mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
+				done |= mbus_sent_all(sp[i]->mbus_engine);
+			}
+		} while (!done);
 	}
-	do {
-		done = FALSE;
-		for (i = 0; i < num_sessions; i++) {
-			mbus_heartbeat(sp[0]->mbus_engine, 1);
-			mbus_retransmit(sp[0]->mbus_engine);
-			mbus_send(sp[0]->mbus_engine);
-			timeout.tv_sec  = 0;
-			timeout.tv_usec = 10000;
-			mbus_recv(sp[0]->mbus_engine, (void *) sp[0], &timeout);
-			done |= mbus_sent_all(sp[i]->mbus_engine);
-		}
-	} while (!done);
-	debug_msg("...done\n");
+	debug_msg("Sent all mbus.go() messages to controller\n");
 
 	/* At this point we know the mbus address of our controller, and have conducted */
 	/* a successful rendezvous with it. It will now send us configuration commands. */
 	for (i = 0; i < num_sessions; i++) {
+		debug_msg("Need mbus.go(%s) from controller...\n", token_e[i]);
 		sp[i]->mbus_go       = TRUE;
-		sp[i]->mbus_go_token = token;
+		sp[i]->mbus_go_token = token[i];
 	}
-	debug_msg("Waiting for mbus.go(%s) from controller...\n", token_e);
+
 	do {
 		done = FALSE;
 		for (i = 0; i < num_sessions; i++) {
 			timeout.tv_sec  = 0;
 			timeout.tv_usec = 20000;
-			mbus_qmsgf(sp[i]->mbus_engine, c_addr, FALSE, "mbus.waiting", "%s", token_e);
+			mbus_qmsgf(sp[i]->mbus_engine, c_addr, FALSE, "mbus.waiting", "%s", token_e[i]);
 			mbus_send(sp[i]->mbus_engine); 
 			mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
 			mbus_heartbeat(sp[i]->mbus_engine, 1);
@@ -187,7 +194,7 @@ static void rendezvous_with_controller(session_t *sp[2])
 			done |= !sp[i]->mbus_go;
 		}
 	} while (!done);
-	debug_msg("...got it\n");
+	debug_msg("Got all needed mbus.go() messages from controller\n");
 
 	for (i = 0; i < num_sessions; i++) {
 		assert(sp[i]->rtp_session[0] != NULL);
@@ -201,8 +208,6 @@ int main(int argc, char *argv[])
 	session_t 	*sp[2];
 	struct timeval	 timeout;
         uint8_t		 i, j;
-
-        appname = get_appname(argv[0]);
 
 #ifdef WIN32
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
@@ -232,12 +237,11 @@ int main(int argc, char *argv[])
 		assert(audio_device_is_open(sp[i]->audio_device));
 
 		/* Initialise our mbus interface... once this is done we can talk to our controller */
-		/* FIXME: The two parts of the transcoder need to have separate mbus addresses.     */
-		sp[i]->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 10);
-		sprintf(sp[i]->mbus_engine_addr, MBUS_ADDR_ENGINE, (unsigned long) ppid);
+		sp[i]->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 15);
+		sprintf(sp[i]->mbus_engine_addr, MBUS_ADDR_ENGINE, i, (unsigned long) ppid);
 		sp[i]->mbus_engine      = mbus_init(mbus_engine_rx, mbus_error_handler, sp[i]->mbus_engine_addr);
 		if (sp[i]->mbus_engine == NULL) {
-			fatal_error(appname, "Could not initialize Mbus: Is multicast enabled?");
+			fatal_error("RAT v" RAT_VERSION, "Could not initialize Mbus: Is multicast enabled?");
 			return FALSE;
 		}
 	}
@@ -475,12 +479,12 @@ int main(int argc, char *argv[])
 		}
 		session_validate(sp[i]);
 		session_exit(sp[i]);
+		xfree(token[i]);
+		xfree(token_e[i]);
 	}
         
 	converters_free();
 	xfree(c_addr);
-	xfree(token);
-	xfree(token_e);
 	xmemdmp();
 	debug_msg("Media engine exit\n");
 	return 0;

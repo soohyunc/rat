@@ -1398,7 +1398,14 @@ v4.2.7	- Split main() in the controller into two parts: one for normal
 	  with the source_process() function and friends).
 	* Released 6 August 2000
 
-v4.2.8	-
+v4.2.8	- Mbus address of media engine now contains session identifier (this 
+	  is always zero when running as an audio tool, but the transcoder 
+	  has sessions 0 and 1).
+	- Fix bug in mbus transmit code which would cause messages to have the
+	  same sequence number as the preceeding ack.
+	- Update controller initialization sequence to handle transcoder.
+	- All fatal_error() messages are now prefixed with the RAT_VERSION
+	  text, rather than the argv[0] application name.
 
 
 TODO -- They're features not bugs dammit!
@@ -1500,4 +1507,23 @@ TODO -- They're features not bugs dammit!
 	rat-4.2.4-media: source.c:1588: source_process: Assertion `md->nrep < 5 && md->nrep > 0' failed.
   FYI, I just triggered this same failure inadvertently at another site by 
   transmitting at 48khz when they were set to receive at 16khz. (Bob Olson).
-
+- RTCP validation code is incorrect (Vladimir Brauner):
+	The issue is located into RAT RTCP validating function code : The
+	"r < end && p== 1" test could himself be ok, but the following "if
+	...  return (Failure)" is not "compatible" with it. It ends up
+	rejecting ANY compound RTCP packet with a trailing p==1 (as it is
+	the case in our DES BYE test).
+- I also noticed another flaw into RAT interval reconsideration upon source
+  removal (BYE, ...): the update of RTCP last sending time is incorrect:
+  Using draft-ietf-avt-rtp-new-08 (000714) notation, RAT does a 
+  	"tp = tc - (members/pmembers)(tc - tn)" 
+  instead of a 
+  	"tp = tc - (members/pmembers)(tc - tp)" 
+  (page 22); This garbles tp, and so RAT RTCP transmission pace.  This
+  happens in RAT "delete_source" function, last tv_add() call (common/rtp
+  1.105); the comments above the wrong coding correctly refer the good
+  formula; (Vladimir Brauner).
+- Problems with the IPv6 code: the protocol hint for getaddrinfo() is
+  AF_INET6 which fails on FreeBSD with KAME. Setting it to zero - which
+  means "don't care" works (Shirasaki Yasuhiro).
+ 

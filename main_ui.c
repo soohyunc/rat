@@ -24,8 +24,8 @@ static const char cvsid[] =
 #include "tk.h"
 #include "tcltk.h"
 #include "util.h"
+#include "version.h"
 
-const char* appname;      /* Application name */
 char*       e_addr = NULL; /* Engine address */
 char*       c_addr = NULL; /* Controller address */
 char        m_addr[100];
@@ -43,7 +43,7 @@ static void parse_args(int argc, char *argv[])
 	int 	i;
 
 	if (argc != 5) {
-		printf("Usage: %s -ctrl <addr> -token <token>\n", argv[0]);
+		printf("UI usage: %s -ctrl <addr> -token <token>\n", argv[0]);
 		exit(1);
 	}
 	for (i = 1; i < argc; i++) {
@@ -99,8 +99,6 @@ int main(int argc, char *argv[])
         hWakeUpEvent = CreateEvent(NULL, FALSE, FALSE, "Local\\RAT UI WakeUp Event");
 #endif
 
-        appname = get_appname(argv[0]);
-
         debug_set_core_dir(argv[0]);
 
 	debug_msg("rat-ui started argc=%d\n", argc);
@@ -110,7 +108,7 @@ int main(int argc, char *argv[])
 	sprintf(m_addr, "(media:audio module:ui app:rat id:%lu)", (unsigned long) ppid);
 	m = mbus_init(mbus_ui_rx, mbus_error_handler, m_addr);
         if (m == NULL) {
-                fatal_error(appname, "Could not initialize Mbus: Is multicast enabled?");
+                fatal_error("RAT v" RAT_VERSION, "Could not initialize Mbus: Is multicast enabled?");
                 return FALSE;
         }
 
