@@ -52,6 +52,7 @@
 #include "auddev_win32.h"
 #include "audio_types.h"
 #include "audio_fmt.h"
+#include "util.h"
 
 #define rat_to_device(x)	((x) * 255 / MAX_AMP)
 #define device_to_rat(x)	((x) * MAX_AMP / 255)
@@ -71,7 +72,8 @@ static int  nLoopGain = 100;
  *
  * no thanks to the person who wrote the microsoft documentation 
  * (circular and information starved) for the mixer, or the folks 
- * who conceived the api in the first place. 
+ * who conceived the api in the first place.  Some of the api works,
+ * some doesn't.  Too bad documentation does not highlight this.
  */
 
 typedef struct {
@@ -118,84 +120,6 @@ mixGetErrorText(MMRESULT mmr)
         return "Undefined Error";
 #endif /* NDEBUG */
         return "Mixer Error.";
-}
-
-/* Number of WaveIn devices does not always equal number of waveOut devices,
- * and number of mixers may correspond to neither.  But we need a way of tieing
- * together an appropriate combination.  Some cards are half-duplex in hardware,
- * some have multiple mixers per wave interface for legacy reasons.
- */
-static int 
-GetMatchingAudioComponents(UINT uWavIn, matchingAudioComponents *pmac)
-{
-        UINT i, n, woMixer;
-        MMRESULT mmr;
-        
-        assert(pmac != NULL);
-        pmac->uWavIn = uWavIn;
-
-        
-        
-        /* Known bug: We use mixerGetID to retrieve the mixer corresponding to
-         * audio card uWavIn.  With a SB16 and an SB Live card in a machine, the
-         * mixerGetID card corresponding to the SB16 returns the mixerID for the
-         * SB Live!
-         * Suspected cause: The manufacture id and product id's of the waveindevcaps
-         * for both cards is the same.  It is likely that mixerGetId does no more
-         * than match the first set id's since there are no other attributes to use
-         * aside from string matching, but that gets v. ugly since words like
-         * mixer and wave need stripping and this will only fly in english then.
-         */
-        
-        n = waveInGetNumDevs();
-
-        mmr = mixerGetID((HMIXEROBJ)uWavIn, &pmac->uMixer, MIXER_OBJECTF_WAVEIN);
-        if (mmr != MMSYSERR_NOERROR) {
-                debug_msg("mixerGetID: %s\n", mixGetErrorText(mmr));
-                return FALSE;
-        }
-        n = waveOutGetNumDevs();
-        for(i = 0; i < n; i++) {
-                mmr = mixerGetID((HMIXEROBJ)i, &woMixer, MIXER_OBJECTF_WAVEOUT);
-                if (mmr == MMSYSERR_NOERROR &&
-                    woMixer == pmac->uMixer) {
-                        pmac->uWavOut = i;
-                        return TRUE;
-                }
-        }
-        return FALSE;
-}
-
-static UINT 
-CountMatchingComponents()
-{
-        matchingAudioComponents mac;
-        UINT i, n, m;
-        
-        n = waveInGetNumDevs();
-        m = 0;
-        for(i = 0; i < n; i++) {
-                if (GetMatchingAudioComponents(i, &mac)) {
-                        m++;
-                }
-        }
-        return m;
-}
-
-static UINT
-GetMatchingComponent(UINT idx, matchingAudioComponents *pmac)
-{
-        UINT i, m, n;
-        
-        n = waveInGetNumDevs();
-        m = 0;
-        for(i = 0; i < n; i++) {
-                if (GetMatchingAudioComponents(i, pmac)) {
-                        if (m == idx) return TRUE;
-                        m++;
-                }
-        }
-        return FALSE;
 }
 
 static const char *
@@ -875,6 +799,62 @@ w32sdk_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 	return (len);
 }
 
+
+/* Get matching components is a really annoying function.  It only
+ * exists because mixerGetDevID does not work properly when given
+ * wave id's and handles.  It should return the corresponding mixer,
+ * but it always returns the first available mixer.
+ */
+int 
+GetMatchingComponents(UINT uMix, matchingAudioComponents *mac)
+{
+        MIXERCAPS   mic;
+        WAVEINCAPS  wic;
+        WAVEOUTCAPS woc;
+        MMRESULT    mmr;
+        UINT i, n;
+        int score, best;
+        mac->uMixer = uMix;
+        
+        mmr = mixerGetDevCaps(uMix, &mic, sizeof(mic));
+        if (mmr != MMSYSERR_NOERROR) {
+                debug_msg("mixerGetDevCaps failed: %s\n", mixGetErrorText(mmr));
+                return FALSE;
+        }
+
+        best = -1;
+        n = waveInGetNumDevs();
+        for(i = 0; i < n; i++) {
+                mmr = waveInGetDevCaps(i, &wic, sizeof(wic));
+                if (mmr != MMSYSERR_NOERROR) {
+                        debug_msg("waveInGetDevCaps: %s\n", mixGetErrorText(mmr));
+                        continue;
+                }
+                score = overlapping_words(mic.szPname, wic.szPname, 5);
+                if (score > best) {
+                        mac->uWavIn = i;
+                        best = score;
+                }
+        }
+
+        best = -1;
+        n = waveOutGetNumDevs();
+        for(i = 0; i < n; i++) {
+                mmr = waveOutGetDevCaps(i, &woc, sizeof(woc));
+                if (mmr != MMSYSERR_NOERROR) {
+                        debug_msg("waveOutGetDevCaps: %s\n", mixGetErrorText(mmr));
+                        continue;
+                }
+                score = overlapping_words(mic.szPname, woc.szPname, 5);
+                if (score > best) {
+                        mac->uWavOut = i;
+                        best = score;
+                }
+        }
+
+        return TRUE;
+}
+
 static int audio_dev_open = 0;
 
 int
@@ -894,8 +874,9 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
                 return FALSE; /* Only support L16 for time being */
         }
         
-        if (GetMatchingComponent(ad, &mac) == FALSE) {
+        if (GetMatchingComponents(ad, &mac) == FALSE) {
                 debug_msg("Matching components failed\n");
+                return FALSE;
         }
         
         if (mixSetup(mac.uMixer) == FALSE) {
@@ -1137,7 +1118,7 @@ w32sdk_audio_iport_set(audio_desc_t ad, audio_port_t port)
                                 if (strcmp(loop_ports[j].name, input_ports[iport].name) == 0) {
                                         mixerEnableOutputLine((HMIXEROBJ)hMixer, loop_ports[j].port, 0);
                                 }
-                                if (strcmp(loop_ports[j].name, input_ports[i].name) == 0 && nLoopGain != 0) {
+                                if (strcmp(loop_ports[j].name, input_ports[i].name) == 0) {
                                         mixerEnableOutputLine((HMIXEROBJ)hMixer, loop_ports[j].port, 1);
                                         mixerSetLineGain((HMIXEROBJ)hMixer, loop_ports[j].port, nLoopGain); 
                                 }
@@ -1244,7 +1225,7 @@ w32sdk_probe_formats(audio_desc_t ad, UINT uInID, UINT uOutID)
 	UNUSED(uInID);
 	UNUSED(uOutID);
 	
-        GetMatchingComponent(ad, &mac);
+        GetMatchingComponents(ad, &mac);
 
 	for (rate = 8000; rate <= 48000; rate+=8000) {
 		if (rate == 24000 || rate == 40000) continue;
@@ -1277,7 +1258,8 @@ w32sdk_audio_supports(audio_desc_t ad, audio_format *paf)
 int
 w32sdk_get_device_count()
 {
-	return CountMatchingComponents();
+        /* We are only interested in devices with mixers */
+	return (int)mixerGetNumDevs();
 }
 
 static char tmpname[MAXPNAMELEN];
@@ -1285,11 +1267,10 @@ static char tmpname[MAXPNAMELEN];
 char *
 w32sdk_get_device_name(int idx)
 {
-        matchingAudioComponents mac;
         MIXERCAPS mc;
 
-        if (GetMatchingComponent(idx, &mac)) {
-	        mixerGetDevCaps(mac.uMixer, &mc, sizeof(mc));
+        if ((UINT)idx < mixerGetNumDevs()) {
+	        mixerGetDevCaps((UINT)idx, &mc, sizeof(mc));
                 strcpy(tmpname, mc.szPname);
                 return tmpname;
         }
