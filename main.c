@@ -197,7 +197,9 @@ main(int argc, char *argv[])
                                 tx_send(sp[i], sp[1-i]->speakers_active);
                         }
 			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time);
-			service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, sp[i]->ms);
+			if (sp[i]->playing_audio) {
+				service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, sp[i]->ms);
+			}
 			if (sp[i]->mode == TRANSCODER) {
 				service_rtcp(sp[i], sp[1-i], rtcp_pckt_queue_p[i], cur_time);
 			} else {
