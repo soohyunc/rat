@@ -18,7 +18,16 @@ AC_TYPE_SIZE_T
 VERSION=`cat VERSION`
 AC_SUBST(VERSION)
 
-OSTYPE=$host_os
+# This is kind-of ugly, but necessary to get the OSTYPE to match those used
+# in earlier versions of rat (and, despite what rms thinks, I don't like my
+# system being identified as "linux-gnu". [csp]
+case "$host_os" in
+	*linux*   ) OSTYPE=Linux    ;;
+	*solaris* ) OSTYPE=Solaris  ;;
+	*freebsd* ) OSTYPE=FreeBSD  ;;
+	*irix*    ) OSTYPE=Irix     ;;
+	*         ) OSTYPE=$host_os ;;
+esac
 AC_SUBST(OSTYPE)
 
 dnl The following two macros cause autoconf to complain.

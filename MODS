@@ -971,8 +971,6 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 		  commands an entity to leave)
 		- Generate and work with 64 bit DES keys. Generate parity bits
 		  for key.
-		  Check if key in configuration file sets parity bits 
-		  correctly.
 		- mbus_heartbeat(m, 1) should send an mbus.hello() every 
 		  second and not every two seconds
 		- HMAC-MD5 should read HMAC-MD5-96
@@ -995,6 +993,10 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 	- Add patch matching segment insertion when correcting for slow sources
 	- Migrated Makefiles and Headers to use autoconf
 	- Fix crash on exit
+	- Fix system name in tool version
+	- Add version number to mbus config file. Should prevent crashes
+	  when we update the format of that file.
+
 
 
 TODO -- They're features not bugs dammit!
