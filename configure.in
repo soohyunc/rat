@@ -283,9 +283,29 @@ AC_SUBST(X_PRE_LIBS)
 # INSTDIR/include/tcl8.0, or INSTDIR/include, and have libraries be in 
 # INSTDIR/lib.
 #------------------------------------------------------------------------------
+
+TCLTK_VERSION="8.0"
+AC_ARG_WITH(tcltk-version,
+	[  --with-tcltk-version=M.m specify preferred Tcl/Tk version],
+	[
+		if test X${TCL_INC} != "X" 
+		then 
+			echo "--with-tcltk-version needs settings before --with-tcl"
+			exit
+		fi
+		if test X${TK_INC} != "X" 
+		then 
+			echo "--with-tcltk-version needs settings before --with-tk"
+			exit
+		fi
+		TCLTK_VERSION=$withval
+ 	])
+TCLTK_VERSION_ALT=`echo ${TCLTK_VERSION} | sed 'sX\.XX'`
+
+# Default UCL is ../{tcl,tk}-8.0
 PARENT=`echo $PWD | sed -e 's%/[[^/]]*$%%'`
-TCL_INC=${PARENT}/tcl-8.0
-TCL_LIB=${PARENT}/tcl-8.0
+TCL_INC=${PARENT}/tcl-${TCLTK_VERSION}
+TCL_LIB=${PARENT}/tcl-${TCLTK_VERSION}
 
 AC_ARG_WITH(tcl,           
 	[  --with-tcl=DIR          specify location of Tcl installation],
@@ -295,7 +315,7 @@ AC_ARG_WITH(tcl,
 #-----------------------------------------------------------------------------
 # Depending on config expect tcl.h to be tcl source dir or include path
 #-----------------------------------------------------------------------------
-for i in $TCL_INC/generic $TCL_INC/include/tcl8.0 $TCL_INC/include $TCL_INC
+for i in $TCL_INC/generic $TCL_INC/include/tcl${TCLTK_VERSION} $TCL_INC/include $TCL_INC
 do
 	if test -d $i ; then
 		TCL_INC=$i
@@ -319,6 +339,7 @@ fi
 #-----------------------------------------------------------------------------
 # Guess most probable tcl lib location
 #-----------------------------------------------------------------------------
+
 for i in $TCL_LIB/unix $TCL_LIB/lib $TCL_LIB
 do
 	if test -d $i ; then
@@ -330,7 +351,7 @@ done
 SAVED_LIBS=$LIBS
 LIBS=""
 FOUND_TCL_LIB=no
-AC_SEARCH_LIBS(Tcl_Init, tcl8.0 tcl80, 
+AC_SEARCH_LIBS(Tcl_Init, tcl${TCLTK_VERSION} tcl${TCLTK_VERSION_ALT}, 
 	FOUND_TCL_LIB=yes,
 	, 
 	-L${TCL_LIB} ${SAVED_LIBS} -lm)
@@ -346,8 +367,8 @@ then
 	exit
 fi
 
-TK_INC=${PARENT}/tk-8.0
-TK_LIB=${PARENT}/tk-8.0
+TK_INC=${PARENT}/tk-${TCLTK_VERSION}
+TK_LIB=${PARENT}/tk-${TCLTK_VERSION}
 
 AC_ARG_WITH(tk,           
 	[  --with-tk=DIR           specify location of Tk installation],
@@ -359,7 +380,7 @@ AC_ARG_WITH(tk,
 # include tcl.h, Xlib.h, Xutil.h before tk.h.
 #-----------------------------------------------------------------------------
 FOUND_TK_INC=0
-for i in $TK_INC/generic $TK_INC/include/tk8.0 $TK_INC/include $TK_INC
+for i in $TK_INC/generic $TK_INC/include/tk${TCLTK_VERSION} $TK_INC/include $TK_INC
 do
 	AC_MSG_CHECKING(for $i/tk.h)
 	if test -r $i/tk.h ; then
@@ -391,7 +412,7 @@ done
 SAVED_LIBS=$LIBS
 LIBS=""
 FOUND_TK_LIB=no
-AC_SEARCH_LIBS(Tk_Init, tk8.0 tk80,
+AC_SEARCH_LIBS(Tk_Init, tk${TCLTK_VERSION} tk${TCLTK_VERSION_ALT},
 	FOUND_TK_LIB=yes,
 	,
 	-L${TK_LIB} ${TCL_LIB} $X_LIBS $X_PRE_LIBS  -lXext -lX11 $X_EXTRA_LIBS ${SAVED_LIBS} -lm)
@@ -471,11 +492,11 @@ AC_CHECK_LIB(uclmmbase,
 		COMMON_LIB="-L${COMMON_LIB} -luclmmbase"
 	],
 	[
-		echo "Could not find libuclmmbase.a.  One of the following halted progess:"
+		echo "Could not find libuclmmbase.a.  RAT may not build because:"
 		echo "   (a) Library is not installed."
 		echo "   (b) Library is not built or not in expected location (--with-common=DIR)."
 		echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
-		exit
+#		exit
 	],
 	-L${COMMON_LIB})
 

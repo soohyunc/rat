@@ -13,6 +13,7 @@ CC      = @CC@
 AR      = ar
 RANLIB  = @RANLIB@
 ECHO    = echo
+STRIP	= strip
 
 VERSION = @VERSION@
 RATVER  = rat-$(VERSION)
