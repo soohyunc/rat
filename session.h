@@ -85,6 +85,7 @@ typedef struct s_session {
         int                 	 ui_on;				/* If we have a user interface... */
 	struct s_sndfile   	*in_file;
 	struct s_sndfile   	*out_file;
+	struct s_sndfile	*local_file;
 	audio_desc_t	    	 audio_device;
 	struct s_tx_buffer 	*tb;
         struct s_pdb       	*pdb; 				/* persistent participant information database.  */

@@ -351,6 +351,11 @@ audio_device_write(session_t *sp, sample *buf, int dur)
                 snd_write_audio(&sp->out_file, buf, (uint16_t)(dur * ofmt->channels));
         }
 
+	/* FIXME */
+	if (sp->local_file) {
+		snd_read_audio(&sp->local_file, buf, dur);
+	}
+
         len =  audio_write(sp->audio_device, buf, dur * ofmt->channels);
 
         xmemchk();

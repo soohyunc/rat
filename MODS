@@ -1140,6 +1140,8 @@ v4.1.7	- Update ALSA detection in configure script
        		tool.rat.codecs.flush()
        		tool.rat.codecs.add()
   	  mbus messages.
+	- Add audio clip support to balloon help
+
 
 TODO -- They're features not bugs dammit!
 ----

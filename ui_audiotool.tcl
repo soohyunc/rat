@@ -8,6 +8,8 @@ catch {
 # Full terms and conditions of the copyright appear below.
 #
 
+set CLIPDIR /usr/demo/SOUND/sounds
+
 #wm withdraw .
 
 if {[string compare [info commands registry] "registry"] == 0} {
@@ -2736,7 +2738,7 @@ proc file_rec_stop {} {
 #
 
 proc show_help {window} {
-	global help_text help_on help_id
+	global help_text help_on help_id help_clip
 	if {$help_on} {
 		.help.text  configure -text $help_text($window)
 		# Beware! Don't put the popup under the cursor! Else we get window enter
@@ -2754,6 +2756,7 @@ proc show_help {window} {
 		wm geometry  .help +$xpos+$ypos
 		set help_id [after 100 wm deiconify .help]
 		raise .help $window
+		mbus_send "R" "tool.rat.local.file.play" "\"$help_clip($window)\""
 	}
 }
 
@@ -2765,9 +2768,10 @@ proc hide_help {window} {
 	wm withdraw .help
 }
 
-proc add_help {window text} {
-	global help_text 
+proc add_help {window text clip} {
+	global help_text help_clip CLIPDIR
 	set help_text($window)  $text
+	set help_clip($window)  $CLIPDIR/$clip
 	bind $window <Enter>    "+show_help $window"
 	bind $window <Leave>    "+hide_help $window"
 }
@@ -2780,126 +2784,126 @@ wm transient        .help .
 wm withdraw         .help
 wm overrideredirect .help true
 
-add_help .r.c.tx.au.pow.sli 	"This slider controls the volume\nof the sound you send."
-add_help .r.c.tx.au.port.l0 	"Click to change input device."
-add_help .r.c.tx.au.port.l2 	"Click to change input device."
+add_help .r.c.tx.au.pow.sli 	"This slider controls the volume\nof the sound you send." ""
+add_help .r.c.tx.au.port.l0 	"Click to change input device." ""
+add_help .r.c.tx.au.port.l2 	"Click to change input device." ""
 add_help .r.c.tx.net.on 	"If this button is pushed in, you are are transmitting, and\nmay be\
 	heard by other participants. Holding down the\nright mouse button in\
 	any RAT window will temporarily\ntoggle the state of this button,\
-	allowing for easy\npush-to-talk operation."
+	allowing for easy\npush-to-talk operation." ""
 add_help .r.c.tx.au.pow.bar 	"Indicates the loudness of the\nsound you are sending. If this\nis\
-                         moving, you may be heard by\nthe other participants."
+                         moving, you may be heard by\nthe other participants." ""
 
-add_help .r.c.rx.au.pow.sli  	"This slider controls the volume\nof the sound you hear."
-add_help .r.c.rx.au.port.l0  	"Click to change output device."
-add_help .r.c.rx.au.port.l2  	"Click to change output device."
-add_help .r.c.rx.au.pow.bar  	"Indicates the loudness of the\nsound you are hearing."
-add_help .r.c.rx.net.on  	"If pushed in, reception is muted."
+add_help .r.c.rx.au.pow.sli  	"This slider controls the volume\nof the sound you hear." ""
+add_help .r.c.rx.au.port.l0  	"Click to change output device." ""
+add_help .r.c.rx.au.port.l2  	"Click to change output device." ""
+add_help .r.c.rx.au.pow.bar  	"Indicates the loudness of the\nsound you are hearing." ""
+add_help .r.c.rx.net.on  	"If pushed in, reception is muted." ""
 
 add_help .l.f		"Name of the session, and the IP address, port\n&\
-		 	 TTL used to transmit the audio data."
+		 	 TTL used to transmit the audio data." ""
 add_help .l.t		"The participants in this session with you at the top.\nClick on a name\
                          with the left mouse button to display\ninformation on that participant,\
 			 and with the middle\nbutton to mute that participant (the right button\nwill\
-			 toggle the transmission mute button, as usual)."
+			 toggle the transmission mute button, as usual)." ""
 
-add_help .st.opts   	"Brings up another window allowing\nthe control of various options."
-add_help .st.about  	"Brings up another window displaying\ncopyright & author information."
-add_help .st.quit   	"Press to leave the session."
+add_help .st.opts   	"Brings up another window allowing\nthe control of various options." ""
+add_help .st.about  	"Brings up another window displaying\ncopyright & author information." ""
+add_help .st.quit   	"Press to leave the session." ""
 
 # preferences help
-add_help .prefs.m.f.m  "Click here to change the preference\ncategory."
+add_help .prefs.m.f.m  "Click here to change the preference\ncategory." ""
 set i .prefs.buttons
-add_help $i.bye         "Cancel changes."
-add_help $i.apply       "Apply changes."
-#add_help $i.save        "Save and apply changes."
+add_help $i.bye         "Cancel changes." ""
+add_help $i.apply       "Apply changes." ""
+#add_help $i.save        "Save and apply changes." ""
 
 # user help
 set i .prefs.pane.personal.a.f.f.ents
-add_help $i.name      	"Enter your name for transmission\nto other participants."
-add_help $i.email      	"Enter your email address for transmission\nto other participants."
-add_help $i.phone     	"Enter your phone number for transmission\nto other participants."
-add_help $i.loc      	"Enter your location for transmission\nto other participants."
+add_help $i.name      	"Enter your name for transmission\nto other participants." ""
+add_help $i.email      	"Enter your email address for transmission\nto other participants." ""
+add_help $i.phone     	"Enter your phone number for transmission\nto other participants." ""
+add_help $i.loc      	"Enter your location for transmission\nto other participants." ""
 
 #audio help
 set i .prefs.pane.audio
-add_help $i.dd.device.mdev "Selects preferred audio device."
+add_help $i.dd.device.mdev "Selects preferred audio device." ""
 add_help $i.dd.sampling.freq.mb \
-                        "Sets the sampling rate of the audio device.\nThis changes the available codecs."
+                        "Sets the sampling rate of the audio device.\nThis changes the available codecs." ""
 add_help $i.dd.sampling.ch_in.mb \
-                        "Changes between mono and stereo audio input."
+                        "Changes between mono and stereo audio input." ""
 add_help $i.dd.cks.f.f.silence\
 			 "Prevents silence from being transmitted when the speaker is silent\n\
-                          and the input is unmuted."
-add_help $i.dd.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound you send."
-add_help $i.dd.cks.f.f.loop "Enables hardware for loopback of audio input."
+                          and the input is unmuted." ""
+add_help $i.dd.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound you send." ""
+add_help $i.dd.cks.f.f.loop "Enables hardware for loopback of audio input." ""
 add_help $i.dd.cks.f.f.suppress \
-                         "Mutes microphone when playing audio."
+                         "Mutes microphone when playing audio." ""
 
 # transmission help
 set i .prefs.pane.transmission
 
 add_help $i.dd.units.m	"Sets the duration of each packet sent.\nThere is a fixed per-packet\
                          overhead, so\nmaking this larger will reduce the total\noverhead.\
-						 The effects of packet loss are\nmore noticable with large packets."
+						 The effects of packet loss are\nmore noticable with large packets." ""
 add_help $i.dd.pri.m	"Changes the primary audio compression\nscheme. The list is arranged\
                          with high-\nquality, high-bandwidth choices at the\ntop, and\
-						 poor-quality, lower-bandwidth\nchoices at the bottom."
-add_help $i.cc.van.rb	"Sets no channel coding."
+						 poor-quality, lower-bandwidth\nchoices at the bottom." ""
+add_help $i.cc.van.rb	"Sets no channel coding." ""
 add_help $i.cc.red.rb	"Piggybacks earlier units of audio into packets\n\
 			 to protect against packet loss. Some audio\n\
 			 tools (eg: vat-4.0) are not able to receive\n\
-			 audio sent with this option."
+			 audio sent with this option." ""
 add_help $i.cc.red.fc.m \
-			"Sets the format of the piggybacked data."
+			"Sets the format of the piggybacked data." ""
 add_help $i.cc.red.u.m \
-			"Sets the offset of the piggybacked data."
+			"Sets the offset of the piggybacked data." ""
 add_help $i.cc.layer.fc.m  "Sets the number of discrete layers which will\nbe sent. You need\
 						    to start RAT with the options\n-l n <address>/<port> <address>/<port>,\nwhere\
 						    n is the number of layers and there is an\naddress and port for each layer.\
-							NB: this is only\nsupported by the WBS codec at present."
+							NB: this is only\nsupported by the WBS codec at present." ""
 add_help $i.cc.int.fc.m \
 			"Sets the separation of adjacent units within\neach packet. Larger values correspond\
-			 to longer\ndelays."
-add_help $i.cc.int.zz.m "Number of compound units per packet."
+			 to longer\ndelays." ""
+add_help $i.cc.int.zz.m "Number of compound units per packet." ""
 add_help $i.cc.int.rb	"Enables interleaving which exchanges latency\n\
 			 for protection against burst losses.  No other\n\
-			 audio tools can decode this format (experimental)."
+			 audio tools can decode this format (experimental)." ""
 
 # Reception Help
 set i .prefs.pane.reception
 add_help $i.r.m 	"Sets the type of repair applied when packets are\nlost. The schemes\
-			 are listed in order of increasing\ncomplexity and quality of repair."
+			 are listed in order of increasing\ncomplexity and quality of repair." ""
 add_help $i.r.ms        "Sets the type of sample rate conversion algorithm\n\
 			 that will be applied to streams that differ in rate\n\
-			 to the audio device rate."
-add_help $i.o.f.cb      "Enforce playout delay limits set below.\nThis is not usually desirable."
+			 to the audio device rate." ""
+add_help $i.o.f.cb      "Enforce playout delay limits set below.\nThis is not usually desirable." ""
 add_help $i.o.f.fl.scmin   "Sets the minimum playout delay that will be\napplied to incoming\
-			 audio streams."
+			 audio streams." ""
 add_help $i.o.f.fr.scmax   "Sets the maximum playout delay that will be\napplied to incoming\
-			 audio streams."
+			 audio streams." ""
 add_help $i.c.f.f.lec  	"If enabled, extra delay is added at both sender and receiver.\nThis allows\
                          the receiver to better cope with host scheduling\nproblems, and the sender\
 			 to perform better silence suppression.\nAs the name suggests, this option\
 			 is intended for scenarios such\nas transmitting a lecture, where interactivity\
-			 is less important\nthan quality."
+			 is less important\nthan quality." ""
 
 # security...too obvious for balloon help!
 add_help .prefs.pane.security.a.f.f.e "Due to government export restrictions\nhelp\
-				       for this option is not available."
+				       for this option is not available." ""
 
 # interface...ditto!
 set i .prefs.pane.interface
 add_help $i.a.f.f.power "Disable display of audio powermeters. This\nis only\
-		 	 useful if you have a slow machine"
-add_help $i.a.f.f.balloon "If you can see this, balloon help\nis enabled. If not, it isn't."
-add_help $i.a.f.f.matrix  "Displays a chart showing the reception\nquality reported by all participants"
-add_help $i.a.f.f.plist   "Hides the list of participants"
+		 	 useful if you have a slow machine" ""
+add_help $i.a.f.f.balloon "If you can see this, balloon help\nis enabled. If not, it isn't." ""
+add_help $i.a.f.f.matrix  "Displays a chart showing the reception\nquality reported by all participants" ""
+add_help $i.a.f.f.plist   "Hides the list of participants" ""
 
 add_help .chart		"This chart displays the reception quality reported\n by all session\
                          participants. Looking along a row\n gives the quality with which that\
 			 participant was\n received by all other participants in the session:\n green\
-			 is good quality, orange medium quality, and\n red poor quality audio."
+			 is good quality, orange medium quality, and\n red poor quality audio." ""
 
 } script_error
 

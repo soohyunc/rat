@@ -524,6 +524,27 @@ static void rx_audio_file_play_stop(char *srce, char *args, session_t *sp)
 	}
 }
 
+static void rx_tool_rat_local_file_play(char *srce, char *args, session_t *sp)
+{
+	char	*file;
+	struct mbus_parser	*mp;
+
+	UNUSED(srce);
+        UNUSED(sp);
+
+	mp = mbus_parse_init(args);
+	if (mbus_parse_str(mp, &file)) {
+                mbus_decode_str(file);
+                if (sp->local_file) snd_read_close(&sp->local_file);
+                if (snd_read_open(&sp->local_file, file, NULL)) {
+                        debug_msg("Hooray opened %s\n",file);
+                }
+	} else {
+		debug_msg("mbus: usage \"tool.rat.local.file.play <filename>\"\n");
+	}
+	mbus_parse_done(mp);
+}
+
 static void rx_audio_file_play_open(char *srce, char *args, session_t *sp)
 {
 	char	*file;
@@ -858,6 +879,19 @@ static void rx_rtp_source_note(char *srce, char *args, session_t *sp)
 
 static void rx_rtp_source_mute(char *srce, char *args, session_t *sp)
 {
+	/*
+	 * Sources are active whilst packets are
+	 * arriving and maintaining statistics on
+	 * sender.  This is good, but we need to
+	 * remove source when changing mute state, if
+	 * packets are still arriving source will be
+	 * recreated when next packet arrives.  When
+	 * muting we want to remove source to stop
+	 * audio already buffered from playing.  When
+	 * unmuting want to remove source to
+	 * initialize state, particularly timestamps
+	 * of last repair etc.  
+	 */
 	pdb_entry_t *pdbe;
 	char        *ssrc;
 	int          i;
@@ -868,30 +902,19 @@ static void rx_rtp_source_mute(char *srce, char *args, session_t *sp)
 	mp = mbus_parse_init(args);
 	if (mbus_parse_str(mp, &ssrc) && mbus_parse_int(mp, &i)) {
 		ssrc = mbus_decode_str(ssrc);
-                if (pdb_item_get(sp->pdb, strtoul(ssrc, 0, 16), &pdbe)) {
-                        struct s_source *s;
-                        s = source_get_by_ssrc(sp->active_sources, pdbe->ssrc);
-                        pdbe->mute = i;
-                        debug_msg("mute ssrc 0x%08x (%d)\n", pdbe->ssrc, i);
-                        /*
-                         * Sources are active whilst packets are
-                         * arriving and maintaining statistics on
-                         * sender.  This is good, but we need to
-                         * remove source when changing mute state, if
-                         * packets are still arriving source will be
-                         * recreated when next packet arrives.  When
-                         * muting we want to remove source to stop
-                         * audio already buffered from playing.  When
-                         * unmuting want to remove source to
-                         * initialize state, particularly timestamps
-                         * of last repair etc.  
-                         */
-                        if (s != NULL) {
-                                source_remove(sp->active_sources, s);
-                        }
-                        ui_send_rtp_mute(sp, sp->mbus_ui_addr, pdbe->ssrc);
-                } else {
-			debug_msg("Unknown source 0x%08lx\n", ssrc);
+		if (strcmp(ssrc, "ALL") == 0) {
+		} else {
+			if (pdb_item_get(sp->pdb, strtoul(ssrc, 0, 16), &pdbe)) {
+				struct s_source *s = source_get_by_ssrc(sp->active_sources, pdbe->ssrc);
+				if (s != NULL) {
+					source_remove(sp->active_sources, s);
+				}
+				pdbe->mute = i;
+				ui_send_rtp_mute(sp, sp->mbus_ui_addr, pdbe->ssrc);
+				debug_msg("mute ssrc 0x%08x (%d)\n", pdbe->ssrc, i);
+			} else {
+				debug_msg("Unknown source 0x%08lx\n", ssrc);
+			}
 		}
 	} else {
 		debug_msg("mbus: usage \"rtp_source_mute <ssrc> <bool>\"\n");
@@ -1388,6 +1411,7 @@ static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 }
 
 static const mbus_cmd_tuple engine_cmds[] = {
+	{ "tool.rat.local.file.play",              rx_tool_rat_local_file_play },
         { "session.title",                         rx_session_title },
         { "tool.rat.silence",                      rx_tool_rat_silence },
         { "tool.rat.lecture.mode",                 rx_tool_rat_lecture_mode },
