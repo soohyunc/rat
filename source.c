@@ -808,10 +808,8 @@ recommend_drop_dur(media_data *md)
         }
 
         if (lowest_score/SOURCE_COMPARE_WINDOW_SIZE < MATCH_THRESHOLD) {
-                debug_msg("match score %d, drop dur %d\n", lowest_score/SOURCE_COMPARE_WINDOW_SIZE, lowest_begin);
                 return ts_map32(rate, lowest_begin);
         } else {
-                debug_msg("Score %d > Thresh %d\n", lowest_score/SOURCE_COMPARE_WINDOW_SIZE, MATCH_THRESHOLD);
                 return zero_ts;
         }
 }
