@@ -5,8 +5,8 @@
 INCS   = -I/usr/include/X11 \
          -I/cs/research/mice/starship/common/hpux/include/
 
-LDLIBS = /cs/research/mice/starship/common/hpux/lib/libtk4.2.a \
-         /cs/research/mice/starship/common/hpux/lib/libtcl7.6.a \
+LDLIBS = /cs/research/mice/starship/common/hpux/lib/libtk8.0.a \
+         /cs/research/mice/starship/common/hpux/lib/libtcl8.0.a \
          -L/usr/lib/X11R5 -lXext -lX11 \
          -lAlib -lm -ldld
 

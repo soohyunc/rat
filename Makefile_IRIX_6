@@ -1,6 +1,6 @@
 CC         = cc
 CFLAGS     = -fullwarn -signed $(INCS) $(DEFS) -g -O 
 INCS       = -I/usr/ucl/X11/include -I/cs/research/mice/starship/common/irix/include
-LDLIBS     = -L/cs/research/mice/starship/common/irix/lib -ltk4.2 -ltcl7.6 -L/usr/lib/X11 -lX11 -laudio -lm
+LDLIBS     = -L/cs/research/mice/starship/common/irix/lib -ltk8.0 -ltcl8.0 -L/usr/lib/X11 -lX11 -laudio -lm
 OBJS       = $(OBJDIR)/auddev_sgi.o
 

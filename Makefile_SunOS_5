@@ -3,7 +3,7 @@ INCS   = -I/cs/research/mice/starship/common/solaris/include \
 
 LDLIBS = -R/usr/openwin/lib \
          -L/cs/research/mice/starship/common/solaris/lib \
-         -ltk4.2 -ltcl7.6 \
+         -ltk8.0 -ltcl8.0 \
          -L/usr/openwin/lib -lXext -lX11 \
          -L/usr/demo/SOUND/lib -laudio \
          -lsocket -ldl -lnsl -lm
