@@ -82,7 +82,7 @@ static void parse_args(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
 	u_int32		 cur_time, ntp_time;
-	int            	 seed, elapsed_time, alc;
+	int            	 seed, elapsed_time, alc, scnt;
 	session_t 	*sp;
 	struct timeval   time;
 	struct timeval	 timeout;
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
 		/* Process and mix active sources */
 		if (sp->playing_audio) {
 			struct s_source *s;
-			int sidx, scnt;
+			int sidx;
 			ts_t cush_ts;
 			cush_ts = ts_map32(get_freq(sp->device_clock), cushion_get_size(sp->cushion));
 			cush_ts = ts_add(sp->cur_ts, cush_ts);
@@ -240,21 +240,23 @@ int main(int argc, char *argv[])
                 /* audio, enable when stop receiving.                        */
 
                 if (sp->echo_suppress) {
-                        if (source_list_source_count(sp->active_sources) > 0) {
+                        if (scnt > 0) {
                                 if (tx_is_sending(sp->tb)) {
                                         tx_stop(sp->tb);
                                         sp->echo_tx_active = TRUE;
+                                        debug_msg("Echo suppressor (disabling tx)\n");
                                 }
                         } else if (sp->echo_tx_active) {
                                 /* Transmitter was stopped because we were   */
                                 /* playing out audio.  Restart it.           */
                                 if (tx_is_sending(sp->tb) == FALSE) {
                                         tx_start(sp->tb);
+                                        debug_msg("Echo suppressor (enabling tx)\n");
                                 }
                                 sp->echo_tx_active = FALSE;
                         }
                 }
-
+                /* Lecture Mode */
 		if (alc >= 50) {
 			if (!sp->lecture && tx_is_sending(sp->tb) && sp->auto_lecture != 0) {
 				gettimeofday(&time, NULL);
@@ -267,6 +269,7 @@ int main(int argc, char *argv[])
 		} else {
 			alc++;
 		}
+
 		if (sp->audio_device) {
                         ui_update_powermeters(sp, sp->ms, elapsed_time);
                 }
