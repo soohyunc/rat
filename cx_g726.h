@@ -75,11 +75,11 @@ struct g726_state {
 /* External function definitions. */
 
 extern void g726_init_state(struct g726_state *);
-extern int g726_32_encoder(
+extern int g726_16_encoder(
 		int sample,
 		int in_coding,
 		struct g726_state *state_ptr);
-extern int g726_32_decoder(
+extern int g726_16_decoder(
 		int code,
 		int out_coding,
 		struct g726_state *state_ptr);
@@ -88,6 +88,14 @@ extern int g726_24_encoder(
 		int in_coding,
 		struct g726_state *state_ptr);
 extern int g726_24_decoder(
+		int code,
+		int out_coding,
+		struct g726_state *state_ptr);
+extern int g726_32_encoder(
+		int sample,
+		int in_coding,
+		struct g726_state *state_ptr);
+extern int g726_32_decoder(
 		int code,
 		int out_coding,
 		struct g726_state *state_ptr);

@@ -7,10 +7,6 @@
  *
  */
 
-/* Listen up sweet child of mine - have I got news for you "no-one
- * leaves this place alive, they'll die here with you"... I'm going to
- * break right into heaven, I can't wait anymore...  */
-
 #include "config_unix.h"
 #include "config_win32.h"
 #include "memory.h"
@@ -24,6 +20,19 @@
 #define CODEC_PAYLOAD_NO(x) (x)
 
 static codec_format_t cs[] = {
+        /* G726-16 ***********************************************/
+        {"G726-16", "G726-16-8K-Mono",  
+         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.", 
+         CODEC_PAYLOAD_DYNAMIC, 0, 40, {DEV_S16,  8000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 20  ms */
+        {"G726-16", "G726-16-16K-Mono",  
+         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.", 
+         CODEC_PAYLOAD_DYNAMIC, 0, 40, {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 10  ms */
+        {"G726-16", "G726-16-32K-Mono",  
+         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.", 
+         CODEC_PAYLOAD_DYNAMIC, 0, 40, {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}},  /* 5  ms */
+        {"G726-16", "G726-16-48K-Mono",  
+         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.", 
+         CODEC_PAYLOAD_DYNAMIC, 0, 40, {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}},  /* 3.3 ms */
         /* Entries 0-3 G726-24 ***********************************************/
         {"G726-24", "G726-24-8K-Mono",  
          "ITU G.726-24 ADPCM codec. Sun Microsystems public implementation.", 
@@ -62,17 +71,18 @@ static codec_format_t cs[] = {
          CODEC_PAYLOAD_DYNAMIC, 0, 100, {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}},  /* 5  ms */
         {"G726-40", "G726-40-48K-Mono",  
          "ITU G.726-40 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_DYNAMIC, 0, 100, {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}}  /* 3.3 ms */
+         CODEC_PAYLOAD_DYNAMIC, 0, 100, {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}},  /* 3.3 ms */
 };
 
-#define G726_24        0
-#define G726_32        1
-#define G726_40        2
+#define G726_16        0
+#define G726_24        1
+#define G726_32        2
+#define G726_40        3
 
 #define G726_NUM_FORMATS sizeof(cs)/sizeof(codec_format_t)
 
-/* In G726_NUM_RATES, 3 because Sun implement 3 G726 encodings -24, -32, -48 */
-#define G726_NUM_RATES   (G726_NUM_FORMATS / 3)
+/* In G726_NUM_RATES, 4 one for 16, 24, 32, 48 */
+#define G726_NUM_RATES   (G726_NUM_FORMATS / 4)
 
 u_int16
 g726_get_formats_count()
@@ -139,6 +149,18 @@ g726_encode(u_int16 idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 
         idx = idx / G726_NUM_RATES;
         switch(idx) {
+        case G726_16:
+                while (s != se) {
+                        cw    = g726_16_encoder(*s++, AUDIO_ENCODING_LINEAR, gs); /* 1 */
+                        *dst  = (u_char)(cw << 6);
+                        cw    = g726_16_encoder(*s++, AUDIO_ENCODING_LINEAR, gs); /* 2 */
+                        *dst |= (u_char)(cw << 4);
+                        cw    = g726_16_encoder(*s++, AUDIO_ENCODING_LINEAR, gs); /* 3 */
+                        *dst |= (u_char)(cw << 2);
+                        cw    = g726_16_encoder(*s++, AUDIO_ENCODING_LINEAR, gs); /* 4 */
+                        *dst |= (u_char)(cw);
+                        dst++;
+                }
         case G726_24:
                 while (s != se) {
                         cw    = g726_24_encoder(*s++, AUDIO_ENCODING_LINEAR, gs); /* 1 */
@@ -237,76 +259,91 @@ g726_decode(u_int16 idx, u_char *decoder_state, coded_unit *c, sample *data)
 
         idx = idx / G726_NUM_RATES;
         switch(idx) {
+        case G726_16:
+                while(s != se) {
+                        cw     = *s >> 6;                                      /* 1 */
+                        cw     = g726_16_decoder(cw, AUDIO_ENCODING_LINEAR, gs);
+                        *dst++ = (sample)cw;
+                        cw     = (*s >> 4) & 0x03;                             /* 2 */
+                        cw     = g726_16_decoder(cw, AUDIO_ENCODING_LINEAR, gs);
+                        *dst++ = (sample)cw;
+                        cw     = (*s >> 2) & 0x03;                             /* 3 */
+                        cw     = g726_16_decoder(cw, AUDIO_ENCODING_LINEAR, gs);
+                        *dst++ = (sample)cw;
+                        cw     = *s & 0x03;                                    /* 4 */
+                        cw     = g726_16_decoder(cw, AUDIO_ENCODING_LINEAR, gs);
+                        *dst++ = (sample)cw;
+                        s++;
+                }
+                break;
         case G726_24:
                 while(s != se) {
-                        cw = *s >> 5;                                         /* 1 */
+                        cw = *s >> 5;                                          /* 1 */
                         cw = g726_24_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw = (*s >> 2) & 0x7;                                 /* 2 */ 
+                        cw = (*s >> 2) & 0x7;                                  /* 2 */ 
                         cw = g726_24_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw = (*s++ & 0x3) << 1;                               /* 3 */
+                        cw = (*s++ & 0x3) << 1;                                /* 3 */
                         cw |= (*s & 0x80) >> 7;
                         cw = g726_24_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw = (*s & 0x70) >> 4;                                /* 4 */
+                        cw = (*s & 0x70) >> 4;                                 /* 4 */
                         cw = g726_24_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw = (*s & 0x0e) >> 1;                                /* 5 */
+                        cw = (*s & 0x0e) >> 1;                                 /* 5 */
                         cw = g726_24_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw = (*s++ & 0x01) << 2;                              /* 6 */
+                        cw = (*s++ & 0x01) << 2;                               /* 6 */
                         cw |= (*s & 0xc0) >> 6;                               
                         cw = g726_24_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw = (*s & 0x34) >> 3;                                /* 7 */
+                        cw = (*s & 0x34) >> 3;                                 /* 7 */
                         cw = g726_24_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw = *s++ & 0x07;                                     /* 8 */
+                        cw = *s++ & 0x07;                                      /* 8 */
                         cw = g726_24_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
                 }
-
                 break;
         case G726_32:
                 while(s != se) {
-                        cw = (*s >> 4);                                       /* 1 */
+                        cw = (*s >> 4);                                        /* 1 */
                         cw = g726_32_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw = (*s++ & 0x0f);                                   /* 2 */
+                        cw = (*s++ & 0x0f);                                    /* 2 */
                         cw = g726_32_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
                 }
-
                 break;
         case G726_40:
                 while (s != se) {
                         cw  = (*s >> 3);                                       /* 1 */
                         cw  = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw  = (*s++ & 0x07) << 2;                             /* 2 */
+                        cw  = (*s++ & 0x07) << 2;                              /* 2 */
                         cw |= (*s >> 6);
                         cw  = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw  = (*s & 0x3e) >> 1;                               /* 3 */
+                        cw  = (*s & 0x3e) >> 1;                                /* 3 */
                         cw  = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw  = (*s++ & 0x01) << 4;                             /* 4 */
+                        cw  = (*s++ & 0x01) << 4;                              /* 4 */
                         cw |= (*s >> 4);
                         cw  = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw  = (*s++ & 0x0f) << 1;                             /* 5 */
+                        cw  = (*s++ & 0x0f) << 1;                              /* 5 */
                         cw |= (*s >> 7);
                         cw  = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw  = (*s & 0x7c) >> 2;                               /* 6 */
+                        cw  = (*s & 0x7c) >> 2;                                /* 6 */
                         cw  = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw  = (*s++ & 0x03) << 3;                             /* 7 */
+                        cw  = (*s++ & 0x03) << 3;                              /* 7 */
                         cw |= (*s >> 5);
                         cw = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
-                        cw  = (*s++ & 0x1f);                                  /* 8 */
+                        cw  = (*s++ & 0x1f);                                   /* 8 */
                         cw = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, gs); 
                         *dst++ = (sample)cw;
                 }
