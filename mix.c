@@ -232,8 +232,19 @@ mix_put_audio(mixer_t     *ms,
 
         mix_verify(ms);
 
+        /* If mixer has been out of use, fire it up */
+        if (ts_eq(ms->head_time, ms->tail_time)) {
+                mix_align(ms, playout);
+        }
+
         samples  = (sample*)frame->data;
         nsamples = frame->data_len / sizeof(sample);
+        
+	/* Advance head if necessary */
+        playout_end = ts_add(playout, ts_map32(ms->info.sample_rate, nsamples / ms->info.channels));
+	if (ts_gt(playout_end, ms->head_time)) {
+		mix_advance_head(ms, playout_end);
+	}
 
         /* Check for overlap in decoded frames */
         if (!ts_eq(pdbe->next_mix, playout)) {
@@ -241,9 +252,15 @@ mix_put_audio(mixer_t     *ms,
                         delta = ts_sub(pdbe->next_mix, playout);
                         if (ts_gt(frame_period, delta)) {
                                 uint32_t  trim;
+				/* Unit overlaps with earlier data written to buffer.
+				 * Jump past overlapping samples, decrease number of
+				 * samples that need to be written and correct playout
+				 * so they are written to the correct place.
+				 */
 				delta = ts_convert(ms->info.sample_rate, delta);
 				trim = delta.ticks * ms->info.channels;
                                 samples  += trim;
+				playout = ts_add(playout, delta);
                                 assert(nsamples > trim);
 				nsamples -= trim;
 				debug_msg("Mixer trimmed %d samples (Expected playout %d got %d) ssrc (0x%08x)\n", trim, pdbe->next_mix.ticks, playout.ticks, pdbe->ssrc);
@@ -258,17 +275,6 @@ mix_put_audio(mixer_t     *ms,
 				pdbe->ssrc);
                 }
         }
-
-        /* If mixer has been out of use, fire it up */
-        if (ts_eq(ms->head_time, ms->tail_time)) {
-                mix_align(ms, playout);
-        }
-        
-	/* Advance head if necessary */
-        playout_end = ts_add(playout, ts_map32(ms->info.sample_rate, nsamples / ms->info.channels));
-	if (ts_gt(playout_end, ms->head_time)) {
-		mix_advance_head(ms, playout_end);
-	}
 
         /* Work out where to write the data (head_time > playout) */
         delta = ts_sub(ms->head_time, playout);
