@@ -2343,7 +2343,7 @@ if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
   echo "$ac_t""yes" 1>&6
   
 		AU_OBJ="$AU_OBJ auddev_alsa.o"
-		AU_LIB="$AU_LIB -lasound"
+		AU_LIB="$AU_LIB /usr/lib/libasound.a"
 		cat >> confdefs.h <<\EOF
 #define HAVE_ALSA_AUDIO 1
 EOF

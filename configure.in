@@ -177,7 +177,7 @@ case "$target" in
 *linux*)
 	AC_CHECK_HEADER(sys/asoundlib.h,[
 		AU_OBJ="$AU_OBJ auddev_alsa.o"
-		AU_LIB="$AU_LIB -lasound"
+		AU_LIB="$AU_LIB /usr/lib/libasound.a"
 		AC_DEFINE(HAVE_ALSA_AUDIO)
 	])
 	AU_OBJ="$AU_OBJ auddev_oss.o"
