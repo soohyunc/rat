@@ -127,9 +127,7 @@ sun_read_audio(FILE *pf, char* state, sample *buf, int samples)
                 law = ((u_char*)buf) + samples_read - 1;
                 bp  = buf + samples_read - 1;
                 for(i = 0; i < samples_read; i++) {
-                        *bp = u2s(*law);
-                        assert(*law = s2u(*law));
-                        bp--; law--;
+                        *bp-- = u2s(*law--);
                 }
                 break;
         case SUN_AUDIO_FILE_ENCODING_LINEAR_16:
