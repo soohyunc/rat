@@ -227,7 +227,8 @@ ui_info_deactivate(session_struct *sp, rtcp_dbentry *e)
 void
 ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 {
-	char	*my_cname, *their_cname, *args;
+	char	*my_cname, *their_cname, *args, *mbes;
+	codec_t	*pcp;
 
         if (sp->db->my_dbe->sentry == NULL || sp->db->my_dbe->sentry->cname == NULL) {
                 debug_msg("Warning sentry or name == NULL\n");
@@ -242,8 +243,10 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 	their_cname = mbus_encode_str(e->sentry->cname);
 
         if (e->enc_fmt) {
-                args = (char *) xmalloc(strlen(their_cname) + strlen(e->enc_fmt) + 2);
-                sprintf(args, "%s %s", their_cname, e->enc_fmt);
+		pcp  = get_codec_by_pt(e->enc);
+		mbes = mbus_encode_str(pcp->short_name);
+                args = (char *) xmalloc(strlen(their_cname) + strlen(mbes) + 2);
+                sprintf(args, "%s %s", their_cname, mbes);
         } else {
                 args = (char *) xmalloc(strlen(their_cname) + 7 + 2);
                 sprintf(args, "%s unknown", their_cname);

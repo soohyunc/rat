@@ -878,7 +878,7 @@ proc toggle_stats {cname} {
 	pack $win.d -side bottom -fill x
 	wm title $win "Participant $NAME($cname)"
 	wm resizable $win 1 0
-	constrain_window $win 0 200 20 0
+	constrain_window $win 0 250 20 0
     }
 }
 
