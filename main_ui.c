@@ -57,10 +57,10 @@ int main(int argc, char *argv[])
 	/* The first stage is to wait until we hear from our controller. The address of the */
 	/* controller is passed to us via a command line parameter, and we just wait until  */
 	/* we get an mbus.hello() from that address.                                        */
+	debug_msg("Waiting to validate address %s\n", c_addr);
 	while (!mbus_addr_valid(m, c_addr)) {
-		debug_msg("Waiting to validate address %s\n", c_addr);
 		timeout.tv_sec  = 0;
-		timeout.tv_usec = 500000;
+		timeout.tv_usec = 250000;
 		mbus_recv(m, NULL, &timeout);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 	while (!mbus_ui_wait_handler_done()) {
 		debug_msg("Waiting for token \"%s\" from controller\n", token);
 		timeout.tv_sec  = 0;
-		timeout.tv_usec = 500000;
+		timeout.tv_usec = 250000;
 		mbus_recv(m, m, &timeout);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 	/* ...and sit waiting for it to send us commands... */
 	while (1) {
 		timeout.tv_sec  = 0;
-		timeout.tv_usec = 50000;
+		timeout.tv_usec = 250000;
 		mbus_recv(m, NULL, &timeout);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);

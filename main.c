@@ -115,8 +115,6 @@ main(int argc, char *argv[])
 	}
 	sprintf(mbus_video_addr, "(media:video module:engine)");
 
-/**** Up to here is in _main.c *****/
-
         audio_device_get_safe_config(&sp[0]->new_config);
         audio_device_reconfigure(sp[0]);
         assert(audio_device_is_open(sp[0]->audio_device));
@@ -126,11 +124,13 @@ main(int argc, char *argv[])
 
 	settings_load(sp[0]);
 
+/**** Up to here is in _main.c *****/
+
 	ui_controller_init(sp[0], ssrc, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
         ui_initial_settings(sp[0]);
 
 	session_parse_late_options(argc, argv, sp);	/* Things which can override the settings we just loaded... */
-	ui_update(sp[0]);			/* ...and push those to the UI */
+	ui_update(sp[0]);				/* ...and push those to the UI */
 	network_process_mbus(sp[0]);
         
 #ifdef NDEF
