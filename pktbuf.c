@@ -16,40 +16,44 @@ static const char cvsid[] =
 #include "debug.h"
 #include "memory.h"
 #include "rtp.h"
+
+#include "playout.h"
+#include "ts.h"
+
 #include "pktbuf.h"
 
+static void pktbuf_free_rtp(u_char **mem, uint32_t memsz);
+
 struct s_pktbuf {
-        rtp_packet **buf;    /* Pointer to rtp packets                      */
-        uint16_t     insert; /* Next insertion point (FIFO circular buffer) */
-        uint16_t     buflen; /* Max number of packets                       */
-        uint16_t     used;   /* Actual number of packets buffered           */
+	struct s_pb		*rtp_buffer;
+	struct s_pb_iterator	*rtp_iterator;
+	ts_sequencer		rtp_sequencer;
+        uint16_t		max_packets;
+	
 };
 
 int
 pktbuf_create(struct s_pktbuf **ppb, uint16_t size)
 {
         struct s_pktbuf *pb;
-        uint32_t          i;
         
         pb = (struct s_pktbuf*)xmalloc(sizeof(struct s_pktbuf));
         if (pb == NULL) {
                 return FALSE;
         }
-        
-        pb->buf = (rtp_packet**)xmalloc(sizeof(rtp_packet*) * size);
-        if (pb->buf == NULL) {
-                xfree(pb);
-                return FALSE;
-        }
 
-        for(i = 0; i < size; i++) {
-                pb->buf[i] = NULL;
-        }
+	if (pb_create(&pb->rtp_buffer, pktbuf_free_rtp) == FALSE) {
+		xfree(pb);
+		return FALSE;
+	}
 
-        pb->buflen = size;
-        pb->used   = 0;
-        pb->insert = 0;
+	if (pb_iterator_create(pb->rtp_buffer, &pb->rtp_iterator) == FALSE) {
+		pb_destroy(&pb->rtp_buffer);
+		xfree(pb);
+		return FALSE;
+	}
 
+	pb->max_packets = size;
         *ppb = pb;
         return TRUE;
 }
@@ -57,40 +61,41 @@ pktbuf_create(struct s_pktbuf **ppb, uint16_t size)
 void
 pktbuf_destroy(struct s_pktbuf **ppb)
 {
-        struct s_pktbuf *pb;
-        uint32_t i;
-
-        pb = *ppb;
-        for(i = 0; i < pb->buflen; i++) {
-                if (pb->buf[i]) {
-                        xfree(pb->buf[i]);
-                }
-        }
-        xfree(pb->buf);
+        struct s_pktbuf *pb = *ppb;
+	pb_iterator_destroy(pb->rtp_buffer, &pb->rtp_iterator);
+	pb_destroy(&pb->rtp_buffer);
         xfree(pb);
         *ppb = NULL;
+}
+
+static void 
+pktbuf_free_rtp(u_char **data, uint32_t data_bytes) {
+	assert(data_bytes == sizeof(rtp_packet));
+	xfree(*data);
+	*data = NULL;
 }
 
 int 
 pktbuf_enqueue(struct s_pktbuf *pb, rtp_packet *p)
 {
+	timestamp_t	playout;
+	uint32_t	psize;
+
         assert(p != NULL);
+	playout = ts_seq32_in(&pb->rtp_sequencer, 8000 /* Arbitrary */, p->ts);
+	psize   = sizeof(rtp_packet);
+	pb_add(pb->rtp_buffer, (u_char*)p, psize, playout);
 
-        if (pb->buf[pb->insert] != NULL) {
-                /* A packet already sits in this space */
-                xfree(pb->buf[pb->insert]);
-                debug_msg("Buffer overflow.  Process was blocked or network burst.\n");
-        } else {
-                pb->used++;
-                assert(pb->used <= pb->buflen);
-        }
-
-        pb->buf[pb->insert] = p;
-
-        pb->insert++;
-        if (pb->insert == pb->buflen) {
-                pb->insert = 0;
-        }
+	if (pb_node_count(pb->rtp_buffer) > pb->max_packets) {
+		debug_msg("RTP packet queue overflow\n");
+		if (pktbuf_dequeue(pb, &p)) {
+			pktbuf_free_rtp((u_char**)&p, psize);
+			return TRUE;
+		}
+		/* NOTREACHED */
+		debug_msg("Failed to detach overflow packet\n");
+		abort();
+	}
 
         return TRUE;
 }
@@ -98,57 +103,34 @@ pktbuf_enqueue(struct s_pktbuf *pb, rtp_packet *p)
 int 
 pktbuf_dequeue(struct s_pktbuf *pb, rtp_packet **pp)
 {
-        uint32_t idx = (pb->insert + pb->buflen - pb->used) % pb->buflen;
+	timestamp_t	playout;
+	uint32_t	psize;
 
-        *pp = pb->buf[idx];
-        if (*pp) {
-                pb->buf[idx] = NULL;
-                pb->used--;
-                return TRUE;
-        }
-        return FALSE;
-}
+	if (pb_iterator_rwd(pb->rtp_iterator) == FALSE) {
+		return FALSE;
+	}
 
-static int 
-timestamp_greater(uint32_t t1, uint32_t t2)
-{
-        uint32_t delta = t1 - t2;
-        
-        if (delta < 0x7fffffff && delta != 0) {
-                return TRUE;
-        }
-        return FALSE;
+	pb_iterator_detach_at(pb->rtp_iterator, (u_char**)pp, &psize, &playout);
+	return TRUE;
 }
 
 int
 pktbuf_peak_last(pktbuf_t   *pb,
                  rtp_packet **pp)
 {
-        uint32_t     idx, max_idx;
+	timestamp_t	playout;
+	uint32_t	psize;
 
-        max_idx = idx = (pb->insert + pb->buflen - pb->used) % pb->buflen;
-        if (pb->buf[idx] == NULL) {
-                assert(pb->used == 0);
-                *pp = NULL;
-                return FALSE;
-        }
-
-        idx = (idx + 1) % pb->buflen;
-        while (pb->buf[idx] != NULL) {
-                if (timestamp_greater(pb->buf[idx]->ts, 
-                                      pb->buf[max_idx]->ts)) {
-                        max_idx = idx;
-                }
-                idx = (idx + 1) % pb->buflen;
-        }
-        
-        *pp = pb->buf[max_idx];
-        return TRUE;
+	if (pb_iterator_ffwd(pb->rtp_iterator) == FALSE) {
+		return FALSE;
+	}
+	pb_iterator_get_at(pb->rtp_iterator, (u_char**)pp, &psize, &playout);
+	return TRUE;
 }
 
 uint16_t 
 pktbuf_get_count(pktbuf_t *pb)
 {
-        return pb->used;
+        return pb_node_count(pb->rtp_buffer);
 }
 
