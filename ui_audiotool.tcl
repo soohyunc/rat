@@ -1082,16 +1082,16 @@ proc bargraphSetHeight {bgraph height} {
 	global bargraphTotalHeight bargraphRedHeight
 
 	if {$oh > $height} {
-		for {set i [expr $height + 1]} {$i <= $oh} {incr i} {
+		for {set i [expr $height]} {$i <= $oh} {incr i} {
 			$bgraph.inner$i config -bg black
 		}
 	} else {
 		if {$bargraphRedHeight > $height} {
-			for {set i [expr $oh + 1]} {$i <= $height} {incr i} {
+			for {set i [expr $oh]} {$i <= $height} {incr i} {
 				$bgraph.inner$i config -bg green
 			}
 		} else {
-			for {set i [expr $oh + 1]} {$i <= $bargraphRedHeight} {incr i} {
+			for {set i [expr $oh]} {$i <= $bargraphRedHeight} {incr i} {
 				$bgraph.inner$i config -bg green
 			}
 			for {set i $bargraphRedHeight} {$i <= $height} {incr i} {
