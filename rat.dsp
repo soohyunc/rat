@@ -423,8 +423,7 @@ SOURCE=.\tcl_libs.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\tcl_libs.tcl
-USERDEP__TCL_L="tcl2c\tcl2c"	
+SOURCE=.\tcl_libs.tcl 
 
 !IF  "$(CFG)" == "rat - Win32 Release"
 
