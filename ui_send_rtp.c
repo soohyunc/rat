@@ -45,7 +45,18 @@ void ui_send_rtp_cname(session_t *sp, char *addr, uint32_t ssrc)
 
 void ui_send_rtp_name(session_t *sp, char *addr, uint32_t ssrc)
 {
-	ui_info_update_sdes(sp, addr, "rtp.source.name", rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_NAME), ssrc);
+	const char 	*sdes;
+	char		 ssrc_c[9];
+
+	sdes = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_NAME);
+	if (sdes == NULL) {
+		sdes = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_CNAME);
+	}
+	if (sdes == NULL) {
+		sprintf(ssrc_c, "%08lx", (unsigned long) ssrc);
+		sdes = ssrc_c;
+	}
+	ui_info_update_sdes(sp, addr, "rtp.source.name", sdes, ssrc);
 }
 
 void ui_send_rtp_email(session_t *sp, char *addr, uint32_t ssrc)

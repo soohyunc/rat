@@ -773,8 +773,8 @@ static void rx_rtp_query(char *srce, char *args, session_t *sp)
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
         
 	do {
-		ui_send_rtp_cname(sp, srce, ssrc);
 		ui_send_rtp_name(sp, srce, ssrc);
+		ui_send_rtp_cname(sp, srce, ssrc);
 		ui_send_rtp_email(sp, srce, ssrc);
 		ui_send_rtp_phone(sp, srce, ssrc);
 		ui_send_rtp_loc(sp, srce, ssrc);

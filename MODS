@@ -1131,6 +1131,8 @@ v4.1.6  - Fix Windows port
         * Released 15 February 2000
 
 v4.1.7	- Update ALSA detection in configure script
+	- Fix display of names when SDES NAME is not known (fallback to
+	  CNAME or SSRC in that order).
 
 
 TODO -- They're features not bugs dammit!
