@@ -47,7 +47,8 @@
  * This is an output only device so we pretend we read audio...
  *
  */
-#include <machine/pcaudioio.h>
+
+#include <pcaudioio.h>
 
 #include "config_unix.h"
 #include "audio_types.h"

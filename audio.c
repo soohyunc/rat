@@ -1,14 +1,12 @@
 /*
  * FILE:     audio.c
  * PROGRAM:  RAT
- * AUTHOR:   Isidor Kouvelas / Colin Perkins / Orion Hodson
- *
- * Created parmaters.c by removing all silence detcetion etc.
+ * AUTHOR:   Orion Hodson / Isidor Kouvelas / Colin Perkins 
  *
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -914,6 +912,14 @@ audio_add_interface(audio_if_t *aif_new)
 #include "auddev_oss.h"
 #include "auddev_win32.h"
 
+#ifdef HAVE_PCA
+#include "auddev_pca.h"
+#endif /* HAVE_PCA */
+
+#ifdef HAVE_OSPREY
+#include "auddev_oti.h"
+#endif /* HAVE_OSPREY */
+
 int
 audio_init_interfaces()
 {
@@ -952,6 +958,41 @@ audio_init_interfaces()
                 audio_add_interface(&aif_sparc);
         }
 #endif Solaris
+
+#ifdef HAVE_OSPREY
+        {
+                audio_if_t aif_oti = {
+                        "Osprey Audio Device",
+                        NULL, 
+                        NULL, 
+                        oti_audio_open,
+                        oti_audio_close,
+                        oti_audio_drain,
+                        oti_audio_duplex,
+                        oti_audio_read,
+                        oti_audio_write,
+                        oti_audio_non_block,
+                        oti_audio_block,
+                        oti_audio_set_gain,
+                        oti_audio_get_gain,
+                        oti_audio_set_volume,
+                        oti_audio_get_volume,
+                        oti_audio_loopback,
+                        oti_audio_set_oport,
+                        oti_audio_get_oport,
+                        oti_audio_next_oport,
+                        oti_audio_set_iport,
+                        oti_audio_get_iport,
+                        oti_audio_next_iport,
+                        oti_audio_get_blocksize,
+                        oti_audio_get_channels,
+                        oti_audio_get_freq,
+                        oti_audio_is_ready,
+                        oti_audio_wait_for,
+                };
+                audio_add_interface(&aif_oti);
+        }
+#endif /* HAVE_OSPREY */
 
 #if defined(Linux)||defined(OSS)
         oss_audio_query_devices();
@@ -1031,7 +1072,7 @@ audio_init_interfaces()
         }
 #endif /* WIN32 */
 
-#if defined(FreeBSD);
+#if defined(FreeBSD)
         {
                 audio_if_t aif_luigi = {
                         "Default Audio Device",
@@ -1065,7 +1106,7 @@ audio_init_interfaces()
         }
 #endif /* FreeBSD */
 
-#if defined(HAVE_PCA);
+#if defined(HAVE_PCA)
         {
                 audio_if_t aif_pca = {
                         "PCA Audio Device",
@@ -1105,7 +1146,7 @@ audio_init_interfaces()
         return 0;
 }
 
-
+int
 audio_free_interfaces(void)
 {
         return TRUE;

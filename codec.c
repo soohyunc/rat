@@ -42,6 +42,7 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
+#include "audio.h"
 #include "assert.h"
 #include "memory.h"
 #include "debug.h"
@@ -53,7 +54,6 @@
 #include "codec_g711.h"
 #include "codec_lpc.h"
 #include "codec_wbs.h"
-#include "audio.h"
 #include "session.h"
 #include "receive.h"
 #include "rtcp_pckt.h"

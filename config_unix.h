@@ -51,6 +51,9 @@
 #include <pwd.h>
 #include <signal.h>
 #include <ctype.h>
+
+#include "audio_types.h"
+
 #ifndef __FreeBSD__
 #include <malloc.h>
 #endif
