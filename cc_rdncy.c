@@ -680,11 +680,13 @@ redundancy_decoder_describe (u_int8   pkt_pt,
 __inline static void
 place_unit(media_data *md, coded_unit *cu)
 {
+#ifdef DEBUG_REDUNDANCY
+        const codec_format_t *cf;
+        cf = codec_get_format(cu->id);
+        debug_msg("%d %s\n", md->nrep, cf->long_name);
+#endif /* DEBUG_REDUNDANCY */
         assert(md->nrep < MAX_MEDIA_UNITS);
-        if (md->nrep) {
-                memmove(md->rep + 1, md->rep, sizeof(md->rep[0]) * md->nrep);
-        }
-        md->rep[0] = cu;
+        md->rep[md->nrep] = cu;
         md->nrep++;
 }
 
@@ -775,13 +777,9 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
                 cu->data     = block_alloc(cu->data_len);
                 memcpy(cu->data, p, cu->data_len);
                 p += cu->data_len;
-
                 md = red_media_data_create_or_get(out, playout);
-
                 if (md->nrep == MAX_MEDIA_UNITS) continue;
-
                 place_unit(md, cu);
-                
                 playout = ts_add(playout, step);
         }
 }
@@ -841,9 +839,8 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
                 ts_blk_off = ts_map32(cf->format.sample_rate, boff);
                 this_playout = ts_add(playout, ts_max_off);
                 this_playout = ts_sub(this_playout, ts_blk_off);
-
                 hp += 4; /* hdr */
-                red_split_unit(ppt, bpt, dp, blen, playout, out);
+                red_split_unit(ppt, bpt, dp, blen, this_playout, out);
                 xmemchk();
                 dp += blen;
                 hdr32 = ntohl(*(u_int32*)hp);
@@ -851,7 +848,8 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
         
         this_playout = ts_add(playout, ts_max_off);
         hp += 1;
-        red_split_unit(ppt, ppt, dp, blen, playout, out);
+        blen = (u_int32) (de - dp);
+        red_split_unit(ppt, ppt, dp, blen, this_playout, out);
         xmemchk();
 }
                           
