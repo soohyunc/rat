@@ -7,12 +7,10 @@
  *
  */
 
-#include "string.h"
-#include "math.h"
-#include "cx_lpc.h"
-/* For M_PI on W32 (euk!) */
 #include "config_win32.h"
+#include "config_unix.h"
 #include "debug.h"
+#include "cx_lpc.h"
 
 #define MAXWINDOW	1000	/* Max analysis window length */
 #define FS		8000.0f	/* Sampling rate */
@@ -35,8 +33,6 @@ static float fa[6];
 
 #define BIAS 0x84		/* define the add-in bias for 16 bit samples */
 #define CLIP 32635
-
-#include "stdio.h"
 
 static void
 auto_correl(float *w, int n, int p, float *r)
@@ -249,8 +245,9 @@ lpc_analyze(const short *buf, lpc_encstate_t *enc, lpc_txstate_t *params)
 
 	params->period = (unsigned short)(per * 256.0f);
 	params->gain   = (unsigned char) (G   * 256.0f);
-	for (i = 0; i < LPC_FILTORDER; i++)
+	for (i = 0; i < LPC_FILTORDER; i++) {
 		params->k[i] = (char)(k[i + 1] * 128.0f);
+	}
 
 	memcpy(s, s + FRAMESIZE, (BUFLEN - FRAMESIZE) * sizeof(float));
 	memcpy(y, y + FRAMESIZE, (BUFLEN - FRAMESIZE) * sizeof(float));

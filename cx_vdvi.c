@@ -13,15 +13,10 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-
 #include "cx_vdvi.h"
-#include "stdio.h"
 
 #ifdef TEST_VDVI
 #define NUM_TESTS 100000
-
-#include <stdio.h>
-#include <stdlib.h>
 
 static  u_char src[80], pad1[4], 
         dst[80], pad2[4], 
@@ -290,10 +285,6 @@ vdvi_decode(unsigned char *in, int in_bytes, unsigned char *dvi_buf, int dvi_sam
 }
 
 #ifdef TEST_BS
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <stdio.h>
 #define NUM_TESTS 1000
 #define TEST_SIZE 10000
 

@@ -74,11 +74,12 @@ static int
 deve2oss(deve_e encoding)
 {
         switch(encoding) {
-        case DEV_PCMU: return AFMT_MU_LAW;
-        case DEV_S8:   return AFMT_S8;
-        case DEV_S16:  return AFMT_S16_LE;
+        	case DEV_PCMU: return AFMT_MU_LAW;
+        	case DEV_S8:   return AFMT_S8;
+        	case DEV_S16:  return AFMT_S16_LE;
         }
         abort();
+	return 0;
 }
 
 /* Try to open the audio device.              */
