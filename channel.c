@@ -185,7 +185,6 @@ _channel_coder_create(cc_id_t id, channel_state_t **ppcs, int is_encoder)
         int (*create_state)(u_char**, u_int32 *len);
 
         pcs = (channel_state_t*)xmalloc(sizeof(channel_state_t));
-        
         if (pcs == NULL) {
                 return FALSE;
         }

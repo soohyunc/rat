@@ -53,7 +53,7 @@ static HKEY cfgKey;
 
 #ifndef WIN32
 static hash_chain *table;          /* Use hashtable to load settings    */
-static FILE       *settings_file;  /* Write direct to this file to save */
+static FILE       *settings_file;  /* static file pointer used during save */
 #endif
 
 /* SETTINGS HASH CODE ********************************************************/
@@ -95,8 +95,8 @@ settings_table_add(char *key, char *value)
 #endif
 }
 
-/* settings_table_lookup points value at actual value
- * and return TRUE if key found */
+/* settings_table_lookup points value at actual value */
+/* and return TRUE if key found.                      */
 static int
 settings_table_lookup(char *key, char **value)
 {
@@ -154,10 +154,9 @@ settings_table_destroy(void)
 /* SETTINGS CODE *************************************************************/
 
 #ifdef WIN32
-static void open_registry(void)
+static void open_registry(LPCTSTR *subKey)
 {
         HKEY			key    = HKEY_CURRENT_USER;
-	LPCTSTR			subKey = "Software\\Mbone Applications\\common";
 	DWORD			disp;
 	char			buffer[SETTINGS_BUF_SIZE];
 	LONG			status;
@@ -193,83 +192,91 @@ static void close_registry(void)
 static void init_part_two(void)
 {
 #ifdef WIN32
-        HKEY			key    = HKEY_CURRENT_USER;
-	LPCTSTR			subKey = "Software\\Mbone Applications\\rat";
-	DWORD			disp;
-	char			buffer[SETTINGS_BUF_SIZE];
-	LONG			status;
-
         close_registry();
-	status = RegCreateKeyEx(key, subKey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &cfgKey, &disp);
-	if (status != ERROR_SUCCESS) {
-		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
-		debug_msg("Unable to open registry: %s\n", buffer);
-		abort();
-	}
-	if (disp == REG_CREATED_NEW_KEY) {
-		debug_msg("Created new registry entry...\n");
-	} else {
-		debug_msg("Opened existing registry entry...\n");
-	}
+        open_registry("Software\\Mbone Applications\\rat");
 #endif
 }
 
+#ifndef WIN32
+
+#define SETTINGS_FILE_RTP 0
+#define SETTINGS_FILE_RAT 1
+
+static FILE *
+settings_file_open(u_int32 type, char *mode)
+{
+        char *fmt[] = {"%s/.RTPdefaults", "%s/.RATdefaults"};        
+	char *filen;
+        FILE *sfile;
+        struct passwd	*p;	
+
+        if (type < sizeof(fmt)/sizeof(fmt[0])) {
+                p = getpwuid(getuid());
+                if (p == NULL) {
+                        perror("Unable to get passwd entry");
+                        return NULL;
+                }
+                filen = (char *) xmalloc(strlen(p->pw_dir) + strlen(fmt[type]) + 1);
+                sprintf(filen, fmt[type], p->pw_dir);
+                sfile = fopen(filen, mode);
+                xfree(filen);
+                return sfile;
+        }
+        return NULL;
+}
+
+static void
+settings_file_close(FILE *sfile)
+{
+        fclose(sfile);
+}
+
+#endif /* WIN32 */
 
 static void load_init(void)
 {
 #ifndef WIN32
         FILE            *sfile;
-	struct passwd	*p;	
-	char		*filen;
         char            *buffer;
         char            *key, *value;
+        u_int32          i;
+        settings_table_create();
 
 	/* The getpwuid() stuff is to determine the users home directory, into which we */
 	/* write the settings file. The struct returned by getpwuid() is statically     */
 	/* allocated, so it's not necessary to free it afterwards.                      */
-	p = getpwuid(getuid());
-	if (p == NULL) {
-		perror("Unable to get passwd entry");
-		abort();
-	}
 
-        settings_table_create();
-
-	filen = (char *) xmalloc(strlen(p->pw_dir) + 15);
-	sprintf(filen, "%s/.RTPdefaults", p->pw_dir);
-	sfile = fopen(filen, "r");
-        xfree(filen);
-
-        if (sfile == NULL) {
-                debug_msg("No file to open\n");
-                return;
-        }
-
-        buffer = xmalloc(SETTINGS_READ_SIZE+1);
-        buffer[100] = '\0';
-
-        while(fgets(buffer, SETTINGS_READ_SIZE, sfile) != NULL) {
-                if (buffer[0] != '*') {
-                        debug_msg("Garbage ignored: %s\n", buffer);
-                        continue;
+        i = 0;
+        while ((sfile == settings_file_open(i, "r")) != NULL) {
+                buffer = xmalloc(SETTINGS_READ_SIZE+1);
+                buffer[100] = '\0';
+                while(fgets(buffer, SETTINGS_READ_SIZE, sfile) != NULL) {
+                        if (buffer[0] != '*') {
+                                debug_msg("Garbage ignored: %s\n", buffer);
+                                continue;
+                        }
+                        key   = (char *) strtok(buffer, ":"); 
+                        if (key == NULL) {
+                                continue;
+                        }
+                        key = key + 1;               /* skip asterisk */
+                        value = (char *) strtok(NULL, "\n");
+                        if (value == NULL) {
+                                continue;
+                        }
+                        while (*value != '\0' && isascii((int)*value) && isspace((int)*value)) {
+                                /* skip leading spaces, and stop skipping if
+                                 * not ascii*/
+                                value++;             
+                        }
+                        settings_table_add(key, value);
                 }
-                key   = (char *) strtok(buffer, ":"); 
-                assert(key != NULL);
-                key = key + 1;               /* skip asterisk */
-                value = (char *) strtok(NULL, "\n");
-                assert(value != NULL);
-                while (*value != '\0' && isascii((int)*value) && isspace((int)*value)) {
-                        /* skip leading spaces, and stop skipping if
-                         * not ascii*/
-                        value++;             
-                }
-                settings_table_add(key, value);
+                settings_file_close(sfile);
+                xfree(buffer);
+                i++;
         }
-        fclose(sfile);
-        xfree(buffer);
-
 #else
-        open_registry();
+        open_registry("Software\\Mbone Applications\\common");
 #endif
 }
 
@@ -421,6 +428,9 @@ void settings_load_early(session_t *sp)
 	for (i = 0; i < n; i++ ) {
 		ccd = channel_get_coder_details(i);
 		if (strcmp(ccd->name, name) == 0) {
+                        if (sp->channel_coder) {
+                                channel_encoder_destroy(&sp->channel_coder);
+                        }
         		channel_encoder_create(ccd->descriptor, &sp->channel_coder);
 			break;
 		}
@@ -481,49 +491,46 @@ void settings_load_late(session_t *sp)
 	load_init();		/* Initial settings come from the common prefs file... */
 
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
-	field = xstrdup(setting_load_str("rtpName", "Unknown"));
+	field = setting_load_str("rtpName", "Unknown");
         rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME,  field, strlen(field));
-	field = xstrdup(setting_load_str("rtpEmail", ""));
+	field = setting_load_str("rtpEmail", "");
         rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_EMAIL, field, strlen(field));
-	field = xstrdup(setting_load_str("rtpPhone", ""));
+	field = setting_load_str("rtpPhone", "");
         rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PHONE, field, strlen(field));
-	field = xstrdup(setting_load_str("rtpLoc", ""));
+	field = setting_load_str("rtpLoc", "");
         rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC,   field, strlen(field));
-        field = xstrdup(RAT_VERSION);
+        field = RAT_VERSION;
 	rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_TOOL,  field, strlen(field));
         init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 	load_done();
 }
 
 static void 
-save_init(void)
+save_init_rtp(void)
 {
 #ifndef WIN32
-	struct passwd	*p;	
-	char		*filen;
-
-	/* The getpwuid() stuff is to determine the users home directory, into which we */
-	/* write the settings file. The struct returned by getpwuid() is statically     */
-	/* allocated, so it's not necessary to free it afterwards.                      */
-	p = getpwuid(getuid());
-	if (p == NULL) {
-		perror("Unable to get passwd entry");
-		abort();
-	}
-	filen = (char *) xmalloc(strlen(p->pw_dir) + 15);
-	sprintf(filen, "%s/.RTPdefaults", p->pw_dir);
-	settings_file = fopen(filen, "w");
-        xfree(filen);
+        settings_file = settings_file_open(SETTINGS_FILE_RTP, "w");
 #else
-        open_registry();
+        open_registry("Software\\Mbone Applications\\common");
+#endif
+}
+
+static void
+save_init_rat(void)
+{
+/* We assume this function gets called after save_init_rtp so */
+/* file/registry need closing before use.                     */
+#ifndef WIN32
+        settings_file = settings_file_open(SETTINGS_FILE_RAT, "w");
+#else
+        open_registry("Software\\Mbone Applications\\rat");
 #endif
 }
 
 static void save_done(void)
 {
 #ifndef WIN32
-	fclose(settings_file);
-        settings_file = NULL;
+	settings_file_close(settings_file);
 #else
         close_registry();
 #endif
@@ -637,14 +644,15 @@ void settings_save(session_t *sp)
                 }
         }
 
-	save_init();
+	save_init_rtp();
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
         setting_save_str("rtpName",  rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME));
         setting_save_str("rtpEmail", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_EMAIL));
         setting_save_str("rtpPhone", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PHONE));
         setting_save_str("rtpLoc",   rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC));
-
-        init_part_two();
+        save_done();
+        
+        save_init_rat();
         setting_save_str("audioTool", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_TOOL));
 	setting_save_str("audioDevice",     add->name);
 	setting_save_int("audioFrequency",  af->sample_rate);
