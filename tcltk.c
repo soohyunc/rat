@@ -50,7 +50,7 @@
 #include <tcl.h>
 #include <tk.h>
 
-extern char 	ui_original[];
+extern char 	ui_audiotool[];
 extern char	TCL_LIBS[];
 
 /* Should probably have these functions inline here, rather than in win32.c??? [csp] */
@@ -195,8 +195,8 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tk_DefineBitmap(interp, Tk_GetUid("line_in"), line_in_bits, line_in_width, line_in_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("rat_small"), rat_small_bits, rat_small_width, rat_small_height);
 
-	if (Tcl_EvalObj(interp, Tcl_NewStringObj(ui_original, strlen(ui_original))) != TCL_OK) {
-		fprintf(stderr, "ui_original error: %s\n", interp->result);
+	if (Tcl_EvalObj(interp, Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool))) != TCL_OK) {
+		fprintf(stderr, "ui_audiotool error: %s\n", interp->result);
 	}
 	while (tcl_process_event()) {
 		/* Processing Tcl events, to allow the UI to initialize... */
