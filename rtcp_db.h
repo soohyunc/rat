@@ -86,8 +86,6 @@ typedef struct s_rtcp_dbentry {
 	u_int32         jit_TOGed;		/* TOGed = Thrown on the Ground */
 	u_char		cont_toged;		/* Toged in a row */
         u_char          playout_danger;         /* not enough audio in playout buffer */
-        int32           playout_ceil;          /* a rounded up playout estimate to watch for rx buffer dry/flooding */
-
         int             inter_pkt_gap;          /* expected time between pkt arrivals */
         struct s_cc_state       *cc_state_list;
 	struct s_codec_state	*state_list;

@@ -189,13 +189,12 @@ adapt_playout(rtp_hdr_t *hdr,
         
 	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
 	delay = arrival_ts - hdr->ts;
-        
+
 	if (src->first_pckt_flag == TRUE) {
 		src->first_pckt_flag = FALSE;
 		diff                 = 0;
 		src->delay           = delay;
 		src->last_ts         = hdr->ts - 1;
-                src->playout_ceil    = 0;
 		hdr->m               = TRUE;
                 cp = get_codec(src->enc);
                 if (cp) {
@@ -204,10 +203,13 @@ adapt_playout(rtp_hdr_t *hdr,
                         src->jitter  = 240; 
                 }
 	} else {
-		diff       = abs(delay - src->delay);
-		src->delay = delay;
-		/* Jitter calculation as in RTP spec */
-		src->jitter = src->jitter + (((double) diff - src->jitter) / 16);
+                if (hdr->ts - src->last_ts > 0) {
+                        diff       = abs(delay - src->delay) / (hdr->ts - src->last_ts);
+                        src->delay = delay;
+                        /* Jitter calculation as in RTP spec */
+                        assert(diff < 100 * src->jitter);
+                        src->jitter = src->jitter + (((double) diff - src->jitter) / 16);
+                }
 	}
 
 	/* 
@@ -257,10 +259,12 @@ adapt_playout(rtp_hdr_t *hdr,
 #endif
 			var = (u_int32) src->jitter * 3;
 
+                        if (var < (unsigned)src->inter_pkt_gap) var = src->inter_pkt_gap;
+
                         if (src->playout_danger) {
                                 /* This is usually a sign that src clock is 
                                  * slower than ours. */
-                                var = max(var, 2 * cushion_get_size(cushion)); ;
+                                var = max(var, 3 * cushion_get_size(cushion)); ;
                                 debug_msg("Playout danger, var (%ld)\n", var);
                         } else {
                                 var = max(var, cushion_get_size(cushion));
@@ -275,7 +279,7 @@ adapt_playout(rtp_hdr_t *hdr,
                                 var = max(minv, var);
                                 var = min(maxv, var);
                         }
-
+                        debug_msg("src_delay %ld src_var %ld\n", src->delay, var);
                         assert(var > 0);
 			src->playout = src->delay + var;
 
@@ -305,10 +309,10 @@ adapt_playout(rtp_hdr_t *hdr,
                         jumped = TRUE;
                 }
 
-		src->last_ts        = hdr->ts;
-		src->last_seq       = hdr->seq;
                 src->playout_danger = FALSE;
 	}
+        src->last_ts        = hdr->ts;
+        src->last_seq       = hdr->seq;
 
 	/* Calculate the playout point in local source time for this packet. */
         if (sp->sync_on && src->mapping_valid) {
@@ -323,10 +327,6 @@ adapt_playout(rtp_hdr_t *hdr,
 	} else {
 		playout = hdr->ts + src->playout;
 	}
-
-        if (src->playout - src->delay > src->playout_ceil) {
-                src->playout_ceil = src->playout - src->delay;
-        }
 
         if (src->cont_toged > 12) {
                 /* something has gone wrong if this assertion fails*/
@@ -344,6 +344,7 @@ adapt_playout(rtp_hdr_t *hdr,
                  * 
                  * this makes a huge improvement on jittery links.
                  */
+                debug_msg("jumped\n");
                 if (jumped == FALSE && shift < 8000) {
                         playout += shift + src->inter_pkt_gap;
                 }
@@ -431,6 +432,7 @@ statistics(session_struct    *sp,
 	pckt_queue_element_struct *e_ptr;
 	codec_t		*pcp;
 	char 		 update_req = FALSE;
+        int pkt_cnt = 0;
 
 	/* Process incoming packets */
         while(netrx_pckt_queue->queue_empty == FALSE) {
@@ -493,9 +495,12 @@ statistics(session_struct    *sp,
                 if (update_req && (src->units_per_packet != 0)) {
                 	ui_update_stats(src, sp);
                 }
-        
+                pkt_cnt++;
         release:
                 free_pckt_queue_element(&e_ptr);
+        }
+        if (pkt_cnt > 5) {
+                debug_msg("Processed lots of packets(%d).\n", pkt_cnt);
         }
 }
 
