@@ -1791,9 +1791,14 @@ proc codecs_panel_fill {} {
     }
 }
 
+set last_selected_codec -1
+
 proc codecs_panel_select { idx } {
     global codecs codec_nick_name codec_rate codec_channels codec_pt codec_block_size codec_data_size codec_desc codec_caps
-    
+    global last_selected_codec 
+
+    set last_selected_codec $idx
+
     set codec [lindex $codecs $idx]
     set root  .prefs.pane.codecs.of.details.upper.r
     $root.0 configure -text $codec_nick_name($codec)
@@ -1812,11 +1817,11 @@ proc codecs_panel_select { idx } {
 }
 
 proc map_codec {} {
-    global codecs
+    global codecs last_selected_codec
 
-    set idx [.prefs.pane.codecs.of.codecs.lb curselection]
+    set idx $last_selected_codec
 
-    if {[llength $idx] == 0} {
+    if {$last_selected_codec == -1} {
 	return
     }
 
