@@ -1627,7 +1627,16 @@ v4.2.23	- Fix memory leak with duplicates (Winston Dang)
 	- Remove unneeded includes from auddev_sparc (Frederic Vecoven)
 	- updated RPM spec file to install SDR plugin and to use the
 	  Makefile for installing files.
-	* 01 April 2004
+	* 01 April 2003
+
+v4.2.24 - Added a rtp_promiscuous_mode setting to .RTPdefaults
+          TRUE = creates sources before RTCP has been received
+          FALSE = ignores sources that haven't been identified 
+        - Moved load_settings_early to before init of mbus otherwise some 
+          settings won't be initialised before receving mbus commands
+        - Fixed payload types for L16-44K-Mono/Stereo (Nicholas Humfrey)
+        - Fixed error in man page for silence supression option 
+        * 10 September 2003
 
 TODO -- They're features not bugs dammit!
 ----
