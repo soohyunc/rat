@@ -137,7 +137,6 @@ extern "C" {
 
 int uname(struct utsname *);
 int getopt(int, char * const *, const char *);
-int strcasecmp(const char *, const char *);
 int strncasecmp(const char *, const char*, int len);
 int srandom(int);
 int random(void);
@@ -150,6 +149,9 @@ int getpid(void);
 int nice(int);
 int usleep(unsigned int);
 time_t time(time_t *);
+
+#define strcasecmp  _stricmp
+#define strncasecmp _strnicmp
 
 int  RegGetValue(HKEY *, char *, char*, char*, int);
 void ShowMessage(int level, char *msg);

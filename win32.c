@@ -118,12 +118,6 @@ int gettimeofday(struct timeval *p, struct timezone *z)
     return 0;
 }
 
-int
-strcasecmp(const char *s1, const char *s2)
-{
-    return stricmp(s1, s2);
-}
-
 uid_t
 getuid(void) 
 { 
@@ -457,20 +451,6 @@ RegGetValue(HKEY* key, char *subkey, char *value, char *dst, int dlen)
         }
         RegCloseKey(lkey);
         return TRUE;
-}
-
-int 
-strncasecmp(const char *s1, const char *s2, int len)
-{
-        int match = 1;
-        while (len > 0 && 
-               (match = (tolower(*s1) - tolower(*s2))) == 0 &&
-                *s1) {
-                s1++;
-                s2++;
-                len--;
-        }
-        return (match);
 }
 
 int 

@@ -50,7 +50,7 @@ extern short    alawtolin[256];
 extern unsigned char lintoalaw[8192]; 
 
 #define s2u(x)	lintomulaw[((unsigned short)(x))]
-#define u2s(x)	mulawtolin[x]
+#define u2s(x)	mulawtolin[(unsigned char)x]
 #define s2a(x)  lintoalaw[((unsigned short)(x))>>3]
 #define a2s(x)  alawtolin[((unsigned char)x)]
 
