@@ -178,8 +178,8 @@ proc mbus_recv_codec_supported {args} {
     # We now have a list of codecs which this RAT supports...
     set codecs [split $args]
     foreach c $codecs {
-	.prefs.pane.transmission.dd.pri.m.menu     add command -label $c -command "set prenc $c; validate_red_codecs"
-	.prefs.pane.transmission.cc.red.fc.mb.menu add command -label $c -command "set secenc $c"
+	.prefs.pane.transmission.dd.pri.m.menu    add command -label $c -command "set prenc $c; validate_red_codecs"
+	.prefs.pane.transmission.cc.red.fc.m.menu add command -label $c -command "set secenc $c"
     }    
 }
 
@@ -797,14 +797,14 @@ frame .prefs.m.f
 pack .prefs.m.f -padx 0 -pady 0 
 label .prefs.m.f.t -text "Category: "
 pack .prefs.m.f.t -pady 2 -side left
-menubutton .prefs.m.f.mb -menu .prefs.m.f.mb.menu -indicatoron 1 -textvariable pane -relief raised -width 14
-pack .prefs.m.f.mb -side top
-menu .prefs.m.f.mb.menu -tearoff 0
-.prefs.m.f.mb.menu add command -label "Personal"     -command {set_pane "Personal"}
-.prefs.m.f.mb.menu add command -label "Transmission" -command {set_pane "Transmission"}
-.prefs.m.f.mb.menu add command -label "Reception"    -command {set_pane "Reception"}
-.prefs.m.f.mb.menu add command -label "Security"     -command {set_pane "Security"}
-.prefs.m.f.mb.menu add command -label "Interface"    -command {set_pane "Interface"}
+menubutton .prefs.m.f.m -menu .prefs.m.f.m.menu -indicatoron 1 -textvariable pane -relief raised -width 14
+pack .prefs.m.f.m -side top
+menu .prefs.m.f.m.menu -tearoff 0
+.prefs.m.f.m.menu add command -label "Personal"     -command {set_pane "Personal"}
+.prefs.m.f.m.menu add command -label "Transmission" -command {set_pane "Transmission"}
+.prefs.m.f.m.menu add command -label "Reception"    -command {set_pane "Reception"}
+.prefs.m.f.m.menu add command -label "Security"     -command {set_pane "Security"}
+.prefs.m.f.m.menu add command -label "Interface"    -command {set_pane "Interface"}
 
 frame  .prefs.buttons
 pack   .prefs.buttons       -side bottom -fill x 
@@ -893,8 +893,8 @@ radiobutton $i.cc.van.rb -text "No Loss Protection" -justify right -value "No Lo
 radiobutton $i.cc.red.rb -text "Redundancy" -justify right -value "Redundancy" -variable channel_var 
 frame $i.cc.red.fc 
 label $i.cc.red.fc.l -text "Encoding:"
-menubutton $i.cc.red.fc.mb -textvariable secenc -indicatoron 1 -menu $i.cc.red.fc.mb.menu -relief raised -width 13
-menu $i.cc.red.fc.mb.menu -tearoff 0
+menubutton $i.cc.red.fc.m -textvariable secenc -indicatoron 1 -menu $i.cc.red.fc.m.menu -relief raised -width 13
+menu $i.cc.red.fc.m.menu -tearoff 0
 
 radiobutton $i.cc.int.rb -text "Interleaving" -value Interleaving -variable channel_var
 
@@ -902,21 +902,21 @@ pack $i.cc.van.rb $i.cc.red.rb $i.cc.int.rb -side left -anchor nw -padx 2
 
 frame $i.cc.red.u 
 label $i.cc.red.u.l -text "Offset in Pkts:"
-tk_optionMenu $i.cc.red.u.mb red_off "1" "2" "4" "8" 
-$i.cc.red.u.mb configure -width 13 -highlightthickness 0 -bd 1 
+tk_optionMenu $i.cc.red.u.m red_off "1" "2" "4" "8" 
+$i.cc.red.u.m configure -width 13 -highlightthickness 0 -bd 1 
 pack $i.cc.red.u -side right -anchor e -fill y 
-pack $i.cc.red.u.l $i.cc.red.u.mb -fill x 
+pack $i.cc.red.u.l $i.cc.red.u.m -fill x 
 pack $i.cc.red.fc -side right
-pack $i.cc.red.fc.l $i.cc.red.fc.mb 
+pack $i.cc.red.fc.l $i.cc.red.fc.m 
 
 frame $i.cc.int.fc
 
 label $i.cc.int.fc.l -text "Separation:"
-tk_optionMenu $i.cc.int.fc.mb int_gap 4 8 12
-$i.cc.int.fc.mb configure -width 13 -highlightthickness 0 -bd 1
+tk_optionMenu $i.cc.int.fc.m int_gap 4 8 12
+$i.cc.int.fc.m configure -width 13 -highlightthickness 0 -bd 1
 
 pack $i.cc.int.fc -side right
-pack $i.cc.int.fc.l $i.cc.int.fc.mb -fill x -expand 1
+pack $i.cc.int.fc.l $i.cc.int.fc.m -fill x -expand 1
 
 frame $i.cks.f
 checkbutton $i.cks.f.silence -text "Silence Suppression   " -variable silence_var
@@ -1002,16 +1002,16 @@ proc validate_red_codecs {} {
     global prenc secenc
 
     set pri [.prefs.pane.transmission.dd.pri.m.menu index $prenc]
-    set sec [.prefs.pane.transmission.cc.red.fc.mb.menu index $secenc]
+    set sec [.prefs.pane.transmission.cc.red.fc.m.menu index $secenc]
 
     if {$sec <= $pri} {
 	for {set i 0} {$i < $pri} {incr i} {
-	    .prefs.pane.transmission.cc.red.fc.mb.menu entryconfigure $i -state disabled
+	    .prefs.pane.transmission.cc.red.fc.m.menu entryconfigure $i -state disabled
 	}
 	set secenc $prenc
     } else {
 	for {set i $pri} {$i < $sec} {incr i} {
-	    .prefs.pane.transmission.cc.red.fc.mb.menu entryconfigure $i -state normal
+	    .prefs.pane.transmission.cc.red.fc.m.menu entryconfigure $i -state normal
 	}
     }
 }
@@ -1552,7 +1552,7 @@ add_help .l.s1.about  	"Brings up another window displaying\ncopyright & author 
 add_help .l.s1.quit   	"Press to leave the session."
 
 # preferences help
-add_help .prefs.m.f.mb  "Click here to change the preference\ncategory."
+add_help .prefs.m.f.m  "Click here to change the preference\ncategory."
 set i .prefs.buttons
 add_help $i.bye         "Cancel changes."
 add_help $i.apply       "Apply changes."
@@ -1570,7 +1570,7 @@ set i .prefs.pane.transmission
 add_help $i.dd.units.m	"Sets the duration of each packet sent.\nThere is a fixed per-packet\
                          overhead, so\nmaking this larger will reduce the total\noverhead.\
 			 The effects of packet loss are\nmore noticable with large packets."
-add_help $i.dd.pri.m 	"Changes the primary audio compression\nscheme. The list is arranged\
+add_help $i.dd.pri.m	"Changes the primary audio compression\nscheme. The list is arranged\
                          with high-\nquality, high-bandwidth choices at the\ntop, and\
 			 poor-quality, lower-bandwidth\nchoices at the bottom."
 add_help $i.dd.mode.m 	"Most audio hardware can support full-duplex\noperation, sending\
@@ -1582,11 +1582,11 @@ add_help $i.cc.red.rb	"Piggybacks earlier units of audio into packets\n\
 			 to protect against packet loss. Some audio\n\
 			 tools (eg: vat-4.0) are not able to receive\n\
 			 audio sent with this option."
-add_help $i.cc.red.fc.mb \
+add_help $i.cc.red.fc.m \
 			"Sets the format of the piggybacked data."
-add_help $i.cc.red.u.mb \
+add_help $i.cc.red.u.m \
 			"Sets the offset of the piggybacked data."
-add_help $i.cc.int.fc.mb\
+add_help $i.cc.int.fc.m \
 			"Sets the separation of adjacent units within\neach packet. Larger values correspond\
 			 to longer\ndelays."
 add_help $i.cc.int.rb	"Enables interleaving which exchanges latency\n\
@@ -1598,7 +1598,7 @@ add_help $i.cks.f.agc	 "Enables automatic control of the volume\nof the sound yo
 
 # Reception Help
 set i .prefs.pane.reception
-add_help $i.r.mb 	"Sets the type of repair applied when packets are\nlost. The schemes\
+add_help $i.r.m 	"Sets the type of repair applied when packets are\nlost. The schemes\
 			 are listed in order of increasing\ncomplexity."
 add_help $i.o.f.scmin   "Sets the minimum playout delay that will be\napplied to incoming\
 			 audio streams."
