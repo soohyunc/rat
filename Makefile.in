@@ -78,7 +78,7 @@ ALL_SRCS     = $(ALL_OBJS:%.o=%.c)
 
 INSTALL_OBJS = ui_installer.o installer.o binaries.o
 
-all: version.h sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec $(RATVER) $(RATVER)-ui $(RATVER)-media 
+all: version.h sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec $(RATVER) $(RATVER)-ui $(RATVER)-media Makefile
 
 libuclaudio.a: $(AUDIO_OBJS)
 	$(AR) r $@ $(AUDIO_OBJS)
@@ -190,6 +190,9 @@ rpm: tgz
 	@${ECHO} "Building $(RATVER).rpm -- this almost certainly needs to run as root on RedHat Linux"
 	install -m 644 $(RATVER)-$(OSTYPE).tar.gz /usr/src/redhat/SOURCES/rat-4.1.2.tar.gz
 	rpm -bb $(RATVER).spec
+
+Makefile: Makefile.in VERSION
+	$(error "Run configure again, the following file(s) are newer than Makefile: $?")
 
 depend:
 	makedepend $(X_CFLAGS) $(INCLUDE) $(ALL_SRCS)
