@@ -391,9 +391,13 @@ struct mbus *mbus_init(unsigned short channel,
 	struct mbus	*m;
 	int		 i;
 #ifndef WIN32
+#ifndef FreeBSD
 	struct ifreq	 ifbuf[32];
 	struct ifreq	*ifp;
 	struct ifconf	 ifc;
+#else
+	char		 hostname[255];
+#endif
 #endif
 	m = (struct mbus *) xmalloc(sizeof(struct mbus));
 	m->fd           = mbus_socket_init(channel);
@@ -413,6 +417,7 @@ struct mbus *mbus_init(unsigned short channel,
 
 	/* Determine the network interfaces on this host... */
 #ifndef WIN32
+#ifndef FreeBSD
 	ifc.ifc_buf = (char *)ifbuf;
 	ifc.ifc_len = sizeof(ifbuf);
 	if (ioctl(m->fd, SIOCGIFCONF, (char *) &ifc) < 0) {
@@ -425,8 +430,12 @@ struct mbus *mbus_init(unsigned short channel,
 	while (ifp < (struct ifreq *) ((char *) ifbuf + ifc.ifc_len)) {
 		m->interfaces[m->num_interfaces++] = ((struct sockaddr_in *) &((ifp++)->ifr_addr))->sin_addr.s_addr;
 	}
+#else
+	gethostname(hostname, sizeof(hostname));
+	m->interfaces[0] = htonl(hostname);
+	m->interfaces[1] = htonl(0x7f000001);
 #endif
-    m->interfaces[0] = htonl(0x7f000001);
+#endif
 	return m;
 }
 
