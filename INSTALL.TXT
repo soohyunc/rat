@@ -44,12 +44,17 @@ Compiling from source code
 
 To compile RAT from source you MUST download and compile the following
 additional packages:
+
 	The UCL common multimedia code library
 	The UCL distribution of tcl-8.0
 	The UCL distribution of tk-8.0
+
 These can be downloaded from http://www-mice.cs.ucl.ac.uk/multimedia/software
 or, if you have access to the UCL CVS server, you should fetch the modules
 common, tcl-8.0 and tk-8.0.
+
+*** You MUST use the modified versions of tcl-8.0 and tk-8.0 from UCL. ***
+*** The standard Tcl/Tk distribution WILL NOT work correctly with rat. ***
 
 On Windows 95/98/NT you should install the packages in c:\src. The entire
 package can be built using Visual C++ 6.0 with the rat.dsw workspace, there
