@@ -2490,12 +2490,15 @@ catch {
     frame .file.play -relief ridge
     frame .file.rec  -relief ridge
     pack  .file.play -side top -pady 2 -padx 2 -fill x -expand 1
-    pack  .file.rec  -side bottom -pady 2 -padx 2 -fill x -expand 1
+    pack  .file.rec  -side top -pady 2 -padx 2 -fill x -expand 1
     
     label .file.play.l -text "Playback"
     pack  .file.play.l -side top -fill x
     label .file.rec.l -text "Record"
     pack  .file.rec.l -side top -fill x
+
+    button .file.dismiss -text Dismiss -command "set files_on 0; file_show"
+    pack   .file.dismiss -side bottom -anchor e -padx 2 -pady 2
     
     wm withdraw .file
     wm title	.file "RAT File Control"
