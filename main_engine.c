@@ -124,53 +124,69 @@ mbus_error_handler(int seqnum, int reason)
 
 static void rendezvous_with_controller(session_t *sp[2])
 {
-	int		i;
+	int		i, done;
 	struct timeval	timeout;
 
 	/* Signal to the controller that we are ready to go. It should be sending us an     */
 	/* mbus.waiting(foo) where "foo" is the same as the "-token" argument we were       */
 	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
-	/* FIXME: Needs updating for transcoder... */
 	debug_msg("Waiting for mbus.waiting(%s) from controller...\n", token);
-	sp[0]->mbus_waiting       = TRUE;
-	sp[0]->mbus_waiting_token = token;
+	for (i = 0; i < num_sessions; i++) {
+		sp[i]->mbus_waiting       = TRUE;
+		sp[i]->mbus_waiting_token = token;
+	}
 	do {
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 20000;
-		mbus_send(sp[0]->mbus_engine); 
-		mbus_recv(sp[0]->mbus_engine, (void *) sp[0], &timeout);
-		mbus_heartbeat(sp[0]->mbus_engine, 1);
-		mbus_retransmit(sp[0]->mbus_engine);
-	} while (sp[0]->mbus_waiting);
+		done = FALSE;
+		for (i = 0; i < num_sessions; i++) {
+			timeout.tv_sec  = 0;
+			timeout.tv_usec = 10000;
+			mbus_send(sp[i]->mbus_engine); 
+			mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
+			mbus_heartbeat(sp[i]->mbus_engine, 1);
+			mbus_retransmit(sp[i]->mbus_engine);
+			done |= !sp[i]->mbus_waiting;
+		}
+	} while (!done);
 	debug_msg("...got it\n");
 
-	mbus_qmsgf(sp[0]->mbus_engine, c_addr, TRUE, "mbus.go", "%s", token_e);
+	debug_msg("Sending mbus.go(%s) to controller...\n", token);
+	for (i = 0; i < num_sessions; i++) {
+		mbus_qmsgf(sp[i]->mbus_engine, c_addr, TRUE, "mbus.go", "%s", token_e);
+	}
 	do {
-		mbus_heartbeat(sp[0]->mbus_engine, 1);
-		mbus_retransmit(sp[0]->mbus_engine);
-		mbus_send(sp[0]->mbus_engine);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 100000;
-		mbus_recv(sp[0]->mbus_engine, (void *) sp[0], &timeout);
-	} while (!mbus_sent_all(sp[0]->mbus_engine));
+		done = FALSE;
+		for (i = 0; i < num_sessions; i++) {
+			mbus_heartbeat(sp[0]->mbus_engine, 1);
+			mbus_retransmit(sp[0]->mbus_engine);
+			mbus_send(sp[0]->mbus_engine);
+			timeout.tv_sec  = 0;
+			timeout.tv_usec = 10000;
+			mbus_recv(sp[0]->mbus_engine, (void *) sp[0], &timeout);
+			done |= mbus_sent_all(sp[i]->mbus_engine);
+		}
+	} while (!done);
+	debug_msg("...done\n");
 
 	/* At this point we know the mbus address of our controller, and have conducted */
 	/* a successful rendezvous with it. It will now send us configuration commands. */
-	/* FIXME: Needs updating for transcoder... */
-	sp[0]->mbus_go       = TRUE;
-	sp[0]->mbus_go_token = token;
+	for (i = 0; i < num_sessions; i++) {
+		sp[i]->mbus_go       = TRUE;
+		sp[i]->mbus_go_token = token;
+	}
 	debug_msg("Waiting for mbus.go(%s) from controller...\n", token_e);
 	do {
-		struct timeval	 timeout;
-
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 20000;
-		mbus_qmsgf(sp[0]->mbus_engine, c_addr, FALSE, "mbus.waiting", "%s", token_e);
-		mbus_send(sp[0]->mbus_engine); 
-		mbus_recv(sp[0]->mbus_engine, (void *) sp[0], &timeout);
-		mbus_heartbeat(sp[0]->mbus_engine, 1);
-		mbus_retransmit(sp[0]->mbus_engine);
-	} while (sp[0]->mbus_go);
+		done = FALSE;
+		for (i = 0; i < num_sessions; i++) {
+			timeout.tv_sec  = 0;
+			timeout.tv_usec = 20000;
+			mbus_qmsgf(sp[i]->mbus_engine, c_addr, FALSE, "mbus.waiting", "%s", token_e);
+			mbus_send(sp[i]->mbus_engine); 
+			mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
+			mbus_heartbeat(sp[i]->mbus_engine, 1);
+			mbus_retransmit(sp[i]->mbus_engine);
+			done |= !sp[i]->mbus_go;
+		}
+	} while (!done);
 	debug_msg("...got it\n");
 
 	for (i = 0; i < num_sessions; i++) {

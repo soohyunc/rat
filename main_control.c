@@ -1,14 +1,14 @@
 /*
-* FILE:    main.c
-* PROGRAM: RAT - controller
-* AUTHOR:  Colin Perkins / Orion Hodson
-*
-* This is the main program for the RAT controller.  It starts the 
-* media engine and user interface, and controls them via the mbus.
-*
-* Copyright (c) 1999-2000 University College London
-* All rights reserved.
-*/
+ * FILE:    main_control.c
+ * PROGRAM: RAT - controller
+ * AUTHOR:  Colin Perkins / Orion Hodson
+ *
+ * This is the main program for the RAT controller.  It starts the 
+ * media engine and user interface, and controls them via the mbus.
+ *
+ * Copyright (c) 1999-2000 University College London
+ * All rights reserved.
+ */
 
 #ifndef HIDE_SOURCE_STRINGS
 static const char cvsid[] = 
@@ -21,13 +21,13 @@ static const char cvsid[] =
 #include "version.h"
 #include "mbus_control.h"
 #include "crypt_random.h"
-#include "codec_compat.h"
 #include "fatal_error.h"
-
 #include "mbus.h"
 #include "mbus_parser.h"
 #include "net_udp.h"
 #include "util.h"
+#include "process.h"
+#include "cmd_parser.h"
 
 #ifdef WIN32
 #define UI_NAME      "ratui.exe"
@@ -46,33 +46,6 @@ pid_t       pid_ui, pid_engine;
 int         should_exit;
 
 static int ttl = 15;
-
-static void 
-usage(char *szOffending)
-{
-#ifdef WIN32
-	char win_usage[] = "\
-                      RAT is a multicast (or unicast) audio tool. It is best to start it\n\
-                      using a multicast directory tool, like sdr or multikit. If desired RAT\n\
-                      can be launched from the command line using:\n\n\
-                      rat <address>/<port>\n\n\
-                      where <address> is machine name, or a multicast IP address, and <port> is\n\
-                      the connection identifier (an even number between 1024-65536).\n\n\
-                      For more details see:\n\n\
-                      http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/faq.html\
-                      ";
-
-	if (szOffending == NULL) {
-		szOffending = win_usage;
-	}
-	MessageBox(NULL, szOffending, "RAT v" RAT_VERSION " Usage", MB_ICONINFORMATION | MB_OK);
-#else
-	printf("Usage: rat [options] -t <ttl> <addr>/<port>\n");
-	if (szOffending) {
-		printf(szOffending);
-	}
-#endif
-}
 
 #ifdef NEED_SNPRINTF
 static int snprintf(char *s, int buf_size, const char *format, ...)
@@ -94,83 +67,6 @@ static int snprintf(char *s, int buf_size, const char *format, ...)
         return rc;
 }
 #endif
-
-static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid, char *token)
-{
-#ifdef WIN32
-        char			 args[1024];
-        LPSTARTUPINFO		 startup_info;
-        LPPROCESS_INFORMATION	 proc_info;
-        
-        startup_info = (LPSTARTUPINFO) xmalloc(sizeof(STARTUPINFO));
-        startup_info->cb              = sizeof(STARTUPINFO);
-        startup_info->lpReserved      = 0;
-        startup_info->lpDesktop       = 0;
-        startup_info->lpTitle         = 0;
-        startup_info->dwX             = 0;
-        startup_info->dwY             = 0;
-        startup_info->dwXSize         = 0;
-        startup_info->dwYSize         = 0;
-        startup_info->dwXCountChars   = 0;
-        startup_info->dwYCountChars   = 0;
-        startup_info->dwFillAttribute = 0;
-        startup_info->dwFlags         = 0;
-        startup_info->wShowWindow     = 0;
-        startup_info->cbReserved2     = 0;
-        startup_info->lpReserved2     = 0;
-        startup_info->hStdInput       = 0;
-        startup_info->hStdOutput      = 0;
-        startup_info->hStdError       = 0;
-        
-        proc_info = (LPPROCESS_INFORMATION) xmalloc(sizeof(PROCESS_INFORMATION));
-        
-        sprintf(args, "%s -ctrl \"%s\" -token %s", proc_name, ctrl_addr, token);
-        
-        if (!CreateProcess(NULL, args, NULL, NULL, TRUE, 0, NULL, NULL, startup_info, proc_info)) {
-                perror("Couldn't create process");
-                abort();
-        }
-        *pid = (pid_t) proc_info->hProcess;	/* Sigh, hope a HANDLE fits into 32 bits... */
-        debug_msg("Forked %s\n", proc_name);
-#else
-#ifdef DEBUG_FORK
-        debug_msg("%s -ctrl '%s' -token %s\n", proc_name, ctrl_addr, token);
-        UNUSED(pid);
-#else
-        *pid = fork();
-        if (*pid == -1) {
-                perror("Cannot fork");
-                abort();
-        } else if (*pid == 0) {
-                execlp(proc_name, proc_name, "-ctrl", ctrl_addr, "-token", token, NULL);
-                perror("Cannot execute subprocess");
-                /* Note: this MUST NOT be exit() or abort(), since they affect the standard */
-                /* IO channels in the parent process (fork duplicates file descriptors, but */
-                /* they still point to the same underlying file).                           */
-                _exit(1);	
-        }
-#endif
-#endif
-        /* This is the parent: we have to wait for the child to say hello before continuing. */
-        return mbus_rendezvous_waiting(m, "()", token, m);
-}
-
-static void kill_process(pid_t proc)
-{
-        if (proc == 0) {
-                debug_msg("Process already dead\n", proc);
-                return;
-        }
-        debug_msg("Killing process %d\n", proc);
-#ifdef WIN32
-        /* This doesn't close down DLLs or free resources, so we have to  */
-        /* hope it doesn't get called. With any luck everything is closed */
-        /* down by sending it an mbus.exit() message, anyway...           */
-        TerminateProcess((HANDLE) proc, 0);
-#else
-        kill(proc, SIGINT);
-#endif
-}
 
 static int
 address_is_valid(const char *candidate)
@@ -261,277 +157,6 @@ static int parse_options_early(int argc, const char **argv)
 	return address_is_valid(argv[argc-1]);
 }
 
-/* Late Command Line Argument Functions */
-
-static int 
-cmd_logstats(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        assert(argc == 0);
-        mbus_qmsgf(m, addr, TRUE, "tool.rat.logstats", "1");
-        UNUSED(argc);
-        UNUSED(argv);
-        return TRUE;
-}
-
-static int 
-cmd_layers(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        int layers;
-        assert(argc == 1);
-        layers = atoi(argv[0]);
-        if (layers > 1) {
-                mbus_qmsgf(m, addr, TRUE, "tool.rat.layers", "%d", argv[0]);
-                return TRUE;
-        }
-        UNUSED(argc);
-        return FALSE;
-}
-
-static int 
-cmd_allowloop(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        assert(argc == 0);
-        mbus_qmsgf(m, addr, TRUE, "tool.rat.filter.loopback", "0");
-        UNUSED(argc);
-        UNUSED(argv);
-        return TRUE;
-}
-
-static int 
-cmd_session_name(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        char *enc_name;
-        assert(argc == 1);
-        enc_name = mbus_encode_str(argv[0]);
-        mbus_qmsgf(m, addr, TRUE, "session.title", enc_name);
-        xfree(enc_name);
-        UNUSED(argc);
-        return TRUE;
-}
-
-static int
-cmd_payload_map(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        const char *compat;
-        char       *codec;
-        int         codec_pt;
-
-        assert(argc == 1);
-        /* Dynamic payload type mapping. Format: "-pt pt/codec" */
-        /* Codec is of the form "pcmu-8k-mono"                  */
-        codec_pt = atoi((char*)strtok(argv[0], "/"));
-        compat   = codec_get_compatible_name(strtok(NULL, "/"));
-        if (compat == NULL) {
-                usage("Usage: -pt <pt>/<codec>");
-                return FALSE;
-        }
-        codec = mbus_encode_str(compat);
-        mbus_qmsgf(m, addr, TRUE, "tool.rat.payload.set", "%s %d", codec, codec_pt);
-        xfree(codec);
-
-        UNUSED(argc);
-        return TRUE;
-}
-
-static int
-cmd_crypt(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        char *key;
-
-        assert(argc == 1);
-        key = mbus_encode_str(argv[0]);
-        mbus_qmsgf(m, addr, TRUE, "security.encryption.key", key);
-        xfree(key);
-
-        UNUSED(argc);
-        return TRUE;
-}
-
-static int
-cmd_agc(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        assert(argc == 1);
-        if (strcmp(argv[0], "on") == 0) {
-                mbus_qmsgf(m, addr, TRUE, "tool.rat.agc", "1");
-                return TRUE;
-        } else if (strcmp(argv[0], "off") == 0) {
-                mbus_qmsgf(m, addr, TRUE, "tool.rat.agc", "0");
-                return TRUE;
-        }
-        UNUSED(argc);
-        usage("Usage: -agc on|off\n");
-        return FALSE;
-}
-
-static int
-cmd_silence(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        assert(argc == 1);
-        if (strcmp(argv[0], "on") == 0) {
-                mbus_qmsgf(m, addr, TRUE, "tool.rat.silence", "1");
-                return TRUE;
-        } else if (strcmp(argv[0], "off") == 0) {
-                mbus_qmsgf(m, addr, TRUE, "tool.rat.silence", "0");
-                return TRUE;
-        } 
-        UNUSED(argc);
-        usage("Usage: -silence on|off\n");
-        return FALSE;
-}
-
-static int
-cmd_repair(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        char *repair;
-        assert(argc == 1);
-        repair = mbus_encode_str(argv[0]);
-        mbus_qmsgf(m, addr, TRUE, "audio.channel.repair", repair);
-        xfree(repair);
-        UNUSED(argc);
-        return TRUE;
-}
-
-static int
-cmd_primary(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        /* Set primary codec: "-f codec". You cannot set the   */
-        /* redundant codec with this option, use "-r" instead. */
-        char *firstname, *realname, *name, *freq, *chan;
-        
-        assert(argc == 1);
-        /* Break at trailing / in case user attempting old syntax */
-        firstname = (char*)strtok(argv[0], "/");
-        
-        /* The codec should be of the form "pcmu-8k-mono".     */
-        realname = xstrdup(codec_get_compatible_name(firstname));
-        name     = (char*)strtok(realname, "-");
-        freq     = (char*)strtok(NULL, "-");
-        chan     = (char*)strtok(NULL, "");
-        if (freq != NULL && chan != NULL) {
-                debug_msg("codec: %s %s %s\n", name, chan, freq);
-                name    = mbus_encode_str(name);
-                freq    = mbus_encode_str(freq);
-                chan    = mbus_encode_str(chan);
-                mbus_qmsgf(m, addr, TRUE, "tool.rat.codec", "%s %s %s", name, chan, freq);
-                xfree(name);
-                xfree(freq);
-                xfree(chan);
-        }
-        xfree(realname);
-        return TRUE;
-}
-
-static int
-cmd_redundancy(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        const char *compat;
-        char       *redundancy, *codec;
-        int         offset;
-
-        assert(argc == 1);
-        /* Set channel coding to redundancy: "-r codec/offset" */
-        compat = codec_get_compatible_name((const char*)strtok(argv[0], "/"));
-        offset = atoi((char*)strtok(NULL, ""));
-
-        if (offset > 0) {
-                redundancy = mbus_encode_str("redundancy");
-                codec      = mbus_encode_str(compat);
-                mbus_qmsgf(m, addr, TRUE, "audio.channel.coding", "%s %s %d", redundancy, codec, offset);
-                xfree(redundancy);
-                xfree(codec);
-                return TRUE;
-        }
-        UNUSED(argc);
-        usage("Usage: -r <codec>/<offset>");
-        return FALSE;
-}
-
-static void
-cmd_sdes(struct mbus *m, char *addr, const char *msg_name, const char *value)
-{
-        char *sdes_value, *local_user;
-        local_user = mbus_encode_str("localuser");
-        sdes_value = mbus_encode_str(value);
-        mbus_qmsgf(m, addr, TRUE, msg_name, "%s %s", local_user, sdes_value);
-        xfree(local_user);
-        xfree(sdes_value);
-}
-
-static int
-cmd_sdes_name(struct mbus *m, char *addr, int argc, char *argv[]) {
-        assert(argc == 1);
-        UNUSED(argc);
-        cmd_sdes(m, addr, "rtp.source.name", argv[0]);
-        return TRUE;
-}
-
-static int
-cmd_sdes_email(struct mbus *m, char *addr, int argc, char *argv[]) {
-        assert(argc == 1);
-        UNUSED(argc);
-        cmd_sdes(m, addr, "rtp.source.email", argv[0]);
-        return TRUE;
-}
-
-static int
-cmd_sdes_phone(struct mbus *m, char *addr, int argc, char *argv[]) {
-        assert(argc == 1);
-        UNUSED(argc);
-        cmd_sdes(m, addr, "rtp.source.phone", argv[0]);
-        return TRUE;
-}
-
-static int
-cmd_sdes_loc(struct mbus *m, char *addr, int argc, char *argv[]) {
-        assert(argc == 1);
-        UNUSED(argc);
-        cmd_sdes(m, addr, "rtp.source.loc", argv[0]);
-        return TRUE;
-}
-
-
-
-typedef struct {
-        const char *cmdname;                               /* Command line flag */
-        int       (*cmd_proc)(struct mbus *m, char *addr, int argc, char *argv[]); /* TRUE = success, FALSE otherwise */
-        int        argc;                                   /* No. of args       */
-} args_handler;
-
-static args_handler late_args[] = {
-	{ "-logstats",       cmd_logstats,     0 },
-        { "-l",              cmd_layers,       1 },
-        { "-allowloopback",  cmd_allowloop,    0 },
-        { "-allow_loopback", cmd_allowloop,    0 },
-        { "-C",              cmd_session_name, 1 },
-        { "-E",              cmd_sdes_email,   1 },
-        { "-pt",             cmd_payload_map,  1 },
-        { "-crypt",          cmd_crypt,        1 },
-        { "-K",              cmd_crypt,        1 },
-        { "-L",              cmd_sdes_loc,     1 },
-        { "-N",              cmd_sdes_name,    1 },
-        { "-P",              cmd_sdes_phone,   1 },
-        { "-agc",            cmd_agc,          1 },
-        { "-silence",        cmd_silence,      1 },
-        { "-repair",         cmd_repair,       1 },
-        { "-f",              cmd_primary,      1 },
-        { "-r",              cmd_redundancy,   1 },
-        { "-t",              NULL,             1 }, /* handled in parse early args */
-};
-
-static uint32_t late_args_cnt = sizeof(late_args)/sizeof(late_args[0]);
-
-static const args_handler *
-get_late_args_handler(char *cmdname)
-{
-        uint32_t j;
-        for (j = 0; j < late_args_cnt; j++) {
-                if (strcmp(cmdname, late_args[j].cmdname) == 0) {
-                        return late_args + j;
-                }
-        }
-        return NULL;
-}
-
 static int
 parse_options_late(struct mbus *m, char *addr, int argc, char *argv[])
 {
@@ -546,7 +171,7 @@ parse_options_late(struct mbus *m, char *addr, int argc, char *argv[])
         argv += 1;
         
         for (i = 0; i < argc; i++) {
-                a = get_late_args_handler(argv[i]);
+                a = cmd_args_handler(argv[i]);
                 if (a == NULL) {
                         break;
                 }
@@ -565,7 +190,7 @@ address_count(int argc, char *argv[])
         int                 i;
         
         for (i = 0; i < argc; i++) {
-                a = get_late_args_handler(argv[i]);
+                a = cmd_args_handler(argv[i]);
                 if (a == NULL) {
                         break;
                 }

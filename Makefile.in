@@ -64,7 +64,8 @@ MEDIA_OBJS   = ts.o playout.o net.o source.o session.o \
 
 UI_OBJS      = tcltk.o mbus_ui.o main_ui.o fatal_error.o
 
-CTRL_OBJS    = main_control.o mbus_control.o codec_compat.o fatal_error.o
+CTRL_OBJS    = main_control.o mbus_control.o codec_compat.o fatal_error.o \
+               process.o cmd_parser.o
 
 TCL_OBJS     = ui_audiotool.o ui_transcoder.o 
 
