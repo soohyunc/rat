@@ -64,12 +64,6 @@ typedef struct {
         uint32_t        duplicates;
         uint32_t        misordered;
         uint32_t        jit_toged;                   /* Packets discarded because late ("Thrown on ground") */
-
-	/* Mapping between rtp time and NTP time for this sender */
-	int             mapping_valid;
-	uint32_t        last_ntp_sec;	/* NTP timestamp */
-	uint32_t        last_ntp_frac;
-	uint32_t        last_rtp_ts;	/* RTP timestamp */
 	
 	uint32_t	magic;	/* For debugging */
 } pdb_entry_t;
