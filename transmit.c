@@ -546,7 +546,7 @@ tx_send(tx_buffer *tb)
                 rtp_header.seq  = (u_int16)htons(sp->rtp_seq++);
                 rtp_header.p    = rtp_header.x = 0;
                 rtp_header.ssrc = htonl(rtcp_myssrc(sp));
-                rtp_header.pt   = cu->pt;
+                rtp_header.pt   = channel_coder_get_payload(sp->channel_coder, cu->pt);
 
                 time_32 = ts_seq32_out(&tb->up_seq, freq, time_ts);
                 rtp_header.ts   = htonl(time_32);

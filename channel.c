@@ -55,33 +55,26 @@ typedef struct s_channel_state {
 
 typedef struct {
         char    name[CC_NAME_LENGTH];
+        u_int8  pt;
 
         int     (*enc_create_state)   (u_char                **state,
                                        u_int32                *len);
-
         void    (*enc_destroy_state)  (u_char                **state, 
                                        u_int32                 len);
-
         int     (*enc_set_parameters) (u_char                 *state, 
                                        char                   *cmd);
-
         int     (*enc_get_parameters) (u_char                 *state, 
                                        char                   *cmd, 
                                        u_int32                 cmd_len);
-
         int     (*enc_reset)          (u_char                  *state);
-
         int     (*enc_encode)         (u_char                  *state, 
                                        struct s_pb *in, 
                                        struct s_pb *out, 
                                        u_int32                  units_per_packet);
-
         int     (*dec_create_state)   (u_char                 **state,
                                        u_int32                 *len);
-
         void    (*dec_destroy_state)  (u_char                 **state, 
                                        u_int32                  len);
-
         int     (*dec_reset)          (u_char                  *state);
         int     (*dec_decode)         (u_char                  *state, 
                                        struct s_pb *in, 
@@ -102,11 +95,15 @@ typedef struct {
 #include "cc_vanilla.h"
 #include "cc_rdncy.h"
 
-static channel_coder_t table[] = {
-        /* The vanilla coder goes first. Update channel_get_null_coder 
-         * if it moves.
+#define CC_REDUNDANCY_PT 121
+#define CC_VANILLA_PT    255
+
+static const channel_coder_t table[] = {
+        /* The vanilla coder goes first. Update channel_get_null_coder
+         * and channel_coder_get_by_payload if it moves.
          */
         {"No channel coder",     
+         CC_VANILLA_PT,
          vanilla_encoder_create, 
          vanilla_encoder_destroy,
          NULL,                   /* No parameters to set ...*/
@@ -122,6 +119,7 @@ static channel_coder_t table[] = {
         },
 #ifdef DEBUG_REDUNDANCY
         {"Redundancy",
+         CC_REDUNDANCY_PT,
          redundancy_encoder_create,
          redundancy_encoder_destroy,
          redundancy_encoder_set_parameters,
@@ -141,7 +139,7 @@ static channel_coder_t table[] = {
 #define CC_IDX_TO_ID(x) (((x)+1) | 0x0e00)
 #define CC_ID_TO_IDX(x) (((x)-1) & 0x000f)
 
-#define CC_NUM_CODERS (sizeof(table)/sizeof(channel_coder_t))
+#define CC_NUM_CODERS (sizeof(table)/sizeof(table[0]))
 
 int
 channel_get_coder_count()
@@ -334,11 +332,11 @@ channel_verify_and_stat(cc_id_t  cid,
 
 int 
 channel_describe_data(cc_id_t cid,
-                          u_int8  pktpt,
-                          u_char *data,
-                          u_int32 data_len,
-                          char *outstr,
-                          u_int32 out_len)
+                      u_int8  pktpt,
+                      u_char *data,
+                      u_int32 data_len,
+                      char *outstr,
+                      u_int32 out_len)
 {
         u_int32 idx = CC_ID_TO_IDX(cid);
         assert(idx < CC_NUM_CODERS);
@@ -355,13 +353,29 @@ channel_describe_data(cc_id_t cid,
         return TRUE;
 }
                                    
-
-
-
 cc_id_t
 channel_coder_get_by_payload(u_int8 payload)
 {
-        UNUSED(payload);
-        /* Only vanilla for the time being */
-        return CC_IDX_TO_ID(0);
+        u_int32 i;
+
+        assert((payload & 0x80) == 0);
+
+        for(i = 0; i < CC_NUM_CODERS; i++) {
+                if (table[i].pt == payload) {
+                        return CC_IDX_TO_ID(i);
+                }
+        }
+        /* Return vanilla if not found */
+        return CC_IDX_TO_ID(0);        
+}
+
+u_int8
+channel_coder_get_payload(channel_state_t *st, u_int8 media_pt)
+{
+        assert(st->coder <= CC_NUM_CODERS);
+
+        if (table[st->coder].pt == CC_VANILLA_PT) {
+                return media_pt;
+        }
+        return table[st->coder].pt;
 }
