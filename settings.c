@@ -446,15 +446,16 @@ void settings_load_late(session_t *sp)
 	load_init();		/* Initial settings come from the common prefs file... */
 
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
-	field = xstrdup(setting_load_str("rtpName", "Unknown"));/* We don't use rtcp_set_attribute() */ 
+	field = xstrdup(setting_load_str("rtpName", "Unknown"));
         rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME,  field, strlen(field));
-	field = xstrdup(setting_load_str("rtpEmail", ""));      /* here, since that updates the UI   */
+	field = xstrdup(setting_load_str("rtpEmail", ""));
         rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_EMAIL, field, strlen(field));
-	field = xstrdup(setting_load_str("rtpPhone", ""));      /* and we don't want to do that yet. */
+	field = xstrdup(setting_load_str("rtpPhone", ""));
         rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PHONE, field, strlen(field));
 	field = xstrdup(setting_load_str("rtpLoc", ""));
         rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC,   field, strlen(field));
         field = xstrdup(RAT_VERSION);
+	rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_TOOL,  field, strlen(field));
         init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 	load_done();
 }
