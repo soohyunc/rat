@@ -94,7 +94,7 @@ main(int argc, char *argv[])
 	session_struct 		*sp[2];
 	struct timeval  	 time;
 	struct timeval      	 timeout;
-	char			 mbus_engine_addr[30], mbus_ui_addr[30], mbus_video_addr[30];
+	char			 mbus_engine_addr[50], mbus_ui_addr[50], mbus_video_addr[50];
         
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
@@ -119,12 +119,12 @@ main(int argc, char *argv[])
         converters_init();
 
 	if (sp[0]->mode == AUDIO_TOOL) {
-		sprintf(mbus_engine_addr, "(audio engine rat %lu)", (u_int32) getpid());
+		sprintf(mbus_engine_addr, "(media:audio module:engine app:rat instance:%lu)", (u_int32) getpid());
 		sp[0]->mbus_engine = mbus_init(mbus_engine_rx, NULL);
 		mbus_addr(sp[0]->mbus_engine, mbus_engine_addr);
 
 		if (sp[0]->ui_on) {
-			sprintf(mbus_ui_addr, "(audio ui rat %lu)", (u_int32) getpid());
+			sprintf(mbus_ui_addr, "(media:audio module:ui app:rat instance:%lu)", (u_int32) getpid());
 			sp[0]->mbus_ui = mbus_init(mbus_ui_rx, NULL);
 			mbus_addr(sp[0]->mbus_ui, mbus_ui_addr);
 			tcl_init(sp[0], argc, argv, mbus_engine_addr);
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
 		/* for each side, to make them separately controllable.  */
 		abort();
 	}
-	sprintf(mbus_video_addr, "(video engine * *)");
+	sprintf(mbus_video_addr, "(media:video module:engine)");
 
 	ui_controller_init(sp[0], cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 	do {
