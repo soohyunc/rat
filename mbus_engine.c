@@ -34,6 +34,7 @@
 #include "codec_types.h"
 #include "channel_types.h"
 #include "rtp.h"
+#include "rtp_callback.h"
 #include "ui.h"
 
 extern int should_exit;
@@ -730,18 +731,12 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 	mbus_parse_int(sp->mbus_engine, &tx_port);
 	mbus_parse_int(sp->mbus_engine, &ttl);
 	mbus_parse_done(sp->mbus_engine);
-/*
-	for (i = 0; i < sp->layers; i++) {
-		sp->rtp_socket[i] = udp_init(addr, rx_port, tx_port, ttl);
-	}
-	sp->rtcp_socket = udp_init(addr, rx_port, tx_port, ttl);
 
-	cname = get_cname(sp->rtcp_socket);
-	sp->db = rtcp_init(sp->device_clock, cname, 0);
-	xfree(cname);
-        rtcp_clock_change(sp);
-        */
-        debug_msg("rx_rtp_addr received and is currently disabled.\n");
+	sp->rtp_session[0] = rtp_init(addr, rx_port, ttl, 64000, rtp_callback);
+	sp->rtp_session_count++;
+	rtp_callback_init(sp->rtp_session[0], sp);
+
+	debug_msg("RTP code ignores tx_port\n");
 }
 
 
