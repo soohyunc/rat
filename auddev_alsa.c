@@ -20,7 +20,6 @@
 #define ALSA_PCM_NEW_SW_PARAMS_API
 #include <alsa/asoundlib.h>
 
-#include "config.h"
 #include "config_unix.h"
 #include "audio_types.h"
 #include "auddev_alsa.h"
@@ -249,7 +248,7 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
     int err;
     size_t bsize;
     snd_pcm_uframes_t frames;
-    int rrate;
+    unsigned int rrate;
     snd_pcm_hw_params_t *hw_params;
     snd_pcm_sw_params_t *sw_params;
 
@@ -963,7 +962,7 @@ int alsa_get_device_count()
 int alsa_audio_supports(audio_desc_t ad, audio_format *fmt)
 {
     snd_pcm_hw_params_t *hw_params;
-    int rmin, rmax, cmin, cmax;
+    unsigned rmin, rmax, cmin, cmax;
     int err, dir;
 
     debug_msg("Got \"ALSA supports\" for %d\n", ad);
