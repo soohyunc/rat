@@ -1508,7 +1508,7 @@ proc toggle_stats {ssrc} {
 	wm title $win "Participant $NAME($ssrc)"
 #	wm resizable $win 1 1
 	wm protocol  $win WM_DELETE_WINDOW "destroy $win; 3d_delete_parameters $ssrc"
-	constrain_window $win $statsfont 36 24
+	constrain_window $win $statsfont 36 22
     }
 }
 

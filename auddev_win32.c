@@ -213,7 +213,9 @@ mixRestoreControls(UINT uMix, mcd_elem_t **pplist)
 {
         MIXERCONTROLDETAILS *pmcd;
         MMRESULT mmr;
-        
+
+        return;
+
         while((pmcd = mcd_elem_get_control(pplist)) != NULL) {
                 mmr = mixerSetControlDetails((HMIXEROBJ)uMix, pmcd, MIXER_OBJECTF_MIXER);
                 xfree(pmcd->paDetails);
