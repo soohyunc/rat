@@ -43,7 +43,7 @@ static int audio_fd = -1;
 static int dev_ids[NEWPCM_MAX_AUDIO_DEVICES];
 static char names[NEWPCM_MAX_AUDIO_DEVICES][NEWPCM_MAX_AUDIO_NAME_LEN];
 static int ndev = 0;
-static int newpcm_error, blocksize;
+static int newpcm_error;
 static audio_format *input_format, *output_format, *tmp_format;
 static snd_capabilities soundcaps[NEWPCM_MAX_AUDIO_DEVICES];
 
@@ -133,17 +133,20 @@ newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 pa.rec_rate = ifmt->sample_rate;
                 NEWPCM_AUDIO_IOCTL(audio_fd, AIOSFMT, &pa);
 
-                sz.play_size = ofmt->bytes_per_block;
-                sz.rec_size  = ifmt->bytes_per_block;
+/*
+		sz.play_size = 1;
+		while(sz.play_size < ofmt->bytes_per_block)
+		    sz.play_size <<= 1;
+		sz.rec_size = sz.play_size;
+*/
+                sz.play_size = ofmt->bytes_per_block; 
+		sz.rec_size  = ifmt->bytes_per_block;
                 NEWPCM_AUDIO_IOCTL(audio_fd, AIOSSIZE, &sz);
 
                 NEWPCM_AUDIO_IOCTL(audio_fd, AIOGSIZE, &sz);
                 debug_msg("rec size %d, play size %d bytes\n",
                           sz.rec_size, sz.play_size);
 
-		blocksize = 256;
-		NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SETBLKSIZE, &blocksize);
-               
                 if (newpcm_error != 0) {
                         /* Failed somewhere in initialization - reset error and exit*/
                         newpcm_audio_close(ad);
@@ -243,7 +246,7 @@ newpcm_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
         UNUSED(ad); assert(audio_fd > 0);
 
 	done = 0;
-	len = min(read_bytes, blocksize);
+	len = min(read_bytes, sz.rec_size);
 	do {
 	    this_read = read(audio_fd, buf + done, len);
 	    if (this_read == -1) break;
@@ -264,7 +267,7 @@ newpcm_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 	while (done < write_bytes) {
 	    wrote = write(audio_fd, 
 			  buf + done, 
-			  min(blocksize, write_bytes - done));
+			  min(sz.play_size, write_bytes - done));
 	    if (wrote == -1) break;
 	    done += wrote;
 	}
