@@ -291,7 +291,8 @@ static args_handler late_args[] = {
         { "-repair",         cmd_repair,       1 },
         { "-f",              cmd_primary,      1 },
         { "-r",              cmd_redundancy,   1 },
-        { "-t",              NULL,             1 }, /* handled in parse early args */
+        { "-t",              NULL,             1 }, /* handled in parse early args  */
+	{ "-T",	             NULL,             0 }, /* transcoder: special handling */
 };
 
 static uint32_t late_args_cnt = sizeof(late_args)/sizeof(late_args[0]);
