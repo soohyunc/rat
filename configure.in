@@ -26,6 +26,7 @@ case "$host_os" in
  	*linux*   ) OSTYPE=Linux    ;;
  	*solaris* ) OSTYPE=Solaris  ;;
 	*freebsd* ) OSTYPE=FreeBSD  ;;
+	*netbsd*  ) OSTYPE=NetBSD   ;;
 	*irix*    ) OSTYPE=Irix     ;;
 	*         ) OSTYPE=$host_os ;;
 esac
@@ -214,8 +215,10 @@ case "$target" in
   	AC_DEFINE(HAVE_NEWPCM_AUDIO) 
 	;;
 *netbsd*)
-	AU_OBJ="$AUDIOBJ auddev_netbsd.o"
+	AU_OBJ="$AUDIOBJ auddev_netbsd.o auddev_oss.o"
 	AC_DEFINE(HAVE_NETBSD_AUDIO)
+	AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
+	AC_DEFINE(HAVE_OSS_AUDIO)
 	;;
 *irix*)
 	AU_LIB="$AU_LIB -laudio"
@@ -370,7 +373,7 @@ FOUND_TCL_LIB=no
 AC_SEARCH_LIBS(Tcl_Init, tcl${TCLTK_VERSION} tcl${TCLTK_VERSION_ALT}, 
 	FOUND_TCL_LIB=yes,
 	, 
-	-L${TCL_LIB} ${SAVED_LIBS} -lm)
+	-L${TCL_LIB} ${SAVED_LIBS} -lpthread -lm)
 TCL_LIB="-L${TCL_LIB} $LIBS"
 LIBS=$SAVED_LIBS
 
@@ -431,7 +434,7 @@ FOUND_TK_LIB=no
 AC_SEARCH_LIBS(Tk_Init, tk${TCLTK_VERSION} tk${TCLTK_VERSION_ALT},
 	FOUND_TK_LIB=yes,
 	,
-	-L${TK_LIB} ${TCL_LIB} $X_LIBS $X_PRE_LIBS  -lXext -lX11 $X_EXTRA_LIBS ${SAVED_LIBS} -lm)
+	-L${TK_LIB} ${TCL_LIB} $X_LIBS $X_PRE_LIBS  -lXext -lX11 $X_EXTRA_LIBS ${SAVED_LIBS} -lpthread -lm)
 TK_LIB="-L${TK_LIB} $LIBS"
 LIBS=$SAVED_LIBS
 
@@ -478,7 +481,7 @@ AC_ARG_WITH(common,
 	  COMMON_LIB=${DEFAULT_COMMON_LIB} ])
 
 FOUND_COMMON_H=no
-for h in ${COMMON_INC} ${COMMON_INC}/include
+for h in ${COMMON_INC} ${COMMON_INC}/include ${COMMON_INC}/include/common-mml
 do
 AC_CHECK_HEADER($h/mbus.h,
 	[

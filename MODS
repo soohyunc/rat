@@ -1647,6 +1647,8 @@ v4.2.26	- Fix compilation on MacOS X 10.3.4
 	- Add MacOS X audio driver, contributed by <juraj.sucik@cnl.tuke.sk>
 	- Update DVI ADPCM codec <paul_j_barber@yahoo.co.uk>
 	- Fix crash if getpwuid() fails <Grant.Likely@gdcanada.com>
+	- Add NetBSD audio driver, contributed by Brook Milligan at New Mexico
+	  State University <brook@nmsu.edu>
 
 
 TODO -- They're features not bugs dammit!

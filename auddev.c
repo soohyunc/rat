@@ -23,6 +23,7 @@ static const char cvsid[] =
 #include "auddev_null.h"
 #include "auddev_luigi.h"
 #include "auddev_newpcm.h"
+#include "auddev_netbsd.h"
 #include "auddev_osprey.h"
 #include "auddev_oss.h"
 #include "auddev_ixj.h"
@@ -109,6 +110,38 @@ audio_if_t audio_if_table[] = {
                 macosx_audio_supports
         },
 #endif /* HAVE_MACOSX_AUDIO */
+#ifdef HAVE_NETBSD_AUDIO
+        {
+                netbsd_audio_init,
+                NULL,
+                netbsd_audio_device_count,
+                netbsd_audio_device_name,
+                netbsd_audio_open,
+                netbsd_audio_close,
+                netbsd_audio_drain,
+                netbsd_audio_duplex,
+                netbsd_audio_read,
+                netbsd_audio_write,
+                netbsd_audio_non_block,
+                netbsd_audio_block,
+                netbsd_audio_set_igain,
+                netbsd_audio_get_igain,
+                netbsd_audio_set_ogain,
+                netbsd_audio_get_ogain,
+                netbsd_audio_loopback,
+                netbsd_audio_oport_set,
+                netbsd_audio_oport_get,
+                netbsd_audio_oport_details,
+                netbsd_audio_oport_count,
+                netbsd_audio_iport_set,
+                netbsd_audio_iport_get,
+                netbsd_audio_iport_details,
+                netbsd_audio_iport_count,
+                netbsd_audio_is_ready,
+                netbsd_audio_wait_for,
+                netbsd_audio_supports
+        },
+#endif /* HAVE_NETBSD_AUDIO */
 #ifdef HAVE_SGI_AUDIO
         {
                 NULL,

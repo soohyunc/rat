@@ -10,6 +10,7 @@ The following interfaces are currently supported:
 	auddev_alsa.[ch]	Advanced Linux Sound Architecture.
 	auddev_atm.[ch]		ATM A-law driver (reads and writes raw AAL1)
 	auddev_luigi.[ch]	PCM Sound Driver for FreeBSD (Luigi's Driver)
+	auddev_netbsd.[ch]	Sound driver for all NetBSD audio devices
 	auddev_osprey.[ch]	SunVideo Plus Audio Device (Buggy driver!)
 	auddev_oss.[ch]		Linux and FreeBSD Open Sound System
 	auddev_pca.[ch]		FreeBSD Speaker Device (/dev/pcaudio)
@@ -35,10 +36,10 @@ Add an entry like the existing ones for the new interface.
 
 An important distinction exists between audio interfaces: those that
 support single devices (sparc, sgi) and those that support multiple
-devices (e.g. win32sdk).  There can only be one interface that support
-multiple devices (for a given platform) and it must be the first to be
-appear in audio_init_interfaces.  If you look at the code you can see
-why, audio_open passes the index of the device in the call to the
+devices (e.g. netbsd, win32sdk).  There can only be one interface that
+supports multiple devices (for a given platform) and it must be the first
+to be appear in audio_init_interfaces.  If you look at the code you can
+see why, audio_open passes the index of the device in the call to the
 interface's audio_open function.  The interfaces audio_open function
 uses this to work out which device to use.  It's a minor limitation
 and a fix is deferred until it is an issue.

@@ -2,7 +2,7 @@
  * FILE:    auddev_oss.c - Open Sound System audio device driver
  * PROGRAM: RAT
  * AUTHOR:  Colin Perkins
- * MODS:    Orion Hodson + Robert Olson
+ * MODS:    Orion Hodson + Robert Olson + Brook Milligan
  *
  * Copyright (c) 1996-2001 University College London
  * All rights reserved.
@@ -27,6 +27,10 @@ static const char cvsid[] = "$Id$";
 #ifdef HAVE_SYS_SOUNDCARD_H
 #  include <sys/soundcard.h>
 #endif
+#endif
+
+#ifdef HAVE_NETBSD_AUDIO
+#include "auddev_netbsd.h"
 #endif
 
 #ifdef HAVE_ALSA_AUDIO
@@ -136,6 +140,16 @@ deve2oss(deve_e encoding)
 }
 
 static int
+oss_setfd(int fd)
+{
+#if HAVE_NETBSD_AUDIO
+	return auddev_netbsd_setfd(fd);
+#else
+	return ioctl(fd, SNDCTL_DSP_SETDUPLEX, 0);
+#endif
+}
+
+static int
 oss_probe_mixer_device(int i, struct oss_device *device)
 {
 	/* Probe /dev/mixerX, and fill in mixer related parts of device.   */
@@ -147,12 +161,14 @@ oss_probe_mixer_device(int i, struct oss_device *device)
 	struct stat	s;
 	int		valid_mixer = FALSE;
 	int		fd, d;
+	const char *	devname     = "/dev/mixer%d";
+	const char *	devname_alt = "/dev/mixer";
 
-	sprintf(device->mixer_rdev, "/dev/mixer%d", i);
+	sprintf(device->mixer_rdev, devname, i);
 	fd = open(device->mixer_rdev, O_RDWR);
 	if ((fd < 0) && (i == 0)) {
-		if ((stat("/dev/mixer", &s) == 0) && !S_ISLNK(s.st_mode)) {
-			sprintf(device->mixer_rdev, "/dev/mixer");
+		if ((stat(devname_alt, &s) == 0) && !S_ISLNK(s.st_mode)) {
+			sprintf(device->mixer_rdev, devname_alt);
 			fd = open(device->mixer_rdev, O_RDWR);
 		}
 	}
@@ -240,20 +256,26 @@ oss_test_mode(int fd, int speed, int stereo)
 static int
 oss_probe_audio_device(int i, struct oss_device *device)
 {
-	/* Probe /dev/dspX, and fill in mixer related parts of the device. */
-	/* If we are requested to probe /dev/dsp0, and that file doesn't   */
-	/* exist, we probe /dev/dsp instead (if that is not a symlink).    */
-	/* This is for compatibility with some old Linux distributions,    */
-	/* which have a broken /dev.                                       */
+	/* Probe audio device, and fill in mixer related parts of it.  */
+	/* If we are requested to probe, for example, /dev/sound0, and */
+	/* that file doesn't exist, we probe /dev/sound instead (if    */
+	/* that is not a symlink).                                     */
 	struct stat	s;
 	int		speed[] = {8000, 11025, 16000, 22050, 32000, 44100, 48000};
         int 		stereo, speed_index, fd;
+#if HAVE_NETBSD_AUDIO
+	const char * devname     = "/dev/sound%d";
+	const char * devname_alt = "/dev/sound";
+#else
+	const char * devname     = "/dev/dsp%d";
+	const char * devname_alt = "/dev/dsp";
+#endif
 
-	sprintf(device->audio_rdev, "/dev/dsp%d", i);
+	sprintf(device->audio_rdev, devname, i);
 	fd = open(device->audio_rdev, O_RDWR);
 	if ((fd < 0) && (i == 0)) {
-		if ((stat("/dev/dsp", &s) == 0) && !S_ISLNK(s.st_mode)) {
-			sprintf(device->audio_rdev, "/dev/dsp");
+		if ((stat(devname_alt, &s) == 0) && !S_ISLNK(s.st_mode)) {
+			sprintf(device->audio_rdev, devname_alt);
 			fd = open(device->audio_rdev, O_RDWR);
 		}
 	}
@@ -265,7 +287,7 @@ oss_probe_audio_device(int i, struct oss_device *device)
 
 	/* Check if the device is full duplex. This MUST be the first test   */
 	/* after the audio device is opened.                                 */
-	if (ioctl(fd, SNDCTL_DSP_SETDUPLEX, 0) == -1) {
+	if (oss_setfd(fd) == -1) {
 		debug_msg("testing %s support for full duplex operation: no\n", device->audio_rdev);
 		device->duplex = OSS_DUPLEX_HALF;
 	} else {
@@ -553,7 +575,7 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 			}
 			devices[ad].audio_wfd = devices[ad].audio_rfd;
 
-			if (ioctl(devices[ad].audio_rfd, SNDCTL_DSP_SETDUPLEX, 0) == -1) {
+			if (oss_setfd(devices[ad].audio_rfd)) {
 				debug_msg("device doesn't support full duplex operation\n");
 				oss_audio_close(ad);
 				return FALSE;
@@ -867,7 +889,9 @@ oss_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 
         read_len  = read(devices[ad].audio_rfd, (char *)buf, available);
 	if (read_len < 0) {
-                perror("audio_read");
+#ifndef HAVE_NETBSD_AUDIO
+		perror("audio_read");
+#endif
 		return 0;
         }
 
