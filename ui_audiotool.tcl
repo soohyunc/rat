@@ -82,8 +82,8 @@ proc init_source {ssrc} {
 		set     PCKTS_DUP($ssrc) 0
 		set        JITTER($ssrc) 0
 		set     JIT_TOGED($ssrc) 0
-		set    LOSS_TO_ME($ssrc) 101
-		set  LOSS_FROM_ME($ssrc) 101
+		set    LOSS_TO_ME($ssrc) 0
+		set  LOSS_FROM_ME($ssrc) 0
 		set         INDEX($ssrc) $num_ssrc
 		set          SSRC($ssrc) $ssrc
 		incr num_ssrc

@@ -198,10 +198,7 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
         debug_msg("buffer (%05d) calced (%05d)\n", buffered, delay);
 
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.buffered", "\"%08lx\" %ld", pdbe->ssrc, buffered);
-        
-        if (src == NULL || delay != 0) {
-                mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", pdbe->ssrc, buffered);
-        }
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", pdbe->ssrc, delay);
 
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
         rr = rtp_get_rr(sp->rtp_session[0], pdbe->ssrc, my_ssrc);

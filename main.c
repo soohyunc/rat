@@ -200,10 +200,8 @@ main(int argc, char *argv[])
                                 if (source_relevant(s, sp[0]->cur_ts)) {
                                         pdb_entry_t *e;
                                         ts_t         two_secs, delta;
-/*
-					source_check_buffering(s, sp[0]->cur_ts);
-                                        */
 					source_process(s, sp[0]->ms, sp[0]->render_3d, sp[0]->repair, cush_ts);
+					source_check_buffering(s, sp[0]->cur_ts);
 					source_audit(s);
                                         /* Check for UI update necessary, updating once per 2 secs */
                                         pdb_item_get(sp[0]->pdb, source_get_ssrc(s), &e);
