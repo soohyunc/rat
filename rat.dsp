@@ -122,8 +122,8 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "rat___Win32_Debug_IPv6_Musica"
-# PROP Intermediate_Dir "rat___Win32_Debug_IPv6_Musica"
+# PROP Output_Dir "Debug_IPv6_Musica"
+# PROP Intermediate_Dir "Debug_IPv6_Musica"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /I "..\common" /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /I "..\tk-8.0\xlib\X11" /I "\DDK\inc" /I "..\MSR_IPv6_1.3\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /FR /YX /FD /I ../common /c
@@ -138,8 +138,8 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 tklib.lib tcllib.lib wship6.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"..\tcl-8.0\win\Debug_IPv6" /libpath:"..\tk-8.0\win\Debug_IPv6" /libpath:"..\MSR_IPv6_1.3\wship6\obj\i386\free" /libpath:"..\common\Debug"
 # SUBTRACT BASE LINK32 /pdb:none /incremental:no /map /force
-# ADD LINK32 tklib.lib tcllib.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib Lib44bsd.lib resolv.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"..\tcl-8.0\win\Debug_IPv6" /libpath:"..\tk-8.0\win\Debug_IPv6" /libpath:"..\common\Debug" /libpath:"..\MUSICA\WINSOCK6"
-# SUBTRACT LINK32 /pdb:none /incremental:no /map /force
+# ADD LINK32 tklib.lib tcllib.lib gdi32.lib winspool.lib comdlg32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib advapi32.lib lib44bsd.lib Resolv.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"..\tcl-8.0\win\Debug_IPv6" /libpath:"..\tk-8.0\win\Debug_IPv6" /libpath:"..\MUSICA\WINSOCK6" /libpath:"..\common\Debug"
+# SUBTRACT LINK32 /pdb:none
 
 !ENDIF 
 
