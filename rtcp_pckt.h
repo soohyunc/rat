@@ -66,6 +66,7 @@ typedef struct {
 	char           *name;
 	char           *email;
 	char           *phone;
+	char	       *note;
 	char           *loc;
 	char           *txt;
 	char           *tool;

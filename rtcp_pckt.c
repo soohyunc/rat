@@ -380,7 +380,16 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
                                                 ui_info_update_tool(dbe);
 						break;
 					case RTCP_SDES_NOTE:
-						debug_msg("SDES NOTE support not yet implemented\n");
+						if (dbe->sentry->note) {
+							if (!strncmp(dbe->sentry->note, sdes->data, lenstr)) {
+								break;
+							}
+							xfree(dbe->sentry->note);
+						}
+						dbe->sentry->note = (char *) xmalloc(lenstr + 1);
+						memcpy(dbe->sentry->note, sdes->data, lenstr);
+						dbe->sentry->note[lenstr] = '\0';
+                                                ui_info_update_note(dbe);
 						break;
 					default:
 						debug_msg("SDES packet type %d ignored\n", sdes->type);

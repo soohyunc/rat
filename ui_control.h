@@ -51,6 +51,7 @@ void	  ui_info_update_email(struct s_rtcp_dbentry *e);
 void	  ui_info_update_phone(struct s_rtcp_dbentry *e);
 void	    ui_info_update_loc(struct s_rtcp_dbentry *e);
 void	   ui_info_update_tool(struct s_rtcp_dbentry *e);
+void	   ui_info_update_note(struct s_rtcp_dbentry *e);
 void	        ui_info_remove(struct s_rtcp_dbentry *e);
 void	      ui_info_activate(struct s_rtcp_dbentry *e);
 void	          ui_info_gray(struct s_rtcp_dbentry *e);

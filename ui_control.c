@@ -167,6 +167,19 @@ ui_info_update_tool(rtcp_dbentry *e)
 }
 
 void
+ui_info_update_note(rtcp_dbentry *e)
+{
+	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
+	char *arg   = xstrdup(mbus_encode_str(e->sentry->note));
+        char *args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
+	sprintf(args, "%s %s", cname, arg);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.note", args, TRUE);
+	xfree(cname);
+	xfree(arg);
+        xfree(args);
+}
+
+void
 ui_info_remove(rtcp_dbentry *e)
 {
 	if (e->sentry->cname == NULL) return;

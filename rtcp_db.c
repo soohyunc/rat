@@ -263,6 +263,7 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 		if (dbptr->sentry->loc)   xfree(dbptr->sentry->loc);
 		if (dbptr->sentry->txt)   xfree(dbptr->sentry->txt);
 		if (dbptr->sentry->tool)  xfree(dbptr->sentry->tool);
+		if (dbptr->sentry->note)  xfree(dbptr->sentry->note);
 		xfree(dbptr->sentry);
 	}
 
@@ -365,6 +366,11 @@ rtcp_set_attribute(session_struct *sp, int type, char *val)
 		if (sp->db->my_dbe->sentry->name) xfree(sp->db->my_dbe->sentry->name);
 		sp->db->my_dbe->sentry->name = xstrdup(val);
 		ui_info_update_name(sp->db->my_dbe);
+		break;
+	case RTCP_SDES_NOTE :
+		if (sp->db->my_dbe->sentry->note) xfree(sp->db->my_dbe->sentry->note);
+		sp->db->my_dbe->sentry->note = xstrdup(val);
+		ui_info_update_note(sp->db->my_dbe);
 		break;
 	default :
 		debug_msg("Unknown SDES attribute type! (This should never happen)\n");

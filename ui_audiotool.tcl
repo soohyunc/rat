@@ -44,7 +44,7 @@ set num_cname		0
 set fw			.l.t.list.f
 
 proc init_source {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL num_cname 
+	global CNAME NAME EMAIL LOC PHONE TOOL NOTE num_cname 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
 
 	if {[array names INDEX $cname] != $cname} {
@@ -55,6 +55,7 @@ proc init_source {cname} {
 		set        PHONE($cname) ""
 		set          LOC($cname) ""
 		set         TOOL($cname) ""
+		set	    NOTE($cname) ""
 		set     CODEC($cname) "unknown"
 		set     DURATION($cname) ""
 		set   PCKTS_RECV($cname) "0"
@@ -373,6 +374,13 @@ proc mbus_recv_source.tool {cname tool} {
 	cname_update $cname
 }
 
+proc mbus_recv_source.note {cname note} {
+	global NOTE
+	init_source $cname
+	set NOTE($cname) $note
+	cname_update $cname
+}
+
 proc mbus_recv_source.codec {cname codec} {
 	global CODEC
 	init_source $cname
@@ -432,7 +440,7 @@ proc mbus_recv_source.inactive {cname} {
 }
 
 proc mbus_recv_source.remove {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER 
+	global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER 
 	global LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED num_cname mylosstimers his_or_her_losstimers
 
 	# Disable updating of loss diamonds. This has to be done before we destroy the
@@ -443,7 +451,7 @@ proc mbus_recv_source.remove {cname} {
 
 	catch [destroy [window_plist $cname]]
 
-	unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname)
+	unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname) NOTE($cname)
 	unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname) PCKTS_DUP($cname)
 	unset JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname) JIT_TOGED($cname)
 
@@ -467,7 +475,7 @@ proc mbus_recv_quit {} {
 proc cname_update {cname} {
 	# This procedure updates the on-screen representation of
 	# a participant. 
-	global CNAME NAME EMAIL LOC PHONE TOOL INDEX 
+	global CNAME NAME EMAIL LOC PHONE TOOL NOTE INDEX 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP LOSS_TO_ME LOSS_FROM_ME
 	global fw iht iwd my_cname mylosstimers his_or_her_losstimers
 
@@ -612,7 +620,7 @@ proc info_timer {} {
 }
 
 proc update_stats {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL
+	global CNAME NAME EMAIL LOC PHONE TOOL NOTE
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME JIT_TOGED
 
 	set loss_to_me   "unknown"
@@ -630,6 +638,7 @@ proc update_stats {cname} {
 				        	          Phone:                       $PHONE($cname)\n\
 				        	          Location:                    $LOC($cname)\n\
 				        	          Tool:                        $TOOL($cname)\n\
+							  Note:			       $NOTE($cname)\n\
 				        	          CNAME:                       $CNAME($cname)\n\
 				        	          Audio Encoding:              $CODEC($cname)\n\
 				        	          Packet duration:             $DURATION($cname)ms\n\
