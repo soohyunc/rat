@@ -1093,15 +1093,16 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Fix shutdown sequence.
 	- Patch G711 A-law, Sun's reference implementation had a few glitches 
 	  and you only notice when speaking with real h/w implementations.
+	- Update README.mbus
 	- Fix two step sample format conversion assertion failure.
-<<<<<<< MODS
 	- Fix device sample conversion layer freeing already freed pointer
 	  when swapping between devices with and without layer.
 	- Add RTCP DELETE messages trigger deletion corresponding pdb entry
 	  and source (if relevent).
-=======
-	- Update README.mbus
->>>>>>> 1.84
+	- Tweak source ageing, to fix problems with users being hilighted
+	  after they finish speaking. Problem occured if less than 50
+	  packets arrived in a talkspurt.
+
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1160,4 +1161,6 @@ TODO -- They're features not bugs dammit!
 - Handling of SSRC collisions is broken
 - Sometime see messages of the form "source.c:767 Spike (160 > 2708390)"
   and hear nothing.
-- Need to propagate quit messages on Win32 and check for liveness.
+- -allowloopback option is broken
+- mtrace doesn't work?
+- RTT estimate gets confused when others talk.

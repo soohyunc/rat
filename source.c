@@ -575,7 +575,7 @@ source_process_packet (source  *src,
         cu->data_len     = pckt_len;
         cu->pt           = payload;
 
-        src->age++;
+	src->age++;
 done:   
         if (pb_add(src->channel, (u_char*)cd, sizeof(channel_data), playout) == FALSE) {
                 src->pdbe->duplicates++;
@@ -1586,10 +1586,11 @@ source_relevant(source *src, ts_t now)
 {
 	source_validate(src);
 
-        if (pb_relevant(src->media, now) || pb_relevant(src->channel, now) || src->age < 50) {
+        src->age++;
+        if (pb_relevant(src->media, now) || pb_relevant(src->channel, now) || (src->age < 20)) {
                 return TRUE;
         } if (ts_valid(src->next_played)) {
-                /* Source is quiescent                                     */
+                /* Source is quiescent */
                 ts_t quiet;        
                 quiet = ts_sub(now, src->next_played);
                 if (ts_gt(keep_source_ts, quiet)) {
