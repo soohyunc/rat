@@ -104,10 +104,9 @@ vanilla_encoder_output(ve_state *ve, struct s_pb *out)
                 used++;
                 media_data_destroy(&ve->elem[i], sizeof(media_data));
         }
-        ve->nelem -= used;
+        ve->nelem = 0;
 
-        assert(ve->nelem == 0);
-        assert(used < cd->nelem);
+        assert(used <= cd->nelem);
 
         pb_add(out, 
                (u_char*)cd, 
