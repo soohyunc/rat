@@ -57,5 +57,7 @@ typedef struct {
 int  media_data_create    (media_data **m, int nrep);
 void media_data_destroy   (media_data **m, u_int32 md_size);
 
+int  coded_unit_dup       (coded_unit *dst, coded_unit *src);
+
 #endif /* _CODEC_TYPES_H_ */
 

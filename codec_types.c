@@ -75,3 +75,27 @@ media_data_destroy(media_data **ppmd, u_int32 md_size)
         block_free(pmd, sizeof(media_data));
         *ppmd = NULL;
 }
+
+int
+coded_unit_dup(coded_unit *dst, coded_unit *src)
+{
+        assert(src);
+        assert(dst);
+        assert(src->data_len != NULL);
+        dst->data     = (u_char*)block_alloc(src->data_len);
+        dst->data_len = src->data_len;
+        memcpy(dst->data, src->data, src->data_len);
+
+        if (src->state_len != 0) {
+                dst->state     = (u_char*)block_alloc(src->state_len);
+                dst->state_len = src->state_len;
+                memcpy(dst->state, src->state, src->state_len);
+        } else {
+                dst->state     = NULL;
+                dst->state_len = 0;
+        }
+
+        dst->id = src->id;
+
+        return TRUE;
+}

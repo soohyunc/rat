@@ -376,34 +376,53 @@ static int
 tx_encode(struct s_codec_state_store *css, 
           sample     *buf, 
           u_int32     dur_used,
-          u_char      payload, 
-          coded_unit *coded)
+          u_int32     encoding,
+          u_char     *payloads, 
+          coded_unit **coded)
 {
         codec_id_t id;
-        coded_unit native;
+        u_int32    i;
 
-        codec_state *cs;
-        const codec_format_t *cf;
-
-        id = codec_get_by_payload(payload);
+        id = codec_get_by_payload(payloads[encoding]);
         assert(id);
 
-        cf = codec_get_format(id);
-
-        /* native is a temporary coded_unit that we use to pass to
-         * codec_encode since this take a 'native' (raw) coded unit as
-         * input and fills in coded with the transformed data.
+        /* Look to see if we have already coded this unit,
+         * i.e. we are using redundancy.  Don't want to code
+         * twice since it screws up encoder state.
          */
-        native.id        = codec_get_native_coding((u_int16)cf->format.sample_rate, 
-                                                   (u_int16)cf->format.channels);
-        native.state     = NULL;
-        native.state_len = 0;
-        native.data      = (u_char*)buf;
-        native.data_len  = (u_int16)(dur_used * sizeof(sample) * cf->format.channels);
+        
+        for (i = 0; i < encoding; i++) {
+                if (coded[i]->id == id) {
+                        break;
+                }
+        }
 
-        /* Get codec state from those stored for us */
-        cs = codec_state_store_get(css, id);
-        return codec_encode(cs, &native, coded);
+        if (i == encoding) {
+                const codec_format_t *cf;
+                coded_unit native;
+                codec_state *cs;
+                
+                /* Unit does not exist already */
+                cf = codec_get_format(id);
+                
+                /* native is a temporary coded_unit that we use to pass to
+                 * codec_encode since this take a 'native' (raw) coded unit as
+                 * input and fills in coded with the transformed data.
+                 */
+                native.id        = codec_get_native_coding((u_int16)cf->format.sample_rate, 
+                                                           (u_int16)cf->format.channels);
+                native.state     = NULL;
+                native.state_len = 0;
+                native.data      = (u_char*)buf;
+                native.data_len  = (u_int16)(dur_used * sizeof(sample) * cf->format.channels);
+                
+                /* Get codec state from those stored for us */
+                cs = codec_state_store_get(css, id);
+                return codec_encode(cs, &native, coded[encoding]);
+        } else {
+                /* duplicate coded unit */
+                return coded_unit_dup(coded[encoding], coded[i]);
+        }
 }
 
 void
@@ -481,8 +500,9 @@ tx_send(tx_buffer *tb)
                                         tx_encode(tb->state_store, 
                                                   u->data, 
                                                   u->dur_used,
-                                                  sp->encodings[encoding], 
-                                                  m->rep[encoding]);
+                                                  encoding,
+                                                  sp->encodings, 
+                                                  m->rep);
                                 }
                         } else {
                                 media_data_create(&m, 0);
