@@ -38,7 +38,7 @@
 
 #include <stdio.h>
 #include "mbus_ui.h"
-#include "ui.h"
+#include "tcltk.h"
 #include "util.h"
 
 void mbus_handler_ui(char *srce, char *cmnd, char *args, void *data)
@@ -56,6 +56,6 @@ void mbus_handler_ui(char *srce, char *cmnd, char *args, void *data)
 		if (command[i] == ']') command[i] = ')';
 	}
 
-	ui_send(command);
+	tcl_send(command);
 }
 

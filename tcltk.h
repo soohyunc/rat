@@ -1,12 +1,9 @@
 /*
- *	FILE: ui.h
- *	PROGRAM: BAT
- *	AUTHOR: Isidor Kouvelas
+ * FILE:    tcltk.h
+ * PROGRAM: RAT
+ * AUTHOR:  Isidor Kouvelas + Colin Perkins
  *
- * 	$Revision$
- * 	$Date$
- *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,11 +37,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _UI_H
-#define _UI_H
+#ifndef _TCLTK_H
+#define _TCLTK_H
 
 struct session_tag;
 
-void ui_codecs(struct session_tag *sp);
+void    tcl_send(char *command);
+int	tcl_init(struct session_tag *session_pointer, char *cname, int argc, char **argv);
 
 #endif

@@ -65,6 +65,7 @@ OBJS  += $(OBJDIR)/convert.o \
          $(OBJDIR)/parameters.o \
          $(OBJDIR)/ui_original.o \
          $(OBJDIR)/tcl_libs.o \
+	 $(OBJDIR)/tcltk.o \
          $(OBJDIR)/rtcp.o \
          $(OBJDIR)/speaker_table.o \
          $(OBJDIR)/net.o \
@@ -89,15 +90,15 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 
 $(OBJDIR)/init_session.o: 	version.h
 $(OBJDIR)/rtcp.o:      		version.h
-$(OBJDIR)/ui.o:       		version.h
-$(OBJDIR)/ui.o:	      		xbm/ucl.xbm
-$(OBJDIR)/ui.o:	      		xbm/mic.xbm
-$(OBJDIR)/ui.o:	      		xbm/speaker.xbm
-$(OBJDIR)/ui.o:	      		xbm/head.xbm
-$(OBJDIR)/ui.o:	      		xbm/line_out.xbm
-$(OBJDIR)/ui.o:	      		xbm/line_in.xbm
-$(OBJDIR)/ui.o:	      		xbm/rat_med.xbm
-$(OBJDIR)/ui.o:	      		xbm/rat_small.xbm
+$(OBJDIR)/tcltk.o:    		version.h
+$(OBJDIR)/tcltk.o:      	xbm/ucl.xbm
+$(OBJDIR)/tcltk.o:	      	xbm/mic.xbm
+$(OBJDIR)/tcltk.o:	      	xbm/speaker.xbm
+$(OBJDIR)/tcltk.o:	      	xbm/head.xbm
+$(OBJDIR)/tcltk.o:	      	xbm/line_out.xbm
+$(OBJDIR)/tcltk.o:	      	xbm/line_in.xbm
+$(OBJDIR)/tcltk.o:	      	xbm/rat_med.xbm
+$(OBJDIR)/tcltk.o:	      	xbm/rat_small.xbm
 
 $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS): $(SRCDIR)/tcl2c.c
 	$(CC) -o $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) $(SRCDIR)/tcl2c.c

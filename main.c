@@ -55,7 +55,7 @@
 #include "util.h"
 #include "audio.h"
 #include "convert.h"
-#include "ui.h"
+#include "tcltk.h"
 #include "ui_update.h"
 #include "mix.h"
 #include "interfaces.h"
@@ -196,7 +196,7 @@ main(int argc, char *argv[])
 	}
 
         if (sp[0]->ui_on) {
-		ui_init(sp[0], cname, argc, argv);
+		tcl_init(sp[0], cname, argc, argv);
         }
 
 	 /* Now initialise everything else... */
