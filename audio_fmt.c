@@ -116,17 +116,18 @@ audio_format_free(audio_format **bye)
 
 static int
 convert_buffer_channels(audio_format *src, 
-                        u_char *src_buf, 
-                        int src_bytes, 
+                        u_char       *src_buf, 
+                        int           src_bytes, 
                         audio_format *dst, 
-                        u_char *dst_buf, 
-                        int dst_bytes)
+                        u_char       *dst_buf, 
+                        int           dst_bytes)
 {
         u_char *se;
         int     out_bytes;
 
         assert(src->channels != dst->channels);
         assert(src->channels == 1 || src->channels == 2);
+        assert(dst->channels == 1 || dst->channels == 2);
         assert(src_buf != dst_buf);
 
         out_bytes = src_bytes * dst->channels / src->channels;
@@ -162,7 +163,7 @@ convert_buffer_channels(audio_format *src,
                         while((u_char*)s < se) {
                                 tmp  = *s++;
                                 tmp += *s++;
-                                *d++ = (sample)tmp / 2;
+                                *d++ = (sample)(tmp / 2);
                         }
                 } else if (src->encoding == DEV_PCMU) {
                         u_char *s = src_buf;
@@ -181,7 +182,7 @@ convert_buffer_channels(audio_format *src,
                         while(s < se) {
                                 tmp  = *s/2; s++;
                                 tmp += *s/2; s++;
-                                *d   = tmp;
+                                *d++ = tmp;
                         }
                 } else {
                         debug_msg("Sample type not recognized\n");
@@ -288,11 +289,13 @@ audio_format_buffer_convert(audio_format *src,
                 return out_bytes;
         } else {
                 /* Additional buffer needed - do everything in steps */
-                u_char ibuf[160];
+#define AF_TMP_BUF_SZ   160
+#define AF_TMP_BUF_SMPLS 80                
+                u_char ibuf[AF_TMP_BUF_SZ];
                 int    done = 0, src_adv, ret;
                 while (src_bytes > 0) {
-                        src_adv = min(80, src_bytes);
-                        ret = convert_buffer_channels(src, src_buf, src_adv, dst, ibuf, 160);
+                        src_adv = min(AF_TMP_BUF_SMPLS, src_bytes);
+                        ret = convert_buffer_channels(src, src_buf, src_adv, dst, ibuf, AF_TMP_BUF_SZ);
                         xmemchk();
                         src_bytes -= src_adv;
                         src_buf   += src_adv;
@@ -304,6 +307,7 @@ audio_format_buffer_convert(audio_format *src,
                 assert(done == out_bytes);
                 assert(dst_bytes >= 0);
         }
+        debug_msg("in bytes %04d out bytes %04d / %04d\n", src_bytes, out_bytes, dst_bytes);
         return out_bytes;
 }
 

@@ -121,8 +121,6 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 case DEV_S8:   pa.rec_format = AFMT_S8;     break;
                 case DEV_S16:  pa.rec_format = AFMT_S16_LE; break;
                 }
-                pa.rec_rate = ifmt->sample_rate;
-                sz.rec_size = ifmt->bytes_per_block;
 
                 switch(ofmt->encoding) {
                 case DEV_PCMU: pa.play_format = AFMT_MU_LAW; break;
@@ -130,13 +128,21 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 case DEV_S16:  pa.play_format = AFMT_S16_LE; break;
                 }
                 pa.play_rate = ofmt->sample_rate;
-                sz.play_size = ofmt->bytes_per_block;
-
+                pa.rec_rate = ifmt->sample_rate;
                 LUIGI_AUDIO_IOCTL(audio_fd, AIOSFMT, &pa);
+
+                sz.play_size = ofmt->bytes_per_block;
+                sz.rec_size  = ifmt->bytes_per_block;
                 LUIGI_AUDIO_IOCTL(audio_fd, AIOSSIZE, &sz);
+
+                LUIGI_AUDIO_IOCTL(audio_fd, AIOGSIZE, &sz);
+                debug_msg("rec size %d, play size %d bytes\n",
+                          sz.rec_size, sz.play_size);
                 
-                /* Set global gain/volume to maximum values. This may fail on */
-                /* some cards, but shouldn't cause any harm when it does..... */
+                /* Set global gain/volume to maximum values. This may
+                 * fail on some cards, but shouldn't cause any harm
+                 * when it does..... */
+
                 LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_PCM), &volume);
                 LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_IGAIN), &volume);
                 /* Set the gain/volume properly. We use the controls for the  */

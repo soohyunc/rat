@@ -355,8 +355,6 @@ audio_device_get_safe_config(audio_config **ppac)
 static int
 audio_device_write(session_struct *sp, sample *buf, int dur)
 {
-        codec_id_t            id;
-        const codec_format_t *cf;
         const audio_format *ofmt = audio_get_ofmt(sp->audio_device);
         int len;
 
@@ -368,19 +366,8 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
 
         len =  audio_write(sp->audio_device, buf, dur * ofmt->channels);
 
-#ifdef NDEBUG
-        return len;
-#endif
+        xmemchk();
         
-        id = codec_get_by_payload((u_char)sp->encodings[0]);
-        assert(id);
-        cf = codec_get_format(id);
-        if (dur * cf->format.channels != len) {
-                debug_msg("Wrote %d bytes.  Total r (%u), w (%u).\n",
-                          len, audio_get_samples_read(sp->audio_device),
-                          audio_get_samples_written(sp->audio_device));
-        }
-        assert(dur * cf->format.channels == len);
         return len;
 }
 

@@ -693,22 +693,13 @@ audio_read(audio_desc_t ad, sample *buf, int samples)
                  * real format].
                  */
                 sample_size = fmts[idx][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
-                read_len    = audio_if_table[iface].audio_if_read(device, 
-                                                                       (u_char*)buf, 
-                                                                       samples * sample_size);
+                read_len    = audio_if_table[iface].audio_if_read(device, (u_char*)buf, samples * sample_size);
                 samples_read[idx] += read_len / (sample_size * fmts[idx][AUDDEV_ACT_IFMT]->channels);
         } else {
                 assert(fmts[idx][AUDDEV_ACT_IFMT] != NULL);
                 sample_size = fmts[idx][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
-                read_len    = audio_if_table[iface].audio_if_read(device, 
-                                                                       (u_char*)convert_buf[idx], 
-                                                                       samples * sample_size);
-                read_len    = audio_format_buffer_convert(fmts[idx][AUDDEV_REQ_IFMT], 
-                                                          (u_char*) convert_buf[idx], 
-                                                          read_len, 
-                                                          fmts[idx][AUDDEV_ACT_IFMT], 
-                                                          (u_char*) buf,
-                                                          DEVICE_REC_BUF);
+                read_len    = audio_if_table[iface].audio_if_read(device, (u_char*)convert_buf[idx], samples * sample_size);
+                read_len    = audio_format_buffer_convert(fmts[idx][AUDDEV_ACT_IFMT], (u_char*) convert_buf[idx],  read_len, fmts[idx][AUDDEV_REQ_IFMT], (u_char*) buf, DEVICE_REC_BUF);
                 sample_size = fmts[idx][AUDDEV_REQ_IFMT]->bits_per_sample / 8;
                 samples_read[idx] += read_len / (sample_size * fmts[idx][AUDDEV_REQ_IFMT]->channels);
         }
