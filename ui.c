@@ -797,7 +797,7 @@ ui_update_key(session_t *sp, char *key)
 	char	*key_e;
 
 	key_e = mbus_encode_str(key);
-	mbus_qmsg(sp->mbus_engine, sp->mbus_ui_addr, "security.encryption.key", key_e, TRUE);
+	mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, TRUE, "security.encryption.key", key_e);
 	xfree(key_e);
 }
 
@@ -1079,6 +1079,10 @@ ui_initial_settings(session_t *sp)
 	ui_info_update_loc(sp,   my_ssrc); 	network_process_mbus(sp);
 	ui_info_update_tool(sp,  my_ssrc); 	network_process_mbus(sp);
         ui_title(sp); 				network_process_mbus(sp);
+	if (sp->encrkey != NULL) {
+		ui_update_key(sp, sp->encrkey);		
+		network_process_mbus(sp);
+	}
 }
 
 void 

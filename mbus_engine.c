@@ -468,8 +468,12 @@ static void rx_security_encryption_key(char *srce, char *args, session_t *sp)
                 for(i = 0; i < sp->rtp_session_count; i++) {
 			if (strlen(key) == 0) {
                         	rtp_set_encryption_key(sp->rtp_session[i], NULL);
+				ui_update_key(sp, "none");
+				sp->encrkey = NULL;
 			} else {
                         	rtp_set_encryption_key(sp->rtp_session[i], key);
+				ui_update_key(sp, key);
+				sp->encrkey = xstrdup(key);
 			}
                 }
 	} else {

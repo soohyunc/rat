@@ -104,6 +104,7 @@ typedef struct s_session {
 	char		   	*mbus_video_addr;
         ts_t                	 cur_ts; 			/* current device time as timestamp */
 	int		    	 loopback_gain;
+	char			*encrkey;
 	uint32_t		 magic;				/* Magic number for debugging purposes */
 } session_t;
 

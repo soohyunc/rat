@@ -215,7 +215,26 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
                 tx_port = rx_port;
         }
 
-	/* Parse command line parameters... */
+	/* Parse early command line parameters. These are things which we can */
+	/* do before the media engine knows its RTP session information.      */
+	for (i = 1; i < argc; i++) {
+		if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
+                        ttl = atoi(argv[i+1]);
+                        if (ttl < 0 || ttl > 255) {
+                                usage("Usage: -t 0-255.\n");
+                                return FALSE;
+                        }
+                        i++;
+		}
+	}
+
+	/* Send the RTP address to the media engine... */
+	addr    = mbus_encode_str(addr);
+	mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
+	xfree(addr);
+
+
+	/* Parse late command line parameters... */
 	for (i = 1; i < argc; i++) {
                 if ((strcmp(argv[i], "-allowloopback") == 0) && (argc > i+1)) {
 			if (strcmp(argv[i+1], "on") == 0) {
@@ -230,13 +249,6 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 			tmp = mbus_encode_str(argv[i+1]);
 			mbus_qmsgf(m, e_addr, TRUE, "session.title", tmp);
 			xfree(tmp);
-                } else if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
-                        ttl = atoi(argv[i+1]);
-                        if (ttl < 0 || ttl > 255) {
-                                usage("Usage: -t 0-255.\n");
-                                return FALSE;
-                        }
-                        i++;
                 } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
 			/* Dynamic payload type mapping. Format: "-pt pt/codec" */
 			/* Codec is of the form "pcmu-8k-mono"                  */
@@ -247,7 +259,7 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
                         } else {
                                 usage("Usage: -pt <pt>/<codec>");
                         }
-		} else if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
+		} else if (((strcmp(argv[i], "-K") == 0) || strcmp(argv[i], "-crypt") == 0) && (argc > i+1)) {
 			tmp = mbus_encode_str(argv[i+1]);
 			mbus_qmsgf(m, e_addr, TRUE, "security.encryption.key", tmp);
 			xfree(tmp);
@@ -313,10 +325,6 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 			/* Set channel coding to interleaved */
                 }
         }
-
-	addr    = mbus_encode_str(addr);
-	mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
-	xfree(addr);
 
 	/* Synchronize with the sub-processes... */
 	do {

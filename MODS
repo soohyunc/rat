@@ -1036,6 +1036,11 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Added back backwards compatible name mappings for command line 
 	  parsing.
 	- Robustified command line parsing of codecs.
+	- Fix ordering of command line argument parsing
+	- Accept -crypt as a synonym for -K
+	- Add encrkey field to the session struct
+	- Fix encryption key handling at startup
+
 
 TODO -- They're features not bugs dammit!
 ----
