@@ -34,6 +34,8 @@ int pb_add    (struct s_pb *pb,
 
 void pb_flush (struct s_pb *pb);
 
+int  pb_is_empty (struct s_pb *pb);
+
 void pb_shift_back(struct s_pb *pb, ts_t delta);
 void pb_shift_forward(struct s_pb *pb, ts_t delta);
 

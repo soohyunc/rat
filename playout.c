@@ -184,6 +184,12 @@ pb_shift_forward(pb_t *pb, ts_t delta)
         }
 }
 
+int
+pb_is_empty(pb_t *pb)
+{
+        return (pb->psentinel->next == pb->psentinel);
+}
+
 u_int16
 pb_iterator_count(pb_t *pb)
 {
