@@ -32,6 +32,7 @@ static const char cvsid[] =
 #include "source.h"
 #include "channel_types.h"
 #include "channel.h"
+#include "sndfile.h"
 #include "voxlet.h"
 
 #define PCKT_QUEUE_RTP_LEN  24
