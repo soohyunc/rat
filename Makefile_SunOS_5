@@ -9,5 +9,3 @@ LDLIBS = -R/usr/openwin/lib \
          -lsocket -ldl -lnsl -lm
 
 OBJS = $(OBJDIR)/auddev_sparc.o
-
-CRYPTFLAGS = -DSIGRET=void

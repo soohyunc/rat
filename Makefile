@@ -84,7 +84,7 @@ $(BINDIR)/rat-$(OSTYPE)-$(OSVERS): $(OBJS) $(GSMOBJS) $(RATOBJS)
 	$(CC) $(RATOBJS) $(OBJS) $(GSMOBJS) $(LDLIBS) $(LDFLAGS) -o $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) $(CFLAGS) $(GSMFLAGS) $(CRYPTFLAGS) -c $*.c -o $(OBJDIR)/$*.o
+	$(CC) $(CFLAGS) $(GSMFLAGS) -c $*.c -o $(OBJDIR)/$*.o
 
 $(OBJDIR)/init_session.o: 	version.h
 $(OBJDIR)/rtcp.o:      		version.h
@@ -103,32 +103,32 @@ $(OBJDIR)/ui.o:	      		xbm/line_in_mute.xbm
 $(OBJDIR)/ui.o:	      		xbm/rat_med.xbm
 $(OBJDIR)/ui.o:	      		xbm/rat_small.xbm
 
-$(BINDIR)/tcl2c: $(SRCDIR)/tcl2c.c
-	$(CC) -o $(BINDIR)/tcl2c $(SRCDIR)/tcl2c.c
+$(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS): $(SRCDIR)/tcl2c.c
+	$(CC) -o $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) $(SRCDIR)/tcl2c.c
 
-$(OBJDIR)/ui_original.o: $(SRCDIR)/ui_original.tcl $(BINDIR)/tcl2c
-	cat $(SRCDIR)/ui_original.tcl | tcl2c ui_original > $(OBJDIR)/ui_original.c
+$(OBJDIR)/ui_original.o: $(SRCDIR)/ui_original.tcl $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
+	cat $(SRCDIR)/ui_original.tcl | $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) ui_original > $(OBJDIR)/ui_original.c
 	$(CC) $(CFLAGS) -c $(OBJDIR)/ui_original.c -o $(OBJDIR)/ui_original.o
 
-$(OBJDIR)/ui_anna.o: $(SRCDIR)/ui_anna.tcl $(BINDIR)/tcl2c
-	cat $(SRCDIR)/ui_anna.tcl | tcl2c ui_anna > $(OBJDIR)/ui_anna.c
+$(OBJDIR)/ui_anna.o: $(SRCDIR)/ui_anna.tcl $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
+	cat $(SRCDIR)/ui_anna.tcl | $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) ui_anna > $(OBJDIR)/ui_anna.c
 	$(CC) $(CFLAGS) -c $(OBJDIR)/ui_anna.c -o $(OBJDIR)/ui_anna.o
 
-$(OBJDIR)/ui_relate.o: ui_relate.tcl $(BINDIR)/tcl2c
-	cat $(SRCDIR)/ui_relate.tcl | tcl2c ui_relate > $(OBJDIR)/ui_relate.c
+$(OBJDIR)/ui_relate.o: ui_relate.tcl $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
+	cat $(SRCDIR)/ui_relate.tcl | $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) ui_relate > $(OBJDIR)/ui_relate.c
 	$(CC) $(CFLAGS) -c $(OBJDIR)/ui_relate.c -o $(OBJDIR)/ui_relate.o
 
-$(OBJDIR)/tcl_libs.o: $(BINDIR)/tcl2c
-	cat tcl/*.tcl tk/*.tcl | tcl2c TCL_LIBS > $(OBJDIR)/tcl_libs.c
+$(OBJDIR)/tcl_libs.o: $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
+	cat tcl/*.tcl tk/*.tcl | $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) TCL_LIBS > $(OBJDIR)/tcl_libs.c
 	$(CC) $(CFLAGS) -c $(OBJDIR)/tcl_libs.c -o $(OBJDIR)/tcl_libs.o
 
 clean:
 	-rm -f $(OBJDIR)/*.o
-	-rm -f $(BINDIR)/tcl2c
 	-rm -f $(OBJDIR)/tcl_libs.c
 	-rm -f $(OBJDIR)/ui_anna.c
 	-rm -f $(OBJDIR)/ui_original.c
 	-rm -f $(OBJDIR)/ui_relate.c
+	-rm -f $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
 	-rm -f $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
 
 tags:
