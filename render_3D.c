@@ -271,6 +271,7 @@ render_3D(rx_queue_element_struct *el, int no_channels)
         size_t   n_bytes;    /* number of bytes in unspliced (mono!) buffer */
         sample   *raw_buf, *proc_buf;
         sample   *mono_raw, *mono_filtered;  /* auxiliary buffers in case of stereo */
+        int       mono_buf_len;
         struct   s_render_3D_dbentry  *p_3D_data;
 
         /* - take rx_queue_element_struct el
@@ -298,8 +299,9 @@ render_3D(rx_queue_element_struct *el, int no_channels)
         /* check if mixer is stereo using 'no_channels' ('1' is mono, '2' ist stereo). */
         if (no_channels == 2) {
                 /* extract mono buffer from stereo buffer */
-                mono_raw = (sample *) block_alloc(el->native_size[el->native_count-1] / 2);
-                mono_filtered = (sample *) block_alloc(el->native_size[el->native_count-1] / 2);
+                mono_buf_len = el->native_size[el->native_count-1] / 2;
+                mono_raw      = (sample *) block_alloc(mono_buf_len);
+                mono_filtered = (sample *) block_alloc(mono_buf_len);
                 for (i=0; i<n_samples/2; i++) {
                         mono_raw[i] = raw_buf[2 * i];
                 }
@@ -336,6 +338,8 @@ render_3D(rx_queue_element_struct *el, int no_channels)
                                 proc_buf[2*i+1] = p_3D_data->ipsi_buf[i];
                         }
                 }
+                block_free(mono_raw, mono_buf_len);
+                block_free(mono_filtered, mono_buf_len);
         }
 
         if (no_channels == 1) {
