@@ -342,13 +342,6 @@ WinGetUserName(ClientData clientData, Tcl_Interp *interp, int argc, char **argv)
     return TCL_OK;
 }
 
-double
-drand48(void)
-{
-        unsigned int x = (rand() << 16) | rand();
-	return ((double)x / (double)0xffffffff);
-}
-
 static HKEY
 regroot(root)
     char *root;
