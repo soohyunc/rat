@@ -189,17 +189,17 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
 {
         codec_id_t            id;
         const codec_format_t *cf;
-	if (sp->audio_device) {
-                const audio_format *ofmt = audio_get_ofmt(sp->audio_device);
-                if (sp->out_file) {
-                        snd_write_audio(&sp->out_file, buf, (u_int16)(dur * ofmt->channels));
-                }
-		if (sp->mode == TRANSCODER) {
-			return transcoder_write(sp->audio_device, buf, dur * ofmt->channels);
-		} else {
-			return audio_write(sp->audio_device, buf, dur * ofmt->channels);
-		}
+        const audio_format *ofmt = audio_get_ofmt(sp->audio_device);
+
+        if (sp->out_file) {
+                snd_write_audio(&sp->out_file, buf, (u_int16)(dur * ofmt->channels));
         }
+        if (sp->mode == TRANSCODER) {
+                return transcoder_write(sp->audio_device, buf, dur * ofmt->channels);
+        } else {
+                return audio_write(sp->audio_device, buf, dur * ofmt->channels);
+        }
+        
         id = codec_get_by_payload((u_char)sp->encodings[0]);
         assert(id);
         cf = codec_get_format(id);
@@ -207,15 +207,21 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
 }
 
 int
-audio_device_take(session_struct *sp)
+audio_device_take(session_struct *sp, audio_desc_t device)
 {
 	codec_id_t	       id;
         const codec_format_t  *cf;
 	audio_format           format;
         u_int32                unit_len;
+        int success, failures;
 
-        if (sp->audio_device) {
-                return (TRUE);
+        if (audio_device_is_open(device)) {
+                audio_device_is_open(device);
+                debug_msg("new device %04x state %d, %04x state %d\n", 
+                          device, audio_device_is_open(device),
+                          sp->audio_device, audio_device_is_open(sp->audio_device));
+                assert(sp->audio_device == device);
+                return TRUE;
         }
 
 	id = codec_get_by_payload((u_char)sp->encodings[0]);
@@ -223,60 +229,71 @@ audio_device_take(session_struct *sp)
 
         memcpy(&format, &cf->format, sizeof(audio_format));
 
+        failures = 0;
+
 	if (sp->mode == TRANSCODER) {
-		if ((sp->audio_device = transcoder_open()) == 0) {
+                /* The semantics of this needs to change since sp->audio_device is the handle of
+                 * the current audio device. 
+                 *
+                 * Something like: 
+                 */
+		if (!transcoder_open()) {
                         return FALSE;
                 }
 	} else {
-		sp->audio_device = audio_open(&format, &format);
-
-                if (!sp->audio_device) {
+                success  = audio_open(device, &format, &format);
+                
+                if (!success) {
                         /* Maybe we cannot support this format. Try minimal
                          * case - ulaw 8k.
                          */
                         audio_format fallback;
+
+                        failures ++;
                         id = codec_get_by_name("PCMU-8K-MONO");
                         assert(id); /* in case someone changes codec name */
 
                         sp->encodings[0] = codec_get_payload(id);
                         cf = codec_get_format(id);
                         memcpy(&fallback, &cf->format, sizeof(audio_format));
-
-                        sp->audio_device = audio_open(&fallback, &fallback);
                         
-                        if (sp->audio_device) {
+                        success = audio_open(device, &fallback, &fallback);
+                        
+                        if (!success) {
                                 /* Make format consistent just in case. */
                                 memcpy(&format, &fallback, sizeof(audio_format));
                                 debug_msg("Could use requested format, but could use mulaw 8k\n");
+                                failures++;
                         }
                 }
-
-                if (!sp->audio_device) {
+                
+                if (!success) {
                         /* Both original request and fallback request to
                          * device have failed.  This probably means device is in use.
                          * So now use null device with original format requested.
                          */
-                        audio_set_interface(audio_get_null_interface());
-                        sp->audio_device = audio_open(&format, &format);
+                        failures ++;
+                        device  = audio_get_null_device();
+                        success = audio_open(device, &format, &format);
                         debug_msg("Using null audio device\n");
-                        assert(sp->audio_device != 0);
+                        assert(success);
                 }
 
-		audio_drain(sp->audio_device);
+		audio_drain(device);
 	
 		if (sp->input_mode!=AUDIO_NO_DEVICE) {
-			audio_set_iport(sp->audio_device, sp->input_mode);
-			audio_set_gain(sp->audio_device, sp->input_gain);
+			audio_set_iport(device, sp->input_mode);
+			audio_set_gain(device, sp->input_gain);
 		} else {
-			sp->input_mode=audio_get_iport(sp->audio_device);
-			sp->input_gain=audio_get_gain(sp->audio_device);
+			sp->input_mode=audio_get_iport(device);
+			sp->input_gain=audio_get_gain(device);
 		}
 		if (sp->output_mode!=AUDIO_NO_DEVICE) {
-			audio_set_oport(sp->audio_device, sp->output_mode);
-			audio_set_volume(sp->audio_device, sp->output_gain);
+			audio_set_oport(device, sp->output_mode);
+			audio_set_volume(device, sp->output_gain);
 		} else {
-			sp->output_mode=audio_get_oport(sp->audio_device);
-			sp->output_gain=audio_get_volume(sp->audio_device);
+			sp->output_mode=audio_get_oport(device);
+			sp->output_gain=audio_get_volume(device);
 		}
 	}
         
@@ -285,25 +302,25 @@ audio_device_take(session_struct *sp)
                 audio_zero(audio_zero_buf, format.bytes_per_block, DEV_S16);
         }
 
-        if ((sp->audio_device != 0) && (sp->mode != TRANSCODER)) {
-                audio_non_block(sp->audio_device);
+        if (sp->mode != TRANSCODER) {
+                audio_non_block(device);
         }
 
         /* We initialize the pieces above the audio device here since their parameters
          * depend on what is set here
          */
+        sp->audio_device = device;
         if (sp->device_clock) xfree(sp->device_clock);
         sp->device_clock = new_time(sp->clock, format.sample_rate);
         sp->meter_period = format.sample_rate / 15;
         sp->bc           = bias_ctl_create(format.channels, format.sample_rate);
-
         unit_len         = format.bytes_per_block * 8 / (format.bits_per_sample*format.channels); 
         sp->tb           = tx_create(sp, (u_int16)unit_len, (u_int16)format.channels);
         sp->ms           = mix_create(sp, 32640);
         cushion_create(&sp->cushion, unit_len);
         tx_igain_update(sp);
         ui_update(sp);
-        return sp->audio_device;
+        return (failures == 0);
 }
 
 void
@@ -311,20 +328,15 @@ audio_device_give(session_struct *sp)
 {
 	gettimeofday(&sp->device_time, NULL);
 
-	if (sp->audio_device) {
-                tx_stop(sp);
-		if (sp->mode == TRANSCODER) {
-			transcoder_close(sp->audio_device);
-		} else {
-		        sp->input_mode = audio_get_iport(sp->audio_device);
-		        sp->output_mode = audio_get_oport(sp->audio_device);
-			audio_close(sp->audio_device);
-		}
-		sp->audio_device = 0;
-	} else {
-                return;
+        tx_stop(sp);
+        if (sp->mode == TRANSCODER) {
+                transcoder_close(sp->audio_device);
+        } else {
+                sp->input_mode = audio_get_iport(sp->audio_device);
+                sp->output_mode = audio_get_oport(sp->audio_device);
+                audio_close(sp->audio_device);
         }
-
+        
         if (audio_zero_buf) {
                 xfree(audio_zero_buf);
                 audio_zero_buf = NULL;
@@ -337,37 +349,48 @@ audio_device_give(session_struct *sp)
         mix_destroy(sp->ms);
         tx_destroy(sp);
         playout_buffers_destroy(sp, &sp->playout_buf_list);
+        audio_device_take(sp, audio_get_null_device());
 }
 
 void
 audio_device_reconfigure(session_struct *sp)
 {
-        u_char oldpt    = sp->encodings[0];
-        audio_device_give(sp);
-        tx_stop(sp);
-        
-        if (sp->next_selected_device != -1) {
-                audio_set_interface(sp->next_selected_device);
-                sp->next_selected_device = -1;
+        if (sp->next_selected_device != -1 &&
+            sp->next_selected_device != sp->audio_device) {
+                        audio_device_give(sp);
+                        audio_device_take(sp, sp->next_selected_device);
+
         } 
+        sp->next_selected_device = -1;
         
         if (sp->next_encoding != -1) {
-                /* Changing encoding */
-                sp->encodings[0] = sp->next_encoding;
-                if (audio_device_take(sp) == FALSE) {
-                        /* we failed, fallback */
-                        sp->encodings[0] = oldpt;
-                        audio_device_take(sp);
+                codec_id_t  curr_id, next_id;
+                curr_id = codec_get_by_payload(sp->encodings[0]);
+                next_id = codec_get_by_payload(sp->next_encoding);
+
+                if (codec_audio_formats_compatible(curr_id, next_id)) {
+                        /* Formats compatible device needs no reconfig */
+                        sp->encodings[0]  = sp->next_encoding;
+                        sp->next_encoding = -1;
+                        channel_set_coder(sp, sp->encodings[0]);
+                        return;
+                } else {
+                        u_char      oldpt;
+                        /* Changing encoding */
+                        oldpt            = sp->encodings[0];
+                        sp->encodings[0] = sp->next_encoding;
+                        if (audio_device_take(sp, sp->audio_device) == FALSE) {
+                                /* we failed, fallback */
+                                sp->encodings[0] = oldpt;
+                        }
+                        channel_set_coder(sp, sp->encodings[0]);
+                        sp->next_encoding = -1;
                 }
-                channel_set_coder(sp, sp->encodings[0]);
-                sp->next_encoding = -1;
         } else {
                 /* Just changing device */
-                audio_device_take(sp);
                 channel_set_coder(sp, sp->encodings[0]);
         }
 }
-
 
 /* This function needs to be modified to return some indication of how well
  * or not we are doing.                                                    

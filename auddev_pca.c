@@ -62,9 +62,22 @@ static audio_info_t   dev_info;			/* For PCA device */
 static int            audio_fd;
 static struct timeval last_read_time;
 static int            bytes_per_block;
+static int            present;
 
 #define pca_bat_to_device(x)	((x) * AUDIO_MAX_GAIN / MAX_AMP)
 #define pca_device_to_bat(x)	((x) * MAX_AMP / AUDIO_MAX_GAIN)
+
+int
+pca_audio_device_count()
+{
+        return present;
+}
+
+const char*
+pca_audio_device_name(audio_desc_t ad)
+{
+        return "PCA Audio Device";
+}
 
 int
 pca_audio_init()
@@ -72,6 +85,7 @@ pca_audio_init()
         int audio_fd;
         if ((audio_fd = open("/dev/pcaudio", O_WRONLY | O_NDELAY)) != -1) {
                 close(audio_fd);
+                present = 1;
                 return TRUE;
         }
         return FALSE;

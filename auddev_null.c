@@ -311,3 +311,15 @@ null_audio_wait_for(audio_desc_t ad, int delay_ms)
                 usleep(delay_ms * 1000);
         }
 }
+
+int
+null_audio_device_count()
+{
+        return 1;
+}
+
+const char*
+null_audio_device_name(audio_desc_t ad)
+{
+        return "No Audio Device";
+}

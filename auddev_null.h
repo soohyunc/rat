@@ -42,6 +42,10 @@
 
 #ifndef _AUDDEV_NULL_H_
 #define _AUDDEV_NULL_H_
+
+int  null_audio_device_count(void);
+const char*  
+     null_audio_device_name(audio_desc_t ad);
 int  null_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);
 void null_audio_close      (audio_desc_t ad);
 void null_audio_drain      (audio_desc_t ad);

@@ -96,25 +96,6 @@ static void rx_tool_rat_toggle_output_port(char *srce, char *args, session_struc
 }
 #endif
 
-static void rx_tool_rat_get_audio(char *srce, char *args, session_struct *sp)
-{
-	UNUSED(srce);
-
-	if ((strlen(args) != 1) || (args[0] != ' ')) {
-		printf("mbus: get_audio does not require parameters\n");
-		return;
-	}
-
-	if (sp->audio_device) {
-		/* We already have the device! */
-		return;
-	}
-
-	if (audio_device_take(sp) == FALSE) {
-		/* Request device using the mbus... */
-	}
-}
-
 static void rx_tool_rat_powermeter(char *srce, char *args, session_struct *sp)
 {
 	int i;
@@ -347,10 +328,8 @@ static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
 		sp->input_gain = i;
-		if (sp->audio_device) {
-			audio_set_gain(sp->audio_device, sp->input_gain);
-			tx_igain_update(sp);
-		}
+                audio_set_gain(sp->audio_device, sp->input_gain);
+                tx_igain_update(sp);
 	} else {
 		printf("mbus: usage \"audio.input.gain <integer>\"\n");
 	}
@@ -617,20 +596,22 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
                 purge_chars(s, "[]()");
                 next_device = -1;
                 if (s) {
+                        audio_device_details_t details;
                         int i, n;
-                        n = audio_get_number_of_interfaces();
+                        n = audio_get_device_count();
                         for(i = 0; i < n; i++) {
                                 /* Brackets are a problem so purge them */
-                                strncpy(dev_name, audio_get_interface_name(i), 64);
+                                if (!audio_get_device_details(i, &details)) continue;
+                                strncpy(dev_name, details.name, AUDIO_DEVICE_NAME_LENGTH);
                                 purge_chars(dev_name, "[]()");
                                 if (!strcmp(s, dev_name)) {
-                                        next_device = i;
+                                        next_device = details.descriptor;
                                         break;
                                 }
                         }
                 }
                         
-		debug_msg("Next audio device: %s (%d).\n", s, next_device);
+		debug_msg("Next audio device: %s (%08x).\n", s, next_device);
                 /* We should close audio device, transmitter, etc
                  * Then find corresponding audio interface, select it,
                  * and re-open the device.
@@ -1006,7 +987,6 @@ static void rx_mbus_hello(char *srce, char *args, session_struct *sp)
 /* Note: These next two arrays MUST be in the same order! */
 
 const char *rx_cmnd[] = {
-	"tool.rat.get_audio",              
 	"tool.rat.silence",
 	"tool.rat.lecture",
 	"tool.rat.3d.enabled",
@@ -1057,7 +1037,6 @@ const char *rx_cmnd[] = {
 };
 
 static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
-	rx_tool_rat_get_audio,                  
 	rx_tool_rat_silence,
 	rx_tool_rat_lecture,
 	rx_tool_rat_3d_enable,

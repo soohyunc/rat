@@ -75,6 +75,18 @@ static void af2apri(audio_format *fmt, audio_prinfo_t *ap)
         }
 }
 
+int 
+sparc_audio_device_count()
+{
+        return 1;
+}
+
+const char*
+sparc_audio_device_name(audio_desc_t ad)
+{
+        return "Sun Audio Device";
+}
+
 /* Try to open the audio device.                        */
 /* Returns TRUE if ok, 0 otherwise. */
 int

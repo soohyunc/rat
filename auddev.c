@@ -49,42 +49,307 @@
 #include "auddev.h"
 
 typedef struct {
-        char name[AUDIO_INTERFACE_NAME_LEN];
-
-        int  (*audio_if_init)(void);               /* Test and initialize audio interface (OPTIONAL) */
-        int  (*audio_if_free)(void);               /* Free audio interface (OPTIONAL)                */
+        int  (*audio_if_init)(void);                 /* Test and initialize audio interface (OPTIONAL)  */
+        int  (*audio_if_free)(void);                 /* Free audio interface (OPTIONAL)                 */
+        int  (*audio_if_dev_cnt)(void);              /* Device count for interface (REQUIRED) */
+        const char* 
+             (*audio_if_dev_name)(int);              /* Device name query (REQUIRED) */
 
         int  (*audio_if_open)(int, audio_format *ifmt, audio_format *ofmt); /* Open device with formats */
-        void (*audio_if_close)(int);               /* Close device (REQUIRED) */
-        void (*audio_if_drain)(int);               /* Drain device (REQUIRED) */
-        int  (*audio_if_duplex)(int);              /* Device full duplex (REQUIRED) */
+        void (*audio_if_close)(int);                 /* Close device (REQUIRED) */
+        void (*audio_if_drain)(int);                 /* Drain device (REQUIRED) */
+        int  (*audio_if_duplex)(int);                /* Device full duplex (REQUIRED) */
 
         int  (*audio_if_read) (int, u_char*, int);   /* Read samples (REQUIRED)  */
         int  (*audio_if_write)(int, u_char*, int);   /* Write samples (REQUIRED) */
-        void (*audio_if_non_block)(int);           /* Set device non-blocking (REQUIRED) */
-        void (*audio_if_block)(int);               /* Set device blocking (REQUIRED)     */
+        void (*audio_if_non_block)(int);             /* Set device non-blocking (REQUIRED) */
+        void (*audio_if_block)(int);                 /* Set device blocking (REQUIRED)     */
 
-        void (*audio_if_set_gain)(int,int);        /* Set input gain (REQUIRED)  */
-        int  (*audio_if_get_gain)(int);            /* Get input gain (REQUIRED)  */
-        void (*audio_if_set_volume)(int,int);      /* Set output gain (REQUIRED) */
-        int  (*audio_if_get_volume)(int);          /* Get output gain (REQUIRED) */
-        void (*audio_if_loopback)(int, int);       /* Enable hardware loopback (OPTIONAL) */
+        void (*audio_if_set_gain)(int,int);          /* Set input gain (REQUIRED)  */
+        int  (*audio_if_get_gain)(int);              /* Get input gain (REQUIRED)  */
+        void (*audio_if_set_volume)(int,int);        /* Set output gain (REQUIRED) */
+        int  (*audio_if_get_volume)(int);            /* Get output gain (REQUIRED) */
+        void (*audio_if_loopback)(int, int);         /* Enable hardware loopback (OPTIONAL) */
 
-        void (*audio_if_set_oport)(int, int);      /* Set output port (REQUIRED)        */
-        int  (*audio_if_get_oport)(int);           /* Get output port (REQUIRED)        */
-        int  (*audio_if_next_oport)(int);          /* Go to next output port (REQUIRED) */
-        void (*audio_if_set_iport)(int, int);      /* Set input port (REQUIRED)         */
-        int  (*audio_if_get_iport)(int);           /* Get input port (REQUIRED)         */
-        int  (*audio_if_next_iport)(int);          /* Go to next itput port (REQUIRED)  */
-        int  (*audio_if_is_ready)(int);            /* Poll for audio availability (REQUIRED)   */
-        void (*audio_if_wait_for)(int, int);       /* Wait until audio is available (REQUIRED) */
+        void (*audio_if_set_oport)(int, int);        /* Set output port (REQUIRED)        */
+        int  (*audio_if_get_oport)(int);             /* Get output port (REQUIRED)        */
+        int  (*audio_if_next_oport)(int);            /* Go to next output port (REQUIRED) */
+        void (*audio_if_set_iport)(int, int);        /* Set input port (REQUIRED)         */
+        int  (*audio_if_get_iport)(int);             /* Get input port (REQUIRED)         */
+        int  (*audio_if_next_iport)(int);            /* Go to next itput port (REQUIRED)  */
+        int  (*audio_if_is_ready)(int);              /* Poll for audio availability (REQUIRED)   */
+        void (*audio_if_wait_for)(int, int);         /* Wait until audio is available (REQUIRED) */
         int  (*audio_if_format_supported)(int, audio_format *);
 } audio_if_t;
 
-#define AUDIO_MAX_INTERFACES 5
-/* These store available audio interfaces */
-static audio_if_t audio_interfaces[AUDIO_MAX_INTERFACES];
-static int num_interfaces = 0;
+#include "auddev_luigi.h"
+#include "auddev_null.h"
+#include "auddev_osprey.h"
+#include "auddev_oss.h"
+#include "auddev_pca.h"
+#include "auddev_sparc.h"
+#include "auddev_sgi.h"
+#include "auddev_win32.h"
+
+audio_if_t audio_if_table[] = {
+#ifdef IRIX
+        {
+                NULL, 
+                NULL, 
+                sgi_audio_device_count,
+                sgi_audio_device_name,
+                sgi_audio_open,
+                sgi_audio_close,
+                sgi_audio_drain,
+                sgi_audio_duplex,
+                sgi_audio_read,
+                sgi_audio_write,
+                sgi_audio_non_block,
+                sgi_audio_block,
+                sgi_audio_set_gain,
+                sgi_audio_get_gain,
+                sgi_audio_set_volume,
+                sgi_audio_get_volume,
+                sgi_audio_loopback,
+                sgi_audio_set_oport,
+                sgi_audio_get_oport,
+                sgi_audio_next_oport,
+                sgi_audio_set_iport,
+                sgi_audio_get_iport,
+                sgi_audio_next_iport,
+                sgi_audio_is_ready,
+                sgi_audio_wait_for,
+                NULL
+        },
+#endif /* IRIX */
+#ifdef Solaris
+        {
+                NULL,
+                NULL,
+                sparc_audio_device_count,
+                sparc_audio_device_name,
+                sparc_audio_open,
+                sparc_audio_close,
+                sparc_audio_drain,
+                sparc_audio_duplex,
+                sparc_audio_read,
+                sparc_audio_write,
+                sparc_audio_non_block,
+                sparc_audio_block,
+                sparc_audio_set_gain,
+                sparc_audio_get_gain,
+                sparc_audio_set_volume,
+                sparc_audio_get_volume,
+                sparc_audio_loopback,
+                sparc_audio_set_oport,
+                sparc_audio_get_oport,
+                sparc_audio_next_oport,
+                sparc_audio_set_iport,
+                sparc_audio_get_iport,
+                sparc_audio_next_iport,
+                sparc_audio_is_ready,
+                sparc_audio_wait_for,
+                NULL
+        },
+#endif /* Solaris */
+#ifdef HAVE_OSPREY
+        {
+                osprey_audio_init, 
+                NULL, 
+                osprey_audio_device_count,
+                osprey_audio_device_name,
+                osprey_audio_open,
+                osprey_audio_close,
+                osprey_audio_drain,
+                osprey_audio_duplex,
+                osprey_audio_read,
+                osprey_audio_write,
+                osprey_audio_non_block,
+                osprey_audio_block,
+                osprey_audio_set_gain,
+                osprey_audio_get_gain,
+                osprey_audio_set_volume,
+                osprey_audio_get_volume,
+                osprey_audio_loopback,
+                osprey_audio_set_oport,
+                osprey_audio_get_oport,
+                osprey_audio_next_oport,
+                osprey_audio_set_iport,
+                osprey_audio_get_iport,
+                osprey_audio_next_iport,
+                osprey_audio_is_ready,
+                osprey_audio_wait_for,
+                NULL
+        },
+#endif /* HAVE_OSPREY */
+#if defined(Linux)||defined(OSS)
+        {
+                oss_audio_query_devices, 
+                NULL,
+                oss_get_device_count,
+                oss_get_device_name,
+                oss_audio_open,
+                oss_audio_close,
+                oss_audio_drain,
+                oss_audio_duplex,
+                oss_audio_read,
+                oss_audio_write,
+                oss_audio_non_block,
+                oss_audio_block,
+                oss_audio_set_gain,
+                oss_audio_get_gain,
+                oss_audio_set_volume,
+                oss_audio_get_volume,
+                oss_audio_loopback,
+                oss_audio_set_oport,
+                oss_audio_get_oport,
+                oss_audio_next_oport,
+                oss_audio_set_iport,
+                oss_audio_get_iport,
+                oss_audio_next_iport,
+                oss_audio_is_ready,
+                oss_audio_wait_for,
+                oss_audio_supports
+        },
+
+#endif /* Linux / OSS */
+
+#if defined(WIN32)
+        {
+                w32sdk_audio_query_devices,
+                NULL, 
+                w32sdk_get_device_count,
+                w32sdk_get_device_name,
+                w32sdk_audio_open,
+                w32sdk_audio_close,
+                w32sdk_audio_drain,
+                w32sdk_audio_duplex,
+                w32sdk_audio_read,
+                w32sdk_audio_write,
+                w32sdk_audio_non_block,
+                w32sdk_audio_block,
+                w32sdk_audio_set_gain,
+                w32sdk_audio_get_gain,
+                w32sdk_audio_set_volume,
+                w32sdk_audio_get_volume,
+                w32sdk_audio_loopback,
+                w32sdk_audio_set_oport,
+                w32sdk_audio_get_oport,
+                w32sdk_audio_next_oport,
+                w32sdk_audio_set_iport,
+                w32sdk_audio_get_iport,
+                w32sdk_audio_next_iport,
+                w32sdk_audio_is_ready,
+                w32sdk_audio_wait_for,
+                w32sdk_audio_supports
+        },
+#endif /* WIN32 */
+
+#if defined(FreeBSD)
+        {
+                luigi_audio_query_devices,
+                NULL,
+                luigi_get_device_count,
+                luigi_get_device_name,
+                luigi_audio_open,
+                luigi_audio_close,
+                luigi_audio_drain,
+                luigi_audio_duplex,
+                luigi_audio_read,
+                luigi_audio_write,
+                luigi_audio_non_block,
+                luigi_audio_block,
+                luigi_audio_set_gain,
+                luigi_audio_get_gain,
+                luigi_audio_set_volume,
+                luigi_audio_get_volume,
+                luigi_audio_loopback,
+                luigi_audio_set_oport,
+                luigi_audio_get_oport,
+                luigi_audio_next_oport,
+                luigi_audio_set_iport,
+                luigi_audio_get_iport,
+                luigi_audio_next_iport,
+                luigi_audio_is_ready,
+                luigi_audio_wait_for,
+                luigi_audio_supports
+        },
+
+#endif /* FreeBSD */
+
+#if defined(HAVE_PCA)
+        {
+                pca_audio_init,
+                NULL, 
+                pca_audio_device_count,
+                pca_audio_device_name,
+                pca_audio_open,
+                pca_audio_close,
+                pca_audio_drain,
+                pca_audio_duplex,
+                pca_audio_read,
+                pca_audio_write,
+                pca_audio_non_block,
+                pca_audio_block,
+                pca_audio_set_gain,
+                pca_audio_get_gain,
+                pca_audio_set_volume,
+                pca_audio_get_volume,
+                pca_audio_loopback,
+                pca_audio_set_oport,
+                pca_audio_get_oport,
+                pca_audio_next_oport,
+                pca_audio_set_iport,
+                pca_audio_get_iport,
+                pca_audio_next_iport,
+                pca_audio_is_ready,
+                pca_audio_wait_for,
+                pca_audio_supports
+        },
+#endif /* HAVE_PCA */
+        {
+                /* This is the null audio device - it should always go last so that
+                 * audio_get_null_device works.  The idea being when we can't get hold
+                 * of a real device we fake one.  Prevents lots of problems elsewhere.
+                 */
+                NULL,
+                NULL, 
+                null_audio_device_count,
+                null_audio_device_name,
+                null_audio_open,
+                null_audio_close,
+                null_audio_drain,
+                null_audio_duplex,
+                null_audio_read,
+                null_audio_write,
+                null_audio_non_block,
+                null_audio_block,
+                null_audio_set_gain,
+                null_audio_get_gain,
+                null_audio_set_volume,
+                null_audio_get_volume,
+                null_audio_loopback,
+                null_audio_set_oport,
+                null_audio_get_oport,
+                null_audio_next_oport,
+                null_audio_set_iport,
+                null_audio_get_iport,
+                null_audio_next_iport,
+                null_audio_is_ready,
+                null_audio_wait_for,
+                NULL
+        }
+};
+
+#define NUM_AUDIO_INTERFACES (sizeof(audio_if_table)/sizeof(audio_if_t))
+
+/* Active interfaces is a table of entries pointing to entries in
+ * audio interfaces table.  Audio open returns index to these */
+static audio_desc_t active_device_desc[NUM_AUDIO_INTERFACES];
+static int active_devices;
+static int actual_devices;
+
+#define MAX_ACTIVE_DEVICES   2
 
 /* These are requested device formats.  */
 #define AUDDEV_REQ_IFMT      0
@@ -97,83 +362,109 @@ static int num_interfaces = 0;
 
 #define AUDDEV_NUM_FORMATS   4
 
-static audio_format* fmts[AUDIO_MAX_INTERFACES][AUDDEV_NUM_FORMATS];
-static sample      * convert_buf[AUDIO_MAX_INTERFACES]; /* used if conversions used */
-
-/* Active interfaces is a table of entries pointing to entries in
- * audio interfaces table.  Audio open returns index to these */
-static audio_if_t *active_interfaces[AUDIO_MAX_INTERFACES];
-static int num_active_interfaces = 0; 
-
-/* This is the index of the next audio interface that audio_open */
-static int sel_if = 0;
+static audio_format* fmts[MAX_ACTIVE_DEVICES][AUDDEV_NUM_FORMATS];
+static sample*       convert_buf[MAX_ACTIVE_DEVICES]; /* used if conversions used */
 
 /* Counters for samples read/written */
-static u_int32 samples_read[AUDIO_MAX_INTERFACES], samples_written[AUDIO_MAX_INTERFACES];
+static u_int32 samples_read[MAX_ACTIVE_DEVICES], samples_written[MAX_ACTIVE_DEVICES];
 
 /* We map indexes outside range for file descriptors so people don't attempt
  * to circumvent audio interface.  If something is missing it should be added
  * to the interfaces...
  */
 
-#define AIF_IDX_TO_MAGIC(x) ((x) | 0xff00)
-#define AIF_MAGIC_TO_IDX(x) ((x) & 0x00ff)
+#define AIF_GET_INTERFACE(x) ((((x) & 0x0f00) >> 8) - 1)
+#define AIF_GET_DEVICE_NO(x) (((x) & 0x000f) - 1)
+#define AIF_MAKE_DESC(iface,dev) (((iface + 1) << 8) | (dev + 1))
 
-__inline static audio_if_t *
-audio_get_active_interface(int idx)
+#define AIF_VALID_INTERFACE(id) ((id & 0x0f00))
+#define AIF_VALID_DEVICE_NO(id) ((id & 0x000f))
+
+/*****************************************************************************
+ *
+ * Code for working out how many devices are, what they are called, and what 
+ * descriptor should be used to access them.
+ *
+ *****************************************************************************/
+
+int
+audio_get_device_count()
 {
-        assert(idx < num_interfaces);
-        assert(active_interfaces[sel_if] != NULL);
-
-        return active_interfaces[idx];
+        return actual_devices;
 }
 
 int
-audio_get_number_of_interfaces()
+audio_get_device_details(int idx, audio_device_details_t *add)
 {
-        return num_interfaces;
-}
+        int interface, devs;
+        
+        assert(idx < actual_devices && idx >= 0);
+        assert(add != NULL);
 
-char*
-audio_get_interface_name(int idx)
-{
-        if (idx < num_interfaces) {
-                return audio_interfaces[idx].name;
+        /* Find interface device number idx belongs to */
+        interface = 0;
+        while((devs = audio_if_table[interface].audio_if_dev_cnt()) && idx > devs) {
+                interface++;
+                idx -= devs;
         }
-        return NULL;
-}
 
-void
-audio_set_interface(int idx)
-{
-        if (idx < num_interfaces) {
-                sel_if = idx;
-        }
-}
+        assert(devs != 0);
 
-int
-audio_get_null_interface()
-{
-        /* Null audio interface is always the last */
-        return num_interfaces - 1;
-}
+        add->descriptor = AIF_MAKE_DESC(interface, idx);
+        assert(audio_if_table[interface].audio_if_dev_name != NULL);
+        strncpy(add->name, 
+                audio_if_table[interface].audio_if_dev_name(idx), 
+                AUDIO_DEVICE_NAME_LENGTH);
 
-int 
-audio_get_interface()
-{
-        return sel_if;
+        return TRUE;
 }
-
-/* Audio Interface actions ***************************************************/
 
 audio_desc_t
-audio_open(audio_format *ifmt, audio_format *ofmt)
+audio_get_null_device()
 {
-        audio_if_t *aif;
-        audio_format format;
-        int success;
-        int r; 
+        audio_desc_t ad;
 
+        /* Null audio device is only device on the last interface*/
+        ad = AIF_MAKE_DESC((NUM_AUDIO_INTERFACES - 1), 0);
+
+        return ad;
+}
+
+/*****************************************************************************
+ *
+ * Interface code.  Maps audio functions to audio devices.
+ *
+ *****************************************************************************/
+
+static int
+get_active_device_index(audio_desc_t ad)
+{
+        int i;
+        
+        for (i = 0; i < active_devices; i++) {
+                if (active_device_desc[i] == ad) {
+                        return i;
+                }
+        }
+
+        return -1;
+}
+
+int
+audio_device_is_open(audio_desc_t ad)
+{
+        int dev = get_active_device_index(ad);
+        return (dev != -1);
+}
+
+int
+audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
+{
+        audio_format format;
+        int interface, device, dev_idx;
+        int success;
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(ifmt != NULL);
         assert(ofmt != NULL);
 
@@ -184,198 +475,241 @@ audio_open(audio_format *ifmt, audio_format *ofmt)
                 return 0;
         }
 
-        aif = &audio_interfaces[sel_if];
-        assert(aif->audio_if_open);
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        if (active_devices == MAX_ACTIVE_DEVICES) {
+                debug_msg("Already have the maximum number of devices (%d) open.\n", MAX_ACTIVE_DEVICES);
+                return FALSE;
+        }
+
+        dev_idx   = active_devices;
+
+        assert(get_active_device_index(ad) == -1);
+        assert(audio_if_table[interface].audio_if_open);
 
         if (audio_format_get_common(ifmt, ofmt, &format) == FALSE) {
                 /* Input and output formats incompatible */
                 return 0;
         }
 
-        fmts[sel_if][AUDDEV_ACT_IFMT] = audio_format_dup(&format);
-        fmts[sel_if][AUDDEV_ACT_OFMT] = audio_format_dup(&format);
+        fmts[dev_idx][AUDDEV_ACT_IFMT] = audio_format_dup(&format);
+        fmts[dev_idx][AUDDEV_ACT_OFMT] = audio_format_dup(&format);
 
         /* Formats can get changed in audio_if_open, but only sample
          * type, not the number of channels or freq 
          */
-        success = aif->audio_if_open(sel_if, 
-                                     fmts[sel_if][AUDDEV_ACT_IFMT], 
-                                     fmts[sel_if][AUDDEV_ACT_OFMT]);
+        success = audio_if_table[interface].audio_if_open(device, 
+                                                          fmts[dev_idx][AUDDEV_ACT_IFMT], 
+                                                          fmts[dev_idx][AUDDEV_ACT_OFMT]);
 
         if (success) {
-                if ((fmts[sel_if][AUDDEV_ACT_IFMT]->sample_rate != format.sample_rate) ||
-                    (fmts[sel_if][AUDDEV_ACT_OFMT]->sample_rate != format.sample_rate) ||
-                    (fmts[sel_if][AUDDEV_ACT_IFMT]->channels    != format.channels)    ||
-                    (fmts[sel_if][AUDDEV_ACT_OFMT]->channels    != format.channels)) {
+                /* Add device to list of those active */
+                active_device_desc[dev_idx] = ad;
+                active_devices ++;
+
+                if ((fmts[dev_idx][AUDDEV_ACT_IFMT]->sample_rate != format.sample_rate) ||
+                    (fmts[dev_idx][AUDDEV_ACT_OFMT]->sample_rate != format.sample_rate) ||
+                    (fmts[dev_idx][AUDDEV_ACT_IFMT]->channels    != format.channels)    ||
+                    (fmts[dev_idx][AUDDEV_ACT_OFMT]->channels    != format.channels)) {
                         debug_msg("Device changed sample rate or channels - unsupported functionality.\n");
-                        aif->audio_if_close(sel_if);
-                        audio_format_free(&fmts[sel_if][AUDDEV_ACT_IFMT]);
-                        audio_format_free(&fmts[sel_if][AUDDEV_ACT_OFMT]);
+                        audio_close(ad);
+                        return FALSE;
                 }
 
-                if (!aif->audio_if_duplex(AIF_IDX_TO_MAGIC(sel_if))) {
+                if (!audio_if_table[interface].audio_if_duplex(device)) {
                         printf("RAT v3.2.0 and later require a full duplex audio device, but \n");
-                        printf("your %s only supports half-duplex operation. Sorry.\n", aif->name);
-                        aif->audio_if_close(AIF_IDX_TO_MAGIC(sel_if));
-                        return 0;
+                        printf("your device only supports half-duplex operation. Sorry.\n");
+                        audio_close(ad);
+                        return FALSE;
                 }
                 
-                active_interfaces[sel_if] = &audio_interfaces[sel_if];
                 /* If we are going to need conversion between requested and 
                  * actual device formats store requested formats */
-                if (!audio_format_match(ifmt, fmts[sel_if][AUDDEV_ACT_IFMT])) {
-                        fmts[sel_if][AUDDEV_REQ_IFMT] = audio_format_dup(ifmt);
+                if (!audio_format_match(ifmt, fmts[dev_idx][AUDDEV_ACT_IFMT])) {
+                        fmts[dev_idx][AUDDEV_REQ_IFMT] = audio_format_dup(ifmt);
 #ifdef DEBUG
                         {
                                 char s[50];
-                                audio_format_name(fmts[sel_if][AUDDEV_REQ_IFMT], s, 50);
+                                audio_format_name(fmts[dev_idx][AUDDEV_REQ_IFMT], s, 50);
                                 debug_msg("Requested Input: %s\n", s);
-                                audio_format_name(fmts[sel_if][AUDDEV_ACT_IFMT], s, 50);
+                                audio_format_name(fmts[dev_idx][AUDDEV_ACT_IFMT], s, 50);
                                 debug_msg("Actual Input:    %s\n", s);
                         }
 #endif
                 }
 
-                if (!audio_format_match(ofmt, fmts[sel_if][AUDDEV_ACT_OFMT])) {
-                        fmts[sel_if][AUDDEV_REQ_OFMT] = audio_format_dup(ofmt);
+                if (!audio_format_match(ofmt, fmts[dev_idx][AUDDEV_ACT_OFMT])) {
+                        fmts[dev_idx][AUDDEV_REQ_OFMT] = audio_format_dup(ofmt);
 #ifdef DEBUG
                         {
                                 char s[50];
-                                audio_format_name(fmts[sel_if][AUDDEV_REQ_OFMT], s, 50);
+                                audio_format_name(fmts[dev_idx][AUDDEV_REQ_OFMT], s, 50);
                                 debug_msg("Requested Output: %s\n", s);
-                                audio_format_name(fmts[sel_if][AUDDEV_ACT_OFMT], s, 50);
+                                audio_format_name(fmts[dev_idx][AUDDEV_ACT_OFMT], s, 50);
                                 debug_msg("Actual Output:    %s\n", s);
                         }
 #endif
                 }
 
-                if (fmts[sel_if][AUDDEV_REQ_IFMT] || fmts[sel_if][AUDDEV_REQ_OFMT]) {
-                        convert_buf[sel_if] = (sample*)xmalloc(DEVICE_REC_BUF); /* is this in samples or bytes ? */
+                if (fmts[dev_idx][AUDDEV_REQ_IFMT] || fmts[dev_idx][AUDDEV_REQ_OFMT]) {
+                        convert_buf[dev_idx] = (sample*)xmalloc(DEVICE_REC_BUF); /* is this in samples or bytes ? */
                 }
 
-                samples_read[sel_if]    = 0;
-                samples_written[sel_if] = 0;
+                samples_read[dev_idx]    = 0;
+                samples_written[dev_idx] = 0;
 
-                r = AIF_IDX_TO_MAGIC(sel_if);
-                num_active_interfaces++;
-                return r;
+                return TRUE;
         }
 
-        audio_format_free(&fmts[sel_if][AUDDEV_ACT_IFMT]);
-        audio_format_free(&fmts[sel_if][AUDDEV_ACT_OFMT]);
+        audio_format_free(&fmts[dev_idx][AUDDEV_ACT_IFMT]);
+        audio_format_free(&fmts[dev_idx][AUDDEV_ACT_OFMT]);
 
-        return 0;
+        return FALSE;
 }
 
 void
 audio_close(audio_desc_t ad)
 {
-        int i, j;
-        audio_if_t *aif;
+        int i, j, k, interface, device;
 
-        ad = AIF_MAGIC_TO_IDX(ad);
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
 
-        aif = audio_get_active_interface(ad);
-        aif->audio_if_close(ad);
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        audio_if_table[interface].audio_if_close(device);
+
+        /* Check device is open */
+        assert(get_active_device_index(ad) != -1);
 
         i = j = 0;
-        for(i = 0; i < num_active_interfaces; i++) {
-                if (i != ad) {
-                        active_interfaces[j] = active_interfaces[i];
+        for(i = 0; i < active_devices; i++) {
+                if (active_device_desc[i] == ad) {
+                        for(k = 0; k < AUDDEV_NUM_FORMATS; k++) {
+                                if (fmts[i][k] != NULL) audio_format_free(&fmts[i][k]);                                
+                        }
+                        if (convert_buf[i]) xfree(convert_buf[i]);
+                        samples_written[i] = 0;
+                        samples_read[i]    = 0;
+                } else {
+                        if (i != j) {
+                                active_device_desc[j] = active_device_desc[i];
+                                for(k = 0; k < AUDDEV_NUM_FORMATS; k++) {
+                                        assert(fmts[j][k] == NULL);
+                                        fmts[j][k] = fmts[i][k];
+                                }
+                                convert_buf[j]     = convert_buf[i];
+                                samples_read[j]    = samples_read[i];
+                                samples_written[j] = samples_written[i];
+                        }
                         j++;
                 }
         }
 
-        for(i = 0; i < AUDDEV_NUM_FORMATS; i++) {
-                if (fmts[ad][i] != NULL) audio_format_free(&fmts[ad][i]);
-        }
-
-        if (convert_buf[ad]) {
-                xfree(convert_buf[ad]);
-                convert_buf[ad] = NULL;
-        }
-
-        num_active_interfaces--;
+        active_devices --;
 }
 
 const audio_format*
 audio_get_ifmt(audio_desc_t ad)
 {
-        ad = AIF_MAGIC_TO_IDX(ad);
+        int idx = get_active_device_index(ad);
 
-        if (fmts[ad][AUDDEV_REQ_IFMT]) {
-                return fmts[ad][AUDDEV_REQ_IFMT];
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(idx >= 0 && idx < active_devices);
+
+        if (fmts[idx][AUDDEV_REQ_IFMT]) {
+                return fmts[idx][AUDDEV_REQ_IFMT];
         }
 
-        return fmts[ad][AUDDEV_ACT_IFMT];
+        return fmts[idx][AUDDEV_ACT_IFMT];
 }
 
 const audio_format*
 audio_get_ofmt(audio_desc_t ad)
 {
-        ad = AIF_MAGIC_TO_IDX(ad);
+        int idx = get_active_device_index(ad);
 
-        if (fmts[ad][AUDDEV_REQ_OFMT]) {
-                return fmts[ad][AUDDEV_REQ_OFMT];
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(idx >= 0 && idx < active_devices);
+
+        if (fmts[idx][AUDDEV_REQ_OFMT]) {
+                return fmts[idx][AUDDEV_REQ_OFMT];
         }
 
-        return fmts[ad][AUDDEV_ACT_OFMT];
+        return fmts[idx][AUDDEV_ACT_OFMT];
 }
 
 void
 audio_drain(audio_desc_t ad)
 {
-        audio_if_t *aif;
+        int device, interface;
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
         
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
-        aif->audio_if_drain(ad);
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+        
+        audio_if_table[interface].audio_if_drain(device);
 }
 
 int
 audio_duplex(audio_desc_t ad)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int device, interface;
 
-        return aif->audio_if_duplex(ad);
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        return audio_if_table[interface].audio_if_duplex(device);
 }
 
 int
 audio_read(audio_desc_t ad, sample *buf, int samples)
 {
         /* Samples is the number of samples to read * number of channels */
-        
-        audio_if_t *aif;
         int read_len;
         int sample_size;
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int device, interface;
+        int idx = get_active_device_index(ad);
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));        
+        assert(idx >= 0 && idx < active_devices);
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
 
         xmemchk();
 
-        if (fmts[ad][AUDDEV_REQ_IFMT] == NULL) {
+        if (fmts[idx][AUDDEV_REQ_IFMT] == NULL) {
                 /* No conversion necessary as input format and real format are
                  * the same. [Input format only allocated if different from
                  * real format].
                  */
-                sample_size = fmts[ad][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
-                read_len    = aif->audio_if_read(ad, (u_char*)buf, samples * sample_size);
-                samples_read[ad] += read_len / (sample_size * fmts[ad][AUDDEV_ACT_IFMT]->channels);
+                sample_size = fmts[idx][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
+                read_len    = audio_if_table[interface].audio_if_read(device, 
+                                                                       (u_char*)buf, 
+                                                                       samples * sample_size);
+                samples_read[idx] += read_len / (sample_size * fmts[idx][AUDDEV_ACT_IFMT]->channels);
         } else {
-                assert(fmts[ad][AUDDEV_ACT_IFMT] != NULL);
-                sample_size = fmts[ad][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
-                read_len    = aif->audio_if_read(ad, (u_char*)convert_buf[ad], samples * sample_size);
-                read_len    = audio_format_buffer_convert(fmts[ad][AUDDEV_REQ_IFMT], 
-                                                          (u_char*) convert_buf[ad], 
+                assert(fmts[idx][AUDDEV_ACT_IFMT] != NULL);
+                sample_size = fmts[idx][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
+                read_len    = audio_if_table[interface].audio_if_read(device, 
+                                                                       (u_char*)convert_buf[idx], 
+                                                                       samples * sample_size);
+                read_len    = audio_format_buffer_convert(fmts[idx][AUDDEV_REQ_IFMT], 
+                                                          (u_char*) convert_buf[idx], 
                                                           read_len, 
-                                                          fmts[ad][AUDDEV_ACT_IFMT], 
+                                                          fmts[idx][AUDDEV_ACT_IFMT], 
                                                           (u_char*) buf,
                                                           DEVICE_REC_BUF);
-                sample_size = fmts[ad][AUDDEV_REQ_IFMT]->bits_per_sample / 8;
-                samples_read[ad] += read_len / (sample_size * fmts[ad][AUDDEV_REQ_IFMT]->channels);
+                sample_size = fmts[idx][AUDDEV_REQ_IFMT]->bits_per_sample / 8;
+                samples_read[idx] += read_len / (sample_size * fmts[idx][AUDDEV_REQ_IFMT]->channels);
         }
 
         xmemchk();
@@ -385,32 +719,36 @@ audio_read(audio_desc_t ad, sample *buf, int samples)
 int
 audio_write(audio_desc_t ad, sample *buf, int len)
 {
-        audio_if_t *aif;
         int write_len ,sample_size;
+        int interface, device;
+        int idx = get_active_device_index(ad);
+        
+        assert(idx >= 0 && idx < active_devices);
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
 
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
         
         xmemchk();
 
-        if (fmts[ad][AUDDEV_REQ_OFMT] == NULL) {
+        if (fmts[idx][AUDDEV_REQ_OFMT] == NULL) {
                 /* No conversion necessary as output format and real format are
                  * the same. [Output format only allocated if different from
                  * real format].
                  */
-                sample_size = fmts[ad][AUDDEV_ACT_OFMT]->bits_per_sample / 8;
-                write_len = aif->audio_if_write(ad, (u_char*)buf, len * sample_size);
-                samples_written[ad] += write_len / (sample_size * fmts[ad][AUDDEV_ACT_OFMT]->channels);
+                sample_size = fmts[idx][AUDDEV_ACT_OFMT]->bits_per_sample / 8;
+                write_len   = audio_if_table[interface].audio_if_write(device, (u_char*)buf, len * sample_size);
+                samples_written[idx] += write_len / (sample_size * fmts[idx][AUDDEV_ACT_OFMT]->channels);
         } else {
-                write_len = audio_format_buffer_convert(fmts[ad][AUDDEV_REQ_OFMT],
+                write_len = audio_format_buffer_convert(fmts[idx][AUDDEV_REQ_OFMT],
                                                         (u_char*)buf,
                                                         len,
-                                                        fmts[ad][AUDDEV_ACT_OFMT],
-                                                        (u_char*) convert_buf[ad],
+                                                        fmts[idx][AUDDEV_ACT_OFMT],
+                                                        (u_char*) convert_buf[idx],
                                                         DEVICE_REC_BUF);
-                aif->audio_if_write(ad, (u_char*)convert_buf[ad], write_len);
-                sample_size = fmts[ad][AUDDEV_ACT_OFMT]->bits_per_sample / 8;
-                samples_written[ad] += write_len / (sample_size * fmts[ad][AUDDEV_REQ_OFMT]->channels);
+                audio_if_table[interface].audio_if_write(device, (u_char*)convert_buf[idx], write_len);
+                sample_size = fmts[idx][AUDDEV_ACT_OFMT]->bits_per_sample / 8;
+                samples_written[idx] += write_len / (sample_size * fmts[idx][AUDDEV_REQ_OFMT]->channels);
         }
 
         xmemchk();
@@ -420,49 +758,61 @@ audio_write(audio_desc_t ad, sample *buf, int len)
 void
 audio_non_block(audio_desc_t ad)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
 
-        aif->audio_if_non_block(ad);
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        audio_if_table[interface].audio_if_non_block(device);
 }
 
 void
 audio_block(audio_desc_t ad)
 {
-        audio_if_t *aif;
+        int interface, device;
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
         
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
-        
-        aif->audio_if_block(ad);
+        audio_if_table[interface].audio_if_block(device);
 }
 
 void
 audio_set_gain(audio_desc_t ad, int gain)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
 
         assert(gain >= 0);
         assert(gain <= MAX_AMP);
 
-        aif->audio_if_set_gain(ad, gain);
+        audio_if_table[interface].audio_if_set_gain(device, gain);
 }
 
 int
 audio_get_gain(audio_desc_t ad)
 {
-        audio_if_t *aif;
         int gain;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
-        
-        gain = aif->audio_if_get_gain(ad);
+        int interface, device;
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        gain = audio_if_table[interface].audio_if_get_gain(device);
 
         assert(gain >= 0);
         assert(gain <= MAX_AMP);
@@ -473,27 +823,33 @@ audio_get_gain(audio_desc_t ad)
 void
 audio_set_volume(audio_desc_t ad, int volume)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
 
         assert(volume >= 0);
         assert(volume <= MAX_AMP);
 
-        aif->audio_if_set_volume(ad, volume);
+        audio_if_table[interface].audio_if_set_volume(device, volume);
 }
 
 int
 audio_get_volume(audio_desc_t ad)
 {
-        audio_if_t *aif;
         int volume;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
 
-        volume = aif->audio_if_get_volume(ad);
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+        
+        volume = audio_if_table[interface].audio_if_get_volume(device);
         assert(volume >= 0);
         assert(volume <= MAX_AMP);
 
@@ -503,102 +859,130 @@ audio_get_volume(audio_desc_t ad)
 void
 audio_loopback(audio_desc_t ad, int gain)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
 
         assert(gain >= 0);
         assert(gain <= MAX_AMP);
 
-        if (aif->audio_if_loopback) aif->audio_if_loopback(ad, gain);
+        if (audio_if_table[interface].audio_if_loopback) audio_if_table[interface].audio_if_loopback(device, gain);
 }
 
 void
 audio_set_oport(audio_desc_t ad, int port)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
 
-        aif->audio_if_set_oport(ad, port);
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+        
+        audio_if_table[interface].audio_if_set_oport(device, port);
 }
 
 int
 audio_get_oport(audio_desc_t ad)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
 
-        return (aif->audio_if_get_oport(ad));
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        return (audio_if_table[interface].audio_if_get_oport(device));
 }
 
 int     
 audio_next_oport(audio_desc_t ad)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
 
-        return (aif->audio_if_next_oport(ad));
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        return (audio_if_table[interface].audio_if_next_oport(device));
 }
 
 void
 audio_set_iport(audio_desc_t ad, int port)
 {
-        audio_if_t *aif;
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
 
-        aif->audio_if_set_iport(ad, port);
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        audio_if_table[interface].audio_if_set_iport(device, port);
 }
 
 int
 audio_get_iport(audio_desc_t ad)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
 
-        return (aif->audio_if_get_iport(ad));
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        return (audio_if_table[interface].audio_if_get_iport(device));
 }
 
 int
 audio_next_iport(audio_desc_t ad)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
 
-        return (aif->audio_if_next_iport(ad));
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        return (audio_if_table[interface].audio_if_next_iport(device));
 }
 
 int
 audio_is_ready(audio_desc_t ad)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
 
-        return (aif->audio_if_is_ready(ad));
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        return (audio_if_table[interface].audio_if_is_ready(device));
 }
 
 void
 audio_wait_for(audio_desc_t ad, int delay_ms)
 {
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
 
-        aif->audio_if_wait_for(ad, delay_ms);
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
+
+        audio_if_table[interface].audio_if_wait_for(device, delay_ms);
 }
 
 /* Code for adding/initialising/removing audio interfaces */
@@ -606,22 +990,25 @@ audio_wait_for(audio_desc_t ad, int delay_ms)
 int
 audio_device_supports(audio_desc_t ad, u_int16 rate, u_int16 channels)
 {
-        audio_if_t *aif;
- 
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
+        int interface, device;
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(audio_device_is_open(ad));
+
+        interface = AIF_GET_INTERFACE(ad);
+        device    = AIF_GET_DEVICE_NO(ad);
 
         if (rate % 8000 || channels > 2) {
                 debug_msg("Invalid combo %d Hz %d channels\n", rate, channels);
                 return FALSE;
         }
 
-        if (aif->audio_if_format_supported) {
+        if (audio_if_table[interface].audio_if_format_supported) {
                 audio_format tfmt;
                 tfmt.encoding    = DEV_S16;
                 tfmt.sample_rate = rate;
                 tfmt.channels    = channels;
-                return aif->audio_if_format_supported(ad, &tfmt);
+                return audio_if_table[interface].audio_if_format_supported(device, &tfmt);
         }
 
         debug_msg("Format support query function not implemented! Lying about supported formats.\n");
@@ -629,351 +1016,74 @@ audio_device_supports(audio_desc_t ad, u_int16 rate, u_int16 channels)
         return TRUE;
 }
 
-static int
-audio_add_interface(audio_if_t *aif_new)
-{
-        if ((aif_new->audio_if_init == NULL || aif_new->audio_if_init()) &&
-            num_interfaces < AUDIO_MAX_INTERFACES) {
-                memcpy(audio_interfaces + num_interfaces, aif_new, sizeof(audio_if_t));
-                debug_msg("Audio interface added %s\n", aif_new->name);
-                num_interfaces++;
-                return TRUE;
-        }
-        return FALSE;
-}
-
 u_int32
 audio_get_device_time(audio_desc_t ad)
 {
         audio_format *fmt;
         u_int32       samples_per_block;
+        int dev = get_active_device_index(ad);
 
-        ad = AIF_MAGIC_TO_IDX(ad);
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(dev >= 0 && dev < active_devices);
 
-        if (fmts[ad][AUDDEV_REQ_IFMT]) {
-                fmt = fmts[ad][AUDDEV_REQ_IFMT]; 
+        if (fmts[dev][AUDDEV_REQ_IFMT]) {
+                fmt = fmts[dev][AUDDEV_REQ_IFMT]; 
         } else {
-                fmt = fmts[ad][AUDDEV_ACT_IFMT]; 
+                fmt = fmts[dev][AUDDEV_ACT_IFMT]; 
         }
         
         samples_per_block = fmt->bytes_per_block * 8 / (fmt->channels * fmt->bits_per_sample);
-
-        return (samples_read[ad]/samples_per_block) * samples_per_block;
+        
+        return (samples_read[dev]/samples_per_block) * samples_per_block;
 }
 
 u_int32
 audio_get_samples_read(audio_desc_t ad)
 {
-       ad = AIF_MAGIC_TO_IDX(ad);
-       return samples_read[ad];
+        int dev = get_active_device_index(ad);
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(dev >= 0 && dev < active_devices);
+        return samples_read[dev];
 }
 
 u_int32
 audio_get_samples_written(audio_desc_t ad)
 {
-       ad = AIF_MAGIC_TO_IDX(ad);
-       return samples_written[ad];
+        int dev = get_active_device_index(ad);
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(dev >= 0 && dev < active_devices);
+        return samples_written[dev];
 }
-
-#include "auddev_luigi.h"
-#include "auddev_null.h"
-#include "auddev_osprey.h"
-#include "auddev_oss.h"
-#include "auddev_pca.h"
-#include "auddev_sparc.h"
-#include "auddev_sgi.h"
-#include "auddev_win32.h"
 
 int
 audio_init_interfaces()
 {
-        int i, n;
+        u_int32 i;
 
-#ifdef IRIX
-        {
-                audio_if_t aif_sgi = {
-                        "SGI Audio Device",
-                        NULL, 
-                        NULL, 
-                        sgi_audio_open,
-                        sgi_audio_close,
-                        sgi_audio_drain,
-                        sgi_audio_duplex,
-                        sgi_audio_read,
-                        sgi_audio_write,
-                        sgi_audio_non_block,
-                        sgi_audio_block,
-                        sgi_audio_set_gain,
-                        sgi_audio_get_gain,
-                        sgi_audio_set_volume,
-                        sgi_audio_get_volume,
-                        sgi_audio_loopback,
-                        sgi_audio_set_oport,
-                        sgi_audio_get_oport,
-                        sgi_audio_next_oport,
-                        sgi_audio_set_iport,
-                        sgi_audio_get_iport,
-                        sgi_audio_next_iport,
-                        sgi_audio_is_ready,
-                        sgi_audio_wait_for,
-                        NULL
-                };
-                audio_add_interface(&aif_sgi);
-        }
-#endif /* IRIX */
+        actual_devices = 0;
 
-#ifdef Solaris
-        {
-                audio_if_t aif_sparc = {
-                        "Sun Audio Device",
-                        NULL, 
-                        NULL, 
-                        sparc_audio_open,
-                        sparc_audio_close,
-                        sparc_audio_drain,
-                        sparc_audio_duplex,
-                        sparc_audio_read,
-                        sparc_audio_write,
-                        sparc_audio_non_block,
-                        sparc_audio_block,
-                        sparc_audio_set_gain,
-                        sparc_audio_get_gain,
-                        sparc_audio_set_volume,
-                        sparc_audio_get_volume,
-                        sparc_audio_loopback,
-                        sparc_audio_set_oport,
-                        sparc_audio_get_oport,
-                        sparc_audio_next_oport,
-                        sparc_audio_set_iport,
-                        sparc_audio_get_iport,
-                        sparc_audio_next_iport,
-                        sparc_audio_is_ready,
-                        sparc_audio_wait_for,
-                        NULL
-                };
-                audio_add_interface(&aif_sparc);
-        }
-#endif /* Solaris */
-
-#ifdef HAVE_OSPREY
-        {
-                audio_if_t aif_osprey = {
-                        "Osprey Audio Device",
-                        osprey_audio_init, 
-                        NULL, 
-                        osprey_audio_open,
-                        osprey_audio_close,
-                        osprey_audio_drain,
-                        osprey_audio_duplex,
-                        osprey_audio_read,
-                        osprey_audio_write,
-                        osprey_audio_non_block,
-                        osprey_audio_block,
-                        osprey_audio_set_gain,
-                        osprey_audio_get_gain,
-                        osprey_audio_set_volume,
-                        osprey_audio_get_volume,
-                        osprey_audio_loopback,
-                        osprey_audio_set_oport,
-                        osprey_audio_get_oport,
-                        osprey_audio_next_oport,
-                        osprey_audio_set_iport,
-                        osprey_audio_get_iport,
-                        osprey_audio_next_iport,
-                        osprey_audio_is_ready,
-                        osprey_audio_wait_for,
-                        NULL
-                };
-                audio_add_interface(&aif_osprey);
-        }
-#endif /* HAVE_OSPREY */
-
-#if defined(Linux)||defined(OSS)
-        oss_audio_query_devices();
-        n = oss_get_device_count();
-
-        for(i = 0; i < n; i++) {
-                audio_if_t aif_oss = {
-                        "OSS Audio Device",
-                        NULL, 
-                        NULL, 
-                        oss_audio_open,
-                        oss_audio_close,
-                        oss_audio_drain,
-                        oss_audio_duplex,
-                        oss_audio_read,
-                        oss_audio_write,
-                        oss_audio_non_block,
-                        oss_audio_block,
-                        oss_audio_set_gain,
-                        oss_audio_get_gain,
-                        oss_audio_set_volume,
-                        oss_audio_get_volume,
-                        oss_audio_loopback,
-                        oss_audio_set_oport,
-                        oss_audio_get_oport,
-                        oss_audio_next_oport,
-                        oss_audio_set_iport,
-                        oss_audio_get_iport,
-                        oss_audio_next_iport,
-                        oss_audio_is_ready,
-                        oss_audio_wait_for,
-                        oss_audio_supports
-                };
-                strncpy(aif_oss.name, oss_get_device_name(i), AUDIO_INTERFACE_NAME_LEN - 1);
-                audio_add_interface(&aif_oss);
+        for(i = 0; i < NUM_AUDIO_INTERFACES; i++) {
+                if (audio_if_table[i].audio_if_init) {
+                        audio_if_table[i].audio_if_init(); 
+                }
+                assert(audio_if_table[i].audio_if_dev_cnt);
+                actual_devices += audio_if_table[i].audio_if_dev_cnt();
         }
 
-#endif /* Linux / OSS */
-
-#if defined(WIN32)
-        w32sdk_audio_query_devices();
-        n = w32sdk_get_device_count();
-        for(i = 0; i < n; i++) {
-                audio_if_t aif_w32sdk = {
-                        "W32SDK Audio Device",
-                        NULL, 
-                        NULL, 
-                        w32sdk_audio_open,
-                        w32sdk_audio_close,
-                        w32sdk_audio_drain,
-                        w32sdk_audio_duplex,
-                        w32sdk_audio_read,
-                        w32sdk_audio_write,
-                        w32sdk_audio_non_block,
-                        w32sdk_audio_block,
-                        w32sdk_audio_set_gain,
-                        w32sdk_audio_get_gain,
-                        w32sdk_audio_set_volume,
-                        w32sdk_audio_get_volume,
-                        w32sdk_audio_loopback,
-                        w32sdk_audio_set_oport,
-                        w32sdk_audio_get_oport,
-                        w32sdk_audio_next_oport,
-                        w32sdk_audio_set_iport,
-                        w32sdk_audio_get_iport,
-                        w32sdk_audio_next_iport,
-                        w32sdk_audio_is_ready,
-                        w32sdk_audio_wait_for,
-                        w32sdk_audio_supports
-                };
-                strcpy(aif_w32sdk.name, w32sdk_get_device_name(i));
-                audio_add_interface(&aif_w32sdk);
-        }
-#endif /* WIN32 */
-
-#if defined(FreeBSD)
-        luigi_audio_query_devices();
-        n = luigi_get_device_count();
-        for (i = 0; i < n; i++) {
-                audio_if_t aif_luigi = {
-                        "Default Audio Device",
-                        NULL,
-                        NULL, 
-                        luigi_audio_open,
-                        luigi_audio_close,
-                        luigi_audio_drain,
-                        luigi_audio_duplex,
-                        luigi_audio_read,
-                        luigi_audio_write,
-                        luigi_audio_non_block,
-                        luigi_audio_block,
-                        luigi_audio_set_gain,
-                        luigi_audio_get_gain,
-                        luigi_audio_set_volume,
-                        luigi_audio_get_volume,
-                        luigi_audio_loopback,
-                        luigi_audio_set_oport,
-                        luigi_audio_get_oport,
-                        luigi_audio_next_oport,
-                        luigi_audio_set_iport,
-                        luigi_audio_get_iport,
-                        luigi_audio_next_iport,
-                        luigi_audio_is_ready,
-                        luigi_audio_wait_for,
-                        luigi_audio_supports
-                };
-                strcpy(aif_luigi.name, luigi_get_device_name(i));
-                audio_add_interface(&aif_luigi);
-        }
-#endif /* FreeBSD */
-
-#if defined(HAVE_PCA)
-        {
-                audio_if_t aif_pca = {
-                        "PCA Audio Device",
-                        pca_audio_init,
-                        NULL, 
-                        pca_audio_open,
-                        pca_audio_close,
-                        pca_audio_drain,
-                        pca_audio_duplex,
-                        pca_audio_read,
-                        pca_audio_write,
-                        pca_audio_non_block,
-                        pca_audio_block,
-                        pca_audio_set_gain,
-                        pca_audio_get_gain,
-                        pca_audio_set_volume,
-                        pca_audio_get_volume,
-                        pca_audio_loopback,
-                        pca_audio_set_oport,
-                        pca_audio_get_oport,
-                        pca_audio_next_oport,
-                        pca_audio_set_iport,
-                        pca_audio_get_iport,
-                        pca_audio_next_iport,
-                        pca_audio_is_ready,
-                        pca_audio_wait_for,
-                        pca_audio_supports
-                };
-                audio_add_interface(&aif_pca);                
-        }
-#endif /* HAVE_PCA */
-        {
-                /* This is the null audio device - it should always go last so that
-                 * audio_get_null_interface works.  The idea being when we can't get hold
-                 * of a real device we fake one.  Prevents lots of problems elsewhere.
-                 */
-                audio_if_t aif_null = {
-                        "No Audio Device",
-                        NULL,
-                        NULL, 
-                        null_audio_open,
-                        null_audio_close,
-                        null_audio_drain,
-                        null_audio_duplex,
-                        null_audio_read,
-                        null_audio_write,
-                        null_audio_non_block,
-                        null_audio_block,
-                        null_audio_set_gain,
-                        null_audio_get_gain,
-                        null_audio_set_volume,
-                        null_audio_get_volume,
-                        null_audio_loopback,
-                        null_audio_set_oport,
-                        null_audio_get_oport,
-                        null_audio_next_oport,
-                        null_audio_set_iport,
-                        null_audio_get_iport,
-                        null_audio_next_iport,
-                        null_audio_is_ready,
-                        null_audio_wait_for,
-                        NULL
-                };
-                audio_add_interface(&aif_null);                
-        }
-
-        UNUSED(i); /* Some if def combinations may mean that these do not get used */
-        UNUSED(n);
-
-        return 0;
+        return TRUE;
 }
 
 int
 audio_free_interfaces(void)
 {
+        u_int32 i;
+
+        for(i = 0; i < NUM_AUDIO_INTERFACES; i++) {
+                if (audio_if_table[i].audio_if_free) {
+                        audio_if_table[i].audio_if_free(); 
+                }
+        }
+
         return TRUE;
 }
 

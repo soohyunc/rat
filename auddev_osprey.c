@@ -60,6 +60,7 @@
 static audio_info_t     dev_info;
 static int audioctl_fd     = -1;
 static int audio_fd        = -1;
+static int present         = 0;
 
 static void osprey_audio_service(void);
 
@@ -187,6 +188,8 @@ osprey_audio_init()
                 fprintf(stderr, "oti_audio_init failed (reason %d)\n", success);
                 return FALSE;
         }
+
+        present = 1;
 
         return TRUE;
 }
@@ -595,5 +598,16 @@ osprey_audio_service()
         inservice = FALSE;
 }
 
+int
+osprey_audio_device_count()
+{
+        return present;
+}
+
+const char*
+osprey_audio_device_name(audio_desc_t ad)
+{
+        return "Osprey Audio Device";
+}
 
 #endif /* HAVE_OSPREY */

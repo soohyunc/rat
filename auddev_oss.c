@@ -622,8 +622,8 @@ oss_get_device_count()
         return ndev;
 }
 
-char *
-oss_get_device_name(int idx)
+const char *
+oss_get_device_name(audio_desc_t idx)
 {
         if (idx >=0 && idx < ndev) {
                 return dev_name[idx];

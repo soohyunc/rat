@@ -50,17 +50,16 @@
 #include "audio_types.h"
 
 /* Audio interface fn's for dealing with multiple devices/device interfaces */
-int     audio_init_interfaces(void);
-int     audio_free_interfaces(void);
-int     audio_get_number_of_interfaces(void);
-char*   audio_get_interface_name(int idx);
-void    audio_set_interface(int idx);
-int     audio_get_interface(void);
-int     audio_get_null_interface(void); /* gets null dev interface */
-int     audio_device_supports   (audio_desc_t ad, u_int16 rate, u_int16 channels);
+int     audio_init_interfaces       (void);
+int     audio_free_interfaces       (void);
+int     audio_get_device_count      (void);
+int     audio_get_device_details    (int idx, audio_device_details_t *desc);
+int     audio_get_null_device       (void); /* gets null dev interface */
+int     audio_device_supports       (audio_desc_t ad, u_int16 rate, u_int16 channels);
+int     audio_device_is_open        (audio_desc_t ad);
 
 /* Audio functions implemented by device interfaces */
-audio_desc_t	audio_open  (audio_format *in_format, audio_format *out_format);
+int     audio_open          (audio_desc_t ad, audio_format *in_format, audio_format *out_format);
 void	audio_close         (audio_desc_t ad);
 void	audio_drain         (audio_desc_t ad);
 void	audio_set_gain      (audio_desc_t ad, int gain);
@@ -94,7 +93,5 @@ const audio_format* audio_get_ofmt (audio_desc_t ad);
 u_int32 audio_get_device_time     (audio_desc_t ad);
 u_int32 audio_get_samples_written (audio_desc_t ad);
 u_int32 audio_get_samples_read    (audio_desc_t ad);
-
-#define AUDIO_INTERFACE_NAME_LEN 64
 
 #endif /* _AUDDEV_H_ */

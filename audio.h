@@ -58,10 +58,6 @@ struct s_bias_ctl;
 struct s_mix_info;
 
 /* General audio processing functions */
-void	mix_init     (void);
-void	mix2_pcmu    (u_int8 *v0, u_int8 *v1, size_t len);
-void	mix2_l16     (int16 *v0, int16 *v1, size_t len);
-void	mix2_l8      (int8 *v0, int8 *v1, size_t len);
 void	audio_zero   (sample *buf, int len, deve_e type);
 void    audio_unbias (struct s_bias_ctl *bc, sample *buf, int len);
 
@@ -69,7 +65,7 @@ int     read_write_audio (struct session_tag *spi, struct session_tag *spo, stru
 void    read_write_init  (struct session_tag *session_pointer);
 
 int     audio_device_write       (struct session_tag *sp, sample *buf, int samples);
-int     audio_device_take        (struct session_tag *sp);
+int     audio_device_take        (struct session_tag *sp, audio_desc_t ad);
 void	audio_device_give        (struct session_tag *sp);
 void    audio_device_reconfigure (struct session_tag *sp);
 

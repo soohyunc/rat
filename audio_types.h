@@ -66,6 +66,13 @@ typedef struct s_audio_format {
 typedef short sample;       /* Sample representation 16 bit signed */
 typedef int audio_desc_t;   /* Unique handle for identifying audio devices */
 
+#define AUDIO_DEVICE_NAME_LENGTH 63
+
+typedef struct {
+        audio_desc_t descriptor;
+        char         name[AUDIO_DEVICE_NAME_LENGTH + 1];
+} audio_device_details_t;
+
 #define BYTES_PER_SAMPLE sizeof(sample)
 #define PCMU_AUDIO_ZERO	127
 #define L16_AUDIO_ZERO	0

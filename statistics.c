@@ -545,10 +545,6 @@ statistics(session_struct      *sp,
                 }
                 rtcp_update_seq(src, hdr->seq);
 
-                if (!sp->audio_device) {
-                        /* we don't have the audio device so there is no point processing data any further. */
-                        goto release;
-                }
                 data_ptr =  (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
         

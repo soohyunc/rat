@@ -122,7 +122,6 @@ main(int argc, char *argv[])
 	ssrc         = get_ssrc();
 
         audio_init_interfaces();
-        audio_set_interface(0);
         converters_init();
         statistics_init();
 
@@ -166,9 +165,12 @@ main(int argc, char *argv[])
 	} while (sp[0]->wait_on_startup);
 
 	for (i = 0; i < num_sessions; i++) {
+                audio_device_details_t details;
 		network_init(sp[i]);
 		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
-		audio_device_take(sp[i]);
+                audio_get_device_details(0, &details);
+		audio_device_take(sp[i], details.descriptor);
+                assert(audio_device_is_open(sp[i]->audio_device));
 	}
 
         ui_initial_settings(sp[0]);

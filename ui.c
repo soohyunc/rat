@@ -55,6 +55,7 @@
 #include "convert.h"
 #include "audio.h"
 #include "audio_fmt.h"
+#include "auddev.h"
 #include "mbus.h"
 #include "mbus_engine.h"
 #include "channel.h"
@@ -566,14 +567,16 @@ ui_update_3d_enabled(session_struct *sp)
 static void
 ui_devices(session_struct *sp)
 {
+        audio_device_details_t ad;
         int i,nDev;
+
         char buf[255] = "", *this_dev, *mbes;
         
-        nDev = audio_get_number_of_interfaces();
+        nDev = audio_get_device_count();
         for(i = 0; i < nDev; i++) {
-                this_dev = audio_get_interface_name(i);
+                if (!audio_get_device_details(i, &ad)) continue;
                 if (this_dev) {
-                        strcat(buf, this_dev);
+                        strcat(buf, ad.name);
                         strcat(buf, ",");
                 }
         }
@@ -588,8 +591,18 @@ ui_devices(session_struct *sp)
 static void
 ui_device(session_struct *sp)
 {
-        char *mbes, *cur_dev;
-        cur_dev = audio_get_interface_name(audio_get_interface());
+        audio_device_details_t ad;
+        char                  *mbes, *cur_dev;
+        int                    i;
+
+        cur_dev = NULL;
+
+        for(i = 0; i < audio_get_device_count(); i++) {
+                if (audio_get_device_details(i, &ad) && sp->audio_device == ad.descriptor) {
+                        cur_dev = ad.name;
+                        break;
+                }
+        }
 
         if (cur_dev) {
                 mbes = mbus_encode_str(cur_dev);

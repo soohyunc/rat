@@ -249,8 +249,8 @@ tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
         tb->mean_read_dur = unit_dur;
 
         if (sp->mode != TRANSCODER) {
-                audio_drain(sp->audio_device);
-                audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF);
+                /*       audio_drain(sp->audio_device);
+                audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF); */
         }
 
         if (!sp->state_store) {
@@ -323,27 +323,10 @@ tx_read_audio(session_struct *sp)
                         } 
                 } while (u->dur_used == sp->tb->unit_dur);
         } else {
-		if (sp->audio_device) {
-			/* We're not sending, but have access to the audio device. Read the audio anyway. */
-			/* to get exact timing values, and then throw the data we've just read away...    */
-			read_dur = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 4) / sp->tb->channels;
-			time_advance(sp->clock, get_freq(sp->tb->clock), read_dur);
-	 	} else {
-			/* Fake the timing using gettimeofday... We don't have the audio device, so this */
-			/* can't rely on any of the values in sp->tb                                     */
-			/* This is hard-coded to 8kHz right now! */
-			struct timeval	curr_time;
-
-			gettimeofday(&curr_time, NULL);
-			read_dur = ((u_int32)((curr_time.tv_sec - sp->device_time.tv_sec) * 1e6)
-				+ (curr_time.tv_usec - sp->device_time.tv_usec)) / 125;
-			sp->device_time = curr_time;
-			if (read_dur > DEVICE_REC_BUF) {
-				read_dur = DEVICE_REC_BUF;
-			}
-			memset(dummy_buf, 0, DEVICE_REC_BUF * BYTES_PER_SAMPLE);
-			time_advance(sp->clock, 8000, read_dur);
-		}
+                /* We're not sending, but have access to the audio device. Read the audio anyway. */
+                /* to get exact timing values, and then throw the data we've just read away...    */
+                read_dur = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 4) / sp->tb->channels;
+                time_advance(sp->clock, get_freq(sp->tb->clock), read_dur);
         }
         
         if ((double)read_dur > 5.0 * sp->tb->mean_read_dur) {

@@ -60,6 +60,19 @@ static ALport	rp = NULL, wp = NULL;	/* Read and write ports */
 static int	iport = AUDIO_MICROPHONE;
 static int      bytes_per_block;
 
+
+int
+sgi_audio_device_count()
+{
+        return 1;
+}
+
+const char*
+sgi_audio_device_name(audio_desc_t ad)
+{
+        return "SGI Audio Device";
+}
+
 /*
  * Try to open the audio device.
  * Return TRUE if successfull FALSE otherwise.
