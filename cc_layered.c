@@ -251,6 +251,7 @@ layered_encoder_output(lay_state *le, struct s_pb *out)
                         lu->data     = 0;
                         lu->data_len = 0;
                 }
+		block_free(le->elem[i]->rep[0]->data, le->elem[i]->rep[0]->data_len);
                 le->elem[i]->rep[0]->data = NULL;
                 le->elem[i]->rep[0]->data_len = 0;
                 media_data_destroy(&le->elem[i], sizeof(media_data));
