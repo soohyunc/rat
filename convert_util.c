@@ -75,15 +75,19 @@ gcd (int a, int b)
 int
 conversion_steps(int f1, int f2) 
 {
-        if (f1 == f2) return 0;
+        int minf, maxf, r;
 
-        if (((f1 % f2) == f2) ||
-            ((f2 % f1) == f1)) {
-                /* Integer conversion */
+        minf = min(f1, f2);
+        maxf = max(f1, f2);
+        r = maxf / minf;
+
+        if (f1 == f2) {
+                return 0;
+        } else if (r * minf == maxf) {
                 return 1;
-        } 
-        /* Non-integer conversion */
-        return 2;
+        } else {
+                return 2;
+        }
 }
 
 int
