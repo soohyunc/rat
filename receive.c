@@ -352,7 +352,6 @@ clear_old_participant_history(session_struct *sp, ppb_t *buf)
 	cur_time = get_time(buf->src->clock);
         if (sp->echo_suppress) {
                 adj = (get_freq(buf->src->clock)/1000) * SUPPRESS_LEN;
-                debug_msg("adjustment %d\n", adj);
         } else {
                 adj = (get_freq(buf->src->clock)/1000) * HISTORY_LEN;
         }
