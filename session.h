@@ -50,6 +50,7 @@
 extern int thread_pri;
 
 typedef struct s_session {
+	struct s_session	*other_session;			/* Only valid when we're a transcoder... */
         short           	 id;   				/* unique session id */
 	int			 mode; 				/* audio tool, transcoder */
         char            	*title;

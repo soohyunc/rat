@@ -107,6 +107,7 @@ session_init(session_t *sp, int index, int mode)
 
         conv                            = converter_get_details(0);
         sp->converter                   = conv->id;
+	sp->other_session		= NULL;				/* Completed in main_engine.c if we're a transoder */
 	sp->id				= index;
 	sp->mode         		= mode;	
         sp->rtp_session_count           = 0;

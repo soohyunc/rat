@@ -244,6 +244,10 @@ int main(int argc, char *argv[])
 			return FALSE;
 		}
 	}
+	if (num_sessions == 2) {
+		sp[0]->other_session = sp[1];
+		sp[1]->other_session = sp[0];
+	}
 
 	rendezvous_with_controller(sp);
 

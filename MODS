@@ -1421,6 +1421,10 @@ v4.2.8	- Mbus address of media engine now contains session identifier (this
 v4.2.9	- Fix spurious assertions in source.c -- I think (hope?) this will fix the 
 	  source.c:1588: source_process: Assertion `md->nrep < 5 && md->nrep > 0' failed.
 	  crash reported by Bob Olson and Justin Pietsch.
+	- Add other_session field to the session struct, and fix transcoder to make
+	  calls to rtp_add_csrc() and rtp_del_csrc(), which will eventually support
+	  pass through of RTCP. This changes the size of the session struct, and
+	  means that you'll have to "make clean" after updating.
 
 
 

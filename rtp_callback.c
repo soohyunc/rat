@@ -329,6 +329,7 @@ void
 rtp_callback(struct rtp *s, rtp_event *e)
 {
         struct s_session *sp;
+	int		  i;
         
 	assert(s != NULL);
 	assert(e != NULL);
@@ -343,6 +344,13 @@ rtp_callback(struct rtp *s, rtp_event *e)
 
 	if (sp->logger != NULL) {
 		rtpdump_callback(sp->logger, e);
+	}
+
+	/* If we're a transcoder, add this source as a CSRC on the other session */
+	if (sp->other_session != NULL) {
+		for (i = 0; i < sp->other_session->rtp_session_count; i++) {
+			rtp_add_csrc(sp->other_session->rtp_session[i], e->ssrc);
+		}
 	}
 
 	switch (e->type) {
@@ -369,6 +377,11 @@ rtp_callback(struct rtp *s, rtp_event *e)
 	case RX_BYE:
 	case SOURCE_DELETED:
                 process_delete(sp, e);
+		if (sp->other_session != NULL) {
+			for (i = 0; i < sp->other_session->rtp_session_count; i++) {
+				rtp_del_csrc(sp->other_session->rtp_session[i], e->ssrc);
+			}
+		}
 		break;
 	case SOURCE_CREATED:
 		process_create(sp, e->ssrc);
