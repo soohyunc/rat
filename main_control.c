@@ -193,7 +193,14 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
                 } else if  (strcmp(argv[i], "-codecs") == 0) {
                 } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
                 } else if ((strcmp(argv[i], "-l") == 0) && (argc > i+1)) { 
+		} else if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
+			tmp = mbus_encode_str(argv[i+1]);
+			mbus_qmsgf(m, e_addr, TRUE, "security.encryption.key", tmp);
+			xfree(tmp);
 		} else if ((strcmp(argv[i], "-crypt") == 0) && (argc > i+1)) {
+			tmp = mbus_encode_str(argv[i+1]);
+			mbus_qmsgf(m, e_addr, TRUE, "security.encryption.key", tmp);
+			xfree(tmp);
 		} else if  (strcmp(argv[i], "-sync") == 0) {
 		} else if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
 		} else if ((strcmp(argv[i], "-silence") == 0) && (argc > i+1)) {
