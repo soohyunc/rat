@@ -43,6 +43,8 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
+#define UNUSED(x)	(x=x)
+
 #define strsave(s)	strcpy(xmalloc(strlen(s) + 1), s)
 
 #define xmalloc(x)	_xmalloc(x,__FILE__,__LINE__)

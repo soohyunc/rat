@@ -4,7 +4,7 @@
 # Note: On many systems (eg: HP-UX 9.x and FreeBSD) this REQUIRES GNU make
 #
 
-DEFS = -DDEBUG -DDEBUG_MEM
+DEFS = -DDEBUG -DDEBUG_MEM 
 # -DDEBUG_MIX
 # -DDEBUG -DDEBUG_MEM -DDEBUG_CONFBUS
 # -DNDEBUG -DTEST -DGSM -DDEBUG_REPAIR
@@ -12,7 +12,7 @@ DEFS = -DDEBUG -DDEBUG_MEM
 
 DEFS += -D$(OSTYPE) -D$(OSTYPE)_$(OSMVER)
 CC     = gcc
-CFLAGS = -Wall -Werror $(INCS) $(DEFS) -O -g -fsigned-char -pipe
+CFLAGS = -W -Wall -Wbad-function-cast $(INCS) $(DEFS) -O -g -fsigned-char -pipe
 LDFLAGS=
 LDLIBS=  $(LDLIBS) -lm
 RANLIB = ranlib

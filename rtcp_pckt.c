@@ -636,7 +636,7 @@ u_int32 rtcp_interval(int 	 members,
     int n;                      					/* no. of members for computation         */
 
 #ifdef DEBUG_RTCP
-    printf("rtcp_interval: members=%d, senders=%d, rtcp_bw=%f, we_sent=%d, packet_size=%d, avg_rtcp_size=%d, initial=%d\n", 
+    printf("members=%d, senders=%d, rtcp_bw=%f, we_sent=%d, packet_size=%d, avg_rtcp_size=%d, initial=%d\n", 
             members, senders, rtcp_bw, we_sent, packet_size, *avg_rtcp_size, initial);
 #endif
     /* Very first call at application start-up uses half the min     */
@@ -686,7 +686,7 @@ u_int32 rtcp_interval(int 	 members,
     /*                                                                */
     /* Time is in 8kHz audio samples! [csp]                           */
 #ifdef DEBUG_RTCP
-    printf("               report_interval=%ld\n", (u_int32) (t * (drand48() + 0.5)) * 8000);
+    printf("RTCP reporting interval is %f seconds\n", t);
 #endif
     return (u_int32) (t * (drand48() + 0.5)) * 8000;
 }
