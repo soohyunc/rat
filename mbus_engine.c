@@ -969,6 +969,13 @@ rx_tool_rat_codec(char *srce, char *args, session_t *sp)
         }
 }
 
+static void
+rx_tool_rat_codecs_request(char *srce, char *args, session_t *sp)
+{
+	UNUSED(args);
+	ui_send_codec_list(sp, srce);
+}
+
 static void rx_tool_rat_playout_limit(char *srce, char *args, session_t *sp)
 {
         int i;
@@ -1396,6 +1403,7 @@ static const mbus_cmd_tuple engine_cmds[] = {
         { "tool.rat.converter",                    rx_tool_rat_converter },
         { "tool.rat.settings",                     rx_tool_rat_settings },
         { "tool.rat.codec",                        rx_tool_rat_codec },
+        { "tool.rat.codecs.request",               rx_tool_rat_codecs_request },
         { "tool.rat.playout.limit",                rx_tool_rat_playout_limit },
         { "tool.rat.playout.min",                  rx_tool_rat_playout_min },
         { "tool.rat.playout.max",                  rx_tool_rat_playout_max },

@@ -1134,7 +1134,12 @@ v4.1.7	- Update ALSA detection in configure script
 	- Fix display of names when SDES NAME is not known (fallback to
 	  CNAME or SSRC in that order).
 	- Add support for the rtp.addr.query() mbus message to media engine.
-
+	- Remove support for the tool.rat.codec.details() mbus message.
+	- Add support for the
+       		tool.rat.codecs.request()
+       		tool.rat.codecs.flush()
+       		tool.rat.codecs.add()
+  	  mbus messages.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1194,11 +1199,6 @@ TODO -- They're features not bugs dammit!
   and hear nothing.
 - mtrace doesn't work?
 - RTT estimate gets confused when others talk.
-- Difficult to query codecs via the mbus, we need to support:
-       tool.rat.codecs.request()
-       tool.rat.codecs.flush()
-       tool.rat.codecs.add()
-  like we do with the converters and repairers.
 - Add support for rtp.source.mute (ALL 0|1), which is much more efficient
   than iterating all sources over the mbus.
 - Make rtp.addr() with an rx_port of 0, when sent to the media engine, mean

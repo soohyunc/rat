@@ -337,15 +337,6 @@ tool.rat.loopback.gain (gain)
 	Set the gain of the audio signal looped back from microphone to
 	headset at the transmitter.
 
-tool.rat.codec.details (...)
-
-	Inform the user interface that a particular codec exists. Sent in
-	response to tool.rat.settings().
-
-tool.rat.codec (...)
-
-	Set the codec being used.
-
 tool.rat.converters.request ()
 
 	Request that the media engine informs the sender of this message of
@@ -373,6 +364,17 @@ tool.rat.repairs.add (...)
 
 	These function in much the same way as tool.rat.converters.*(),
 	except that they list error concealment (repair) schemes.
+
+tool.rat.codecs.request()
+tool.rat.codecs.flush()
+tool.rat.codecs.add(...)
+
+	These function in much the same way as tool.rat.converters.*(),
+	except that they list codecs.
+
+tool.rat.codec (...)
+
+	Set the codec to be used.
 
 tool.rat.playout.max (ms)
 tool.rat.playout.min (ms)

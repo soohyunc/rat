@@ -130,7 +130,7 @@ ui_send_codec_details(session_t *sp, char *addr, codec_id_t cid)
         layers       = codec_can_layer(cid);
 
         mbus_qmsgf(sp->mbus_engine, addr, TRUE, 
-                   "tool.rat.codec.details",
+                   "tool.rat.codecs.add",
                    "%s %s %s %d %d %d %d %d %s %s %d",
                    pay_e,
                    long_name_e,
@@ -157,6 +157,7 @@ ui_send_codec_list(session_t *sp, char *addr)
         codec_id_t cid;
 	if (!sp->ui_on) return;
 
+        mbus_qmsg(sp->mbus_engine, addr, "tool.rat.codecs.flush", "", TRUE);
         nCodecs = codec_get_number_of_codecs();
         for(iCodec = 0; iCodec < nCodecs; iCodec++) {
                 cid = codec_get_codec_number(iCodec);

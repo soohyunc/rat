@@ -243,7 +243,8 @@ proc mbus_recv {cmnd args} {
 		tool.rat.agc  			{eval mbus_recv_tool.rat.agc $args}
 		tool.rat.format.in              {eval mbus_recv_tool.rat.format.in $args}
 		tool.rat.codec  		{eval mbus_recv_tool.rat.codec $args}
-		tool.rat.codec.details          {eval mbus_recv_tool.rat.codec.details $args}
+		tool.rat.codecs.flush           {eval mbus_recv_tool.rat.codecs.flush $args}
+		tool.rat.codecs.add             {eval mbus_recv_tool.rat.codecs.add $args}
 		tool.rat.rate  			{eval mbus_recv_tool.rat.rate $args}
 		tool.rat.lecture.mode  		{eval mbus_recv_tool.rat.lecture.mode $args}
 		tool.rat.audio.buffered  	{eval mbus_recv_tool.rat.audio.buffered $args}
@@ -432,7 +433,24 @@ proc codecs_matching {freq channels blocksize} {
     return $x
 }
 
-proc mbus_recv_tool.rat.codec.details {args} {
+proc mbus_recv_tool.rat.codecs.flush {args} {
+	global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc codec_caps codec_layers
+	set codecs {}
+	catch {
+		unset codec_pt
+		unset codec_nick_name
+		unset codec_channels
+		unset codec_rate
+		unset codec_block_size
+		unset codec_state_size
+		unset codec_data_size
+		unset codec_desc
+		unset codec_caps
+		unset codec_layers
+	}
+}
+
+proc mbus_recv_tool.rat.codecs.add {args} {
     catch {
 	global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc codec_caps codec_layers
 	
