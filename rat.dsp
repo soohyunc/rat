@@ -461,7 +461,7 @@ SOURCE=.\time.c
 # End Source File
 # Begin Source File
 
-SOURCE=".\tk-rat.res"
+SOURCE="win32\tk-rat.res"
 # End Source File
 # Begin Source File
 
