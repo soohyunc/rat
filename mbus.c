@@ -210,7 +210,7 @@ void mbus_retransmit(struct mbus *m)
 			saddr.sin_family = AF_INET;
 			saddr.sin_port   = htons(MBUS_PORT+m->channel);
 			b                = xmalloc(strlen(curr->dest)+strlen(curr->cmnd)+strlen(curr->args)+strlen(curr->srce)+80);
-			sprintf(b, "mbus/1.0 %d R (%s) %s ()\n%s (%s)\n", curr->seqn, curr->srce, curr->dest, curr->cmnd, curr->args);
+			sprintf(b, "mbus/1.0 %d R (%s) (%s) ()\n%s (%s)\n", curr->seqn, curr->srce, curr->dest, curr->cmnd, curr->args);
 			if ((sendto(m->fd, b, strlen(b), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
 				perror("mbus_send: sendto");
 			}
