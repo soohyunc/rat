@@ -109,7 +109,6 @@ static codec_format_t cs[] = {
 
 typedef struct {
         struct g726_state  *gs;
-        bitstream_t *bs;
 } g726_t;
 
 uint16_t
@@ -146,11 +145,6 @@ g726_state_create(uint16_t idx, u_char **s)
         }
         g726_init_state(g->gs);
 
-        if (bs_create(&g->bs) == FALSE) {
-                xfree(g->gs);
-                xfree(g);
-                return FALSE;
-        }
         *s = (u_char*)g;
 
         return TRUE;
@@ -165,7 +159,6 @@ g726_state_destroy(uint16_t idx, u_char **s)
 
         g = (g726_t*)*s;
         xfree(g->gs);
-        xfree(g->bs);
         xfree(g);
         *s = (u_char*)NULL;
 
@@ -179,7 +172,7 @@ static int
 g726_pack(u_char *buf, u_char *cw, u_char num_cw, int bps)
 {
 	int i, bits = 0, x = 0;
-	
+
 	for (i = 0; i < num_cw; i++) {
 		buf[x] |= cw[i] << bits;
 		bits += bps;
@@ -204,6 +197,7 @@ g726_unpack(u_char *cw, u_char *buf, u_char num_cw, int bps)
 		i++;
 	}
 
+	assert(cw[0] == 0);
 	for(i = 0; i < num_cw; i++) {
 		cw[i] = (buf[x] >> bits) & mask;
 		bits += bps;
@@ -242,8 +236,6 @@ g726_encode(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
         memset(c->data, 0, c->data_len);
 	out = c->data;
 
-        bs_attach(g->bs, c->data, c->data_len);
-
         idx = idx / G726_NUM_RATES;
         switch(idx) {
         case G726_16:
@@ -276,7 +268,7 @@ g726_encode(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
                 }
                 break;
         case G726_40:
-                for(i = 0; i < G726_SAMPLES_PER_FRAME; i++) {
+                for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 8) {
 			cw[0] = g726_40_encoder(s[i], AUDIO_ENCODING_LINEAR, g->gs);
                         cw[1] = g726_40_encoder(s[i + 1], AUDIO_ENCODING_LINEAR, g->gs);
 			cw[2] = g726_40_encoder(s[i + 2], AUDIO_ENCODING_LINEAR, g->gs);
@@ -294,29 +286,27 @@ g726_encode(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 }
 
 int
-g726_decode(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
+g726_decode(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *dst)
 {
 	u_char cw[8], *in;
         int i;
 	
-        sample *dst;
         g726_t *g; 
 
         /* paranoia! */
-        assert(decoder_state);
-        assert(c);
-        assert(data);
+        assert(decoder_state != NULL);
+        assert(c != NULL);
+        assert(dst != NULL);
         assert(idx < G726_NUM_FORMATS);
         assert(c->state_len == 0);
         assert(c->data_len == cs[idx].mean_coded_frame_size);
 
         g = (g726_t*)decoder_state;
-        bs_attach(g->bs, c->data, c->data_len);
+
 	in = c->data;
 
-        dst = data;
-
         idx = idx / G726_NUM_RATES;
+
         switch(idx) {
         case G726_16:
                 for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 4) {
@@ -348,7 +338,7 @@ g726_decode(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
 		}
 		break;
 	case G726_40:
-		for(i = 0; i < G726_SAMPLES_PER_FRAME; i++) {
+		for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 8) {
 			in += g726_unpack(cw, in, 8, 3);
 			dst[i + 0] = (sample)g726_40_decoder(cw[0], AUDIO_ENCODING_LINEAR, g->gs);
 			dst[i + 1] = (sample)g726_40_decoder(cw[1], AUDIO_ENCODING_LINEAR, g->gs);
