@@ -100,6 +100,7 @@ struct oss_device {
 	int		 dev_mask;	/* Supported mixer channels     */
 	int		 rec_mask;	/* Supported recording channels */
 	int		 is_ac97;
+	int		 is_latemodel_opensound;
 };
 
 static struct oss_device	devices[OSS_MAX_DEVICES];
@@ -115,6 +116,7 @@ static int			num_devices;
 static char *ac97_devices[] = {
 	"OSS: AudioPCI 97 (STAC9708)",
 	"OSS: AudioPCI 97 (CRY13/0x43525913)",
+	"OSS: AudioPCI 97 (CS4297A)",
 	0
 };
  
@@ -281,6 +283,35 @@ oss_probe_audio_device(int i, struct oss_device *device)
 			}
                 }
         }
+	/* Check for OSS version number */
+
+	{
+#ifdef OSS_GETVERSION
+	    int version = -1;
+	    if (ioctl(fd, OSS_GETVERSION, &version) < 0) {
+		debug_msg("%s doesn't support OSS_GETVERSION\n",
+			  device->audio_rdev);
+	    } else {
+		int level;
+		debug_msg("OSS version is %x\n", version);
+
+		/*
+		 * Check to see if we can use the MIXER_RECLEV setting
+		 * If we can, this might be an ES1371-based card that uses
+		 * RECLEV to adjust input levels.
+		 */
+
+		if (ioctl(fd, MIXER_READ(SOUND_MIXER_RECLEV), &level) >= 0) {
+		    debug_msg("Can use reclev. \n");
+		
+		    if (version >= 0x030903) {
+			debug_msg("Enabling latemodel opensound\n");
+			device->is_latemodel_opensound = 1;
+		    }
+		}
+	    }
+#endif
+	}
 
 	close(fd);
 	device->audio_rfd = -1;
@@ -381,13 +412,15 @@ oss_audio_init(void)
 	/* available devices, to setup the devices[] array and num_devices. */
 	/* Note that it is entirely legal to have an audio device without a */
 	/* corresponding mixer device.                                      */
-	int			i;
+	int			i, mix_i;
 	struct oss_device	device;
 	int aidx;
 
 	num_devices = 0;
-	for (i = 0; i < OSS_MAX_DEVICES; i++) {
-		oss_probe_mixer_device(i, &device);
+	mix_i = 0;
+	for (i = 0; i < OSS_MAX_DEVICES; i++, mix_i++) {
+		device.is_latemodel_opensound = 0;
+		oss_probe_mixer_device(mix_i, &device);
 		if (oss_probe_audio_device(i, &device)) {
 			/* Check to see if it's one of the AC97 devices. For now  */
 			/* we will use a hardcoded list of device names for this. */
@@ -395,10 +428,6 @@ oss_audio_init(void)
 			/* Also check the OSS_IS_AC97 environment variable. If it */
 			/* is set, make all devices AC97.                         */
 			device.is_ac97 = 0;
-			if (getenv("OSS_IS_AC97") != 0) {
-				debug_msg("Device %d  %s tagged as ac97 by environment var\n", i, device.name);
-				device.is_ac97 = 1;
-			}
 			for (aidx = 0; ac97_devices[aidx] != 0; aidx++) {
 				if (strcmp(device.name, ac97_devices[aidx]) == 0) {
 					device.is_ac97 = 1;
@@ -406,8 +435,25 @@ oss_audio_init(void)
 					break;
 				}
 			}
+
+			if (device.is_latemodel_opensound)
+				device.is_ac97 = 0;
+
+			if (getenv("OSS_IS_AC97") != 0) {
+				debug_msg("Device %d  %s tagged as ac97 by environment var\n",
+					  i, device.name);
+				device.is_ac97 = 1;
+			}
+			
 			devices[num_devices++] = device;
 			debug_msg("found \"%s\" as %s,%s\n", device.name, device.audio_rdev, device.mixer_rdev);
+			/* 
+			 * Hack. If it's an Ensoniq AudioPCI, skip the halfduplex
+			 * device.
+			 */
+			if (strncmp(device.name, "OSS: AudioPCI 97", 16) == 0) {
+				i++;
+			}
 
 		}
 	}
@@ -624,6 +670,8 @@ oss_audio_set_igain(audio_desc_t ad, int gain)
 		case AUDIO_MICROPHONE : 
 			if (devices[ad].is_ac97) {
 				which_port = SOUND_MIXER_IGAIN;
+			} else if (devices[ad].is_latemodel_opensound) {
+				which_port = SOUND_MIXER_RECLEV;
 			} else {
 				which_port = SOUND_MIXER_MIC;
 			}
@@ -654,6 +702,8 @@ oss_audio_set_igain(audio_desc_t ad, int gain)
 			/* does it {write,read} SOUND_MIXER_LINE.                            */
 			if (devices[ad].is_ac97) {
 				which_port = SOUND_MIXER_IGAIN;
+			} else if (devices[ad].is_latemodel_opensound) {
+				which_port = SOUND_MIXER_RECLEV;
 			} else {
 				which_port = SOUND_MIXER_LINE;
 			}
@@ -664,6 +714,8 @@ oss_audio_set_igain(audio_desc_t ad, int gain)
 		case AUDIO_CD:
 			if (devices[ad].is_ac97) {
 				which_port = SOUND_MIXER_IGAIN;
+			} else if (devices[ad].is_latemodel_opensound) {
+				which_port = SOUND_MIXER_RECLEV;
 			} else {
 				which_port = SOUND_MIXER_CD;
 			}
@@ -685,6 +737,8 @@ oss_audio_get_igain(audio_desc_t ad)
 
 	if (devices[ad].is_ac97) {
 		which_port = SOUND_MIXER_IGAIN;
+	} else if (devices[ad].is_latemodel_opensound) {
+	    which_port = SOUND_MIXER_RECLEV;
 	} else {
 		switch (iport) {
 		case AUDIO_MICROPHONE:
@@ -707,7 +761,7 @@ oss_audio_get_igain(audio_desc_t ad)
 	if (ioctl(devices[ad].mixer_rfd, MIXER_READ(which_port), &volume) == -1) {
 		perror("Getting gain");
 	}
-	debug_msg("getting igain; port=%d is_ac97=%d vol=%d %d\n", which_port, devices[ad].is_ac97, volume, volume & 0xff);
+	debug_msg("getting igain; port=%d is_ac97=%d is_latemodel_opensound=%d vol=%d %d\n", which_port, devices[ad].is_ac97, devices[ad].is_latemodel_opensound, volume, volume & 0xff);
 	return volume & 0xff;
 }
 
