@@ -59,7 +59,7 @@ int
 main(int argc, char *argv[])
 {
 	u_int32			 ssrc, cur_time, ntp_time;
-	int            		 num_sessions, i, elapsed_time, alc = 0;
+	int            		 num_sessions, i, elapsed_time, alc = 0, seed;
 	char			*cname;
 	session_struct 		*sp[2];
 	struct timeval  	 time;
@@ -71,8 +71,9 @@ main(int argc, char *argv[])
 #endif
 
 	gettimeofday(&time, NULL);
-	srand48(time.tv_usec);
-	lbl_srandom(time.tv_usec);
+        seed = time.tv_usec * getpid();
+	srand48(seed);
+	lbl_srandom(seed);
 
 	for (i = 0; i < 2;i++) {
 		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
