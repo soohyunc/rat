@@ -847,9 +847,12 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 	mbus_parse_int(mp, &ttl);
 	mbus_parse_done(mp);
 
-	sp->rtp_session[0] = rtp_init(addr, (uint16_t)rx_port, (uint16_t)tx_port, ttl, 64000, rtp_callback, NULL);
-	sp->rtp_session_count++;
+	sp->rtp_session[sp->rtp_session_count] = rtp_init(addr, (uint16_t)rx_port, (uint16_t)tx_port, ttl, 64000, rtp_callback, NULL);
 	rtp_callback_init(sp->rtp_session[0], sp);
+	if(sp->rtp_session_count < sp->layers && sp->rtp_session_count > 0) {
+	       rtp_set_my_ssrc(sp->rtp_session[sp->rtp_session_count], rtp_my_ssrc(sp->rtp_session[0]));
+	}
+	sp->rtp_session_count++;
 }
 
 
@@ -1196,7 +1199,7 @@ set_layered_parameters(session_t *sp, char *sec_enc, char *schan, char *sfreq, i
         codec_id_t            pri_id, lay_id;
         char *cmd;
         int      freq, channels;
-        int   clen, ports_ok, i;
+        int   clen;
         assert(layerenc>0);
 
         if (strcasecmp(schan, "mono") == 0) {
@@ -1232,15 +1235,11 @@ set_layered_parameters(session_t *sp, char *sec_enc, char *schan, char *sfreq, i
         lcf = codec_get_format(lay_id);
         
         if(layerenc<=MAX_LAYERS) {
-                ports_ok = PORT_UNINIT;
-                for(i=0;i<layerenc;i++) {
-                        if(sp->rx_rtp_port[i]==PORT_UNINIT) ports_ok = i;
-                }
-                if(ports_ok!=PORT_UNINIT) {
-                        layerenc = ports_ok;
-                        debug_msg("Too many layers - ports not inited - forcing %d layers\n", ports_ok);
-                }
-        }
+	        if(layerenc > sp->rtp_session_count) {
+	                debug_msg("%d is too many layers - ports not inited - forcing %d layers\n", layerenc, sp->rtp_session_count);
+			layerenc = sp->rtp_session_count;
+		}
+	}
         
         clen = CODEC_LONG_NAME_LEN + 4;
         cmd  = (char*)xmalloc(clen);
@@ -1413,6 +1412,28 @@ static void rx_tool_rat_ui_detach_request(char *srce, char *args, session_t *sp)
 	sp->ui_on = FALSE;
 }
 
+static void rx_tool_rat_layers(char *srce, char *args, session_t *sp)
+{
+        int      i;
+        struct mbus_parser      *mp;
+
+        UNUSED(srce);
+
+        mp = mbus_parse_init(args);
+        if (mbus_parse_int(mp, &i)) {
+                if(i>MAX_LAYERS) {
+                       debug_msg("too many layers: max = %d\n", MAX_LAYERS);
+                       sp->layers = MAX_LAYERS;
+                } else {
+                       sp->layers = i;
+                }
+        } else {
+                debug_msg("mbus: usage \"tool.rat.layers <integer>\"\n");
+        }
+        mbus_parse_done(mp);
+}
+
+
 static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 {
 	UNUSED(args);
@@ -1445,6 +1466,7 @@ static const mbus_cmd_tuple engine_cmds[] = {
         { "tool.rat.payload.set",                  rx_tool_rat_payload_set },
 	{ "tool.rat.ui.detach.request",            rx_tool_rat_ui_detach_request },
 	{ "tool.rat.filter.loopback",              rx_tool_rat_filter_loopback }, 
+	{ "tool.rat.layers",                       rx_tool_rat_layers },
         { "audio.input.mute",                      rx_audio_input_mute },
         { "audio.input.gain",                      rx_audio_input_gain },
         { "audio.input.port",                      rx_audio_input_port },

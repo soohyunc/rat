@@ -216,6 +216,7 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
         char		*addr, *port, *tmp;
         int              tx_port, rx_port;
         struct timeval	 timeout;
+	int              addrs;
         
         if (argc < 2) {
                 usage(NULL);
@@ -223,24 +224,32 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
         }
         
         /* Parse the list of addresses/ports at the end of the command line. */
-        addr    = (char *) strtok(argv[argc-1], "/");
-        rx_port = DEFAULT_RTP_PORT;
-        port    = (char *) strtok(NULL, "/");
-        if (port != NULL) {
-                rx_port = atoi(port);
+
+        /* There may be more than one address/port if layering - this parsing *
+           isn't particularly foolproof and is pretty ugly.                   */
+        /* Note that the number of layers still needs to be passed explicitly *
+           using -l n, so that we can keep sp->rtp_session_count separate     *
+           from sp->layers. This is in case something else needs to have more *
+           than one address passed at the command-line.                       */
+
+        addrs = 0;
+        for (i = argc-1; i > 0; i--) {
+                if(strchr(argv[i], '/')!=NULL) {
+		/* So it's got a "/" in it. That doesn't necessarily mean it's an address... */
+		      if((strcmp(argv[i-1], "-f")!=0) && (strcmp(argv[i-1], "-pt")!=0) && (strcmp(argv[i-1], "-r")!=0)) {
+			    addrs++;
+		      }
+		} else {
+		      break;
+		}
         }
-        port    = (char *) strtok(NULL, "/");
-        if (port != NULL) {
-                tx_port = atoi(port);
-        } else {
-                tx_port = rx_port;
-        }
-        /* Fix odd numbered ports to the next lower port... */
-        if (rx_port % 2) rx_port--;
-        if (tx_port % 2) tx_port--;
-        
+
         /* Parse early command line parameters. These are things which we can */
         /* do before the media engine knows its RTP session information.      */
+        /* We check the number of layers here so that the different RTP       *
+           sessions can be initialised properly (if layering they all need    *
+           to have the same source ID).                                       */
+
         for (i = 1; i < argc; i++) {
                 if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
                         ttl = atoi(argv[i+1]);
@@ -249,13 +258,34 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
                                 return FALSE;
                         }
                         i++;
+                } else if ((strcmp(argv[i], "-l") == 0) && (argc > i+1)) {
+                        mbus_qmsgf(m, e_addr, TRUE, "tool.rat.layers", "%d", argv[i+1]);
+			i++;
                 }
         }
         
-        /* Send the RTP address to the media engine... */
-        addr    = mbus_encode_str(addr);
-        mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
-        xfree(addr);
+	for (i = addrs; i > 0; i--) {
+	        addr    = (char *) strtok(argv[argc-i], "/");
+		rx_port = DEFAULT_RTP_PORT;
+		port    = (char *) strtok(NULL, "/");
+		if (port != NULL) {
+		        rx_port = atoi(port);
+		}
+		port    = (char *) strtok(NULL, "/");
+		if (port != NULL) {
+		        tx_port = atoi(port);
+		} else {
+		        tx_port = rx_port;
+		}
+		/* Fix odd numbered ports to the next lower port... */
+		if (rx_port % 2) rx_port--;
+		if (tx_port % 2) tx_port--;
+        
+		/* Send the RTP address to the media engine... */
+		addr    = mbus_encode_str(addr);
+		mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
+		xfree(addr);
+	}
         
         /* Parse late command line parameters... */
         for (i = 1; i < argc; i++) {
@@ -335,8 +365,6 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
                                 usage("Usage: -r <codec>/<offset>");
                         }
 			xfree((void *)codec);
-                } else if ((strcmp(argv[i], "-l") == 0) && (argc > i+1)) { 
-                        /* Set channel coding to layered */
                 } else if ((strcmp(argv[i], "-i") == 0) && (argc > i+1)) {
                         /* Set channel coding to interleaved */
                 }

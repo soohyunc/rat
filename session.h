@@ -52,8 +52,8 @@ typedef struct s_session {
 	char            	 asc_address[MAX_LAYERS][MAXHOSTNAMELEN+1];  
 	u_short	        	 rx_rtp_port[MAX_LAYERS];
 	u_short	        	 tx_rtp_port[MAX_LAYERS];
-	u_short	        	 rx_rtcp_port;
-	u_short	        	 tx_rtcp_port;
+	u_short	        	 rx_rtcp_port[MAX_LAYERS];
+	u_short	        	 tx_rtcp_port[MAX_LAYERS];
 	int             	 ttl;
         struct rtp     		*rtp_session[MAX_LAYERS];
         int             	 rtp_session_count;

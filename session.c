@@ -110,13 +110,13 @@ session_init(session_t *sp)
 	sp->mode         		= AUDIO_TOOL;	
         sp->rtp_session_count           = 0;
 	for (i = 0; i < MAX_LAYERS; i++) {
-		sp->rx_rtp_port[i] = sp->tx_rtp_port[i] = PORT_UNINIT;
+		sp->rx_rtp_port[i] = sp->tx_rtp_port[i] = sp->rx_rtcp_port[i] = sp->tx_rtcp_port[i] = PORT_UNINIT;
                 sp->rtp_session[i] = NULL;
 	}
 	sp->rx_rtp_port[0] 		= 5004; /* Default ports per:             */
 	sp->tx_rtp_port[0] 		= 5004; /* draft-ietf-avt-profile-new-00  */
-        sp->rx_rtcp_port   		= 5005;
-        sp->tx_rtcp_port   		= 5005;
+        sp->rx_rtcp_port[0]   		= 5005;
+        sp->tx_rtcp_port[0]   		= 5005;
 	sp->ttl				= 16;
         sp->filter_loopback             = TRUE;
 	sp->playing_audio		= TRUE;
@@ -184,8 +184,8 @@ session_validate(session_t *sp)
 	assert((sp->ttl >= 0) && (sp->ttl <= 255));
 	assert((sp->tx_rtp_port[0] % 2) == 0);
 	assert((sp->rx_rtp_port[0] % 2) == 0);
-	assert((sp->tx_rtcp_port % 2) == 1);
-	assert((sp->rx_rtcp_port % 2) == 1);
+	assert((sp->tx_rtcp_port[0] % 2) == 1);
+	assert((sp->rx_rtcp_port[0] % 2) == 1);
 #endif
 }
 

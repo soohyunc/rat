@@ -68,6 +68,7 @@ rtp_callback_init(struct rtp *rtps, struct s_session *rats)
                         cur->rats = rats;
                         return;
                 }
+		cur = cur->next;
         }
 
         cur = (rtp_assoc_t*)xmalloc(sizeof(rtp_assoc_t));
