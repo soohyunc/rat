@@ -59,6 +59,8 @@
 */
 typedef enum { SOURCE_SKEW_SLOW, SOURCE_SKEW_FAST, SOURCE_SKEW_NONE } skew_t;
 
+typedef enum { PLAYOUT_MODE_NORMAL, PLAYOUT_MODE_SPIKE } pmode_t;
+
 typedef struct s_source {
         struct s_source            *next;
         struct s_source            *prev;
@@ -78,6 +80,8 @@ typedef struct s_source {
         struct s_pb                *media;
         struct s_pb_iterator       *media_pos;
         struct s_converter         *converter;
+        pmode_t                     playout_mode; /* SPIKE, NORMAL */
+        ts_t                        ipg;          /* inter-packet gap        */
         /* Fine grained playout buffer adjustment variables.  Used in        */
         /* attempts to correct for clock skew between source and local host. */
         skew_t 			    skew;
@@ -194,6 +198,7 @@ static ts_t skew_thresh;    /* Significant size b4 consider playout adapt    */
 static ts_t skew_limit;     /* Upper bound, otherwise clock reset.           */
 static ts_t transit_reset;  /* Period after which new transit time taken     */
                             /* if source has been quiet.                     */
+static ts_t spike_jump;     /* Packet spike delay threshold (trigger).       */
 static int  time_constants_inited = FALSE;
 
 
@@ -202,12 +207,13 @@ time_constants_init()
 {
         /* We use these time constants *all* the time.   Initialize once     */
         zero_ts        = ts_map32(8000, 0);
-        keep_source_ts = ts_map32(8000, 2000); 
+        keep_source_ts = ts_map32(8000, 24000);
         history_ts     = ts_map32(8000, 1000); 
         bw_avg_period  = ts_map32(8000, 8000);
         skew_thresh    = ts_map32(8000, 160);
         skew_limit     = ts_map32(8000, 4000);
         transit_reset  = ts_map32(8000, 80000);
+        spike_jump     = ts_map32(8000, 4000); 
         time_constants_inited = TRUE;
 }
 
@@ -575,7 +581,7 @@ source_close_log(void)
 }
 
 static void
-source_playout_log(source *src, uint32_t ts)
+source_playout_log(source *src, u_int32_t ts, ts_t now)
 {
         if (psf == NULL) {
                 psf = fopen("playout.log", "w");
@@ -583,19 +589,22 @@ source_playout_log(source *src, uint32_t ts)
                         fprintf(stderr, "Could not open playout.log\n");
                 } else {
                         atexit(source_close_log);
-                        fprintf(psf, "# <RTP timestamp> <talkstart> <jitter> <transit> <avg transit> <last transit> <playout del>\n");
+                        fprintf(psf, "# <RTP timestamp> <talkstart> <jitter> <transit> <avg transit> <last transit> <playout del> <ipg> <arr time>\n");
                 }
                 t0 = ts - 1000; /* -1000 in case of out of order first packet */
         }
 
-        fprintf(psf, "%.6f %5lu %5lu %5lu %5lu %5lu %5lu\n",
+        fprintf(psf, "%.6f %5u %5u %5u %5u %5u %5u %5u %5u\n",
                 (ts - t0)/8000.0,
                 ts_to_ms(src->talkstart),
                 ts_to_ms(src->pdbe->jitter),
                 ts_to_ms(src->pdbe->transit),
                 ts_to_ms(src->pdbe->avg_transit),
                 ts_to_ms(src->pdbe->last_transit),
-                ts_to_ms(src->pdbe->playout));
+                ts_to_ms(src->pdbe->playout),
+                ts_to_ms(src->ipg),
+                ts_to_ms(now)
+                );
 }
 
 #endif /* SOURCE_LOG_PLAYOUT */
@@ -619,14 +628,15 @@ source_update_toged(source *src, int toged)
 static void
 source_process_packets(session_t *sp, source *src, ts_t now)
 {
-        ts_t    src_ts, playout, transit;
-        pdb_entry_t     *e;
-        rtp_packet      *p;
-        cc_id_t          ccid = -1;
-        uint16_t          units_per_packet = -1;
-        uint32_t          delta_ts, delta_seq;
-        u_char           codec_pt;
-        int              adjust_playout;
+
+        ts_t    src_ts, playout, transit, ipg;
+        pdb_entry_t    *e;
+        rtp_packet     *p;
+        cc_id_t         ccid = -1;
+        uint16_t        units_per_packet = -1;
+        uint32_t        delta_ts, delta_seq;
+        uint8_t         codec_pt;
+        uint8_t         adjust_playout;
 
         e = src->pdbe;
         while(pktbuf_dequeue(src->pktbuf, &p)) {
@@ -667,7 +677,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         debug_msg("Samples per frame %d rate %d\n", samples_per_frame, cf->format.sample_rate);
                         e->inter_pkt_gap    = e->units_per_packet * (uint16_t)samples_per_frame;
                         e->frame_dur        = ts_map32(cf->format.sample_rate, samples_per_frame);
-
+                        src->ipg            = ts_mul(e->frame_dur, e->units_per_packet);
                         debug_msg("Encoding change\n");
                         /* Get string describing encoding.                   */
                         channel_describe_data(ccid, codec_pt, 
@@ -696,10 +706,37 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         adjust_playout = TRUE;
                 }
 
-                if (ts_gt(e->jitter, e->playout)) {
-                        /* Network conditions have changed drastically.      */
-                        /* We are in the wrong ball park change immediately. */
-                        adjust_playout = TRUE;
+                /* Spike adaptation - similar to Henning's Adaptive Playout  */
+                ipg = ts_sub(now, e->last_arr); /* inter-packet gap  */
+                if (adjust_playout == FALSE) {
+                        ts_t spt;
+/*                        spt = ts_add(e->jitter, spike_jump); */
+                        spt = ts_mul(e->playout, 3);
+                        if (ts_gt(ipg, spt)) {
+                                debug_msg("Spike");
+                                src->playout_mode = PLAYOUT_MODE_SPIKE;
+                                src->ipg          = ipg;
+                                e->spike_events++;
+                        }
+
+                        src->ipg = ts_mul(src->ipg, 7);
+                        src->ipg = ts_add(src->ipg, ipg);
+                        src->ipg = ts_div(src->ipg, 8);
+
+                        if (src->playout_mode == PLAYOUT_MODE_SPIKE) {
+                                if (ts_gt(ts_mul(e->frame_dur, e->units_per_packet + 1), src->ipg)) {
+                                        /* measured interpacket gap is > half expected */
+                                        debug_msg("Normal mode - Spike toged %ld\n", e->spike_toged);
+                                        src->playout_mode = PLAYOUT_MODE_NORMAL;
+                                        adjust_playout = TRUE;
+                                } else {
+                                        debug_msg("Spike mode, discarding packet.\n");
+                                        e->spike_toged++;
+                                        src_ts = ts_seq32_in(&e->seq, get_freq(e->clock), p->ts);
+                                }
+                        }
+                } else {
+                        src->playout_mode = PLAYOUT_MODE_NORMAL;
                 }
 
                 src_ts = ts_seq32_in(&e->seq, get_freq(e->clock), p->ts);
@@ -724,33 +761,23 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 }
 
                 /* Calculate the playout point for this packet.              */
-                playout = playout_calc(sp, e->ssrc, transit, adjust_playout);
+                if (src->playout_mode == PLAYOUT_MODE_NORMAL) {
+                        playout = playout_calc(sp, e->ssrc, transit, adjust_playout);
+                } else {
+                        playout = e->playout;
+                }
+
                 if ((p->m || src->packets_done == 0) && ts_gt(playout, e->frame_dur)) {
                         /* Packets are likely to be compressed at talkspurt start */
                         /* because of VAD going back and grabbing frames.         */
                         playout = ts_sub(playout, e->frame_dur);
                         debug_msg("New ts shift XXX\n");
                 }
+
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
 
                 if (adjust_playout) {
-/*
-                        debug_msg("last  % 5d avg % 5d\n", transit.ticks, e->avg_transit.ticks);
-                        if (ts_gt(now, playout)) {
-                                ts_t shortfall;
-*/
-                                /* Unit would have been discarded.  Jitter has    */
-                                /* affected our first packets transit time.       */
-/*
-                                shortfall       = ts_sub(now, playout);
-                                playout         = ts_add(playout, shortfall);
-                                e->transit      = ts_add(e->transit, shortfall);
-                                e->last_transit = e->transit;
-                                e->avg_transit  = e->transit;
-                                debug_msg("Push back %d samples\n", shortfall.ticks);
-                        }
-*/
                         src->talkstart = playout; /* Note start of new talkspurt  */
                         src->post_talkstart_units = 0;
                 } else {
@@ -780,21 +807,26 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         /* rtp_callback if toged_cont hits a critical       */
                         /* threshold.  It signifies current playout delay   */
                         /* is inappropriate.                                */
-                        debug_msg("Packet late (compared to now)\n");
-                        source_update_toged(src, 1);
-                        src->pdbe->jit_toged++;
+                        if (src->playout_mode == PLAYOUT_MODE_NORMAL) {
+                                debug_msg("Packet late (compared to now)\n");
+                                source_update_toged(src, 1);
+                                src->pdbe->jit_toged++;
+                        } else {
+                                /* Spike mode - don't worry about jit_toged */
+                                src->pdbe->spike_toged++;
+                        }
                 } 
 
                 /* Update persistent database fields.                        */
                 if (e->last_seq > p->seq) {
                         e->misordered++;
                 }
-                e->last_seq = p->seq;
-                e->last_ts  = p->ts;
-                e->last_arr = now;
-
+                e->last_seq     = p->seq;
+                e->last_ts      = p->ts;
+                e->last_arr     = now;
+                e->last_transit = transit;
 #ifdef SOURCE_LOG_PLAYOUT
-                source_playout_log(src, p->ts);
+                source_playout_log(src, p->ts, now);
 #endif /* SOURCE_LOG_PLAYOUT */
                 src->packets_done++;
                 xfree(p);
@@ -1183,8 +1215,10 @@ source_process(session_t *sp,
                         /* If repair was successful media_pos is moved,      */
                         /* so get data at media_pos again.                   */
                         if (source_repair(src, repair_type, src->next_played) == TRUE) {
+/*
                                 debug_msg("Repair % 2d got % 6d exp % 6d talks % 6d\n", 
                                           src->consec_lost, playout.ticks, src->next_played.ticks, src->talkstart.ticks);
+                                          */
                                 success = pb_iterator_get_at(src->media_pos, 
                                                              (u_char**)&md, 
                                                              &md_len, 

@@ -95,7 +95,7 @@ proc init_source {ssrc} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE SSRC num_ssrc 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER \
 		LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED BUFFER_SIZE PLAYOUT_DELAY \
-		GAIN MUTE SKEW
+		GAIN MUTE SKEW SPIKE_EVENTS SPIKE_TOGED
 
 	# This is a debugging test -- old versions of the mbus used the
 	# cname to identify participants, whilst the newer version uses 
@@ -121,6 +121,8 @@ proc init_source {ssrc} {
                 set   BUFFER_SIZE($ssrc) 0
                 set PLAYOUT_DELAY($ssrc) 0
                 set          SKEW($ssrc) 1.000
+		set   SPIKE_EVENTS($ssrc) 0	    
+		set   SPIKE_TOGED($ssrc) 0	    
 		set    PCKTS_RECV($ssrc) 0
 		set    PCKTS_LOST($ssrc) 0
 		set    PCKTS_MISO($ssrc) 0
@@ -247,6 +249,8 @@ proc mbus_recv {cmnd args} {
 		tool.rat.audio.buffered  	{eval mbus_recv_tool.rat.audio.buffered $args}
 		tool.rat.audio.delay    	{eval mbus_recv_tool.rat.audio.delay $args}
 		tool.rat.audio.skew     	{eval mbus_recv_tool.rat.audio.skew $args}
+		tool.rat.spike.events    	{eval mbus_recv_tool.rat.spike.events $args}
+		tool.rat.spike.toged     	{eval mbus_recv_tool.rat.spike.toged $args}
 		tool.rat.3d.enabled  		{eval mbus_recv_tool.rat.3d.enabled $args}
 		tool.rat.3d.azimuth.min         {eval mbus_recv_tool.rat.3d.azimuth.min $args}
 		tool.rat.3d.azimuth.max         {eval mbus_recv_tool.rat.3d.azimuth.max $args}
@@ -863,21 +867,30 @@ proc mbus_recv_tool.rat.audio.buffered {ssrc buffered} {
         global BUFFER_SIZE
         init_source $ssrc
         set BUFFER_SIZE($ssrc) $buffered 
-# we don't update cname as source.packet.duration always follows 
 }
 
 proc mbus_recv_tool.rat.audio.delay {ssrc len} {
         global PLAYOUT_DELAY
         init_source $ssrc
         set PLAYOUT_DELAY($ssrc) $len 
-# we don't update cname as source.packet.duration always follows 
 }
 
 proc mbus_recv_tool.rat.audio.skew {ssrc skew} {
         global SKEW
         init_source $ssrc
         set SKEW($ssrc) [format "%.3f" $skew]
-# we don't update cname as source.packet.duration always follows 
+}
+
+proc mbus_recv_tool.rat.spike.events {ssrc events} {
+    global SPIKE_EVENTS
+    init_source $ssrc
+    set SPIKE_EVENTS($ssrc) $events
+}
+
+proc mbus_recv_tool.rat.spike.toged {ssrc toged} {
+    global SPIKE_TOGED
+    init_source $ssrc
+    set SPIKE_TOGED($ssrc) $toged
 }
 
 proc mbus_recv_tool.rat.3d.enabled {mode} {
@@ -958,7 +971,7 @@ proc mbus_recv_rtp.source.remove {ssrc} {
     global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO \
 	    PCKTS_DUP JITTER BUFFER_SIZE PLAYOUT_DELAY LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED \
 	    num_ssrc loss_to_me_timer loss_from_me_timer GAIN MUTE HEARD_LOSS_TO_ME HEARD_LOSS_FROM_ME \
-	    SKEW
+	    SKEW SPIKE_EVENTS SPIKE_TOGED
 
     # Disable updating of loss diamonds. This has to be done before we destroy the
     # window representing the participant, else the background update may try to 
@@ -973,7 +986,7 @@ proc mbus_recv_rtp.source.remove {ssrc} {
 	unset CNAME($ssrc) NAME($ssrc) EMAIL($ssrc) PHONE($ssrc) LOC($ssrc) TOOL($ssrc) NOTE($ssrc)
 	unset CODEC($ssrc) DURATION($ssrc) PCKTS_RECV($ssrc) PCKTS_LOST($ssrc) PCKTS_MISO($ssrc) PCKTS_DUP($ssrc)
 	unset JITTER($ssrc) LOSS_TO_ME($ssrc) LOSS_FROM_ME($ssrc) INDEX($ssrc) JIT_TOGED($ssrc) BUFFER_SIZE($ssrc)
-	unset PLAYOUT_DELAY($ssrc) GAIN($ssrc) MUTE($ssrc) SKEW($ssrc)
+	unset PLAYOUT_DELAY($ssrc) GAIN($ssrc) MUTE($ssrc) SKEW($ssrc) SPIKE_EVENTS($ssrc) SPIKE_TOGED($ssrc)
 	incr num_ssrc -1
     }
     if { [info exists HEARD_LOSS_TO_ME($ssrc)] } {
@@ -1328,11 +1341,13 @@ proc toggle_stats {ssrc} {
 
 	frame $win.df.playout -relief groove -bd 2
 	global BUFFER_SIZE PLAYOUT_DELAY JITTER JIT_TOGED SKEW
-	stats_add_field $win.df.playout.1 "Actual Playout (ms): "    BUFFER_SIZE($ssrc)
-	stats_add_field $win.df.playout.2 "Target Playout (ms): "    PLAYOUT_DELAY($ssrc)
-	stats_add_field $win.df.playout.3 "Arrival jitter (ms): "    JITTER($ssrc)
-	stats_add_field $win.df.playout.4 "Units dropped (jitter): " JIT_TOGED($ssrc)
-	stats_add_field $win.df.playout.5 "Relative clock rate:"     SKEW($ssrc)
+	stats_add_field $win.df.playout.1 "Actual Playout (ms): "     BUFFER_SIZE($ssrc)
+	stats_add_field $win.df.playout.2 "Target Playout (ms): "     PLAYOUT_DELAY($ssrc)
+	stats_add_field $win.df.playout.3 "Arrival jitter (ms): "     JITTER($ssrc)
+	stats_add_field $win.df.playout.4 "Packets dropped (jitter):" JIT_TOGED($ssrc)
+	stats_add_field $win.df.playout.5 "Spike Events:"             SPIKE_EVENTS($ssrc)
+	stats_add_field $win.df.playout.6 "Packets dropped (spike):"  SPIKE_TOGED($ssrc)
+	stats_add_field $win.df.playout.7 "Relative clock rate:"      SKEW($ssrc)
 
 	frame $win.df.decoder -relief groove -bd 2
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO \

@@ -205,6 +205,8 @@ ui_update_stats(session_t *sp, uint32_t ssrc)
         mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.audio.buffered", "\"%08lx\" %ld", pdbe->ssrc, buffered);
         mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", pdbe->ssrc, delay);
         mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.audio.skew", "\"%08lx\" %.5f", pdbe->ssrc, skew_rate);
+        mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.spike.events", "\"%08lx\" %ld", pdbe->ssrc, pdbe->spike_events);
+        mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.spike.toged", "\"%08lx\" %ld",  pdbe->ssrc, pdbe->spike_toged);
 
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
         rr = rtp_get_rr(sp->rtp_session[0], my_ssrc, pdbe->ssrc);

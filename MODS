@@ -962,6 +962,9 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 		u_int32	-> u_int32_t
 	  and the same for the signed varients.
 	- And change them all to be uint32, etc
+	- Packet spikes now accounted for in packet processing.  Transit 
+	  average and playout not updated during spike period.
+	- Playout panel now displays spike info also.
 
 TODO -- They're features not bugs dammit!
 ----

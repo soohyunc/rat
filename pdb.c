@@ -150,6 +150,8 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, uint16_t freq, uint32_t id)
         item->duplicates      = 0;
         item->misordered      = 0;
         item->jit_toged       = 0;
+        item->spike_toged     = 0;
+        item->spike_events    = 0;
 
         /*********************************************************************/
 

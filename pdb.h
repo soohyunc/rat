@@ -28,20 +28,20 @@
 typedef struct s_pdb pdb_t;
  
 typedef struct {
-        uint32_t         ssrc;                        /* Unique Id */
+        uint32_t        ssrc;                        /* Unique Id */
         u_char          first_mix:1;
         struct s_render_3D_dbentry  *render_3D_data; /* Participant 3d state */
         double          gain;                        /* Participant gain */
-	u_char		mute:1;                      /* source muted */
+	u_char	        mute:1;                      /* source muted */
 	struct s_time  *clock;
-	uint16_t		units_per_packet;
-        uint16_t         inter_pkt_gap;               /* expected time between pkt arrivals */
+	uint16_t        units_per_packet;
+        uint16_t        inter_pkt_gap;               /* expected time between pkt arrivals */
         ts_t            frame_dur;
         u_char          enc;
         char*           enc_fmt;
         int             enc_fmt_len;
-        uint32_t         last_ts;
-        uint32_t         last_seq;
+        uint32_t        last_ts;
+        uint32_t        last_seq;
         ts_t            last_arr;                    /* ts_t representation of last_ts */
 
         /* Playout info */
@@ -49,19 +49,20 @@ typedef struct {
         ts_t            transit;
         ts_t            last_transit;
         ts_t            avg_transit;
-        cc_id_t         channel_coder_id;            /* channel_coder of last received packet */
-	ts_t            last_mixed;                  /* Used to check mixing */
-	ts_t            playout;                     /* Playout delay for this talkspurt */
+        cc_id_t         channel_coder_id;            /* channel_coder of last received packet    */
+	ts_t            last_mixed;                  /* Used to check mixing                     */
+	ts_t            playout;                     /* Playout delay for this talkspurt         */
         ts_sequencer    seq;                         /* Mapper from RTP time rep to rat time rep */
-
+        uint32_t        spike_events;                /* Number of spike events                   */
+        uint32_t        spike_toged;                 /* Number of packets dropped in spike mode  */
         /* Display Info */
         ts_t            last_ui_update;              /* Used for periodic update of packet counts, etc */
 
         /* Packet info */
-        uint32_t         received;
-        uint32_t         duplicates;
-        uint32_t         misordered;
-        uint32_t         jit_toged;                   /* Packets discarded because late ("Thrown on ground") */
+        uint32_t        received;
+        uint32_t        duplicates;
+        uint32_t        misordered;
+        uint32_t        jit_toged;                   /* Packets discarded because late ("Thrown on ground") */
 
 	/* Variables for playout time calculation */
 	int		video_playout;		     /* Playout delay in the video tool -- for lip-sync [csp] */
@@ -70,9 +71,9 @@ typedef struct {
 
 	/* Mapping between rtp time and NTP time for this sender */
 	int             mapping_valid;
-	uint32_t         last_ntp_sec;	/* NTP timestamp */
-	uint32_t         last_ntp_frac;
-	uint32_t         last_rtp_ts;	/* RTP timestamp */
+	uint32_t        last_ntp_sec;	/* NTP timestamp */
+	uint32_t        last_ntp_frac;
+	uint32_t        last_rtp_ts;	/* RTP timestamp */
 } pdb_entry_t;
 
 /* Functions for creating and destroying persistent database.  Return
