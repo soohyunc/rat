@@ -93,7 +93,7 @@ cushion_create(cushion_t **c, int blockdur)
 
         nc->cushion_size     = 2 * blockdur;
 	nc->cushion_estimate = blockdur;
-	nc->cushion_step     = blockdur;
+	nc->cushion_step     = blockdur / 2;
 	nc->read_history     = (u_int32 *) xmalloc (HISTORY_SIZE * sizeof(u_int32));
         if (nc->read_history == NULL) goto bail_history;
 
@@ -167,7 +167,7 @@ cushion_update(cushion_t *c, u_int32 read_dur, int mode)
                 lower = (cover_idx + 10) * c->cushion_step;
                 upper = (idx       + 10) * c->cushion_step;
         } else {
-                lower = (cover_idx + 2) * c->cushion_step;
+                lower = (cover_idx) * c->cushion_step;
                 upper = idx * c->cushion_step;
         }
 

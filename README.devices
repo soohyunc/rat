@@ -128,7 +128,7 @@ Note:      Not all devices support this in which case this function should
 int  platform_audio_read(audio_desc_t ad, sample *buf, int samples);
 
 Arguments: Descriptor, sample buffer, length of buffer in samples.
-Returns:   Number of samples read.
+Returns:   Number of samples read (bytes read / bytes_per_sample).
 
 --------------------------------------------------------------------------------
 int  platform_audio_write(audio_desc_t ad, sample *buf, int samples);

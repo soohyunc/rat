@@ -235,6 +235,8 @@ tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
         tb = (tx_buffer*)xmalloc(sizeof(tx_buffer));
         memset(tb, 0, sizeof(tx_buffer));
 
+        debug_msg("Unit duration %d channels %d\n", unit_dur, channels);
+
         tb->clock    = sp->device_clock;
         tb->sd_info  = sd_init    (unit_dur, (u_int16)get_freq(tb->clock));
         tb->vad      = vad_create (unit_dur, (u_int16)get_freq(tb->clock));
