@@ -96,9 +96,10 @@ _block_alloc(unsigned int size, const char *filen, int line)
 		p = (char *)blocks[i];
 		blocks[i] = blocks[i]->next;
 	} else {
-#ifdef DEBUG_MEM
+#ifdef DEBUG_MEM_BREAK
+                /* This can only go here if this file is merged with memory.c! [oh] */
                 mem_item[naddr].blen = size;
-#endif /* DEBUG_MEM */
+#endif /* DEBUG_MEM_BREAK */
 		p = (char *) _xmalloc(INDEX_TO_SIZE(i) + 8,filen,line);
 		*((int *)p) = INDEX_TO_SIZE(i);
 		p += 8;

@@ -45,6 +45,7 @@
 #include "assert.h"
 #include "debug.h"
 #include "memory.h"
+#include "util.h"
 
 #ifdef DEBUG_MEM
 #define MAX_ADDRS 65536
