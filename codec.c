@@ -906,6 +906,8 @@ codec_get_matching(const char *short_name, uint16_t freq, uint16_t channels)
         long_name = (char *) xmalloc(strlen(short_name) + 12);
         sprintf(long_name, "%s-%dK-%s", short_name, freq/1000, channels==1?"MONO":"STEREO");
         for(i = 0; i < codecs; i++) {
+                cid = codec_get_codec_number(i);
+                cf  = codec_get_format(cid);
                 if (cf->format.sample_rate == freq  && 
                     cf->format.channels == channels && 
                     !strcasecmp(long_name, cf->long_name)) {
@@ -917,9 +919,11 @@ codec_get_matching(const char *short_name, uint16_t freq, uint16_t channels)
         /* Stage 3: Nasty hack... PCM->PCMU for compatibility with sdr 
          * and old rat versions 
          */
-        if (strcasecmp(short_name, "pcm") == 0) {
+        if (strncasecmp(short_name, "pcm", 3) == 0) {
                 sprintf(long_name, "PCMU-%dK-%s", freq/1000, channels==1?"MONO":"STEREO");
                 for(i = 0; i < codecs; i++) {
+                        cid = codec_get_codec_number(i);
+                        cf  = codec_get_format(cid);
                         if (cf->format.sample_rate == freq  && 
                             cf->format.channels == channels && 
                             !strcasecmp(long_name, cf->long_name)) {
