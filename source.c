@@ -595,7 +595,6 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
                 tmp =  (sample)(a + b);
                 new_start[i] = tmp;
         }
-        debug_msg("dropped %d samples\n", drop_samples);
 }
 
 /* source_check_buffering is supposed to check amount of audio buffered
