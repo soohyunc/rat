@@ -366,7 +366,7 @@ audio_device_reconfigure(session_struct *sp)
         if (sp->next_encoding != -1) {
                 codec_id_t  curr_id, next_id;
                 curr_id = codec_get_by_payload(sp->encodings[0]);
-                next_id = codec_get_by_payload(sp->next_encoding);
+                next_id = codec_get_by_payload((u_char)sp->next_encoding);
 
                 if (codec_audio_formats_compatible(curr_id, next_id)) {
                         /* Formats compatible device needs no reconfig */

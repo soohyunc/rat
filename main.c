@@ -50,6 +50,7 @@
 #include "session.h"
 #include "receive.h"
 #include "audio.h"
+#include "auddev.h"
 #include "cushion.h"
 #include "convert.h"
 #include "tcltk.h"

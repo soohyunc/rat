@@ -570,15 +570,13 @@ ui_devices(session_struct *sp)
         audio_device_details_t ad;
         int i,nDev;
 
-        char buf[255] = "", *this_dev, *mbes;
+        char buf[255] = "", *mbes;
         
         nDev = audio_get_device_count();
         for(i = 0; i < nDev; i++) {
                 if (!audio_get_device_details(i, &ad)) continue;
-                if (this_dev) {
-                        strcat(buf, ad.name);
-                        strcat(buf, ",");
-                }
+                strcat(buf, ad.name);
+                strcat(buf, ",");
         }
         i = strlen(buf);
         if (i != 0) buf[i-1] = '\0';

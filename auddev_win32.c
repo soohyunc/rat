@@ -1133,7 +1133,7 @@ w32sdk_audio_supports(audio_desc_t ad, audio_format *paf)
 static char szDevNames[W32SDK_MAX_DEVS][W32SDK_MAX_NAME_LEN];
 static int  nDevs;
 
-void 
+int
 w32sdk_audio_query_devices(void)
 {
         WAVEINCAPS wic;
@@ -1160,6 +1160,7 @@ w32sdk_audio_query_devices(void)
                 waveInGetDevCaps((UINT)i, &wic, sizeof(WAVEINCAPS));
                 strncpy(szDevNames[i], wic.szPname, W32SDK_MAX_NAME_LEN);
         }
+        return TRUE;
 }
 
 int

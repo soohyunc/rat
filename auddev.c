@@ -396,24 +396,27 @@ audio_get_device_count()
 int
 audio_get_device_details(int idx, audio_device_details_t *add)
 {
-        int interface, devs;
-        
+        int iface, devs;
+        const char *name;
+
         assert(idx < actual_devices && idx >= 0);
         assert(add != NULL);
 
         /* Find interface device number idx belongs to */
-        interface = 0;
-        while((devs = audio_if_table[interface].audio_if_dev_cnt()) && idx > devs) {
-                interface++;
+        iface = 0;
+        while((devs = audio_if_table[iface].audio_if_dev_cnt()) && idx > devs) {
+                iface++;
                 idx -= devs;
         }
 
         assert(devs != 0);
 
-        add->descriptor = AIF_MAKE_DESC(interface, idx);
-        assert(audio_if_table[interface].audio_if_dev_name != NULL);
+        add->descriptor = AIF_MAKE_DESC(iface, idx);
+        assert(audio_if_table[iface].audio_if_dev_name != NULL);
+        name = audio_if_table[iface].audio_if_dev_name(idx);
+        assert(name != NULL);
         strncpy(add->name, 
-                audio_if_table[interface].audio_if_dev_name(idx), 
+                name,
                 AUDIO_DEVICE_NAME_LENGTH);
 
         return TRUE;
@@ -461,7 +464,7 @@ int
 audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
         audio_format format;
-        int interface, device, dev_idx;
+        int iface, device, dev_idx;
         int success;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
@@ -475,8 +478,8 @@ audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 return 0;
         }
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
         if (active_devices == MAX_ACTIVE_DEVICES) {
                 debug_msg("Already have the maximum number of devices (%d) open.\n", MAX_ACTIVE_DEVICES);
@@ -486,7 +489,7 @@ audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
         dev_idx   = active_devices;
 
         assert(get_active_device_index(ad) == -1);
-        assert(audio_if_table[interface].audio_if_open);
+        assert(audio_if_table[iface].audio_if_open);
 
         if (audio_format_get_common(ifmt, ofmt, &format) == FALSE) {
                 /* Input and output formats incompatible */
@@ -499,7 +502,7 @@ audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
         /* Formats can get changed in audio_if_open, but only sample
          * type, not the number of channels or freq 
          */
-        success = audio_if_table[interface].audio_if_open(device, 
+        success = audio_if_table[iface].audio_if_open(device, 
                                                           fmts[dev_idx][AUDDEV_ACT_IFMT], 
                                                           fmts[dev_idx][AUDDEV_ACT_OFMT]);
 
@@ -517,7 +520,7 @@ audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                         return FALSE;
                 }
 
-                if (!audio_if_table[interface].audio_if_duplex(device)) {
+                if (!audio_if_table[iface].audio_if_duplex(device)) {
                         printf("RAT v3.2.0 and later require a full duplex audio device, but \n");
                         printf("your device only supports half-duplex operation. Sorry.\n");
                         audio_close(ad);
@@ -571,15 +574,15 @@ audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 void
 audio_close(audio_desc_t ad)
 {
-        int i, j, k, interface, device;
+        int i, j, k, iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
-        audio_if_table[interface].audio_if_close(device);
+        audio_if_table[iface].audio_if_close(device);
 
         /* Check device is open */
         assert(get_active_device_index(ad) != -1);
@@ -644,29 +647,29 @@ audio_get_ofmt(audio_desc_t ad)
 void
 audio_drain(audio_desc_t ad)
 {
-        int device, interface;
+        int device, iface;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
         
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
         
-        audio_if_table[interface].audio_if_drain(device);
+        audio_if_table[iface].audio_if_drain(device);
 }
 
 int
 audio_duplex(audio_desc_t ad)
 {
-        int device, interface;
+        int device, iface;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
-        return audio_if_table[interface].audio_if_duplex(device);
+        return audio_if_table[iface].audio_if_duplex(device);
 }
 
 int
@@ -675,14 +678,14 @@ audio_read(audio_desc_t ad, sample *buf, int samples)
         /* Samples is the number of samples to read * number of channels */
         int read_len;
         int sample_size;
-        int device, interface;
+        int device, iface;
         int idx = get_active_device_index(ad);
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));        
         assert(idx >= 0 && idx < active_devices);
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
         xmemchk();
 
@@ -692,14 +695,14 @@ audio_read(audio_desc_t ad, sample *buf, int samples)
                  * real format].
                  */
                 sample_size = fmts[idx][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
-                read_len    = audio_if_table[interface].audio_if_read(device, 
+                read_len    = audio_if_table[iface].audio_if_read(device, 
                                                                        (u_char*)buf, 
                                                                        samples * sample_size);
                 samples_read[idx] += read_len / (sample_size * fmts[idx][AUDDEV_ACT_IFMT]->channels);
         } else {
                 assert(fmts[idx][AUDDEV_ACT_IFMT] != NULL);
                 sample_size = fmts[idx][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
-                read_len    = audio_if_table[interface].audio_if_read(device, 
+                read_len    = audio_if_table[iface].audio_if_read(device, 
                                                                        (u_char*)convert_buf[idx], 
                                                                        samples * sample_size);
                 read_len    = audio_format_buffer_convert(fmts[idx][AUDDEV_REQ_IFMT], 
@@ -720,14 +723,14 @@ int
 audio_write(audio_desc_t ad, sample *buf, int len)
 {
         int write_len ,sample_size;
-        int interface, device;
+        int iface, device;
         int idx = get_active_device_index(ad);
         
         assert(idx >= 0 && idx < active_devices);
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
         
         xmemchk();
 
@@ -737,7 +740,7 @@ audio_write(audio_desc_t ad, sample *buf, int len)
                  * real format].
                  */
                 sample_size = fmts[idx][AUDDEV_ACT_OFMT]->bits_per_sample / 8;
-                write_len   = audio_if_table[interface].audio_if_write(device, (u_char*)buf, len * sample_size);
+                write_len   = audio_if_table[iface].audio_if_write(device, (u_char*)buf, len * sample_size);
                 samples_written[idx] += write_len / (sample_size * fmts[idx][AUDDEV_ACT_OFMT]->channels);
         } else {
                 write_len = audio_format_buffer_convert(fmts[idx][AUDDEV_REQ_OFMT],
@@ -746,7 +749,7 @@ audio_write(audio_desc_t ad, sample *buf, int len)
                                                         fmts[idx][AUDDEV_ACT_OFMT],
                                                         (u_char*) convert_buf[idx],
                                                         DEVICE_REC_BUF);
-                audio_if_table[interface].audio_if_write(device, (u_char*)convert_buf[idx], write_len);
+                audio_if_table[iface].audio_if_write(device, (u_char*)convert_buf[idx], write_len);
                 sample_size = fmts[idx][AUDDEV_ACT_OFMT]->bits_per_sample / 8;
                 samples_written[idx] += write_len / (sample_size * fmts[idx][AUDDEV_REQ_OFMT]->channels);
         }
@@ -758,61 +761,61 @@ audio_write(audio_desc_t ad, sample *buf, int len)
 void
 audio_non_block(audio_desc_t ad)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
-        audio_if_table[interface].audio_if_non_block(device);
+        audio_if_table[iface].audio_if_non_block(device);
 }
 
 void
 audio_block(audio_desc_t ad)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
         
-        audio_if_table[interface].audio_if_block(device);
+        audio_if_table[iface].audio_if_block(device);
 }
 
 void
 audio_set_gain(audio_desc_t ad, int gain)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
         assert(gain >= 0);
         assert(gain <= MAX_AMP);
 
-        audio_if_table[interface].audio_if_set_gain(device, gain);
+        audio_if_table[iface].audio_if_set_gain(device, gain);
 }
 
 int
 audio_get_gain(audio_desc_t ad)
 {
         int gain;
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
-        gain = audio_if_table[interface].audio_if_get_gain(device);
+        gain = audio_if_table[iface].audio_if_get_gain(device);
 
         assert(gain >= 0);
         assert(gain <= MAX_AMP);
@@ -823,33 +826,33 @@ audio_get_gain(audio_desc_t ad)
 void
 audio_set_volume(audio_desc_t ad, int volume)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
         assert(volume >= 0);
         assert(volume <= MAX_AMP);
 
-        audio_if_table[interface].audio_if_set_volume(device, volume);
+        audio_if_table[iface].audio_if_set_volume(device, volume);
 }
 
 int
 audio_get_volume(audio_desc_t ad)
 {
         int volume;
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
         
-        volume = audio_if_table[interface].audio_if_get_volume(device);
+        volume = audio_if_table[iface].audio_if_get_volume(device);
         assert(volume >= 0);
         assert(volume <= MAX_AMP);
 
@@ -859,156 +862,156 @@ audio_get_volume(audio_desc_t ad)
 void
 audio_loopback(audio_desc_t ad, int gain)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
         assert(gain >= 0);
         assert(gain <= MAX_AMP);
 
-        if (audio_if_table[interface].audio_if_loopback) audio_if_table[interface].audio_if_loopback(device, gain);
+        if (audio_if_table[iface].audio_if_loopback) audio_if_table[iface].audio_if_loopback(device, gain);
 }
 
 void
 audio_set_oport(audio_desc_t ad, int port)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
         
-        audio_if_table[interface].audio_if_set_oport(device, port);
+        audio_if_table[iface].audio_if_set_oport(device, port);
 }
 
 int
 audio_get_oport(audio_desc_t ad)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
-        return (audio_if_table[interface].audio_if_get_oport(device));
+        return (audio_if_table[iface].audio_if_get_oport(device));
 }
 
 int     
 audio_next_oport(audio_desc_t ad)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
-        return (audio_if_table[interface].audio_if_next_oport(device));
+        return (audio_if_table[iface].audio_if_next_oport(device));
 }
 
 void
 audio_set_iport(audio_desc_t ad, int port)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
-        audio_if_table[interface].audio_if_set_iport(device, port);
+        audio_if_table[iface].audio_if_set_iport(device, port);
 }
 
 int
 audio_get_iport(audio_desc_t ad)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
-        return (audio_if_table[interface].audio_if_get_iport(device));
+        return (audio_if_table[iface].audio_if_get_iport(device));
 }
 
 int
 audio_next_iport(audio_desc_t ad)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
-        return (audio_if_table[interface].audio_if_next_iport(device));
+        return (audio_if_table[iface].audio_if_next_iport(device));
 }
 
 int
 audio_is_ready(audio_desc_t ad)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
-        return (audio_if_table[interface].audio_if_is_ready(device));
+        return (audio_if_table[iface].audio_if_is_ready(device));
 }
 
 void
 audio_wait_for(audio_desc_t ad, int delay_ms)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
-        audio_if_table[interface].audio_if_wait_for(device, delay_ms);
+        audio_if_table[iface].audio_if_wait_for(device, delay_ms);
 }
 
-/* Code for adding/initialising/removing audio interfaces */
+/* Code for adding/initialising/removing audio ifaces */
 
 int
 audio_device_supports(audio_desc_t ad, u_int16 rate, u_int16 channels)
 {
-        int interface, device;
+        int iface, device;
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
-        interface = AIF_GET_INTERFACE(ad);
-        device    = AIF_GET_DEVICE_NO(ad);
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
 
         if (rate % 8000 || channels > 2) {
                 debug_msg("Invalid combo %d Hz %d channels\n", rate, channels);
                 return FALSE;
         }
 
-        if (audio_if_table[interface].audio_if_format_supported) {
+        if (audio_if_table[iface].audio_if_format_supported) {
                 audio_format tfmt;
                 tfmt.encoding    = DEV_S16;
                 tfmt.sample_rate = rate;
                 tfmt.channels    = channels;
-                return audio_if_table[interface].audio_if_format_supported(device, &tfmt);
+                return audio_if_table[iface].audio_if_format_supported(device, &tfmt);
         }
 
         debug_msg("Format support query function not implemented! Lying about supported formats.\n");
