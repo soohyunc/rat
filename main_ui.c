@@ -170,7 +170,8 @@ int main(int argc, char *argv[])
         if (mbus_addr_valid(m, e_addr)) {
                 /* Close things down nicely... Tell the media engine we wish to detach... */
                 mbus_qmsgf(m, e_addr, TRUE, "tool.rat.ui.detach.request", "");
-                debug_msg("Waiting for tool.rat.ui.detach() from media engine...\n");
+                mbus_send(m);
+		debug_msg("Waiting for tool.rat.ui.detach() from media engine...\n");
                 while (!got_detach  && mbus_addr_valid(m, e_addr)) {
                         mbus_heartbeat(m, 1);
                         mbus_retransmit(m);

@@ -363,14 +363,16 @@ int main(int argc, char *argv[])
 	/* Inform other processes that we're about to quit... */
 	mbus_qmsgf(sp->mbus_engine, "()", FALSE, "mbus.bye", "");
 	mbus_send(sp->mbus_engine);
-	do {
-		struct timeval	 timeout;
-		mbus_send(sp->mbus_engine);
-		mbus_retransmit(sp->mbus_engine);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 20000;
-		mbus_recv(sp->mbus_engine, sp, &timeout);
-	} while (!mbus_sent_all(sp->mbus_engine));
+	if (mbus_addr_valid(sp->mbus_engine, c_addr)) {
+		do {
+			struct timeval	 timeout;
+			mbus_send(sp->mbus_engine);
+			mbus_retransmit(sp->mbus_engine);
+			timeout.tv_sec  = 0;
+			timeout.tv_usec = 20000;
+			mbus_recv(sp->mbus_engine, sp, &timeout);
+		} while (!mbus_sent_all(sp->mbus_engine));
+	}
 	mbus_exit(sp->mbus_engine);
 
 	audio_device_release(sp, sp->audio_device);

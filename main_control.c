@@ -737,7 +737,7 @@ int main(int argc, char *argv[])
 {
         struct mbus	*m;
         char		 c_addr[60], token_ui[20], token_engine[20];
-        int		 seed = (gethostid() << 8) | (getpid() & 0xff);
+        int		 seed = (gethostid() << 8) | (getpid() & 0xff), final_iters;
         struct timeval	 timeout;
         
 #ifdef WIN32
@@ -765,8 +765,9 @@ int main(int argc, char *argv[])
                 mbus_rendezvous_go(m, token_engine, (void *) m);
                 mbus_rendezvous_go(m, token_ui,     (void *) m); 
                 
+		final_iters = 25;
                 should_exit = FALSE;
-                while (!should_exit) {
+                while (final_iters > 0) {
                         mbus_send(m);
                         mbus_heartbeat(m, 1);
                         mbus_retransmit(m);
@@ -777,6 +778,9 @@ int main(int argc, char *argv[])
                         win32_process_messages();
 #endif
                         mbus_recv(m, NULL, &timeout);
+			if (should_exit) {
+				final_iters--;
+			}
                 }        
                 terminate(m, u_addr, &pid_ui);
                 terminate(m, e_addr, &pid_engine);
