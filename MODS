@@ -1,6 +1,8 @@
 MODIFICATIONS FILE
 ------------------
 
+$Id$
+
 The modifications here include the development versions, not all of which 
 are released.  This list is not intended to be comprehensive. The current 
 release is available at http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/
@@ -1216,7 +1218,6 @@ TODO -- They're features not bugs dammit!
 - 3d renderer could use finite precision maths for better performance 
   (eliminate type conversions).
 - sndfile routines should use conversion functions in audio_fmt.c, not their own.
-- Bias estimate should be sample continuous, not block stepped.
 - Channel coders need intelligent bail out fn's for when units overflow 
   (rare, but real problem).
 - UI lets you select packets larger than the MTU, which can't be sent
