@@ -1577,6 +1577,9 @@ frame $i
 frame $i.dd -relief sunken 
 pack $i.dd -fill both -expand 1 -anchor w -pady 1
 
+label $i.dd.title -height 2 -width 40 -text "This panel allows for the selection of alternate audio devices\nand the configuring of device related options." -justify left
+pack $i.dd.title -fill x
+
 frame $i.dd.device
 pack $i.dd.device -side top -fill x
 
@@ -1608,17 +1611,17 @@ menubutton $i.dd.sampling.ch_in.mb -menu $i.dd.sampling.ch_in.mb.m -indicatoron 
 pack $i.dd.sampling.ch_in.mb -side left -fill x -expand 1
 menu $i.dd.sampling.ch_in.mb.m 
 
-frame $i.cks -relief sunken
-pack $i.cks -fill both -expand 1 -anchor w -pady 1
-frame $i.cks.f 
-frame $i.cks.f.f
-checkbutton $i.cks.f.f.silence  -text "Silence Suppression"    -variable silence_var 
-checkbutton $i.cks.f.f.agc      -text "Automatic Gain Control" -variable agc_var 
-checkbutton $i.cks.f.f.loop     -text "Audio Loopback"         -variable audio_loop_var
-checkbutton $i.cks.f.f.suppress -text "Echo Suppression"       -variable echo_var
-pack $i.cks.f -fill x -side top -expand 1
-pack $i.cks.f.f
-pack $i.cks.f.f.silence $i.cks.f.f.agc $i.cks.f.f.loop $i.cks.f.f.suppress -side top -anchor w
+frame $i.dd.cks
+pack $i.dd.cks -fill both -expand 1 
+frame $i.dd.cks.f 
+frame $i.dd.cks.f.f
+checkbutton $i.dd.cks.f.f.silence  -text "Silence Suppression"    -variable silence_var 
+checkbutton $i.dd.cks.f.f.agc      -text "Automatic Gain Control" -variable agc_var 
+checkbutton $i.dd.cks.f.f.loop     -text "Audio Loopback"         -variable audio_loop_var
+checkbutton $i.dd.cks.f.f.suppress -text "Echo Suppression"       -variable echo_var
+pack $i.dd.cks.f -fill x -side top -expand 1
+pack $i.dd.cks.f.f
+pack $i.dd.cks.f.f.silence $i.dd.cks.f.f.agc $i.dd.cks.f.f.loop $i.dd.cks.f.f.suppress -side top -anchor w
 
 # Codecs pane #################################################################
 set i .prefs.pane.codecs
@@ -2724,12 +2727,12 @@ add_help $i.dd.sampling.freq.mb \
                         "Sets the sampling rate of the audio device.\nThis changes the available codecs."
 add_help $i.dd.sampling.ch_in.mb \
                         "Changes between mono and stereo audio input."
-add_help $i.cks.f.f.silence\
+add_help $i.dd.cks.f.f.silence\
 			 "Prevents silence from being transmitted when the speaker is silent\n\
                           and the input is unmuted."
-add_help $i.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound you send."
-add_help $i.cks.f.f.loop "Enables hardware for loopback of audio input."
-add_help $i.cks.f.f.suppress \
+add_help $i.dd.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound you send."
+add_help $i.dd.cks.f.f.loop "Enables hardware for loopback of audio input."
+add_help $i.dd.cks.f.f.suppress \
                          "Mutes microphone when playing audio."
 
 # transmission help

@@ -1,4 +1,3 @@
-
 /*
  *  config-win32.h
  *
