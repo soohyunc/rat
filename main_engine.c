@@ -98,6 +98,8 @@ int main(int argc, char *argv[])
         audio_init_interfaces();
         audio_device_get_safe_config(&sp->new_config);
         audio_device_reconfigure(sp);
+        sp->cur_ts = ts_seq32_in(&sp->decode_sequencer, 
+                                 get_freq(sp->device_clock), 0);
         assert(audio_device_is_open(sp->audio_device));
 	settings_load_early(sp);
 	parse_args(argc, argv);

@@ -892,7 +892,8 @@ v4.1.0  - Fixed slow memory leak reported by Emmanuel Duros.  Vanilla
 	  Windows port.
 	* 5 October 1999
 
-v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum <wallbaum@informatik.rwth-aachen.de>
+v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum 
+	  <wallbaum@informatik.rwth-aachen.de>
 	- Now send RTP BYE packets on exit
 	- Fixed converter table initialization.  Was not initializing 
 	  interpolation and extrapolation correctly after last consistency 
@@ -903,7 +904,8 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum <wallba
 	  denominator.  Improves performance 3-4 for upsampling by 3,5,6.
 	- Fixed 2 step sample rate conversion support.
 	- Fixed Windows port.
-
+	- Initialize sp->cur_ts in main_engine, before tx_start.  Should fix 
+	  occasional assert failure during transmitter startup.
 
 TODO -- They're features not bugs dammit!
 ----

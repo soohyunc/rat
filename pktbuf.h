@@ -25,9 +25,19 @@
 
 typedef struct s_pktbuf pktbuf_t;
 
-int  pktbuf_create  (pktbuf_t **ppb, u_int32 maxpackets);
-void pktbuf_destroy (pktbuf_t **ppb);
-int  pktbuf_enqueue (pktbuf_t *pb, ts_t  timestamp, u_char  payload, u_char  *data, u_int32  datalen);
-int  pktbuf_dequeue (pktbuf_t *pb, ts_t *timestamp, u_char *payload, u_char **data, u_int32 *datalen);
+int     pktbuf_create    (pktbuf_t **ppb, 
+                          u_int32    maxpackets);
+void    pktbuf_destroy   (pktbuf_t **ppb);
+int     pktbuf_enqueue   (pktbuf_t *pb, 
+                          ts_t      timestamp, 
+                          u_char    payload, 
+                          u_char   *data, 
+                          u_int32   datalen);
+int     pktbuf_dequeue   (pktbuf_t *pb, 
+                          ts_t     *timestamp, 
+                          u_char   *payload, 
+                          u_char  **data, 
+                          u_int32 *datalen);
+u_int16 pktbuf_get_count (pktbuf_t *pb);
 
 #endif /* __PKTBUF_H__ */

@@ -26,8 +26,9 @@ typedef struct {
 
 struct s_pktbuf {
         u_int32  insert; /* Last insertion point (FIFO circular buffer) */
-        u_int32  buflen; /* Number of packets */
-        pkt_t   *buf;    /* The packets */
+        u_int16  buflen; /* max number of packets                       */
+        u_int16  used;   /* actual number of packets buffered           */
+        pkt_t   *buf;    /* The packets                                 */
 };
 
 int
@@ -48,6 +49,7 @@ pktbuf_create(struct s_pktbuf **ppb, u_int32 size)
         }
         
         pb->buflen = size;
+        pb->used   = 0;
         pb->insert = 0;
         for(i = 0; i < size; i++) {
                 pb->buf[i].data = NULL;
@@ -87,6 +89,9 @@ pktbuf_enqueue(struct s_pktbuf *pb, ts_t timestamp, u_char payload, u_char *data
                 /* A packet already sits in this space */
                 xfree(pb->buf[pb->insert].data);
                 debug_msg("Buffer overflow.  Process was blocked?\n");
+        } else {
+                pb->used++;
+                assert(pb->used <= pb->buflen);
         }
 
         pb->buf[pb->insert].timestamp = timestamp;
@@ -113,10 +118,16 @@ pktbuf_dequeue(struct s_pktbuf *pb, ts_t *timestamp, u_char *payload, u_char **d
                         *datalen             = pb->buf[idx].datalen;
                         pb->buf[idx].data    = NULL;                        
                         pb->buf[idx].datalen = 0;
-
+                        pb->used--;
+                        assert(pb->used <= pb->buflen);
                         return TRUE;
                 }
         } while (idx != pb->insert);
 
         return FALSE;
+}
+
+u_int16 pktbuf_get_count(pktbuf_t *pb)
+{
+        return pb->used;
 }
