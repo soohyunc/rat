@@ -425,7 +425,8 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                 
                 /* If diff is less than zero then we must decrease the */
                 /* cushion so loose some of the trailing silence.      */
-                if (diff < 0) {
+                if (diff < 0 && mix_active(ms) == FALSE && spi->playout_buf_list == NULL) {
+                        /* Only decrease cushion if not playing anything out */
                         read_dur -= cushion_step;
                         cushion_step_down(c);
                         dprintf("Decreasing cushion\n");

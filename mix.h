@@ -56,5 +56,5 @@ void	mix_do_one_chunk    (struct session_tag *sp, struct s_mix_info *ms, struct 
 int	mix_get_audio       (struct s_mix_info *ms, int amount, sample **bufp);
 void	mix_get_new_cushion (struct s_mix_info *ms, int last_cushion_size, int new_cushion_size, int dry_time, sample **bufp);
 void	mix_update_ui       (struct s_mix_info *ms);
-
+int     mix_active          (struct s_mix_info *ms);
 #endif /* _mix_h_ */

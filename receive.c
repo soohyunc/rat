@@ -60,6 +60,7 @@ typedef struct s_participant_playout_buffer {
 	rx_queue_element_struct *tail_ptr;
 	rx_queue_element_struct *last_got;
         u_int32 len;
+        u_int32 age;
 } ppb_t;
 
 rx_queue_element_struct *
@@ -147,6 +148,7 @@ fillin_playout_buffer(ppb_t *buf,
 
                 curr = new_rx_unit();
                 buf->len ++;
+                buf->age ++;
                 curr->src_ts    = last->src_ts    + last->unit_size;
                 curr->playoutpt = last->playoutpt + playout_step;
                 curr->unit_size = last->unit_size;
@@ -430,6 +432,8 @@ playout_buffer_remove(ppb_t **list, rtcp_dbentry *src)
 	}
 }
 
+#define PLAYOUT_SAFETY 5
+
 void 
 service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf_list, struct s_mix_info *ms)
 {
@@ -448,7 +452,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 	 */
 	rx_queue_element_struct	*up;
 	ppb_t			*buf, **bufp;
-	u_int32			cur_time, cs;
+	u_int32			cur_time, cs, cu, chunks_mixed;
         
 	while (receive_queue->queue_empty == FALSE) {
 		up       = get_unit_off_rx_queue(receive_queue);
@@ -458,12 +462,14 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		/* This is to compensate for clock drift.
 		 * Same check should be made in case it is too early.
 		 */
+
 		if (ts_gt(cur_time, up->playoutpt)) {
 			up->dbe_source[0]->jit_TOGed++;
 			up->dbe_source[0]->cont_toged++;
 		} else {
 			up->dbe_source[0]->cont_toged = 0;
 		}
+
 		up = playout_buffer_add(buf, up);
 		/*
 		 * If we have already worked past this point then mix it!
@@ -484,9 +490,12 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		}
 	}
 
+        cs = cushion_get_size(sp->cushion);
+        cu = cushion_get_step(sp->cushion);
+
 	for (buf = *buf_list; buf; buf = buf->next) {
+                chunks_mixed = 0;
 		cur_time = get_time(buf->src->clock);
-		cs = cushion_get_size(sp->cushion);
 #ifdef DEBUG_PLAYOUT_BROKEN
                 {
                         static struct timeval last_foo;
@@ -523,13 +532,24 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                     
                     if (up->native_count && up->mixed == FALSE) {
                         mix_do_one_chunk(sp, ms, up);
+                        chunks_mixed++;
                         if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
 				/* Request device using the mbus... */
                         }
                         up->mixed = TRUE;
                     }
 		}
+
 		clear_old_participant_history(buf);
+
+                if ((buf->age > cs/cu) && buf->len < cs/cu + PLAYOUT_SAFETY + chunks_mixed) {
+                        /* If the sender's clock is slower than ours, playout buffer may run dry...
+                         * we always want 1 cushion's worth available.
+                         */
+                        buf->src->playout_danger = TRUE;
+                        dprintf("buf->len %d vs mixed %d safety %d ideal len %d\n", buf->len, chunks_mixed, PLAYOUT_SAFETY, cs/cu);
+                
+                }
 	}
 
 	for (bufp = buf_list; *bufp;) {

@@ -195,12 +195,26 @@ adapt_playout(rtp_hdr_t *hdr,
 		/* IF (a) TS start 
                    OR (b) we've thrown 4 consecutive packets away 
                    OR (c) ts have jumped by 8 packets worth 
+                   OR (d) playout buffer running dry.
                    THEN adapt playout and communicate it
                    */
 		if ((hdr->m) || 
                     src->cont_toged > 4 || 
-                    ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * cp->unit_len * 8 + 1))) {
+                    ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * cp->unit_len * 8 + 1)) ||
+                    src->playout_danger) {
+#ifdef DEBUG
+                        if (hdr->m) {
+                                dprintf("New talkspurt\n");
+                        } else if (src->cont_toged > 4) {
+                                dprintf("Cont_toged > 4\n");
+                        } else if (src->playout_danger) {
+                                dprintf("playout danger\n");
+                        } else {
+                                dprintf("Time stamp jump %ld %ld\n", hdr->ts, src->last_ts);
+                        }
+#endif
 			var = (u_int32) src->jitter * 3;
+
                         minv = sp->min_playout * get_freq(src->clock) / 1000;
                         maxv = sp->max_playout * get_freq(src->clock) / 1000; 
 
@@ -237,8 +251,9 @@ adapt_playout(rtp_hdr_t *hdr,
 			/* Do not set encoding on TS start packets as they do not show if redundancy is used...   */
 			src->encoding = hdr->pt;
 		}
-		src->last_ts  = hdr->ts;
-		src->last_seq = hdr->seq;
+		src->last_ts        = hdr->ts;
+		src->last_seq       = hdr->seq;
+                src->playout_danger = FALSE;
 	}
 
 	/* Calculate the playout point in local source time for this packet. */

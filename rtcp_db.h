@@ -84,14 +84,15 @@ typedef struct s_rtcp_dbentry {
 	u_int32         misordered;		/* For use in receiving redundancy */
 	u_int32         duplicates;
 	u_int32         jit_TOGed;		/* TOGed = Thrown on the Ground */
-	int		cont_toged;		/* Toged in a row */
+	short		cont_toged;		/* Toged in a row */
+        short           playout_danger;         /* not enough audio in playout buffer */
 	u_int32         lost;			/* Old unused? */
-
+        
         struct s_cc_state       *cc_state_list;
 	struct s_codec_state	*state_list;
 	struct s_time		*clock;
-	u_int32         last_mixed_playout;	/* from device_clock */
 
+	u_int32         last_mixed_playout;	/* from device_clock */
 	int             encoding;		/* Used to mark red in playout calculation */
 	int		units_per_packet;
 	int		encs[10];		/* Different encodings in packet */
