@@ -17,6 +17,10 @@
 #include "util.h"
 #include "debug.h"
 
+#include "audio_util.h"
+
+#include <stdlib.h>
+
 /* This is prototype for repair functions - */
 /* Repair scheme is passed a set of pointers to sample buffers, their formats,
  * how many of them there are, the index of the buffer to be repaired and how
@@ -85,8 +89,11 @@ fade_buffer(sample *buffer, const audio_format *fmt, int consec_lost)
 }
 
 static int
-repetition(sample **audio_buf, const audio_format **audio_fmt, int nbufs,
-           int missing, int consec_lost)
+repetition(sample             **audio_buf, 
+           const audio_format **audio_fmt, 
+           int                  nbufs,
+           int                  missing,
+           int                  consec_lost)
 {
         if ((audio_buf[missing - 1] == NULL) || 
             (nbufs < 2)) {
@@ -98,6 +105,55 @@ repetition(sample **audio_buf, const audio_format **audio_fmt, int nbufs,
                audio_buf[missing - 1], 
                audio_fmt[missing]->bytes_per_block);
         
+        if (consec_lost > 0) {
+                fade_buffer(audio_buf[missing], audio_fmt[missing], consec_lost);
+        }
+
+        return TRUE;
+}
+
+/* Noise subsitution is about the worst way to repair loss.
+ * It's here as a reference point, let's hope nobody uses it!
+ */
+
+static int
+noise_substitution(sample             **audio_buf, 
+                   const audio_format **audio_fmt, 
+                   int                  nbufs,
+                   int                  missing,
+                   int                  consec_lost)
+{
+        double e[2];
+        int    i, j, nsamples, step;
+
+        if ((audio_buf[missing - 1] == NULL) || 
+            (nbufs < 2)) {
+                debug_msg("no prior audio\n");
+                return FALSE;
+        }
+
+        step     = audio_fmt[missing - 1]->channels;
+        nsamples = audio_fmt[missing - 1]->bytes_per_block / sizeof(sample);
+
+        /* Calculate energy of each channel for previous frame */
+        for(i = 0; i < step; i++) {
+                e[i] = 0.0;
+                for(j = i; j < nsamples; j += step) {
+                        e[i] += (double)(audio_buf[missing - 1][j] * audio_buf[missing - 1][j]);
+                }
+                e[i] *= (double)step / (double)nsamples;
+                e[i] = sqrt(e[i]);
+        }        
+
+        nsamples = audio_fmt[missing]->bytes_per_block / sizeof(sample);
+
+        /* Fill in the noise */
+        for (i = 0; i < step; i++) {
+                for(j = i; j < nsamples; j += step) {
+                        audio_buf[missing][j] = (sample)(e[i] * 2.0 * (drand48() - 0.5));
+                }
+        }
+
         if (consec_lost > 0) {
                 fade_buffer(audio_buf[missing], audio_fmt[missing], consec_lost);
         }
@@ -213,7 +269,8 @@ single_side_pattern_match(sample **audio_buf, const audio_format **audio_fmt, in
 static repair_scheme schemes[] = {
         {"Pattern-Match", single_side_pattern_match},
         {"Repeat",        repetition},
-        {"None",          NULL},  /* Special place for scheme none - move at own peril */
+        {"Noise",         noise_substitution},
+        {"None",          NULL}  /* Special place for scheme none - move at own peril */
 };
 
 /* General interface */

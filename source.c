@@ -22,7 +22,7 @@
 #include "codec.h"
 #include "codec_state.h"
 #include "converter.h"
-#include "parameters.h"
+#include "audio_util.h"
 #include "render_3D.h"
 #include "repair.h"
 #include "timers.h"
@@ -402,7 +402,7 @@ source_add_packet (source *src,
 
         cid = channel_coder_get_by_payload(payload);
         clayers = channel_coder_get_layers(cid);
-        if(clayers>1) {
+        if (clayers > 1) {
                 struct s_pb_iterator *pi;
                 u_int8 i;
                 u_int32 clen;
@@ -869,6 +869,11 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
         ts_t        playout, step, cutoff;
         int         i, success, hold_repair = 0;
 
+        static int repair_none = -1;
+        if (repair_none == -1) {
+                repair_none = repair_get_by_name("None");
+        }
+
         /* Note: hold_repair is used to stop repair occuring.
          * Occasionally, there is a race condition when the playout
          * point is recalculated causing overlap, and when playout
@@ -904,7 +909,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
 
                 if (ts_valid(src->last_played) && 
                     ts_gt(playout, ts_add(src->last_played, step)) &&
-                    repair_type != REPAIR_TYPE_NONE &&
+                    repair_type != repair_none      &&
                     ts_gt(src->last_played, cutoff) &&
                     hold_repair == 0) {
                         /* If repair was successful media_pos is moved,

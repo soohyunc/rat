@@ -34,4 +34,7 @@ void    bias_ctl_destroy(struct s_bias_ctl *bc);
 
 void    bias_remove (struct s_bias_ctl *bc, sample *buf, int len);
 
+/* Energy calculation */
+u_int16	avg_audio_energy (sample *buf, u_int32 dur, u_int32 channels);
+
 #endif /* __AUDIO_UTIL_H__ */

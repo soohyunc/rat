@@ -19,8 +19,6 @@ struct s_vad;
 struct s_agc;
 struct session_tag;
 
-u_int16	avg_audio_energy (sample *buf, u_int32 dur, u_int32 channels);
-
 #define VU_INPUT  0
 #define VU_OUTPUT 1
 

@@ -240,6 +240,37 @@ START_L1:
 
 #endif /* WIN32 */
 
+#define ENERGY_CALC_STEP	         1
+u_int16 
+avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
+{
+        register u_int32 e1, e2;
+        register sample *buf_end = buf + samples;
 
+        assert (channels > 0);
+        e1 = e2 = 0;
+        switch (channels) {
+        case 1:
+                while(buf < buf_end) {
+                        e1  += abs(*buf);
+                        buf += ENERGY_CALC_STEP;
+                }
+                break;
+        case 2:
+                /* SIMD would improve this */
+                while(buf < buf_end) {
+                        e1 += abs(*buf++);
+                        e2 += abs(*buf);
+                        buf += ENERGY_CALC_STEP*channels - 1;
+                }
+                e1 = max(e1, e2);
+                samples /= channels; /* No. of samples to no. of sampling intervals */
+        }
+
+        /* Return mean sampled energy:
+         * no. of sampling points = samples/ENERGY_CALC_STEP;
+         */
+        return (u_int16)(e1*ENERGY_CALC_STEP/samples);
+}
 
 

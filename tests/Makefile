@@ -16,8 +16,7 @@ CODEC_OBJS = ../codec.o ../codec_state.o ../codec_dvi.o ../codec_gsm.o \
              ../converter.o ../convert_linear.o ../convert_util.o \
              ../convert_extra.o ../convert_sinc.o
 
-
-REPAIR_OBJS  = ../repair.o
+REPAIR_OBJS  = ../repair.o ../audio_util.o
 
 SNDFILE_OBJS = ../sndfile.o ../sndfile_raw.o ../sndfile_au.o ../sndfile_wav.o
 

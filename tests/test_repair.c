@@ -109,6 +109,12 @@ test_repair(struct s_sndfile *sf_out,
         coded_unit                 *cu;
         int                         consec_lost = 0;
         const codec_format_t       *cf;
+        int                         repair_none;
+
+        repair_none = repair_get_by_name("None");
+        if (repair_none != 3) {
+                exit(-1);
+        }
 
         codec_encoder_create(cid, &encoder);
         codec_state_store_create(&decoder_states, DECODER);
@@ -134,7 +140,7 @@ test_repair(struct s_sndfile *sf_out,
                         memset(cu, 0, sizeof(coded_unit));
 
                         /* Loss happens - invoke repair */
-                        if (repair_type != REPAIR_TYPE_NONE) {
+                        if (repair_type != repair_none) {
                                 cu->id = cid;
                                 repair(repair_type,
                                        consec_lost,
