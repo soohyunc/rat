@@ -3,6 +3,8 @@
 *
 * Reworked by Orion Hodson from RAT 3.0 code.
 *
+* Assorted fixes and multilingual comments from Michael Wallbaum <wallbaum@informatik.rwth-aachen.de>
+*
 * $Id$
 *
 * Copyright (c) 1995-99 University College London
@@ -88,6 +90,7 @@ mixGetErrorText(MMRESULT mmr)
 static const char *
 mixGetControlType(DWORD dwCtlType)
 {
+#ifndef NDEBUG
         switch(dwCtlType) {
         case MIXERCONTROL_CONTROLTYPE_CUSTOM:        return "Custom";         
         case MIXERCONTROL_CONTROLTYPE_BOOLEANMETER:  return "Boolean Meter";
@@ -120,6 +123,7 @@ mixGetControlType(DWORD dwCtlType)
         case MIXERCONTROL_CONTROLTYPE_MICROTIME:     return "Micro Time";
         case MIXERCONTROL_CONTROLTYPE_MILLITIME:     return "Milli Time";
         }
+#endif /* NDEBUG */
         return "Unknown";
 }
 
@@ -747,7 +751,8 @@ make_microphone_first_port(audio_port_details_t *ports, int n_ports)
         int i;
         
         for(i = 1; i < n_ports; i++) {
-                if (!strncasecmp("mic", ports[i].name, 3)) {
+                if (!strncasecmp("mic", ports[i].name, 3) ||
+                    !strncasecmp("mik", ports[i].name, 3)) {
                         memcpy(&tmp, ports + i, sizeof(tmp));
                         memcpy(ports + i , ports, sizeof(ports[0]));
                         memcpy(ports, &tmp, sizeof(ports[0]));
@@ -906,6 +911,7 @@ w32sdk_audio_close_out()
                         waveOutUnprepareHeader(shWaveOut, &whWriteHdrs[i], sizeof(WAVEHDR));
                 }
         }
+        waveOutClose(shWaveOut);
         xfree(whWriteHdrs); whWriteHdrs = NULL;
         xfree(lpWriteData); lpWriteData  = NULL;
         whWriteFreeList = NULL;
@@ -1238,8 +1244,8 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 static void
 w32sdk_audio_close_mixer(audio_desc_t ad)
 {
-        UNUSED(ad);
-        
+        MMRESULT mmr;
+
         debug_msg("Closing input device.\n");
         w32sdk_audio_close_in();
         
@@ -1257,8 +1263,13 @@ w32sdk_audio_close_mixer(audio_desc_t ad)
         }
         
         mixRestoreControls(ad, &control_list);
-
+        mmr = mixerClose(ad);
+        if (mmr != MMSYSERR_NOERROR) {
+                debug_msg("mixerClose failed: %s\n", mixGetErrorText(mmr));
+        }
+        
         audio_dev_open = FALSE;
+        UNUSED(ad);
 }
 
 void
