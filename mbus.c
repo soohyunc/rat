@@ -210,7 +210,7 @@ void mbus_send(struct mbus *m)
 	/* Messages for the same destination are batched together. Stops  */
 	/* when a reliable message is sent, until the ACK is received.    */
 	char		 buffer[MBUS_BUF_SIZE];
-	char		*bufp = buffer;
+	char		*bufp;
 	struct mbus_msg	*curr = m->cmd_queue;
 	int		 i;
 
@@ -219,6 +219,7 @@ void mbus_send(struct mbus *m)
 	}
 
 	while (curr != NULL) {
+		bufp = buffer;
 		memset(buffer, 0, MBUS_BUF_SIZE);
 		sprintf(bufp, "mbus/1.0 %6d %c (%s) %s ()\n", curr->seqnum, curr->reliable?'R':'U', m->addr[0], curr->dest);
 		bufp += strlen(m->addr[0]) + strlen(curr->dest) + 25;
@@ -226,7 +227,7 @@ void mbus_send(struct mbus *m)
 			sprintf(bufp, "%s (%s)\n", curr->cmd_list[i], curr->arg_list[i]);
 			bufp += strlen(curr->cmd_list[i]) + strlen(curr->arg_list[i]) + 4;
 		}
-		debug_msg("%s", buffer);
+		assert(strlen(buffer) > 0);
 		udp_send(m->s, buffer, bufp - buffer);
 		m->cmd_queue = curr->next;
 		if (curr->reliable) {
@@ -460,9 +461,14 @@ int mbus_recv(struct mbus *m, void *data)
 
 		mbus_parse_init(m, buffer);
 		/* Parse the header */
-		if (!mbus_parse_sym(m, &ver) || (strcmp(ver, "mbus/1.0") != 0)) {
+		if (!mbus_parse_sym(m, &ver)) {
 			mbus_parse_done(m);
-			debug_msg("Parser failed version: %s\n",ver);
+			debug_msg("Parser failed version (1): %s\n",ver);
+			return FALSE;
+		}
+		if (strcmp(ver, "mbus/1.0") != 0) {
+			mbus_parse_done(m);
+			debug_msg("Parser failed version (2): %s\n",ver);
 			return FALSE;
 		}
 		if (!mbus_parse_int(m, &seq)) {
