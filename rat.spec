@@ -1,8 +1,8 @@
 Summary: UCL Robust-Audio Tool
 Name: rat
-Version: 4.0.4
+Version: __VERSION__
 Release: 1
-Source: http://www-mice.cs.ucl.ac.uk/multimedia/software/rat-4.0/4.0.4/rat-4.0.4.tar.gz
+Source: http://www-mice.cs.ucl.ac.uk/multimedia/software/rat-4.0/__VERSION__/rat-__VERSION__.tar.gz
 Copyright: Copyright (c) 1995-99 University College London
 Group: X11/Applications/Networking
 Packager: Colin Perkins <c.perkins@cs.ucl.ac.uk>
@@ -60,24 +60,24 @@ cd ..
 
 %install
 
-install -m 755 rat/rat-4.0.4 		/usr/bin/rat-4.0.4
-install -m 644 rat/README    		/usr/doc/rat-4.0.4/README
-install -m 644 rat/README.devices	/usr/doc/rat-4.0.4/README.devices
-install -m 644 rat/README.files		/usr/doc/rat-4.0.4/README.files
-install -m 644 rat/README.gsm		/usr/doc/rat-4.0.4/README.gsm
-install -m 644 rat/README.mbus		/usr/doc/rat-4.0.4/README.mbus
-install -m 644 rat/README.playout	/usr/doc/rat-4.0.4/README.playout
-install -m 644 rat/README.timestamps	/usr/doc/rat-4.0.4/README.timestamps
+install -m 755 rat/rat-__VERSION__ 		/usr/bin/rat-__VERSION__
+install -m 644 rat/README    		/usr/doc/rat-__VERSION__/README
+install -m 644 rat/README.devices	/usr/doc/rat-__VERSION__/README.devices
+install -m 644 rat/README.files		/usr/doc/rat-__VERSION__/README.files
+install -m 644 rat/README.gsm		/usr/doc/rat-__VERSION__/README.gsm
+install -m 644 rat/README.mbus		/usr/doc/rat-__VERSION__/README.mbus
+install -m 644 rat/README.playout	/usr/doc/rat-__VERSION__/README.playout
+install -m 644 rat/README.timestamps	/usr/doc/rat-__VERSION__/README.timestamps
 install -m 644 rat/man/man1/rat.1	/usr/man/man1/rat.1
 
 %files 
-/usr/bin/rat-4.0.4
-/usr/doc/rat-4.0.4/README
-/usr/doc/rat-4.0.4/README.devices
-/usr/doc/rat-4.0.4/README.files
-/usr/doc/rat-4.0.4/README.gsm
-/usr/doc/rat-4.0.4/README.mbus
-/usr/doc/rat-4.0.4/README.playout
-/usr/doc/rat-4.0.4/README.timestamps
+/usr/bin/rat-__VERSION__
+/usr/doc/rat-__VERSION__/README
+/usr/doc/rat-__VERSION__/README.devices
+/usr/doc/rat-__VERSION__/README.files
+/usr/doc/rat-__VERSION__/README.gsm
+/usr/doc/rat-__VERSION__/README.mbus
+/usr/doc/rat-__VERSION__/README.playout
+/usr/doc/rat-__VERSION__/README.timestamps
 /usr/man/man1/rat.1
 
