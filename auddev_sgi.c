@@ -82,11 +82,11 @@ audio_open(audio_format format)
 		fprintf(stderr, "ALopenport (read) error\n");
 
 	cmd[0] = AL_OUTPUT_RATE;
-	cmd[1] = format.sample_rate == 16000? AL_RATE_16000: AL_RATE_8000;
+	cmd[1] = format.sample_rate;
 	cmd[2] = AL_INPUT_SOURCE;
 	cmd[3] = AL_INPUT_MIC;
 	cmd[4] = AL_INPUT_RATE;
-	cmd[5] = format.sample_rate == 16000? AL_RATE_16000: AL_RATE_8000;
+	cmd[5] = format.sample_rate;
 	cmd[6] = AL_MONITOR_CTL;
 	cmd[7] = AL_MONITOR_OFF;
 	if (ALsetparams(AL_DEFAULT_DEVICE, cmd, 8L) == -1)
