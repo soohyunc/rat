@@ -45,10 +45,15 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <net/if.h>
+#ifdef SunOS_5
+#include <sys/sockio.h>		/* For SIOCGIFCONF, which according the the Sun manual pages */
+#endif				/* is in <net/if.h>, but why should we believe them?         */
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
 #include "assert.h"
+#include "rat_types.h"
 #include "config.h"
 #include "util.h"
 #include "mbus.h"
@@ -59,6 +64,7 @@
 #define MBUS_MAX_ADDR	10
 #define MBUS_MAX_PD	10
 #define MBUS_MAX_QLEN	50		/* Number of messages we can queue with mbus_qmsg() */
+#define MBUS_MAX_IF	16
 
 struct mbus_ack {
 	struct mbus_ack	*next;
@@ -90,7 +96,8 @@ struct mbus {
 	int		 qmsg_size;
 	char		*qmsg_cmnd[MBUS_MAX_QLEN];
 	char		*qmsg_args[MBUS_MAX_QLEN];
-        struct hostent  *this_host;
+	u_int32	 	 interfaces[MBUS_MAX_IF];
+	int		 num_interfaces;
 };
 
 static int mbus_addr_match(char *a, char *b)
@@ -378,8 +385,10 @@ struct mbus *mbus_init(unsigned short channel,
 		       void  (*err_handler)(int seqnum))
 {
 	struct mbus	*m;
-	char		 hostname[MAXHOSTNAMELEN];
 	int		 i;
+	struct ifreq	 ifbuf[32];
+	struct ifreq	*ifp;
+	struct ifconf	 ifc;
 
 	m = (struct mbus *) xmalloc(sizeof(struct mbus));
 	m->fd           = mbus_socket_init(channel);
@@ -397,8 +406,19 @@ struct mbus *mbus_init(unsigned short channel,
 	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_cmnd[i]    = NULL;
 	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_args[i]    = NULL;
 
-	gethostname(hostname, MAXHOSTNAMELEN);
-	m->this_host = gethostbyname(hostname);
+	/* Determine the network interfaces on this host... */
+	ifc.ifc_buf = (char *)ifbuf;
+	ifc.ifc_len = sizeof(ifbuf);
+	if (ioctl(m->fd, SIOCGIFCONF, (char *) &ifc) < 0) {
+		dprintf("Can't find interface configuration...\n");
+		return m;
+	}
+
+	ifp = ifc.ifc_req;
+	m->num_interfaces = 0;
+	while (ifp < (struct ifreq *) ((char *) ifbuf + ifc.ifc_len)) {
+		m->interfaces[m->num_interfaces++] = ((struct sockaddr_in *) &((ifp++)->ifr_addr))->sin_addr.s_addr;
+	}
 
 	return m;
 }
@@ -631,8 +651,7 @@ void mbus_recv(struct mbus *m, void *data)
 	int			 buffer_len, seq, i, a;
 	struct sockaddr_in	 from;
 	int			 fromlen = sizeof(from);
-	u_long 	         	 inaddr = 0;
-	char			**p;
+	int			 p;
 	int			 match_addr = FALSE;
 
 	memset(buffer, 0, MBUS_BUF_SIZE);
@@ -647,9 +666,8 @@ void mbus_recv(struct mbus *m, void *data)
 	 * though? Probably, because of the rpf check in the mrouters...
 	 */
 
-	for (p = m->this_host->h_addr_list; *p != 0; p++) {
-		memcpy(&inaddr, *p, sizeof(inaddr));
-		if (from.sin_addr.s_addr == inaddr || (ntohl(from.sin_addr.s_addr) == 0x7f000001)) {
+	for (p = 0; p < m->num_interfaces; p++) {
+		if (m->interfaces[p] == from.sin_addr.s_addr) {
 			match_addr = TRUE;
 		}
 	}
