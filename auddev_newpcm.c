@@ -22,7 +22,9 @@ static const char cvsid[] =
 
 #include <machine/soundcard.h>
 #include <sys/types.h>
+
 #include <dirent.h>
+#include <errno.h>
 
 static char *port_names[] = SOUND_DEVICE_LABELS;
 static int  iport, oport, loop;
@@ -652,6 +654,7 @@ newpcm_audio_query_devices()
 
 	DIR  		*d;
 	struct dirent	*de;
+	int		tfd;
 
 	if (newpcm_is_driver() == 0)
 		return 0;
@@ -667,8 +670,19 @@ newpcm_audio_query_devices()
 
 	while ((de = readdir(d)) != NULL && ndev < NEWPCM_MAX_AUDIO_DEVICES) {
 		if (de->d_type != DT_CHR) continue;
+
 		if (strncmp(de->d_name, "audio", 5) != 0) continue;
+
 		sprintf(names[ndev], "/dev/%s", de->d_name); 
+		tfd = open(names[ndev], O_RDWR);
+		if (tfd < 0) {
+		/* If device is busy it's an audio device, otherwise 
+		   it's (probably) an invalid device description */	
+			if (errno != EBUSY) 
+				continue;
+		} else {
+			close(tfd);
+		}
 		ndev++;
 	}
 	closedir(d);

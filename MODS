@@ -1531,9 +1531,8 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 	- OSS/Linux audio driver now uses /dev/dsp rather than /dev/audio,
 	  since some drivers don't support /dev/audio.
 	- Cleanup OSS/Linux audio driver code
-
-
-
+	- Added check for device busy vs device not configured in newpcm
+	  probing.
 
 TODO -- They're features not bugs dammit!
 ----
