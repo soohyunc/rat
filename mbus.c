@@ -274,6 +274,8 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 	sprintf(bp, "mbus/1.0 %6d R (%s) (%s) ()\n", curr->seqn, curr->srce, curr->dest);
 	bp += strlen(curr->srce) + strlen(curr->dest) + 27;
 	for (i = 0; i < curr->qmsg_size; i++) {
+		assert(curr->qmsg_cmnd[i] != NULL);
+		assert(curr->qmsg_args[i] != NULL);
 		sprintf(bp, "%s (%s)\n", curr->qmsg_cmnd[i], curr->qmsg_args[i]);
 		bp += strlen(curr->qmsg_cmnd[i]) + strlen(curr->qmsg_args[i]) + 4;
 		xfree(curr->qmsg_cmnd[i]); curr->qmsg_cmnd[i] = NULL;
@@ -662,18 +664,22 @@ char *mbus_encode_str(const char *s)
 		encode_buflen = (l * 2) + 3;
 		encode_buffer = (char *) xmalloc(encode_buflen);
 	}
-	for (i = 0, j = 0; i < l; i++,j++) {
-		if (s[i] == '\"') {
-			encode_buffer[j+1] = '\\';
-			encode_buffer[j+2] = '\"';
+	for (i = 0, j = 1; i < l; i++,j++) {
+		if (s[i] == ' ') {
+			encode_buffer[j] = '\\';
+			encode_buffer[j+1] = ' ';
+			j++;
+		} else if (s[i] == '\"') {
+			encode_buffer[j] = '\\';
+			encode_buffer[j+1] = '\"';
 			j++;
 		} else {
-			encode_buffer[j+1] = s[i];
+			encode_buffer[j] = s[i];
 		}
 	}
 	encode_buffer[0]   = '\"';
-	encode_buffer[l+1] = '\"';
-	encode_buffer[l+2] = '\0';
+	encode_buffer[j]   = '\"';
+	encode_buffer[j+1] = '\0';
 	return encode_buffer;
 }
 
@@ -760,6 +766,8 @@ void mbus_recv(struct mbus *m, void *data)
 			while (mbus_parse_sym(m, &cmd)) {
 				if (mbus_parse_lst(m, &param) == FALSE) {
 					debug_msg("Unable to parse mbus command paramaters...\n");
+					debug_msg("cmd = %s\n", cmd);
+					debug_msg("arg = %s\n", param);
 					break;
 				}
 				m->cmd_handler(src, cmd, param, data);
