@@ -14,10 +14,24 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "debug.h"
+#include "mbus.h"
 #include "mbus_control.h"
 
-extern int done_waiting;
 extern int should_exit;
+
+static char *wait_token;
+static int   wait_done;
+
+void mbus_control_wait_init(char *token)
+{
+	wait_token = token;
+	wait_done  = FALSE;
+}
+
+int mbus_control_wait_done(void)
+{
+	return wait_done;
+}
 
 static void rx_mbus_quit(char *srce, char *args, void *data)
 {
@@ -31,7 +45,17 @@ static void rx_mbus_waiting(char *srce, char *args, void *data)
 
 static void rx_mbus_go(char *srce, char *args, void *data)
 {
-	debug_msg("%s %s %p\n", srce, args, data);
+	struct mbus *m = (struct mbus *) data;
+	char	*t;
+
+	UNUSED(srce);
+
+	mbus_parse_init(m, args);
+	mbus_parse_str(m, &t);
+	if (strcmp(mbus_decode_str(t), wait_token) == 0) {
+		wait_done = TRUE;
+	}
+	mbus_parse_done(m);
 }
 
 static void rx_mbus_hello(char *srce, char *args, void *data)

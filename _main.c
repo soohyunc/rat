@@ -33,6 +33,7 @@ static pid_t fork_process(struct mbus *m, char *proc_name, char *ctrl_name)
 	pid_t		 pid;
 	struct timeval	 timeout;
 	char		*token = xmalloc(100);
+	char		*token_e;
 
 	sprintf(token, "rat-controller-waiting-%ld", lrand48());
 
@@ -41,24 +42,32 @@ static pid_t fork_process(struct mbus *m, char *proc_name, char *ctrl_name)
 		perror("Cannot fork");
 		abort();
 	} else if (pid == 0) {
-		execl(proc_name, proc_name, "-ctrl", ctrl_name, "-token", token);
+		execl(proc_name, proc_name, "-ctrl", ctrl_name, "-token", token, NULL);
 		perror("Cannot execute subprocess");
-		abort();
+		/* Note: this MUST NOT be exit() or abort(), since they affects the standard */
+		/* IO channels in the parent process (fork duplicates file descriptors, but  */
+		/* they still point to the same underlying file).                            */
+		_exit(1);	
 	}
+
 	/* This is the controller - we have to wait for the child to say hello */
 	/* to us, before we continue.  The variable done_waiting is updated by */
 	/* the mbus_cmd_handler function, when we get mbus.go(condition) for a */
 	/* condition we are waiting for.                                       */
-	done_waiting = FALSE;
-	while (!done_waiting) {
+	token_e = mbus_encode_str(token);
+	mbus_control_wait_init(token);
+	while (!mbus_control_wait_done()) {
+		debug_msg("Waiting for token \"%s\" for sub-process\n", token);
 		timeout.tv_sec  = 1;
 		timeout.tv_usec = 0;
-		mbus_recv(m, NULL, &timeout);
-		mbus_qmsgf(m, "()", FALSE, "mbus.waiting", "%s", token);
+		mbus_qmsgf(m, "()", FALSE, "mbus.waiting", "%s", token_e);
 		mbus_send(m);
+		mbus_recv(m, (void *) m, &timeout);
 		mbus_heartbeat(m, 1);
-	}	
+	}
+	debug_msg("forked %s\n", proc_name);
 	xfree(token);
+	xfree(token_e);
 	return pid;
 }
 
