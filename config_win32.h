@@ -68,8 +68,6 @@
 #include <process.h>
 #include <fcntl.h>
 #include <time.h>
-#include <tcl.h>
-#include <tk.h>
 
 typedef int		ttl_t;
 typedef u_int		fd_t;

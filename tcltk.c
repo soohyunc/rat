@@ -39,6 +39,8 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
+#include "tcl.h"
+#include "tk.h"
 #include "audio.h"
 #include "debug.h"
 #include "memory.h"
