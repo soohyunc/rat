@@ -291,12 +291,11 @@ int main(int argc, char *argv[])
 
 	settings_save(sp);
 	tx_stop(sp->tb);
-        pdb_destroy(&sp->pdb);
 	if (sp->in_file  != NULL) snd_read_close (&sp->in_file);
 	if (sp->out_file != NULL) snd_write_close(&sp->out_file);
 	audio_device_release(sp, sp->audio_device);
+        pdb_destroy(&sp->pdb);
 	network_process_mbus(sp);
-
 
 	mbus_exit(sp->mbus_engine);
         sp->mbus_engine = NULL;
