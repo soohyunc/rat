@@ -159,7 +159,7 @@ void
 ui_update_stats(session_t *sp, u_int32 ssrc)
 {
         const rtcp_rr           *rr;
-        u_int32                  fract_lost, my_ssrc;
+        u_int32                  fract_lost, my_ssrc, total_lost;
 	char			*args, *mbes;
         struct s_source      	*src;
         u_int32               	 buffered, delay;
@@ -184,7 +184,6 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
         }
 
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.codec", args, FALSE);
-
         xfree(args);
 
         src = source_get_by_ssrc(sp->active_sources, pdbe->ssrc);
@@ -202,14 +201,17 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", pdbe->ssrc, delay);
 
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
-        rr = rtp_get_rr(sp->rtp_session[0], pdbe->ssrc, my_ssrc);
+        rr = rtp_get_rr(sp->rtp_session[0], my_ssrc, pdbe->ssrc);
         if (rr != NULL) {
                 fract_lost = (rr->fract_lost * 100) >> 8;
+                total_lost = rr->total_lost;
         } else {
+                debug_msg("No rr\n");
                 fract_lost = 0;
+                total_lost = 0;
         }
         ui_update_loss(sp, my_ssrc, pdbe->ssrc, fract_lost);
-        ui_update_reception(sp, pdbe->ssrc, pdbe->received, 0, 
+        ui_update_reception(sp, pdbe->ssrc, pdbe->received, total_lost,
                             pdbe->misordered, pdbe->duplicates, 
                             ts_to_ms(pdbe->jitter), pdbe->jit_toged);
         ui_update_duration(sp, pdbe->ssrc, pdbe->inter_pkt_gap * 1000 / get_freq(pdbe->clock));
@@ -601,7 +603,7 @@ ui_devices(session_t *sp)
 static void
 ui_device(session_t *sp)
 {
-        const audio_device_details_t *add;
+        const audio_device_details_t *add = NULL;
         char                         *mbes;
         u_int32                       i, n;
 
