@@ -294,7 +294,7 @@ static void APCM_quantization(
 	temp = exp + 5;
 
 	assert(temp <= 11 && temp >= 0);
-	xmaxc = gsm_add((word) SASR(xmax, temp), (word) 3 );
+	xmaxc = gsm_add((word) SASR(xmax, temp), (word) exp << 3 );
 
 	/*   Quantizing and coding of the xM[0..12] RPE sequence
 	 *   to get the xMc[0..12]
