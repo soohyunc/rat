@@ -383,11 +383,11 @@ network_read(session_struct    *sp,
 			if (FD_ISSET(sp->rtcp_fd, &rfds)) {
 				read_packets_and_add_to_queue(sp->rtcp_fd, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
 			}
-                        if (FD_ISSET(mbus_engine_fd(0), &rfds)) {
-     				mbus_recv(mbus_engine(0), (void *) sp);
+                        if (FD_ISSET(mbus_engine_fd(FALSE), &rfds)) {
+     				mbus_recv(mbus_engine(FALSE), (void *) sp);
      			}
-     			if (FD_ISSET(mbus_ui_fd(0), &rfds)) {
-     				mbus_recv(mbus_ui(0), (void *) sp);
+     			if (FD_ISSET(mbus_ui_fd(FALSE), &rfds)) {
+     				mbus_recv(mbus_ui(FALSE), (void *) sp);
      			}
 			if (sp->mbus_channel != 0) {
                         	if (FD_ISSET(mbus_engine_fd(TRUE), &rfds)) {
