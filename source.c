@@ -720,16 +720,22 @@ int
 source_add_packet (source     *src, 
                    rtp_packet *pckt)
 {
+        src->byte_count += pckt->data_len;
         return pktbuf_enqueue(src->pktbuf, pckt);
+}
 
-        /* Update b/w estimate */
-/*
+static void
+source_update_bps(source *src, ts_t now)
+{
         ts_t delta;
-        if (src->byte_count == 0) {
-                src->byte_count_start = playout;
+        if (!ts_valid(src->byte_count_start)) {
+                src->byte_count_start = now;
+                src->byte_count       = 0;
+                src->bps              = 0.0;
+                return;
         }
-        src->byte_count += ((rtp_packet*)pckt)->data_len;
-        delta = ts_sub(playout, src->byte_count_start);
+
+        delta = ts_sub(now, src->byte_count_start);
         
         if (ts_gt(delta, bw_avg_period)) {
                 double this_est;
@@ -737,11 +743,12 @@ source_add_packet (source     *src,
                 if (src->bps == 0.0) {
                         src->bps = this_est;
                 } else {
-                        src->bps += (this_est - src->bps)/8.0;
+                        src->bps += (this_est - src->bps)/2.0;
                 }
                 src->byte_count = 0;
+                src->byte_count_start = now;
+                debug_msg("bps %f\n", src->bps);
         }
-        */
 }
 
 double 
@@ -1070,7 +1077,6 @@ source_process(session_t *sp,
         u_int32     md_len, src_freq;
         ts_t        playout, step, cutoff;
         int         i, success, hold_repair = 0;
-        int         new_source = !ts_valid(src->last_played);
 
         /* Note: hold_repair is used to stop repair occuring.
          * Occasionally, there is a race condition when the playout
@@ -1231,9 +1237,7 @@ source_process(session_t *sp,
                 src->last_played = playout;
         }
 
-        if (new_source) {
-                debug_msg("New source has received %d packets\n", src->age);
-        }
+        source_update_bps(src, start_ts);
 
         UNUSED(i); /* Except for debugging */
         
@@ -1272,16 +1276,17 @@ source_relevant(source *src, ts_t now)
 {
         assert(src);
 
-        if (src->age < 50) {
+        if (pb_relevant(src->media, now) || pb_relevant(src->channel, now) || src->age < 50) {
                 return TRUE;
+        } if (ts_valid(src->last_played)) {
+                /* Source is quiescent                                     */
+                ts_t quiet;        
+                quiet = ts_sub(now, src->last_played);
+                if (ts_gt(keep_source_ts, quiet)) {
+                        return TRUE;
+                }
         }
-        
-        if (!ts_eq(source_get_audio_buffered(src), zero_ts) ||
-                ts_gt(ts_add(src->pdbe->last_arr, keep_source_ts), now)) {
-                return TRUE;
-        }
-        
-        return pb_relevant(src->media, now) || pb_relevant(src->channel, now);
+        return FALSE;
 }
 
 struct s_pb*
