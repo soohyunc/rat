@@ -20,17 +20,17 @@
 extern int should_exit;
 
 static char *wait_token;
-static int   wait_done;
+static char *wait_addr;
 
 void mbus_control_wait_init(char *token)
 {
 	wait_token = token;
-	wait_done  = FALSE;
+	wait_addr  = NULL;
 }
 
-int mbus_control_wait_done(void)
+char *mbus_control_wait_done(void)
 {
-	return wait_done;
+	return wait_addr;
 }
 
 static void rx_mbus_quit(char *srce, char *args, void *data)
@@ -52,12 +52,10 @@ static void rx_mbus_go(char *srce, char *args, void *data)
 	struct mbus *m = (struct mbus *) data;
 	char	*t;
 
-	UNUSED(srce);
-
 	mbus_parse_init(m, args);
 	mbus_parse_str(m, &t);
 	if (strcmp(mbus_decode_str(t), wait_token) == 0) {
-		wait_done = TRUE;
+		wait_addr = xstrdup(srce);
 	}
 	mbus_parse_done(m);
 }
