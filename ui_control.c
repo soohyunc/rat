@@ -99,7 +99,7 @@ void
 ui_info_update_cname(rtcp_dbentry *e)
 {
 	if (e->sentry->cname == NULL) return;
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.exists", xstrdup(mbus_encode_str(e->sentry->cname)), TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.exists", mbus_encode_str(e->sentry->cname), TRUE);
 }
 
 void
@@ -170,28 +170,28 @@ void
 ui_info_remove(rtcp_dbentry *e)
 {
 	if (e->sentry->cname == NULL) return;
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.remove", xstrdup(mbus_encode_str(e->sentry->cname)), TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.remove", mbus_encode_str(e->sentry->cname), TRUE);
 }
 
 void
 ui_info_activate(rtcp_dbentry *e)
 {
 	if (e->sentry->cname == NULL) return;
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.now", xstrdup(mbus_encode_str(e->sentry->cname)), FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.now", mbus_encode_str(e->sentry->cname), FALSE);
 }
 
 void
 ui_info_gray(rtcp_dbentry *e)
 {
 	if (e->sentry->cname == NULL) return;
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.recent", xstrdup(mbus_encode_str(e->sentry->cname)), FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.recent", mbus_encode_str(e->sentry->cname), FALSE);
 }
 
 void
 ui_info_deactivate(rtcp_dbentry *e)
 {
 	if (e->sentry->cname == NULL) return;
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.inactive", xstrdup(mbus_encode_str(e->sentry->cname)), FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.inactive", mbus_encode_str(e->sentry->cname), FALSE);
 }
 
 void
@@ -390,7 +390,7 @@ ui_update_primary(session_struct *sp)
 	codec_t *pcp;
 
 	pcp = get_codec(sp->encodings[0]);
-	mbus_engine_tx(TRUE, mbus_name_ui, "primary", xstrdup(mbus_encode_str(pcp->short_name)), FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "primary", mbus_encode_str(pcp->short_name), FALSE);
 }
 
 void
@@ -718,6 +718,7 @@ ui_title(session_struct *sp)
 	args = (char *) xmalloc(strlen(addr) + 11);
         sprintf(args, "%s %5d %3d", addr, sp->rtp_port, sp->ttl);
         mbus_engine_tx(TRUE, mbus_name_ui, "session.address", args, TRUE);
+	xfree(args);
 }
 
 void
