@@ -269,7 +269,7 @@ mix_put_audio(mixer_t     *ms,
                              ms->buf_len - pos); 
                 xmemchk();
                 audio_mix_fn(ms->mix_buffer, 
-                             samples + (ms->buf_len - pos) * ms->info.channels, 
+                             samples + (ms->buf_len - pos), 
                              pos + nsamples - ms->buf_len); 
                 xmemchk();
         } else { 

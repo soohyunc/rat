@@ -1142,6 +1142,7 @@ v4.1.7	- Update ALSA detection in configure script
   	  mbus messages.
 	- Add audio clip support to balloon help.
 	- Tidied mixer interface and cleaned session_struct out.
+	- Fix mixer wrap handling for multi-channel.
 
 TODO -- They're features not bugs dammit!
 ----
