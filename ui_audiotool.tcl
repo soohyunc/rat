@@ -689,9 +689,12 @@ proc mbus_recv_rtp.source.exists {ssrc} {
 }
 
 proc mbus_recv_rtp.source.cname {ssrc cname} {
-	global CNAME
+	global CNAME NAME SSRC
 	init_source $ssrc
 	set CNAME($ssrc) $cname
+	if {[string compare $NAME($ssrc) $SSRC($ssrc)] == 0} {
+		set NAME($ssrc) $cname
+	}
 	chart_label $ssrc
 	ssrc_update $ssrc
 }
