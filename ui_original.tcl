@@ -37,19 +37,22 @@
 
 option add *background 			gray80 		widgetDefault
 option add *foreground 			black 		widgetDefault
-option add *activeBackground 		gray85 		widgetDefault
 option add *selectBackground 		gray85 		widgetDefault
 option add *Scale.sliderForeground 	gray80 		widgetDefault
 option add *Scale.activeForeground 	gray85 		widgetDefault
 option add *Scale.background 		gray80		widgetDefault
 option add *Entry.background 		gray70 		widgetDefault
+option add *Entry.relief                sunken          widgetDefault
+option add *Text.background             gray70          widgetDefault
 option add *Menu*selectColor 		forestgreen 	widgetDefault
 option add *Radiobutton*selectColor 	forestgreen 	widgetDefault
 option add *Checkbutton*selectColor 	forestgreen 	widgetDefault
 option add *borderWidth 		1 
-option add *highlightthickness		0
+option add *highlightThickness		0
+option add *activeBackground            grey80          widgetDefault
+option add *activeForeground            black           widgetDefault
 option add *padx			0
-option add *padx			0
+option add *pady			0
 
 set statsfont     -*-courier-medium-r-*-*-12-*-*-*-*-*-iso8859-1
 set titlefont     -*-helvetica-medium-r-normal--14-*-p-*-iso8859-1
@@ -107,25 +110,22 @@ proc window_stats {cname} {
 }
 
 # Commands to send message over the conference bus...
-proc toggle_play {} {
-  mbus_send "R" "toggle_play" ""
-  if {[string compare [.r.c.vol.t1 cget -relief] raised] == 0} {
-    .r.c.vol.t1 configure -relief sunken
-  } else {
-    .r.c.vol.t1 configure -relief raised
-  }
+proc output_mute {state} {
+    mbus_send "R" "output_mute" "$state"
+    if {$state} {
+	.r.c.vol.t1 configure -relief sunken
+    } else {
+	.r.c.vol.t1 configure -relief raised
+    }
 }
 
-proc toggle_send {} {
-  mbus_send "R" "toggle_send" ""
-}
-
-proc redundancy {coding} {
-  mbus_send "R" "redundancy" "[mbus_encode_str $coding]"
-}
-
-proc primary {coding} {
-  mbus_send "R" "primary" "[mbus_encode_str $coding]"
+proc input_mute {state} {
+    mbus_send "R" "input_mute" "$state"
+    if {$state} {
+	.r.c.gain.t2 configure -relief sunken
+    } else {
+	.r.c.gain.t2 configure -relief raised
+    }
 }
 
 proc set_vol {volume} {
@@ -142,46 +142,6 @@ proc toggle_input_port {} {
 
 proc toggle_output_port {} {
   mbus_send "R" "toggle_output_port" ""
-}
-
-proc silence {s} {
-  mbus_send "R" "silence" "$s"
-}
-
-proc lecture {l} {
-  mbus_send "R" "lecture" "$l"
-}
-
-proc sync {s} {
-  mbus_send "R" "sync" "$s"
-}
-
-proc agc {a} {
-  mbus_send "R" "agc" "$a"
-}
-
-proc repair {r} {
-  mbus_send "R" "repair" "$r"
-}
-
-proc powermeter {pm} {
-  mbus_send "R" "powermeter" "$pm"
-}
-
-proc rate {r} {
-  mbus_send "R" "rate" "$r"
-}
-
-proc InstallKey {key} {
-  mbus_send "R" "update_key" "[mbus_encode_str $key]"
-}
-
-proc play {file} {
-  mbus_send "R" "play_file" "[mbus_encode_str $file]"
-}
-
-proc rec {file} {
-  mbus_send "R" "rec_file" "[mbus_encode_str $file]"
 }
 
 # 
@@ -205,8 +165,29 @@ proc mbus_recv_init {} {
 	# Perform any last minute initialisation...
 }
 
+proc mbus_recv_settings {} {
+    # dumps all settings
+    sync_engine_to_ui
+}
+
+proc mbus_recv_load_settings {} {
+    load_settings
+    check_rtcp_name
+    sync_engine_to_ui
+    sync_ui_to_engine
+}
+
 proc mbus_recv_codec_supported {args} {
-	# We now have a list of codecs which this RAT supports...
+    # We now have a list of codecs which this RAT supports...
+    set codecs [split $args]
+    foreach c $codecs {
+	.prefs.pane.transmission.dd.pri.m.menu     add command -label $c -command "set prenc $c; validate_red_codecs"
+	.prefs.pane.transmission.cc.red.fc.mb.menu add command -label $c -command "set secenc $c"
+    }    
+}
+
+proc mbus_recv_settings {args} {
+    sync_engine_2_ui
 }
 
 proc mbus_recv_agc {args} {
@@ -222,6 +203,11 @@ proc mbus_recv_sync {args} {
 proc mbus_recv_primary {args} {
   global prenc
   set prenc $args
+}
+
+proc mbus_recv_rate {args} {
+    global upp
+    set upp $args
 }
 
 proc mbus_recv_redundancy {args} {
@@ -247,15 +233,19 @@ proc mbus_recv_input_gain {gain} {
 }
 
 proc mbus_recv_input_port {device} {
+	global input_port
+	set input_port $device
 	.r.c.gain.l2 configure -bitmap $device
 }
 
 proc mbus_recv_input_mute {val} {
-	if {$val} {
-		.r.c.gain.t2 configure -relief sunken
-	} else {
-		.r.c.gain.t2 configure -relief raised
-	}
+    global in_mute_var
+    set in_mute_var $val
+    if {$val} {
+	.r.c.gain.t2 configure -relief sunken
+    } else {
+	.r.c.gain.t2 configure -relief raised
+    }
 }
 
 proc mbus_recv_output_gain {gain} {
@@ -263,15 +253,19 @@ proc mbus_recv_output_gain {gain} {
 }
 
 proc mbus_recv_output_port {device} {
+	global output_port
+	set output_port $device
 	.r.c.vol.l1 configure -bitmap $device
 }
 
 proc mbus_recv_output_mute {val} {
-	if {$val} {
-		.r.c.vol.t1 configure -relief sunken
-	} else {
-		.r.c.vol.t1 configure -relief raised
-	}
+    global out_mute_var
+    set out_mute_var $val
+    if {$val} {
+	.r.c.vol.t1 configure -relief sunken
+    } else {
+	.r.c.vol.t1 configure -relief raised
+    }
 }
 
 proc mbus_recv_half_duplex {} {
@@ -288,7 +282,7 @@ proc mbus_recv_debug {} {
 }
 
 proc mbus_recv_address {addr port ttl} {
-	.b.a.address configure -text "Dest: $addr  Port: $port  TTL: $ttl"
+
 }
 
 proc mbus_recv_lecture_mode {mode} {
@@ -590,24 +584,6 @@ proc bargraphSetHeight {bgraph height} {
 	set oh $height
 }
 
-#dropdown list
-proc dropdown {w varName command args} {
-
-    global $varName 
-    set firstValue [lindex $args 0]
-
-    if ![info exists $varName] {
-	set $varName $firstValue
-    }
-
-    menubutton $w -textvariable var -indicatoron 0 -menu $w.menu -text $firstValue -textvariable $varName -relief raised 
-    menu $w.menu -tearoff 0
-    foreach i $args {
-	$w.menu add radiobutton -variable $varName -label $i -value $i -command "$command [lindex $i 0]" 
-    }
-    return $w.menu
-}
-
 proc toggle_mute {cw cname} {
 	global iht
 	if {[$cw gettags a] == ""} {
@@ -697,9 +673,9 @@ canvas .l.t.list -highlightthickness 0 -bd 0 -relief raised -width $iwd -yscroll
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 frame  .l.s1 -bd 0
-button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options" -command {wm deiconify .b}
+button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options" -command {wm deiconify .prefs}
 button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"   -command {wm deiconify .about}
-button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"    -command {destroy .}
+button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"    -command {save_settings; destroy .}
 frame  .l.s2 -bd 0
 button .l.s2.stats -highlightthickness 0 -padx 0 -pady 0 -text "Reception Quality" -command {wm deiconify .chart}
 button .l.s2.audio -highlightthickness 0 -padx 0 -pady 0 -text "Get Audio"         -command {mbus_send "R" "get_audio" ""}
@@ -723,7 +699,9 @@ pack .l.t.list -side left -fill both -expand 1
 bind .l.t.list <Configure> {fix_scrollbar}
 
 # Device output controls
-button .r.c.vol.t1 -highlightthickness 0 -padx 0 -pady 0 -text mute -command toggle_play 
+set out_mute_var 0
+button .r.c.vol.t1 -highlightthickness 0 -padx 0 -pady 0 -text mute -command "output_mute [expr !$out_mute_var]"
+set output_port "speaker"
 button .r.c.vol.l1 -highlightthickness 0 -padx 0 -pady 0 -command toggle_output_port -bitmap "speaker"
 bargraphCreate .r.c.vol.b1
 scale .r.c.vol.s1 -highlightthickness 0 -font $verysmallfont -from 99 -to 0 -command set_vol -orient vertical -relief raised 
@@ -734,7 +712,9 @@ pack .r.c.vol.b1 -side left -fill y
 pack .r.c.vol.s1 -side right -fill y
 
 # Device input controls
-button .r.c.gain.t2 -highlightthickness 0 -padx 0 -pady 0 -text mute -command toggle_send -relief sunken
+set in_mute_var 1
+button .r.c.gain.t2 -highlightthickness 0 -padx 0 -pady 0 -text mute -relief sunken -command "input_mute [expr !$in_mute_var]"
+set input_port "microphone"
 button .r.c.gain.l2 -highlightthickness 0 -padx 0 -pady 0 -command toggle_input_port -bitmap "microphone_mute"
 bargraphCreate .r.c.gain.b2
 scale .r.c.gain.s2 -highlightthickness 0 -font $verysmallfont -from 99 -to 0 -command set_gain -orient vertical -relief raised 
@@ -781,163 +761,6 @@ if ([info exists geometry]) {
         wm geometry . $geometry
 }
 
-# Initialise CONTROL toplevel window
-toplevel .b
-wm withdraw .b
-
-set rate_var 	"40 ms"
-set output_var 	"Full duplex"
-set redun 	0
-set sync_var 	0
-set meter_var	1
-
-frame .b.f
-pack .b.f -side top -fill x
-
-# packet format options
-frame .b.f.pkt 
-pack  .b.f.pkt -side top -fill both -expand 1
-label .b.f.pkt.l -highlightthickness 0 -text "Packet Format"
-pack  .b.f.pkt.l
-# length
-frame .b.f.pkt.len -relief sunken
-pack  .b.f.pkt.len -side left -fill x
-label .b.f.pkt.len.l -highlightthickness 0 -justify left -text  "Duration"
-pack  .b.f.pkt.len.l -side top -fill both -expand 1
-dropdown .b.f.pkt.len.dl rate_var rate "20 ms" "40 ms" "80 ms"  "160 ms"
-pack     .b.f.pkt.len.dl -side left -fill x -expand 1
-# primary
-frame .b.f.pkt.pr -relief sunken
-pack  .b.f.pkt.pr -side left -fill x
-label .b.f.pkt.pr.l -highlightthickness 0 -justify left -text  "Primary Encoding"
-pack  .b.f.pkt.pr.l -side top -fill both -expand 1
-dropdown .b.f.pkt.pr.dl prenc primary WBS-16K-MONO L16-8K-MONO PCMU-8K-MONO PCMA-8K-MONO DVI-8K-MONO GSM-8K-MONO LPC-8K-MONO
-pack  .b.f.pkt.pr.dl -side left -fill x -expand 1
-
-# secondary
-frame .b.f.pkt.sec -relief sunken
-pack  .b.f.pkt.sec -side left -fill x
-label .b.f.pkt.sec.l -highlightthickness 0 -justify left -text  "Redundant Encoding"
-pack  .b.f.pkt.sec.l -side top -fill both -expand 1
-dropdown .b.f.pkt.sec.dl secenc redundancy NONE PCMU-8K-MONO PCMA-8K-MONO DVI-8K-MONO LPC-8K-MONO
-pack  .b.f.pkt.sec.dl -side left -fill x -expand 1
-
-# Local Options
-frame .b.f.loc
-pack  .b.f.loc -side top -fill both -expand 1
-label .b.f.loc.l -highlightthickness 0 -text "Local Options"
-pack  .b.f.loc.l -side top -fill x -expand 1
-
-# Mode
-
-frame .b.f.loc.mode -relief sunken -width 500
-pack  .b.f.loc.mode -side left -fill x -expand 0
-label .b.f.loc.mode.l -highlightthickness 0 -justify left -text  "Mode                "
-pack  .b.f.loc.mode.l -side top -expand 1 -anchor w
-dropdown .b.f.loc.mode.dl output_var output "Net mutes mike" "Mike mutes net" "Full duplex"
-pack  .b.f.loc.mode.dl -side left -fill x -expand 1
-
-# Receiver Repair Options
-frame .b.f.loc.rep -relief sunken
-pack  .b.f.loc.rep -side left  -fill x -expand 1
-label .b.f.loc.rep.l -highlightthickness 0 -justify left -text "Loss Repair"
-pack  .b.f.loc.rep.l -side top -expand 1 -anchor w
-dropdown .b.f.loc.rep.dl repair_var repair None "PacketRepetition" "PatternMatching"
-pack  .b.f.loc.rep.dl -side left -fill x -expand 1
-
-# Misc controls
-frame .b.f2 -bd 0
-pack .b.f2 -side top -fill x
-
-# Generic toggles
-frame .b.f2.l -relief sunken 
-pack  .b.f2.l -side left -expand 1 -fill both
-frame .b.f2.r -relief sunken 
-pack  .b.f2.r -side left -expand 1 -fill both
-checkbutton .b.f2.l.sil   -anchor w -highlightthickness 0 -relief flat -text "Suppress Silence"       -variable silence_var -command {silence    $silence_var}
-checkbutton .b.f2.l.meter -anchor w -highlightthickness 0 -relief flat -text "Powermeters"            -variable meter_var   -command {powermeter $meter_var}
-checkbutton .b.f2.l.lec   -anchor w -highlightthickness 0 -relief flat -text "Lecture Mode"           -variable lecture_var -command {lecture    $lecture_var}
-checkbutton .b.f2.r.agc   -anchor w -highlightthickness 0 -relief flat -text "Automatic Gain Control" -variable agc_var     -command {agc        $agc_var}
-checkbutton .b.f2.r.syn   -anchor w -highlightthickness 0 -relief flat -text "Video Synchronisation"  -variable sync_var    -command {sync       $sync_var}
-checkbutton .b.f2.r.help  -anchor w -highlightthickness 0 -relief flat -text "Balloon Help"           -variable help_on     -command {savename} -state active
-
-pack .b.f2.l.sil   -side top -fill x -expand 1
-pack .b.f2.l.meter -side top -fill x -expand 1
-pack .b.f2.l.lec   -side top -fill x -expand 0
-pack .b.f2.r.syn   -side top -fill x -expand 0
-pack .b.f2.r.agc   -side top -fill x -expand 1
-pack .b.f2.r.help  -side top -fill x -expand 0
-
-#Session Key
-frame .b.crypt -bd 0
-pack  .b.crypt -side top -fill x -expand 1
-label .b.crypt.l -text Encryption 
-pack  .b.crypt.l
-
-label .b.crypt.kn -highlightthickness 0 -text "Key:"
-pack .b.crypt.kn -side left -fill x
-entry .b.crypt.name -highlightthickness 0 -width 20 -relief sunken -textvariable key
-bind .b.crypt.name <Return> {UpdateKey $key .b.crypt }
-bind .b.crypt.name <BackSpace> { CheckKeyErase $key .b.crypt }
-bind .b.crypt.name <Any-Key> { KeyEntryCheck $key .b.crypt "%A" }
-bind .b.crypt.name <Control-Key-h> { CheckKeyErase $key .b.crypt }
-pack .b.crypt.name -side left -fill x -expand 1
-
-checkbutton .b.crypt.enc -state disabled -highlightthickness 0 -relief flat -text "On/Off" -variable key_var -command {ToggleKey $key_var}
-pack .b.crypt.enc -side left -fill x 
-
-
-proc DisableSessionKey w {
-    global key_var
- 
-    set key_var 0
-    $w.enc configure -state disabled
-}
-
-proc EnableSessionKey w {
-    global key_var
-
-    $w.enc configure -state normal
-}
-
-proc KeyEntryCheck { key w key_val } {
-
-  if { $key_val != "{}" } {
-    if { [string length $key] == 0 } {
-	EnableSessionKey $w
-    }
-  }
-} 
-
-proc CheckKeyErase { key w } {
-
-  if { [string length $key] == 1 } {
-    UpdateKey "" $w 
-  }
-}
-
-proc UpdateKey { key w } {
-  global key_var
- 
-  if { $key == "" } {
-    DisableSessionKey $w
-  } else {
-    EnableSessionKey $w
-    set key_var 1
-  }
-  InstallKey $key
-}
-  
-proc ToggleKey { encrypt } {
-  global key 
-
-  if !($encrypt) {
-    InstallKey ""
-  } else {
-    InstallKey $key
-  }
-}
-
 set cryptpos [lsearch $argv "-crypt"]
 if {$cryptpos == -1} then {
   set key_var 0
@@ -946,96 +769,245 @@ if {$cryptpos == -1} then {
   UpdateKey [lindex $argv [expr $cryptpos + 1]] .b.crypt
 }
 
-# File options
-frame .b.f3
-pack .b.f3 -side top -fill x
+###############################################################################
+# Preferences Panel 
+#
 
-# Play
-set play_file infile.rat
-frame .b.f3.p -relief sunken 
-pack .b.f3.p -side left -fill both -expand 1
-label .b.f3.p.l -highlightthickness 0 -text "Play file"
-pack .b.f3.p.l -side top -fill x
-frame .b.f3.p.f -bd 0
-pack .b.f3.p.f -side top -fill x
-label .b.f3.p.f.l -highlightthickness 0 -text "File:"
-pack .b.f3.p.f.l -side left -fill x
-entry .b.f3.p.f.file -highlightthickness 0 -width 10 -relief sunken -textvariable play_file
-pack .b.f3.p.f.file -side right -fill x -expand 1
-frame .b.f3.p.f2 -bd 0
-pack .b.f3.p.f2 -side top -fill x
-button .b.f3.p.f2.on -padx 0 -pady 0 -highlightthickness 0 -text "Start" -command {play $play_file}
-pack .b.f3.p.f2.on -side left -fill x -expand 1
-button .b.f3.p.f2.off -padx 0 -pady 0 -highlightthickness 0 -text "Stop" -command {play stop}
-pack .b.f3.p.f2.off -side right -fill x -expand 1
+set pane "Personal"
+toplevel .prefs
+wm title .prefs "Preferences"
+wm resizable .prefs 0 0
+wm geometry  .prefs 372x272
+wm withdraw  .prefs
 
-# Record
-set rec_file outfile.rat
-frame .b.f3.r -relief sunken
-pack .b.f3.r -side right -fill both -expand 1
-label .b.f3.r.l -highlightthickness 0 -text "Record file"
-pack .b.f3.r.l -side top -fill x
-frame .b.f3.r.f -bd 0
-pack .b.f3.r.f -side top -fill x
-label .b.f3.r.f.l -highlightthickness 0 -text "File:"
-pack .b.f3.r.f.l -side left -fill x
-entry .b.f3.r.f.file -highlightthickness 0 -width 10 -relief sunken -textvariable rec_file
-pack .b.f3.r.f.file -side right -fill x -expand 1
-frame .b.f3.r.f2 -bd 0
-pack .b.f3.r.f2 -side top -fill x
-button .b.f3.r.f2.on -padx 0 -pady 0 -highlightthickness 0 -text "Start" -command {rec $rec_file}
-pack .b.f3.r.f2.on -side left -fill x -expand 1
-button .b.f3.r.f2.off -padx 0 -pady 0 -highlightthickness 0 -text "Stop" -command {rec stop}
-pack .b.f3.r.f2.off -side right -fill x -expand 1
+frame .prefs.m
+pack .prefs.m -side top -fill x -expand 0 -padx 2 -pady 2
+frame .prefs.m.f 
+pack .prefs.m.f -padx 0 -pady 0 
+label .prefs.m.f.t -text "Category: "
+pack .prefs.m.f.t -pady 2 -side left
+menubutton .prefs.m.f.mb -menu .prefs.m.f.mb.menu -indicatoron 1 -textvariable pane -relief raised -width 14
+pack .prefs.m.f.mb -side top
+menu .prefs.m.f.mb.menu -tearoff 0
+.prefs.m.f.mb.menu add command -label "Personal"     -command {set_pane "Personal"}
+.prefs.m.f.mb.menu add command -label "Transmission" -command {set_pane "Transmission"}
+.prefs.m.f.mb.menu add command -label "Reception"    -command {set_pane "Reception"}
+.prefs.m.f.mb.menu add command -label "Security"     -command {set_pane "Security"}
+.prefs.m.f.mb.menu add command -label "Interface"    -command {set_pane "Interface"}
 
-# Address...
-frame .b.a -relief sunken
-pack  .b.a -side top -fill x
-label .b.a.l -highlightthickness 0 -text "RTP Configuration"
-pack  .b.a.l -side top
-label .b.a.address -highlightthickness 0 -text "Address: Port: TTL:"
-pack  .b.a.address -side top -fill x
-frame .b.a.rn -bd 0
-pack  .b.a.rn -side top -fill x
-entry .b.a.rn.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_name
-bind  .b.a.rn.name <Return> {mbus_send "R" "source_name" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_name]"; savename}
-bind  .b.a.rn.name <Tab>    {mbus_send "R" "source_name" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_name]"; savename}
-pack  .b.a.rn.name -side right -fill x 
-label .b.a.rn.l -highlightthickness 0 -text "Name:"
-pack  .b.a.rn.l -side left -fill x -expand 1
-frame .b.a.re -bd 0
-pack  .b.a.re -side top -fill x
-entry .b.a.re.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_email
-bind  .b.a.re.name <Return> {mbus_send "R" "source_email" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_email]"; savename}
-bind  .b.a.re.name <Tab>    {mbus_send "R" "source_email" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_email]"; savename}
-pack  .b.a.re.name -side right -fill x
-label .b.a.re.l -highlightthickness 0 -text "Email:"
-pack  .b.a.re.l -side left -fill x -expand 1
-frame .b.a.rp -bd 0
-pack  .b.a.rp -side top -fill x
-entry .b.a.rp.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_phone
-bind  .b.a.rp.name <Return> {mbus_send "R" "source_phone" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_phone]"; savename}
-bind  .b.a.rp.name <Tab>    {mbus_send "R" "source_phone" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_phone]"; savename}
-pack  .b.a.rp.name -side right -fill x
-label .b.a.rp.l -highlightthickness 0 -text "Phone:"
-pack  .b.a.rp.l -side left -fill x -expand 1
-frame .b.a.rl -bd 0
-pack  .b.a.rl -side top -fill x
-entry .b.a.rl.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_loc
-bind  .b.a.rl.name <Return> {mbus_send "R" "source_loc" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_loc]"; savename}
-bind  .b.a.rl.name <Tab>    {mbus_send "R" "source_loc" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_loc]"; savename}
-pack  .b.a.rl.name -side right -fill x
-label .b.a.rl.l -highlightthickness 0 -text "Location:"
-pack  .b.a.rl.l -side left -fill x -expand 1
+frame  .prefs.buttons
+pack   .prefs.buttons       -side bottom -fill x 
+button .prefs.buttons.bye   -text "Cancel" -command {sync_ui_to_engine} 
+button .prefs.buttons.apply -text "Apply"  -command {sync_engine_to_ui}
+button .prefs.buttons.save  -text "OK"     -command {save_settings; wm withdraw .prefs}
+pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side left -fill x -expand 1
 
-label .b.rat -bitmap rat2 -relief sunken
-pack .b.rat -fill x -expand 1
+frame .prefs.pane -relief sunken
+pack  .prefs.pane -side left -fill both -expand 1 -padx 4 -pady 2
 
-button .b.d -highlightthickness 0 -padx 0 -pady 0 -text "Dismiss" -command "wm withdraw .b"
-pack .b.d -side bottom -fill x
+# Personal Info Pane
+set i .prefs.pane.personal
+frame $i
+pack $i -fill both -expand 1 -pady 2 -padx 2
 
-wm title .b "RAT controls"
-wm resizable .b 0 0
+frame $i.a -relief sunken 
+frame $i.a.f 
+pack $i.a -side top -fill both -expand 1 
+pack $i.a.f -side left -fill x -expand 1
+
+frame $i.a.f.f 
+pack $i.a.f.f
+
+label $i.a.f.f.l -width 40 -height 2 -text "The personal details below are conveyed\nto the other conference participants." -justify left -anchor w
+pack $i.a.f.f.l -side top -anchor w -fill x
+
+frame $i.a.f.f.lbls
+frame $i.a.f.f.ents
+pack  $i.a.f.f.lbls -side left -fill y
+pack  $i.a.f.f.ents -side right
+
+label $i.a.f.f.lbls.name  -text "Name:"     -anchor w
+label $i.a.f.f.lbls.email -text "Email:"    -anchor w
+label $i.a.f.f.lbls.phone -text "Phone:"    -anchor w
+label $i.a.f.f.lbls.loc   -text "Location:" -anchor w
+label $i.a.f.f.lbls.note  -text "Note:"     -anchor w
+pack $i.a.f.f.lbls.name $i.a.f.f.lbls.email $i.a.f.f.lbls.phone $i.a.f.f.lbls.loc $i.a.f.f.lbls.note -fill x -anchor w -side top
+
+entry $i.a.f.f.ents.name  -width 28 -highlightthickness 0 -textvariable rtcp_name
+entry $i.a.f.f.ents.email -width 28 -highlightthickness 0 -textvariable rtcp_email
+entry $i.a.f.f.ents.phone -width 28 -highlightthickness 0 -textvariable rtcp_phone
+entry $i.a.f.f.ents.loc   -width 28 -highlightthickness 0 -textvariable rtcp_loc
+text $i.a.f.f.ents.note   -width 28 -highlightthickness 0 -height 2 
+pack $i.a.f.f.ents.name $i.a.f.f.ents.email $i.a.f.f.ents.phone $i.a.f.f.ents.loc $i.a.f.f.ents.note  -anchor n -expand 0 
+
+# Transmission Pane ###########################################################
+set i .prefs.pane.transmission
+frame $i 
+frame $i.dd  -relief sunken
+frame $i.cc  -relief sunken
+frame $i.cc.van 
+frame $i.cc.red 
+frame $i.cc.int 
+frame $i.cks -relief sunken
+pack $i.dd -fill x
+pack $i.cc $i.cc.van $i.cc.red -fill x -anchor w -pady 1
+pack $i.cc.int -fill x -anchor w -pady 0
+pack $i.cks -fill both -expand 1 -anchor w -pady 1
+
+# transmission menus
+frame $i.dd.mode 
+pack $i.dd.mode -side left -fill x -expand 1
+label $i.dd.mode.lbl -text "Mode:"
+menubutton $i.dd.mode.m -menu $i.dd.mode.m.menu -textvariable output_var  -relief raised -relief raised -indicatoron 1
+pack $i.dd.mode.lbl $i.dd.mode.m -side top -fill x -expand 1
+menu $i.dd.mode.m.menu -tearoff 0
+$i.dd.mode.m.menu add command -label "Full duplex"    -command {set output_var "Full duplex"}
+$i.dd.mode.m.menu add command -label "Net mutes mike" -command {set output_var "Net mutes mike"}
+$i.dd.mode.m.menu add command -label "Mike mutes net" -command {set output_var "Mike mutes net"}
+
+frame $i.dd.pri
+pack $i.dd.pri -side left
+label $i.dd.pri.l -text "Encoding:"
+menubutton $i.dd.pri.m -menu $i.dd.pri.m.menu -indicatoron 1 -textvariable prenc -relief raised -width 13
+pack $i.dd.pri.l $i.dd.pri.m -side top
+# fill in codecs 
+menu $i.dd.pri.m.menu -tearoff 0
+
+frame $i.dd.units
+pack $i.dd.units -side left -fill x
+label $i.dd.units.l -text "Units Per Pckt:"
+tk_optionMenu $i.dd.units.m upp 1 2 4 8
+$i.dd.units.m configure -width 13 -highlightthickness 0 -bd 1
+pack $i.dd.units.l $i.dd.units.m -side top -fill x
+
+radiobutton $i.cc.van.rb -value 0 -variable channel -text "No Loss Protection" -justify right -value "None" -variable channel_var
+radiobutton $i.cc.red.rb -value 1 -variable channel -text "Redundant" -justify right -value "Redundant" -variable channel_var 
+frame $i.cc.red.fc 
+label $i.cc.red.fc.l -text "Encoding:"
+menubutton $i.cc.red.fc.mb -textvariable secenc -indicatoron 1 -menu $i.cc.red.fc.mb.menu -relief raised -width 13
+menu $i.cc.red.fc.mb.menu -tearoff 0
+
+radiobutton $i.cc.int.rb -value 2 -variable channel -text "Interleaved" -value Interleaved -variable channel_var
+
+pack $i.cc.van.rb $i.cc.red.rb $i.cc.int.rb -side left -anchor nw -padx 2
+
+frame $i.cc.red.u 
+label $i.cc.red.u.l -text "Offset in Pkts:"
+tk_optionMenu $i.cc.red.u.mb red_off "1" "2" "4" "8" 
+$i.cc.red.u.mb configure -width 13 -highlightthickness 0 -bd 1 
+pack $i.cc.red.u -side right -anchor e -fill y 
+pack $i.cc.red.u.l $i.cc.red.u.mb -fill x 
+pack $i.cc.red.fc -side right
+pack $i.cc.red.fc.l $i.cc.red.fc.mb 
+
+frame $i.cc.int.fc
+
+label $i.cc.int.fc.l -text "Separation:"
+tk_optionMenu $i.cc.int.fc.mb int_gap 4 8 12
+$i.cc.int.fc.mb configure -width 13 -highlightthickness 0 -bd 1
+
+pack $i.cc.int.fc -side right
+pack $i.cc.int.fc.l $i.cc.int.fc.mb -fill x -expand 1
+
+frame $i.cks.f
+checkbutton $i.cks.f.silence -text "Silence Suppression   " -variable silence_var
+checkbutton $i.cks.f.agc     -text "Automatic Gain Control" -variable agc_var
+pack $i.cks.f -fill x -expand 1
+pack $i.cks.f.silence $i.cks.f.agc -fill x -side top
+
+# Reception Pane ##############################################################
+set i .prefs.pane.reception
+frame $i 
+frame $i.r -relief sunken
+frame $i.o -relief sunken
+frame $i.c -relief sunken
+pack $i.r -side top -fill x -pady 0 -ipady 1
+pack $i.o -side top -fill both  -pady 1
+pack $i.c -side top -fill both  -pady 1 -expand 1
+label $i.r.l -text "Repair Scheme:"
+set repair "Packet Repetition"
+menubutton $i.r.mb -menu $i.r.mb.menu -indicatoron 1 -relief raised -textvariable repair -width 18
+menu $i.r.mb.menu -tearoff 0
+$i.r.mb.menu add command -label "None" -command {set repair_var "None"}
+$i.r.mb.menu add command -label "Packet Repetition" -command {set repair_var "Packet Repetition"}
+$i.r.mb.menu add command -label "Pattern Matching" -command {set repair_var "Pattern Matching"}
+pack $i.r.l $i.r.mb -side top 
+
+frame $i.o.f 
+label $i.o.f.l1 -text "Minimum Playout Delay (ms)" 
+scale       $i.o.f.scmin -orient horizontal -from 0 -to 1000    -variable min_var
+label $i.o.f.l2 -text "Maximum Playout Delay (ms)"            
+scale       $i.o.f.scmax -orient horizontal -from 1000 -to 2000 -variable max_var
+pack $i.o.f 
+pack $i.o.f.l1 $i.o.f.scmin $i.o.f.l2 $i.o.f.scmax -side top -fill x -expand 1
+
+frame $i.c.f 
+frame $i.c.f.f 
+checkbutton $i.c.f.f.lec -text "Lecture Mode" -variable lecture_var
+checkbutton $i.c.f.f.fmt -text "Sample Rate and Channel Conversion" -variable convert_var
+
+pack $i.c.f -fill x -side left -expand 1
+pack $i.c.f.f 
+pack $i.c.f.f.fmt $i.c.f.f.lec -side top  -anchor w
+
+# Security Pane ###############################################################
+set i .prefs.pane.security
+frame $i 
+frame $i.a -relief sunken
+frame $i.a.f 
+frame $i.a.f.f
+label $i.a.f.f.l -anchor w -justify left -text "You communication can be secured with triple\nDES encryption.  Only conference participants\nwith the same key can receive audio data when\nencryption is enabled."
+pack $i.a.f.f.l
+pack $i.a -side top -fill both -expand 1 
+label $i.a.f.f.lbl -text "Key:"
+entry $i.a.f.f.e -width 28 -textvariable key
+checkbutton $i.a.f.f.cb -text "Enabled" -variable key_var
+pack $i.a.f -fill x -side left -expand 1
+pack $i.a.f.f
+pack $i.a.f.f.lbl $i.a.f.f.e $i.a.f.f.cb -side left -pady 4 -padx 2 -fill x
+
+# Interface Pane ##############################################################
+set i .prefs.pane.interface
+frame $i 
+frame $i.a -relief sunken 
+frame $i.a.f 
+frame $i.a.f.f
+label $i.a.f.f.l -anchor w -justify left -text "The following features maybe\ndisabled to conserve processing\npower."
+pack $i.a -side top -fill both -expand 1 
+pack $i.a.f -fill x -side left -expand 1
+checkbutton $i.a.f.f.power -text "Powermeters active"    -variable meter_var
+checkbutton $i.a.f.f.video -text "Video synchronization" -variable sync_var
+checkbutton $i.a.f.f.balloon -text "Balloon help"        -variable help_on
+pack $i.a.f.f $i.a.f.f.l
+pack $i.a.f.f.power $i.a.f.f.video $i.a.f.f.balloon -side top -anchor w 
+
+proc set_pane {name} {
+    global pane
+    set tpane [string tolower $pane]
+    pack forget .prefs.pane.$tpane
+    set tpane [string tolower $name]
+    pack .prefs.pane.$tpane -fill both -expand 1 -padx 2 -pady 2
+    set pane $name
+}
+
+proc validate_red_codecs {} {
+    # logic assumes codecs are sorted by b/w in menus
+    global prenc secenc
+
+    set pri [.prefs.pane.transmission.dd.pri.m.menu index $prenc]
+    set sec [.prefs.pane.transmission.cc.red.fc.mb.menu index $secenc]
+
+    if {$sec <= $pri} {
+	for {set i 0} {$i < $pri} {incr i} {
+	    .prefs.pane.transmission.cc.red.fc.mb.menu entryconfigure $i -state disabled
+	}
+	set secenc $prenc
+    } else {
+	for {set i $pri} {$i < $sec} {incr i} {
+	    .prefs.pane.transmission.cc.red.fc.mb.menu entryconfigure $i -state normal
+	}
+    }
+}
 
 # Initialise "About..." toplevel window
 toplevel  .about
@@ -1123,83 +1095,239 @@ Encryption features of this software use the RSA Data
 Security, Inc. MD5 Message-Digest Algorithm.
 }
 
+proc sync_ui_to_engine {} {
+    # the next time the display is shown, it needs to reflect the
+    # state of the audio engine.
+    mbus_send "R" "settings" ""
+}
+
+proc sync_engine_to_ui {} {
+    # make audio engine concur with ui
+    global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc output_var 
+    global prenc upp channel_var secenc red_off int_gap silence_var agc_var 
+    global repair_var min_var max_var lecture_var convert_var key key_var 
+    global meter_var sync_var gain volume input_port output_port 
+    global in_mute_var out_mute_var
+
+    set my_cname_enc [mbus_encode_str $my_cname]
+    #rtcp details
+    mbus_send "R" "source_name"  "$my_cname_enc [mbus_encode_str $rtcp_name]"
+    mbus_send "R" "source_email" "$my_cname_enc [mbus_encode_str $rtcp_email]"
+    mbus_send "R" "source_phone" "$my_cname_enc [mbus_encode_str $rtcp_phone]"
+    mbus_send "R" "source_loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
+    #--- note!
+    
+    #transmission details
+    mbus_send "R" "output_mode"  [mbus_encode_str $output_var]
+    mbus_send "R" "primary"      [mbus_encode_str $prenc]
+    mbus_send "R" "rate"         $upp
+    mbus_send "R" "channel_code" [mbus_encode_str $channel_var]
+    mbus_send "R" "redundancy"   [mbus_encode_str $secenc]
+    mbus_send "R" "red_offset"   $red_off
+    mbus_send "R" "int_gap"      $int_gap
+    mbus_send "R" "silence"      $silence_var
+    mbus_send "R" "agc"          $agc_var
+
+    #Reception Options
+    mbus_send "R" "repair"       [mbus_encode_str $repair_var]
+    mbus_send "R" "min_playout"  $min_var
+    mbus_send "R" "max_playout"  $max_var
+    mbus_send "R" "lecture"      $lecture_var
+    mbus_send "R" "auto_convert" $convert_var
+
+    #Security
+    if {$key_var==1 && [string length $key]!=0} {
+	mbus_send "R" "update_key" [mbus_encode_str $key]
+    } else {
+	mbus_send "R" "update_key" [mbus_encode_str ""]
+    }
+
+    #Interface
+    mbus_send "R" "powermeter"   $meter_var
+    mbus_send "R" "sync"         $sync_var
+
+    #device 
+    mbus_send "R" "input_gain"    $gain
+    mbus_send "R" "output_gain"   $volume
+    mbus_send "R" "input_port"    [mbus_encode_str $input_port]
+    mbus_send "R" "output_port"   [mbus_encode_str $output_port]
+    mbus_send "R" "input_mute"    $in_mute_var
+    mbus_send "R" "output_mute"   $out_mute_var
+}
+
 if {[glob ~] == "/"} {
 	set rtpfname /.RTPdefaults
 } else {
 	set rtpfname ~/.RTPdefaults
 }
 
-proc savename {} {
-    global rtpfname rtcp_name rtcp_email rtcp_phone rtcp_loc V win32 help_on
+proc save_setting {f field var} {
+    global win32 V rtpfname
+    upvar #0 $var value
     if {$win32} {
-	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpName"  "$rtcp_name"
-	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpEmail" "$rtcp_email"
-	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpPhone" "$rtcp_phone"
-	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpLoc"   "$rtcp_loc"
-	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*helpOn"   "$help_on"
+	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app) "*$field" "$value"
     } else {
-	set f [open $rtpfname w]
-	puts $f "*rtpName:  $rtcp_name"
-	puts $f "*rtpEmail: $rtcp_email"
-	puts $f "*rtpPhone: $rtcp_phone"
-	puts $f "*rtpLoc:   $rtcp_loc"
-	puts $f "*helpOn:   $help_on"
-	close $f
+	puts $f "*$field: $value"
     }
 }
 
-set rtcp_name  [option get . rtpName  rat]
-set rtcp_email [option get . rtpEmail rat]
-set rtcp_phone [option get . rtpPhone rat]
-set rtcp_loc   [option get . rtpLoc   rat]
-set help_on    [option get . helpOn   rat]
+proc save_settings {} {
+    global rtpfname win32 
 
-if {$help_on == ""} {set help_on 1}
-
-if {$win32 == 0} {
-    if {[file readable $rtpfname] == 1} {
-	set f [open $rtpfname]
-	while {[eof $f] == 0} {
-	    gets $f line
-	    if {[string compare "*rtpName:"  [lindex $line 0]] == 0} {set rtcp_name  [lrange $line 1 end]}
-	    if {[string compare "*rtpEmail:" [lindex $line 0]] == 0} {set rtcp_email [lrange $line 1 end]}
-	    if {[string compare "*rtpPhone:" [lindex $line 0]] == 0} {set rtcp_phone [lrange $line 1 end]}
-	    if {[string compare "*rtpLoc:"   [lindex $line 0]] == 0} {set rtcp_loc   [lrange $line 1 end]}
-	    if {[string compare "*helpOn:"   [lindex $line 0]] == 0} {set help_on    [lrange $line 1 end]}
+    set f 0
+    if {$win32 == 0} {
+	set fail [catch {set f [open $rtpfname w]}]
+	if {$fail} {
+	    return
 	}
-	close $f
     }
-} else {
-    if {$rtcp_name == ""} {
-	catch {set rtcp_name  [getregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpName"]  } 
-	catch {set rtcp_email [getregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpEmail"] } 
-	catch {set rtcp_phone [getregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpPhone"] } 
-	catch {set rtcp_loc   [getregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpLoc"  ] } 
-	catch {set help_on    [getregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*helpOn"  ] } 
+
+    # personal
+    save_setting $f rtpName     rtcp_name
+    save_setting $f rtpEmail    rtcp_email
+    save_setting $f rtpPhone    rtcp_phone
+    save_setting $f rtpLoc      rtcp_loc
+    # transmission
+    save_setting $f audioOutputMode       output_var
+    save_setting $f audioPrimary          prenc
+    save_setting $f audioUnits            upp
+    save_setting $f audioChannelCoding    channel_var
+    save_setting $f audioRedundancy       secenc
+    save_setting $f audioRedundancyOffset red_off
+    save_setting $f audioInterleavingGap  int_gap
+    save_setting $f audioSilence          silence_var
+    save_setting $f audioAGC              agc_var
+    # reception
+    save_setting $f audioRepair      repair_var
+    save_setting $f audioMinPlayout  min_var
+    save_setting $f audioMaxPlayout  max_var
+    save_setting $f audioLecture     lecture_var
+    save_setting $f audioAutoConvert convert_var
+    #security
+   
+    # ui bits
+    save_setting $f audioPowermeters meter_var
+    save_setting $f audioLipSync     sync_var
+    save_setting $f audioHelpOn      help_on
+
+    # device 
+    save_setting $f  audioOutputGain   volume
+    save_setting $f  audioInputGain    gain
+    save_setting $f  audioOutputPort   output_port
+    save_setting $f  audioInputPort    input_port
+
+    if {$win32 == 0} {
+	close $f
     }
 }
 
-if {$rtcp_name == ""} {
-    toplevel .name
-    wm title .name "RAT User Information"
-    message .name.m -width 1000 -text {
-	Please enter the following details, for transmission
-	to other conference participants.
+proc load_setting {attrname field var default} {
+    global V win32 $var
+    upvar 1 $attrname attr 
+
+    # who has the tcl manual? is the only way to pass arrays thru upvar...
+
+    if {$win32} {
+	catch {set $var [getregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "$field"]} 
+    } else {
+	set tmp [option get . $field rat]
+	if {$tmp == ""} {
+	    # not in xresources...
+	    if {[info exists attr($field)]} {
+		set tmp $attr($field)
+	    }
+	}
     }
+    if {$tmp == ""} {
+	# either not in rtp defaults, or registry...
+	set tmp $default
+    }
+    set $var $tmp
+}
+
+proc load_settings {} {
+    global rtpfname win32
+
+    set attr(zero) ""
+    if {$win32 == 0} {
+	if {[file readable $rtpfname]} {
+	    set f [open $rtpfname]
+	    while {[eof $f] == 0} {
+		gets $f line
+		set field [string trim [lindex $line 0] "*:"]
+		set value [lrange $line 1 end]
+		set attr($field) "$value"
+	    }
+	    close $f
+	}
+    }
+
+    # personal
+    load_setting attr rtpName  rtcp_name     ""
+    load_setting attr rtpEmail rtcp_email    ""
+    load_setting attr rtpPhone rtcp_phone    ""
+    load_setting attr rtpLoc   rtcp_loc      ""
+    # transmission
+    load_setting attr audioOutputMode       output_var    "Full duplex"
+    load_setting attr audioPrimary          prenc         "DVI-8K-MONO"
+    load_setting attr audioUnits            upp           "2"
+    load_setting attr audioChannelCoding    channel_var   "None"
+    load_setting attr audioRedundancy       secenc        "DVI-8K-MONO"
+    load_setting attr audioRedundancyOffset red_off       "1"
+    load_setting attr audioInterleavingGap  int_gap       "4"
+    load_setting attr audioSilence          silence_var   "1"
+    load_setting attr audioAGC              agc_var       "0"
+    validate_red_codecs
+
+    # reception
+    load_setting attr audioRepair       repair_var    "PacketRepetition"
+    load_setting attr audioMinPlayout   min_var       "0"
+    load_setting attr audioMaxPlayout   max_var       "1"
+    load_setting attr audioLecture      lecture_var   "0"
+    load_setting attr audioAutoConvert  convert_var   "1"
+    #security
+   
+    # ui bits
+    load_setting attr audioPowermeters  meter_var     "1"
+    load_setting attr audioLipSync      sync_var      "1"
+    load_setting attr audioHelpOn       help_on       "1"
+
+    # device config
+    load_setting attr audioOutputGain   volume       "50"
+    load_setting attr audioInputGain    gain         "50"
+    load_setting attr audioOutputPort   output_port  "microphone"
+    load_setting attr audioInputPort    input_port   "speaker"
+    # we don't save the following but we can set them so if people
+    # want to start with mic open then they add following attributes
+    load_setting attr audioOutputMute   out_mute_var "0"
+    load_setting attr audioInputMute    in_mute_var  "1"
+
+}
+
+proc check_rtcp_name {} {
+    global rtcp_name
+    if {$rtcp_name == ""} {
+	toplevel .name
+	wm title .name "RAT User Information"
+	message .name.m -width 1000 -text {
+	    Please enter the following details, for transmission
+	    to other conference participants.
+	}
 	frame  .name.b
-    label  .name.b.res -text "Name:"
-    entry  .name.b.e -highlightthickness 0 -width 20 -relief sunken -textvariable rtcp_name
-    button .name.d -highlightthickness 0 -padx 0 -pady 0 -text Done -command {rtcp_name $rtcp_name; savename; destroy .name}
-    bind   .name.b.e <Return> {rtcp_name $rtcp_name; savename; destroy .name}
-    
-    pack .name.m -side top -fill x -expand 1
-    pack .name.b -side top -fill x -expand 1
-    pack .name.b.res -side left
-    pack .name.b.e -side right -fill x -expand 1
-    pack .name.d -side bottom -fill x -expand 1
-    wm resizable .name 0 0
-    update
-    raise .name .
+	label  .name.b.res -text "Name:"
+	entry  .name.b.e -highlightthickness 0 -width 20 -relief sunken -textvariable rtcp_name
+	button .name.d -highlightthickness 0 -padx 0 -pady 0 -text Done -command {save_settings; sync_engine_to_ui; destroy .name}
+	bind   .name.b.e <Return> {save_settings; sync_engine_to_ui; destroy .name}
+	
+	pack .name.m -side top -fill x -expand 1
+	pack .name.b -side top -fill x -expand 1
+	pack .name.b.res -side left
+	pack .name.b.e -side right -fill x -expand 1
+	pack .name.d -side bottom -fill x -expand 1
+	wm resizable .name 0 0
+	update
+	raise .name .
+    }
 }
 
 #
@@ -1347,10 +1475,17 @@ proc show_help {window} {
 		# for .help and leave for $window, making us hide_help which removes the
 		# help window, giving us a window enter for $window making us popup the
 		# help again.....
-		set xpos [expr [winfo rootx $window] + [winfo  width $window] + 10]
-		set ypos [expr [winfo rooty $window] + ([winfo height $window] / 2)]
+
+		if {[winfo width $window] > [winfo height $window]} {
+		    set xpos [expr [winfo pointerx $window] + 10]
+		    set ypos [expr [winfo rooty    $window] + [winfo height $window] + 4]
+		} else {
+		    set xpos [expr [winfo rootx    $window] + [winfo width $window] + 4]
+		    set ypos [expr [winfo pointery $window] + 10]
+		}
+		
 		wm geometry  .help +$xpos+$ypos
-		set help_id [after 500 wm deiconify .help]
+		set help_id [after 100 wm deiconify .help]
 		raise .help $window
 	}
 }
@@ -1366,19 +1501,19 @@ proc hide_help {window} {
 proc add_help {window text} {
 	global help_text 
 	set help_text($window)  $text
-	bind $window <Enter> "+show_help $window"
-	bind $window <Leave> "+hide_help $window"
+	bind $window <Enter>  "+show_help $window"
+	bind $window <Leave>  "+hide_help $window"
 }
 
-toplevel .help       -bg lavender
+toplevel .help       -bg black
 label    .help.text  -bg lavender -justify left
 pack .help.text -side top -anchor w -fill x
 wm transient        .help .
 wm withdraw         .help
 wm overrideredirect .help true
 
-add_help .r.c.gain.s2 	"This slider controls the volume\nof the sound you send"
-add_help .r.c.gain.l2 	"Click to change input device"
+add_help .r.c.gain.s2 	"This slider controls the volume\nof the sound you send."
+add_help .r.c.gain.l2 	"Click to change input device."
 add_help .r.c.gain.t2 	"If this button is not pushed in, you are are transmitting,\nand may be\
                          heard by other participants. Holding down the\nright mouse button in\
 			 any RAT window will temporarily\ntoggle the state of this button,\
@@ -1386,10 +1521,10 @@ add_help .r.c.gain.t2 	"If this button is not pushed in, you are are transmittin
 add_help .r.c.gain.b2 	"Indicates the loudness of the\nsound you are sending. If this\nis\
                          moving, you may be heard by\nthe other participants."
 
-add_help .r.c.vol.s1  	"This slider controls the volume\nof the sound you hear"
-add_help .r.c.vol.l1  	"Click to change output device"
-add_help .r.c.vol.t1  	"If pushed in, output is muted"
-add_help .r.c.vol.b1  	"Indicates the loudness of the\nsound you are hearing"
+add_help .r.c.vol.s1  	"This slider controls the volume\nof the sound you hear."
+add_help .r.c.vol.l1  	"Click to change output device."
+add_help .r.c.vol.t1  	"If pushed in, output is muted."
+add_help .r.c.vol.b1  	"Indicates the loudness of the\nsound you are hearing."
 
 add_help .r.b.ucl     	"Email comments to rat-trap@cs.ucl.ac.uk"
 
@@ -1398,59 +1533,79 @@ add_help .l.t		"The participants in this session with you at the top.\nClick on 
 			 and with the middle\nbutton to mute that participant (the right button\nwill\
 			 toggle the input mute button, as usual)."
 
-add_help .l.s1.opts   	"Brings up another window allowing\nthe control of various options"
-add_help .l.s1.about  	"Brings up another window displaying\ncopyright & author information"
-add_help .l.s1.quit   	"Press to leave the session"
-add_help .l.s2.stats  	"Brings up another window displaying\nreception quality information"
+add_help .l.s1.opts   	"Brings up another window allowing\nthe control of various options."
+add_help .l.s1.about  	"Brings up another window displaying\ncopyright & author information."
+add_help .l.s1.quit   	"Press to leave the session."
+add_help .l.s2.stats  	"Brings up another window displaying\nreception quality information."
 add_help .l.s2.audio  	""
 
-add_help .b.f.pkt.len 	"Sets the duration of each packet sent.\nThere is a fixed per-packet\
+# preferences help
+add_help .prefs.m.f.mb  "Click here to change the preference\ncategory."
+set i .prefs.buttons
+add_help $i.bye         "Cancel changes."
+add_help $i.apply       "Apply changes."
+add_help $i.save        "Save preferences and dismiss window."
+
+# user help
+set i .prefs.pane.personal.a.f.f.ents
+add_help $i.name      	"Enter your name for transmission\nto other participants."
+add_help $i.email      	"Enter your email address for transmission\nto other participants."
+add_help $i.phone     	"Enter your phone number for transmission\nto other participants."
+add_help $i.loc      	"Enter your location for transmission\nto other participants."
+add_help $i.note      	"Enter any note you need to send to\nother participants."
+
+# transmission help
+set i .prefs.pane.transmission
+add_help $i.dd.units.m	"Sets the duration of each packet sent.\nThere is a fixed per-packet\
                          overhead, so\nmaking this larger will reduce the total\noverhead.\
 			 The effects of packet loss are\nmore noticable with large packets."
-add_help .b.f.pkt.pr  	"Changes the primary audio compression\nscheme. The list is arranged\
+add_help $i.dd.pri.m 	"Changes the primary audio compression\nscheme. The list is arranged\
                          with high-\nquality, high-bandwidth choices at the\ntop, and\
 			 poor-quality, lower-bandwidth\nchoices at the bottom."
-add_help .b.f.pkt.sec 	"If set to a value other than NONE a second,\nredundant, copy of each\
-                         packet is sent to\nrecover from the effects of lost packets.\nSome\
-			 audio tools (eg: vat-4.0) are not able\n to receive audio sent with\
-			 this option."
-add_help .b.f.loc.mode 	"Most audio hardware can support full-duplex\noperation, sending\
+add_help $i.dd.mode.m 	"Most audio hardware can support full-duplex\noperation, sending\
                          and receiving at the same\ntime. For systems which are half-duplex,\
 			 the\nchoice between net-mutes-mike (receiving has\npriority) and\
 			 mike-mutes-net (sending has\npriority) must be made."
-add_help .b.f.loc.rep 	"Allows the choice of different ways of repairing\nan audio stream sent\
-                         without redundancy. These try\nto recreate a lost packet based on the\
-			 contents of\nthe surrounding packets, and produce fill-in packets\nwhich\
-			 approximate the original to varying degrees of\naccuracy and with varying\
-			 processing requirements."
-add_help .b.f2.l.sil  	"If enabled, nothing is sent when the input\nis unmuted, but silent"
-add_help .b.f2.l.meter 	"If enabled, audio powermeters are displayed in\nthe main window.\
-                         The only reason to disable\nthis is when using a slow machine which\
-			 cannot\nupdate the display fast enough."
-add_help .b.f2.l.lec  	"If enabled, extra delay is added at both sender and receiver.\nThis allows\
-                         the receiver to better cope with certain network\nproblems, and the sender\
+add_help $i.cc.van.rb	"Sets no channel coding."
+add_help $i.cc.red.rb	"Piggybacks earlier units of audio into packets\n\
+			 to protect against packet loss. Some audio\n\
+			 tools (eg: vat-4.0) are not able to receive\n\
+			 audio sent with this option."
+add_help $i.cc.red.fc.mb \
+			"Sets the format of the piggybacked data."
+add_help $i.cc.red.u.mb \
+			"Sets the offset of the piggybacked data."
+add_help $i.cc.int.fc.mb\
+			"Sets the separation of adjacent units within\neach packet. Larger values correspond\
+			 to longer\ndelays."
+add_help $i.cc.int.rb	"Enables interleaving which exchanges latency\n\
+			 for protection against burst losses.  No other\n\
+			 audio tools can decode this format (experimental)."
+add_help $i.cks.f.silence\
+			 "If enabled, nothing is sent when the input\nis unmuted, but silent."
+add_help $i.cks.f.agc	 "Enables automatic control of the volume\nof the sound you send."
+
+# Reception Help
+set i .prefs.pane.reception
+add_help $i.r.mb 	"Sets the type of repair applied when packets are\nlost. The schemes\
+			 are listed in order of increasing\ncomplexity."
+add_help $i.o.f.scmin   "Sets the minimum playout delay that will be\napplied to incoming\
+			 audio streams."
+add_help $i.o.f.scmax   "Sets the maximum playout delay that will be\napplied to incoming\
+			 audio streams."
+add_help $i.c.f.f.fmt   "Enables the automatic format conversion (sampling\nrate and channels)\
+			 of audio streams."
+add_help $i.c.f.f.lec  	"If enabled, extra delay is added at both sender and receiver.\nThis allows\
+                         the receiver to better cope with host scheduling\nproblems, and the sender\
 			 to perform better silence suppression.\nAs the name suggests, this option\
 			 is intended for scenarios such\nas transmitting a lecture, where interactivity\
 			 is less important\nthan quality."
-add_help .b.f2.r.syn  	"Enables lip-synchronisation between audio\nand video. This requires additional\
-                         support\nin the video tool."
-add_help .b.f2.r.agc  	"Enables automatic control of the volume\nof the sound you send"
-add_help .b.f2.r.help	"Enable/Disable balloon help"
-add_help .b.crypt     	"Enter secret key here to encrypt your audio.\nListeners must enter\
-                         the same key in order to\nreceive such transmissions."
-add_help .b.f3.p	"Enter a filename, and press start/stop to play\nthe contents of\
-                         that file into the session.\nYou will not be able to hear the\
-			 file being\nplayed, but other participants can hear it."
-add_help .b.f3.r	"Enter a filename, and press start/stop to record\nthe audio into a file."
-add_help .b.a.address 	"IP address, port and TTL\nused by this session"
-add_help .b.a.rn      	"Enter your name for transmission\nto other participants"
-add_help .b.a.re      	"Enter your email address for transmission\nto other participants"
-add_help .b.a.rp      	"Enter your phone number for transmission\nto other participants"
-add_help .b.a.rl      	"Enter your location for transmission\nto other participants"
-add_help .b.d         	"Click to remove the options window"
+# security...too obvious for balloon help!
+# interface...ditto!
 
 add_help .chart		"This chart displays the reception quality reported\nby all session\
 			 participants. Looking along a row\ngives the quality that participant\
 			 received from all\nother participants in the session: green is\
 			 good\nquality, orange medium quality, and red poor quality\naudio."
+
 
