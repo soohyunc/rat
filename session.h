@@ -150,7 +150,8 @@ typedef struct session_tag {
 
 void init_session(session_struct *sp);
 void end_session(session_struct *sp);
-int  parse_options(int argc, char *argv[], session_struct *sp[]);
+int  parse_early_options(int argc, char *argv[], session_struct *sp[]);
+void parse_late_options(int argc, char *argv[], session_struct *sp[]);
 
 #endif /* _session_h_ */
 

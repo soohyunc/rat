@@ -1784,8 +1784,8 @@ add_help $i.c.f.f.lec  	"If enabled, extra delay is added at both sender and rec
 			 is less important\nthan quality."
 
 # security...too obvious for balloon help!
-add_help .prefs.pane.security.a.f.f.e "Due to government export restrictions,\nhelp\
-				       for this option is not available. :-)"
+add_help .prefs.pane.security.a.f.f.e "Due to government export restrictions\nhelp\
+				       for this option is not available."
 
 # interface...ditto!
 set i .prefs.pane.interface

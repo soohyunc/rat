@@ -53,11 +53,12 @@
 #include "parameters.h"
 #include "audio.h"
 #include "util.h"
+#include "ui_control.h"
 
 static void 
 usage(void)
 {
-	printf("Usage: rat -t <ttl> <addr>/<port>\n");
+	printf("Usage: rat [options] -t <ttl> <addr>/<port>\n");
 	exit(1);
 }
 
@@ -159,10 +160,13 @@ end_session(session_struct *sp)
 }
 
 static void 
-parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
+parse_early_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 {
 	/* Parse command-line options common to all the modes of operation.     */
 	/* Variables: i scans through the options, s scans through the sessions */
+	/* This is for options set initially, before the main initialisation is */
+	/* done. For example, the UI is not yet setup, and anything initialised */
+	/* there will overwrite changes made here...                            */
 	int i, s;
 
 	for (i = 1; i < argc; i++) {
@@ -171,13 +175,9 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 				sp[s]->ui_on   = FALSE;
 				sp[s]->ui_addr = strdup(argv[i+1]);
 			}
-            if (strcmp(argv[i], "-allowloopback") == 0 || strcmp(argv[i], "-allow_loopback") == 0) {
-                sp[s]->filter_loopback = FALSE;
-            }
-			if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
-				argv[i] = "-crypt";
-				i++;
-			}
+            		if (strcmp(argv[i], "-allowloopback") == 0 || strcmp(argv[i], "-allow_loopback") == 0) {
+                		sp[s]->filter_loopback = FALSE;
+            		}
 			if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
                                 strncpy(sp[s]->title, argv[i+1], SESSION_TITLE_LEN);
 				i++;
@@ -190,14 +190,6 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 				sp[s]->wait_on_startup = TRUE;
 				i++;
 			}
-                        if (strcmp(argv[i], "-sync") == 0) {
-				if (sp[s]->mbus_channel != 0) {
-                                	sp[s]->sync_on = TRUE;
-				} else {
-					printf("Lip-sync can only be used if an mbus channel is specified.\n");
-					usage();
-				}
-                        }
 			if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
 				sp[s]->ttl = atoi(argv[i + 1]);
 				if (sp[s]->ttl > 255) {
@@ -239,75 +231,15 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
                                 }
                                 i++;
 			}
-			if ((strcmp(argv[i], "-silence") == 0) && (argc > i+1)) {
-                                if (strcmp(argv[i+1], "on") == 0) {
-                                        sp[s]->detect_silence = TRUE;
-                                        i++;
-                                } else if (strcmp(argv[i+1], "off") == 0) {
-                                        sp[s]->detect_silence = FALSE;
-                                        i++;
-                                } else {
-                                        printf("Unrecognized -silence option.\n");
-                                }
-                        }        
-                        if ((strcmp(argv[i], "-channel") == 0) && (argc > i+2)) {
-                            int pt;
-                            char *name = argv[i+1];
-                            pt = get_cc_pt(sp[s],name);
-                            channel_set_coder(sp[s], pt);
-                            config_channel_coder(sp[s], pt, argv[i+2]);
-                            i += 2;
-                        }
-                        if ((strcmp(argv[i], "-repair") == 0) && (argc > i+1)) {
-                                if (strncmp(argv[i+1], "none", 4)==0) {
-                                        sp[s]->repair = REPAIR_NONE;
-                                        i++;
-                                } else if (strncmp(argv[i+1], "repeat", 6)==0) {
-                                        sp[s]->repair = REPAIR_REPEAT;
-                                        i++;
-                                } else {
-                                        printf("Unsupported -repair option: %s.\n", argv[i++]);
-                                }
-                        }
-			if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
-				codec_t *cp;
-				char *pu;
-                                for (pu = argv[i+1]; *pu; pu++)
-                                        *pu = toupper(*pu);
-                                pu = argv[i+1];
-                                if ((cp = get_codec_byname(pu,sp[s])) != NULL) {
-                                        change_freq(sp[s]->device_clock, cp->freq);
-                                        sp[s]->encodings[0]  = cp->pt;
-                                        sp[s]->num_encodings = 1;
-                                } else {
-                                        usage();
-                                }
-				i++;
-			}
                 }
 	}
 }
 
 static void 
-parse_options_audio_tool(int argc, char *argv[], session_struct *sp)
+parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
 {
 	/* Parse command-line options specific to the audio tool */
-	int   i;
 	char *p;
-
-	for (i = 1; i < argc; i++) {
-		if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
-       			if (strcmp(argv[i+1], "on") == 0) {
-       				sp->agc_on = TRUE;
-       				i++;
-       			} else if (strcmp(argv[i+1], "off") == 0) {
-       				sp->agc_on = FALSE;
-       				i++;
-       			} else {
-       				printf("Unrecognized -agc option.\n");
-       			}
-		}
-	}
 
 	p = strtok(argv[argc - 1], "/");
 	strcpy(sp->asc_address, p);
@@ -320,7 +252,7 @@ parse_options_audio_tool(int argc, char *argv[], session_struct *sp)
 }
 
 static void 
-parse_options_transcoder(int argc, char *argv[], session_struct *sp[])
+parse_early_options_transcoder(int argc, char *argv[], session_struct *sp[])
 {
 	/* Parse command-line options specific to the transcoder */
 	int   i, j;
@@ -331,9 +263,6 @@ parse_options_transcoder(int argc, char *argv[], session_struct *sp[])
 	}
 
 	for (i = 0; i < 2; i++) {
-		/* General setup... */
-		sp[i]->playing_audio = TRUE;
-		sp[i]->agc_on        = FALSE;
 		/* addr */
 		p = strtok(argv[argc-i-1], "/");
 		strcpy(sp[i]->asc_address, p);
@@ -369,7 +298,7 @@ parse_options_transcoder(int argc, char *argv[], session_struct *sp[])
 }
 
 int
-parse_options(int argc, char *argv[], session_struct *sp[])
+parse_early_options(int argc, char *argv[], session_struct *sp[])
 {
 	int	i, num_sessions = 0;
 
@@ -388,19 +317,167 @@ parse_options(int argc, char *argv[], session_struct *sp[])
 		sp[0]->mode = AUDIO_TOOL;
 		num_sessions= 1;
 	}
-	parse_options_common(argc, argv, sp, num_sessions);
+	parse_early_options_common(argc, argv, sp, num_sessions);
 	switch (sp[0]->mode) {
-		case AUDIO_TOOL: parse_options_audio_tool(argc, argv, sp[0]);
+		case AUDIO_TOOL: parse_early_options_audio_tool(argc, argv, sp[0]);
 				 break;
-		case TRANSCODER: parse_options_transcoder(argc, argv, sp);
+		case TRANSCODER: parse_early_options_transcoder(argc, argv, sp);
 				 break;
 		default        : abort();
 	}
 	for (i=0; i<num_sessions; i++) {
 		if (sp[i]->rtp_port == 0) {
-			printf("Address and port required!\n");
 			usage();
 		}
 	}
 	return num_sessions;
 }
+
+/************************************************************************************************************/
+
+static void parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
+{
+	/* Parse command-line options common to all the modes of operation.     */
+	/* Variables: i scans through the options, s scans through the sessions */
+	/* This is the final chance to set any options, before the main program */
+	/* starts. In particular, it is done after the UI has been configured.  */
+	/* Remember: if anything here changes the state of the system, you must */
+	/* update the UI too!                                                   */
+	int i, s;
+
+	for (i = 1; i < argc; i++) {
+		for (s = 0; s < sp_size; s++) {
+			if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
+				argv[i] = "-crypt";
+				i++;
+			}
+                        if (strcmp(argv[i], "-sync") == 0) {
+				if (sp[s]->mbus_channel != 0) {
+                                	sp[s]->sync_on = TRUE;
+				} else {
+					printf("Lip-sync can only be used if an mbus channel is specified.\n");
+					usage();
+				}
+                        }
+			if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
+       				if (strcmp(argv[i+1], "on") == 0) {
+       					sp[s]->agc_on = TRUE;
+       					i++;
+       				} else if (strcmp(argv[i+1], "off") == 0) {
+       					sp[s]->agc_on = FALSE;
+       					i++;
+       				} else {
+       					printf("Unrecognized -agc option.\n");
+       				}
+			}
+			if ((strcmp(argv[i], "-silence") == 0) && (argc > i+1)) {
+                                if (strcmp(argv[i+1], "on") == 0) {
+                                        sp[s]->detect_silence = TRUE;
+                                        i++;
+                                } else if (strcmp(argv[i+1], "off") == 0) {
+                                        sp[s]->detect_silence = FALSE;
+                                        i++;
+                                } else {
+                                        printf("Unrecognized -silence option.\n");
+                                }
+                        }        
+                        if ((strcmp(argv[i], "-repair") == 0) && (argc > i+1)) {
+                                if (strncmp(argv[i+1], "none", 4)==0) {
+                                        sp[s]->repair = REPAIR_NONE;
+                                        i++;
+                                } else if (strncmp(argv[i+1], "repeat", 6)==0) {
+                                        sp[s]->repair = REPAIR_REPEAT;
+                                        i++;
+                                } else {
+                                        printf("Unsupported -repair option: %s\n", argv[i++]);
+                                }
+                        }
+                        if ((strcmp(argv[i], "-channel") == 0) && (argc > i+2)) {
+				/* Takes "-channel redundancy  codec/offset/..." */
+				/* or    "-channel interleaver codec/n1/n2"      */
+                            	int pt = get_cc_pt(sp[s], argv[i+1]);
+                            	channel_set_coder(sp[s], pt);
+                            	config_channel_coder(sp[s], pt, argv[i+2]);
+                            	i += 2;
+				ui_update_primary(sp[s]);
+				ui_update_redundancy(sp[s]);
+        			ui_update_interleaving(sp[s]);
+				ui_update_channel(sp[s]);
+                        }
+			if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
+				codec_t *cp;
+				char *pu;
+                                for (pu = argv[i+1]; *pu; pu++) {
+                                        *pu = toupper(*pu);
+				}
+                                pu = argv[i+1];
+                                if ((cp = get_codec_byname(pu,sp[s])) != NULL) {
+                                        change_freq(sp[s]->device_clock, cp->freq);
+                                        sp[s]->encodings[0]  = cp->pt;
+					sp[s]->num_encodings = 1;
+                                } else {
+					printf("Unknown codec %s\n", pu);
+                                        usage();
+                                }
+				i++;
+			}
+		}
+	}
+}
+
+static void parse_late_options_audio_tool(int argc, char *argv[], session_struct *sp)
+{
+	/* Audio tool specific late setup... */
+	UNUSED(argc);
+	UNUSED(argv);
+	UNUSED(sp);
+}
+
+static void parse_late_options_transcoder(int argc, char *argv[], session_struct *sp[])
+{
+	/* Transcoder specific late setup... */
+	int	i;
+
+	UNUSED(argc);
+	UNUSED(argv);
+
+	for (i = 0; i < 2; i++) {
+		sp[i]->playing_audio = TRUE;
+		sp[i]->agc_on        = FALSE;
+	}
+}
+
+void parse_late_options(int argc, char *argv[], session_struct *sp[])
+{
+	int	i, num_sessions = 0;
+
+	if (argc < 2) {
+		usage();
+	}
+	/* Set the mode of operation, and number of valid sessions, based on the first command line option. */
+	if (strcmp(argv[1], "-version") == 0) {
+		printf("%s\n", RAT_VERSION);
+		exit(0);
+	} else if (strcmp(argv[1], "-T") == 0) {
+		sp[0]->mode = TRANSCODER;
+		sp[1]->mode = TRANSCODER;
+		num_sessions= 2;
+	} else {
+		sp[0]->mode = AUDIO_TOOL;
+		num_sessions= 1;
+	}
+	parse_late_options_common(argc, argv, sp, num_sessions);
+	switch (sp[0]->mode) {
+		case AUDIO_TOOL: parse_late_options_audio_tool(argc, argv, sp[0]);
+				 break;
+		case TRANSCODER: parse_late_options_transcoder(argc, argv, sp);
+				 break;
+		default        : abort();
+	}
+	for (i=0; i<num_sessions; i++) {
+		if (sp[i]->rtp_port == 0) {
+			usage();
+		}
+	}
+}
+

@@ -573,13 +573,12 @@ rx_redundancy(char *srce, char *args, session_struct *sp)
             mbus_parse_int(mbus_chan, &offset)) {
                 if (offset<=0) offset = 0;;
                 pcp    = get_codec(sp->encodings[0]);
-                debug_msg(codec);
 		rcp    = get_codec(codec_matching(mbus_decode_str(codec), pcp->freq, pcp->channels));
                 assert(rcp != NULL);
                 /* Check redundancy makes sense... */
                 rcp    = validate_redundant_codec(pcp,rcp);
                 sprintf(config,"%s/0/%s/%d", pcp->name, rcp->name, offset);
-                debug_msg("config %s\n", config);
+                debug_msg("Configuring redundancy %s\n", config);
                 cc_pt = get_cc_pt(sp,"REDUNDANCY");
                 config_channel_coder(sp, cc_pt, config);
         } else {

@@ -6,7 +6,7 @@
  * $Revision$
  * $Date$
  * 
- * Copyright (c) 1995,1996,1997,1998 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -129,7 +129,7 @@ main(int argc, char *argv[])
 		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
 		init_session(sp[i]);
 	}
-	num_sessions = parse_options(argc, argv, sp);
+	num_sessions = parse_early_options(argc, argv, sp);
 	cname        = get_cname();
 	ssrc         = get_ssrc();
 
@@ -173,10 +173,16 @@ main(int argc, char *argv[])
         rtcp_clock_change(sp[0]);
 
 	do {
-		network_process_mbus(sp, num_sessions, 1500);
+		network_process_mbus(sp, num_sessions, 500);
 		heartbeat(ntp_time32(), 1);
 	} while (sp[0]->wait_on_startup);
-        
+
+	parse_late_options(argc, argv, sp);
+	for (i = 0; i < num_sessions; i++) {
+		ui_update(sp[i]);
+	}
+	network_process_mbus(sp, num_sessions, 100);
+
         if (!sp[0]->sending_audio && (sp[0]->mode != AUDIO_TOOL)) {
 		for (i=0; i<num_sessions; i++) {
                 	tx_start(sp[i]);

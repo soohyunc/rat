@@ -155,22 +155,22 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
         do {
                 cp = get_codec_byname(s,sp);
                 if (!cp) {
-                        fprintf(stderr, "%s:%d codec not recognized.\n", __FILE__, __LINE__);
-                        assert(0);
+                        debug_msg("Codec not recognized.\n");
+                        abort();
                 }
                 r->coding[r->nlayers] = cp->pt;
                 s = strtok(NULL,"/");
                 r->offset[r->nlayers] = atoi(s);
 
                 if (r->offset[r->nlayers]<0 || r->offset[r->nlayers]>MAX_RED_OFFSET) {
-                        fprintf(stderr, "%s:%d offset of < 0 or > MAX_RED_OFFSET.\n", __FILE__, __LINE__);
-                        assert(0);
+                        debug_msg("Offset of < 0 or > MAX_RED_OFFSET.\n");
+                        abort();
                 }
 
                 for(i=0;i<r->nlayers;i++) {
                         if (r->offset[i]>=r->offset[r->nlayers]) {
-                                fprintf(stderr, "%s:%d successing redundant encodings must have bigger offsets %d <= %d\n", __FILE__, __LINE__, r->offset[i], r->offset[r->nlayers]);
-                                assert(0);
+                                debug_msg("Successing redundant encodings must have bigger offsets %d <= %d\n", r->offset[i], r->offset[r->nlayers]);
+                                abort();
                         }
                 }
 

@@ -487,7 +487,7 @@ ui_update_redundancy(session_struct *sp)
         xfree(args);
 }
 
-static void 
+void 
 ui_update_channel(session_struct *sp) 
 {
         cc_coder_t *ccp;
