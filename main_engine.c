@@ -302,6 +302,7 @@ int main(int argc, char *argv[])
 				/* are misconfigured. Delete the source, and incoming */
 				/* data will drive the correct new path.              */
 				source_list_clear(sp->active_sources);
+                                ui_update(sp);
 			}
 		}
 		
