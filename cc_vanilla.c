@@ -10,6 +10,8 @@
 #include "memory.h"
 #include "util.h"
 
+#include "timers.h"
+
 typedef struct {
         /* Encoder state is just buffering of media data to compose a packet */
         codec_id_t  codec_id;
@@ -82,10 +84,10 @@ vanilla_encoder_output(ve_state *ve, struct s_playout_buffer *out)
 }
 
 int
-vanilla_encoder_encode (u_char *state,
+vanilla_encoder_encode (u_char                  *state,
                         struct s_playout_buffer *in,
                         struct s_playout_buffer *out,
-                        int    upp)
+                        int                      upp)
 {
         u_int32     playout, m_len;
         media_data *m;
@@ -127,7 +129,7 @@ vanilla_encoder_encode (u_char *state,
                 ve->elem[ve->nelem] = m;
                 ve->nelem++;
 
-                if (ve->nelem >= upp) {
+                if (ve->nelem >= (u_int32)upp) {
                         vanilla_encoder_output(ve, out);
                 }
                 media_data_destroy(&m);
@@ -165,7 +167,7 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, u_int32 p
         memcpy(m->rep[0]->data, p, data_len);
         m->rep[0]->data_len = data_len;
         p                  += data_len;
-        playout_buffer_add(in, (u_char *)m, sizeof(media_unit), playout);
+        playout_buffer_add(out, (u_char *)m, sizeof(media_data), playout);
 
         /* Now do other units which do not have state*/
         playout_step = codec_get_samples_per_frame(id);
@@ -177,18 +179,18 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, u_int32 p
                 memcpy(m->rep[0]->data, p, data_len);
                 m->rep[0]->data_len = data_len;
                 p                  += data_len;
-                playout_buffer_add(in, (u_char *)m, sizeof(media_unit), playout);
+                playout_buffer_add(out, (u_char *)m, sizeof(media_data), playout);
         }
         assert(p == end);
 }
 
 int
 vanilla_decoder_decode(u_char *state,
-                       struct s_playout_buffer in, 
-                       struct s_playout_buffer out, 
+                       struct s_playout_buffer *in, 
+                       struct s_playout_buffer *out, 
                        u_int32 now)
 {
-
+        channel_unit           *cu;
         channel_data         *c;
         u_int32               playout, clen;
 
@@ -209,4 +211,5 @@ vanilla_decoder_decode(u_char *state,
                 vanilla_decoder_output(cu, out, playout);
                 channel_data_destroy(&c);
         }
+        return TRUE;
 }

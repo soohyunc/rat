@@ -20,7 +20,7 @@ int       channel_get_coder_details (int idx, cc_details *ccd);
  */
 
 int       channel_coder_create      (cc_id_t id, struct s_channel_state **cs, int is_encoder);
-void      channel_coder_destory     (struct s_channel_state **cs, int is_encoder);
+void      channel_coder_destroy     (struct s_channel_state **cs, int is_encoder);
 int       channel_coder_reset       (struct s_channel_state *cs,  int is_encoder);   
 
 /* Encoder specifics *********************************************************/
