@@ -105,6 +105,7 @@ vanilla_encoder_output(ve_state *ve, struct s_playout_buffer *out)
                            (u_char*)cd, 
                            sizeof(channel_data), 
                            ve->playout);
+        debug_msg("added %u\n", ve->playout);
 }
 
 int
@@ -184,15 +185,18 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, u_int32 p
         end  = cu->data + cu->data_len;
 
         if (cf->mean_per_packet_state_size) {
-                memcpy(m->rep[0]->state, p, cf->mean_per_packet_state_size);
                 m->rep[0]->state_len = cf->mean_per_packet_state_size;
-                p                   += cf->mean_per_packet_state_size;
+                m->rep[0]->state     = (u_char*)block_alloc(m->rep[0]->state_len);
+                memcpy(m->rep[0]->state, p, cf->mean_per_packet_state_size);
+                p += cf->mean_per_packet_state_size;
         }
 
         data_len = codec_peek_frame_size(id, p, end - p);
-        memcpy(m->rep[0]->data, p, data_len);
         m->rep[0]->data_len = data_len;
-        p                  += data_len;
+        m->rep[0]->data     = (u_char*)block_alloc(data_len);
+        memcpy(m->rep[0]->data, p, data_len);
+        p += data_len;
+
         playout_buffer_add(out, (u_char *)m, sizeof(media_data), playout);
 
         /* Now do other units which do not have state*/
@@ -200,11 +204,15 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, u_int32 p
         while(p < end) {
                 playout += playout_step;
                 media_data_create(&m, 1);
+
                 assert(m->nrep == 1);
-                data_len = codec_peek_frame_size(id, p, end - p);
-                memcpy(m->rep[0]->data, p, data_len);
+
+                data_len            = codec_peek_frame_size(id, p, end - p);
+                m->rep[0]->data     = (u_char*)block_alloc(data_len);
                 m->rep[0]->data_len = data_len;
-                p                  += data_len;
+
+                memcpy(m->rep[0]->data, p, data_len);
+                p += data_len;
                 playout_buffer_add(out, (u_char *)m, sizeof(media_data), playout);
         }
         assert(p == end);
