@@ -232,12 +232,14 @@ static socket_udp *udp_init6(char *addr, u_int16 port, int ttl)
 {
 #ifdef HAVE_IPv6
 	int                 reuse = 1;
+	struct in6_addr     in6addr_any = {0};
 	struct sockaddr_in6 s_in;
 	socket_udp         *s = (socket_udp *) malloc(sizeof(socket_udp));
 	s->mode  = IPv6;
 	s->addr  = addr;
 	s->port  = port;
 	s->ttl   = ttl;
+
 	if (inet_pton(AF_INET6, addr, &s->addr6) != 1) {
 		/* We should probably try to do a DNS lookup on the name */
 		/* here, but I'm trying to get the basics going first... */
@@ -259,30 +261,35 @@ static socket_udp *udp_init6(char *addr, u_int16 port, int ttl)
 		abort();
 	}
 #endif
-#ifdef NDEF
+
 	s_in.sin6_family = AF_INET6;
 	s_in.sin6_port   = htons(port);
 	memcpy(s_in.sin6_addr.s6_addr, &s->addr6, sizeof(struct in6_addr));
 	if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
-		socket_error("bind");
-		abort();
-	}
-#endif
+             /* bind to group address failed, try generic address. */
+             s_in.sin6_addr = in6addr_any;
+             if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
+                  socket_error("bind");
+                  abort();
+             }
+        }
+
 	if (IN6_IS_ADDR_MULTICAST(s->addr6.s6_addr)) {
 		char              loop = 1;
 		struct ipv6_mreq  imr;
-
 		imr.ipv6mr_multiaddr = s->addr6;
 		imr.ipv6mr_interface = 0;
 
-		if (setsockopt(s->fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
+		if (setsockopt(s->fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ipv6_mreq)) != 0) {
 			socket_error("setsockopt IPV6_ADD_MEMBERSHIP");
 			abort();
 		}
+#if 0
 		if (setsockopt(s->fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &loop, sizeof(loop)) != 0) {
 			socket_error("setsockopt IPV6_MULTICAST_LOOP");
 			abort();
 		}
+#endif
 		if (setsockopt(s->fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &s->ttl, sizeof(s->ttl)) != 0) {
 			socket_error("setsockopt IPV6_MULTICAST_HOPS");
 			abort();
