@@ -426,14 +426,20 @@ settings_username(char *n, uint32_t nlen)
         struct passwd *p;
         p = getpwuid(getuid());
         if (p != NULL) {
+                debug_msg("gecos %s name %s\n", p->pw_gecos, p->pw_name);
                 if (p->pw_gecos != NULL) {
                         strncpy(n, p->pw_gecos, nlen);
+                        /* Gecos can contain all sorts of crud, break
+                         * at first sign of it 
+                         */
+                        strtok(n, ",.;:()"); 
                         return TRUE;
                 } else if (p->pw_name != NULL) {
                         strncpy(n, p->pw_name, nlen);
                         return TRUE;
                 }
         }
+        debug_msg("Could not get passwd entry\n");
         return FALSE;
 #endif        
 }
@@ -443,7 +449,7 @@ void settings_load_late(session_t *sp)
         uint32_t my_ssrc;
         struct   utsname u;
         char     hostfmt[] = "RAT v" RAT_VERSION " %s %s (%s)";
-        char    *field, username[32];
+        char    *field, username[32] = "";
 	load_init();		/* Initial settings come from the common prefs file... */
 
         /*
@@ -453,13 +459,16 @@ void settings_load_late(session_t *sp)
          */
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
 
-        if (settings_username(username, sizeof(username)) == FALSE) {
+        if (settings_username(username, sizeof(username) - 1) == FALSE) {
                 sprintf(username, "Unknown");
         }
+        
 	field = setting_load_str("rtpName", username);
         if (rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME) == NULL) {
+                debug_msg("username %s %s\n", field, username);
                 rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME,  field, strlen(field));
         }
+
 	field = setting_load_str("rtpEmail", "");
         if (rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_EMAIL) == NULL) {
                 rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_EMAIL, field, strlen(field));
