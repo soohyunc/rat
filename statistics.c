@@ -228,8 +228,8 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 	return playout;
 }
 
-int
-rtp_header_validation(rtp_hdr_t *hdr, int length, session_struct *sp)
+static int
+rtp_header_validation(rtp_hdr_t *hdr, int *len, int *extlen, session_struct *sp)
 {
 	/* This function checks the header info to make sure that the packet */
 	/* is valid. We return TRUE if the packet is valid, FALSE otherwise. */
@@ -237,28 +237,32 @@ rtp_header_validation(rtp_hdr_t *hdr, int length, session_struct *sp)
 
 	/* We only accept RTPv2 packets... */
 	if (hdr->type != 2) {
-#ifdef DEBUG
-		printf("rtp_header_validation: version != 2\n");
-#endif
+		dprintf("rtp_header_validation: version != 2\n");
 		return FALSE;
 	}
 
 	/* Check for valid audio payload types... */
 	if (((hdr->pt > 23) && (hdr->pt < 96)) || (hdr->pt > 127)) {
-#ifdef DEBUG
-		printf("rtp_header_validation: payload-type out of audio range\n");
-#endif
+		dprintf("rtp_header_validation: payload-type out of audio range\n");
 		return FALSE;
 	}
 
 	/* If padding or header-extension is set, we punt on this one... */
 	/* We should really deal with it though...                       */
-	if (hdr->p || hdr->x) {
-#ifdef DEBUG
-		printf("rtp_header_validation: p or x bit set\n");
-#endif
-		return FALSE;
-	}
+	if (hdr->p) {
+                int pad = *((unsigned char *)hdr + *len - 1);
+                if (pad < 1) {
+                        dprintf("rtp_header_validation: padding but 0 len\n");
+                        return FALSE;
+                }
+                *len -= pad;
+        }
+
+        if (hdr->x) {
+                *extlen = *((u_int32*)((unsigned char*)hdr + 4*(3+hdr->cc)))&0x0000ffff;
+	} else {
+                *extlen = 0;
+        }
 
 	return (TRUE);
 }
@@ -294,7 +298,7 @@ statistics(session_struct    *sp,
 
 	rtp_hdr_t	*hdr;
 	u_char		*data_ptr;
-	int		len;
+	int		len,extlen,compat;
 	rtcp_dbentry	*src;
 	u_int32		playout_pt;
 	pckt_queue_element_struct *e_ptr;
@@ -309,14 +313,12 @@ statistics(session_struct    *sp,
 	/* Impose RTP formating on it... */
 	hdr = (rtp_hdr_t *) (e_ptr->pckt_ptr);
 
-	if (rtp_header_validation(hdr, e_ptr->len, sp) == FALSE) {
-#ifdef DEBUG
-		printf("RTP Packet failed header validation!\n");
-#endif
-		free_pckt_queue_element(&e_ptr);
+	if (rtp_header_validation(hdr, &e_ptr->len, &extlen, sp) == FALSE) {
+		dprintf("RTP Packet failed header validation!\n");
 		/* XXX log as bad packet */
-		return;
+                goto release;
 	}
+
 	/* Convert from network byte-order */
 	hdr->seq  = ntohs(hdr->seq);
 	hdr->ts   = ntohl(hdr->ts);
@@ -326,30 +328,33 @@ statistics(session_struct    *sp,
 	src = update_database(sp, hdr->ssrc, cur_time);
 	if (src == NULL) {
 		/* Discard packets from unknown participant */
-		free_pckt_queue_element(&e_ptr);
-		return;
+                goto release;
 	}
 
 	if ((hdr->ssrc == sp->db->myssrc)&&!sp->no_filter_loopback) {
 		/* Discard loopback packets...unless we have asked for them ;-) */
-		free_pckt_queue_element(&e_ptr);
-		return;
+                goto release;
 	}
 
 	rtcp_update_seq(src, hdr->seq);
 
-	data_ptr =  (char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc);
+	data_ptr =  (char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + extlen;
 
-	len = e_ptr->len - 4 * (3 + hdr->cc);
+	len = e_ptr->len - 4 * (3 + hdr->cc) - extlen;
+
         if (!(pcp = get_codec(hdr->pt))) {
-            /* this is either a channel coded block or we can't decode it */
+                /* this is either a channel coded block or we can't decode it */
                 if (!(pcp = get_codec(get_wrapped_payload(hdr->pt, data_ptr, len)))) {
-                        free_pckt_queue_element(&e_ptr);
-                        return;
-	}
+                        goto release;
+                }
         }
 
-	if (src->encs[0] == -1 || !codec_compatible(pcp, get_codec(src->encs[0])))
+        compat = codec_compatible(pcp, get_codec(src->encs[0]));
+        if (!compat && !sp->auto_convert) {
+                goto release;
+        }
+
+	if (src->encs[0] == -1 || !compat);
 		receiver_change_format(src, pcp);
 
         if (src->encs[0] != pcp->pt) {
@@ -362,11 +367,11 @@ statistics(session_struct    *sp,
 	src->units_per_packet = split_block(playout_pt, pcp, data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
 	
         if (!src->units_per_packet) {
-            free_pckt_queue_element(&e_ptr);
-            return;
+                goto release;
         }
-
+        
 	if (update_req) update_stats(src, sp);
+        release:
 	free_pckt_queue_element(&e_ptr);
 }
 
