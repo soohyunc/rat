@@ -62,7 +62,7 @@ void    ui_update_playback_file(struct session_tag *s, char *name);
 void    ui_update_record_file(struct session_tag *s, char *name);
 void    ui_update_file_live(struct session_tag *s, char *mode, int valid);
 void    ui_update_codec(struct session_tag *s, codec_id_t cid);
-void	ui_controller_init(struct session_tag *s, u_int32 ssrc, char *name_engine, char *name_ui, char *name_video);
+void	ui_controller_init(struct session_tag *s, char *name_engine, char *name_ui, char *name_video);
 void    ui_initial_settings(struct session_tag *s);
 void    ui_final_settings(struct session_tag *s);
 void    ui_quit(struct session_tag *s);

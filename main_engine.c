@@ -85,7 +85,6 @@ static void parse_args(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
 	int            	 seed;
-	u_int32		 ssrc;
 	char		*cname;
 	session_struct 	*sp;
 	struct timeval   time;
@@ -99,22 +98,13 @@ int main(int argc, char *argv[])
 
 	sp = (session_struct *) xmalloc(sizeof(session_struct));
 	session_init(sp);
-
         converters_init();
         statistics_init();
         audio_init_interfaces();
         audio_device_get_safe_config(&sp->new_config);
         audio_device_reconfigure(sp);
         assert(audio_device_is_open(sp->audio_device));
-
-	network_init(sp);
-	cname = get_cname(sp->rtp_socket[0]);
-	ssrc  = get_ssrc();
-	sp->db = rtcp_init(sp->device_clock, cname, ssrc, 0);
-        rtcp_clock_change(sp);
-
 	settings_load_early(sp);
-
 	parse_args(argc, argv);
 
 	/* Initialise our mbus interface... once this is done we can talk to our controller */
@@ -169,6 +159,11 @@ int main(int argc, char *argv[])
 		mbus_heartbeat(sp->mbus_engine, 1);
 		mbus_retransmit(sp->mbus_engine);
 	}
+
+	network_init(sp);
+	cname = get_cname(sp->rtp_socket[0]);
+	sp->db = rtcp_init(sp->device_clock, cname, 0);
+        rtcp_clock_change(sp);
 
 	settings_load_late(sp);
 

@@ -414,7 +414,7 @@ rtcp_set_attribute(session_struct *sp, int type, char *val)
  * Most of this work is done in session_init() now, we just have to set up the
  * dynamic stuff here. [csp]
  */
-rtp_db *rtcp_init(struct s_time *device_clock, char *cname, u_int32 ssrc, u_int32 cur_time)
+rtp_db *rtcp_init(struct s_time *device_clock, char *cname, u_int32 cur_time)
 {
 	rtp_db *db = (rtp_db*)xmalloc(sizeof(rtp_db));
 	memset(db, 0, sizeof(rtp_db));
@@ -425,7 +425,7 @@ rtp_db *rtcp_init(struct s_time *device_clock, char *cname, u_int32 ssrc, u_int3
 	db->report_interval = rtcp_interval(db->members, db->senders, db->rtcp_bw, db->sending, 
 					        128, &(db->avg_size), db->initial_rtcp, get_freq(device_clock));
 
-	db->myssrc = ssrc;
+	db->myssrc = lrand48();
 
 	db->my_dbe                = rtcp_new_dbentry_noqueue(db->myssrc, cur_time);
 	db->my_dbe->sentry->cname = xstrdup(cname);

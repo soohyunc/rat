@@ -104,8 +104,3 @@ char *get_cname(socket_udp *s)
 	return cname;
 }
 
-u_int32 get_ssrc(void)
-{
-        return lrand48();
-}
-

@@ -879,7 +879,7 @@ ui_update_repair(session_struct *sp)
 }
 
 void
-ui_controller_init(session_struct *sp, u_int32 ssrc, char *name_engine, char *name_ui, char *name_video)
+ui_controller_init(session_struct *sp, char *name_engine, char *name_ui, char *name_video)
 {
 	char	my_ssrc[11];
 
@@ -887,7 +887,7 @@ ui_controller_init(session_struct *sp, u_int32 ssrc, char *name_engine, char *na
 	mbus_name_ui     = name_ui;
 	mbus_name_video  = name_video;
 
-	sprintf(my_ssrc, "\"%08lx\"", ssrc);
+	sprintf(my_ssrc, "\"%08lx\"", sp->db->myssrc);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.ssrc", my_ssrc, TRUE);
 }
 

@@ -362,13 +362,8 @@ void settings_load_early(session_struct *sp)
         const audio_port_details_t 	*apd;
         codec_id_t                       cid;
 
-	load_init();
-	sp->db->my_dbe->sentry->name  = xstrdup(setting_load_str("rtpName", "Unknown"));/* We don't use rtcp_set_attribute() */ 
-	sp->db->my_dbe->sentry->email = xstrdup(setting_load_str("rtpEmail", ""));      /* here, since that updates the UI   */
-	sp->db->my_dbe->sentry->phone = xstrdup(setting_load_str("rtpPhone", ""));       /* and we don't want to do that yet. */
-	sp->db->my_dbe->sentry->loc   = xstrdup(setting_load_str("rtpLoc", ""));
-        init_part_two();
-        sp->db->my_dbe->sentry->tool  = xstrdup(RAT_VERSION);
+	load_init();		/* Initial settings come from the common prefs file... */
+        init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 
 	ad_name = setting_load_str("audioDevice", "No Audio Device");
         for(i = 0; i < audio_get_device_count(); i++) {
@@ -447,8 +442,13 @@ void settings_load_early(session_struct *sp)
 
 void settings_load_late(session_struct *sp)
 {
-	UNUSED(sp);
-	load_init();
+	load_init();		/* Initial settings come from the common prefs file... */
+	sp->db->my_dbe->sentry->name  = xstrdup(setting_load_str("rtpName", "Unknown"));/* We don't use rtcp_set_attribute() */ 
+	sp->db->my_dbe->sentry->email = xstrdup(setting_load_str("rtpEmail", ""));      /* here, since that updates the UI   */
+	sp->db->my_dbe->sentry->phone = xstrdup(setting_load_str("rtpPhone", ""));      /* and we don't want to do that yet. */
+	sp->db->my_dbe->sentry->loc   = xstrdup(setting_load_str("rtpLoc", ""));
+        sp->db->my_dbe->sentry->tool  = xstrdup(RAT_VERSION);
+        init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 	load_done();
 }
 

@@ -70,7 +70,7 @@ static int tcl_process_events(session_struct *sp)
 int
 main(int argc, char *argv[])
 {
-	u_int32			 ssrc, cur_time, ntp_time;
+	u_int32			 cur_time, ntp_time;
 	int            		 i, elapsed_time, alc = 0, seed;
 	char			*cname;
 	session_struct 		*sp[2];
@@ -118,8 +118,7 @@ main(int argc, char *argv[])
 
 	network_init(sp[0]);
 	cname = get_cname(sp[0]->rtp_socket[0]);
-	ssrc  = get_ssrc();
-	sp[0]->db = rtcp_init(sp[0]->device_clock, cname, ssrc, 0);
+	sp[0]->db = rtcp_init(sp[0]->device_clock, cname, 0);
         rtcp_clock_change(sp[0]);
 
 	network_process_mbus(sp[0]);
@@ -129,7 +128,7 @@ main(int argc, char *argv[])
 
 /**** Up to here is in _main.c *****/
 
-	ui_controller_init(sp[0], ssrc, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
+	ui_controller_init(sp[0], mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
         ui_initial_settings(sp[0]);
 
 	session_parse_late_options(argc, argv, sp);	/* Things which can override the settings we just loaded... */
