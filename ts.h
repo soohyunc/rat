@@ -43,7 +43,7 @@
 #define __TS_H__
 
 typedef struct {
-        u_int32 ticks:24;
+        u_int32 ticks:25;
         u_int32 check:3;
         u_int32 idx:4;
 } ts_t;
@@ -51,8 +51,9 @@ typedef struct {
 /* Maps a 32 bit unsigned integer into a valid timestamp */
 ts_t     ts_map32(u_int32 freq, u_int32 ts32);
 
-/* ts_add adds delta ticks to a timestamp */
-ts_t     ts_add(ts_t ts1, int32 delta);
+/* Addition and subtraction operations */
+ts_t     ts_add  (ts_t ts1, ts_t ts2);
+ts_t     ts_diff (ts_t ts1, ts_t ts2);
 
 /* ts_gt = timestamp greater than */
 int      ts_gt(ts_t t1, ts_t t2);

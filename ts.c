@@ -56,7 +56,7 @@ typedef struct {
  *
  * As defined in ts.h we use 25 bits as full range of ticks.  In
  * reality, the highest frequency clock coded (90k) uses just under
- * the full 25 bit range ,0..floor (2^25-1 / 48000). All other clocks use
+ * the full 25 bit range ,0..floor (2^25-1 / 90000). All other clocks use
  * less than this.  The range corresponds to 372 seconds which is ample for
  * media playout concerns.
  *
@@ -77,7 +77,7 @@ ticker tickers[] = {
         {  90000, 0x01fedd40 }
 };
 
-#define TS_NUM_TICKERS sizeof(tickers)/sizeof(ticker)
+#define TS_NUM_TICKERS (sizeof(tickers)/sizeof(ticker))
 
 #define TS_CHECK_BITS 0x07
 
@@ -100,20 +100,6 @@ ts_map32(u_int32 freq, u_int32 ticks32)
         }
         assert(ts_valid(out));
         return out;
-}
-
-ts_t
-ts_add(ts_t t1, int32 delta)
-{
-        u_int32 ticks;
-        assert(ts_valid(t1));
-
-        ticks  = t1.ticks;
-        ticks += (u_int32)delta;
-        ticks  = ticks % (tickers[t1.idx].wrap);
-        t1.ticks = ticks;
-
-        return t1;
 }
 
 static ts_t
@@ -152,11 +138,10 @@ ts_gt(ts_t t1, ts_t t2)
         assert(ts_valid(t1));
         assert(ts_valid(t2));
 
+        /* Make sure both timestamps have same (higher) timebase */
         if (t1.idx > t2.idx) {
-                /* Convert t2 to higher frequency and then compare */
                 t2 = ts_rebase((unsigned)t1.idx, t2);
         } else if (t1.idx < t2.idx) {
-                /* Convert t1 to higher frequency and then compare */
                 t1 = ts_rebase((unsigned)t2.idx, t1);
         }
 
@@ -178,15 +163,69 @@ ts_eq(ts_t t1, ts_t t2)
         assert(ts_valid(t1));
         assert(ts_valid(t2));
 
+        /* Make sure both timestamps have same (higher) timebase */
         if (t1.idx > t2.idx) {
-                /* Convert t2 to higher frequency and then compare */
                 t2 = ts_rebase((unsigned)t1.idx, t2);
         } else if (t1.idx < t2.idx) {
-                /* Convert t1 to higher frequency and then compare */
                 t1 = ts_rebase((unsigned)t2.idx, t1);
         }
 
         return (t2.ticks == t1.ticks);
+}
+
+ts_t
+ts_add(ts_t t1, ts_t t2)
+{
+        u_int32 ticks;
+        assert(ts_valid(t1));        
+        assert(ts_valid(t2));
+        
+        /* Make sure both timestamps have same (higher) timebase */
+        if (t1.idx > t2.idx) {
+                t2 = ts_rebase(t1.idx, t2);
+        } else if (t1.idx < t2.idx) {
+                t1 = ts_rebase(t2.idx, t1);
+        }
+        assert(t1.idx == t2.idx);
+
+        ticks    = (t1.ticks + t2.ticks) % tickers[t1.idx].wrap;
+        t1.ticks = ticks;
+
+        return t1;
+}
+
+ts_t
+ts_diff(ts_t t1, ts_t t2)
+{
+        ts_t out;
+        u_int32 ticks;
+
+        assert(ts_valid(t1));        
+        assert(ts_valid(t2));
+
+        /* Make sure both timestamps have same (higher) timebase */
+        if (t1.idx > t2.idx) {
+                t2 = ts_rebase(t1.idx, t2);
+        } else if (t1.idx < t2.idx) {
+                t1 = ts_rebase(t2.idx, t1);
+        }
+
+        assert(t1.idx == t2.idx);
+
+        if (t1.ticks < t2.ticks) {
+                /* Handle wrap */
+                ticks = t1.ticks + tickers[t1.idx].wrap - t2.ticks; 
+        } else {
+                ticks = t1.ticks - t2.ticks;
+        }
+        out.idx   = t1.idx;
+        out.check = TS_CHECK_BITS;
+        assert(ticks < tickers[t1.idx].wrap);
+        assert((ticks & 0xfe000000) == 0);
+        out.ticks = ticks;
+        assert((unsigned)out.ticks == ticks);
+        assert(ts_valid(out));
+        return out;
 }
 
 ts_t 
@@ -213,7 +252,8 @@ int
 ts_valid(ts_t t1)
 {
         return ((unsigned)t1.idx < TS_NUM_TICKERS && 
-                (t1.check == TS_CHECK_BITS));
+                (t1.check == TS_CHECK_BITS) &&
+                (unsigned)t1.ticks < tickers[t1.idx].wrap);
 }
 
 u_int32
@@ -222,5 +262,4 @@ ts_get_freq(ts_t t1)
         assert(ts_valid(t1));
         return tickers[t1.idx].freq;
 }
-
 
