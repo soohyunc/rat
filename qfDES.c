@@ -7,6 +7,7 @@ Patch for Intel/Linux courtesy of Mark Handley & George Pavlou
 Added 2 August 1996, Saleem
 *****************************************************************************/
 
+#include "config.h"
 #include <sys/types.h>
 #if defined(IRIX)
 #include <time.h>
@@ -586,7 +587,7 @@ v = ((v & rot[0]) << rot[1]) | v >> rot[2]
 }
 
 
-#define LITTLE_ENDIAN(t, s) \
+#define MAKE_LITTLE_ENDIAN(t, s) \
 { \
     register unsigned int z, l = s/4; \
     register Word *tp = (Word *) t; \
@@ -652,8 +653,8 @@ const QFDES_mode   mode,
 
 #if defined(DIFF_BYTE_ORDER)
     unsigned int origSize = size;
-    LITTLE_ENDIAN(key, 8);
-    LITTLE_ENDIAN(data, origSize);
+    MAKE_LITTLE_ENDIAN(key, 8);
+    MAKE_LITTLE_ENDIAN(data, origSize);
 #endif
 
     /*
@@ -706,7 +707,7 @@ const QFDES_mode   mode,
             cb[0] = cb[1] = 0;
 
 #if defined(DIFF_BYTE_ORDER)
-        LITTLE_ENDIAN(cb, 8);
+        MAKE_LITTLE_ENDIAN(cb, 8);
 #endif
     }
 
@@ -849,15 +850,15 @@ _initVec_:
         ((Word *) initVec)[1] = cb[1];
 
 #if defined(DIFF_BYTE_ORDER)
-        LITTLE_ENDIAN(initVec, 8);
+        MAKE_LITTLE_ENDIAN(initVec, 8);
 #endif
     }
 
 _exit_qfDES_:
 
 #if defined(DIFF_BYTE_ORDER)
-    LITTLE_ENDIAN(key, 8);
-    LITTLE_ENDIAN(data, origSize);
+    MAKE_LITTLE_ENDIAN(key, 8);
+    MAKE_LITTLE_ENDIAN(data, origSize);
 #endif
 
     return 0;

@@ -256,9 +256,10 @@ read_net(session_struct * sp, int fd, u_int32 cur_time, int type, int *nbdecrypt
 				abort();
 			}
 		} else {
-			tmp_data = data_out;
-			data_out = data_in;
-			data_in = tmp_data;
+			tmp_data      = data_out;
+			data_out      = data_in;
+			data_in       = tmp_data;
+			*nbdecryption = 0;
 		}
 		pckt = (pckt_queue_element_struct *) block_alloc(sizeof(pckt_queue_element_struct));
 		pckt->len               = read_len;
