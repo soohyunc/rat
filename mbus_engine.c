@@ -249,7 +249,8 @@ static void func_repair(char *srce, char *args, session_struct *sp)
 	char	*s;
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_sym(sp->mbus_engine, &s)) {
+	if (mbus_parse_str(sp->mbus_engine, &s)) {
+		s = mbus_decode_str(s);
 		if (strcmp(s,             "None") == 0) sp->repair = REPAIR_NONE;
 		if (strcmp(s, "PacketRepetition") == 0) sp->repair = REPAIR_REPEAT;
         	if (strcmp(s,  "PatternMatching") == 0) sp->repair = REPAIR_PATTERN_MATCH;
@@ -329,7 +330,7 @@ static void func_source_name(char *srce, char *args, session_struct *sp)
 	char	*arg, *cname;
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_sym(sp->mbus_engine, &cname) && (strcmp(cname, sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
+	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_NAME,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"source_name <cname> <name>\"\n");
@@ -342,7 +343,7 @@ static void func_source_email(char *srce, char *args, session_struct *sp)
 	char	*arg, *cname;
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_sym(sp->mbus_engine, &cname) && (strcmp(cname, sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
+	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_EMAIL,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"source_email <cname> <email>\"\n");
@@ -355,7 +356,7 @@ static void func_source_phone(char *srce, char *args, session_struct *sp)
 	char	*arg, *cname;
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_sym(sp->mbus_engine, &cname) && (strcmp(cname, sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
+	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_PHONE,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"source_phone <cname> <phone>\"\n");
@@ -368,7 +369,7 @@ static void func_source_loc(char *srce, char *args, session_struct *sp)
 	char	*arg, *cname;
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_sym(sp->mbus_engine, &cname) && (strcmp(cname, sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
+	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_LOC,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"source_loc <cname> <loc>\"\n");
@@ -382,9 +383,9 @@ static void func_source_mute(char *srce, char *args, session_struct *sp)
 	char		*cname;
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_sym(sp->mbus_engine, &cname)) {
+	if (mbus_parse_str(sp->mbus_engine, &cname)) {
 		for (e = sp->db->ssrc_db; e != NULL; e = e->next) {
-			if (strcmp(e->sentry->cname, cname) == 0) break;
+			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) break;
 		}
 		e->mute = TRUE;
 	} else {
@@ -400,9 +401,9 @@ static void func_source_unmute(char *srce, char *args, session_struct *sp)
 	char		*cname;
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_sym(sp->mbus_engine, &cname)) {
+	if (mbus_parse_str(sp->mbus_engine, &cname)) {
 		for (e = sp->db->ssrc_db; e != NULL; e = e->next) {
-			if (strcmp(e->sentry->cname, cname) == 0) break;
+			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) break;
 		}
 		e->mute = FALSE;
 	} else {

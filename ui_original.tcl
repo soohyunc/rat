@@ -296,10 +296,10 @@ proc mbus_recv_my_cname {cname} {
 	set my_cname $cname
 	init_source $cname
 
-	mbus_send "R" "source_name"  "$cname [mbus_encode_str $rtcp_name]"
-	mbus_send "R" "source_email" "$cname [mbus_encode_str $rtcp_email]"
-	mbus_send "R" "source_phone" "$cname [mbus_encode_str $rtcp_phone]"
-	mbus_send "R" "source_loc"   "$cname [mbus_encode_str $rtcp_loc]"
+	mbus_send "R" "source_name"  "[mbus_encode_str $cname] [mbus_encode_str $rtcp_name]"
+	mbus_send "R" "source_email" "[mbus_encode_str $cname] [mbus_encode_str $rtcp_email]"
+	mbus_send "R" "source_phone" "[mbus_encode_str $cname] [mbus_encode_str $rtcp_phone]"
+	mbus_send "R" "source_loc"   "[mbus_encode_str $cname] [mbus_encode_str $rtcp_loc]"
 
 	cname_update $cname
 }
@@ -362,8 +362,7 @@ proc mbus_recv_source_packet_duration {cname packet_duration} {
 
 proc mbus_recv_source_packets_recv {cname packets_recv} {
 	global PCKTS_RECV
-	init_source $cname
-	set PCKTS_RECV($cname) $packets_recv
+	init_source $cname set PCKTS_RECV($cname) $packets_recv
 	cname_update $cname
 }
 
@@ -593,9 +592,9 @@ proc dropdown {w varName command args} {
 proc toggle_mute {cw cname} {
 	global iht
 	if {[$cw gettags a] == ""} {
-		mbus_send "R" "source_mute" $cname 
+		mbus_send "R" "source_mute" [mbus_encode_str $cname]
 	} else {
-		mbus_send "R" "source_unmute" $cname
+		mbus_send "R" "source_unmute" [mbus_encode_str $cname]
 	}
 }
 
@@ -980,32 +979,32 @@ pack  .b.a.address -side top -fill x
 frame .b.a.rn -bd 0
 pack  .b.a.rn -side top -fill x
 entry .b.a.rn.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_name
-bind  .b.a.rn.name <Return> {mbus_send "R" "source_name" "$my_cname [mbus_encode_str $rtcp_name]"; savename}
-bind  .b.a.rn.name <Tab>    {mbus_send "R" "source_name" "$my_cname [mbus_encode_str $rtcp_name]"; savename}
+bind  .b.a.rn.name <Return> {mbus_send "R" "source_name" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_name]"; savename}
+bind  .b.a.rn.name <Tab>    {mbus_send "R" "source_name" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_name]"; savename}
 pack  .b.a.rn.name -side right -fill x 
 label .b.a.rn.l -highlightthickness 0 -text "Name:"
 pack  .b.a.rn.l -side left -fill x -expand 1
 frame .b.a.re -bd 0
 pack  .b.a.re -side top -fill x
 entry .b.a.re.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_email
-bind  .b.a.re.name <Return> {mbus_send "R" "source_email" "$my_cname [mbus_encode_str $rtcp_email]"; savename}
-bind  .b.a.re.name <Tab>    {mbus_send "R" "source_email" "$my_cname [mbus_encode_str $rtcp_email]"; savename}
+bind  .b.a.re.name <Return> {mbus_send "R" "source_email" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_email]"; savename}
+bind  .b.a.re.name <Tab>    {mbus_send "R" "source_email" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_email]"; savename}
 pack  .b.a.re.name -side right -fill x
 label .b.a.re.l -highlightthickness 0 -text "Email:"
 pack  .b.a.re.l -side left -fill x -expand 1
 frame .b.a.rp -bd 0
 pack  .b.a.rp -side top -fill x
 entry .b.a.rp.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_phone
-bind  .b.a.rp.name <Return> {mbus_send "R" "source_phone" "$my_cname [mbus_encode_str $rtcp_phone]"; savename}
-bind  .b.a.rp.name <Tab>    {mbus_send "R" "source_phone" "$my_cname [mbus_encode_str $rtcp_phone]"; savename}
+bind  .b.a.rp.name <Return> {mbus_send "R" "source_phone" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_phone]"; savename}
+bind  .b.a.rp.name <Tab>    {mbus_send "R" "source_phone" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_phone]"; savename}
 pack  .b.a.rp.name -side right -fill x
 label .b.a.rp.l -highlightthickness 0 -text "Phone:"
 pack  .b.a.rp.l -side left -fill x -expand 1
 frame .b.a.rl -bd 0
 pack  .b.a.rl -side top -fill x
 entry .b.a.rl.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_loc
-bind  .b.a.rl.name <Return> {mbus_send "R" "source_loc" "$my_cname [mbus_encode_str $rtcp_loc]"; savename}
-bind  .b.a.rl.name <Tab>    {mbus_send "R" "source_loc" "$my_cname [mbus_encode_str $rtcp_loc]"; savename}
+bind  .b.a.rl.name <Return> {mbus_send "R" "source_loc" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_loc]"; savename}
+bind  .b.a.rl.name <Tab>    {mbus_send "R" "source_loc" "[mbus_encode_str $my_cname] [mbus_encode_str $rtcp_loc]"; savename}
 pack  .b.a.rl.name -side right -fill x
 label .b.a.rl.l -highlightthickness 0 -text "Location:"
 pack  .b.a.rl.l -side left -fill x -expand 1

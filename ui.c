@@ -99,70 +99,95 @@ ui_send(char *command)
 void
 ui_info_update_name(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(args, "%s %s", e->sentry->cname, mbus_encode_str(e->sentry->name));
+	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
+	char *arg   = xstrdup(mbus_encode_str(e->sentry->name));
+
+	sprintf(args, "%s %s", cname, arg);
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_name", args, FALSE);
+	xfree(cname);
+	xfree(arg);
 }
 
 void
 ui_info_update_cname(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(args, "%s", e->sentry->cname);
+	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_exists", args, FALSE);
 }
 
 void
 ui_info_update_email(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(args, "%s %s", e->sentry->cname, mbus_encode_str(e->sentry->email));
+	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
+	char *arg   = xstrdup(mbus_encode_str(e->sentry->email));
+
+	sprintf(args, "%s %s", cname, arg);
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_email", args, FALSE);
+	xfree(cname);
+	xfree(arg);
 }
 
 void
 ui_info_update_phone(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(args, "%s %s", e->sentry->cname, mbus_encode_str(e->sentry->phone));
+	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
+	char *arg   = xstrdup(mbus_encode_str(e->sentry->phone));
+
+	sprintf(args, "%s %s", cname, arg);
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_phone", args, FALSE);
+	xfree(cname);
+	xfree(arg);
 }
 
 void
 ui_info_update_loc(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(args, "%s %s", e->sentry->cname, mbus_encode_str(e->sentry->loc));
+	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
+	char *arg   = xstrdup(mbus_encode_str(e->sentry->loc));
+
+	sprintf(args, "%s %s", cname, arg);
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_loc", args, FALSE);
+	xfree(cname);
+	xfree(arg);
 }
 
 void
 ui_info_update_tool(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(args, "%s %s", e->sentry->cname, mbus_encode_str(e->sentry->tool));
+	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
+	char *arg   = xstrdup(mbus_encode_str(e->sentry->tool));
+
+	sprintf(args, "%s %s", cname, arg);
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_tool", args, FALSE);
+	xfree(cname);
+	xfree(arg);
 }
 
 void
 ui_info_remove(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(args, "%s", e->sentry->cname);
+	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_remove", args, FALSE);
 }
 
 void
 ui_info_activate(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(args, "%s", e->sentry->cname);
+	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_active_now", args, FALSE);
 }
 
 void
 ui_info_gray(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(args, "%s", e->sentry->cname);
+	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_active_recent", args, FALSE);
 }
 
 void
 ui_info_deactivate(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(args, "%s", e->sentry->cname);
+	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_inactive", args, FALSE);
 }
 
@@ -190,9 +215,9 @@ update_stats(rtcp_dbentry *e, session_struct *sp)
 		*encoding = 0;
 	}
 
-	sprintf(args, "%s %s", e->sentry->cname, encoding);                       
+	sprintf(args, "%s %s", mbus_encode_str(e->sentry->cname), encoding);                       
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_encoding", args, FALSE);
-	sprintf(args, "%s %ld", e->sentry->cname, (e->lost_frac * 100) >> 8); 
+	sprintf(args, "%s %ld", mbus_encode_str(e->sentry->cname), (e->lost_frac * 100) >> 8); 
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_loss_to_me", args, FALSE);
 }
 

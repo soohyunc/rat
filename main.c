@@ -168,8 +168,8 @@ main(int argc, char *argv[])
 
 	mbus_engine_addr = "(audio engine rat 0)";
 	mbus_ui_addr     = "(audio     ui rat 0)";
-	mbus_engine      = mbus_init(mbus_engine_addr, mbus_handler_engine);
-	mbus_ui          = mbus_init(mbus_ui_addr, mbus_handler_ui);
+	mbus_engine      = mbus_init(0, mbus_handler_engine, NULL); mbus_addr(mbus_engine, mbus_engine_addr);
+	mbus_ui          = mbus_init(0, mbus_handler_ui,     NULL); mbus_addr(mbus_ui, mbus_ui_addr);
 	for (i = 0; i < num_sessions; i++) {
 		sp[i]->mbus_engine      = mbus_engine;
 		sp[i]->mbus_ui          = mbus_ui;

@@ -72,13 +72,15 @@ struct mbus_ack {
 
 struct mbus {
 	int		 fd;
+	int		 channel;
 	int		 num_addr;
 	char		*addr[MBUS_MAX_ADDR];
 	char		*parse_buffer[MBUS_MAX_PD];
 	int		 parse_depth;
 	int		 seqnum;
 	struct mbus_ack	*ack_list;
-	void (*handler)(char *, char *, char *, void *);
+	void (*cmd_handler)(char *src, char *cmd, char *arg, void *dat);
+	void (*err_handler)(int seqnum);
 };
 
 static int mbus_addr_match(struct mbus *m, char *a, char *b)
@@ -171,7 +173,7 @@ static void mbus_send_ack(struct mbus *m, char *dest, int seqnum)
 
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
-	saddr.sin_port   = htons(MBUS_PORT);
+	saddr.sin_port   = htons(MBUS_PORT+m->channel);
 	sprintf(buffer, "mbus/1.0 %d U (%s) (%s) (%d)\n", ++m->seqnum, m->addr[0], dest, seqnum);
 	if ((sendto(m->fd, buffer, strlen(buffer), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
 		perror("mbus_send: sendto");
@@ -193,16 +195,21 @@ void mbus_retransmit(struct mbus *m)
 		/* diff is time in milliseconds that the message has been awaiting an ACK */
 		diff = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - ((curr->time.tv_sec * 1000) + (curr->time.tv_usec / 1000));
 		if (diff > 10000) {
-			printf("Reliable mbus message failed! (wait=%ld)\n", diff);
-			printf(">>>\n");
-			printf("   mbus/1.0 %d R (%s) %s ()\n   %s (%s)\n", curr->seqn, curr->srce, curr->dest, curr->cmnd, curr->args);
-			printf("<<<\n");
+			dprintf("Reliable mbus message failed! (wait=%ld)\n", diff);
+			dprintf(">>>\n");
+			dprintf("   mbus/1.0 %d R (%s) %s ()\n   %s (%s)\n", curr->seqn, curr->srce, curr->dest, curr->cmnd, curr->args);
+			dprintf("<<<\n");
+			if (m->err_handler != NULL) {
+				m->err_handler(curr->seqn);
+			} else {
+				abort();
+			}
 			abort();
 		}
 		if (diff > 2000) {
 			memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 			saddr.sin_family = AF_INET;
-			saddr.sin_port   = htons(MBUS_PORT);
+			saddr.sin_port   = htons(MBUS_PORT+m->channel);
 			b                = xmalloc(strlen(curr->dest)+strlen(curr->cmnd)+strlen(curr->args)+strlen(curr->srce)+80);
 			sprintf(b, "mbus/1.0 %d R (%s) %s ()\n%s (%s)\n", curr->seqn, curr->srce, curr->dest, curr->cmnd, curr->args);
 			if ((sendto(m->fd, b, strlen(b), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
@@ -214,7 +221,7 @@ void mbus_retransmit(struct mbus *m)
 	}
 }
 
-static int mbus_socket_init(void)
+static int mbus_socket_init(int channel)
 {
 	struct sockaddr_in sinme;
 	struct ip_mreq     imr;
@@ -241,7 +248,7 @@ static int mbus_socket_init(void)
 
 	sinme.sin_family      = AF_INET;
 	sinme.sin_addr.s_addr = htonl(INADDR_ANY);
-	sinme.sin_port        = htons(MBUS_PORT);
+	sinme.sin_port        = htons(MBUS_PORT+channel);
 	if (bind(fd, (struct sockaddr *) & sinme, sizeof(sinme)) < 0) {
 		perror("mbus: bind");
 		return -1;
@@ -266,21 +273,24 @@ static int mbus_socket_init(void)
 	return fd;
 }
 
-struct mbus *mbus_init(char *addr, void (*handler)(char *, char *, char *, void *))
+struct mbus *mbus_init(int  channel, 
+                       void (*cmd_handler)(char *src, char *cmd, char *arg, void *dat), 
+		       void (*err_handler)(int seqnum))
 {
 	struct mbus	*m;
 	int		 i;
 
 	m = (struct mbus *) xmalloc(sizeof(struct mbus));
-	m->fd           = mbus_socket_init();
+	m->fd           = mbus_socket_init(channel);
+	m->channel	= channel;
 	m->seqnum       = 0;
 	m->ack_list     = NULL;
-	m->handler      = handler;
+	m->cmd_handler  = cmd_handler;
+	m->err_handler	= err_handler;
 	m->num_addr     = 0;
 	m->parse_depth  = 0;
 	for (i = 0; i < MBUS_MAX_ADDR; i++) m->addr[i]         = NULL;
 	for (i = 0; i <   MBUS_MAX_PD; i++) m->parse_buffer[i] = NULL;
-	mbus_addr(m, addr);
 	return m;
 }
 
@@ -318,7 +328,7 @@ int mbus_send(struct mbus *m, char *dest, char *cmnd, char *args, int reliable)
 
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
-	saddr.sin_port   = htons(MBUS_PORT);
+	saddr.sin_port   = htons(MBUS_PORT+m->channel);
 	buffer           = (char *) xmalloc(strlen(dest) + strlen(cmnd) + strlen(args) + strlen(m->addr[0]) + 80);
 	sprintf(buffer, "mbus/1.0 %d %c (%s) %s ()\n%s (%s)\n", m->seqnum, reliable?'R':'U', m->addr[0], dest, cmnd, args);
 	if ((sendto(m->fd, buffer, strlen(buffer), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
@@ -395,7 +405,7 @@ int mbus_parse_str(struct mbus *m, char **s)
 	return FALSE;
 }
 
-int mbus_parse_sym(struct mbus *m, char **s)
+static int mbus_parse_sym(struct mbus *m, char **s)
 {
         while (isspace(*m->parse_buffer[m->parse_depth])) {
                 m->parse_buffer[m->parse_depth]++;
@@ -527,7 +537,7 @@ void mbus_recv(struct mbus *m, void *data)
 			}
 			/* ...and process the commands contained in the message */
 			while (mbus_parse_sym(m, &cmd) && mbus_parse_lst(m, &param)) {
-				m->handler(src, cmd, param, data);
+				m->cmd_handler(src, cmd, param, data);
 			}
 		}
 	}
