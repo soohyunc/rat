@@ -122,14 +122,17 @@ prefilter(bias_ctl *pf, sample *buf, register int len, int step)
 static void
 remove_lta(bias_ctl *bc, sample *buf, register int len, int step)
 {
-        int  m;
+        int  m, samples;
         m = 0;
+        samples = len;
+
         while (len-- > 0) {
                 m += *buf;
                 *buf -= bc->lta;
                 buf += step;
         }
-        bc->lta -= (bc->lta - m / len) >> 3;
+
+        bc->lta -= (bc->lta - m / samples) >> 3;
 }
 
 static void
@@ -150,8 +153,9 @@ audio_unbias(bias_ctl *bc, sample *buf, int len)
                         prefilter(bc+1, buf+1, len, 2);
                 }
         } else {
+
                 if (bc->step == 1) {
-                        remove_lta(bc, buf, len, 1);
+                        remove_lta(bc, buf, len, 1); 
                 } else {
                         remove_lta(bc  , buf  , len, 2);
                         remove_lta(bc+1, buf+1, len, 2);
