@@ -46,7 +46,8 @@
 #include "codec.h"
 #include "codec_l16.h"
 #include "codec_g711.h"
-#include "codec_adpcm.h"
+#include "codec_g726.h"
+#include "codec_dvi.h"
 #include "codec_gsm.h"
 #include "codec_lpc.h"
 #include "codec_vdvi.h"
@@ -134,6 +135,22 @@ static codec_fns_t codec_table[] = {
                 NULL,
                 NULL,
                 g711_decode,
+                NULL,
+                NULL,
+                NULL
+        },
+        {
+                NULL,
+                NULL,
+                g726_get_formats_count,
+                g726_get_format,
+                g726_state_create,
+                g726_state_destroy,
+                g726_encode,
+                NULL,
+                g726_state_create,
+                g726_state_destroy,
+                g726_decode,
                 NULL,
                 NULL,
                 NULL

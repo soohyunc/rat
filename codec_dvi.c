@@ -1,5 +1,5 @@
 /*
- * FILE:    codec_adpcm.c
+ * FILE:    codec_dvi.c
  * AUTHORS: Orion Hodson
  * 
  * Copyright (c) 1998 University College London
@@ -43,7 +43,7 @@
 #include "debug.h"
 #include "audio_types.h"
 #include "codec_types.h"
-#include "codec_adpcm.h"
+#include "codec_dvi.h"
 #include "cx_dvi.h"
 
 static codec_format_t cs[] = {

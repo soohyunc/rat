@@ -160,7 +160,7 @@ SOURCE=.\codec.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\codec_adpcm.c
+SOURCE=.\codec_dvi.c
 # End Source File
 # Begin Source File
 
@@ -382,7 +382,7 @@ SOURCE=.\codec.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\codec_adpcm.h
+SOURCE=.\codec_dvi.h
 # End Source File
 # Begin Source File
 

@@ -36,7 +36,7 @@
  * SUCH DAMAGE.
  */
 
-/* Just wrote the RAT interface, see codec_adpcm.c for coder copyright [oth] */
+/* Just wrote the RAT interface, see codec_dvi.c for coder copyright [oth] */
 
 #ifndef _CODEC_VDVI_H_
 #define _CODEC_VDVI_H_
