@@ -85,7 +85,7 @@ proc window_stats {cname} {
 
 # Commands to send message over the conference bus...
 proc output_mute {state} {
-    mbus_send "R" "output.mute" "$state"
+    mbus_send "R" "audio.output.mute" "$state"
     if {$state} {
 	.r.c.vol.t1 configure -relief sunken
 	pack forget .r.c.vol.b1 .r.c.vol.s1
@@ -99,7 +99,7 @@ proc output_mute {state} {
 }
 
 proc input_mute {state} {
-    mbus_send "R" "input.mute" "$state"
+    mbus_send "R" "audio.input.mute" "$state"
     if {$state} {
 	.r.c.gain.t2 configure -relief sunken
 	pack forget .r.c.gain.b2 .r.c.gain.s2
@@ -115,13 +115,13 @@ proc input_mute {state} {
 proc set_vol {new_vol} {
     global volume
     set volume $new_vol
-    mbus_send "R" "output.gain" $volume
+    mbus_send "R" "audio.output.gain" $volume
 }
 
 proc set_gain {new_gain} {
     global gain
     set gain $new_gain
-    mbus_send "R" "input.gain" $gain
+    mbus_send "R" "audio.input.gain" $gain
 }
 
 proc toggle_input_port {} {
@@ -248,7 +248,7 @@ proc mbus_recv_interleaving {units separation} {
     set int_gap $separation
 }
 
-proc mbus_recv_channel.code {channel} {
+proc mbus_recv_audio.channel.coding {channel} {
     global channel_var
     set channel_var $channel
 }
@@ -258,29 +258,29 @@ proc mbus_recv_repair {arg} {
   set repair_var $arg
 }
 
-proc mbus_recv_powermeter.input {level} {
+proc mbus_recv_audio.powermeter.input {level} {
 	global bargraphTotalHeight
 	bargraphSetHeight .r.c.gain.b2 [expr ($level * $bargraphTotalHeight) / 100]
 }
 
-proc mbus_recv_powermeter.output {level} {
+proc mbus_recv_audio.powermeter.output {level} {
 	global bargraphTotalHeight
 	bargraphSetHeight .r.c.vol.b1  [expr ($level * $bargraphTotalHeight) / 100]
 }
 
-proc mbus_recv_input.gain {new_gain} {
+proc mbus_recv_audio.input.gain {new_gain} {
     global gain
     set gain $new_gain
     .r.c.gain.s2 set $gain
 }
 
-proc mbus_recv_input.port {device} {
+proc mbus_recv_audio.input.port {device} {
 	global input_port
 	set input_port $device
 	.r.c.gain.l2 configure -bitmap $device
 }
 
-proc mbus_recv_input.mute {val} {
+proc mbus_recv_audio.input.mute {val} {
     global in_mute_var
     set in_mute_var $val
     if {$val} {
@@ -295,17 +295,17 @@ proc mbus_recv_input.mute {val} {
     }
 }
 
-proc mbus_recv_output.gain {gain} {
+proc mbus_recv_audio.output.gain {gain} {
 	.r.c.vol.s1 set $gain
 }
 
-proc mbus_recv_output.port {device} {
+proc mbus_recv_audio.output.port {device} {
 	global output_port
 	set output_port $device
 	.r.c.vol.l1 configure -bitmap $device
 }
 
-proc mbus_recv_output.mute {val} {
+proc mbus_recv_audio.output.mute {val} {
     global out_mute_var
     set out_mute_var $val
     if {$val} {
@@ -349,13 +349,13 @@ proc mbus_recv_my.cname {cname} {
 	cname_update $cname
 }
 
-proc mbus_recv_source.exists {cname} {
+proc mbus_recv_rtp.source.exists {cname} {
 	init_source $cname
 	chart_label $cname
 	cname_update $cname
 }
 
-proc mbus_recv_source.name {cname name} {
+proc mbus_recv_rtp.source.name {cname name} {
 	global NAME
 	init_source $cname
 	set NAME($cname) $name
@@ -363,25 +363,25 @@ proc mbus_recv_source.name {cname name} {
 	cname_update $cname
 }
 
-proc mbus_recv_source.email {cname email} {
+proc mbus_recv_rtp.source.email {cname email} {
 	global EMAIL
 	init_source $cname
 	set EMAIL($cname) $email
 }
 
-proc mbus_recv_source.phone {cname phone} {
+proc mbus_recv_rtp.source.phone {cname phone} {
 	global PHONE
 	init_source $cname
 	set PHONE($cname) $phone
 }
 
-proc mbus_recv_source.loc {cname loc} {
+proc mbus_recv_rtp.source.loc {cname loc} {
 	global LOC
 	init_source $cname
 	set LOC($cname) $loc
 }
 
-proc mbus_recv_source.tool {cname tool} {
+proc mbus_recv_rtp.source.tool {cname tool} {
 	global TOOL my_cname
 	init_source $cname
 	set TOOL($cname) $tool
@@ -390,32 +390,32 @@ proc mbus_recv_source.tool {cname tool} {
 	}
 }
 
-proc mbus_recv_source.note {cname note} {
+proc mbus_recv_rtp.source.note {cname note} {
 	global NOTE
 	init_source $cname
 	set NOTE($cname) $note
 }
 
-proc mbus_recv_source.codec {cname codec} {
+proc mbus_recv_rtp.source.codec {cname codec} {
 	global CODEC
 	init_source $cname
 	set CODEC($cname) $codec
 }
 
-proc mbus_recv_source.packet.duration {cname packet_duration} {
+proc mbus_recv_rtp.source.packet.duration {cname packet_duration} {
 	global DURATION
 	init_source $cname
 	set DURATION($cname) $packet_duration
 }
 
-proc mbus_recv_source.audio.buffered {cname buffered} {
+proc mbus_recv_rtp.source.audio.buffered {cname buffered} {
         global BUFFER_SIZE
         init_source $cname
         set BUFFER_SIZE($cname) $buffered 
 # we don't update cname as source.packet.duration always follows 
 }
 
-proc mbus_recv_source.packet.loss {dest srce loss} {
+proc mbus_recv_rtp.source.packet.loss {dest srce loss} {
 	global losstimers my_cname LOSS_FROM_ME LOSS_TO_ME
 	init_source $srce
 	init_source $dest
@@ -432,7 +432,7 @@ proc mbus_recv_source.packet.loss {dest srce loss} {
 	cname_update $dest
 }
 
-proc mbus_recv_source.reception {cname packets_recv packets_lost packets_miso packets_dup jitter jit_tog} {
+proc mbus_recv_rtp.source.reception {cname packets_recv packets_lost packets_miso packets_dup jitter jit_tog} {
 	global PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER JIT_TOGED
 	init_source $cname 
 	set PCKTS_RECV($cname) $packets_recv
@@ -443,19 +443,19 @@ proc mbus_recv_source.reception {cname packets_recv packets_lost packets_miso pa
 	set JIT_TOGED($cname) $jit_tog
 }
 
-proc mbus_recv_source.active.now {cname} {
+proc mbus_recv_rtp.source.active {cname} {
     catch [[window_plist $cname] configure -background white]
     cname_update $cname
 }
 
-proc mbus_recv_source.inactive {cname} {
+proc mbus_recv_rtp.source.inactive {cname} {
     catch [[window_plist $cname] configure -background grey90]
     after 60 "catch {[window_plist $cname] configure -background grey88}"
     after 120 "catch {[window_plist $cname] configure -background [.l.t.list cget -background]}"
     cname_update $cname
 }
 
-proc mbus_recv_source.remove {cname} {
+proc mbus_recv_rtp.source.remove {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER BUFFER_SIZE
 	global LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED num_cname loss_to_me_timer loss_from_me_timer
 
@@ -475,7 +475,7 @@ proc mbus_recv_source.remove {cname} {
 	chart_redraw $num_cname
 }
 
-proc mbus_recv_source.mute {cname val} {
+proc mbus_recv_rtp.source.mute {cname val} {
 	if {$val} {
 		[window_plist $cname] create line [expr $iht + 2] [expr $iht / 2] 500 [expr $iht / 2] -tags a -width 2.0 -fill gray95
 	} else {
@@ -621,9 +621,9 @@ proc toggle_plist {} {
 proc toggle_mute {cw cname} {
 	global iht
 	if {[$cw gettags a] == ""} {
-		mbus_send "R" "source.mute" "[mbus_encode_str $cname] 1"
+		mbus_send "R" "rtp.source.mute" "[mbus_encode_str $cname] 1"
 	} else {
-		mbus_send "R" "source.mute" "[mbus_encode_str $cname] 0"
+		mbus_send "R" "rtp.source.mute" "[mbus_encode_str $cname] 0"
 	}
 }
 
@@ -1296,10 +1296,10 @@ proc sync_engine_to_ui {} {
 
     set my_cname_enc [mbus_encode_str $my_cname]
     #rtcp details
-    mbus_qmsg "source.name"  "$my_cname_enc [mbus_encode_str $rtcp_name]"
-    mbus_qmsg "source.email" "$my_cname_enc [mbus_encode_str $rtcp_email]"
-    mbus_qmsg "source.phone" "$my_cname_enc [mbus_encode_str $rtcp_phone]"
-    mbus_qmsg "source.loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
+    mbus_qmsg "rtp.source.name"  "$my_cname_enc [mbus_encode_str $rtcp_name]"
+    mbus_qmsg "rtp.source.email" "$my_cname_enc [mbus_encode_str $rtcp_email]"
+    mbus_qmsg "rtp.source.phone" "$my_cname_enc [mbus_encode_str $rtcp_phone]"
+    mbus_qmsg "rtp.source.loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
     
     #transmission details
     mbus_qmsg "primary"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
@@ -1308,7 +1308,7 @@ proc sync_engine_to_ui {} {
     mbus_qmsg "interleaving" "$int_gap $int_units"
 
     # channel.code announcement  MUST go after config of channel coders communicated
-    mbus_qmsg "channel.code" [mbus_encode_str $channel_var]
+    mbus_qmsg "audio.channel.coding" [mbus_encode_str $channel_var]
 
     mbus_qmsg "silence"      $silence_var
     mbus_qmsg "agc"          $agc_var
@@ -1332,16 +1332,16 @@ proc sync_engine_to_ui {} {
     }
 
     #Interface
-    mbus_qmsg "powermeter"   $meter_var
+    mbus_qmsg "tool.rat.powermeter"   $meter_var
     mbus_qmsg "sync"         $sync_var
 
     #device 
-    mbus_qmsg "input.gain"    $gain
-    mbus_qmsg "output.gain"   $volume
-    mbus_qmsg "input.port"    [mbus_encode_str $input_port]
-    mbus_qmsg "output.port"   [mbus_encode_str $output_port]
-    mbus_qmsg "input.mute"    $in_mute_var
-    mbus_send "R" "output.mute"   $out_mute_var
+    mbus_qmsg "audio.input.gain"    $gain
+    mbus_qmsg "audio.output.gain"   $volume
+    mbus_qmsg "audio.input.port"    [mbus_encode_str $input_port]
+    mbus_qmsg "audio.output.port"   [mbus_encode_str $output_port]
+    mbus_qmsg "audio.input.mute"    $in_mute_var
+    mbus_send "R" "audio.output.mute"   $out_mute_var
 }
 
 if {$win32 == 0 && [glob ~] == "/"} {

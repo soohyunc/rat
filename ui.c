@@ -91,7 +91,7 @@ ui_info_update_name(rtcp_dbentry *e)
         args = (char*)xmalloc(strlen(cname) + strlen(name) + 2);
         
 	sprintf(args, "%s %s", cname, name);
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.name", args, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.name", args, TRUE);
 	xfree(cname);
 	xfree(name);
         xfree(args);
@@ -105,7 +105,7 @@ ui_info_update_cname(rtcp_dbentry *e)
         if (e->sentry->cname == NULL) return;
         
         cname = mbus_encode_str(e->sentry->cname);
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.exists", cname, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.exists", cname, TRUE);
         xfree(cname);
 }
 
@@ -120,7 +120,7 @@ ui_info_update_email(rtcp_dbentry *e)
 	arg   = mbus_encode_str(e->sentry->email);
         args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.email", args, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.email", args, TRUE);
 	xfree(cname);
 	xfree(arg);
         xfree(args);
@@ -137,7 +137,7 @@ ui_info_update_phone(rtcp_dbentry *e)
 	arg   = mbus_encode_str(e->sentry->phone);
         args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.phone", args, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.phone", args, TRUE);
 	xfree(cname);
 	xfree(arg);
         xfree(args);
@@ -154,7 +154,7 @@ ui_info_update_loc(rtcp_dbentry *e)
 	arg   = mbus_encode_str(e->sentry->loc);
         args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.loc", args, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.loc", args, TRUE);
 	xfree(cname);
 	xfree(arg);
         xfree(args);
@@ -167,7 +167,7 @@ ui_info_update_tool(rtcp_dbentry *e)
 	char *arg   = mbus_encode_str(e->sentry->tool);
         char *args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.tool", args, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.tool", args, TRUE);
 	xfree(cname);
 	xfree(arg);
         xfree(args);
@@ -180,7 +180,7 @@ ui_info_update_note(rtcp_dbentry *e)
 	char *arg   = mbus_encode_str(e->sentry->note);
         char *args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.note", args, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.note", args, TRUE);
 	xfree(cname);
 	xfree(arg);
         xfree(args);
@@ -194,7 +194,7 @@ ui_info_remove(rtcp_dbentry *e)
         if (e->sentry->cname == NULL) return;
 	
         cname = mbus_encode_str(e->sentry->cname);
-        mbus_engine_tx(TRUE, mbus_name_ui, "source.remove", cname, TRUE);
+        mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.remove", cname, TRUE);
         xfree(cname);
 }
 
@@ -206,7 +206,7 @@ ui_info_activate(rtcp_dbentry *e)
         if (e->sentry->cname == NULL) return;
         
         cname = mbus_encode_str(e->sentry->cname);
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.now", cname, FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.active", cname, FALSE);
         xfree(cname);
 }
 
@@ -218,7 +218,7 @@ ui_info_deactivate(rtcp_dbentry *e)
 	if (e->sentry->cname == NULL) return;
 	
         cname = mbus_encode_str(e->sentry->cname);
-        mbus_engine_tx(TRUE, mbus_name_ui, "source.inactive", cname, FALSE);
+        mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.inactive", cname, FALSE);
         xfree(cname);
 }
 
@@ -243,17 +243,17 @@ ui_update_stats(rtcp_dbentry *e, session_struct *sp)
                 args = (char *) xmalloc(strlen(their_cname) + 7 + 2);
                 sprintf(args, "%s unknown", their_cname);
         }
-        mbus_engine_tx(TRUE, mbus_name_ui, "source.codec", args, FALSE);
+        mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.codec", args, FALSE);
         xfree(args);
 
         /* args size is for source.packet.loss, source.audio.buffered size always less */
 	args = (char *) xmalloc(strlen(their_cname) + strlen(my_cname) + 11);
         
         sprintf(args, "%s %ld", their_cname, playout_buffer_duration(sp->playout_buf_list, e));
-        mbus_engine_tx(TRUE, mbus_name_ui, "source.audio.buffered", args, FALSE);
+        mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.audio.buffered", args, FALSE);
 
 	sprintf(args, "%s %s %8ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.packet.loss", args, FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
 
 	xfree(my_cname);
 	xfree(their_cname);
@@ -265,22 +265,22 @@ ui_update_input_port(session_struct *sp)
 {
 	switch (sp->input_mode) {
 	case AUDIO_MICROPHONE:
-		mbus_engine_tx_queue(TRUE, "input.port", "microphone");
+		mbus_engine_tx_queue(TRUE, "audio.input.port", "microphone");
 		break;
 	case AUDIO_LINE_IN:
-		mbus_engine_tx_queue(TRUE, "input.port", "line_in");
+		mbus_engine_tx_queue(TRUE, "audio.input.port", "line_in");
 		break;	
 	case AUDIO_CD:
-		mbus_engine_tx_queue(TRUE, "input.port", "cd");
+		mbus_engine_tx_queue(TRUE, "audio.input.port", "cd");
 		break;
 	default:
 		fprintf(stderr, "Invalid input port!\n");
 		return ;
 	}
 	if (sp->sending_audio) {
-		mbus_engine_tx(TRUE, mbus_name_ui, "input.mute", "0", FALSE);
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.mute", "0", FALSE);
 	} else {
-		mbus_engine_tx(TRUE, mbus_name_ui, "input.mute", "1", FALSE);
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.mute", "1", FALSE);
 	}
 }
 
@@ -289,22 +289,22 @@ ui_update_output_port(session_struct *sp)
 {
 	switch (sp->output_mode) {
 	case AUDIO_SPEAKER:
-		mbus_engine_tx_queue(TRUE, "output.port", "speaker");
+		mbus_engine_tx_queue(TRUE, "audio.output.port", "speaker");
 		break;
 	case AUDIO_HEADPHONE:
-		mbus_engine_tx_queue(TRUE, "output.port", "headphone");
+		mbus_engine_tx_queue(TRUE, "audio.output.port", "headphone");
 		break;
 	case AUDIO_LINE_OUT:
-		mbus_engine_tx_queue(TRUE, "output.port", "line_out");
+		mbus_engine_tx_queue(TRUE, "audio.output.port", "line_out");
 		break;
 	default:
 		fprintf(stderr, "Invalid output port!\n");
 		return;
 	}
 	if (sp->playing_audio) {
-		mbus_engine_tx(TRUE, mbus_name_ui, "output.mute", "0", FALSE);
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.mute", "0", FALSE);
 	} else {
-		mbus_engine_tx(TRUE, mbus_name_ui, "output.mute", "1", FALSE);
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.mute", "1", FALSE);
 	}
 }
 
@@ -321,7 +321,7 @@ ui_input_level(int level)
 	}
 
 	sprintf(args, "%3d", level);
-	mbus_engine_tx(TRUE, mbus_name_ui, "powermeter.input", args, FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "audio.powermeter.input", args, FALSE);
 	ol = level;
 }
 
@@ -337,7 +337,7 @@ ui_output_level(int level)
 	}
 
 	sprintf(args, "%3d", level);
-	mbus_engine_tx(TRUE, mbus_name_ui, "powermeter.output", args, FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "audio.powermeter.output", args, FALSE);
 	ol = level;
 }
 
@@ -506,7 +506,7 @@ ui_update_channel(session_struct *sp)
                 return;
         }
 
-        mbus_engine_tx(TRUE, mbus_name_ui, "channel.code", mbes, TRUE);
+        mbus_engine_tx(TRUE, mbus_name_ui, "audio.channel.coding", mbes, TRUE);
         if (mbes) xfree(mbes);
 }
 
@@ -517,7 +517,7 @@ ui_update_input_gain(session_struct *sp)
 
         sprintf(args, "%3d", audio_get_gain(sp->audio_fd)); 
         assert(strlen(args) < 4);
-        mbus_engine_tx_queue(TRUE,  "input.gain", args);
+        mbus_engine_tx_queue(TRUE,  "audio.input.gain", args);
 }
 
 void
@@ -527,7 +527,7 @@ ui_update_output_gain(session_struct *sp)
 
         sprintf(args, "%3d", audio_get_volume(sp->audio_fd)); 
         assert(strlen(args) < 4);
-        mbus_engine_tx_queue(TRUE, "output.gain", args);
+        mbus_engine_tx_queue(TRUE, "audio.output.gain", args);
 }
 
 void
@@ -543,9 +543,9 @@ ui_update(session_struct *sp)
                 ui_update_output_gain(sp);
 		done=1;
 	} else {
-	        sprintf(args, "%3d", sp->output_gain); mbus_engine_tx_queue(TRUE, "output.gain", args);
+	        sprintf(args, "%3d", sp->output_gain); mbus_engine_tx_queue(TRUE, "audio.output.gain", args);
                 assert(strlen(args) < 4);
-		sprintf(args, "%3d", sp->input_gain ); mbus_engine_tx_queue(TRUE,  "input.gain", args);
+		sprintf(args, "%3d", sp->input_gain ); mbus_engine_tx_queue(TRUE,  "audio.input.gain", args);
                 assert(strlen(args) < 4);
 	}
 
@@ -619,7 +619,7 @@ ui_update_loss(char *srce, char *dest, int loss)
 	dest_e = mbus_encode_str(dest);
 	args   = (char *) xmalloc(strlen(srce_e) + strlen(dest_e) + 6);
 	sprintf(args, "%s %s %3d", srce_e, dest_e, loss);
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.packet.loss", args, FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
 	xfree(args);
 	xfree(srce_e);
 	xfree(dest_e);
@@ -637,7 +637,7 @@ ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered,
 	/* I hate this function! */
 	args = (char *) xmalloc(strlen(cname_e) + 88);
 	sprintf(args, "%s %6ld %6ld %6ld %6ld %6ld %6d", cname_e, recv, lost, misordered, duplicates, jitter, jit_tog);
-	mbus_engine_tx_queue(TRUE, "source.reception", args);
+	mbus_engine_tx_queue(TRUE, "rtp.source.reception", args);
 	xfree(args);
         xfree(cname_e);
 }
@@ -653,7 +653,7 @@ ui_update_duration(char *cname, int duration)
 	args    = (char *) xmalloc(5 + strlen(cname_e));
 
 	sprintf(args, "%s %3d", cname_e, duration);
-	mbus_engine_tx_queue(TRUE, "source.packet.duration", args);
+	mbus_engine_tx_queue(TRUE, "rtp.source.packet.duration", args);
 	xfree(args);
         xfree(cname_e);
 }

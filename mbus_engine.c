@@ -113,7 +113,7 @@ static void rx_get_audio(char *srce, char *args, session_struct *sp)
 	}
 }
 
-static void rx_powermeter(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_powermeter(char *srce, char *args, session_struct *sp)
 {
 	int i;
 
@@ -125,7 +125,7 @@ static void rx_powermeter(char *srce, char *args, session_struct *sp)
 		ui_input_level(0);
 		ui_output_level(0);
 	} else {
-		printf("mbus: usage \"powermeter <boolean>\"\n");
+		printf("mbus: usage \"tool.rat.powermeter <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
@@ -261,7 +261,7 @@ static void rx_rate(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_input_mute(char *srce, char *args, session_struct *sp)
+static void rx_audio_input_mute(char *srce, char *args, session_struct *sp)
 {
 	int i;
 
@@ -277,12 +277,12 @@ static void rx_input_mute(char *srce, char *args, session_struct *sp)
                 sp->echo_was_sending = i;
 		ui_update_input_port(sp);
 	} else {
-		printf("mbus: usage \"input_mute <boolean>\"\n");
+		printf("mbus: usage \"audio.input.mute <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_input_gain(char *srce, char *args, session_struct *sp)
+static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
 {
 	int   i;
 
@@ -296,12 +296,12 @@ static void rx_input_gain(char *srce, char *args, session_struct *sp)
 			tx_igain_update(sp);
 		}
 	} else {
-		printf("mbus: usage \"input_gain <integer>\"\n");
+		printf("mbus: usage \"audio.input.gain <integer>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_input_port(char *srce, char *args, session_struct *sp)
+static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
 {
 	char	*s;
 
@@ -320,14 +320,14 @@ static void rx_input_port(char *srce, char *args, session_struct *sp)
 			audio_set_iport(sp->audio_fd, AUDIO_LINE_IN);
 		}
 	} else {
-		printf("mbus: usage \"input_port <port>\"\n");
+		printf("mbus: usage \"audio.input.port <port>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
         sp->input_mode = audio_get_iport(sp->audio_fd);
 	ui_update_input_port(sp);
 }
 
-static void rx_output_mute(char *srce, char *args, session_struct *sp)
+static void rx_audio_output_mute(char *srce, char *args, session_struct *sp)
 {
 	int i;
 
@@ -338,12 +338,12 @@ static void rx_output_mute(char *srce, char *args, session_struct *sp)
         	sp->playing_audio = !i; 
 		ui_update_output_port(sp);
 	} else {
-		printf("mbus: usage \"output_mute <boolean>\"\n");
+		printf("mbus: usage \"audio.output.mute <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_output_gain(char *srce, char *args, session_struct *sp)
+static void rx_audio_output_gain(char *srce, char *args, session_struct *sp)
 {
 	int   i;
 
@@ -354,12 +354,12 @@ static void rx_output_gain(char *srce, char *args, session_struct *sp)
 		sp->output_gain = i;
 		audio_set_volume(sp->audio_fd, sp->output_gain);
 	} else {
-		printf("mbus: usage \"output_gain <integer>\"\n");
+		printf("mbus: usage \"audio.output.gain <integer>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_output_port(char *srce, char *args, session_struct *sp)
+static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
 {
 	char	*s;
 
@@ -378,7 +378,7 @@ static void rx_output_port(char *srce, char *args, session_struct *sp)
 			audio_set_oport(sp->audio_fd, AUDIO_LINE_OUT);
 		}
 	} else {
-		printf("mbus: usage \"output_port <port>\"\n");
+		printf("mbus: usage \"audio.output.port <port>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
         sp->output_mode = audio_get_oport(sp->audio_fd);
@@ -479,7 +479,7 @@ static void rx_rec_file(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_source_name(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
 {
 	char	*arg, *cname;
 
@@ -489,12 +489,12 @@ static void rx_source_name(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(mbus_chan, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(mbus_chan, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_NAME,  mbus_decode_str(arg));
 	} else {
-		printf("mbus: usage \"source_name <cname> <name>\"\n");
+		printf("mbus: usage \"rtp_source_name <cname> <name>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_source_email(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_email(char *srce, char *args, session_struct *sp)
 {
 	char	*arg, *cname;
 
@@ -504,12 +504,12 @@ static void rx_source_email(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(mbus_chan, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(mbus_chan, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_EMAIL,  mbus_decode_str(arg));
 	} else {
-		printf("mbus: usage \"source_email <cname> <email>\"\n");
+		printf("mbus: usage \"rtp_source_email <cname> <email>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_source_phone(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_phone(char *srce, char *args, session_struct *sp)
 {
 	char	*arg, *cname;
 
@@ -519,12 +519,12 @@ static void rx_source_phone(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(mbus_chan, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(mbus_chan, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_PHONE,  mbus_decode_str(arg));
 	} else {
-		printf("mbus: usage \"source_phone <cname> <phone>\"\n");
+		printf("mbus: usage \"rtp_source_phone <cname> <phone>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_source_loc(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_loc(char *srce, char *args, session_struct *sp)
 {
 	char	*arg, *cname;
 
@@ -534,12 +534,12 @@ static void rx_source_loc(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(mbus_chan, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(mbus_chan, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_LOC,  mbus_decode_str(arg));
 	} else {
-		printf("mbus: usage \"source_loc <cname> <loc>\"\n");
+		printf("mbus: usage \"rtp_source_loc <cname> <loc>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_source_mute(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
 {
 	rtcp_dbentry	*e;
 	char		*cname;
@@ -555,13 +555,13 @@ static void rx_source_mute(char *srce, char *args, session_struct *sp)
 			}
 		}
 	} else {
-		printf("mbus: usage \"source_mute <cname> <bool>\"\n");
+		printf("mbus: usage \"rtp_source_mute <cname> <bool>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
 
-static void rx_source_playout(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
 {
 	rtcp_dbentry	*e;
 	char		*cname;
@@ -577,7 +577,7 @@ static void rx_source_playout(char *srce, char *args, session_struct *sp)
                 e->video_playout_received = TRUE;
 		e->video_playout = playout;
 	} else {
-		printf("mbus: usage \"source_playout <cname> <playout>\"\n");
+		printf("mbus: usage \"rtp_source_playout <cname> <playout>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
@@ -805,7 +805,7 @@ static void rx_converter(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_channel_code(char *srce, char *args, session_struct *sp)
+static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
 {
         char *channel;
 
@@ -828,7 +828,7 @@ static void rx_channel_code(char *srce, char *args, session_struct *sp)
                         printf("%s %d: scheme %s not recognized.\n",__FILE__,__LINE__,channel);
                 }
         } else {
-                printf("mbus: usage \"channel_code <scheme>\"\n");
+                printf("mbus: usage \"audio.channel.coding <scheme>\"\n");
         }
         mbus_parse_done(mbus_chan);
 }
@@ -868,7 +868,6 @@ const char *rx_cmnd[] = {
 	"get_audio",
 	"toggle.input.port",
 	"toggle.output.port",
-	"powermeter",
 	"silence",
 	"lecture",
 	"externalise",
@@ -877,24 +876,25 @@ const char *rx_cmnd[] = {
         "echoSuppress",
 	"sync",
 	"rate",
-	"input.mute",
-	"input.gain",
-	"input.port",
-	"output.mute",
-	"output.gain",
-	"output.port",
+	"audio.input.mute",
+	"audio.input.gain",
+	"audio.input.port",
+	"audio.output.mute",
+	"audio.output.gain",
+	"audio.output.port",
+	"tool.rat.powermeter",
 	"repair",
 	"update.key",
 	"play.stop",
 	"play.file",
 	"rec.stop",
 	"rec.file",
-	"source.name",
-	"source.email",
-	"source.phone",
-	"source.loc",
-	"source.mute",
-	"source.playout",
+	"rtp.source.name",
+	"rtp.source.email",
+	"rtp.source.phone",
+	"rtp.source.loc",
+	"rtp.source.mute",
+	"rtp.source.playout",
         "interleaving",
 	"redundancy",
 	"primary",
@@ -903,7 +903,7 @@ const char *rx_cmnd[] = {
         "playout.min",
         "playout.max",
         "converter",
-        "channel.code",
+        "audio.channel.coding",
         "settings",
 	"quit",
 	"init",
@@ -915,7 +915,6 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_get_audio,
 	rx_toggle_input_port,
 	rx_toggle_output_port,
-	rx_powermeter,
 	rx_silence,
 	rx_lecture,
 	rx_externalise,
@@ -924,24 +923,25 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_echo_suppress,
 	rx_sync,
 	rx_rate,
-	rx_input_mute,
-	rx_input_gain,
-	rx_input_port,
-	rx_output_mute,
-	rx_output_gain,
-	rx_output_port,
+	rx_audio_input_mute,
+	rx_audio_input_gain,
+	rx_audio_input_port,
+	rx_audio_output_mute,
+	rx_audio_output_gain,
+	rx_audio_output_port,
+	rx_tool_rat_powermeter,
 	rx_repair,
 	rx_update_key,
 	rx_play_stop,
 	rx_play_file,
 	rx_rec_stop,
 	rx_rec_file,
-	rx_source_name,
-	rx_source_email,
-	rx_source_phone,
-	rx_source_loc,
-	rx_source_mute,
-	rx_source_playout,
+	rx_rtp_source_name,
+	rx_rtp_source_email,
+	rx_rtp_source_phone,
+	rx_rtp_source_loc,
+	rx_rtp_source_mute,
+	rx_rtp_source_playout,
         rx_interleaving,
 	rx_redundancy,
 	rx_primary,
@@ -950,7 +950,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_playout_min,
         rx_playout_max,
         rx_converter,
-        rx_channel_code,
+        rx_audio_channel_coding,
         rx_settings,
 	rx_quit,
 	rx_init,
@@ -961,6 +961,7 @@ void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 {
 	int i;
 
+	debug_msg("%s %s\n", cmnd, args);
 	for (i=0; strlen(rx_cmnd[i]) != 0; i++) {
 		if (strcmp(rx_cmnd[i], cmnd) == 0) {
                         rx_func[i](srce, args, (session_struct *) data);
