@@ -31,7 +31,7 @@ int          converter_process   (struct s_converter  *c,
                                   struct s_coded_unit *out);
 
 /* Converter selection functions */
-uint32_t                    converter_get_count(void);
+uint32_t                   converter_get_count(void);
 const converter_details_t* converter_get_details(uint32_t idx);
 
 #endif /* _converter_h_ */

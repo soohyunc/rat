@@ -172,12 +172,12 @@ sinc_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 
         switch(s->steps) {
         case 1:
-                sinc_init_filter(s->fs, cfmt->from_channels, cfmt->src_freq, cfmt->dst_freq);
+                sinc_init_filter(s->fs, cfmt->src_channels, cfmt->src_freq, cfmt->dst_freq);
                 break;
         case 2:
                 denom = g;
-                sinc_init_filter(s->fs,     cfmt->from_channels, cfmt->src_freq, denom);
-                sinc_init_filter(s->fs + 1, cfmt->from_channels, denom,           cfmt->dst_freq);                
+                sinc_init_filter(s->fs,     cfmt->src_channels, cfmt->src_freq, denom);
+                sinc_init_filter(s->fs + 1, cfmt->src_channels, denom,           cfmt->dst_freq);                
                 break;
         }
         *state     = (u_char*)s;
@@ -213,11 +213,11 @@ sinc_convert (const converter_fmt_t *cfmt,
         sample *tmp_buf;
         int     tmp_len;
 
-        channels = cfmt->from_channels;
+        channels = cfmt->src_channels;
 
         s = (sinc_state_t*)state;
 
-        if (cfmt->from_channels == 2 && cfmt->to_channels == 1) {
+        if (cfmt->src_channels == 2 && cfmt->dst_channels == 1) {
                 /* stereo->mono then sample rate change */
                 if (s->steps) {
                         /* inplace conversion needed */
@@ -229,7 +229,7 @@ sinc_convert (const converter_fmt_t *cfmt,
                         return;
                 }
                 channels = 1;
-        } else if (cfmt->from_channels == 1 && cfmt->to_channels == 2) {
+        } else if (cfmt->src_channels == 1 && cfmt->dst_channels == 2) {
                 dst_len /= 2;
         }
         
@@ -250,7 +250,7 @@ sinc_convert (const converter_fmt_t *cfmt,
                 block_free(tmp_buf, tmp_len * sizeof(sample));
         }
         
-        if (cfmt->from_channels == 1 && cfmt->to_channels == 2) {
+        if (cfmt->src_channels == 1 && cfmt->dst_channels == 2) {
                 /* sample rate change before mono-> stereo */
                 if (s->steps) {
                         /* in place needed */

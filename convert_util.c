@@ -100,8 +100,8 @@ converter_format_valid(const converter_fmt_t *cfmt)
                 return FALSE;
         }
 
-        if (cfmt->from_channels != 1 &&
-            cfmt->from_channels != 2) {
+        if (cfmt->src_channels != 1 &&
+            cfmt->src_channels != 2) {
                 return FALSE;
         }
 
@@ -110,8 +110,8 @@ converter_format_valid(const converter_fmt_t *cfmt)
                 return FALSE;
         }
 
-        if (cfmt->to_channels != 1 &&
-            cfmt->to_channels != 2) {
+        if (cfmt->dst_channels != 1 &&
+            cfmt->dst_channels != 2) {
                 return FALSE;
         }
 

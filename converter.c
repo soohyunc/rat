@@ -227,7 +227,7 @@ converter_process (converter_t *c, coded_unit *in, coded_unit *out)
                 uint16_t sample_rate, channels;
                 codec_get_native_info(in->id, &sample_rate, &channels);
                 assert(sample_rate == c->cfmt->src_freq);
-                assert(channels == c->cfmt->from_channels);
+                assert(channels == c->cfmt->src_channels);
         }
 #endif /* DEBUG */
 
@@ -238,7 +238,7 @@ converter_process (converter_t *c, coded_unit *in, coded_unit *out)
         cf = c->cfmt;
 
         n_in  = in->data_len / sizeof(sample);
-        n_out = n_in * cf->to_channels * cf->dst_freq / (cf->from_channels * cf->src_freq); 
+        n_out = n_in * cf->dst_channels * cf->dst_freq / (cf->src_channels * cf->src_freq); 
 
         assert(converter_format_valid(cf));
         assert(out->state     == NULL);
@@ -246,12 +246,12 @@ converter_process (converter_t *c, coded_unit *in, coded_unit *out)
         assert(out->data      == NULL);
         assert(out->data_len  == 0);
 
-        out->id       = codec_get_native_coding(cf->dst_freq, cf->to_channels);
+        out->id       = codec_get_native_coding(cf->dst_freq, cf->dst_channels);
         out->data_len = sizeof(sample) * n_out;
         out->data     = (u_char*)block_alloc(out->data_len);
 
         if ((c->cfmt->src_freq     != c->cfmt->dst_freq) ||
-            (c->cfmt->from_channels != c->cfmt->to_channels)) {
+            (c->cfmt->src_channels != c->cfmt->dst_channels)) {
                 converter_tbl[c->idx].convertf(c->cfmt,
                                                c->state,
                                                (sample*)in->data, 

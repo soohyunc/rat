@@ -181,10 +181,10 @@ extra_convert (const converter_fmt_t  *cfmt, u_char *state, sample* src_buf, int
         extra_state_t *e;
         int i, channels;
 
-        channels = cfmt->from_channels;
+        channels = cfmt->src_channels;
         e = (extra_state_t*)state;
 
-        if (cfmt->from_channels == 2 && cfmt->to_channels == 1) {
+        if (cfmt->src_channels == 2 && cfmt->dst_channels == 1) {
                 /* stereo->mono then sample rate change */
                 if (e->steps) {
                         /* inplace conversion needed */
@@ -195,7 +195,7 @@ extra_convert (const converter_fmt_t  *cfmt, u_char *state, sample* src_buf, int
                         converter_change_channels(src_buf, src_len, 2, dst_buf, dst_len, 1);
                 }
                 channels = 1;
-        } else if (cfmt->from_channels == 1 && cfmt->to_channels == 2) {
+        } else if (cfmt->src_channels == 1 && cfmt->dst_channels == 2) {
                 dst_len /= 2;
         }
         
@@ -222,7 +222,7 @@ extra_convert (const converter_fmt_t  *cfmt, u_char *state, sample* src_buf, int
                 break;
         }
         
-        if (cfmt->from_channels == 1 && cfmt->to_channels == 2) {
+        if (cfmt->src_channels == 1 && cfmt->dst_channels == 2) {
                 /* sample rate change before mono-> stereo */
                 if (e->steps) {
                         /* in place needed */

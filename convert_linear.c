@@ -188,12 +188,12 @@ linear_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 
         switch(l->steps) {
         case 1:
-                linear_init_state(l, cfmt->from_channels, cfmt->src_freq, cfmt->dst_freq);
+                linear_init_state(l, cfmt->src_channels, cfmt->src_freq, cfmt->dst_freq);
                 break;
         case 2:
                 denom = g;
-                linear_init_state(l, cfmt->from_channels,     cfmt->src_freq, denom);
-                linear_init_state(l + 1, cfmt->from_channels, denom, cfmt->dst_freq);                
+                linear_init_state(l, cfmt->src_channels,     cfmt->src_freq, denom);
+                linear_init_state(l + 1, cfmt->src_channels, denom, cfmt->dst_freq);                
                 break;
         }
         *state     = (u_char*)l;
@@ -210,11 +210,11 @@ linear_convert (const converter_fmt_t *cfmt,
         li_state_t *l;
         int         channels, i;
 
-        channels = cfmt->from_channels;
+        channels = cfmt->src_channels;
 
         l = (li_state_t*)state;
 
-        if (cfmt->from_channels == 2 && cfmt->to_channels == 1) {
+        if (cfmt->src_channels == 2 && cfmt->dst_channels == 1) {
                 /* stereo->mono then sample rate change */
                 if (l->steps) {
                         /* inplace conversion needed */
@@ -226,7 +226,7 @@ linear_convert (const converter_fmt_t *cfmt,
                         return;
                 }
                 channels = 1;
-        } else if (cfmt->from_channels == 1 && cfmt->to_channels == 2) {
+        } else if (cfmt->src_channels == 1 && cfmt->dst_channels == 2) {
                 dst_len /= 2;
         }
         
@@ -253,7 +253,7 @@ linear_convert (const converter_fmt_t *cfmt,
                 break;
         }
         
-        if (cfmt->from_channels == 1 && cfmt->to_channels == 2) {
+        if (cfmt->src_channels == 1 && cfmt->dst_channels == 2) {
                 /* sample rate change before mono-> stereo */
                 if (l->steps) {
                         /* in place needed */
