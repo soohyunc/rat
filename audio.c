@@ -298,7 +298,7 @@ audio_device_reconfigure(session_t *sp)
                 if (prev_config.device == curr_config->device) {
                         debug_msg("Restoring ports\n");
                         audio_set_iport(curr_config->device, iport);
-                        audio_set_iport(curr_config->device, oport);
+                        audio_set_oport(curr_config->device, oport);
                 } else {
                         const audio_port_details_t *papd;
                         /* Ports will be squiffy */
