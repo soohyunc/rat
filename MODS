@@ -1163,6 +1163,7 @@ v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	  blends samples from the end of the previous frame with the start
 	  of this frame.  Perhaps reduces some glitching.
 	- Add README.reporting-bugs describing "How to Report Bugs Effectively"
+	- Update to the ALSA support, contributed by Bob Lindell of ISI
 
 
 TODO -- They're features not bugs dammit!

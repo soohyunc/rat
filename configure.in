@@ -180,6 +180,9 @@ case "$target" in
 		AU_OBJ="$AU_OBJ auddev_alsa.o"
 		AU_LIB="$AU_LIB /usr/lib/libasound.a"
 		AC_DEFINE(HAVE_ALSA_AUDIO)
+		# HAVE_OSS_AUDIO is defined so that the ALSA OSS emulation
+		# works for those cards which are not supported natively
+		AC_DEFINE(HAVE_OSS_AUDIO)
 	])
 	AU_OBJ="$AU_OBJ auddev_oss.o"
 	AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
