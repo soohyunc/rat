@@ -255,7 +255,7 @@ pca_audio_read(audio_desc_t ad, sample *buf, int samples)
         if (diff < format.blocksize) {
                 return 0;
         }
-        samples = format.blocksize;
+        samples = format.blocksize / sizeof(sample);
         last_read_time.tv_usec += samples * 1000 / (format.sample_rate/1000);
         if (last_read_time.tv_usec >= 1000000) {
                 last_read_time.tv_sec += last_read_time.tv_usec / 1000000;
