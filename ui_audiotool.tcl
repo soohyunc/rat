@@ -1655,13 +1655,15 @@ add_help .r.c.gain.b2 	"Indicates the loudness of the\nsound you are sending. If
 
 add_help .r.c.vol.s1  	"This slider controls the volume\nof the sound you hear."
 add_help .r.c.vol.l1  	"Click to change output device."
-add_help .r.c.vol.t1  	"If pushed in, output is muted."
+add_help .r.c.vol.t1  	"If pushed in, reception is muted."
 add_help .r.c.vol.b1  	"Indicates the loudness of the\nsound you are hearing."
 
+add_help .l.f		"Name of the session, and the IP address, port\n&\
+		 	 TTL used to transmit the audio data."
 add_help .l.t		"The participants in this session with you at the top.\nClick on a name\
                          with the left mouse button to display\ninformation on that participant,\
 			 and with the middle\nbutton to mute that participant (the right button\nwill\
-			 toggle the input mute button, as usual)."
+			 toggle the transmission mute button, as usual)."
 
 add_help .l.s1.opts   	"Brings up another window allowing\nthe control of various options."
 add_help .l.s1.about  	"Brings up another window displaying\ncopyright & author information."
@@ -1672,7 +1674,7 @@ add_help .prefs.m.f.m  "Click here to change the preference\ncategory."
 set i .prefs.buttons
 add_help $i.bye         "Cancel changes."
 add_help $i.apply       "Apply changes."
-add_help $i.save        "Dismiss window."
+add_help $i.save        "Save and apply changes."
 
 # user help
 set i .prefs.pane.personal.a.f.f.ents
@@ -1706,6 +1708,7 @@ add_help $i.cc.red.u.m \
 add_help $i.cc.int.fc.m \
 			"Sets the separation of adjacent units within\neach packet. Larger values correspond\
 			 to longer\ndelays."
+add_help $i.cc.int.zz.m "Number of compound units per packet."
 add_help $i.cc.int.rb	"Enables interleaving which exchanges latency\n\
 			 for protection against burst losses.  No other\n\
 			 audio tools can decode this format (experimental)."
@@ -1716,7 +1719,7 @@ add_help $i.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound 
 # Reception Help
 set i .prefs.pane.reception
 add_help $i.r.m 	"Sets the type of repair applied when packets are\nlost. The schemes\
-			 are listed in order of increasing\ncomplexity."
+			 are listed in order of increasing\ncomplexity and quality of repair."
 add_help $i.o.f.cb      "Enforce playout delay limits set below.\nThis is not usually desirable."
 add_help $i.o.f.fl.scmin   "Sets the minimum playout delay that will be\napplied to incoming\
 			 audio streams."
@@ -1729,8 +1732,20 @@ add_help $i.c.f.f.lec  	"If enabled, extra delay is added at both sender and rec
 			 to perform better silence suppression.\nAs the name suggests, this option\
 			 is intended for scenarios such\nas transmitting a lecture, where interactivity\
 			 is less important\nthan quality."
+
 # security...too obvious for balloon help!
+add_help .prefs.pane.security.a.f.f.e "Due to government export restrictions,\nhelp\
+				       for this option is not available. :-)"
+
 # interface...ditto!
+set i .prefs.pane.interface
+add_help $i.a.f.f.power "Disable display of audio powermeters. This\nis only\
+		 	 useful if you have a slow machine"
+add_help $i.a.f.f.video	"Enable lip-synchronisation, if\nyou\
+			 have a compatible video tool"
+add_help $i.a.f.f.balloon "If you can see this, balloon help\nis enabled. If not, it isn't."
+add_help $i.a.f.f.matrix  "Displays a chart showing the reception\nquality reported by all participants"
+add_help $i.a.f.f.plist   "Hides the list of participants"
 
 add_help .chart		"This chart displays the reception quality reported\nby all session\
 			 participants. Looking along a row\ngives the quality that participant\
