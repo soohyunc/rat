@@ -668,7 +668,7 @@ red_get_primary_pt(u_char *p)
         u_int32 hdr32;
         hdr32 = ntohl(*(u_int32*)p);
         while(hdr32 & RED_HDR32_PAT) {
-                p += 4 + RED_HDR32_GET_LEN(ntohl(hdr32));
+                p += 4;
                 hdr32 = ntohl(*(u_int32*)p);
         }
         return *p;
@@ -680,10 +680,11 @@ place_unit(media_data *md, coded_unit *cu, int pos)
         assert(pos <= md->nrep);
 
         if (md->rep) {
-                memmove(md->rep + pos, 
-                       md->rep + pos + 1, 
+                memmove(md->rep + pos + 1, 
+                       md->rep + pos, 
                        sizeof(coded_unit) * (md->nrep - pos));
         }
+        assert(md->rep[pos] == NULL);
         md->rep[pos] = cu;
         md->nrep ++;
         assert(md->nrep <= MAX_MEDIA_UNITS);
@@ -696,10 +697,10 @@ red_media_data_create_or_get(struct s_pb *p, ts_t playout)
         media_data *md;
         u_int32     md_len, success;
         ts_t        md_playout;
-
+        
         pb_iterator_create(p, &pi);
         pb_iterator_advance(pi);
-
+        
         /* This would probably be quicker starting at back and coming
          * forward. */
 
