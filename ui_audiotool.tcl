@@ -480,7 +480,7 @@ proc set_loss_to_me {cname loss} {
 	} elseif {$loss <= 100} {
 		catch [[window_plist $cname] itemconfigure m -fill red]
 	} else {
-		catch [[window_plist $cname] itemconfigure m -fill grey50]
+		catch [[window_plist $cname] itemconfigure m -fill grey]
 	}
 }
 
@@ -1522,7 +1522,7 @@ pack .chart.sr -side right  -fill y    -expand 0 -anchor e
 pack .chart.c  -side left   -fill both -expand 1 -anchor n
 
 # Add a few labels to the chart...
-.chart.c create text 2 [expr ($chart_boxsize / 2) + 2] -anchor w -text "Receiver:" -font $chart_font 
+.chart.c create text 2 [expr ($chart_boxsize / 2) + 2] -anchor w -text "Sender:" -font $chart_font 
 .chart.c create line $chart_xoffset [expr $chart_boxsize + 2] $chart_xoffset 2
 .chart.c create line $chart_xoffset 2 2 2
 
@@ -1562,7 +1562,7 @@ proc chart_enlarge {new_size} {
   set chart_size $new_size
 }
 
-proc chart_set {srce dest val} {
+proc chart_set {dest srce val} {
   global INDEX chart_size chart_boxsize chart_xoffset chart_yoffset
 
   if {[array names INDEX $srce] != [list $srce]} {

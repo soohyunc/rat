@@ -201,7 +201,7 @@ adapt_playout(rtp_hdr_t *hdr,
 		src->jitter = src->jitter + (((double) diff - src->jitter) / 16);
 	}
 
-	if (sp->sync_on) {
+	if (sp->sync_on && src->mapping_valid) {
 		/* calculate delay in absolute (real) time [dm] */ 
 		ntptime = (src->last_ntp_sec & 0xffff) << 16 | src->last_ntp_frac >> 16;
 		if (hdr->ts > src->last_rtp_ts) {
@@ -434,11 +434,15 @@ statistics(session_struct    *sp,
                 }
                 rtcp_update_seq(src, hdr->seq);
 
+/* We can't do this, since it means that many packets get trashed when someone */
+/* starts talking and the SR doesn't come for another five seconds...    [csp] */
+#ifdef NDEF
 		if (src->mapping_valid == FALSE) {
 			/* need to have a SR received b4 procceding [dm] */
 			debug_msg("Haven't received a SR so far...\n");
 			goto release;
 		}
+#endif
 
                 if (sp->have_device == FALSE) {
                         /* we don't have the audio device so there is no point
