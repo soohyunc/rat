@@ -1723,13 +1723,15 @@ frame $i.cc.red
 frame $i.cc.layer
 frame $i.cc.int 
 label $i.intro -text "This panel allows you to select codecs for transmission.  The choice\nof codecs available depends on the sampling rate and channels\nin the audio panel."
-label $i.title1 -text "Audio Encoding" -bg black -fg grey
-pack $i.intro $i.title1 $i.dd -side top -fill x
+frame $i.title1-f -relief raised
+label $i.title1-f.l -text "Audio Encoding"
+pack $i.intro $i.title1-f $i.title1-f.l $i.dd -side top -fill x
 
 #pack $i.dd -fill x -side top -anchor n
 
-label $i.title2 -text "Channel Coding Options" -bg black -fg grey
-pack $i.title2 -fill x -side top
+frame $i.title2-f -relief raised
+label $i.title2-f.l -text "Channel Coding Options"
+pack $i.title2-f $i.title2-f.l -fill x -side top
 pack $i.cc -fill x -anchor w -pady 1
 
 pack $i.cc.van $i.cc.red $i.cc.layer -fill x -anchor w -pady 0
@@ -1888,19 +1890,22 @@ pack $i.dd.cks.f.f.silence $i.dd.cks.f.f.agc $i.dd.cks.f.f.loop $i.dd.cks.f.f.su
 # Codecs pane #################################################################
 set i .prefs.pane.codecs
 frame $i 
-frame $i.of -rel fl
-pack  $i.of -fill both -expand 1 -anchor w -pady 1
 
-label $i.of.l -height 2 -width 40 -justify left -text "This panel shows the available codecs, their properties and allows\n their RTP payload types to be re-mapped." 
+
+frame $i.of -rel fl
+pack  $i.of -fill both -expand 1 -anchor w -pady 1 -side top
+
+message $i.of.l -width 30c -justify left -text "This panel shows available codecs and allows RTP payload re-mapping." 
 pack $i.of.l -side top -fill x
 
 frame   $i.of.codecs
 
 pack    $i.of.codecs -side left -padx 2 -fill y
-label   $i.of.codecs.l    -text "Codec" -bg black -fg grey
-listbox $i.of.codecs.lb -width 20 -yscrollcommand "$i.of.codecs.scroll set" -relief flat -bg white
-scrollbar $i.of.codecs.scroll -command "$i.of.codecs.lb yview" 
-pack    $i.of.codecs.l -side top -fill x
+frame   $i.of.codecs.l -rel raised
+label   $i.of.codecs.l.l -text "Codec"
+listbox $i.of.codecs.lb -width 20 -yscrollcommand "$i.of.codecs.scroll set" -relief fl -bg white
+scrollbar $i.of.codecs.scroll -command "$i.of.codecs.lb yview" -rel fl
+pack    $i.of.codecs.l $i.of.codecs.l.l -side top -fill x
 pack    $i.of.codecs.scroll $i.of.codecs.lb -side left -fill both 
 
 frame   $i.of.details -bd 0
@@ -1921,10 +1926,11 @@ entry $i.of.details.pt.e -width 4
 pack  $i.of.details.pt.e -side left -padx 4
 
 button $i.of.details.pt.b -text "Map Codec" -command map_codec
-pack  $i.of.details.pt.b -side left -padx 4
+pack  $i.of.details.pt.b -side right -padx 4
 
-label $i.of.details.upper.l0 -text "Details" -bg black -fg grey
-pack $i.of.details.upper.l0 -side top -fill x -expand 1
+frame $i.of.details.upper.l0 -relief raised
+label $i.of.details.upper.l0.l -text "Details"
+pack $i.of.details.upper.l0 $i.of.details.upper.l0.l -side top -fill x -expand 1
 
 frame $i.of.details.upper.l 
 pack $i.of.details.upper.l -side left
