@@ -153,6 +153,9 @@ main(int argc, char *argv[])
                 dropped = read_and_discard(sp[i]->rtcp_socket);
                 debug_msg("Session %d dumped %d rtcp packets\n", i, dropped);
         }
+
+        i = tcl_process_all_events();
+        debug_msg("process %d events at startup %d\n", i);
 	
 	xdoneinit();
 

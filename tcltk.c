@@ -24,6 +24,8 @@
 extern char 	ui_audiotool[];
 extern char	ui_transcoder[];
 
+#define MAX_TCL_EVENTS_TO_PROCESS 16
+
 /* Should probably have these functions inline here, rather than in win32.c??? [csp] */
 #ifdef WIN32		
 int WinPutsCmd(ClientData, Tcl_Interp*, int ac, char** av);
@@ -95,16 +97,25 @@ tcl_process_event(void)
 	return Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS);
 }
 
-void
+int
+tcl_process_all_events()
+{
+        int i = 0;
+        while (tcl_process_event()) {
+                i++;
+        }
+        return i;
+}
+
+int
 tcl_process_events(session_struct *sp)
 {
-	int i;
-	for (i=0; i<16 && tcl_process_event(); i++) {
-                /* User Interface event processing has lower priority than 
-                 * audio processing.
-                 */
-                if (audio_is_ready(sp->audio_device)) break;
+	int i = 0;
+
+        while (!audio_is_ready(sp->audio_device) && tcl_process_event() && i < MAX_TCL_EVENTS_TO_PROCESS) {
+                i++;
         }
+        return i;
 }
 
 int

@@ -17,7 +17,8 @@ void    tcl_send(char *command);
 int	tcl_init(struct session_tag *session_pointer, int argc, char **argv, char *mbus_engine_addr);
 void    tcl_exit(void);
 int	tcl_process_event(void);
-void	tcl_process_events(struct session_tag *session_pointer);
+int     tcl_process_all_events(void);
+int	tcl_process_events(struct session_tag *session_pointer);
 int	tcl_active(void);
 
 #endif
