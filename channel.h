@@ -62,6 +62,8 @@ typedef struct s_cc_unit {
         struct s_cc_coder *cc;
         struct iovec       iov[CC_UNITS];
         int                iovc;
+        int                hdr_idx;  /* index of header start */
+        int                data_idx; /* index of data start   */
 } cc_unit;
 
 typedef void (*cc_init_f)      (struct session_tag *sp, struct s_cc_state *ccs);
@@ -125,17 +127,18 @@ void  clear_cc_encoder_states (struct s_cc_state **list);
 void  clear_cc_decoder_states (struct s_cc_state **list);
 
 struct s_collator;
-struct s_collator* collator_create(void);
-void               collator_destroy(struct s_collator *c);
-cc_unit*           collate_coded_units(struct s_collator *c, coded_unit *cu, int enc_no);
-void               collator_set_units (struct s_collator *c, int n);
-int                collator_get_units (struct s_collator *c);
+struct s_collator* collator_create     (void);
+void               collator_destroy    (struct s_collator *c);
+cc_unit*           collate_coded_units (struct s_collator *c, coded_unit *cu, int enc_no);
+void               collator_set_units  (struct s_collator *c, int n);
+int                collator_get_units  (struct s_collator *c);
 
 /* fn's only for use by channel decoders */
 
-int    add_comp_data (struct rx_element_tag *u, int pt, struct iovec *iov, int iovc);
-struct rx_element_tag *get_rx_unit (int n, int cc_pt, struct rx_element_tag *u);
-int    fragment_sizes(codec_t *cp, int len, struct iovec *store, int *iovc, int store_size);
+int                    add_comp_data   (struct rx_element_tag *u, int pt, struct iovec *iov, int iovc);
+struct rx_element_tag* get_rx_unit     (int n, int cc_pt, struct rx_element_tag *u);
+int                    fragment_sizes  (codec_t *cp, int len, struct iovec *store, int *iovc, int iovc_max);
+int                    fragment_spread (codec_t *cp, int len, struct iovec *iov,   int iovc,  struct rx_element_tag *u);
 
 /* defines for coded_unit_to_iov */
 

@@ -146,7 +146,7 @@ vanilla_valsplit(char *blk, unsigned int blen, cc_unit *u, int *trailing)
 static void 
 vanilla_decode(rx_queue_element_struct *u, cc_state_t *ccs)
 {
-        int i,n,pt;
+        int i,len,iovc;
         struct iovec *iov;
         codec_t *cp;
 
@@ -154,23 +154,16 @@ vanilla_decode(rx_queue_element_struct *u, cc_state_t *ccs)
 
         if (!u->ccu_cnt) return;
 
-        pt = u->ccu[0]->pt;
-        cp = get_codec(pt);
+        cp = get_codec(u->ccu[0]->pt);
         assert(cp);
+        iov  = u->ccu[0]->iov;
+        iovc = u->ccu[0]->iovc;
 
-        iov = u->ccu[0]->iov;
-        n  = u->ccu[0]->iovc;
+        len = 0;
+        for(i = 0; i < iovc; i++)
+                len += iov[i].iov_len;
 
-        for(i=0; i<n && u; i++, u=get_rx_unit(1,PT_VANILLA,u)) {
-                if (i==0 && cp->sent_state_sz) {
-                        add_comp_data(u,pt,iov,2);
-                        i++;
-                } else {
-                        add_comp_data(u,pt,iov+i,1);
-                }
-        }
-        if (i<n) 
-                dprintf("vanilla decode - unit not found\n");
+        fragment_spread(cp, len, iov, iovc, u);
 }
 
 static void 
@@ -627,15 +620,36 @@ get_rx_unit(int n, int cc_pt, rx_queue_element_struct *u)
         /* returns unit n into the future from the same talkspurt and 
          * under the same channel coder control.
          */
-        while(n>0 && 
-              u->next_ptr && 
-              (u->next_ptr->src_ts - u->src_ts) == u->unit_size &&
-              u->next_ptr->unit_size == u->unit_size &&
-              u->next_ptr->talk_spurt_start == FALSE) {
-                if (u->ccu_cnt && u->ccu[0]->cc->pt != cc_pt) break;
-                u = u->next_ptr;
-                n--;
+        if (n > 0) {
+                while(n>0 && 
+                      u->next_ptr && 
+                      (u->next_ptr->src_ts - u->src_ts) == u->unit_size &&
+                      u->next_ptr->unit_size == u->unit_size &&
+                      u->next_ptr->talk_spurt_start == FALSE) {
+                        if (u->ccu_cnt && u->ccu[0]->cc->pt != cc_pt) break;
+                        u = u->next_ptr;
+                        n--;
+                }
+#ifdef DEBUG
+                if (n>0) {
+                        if (u->next_ptr == NULL)                                dprintf("Nothing follows\n");
+                        else if (u->next_ptr->src_ts-u->src_ts != u->unit_size) dprintf("ts jump\n");
+                        else if (u->next_ptr->unit_size != u->unit_size)        dprintf("fmt change\n");
+                        else if (u->next_ptr->talk_spurt_start)                 dprintf("New Talkspurt\n");
+                }
+#endif
+        } else if (n < 0) {
+                while(n<0 && 
+                      u->prev_ptr && 
+                      (u->prev_ptr->src_ts - u->src_ts) == u->unit_size &&
+                      u->prev_ptr->unit_size == u->unit_size &&
+                      u->prev_ptr->talk_spurt_start == FALSE) {
+                        if (u->ccu_cnt && u->ccu[0]->cc->pt != cc_pt) break;
+                        u = u->prev_ptr;
+                        n++;
+                }
         }
+        if (n) dprintf("unit %d not found\n", n);
         return n ? NULL : u;
 }
 
@@ -685,8 +699,6 @@ void
 channel_set_coder(session_struct *sp, int pt)
 {
         cc_coder_t *cc;
-
-/*        channel_encoder_reset(sp,sp->cc_encoding);  */
 
         sp->cc_encoding = pt;
         cc = get_channel_coder(pt);
@@ -834,7 +846,7 @@ fragment_sizes(codec_t *cp, int blk_len, struct iovec *store, int *iovc, int sto
 
         /* When the time comes for variable bitrate codecs to go in 
          * codec specific sniffer functions need to be written and hooks
-         * go here to determine blk sizes 
+         * go here to determine blk sizes.  Same should go in fragment_spread
          */
 
         if (blk_len > 0 && cp->sent_state_sz != 0 && (*iovc) < store_len) {
@@ -853,4 +865,39 @@ fragment_sizes(codec_t *cp, int blk_len, struct iovec *store, int *iovc, int sto
 #endif /* DEBUG */
         
         return (blk_len == 0 ? n : -1);
+}
+
+int 
+fragment_spread(codec_t *cp, int len, struct iovec *iov, int iovc, rx_queue_element_struct *u)
+{
+        int done = 0, cc_pt;
+        assert(cp);
+        assert(u);
+        cc_pt = u->cc_pt;
+        while(len > 0 && done < iovc) {
+                if (u) {
+                        if (done != 0 || (done == 0 && cp->sent_state_sz == 0)) {
+                                len -= iov[done].iov_len;
+                                add_comp_data(u, cp->pt, iov+done, 1);
+                                done += 1;
+                        } else {
+                                len -= iov[done].iov_len + iov[done+1].iov_len;
+                                add_comp_data(u, cp->pt, iov + done, 2);
+                                done += 2;
+                        }
+                        if (len) u = get_rx_unit(1, cc_pt, u);
+                } else {
+                        dprintf("Unit missing\n");
+                        if (done != 0 || (done == 0 && cp->sent_state_sz == 0)) {
+                                len -= iov[done].iov_len;
+                                done += 1;
+                        } else {
+                                len -= iov[done].iov_len + iov[done+1].iov_len;
+                                done += 2;
+                        }
+                }
+        }
+        assert(len == 0);
+        assert(done <= iovc);
+        return done;
 }
