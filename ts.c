@@ -124,7 +124,7 @@ ts_rebase(u_int32 new_idx, ts_t t)
         new_ticks %= (u_int32)tickers[new_idx].wrap;
 
         /* Update ts fields */
-        t.ticks   = new_ticks;
+        t.ticks   = (u_int32)new_ticks;
         t.idx     = new_idx;
 
         return t;

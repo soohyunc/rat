@@ -82,7 +82,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 winmm.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib tcllib.lib tklib.lib uclmm.lib /nologo /subsystem:windows /map /debug /machine:I386 /libpath:"\src\common\Debug" /libpath:"\src\tcl-8.0\win\Debug" /libpath:"\src\tk-8.0\win\Debug"
-# SUBTRACT LINK32 /verbose /profile
+# SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6"
 
@@ -119,17 +119,12 @@ LINK32=link.exe
 # Name "rat - Win32 Release"
 # Name "rat - Win32 Debug"
 # Name "rat - Win32 Debug IPv6"
-# Begin Source File
+# Begin Group "C Source Files"
 
-SOURCE=.\asfilebox.tcl
-# End Source File
+# PROP Default_Filter ".c"
 # Begin Source File
 
 SOURCE=.\auddev.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\auddev.h
 # End Source File
 # Begin Source File
 
@@ -137,23 +132,11 @@ SOURCE=.\auddev_null.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\auddev_null.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\auddev_win32.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\auddev_win32.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\audio.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\audio.h
 # End Source File
 # Begin Source File
 
@@ -165,15 +148,7 @@ SOURCE=.\audio_fmt.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\audio_types.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\cc_vanilla.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\cc_vanilla.h
 # End Source File
 # Begin Source File
 
@@ -181,15 +156,7 @@ SOURCE=.\channel_types.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\channel_types.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\codec.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec.h
 # End Source File
 # Begin Source File
 
@@ -197,15 +164,7 @@ SOURCE=.\codec_adpcm.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\codec_adpcm.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\codec_g711.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec_g711.h
 # End Source File
 # Begin Source File
 
@@ -217,15 +176,7 @@ SOURCE=.\codec_l16.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\codec_l16.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\codec_lpc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec_lpc.h
 # End Source File
 # Begin Source File
 
@@ -233,15 +184,7 @@ SOURCE=.\codec_state.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\codec_state.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\codec_types.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec_types.h
 # End Source File
 # Begin Source File
 
@@ -249,23 +192,7 @@ SOURCE=.\codec_vdvi.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\codec_vdvi.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\codec_wbs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec_wbs.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\config_unix.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\config_win32.h
 # End Source File
 # Begin Source File
 
@@ -273,19 +200,7 @@ SOURCE=.\convert.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\convert.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\crypt.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\crypt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\crypt_global.h
 # End Source File
 # Begin Source File
 
@@ -293,15 +208,7 @@ SOURCE=.\cushion.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cushion.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\cx_dvi.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\cx_dvi.h
 # End Source File
 # Begin Source File
 
@@ -309,15 +216,7 @@ SOURCE=.\cx_gsm.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cx_gsm.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\cx_lpc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\cx_lpc.h
 # End Source File
 # Begin Source File
 
@@ -325,19 +224,7 @@ SOURCE=.\cx_vdvi.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cx_vdvi.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\cx_wbs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\cx_wbs.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm.h
 # End Source File
 # Begin Source File
 
@@ -363,15 +250,7 @@ SOURCE=.\mbus_engine.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\mbus_engine.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\mbus_ui.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\mbus_ui.h
 # End Source File
 # Begin Source File
 
@@ -379,15 +258,7 @@ SOURCE=.\mix.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\mix.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\net.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\net.h
 # End Source File
 # Begin Source File
 
@@ -395,15 +266,7 @@ SOURCE=.\new_channel.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\new_channel.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\parameters.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\parameters.h
 # End Source File
 # Begin Source File
 
@@ -411,19 +274,227 @@ SOURCE=.\pckt_queue.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\pckt_queue.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\playout.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\playout.h
+SOURCE=.\render_3D.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\render_3D.c
+SOURCE=.\rtcp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\rtcp_db.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\rtcp_pckt.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\session.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\sndfile.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\source.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\statistics.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\tcltk.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\timers.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\transcoder.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\transmit.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ts.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ui.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ui_audiotool.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ui_transcoder.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\win32.c
+# End Source File
+# End Group
+# Begin Group "C Header Files"
+
+# PROP Default_Filter ".h"
+# Begin Source File
+
+SOURCE=.\auddev.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\auddev_null.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\auddev_win32.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\audio.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\audio_types.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cc_vanilla.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\channel_types.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_adpcm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_g711.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_gsm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_l16.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_lpc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_state.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_types.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_vdvi.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_wbs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\config_unix.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\config_win32.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\convert.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\crypt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\crypt_global.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cushion.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_dvi.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_gsm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_lpc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_vdvi.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_wbs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mbus_engine.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mbus_ui.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mix.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\net.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\new_channel.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\parameters.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\pckt_queue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\playout.h
 # End Source File
 # Begin Source File
 
@@ -439,15 +510,7 @@ SOURCE=.\repair.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\rtcp.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\rtcp.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\rtcp_db.c
 # End Source File
 # Begin Source File
 
@@ -455,15 +518,7 @@ SOURCE=.\rtcp_db.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\rtcp_pckt.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\rtcp_pckt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\session.c
 # End Source File
 # Begin Source File
 
@@ -471,15 +526,7 @@ SOURCE=.\session.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\sndfile.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\sndfile.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\source.c
 # End Source File
 # Begin Source File
 
@@ -487,15 +534,7 @@ SOURCE=.\source.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\statistics.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\statistics.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\tcltk.c
 # End Source File
 # Begin Source File
 
@@ -503,19 +542,7 @@ SOURCE=.\tcltk.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\timers.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\transcoder.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\transcoder.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\transmit.c
 # End Source File
 # Begin Source File
 
@@ -523,15 +550,7 @@ SOURCE=.\transmit.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\ts.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\ts.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\ui.c
 # End Source File
 # Begin Source File
 
@@ -539,7 +558,15 @@ SOURCE=.\ui.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\ui_audiotool.c
+SOURCE=.\version.h
+# End Source File
+# End Group
+# Begin Group "Tcl/Tk Scripts"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\asfilebox.tcl
 # End Source File
 # Begin Source File
 
@@ -587,10 +614,6 @@ InputPath=.\ui_audiotool.tcl
 # End Source File
 # Begin Source File
 
-SOURCE=.\ui_transcoder.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\ui_transcoder.tcl
 
 !IF  "$(CFG)" == "rat - Win32 Release"
@@ -629,6 +652,7 @@ InputPath=.\ui_transcoder.tcl
 !ENDIF 
 
 # End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\Version
@@ -686,14 +710,6 @@ InputPath=.\Version
 
 !ENDIF 
 
-# End Source File
-# Begin Source File
-
-SOURCE=.\version.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\win32.c
 # End Source File
 # End Target
 # End Project
