@@ -354,10 +354,10 @@ setting_load_int(char *name, int default_value)
 
 void settings_load(session_struct *sp)
 {
-	audio_device_details_t	 ad;
-	char			*ad_name, *primary_codec, *cc_name, *port;
-	int			 i, freq, chan, gain;
-	cc_details		 ccd;
+	audio_device_details_t		 ad;
+	char				*ad_name, *primary_codec, *cc_name, *port;
+	int				 i, freq, chan;
+	cc_details			 ccd;
         const audio_port_details_t 	*apd;
 
 	load_init();
@@ -401,12 +401,8 @@ void settings_load(session_struct *sp)
         }
         audio_set_iport(sp->audio_device, apd->port);
 
-        gain = setting_load_int("audioOutputGain", 75);
-        audio_set_ogain(sp->audio_device, gain);
-
-        gain = setting_load_int("audioInputGain",  75);
-        audio_set_igain(sp->audio_device, gain);
-
+        audio_set_ogain(sp->audio_device, setting_load_int("audioOutputGain", 75));
+        audio_set_igain(sp->audio_device, setting_load_int("audioInputGain",  75));
         tx_igain_update(sp->tb);
 
 	cc_name = setting_load_str("audioChannelCoding", "None");
@@ -417,6 +413,9 @@ void settings_load(session_struct *sp)
 			break;
 		}
 	}
+
+        setting_load_int("audioInputMute", 1);
+        setting_load_int("audioOutputMute", 1);
 
 	channel_encoder_set_parameters(sp->channel_coder, setting_load_str("audioChannelParameters", "None"));
 	channel_encoder_set_units_per_packet(sp->channel_coder, (u_int16) setting_load_int("audioUnits", 2));
@@ -434,8 +433,6 @@ void settings_load(session_struct *sp)
 	sp->echo_suppress  = setting_load_int("audioEchoSuppress", 0);
 	sp->meter          = setting_load_int("audioPowermeters", 1);
 	sp->sync_on        = setting_load_int("audioLipSync", 0);
-        setting_load_int("audioOutputMute", 1);
-        setting_load_int("audioInputMute", 1);
         xmemchk();
 	load_done();
 }
