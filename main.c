@@ -240,9 +240,9 @@ main(int argc, char *argv[])
 			}
 
 			if (sp[i]->mode == TRANSCODER) {
-				service_rtcp(sp[i], sp[1-i], rtcp_pckt_queue_p[i], cur_time);
+				service_rtcp(sp[i], sp[1-i], rtcp_pckt_queue_p[i], cur_time, real_time);
 			} else {
-				service_rtcp(sp[i],    NULL, rtcp_pckt_queue_p[i], cur_time);
+				service_rtcp(sp[i],    NULL, rtcp_pckt_queue_p[i], cur_time, real_time);
 			}
 
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {

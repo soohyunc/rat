@@ -376,7 +376,7 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 	rptr->jitter   = htonl((u_long) dbe->jitter);
 
 	rptr->lsr      = htonl(dbe->last_sr);
-	rptr->dlsr     = htonl(ntp_time32() - dbe->last_sr);
+	rptr->dlsr     = htonl(ntp_time32() - dbe->last_sr_rx);
 	return ptr + 24;
 }
 
@@ -454,7 +454,7 @@ rtcp_forward(rtcp_t *pckt, session_struct *sp1, session_struct *sp2)
  *  packet. [csp]
  */
 void 
-rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, int len, u_int32 cur_time)
+rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, int len, u_int32 cur_time, u_int32 real_time)
 {
 	rtcp_t			*pkt = (rtcp_t *) packet;
 	rtcp_dbentry		*dbe, *other_source;
@@ -480,8 +480,6 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				return;
 			}
 			dbe = rtcp_getornew_dbentry(sp, ssrc, cur_time);
-			dbe->last_active   = cur_time;
-			dbe->last_sr       = ntp_time32();
 
 			/* Take note of mapping to use in synchronisation */
 			dbe->mapping_valid = TRUE;
@@ -494,6 +492,9 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			sp->db->map_ntp_time = (sec & 0xffff) << 16 | frac >> 16;
 			sp->db->map_rtp_time = get_time(sp->device_clock);
 
+			dbe->last_active = cur_time;
+			dbe->last_sr     = ((dbe->last_ntp_sec & 0xffff) << 16) | (((dbe->last_ntp_frac & 0xffff0000) >> 16) & 0xffffffff);
+			dbe->last_sr_rx  = real_time;
 
 			/* Store the reception statistics for that user... */
 			/* Clear the old RR list... */
@@ -556,15 +557,17 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				if (dbe->sentry->cname != NULL) {
 					ui_update_loss(sp, dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
 				}
+				/* is it reporting on my traffic? */
+				if ((rr->ssrc == sp->db->myssrc) && (dbe->sentry->cname != NULL)) {
+					/* Need to store stats in ssrc's db not r.rr.ssrc's */
+					dbe->loss_from_me = rr->fraction_lost;
+					dbe->last_rr_for_me = cur_time;
+					ui_update_loss(sp, dbe->sentry->cname, sp->db->my_dbe->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5)); 
+					/* Work out the round-trip-time... */
+					debug_msg("rtt %x %f\n", ntohl(pkt->r.rr.ssrc), ((double) (real_time - rr->lsr - rr->dlsr)) / 65536.0);
+				}
 			}
 
-			/* is it reporting on my traffic? */
-			if ((ntohl(pkt->r.rr.rr[0].ssrc) == sp->db->myssrc) && (dbe->sentry->cname != NULL)) {
-				/* Need to store stats in ssrc's db not r.rr.ssrc's */
-				dbe->loss_from_me = (ntohl(pkt->r.rr.rr[0].loss) >> 24) & 0xff;
-				dbe->last_rr_for_me = cur_time;
-				ui_update_loss(sp, dbe->sentry->cname, sp->db->my_dbe->sentry->cname, (dbe->loss_from_me*100)>>8);
-			}
 			break;
 		case RTCP_BYE:
 			rtcp_forward(pkt, sp2, sp);

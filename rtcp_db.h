@@ -124,7 +124,8 @@ typedef struct s_rtcp_dbentry {
 	u_int32         cycles;
 	u_int32		bad_seq;
 	int8		probation;
-	u_int32         last_sr;
+	u_int32         last_sr;	/* The middle 32 bits from the NTP timestamp in the last SR packet we received, for use in our RR */
+	u_int32		last_sr_rx;	/* The time the last SR packet was received. */
 	u_int32         last_active;
 	u_char          is_sender;
 

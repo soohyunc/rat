@@ -55,7 +55,8 @@ void
 service_rtcp(session_struct    *sp,
              session_struct    *sp2,
 	     pckt_queue_struct *rtcp_pckt_queue_ptr,
-	     u_int32            cur_time)
+	     u_int32            cur_time,
+	     u_int32		real_time)
 {
 	double				 RTCP_SIZE_GAIN = (1.0/16.0);	/* Copied from RFC1889 [csp] */
 	pckt_queue_element_struct 	*pckt;
@@ -63,7 +64,7 @@ service_rtcp(session_struct    *sp,
 	while (rtcp_pckt_queue_ptr->queue_empty == FALSE) {
 		pckt = get_pckt_off_queue(rtcp_pckt_queue_ptr);
 		if (rtcp_check_rtcp_pkt(pckt->pckt_ptr, pckt->len)) {
-			rtcp_decode_rtcp_pkt(sp, sp2, pckt->pckt_ptr, pckt->len, cur_time);
+			rtcp_decode_rtcp_pkt(sp, sp2, pckt->pckt_ptr, pckt->len, cur_time, real_time);
     			sp->db->avg_size += (int)((pckt->len - sp->db->avg_size)*RTCP_SIZE_GAIN);    /* Update the average RTCP packet size... */
 			sp->db->report_interval = rtcp_interval(sp->db->members, sp->db->senders, sp->db->rtcp_bw, sp->db->sending, 
 						       	0, &(sp->db->avg_size), sp->db->initial_rtcp, get_freq(sp->device_clock));
