@@ -1,88 +1,62 @@
 '\" t
 .\" @(#)rat.1 3.1 97/02/22 
-.\" Copyright (c) 1997 University College London.
+.\" Copyright (c) 1997-99 University College London.
 .\" Written by Orion Hodson
 .\"
-.TH rat 1 "22 February 1997"
+.TH rat 1 "24 May 1999"
 .SH NAME
 rat \- unicast and multicast audio conferencing tool
 .SH SYNOPSIS
-.BR rat    
+.B rat    
 .RB [options] 
-.I addr/port
-.LP	
-.BR rat 
-.RB -F 
-.RB [options] 
-.I infile outfile
+.I address/port
+.SH DESCRIPTION
 .LP
-.BR rat
-.RB -T
-.RB [options] 
-.I addr/port/ttl/codec addr/port/ttl/codec
+.I RAT 
+is a network audio conferencing and streaming application with
+support for multiple sampling rates, error concealment, and redundant
+audio encoding.  Transmissions can be between two participants directly
+(unicast) or between a group of participants on a common multicast
+address.
+
+To initiate a unicast conference the user specifies the 
+.I address 
+of the destination 
+host name or IP address and a port number.  To participate in a 
+multicast conference a Class D group address should be specified
+together with a 
+.I port 
+number.  The application uses the greatest even 
+integer less than or equal to the port specified for data (RTP) and 
+the port above for control messages (RTCP).  The protocols RTP and 
+RTCP used are specified in RFC 1889.
+
 .SH OPTIONS
 The following options are supported:
+.TP
+.BI -allowloopback
+Causes rtp packets to be loopbacked during multicast
+sessions.
+.TP 
+.BI \-codecs
+List codecs supported.
 .TP
 .BI \-crypt " key"
 Enable encryption, with the specified key. Encryption is
 done using DES, and is believed compatible with encrypting
 versions of vat.
 .TP
-.BI \-drop " drop"
-Specifies the percentage of packets to be dropped at the
-transmitter.  This is particularly useful when experimenting
-on files for testing how a given repair/coding technique 
-works.
-.TP
-.BI \-f " c1/c2/../cn"
-Specifies the encodings used when transmitting audio.  The 
-order is primary encoding, secondary encoding, etc.  A 
-maximum of seven levels of encoding are possible, although
-only two are available from the user interface.  The allowed
-values are l16, pcm, dvi, gsm, lpc.  See 
-.B CODECS 
-below for 
-description of the codecs and their recommended usage.
-.TP
-.BI -F " infile outfile"
-Makes RAT to read audio from the file 
-.I infile
-, encode it, 
-and transmit it on the local loopback address, and finally 
-write it to 
-.I outfile.  
-This is useful inconjunction with the
-.B -drop 
-option for evaluating repair techniques and codecs.
-The file format is 16 bit linear PCM audio, currently
-sampled at 8 kHz, with no header information.  
-.TP
-.B -loopback_rtp
-Causes rtp packets to be loopbacked during multicast
-sessions.
-.TP
-.BI -lbl_channel " channel"
-Specifies the channel identifier for use with the LBL 
-Conference Bus.  RAT always listens to the base channel 
-for audio device trading with other tools, like 
-.B vat(1).
-When a channel is specified it allows RAT to communicate 
-with other tools, like 
-.B vic(1), provided they have the same
-channel number.  This is particularly useful for voice
-switching the video sources.
-.TP
-.BI -lbl_priority " priority"
-Specifies the processing priority 
-of the code that handles
-the LBL Conference Bus.  
-The default value is 100 and the 
-permitted range of values 
-is 0 to 200.  
-.TP
-.BI -name " name"
+.BI -C " name"
 Sets the RAT window title to 
 .I name.	
+.TP
+.BI \-f " c1/c2/../cn"
+Specifies the encodings used when transmitting audio.  The order is
+primary encoding, secondary encoding, etc.  A maximum of seven levels
+of encoding are possible, although only two are available from the
+user interface.  The allowed values are those listed using -codecs and
+the values l16, pcm, pcmu, pcma, alaw, ulaw, dvi, gsm, lpc are
+available for backwards compatibility.
 .TP
 .B -no_ui
 Do not display user interface.
@@ -127,29 +101,6 @@ appropriate:
 .fi
 .RE
 .TP
-.BI -T " addr/port/ttl/codec addr/port/ttl/codec"
-Causes RAT to operate as an RTP transcoder/mixer. In this 
-mode the user-interface is not displayed, and no audio is
-played out. Instead, RTP packets received from either group
-are transcoded into the format specified for the other 
-group, multiple sources are mixed together, and the result 
-transmitted to the other group. In each case, 
-.I addr
-may be either unicast or multicast, and the
-.I ttl
-and
-.I codec
-specifiers may be omitted (The default is TTL 16, DVI coding).
-This option is useful for transcoding between low- and high-bandwidth
-sessions, for use other a slow link, for example.
-.TP
-.BI -seed " number"
-Seeds the random number generator that governs dropping of
-packets at the transmitter.  Only valid in conjunction with
-the 
-.B -drop 
-option.
-.TP
 .BI -silence " on|off"
 Turns silence suppression on or off.
 .I hysteresis.
@@ -163,159 +114,70 @@ by one, but not beyond
 .B -version
 Displays the version number.
 
-.SH DESCRIPTION
-
-RAT is a network audio tool that allows users to particpate in 
-conferences over the internet.  These can be between two participants 
-directly (unicast) or between a group of participants on a common 
-multicast address. 
-	
-To initiate a unicast conference the user specifies the destination 
-host name or IP address and a port number.  To participate in a 
-multicast conference a Class D group address should be specified
-together with a port number.  The application uses the greatest even 
-integer less than or equal to the port specified for data (RTP) and 
-the port above for control messages (RTCP).  The protocols RTP and 
-RTCP used are specified in RFC 1889.
-
 .SH USER INTERFACE
 
 .SS Main Window
 
-The main window of RAT is split into three sections. On the left is
-a list of conference participants, below this are a number of
-buttons enabling setting of options, and on the right are
-volume/microphone controls.
+The main window of RAT is split into three sections.  At the top of
+the window are the audio device port and volume selectors, and the
+mutes for incoming and outgoing audio.  In the middle the list of
+participants shows local and remote conference members.  Active
+speakers are highlighted. Clicking the left mouse button on the name
+of a remote participant will display a user information panel, giving
+various reception statistics for that user.  Individuals can be
+selectively muted by clicking on them with the middle mouse button on
+three button systems, or moving the mouse to the individual and
+pressing the m.  At the bottom of the window are buttons for the
+options panel, the about panel, and to quit.
 
-The list of participants shows local and remote conference members.
-Active speakers are highlighted. Clicking the left mouse button on
-the name of a remote participant will display a user information
-panel, giving various reception statistics for that user.  Individuals
-can be selectively muted by clicking on them with the middle mouse 
-button on three button systems, or moving the mouse to the individual 
-and pressing the m.
-
-The right-hand side of the RAT window contains volume and gain
-controls. The leftmost controls in this section control audio
-output, and the rightmost control audio input. The sliders control
-volume/gain, and the icons above them select audio source and
-destination. Audio output may be toggled between speaker, headset
-and line out. Audio input may be toggled between microphone and
-line in. Audio input/output may be independently muted. Pressing
-the right mouse button anywhere within the RAT window will
+Pressing the right mouse button anywhere within the RAT window will
 temporarily toggle the state of the audio input mute: this allows a
 "push-to-talk" mode of operation.
 
 .SS Options
 
-Pressing the "options" button brings up a control panel, allowing
-the operation of RAT to be modified. The options in this panel are
-as follows:
-.TP	
-.B Duration
-Select amount of audio data, in milliseconds, which is sent
-in each packet. Larger values result in greater end-to-end
-delay over the network, but reduce the per-packet header
-overhead.
-.TP
-.B Encodings
-Sets the format for data transmitted to the network. If the
-conference includes vat users, redundancy should be turned
-off; however if all users are using RAT, and packet loss is
-being experienced, the use of redundancy will vastly
-improve sound quality. It is hoped that future versions of
-vat will eventually be able to decode redundant audio data.
-.TP
-.B Mode
-Determines whether audio data from the network has priority
-over outgoing data. Use options other than full duplex with
-caution, since they can be confusing.
-.TP
-.B Loss repair
-If set to
-.I packet repetition
-the receiver attempts to patch over missing packets
-with the replay of the previous packet. This is a receiver
-based solution to the problem of network packet loss. We
-recommend that redundancy is used in these cases, but if
-that is not possible, use of this option may help. This
-does not affect the data sent to the network.
-.TP
-.B Suppress Silence
-If on periods of silence within a conversation are not
-transmitted, reducing the network traffic. We recommend
-that this option is on.
+RAT supports a large number of options and pressing the "options"
+button will launch the optinos panel.  The best approach to see what
+is available is to go and explore.  The options panel has a category
+menu at the top and by clicking on it options in the different
+categories are presented.  
+
 .TP 
-.B Powermeters
-If on, audio powermeters will be displayed in the main RAT
-window.
-.TP
-.B Lecture Mode
-If on, the playout delay at the receiver is artificially 
-increased. This results in better performance in the
-presence of variable network delay, at the expense of 
-reduced interactivity. It is most useful when listening
-to broadcast lectures, hence the name. This is automatically
-turned off if you transmit audio.
-.TP
-.B Video Synchronisation
-If using a modified version of vic, this enables lip
-synchronisation between audio and video streams. This is
-not generally useful at present.
-.TP
-.B Automatic Gain Control
-If on, the microphone gain will be controlled automatically.
-.TP
-.B Acoustic Feedback
-If on, acoustic feedback of input gain will be provided.  
+.B Personal
+User details that are conveyed to other conference participants.
+
 .TP	
-.B Play file/Rec file
-Allow the playback/recording of audio data in the
-conference. Format of the files is raw 8kHz 16bit linear PCM data,
-with no headers.
+.B Transmission
+Allows the selection of codec used for transmission, the setting of
+the number, of units of audio per packet, and the selection of
+redundant audio data.
+
 .TP
-.B RTP info
-Allows setting of the name by which you appear in the
-conference. 
+.B Reception
+Options that control how received audio is decoded.
+
 .TP
-.B Session key
-Entering a key, and enabling this will encrypt the audio
-data using DES. This encryption is believed compatible with
-encrypting versions of vat.
-.SH CODECS
-Five types of audio encoding are currently possible with RAT, 
-although more are in development.  The encodings are:
+.B Audio
+Options to select and configure the available audio device, and
+features that pertain to audio handling (i.e. silence suppression,
+agc, audio loopback, and echo suppression).
 
-.RS
-.TS
-c r l.
-\f2Name	\f2Bit rate	\f2Description\f1
-l16	128 kb/s	Linear PCM at 16 bits per sample.
-pcm	64 kb/s	Mulaw companded PCM at 8 bits per sample (G711).
-dvi	32 kb/s	Intel's DVI ADPCM at 4 bits per sample. 
-gsm	13.2 kb/s	EDSI Group Systeme Mobile codec.
-lpc	5.8 kb/s	Ron Zuckerman's 10 pole LPC codec.
-.TE
-.RE
+.TP
+.B Codecs
+Displays details on available codecs and allows for them to be assigned
+to alternate RTP payload numbers.  Map payload numbers at your own peril.
 
-Internally, RAT uses 16 bit linear sampling at 8 kHz 
-(except on hardware where it is unavailable, 
-then 8 bit mulaw is used).  Multiple sampling rates 
-will be available in a future release.  
+.TP
+.B Security
+Allows DES encryption of audio for incoming and outgoing streams.
 
-NB The DVI codec has 4 bytes of state associated with each packet
-irrespective of it's length.
-.SH PACKET OVERHEADS
-There is an overhead associated with each audio packet sent.  When RAT
-is operating as an audio tool the RTP header is 96 bits per packet (it
-is longer when RAT is acting as mixer and there are multiple
-contributing sources in each packet.  The UDP/IP overhead is 224 bits
-per packet.  Thus transmitting with 20 ms packets has an overhead of
-11.2 kb/s, whereas 80 ms only incurr 2.8 kb/s.
+.TP
+.B Interface
+Allows users to control balloon help, enable lip synchronization with
+suitably modified versions of 
+.I VIC
+, and displaying of windows for reception quality and file playback and recording.
 
-By default RAT starts with 40 ms packets of DVI coded data.  This
-represents a trade off between bandwidth, quality, and the ability 
-of receiver based repair techniques to work successfully.
 	
 .SH EXAMPLES
 To start a unicast session between 
@@ -329,38 +191,41 @@ type, using primary encoding of dvi and a secondary encoding of lpc:
 
 		rat -f dvi/lpc 224.5.6.7/8110
 
-To simulate packet loss between 2 hosts of 10% using trek.in as the
-input file and trek.out as output file:
-
-		rat -F -drop 10 trek.in trek.out
-
 .SH AUTHORS
-The original RAT code was developed by Vicky Hardman 
+This version of RAT was written by Orion Hodson
+<O.Hodson@cs.ucl.ac.uk> and Colin Perkins <C.Perkins@cs.ucl.ac.uk> in
+the Networked Multimedia Group, University College London.  Markus
+Iken contributed the 3d rendering code.
+
+The first version of RAT was developed by Vicky Hardman 
 <V.Hardman@cs.ucl.ac.uk> and Isidor Kouvelas <I.Kouvelas@cs.ucl.ac.uk>
-at University College London.  The DES encryption was written by 
+at University College London.  The DES encryption was written by
 Saleem Bhatti <S.Bhatti@cs.ucl.ac.uk> and integrated by Darren Harris.
 
-This release of RAT has been substantially enhanced by 
-Isidor Kouvelas, Colin Perkins <C.Perkins@cs.ucl.ac.uk>, and
-Orion Hodson <O.Hodson@cs.ucl.ac.uk>.
-
-The RAT project is managed by Vicky Hardman and Angela Sasse, and 
-supported by the following projects:
-.RS
+RAT has been supported by the following projects:
+.RS 4
 .TS
-l l.
-MICE	Multimedia Conferencing in Europe (ESPRIT)
-MERCI	Multimedia European Research Conferencing 
-	Integration
-ReLaTe	Remote Language Teaching for Super Janet (BT/JISC) 
-RAT	Robust Audio Tool (EPSRC/BT)
+MICE	 Multimedia Conferencing in Europe (ESPRIT)
+
+MERCI	 Multimedia European Research Conferencing Integration
+
+ReLaTe	 Remote Language Teaching for Super Janet (BT/JISC)
+
+RAT	 Robust Audio Tool (EPSRC/BT)
 .TE
 .RE
+
+This software has benefited from hardware donations by Sun
+Microsystems and Hewlett Packard, and software donations by Microsoft.
+
 .SH ACKNOWLEDGEMENTS
-We thank Anna Watson, Mark Handley, Steve Casner, Jon Crowcroft, 
-Atanu Ghosh, Roy Bennett, Jane Hughes, Marcus Iken, and our collegues 
-at UCL who have provided countless suggestions and extended good humour 
-through the buggy pre-releases.
+
+We thank Roy Bennett, Jon Crowcroft, Ross Finlayson, Atanu Ghosh,
+Terry Gibbons, Jeremy Hall, Mark Handley, Marcus Iken, Iain McKay,
+Fulvio Risso, Roy Rodenstein, Lorenzo Vicisano, Anna Watson, Michael
+Wallbaum, Hui Zhao, and our collegues at UCL who have provided
+countless suggestions and extended good humour through the buggy
+pre-releases.
 
 Modifications for HP-UX by Terje Vernly <terjeve@usit.uio.no>
 and Geir Harald Hansen <g.h.hansen@usit.uio.no>.
@@ -388,9 +253,10 @@ Berkeley Laboratory.
 Encryption features of this software use the RSA Data Security, Inc. 
 MD5 Message-Digest Algorithm.
 .SH FEEDBACK
-Please send comments and suggestions to rat-trap@cs.ucl.ac.uk.
+Please send comments, bug-reports, patches, and suggestions to
+rat-trap@cs.ucl.ac.uk.
 
-Please check ftp://cs.ucl.ac.uk/mice/rat/current for latest release
-information.
+Please check http://www-mice.cs.ucl.ac.uk/multimedia/software for
+latest release information.
 
 
