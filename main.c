@@ -175,7 +175,7 @@ main(int argc, char *argv[])
                         }
 
                         /* Process incoming packets */
-                        statistics_process(sp[i], sp[i]->rtp_pckt_queue, sp[i]->cushion, ntp_time);
+                        statistics_process(sp[i], sp[i]->rtp_pckt_queue, sp[i]->cushion, ntp_time, cur_ts);
 
                         /* Process and mix active sources */
 			if (sp[i]->playing_audio) {
@@ -188,6 +188,7 @@ main(int argc, char *argv[])
                                 scnt = (int)source_list_source_count(sp[i]->active_sources);
                                 for(sidx = 0; sidx < scnt; sidx++) {
                                         s = source_list_get_source_no(sp[i]->active_sources, sidx);
+                                        source_check_buffering(s, cur_ts);
                                         source_process(s, sp[i]->ms, sp[i]->render_3d, sp[i]->repair, cush_ts);
                                         source_audit(s);
                                         if (!source_relevant(s, cush_ts)) {

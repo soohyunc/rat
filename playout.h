@@ -34,6 +34,9 @@ int pb_add    (struct s_pb *pb,
 
 void pb_flush (struct s_pb *pb);
 
+void pb_shift_back(struct s_pb *pb, ts_t delta);
+void pb_shift_forward(struct s_pb *pb, ts_t delta);
+
 u_int16 pb_iterator_count(struct s_pb *pb);
 
 /*

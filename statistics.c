@@ -75,6 +75,32 @@ update_database(session_struct *sp, u_int32 ssrc)
 	return dbe_source;
 }
 
+static inline u_int32
+statistics_variable_component(rtcp_dbentry            *src,
+                              session_struct          *sp, 
+                              struct s_cushion_struct *cushion) 
+{
+        u_int32 var;
+        var = (u_int32) src->jitter * 3;
+        
+        if (var < (unsigned)src->inter_pkt_gap) {
+                var = src->inter_pkt_gap;
+        }
+        
+        var = max(var, 4 * cushion_get_size(cushion) / 3);
+
+        if (sp->limit_playout) {
+                u_int32 minv, maxv;
+                minv = sp->min_playout * get_freq(src->clock) / 1000;
+                maxv = sp->max_playout * get_freq(src->clock) / 1000; 
+                assert(maxv > minv);
+                var = max(minv, var);
+                var = min(maxv, var);
+        }
+
+        return var;
+}
+
 /* Returns new playout timestamp */
 
 static ts_t 
@@ -87,8 +113,6 @@ adapt_playout(rtp_hdr_t               *hdr,
 	      u_int32                  ntp_time)
 {
 	u_int32	var;
-        u_int32 minv, maxv; 
-
 	int	src_freq;
 	codec_id_t            cid;
         const codec_format_t *cf;
@@ -126,6 +150,11 @@ adapt_playout(rtp_hdr_t               *hdr,
                         diff_ts      = ts_abs_diff(delay_ts, src->delay);
                         /* Jitter calculation as in RTP spec */
                         src->jitter += (((double) diff_ts.ticks - src->jitter) / 16.0);
+#ifdef DEBUG
+                        if (src->jitter == 0) {
+                                debug_msg("Jitter zero\n");
+                        }
+#endif
                         src->delay = delay_ts;
                 }
 	}
@@ -171,28 +200,8 @@ adapt_playout(rtp_hdr_t               *hdr,
                                 debug_msg("Seq jump %ld %ld\n", hdr->seq, src->last_seq);
                         }
 #endif
-			var = (u_int32) src->jitter * 3;
-                        
-                        debug_msg("jitter %d\n", var / 3);
-
-                        if (var < (unsigned)src->inter_pkt_gap) {
-                                debug_msg("var (%d) < inter_pkt_gap (%d)\n", var, src->inter_pkt_gap);
-                                var = src->inter_pkt_gap;
-                        }
-
-                        var = max(var, 3 * cushion_get_size(cushion) / 2);
-
-                        debug_msg("Cushion %d\n", cushion_get_size(cushion));
-                        minv = sp->min_playout * get_freq(src->clock) / 1000;
-                        maxv = sp->max_playout * get_freq(src->clock) / 1000; 
-
-                        assert(maxv > minv);
-                        if (sp->limit_playout) {
-                                var = max(minv, var);
-                                var = min(maxv, var);
-                        }
-
-                        assert(var > 0);
+                        var = statistics_variable_component(src, sp, cushion);
+                        debug_msg("var = %d\n", var);
 
                         if (!ts_eq(src->delay_in_playout_calc, src->delay)) {
                                 debug_msg("Old delay (%u) new delay (%u) delta (%u)\n", 
@@ -245,44 +254,6 @@ adapt_playout(rtp_hdr_t               *hdr,
                                         src->sync_playout_delay = src->video_playout;
                                 }
 			}
-                        src->skew_adjust = 0;
-                } else {
-                        /* No reason to adapt playout unless too
-                         * little or too much audio buffered in
-                         * comparison to to amount of audio in a
-                         * packet. 
-                        codec_id_t id;
-                        u_int32 buffered, audio_per_pckt, adjust, samples_per_frame, cs;
-                        static u_int32 last_adjust;
-
-                        id = codec_get_by_payload(src->enc);
-                        if (id) {
-                                samples_per_frame = codec_get_samples_per_frame(id);
-                        } else {
-                                samples_per_frame = 160;
-                        }
-
-                        audio_per_pckt    = src->units_per_packet * samples_per_frame;
-
-                        buffered = receive_buffer_duration_ms(sp->receive_buf_list, src) * 8;
-                        cs = cushion_get_size(cushion);
-                        if (ts_gt(get_time(sp->device_clock), last_adjust + 4000)) {
-                                if (buffered < cs + audio_per_pckt) {
-                                        adjust            = samples_per_frame * src->units_per_packet;
-                                        src->playout     += adjust;
-                                        src->skew_adjust += adjust;
-                                        debug_msg("*** shifted %d +samples, previous time %08u\n", adjust, get_time(sp->device_clock) - last_adjust);
-                                        last_adjust = get_time(sp->device_clock);
-                                } else if (buffered > cs + 3 * audio_per_pckt) {
-                                        adjust            = samples_per_frame / 2;
-                                        src->playout     -= samples_per_frame;
-                                        src->skew_adjust -= adjust;
-                                        debug_msg("*** shifted %d -samples, previous time %08u\n", adjust, get_time(sp->device_clock) - last_adjust);
-                                        last_adjust = get_time(sp->device_clock);
-                                }
-                                
-                        }
-                        */
                 }
         }
         src->last_seq       = hdr->seq;
@@ -434,7 +405,8 @@ void
 statistics_process(session_struct          *sp,
                    struct s_pckt_queue     *rtp_pckt_queue,
                    struct s_cushion_struct *cushion,
-                   u_int32	            ntp_time)
+                   u_int32	            ntp_time,
+                   ts_t                     curr_ts)
 {
 	/*
 	 * We expect to take in an RTP packet, and decode it - read fields
@@ -502,6 +474,8 @@ statistics_process(session_struct          *sp,
                         goto release;
                 }
                 rtcp_update_seq(sender, hdr->seq);
+
+                sender->last_arr = curr_ts;
 
                 if (hdr->cc) {
                         int k;

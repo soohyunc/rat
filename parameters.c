@@ -73,7 +73,8 @@ vu_table_init()
         }
 }
 
-int lin2vu(u_int16 energy, int range, int io_dir)
+int 
+lin2vu(u_int16 energy, int range, int io_dir)
 {
         static double v[2];
         double gain;
@@ -88,7 +89,6 @@ int lin2vu(u_int16 energy, int range, int io_dir)
 
         return (int)(v[io_dir] * range);
 } 
-
 
 /* The silence detection algorithm is: 
  *

@@ -159,8 +159,6 @@ mix_process(mix_struct          *ms,
                 dbe->first_mix  = 0;
         }
 
-        assert(ts_gt(playout, dbe->last_mixed));
-
         samples  = (sample*)frame->data;
         nsamples = frame->data_len / sizeof(sample);
                 

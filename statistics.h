@@ -32,10 +32,11 @@ struct s_cushion_struct;
 
 void statistics_init(void);
 
-void statistics_process(struct session_tag *session_pointer, 
-                        struct s_pckt_queue *rtp_pckt_queue,
+void statistics_process(struct session_tag      *session_pointer, 
+                        struct s_pckt_queue     *rtp_pckt_queue,
                         struct s_cushion_struct *cushion,
-                        u_int32 real_time);
+                        u_int32                  ntp_time,
+                        ts_t                     curr_ts);
 
 #endif /* _rat_statistics_h_ */
 

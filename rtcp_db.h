@@ -76,8 +76,8 @@ typedef struct s_rtcp_dbentry {
 	ts_t            playout;		/* Playout delay for this talkspurt */
 	ts_t            delay;			/* Current delay for this participant (varies per packet) */
         ts_t            delay_in_playout_calc;  /* Delay used for last playout point calculation */
-        int32           skew_adjust;
 	u_int16         last_seq;		/* Last packet sequence number */
+        ts_t            last_arr;               /* Last packet arrival time    */
 
 	int		loss_from_me;		/* Loss rate that this receiver heard from me */
 	u_int32		last_rr_for_me;

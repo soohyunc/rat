@@ -22,6 +22,7 @@
 #include "codec.h"
 #include "codec_state.h"
 #include "convert.h"
+#include "parameters.h"
 #include "render_3D.h"
 #include "repair.h"
 #include "timers.h"
@@ -39,8 +40,13 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 
-
 #define HISTORY 1000
+
+/* constants for skew adjustment:
+ SOURCE_SKEW_SLOW - denotes source clock appears slower than ours.
+ SOURCE_SKEW_FAST - denotes source clock appears faster than ours.
+*/
+typedef enum { SOURCE_SKEW_SLOW, SOURCE_SKEW_FAST, SOURCE_SKEW_NONE } skew_t;
 
 typedef struct s_source {
         struct s_source            *next;
@@ -57,6 +63,8 @@ typedef struct s_source {
         struct s_pb                *media;
         struct s_pb_iterator       *media_pos;
         struct s_converter         *converter;
+        skew_t skew;
+        ts_t   skew_adjust;
 } source;
 
 /* A linked list is used for sources and this is fine since we mostly
@@ -170,6 +178,8 @@ source_create(source_list    *plist,
         psrc->dbe->first_mix = 1; /* Used to note we have not mixed anything
                                    * for this decode path yet */
         psrc->channel_state  = NULL;        
+
+        psrc->skew           = SOURCE_SKEW_NONE;
 
         /* Allocate channel and media buffers */
         success = pb_create(&psrc->channel, (playoutfreeproc)channel_data_destroy);
@@ -400,6 +410,139 @@ source_add_packet (source *src,
         return TRUE;
 }
 
+/* source_check_buffering is supposed to check amount of audio buffered
+ * corresponds to what we expect from playout so we can think about
+ * skew adjustment.
+ */
+
+int
+source_check_buffering(source *src, ts_t now)
+{
+        ts_t    playout_dur, buf_end;
+        u_int32 buf_ms, playout_ms;
+
+        if (ts_eq(src->dbe->last_arr, now) == FALSE) { 
+                /* We are only interested in adaption if we are sure
+                 * source is still sending. */
+                return FALSE; 
+        } 
+
+        if ((pb_get_end_ts(src->media, &buf_end) == FALSE) ||
+            ts_gt(now, buf_end)) {
+                /* Buffer is probably dry so no adaption will help */
+                return FALSE;
+        }
+
+        buf_ms = ts_to_ms(source_get_playout_delay(src));
+
+        playout_dur = ts_sub(src->dbe->playout, src->dbe->delay_in_playout_calc);
+        playout_ms  = ts_to_ms(playout_dur);
+
+        if (buf_ms >= 3 * playout_ms / 2) {
+                /* buffer is longer than anticipated, src clock is faster */
+                src->skew = SOURCE_SKEW_FAST;
+                src->skew_adjust = ts_map32(8000, (buf_ms - playout_ms) * 8);
+                debug_msg("have %d want %d\n", buf_ms, playout_ms);
+        } else if (buf_ms <= 2 * playout_ms / 3) {
+                /* buffer is running dry so src clock is slower */
+                src->skew = SOURCE_SKEW_SLOW;
+                src->skew_adjust = ts_map32(8000, (playout_ms - buf_ms) * 8);
+                debug_msg("have %d want %d\n", buf_ms, playout_ms);
+        } else {
+                src->skew = SOURCE_SKEW_NONE;
+        }
+
+        return TRUE;
+}
+
+/* source_skew_adapt exists to shift playout units if source clock
+ * appears to be fast or slow.  The media_data unit is here so that it
+ * can be examined to see if it is low energy and adjustment would be okay.
+ * Might want to be more sophisticated and put a silence detector in
+ * rather than static threshold.
+ *
+ * returns TRUE if adaption happened and false otherwise.
+ */
+
+#define SKEW_ADAPT_THRESHOLD  2000
+
+static int
+source_skew_adapt(source *src, media_data *md)
+{
+        u_int32 i, e, samples;
+        u_int16 rate, channels;
+        ts_t adjustment;
+
+        assert(src);
+        assert(md);
+        assert(src->skew != SOURCE_SKEW_NONE);
+
+        for(i = 0; i < md->nrep; i++) {
+                if (codec_get_native_info(md->rep[i]->id, &rate, &channels)) {
+                        samples = md->rep[i]->data_len / sizeof(sample);
+                        e = avg_audio_energy((sample*)md->rep[i]->data, samples, channels);
+                        break;
+                }
+        }
+
+        if (i == md->nrep) {
+                return FALSE;
+        }
+
+        /* When we are making the adjustment we must shift playout
+         * buffers and timestamps that the source decode process
+         * uses. Must be careful with last repair because it is not
+         * valid if no repair has taken place.
+         */
+
+        if (src->skew == SOURCE_SKEW_FAST && e < SKEW_ADAPT_THRESHOLD) {
+                /* source is fast so we need to bring units forward.  Should
+                 * only move forward a single unit otherwise we might discard
+                 * something we have not classified.  */
+                adjustment = ts_map32(rate, samples / channels);
+
+                pb_shift_forward(src->media,   adjustment);
+                pb_shift_forward(src->channel, adjustment);
+                src->dbe->playout               = ts_sub(src->dbe->playout, adjustment);
+                src->dbe->delay_in_playout_calc = ts_sub(src->dbe->delay_in_playout_calc, adjustment);
+                src->last_played = ts_sub(src->last_played, adjustment);
+
+                if (ts_valid(src->last_repair)) {
+                        src->last_repair = ts_sub(src->last_repair, adjustment);
+                }
+
+                if (ts_gt(src->skew_adjust, adjustment)) {
+                        src->skew_adjust = ts_sub(src->skew_adjust, adjustment);
+                } else {
+                        src->skew = SOURCE_SKEW_NONE;
+                }
+                debug_msg("Playout buffer shifted forward 1 unit\n");
+                return TRUE;
+        } 
+
+        if (src->skew == SOURCE_SKEW_SLOW && e < SKEW_ADAPT_THRESHOLD) {
+                /* Buffer going dry so just chuck it all back by however much,
+                 * not entirely sure this is the best strategy at the moment.
+                 */
+
+                adjustment = src->skew_adjust;
+                pb_shift_back(src->media, adjustment);
+                pb_shift_back(src->channel, adjustment);
+                src->dbe->playout               = ts_add(src->dbe->playout, adjustment);
+                src->dbe->delay_in_playout_calc = ts_add(src->dbe->delay_in_playout_calc, adjustment);
+                src->last_played = ts_add(src->last_played, adjustment);
+
+                if (ts_valid(src->last_repair)) {
+                        src->last_repair = ts_add(src->last_repair, adjustment);
+                }
+                debug_msg("Playout buffer shift back\n");
+                src->skew = SOURCE_SKEW_NONE;
+                return TRUE;
+        }
+
+        return FALSE;
+}
+
 static void
 source_repair(source *src,
               int     repair_type,
@@ -445,11 +588,11 @@ source_repair(source *src,
 
 #ifndef NDEBUG
         /* Reusing prev_* - bad style */
-        pb_iterator_get_at(src->media_pos,
-                           (u_char**)&prev_md,
-                           &prev_len,
-                           &prev_ts);
-        assert(ts_eq(prev_ts, fill_ts));
+                pb_iterator_get_at(src->media_pos,
+                                   (u_char**)&prev_md,
+                                   &prev_len,
+                                   &prev_ts);
+                assert(ts_eq(prev_ts, fill_ts));
 #endif
         } else {
                 /* This should only ever fail at when source changes
@@ -573,6 +716,18 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         md->nrep++;
                 }
 
+                if (src->skew != SOURCE_SKEW_NONE && source_skew_adapt(src, md) == TRUE) {
+                        /* We have skew and we have adjusted playout
+                         *  buffer timestamps, so re-get unit to get
+                         *  correct timestamp info */
+                        pb_iterator_get_at(src->media_pos, 
+                                           (u_char**)&md, 
+                                           &md_len, 
+                                           &playout);
+                        assert(md != NULL);
+                        assert(md_len == sizeof(media_data));
+                }
+
                 if (mix_process(ms, src->dbe, md->rep[md->nrep - 1], playout) == FALSE) {
                         /* Sources sampling rate changed mid-flow?,
                          * dump data, make source look irrelevant, it
@@ -580,8 +735,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                          * proper decode path when new data arrives.
                          * Not graceful..  A better way would be just
                          * to flush media then invoke source_reconfigure 
-                         * if this is ever really an issue.
-                         */
+                         * if this is ever really an issue.  */
                         pb_flush(src->media);
                         pb_flush(src->channel);
                 }
@@ -600,8 +754,8 @@ int
 source_audit(source *src) {
         if (src->age != 0) {
                 ts_t history;
-                /* Keep 1/2 seconds worth of audio */
-                history =  ts_map32(8000,4000);
+                /* Keep 1/8 seconds worth of audio */
+                history =  ts_map32(8000,1000);
                 pb_iterator_audit(src->media_pos,history);
                 return TRUE;
         }

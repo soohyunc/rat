@@ -158,8 +158,34 @@ pb_add (pb_t *pb, u_char *data, u_int32 data_len, ts_t playout)
         return FALSE;
 }
 
+void
+pb_shift_back(pb_t *pb, ts_t delta)
+{
+        pb_node_t *stop, *curr;
+        stop = pb->psentinel;
+        curr = pb->psentinel->next;
+
+        while(curr != stop) {
+                curr->playout = ts_add(curr->playout, delta);
+                curr = curr->next;
+        }
+}
+
+void
+pb_shift_forward(pb_t *pb, ts_t delta)
+{
+        pb_node_t *stop, *curr;
+        stop = pb->psentinel;
+        curr = pb->psentinel->next;
+
+        while(curr != stop) {
+                curr->playout = ts_sub(curr->playout, delta);
+                curr = curr->next;
+        }
+}
+
 u_int16
-pb_iterator_count(struct s_pb *pb)
+pb_iterator_count(pb_t *pb)
 {
         return pb->n_iterators;
 }
