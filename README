@@ -1,38 +1,32 @@
 Robust-Audio Tool (RAT)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Further information, and a list of frequently asked questions (with
-answers) is available from http://www-mice.cs.ucl.ac.uk/mice/rat/
+Further information, and a list of frequently asked questions (with answers) 
+is available from http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/
 
-Build instructions are given below.  The main dependency is on Tcl/Tk
-which is used for the user interface.  This is available from
-http://www.sunscript.com/software/download.  This version of RAT was
-developed with Tcl/Tk8.0p2, earlier versions may not work.
+Build instructions are given below. The main dependency is on Tcl/Tk which is 
+used for the user interface. This is available from http://www.scriptics.com/.
+This version of RAT was developed with Tcl/Tk8.0p2, earlier versions may not 
+work.
 
 Building RAT (UNIX)
 ~~~~~~~~~~~~~~~~~~~
 
-1. Edit Makefile.in and add your local tcl/tk paths.
-
-2. Type, ./configure
-
-3. make
+1. Edit the configure script and add your local Tcl/Tk paths.
+2. Type "./configure"
+3. Type "make"
 
 Look at configure to see the various build options.
+
 
 Building RAT (WINDOWS)
 ~~~~~~~~~~~~~~~~~~~~~~
 
-1. If you have a non-standard tcl/tk installation (i.e. not in
+1. If you have a non-standard Tcl/Tk installation (i.e. not in
    Program Files/Tcl), edit the file rat.dsw and change all path
    references of tcl and tk to your local installations.
-
 2. Open rat.dsw from the developer studio.
-
-3. Build the tcl2c sub-project.  You only need to do this the first time
-   you install the sources. 
-
-4. Next, you build rat, click Build->Build rat.exe.  
+3. Click Build->Build rat.exe.  
 
 If you are installing against the sources of Tcl/Tk and not the binary
 distribution you may have to add tclreg80.lib to your library settings.
