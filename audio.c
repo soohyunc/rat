@@ -73,17 +73,22 @@ static sample* audio_zero_buf;
 #define ID2 +933
 
 typedef struct s_bias_ctl {
+        /* for 8k pre-filtering */
         sample y1, y2;
         sample x1, x2;
+        /* for rest */
+        sample lta;
         u_char step;
+        int    freq;
 } bias_ctl;
 
 static bias_ctl *
-bias_ctl_create(int channels)
+bias_ctl_create(int channels, int freq)
 {
         bias_ctl *bc = (bias_ctl*)xmalloc(channels*sizeof(bias_ctl));
         memset(bc, 0, channels*sizeof(bias_ctl));
         bc->step = channels;
+        bc->freq = freq;
         return bc;
 }
 
@@ -114,6 +119,19 @@ prefilter(bias_ctl *pf, sample *buf, register int len, int step)
 }
 
 static void
+remove_lta(bias_ctl *bc, sample *buf, register int len, int step)
+{
+        int  m;
+        m = 0;
+        while (len-- > 0) {
+                m += *buf;
+                *buf -= bc->lta;
+                buf += step;
+        }
+        bc->lta -= (bc->lta - m / len) >> 3;
+}
+
+static void
 bias_ctl_destroy(bias_ctl *bc)
 {
         xfree(bc);
@@ -122,12 +140,21 @@ bias_ctl_destroy(bias_ctl *bc)
 void
 audio_unbias(bias_ctl *bc, sample *buf, int len)
 {
-        if (bc->step == 1) {
-                prefilter(bc, buf, len, 1);
+        if (bc->freq == 8000) {
+                if (bc->step == 1) {
+                        prefilter(bc, buf, len, 1);
+                } else {
+                        len /= bc->step;
+                        prefilter(bc  , buf  , len, 2);
+                        prefilter(bc+1, buf+1, len, 2);
+                }
         } else {
-                len /= bc->step;
-                prefilter(bc  , buf  , len, 2);
-                prefilter(bc+1, buf+1, len, 2);
+                if (bc->step == 1) {
+                        remove_lta(bc, buf, len, 1);
+                } else {
+                        remove_lta(bc  , buf  , len, 2);
+                        remove_lta(bc+1, buf+1, len, 2);
+                }
         }
 } 
 
@@ -244,7 +271,7 @@ audio_device_take(session_struct *sp)
          */
         sp->device_clock = new_time(sp->clock, cp->freq);
         sp->meter_period = cp->freq / 20;
-        sp->bc           = bias_ctl_create(cp->channels);
+        sp->bc           = bias_ctl_create(cp->channels, cp->freq);
         sp->tb           = tx_create(sp, (u_int16)cp->unit_len, (u_int16)cp->channels);
         sp->ms           = mix_create(sp, 32640);
         cushion_create(&sp->cushion, cp->unit_len);
