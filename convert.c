@@ -131,9 +131,9 @@ acm_conv_do(converter_t *c, sample *src_buf, int src_len, sample *dst_buf, int d
         memset(&ash, 0, sizeof(ash));
         ash.cbStruct        = sizeof(ash);
         ash.pbSrc           = (LPBYTE)src_buf;
-        ash.cbSrcLength     = src_len;
+        ash.cbSrcLength     = src_len * sizeof(sample);
         ash.pbDst           = (LPBYTE)dst_buf;
-        ash.cbDstLength     = dst_len;
+        ash.cbDstLength     = dst_len * sizeof(sample);
 
         lphs = (LPHACMSTREAM)c->data;
 
@@ -283,7 +283,6 @@ int
 converter_format (converter_t *c, rx_queue_element_struct *ip)
 {
         converter_fmt_t *cf;
-
         assert(c);
         assert(c->pcm_conv);
         assert(c->pcm_conv->cf_convert);
@@ -291,7 +290,7 @@ converter_format (converter_t *c, rx_queue_element_struct *ip)
         assert(ip->native_count);
         
         cf = c->conv_fmt;
-        ip->native_size[ip->native_count] = sizeof(sample) * ip->native_size[ip->native_count - 1] * cf->to_channels * cf->to_freq / (cf->from_channels * cf->from_freq);
+        ip->native_size[ip->native_count] = ip->native_size[ip->native_count - 1] * cf->to_channels * cf->to_freq / (cf->from_channels * cf->from_freq);
         ip->native_data[ip->native_count] = (sample*)block_alloc(ip->native_size[ip->native_count]);
         c->pcm_conv->cf_convert(c,
                                 ip->native_data[ip->native_count - 1], 
@@ -299,6 +298,7 @@ converter_format (converter_t *c, rx_queue_element_struct *ip)
                                 ip->native_data[ip->native_count], 
                                 ip->native_size[ip->native_count] / sizeof(sample));
         ip->native_count++;
+
         return TRUE;
 }
 
