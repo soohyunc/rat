@@ -51,7 +51,6 @@ typedef struct s_file_handler {
 
 /* Sound file handlers */
 
-#define NUM_SND_HANDLERS 2
 static sndfile_handler_t snd_handlers[] = {
         {"NeXT/Sun", 
          "au", 
@@ -72,8 +71,23 @@ static sndfile_handler_t snd_handlers[] = {
          riff_write_end,
          riff_free_state,
          riff_get_format
+        },
+        /* RAW should go last because it'll always succeed if we open a file
+         * using this handler and have specified format.
+         */
+        {"Raw",
+         "raw",
+         raw_read_hdr,
+         raw_read_audio,
+         raw_write_hdr,
+         raw_write_audio,
+         NULL, /* No post write handling required */
+         raw_free_state,
+         raw_get_format
         }
 };
+
+#define NUM_SND_HANDLERS (int)(sizeof(snd_handlers)/sizeof(snd_handlers[0]))
 
 #define SND_ACTION_PLAYING    1
 #define SND_ACTION_RECORDING  2
