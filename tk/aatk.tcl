@@ -19,11 +19,12 @@ package require -exact Tcl 8.0
 # Add Tk's directory to the end of the auto-load search path, if it
 # isn't already on the path:
 
-if {[info exists auto_path]} {
-    if {[lsearch -exact $auto_path $tk_library] < 0} {
-	lappend auto_path $tk_library
-    }
-}
+# we don't want tcl/tk bringing anything else in
+#if {[info exists auto_path]} {
+#    if {[lsearch -exact $auto_path $tk_library] < 0} {
+#	lappend auto_path $tk_library
+#    }
+#}
 
 # Turn off strict Motif look and feel as a default.
 

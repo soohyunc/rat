@@ -20,22 +20,22 @@ package require -exact Tcl 8.0
 # Compute the auto path to use in this interpreter.
 # (auto_path could be already set, in safe interps for instance)
 
-if {![info exists auto_path]} {
-    if [catch {set auto_path $env(TCLLIBPATH)}] {
-	set auto_path ""
-    }
-}
-if {[lsearch -exact $auto_path [info library]] < 0} {
-    lappend auto_path [info library]
-}
-catch {
-    foreach __dir $tcl_pkgPath {
-	if {[lsearch -exact $auto_path $__dir] < 0} {
-	    lappend auto_path $__dir
-	}
-    }
-    unset __dir
-}
+#if {![info exists auto_path]} {
+#    if [catch {set auto_path $env(TCLLIBPATH)}] {
+#	set auto_path ""
+#    }
+#}
+#if {[lsearch -exact $auto_path [info library]] < 0} {
+#    lappend auto_path [info library]
+#}
+#catch {
+#    foreach __dir $tcl_pkgPath {
+#	if {[lsearch -exact $auto_path $__dir] < 0} {
+#	    lappend auto_path $__dir
+#	}
+#    }
+#    unset __dir
+#}
 
 # Setup the unknown package handler
 
