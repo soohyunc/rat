@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib tcllib.lib tklib.lib winmm.lib Ws2_32.lib msacm32.lib uclmm.lib /nologo /subsystem:windows /machine:I386 /libpath:"\src\common\Release" /libpath:"\src\tcl-8.0\win\Release" /libpath:"\src\tk-8.0\win\Release"
+# ADD LINK32 tcllib.lib tklib.lib uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386 /libpath:"\src\common\Release" /libpath:"\src\tcl-8.0\win\Release" /libpath:"\src\tk-8.0\win\Release"
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
 
