@@ -323,6 +323,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 			debug_msg("Removing RTCP database entry for SSRC 0x%08lx\n", ssrc);
                         s = source_get_by_rtcp_dbentry(sp->active_sources, dbptr);
                         if (s != NULL) {
+				ui_info_deactivate(sp, source_get_rtcp_dbentry(s));
 				source_remove(sp->active_sources, s);
 			}
                         ui_info_remove(sp, dbptr);

@@ -525,6 +525,7 @@ statistics_process(session_struct          *sp,
 
                 if ((src = source_get_by_rtcp_dbentry(sp->active_sources, 
                                                       pckt->sender)) == NULL) {
+			ui_info_activate(sp, pckt->sender);
                         src = source_create(sp->active_sources, 
                                             pckt->sender,
                                             sp->converter,

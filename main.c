@@ -210,6 +210,7 @@ main(int argc, char *argv[])
                                                 source_audit(s);
                                         } else {
                                                 /* Remove source as stopped */
+						ui_info_deactivate(sp[i], source_get_rtcp_dbentry(s));
                                                 source_remove(sp[i]->active_sources, s);
                                                 sidx--;
                                                 scnt--;
