@@ -196,7 +196,7 @@ s@__OSTYPE__@$OSTYPE@
 s@__CC__@$CC@
 s@__WFLAGS__@$WFLAGS@
 s@__INCLUDE__@$TCL_INCL $INCLUDE -I../common@
-s@__LDLIBS__@$TCL_LIBS $LDLIBS ../common/libcommon.a@
+s@__LDLIBS__@$TCL_LIBS ../common/libcommon.a $LDLIBS@
 s@__AUDIO__@$AUDIO@
 s@__CHAR__@$CHAR@
 s@__DEBUG__@$DEBUG2@

@@ -164,8 +164,8 @@ Secure Conferencing
 ~~~~~~~~~~~~~~~~~~~
 
 RAT allows for secure conferencing, whereby media streams and participant
-identity information can be encrypted using triple-DES. Other encryption
-algorithms could easily be added. 
+identity information can be encrypted using DES. Other encryption
+algorithms can easily be added. 
 
 Improved Statistics and diagnostic features 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -173,7 +173,7 @@ Improved Statistics and diagnostic features
 Like other RTP-based audio tools, RAT provides reception quality statistics
 and user information for all participants in a conference. In addition, it
 has a graphical display of the loss to/from each participant, making
-diagnosis of problems a simple matter: 
+diagnosis of problems a simple matter. 
 
 Conference coordination bus 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -183,13 +183,16 @@ and media engine are separated, and communicate via an IPC mechanism. This
 allows for complete control of RAT by another process operating on the same
 host. Advantages of this split approach include: 
 
-Customised user-interface: the existing RAT user interface can easily be
-replaced, with no loss of functionality.   Lip-synchronisation: RAT can
-communicate with a videa tool, to synchronise audio and video.
-Integration with wide area conference control: a separate conference
-control process may be run on the same host as the audio/video tools. This
-can use the conference bus to control the media tools, to provide, for
-example H.323 conference control. 
+	- Customised user-interface: the existing RAT user interface can
+	  easily be replaced, with no loss of functionality.   
+
+	- Lip-synchronisation: RAT can communicate with a videa tool, to
+	  synchronise audio and video.
+
+	- Integration with wide area conference control: a separate
+  	  conference control process may be run on the same host as the
+	  audio/video tools. This can use the conference bus to control the
+	  media tools, to provide, for example H.323 conference control. 
 
 Transcoder operation 
 ~~~~~~~~~~~~~~~~~~~~
