@@ -10,4 +10,4 @@ LDLIBS = /cs/research/mice/starship/common/hpux/lib/libtk4.2.a \
          -L/usr/lib/X11R5 -lXext -lX11 \
          -lAlib -lm -ldld
 
-OBJS = $(OBJDIR)/auddev_hpux_raw.o
+OBJS = auddev_hpux_raw.o

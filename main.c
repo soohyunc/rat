@@ -60,7 +60,6 @@
 #include "interfaces.h"
 #include "session.h"
 #include "lbl_confbus.h"
-#include "confbus.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "rtcp.h"
@@ -69,6 +68,8 @@
 #include "statistics.h"
 #include "parameters.h"
 #include "speaker_table.h"
+#include "confbus.h"
+#include "confbus_ack.h"
 
 /* Global variable: if TRUE, rat will exit on the next iteration of the main loop [csp] */
 int should_exit = FALSE;
@@ -276,8 +277,6 @@ main(int argc, char *argv[])
 				lbl_cb_read(sp[i]);
 			}
 
-			/* Poll for messages on the conference bus... */
-			cb_poll(sp[i]);
 			if (power_time == 0 && sp[i]->ui_on) {
 				if (sp[i]->meter)
 					mix_update_ui(ms[i], sp[i]);
@@ -292,6 +291,9 @@ main(int argc, char *argv[])
 			} else {
 				power_time += elapsed_time;
 			}
+
+			/* Schedule any outstanding retransmissions of confbus messages... */
+			cb_ack_retransmit(&(sp[i]->cb_ack_list));
 
 			/* Maintain last_sent dummy lecture var */
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {

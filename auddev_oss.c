@@ -166,9 +166,6 @@ audio_close(int audio_fd)
 void
 audio_drain(int audio_fd)
 {
-#ifdef DEBUG
-	printf("WARNING: audio_drain not yet implemented!\n");
-#endif
 }
 
 int
@@ -315,10 +312,6 @@ audio_read(int audio_fd, sample *buf, int samples)
 			read_len = (samples * BYTES_PER_SAMPLE);
 		} else {
 			read_len = info.bytes;
-			printf("info.fragments  = %d\n", info.fragments);
-			printf("info.fragstotal = %d\n", info.fragstotal);
-			printf("info.fragsize   = %d\n", info.fragsize);
-			printf("info.bytes      = %d\n", info.bytes);
 		}
 		if ((len = read(audio_fd, (char *)buf, read_len)) < 0) {
 			perror("audio_read");

@@ -1,5 +1,5 @@
 /*
- * FILE:    confbus.h
+ * FILE:    confbus_cmnd.h
  * PROGRAM: RAT
  * AUTHORS: Colin Perkins
  * 
@@ -40,28 +40,48 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _CONFBUS_H
-#define _CONFBUS_H
-
-struct session_tag;
-struct s_cb_cmnd;
+#ifndef _CONFBUS_CMND_H
+#define _CONFBUS_CMND_H
 
 typedef enum {
-	CB_MSG_RELIABLE, CB_MSG_UNRELIABLE, CB_MSG_ACK
-} cb_msg_type;
+	CB_INTEGER, CB_FLOAT, CB_SYMBOL, CB_STRING, CB_LIST
+} cb_param_type;
 
-typedef struct {
-	int		 seq_num;
-	cb_msg_type	 msg_type;
-	struct s_cbaddr	*srce_addr;
-	struct s_cbaddr	*dest_addr;
-	struct cb_cmnd	*commands;	/* Valid if msg_type is CB_MSG_RELIABLE or CB_MSG_UNRELIABLE */
-	int		 ack;		/* Valid if msg_type is CB_MSG_ACK                           */
-} cb_mesg;
+typedef union {
+	int	 	 integer;
+	float	 	 flt;
+	char		*sym;
+	char		*str;
+	struct cb_parm	*list;
+} cb_param_val;
 
-void     cb_init(struct session_tag *sp);
-int      cb_send(struct session_tag *sp, struct s_cbaddr *srce, struct s_cbaddr *dest, char *mesg, int reliable);
-void     cb_send_ack(struct session_tag *sp, struct s_cbaddr *srce, struct s_cbaddr *dest, int seqnum);
-void     cb_poll(struct session_tag *sp);
+typedef struct cb_parm {
+	struct cb_parm	*next;
+	struct cb_parm	*prev;
+	cb_param_type	 type;
+	cb_param_val	 val;
+} cb_param;
+
+typedef struct cb_cmnd {
+	struct cb_cmnd	*next;
+	char		*cmnd;
+	cb_param	*head_param;
+	cb_param	*tail_param;
+	cb_param	*curr_param;
+	int		 num_params;
+} cb_cmnd;
+
+cb_cmnd *cb_cmnd_init(char *cmnd_name, cb_cmnd *next);
+void     cb_cmnd_free(cb_cmnd *cmnd);
+
+void     cb_cmnd_add_param_int(cb_cmnd *cmnd, int    i);
+void     cb_cmnd_add_param_flt(cb_cmnd *cmnd, float  f);
+void     cb_cmnd_add_param_str(cb_cmnd *cmnd, char  *s);
+void     cb_cmnd_add_param_sym(cb_cmnd *cmnd, char  *s);
+
+int	 cb_cmnd_get_param_int(cb_cmnd *cmnd, int   *i);
+int	 cb_cmnd_get_param_flt(cb_cmnd *cmnd, float *f);
+int	 cb_cmnd_get_param_str(cb_cmnd *cmnd, char  **s);
+int	 cb_cmnd_get_param_sym(cb_cmnd *cmnd, char  *s);
 
 #endif

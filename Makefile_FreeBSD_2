@@ -4,4 +4,4 @@ LDLIBS = -L/usr/local/lib  -ltk4.2 -ltcl7.6 \
          -L/usr/X11R6/lib -lXext -lX11 \
          -L/cs/research/mice/starship/common/freebsd/lib -lm
 
-OBJS = $(OBJDIR)/auddev_luigi.o
+OBJS = auddev_luigi.o

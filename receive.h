@@ -76,7 +76,7 @@ typedef struct rx_queue_tag {
 
 struct s_mix_info;
 struct s_cushion_struct;
- struct s_participant_playout_buffer;
+struct s_participant_playout_buffer;
 
 rx_queue_element_struct*
 new_rx_unit();

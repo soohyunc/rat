@@ -8,6 +8,6 @@ LDLIBS = -R/usr/openwin/lib \
          -L/usr/demo/SOUND/lib -laudio \
          -lsocket -ldl -lnsl -lm
 
-OBJS = $(OBJDIR)/auddev_sparc.o
+OBJS = auddev_sparc.o
 
 CRYPTFLAGS = -DSIGRET=void

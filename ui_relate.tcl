@@ -47,9 +47,6 @@ option add *Checkbutton*selectColor 	forestgreen 	widgetDefault
 option add *borderWidth 		1 
 option add *font			 -*-courier-medium-o-normal--8-*-m-*-iso8859-1
 
-set RAT_ADDR "NONE"
-set  UI_ADDR "NONE"
-
 #power meters
 proc bargraphCreate {bgraph} {
 	global oh$bgraph
@@ -112,28 +109,23 @@ bind all <ButtonRelease-3> "toggle_send"
 bind all <q> {destroy .}
 
 proc set_gain {value} {
-	global RAT_ADDR
-	cb_send $RAT_ADDR "input gain $value"
+	cb_send "input gain $value"
 }
 
 proc set_vol {value} {
-	global RAT_ADDR
-	cb_send $RAT_ADDR "output gain $value"
+	cb_send "output gain $value"
 }
 
 proc toggle_input_port {} {
-  global RAT_ADDR
-  cb_send $RAT_ADDR "toggle_input_port"
+  cb_send "toggle_input_port"
 }
 
 proc toggle_output_port {} {
-  global RAT_ADDR
-  cb_send $RAT_ADDR "toggle_output_port"
+  cb_send "toggle_output_port"
 }
 
 proc toggle_send {} {
-  global RAT_ADDR
-  cb_send $RAT_ADDR "toggle_send"
+  cb_send "toggle_send"
   if {[string compare [.i.mute cget -relief] raised] == 0} {
     .i.mute configure -relief sunken
   } else {
@@ -142,8 +134,7 @@ proc toggle_send {} {
 }
 
 proc toggle_play {} {
-  global RAT_ADDR
-  cb_send $RAT_ADDR "toggle_play"
+  cb_send "toggle_play"
   if {[string compare [.o.mute cget -relief] raised] == 0} {
     .o.mute configure -relief sunken
   } else {
@@ -156,20 +147,15 @@ proc toggle_play {} {
 # in ui.c will call cb_recv with the appropriate arguments when a message is received. 
 #
 
-proc cb_recv {src cmd} {
+proc cb_recv {cmd} {
   if [string match [info procs [lindex cb_recv_$cmd 0]] [lindex cb_recv_$cmd 0]] {
     eval cb_recv_$cmd 
   }
 }
 
 proc cb_recv_init {rat_addr ui_addr} {
-	global RAT_ADDR UI_ADDR
-
-	set RAT_ADDR $rat_addr
-	set  UI_ADDR  $ui_addr
-
-	cb_send $RAT_ADDR "primary    DVI"
-	cb_send $RAT_ADDR "redundancy DVI"
+	cb_send "primary    DVI"
+	cb_send "redundancy DVI"
 }
 
 proc cb_recv_powermeter {type level} {

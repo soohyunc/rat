@@ -1,5 +1,5 @@
 /*
- * FILE:    confbus.h
+ * FILE:    confbus_misc.c
  * PROGRAM: RAT
  * AUTHORS: Colin Perkins
  * 
@@ -40,28 +40,42 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _CONFBUS_H
-#define _CONFBUS_H
+#include <stdio.h>
+#include <string.h>
+#include "assert.h"
+#include "util.h"
+#include "confbus_misc.h"
 
-struct session_tag;
-struct s_cb_cmnd;
+char *cb_decode_str(char *s)
+{
+	int   l = strlen(s);
+	char *r = (char *) xmalloc(l-1);
 
-typedef enum {
-	CB_MSG_RELIABLE, CB_MSG_UNRELIABLE, CB_MSG_ACK
-} cb_msg_type;
+	/* Check that this an encoded string... */
+	assert(s[0]   == '\"');
+	assert(s[l-1] == '\"');
 
-typedef struct {
-	int		 seq_num;
-	cb_msg_type	 msg_type;
-	struct s_cbaddr	*srce_addr;
-	struct s_cbaddr	*dest_addr;
-	struct cb_cmnd	*commands;	/* Valid if msg_type is CB_MSG_RELIABLE or CB_MSG_UNRELIABLE */
-	int		 ack;		/* Valid if msg_type is CB_MSG_ACK                           */
-} cb_mesg;
+	strncpy(r, s+1, l-2);
+	r[l-2] = '\0';
+	return r;
+}
 
-void     cb_init(struct session_tag *sp);
-int      cb_send(struct session_tag *sp, struct s_cbaddr *srce, struct s_cbaddr *dest, char *mesg, int reliable);
-void     cb_send_ack(struct session_tag *sp, struct s_cbaddr *srce, struct s_cbaddr *dest, int seqnum);
-void     cb_poll(struct session_tag *sp);
+char *cb_encode_str(char *s)
+{
+	static char	*encode_buffer = NULL;
+	static int	 encode_buflen = 0;
 
-#endif
+	int l = strlen(s);
+	if (encode_buflen < l) {
+		if (encode_buffer != NULL) {
+			xfree(encode_buffer);
+		}
+		encode_buffer = (char *) xmalloc(l+3);
+	}
+	strcpy(encode_buffer+1, s);
+	encode_buffer[0]   = '\"';
+	encode_buffer[l+1] = '\"';
+	encode_buffer[l+2] = '\0';
+	return encode_buffer;
+}
+

@@ -1,5 +1,6 @@
 /*
- * FILE:    net.c PROGRAM: rat - Version 3.0
+ * FILE:    net.c 
+ * PROGRAM: rat - Version 3.0
  * 
  * Modified by Isidor Kouvelas from NT source.
  * 
@@ -52,6 +53,7 @@
 #include "interfaces.h"
 #include "audio.h"
 #include "util.h"
+#include "confbus.h"
 
 #ifndef INADDR_NONE
 #define INADDR_NONE     0xffffffff
@@ -321,7 +323,7 @@ read_packets_and_add_to_queue(session_struct * sp, int fd, u_int32 cur_time, pck
 }
 
 void
-network_read(session_struct    *session_pointer,
+network_read(session_struct    *sp,
 	     pckt_queue_struct *netrx_pckt_queue_ptr,
 	     pckt_queue_struct *rtcp_pckt_queue_ptr,
 	     u_int32       cur_time)
@@ -330,32 +332,34 @@ network_read(session_struct    *session_pointer,
 	struct timeval  timeout, *tvp;
 	fd_set          rfds;
 
-
-	sel_fd = max(session_pointer->rtp_fd, session_pointer->rtcp_fd);
+	sel_fd = sp->rtp_fd;
+	sel_fd = max(sel_fd, sp->rtcp_fd);
+	sel_fd = max(sel_fd, sp->cb_socket);
 #if !defined(WIN32)
-	if (session_pointer->mode == AUDIO_TOOL) {
-		sel_fd = max(sel_fd, session_pointer->audio_fd);
+	if (sp->mode == AUDIO_TOOL) {
+		sel_fd = max(sel_fd, sp->audio_fd);
 	}
 #endif
 	sel_fd++;
 
 	for (;;) {
 		FD_ZERO(&rfds);
-		FD_SET(session_pointer->rtp_fd, &rfds);
-		FD_SET(session_pointer->rtcp_fd, &rfds);
+		FD_SET(sp->rtp_fd,    &rfds);
+		FD_SET(sp->rtcp_fd,   &rfds);
+		FD_SET(sp->cb_socket, &rfds);
 #if defined(WIN32) || defined(HPUX) || defined(Linux) || defined(FreeBSD)
 		timeout.tv_sec  = 0;
-		timeout.tv_usec = session_pointer->loop_delay;
+		timeout.tv_usec = sp->loop_delay;
 		tvp = &timeout;
 #else
-		if ((session_pointer->audio_fd != -1) && (session_pointer->mode == AUDIO_TOOL)) {
-			FD_SET(session_pointer->audio_fd, &rfds);
+		if ((sp->audio_fd != -1) && (sp->mode == AUDIO_TOOL)) {
+			FD_SET(sp->audio_fd, &rfds);
 			tvp = NULL;
 		} else {
 			/* If we dont have control of the audio device then */
 			/* use select to do a timeout at 20ms               */
 			timeout.tv_sec  = 0;
-			timeout.tv_usec = session_pointer->loop_delay;
+			timeout.tv_usec = sp->loop_delay;
 			tvp = &timeout;
 		}
 #endif
@@ -364,16 +368,19 @@ network_read(session_struct    *session_pointer,
 #else
 		if (select(sel_fd, &rfds, (fd_set *) 0, (fd_set *) 0, tvp) > 0) {
 #endif
-			if (FD_ISSET(session_pointer->rtp_fd, &rfds)) {
-				read_packets_and_add_to_queue(session_pointer, session_pointer->rtp_fd, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
+			if (FD_ISSET(sp->rtp_fd, &rfds)) {
+				read_packets_and_add_to_queue(sp, sp->rtp_fd, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
 			}
-			if (FD_ISSET(session_pointer->rtcp_fd, &rfds)) {
-				read_packets_and_add_to_queue(session_pointer, session_pointer->rtcp_fd, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
+			if (FD_ISSET(sp->rtcp_fd, &rfds)) {
+				read_packets_and_add_to_queue(sp, sp->rtcp_fd, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
+			}
+			if (FD_ISSET(sp->cb_socket, &rfds)) {
+				cb_poll(sp);			
 			}
 		}
 #if !defined(WIN32) && !defined(HPUX) && !defined(Linux) && !defined(FreeBSD)
-		if (session_pointer->mode == AUDIO_TOOL) {
-			if (session_pointer->audio_fd == -1 || FD_ISSET(session_pointer->audio_fd, &rfds)) {
+		if (sp->mode == AUDIO_TOOL) {
+			if (sp->audio_fd == -1 || FD_ISSET(sp->audio_fd, &rfds)) {
 				break;
 			}
 		} else {

@@ -42,7 +42,6 @@
 
 #include "config.h"
 #include "version.h"
-#include "ui.h"
 #include "session.h"
 #include "crypt.h"
 #include "rtcp_pckt.h"
@@ -50,10 +49,13 @@
 #include "util.h"
 #include "tcl.h"
 #include "tk.h"
-#include "confbus.h"
 #include "repair.h"
 #include "codec.h"
 #include "audio.h"
+#include "confbus.h"
+#include "confbus_cmnd.h"
+#include "confbus_misc.h"
+#include "ui.h"
 
 extern Tcl_Interp	*interp;
 extern char		init_ui_script[];
@@ -90,13 +92,7 @@ ui_send(char *command)
 }
 
 void 
-ui_recv_ack(char *src, int seqnum, session_struct *sp)
-{
-	printf("Got an ACK in the UI %d\n", seqnum);
-}
-
-void 
-ui_recv(char *srce, char *mesg, session_struct *sp)
+ui_recv(struct s_cbaddr *srce, cb_cmnd *mesg, session_struct *sp)
 {
 	/* This function is called by cb_poll() when a conference bus message */
 	/* is received, which should be processed by the UI. It should not be */
@@ -105,22 +101,43 @@ ui_recv(char *srce, char *mesg, session_struct *sp)
 	/* Note: The mesg received has all "[" and "]" characters stripped,   */
 	/*       to avoid potential problems with command substitution in the */
 	/*       Tcl scripts. This is probably not the best way to do this.   */
-	char *buffer;
-	int   i;
 
-#ifdef DEBUG_CONFBUS
-	printf("ConfBus: %s --> %s : %s\n", srce, sp->cb_uiaddr, mesg);
-#endif
+	char		 command[1500];
+	char		 tmp[50];
+	int		 i;
+	cb_param	*p = NULL;
 
-	for (i=0; i<strlen(mesg); i++) {
-		if (mesg[i] == '[') mesg[i] = '(';
-		if (mesg[i] == ']') mesg[i] = ')';
+	sprintf(command, "cb_recv %s ", mesg->cmnd);
+	i = strlen(mesg->cmnd) + 9;
+	for (p = mesg->head_param; p != NULL; p = p->next) {
+		switch (p->type) {
+			case CB_INTEGER: 
+				sprintf(tmp, " %d", p->val.integer);
+				break;
+			case CB_FLOAT: 
+				sprintf(tmp, " %f", p->val.flt);
+				break;
+			case CB_SYMBOL: 
+				sprintf(tmp, " %s", p->val.sym);
+				break;
+			case CB_STRING: 
+				sprintf(tmp, " %s", p->val.str);
+				break;
+			default:
+				printf("ui_recv is broken!\n");
+				abort();
+		}
+		strncpy(command+i, tmp, strlen(tmp));
+		i += strlen(tmp);
+	}
+	command[i++] = '\0';
+
+	for (i=0; i<strlen(command); i++) {
+		if (command[i] == '[') command[i] = '(';
+		if (command[i] == ']') command[i] = ')';
 	}
 
-	buffer = (char *) xmalloc(strlen(srce) + strlen(mesg) + 12);
-	sprintf(buffer, "cb_recv %s \"%s\"", srce, mesg);
-	ui_send(buffer);
-	xfree(buffer);
+	ui_send(command);
 }
 
 /*
@@ -130,70 +147,70 @@ ui_recv(char *srce, char *mesg, session_struct *sp)
 void
 ui_info_update_name(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lx name %s", e->ssrc, e->sentry->name);
+	sprintf(comm, "ssrc %lu name %s", e->ssrc, cb_encode_str(e->sentry->name));
 	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 }
 
 void
 ui_info_update_cname(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lx cname %s", e->ssrc, e->sentry->cname);
+	sprintf(comm, "ssrc %lu cname %s", e->ssrc, cb_encode_str(e->sentry->cname));
 	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 }
 
 void
 ui_info_update_email(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lx email %s", e->ssrc, e->sentry->email);
+	sprintf(comm, "ssrc %lu email %s", e->ssrc, cb_encode_str(e->sentry->email));
 	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 }
 
 void
 ui_info_update_phone(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lx phone %s", e->ssrc, e->sentry->phone);
+	sprintf(comm, "ssrc %lu phone %s", e->ssrc, cb_encode_str(e->sentry->phone));
 	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 }
 
 void
 ui_info_update_loc(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lx loc %s", e->ssrc, e->sentry->loc);
+	sprintf(comm, "ssrc %lu loc %s", e->ssrc, cb_encode_str(e->sentry->loc));
 	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 }
 
 void
 ui_info_update_tool(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lx tool %s", e->ssrc, e->sentry->tool);
+	sprintf(comm, "ssrc %lu tool %s", e->ssrc, cb_encode_str(e->sentry->tool));
 	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 }
 
 void
 ui_info_remove(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lx remove", e->ssrc);
+	sprintf(comm, "ssrc %lu remove", e->ssrc);
 	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 }
 
 void
 ui_info_activate(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lx active now", e->ssrc);
+	sprintf(comm, "ssrc %lu active now", e->ssrc);
 	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 }
 
 void
 ui_info_gray(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lx active recent", e->ssrc);
+	sprintf(comm, "ssrc %lu active recent", e->ssrc);
 	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 }
 
 void
 ui_info_deactivate(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lx inactive", e->ssrc);
+	sprintf(comm, "ssrc %lu inactive", e->ssrc);
 	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 }
 
@@ -222,9 +239,9 @@ update_stats(rtcp_dbentry *e, session_struct *sp)
 	}
 
 	if (sp->ui_on) {
-		sprintf(comm, "ssrc %lx encoding %s", e->ssrc, encoding);                       
+		sprintf(comm, "ssrc %lu encoding %s", e->ssrc, encoding);                       
 		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-		sprintf(comm, "ssrc %lx loss_to_me   %ld", e->ssrc, (e->lost_frac * 100) >> 8); 
+		sprintf(comm, "ssrc %lu loss_to_me   %ld", e->ssrc, (e->lost_frac * 100) >> 8); 
 		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 	}
 }
@@ -313,7 +330,7 @@ ui_repair(int mode, session_struct *sp)
                 cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "repair None", FALSE);
                 break;
         case REPAIR_REPEAT:
-                cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "repair {Packet Repetition}", FALSE);
+                cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "repair Repetition", FALSE);
                 break;
         }
 }
@@ -362,14 +379,14 @@ ui_update(session_struct *sp)
 	}
 
 	cp = get_codec(sp->encodings[0]);
-	sprintf(cmd, "primary {%s}", cp->name);
+	sprintf(cmd, "primary %s", cb_encode_str(cp->name));
 	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
 	if (sp->num_encodings > 1) {
 		cp = get_codec(sp->encodings[1]);
-		sprintf(cmd, "redundancy {%s}", cp->name);
+		sprintf(cmd, "redundancy %s", cb_encode_str(cp->name));
 		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
 	} else {
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "redundancy NONE", FALSE);
+		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "redundancy \"NONE\"", FALSE);
 	}
 	done=1;
 }
@@ -390,16 +407,26 @@ static int
 cb_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 {
 	session_struct *sp = (session_struct *) ttp;
-	int		r;
+	int		reliable;
 
-	if (argc != 4) {
-		i->result = "cb_send <reliable> <dest> <message>";
+	if (argc != 3) {
+		i->result = "cb_send <reliable> <message>";
 		return TCL_ERROR;
 	}
 
-	r = strcmp(argv[1], "R") == 0;
+	reliable = strcmp(argv[1], "R") == 0;
+	cb_send(sp, sp->cb_uiaddr, sp->cb_myaddr, argv[2], reliable);
+	return TCL_OK;
+}
 
-	cb_send(sp, sp->cb_uiaddr, argv[2], argv[3], r);
+static int
+cb_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
+{
+	if (argc != 2) {
+		i->result = "cb_encode_str <str>";
+		return TCL_ERROR;
+	}
+	i->result = cb_encode_str(argv[1]);
 	return TCL_OK;
 }
 
@@ -497,13 +524,14 @@ ui_init(session_struct *sp, int argc, char **argv)
 		fprintf(stderr, "TCL_LIBS error: %s\n", interp->result);
 	}
 
-	Tcl_CreateCommand(interp, "cb_send",	cb_send_cmd,		(ClientData) sp, NULL);
+	Tcl_CreateCommand(interp, "cb_send",	   cb_send_cmd,	  (ClientData) sp, NULL);
+	Tcl_CreateCommand(interp, "cb_encode_str", cb_encode_cmd, (ClientData) sp, NULL);
 #ifdef WIN32
 	Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);
-	Tcl_CreateCommand(interp, "putregistry", WinPutRegistry, (ClientData)sp, NULL);
-        Tcl_CreateCommand(interp, "getregistry", WinGetRegistry, (ClientData)sp, NULL);
-	Tcl_CreateCommand(interp, "puts", WinPutsCmd, (ClientData)sp, NULL);
-        Tcl_CreateCommand(interp, "getusername", WinGetUserName, (ClientData)sp, NULL);
+	Tcl_CreateCommand(interp, "putregistry", WinPutRegistry,  (ClientData)sp, NULL);
+        Tcl_CreateCommand(interp, "getregistry", WinGetRegistry,  (ClientData)sp, NULL);
+	Tcl_CreateCommand(interp, "puts",        WinPutsCmd,      (ClientData)sp, NULL);
+        Tcl_CreateCommand(interp, "getusername", WinGetUserName,  (ClientData)sp, NULL);
 #else
 	Tcl_SetVar(interp, "win32", "0", TCL_GLOBAL_ONLY);
 #endif
@@ -528,9 +556,9 @@ ui_init(session_struct *sp, int argc, char **argv)
 	ui_send(comm);
 	ui_send(sp->ui_script);
 
-	sprintf(comm, "init %s %s", sp->cb_myaddr, sp->cb_uiaddr);                         cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-	sprintf(comm, "ssrc %lx cname %s", sp->db->myssrc, sp->db->my_dbe->sentry->cname); cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-	sprintf(comm, "my_ssrc %lx", sp->db->myssrc);		  			   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(comm, "init");								   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(comm, "ssrc %lu cname %s", sp->db->myssrc, sp->db->my_dbe->sentry->cname); cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(comm, "my_ssrc %lu", sp->db->myssrc);		  			   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 	sprintf(comm, "address %s %d %d", sp->maddress, sp->rtp_port, sp->ttl); 	   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
         sprintf(comm, "detect_silence %d", (sp->detect_silence) ? 1 : 0);              	   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 	sprintf(comm, "agc %d", sp->agc_on);                                               cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);

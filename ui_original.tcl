@@ -35,10 +35,6 @@
 # SUCH DAMAGE.
 #
 
-# Default conference bus addresses. These are overridden later...
-set RAT_ADDR  "NONE"
-set  MY_ADDR  "NONE"
-
 option add *background 			gray80 		widgetDefault
 option add *foreground 			black 		widgetDefault
 option add *activeBackground 		gray85 		widgetDefault
@@ -70,8 +66,7 @@ set DEBUG		0
 
 # Commands to send message over the conference bus...
 proc toggle_play {} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "toggle_play"
+  cb_send "R" "toggle_play"
   if {[string compare [.r.c.vol.t1 cget -relief] raised] == 0} {
     .r.c.vol.t1 configure -relief sunken
   } else {
@@ -80,92 +75,67 @@ proc toggle_play {} {
 }
 
 proc toggle_send {} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "toggle_send"
+  cb_send "R" "toggle_send"
 }
 
 proc redundancy {coding} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "redundancy $coding"
+  cb_send "R" "redundancy [cb_encode_str $coding]"
 }
 
 proc primary {coding} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "primary $coding"
+  cb_send "R" "primary [cb_encode_str $coding]"
 }
 
 proc set_vol {volume} {
-  global RAT_ADDR
-  if {$RAT_ADDR != "NONE"} {
-    cb_send "U" $RAT_ADDR "output gain $volume"
-  }
+  cb_send "R" "output gain $volume"
 }
 
 proc set_gain {gain} {
-  global RAT_ADDR
-  if {$RAT_ADDR != "NONE"} {
-    cb_send "U" $RAT_ADDR "input gain $gain"
-  }
+  cb_send "R" "input gain $gain"
 }
 
 proc toggle_input_port {} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "toggle_input_port"
+  cb_send "R" "toggle_input_port"
 }
 
 proc toggle_output_port {} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "toggle_output_port"
+  cb_send "R" "toggle_output_port"
 }
 
 proc silence {s} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "silence $s"
+  cb_send "R" "silence $s"
 }
 
 proc lecture {l} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "lecture $l"
+  cb_send "R" "lecture $l"
 }
 
 proc agc {a} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "agc $a"
+  cb_send "R" "agc $a"
 }
 
 proc repair {r} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "repair $r"
-}
-
-proc output_mode {o} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "output mode $o"
+  cb_send "R" "repair $r"
 }
 
 proc powermeter {pm} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "powermeter $pm"
+  cb_send "R" "powermeter $pm"
 }
 
 proc rate {r} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "rate $r"
+  cb_send "R" "rate $r"
 }
 
 proc InstallKey {key} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "update_key $key"
+  cb_send "R" "update_key [cb_encode_str $key]"
 }
 
 proc play {file} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "play $file"
+  cb_send "R" "play [cb_encode_str $file]"
 }
 
 proc rec {file} {
-  global RAT_ADDR
-  cb_send "U" $RAT_ADDR "rec $file"
+  cb_send "R" "rec [cb_encode_str $file]"
 }
 
 # 
@@ -173,10 +143,10 @@ proc rec {file} {
 # in ui.c will call cb_recv with the appropriate arguments when a message is received. 
 #
 
-proc cb_recv {src cmd} {
+proc cb_recv {cmd args} {
   global DEBUG
-  if [string match [info procs [lindex cb_recv_$cmd 0]] [lindex cb_recv_$cmd 0]] {
-    eval cb_recv_$cmd 
+  if [string match [info procs [lindex cb_recv_$cmd 0]] cb_recv_$cmd] {
+    eval cb_recv_$cmd $args
   } else {
     if $DEBUG {
       puts stdout "ConfBus: ERROR unknown command $cmd"
@@ -184,12 +154,9 @@ proc cb_recv {src cmd} {
   }
 }
 
-proc cb_recv_init {rat_addr my_addr} {
+proc cb_recv_init {} {
 	# RAT has initialised itself, and we're now ready to go. 
 	# Perform any last minute initialisation...
-	global RAT_ADDR MY_ADDR
-	set RAT_ADDR $rat_addr
-	set  MY_ADDR  $my_addr
 }
 
 proc cb_recv_agc {args} {
@@ -247,7 +214,7 @@ proc cb_recv_output {cmd args} {
 
 proc cb_recv_half_duplex {} {
 	set output_var {Mike mutes net}
-	output_mode $output_var
+  	cb_send "R" "output mode [cb_encode_str $o]"
 }
 
 proc cb_recv_debug {} {
@@ -271,21 +238,18 @@ proc cb_recv_detect_silence {mode} {
 
 proc cb_recv_my_ssrc {ssrc} {
 	global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc
-	global RAT_ADDR
 	set my_ssrc $ssrc
 
 	# Now we know our SSRC, we can inform RAT of our SDES information...
-	cb_send "U" $RAT_ADDR "ssrc $ssrc name  $rtcp_name"
-	cb_send "U" $RAT_ADDR "ssrc $ssrc email $rtcp_email"
-	cb_send "U" $RAT_ADDR "ssrc $ssrc phone $rtcp_phone"
-	cb_send "U" $RAT_ADDR "ssrc $ssrc loc   $rtcp_loc"
+	cb_send "R" "ssrc $ssrc name  [cb_encode_str $rtcp_name]"
+	cb_send "R" "ssrc $ssrc email [cb_encode_str $rtcp_email]"
+	cb_send "R" "ssrc $ssrc phone [cb_encode_str $rtcp_phone]"
+	cb_send "R" "ssrc $ssrc loc   [cb_encode_str $rtcp_loc]"
 }
 
-proc cb_recv_ssrc {ssrc args} {
+proc cb_recv_ssrc {ssrc cmd arg} {
 	global CNAME NAME EMAIL LOC PHONE TOOL num_ssrc fw iht losstimers my_ssrc
 	global ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX
-	set cmd [lindex $args 0]
-	set arg [lrange $args 1 end]
 	if {[array names INDEX $ssrc] != $ssrc} {
 		# This is an SSRC we've not seen before...
 		set        CNAME($ssrc) "unknown"
@@ -515,12 +479,11 @@ proc dropdown {w varName command args} {
 }
 
 proc toggle_mute {cw ssrc} {
-	global RAT_ADDR
 	global iht
 	if {[$cw gettags a] == ""} {
-		cb_send "U" $RAT_ADDR "ssrc $ssrc mute"
+		cb_send "R" "ssrc $ssrc mute"
 	} else {
-		cb_send "U" $RAT_ADDR "ssrc $ssrc unmute"
+		cb_send "R" "ssrc $ssrc unmute"
 	}
 }
 
@@ -609,7 +572,7 @@ button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"   -comman
 button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"    -command {destroy .}
 frame  .l.s2 -bd 0
 button .l.s2.stats -highlightthickness 0 -padx 0 -pady 0 -text "Reception Quality" -command {wm deiconify .chart}
-button .l.s2.audio -highlightthickness 0 -padx 0 -pady 0 -text "Get Audio"         -command {cb_send "U" $RAT_ADDR get_audio}
+button .l.s2.audio -highlightthickness 0 -padx 0 -pady 0 -text "Get Audio"         -command {cb_send "R" get_audio}
 
 pack .r -side right -fill y
 frame .r.c
@@ -905,32 +868,32 @@ pack  .b.a.address -side top -fill x
 frame .b.a.rn -bd 0
 pack  .b.a.rn -side top -fill x
 entry .b.a.rn.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_name
-bind  .b.a.rn.name <Return> {cb_send "U" $RAT_ADDR "ssrc $my_ssrc name $rtcp_name"; savename}
-bind  .b.a.rn.name <Tab>    {cb_send "U" $RAT_ADDR "ssrc $my_ssrc name $rtcp_name"; savename}
+bind  .b.a.rn.name <Return> {cb_send "R" "ssrc $my_ssrc name [cb_encode_str $rtcp_name]"; savename}
+bind  .b.a.rn.name <Tab>    {cb_send "R" "ssrc $my_ssrc name [cb_encode_str $rtcp_name]"; savename}
 pack  .b.a.rn.name -side right -fill x 
 label .b.a.rn.l -highlightthickness 0 -text "Name:"
 pack  .b.a.rn.l -side left -fill x -expand 1
 frame .b.a.re -bd 0
 pack  .b.a.re -side top -fill x
 entry .b.a.re.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_email
-bind  .b.a.re.name <Return> {cb_send "U" $RAT_ADDR "ssrc $my_ssrc email $rtcp_email"; savename}
-bind  .b.a.re.name <Tab>    {cb_send "U" $RAT_ADDR "ssrc $my_ssrc email $rtcp_email"; savename}
+bind  .b.a.re.name <Return> {cb_send "R" "ssrc $my_ssrc email [cb_encode_str $rtcp_email]"; savename}
+bind  .b.a.re.name <Tab>    {cb_send "R" "ssrc $my_ssrc email [cb_encode_str $rtcp_email]"; savename}
 pack  .b.a.re.name -side right -fill x
 label .b.a.re.l -highlightthickness 0 -text "Email:"
 pack  .b.a.re.l -side left -fill x -expand 1
 frame .b.a.rp -bd 0
 pack  .b.a.rp -side top -fill x
 entry .b.a.rp.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_phone
-bind  .b.a.rp.name <Return> {cb_send "U" $RAT_ADDR "ssrc $my_ssrc phone $rtcp_phone"; savename}
-bind  .b.a.rp.name <Tab>    {cb_send "U" $RAT_ADDR "ssrc $my_ssrc phone $rtcp_phone"; savename}
+bind  .b.a.rp.name <Return> {cb_send "R" "ssrc $my_ssrc phone [cb_encode_str $rtcp_phone]"; savename}
+bind  .b.a.rp.name <Tab>    {cb_send "R" "ssrc $my_ssrc phone [cb_encode_str $rtcp_phone]"; savename}
 pack  .b.a.rp.name -side right -fill x
 label .b.a.rp.l -highlightthickness 0 -text "Phone:"
 pack  .b.a.rp.l -side left -fill x -expand 1
 frame .b.a.rl -bd 0
 pack  .b.a.rl -side top -fill x
 entry .b.a.rl.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_loc
-bind  .b.a.rl.name <Return> {cb_send "U" $RAT_ADDR "ssrc $my_ssrc loc $rtcp_loc"; savename}
-bind  .b.a.rl.name <Tab>    {cb_send "U" $RAT_ADDR "ssrc $my_ssrc loc $rtcp_loc"; savename}
+bind  .b.a.rl.name <Return> {cb_send "R" "ssrc $my_ssrc loc [cb_encode_str $rtcp_loc]"; savename}
+bind  .b.a.rl.name <Tab>    {cb_send "R" "ssrc $my_ssrc loc [cb_encode_str $rtcp_loc]"; savename}
 pack  .b.a.rl.name -side right -fill x
 label .b.a.rl.l -highlightthickness 0 -text "Location:"
 pack  .b.a.rl.l -side left -fill x -expand 1
@@ -1257,5 +1220,5 @@ chart_enlarge 1
 # End of RTCP RR chart routines
 #
 
-bind . <t> {cb_send "R" $RAT_ADDR "toggle_input_port"}
+bind . <t> {cb_send "R" "toggle_input_port"}
 

@@ -186,7 +186,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				rr->dlsr          = pkt->r.sr.rr[i].dlsr;
 				dbe->rr = rr;
 				if (sp->ui_on) {
-					sprintf(comm, "ssrc %lx loss_from %lx %d", dbe->ssrc, rr->ssrc, (int) ((rr->fraction_lost / 2.56)+0.5));
+					sprintf(comm, "ssrc %lu loss_from %ld %d", dbe->ssrc, rr->ssrc, (int) ((rr->fraction_lost / 2.56)+0.5));
 					cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 				}
 			}
@@ -214,7 +214,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				rr->dlsr          = pkt->r.rr.rr[i].dlsr;
 				dbe->rr = rr;
 				if (sp->ui_on) {
-					sprintf(comm, "ssrc %lx loss_from %lx %d", dbe->ssrc, rr->ssrc, (int) ((rr->fraction_lost / 2.56)+0.5));
+					sprintf(comm, "ssrc %lu loss_from %ld %d", dbe->ssrc, rr->ssrc, (int) ((rr->fraction_lost / 2.56)+0.5));
 					cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 				}
 			}
@@ -225,7 +225,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				dbe->loss_from_me = (ntohl(pkt->r.rr.rr[0].loss) >> 24) & 0xff;
 				dbe->last_rr_for_me = cur_time;
 				if (sp->ui_on) {
-					sprintf(comm, "ssrc %lx loss_from_me  %d", dbe->ssrc, (dbe->loss_from_me*100)>>8);
+					sprintf(comm, "ssrc %lu loss_from_me  %d", dbe->ssrc, (dbe->loss_from_me*100)>>8);
 					cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 				}
 			}
@@ -549,13 +549,13 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 		dbe->lost_frac = (losti << 8) / expi;
 	}
 	if (sp->ui_on) {
-		sprintf(comm, "ssrc %lx packet_duration  %d", dbe->ssrc, dbe->units_per_packet * 20); cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-                sprintf(comm, "ssrc %lx packets_recv %ld", dbe->ssrc, dbe->pckts_recv);               cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-                sprintf(comm, "ssrc %lx packets_lost %ld", dbe->ssrc, dbe->lost_tot);                 cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-                sprintf(comm, "ssrc %lx packets_miso %ld", dbe->ssrc, dbe->misordered);               cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-                sprintf(comm, "ssrc %lx jitter_drop  %ld", dbe->ssrc, dbe->jit_TOGed);                cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-                sprintf(comm, "ssrc %lx jitter       %f",  dbe->ssrc, dbe->jitter);                   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-                sprintf(comm, "ssrc %lx loss_to_me   %ld", dbe->ssrc, (dbe->lost_frac * 100) >> 8);   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+		sprintf(comm, "ssrc %lu packet_duration  %d", dbe->ssrc, dbe->units_per_packet * 20); cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+                sprintf(comm, "ssrc %lu packets_recv %ld", dbe->ssrc, dbe->pckts_recv);               cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+                sprintf(comm, "ssrc %lu packets_lost %ld", dbe->ssrc, dbe->lost_tot);                 cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+                sprintf(comm, "ssrc %lu packets_miso %ld", dbe->ssrc, dbe->misordered);               cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+                sprintf(comm, "ssrc %lu jitter_drop  %ld", dbe->ssrc, dbe->jit_TOGed);                cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+                sprintf(comm, "ssrc %lu jitter       %f",  dbe->ssrc, dbe->jitter);                   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+                sprintf(comm, "ssrc %lu loss_to_me   %ld", dbe->ssrc, (dbe->lost_frac * 100) >> 8);   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
 	}
 
 	rptr->ssrc     = htonl(dbe->ssrc);

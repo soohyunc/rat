@@ -1,12 +1,12 @@
 /*
  * FILE: util.c
- * PROGRAM: BAT
- * AUTHOR: Isidor Kouvelas
+ * PROGRAM: RAT
+ * AUTHOR: Isidor Kouvelas + Colin Perkins + Mark Handley + Orion Hodson
  * 
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995,1996,1997 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -89,7 +89,8 @@ void xfree(void *y)
 {
 #ifdef DEBUG_MEM
 	char	*x = (char *) y;
-	int	i, j;
+	int	 i, j;
+	int	*a;
 
 	if (x == NULL) {
 		printf("ERROR: Attempt to free NULL pointer!\n");
@@ -104,6 +105,11 @@ void xfree(void *y)
 				abort();
 			}
 			j = 1;
+			/* Trash the contents of the memory we're about to free... */
+			for (a = (int *) (x-8); a < (int *) (a + *(x-8) + 8); a++) {
+				*a = 0xdeadbeef;
+			}
+			/* ...and free it! */
 			free(x - 8);
 			free(files[i]);
 		}
@@ -129,13 +135,16 @@ _xmalloc(unsigned size, char *filen, int line)
 #ifdef DEBUG_MEM
 	int  s = (((size + 7)/8)*8) + 8;
 	int *p = (int *) malloc(s + 16);
+	int  q;
 
 	assert(p     != NULL);
 	assert(filen != NULL);
 /*	assert(strlen(filen) != 0); */
 	*p = s;
 	*(p+(s/4)+2) = s;
-	memset((char *) (p+2), 42, size);
+	for (q = 0; q < s/4; q++) {
+		*(p+q+2) = rand();
+	}
 	addrs[naddr]  = p;
 	files[naddr]  = strdup(filen);
 	lines[naddr]  = line;

@@ -1,5 +1,5 @@
 /*
- * FILE:    confbus.h
+ * FILE:    confbus_addr.h
  * PROGRAM: RAT
  * AUTHORS: Colin Perkins
  * 
@@ -40,28 +40,15 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _CONFBUS_H
-#define _CONFBUS_H
+#ifndef CONFBUS_ADDR_H
+#define CONFBUS_ADDR_H
 
-struct session_tag;
-struct s_cb_cmnd;
+struct s_cbaddr;
 
-typedef enum {
-	CB_MSG_RELIABLE, CB_MSG_UNRELIABLE, CB_MSG_ACK
-} cb_msg_type;
-
-typedef struct {
-	int		 seq_num;
-	cb_msg_type	 msg_type;
-	struct s_cbaddr	*srce_addr;
-	struct s_cbaddr	*dest_addr;
-	struct cb_cmnd	*commands;	/* Valid if msg_type is CB_MSG_RELIABLE or CB_MSG_UNRELIABLE */
-	int		 ack;		/* Valid if msg_type is CB_MSG_ACK                           */
-} cb_mesg;
-
-void     cb_init(struct session_tag *sp);
-int      cb_send(struct session_tag *sp, struct s_cbaddr *srce, struct s_cbaddr *dest, char *mesg, int reliable);
-void     cb_send_ack(struct session_tag *sp, struct s_cbaddr *srce, struct s_cbaddr *dest, int seqnum);
-void     cb_poll(struct session_tag *sp);
+struct s_cbaddr *cb_addr_dup(struct s_cbaddr *x);
+struct s_cbaddr *cb_addr_init(char *media_type, char *module_type, char *media_handling, char *app_name, char *app_instance);
+void     	 cb_addr_free(struct s_cbaddr *addr);
+char    	*cb_addr2str(struct s_cbaddr *a);
+int 		 cb_addr_match(struct s_cbaddr *a1, struct s_cbaddr *a2);
 
 #endif

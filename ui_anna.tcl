@@ -46,8 +46,6 @@ option add *Radiobutton*selectColor 	forestgreen 	widgetDefault
 option add *Checkbutton*selectColor 	forestgreen 	widgetDefault
 option add *borderWidth 		1 
 
-set RAT_ADDR "NONE"
-set  UI_ADDR "NONE"
 set attendance 0
 set stop 0
 set person ""
@@ -56,7 +54,7 @@ set V(class) "MBone Applications"
 set V(app)   "rat"
 # The following function deal with receiving messages from the conference bus. The code
 # in ui.c will call cb_recv with the appropriate arguments when a message is received. 
-# Messages can be sent to RAT by calling 'cb_send "U" $RAT_ADDR "message"'.
+# Messages can be sent to RAT by calling 'cb_send "U" "message"'.
 ###############################################################################
 proc cb_recv_output {cmd args} {
 switch $cmd {
@@ -73,22 +71,20 @@ unmute {.rat.power.in.rec configure -relief raised -text Mute -bg grey80 -fg bla
 ##############################################################################
 proc cb_recv_input {cmd args} {
 global sending stop 
-global RAT_ADDR
 switch $cmd {
-    global RAT_ADDR
     gain {.rat.power.out.cout set $args}
     device {.rat.power.out.outicon configure -bitmap $args}
     mute {.rat.power.out.send configure -relief sunken -text UnMute -bg seashell4 -fg white
 #    if {$sending !=1} {
 #	.rat.power.transmit configure -text "Push to Talk"
-#	cb_send "U" $RAT_ADDR "silence 0"
+#	cb_send "U" "silence 0"
 #    }
 }
     unmute {.rat.power.out.outicon configure -relief raised -text Mute -bg grey80 -fg black
 #        if {$sending !=1} {
 #            .rat.power.transmit configure -text "Push to Stop"
 #            set stop 1
-#            cb_send "U" $RAT_ADDR "silence 1"
+#            cb_send "U" "silence 1"
 #        }
     }
 }
@@ -105,25 +101,22 @@ set title "$add $port $ttl"
 }
 ##############################################################################
 proc set_gain gain {
-global RAT_ADDR
-cb_send "U" $RAT_ADDR "input gain $gain"
+cb_send "U" "input gain $gain"
 }
 proc set_vol volume {
-global RAT_ADDR
-cb_send "U" $RAT_ADDR "output gain $volume"
+cb_send "U" "output gain $volume"
 }
 ###############################################################################
 proc update_names {} {
 	global myssrc
 global NAME EMAIL PHONE LOC 
-	global RAT_ADDR
-	cb_send "U" $RAT_ADDR "ssrc $myssrc name $NAME($myssrc)"
-	cb_send "U" $RAT_ADDR "ssrc $myssrc email $EMAIL($myssrc)"
-	cb_send "U" $RAT_ADDR "ssrc $myssrc phone $PHONE($myssrc)"
-	cb_send "U" $RAT_ADDR "ssrc $myssrc loc $LOC($myssrc)" 
+	cb_send "U" "ssrc $myssrc name $NAME($myssrc)"
+	cb_send "U" "ssrc $myssrc email $EMAIL($myssrc)"
+	cb_send "U" "ssrc $myssrc phone $PHONE($myssrc)"
+	cb_send "U" "ssrc $myssrc loc $LOC($myssrc)" 
 }
 ##############################################################################
-proc cb_recv {src cmd} {
+proc cb_recv {cmd} {
   if [string match [info procs [lindex cb_recv_$cmd 0]] [lindex cb_recv_$cmd 0]] {
     eval cb_recv_$cmd 
   }
@@ -137,8 +130,7 @@ proc cb_recv_powermeter {type level} {
 }
 ##########################################################################
 proc rate size {
-global RAT_ADDR
-cb_send "U" $RAT_ADDR "rate $size"
+cb_send "U" "rate $size"
 }
 ##########################################################################
 proc cb_recv_my_ssrc ssrc {
@@ -147,10 +139,7 @@ proc cb_recv_my_ssrc ssrc {
 }
 ###########################################################################
 #Rat finished initialising, change defaults
-proc cb_recv_init {rat_addr ui_addr} {
-	global RAT_ADDR UI_ADDR
-	set RAT_ADDR $rat_addr
-	set  UI_ADDR  $ui_addr
+proc cb_recv_init {} {
 }
 
 ##############################################################################
@@ -321,20 +310,19 @@ pack .purpose.plabel .purpose.pmenu -side left
 
 #Sets the default modes, primary encodings
 proc set_defaults {} {
-	global RAT_ADDR
 	global choice
 	switch $choice {
-		Meeting {cb_send "U" $RAT_ADDR "primary DVI"
-			cb_send "U" $RAT_ADDR "lecture 1"
-			cb_send "U" $RAT_ADDR "output mode Full duplex"
+		Meeting {cb_send "U" "primary DVI"
+			cb_send "U" "lecture 1"
+			cb_send "U" "output mode Full duplex"
 			}
-		"Receive lecture" {cb_send "U" $RAT_ADDR "primary DVI"
-			cb_send "U" $RAT_ADDR "lecture 0"
-			cb_send "U" $RAT_ADDR "output mode Net mutes mike"
+		"Receive lecture" {cb_send "U" "primary DVI"
+			cb_send "U" "lecture 0"
+			cb_send "U" "output mode Net mutes mike"
 		}
-		"Give lecture" {cb_send "U" $RAT_ADDR "primary DVI"
-			cb_send "U" $RAT_ADDR "lecture 1"
-			cb_send "U" $RAT_ADDR "output mode Mike mutes net"
+		"Give lecture" {cb_send "U" "primary DVI"
+			cb_send "U" "lecture 1"
+			cb_send "U" "output mode Mike mutes net"
 		}
 	}
 }
@@ -384,7 +372,6 @@ proc setKey {} {
 #CANNOT SET ENCRYPTION IF KEY NOT ENTERED
 proc checkentered {} {
     global pgp
-    global RAT_ADDR
     global setencrypt
     if {$setencrypt == 1} {
 	if {$pgp == ""} {
@@ -397,8 +384,7 @@ proc checkentered {} {
 }
 ###############################################################################
 proc Install_key key {
-global RAT_ADDR
-cb_send "U" $RAT_ADDR "update_key $key"
+cb_send "U" "update_key $key"
 }
 
 ###################################################################
@@ -443,11 +429,10 @@ proc MainBasic {} {
     bind .rat.sent.bandwidth <Button-1> {showCodecs name $scaleset} 
 ###############################################################################
 proc repair adjr {
-    global RAT_ADDR
     if {$adjr == 0} {
-    cb_send "U" $RAT_ADDR "repair None"
+    cb_send "U" "repair None"
     } else {
-      cb_send "U" $RAT_ADDR "repair Packet Repetition"
+      cb_send "U" "repair Packet Repetition"
     }
 }
 ###############################################################################
@@ -466,7 +451,7 @@ proc repair adjr {
     button .rat.power.transmit -text "Push to Talk"
 global sending
 bind .rat.power.transmit <ButtonPress-1> "set sending 1 ; checkmute2"
-bind .rat.power.transmit <ButtonRelease-1> {set sending 0 ;cb_send "U" $RAT_ADDR "toggle_send"}
+bind .rat.power.transmit <ButtonRelease-1> {set sending 0 ;cb_send "U" "toggle_send"}
     pack .rat.power.transmit -fill x -side top -ipady 5m
     button .rat.power.logo -bitmap "ucl"
     pack .rat.power.logo -fill x -side bottom
@@ -488,14 +473,12 @@ bind .rat.power.transmit <ButtonRelease-1> {set sending 0 ;cb_send "U" $RAT_ADDR
     pack .rat.power.out.outicon -expand 1 -fill x -anchor n
     ##########################################################################
     proc toggle_in {} {
-    global RAT_ADDR
-    cb_send "U" $RAT_ADDR "toggle_output_port"
+    cb_send "U" "toggle_output_port"
     
 }
 ############################################################################
 proc toggle_out {} {
-global RAT_ADDR
-cb_send "U" $RAT_ADDR "toggle_input_port"
+cb_send "U" "toggle_input_port"
 }
 
 #############################################################################
@@ -506,8 +489,7 @@ pack .rat.power.in.rec -side top
 pack .rat.power.out.send -side top
 ###################################################################
 proc checkmute1 {} {
-    global RAT_ADDR
-    cb_send "U" $RAT_ADDR "toggle_play"
+    cb_send "U" "toggle_play"
     if {[string compare [.rat.power.in.rec cget -relief] raised] == 0} {
 	.rat.power.in.rec configure -relief sunken -text UnMute -bg seashell4 -fg white
 	
@@ -522,8 +504,7 @@ proc checkmute2 {} {
 global sending
 global raised
 global stop
-global RAT_ADDR
-cb_send "U" $RAT_ADDR "toggle_send"
+cb_send "U" "toggle_send"
     if {[string compare [.rat.power.out.send cget -relief] raised] == 0} {
         .rat.power.out.send configure -relief sunken -text UnMute -bg seashell4 -fg white
 
@@ -629,8 +610,8 @@ pack .warn.ok -side bottom -anchor e
 #Not enough time to toggle? Therefore works only 50% of time
 bind .rat.group.names <Double-1> {if {$stop == 1} {
 puts "Toggle send from binding"
-cb_send "U" $RAT_ADDR "toggle_send"
-global NAME CNAME RAT_ADDR myssrc
+cb_send "U" "toggle_send"
+global NAME CNAME myssrc
   if {[selection get] != $NAME($myssrc) | [selection get] != $CNAME($myssrc)} {
 puts [selection get]
 showloss [selection get] [lindex $SSRC [.rat.group.names curselection]]
@@ -657,19 +638,18 @@ global purpose
 .rat.group.useroptions.menu add command -label "Show Advanced" -command MainAdvanced
 ###################################################################
 proc changep {} {
-    global RAT_ADDR
     global title
     global choice
     wm title .rat RAT:$choice:$title
 switch $choice {
-Meeting {cb_send "U" $RAT_ADDR "primary DVI"
-cb_send "U" $RAT_ADDR "lecture 1"
+Meeting {cb_send "U" "primary DVI"
+cb_send "U" "lecture 1"
 }
-"Receive lecture" {cb_send "U" $RAT_ADDR "primary DVI"
-cb_send "U" $RAT_ADDR "lecture 0"
+"Receive lecture" {cb_send "U" "primary DVI"
+cb_send "U" "lecture 0"
 }
-"Give lecture" {cb_send "U" $RAT_ADDR "primary DVI"
-cb_send "U" $RAT_ADDR "lecture 1"
+"Give lecture" {cb_send "U" "primary DVI"
+cb_send "U" "lecture 1"
 }
 }
 }
@@ -724,7 +704,6 @@ proc update_loss {ssrc} {
 ##############################################################################
 #If redundancy is selected no red configuration
 proc selectcolour {adjs} {
-global RAT_ADDR
 global mode_int
 global sname
 global red
@@ -732,7 +711,7 @@ global orange
 global some_coding
 if {$mode_int == 2} {
     if {$adjs == 1} {
-         cb_send "U" $RAT_ADDR "redundancy $some_coding"
+         cb_send "U" "redundancy $some_coding"
 	.rat.sent.adjs configure -bg grey
 	# Because of the .rat.sent.adjs configure -textvariable sname, any
 	# change we make to sname will automagically be updated on the screen! :-(
@@ -740,7 +719,7 @@ if {$mode_int == 2} {
     } else {
             puts "Entered off statements sname org= $sname"
             set sname "Redundancy: $some_coding"
-            cb_send "U" $RAT_ADDR "redundancy NONE"
+            cb_send "U" "redundancy NONE"
 	if {$red == 1} {
            .rat.sent.adjs configure -bg red
 	}
@@ -754,9 +733,9 @@ if {$mode_int == 2} {
 } else {
     if {$adjs == 1} {
      .rat.sent.adjs configure -bg grey
-     cb_send "U" $RAT_ADDR "redundancy DVI"
+     cb_send "U" "redundancy DVI"
     } else {
-        cb_send "U" $RAT_ADDR "redundancy NONE"
+        cb_send "U" "redundancy NONE"
 	if {$red == 1} {
            .rat.sent.adjs configure -bg red
 	}
@@ -779,9 +758,8 @@ proc nameshelp {} {
 proc showloss {name ssrc} {
 puts "Entered Showloss"
 global stop
-global RAT_ADDR
 if {$stop == 1} {
-cb_send "U" $RAT_ADDR "toggle_send"
+cb_send "U" "toggle_send"
 }
 global SSRC
 set select [lsearch -exact $SSRC $ssrc]
@@ -1001,7 +979,7 @@ proc showCodecs {name scaleset} {
     label .rat.sent.packetframe.packetlabel -textvariable $name
 
     button .rat.sent.packetframe.packetok -text ok -width 1 -height 1 -command "destroy .rat.sent.packetframe"
-    bind .rat.sent.packetframe.packetok <Button-1> {cb_send "U" $RAT_ADDR "primary $name"}
+    bind .rat.sent.packetframe.packetok <Button-1> {cb_send "U" "primary $name"}
 
 
     pack .rat.sent.packetframe.packetlabel .rat.sent.packetframe.packetscale .rat.sent.packetframe.packetok -side left
@@ -1214,7 +1192,6 @@ proc togglehelp showhelp {
 proc MainAdvanced {} {
 global SSRC
 global raised
-global RAT_ADDR
 
 
     global mode_int
@@ -1296,7 +1273,6 @@ global RAT_ADDR
 	pack .rat.sent.adjs .rat.sent.encoding .rat.sent.rtp -side top
 	pack .rat.sent.rtp -side bottom
 
-        global RAT_ADDR
 	scale .rat.sent.encoding.pscale -from 0 -to 4 -length 3c -orient horizontal -command changeadvc -showvalue 0
 	.rat.sent.encoding.pscale set $scaleset
 	label .rat.sent.encoding.plabel -textvariable name -width 15
@@ -1306,10 +1282,10 @@ global RAT_ADDR
 
 
 	bind .rat.sent.encoding.pbutton <Button-1> {
-        cb_send "U" $RAT_ADDR "redundancy $short"
+        cb_send "U" "redundancy $short"
 	#Rat will automatically reconfigure the primary to the appropriate bdwdth
         global prim
-        cb_send "U" $RAT_ADDR "primary $prim"       
+        cb_send "U" "primary $prim"       
 }
 
 

@@ -6,4 +6,4 @@ LDLIBS     = -L/cs/research/mice/starship/common/irix/lib -ltk4.2 -ltcl7.6 \
 
 CRYPTFLAGS =-D__svr4__ -DSIGRET=void
 
-OBJS = $(OBJDIR)/auddev_sgi.o
+OBJS = auddev_sgi.o

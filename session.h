@@ -126,11 +126,12 @@ typedef struct session_tag {
         int             flake_go;                   /* counter used to avoid dropping at start */
         int             flake_os;                   /* number outstanding */
         char            *ui_script;
-        char            *cb_myaddr;
-        char            *cb_uiaddr;
-        int              cb_socket;
-        int              cb_shortcut;
+        struct s_cbaddr	*cb_myaddr;
+        struct s_cbaddr	*cb_uiaddr;
+        int		 cb_socket;
+        int		 cb_shortcut;
 	unsigned int	 cb_seqnum;
+	struct s_cb_ack	*cb_ack_list;
 } session_struct;
 
 void init_session(session_struct *sp);

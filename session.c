@@ -51,6 +51,7 @@
 #include "ui.h"
 #include "lbl_confbus.h"
 #include "parameters.h"
+#include "confbus_addr.h"
 
 extern char ui_original[];
 extern char ui_anna[];
@@ -125,11 +126,11 @@ init_session(session_struct *sp)
         sp->lbl_cb_priority             = 100;
 	sp->loopback_rtp		= FALSE;
 	sp->ui_script			= ui_original;
-	sp->cb_myaddr			= NULL;
-	sp->cb_uiaddr			= NULL;
+	sp->cb_myaddr			= cb_addr_init("audio", "engine", "*", "rat", "1");
+	sp->cb_uiaddr			= cb_addr_init("audio",     "ui", "*", "rat", "1");
 	sp->cb_socket			= -1;
-	sp->cb_shortcut			= TRUE;
 	sp->cb_seqnum			= 0;
+	sp->cb_ack_list			= NULL;
 
 	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {
 		perror("Cannot get hostname!");
@@ -256,9 +257,6 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 			}
 			if (strcmp(argv[i], "-loopback_rtp") == 0) {
 				sp[s]->loopback_rtp = TRUE;
-			}
-			if (strcmp(argv[i], "-snoop_cb") == 0) {
-				sp[s]->cb_shortcut = FALSE;
 			}
 		}
 	}
