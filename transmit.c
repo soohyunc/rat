@@ -302,9 +302,8 @@ read_device(session_struct *sp)
 		rb->lbuf->head += read_len;
 	}
 
-	cp = get_codec(sp->encodings[0]);
-	read_len /= cp->channels;
-	time_advance(sp->clock, cp->freq, read_len);
+	cp = get_codec(sp->encodings[0]);	
+	time_advance(sp->clock, cp->freq, read_len/cp->channels);
 	return (read_len);
 }
 
@@ -337,7 +336,7 @@ process_read_audio(session_struct *sp)
 		u->time = rb->lbuf->start_time + last_ind;
 
 		/* Do first pass of silence supression */
-		u->energy = audio_energy(u->data, rb->lbuf->unit_size);
+		u->energy = avg_audio_energy(u->data, rb->lbuf->unit_size);
 		if (sp->detect_silence) {
 			u->silence = sd(rb->sd_info, u->energy, FALSE);
 		} else {
@@ -550,7 +549,7 @@ void
 transmitter_update_ui(session_struct *sp)
 {
 	if (sp->meter && sp->rb->silence_ptr && sp->rb->silence_ptr->prev)
-		ui_input_level(log10((double)1.0 + (double)sp->rb->silence_ptr->prev->energy / (double)127) * 67, sp);
+		ui_input_level((int)lin2db(sp->rb->silence_ptr->prev->energy, 100.0), sp);
 	if (sp->rb->talkspurt) {
 		ui_info_activate(sp->db->my_dbe, sp);
 		sp->lecture = FALSE;
