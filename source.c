@@ -42,7 +42,7 @@
 
 #define SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER  8 
 #define SKEW_OFFENSES_BEFORE_EXPANDING_BUFFER    3
-#define SKEW_ADAPT_THRESHOLD       2000
+#define SKEW_ADAPT_THRESHOLD       1500
 #define SOURCE_YOUNG_AGE             20
 #define SOURCE_AUDIO_HISTORY_MS    1000
 
@@ -417,7 +417,52 @@ source_add_packet (source *src,
         return TRUE;
 }
 
-#define SOURCE_MERGE_LEN_SAMPLES 15
+#define SOURCE_COMPARE_WINDOW_SIZE 5
+#define MATCH_THRESHOLD 3000
+
+static ts_t
+recommend_drop_dur(media_data *md) 
+{
+        u_int32 score, lowest_score, lowest_begin;
+        u_int16 rate, channels;
+        sample *buffer;
+        int i, j,samples;
+
+        i = md->nrep - 1;
+        while(i >= 0) {
+                if (codec_get_native_info(md->rep[i]->id, &rate, &channels)) {
+                        break;
+                }
+                i--;
+        }
+        assert(i != -1);
+        
+        buffer  = (sample*)md->rep[i]->data;
+        samples = md->rep[i]->data_len / (sizeof(sample) * channels);
+
+        i = 0;
+        j = samples / 16;
+        lowest_score = 0xffffffff;
+        while (j < samples - SOURCE_COMPARE_WINDOW_SIZE) {
+                score = 0;
+                for (i = 0; i < SOURCE_COMPARE_WINDOW_SIZE; i++) {
+                        score += abs(buffer[i * channels] - buffer[(j+i) * channels]);
+                }
+                if (score < lowest_score) {
+                        lowest_score = score;
+                        lowest_begin = j;
+                }
+                j++;
+        }
+
+        if (lowest_score < MATCH_THRESHOLD) {
+                return ts_map32(rate, lowest_begin);
+        } else {
+                return ts_map32(8000, 0);
+        }
+}
+
+#define SOURCE_MERGE_LEN_SAMPLES 5
 
 static void
 conceal_dropped_samples(media_data *md, ts_t drop_dur)
@@ -449,6 +494,10 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         new_start = (sample*)md->rep[i]->data + drop_samples;
         old_start = (sample*)md->rep[i]->data;
 
+        for(i = SOURCE_MERGE_LEN_SAMPLES; old_start + i <= new_start; i++) {
+                old_start[i] = 32767;
+        }
+
         merge_len = SOURCE_MERGE_LEN_SAMPLES * channels;
         for (i = 0; i < merge_len; i++) {
                 a   = (merge_len - i) * old_start[i] / merge_len;
@@ -459,7 +508,6 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         debug_msg("dropped %d samples\n", drop_samples);
         xmemchk();
 }
-
 
 /* source_check_buffering is supposed to check amount of audio buffered
  * corresponds to what we expect from playout so we can think about
@@ -502,7 +550,6 @@ source_check_buffering(source *src, ts_t now)
                 src->skew = SOURCE_SKEW_FAST;
                 src->skew_adjust = ts_map32(8000, (buf_ms - playout_ms) * 8);
                 src->skew_offenses++;
-                debug_msg("%d, have %d want %d\n", src->skew_offenses, buf_ms, playout_ms);
         } else if (buf_ms <= 2 * playout_ms / 3) {
                 /* buffer is running dry so src clock is slower */
                 src->skew = SOURCE_SKEW_SLOW;
@@ -512,7 +559,6 @@ source_check_buffering(source *src, ts_t now)
                         src->skew_offenses = 0;
                 }
                 src->skew_offenses--;
-                debug_msg("%d, have %d want %d\n", src->skew_offenses, buf_ms, playout_ms);
         } else {
                 src->skew = SOURCE_SKEW_NONE;
                 if (src->skew_offenses != 0) {
@@ -574,13 +620,15 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                  * Should only move forward at most a single unit
                  * otherwise we might discard something we have not
                  * classified.  */
-                adjustment = ts_map32(8000, samples / 8);
-                if (ts_gt(adjustment, src->skew_adjust)) {
-                        /* adjustment needed is less than adjustment period
-                         * used.
+
+                adjustment =  recommend_drop_dur(md); 
+                if (ts_gt(adjustment, src->skew_adjust) || adjustment.ticks == 0) {
+                        /* adjustment needed is greater than adjustment period
+                         * that best matches dropable by signal matching.
                          */
                         return SOURCE_SKEW_NONE;
                 }
+                debug_msg("dropping %d / %d samples\n", adjustment.ticks, src->skew_adjust.ticks);
                 pb_shift_forward(src->media,   adjustment);
                 pb_shift_forward(src->channel, adjustment);
                 src->dbe->playout               = ts_sub(src->dbe->playout, adjustment);
@@ -603,7 +651,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                         src->skew = SOURCE_SKEW_NONE;
                 }
 
-                conceal_dropped_samples(md, adjustment);
+                conceal_dropped_samples(md, adjustment); 
 
                 return SOURCE_SKEW_FAST;
         } else if (src->skew == SOURCE_SKEW_SLOW && 
@@ -932,9 +980,13 @@ source_get_playout_delay (source *src, ts_t now)
 int
 source_relevant(source *src, ts_t now)
 {
+        ts_t keep_source_time;
         assert(src);
-        
-        if (!ts_eq(source_get_playout_delay(src, now), ts_map32(8000,0))) {
+
+        keep_source_time = ts_map32(8000, 2000); /* 1 quarter of a second */
+
+        if (!ts_eq(source_get_playout_delay(src, now), ts_map32(8000, 0)) ||
+                ts_gt(ts_add(src->dbe->last_arr, keep_source_time), now)) {
                 return TRUE;
         }
         
