@@ -588,6 +588,7 @@ rx_redundancy(char *srce, char *args, session_struct *sp)
 static void 
 rx_primary(char *srce, char *args, session_struct *sp)
 {
+        static int virgin = 1;
 	char	*short_name, *sfreq, *schan;
         int      pt, freq, channels;
 	codec_t *next_cp, *cp;
@@ -633,7 +634,10 @@ rx_primary(char *srce, char *args, session_struct *sp)
                 } else {
                         /* just register we want to make a change */
                         sp->next_encoding = pt;
-                        audio_device_reconfigure(sp);
+                        if (virgin) {
+                                audio_device_reconfigure(sp);
+                                virgin = 0;
+                        }
                 }
         }
 }

@@ -1389,7 +1389,6 @@ proc load_settings {} {
     load_setting attr audioInterleavingUnits int_units     "4"
     load_setting attr audioSilence           silence_var   "1"
     load_setting attr audioAGC               agc_var       "0"
-#   validate_red_codecs
 
     # reception
     load_setting attr audioRepair       repair_var    "Packet Repetition"
