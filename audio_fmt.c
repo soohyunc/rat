@@ -190,8 +190,8 @@ convert_buffer_sample_type(audio_format *src, u_char *src_buf, int src_bytes,
         src8 = dst8 = se = NULL;
         src16 = dst16 = NULL;
 
-        if (out_bytes < dst_bytes) {
-                debug_msg("Conversion failed: output buffer too small (%d < %d)\n", out_bytes, dst_bytes);
+        if (out_bytes > dst_bytes) {
+                debug_msg("Conversion failed: output buffer too small (%d < %d)\n", dst_bytes, out_bytes);
                 return 0;
         }
 
@@ -367,7 +367,7 @@ audio_format_buffer_convert(audio_format *src,
                 assert(done == out_bytes);
                 assert(dst_bytes >= 0);
         }
-        debug_msg("in bytes %04d out bytes %04d / %04d\n", src_bytes, out_bytes, dst_bytes);
+
         return out_bytes;
 }
 
