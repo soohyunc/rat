@@ -180,7 +180,7 @@ static void load_init(void)
                 key = key + 1;               /* skip asterisk */
                 value = strtok(NULL, "\n");
                 assert(value != NULL);
-                while (*value != '\0' && isspace(*value)) {
+                while (*value != '\0' && isspace((int) *value)) {
                         value++;             /* skip leading whitespace */
                 }
                 settings_table_add(key, value);
