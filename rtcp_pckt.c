@@ -270,7 +270,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			}
 
 			/* is it reporting on my traffic? */
-			if (ntohl(pkt->r.rr.rr[0].ssrc) == sp->db->myssrc) {
+			if ((ntohl(pkt->r.rr.rr[0].ssrc) == sp->db->myssrc) && (dbe->sentry->cname != NULL)) {
 				/* Need to store stats in ssrc's db not r.rr.ssrc's */
 				dbe->loss_from_me = (ntohl(pkt->r.rr.rr[0].loss) >> 24) & 0xff;
 				dbe->last_rr_for_me = cur_time;
