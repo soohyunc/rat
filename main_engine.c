@@ -349,9 +349,6 @@ int main(int argc, char *argv[])
 	settings_save(sp);
 	tx_stop(sp->tb);
 
-	if (sp->in_file  != NULL) snd_read_close (&sp->in_file);
-	if (sp->out_file != NULL) snd_write_close(&sp->out_file);
-
 	for (j = 0; j < sp->rtp_session_count; j++) {
 		rtp_send_bye(sp->rtp_session[j]);
 		rtp_done(sp->rtp_session[j]);

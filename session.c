@@ -166,6 +166,12 @@ session_exit(session_t *sp)
         if (sp->in_file_converter) {
                 converter_destroy(&sp->in_file_converter);
         }
+	if (sp->in_file  != NULL) {
+                snd_read_close (&sp->in_file);
+        }
+	if (sp->out_file != NULL) {
+                snd_write_close(&sp->out_file);
+        }
         channel_encoder_destroy(&sp->channel_coder);
         source_list_destroy(&sp->active_sources);
 	xfree(sp->mbus_engine_addr);
