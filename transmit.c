@@ -705,13 +705,12 @@ tx_get_bps(tx_buffer *tb)
         }
 }
 
-
 static void 
 tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *u)
 {
         sndfile_fmt_t sfmt;
         int samples_read, dst_samples;
-        
+
         snd_get_format(sp->in_file, &sfmt);
         if (sfmt.channels != tx_channels || sfmt.sample_rate != tx_freq) {
                 converter_fmt_t target;
@@ -785,7 +784,7 @@ tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *
                 assert((uint32_t)dst_samples == out.data_len / sizeof(sample));
                 memcpy(u->data,
                        out.data,
-                       dst_samples);
+                       dst_samples * sizeof(sample));
                 /* Tidy up */
                 codec_clear_coded_unit(&in);
                 codec_clear_coded_unit(&out);
