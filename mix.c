@@ -161,7 +161,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	codec_t	*from, *to;
         const codec_format_t *cf_from, *cf_to;
 	sample	*buf;
-	if (sp->mode == AUDIO_TOOL && !sp->have_device && (audio_device_take(sp) == FALSE)) {
+	if (sp->mode == AUDIO_TOOL && !sp->audio_device && (audio_device_take(sp) == FALSE)) {
 		/* We don't have access to the audio device, so there's no   */
 		/* point mixing this unit since we can't play it out anyway. */
 		/* We should send out an Mbus request for the audio device   */

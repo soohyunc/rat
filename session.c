@@ -117,16 +117,12 @@ init_session(session_struct *sp)
 	sp->agc_on			= FALSE;
         sp->ui_on                       = TRUE;
 	sp->ui_addr			= NULL;
-	sp->loop_delay			= 20000;	/* Real initialisation is in init_audio.c */
-	sp->loop_estimate		= 20000;	/* Real initialisation is in init_audio.c */
-	sp->last_zero              	= FALSE;
 	sp->repair			= REPAIR_REPEAT;/* Packet repetition */
 	sp->meter			= TRUE;		/* Powermeter operation */
         sp->drop                        = 0.0;
 	sp->in_file 			= NULL;
 	sp->out_file  			= NULL;
 	sp->audio_device               	= 0;
-        sp->have_device                 = 0;
 	sp->rtp_seq			= lrand48() & 0xffff;
 	sp->speakers_active 		= NULL;
 	sp->mbus_engine_base		= NULL;

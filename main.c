@@ -257,7 +257,7 @@ main(int argc, char *argv[])
 			} else {
 				alc++;
 			}
-			if (sp[i]->have_device) ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
+			if (sp[i]->audio_device) ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
                 	if (sp[i]->ui_on) {
 				tcl_process_events(sp[i]);
 				mbus_send(sp[0]->mbus_ui_base); mbus_retransmit(sp[0]->mbus_ui_base);
@@ -285,7 +285,7 @@ main(int argc, char *argv[])
                         }
                         
                         /* Choke CPU usage */
-                        if (sp[i]->have_device) {
+                        if (sp[i]->audio_device) {
                                 while(!audio_is_ready(sp[i]->audio_device)) { 
                                         audio_wait_for(sp[i]->audio_device, 20);
                                 } 

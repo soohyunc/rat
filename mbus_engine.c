@@ -101,7 +101,7 @@ static void rx_tool_rat_get_audio(char *srce, char *args, session_struct *sp)
 		return;
 	}
 
-	if (sp->have_device) {
+	if (sp->audio_device) {
 		/* We already have the device! */
 		return;
 	}
@@ -289,7 +289,7 @@ static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
 		sp->input_gain = i;
-		if (sp->have_device) {
+		if (sp->audio_device) {
 			audio_set_gain(sp->audio_device, sp->input_gain);
 			tx_igain_update(sp);
 		}

@@ -192,7 +192,7 @@ void
 tx_start(session_struct *sp)
 {
         tx_buffer *tb;
-        if (sp->sending_audio == TRUE || sp->have_device == FALSE)
+        if (sp->sending_audio == TRUE || !sp->audio_device)
                 return;
 
         tb = sp->tb;
@@ -215,7 +215,7 @@ tx_stop(session_struct *sp)
 {
         struct timeval tv;
 
-        if (sp->sending_audio == FALSE || sp->have_device == FALSE)
+        if (sp->sending_audio == FALSE || !sp->audio_device)
                 return;
         sp->sending_audio              = FALSE;
         sp->last_tx_service_productive = 0;
@@ -312,7 +312,7 @@ tx_read_audio(session_struct *sp)
                         } 
                 } while (u->dur_used == sp->tb->unit_dur);
         } else {
-		if (sp->have_device) {
+		if (sp->audio_device) {
 			/* We're not sending, but have access to the audio device. Read the audio anyway. */
 			/* to get exact timing values, and then throw the data we've just read away...    */
 			read_dur = audio_device_read(sp, dummy_buf, DEVICE_REC_BUF) / sp->tb->channels;

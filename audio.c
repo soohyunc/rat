@@ -186,7 +186,7 @@ audio_zero(sample *buf, int len, deve_e type)
 int
 audio_device_read(session_struct *sp, sample *buf, int samples)
 {
-	assert(sp->have_device);
+	assert(sp->audio_device);
 	if (sp->mode == TRANSCODER) {
 		return transcoder_read(sp->audio_device, buf, samples);
 	} else {
@@ -199,7 +199,7 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
 {
         codec_t *cp = get_codec_by_pt(sp->encodings[0]);
 
-	if (sp->have_device) {
+	if (sp->audio_device) {
                 u_int16 channels = audio_get_channels(sp->audio_device);
                 if (sp->out_file) {
                         snd_write_audio(&sp->out_file, buf, (u_int16)(dur * channels));
@@ -220,7 +220,7 @@ audio_device_take(session_struct *sp)
 	codec_t		*cp;
 	audio_format    format;
 
-        if (sp->have_device) {
+        if (sp->audio_device) {
                 return (TRUE);
         }
 
@@ -235,7 +235,6 @@ audio_device_take(session_struct *sp)
 		if ((sp->audio_device = transcoder_open()) == 0) {
                         return FALSE;
                 }
-		sp->have_device = TRUE;
 	} else {
 		sp->audio_device = audio_open(&format);
 
@@ -275,7 +274,6 @@ audio_device_take(session_struct *sp)
                 }
 
 		audio_drain(sp->audio_device);
-		sp->have_device = TRUE;
 	
 		if (sp->input_mode!=AUDIO_NO_DEVICE) {
 			audio_set_iport(sp->audio_device, sp->input_mode);
@@ -314,7 +312,7 @@ audio_device_take(session_struct *sp)
         cushion_create(&sp->cushion, cp->unit_len);
         tx_igain_update(sp);
         ui_update(sp);
-        return sp->have_device;
+        return sp->audio_device;
 }
 
 void
@@ -322,7 +320,7 @@ audio_device_give(session_struct *sp)
 {
 	gettimeofday(&sp->device_time, NULL);
 
-	if (sp->have_device) {
+	if (sp->audio_device) {
                 tx_stop(sp);
 		if (sp->mode == TRANSCODER) {
 			transcoder_close(sp->audio_device);
@@ -332,7 +330,6 @@ audio_device_give(session_struct *sp)
 			audio_close(sp->audio_device);
 		}
 		sp->audio_device = 0;
-		sp->have_device = FALSE;
 	} else {
                 return;
         }
@@ -395,26 +392,10 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 	sample	*bufp;
 
         c = spi->cushion;
-	/*
-	 * The loop_delay stuff is meant to help in determining the pause
-	 * length in the select in net.c for platforms where we cannot
-	 * block on read availability of the audio device.
-	 */
 	if ((read_dur = tx_read_audio(spi)) <= 0) {
-		if (spi->last_zero == FALSE) {
-			spi->loop_estimate += 500;
-		}
-		spi->last_zero  = TRUE;
-		spi->loop_delay = 1000;
 		return 0;
 	} else {
-		if (read_dur > 160 && spi->loop_estimate > 5000) {
-			spi->loop_estimate -= 250;
-		}
-		spi->last_zero  = FALSE;
-		spi->loop_delay = spi->loop_estimate;
-		assert(spi->loop_delay >= 0);
-                if (spi->have_device == FALSE) {
+                if (!spi->audio_device) {
                         /* no device means no cushion */
                         return read_dur;
                 }

@@ -556,7 +556,9 @@ channel_decode(session_struct *sp, rx_queue_element_struct *u)
 
         if (u->ccu[0] == NULL) return;
         for(i = 0; i < HIST_SZ; i++) {
-                assert(u->src_ts != hist_buf[i]);
+                if (u->src_ts == hist_buf[i]) {
+                        debug_msg("Channel decoder - history overlap!\n");
+                }
         }
         hist_idx = (hist_idx + 1) % HIST_SZ;
         hist_buf[hist_idx] = u->src_ts;

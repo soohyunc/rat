@@ -472,7 +472,7 @@ statistics(session_struct    *sp,
                 }
                 rtcp_update_seq(src, hdr->seq);
 
-                if (sp->have_device == FALSE) {
+                if (!sp->audio_device) {
                         /* we don't have the audio device so there is no point processing data any further. */
                         goto release;
                 }
@@ -504,9 +504,6 @@ statistics(session_struct    *sp,
                 src->units_per_packet = split_block(playout, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp);
                 block_trash_check();
 
-                if (update_req && (src->units_per_packet != 0)) {
-                	ui_update_stats(sp, src);
-                }
                 pkt_cnt++;
         release:
                 block_trash_check();

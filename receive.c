@@ -452,7 +452,7 @@ find_participant_queue(session_struct *sp, ppb_t **list, rtcp_dbentry *src, int 
 	*list            = p;
         
         ui_info_activate(sp, src);
-        
+
         cp_dev = get_codec_by_pt(dev_pt);
         cp_src = get_codec_by_pt(src_pt);
         assert(cp_dev);

@@ -235,6 +235,12 @@ sparc_audio_loopback(audio_desc_t ad, int gain)
 {
         UNUSED(ad); assert(audio_fd > 0);
 
+        /* Nasty bug on Ultra 30's a loopback gain of anything above
+         * 90 on my machine is unstable.  On the earlier Ultra's
+         * anything below 90 produces no perceptible loopback.
+         */
+        gain = gain * 85/100;
+
         AUDIO_INITINFO(&dev_info);
 	dev_info.monitor_gain = bat_to_device(gain);
 	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)

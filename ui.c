@@ -229,7 +229,10 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 {
 	char	*my_cname, *their_cname, *args;
 
-	assert(sp->db->my_dbe->sentry->cname != NULL);
+        if (sp->db->my_dbe->sentry->cname == NULL) {
+                debug_msg("Warning sp->db->my_dbe->sentry->cname == NULL\n");
+                return;
+        }
 
 	if (e->sentry->cname == NULL) {
 		return;

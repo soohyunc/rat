@@ -131,7 +131,7 @@ tcl_process_events(session_struct *sp)
                 /* User Interface event processing has lower priority than 
                  * audio processing.
                  */
-                if (sp->have_device && audio_is_ready(sp->audio_device)) break;
+                if (sp->audio_device && audio_is_ready(sp->audio_device)) break;
         }
 }
 

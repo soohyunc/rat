@@ -122,7 +122,6 @@ typedef struct session_tag {
         float           drop;                       /* Flakeaway drop percentage [0,1] */
 	struct s_snd_file *in_file;
 	struct s_snd_file *out_file;
-	int		have_device;
         int             input_gain;                 /* mike gain */
         int             output_gain;                /* speaker volume */
         int             input_mode;                 /* mike/line input */
@@ -142,9 +141,6 @@ typedef struct session_tag {
         int              cc_encoding;
         int              last_depart_ts;
 	struct s_speaker_table	*speakers_active;
-	int		 last_zero;		/* audio.c */
-	long		 loop_delay;
-	long		 loop_estimate;
 	struct mbus	*mbus_engine_base;
 	struct mbus	*mbus_engine_conf;
 	struct mbus	*mbus_ui_base;
