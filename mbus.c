@@ -139,6 +139,7 @@ static int mbus_addr_match(char *a, char *b)
 
 static void mbus_ack_list_check(struct mbus *m) 
 {
+#ifndef NDEBUG
 	struct mbus_ack *curr = m->ack_list;
 	int		 i    = 0;
 
@@ -152,6 +153,7 @@ static void mbus_ack_list_check(struct mbus *m)
 	}
 	assert(i == m->ack_list_size);
 	assert(m->ack_list_size >= 0);
+#endif
 }
 
 static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, const char *cmnd, const char *args, int seqnum)
@@ -180,8 +182,8 @@ static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, const c
 	gettimeofday(&(curr->time), NULL);
 	curr->qmsg_size = m->qmsg_size;
 	for (i = 0; i < m->qmsg_size; i++) {
-		curr->qmsg_cmnd[i] = m->qmsg_cmnd[i];
-		curr->qmsg_args[i] = m->qmsg_args[i];
+		curr->qmsg_cmnd[i] = xstrdup(m->qmsg_cmnd[i]);
+		curr->qmsg_args[i] = xstrdup(m->qmsg_args[i]);
 	}
 
 	if (m->ack_list != NULL) {
@@ -209,9 +211,9 @@ static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seq
 			xfree(curr->dest);
 			xfree(curr->cmnd);
 			xfree(curr->args);
-			for (i = 0; i < curr->qmsg_size; i++) {
-				curr->qmsg_cmnd[i] = m->qmsg_cmnd[i];
-				curr->qmsg_args[i] = m->qmsg_args[i];
+			for (i=0; i < curr->qmsg_size; i++) {
+				xfree(curr->qmsg_cmnd[i]);
+				xfree(curr->qmsg_args[i]);
 			}
 			if (curr->next != NULL) curr->next->prev = curr->prev;
 			if (curr->prev != NULL) curr->prev->next = curr->next;
@@ -274,8 +276,6 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 	sprintf(bp, "mbus/1.0 %6d R (%s) (%s) ()\n", curr->seqn, curr->srce, curr->dest);
 	bp += strlen(curr->srce) + strlen(curr->dest) + 28;
 	for (i = 0; i < curr->qmsg_size; i++) {
-		assert(curr->qmsg_cmnd[i] != NULL);
-		assert(curr->qmsg_args[i] != NULL);
 		sprintf(bp, "%s (%s)\n", curr->qmsg_cmnd[i], curr->qmsg_args[i]);
 		bp += strlen(curr->qmsg_cmnd[i]) + strlen(curr->qmsg_args[i]) + 4;
 		xfree(curr->qmsg_cmnd[i]); curr->qmsg_cmnd[i] = NULL;
@@ -314,7 +314,7 @@ void mbus_retransmit(struct mbus *m)
 			m->err_handler(curr->seqn);
 			return;
 		} 
-		/* Note: We only request one retransmission each time, to avoid
+		/* Note: We only send one retransmission each time, to avoid
 		 * overflowing the receiver with a burst of requests...
 		 */
 		if ((diff > 750) && (curr->rtcnt == 2)) {
