@@ -41,6 +41,7 @@
 #include "ui.h"
 #include "session.h"
 #include "auddev.h"
+#include "mbus.h"
 
 #define SKEW_ADAPT_THRESHOLD       5000
 #define SOURCE_YOUNG_AGE             20
@@ -875,6 +876,17 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                                 src->pdbe->spike_toged++;
                         }
                 } 
+
+		/* Signal the playout delay to the video tool, so it can lip */
+		/* sync with us.                                             */
+		if (adjust_playout && sp->sync_on) {
+			mbus_qmsgf(sp->mbus_engine, 
+			           sp->mbus_video_addr, 
+				   FALSE, 
+			           "rtp.source.playout", 
+				   "\"%08lx\" %d", 
+				   src->pdbe->ssrc, ts_to_ms(ts_abs_diff(playout, now)));
+		}
 
                 /* Update persistent database fields.                        */
                 if (e->last_seq > p->seq) {
