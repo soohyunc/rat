@@ -1406,6 +1406,18 @@ v4.2.8	- Mbus address of media engine now contains session identifier (this
 	- Update controller initialization sequence to handle transcoder.
 	- All fatal_error() messages are now prefixed with the RAT_VERSION
 	  text, rather than the argv[0] application name.
+	- Fix RTP header extension code (patch from Jori <jori@lumumba.luc.ac.be>)
+	  as part of RTP interoperability tests.
+	- FreeBSD 4.1 doesn't support binding to an IPv6 multicast address, must
+	  bind to in6addr_any instead (reported by Shirasaki Yasuhiro).
+	- Fix validation of RTCP packets with padding (reported by Vladimir Brauner).
+	- Fix padding octet count in RTCP packets sent with padding (Vladimir Brauner).
+	- Fix RTCP timer reconsideration (Vladimir Brauner).
+	- Minimal transcoder support: the media engine can transcode, although it 
+	  is very buggy. The controller supports just enough to test the media 
+	  engine, the UI does not support transcoding yet.
+	* Released 22 August 2000
+
 
 
 TODO -- They're features not bugs dammit!
