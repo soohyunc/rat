@@ -288,7 +288,7 @@ source_create(source_list    *plist,
                 goto fail_create_states;
         }
 
-        success = pktbuf_create(&psrc->pktbuf, 4); 
+        success = pktbuf_create(&psrc->pktbuf, 32); 
         if (!success) {
                 debug_msg("Failed to allocate packet buffer\n");
                 goto fail_pktbuf;
