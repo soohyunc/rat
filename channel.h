@@ -121,6 +121,7 @@ void  get_bitrate (struct session_tag *sp, int pt);
 int   validate_and_split    (int pt, char *data, unsigned int data_len, cc_unit *u, int *trailing, int *inter_pkt_gap);
 int   get_wrapped_payload   (int pt, char *data, int data_len); 
 
+int   validate_cc_unit      (cc_unit *u);
 void  clear_cc_unit         (cc_unit *u, int begin);
 
 void  clear_cc_encoder_states (struct s_cc_state **list);
