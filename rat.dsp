@@ -412,6 +412,14 @@ SOURCE=.\receive.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\render_3D.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\render_3D.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\repair.c
 # End Source File
 # Begin Source File

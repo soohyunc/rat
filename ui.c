@@ -922,9 +922,6 @@ ui_repair_schemes(session_struct *sp)
         char buf[255], *mbes;
         int  i, cnt;
         
-        UNUSED(sp);
-        UNUSED(mbes);
-
         cnt = repair_get_count();
         
         buf[0] = '\0';
