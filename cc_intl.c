@@ -516,7 +516,8 @@ intl_valsplit(char         *blk,
         cu->iov[0].iov_base = (caddr_t)blk;
         cu->iov[0].iov_len  = 4;
         cu->iovc            = 1;
-
+        blk += 4;
+        
         cp = get_codec_by_pt(GET_PT(hdr));
         if (!cp) {
                 debug_msg("Codec (pt = %d) not recognized.\n", GET_PT(hdr));
@@ -525,11 +526,15 @@ intl_valsplit(char         *blk,
         }
 
         upl = GET_UPL(hdr);
-        len = cp->max_unit_sz * upl + cp->sent_state_sz;
+        if (cp->sent_state_sz) {
+                len = cp->max_unit_sz * upl + cp->sent_state_sz;
+        } else {
+                len = upl * get_codec_frame_size(blk,cp);
+        }
 
         mask = GET_MASK(hdr) << (32 - GET_N1(hdr));
         while(mask) {
-                if (mask & 0x80000000) fragment_sizes(cp, len, cu->iov, &cu->iovc, CC_UNITS);
+                if (mask & 0x80000000) fragment_sizes(cp, blk, len, cu->iov, &cu->iovc, CC_UNITS);
                 mask <<= 1;
         }
         

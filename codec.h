@@ -74,26 +74,26 @@ typedef struct s_coded_unit {
 	int	data_len;
 } coded_unit;
 
-typedef void (*init_f)(struct session_tag *sp, struct s_codec_state *s, struct s_codec *c);
-typedef void (*free_f)(struct s_codec_state *s);
-typedef void (*code_f)(sample *in, coded_unit *c, struct s_codec_state *s, struct s_codec *cp);
-typedef void (*dec_f)(struct s_coded_unit *c, sample *data, struct s_codec_state *s, struct s_codec *cp);
+typedef void     (*init_f)(struct session_tag *sp, struct s_codec_state *s, struct s_codec *c);
+typedef void     (*free_f)(struct s_codec_state *s);
+typedef void     (*code_f)(sample *in, coded_unit *c, struct s_codec_state *s, struct s_codec *cp);
+typedef void     (*dec_f)(struct s_coded_unit *c, sample *data, struct s_codec_state *s, struct s_codec *cp);
+typedef u_int32  (*dec_peek_f)(char *data);
 
 typedef struct s_codec {
 	char	*name;           /* unique name */
         char    *short_name;     /* short name unique for particular combination of freq and channels only */
-	int	value;		/* Value for sorting redundancy in receiver */
+	int	quality;		/* Value for sorting redundancy in receiver */
 	int	pt;
 
 	/* Raw input format description */
 	int	freq;		/* Sampling frequency required in Hz */
 	int	sample_size;	/* Number of bytes per sample */
 	int	channels;	/* 1 mono, 2 stereo */
-	int	sent_state_sz;	/* Transmitted sate size in bytes */
-
 	int	unit_len;	/* Duration of unit in samples.
 				 * This does not include the number of channels
 				 * like the transmitter unit */
+	int	sent_state_sz;	/* Transmitted sate size in bytes */
 	int	max_unit_sz;	/* Maximum size of coded unit in bytes */
 	init_f	enc_init;
 	code_f	encode;
@@ -101,12 +101,14 @@ typedef struct s_codec {
 	init_f	dec_init;
 	dec_f	decode;
         free_f  dec_free;
+        dec_peek_f get_frame_size;  /* Returns size of block based on inspection i.e. for G723.1 */
 } codec_t;
 
 struct s_codec *get_codec_by_pt(int pt);
 struct s_codec *get_codec_by_name(char *name, struct session_tag *sp);
 struct s_codec *get_codec_by_index(u_int32 idx);
 u_int32         get_codec_count(void);
+
 void	set_dynamic_payload(struct s_dpt **listp, char *name, int pt);
 int	get_dynamic_payload(struct s_dpt **listp, char *name);
 void    codec_free_dynamic_payloads(struct s_dpt **dpt_list);
@@ -114,6 +116,7 @@ void	codec_init(struct session_tag *sp);
 void	encoder(struct session_tag *sp, sample *data, int coding, coded_unit *c);
 void    reset_encoder(struct session_tag *sp, int coding);
 void	decode_unit(struct rx_element_tag *u);
+u_int32 get_codec_frame_size(char *data, codec_t *cp);
 void	clear_coded_unit(coded_unit *u);
 void    clear_encoder_states(struct s_codec_state **list);
 void    clear_decoder_states(struct s_codec_state **list);

@@ -599,7 +599,6 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                                                 debug_msg("Not decoded ?\n");
                                         } else {
                                                 assert(up->comp_data[0].data == NULL);
-                                                assert(up->ccu_cnt == 0);
                                                 debug_msg("No data for block, buf len %ld, cushion size %ld\n", 
                                                           playout_buffer_duration(buf, buf->src), 
                                                           cs);

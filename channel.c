@@ -144,7 +144,7 @@ vanilla_valsplit(char *blk, unsigned int blen, cc_unit *u, int *trailing, int *i
 
         assert(u->iovc == 0);
         if (cp) {
-                n = fragment_sizes(cp, blen, u->iov, &u->iovc, CC_UNITS);
+                n = fragment_sizes(cp, blk, blen, u->iov, &u->iovc, CC_UNITS);
         }
 
         if (n < 0) n = 0;
@@ -742,7 +742,7 @@ add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
 
         /* Look for appropriate place to add this data. */
         i = 0;
-        while(i<u->comp_count && u->comp_data[i].cp->value > cp->value) 
+        while(i<u->comp_count && u->comp_data[i].cp->quality > cp->quality) 
                 i++;
 
         /* we already have this type of data */
@@ -779,7 +779,6 @@ add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
         u->comp_data[i].data_len = iov[j++].iov_len;
         u->comp_data[i].cp       = cp;
 
-        assert(u->comp_data[i].data_len == cp->max_unit_sz);
         memset(iov,0,j*sizeof(struct iovec));
 
         return (u->comp_count++);
@@ -887,23 +886,22 @@ collate_coded_units(collator_t *c, coded_unit *cu, int enc_no)
 }
 
 int 
-fragment_sizes(codec_t *cp, int blk_len, struct iovec *store, int *iovc, int store_len)
+fragment_sizes(codec_t *cp, char *blk, int blk_len, struct iovec *store, int *iovc, int max_iovc)
 {
         int n = 0;
+        u_int32 frame_size;
 
-        /* When the time comes for variable bitrate codecs to go in 
-         * codec specific sniffer functions need to be written and hooks
-         * go here to determine blk sizes.  Same should go in fragment_spread
-         */
-
-        if (blk_len > 0 && cp->sent_state_sz != 0 && (*iovc) < store_len) {
+        if (blk_len > 0 && cp->sent_state_sz != 0 && (*iovc) < max_iovc) {
                 store[(*iovc)++].iov_len = cp->sent_state_sz;
                 blk_len                 -= cp->sent_state_sz;
+                blk += cp->sent_state_sz;
         }
         
-        while(blk_len > 0 && (*iovc) < store_len) {
-                store[(*iovc)++].iov_len = cp->max_unit_sz;
-                blk_len                 -= cp->max_unit_sz;
+        while(blk_len > 0 && (*iovc) < max_iovc) {
+                frame_size = get_codec_frame_size(blk, cp);
+                store[(*iovc)++].iov_len = frame_size;
+                blk_len                 -= frame_size;
+                blk                     += frame_size;
                 n++;
         }
 
@@ -946,5 +944,6 @@ fragment_spread(codec_t *cp, int len, struct iovec *iov, int iovc, rx_queue_elem
         }
         assert(len == 0);
         assert(done <= iovc);
+
         return done;
 }

@@ -517,12 +517,20 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
         int hdr_idx; 
         u_int32 red_hdr, max_off;
         codec_t *cp;
+        char *hdr, *media;
 
         assert(!cu->iovc);
         max_off  = 0;
         hdr_idx  = 0;
         cu->iovc = MAX_RED_LAYERS;
         todo     = blen;
+        
+        hdr = media = blk;
+        while (RED_F((red_hdr = ntohl(*(u_int32*)hdr)))) {
+                hdr   += 4;
+                media += 4;
+        }
+        media += 1;
 
         while(RED_F((red_hdr=ntohl(*((u_int32*)blk)))) && todo >0) {
                 cu->iov[hdr_idx++].iov_len = 4;
@@ -532,11 +540,12 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
                 max_off = max(max_off, RED_OFF(red_hdr));
                 tlen    = RED_LEN(red_hdr);
                 /* we do not discard packet if we cannot decode redundant data */
-                if (cp && fragment_sizes(cp, tlen, cu->iov, &cu->iovc, CC_UNITS) < 0) {
+                if (cp && tlen && fragment_sizes(cp, media, tlen, cu->iov, &cu->iovc, CC_UNITS) < 0) {
                         debug_msg("frg sz");
                         goto fail;
                 }
-                todo -= tlen;
+                todo  -= tlen;
+                media += tlen;
 #ifdef DEBUG
                 assert(hdr_idx <= 2);
 #endif
@@ -547,7 +556,7 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
                 goto fail;
         }
         cp = get_codec_by_pt((*blk)&0x7f);
-                /* we do discard data if cannot do primary */
+                /* we discard data if cannot do primary */
         if (!cp) {
                 debug_msg("primary?");
                 goto fail;
@@ -561,7 +570,7 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
                 goto fail;
         }
         
-        if ((n = fragment_sizes(cp, todo, cu->iov, &cu->iovc, CC_UNITS)) < 0) goto fail;
+        if ((n = fragment_sizes(cp, media, todo, cu->iov, &cu->iovc, CC_UNITS)) < 0) goto fail;
 
         /* label hdr and data starts */
         cu->hdr_idx  = 0;
@@ -571,6 +580,7 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
         memmove(cu->iov+hdr_idx, 
                 cu->iov+MAX_RED_LAYERS, 
                 sizeof(struct iovec)*(cu->iovc - hdr_idx));
+        memset(cu->iov + cu->iovc, 0, sizeof(struct iovec) * (CC_UNITS - cu->iovc));
 
         (*trailing)      = max_off/cp->unit_len + n;
         (*inter_pkt_gap) = cp->unit_len * n; 

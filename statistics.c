@@ -335,18 +335,20 @@ adapt_playout(rtp_hdr_t *hdr,
 
         if (playout_buffer_endtime(sp->playout_buf_list, src, &end_time) && playout < end_time) {
                 u_int32 shift = end_time - playout;
+
                 /* jumped tells us that the timestamps jumped relative to sequence numbers,
                  * i.e. this is a new talkspurt.  In this case do nothing.  Otherwise
                  * tailor playout so not to clip end of what we are already playing out.
                  * 
                  * this makes a huge improvement on jittery links.
                  */
+
                 debug_msg("jumped %ld\n", shift);
                 if (jumped == FALSE && shift < 8000) {
                         playout += shift + src->inter_pkt_gap;
                 }
         }
-        
+
 	return playout;
 }
 
