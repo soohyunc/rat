@@ -1500,6 +1500,8 @@ button .prefs.buttons.apply -text "Apply" -command {wm withdraw .prefs; sync_eng
 button .prefs.buttons.save  -text "Save & Apply" -command {save_settings; wm withdraw .prefs; sync_engine_to_ui}
 pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side right -padx 2 -pady 2
 
+wm protocol .prefs WM_DELETE_WINDOW {sync_ui_to_engine; wm withdraw .prefs}
+
 frame .prefs.pane -relief sunken
 pack  .prefs.pane -side left -fill both -expand 1 -padx 4 -pady 2
 
