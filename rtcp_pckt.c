@@ -294,7 +294,6 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 					sdes->length += 2;
 					switch (sdes->type) {
 					case RTCP_SDES_CNAME:
-						dprintf("got CNAME\n");
 						if (dbe->sentry->cname) {
 							if (strncmp(dbe->sentry->cname, sdes->data, lenstr) != 0) {
 								dprintf("CNAME change %d : [%s] --> [%s]\n", lenstr, dbe->sentry->cname, sdes->data);
@@ -316,7 +315,6 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
                                                 }
 						break;
 					case RTCP_SDES_NAME:
-						dprintf("got NAME\n");
 						if (dbe->sentry->name) {
 							if (!strncmp(dbe->sentry->name, sdes->data, lenstr)) {
 								break;
@@ -331,7 +329,6 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
                                                 }
 						break;
 					case RTCP_SDES_EMAIL:
-						dprintf("got EMAIL\n");
 						if (dbe->sentry->email) {
 							if (!strncmp(dbe->sentry->email, sdes->data, lenstr)) {
 								break;
@@ -346,7 +343,6 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
                                                 }
 						break;
 					case RTCP_SDES_PHONE:
-						dprintf("got PHONE\n");
 						if (dbe->sentry->phone) {
 							if (!strncmp(dbe->sentry->phone, sdes->data, lenstr)) {
 								break;
@@ -361,7 +357,6 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
                                                 }
 						break;
 					case RTCP_SDES_LOC:
-						dprintf("got LOC\n");
 						if (dbe->sentry->loc) {
 							if (!strncmp(dbe->sentry->loc, sdes->data, lenstr)) {
 								break;
@@ -376,7 +371,6 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
                                                  }
 						break;
 					case RTCP_SDES_TOOL:
-						dprintf("got TOOL\n");
 						if (dbe->sentry->tool) {
 							if (!strncmp(dbe->sentry->tool, sdes->data, lenstr)) {
 								break;
