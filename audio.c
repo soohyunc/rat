@@ -473,9 +473,16 @@ audio_wait_for(session_struct *sp)
         return;
 #else
         fd_set rfds;
+        codec_t *cp;
+        struct timeval tv;
+
+        cp         = get_codec_by_pt(sp->encodings[0]);
+        tv.tv_sec  = 0;
+        tv.tv_usec = cp->unit_len * 1000 / get_freq(sp->device_clock);
+
         FD_ZERO(&rfds);
         FD_SET(sp->audio_fd,&rfds);
-        select(sp->audio_fd, &rfds, NULL, NULL, NULL);
+        select(sp->audio_fd+1, &rfds, NULL, NULL, &tv);
         return;
 #endif
 }

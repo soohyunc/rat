@@ -121,6 +121,7 @@ extern "C" {
 #endif
 int gettimeofday(struct timeval *tp, void * );
 int gethostname(char *name, int namelen);
+void usleep(unsigned int usecs);
 #ifdef __cplusplus
 }
 #endif
