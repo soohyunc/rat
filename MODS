@@ -1168,6 +1168,9 @@ v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	- Add pointer to the RAT users mailing list <rat-users@cs.ucl.ac.uk>
 	  an open list for discussion of issues relating to RAT.
 	- RTT calculation fix (ntp32_sub was broken).
+	- Add checks to main processing loop for liveness of controller process.
+	- Add checks for sibling and parent process in ui and engine so proc's
+	  don't wait for messages that are never going to come.
 
 TODO -- They're features not bugs dammit!
 ----
