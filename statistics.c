@@ -412,10 +412,13 @@ statistics_channel_extract(session_struct     *sp,
         }
 
         if (dbe->update_req) {
+                /* Format len must be long enough for at least 2
+                 * redundant encodings, a separator and a zero */
+                int fmt_len = 2 * CODEC_LONG_NAME_LEN + 2;
                 if (dbe->enc_fmt == NULL) {
-                        dbe->enc_fmt = (char*)xmalloc(32);
+                        dbe->enc_fmt = (char*)xmalloc(fmt_len);
                 }
-                channel_describe_data(ccid, pt, data, len, dbe->enc_fmt, 32);
+                channel_describe_data(ccid, pt, data, len, dbe->enc_fmt, fmt_len);
                 ui_update_stats(sp, dbe);
                 dbe->update_req = FALSE;
         }
