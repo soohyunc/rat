@@ -1,5 +1,15 @@
+Robust-Audio Tool installation instructions
+===========================================
+
+Copyright (C) 1995-2000 University College London
+All rights reserved. 
+
+This software is distributed under license, see the file COPYRIGHT for full
+terms and conditions.
+
+
 Installing pre-compiled binaries
-================================
+--------------------------------
 
 Binary releases of RAT are standalone, and do not require the installation
 of other libraries to function correctly. 
@@ -30,7 +40,7 @@ according to the instructions for sdr.
 
 
 Compiling from source code
-==========================
+--------------------------
 
 To compile RAT from source you MUST download and compile the following
 additional packages:

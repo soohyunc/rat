@@ -1,3 +1,12 @@
+/*
+ * FILE:    bin2c.c
+ * PROGRAM: bin2c
+ * AUTHOR:  Colin Perkins
+ * 
+ * Copyright (c) 2000 University College London
+ * All rights reserved.
+ */
+
 #include "config_unix.h"
 #include "debug.h"
 #include "assert.h"

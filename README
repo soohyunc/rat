@@ -1,5 +1,11 @@
-			  Robust-Audio Tool (RAT)
-			  ~~~~~~~~~~~~~~~~~~~~~~~
+Robust-Audio Tool (RAT)
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Copyright (C) 1995-2000 University College London
+All rights reserved. 
+
+This software is distributed under license, see the file COPYRIGHT for full
+terms and conditions.
 
 Further information, and a list of frequently asked questions (with answers) 
 is available from http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/
@@ -35,7 +41,8 @@ tools RAT offers the following additional functionality:
 	- Transcoder operation 
 	- Sound localisation and externalisation
 
-This list is correct for RAT v3.2, earlier versions have a more limited feature set. 
+This list is correct for RAT v3.2, earlier versions have a more limited feature
+set. 
 
 Sender based repair of damaged audio streams 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
