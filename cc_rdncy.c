@@ -26,7 +26,8 @@
 #include "timers.h"
 
 /* This is pap.  Have run out of time.  Apologies if you ever end
- * up here... [oh] 
+ * up here... [oh]  Whole design is a bit squiffy - too many memory
+ * copies.   
  */
 
 #define RED_MAX_LAYERS 3
@@ -59,6 +60,7 @@ typedef struct {
         struct s_pb          *media_buffer;
         struct s_pb_iterator *media_pos;
         u_int32               units_ready;
+        ts_t                  history; /* How much audio history is needed for coding */
 } red_enc_state;
 
 int
@@ -67,6 +69,7 @@ redundancy_encoder_create(u_char **state, u_int32 *len)
         red_enc_state *re = (red_enc_state*)xmalloc(sizeof(red_enc_state));
 
         if (re == NULL) {
+                debug_msg("Failed to allocate encoder\n");
                 goto fail_alloc;
         }
         memset(re, 0, sizeof(red_enc_state));
@@ -76,6 +79,7 @@ redundancy_encoder_create(u_char **state, u_int32 *len)
 
         if (pb_create(&re->media_buffer,
                       (playoutfreeproc)media_data_destroy) == FALSE) {
+                debug_msg("Gailed to create media buffer\n");
                 goto fail_pb;
         }
 
@@ -280,13 +284,15 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
         channel_data *cd_coded, *cd_ready, *cd_out;
         u_char *u;
         u_int32       i, units, lidx, data_idx, nhdr, len;
+        int           success;
 
         pbm = re->media_pos;
         pb_iterator_ffwd(pbm);
 
         /* Rewind iterator to start of first pdu */ 
         for(i = 1; i < upp; i++) {
-                pb_iterator_retreat(pbm);
+                success = pb_iterator_retreat(pbm);
+                assert(success);
         }
 
         channel_data_create(&cd_coded, 0);
@@ -369,12 +375,13 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
                 memcpy(u, cd_ready->elem[i]->data, cd_ready->elem[i]->data_len);
                 u += cd_ready->elem[i]->data_len;
                 if (i >= nhdr) {
+                        block_free(cd_ready->elem[i]->data, cd_ready->elem[i]->data_len);
                         cd_ready->elem[i]->data     = NULL;
                         cd_ready->elem[i]->data_len = 0;
                 }
         }
         xmemchk();
-        channel_data_destroy(&cd_out, sizeof(channel_data));
+        channel_data_destroy(&cd_ready, sizeof(channel_data));
 
         return cd_out;
 }
@@ -421,6 +428,8 @@ redundancy_encoder_encode (u_char      *state,
                         assert(s);
                 }
         }
+
+        pb_iterator_audit(pi, re->history);
         pb_iterator_destroy(in, &pi);
 
         return TRUE;
@@ -435,6 +444,7 @@ int
 redundancy_encoder_set_parameters(u_char *state, char *cmd)
 {
         red_enc_state *n, *cur;
+        const codec_format_t *cf;
         u_int32 nl, po;
         codec_id_t  cid;
         char *s;
@@ -497,8 +507,14 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
         cur = (red_enc_state*)state;
         memcpy(cur->layer, n->layer, sizeof(red_layer)*RED_MAX_LAYERS);
         cur->n_layers = n->n_layers;
-        success = TRUE;
 
+        /* work out history = duration of audio frame * maximum offset */
+        cf = codec_get_format(cur->layer[cur->n_layers - 1].cid);
+        cur->history = ts_map32(cf->format.sample_rate,
+                                codec_get_samples_per_frame(cur->layer[cur->n_layers - 1].cid) * 
+                                cur->layer[cur->n_layers - 1].pkts_off);
+
+        success = TRUE;
 done:
         redundancy_encoder_destroy((u_char**)&n, nl);
         return success;
