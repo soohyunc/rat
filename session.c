@@ -130,7 +130,7 @@ init_session(session_struct *sp)
 	sp->mbus_channel		= 0;
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
-        strcpy(sp->title, "<Untitled>");
+        strcpy(sp->title, "<Untitled Session>");
         
 	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {
 		perror("Cannot get hostname!");

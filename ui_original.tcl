@@ -4,35 +4,7 @@
 #
 # $Revision$
 # 
-# Redistribution and use in source and binary forms, with or without
-# modification, is permitted, for non-commercial use only, provided 
-# that the following conditions are met:
-# 1. Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in the
-#    documentation and/or other materials provided with the distribution.
-# 3. All advertising materials mentioning features or use of this software
-#    must display the following acknowledgement:
-#      This product includes software developed by the Computer Science
-#      Department at University College London
-# 4. Neither the name of the University nor of the Department may be used
-#    to endorse or promote products derived from this software without
-#    specific prior written permission.
-# Use of this software for commercial purposes is explicitly forbidden
-# unless prior written permission is obtained from the authors. 
-# 
-# THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-# SUCH DAMAGE.
+# Full terms and conditions of the copyright appear below.
 #
 
 option add *Entry.background 		gray70 		widgetDefault
@@ -694,8 +666,8 @@ frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 
 frame .l.f -relief raised
-label .l.f.title -bg black -fg green -textvariable session_title
-label .l.f.addr  -bg black -fg green -textvariable session_address
+label .l.f.title -font $infofont  -textvariable session_title
+label .l.f.addr  -font $smallfont -textvariable session_address
 
 frame  .l.s1 -bd 0
 button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options"   -command {wm deiconify .prefs}
@@ -785,11 +757,18 @@ if {$cryptpos == -1} then {
   mbus_send "R" "update.key" [mbus_encode_str $key]
 }
 
+proc constrain_window {win maxstr xpad ylines ypad} {
+    set fn [.prefs.buttons.apply cget -font]
+    set w  [expr [font measure $fn $maxstr] + $xpad]
+    set h  [expr $ylines * [font metrics $fn -linespace] + $ypad]
+    wm geometry $win [format "%sx%s" $w $h]
+}
+
 ###############################################################################
 # Preferences Panel 
 #
 
-set pane "Personal"
+set prefs_pane "Personal"
 toplevel .prefs
 wm title .prefs "Preferences"
 wm resizable .prefs 0 0
@@ -801,14 +780,14 @@ frame .prefs.m.f
 pack .prefs.m.f -padx 0 -pady 0 
 label .prefs.m.f.t -text "Category: "
 pack .prefs.m.f.t -pady 2 -side left
-menubutton .prefs.m.f.m -menu .prefs.m.f.m.menu -indicatoron 1 -textvariable pane -relief raised -width 14
-pack .prefs.m.f.m -side top
+menubutton .prefs.m.f.m -menu .prefs.m.f.m.menu -indicatoron 1 -textvariable prefs_pane -relief raised -width 14
+pack .prefs.m.f.m -side top 
 menu .prefs.m.f.m.menu -tearoff 0
-.prefs.m.f.m.menu add command -label "Personal"     -command {set_pane "Personal"}
-.prefs.m.f.m.menu add command -label "Transmission" -command {set_pane "Transmission"}
-.prefs.m.f.m.menu add command -label "Reception"    -command {set_pane "Reception"}
-.prefs.m.f.m.menu add command -label "Security"     -command {set_pane "Security"}
-.prefs.m.f.m.menu add command -label "Interface"    -command {set_pane "Interface"}
+.prefs.m.f.m.menu add command -label "Personal"     -command {set_pane prefs_pane .prefs.pane "Personal"}
+.prefs.m.f.m.menu add command -label "Transmission" -command {set_pane prefs_pane .prefs.pane "Transmission"}
+.prefs.m.f.m.menu add command -label "Reception"    -command {set_pane prefs_pane .prefs.pane "Reception"}
+.prefs.m.f.m.menu add command -label "Security"     -command {set_pane prefs_pane .prefs.pane "Security"}
+.prefs.m.f.m.menu add command -label "Interface"    -command {set_pane prefs_pane .prefs.pane "Interface"}
 
 frame  .prefs.buttons
 pack   .prefs.buttons       -side bottom -fill x 
@@ -821,11 +800,7 @@ frame .prefs.pane -relief sunken
 pack  .prefs.pane -side left -fill both -expand 1 -padx 4 -pady 2
 
 # setup width of prefs panel
-set fn_cur [.prefs.buttons.apply cget -font]
-set prefw [expr [font measure $fn_cur "XXXXXXXXXXXXXX48-kHzXXXStereoXXXLinear-16XXXUnitsXPerXPcktXXXXXXXXXXXXX"]]
-set prefh [expr 11 * [font metrics $fn_cur -linespace] + 8 * 16]
-wm geometry .prefs [format "%sx%s" $prefw $prefh]
-unset fn_cur prefw prefh
+constrain_window .prefs "XXXXXXXXXXXXXX48-kHzXXXStereoXXXLinear-16XXXUnitsXPerXPcktXXXXXXXXXXXXX" 0 11 128
 
 # Personal Info Pane
 set i .prefs.pane.personal
@@ -1006,12 +981,12 @@ checkbutton $i.a.f.f.plist   -text "Participant list"         -variable plist_on
 pack $i.a.f.f $i.a.f.f.l
 pack $i.a.f.f.power $i.a.f.f.video $i.a.f.f.balloon $i.a.f.f.matrix $i.a.f.f.plist -side top -anchor w 
 
-proc set_pane {name} {
-    global pane
+proc set_pane {p base name} {
+    upvar 1 $p pane
     set tpane [string tolower $pane]
-    pack forget .prefs.pane.$tpane
+    pack forget $base.$tpane
     set tpane [string tolower $name]
-    pack .prefs.pane.$tpane -fill both -expand 1 -padx 2 -pady 2
+    pack $base.$tpane -fill both -expand 1 -padx 2 -pady 2
     set pane $name
 }
 
@@ -1035,32 +1010,80 @@ proc validate_red_codecs {} {
 }
 
 # Initialise "About..." toplevel window
-toplevel  .about
-frame     .about.t
-label     .about.t.logo  -highlightthickness 0 -bitmap rat_med 
-text      .about.t.blurb -height 14 -width 64 -background white -yscrollcommand ".about.t.scroll set"
-scrollbar .about.t.scroll -command ".about.t.blurb yview"
-button    .about.dismiss -text Dismiss -command "wm withdraw .about" -highlightthickness 0 -padx 0 -pady 0
+toplevel   .about
+frame      .about.rim -relief sunken
+frame      .about.m
+frame      .about.rim.d
+pack .about.m -fill x
+pack .about.rim -padx 4 -pady 2 -side top -fill both -expand 1
+pack .about.rim.d -side top -fill both -expand 1
 
-pack .about.t.logo .about.t.blurb .about.t.scroll -side right -fill y
-pack .about.t .about.dismiss -side top -fill x
+frame .about.m.f
+label .about.m.f.l -text "Category:"
+menubutton .about.m.f.mb -menu .about.m.f.mb.menu -indicatoron 1 -textvariable about_pane -relief raised -width 10
+menu .about.m.f.mb.menu -tearoff 0
+.about.m.f.mb.menu add command -label "Copyright" -command {set_pane about_pane .about.rim.d "Copyright" }
+.about.m.f.mb.menu add command -label "Credits"   -command {set_pane about_pane .about.rim.d "Credits"   }
+.about.m.f.mb.menu add command -label "Feedback"  -command {set_pane about_pane .about.rim.d "Feedback"  }
+
+pack .about.m.f 
+pack .about.m.f.l .about.m.f.mb -side left
+
+#label     .about.rim.t.d.logo  -highlightthickness 0 -bitmap rat_med 
+
+frame     .about.rim.d.copyright
+frame     .about.rim.d.copyright.f
+frame     .about.rim.d.copyright.f.f
+text      .about.rim.d.copyright.f.f.blurb -height 17 -width 64  -yscrollcommand ".about.rim.d.copyright.f.f.scroll set"
+scrollbar .about.rim.d.copyright.f.f.scroll -command ".about.rim.d.copyright.f.blurb yview"
+
+pack      .about.rim.d.copyright.f -expand 1 -fill both
+pack      .about.rim.d.copyright.f.f 
+pack      .about.rim.d.copyright.f.f.blurb -side left
+pack      .about.rim.d.copyright.f.f.scroll -fill y -expand 1
+
+frame     .about.rim.d.credits 
+frame     .about.rim.d.credits.f -relief sunken 
+frame     .about.rim.d.credits.f.f 
+pack      .about.rim.d.credits.f -fill both -expand 1
+pack      .about.rim.d.credits.f.f -side left -fill x -expand 1
+label     .about.rim.d.credits.f.f.1                  -text "The Robust-Audio Tool was developed in the Department\nof Computer Science, University College London.\n\nProject Supervision:"
+label     .about.rim.d.credits.f.f.2 -foreground blue -text "Angela Sasse  Vicky Hardman\n"
+label     .about.rim.d.credits.f.f.3                  -text "Core Development Team:"
+label     .about.rim.d.credits.f.f.4 -foreground blue -text "Isidor Kouvelas  Colin Perkins  Orion Hodson\n"
+label     .about.rim.d.credits.f.f.5                  -text "Additional Contributions:"
+label     .about.rim.d.credits.f.f.6 -foreground blue -text "Darren Harris  Anna Watson  Mark Handley \nJon Crowcroft  Anna Bouch  Marcus Iken\nKris Hasler"
+for {set i 1} {$i<=6} {incr i} {
+    pack  .about.rim.d.credits.f.f.$i -side top -fill x
+}
+
+button    .about.dismiss -text Dismiss -command "wm withdraw .about" -highlightthickness 0 -padx 0 -pady 0
+pack      .about.dismiss -side bottom -fill x
+
+frame     .about.rim.d.feedback 
+frame     .about.rim.d.feedback.f -relief sunken 
+frame     .about.rim.d.feedback.f.f
+pack      .about.rim.d.feedback.f -fill both -expand 1
+pack      .about.rim.d.feedback.f.f -side left -fill x -expand 1
+label     .about.rim.d.feedback.f.f.1                  -text "Comments, suggestions, and bug-reports should be sent to:"
+label     .about.rim.d.feedback.f.f.2 -foreground blue -text "rat-trap@cs.ucl.ac.uk\n"
+label     .about.rim.d.feedback.f.f.3                  -text "Further information is available on the world-wide web at:"
+label     .about.rim.d.feedback.f.f.4 -foreground blue -text "http://www-mice.cs.ucl.ac.uk/mice/rat/\n"
+label     .about.rim.d.feedback.f.f.5                  -text "Source code and binaries are publicly available at:"
+label     .about.rim.d.feedback.f.f.6 -foreground blue -text "ftp://cs.ucl.ac.uk/mice/rat/"
+for {set i 1} {$i<=6} {incr i} {
+    pack  .about.rim.d.feedback.f.f.$i -side top -fill x
+}
+#pack .about.rim.t.logo .about.rim.t.blurb .about.rim.t.scroll -side right -fill y
 
 wm withdraw  .about
 wm title     .about "About RAT"
 wm resizable .about 0 0
- 
-.about.t.blurb insert end {
-The Robust-Audio Tool was developed in the Department of
-Computer Science, University College London by Angela Sasse,
-Vicky Hardman, Isidor Kouvelas, Colin Perkins, Orion Hodson,
-Darren Harris, Anna Watson, Mark Handley, Jon Crowcroft,
-Anna Bouch, and Marcus Iken.
+set about_pane Copyright
+set_pane about_pane .about.rim.d "Copyright" 
+constrain_window .about "XANDXFITNESSXFORXAXPARTICULARXPURPOSEXAREXDISCLAIMED.XINXNOXEVENTX" 0 20 28 
 
-Further information is available on the world-wide web at
-	http://www-mice.cs.ucl.ac.uk/mice/rat/ 
-Comments, suggestions, and bug-reports should be sent to
-	rat-trap@cs.ucl.ac.uk
-
+.about.rim.d.copyright.f.f.blurb insert end {
 Copyright (C) 1995-1998 University College London
 All rights reserved.
 

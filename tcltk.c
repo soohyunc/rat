@@ -123,7 +123,6 @@ mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 	return TCL_OK;
 }
 
-#include "xbm/ucl.xbm"
 #include "xbm/mic.xbm"
 #include "xbm/cd.xbm"
 #include "xbm/speaker.xbm"
@@ -131,8 +130,6 @@ mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 #include "xbm/line_out.xbm"
 #include "xbm/line_in.xbm"
 #include "xbm/rat_small.xbm"
-#include "xbm/rat_med.xbm"
-#include "xbm/rat2.xbm"
 
 int
 tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
@@ -178,7 +175,6 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 #else
 	Tcl_SetVar(interp, "win32", "0", TCL_GLOBAL_ONLY);
 #endif
-	Tk_DefineBitmap(interp, Tk_GetUid("ucl"), ucl_bits, ucl_width, ucl_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("microphone"), mic_bits, mic_width, mic_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("cd"), cd_bits, cd_width, cd_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("speaker"), speaker_bits, speaker_width, speaker_height);
@@ -186,8 +182,6 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tk_DefineBitmap(interp, Tk_GetUid("line_out"), line_out_bits, line_out_width, line_out_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("line_in"), line_in_bits, line_in_width, line_in_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("rat_small"), rat_small_bits, rat_small_width, rat_small_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("rat_med"),   rat_med_bits, rat_med_width, rat_med_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("rat2"), rat2_bits, rat2_width, rat2_height);
 
 	tcl_send(sp->ui_script);
 	while (Tcl_DoOneEvent(TCL_ALL_EVENTS | TCL_DONT_WAIT)) {
