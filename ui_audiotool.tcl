@@ -158,12 +158,12 @@ proc change_sampling { } {
     mbus_send "R" "sampling" "[mbus_encode_str $freq] [mbus_encode_str $channels]"
 }
 
-proc mbus_recv_frequencies.supported {args} {
+proc mbus_recv_frequencies.supported {arg} {
     global freq
 
     .prefs.pane.transmission.dd.sampling.mfreq.menu delete 0 last
 
-    set freqs [split $args]
+    set freqs [split $arg]
     foreach f $freqs {
 	.prefs.pane.transmission.dd.sampling.mfreq.menu add command -label $f -command "set freq $f; change_sampling"
     }
@@ -197,34 +197,34 @@ proc mbus_recv_redundancy.supported {arg} {
     set secenc [lindex $codecs 0]
 }
 
-proc mbus_recv_agc {args} {
+proc mbus_recv_agc {arg} {
   global agc_var
-  set agc_var $args
+  set agc_var $arg
 }
 
-proc mbus_recv_sync {args} {
+proc mbus_recv_sync {arg} {
   global sync_var
-  set sync_var $args
+  set sync_var $arg
 }
 
-proc mbus_recv_frequency {args} {
+proc mbus_recv_frequency {arg} {
   global freq
-  set freq $args
+  set freq $arg
 }
 
-proc mbus_recv_channels {args} {
+proc mbus_recv_channels {arg} {
   global channels
-  set channels $args
+  set channels $arg
 }
 
-proc mbus_recv_primary {args} {
+proc mbus_recv_primary {arg} {
   global prenc
-  set prenc $args
+  set prenc $arg
 }
 
-proc mbus_recv_rate {args} {
+proc mbus_recv_rate {arg} {
     global upp
-    set upp $args
+    set upp $arg
 }
 
 proc mbus_recv_redundancy {new_codec new_off} {
@@ -244,9 +244,9 @@ proc mbus_recv_channel.code {channel} {
     set channel_var $channel
 }
 
-proc mbus_recv_repair {args} {
+proc mbus_recv_repair {arg} {
   global repair_var
-  set repair_var $args
+  set repair_var $arg
 }
 
 proc mbus_recv_powermeter.input {level} {

@@ -348,17 +348,21 @@ ui_output_level(int level)
 static void
 ui_repair(session_struct *sp)
 {
+	char	*repair;
+
         switch(sp->repair) {
         case REPAIR_NONE:
-		mbus_engine_tx(TRUE, mbus_name_ui, "repair", "None", FALSE);
+		repair = mbus_encode_str("None");
                 break;
         case REPAIR_REPEAT:
-		mbus_engine_tx(TRUE, mbus_name_ui, "repair", "Packet Repetition", FALSE);
+		repair = mbus_encode_str("Packet Repetition");
                 break;
 	case REPAIR_PATTERN_MATCH:
-		mbus_engine_tx(TRUE, mbus_name_ui, "repair", "Pattern Matching", FALSE);
+		repair = mbus_encode_str("Pattern Matching");
                 break;
         }
+	mbus_engine_tx(TRUE, mbus_name_ui, "repair", repair, FALSE);
+	xfree(repair);
 }
 
 void
@@ -743,13 +747,13 @@ ui_codecs(int pt)
 void
 ui_sampling_modes(session_struct *sp)
 {
+	char	*freqs;
+
         UNUSED(sp);
         /* this is just a quick con job for the moment */
-	mbus_engine_tx(TRUE, 
-                       mbus_name_ui, 
-                       "frequencies.supported", 
-                       "8-kHz 16-kHz 32-kHz 48-kHz", 
-                       TRUE);
+	freqs = mbus_encode_str("8-kHz 16-kHz 32-kHz 48-kHz");
+	mbus_engine_tx(TRUE, mbus_name_ui, "frequencies.supported", freqs, TRUE);
+	xfree(freqs);
 }
 
 void
