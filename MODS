@@ -1218,7 +1218,7 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	- Replace puts with bgerror where appropriate in ui script.
 	* Tagged 30 March 2000 (not released).
 
-4.2.0   - Fix mixer writing to new head position so it mixes multiple streams
+v4.2.0  - Fix mixer writing to new head position so it mixes multiple streams
 	  again!
 	- Fix phase skips of tone generator.
 	- Add RTP flush after device reconfiguration.
@@ -1234,13 +1234,13 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  blocks for audio nowadays.
 	* Released 5 April 2000.
 
-4.2.1   - Fix handling of 8bit PCM .WAV files (unsigned 8bit, not signed).
+v4.2.1	- Fix handling of 8bit PCM .WAV files (unsigned 8bit, not signed).
         - Fix shuffle participants not to print newline if last entry.
 	- Fix parsing of -t flag, was mis-coded as -ttl in layering command
 	  line parsing changes in 4.2.0.
 	* Released 6 April 2000.
 
-4.2.2   - Catch mbus initialization failure and warn user in ui, control, 
+v4.2.2  - Catch mbus initialization failure and warn user in ui, control, 
 	  and engine.
 	- Round ttl to maximum of 127.
 	- Change parse_args_early in main_control.c to pass over all args.
@@ -1277,6 +1277,7 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	- Fix RTP SR timestamps and RTP jitter calculation
 	* Released 17 April 2000.
 
+v4.2.3	- 
 
 
 TODO -- They're features not bugs dammit!
