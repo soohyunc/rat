@@ -298,8 +298,12 @@ repair(int                         repair,
         assert(missing->state == 0);
         assert(missing->data  == 0);
 
-        /* check if first encoding has repair routine */
-        if (codec_decoder_can_repair(prev->rep[0]->id)) {
+        /* check if first encoding has repair routine, test does
+         * not make sense with a native (raw) encoding so check
+         * that first 
+         */
+        if (codec_is_native_coding(prev->rep[0]->id) == FALSE && 
+            codec_decoder_can_repair(prev->rep[0]->id)) {
                 codec_state *st;
 
                 st = codec_state_store_get(states, prev->rep[0]->id);

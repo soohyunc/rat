@@ -427,9 +427,12 @@ source_repair(source *src,
 
         /* Check for need to reset of consec_lost count */
 
-        if (!ts_eq(src->last_played, src->last_repair)) {
+        if (ts_valid(src->last_repair) == FALSE || 
+            ts_eq(src->last_played, src->last_repair) == FALSE) {
                 src->consec_lost = 0;
         }
+
+        debug_msg("Repair %d\n", src->consec_lost);
 
         /* We repair one unit at a time since it may be all we need */
         pb_iterator_retreat(src->media_pos);
