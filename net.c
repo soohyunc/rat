@@ -408,3 +408,64 @@ network_read(session_struct    *sp,
 #endif
 	}
 }
+
+void network_process_mbus(session_struct *sp[], int num_sessions, int delay)
+{
+	int             sel_fd, i, rc;
+	struct timeval  timeout, *tvp;
+	fd_set          rfds;
+
+	for (i=0; i<num_sessions; i++) {
+		sel_fd = mbus_fd(sp[i]->mbus_engine_base);
+     		sel_fd = max(sel_fd, mbus_fd(sp[i]->mbus_ui_base));
+		if (sp[i]->mbus_channel != 0) {
+			sel_fd = max(sel_fd, mbus_fd(sp[i]->mbus_engine_chan));
+     			sel_fd = max(sel_fd, mbus_fd(sp[i]->mbus_ui_chan));
+		}
+		sel_fd++;
+	}
+
+	for (;;) {
+		FD_ZERO(&rfds);
+		for (i=0; i<num_sessions; i++) {	
+                	FD_SET(mbus_fd(sp[i]->mbus_engine_base), &rfds);
+     			FD_SET(mbus_fd(sp[i]->mbus_ui_base),     &rfds);
+			if (sp[i]->mbus_channel != 0) {
+                		FD_SET(mbus_fd(sp[i]->mbus_engine_chan), &rfds);
+     				FD_SET(mbus_fd(sp[i]->mbus_ui_chan),     &rfds);
+			}
+		}
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = delay;
+		tvp = &timeout;
+#ifdef HPUX
+		rc = select(sel_fd, (int *) &rfds, NULL, NULL, tvp);
+#else
+		rc = select(sel_fd, &rfds, (fd_set *) 0, (fd_set *) 0, tvp);
+#endif
+		if (rc > 0) {
+			for (i=0; i<num_sessions; i++) {
+                        	if (FD_ISSET(mbus_fd(sp[i]->mbus_engine_base), &rfds)) {
+     					mbus_recv(sp[i]->mbus_engine_base, (void *) sp[i]);
+     				}
+     				if (FD_ISSET(mbus_fd(sp[i]->mbus_ui_base), &rfds)) {
+     					mbus_recv(sp[i]->mbus_ui_base, (void *) sp[i]);
+     				}
+				if (sp[i]->mbus_channel != 0) {
+                        		if (FD_ISSET(mbus_fd(sp[i]->mbus_engine_chan), &rfds)) {
+     						mbus_recv(sp[i]->mbus_engine_chan, (void *) sp[i]);
+     					}
+     					if (FD_ISSET(mbus_fd(sp[i]->mbus_ui_chan), &rfds)) {
+     						mbus_recv(sp[i]->mbus_ui_chan, (void *) sp[i]);
+     					}
+				}
+                	}
+		} else if (rc == 0) {
+			return;
+		} else {
+			perror("Waiting for Mbus to settle");
+			abort();
+		}
+	}
+}
+

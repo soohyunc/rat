@@ -257,13 +257,13 @@ ui_update_input_port(session_struct *sp)
 {
 	switch (sp->input_mode) {
 	case AUDIO_MICROPHONE:
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_port", "microphone", FALSE);
+		mbus_qmsg(sp->mbus_engine_chan, "input_port", "microphone");
 		break;
 	case AUDIO_LINE_IN:
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_port", "line_in", FALSE);
+		mbus_qmsg(sp->mbus_engine_chan, "input_port", "line_in");
 		break;
 	case AUDIO_CD:
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_port", "cd", FALSE);
+		mbus_qmsg(sp->mbus_engine_chan, "input_port", "cd");
 		break;
 	default:
 		fprintf(stderr, "Invalid input port!\n");
@@ -281,13 +281,13 @@ ui_update_output_port(session_struct *sp)
 {
 	switch (sp->output_mode) {
 	case AUDIO_SPEAKER:
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_port", "speaker", FALSE);
+		mbus_qmsg(sp->mbus_engine_chan, "output_port", "speaker");
 		break;
 	case AUDIO_HEADPHONE:
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_port", "headphone", FALSE);
+		mbus_qmsg(sp->mbus_engine_chan, "output_port", "headphone");
 		break;
 	case AUDIO_LINE_OUT:
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_port", "line_out", FALSE);
+		mbus_qmsg(sp->mbus_engine_chan, "output_port", "line_out");
 		break;
 	default:
 		fprintf(stderr, "Invalid output port!\n");
@@ -481,25 +481,25 @@ ui_update(session_struct *sp)
 	/*XXX solaris seems to give a different volume back to what we   */
 	/*    actually set.  So don't even ask if it's not the first time*/
 	if (done==0) {
-	        sprintf(args, "%d", audio_get_volume(sp->audio_fd)); mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_gain", args, TRUE);
-		sprintf(args, "%d", audio_get_gain(sp->audio_fd));   mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr,  "input_gain", args, TRUE);
+	        sprintf(args, "%d", audio_get_volume(sp->audio_fd)); mbus_qmsg(sp->mbus_engine_chan, "output_gain", args);
+		sprintf(args, "%d", audio_get_gain(sp->audio_fd));   mbus_qmsg(sp->mbus_engine_chan,  "input_gain", args);
 	} else {
-	        sprintf(args, "%d", sp->output_gain); mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_gain", args, TRUE);
-		sprintf(args, "%d", sp->input_gain ); mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr,  "input_gain", args, TRUE);
+	        sprintf(args, "%d", sp->output_gain); mbus_qmsg(sp->mbus_engine_chan, "output_gain", args);
+		sprintf(args, "%d", sp->input_gain ); mbus_qmsg(sp->mbus_engine_chan,  "input_gain", args);
 	}
 
 	ui_update_output_port(sp);
 	if (sp->playing_audio) {
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_mute", "0", TRUE);
+		mbus_qmsg(sp->mbus_engine_chan, "output_mute", "0");
 	} else {
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "output_mute", "1", TRUE);
+		mbus_qmsg(sp->mbus_engine_chan, "output_mute", "1");
 	}
 
 	ui_update_input_port(sp);
 	if (sp->sending_audio) {
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_mute", "0", TRUE);
+		mbus_qmsg(sp->mbus_engine_chan, "input_mute", "0");
 	} else {
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "input_mute", "1", TRUE);
+		mbus_qmsg(sp->mbus_engine_chan, "input_mute", "1");
 	}
 
         /* Transmission Options */
@@ -507,23 +507,25 @@ ui_update(session_struct *sp)
 		/* If we're using a real audio device, check if it's half duplex... */
 		if (audio_duplex(sp->audio_fd) == FALSE) {
 			sp->voice_switching = MIKE_MUTES_NET;
-			mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "half_duplex", "", TRUE);
+			mbus_qmsg(sp->mbus_engine_chan, "half_duplex", "");
 		}
 	}
         
 	cp = get_codec(sp->encodings[0]);
 	sprintf(args, "%s", mbus_encode_str(cp->name));
-	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "primary", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_chan, "primary", args);
         sprintf(args, "%d", get_units_per_packet(sp));
-	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "rate", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_chan, "rate", args);
 
+	/* The following all call mbus_send() with the correct arguments to send 
+	 * the messages we have queued here...
+	 */
         ui_update_redundancy(sp);
         ui_update_interleaving(sp);
         ui_update_channel(sp);
         ui_repair(sp);
 
 	done=1;
-
 }
 
 void
@@ -549,6 +551,20 @@ mbus_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 	}
 
 	mbus_send(sp->mbus_ui_chan, sp->mbus_engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
+	return TCL_OK;
+}
+
+static int
+mbus_qmsg_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
+{
+	session_struct *sp = (session_struct *) ttp;
+
+	if (argc != 3) {
+		i->result = "mbus_qmsg <cmnd> <args>";
+		return TCL_ERROR;
+	}
+
+	mbus_qmsg(sp->mbus_ui_chan, argv[1], argv[2]);
 	return TCL_OK;
 }
 
@@ -644,6 +660,7 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 	}
 
 	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) sp, NULL);
+	Tcl_CreateCommand(interp, "mbus_qmsg",	     mbus_qmsg_cmd,   (ClientData) sp, NULL);
 	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, (ClientData) sp, NULL);
 #ifdef WIN32
 	Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);
@@ -671,11 +688,11 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 	};
 
 	ecname = xstrdup(mbus_encode_str(cname));
-	sprintf(args, "%s", ecname); 					mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "my_cname",       args, TRUE);
-	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "address",        args, TRUE);
-	sprintf(args, "%s %s", ecname, mbus_encode_str(RAT_VERSION));	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_tool",    args, TRUE);
+	sprintf(args, "%s", ecname); 					mbus_qmsg(sp->mbus_engine_chan, "my_cname",    args);
+	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); mbus_qmsg(sp->mbus_engine_chan, "address",     args);
+	sprintf(args, "%s %s", ecname, mbus_encode_str(RAT_VERSION));	mbus_qmsg(sp->mbus_engine_chan, "source_tool", args);
 #ifndef NDEBUG
-	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "debug", "", TRUE);
+	mbus_qmsg(sp->mbus_engine_chan, "debug", "");
 #endif
 	xfree(ecname);
 
@@ -693,14 +710,4 @@ update_lecture_mode(session_struct *sp)
 	sprintf(args, "%d", sp->lecture);
 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "lecture_mode", args, TRUE);
 }
-
-
-
-
-
-
-
-
-
-
 

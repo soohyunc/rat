@@ -58,6 +58,7 @@
 #define MBUS_BUF_SIZE	1024
 #define MBUS_MAX_ADDR	10
 #define MBUS_MAX_PD	10
+#define MBUS_MAX_QLEN	50		/* Number of messages we can queue with mbus_qmsg() */
 
 struct mbus_ack {
 	struct mbus_ack	*next;
@@ -68,6 +69,10 @@ struct mbus_ack {
 	char		*args;
 	int		 seqn;
 	struct timeval	 time;	/* Used to determine when to request retransmissions, etc... */
+	int		 rtcnt;
+	int		 qmsg_size;
+	char		*qmsg_cmnd[MBUS_MAX_QLEN];
+	char		*qmsg_args[MBUS_MAX_QLEN];
 };
 
 struct mbus {
@@ -82,6 +87,9 @@ struct mbus {
 	int		 ack_list_size;
 	void (*cmd_handler)(char *src, char *cmd, char *arg, void *dat);
 	void (*err_handler)(int seqnum);
+	int		 qmsg_size;
+	char		*qmsg_cmnd[MBUS_MAX_QLEN];
+	char		*qmsg_args[MBUS_MAX_QLEN];
 };
 
 static int mbus_addr_match(char *a, char *b)
@@ -132,6 +140,7 @@ static void mbus_ack_list_check(struct mbus *m)
 static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, const char *cmnd, const char *args, int seqnum)
 {
 	struct mbus_ack	*curr = (struct mbus_ack *) xmalloc(sizeof(struct mbus_ack));
+	int		 i;
 
 	assert(srce != NULL);
 	assert(dest != NULL);
@@ -150,7 +159,13 @@ static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, const c
 	curr->cmnd = xstrdup(cmnd);
 	curr->args = xstrdup(args);
 	curr->seqn = seqnum;
+	curr->rtcnt= 0;
 	gettimeofday(&(curr->time), NULL);
+	curr->qmsg_size = m->qmsg_size;
+	for (i = 0; i < m->qmsg_size; i++) {
+		curr->qmsg_cmnd[i] = m->qmsg_cmnd[i];
+		curr->qmsg_args[i] = m->qmsg_args[i];
+	}
 
 	if (m->ack_list != NULL) {
 		m->ack_list->prev = curr;
@@ -166,17 +181,21 @@ static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seq
 	/* we're most likely to receive ACKs in LIFO order, and this assumes FIFO...     */
 	/* We hope that the number of outstanding ACKs is small, so this doesn't matter. */
 	struct mbus_ack	*curr = m->ack_list;
+	int		 i;
 
 	mbus_ack_list_check(m);
 	while (curr != NULL) {
 		if (mbus_addr_match(curr->srce, dest) && mbus_addr_match(curr->dest, srce) && (curr->seqn == seqnum)) {
-			dprintf("Got an ACK!\n");
 			assert(m->ack_list_size > 0);
 			m->ack_list_size--;
 			xfree(curr->srce);
 			xfree(curr->dest);
 			xfree(curr->cmnd);
 			xfree(curr->args);
+			for (i = 0; i < curr->qmsg_size; i++) {
+				curr->qmsg_cmnd[i] = m->qmsg_cmnd[i];
+				curr->qmsg_args[i] = m->qmsg_args[i];
+			}
 			if (curr->next != NULL) curr->next->prev = curr->prev;
 			if (curr->prev != NULL) curr->prev->next = curr->next;
 			if (m->ack_list == curr) {
@@ -227,16 +246,29 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 {
 	struct sockaddr_in	 saddr;
 	u_long			 addr = MBUS_ADDR;
-	char			*b;
+	char			*b, *bp;
+	int			 i;
 
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(MBUS_PORT+m->channel);
-	b                = xmalloc(strlen(curr->dest)+strlen(curr->cmnd)+strlen(curr->args)+strlen(curr->srce)+80);
-	sprintf(b, "mbus/1.0 %d R (%s) (%s) ()\n%s (%s)\n", curr->seqn, curr->srce, curr->dest, curr->cmnd, curr->args);
+	b                = (char *) xmalloc(MBUS_BUF_SIZE);
+	bp		 = b;
+	sprintf(bp, "mbus/1.0 %6d R (%s) (%s) ()\n", curr->seqn, curr->srce, curr->dest);
+	bp += strlen(curr->srce) + strlen(curr->dest) + 27;
+	for (i = 0; i < curr->qmsg_size; i++) {
+		sprintf(bp, "%s (%s)\n", curr->qmsg_cmnd[i], curr->qmsg_args[i]);
+		bp += strlen(curr->qmsg_cmnd[i]) + strlen(curr->qmsg_args[i]) + 4;
+		xfree(curr->qmsg_cmnd[i]); curr->qmsg_cmnd[i] = NULL;
+		xfree(curr->qmsg_args[i]); curr->qmsg_args[i] = NULL;
+	}
+	sprintf(bp, "%s (%s)\n", curr->cmnd, curr->args);
+	bp += strlen(curr->cmnd) + strlen(curr->args) + 4;
+
 	if ((sendto(m->fd, b, strlen(b), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
 		perror("mbus_send: sendto");
 	}
+	curr->rtcnt++;
 	xfree(b);
 }
 
@@ -266,15 +298,15 @@ void mbus_retransmit(struct mbus *m)
 		/* Note: We only request one retransmission each time, to avoid
 		 * overflowing the receiver with a burst of requests...
 		 */
-		if (diff > 750) {
+		if ((diff > 750) && (curr->rtcnt == 2)) {
 			resend(m, curr);
 			return;
 		} 
-		if (diff > 500) {
+		if ((diff > 500) && (curr->rtcnt == 1)) {
 			resend(m, curr);
 			return;
 		} 
-		if (diff > 250) {
+		if ((diff > 250) && (curr->rtcnt == 0)) {
 			resend(m, curr);
 			return;
 		}
@@ -357,8 +389,11 @@ struct mbus *mbus_init(unsigned short channel,
 	m->err_handler	= err_handler;
 	m->num_addr     = 0;
 	m->parse_depth  = 0;
+	m->qmsg_size    = 0;
 	for (i = 0; i < MBUS_MAX_ADDR; i++) m->addr[i]         = NULL;
-	for (i = 0; i <   MBUS_MAX_PD; i++) m->parse_buffer[i] = NULL;
+	for (i = 0; i < MBUS_MAX_PD;   i++) m->parse_buffer[i] = NULL;
+	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_cmnd[i]    = NULL;
+	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_args[i]    = NULL;
 	return m;
 }
 
@@ -377,11 +412,26 @@ int mbus_fd(struct mbus *m)
 	return m->fd;
 }
 
+void mbus_qmsg(struct mbus *m, const char *cmnd, const char *args)
+{
+	/* Queue a message for sending. The next call to mbus_send() sends this message
+	 * piggybacked in that packet. The destination address and reliability for the
+	 * messages queued in this way is specified by the call to mbus_send().
+	 */
+	assert(cmnd != NULL);
+	assert(args != NULL);
+	assert((m->qmsg_size < MBUS_MAX_QLEN-1) && (m->qmsg_size >= 0));
+	m->qmsg_cmnd[m->qmsg_size] = xstrdup(cmnd);
+	m->qmsg_args[m->qmsg_size] = xstrdup(args);
+	m->qmsg_size++;
+}
+
 int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, int reliable)
 {
-	char			*buffer;
+	char			*buffer, *bufp;
 	struct sockaddr_in	 saddr;
 	u_long			 addr = MBUS_ADDR;
+	int			 i;
 
 	assert(dest != NULL);
 	assert(cmnd != NULL);
@@ -397,9 +447,24 @@ int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, in
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(MBUS_PORT+m->channel);
-	buffer           = (char *) xmalloc(strlen(dest) + strlen(cmnd) + strlen(args) + strlen(m->addr[0]) + 80);
-	sprintf(buffer, "mbus/1.0 %d %c (%s) %s ()\n%s (%s)\n", m->seqnum, reliable?'R':'U', m->addr[0], dest, cmnd, args);
-	if ((sendto(m->fd, buffer, strlen(buffer), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
+	buffer           = (char *) xmalloc(MBUS_BUF_SIZE);
+	bufp		 = buffer;
+
+	sprintf(bufp, "mbus/1.0 %6d %c (%s) %s ()\n", m->seqnum, reliable?'R':'U', m->addr[0], dest);
+	bufp += strlen(m->addr[0]) + strlen(dest) + 25;
+	for (i = 0; i < m->qmsg_size; i++) {
+		sprintf(bufp, "%s (%s)\n", m->qmsg_cmnd[i], m->qmsg_args[i]);
+		bufp += strlen(m->qmsg_cmnd[i]) + strlen(m->qmsg_args[i]) + 4;
+		xfree(m->qmsg_cmnd[i]); m->qmsg_cmnd[i] = NULL;
+		xfree(m->qmsg_args[i]); m->qmsg_args[i] = NULL;
+	}
+	m->qmsg_size -= i;
+	assert(m->qmsg_size == 0);
+	sprintf(bufp, "%s (%s)\n", cmnd, args);
+	bufp += strlen(cmnd) + strlen(args) + 4;
+
+	assert((int) strlen(buffer) == (bufp - buffer));
+	if ((sendto(m->fd, buffer, bufp - buffer, 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
 		perror("mbus_send: sendto");
 	}
 	xfree(buffer);

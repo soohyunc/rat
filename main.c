@@ -216,10 +216,11 @@ main(int argc, char *argv[])
 	/* Show the interface before starting processing */
         if (sp[0]->ui_on) {
                 while(Tcl_DoOneEvent(TCL_DONT_WAIT | TK_X_EVENTS | TCL_IDLE_EVENTS)) {
-			/* Do nothing! */
+			network_process_mbus(sp, num_sessions, 20);
 		}
                 ui_update(sp[0]);
         }
+	network_process_mbus(sp, num_sessions, 1000);
 
         if ((sp[0]->sending_audio == FALSE) && (sp[0]->mode != AUDIO_TOOL)) {
 		for (i=0; i<num_sessions; i++) {

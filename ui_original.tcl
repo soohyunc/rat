@@ -1116,45 +1116,45 @@ proc sync_engine_to_ui {} {
 
     set my_cname_enc [mbus_encode_str $my_cname]
     #rtcp details
-    mbus_send "R" "source_name"  "$my_cname_enc [mbus_encode_str $rtcp_name]"
-    mbus_send "R" "source_email" "$my_cname_enc [mbus_encode_str $rtcp_email]"
-    mbus_send "R" "source_phone" "$my_cname_enc [mbus_encode_str $rtcp_phone]"
-    mbus_send "R" "source_loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
+    mbus_qmsg "source_name"  "$my_cname_enc [mbus_encode_str $rtcp_name]"
+    mbus_qmsg "source_email" "$my_cname_enc [mbus_encode_str $rtcp_email]"
+    mbus_qmsg "source_phone" "$my_cname_enc [mbus_encode_str $rtcp_phone]"
+    mbus_qmsg "source_loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
     
     #transmission details
-    mbus_send "R" "output_mode"  [mbus_encode_str $output_var]
-    mbus_send "R" "primary"      [mbus_encode_str $prenc]
-    mbus_send "R" "rate"         $upp
-    mbus_send "R" "channel_code" [mbus_encode_str $channel_var]
-    mbus_send "R" "redundancy"   "[mbus_encode_str $secenc] $red_off"
-    mbus_send "R" "interleaving" $int_gap
-    mbus_send "R" "silence"      $silence_var
-    mbus_send "R" "agc"          $agc_var
+    mbus_qmsg "output_mode"  [mbus_encode_str $output_var]
+    mbus_qmsg "primary"      [mbus_encode_str $prenc]
+    mbus_qmsg "rate"         $upp
+    mbus_qmsg "channel_code" [mbus_encode_str $channel_var]
+    mbus_qmsg "redundancy"   "[mbus_encode_str $secenc] $red_off"
+    mbus_qmsg "interleaving" $int_gap
+    mbus_qmsg "silence"      $silence_var
+    mbus_qmsg "agc"          $agc_var
 
     #Reception Options
-    mbus_send "R" "repair"       [mbus_encode_str $repair_var]
-    mbus_send "R" "min_playout"  $min_var
-    mbus_send "R" "max_playout"  $max_var
-    mbus_send "R" "lecture"      $lecture_var
-    mbus_send "R" "auto_convert" $convert_var
+    mbus_qmsg "repair"       [mbus_encode_str $repair_var]
+    mbus_qmsg "min_playout"  $min_var
+    mbus_qmsg "max_playout"  $max_var
+    mbus_qmsg "lecture"      $lecture_var
+    mbus_qmsg "auto_convert" $convert_var
 
     #Security
     if {$key_var==1 && [string length $key]!=0} {
-	mbus_send "R" "update_key" [mbus_encode_str $key]
+	mbus_qmsg "update_key" [mbus_encode_str $key]
     } else {
-	mbus_send "R" "update_key" [mbus_encode_str ""]
+	mbus_qmsg "update_key" [mbus_encode_str ""]
     }
 
     #Interface
-    mbus_send "R" "powermeter"   $meter_var
-    mbus_send "R" "sync"         $sync_var
+    mbus_qmsg "powermeter"   $meter_var
+    mbus_qmsg "sync"         $sync_var
 
     #device 
-    mbus_send "R" "input_gain"    $gain
-    mbus_send "R" "output_gain"   $volume
-    mbus_send "R" "input_port"    [mbus_encode_str $input_port]
-    mbus_send "R" "output_port"   [mbus_encode_str $output_port]
-    mbus_send "R" "input_mute"    $in_mute_var
+    mbus_qmsg "input_gain"    $gain
+    mbus_qmsg "output_gain"   $volume
+    mbus_qmsg "input_port"    [mbus_encode_str $input_port]
+    mbus_qmsg "output_port"   [mbus_encode_str $output_port]
+    mbus_qmsg "input_mute"    $in_mute_var
     mbus_send "R" "output_mute"   $out_mute_var
 }
 
@@ -1248,7 +1248,7 @@ proc load_setting {attrname field var default} {
 	set tmp $default
     }
     set $var $tmp
-    puts "$var = $tmp"
+    #puts "$var = $tmp"
 }
 
 proc load_settings {} {
