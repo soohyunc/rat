@@ -60,6 +60,7 @@
 #include "rat_types.h"
 #include "config.h"
 #include "util.h"
+#include "net.h"
 #include "mbus.h"
 
 #define MBUS_ADDR 	0xe0ffdeef	/* 224.255.222.239 */
@@ -390,14 +391,10 @@ struct mbus *mbus_init(unsigned short channel,
 {
 	struct mbus	*m;
 	int		 i;
-#ifndef WIN32
-#ifndef FreeBSD
+#if !defined(WIN32) && !defined(FreeBSD)
 	struct ifreq	 ifbuf[32];
 	struct ifreq	*ifp;
 	struct ifconf	 ifc;
-#else
-	char		 hostname[255];
-#endif
 #endif
 	m = (struct mbus *) xmalloc(sizeof(struct mbus));
 	m->fd           = mbus_socket_init(channel);
@@ -416,8 +413,7 @@ struct mbus *mbus_init(unsigned short channel,
 	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_args[i]    = NULL;
 
 	/* Determine the network interfaces on this host... */
-#ifndef WIN32
-#ifndef FreeBSD
+#if !defined(WIN32) && !defined(FreeBSD)
 	ifc.ifc_buf = (char *)ifbuf;
 	ifc.ifc_len = sizeof(ifbuf);
 	if (ioctl(m->fd, SIOCGIFCONF, (char *) &ifc) < 0) {
@@ -431,10 +427,7 @@ struct mbus *mbus_init(unsigned short channel,
 		m->interfaces[m->num_interfaces++] = ((struct sockaddr_in *) &((ifp++)->ifr_addr))->sin_addr.s_addr;
 	}
 #else
-	gethostname(hostname, sizeof(hostname));
-	m->interfaces[0] = htonl(hostname);
-	m->interfaces[1] = htonl(0x7f000001);
-#endif
+	m->num_interfaces = 0;
 #endif
 	return m;
 }
@@ -682,14 +675,16 @@ void mbus_recv(struct mbus *m, void *data)
 	 * though? Probably, because of the rpf check in the mrouters...
 	 */
 
-	for (p = 0; p < m->num_interfaces; p++) {
-		if (m->interfaces[p] == from.sin_addr.s_addr) {
-			match_addr = TRUE;
+	if (m->num_interfaces > 0) {
+		for (p = 0; p < m->num_interfaces; p++) {
+			if (m->interfaces[p] == from.sin_addr.s_addr) {
+				match_addr = TRUE;
+			}
 		}
-	}
-	if (!match_addr) {
-		dprintf("Packet source address does not match local host address!\n");
-		return;
+		if (!match_addr) {
+			dprintf("Packet source address does not match local host address!\n");
+				return;
+		}
 	}
 
 	mbus_parse_init(m, buffer);
