@@ -129,12 +129,16 @@ proc input_mute {state} {
     }
 }
 
-proc set_vol {volume} {
-  mbus_send "R" "output_gain" $volume
+proc set_vol {new_vol} {
+    global volume
+    set volume $new_vol
+    mbus_send "R" "output_gain" $volume
 }
 
-proc set_gain {gain} {
-  mbus_send "R" "input_gain" $gain
+proc set_gain {new_gain} {
+    global gain
+    set gain $new_gain
+    mbus_send "R" "input_gain" $gain
 }
 
 proc toggle_input_port {} {
