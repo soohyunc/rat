@@ -52,7 +52,7 @@
 
 /* fade and pitch measures in ms */
 #define FADE_DURATION   320.0f
-#define MIN_PITCH         2.0f
+#define MIN_PITCH         5.0f
 
 #define ALPHA             0.9f
 #define MATCH_LEN         20    
@@ -214,8 +214,9 @@ pm_repair(rx_queue_element_struct *pp, rx_queue_element_struct *ip, int channel)
 	}
 
 #ifdef DEBUG_REPAIR
-	fprintf(stderr,"match score %.4f period %d \n", target, len-MATCH_LEN-pos);
+	debug_msg("match score %.4f period %d \n", target, len-MATCH_LEN-pos);
 #endif
+
 	repeat_block(pp->native_data[0]+(MATCH_LEN+pos)*step, 
 		     len-MATCH_LEN-pos, /*period*/ 
 		     ip, 
