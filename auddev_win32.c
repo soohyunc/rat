@@ -266,6 +266,8 @@ mixSaveLine(UINT uMix, MIXERLINE *pml, mcd_elem_t **pplist)
         mlc.pamxctrl  = pmc;
         mlc.cbmxctrl  = sizeof(MIXERCONTROL);
         
+        debug_msg("Saving %s\n", pml->szName);
+
         mmr = mixerGetLineControls((HMIXEROBJ)uMix, &mlc, MIXER_GETLINECONTROLSF_ALL | MIXER_OBJECTF_MIXER);
         if (mmr != MMSYSERR_NOERROR) {
                 debug_msg("mixerGetLineControls: %s\n", mixGetErrorText(mmr));
@@ -307,12 +309,8 @@ mixSaveLine(UINT uMix, MIXERLINE *pml, mcd_elem_t **pplist)
                         continue;
                 }
                 mcd_elem_add_control(pplist, pmcd);
-                
-                debug_msg("%d %s %s\n", i, pmc[i].szShortName, mixGetControlType(pmc[i].dwControlType));
         }
-        
         xfree(pmc);
-        UNUSED(pplist);
 }
 
 
@@ -533,9 +531,9 @@ mixerEnableInputLine(HMIXEROBJ hMix, char *portname)
         
         for(i = 0; i < mcd.cMultipleItems; i++) {
                 if (i == matchLine) {
-                        mcdbState[i].fValue = FALSE;
-                } else {
                         mcdbState[i].fValue = TRUE;
+                } else {
+                        mcdbState[i].fValue = FALSE;
                 }
         }
         
