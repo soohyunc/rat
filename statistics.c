@@ -178,18 +178,19 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 		src->last_ts         = hdr->ts - 1;
 		hdr->m               = TRUE;
 	} else {
-		/* This gives a smoothed average */
 		diff       = abs(delay - src->delay);
 		src->delay = delay;
-
-		/* Jitter calculation as in RTP draft 07 */
+		/* Jitter calculation as in RTP spec */
 		src->jitter = src->jitter + (((double) diff - src->jitter) / 16);
 	}
 
 	if (ts_gt(hdr->ts, src->last_ts)) {
-		/* If TS start, or we've thrown 4 packets away or ts have jumped by
-                 * 8 packets worth */
 		cp = get_codec(src->encs[0]);
+		/* IF (a) TS start 
+                   OR (b) we've thrown 4 packets away 
+                   OR (c) ts have jumped by 8 packets worth 
+                   THEN adapt playout and communicate it
+                   */
 		if ((hdr->m) || 
                     src->cont_toged > 4 || 
                     ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * cp->unit_len * 8 + 1))) {
@@ -198,8 +199,10 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
                         minv = sp->min_playout * get_freq(src->clock) / 1000;
                         maxv = sp->max_playout * get_freq(src->clock) / 1000; 
                         if (var<minv) {
+                                dprintf("Extending %d to %d\n",var,minv);
                                 var = minv;
                         } else if (maxv<var) {
+                                dprintf("Clipping %d to %d\n",var,maxv);
                                 var = maxv;
                         }
 			var += cushion->cushion_size * get_freq(src->clock) / get_freq(sp->device_clock);
@@ -207,6 +210,7 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 				var += cp->unit_len;
 			}
 			src->playout = src->delay + var;
+                        dprintf("new playout calculated %d\n", var);
 			if (sp->sync_on) {
 				/* Communicate our playout delay to the video tool... */
 				real_playout = (convert_time(hdr->ts + src->playout - cur_time, src->clock, sp->device_clock) * 1000)/get_freq(sp->device_clock);
@@ -279,6 +283,7 @@ rtp_header_validation(rtp_hdr_t *hdr, int *len, int *extlen)
 static void
 receiver_change_format(rtcp_dbentry *dbe, codec_t *cp)
 {
+        dprintf("Changing Format.\n");
 	dbe->first_pckt_flag = TRUE;
 	change_freq(dbe->clock, cp->freq);
 }
@@ -333,16 +338,17 @@ statistics(session_struct    *sp,
 	hdr->ts   = ntohl(hdr->ts);
 	hdr->ssrc = ntohl(hdr->ssrc);
 
+	if ((hdr->ssrc == sp->db->myssrc) && 
+            sp->filter_loopback) {
+		/* Discard loopback packets...unless we have asked for them ;-) */
+                goto release;
+	}
+
 	/* Get database entry of participant that sent this packet */
 	src = update_database(sp, hdr->ssrc, cur_time);
 	if (src == NULL) {
                 dprintf("Packet from unknown participant\n");
 		/* Discard packets from unknown participant */
-                goto release;
-	}
-
-	if ((hdr->ssrc == sp->db->myssrc)&&!sp->no_filter_loopback) {
-		/* Discard loopback packets...unless we have asked for them ;-) */
                 goto release;
 	}
 

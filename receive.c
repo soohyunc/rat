@@ -84,7 +84,9 @@ add_unit_to_interval(rx_queue_element_struct *ip, rx_queue_element_struct *ru)
                 ip->ccu[ip->ccu_cnt++] = ru->ccu[ru->ccu_cnt];
                 ru->ccu[ru->ccu_cnt] = NULL;
             }
-	}
+	} else {
+                dprintf("Incompatible channel coding pt.\n");
+        }
 	free_rx_unit(&ru);
 }
 
@@ -96,7 +98,7 @@ add_or_get_interval(ppb_t *buf, rx_queue_element_struct *ru)
 	ipp = &buf->head_ptr;
 
         /* we look on src_ts to ensure correct ordering through decode path */
-	while (*ipp && ts_gt(ru->playoutpt, (*ipp)->playoutpt))
+	while (*ipp && ts_gt(ru->src_ts, (*ipp)->src_ts))
 		ipp = &((*ipp)->next_ptr);
 
 	if (*ipp == NULL || (*ipp)->src_ts != ru->src_ts) {
@@ -114,15 +116,111 @@ add_or_get_interval(ppb_t *buf, rx_queue_element_struct *ru)
 	return (*ipp);
 }
 
+#define MAX_FILLIN_UNITS 8
+
+static int
+fillin_playout_buffer(rx_queue_element_struct *from, 
+                      rx_queue_element_struct *to)
+{
+        rx_queue_element_struct *last, *curr; 
+        u_int32 playout_step, units_made = 0;
+        
+        assert(ts_abs_diff(from->src_ts,to->src_ts) % to->unit_size == 0);
+        assert(from->unit_size == 160);
+        assert(to->unit_size   == 160);
+
+        playout_step = ts_abs_diff(from->playoutpt, to->playoutpt) * 
+                from->unit_size / ts_abs_diff(from->src_ts, to->src_ts);
+
+        last = from;
+
+        while(last->src_ts + last->unit_size != to->src_ts &&
+              units_made < MAX_FILLIN_UNITS) {
+
+                curr = new_rx_unit();
+
+                curr->src_ts    = last->src_ts    + last->unit_size;
+                curr->playoutpt = last->playoutpt + playout_step;
+                curr->unit_size = last->unit_size;
+                curr->cc_pt     = last->cc_pt;
+
+                curr->dbe_source_count = last->dbe_source_count;
+                memcpy(curr->dbe_source,
+                       last->dbe_source,
+                       curr->dbe_source_count * sizeof(struct s_rtcp_dbentry*));
+
+                curr->next_ptr = to;
+                to->prev_ptr   = curr;
+                curr->prev_ptr = last;
+                last->next_ptr = curr;
+                
+                last = curr;
+                units_made++;
+        }
+
+        assert(units_made>0);
+        return units_made;
+}
+
+static void 
+smooth_playout_buffer(rx_queue_element_struct *from,
+                      rx_queue_element_struct *to)
+{
+        if (from && to) {
+                assert(ts_gt(to->src_ts, from->src_ts));
+                if (ts_gt(from->playoutpt,to->playoutpt)) {
+                        dprintf("adjusting playout point\n");
+                        to->playoutpt = from->playoutpt + from->unit_size/16;
+                }
+                if (ts_abs_diff(from->src_ts, to->src_ts) > from->unit_size &&
+                    to->talk_spurt_start == FALSE) {
+                        fillin_playout_buffer(from,to);
+                }
+        }
+}
+
+#ifdef DEBUG
+static void
+verify_playout_buffer(ppb_t* buf)
+{
+        rx_queue_element_struct *el;
+        u_int32 src_diff, playout_diff;
+
+        el = buf->head_ptr;
+        while( el && el->next_ptr ) {
+                if (ts_gt(el->src_ts, el->next_ptr->src_ts)) {
+                        src_diff = ts_abs_diff( el->next_ptr->src_ts, 
+                                                el->src_ts );
+                        dprintf( "src_ts jump %08u.\n", 
+                                 src_diff);
+                }
+
+                if (ts_gt(el->playoutpt, el->next_ptr->playoutpt)) {
+                        playout_diff = ts_abs_diff( el->next_ptr->playoutpt,
+                                                    el->playoutpt );
+                        dprintf( "out of order playout units by %08u.\n",
+                                 playout_diff );
+                }
+                el = el->next_ptr;
+        }
+}
+#endif /* DEBUG */
 
 static rx_queue_element_struct *
 playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 {
 	rx_queue_element_struct	*ip;
-        
+
 	if ((ip = add_or_get_interval(buf, ru)) != ru) {
 		add_unit_to_interval(ip, ru);
 	}
+
+        smooth_playout_buffer(ip->prev_ptr,ip);
+        smooth_playout_buffer(ip,ip->next_ptr); 
+#ifdef DEBUG
+        verify_playout_buffer(buf);
+#endif /* DEBUG */
+
 	return (ru);
 }
 
@@ -312,6 +410,7 @@ service_receiver(cushion_struct *cushion, session_struct *sp, rx_queue_struct *r
 		    && ts_gt(up->playoutpt, cur_time)){
                         channel_decode(up);
 			decode_unit(up);
+                        dprintf("Mixing late audio\n");
 			if (up->native_count) {
 				mix_do_one_chunk(sp, ms, up);
 				if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
@@ -331,6 +430,16 @@ service_receiver(cushion_struct *cushion, session_struct *sp, rx_queue_struct *r
                         && up->prev_ptr->native_count) 
                         repair(sp->repair, up);
                     if (up->native_count && up->mixed == FALSE) {
+#ifdef DEBUG
+                            if (up->prev_ptr) 
+                            {
+                                    u_int32 src_diff = ts_abs_diff(up->prev_ptr->src_ts,up->src_ts);
+                                    if (src_diff!= up->unit_size) 
+                                    {
+                                            dprintf("src_ts jump %08d\n",src_diff);
+                                    }
+                            }
+#endif /* DEBUG */
                         mix_do_one_chunk(sp, ms, up);
                         if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
 				/* Request device using the mbus... */

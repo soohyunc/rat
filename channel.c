@@ -523,7 +523,13 @@ query_channel_coder(session_struct *sp, int pt, char *buf, unsigned int blen)
     if (cc->query) cc->query(sp, stp, buf, blen);
 }
 
-#ifdef NDEF		/* This is never used! Is something supposed to use it? [csp] */
+#ifdef NDEF  
+/* [csp] This is never used! Is something supposed to use it?
+ *
+ * [oth] Well they could do, it should return the bitrate of the channel 
+ *       coder...I don't think the lower level functions work properly though
+ */
+
 static int
 get_bps(session_struct *sp, int pt)
 {
