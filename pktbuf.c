@@ -48,7 +48,7 @@ pktbuf_create(struct s_pktbuf **ppb, u_int32 size)
                 return FALSE;
         }
         
-        pb->buflen = size;
+        pb->buflen = (u_int16)size;
         pb->used   = 0;
         pb->insert = 0;
         for(i = 0; i < size; i++) {

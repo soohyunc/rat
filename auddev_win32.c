@@ -1263,7 +1263,7 @@ w32sdk_audio_close_mixer(audio_desc_t ad)
         }
         
         mixRestoreControls(ad, &control_list);
-        mmr = mixerClose(ad);
+        mmr = mixerClose(hMixer); hMixer = 0;
         if (mmr != MMSYSERR_NOERROR) {
                 debug_msg("mixerClose failed: %s\n", mixGetErrorText(mmr));
         }

@@ -10,7 +10,7 @@
  * All rights reserved.
  *
  */
-
+#include <process.h>
 #ifdef WIN32
 #ifndef _CONFIG_WIN32_H
 #define _CONFIG_WIN32_H
@@ -139,9 +139,9 @@ int random(void);
 double drand48();
 int gettimeofday(struct timeval *p, struct timezone *z);
 unsigned long gethostid(void);
-int getuid(void);
-int getgid(void);
-int getpid(void);
+uid_t getuid(void);
+gid_t getgid(void);
+int   getpid(void);
 int nice(int);
 int usleep(unsigned int);
 time_t time(time_t *);

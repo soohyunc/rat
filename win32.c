@@ -113,12 +113,13 @@ nice(int pri)
     return 0;
 }
 
-extern void TkWinXInit(HINSTANCE hInstance);
 extern int main(int argc, const char *argv[]);
 extern int __argc;
 extern char **__argv;
 
 static char argv0[255];		/* Buffer used to hold argv0. */
+
+HINSTANCE hAppInstance;
 
 char *__progname = "main";
 
@@ -143,7 +144,7 @@ WinMain(
 
     debug_msg("WSAStartup OK: %sz\nStatus:%s\n", WSAdata.szDescription, WSAdata.szSystemStatus);
 
-    TkWinXInit(hInstance);
+    hAppInstance = hInstance;
 
     /*
      * Increase the application queue size from default value of 8.
@@ -170,6 +171,7 @@ WinMain(
     }
     
     r = main(__argc, (const char**)__argv);
+
     WSACleanup();
     return r;
 }
@@ -237,192 +239,6 @@ perror(const char *msg)
     }
 }
 
-int
-WinPutsCmd(ClientData clientData, Tcl_Interp *interp, int argc, char **argv)
-{
-    FILE *f;
-    int i, newline;
-    char *fileId;
-
-    i = 1;
-    newline = 1;
-    if ((argc >= 2) && (strcmp(argv[1], "-nonewline") == 0)) {
-	newline = 0;
-	i++;
-    }
-    if ((i < (argc-3)) || (i >= argc)) {
-	Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" ?-nonewline? ?fileId? string\"", (char *) NULL);
-	return TCL_ERROR;
-    }
-
-    /*
-     * The code below provides backwards compatibility with an old
-     * form of the command that is no longer recommended or documented.
-     */
-
-    if (i == (argc-3)) {
-	if (strncmp(argv[i+2], "nonewline", strlen(argv[i+2])) != 0) {
-	    Tcl_AppendResult(interp, "bad argument \"", argv[i+2],
-		    "\": should be \"nonewline\"", (char *) NULL);
-	    return TCL_ERROR;
-	}
-	newline = 0;
-    }
-    if (i == (argc-1)) {
-	fileId = "stdout";
-    } else {
-	fileId = argv[i];
-	i++;
-    }
-
-    if (strcmp(fileId, "stdout") == 0 || strcmp(fileId, "stderr") == 0) {
-	char *result;
-
-	if (newline) {
-	    int len = strlen(argv[i]);
-	    result = ckalloc(len+2);
-	    memcpy(result, argv[i], len);
-	    result[len] = '\n';
-	    result[len+1] = 0;
-	} else {
-	    result = argv[i];
-	}
-	OutputDebugString(result);
-	if (newline)
-	    ckfree(result);
-    } else {
-	return TCL_OK;
-	clearerr(f);
-	fputs(argv[i], f);
-	if (newline) {
-	    fputc('\n', f);
-	}
-	if (ferror(f)) {
-	    Tcl_AppendResult(interp, "error writing \"", fileId,
-		    "\": ", Tcl_PosixError(interp), (char *) NULL);
-	    return TCL_ERROR;
-	}
-    }
-    return TCL_OK;
-}
-
-int
-WinGetUserName(ClientData clientData, Tcl_Interp *interp, int argc, char **argv)
-{
-    char user[256];
-    int size = sizeof(user);
-    
-    if (!GetUserName(user, &size)) {
-	Tcl_AppendResult(interp, "GetUserName failed", NULL);
-	return TCL_ERROR;
-    }
-    purge_chars(user, " \"`'![]");
-    Tcl_AppendResult(interp, user, NULL);
-    return TCL_OK;
-}
-
-static HKEY
-regroot(root)
-    char *root;
-{
-    if (strcasecmp(root, "HKEY_LOCAL_MACHINE") == 0)
-	return HKEY_LOCAL_MACHINE;
-    else if (strcasecmp(root, "HKEY_CURRENT_USER") == 0)
-	return HKEY_CURRENT_USER;
-    else if (strcasecmp(root, "HKEY_USERS") == 0)
-	return HKEY_USERS;
-    else if (strcasecmp(root, "HKEY_CLASSES_ROOT") == 0)
-	return HKEY_CLASSES_ROOT;
-    else
-	return (HKEY)-1;
-}
-
-int 
-WinReg(ClientData clientdata, Tcl_Interp *interp, int argc, char **argv)
-{
-	static char szBuf[255], szOutBuf[255];
-        char *szRegRoot = NULL, *szRegPath = NULL, *szValueName;
-        int cbOutBuf = 255;
-        HKEY hKey, hKeyResult;
-        DWORD dwDisp;
-
-        if (argc < 4 || argc > 5) {
-                Tcl_AppendResult(interp, "wrong number of args\n", szBuf, NULL);
-                return TCL_ERROR;
-        }
-	
-        strcpy(szBuf, argv[2]);
-        szValueName = argv[3];
-        szRegRoot   = szBuf;
-        szRegPath   = strchr(szBuf, '\\');
-
-        if (szRegPath == NULL || szValueName == NULL) {
-                Tcl_AppendResult(interp, "registry path is wrongly written\n", szBuf, NULL);
-                return TCL_ERROR;
-        }
-        
-        *szRegPath = '\x0';
-        szRegPath++;
-
-        hKey = regroot(szRegRoot);
-        
-        if (hKey == (HKEY)-1) {
-                Tcl_AppendResult(interp, "root not found %s", szRegRoot, NULL);
-                return TCL_ERROR;
-        }
-
-        if (ERROR_SUCCESS != RegCreateKeyEx(hKey, szRegPath, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKeyResult, &dwDisp)) {
-                Tcl_AppendResult(interp, "Could not open key", szRegRoot, szRegPath, NULL);
-                return TCL_ERROR;
-        }
-
-	if (argc == 4 && !strcmp(argv[1],"get")) {
-                DWORD dwType = REG_SZ;
-                if (ERROR_SUCCESS != RegQueryValueEx(hKeyResult, szValueName, 0, &dwType, szOutBuf, &cbOutBuf)) {
-                        RegCloseKey(hKeyResult);
-                        Tcl_AppendResult(interp, "Could not set value", szValueName, NULL);
-                        return TCL_ERROR;       
-                }
-                Tcl_SetResult(interp, szOutBuf, TCL_STATIC);	
-        } else if (argc == 5 && !strcmp(argv[1], "set")) {
-                if (ERROR_SUCCESS != RegSetValueEx(hKeyResult, szValueName, 0, REG_SZ, argv[4], strlen(argv[4]))) {
-                        RegCloseKey(hKeyResult);
-                        Tcl_AppendResult(interp, "Could not set value", szValueName, argv[4], NULL);
-                        return TCL_ERROR;
-                }
-	}
-        RegCloseKey(hKeyResult);
-        return TCL_OK;
-}
-
-int
-RegGetValue(HKEY* key, char *subkey, char *value, char *dst, int dlen)
-{
-        HKEY lkey;      
-        LONG r;
-        LONG len;
-        DWORD type;
- 
-        r = RegOpenKeyEx(*key, subkey, 0, KEY_READ, &lkey);
- 
-        if (ERROR_SUCCESS == r) {
-                r = RegQueryValueEx(lkey, value, 0, &type, NULL, &len);
-                if (ERROR_SUCCESS == r && len <= dlen && type == REG_SZ) {
-                        type = REG_SZ;
-                        r = RegQueryValueEx(lkey, value, 0, &type, dst, &len);
-                } else {
-                        SetLastError(r);
-                        perror("");
-                }
-        } else {
-                SetLastError(r);
-                perror("");
-                return FALSE;
-        }
-        RegCloseKey(lkey);
-        return TRUE;
-}
 
 #define MAX_VERSION_STRING_LEN 256
 const char*

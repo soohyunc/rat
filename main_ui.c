@@ -48,10 +48,16 @@ static void parse_args(int argc, char *argv[])
 	}
 }
 
+extern HINSTANCE hAppInstance;
+extern int       TkWinXInit(HINSTANCE);
+extern void      TkWinXCleanup(HINSTANCE);
+
 int main(int argc, char *argv[])
 {
 	struct mbus	*m;
 	struct timeval	 timeout;
+
+        TkWinXInit(hAppInstance);
 
 	debug_msg("rat-ui started argc=%d\n", argc);
 	parse_args(argc, argv);
@@ -121,6 +127,8 @@ int main(int argc, char *argv[])
 		timeout.tv_usec = 20000;
 		mbus_recv(m, NULL, &timeout);
 	} while (!mbus_sent_all(m));
-	return 0;
+        
+        TkWinXCleanup(hAppInstance);
+        return 0;
 }
 
