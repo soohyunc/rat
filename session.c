@@ -531,7 +531,15 @@ session_parse_late_options_common(int argc, char *argv[], session_t *sp[], int s
                                 }
                         }        
                         if ((strcmp(argv[i], "-repair") == 0) && (argc > i+1)) {
-                                sp[s]->repair = repair_get_by_name(argv[i+1]);
+                                const repair_details_t* rd;
+                                u_int16 r, nr = repair_get_count();
+                                for(r = 0; r < nr; r++) {
+                                        rd = repair_get_details(r);
+                                        if (strcasecmp(argv[i+1], rd->name) == 0) {
+                                                sp[s]->repair = rd->id;
+                                        }
+                                }
+                                i++;
                         }
                         if ((strcmp(argv[i], "-interleave") == 0) && (argc > i+1)) {
                                 printf("%s: not supported in this release\n", argv[i]);

@@ -446,6 +446,8 @@ static void rx_audio_output_port(char *srce, char *args, session_t *sp)
 
 static void rx_audio_channel_repair(char *srce, char *args, session_t *sp)
 {
+        const repair_details_t *r;
+        u_int16 i, n;
 	char	*s;
 
 	UNUSED(srce);
@@ -454,9 +456,17 @@ static void rx_audio_channel_repair(char *srce, char *args, session_t *sp)
 	if (mbus_parse_str(sp->mbus_engine, &s)) {
 		s = mbus_decode_str(s);
                 if (!strcasecmp(s, "first")) {
-                        sp->repair = repair_get_by_name(repair_get_name(0));
+                        r = repair_get_details(0);
+                        sp->repair = r->id;
                 } else {
-                        sp->repair = repair_get_by_name(s);
+                        n = repair_get_count();
+                        for(i = 0; i < n; i++) {
+                                r = repair_get_details(0);
+                                if (strcasecmp(r->name, s) == 0 || strcasecmp("first", s) == 0) {
+                                        sp->repair = r->id;
+                                        break;
+                                }
+                        }
                 }
 	} else {
 		debug_msg("mbus: usage \"audio.channel.repair <repair>\"\n");

@@ -833,7 +833,6 @@ source_repair(source *src,
                 src->consec_lost ++;
                 src->last_repair = fill_ts;
                 pb_iterator_advance(src->media_pos);
-
 #ifndef NDEBUG
         /* Reusing prev_* - c'est mal, je sais */
                 pb_iterator_get_at(src->media_pos,
@@ -844,7 +843,6 @@ source_repair(source *src,
                         debug_msg("Added at %d, but got %d when tried to get it back!\n", fill_ts.ticks, prev_ts.ticks);
                         return FALSE;
                 }
-                
 #endif
         } else {
                 /* This should only ever fail at when source changes
@@ -860,7 +858,7 @@ source_repair(source *src,
 }
 
 int
-source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_type, ts_t now)
+source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t repair_type, ts_t now)
 {
         media_data  *md;
         coded_unit  *cu;
@@ -869,9 +867,18 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
         ts_t        playout, step, cutoff;
         int         i, success, hold_repair = 0;
 
-        static int repair_none = -1;
-        if (repair_none == -1) {
-                repair_none = repair_get_by_name("None");
+        static repair_id_t repair_none = 0;
+        if (!repair_none) {
+                const repair_details_t *r;
+                u_int16 j, n;
+                n = repair_get_count();
+                for(j = 0; j < n; j++) {
+                        r = repair_get_details(i);
+                        if (strcasecmp("none", r->name)) {
+                                repair_none = r->id;
+                                break;
+                        }
+                }
         }
 
         /* Note: hold_repair is used to stop repair occuring.

@@ -321,11 +321,20 @@ ui_output_level(session_t *sp, int level)
 static void
 ui_repair(session_t *sp)
 {
+        const repair_details_t *d;
+        u_int16 i, n;
 	char	*mbes;
 
-        mbes = mbus_encode_str(repair_get_name((u_int16)sp->repair));
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.channel.repair", mbes, FALSE);
-	xfree(mbes);
+        n = repair_get_count();
+        for (i = 0; i < n; i++) {
+                d = repair_get_details(i);
+                if (d->id == sp->repair) {
+                        mbes = mbus_encode_str(d->name);
+                        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.channel.repair", mbes, FALSE);
+                        xfree(mbes);
+                        break;
+                }
+        }
 }
 
 void
@@ -889,14 +898,16 @@ ui_update_converter(session_t *sp)
 static void
 ui_repair_schemes(session_t *sp)
 {
+        const repair_details_t *r;
         char *mbes;
-        u_int16 i, cnt;
+        u_int16 i, n;
         
-        cnt = repair_get_count();
+        n = repair_get_count();
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.repairs.flush", "", TRUE);
 
-        for(i = 0; i < cnt; i++) {
-                mbes = mbus_encode_str(repair_get_name(i));
+        for(i = 0; i < n; i++) {
+                r = repair_get_details(i);
+                mbes = mbus_encode_str(r->name);
                 mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.repairs.add", mbes, TRUE);
                 xfree(mbes);
         }
@@ -905,12 +916,21 @@ ui_repair_schemes(session_t *sp)
 void
 ui_update_repair(session_t *sp)
 {
+        const repair_details_t *r;
+        u_int16 i, n;
         char *mbes;
 
-        assert(sp->repair < repair_get_count());
-        mbes = mbus_encode_str(repair_get_name((u_int16)sp->repair));
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.repair", mbes, TRUE);
-        xfree(mbes);
+        n = repair_get_count();
+        for (i = 0; i < n; i++) {
+                r = repair_get_details(i);
+                if (sp->repair == i) {
+                        mbes = mbus_encode_str(r->name);
+                        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.repair", mbes, TRUE);
+                        xfree(mbes);
+                        return;
+                }
+        }
+        debug_msg("Repair not found\n");
 }
 
 void

@@ -16,7 +16,8 @@
 
 #include "net_udp.h"
 #include "ts.h"
-#include "converter.h"
+#include "converter_types.h"
+#include "repair_types.h"
 
 /* This will have to be raised in the future */
 #define MAX_LAYERS      2
@@ -69,8 +70,8 @@ typedef struct s_session {
 	int                      num_encodings; /* no of unique encs in used */
         struct s_channel_state  *channel_coder;
 	int                 playing_audio;
-	int		    repair;           /* Packet repair */
-        converter_id_t      converter;
+	repair_id_t	    repair;           /* Loss concealment algorithm */
+        converter_id_t      converter;        /* Sample-rate Converter */
 	int		    lecture;          /* UI lecture mode */
 	int		    render_3d;
         int                 echo_suppress;

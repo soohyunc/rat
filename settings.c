@@ -27,6 +27,7 @@
 #include "auddev.h"
 #include "version.h"
 #include "settings.h"
+#include "converter.h"
 #include "rtp.h"
 
 typedef struct s_hash_tuple {
@@ -360,6 +361,7 @@ void settings_load_early(session_t *sp)
 	cc_details			 ccd;
         const audio_port_details_t 	*apd = NULL;
         const converter_details_t       *cod = NULL;
+        const repair_details_t          *r;
         codec_id_t                       cid;
 
 	load_init();		/* Initial settings come from the common prefs file... */
@@ -424,9 +426,20 @@ void settings_load_early(session_t *sp)
 	channel_encoder_set_parameters(sp->channel_coder, setting_load_str("audioChannelParameters", "None"));
 	channel_encoder_set_units_per_packet(sp->channel_coder, (u_int16) setting_load_int("audioUnits", 1));
 
-        setting_load_str("audioRepair", "Pattern-Match");
+        /* Set default repair to be first available */
+        r          = repair_get_details(0);
+        sp->repair = r->id;
+        name       = setting_load_str("audioRepair", "Pattern-Match");
+        n          = (int)repair_get_count();
+        for(i = 0; i < n; i++) {
+                r = repair_get_details(i);
+                if (strcasecmp(r->name, name) == 0) {
+                        sp->repair = r->id;
+                        break;
+                }
+        }
 
-        /* Set converter to be first available */
+        /* Set default converter to be first available */
         cod           = converter_get_details(0);
         sp->converter = cod->id;
         name          = setting_load_str("audioAutoConvert", "High Quality");
@@ -434,7 +447,7 @@ void settings_load_early(session_t *sp)
         /* If converter setting name matches then override existing choice */
         for(i = 0; i < n; i++) {
                 cod = converter_get_details(i);
-                if (strcasecmp(cod->name, name)) {
+                if (strcasecmp(cod->name, name) == 0) {
                         sp->converter = cod->id;
                         break;
                 }
@@ -555,16 +568,18 @@ static void setting_save_int(const char *name, const long val)
 
 void settings_save(session_t *sp)
 {
-	codec_id_t	 		 pri_id;
         const codec_format_t 		*pri_cf;
+        const audio_port_details_t 	*iapd = NULL, *oapd = NULL;
+        const audio_format 		*af;
+        const repair_details_t          *repair = NULL;
+        const converter_details_t       *converter;
+	audio_device_details_t		 ad;
+	codec_id_t	 		 pri_id;
         cc_details 			 cd;
 	int				 cc_len;
 	char				*cc_param;
-        const converter_details_t       *converter;
 	int		 		 i;
-	audio_device_details_t		 ad;
-        const audio_format 		*af;
-        const audio_port_details_t 	*iapd = NULL, *oapd = NULL;
+        u_int16                          j,n;
         u_int32                          my_ssrc;
 
 	pri_id   = codec_get_by_payload(sp->encodings[0]);
@@ -574,14 +589,23 @@ void settings_save(session_t *sp)
         channel_encoder_get_parameters(sp->channel_coder, cc_param, cc_len);
         channel_get_coder_identity(sp->channel_coder, &cd);
 
-        for(i = 0; i < (int) converter_get_count(); i++) {
-                converter = converter_get_details(i);
+        n = converter_get_count();
+        for (j = 0; j < n; j++) {
+                converter = converter_get_details(j);
                 if (sp->converter == converter->id) {
 			break;
                 }
         }
+        
+        n = repair_get_count();
+        for (j = 0; j < n; j++) {
+                repair = repair_get_details(j);
+                if (sp->repair == repair->id) {
+                        break;
+                }
+        }
 
-        for(i = 0; i < audio_get_device_count(); i++) {
+        for (i = 0; i < audio_get_device_count(); i++) {
                 if (audio_get_device_details(i, &ad) && sp->audio_device == ad.descriptor) {
                         break;
                 }
@@ -617,26 +641,26 @@ void settings_save(session_t *sp)
 	setting_save_int("audioChannelsIn",        af->channels); 
 	
 	/* If we save a dynamically mapped codec we crash when we reload on startup */
-	if(pri_cf->default_pt!=CODEC_PAYLOAD_DYNAMIC) {
-	  setting_save_str("audioPrimary",           pri_cf->short_name);
-	  /* If vanilla channel coder don't save audioChannelParameters - it's rubbish */
-	   if(strcmp(cd.name, "Vanilla")==0) {
-	     setting_save_str("audioChannelParameters", cc_param);
-	   }
-	   else {
-	     setting_save_str("audioChannelParameters", "None");
-	   }
+	if (pri_cf->default_pt != CODEC_PAYLOAD_DYNAMIC) {
+                setting_save_str("audioPrimary",           pri_cf->short_name);
+                /* If vanilla channel coder don't save audioChannelParameters - it's rubbish */
+                if (strcmp(cd.name, "Vanilla") == 0) {
+                        setting_save_str("audioChannelParameters", cc_param);
+                }
+                else {
+                        setting_save_str("audioChannelParameters", "None");
+                }
 	}
 
-	setting_save_int("audioUnits",             channel_encoder_get_units_per_packet(sp->channel_coder));
+	setting_save_int("audioUnits", channel_encoder_get_units_per_packet(sp->channel_coder));
 	/* Don't save the layered channel coder - you need to start it from the command
 	line anyway */
-	if(strcmp(cd.name, "Layering")==0) {
+	if (strcmp(cd.name, "Layering") == 0) {
 		setting_save_str("audioChannelCoding", "Vanilla");
 	}
 	else setting_save_str("audioChannelCoding",     cd.name);
 	setting_save_str("audioChannelCoding",     cd.name);
-	setting_save_str("audioRepair",            repair_get_name((u_int16)sp->repair));
+	setting_save_str("audioRepair",            repair->name);
 	setting_save_str("audioAutoConvert",       converter->name);
 	setting_save_int("audioLimitPlayout",      sp->limit_playout);
 	setting_save_int("audioMinPlayout",        sp->min_playout);

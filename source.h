@@ -66,7 +66,7 @@ int              source_check_buffering    (struct s_source   *src,
 int              source_process            (struct s_source   *src,
                                             struct s_mix_info *ms,
                                             int                render_3d,
-                                            int                repair,
+                                            repair_id_t        repair,
                                             ts_t               now);
 
 int              source_relevant           (struct s_source *src,

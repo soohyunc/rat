@@ -16,8 +16,8 @@
 #include "audio_types.h"
 #include "util.h"
 #include "debug.h"
-
 #include "audio_util.h"
+#include "repair_types.h"
 
 #include <stdlib.h>
 
@@ -34,8 +34,8 @@ typedef int (*repair_f)(sample **audio_buf,
                         int consec_lost);
 
 typedef struct {
-        const char *name;
-        repair_f    action;
+        repair_details_t details;
+        repair_f         action;
 } repair_scheme;
 
 /* Lots of room for optimization here on in - went for cleanliness + 
@@ -266,38 +266,42 @@ single_side_pattern_match(sample **audio_buf, const audio_format **audio_fmt, in
         return TRUE;
 }
 
+#define REPAIR_ID_TO_IDX(x) (((x) - 1001) >> 2)
+#define IDX_TO_REPAIR_ID(x) (((x) << 2) + 1001)
+
 static repair_scheme schemes[] = {
-        {"Pattern-Match", single_side_pattern_match},
-        {"Repeat",        repetition},
-        {"Noise",         noise_substitution},
-        {"None",          NULL}  /* Special place for scheme none - move at own peril */
+        {
+                {"Pattern-Match", IDX_TO_REPAIR_ID(0)}, 
+                single_side_pattern_match},
+        {
+                {"Repeat",        IDX_TO_REPAIR_ID(1)},
+                repetition},
+        {
+                {"Noise",         IDX_TO_REPAIR_ID(2)},
+                noise_substitution},
+        {
+                {"None",          IDX_TO_REPAIR_ID(3)},
+                NULL
+        } 
 };
 
 /* General interface */
 
 #define REPAIR_NUM_SCHEMES sizeof(schemes)/sizeof(repair_scheme)
-#define REPAIR_NONE        ((REPAIR_NUM_SCHEMES) - 1)
+#define REPAIR_NONE       (REPAIR_NUM_SCHEMES - 1)
 
 #include "codec_types.h"
 #include "codec_state.h"
 #include "codec.h"
 #include "repair.h"
 
-const char *
-repair_get_name(u_int16 id)
+const repair_details_t*
+repair_get_details(u_int16 i)
 {
-        if (id < REPAIR_NUM_SCHEMES) return schemes[id].name;
-        return schemes[REPAIR_NONE].name;
-}
-
-u_int16
-repair_get_by_name(const char *name)
-{
-        u_int16 i;
-        for(i = 0; i < REPAIR_NUM_SCHEMES; i++) {
-                if (!strcasecmp(name, schemes[i].name)) return i;
+        if (i < REPAIR_NUM_SCHEMES) {
+                return &schemes[i].details;
         }
-        return REPAIR_NONE;
+        return NULL;
 }
 
 u_int16

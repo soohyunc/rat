@@ -16,6 +16,7 @@
 
 #include "codec_types.h"
 #include "codec_state.h"
+#include "repair_types.h"
 
 int repair(int                          repair,
            int                          consec_lost,
@@ -24,9 +25,8 @@ int repair(int                          repair,
            coded_unit                  *missing);
 
 
-u_int16         repair_get_count   (void);
-const char     *repair_get_name    (u_int16 scheme);
-u_int16         repair_get_by_name (const char *name);
+u_int16                 repair_get_count   (void);
+const repair_details_t *repair_get_details (u_int16 n);
 
 void repair_set_codec_specific_allowed(int allowed);
 int  repair_get_codec_specific_allowed(void);

@@ -1738,10 +1738,10 @@ pack $i.r -side top -fill x -pady 0 -ipady 1
 pack $i.o -side top -fill both  -pady 1
 pack $i.c -side top -fill both  -pady 1 -expand 1
 label $i.r.l -text "Repair Scheme:"
-tk_optionCmdMenu $i.r.m repair_var {None}
+tk_optionCmdMenu $i.r.m repair_var {}
 
 label $i.r.ls -text "Sample Rate Conversion"
-tk_optionCmdMenu $i.r.ms convert_var {None}
+tk_optionCmdMenu $i.r.ms convert_var {}
 
 $i.r.m  configure -width 20 -bd 1
 $i.r.ms configure -width 20 -bd 1
