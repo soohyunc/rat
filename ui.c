@@ -605,8 +605,6 @@ ui_update_3d_enabled(session_struct *sp)
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.3d.enabled", args, TRUE);
 }
 
-
-
 static void
 ui_devices(session_struct *sp)
 {
@@ -939,6 +937,55 @@ ui_get_codecs(int pt, char *buf, unsigned int buf_len, int loose)
         return buf;
 }
 
+static void
+ui_mod_codecs(session_struct *sp)
+{
+        char entry[255], *mbes[3];
+        u_int32 nCodecs, iCodec;
+        u_char pt;
+        codec_id_t cid;
+        const codec_format_t *cf;
+
+        nCodecs = codec_get_number_of_codecs();
+
+        for(iCodec = 0; iCodec < nCodecs; iCodec++) {
+                cid = codec_get_codec_number(iCodec);
+                if (!cid) continue;
+                cf  = codec_get_format(cid);
+                if (cf == NULL) continue;
+                mbes[0] = mbus_encode_str(cf->long_name);
+                mbes[1] = mbus_encode_str(cf->short_name);
+                mbes[2] = mbus_encode_str(cf->description);
+                pt = codec_get_payload(cid);
+                if (payload_is_valid(pt)) {
+                        sprintf(entry, 
+                                "%u %s %s %d %d %d %d %d %s",
+                                pt,
+                                mbes[0],
+                                mbes[1],
+                                cf->format.channels,
+                                cf->format.sample_rate,
+                                cf->format.bytes_per_block,
+                                cf->mean_per_packet_state_size,
+                                cf->mean_coded_frame_size,
+                                mbes[2]);
+                } else {
+                        sprintf(entry, 
+                                "- %s %s %d %d %d %d %d %s",
+                                mbes[0],
+                                mbes[1],
+                                cf->format.channels,
+                                cf->format.sample_rate,
+                                cf->format.bytes_per_block,
+                                cf->mean_per_packet_state_size,
+                                cf->mean_coded_frame_size,
+                                mbes[2]);
+                }
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.codec.details", entry, TRUE);
+                xfree(mbes[2]); xfree(mbes[1]); xfree(mbes[0]);
+        }
+}
+
 void 
 ui_codecs(session_struct *sp, int pt)
 {
@@ -1115,6 +1162,7 @@ ui_initial_settings(session_struct *sp)
         ui_converters(sp);
         ui_repair_schemes(sp);
 	ui_codecs(sp, sp->encodings[0]);
+        ui_mod_codecs(sp);
         ui_3d_options(sp);
 	ui_info_update_cname(sp, sp->db->my_dbe);
 	ui_info_update_tool(sp, sp->db->my_dbe);

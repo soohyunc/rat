@@ -180,6 +180,7 @@ proc mbus_recv {cmnd args} {
 		tool.rat.sync  			{eval mbus_recv_tool.rat.sync $args}
 		tool.rat.format.in              {eval mbus_recv_tool.rat.format.in $args}
 		tool.rat.codec  		{eval mbus_recv_tool.rat.codec $args}
+		tool.rat.codec.details          {eval mbus_recv_tool.rat.codec.details $args}
 		tool.rat.rate  			{eval mbus_recv_tool.rat.rate $args}
 		tool.rat.lecture.mode  		{eval mbus_recv_tool.rat.lecture.mode $args}
 		tool.rat.disable.audio.ctls  	{eval mbus_recv_tool.rat.disable.audio.ctls $args}
@@ -272,6 +273,8 @@ proc change_sampling { } {
     update_channels_displayed
 
     mbus_send "R" "tool.rat.sampling" "[mbus_encode_str $freq] [mbus_encode_str $ichannels]"
+
+    puts "[codecs_loosely_matching $freq $ichannels]"
 }
 
 proc mbus_recv_tool.rat.sampling.supported {arg} {
@@ -298,6 +301,69 @@ proc mbus_recv_tool.rat.sampling.supported {arg} {
     set freq [lindex $freqs 0]
     update_channels_displayed
 }
+
+# CODEC HANDLING ##############################################################
+
+set codecs "none"
+set codec_nick_name(none)  "none"
+set codec_channels(none)   0 
+set codec_rate(none)       0
+set codec_pt(none)         1234
+set codec_state_size(none) 0
+set codec_data_size(none)  0
+set codec_block_size(none) 0 
+set codec_desc(none)       0
+
+proc codecs_loosely_matching {freq channels} {
+    global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc
+    
+    set x {}
+
+    if {[string match $channels Mono]} {
+	set channels 1
+    } else {
+	set channels 2
+    }
+
+    set freq [string trimright $freq -kHz]
+    set freq [expr $freq * 1000]
+
+    foreach {c} $codecs {
+	if {$codec_channels($c) == $channels && $codec_rate($c) == $freq} {
+	    lappend x $c
+	}
+    }
+
+    return $x
+}
+
+proc mbus_recv_tool.rat.codec.details {args} {
+    catch {
+	global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc
+	
+	set name [lindex $args 1]
+	if {[lsearch $codecs $name] == -1} {
+	    lappend codecs $name
+	}
+	set codec_pt($name)         [lindex $args 0]
+	set codec_nick_name($name)  [lindex $args 2]
+	set codec_channels($name)   [lindex $args 3]
+	set codec_rate($name)       [lindex $args 4]
+	set codec_block_size($name) [lindex $args 5]
+	set codec_state_size($name) [lindex $args 6]
+	set codec_data_size($name)  [lindex $args 7]
+	set codec_desc($name)       [lindex $args 8]
+	set stackup ""
+    } details_error
+
+    if { $details_error != "" } {
+	puts "Error: $details_error"
+	destroy .
+	exit -1
+    }
+}
+
+###############################################################################
 
 proc mbus_recv_tool.rat.codec.supported {arg} {
     # We now have a list of codecs which this RAT supports...
