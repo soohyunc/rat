@@ -625,14 +625,21 @@ int mbus_parse_flt(struct mbus *m, double *d)
 
 char *mbus_decode_str(char *s)
 {
-	int   l = strlen(s);
+	int	l = strlen(s);
+	int	i, j;
 
 	/* Check that this an encoded string... */
 	assert(s[0]   == '\"');
 	assert(s[l-1] == '\"');
 
-	memmove(s, s+1, l-2);
-	s[l-2] = '\0';
+	for (i=1,j=0; i < l - 1; i++,j++) {
+		if (s[i] == '\\') {
+			i++;
+		}
+		s[j] = s[i];
+	}
+	s[j] = '\0';
+	printf("[%s] %d %d %d\n", s, i, j, l);
 	return s;
 }
 
@@ -641,15 +648,25 @@ char *mbus_encode_str(const char *s)
 	static char	*encode_buffer = NULL;
 	static int	 encode_buflen = 0;
 
+	int i, j;
 	int l = strlen(s);
-	if (encode_buflen < (l + 3)) {
+
+	if (encode_buflen < ((l * 2) + 3)) {
 		if (encode_buffer != NULL) {
 			xfree(encode_buffer);
 		}
-		encode_buflen = l+3;
+		encode_buflen = (l * 2) + 3;
 		encode_buffer = (char *) xmalloc(encode_buflen);
 	}
-	strcpy(encode_buffer+1, s);
+	for (i = 0, j = 0; i < l; i++,j++) {
+		if (s[i] == '\"') {
+			encode_buffer[j+1] = '\\';
+			encode_buffer[j+2] = '\"';
+			j++;
+		} else {
+			encode_buffer[j+1] = s[i];
+		}
+	}
 	encode_buffer[0]   = '\"';
 	encode_buffer[l+1] = '\"';
 	encode_buffer[l+2] = '\0';
