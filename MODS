@@ -1205,13 +1205,16 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 
 4.1.9	- fix configure script handling of X_CFLAGS during broken header tests
 	  reported by Atanu.
-	- remove variable component (e->playout) from spike threshold in source 
-	  processing, believe this is part of the bad spike messages (160>nnnnn).
-        - Changes to Win32 driver to remove race condition (audio callback
-          occuring as audio being taken from list of ready buffers).
+	- remove variable component (e->playout) from spike threshold in 
+	  source processing, believe this is part of the bad spike messages 
+	  (160>nnnnn).
+        - Changes to Win32 driver read code to remove race condition (audio
+	  callback occuring as audio being taken from list of ready buffers).
         - Move participant database clean up into session_exit.
         - Destroy local file player and tone generator when reconfiguring
           device.
+	- Changes to Win32 driver interface write code.  Appears to resolve
+	  problems with a few troublesome cards.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1231,9 +1234,6 @@ TODO -- They're features not bugs dammit!
 	  G722, and "CD Quality" audio: it may do, but you can't access them.
 	- SGI O2's don't have autosensing audio interface selection like 
 	  Indy's.
-	- Does not run on Windows 2000.  Appears to have problems with mixer
-	  MS may have tightened up requirements relative to 9x/NT.  Almost
-	  certainly need to run debug version of Win2K to find out.
  
 - 3d renderer should decimate when using sampling rates other than
   that for which it was originally designed for.
