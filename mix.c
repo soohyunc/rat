@@ -205,11 +205,12 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
                          * - fill in size of buffer into el->native_size[ el->native_count ]
                          * - increment el->native_count
 		         */
-
-		         if (el->native_count < MAX_NATIVE) {
-                                 el->native_data[el->native_count] = block_alloc(el->native_size[el->native_count]);
-			 }
-
+#ifdef 0
+                        if (el->native_count < MAX_NATIVE) {
+                                el->native_data[el->native_count] = block_alloc(el->native_size[el->native_count]);
+                        }
+                        localise_sound(el);
+#endif
 		}
 	}
         }
