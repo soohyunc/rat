@@ -449,6 +449,8 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 	rx_queue_element_struct	*up;
 	ppb_t			*buf, **bufp;
 	u_int32			cur_time, cs, cu, chunks_mixed;
+
+        cu = cu = 0;
         
 	while (receive_queue->queue_empty == FALSE) {
 		up       = get_unit_off_rx_queue(receive_queue);
@@ -541,13 +543,16 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		clear_old_participant_history(buf);
 
                 if (buf->len > 2 * buf->src->playout_ceil/cu) {
-                        debug_msg("source clock is fast relative\n");
+                        debug_msg("source clock is fast relative %d %d\n",
+                                  buf->len,
+                                  2 * buf->src->playout_ceil/cu);
                         buf->src->playout_danger = TRUE;
-                } else if (buf->len < buf->src->playout_ceil / (2 * cu)&& 
+                } else if (buf->len < buf->src->playout_ceil / (4 * cu)&& 
                            !PB_DRAINING(buf)) {
                         debug_msg("source clock is relatively slow len %d concern len %d\n", buf->len, buf->src->playout_ceil/(2*cu));
                         buf->src->playout_danger = TRUE;
                 }
+
 	}
 	for (bufp = buf_list; *bufp;) {
 		if ((*bufp)->head_ptr == NULL) {
