@@ -944,7 +944,7 @@ static void rx_mbus_go(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(srce);
 	UNUSED(args);
-	UNUSED(sp);
+	sp->wait_on_startup = FALSE;
 }
 
 static void rx_mbus_hello(char *srce, char *args, session_struct *sp)
