@@ -184,7 +184,6 @@ static void rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct 
                                 e->render_3D_data = render_3D_init(sp);
                         }
                         render_3D_set_parameters(e->render_3D_data, freq, azimuth, filter_type, filter_length);
-                        debug_msg("cname: %s filter: %s length: %d azimuth: %d", cname, filter_name, filter_length, azimuth);
                 }
         } else {
                 printf("mbus: usage \"tool.rat.3d.user.settings <cname> <filter name> <filter len> <azimuth>\"\n");

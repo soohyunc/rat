@@ -212,11 +212,11 @@ render_3D_set_parameters(struct s_render_3D_dbentry *p_3D_data, int sampling_rat
 
         /* derive interaural time difference from azimuth */
         aux= azimuth * 0.017453203;                                /* conversion into radians */
-        d_time = 2.72727 * sin((double) azimuth);
+        d_time = 2.72727 * sin(aux);
         p_3D_data->delay = abs((int) (sampling_rate * d_time / 1000));
 
         /* derive interaural intensity difference from azimuth */
-        d_intensity = 1.0 - (0.3 * fabs(sin((double) azimuth)));
+        d_intensity = 1.0 - (0.3 * fabs(sin(aux)));
         p_3D_data->attenuation = d_intensity;
 
         /* fill up participant's response filter */
@@ -379,8 +379,13 @@ convolve(sample *signal, sample *answer, double *overlap, double *response, int 
                         current += *overlap_rptr_1++ * *response_rptr++;
                 }
                 /* Clamping */
-                if (current > 32767.0) current = 32767.0;
-                if (current < -32768.0) current = -32768.0;
+                if (current > 32767.0) {
+                        current = 32767.0;
+                        debug_msg("clipping\n");
+                } else if (current < -32767.0) {
+                        current = -32767.0;
+                        debug_msg("clipping\n");
+                }
                 /* store 'current' in answer vector. */
                 current = ceil(current-0.5);
                 *answer_rptr++ = (short)current;
