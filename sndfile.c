@@ -288,6 +288,28 @@ snd_get_format(sndfile_t *sf, sndfile_fmt_t *fmt)
         return sf->sfh->get_format(sf->state, fmt);
 } 
 
+int
+snd_valid_format(sndfile_fmt_t *fmt)
+{
+        if (fmt->channels != 1 && 
+            fmt->channels != 2) {
+                return FALSE;
+        }
+
+        if ((fmt->sample_rate % 8000)  != 0 &&
+            (fmt->sample_rate % 11025) != 0) {
+                return FALSE;
+        }
+
+        if (fmt->encoding != SNDFILE_ENCODING_PCMU &&
+            fmt->encoding != SNDFILE_ENCODING_PCMA &&
+            fmt->encoding != SNDFILE_ENCODING_L16) {
+                return FALSE;
+        }
+
+        return TRUE;
+}
+
 int 
 snd_pause(sndfile_t  *sf)
 {

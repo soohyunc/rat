@@ -61,6 +61,8 @@ int  snd_resume (struct s_sndfile *sf);
 
 int  snd_get_format(struct s_sndfile *sf, sndfile_fmt_t *fmt);
 
+int  snd_valid_format(sndfile_fmt_t *fmt);
+
 #ifdef __cplusplus
 }
 #endif
