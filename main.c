@@ -120,12 +120,12 @@ main(int argc, char *argv[])
 
 	if (sp[0]->mode == AUDIO_TOOL) {
 		sprintf(mbus_engine_addr, "(audio engine rat %lu)", (u_int32) getpid());
-		sp[0]->mbus_engine = mbus_init(0, mbus_engine_rx, NULL); 
+		sp[0]->mbus_engine = mbus_init(mbus_engine_rx, NULL);
 		mbus_addr(sp[0]->mbus_engine, mbus_engine_addr);
 
 		if (sp[0]->ui_on) {
 			sprintf(mbus_ui_addr, "(audio ui rat %lu)", (u_int32) getpid());
-			sp[0]->mbus_ui = mbus_init(0, mbus_ui_rx, NULL);
+			sp[0]->mbus_ui = mbus_init(mbus_ui_rx, NULL);
 			mbus_addr(sp[0]->mbus_ui, mbus_ui_addr);
 			tcl_init(sp[0], argc, argv, mbus_engine_addr);
 		} else {
