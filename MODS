@@ -1216,11 +1216,12 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	- Changes to Win32 driver interface write code.  Appears to resolve
 	  problems with a few troublesome cards.
 	- Replace puts with bgerror where appropriate in ui script.
-	* Released 30 March 2000 for Win32 only.
+	* Tagged 30 March 2000 (not released).
 
 4.2.0   - Fix mixer writing to new head position so it mixes multiple streams
-          again!
+	  again!
 	- Fix phase skips of tone generator.
+	- Add RTP flush after device reconfiguration.
 
 TODO -- They're features not bugs dammit!
 ----
