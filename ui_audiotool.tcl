@@ -881,26 +881,34 @@ proc mbus_recv_rtp.source.mute {ssrc val} {
 }
 
 proc mbus_recv_audio.file.play.ready {name} {
-	global play_file
-	set    play_file(name) $name
+    global play_file
+    set    play_file(name) $name
+
+    if {$play_file(state) != "play"} {
 	file_enable_play
+    }
 }
 
 proc mbus_recv_audio.file.play.alive {alive} {
-	global play_file
-	
-	if {$alive} {
-		after 200 file_play_live
-	} else {
-		set play_file(state) end
-		file_enable_play
-	}
+    
+    global play_file
+
+    puts "$alive"
+
+    if {$alive} {
+	after 200 file_play_live
+    } else {
+	set play_file(state) end
+	file_enable_play
+    }
 }
 
 proc mbus_recv_audio.file.record.ready {name} {
-	global record_file
-	set    record_file(name) $name
+    global rec_file
+    set    rec_file(name) $name
+    if {$rec_file(state) != "record"} {
 	file_enable_record
+    }
 }
 
 proc mbus_recv_audio.file.record.alive {alive} {
@@ -2479,32 +2487,39 @@ chart_enlarge 1
 # File Control Window 
 #
 
+set play_file(state) end
+set rec_file(state) end
+
 catch {
     toplevel .file
     wm protocol .file WM_DELETE_WINDOW {set files_on 0; file_show}
-	frame .file.play
-	frame .file.rec
-	pack  .file.play -side left
-	pack  .file.rec  -side right
-
-	label .file.play.l -text "Playback"
-	pack  .file.play.l -side top -fill x
-	label .file.rec.l -text "Record"
-	pack  .file.rec.l -side top -fill x
-
-	wm withdraw .file
-	wm title	.file "RAT File Control"
-
-	foreach action { play rec } {
-		frame  .file.$action.buttons
-		pack   .file.$action.buttons
-		button .file.$action.buttons.disk -bitmap disk -command "fileDialog $action"
-		pack   .file.$action.buttons.disk -side left
-		foreach cmd "$action pause stop" {
-			button .file.$action.buttons.$cmd -bitmap $cmd -state disabled -command file_$action\_$cmd
-			pack   .file.$action.buttons.$cmd -side left
-		}
+    frame .file.play -relief ridge
+    frame .file.rec  -relief ridge
+    pack  .file.play -side top -pady 2 -padx 2 -fill x -expand 1
+    pack  .file.rec  -side bottom -pady 2 -padx 2 -fill x -expand 1
+    
+    label .file.play.l -text "Playback"
+    pack  .file.play.l -side top -fill x
+    label .file.rec.l -text "Record"
+    pack  .file.rec.l -side top -fill x
+    
+    wm withdraw .file
+    wm title	.file "RAT File Control"
+    
+    foreach action { play rec } {
+	frame  .file.$action.buttons
+	pack   .file.$action.buttons
+	button .file.$action.buttons.disk -bitmap disk -command "fileDialog $action"
+	pack   .file.$action.buttons.disk -side left -padx 2 -pady 2 -anchor n
+	
+	foreach cmd "$action pause stop" {
+	    button .file.$action.buttons.$cmd -bitmap $cmd -state disabled -command file_$action\_$cmd
+	    pack   .file.$action.buttons.$cmd -side left -padx 2 -pady 2 -anchor n -fill x
 	}
+
+	label  .file.$action.buttons.status -text "No file selected." -relief sunk -width 16 -anchor w
+	pack   .file.$action.buttons.status -side bottom -fill both -expand 1 -padx 2 -pady 2
+    }
 } fwinerr
 
 if {$fwinerr != {}} {
@@ -2590,15 +2605,17 @@ proc file_open_rec {path} {
 }
 
 proc file_enable_play { } {
-	.file.play.buttons.play   configure -state normal
-	.file.play.buttons.pause  configure -state disabled
-	.file.play.buttons.stop   configure -state disabled
+    .file.play.buttons.play   configure -state normal
+    .file.play.buttons.pause  configure -state disabled
+    .file.play.buttons.stop   configure -state disabled
+    .file.play.buttons.status configure -text "Ready to play."
 }	
 
 proc file_enable_record { } {
-	.file.rec.buttons.rec configure -state normal
-	.file.rec.buttons.pause  configure -state disabled
-	.file.rec.buttons.stop   configure -state disabled
+    .file.rec.buttons.rec configure -state normal
+    .file.rec.buttons.pause  configure -state disabled
+    .file.rec.buttons.stop   configure -state disabled
+    .file.rec.buttons.status configure -text "Ready to record."
 }
 
 proc file_play_play {} {
@@ -2621,19 +2638,19 @@ proc file_play_play {} {
 	.file.play.buttons.play   configure -state disabled
 	.file.play.buttons.pause  configure -state normal
 	.file.play.buttons.stop   configure -state normal
-	
+	.file.play.buttons.status configure -text "Playing."
 	after 200 file_play_live
 }
 
 proc file_play_pause {} {
-	global play_file
-	
-	.file.play.buttons.play   configure -state normal
-	.file.play.buttons.pause  configure -state disabled
-	.file.play.buttons.stop   configure -state normal
-
-	set play_file(state) paused
-	mbus_send "R" "audio.file.play.pause" 1
+    global play_file
+    
+    .file.play.buttons.play   configure -state normal
+    .file.play.buttons.pause  configure -state disabled
+    .file.play.buttons.stop   configure -state normal
+    .file.play.buttons.status configure -text "Paused."
+    set play_file(state) paused
+    mbus_send "R" "audio.file.play.pause" 1
 }
 
 proc file_play_stop {} {
@@ -2662,19 +2679,19 @@ proc file_rec_rec {} {
 	.file.rec.buttons.rec    configure -state disabled
 	.file.rec.buttons.pause  configure -state normal
 	.file.rec.buttons.stop   configure -state normal
-
+	.file.rec.buttons.status configure -text "Recording."
 	after 200 file_rec_live
 }
 
 proc file_rec_pause {} {
-	global rec_file
-
-	.file.rec.buttons.rec    configure -state normal
-	.file.rec.buttons.pause  configure -state disabled
-	.file.rec.buttons.stop   configure -state normal
-
-	set rec_file(state) paused
-	mbus_send "R" "audio.file.rec.pause" 1
+    global rec_file
+    
+    .file.rec.buttons.rec    configure -state normal
+    .file.rec.buttons.pause  configure -state disabled
+    .file.rec.buttons.stop   configure -state normal
+    .file.rec.buttons.status configure -text "Paused."
+    set rec_file(state) paused
+    mbus_send "R" "audio.file.record.pause" 1
 }
 
 proc file_rec_stop {} {
