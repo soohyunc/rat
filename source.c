@@ -221,7 +221,7 @@ time_constants_init()
         transit_reset  = ts_map32(8000, 80000);
         spike_jump     = ts_map32(8000, 3000); 
         spike_end      = ts_map32(8000, 64);
-        repair_max_gap = ts_map32(8000, 3200); /* 400ms */
+        repair_max_gap = ts_map32(8000, 1600); /* 200ms */
         time_constants_inited = TRUE;
 }
 
@@ -244,11 +244,7 @@ source_validate(source *s)
         assert(s->bps  >= 0);
 	assert((s->skew == SOURCE_SKEW_SLOW) || (s->skew == SOURCE_SKEW_FAST) ||( s->skew == SOURCE_SKEW_NONE));
 	assert((s->playout_mode == PLAYOUT_MODE_NORMAL) || (s->playout_mode == PLAYOUT_MODE_SPIKE));
-	{
-		uint32_t	f;
-		f = ts_get_freq(s->pdbe->playout);
-	        assert((unsigned)s->pdbe->playout.ticks < 2 * f);
-	}
+	assert(ts_valid(s->pdbe->playout));
 #endif
 }
 
@@ -320,7 +316,7 @@ source_create(source_list    *plist,
                 goto fail_create_states;
         }
 
-        success = pktbuf_create(&psrc->pktbuf, 32); 
+        success = pktbuf_create(&psrc->pktbuf, 8); 
         if (!success) {
                 debug_msg("Failed to allocate packet buffer\n");
                 goto fail_pktbuf;
@@ -389,9 +385,9 @@ source_reconfigure(source        *src,
 	channel_decoder_create(src->pdbe->channel_coder_id, &(src->channel_state));
 	samples_per_frame   = codec_get_samples_per_frame(cid);
 	debug_msg("Samples per frame %d rate %d\n", samples_per_frame, src_cf->format.sample_rate);
-	src->pdbe->sample_rate      = src_cf->format.sample_rate;
-	src->pdbe->inter_pkt_gap    = src->pdbe->units_per_packet * (uint16_t)samples_per_frame;
-	src->pdbe->frame_dur        = ts_map32(src_cf->format.sample_rate, samples_per_frame);
+	src->pdbe->sample_rate = src_cf->format.sample_rate;
+	src->pdbe->inter_pkt_gap = src->pdbe->units_per_packet * (uint16_t)samples_per_frame;
+	src->pdbe->frame_dur = ts_map32(src_cf->format.sample_rate, samples_per_frame);
 
         /* Set age to zero and flush existing media
          * so that repair mechanism does not attempt
@@ -534,7 +530,8 @@ source_process_packet (source  		*src,
                 pb_iterator_create(src->channel, &pi);
                 while(pb_iterator_advance(pi)) {
                         pb_iterator_get_at(pi, (u_char**)&cd, &clen, &lplayout);
-                       /* if lplayout==playout there is already channel_data for this playout point */
+                       /* if lplayout==playout there is already
+                          channel_data for this playout point */
                         if (!ts_eq(playout, lplayout)) {
                                 continue;
                         }
@@ -787,6 +784,12 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
                 src_ts = ts_seq32_in(&e->seq, e->sample_rate, p->ts);
                 transit = ts_sub(now, src_ts);
 
+		if (src->packets_done == 0) {
+			/* Need a fresh transit estimate */
+			e->transit = e->last_transit = e->last_last_transit = transit;
+			e->avg_transit = transit;
+		}
+
 		/* Check neither we nor source has changed sampling rate */
 		if (ts_get_freq(transit) != ts_get_freq(e->last_transit)) {
 			debug_msg("Adjusting playout: sampling rate change (either local or remote)\n");
@@ -841,15 +844,17 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
                         adjust_playout  = TRUE;
                         src->toged_cont = 0;
                         /* We've been dropping packets so take a new transit */
-                        /* estimate.  Last one has expired.                  */
-                        e->avg_transit = transit; 
+                        /* estimate and discard all existing transit info.   */
+			e->transit = e->last_transit = e->last_last_transit = transit;
+			e->avg_transit = transit;
                 }
                 
                 if (adjust_playout && (ts_gt(ts_sub(now, e->last_arr), transit_reset) || (e->received < 20))) {
                         /* Source has been quiet for a long time.  Discard   */
                         /* old average transit estimate.                     */
 			debug_msg("Average transit reset (%d -> %d)\n", timestamp_to_ms(transit), timestamp_to_ms(e->avg_transit));
-                        e->avg_transit = transit;
+			e->transit = e->last_transit = e->last_last_transit = transit;
+			e->avg_transit = transit;
                 }
 
                 /* Calculate the playout point for this packet.              */
@@ -859,11 +864,10 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
                         playout = playout_calc(sp, e->ssrc, transit, adjust_playout);
                 } else {
                         playout = e->playout;
+			debug_msg("in spike\n");
                 }
- 
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
-
 /*
 		debug_msg("%d %d\n", timestamp_to_ms(playout), timestamp_to_ms(now));
 */
@@ -1481,12 +1485,16 @@ source_process(session_t 	 *sp,
          * buffer shift occurs in middle of a loss.
          */
 
+	debug_msg("Source 0x%08x process %d -- %d\n", 
+		  (uint32_t)src, timestamp_to_ms(start_ts), timestamp_to_ms(end_ts));
+
 	session_validate(sp);
 
 	/* The call to source_process_packets() calculates the desired playout    */
 	/* point for each packet and inserts it into the channel decoder input    */
 	/* buffer (src->channel) at the correct time interval.                    */
-        source_process_packets(sp, src, start_ts);
+
+	source_process_packets(sp, src, start_ts);	
         if (src->packets_done == 0) {
                 return;
         }

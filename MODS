@@ -1482,6 +1482,8 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 	- Remove repeat+ from loss concealment schemes, didn't add anything.
 	- Add L8 encoding.
 	- Change pktbuf to use playout buffer (better use of code).
+	- Reset transit histories when source created.
+	- Reduce source packet buffer size.
 
 TODO -- They're features not bugs dammit!
 ----
