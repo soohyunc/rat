@@ -49,7 +49,7 @@
 #include "session.h"
 #include "parameters.h"
 
-#define STEP	         4
+#define STEP	         1
 #define SD_MAX_CHANNELS  5
 
 u_int16 
@@ -72,25 +72,35 @@ avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
                 while(buf < buf_end) {
                         e1 = abs(*buf++);
                         e2 = abs(*buf);
-                        buf += STEP - 1;
+                        buf += STEP*channels - 1;
                 }
                 e1 = max(e1, e2);
         }
         return (u_int16)(e1*STEP/samples);
 }
 
-/* ad hoc values - aesthetically better than 0.1, 0.01, 0.001, and so on */
-#define DB_BIAS     (0.005f)
-#define DB_BIAS_LOG (-2.3f)
-
-int 
-lin2db(u_int16 energy, double peak)
+int lin2vu(u_int16 energy, int range, int io_dir)
 {
-        float quasi_db;
-        energy = (energy / 8) * 8; 
-        quasi_db = ( -DB_BIAS_LOG + (float)log10(DB_BIAS+(float)energy/65535.0f)) / -DB_BIAS_LOG;
-        return (int) (peak * quasi_db);
-}
+        static double v[2];
+        double gain;
+
+        if (energy) {
+                /* This has same form as power in db's, but 
+                 * has gentler knee to look at.
+                 */
+                gain = 2 / ( 1 + exp(-energy/4000.0)) - 1;
+        } else {
+                gain = 0.0;
+        }
+        
+        v[io_dir] = max(v[io_dir] - 0.1, 0.0);
+        if (gain > v[io_dir]) {
+                v[io_dir] += 0.80 * (gain - v[io_dir]);
+        } 
+
+        return (int)(v[io_dir] * range);
+} 
+
 
 /* The silence detection algorithm is: 
  *

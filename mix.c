@@ -410,7 +410,7 @@ mix_update_ui(session_struct *sp, mix_struct *ms)
 		bp = ms->mix_buffer + ms->buf_len - POWER_METER_SAMPLES * ms->channels;
 	} else {
 		bp = ms->mix_buffer + ms->tail - POWER_METER_SAMPLES;
-	ui_output_level(lin2db(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100.0));
+	ui_output_level(lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
 	ui_output_level(sp, lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
 }
 

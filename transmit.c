@@ -496,7 +496,7 @@ tx_update_ui(session_struct *sp)
 {
         if (sp->meter && sp->tb->silence_ptr && sp->tb->silence_ptr->prev) {
                 if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
-                        ui_input_level(lin2db(sp->tb->silence_ptr->prev->energy, 100.0));
+                        ui_input_level(lin2vu(sp->tb->silence_ptr->prev->energy, 100, VU_INPUT));
                 } else {
                         ui_input_level(0);
                 }

@@ -48,7 +48,11 @@ struct s_vad;
 struct s_agc;
 
 u_int16	avg_audio_energy (sample *buf, u_int32 dur, u_int32 channels);
-int     lin2db           (u_int16 avg_energy, double peak);
+
+#define VU_INPUT  0
+#define VU_OUTPUT 1
+
+int     lin2vu(u_int16 avg_energy, int peak, int io_dir);
 
 struct  s_sd *sd_init (u_int16 blk_dur, u_int16 freq);
 void    sd_destroy    (struct s_sd *s);
