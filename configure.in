@@ -186,34 +186,55 @@ AC_SUBST(AU_OBJ)
 AC_SUBST(AU_INC)
 AC_SUBST(AU_LIB)
 
-# X
+# X 
+#------------------------------------------------------------------------------
+# Use autoconf inbuilt X location.  Works v. nicely.  Substitution of X vars
+# comes after broken X11 header check and attempted fix.
+#------------------------------------------------------------------------------
 AC_PATH_XTRA
-AC_SUBST(X_CFLAGS)
-AC_SUBST(X_LIBS)
-AC_SUBST(X_EXTRA_LIBS)
-AC_SUBST(X_PRE_LIBS)
 
 #------------------------------------------------------------------------------
 # Check if X headers are broken.  GCC 2.95 and up reject headers that don't
 # have omit types, X11 headers have implicit int declarations on some systems
 # (e.g. Solaris).
 #------------------------------------------------------------------------------
-AC_MSG_CHECKING(whether X11 headers are broken)
-SAVED_CFLAGS=$CFLAGS
-CFLAGS="$X_CFLAGS $CFLAGS"
-AC_TRY_COMPILE([#include <X11/Xlib.h>
-#include <X11/Xutil.h>],
-	return 0,
-	AC_MSG_RESULT(no),
-	AC_MSG_RESULT(yes))
-CFLAGS=$SAVED_CFLAGS
+AC_CACHE_CHECK(whether X11 headers are broken, x11_cv_broken_headers, [
+		SAVED_CFLAGS=$CFLAGS
+		CFLAGS="$X_CFLAGS $CFLAGS"
+		AC_TRY_COMPILE([#include <X11/Xlib.h>
+		#include <X11/Xutil.h>],
+		return 0,
+		x11_cv_broken_headers=no,
+		x11_cv_broken_headers=yes)
+		CFLAGS=$SAVED_CFLAGS
+	]);
+#------------------------------------------------------------------------------
+# Attempt to make local fixed copies of headers.
+#------------------------------------------------------------------------------
+if test $x11_cv_broken_headers=yes ; then
+	if test ! -d ./X11 ; then
+		mkdir ./X11
+		for header in Xlib.h Xutil.h
+		do
+			cat $x_includes/X11/$header | sed 's/^\(extern\) \([[A-Za-z0-9]]*($\)/\1 int \2/' > X11/$header
+			echo "creating ./X11/$header"
+		done
+	fi
+	X_CFLAGS="-I. $X_CFLAGS"
+fi
+
+AC_SUBST(X_CFLAGS)
+AC_SUBST(X_LIBS)
+AC_SUBST(X_EXTRA_LIBS)
+AC_SUBST(X_PRE_LIBS)
 
 # TCL/TK 
 #------------------------------------------------------------------------------
 # We could be dealing with a source installation or a full installation.
 # Expect a source installation to have headers in TCL8_HOME/generic and libs in
 # TCL8_HOME/unix.  A full installation should have headers in 
-# ROOT/include/tcl8.0, or ROOT/include, and have libraries be in ROOT/lib
+# INSTDIR/include/tcl8.0, or INSTDIR/include, and have libraries be in 
+# INSTDIR/lib.
 #------------------------------------------------------------------------------
 PARENT=`echo $PWD | sed -e 's%/[[^/]]*$%%'`
 TCL_INC=${PARENT}/tcl-8.0
