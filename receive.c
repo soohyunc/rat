@@ -131,7 +131,7 @@ static rx_queue_element_struct *
 playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 {
 	int			i;
-	rx_queue_element_struct	*dummy, *ip;
+	rx_queue_element_struct	*tp, *ip;
 
 	if ((ip = add_or_get_interval(buf, ru)) != ru) {
 		add_unit_to_interval(ip, ru);
@@ -143,14 +143,15 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 	if (ru->talk_spurt_start == FALSE) {
 		for (i = 0; i < MAX_DUMMY; i++) {
 			if (ip->prev_ptr == NULL || ts_gt(ip->playoutpt - ip->unit_size, ip->prev_ptr->playoutpt + ip->prev_ptr->unit_size)) {
-				dummy = new_rx_unit();
-				dummy->dbe_source_count = ru->dbe_source_count;
-				memcpy(dummy->dbe_source, ru->dbe_source, ru->dbe_source_count * sizeof(rtcp_dbentry *));
-				dummy->playoutpt = ip->playoutpt - ip->unit_size;
-				dummy->comp_count = 0;
-				dummy->unit_size = ru->unit_size;
-				assert(add_or_get_interval(buf, dummy) == dummy);
-				ip = dummy;
+				tp = new_rx_unit();
+				tp->dbe_source_count = ru->dbe_source_count;
+				memcpy(tp->dbe_source, ru->dbe_source, ru->dbe_source_count * sizeof(rtcp_dbentry *));
+				tp->playoutpt = ip->playoutpt - ip->unit_size;
+				tp->comp_count = 0;
+				tp->unit_size = ru->unit_size;
+				tp->dummy = TRUE;    
+				assert(add_or_get_interval(buf, tp) == tp);
+				ip = tp;
 			} else
 				break;
 		}
