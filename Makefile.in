@@ -50,7 +50,8 @@ ui_audiotool.c: ui_audiotool.tcl tcl2c/tcl2c
 	cat asfilebox.tcl ui_audiotool.tcl | tcl2c/tcl2c ui_audiotool > ui_audiotool.c
 
 clean:
-	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile Makefile.sed tcl2c/tcl2c rat-__VERSION__
+	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile Makefile.sed 
+	-rm -f tcl2c/tcl2c rat-__VERSION__ sdr2.plugin.S02.audio.rtp.\*.rat-__VERSION__
 
 etags:
 	etags *.[ch] ../common/*.[ch]

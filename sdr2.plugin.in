@@ -1,0 +1,427 @@
+media:		audio
+proto:		RTP/AVP
+tool:		rat-__VERSION__
+protoname: 	RTP
+cryptflag: 	-K
+
+@define:ptime
+{
+	attr:ptime
+	{
+		attrname: Packetisation interval
+		attrvalue:20
+		{
+			attrvaluename:20ms
+		}
+		attrvalue:40
+		{
+			attrvaluename:40ms
+			def:true
+		}
+		attrvalue:80
+		{
+			attrvaluename:80ms
+		}
+		attrvalue:160
+		{
+			attrvaluename:160ms
+		}
+	}
+}
+
+fmt: 0
+{
+	fmtname: PCM u-law 8kHz mono
+	macro: PRIMARY
+	{
+		value: pcm
+	}
+	@expand:ptime
+}
+
+fmt: 3
+{
+	fmtname: GSM 8kHz mono
+	macro: PRIMARY
+	{
+		value: gsm
+	}
+	@expand:ptime
+}
+
+fmt: 5
+{
+	fmtname: DVI 8kHz mono
+	macro: PRIMARY
+	{
+		value: dvi
+	}
+	@expand:ptime
+}
+
+fmt: 6
+{
+	fmtname: DVI 16kHz mono
+	macro: PRIMARY
+	{
+		value: dvi-16k-mono
+	}
+	@expand:ptime
+}
+
+fmt: 7
+{
+	fmtname: LPC 8kHz mono
+	macro: PRIMARY
+	{
+		value: lpc
+	}
+	@expand:ptime
+}
+
+fmt: 8
+{
+	fmtname: PCM a-law 8kHz mono
+	macro: PRIMARY
+	{
+		value: pcma-8k-mono
+	}
+	@expand:ptime
+}
+
+fmt:109
+{
+	fmtname: WB-ADPCM
+	attr: rtpmap
+	{
+		attrvalue:109 WBS/16000/1
+		{
+			def: true
+			macro: PRIMARY
+			{
+				value: wbs-16k-mono
+			}
+		}
+	}
+	@expand:ptime
+}
+
+fmt:111
+{
+	fmtname: 16bit linear 8kHz stereo
+	attr:rtpmap
+	{
+		attrvalue:111 L16/8000/2
+		{
+			def: true
+			macro: PRIMARY
+			{
+				value: l16-8k-stereo
+			}
+		}
+	}
+	@expand:ptime
+}
+
+fmt:112
+{
+	fmtname: 16bit linear 16kHz mono
+	attr:rtpmap
+	{
+		attrvalue:112 L16/16000/1
+		{
+			def:true
+			macro: PRIMARY
+			{
+				value: l16-16k-mono
+			}
+		}
+	}
+	@expand:ptime
+}
+
+fmt:113
+{
+	fmtname: 16bit linear 16kHz stereo
+	attr:rtpmap
+	{
+		attrvalue:113 L16/16000/2
+		{
+			def:true
+			macro: PRIMARY
+			{
+				value: l16-16k-stereo
+			}
+		}
+	}
+	@expand:ptime
+}
+
+fmt:114
+{
+	fmtname: 16bit linear 32kHz mono
+	attr:rtpmap
+	{
+		attrvalue:114 L16/32000/1
+		{
+			def:true
+			macro: PRIMARY
+			{
+				value: l16-32k-mono
+			}
+		}
+	}
+	@expand:ptime
+}
+
+fmt:115
+{
+	fmtname: 16bit linear 32kHz stereo
+	attr:rtpmap
+	{
+		attrvalue:115 L16/32000/2
+		{
+			def:true
+			macro: PRIMARY
+			{
+				value: l16-32k-stereo
+			}
+		}
+	}
+	@expand:ptime
+}
+
+fmt:116
+{
+	fmtname: 16bit linear 48kHz mono
+	attr:rtpmap
+	{
+		attrvalue:116 L16/48000/1
+		{
+			def:true
+			macro: PRIMARY
+			{
+				value: l16-48k-mono
+			}
+		}
+	}
+	@expand:ptime
+}
+
+fmt:117
+{
+	fmtname: 16bit linear 48kHz stereo
+	attr:rtpmap
+	{
+		attrvalue:117 L16/48000/2
+		{
+			def:true
+			macro: PRIMARY
+			{
+				value: l16-48k-stereo
+			}
+		}
+	}
+	@expand:ptime
+}
+
+fmt:121
+{
+	fmtname: Redundancy (8kHz)
+	flags:	 -pt 121/redundancy
+	attr:rtpmap
+	{
+		hidden: true
+		attrvalue:121 red/8000
+		{
+			def: true
+		}
+	}
+	attr:rtpred1
+	{
+		attrname: Primary Encoding
+		attrvalue: 0
+		{
+			attrvaluename: PCMU-8k-MONO
+			macro: PRIMARY
+			{
+				value: pcm
+			}
+		}
+		attrvalue: 5
+		{
+			def: true
+			attrvaluename: DVI-8k-MONO
+			macro: PRIMARY
+			{
+				value: dvi
+			}
+		}
+	}
+	attr:rtpred2
+	{
+		attrname: Redundant Encoding
+		attrvalue: 5
+		{
+			def: true
+			attrvaluename: DVI-8k-MONO
+			macro: SECONDARY
+			{
+				value: /dvi
+			}
+		}
+		attrvalue: 7
+		{
+			attrvaluename: LPC-8k-MONO
+			macro: SECONDARY
+			{
+				value: /lpc
+			}
+		}
+	}
+	@expand:ptime
+}
+
+fmt:122
+{
+	fmtname: 16bit linear 8kHz mono
+	attr:rtpmap
+	{
+		attrvalue:122 L16/8000/1
+		{
+			def: true
+			macro: PRIMARY
+			{
+				value: l16
+			}
+		}
+	}
+	@expand:ptime
+}
+
+# Handle dynamic payload types...
+fmt:*(DYNAMIC)
+{
+	hidden: true
+	withattr:rtpmap:$(DYNAMIC) red/8000
+	withattr:rtpmap:$(DYNAMIC) red/16000
+	withattr:rtpmap:$(DYNAMIC) red/32000
+	withattr:rtpmap:$(DYNAMIC) red/48000
+	withattr:rtpmap:$(DYNAMIC) WBS/16000/1
+	withattr:rtpmap:$(DYNAMIC) L16/8000/1
+	withattr:rtpmap:$(DYNAMIC) L16/8000/2
+	withattr:rtpmap:$(DYNAMIC) L16/16000/1
+	withattr:rtpmap:$(DYNAMIC) L16/16000/2
+	withattr:rtpmap:$(DYNAMIC) L16/32000/1
+	withattr:rtpmap:$(DYNAMIC) L16/32000/2
+	withattr:rtpmap:$(DYNAMIC) L16/48000/1
+	withattr:rtpmap:$(DYNAMIC) L16/48000/2
+	attr:rtpmap
+	{
+		attrvalue:$(DYNAMIC) red/8000
+		{
+			flags:-pt $(DYNAMIC)/redundancy
+		}
+		attrvalue:$(DYNAMIC) red/16000
+		{
+			flags:-pt $(DYNAMIC)/redundancy
+		}
+		attrvalue:$(DYNAMIC) red/32000
+		{
+			flags:-pt $(DYNAMIC)/redundancy
+		}
+		attrvalue:$(DYNAMIC) red/48000
+		{
+			flags:-pt $(DYNAMIC)/redundancy
+		}
+		attrvalue:$(DYNAMIC) WBS/16000/1
+		{
+			flags:-pt $(DYNAMIC)/WBS/16000/1
+			macro: PRIMARY
+			{
+				value: $(DYNAMIC)
+			}
+		}
+		attrvalue:$(DYNAMIC) L16/8000/1
+		{
+			flags:-pt $(DYNAMIC)/L16/8000/1
+			macro: PRIMARY
+			{
+				value: $(DYNAMIC)
+			}
+		}
+		attrvalue:$(DYNAMIC) L16/8000/2
+		{
+			flags:-pt $(DYNAMIC)/L16/8000/2
+			macro: PRIMARY
+			{
+				value: $(DYNAMIC)
+			}
+		}
+		attrvalue:$(DYNAMIC) L16/16000/1
+		{
+			flags:-pt $(DYNAMIC)/L16/16000/1
+			macro: PRIMARY
+			{
+				value: $(DYNAMIC)
+			}
+		}
+		attrvalue:$(DYNAMIC) L16/16000/2
+		{
+			flags:-pt $(DYNAMIC)/L16/16000/2
+			macro: PRIMARY
+			{
+				value: $(DYNAMIC)
+			}
+		}
+		attrvalue:$(DYNAMIC) L16/32000/1
+		{
+			flags:-pt $(DYNAMIC)/L16/32000/1
+			macro: PRIMARY
+			{
+				value: $(DYNAMIC)
+			}
+		}
+		attrvalue:$(DYNAMIC) L16/32000/2
+		{
+			flags:-pt $(DYNAMIC)/L16/32000/2
+			macro: PRIMARY
+			{
+				value: $(DYNAMIC)
+			}
+		}
+		attrvalue:$(DYNAMIC) L16/48000/1
+		{
+			flags:-pt $(DYNAMIC)/L16/48000/1
+			macro: PRIMARY
+			{
+				value: $(DYNAMIC)
+			}
+		}
+		attrvalue:$(DYNAMIC) L16/48000/2
+		{
+			flags:-pt $(DYNAMIC)/L16/48000/2
+			macro: PRIMARY
+			{
+				value: $(DYNAMIC)
+			}
+		}
+	}
+	attr:rtpred1
+	{
+		macro:PRIMARY
+		{
+			value:$(VALUE)
+		}
+	}
+	attr:rtpred2
+	{
+		macro:SECONDARY
+		{
+			value:/$(VALUE)
+		}
+	}
+}
+
+flags: $(CRYPTKEY) -C $(SESSNAME) -t $(TTL) -f $(PRIMARY)$(SECONDARY) $(FMTP) $(ADDRESS)/$(PORT)
+
