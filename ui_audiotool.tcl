@@ -9,7 +9,11 @@ catch {
 #
 
 # This is a temporary variable for audio balloon help testing/development.
-set CLIPDIR "/usr/demo/SOUND/sounds"
+if [info exists env(VOXLETDIR)] {
+	set VOXLET_DIR $env(VOXLET)
+} else {
+	set VOXLET_DIR /usr/local/share/voxlet/
+}
 
 #wm withdraw .
 
@@ -2752,7 +2756,7 @@ proc show_help {window} {
 		set help_id [after 100 wm deiconify .help]
 		raise .help $window
 		if {[info exists help_clip($window)]} {
-		    mbus_send "R" "tool.rat.local.file.play" "\"$help_clip($window)\""
+		    mbus_send "R" "tool.rat.voxlet.play" "\"$help_clip($window)\""
 		}
 	}
 }
@@ -2766,9 +2770,9 @@ proc hide_help {window} {
 }
 
 proc add_help {window text clip} {
-	global help_text help_clip CLIPDIR
+	global help_text help_clip VOXLET_DIR
 	set help_text($window)  $text
-	set help_clip($window)  $CLIPDIR/$clip
+	set help_clip($window)  $VOXLET_DIR/$clip
 	bind $window <Enter>    "+show_help $window"
 	bind $window <Leave>    "+hide_help $window"
 }

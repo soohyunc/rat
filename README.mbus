@@ -395,4 +395,8 @@ tool.rat.sampling.supported (...)
 	Inform the receiver that a particular sampling rate is supported by
 	the audio hardware. Sent in response to tool.rat.settings().
 
+tool.rat.voxlet.play (filename)
+
+	Play back a voxlet. See README.voxlet for details.
+
 -------------------------------------------------------------------------------

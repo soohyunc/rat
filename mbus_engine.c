@@ -525,7 +525,7 @@ static void rx_audio_file_play_stop(char *srce, char *args, session_t *sp)
 	}
 }
 
-static void rx_tool_rat_local_file_player_play(char *srce, char *args, session_t *sp)
+static void rx_tool_rat_voxlet_play(char *srce, char *args, session_t *sp)
 {
 	char	*file;
 	struct mbus_parser	*mp;
@@ -1426,7 +1426,7 @@ static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 }
 
 static const mbus_cmd_tuple engine_cmds[] = {
-	{ "tool.rat.local.file.play",              rx_tool_rat_local_file_player_play },
+	{ "tool.rat.voxlet.play",                  rx_tool_rat_voxlet_play },
         { "session.title",                         rx_session_title },
         { "tool.rat.silence",                      rx_tool_rat_silence },
         { "tool.rat.lecture.mode",                 rx_tool_rat_lecture_mode },
