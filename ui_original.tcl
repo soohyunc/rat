@@ -176,6 +176,7 @@ proc mbus_recv_load_settings {} {
     sync_engine_to_ui
     sync_ui_to_engine
     chart_show
+    toggle_plist
 }
 
 proc mbus_recv_codec_supported {args} {
@@ -583,6 +584,15 @@ proc bargraphSetHeight {bgraph height} {
 	set oh $height
 }
 
+proc toggle_plist {} {
+	global plist_on
+	if {$plist_on} {
+		pack .l.t  -side top -fill both -expand 1
+	} else {
+		pack forget .l.t
+	}
+}
+
 proc toggle_mute {cw cname} {
 	global iht
 	if {[$cw gettags a] == ""} {
@@ -689,10 +699,10 @@ pack .r.c.vol  -side top -fill x
 pack .l -side left -fill both -expand 1
 pack .l.s1 -side bottom -fill x
 pack .l.s1.opts .l.s1.about .l.s1.quit .l.s1.audio -side left -fill x -expand 1
-pack .l.t -side top -fill both -expand 1
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
 bind .l.t.list <Configure> {fix_scrollbar}
+# .l.t is packed by toggle_plist, when the .RTPdefaults file is read...
 
 # Device output controls
 set out_mute_var 0
@@ -968,8 +978,9 @@ checkbutton $i.a.f.f.power   -text "Powermeters active"       -variable meter_va
 checkbutton $i.a.f.f.video   -text "Video synchronization"    -variable sync_var
 checkbutton $i.a.f.f.balloon -text "Balloon help"             -variable help_on
 checkbutton $i.a.f.f.matrix  -text "Reception quality matrix" -variable matrix_on -command chart_show
+checkbutton $i.a.f.f.plist   -text "Participant list"         -variable plist_on  -command toggle_plist
 pack $i.a.f.f $i.a.f.f.l
-pack $i.a.f.f.power $i.a.f.f.video $i.a.f.f.balloon $i.a.f.f.matrix -side top -anchor w 
+pack $i.a.f.f.power $i.a.f.f.video $i.a.f.f.balloon $i.a.f.f.matrix $i.a.f.f.plist -side top -anchor w 
 
 proc set_pane {name} {
     global pane
@@ -1200,6 +1211,7 @@ proc save_settings {} {
     save_setting $f audioLipSync     sync_var
     save_setting $f audioHelpOn      help_on
     save_setting $f audioMatrixOn    matrix_on
+    save_setting $f audioPlistOn     plist_on
 
     # device 
     save_setting $f  audioOutputGain   volume
@@ -1283,6 +1295,7 @@ proc load_settings {} {
     load_setting attr audioLipSync      sync_var      "1"
     load_setting attr audioHelpOn       help_on       "1"
     load_setting attr audioMatrixOn     matrix_on     "0"
+    load_setting attr audioPlistOn      plist_on      "1"
 
     # device config
     load_setting attr audioOutputGain   volume       "50"
