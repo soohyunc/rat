@@ -58,6 +58,9 @@ void         converters_free(void);
 converter_t            *converter_create  (struct s_pcm_converter *pc, int from_channels, int from_freq, int to_channels, int to_freq);
 int                     converter_format  (converter_t *c, rx_queue_element_struct *ip);
 void                    converter_destroy (converter_t **c);
+
+/* Converter selection functions */
 struct s_pcm_converter *converter_get_byname(char *name);
-int                     converter_get_names(char *buf, int buflen);
+int    converter_get_count(void);
+char * converter_get_name(int idx);
 #endif /* _convert_h_ */

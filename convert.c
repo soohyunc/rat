@@ -1350,36 +1350,34 @@ converter_get_byname(char *name)
 }
 
 int 
-converter_get_names(char *buf, int buf_len)
+converter_get_count()
 {
-        pcm_converter_t *pc;
-        char *bp;
-        int len = 0;
-        
-        pc = converter_tbl;
-        for(;;) {
-                if (pc->enabled) len += strlen(pc->name);
-                if (pc->id == CONVERT_NONE) break;
+        int count = 1; /* convert_none always there */
+        pcm_converter_t *pc = converter_tbl;
+
+        do {
+                if (pc->enabled) count ++;
                 pc++;
-        } 
+        } while (pc->id != CONVERT_NONE);
 
-        if (buf_len < len) return FALSE;
+        return count;
+}
 
-        pc = converter_tbl;
-        bp = buf;
-        for(;;) {
-                if (pc->enabled) {
-                        sprintf(bp, "%s/", pc->name);
-                        bp += strlen(pc->name) + 1;
-                } 
-                if (pc->id == CONVERT_NONE) break;
-                pc++;
+char *
+converter_get_name(int idx)
+{
+       pcm_converter_t *pc = converter_tbl;
+       int count = 0;
 
-        }
-
-        if (bp != buf) *(bp-1) = 0;
-
-        return TRUE;
+       do {
+               if (pc->enabled) {
+                       if (count == idx) break;
+                       count ++;
+               }
+               pc++;
+       } while (pc->id != CONVERT_NONE);
+       
+       return pc->name;
 }
 
 #ifdef DEBUG_CONVERT

@@ -57,21 +57,32 @@
 #define MATCH_LEN         20    
 #define MAX_BUF_LEN       1024
 
+#define NUM_REPAIR_SCHEMES 3
+static char * repair_names[NUM_REPAIR_SCHEMES] = {"None", 
+                                                  "Repeat", 
+                                                  "Pattern-Match"};
+
 char *
-get_repair_name(int id)
+repair_get_name(int id)
 {
-        switch(id) {
-        case REPAIR_NONE:
-                return "NONE";
-        case REPAIR_REPEAT:
-                return "REPEAT";
-        case REPAIR_PATTERN_MATCH:
-                return "PATTERN-MATCH";
-	case REPAIR_PITCH_REPEAT:
-		return "PITCH_REPETITION";
-        default:
-                return "UNKNOWN";
+        if (id >= 0 && id < NUM_REPAIR_SCHEMES) return repair_names[id];
+        return repair_names[REPAIR_NONE];
+}
+
+int
+repair_get_by_name(char *name)
+{
+        int i;
+        for(i = 0; i < NUM_REPAIR_SCHEMES; i++) {
+                if (!strcasecmp(name, repair_names[i])) return i;
         }
+        return REPAIR_NONE;
+}
+
+int
+repair_get_count()
+{
+        return NUM_REPAIR_SCHEMES;
 }
 
 /* Consecutive dummies behind */

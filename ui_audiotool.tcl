@@ -152,6 +152,7 @@ proc mbus_recv {cmnd args} {
 		tool.rat.codec.supported  	{eval mbus_recv_tool.rat.codec.supported $args}
 		tool.rat.redundancy.supported  	{eval mbus_recv_tool.rat.redundancy.supported $args}
 		tool.rat.converter.supported	{eval mbus_recv_tool.rat.converter.supported $args}
+		tool.rat.repair.supported	{eval mbus_recv_tool.rat.repair.supported $args}
 		tool.rat.agc  			{eval mbus_recv_tool.rat.agc $args}
 		tool.rat.sync  			{eval mbus_recv_tool.rat.sync $args}
 		tool.rat.frequency  		{eval mbus_recv_tool.rat.frequency $args}
@@ -307,9 +308,20 @@ proc mbus_recv_tool.rat.converter.supported {arg} {
     
     .prefs.pane.reception.r.ms.menu delete 0 last
     
-    set converters [split $arg "/"]
+    set converters [split $arg ","]
     foreach c $converters {
 	.prefs.pane.reception.r.ms.menu add command -label $c -command "set convert_var \"$c\""
+    }
+}
+
+proc mbus_recv_tool.rat.repair.supported {arg} {
+    puts "$arg"
+    
+    .prefs.pane.reception.r.m.menu delete 0 last
+    
+    set schemes [split $arg ","]
+    foreach rep $schemes {
+	.prefs.pane.reception.r.m.menu add command -label $rep -command "set repair_var \"$rep\""
     }
 }
 
@@ -1228,7 +1240,6 @@ pack $i.cc.int.fc $i.cc.int.zz -side right
 pack $i.cc.int.fc.l $i.cc.int.fc.m -fill x -expand 1
 pack $i.cc.int.zz.l $i.cc.int.zz.m -fill x -expand 1
 
-
 # Reception Pane ##############################################################
 set repair_schemes [list {none} {repetition} {pattern-match}]
 set i .prefs.pane.reception
@@ -1241,18 +1252,6 @@ pack $i.o -side top -fill both  -pady 1
 pack $i.c -side top -fill both  -pady 1 -expand 1
 label $i.r.l -text "Repair Scheme:"
 tk_optionCmdMenu $i.r.m repair_var $repair_schemes
-
-proc validate_repair {} {
-#this function should not be here and should not exist either
-	global repair_var repair_schemes
-	foreach i $repair_schemes {
-		if {[string compare $i $repair_var] == 0} {
-			return
-		}
-	}
-	set repair_var [lindex $repair_schemes 1]
-}
-
 
 label $i.r.ls -text "Sample Rate Conversion"
 tk_optionCmdMenu $i.r.ms convert_var {None}
@@ -1786,8 +1785,7 @@ proc load_settings {} {
     unset audio_tool
 
     # reception
-    load_setting attr audioRepair       repair_var    "repetition"
-	validate_repair
+    load_setting attr audioRepair       repair_var    "Repetition"
 
     load_setting attr audioLimitPlayout limit_var     "0"
     load_setting attr audioMinPlayout   min_var       "0"

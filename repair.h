@@ -51,7 +51,10 @@
 struct rx_element_tag;
 
 void repair(int repair, struct rx_element_tag *up);
-char *get_repair_name(int id);
+
+int   repair_get_count(void);
+char *repair_get_name(int id);
+int   repair_get_by_name(char *name);
 
 #endif /* _REPAIR_H_ */
 

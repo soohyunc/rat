@@ -363,21 +363,11 @@ ui_output_level(session_struct *sp, int level)
 static void
 ui_repair(session_struct *sp)
 {
-	char	*repair = NULL;
+	char	*mbes;
 
-        switch(sp->repair) {
-        case REPAIR_NONE:
-		repair = mbus_encode_str("none");
-                break;
-        case REPAIR_REPEAT:
-		repair = mbus_encode_str("repetition");
-                break;
-	case REPAIR_PATTERN_MATCH:
-		repair = mbus_encode_str("pattern-match");
-                break;
-        }
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.repair", repair, FALSE);
-	xfree(repair);
+        mbes = mbus_encode_str(repair_get_name(sp->repair));
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.repair", mbes, FALSE);
+	xfree(mbes);
 }
 
 void
@@ -640,7 +630,6 @@ ui_update(session_struct *sp)
         ui_devices(sp);
         ui_device(sp);
         ui_sampling_modes(sp);
-        ui_converters(sp);
         ui_update_frequency(sp);
         ui_update_channels(sp);
 	ui_update_primary(sp);
@@ -874,15 +863,46 @@ ui_update_file_live(session_struct *sp, char *mode, int valid)
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, cmd, arg, TRUE);
 }
 
-void 
+static void 
 ui_converters(session_struct *sp)
 {
         char buf[255], *mbes;
-        if (converter_get_names(buf, 255)) {
-                mbes = mbus_encode_str(buf);
-                mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.converter.supported", mbes, TRUE);
-                xfree(mbes);
+        int i, cnt;
+
+        cnt = converter_get_count() - 1;
+
+        buf[0] = '\0';
+        
+        for (i = 0; i <= cnt; i++) {
+                strcat(buf, converter_get_name(i));
+                if (i != cnt) strcat(buf, ",");
         }
+        
+        mbes = mbus_encode_str(buf);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.converter.supported", mbes, TRUE);
+        xfree(mbes);
+}
+
+static void
+ui_repair_schemes(session_struct *sp)
+{
+        char buf[255], *mbes;
+        int  i, cnt;
+        
+        UNUSED(sp);
+        UNUSED(mbes);
+
+        cnt = repair_get_count();
+        
+        buf[0] = '\0';
+        for(i = cnt - 1; i >= 0; i--) {
+                strcat(buf, repair_get_name(i));
+                if (i) strcat(buf, ",");
+        }
+        
+        mbes = mbus_encode_str(buf);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.repair.supported", mbes, TRUE);
+        xfree(mbes);
 }
 
 void
@@ -955,8 +975,10 @@ ui_initial_settings(session_struct *sp)
 {
         /* One off setting transfers / initialization */
         ui_sampling_modes(sp);
-        ui_3d_options(sp);
+        ui_converters(sp);
+        ui_repair_schemes(sp);
 	ui_codecs(sp, sp->encodings[0]);
+        ui_3d_options(sp);
 	ui_info_update_cname(sp, sp->db->my_dbe);
 	ui_info_update_tool(sp, sp->db->my_dbe);
         ui_title(sp);
