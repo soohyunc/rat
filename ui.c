@@ -1068,10 +1068,21 @@ ui_initial_settings(session_t *sp)
 {
         /* One off setting transfers / initialization */
         uint32_t my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
+        int16_t i;
 
-	mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, TRUE, "rtp.ssrc", "%08lx", my_ssrc);
-	network_process_mbus(sp);
-
+        /*
+         * This loop is the wrong fix for the engine sending commands to the
+         * ui before the ui is ready.  When this happens the ui acks, but ignores
+         * the messages (ugh!).  Since the ui depends on having got out ssrc in
+         * lots of messages we have to make sure it gets through.  
+         * The ui and engine should wait until they've got
+         * some kind of heartbeat or go message from the other before exchanging
+         * data messages.
+         */
+        for(i = 0; i < 10; i++) {
+	        mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, TRUE, "rtp.ssrc", "%08lx", my_ssrc);
+                network_process_mbus(sp);
+        }
         ui_sampling_modes(sp); 			network_process_mbus(sp);
         ui_converters(sp); 			network_process_mbus(sp);
         ui_repair_schemes(sp); 			network_process_mbus(sp);
