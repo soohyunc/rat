@@ -451,6 +451,22 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
         return (read_dur);
 }
 
+#ifndef WIN32
+int 
+audio_is_ready(int audio_fd)
+{
+        struct timeval tv;
+        fd_set afds;
+
+        memset(&tv, 0, sizeof(struct timeval));
+        FD_ZERO(&afds);
+        FD_SET(audio_fd,&afds);
+        select(audio_fd+1, &afds, NULL, NULL, &tv);
+        return FD_ISSET(audio_fd, &afds);
+}
+
+#endif
+
 void
 audio_wait_for(session_struct *sp)
 {

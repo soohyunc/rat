@@ -580,8 +580,9 @@ audio_write(int audio_fd, sample *cp, int remain)
 static unsigned char audio_ready = 0;
 
 int
-audio_is_ready()
+audio_is_ready(int audio_fd)
 {
+        UNUSED(audio_fd);
         if (audio_ready>nblks/5) {
                 debug_msg("Lots of audio available (%d blocks)\n", audio_ready);
         }

@@ -257,7 +257,7 @@ main(int argc, char *argv[])
 			}
 			if (sp[i]->have_device) ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
                 	if (sp[i]->ui_on) {
-				tcl_process_events();
+				tcl_process_events(sp[i]);
 				mbus_send(sp[0]->mbus_ui_base); mbus_retransmit(sp[0]->mbus_ui_base);
 				mbus_send(sp[0]->mbus_ui_conf); mbus_retransmit(sp[0]->mbus_ui_conf);
                 	}

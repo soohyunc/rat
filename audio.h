@@ -109,7 +109,7 @@ int	audio_duplex(int audio_fd);
 int	audio_get_blocksize(void);
 int	audio_get_channels(void);
 int     audio_get_freq(void);
-int     audio_is_ready(void); /* Only in auddev_win32.c */
+int     audio_is_ready(int audio_fd); /* In auddev_win32.c for win32 and audio.c for UN*X */
 
 /* Stuff in audio.c */
 void	mix_init(void);

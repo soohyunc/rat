@@ -40,6 +40,7 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
+#include "audio.h"
 #include "debug.h"
 #include "memory.h"
 #include "version.h"
@@ -123,10 +124,15 @@ tcl_process_event(void)
 }
 
 void
-tcl_process_events(void)
+tcl_process_events(session_struct *sp)
 {
 	int i;
-	for (i=0; i<16 && tcl_process_event(); i++) ;
+	for (i=0; i<16 && tcl_process_event(); i++) {
+                /* User Interface event processing has lower priority than 
+                 * audio processing.
+                 */
+                if (sp->have_device && audio_is_ready(sp->audio_fd)) break;
+        }
 }
 
 int
