@@ -214,6 +214,7 @@ riff_read_hdr(FILE *fp, char **state, sndfile_fmt_t *fmt)
         rs = (riff_state*)xmalloc(sizeof(riff_state));
         if (rs) {
                 rs->cbRemain = chunk_size;
+		rs->cbUsed   = 0;
                 memcpy(&rs->wf, &wf, sizeof(wf));
                 *state = (char*)rs;
                 riff_get_format(*state, fmt);
@@ -245,12 +246,16 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
                 return 0;
         }
         
-        if (rs->cbRemain == 0) {
+        if (rs->cbRemain <= 0) {
 		debug_msg("Nothing remaining...\n");
 		return 0;
 	}
 
         samples_read = fread(buf, unit_sz, samples, pf);
+	if (samples_read <= 0) {
+		debug_msg("Read ended...\n");
+		return 0;
+	}
         rs->cbRemain -= (samples_read * unit_sz);
 
         switch(rs->wf.wFormatTag) {
