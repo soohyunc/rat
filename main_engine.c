@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 	sp->db = rtcp_init(sp->device_clock, cname, ssrc, 0);
         rtcp_clock_change(sp);
 
-	settings_load(sp);
+	settings_load_early(sp);
 
 	parse_args(argc, argv);
 
@@ -169,6 +169,9 @@ int main(int argc, char *argv[])
 		mbus_heartbeat(sp->mbus_engine, 1);
 		mbus_retransmit(sp->mbus_engine);
 	}
+
+	settings_load_late(sp);
+
 	return 0;
 }
 

@@ -11,6 +11,7 @@
  *
  */
 
-void settings_load(session_struct *sp);
+void settings_load_early(session_struct *sp);
+void settings_load_late(session_struct *sp);
 void settings_save(session_struct *sp);
 

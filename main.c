@@ -124,7 +124,8 @@ main(int argc, char *argv[])
 
 	network_process_mbus(sp[0]);
 
-	settings_load(sp[0]);
+	settings_load_early(sp[0]);
+	settings_load_late(sp[0]);
 
 /**** Up to here is in _main.c *****/
 

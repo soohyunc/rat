@@ -353,7 +353,7 @@ setting_load_int(char *name, int default_value)
 #endif
 }
 
-void settings_load(session_struct *sp)
+void settings_load_early(session_struct *sp)
 {
 	audio_device_details_t		 ad;
 	char				*ad_name, *primary_codec, *cc_name, *port;
@@ -442,6 +442,13 @@ void settings_load(session_struct *sp)
 	sp->meter          = setting_load_int("audioPowermeters", 1);
 	sp->sync_on        = setting_load_int("audioLipSync", 0);
         xmemchk();
+	load_done();
+}
+
+void settings_load_late(session_struct *sp)
+{
+	UNUSED(sp);
+	load_init();
 	load_done();
 }
 
