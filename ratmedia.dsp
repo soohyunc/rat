@@ -265,6 +265,10 @@ SOURCE=.\timers.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\tonegen.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\transcoder.c
 # End Source File
 # Begin Source File
@@ -442,6 +446,10 @@ SOURCE=.\statistics.h
 # Begin Source File
 
 SOURCE=.\timers.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\tonegen.h
 # End Source File
 # Begin Source File
 
