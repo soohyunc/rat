@@ -650,12 +650,6 @@ ui_update_powermeter(session_t *sp)
 }
 
 static void
-ui_update_lipsync(session_t *sp) 
-{
-        ui_update_boolean(sp, "tool.rat.sync", sp->sync_on);
-}
-
-static void
 ui_update_silence(session_t *sp)
 {
         ui_update_boolean(sp, "audio.suppress.silence", sp->detect_silence);
@@ -714,7 +708,6 @@ ui_update(session_t *sp)
         ui_update_playout_bounds(sp);
         ui_update_lecture_mode(sp);
         ui_update_powermeter(sp);
-        ui_update_lipsync(sp);
         ui_update_silence(sp);
         ui_update_agc(sp);
         ui_update_audio_loopback(sp);

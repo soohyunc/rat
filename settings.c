@@ -486,7 +486,6 @@ void settings_load_early(session_t *sp)
 	sp->loopback_gain  = setting_load_int("audioLoopback", 0);
 	sp->echo_suppress  = setting_load_int("audioEchoSuppress", 0);
 	sp->meter          = setting_load_int("audioPowermeters", 1);
-	sp->sync_on        = setting_load_int("audioLipSync", 0);
 /* Ignore saved render_3d setting.  Break initial device config stuff.  V.fiddly to fix. */
 /*	sp->render_3d      = setting_load_int("audio3dRendering", 0);                    */
         xmemchk();
@@ -707,7 +706,6 @@ void settings_save(session_t *sp)
 	setting_save_str("audioOutputPort",        oapd->name);
 	setting_save_str("audioInputPort",         iapd->name); 
 	setting_save_int("audioPowermeters",       sp->meter);
-	setting_save_int("audioLipSync",           sp->sync_on);
 	/* We do not save audioOutputMute and audioInputMute by default, but should */
 	/* recognize them when reloading.                                           */
 	save_done();
