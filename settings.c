@@ -355,9 +355,10 @@ setting_load_int(char *name, int default_value)
 void settings_load(session_struct *sp)
 {
 	audio_device_details_t	 ad;
-	char			*ad_name, *primary_codec, *cc_name;
+	char			*ad_name, *primary_codec, *cc_name, *port;
 	int			 i, freq, chan;
 	cc_details		 ccd;
+        const audio_port_details_t 	*apd;
 
 	load_init();
 	sp->db->my_dbe->sentry->name  = xstrdup(setting_load_str("rtpName", "Unknown"));/* We don't use rtcp_set_attribute() */ 
@@ -377,18 +378,34 @@ void settings_load(session_struct *sp)
 
 	freq = setting_load_int("audioFrequency", 8000);
 	chan = setting_load_int("audioChannelsIn", 1);
-
 	primary_codec = setting_load_str("audioPrimary", "GSM");
-	audio_device_register_change_primary(sp, codec_get_matching(primary_codec, (u_int16)freq, (u_int16)chan));
+
+        audio_device_register_change_primary(sp, codec_get_matching(primary_codec, (u_int16)freq, (u_int16)chan));
         if (sp->new_config != NULL) {
 		audio_device_reconfigure(sp);
 	}
 
+        port = setting_load_str("audioOutputPort", "Headphone");
+        for(i = 0; i < audio_get_oport_count(sp->audio_device); i++) {
+                apd = audio_get_oport_details(sp->audio_device, i);
+                if (!strcasecmp(port, apd->name)) {
+                        break;
+                }
+        }
+        audio_set_oport(sp->audio_device, apd->port);
+        
+        port = setting_load_str("audioInputPort", "Microphone");
+        for(i = 0; i < audio_get_iport_count(sp->audio_device); i++) {
+                apd = audio_get_iport_details(sp->audio_device, i);
+                if (!strcasecmp(port, apd->name)) {
+                        break;
+                }
+        }
+        audio_set_iport(sp->audio_device, apd->port);
+
         audio_set_ogain(sp->audio_device, setting_load_int("audioOutputGain", 75));
         audio_set_igain(sp->audio_device, setting_load_int("audioInputGain",  75));
         tx_igain_update(sp->tb);
-        setting_load_str("audioOutputPort", "Headphone");
-        setting_load_str("audioInputPort", "Microphone");
 
 	cc_name = setting_load_str("audioChannelCoding", "None");
 	for (i = 0; i < channel_get_coder_count(); i++ ) {
