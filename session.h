@@ -16,6 +16,7 @@
 
 #include "net_udp.h"
 #include "ts.h"
+#include "audio_types.h"
 #include "converter_types.h"
 #include "repair_types.h"
 

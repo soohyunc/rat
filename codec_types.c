@@ -11,9 +11,8 @@
  */
 #include "config_unix.h"
 #include "config_win32.h"
-
+#include "audio_types.h"
 #include "codec_types.h"
-
 #include "util.h"
 #include "debug.h"
 

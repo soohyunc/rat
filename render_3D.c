@@ -14,6 +14,9 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
+#include <math.h>
+#include "audio_types.h"
+#include "codec_types.h"
 #include "memory.h"
 #include "util.h"
 #include "debug.h"

@@ -16,6 +16,7 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "memory.h"
+#include "audio_types.h"
 #include "transcoder.h"
 
 #define CHANNEL_SIZE  	8192

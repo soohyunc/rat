@@ -88,12 +88,6 @@ int gettimeofday(struct timeval *tp, void * );
 int kill(pid_t pid, int sig);
 #endif
 
-extern int h_errno;
-
-typedef unsigned char	byte;
-typedef char	ttl_t;
-typedef int	fd_t;
-
 #ifndef TRUE
 #define FALSE	0
 #define	TRUE	1
@@ -109,76 +103,5 @@ typedef int	fd_t;
 #else
 #include <assert.h>
 #endif
-
-#ifdef __NetBSD__
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/audioio.h>
-#endif
-
-#ifdef SunOS
-#define NEED_INET_PTON
-#define AUDIO_CD         4
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 7
-#include <ctype.h>
-#include <sun/audioio.h>
-#include <multimedia/ulaw2linear.h>
-#include <string.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <memory.h>
-int 	gethostname(char *name, int namelen);
-int 	gettimeofday(struct timeval *tp, struct timezone *tzp);
-double	drand48();
-void 	srand48(long seedval);
-long	lrand48();
-int	setsockopt(int s, int level, int optname, const char *optval, int optlen);
-void	perror();
-int	printf(char *format, ...);
-int	fprintf(FILE *stream, char *format, ...);
-int	fclose(FILE *stream);
-int	fread(void *ptr, int size, int nitems, FILE *stream);
-int	fwrite(void *ptr, int size, int nitems, FILE *stream);
-int	fflush(FILE *stream);
-void	bzero(char *b, int length);
-void	bcopy(char *b1, char *b2, int length);
-int	connect(int s, struct sockaddr *name, int namelen);
-int	select(int width, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
-int	bind(int s, struct sockaddr *name, int namelen);
-int	socket(int domain, int type, int protocol);
-int	sendto(int s, char *msg, int len, int flags, struct sockaddr *to, int tolen);
-int	writev(int fd, struct iovec *iov, int iovcnt);
-int	recvfrom(int s, char *buf, int len, int flags, struct sockaddr *from, int *fromlen);
-int	close(int fd);
-int	ioctl(int fd, int request, caddr_t arg);
-int 	sscanf(char *s, char *format, ...);
-time_t	time(time_t *tloc);
-int	strcasecmp(char *s1, char *s2);
-long	strtol(char *str, char **ptr, int base);
-int	toupper(int c);
-#define	memmove(dst, src, len)	bcopy((char *) src, (char *) dst, len)
-#endif
-
-#ifdef IRIX
-#define NEED_INET_PTON
-#include <audio.h>
-#include "usleep.h"
-#endif
-
-#ifdef Linux
-#define DIFF_BYTE_ORDER  1
-#include <sys/soundcard.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-void *memcpy(void *dest, const void *src, size_t n);
-int   memcmp(const void *s1, const void *s2, size_t n);
-#endif /* Linux */
-
-#endif 
-
-#include "audio_types.h"
 
 #endif

@@ -22,6 +22,7 @@
 #include "memory.h"
 #include "btree.h"
 #include "channel_types.h"
+#include "audio_types.h"
 #include "codec_types.h"
 #include "timers.h"
 #include "session.h"

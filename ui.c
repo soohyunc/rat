@@ -17,6 +17,7 @@
 #include "debug.h"
 #include "memory.h"
 #include "version.h"
+#include "audio_types.h"
 #include "codec_types.h"
 #include "codec_state.h"
 #include "codec.h"

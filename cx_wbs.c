@@ -13,6 +13,7 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
+#include "audio_types.h"
 #include "cx_wbs.h"
 
 int aStepsizes[]={

@@ -17,6 +17,7 @@
 #include "debug.h"
 #include "memory.h"
 #include "cushion.h"
+#include "audio_types.h"
 #include "codec_types.h"
 #include "audio.h"
 

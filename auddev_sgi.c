@@ -15,6 +15,7 @@
 #include "config_win32.h"
 #include "auddev_sgi.h"
 #include "debug.h"
+#include <audio.h>
 
 #define QSIZE		16000		/* Two seconds for now... */
 #define AVG_SIZE	20000

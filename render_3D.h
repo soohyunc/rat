@@ -14,8 +14,6 @@
 #ifndef __RENDER_3D_H__
 #define __RENDER_3D_H__
 
-#include <math.h>
-#include "codec_types.h"
 struct s_render_3D_dbentry;
 
 int   render_3D_filter_get_count(void);

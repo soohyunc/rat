@@ -75,7 +75,6 @@ typedef unsigned long	in_addr_t;
 #define NEED_INET_ATON
 
 #include <time.h>		/* For clock_t */
-#include "audio_types.h"
 #include "usleep.h"
 
 #define srand48	lbl_srandom

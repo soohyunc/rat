@@ -15,6 +15,7 @@
 #include "config_win32.h"
 #include "memory.h"
 #include "debug.h"
+#include "audio_types.h"
 #include "codec_types.h"
 #include "codec.h"
 #include "codec_state.h"

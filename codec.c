@@ -14,7 +14,7 @@
 /* These two just for UCL memory debugging fn's */
 #include "memory.h"
 #include "util.h"
-
+#include "audio_types.h"
 #include "codec_types.h"
 #include "codec.h"
 #include "codec_l16.h"

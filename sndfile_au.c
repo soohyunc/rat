@@ -16,6 +16,7 @@
 #include "debug.h"
 #include "memory.h"
 #include "util.h"
+#include "audio_types.h"
 #include "codec_g711.h"
 #include "sndfile_types.h"
 #include "sndfile_au.h"

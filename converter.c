@@ -15,6 +15,7 @@
 #include "config_win32.h"
 #include "memory.h"
 #include "util.h"
+#include "audio_types.h"
 #include "converter_types.h"
 #include "converter.h"
 #include "convert_util.h"

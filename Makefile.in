@@ -148,5 +148,5 @@ tgz: $(RATVER)
 	gzip -9v $(RATVER)-$(OSTYPE).tar
 
 depend:
-	makedepend $(INCLUDE) $(ALL_SRCS)
+	makedepend $(X_CFLAGS) $(INCLUDE) $(ALL_SRCS)
 # DO NOT DELETE THIS LINE

@@ -14,12 +14,12 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-
+#include "audio_types.h"
+#include "codec_types.h"
 #include "ts.h"
 #include "playout.h"
 #include "channel.h"
 #include "channel_types.h"
-#include "codec_types.h"
 #include "codec.h"
 #include "codec_state.h"
 #include "converter.h"
