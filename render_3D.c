@@ -58,13 +58,29 @@
 #include "ui.h"
 #include "render_3D.h"
 
+#ifdef NDEF
+typedef struct sound_source_struct_tag{
+  float    azimuth;
+  float    elevation;
+  int      delay;                        /* Interaural Time Difference in number of samples. */
+  float    attenuation;                  /* Interaural Intensity Difference: 0.0 <= IID <= 1.0 */
+  sample   *contra_buf, *ipsi_buf;       /* Buffer for contralateral and ipsilateral channel. */
+  sample   tmp_buf[64], excess_buf[64];  /* Excess samples due to delay. */
+  double   *overlap_buf;                 /* Overlap sequence due to segmented filter operations. */
+  int      size_image;                   /* Size of file for non-live input. */
+} sound_source;
+#endif
+
 typedef struct s_render_3D_dbentry {
-        short    azimuth;        /* lateral angle */
-        short    i_time_d;       /* interaural time difference (ITD); derived from 'azimuth' */
-        float    i_intensity_d;  /* interaural intensity difference (IID); derived from 'azimuth' */
-        double   filter[RESPONSE_LENGTH];     /* filter used for convolution */
-        double   overlap[RESPONSE_LENGTH];    /* overlap buffer due to filter operation on the mono signal */
-        sample   delay[32];      /* delay buffer due to ITD in the contra-lateral channel */
+        short    azimuth;                         /* lateral angle of sound source */
+        short    delay;                           /* based on interaural time difference (ITD); derived from 'azimuth' */
+        float    attenuation;                     /* based on interaural intensity difference (IID); derived from 'azimuth' */
+        sample   ipsi_buf[MAX_PACKET_SAMPLES];    /* buffer for ipsi-lateral channel before merging into stereo buffer */
+        sample   contra_buf[MAX_PACKET_SAMPLES];  /* buffer for contra-lateral channel before merging into stereo buffer */
+        sample   tmp_buf[64];                     /* temporary storage for swapping samples */
+        sample   excess_buf[64];                  /* buffer for excess samples due to delay */
+        double   filter[RESPONSE_LENGTH];         /* filter used for convolution */
+        double   overlap_buf[RESPONSE_LENGTH];    /* overlap buffer due to filter operation on the mono signal */
 } render_3D_dbentry;
 
 
@@ -77,11 +93,10 @@ render_3D_init()
         render_3D_data = (render_3D_dbentry *) xmalloc(sizeof(render_3D_dbentry));
 
         render_3D_data->azimuth = 0;
-        render_3D_data->i_time_d = 0;
-        render_3D_data->i_intensity_d = 0.0;
+        render_3D_data->delay = 0;
+        render_3D_data->attenuation = 0.0;
         memset(render_3D_data->filter, 0, sizeof render_3D_data->filter);
-        memset(render_3D_data->overlap, 0, sizeof render_3D_data->overlap);
-        memset(render_3D_data->delay, 0, sizeof render_3D_data->delay);
+        memset(render_3D_data->overlap_buf, 0, sizeof render_3D_data->overlap_buf);
 
 	render_3D_data->filter[0] = 0.063113;
 	render_3D_data->filter[1] = -0.107530;
@@ -146,9 +161,12 @@ finger_exercise(sample *signal, sample *answer, int signal_length)
 void
 render_3D(rx_queue_element_struct *el, int no_channels)
 {
+        int      i;
         int      n_samples;
+        size_t   n_bytes;    /* number of bytes in unspliced (mono!) buffer */
         sample   *raw_buf, *proc_buf;
-        struct   s_render_3D_dbentry  *part_3D_data;
+        sample   *mono_raw, *mono_filtered;  /* auxiliary buffers in case of stereo */
+        struct   s_render_3D_dbentry  *p_3D_data;  
 
         /* - take rx_queue_element_struct el
          * - set size of buffer by filling in 'el->native_size[el->native_count]'
@@ -162,35 +180,53 @@ render_3D(rx_queue_element_struct *el, int no_channels)
         }
         el->native_count++;
 
-        part_3D_data = el->dbe_source[0]->render_3D_data;
+        p_3D_data = el->dbe_source[0]->render_3D_data;
 
         assert(el->native_size[el->native_count - 1] == el->native_size[el->native_count - 2]);
 
         n_samples = (int) el->native_size[el->native_count-1] / BYTES_PER_SAMPLE;
-        
-#ifdef NDEF
+
+        raw_buf = el->native_data[el->native_count - 2];   /* buffer handed over _for_ 3D rendering */
+        proc_buf = el->native_data[el->native_count - 1];  /* buffer returned _from_ 3D rendering */
+        memset(proc_buf, 0, n_samples * sizeof(sample));
+
         /* check if mixer is stereo using 'no_channels' ('1' is mono, '2' ist stereo). */
         if (no_channels == 2) {
                 /* extract mono buffer from stereo buffer */
-                raw_buf = (sample *) block_alloc(el->native_size[el->native_count-1] / 2);
-                proc_buf = (sample *) block_alloc(el->native_size[el->native_count-1] / 2);
+                mono_raw = (sample *) block_alloc(el->native_size[el->native_count-1] / 2);
+                mono_filtered = (sample *) block_alloc(el->native_size[el->native_count-1] / 2);
                 for (i=0; i<n_samples/2; i++) {
-                        raw_buf[i] = el->native_data[el->native_count - 2] + (2 * i);
+                        mono_raw[i] = raw_buf[2 * i];
                 }
-                /* Externalisation */
-                convolve(raw_buf, proc_buf, part_3D_data->overlap, part_3D_data->filter, RESPONSE_LENGTH, n_samples);
+                /* EXTERNALISATION */
+                convolve(mono_raw, mono_filtered, p_3D_data->overlap_buf, p_3D_data->filter, RESPONSE_LENGTH, n_samples/2);
 
-                /* Lateralisation */
-                lateralise();
+                /* LATERALISATION */
+
+                /* mono_filtered is input, and el->native_data[el->native_count-1] is the output (stereo). */
+                /* 'n_samples' is number of samples in _stereo_ buffer */
+                n_bytes = sizeof(sample) * n_samples / 2;
+
+                /* splice into two channels: ipsilateral and contralateral. */
+                memcpy(p_3D_data->ipsi_buf, mono_filtered, n_bytes);
+                memcpy(p_3D_data->contra_buf, mono_filtered, n_bytes);
+                /* apply IID to contralateral buffer. */
+                for (i=0; i<(n_samples/2); i++) p_3D_data->contra_buf[i] *= p_3D_data->attenuation;
+                /* apply ITD to contralateral buffer: delay mechanisam. */
+                memcpy(p_3D_data->tmp_buf, p_3D_data->contra_buf+(n_samples-1)-p_3D_data->delay, p_3D_data->delay*sizeof(sample));
+                memmove(p_3D_data->contra_buf+p_3D_data->delay, p_3D_data->contra_buf, (n_samples-p_3D_data->delay)*sizeof(sample));
+                memcpy(p_3D_data->contra_buf, p_3D_data->excess_buf, p_3D_data->delay*sizeof(sample));
+                memcpy(p_3D_data->excess_buf, p_3D_data->tmp_buf, p_3D_data->delay*sizeof(sample));
+                /* Funnel ipsi- and contralateral buffers into out_buf. */
+                for (i=0; i<n_samples/2; i++) {
+                        proc_buf[2*i]   = p_3D_data->ipsi_buf[i];
+                        proc_buf[2*i+1] = p_3D_data->contra_buf[i];
+                }
         }
-#endif
 
         if (no_channels == 1) {
-                raw_buf = el->native_data[el->native_count - 2];
-                proc_buf = el->native_data[el->native_count - 1];
-                memset(proc_buf, 0, n_samples * sizeof(sample));
                 xmemchk();
-                convolve(raw_buf, proc_buf, part_3D_data->overlap, part_3D_data->filter, RESPONSE_LENGTH, n_samples);
+                convolve(raw_buf, proc_buf, p_3D_data->overlap_buf, p_3D_data->filter, RESPONSE_LENGTH, n_samples);
                 xmemchk();
         }
         block_check((char*)el->native_data[el->native_count - 1]);
