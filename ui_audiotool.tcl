@@ -125,11 +125,11 @@ proc set_gain {new_gain} {
 }
 
 proc toggle_input_port {} {
-  mbus_send "R" "toggle.input.port" ""
+  mbus_send "R" "tool.rat.toggle.input.port" ""
 }
 
 proc toggle_output_port {} {
-  mbus_send "R" "toggle.output.port" ""
+  mbus_send "R" "tool.rat.toggle.output.port" ""
 }
 
 proc mbus_heartbeat {} {
@@ -1400,7 +1400,7 @@ proc jiggle_credits {} {
 proc sync_ui_to_engine {} {
     # the next time the display is shown, it needs to reflect the
     # state of the audio engine.
-    mbus_send "R" "settings" ""
+    mbus_send "R" "tool.rat.settings" ""
 }
 
 proc sync_engine_to_ui {} {
@@ -1440,13 +1440,13 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "playout.max"   $max_var
     mbus_send "R" "tool.rat.lecture"       $lecture_var
     mbus_send "R" "tool.rat.externalise"   $3d_audio_var
-    mbus_send "R" "converter"    [mbus_encode_str $convert_var]
+    mbus_send "R" "tool.rat.converter"    [mbus_encode_str $convert_var]
 
     #Security
     if {$key_var==1 && [string length $key]!=0} {
-	mbus_send "R" "update.key" [mbus_encode_str $key]
+	mbus_send "R" "security.encryption.key" [mbus_encode_str $key]
     } else {
-	mbus_send "R" "update.key" [mbus_encode_str ""]
+	mbus_send "R" "security.encryption.key" [mbus_encode_str ""]
     }
 
     #Interface

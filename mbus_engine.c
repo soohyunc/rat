@@ -65,12 +65,12 @@ extern int should_exit;
 
 /*****************************************************************************/
 
-static void rx_toggle_input_port(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_toggle_input_port(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(srce);
 
 	if ((strlen(args) != 1) || (args[0] != ' ')) {
-		printf("mbus: toggle_input_port does not require parameters\n");
+		printf("mbus: tool.rat.toggle.input.port does not require parameters\n");
 		return;
 	}
 
@@ -79,12 +79,12 @@ static void rx_toggle_input_port(char *srce, char *args, session_struct *sp)
 	ui_update_input_port(sp);
 }
 
-static void rx_toggle_output_port(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_toggle_output_port(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(srce);
 
 	if ((strlen(args) != 1) || (args[0] != ' ')) {
-		printf("mbus: toggle_output_port does not require parameters\n");
+		printf("mbus: tool.rat.toggle.output.port does not require parameters\n");
 		return;
 	}
 
@@ -93,7 +93,7 @@ static void rx_toggle_output_port(char *srce, char *args, session_struct *sp)
 	ui_update_output_port(sp);
 }
 
-static void rx_get_audio(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_get_audio(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(srce);
 
@@ -402,7 +402,7 @@ static void rx_repair(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine_conf);
 }
 
-static void rx_update_key(char *srce, char *args, session_struct *sp)
+static void rx_security_encryption_key(char *srce, char *args, session_struct *sp)
 {
 	char	*key;
 
@@ -413,7 +413,7 @@ static void rx_update_key(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(sp->mbus_engine_conf, &key)) {
 		Set_Key(mbus_decode_str(key));
 	} else {
-		printf("mbus: usage \"update_key <key>\"\n");
+		printf("mbus: usage \"security.encryption.key <key>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
 }
@@ -853,7 +853,7 @@ static void rx_playout_max(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine_conf);
 }
 
-static void rx_converter(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
 {
         char *name;
         
@@ -865,7 +865,7 @@ static void rx_converter(char *srce, char *args, session_struct *sp)
                 sp->converter = converter_get_byname(name);
                 assert(sp->converter);
 	} else {
-		printf("mbus: usage \"converter <name>\"\n");
+		printf("mbus: usage \"tool.rat.converter <name>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
 }
@@ -898,7 +898,7 @@ static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
         mbus_parse_done(sp->mbus_engine_conf);
 }
 
-static void rx_settings(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_settings(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(args);
 	UNUSED(srce);
@@ -936,10 +936,12 @@ static void rx_mbus_hello(char *srce, char *args, session_struct *sp)
 	UNUSED(sp);
 }
 
+/* Note: These next two arrays MUST be in the same order! */
+
 const char *rx_cmnd[] = {
-	"get_audio",              
-	"toggle.input.port",
-	"toggle.output.port",
+	"tool.rat.get_audio",              
+	"tool.rat.toggle.input.port",
+	"tool.rat.toggle.output.port",
 	"tool.rat.silence",
 	"tool.rat.lecture",
 	"tool.rat.externalise",
@@ -948,15 +950,26 @@ const char *rx_cmnd[] = {
         "tool.rat.echo.suppress",
 	"tool.rat.sync",       
 	"tool.rat.rate",          
+	"tool.rat.powermeter",
+        "tool.rat.converter",
+        "tool.rat.settings",
 	"audio.input.mute",
 	"audio.input.gain",
 	"audio.input.port",
 	"audio.output.mute",
 	"audio.output.gain",
 	"audio.output.port",
-	"tool.rat.powermeter",
+        "audio.channel.coding",
+        "audio.file.play.open",   
+        "audio.file.play.pause",
+        "audio.file.play.stop",
+        "audio.file.play.live",
+	"audio.file.record.open",
+        "audio.file.record.pause",
+	"audio.file.record.stop",
+        "audio.file.record.live",
 	"repair",
-	"update.key",             
+	"security.encryption.key",             
         "rtp.source.name",
 	"rtp.source.email",
 	"rtp.source.phone",       
@@ -970,28 +983,17 @@ const char *rx_cmnd[] = {
         "playout.limit",
         "playout.min",            
         "playout.max",            
-        "converter",
-        "audio.channel.coding",
-        "settings",
 	"quit",
 	"mbus.waiting",
 	"mbus.go",
 	"mbus.hello",             
-        "audio.file.play.open",   
-        "audio.file.play.pause",
-        "audio.file.play.stop",
-        "audio.file.play.live",
-	"audio.file.record.open",
-        "audio.file.record.pause",
-	"audio.file.record.stop",
-        "audio.file.record.live",
 	""
 };
 
 static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
-	rx_get_audio,                  
-	rx_toggle_input_port,
-	rx_toggle_output_port,
+	rx_tool_rat_get_audio,                  
+	rx_tool_rat_toggle_input_port,
+	rx_tool_rat_toggle_output_port,
 	rx_tool_rat_silence,
 	rx_tool_rat_lecture,
 	rx_tool_rat_externalise,
@@ -1000,15 +1002,26 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_tool_rat_echo_suppress,
 	rx_tool_rat_sync,
 	rx_tool_rat_rate,              
+	rx_tool_rat_powermeter,
+        rx_tool_rat_converter,
+        rx_tool_rat_settings,
 	rx_audio_input_mute,
 	rx_audio_input_gain,
 	rx_audio_input_port,
 	rx_audio_output_mute,
 	rx_audio_output_gain,
 	rx_audio_output_port,
-	rx_tool_rat_powermeter,
+        rx_audio_channel_coding,
+        rx_audio_file_play_open,       
+        rx_audio_file_play_pause,
+        rx_audio_file_play_stop,                
+        rx_audio_file_play_live,
+        rx_audio_file_rec_open,
+	rx_audio_file_rec_pause,
+        rx_audio_file_rec_stop,
+        rx_audio_file_rec_live,
 	rx_repair,
-	rx_update_key,
+	rx_security_encryption_key,
 	rx_rtp_source_name,
 	rx_rtp_source_email,
 	rx_rtp_source_phone,            
@@ -1022,21 +1035,10 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_playout_limit,
         rx_playout_min,
         rx_playout_max,                
-        rx_converter,
-        rx_audio_channel_coding,
-        rx_settings,
 	rx_quit,
 	rx_mbus_waiting,
 	rx_mbus_go,
 	rx_mbus_hello,
-        rx_audio_file_play_open,       
-        rx_audio_file_play_pause,
-        rx_audio_file_play_stop,                
-        rx_audio_file_play_live,
-        rx_audio_file_rec_open,
-	rx_audio_file_rec_pause,
-        rx_audio_file_rec_stop,
-        rx_audio_file_rec_live,
         NULL
 };
 
@@ -1044,12 +1046,16 @@ void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 {
 	int i;
 
+	debug_msg("%s (%s)\n", cmnd, args);
 	for (i=0; strlen(rx_cmnd[i]) != 0; i++) {
 		if (strcmp(rx_cmnd[i], cmnd) == 0) {
                         rx_func[i](srce, args, (session_struct *) data);
 			return;
 		} 
 	}
-	debug_msg("Unknown mbus command: %s %s\n", cmnd, args);
+	debug_msg("Unknown mbus command: %s (%s)\n", cmnd, args);
+#ifndef NDEBUG
+	abort();
+#endif
 }
 
