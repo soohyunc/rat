@@ -30,6 +30,11 @@
 #undef DEBUG_MEM
 
 /*
+ * Optimization
+ */
+#undef NDEBUG
+
+/*
  * #defines for operating system.
  * THESE WANT TO GO AWAY!
  * Any checks for a specific OS should be replaced by a check for

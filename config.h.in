@@ -52,6 +52,11 @@
 #undef DEBUG
 #undef DEBUG_MEM
 
+/*
+ * Optimization
+ */
+#undef NDEBUG
+
 /* Audio device relate */
 #undef HAVE_SPARC_AUDIO
 #undef HAVE_SGI_AUDIO

@@ -340,7 +340,7 @@ TK_INC=${PARENT}/tk-8.0
 TK_LIB=${PARENT}/tk-8.0
 
 AC_ARG_WITH(tk,           
-	[  --with-tk=DIR          specify location of Tk installation],
+	[  --with-tk=DIR           specify location of Tk installation],
 	[TK_INC=$withval
 	 TK_LIB=$withval])
 #-----------------------------------------------------------------------------
@@ -481,6 +481,12 @@ AC_DEFINE(USE_FLOAT_MUL)
 #-----------------------------------------------------------------------------
 # Assorted Enable options 
 #-----------------------------------------------------------------------------
+AC_ARG_ENABLE(optimize,
+        [  --enable-optimize       enable optimization],
+        [if test $enableval = yes
+        then
+		AC_DEFINE(NDEBUG)
+	fi])
 AC_ARG_ENABLE(profile,
         [  --enable-profile        enable profiling],
         [if test $enableval = yes
