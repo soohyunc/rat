@@ -1025,7 +1025,9 @@ proc validate_red_codecs {} {
     global prenc secenc
 
     set pri [.prefs.pane.transmission.dd.pri.m.menu index $prenc]
-    set sec [.prefs.pane.transmission.cc.red.fc.m.menu index $secenc]
+    if { [catch {set sec [.prefs.pane.transmission.cc.red.fc.m.menu index $secenc]}] } {
+	set secenc $prienc
+    }
 
     if {$sec <= $pri} {
 	for {set i 0} {$i < $pri} {incr i} {
@@ -1376,20 +1378,6 @@ proc load_settings {} {
     load_setting attr rtpEmail rtcp_email    ""
     load_setting attr rtpPhone rtcp_phone    ""
     load_setting attr rtpLoc   rtcp_loc      ""
-    # transmission
-    load_setting attr audioFrequency         freq          "8-kHz"
-    load_setting attr audioChannels          channels      "Mono"
-    load_setting attr audioPrimary           prenc         "GSM"
-    global prenc channels freq
-    mbus_send "R"    "primary"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
-    load_setting attr audioUnits             upp           "2"
-    load_setting attr audioChannelCoding     channel_var   "None"
-    load_setting attr audioRedundancy        secenc        "GSM"
-    load_setting attr audioRedundancyOffset  red_off       "1"
-    load_setting attr audioInterleavingGap   int_gap       "4"
-    load_setting attr audioInterleavingUnits int_units     "4"
-    load_setting attr audioSilence           silence_var   "1"
-    load_setting attr audioAGC               agc_var       "0"
 
     # reception
     load_setting attr audioRepair       repair_var    "Packet Repetition"
@@ -1416,6 +1404,21 @@ proc load_settings {} {
     # want to start with mic open then they add following attributes
     load_setting attr audioOutputMute   out_mute_var "0"
     load_setting attr audioInputMute    in_mute_var  "1"
+
+    # transmission
+    load_setting attr audioSilence           silence_var   "1"
+    load_setting attr audioAGC               agc_var       "0"
+    load_setting attr audioFrequency         freq          "8-kHz"
+    load_setting attr audioChannels          channels      "Mono"
+    load_setting attr audioPrimary           prenc         "GSM"
+    global prenc channels freq
+    mbus_send "R"    "primary"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
+    load_setting attr audioUnits             upp           "2"
+    load_setting attr audioChannelCoding     channel_var   "None"
+    load_setting attr audioRedundancy        secenc        "GSM"
+    load_setting attr audioRedundancyOffset  red_off       "1"
+    load_setting attr audioInterleavingGap   int_gap       "4"
+    load_setting attr audioInterleavingUnits int_units     "4"
 }
 
 proc check_rtcp_name {} {
