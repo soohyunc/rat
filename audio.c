@@ -82,7 +82,7 @@ static bias_ctl *
 bias_ctl_create(int channels)
 {
         bias_ctl *bc = (bias_ctl*)xmalloc(channels*sizeof(bias_ctl));
-        memset(bc, 0, 2*sizeof(bias_ctl));
+        memset(bc, 0, channels*sizeof(bias_ctl));
         bc->step = channels;
         return bc;
 }

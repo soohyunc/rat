@@ -160,7 +160,7 @@ void xfree(void *y)
 			free(x - 8);
 			free(mem_item[i].filen);
 		}
-                memcpy(mem_item+i,mem_item+i+j,sizeof(alloc_blk));
+                memmove(mem_item+i,mem_item+i+j,sizeof(alloc_blk));
 	}
 	if (j != 1) {
 		printf("ERROR: Attempt to free memory which was never allocated! (addr=%p)\n", y);

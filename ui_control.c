@@ -60,8 +60,6 @@
 #include "ui_control.h"
 #include "rat_time.h"
 
-static char args[1000];
-
 static char *mbus_name_engine = NULL;
 static char *mbus_name_ui     = NULL;
 static char *mbus_name_video  = NULL;
@@ -82,73 +80,77 @@ static char *mbus_name_video  = NULL;
 void
 ui_info_update_name(rtcp_dbentry *e)
 {
-	char *cname, *arg;
+	char *cname, *name, *args;
 
 	if (e->sentry->cname == NULL) return;
 
 	cname = xstrdup(mbus_encode_str(e->sentry->cname));
-	arg   = xstrdup(mbus_encode_str(e->sentry->name));
-
-	sprintf(args, "%s %s", cname, arg);
+	name  = xstrdup(mbus_encode_str(e->sentry->name));
+        args = (char*)xmalloc(strlen(cname) + strlen(name) + 2);
+        
+	sprintf(args, "%s %s", cname, name);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.name", args, TRUE);
 	xfree(cname);
-	xfree(arg);
+	xfree(name);
+        xfree(args);
 }
 
 void
 ui_info_update_cname(rtcp_dbentry *e)
 {
 	if (e->sentry->cname == NULL) return;
-	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.exists", args, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.exists", xstrdup(mbus_encode_str(e->sentry->cname)), TRUE);
 }
 
 void
 ui_info_update_email(rtcp_dbentry *e)
 {
-	char *cname, *arg;
+	char *cname, *arg, *args;
 
 	if (e->sentry->cname == NULL) return;
 
 	cname = xstrdup(mbus_encode_str(e->sentry->cname));
 	arg   = xstrdup(mbus_encode_str(e->sentry->email));
-
+        args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.email", args, TRUE);
 	xfree(cname);
 	xfree(arg);
+        xfree(args);
 }
 
 void
 ui_info_update_phone(rtcp_dbentry *e)
 {
-	char *cname, *arg;
+	char *cname, *arg, *args;
 
 	if (e->sentry->cname == NULL) return;
 
 	cname = xstrdup(mbus_encode_str(e->sentry->cname));
 	arg   = xstrdup(mbus_encode_str(e->sentry->phone));
-
+        args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.phone", args, TRUE);
 	xfree(cname);
 	xfree(arg);
+        xfree(args);
 }
 
 void
 ui_info_update_loc(rtcp_dbentry *e)
 {
-	char *cname, *arg;
+	char *cname, *arg, *args;
 
 	if (e->sentry->cname == NULL) return;
 
 	cname = xstrdup(mbus_encode_str(e->sentry->cname));
 	arg   = xstrdup(mbus_encode_str(e->sentry->loc));
-
+        args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.loc", args, TRUE);
 	xfree(cname);
 	xfree(arg);
+        xfree(args);
 }
 
 void
@@ -156,43 +158,40 @@ ui_info_update_tool(rtcp_dbentry *e)
 {
 	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
 	char *arg   = xstrdup(mbus_encode_str(e->sentry->tool));
-
+        char *args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.tool", args, TRUE);
 	xfree(cname);
 	xfree(arg);
+        xfree(args);
 }
 
 void
 ui_info_remove(rtcp_dbentry *e)
 {
 	if (e->sentry->cname == NULL) return;
-	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.remove", args, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.remove", xstrdup(mbus_encode_str(e->sentry->cname)), TRUE);
 }
 
 void
 ui_info_activate(rtcp_dbentry *e)
 {
 	if (e->sentry->cname == NULL) return;
-	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.now", args, FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.now", xstrdup(mbus_encode_str(e->sentry->cname)), FALSE);
 }
 
 void
 ui_info_gray(rtcp_dbentry *e)
 {
 	if (e->sentry->cname == NULL) return;
-	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.recent", args, FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.recent", xstrdup(mbus_encode_str(e->sentry->cname)), FALSE);
 }
 
 void
 ui_info_deactivate(rtcp_dbentry *e)
 {
 	if (e->sentry->cname == NULL) return;
-	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.inactive", args, FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.inactive", xstrdup(mbus_encode_str(e->sentry->cname)), FALSE);
 }
 
 void
@@ -563,16 +562,16 @@ ui_update_loss(char *srce, char *dest, int loss)
 void
 ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, double jitter, int jit_tog)
 {
-	char	*cname_e, *args;
+	char	*cname_e, *t_args;
 
 	if (cname == NULL) return;
 
 	cname_e = mbus_encode_str(cname);
-	args    = (char *) xmalloc(29 + strlen(cname_e));
 
-	sprintf(args, "%s %6ld %6ld %6ld %6f %d", cname_e, recv, lost, misordered, jitter, jit_tog);
-	mbus_engine_tx_queue(TRUE, "source.reception", args);
-	xfree(args);
+	sprintf(args, "%s %6ld %6ld %6ld %6f %6d", cname_e, recv, lost, misordered, jitter, jit_tog);
+        t_args = strdup(args);
+	mbus_engine_tx_queue(TRUE, "source.reception", t_args);
+	free(t_args);
 }
 
 void
@@ -598,7 +597,7 @@ update_video_playout(char *cname, int playout)
 	if (cname == NULL) return;
 
 	cname_e = mbus_encode_str(cname);
-	args    = (char *) xmalloc(5 + strlen(cname_e));
+	args    = (char *) xmalloc(8 + strlen(cname_e));
 
 	sprintf(args, "%s %6d", cname, playout);
 	mbus_engine_tx(TRUE, mbus_name_video, "source_playout", args, FALSE);

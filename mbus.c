@@ -265,7 +265,7 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(MBUS_PORT+m->channel);
-	b                = (char *) block_alloc(MBUS_BUF_SIZE);
+	b                = (char *) xmalloc(MBUS_BUF_SIZE);
 	bp		 = b;
 	sprintf(bp, "mbus/1.0 %6d R (%s) (%s) ()\n", curr->seqn, curr->srce, curr->dest);
 	bp += strlen(curr->srce) + strlen(curr->dest) + 27;
@@ -282,7 +282,7 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 		perror("mbus_send: sendto");
 	}
 	curr->rtcnt++;
-	block_free(b, MBUS_BUF_SIZE);
+	xfree(b);
 }
 
 void mbus_retransmit(struct mbus *m)
@@ -482,7 +482,7 @@ int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, in
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(MBUS_PORT+m->channel);
-	buffer           = (char *) block_alloc(MBUS_BUF_SIZE);
+	buffer           = (char *)xmalloc(MBUS_BUF_SIZE);
 	bufp		 = buffer;
 
 	sprintf(bufp, "mbus/1.0 %6d %c (%s) %s ()\n", m->seqnum, reliable?'R':'U', m->addr[0], dest);
@@ -502,7 +502,7 @@ int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, in
 	if ((sendto(m->fd, buffer, bufp - buffer, 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
 		perror("mbus_send: sendto");
 	}
-	block_free(buffer, MBUS_BUF_SIZE);
+	xfree(buffer);
 	return m->seqnum;
 }
 
@@ -628,7 +628,7 @@ char *mbus_decode_str(char *s)
 	assert(s[0]   == '\"');
 	assert(s[l-1] == '\"');
 
-	bcopy(s+1, s, l-2);
+	memmove(s, s+1, l-2);
 	s[l-2] = '\0';
 	return s;
 }

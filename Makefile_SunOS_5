@@ -6,7 +6,7 @@ LDLIBS = -R/usr/openwin/lib \
          -ltk8.0 -ltcl8.0 \
          -L/usr/openwin/lib -lXext -lX11 \
          -L/usr/demo/SOUND/lib -laudio \
-         -lsocket -ldl -lnsl -lm
+         -lsocket -ldl -lnsl -lm -lcheck
 
 OBJS = $(OBJDIR)/auddev_sparc.o
 # DO NOT DELETE THIS LINE -- make depend depends on it.

@@ -747,8 +747,8 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int1
 void 
 rtcp_update(session_struct *sp, int fd, u_int32 addr, u_int16 port)
 {
-	u_int32  	packet[MAX_PACKLEN / 4];
-	u_int8         *ptr 	= (u_int8 *) packet;
+	u_int8  	packet[MAX_PACKLEN];
+	u_int8         *ptr 	= packet;
 	int             packlen = 0;
 	u_int32		now 	= get_time(sp->device_clock);
 
@@ -766,8 +766,8 @@ rtcp_update(session_struct *sp, int fd, u_int32 addr, u_int16 port)
 	if ((now - sp->db->last_rpt) > sp->db->report_interval) {
 		ptr = rtcp_packet_fmt_srrr(sp, ptr);
 		ptr = rtcp_packet_fmt_sdes(sp, ptr);
-		packlen = ptr - (u_int8 *) packet;
-		net_write(fd, addr, port, (u_int8 *) packet, packlen, PACKET_RTCP);
+		packlen = ptr - packet;
+		net_write(fd, addr, port, packet, packlen, PACKET_RTCP);
 
 		/* Calculate the interval until we're due to send another RTCP packet... */
 		sp->db->report_interval = rtcp_interval(sp->db->members, sp->db->senders, sp->db->rtcp_bw, sp->db->sending, 
