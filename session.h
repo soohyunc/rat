@@ -96,6 +96,7 @@ typedef struct session_tag {
 	struct mbus	*mbus_engine;
 	struct mbus	*mbus_ui;
 	int		 wait_on_startup;
+        ts_t             cur_ts; /* current device time as timestamp */
 } session_struct;
 
 void init_session(session_struct *sp);

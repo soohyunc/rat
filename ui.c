@@ -176,7 +176,7 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
         src = source_get_by_rtcp_dbentry(sp->active_sources, e);
         if (src) {
                 buffered = ts_to_ms(source_get_audio_buffered (src));
-                delay    = ts_to_ms(source_get_playout_delay  (src));
+                delay    = ts_to_ms(source_get_playout_delay  (src, sp->cur_ts));
         } else {
                 buffered = 0;
                 delay    = 0;

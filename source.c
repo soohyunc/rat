@@ -343,6 +343,8 @@ source_remove(source_list *plist, source *psrc)
          * there is no source decode path.
          */
         psrc->dbe->first_pckt_flag = TRUE;
+
+        debug_msg("Destroying source decode path\n");
         
         block_free(psrc, sizeof(source));
 }
@@ -436,7 +438,7 @@ source_check_buffering(source *src, ts_t now)
                 return FALSE;
         }
 
-        buf_ms = ts_to_ms(source_get_playout_delay(src));
+        buf_ms = ts_to_ms(source_get_playout_delay(src, now));
 
         playout_dur = ts_sub(src->dbe->playout, src->dbe->delay_in_playout_calc);
         playout_ms  = ts_to_ms(playout_dur);
@@ -513,6 +515,7 @@ source_skew_adapt(source *src, media_data *md)
                 src->dbe->playout               = ts_sub(src->dbe->playout, adjustment);
                 src->dbe->delay_in_playout_calc = ts_sub(src->dbe->delay_in_playout_calc, adjustment);
                 src->last_played = ts_sub(src->last_played, adjustment);
+                src->skew_offenses = 0;
 
                 if (ts_valid(src->last_repair)) {
                         src->last_repair = ts_sub(src->last_repair, adjustment);
@@ -538,6 +541,7 @@ source_skew_adapt(source *src, media_data *md)
                 src->dbe->playout               = ts_add(src->dbe->playout, adjustment);
                 src->dbe->delay_in_playout_calc = ts_add(src->dbe->delay_in_playout_calc, adjustment);
                 src->last_played = ts_add(src->last_played, adjustment);
+                src->skew_offenses = 0;
 
                 if (ts_valid(src->last_repair)) {
                         src->last_repair = ts_add(src->last_repair, adjustment);
@@ -795,19 +799,18 @@ source_get_audio_buffered (source *src)
 }
 
 ts_t
-source_get_playout_delay (source *src)
+source_get_playout_delay (source *src, ts_t now)
 {
-        ts_t start, end;
+        ts_t end;
 
         /* Current playout is pretty close to src->media_pos point,
          * delay is diff between this and last packet received.
          */
 
-        if (pb_get_start_ts(src->channel,  &start) &&
-            pb_get_end_ts(src->channel, &end)) {
-                assert(ts_gt(end, start) || ts_eq(end, start));
+        if (pb_get_end_ts(src->channel, &end)) {
+                assert(ts_gt(end, now) || ts_eq(end, now));
                 
-                return ts_sub(end, start);
+                return ts_sub(end, now);
         }
 
         return ts_map32(8000,0);

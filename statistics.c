@@ -37,10 +37,17 @@
 
 static converter_id_t null_converter;
 
+/* We cache jitter between talkspurts unless we have not heard from
+ * source for discard_jitter_period.
+ */
+
+static ts_t discard_jitter_period;
+
 void
 statistics_init()
 {
-        null_converter = converter_get_null_converter();
+        null_converter        = converter_get_null_converter();
+        discard_jitter_period = ts_map32(8000, 3 * 60 * 8000); /* 3 minutes */
 }
 
 static rtcp_dbentry *
@@ -80,14 +87,21 @@ statistics_variable_component(rtcp_dbentry            *src,
                               session_struct          *sp, 
                               struct s_cushion_struct *cushion) 
 {
-        u_int32 var;
+        u_int32 var, cush;
         var = (u_int32) src->jitter * 3;
+
+        debug_msg("var (jitter) %d\n", var);
         
         if (var < (unsigned)src->inter_pkt_gap) {
                 var = src->inter_pkt_gap;
+                debug_msg("jitter < pkt_gap -> %d\n", var);
         }
         
-        var = max(var, 4 * cushion_get_size(cushion) / 3);
+        cush = cushion_get_size(cushion);
+        if (var < cush) {
+                var = 3 * cush / 2;
+                debug_msg("cushion %d\n", cushion_get_size(cushion));
+        }
 
         if (sp->limit_playout) {
                 u_int32 minv, maxv;
@@ -139,11 +153,23 @@ adapt_playout(rtp_hdr_t               *hdr,
                 src->delay_in_playout_calc = delay_ts;
 		hdr->m                     = TRUE;
                 cid = codec_get_by_payload(src->enc);
-                if (cid) {
-                        cf = codec_get_format(cid);
-                        src->jitter  = 3 * 20 * cf->format.sample_rate / 1000;
-                } else {
-                        src->jitter  = 240; 
+
+                if ((ts_valid(src->last_arr) == FALSE) ||
+                    (ts_gt(ts_sub(arr_ts, src->last_arr), discard_jitter_period))) {
+                        /* Guess suitable playout only if we have not
+                         *  heard from this source recently...  
+                         */
+                        
+                        if (cid) {
+                                u_int32 spf;
+                                cf = codec_get_format(cid);
+                                spf = codec_get_samples_per_frame(cid);
+                                src->jitter  = 1.0 * (double)spf;
+                                debug_msg("jitter (1 frame) %d\n", (int)src->jitter);
+                        } else {
+                                src->jitter  = 160; 
+                                debug_msg("jitter (guess) %d\n", (int)src->jitter);
+                        }
                 }
 	} else {
                 if (hdr->seq != src->last_seq) {
@@ -475,8 +501,6 @@ statistics_process(session_struct          *sp,
                 }
                 rtcp_update_seq(sender, hdr->seq);
 
-                sender->last_arr = curr_ts;
-
                 if (hdr->cc) {
                         int k;
                         for(k = 0; k < hdr->cc; k++) {
@@ -537,6 +561,7 @@ statistics_process(session_struct          *sp,
                         pckt->len      = 0;
                 }
 
+                sender->last_arr = curr_ts;
         release:
                 block_trash_check();
                 pckt_queue_element_free(&pckt);

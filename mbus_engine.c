@@ -1082,7 +1082,6 @@ void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 {
 	int i;
 
-	debug_msg("%s (%s)\n", cmnd, args);
 	for (i=0; strlen(rx_cmnd[i]) != 0; i++) {
 		if (strcmp(rx_cmnd[i], cmnd) == 0) {
                         rx_func[i](srce, args, (session_struct *) data);

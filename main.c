@@ -59,7 +59,6 @@ int
 main(int argc, char *argv[])
 {
 	u_int32			 ssrc, cur_time, ntp_time;
-        ts_t                     cur_ts;
 	int            		 num_sessions, i, elapsed_time, alc = 0;
 	char			*cname;
 	session_struct 		*sp[2];
@@ -152,8 +151,7 @@ main(int argc, char *argv[])
 			}
 			cur_time = get_time(sp[i]->device_clock);
 			ntp_time = ntp_time32();
-                        cur_ts   = ts_seq32_in(&sp[i]->decode_sequencer, get_freq(sp[i]->device_clock), cur_time);
-
+                        sp[i]->cur_ts   = ts_seq32_in(&sp[i]->decode_sequencer, get_freq(sp[i]->device_clock), cur_time);
 			timeout.tv_sec  = 0;
 			timeout.tv_usec = 0;
 
@@ -162,10 +160,10 @@ main(int argc, char *argv[])
 			udp_fd_set(sp[i]->rtcp_socket);
 			if (udp_select(&timeout) > 0) {
 				if (udp_fd_isset(sp[i]->rtp_socket)) {
-					read_and_enqueue(sp[i]->rtp_socket , cur_ts, sp[i]->rtp_pckt_queue, PACKET_RTP);
+					read_and_enqueue(sp[i]->rtp_socket , sp[i]->cur_ts, sp[i]->rtp_pckt_queue, PACKET_RTP);
 				}
 				if (udp_fd_isset(sp[i]->rtcp_socket)) {
-					read_and_enqueue(sp[i]->rtcp_socket, cur_ts, sp[i]->rtcp_pckt_queue, PACKET_RTCP);
+					read_and_enqueue(sp[i]->rtcp_socket, sp[i]->cur_ts, sp[i]->rtcp_pckt_queue, PACKET_RTCP);
 				}
 			}
 
@@ -175,7 +173,7 @@ main(int argc, char *argv[])
                         }
 
                         /* Process incoming packets */
-                        statistics_process(sp[i], sp[i]->rtp_pckt_queue, sp[i]->cushion, ntp_time, cur_ts);
+                        statistics_process(sp[i], sp[i]->rtp_pckt_queue, sp[i]->cushion, ntp_time, sp[i]->cur_ts);
 
                         /* Process and mix active sources */
 			if (sp[i]->playing_audio) {
@@ -184,11 +182,11 @@ main(int argc, char *argv[])
                                 ts_t cush_ts;
                                 
                                 cush_ts = ts_map32(get_freq(sp[i]->device_clock), cushion_get_size(sp[i]->cushion));
-                                cush_ts = ts_add(cur_ts, cush_ts);
+                                cush_ts = ts_add(sp[i]->cur_ts, cush_ts);
                                 scnt = (int)source_list_source_count(sp[i]->active_sources);
                                 for(sidx = 0; sidx < scnt; sidx++) {
                                         s = source_list_get_source_no(sp[i]->active_sources, sidx);
-                                        source_check_buffering(s, cur_ts);
+                                        source_check_buffering(s, sp[i]->cur_ts);
                                         source_process(s, sp[i]->ms, sp[i]->render_3d, sp[i]->repair, cush_ts);
                                         source_audit(s);
                                         if (!source_relevant(s, cush_ts)) {
