@@ -135,9 +135,15 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16 freq, u_int32 id)
         item->gain            = 1.0;
         item->mute            = 0;
 	item->clock           = new_time(clock, freq);
+        item->last_ui_update  = ts_map32(8000, 0); /* Arbitrary choice */
 
         /* Initial jitter estimate (10ms = 80 ticks of 8kHz clock)           */
         item->jitter          = ts_map32(8000, 80);
+
+        /* Packet stats initialization                                       */
+        item->received        = 0;
+        item->duplicates      = 0;
+        item->misordered      = 0;
 
         /*********************************************************************/
 

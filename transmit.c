@@ -211,6 +211,9 @@ tx_start(tx_buffer *tb)
 
         assert(tb->state_store == NULL);
         codec_state_store_create(&tb->state_store, ENCODER);
+        if (tb->sp->detect_silence == FALSE) {
+                ui_info_activate(tb->sp, rtp_my_ssrc(tb->sp->rtp_session[0]));
+        }
 }
 
 void
@@ -229,7 +232,6 @@ tx_stop(tx_buffer *tb)
         ui_input_level(tb->sp, 0);
         tb->sending_audio = FALSE;
         tx_update_ui(tb);
-        
         /* Detach iterators      */
         assert(pb_iterator_count(tb->audio_buffer) == 3);
         pb_iterator_destroy(tb->audio_buffer, &tb->transmit);
@@ -617,7 +619,7 @@ tx_update_ui(tx_buffer *tb)
         }
 	/* This next routine is really inefficient - we only need do ui_info_activate() */
 	/* when the state changes, else we flood the mbus with redundant messages.      */
-        if ((vad_in_talkspurt(sp->tb->vad) == TRUE) || (sp->detect_silence == FALSE)) {
+        if (sp->detect_silence && vad_in_talkspurt(sp->tb->vad) == TRUE) {
 		if (!sp->ui_activated) {
 			sp->ui_activated = TRUE;
 			ui_info_activate(sp, rtp_my_ssrc(sp->rtp_session[0]));
@@ -632,7 +634,6 @@ tx_update_ui(tx_buffer *tb)
 			ui_info_deactivate(sp, rtp_my_ssrc(sp->rtp_session[0]));
         	}
 	}
-
         if (tb->sending_audio == FALSE) {
                 ui_info_deactivate(sp, rtp_my_ssrc(sp->rtp_session[0]));
         }

@@ -35,7 +35,6 @@ typedef struct {
 	u_char		mute:1;                      /* source muted */
 	u_char		cont_toged;		     /* Toged in a row */
 	struct s_time  *clock;
-        u_int32         ui_last_update;              /* Used for periodic update of packet counts, etc */
 	u_int16		units_per_packet;
         u_int16         inter_pkt_gap;               /* expected time between pkt arrivals */
         u_char          enc;
@@ -53,7 +52,11 @@ typedef struct {
 	ts_t            last_mixed;                  /* Used to check mixing */
 	ts_t            playout;                     /* Playout delay for this talkspurt */
 
+        /* Display Info */
+        ts_t            last_ui_update;              /* Used for periodic update of packet counts, etc */
+
         /* Packet info */
+        u_int32         received;
         u_int32         duplicates;
         u_int32         misordered;
 

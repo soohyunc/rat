@@ -188,8 +188,8 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
                 buffered = ts_to_ms(source_get_audio_buffered (src));
                 delay    = ts_to_ms(source_get_playout_delay  (src, sp->cur_ts));
         } else {
-                buffered = 0;
-                delay    = 0;
+                buffered = 255;
+                delay    = 255;
         }
 
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.buffered", "\"%08lx\" %ld", pdbe->ssrc, buffered);
@@ -205,8 +205,11 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
         } else {
                 fract_lost = 0;
         }
-
-	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "rtp.source.packet.loss", "\"%08lx\" \"%08lx\" %8ld", my_ssrc, pdbe->ssrc, fract_lost);
+        ui_update_loss(sp, my_ssrc, pdbe->ssrc, fract_lost);
+        ui_update_reception(sp, pdbe->ssrc, pdbe->received, 0, 
+                            pdbe->misordered, pdbe->duplicates, 
+                            ts_to_ms(pdbe->jitter), 0);
+        ui_update_duration(sp, pdbe->ssrc, pdbe->inter_pkt_gap * 1000 / get_freq(pdbe->clock));
 }
 
 void

@@ -192,17 +192,27 @@ main(int argc, char *argv[])
 			struct s_source *s;
 			int sidx, scnt;
 			ts_t cush_ts;
-			
 			cush_ts = ts_map32(get_freq(sp[0]->device_clock), cushion_get_size(sp[0]->cushion));
 			cush_ts = ts_add(sp[0]->cur_ts, cush_ts);
 			scnt = (int)source_list_source_count(sp[0]->active_sources);
 			for(sidx = 0; sidx < scnt; sidx++) {
 				s = source_list_get_source_no(sp[0]->active_sources, sidx);
-
                                 if (source_relevant(s, sp[0]->cur_ts)) {
+                                        pdb_entry_t *e;
+                                        ts_t         two_secs, delta;
+/*
 					source_check_buffering(s, sp[0]->cur_ts);
+                                        */
 					source_process(s, sp[0]->ms, sp[0]->render_3d, sp[0]->repair, cush_ts);
 					source_audit(s);
+                                        /* Check for UI update necessary, updating once per 2 secs */
+                                        pdb_item_get(sp[0]->pdb, source_get_ssrc(s), &e);
+                                        delta    = ts_sub(sp[0]->cur_ts, e->last_ui_update);
+                                        two_secs = ts_map32(8000, 16000);
+                                        if (ts_gt(delta, two_secs)) {
+                                                ui_update_stats(sp[0], e->ssrc);
+                                                e->last_ui_update = sp[0]->cur_ts;
+                                        }
 				} else {
 					/* Remove source as stopped */
                                         u_int32 ssrc;

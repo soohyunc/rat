@@ -154,6 +154,7 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                 xfree(p);
                 return;
         }
+        e->received++;
         
         if (e->mute) {
                 debug_msg("Packet discarded: source muted (0x%08x).\n", ssrc);
@@ -229,6 +230,9 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                 }
         }
         /* Update persistent database fields           */
+        if (e->last_seq > p->seq) {
+                e->misordered++;
+        }
         e->last_seq = p->seq;
         e->last_ts  = p->ts;
         e->last_arr = sp->cur_ts;
@@ -329,6 +333,7 @@ rtp_callback(struct rtp *s, rtp_event *e)
                 process_delete(sp, e->ssrc);
 		break;
 	case SOURCE_CREATED:
+                debug_msg("Source create (0x%08x)\n", e->ssrc);
 		process_create(sp, e->ssrc);
 		break;
 	default:
