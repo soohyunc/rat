@@ -98,8 +98,6 @@ main(int argc, char *argv[])
 	int            		 num_sessions, i, elapsed_time, alc = 0;
 	char			*cname;
 	session_struct 		*sp[2];
-	int             	 tx_active = FALSE;
-	int             	 rx_active = FALSE;
 	struct s_mix_info 	*ms[2];
 	struct timeval  	 time;
 	char			*mbus_engine_addr, *mbus_ui_addr, *mbus_video_addr;
@@ -194,42 +192,21 @@ main(int argc, char *argv[])
 			}
 			cur_time = get_time(sp[i]->device_clock);
 			network_read(sp[i], netrx_queue_p[i], rtcp_pckt_queue_p[i], cur_time);
-			tx_active = process_read_audio(sp[i]);
 
-			if (sp[i]->playing_audio) {
-				rx_active = !netrx_queue_p[i]->queue_empty || !rx_unit_queue_p[i]->queue_empty ||
-					      	sp[i]->playout_buf_list != NULL;
-			} else {
+			if (!(sp[i]->playing_audio)) {
 				receive_unit_audit(rx_unit_queue_p[i]);
 			        clear_old_history(&sp[i]->playout_buf_list);
-				rx_active = FALSE;
 			}
 
                         if (sp[i]->sending_audio || sp[i]->last_tx_service_productive) {
-                            if (!rx_active || (sp[i]->voice_switching != NET_MUTES_MIKE)) {
                                 service_transmitter(sp[i], sp[1-i]->speakers_active);
-                                if (sp[i]->voice_switching == MIKE_MUTES_NET) {
-                                    rx_active = FALSE;
-                                }
-                            }
                         }
 
 			/* Impose RTP formatting on the packets in the netrx_queue and update RTP */
 			/* reception statistics. Packets are moved to rx_unit_queue.        [csp] */
 			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time);
 
-			if (rx_active) {
-				audio_switch_out(sp[i]->audio_fd, sp[i]->cushion);
-				service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, ms[i]);
-				if (tx_active && (sp[i]->voice_switching == NET_MUTES_MIKE)) {
-					sp[i]->transmit_audit_required = TRUE;
-				}
-			} else {
-				audio_switch_in(sp[i]->audio_fd);
-				if (!sp[i]->playing_audio || (sp[i]->voice_switching == MIKE_MUTES_NET)) {
-					sp[i]->receive_audit_required = TRUE;
-				}
-			}
+			service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, ms[i]);
 
 			/* Do funky RTCP stuff... */
 			if (sp[i]->mode == TRANSCODER) {

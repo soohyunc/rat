@@ -215,7 +215,13 @@ audio_device_take(session_struct *sp)
 	} else {
 		/* XXX should pass a pointer to format ???!!! */
 		if ((sp->audio_fd = audio_open(format)) == -1) {
-			return (FALSE);
+			return FALSE;
+		}
+
+		if (audio_duplex(sp->audio_fd) == FALSE) {
+			printf("RAT v3.2.0 and later require a full duplex audio device, but \n");
+			printf("your audio device only supports half-duplex operation. Sorry.\n");
+			return FALSE;
 		}
 
                 if (sp->cushion == NULL) {

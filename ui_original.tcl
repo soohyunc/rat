@@ -273,12 +273,6 @@ proc mbus_recv_output.mute {val} {
     }
 }
 
-proc mbus_recv_half.duplex {} {
-	global output_var
-	set output_var "Mike mutes net"
-  	mbus_send "R" "output.mode" "[mbus_encode_str $output_var]"
-}
-
 proc mbus_recv_address {addr port ttl} {
 
 }
@@ -807,17 +801,6 @@ pack $i.dd -fill x
 pack $i.cc $i.cc.van $i.cc.red -fill x -anchor w -pady 1
 pack $i.cc.int -fill x -anchor w -pady 0
 pack $i.cks -fill both -expand 1 -anchor w -pady 1
-
-# transmission menus
-frame $i.dd.mode 
-pack $i.dd.mode -side left -fill x -expand 1
-label $i.dd.mode.lbl -text "Mode:"
-menubutton $i.dd.mode.m -menu $i.dd.mode.m.menu -textvariable output_var  -relief raised -relief raised -indicatoron 1
-pack $i.dd.mode.lbl $i.dd.mode.m -side top -fill x -expand 1
-menu $i.dd.mode.m.menu -tearoff 0
-$i.dd.mode.m.menu add command -label "Full duplex"    -command {set output_var "Full duplex"}
-$i.dd.mode.m.menu add command -label "Net mutes mike" -command {set output_var "Net mutes mike"}
-$i.dd.mode.m.menu add command -label "Mike mutes net" -command {set output_var "Mike mutes net"}
 
 frame $i.dd.pri
 pack $i.dd.pri -side left
@@ -1518,10 +1501,6 @@ add_help $i.dd.units.m	"Sets the duration of each packet sent.\nThere is a fixed
 add_help $i.dd.pri.m	"Changes the primary audio compression\nscheme. The list is arranged\
                          with high-\nquality, high-bandwidth choices at the\ntop, and\
 			 poor-quality, lower-bandwidth\nchoices at the bottom."
-add_help $i.dd.mode.m 	"Most audio hardware can support full-duplex\noperation, sending\
-                         and receiving at the same\ntime. For systems which are half-duplex,\
-			 the\nchoice between net-mutes-mike (receiving has\npriority) and\
-			 mike-mutes-net (sending has\npriority) must be made."
 add_help $i.cc.van.rb	"Sets no channel coding."
 add_help $i.cc.red.rb	"Piggybacks earlier units of audio into packets\n\
 			 to protect against packet loss. Some audio\n\

@@ -452,15 +452,6 @@ ui_update(session_struct *sp)
 		mbus_engine_tx_queue(TRUE, "input.mute", "1");
 	}
 
-        /* Transmission Options */
-	if (sp->mode != TRANSCODER) {
-		/* If we're using a real audio device, check if it's half duplex... */
-		if (audio_duplex(sp->audio_fd) == FALSE) {
-			sp->voice_switching = MIKE_MUTES_NET;
-			mbus_engine_tx_queue(TRUE, "half.duplex", "");
-		}
-	}
-        
 	cp = get_codec(sp->encodings[0]);
 	sprintf(args, "%s", mbus_encode_str(cp->name));
 	mbus_engine_tx_queue(TRUE, "primary", args);

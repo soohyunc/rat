@@ -317,29 +317,6 @@ static void rx_output_port(char *srce, char *args, session_struct *sp)
 	ui_update_output_port(sp);
 }
 
-static void rx_output_mode(char *srce, char *args, session_struct *sp)
-{
-	char	*s;
-
-	UNUSED(srce);
-
-	mbus_parse_init(mbus_chan, args);
-	if (mbus_parse_str(mbus_chan, &s)) {
-		s = mbus_decode_str(s);
-		switch(s[0]) {
-		case 'N': sp->voice_switching = NET_MUTES_MIKE;
-			  break;
-		case 'M': sp->voice_switching = MIKE_MUTES_NET;
-			  break;
-		case 'F': sp->voice_switching = FULL_DUPLEX;
-			  break;
-		}
-	} else {
-		printf("mbus: usage \"output_mode <N|M|F>\"\n");
-	}
-	mbus_parse_done(mbus_chan);
-}
-
 static void rx_repair(char *srce, char *args, session_struct *sp)
 {
 	char	*s;
@@ -720,7 +697,6 @@ const char *rx_cmnd[] = {
 	"output.mute",
 	"output.gain",
 	"output.port",
-	"output.mode",
 	"repair",
 	"update.key",
 	"play.stop",
@@ -760,7 +736,6 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_output_mute,
 	rx_output_gain,
 	rx_output_port,
-	rx_output_mode,
 	rx_repair,
 	rx_update_key,
 	rx_play_stop,

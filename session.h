@@ -48,10 +48,6 @@
 #define MAX_ENCODINGS	7
 #define MAX_NATIVE      2
 
-#define FULL_DUPLEX 	0
-#define NET_MUTES_MIKE 	1
-#define MIKE_MUTES_NET 	2
-
 #define MAX_PACKET_SAMPLES	1280
 #define PACKET_LENGTH		MAX_PACKET_SAMPLES + 100
 
@@ -108,7 +104,6 @@ typedef struct session_tag {
 	int		auto_lecture;			/* Used for dummy lecture mode */
 	int             transmit_audit_required;
 	int             receive_audit_required;
-	int             voice_switching;		/* NETMUTESMIKE etc. */
 	int		detect_silence;
 	int             meter;                      /* if powermeters are on */
 	struct s_bias_ctl *bc;

@@ -106,7 +106,6 @@ init_session(session_struct *sp)
 	sp->auto_lecture		= 0;
 	sp->transmit_audit_required	= FALSE;
 	sp->receive_audit_required	= FALSE;
-	sp->voice_switching		= FULL_DUPLEX;	 /* NETMUTESMIKE etc. */
 	sp->detect_silence		= TRUE;
 	sp->sync_on			= FALSE;
 	sp->agc_on			= FALSE;
