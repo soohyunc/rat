@@ -306,13 +306,13 @@ proc mbus_recv {cmnd args} {
 		rtp.source.packet.duration  	{eval mbus_recv_rtp.source.packet.duration $args}
 		rtp.source.packet.loss  	{eval mbus_recv_rtp.source.packet.loss $args}
 		rtp.source.reception  		{eval mbus_recv_rtp.source.reception $args}
-		rtp.source.active  		{eval mbus_recv_rtp.source.active $args}
-		rtp.source.inactive  		{eval mbus_recv_rtp.source.inactive $args}
-		rtp.source.mute  		{eval mbus_recv_rtp.source.mute $args}
-		rtp.source.gain  		{eval mbus_recv_rtp.source.gain $args}
-		rtp.source.rtt                  {eval mbus_recv_rtp.source.rtt $args}
+		rtp.source.active  			{eval mbus_recv_rtp.source.active $args}
+		rtp.source.inactive			{eval mbus_recv_rtp.source.inactive $args}
+		rtp.source.mute				{eval mbus_recv_rtp.source.mute $args}
+		rtp.source.gain				{eval mbus_recv_rtp.source.gain $args}
+		rtp.source.rtt				{eval mbus_recv_rtp.source.rtt $args}
 		security.encryption.key 	{eval mbus_recv_security.encryption.key $args}
-		default				{puts "Unknown mbus command $cmnd"}
+		default						{bgerror "Unknown mbus command $cmnd"}
 	}
 }
 
@@ -473,9 +473,9 @@ proc mbus_recv_tool.rat.codecs.add {args} {
     } details_error
 
     if { $details_error != "" } {
-	puts "Error: $details_error"
-	destroy .
-	exit -1
+		bgerror "Error: $details_error"
+		destroy .
+		exit -1
     }
 }
 
@@ -1685,7 +1685,7 @@ proc constrain_window {w font cW cH} {
             set dummy ""
     } err
     if {$err != ""} {
-        puts "Error: $err"
+        bgerror "Error: $err"
     }
 } 
 
@@ -2638,7 +2638,7 @@ catch {
 } fwinerr
 
 if {$fwinerr != {}} {
-	puts stderr $fwinerr
+	bgerror "$fwinerr"
 }
 
 proc fileDialog {cmdbox} {
@@ -2670,7 +2670,7 @@ proc fileDialog {cmdbox} {
     }
 	
 	if {$asferror != ""} {
-		puts stderr asferror
+		bgerror "$asferror"
 	}
 }
 
@@ -2745,7 +2745,7 @@ proc file_play_play {} {
 		set play_file(state) play
 	} pferr
 
-	if { $pferr != "play" } { puts stderr "pferr: $pferr" }
+	if { $pferr != "play" } { bgerror "pferr: $pferr" }
 
 	.file.play.buttons.play   configure -state disabled
 	.file.play.buttons.pause  configure -state normal
@@ -2785,7 +2785,7 @@ proc file_rec_rec {} {
 		set rec_file(state) record
 	} prerr
 
-	if { $prerr != "record" } { puts stderr "prerr: $prerr" }
+	if { $prerr != "record" } { bgerror "prerr: $prerr" }
 
 	.file.rec.buttons.rec    configure -state disabled
 	.file.rec.buttons.pause  configure -state normal
