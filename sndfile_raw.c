@@ -38,7 +38,8 @@ raw_read_hdr(FILE *pf, char **state, sndfile_fmt_t *fmt)
                 return FALSE;
         }
 
-        memcpy(&rs->fmt, fmt, sizeof(raw_state_t));
+        memcpy(&rs->fmt, fmt, sizeof(*fmt));
+
         *state = (char*)rs;
         return TRUE;
 }
@@ -61,6 +62,9 @@ raw_read_audio(FILE *pf, char* state, sample *buf, int samples)
         case SNDFILE_ENCODING_L16:
                 unit_sz = 2;
                 break;
+        default:
+                unit_sz = 0;
+                abort();
         }
         
         samples_read = fread(buf, unit_sz, samples, pf);
@@ -137,7 +141,6 @@ raw_write_audio(FILE *fp, char *state, sample *buf, int samples)
                 } else {
                         outbuf = (u_char*)buf;
                 }
-                
                 break;
         case SNDFILE_ENCODING_PCMA:
                 outbuf = (u_char*)block_alloc(samples);

@@ -269,12 +269,19 @@ converter_process (converter_t *c, coded_unit *in, coded_unit *out)
         out->data_len = sizeof(sample) * n_out;
         out->data     = (u_char*)block_alloc(out->data_len);
 
-        converter_tbl[c->idx].convertf(c->cfmt,
-                                       c->state,
-                                       (sample*)in->data, 
-                                       n_in,
-                                       (sample*)out->data, 
-                                       n_out);
+        if ((c->cfmt->from_freq     != c->cfmt->to_freq) ||
+            (c->cfmt->from_channels != c->cfmt->to_channels)) {
+                converter_tbl[c->idx].convertf(c->cfmt,
+                                               c->state,
+                                               (sample*)in->data, 
+                                               n_in,
+                                               (sample*)out->data, 
+                                               n_out);
+        } else {
+                /* No conversion is actually necessary */
+                debug_msg("No conversion necessary\n");
+                memcpy(out->data, in->data, out->data_len);
+        }
 
         xmemchk();
         return TRUE;
