@@ -631,7 +631,7 @@ proc update_stats {cname} {
 				        	          Total packets received:      $PCKTS_RECV($cname)\n\
 				        	          Total packets lost:          $PCKTS_LOST($cname)\n\
 				        	          Total packets misordered:    $PCKTS_MISO($cname)\n\
-				        	          Total packets duplicates:    $PCKTS_DUP($cname)\n\
+				        	          Total packets duplicated:    $PCKTS_DUP($cname)\n\
 				        	          Current packet loss to me:   $loss_to_me\n\
 						          Current packet loss from me: $loss_from_me\n\
 				        	          Network timing jitter:       $JITTER($cname)\n\
