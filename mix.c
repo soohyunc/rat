@@ -228,7 +228,10 @@ mix_process(mix_struct          *ms,
                 int zeros;
                 delta = ts_sub(new_head_time, ms->head_time);
                 zeros = delta.ticks * ms->channels * ms->rate / ts_get_freq(delta);
-                assert(zeros <= ms->buf_len);
+                if (zeros > ms->buf_len) {
+                        debug_msg("Wanted to write to many zeros (%d)\n", zeros);
+                        zeros = ms->buf_len; /* Don't overwrite buffer */
+                }
                 mix_verify(ms);
                 mix_zero(ms, ms->head, zeros);
                 ms->dist += zeros;
