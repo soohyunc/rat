@@ -116,7 +116,7 @@ mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 		i->result = "mbus_encode_str <str>";
 		return TCL_ERROR;
 	}
-        Tcl_SetResult(i, mbus_encode_str(argv[1]), xfree);
+        Tcl_SetResult(i, mbus_encode_str(argv[1]), (Tcl_FreeProc *) xfree);
 	return TCL_OK;
 }
 

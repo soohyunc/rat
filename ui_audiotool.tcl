@@ -170,13 +170,13 @@ proc mbus_recv_frequencies.supported {args} {
     set freq [lindex $freqs 0]
 }
 
-proc mbus_recv_codec.supported {args} {
+proc mbus_recv_codec.supported {arg} {
     # We now have a list of codecs which this RAT supports...
     global prenc
 
     .prefs.pane.transmission.dd.pri.m.menu delete 0 last
 
-    set codecs [split $args]
+    set codecs [split $arg]
     foreach c $codecs {
 	.prefs.pane.transmission.dd.pri.m.menu    add command -label $c -command "set prenc $c; validate_red_codecs"
     }    
@@ -184,12 +184,12 @@ proc mbus_recv_codec.supported {args} {
     set prenc [lindex $codecs 0]
 }
 
-proc mbus_recv_redundancy.supported {args} {
+proc mbus_recv_redundancy.supported {arg} {
     global secenc
 
     .prefs.pane.transmission.cc.red.fc.m.menu delete 0 last
 
-    set codecs [split $args]
+    set codecs [split $arg]
     foreach c $codecs {
 	.prefs.pane.transmission.cc.red.fc.m.menu add command -label $c -command "set secenc $c"
     }
