@@ -887,7 +887,7 @@ tk_optionMenu $i.dd.units.m upp 1 2 4 8
 $i.dd.units.m configure -width 13 -highlightthickness 0 -bd 1
 pack $i.dd.units.l $i.dd.units.m -side top -fill x
 
-radiobutton $i.cc.van.rb -text "No Loss Protection" -justify right -value "None" -variable channel_var
+radiobutton $i.cc.van.rb -text "No Loss Protection" -justify right -value "No Loss Protection" -variable channel_var
 radiobutton $i.cc.red.rb -text "Redundancy" -justify right -value "Redundancy" -variable channel_var 
 frame $i.cc.red.fc 
 label $i.cc.red.fc.l -text "Encoding:"
@@ -932,13 +932,9 @@ pack $i.r -side top -fill x -pady 0 -ipady 1
 pack $i.o -side top -fill both  -pady 1
 pack $i.c -side top -fill both  -pady 1 -expand 1
 label $i.r.l -text "Repair Scheme:"
-set repair "Packet Repetition"
-menubutton $i.r.mb -menu $i.r.mb.menu -indicatoron 1 -relief raised -textvariable repair -width 18
-menu $i.r.mb.menu -tearoff 0
-$i.r.mb.menu add command -label "None" -command {set repair_var "None"}
-$i.r.mb.menu add command -label "Packet Repetition" -command {set repair_var "Packet Repetition"}
-$i.r.mb.menu add command -label "Pattern Matching" -command {set repair_var "Pattern Matching"}
-pack $i.r.l $i.r.mb -side top 
+tk_optionMenu $i.r.m repair_var "None" "Packet Repetition" "Pattern Matching"
+$i.r.m configure -width 20
+pack $i.r.l $i.r.m -side top 
 
 frame $i.o.f 
 label $i.o.f.l1 -text "Minimum Playout Delay (ms)" 
@@ -1250,6 +1246,7 @@ proc load_setting {attrname field var default} {
 	set tmp $default
     }
     set $var $tmp
+    puts "$var = $tmp"
 }
 
 proc load_settings {} {
@@ -1287,7 +1284,7 @@ proc load_settings {} {
     validate_red_codecs
 
     # reception
-    load_setting attr audioRepair       repair_var    "PacketRepetition"
+    load_setting attr audioRepair       repair_var    "Packet Repetition"
     load_setting attr audioMinPlayout   min_var       "0"
     load_setting attr audioMaxPlayout   max_var       "1"
     load_setting attr audioLecture      lecture_var   "0"

@@ -376,10 +376,10 @@ ui_repair(session_struct *sp)
 		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "repair", "None", FALSE);
                 break;
         case REPAIR_REPEAT:
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "repair", "PacketRepetition", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "repair", "Packet Repetition", FALSE);
                 break;
 	case REPAIR_PATTERN_MATCH:
-		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "repair", "PatternMatching", FALSE);
+		mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "repair", "Pattern Matching", FALSE);
                 break;
         }
 }
