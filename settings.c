@@ -473,13 +473,14 @@ void settings_load_early(session_t *sp)
 	sp->min_playout    = setting_load_int("audioMinPlayout", 0);
 	sp->max_playout    = setting_load_int("audioMaxPlayout", 2000);
 	sp->lecture        = setting_load_int("audioLecture", 0);
-	sp->render_3d      = setting_load_int("audio3dRendering", 0);
 	sp->detect_silence = setting_load_int("audioSilence", 1);
 	sp->agc_on         = setting_load_int("audioAGC", 0);
 	sp->loopback_gain  = setting_load_int("audioLoopback", 0);
 	sp->echo_suppress  = setting_load_int("audioEchoSuppress", 0);
 	sp->meter          = setting_load_int("audioPowermeters", 1);
 	sp->sync_on        = setting_load_int("audioLipSync", 0);
+/* Ignore saved render_3d setting.  Break initial device config stuff.  V.fiddly to fix. */
+/*	sp->render_3d      = setting_load_int("audio3dRendering", 0);                    */
         xmemchk();
 	load_done();
 }
