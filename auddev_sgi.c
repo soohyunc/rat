@@ -99,6 +99,9 @@ audio_open(audio_format format)
 
 	/* We probably should free the config here... */
 
+	/* This one to keep Louise happy :-) */
+	audio_set_gain(audio_fd, 50);
+
 	return audio_fd;
 }
 
