@@ -1127,6 +1127,8 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Fix "make tgz" target to include the sdr plugin 
 	* Released 14 February 2000
 
+v4.1.6	
+
 
 TODO -- They're features not bugs dammit!
 ----
