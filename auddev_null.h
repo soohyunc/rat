@@ -67,5 +67,5 @@ int  null_audio_get_iport  (audio_desc_t ad);
 int  null_audio_next_iport (audio_desc_t ad);
 int  null_audio_is_ready  (audio_desc_t ad);
 void null_audio_wait_for  (audio_desc_t ad, int delay_ms);
-
+int  null_audio_supports  (audio_desc_t ad, audio_format *fmt);
 #endif /* _AUDDEV_NULL_H_ */

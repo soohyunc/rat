@@ -337,7 +337,7 @@ audio_if_t audio_if_table[] = {
                 null_audio_next_iport,
                 null_audio_is_ready,
                 null_audio_wait_for,
-                NULL
+                null_audio_supports
         }
 };
 

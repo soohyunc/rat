@@ -303,7 +303,7 @@ main(int argc, char *argv[])
                 }
         }
         
-        for(i = 0; i < num_sessions; i++) {
+        for(i = 0; i < 2; i++) {
                 end_session(sp[i]);
                 xfree(sp[i]);
         }

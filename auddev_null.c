@@ -324,3 +324,14 @@ null_audio_device_name(audio_desc_t ad)
         UNUSED(ad);
         return "No Audio Device";
 }
+
+int
+null_audio_supports(audio_desc_t ad, audio_format *fmt)
+{
+        UNUSED(ad);
+        if ((!(fmt->sample_rate % 8000) || !(fmt->sample_rate % 11025)) && 
+            (fmt->channels == 1 || fmt->channels == 2)) {
+                return TRUE;
+        }
+        return FALSE;
+}

@@ -337,6 +337,8 @@ tx_read_audio(tx_buffer *tb)
                 sp->tb->mean_read_dur += ((double)read_dur - sp->tb->mean_read_dur) / 8.0;
         }
 
+        assert(read_dur < 0x7fffffff);
+
         return read_dur;
 }
 

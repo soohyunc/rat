@@ -346,7 +346,6 @@ audio_device_get_safe_config(audio_config **ppac)
         return FALSE;
 }
 
-
 /*****************************************************************************/
 
 static int
@@ -356,6 +355,8 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
         const codec_format_t *cf;
         const audio_format *ofmt = audio_get_ofmt(sp->audio_device);
         int len;
+
+        assert(dur >= 0);
 
         if (sp->out_file) {
                 snd_write_audio(&sp->out_file, buf, (u_int16)(dur * ofmt->channels));
@@ -370,6 +371,11 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
         id = codec_get_by_payload((u_char)sp->encodings[0]);
         assert(id);
         cf = codec_get_format(id);
+        if (dur * cf->format.channels != len) {
+                debug_msg("Wrote %d bytes.  Total r (%u), w (%u).\n",
+                          len, audio_get_samples_read(sp->audio_device),
+                          audio_get_samples_written(sp->audio_device));
+        }
         assert(dur * cf->format.channels == len);
         return len;
 }
@@ -395,6 +401,8 @@ audio_rw_process(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                         return read_dur;
                 }
 	}
+
+        xmemchk();
 
 	/* read_dur now reflects the amount of real time it took us to get
 	 * through the last cycle of processing. 
@@ -422,6 +430,7 @@ audio_rw_process(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 		/* Use a step for the cushion to keep things nicely rounded  */
                 /* in the mixing. Round it up.                               */
                 new_cushion = cushion_use_estimate(c);
+                assert(new_cushion >= 0 && new_cushion < 100000);
                 /* The mix routine also needs to know for how long the       */
                 /* output went dry so that it can adjust the time.           */
                 mix_get_new_cushion(ms, 
@@ -457,8 +466,10 @@ audio_rw_process(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                         u_int32 old_cushion;
                         old_cushion = cushion_get_size(c);
 #endif
-                        read_dur -= cushion_step;
-                        cushion_step_down(c);
+                        if (read_dur > (unsigned)cushion_step) {
+                                read_dur -= cushion_step;
+                                cushion_step_down(c);
+                        }
 #ifdef DEBUG
                         if (cushion_get_size(c) != old_cushion) {
                                 debug_msg("Decreasing cushion\n");
@@ -466,12 +477,14 @@ audio_rw_process(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 #endif
                         
                 }
+                assert(read_dur < 0x7fffffff);
                 audio_device_write(spo, bufp, read_dur);
                 /*
                  * If diff is greater than zero then we must increase the
                  * cushion so increase the amount of trailing silence.
                  */
                 if (diff > 0) {
+                        assert(cushion_step > 0);
                         audio_device_write(spo, zero_buf, cushion_step);
                         cushion_step_up(c);
                         debug_msg("Increasing cushion.\n");
