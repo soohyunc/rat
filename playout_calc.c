@@ -75,9 +75,11 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t transit, int new_spurt)
                 e->avg_transit = ts_sub(e->avg_transit, ts_div(delta_transit,16));
         }
 
+/*
         if (ts_gt(ts_abs_diff(transit, e->avg_transit), ts_mul(e->jitter, 5)) && new_spurt) {
                 e->avg_transit = transit;
         }
+        */
 
         if (new_spurt == TRUE) {
                 ts_t hvar, jvar; /* Host and jitter components       */

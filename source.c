@@ -45,7 +45,7 @@
 #define SKEW_ADAPT_THRESHOLD       5000
 #define SOURCE_YOUNG_AGE             20
 #define SOURCE_AUDIO_HISTORY_MS    1000
-#define NO_CONT_TOGED_FOR_PLAYOUT_RECALC 3
+#define NO_TOGED_CONT_FOR_PLAYOUT_RECALC 3
 
 #define SOURCE_COMPARE_WINDOW_SIZE 8
 /* Match threshold is mean abs diff. lower score gives less noise, but less  */
@@ -89,6 +89,9 @@ typedef struct s_source {
         u_int32                     byte_count;
         ts_t                        byte_count_start;
         double                      bps;
+        /* Playout stats (most in pdb_entry_t)                               */
+	u_char                      toged_cont;	     /* Toged in a row       */
+        u_int16                     toged_mask;      /* bitmap hist. of tog  */
 } source;
 
 /* A linked list is used for sources and this is fine since we mostly expect */
@@ -147,7 +150,7 @@ source_list_source_count(source_list *plist)
 source*
 source_list_get_source_no(source_list *plist, u_int32 n)
 {
-        source *curr;
+        source *curr = NULL;
 
         assert(plist != NULL);
 
@@ -165,7 +168,7 @@ source_list_get_source_no(source_list *plist, u_int32 n)
 source*
 source_get_by_ssrc(source_list *plist, u_int32 ssrc)
 {
-        source *curr, *stop;
+        source *curr = NULL, *stop = NULL;
         
         curr = plist->sentinel.next; 
         stop = &plist->sentinel;
@@ -189,6 +192,8 @@ static ts_t history_ts;     /* How much old audio hang onto for repair usage */
 static ts_t bw_avg_period;  /* Average period for bandwidth estimate         */
 static ts_t skew_thresh;    /* Significant size b4 consider playout adapt    */
 static ts_t skew_limit;     /* Upper bound, otherwise clock reset.           */
+static ts_t transit_reset;  /* Period after which new transit time taken     */
+                            /* if source has been quiet.                     */
 static int  time_constants_inited = FALSE;
 
 
@@ -202,6 +207,7 @@ time_constants_init()
         bw_avg_period  = ts_map32(8000, 8000);
         skew_thresh    = ts_map32(8000, 160);
         skew_limit     = ts_map32(8000, 4000);
+        transit_reset  = ts_map32(8000, 80000);
         time_constants_inited = TRUE;
 }
 
@@ -240,7 +246,8 @@ source_create(source_list    *plist,
         }
 
         psrc->pdbe->first_mix  = 1; /* Used to note nothing mixed anything   */
-        psrc->pdbe->cont_toged = 0; /* Reset continuous thrown on ground cnt */
+        psrc->toged_cont       = 0; /* Reset continuous thrown on ground cnt */
+        psrc->toged_mask       = 0;
         psrc->channel_state    = NULL;        
         psrc->skew             = SOURCE_SKEW_NONE;
         psrc->samples_played   = 0;
@@ -576,21 +583,38 @@ source_playout_log(source *src, u_int32 ts)
                         fprintf(stderr, "Could not open playout.log\n");
                 } else {
                         atexit(source_close_log);
-                        fprintf(psf, "# <RTP timestamp> <jitter> <transit> <avg transit> <last transit> <playout del>\n");
+                        fprintf(psf, "# <RTP timestamp> <talkstart> <jitter> <transit> <avg transit> <last transit> <playout del>\n");
                 }
                 t0 = ts - 1000; /* -1000 in case of out of order first packet */
         }
 
-        fprintf(psf, "%13lu % 5d % 5d % 5d % 5d %5d\n",
-                ts - t0,
-                src->pdbe->jitter.ticks,
-                src->pdbe->transit.ticks,
-                src->pdbe->avg_transit.ticks,
-                src->pdbe->last_transit.ticks,
-                src->pdbe->playout.ticks);
+        fprintf(psf, "%.6f %5lu %5lu %5lu %5lu %5lu %5lu\n",
+                (ts - t0)/8000.0,
+                ts_to_ms(src->talkstart),
+                ts_to_ms(src->pdbe->jitter),
+                ts_to_ms(src->pdbe->transit),
+                ts_to_ms(src->pdbe->avg_transit),
+                ts_to_ms(src->pdbe->last_transit),
+                ts_to_ms(src->pdbe->playout));
 }
 
 #endif /* SOURCE_LOG_PLAYOUT */
+
+static void
+source_update_toged(source *src, int toged)
+{
+        src->toged_mask <<= 1;
+        src->toged_mask |= toged;
+        src->toged_cont = 0;
+        if (toged == 1) {
+                int m;
+                m = src->toged_mask & 0xff; /* Last 8 packets */
+                while (m) {
+                        src->toged_cont += (m & 1);
+                        m >>= 1;
+                }
+        }
+}
 
 static void
 source_process_packets(session_t *sp, source *src, ts_t now)
@@ -659,7 +683,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                                            sp->render_3d,
                                            (u_int16)dev_fmt->sample_rate,
                                            (u_int16)dev_fmt->channels);
-                        adjust_playout      = TRUE;
+                        adjust_playout = TRUE;
                 }
                 
                 /* Check for talkspurt start indicated by change in          */
@@ -678,36 +702,28 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         adjust_playout = TRUE;
                 }
 
+                src_ts = ts_seq32_in(&e->seq, get_freq(e->clock), p->ts);
+                transit = ts_sub(now, src_ts);
+
                 /* Check for continuous number of packets being discarded.   */
                 /* This happens when jitter or transit estimate is no longer */
                 /* consistent with the real world.                           */
-                if (e->cont_toged >= NO_CONT_TOGED_FOR_PLAYOUT_RECALC) {
-                        adjust_playout = TRUE;
-                        e->cont_toged  = 0;
-                } else if (e->cont_toged != 0) {
-                        debug_msg("cont_toged %d\n", e->cont_toged);
+                if (src->toged_cont >= NO_TOGED_CONT_FOR_PLAYOUT_RECALC) {
+                        adjust_playout  = TRUE;
+                        src->toged_cont = 0;
+                        debug_msg("Cont_toged\n");
+                        /* We've been dropping packets so take a new transit */
+                        /* estimate.  Last one has expired.                  */
+                        e->avg_transit = transit; 
+                }
+                
+                if (adjust_playout && (ts_gt(ts_sub(now, e->last_arr), transit_reset) || e->received < 20)) {
+                        /* Source has been quiet for a long time.  Discard   */
+                        /* old average transit estimate.                     */
+                        e->avg_transit = transit;
                 }
 
                 /* Calculate the playout point for this packet.              */
-                src_ts = ts_seq32_in(&e->seq, get_freq(e->clock), p->ts);
-
-                /* Transit delay is the difference between our local clock   */
-                /* and the packet timestamp (src_ts).  Note: we expect       */
-                /* packet clumping at talkspurt start because of VAD's       */
-                /* fetching previous X seconds of audio on signal detection  */
-                /* in order to send unvoiced audio at start.                 */
-                if (adjust_playout && pktbuf_get_count(src->pktbuf)) {
-                        rtp_packet *p;
-                        ts_t        last_ts;
-                        pktbuf_peak_last(src->pktbuf, &p);
-                        assert(p != NULL);
-                        last_ts = ts_seq32_in(&e->seq, get_freq(e->clock), p->ts);
-                        transit = ts_sub(now, last_ts);
-                        debug_msg("Used transit of last packet\n");
-                } else {
-                        transit = ts_sub(now, src_ts);
-                }
-
                 playout = playout_calc(sp, e->ssrc, transit, adjust_playout);
                 if ((p->m || src->packets_done == 0) && ts_gt(playout, e->frame_dur)) {
                         /* Packets are likely to be compressed at talkspurt start */
@@ -723,7 +739,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         debug_msg("last  % 5d avg % 5d\n", transit.ticks, e->avg_transit.ticks);
                         if (ts_gt(now, playout)) {
                                 ts_t shortfall;
-                                */
+*/
                                 /* Unit would have been discarded.  Jitter has    */
                                 /* affected our first packets transit time.       */
 /*
@@ -756,16 +772,16 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         if (source_process_packet(src, u, p->data_len, codec_pt, playout) == FALSE) {
                                 block_free(u, (int)p->data_len);
                         }
-                        src->pdbe->cont_toged = 0;
+                        source_update_toged(src, 0);
                 } else {
                         /* Packet being decoded is before start of current  */
                         /* so there is now way it's audio will be played    */
                         /* Playout recalculation gets triggered in          */
-                        /* rtp_callback if cont_toged hits a critical       */
+                        /* rtp_callback if toged_cont hits a critical       */
                         /* threshold.  It signifies current playout delay   */
                         /* is inappropriate.                                */
                         debug_msg("Packet late (compared to now)\n");
-                        src->pdbe->cont_toged++;
+                        source_update_toged(src, 1);
                         src->pdbe->jit_toged++;
                 } 
 

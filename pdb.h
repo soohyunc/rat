@@ -62,7 +62,6 @@ typedef struct {
         u_int32         duplicates;
         u_int32         misordered;
         u_int32         jit_toged;                   /* Packets discarded because late ("Thrown on ground") */
-	u_char		cont_toged;		     /* Toged in a row */
 
 	/* Variables for playout time calculation */
 	int		video_playout;		     /* Playout delay in the video tool -- for lip-sync [csp] */
