@@ -175,6 +175,7 @@ proc mbus_recv_load_settings {} {
     check_rtcp_name
     sync_engine_to_ui
     sync_ui_to_engine
+    chart_show
 }
 
 proc mbus_recv_codec_supported {args} {
@@ -277,8 +278,6 @@ proc mbus_recv_half_duplex {} {
 proc mbus_recv_debug {} {
 	global DEBUG
 	set DEBUG 1
-	.r.b.ucl configure -background salmon
-	.r.b.v   configure -background salmon
 }
 
 proc mbus_recv_address {addr port ttl} {
@@ -556,11 +555,11 @@ proc bargraphCreate {bgraph} {
 	global oh$bgraph
 
 	frame $bgraph -bg black
-	frame $bgraph.inner0 -width 8 -height 4 -bg green
-	pack $bgraph.inner0 -side bottom -pady 1 -fill both -expand true
+	frame $bgraph.inner0 -width 8 -height 6 -bg green
+	pack $bgraph.inner0 -side left -padx 1 -fill both -expand true
 	for {set i 1} {$i < 16} {incr i} {
-		frame $bgraph.inner$i -width 8 -height 4 -bg black
-		pack $bgraph.inner$i -side bottom -pady 1 -fill both -expand true
+		frame $bgraph.inner$i -width 8 -height 8 -bg black
+		pack $bgraph.inner$i -side left -padx 1 -fill both -expand true
 	}
 	set oh$bgraph 0
 }
@@ -673,26 +672,23 @@ canvas .l.t.list -highlightthickness 0 -bd 0 -relief raised -width $iwd -yscroll
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 frame  .l.s1 -bd 0
-button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options" -command {wm deiconify .prefs}
-button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"   -command {wm deiconify .about}
-button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"    -command {save_settings; destroy .}
-frame  .l.s2 -bd 0
-button .l.s2.stats -highlightthickness 0 -padx 0 -pady 0 -text "Reception Quality" -command {wm deiconify .chart}
-button .l.s2.audio -highlightthickness 0 -padx 0 -pady 0 -text "Get Audio"         -command {mbus_send "R" "get_audio" ""}
+button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options"   -command {wm deiconify .prefs}
+button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"     -command {wm deiconify .about}
+button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"      -command {save_settings; destroy .}
+button .l.s1.audio -highlightthickness 0 -padx 0 -pady 0 -text "Get Audio" -command {mbus_send "R" "get_audio" ""}
 
-pack .r -side right -fill y
 frame .r.c
-pack .r.c -side top -fill y -expand 1
-frame .r.c.vol
+frame .r.c.vol  
 frame .r.c.gain
-pack .r.c.vol -side left -fill y
-pack .r.c.gain -side right -fill y
+
+pack .r -side top -fill x
+pack .r.c -side top -fill x -expand 1
+pack .r.c.gain -side top -fill x
+pack .r.c.vol  -side top -fill x
 
 pack .l -side left -fill both -expand 1
 pack .l.s1 -side bottom -fill x
-pack .l.s1.opts .l.s1.about .l.s1.quit -side left -fill x -expand 1
-pack .l.s2 -side bottom -fill x
-pack .l.s2.stats .l.s2.audio -side left -fill x -expand 1
+pack .l.s1.opts .l.s1.about .l.s1.quit .l.s1.audio -side left -fill x -expand 1
 pack .l.t -side top -fill both -expand 1
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
@@ -700,29 +696,29 @@ bind .l.t.list <Configure> {fix_scrollbar}
 
 # Device output controls
 set out_mute_var 0
-button .r.c.vol.t1 -highlightthickness 0 -padx 0 -pady 0 -text mute -command "output_mute [expr !$out_mute_var]"
+button .r.c.vol.t1 -highlightthickness 0 -padx 2 -pady 0 -text mute -command "output_mute [expr !$out_mute_var]"
 set output_port "speaker"
-button .r.c.vol.l1 -highlightthickness 0 -padx 0 -pady 0 -command toggle_output_port -bitmap "speaker"
+button .r.c.vol.l1 -highlightthickness 0 -padx 2 -pady 0 -command toggle_output_port -bitmap "speaker"
 bargraphCreate .r.c.vol.b1
-scale .r.c.vol.s1 -highlightthickness 0 -font $verysmallfont -from 99 -to 0 -command set_vol -orient vertical -relief raised 
+scale .r.c.vol.s1 -highlightthickness 0 -font $verysmallfont -from 99 -to 0 -command set_vol -orient horizontal -relief raised -showvalue false -width 10
 
-pack .r.c.vol.t1 -side top -fill x
-pack .r.c.vol.l1 -side top -fill x
-pack .r.c.vol.b1 -side left -fill y
-pack .r.c.vol.s1 -side right -fill y
+pack .r.c.vol.l1 -side left -fill y
+pack .r.c.vol.t1 -side left -fill y
+pack .r.c.vol.b1 -side top  -fill x -expand 1
+pack .r.c.vol.s1 -side top  -fill x -expand 1
 
 # Device input controls
 set in_mute_var 1
-button .r.c.gain.t2 -highlightthickness 0 -padx 0 -pady 0 -text mute -relief sunken -command "input_mute [expr !$in_mute_var]"
+button .r.c.gain.t2 -highlightthickness 0 -padx 2 -pady 0 -text mute -relief sunken -command "input_mute [expr !$in_mute_var]"
 set input_port "microphone"
-button .r.c.gain.l2 -highlightthickness 0 -padx 0 -pady 0 -command toggle_input_port -bitmap "microphone_mute"
+button .r.c.gain.l2 -highlightthickness 0 -padx 2 -pady 0 -command toggle_input_port -bitmap "microphone_mute"
 bargraphCreate .r.c.gain.b2
-scale .r.c.gain.s2 -highlightthickness 0 -font $verysmallfont -from 99 -to 0 -command set_gain -orient vertical -relief raised 
+scale .r.c.gain.s2 -highlightthickness 0 -font $verysmallfont -from 99 -to 0 -command set_gain -orient horizontal -relief raised -showvalue false -width 10
 
-pack .r.c.gain.t2 -side top -fill x
-pack .r.c.gain.l2 -side top -fill x
-pack .r.c.gain.b2 -side left -fill y
-pack .r.c.gain.s2 -side right -fill y
+pack .r.c.gain.l2 -side left -fill y
+pack .r.c.gain.t2 -side left -fill y
+pack .r.c.gain.b2 -side top  -fill x -expand 1
+pack .r.c.gain.s2 -side top  -fill x -expand 1
 
 proc mbus_recv_disable_audio_ctls {} {
 	.r.c.vol.t1 configure -state disabled
@@ -731,7 +727,7 @@ proc mbus_recv_disable_audio_ctls {} {
 	.r.c.gain.t2 configure -state disabled
 	.r.c.gain.l2 configure -state disabled
 	.r.c.gain.s2 configure -state disabled
-	.l.s2.audio  configure -state normal
+	.l.s1.audio  configure -state normal
 }
 
 proc mbus_recv_enable_audio_ctls {} {
@@ -741,15 +737,8 @@ proc mbus_recv_enable_audio_ctls {} {
 	.r.c.gain.t2 configure -state normal
 	.r.c.gain.l2 configure -state normal
 	.r.c.gain.s2 configure -state normal
-	.l.s2.audio  configure -state disabled
+	.l.s1.audio  configure -state disabled
 }
-
-frame .r.b -relief raised 
-pack .r.b -side bottom -fill x
-label .r.b.v -highlightthickness 0 -bd 0 -font $smallfont -text "RAT"
-pack .r.b.v -side bottom -fill x
-label .r.b.ucl -highlightthickness 0 -bd 0 -bitmap "ucl"
-pack .r.b.ucl -side bottom -fill x
 
 bind all <ButtonPress-3> "toggle_send"
 bind all <ButtonRelease-3> "toggle_send"
@@ -975,11 +964,12 @@ frame $i.a.f.f
 label $i.a.f.f.l -anchor w -justify left -text "The following features maybe\ndisabled to conserve processing\npower."
 pack $i.a -side top -fill both -expand 1 
 pack $i.a.f -fill x -side left -expand 1
-checkbutton $i.a.f.f.power -text "Powermeters active"    -variable meter_var
-checkbutton $i.a.f.f.video -text "Video synchronization" -variable sync_var
-checkbutton $i.a.f.f.balloon -text "Balloon help"        -variable help_on
+checkbutton $i.a.f.f.power   -text "Powermeters active"       -variable meter_var
+checkbutton $i.a.f.f.video   -text "Video synchronization"    -variable sync_var
+checkbutton $i.a.f.f.balloon -text "Balloon help"             -variable help_on
+checkbutton $i.a.f.f.matrix  -text "Reception quality matrix" -variable matrix_on -command chart_show
 pack $i.a.f.f $i.a.f.f.l
-pack $i.a.f.f.power $i.a.f.f.video $i.a.f.f.balloon -side top -anchor w 
+pack $i.a.f.f.power $i.a.f.f.video $i.a.f.f.balloon $i.a.f.f.matrix -side top -anchor w 
 
 proc set_pane {name} {
     global pane
@@ -1209,6 +1199,7 @@ proc save_settings {} {
     save_setting $f audioPowermeters meter_var
     save_setting $f audioLipSync     sync_var
     save_setting $f audioHelpOn      help_on
+    save_setting $f audioMatrixOn    matrix_on
 
     # device 
     save_setting $f  audioOutputGain   volume
@@ -1291,6 +1282,7 @@ proc load_settings {} {
     load_setting attr audioPowermeters  meter_var     "1"
     load_setting attr audioLipSync      sync_var      "1"
     load_setting attr audioHelpOn       help_on       "1"
+    load_setting attr audioMatrixOn     matrix_on     "0"
 
     # device config
     load_setting attr audioOutputGain   volume       "50"
@@ -1455,6 +1447,15 @@ proc chart_redraw {size} {
   }
 }
 
+proc chart_show {} {
+	global matrix_on
+	if {$matrix_on} {
+		wm deiconify .chart
+	} else {
+		wm withdraw .chart
+	}
+}
+
 wm withdraw .chart
 wm title    .chart "Reception quality matrix"
 wm geometry .chart 320x200
@@ -1526,8 +1527,6 @@ add_help .r.c.vol.l1  	"Click to change output device."
 add_help .r.c.vol.t1  	"If pushed in, output is muted."
 add_help .r.c.vol.b1  	"Indicates the loudness of the\nsound you are hearing."
 
-add_help .r.b.ucl     	"Email comments to rat-trap@cs.ucl.ac.uk"
-
 add_help .l.t		"The participants in this session with you at the top.\nClick on a name\
                          with the left mouse button to display\ninformation on that participant,\
 			 and with the middle\nbutton to mute that participant (the right button\nwill\
@@ -1536,8 +1535,7 @@ add_help .l.t		"The participants in this session with you at the top.\nClick on 
 add_help .l.s1.opts   	"Brings up another window allowing\nthe control of various options."
 add_help .l.s1.about  	"Brings up another window displaying\ncopyright & author information."
 add_help .l.s1.quit   	"Press to leave the session."
-add_help .l.s2.stats  	"Brings up another window displaying\nreception quality information."
-add_help .l.s2.audio  	""
+add_help .l.s1.audio  	""
 
 # preferences help
 add_help .prefs.m.f.mb  "Click here to change the preference\ncategory."
@@ -1607,5 +1605,4 @@ add_help .chart		"This chart displays the reception quality reported\nby all ses
 			 participants. Looking along a row\ngives the quality that participant\
 			 received from all\nother participants in the session: green is\
 			 good\nquality, orange medium quality, and red poor quality\naudio."
-
 
