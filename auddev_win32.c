@@ -85,8 +85,6 @@ static int		error = 0;
 static char		errorText[MAXERRORLENGTH];
 
 #define WRITE_AHEAD	2560
-#define ZBUF_LEN	WRITE_AHEAD
-static sample zbuf[ZBUF_LEN];
 
 #define	BUFFER_SIZE	160	/* Samples */
 #define NUM_BUFFERS	50
@@ -245,6 +243,8 @@ setupMux(audMux *mux, DWORD ctype)
 {
 	MIXERLINE l;
 	int s;
+
+
 	memset(&l, 0, sizeof(l));
 	l.cbStruct = sizeof(l);
 	l.dwComponentType = ctype;
@@ -259,6 +259,15 @@ audio_open_out()
 	int		i;
 	WAVEHDR		*whp;
 	u_char		*bp;
+
+	char buf[255];
+	
+	RegGetValue(HKEY_CURRENT_USER, 
+		"Software\\Microsoft\\Multimedia\\Sound Mapper", 
+		"Playback", 
+		buf, 
+		255);
+	OutputDebugString(buf);
 
 	if (shWaveOut)
 		return (TRUE);
@@ -385,7 +394,6 @@ int
 audio_open(audio_format fmt)
 {
 	play_vol = rec_vol = 50;
-	memset(zbuf, 0, ZBUF_LEN);
 
 	format.wFormatTag      = WAVE_FORMAT_PCM;
 	format.nChannels       = 1;

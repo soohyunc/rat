@@ -7,35 +7,31 @@
 # Full terms and conditions of the copyright appear below.
 #
 
-if {[string compare [info commands registry] "registry"] == 0} {
-	set win32 1
-	set statsfont     {courier 10}
-	set titlefont     {helvetica 12}
-	set infofont      {helvetica 10}
-	set smallfont     {helvetica  8}
-	set verysmallfont {helvetica  8}
-} else {
-	set win32 0
-	set statsfont     -*-courier-medium-r-*-*-12-*-*-*-*-*-iso8859-1
-	set titlefont     -*-helvetica-medium-r-normal--14-*-p-*-iso8859-1
-	set infofont      -*-helvetica-medium-r-normal--12-*-p-*-iso8859-1
-	set smallfont     -*-helvetica-medium-r-normal--10-*-p-*-iso8859-1
-	set verysmallfont -*-courier-medium-o-normal--8-*-m-*-iso8859-1
-	option add *Menu*selectColor 		forestgreen widgetDefault
-	option add *Radiobutton*selectColor forestgreen widgetDefault
-	option add *Checkbutton*selectColor forestgreen widgetDefault 
-}
+set statsfont     -*-courier-medium-r-*-*-12-*-*-*-*-*-iso8859-1
+set titlefont     -*-helvetica-medium-r-normal--14-*-p-*-iso8859-1
+set infofont      -*-helvetica-medium-r-normal--12-*-p-*-iso8859-1
+set smallfont     -*-helvetica-medium-r-normal--10-*-p-*-iso8859-1
+set verysmallfont -*-courier-medium-o-normal--8-*-m-*-iso8859-1
 
 option add *Entry.background 		gray70 		widgetDefault
-option add *Entry.relief            sunken      widgetDefault
-option add *borderWidth 		1
-option add *highlightThickness	0
+option add *Entry.relief                sunken          widgetDefault
+option add *Menu*selectColor 		forestgreen 	widgetDefault
+option add *Radiobutton*selectColor 	forestgreen 	widgetDefault
+option add *Checkbutton*selectColor 	forestgreen 	widgetDefault
+option add *borderWidth 		1 
+option add *highlightThickness		0
 option add *padx			0
 option add *pady			0
-option add *font $infofont
+option add *font                        $infofont
 
 set V(class) "Mbone Applications"
 set V(app)   "rat"
+
+if {[string compare [info commands registry] "registry"] == 0} {
+	set win32 1
+} else {
+	set win32 0
+}
 
 set iht			16
 set iwd 		250
@@ -45,7 +41,7 @@ set fw			.l.t.list.f
 
 proc init_source {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL num_cname 
-	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
+	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
 
 	if {[array names INDEX $cname] != $cname} {
 		# This is a source we've not seen before...
@@ -60,7 +56,6 @@ proc init_source {cname} {
 		set   PCKTS_RECV($cname) "0"
 		set   PCKTS_LOST($cname) "0"
 		set   PCKTS_MISO($cname) "0"
-		set   PCKTS_DUP($cname)  "0"
 		set       JITTER($cname) "0"
 		set    JIT_TOGED($cname) "0"
 		set   LOSS_TO_ME($cname) "101"
@@ -111,7 +106,7 @@ proc input_mute {state} {
 	pack .r.c.gain.s2 -side top  -fill x -expand 1
     }
 }
-
+ 
 proc set_vol {new_vol} {
     global volume
     set volume $new_vol
@@ -404,13 +399,12 @@ proc mbus_recv_source.packet.loss {dest srce loss} {
 	cname_update $dest
 }
 
-proc mbus_recv_source.reception {cname packets_recv packets_lost packets_miso packets_dup jitter jit_tog} {
-	global PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER JIT_TOGED
+proc mbus_recv_source.reception {cname packets_recv packets_lost packets_miso jitter jit_tog} {
+	global PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER JIT_TOGED
 	init_source $cname 
 	set PCKTS_RECV($cname) $packets_recv
 	set PCKTS_LOST($cname) $packets_lost
 	set PCKTS_MISO($cname) $packets_miso
-	set PCKTS_DUP($cname)  $packets_dup
 	set JITTER($cname) $jitter
 	set JIT_TOGED($cname) $jit_tog
 	cname_update $cname
@@ -432,12 +426,12 @@ proc mbus_recv_source.inactive {cname} {
 }
 
 proc mbus_recv_source.remove {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
+	global CNAME NAME EMAIL LOC PHONE TOOL CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
 	global num_cname
 
 	catch [destroy [window_plist $cname]]
 	unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname)
-	unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname) PCKTS_DUP($cname)
+	unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname)
 	unset JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname) JIT_TOGED($cname)
 	incr num_cname -1
 	chart_redraw $num_cname
@@ -458,7 +452,7 @@ proc mbus_recv_quit {} {
 
 proc cname_update {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL INDEX 
-	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP LOSS_TO_ME LOSS_FROM_ME
+	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO LOSS_TO_ME LOSS_FROM_ME
 	global fw iht iwd my_cname mylosstimers his_or_her_losstimers
 
 	if {[array names INDEX $cname] != $cname} {
@@ -609,7 +603,7 @@ proc info_timer {} {
 
 proc update_stats {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL
-	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME JIT_TOGED
+	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER LOSS_TO_ME LOSS_FROM_ME JIT_TOGED
 
 	if {$LOSS_TO_ME($cname) == 101} {
 		set loss_to_me "unknown"
@@ -635,7 +629,6 @@ proc update_stats {cname} {
 				        	          Total packets received:      $PCKTS_RECV($cname)\n\
 				        	          Total packets lost:          $PCKTS_LOST($cname)\n\
 				        	          Total packets misordered:    $PCKTS_MISO($cname)\n\
-				        	          Total packets duplicated:    $PCKTS_DUP($cname)\n\
 				        	          Current packet loss to me:   $loss_to_me\n\
 						          Current packet loss from me: $loss_from_me\n\
 				        	          Network timing jitter:       $JITTER($cname)\n\
@@ -750,9 +743,8 @@ proc mbus_recv_enable.audio.ctls {} {
 bind all <ButtonPress-3>   {toggle in_mute_var; input_mute $in_mute_var}
 bind all <ButtonRelease-3> {toggle in_mute_var; input_mute $in_mute_var}
 bind all <q>               "do_quit"
-if {$win32 == 0} {
-	wm iconbitmap . rat_small
-}
+
+wm iconbitmap . rat_small
 wm resizable . 0 1
 if ([info exists geometry]) {
         wm geometry . $geometry
@@ -828,7 +820,7 @@ frame .prefs.pane -relief sunken
 pack  .prefs.pane -side left -fill both -expand 1 -padx 4 -pady 2
 
 # setup width of prefs panel
-constrain_window .prefs "XXXXXXXXXXXXXX48-kHzXXXStereoXXXLinear-16XXXUnitsXPerXPcktXXXXXXXXXXXXX" 0 12 128
+constrain_window .prefs "XXXXXXXXXXXXXX48-kHzXXXStereoXXXLinear-16XXXUnitsXPerXPcktXXXXXXXXXXXXX" 0 11 128
 
 # Personal Info Pane
 set i .prefs.pane.personal
@@ -991,7 +983,7 @@ frame $i
 frame $i.a -relief sunken
 frame $i.a.f 
 frame $i.a.f.f
-label $i.a.f.f.l -anchor w -justify left -text "Your communication can be secured with triple\nDES encryption.  Only conference participants\nwith the same key can receive audio data when\nencryption is enabled."
+label $i.a.f.f.l -anchor w -justify left -text "You communication can be secured with triple\nDES encryption.  Only conference participants\nwith the same key can receive audio data when\nencryption is enabled."
 pack $i.a.f.f.l
 pack $i.a -side top -fill both -expand 1 
 label $i.a.f.f.lbl -text "Key:"
@@ -1007,7 +999,7 @@ frame $i
 frame $i.a -relief sunken 
 frame $i.a.f 
 frame $i.a.f.f
-label $i.a.f.f.l -anchor w -justify left -text "The following features may be\ndisabled to conserve processing\npower."
+label $i.a.f.f.l -anchor w -justify left -text "The following features maybe\ndisabled to conserve processing\npower."
 pack $i.a -side top -fill both -expand 1 
 pack $i.a.f -fill x -side left -expand 1
 checkbutton $i.a.f.f.power   -text "Powermeters active"       -variable meter_var
@@ -1176,11 +1168,6 @@ This product includes software developed by the Computer
 Systems Engineering Group and by the Network Research Group
 at Lawrence Berkeley Laboratory.
 
-The WB-ADPCM algorithm was developed by British Telecommunications
-plc.  Permission has been granted to use it for non-commercial
-research and development projects.  BT retain the intellectual
-property rights to this algorithm.
-
 Encryption features of this software use the RSA Data
 Security, Inc. MD5 Message-Digest Algorithm.
 }
@@ -1272,7 +1259,7 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "output.mute"   $out_mute_var
 }
 
-if {$win32 == 0 && [glob ~] == "/"} {
+if {[glob ~] == "/"} {
 	set rtpfname /.RTPdefaults
 } else {
 	set rtpfname ~/.RTPdefaults
@@ -1281,10 +1268,10 @@ if {$win32 == 0 && [glob ~] == "/"} {
 proc save_setting {f field var} {
     global win32 V rtpfname
     upvar #0 $var value
-    if {$win32 == 0} {
-		puts $f "*$field: $value"
+    if {$win32} {
+	registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field" "$value"
     } else {
-		registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field" "$value"
+	puts $f "*$field: $value"
     }
 }
 
@@ -1293,10 +1280,10 @@ proc save_settings {} {
 
     set f 0
     if {$win32 == 0} {
-		set fail [catch {set f [open $rtpfname w]}]
-		if {$fail} {
-			return
-		}
+	set fail [catch {set f [open $rtpfname w]}]
+	if {$fail} {
+	    return
+	}
     }
 
     # personal
@@ -1352,13 +1339,13 @@ proc load_setting {attrname field var default} {
     if {$win32} {
 		catch {set $var [registry get "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "$field"]} 
     } else {
-		set tmp [option get . $field rat]
-		if {$tmp == ""} {
+	set tmp [option get . $field rat]
+	if {$tmp == ""} {
 	    # not in xresources...
-			if {[info exists attr($field)]} {
-			set tmp $attr($field)
-			}
-		}
+	    if {[info exists attr($field)]} {
+		set tmp $attr($field)
+	    }
+	}
     }
     if {$tmp == ""} {
 	# either not in rtp defaults, or registry...
@@ -1373,21 +1360,21 @@ proc load_settings {} {
 
     set attr(zero) ""
     if {$win32 == 0} {
-		if {[file readable $rtpfname]} {
-			set f [open $rtpfname]
-			while {[eof $f] == 0} {
-			gets $f line
-			set field [string trim [lindex $line 0] "*:"]
-			set value [lrange $line 1 end]
-			set attr($field) "$value"
-			}	
-			close $f
-		}
+	if {[file readable $rtpfname]} {
+	    set f [open $rtpfname]
+	    while {[eof $f] == 0} {
+		gets $f line
+		set field [string trim [lindex $line 0] "*:"]
+		set value [lrange $line 1 end]
+		set attr($field) "$value"
+	    }
+	    close $f
+	}
     }
 
     # personal
-    load_setting attr rtpName  rtcp_name     "unknown"
-    load_setting attr rtpEmail rtcp_email    "unknown"
+    load_setting attr rtpName  rtcp_name     ""
+    load_setting attr rtpEmail rtcp_email    ""
     load_setting attr rtpPhone rtcp_phone    ""
     load_setting attr rtpLoc   rtcp_loc      ""
 
@@ -1410,8 +1397,8 @@ proc load_settings {} {
     # device config
     load_setting attr audioOutputGain   volume       "50"
     load_setting attr audioInputGain    gain         "50"
-    load_setting attr audioOutputPort   output_port  "speaker"
-    load_setting attr audioInputPort    input_port   "microphone"
+    load_setting attr audioOutputPort   output_port  "microphone"
+    load_setting attr audioInputPort    input_port   "speaker"
     # we don't save the following but we can set them so if people
     # want to start with mic open then they add following attributes
     load_setting attr audioOutputMute   out_mute_var "0"
@@ -1660,15 +1647,13 @@ add_help .r.c.gain.b2 	"Indicates the loudness of the\nsound you are sending. If
 
 add_help .r.c.vol.s1  	"This slider controls the volume\nof the sound you hear."
 add_help .r.c.vol.l1  	"Click to change output device."
-add_help .r.c.vol.t1  	"If pushed in, reception is muted."
+add_help .r.c.vol.t1  	"If pushed in, output is muted."
 add_help .r.c.vol.b1  	"Indicates the loudness of the\nsound you are hearing."
 
-add_help .l.f		"Name of the session, and the IP address, port\n&\
-		 	 TTL used to transmit the audio data."
 add_help .l.t		"The participants in this session with you at the top.\nClick on a name\
                          with the left mouse button to display\ninformation on that participant,\
 			 and with the middle\nbutton to mute that participant (the right button\nwill\
-			 toggle the transmission mute button, as usual)."
+			 toggle the input mute button, as usual)."
 
 add_help .l.s1.opts   	"Brings up another window allowing\nthe control of various options."
 add_help .l.s1.about  	"Brings up another window displaying\ncopyright & author information."
@@ -1679,7 +1664,7 @@ add_help .prefs.m.f.m  "Click here to change the preference\ncategory."
 set i .prefs.buttons
 add_help $i.bye         "Cancel changes."
 add_help $i.apply       "Apply changes."
-add_help $i.save        "Save and apply changes."
+add_help $i.save        "Dismiss window."
 
 # user help
 set i .prefs.pane.personal.a.f.f.ents
@@ -1713,7 +1698,6 @@ add_help $i.cc.red.u.m \
 add_help $i.cc.int.fc.m \
 			"Sets the separation of adjacent units within\neach packet. Larger values correspond\
 			 to longer\ndelays."
-add_help $i.cc.int.zz.m "Number of compound units per packet."
 add_help $i.cc.int.rb	"Enables interleaving which exchanges latency\n\
 			 for protection against burst losses.  No other\n\
 			 audio tools can decode this format (experimental)."
@@ -1724,7 +1708,7 @@ add_help $i.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound 
 # Reception Help
 set i .prefs.pane.reception
 add_help $i.r.m 	"Sets the type of repair applied when packets are\nlost. The schemes\
-			 are listed in order of increasing\ncomplexity and quality of repair."
+			 are listed in order of increasing\ncomplexity."
 add_help $i.o.f.cb      "Enforce playout delay limits set below.\nThis is not usually desirable."
 add_help $i.o.f.fl.scmin   "Sets the minimum playout delay that will be\napplied to incoming\
 			 audio streams."
@@ -1737,20 +1721,8 @@ add_help $i.c.f.f.lec  	"If enabled, extra delay is added at both sender and rec
 			 to perform better silence suppression.\nAs the name suggests, this option\
 			 is intended for scenarios such\nas transmitting a lecture, where interactivity\
 			 is less important\nthan quality."
-
 # security...too obvious for balloon help!
-add_help .prefs.pane.security.a.f.f.e "Due to government export restrictions,\nhelp\
-				       for this option is not available. :-)"
-
 # interface...ditto!
-set i .prefs.pane.interface
-add_help $i.a.f.f.power "Disable display of audio powermeters. This\nis only\
-		 	 useful if you have a slow machine"
-add_help $i.a.f.f.video	"Enable lip-synchronisation, if\nyou\
-			 have a compatible video tool"
-add_help $i.a.f.f.balloon "If you can see this, balloon help\nis enabled. If not, it isn't."
-add_help $i.a.f.f.matrix  "Displays a chart showing the reception\nquality reported by all participants"
-add_help $i.a.f.f.plist   "Hides the list of participants"
 
 add_help .chart		"This chart displays the reception quality reported\nby all session\
 			 participants. Looking along a row\ngives the quality that participant\

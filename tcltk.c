@@ -58,6 +58,7 @@ extern char	TCL_LIBS[];
 #ifdef WIN32		
 int WinPutsCmd(ClientData, Tcl_Interp*, int ac, char** av);
 int WinGetUserName(ClientData, Tcl_Interp*, int ac, char** av);
+int WinReg(ClientData clientdata, Tcl_Interp *interp, int ac, char **av);
 #endif
 
 Tcl_Interp *interp;	/* Interpreter for application. */
@@ -183,8 +184,9 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, (ClientData) sp, NULL);
 #ifdef WIN32
     Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);
-    Tcl_CreateCommand(interp, "puts",        WinPutsCmd,      (ClientData)sp, NULL);
-    Tcl_CreateCommand(interp, "getusername", WinGetUserName,  (ClientData)sp, NULL);
+    Tcl_CreateCommand(interp, "puts",        WinPutsCmd,     (ClientData)sp, NULL);
+    Tcl_CreateCommand(interp, "getusername", WinGetUserName, (ClientData)sp, NULL);
+	Tcl_CreateCommand(interp, "registry",    WinReg,         (ClientData)sp, NULL);
 #else
 	Tcl_SetVar(interp, "win32", "0", TCL_GLOBAL_ONLY);
 #endif

@@ -383,7 +383,7 @@ static int mbus_socket_init(unsigned short channel)
 		perror("mbus: setsockopt IP_ADD_MEMBERSHIP");
 		return -1;
 	}
-
+#ifndef WIN32
 	if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop)) < 0) {
 		perror("mbus: setsockopt IP_MULTICAST_LOOP");
 		return -1;
@@ -393,7 +393,8 @@ static int mbus_socket_init(unsigned short channel)
 		perror("mbus: setsockopt IP_MULTICAST_TTL");
 		return -1;
 	}
-	assert(fd != -1);
+#endif
+
 	return fd;
 }
 
@@ -410,7 +411,8 @@ struct mbus *mbus_init(unsigned short channel,
 #endif
 	m = (struct mbus *) xmalloc(sizeof(struct mbus));
 	m->fd           = mbus_socket_init(channel);
-	m->channel	= channel;
+	assert(m->fd != -1);
+	m->channel	    = channel;
 	m->seqnum       = 0;
 	m->ack_list     = NULL;
 	m->ack_list_size= 0;
