@@ -32,8 +32,10 @@ The .RATdefaults file can have the following entries:
 *audioInputGain: 49		  +-- Record and playback device,
 *audioOutputGain: 43		  |   sample rate, and volume
 *audioFrequency: 8000		--+
+*rtpPromiscuousMode: 1    }-- enable(1)/disable(0) immediate source creation
 *audioInputMute: 1		  }-- Start with transmission muted?
 *audioOutputMute: 1		  }-- Start with reception muted?
+
 
 All apart from the last two options are saved automatically, and correspond 
 to options which can be set in the user interface. The audioInputMute and
