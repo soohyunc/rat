@@ -565,10 +565,15 @@ void settings_save(session_struct *sp)
 	setting_save_str("audioDevice",            ad.name);
 	setting_save_int("audioFrequency",         af->sample_rate);
 	setting_save_int("audioChannelsIn",        af->channels); 
-	setting_save_str("audioPrimary",           pri_cf->short_name);
-	setting_save_int("audioUnits",             channel_encoder_get_units_per_packet(sp->channel_coder)); 
+	
+	/* If we save a dynamically mapped codec we crash when we reload on startup */
+	if(pri_cf->default_pt!=CODEC_PAYLOAD_DYNAMIC) {
+	  setting_save_str("audioPrimary",           pri_cf->short_name);
+	  setting_save_str("audioChannelParameters", cc_param);
+	}
+
+	setting_save_int("audioUnits",             channel_encoder_get_units_per_packet(sp->channel_coder))
 	setting_save_str("audioChannelCoding",     cd.name);
-	setting_save_str("audioChannelParameters", cc_param);
 	setting_save_str("audioRepair",            repair_get_name((u_int16)sp->repair));
 	setting_save_str("audioAutoConvert",       converter.name);
 	setting_save_int("audioLimitPlayout",      sp->limit_playout);
