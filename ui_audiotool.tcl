@@ -93,26 +93,12 @@ proc window_stats {cname} {
 # Commands to send message over the conference bus...
 proc output_mute {state} {
     mbus_send "R" "audio.output.mute" "$state"
-    if {$state} {
-		pack forget .r.c.vol.b1 .r.c.vol.s1
-		pack .r.c.vol.ml -side top -fill both -expand 1
-    } else {
-		pack forget .r.c.vol.ml
-		pack .r.c.vol.b1 -side top  -fill x -expand 1
-		pack .r.c.vol.s1 -side top  -fill x -expand 1
-    }
+    bargraphState .r.c.vol.b1 [expr ! $state]
 }
 
 proc input_mute {state} {
     mbus_send "R" "audio.input.mute" "$state"
-    if {$state} {
-		pack forget .r.c.gain.b2 .r.c.gain.s2
-		pack .r.c.gain.ml -side top -fill both -expand 1
-    } else {
-		pack forget .r.c.gain.ml
-		pack .r.c.gain.b2 -side top  -fill x -expand 1
-		pack .r.c.gain.s2 -side top  -fill x -expand 1
-    }
+    bargraphState .r.c.gain.b2 [expr ! $state]
 }
 
 proc set_vol {new_vol} {
@@ -607,14 +593,7 @@ proc mbus_recv_audio.input.port {device} {
 proc mbus_recv_audio.input.mute {val} {
     global in_mute_var
     set in_mute_var $val
-    if {$val} {
-		pack forget .r.c.gain.b2 .r.c.gain.s2
-		pack .r.c.gain.ml -side top -fill both -expand 1
-    } else {
-		pack forget .r.c.gain.ml
-		pack .r.c.gain.b2 -side top  -fill x -expand 1
-		pack .r.c.gain.s2 -side top  -fill x -expand 1
-    }
+    bargraphState .r.c.gain.b2 [expr ! $val]
 }
 
 proc mbus_recv_audio.output.gain {gain} {
@@ -981,10 +960,10 @@ proc bargraphCreate {bgraph} {
 	global oh$bgraph bargraphTotalHeight
 
 	frame $bgraph -bg black
-	frame $bgraph.inner0 -width 8 -height 6 -bg green
+	frame $bgraph.inner0 -height 6 -bg green
 	pack $bgraph.inner0 -side left -padx 0 -fill both -expand true
 	for {set i 1} {$i < $bargraphTotalHeight} {incr i} {
-		frame $bgraph.inner$i -width 8 -height 8 -bg black
+		frame $bgraph.inner$i -height 8 -bg black
 		pack $bgraph.inner$i -side left -padx 0 -fill both -expand true
 	}
 	set oh$bgraph 0
@@ -1013,6 +992,18 @@ proc bargraphSetHeight {bgraph height} {
 		}
 	}
 	set oh $height
+}
+
+proc bargraphState {bgraph state} {
+    if {[winfo exists $bgraph]} {
+	global bargraphTotalHeight
+	for { set i 0 } { $i < $bargraphTotalHeight} {incr i} {
+	    $bgraph.inner$i config -bg black
+	}
+	if {$state} {
+	    $bgraph.inner0 config -bg green
+	}
+    }
 }
 
 proc toggle {varname} {
@@ -1307,28 +1298,27 @@ bind .l.t.list <Configure> {fix_scrollbar}
 
 # Device output controls
 set out_mute_var 0
-checkbutton .r.c.vol.t1 -highlightthickness 0 -pady 0 -padx 0 -text "Receive" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $smallfont -width 7 -relief raised
-button .r.c.vol.l1 -pady 0 -padx 0 -highlightthickness 0 -command toggle_output_port -font $smallfont -width 8
+checkbutton .r.c.vol.t1 -highlightthickness 0 -text "Receive" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $smallfont -width 8 -relief raised -padx 4 -anchor w
+button .r.c.vol.l1 -pady 0 -padx 0 -highlightthickness 0 -command toggle_output_port -font $smallfont -width 10
 bargraphCreate .r.c.vol.b1
 scale .r.c.vol.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -relief raised -showvalue false -width 10 -variable volume
-label .r.c.vol.ml -text "Reception is muted" -relief sunken -font $smallfont
 
 pack .r.c.vol.t1 -side left -fill y
 pack .r.c.vol.l1 -side left -fill y
 pack .r.c.vol.b1 -side top  -fill both -expand 1
-pack .r.c.vol.s1 -side top  -fill y -expand 1
+pack .r.c.vol.s1 -side top  -fill x -expand 1
 
 # Device input controls
 set in_mute_var 1
-checkbutton .r.c.gain.t2 -highlightthickness 0 -pady 0 -padx 0 -text "Transmit" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $smallfont -width 7 -relief raised
-button .r.c.gain.l2 -pady 0 -padx 0 -highlightthickness 0 -command toggle_input_port -font $smallfont -width 8
+checkbutton .r.c.gain.t2 -highlightthickness 0 -text "Transmit" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $smallfont -width 8 -relief raised -padx 4 -anchor w
+button .r.c.gain.l2 -pady 0 -padx 0 -highlightthickness 0 -command toggle_input_port -font $smallfont -width 10
 bargraphCreate .r.c.gain.b2
 scale .r.c.gain.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10 -variable gain -font $smallfont
-label .r.c.gain.ml -text "Transmission is muted" -relief sunken -font $smallfont
 
 pack .r.c.gain.t2 -side left -fill y
 pack .r.c.gain.l2 -side left -fill y
-pack .r.c.gain.ml -side top  -fill both -expand 1
+pack .r.c.gain.b2 -side top  -fill both -expand 1
+pack .r.c.gain.s2 -side top  -fill x -expand 1
 
 proc mbus_recv_tool.rat.disable.audio.ctls {} {
 #	.r.c.vol.t1 configure -state disabled
