@@ -395,15 +395,14 @@ statistics(session_struct    *sp,
 
 	rtp_hdr_t	*hdr;
 	u_char		*data_ptr;
-	int		len,extlen;
+	int		 len,extlen;
 	rtcp_dbentry	*src;
-	u_int32		playout_pt;
+	u_int32		 playout_pt;
 	pckt_queue_element_struct *e_ptr;
 	codec_t		*pcp;
+	char 		 update_req = FALSE;
 
-	char update_req = FALSE;
-
-	/* Process an incoming packets */
+	/* Process incoming packets */
         while(netrx_pckt_queue->queue_empty == FALSE) {
                 e_ptr = get_pckt_off_queue(netrx_pckt_queue);
                 /* Impose RTP formating on it... */
@@ -411,7 +410,6 @@ statistics(session_struct    *sp,
         
                 if (rtp_header_validation(hdr, &e_ptr->len, &extlen) == FALSE) {
                         debug_msg("RTP Packet failed header validation!\n");
-                        /* XXX log as bad packet */
                         goto release;
                 }
         
@@ -420,8 +418,7 @@ statistics(session_struct    *sp,
                 hdr->ts   = ntohl(hdr->ts);
                 hdr->ssrc = ntohl(hdr->ssrc);
         
-                if ((hdr->ssrc == sp->db->myssrc) && 
-                    sp->filter_loopback) {
+                if ((hdr->ssrc == sp->db->myssrc) && sp->filter_loopback) {
                         /* Discard loopback packets...unless we have asked for them ;-) */
                         goto release;
                 }
@@ -429,16 +426,13 @@ statistics(session_struct    *sp,
                 /* Get database entry of participant that sent this packet */
                 src = update_database(sp, hdr->ssrc, cur_time);
                 if (src == NULL) {
-                        debug_msg("Packet from unknown participant\n");
-                        /* Discard packets from unknown participant */
+                        debug_msg("Packet from unknown participant discarded\n");
                         goto release;
                 }
                 rtcp_update_seq(src, hdr->seq);
 
                 if (sp->have_device == FALSE) {
-                        /* we don't have the audio device so there is no point
-                         * processing data any further.
-                         */
+                        /* we don't have the audio device so there is no point processing data any further. */
                         goto release;
                 }
 
@@ -466,11 +460,10 @@ statistics(session_struct    *sp,
                 playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
                 src->units_per_packet = split_block(playout_pt, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
                 
-                if (!src->units_per_packet) {
-                        goto release;
+                if (update_req && (src->units_per_packet != 0)) {
+                	ui_update_stats(src, sp);
                 }
         
-                if (update_req) ui_update_stats(src, sp);
         release:
                 free_pckt_queue_element(&e_ptr);
         }
