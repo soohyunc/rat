@@ -927,6 +927,8 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	  -command option when created.  Now we don't send gain info until
 	  we've heard some from engine.
 	- Add signal handler to main_control.
+	- Add back default port 5004.
+	- Fix luigi_audio_drain to reset, sync, and trigger reading.
 
 TODO -- They're features not bugs dammit!
 ----

@@ -30,6 +30,8 @@
 #define ENGINE_NAME "rat-"##VERSION_NUM##"-media"
 #endif
 
+#define DEFAULT_RTP_PORT 5004
+
 pid_t	 pid_ui, pid_engine;
 int	 should_exit;
 
@@ -187,7 +189,8 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 {
 	int		 i;
 	int		 ttl = 15;
-	char		*addr, *rx_port, *tx_port, *tmp;
+	char		*addr, *port, *tmp;
+        int              tx_port, rx_port;
 	struct timeval	 timeout;
 
         if (argc < 2) {
@@ -195,15 +198,22 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
                 return FALSE;
         }
 
-	/* Parse the list of addresses/ports at the end of the command line... */
+	/* Parse the list of addresses/ports at the end of the command line. */
 	addr    = (char *) strtok(argv[argc-1], "/");
-	rx_port = (char *) strtok(NULL, "/");
-	tx_port = (char *) strtok(NULL, "/");
-	if (tx_port == NULL) {
-		tx_port = rx_port;
-	}
+        rx_port = DEFAULT_RTP_PORT;
+	port    = (char *) strtok(NULL, "/");
+        if (port != NULL) {
+                rx_port = atoi(port);
+        }
+	port    = (char *) strtok(NULL, "/");
+	if (port != NULL) {
+		tx_port = atoi(port);
+	} else {
+                tx_port = rx_port;
+        }
+
 	addr    = mbus_encode_str(addr);
-	mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, atoi(rx_port), atoi(tx_port), ttl);
+	mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
 	xfree(addr);
 
 	/* Parse command line parameters... */
