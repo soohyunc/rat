@@ -39,7 +39,7 @@ set V(class) "Mbone Applications"
 set V(app)   "rat"
 
 set iht			16
-set iwd 		250
+set iwd 		280
 set cancel_info_timer 	0
 set num_ssrc		0
 set fw			.l.t.list.f
