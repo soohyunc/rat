@@ -54,12 +54,12 @@ static pid_t fork_process(struct mbus *m, char *proc_name, char *ctrl_name)
 	mbus_control_wait_init(token);
 	while (!mbus_control_wait_done()) {
 		debug_msg("Waiting for token \"%s\" from sub-process\n", token);
-		timeout.tv_sec  = 1;
-		timeout.tv_usec = 0;
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 500000;
+		mbus_heartbeat(m, 1);
 		mbus_qmsgf(m, "()", FALSE, "mbus.waiting", "%s", token_e);
 		mbus_send(m);
 		mbus_recv(m, (void *) m, &timeout);
-		mbus_heartbeat(m, 1);
 	}
 	debug_msg("forked %s\n", proc_name);
 	xfree(token);
