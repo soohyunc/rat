@@ -287,6 +287,7 @@ adapt_playout(rtp_hdr_t *hdr,
                                  * or, difference in time stamps is less than 1 sec,
                                  * we don't want playout point to be before that of existing data.
                                  */
+                                debug_msg("Buf exists (%d) (%d)\n", src->playout, src->delay+var);
                                 src->playout = max((unsigned)src->playout, src->delay + var);
                         } else {
                                 debug_msg("delay (%lu) var (%lu)\n", src->delay, var);
@@ -434,7 +435,7 @@ statistics(session_struct    *sp,
         int pkt_cnt = 0;
 
 	/* Process incoming packets */
-        while(netrx_pckt_queue->queue_empty == FALSE) {
+        while(netrx_pckt_queue->queue_empty == FALSE && !audio_is_ready(sp->audio_device)) {
                 block_trash_check();
                 e_ptr = get_pckt_off_queue(netrx_pckt_queue);
                 /* Impose RTP formating on it... */
@@ -505,8 +506,15 @@ statistics(session_struct    *sp,
                 block_trash_check();
                 free_pckt_queue_element(&e_ptr);
         }
+
         if (pkt_cnt > 5) {
                 debug_msg("Processed lots of packets(%d).\n", pkt_cnt);
         }
+
+#ifdef DEBUG
+        if (netrx_pckt_queue->queue_empty == FALSE) {
+                debug_msg("Stopped processing packets because audio ready\n");
+        }
+#endif
 }
 

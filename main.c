@@ -222,7 +222,7 @@ main(int argc, char *argv[])
 				tx_process_audio(sp[i]);
 			}
 
-			if (!(sp[i]->playing_audio)) {
+			if (!sp[i]->playing_audio) {
 				receive_unit_audit(rx_unit_queue_p[i]);
                                 if (sp[i]->playout_buf_list) {
                                         playout_buffers_destroy(sp[i], &sp[i]->playout_buf_list);
@@ -233,7 +233,7 @@ main(int argc, char *argv[])
                                 tx_send(sp[i]);
                         }
 
-			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, real_time);
+                        statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, real_time);
 
 			if (sp[i]->playing_audio) {
 				playout_buffers_process(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, sp[i]->ms);
@@ -286,9 +286,9 @@ main(int argc, char *argv[])
                         
                         /* Choke CPU usage */
                         if (sp[i]->have_device) {
-/*                                while(!audio_is_ready(sp[i]->audio_device)) { */
+                                while(!audio_is_ready(sp[i]->audio_device)) { 
                                         audio_wait_for(sp[i]->audio_device, 20);
-/*                                } */
+                                } 
                         } else {
                                 usleep(20000);
                         }

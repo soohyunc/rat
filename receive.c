@@ -303,8 +303,10 @@ playout_buffer_destroy(session_struct *sp, ppb_t **list, ppb_t *buf)
 {
         ppb_t *pb, *lpb;
         rx_queue_element_struct *nrx;
+        rtcp_dbentry *ssrc;
 
         ui_info_deactivate(sp, buf->src);
+        ssrc = buf->src;
 
         debug_msg("Destroying playout buffer\n");
 
@@ -339,6 +341,8 @@ playout_buffer_destroy(session_struct *sp, ppb_t **list, ppb_t *buf)
                 }
                 sp->echo_was_sending = FALSE;
         }
+        /* Update playout buf length etc, otherwise figure on screen is garbage and persists */
+        ui_update_stats(sp, ssrc);
 }
 
 #define HISTORY_LEN	60	/* ms */
