@@ -45,6 +45,8 @@ typedef struct s_rtp_assoc {
 static rtp_assoc_t rtp_as;
 static int rtp_as_inited;
 
+#define NO_CONT_TOGED_FOR_PLAYOUT_RECALC 4
+
 void 
 rtp_callback_init(struct rtp *rtps, struct s_session *rats)
 {
@@ -222,7 +224,8 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
         /* Check for continuous number of packets being discarded.  This   */
         /* happens when jitter or transit estimate is no longer consistent */
         /* with the real world.                                            */
-        if (e->cont_toged == 4) {
+        if (e->cont_toged == NO_CONT_TOGED_FOR_PLAYOUT_RECALC) {
+                adjust_playout = TRUE;
                 e->cont_toged  = 0;
         }
 
@@ -230,15 +233,7 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
         src_ts  = ts_seq32_in(source_get_sequencer(s), get_freq(e->clock), p->ts);
         playout = playout_calc(sp, ssrc, src_ts, adjust_playout);
 
-        if (ts_gt(sp->cur_ts, playout)) {
-                /* The playout point for this packet has already gone */
-                /* so it get's discarded.                             */
-                e->jit_toged  ++;
-                e->cont_toged ++;
-        } else {
-                source_add_packet(s, (u_char*)p, RTP_MAX_PACKET_LEN, (u_char)p->pt, playout);
-                e->cont_toged = 0;
-        }
+        source_add_packet(s, (u_char*)p, RTP_MAX_PACKET_LEN, (u_char)p->pt, playout);
 
         /* Update persistent database fields. */
         if (e->last_seq > p->seq) {

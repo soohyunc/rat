@@ -906,6 +906,10 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	- Fixed Windows port.
 	- Initialize sp->cur_ts in main_engine, before tx_start.  Should fix 
 	  occasional assert failure during transmitter startup.
+	- Put cont_toged check into source_process packets.  Added check for
+	  cont_toged in rtp_callback.
+	- Added time constants and replaced lots of ts_map32 functions with
+	  them in source.c.
 
 TODO -- They're features not bugs dammit!
 ----

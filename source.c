@@ -67,28 +67,29 @@ typedef struct s_source {
         struct s_pb                *media;
         struct s_pb_iterator       *media_pos;
         struct s_converter         *converter;
-        /* fine grained playout buffer adjustment variables - attempts to correct for clock skew */
+        /* Fine grained playout buffer adjustment variables.  Used in        */
+        /* attempts to correct for clock skew between source and local host. */
         skew_t 			    skew;
         ts_t   			    skew_adjust;
         int32  			    skew_offenses;
-        /* b/w estimation variables */
+        /* b/w estimation variables                                          */
         u_int32                     byte_count;
         ts_t                        byte_count_start;
         double                      bps;
 } source;
 
-/* A linked list is used for sources and this is fine since we mostly
- * expect 1 or 2 sources to be simultaneously active and so efficiency
- * is not a killer.  */
+/* A linked list is used for sources and this is fine since we mostly expect */
+/* 1 or 2 sources to be simultaneously active and so efficiency is not a     */
+/* killer.                                                                   */
 
 typedef struct s_source_list {
         source  sentinel;
         u_int16 nsrcs;
 } source_list;
 
-/****************************************************************************/
-/* Source List functions.  Source List is used as a container for sources   */
-/****************************************************************************/
+/*****************************************************************************/
+/* Source List functions.  Source List is used as a container for sources    */
+/*****************************************************************************/
 
 int
 source_list_create(source_list **pplist)
@@ -165,9 +166,30 @@ source_get_by_ssrc(source_list *plist, u_int32 ssrc)
         return NULL;
 }
 
-/****************************************************************************/
-/* Source functions.  A source is an active audio source.                   */
-/****************************************************************************/
+/*****************************************************************************/
+/* Timestamp constants and initialization                                    */
+/*****************************************************************************/
+
+static ts_t zero_ts;        /* No time at all :-)                            */
+static ts_t keep_source_ts; /* How long source kept after source goes quiet  */
+static ts_t history_ts;     /* How much old audio hang onto for repair usage */
+static ts_t bw_avg_period;  /* Average period for bandwidth estimate         */
+static int  time_constants_inited = FALSE;
+
+static void
+time_constants_init()
+{
+        /* We use these time constants *all* the time.   Initialize once     */
+        zero_ts        = ts_map32(8000, 0);
+        keep_source_ts = ts_map32(8000, 2000); 
+        history_ts     = ts_map32(8000, 1000); 
+        bw_avg_period  = ts_map32(8000, 8000);
+        time_constants_inited = TRUE;
+}
+
+/*****************************************************************************/
+/* Source functions.  A source is an active audio source.                    */
+/*****************************************************************************/
 
 source*
 source_create(source_list    *plist, 
@@ -184,12 +206,18 @@ source_create(source_list    *plist,
         assert(plist != NULL);
         assert(source_get_by_ssrc(plist, ssrc) == NULL);
 
+        /* Time constant initialization. Nothing to do with source creation  */
+        /* just has to go somewhere before sources might be active, here it  */
+        /* definitely is!                                                    */
+        if (time_constants_inited == FALSE) {
+                time_constants_init();
+        }
+
+        /* On with the show...                                               */
         psrc = (source*)block_alloc(sizeof(source));
-        
         if (psrc == NULL) {
                 return NULL;
         }
-
         memset(psrc, 0, sizeof(source));
 
         if (pdb_item_get(pdb, ssrc, &psrc->pdbe) == FALSE) {
@@ -197,13 +225,15 @@ source_create(source_list    *plist,
                 abort();
         }
 
-        psrc->pdbe->first_mix = 1; /* Used to note we have not mixed anything
-                                    * for this decode path yet */
-        psrc->channel_state   = NULL;        
-        psrc->skew            = SOURCE_SKEW_NONE;
-        psrc->skew_offenses   = 0;
-        /* Allocate channel and media buffers */
-        success = pb_create(&psrc->channel, (playoutfreeproc)channel_data_destroy);
+        psrc->pdbe->first_mix  = 1; /* Used to note nothing mixed anything   */
+        psrc->pdbe->cont_toged = 0; /* Reset continuous thrown on ground cnt */
+        psrc->channel_state    = NULL;        
+        psrc->skew             = SOURCE_SKEW_NONE;
+        psrc->skew_offenses    = 0;
+
+        /* Allocate channel and media buffers                                */
+        success = pb_create(&psrc->channel, 
+                            (playoutfreeproc)channel_data_destroy);
         if (!success) {
                 debug_msg("Failed to allocate channel buffer\n");
                 goto fail_create_channel;
@@ -318,27 +348,26 @@ source_reconfigure(source        *src,
                         src->pdbe->render_3D_data = render_3D_init((int)src_rate);
                 }
                 assert(src->pdbe->render_3D_data);
-                /* Render 3d is before sample rate/channel conversion,
-                 * and output 2 channels.
-                 */
+                /* Render 3d is before sample rate/channel conversion, and   */
+                /* output 2 channels.                                        */
                 src_channels = 2;
         } else {
-                /* Rendering is switched off so destroy info */
+                /* Rendering is switched off so destroy info.                */
                 if (src->pdbe->render_3D_data != NULL) {
                         render_3D_free(&src->pdbe->render_3D_data);
                 }
         }
 
-        /* Now destroy converter if it is already there */
+        /* Now destroy converter if it is already there.                     */
         if (src->converter) {
                 converter_destroy(&src->converter);
         }
 
         if (src_rate != out_rate || src_channels != out_channels) {
                 converter_fmt_t c;
-                c.src_freq     = src_rate;
+                c.src_freq      = src_rate;
                 c.from_channels = src_channels;
-                c.dst_freq       = out_rate;
+                c.dst_freq      = out_rate;
                 c.to_channels   = out_channels;
                 converter_create(conv_id, &c, &src->converter);
         }
@@ -529,7 +558,7 @@ done:
 }
 
 static void
-source_process_packets(source *src)
+source_process_packets(source *src, ts_t now)
 {
         ts_t    timestamp;
         u_char  payload;
@@ -541,10 +570,22 @@ source_process_packets(source *src)
                 p    = (rtp_packet*)data;
                 ulen = p->data_len;
                 u    = (u_char*)block_alloc((int)ulen);
-                /* Would be great if memcpy occured after validation in source_process_packet */
+                /* Would be great if memcpy occured after validation in     */
+                /* source_process_packet (or not at all)                    */
                 memcpy(u, p->data, p->data_len);
                 if (source_process_packet(src, u, ulen, payload, timestamp) == FALSE) {
                         block_free(u, (int)ulen);
+                } else if (ts_gt(now, timestamp)) {
+                        /* Packet being decoded is before start of current  */
+                        /* so there is now way it's audio will be played    */
+                        /* Playout recalculation gets triggered in          */
+                        /* rtp_callback if cont_toged hits a critical       */
+                        /* threshold.  It signifies current playout delay   */
+                        /* is inappropriate.                                */
+                        src->pdbe->cont_toged++;
+                        src->pdbe->jit_toged++;
+                } else {
+                        src->pdbe->cont_toged = 0;
                 }
                 xfree(data);
         }
@@ -557,15 +598,8 @@ source_add_packet (source *src,
                    u_int8  payload,
                    ts_t    playout)
 {
-        static ts_t bw_avg_period;
-        static int inited;
         ts_t delta;
         
-        if (!inited) {
-                bw_avg_period = ts_map32(8000, 8000); /* one second */
-                inited        = TRUE;
-        }
-
         /* Update b/w estimate */
         if (src->byte_count == 0) {
                 src->byte_count_start = playout;
@@ -593,15 +627,14 @@ source_get_bps(source *src)
         return src->bps;
 }
 
-/* recommend_drop_dur does quick pattern match with audio that is
- * about to be played i.e. first few samples to determine how much
- * audio can be dropped with causing glitch.
- */
+/* recommend_drop_dur does quick pattern match with audio that is about to   */
+/* be played i.e. first few samples to determine how much audio can be       */
+/* dropped with causing glitch.                                              */
 
 #define SOURCE_COMPARE_WINDOW_SIZE 8
-/* Match threshold is mean abs diff. lower score gives less noise, but less
- * adaption..., might be better if threshold adapted with how much extra
- * data we have buffered... */
+/* Match threshold is mean abs diff. lower score gives less noise, but less  */
+/* adaption..., might be better if threshold adapted with how much extra     */
+/* data we have buffered...                                                  */
 #define MATCH_THRESHOLD 70
 
 static ts_t
@@ -644,7 +677,7 @@ recommend_drop_dur(media_data *md)
                 debug_msg("match score %d, drop dur %d\n", lowest_score/SOURCE_COMPARE_WINDOW_SIZE, lowest_begin);
                 return ts_map32(rate, lowest_begin);
         } else {
-                return ts_map32(8000, 0);
+                return zero_ts;
         }
 }
 
@@ -653,10 +686,9 @@ recommend_drop_dur(media_data *md)
 static void
 conceal_dropped_samples(media_data *md, ts_t drop_dur)
 {
-        /* We are dropping drop_dur samples and want signal to be
-         * continuous.  So we blend samples that would have been
-         * played if they weren't dropped with where signal continues
-         * after the drop.  */
+        /* We are dropping drop_dur samples and want signal to be            */
+        /* continuous.  So we blend samples that would have been played if   */
+        /* they weren't dropped with where signal continues after the drop.  */
         u_int32 drop_samples;
         u_int16 rate, channels;
         int32 tmp, a, b, i, merge_len;
@@ -688,9 +720,9 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         }
 }
 
-/* source_check_buffering is supposed to check amount of audio buffered
- * corresponds to what we expect from playout so we can think about
- * skew adjustment.  */
+/* source_check_buffering is supposed to check amount of audio buffered      */
+/* corresponds to what we expect from playout so we can think about skew     */
+/* adjustment.                                                               */
 
 int
 source_check_buffering(source *src, ts_t now)
@@ -698,11 +730,8 @@ source_check_buffering(source *src, ts_t now)
         ts_t actual, desired, low;
 
         if (src->age < SOURCE_YOUNG_AGE) {
-                /* If the source is new(ish) then not enough audio
-                 * will be in the playout buffer because it hasn't
-                 * arrived yet.  This age
-                 */
-
+                /* If the source is new(ish) then not enough audio will be   */
+                /* in the playout buffer because it hasn't arrived yet.      */
                 return FALSE;
         }
 
@@ -748,14 +777,13 @@ source_check_buffering(source *src, ts_t now)
         return TRUE;
 }
 
-/* source_skew_adapt exists to shift playout units if source clock
- * appears to be fast or slow.  The media_data unit is here so that it
- * can be examined to see if it is low energy and adjustment would be okay.
- * Might want to be more sophisticated and put a silence detector in
- * rather than static threshold.
- *
- * Returns what adaption type occurred.
- */
+/* source_skew_adapt exists to shift playout units if source clock appears   */
+/* to be fast or slow.  The media_data unit is here so that it can be        */
+/* examined to see if it is low energy and adjustment would be okay.  Might  */
+/* want to be more sophisticated and put a silence detector in rather than   */
+/* static threshold.                                                         */
+/*                                                                           */
+/* Returns what adaption type occurred.                                      */
 
 static skew_t
 source_skew_adapt(source *src, media_data *md, ts_t playout)
@@ -778,17 +806,15 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
         }
 
         if (i == md->nrep) {
-                /* don't adapt if unit has not been decoded (error) or
-                 *  signal has too much energy 
-                 */
+                /* don't adapt if unit has not been decoded (error) or       */
+                /* signal has too much energy                                */
                 return SOURCE_SKEW_NONE;
         }
 
-        /* When we are making the adjustment we must shift playout
-         * buffers and timestamps that the source decode process
-         * uses. Must be careful with last repair because it is not
-         * valid if no repair has taken place.
-         */
+        /* When we are making the adjustment we must shift playout buffers   */
+        /* and timestamps that the source decode process uses.  Must be      */
+        /* careful with last repair because it is not valid if no repair has */
+        /* taken place.                                                      */
 
         if (src->skew == SOURCE_SKEW_FAST &&
             abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER /* && 
@@ -844,7 +870,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 src->pdbe->transit = ts_add(src->pdbe->transit, adjustment);
 
                 if (ts_gt(adjustment, src->skew_adjust)) {
-                        src->skew_adjust = ts_map32(8000, 0);
+                        src->skew_adjust = zero_ts;
                 } else {
                         src->skew_adjust = ts_sub(src->skew_adjust, adjustment);
                 }
@@ -935,7 +961,12 @@ source_repair(source     *src,
 }
 
 int
-source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t repair_type, ts_t now)
+source_process(source            *src, 
+               struct s_mix_info *ms, 
+               int                render_3d, 
+               repair_id_t        repair_type, 
+               ts_t               start_ts,    /* Real-world time           */
+               ts_t               end_ts)      /* Real-world time + cushion */
 {
         media_data  *md;
         coded_unit  *cu;
@@ -951,14 +982,14 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
          * buffer shift occurs in middle of a loss.
          */
         
-        source_process_packets(src);
+        source_process_packets(src, start_ts);
 
         /* Split channel coder units up into media units */
         if (pb_node_count(src->channel)) {
                 channel_decoder_decode(src->channel_state,
                                        src->channel,
                                        src->media,
-                                       now);
+                                       end_ts);
         }
 
         src_freq = get_freq(src->pdbe->clock);
@@ -978,7 +1009,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
                  * (c) repair type is not no repair.
                  * (d) last decoded was not too long ago.
                  */
-                cutoff = ts_sub(now, ts_map32(src_freq, SOURCE_AUDIO_HISTORY_MS));
+                cutoff = ts_sub(end_ts, ts_map32(src_freq, SOURCE_AUDIO_HISTORY_MS));
 
                 assert((ts_valid(src->last_played) == FALSE) || ts_eq(playout, src->last_played) == FALSE);
 
@@ -1001,7 +1032,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
                         hold_repair --;
                 }
 
-                if (ts_gt(playout, now)) {
+                if (ts_gt(playout, end_ts)) {
                         /* This playout point is after now so stop */
                         pb_iterator_retreat(src->media_pos);
                         break;
@@ -1069,10 +1100,11 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
                         md->nrep++;
                 }
 
-                if (src->skew != SOURCE_SKEW_NONE && source_skew_adapt(src, md, playout) != SOURCE_SKEW_NONE) {
-                        /* We have skew and we have adjusted playout
-                         *  buffer timestamps, so re-get unit to get
-                         *  correct timestamp info */
+                if (src->skew != SOURCE_SKEW_NONE && 
+                    source_skew_adapt(src, md, playout) != SOURCE_SKEW_NONE) {
+                        /* We have skew and we have adjusted playout buffer  */
+                        /* timestamps, so re-get unit to get correct         */
+                        /* timestamp info.                                   */
                         pb_iterator_get_at(src->media_pos, 
                                            (u_char**)&md, 
                                            &md_len, 
@@ -1088,13 +1120,13 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
                 }
 
                 if (mix_process(ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
-                        /* Sources sampling rate changed mid-flow?,
-                         * dump data, make source look irrelevant, it
-                         * should get destroyed and the recreated with
-                         * proper decode path when new data arrives.
-                         * Not graceful..  A better way would be just
-                         * to flush media then invoke source_reconfigure 
-                         * if this is ever really an issue.  */
+                        /* Sources sampling rate changed mid-flow? dump data */
+                        /* make source look irrelevant, it should get        */
+                        /* destroyed and the recreated with proper decode    */
+                        /* path when new data arrives.  Not graceful..       */
+                        /* A better way would be just to flush media then    */
+                        /* invoke source_reconfigure if this is ever really  */
+                        /* an issue.                                         */
                         pb_flush(src->media);
                         pb_flush(src->channel);
                 }
@@ -1112,17 +1144,15 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
 }
 
 int
-source_audit(source *src) {
+source_audit(source *src) 
+{
         if (src->age != 0) {
-                ts_t history;
                 /* Keep 1/8 seconds worth of audio */
-                history =  ts_map32(8000,1000);
-                pb_iterator_audit(src->media_pos,history);
+                pb_iterator_audit(src->media_pos, history_ts);
                 return TRUE;
         }
         return FALSE;
 }
-
 
 ts_sequencer*
 source_get_sequencer(source *src)
@@ -1135,31 +1165,26 @@ source_get_audio_buffered (source *src, ts_t now)
 {
         ts_t last, extra;
 
-        /* If we have a channel unit in the channel buffer the amount of audio */
-        /* we have buffered is the difference between now and the channel unit */
-        /* end plus the length of the unit.                                    */
+        /* If we have a channel unit in the channel buffer the amount of     */
+        /* audio we have buffered is the difference between now and the      */
+        /* channel unit end plus the length of the unit.                     */
         if (pb_get_end_ts(src->channel, &last)) {
                 int freq = get_freq(src->pdbe->clock);
                 extra    = ts_map32(freq, src->pdbe->inter_pkt_gap);
-/*
-                last     = ts_add(last, extra);
-                */
                 return ts_sub(last, now);
         }
-        /* Else if we have an end time for a media unit then the very last audio */
-        /* we have is the media unit time plus it's length less now.             */
+
+        /* Else if we have an end time for a media unit then the very last   */
+        /* audio we have is the media unit time plus it's length less now.   */
         if (pb_get_end_ts(src->media, &last)) {
                 int freq = get_freq(src->pdbe->clock);
                 extra    = ts_map32(freq, src->pdbe->inter_pkt_gap / src->pdbe->units_per_packet);
-/*
-                last     = ts_add(last, extra);
-                */
                 if (ts_gt(last, now)) {
                         return ts_sub(last, now);
                 }
         }
 
-        return ts_map32(8000,0);
+        return zero_ts;
 }
 
 ts_t
@@ -1171,17 +1196,14 @@ source_get_playout_delay (source *src)
 int
 source_relevant(source *src, ts_t now)
 {
-        ts_t keep_source_time;
         assert(src);
 
         if (src->age < 50) {
                 return TRUE;
         }
-
-        keep_source_time = ts_map32(8000, 2000); /* 1 quarter of a second */
-
-        if (!ts_eq(source_get_audio_buffered(src, now), ts_map32(8000, 0)) ||
-                ts_gt(ts_add(src->pdbe->last_arr, keep_source_time), now)) {
+        
+        if (!ts_eq(source_get_audio_buffered(src, now), zero_ts) ||
+                ts_gt(ts_add(src->pdbe->last_arr, keep_source_ts), now)) {
                 return TRUE;
         }
         

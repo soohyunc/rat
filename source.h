@@ -66,7 +66,8 @@ int              source_process            (struct s_source   *src,
                                             struct s_mix_info *ms,
                                             int                render_3d,
                                             repair_id_t        repair,
-                                            ts_t               now);
+                                            ts_t               start_ts,
+                                            ts_t               end_ts);
 
 int              source_relevant           (struct s_source *src,
                                             ts_t             now);
