@@ -51,6 +51,7 @@
 #include "repair.h"
 #include "crypt.h"
 #include "session.h"
+#include "rat_time.h"
 
 
 static void func_toggle_send(char *srce, char *args, session_struct *sp)
