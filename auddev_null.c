@@ -138,7 +138,7 @@ null_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 	gettimeofday(&curr_time, NULL);
 	read_bytes  = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000 + (curr_time.tv_usec - last_read_time.tv_usec) / 1000;
         /* diff from ms to samples */
-        read_bytes *= (ifmt.bits_per_sample / 8 ) * (ifmt.sample_rate / 1000);
+        read_bytes *= (ifmt.bits_per_sample / 8 ) * (ifmt.sample_rate / 1000) * ifmt.channels;
 
         if (read_bytes + avail_bytes < ifmt.bytes_per_block) {
                 return 0;
@@ -303,7 +303,7 @@ null_audio_is_ready(audio_desc_t ad)
 
         gettimeofday(&now,NULL);
 	diff = (now.tv_sec  - last_read_time.tv_sec) * 1000 + (now.tv_usec - last_read_time.tv_usec)/1000;
-        diff *= (ifmt.bits_per_sample / 8) * ifmt.sample_rate / 1000;
+        diff *= (ifmt.bits_per_sample / 8) * ifmt.sample_rate / 1000 * ifmt.channels;
 
         if (diff + avail_bytes > (unsigned)ifmt.bytes_per_block) return TRUE;
 

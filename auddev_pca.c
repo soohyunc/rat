@@ -35,6 +35,8 @@ static struct timeval last_read_time;
 static int            bytes_per_block;
 static int            present;
 
+static int avail_bytes; /* Number of bytes available because of under read */
+
 #define pca_bat_to_device(x)	((x) * AUDIO_MAX_GAIN / MAX_AMP)
 #define pca_device_to_bat(x)	((x) * MAX_AMP / AUDIO_MAX_GAIN)
 
@@ -79,6 +81,8 @@ pca_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
         if (ifmt->sample_rate != 8000 || ifmt->channels != 1) {
                 return FALSE;
         }
+
+        avail_bytes = 0;
 
 	audio_fd = open("/dev/pcaudio", O_WRONLY | O_NDELAY );
 
@@ -150,6 +154,7 @@ void
 pca_audio_drain(audio_desc_t ad)
 {
         UNUSED(ad);
+        avail_bytes = 0;
 	return;
 }
 
@@ -216,13 +221,13 @@ pca_audio_get_ogain(audio_desc_t ad)
  * Record audio data.
  */
 int
-pca_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
+pca_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
 	/*
 	 * Reading data from internal PC speaker is a little difficult,
 	 * so just return the time (in audio samples) since the last time called.
 	 */
-	int	                diff;
+	int	                read_bytes;
 	struct timeval          curr_time;
 	static int              virgin = TRUE;
 
@@ -234,16 +239,29 @@ pca_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 	}
 
 	gettimeofday(&curr_time, NULL);
-	diff = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000 + (curr_time.tv_usec - last_read_time.tv_usec) / 1000;
+	read_bytes = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000 + (curr_time.tv_usec - last_read_time.tv_usec) / 1000;
         /* diff from ms to samples */
-        
-        diff *= dev_info.play.sample_rate / 1000;
-        read_bytes = min(read_bytes, diff);
+        read_bytes *= dev_info.play.sample_rate / 1000 * dev_info.play.precision / 8 * dev_info.play.channels;
+
+        if (read_bytes + avail_bytes < bytes_per_block) {
+                return 0;
+        }
+
+        if (buf_bytes > read_bytes + avail_bytes) {
+                /* Have requested more bytes than we read this time and
+                 * are available in reserve.
+                 */
+                read_bytes += avail_bytes;
+                avail_bytes = 0;
+        } else {
+                avail_bytes += read_bytes - buf_bytes;
+                read_bytes   = buf_bytes;
+        }
+        assert(avail_bytes >= 0);
 
         memcpy(&last_read_time, &curr_time, sizeof(struct timeval));
         memset(buf, 0, read_bytes);
         xmemchk();
-
         return read_bytes;
 }
 
@@ -419,9 +437,9 @@ pca_audio_is_ready(audio_desc_t ad)
 
         gettimeofday(&now,NULL);
 	diff = (now.tv_sec  - last_read_time.tv_sec) * 1000 + (now.tv_usec - last_read_time.tv_usec)/1000;
-        diff *= 8; /* Only runs at 8k */
+        read_bytes *= dev_info.play.sample_rate / 1000 * dev_info.play.precision / 8 * dev_info.play.channels;
 
-        if (diff >= (unsigned)bytes_per_block) return TRUE;
+        if (diff + avail_bytes > (unsigned)bytes_per_block) return TRUE;
         return FALSE;
 }
 
