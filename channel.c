@@ -169,7 +169,7 @@ vanilla_dec_init(session_struct *sp, cc_state_t *cs)
 
         cs->s = (char*)xmalloc(sizeof(v_dec_st));
         v     = (v_dec_st*) cs->s;
-        v->pt = VANILLA_NO_PT;
+        v->pt = (char)VANILLA_NO_PT;
 }
 
 static void 
