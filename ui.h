@@ -40,6 +40,8 @@
 #ifndef _UI_UPDATE_H
 #define _UI_UPDATE_H
 
+#include "codec_types.h"
+
 struct session_tag;
 struct s_rtcp_dbentry;
 struct s_cbaddr;
@@ -85,7 +87,7 @@ void	ui_update_key(struct session_tag *s, char *key);
 void    ui_update_playback_file(struct session_tag *s, char *name);
 void    ui_update_record_file(struct session_tag *s, char *name);
 void    ui_update_file_live(struct session_tag *s, char *mode, int valid);
-void	ui_codecs(struct session_tag *s, int pt);
+void    ui_update_codec(struct session_tag *s, codec_id_t cid);
 void	ui_controller_init(struct session_tag *s, char *cname, char *name_engine, char *name_ui, char *name_video);
 void    ui_initial_settings(struct session_tag *s);
 void    ui_quit(struct session_tag *s);

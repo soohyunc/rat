@@ -805,6 +805,32 @@ static void rx_tool_rat_playout_max(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
+static void rx_tool_rat_payload_set(char *srce, char *args, session_struct *sp)
+{
+        char *codec_long_name;
+        int   new_pt;
+
+        UNUSED(srce);
+
+        mbus_parse_init(sp->mbus_engine, args);
+
+        if (mbus_parse_str(sp->mbus_engine, &codec_long_name) ||
+            mbus_parse_int(sp->mbus_engine, &new_pt)) {
+                mbus_decode_str(codec_long_name);
+                if (payload_is_valid(new_pt) &&
+                    new_pt >= 0 && new_pt <= 255 &&
+                    codec_get_by_payload((u_char)new_pt) == 0) {
+                        codec_id_t cid;
+                        codec_get_by_name(codec_long_name);
+                        codec_map_payload(cid, new_pt);
+                        ui_update_codec(sp, cid);
+                }
+                                                      
+                printf("%s %d\n", codec_long_name, new_pt);
+        }
+        mbus_parse_done(sp->mbus_engine);
+}
+
 static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
 {
         converter_details_t d;
@@ -897,6 +923,7 @@ const char *rx_cmnd[] = {
         "tool.rat.playout.limit",
         "tool.rat.playout.min",            
         "tool.rat.playout.max",            
+        "tool.rat.payload.set",
 	"audio.input.mute",
 	"audio.input.gain",
 	"audio.input.port",
@@ -946,6 +973,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_tool_rat_playout_limit,
         rx_tool_rat_playout_min,
         rx_tool_rat_playout_max,                
+        rx_tool_rat_payload_set,
 	rx_audio_input_mute,
 	rx_audio_input_gain,
 	rx_audio_input_port,

@@ -51,13 +51,13 @@ static codec_format_t cs[] = {
          "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.", 
          5,                     4, 80, {DEV_S16,  8000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 20  ms */
         {"DVI", "DVI-16K-Mono", 
-         "IMA ADPCM codec - Overclocked. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
+         "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
          6,                     4, 80, {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 10  ms */
         {"DVI", "DVI-32K-Mono", 
-         "IMA ADPCM codec - Overclocked. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
+         "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
          CODEC_PAYLOAD_DYNAMIC, 4, 80, {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 5   ms */
-        {"DVI", "DVI-32K-Mono", 
-         "IMA ADPCM codec - Overclocked. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
+        {"DVI", "DVI-48K-Mono", 
+         "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
          CODEC_PAYLOAD_DYNAMIC, 4, 80, {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}}  /* 3.3 ms */
 };
 

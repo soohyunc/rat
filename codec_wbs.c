@@ -48,7 +48,7 @@
 
 static codec_format_t cs[] = {
         {"WBS", "WBS-16K-Mono",  
-         "Wide band speech coder. (c) Markus Iken, University College London, 1997-98.", 
+         "Wide band speech coder. Implemented by Markus Iken, University College London.", 
          /* NB payload 109 for backward compatibility */
          109, WBS_STATE_SIZE, WBS_UNIT_SIZE, 
          {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}

@@ -351,6 +351,7 @@ proc codecs_matching {freq channels blocksize} {
     set x {}
 
     foreach {c} $codecs {
+	puts "c"
 	if {$codec_block_size($c) == $blocksize} {
 	    lappend x $c
 	}
@@ -434,6 +435,8 @@ proc update_codecs_displayed { } {
     foreach {n} $long_names {
 	lappend friendly_names $codec_nick_name($n)
     }
+
+    puts "names: $friendly_names"
 
     update_primary_list $friendly_names
 
@@ -2098,7 +2101,7 @@ proc load_settings {} {
     global prenc ichannels freq
     mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"
 
-    update_codecs_displayed
+#   update_codecs_displayed
 	
     global      in_mute_var   out_mute_var
     input_mute  $in_mute_var
