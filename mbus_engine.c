@@ -600,7 +600,7 @@ static void
 rx_audio_device(char *srce, char *args, session_struct *sp)
 {
         char	*s, dev_name[32];
-        int next_device;
+        int next_device = 0;
 
 	UNUSED(srce);
 

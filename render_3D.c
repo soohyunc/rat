@@ -185,7 +185,6 @@ static int n_users_created;
 render_3D_dbentry *
 render_3D_init(session_struct *sp)
 {
-        int               i;
         int               sampling_rate;
         int               azimuth, length;
         int               default_filter_num;
@@ -206,10 +205,13 @@ render_3D_init(session_struct *sp)
         render_3D_set_parameters(render_3D_data, sampling_rate, azimuth, default_filter_num, length);
 
 #ifdef DEBUG
-        fprintf(stdout, "\tdelay:\t%d\n", render_3D_data->delay);
-        fprintf(stdout, "\tattenuation:\t%f\n", render_3D_data->attenuation);
-        for (i=0; i<length; i++) {
-                fprintf(stdout, "\t%f\n", render_3D_data->filter[i]);
+        {
+                int               i;
+                fprintf(stdout, "\tdelay:\t%d\n", render_3D_data->delay);
+                fprintf(stdout, "\tattenuation:\t%f\n", render_3D_data->attenuation);
+                for (i=0; i<length; i++) {
+                        fprintf(stdout, "\t%f\n", render_3D_data->filter[i]);
+                }
         }
 #endif /* DEBUG */
 

@@ -578,7 +578,6 @@ proc mbus_recv_tool.rat.3d.filter.types {args} {
 
 proc mbus_recv_tool.rat.3d.filter.lengths {args} {
     global 3d_filter_lengths
-    puts "$args"
     set 3d_filter_lengths [split $args ","]
 }
 

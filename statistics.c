@@ -465,10 +465,10 @@ statistics(session_struct    *sp,
 	rtp_hdr_t	*hdr;
 	u_char		*data_ptr;
 	int		 len;
-	rtcp_dbentry	*src;
+	rtcp_dbentry	*src = NULL;
 	u_int32		 now, now_device, late_adjust;
 	pckt_queue_element_struct *e_ptr;
-	codec_t		*pcp;
+	codec_t		*pcp = NULL;
 	char 		 update_req = FALSE;
         int pkt_cnt = 0, late_cnt;
 
