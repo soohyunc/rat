@@ -114,6 +114,7 @@ typedef struct session_tag {
 	int		sync_on;
 	int		agc_on;
         int             ui_on;
+        int             auto_convert;               /* channel + rate conversion enabled ? */
         int		ui_response;
         float           drop;                       /* Flakeaway drop percentage [0,1] */
 	FILE		*in_file;
@@ -130,7 +131,8 @@ typedef struct session_tag {
 	int			mix_count;
 	struct rtp_db_tag	*db;
 	struct s_participant_playout_buffer	*playout_buf_list;
-
+        u_int32         min_playout;
+        u_int32         max_playout;
 	struct s_dpt	*dpt_list;		/* Dynamic payload types */
 	struct s_codec_state *state_list;       /* Source coding states  */
         struct s_cc_state    *cc_state_list;    /* Channel coding states */
