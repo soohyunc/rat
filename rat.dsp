@@ -438,17 +438,17 @@ InputPath=.\tcl_libs.tcl
 	copy $(InputDir)\tcl\init.tcl + $(InputDir)\tcl\history.tcl +\
                $(InputDir)\tcl\ldAout.tcl + $(InputDir)\tcl\parray.tcl +\
                $(InputDir)\tcl\word.tcl $(InputDir)\tcl_libs.tcl 
-	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\aatk.tcl +\
+	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\aatk.tcl +\
                $(InputDir)\tk\bgerror.tcl + $(InputDir)\tk\button.tcl +\
                $(InputDir)\tk\clrpick.tcl + $(InputDir)\tk\comdlg.tcl $(InputDir)\tcl_libs.tcl\
  
-	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\dialog.tcl +\
+	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\dialog.tcl +\
                $(InputDir)\tk\entry.tcl + $(InputDir)\tk\focus.tcl +\
                $(InputDir)\tk\listbox.tcl + $(InputDir)\tk\menu.tcl $(InputDir)\tcl_libs.tcl 
-	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\msgbox.tcl +\
+	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\msgbox.tcl +\
                $(InputDir)\tk\obsolete.tcl + $(InputDir)\tk\optMenu.tcl +\
                $(InputDir)\tk\palette.tcl + $(InputDir)\tk\scale.tcl $(InputDir)\tcl_libs.tcl 
-	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\scrlbar.tcl +\
+	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\scrlbar.tcl +\
                $(InputDir)\tk\tearoff.tcl + $(InputDir)\tk\text.tcl +\
                $(InputDir)\tk\tkfbox.tcl + $(InputDir)\tk\xmfbox.tcl $(InputDir)\tcl_libs.tcl 
 	type $(InputDir)\tcl_libs.tcl | tcl2c\tcl2c TCL_LIBS >\
