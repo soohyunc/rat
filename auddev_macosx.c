@@ -22,8 +22,7 @@
 #include <AudioToolbox/AudioConverter.h>
 #include <CoreAudio/CoreAudio.h>
 
-struct device
-{
+struct device {
 	char *name;							// The input device name
 	AudioUnit outputUnit_;						// The output audio unit
 	AudioStreamBasicDescription inputStreamBasicDescription_;	// The input stream description
@@ -137,6 +136,7 @@ resamp(int interp_factor_L, int decim_factor_M, int num_taps_per_phase,
     *p_current_phase = phase_num;
     *p_num_out = num_out;
 }
+
 static OSStatus 
 audioIOProc(AudioDeviceID inDevice, const AudioTimeStamp* inNow, 
             const AudioBufferList* inInputData, const AudioTimeStamp* inInputTime, 
@@ -284,7 +284,6 @@ int macosx_audio_init(void)/* Test and initialize audio interface */
 
 int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 {
-	//return 0;
 	OSStatus err = noErr;
 	UInt32   propertySize;
 	Boolean  writable;
@@ -295,34 +294,30 @@ int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 
 	// Get the default input device ID. 
 	err = AudioHardwareGetPropertyInfo(kAudioHardwarePropertyDefaultInputDevice, &propertySize, &writable);              
-	if (err != noErr)
-	{
+	if (err != noErr) {
 		return 0;
-	};
+	}
 	err = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultInputDevice, &propertySize, &(devices[ad].inputDeviceID_));
-	if (err != noErr)
-	{
+	if (err != noErr) {
 		debug_msg("error kAudioHardwarePropertyDefaultInputDevice");
 		return 0;
-	};
+	}
 	if (devices[ad].inputDeviceID_ == kAudioDeviceUnknown) {
 		debug_msg("error kAudioDeviceUnknown");
 		return 0;
 	}
 	// Get the input stream description.
 	err = AudioDeviceGetPropertyInfo(devices[ad].inputDeviceID_, 0, true, kAudioDevicePropertyStreamFormat, &propertySize, &writable);
-	if (err != noErr)
-	{
+	if (err != noErr) {
 		debug_msg("error AudioDeviceGetPropertyInfo");
 		return 0;
-	};
+	}
 	err = AudioDeviceGetProperty(devices[ad].inputDeviceID_, 0, true, kAudioDevicePropertyStreamFormat, &propertySize, &(devices[ad].inputStreamBasicDescription_));
 	//printf("inputStreamBasicDescription_.mBytesPerFrame %d\n", devices[add].inputStreamBasicDescription_);
-	if (err != noErr)
-	{
+	if (err != noErr) {
 		debug_msg("error AudioDeviceGetProperty");
 		return 0;
-	};
+	}
 
 	// nastavime maly endian
 	devices[ad].inputStreamBasicDescription_.mFormatFlags &= (kAudioFormatFlagIsBigEndian & 0);
@@ -354,33 +349,29 @@ int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 	
 	// Register the AudioDeviceIOProc.
 	err = AudioDeviceAddIOProc(devices[ad].inputDeviceID_, audioIOProc,NULL);
-	if (err != noErr)
-	{
+	if (err != noErr) {
 		debug_msg("error AudioDeviceAddIOProc");
 		return 0;
-	};
+	}
 	err = OpenDefaultAudioOutput(&(devices[ad].outputUnit_));
-	if (err != noErr)
-	{
+	if (err != noErr) {
 		debug_msg("error OpenDefaultAudioOutput");
 		return 0;
-	};
+	}
 	err = AudioUnitInitialize(devices[ad].outputUnit_);
-	if (err != noErr)
-	{
+	if (err != noErr) {
 		debug_msg("error AudioUnitInitialize");
 		return 0;
-	};
+	}
 	// Register a callback function to provide output data to the unit.
 	devices[ad].input.inputProc = outputRenderer;
 	devices[ad].input.inputProcRefCon = 0;
 	err = AudioUnitSetProperty(devices[ad].outputUnit_, kAudioUnitProperty_SetInputCallback, kAudioUnitScope_Global, 0, &(devices[ad].input), sizeof(devices[ad].input));
 
-	if (err != noErr)
-	{
+	if (err != noErr) {
 		debug_msg("error AudioUnitSetProperty1");
 		return 0;
-	};
+	}
 	// Define the Mash stream description. Mash puts 20ms of data into each read
 	// and write call. 20ms at 8000Hz equals 160 samples. Each sample is a u_char,
 	// so that's 160 bytes. Mash uses 8-bit mu-law internally, so we need to convert
@@ -396,12 +387,11 @@ int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 
 	// Inform the default output unit of our source format.
 	err = AudioUnitSetProperty(devices[ad].outputUnit_, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &(devices[ad].mashStreamBasicDescription_), sizeof(AudioStreamBasicDescription));
-	if (err != noErr)
-	{
+	if (err != noErr) {
 		debug_msg("error AudioUnitSetProperty2");
 		printf("error setting output unit source format\n");
 		return 0;
-	};
+	}
 
 	// check the stream format
 	err = AudioUnitGetPropertyInfo(devices[ad].outputUnit_, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &propertySize, &writable);
@@ -460,11 +450,10 @@ int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 	// Inform the default output unit of our source format.
 	/*
 	err = AudioUnitSetProperty(devices[ad].outputUnit_, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &(devices[ad].mashStreamBasicDescription_), sizeof(AudioStreamBasicDescription));
-	if (err != noErr)
-	{
+	if (err != noErr) {
 		debug_msg("error AudioUnitSetProperty3");
 		return 0;
-	};
+	}
 	*/
 	return 1;
 };
