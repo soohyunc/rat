@@ -82,7 +82,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                          * list to the radio. 
                          */
                         debug_msg("Weird Hardware\n");
-                        audio_format_change_encoding(ifmt, DEV_U8); 
+                        audio_format_change_encoding(ofmt, DEV_U8); 
                         break;
                 default:		/* no full duplex... */
                         fprintf(stderr, "Sorry driver does support full duplex for this soundcard\n");
