@@ -850,7 +850,7 @@ static void
 ui_repair_schemes(session_struct *sp)
 {
         char *mbes;
-        int  i, cnt;
+        u_int16 i, cnt;
         
         cnt = repair_get_count();
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.repairs.flush", "", TRUE);
@@ -868,7 +868,7 @@ ui_update_repair(session_struct *sp)
         char *mbes;
 
         assert(sp->repair < repair_get_count());
-        mbes = mbus_encode_str(repair_get_name(sp->repair));
+        mbes = mbus_encode_str(repair_get_name((u_int16)sp->repair));
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.repair", mbes, TRUE);
         xfree(mbes);
 }
