@@ -99,7 +99,20 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 return FALSE;
         }
 
-        sprintf(the_dev, "/dev/dspW%d", ad);
+        sprintf(the_dev, "/dev/dsp%d", ad);
+	if (ad == 0) {
+		/* My understanding is that /dev/dsp should be a symbolic link to  */
+		/* /dev/dsp0, but RedHat-6.0 doesn't do this. If /dev/dsp0 doesn't */
+		/* exist we try to open /dev/dsp instead provided it's not a link. */
+		struct stat	s;
+
+		if (stat("/dev/dsp", &s) == 0) {
+			if (!S_ISLNK(s.st_mode)) {
+				debug_msg("/dev/dsp0 doesn't exist, trying /dev/dsp\n");
+				sprintf(the_dev, "/dev/dsp");
+			}
+		}
+	}
 
 	audio_fd[ad] = open(the_dev, O_RDWR | O_NDELAY);
 	if (audio_fd[ad] > 0) {
@@ -112,11 +125,12 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 frag |= (int) (log(bytes_per_block)/log(2));
                 debug_msg("frag=%x bytes_per_block=%d\n", frag, bytes_per_block);
 		if ((ioctl(audio_fd[ad], SNDCTL_DSP_SETFRAGMENT, &frag) == -1)) {
-			debug_msg("Cannot set the fragement size\n");
+			printf("Cannot set the fragement size\n");
 		}
 
 		if (ioctl(audio_fd[ad], SNDCTL_DSP_SETDUPLEX, 0) == -1) {
-			debug_msg("Cannot enable full-duplex mode!\n");
+			printf("Cannot enable full-duplex mode! Are you sure your hardware supports\n");
+			printf("full duplex operation? Look for the word `DUPLEX' in /dev/sndstat. \n");
                         return FALSE;
 		}
 
@@ -141,14 +155,14 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 stereo = ifmt->channels - 1; 
                 assert(stereo == 0 || stereo == 1);
 		if ((ioctl(audio_fd[ad], SNDCTL_DSP_STEREO, &stereo) == -1) || (stereo != (ifmt->channels - 1))) {
-			debug_msg("Audio device doesn't support %d channels!\n", ifmt->channels);
+			printf("Audio device doesn't support %d channels!\n", ifmt->channels);
                         oss_audio_close(ad);
                         return FALSE;
 		}
 
                 speed = ifmt->sample_rate;
 		if ((ioctl(audio_fd[ad], SNDCTL_DSP_SPEED, &speed) == -1) || (speed != ifmt->sample_rate)) {
-			debug_msg("Audio device doesn't support %d sampling rate in full duplex!\n", ifmt->sample_rate);
+			printf("Audio device doesn't support %d sampling rate in full duplex!\n", ifmt->sample_rate);
                         oss_audio_close(ad);
                         return FALSE;
 		}
@@ -167,8 +181,8 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		read(audio_fd[ad], buffer, 128);	
 		return audio_fd[ad];
 	} else {
-		oss_audio_close(ad);
-		return -1;
+		printf("Unable to open %s\n", the_dev);
+		return FALSE;
 	}
 }
 
