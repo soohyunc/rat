@@ -138,7 +138,7 @@ pb_add (pb_t *pb, u_char *data, u_int32 data_len, ts_t playout)
 
         /* Check if unit already exists */
         if (curr != stop && ts_eq(curr->playout, playout)) {
-                debug_msg("Add failed - unit already exists");
+                debug_msg("Add failed - unit already exists\n");
                 return FALSE;
         }
 
