@@ -332,7 +332,6 @@ tcl_init1(int argc, char **argv)
 int 
 tcl_init2(struct mbus *mbus_ui, char *mbus_engine_addr)
 {
-	struct timeval	 timeout;
 	engine_addr   = xstrdup(mbus_engine_addr);
 
 	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) mbus_ui, NULL);
@@ -341,12 +340,7 @@ tcl_init2(struct mbus *mbus_ui, char *mbus_engine_addr)
 
 	/* Process Tcl/Tk events */
         while (Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS)) {
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 0;
-		mbus_heartbeat(mbus_ui, 1);
-		mbus_retransmit(mbus_ui);
-		mbus_send(mbus_ui);
-		mbus_recv(mbus_ui, NULL, &timeout);
+		/* Process Tcl/Tk events */
 	}
 	Tcl_ResetResult(interp);
 	return TRUE;

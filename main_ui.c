@@ -132,8 +132,8 @@ int main(int argc, char *argv[])
 	/* We may also have been given other information too...                     */
 	assert(e_addr != NULL);
 
-	ui_active = TRUE;
 	tcl_init2(m, e_addr);
+	ui_active = TRUE;
 	while (!should_exit) {
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 20000;
