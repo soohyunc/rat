@@ -62,8 +62,6 @@
 #include <stdlib.h>   /* abs() */
 #include <string.h>
 
-#include <net/if.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
@@ -80,6 +78,8 @@ extern int h_errno;
 #include <stropts.h>
 #include <sys/filio.h>  
 #endif /* HPUX */
+#include <net/if.h>
+
 
 typedef int	fd_t;
 
