@@ -78,8 +78,8 @@ typedef struct s_source {
         struct s_rtcp_dbentry      *dbe;
         struct s_channel_state     *channel_state;
         struct s_codec_state_store *codec_states;
-        struct s_playout_buffer    *channel;
-        struct s_playout_buffer    *media;
+        struct s_pb    *channel;
+        struct s_pb    *media;
         struct s_converter         *converter;
 } source;
 
@@ -595,7 +595,7 @@ source_relevant(source *src, ts_t now)
         return FALSE;
 }
 
-struct s_playout_buffer*
+struct s_pb*
 source_get_decoded_buffer(source *src)
 {
         return src->media;

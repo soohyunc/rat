@@ -89,10 +89,9 @@ typedef struct session_tag {
         struct s_mix_info       *ms; 
 	u_int16		rtp_seq;
 	u_char		encodings[MAX_ENCODINGS];
-        struct s_channel_state  *channel_coder;
 	int		num_encodings;	/* number of unique encodings being used */
         int             next_encoding;  /* used for changing device format */
-	int             sending_audio;
+        struct s_channel_state  *channel_coder;
 	int             playing_audio;
         int             last_tx_service_productive;     /* channel coder can output after talksprt ends */
 	int		repair;				/* Packet repair */
@@ -101,8 +100,7 @@ typedef struct session_tag {
         int             echo_suppress;
         int             echo_was_sending;               /* Used to store mute state when suppressing */
 	int		auto_lecture;			/* Used for dummy lecture mode */
-	int             transmit_audit_required;
-	int             receive_audit_required;
+ 	int             receive_audit_required;
 	int		detect_silence;
 	int             meter;                      /* if powermeters are on */
         u_int32         meter_period; 
@@ -112,7 +110,7 @@ typedef struct session_tag {
         int             ui_on;
 	char		*ui_addr;
         converter_id_t  converter;
-        float           drop;                       /* Flakeaway drop percentage [0,1] */
+        float           drop;             /* Flakeaway drop percentage [0,1] */
 	struct s_snd_file *in_file;
 	struct s_snd_file *out_file;
         int             input_gain;                 /* mike gain */
@@ -129,8 +127,6 @@ typedef struct session_tag {
         int                                  limit_playout;
         u_int32                              min_playout;
         u_int32                              max_playout;
-        struct s_codec_state_store *state_store;
-        struct s_cc_state          *cc_state_list;  /* Channel coding states */
         int              cc_encoding;
         int              last_depart_ts;
 	struct s_speaker_table	*speakers_active;

@@ -72,8 +72,8 @@ typedef struct {
         int     (*enc_reset)          (u_char                  *state);
 
         int     (*enc_encode)         (u_char                  *state, 
-                                       struct s_playout_buffer *in, 
-                                       struct s_playout_buffer *out, 
+                                       struct s_pb *in, 
+                                       struct s_pb *out, 
                                        u_int32                  units_per_packet);
 
         int     (*dec_create_state)   (u_char                 **state,
@@ -84,8 +84,8 @@ typedef struct {
 
         int     (*dec_reset)          (u_char                  *state);
         int     (*dec_decode)         (u_char                  *state, 
-                                       struct s_playout_buffer *in, 
-                                       struct s_playout_buffer *out,
+                                       struct s_pb *in, 
+                                       struct s_pb *out,
                                        ts_t                     now);
         int     (*dec_peek)           (u_int8                   ccpt,
                                        u_char                  *data,
@@ -270,8 +270,8 @@ channel_encoder_get_parameters(channel_state_t *cs, char *cmd, int cmd_len)
 
 int
 channel_encoder_encode(channel_state_t         *cs, 
-                       struct s_playout_buffer *media_buffer, 
-                       struct s_playout_buffer *channel_buffer)
+                       struct s_pb *media_buffer, 
+                       struct s_pb *channel_buffer)
 {
         assert(table[cs->coder].enc_encode != NULL);
         return table[cs->coder].enc_encode(cs->state, media_buffer, channel_buffer, cs->units_per_packet);
@@ -279,8 +279,8 @@ channel_encoder_encode(channel_state_t         *cs,
 
 int
 channel_decoder_decode(channel_state_t         *cs, 
-                       struct s_playout_buffer *media_buffer, 
-                       struct s_playout_buffer *channel_buffer,
+                       struct s_pb *media_buffer, 
+                       struct s_pb *channel_buffer,
                        ts_t                     now)
 {
         assert(table[cs->coder].dec_decode != NULL);

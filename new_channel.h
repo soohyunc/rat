@@ -75,8 +75,8 @@ int       channel_encoder_set_parameters (struct s_channel_state *cs, char *cmd)
 int       channel_encoder_get_parameters (struct s_channel_state *cs, char *cmd, int cmd_len);
 
 int       channel_encoder_encode (struct s_channel_state  *cs, 
-                                  struct s_playout_buffer *media_buffer, 
-                                  struct s_playout_buffer *channel_buffer);
+                                  struct s_pb *media_buffer, 
+                                  struct s_pb *channel_buffer);
 
 /* Decoder specifics *********************************************************/
 #define   channel_decoder_create(id, cs)  _channel_coder_create  (id, cs, FALSE)
@@ -84,8 +84,8 @@ int       channel_encoder_encode (struct s_channel_state  *cs,
 #define   channel_decoder_reset(cs)       _channel_coder_reset   (cs, FALSE)
 
 int       channel_decoder_decode (struct s_channel_state  *cs, 
-                                  struct s_playout_buffer *channel_buffer,
-                                  struct s_playout_buffer *media_buffer, 
+                                  struct s_pb *channel_buffer,
+                                  struct s_pb *media_buffer, 
                                   ts_t                     now);
 
 int       channel_decoder_matches (cc_id_t                 cid, 

@@ -43,12 +43,12 @@ int  vanilla_encoder_create  (u_char **state, u_int32 *len);
 void vanilla_encoder_destroy (u_char **state, u_int32  len);
 int  vanilla_encoder_reset   (u_char  *state);
 int  vanilla_encoder_encode  (u_char                  *state,
-                              struct s_playout_buffer *in,
-                              struct s_playout_buffer *out,
+                              struct s_pb *in,
+                              struct s_pb *out,
                               u_int32                  units_per_packet);
 int  vanilla_decoder_decode  (u_char                  *state,
-                              struct s_playout_buffer *in,
-                              struct s_playout_buffer *out,
+                              struct s_pb *in,
+                              struct s_pb *out,
                               ts_t                     now);
 int vanilla_decoder_peek     (u_int8   pkt_pt,
                               u_char  *data,

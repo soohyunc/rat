@@ -60,41 +60,36 @@
 #include "net.h"
 #include "timers.h"
 #include "transmit.h"
+#include "util.h"
 
 /* All this code can be greatly simplified and reduced by making
  * better use of the playout buffer structure in playout.h.
  */
 
 typedef struct s_tx_unit {
-        struct s_tx_unit *next;
-        struct s_tx_unit *prev;
         sample  *data;             /* pointer to raw data in read_buf */
         u_int32  dur_used;         /* number of time intervals filled */
         u_int16  energy;
         u_char   silence;          /* First pass */
         u_char   send;             /* Silence second pass */
-        u_int32  time;             /* timestamp */
+        media_data *media;         /* Coded audio representation */
 } tx_unit;
 
 typedef struct s_tx_buffer {
-        struct s_sd   *sd_info;
-        struct s_vad  *vad;
-        struct s_agc  *agc;
-        struct s_time *clock;
-        struct s_playout_buffer *media_buf;    /* A place forcoded audio           */
-        struct s_playout_buffer *channel_buf;  /* And a place for the channel data */
-        u_int32        channels;
-        u_int32        unit_dur; /* duration in sampling intervals 
-                                  * (excludes channels) */
-        /* These are pointers into same chain of tx_units */
-        tx_unit        *head_ptr;
-        tx_unit        *tx_ptr;             /* Where transmission is */
-        tx_unit        *silence_ptr;        /* Where rules based silence is */
-        tx_unit        *last_ptr;           /* Where reading is */
-        /* Separate chain for spares */
-        tx_unit        *spare_ptr;     
-        u_int32         spare_cnt;
-        u_int32         alloc_cnt;
+        struct session_tag   *sp;
+        struct s_sd          *sd_info;
+        struct s_vad         *vad;
+        struct s_agc         *agc;
+        struct s_time        *clock;
+        struct s_pb          *media_buffer; 
+        struct s_pb          *channel_buffer; 
+        struct s_pb_iterator *reading;  /* Current read point iterator     */
+        struct s_pb_iterator *silence;  /* Silence classification iterator */
+        struct s_codec_state_store *state_store;    /* Encoder states        */
+        u_int32        sending_audio:1;
+        u_int16 channels;
+        u_int16 unit_dur; /* dur. in sampling intervals (excludes channels) */
+
         /* Statistics log */
         double          mean_read_dur;
         /* These are a hack because we use playout buffer
@@ -103,260 +98,211 @@ typedef struct s_tx_buffer {
          * packet timestamp */
         ts_sequencer    down_seq;  /* used for 32 -> ts_t */
         ts_sequencer    up_seq;    /* used for ts_t -> 32 */
-
 } tx_buffer;
 
 static sample dummy_buf[DEVICE_REC_BUF];
 
-/* read buffer does own recycling of data so that if we change device 
- * unit size we do not tie up unnecessary memory as would happen with 
- * block_alloc.
- */
-
-static tx_unit *
-tx_unit_get(tx_buffer *tb)
+static int
+tx_unit_create(tx_unit  **ptu)
 {
-        tx_unit *u;
-
-        if (tb->spare_ptr) {
-                u = tb->spare_ptr;
-                tb->spare_ptr = tb->spare_ptr->next;
-                if (tb->spare_ptr) tb->spare_ptr->prev = NULL;
-                assert(u->prev == NULL);
-                u->next = NULL;
-                tb->spare_cnt--;
-        } else {
-                u       = (tx_unit*) xmalloc (sizeof(tx_unit));
-                u->data = (sample*)  xmalloc (sizeof(sample) * tb->channels *tb->unit_dur);
-                tb->alloc_cnt++;
+        tx_unit *tu;
+        tu = block_alloc(sizeof(tx_unit));
+        if (tu) {
+                memset(tu, 0, sizeof(tx_unit));
+                *ptu = tu;
+                return TRUE;
         }
-
-        u->time   = get_time(tb->clock);
-        u->next = u->prev = NULL;
-        u->dur_used = 0;
-
-        return u;
+        debug_msg("Failed to allocate tx_unit\n");
+        return FALSE;
 }
 
 static void
-tx_unit_release(tx_buffer *tb, tx_unit *u)
+tx_unit_destroy(tx_unit **ptu, u_int32 len)
 {
-        assert(u);
+        tx_unit *tu = *ptu;
+        assert(tu != NULL);
+        assert(len == sizeof(tx_unit));
 
-        if (u->next) u->next->prev = u->prev;
-        if (u->prev) u->prev->next = u->next;
-
-        u->prev = NULL;
-        u->next = tb->spare_ptr;
-
-        if (tb->spare_ptr) tb->spare_ptr->prev = u;
-        tb->spare_ptr = u;
-
-        tb->spare_cnt++;
-}
-
-static void
-tx_unit_destroy(tx_unit *u)
-{
-        assert(u != NULL);
-        assert(u != u->next);
-        assert(u != u->prev);
-        
-        if (u->next != NULL) u->next->prev = u->prev;
-        if (u->prev != NULL) u->prev->next = u->next;
-        xfree(u->data);
-        xfree(u);
-}
-
-/* Clear and reset buffer to a starting position */
-static void
-transmit_audit(tx_buffer *tb)
-{
-        tx_unit *u, *u_next;
-
-        u = tb->head_ptr;
-        while(u) {
-                u_next = u->next;
-                tx_unit_release(tb, u);
-                u = u_next;
+        if (tu->media) {
+                media_data_destroy(&tu->media, sizeof(media_data));
         }
-        tb->head_ptr = tb->tx_ptr = tb->silence_ptr = tb->last_ptr = NULL;
-        vad_reset(tb->vad);
+        block_free(tu, sizeof(tx_unit));
+        *ptu = NULL;
 }
 
-static void
-tx_buffer_trim(tx_buffer *tb)
-{
-        tx_unit *u, *end;
-        int safety;
-
-        safety = vad_max_could_get(tb->vad);
-
-        end = tb->tx_ptr;
-        while(end != NULL && safety != 0) {
-                end = end->prev;
-                safety --;
-        }
-        
-        if (end) {
-                for(u = tb->head_ptr; u != end; u = tb->head_ptr) {
-                        tb->head_ptr = u->next;
-                        tx_unit_release(tb, u);
-                }
-        }
-}
-
-/* These routines are called when the button on the interface is toggled */
-void
-tx_start(session_struct *sp)
+int
+tx_create(tx_buffer     **ntb, 
+          session_struct *sp,
+          struct s_time  *clock,
+          u_int16         unit_dur, 
+          u_int16         channels)
 {
         tx_buffer *tb;
-        if (sp->sending_audio == TRUE || !sp->audio_device)
-                return;
-
-        tb = sp->tb;
-
-        if (sp->transmit_audit_required == TRUE) {
-                transmit_audit(tb);
-                sp->transmit_audit_required = FALSE;
-        }
-
-        tb->head_ptr = tb->last_ptr = tx_unit_get(tb);
-        sp->sending_audio = TRUE;
-
-        /* Turn off auto lecture */
-        sp->auto_lecture = 1;       
-        sd_reset(tb->sd_info);
-        agc_reset(tb->agc);
-        
-        /* Clear any audio that may have accumulated */
-        audio_drain(sp->audio_device);  
-}
-
-void
-tx_stop(session_struct *sp)
-{
-        struct timeval tv;
-
-        if (sp->sending_audio == FALSE || !sp->audio_device)
-                return;
-        sp->sending_audio              = FALSE;
-        sp->last_tx_service_productive = 0;
-        sp->transmit_audit_required    = TRUE;
-        gettimeofday(&tv, NULL);
-        sp->auto_lecture               = tv.tv_sec;
-        channel_encoder_reset(sp->channel_coder);
-        ui_input_level(sp, 0);
-        tx_update_ui(sp);
-}
-
-tx_buffer *
-tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
-{
-        tx_buffer *tb;
-        ts_t       no_history;
 
         tb = (tx_buffer*)xmalloc(sizeof(tx_buffer));
-        memset(tb, 0, sizeof(tx_buffer));
+        if (tb) {
+                memset(tb, 0, sizeof(tx_buffer));
+                debug_msg("Unit duration %d channels %d\n", 
+                          unit_dur, 
+                          channels);
+                tb->sp      = sp;
+                tb->clock   = clock;
+                tb->sd_info = sd_init    (unit_dur, 
+                                          (u_int16)get_freq(clock));
+                tb->vad     = vad_create (unit_dur, 
+                                          (u_int16)get_freq(clock));
+                tb->agc     = agc_create(sp);
+                tb->unit_dur = unit_dur;
+                tb->channels = channels;
+                tb->mean_read_dur = unit_dur;
+                
+                codec_state_store_create(&tb->state_store, ENCODER);
+                
+                pb_create(&tb->media_buffer,
+                          (playoutfreeproc)tx_unit_destroy);
 
-        debug_msg("Unit duration %d channels %d\n", unit_dur, channels);
-        
-        tb->clock    = sp->device_clock;
-        tb->sd_info  = sd_init    (unit_dur, (u_int16)get_freq(tb->clock));
-        tb->vad      = vad_create (unit_dur, (u_int16)get_freq(tb->clock));
-        tb->agc      = agc_create(sp);
+                pb_create(&tb->channel_buffer,
+                          (playoutfreeproc)channel_data_destroy);
 
-        tb->unit_dur = unit_dur;
-        tb->channels = channels;
-        tb->mean_read_dur = unit_dur;
-
-        if (sp->mode != TRANSCODER) {
-                /*       audio_drain(sp->audio_device);
-                audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF); */
+                *ntb = tb;
+                return TRUE;
         }
-
-        if (!sp->state_store) {
-                codec_state_store_create(&sp->state_store, ENCODER);
-        }
-
-        /* We don't want to store any of this data here,
-         * use a dummy history length 
-         */
-        no_history = ts_map32(8000, 0);
-        playout_buffer_create(&tb->media_buf,
-                              (playoutfreeproc)media_data_destroy,
-                              no_history);
-        playout_buffer_create(&tb->channel_buf,
-                              (playoutfreeproc)channel_data_destroy,
-                              no_history);
-
-        return (tb);
+        return FALSE;
 }
 
 void
-tx_destroy(session_struct *sp)
+tx_destroy(tx_buffer **ptb)
 {
         tx_buffer *tb;
-        tx_unit *u, *u_next;
 
-        tb = sp->tb;
+        assert(ptb != NULL);
+        tb = *ptb;
+        assert(tb != NULL);
 
         sd_destroy(tb->sd_info);
         vad_destroy(tb->vad);
         agc_destroy(tb->agc);
 
-        u = tb->head_ptr;
-        while(u) {
-                u_next = u->next;
-                tx_unit_destroy(u);
-                u = u_next;
+        if (tb->state_store) {
+                codec_state_store_destroy(&tb->state_store);
         }
 
-        u = tb->spare_ptr;
-        while(u) {
-                u_next = u->next;
-                tx_unit_destroy(u);
-                u = u_next;
-        }
-
-        codec_state_store_destroy(&sp->state_store);
-        channel_encoder_reset(sp->channel_coder);
-        playout_buffer_destroy(&tb->media_buf);
-        playout_buffer_destroy(&tb->channel_buf);
+        pb_destroy(&tb->media_buffer);
+        pb_destroy(&tb->channel_buffer);
 
         xfree(tb);
-        sp->tb = NULL;
+        *ptb = NULL;
 }
 
-int
-tx_read_audio(session_struct *sp)
+/* These routines are called when the button on the interface is toggled */
+void
+tx_start(tx_buffer *tb)
 {
+        tx_unit *tu_new;
+        ts_t     unit_start;
+
+        /* Not sure why this is here (?) */
+        if (tb->sending_audio) {
+                debug_msg("Why? Fix");
+                return;
+        }
+
+        tb->sending_audio = TRUE;
+
+        /* Turn off auto lecture */
+        tb->sp->auto_lecture = 1;       
+
+        /* Reset signal classification and auto-scaling */
+        sd_reset(tb->sd_info);
+        vad_reset(tb->vad);
+        agc_reset(tb->agc);
+
+        /* Attach iterator for silence classification */
+        pb_iterator_new(tb->media_buffer, &tb->silence);
+        pb_iterator_new(tb->media_buffer, &tb->reading);
+
+        /* Add one unit to media buffer to kick off audio reading */
+        tu_new = (tx_unit*)block_alloc(sizeof(tx_unit));
+        memset(tu_new, 0, sizeof(tx_unit));
+        unit_start = ts_map32(get_freq(tb->clock), rand());
+        pb_add(tb->media_buffer, 
+               (u_char*)tu_new,
+               sizeof(tx_unit),
+               unit_start);
+
+        /* And then put reading iterator on it */
+        pb_iterator_advance(tb->reading);
+}
+
+void
+tx_stop(tx_buffer *tb)
+{
+        struct timeval tv;
+
+        /* Again not sure why this is here */
+        if (tb->sending_audio == FALSE) {
+                debug_msg("Why?");
+                return;
+        }
+
+        gettimeofday(&tv, NULL);
+        tb->sp->auto_lecture  = tv.tv_sec;
+        codec_state_store_destroy(&tb->state_store);
+        channel_encoder_reset(tb->sp->channel_coder);
+        ui_input_level(tb->sp, 0);
+        tx_update_ui(tb->sp);
+        tb->sending_audio = FALSE;
+        
+        /* Detach iterators      */
+        pb_iterator_destroy(tb->media_buffer, &tb->silence);
+        pb_iterator_destroy(tb->media_buffer, &tb->reading);
+
+        /* Drain playout buffers */
+        pb_flush(tb->media_buffer);
+        pb_flush(tb->channel_buffer);
+}
+
+
+int
+tx_read_audio(tx_buffer *tb)
+{
+        session_struct  *sp;
         tx_unit 	*u;
+        u_int32          ulen, freq;
+        ts_t             u_ts;
         unsigned int	 read_dur = 0;
         unsigned int     this_read;
-        if (sp->sending_audio) {
+
+        assert(tb->channels > 0 && tb->channels <= 2);
+
+        sp = tb->sp;
+        if (tb->sending_audio) {
+                freq = get_freq(tb->clock);
                 do {
-                        u = sp->tb->last_ptr;
-                        assert(u);
-                        assert(sp->tb->channels > 0 && sp->tb->channels <= 2);
+                        if (pb_iterator_get_at(tb->reading, (u_char**)&u, &ulen, &u_ts) == FALSE) {
+                                debug_msg("Reading iterator failed to get unit!\n");
+                        }
+                        assert(u != NULL);
+
                         this_read = audio_read(sp->audio_device, 
-                                               u->data + u->dur_used * sp->tb->channels,
-                                               (sp->tb->unit_dur - u->dur_used) * sp->tb->channels) / sp->tb->channels;
+                                               u->data + u->dur_used * tb->channels,
+                                               (tb->unit_dur - u->dur_used) * tb->channels) / tb->channels;
                         if (sp->in_file) {
                                 snd_read_audio(&sp->in_file, 
-                                                u->data + u->dur_used * sp->tb->channels,
-                                                (u_int16)((sp->tb->unit_dur - u->dur_used) * sp->tb->channels));
+                                                u->data + u->dur_used * tb->channels,
+                                                (u_int16)((tb->unit_dur - u->dur_used) * tb->channels));
                         }
                         
                         u->dur_used += this_read;
-                        if (u->dur_used == sp->tb->unit_dur) {
-                                read_dur += sp->tb->unit_dur;
-                                time_advance(sp->clock, get_freq(sp->tb->clock), sp->tb->unit_dur);
-                                sp->tb->last_ptr = tx_unit_get(sp->tb);
-                                u->next = sp->tb->last_ptr;
-                                u->next->prev = u;
+                        if (u->dur_used == tb->unit_dur) {
+                                read_dur += tb->unit_dur;
+                                time_advance(sp->clock, freq, tb->unit_dur);
+                                ts_add(u_ts, ts_map32(get_freq(tb->clock), tb->unit_dur));
+                                tx_unit_create(&u);
+                                pb_add(tb->media_buffer, (u_char*)u, ulen, u_ts);
+                                pb_iterator_advance(tb->reading);
                         } 
-                } while (u->dur_used == sp->tb->unit_dur);
+                } while (u->dur_used == tb->unit_dur);
         } else {
                 /* We're not sending, but have access to the audio device. Read the audio anyway. */
                 /* to get exact timing values, and then throw the data we've just read away...    */
@@ -365,12 +311,9 @@ tx_read_audio(session_struct *sp)
         }
         
         if ((double)read_dur > 5.0 * sp->tb->mean_read_dur) {
-                debug_msg("Cleared transmit buffer because read_len big (%d cf %0.0f)\n",
+                debug_msg("Should clear transmit buffer because read_len big (%d cf %0.0f)\n",
                           read_dur,
                           sp->tb->mean_read_dur);
-                transmit_audit(sp->tb);
-                /* Make tx buffer ready for next read */
-                sp->tb->head_ptr = sp->tb->last_ptr = tx_unit_get(sp->tb);
         } 
 
         if (read_dur) {
@@ -614,8 +557,5 @@ tx_igain_update(session_struct *sp)
         sd_reset(sp->tb->sd_info);
         agc_reset(sp->tb->agc);
 }
-
-
-
-
-
+ 
+ 

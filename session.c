@@ -114,8 +114,7 @@ init_session(session_struct *sp)
 	sp->playing_audio		= TRUE;
 	sp->lecture			= FALSE;
 	sp->auto_lecture		= 0;
-	sp->transmit_audit_required	= FALSE;
-	sp->receive_audit_required	= FALSE;
+ 	sp->receive_audit_required	= FALSE;
 	sp->detect_silence		= TRUE;
 	sp->sync_on			= FALSE;
 	sp->agc_on			= FALSE;

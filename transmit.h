@@ -1,12 +1,12 @@
 /*
  * FILE:    transmit.h
  * PROGRAM: RAT
- * AUTHOR:  Isidor Kouvelas / Orion Hodson
+ * AUTHOR:  Orion Hodson / Isidor Kouvelas
  *
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-1999 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,14 +50,21 @@ struct session_tag;
 struct s_speaker_table;
 struct s_minibuf;
 
-struct s_tx_buffer   *tx_create(struct session_tag *sp, u_int16 unit_size, u_int16 channels);
-void                  tx_destroy       (struct session_tag *sp);
-int                   tx_read_audio    (struct session_tag *sp);
-int                   tx_process_audio (struct session_tag *sp);
-void                  tx_start (struct session_tag *sp);
-void                  tx_stop  (struct session_tag *sp);
-void                  tx_send  (struct session_tag *sp);
-void                  tx_update_ui    (struct session_tag *sp);
-void                  tx_igain_update (struct session_tag *sp);
+int   tx_create      (struct s_tx_buffer **tb,
+                      struct session_tag  *sp,
+                      struct s_time       *clock,
+                      u_int16 unit_size, 
+                      u_int16 channels);
+
+void  tx_destroy     (struct s_tx_buffer **tb);
+void  tx_start       (struct s_tx_buffer  *tb);
+void  tx_stop        (struct s_tx_buffer  *tb);
+int   tx_is_sending  (struct s_tx_buffer  *tb);
+
+int   tx_read_audio    (struct s_tx_buffer *tb);
+int   tx_process_audio (struct session_tag *sp);
+void  tx_send          (struct session_tag *sp);
+void  tx_update_ui     (struct session_tag *sp);
+void  tx_igain_update  (struct session_tag *sp);
 
 #endif /* _transmit_h_ */

@@ -157,7 +157,7 @@ mix_process(session_struct  *sp,
             struct s_source *s,
             ts_t             now)
 {
-        struct s_playout_buffer *buffer;
+        struct s_pb *buffer;
         rtcp_dbentry            *dbe;
         media_data              *md;
         coded_unit              *frame;

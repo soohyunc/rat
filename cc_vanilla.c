@@ -97,7 +97,7 @@ vanilla_encoder_reset(u_char *state)
 }
 
 static void
-vanilla_encoder_output(ve_state *ve, struct s_playout_buffer *out)
+vanilla_encoder_output(ve_state *ve, struct s_pb *out)
 {
         u_int32 size, done, i;
         u_char *buffer;
@@ -146,8 +146,8 @@ vanilla_encoder_output(ve_state *ve, struct s_playout_buffer *out)
 
 int
 vanilla_encoder_encode (u_char                  *state,
-                        struct s_playout_buffer *in,
-                        struct s_playout_buffer *out,
+                        struct s_pb *in,
+                        struct s_pb *out,
                         u_int32                  upp)
 {
         u_int32     m_len;
@@ -203,7 +203,7 @@ vanilla_encoder_encode (u_char                  *state,
 
 
 __inline static void
-vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, ts_t playout)
+vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
 {
         const codec_format_t *cf;
         codec_id_t            id;
@@ -261,8 +261,8 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, ts_t play
 
 int
 vanilla_decoder_decode(u_char                  *state,
-                       struct s_playout_buffer *in, 
-                       struct s_playout_buffer *out, 
+                       struct s_pb *in, 
+                       struct s_pb *out, 
                        ts_t                     now)
 {
         channel_unit *cu;
