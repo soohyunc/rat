@@ -47,6 +47,7 @@ typedef struct {
         ts_t            jitter;
         ts_t            transit;
         ts_t            last_transit;
+        ts_t            avg_transit;
         cc_id_t         channel_coder_id;            /* channel_coder of last received packet */
 	ts_t            last_mixed;                  /* Used to check mixing */
 	ts_t            playout;                     /* Playout delay for this talkspurt */
