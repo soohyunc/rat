@@ -1970,6 +1970,7 @@ set chart_xoffset 180
 set chart_yoffset 17
 
 toplevel  .chart
+wm protocol .chart WM_DELETE_WINDOW    {set matrix_on 0; chart_show}
 canvas    .chart.c  -background white  -xscrollcommand {.chart.sb set} -yscrollcommand {.chart.sr set} 
 scrollbar .chart.sr -orient vertical   -command {.chart.c yview}
 scrollbar .chart.sb -orient horizontal -command {.chart.c xview}
@@ -2108,8 +2109,8 @@ chart_enlarge 1
 #
 
 catch {
-	toplevel .file
-
+    toplevel .file
+    wm protocol .file WM_DELETE_WINDOW {set files_on 0; file_show}
 	frame .file.play
 	frame .file.rec
 	pack  .file.play -side left
