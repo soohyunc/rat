@@ -1079,12 +1079,12 @@ frame     .about.rim.d.credits.f -relief sunken
 frame     .about.rim.d.credits.f.f 
 pack      .about.rim.d.credits.f -fill both -expand 1
 pack      .about.rim.d.credits.f.f -side left -fill x -expand 1
-label     .about.rim.d.credits.f.f.1                  -text "The Robust-Audio Tool was developed in the Department\nof Computer Science, University College London.\n\nProject Supervision:"
-label     .about.rim.d.credits.f.f.2 -foreground blue -text Wise
+label     .about.rim.d.credits.f.f.1                  -text "The Robust-Audio Tool was developed in the Department of\nComputer Science, University College London.\n\nProject Supervision:"
+label     .about.rim.d.credits.f.f.2 -foreground blue -text Good
 label     .about.rim.d.credits.f.f.3                  -text "\nCore Development Team:"
-label     .about.rim.d.credits.f.f.4 -foreground blue -text Foolish
-label     .about.rim.d.credits.f.f.5                  -text "\nAdditional Contributions:"
-label     .about.rim.d.credits.f.f.6 -foreground blue -text Patient
+label     .about.rim.d.credits.f.f.4 -foreground blue -text Bad
+label     .about.rim.d.credits.f.f.5                  -text "Additional Contributions:"
+label     .about.rim.d.credits.f.f.6 -foreground blue -text Ugly
 for {set i 1} {$i<=6} {incr i} {
     pack  .about.rim.d.credits.f.f.$i -side top -fill x
 }
