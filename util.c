@@ -152,6 +152,7 @@ void xfree(void *y)
 			}
 			j = 1;
 			/* Trash the contents of the memory we're about to free... */
+                        a = (int*) (x-8);
 			for (a = (int *) (x-8); a < (int *) (a + *(x-8) + 8); a++) {
 				*a = 0xdeadbeef;
 			}

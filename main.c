@@ -233,11 +233,12 @@ main(int argc, char *argv[])
         }
 
 	for (i=0; i<num_sessions; i++) {
+                tx_stop(sp[i]);
 		rtcp_exit(sp[i], sp[1-i], sp[i]->rtcp_fd, sp[i]->net_maddress, sp[i]->rtcp_port);
 		if (sp[i]->in_file  != NULL) fclose(sp[i]->in_file);
 		if (sp[i]->out_file != NULL) fclose(sp[i]->out_file);
                 audio_device_give(sp[i]);
-                rtcp_clock_change(sp[i]);
+
 	}
 	network_process_mbus(sp, num_sessions, 1000);
 

@@ -51,8 +51,9 @@
 #include "util.h"
 #include "cc_red.h"
 
-#define MAX_RED_LAYERS  3
-#define MAX_RED_OFFSET  20
+#define MAX_RED_LAYERS  4
+/* 3 is excessive, and the ui lets folks set 2, 4 is some margin for decoder */
+#define MAX_RED_OFFSET  40
 
 #define RED_F(x)  ((x)&0x80000000)
 #define RED_PT(x) (((x)>>24)&0x7f)
@@ -60,20 +61,59 @@
 #define RED_LEN(x) ((x)&0x3ff)
 
 typedef struct s_red_coder {
-        int         cnt;
         int         offset[MAX_RED_LAYERS];            /* Relative to primary    */
         int         coding[MAX_RED_LAYERS];            /* Coding of each layer   */
         int         nlayers;
-        coded_unit  c[MAX_RED_OFFSET][MAX_RED_LAYERS]; /* Circular buffer        */
+        cc_unit    *c[MAX_RED_OFFSET][MAX_RED_LAYERS]; /* Circular buffer        */
         int         n[MAX_RED_OFFSET];                 /* Number of encs present */
-        cc_unit     buf;                               /* outgoing cc_unit       */
         int         head;
         int         tail;
         int         len;
+        cc_unit     last;
+        int         last_hdr_idx;
 } red_coder_t;
 
+__inline static void 
+red_clear_row(red_coder_t *r, int row)
+{
+        int i;
+        for(i=0;i<r->n[row];i++) {
+                clear_cc_unit(r->c[row][i], 0);
+                block_free(r->c[row][i], sizeof(cc_unit));
+        }
+        r->n[row] = 0;
+}
+
+__inline static void
+red_clear_last_hdrs(red_coder_t *r)
+{
+        while(r->last_hdr_idx > 0) {
+                r->last_hdr_idx--;
+                if (r->last.iov[r->last_hdr_idx].iov_base != NULL) {
+                        block_free(r->last.iov[r->last_hdr_idx].iov_base, 
+                                   r->last.iov[r->last_hdr_idx].iov_len);
+                        r->last.iov[r->last_hdr_idx].iov_base = NULL; 
+                        r->last.iov[r->last_hdr_idx].iov_len  = 0;
+                }
+        }
+
+        r->last.iovc = 0;
+}
+
+void
+red_flush(red_coder_t *r)
+{
+        int i;
+        red_clear_last_hdrs(r);
+        for(i=0;i<MAX_RED_OFFSET;i++) {
+                red_clear_row(r, i);
+        }
+        r->head = r->tail = r->len = 0;
+        dprintf("flushed\n");
+}
+
 red_coder_t *
-new_red_coder(void)
+red_create(void)
 {
         red_coder_t *r = (red_coder_t*)xmalloc(sizeof(red_coder_t));
         memset(r,0,sizeof(red_coder_t));
@@ -81,44 +121,16 @@ new_red_coder(void)
 }
 
 void
-free_red_coder(red_coder_t *r)
+red_destroy(red_coder_t *r)
 {
+        red_flush(r);
         xfree(r);
-}
-
-static void
-clear_red_headers(red_coder_t *r) 
-{
-        int hdr_idx = 0;
-        while (r->buf.iov[hdr_idx].iov_len == 4) {
-                block_free(r->buf.iov[hdr_idx].iov_base, r->buf.iov[hdr_idx].iov_len);
-                hdr_idx++;
-        }
-        assert(r->buf.iov[hdr_idx].iov_len == 1);
-        block_free(r->buf.iov[hdr_idx].iov_base, r->buf.iov[hdr_idx].iov_len);
-}
-
-static void
-flush_red(red_coder_t *r)
-{
-        int i,j;
-        i = r->head;
-        while(i!=r->tail) {
-                for(j=0;j<r->n[i];j++) {
-                        clear_coded_unit(&r->c[i][j]);
-                }
-                r->n[i] = 0;
-                i = (i+1)%MAX_RED_OFFSET;
-        }
-        r->head = r->tail = r->len = 0;
-        if (r->buf.iovc) clear_red_headers(r);
 }
 
 /* expects string with "codec1/offset1/codec2/offset2..." 
  * nb we don't save samples so if coding changes we take our chances.
  * No attempt is made to recode to new format as this takes an 
- * unspecified amount of cpu.
- */
+ * unspecified amount of cpu.  */
 
 int
 red_config(session_struct *sp, red_coder_t *r, char *cmd)
@@ -128,8 +140,7 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
         int   i;
 
         UNUSED(sp);
-        
-        flush_red(r);
+        red_flush(r);
 
         r->offset[0] = 0;
         r->nlayers = 0;
@@ -151,15 +162,22 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
                 }
 
                 for(i=0;i<r->nlayers;i++) {
-                        if (r->offset[i]==r->offset[r->nlayers]) {
-                                fprintf(stderr, "%s:%d multiple encodings at offset %d", __FILE__, __LINE__, r->offset[i]);
+                        if (r->offset[i]>=r->offset[r->nlayers]) {
+                                fprintf(stderr, "%s:%d successing redundant encodings must have bigger offsets %d <= %d\n", __FILE__, __LINE__, r->offset[i], r->offset[r->nlayers]);
                                 assert(0);
                         }
+                }
+
+                if (r->nlayers>0) {
+                        codec_t *cp0, *cp1;
+                        cp0 = get_codec(r->coding[0]);
+                        cp1 = get_codec(r->coding[r->nlayers]);
+                        assert(cp0 != NULL); assert(cp1 != NULL);
+                        assert(codec_compatible(cp0,cp1));
                 }
                 r->nlayers++;
         } while((s=strtok(NULL,"/")) && r->nlayers<MAX_RED_LAYERS);
 
-        sp->encodings[0] = r->coding[0];
         r->offset[0]     = 0;
 
         return TRUE;
@@ -198,152 +216,136 @@ red_qconfig(session_struct    *sp,
         }
 }
 
-static coded_unit *
-red_coded_unit(red_coder_t *r, int pt, int off)
+__inline static void
+red_pack_hdr(char *h, char more, char pt, short offset, short len)
+{
+        assert(((~0 <<  7) & pt)     == 0);
+        assert(((~0 << 14) & offset) == 0);
+        assert(((~0 << 10) & len)    == 0);
+
+        if (more) {
+                u_int32 *hdr = (u_int32*)h;
+                (*hdr)       = 0;
+                (*hdr)       = (0x80|pt)<<24;
+                (*hdr)      |= offset<<10;
+                (*hdr)      |= len;
+                (*hdr)       = htonl((*hdr));
+        } else {
+                (*h) = pt;
+        }
+}
+
+__inline static cc_unit*
+red_get_unit(red_coder_t *r, int unit_off, int pt)
 {
         int i,pos;
-        /* find position in circular buffer */
-        if (off >= MAX_RED_OFFSET) {
-#ifdef DEBUG
-                fprintf(stderr,"%s:%d Attempt to get block outside of buffer.\n", __FILE__,__LINE__);
-#endif
-                return NULL;
+
+        assert (pt < 128);
+
+        if (unit_off > r->len) return NULL;
+
+        pos = r->head - unit_off;
+
+        if (pos < 0) pos += MAX_RED_OFFSET;
+
+        assert(((r->head > r->tail) && (pos > r->tail)  && (pos <= r->head)) ||
+               ((r->head < r->tail) && ((pos > r->tail) || (pos <= r->head))));
+        
+        for(i = 0; i<r->n[pos]; i++) {
+                 if (r->c[pos][i]->pt == pt) return r->c[pos][i];
         }
 
-        if (off > r->len)
-                return NULL;
-
-        pos = r->tail - off;
-        pos += (pos<0)?MAX_RED_OFFSET:0;
-    
-        i = 0;
-        while(i<r->n[pos]) {
-                if (r->c[pos][i].cp->pt == pt) 
-                        return &r->c[pos][i];
-                i++;
-        }
         return NULL;
 }
 
-__inline static int
-red_offset_time(int coding, int units)
+int 
+red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, red_coder_t *r) 
 {
-        codec_t *cp = get_codec(coding);
-        return cp->unit_len*units;
-}
+        int i, avail;
+        cc_unit *u;
+        codec_t *cp;
 
-int
-red_encode(session_struct *sp, 
-           sample *raw, 
-           cc_unit *cu, 
-           red_coder_t *r)
-{
-        int i, j, units, hdr_idx, data_idx, send;
-
-        r->coding[0] = sp->encodings[0];
-        units = get_units_per_packet(sp);
-
-        r->cnt++;
-
-        if (raw) {
-                for(i=0;i<r->nlayers;i++) {
-                        j = 0;
-                        while(j < r->n[r->tail] && r->c[r->tail][j].cp 
-                              && r->c[r->tail][j].cp->pt != r->coding[i])
-                                j++;
-                        if (j == r->n[r->tail]) {
-                                encoder(sp, raw, r->coding[i], &r->c[r->tail][j]);
-                                r->n[r->tail]++;
-                        }
-                }
-                send = !(r->cnt % units);
-        } else {
-                /* check there is some primary to send */
-                i = send = 0;
-                while(++i<units) {
-                        send += r->n[(r->head + r->len - i)%MAX_RED_OFFSET] ? 1 : 0;
-                }
-                if (!send) r->cnt = 0;
+        if (num_coded == 0) {
+                /* nothing to output if nothing in */
+                *out = NULL;
+                return 0;
         }
 
-        if (send) {
-                int len, offset;
-                coded_unit *c;
-                hdr_idx = 0;
-
-                /* free old headers */
-                if (r->buf.iovc>1) clear_red_headers(r);
-
-                hdr_idx  = 0;
-                data_idx = MAX_RED_LAYERS;
-
-                for(i=r->nlayers-1;i>=0;i--) {
-                        offset = len = 0;
-                        for(j=units-1;j>=0;j--) {
-                                c = red_coded_unit(r,r->coding[i],j+r->offset[i]);
-                                if (c) {
-                                        if (len == 0) {
-                                                r->buf.iov[hdr_idx].iov_len  = (i==0)?1:4;
-                                                r->buf.iov[hdr_idx].iov_base = 
-                                                        (caddr_t)block_alloc(r->buf.iov[hdr_idx].iov_len);
-                                                offset  = r->offset[i] + j + 1 - units;
-                                                if (c->state_len) {
-                                                        r->buf.iov[data_idx].iov_base = c->state;
-                                                        r->buf.iov[data_idx++].iov_len = c->state_len;
-                                                        len += c->state_len;
-                                                }
-                                        }
-                                        r->buf.iov[data_idx].iov_base  = c->data;
-                                        r->buf.iov[data_idx++].iov_len = c->data_len;
-                                        len += c->data_len;
-                                }
-                        }
-            
-                        assert(len < 1<<10);    
-                        if (len != 0) {
-                                if (i==0) {
-                                        char *h = (char*)r->buf.iov[hdr_idx].iov_base;
-                                        (*h) = r->coding[0];
-                                        printf("offset(0)\n");
-                                } else {
-                                        unsigned int *h = (unsigned int*)r->buf.iov[hdr_idx].iov_base;
-                                        (*h)  = (0x80|r->coding[i])<<24;
-                                        (*h) |=(red_offset_time(r->coding[0],offset)<<10);
-                                        printf("offset = %d head = %d tail = %d\n",offset,r->head,r->tail);
-                                        (*h) |= len;
-                                        (*h) = htonl((*h));
-                                }
-                                hdr_idx++;
-                        }
-                }
-                /* fix gap between headers and data */
-                r->buf.iovc = hdr_idx + data_idx - MAX_RED_LAYERS;
-                memcpy(r->buf.iov+hdr_idx, 
-                       r->buf.iov+MAX_RED_LAYERS, 
-                       sizeof(struct iovec)*(data_idx - MAX_RED_LAYERS ));
-                /* transfer to cc unit */
-                memcpy(cu->iov+1,
-                       r->buf.iov,
-                       sizeof(struct iovec)*r->buf.iovc);
-                cu->iovc = 1+r->buf.iovc;
-        }
-    
-        r->tail = (r->tail+1) % MAX_RED_OFFSET;
+        r->head = (r->head + 1) % MAX_RED_OFFSET;
         r->len++;
-
-        /* Clear old state out */
-        if (r->tail == r->head) {
-                for(i=0;i<r->n[r->head];i++) {
-                        if (r->c[r->head][i].data_len) clear_coded_unit(&r->c[r->head][i]);
-                }
-                r->n[r->head] = 0;
-                r->head = (r->head+1) % MAX_RED_OFFSET;
+        
+        if (r->head == r->tail) {
+                r->tail = (r->tail + 1) % MAX_RED_OFFSET;
                 r->len--;
         }
-    
-        return send;
-}
 
+        /* get rid of old data */
+        red_clear_row(r, r->head);
+        red_clear_last_hdrs(r);
+
+        /* transfer new data into head */
+
+        for(i = 0; i < num_coded; i++) {
+                r->c[r->head][i] = coded[i];
+                assert(r->c[r->head][i]->pt < 128);
+                r->n[r->head]++;
+        }
+
+        avail = 0;
+        while(r->len > r->offset[avail] && avail < r->nlayers) 
+                avail++;
+
+        cp = get_codec(r->coding[0]);
+
+        if (avail != r->nlayers) {
+                /* Not enough redundancy available, so advertise max offset to help receivers*/
+                r->last.iov[0].iov_base = (caddr_t)block_alloc(sizeof(u_int32));
+                r->last.iov[0].iov_len  = sizeof(u_int32);
+                red_pack_hdr(r->last.iov[0].iov_base, 
+                             1, 
+                             r->coding[r->nlayers-1], 
+                             r->offset[r->nlayers-1] * collator_get_units(sp->collator) * cp->unit_len,
+                             0);
+                r->last_hdr_idx = 1;
+                r->last.iovc    = 1;
+        }
+
+        /* pack rest of headers */
+        i = avail;
+        while(i-- > 0) {
+                cc_unit *tmp;
+                int sz = (i != 0) ? sizeof(u_int32) : sizeof(u_char);
+
+                tmp = red_get_unit(r, r->offset[i], r->coding[i]);
+                assert(tmp != NULL);
+
+                r->last.iov[r->last.iovc].iov_base = (caddr_t)block_alloc(sz);
+                r->last.iov[r->last.iovc].iov_len  = sz;
+                red_pack_hdr(r->last.iov[r->last.iovc].iov_base,
+                             i,
+                             r->coding[i],
+                             r->offset[r->nlayers-1] * collator_get_units(sp->collator) * cp->unit_len,
+                             get_bytes(tmp)
+                             );
+                r->last.iovc++;
+                r->last_hdr_idx++;
+        }
+
+        /* pack data */
+        dprintf("avail %d\n", avail);
+        while(avail-- > 0) {
+                u = red_get_unit(r, r->offset[avail], r->coding[avail]);
+                memcpy(r->last.iov + r->last.iovc, u->iov, sizeof(struct iovec) * u->iovc);
+                r->last.iovc += u->iovc;
+        }
+
+        for(i=0; i < r->last.iovc; i++) 
+                printf("%d\t", r->last.iov[i].iov_len);
+        printf("\n");
+
+        *out = &r->last;
+        return TRUE;
+}
 
 static int
 red_max_offset(cc_unit *ccu)
@@ -355,17 +357,6 @@ red_max_offset(cc_unit *ccu)
         }
         return max_off;
 }
-
-/*
- * In the previous scheme all of the codec data was split across
- * rx elements as soon as it was received and the the playout point
- * was shifted with a guess of the correct offset.
- *
- * Now we should have enough information in this unit (if not the first
- * of a group) or in a further unit (if the first of the group).  If we don't
- * then we ignore the data.
- *
- */
 
 void
 red_decode(rx_queue_element_struct *u)
@@ -469,7 +460,7 @@ red_bps(session_struct *sp, red_coder_t *r)
         int i, b, ups, upp;
         codec_t *cp;
         b = 0;
-        upp = get_units_per_packet(sp);
+        upp = collator_get_units(sp->collator);
         cp  = get_codec(r->coding[0]);
         ups = cp->freq / cp->unit_len;
         for(i=0;i<r->nlayers;i++) {
@@ -480,7 +471,6 @@ red_bps(session_struct *sp, red_coder_t *r)
         return (8*b*ups/upp);
 }
 
-
 /* this ultra paranoid function works out the correct allocation
  * of memory blocks for a redundantly encoded block, sets the number 
  * of trailing units needed to prod the channel coder and returns 
@@ -490,74 +480,77 @@ red_bps(session_struct *sp, red_coder_t *r)
 int
 red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing) {
         int tlen, n, todo;
-        int hdr_idx, data_idx; 
+        int hdr_idx; 
         u_int32 red_hdr, max_off;
         codec_t *cp;
-    
+
         assert(!cu->iovc);
         max_off = 0;
         hdr_idx = 0;
-        data_idx = MAX_RED_LAYERS;
+        cu->iovc = MAX_RED_LAYERS;
         todo     = blen;
         while(RED_F((red_hdr=ntohl(*((u_int32*)blk)))) && todo >0) {
                 cu->iov[hdr_idx++].iov_len = 4;
                 todo -= 4;
                 blk  += 4;
-
-                cp = get_codec(RED_PT(red_hdr));
-                if (!cp) goto fail;
-
-                if (RED_OFF(red_hdr)>max_off) 
-                        max_off = RED_OFF(red_hdr);
-                tlen = RED_LEN(red_hdr);
-                if (cp->sent_state_sz) {
-                        cu->iov[data_idx++].iov_len = cp->sent_state_sz;
-                        todo -= cp->sent_state_sz;
-                        tlen -= cp->sent_state_sz;
+                cp      = get_codec(RED_PT(red_hdr));
+                max_off = max(max_off, RED_OFF(red_hdr));
+                tlen    = RED_LEN(red_hdr);
+                /* we do not discard packet if we cannot decode redundant data */
+                if (cp && fragment_sizes(cp, tlen, cu->iov, &cu->iovc, CC_UNITS) < 0) {
+                        dprintf("frg sz");
+                        goto fail;
                 }
-                while(todo>0 && tlen>0) {
-                        cu->iov[data_idx++].iov_len = cp->max_unit_sz;
-                        todo -= cp->max_unit_sz;
-                        tlen -= cp->max_unit_sz;
-                }
+                todo -= tlen;
         }
-
-        if (todo == 0) goto fail;
+        
+        if (hdr_idx >= MAX_RED_LAYERS || todo <= 0) {
+                dprintf("hdr ovr\n");
+                goto fail;
+        }
         cp = get_codec((*blk)&0x7f);
-        if (!cp) goto fail;
+                /* we do discard data if cannot do primary */
+        if (!cp) {
+                dprintf("primary?");
+                goto fail;
+        }
 
         cu->iov[hdr_idx++].iov_len = 1;
         todo -= 1;
 
-        if (cp->sent_state_sz) {
-                cu->iov[data_idx++].iov_len = cp->sent_state_sz;
-                todo -= cp->sent_state_sz;
+        if (hdr_idx >= MAX_RED_LAYERS || todo <= 0) {
+                dprintf("hdr ovr\n");
+                goto fail;
         }
-
-        n =  0;
-        while(todo>0) {
-                cu->iov[data_idx++].iov_len = cp->max_unit_sz;
-                todo -= cp->max_unit_sz;
-                n++;
-        }
-
-        if (todo||hdr_idx>MAX_RED_LAYERS) goto fail; 
+        
+        if ((n = fragment_sizes(cp, todo, cu->iov, &cu->iovc, CC_UNITS)) < 0) goto fail;
 
         /* push headers and data against each other */
-        cu->iovc = hdr_idx + data_idx - MAX_RED_LAYERS;
+        
+        cu->iovc -= MAX_RED_LAYERS - hdr_idx;
         memcpy(cu->iov+hdr_idx, 
                cu->iov+MAX_RED_LAYERS, 
-               sizeof(struct iovec)*(data_idx-MAX_RED_LAYERS));
+               sizeof(struct iovec)*(cu->iovc - hdr_idx));
+        xmemchk();
 
         (*trailing) = max_off/cp->unit_len + n;
+
+        dprintf("trailing %d\n", *trailing);
+        for(hdr_idx=0; hdr_idx<cu->iovc; hdr_idx++) {
+                printf("%d\t", 
+                        cu->iov[hdr_idx].iov_len);
+        }
+        printf("\n");
+
         return (n);
+
 fail:
         for(hdr_idx=0; hdr_idx<cu->iovc; hdr_idx++) {
-                fprintf(stderr,
-                        "%d -> %03d bytes", 
+                dprintf("%d -> %03d bytes\n", 
                         hdr_idx,
                         cu->iov[hdr_idx].iov_len);
         }
+
         cu->iovc = 0;
         return 0;
 }
@@ -575,13 +568,25 @@ red_wrapped_pt(char *blk, unsigned int blen)
                 hdr++;
                 todo -= 4;
         }
+
         return (todo ? RED_PT(ntohl(*hdr)) : -1);
 }
 
-
-
-
-
-
-
-
+void
+red_fix_encodings(session_struct *sp, red_coder_t *r)
+{
+        int i,j;
+        
+        sp->encodings[0]  = r->coding[0];
+        sp->num_encodings = 1;
+        dprintf("added %d\n", r->coding[0]);
+        for(i = 1; i < r->nlayers; i++) {
+                for(j = 0; j<sp->num_encodings && sp->encodings[j] != r->coding[i]; j++);
+                if (j == sp->num_encodings) {
+                        sp->encodings[sp->num_encodings] = r->coding[i];
+                        dprintf("added %d\n", r->coding[i]);
+                        sp->num_encodings++;
+                }
+                assert(r->coding[i]<127);
+        }
+}

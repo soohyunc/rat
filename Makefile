@@ -14,7 +14,8 @@ OPTS=
 #-O -O2 -O3 -O4 
 
 PROFILE=
-# -pg
+# -pg / call graph profile
+# -a  / line coverage profile
 
 DEFS += -D$(OSTYPE) -D$(OSTYPE)_$(OSMVER)
 # If your code doesn't compile with all these -W... flags, fix the code don't remove the warnings!

@@ -58,6 +58,8 @@
 #define M_PI            3.14159265358979323846
 #endif
 
+#define AUDIO_PT(x)  ((((x)>0) && (((x)<24) || (((x)>95) && ((x)<127)))
+
 struct s_codec;
 struct s_dpt;
 struct session_tag;

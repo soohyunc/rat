@@ -353,44 +353,41 @@ ui_update_interleaving(session_struct *sp)
 void
 ui_update_frequency(session_struct *sp)
 {
-	char	 arg[80];
 	codec_t *pcp;
 
 	pcp = get_codec(sp->encodings[0]);
-	sprintf(arg, "%d-kHz", pcp->freq/1000);
-	mbus_engine_tx(TRUE, mbus_name_ui, "frequency", mbus_encode_str(arg), FALSE);
+	sprintf(args, "%d-kHz", pcp->freq/1000);
+	mbus_engine_tx(TRUE, mbus_name_ui, "frequency", mbus_encode_str(args), FALSE);
 }
 
 void
 ui_update_channels(session_struct *sp)
 {
-        char	 arg[80];
 	codec_t *pcp;
         
 	pcp = get_codec(sp->encodings[0]);
         switch(pcp->channels) {
         case 1:
-                sprintf(arg, "%s", mbus_encode_str("Mono"));
+                sprintf(args, "%s", mbus_encode_str("Mono"));
                 break;
         case 2:
-                sprintf(arg, "%s", mbus_encode_str("Stereo"));
+                sprintf(args, "%s", mbus_encode_str("Stereo"));
                 break;
         default:
                 dprintf("UI not ready for %d channels\n", pcp->channels);
                 return;
         }
-	mbus_engine_tx(TRUE, mbus_name_ui, "channels", arg, FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "channels", args, FALSE);
 }       
 
 void
 ui_update_primary(session_struct *sp)
 {
-	char	 arg[80];
 	codec_t *pcp;
 
 	pcp = get_codec(sp->encodings[0]);
-	sprintf(arg, "%s", mbus_encode_str(pcp->short_name));
-	mbus_engine_tx(TRUE, mbus_name_ui, "primary", arg, FALSE);
+	sprintf(args, "%s", mbus_encode_str(pcp->short_name));
+	mbus_engine_tx(TRUE, mbus_name_ui, "primary", args, FALSE);
 }
 
 void
@@ -398,7 +395,7 @@ ui_update_redundancy(session_struct *sp)
 {
         int  pt;
         int  ioff;
-        char buf[128], *codec_name=NULL, *offset=NULL, *dummy, args[80];
+        char buf[128], *codec_name=NULL, *offset=NULL, *dummy;
 
         pt = get_cc_pt(sp,"REDUNDANCY");
         if (pt != -1) { 
@@ -420,7 +417,6 @@ ui_update_redundancy(session_struct *sp)
 
         if (codec_name != NULL && offset != NULL) {
                 ioff  = atoi(offset);
-                ioff /= get_units_per_packet(sp);
         } else {
                 codec_t *pcp;
                 pcp   = get_codec(sp->encodings[0]);
@@ -487,7 +483,7 @@ ui_update(session_struct *sp)
 		sprintf(args, "%d", sp->input_gain ); mbus_engine_tx_queue(TRUE,  "input.gain", args);
 	}
 
-        sprintf(args, "%d", get_units_per_packet(sp));
+        sprintf(args, "%d", collator_get_units(sp->collator));
 	mbus_engine_tx_queue(TRUE, "rate", args);
 
 	ui_update_output_port(sp);

@@ -54,110 +54,59 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 
-#define MAX_UNITS_PER_PACKET 8
-
 typedef struct s_cc_state {
         struct s_cc_state *next;
         int    pt;
         char  *s;
 } cc_state_t;
 
-void 
-set_units_per_packet(session_struct *sp, int n)
-{
-        if (n>0 && n<MAX_UNITS_PER_PACKET)
-                sp->units_per_pckt = n;
-        else
-                fprintf(stderr,"%s:%d %d is not acceptable number of units per packet.\n",__FILE__,__LINE__,n);
-}
-
-int
-get_units_per_packet(session_struct *sp)
-{
-        return sp->units_per_pckt;
-}
-
-/*****************************************************************************/
-/* Vanilla channel coding - just gathers/separates media units               */
-
 typedef struct {
-        int clk;
-        int cnt;
-        coded_unit cx[MAX_UNITS_PER_PACKET];
+        cc_unit *last;
 } vanilla_state;
 
 static void 
-vanilla_init(session_struct *sp, cc_state_t *cs) {
+vanilla_init (session_struct *sp, cc_state_t *cs)
+{
         UNUSED(sp);
-
         cs->s = (char*)xmalloc(sizeof(vanilla_state));
         memset(cs->s,0,sizeof(vanilla_state));
-} 
+}
 
 static void
-vanilla_free(cc_state_t *cs)
+vanilla_free (cc_state_t *cs)
 {
+        vanilla_state *v = (vanilla_state*)cs->s;
+
+        if (v->last != NULL) {
+                clear_cc_unit(v->last, 0);
+                block_free(v->last, sizeof(cc_unit));
+        }
+
         xfree(cs->s);
 }
 
-void
-clear_cc_unit(cc_unit *cu, int start)
-{
-        int i; 
-        for(i=start;i<cu->iovc;i++) {
-                if (cu->iov[i].iov_len || cu->iov[i].iov_base) {
-                        block_free(cu->iov[i].iov_base, cu->iov[i].iov_len);
-                        cu->iov[i].iov_base = NULL;
-                        cu->iov[i].iov_len  = 0;
-                }
-        }
-}
-
 static int
-vanilla_encode(session_struct *sp, 
-               sample *raw, 
-               cc_unit *cu, 
-               cc_state_t *ccs)
+vanilla_encode (session_struct *sp, 
+                cc_unit       **in,
+                int             no_in,
+                cc_unit       **out, 
+                cc_state_t     *ccs)
 {
-        vanilla_state *v = (vanilla_state*)ccs->s;
-        int i;
+        vanilla_state *v;
 
-        if (v->clk % sp->units_per_pckt==0) {
-                for(i=0;i<v->cnt;i++) 
-                        clear_coded_unit(v->cx+i);
-                v->cnt = 0;
-                cu->iovc = 1;
+        UNUSED(sp);
+
+        assert(2 > no_in);
+
+        v = (vanilla_state*)ccs->s;
+        if (v->last) {
+                clear_cc_unit(v->last,0);
+                block_free(v->last, sizeof(cc_unit));
         }
 
-        if (raw) {
-                assert((v->cx+v->cnt)->data_len == 0);
-                assert((v->cx+v->cnt)->state_len == 0);
-                encoder(sp, raw, sp->encodings[0], v->cx+v->cnt);
-                ++v->cnt;
-        } 
-    
-        v->clk++;
-        if (v->clk % sp->units_per_pckt == 0 && v->cnt) {
-                assert(cu->iovc == 1);
-                for(i=0;i<v->cnt;i++) {
-                        cu->iovc += coded_unit_to_iov(v->cx   + i,
-                                                      cu->iov + cu->iovc,
-                                                      (!i) ? INCLUDE_STATE : NO_INCLUDE_STATE);
-                }
-                return TRUE;
-        }
-
-        return FALSE;
-}
-
-static void 
-vanilla_encoder_reset(cc_state_t *ccs) 
-{
-        vanilla_state *v = (vanilla_state*)ccs->s;
-        int i;
-        for(i=0;i<v->cnt;i++)
-                clear_coded_unit(v->cx + i);
-        v->clk = v->cnt = 0;
+        *out = v->last = *in;
+        
+        return TRUE;
 }
 
 static int 
@@ -170,36 +119,28 @@ vanilla_bitrate(session_struct *sp, cc_state_t *cs)
 
         cp = get_codec(sp->encodings[0]);
         pps = cp->freq / cp->unit_len;
-        upp = get_units_per_packet(sp);
+        upp = collator_get_units(sp->collator);
         return (8*pps*(cp->max_unit_sz * upp + cp->sent_state_sz + 12)/upp);
 }
 
 static int
 vanilla_valsplit(char *blk, unsigned int blen, cc_unit *u, int *trailing) 
 {
-        codec_t *cp = get_codec(u->src_pt);
+        codec_t *cp = get_codec(u->pt);
         int n = 0;
 
         UNUSED(blk);
 
-        assert(!u->iovc);
+        assert(u->iovc == 0);
         if (cp) {
-                if (cp->sent_state_sz) {
-                        u->iov[u->iovc++].iov_len = cp->sent_state_sz;
-                        blen -= cp->sent_state_sz;
-                }
-                while(blen>0 && cp->max_unit_sz) {
-                        n++;
-                        u->iov[u->iovc++].iov_len = cp->max_unit_sz;
-                        blen -= cp->max_unit_sz;
-                }
+                n = fragment_sizes(cp, blen, u->iov, &u->iovc, CC_UNITS);
         }
 
-        if (blen) u->iovc = 0;
-    
+        if (n < 0) n = 0;
+
         (*trailing) = n;
 
-        return (blen?0:n);
+        return (n);
 }
 
 static void 
@@ -213,7 +154,7 @@ vanilla_decode(rx_queue_element_struct *u, cc_state_t *ccs)
 
         if (!u->ccu_cnt) return;
 
-        pt = u->ccu[0]->src_pt;
+        pt = u->ccu[0]->pt;
         cp = get_codec(pt);
         assert(cp);
 
@@ -237,13 +178,19 @@ red_init(session_struct *sp, cc_state_t *cs)
 {
         UNUSED(sp);
 
-        cs->s = (char*)new_red_coder();
+        cs->s = (char*)red_create();
 } 
 
 static void
 red_free(cc_state_t *cs)
 {
-        free_red_coder((struct s_red_coder*) cs->s);
+        red_destroy((struct s_red_coder*) cs->s);
+}
+
+static void
+red_reset(cc_state_t *cs)
+{
+       red_flush((struct s_red_coder*) cs->s);
 }
 
 static int
@@ -263,11 +210,12 @@ red_query(session_struct    *sp,
 
 static int
 red_encoder(session_struct *sp, 
-            sample *raw, 
-            cc_unit *cu, 
-            cc_state_t *ccs)
+            cc_unit       **in,
+            int             no_in,
+            cc_unit       **out, 
+            cc_state_t     *ccs)
 {
-        return red_encode(sp,raw,cu,(struct s_red_coder*)ccs->s);
+        return red_encode(sp, in, no_in, out, (struct s_red_coder*)ccs->s);
 }
 
 static int
@@ -316,11 +264,17 @@ intl_query(session_struct    *sp,
 
 static int
 intl_encoder(session_struct *sp, 
-             sample *raw, 
-             cc_unit *cu, 
-             cc_state_t *ccs)
+             cc_unit       **in,
+             int             num_coded,
+             cc_unit       **out, 
+             cc_state_t     *ccs)
 {
-        return intl_encode(sp,raw,cu,(struct s_intl_coder*)ccs->s);
+        assert(2 > num_coded);
+        if (num_coded) {      
+                return intl_encode(sp, *in,  out, (struct s_intl_coder*)ccs->s);
+        } else {
+                return intl_encode(sp, NULL, out, (struct s_intl_coder*)ccs->s);
+        }
 }
 
 static void
@@ -344,16 +298,20 @@ intl_decoder(rx_queue_element_struct *u,
 }
 
 #define N_CC_CODERS 3
+#define CC_ID_VANILLA     0
+#define CC_ID_REDUNDANCY  1
+#define CC_ID_INTERLEAVER 2
 
 static cc_coder_t cc_list[] = {
         {"VANILLA", 
          PT_VANILLA, 
+         CC_ID_VANILLA,
          vanilla_init, 
          NULL, 
          NULL,
          vanilla_bitrate,
          vanilla_encode,
-         vanilla_encoder_reset,
+         NULL,
          vanilla_free,
          1,
          vanilla_valsplit,
@@ -363,12 +321,13 @@ static cc_coder_t cc_list[] = {
          NULL },
         {"REDUNDANCY", 
          PT_REDUNDANCY,
+         CC_ID_REDUNDANCY,
          red_init,
          red_configure,
          red_query,
          red_bitrate,
          red_encoder,
-         NULL,
+         red_reset,
          red_free,
          1,
          red_valsplit,
@@ -378,6 +337,7 @@ static cc_coder_t cc_list[] = {
          NULL },
         {"INTERLEAVER",
          PT_INTERLEAVED,
+         CC_ID_INTERLEAVER,
          intl_init,
          intl_configure,
          intl_query,
@@ -392,6 +352,7 @@ static cc_coder_t cc_list[] = {
          intl_decoder, 
          intl_free}
 }; 
+
 
 cc_coder_t *
 get_channel_coder(int pt)
@@ -479,6 +440,19 @@ clear_cc_state_list(cc_state_t **list, enum cc_e ed)
 }
 
 void
+clear_cc_unit(cc_unit *cu, int start)
+{
+        int i; 
+        for(i=start;i<cu->iovc;i++) {
+                if (cu->iov[i].iov_len || cu->iov[i].iov_base) {
+                        block_free(cu->iov[i].iov_base, cu->iov[i].iov_len);
+                        cu->iov[i].iov_base = NULL;
+                        cu->iov[i].iov_len  = 0;
+                }
+        }
+}
+
+void
 clear_cc_encoder_states(cc_state_t **list)
 {
         clear_cc_state_list(list, ENCODE);
@@ -491,11 +465,12 @@ clear_cc_decoder_states(cc_state_t **list)
 }
 
 void
-reset_channel_encoder(session_struct *sp,
+channel_encoder_reset(session_struct *sp,
                       int cc_pt)
 {
         cc_state_t *stp;
         cc_coder_t *cc;
+
         cc  = get_channel_coder(cc_pt);
         stp = get_cc_state(sp, &sp->cc_state_list, cc->pt, ENCODE);
         if (cc->enc_reset)
@@ -503,17 +478,28 @@ reset_channel_encoder(session_struct *sp,
 }
 
 int
-channel_code(session_struct *sp,
-             cc_unit        *u,
-             int             pt,
-             sample         *raw)
+channel_encode(session_struct *sp,
+               int             pt,
+               cc_unit       **coded,
+               int             num_coded,
+               cc_unit       **out)
 {
+        int r;
         cc_state_t *stp;
         cc_coder_t *cc;
-        cc = get_channel_coder(pt);
-        u->cc = cc;
+
+        for(r=0;r<num_coded;r++) assert(coded[r]->pt < 128);
+
+        cc  = get_channel_coder(pt);
         stp = get_cc_state(sp, &sp->cc_state_list, cc->pt, ENCODE);
-        return cc->encode(sp, raw, u, stp);
+        r   = cc->encode(sp, coded, num_coded, out, stp);
+        
+        if (*out) {
+                (*out)->cc = cc;
+                (*out)->pt = pt;
+        }
+
+        return r;
 }
 
 void 
@@ -545,7 +531,7 @@ validate_and_split(int pt, char *blk, unsigned int blen, cc_unit *u, int *traili
         if (!(cc = get_channel_coder(pt)))
                 return FALSE;
         u->cc = cc;
-        u->src_pt = pt;
+        u->pt = pt;
         return cc->valsplit(blk, blen, u, trailing);
 }
 
@@ -580,14 +566,7 @@ query_channel_coder(session_struct *sp, int pt, char *buf, unsigned int blen)
         if (cc->query) cc->query(sp, stp, buf, blen);
 }
 
-#ifdef NDEF  
-/* [csp] This is never used! Is something supposed to use it?
- *
- * [oth] Well they could do, it should return the bitrate of the channel 
- *       coder...I don't think the lower level functions work properly though
- */
-
-static int
+int
 get_bps(session_struct *sp, int pt)
 {
         cc_state_t *stp;
@@ -599,7 +578,6 @@ get_bps(session_struct *sp, int pt)
         else
                 return -1;
 }
-#endif
 
 int
 set_cc_pt(char *name, int pt)
@@ -648,7 +626,7 @@ get_rx_unit(int n, int cc_pt, rx_queue_element_struct *u)
 {
         /* returns unit n into the future from the same talkspurt and 
          * under the same channel coder control.
-     */
+         */
         while(n>0 && 
               u->next_ptr && 
               (u->next_ptr->src_ts - u->src_ts) == u->unit_size &&
@@ -703,6 +681,24 @@ add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
         return (u->comp_count++);
 }
 
+void
+channel_set_coder(session_struct *sp, int pt)
+{
+        cc_coder_t *cc;
+
+/*        channel_encoder_reset(sp,sp->cc_encoding);  */
+
+        sp->cc_encoding = pt;
+        cc = get_channel_coder(pt);
+
+        if (0 == strcmp(cc->name, "REDUNDANCY")) {
+                cc_state_t *stp = get_cc_state(sp, &sp->cc_state_list, cc->pt, ENCODE);
+                red_fix_encodings(sp, (struct s_red_coder*)stp->s);
+        } else {
+                sp->num_encodings = 1;
+        }
+}
+
 /* Channel coders operate over iovec and source coders use coded_units */
 /* so the following facilitate interchange                             */
 
@@ -747,3 +743,114 @@ iov_to_coded_unit(struct iovec *iov,
         return ++i;
 }
 
+typedef struct s_collator {
+        u_char   units_in_group;
+        u_char   units_done[MAX_ENCODINGS];
+        cc_unit  *cur[MAX_ENCODINGS];
+} collator_t;
+
+collator_t *
+collator_create()
+{
+        collator_t *c = (collator_t*) xmalloc (sizeof(collator_t));
+        c->units_in_group = 2;
+        memset(c->units_done,0,MAX_ENCODINGS*sizeof(u_char));
+        return c;
+}
+
+void
+collator_destroy(collator_t *c)
+{
+        int i;
+        for(i = 0; i < MAX_ENCODINGS; i++) {
+                assert(c->units_done[i] == 0);                
+        }
+        xfree(c);
+}
+
+#define MAX_UNITS_PER_PACKET 16
+
+void 
+collator_set_units(collator_t *c, int n)
+{
+        if (n>0 && n<MAX_UNITS_PER_PACKET)
+                c->units_in_group = n;
+        else
+                fprintf(stderr,"%s:%d %d is not acceptable number of units per packet.\n",__FILE__,__LINE__,n);
+}
+
+int
+collator_get_units(collator_t *c)
+{
+        return c->units_in_group;
+}
+
+
+cc_unit* 
+collate_coded_units(collator_t *c, coded_unit *cu, int enc_no)
+{
+        cc_unit   *out;
+
+        if (c->units_done[enc_no] == 0) {
+                out = c->cur[enc_no] = (cc_unit*) block_alloc (sizeof(cc_unit));
+                out->pt               = cu->cp->pt;
+                out->iovc             = 0; 
+                if (cu->state_len != 0) {
+                        out->iov[out->iovc].iov_base = cu->state;
+                        out->iov[out->iovc].iov_len  = cu->state_len;
+                        out->iovc++;
+                        cu->state     = NULL;
+                        cu->state_len = 0;
+                } 
+        } else {
+                out = c->cur[enc_no];
+                assert(cu->cp->pt == out->pt);
+                if (cu->state_len != NULL) {
+                        block_free(cu->state, cu->state_len);
+                        cu->state     = NULL;
+                        cu->state_len = 0;
+                }
+        }
+
+        assert(cu->data != NULL);
+        out->iov[out->iovc].iov_base = cu->data;
+        out->iov[out->iovc].iov_len  = cu->data_len;
+        out->iovc++;
+        assert(out->iovc < CC_UNITS);
+        c->units_done[enc_no]++;
+
+        if (c->units_done[enc_no] == c->units_in_group) {
+                c->units_done[enc_no] = 0;
+                return out;
+        }
+
+        return NULL;
+}
+
+int 
+fragment_sizes(codec_t *cp, int blk_len, struct iovec *store, int *iovc, int store_len)
+{
+        int n = 0;
+
+        /* When the time comes for variable bitrate codecs to go in 
+         * codec specific sniffer functions need to be written and hooks
+         * go here to determine blk sizes 
+         */
+
+        if (blk_len > 0 && cp->sent_state_sz != 0 && (*iovc) < store_len) {
+                store[(*iovc)++].iov_len = cp->sent_state_sz;
+                blk_len           -= cp->sent_state_sz;
+        }
+        
+        while(blk_len > 0 && (*iovc) < store_len) {
+                store[(*iovc)++].iov_len = cp->max_unit_sz;
+                blk_len           -= cp->max_unit_sz;
+                n++;
+        }
+
+#ifdef    DEBUG
+        if (blk_len != 0) dprintf("Fragmentation failed.\n");
+#endif /* DEBUG */
+        
+        return (blk_len == 0 ? n : -1);
+}

@@ -214,11 +214,12 @@ tx_stop(session_struct *sp)
 
 	if (sp->sending_audio == FALSE || sp->have_device == FALSE)
 		return;
-	sp->sending_audio = FALSE;
+	sp->sending_audio              = FALSE;
+        sp->last_tx_service_productive = 0;
+        sp->transmit_audit_required    = TRUE;
 	gettimeofday(&tv, NULL);
-	sp->auto_lecture = tv.tv_sec;
-        sp->transmit_audit_required = TRUE;
-        reset_channel_encoder(sp,sp->cc_encoding);
+	sp->auto_lecture               = tv.tv_sec;
+        channel_encoder_reset(sp,sp->cc_encoding);
 	ui_input_level(0);
 	ui_info_deactivate(sp->db->my_dbe);
 }
@@ -380,11 +381,15 @@ new_ts(u_int32 last_time, u_int32 this_time, int encoding, int upp)
 void
 tx_send(session_struct *sp, speaker_table *sa)
 {
-        int		units, i, n, ready, send;
-        tx_unit		*u;
-        rtp_hdr_t	rtp_header;
-        cc_unit             cu;
-        tx_buffer	*tb = sp->tb;
+        int		units, i, n, ready, send, num_encodings;
+        tx_unit	       *u;
+        rtp_hdr_t       rtp_header;
+        cc_unit        *out;
+        cc_unit        *collated[MAX_ENCODINGS];
+        coded_unit      coded[MAX_ENCODINGS+1];
+        tx_buffer      *tb = sp->tb;
+        struct iovec    ovec[CC_UNITS];
+        int             ovec_elem;
 
         if (tb->silence_ptr == NULL) {
                 /* Don't you just hate fn's that do this! */
@@ -398,32 +403,18 @@ tx_send(session_struct *sp, speaker_table *sa)
         assert(tb->silence_ptr != NULL);
         n = (tb->silence_ptr->time - tb->tx_ptr->time) / tb->unit_dur;
 
-        rtp_header.cc=0;
+        rtp_header.cc = 0;
         if (sp->mode == TRANSCODER) {
                 speaker_table	*cs;
-                for (cs = sa; cs; cs = cs->next) {
+                for (cs = sa; cs && rtp_header.cc < 16; cs = cs->next) {
                         /* 2 is a magic number, WHITE in speaker_table.c */
                         if (cs->state == 2)
                                 rtp_header.csrc[rtp_header.cc++] = htonl(cs->dbe->ssrc);
-                        if (rtp_header.cc == 15)
-                                break;
                 }
         }
 
         sp->last_tx_service_productive = 0;    
-        units = get_units_per_packet(sp);
-        
-        /* When channel coders have enough data they fill in the iovec cu
-         * and return 1.  They are responsible for clearing items pointed to
-         * by iovec.  This is necessary because iovec is pointing to coded data and 
-         * redundancy (for example) needs earlier info and so we cannot free it
-         * here in case it is still needed by the channel coder.
-         */
-
-        memset(&cu,0,sizeof(cc_unit));
-        cu.iov[0].iov_base = (caddr_t)&rtp_header;
-        cu.iov[0].iov_len  = 12+rtp_header.cc*4;
-        cu.iovc            = 1;
+        units = collator_get_units(sp->collator);
         
         while(n > units) {
                 send = FALSE;
@@ -433,54 +424,66 @@ tx_send(session_struct *sp, speaker_table *sa)
                                 break;
                         }
                 }
-
-                for (i = 0, u = tb->tx_ptr; i < units; i++, u=u->next) {
-                        assert(u != tb->silence_ptr);
-                        if (send == FALSE) 
-                                reset_encoder(sp, sp->encodings[0]);
-                        
-                        /* if silence we pass dummy to encoder.  If the encoder 
-                         * has latency, like an interleaver, it may need a pulse 
-                         * in order to sync behaviour.
-                         */
-                        if (send) {          
-                                ready = channel_code(sp, &cu, sp->cc_encoding, u->data);
-                        } else {
-                                ready = channel_code(sp, &cu, sp->cc_encoding, NULL);
-                        }
-                        
-                        if (ready && cu.iovc>1) {
-                                /* rtp hdr fill in.
-                                 * nb talkspurt as seen by classifer maybe behind that seen by 
-                                 * channel coder so it is set later. 
-                                 */
-                                rtp_header.type = 2;
-                                rtp_header.seq  = htons(sp->rtp_seq++);
-                                rtp_header.ts   = htonl(u->time);
-                                rtp_header.p = rtp_header.x = 0;
-                                rtp_header.ssrc = htonl(rtcp_myssrc(sp));
-                                
-                                if (sp->cc_encoding == PT_VANILLA) 
-                                        rtp_header.pt = sp->encodings[0];
-                                else
-                                        rtp_header.pt = sp->cc_encoding;
-                                
-                                rtp_header.m = new_ts(sp->last_depart_ts, u->time, sp->encodings[0], sp->units_per_pckt);
-                                
-                                sp->last_depart_ts = u->time;
-                                sp->db->pkt_count  += 1;
-                                sp->db->byte_count += get_bytes(&cu);
-                                sp->db->sending     = TRUE;
-                                sp->last_tx_service_productive = 1;
-                                
-                                if (sp->drop == 0.0 || drand48() >= sp->drop) {
-                                        net_write_iov(sp->rtp_fd, sp->net_maddress, sp->rtp_port, cu.iov, cu.iovc, PACKET_RTP);
+                
+                num_encodings = 0;
+                if (send == TRUE) {
+                        for (i = 0, u = tb->tx_ptr; i < units; i++, u=u->next) {
+                                num_encodings = 0;
+                                assert(u != tb->silence_ptr);
+                                while(num_encodings != sp->num_encodings) {
+                                        encoder(sp, u->data, sp->encodings[num_encodings], &coded[num_encodings]);
+                                        collated[num_encodings] = collate_coded_units(sp->collator, &coded[num_encodings], num_encodings);
+                                        num_encodings++;
                                 }
                         }
-                        
-                        /* hook goes here to check for asynchonous channel coder data */
-                        
+                } else {
+                        for(i=0, u = tb->tx_ptr; i < units; i++, u = u->next) 
+                                assert(u != tb->silence_ptr);
+                        /* if silence we pass dummy to encoder.  
+                         * If the encoder has latency, like an 
+                         * interleaver, it may need a pulse in 
+                         * order to sync behaviour.
+                         */
+                        num_encodings = 0;
+                        collated[0]   = NULL;
                 }
+
+                for(i = 0; i< num_encodings; i++) assert(collated[i]->pt == sp->encodings[i]);
+                ready = channel_encode(sp, sp->cc_encoding, collated, num_encodings, &out);
+
+                if (ready && out) {
+
+                        assert(out->iovc > 0);
+
+                        /* through everything into iovec */
+                        ovec[0].iov_base = (caddr_t)&rtp_header;
+                        ovec[0].iov_len  = 12 + rtp_header.cc*4;
+                        ovec_elem        = 1 + out->iovc;
+                        assert(ovec_elem < 20);
+                        memcpy(ovec + 1, out->iov, sizeof(struct iovec) * out->iovc);
+                        rtp_header.type = 2;
+                        rtp_header.seq  = htons(sp->rtp_seq++);
+                        rtp_header.ts   = htonl(u->time);
+                        rtp_header.p    = rtp_header.x = 0;
+                        rtp_header.ssrc = htonl(rtcp_myssrc(sp));
+                        rtp_header.pt   = out->pt;
+                        rtp_header.m    = new_ts(sp->last_depart_ts, 
+                                                  u->time, 
+                                                  sp->encodings[0], 
+                                                  collator_get_units(sp->collator));
+                                
+                        sp->last_depart_ts = u->time;
+                        sp->db->pkt_count  += 1;
+                        sp->db->byte_count += get_bytes(out);
+                        sp->db->sending     = TRUE;
+                        sp->last_tx_service_productive = 1;
+                                
+                        if (sp->drop == 0.0 || drand48() >= sp->drop) {
+                                net_write_iov(sp->rtp_fd, sp->net_maddress, sp->rtp_port, ovec, ovec_elem, PACKET_RTP);
+                        }
+                }
+                
+                /* hook goes here to check for asynchonous channel coder data */
                 n -= units;
                 tb->tx_ptr = u;
         }

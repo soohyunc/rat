@@ -97,10 +97,11 @@ typedef struct session_tag {
 	struct s_time		*device_clock;
         struct s_cushion_struct *cushion;
         struct s_mix_info       *ms; 
+        struct s_collator       *collator; /* collates media units into groups for transmission */
 	int		rtp_seq;
 	int		encodings[MAX_ENCODINGS];
-	int		num_encodings;			/* 1 - MAX_ENC */
-        int             next_encoding;
+	int		num_encodings;	/* number of unique encodings being used */
+        int             next_encoding;  /* used for changing device format */
 	int             sending_audio;
 	int             playing_audio;
         int             last_tx_service_productive;     /* channel coder can output after talksprt ends */
@@ -137,7 +138,6 @@ typedef struct session_tag {
 	struct s_codec_state *state_list;       /* Source coding states  */
         struct s_cc_state    *cc_state_list;    /* Channel coding states */
         int              cc_encoding;
-        int              units_per_pckt;
         int              last_depart_ts;
 	struct s_speaker_table	*speakers_active;
 	int		 last_zero;		/* audio.c */

@@ -569,11 +569,11 @@ decode_unit(rx_queue_element_struct *u)
 void
 clear_coded_unit(coded_unit *u)
 {
-    if (u->state_len)
-        block_free(u->state, u->state_len);
-    assert(u->data_len);
-    block_free(u->data, u->data_len);
-    memset(u, 0, sizeof(coded_unit));
+        if (u->state_len)
+                block_free(u->state, u->state_len);
+        assert(u->data_len);
+        block_free(u->data, u->data_len);
+        memset(u, 0, sizeof(coded_unit));
 }
 
 int

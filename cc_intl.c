@@ -53,7 +53,7 @@
  * ------------------------------------- 
  * It is not optimum as this imposes constraints on the relationship between 
  * n1 and n2 and the benefit in timing delay is small compared to the delay
- * incurred by interleaving.
+ * incurred by interleaving techniques
  */
 
 typedef struct s_il {
@@ -68,7 +68,7 @@ typedef struct s_il {
 } il_t;
 
 static struct s_il*
-create_il(int n1, int n2) {
+il_create(int n1, int n2) {
         il_t *il;
         int i;
     
@@ -120,7 +120,7 @@ il_empty(struct s_il *s)
 }
 
 static void
-free_il(struct s_il *s)
+il_free(struct s_il *s)
 {
         int i;
         assert(il_empty(s));
@@ -173,12 +173,12 @@ free_il(struct s_il *s)
 #define GET_PHASE(x) ((x)&0x3ff)
 
 typedef struct s_intl_coder {
-        u_int32 src_pt;
-        int cnt; 
+        u_char  cnt;
+        u_char  src_pt;
         u_int16 mask;
         u_int32 intl_hdr;
         il_t *il;  
-        cc_unit buf;     /* out going cc_unit    */
+        cc_unit last;     /* out going cc_unit    */
         u_int32 last_ts; /* used only by decoder */
 } intl_coder_t;
 
@@ -186,12 +186,11 @@ intl_coder_t *
 new_intl_coder(session_struct *sp)
 {
         intl_coder_t *t;
+        UNUSED(sp);
+
         t = (intl_coder_t*)xmalloc(sizeof(intl_coder_t));
         memset(t,0,sizeof(intl_coder_t));
-        t->il = create_il(4,4);
-        if (sp) { /* true if transmitter - this needs tidying up*/
-                t->src_pt = sp->encodings[0];
-        }
+        t->il = il_create(4,4);
         return t;
 }
 
@@ -200,7 +199,7 @@ free_intl_coder(intl_coder_t *t)
 {
         intl_reset(t);
         if (t->il) {
-                free_il(t->il);
+                il_free(t->il);
         }
         xfree(t);
 }
@@ -208,16 +207,17 @@ free_intl_coder(intl_coder_t *t)
 void
 intl_reset(intl_coder_t *s)
 {
-        coded_unit *u;
+        cc_unit *u;
         while(!il_empty(s->il)) {
-                u = (coded_unit*)il_exchange(s->il,NULL);
+                u = (cc_unit*)il_exchange(s->il,NULL);
                 if (u) {
-                        clear_coded_unit(u);
-                        block_free(u,sizeof(coded_unit));
+                        clear_cc_unit(u,0);
+                        block_free(u,sizeof(cc_unit));
                 }
         }
-        clear_cc_unit(&s->buf,0);
-        s->il->idx = s->cnt = s->mask = s->last_ts = s->buf.iovc = 0;
+        clear_cc_unit(&s->last,0);
+        s->il->idx = s->cnt = s->mask = s->last_ts = s->last.iovc = 0;
+        dprintf("intl_reset\n");
 }
 
 /* expects string of form "codec/n1/n2" */
@@ -227,23 +227,19 @@ intl_config(struct session_tag *sp,
             char               *cmd)
 {
         int n1, n2;
-        char *name;
-        codec_t *cp;
 
-        name = strtok(cmd,"/");
-        n1   = atoi(strtok(NULL,"/"));
-        n2   = atoi(strtok(NULL,"/"));
+        UNUSED(sp);
 
-        cp = get_codec_byname(name,sp);
+        n1   = atoi(strtok(cmd,  "/"));
+        n2   = atoi(strtok(NULL, "/"));
 
-        if ((n1 < 0 || n1 > 15) || (n2 < 0 || n2 > 15) || !cp) 
+        if ((n1 < 0 || n1 > 15) || (n2 < 0 || n2 > 15)) 
                 return 0;
 
         intl_reset(s);
-        free_il(s->il);
-        s->il = create_il(n1,n2);
-        s->src_pt = sp->encodings[0] = cp->pt;
-        set_units_per_packet(sp,n1);
+        il_free(s->il);
+        s->il = il_create(n1,n2);
+
         return 1;
 }
 
@@ -253,12 +249,9 @@ intl_qconfig(session_struct    *sp,
              char              *buf, 
              unsigned int       blen) 
 {
-        codec_t *cp;
-
         UNUSED(sp);
 
-        cp = get_codec(s->src_pt);
-        sprintf(buf,"%s/%d/%d",cp->name,s->il->n1,s->il->n2);
+        sprintf(buf,"%d/%d", s->il->n1, s->il->n2);
         assert(strlen(buf)<blen);
 }
 
@@ -278,76 +271,69 @@ intl_bps(session_struct        *sp,
         return (8 * (upp*us + 4 + 12) * ups/upp);
 }
 
+__inline static void
+intl_pack_hdr(intl_coder_t *s, u_int32* hdr)
+{
+        (*hdr)  = PUT_PT(s->src_pt);
+        (*hdr) |= PUT_N1(s->il->n1);
+        (*hdr) |= PUT_N2(s->il->n2);
+        (*hdr) |= PUT_MASK(s->mask);
+        (*hdr) |= PUT_PHASE(((s->cnt-s->il->sz)/s->il->n1-1)%(8*s->il->n2));
+        (*hdr)  = htonl((*hdr));
+}
+
+
 /* This (c|sh)ould be much more efficient 
  * ... this is just a first pass [oth]
  */
 
 int
 intl_encode(session_struct *sp,
-            sample         *raw,
-            cc_unit        *cu,
+            cc_unit        *coded,
+            cc_unit       **out,
             intl_coder_t   *s)
 {
-        codec_t *cp;
-        coded_unit *u;
+        cc_unit *u;
 
-        if (s->src_pt != (u_int32)sp->encodings[0]) {
-                /* we don't have any of this data. for the time being we
-                 * flush interleaver, but we could wait for start of new
-                 * talkspurt before effecting change to new codec. 
-                 */
+        UNUSED(sp);
+
+        if (s->cnt == s->il->n1) {
+                clear_cc_unit(&s->last,0);
+                s->cnt = 0;
+        }
+
+        if (s->cnt == 0 && coded) {
+                s->src_pt = coded->pt;
+        } else if (coded && coded->pt != s->src_pt) {
                 intl_reset(s);
-                s->src_pt = sp->encodings[0];
-        }
-    
-        cp = get_codec(s->src_pt);
-        if (!cp) {
-#ifdef DEBUG
-                fprintf(stderr,"%s:%d codec not recognized.\n",__FILE__,__LINE__);
-#endif
-                return 0;
         }
 
-        if (!(s->cnt % s->il->n1)) {
-                clear_cc_unit(&s->buf,0); 
-                s->buf.iovc = 0;          
+        if (s->cnt == 0) {
+                s->last.iovc = 1; /* reserve space for hdr */
         }
 
-        u = NULL;
-        if (raw) {
-                u = (coded_unit*)block_alloc(sizeof(coded_unit));
-                encoder(sp,raw,s->src_pt,u);
-        }
-
-        u = (coded_unit*)il_exchange(s->il,(char*)u);
+        u = (cc_unit*)il_exchange(s->il,(char*)coded);
         s->mask <<= 1;
+
         if (u) {
                 s->mask     |=  1;
-                s->buf.iovc += coded_unit_to_iov(u, 
-                                                 s->buf.iov+s->buf.iovc+1, 
-                                                 INCLUDE_STATE);
-                /* nb iov[0] is used for header hence +1 */
-                block_free(u,sizeof(coded_unit));
+                memcpy(s->last.iov + s->last.iovc, u->iov, u->iovc * sizeof(struct iovec));
+                s->last.iovc += u->iovc;
+                block_free(u,sizeof(cc_unit));
         }
 
         s->cnt++;
-        if (!(s->cnt % s->il->n1) && s->mask) {
-                u_int32 *hdr;
-                s->buf.iov[0].iov_base = (caddr_t)block_alloc(sizeof(u_int32));
-                s->buf.iov[0].iov_len  = sizeof(u_int32);
-                s->buf.iovc+=1;
-                hdr     = (u_int32*)s->buf.iov[0].iov_base;
-                (*hdr)  = PUT_PT(s->src_pt);
-                (*hdr) |= PUT_N1(s->il->n1);
-                (*hdr) |= PUT_N2(s->il->n2);
-                (*hdr) |= PUT_MASK(s->mask);
-                (*hdr) |= PUT_PHASE(((s->cnt-s->il->sz)/s->il->n1-1)%(8*s->il->n2));
-                (*hdr)  = htonl((*hdr));
-                memcpy(cu->iov+1,s->buf.iov,s->buf.iovc*sizeof(struct iovec));
-                cu->iovc = 1 + s->buf.iovc;
+        if ((s->cnt == s->il->n1) && s->mask) {
+                s->last.iov[0].iov_base = (caddr_t)block_alloc(sizeof(u_int32));
+                s->last.iov[0].iov_len  = sizeof(u_int32);
+                intl_pack_hdr(s, (u_int32*)s->last.iov[0].iov_base);
+                (*out)  = &s->last;
                 s->mask = 0;
+                dprintf("ready\n");
                 return TRUE;
         }
+
+        (*out) = NULL;
         return FALSE;
 }
 
@@ -359,9 +345,9 @@ intl_check_hdr(u_int32        hdr,
             (GET_N1(hdr) != s->il->n2) ||
             (GET_N2(hdr) != s->il->n1)) {
                 intl_reset(s);
-                free_il(s->il);
+                il_free(s->il);
                 /* unscrambler of an (n1,n2) interleaver is an (n2,n1) interleaver */
-                s->il     = create_il(GET_N2(hdr),GET_N1(hdr));
+                s->il     = il_create(GET_N2(hdr),GET_N1(hdr));
                 s->src_pt = GET_PT(hdr);
         }
 }

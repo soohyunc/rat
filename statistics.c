@@ -100,6 +100,7 @@ split_block(u_int32 playout_pt,
 	int	units, i, j, k, trailing; 
 	rx_queue_element_struct	*p;
         cc_unit *ccu;
+
         /* we no longer break data units across rx elements here.
          * instead we leave channel coded data in first block and
          * remove channel coding when we are ready to decode and play 
@@ -117,11 +118,11 @@ split_block(u_int32 playout_pt,
 	}
 
         for(i=0;i<ccu->iovc;i++) {
-            ccu->iov[i].iov_base = (caddr_t)block_alloc(ccu->iov[i].iov_len);
-            memcpy(ccu->iov[i].iov_base, 
-                   data_ptr,
-                   ccu->iov[i].iov_len);
-            data_ptr += ccu->iov[i].iov_len;
+                ccu->iov[i].iov_base = (caddr_t)block_alloc(ccu->iov[i].iov_len);
+                memcpy(ccu->iov[i].iov_base, 
+                       data_ptr,
+                       ccu->iov[i].iov_len);
+                data_ptr += ccu->iov[i].iov_len;
         }
 
         for(i=0;i<trailing;i++) {

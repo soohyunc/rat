@@ -82,8 +82,7 @@ init_session(session_struct *sp)
 
 	codec_init(sp);
 	cp = get_codec_byname("DVI-8K-MONO",sp);
-        sp->cc_encoding    = PT_VANILLA;
-        sp->units_per_pckt = 2;
+        channel_set_coder(sp, PT_VANILLA);
         sp->last_depart_ts              = 1;
         sp->encodings[0]		= cp->pt;	/* user chosen encoding for primary */
 	sp->num_encodings		= 1;		/* Number of encodings in packet */
@@ -91,6 +90,7 @@ init_session(session_struct *sp)
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
         sp->device_clock                = new_time(sp->clock, cp->freq);
         assert(!(GLOBAL_CLOCK_FREQ%cp->freq));                        /* just in case someone adds weird freq codecs */
+        sp->collator                    = collator_create();
 	sp->mode         		= AUDIO_TOOL;	
         sp->input_mode                  = AUDIO_NO_DEVICE;
         sp->output_mode                 = AUDIO_NO_DEVICE;
@@ -150,6 +150,7 @@ end_session(session_struct *sp)
 {
         codec_free_dynamic_payloads(&sp->dpt_list);
         free_fast_time(sp->clock);
+        collator_destroy(sp->collator);
 }
 
 static void 
@@ -244,7 +245,7 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
                             int pt;
                             char *name = argv[i+1];
                             pt = get_cc_pt(sp[s],name);
-                            sp[s]->cc_encoding = pt;
+                            channel_set_coder(sp[s], pt);
                             config_channel_coder(sp[s], pt, argv[i+2]);
                             i += 2;
                         }

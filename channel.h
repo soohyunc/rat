@@ -47,7 +47,9 @@
 #include <sys/uio.h>
 #include "rat_types.h"
 
-#define CC_UNITS 20
+/* this is large because interleaver can make things large v. quickly */
+
+#define CC_UNITS 80
 
 struct session_tag;
 struct s_coded_unit;
@@ -56,17 +58,17 @@ struct s_cc;
 struct rx_element_tag;
 
 typedef struct s_cc_unit {
-    struct s_cc_coder *cc;
-    struct iovec iov[CC_UNITS];
-    int          iovc;
-    int          src_pt;   /* used by vanilla channel coder to know source coding*/
+        int                pt;
+        struct s_cc_coder *cc;
+        struct iovec       iov[CC_UNITS];
+        int                iovc;
 } cc_unit;
 
 typedef void (*cc_init_f)      (struct session_tag *sp, struct s_cc_state *ccs);
 typedef int  (*cc_config_f)    (struct session_tag *sp, struct s_cc_state *ccs, char *cmd);
 typedef void (*cc_query_f)     (struct session_tag *sp, struct s_cc_state *ccs, char *buf, unsigned int blen);
 typedef int  (*cc_bitrate_f)   (struct session_tag *sp, struct s_cc_state *ccs);
-typedef int  (*cc_encode_f)    (struct session_tag *sp, sample *raw, struct s_cc_unit *cu, struct s_cc_state *ccs);
+typedef int  (*cc_encode_f)    (struct session_tag *sp, cc_unit **in, int num_coded, struct s_cc_unit **out, struct s_cc_state *ccs);
 typedef void (*cc_enc_reset_f) (struct s_cc_state *ccs);
 typedef void (*cc_free_f)      (struct s_cc_state *ccs);
 typedef int  (*cc_valsplit_f)  (char *blk, unsigned int blen, struct s_cc_unit *cu, int *trailing);
@@ -77,6 +79,7 @@ typedef void (*cc_decode_f)    (struct rx_element_tag *sp, struct s_cc_state *cc
 typedef struct s_cc_coder {
     char            *name;
     int              pt;
+    int              cc_id;
 /* encoder related */
     cc_init_f        enc_init;
     cc_config_f      config;
@@ -96,19 +99,17 @@ typedef struct s_cc_coder {
 
 #define MAX_CC_PER_INTERVAL 2
 
-void  set_units_per_packet (struct session_tag *sp, int n);
-int   get_units_per_packet (struct session_tag *sp);
-
 int   get_bytes (cc_unit *u);
-
+int   get_bps   (struct session_tag *sp, int pt);
 int   get_cc_pt (struct session_tag *sp, char *name);
 int   set_cc_pt (char *name, int pt);
 
 struct s_cc_coder *get_channel_coder (int pt);
 
-int   channel_code   (struct session_tag *sp, cc_unit *u, int pt, sample *raw);
-void  channel_decode (struct rx_element_tag *rx);
-void  reset_channel_encoder (struct session_tag *sp, int cc_pt);
+void  channel_set_coder     (struct session_tag *sp, int cc_pt);
+int   channel_encode        (struct session_tag *sp, int pt, cc_unit **coded, int num_coded, cc_unit **out);
+void  channel_decode        (struct rx_element_tag *rx);
+void  channel_encoder_reset (struct session_tag *sp, int cc_pt);
 
 void  config_channel_coder (struct session_tag *sp, int pt, char *cmd);
 void  query_channel_coder  (struct session_tag *sp, int pt, char *buf, unsigned int blen);
@@ -123,10 +124,18 @@ void  clear_cc_unit         (cc_unit *u, int begin);
 void  clear_cc_encoder_states (struct s_cc_state **list);
 void  clear_cc_decoder_states (struct s_cc_state **list);
 
+struct s_collator;
+struct s_collator* collator_create(void);
+void               collator_destroy(struct s_collator *c);
+cc_unit*           collate_coded_units(struct s_collator *c, coded_unit *cu, int enc_no);
+void               collator_set_units (struct s_collator *c, int n);
+int                collator_get_units (struct s_collator *c);
+
 /* fn's only for use by channel decoders */
 
-int   add_comp_data (struct rx_element_tag *u, int pt, struct iovec *iov, int iovc);
+int    add_comp_data (struct rx_element_tag *u, int pt, struct iovec *iov, int iovc);
 struct rx_element_tag *get_rx_unit (int n, int cc_pt, struct rx_element_tag *u);
+int    fragment_sizes(codec_t *cp, int len, struct iovec *store, int *iovc, int store_size);
 
 /* defines for coded_unit_to_iov */
 

@@ -49,7 +49,7 @@ struct s_intl_coder  *new_intl_coder(session_struct *sp);
 void free_intl_coder (struct s_intl_coder *s);
 int  intl_config     (struct session_tag *sp, struct s_intl_coder *s, char *cmd);
 void intl_qconfig    (struct session_tag *sp, struct s_intl_coder *s, char *buf, unsigned int blen);
-int  intl_encode     (struct session_tag *sp, sample *raw, cc_unit *cu, struct s_intl_coder *s);
+int  intl_encode     (struct session_tag *sp, cc_unit *in, cc_unit **out, struct s_intl_coder *s);
 int  intl_bps        (struct session_tag *sp, struct s_intl_coder *s);
 void intl_decode     (struct rx_element_tag *rx, struct s_intl_coder *s);
 int  intl_valsplit   (char *blk, unsigned int blen, cc_unit *cu, int *trailing);

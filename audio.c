@@ -60,23 +60,57 @@
 /* Zero buf used for writing zero chunks during cushion adaption */
 static sample* audio_zero_buf;
 
+#define C0 +0.46363718
+#define C1 -0.92724705
+#define C2 +0.46363718
+#define D1 -1.9059465
+#define D2 +0.9114024
+
+#define IC0 +475
+#define IC1 -950
+#define IC2 +475
+#define ID1 -1952
+#define ID2 +933
+
 typedef struct s_bias_ctl {
-        u_char   req;
-        u_char   channels;
-        float    bias[2];
-        u_char   virgin;
-        int      ccnt;
+        sample y1, y2;
+        sample x1, x2;
+        u_char step;
 } bias_ctl;
 
 static bias_ctl *
 bias_ctl_create(int channels)
 {
-	bias_ctl *bc = (bias_ctl*)xmalloc(sizeof(bias_ctl));
-	memset(bc, 0 , sizeof(bias_ctl));
-        bc->req = TRUE;
-        bc->channels = channels;
-        bc->virgin   = channels;
+        bias_ctl *bc = (bias_ctl*)xmalloc(channels*sizeof(bias_ctl));
+        memset(bc, 0, 2*sizeof(bias_ctl));
+        bc->step = channels;
         return bc;
+}
+
+__inline static void
+prefilter(bias_ctl *pf, sample *buf, register int len, int step)
+{
+        register int y0, y1, y2;
+        register int x0, x1, x2;
+
+        y1 = pf->y1;
+        y2 = pf->y2;
+        x1 = pf->x1;
+        x2 = pf->x2;
+        
+        while(len-- != 0) {
+                x0 = *buf;
+                y0 = (IC0 * x0 + IC1 * x1 + IC2 * x2 - ID1 * y1 - ID2 * y2) >> 10;
+                *buf = y0 << 1;
+                buf += step;                
+                y2 = y1; y1 = y0;
+                x2 = x1; x1 = x0;
+        }
+
+        pf->y1 = y1;
+        pf->y2 = y2;
+        pf->x1 = x1;
+        pf->x2 = x2;
 }
 
 static void
@@ -85,60 +119,16 @@ bias_ctl_destroy(bias_ctl *bc)
         xfree(bc);
 }
 
-__inline static u_int32 
-audio_unbias_channel(int32 *bias, sample *buf, int len, int channel, int channels)
-{
-        int64 sum;
-        sample *buf_end;
-
-        buf    += channel - 1;
-        buf_end = buf + len;
-
-        sum = 0;
-        while(buf != buf_end) {
-                sum  += *buf;
-                *buf = *buf - *bias;
-                buf += channels;
-        }
-        sum = (sum / len) * channels;
-        
-        return (u_int32) sum;
-}
-
 void
 audio_unbias(bias_ctl *bc, sample *buf, int len)
 {
-	int		i;
-       	int32 	        sum = 0, bias;
-        
-	if (bc->req == FALSE)
-		return;
-
-        for (i = 0; i < bc->channels; i++) {
-                bias = (int) bc->bias[i];
-                sum = audio_unbias_channel(&bias, buf, len, i, bc->channels);
-                if (bc->virgin == 0) {
-                        bc->bias[i] += ((float)sum - bc->bias[i]) / 32.0;
-                        assert(abs(bc->bias[i]) < 32768.0);
-                } else {
-                        bc->virgin--;
-                        bc->bias[i] = (float)sum;
-                }
-
-                /* Auto switch off check */
-                if (abs(sum) < BD_THRESHOLD) {
-                        bc->ccnt ++;
-                } else {
-                        bc->ccnt = 0;
-                }
+        if (bc->step == 1) {
+                prefilter(bc, buf, len, 1);
+        } else {
+                len /= bc->step;
+                prefilter(bc  , buf  , len, 2);
+                prefilter(bc+1, buf+1, len, 2);
         }
-
-	if (bc->ccnt == BD_CONSECUTIVE * bc->channels) {
-                bc->req = FALSE;
-#ifdef DEBUG
-		printf("Bias correction not necessary.\n");
-#endif
-	}
 } 
 
 void
@@ -325,7 +315,7 @@ audio_device_reconfigure(session_struct *sp)
                 sp->encodings[0] = oldpt;
                 audio_device_take(sp);
         }
-        sp->cc_encoding = sp->encodings[0];
+        channel_set_coder(sp, sp->encodings[0]);
         sp->next_encoding = -1;
         ui_update(sp);
 }

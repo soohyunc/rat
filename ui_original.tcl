@@ -356,7 +356,7 @@ proc mbus_recv_source.tool {cname tool} {
 	init_source $cname
 	set TOOL($cname) $tool
 	if {[string compare $cname $my_cname] == 0} {
-	    wm title . $tool
+	    wm title . "UCL $tool"
 	}
 	cname_update $cname
 }
@@ -666,7 +666,7 @@ frame .r
 frame .l 
 frame .l.t -relief raised
 scrollbar .l.t.scr -relief flat -highlightthickness 0 -command ".l.t.list yview"
-canvas .l.t.list -highlightthickness 0 -bd 0 -relief raised -width $iwd -height 200 -yscrollcommand ".l.t.scr set" -yscrollincrement $iht
+canvas .l.t.list -highlightthickness 0 -bd 0 -relief raised -width $iwd -height 160 -yscrollcommand ".l.t.scr set" -yscrollincrement $iht
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 
@@ -1199,9 +1199,12 @@ proc sync_engine_to_ui {} {
     #transmission details
     mbus_qmsg "primary"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
     mbus_qmsg "rate"         $upp
-    mbus_qmsg "channel.code" [mbus_encode_str $channel_var]
     mbus_qmsg "redundancy"   "[mbus_encode_str $secenc] $red_off"
     mbus_qmsg "interleaving" $int_gap
+
+    # channel.code announcement  MUST go after config of channel coders communicated
+    mbus_qmsg "channel.code" [mbus_encode_str $channel_var]
+
     mbus_qmsg "silence"      $silence_var
     mbus_qmsg "agc"          $agc_var
 

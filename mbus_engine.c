@@ -196,7 +196,7 @@ static void rx_rate(char *srce, char *args, session_struct *sp)
 
 	mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_int(mbus_chan, &i)) {
-		set_units_per_packet(sp, i);
+		collator_set_units(sp->collator, i);
 	} else {
 		printf("mbus: usage \"rate <integer>\"\n");
 	}
@@ -523,7 +523,6 @@ static void
 rx_interleaving(char *srce, char *args, session_struct *sp)
 {
         int separation, cc_pt;
-        codec_t *pcp;
         char config[80];
 
 	UNUSED(srce);
@@ -531,8 +530,7 @@ rx_interleaving(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_int(mbus_chan, &separation)) {
                 cc_pt        = get_cc_pt(sp,"INTERLEAVER");
-                pcp          = get_codec(sp->encodings[0]);
-                sprintf(config, "%s/%d/%d", pcp->name, get_units_per_packet(sp), separation);
+                sprintf(config, "%d/%d", 4, separation);
                 config_channel_coder(sp, cc_pt, config);
         } else {
                 printf("mbus: usage \"interleaving <codec> <separation in units>\"\n");
@@ -567,14 +565,14 @@ rx_redundancy(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_str(mbus_chan, &codec) && 
             mbus_parse_int(mbus_chan, &offset)) {
-                assert(offset>0);
+                if (offset<=0) offset = 0;;
                 pcp    = get_codec(sp->encodings[0]);
 		rcp    = get_codec(codec_matching(mbus_decode_str(codec), pcp->freq, pcp->channels));
                 assert(rcp != NULL);
                 /* Check redundancy makes sense... */
                 rcp    = validate_redundant_codec(pcp,rcp);
-                offset = offset*get_units_per_packet(sp); /* units-to-packets */
                 sprintf(config,"%s/0/%s/%d", pcp->name, rcp->name, offset);
+                dprintf("config %s\n", config);
                 cc_pt = get_cc_pt(sp,"REDUNDANCY");
                 config_channel_coder(sp, cc_pt, config);
         } else {
@@ -740,13 +738,13 @@ static void rx_channel_code(char *srce, char *args, session_struct *sp)
                 channel = mbus_decode_str(channel);
                 switch(channel[0]) {
                 case 'N':
-                        sp->cc_encoding = get_cc_pt(sp,"VANILLA");
+                        channel_set_coder(sp, get_cc_pt(sp, "VANILLA"));
                         break;
                 case 'R':
-                        sp->cc_encoding = get_cc_pt(sp,"REDUNDANCY");
+                        channel_set_coder(sp, get_cc_pt(sp, "REDUNDANCY"));
                         break;
                 case 'I':
-                        sp->cc_encoding = get_cc_pt(sp,"INTERLEAVER");
+                        channel_set_coder(sp, get_cc_pt(sp, "INTERLEAVER"));
                         break;
                 default:
                         printf("%s %d: scheme %s not recognized.\n",__FILE__,__LINE__,channel);
