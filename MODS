@@ -1002,6 +1002,10 @@ v4.1.2  - Added echo suppression back, it fell out of code base at some point.
 	- Update to common library 1.0.10
 	* Released 13 December 1999
 
+v4.1.3	- Rename common library to libuclmmbase.a on unix
+	- Update RPM spec file
+	- Update installation instructions
+
 
 TODO -- They're features not bugs dammit!
 ----

@@ -44,6 +44,7 @@ See http://www-mice.cs.ucl.ac.uk/multimedia/software/rat
 
 %build
 
+cd rat
 cd ../tcl-8.0/unix
 ./configure
 make
@@ -63,6 +64,8 @@ cd ..
 install -m 755 rat/rat-VERSION 		/usr/bin/rat-VERSION
 install -m 755 rat/rat-VERSION-media 	/usr/bin/rat-VERSION-media
 install -m 755 rat/rat-VERSION-ui 	/usr/bin/rat-VERSION-ui
+
+install -m 755 -d /usr/doc/rat-VERSION
 install -m 644 rat/README    		/usr/doc/rat-VERSION/README
 install -m 644 rat/README.devices	/usr/doc/rat-VERSION/README.devices
 install -m 644 rat/README.files		/usr/doc/rat-VERSION/README.files
@@ -70,18 +73,15 @@ install -m 644 rat/README.gsm		/usr/doc/rat-VERSION/README.gsm
 install -m 644 rat/README.mbus		/usr/doc/rat-VERSION/README.mbus
 install -m 644 rat/README.playout	/usr/doc/rat-VERSION/README.playout
 install -m 644 rat/README.timestamps	/usr/doc/rat-VERSION/README.timestamps
+
 install -m 644 rat/man/man1/rat.1	/usr/man/man1/rat.1
 
 %files 
 /usr/bin/rat-VERSION
 /usr/bin/rat-VERSION-media
 /usr/bin/rat-VERSION-ui
-/usr/doc/rat-VERSION/README
-/usr/doc/rat-VERSION/README.devices
-/usr/doc/rat-VERSION/README.files
-/usr/doc/rat-VERSION/README.gsm
-/usr/doc/rat-VERSION/README.mbus
-/usr/doc/rat-VERSION/README.playout
-/usr/doc/rat-VERSION/README.timestamps
 /usr/man/man1/rat.1
+
+%doc rat/README rat/README.devices rat/README.files rat/README.gsm rat/README.mbus
+%doc rat/README.playout rat/README.timestamps rat/COPYRIGHT
 
