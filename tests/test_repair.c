@@ -93,7 +93,7 @@ decode_and_write(struct s_sndfile           *sf_out,
         snd_write_audio(&sf_out, 
                         (sample*)md->rep[md->nrep - 1]->data,        
                         md->rep[md->nrep - 1]->data_len / sizeof(sample));        
-       
+     
 }       
 
 static void
@@ -108,9 +108,11 @@ test_repair(struct s_sndfile *sf_out,
         media_data                 *md_prev, *md_cur;
         coded_unit                 *cu;
         int                         consec_lost = 0;
+        const codec_format_t       *cf;
 
         codec_encoder_create(cid, &encoder);
         codec_state_store_create(&decoder_states, DECODER);
+        cf = codec_get_format(cid);
 
         /* Read and write one unit to kick off with */
         media_data_create(&md_cur, 1);
@@ -132,11 +134,24 @@ test_repair(struct s_sndfile *sf_out,
                         memset(cu, 0, sizeof(coded_unit));
 
                         /* Loss happens - invoke repair */
-                        repair(repair_type,
-                               consec_lost,
-                               decoder_states,
-                               md_prev,
-                               cu);
+                        if (repair_type != REPAIR_TYPE_NONE) {
+                                cu->id = cid;
+                                repair(repair_type,
+                                       consec_lost,
+                                       decoder_states,
+                                       md_prev,
+                                       cu);
+                        } else {
+
+                                /* Create a silent unit */
+                                cu->id = codec_get_native_coding((u_int16)cf->format.sample_rate,
+                                                                 (u_int16)cf->format.channels);
+                                cu->state     = NULL;
+                                cu->state_len = 0;
+                                cu->data      = (u_char*)block_alloc(cf->format.bytes_per_block);
+                                cu->data_len  = cf->format.bytes_per_block;
+                                memset(cu->data, 0, cu->data_len);
+                        }
 
                         /* Add repaired audio to frame */
                         md_cur->rep[md_cur->nrep] = cu;
