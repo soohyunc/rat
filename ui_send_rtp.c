@@ -160,7 +160,7 @@ void
 ui_send_rtp_ssrc(session_t *sp, char *addr)
 {
 	if (!sp->ui_on) return;
-	mbus_qmsgf(sp->mbus_engine, addr, TRUE, "rtp.ssrc", "%08lx", rtp_my_ssrc(sp->rtp_session[0]));
+	mbus_qmsgf(sp->mbus_engine, addr, TRUE, "rtp.ssrc", "\"%08lx\"", rtp_my_ssrc(sp->rtp_session[0]));
 }
 
 void
