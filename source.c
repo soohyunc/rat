@@ -67,9 +67,14 @@ typedef struct s_source {
         struct s_pb                *media;
         struct s_pb_iterator       *media_pos;
         struct s_converter         *converter;
+        /* fine grained playout buffer adjustment variables - attempts to correct for clock skew */
         skew_t 			    skew;
         ts_t   			    skew_adjust;
         int32  			    skew_offenses;
+        /* b/w estimation variables */
+        u_int32                     byte_count;
+        ts_t                        byte_count_start;
+        double                      bps;
 } source;
 
 /* A linked list is used for sources and this is fine since we mostly
@@ -80,7 +85,6 @@ typedef struct s_source_list {
         source  sentinel;
         u_int16 nsrcs;
 } source_list;
-
 
 /****************************************************************************/
 /* Source List functions.  Source List is used as a container for sources   */
@@ -338,6 +342,8 @@ source_reconfigure(source        *src,
                 c.to_channels   = out_channels;
                 converter_create(conv_id, &c, &src->converter);
         }
+        src->byte_count = 0;
+        src->bps        = 0.0;
 }
 
 void
@@ -542,7 +548,6 @@ source_process_packets(source *src)
                 }
                 xfree(data);
         }
-
 }
 
 int
@@ -552,9 +557,41 @@ source_add_packet (source *src,
                    u_int8  payload,
                    ts_t    playout)
 {
+        static ts_t bw_avg_period;
+        static int inited;
+        ts_t delta;
+        
+        if (!inited) {
+                bw_avg_period = ts_map32(8000, 8000); /* one second */
+                inited        = TRUE;
+        }
+
+        /* Update b/w estimate */
+        if (src->byte_count == 0) {
+                src->byte_count_start = playout;
+        }
+        src->byte_count += ((rtp_packet*)pckt)->data_len;
+        delta = ts_sub(playout, src->byte_count_start);
+        
+        if (ts_gt(delta, bw_avg_period)) {
+                double this_est;
+                this_est = 8.0 * src->byte_count * 1000.0/ ts_to_ms(delta);
+                if (src->bps == 0.0) {
+                        src->bps = this_est;
+                } else {
+                        src->bps += (this_est - src->bps)/8.0;
+                }
+                src->byte_count = 0;
+        }
+
         return pktbuf_enqueue(src->pktbuf, playout, payload, pckt, pckt_len);
 }
 
+double 
+source_get_bps(source *src)
+{
+        return src->bps;
+}
 
 /* recommend_drop_dur does quick pattern match with audio that is
  * about to be played i.e. first few samples to determine how much
