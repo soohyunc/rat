@@ -398,6 +398,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 				if (pt != -1) {
 					debug_msg("Configure interleaver %d %s\n", pt, argv[i+1]);
 					config_channel_coder(sp[s], pt, argv[i+1]);
+					channel_set_coder(sp[s], pt);
 					ui_update_interleaving(sp[s]);
 				} else {
 					printf("Can't determine interleaver payload type\n");
@@ -414,6 +415,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 				sprintf(cfg, "%s/0/%s", pcp->name, argv[i+1]);
 				debug_msg("Configure redundancy %s\n", cfg);
                             	config_channel_coder(sp[s], pt, cfg);
+				channel_set_coder(sp[s], pt);
 				ui_update_channel(sp[s]);
 				ui_update_primary(sp[s]);
 				ui_update_redundancy(sp[s]);
@@ -443,11 +445,12 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 					/* This is not a valid codec name. One last chance: it might be a */
 					/* combined codec and redundancy specifier such as "dvi+lpc" used */
 					/* by sdr. Try to parse it that way, just in case...        [csp] */
-					char *pri_name = strtok(argv[i+1], "+");
-					char *sec_name = strtok(NULL, "+");
+					char *pri_name = strtok(argv[i+1], "/");
+					char *sec_name = strtok(NULL, "/");
 					int   pri_pt, sec_pt;
 					codec_t *pri_cp, *sec_cp;
 					char     cfg[80];
+					int	red_pt;
 
 					if (pri_name == NULL || sec_name == NULL) {
 						printf("Unknown codec\n");
@@ -466,10 +469,12 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 					sp[s]->num_encodings = 1;
 					sprintf(cfg, "%s/0/%s/1", pri_cp->name, sec_cp->name);
 					debug_msg("Configuring codec+redundancy: %s+%s\n", pri_name, sec_name);
-					config_channel_coder(sp[s], get_cc_pt(sp[s], "redundancy"), cfg);
-					ui_update_channel(sp[s]);
+					red_pt = get_cc_pt(sp[s], "redundancy");
+					config_channel_coder(sp[s], red_pt, cfg);
+					channel_set_coder(sp[s], red_pt);
 					ui_update_primary(sp[s]);
 					ui_update_redundancy(sp[s]);
+					ui_update_channel(sp[s]);
                                 }
 				i++;
 			}
