@@ -239,6 +239,9 @@ ui_update_input_port(session_struct *sp)
 	case AUDIO_LINE_IN:
 		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "input device line_in", FALSE);
 		break;
+	case AUDIO_CD:
+		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "input device cd", FALSE);
+		break;
 	default:
 		fprintf(stderr, "Invalid input port!\n");
 		return ;
@@ -403,6 +406,8 @@ cb_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 #include "xbm/ucl.xbm"
 #include "xbm/mic.xbm"
 #include "xbm/mic_mute.xbm"
+#include "xbm/cd.xbm"
+#include "xbm/cd_mute.xbm"
 #include "xbm/speaker.xbm"
 #include "xbm/speaker_mute.xbm"
 #include "xbm/head.xbm"
@@ -505,6 +510,8 @@ ui_init(session_struct *sp, int argc, char **argv)
 	Tk_DefineBitmap(interp, Tk_GetUid("ucl"), ucl_bits, ucl_width, ucl_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("mic"), mic_bits, mic_width, mic_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("mic_mute"), mic_mute_bits, mic_mute_width, mic_mute_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("cd"), cd_bits, cd_width, cd_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("cd_mute"), cd_mute_bits, cd_mute_width, cd_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("speaker"), speaker_bits, speaker_width, speaker_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("speaker_mute"), speaker_mute_bits, speaker_mute_width, speaker_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("head"), head_bits, head_width, head_height);
