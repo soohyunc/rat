@@ -176,6 +176,16 @@ case "$target" in
 		 AC_DEFINE(HAVE_OSPREY_AUDIO)])
 	;;
 *linux*)
+	# Do we have telephony drivers?
+	AC_CHECK_HEADER(linux/telephony.h,[
+		AC_MSG_CHECKING([for recent telephony drivers])
+		AC_EGREP_HEADER(PHONE_PLAY_VOLUME_LINEAR, linux/telephony.h,[ 
+			AC_MSG_RESULT(present)
+			AU_OBJ="$AU_OBJ auddev_ixj.o"
+			AC_DEFINE(HAVE_IXJ_AUDIO)
+		],AC_MSG_RESULT(missing))
+	])
+	# Do we have ALSA?
 	AC_CHECK_HEADER(sys/asoundlib.h,[
 		AU_OBJ="$AU_OBJ auddev_alsa.o"
 		AU_LIB="$AU_LIB /usr/lib/libasound.a"
@@ -184,6 +194,7 @@ case "$target" in
 		# works for those cards which are not supported natively
 		AC_DEFINE(HAVE_OSS_AUDIO)
 	])
+	# Default is to use OSS drivers...
 	AU_OBJ="$AU_OBJ auddev_oss.o"
 	AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
 	AC_DEFINE(HAVE_OSS_AUDIO)

@@ -75,6 +75,9 @@
 #undef HAVE_OSPREY_AUDIO
 #undef HAVE_MACHINE_PCAUDIOIO_H
 #undef HAVE_ALSA_AUDIO
+#undef HAVE_IXJ_AUDIO
+
+#undef HAVE_G728
 
 #undef HAVE_IPv6
 
@@ -97,9 +100,6 @@
 
 /* Define if you have the <soundcard.h> header file.  */
 #undef HAVE_SOUNDCARD_H
-
-/* Define to include G.728 functions in codec table. */
-#undef HAVE_G728
 
 /* Define if you have the <stdint.h> header file.  */
 #undef HAVE_STDINT_H

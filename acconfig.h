@@ -49,6 +49,9 @@
 #undef HAVE_OSPREY_AUDIO
 #undef HAVE_MACHINE_PCAUDIOIO_H
 #undef HAVE_ALSA_AUDIO
+#undef HAVE_IXJ_AUDIO
+
+#undef HAVE_G728
 
 #undef HAVE_IPv6
 
