@@ -173,7 +173,7 @@ static socket_udp *udp_init4(char *addr, u_int16 port, int ttl)
         }
 #endif
 	s_in.sin_family      = AF_INET;
-	s_in.sin_addr.s_addr = htonl(INADDR_ANY);
+	s_in.sin_addr.s_addr = INADDR_ANY;
 	s_in.sin_port        = htons(port);
 	if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
 		socket_error("bind");
@@ -183,8 +183,8 @@ static socket_udp *udp_init4(char *addr, u_int16 port, int ttl)
 		char            loop = 1;
 		struct ip_mreq  imr;
 
-		imr.imr_multiaddr.s_addr = htonl(s->addr4.s_addr);
-		imr.imr_interface.s_addr = htonl(INADDR_ANY);
+		imr.imr_multiaddr.s_addr = s->addr4.s_addr;
+		imr.imr_interface.s_addr = INADDR_ANY;
 
 		if (setsockopt(s->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
 			socket_error("setsockopt IP_ADD_MEMBERSHIP");
@@ -216,7 +216,7 @@ static int udp_send4(socket_udp *s, char *buffer, int buflen)
 	assert(buflen > 0);
 
 	s_in.sin_family      = AF_INET;
-        s_in.sin_addr.s_addr = htonl(s->addr4.s_addr);
+        s_in.sin_addr.s_addr = s->addr4.s_addr;
 	s_in.sin_port        = htons(s->port);
 	if ((ret = sendto(s->fd, buffer, buflen, 0, (struct sockaddr *) &s_in, sizeof(s_in))) < 0) {
 		socket_error("udp_send4");
