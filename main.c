@@ -133,7 +133,7 @@ main(int argc, char *argv[])
 	}
 
         if (sp[0]->ui_on) {
-		mbus_ui_init(mbus_ui_addr, sp[i]->mbus_channel);
+		mbus_ui_init(mbus_ui_addr, sp[0]->mbus_channel);
 		tcl_init(sp[0], argc, argv, mbus_engine_addr);
 	} else {
 		strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);

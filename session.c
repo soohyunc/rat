@@ -327,7 +327,6 @@ parse_options_transcoder(int argc, char *argv[], session_struct *sp[])
 
 	for (i = 0; i < 2; i++) {
 		/* General setup... */
-		sp[i]->ui_on         = FALSE;
 		sp[i]->playing_audio = TRUE;
 		sp[i]->agc_on        = FALSE;
 		/* addr */
