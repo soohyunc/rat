@@ -1146,6 +1146,7 @@ pack $i.cc.int.zz.l $i.cc.int.zz.m -fill x -expand 1
 
 
 # Reception Pane ##############################################################
+set repair_schemes [list {none} {repetition} {pattern-match}]
 set i .prefs.pane.reception
 frame $i 
 frame $i.r -relief sunken
@@ -1155,7 +1156,19 @@ pack $i.r -side top -fill x -pady 0 -ipady 1
 pack $i.o -side top -fill both  -pady 1
 pack $i.c -side top -fill both  -pady 1 -expand 1
 label $i.r.l -text "Repair Scheme:"
-tk_optionCmdMenu $i.r.m repair_var {none} {repetition} {pattern-match}
+tk_optionCmdMenu $i.r.m repair_var $repair_schemes
+
+proc validate_repair {} {
+#this function should not be here and should not exist either
+	global repair_var repair_schemes
+	foreach i $repair_schemes {
+		if {[string compare $i $repair_var] == 0} {
+			return
+		}
+	}
+	set repair_var [lindex $repair_schemes 1]
+}
+
 
 label $i.r.ls -text "Sample Rate Conversion"
 tk_optionCmdMenu $i.r.ms convert_var {None}
@@ -1690,6 +1703,8 @@ proc load_settings {} {
 
     # reception
     load_setting attr audioRepair       repair_var    "repetition"
+	validate_repair
+
     load_setting attr audioLimitPlayout limit_var     "0"
     load_setting attr audioMinPlayout   min_var       "0"
     load_setting attr audioMaxPlayout   max_var       "2000"
