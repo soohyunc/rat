@@ -234,7 +234,10 @@ static int parse_options_early(int argc, const char **argv)
         
         /* 
          * Validate destination address.  Do it here before launching 
-         * sub-processes and mbus.
+         * sub-processes and mbus.  This only checks the last argument
+	 * for being a valid address.  In the case of layering this 
+	 * will not be the only one, but we have to parse all args to
+	 * find this out. 
          */     
 	return address_is_valid(argv[argc-1]);
 }
@@ -491,7 +494,7 @@ parse_addr(char *arg, char **addr, int *rx_port, int *tx_port)
         char *token;
         int   port;
 	
-	if (address_is_valid == FALSE) {
+	if (address_is_valid(arg) == FALSE) {
 		*addr    = NULL;
 		*rx_port = 0;
 		*tx_port = 0;
