@@ -310,6 +310,11 @@ gsm_decoding(coded_unit *c, sample *data, state_t *s, codec_t *cp)
  *             48000Hz 120 - 139
  */
 
+/* If you change the short_names of the dynamically detected codecs
+ * here, update the files that add fn's to this table, i.e.
+ * G723.1, G728.
+ */
+
 static codec_t codec_list[] = {
 	{"LPC-8K-MONO", "LPC", 0, 7, 8000, 2, 1, 160, 
          0, LPCTXSIZE, 

@@ -1,7 +1,7 @@
 /* 
- * Copyright Orion Hodson O.Hodson@cs.ucl.ac.uk
- * University College London, 1998.
- */
+* Copyright Orion Hodson O.Hodson@cs.ucl.ac.uk
+* University College London, 1998.
+*/
 
 #ifdef WIN32
 #include "config.h"
@@ -22,16 +22,46 @@ static int nCodecs, n ;
 #define CODEC_ACM_FRAME  4
 #define CODEC_ACM_SAMPLE 8
 
+typedef void(*acm_codec_found)(HACMDRIVERID hadid, char *szRatShortName);
+
+void acm_g_723_1_6400_add(HACMDRIVERID, char *);
+void acm_g_723_1_5333_add(HACMDRIVERID, char *);
+
+typedef struct {
+        char szShortName[32];
+        char szRATCodecName[32]; /* This has to match entry in codec.c */
+        WORD  nSamplesPerSec;
+        WORD  nChannels;
+        WORD  nAvgBytesPerSec;
+        acm_codec_found add_codec;
+} acm_codec_t;
+
+/* These are codecs in the codec table in codec.c.
+*
+* A random curiosity is that the ITU call the upper
+* bitrate G723.1 a 6.3kbs coder in all documentation
+* whereas microsoft call it 6.4kbs coder and it is :-)
+*/
+
+#define ACM_MAX_DYNAMIC 2
+
+acm_codec_t known_codecs[] = {
+        {"Microsoft G.723.1", "G723.1(6.3kb/s)", 8000, 1, 800, acm_g_723_1_6400_add},
+        {"Microsoft G.723.1", "G723.1(5.3kb/s)", 8000, 1, 666, acm_g_723_1_5333_add}
+};
+
+static HACMDRIVERID hDrvID[ACM_MAX_DYNAMIC];
+
 static int 
 acmAcceptableRate(int rate) 
 {
-/* If you want to add multiples of 11025 this code should not break here */
+        /* If you want to add multiples of 11025 this code should not break here */
         static const int smplRates[] = {8000, 16000, 32000, 48000};
         static const int nRates = 4;
         int i;
         for(i = 0; i<nRates; i++)
                 if (smplRates[i] == rate) return TRUE;
-        return FALSE;
+                return FALSE;
 }
 
 static void
@@ -39,7 +69,7 @@ acmFrameMetrics(HACMSTREAM has, WORD wBitsPerSample, DWORD dwSamplesPerSec, DWOR
 {
         DWORD dwSrcSize = wBitsPerSample/8, dwDstSize = 0;
         MMRESULT mmr = 0;
-
+        
         while(dwDstSize == 0 && (mmr == 0 || mmr == ACMERR_NOTPOSSIBLE)) {
                 dwSrcSize += wBitsPerSample/8;
                 mmr = acmStreamSize(has, dwSrcSize, &dwDstSize, ACM_STREAMSIZEF_SOURCE);
@@ -66,18 +96,21 @@ acmFrameMetrics(HACMSTREAM has, WORD wBitsPerSample, DWORD dwSamplesPerSec, DWOR
         (*piSamplesPerFrame) = dwSamplesPerSec * dwDstSize / dwBytesPerSec;
 }
 
+static ACMDRIVERDETAILS add;
+
 BOOL CALLBACK 
 acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance, DWORD fdwSupport)
 {
         MMRESULT mmr;
         LPWAVEFORMATEX lpwfx;
+        int i;
         /* So we have a format now we need frame sizes (if pertinent)   */
         
         lpwfx = pafd->pwfx;
-
+        
         /* We use a crude guess at whether format of pafd->pwfx is PCM,
-         * only interested in 16-bit (rat's native format) PCM to other 
-         * format (and vice-versa) here.
+        * only interested in 16-bit (rat's native format) PCM to other 
+        * format (and vice-versa) here.
         */
         if (acmAcceptableRate(lpwfx->nSamplesPerSec)) {
                 HACMSTREAM   has = 0;
@@ -91,7 +124,7 @@ acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance,
                 } else   {
                         iType = CODEC_ACM_FRAME;
                 } 
-
+                
                 wfxPCM.wFormatTag      = WAVE_FORMAT_PCM;
                 wfxPCM.nChannels       = lpwfx->nChannels;
                 wfxPCM.nSamplesPerSec  = lpwfx->nSamplesPerSec;
@@ -99,28 +132,37 @@ acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance,
                 wfxPCM.nBlockAlign     = wfxPCM.nChannels * wfxPCM.wBitsPerSample / 8;
                 wfxPCM.nAvgBytesPerSec = wfxPCM.nBlockAlign * wfxPCM.nSamplesPerSec;
                 wfxPCM.cbSize          = 0;
-            
+                
                 mmr = acmStreamOpen(&has, hadActive, &wfxPCM, lpwfx, NULL, 0L, 0L, 0);
                 /* We usually fail because we cannot convert format in real-time, e.g.
-                 * MPEG Layer III on this machine above 16kHz.
-                 */
+                * MPEG Layer III on this machine above 16kHz.  These don't appear
+                * to be related to machine type (?).
+                */
                 if (0 == mmr) {
                         iIOAvail |= CODEC_ACM_INPUT;
                         switch(iType) {
                         case CODEC_ACM_FRAME:
                                 /* In nearly all cases Frame size is the same as alignment, but do not assume this */
                                 acmFrameMetrics(has, 
-                                                wfxPCM.wBitsPerSample,
-                                                wfxPCM.nSamplesPerSec,
-                                                pafd->pwfx->nAvgBytesPerSec, 
-                                                &iSamplesPerFrame, 
-                                                &iFrameSize);
+                                        wfxPCM.wBitsPerSample,
+                                        wfxPCM.nSamplesPerSec,
+                                        pafd->pwfx->nAvgBytesPerSec, 
+                                        &iSamplesPerFrame, 
+                                        &iFrameSize);
                                 break;
                         case CODEC_ACM_SAMPLE:
                                 
                                 break;
                         }
-                        acmStreamClose(has, 0);
+                        
+                        for(i = 0; i < ACM_MAX_DYNAMIC; i++)
+                                if (!strcmp(known_codecs[i].szShortName, add.szShortName) &&
+                                    known_codecs[i].nSamplesPerSec == wfxPCM.nSamplesPerSec &&
+                                    known_codecs[i].nChannels == wfxPCM.nChannels &&
+                                    known_codecs[i].nAvgBytesPerSec == pafd->pwfx->nAvgBytesPerSec) {
+                                        /* Do Something! */
+                                }
+                                acmStreamClose(has, 0);
                 }
                 
                 mmr = acmStreamOpen(&has, hadActive, lpwfx, &wfxPCM, NULL, 0L, 0L, ACM_STREAMOPENF_QUERY);
@@ -145,6 +187,7 @@ acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance,
                         (iIOAvail&CODEC_ACM_OUTPUT) ? 1: 0,
                         iSamplesPerFrame,
                         iFrameSize);
+                
         }
         return TRUE;
 }
@@ -152,11 +195,11 @@ acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance,
 static void
 acmCodecCaps(HACMDRIVERID hadid)
 {
-        ACMDRIVERDETAILS add;
+        
         DWORD            dwSize;
         WAVEFORMATEX    *pwf;
         ACMFORMATDETAILS afd;
-
+        
         add.cbStruct = sizeof(ACMDRIVERDETAILS);
         if (acmDriverDetails(hadid, &add, 0)) return; 
         printf("   Short name: %s\n", add.szShortName);
@@ -187,7 +230,7 @@ acmCodecCaps(HACMDRIVERID hadid)
         case MMSYSERR_INVALHANDLE: printf("invalid handle\n"); break;
         case MMSYSERR_INVALPARAM:  printf("invalid param\n");  break;
         }
-
+        
         xfree(pwf);
         acmDriverClose(hadActive,0);
 }
@@ -207,7 +250,7 @@ acmInit()
 {
         MMRESULT mmr;
         DWORD dwCodecs = 0, dwDrivers = 0;
-
+        
         mmr = acmMetrics(NULL, ACM_METRIC_COUNT_CODECS, &dwCodecs);
         if (mmr) {
                 fprintf(stderr, "ACM Codecs not available.\n");
