@@ -491,7 +491,8 @@ decode_unit(rx_queue_element_struct *u)
 	/* XXX dummy packets are not denoted explicitly, dummies have non-zero
 	 * native_counts and zero comp_counts when dummy data is calculated  */ 
 	if (u->native_count == 0) {
-		u->native_data[u->native_count] = (sample*)xmalloc(cp->channels * cp->unit_len * cp->sample_size);
+                u->native_size[u->native_count] = cp->channels * cp->unit_len * cp->sample_size;
+		u->native_data[u->native_count] = (sample*)block_alloc(u->native_size[u->native_count]);
 		u->native_count++;
 	}
 	assert(cp->decode!=NULL);
