@@ -52,7 +52,6 @@ void mbus_handler_ui(char *srce, char *cmnd, char *args, void *data)
 		if (command[i] == ']') command[i] = ')';
 	}
 
-printf("mbus_handler_ui %s\n", command);
 	ui_send(command);
 }
 
