@@ -218,15 +218,12 @@ sgi_audio_read(audio_desc_t ad, sample *buf, int samples)
         UNUSED(ad); assert(audio_fd > 0);
         
 	if (non_block) {
-		if ((len = ALgetfilled(rp)) <= 0)
+		if ((len = ALgetfilled(rp)) < format.blocksize)
 			return (0);
-		len -= len % format.blocksize;
-		if (len <= 0)
-			len = format.blocksize;
-		if (len > samples)
-			len = samples;
-	} else
+                len = min(format.blocksize, samples);
+	} else {
 		len = (long)samples;
+        }
 
 	if (len > QSIZE) {
 		fprintf(stderr, "audio_read: too big!\n");
@@ -345,7 +342,8 @@ sgi_audio_next_iport(audio_desc_t ad)
         return iport;
 }
 
-void sgi_audio_loopback(audio_desc_t ad, int gain)
+void 
+sgi_audio_loopback(audio_desc_t ad, int gain)
 {
         long pvbuf[4];
         int  pvcnt;

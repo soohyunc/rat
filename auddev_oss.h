@@ -73,4 +73,4 @@ void oss_audio_query_devices (void);       /* This fn works out what we have    
 int oss_get_device_count     (void);       /* Then this one tells us the number of 'em */
 char *oss_get_device_name    (int idx);    /* Then this one tells us the name          */
 
-#endif _AUDDEV_OSS_H_
+#endif /* _AUDDEV_OSS_H_ */

@@ -86,7 +86,7 @@ case $OSTYPE in
 	    PROFILE="-pg"
             ;;
   IRIX    ) CC="cc"
-            WFLAGS="-fullwarn"
+            WFLAGS="-fullwarn -w2"
 	    INCLUDE="-I/usr/ucl/X11/include"
 	    LDLIBS="-L/usr/lib/X11 -lX11 -laudio -lm"
 	    AUDIO="auddev_sgi.o"
