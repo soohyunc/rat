@@ -1364,7 +1364,7 @@ proc save_setting {f field var} {
 }
 
 proc save_settings {} {
-    global rtpfname win32 
+    global rtpfname win32 TOOL my_cname
 
     set f 0
     if {$win32 == 0} {
@@ -1379,6 +1379,8 @@ proc save_settings {} {
     save_setting $f rtpEmail    rtcp_email
     save_setting $f rtpPhone    rtcp_phone
     save_setting $f rtpLoc      rtcp_loc
+    save_setting $f audioTool   TOOL($my_cname)
+
     # transmission
     save_setting $f audioFrequency         freq
     save_setting $f audioChannels          channels
@@ -1453,7 +1455,7 @@ proc load_setting {attrname field var default} {
 }
 
 proc load_settings {} {
-    global rtpfname win32
+    global rtpfname win32 my_cname TOOL
 
     set attr(zero) ""
     if {$win32 == 0} {
@@ -1470,10 +1472,21 @@ proc load_settings {} {
     }
 
     # personal
-    load_setting attr rtpName  rtcp_name     "unknown"
-    load_setting attr rtpEmail rtcp_email    "unknown"
-    load_setting attr rtpPhone rtcp_phone    ""
-    load_setting attr rtpLoc   rtcp_loc      ""
+    load_setting attr rtpName   rtcp_name     "unknown"
+    load_setting attr rtpEmail  rtcp_email    "unknown"
+    load_setting attr rtpPhone  rtcp_phone    ""
+    load_setting attr rtpLoc    rtcp_loc      ""
+    load_setting attr audioTool audio_tool         ""
+
+    # If the version of the saved settings is different 
+    # from those the current version use defaults.
+    global audio_tool
+    if {$audio_tool != $TOOL($my_cname)} {
+	foreach i [array names attr audio*] {
+	    unset attr($i)
+	}
+    }
+    unset audio_tool
 
     # reception
     load_setting attr audioRepair       repair_var    "Packet Repetition"
