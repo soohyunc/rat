@@ -271,9 +271,12 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 		xfree(dbptr->sentry);
 	}
 	if (dbptr->rr != NULL) {
-		rtcp_user_rr	*rr;
-		for (rr = dbptr->rr; rr != NULL; rr = rr->next) {
+		rtcp_user_rr	*rr, *tmp_rr;
+		rr = dbptr->rr;
+		while (rr != NULL) {
+			tmp_rr = rr->next;
 			xfree(rr);
+			rr = tmp_rr;
 		}
 	}
 	xfree(dbptr);
