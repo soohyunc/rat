@@ -403,7 +403,7 @@ AC_SUBST(TK_INC)
 AC_SUBST(TK_LIB)
 
 #-----------------------------------------------------------------------------
-# Check for UCL common library
+# Check for UCL Multimedia Base (formerly common) library
 #-----------------------------------------------------------------------------
 COMMON_INC=${PARENT}/common
 COMMON_LIB=${PARENT}/common
@@ -439,15 +439,15 @@ then
 	COMMON_LIB=${COMMON_LIB}/lib
 fi
 
-AC_CHECK_LIB(common,
+AC_CHECK_LIB(uclmmbase,
 	mbus_init,
 	[
-		EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_LIB}/libcommon.a"
-		COMMON_LIB="-L${COMMON_LIB} -lcommon"
+		EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_LIB}/libuclmmbase.a"
+		COMMON_LIB="-L${COMMON_LIB} -luclmmbase"
 	],
 	[
-		echo "Could not find UCL Common library.  One of the following halted progess:"
-		echo "   (a) Common Library is not installed."
+		echo "Could not find libuclmmbase.a.  One of the following halted progess:"
+		echo "   (a) Library is not installed."
 		echo "   (b) Library is not built or not in expected location (--with-common=DIR)."
 		echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
 		exit
@@ -517,7 +517,7 @@ AC_ARG_ENABLE(debug-mem,
                 AC_DEFINE(DEBUG_MEM)
         fi])
 
-AC_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADER(ratconf.h:config.h.in)
 
 AC_OUTPUT(Makefile)
 

@@ -20,7 +20,7 @@
 /* the files where they are actually used, there would be a couple of pints */
 /* in it.                                                                   */
 
-#include "config.h"
+#include "ratconf.h"
 
 #include <stdlib.h>
 #include <unistd.h>

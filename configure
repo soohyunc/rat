@@ -3686,14 +3686,14 @@ then
 	COMMON_LIB=${COMMON_LIB}/lib
 fi
 
-echo $ac_n "checking for mbus_init in -lcommon""... $ac_c" 1>&6
-echo "configure:3691: checking for mbus_init in -lcommon" >&5
-ac_lib_var=`echo common'_'mbus_init | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for mbus_init in -luclmmbase""... $ac_c" 1>&6
+echo "configure:3691: checking for mbus_init in -luclmmbase" >&5
+ac_lib_var=`echo uclmmbase'_'mbus_init | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   ac_save_LIBS="$LIBS"
-LIBS="-lcommon -L${COMMON_LIB} $LIBS"
+LIBS="-luclmmbase -L${COMMON_LIB} $LIBS"
 cat > conftest.$ac_ext <<EOF
 #line 3699 "configure"
 #include "confdefs.h"
@@ -3722,8 +3722,8 @@ fi
 if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
   echo "$ac_t""yes" 1>&6
   
-		EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_LIB}/libcommon.a"
-		COMMON_LIB="-L${COMMON_LIB} -lcommon"
+		EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_LIB}/libuclmmbase.a"
+		COMMON_LIB="-L${COMMON_LIB} -luclmmbase"
 	
 else
   echo "$ac_t""no" 1>&6
@@ -3953,7 +3953,7 @@ done
 
 ac_given_srcdir=$srcdir
 
-trap 'rm -fr `echo "Makefile config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "Makefile ratconf.h:config.h.in" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -4138,7 +4138,7 @@ ac_eD='%g'
 if test "${CONFIG_HEADERS+set}" != set; then
 EOF
 cat >> $CONFIG_STATUS <<EOF
-  CONFIG_HEADERS="config.h"
+  CONFIG_HEADERS="ratconf.h:config.h.in"
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 fi
