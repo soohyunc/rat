@@ -1,9 +1,9 @@
 /*
- * FILE:	audwin32.c
+ * FILE:	auddev_win32.c
  *
  * Win32 audio interface for RAT.
  *
- * Written by Isidor Kouvelas and Orion Hodson
+ * Written by Orion Hodson and Isidor Kouvelas
  * Portions based on the VAT Win95 port by John Brezak.
  *
  * $Id$
@@ -575,8 +575,8 @@ audio_write(int audio_fd, sample *cp, int remain)
 
 static unsigned char audio_ready = 0;
 
-unsigned char
-is_audio_ready()
+int
+audio_is_ready()
 {
         if (audio_ready>nblks/5) {
                 debug_msg("Lots of audio available (%d blocks)\n", audio_ready);

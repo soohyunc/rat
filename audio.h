@@ -110,7 +110,8 @@ int	audio_next_iport(int audio_fd);
 int	audio_duplex(int audio_fd);
 int	audio_get_blocksize(void);
 int	audio_get_channels(void);
-int audio_get_freq(void);
+int     audio_get_freq(void);
+int     audio_is_ready(void); /* Only in auddev_win32.c */
 
 /* Stuff in audio.c */
 void	mix_init(void);
@@ -126,5 +127,5 @@ int     audio_device_take(struct session_tag *sp);
 void	audio_device_give(struct session_tag *sp);
 void    audio_device_reconfigure(struct session_tag *sp);
 void    audio_unbias(struct s_bias_ctl *bc, sample *buf, int len);
-
+void    audio_wait_for(struct session_tag *sp);
 #endif /* _RAT_AUDIO_H_ */

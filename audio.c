@@ -453,3 +453,29 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
         }
         return (read_dur);
 }
+
+void
+audio_wait_for(session_struct *sp)
+{
+#ifdef WIN32
+        DWORD   dwPeriod;
+        codec_t *cp;
+        
+        cp = get_codec_by_pt(sp->encodings[0]);
+        dwPeriod = cp->unit_len * 1000 / get_freq(sp->device_clock);
+        /* The blocks we are passing to the audio interface are of duration dwPeriod.
+         * dwPeriod is usually around 20ms (8kHz), but mmtask often doesn't give
+         * us audio that often, more like every 40ms.
+         */
+        while (!audio_is_ready()) {
+                Sleep(dwPeriod);
+        }
+        return;
+#else
+        fd_set rfds;
+        FD_ZERO(&rfds);
+        FD_SET(sp->audio_fd,&rfds);
+        select(sp->audio_fd, &rfds, NULL, NULL, NULL);
+        return;
+#endif
+}

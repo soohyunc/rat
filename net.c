@@ -358,77 +358,49 @@ network_read(session_struct    *sp,
 			sel_fd = max(sel_fd, mbus_ui_fd(TRUE));
 		}
 	}
-#if !defined(WIN32)
-	if (sp->mode == AUDIO_TOOL) {
-		sel_fd = max(sel_fd, sp->audio_fd);
-	}
-#endif
 	sel_fd++;
 
-	for (;;) {
-		FD_ZERO(&rfds);
-		FD_SET(sp->rtp_fd,  &rfds);
-		FD_SET(sp->rtcp_fd, &rfds);
-                FD_SET(mbus_engine_fd(0), &rfds);
-     		if (sp->ui_on) {
-			FD_SET(mbus_ui_fd(0),     &rfds);
-		}
-		if (sp->mbus_channel != 0) {
-                	FD_SET(mbus_engine_fd(TRUE), &rfds);
-     			if (sp->ui_on) {
-     				FD_SET(mbus_ui_fd(TRUE),     &rfds);
-			}
-		}
-#if defined(WIN32) || defined(HPUX) || defined(Linux) 
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = sp->loop_delay;
-		tvp = &timeout;
-#else
-		if ((sp->audio_fd != -1) && (sp->mode == AUDIO_TOOL)) {
-			FD_SET(sp->audio_fd, &rfds);
-			tvp = NULL;
-		} else {
-			/* If we dont have control of the audio device then */
-			/* use select to do a timeout at 20ms               */
-			timeout.tv_sec  = 0;
-			timeout.tv_usec = sp->loop_delay;
-			tvp = &timeout;
-		}
-#endif
-		if (select(sel_fd, &rfds, (fd_set *) 0, (fd_set *) 0, tvp) > 0) {
-			if (FD_ISSET(sp->rtp_fd, &rfds)) {
-				read_packets_and_add_to_queue(sp->rtp_fd, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
-			}
-			if (FD_ISSET(sp->rtcp_fd, &rfds)) {
-				read_packets_and_add_to_queue(sp->rtcp_fd, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
-			}
-                        if (FD_ISSET(mbus_engine_fd(FALSE), &rfds)) {
-     				mbus_recv(mbus_engine(FALSE), (void *) sp);
-     			}
-     			if (sp->ui_on && FD_ISSET(mbus_ui_fd(FALSE), &rfds)) {
-     				mbus_recv(mbus_ui(FALSE), (void *) sp);
-     			}
-			if (sp->mbus_channel != 0) {
-                        	if (FD_ISSET(mbus_engine_fd(TRUE), &rfds)) {
-     					mbus_recv(mbus_engine(TRUE), (void *) sp);
-     				}
-     				if (sp->ui_on && FD_ISSET(mbus_ui_fd(TRUE), &rfds)) {
-     					mbus_recv(mbus_ui(TRUE), (void *) sp);
-     				}
-			}
+        
+        FD_ZERO(&rfds);
+        FD_SET(sp->rtp_fd,  &rfds);
+        FD_SET(sp->rtcp_fd, &rfds);
+        FD_SET(mbus_engine_fd(0), &rfds);
+        if (sp->ui_on) {
+                FD_SET(mbus_ui_fd(0),     &rfds);
+        }
+        if (sp->mbus_channel != 0) {
+                FD_SET(mbus_engine_fd(TRUE), &rfds);
+                if (sp->ui_on) {
+                        FD_SET(mbus_ui_fd(TRUE),     &rfds);
                 }
-#if !defined(WIN32) && !defined(HPUX) && !defined(Linux) 
-		if (sp->mode == AUDIO_TOOL) {
-			if (sp->audio_fd == -1 || FD_ISSET(sp->audio_fd, &rfds)) {
-				break;
-			}
-		} else {
-			break;
-		}
-#else
-			break;
-#endif
-	}
+        }
+        
+        timeout.tv_sec  = 0;
+        timeout.tv_usec = sp->loop_delay;
+        tvp = &timeout;
+        
+        if (select(sel_fd, &rfds, (fd_set *) 0, (fd_set *) 0, tvp) > 0) {
+                if (FD_ISSET(sp->rtp_fd, &rfds)) {
+                        read_packets_and_add_to_queue(sp->rtp_fd, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
+                }
+                if (FD_ISSET(sp->rtcp_fd, &rfds)) {
+                        read_packets_and_add_to_queue(sp->rtcp_fd, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
+                }
+                if (FD_ISSET(mbus_engine_fd(FALSE), &rfds)) {
+                        mbus_recv(mbus_engine(FALSE), (void *) sp);
+                }
+                if (sp->ui_on && FD_ISSET(mbus_ui_fd(FALSE), &rfds)) {
+                        mbus_recv(mbus_ui(FALSE), (void *) sp);
+                }
+                if (sp->mbus_channel != 0) {
+                        if (FD_ISSET(mbus_engine_fd(TRUE), &rfds)) {
+                                mbus_recv(mbus_engine(TRUE), (void *) sp);
+                        }
+                        if (sp->ui_on && FD_ISSET(mbus_ui_fd(TRUE), &rfds)) {
+                                mbus_recv(mbus_ui(TRUE), (void *) sp);
+                        }
+                }
+        }       
 }
 
 void network_process_mbus(session_struct *sp[], int num_sessions, int delay)

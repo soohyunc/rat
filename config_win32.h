@@ -148,6 +148,7 @@ int getuid(void);
 int getgid(void);
 int getpid(void);
 int nice(int);
+int usleep(unsigned int);
 time_t time(time_t *);
 
 int  RegGetValue(HKEY *, char *, char*, char*, int);

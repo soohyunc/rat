@@ -65,7 +65,7 @@
 #include "mbus_engine.h"
 
 int should_exit = FALSE;
-int thread_pri  = 2;		/* Time critical */
+int thread_pri  = 2; /* Time Critical */
 
 #ifndef WIN32
 static void
@@ -262,6 +262,13 @@ main(int argc, char *argv[])
                         if (sp[i]->next_encoding != -1) {
                                 network_process_mbus(sp, num_sessions, 100);
                                 audio_device_reconfigure(sp[i]);
+                        }
+                        
+                        /* Choke CPU usage */
+                        if (sp[i]->have_device) {
+                                audio_wait_for(sp[i]);
+                        } else {
+                                usleep(20000);
                         }
 		}
         }

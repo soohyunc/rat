@@ -473,4 +473,11 @@ strncasecmp(const char *s1, const char *s2, int len)
         return (match);
 }
 
+int 
+usleep(unsigned int usec)
+{
+        DWORD dur = usec/1000;
+        if (dur) Sleep(dur);
+        return 0;
+}
 #endif /* WIN32 */
