@@ -247,7 +247,7 @@ static void load_init(void)
 	/* allocated, so it's not necessary to free it afterwards.                      */
 
         i = 0;
-        while ((sfile == settings_file_open(i, "r")) != NULL) {
+        while ((sfile = settings_file_open(i, "r")) != NULL) {
                 buffer = xmalloc(SETTINGS_READ_SIZE+1);
                 buffer[100] = '\0';
                 while(fgets(buffer, SETTINGS_READ_SIZE, sfile) != NULL) {
