@@ -144,14 +144,6 @@ mix_zero(mix_struct *ms, int offset, int len)
         xmemchk();
 }
 
-/*
- * This function takes a `unit' of data, up-/down-samples it as needed
- * to match the audio device, and mixes it ready for playout.
- *
- * This function assumes that packets come in order without missing or
- * duplicates! Starts of talkspurts should always be signaled.
- */
-
 void
 mix_process(mix_struct          *ms,
             rtcp_dbentry        *dbe,
@@ -186,6 +178,7 @@ mix_process(mix_struct          *ms,
                 
         /* Check for overlap in decoded frames */
         expected_playout = ts_add(dbe->last_mixed, frame_period);
+
         if (!ts_eq(expected_playout, playout)) {
                 if (ts_gt(expected_playout, playout)) {
                         delta = ts_sub(expected_playout, playout);
@@ -199,7 +192,9 @@ mix_process(mix_struct          *ms,
                                 debug_msg("Skipped unit\n");
                         }
                 } else {
-                        debug_msg("Gap between units %d %d\n", expected_playout.ticks, playout.ticks);
+                        if (expected_playout.ticks - playout.ticks != 0) {
+                                debug_msg("Gap between units %d %d\n", expected_playout.ticks, playout.ticks);
+                        }
                 }
         }
 

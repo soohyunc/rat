@@ -409,7 +409,7 @@ luigi_audio_get_iport(audio_desc_t ad)
 int
 luigi_audio_next_iport(audio_desc_t ad)
 {
-        int target;
+        int target = 0;
         UNUSED(ad); assert(audio_fd > 0);
 
 	switch (iport) {

@@ -163,10 +163,12 @@ vanilla_encoder_encode (u_char      *state,
         pb_iterator_create(in, &pi);
         assert(pi != NULL);
 
-        while(pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout)) {
+        while(pb_iterator_advance(pi)) {
                 /* Remove element from playout buffer - it belongs to
                  * the vanilla encoder now.
                  */
+                pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout);
+                assert(m != NULL);
                 n++;
                 if (ve->nelem == 0) {
                         /* If it's the first unit make a note of it's
@@ -246,7 +248,6 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
         p += data_len;
 
         pb_add(out, (u_char *)m, sizeof(media_data), playout);
-
         /* Now do other units which do not have state*/
         playout_step = ts_map32(cf->format.sample_rate, codec_get_samples_per_frame(id));
         while(p < end) {

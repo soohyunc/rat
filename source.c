@@ -517,6 +517,7 @@ source_process(source *src, struct s_mix_info *ms, int repair_type, ts_t now)
 
                 if (ts_gt(playout, now)) {
                         /* This playout point is after now so stop */
+                        pb_iterator_retreat(src->media_pos);
                         break;
                 }
 
@@ -540,7 +541,6 @@ source_process(source *src, struct s_mix_info *ms, int repair_type, ts_t now)
                         memset(cu, 0, sizeof(coded_unit));
                         cs = codec_state_store_get(src->codec_states, md->rep[0]->id);
                         codec_decode(cs, md->rep[0], cu);
-                        debug_msg("Decoded unit t = %d\n", playout.ticks);
                         xmemchk();
                         md->rep[md->nrep] = cu;
                         md->nrep++;
