@@ -37,7 +37,21 @@
 static void 
 usage(void)
 {
-	printf("Usage: rat [options] -t <ttl> <addr>/<port>\n");
+#ifdef WIN32
+        char win_usage[] = "\
+RAT is a multicast (or unicast) audio tool. It is best to start it\n\
+using a multicast directory tool, like sdr or multikit. If desired RAT\n\
+can be launched from the command line using:\n\n\
+rat <address>/<port>\n\n\
+where <address> is machine name, or a multicast IP address, and <port> is\n\
+the connection identifier (a number between 1024-65536).\n\n\
+For more details see:\n\n\
+http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/FAQ.html\
+";
+        MessageBox(NULL, win_usage, "RAT Usage", MB_ICONINFORMATION | MB_OK);
+#else
+        printf("Usage: rat [options] -t <ttl> <addr>/<port>\n");
+#endif
 	exit(1);
 }
 
