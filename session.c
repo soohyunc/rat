@@ -54,8 +54,6 @@
 #include "parameters.h"
 
 extern char ui_original[];
-extern char ui_anna[];
-extern char ui_relate[];
 
 void
 init_session(session_struct *sp)
@@ -285,12 +283,6 @@ parse_options_audio_tool(int argc, char *argv[], session_struct *sp)
 		if (strcmp(argv[i], "-no_ui") == 0) {
                         sp->ui_on = FALSE;
                 }
-		if ((strcmp(argv[i], "-ui") == 0) && (argc > i+1)) {
-			if (strcmp(argv[i+1], "original") == 0) sp->ui_script = ui_original;
-			if (strcmp(argv[i+1],     "anna") == 0) sp->ui_script = ui_anna;
-			if (strcmp(argv[i+1],   "relate") == 0) sp->ui_script = ui_relate;
-			if (strcmp(argv[i+1],   "ReLaTe") == 0) sp->ui_script = ui_relate;
-		}
 		if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
        			if (strcmp(argv[i+1], "on") == 0) {
        				sp->agc_on = TRUE;
