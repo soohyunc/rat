@@ -1,7 +1,7 @@
 /*
  * FILE:    main-engine.c
  * PROGRAM: RAT
- * AUTHORS: Vicky Hardman + Isidor Kouvelas + Colin Perkins + Orion Hodson
+ * AUTHOR:  Colin Perkins 
  * 
  * $Revision$
  * $Date$
@@ -84,9 +84,12 @@ static void parse_args(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	int            	 seed;
+	u_int32		 cur_time, ntp_time;
+	int            	 seed, i, elapsed_time, alc;
 	session_struct 	*sp;
+	struct timeval   time;
 	struct timeval	 timeout;
+        u_int8		 j;
 
         seed = (gethostid() << 8) | (getpid() & 0xff);
 	srand48(seed);
@@ -147,7 +150,7 @@ int main(int argc, char *argv[])
 
 	/* At this point we know the mbus address of our controller, and have conducted */
 	/* a successful rendezvous with it. It will now send us configuration commands. */
-	while (!should_exit) {
+	while (sp->rtcp_socket == NULL) {
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 250000;
 		mbus_recv(sp->mbus_engine, sp, &timeout);
@@ -155,9 +158,172 @@ int main(int argc, char *argv[])
 		mbus_heartbeat(sp->mbus_engine, 1);
 		mbus_retransmit(sp->mbus_engine);
 	}
+	debug_msg("Done configuration\n");
 
 	settings_load_late(sp);
 
+/*************** new stuff *****************/
+
+	ui_controller_init(sp, sp->mbus_engine_addr, sp->mbus_ui_addr, sp->mbus_video_addr);
+        ui_initial_settings(sp);
+	ui_update(sp);
+	network_process_mbus(sp);
+        
+#ifdef NDEF
+        if (sp->new_config != NULL) {
+                network_process_mbus(sp);
+                audio_device_reconfigure(sp);
+                network_process_mbus(sp);
+        }
+#endif
+
+#ifdef NDEF
+        ui_final_settings(sp);
+	network_process_mbus(sp);
+#endif
+
+        if (tx_is_sending(sp->tb)) {
+               	tx_start(sp->tb);
+        }
+
+        /* dump buffered packets - it usually takes at least 1 second
+         * to this far, all packets read thus far should be ignored.  
+         * This stops lots of "skew" adaption at the start because the
+         * playout buffer is too long.
+         */
+        for(j = 0; j < sp->layers; j++) {
+                read_and_discard(sp->rtp_socket[j]);
+        }
+	read_and_discard(sp->rtcp_socket);
+
+	xdoneinit();
+
+	while (!should_exit) {
+		elapsed_time = audio_rw_process(sp, sp, sp->ms);
+		cur_time = get_time(sp->device_clock);
+		ntp_time = ntp_time32();
+		sp->cur_ts   = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), cur_time);
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 0;
+
+                udp_fd_zero();
+                for(j = 0; j < sp->layers; j++) {
+                        udp_fd_set(sp->rtp_socket[j]);
+                }
+                udp_fd_set(sp->rtcp_socket);
+                        
+                while (udp_select(&timeout) > 0) {
+                        for(j = 0; j < sp->layers; j++) {
+                                if (udp_fd_isset(sp->rtp_socket[j])) {
+                                        read_and_enqueue(sp->rtp_socket[j], sp->cur_ts, sp->rtp_pckt_queue, PACKET_RTP);
+                                }
+                        }
+                        if (udp_fd_isset(sp->rtcp_socket)) {
+                                read_and_enqueue(sp->rtcp_socket, sp->cur_ts, sp->rtcp_pckt_queue, PACKET_RTCP);
+                        }
+                }
+                        
+                tx_process_audio(sp->tb);
+                if (tx_is_sending(sp->tb)) {
+                        tx_send(sp->tb);
+                }
+
+		/* Need to either:                               *
+		 * (i) join layers together by this stage        *
+		 * (ii) modify statistics_process to join layers */
+                        
+		/* Process incoming packets */
+		statistics_process(sp, sp->rtp_pckt_queue, sp->cushion, ntp_time, sp->cur_ts);
+
+		/* Process and mix active sources */
+		if (sp->playing_audio) {
+			struct s_source *s;
+			int sidx, scnt;
+			ts_t cush_ts;
+			
+			cush_ts = ts_map32(get_freq(sp->device_clock), cushion_get_size(sp->cushion));
+			cush_ts = ts_add(sp->cur_ts, cush_ts);
+			scnt = (int)source_list_source_count(sp->active_sources);
+			for(sidx = 0; sidx < scnt; sidx++) {
+				s = source_list_get_source_no(sp->active_sources, sidx);
+				if (source_relevant(s, sp->cur_ts)) {
+					source_check_buffering(s, sp->cur_ts);
+					source_process(s, sp->ms, sp->render_3d, sp->repair, cush_ts);
+					source_audit(s);
+				} else {
+					/* Remove source as stopped */
+					ui_info_deactivate(sp, source_get_rtcp_dbentry(s));
+					source_remove(sp->active_sources, s);
+					sidx--;
+					scnt--;
+				}
+			}
+		}
+
+		service_rtcp(sp, NULL, sp->rtcp_pckt_queue, cur_time, ntp_time);
+
+		if (alc >= 50) {
+			if (!sp->lecture && tx_is_sending(sp->tb) && sp->auto_lecture != 0) {
+				gettimeofday(&time, NULL);
+				if (time.tv_sec - sp->auto_lecture > 120) {
+					sp->auto_lecture = 0;
+					debug_msg("Dummy lecture mode\n");
+				}
+			}
+			alc = 0;
+		} else {
+			alc++;
+		}
+		if (sp->audio_device) ui_update_powermeters(sp, sp->ms, elapsed_time);
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 0;
+		mbus_send(sp->mbus_engine); 
+		mbus_recv(sp->mbus_engine, (void *) sp, &timeout);
+		mbus_retransmit(sp->mbus_engine);
+		mbus_heartbeat(sp->mbus_engine, 10);
+
+		if (sp->new_config != NULL) {
+			/* wait for mbus messages - closing audio device
+			 * can timeout unprocessed messages as some drivers
+			 * pause to drain before closing.
+			 */
+			network_process_mbus(sp);
+			if (audio_device_reconfigure(sp)) {
+				/* Device reconfigured so
+				 * decode paths of all sources
+				 * are misconfigured.  Delete
+				 * and incoming data will
+				 * drive correct new path */
+				source_list_clear(sp->active_sources);
+			}
+		}
+		
+		/* Choke CPU usage */
+		if (!audio_is_ready(sp->audio_device)) {
+			audio_wait_for(sp->audio_device, 10);
+		}
+        }
+
+	settings_save(sp);
+	tx_stop(sp->tb);
+	rtcp_exit(sp, NULL, sp->rtcp_socket);
+	if (sp->in_file  != NULL) snd_read_close (&sp->in_file);
+	if (sp->out_file != NULL) snd_write_close(&sp->out_file);
+	audio_device_release(sp, sp->audio_device);
+	network_process_mbus(sp);
+
+	mbus_exit(sp->mbus_engine);
+
+        network_exit(sp);
+
+        for(i = 0; i < 2; i++) {
+                session_exit(sp);
+                xfree(sp);
+        }
+
+        converters_free();
+        audio_free_interfaces();
+	xmemdmp();
 	return 0;
 }
 

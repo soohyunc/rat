@@ -83,11 +83,11 @@ static void inform_addrs(struct mbus *m, char *e_addr, char *u_addr)
 	struct timeval	 timeout;
 
 	tmp = mbus_encode_str(u_addr);
-	mbus_qmsgf(m, e_addr, TRUE, "tool.rat.addr.ui", "%s", u_addr);
+	mbus_qmsgf(m, e_addr, TRUE, "tool.rat.addr.ui", "%s", tmp);
 	xfree(tmp);
 
 	tmp = mbus_encode_str(e_addr);
-	mbus_qmsgf(m, u_addr, TRUE, "tool.rat.addr.engine", "%s", e_addr);
+	mbus_qmsgf(m, u_addr, TRUE, "tool.rat.addr.engine", "%s", tmp);
 	xfree(tmp);
 
 	do {
