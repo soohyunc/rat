@@ -625,8 +625,10 @@ tx_update_ui(tx_buffer *tb)
         }
         if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
 		ui_info_activate(sp, sp->db->my_dbe);
-		sp->lecture = FALSE;
-		ui_update_lecture_mode(sp);
+		if (sp->lecture) {
+			sp->lecture = FALSE;
+			ui_update_lecture_mode(sp);
+		}
         } else {
 		ui_info_deactivate(sp, sp->db->my_dbe);
         }
