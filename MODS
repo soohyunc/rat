@@ -897,6 +897,7 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum <wallba
 	- Fixed converter table initialization.  Was not initializing 
 	  interpolation and extrapolation correctly after last consistency 
 	  update.
+        - Unrolled loops in extrapolation converter.  
 
 TODO -- They're features not bugs dammit!
 ----
