@@ -12,11 +12,13 @@ static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
+#include <audio.h>
+
 #include "config_unix.h"
 #include "config_win32.h"
+#include "audio_types.h"
 #include "auddev_sgi.h"
 #include "debug.h"
-#include <audio.h>
 
 #define QSIZE		16000		/* Two seconds for now... */
 #define AVG_SIZE	20000

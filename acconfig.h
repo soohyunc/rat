@@ -4,6 +4,7 @@
  * $Id$
  */
 #undef NEED_USLEEP
+#undef NEED_SNPRINTF
 
 /* 
  * Missing declarations

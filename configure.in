@@ -150,6 +150,8 @@ AC_CHECK_FUNC(usleep,,
 	[EXTRAOBJ="$EXTRA_OBJ usleep.o"
 	 AC_DEFINE(NEED_USLEEP)])
 
+AC_CHECK_FUNC(snprintf,,AC_DEFINE(NEED_SNPRINTF))
+
 AC_SUBST(EXTRA_OBJ)
 
 #-----------------------------------------------------------------------------
