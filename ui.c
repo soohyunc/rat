@@ -65,44 +65,37 @@ static void ui_info_update_sdes(session_t *sp, char *item, const char *val, uint
 
 void ui_info_update_cname(session_t *sp, uint32_t ssrc)
 {
-        const char *cname = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_CNAME);
-	ui_info_update_sdes(sp, "rtp.source.cname", cname, ssrc);
+	ui_info_update_sdes(sp, "rtp.source.cname", rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_CNAME), ssrc);
 }
 
 void ui_info_update_name(session_t *sp, uint32_t ssrc)
 {
-        const char *name = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_NAME);
-	ui_info_update_sdes(sp, "rtp.source.name", name, ssrc);
+	ui_info_update_sdes(sp, "rtp.source.name", rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_NAME), ssrc);
 }
 
 void ui_info_update_email(session_t *sp, uint32_t ssrc)
 {
-        const char *email = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_EMAIL);
-	ui_info_update_sdes(sp, "rtp.source.email", email, ssrc);
+	ui_info_update_sdes(sp, "rtp.source.email", rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_EMAIL), ssrc);
 }
 
 void ui_info_update_phone(session_t *sp, uint32_t ssrc)
 {
-        const char *phone = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_PHONE);
-	ui_info_update_sdes(sp, "rtp.source.phone", phone, ssrc);
+	ui_info_update_sdes(sp, "rtp.source.phone", rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_PHONE), ssrc);
 }
 
 void ui_info_update_loc(session_t *sp, uint32_t ssrc)
 {
-        const char *loc = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_LOC);
-	ui_info_update_sdes(sp, "rtp.source.loc", loc, ssrc);
+	ui_info_update_sdes(sp, "rtp.source.loc", rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_LOC), ssrc);
 }
 
 void ui_info_update_tool(session_t *sp, uint32_t ssrc)
 {
-        const char *tool = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_TOOL);
-	ui_info_update_sdes(sp, "rtp.source.tool", tool, ssrc);
+	ui_info_update_sdes(sp, "rtp.source.tool", rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_TOOL), ssrc);
 }
 
 void ui_info_update_note(session_t *sp, uint32_t ssrc)
 {
-        const char *note = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_NOTE);
-	ui_info_update_sdes(sp, "rtp.source.note", note, ssrc);
+	ui_info_update_sdes(sp, "rtp.source.note", rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_NOTE), ssrc);
 }
 
 void 
