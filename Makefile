@@ -90,15 +90,10 @@ $(OBJDIR)/rtcp.o:      		version.h
 $(OBJDIR)/ui.o:       		version.h
 $(OBJDIR)/ui.o:	      		xbm/ucl.xbm
 $(OBJDIR)/ui.o:	      		xbm/mic.xbm
-$(OBJDIR)/ui.o:	      		xbm/mic_mute.xbm
 $(OBJDIR)/ui.o:	      		xbm/speaker.xbm
-$(OBJDIR)/ui.o:	      		xbm/speaker_mute.xbm
 $(OBJDIR)/ui.o:	      		xbm/head.xbm
-$(OBJDIR)/ui.o:	      		xbm/head_mute.xbm
 $(OBJDIR)/ui.o:	      		xbm/line_out.xbm
-$(OBJDIR)/ui.o:	      		xbm/line_out_mute.xbm
 $(OBJDIR)/ui.o:	      		xbm/line_in.xbm
-$(OBJDIR)/ui.o:	      		xbm/line_in_mute.xbm
 $(OBJDIR)/ui.o:	      		xbm/rat_med.xbm
 $(OBJDIR)/ui.o:	      		xbm/rat_small.xbm
 
