@@ -47,6 +47,38 @@ set fw			.l.t.list.f
 set input_ports         [list]
 set output_ports        [list]
 
+###############################################################################
+#
+# Debugging Functions
+#
+###############################################################################
+
+# tvar - trace variable callback for watching changes to variables
+# e.g. to watch write events to myVar use:
+#                                          trace variable myVar w tvar
+
+proc tvar {name element op} {
+# Compose variable name and print out change
+    if {$element != ""} {
+	set name ${name}($element)
+    }
+    upvar $name x
+    puts stderr "Variable $name set to $x."
+
+# Unravel stack and display
+    puts "Stack trace:"
+    set depth [info level]
+    set l 0
+    while {$l < $depth} {
+	puts stderr "\tLevel $l: [info level $l]"
+	incr l
+    }
+}
+
+###############################################################################
+
+trace variable gain w tvar
+
 proc init_source {ssrc} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE SSRC num_ssrc 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER \
