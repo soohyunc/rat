@@ -6,7 +6,7 @@
  * $Revision$
  * $Date$
  * 
- * Copyright (c) 1995-98 University College London
+ * Copyright (c) 1995-99 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -100,6 +100,7 @@ main(int argc, char *argv[])
 	char			*cname;
 	session_struct 		*sp[2];
 	struct timeval  	 time;
+	struct timeval      	 timeout;
 	char			 mbus_engine_addr[30], mbus_ui_addr[30], mbus_video_addr[30];
         
         NEW_QUEUE(rx_queue_struct, rx_unit_queue);
@@ -200,8 +201,20 @@ main(int argc, char *argv[])
 			cur_time  = get_time(sp[i]->device_clock);
 			real_time = ntp_time32();
 
-			read_and_enqueue(sp[i]->rtp_socket , cur_time, sp[i]->rtp_pckt_queue, PACKET_RTP);
-			read_and_enqueue(sp[i]->rtcp_socket, cur_time, sp[i]->rtcp_pckt_queue, PACKET_RTCP);
+			timeout.tv_sec  = 0;
+			timeout.tv_usec = 0;
+
+			udp_fd_zero();
+			udp_fd_set(sp[i]->rtp_socket);
+			udp_fd_set(sp[i]->rtcp_socket);
+			if (udp_select(&timeout) > 0) {
+				if (udp_fd_isset(sp[i]->rtp_socket)) {
+					read_and_enqueue(sp[i]->rtp_socket , cur_time, sp[i]->rtp_pckt_queue, PACKET_RTP);
+				}
+				if (udp_fd_isset(sp[i]->rtcp_socket)) {
+					read_and_enqueue(sp[i]->rtcp_socket, cur_time, sp[i]->rtcp_pckt_queue, PACKET_RTCP);
+				}
+			}
 
 			tx_process_audio(sp[i]);
 

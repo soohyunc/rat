@@ -13,7 +13,7 @@
  * 
  * 21/3/95 Isidor fixed the network select to work for Solaris
  * 
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-99 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -117,40 +117,34 @@ read_and_enqueue(socket_udp *s, u_int32 cur_time, struct s_pckt_queue *queue, in
         unsigned char      *data_in, *data_out, *tmp_data;
         int                 read_len;
         pckt_queue_element *pckt;
-	struct timeval      t;
-
-	t.tv_sec  = 0;
-	t.tv_usec = 0;
         
         assert(type == PACKET_RTP || type == PACKET_RTCP);
-        while (1) {
-		data_in  = block_alloc(PACKET_LENGTH);
-		data_out = block_alloc(PACKET_LENGTH);
-		read_len = udp_recv(s, (char *) data_in, PACKET_LENGTH, &t);
-		if (read_len > 0) {
-			if (Null_Key()) {
-				tmp_data      = data_out;
-				data_out      = data_in;
-				data_in       = tmp_data;
-			} else {
-				switch (type) {
-					case PACKET_RTP:  Decrypt(data_in, data_out, &read_len);
-							  break;
-					case PACKET_RTCP: Decrypt_Ctrl(data_in, data_out, &read_len);
-							  break;
-				}
-			}
-			pckt = pckt_queue_element_create();
-			pckt->len               = read_len;
-			pckt->pckt_ptr          = data_out;
-			pckt->arrival_timestamp = cur_time;
-			pckt_enqueue(queue, pckt);
-			block_free(data_in, PACKET_LENGTH);
+	data_in  = block_alloc(PACKET_LENGTH);
+	data_out = block_alloc(PACKET_LENGTH);
+	read_len = udp_recv(s, (char *) data_in, PACKET_LENGTH);
+	if (read_len > 0) {
+		if (Null_Key()) {
+			tmp_data      = data_out;
+			data_out      = data_in;
+			data_in       = tmp_data;
 		} else {
-			block_free(data_in, PACKET_LENGTH);
-			block_free(data_out, PACKET_LENGTH);
-			return;
+			switch (type) {
+				case PACKET_RTP:  Decrypt(data_in, data_out, &read_len);
+						  break;
+				case PACKET_RTCP: Decrypt_Ctrl(data_in, data_out, &read_len);
+						  break;
+			}
 		}
+		pckt = pckt_queue_element_create();
+		pckt->len               = read_len;
+		pckt->pckt_ptr          = data_out;
+		pckt->arrival_timestamp = cur_time;
+		pckt_enqueue(queue, pckt);
+		block_free(data_in, PACKET_LENGTH);
+	} else {
+		block_free(data_in, PACKET_LENGTH);
+		block_free(data_out, PACKET_LENGTH);
+		return;
 	}
 }
 

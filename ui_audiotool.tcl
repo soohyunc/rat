@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1995-98 University College London
+# Copyright (c) 1995-99 University College London
 # All rights reserved.
 #
 # $Revision$
@@ -1546,7 +1546,7 @@ set_pane about_pane .about.rim.d "Credits"
 constrain_window .about "XANDXFITNESSXFORXAXPARTICULARXPURPOSEXAREXDISCLAIMED.XINXNOXEVENTX" 0 21 28 
 
 .about.rim.d.copyright.f.f.blurb insert end {
-Copyright (C) 1995-1998 University College London
+Copyright (C) 1995-1999 University College London
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or
