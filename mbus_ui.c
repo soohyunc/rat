@@ -44,7 +44,10 @@
 void mbus_handler_ui(char *srce, char *cmnd, char *args, void *data)
 {
 	char		 command[1500];
-	int		 i;
+	unsigned int	 i;
+
+	UNUSED(srce);
+	UNUSED(data);
 
 	dprintf("%s %s\n", cmnd, args);
 	sprintf(command, "mbus_recv_%s %s", cmnd, args);

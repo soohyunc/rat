@@ -49,12 +49,12 @@
 #define MAX_ADDRS 65536
 
 typedef struct s_alloc_blk {
-    int  *addr;    /* address */
-    char *filen;   /* file where allocated */
-    int   line;    /* line where allocated */
-    int   length;  /* size of allocation   */
-    int   blen;    /* size passed to block_alloc (if relevent) */
-    int   est;     /* order in all allocation's */
+    int  	*addr;    /* address */
+    char 	*filen;   /* file where allocated */
+    int   	 line;    /* line where allocated */
+    size_t  	 length;  /* size of allocation   */
+    int   	 blen;    /* size passed to block_alloc (if relevent) */
+    int   	 est;     /* order in all allocation's */
 } alloc_blk;
 
 static alloc_blk mem_item[MAX_ADDRS];
@@ -235,10 +235,11 @@ typedef struct s_block {
 static block  *blocks[MAX_INDEX];
  
 char *
-_block_alloc(unsigned size, char *filen, int line)
+_block_alloc(unsigned int size, char *filen, int line)
 {
-	int     i, *c;
-	char    *p;
+	int     	 i;
+	unsigned int 	*c;
+	char    	*p;
 
 	assert(size > 0);
 	assert(size < MAX_SIZE);

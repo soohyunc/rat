@@ -58,7 +58,7 @@ int	sock_init(u_long inaddr, int port, int t_flag);
 int	net_write(int fd, u_long addr, int port, unsigned char *msg, int msglen, int type);
 int	net_write_iov(int fd, u_long addr, int port, struct iovec *iov, int iovlen, int type);
 u_long	get_net_addr(char *dhost);
-void    network_read(struct session_tag    *session_pointer,
+void	network_read(struct session_tag    *sp,
                      struct pckt_queue_tag *netrx_pckt_queue_ptr,
 	             struct pckt_queue_tag *rtcp_pckt_queue_ptr,
 	             u_int32            cur_time);

@@ -83,7 +83,7 @@ struct mbus {
 	void (*err_handler)(int seqnum);
 };
 
-static int mbus_addr_match(struct mbus *m, char *a, char *b)
+static int mbus_addr_match(char *a, char *b)
 {
 	while ((*a != '\0') && (*b != '\0')) {
 		while (isspace(*a)) a++;
@@ -146,7 +146,7 @@ static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seq
 	struct mbus_ack	*curr = m->ack_list;
 
 	while (curr != NULL) {
-		if (mbus_addr_match(m, curr->srce, dest) && mbus_addr_match(m, curr->dest, srce) && (curr->seqn == seqnum)) {
+		if (mbus_addr_match(curr->srce, dest) && mbus_addr_match(curr->dest, srce) && (curr->seqn == seqnum)) {
 			xfree(curr->srce);
 			xfree(curr->dest);
 			xfree(curr->cmnd);
@@ -556,7 +556,7 @@ void mbus_recv(struct mbus *m, void *data)
 	}
 	/* Check if the message was addressed to us... */
 	for (i = 0; i < m->num_addr; i++) {
-		if (mbus_addr_match(m, m->addr[i], dst)) {
+		if (mbus_addr_match(m->addr[i], dst)) {
 			/* ...if so, process any ACKs received... */
 			mbus_parse_init(m, ack);
 			while (mbus_parse_int(m, &a)) {

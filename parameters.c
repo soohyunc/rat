@@ -58,9 +58,9 @@ typedef struct s_sd {
 #define STEP	16
 
 u_int16 
-avg_audio_energy(short *buf, int samples)
+avg_audio_energy(sample *buf, int samples)
 {
-        u_int32 e=0,i=0;
+        int e=0,i=0;
 
         while(i<samples) {
                 e   += abs(*buf);
@@ -74,15 +74,13 @@ avg_audio_energy(short *buf, int samples)
 #define DB_BIAS     (0.005)
 #define DB_BIAS_LOG (-2.3f)
 
-double 
+int 
 lin2db(u_int16 energy, double peak)
 {
         float quasi_db;
 
-        quasi_db = ( -DB_BIAS_LOG + 
-                    log10(DB_BIAS+(float)energy/65535.0f) 
-                   ) / -DB_BIAS_LOG;
-        return (peak * quasi_db);
+        quasi_db = ( -DB_BIAS_LOG + log10(DB_BIAS+(float)energy/65535.0f) ) / -DB_BIAS_LOG;
+        return (int) (peak * quasi_db);
 }
 
 sd_t *
@@ -96,7 +94,7 @@ sd_init(void)
 int
 sd(sd_t *s, int energy)
 {
-        u_int32 maxb,c,thresh;
+        int maxb,c,thresh;
         assert(energy>=0 && energy<65535);
 
         maxb = energy/SD_SCALE;

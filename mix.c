@@ -144,8 +144,8 @@ mix_zero(mix_struct *ms, int offset, int len)
 
 void
 mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el)
-        u_int32	playout, diff;
-        int	pos, i, len, dur;  
+{
+        int	pos, i, len, dur, diff;
 	codec_t	*from, *to;
         const codec_format_t *cf_from, *cf_to;
 	sample	*buf;
@@ -362,23 +362,13 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 mix_update_ui(mix_struct *ms, session_struct *sp)
 mix_update_ui(session_struct *sp, mix_struct *ms)
 {
-	int	energy;
 	sample	*bp;
 
 	if (ms->tail < POWER_METER_SAMPLES) {
 		bp = ms->mix_buffer + ms->buf_len - POWER_METER_SAMPLES * ms->channels;
 	} else {
 		bp = ms->mix_buffer + ms->tail - POWER_METER_SAMPLES;
-	energy = avg_audio_energy(bp, POWER_METER_SAMPLES);
-	ui_output_level((int)lin2db(energy,100.0),sp);
+	ui_output_level(lin2db(avg_audio_energy(bp, POWER_METER_SAMPLES), 100.0), sp);
 	ui_output_level(sp, lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
-
-
-
-
-
-
-
-
 }
 }

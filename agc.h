@@ -44,6 +44,6 @@
 struct session_tag;
 
 void agc_table_init(void);
-void agc_table_update(struct session_tag *sp, int energy, int silence);
+void agc_table_update(struct session_tag *sp, int energy);
 
-#endif /* _agc_h_ */
+#endif

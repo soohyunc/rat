@@ -343,7 +343,7 @@ process_read_audio(session_struct *sp)
 			u->silence = FALSE;
 		}
 		/* Automatic Gain Control... */
-		agc_table_update(sp, u->energy, u->silence);
+		agc_table_update(sp, u->energy);
 
 		rb->last_ptr = u;
 		dist -= rb->lbuf->unit_size;
@@ -549,7 +549,7 @@ void
 transmitter_update_ui(session_struct *sp)
 {
 	if (sp->meter && sp->rb->silence_ptr && sp->rb->silence_ptr->prev)
-		ui_input_level((int)lin2db(sp->rb->silence_ptr->prev->energy, 100.0), sp);
+		ui_input_level(lin2db(sp->rb->silence_ptr->prev->energy, 100.0), sp);
 	if (sp->rb->talkspurt) {
 		ui_info_activate(sp->db->my_dbe, sp);
 		sp->lecture = FALSE;

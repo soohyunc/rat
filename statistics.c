@@ -238,7 +238,7 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 }
 
 static int
-rtp_header_validation(rtp_hdr_t *hdr, int *len, int *extlen, session_struct *sp)
+rtp_header_validation(rtp_hdr_t *hdr, int *len, int *extlen)
 {
 	/* This function checks the header info to make sure that the packet */
 	/* is valid. We return TRUE if the packet is valid, FALSE otherwise. */
@@ -322,7 +322,7 @@ statistics(session_struct    *sp,
 	/* Impose RTP formating on it... */
 	hdr = (rtp_hdr_t *) (e_ptr->pckt_ptr);
 
-	if (rtp_header_validation(hdr, &e_ptr->len, &extlen, sp) == FALSE) {
+	if (rtp_header_validation(hdr, &e_ptr->len, &extlen) == FALSE) {
 		dprintf("RTP Packet failed header validation!\n");
 		/* XXX log as bad packet */
                 goto release;

@@ -195,7 +195,7 @@ audio_device_take(session_struct *sp)
 	format.num_channels    = cp->channels;
 
 	if (sp->mode == TRANSCODER) {
-		if ((sp->audio_fd = transcoder_open(&format)) == -1) {
+		if ((sp->audio_fd = transcoder_open()) == -1) {
                         return FALSE;
                 }
 		sp->have_device = TRUE;

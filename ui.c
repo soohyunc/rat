@@ -555,6 +555,7 @@ mbus_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 static int
 mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 {
+	UNUSED(ttp);
 	if (argc != 2) {
 		i->result = "mbus_encode_str <str>";
 		return TCL_ERROR;

@@ -58,7 +58,7 @@ static struct timeval  curr_time[NUM_CHANNELS+1];
 static int             first_time[NUM_CHANNELS+1];
 
 int
-transcoder_open(audio_format *format)
+transcoder_open(void)
 {
   /* Open a fake audio channel. The value we return is used to identify the */
   /* channel for the other routines in this module. The #ifdefs in net.c    */

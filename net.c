@@ -223,7 +223,7 @@ int net_write_iov(int fd, u_long addr, int port, struct iovec *iov, int len, int
 
 /* This function is used for both rtp and rtcp packets */
 static pckt_queue_element_struct *
-read_net(session_struct * sp, int fd, u_int32 cur_time, int type, int *nbdecryption)
+read_net(int fd, u_int32 cur_time, int type, int *nbdecryption)
 {
 	char           *data_in, *data_out, *tmp_data;
 	struct sockaddr from;
@@ -278,9 +278,8 @@ read_net(session_struct * sp, int fd, u_int32 cur_time, int type, int *nbdecrypt
 }
 
 
-/*******external routines***************************/
-void
-read_packets_and_add_to_queue(session_struct * sp, int fd, u_int32 cur_time, pckt_queue_struct * queue, int type)
+static void
+read_packets_and_add_to_queue(int fd, u_int32 cur_time, pckt_queue_struct * queue, int type)
 {
 	int             l, nb, nbdecryption;
 	pckt_queue_element_struct pckt;
@@ -291,7 +290,7 @@ read_packets_and_add_to_queue(session_struct * sp, int fd, u_int32 cur_time, pck
 		perror("read_all.../FIONREAD");
 	}
 	for (l = 0; l < 2 && nb > 0; l++) {
-		if ((pckt_ptr = read_net(sp, fd, cur_time, type, &nbdecryption)) != NULL) {
+		if ((pckt_ptr = read_net(fd, cur_time, type, &nbdecryption)) != NULL) {
 			/* There is a bug in SUNOS, IRIX and HPUX, which */
                         /* means that we need to subtract 16 more bytes  */
 			/* on each read to get it right...               */
@@ -309,7 +308,7 @@ read_packets_and_add_to_queue(session_struct * sp, int fd, u_int32 cur_time, pck
 	fd_set          rfds;
 	struct timeval  timeout;
 	do {
-		if ((pckt_ptr = read_net(sp, fd, cur_time, type)) != NULL)
+		if ((pckt_ptr = read_net(fd, cur_time, type)) != NULL)
 			put_on_pckt_queue(pckt_ptr, queue);
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 0;
@@ -376,10 +375,10 @@ network_read(session_struct    *sp,
 		if (select(sel_fd, &rfds, (fd_set *) 0, (fd_set *) 0, tvp) > 0) {
 #endif
 			if (FD_ISSET(sp->rtp_fd, &rfds)) {
-				read_packets_and_add_to_queue(sp, sp->rtp_fd, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
+				read_packets_and_add_to_queue(sp->rtp_fd, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
 			}
 			if (FD_ISSET(sp->rtcp_fd, &rfds)) {
-				read_packets_and_add_to_queue(sp, sp->rtcp_fd, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
+				read_packets_and_add_to_queue(sp->rtcp_fd, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
 			}
                         if (FD_ISSET(mbus_fd(sp->mbus_engine_base), &rfds)) {
      				mbus_recv(sp->mbus_engine_base, (void *) sp);

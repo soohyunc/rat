@@ -72,10 +72,8 @@ void agc_table_init(void)
 	agc_window= 25;
 }
 
-void agc_table_update(session_struct *sp, int energy, int silence)
+void agc_table_update(session_struct *sp, int energy)
 {
-	/* The "silence" parameter is a boolean, based on the result of the    */
-	/* silence detection algorithm. The AGC code might find this useful... */
 	int i, hi, lo, min, max;
 	int agc_incr = 20;	/* Window increment */
 

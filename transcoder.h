@@ -47,7 +47,7 @@
 
 struct s_audio_format;
 
-int  transcoder_open(struct s_audio_format *format);
+int  transcoder_open(void);
 void transcoder_close(int id);
 int  transcoder_read(int id, sample *buf, int buf_size);
 int  transcoder_write(int id, sample *buf, int buf_size);
