@@ -175,7 +175,7 @@ make_pdu(struct s_pb          *pb,
          u_int32               upp)
 {
         struct s_pb_iterator *p;
-        u_int32        units, got, md_len, r;
+        u_int32        units, md_len, r;
         channel_unit  *chu;
         media_data    *md;
         coded_unit    *cdu_target[MAX_UNITS_PER_PACKET];
@@ -191,7 +191,7 @@ make_pdu(struct s_pb          *pb,
         chu->pt = codec_get_payload(cid);
         assert(payload_is_valid(chu->pt));
 
-        /* First work out how much space this is going to need and
+        /* Work out how much space this is going to need and
          * to save time cache units wanted in cdu_target.
          */
 
@@ -201,15 +201,18 @@ make_pdu(struct s_pb          *pb,
                 assert(md_len == sizeof(media_data));
                 for(r = 0; r < md->nrep; r++) {
                         if (md->rep[r]->id == cid) {
-                                cdu_target[r] = md->rep[r];
+                                cdu_target[units] = md->rep[r];
                                 chu->data_len += md->rep[r]->data_len;
                                 if (units == 0) {
                                         chu->data_len += md->rep[r]->state_len;
                                 }
+                                break;
                         }
                 }
                 pb_iterator_advance(p);
         }
+
+        pb_iterator_destroy(pb, &p);
 
         if (chu->data_len == 0) {
                 /* Nothing to do, chu not needed */
@@ -220,6 +223,7 @@ make_pdu(struct s_pb          *pb,
         chu->data = (u_char*)block_alloc(chu->data_len);
         dp = chu->data;
         for(r = 0; r < units; r++) {
+                assert(cdu_target[r] != NULL);
                 if (r == 0 && cdu_target[r]->state_len) {
                         memcpy(dp, cdu_target[r]->state, cdu_target[r]->state_len);
                         dp += cdu_target[r]->state_len;
@@ -234,10 +238,8 @@ make_pdu(struct s_pb          *pb,
         cd->elem[cd->nelem] = chu;
         cd->nelem++;
 
-        pb_iterator_destroy(pb, &p);
-        return got;
+        return r;
 }
-
 
 /* redundancy_check_layers - checks codings specified for redundant
  * encoder are present in incomding media_data unit, m.  And only
