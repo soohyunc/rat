@@ -39,9 +39,9 @@
  * SUCH DAMAGE.
  */
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include "assert.h"
 #include "session.h"
 #include "codec.h"
 #include "channel.h"

@@ -39,10 +39,10 @@
  * SUCH DAMAGE.
  */
 
-#include <assert.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include "assert.h"
 #include "config.h"
 #include "session.h"
 #include "codec.h"
