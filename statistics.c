@@ -378,7 +378,8 @@ rtp_header_validation(rtp_hdr_t *hdr, int32 *len, int *extlen)
 }
 
 static int
-statistics_channel_extract(rtcp_dbentry *dbe,
+statistics_channel_extract(session_struct *sp,
+                           rtcp_dbentry *dbe,
                            u_int8        pt,
                            u_char*       data,
                            u_int32       len)
@@ -417,6 +418,15 @@ statistics_channel_extract(rtcp_dbentry *dbe,
                 dbe->inter_pkt_gap   = dbe->units_per_packet * (u_int16)codec_get_samples_per_frame(id);
                 dbe->first_pckt_flag = TRUE;
                 dbe->update_req      = TRUE;
+        }
+
+        if (dbe->update_req) {
+                if (dbe->enc_fmt == NULL) {
+                        dbe->enc_fmt = (char*)xmalloc(32);
+                }
+                channel_describe_data(ccid, pt, data, len, dbe->enc_fmt, 32);
+                ui_update_stats(sp, dbe);
+                dbe->update_req = FALSE;
         }
 
         return TRUE;
@@ -505,7 +515,8 @@ statistics(session_struct          *sp,
                 data_ptr =  (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
 
-                if (statistics_channel_extract(sender, 
+                if (statistics_channel_extract(sp, 
+                                               sender, 
                                                (u_char)hdr->pt, 
                                                data_ptr, 
                                                (u_int32)len) == FALSE) {
@@ -552,6 +563,7 @@ statistics(session_struct          *sp,
                         pckt->pckt_ptr = NULL;
                         pckt->len      = 0;
                 }
+
         release:
                 block_trash_check();
                 pckt_queue_element_free(&pckt);

@@ -92,6 +92,11 @@ typedef struct {
                                        u_int32                  len,
                                        u_int16                 *upp,
                                        u_int8                  *pt);
+        int     (*dec_describe)       (u_int8  pktpt,
+                                       u_char *data,
+                                       u_int32 data_len,
+                                       char   *outstr,
+                                       u_int32 out_len);
 } channel_coder_t;
 
 #include "cc_vanilla.h"
@@ -111,7 +116,9 @@ static channel_coder_t table[] = {
          NULL,
          NULL,
          vanilla_decoder_decode,
-         vanilla_decoder_peek}
+         vanilla_decoder_peek,
+         vanilla_decoder_describe
+        }
 };
 
 #define CC_IDX_TO_ID(x) (((x)+1) | 0x0e00)
@@ -307,6 +314,32 @@ channel_verify_and_stat(cc_id_t  cid,
         assert(idx < CC_NUM_CODERS);
         return table[idx].dec_peek(pktpt, data, data_len, units_per_packet, codec_pt);
 }
+
+int 
+channel_describe_data(cc_id_t cid,
+                          u_int8  pktpt,
+                          u_char *data,
+                          u_int32 data_len,
+                          u_char *outstr,
+                          u_int32 out_len)
+{
+        u_int32 idx = CC_ID_TO_IDX(cid);
+        assert(idx < CC_NUM_CODERS);
+
+        assert(outstr  != NULL);
+        assert(out_len != 0);
+
+        if (table[idx].dec_describe) {
+                return table[idx].dec_describe(pktpt, data, data_len, outstr, out_len-1);
+        } 
+
+        strncpy(outstr, "Not implemented", out_len-1);
+        outstr[out_len-1] = '\0'; /* Always zero terminated */
+        return TRUE;
+}
+                                   
+
+
 
 cc_id_t
 channel_coder_get_by_payload(u_int8 payload)

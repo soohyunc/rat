@@ -471,7 +471,7 @@ source_repair(source *src,
 }
 
 int
-source_process(source *src, struct s_mix_info *ms, int repair_type, ts_t now)
+source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_type, ts_t now)
 {
         media_data  *md;
         coded_unit  *cu;
@@ -550,7 +550,7 @@ source_process(source *src, struct s_mix_info *ms, int repair_type, ts_t now)
                         md->nrep++;
                 }
 
-                if (src->dbe->render_3D_data) {
+                if (render_3d && src->dbe->render_3D_data) {
                         /* 3d rendering necessary */
                         coded_unit *decoded, *render;
                         decoded = md->rep[md->nrep - 1];

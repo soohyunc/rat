@@ -263,8 +263,6 @@ void
 ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 {
 	char	*my_cname, *their_cname, *args, *mbes;
-	codec_id_t            pri_id;
-        const codec_format_t *pri_cf;
         struct s_source      *src;
         u_int32               buffered, delay;
 
@@ -282,11 +280,10 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 	their_cname = mbus_encode_str(e->sentry->cname);
 
         if (e->enc_fmt) {
-		pri_id = codec_get_by_payload(e->enc);
-                pri_cf = codec_get_format(pri_id);
-		mbes = mbus_encode_str(pri_cf->short_name);
+		mbes = mbus_encode_str(e->enc_fmt);
                 args = (char *) xmalloc(strlen(their_cname) + strlen(mbes) + 2);
                 sprintf(args, "%s %s", their_cname, mbes);
+                xfree(mbes);
         } else {
                 args = (char *) xmalloc(strlen(their_cname) + 7 + 2);
                 sprintf(args, "%s unknown", their_cname);

@@ -55,6 +55,12 @@ int vanilla_decoder_peek     (u_int8   pkt_pt,
                               u_int32  len,
                               u_int16  *upp,
                               u_int8   *pt);
+
+int vanilla_decoder_describe (u_int8   pkt_pt,
+                              u_char  *data,
+                              u_int32  len,
+                              char    *out,
+                              u_int32  out_len);
  
 #endif /* __CC_VANILLA_H__ */
 

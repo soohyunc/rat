@@ -352,3 +352,37 @@ fail:
         *pt  = 255;
         return FALSE;
 }
+
+int 
+vanilla_decoder_describe (u_int8   pkt_pt,
+                          u_char  *data,
+                          u_int32  data_len,
+                          char    *out,
+                          u_int32  out_len)
+{
+	codec_id_t            pri_id;
+        const codec_format_t *pri_cf;
+
+        pri_id = codec_get_by_payload(pkt_pt);
+        if (pri_id) {
+                pri_cf = codec_get_format(pri_id);
+                strncpy(out, pri_cf->long_name, out_len);
+        } else {
+                strncpy(out, "Unknown", out_len);
+        }
+
+        /* string safety - strncpy not always safe */
+        out[out_len - 1] = '\0';
+
+        UNUSED(data);
+        UNUSED(data_len);
+
+        return TRUE;
+}
+
+
+
+
+
+
+

@@ -102,6 +102,12 @@ int       channel_verify_and_stat (cc_id_t  cid,
                                    u_int16 *units_per_packet,
                                    u_char  *codec_pt);
 
+int       channel_describe_data   (cc_id_t cid,
+                                   u_int8  pktpt,
+                                   u_char *data,
+                                   u_int32 data_len,
+                                   u_char *outstr,
+                                   u_int32 out_len);
                                    
 
 /* Payload mapping functions */
