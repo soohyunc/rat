@@ -609,18 +609,6 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		}
 		clear_old_participant_history(buf);
 
-                if (buf->len > 2 * buf->src->playout_ceil/cu) {
-                        debug_msg("source clock is fast relative %d %d\n",
-                                  buf->len,
-                                  2 * buf->src->playout_ceil/cu);
-                        buf->src->playout_danger = TRUE;
-                } else if (buf->age > 10                                && 
-                           buf->len < buf->src->playout_ceil / (4 * cu) && 
-                           !PB_DRAINING(buf)) {
-                        debug_msg("source clock is relatively slow len %d concern len %d hist %x\n", buf->len, buf->src->playout_ceil/(2*cu), buf->hist);
-                        buf->src->playout_danger = TRUE;
-                }
-
 	}
 
 	for (bufp = buf_list; *bufp;) {

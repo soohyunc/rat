@@ -194,10 +194,15 @@ adapt_playout(rtp_hdr_t *hdr,
 		src->first_pckt_flag = FALSE;
 		diff                 = 0;
 		src->delay           = delay;
-		src->jitter          = 80;
 		src->last_ts         = hdr->ts - 1;
                 src->playout_ceil    = 0;
 		hdr->m               = TRUE;
+                cp = get_codec(src->enc);
+                if (cp) {
+                        src->jitter  = 3 * 20 * cp->freq / 1000;
+                } else {
+                        src->jitter  = 240; 
+                }
 	} else {
 		diff       = abs(delay - src->delay);
 		src->delay = delay;
@@ -262,20 +267,14 @@ adapt_playout(rtp_hdr_t *hdr,
                         }
 
                         if (src->playout_danger) {
-                                var += cushion_get_size(cushion) + cp->unit_len;
-                                debug_msg("Playout danger\n");
-                        } 
-                        {
-                                int ovr_cushion = var - cushion_get_size(cushion);
-                                if (ovr_cushion > 0) {
-                                        debug_msg("var (%ld) > cushion (%ld)\n", var, cushion_get_size(cushion));
-                                        var -= ovr_cushion;
-                                }
+                                /* This is usually a sign that src clock is 
+                                 * slower than ours. */
+                                var = max(var, 2 * cushion_get_size(cushion)); ;
+                                debug_msg("Playout danger, var (%ld)\n", var);
+                        } else {
+                                var = max(var, cushion_get_size(cushion));
+                                debug_msg("Playout var (%ld)\n", var);
                         }
-                        debug_msg("var %ld cushion %ld\n", var, cushion_get_size(cushion));
-                        if (src->clock!=sp->device_clock) {
-				var += cp->unit_len;
-			}
 
                         assert(var > 0);
 			src->playout = src->delay + var;

@@ -51,13 +51,13 @@
  * cover for larger future jumps in workstation delay then SAFETY should be
  * larger. Sensible values are between 0.9 and 1
  */
-#define SAFETY		0.96
+#define SAFETY		0.90
 #ifdef SunOS_4
 #define CUSHION_STEP	160
 #else
 #define CUSHION_STEP	80
 #endif
-#define HISTORY_SIZE	500
+#define HISTORY_SIZE	250
 #define MIN_COVER	((float)HISTORY_SIZE * SAFETY)
 
 #define MAX_CUSHION	4000
@@ -164,7 +164,7 @@ cushion_update(cushion_t *c, u_int32 read_dur, int mode)
                 lower = (cover_idx + 10) * c->cushion_step;
                 upper = (idx       + 10) * c->cushion_step;
         } else {
-                lower = (cover_idx +  3) * c->cushion_step;
+                lower = (cover_idx + 2) * c->cushion_step;
                 upper = idx * c->cushion_step;
         }
 
