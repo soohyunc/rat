@@ -435,11 +435,11 @@ source_remove(source_list *plist, source *psrc)
 
 /* Returns true if fn takes ownership responsibility for data */
 static int
-source_process_packet (source *src, 
-                       u_char *pckt, 
+source_process_packet (source  *src, 
+                       u_char  *pckt, 
                        uint32_t pckt_len, 
                        uint8_t  payload,
-                       ts_t    playout)
+                       ts_t     playout)
 {
         channel_data *cd;
         channel_unit *cu;
@@ -544,21 +544,6 @@ source_process_packet (source *src,
         cu->data_len     = pckt_len;
         cu->pt           = payload;
 
-        /* Check we have state to decode this */
-        cid = channel_coder_get_by_payload(cu->pt);
-        if (src->channel_state && 
-            channel_decoder_matches(cid, src->channel_state) == FALSE) {
-                debug_msg("Channel coder changed - flushing\n");
-                channel_decoder_destroy(&src->channel_state);
-                pb_flush(src->channel);
-        }
-
-        /* Make state if not there and create decoder */
-        if (src->channel_state == NULL && 
-            channel_decoder_create(cid, &src->channel_state) == FALSE) {
-                debug_msg("Cannot decode payload %d\n", cu->pt);
-                channel_data_destroy(&cd, sizeof(channel_data));
-        }
         src->age++;
 done:   
         if (pb_add(src->channel, (u_char*)cd, sizeof(channel_data), playout) == FALSE) {
