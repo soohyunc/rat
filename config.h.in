@@ -69,6 +69,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `asound' library (-lasound). */
+#undef HAVE_LIBASOUND
+
 /* Define to 1 if you have the <machine/pcaudioio.h> header file. */
 #undef HAVE_MACHINE_PCAUDIOIO_H
 
@@ -146,6 +149,9 @@
 #ifndef __CHAR_UNSIGNED__
 # undef __CHAR_UNSIGNED__
 #endif
+
+/* <stddef.h> defines the offsetof macro */
+#undef HAVE_OFFSETOF
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
