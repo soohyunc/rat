@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 	tcl_init2(m, e_addr);
 	while (!should_exit) {
 		timeout.tv_sec  = 0;
-		timeout.tv_usec = 0;
+		timeout.tv_usec = 20000;
 		mbus_recv(m, NULL, &timeout);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 		}
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 40000;
-        /* Throttle CPU usage */
+		/* Throttle CPU usage */
 #ifdef WIN32
                 /* Just timeout waiting for event that never happens */
                 WaitForSingleObject(hWakeUpEvent, 40);

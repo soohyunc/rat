@@ -541,7 +541,7 @@ v3.3.0  - Audio interface revamp.  Support for multiple cards.
 	- Replaced audio_fd with audio_device to emphasize this is no longer
 	  a file descriptor.
 	- Added null audio interface for devices not attainable.
-	- Safety net when opening an interfac	- Fix LSR and DLSR in our reception report packets (maybe)
+	- Safety net when opening an interfac   - Fix LSR and DLSR in our reception report packets (maybe)
 	- Fix muting of individual participants
 	- Update mbus command set
 	- Added virtual externalisation (sound source emanating from outside
@@ -781,7 +781,7 @@ v4.0.3  - Fix compilation with v1.2 of the Microsoft Research IPv6 stack.
 	- Added sndfile_valid_format.
 	- Fixed spurious debugging code in the windows audio driver which
 	  would cause an infinite loop if activated (rare, but could happen).
-	- Split converter code up into convert_*.[ch] and added convert_types.h	
+	- Split converter code up into convert_*.[ch] and added convert_types.h 
 	- Fixed repair when next unit on playout buffer is less than expected 
 	  length away.
 	- Compilation fixes for Irix 5.3 contributed by David Balazic.
@@ -793,7 +793,7 @@ v4.0.3  - Fix compilation with v1.2 of the Microsoft Research IPv6 stack.
 	- Added 'high quality' converter, sinc filter.
 	* Released 2 June 1999
 
-v4.0.4	- Add ability to receive on one port yet send to another, requested
+v4.0.4  - Add ability to receive on one port yet send to another, requested
 	  by Henning Schulzrinne. Usage: "rat addr/rx_port/tx_port"
 	- Compilation fixes for Irix 6.5 contributed by Bob Olson.
 	- Fix core dump caused by calling sndfile_write_audio with buffer
@@ -841,7 +841,7 @@ v4.1.0  - Fixed slow memory leak reported by Emmanuel Duros.  Vanilla
 	  enabled, so it can match sources up to those in the video session.
 	- Cleanup documentation of the audev_*.c files
 	- Fix loading of preferences: powermeter, lip-sync
-        - Fix the fileboxes on the Windows release version.
+	- Fix the fileboxes on the Windows release version.
 	- Fix spurious transmission of tool.rat.lecture.mode() mbus messages 
 	- Fix spurious transmission of rtp.source.active() mbus messages when
 	  we are sending.
@@ -877,10 +877,10 @@ v4.1.0  - Fixed slow memory leak reported by Emmanuel Duros.  Vanilla
 	- Add toged and cont_toged back.
 	- Move source_check_buffering into rtp_callback.
 	- Fix mixer handling overlapping blocks.
-        - Changed win32 audio read and write methods, added audio event to
-          reduce CPU usage.  Fixed handling of non-blocksize writes.
-        - Modified auddev_null on Win32 to use WaitForSingleObject rather
-          than Sleep on Win32.  Reduces CPU considerably.
+	- Changed win32 audio read and write methods, added audio event to
+	  reduce CPU usage.  Fixed handling of non-blocksize writes.
+	- Modified auddev_null on Win32 to use WaitForSingleObject rather
+	  than Sleep on Win32.  Reduces CPU considerably.
 	- Added colour to powermeters.
 	- Add fixed size packet buffer to make for easy discards when media 
 	  engine has blocked for an inordinate period.
@@ -892,13 +892,13 @@ v4.1.0  - Fixed slow memory leak reported by Emmanuel Duros.  Vanilla
 	  Windows port.
 	* 5 October 1999
 
-v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum 
+v4.1.1  - Added transcoder audio device.  Contributed by Michael Wallbaum 
 	  <wallbaum@informatik.rwth-aachen.de>
 	- Now send RTP BYE packets on exit
 	- Fixed converter table initialization.  Was not initializing 
 	  interpolation and extrapolation correctly after last consistency 
 	  update.
-        - Unrolled loops in extrapolation converter.  
+	- Unrolled loops in extrapolation converter.  
 	- Replaced divisions in interpolation converter that were not powers
 	  of two with a multiplication scaling factor and a power of 2 
 	  denominator.  Improves performance 3-4 for upsampling by 3,5,6.
@@ -922,7 +922,7 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	- Tuples for mbus command switches in mbus_{control,engine,ui}.
 	* 2 November 1999
 
-v4.1.2	- Added echo suppression back, it fell out of code base at some point.
+v4.1.2  - Added echo suppression back, it fell out of code base at some point.
 	- Fix ui sending input and output gain values before it's got values
 	  from audio engine.  Was happening because scale widget invokes 
 	  -command option when created.  Now we don't send gain info until
@@ -957,9 +957,9 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 		(c) playout re-calc triggered by toged_cont.
 	- toged_cont is now no. thrown on ground in last 8 packets.
 	- Global change of integer types, and removal of compatibility defines:
-		u_int8	-> u_int8_t
-		u_int16	-> u_int16_t
-		u_int32	-> u_int32_t
+		u_int8  -> u_int8_t
+		u_int16 -> u_int16_t
+		u_int32 -> u_int32_t
 	  and the same for the signed varients.
 	- And change them all to be uint32, etc
 	- Packet spikes now accounted for in packet processing.  Transit 
@@ -998,7 +998,7 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 	  when we update the format of that file.
 	- Set thread priority of media engine to THREAD_PRIORITY_ABOVE_NORMAL 
 	  on Windows.
-
+	- Fix CPU usage of UI
 
 
 TODO -- They're features not bugs dammit!
