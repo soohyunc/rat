@@ -517,19 +517,19 @@ AC_CHECK_LIB(g728,
 	[
 		G728_INC=-I${G728_DIR}
 		G728_LIB="-L${G728_LIB} -lg728"
-		EXTRA_CODEC_OBJ="codec_g728.o"
+		G728_CODEC_OBJ="codec_g728.o"
 		AC_DEFINE(HAVE_G728)
 	],
 	[
 		G728_INC=
 		G728_LIB=
-		EXTRA_CODEC_OBJ=
+		G728_CODEC_OBJ=
 	],
 	-L${G728_LIB} -lm)
 
 AC_SUBST(G728_INC)
 AC_SUBST(G728_LIB)
-AC_SUBST(EXTRA_CODEC_OBJ)
+AC_SUBST(G728_CODEC_OBJ)
 
 #-----------------------------------------------------------------------------
 # Assorted Enable options 

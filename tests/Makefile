@@ -6,7 +6,8 @@ LIBS = -L../../common -lm -luclmmbase
 
 CHANNEL_OBJS = ../cc_vanilla.o ../new_channel.o ../channel_types.o
 
-CODEC_LIB = -L.. -luclcodec
+G728_LIB = -L../../g728lib -lg728
+CODEC_LIB = -L.. -luclcodec $(G728_LIB)
 SNDFILE_LIB = -L../ -luclsndfile
 
 REPAIR_OBJS  = ../repair.o ../audio_util.o

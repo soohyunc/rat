@@ -1800,7 +1800,7 @@ pack $i.dd.pri.l $i.dd.pri.m -side top
 menu $i.dd.pri.m.menu -tearoff 0
 
 label $i.dd.units.l -text "Units:"
-tk_optionCmdMenu $i.dd.units.m upp 1 2 4 8
+tk_optionCmdMenu $i.dd.units.m upp 1 2 4 8 16 32 64
 $i.dd.units.m configure -width 13 -highlightthickness 0 -bd 1
 pack $i.dd.units.l $i.dd.units.m -side top -fill x
 
