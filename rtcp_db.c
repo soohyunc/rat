@@ -280,10 +280,11 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 #endif
 
 	if (dbptr == NULL) {
-		printf("Freeing database entry for SSRC %lx when the database is empty! Huh?\n", ssrc);
+		dprintf("Freeing database entry for SSRC %lx when the database is empty! Huh?\n", ssrc);
 		return;
 	}
 
+	dprintf("Removing RTCP database entry for SSRC 0x%lx\n", ssrc);
 	if (dbptr->ssrc == ssrc) {
 		sp->db->ssrc_db = dbptr->next;
 		check_active_leave(sp, dbptr);
