@@ -156,7 +156,8 @@ AC_SUBST(AUDIOLIB)
 AC_PATH_XTRA
 AC_SUBST(X_CFLAGS)
 AC_SUBST(X_LIBS)
-
+AC_SUBST(X_EXTRA_LIBS)
+AC_SUBST(X_PRE_LIBS)
 # TCL/TK ####################################################################
 # have to use pwd because srcdir is helpfully chosen to be . and check header
 # fails with it.
@@ -177,10 +178,10 @@ AC_CHECK_HEADER(${TCL_INC}/tcl.h,,
 	  exit])])
 AC_CHECK_LIB(tcl8.0, 
 	Tcl_Init,
-	TCL_LIB_NAME=tcl8.0,
+	TCL_LIB="-L$TCL_LIB -ltcl8.0",
 	[AC_CHECK_LIB(tcl80, 
 		Tcl_Init,
-		TCL_LIB_NAME=tcl80,
+		TCL_LIB="-L$TCL_LIB -ltcl80",
 		[
 			echo "Could not find Tcl library.  One of the following halted progess:"
 			echo "   (a) Tcl is not installed."
@@ -213,10 +214,10 @@ AC_CHECK_FILE($TK_INC/tk.h,,
 
 AC_CHECK_LIB(tk8.0, 
 	Tk_Init,
-	TK_LIB_NAME=tk8.0,
+	TK_LIB="-L$TK_LIB -ltk8.0",
 	[AC_CHECK_LIB(tk80, 
 		Tk_Init,
-		TK_LIB_NAME=tk80,
+		TK_LIB="-L$TK_LIB -ltk80",
 		[
 			echo "Could not find Tk library.  One of the following halted progess:"
 			echo "   (a) Tk is not installed."
@@ -224,8 +225,13 @@ AC_CHECK_LIB(tk8.0,
 			echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
 			exit
 		],
-		-L${TCL_LIB} -L${TK_LIB} -l$TCL_LIB_NAME -L$ac_x_libraries -lm -lXext -lX11)],
-	-L${TCL_LIB} -L${TK_LIB} -l$TCL_LIB_NAME -L$ac_x_libraries -lm -lXext -lX11)
+		-L${TK_LIB} ${TCL_LIB} $X_LIBS $X_PRE_LIBS -lXext -lX11 $X_EXTRA_LIBS -lm)],
+	 -L${TK_LIB} ${TCL_LIB} $X_LIBS $X_PRE_LIBS  -lXext -lX11 $X_EXTRA_LIBS -lm)
+
+AC_SUBST(TCL_INC)
+AC_SUBST(TCL_LIB)
+AC_SUBST(TK_INC)
+AC_SUBST(TK_LIB)
 
 # XXX Add check for common ##################################################
 
