@@ -58,7 +58,6 @@ set iht			16
 set iwd 		300
 set cancel_info_timer 	0
 set num_cname		0
-set DEBUG		0
 set fw			.l.t.list.f
 
 proc init_source {cname} {
@@ -154,13 +153,8 @@ proc toggle_output_port {} {
 #
 
 proc mbus_recv {cmd args} {
-  global DEBUG
   if [string match [info procs [lindex mbus_recv_$cmd 0]] cb_recv_$cmd] {
     eval mbus_recv_$cmd $args
-  } else {
-    if $DEBUG {
-      puts stdout "ConfBus: ERROR unknown command $cmd"
-    }
   }
 }
 
@@ -283,11 +277,6 @@ proc mbus_recv_half.duplex {} {
 	global output_var
 	set output_var "Mike mutes net"
   	mbus_send "R" "output.mode" "[mbus_encode_str $output_var]"
-}
-
-proc mbus_recv_debug {} {
-	global DEBUG
-	set DEBUG 1
 }
 
 proc mbus_recv_address {addr port ttl} {
@@ -433,7 +422,7 @@ proc mbus_recv_source.mute {cname val} {
 }
 
 proc cname_update {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL INDEX DEBUG
+	global CNAME NAME EMAIL LOC PHONE TOOL INDEX 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER LOSS_TO_ME LOSS_FROM_ME
 	global fw iht iwd my_cname mylosstimers his_or_her_losstimers
 
@@ -446,7 +435,7 @@ proc cname_update {cname} {
 
 	if {[winfo exists $cw]} {
 		$cw itemconfigure t -text $NAME($cname)
-		if {[regexp {^\{?RAT} $TOOL($cname)] && $DEBUG} {
+		if {[regexp {^\{?RAT} $TOOL($cname)]} {
 			$cw itemconfigure t -fill DarkSlateGrey
 		}
 	} else {

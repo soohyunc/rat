@@ -251,9 +251,6 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 	sprintf(args, "%s", ecname); 					mbus_qmsg(sp->mbus_engine_chan, "my.cname",    args);
 	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); mbus_qmsg(sp->mbus_engine_chan, "address",     args);
 	sprintf(args, "%s %s", ecname, mbus_encode_str(RAT_VERSION));	mbus_qmsg(sp->mbus_engine_chan, "source.tool", args);
-#ifndef NDEBUG
-	mbus_qmsg(sp->mbus_engine_chan, "debug", "");
-#endif
 	xfree(ecname);
 
 	ui_codecs(sp);
