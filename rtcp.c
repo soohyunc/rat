@@ -90,6 +90,7 @@ service_rtcp(session_struct    *sp,
 
 char *get_cname(void)
 {
+	/* Set the CNAME. This is "user@hostname" or just "hostname" if the username cannot be found. */
 	char           		*uname;
 	char	       		*hname;
 	char			*cname;
@@ -100,19 +101,20 @@ char *get_cname(void)
 #endif
 
 	cname = (char *) xmalloc(MAXHOSTNAMELEN + 10);
-	/* Set the CNAME. This is "user@hostname" or just "hostname" if the username cannot be found. */
-	/* First, fill in the username.....                                                           */
+	cname[0] = '\0';
+
+	/* First, fill in the username... */
 #ifdef WIN32
-	if ((uname = getenv("USER")) == NULL) {
-		uname = "unknown";
-	}
-#else 		/* ...it's a unix machine... */
+	uname = getenv("USER");
+#else
 	pwent = getpwuid(getuid());
 	uname = pwent->pw_name;
 #endif
-	sprintf(cname, "%s@", uname);
+	if (uname != NULL) {
+		sprintf(cname, "%s@", uname);
+	}
 
-	/* Now the hostname. Must be FQDN or dotted-quad IP address (RFC1889) */
+	/* Now the hostname. Must be dotted-quad IP address. */
 	hname = cname + strlen(cname);
 	if (gethostname(hname, MAXHOSTNAMELEN) != 0) {
 		perror("Cannot get hostname!");
