@@ -128,6 +128,9 @@ audio_zero(sample *buf, int len, deve_e type)
 	case DEV_PCMU:
 		memset(buf, PCMU_AUDIO_ZERO, len);
 		break;
+	case DEV_PCMA:
+		memset(buf, PCMA_AUDIO_ZERO, len);
+		break;
 	case DEV_S8:
 		memset(buf, 0, len);
 		break;
