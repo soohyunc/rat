@@ -99,12 +99,6 @@ audio_open(audio_format format)
 
 	/* We probably should free the config here... */
 
-	/* This is to keep Louise happy :-) */
-	audio_set_iport(audio_fd, AUDIO_MICROPHONE);
-	audio_set_oport(audio_fd, AUDIO_SPEAKER);
-	audio_set_gain(audio_fd, 50);
-	audio_set_volume(audio_fd, 50);
-
 	return audio_fd;
 }
 

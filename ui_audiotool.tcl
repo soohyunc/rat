@@ -1405,7 +1405,6 @@ proc load_setting {attrname field var default} {
     if {$tmp == ""} {
 	# either not in rtp defaults, or registry...
         set tmp $default
-		puts "$attrname $tmp"
     }
     set $var $tmp
 }

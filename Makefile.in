@@ -35,15 +35,15 @@ tcl2c: tcl2c.c
 	$(CC) -o tcl2c tcl2c.c
 
 ui_audiotool.o: ui_audiotool.tcl tcl2c
-	cat ui_audiotool.tcl | tcl2c ui_audiotool > ui_audiotool.c
+	cat ui_audiotool.tcl | ./tcl2c ui_audiotool > ui_audiotool.c
 	$(CC) $(CFLAGS) -c ui_audiotool.c -o ui_audiotool.o
 
 ui_transcoder.o: ui_transcoder.tcl tcl2c
-	cat ui_transcoder.tcl | tcl2c ui_transcoder > ui_transcoder.c
+	cat ui_transcoder.tcl | ./tcl2c ui_transcoder > ui_transcoder.c
 	$(CC) $(CFLAGS) -c ui_transcoder.c -o ui_transcoder.o
 
 tcl_libs.o: tcl2c
-	cat tcl/*.tcl tk/*.tcl | tcl2c TCL_LIBS > tcl_libs.c
+	cat tcl/*.tcl tk/*.tcl | ./tcl2c TCL_LIBS > tcl_libs.c
 	$(CC) $(CFLAGS) -c tcl_libs.c -o tcl_libs.o
 
 clean:
