@@ -186,57 +186,39 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
 {
         const codec_format_t *cf;
         codec_id_t            id;
-        uint32_t               data_len;
+        uint32_t              data_len;
         u_char               *p, *end;
         media_data           *m;
-        ts_t                  playout_step;
+        ts_t                  unit_dur;
 
-        id = codec_get_by_payload(cu->pt);
-        cf = codec_get_format(id);
+        id       = codec_get_by_payload(cu->pt);
+        cf       = codec_get_format(id);
+        unit_dur = ts_map32(cf->format.sample_rate, codec_get_samples_per_frame(id));
+        p        = cu->data;
+        end      = cu->data + cu->data_len;
 
-        media_data_create(&m, 1);
-        assert(m->nrep == 1);
-
-        /* Do first unit separately as that may have state */
-        p    = cu->data;
-        end  = cu->data + cu->data_len;
-
-        if (cf->mean_per_packet_state_size) {
-                m->rep[0]->state_len = cf->mean_per_packet_state_size;
-                m->rep[0]->state     = (u_char*)block_alloc(m->rep[0]->state_len);
-                memcpy(m->rep[0]->state, p, cf->mean_per_packet_state_size);
-                p += cf->mean_per_packet_state_size;
-        }
-
-        data_len = codec_peek_frame_size(id, p, (uint16_t)(end - p));
-        m->rep[0]->id = id;
-        m->rep[0]->data_len = (uint16_t)data_len;
-        m->rep[0]->data     = (u_char*)block_alloc(data_len);
-        memcpy(m->rep[0]->data, p, data_len);
-        p += data_len;
-
-        if (pb_add(out, (u_char *)m, sizeof(media_data), playout) == FALSE) {
-                debug_msg("XXX Failed to add unit\n");
-                media_data_destroy(&m, sizeof(media_data));
-                return;
-        }
-        /* Now do other units which do not have state*/
-        playout_step = ts_map32(cf->format.sample_rate, codec_get_samples_per_frame(id));
         while(p < end) {
-                playout = ts_add(playout, playout_step);
                 media_data_create(&m, 1);
-                m->rep[0]->id = id;
-                assert(m->nrep == 1);
-
+                m->rep[0]->id       = id;
+                if (p == cu->data && cf->mean_per_packet_state_size) {
+                        /* First unit out of packet may have state */
+                        m->rep[0]->state_len = cf->mean_per_packet_state_size;
+                        m->rep[0]->state     = (u_char*)block_alloc(m->rep[0]->state_len);
+                        memcpy(m->rep[0]->state, p, cf->mean_per_packet_state_size);
+                        p += cf->mean_per_packet_state_size;
+                }
+                /* Now do data section */
                 data_len            = codec_peek_frame_size(id, p, (uint16_t)(end - p));
                 m->rep[0]->data     = (u_char*)block_alloc(data_len);
                 m->rep[0]->data_len = (uint16_t)data_len;
-
                 memcpy(m->rep[0]->data, p, data_len);
-                p += data_len;
                 if (pb_add(out, (u_char *)m, sizeof(media_data), playout) == FALSE) {
                         debug_msg("Vanilla decode failed\n");
+                        media_data_destroy(&m, sizeof(media_data));
+                        return;
                 }
+                p += data_len;
+                playout = ts_add(playout, unit_dur);
         }
         assert(p == end);
 }
