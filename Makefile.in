@@ -23,7 +23,7 @@ CORE_OBJS  = ts.o playout.o statistics.o source.o \
              mbus_engine.o audio.o cushion.o main.o \
              mbus_ui.o mix.o net.o parameters.o pckt_queue.o \
              tcltk.o timers.o transmit.o transcoder.o \
-             ui.o 
+             ui.o rtp_callback.o
 
 OBJS = $(AUDIO_OBJS) $(CODEC_OBJS) $(CC_OBJS) $(TOY_OBJS) $(CORE_OBJS)
 
