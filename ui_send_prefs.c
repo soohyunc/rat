@@ -5,7 +5,7 @@
  * 	
  * Routines which send our preferences and other misc state to the user interface.
  *
- * Copyright (c) 2000 University College London
+ * Copyright (c) 2000-2001 University College London
  * All rights reserved.
  */
  

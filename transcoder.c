@@ -5,7 +5,7 @@
  *
  * Based on auddev_mux.c, revision 1.11
  *
- * Copyright (C) 1996-2000 University College London
+ * Copyright (C) 1996-2001 University College London
  * All rights reserved.
  */
  

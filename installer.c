@@ -3,7 +3,7 @@
  * PROGRAM: RAT
  * AUTHORS: Colin Perkins 
  *
- * Copyright (c) 2000 University College London
+ * Copyright (c) 2000-2001 University College London
  * All rights reserved.
  */
  

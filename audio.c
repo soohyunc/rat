@@ -7,7 +7,7 @@
  * Perkins, and Orion Hodson.  The existence of this code is pretty
  * offensive, but it's here for historical reasons.
  *
- * Copyright (c) 1995-2000 University College London
+ * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
  

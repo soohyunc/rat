@@ -20,7 +20,7 @@
  * changed atm_audio_read to read as many frames as available.
  *
  * Copyright (c) 2000 Nortel Networks
- *           (c) 1995-2000 University College London 
+ *           (c) 1995-2001 University College London 
  * All rights reserved.  
  */
 

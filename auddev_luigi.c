@@ -1,7 +1,7 @@
 /*
  * FILE: auddev_luigi.c - Sound interface for Luigi Rizzo's FreeBSD driver
  *
- * Copyright (c) 1996-2000 University College London
+ * Copyright (c) 1996-2001 University College London
  * All rights reserved.
  */
  

@@ -3,7 +3,7 @@
  * AUTHORS: Colin Perkins
  * MODIFICATIONS: Orion Hodson
  *
- * Copyright (c) 1998-2000 University College London
+ * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
  

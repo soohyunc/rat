@@ -6,7 +6,7 @@
  * Some platforms, notably Win32 and Irix 5.3 don't have a usleep
  * system call. This file provides a workaround.
  *
- * Copyright (c) 1999-2000 University College London
+ * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
  

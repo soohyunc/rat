@@ -4,7 +4,7 @@
  * AUTHOR:  Colin Perkins
  * MODS:    Orion Hodson + Robert Olson
  *
- * Copyright (c) 1996-2000 University College London
+ * Copyright (c) 1996-2001 University College London
  * All rights reserved.
  */
  

@@ -4,7 +4,7 @@
  * AUTHOR:  Isidor Kouvelas
  * MODIFICATIONS: Orion Hodson
  *
- * Copyright (c) 1995-2000 University College London
+ * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  *
  * $Id$

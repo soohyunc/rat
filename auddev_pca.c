@@ -4,7 +4,7 @@
  * AUTHOR:  Jim Lowe (james@cs.uwm.edu) 
  * MODS: Orion Hodson
  *
- * Copyright (c) 1996-2000 University College London
+ * Copyright (c) 1996-2001 University College London
  * All rights reserved.
  */
  

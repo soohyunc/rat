@@ -6,7 +6,7 @@
  * This is the main program for the RAT controller.  It starts the 
  * media engine and user interface, and controls them via the mbus.
  *
- * Copyright (c) 1999-2000 University College London
+ * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
 

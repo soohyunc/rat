@@ -2,7 +2,7 @@
  * FILE:      pktbuf.c
  * AUTHOR(S): Orion Hodson 
  *
- * Copyright (c) 1999-2000 University College London
+ * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
  
