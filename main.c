@@ -157,7 +157,7 @@ main(int argc, char *argv[])
         }
 
 	do {
-		network_process_mbus(sp, num_sessions, 500);
+		network_process_mbus(sp, num_sessions, 1000);
 		heartbeat(ntp_time32(), 1);
 	} while (sp[0]->wait_on_startup);
 
