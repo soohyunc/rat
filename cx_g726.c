@@ -346,27 +346,38 @@ update(
 		a2p = state_ptr->a[1] - (state_ptr->a[1] >> 7);
 		if (dqsez != 0) {
 			fa1 = (pks1) ? state_ptr->a[0] : -state_ptr->a[0];
-			if (fa1 < -8191)	/* a2p = function of fa1 */
+			if (fa1 < -8191) {	/* a2p = function of fa1 */
 				a2p -= 0x100;
-			else if (fa1 > 8191)
-				a2p += 0xFF;
-			else
-				a2p += fa1 >> 5;
+			} else {
+				if (fa1 > 8191) {
+					a2p += 0xFF;
+				} else {
+					a2p += fa1 >> 5;
+				}
+			}
 
-			if (pk0 ^ state_ptr->pk[1])
+			if (pk0 ^ state_ptr->pk[1]) {
 				/* LIMC */
-				if (a2p <= -12160)
+				if (a2p <= -12160) {
 					a2p = -12288;
-				else if (a2p >= 12416)
-					a2p = 12288;
-				else
-					a2p -= 0x80;
-			else if (a2p <= -12416)
-				a2p = -12288;
-			else if (a2p >= 12160)
-				a2p = 12288;
-			else
-				a2p += 0x80;
+				} else {
+					if (a2p >= 12416) {
+						a2p = 12288;
+					} else {
+						a2p -= 0x80;
+					}
+				}
+			} else {
+				if (a2p <= -12416) {
+					a2p = -12288;
+				} else {
+					if (a2p >= 12160) {
+						a2p = 12288;
+					} else {
+						a2p += 0x80;
+					}
+				}
+			}
 		}
 
 		/* TRIGB & DELAY */
