@@ -150,7 +150,6 @@ session_init(session_t *sp)
 	sp->meter			= TRUE;					/* Powermeter operation */
 	sp->in_file 			= NULL;
 	sp->out_file  			= NULL;
-	sp->rtp_seq			= lrand48() & 0xffff;
 	sp->mbus_engine_addr		= NULL;
 	sp->mbus_engine			= NULL;
 	sp->mbus_ui_addr		= NULL;

@@ -678,7 +678,7 @@ rx_audio_device(char *srce, char *args, session_t *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, int type)
+static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, u_int8 type)
 {
 	char	*arg, *ss;
         u_int32 ssrc;

@@ -129,7 +129,7 @@ main(int argc, char *argv[])
         }
         pdb_item_create(sp[0]->pdb, 
                         sp[0]->clock, 
-                        get_freq(sp[0]->device_clock), 
+                        (u_int16)get_freq(sp[0]->device_clock), 
                         rtp_my_ssrc(sp[0]->rtp_session[0])); 
 	settings_load_late(sp[0]);
 

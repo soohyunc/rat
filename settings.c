@@ -497,15 +497,19 @@ static void save_done(void)
 static void 
 setting_save_str(const char *name, const char *val)
 {
+        
+#ifndef WIN32
         if (val == NULL) {
                 val = "";
         }
-
-#ifndef WIN32
 	fprintf(settings_file, "*%s: %s\n", name, val);
 #else
-        LONG status;
+        int status;
         char buffer[SETTINGS_BUF_SIZE];
+
+        if (val == NULL) {
+                val = "";
+        }
 
         status = RegSetValueEx(cfgKey, name, 0, REG_SZ, val, strlen(val) + 1);
         if (status != ERROR_SUCCESS) {

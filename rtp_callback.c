@@ -163,8 +163,8 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                 return;
         }
 
-        ccid = channel_coder_get_by_payload(p->pt);
-        if (channel_verify_and_stat(ccid, p->pt, p->data, p->data_len, &units_per_packet, &codec_pt) == FALSE) {
+        ccid = channel_coder_get_by_payload((u_char)p->pt);
+        if (channel_verify_and_stat(ccid, (u_char)p->pt, p->data, p->data_len, &units_per_packet, &codec_pt) == FALSE) {
                 debug_msg("Packet discarded: packet failed channel verification.\n");
                 xfree(p);
                 return;
@@ -234,7 +234,7 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                 /* discard packets that arrived during blocked period.                  */
                 u_char *u = block_alloc(p->data_len);
                 memcpy(u, p->data, p->data_len);
-                if (source_add_packet(s, u, p->data_len, 0, p->pt, playout) == FALSE) {
+                if (source_add_packet(s, u, p->data_len, 0, (u_char)p->pt, playout) == FALSE) {
                         block_free(u, p->data_len);
                 }
         }
@@ -309,7 +309,7 @@ process_sdes(session_t *sp, u_int32 ssrc, rtcp_sdes_item *d)
 static void
 process_create(session_t *sp, u_int32 ssrc)
 {
-	if (pdb_item_create(sp->pdb, sp->clock, get_freq(sp->device_clock), ssrc) == FALSE) {
+	if (pdb_item_create(sp->pdb, sp->clock, (u_int16)get_freq(sp->device_clock), ssrc) == FALSE) {
 		debug_msg("Unable to create source 0x%08lx\n", ssrc);
 	}
 }
