@@ -16,8 +16,6 @@
  * SSRC).
  */
 
-#include <assert.h>
-
 #include "config_unix.h"
 #include "config_win32.h"
 #include "debug.h"
