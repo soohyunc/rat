@@ -313,7 +313,8 @@ static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
 
 static void rx_audio_output_mute(char *srce, char *args, session_struct *sp)
 {
-	int i;
+        struct s_source *s;
+	int i, n;
 
 	UNUSED(srce);
 
@@ -321,6 +322,15 @@ static void rx_audio_output_mute(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(sp->mbus_engine, &i)) {
         	sp->playing_audio = !i; 
 		ui_update_output_port(sp);
+                n = (int)source_list_source_count(sp->active_sources);
+                for (i = 0; i < n; i++) {
+                        s = source_list_get_source_no(sp->active_sources, i);
+                        ui_info_deactivate(sp, source_get_rtcp_dbentry(s));
+                        source_remove(sp->active_sources, s);
+                        /* revise source no's since we removed a source */
+                        i--;
+                        n--;
+                }
 	} else {
 		debug_msg("mbus: usage \"audio.output.mute <boolean>\"\n");
 	}
