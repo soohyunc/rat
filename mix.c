@@ -212,17 +212,6 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	 * we mast clear the buffer ahead (or copy)
 	 */
 		diff = (playout - ms->head_time)*ms->channels + len;
-#ifdef DEBUG_MIX
-                fprintf(stderr,
-                        "playout %08ld head %08ld(%05d) tail %08ld(%05d) dist %05d pos %d diff %ld\n", 
-                        playout, 
-                        ms->head_time,ms->head, 
-                        ms->tail_time,ms->tail, 
-                        ms->dist,
-                        pos,
-                        diff);
-#endif
-
 		diff = (playout - ms->head_time)*ms->channels + nsamples;
 		assert(diff > 0);
 		assert(diff < ms->buf_len);
@@ -380,8 +369,8 @@ mix_update_ui(session_struct *sp, mix_struct *ms)
 		bp = ms->mix_buffer + ms->buf_len - POWER_METER_SAMPLES * ms->channels;
 	} else {
 		bp = ms->mix_buffer + ms->tail - POWER_METER_SAMPLES;
-	energy = audio_energy(bp, POWER_METER_SAMPLES);
-	ui_output_level(log10((double)1.0 + (double)energy / (double)127) * 67, sp);
+	energy = avg_audio_energy(bp, POWER_METER_SAMPLES);
+	ui_output_level((int)lin2db(energy,100.0),sp);
 	ui_output_level(sp, lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
 
 
