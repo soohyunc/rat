@@ -72,7 +72,7 @@ struct mbus_ack {
 
 struct mbus {
 	int		 fd;
-	int		 channel;
+	unsigned short	 channel;
 	int		 num_addr;
 	char		*addr[MBUS_MAX_ADDR];
 	char		*parse_buffer[MBUS_MAX_PD];
@@ -163,6 +163,7 @@ static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seq
 	 * list. That's not necessarily a problem, could just be a duplicate
 	 * ACK for a retransmission... We ignore it for now...
 	 */
+	dprintf("Got an ACK for something not in our ACK list...\n");
 }
 
 static void mbus_send_ack(struct mbus *m, char *dest, int seqnum)
@@ -199,12 +200,10 @@ void mbus_retransmit(struct mbus *m)
 			dprintf(">>>\n");
 			dprintf("   mbus/1.0 %d R (%s) %s ()\n   %s (%s)\n", curr->seqn, curr->srce, curr->dest, curr->cmnd, curr->args);
 			dprintf("<<<\n");
-			if (m->err_handler != NULL) {
-				m->err_handler(curr->seqn);
-			} else {
+			if (m->err_handler == NULL) {
 				abort();
 			}
-			abort();
+			m->err_handler(curr->seqn);
 		}
 		if (diff > 2000) {
 			memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
@@ -221,7 +220,7 @@ void mbus_retransmit(struct mbus *m)
 	}
 }
 
-static int mbus_socket_init(int channel)
+static int mbus_socket_init(unsigned short channel)
 {
 	struct sockaddr_in sinme;
 	struct ip_mreq     imr;
@@ -254,8 +253,8 @@ static int mbus_socket_init(int channel)
 		return -1;
 	}
 
-	imr.imr_multiaddr.s_addr = htonl(MBUS_ADDR);
-	imr.imr_interface.s_addr = htonl(INADDR_ANY);
+	imr.imr_multiaddr.s_addr = MBUS_ADDR;
+	imr.imr_interface.s_addr = INADDR_ANY;
 	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) < 0) {
 		perror("mbus: setsockopt IP_ADD_MEMBERSHIP");
 		return -1;
@@ -270,12 +269,13 @@ static int mbus_socket_init(int channel)
 		perror("mbus: setsockopt IP_MULTICAST_TTL");
 		return -1;
 	}
+	assert(fd != -1);
 	return fd;
 }
 
-struct mbus *mbus_init(int  channel, 
-                       void (*cmd_handler)(char *src, char *cmd, char *arg, void *dat), 
-		       void (*err_handler)(int seqnum))
+struct mbus *mbus_init(unsigned short channel, 
+                       void  (*cmd_handler)(char *src, char *cmd, char *arg, void *dat), 
+		       void  (*err_handler)(int seqnum))
 {
 	struct mbus	*m;
 	int		 i;
