@@ -8,7 +8,7 @@ DEFS    = @DEFS@
 CFLAGS  = @CFLAGS@ $(DEFS)
 LIBS    = @LIBS@ @MATHLIBS@
 LDLIBS  = 
-INCLUDE = @AU_INC@ @TCL_INC@ @TK_INC@ @COMMON_INC@
+INCLUDE = @AU_INC@ @TCL_INC@ @TK_INC@ @COMMON_INC@ @G728_INC@
 CC      = @CC@
 AR      = ar
 RANLIB  = @RANLIB@
@@ -29,6 +29,8 @@ COMMON_LIB = @COMMON_LIB@
 EXTRA_OBJ  = @EXTRA_OBJ@
 EXTERNAL_DEP = @EXTERNAL_DEP@
 
+EXTRA_CODEC_OBJ = @EXTRA_CODEC_OBJ@
+
 prefix      = @prefix@
 exec_prefix = @exec_prefix@
 bindir      = @bindir@
@@ -45,7 +47,7 @@ CODEC_OBJS   = codec.o codec_state.o codec_dvi.o codec_gsm.o \
                cx_g726.o cx_g726_16.o cx_g726_24.o cx_g726_32.o cx_g726_40.o \
                cx_gsm.o cx_lpc.o cx_vdvi.o cx_wbs.o cx_dvi.o \
                converter.o convert_util.o convert_extra.o convert_linear.o \
-               convert_sinc.o bitstream.o
+               convert_sinc.o bitstream.o @EXTRA_CODEC_OBJ@
 
 SNDFILE_OBJS = sndfile.o sndfile_au.o sndfile_raw.o sndfile_wav.o
 

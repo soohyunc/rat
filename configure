@@ -3964,6 +3964,71 @@ EOF
 
 
 #-----------------------------------------------------------------------------
+# Just check if g728 library exists behind this directory.
+#-----------------------------------------------------------------------------
+G728_DIR=${PARENT}/g728lib
+G728_LIB=${G728_DIR}
+EXTRA_CODEC_OBJ=
+
+echo $ac_n "checking for g728_encoder_init in -lg728""... $ac_c" 1>&6
+echo "configure:3975: checking for g728_encoder_init in -lg728" >&5
+ac_lib_var=`echo g728'_'g728_encoder_init | sed 'y%./+-%__p_%'`
+if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  ac_save_LIBS="$LIBS"
+LIBS="-lg728 -L${G728_LIB} -lm $LIBS"
+cat > conftest.$ac_ext <<EOF
+#line 3983 "configure"
+#include "confdefs.h"
+/* Override any gcc2 internal prototype to avoid an error.  */
+/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char g728_encoder_init();
+
+int main() {
+g728_encoder_init()
+; return 0; }
+EOF
+if { (eval echo configure:3994: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  eval "ac_cv_lib_$ac_lib_var=yes"
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  eval "ac_cv_lib_$ac_lib_var=no"
+fi
+rm -f conftest*
+LIBS="$ac_save_LIBS"
+
+fi
+if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  
+		G728_INC=-I${G728_DIR}
+		G728_LIB="-L${G728_LIB} -lg728"
+		EXTRA_CODEC_OBJ="codec_g728.o"
+		cat >> confdefs.h <<\EOF
+#define HAVE_G728 1
+EOF
+
+	
+else
+  echo "$ac_t""no" 1>&6
+
+		G728_INC=
+		G728_LIB=
+		EXTRA_CODEC_OBJ=
+	
+fi
+
+
+
+
+
+
+#-----------------------------------------------------------------------------
 # Assorted Enable options 
 #-----------------------------------------------------------------------------
 # Check whether --enable-optimize or --disable-optimize was given.
@@ -4202,6 +4267,9 @@ s%@TK_LIB@%$TK_LIB%g
 s%@COMMON_INC@%$COMMON_INC%g
 s%@COMMON_LIB@%$COMMON_LIB%g
 s%@EXTERNAL_DEP@%$EXTERNAL_DEP%g
+s%@G728_INC@%$G728_INC%g
+s%@G728_LIB@%$G728_LIB%g
+s%@EXTRA_CODEC_OBJ@%$EXTRA_CODEC_OBJ%g
 
 CEOF
 EOF

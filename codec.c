@@ -30,6 +30,7 @@ static const char cvsid[] =
 #include "codec_lpc.h"
 #include "codec_vdvi.h"
 #include "codec_wbs.h"
+#include "codec_g728.h"
 
 /* Codec class initialization - hey didn't c++ happen somewhere along the 
  * timeline ;-) 
@@ -151,18 +152,19 @@ static codec_fns_t codec_table[] = {
                 NULL,
                 NULL
         },
+#ifdef HAVE_G728
         {
                 NULL,
                 NULL,
-                g726_get_formats_count,
-                g726_get_format,
-                g726_state_create,
-                g726_state_destroy,
-                g726_encode,
+                g728_get_formats_count,
+                g728_get_format,
+                g728_encoder_create,
+                g728_encoder_destroy,
+                g728_encoder_do,
                 NULL,
-                g726_state_create,
-                g726_state_destroy,
-                g726_decode,
+                g728_decoder_create,
+                g728_decoder_destroy,
+                g728_decoder_do,
                 NULL,
                 NULL,
                 NULL,
@@ -170,6 +172,7 @@ static codec_fns_t codec_table[] = {
                 NULL,
                 NULL
         },
+#endif /* HAVE_G728 */
         {
                 NULL,
                 NULL,

@@ -506,6 +506,32 @@ AC_DEFINE(FAST)
 AC_DEFINE(USE_FLOAT_MUL)
 
 #-----------------------------------------------------------------------------
+# Just check if g728 library exists behind this directory.
+#-----------------------------------------------------------------------------
+G728_DIR=${PARENT}/g728lib
+G728_LIB=${G728_DIR}
+EXTRA_CODEC_OBJ=
+
+AC_CHECK_LIB(g728,
+	g728_encoder_init,
+	[
+		G728_INC=-I${G728_DIR}
+		G728_LIB="-L${G728_LIB} -lg728"
+		EXTRA_CODEC_OBJ="codec_g728.o"
+		AC_DEFINE(HAVE_G728)
+	],
+	[
+		G728_INC=
+		G728_LIB=
+		EXTRA_CODEC_OBJ=
+	],
+	-L${G728_LIB} -lm)
+
+AC_SUBST(G728_INC)
+AC_SUBST(G728_LIB)
+AC_SUBST(EXTRA_CODEC_OBJ)
+
+#-----------------------------------------------------------------------------
 # Assorted Enable options 
 #-----------------------------------------------------------------------------
 AC_ARG_ENABLE(optimize,
