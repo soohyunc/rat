@@ -84,6 +84,7 @@ char   dev_name[OSS_MAX_DEVICES][OSS_MAX_NAME_LEN];
 
 static char the_dev[] = "/dev/dspX";
 static int audio_fd[OSS_MAX_DEVICES];
+static int mixer_fd[OSS_MAX_DEVICES];
 
 
 #define OSS_MAX_SUPPORTED_FORMATS 14
@@ -104,7 +105,7 @@ deve2oss(deve_e encoding)
 {
         switch(encoding) {
         	case DEV_PCMU: return AFMT_MU_LAW;
-        	case DEV_PCMA: return AFMT_A_LAW;
+		case DEV_PCMA: return AFMT_A_LAW;
         	case DEV_S8:   return AFMT_S8;
         	case DEV_S16:  return AFMT_S16_LE;
                 case DEV_U8:   return AFMT_U8;
@@ -123,6 +124,7 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 	int  frag     = 0x7fff0000; 			/* unlimited number of fragments */
 	int  reclb    = 0;
 	char buffer[128];				/* sigh. */
+	char the_mixer[16];
 
         if (ad <0 || ad>OSS_MAX_DEVICES) {
                 debug_msg("Invalid audio descriptor (%d)", ad);
@@ -130,7 +132,8 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
         }
 
         sprintf(the_dev, "/dev/dsp%d", ad);
-	if (ad == 0) {
+	audio_fd[ad] = open(the_dev, O_RDWR | O_NDELAY);
+	if (audio_fd[ad] < 0 && ad == 0) {
 		/* My understanding is that /dev/dsp should be a symbolic link to  */
 		/* /dev/dsp0, but RedHat-6.0 doesn't do this. If /dev/dsp0 doesn't */
 		/* exist we try to open /dev/dsp instead provided it's not a link. */
@@ -140,11 +143,32 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 			if (!S_ISLNK(s.st_mode)) {
 				debug_msg("/dev/dsp0 doesn't exist, trying /dev/dsp\n");
 				sprintf(the_dev, "/dev/dsp");
+				audio_fd[ad] = open(the_dev, O_RDWR | O_NDELAY);
 			}
 		}
 	}
 
-	audio_fd[ad] = open(the_dev, O_RDWR | O_NDELAY);
+	sprintf(the_mixer, "/dev/mixer%d", ad);
+	mixer_fd[ad] = open(the_mixer, O_RDWR);
+	if(mixer_fd[ad] < 0 && ad == 0) {
+		/* Again, if /dev/mixer0 doesn't exist, we try to open */
+		/* /dev/mixer, if it's not a symlink.                  */
+		struct stat	s;
+
+		if (stat("/dev/mixer", &s) == 0) {
+			if (!S_ISLNK(s.st_mode)) {
+				debug_msg("/dev/mixer0 doesn't exist, trying /dev/mixer\n");
+				mixer_fd[ad] = open("/dev/mixer", O_RDWR);
+			}
+		}
+	}
+
+	/* If we can't open the mixer, try sending mixer ioctl's to the */
+	/* normal audio device.                                         */
+	if(mixer_fd[ad] < 0) {
+		mixer_fd[ad] = audio_fd[ad];
+	}
+
 	if (audio_fd[ad] > 0) {
 		/* Note: The order in which the device is set up is important! Don't */
 		/*       reorder this code unless you really know what you're doing! */
@@ -202,13 +226,13 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 
 		/* Set global gain/volume to maximum values. This may fail on */
 		/* some cards, but shouldn't cause any harm when it does..... */ 
-		ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_VOLUME), &volume);
-		ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_RECLEV), &volume);
+		ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_VOLUME), &volume);
+		ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_RECLEV), &volume);
 		/* Select microphone input. We can't select output source...  */
 		oss_audio_iport_set(ad, iport);
 		/* Turn off loopback from input to output... This only works  */
 		/* on a few cards, but shouldn't cause problems on the others */
-		ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
+		ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
 		/* Device driver bug: we must read some data before the ioctl */
 		/* to tell us how much data is waiting works....              */
 		read(audio_fd[ad], buffer, 128);	
@@ -226,7 +250,11 @@ oss_audio_close(audio_desc_t ad)
         assert(audio_fd[ad] > 0);
 	oss_audio_drain(ad);
 	close(audio_fd[ad]);
+	if (mixer_fd[ad] != audio_fd[ad]) {
+		close(mixer_fd[ad]);
+	}
         audio_fd[ad] = -1;
+        mixer_fd[ad] = -1;
 }
 
 /* Flush input buffer */
@@ -262,7 +290,7 @@ oss_audio_set_igain(audio_desc_t ad, int gain)
 
 	switch (iport) {
 	case AUDIO_MICROPHONE : 
-		if (ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_MIC), &volume) == -1) {
+		if (ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_MIC), &volume) == -1) {
 			perror("Setting gain");
 		}
 #ifdef HAVE_ALSA_AUDIO
@@ -270,12 +298,30 @@ oss_audio_set_igain(audio_desc_t ad, int gain)
 #endif
 		return;
 	case AUDIO_LINE_IN : 
-		if (ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_LINE), &volume) == -1) {
+		/* From Stuart Levy <slevy@ncsa.uiuc.edu>:                           */
+		/* Finally, one completely untested (but plausible) change           */
+		/* that may help some people quite a bit.                            */
+		/*                                                                   */
+		/* An access-grid user reported a problem that adjusting their rat's */
+		/* "Line" level seemed to cause local audio loopback,                */
+		/* but that it *didn't* control the level of LineIn->rat signal.     */
+		/*                                                                   */
+		/* Bob Olson <olson@mcs.anl.gov> suggested that their sound card     */
+		/* might be "AC97 compliant", in which case the LINE mixer input     */
+		/* just controls the LineIn -> LineOut gain -- i.e. loopback! --     */
+		/* and LineIn capture level is controlled by Input Gain (IGAIN).     */
+		/*                                                                   */
+		/* So, in oss_audio_{set,get}_igain(), it first tries to             */
+		/* {write,read} the SOUND_MIXER_IGAIN value.  Only if that fails --  */
+		/* which I *hope* happens iff the card has no such control --        */
+		/* does it {write,read} SOUND_MIXER_LINE.                            */
+		if (ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_IGAIN), &volume) == -1 &&
+		    ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_LINE), &volume) == -1) {
 			perror("Setting gain");
 		}
 		return;
 	case AUDIO_CD:
-		if (ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_CD), &volume) < 0) {
+		if (ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_CD), &volume) < 0) {
 			perror("Setting gain");
 		}
 		return;
@@ -289,21 +335,23 @@ oss_audio_get_igain(audio_desc_t ad)
 {
 	int volume;
 
-        UNUSED(ad); assert(audio_fd[ad] > 0); assert(ad < OSS_MAX_DEVICES);
+        UNUSED(ad); assert(mixer_fd[ad] > 0); assert(ad < OSS_MAX_DEVICES);
 
 	switch (iport) {
 	case AUDIO_MICROPHONE : 
-		if (ioctl(audio_fd[ad], MIXER_READ(SOUND_MIXER_MIC), &volume) == -1) {
+		if (ioctl(mixer_fd[ad], MIXER_READ(SOUND_MIXER_MIC), &volume) == -1) {
 			perror("Getting gain");
 		}
 		break;
 	case AUDIO_LINE_IN : 
-		if (ioctl(audio_fd[ad], MIXER_READ(SOUND_MIXER_LINE), &volume) == -1) {
+		/* See comment in oss_audio_set_igain... */
+		if (ioctl(mixer_fd[ad], MIXER_READ(SOUND_MIXER_IGAIN), &volume) == -1 &&
+		    ioctl(mixer_fd[ad], MIXER_READ(SOUND_MIXER_LINE), &volume) == -1) {
 			perror("Getting gain");
 		}
 		break;
 	case AUDIO_CD:
-		if (ioctl(audio_fd[ad], MIXER_READ(SOUND_MIXER_CD), &volume) < 0) {
+		if (ioctl(mixer_fd[ad], MIXER_READ(SOUND_MIXER_CD), &volume) < 0) {
 			perror("Getting gain");
 		}
 		break;
@@ -317,27 +365,33 @@ oss_audio_get_igain(audio_desc_t ad)
 void
 oss_audio_set_ogain(audio_desc_t ad, int vol)
 {
+	/* From Stuart Levy <slevy@ncsa.uiuc.edu>:                           */
+	/* Also for the SBLive, the useful outputs weren't the ones          */
+	/* controlled by the rat-builtin mixer controls.                     */
+	/* Not sure what best to do here, so I made                          */
+	/* oss_audio_set_ogain() set *all* the level controls to the         */
+	/* specified value (PCM, SPEAKER, OGAIN, LINE1, LINE2).              */
+	/* Perhaps on some sound cards these values get multiplied together, */
+	/* yielding quadratic volume controls?                               */
+	/* And, oss_audio_get_ogain() tries PCM, SPEAKER, and OGAIN          */
+	/* in turn, and returns the value from the *first* that succeeds.    */
+	/* (Should OGAIN be first??)                                         */
+	/*                                                                   */
+	/* The above changes seem usable on our SBLive card, but I haven't   */
+	/* been able to try it elsewhere.                                    */
 	int volume;
 
-        UNUSED(ad); assert(audio_fd[ad] > 0);
+        UNUSED(ad); assert(mixer_fd[ad] > 0);
 
 	volume = vol << 8 | vol;
-	if (ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_PCM), &volume) == -1) {
+	/* Use & not && -- we want to execute all of these */
+	if ((ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_PCM), &volume) < 0)
+	  & (ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_SPEAKER), &volume) < 0)
+	  & (ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_OGAIN), &volume) < 0)
+	  & (ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_LINE1), &volume) < 0)
+	  & (ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_LINE2), &volume) < 0)) {
 		perror("Setting volume");
 	}
-}
-
-void
-oss_audio_loopback(audio_desc_t ad, int gain)
-{
-        UNUSED(ad); assert(audio_fd[ad] > 0);
-
-        gain = gain << 8 | gain;
-        if (ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_IMIX), &gain) == -1) {
-#if defined(DEBUG) && !defined(HAVE_ALSA_AUDIO)
-                perror("loopback");
-#endif
-        }
 }
 
 int
@@ -347,10 +401,25 @@ oss_audio_get_ogain(audio_desc_t ad)
 
         UNUSED(ad); assert(audio_fd[ad] > 0);
 
-	if (ioctl(audio_fd[ad], MIXER_READ(SOUND_MIXER_PCM), &volume) == -1) {
+	if (ioctl(mixer_fd[ad], MIXER_READ(SOUND_MIXER_PCM), &volume) == -1
+	  && ioctl(mixer_fd[ad], MIXER_READ(SOUND_MIXER_SPEAKER), &volume) == -1
+	  && ioctl(mixer_fd[ad], MIXER_READ(SOUND_MIXER_OGAIN), &volume) == -1) {
 		perror("Getting volume");
 	}
 	return device_to_bat(volume & 0x000000ff); /* Extract left channel volume */
+}
+
+void
+oss_audio_loopback(audio_desc_t ad, int gain)
+{
+        UNUSED(ad); assert(audio_fd[ad] > 0);
+
+        gain = gain << 8 | gain;
+        if (ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_IMIX), &gain) == -1) {
+#if defined(DEBUG) && !defined(HAVE_ALSA_AUDIO)
+                perror("loopback");
+#endif
+        }
 }
 
 int
@@ -465,9 +534,9 @@ oss_audio_iport_set(audio_desc_t ad, audio_port_t port)
 	int recsrc;
 	int gain;
 
-        UNUSED(ad); assert(audio_fd[ad] > 0);
+        UNUSED(ad); assert(mixer_fd[ad] > 0);
 
-	if (ioctl(audio_fd[ad], MIXER_READ(SOUND_MIXER_RECMASK), &recmask) == -1) {
+	if (ioctl(mixer_fd[ad], MIXER_READ(SOUND_MIXER_RECMASK), &recmask) == -1) {
 		debug_msg("WARNING: Unable to read recording mask!\n");
 		return;
 	}
@@ -493,7 +562,7 @@ oss_audio_iport_set(audio_desc_t ad, audio_port_t port)
         /* Can we select chosen port ? */
         if (recmask & recsrc) {
                 portmask = recsrc;
-                if ((ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & portmask)) {
+                if ((ioctl(mixer_fd[ad], MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & portmask)) {
                         debug_msg("WARNING: Unable to select recording source!\n");
                         return;
                 }

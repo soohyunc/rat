@@ -95,7 +95,7 @@ $(RATVER)-media: $(CHANNEL_OBJS) $(TOY_OBJS) $(MEDIA_OBJS) $(MEDIALIBS) $(EXTERN
 	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(MEDIA_OBJS) $(MEDIALIBS) $(COMMON_LIB) $(AU_LIB) $(LIBS) -o $(RATVER)-media
 
 $(RATVER)-ui: $(TCL_OBJS) $(UI_OBJS) $(EXTERNAL_DEP)
-	$(CC) $(CFLAGS) $(TCL_OBJS) $(UI_OBJS) $(COMMON_LIB) $(X_LIB)  $(TCL_LIB) $(TK_LIB) $(LIBS) -o $(RATVER)-ui 
+	$(CC) $(CFLAGS) $(TCL_OBJS) $(UI_OBJS) $(COMMON_LIB)  $(TCL_LIB) $(TK_LIB) $(X_LIB) $(LIBS) -o $(RATVER)-ui 
 
 $(RATVER): $(CTRL_OBJS) $(EXTERNAL_DEP)
 	$(CC) $(CFLAGS) $(CTRL_OBJS) $(COMMON_LIB) $(LIBS) -o $(RATVER)
@@ -153,7 +153,7 @@ install: all
 	./install-sh -m 444 -c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(prefix)/etc/sdr/plugins
 
 installer: $(INSTALL_OBJS)
-	$(CC) $(CFLAGS) $(INSTALL_OBJS) $(X_LIB)  $(TCL_LIB) $(TK_LIB) $(LIBS) -o $(RATVER)-installer
+	$(CC) $(CFLAGS) $(INSTALL_OBJS)  $(TCL_LIB) $(TK_LIB) $(X_LIB) $(LIBS) -o $(RATVER)-installer
 
 binaries.c: $(RATVER)-$(OSTYPE).tar.gz bin2c
 	./bin2c $(RATVER)-$(OSTYPE).tar.gz > binaries.c

@@ -17,6 +17,7 @@ static const char cvsid[] =
 #include "config_unix.h"
 #include "config_win32.h"
 #include "audio_types.h"
+#include "audio_fmt.h"
 #include "auddev_sgi.h"
 #include "debug.h"
 
@@ -26,8 +27,9 @@ static const char cvsid[] =
 #define BASEOFF         0x0a7f
 
 #define SGI_OPORT_SPEAKER    0x0101
-#define SGI_IPORT_MICROPHONE 0x0201
+#define SGI_IPORT_MICROPHONE 0x0203
 #define SGI_IPORT_LINE_IN    0x0202
+#define SGI_IPORT_APANEL     0x0201
 
 #define RAT_TO_SGI_DEVICE(x)	((x) * 255 / MAX_AMP)
 #define SGI_DEVICE_TO_RAT(x)	((x) * MAX_AMP / 255)
@@ -35,7 +37,7 @@ static const char cvsid[] =
 static int      audio_fd = -1;
 static ALport	rp = NULL, wp = NULL;	/* Read and write ports */
 static int      bytes_per_block;
-static audio_port_t iport = SGI_IPORT_MICROPHONE;
+static audio_port_t iport = SGI_IPORT_APANEL;
 
 int
 sgi_audio_device_count()
@@ -99,14 +101,14 @@ sgi_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 
 	cmd[0] = AL_OUTPUT_RATE;
 	cmd[1] = ofmt->sample_rate;
-	cmd[2] = AL_INPUT_SOURCE;
-	cmd[3] = AL_INPUT_MIC;
-	cmd[4] = AL_INPUT_RATE;
-	cmd[5] = ifmt->sample_rate;
-	cmd[6] = AL_MONITOR_CTL;
-	cmd[7] = AL_MONITOR_OFF;
+	cmd[2] = AL_INPUT_RATE;
+	cmd[3] = ifmt->sample_rate;
+	cmd[4] = AL_MONITOR_CTL;
+	cmd[5] = AL_MONITOR_OFF;
+	/*cmd[6] = AL_INPUT_SOURCE;*/
+	/*cmd[7] = AL_INPUT_MIC;*/
 
-	if (ALsetparams(AL_DEFAULT_DEVICE, cmd, 8L) == -1) {
+	if (ALsetparams(AL_DEFAULT_DEVICE, cmd, 6L/*was 8L*/) == -1) {
 		fprintf(stderr, "audio_open/ALsetparams error\n");
                 sgi_audio_close(ad);
         }
@@ -271,6 +273,7 @@ static audio_port_details_t out_ports[] = {
 #define SGI_NUM_OPORTS (sizeof(out_ports)/sizeof(out_ports[0]))
 
 static audio_port_details_t in_ports[] = {
+	{ SGI_IPORT_APANEL,	"APanel" },
         { SGI_IPORT_MICROPHONE, AUDIO_PORT_MICROPHONE },
         { SGI_IPORT_LINE_IN,    AUDIO_PORT_LINE_IN }
 };
@@ -329,6 +332,8 @@ sgi_audio_iport_set(audio_desc_t ad, audio_port_t port)
                 pvbuf[1] = AL_INPUT_MIC;
                 ALsetparams(AL_DEFAULT_DEVICE, pvbuf, 2);
                 break;
+	case SGI_IPORT_APANEL:
+		break;
         }
         iport = port;
 }

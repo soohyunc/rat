@@ -59,6 +59,9 @@ The configure script takes the following options:
 				modified gcc which supports this)
 Further options may be available - use "./configure --help" for details.
 
+On SGI Irix, you may need to specify the "--x-libraries=/usr/lib32" option
+to configure.
+
 If you need to modify the source to build RAT on your platform, please send
 these modifications to rat-trap@cs.ucl.ac.uk for incorporation in future
 releases.

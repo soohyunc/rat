@@ -1249,9 +1249,32 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  phone, location).
 	- Fix -f codec communication from controller to engine.
 	- Break controller address and option parsing so options are not
-	  communicated to engine before rendez-vous has occurred.  Otherwise
+	  communicated to engine before rendezvous has occurred.  Otherwise
 	  options can be lost due engine's settings_load occuring
-	  after rendez-vous.
+	  after rendezvous.
+	- OSS (Linux) audio driver updates from Stuart Levy <slevy@ncsa.uiuc.edu>
+		- Should make mixer controls work with the Sound Blaster 
+		  Live! cards
+		- Update behaviour of the line-in controls, to hopefully 
+		  work better with AC97 compatible cards, if you see a 
+		  difference in the behaviour of line-in please let us know.
+		- Update behaviour of output gain controls, to set all outputs. 
+		  This probably needs more work, let us know if it breaks anything
+		  (the entire OSS audio output control is broken - we need to deal
+		  better with the output mixer...)
+	- SGI audio driver updates from Stuart Levy <slevy@ncsa.uiuc.edu>
+		- Add "APanel" input source. When selected, rat carefully
+		  avoids ever specifying the input source to the audio
+		  library; thus whatever source is selected by the SGI
+		  "apanel" program applies. Use this if you have problems
+		  with rat switching to the built-in microphone on O2
+		  machines.
+		- If anyone could contribute support for the new (post
+		  Irix 6.3) audio library, we'd be grateful... 
+	- Fix library ordering in makefile (reported by Stuart Levy)
+	- Document configure options which may be needed to build on Irix 
+	  in INSTALL.TXT
+
 
 TODO -- They're features not bugs dammit!
 ----
