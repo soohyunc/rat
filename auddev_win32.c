@@ -963,6 +963,10 @@ w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
                 done  += this_write;
                 whWriteFreeList->dwBufferLength = this_write; /* XXX Unprepare and prepare needed ? */                
                 whNext = whWriteFreeList->lpNext;
+		mmr    = waveOutUnprepareHeader(shWaveOut, whWriteFreeList, sizeof(WAVEHDR));
+		assert(mmr == MMSYSERR_NOERROR);
+		mmr    = waveOutPrepareHeader(shWaveOut, whWriteFreeList, sizeof(WAVEHDR));
+		assert(mmr == MMSYSERR_NOERROR);
                 mmr    = waveOutWrite(shWaveOut, whWriteFreeList, sizeof(WAVEHDR));
                 whWriteFreeList       = whNext;
                 if (mmr == WRITE_ERROR_STILL_PLAYING) {
@@ -1020,7 +1024,7 @@ waveInProc(HWAVEIN hwi,
                 whRead->dwFlags &= ~WHDR_DONE;
                 whRead->dwUser   = whRead - whReadHdrs; /* For debugging - offset in whReadhdrs */
                 whRead->lpNext   = NULL;                /* Will be tail of whReadList */
-                whInsert = &whReadList;
+		whInsert = &whReadList;
                 while(*whInsert != NULL) {
                         whInsert = &((*whInsert)->lpNext);
                 }
@@ -1137,6 +1141,10 @@ w32sdk_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
                 if (nBytesUsedAtReadHead == blksz) {
                         /* Finished with the block give it device */
                         whNext = whReadList->lpNext;
+			mmr = waveInUnprepareHeader(shWaveIn, whReadList, sizeof(WAVEHDR));
+			assert(mmr == MMSYSERR_NOERROR);
+			mmr = waveInPrepareHeader(shWaveIn, whReadList, sizeof(WAVEHDR));
+			assert(mmr == MMSYSERR_NOERROR);
                         mmr = waveInAddBuffer(shWaveIn, whReadList, sizeof(WAVEHDR)); 
                         assert(mmr == MMSYSERR_NOERROR);
                         nBytesUsedAtReadHead = 0;
