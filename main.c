@@ -219,10 +219,6 @@ main(int argc, char *argv[])
 				ui_update_powermeters(sp[i], ms[i], elapsed_time);
 				tcl_process_events();
                 	} 
-
-			if ((sp[i]->mode == FLAKEAWAY) && (sp[i]->flake_go == 0) && (sp[i]->flake_os < 0)) {
-                                should_exit = TRUE;
-                        }
 		}
         }
 	for (i=0; i<num_sessions; i++) {

@@ -78,7 +78,7 @@ extern int thread_pri;
 
 typedef struct session_tag {
         short           id;                             /* idx of this session_tag - nasty hack - we know session_structs allocated as an array of 2 */
-	int		mode;                           /* audio tool, transcoder, flakeaway */
+	int		mode;                           /* audio tool, transcoder */
 	char            asc_address[MAXHOSTNAMELEN+1];  /* their ascii name if unicast */
 	char            maddress[16];
 	u_long          net_maddress;			/* Same as above, can be used in a sendto */
@@ -138,8 +138,6 @@ typedef struct session_tag {
 	int		last_zero;		/* audio.c */
 	long		loop_delay;
 	long		loop_estimate;
-        int             flake_go;                   /* counter used to avoid dropping at start */
-        int             flake_os;                   /* number outstanding */
         char            *ui_script;
 	int		 mbus_channel;
 } session_struct;

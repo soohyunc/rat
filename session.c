@@ -121,7 +121,6 @@ init_session(session_struct *sp)
 	sp->audio_fd               	= -1;
         sp->have_device                 = 0;
         sp->keep_device                 = 0;
-        sp->flake_go                    = 0;
 	sp->mix_count   		= 0;
 	sp->rtp_seq			= rand()&0xffff;/* Let's hope srand() has been called, and that rand() is really random [csp] */
 	sp->speakers_active 		= NULL;
@@ -307,39 +306,6 @@ parse_options_audio_tool(int argc, char *argv[], session_struct *sp)
 }
 
 static void 
-parse_options_flakeaway(int argc, char *argv[], session_struct *sp)
-{
-	/* Parse command-line options specific to the flakeaway */
-	if ((sp->in_file = fopen(argv[argc-2],"r")) == NULL) {
-		fprintf(stderr, "Could not open %s\n", argv[argc-2]);
-		exit(1);
-	}
-	if ((sp->out_file = fopen(argv[argc-1],"w")) == NULL) {
-		fprintf(stderr, "Could not open %s\n", argv[argc-1]);
-		exit(1);
-	}
-	sprintf(sp->asc_address, "127.0.0.1");
-	sprintf(sp->maddress,"127.0.0.1");
-	sp->rtp_port           = 45450;
-	sp->rtcp_port          = 45451;
-#ifdef NDEF
-        sp->db.initial_rtcp    = FALSE;
-        sp->db.senders         = 1;
-        sp->db.report_interval = 160;
-        sp->db.last_rpt        = -2 * sp->db.report_interval;
-#endif
-	sp->ui_on              = FALSE;
-	sp->playing_audio      = TRUE;
-	/* these are to stop audio being discarded during initial buffer
-	 * realignment, and to stop the app at the right time.
-	 * There are undoubtedly better ways to do this (as always)
-	 */
-        sp->flake_go      = 160;
-	/* this is to compensate for  buffering time in transmitter and receiver */
-        sp->flake_os      = 2000;  
-}
-
-static void 
 parse_options_transcoder(int argc, char *argv[], session_struct *sp[])
 {
 	/* Parse command-line options specific to the transcoder */
@@ -401,9 +367,6 @@ parse_options(int argc, char *argv[], session_struct *sp[])
 	if (strcmp(argv[1], "-version") == 0) {
 		printf("%s\n", RAT_VERSION);
 		exit(0);
-	} else if (strcmp(argv[1], "-F") == 0) {
-		sp[0]->mode = FLAKEAWAY;
-		num_sessions= 1;
 	} else if (strcmp(argv[1], "-T") == 0) {
 		sp[0]->mode = TRANSCODER;
 		sp[1]->mode = TRANSCODER;
@@ -415,8 +378,6 @@ parse_options(int argc, char *argv[], session_struct *sp[])
 	parse_options_common(argc, argv, sp, num_sessions);
 	switch (sp[0]->mode) {
 		case AUDIO_TOOL: parse_options_audio_tool(argc, argv, sp[0]);
-				 break;
-		case FLAKEAWAY : parse_options_flakeaway(argc, argv, sp[0]);
 				 break;
 		case TRANSCODER: parse_options_transcoder(argc, argv, sp);
 				 break;
