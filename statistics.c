@@ -178,8 +178,7 @@ adapt_playout(rtp_hdr_t *hdr,
 	u_int32	sendtime = 0;
         int     ntp_delay = 0;
 	u_int32	rtp_time;
-        u_int32 end_time;
-        char    jumped = FALSE;
+
         int64 since_last_sr;
     
 	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
@@ -198,12 +197,10 @@ adapt_playout(rtp_hdr_t *hdr,
                         src->jitter  = 240; 
                 }
 	} else {
-                if (hdr->ts - src->last_ts > 0) {
-                        diff       = abs(delay - src->delay) / (hdr->ts - src->last_ts);
-                        src->delay = delay;
-                        /* Jitter calculation as in RTP spec */
-                        src->jitter = src->jitter + (((double) diff - src->jitter) / 16);
-                }
+                diff       = abs(delay - src->delay) / abs(hdr->ts - src->last_ts);
+                src->delay = delay;
+                /* Jitter calculation as in RTP spec */
+                src->jitter += (((double) diff - src->jitter) / 16.0);
 	}
 
 	/* 
@@ -254,7 +251,7 @@ adapt_playout(rtp_hdr_t *hdr,
 			var = (u_int32) src->jitter * 3;
 
                         if (var < (unsigned)src->inter_pkt_gap) var = src->inter_pkt_gap;
-
+                        
                         if (src->playout_danger) {
                                 /* This is usually a sign that src clock is 
                                  * slower than ours. */
@@ -273,9 +270,20 @@ adapt_playout(rtp_hdr_t *hdr,
                                 var = max(minv, var);
                                 var = min(maxv, var);
                         }
-                        debug_msg("src_delay %ld src_var %ld\n", src->delay, var);
+
                         assert(var > 0);
-			src->playout = src->delay + var;
+                        
+                        if (playout_buffer_exists(sp->playout_buf_list , src) || 
+                            hdr->ts - src->last_ts < (unsigned)get_freq(src->clock)) {
+                                /* If playout buffer exists 
+                                 * or, difference in time stamps is less than 1 sec,
+                                 * we don't want playout point to be before that of existing data.
+                                 */
+                                src->playout = max((unsigned)src->playout, src->delay + var);
+                        } else {
+                                src->playout = src->delay + var;
+                        }
+
 
 			if (sp->sync_on && src->mapping_valid) {
 				/* use the jitter value as calculated but convert it to a ntp_ts freq [dm] */ 
@@ -299,15 +307,14 @@ adapt_playout(rtp_hdr_t *hdr,
 			/* Do not set encoding on TS start packets as they do not show if redundancy is used...   */
                         /*	src->encoding = hdr->pt; */
 		}
-                if (src->inter_pkt_gap && (signed)((hdr->ts - src->last_ts)/src->inter_pkt_gap) != (hdr->seq - src->last_seq)) {
-                        debug_msg("Jumped: timestamp diff (%d) seq no diff (%d)\n", 
-                                  (hdr->ts - src->last_ts)/src->inter_pkt_gap, 
-                                  hdr->seq-src->last_seq);
-                        jumped = TRUE;
-                }
 
                 src->playout_danger = FALSE;
 	}
+
+        if (hdr->seq - src->last_seq != 1) {
+                debug_msg("seq jump last (%ld) cur (%ld)\n", src->last_seq, hdr->seq);
+        } 
+
         src->last_ts        = hdr->ts;
         src->last_seq       = hdr->seq;
 
@@ -330,22 +337,6 @@ adapt_playout(rtp_hdr_t *hdr,
                 if (playout < get_time(src->clock)) {
                         debug_msg("playout before now.\n");
                         src->first_pckt_flag = TRUE;
-                }
-        }
-
-        if (playout_buffer_endtime(sp->playout_buf_list, src, &end_time) && playout < end_time) {
-                u_int32 shift = end_time - playout;
-
-                /* jumped tells us that the timestamps jumped relative to sequence numbers,
-                 * i.e. this is a new talkspurt.  In this case do nothing.  Otherwise
-                 * tailor playout so not to clip end of what we are already playing out.
-                 * 
-                 * this makes a huge improvement on jittery links.
-                 */
-
-                debug_msg("jumped %ld\n", shift);
-                if (jumped == FALSE && shift < 8000) {
-                        playout += shift + src->inter_pkt_gap;
                 }
         }
 
@@ -427,7 +418,7 @@ statistics(session_struct    *sp,
 	u_char		*data_ptr;
 	int		 len,extlen;
 	rtcp_dbentry	*src;
-	u_int32		 playout_pt;
+	u_int32		 playout;
 	pckt_queue_element_struct *e_ptr;
 	codec_t		*pcp;
 	char 		 update_req = FALSE;
@@ -489,8 +480,9 @@ statistics(session_struct    *sp,
                         update_req   = TRUE;
                 }
                 
-                playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
-                src->units_per_packet = split_block(playout_pt, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
+                playout = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
+
+                src->units_per_packet = split_block(playout, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
                 
                 if (update_req && (src->units_per_packet != 0)) {
                 	ui_update_stats(src, sp);

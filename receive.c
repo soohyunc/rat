@@ -60,6 +60,7 @@ typedef struct s_participant_playout_buffer {
 	rx_queue_element_struct *head_ptr;
 	rx_queue_element_struct *tail_ptr;
 	rx_queue_element_struct *last_got;
+        u_int32 creation_time;
         u_int32 len;
         u_int32 age;
         u_int32 hist; /* bitmap of additions and removals */
@@ -341,19 +342,18 @@ clear_old_history(ppb_t **buf)
 }
 
 int 
-playout_buffer_endtime (ppb_t *list, rtcp_dbentry *src, u_int32 *end_time)
+playout_buffer_exists (ppb_t *list, rtcp_dbentry *src)
 {
         ppb_t *p;
 
         p = list;
         while(p != NULL) {
                 if (p->src == src) {
-                        *end_time = p->tail_ptr->playoutpt;
                         return TRUE;
                 }
                 p = p->next;
         }
-        *end_time = 0;
+        
         return FALSE;
 }
 
@@ -404,9 +404,10 @@ find_participant_queue(ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, 
 
 	p = (ppb_t*)block_alloc(sizeof(ppb_t));
 	memset(p, 0, sizeof(ppb_t));
-	p->src = src;
-	p->next = *list;
-	*list = p;
+	p->src           = src;
+        p->creation_time = get_time(src->clock);
+	p->next          = *list;
+	*list            = p;
 
         cp_dev = get_codec_by_pt(dev_pt);
         cp_src = get_codec_by_pt(src_pt);
@@ -478,6 +479,28 @@ playout_buffer_remove(ppb_t **list, rtcp_dbentry *src)
 	}
 }
 
+
+static void
+fix_first_playout_error(u_int32 now, rx_queue_element_struct *up)
+{
+        u_int32 error;
+        struct  s_rtcp_dbentry *ssrc;
+
+        error = now - up->playoutpt;
+        ssrc = up->dbe_source[0];
+        
+        ssrc->playout += error;
+
+        debug_msg("error = %ld\n", error);
+
+        while(up) {
+                if (up->dbe_source[0] == ssrc) {
+                        up->playoutpt += error;
+                }
+                up = up->next_ptr;
+        }
+}
+
 #define PLAYOUT_SAFETY 5
 
 void 
@@ -512,10 +535,15 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		 */
                 
 		if (ts_gt(cur_time, up->playoutpt)) {
-			up->dbe_source[0]->jit_TOGed++;
-			up->dbe_source[0]->cont_toged++;
-                        debug_msg("cont_toged %d\n",
-                                  up->dbe_source[0]->cont_toged); 
+                        if (cur_time == buf->creation_time) {
+                                /* It is silly to throw first packet away */
+                                fix_first_playout_error(cur_time, up);
+                        } else {
+                                up->dbe_source[0]->jit_TOGed++;
+                                up->dbe_source[0]->cont_toged++;
+                                debug_msg("cont_toged %d\n",
+                                          up->dbe_source[0]->cont_toged); 
+                        }
 		} else {
 			up->dbe_source[0]->cont_toged = 0;
 		}

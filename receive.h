@@ -95,9 +95,9 @@ void service_receiver        (struct session_tag *sp,
 		              struct s_mix_info *ms);
 void clear_old_history       (struct s_participant_playout_buffer **buf);
 void destroy_playout_buffers (struct s_participant_playout_buffer **buf_list);
-int  playout_buffer_endtime  (struct s_participant_playout_buffer *buf_list, 
-                              struct s_rtcp_dbentry *src, 
-                              u_int32* end_time);
+int  playout_buffer_exists   (struct s_participant_playout_buffer *buf_list, 
+                              struct s_rtcp_dbentry *src);
+                            
 int32 playout_buffer_duration(struct s_participant_playout_buffer *buf_list, 
                               struct s_rtcp_dbentry *src);
 #endif /* _RECEIVE_H_ */
