@@ -136,6 +136,9 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16 freq, u_int32 id)
         item->mute            = 0;
 	item->clock           = new_time(clock, freq);
 
+        /* Initial jitter estimate (10ms = 80 ticks of 8kHz clock)           */
+        item->jitter          = ts_map32(8000, 80);
+
         /*********************************************************************/
 
         if (btree_add(p->db, id, (void*)item) == FALSE) {
