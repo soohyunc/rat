@@ -519,19 +519,16 @@ tx_send(tx_buffer *tb)
                 n -= units;
         }
 
-        channel_encoder_encode(sp->channel_coder, 
-                               tb->media_buffer, 
-                               tb->channel_buffer);
+        channel_encoder_encode(sp->channel_coder, tb->media_buffer, tb->channel_buffer);
 
         pb_iterator_create(tb->channel_buffer, &cpos);
-        while(pb_iterator_get_at(cpos, (u_char**)&cd, &cd_len, &time_ts)) {
+        while(pb_iterator_advance(cpos)) {
                 if (pb_iterator_detach_at(cpos, 
                                           (u_char**)&cd, 
                                           &cd_len, 
                                           &time_ts) == FALSE){
                         debug_msg("Failed to detach\n");
                 }
-
                 cu = cd->elem[0];
                 rtp_header.type = 2;
                 rtp_header.seq  = (u_int16)htons(sp->rtp_seq++);
@@ -565,7 +562,7 @@ tx_send(tx_buffer *tb)
 
                 sp->last_depart_ts  = time_32;
                 sp->db->pkt_count  += 1;
-                sp->db->byte_count += cu->data_len;
+                sp->db->byte_count += channel_data_bytes(cd);
                 sp->db->sending     = TRUE;
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
