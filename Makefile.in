@@ -77,13 +77,6 @@ ALL_SRCS     = $(ALL_OBJS:%.o=%.c)
 
 all: version.h sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec $(RATVER) $(RATVER)-ui $(RATVER)-media
 
-install: all
-	./install-sh -m 555 -c $(RATVER)       $(bindir)
-	./install-sh -m 555 -c $(RATVER)-media $(bindir)
-	./install-sh -m 555 -c $(RATVER)-ui    $(bindir)
-	./install-sh -m 444 -c man/man1/rat.1  $(mandir)/man1/rat.1
-	./install-sh -m 444 -c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(prefix)/etc/sdr/plugins
-
 libuclaudio.a: $(AUDIO_OBJS)
 	$(AR) r $@ $(AUDIO_OBJS)
 	$(RANLIB) $@
@@ -146,6 +139,13 @@ clean:
 distclean: clean
 	-rm -rf config.cache config.log config.status ratconf.h Makefile
 	-rm -rf core core-$(RATVER)-media core-$(RATVER)-ui
+
+install: all
+	./install-sh -m 555 -c $(RATVER)       $(bindir)
+	./install-sh -m 555 -c $(RATVER)-media $(bindir)
+	./install-sh -m 555 -c $(RATVER)-ui    $(bindir)
+	./install-sh -m 444 -c man/man1/rat.1  $(mandir)/man1/rat.1
+	./install-sh -m 444 -c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(prefix)/etc/sdr/plugins
 
 etags:
 	etags ../common/*.[ch] *.[ch]

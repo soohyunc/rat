@@ -30,6 +30,10 @@ static const char cvsid[] =
 #endif
 #endif
 
+#ifdef HAVE_ALSA_AUDIO
+extern int alsa_get_device_count();
+#endif
+
 enum { AUDIO_SPEAKER, AUDIO_HEADPHONE, AUDIO_LINE_OUT, AUDIO_MICROPHONE, AUDIO_LINE_IN, AUDIO_CD};
 
 /* Info to match port id's to port name's */
@@ -607,6 +611,7 @@ oss_audio_query_devices(void)
 		} else {
 			debug_msg("Cannot query mixer capabilities\n");
 		}
+		close(fd);
 	} else {
 		debug_msg("Cannot open /dev/mixer - no soundcard present?\n");
 	}
@@ -617,7 +622,12 @@ oss_audio_query_devices(void)
 int
 oss_get_device_count()
 {
-        return ndev;
+#ifdef HAVE_ALSA_AUDIO
+  if (alsa_get_device_count() > 0)
+    return 0;
+#endif
+  
+    return ndev;
 }
 
 const char *

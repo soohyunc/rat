@@ -170,39 +170,6 @@ audio_if_t audio_if_table[] = {
                 NULL
         },
 #endif /* HAVE_OSPREY_AUDIO */
-#ifdef HAVE_OSS_AUDIO
-        {
-                oss_audio_query_devices, 
-                NULL,
-                oss_get_device_count,
-                oss_get_device_name,
-                oss_audio_open,
-                oss_audio_close,
-                oss_audio_drain,
-                oss_audio_duplex,
-                oss_audio_read,
-                oss_audio_write,
-                oss_audio_non_block,
-                oss_audio_block,
-                oss_audio_set_igain,
-                oss_audio_get_igain,
-                oss_audio_set_ogain,
-                oss_audio_get_ogain,
-                oss_audio_loopback,
-                oss_audio_oport_set,
-                oss_audio_oport_get,
-                oss_audio_oport_details,
-                oss_audio_oport_count,
-                oss_audio_iport_set,
-                oss_audio_iport_get,
-                oss_audio_iport_details,
-                oss_audio_iport_count,
-                oss_audio_is_ready,
-                oss_audio_wait_for,
-                oss_audio_supports
-        },
-
-#endif /* HAVE_OSS_AUDIO */
 #ifdef HAVE_ALSA_AUDIO
         {
                 alsa_audio_init, 
@@ -236,6 +203,39 @@ audio_if_t audio_if_table[] = {
         },
 
 #endif /* HAVE_ALSA_AUDIO */
+#ifdef HAVE_OSS_AUDIO
+        {
+                oss_audio_query_devices, 
+                NULL,
+                oss_get_device_count,
+                oss_get_device_name,
+                oss_audio_open,
+                oss_audio_close,
+                oss_audio_drain,
+                oss_audio_duplex,
+                oss_audio_read,
+                oss_audio_write,
+                oss_audio_non_block,
+                oss_audio_block,
+                oss_audio_set_igain,
+                oss_audio_get_igain,
+                oss_audio_set_ogain,
+                oss_audio_get_ogain,
+                oss_audio_loopback,
+                oss_audio_oport_set,
+                oss_audio_oport_get,
+                oss_audio_oport_details,
+                oss_audio_oport_count,
+                oss_audio_iport_set,
+                oss_audio_iport_get,
+                oss_audio_iport_details,
+                oss_audio_iport_count,
+                oss_audio_is_ready,
+                oss_audio_wait_for,
+                oss_audio_supports
+        },
+
+#endif /* HAVE_OSS_AUDIO */
 #ifdef WIN32
         {
                 w32sdk_audio_init,
