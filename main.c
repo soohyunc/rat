@@ -65,7 +65,7 @@ main(int argc, char *argv[])
 	struct timeval  	 time;
 	struct timeval      	 timeout;
 	char			 mbus_engine_addr[100], mbus_ui_addr[100], mbus_video_addr[100];
-        
+
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
 #endif
@@ -139,6 +139,20 @@ main(int argc, char *argv[])
                 	tx_start(sp[i]->tb);
 		}
         }
+
+        /* dump buffered packets - it usually takes at least 1 second
+         * to this far, all packets read thus far should be ignored.  
+         * This stops lots of "skew" adaption at the start because the
+         * playout buffer is too long.
+         */
+        
+        for(i = 0; i < num_sessions; i++) {
+                int dropped;
+                dropped = read_and_discard(sp[i]->rtp_socket);
+                debug_msg("Session %d dumped %d rtp packets\n", i, dropped);
+                dropped = read_and_discard(sp[i]->rtcp_socket);
+                debug_msg("Session %d dumped %d rtcp packets\n", i, dropped);
+        }
 	
 	xdoneinit();
 
@@ -158,7 +172,8 @@ main(int argc, char *argv[])
 			udp_fd_zero();
 			udp_fd_set(sp[i]->rtp_socket);
 			udp_fd_set(sp[i]->rtcp_socket);
-			if (udp_select(&timeout) > 0) {
+
+			while (udp_select(&timeout) > 0) {
 				if (udp_fd_isset(sp[i]->rtp_socket)) {
 					read_and_enqueue(sp[i]->rtp_socket , sp[i]->cur_ts, sp[i]->rtp_pckt_queue, PACKET_RTP);
 				}
