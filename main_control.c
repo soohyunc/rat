@@ -194,6 +194,12 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
                         }
                         i++;
                 } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
+			/* Dynamic payload type mapping. Format: "-pt pt/codec" */
+			/* Codec is of the form "pcmu-8k-mono"                  */
+			int	 pt    = atoi(strtok(argv[i+1], "/"));
+			char	*codec = strtok(NULL, "/");
+
+			mbus_qmsgf(m, e_addr, TRUE, "tool.rat.payload.set", "\"%s\" %d", codec, pt);
 		} else if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
 			tmp = mbus_encode_str(argv[i+1]);
 			mbus_qmsgf(m, e_addr, TRUE, "security.encryption.key", tmp);
