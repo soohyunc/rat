@@ -20,6 +20,7 @@
 #include "mbus.h"
 #include "version.h"
 #include "mbus_control.h"
+#include "crypt_random.h"
 
 #ifdef WIN32
 #define UI_NAME     "ratui.exe"
@@ -96,6 +97,7 @@ static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_
 		perror("Couldn't create process");
 		abort();
 	}
+	*pid = (pid_t) proc_info->hProcess;	/* Sigh, hope a HANDLE fits into 32 bits... */
 	debug_msg("Forked %s\n", proc_name);
 #else
 #ifdef DEBUG_FORK
@@ -142,7 +144,10 @@ static void kill_process(pid_t proc)
 		return;
 	}
 #ifdef WIN32
-	/* Hmmm... */
+	/* This doesn't close down DLLs or free resources, so we have to  */
+	/* hope it doesn't get called. With any luck everything is closed */
+	/* down by sending it an mbus.exit() message, anyway...           */
+	TerminateProcess((HANDLE) proc, 0);
 #else
 	kill(proc, SIGINT);
 #endif

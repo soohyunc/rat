@@ -170,6 +170,10 @@ SOURCE=.\win32.c
 # PROP Default_Filter ".h"
 # Begin Source File
 
+SOURCE=.\config_win32.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\mbus_control.h
 # End Source File
 # End Group

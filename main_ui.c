@@ -102,12 +102,12 @@ int main(int argc, char *argv[])
 	tcl_init(m, argc, argv, e_addr);
 	while (1) {
 		timeout.tv_sec  = 0;
-		timeout.tv_usec = 25000;
+		timeout.tv_usec = 10000;
 		mbus_recv(m, NULL, &timeout);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
 		mbus_retransmit(m);
-		tcl_process_event();
+		tcl_process_all_events();
 	}
 }
 

@@ -123,9 +123,9 @@ struct timezone {
 	int tz_dsttime;
 };
 
-typedef int pid_t;
-typedef int uid_t;
-typedef int gid_t;
+typedef DWORD pid_t;
+typedef DWORD uid_t;
+typedef DWORD gid_t;
     
 #if defined(__cplusplus)
 extern "C" {
