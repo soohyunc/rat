@@ -290,8 +290,8 @@ proc mbus_recv_output_mute {val} {
 
 proc mbus_recv_half_duplex {} {
 	global output_var
-	set output_var {Mike mutes net}
-  	mbus_send "R" "output_mode "[mbus_encode_str $output_var]"
+	set output_var "Mike mutes net"
+  	mbus_send "R" "output_mode" "[mbus_encode_str $output_var]"
 }
 
 proc mbus_recv_debug {} {
