@@ -196,7 +196,7 @@ null_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
         assert(avail_bytes >= 0);
 
         memcpy(&last_read_time, &curr_time, sizeof(struct timeval));
-        audio_zero((sample*)buf, read_bytes * ifmt.bits_per_sample / 8, ifmt.encoding);
+	memset(buf, 0, read_bytes);
 
         xmemchk();
         return read_bytes;

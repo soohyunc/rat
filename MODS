@@ -1309,6 +1309,12 @@ v4.2.4	- Further updates to OSS (i.e. Linux) audio support
 		  This will need a custom user interface and controller.
 		- Remove the IS_TRANSCODER defines.
 	- Update installation instructions
+	- Fix buffer overflow when reading from "No audio device". This was
+	  the cause of the
+		"playout.c:86: pb_validate:Assertion 'pb->magic==0x83838383' 
+	  error reported by Christa Wenger, Marcos Bedinelli and Fang Yuan
+	  on Linux.
+
 
 
 
@@ -1404,7 +1410,3 @@ TODO -- They're features not bugs dammit!
 		tx_send(sp[i]->tb);
 	}
   ...twice in the main loop?
-- On linux we get "playout.c:86: pb_validate:Assertion 'pb->magic==0x83838383' 
-  failed" when enabling the microphone to transmit. Reported by Christa
-  Wenger, Marcos Bedinelli and Fang Yuan.
-
