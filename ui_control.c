@@ -98,8 +98,13 @@ ui_info_update_name(rtcp_dbentry *e)
 void
 ui_info_update_cname(rtcp_dbentry *e)
 {
-	if (e->sentry->cname == NULL) return;
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.exists", mbus_encode_str(e->sentry->cname), TRUE);
+        char *cname;
+	
+        if (e->sentry->cname == NULL) return;
+        
+        cname = mbus_encode_str(e->sentry->cname);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.exists", cname, TRUE);
+        xfree(cname);
 }
 
 void
@@ -182,29 +187,49 @@ ui_info_update_note(rtcp_dbentry *e)
 void
 ui_info_remove(rtcp_dbentry *e)
 {
-	if (e->sentry->cname == NULL) return;
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.remove", mbus_encode_str(e->sentry->cname), TRUE);
+        char *cname;
+	
+        if (e->sentry->cname == NULL) return;
+	
+        cname = mbus_encode_str(e->sentry->cname);
+        mbus_engine_tx(TRUE, mbus_name_ui, "source.remove", cname, TRUE);
+        xfree(cname);
 }
 
 void
 ui_info_activate(rtcp_dbentry *e)
 {
-	if (e->sentry->cname == NULL) return;
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.now", mbus_encode_str(e->sentry->cname), FALSE);
+        char *cname;
+	
+        if (e->sentry->cname == NULL) return;
+        
+        cname = mbus_encode_str(e->sentry->cname);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.now", cname, FALSE);
+        xfree(cname);
 }
 
 void
 ui_info_gray(rtcp_dbentry *e)
 {
-	if (e->sentry->cname == NULL) return;
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.recent", mbus_encode_str(e->sentry->cname), FALSE);
+        char *cname;
+	
+        if (e->sentry->cname == NULL) return;
+        
+        cname = mbus_encode_str(e->sentry->cname);
+	mbus_engine_tx(TRUE, mbus_name_ui, "source.active.recent", cname, FALSE);
+        xfree(cname);
 }
 
 void
 ui_info_deactivate(rtcp_dbentry *e)
 {
+        char *cname;
+
 	if (e->sentry->cname == NULL) return;
-	mbus_engine_tx(TRUE, mbus_name_ui, "source.inactive", mbus_encode_str(e->sentry->cname), FALSE);
+	
+        cname = mbus_encode_str(e->sentry->cname);
+        mbus_engine_tx(TRUE, mbus_name_ui, "source.inactive", cname, FALSE);
+        xfree(cname);
 }
 
 void
@@ -218,8 +243,8 @@ ui_update_stats(rtcp_dbentry *e, session_struct *sp)
 		return;
 	}
 
-	my_cname    = strdup(mbus_encode_str(sp->db->my_dbe->sentry->cname));
-	their_cname = strdup(mbus_encode_str(e->sentry->cname));
+	my_cname    = mbus_encode_str(sp->db->my_dbe->sentry->cname);
+	their_cname = mbus_encode_str(e->sentry->cname);
 
         if (e->enc_fmt) {
                 args = (char *) xmalloc(strlen(their_cname) + strlen(e->enc_fmt) + 2);
@@ -234,8 +259,8 @@ ui_update_stats(rtcp_dbentry *e, session_struct *sp)
 	args = (char *) xmalloc(strlen(their_cname) + strlen(my_cname) + 11);
 	sprintf(args, "%s %s %8ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.packet.loss", args, FALSE);
-	free(my_cname);
-	free(their_cname);
+	xfree(my_cname);
+	xfree(their_cname);
 	xfree(args);
 }
 
@@ -368,42 +393,48 @@ void
 ui_update_frequency(session_struct *sp)
 {
 	codec_t *pcp;
-	char	 args[7];
+	char	 args[7], *mbes;
 
 	pcp = get_codec(sp->encodings[0]);
 	sprintf(args, "%d-kHz", pcp->freq/1000);
         assert(strlen(args) < 7);
-	mbus_engine_tx(TRUE, mbus_name_ui, "frequency", mbus_encode_str(args), FALSE);
+        mbes = mbus_encode_str(args);
+	mbus_engine_tx(TRUE, mbus_name_ui, "frequency", mbes, FALSE);
+        xfree(mbes);
 }
 
 void
 ui_update_channels(session_struct *sp)
 {
 	codec_t *pcp;
-	char	 args[9];
+	char	*mbes;
         
 	pcp = get_codec(sp->encodings[0]);
         switch(pcp->channels) {
         case 1:
-                sprintf(args, "%s", mbus_encode_str("Mono"));
+                mbes = mbus_encode_str("Mono");
                 break;
         case 2:
-                sprintf(args, "%s", mbus_encode_str("Stereo"));
+                mbes = mbus_encode_str("Stereo");
                 break;
         default:
                 debug_msg("UI not ready for %d channels\n", pcp->channels);
                 return;
         }
-	mbus_engine_tx(TRUE, mbus_name_ui, "channels", args, FALSE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "channels", mbes, FALSE);
+        xfree(mbes);
 }       
 
 void
 ui_update_primary(session_struct *sp)
 {
 	codec_t *pcp;
+        char *mbes;
 
 	pcp = get_codec(sp->encodings[0]);
-	mbus_engine_tx(TRUE, mbus_name_ui, "primary", mbus_encode_str(pcp->short_name), FALSE);
+	mbes = mbus_encode_str(pcp->short_name);
+        mbus_engine_tx(TRUE, mbus_name_ui, "primary", mbes, FALSE);
+        xfree(mbes);
 }
 
 void
@@ -446,33 +477,35 @@ ui_update_redundancy(session_struct *sp)
         sprintf(args,"%s %2d", codec_name, ioff);
         assert(strlen(args) < (strlen(codec_name) + 4));
         mbus_engine_tx(TRUE, mbus_name_ui, "redundancy", args, TRUE);
-	xfree(args);
+	xfree(codec_name);
+        xfree(args);
 }
 
 static void 
 ui_update_channel(session_struct *sp) 
 {
         cc_coder_t *ccp;
-        char args[80];
+        char       *mbes;
 
         ccp = get_channel_coder(sp->cc_encoding);
         assert(ccp != NULL);
         switch(ccp->name[0]) {
         case 'V':
-                sprintf(args, mbus_encode_str("No Loss Protection"));
+                mbes = mbus_encode_str("No Loss Protection");
                 break;
         case 'R':
-                sprintf(args, mbus_encode_str("Redundancy"));
+                mbes = mbus_encode_str("Redundancy");
                 break;
         case 'I':
-                sprintf(args, mbus_encode_str("Interleaving"));
+                mbes = mbus_encode_str("Interleaving");
                 break;
         default:
                 debug_msg("Channel coding failed mapping.\n");
                 return;
         }
-        assert(strlen(args) < 80);
-        mbus_engine_tx(TRUE, mbus_name_ui, "channel.code", args, TRUE);
+
+        mbus_engine_tx(TRUE, mbus_name_ui, "channel.code", mbes, TRUE);
+        xfree(mbes);
 }
 
 void
@@ -606,6 +639,7 @@ ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered,
 	sprintf(args, "%s %6ld %6ld %6ld %6ld %f %6d", cname_e, recv, lost, misordered, duplicates, jitter, jit_tog);
 	mbus_engine_tx_queue(TRUE, "source.reception", args);
 	xfree(args);
+        xfree(cname_e);
 }
 
 void
@@ -692,14 +726,16 @@ ui_get_codecs(int pt, char *buf, int loose)
 void 
 ui_codecs(int pt)
 {
-	char	args[64];	/* Hope that's big enough... :-) */
+	char	args[64], *mbes;	/* Hope that's big enough... :-) */
 
         ui_get_codecs(pt, args, TRUE);
-        mbus_encode_str(args);
-	mbus_engine_tx(TRUE, mbus_name_ui, "codec.supported", args, TRUE);
+        mbes = mbus_encode_str(args);
+	mbus_engine_tx(TRUE, mbus_name_ui, "codec.supported", mbes, TRUE);
+        xfree(mbes);
         ui_get_codecs(pt, args, FALSE);
-        mbus_encode_str(args);
-        mbus_engine_tx(TRUE, mbus_name_ui, "redundancy.supported", args, TRUE);
+        mbes = mbus_encode_str(args);
+        mbus_engine_tx(TRUE, mbus_name_ui, "redundancy.supported", mbes, TRUE);
+        xfree(mbes);
 }
 
 void
@@ -725,20 +761,24 @@ ui_controller_init(char *cname, char *name_engine, char *name_ui, char *name_vid
 
 	my_cname = mbus_encode_str(cname);
 	mbus_engine_tx(TRUE, mbus_name_ui, "my.cname", my_cname, TRUE);
+        xfree(my_cname);
 }
 
 void
 ui_title(session_struct *sp) 
 {
-	char	*addr, *args;
+	char	*addr, *args, *title;
 
-        mbus_engine_tx(TRUE, mbus_name_ui, "session.title", mbus_encode_str(sp->title), TRUE);
+        title = mbus_encode_str(sp->title);
+        mbus_engine_tx(TRUE, mbus_name_ui, "session.title", title, TRUE);
+        xfree(title);
 
 	addr = mbus_encode_str(sp->asc_address);
 	args = (char *) xmalloc(strlen(addr) + 11);
         sprintf(args, "%s %5d %3d", addr, sp->rtp_port, sp->ttl);
         mbus_engine_tx(TRUE, mbus_name_ui, "session.address", args, TRUE);
 	xfree(args);
+        xfree(addr);
 }
 
 void
