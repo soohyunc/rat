@@ -26,8 +26,8 @@
 /* Using integer maths to reduce cost of type conversion.  SINC_SCALE is     */
 /* scaling factor used in filter coefficients == (1 << SINC_ROLL)            */
 
-#define SINC_ROLL   10
-#define SINC_SCALE (1 << SINC_ROLL)
+#define SINC_ROLL     10
+#define SINC_SCALE  1024
 
 /* Integer changes between 2 and 6 times 8-16-24-32-40-48                    */
 
@@ -273,11 +273,11 @@ sinc_convert (const converter_fmt_t *cfmt,
  * and was hard to debug.
  */
 
+#define clip16(x) if (x > 32767) { x = 32767; } else if (x < -32767) { x = -32767; }
+
 #define LIGHT
 /* LIGHT or HEAVY */
 #ifdef LIGHT
-
-#define cs_err(x) fprintf(stderr, x)
 
 static void 
 sinc_upsample_mono (struct s_filter_state *fs, 
@@ -323,13 +323,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                cs_err("clipping\n");
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                cs_err("clipping\n");
-                                tmp = -32767;
-                        }
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -341,13 +335,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                cs_err("clipping\n");
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                cs_err("clipping\n");
-                                tmp = -32767;
-                        }
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -359,13 +347,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                cs_err("clipping\n");
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                cs_err("clipping\n");
-                                tmp = -32767;
-                        }
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -377,13 +359,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                cs_err("clipping\n");
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                cs_err("clipping\n");
-                                tmp = -32767;
-                        }
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -395,13 +371,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                cs_err("clipping\n");
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                cs_err("clipping\n");
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -413,14 +383,8 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                cs_err("clipping\n");
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                cs_err("clipping\n");
-                                tmp = -32767;
-                        }
-                        *out++ = (short)tmp;
+                        clip16(tmp);                        
+                         *out++ = (short)tmp;
 
                         si_start++;
                 }
@@ -436,11 +400,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -452,11 +412,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -468,11 +424,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -484,11 +436,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -500,11 +448,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si_start++;
@@ -521,11 +465,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -537,11 +477,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -553,11 +489,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -569,11 +501,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si_start++;
@@ -590,11 +518,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -606,11 +530,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -622,11 +542,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si_start++;
@@ -643,11 +559,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -659,11 +571,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        if (tmp > 32767) {
-                                tmp = 32767;
-                        } else if (tmp < -32767) {
-                                tmp = -32767;
-                        }
+                        clip16(tmp);                        
                         *out++ = (short)tmp;
 
                         si_start++;
@@ -682,11 +590,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                         si  += 1;
                                 }
                                 tmp /= SINC_SCALE;
-                                if (tmp > 32767) {
-                                        tmp = 32767;
-                                } else if (tmp < -32767) {
-                                        tmp = -32767;
-                                }
+                                clip16(tmp);                        
                                 *out++ = (short)tmp;
                                 hi_start--;
                         }
@@ -753,11 +657,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                         tmp += h[i] * large_buf[si_start + i];
                 }
                 tmp /= SINC_SCALE;
-                if (tmp > 32767) {
-                        tmp = 32767;
-                } else if (tmp < -32767) {
-                        tmp = -32767;
-                }
+                clip16(tmp);
                 *out++ = (short)tmp;
                 si_start++;
         }
@@ -771,106 +671,408 @@ sinc_upsample_mono (struct s_filter_state *fs,
 
 static void 
 sinc_upsample_stereo (struct s_filter_state *fs, 
-                      sample *src, int src_len, 
-                      sample *dst, int dst_len)
+                    sample *src, int src_len, 
+                    sample *dst, int dst_len)
 {
-        sample *work_buf, *ss, *sc, *se, *d, *de;
+        sample *work_buf, *out;
         int     work_len;
-        int32   t0, t1;
-        int32  *h, *hc, *he, half_width;
+        int32   tmp[2], si_start, si_end, si, hold_bytes;
+        int32  *h, hi_start, hi_end, hi;
 
-        work_len = src_len + 2 * fs->taps - 1;
-        work_buf = (sample*)block_alloc(sizeof(sample)*work_len);
+        hold_bytes = fs->taps / fs->scale * sizeof(sample) * 2;
+        work_len   = src_len + hold_bytes / sizeof(sample);
+        work_buf   = (sample*)block_alloc(sizeof(sample)*work_len);
         
-        assert(fs->hold_bytes == 2 * fs->taps * sizeof (sample));
-
         /* Get samples into work_buf */
-        memcpy(work_buf, fs->hold_buf, fs->hold_bytes);
-        memcpy(work_buf + fs->hold_bytes/sizeof(sample), src, src_len * sizeof(sample));
+        memcpy(work_buf, fs->hold_buf, hold_bytes);
+        memcpy(work_buf + hold_bytes / sizeof(sample), 
+               src, 
+               src_len * sizeof(sample));
         
         /* Save last samples in src into hold_buf for next time */
-        memcpy(fs->hold_buf, src + src_len - fs->hold_bytes / sizeof(sample), fs->hold_bytes);
+        memcpy(fs->hold_buf, 
+               src + src_len - hold_bytes / sizeof(sample), 
+               hold_bytes);
 
-        d  = dst;
-        de = dst + dst_len;
-        ss = work_buf;
-        se = work_buf + work_len;
-        he = fs->filter + fs->taps;
-        h = fs->filter;
-        half_width = fs->taps / 2; 
+        h      = fs->filter;
+        hi_end = fs->taps;
 
-        while (d < de) {
-                hc = h;
-                t0 = t1 = 0;
-                sc = ss;
-                while (hc < he) {
-                        t0 += (*hc) * (*sc);
-                        sc++;
-                        t1 +=  (*hc) * (*sc);
-                        sc++;
-                        hc += fs->scale;
-                }
+        si_start = 0;
+        si_end   = work_len - (fs->taps / fs->scale);
+        out      = dst;
 
-                t0 = t0 >> SINC_ROLL;
-                if (t0 > 32767) {
-                        *d = 32767;
-                } else if (t0 < -32768) {
-                        *d = -32768;
-                } else {
-                        *d = (sample)t0;
-                }
-                d++;
-
-                t1 = t1 >> SINC_ROLL;
-                if (t1 > 32767) {
-                        *d = 32767;
-                } else if (t1 < -32768) {
-                        *d = -32768;
-                } else {
-                        *d = (sample)t1;
-                }
-
-                d++;
-
-                ss+=2;
-                h  = fs->filter + fs->scale - 1;
-                while (h != fs->filter) {
-                        hc = h;
-                        t0 = t1 = 0;
-                        sc = ss;
-                        while (hc < he) {
-                                t0  += (*hc) * (*sc);
-                                sc++;
-                                t1  += (*hc) * (*sc);
-                                sc++;
-                                hc += fs->scale;
+        switch (fs->scale) {
+        case 6:
+                while (si_start < si_end) {
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 5;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
                         }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
 
-                        t0 = t0 >> SINC_ROLL;
-                        if (t0 > 32767) {
-                                *d = 32767;
-                        } else if (t0 < -32768) {
-                                *d = -32768;
-                        } else {
-                                *d = (sample)t0;
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 4;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
                         }
-                        d++;
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
 
-                        t1 = t1 >> SINC_ROLL;
-                        if (t1 > 32767) {
-                                *d = 32767;
-                        } else if (t1 < -32768) {
-                                *d = -32768;
-                        } else {
-                                *d = (sample)t1;
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 3;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
                         }
-                        d++;
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
 
-                        h--;
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 2;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 1;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 0;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si_start += 2;
+                }
+                break;
+        case 5:
+                while (si_start < si_end) {
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 4;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 3;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 2;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 1;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 0;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si_start += 2;
+                }
+                break;
+        case 4:
+                while (si_start < si_end) {
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 3;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 2;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 1;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 0;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si_start += 2;
+                }
+                break;
+        case 3:
+                while (si_start < si_end) {
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 2;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 1;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 0;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si_start += 2;
+                }
+                break;
+        case 2:
+                while (si_start < si_end) {
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 1;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+
+                        si  = si_start;
+                        tmp[0] = tmp[1] = 0;
+                        hi  = 0;
+                        while (hi < hi_end) {
+                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[1] += work_buf[si + 1] * h[hi];
+                                hi  += fs->scale;
+                                si  += 2;
+                        }
+                        tmp[0] /= SINC_SCALE; 
+                        tmp[1] /= SINC_SCALE;
+                        clip16(tmp[0]); 
+                        clip16(tmp[1]);                        
+                        *out++ = (short)tmp[0];
+                        *out++ = (short)tmp[1];
+                        si_start += 2;
+                }
+                break;
+        default:
+                while (si_start < si_end) {
+                        hi_start = fs->scale - 1;
+                        while (hi_start >= 0) {
+                                tmp[0] = tmp[1] = 0;
+                                si  = si_start;
+                                hi  = hi_start;
+                                while (hi < hi_end) {
+                                        tmp[0] += work_buf[si] * h[hi]; 
+                                        tmp[1] += work_buf[si + 1] * h[hi];
+                                        hi  += fs->scale;
+                                        si  += 2;
+                                }
+                                tmp[0] /= SINC_SCALE; 
+                                tmp[1] /= SINC_SCALE;
+                                clip16(tmp[0]); 
+                                clip16(tmp[1]);              
+                                *out++ = (short)tmp[0];
+                                *out++ = (short)tmp[1];
+                                hi_start--;
+                        }
+                        si_start += 2;
                 }
         }
-        assert(d == de);
-/*        assert(sc == se);  */
+        assert(si_start == si_end);
+        assert(out == dst + dst_len);
+
         block_free(work_buf, work_len * sizeof(sample));
         xmemchk();
 }
@@ -906,14 +1108,10 @@ sinc_downsample_mono(struct s_filter_state *fs,
                         sc++;
                         hc++;
                 }
-                t = t >> SINC_ROLL;
-                if (t > 32767) {
-                        *d = 32767;
-                } else if (t < -32768) {
-                        *d = -32768;
-                } else {
-                        *d = (sample) t;
-                }
+                t = t / SINC_SCALE;
+                clip16(t);
+                *d = (sample) t;
+
                 d++;
                 ss += fs->scale;
                 sc = ss;
@@ -961,7 +1159,7 @@ sinc_downsample_stereo(struct s_filter_state *fs,
                         hc++;
                 }
 
-                t0 = t0 >> SINC_ROLL;
+                t0 = t0 / SINC_SCALE;
                 if (t0 > 32767) {
                         *d = 32767;
                 } else if (t0 < -32768) {
@@ -971,7 +1169,7 @@ sinc_downsample_stereo(struct s_filter_state *fs,
                 }
                 d++;
 
-                t1 = t1 >> SINC_ROLL;
+                t1 = t1 / SINC_SCALE;
                 if (t1 > 32767) {
                         *d = 32767;
                 } else if (t1 < -32768) {
