@@ -48,7 +48,7 @@ static const char cvsid[] =
 #include "tonegen.h"
 #include "voxlet.h"
 
-int 	 should_exit = FALSE, mbus_got_error = FALSE;
+int 	 should_exit = FALSE, mbus_shutdown_error = FALSE;
 char	*c_addr, *token, *token_e; /* These should be parameters of the session? */
 
 pid_t    ppid;
@@ -103,7 +103,7 @@ mbus_error_handler(int seqnum, int reason)
         if (should_exit == FALSE) {
                 abort();
         } 
-	mbus_got_error = TRUE;
+	mbus_shutdown_error = TRUE;
         UNUSED(seqnum);
         UNUSED(reason);
         /* Ignore error we're closing down anyway */
@@ -365,6 +365,10 @@ int main(int argc, char *argv[])
 	mbus_qmsgf(sp->mbus_engine, "()", FALSE, "mbus.bye", "");
 	mbus_send(sp->mbus_engine);
 
+	/* Free audio device and clean up */
+	audio_device_release(sp, sp->audio_device);
+	audio_free_interfaces();
+	
 	if (mbus_addr_valid(sp->mbus_engine, c_addr)) {
 		do {
 			struct timeval	 timeout;
@@ -374,18 +378,16 @@ int main(int argc, char *argv[])
 			timeout.tv_sec  = 0;
 			timeout.tv_usec = 20000;
 			mbus_recv(sp->mbus_engine, sp, &timeout);
-		} while (!mbus_sent_all(sp->mbus_engine));
+		} while (!mbus_sent_all(sp->mbus_engine) && mbus_shutdown_error == FALSE);
 	}
 	
 	mbus_exit(sp->mbus_engine);
 
-	audio_device_release(sp, sp->audio_device);
 	session_validate(sp);
 	session_exit(sp);
         
 	converters_free();
-        audio_free_interfaces();
-
+        
 	xfree(c_addr);
 	xfree(token);
 	xfree(token_e);
