@@ -1201,6 +1201,7 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	- Add transit estimate reset when device format changes at either end.
 	- Add settings to default to first device when device in settings file
 	  does not exist on host.
+	* Released 20 March 2000.
 
 TODO -- They're features not bugs dammit!
 ----
