@@ -15,6 +15,7 @@
 #include "config_win32.h"
 #include "debug.h"
 #include "memory.h"
+#include "util.h"
 #include "codec_g711.h"
 #include "sndfile_types.h"
 #include "sndfile_wav.h"
@@ -63,7 +64,7 @@ typedef struct {
         int          cbUsed;   /* Number of bytes written */
 } riff_state;
 
-#define MS_AUDIO_FILE_ENCODING_PCM  (0x0001)
+#define MS_AUDIO_FILE_ENCODING_L16  (0x0001)
 #define MS_AUDIO_FILE_ENCODING_ULAW (0x0007)
 #define MS_AUDIO_FILE_ENCODING_ALAW (0x0006)
 /* In the spec IBM u/alaw are 0x0102/0x0101 but this seems to be outdated. */
@@ -180,7 +181,7 @@ riff_read_hdr(FILE *fp, char **state)
         case MS_AUDIO_FILE_ENCODING_ALAW:
                 debug_msg("alaw\n");
                 break;
-        case MS_AUDIO_FILE_ENCODING_PCM:
+        case MS_AUDIO_FILE_ENCODING_L16:
                 if (wf.wBitsPerSample != 16) {
                         debug_msg("%d bits per sample not supported.\n", wf.wBitsPerSample);
                         return FALSE;
@@ -234,7 +235,7 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
         case MS_AUDIO_FILE_ENCODING_ULAW:
                 unit_sz = 1;
                 break;
-        case MS_AUDIO_FILE_ENCODING_PCM: /* just linear 16 */
+        case MS_AUDIO_FILE_ENCODING_L16: /* just linear 16 */
                 unit_sz = 2;
                 break;
         default:
@@ -258,7 +259,7 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
                         *bp-- = u2s(*law--);
                 }
                 break;
-        case MS_AUDIO_FILE_ENCODING_PCM:
+        case MS_AUDIO_FILE_ENCODING_L16:
                 if (htons(1) == 1) {
                         for(i = 0; i < samples_read; i++) {
                                 buf[i] = (u_int16)btols((u_char)buf[i]);
@@ -279,7 +280,7 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
 }
 
 int
-riff_write_hdr(FILE *fp, char **state, sndfile_fmt_e encoding, int freq, int channels)
+riff_write_hdr(FILE *fp, char **state, const sndfile_fmt_t *fmt)
 {
         riff_state *rs;
         int         hdr_len;
@@ -290,15 +291,26 @@ riff_write_hdr(FILE *fp, char **state, sndfile_fmt_e encoding, int freq, int cha
         }
         *state = (char*)rs;
 
-        UNUSED(encoding); /* Ignore encoding for the time being */
+        switch(fmt->encoding) {
+        case SNDFILE_ENCODING_L16:
+                rs->wf.wFormatTag       = MS_AUDIO_FILE_ENCODING_L16;
+                rs->wf.wBitsPerSample   = 16;
+                break;
+        case SNDFILE_ENCODING_PCMU:
+                rs->wf.wFormatTag       = MS_AUDIO_FILE_ENCODING_ULAW;
+                rs->wf.wBitsPerSample   = 8;
+                break;
+        case SNDFILE_ENCODING_PCMA:
+                rs->wf.wFormatTag       = MS_AUDIO_FILE_ENCODING_ALAW;
+                rs->wf.wBitsPerSample   = 8;
+                break;
+        }
 
         rs->cbUsed = 0;
-        rs->wf.wFormatTag       = MS_AUDIO_FILE_ENCODING_PCM;
-        rs->wf.wChannels        = (u_int16)channels;
-        rs->wf.dwSamplesPerSec  = freq;
-        rs->wf.wBitsPerSample   = 16;
-        rs->wf.dwAvgBytesPerSec = freq * channels * sizeof(sample);
-        rs->wf.wBlockAlign      = (u_int16)(channels * sizeof(sample));
+        rs->wf.wChannels        = (u_int16)fmt->channels;
+        rs->wf.dwSamplesPerSec  = fmt->sample_rate;
+        rs->wf.dwAvgBytesPerSec = fmt->sample_rate * fmt->channels * rs->wf.wBitsPerSample / 8;
+        rs->wf.wBlockAlign      = (u_int16)(fmt->channels * rs->wf.wBitsPerSample / 8);
        
         hdr_len = sizeof(riff_chunk_hdr) /* RIFF header */
                 + 2 * sizeof(riff_chunk) /* Sub-block ("data") */
@@ -318,30 +330,45 @@ riff_write_hdr(FILE *fp, char **state, sndfile_fmt_e encoding, int freq, int cha
 int
 riff_write_audio(FILE *fp, char *state, sample *buf, int samples)
 {
-        int i;
+        int i, bytes_per_sample;
         riff_state *rs = (riff_state*)state;
-        
-        if (ntohs(1) == 1) { 
-                /* If we are on a big endian machine fix samples before
-                 * writing them out.  
-                 */
-                for(i = 0; i < samples; i++) {
-                        buf[i] = (u_int16)btols((u_int16)buf[i]);
+        sample *l16buf;
+        u_char *outbuf;
+
+        switch(rs->wf.wFormatTag) {
+        case MS_AUDIO_FILE_ENCODING_L16:
+                bytes_per_sample = sizeof(sample);
+                l16buf = (sample*)block_alloc(samples * sizeof(sample));
+                if (ntohs(1) == 1) { 
+                        /* If we are on a big endian machine fix samples before
+                         * writing them out.  
+                         */
+                        for(i = 0; i < samples; i++) {
+                                l16buf[i] = (u_int16)btols((u_int16)buf[i]);
+                        }
                 }
+                outbuf = (u_char*)l16buf;
+                break;
+        case MS_AUDIO_FILE_ENCODING_ALAW:
+                outbuf = (u_char*)block_alloc(samples);
+                bytes_per_sample = 1;
+                for(i = 0; i < samples; i++) {
+                        outbuf[i] = s2a(buf[i]);
+                }
+                break;
+        case MS_AUDIO_FILE_ENCODING_ULAW:
+                outbuf = (u_char*)block_alloc(samples);
+                bytes_per_sample = 1;
+                for(i = 0; i < samples; i++) {
+                        outbuf[i] = s2u(buf[i]);
+                }
+                break;
         }
 
-        fwrite(buf, sizeof(sample), samples, fp);
-        rs->cbUsed += sizeof(sample) * samples;
+        fwrite(outbuf, bytes_per_sample, samples, fp);
+        rs->cbUsed += bytes_per_sample * samples;
+        block_free(outbuf, bytes_per_sample * samples);
 
-        if (ntohs(1) == 1) {
-                /* This audio still has to be played through audio device so fix 
-                 * ordering.
-                 */
-                for(i = 0; i < samples; i++) {
-                        buf[i] = (u_int16)btols((u_int16)buf[i]);
-                }
-        }
-        
         return TRUE;
 }
 
@@ -409,17 +436,29 @@ riff_free_state(char **state)
         return TRUE;
 }
 
-u_int16
-riff_get_channels(char *state)
+int 
+riff_get_format(char *state, sndfile_fmt_t *fmt)
 {
         wave_format *wf = (wave_format*)state;
-        return wf->wChannels;
-}
 
-u_int16
-riff_get_rate(char *state)
-{
-        wave_format *wf = (wave_format*)state;
-        return (u_int16)wf->dwSamplesPerSec;
-}
+        if (wf == NULL || fmt == NULL) {
+                return FALSE;
+        }
 
+        switch(wf->wFormatTag) {
+        case MS_AUDIO_FILE_ENCODING_L16:
+                fmt->encoding = SNDFILE_ENCODING_L16;
+                break;
+        case MS_AUDIO_FILE_ENCODING_ULAW:
+                fmt->encoding = SNDFILE_ENCODING_PCMU;
+                break;
+        case MS_AUDIO_FILE_ENCODING_ALAW:
+                fmt->encoding = SNDFILE_ENCODING_PCMA;
+                break;
+        }
+
+        fmt->sample_rate = (u_int16)wf->dwSamplesPerSec;
+        fmt->channels    = wf->wChannels;
+
+        return TRUE;
+}

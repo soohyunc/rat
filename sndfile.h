@@ -46,9 +46,7 @@ int  snd_read_audio (struct s_sndfile **sf,
 
 int  snd_write_open (struct s_sndfile **sf,
                      char         *path,
-                     sndfile_fmt_e fmt,
-                     u_int16       freq,
-                     u_int16       channels);
+                     const sndfile_fmt_t *fmt);
 
 int  snd_write_close (struct s_sndfile **sf);
 
@@ -56,13 +54,10 @@ int  snd_write_audio (struct s_sndfile **sf,
                       sample *buf, 
                       u_int16 buf_len);
 
-u_int16  snd_get_channels(struct s_sndfile *sf);
-
-u_int16  snd_get_rate    (struct s_sndfile *sf);
-
 int  snd_pause (struct s_sndfile *sf);
-
 int  snd_resume (struct s_sndfile *sf);
+
+int  snd_get_format(struct s_sndfile *sf, sndfile_fmt_t *fmt);
 
 #ifdef __cplusplus
 }

@@ -30,12 +30,11 @@
 
 typedef int (*pf_open_hdr)    (FILE *, char **state);
 typedef int (*pf_read_audio)  (FILE *, char * state, sample *buf, int samples);
-typedef int (*pf_write_hdr)   (FILE *, char **state, sndfile_fmt_e, int freq, int channels);
+typedef int (*pf_write_hdr)   (FILE *, char **state, const sndfile_fmt_t *);
 typedef int (*pf_write_audio) (FILE *, char * state, sample *buf, int samples);
 typedef int (*pf_write_end)   (FILE *, char *state);
 typedef int (*pf_free_state)  (char **state);
-typedef u_int16 (*pf_get_channels)(char *state);
-typedef u_int16 (*pf_get_rate)    (char *state);
+typedef int (*pf_get_format)  (char *state, sndfile_fmt_t *fmt);
 
 typedef struct s_file_handler {
         char name[12];           /* Sound handler name        */
@@ -46,8 +45,7 @@ typedef struct s_file_handler {
         pf_write_audio write_audio;
         pf_write_end   write_end;
         pf_free_state  free_state;
-        pf_get_channels get_channels;
-        pf_get_rate     get_rate;
+        pf_get_format  get_format;
 } sndfile_handler_t;
 
 /* Sound file handlers */
@@ -62,8 +60,8 @@ static sndfile_handler_t snd_handlers[] = {
          sun_write_audio,
          NULL, /* No post write handling required */
          sun_free_state,
-         sun_get_channels,
-         sun_get_rate},
+         sun_get_format
+        },
         {"MS RIFF",
          "wav",
          riff_read_hdr,
@@ -72,8 +70,7 @@ static sndfile_handler_t snd_handlers[] = {
          riff_write_audio,
          riff_write_end,
          riff_free_state,
-         riff_get_channels,
-         riff_get_rate
+         riff_get_format
         }
 };
 
@@ -182,7 +179,7 @@ snd_get_extension(char *path)
 }
 
 int
-snd_write_open (sndfile_t **sf, char *path, sndfile_fmt_e encoding, u_int16 freq, u_int16 channels)
+snd_write_open (sndfile_t **sf, char *path, const sndfile_fmt_t *fmt)
 {
         sndfile_t *s;
         FILE       *fp;
@@ -191,6 +188,11 @@ snd_write_open (sndfile_t **sf, char *path, sndfile_fmt_e encoding, u_int16 freq
 
         if (*sf) {
                 debug_msg("File not closed before opening\n");
+                snd_write_close(sf);
+        }
+
+        if (fmt == NULL) {
+                debug_msg("No format specified\n");
                 snd_write_close(sf);
         }
 
@@ -219,7 +221,7 @@ snd_write_open (sndfile_t **sf, char *path, sndfile_fmt_e encoding, u_int16 freq
                 if (!strcasecmp(extension, snd_handlers[i].extension)) {
                         s->sfh    = snd_handlers + i;
                         s->action = SND_ACTION_RECORDING;
-                        s->sfh->write_hdr(fp, &s->state, encoding, freq, channels);
+                        s->sfh->write_hdr(fp, &s->state, fmt);
                         *sf = s;
                         return TRUE;
                 }
@@ -265,17 +267,11 @@ snd_write_audio(sndfile_t **pps, sample *buf, u_int16 buf_len)
         return TRUE;
 }
 
-u_int16
-snd_get_channels(sndfile_t *sf)
+int 
+snd_get_format(sndfile_t *sf, sndfile_fmt_t *fmt)
 {
-        return sf->sfh->get_channels(sf->state);
-}
-
-u_int16
-snd_get_rate(sndfile_t *sf)
-{
-        return sf->sfh->get_rate(sf->state);
-}
+        return sf->sfh->get_format(sf->state, fmt);
+} 
 
 int 
 snd_pause(sndfile_t  *sf)
@@ -290,37 +286,3 @@ snd_resume(sndfile_t *sf)
         sf->action = sf->action & ~SND_ACTION_PAUSED;
         return TRUE;
 }
-
-
-
-#ifdef TEST_RIFF
-
-
-int 
-main(int argc, char*argv[])
-{
-        sndfile_t *ssrc, *sdst;
-        sample buf[160];
-        int samples_read;
-        ssrc = sdst = NULL;
-
-        if (argc == 3) {
-                codec_g711_init();
-                snd_read_open(&ssrc, argv[1]);
-                if (ssrc) {
-                        snd_write_open(&sdst, argv[2], snd_get_extension(argv[2]), snd_get_rate(ssrc), snd_get_channels(ssrc));
-                }
-                while(ssrc && sdst) {
-                        samples_read = snd_read_audio(&ssrc, buf, 80);
-                        snd_write_audio(&sdst, buf, (u_int16)samples_read);
-                        memset(buf,0,sizeof(sample)*80);
-                }
-                if (sdst) {
-                        snd_write_close(&sdst);
-                }
-        }
-        
-        return TRUE;
-}
-
-#endif

@@ -15,6 +15,7 @@
 #include "config_win32.h"
 #include "debug.h"
 #include "memory.h"
+#include "util.h"
 #include "codec_g711.h"
 #include "sndfile_types.h"
 #include "sndfile_au.h"
@@ -139,7 +140,7 @@ sun_read_audio(FILE *pf, char* state, sample *buf, int samples)
 }
 
 int
-sun_write_hdr(FILE *fp, char **state, sndfile_fmt_e encoding, int freq, int channels)
+sun_write_hdr(FILE *fp, char **state, const sndfile_fmt_t *fmt)
 {
         sun_audio_filehdr *saf;
 
@@ -149,15 +150,25 @@ sun_write_hdr(FILE *fp, char **state, sndfile_fmt_e encoding, int freq, int chan
                 return FALSE;
         }
 
-        UNUSED(encoding);
         
         *state = (char*)saf;
-        saf->magic     = SUN_AUDIO_FILE_MAGIC;
-        saf->hdr_size  = sizeof(sun_audio_filehdr);
-        saf->data_size = SUN_AUDIO_UNKNOWN_SIZE; /* Optional - we could fill this in when the file closes */
-        saf->encoding  = SUN_AUDIO_FILE_ENCODING_LINEAR_16;
-        saf->sample_rate = freq;
-        saf->channels  = channels;
+        saf->magic       = SUN_AUDIO_FILE_MAGIC;
+        saf->hdr_size    = sizeof(sun_audio_filehdr);
+        saf->data_size   = SUN_AUDIO_UNKNOWN_SIZE; /* Optional - we could fill this in when the file closes */
+        saf->sample_rate = fmt->sample_rate;
+        saf->channels    = fmt->channels;
+
+        switch(fmt->encoding) {
+        case SNDFILE_ENCODING_L16:
+                saf->encoding    = SUN_AUDIO_FILE_ENCODING_LINEAR_16;
+                break;
+        case SNDFILE_ENCODING_PCMA:
+                saf->encoding    = SUN_AUDIO_FILE_ENCODING_ALAW;
+                break;
+        case SNDFILE_ENCODING_PCMU:
+                saf->encoding    = SUN_AUDIO_FILE_ENCODING_ULAW;
+                break;
+        }
 
         sun_ntoh_hdr(saf);
         if (fwrite(saf, sizeof(sun_audio_filehdr), 1, fp)) {
@@ -173,29 +184,45 @@ sun_write_hdr(FILE *fp, char **state, sndfile_fmt_e encoding, int freq, int chan
 int
 sun_write_audio(FILE *fp, char *state, sample *buf, int samples)
 {
-        int i;
+        int i, bytes_per_sample;
+        sun_audio_filehdr *saf;
+        sample *l16buf;
+        u_char *outbuf;
 
-        UNUSED(state);
+        saf = (sun_audio_filehdr*)state;
 
-        if (ntohs(1) != 1) {
-                /* If we are on a little endian machine fix samples before
-                 * writing them out.
-                 */
-                for(i = 0; i < samples; i++) {
-                        buf[i] = ntohs(buf[i]);
+        switch(saf->encoding) {
+        case SUN_AUDIO_FILE_ENCODING_LINEAR_16:
+                l16buf = (sample*)block_alloc(sizeof(sample)*samples);
+                bytes_per_sample = (int)sizeof(sample);
+                if (ntohs(1) != 1) {
+                        /* If we are on a little endian machine fix samples before
+                         * writing them out.
+                         */
+                        for(i = 0; i < samples; i++) {
+                                l16buf[i] = ntohs(buf[i]);
+                        }
+                        outbuf = (u_char*)l16buf;
                 }
+                break;
+        case SUN_AUDIO_FILE_ENCODING_ALAW:
+                outbuf = (u_char*)block_alloc(samples);
+                bytes_per_sample = 1;
+                for(i = 0; i < samples; i++) {
+                        outbuf[i] = s2a(buf[i]);
+                }
+                break;
+        case SUN_AUDIO_FILE_ENCODING_ULAW:
+                outbuf = (u_char*)block_alloc(samples);
+                bytes_per_sample = 1;
+                for(i = 0; i < samples; i++) {
+                        outbuf[i] = s2u(buf[i]);
+                }
+                break;
         }
 
-        fwrite(buf, sizeof(sample), samples, fp);
-
-        if (ntohs(1) != 1) {
-                /* This audio still has to be played through audio device so fix 
-                 * ordering.
-                 */
-                for(i = 0; i < samples; i++) {
-                        buf[i] = ntohs(buf[i]);
-                }
-        }
+        fwrite(outbuf, bytes_per_sample, samples, fp);
+        xfree(outbuf);
 
         return TRUE;
 }
@@ -210,17 +237,30 @@ sun_free_state(char **state)
         return TRUE;
 }
 
-u_int16
-sun_get_channels(char *state)
+int
+sun_get_format(char *state, sndfile_fmt_t *fmt)
 {
         sun_audio_filehdr *saf = (sun_audio_filehdr*)state;
-        return (u_int16)saf->channels;
-}
 
-u_int16
-sun_get_rate(char *state)
-{
-        sun_audio_filehdr *saf = (sun_audio_filehdr*)state;
-        return (u_int16)saf->sample_rate;
+        if (fmt == NULL || saf == NULL) {
+                return FALSE;
+        }
+        
+        switch (saf->encoding) {
+        case SUN_AUDIO_FILE_ENCODING_LINEAR_16: 
+                fmt->encoding = SNDFILE_ENCODING_L16; 
+                break;
+        case SUN_AUDIO_FILE_ENCODING_ULAW:       
+                fmt->encoding = SNDFILE_ENCODING_PCMU;
+                break;
+        case SUN_AUDIO_FILE_ENCODING_ALAW:
+                fmt->encoding = SNDFILE_ENCODING_PCMA;
+                break;
+        }
+
+        fmt->sample_rate = saf->sample_rate;
+        fmt->channels    = saf->channels;
+
+        return TRUE;
 }
 

@@ -505,12 +505,17 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_struct *sp)
 
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &file)) {
+                sndfile_fmt_t sf_fmt;
                 const audio_format *ofmt;
                 ofmt = audio_get_ofmt(sp->audio_device);
                 mbus_decode_str(file);
                 if (sp->out_file) snd_write_close(&sp->out_file);
 
-                if (snd_write_open(&sp->out_file, file, SNDFILE_FMT_L16, (u_int16)get_freq(sp->device_clock), (u_int16)ofmt->channels)) {
+                sf_fmt.encoding = SNDFILE_ENCODING_L16;
+                sf_fmt.sample_rate = (u_int16)get_freq(sp->device_clock);
+                sf_fmt.channels = (u_int16)ofmt->channels;
+
+                if (snd_write_open(&sp->out_file, file, &sf_fmt)) {
                         debug_msg("Hooray opened %s\n",file);
                 }
 	} else {
