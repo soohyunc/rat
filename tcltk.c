@@ -195,7 +195,9 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tk_DefineBitmap(interp, Tk_GetUid("line_in"), line_in_bits, line_in_width, line_in_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("rat_small"), rat_small_bits, rat_small_width, rat_small_height);
 
-	tcl_send(ui_original);
+	if (Tcl_EvalObj(interp, Tcl_NewStringObj(ui_original, strlen(ui_original))) != TCL_OK) {
+		fprintf(stderr, "ui_original error: %s\n", interp->result);
+	}
 	while (tcl_process_event()) {
 		/* Processing Tcl events, to allow the UI to initialize... */
 	};
