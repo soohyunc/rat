@@ -170,26 +170,28 @@ int
 linear_create (const converter_fmt_t *cfmt, u_char **state, u_int32 *state_len)
 {
         li_state_t *l;
-        int denom, steps;
-        
-        if ((cfmt->from_freq % cfmt->to_freq) != 0 &&
-            (cfmt->to_freq % cfmt->from_freq) != 0) {
+        int denom, steps, g;
+
+        g = gcd(cfmt->src_freq, cfmt->dst_freq);
+        if ((cfmt->src_freq % g) != 0 ||
+            (cfmt->dst_freq % g)   != 0) {
                 debug_msg("Integer rate conversion supported only\n");
                 return FALSE;
         }
-        steps    = conversion_steps(cfmt->from_freq, cfmt->to_freq);        
+        
+        steps    = conversion_steps(cfmt->src_freq, cfmt->dst_freq);        
         l        = (li_state_t*) xmalloc(steps * sizeof(li_state_t));
         memset(l, 0 , steps * sizeof(li_state_t));
         l->steps = steps;
 
         switch(l->steps) {
         case 1:
-                linear_init_state(l, cfmt->from_channels, cfmt->from_freq, cfmt->to_freq);
+                linear_init_state(l, cfmt->from_channels, cfmt->src_freq, cfmt->dst_freq);
                 break;
         case 2:
-                denom = gcd(cfmt->from_freq, cfmt->to_freq);
-                linear_init_state(l, cfmt->from_channels,     cfmt->from_freq, denom);
-                linear_init_state(l + 1, cfmt->from_channels, denom, cfmt->to_freq);                
+                denom = g;
+                linear_init_state(l, cfmt->from_channels,     cfmt->src_freq, denom);
+                linear_init_state(l + 1, cfmt->from_channels, denom, cfmt->dst_freq);                
                 break;
         }
         *state     = (u_char*)l;

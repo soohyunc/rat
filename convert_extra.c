@@ -143,26 +143,27 @@ int
 extra_create (const converter_fmt_t *cfmt, u_char **state, u_int32 *state_len)
 {
         extra_state_t *e;
-        int denom, steps;
+        int denom, steps, g;
 
-        if ((cfmt->from_freq % cfmt->to_freq) != 0 &&
-            (cfmt->to_freq % cfmt->from_freq) != 0) {
+        g = gcd(cfmt->src_freq, cfmt->dst_freq);
+        if ((cfmt->src_freq % g) != 0 ||
+            (cfmt->dst_freq % g)   != 0) {
                 debug_msg("Integer rate conversion supported only\n");
                 return FALSE;
         }
-        
-        steps    = conversion_steps(cfmt->from_freq, cfmt->to_freq);
+
+        steps    = conversion_steps(cfmt->src_freq, cfmt->dst_freq);
         e        = (extra_state_t*)xmalloc(steps * sizeof(extra_state_t));
         e->steps = steps;
 
         switch(e->steps) {
         case 1:
-                extra_init_state(e, cfmt->from_freq, cfmt->to_freq);
+                extra_init_state(e, cfmt->src_freq, cfmt->dst_freq);
                 break;
         case 2:
-                denom = gcd(cfmt->from_freq, cfmt->to_freq);
-                extra_init_state(e, cfmt->from_freq, denom);
-                extra_init_state(e + 1, denom, cfmt->to_freq);                
+                denom = g;
+                extra_init_state(e, cfmt->src_freq, denom);
+                extra_init_state(e + 1, denom, cfmt->dst_freq);                
                 break;
         }
 

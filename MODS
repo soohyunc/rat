@@ -900,7 +900,8 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum <wallba
         - Unrolled loops in extrapolation converter.  
 	- Replaced divisions in interpolation converter that were not powers
 	  of two with a multiplication scaling factor and a power of 2 
-	  denominator.  Improves performance 4-6 fold for upsampling by 3,5,6.
+	  denominator.  Improves performance 3-4 for upsampling by 3,5,6.
+	- Fixed 2 step sample rate conversion support.
 
 TODO -- They're features not bugs dammit!
 ----

@@ -74,8 +74,8 @@ acm_cv_create (const converter_fmt_t *cfmt, u_char **state, u_int32 *state_len)
 
         lpa        = (LPHACMSTREAM)xmalloc(sizeof(HACMSTREAM));
 
-        acm_conv_init_fmt(&wfxSrc, cfmt->from_channels, cfmt->from_freq);
-        acm_conv_init_fmt(&wfxDst, cfmt->to_channels,   cfmt->to_freq);
+        acm_conv_init_fmt(&wfxSrc, cfmt->from_channels, cfmt->src_freq);
+        acm_conv_init_fmt(&wfxDst, cfmt->to_channels,   cfmt->dst_freq);
 
         if (acmStreamOpen(lpa, hDrv, &wfxSrc, &wfxDst, NULL, 0L, 0L, 0L)) {
                 xfree(lpa);

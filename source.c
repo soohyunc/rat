@@ -336,9 +336,9 @@ source_reconfigure(source        *src,
 
         if (src_rate != out_rate || src_channels != out_channels) {
                 converter_fmt_t c;
-                c.from_freq     = src_rate;
+                c.src_freq     = src_rate;
                 c.from_channels = src_channels;
-                c.to_freq       = out_rate;
+                c.dst_freq       = out_rate;
                 c.to_channels   = out_channels;
                 converter_create(conv_id, &c, &src->converter);
         }

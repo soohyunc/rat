@@ -17,10 +17,9 @@
 #include "convert_util.h"
 #include "debug.h"
 
-/* Mono-Stereo Conversion ****************************************************/ 
-/* Note src_len is length block in number of samples i.e
- * nChannels * nSamplingIntervals 
- */
+/* Mono-Stereo Conversion ***************************************************/ 
+/* Note src_len is length block in number of samples                        */
+/* i.e nChannels * nSamplingIntervals                                       */
 
 void
 converter_change_channels (sample *src, 
@@ -78,7 +77,8 @@ conversion_steps(int f1, int f2)
 {
         if (f1 == f2) return 0;
 
-        if (gcd(f1,f2) == 8000) {
+        if (((f1 % f2) == f2) ||
+            ((f2 % f1) == f1)) {
                 /* Integer conversion */
                 return 1;
         } 
@@ -89,8 +89,8 @@ conversion_steps(int f1, int f2)
 int
 converter_format_valid(const converter_fmt_t *cfmt)
 {
-        if (cfmt->from_freq % 8000 &&
-            cfmt->from_freq % 11025) {
+        if (cfmt->src_freq % 8000 &&
+            cfmt->src_freq % 11025) {
                 return FALSE;
         }
 
@@ -99,8 +99,8 @@ converter_format_valid(const converter_fmt_t *cfmt)
                 return FALSE;
         }
 
-        if (cfmt->to_freq % 8000 &&
-            cfmt->to_freq % 11025) {
+        if (cfmt->dst_freq % 8000 &&
+            cfmt->dst_freq % 11025) {
                 return FALSE;
         }
 

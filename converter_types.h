@@ -18,9 +18,9 @@ struct s_coded_unit;
 
 typedef struct s_converter_fmt {
         u_int16 from_channels;
-        u_int16 from_freq;
+        u_int16 src_freq;
         u_int16 to_channels;
-        u_int16 to_freq;
+        u_int16 dst_freq;
 } converter_fmt_t;
 
 typedef u_int32 converter_id_t;
