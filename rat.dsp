@@ -219,6 +219,10 @@ SOURCE=.\convert_linear.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\convert_sinc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\convert_util.c
 # End Source File
 # Begin Source File
@@ -401,6 +405,10 @@ SOURCE=.\ui_transcoder.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\usleep.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\win32.c
 # End Source File
 # End Group
@@ -542,6 +550,10 @@ SOURCE=.\convert_extra.h
 # Begin Source File
 
 SOURCE=.\convert_linear.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\convert_sinc.h
 # End Source File
 # Begin Source File
 
@@ -698,6 +710,10 @@ SOURCE=.\ts.h
 # Begin Source File
 
 SOURCE=.\ui.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\usleep.h
 # End Source File
 # Begin Source File
 
