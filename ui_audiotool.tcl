@@ -1558,22 +1558,37 @@ label   $i.of.codecs.l    -text "Codec" -relief raised
 listbox $i.of.codecs.lb -width 20 -yscrollcommand "$i.of.codecs.scroll set"
 scrollbar $i.of.codecs.scroll -command "$i.of.codecs.lb yview"
 pack    $i.of.codecs.l -side top -fill x
-pack    $i.of.codecs.lb $i.of.codecs.scroll -side left -fill both 
+pack    $i.of.codecs.scroll $i.of.codecs.lb -side left -fill both 
 
 frame   $i.of.details 
 pack    $i.of.details -side left -fill both -expand 1
 
 frame $i.of.details.upper
 pack $i.of.details.upper -fill x -pady 2
+
+frame $i.of.details.desc
+pack $i.of.details.desc -side top -fill x
+
+frame $i.of.details.pt 
+pack $i.of.details.pt -side bottom -fill x -anchor s
+label $i.of.details.pt.l -anchor w -text "RTP payload:"
+pack  $i.of.details.pt.l -side left -anchor w
+
+entry $i.of.details.pt.e -width 4 
+pack  $i.of.details.pt.e -side left -padx 4
+
+button $i.of.details.pt.b -text "Map Codec" -command map_codec
+pack  $i.of.details.pt.b -side left -padx 4
+
 label $i.of.details.upper.l0 -text "Details" -relief raised
 pack $i.of.details.upper.l0 -side top -fill x -expand 1
 
 frame $i.of.details.upper.l 
 pack $i.of.details.upper.l -side left
 label $i.of.details.upper.l.0 -text "Short name:"  -anchor w
-label $i.of.details.upper.l.1 -text "Sample Rate:" -anchor w
+label $i.of.details.upper.l.1 -text "Sample Rate (Hz):" -anchor w
 label $i.of.details.upper.l.2 -text "Channels:"    -anchor w
-label $i.of.details.upper.l.3 -text "Bitrate:"     -anchor w
+label $i.of.details.upper.l.3 -text "Bitrate (kbps):"     -anchor w
 label $i.of.details.upper.l.4 -text "RTP Payload:" -anchor w
 for {set idx 0} {$idx < 5} {incr idx} {
     pack $i.of.details.upper.l.$idx -side top -fill x
@@ -1590,6 +1605,9 @@ for {set idx 0} {$idx < 5} {incr idx} {
     pack $i.of.details.upper.r.$idx -side top -fill x
 }
 
+label $i.of.details.desc.l -text "Description:" -anchor w -wraplength 190 -justify left
+pack $i.of.details.desc.l -side left -fill x
+
 bind $i.of.codecs.lb <1> {
     codecs_panel_select [%W index @%x,%y]
 }
@@ -1601,21 +1619,48 @@ proc codecs_panel_fill {} {
 
     foreach {c} $codecs {
 	.prefs.pane.codecs.of.codecs.lb insert end $c
-	puts "$c"
     }
 }
 
 proc codecs_panel_select { idx } {
-    global codecs codec_nick_name codec_rate codec_channels codec_pt
+    global codecs codec_nick_name codec_rate codec_channels codec_pt codec_block_size codec_data_size codec_desc
     
     set codec [lindex $codecs $idx]
     set root  .prefs.pane.codecs.of.details.upper.r
     $root.0 configure -text $codec_nick_name($codec)
     $root.1 configure -text $codec_rate($codec)
     $root.2 configure -text $codec_channels($codec)
+
+    set fps [expr $codec_rate($codec) * 2 * $codec_channels($codec) / $codec_block_size($codec) ]
+    set kbps [expr 8 * $fps * $codec_data_size($codec) / 1000.0]
+    $root.3 configure -text [format "%.1f" $kbps]
+
     $root.4 configure -text $codec_pt($codec)
 
-    puts "$idx"
+    .prefs.pane.codecs.of.details.desc.l configure -text "Description: $codec_desc($codec)"
+
+}
+
+proc map_codec {} {
+    global codecs
+
+    set idx [.prefs.pane.codecs.of.codecs.lb curselection]
+
+    if {[llength $idx] == 0} {
+	return
+    }
+
+    set pt [.prefs.pane.codecs.of.details.pt.e get]
+    .prefs.pane.codecs.of.details.pt.e delete 0 end
+
+    set ptnot [string trim $pt 1234567890]
+    if {$ptnot != ""} {
+	return
+    }
+
+    set codec [lindex $codecs $idx]
+    puts "ui:$codec $pt"
+    mbus_send "R" "tool.rat.payload.set" "[mbus_encode_str $codec] $pt"
 }
 
 # Security Pane ###############################################################

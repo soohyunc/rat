@@ -814,7 +814,7 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_struct *sp)
 
         mbus_parse_init(sp->mbus_engine, args);
 
-        if (mbus_parse_str(sp->mbus_engine, &codec_long_name) ||
+        if (mbus_parse_str(sp->mbus_engine, &codec_long_name) &&
             mbus_parse_int(sp->mbus_engine, &new_pt)) {
                 mbus_decode_str(codec_long_name);
                 if (payload_is_valid(new_pt) &&
@@ -822,8 +822,12 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_struct *sp)
                     codec_get_by_payload((u_char)new_pt) == 0) {
                         codec_id_t cid;
                         codec_get_by_name(codec_long_name);
-                        codec_map_payload(cid, new_pt);
-                        ui_update_codec(sp, cid);
+                        if (codec_map_payload(cid, new_pt)) {
+                                ui_update_codec(sp, cid);
+                                debug_msg("map %s $d succeeded.\n", codec_long_name, new_pt);
+                        } else {
+                                debug_msg("map %s %d failed.\n", codec_long_name, new_pt);
+                        }
                 }
                                                       
                 printf("%s %d\n", codec_long_name, new_pt);
