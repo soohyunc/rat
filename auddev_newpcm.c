@@ -671,7 +671,7 @@ newpcm_audio_query_devices()
 		sprintf(names[ndev], "/dev/%s", de->d_name); 
 		ndev++;
 	}
-
+	closedir(d);
 	return (ndev);
 }
 
