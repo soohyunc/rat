@@ -59,17 +59,17 @@ int  luigi_audio_write      (audio_desc_t ad, u_char *buf, int buf_len);
 void luigi_audio_non_block  (audio_desc_t ad);
 void luigi_audio_block      (audio_desc_t ad);
 
-void luigi_audio_oport_set  (audio_desc_t ad, audio_port_t port);
-int  luigi_audio_oport_get  (audio_desc_t ad);
-int  luigi_audio_oport_count   (audio_desc_t ad);
+void         luigi_audio_oport_set   (audio_desc_t ad, audio_port_t port);
+audio_port_t luigi_audio_oport_get   (audio_desc_t ad);
+int          luigi_audio_oport_count (audio_desc_t ad);
 const audio_port_details_t*
-     luigi_audio_oport_details (audio_desc_t ad, int idx);
+     luigi_audio_oport_details       (audio_desc_t ad, int idx);
 
-void luigi_audio_iport_set  (audio_desc_t ad, audio_port_t port);
-int  luigi_audio_iport_get  (audio_desc_t ad);
-int  luigi_audio_iport_count   (audio_desc_t ad);
+void         luigi_audio_iport_set   (audio_desc_t ad, audio_port_t port);
+audio_port_t luigi_audio_iport_get   (audio_desc_t ad);
+int          luigi_audio_iport_count (audio_desc_t ad);
 const audio_port_details_t*
-     luigi_audio_iport_details (audio_desc_t ad, int idx);
+     luigi_audio_iport_details       (audio_desc_t ad, int idx);
 
 int  luigi_audio_is_ready  (audio_desc_t ad);
 void luigi_audio_wait_for  (audio_desc_t ad, int delay_ms);

@@ -214,12 +214,6 @@ int gethostname(char *hostname, size_t size);
 
 #ifdef Linux
 #define DIFF_BYTE_ORDER  1
-#define AUDIO_SPEAKER    0
-#define AUDIO_HEADPHONE  1
-#define AUDIO_LINE_OUT   4
-#define AUDIO_MICROPHONE 1
-#define AUDIO_LINE_IN    2
-#define AUDIO_CD         4
 #include <sys/soundcard.h>
 #include <sys/stat.h>
 #include <fcntl.h>

@@ -1103,8 +1103,7 @@ audio_get_samples_written(audio_desc_t ad)
 int
 audio_init_interfaces(void)
 {
-        u_int32 i, j;
-	int	c;
+        u_int32 i, j, n, devs[NUM_AUDIO_INTERFACES];
 
         actual_devices = 0;
 
@@ -1113,17 +1112,21 @@ audio_init_interfaces(void)
                         audio_if_table[i].audio_if_init(); 
                 }
                 assert(audio_if_table[i].audio_if_dev_cnt);
-		c = audio_if_table[i].audio_if_dev_cnt();
-		if (c == 0) {
-			/* audio_if_table[i] has no devices (eg: a linux box where */
-			/* the kernel has been compiled without sound support). We */
-			/* must remove this interface from the system...     [csp] */
-			debug_msg("Removing interface %d\n", i);
-			for (j = i + 1; j < NUM_AUDIO_INTERFACES; j++) {
-				memcpy(&(audio_if_table[j-1]), &(audio_if_table[j]), sizeof(audio_if_t));
-			}
-		}
-                actual_devices += c;
+		devs[i] = audio_if_table[i].audio_if_dev_cnt();
+                actual_devices += devs[i];
+        }
+
+        /* Remove interfaces where number of devs is zero.
+         * This could be inside init loop above, but makes it
+         * hard to read and does not save anything worthwhile.
+         */
+        for(i = j = 0; i < NUM_AUDIO_INTERFACES; i++) {
+                n = NUM_AUDIO_INTERFACES - i - 1;
+                if (devs[i] == 0 && n != 0) {
+                        memmove(audio_if_table + j, audio_if_table + j + 1, n * sizeof(audio_if_t));
+                } else {
+                        j++;
+                }
         }
 
         return TRUE;

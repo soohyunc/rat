@@ -312,7 +312,7 @@ luigi_audio_oport_set(audio_desc_t ad, audio_port_t port)
 	return;
 }
 
-int
+audio_port_t
 luigi_audio_oport_get(audio_desc_t ad)
 {
 	UNUSED(ad); assert(audio_fd > 0);
