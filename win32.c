@@ -18,6 +18,7 @@ static char rcsid[] =
 #endif
 
 #include "config_win32.h"
+#include <winsock2.h>
 #include "debug.h"
 #include "tcl.h"
 #include "tk.h"
@@ -111,9 +112,17 @@ getgid(void)
     return 0;
 }
 
-int
+unsigned long
 gethostid(void)
 {
+    char   hostname[WSADESCRIPTION_LEN];
+    struct hostent *he;
+
+    if ((gethostname(hostname, WSADESCRIPTION_LEN) == 0) &&
+        (he = gethostbyname(hostname)) != NULL) {
+            return *((unsigned long*)he->h_addr_list[0]);        
+    }
+
     /*XXX*/
     return 0;
 }
@@ -152,7 +161,7 @@ WinMain(
 	abort();
     }
 
-    debug_msg("WSAStartup OK: %s Status:%s\n", WSAdata.szDescription, WSAdata.szSystemStatus);
+    debug_msg("WSAStartup OK: %sz\nStatus:%s\n", WSAdata.szDescription, WSAdata.szSystemStatus);
 
     TkWinXInit(hInstance);
 

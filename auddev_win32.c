@@ -903,7 +903,17 @@ w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
         }
         
         if (write_hdrs_used > 4*nblks/5) {
-                debug_msg("Running out of write buffers %d left\n", write_hdrs_used);
+                WAVEHDR *who;
+                int i, cnt;
+                who = write_hdrs;
+                i = cnt = 0;
+                while (i < nblks) {
+                        if (!(who->dwFlags & WHDR_DONE)) {
+                                cnt++;
+                        }
+                }
+                debug_msg("Counted %d used\n", cnt);
+                debug_msg("Running out of write buffers %d used\n", write_hdrs_used);
         }
         
         done = 0;
@@ -957,8 +967,8 @@ w32sdk_audio_is_ready(audio_desc_t ad)
         if (audio_ready>nblks/5) {
                 debug_msg("Lots of audio available (%d blocks)\n", audio_ready);
         }
-        
-        return (audio_ready>0) ? TRUE : FALSE;
+        assert(audio_ready >= 0);
+        return audio_ready;
 }
 
 static void CALLBACK
