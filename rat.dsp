@@ -4,7 +4,7 @@
 
 # TARGTYPE "Win32 (x86) Application" 0x0101
 
-CFG=rat - Win32 Debug IPv6 Musica
+CFG=rat - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
@@ -18,10 +18,10 @@ CFG=rat - Win32 Debug IPv6 Musica
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
 !MESSAGE "rat - Win32 Release" (based on "Win32 (x86) Application")
-!MESSAGE "rat - Win32 Debug" (based on "Win32 (x86) Application")
 !MESSAGE "rat - Win32 Debug IPv6" (based on "Win32 (x86) Application")
 !MESSAGE "rat - Win32 Debug IPv6 Musica" (based on "Win32 (x86) Application")
-!MESSAGE 
+!MESSAGE "rat - Win32 Debug" (based on "Win32 (x86) Application")
+!MESSAGE
 
 # Begin Project
 # PROP AllowPerConfigDependencies 0
