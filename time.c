@@ -118,6 +118,7 @@ get_freq(frtime_t *tp)
 	return (tp->freq);
 }
 
+/* Calculates time scaled to tp->freq units */
 u_int32
 get_time(frtime_t *tp)
 {
