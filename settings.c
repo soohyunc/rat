@@ -409,7 +409,7 @@ setting_load_int(char *name, int default_value)
 void settings_load_early(session_t *sp)
 {
 	char				*name, *param, *primary_codec, *port;
-	int				 freq, chan;
+	int				 freq, chan, mute;
         uint32_t                         i, n, success;
 	const cc_details_t              *ccd;
 	const audio_device_details_t    *add = NULL;
@@ -467,9 +467,6 @@ void settings_load_early(session_t *sp)
         audio_set_ogain(sp->audio_device, setting_load_int("audioOutputGain", 75));
         audio_set_igain(sp->audio_device, setting_load_int("audioInputGain",  75));
         tx_igain_update(sp->tb);
-        setting_load_int("audioInputMute", 1);
-        setting_load_int("audioOutputMute", 1);
-
 	name  = setting_load_str("audioChannelCoding", "None");
         param = setting_load_str("audioChannelParameters", "None");
 
@@ -534,6 +531,16 @@ void settings_load_early(session_t *sp)
 	sp->meter          = setting_load_int("audioPowermeters", 1);
 /* Ignore saved render_3d setting.  Break initial device config stuff.  V.fiddly to fix. */
 /*	sp->render_3d      = setting_load_int("audio3dRendering", 0);                    */
+
+        mute = setting_load_int("audioInputMute", 1);
+        if (mute && tx_is_sending(sp->tb)) {
+                tx_stop(sp->tb);
+        } else if (mute == 0 && tx_is_sending(sp->tb) == 0) {
+                tx_start(sp->tb);
+        }
+
+        setting_load_int("audioOutputMute", 1);
+
         xmemchk();
 	load_done();
 }

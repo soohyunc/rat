@@ -747,12 +747,14 @@ static void rx_rtp_query(char *srce, char *args, session_t *sp)
 {
 	/* The rtp.query() command solicits information about the RTP session. */
 	/* We respond by dumping all our RTP related state to the querier.     */
-	uint32_t	 ssrc;
+	uint32_t	 ssrc, my_ssrc;
 	struct s_source	*s;
 
 	UNUSED(args);
 	ui_send_rtp_ssrc(sp, srce);
 	pdb_get_first_id(sp->pdb, &ssrc);
+        my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
+        
 	do {
 		ui_send_rtp_cname(sp, srce, ssrc);
 		ui_send_rtp_name(sp, srce, ssrc);
@@ -762,11 +764,23 @@ static void rx_rtp_query(char *srce, char *args, session_t *sp)
 		ui_send_rtp_tool(sp, srce, ssrc);
 		ui_send_rtp_note(sp, srce, ssrc);
 		ui_send_rtp_mute(sp, srce, ssrc);
-		if ((s = source_get_by_ssrc(sp->active_sources, ssrc)) != NULL) {
-			ui_send_rtp_active(sp, srce, ssrc);
-		} else {
-			ui_send_rtp_inactive(sp, srce, ssrc);
-		}
+                if (ssrc != my_ssrc) {
+                        if ((s = source_get_by_ssrc(sp->active_sources, ssrc)) != NULL) {
+                                ui_send_rtp_active(sp, srce, ssrc);
+                        } else {
+                                ui_send_rtp_inactive(sp, srce, ssrc);
+                        }
+                } else {
+                        if (tx_is_sending(sp->tb)) {
+                                ui_send_rtp_active(sp, 
+                                                   sp->mbus_ui_addr, 
+                                                   rtp_my_ssrc(sp->rtp_session[0]));
+                        } else {
+                                ui_send_rtp_inactive(sp, 
+                                                     sp->mbus_ui_addr, 
+                                                     rtp_my_ssrc(sp->rtp_session[0]));
+                        }
+                }
 	} while (pdb_get_next_id(sp->pdb, ssrc, &ssrc));
 	ui_send_rtp_addr(sp, srce);
 	ui_send_rtp_title(sp, srce);
