@@ -27,6 +27,23 @@
 pid_t	 pid_ui, pid_engine;
 int	 should_exit;
 
+#ifdef NEED_SNPRINTF
+static int snprintf(char *s, int buf_size, const char *format, ...)
+{
+	/* Quick hack replacement for snprintf... note that this */
+	/* doesn't check for buffer overflows, and so is open to */
+	/* many really nasty attacks!                            */
+	va_list	ap;
+	int	rc;
+
+	UNUSED(buf_size);
+	va_start(ap, format);
+        rc = sprintf(s, format, ap);
+	va_end(ap);
+        return rc;
+}
+#endif
+
 static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid)
 {
 	struct timeval	 timeout;
@@ -36,6 +53,9 @@ static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_
 
 	sprintf(token, "rat-controller-waiting-%ld", lrand48());
 
+#ifdef WIN32
+	/* Hmmm.... */
+#else
 #ifdef DEBUG_FORK
 	debug_msg("%s -ctrl %s -token %s\n", proc_name, ctrl_addr, token);
 	UNUSED(pid);
@@ -52,6 +72,7 @@ static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_
 		/* they still point to the same underlying file).                           */
 		_exit(1);	
 	}
+#endif
 #endif
 
 	/* This is the parent: we have to wait for the child to say hello before continuing. */
@@ -78,7 +99,11 @@ static void kill_process(pid_t proc)
 		debug_msg("Process %d already marked as dead\n", proc);
 		return;
 	}
+#ifdef WIN32
+	/* Hmmm... */
+#else
 	kill(proc, SIGINT);
+#endif
 }
 
 static void inform_addrs(struct mbus *m, char *e_addr, char *u_addr)
