@@ -818,9 +818,8 @@ source_get_playout_delay (source *src, ts_t now)
          * delay is diff between this and last packet received.
          */
 
-        if (pb_get_end_ts(src->channel, &end)) {
-                assert(ts_gt(end, now) || ts_eq(end, now));
-                
+        if (pb_get_end_ts(src->channel, &end) && 
+            ts_gt(end, now)) {
                 return ts_sub(end, now);
         }
 
