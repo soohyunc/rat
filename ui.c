@@ -40,8 +40,6 @@
  * SUCH DAMAGE.
  */
 
-#include <tcl.h>
-#include <tk.h>
 #include "config.h"
 #include "version.h"
 #include "session.h"
@@ -54,6 +52,11 @@
 #include "audio.h"
 #include "mbus.h"
 #include "ui.h"
+/* The tcl/tk includes have to go after config.h, else we get warnings on
+ * solaris 2.5.1, due to buggy system header files included by config.h [csp]
+ */
+#include <tcl.h>
+#include <tk.h>
 
 extern Tcl_Interp	*interp;
 extern char		init_ui_script[];

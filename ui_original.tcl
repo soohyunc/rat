@@ -63,8 +63,6 @@ set fw 			.l.t.list.f
 set cancel_info_timer 	0
 set num_ssrc		0
 set DEBUG		0
-set help_on 		1
-set help_id		0
 
 # Commands to send message over the conference bus...
 proc toggle_play {} {
@@ -1029,11 +1027,11 @@ proc savename {} {
 	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*helpOn"   "$help_on"
     } else {
 	set f [open $rtpfname w]
-	if {$rtcp_name  != ""} {puts $f "*rtpName:  $rtcp_name"}
-	if {$rtcp_email != ""} {puts $f "*rtpEmail: $rtcp_email"}
-	if {$rtcp_phone != ""} {puts $f "*rtpPhone: $rtcp_phone"}
-	if {$rtcp_loc   != ""} {puts $f "*rtpLoc:   $rtcp_loc"}
-	if {$help_on    != ""} {puts $f "*helpOn:   $help_on"}
+	puts $f "*rtpName:  $rtcp_name"
+	puts $f "*rtpEmail: $rtcp_email"
+	puts $f "*rtpPhone: $rtcp_phone"
+	puts $f "*rtpLoc:   $rtcp_loc"
+	puts $f "*helpOn:   $help_on"
 	close $f
     }
 }
@@ -1044,16 +1042,18 @@ set rtcp_phone [option get . rtpPhone rat]
 set rtcp_loc   [option get . rtpLoc   rat]
 set help_on    [option get . helpOn   rat]
 
+if {$help_on == ""} {set help_on 1}
+
 if {$win32 == 0} {
     if {[file readable $rtpfname] == 1} {
 	set f [open $rtpfname]
 	while {[eof $f] == 0} {
 	    gets $f line
-	    if {$rtcp_name  == "" && [string compare "*rtpName:"  [lindex $line 0]] == 0} {set rtcp_name  [lrange $line 1 end]}
-	    if {$rtcp_email == "" && [string compare "*rtpEmail:" [lindex $line 0]] == 0} {set rtcp_email [lrange $line 1 end]}
-	    if {$rtcp_phone == "" && [string compare "*rtpPhone:" [lindex $line 0]] == 0} {set rtcp_phone [lrange $line 1 end]}
-	    if {$rtcp_loc   == "" && [string compare "*rtpLoc:"   [lindex $line 0]] == 0} {set rtcp_loc   [lrange $line 1 end]}
-	    if {$help_on    == "" && [string compare "*helpOn:"   [lindex $line 0]] == 0} {set help_on    [lrange $line 1 end]}
+	    if {[string compare "*rtpName:"  [lindex $line 0]] == 0} {set rtcp_name  [lrange $line 1 end]}
+	    if {[string compare "*rtpEmail:" [lindex $line 0]] == 0} {set rtcp_email [lrange $line 1 end]}
+	    if {[string compare "*rtpPhone:" [lindex $line 0]] == 0} {set rtcp_phone [lrange $line 1 end]}
+	    if {[string compare "*rtpLoc:"   [lindex $line 0]] == 0} {set rtcp_loc   [lrange $line 1 end]}
+	    if {[string compare "*helpOn:"   [lindex $line 0]] == 0} {set help_on    [lrange $line 1 end]}
 	}
 	close $f
     }
@@ -1245,7 +1245,9 @@ proc show_help {window} {
 
 proc hide_help {window} {
 	global help_id help_on
-	after cancel $help_id
+	if {[info exists help_id]} { 
+		after cancel $help_id
+	}
 	wm withdraw .help
 }
 

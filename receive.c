@@ -238,7 +238,7 @@ find_participant_queue(ppb_t **list, rtcp_dbentry *src)
 			return (p);
 	}
 #ifdef DEBUG
-	printf("allocating new receive buffer\n");
+	printf("allocating new receive buffer (ssrc=%lx)\n", src->ssrc);
 #endif
 	p = (ppb_t*)block_alloc(sizeof(ppb_t));
 	memset(p, 0, sizeof(ppb_t));
@@ -249,17 +249,80 @@ find_participant_queue(ppb_t **list, rtcp_dbentry *src)
 	return (p);
 }
 
-void 
-service_receiver(cushion_struct *cushion, session_struct *sp,
-		 rx_queue_struct *receive_queue, ppb_t **buf_list, struct s_mix_info *ms)
+void
+playout_buffer_remove(ppb_t **list, rtcp_dbentry *src)
 {
+	/* We don't need to free "src", that's done elsewhere... [csp] */
+	ppb_t 			*curr, *prev, *tmp;
+	rx_queue_element_struct	*rxu, *rxt;
+
+	assert(list != NULL);
+
+	if (*list == NULL) {
+		return;
+	}
+
+	if ((*list)->src == src) {
+		tmp = (*list)->next;
+		rxu = (*list)->head_ptr;
+		while(rxu != NULL) {
+			rxt = rxu->next_ptr;
+			free_rx_unit(&rxu);
+			rxu = rxt;
+		}
+		block_free(*list, sizeof(ppb_t));
+		*list = tmp;
+	}
+
+	if (*list == NULL) return;
+
+	prev = *list;
+	curr = (*list)->next;
+
+	if (prev == NULL) return;
+
+	assert(prev != NULL);
+	while (curr != NULL) {
+		if (curr->src == src) {
+			prev->next = curr->next;
+			rxu = curr->head_ptr;
+			while(rxu != NULL) {
+				rxt = rxu->next_ptr;
+				free_rx_unit(&rxu);
+				rxu = rxt;
+			}
+			block_free(curr, sizeof(ppb_t));
+			curr = prev->next;
+		} else {
+			prev = curr;
+			curr = curr->next;;
+		}
+	}
+}
+
+void 
+service_receiver(cushion_struct *cushion, session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf_list, struct s_mix_info *ms)
+{
+	/* There is a nasty race condition in this function, which people
+	 * should be aware of: when a participant leaves a session (either
+	 * via a timeout or reception of an RTCP BYE packet), the RTCP
+	 * database entries for that source are removed. However, there may
+	 * still be some packets left for that source in the receiver
+	 * pipeline. This means that the up->dbe_source[] and buf->src
+	 * fields (and possibly some others) in the code below may be
+	 * dangling pointers... Now, this should never happen, since the
+	 * code removing a participant cleans up the receiver mess, right?
+	 * Well, we hope anyway...... At least one bug has been caused by
+	 * this already (a crash just after receiving a BYE packet from a
+	 * participant who is sending). Don't say I didn't warn you! [csp]
+	 */
 	rx_queue_element_struct	*up;
 	ppb_t			*buf, **bufp;
 	u_int32			cur_time, cs;
         
 	while (receive_queue->queue_empty_flag == FALSE) {
-		up = get_unit_off_rx_queue(receive_queue);
-		buf = find_participant_queue(buf_list, up->dbe_source[0]);
+		up       = get_unit_off_rx_queue(receive_queue);
+		buf      = find_participant_queue(buf_list, up->dbe_source[0]);
 		cur_time = get_time(buf->src->clock);
 		/* This is to compensate for clock drift.
 		 * Same check should be made in case it is too early.
@@ -293,10 +356,9 @@ service_receiver(cushion_struct *cushion, session_struct *sp,
 		cur_time = get_time(buf->src->clock);
 		cs = cushion->cushion_size * get_freq(buf->src->clock) / get_freq(sp->device_clock);
 		while ((up = playout_buffer_get(buf, cur_time, cur_time + cs))) {
-			if (!up->comp_count  && sp->repair != REPAIR_NONE 
-     			    && up->prev_ptr != NULL && up->next_ptr != NULL) 
+			if (!up->comp_count  && sp->repair != REPAIR_NONE && up->prev_ptr != NULL && up->next_ptr != NULL) {
 				repair(sp->repair, up);
-
+			}
 			if (up->native_count && up->mixed == FALSE) {
 				mix_do_one_chunk(sp, ms, up);
 				if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
@@ -314,7 +376,8 @@ service_receiver(cushion_struct *cushion, session_struct *sp,
 			buf = *bufp;
 			*bufp = buf->next;
 			block_free(buf, sizeof(ppb_t));
-		} else
+		} else {
 			bufp = &(*bufp)->next;
+		}
 	}
 }

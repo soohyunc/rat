@@ -58,6 +58,7 @@
 #include "speaker_table.h"
 #include "ui.h"
 #include "rat_time.h"
+#include "receive.h"
 
 #define MAX_DROPOUT	3000
 #define MAX_MISORDER	100
@@ -140,6 +141,7 @@ rtcp_update_seq(rtcp_dbentry *s, u_int16 seq)
 rtcp_dbentry   *
 rtcp_get_dbentry(session_struct *sp, u_int32 ssrc)
 {
+	/* This needs to be optimised! [csp] */
 	rtcp_dbentry   *dptr = sp->db->ssrc_db;
 
 	while (dptr) {
@@ -242,8 +244,9 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 {
 	ssrc_entry     *sse;
 
-	if (dbptr->clock)
+	if (dbptr->clock) {
 		free_time(dbptr->clock);
+	}
 
 	if (dbptr && (sse = dbptr->sentry)) {
 		if (sse->cname) xfree(sse->cname);
@@ -258,13 +261,15 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 	xfree(dbptr);	/* IK 5/7/97. Not done before?! */
 }
 
-/*
- * Removes a database item from the linked list, and calls rtcp_free_dbentry
- * on it.
- */
 void 
 rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
 {
+	/*
+ 	 * This function remove a participant from the RTCP database, and frees the
+ 	 * memory associated with the database entry. Note that we must remove the
+ 	 * references to the participant in sp->playout_buf_list to avoid the race
+ 	 * condition in service_receiver... (see comment in that function) [csp] 
+ 	 */
 	rtcp_dbentry   *dbptr = sp->db->ssrc_db;
 	rtcp_dbentry   *tmp;
 
@@ -272,14 +277,18 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
 	printf("BYE: ssrc=%lx time=%ld\n", ssrc, cur_time);
 #endif
 
-	if (!sp->db->ssrc_db)
+	if (dbptr == NULL) {
+		printf("Freeing database entry for SSRC %lx when the database is empty! Huh?\n", ssrc);
 		return;
+	}
+
 	if (dbptr->ssrc == ssrc) {
 		sp->db->ssrc_db = dbptr->next;
 		check_active_leave(sp, dbptr);
 		if (sp->ui_on) {
 			ui_info_remove(dbptr, sp);
 		}
+		playout_buffer_remove(&(sp->playout_buf_list), dbptr);
 		rtcp_free_dbentry(dbptr);
 		return;
 	}
@@ -292,6 +301,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
 			if (sp->ui_on) {
 				ui_info_remove(tmp, sp);
 			}
+			playout_buffer_remove(&(sp->playout_buf_list), dbptr);
 			rtcp_free_dbentry(tmp);
 			sp->db->members--;
 			return;
