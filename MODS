@@ -1111,7 +1111,8 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Fix rtp.source.active for local user in response to rtp.query(), 
 	  didn't highlight local users transmit state.
 	- Update SDR plugin
-
+	- Transfer string associative array code out of settings.c into new 
+	  common library files asarray.[ch].
 
 TODO -- They're features not bugs dammit!
 ----

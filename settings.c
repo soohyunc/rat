@@ -32,12 +32,7 @@ static const char cvsid[] =
 #include "rtp.h"
 #include "util.h"
 
-typedef struct s_hash_tuple {
-        uint32_t hash;
-        char *key;
-        char *value;
-        struct s_hash_tuple *next;
-} hash_tuple;
+#include "asarray.h"
 
 #define SETTINGS_READ_SIZE 100
 #define SETTINGS_TABLE_SIZE 11
@@ -45,155 +40,17 @@ typedef struct s_hash_tuple {
 #ifdef WIN32
 #define SETTINGS_BUF_SIZE 1500
 static HKEY cfgKey;
+#else
+/* Associative array for storing settings during loading and saving */
+static asarray *aa;
 #endif
-
-#ifndef WIN32
-static hash_tuple **table;          /* Use hashtable to load settings    */
-#endif
-
-/* SETTINGS HASH CODE ********************************************************/
-
-static uint32_t 
-setting_hash(char *key)
-{
-#ifndef WIN32
-        uint32_t hash = 0;
-
-        while(*key != '\0') {
-                hash = hash * 31;
-                hash += ((uint32_t)*key) + 1;
-                key++;
-        }
-
-        return hash;
-#endif
-}
-
-static void
-settings_table_add(char *key, char *value)
-{
-#ifndef WIN32
-        hash_tuple *t;
-        int row;
-
-        t = (hash_tuple*)xmalloc(sizeof(hash_tuple));
-        /* transfer values */
-        t->hash  = setting_hash(key);
-        t->key   = xstrdup(key);
-        t->value = xstrdup(value);
-
-        /* Add to table */
-        row      = t->hash % SETTINGS_TABLE_SIZE;
-        t->next  = table[row];
-        table[row] = t;
-#endif
-}
-
-static void
-settings_table_remove(char *key)
-{
-#ifndef WIN32
-        hash_tuple **t, *e;
-        uint32_t hash;
-        int row;
-
-        hash = setting_hash(key);
-        row  = hash % SETTINGS_TABLE_SIZE;
-        t    = &table[row];
-        while((*t) != NULL) {
-                if (((*t)->hash == hash) && 
-                    (strcmp(key, (*t)->key) == 0)) {
-                        e = *t;
-                        *t = e->next;
-                        xfree(e->key);
-                        xfree(e->value);
-                        xfree(e);
-                } else {
-                        t = &(*t)->next;
-                }
-        }
-#endif /* WIN32 */
-}
-
-static char* settings_table_first_key()
-{
-#ifndef WIN32
-        int i;
-
-        for (i = 0; i < SETTINGS_TABLE_SIZE; i++) {
-                if (table[i] != NULL) {
-                        return table[i]->key;
-                }
-        }
-#endif
-        return NULL;
-}
-
-
-/* settings_table_lookup points value at actual value */
-/* and return TRUE if key found.                      */
-static int
-settings_table_lookup(char *key, char **value)
-{
-#ifndef WIN32
-        hash_tuple *t;
-        int          row;
-        uint32_t     hash;
-
-        hash = setting_hash(key);
-        row  = hash % SETTINGS_TABLE_SIZE;
-
-        t = table[row];
-        while(t != NULL) {
-                if (t->hash == hash && strcmp(key, t->key) == 0) {
-                        *value = t->value;
-                        return TRUE;
-                }
-                t = t->next;
-        }
-        *value = NULL;
-#endif
-        return FALSE;
-}
-
-static void
-settings_table_create()
-{
-#ifndef WIN32
-        table = (hash_tuple**)xmalloc(sizeof(hash_tuple*) * SETTINGS_TABLE_SIZE);
-        memset(table, 0, sizeof(hash_tuple*) * SETTINGS_TABLE_SIZE);
-#endif
-}
-
-static void
-settings_table_destroy(void)
-{
-#ifndef WIN32
-        hash_tuple *t;
-        int i;
-
-        for(i = SETTINGS_TABLE_SIZE-1; i >= 0; i--) {
-                t = table[i];
-                while (t != NULL) {
-                        table[i] = t->next;
-                        xfree(t->key);
-                        xfree(t->value);
-                        xfree(t);
-                        t = table[i];
-                }
-        }
-        xfree(table);
-        table = NULL;
-        xmemchk();
-#endif
-}
 
 /* SETTINGS CODE *************************************************************/
 
 #ifdef WIN32
 static void open_registry(LPCTSTR subKey)
 {
-    HKEY			key    = HKEY_CURRENT_USER;
+        HKEY			key    = HKEY_CURRENT_USER;
 	DWORD			disp;
 	char			buffer[SETTINGS_BUF_SIZE];
 	LONG			status;
@@ -288,7 +145,8 @@ static void load_init(void)
         char            *buffer;
         char            *key, *value;
         uint32_t          i;
-        settings_table_create();
+
+        asarray_create(&aa);
 
         i = 0;
         for (i = 0; i < 2; i++) {
@@ -314,7 +172,7 @@ static void load_init(void)
                                          * not ascii*/
                                         value++;             
                                 }
-                                settings_table_add(key, value);
+                                asarray_add(aa, key, value);
                         }
                         settings_file_close(sfile);
                         xfree(buffer);
@@ -330,7 +188,7 @@ static void load_done(void)
 #ifdef WIN32
         close_registry();
 #else
-        settings_table_destroy();
+        asarray_destroy(&aa);
 #endif
 }
 
@@ -338,7 +196,7 @@ static int
 setting_load(char *key, char **value)
 {
 #ifndef WIN32
-        return settings_table_lookup(key, value);
+        return asarray_lookup(aa, key, value);
 #endif
 }
 
@@ -615,7 +473,7 @@ static void
 save_init_rtp(void)
 {
 #ifndef WIN32
-        settings_table_create();
+        asarray_create(&aa);
 #else
         open_registry("Software\\Mbone Applications\\common");
 #endif
@@ -627,7 +485,7 @@ save_init_rat(void)
 /* We assume this function gets called after save_init_rtp so */
 /* file/registry need closing before use.                     */
 #ifndef WIN32
-        settings_table_create();
+        asarray_create(&aa);
 #else
         open_registry("Software\\Mbone Applications\\rat");
 #endif
@@ -662,6 +520,7 @@ static void save_done(uint32_t type)
          * and output to a new file.  Then copy from one to the other.
          */
         char linebuf[255], keybuf[255], *key, *value, *tmpname;
+        const char *ckey;
         FILE *n = settings_file_open(SETTINGS_FILE_TMP, "w");
         FILE *o = settings_file_open(type, "r");
 
@@ -679,10 +538,10 @@ static void save_done(uint32_t type)
                                 strcpy(keybuf, linebuf);
                                 key = keybuf + 1;       /* Ignore asterisk */
                                 key = strtok(key, ":"); /* key ends at colon */
-                                if (settings_table_lookup(key, &value)) {
+                                if (asarray_lookup(aa, key, &value)) {
                                         /* We have a newer value */
                                         fprintf(n, "*%s: %s\n", key, value);
-                                        settings_table_remove(key);
+                                        asarray_remove(aa, key);
                                 } else {
                                         /* We have no ideas about this value */
                                         fprintf(n, linebuf);
@@ -691,14 +550,12 @@ static void save_done(uint32_t type)
                 }
         }
 
-        if ((key = settings_table_first_key()) != NULL) {
-                do {
-                        /* Write out stuff not written out already */
-                        if (settings_table_lookup(key, &value)) {
-                                fprintf(n, "*%s: %s\n", key, value);
-                        }
-                        settings_table_remove(key);
-                } while ((key = settings_table_first_key()) != NULL);
+        while ((ckey = asarray_get_key_no(aa, 0)) != NULL) {
+                /* Write out stuff not written out already */
+                if (asarray_lookup(aa, ckey, &value)) {
+                        fprintf(n, "*%s: %s\n", ckey, value);
+                }
+                asarray_remove(aa, ckey);
         }
 
         settings_file_close(n);
@@ -733,7 +590,8 @@ save_stops_here:
         if (n) {
                 settings_file_close(n);
         }
-        settings_table_destroy();
+
+        asarray_destroy(&aa);
 
         tmpname = settings_file_name(SETTINGS_FILE_TMP);
         unlink(tmpname);
@@ -768,7 +626,7 @@ setting_save_str(const char *name, const char *val)
         if (val == NULL) {
                 val = "";
         }
-        settings_table_add((char*)name, (char*)val);
+        asarray_add(aa, (char*)name, (char*)val);
 #else
         int status;
         char buffer[SETTINGS_BUF_SIZE];
@@ -791,7 +649,7 @@ static void setting_save_int(const char *name, const long val)
 #ifndef WIN32
         char sval[12];
 	sprintf(sval, "%ld", val);
-        settings_table_add((char*)name, sval);
+        asarray_add(aa, name, sval);
         xmemchk();
 #else
         LONG status;
