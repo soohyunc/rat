@@ -1,11 +1,11 @@
 /*
- * FILE:      channel_types.h
+ * FILE:      cc_rdncy.h
  * AUTHOR(S): Orion Hodson 
  *	
  * $Revision$
  * $Date$
  * 
- * Copyright (c) 1999 University College London
+ * Copyright (c) 1995-99 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,47 +35,45 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef __CHANNEL_TYPES_H__
-#define __CHANNEL_TYPES_H__
 
-/* Channel coder description information */
+#ifndef __CC_RDNCY_H__
+#define __CC_RDNCY_H__
 
-typedef u_int32 cc_id_t;
+/* Encoder functions *********************************************************/
 
-#define CC_NAME_LENGTH 32
+int  redundancy_encoder_create  (u_char **state, u_int32 *len);
 
-typedef struct {
-        cc_id_t descriptor;
-        char    name[CC_NAME_LENGTH];
-} cc_details;
+void redundancy_encoder_destroy (u_char **state, u_int32  len);
 
-/* In and out unit types.  On input channel encoder takes a playout buffer
- * of media_units and puts channel_units on the output playout buffer
- */
+int  redundancy_encoder_reset   (u_char  *state);
 
-#define MAX_CHANNEL_UNITS    8
-#define MAX_UNITS_PER_PACKET 8
+int  redundancy_encoder_encode  (u_char                  *state,
+                                 struct s_pb *in,
+                                 struct s_pb *out,
+                                 u_int32                  units_per_packet);
 
-typedef struct {
-        u_int8  pt;
-        u_char *data;
-        u_int32 data_start; /* We use data_start to indicate offset where
-                             * channel data begins relative to data(packet)
-                             * since this saves an allocation, copy, and free.
-                             * Used only on decode path.
-                             */
-        u_int32 data_len;   /* This is the length for processing purposes */
-} channel_unit;
+/* Decoder functions *********************************************************/
 
-typedef struct {
-        u_int8        nelem;
-        channel_unit *elem[MAX_CHANNEL_UNITS];
-} channel_data;
+int  redundancy_decoder_create  (u_char **state, u_int32 *len);
 
-int  channel_data_create  (channel_data **cd, 
-                           int            nelem);
+int  redundancy_decoder_destroy (u_char **state, u_int32 len);
 
-void channel_data_destroy (channel_data **cd, 
-                           u_int32        cdsize);
+int  redundancy_decoder_decode  (u_char                  *state,
+                                 struct s_pb *in,
+                                 struct s_pb *out,
+                                 ts_t                     now);
 
-#endif /* __CHANNEL_TYPES_H__ */
+int redundancy_decoder_peek     (u_int8   pkt_pt,
+                                 u_char  *data,
+                                 u_int32  len,
+                                 u_int16  *upp,
+                                 u_int8   *pt);
+
+int redundancy_decoder_describe (u_int8   pkt_pt,
+                                 u_char  *data,
+                                 u_int32  len,
+                                 char    *out,
+                                 u_int32  out_len);
+ 
+#endif /* __CC_RDNCY_H__ */
+

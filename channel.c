@@ -100,6 +100,7 @@ typedef struct {
 } channel_coder_t;
 
 #include "cc_vanilla.h"
+#include "cc_rdncy.h"
 
 static channel_coder_t table[] = {
         /* The vanilla coder goes first. Update channel_get_null_coder 
