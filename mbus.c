@@ -276,7 +276,6 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 	char			*b, *bp;
 	int			 i;
         
-        
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons((short)(MBUS_PORT+m->channel));
@@ -357,7 +356,7 @@ static fd_t mbus_socket_init(unsigned short channel)
 	int                reuse =  1;
 	char               loop  =  1;
 	fd_t               fd    = -1;
-#ifndef SunOS_4
+#if defined(IRIX) || defined(HPUX) || defined(FreeBSD) || defined(Linux) || defined(SunOS_5)
 	int		   rbuf  = 65535;
 #endif
 
@@ -376,7 +375,7 @@ static fd_t mbus_socket_init(unsigned short channel)
 		return -1;
 	}
 #endif
-#ifndef SunOS_4
+#if defined(IRIX) || defined(HPUX) || defined(FreeBSD) || defined(Linux) || defined(SunOS_5)
 	if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char *) &rbuf, sizeof(rbuf)) < 0) {
 		perror("mbus: setsockopt SO_RCVBUF");
 		return -1;
@@ -393,6 +392,7 @@ static fd_t mbus_socket_init(unsigned short channel)
 
 	imr.imr_multiaddr.s_addr = MBUS_ADDR;
 	imr.imr_interface.s_addr = INADDR_ANY;
+	
 	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) < 0) {
 		perror("mbus: setsockopt IP_ADD_MEMBERSHIP");
 		return -1;
@@ -527,9 +527,11 @@ int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, in
 	bufp += strlen(cmnd) + strlen(args) + 4;
 
 	assert((int) strlen(buffer) == (bufp - buffer));
+
 	if ((sendto(m->fd, buffer, bufp - buffer, 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
-		perror("mbus_send: sendto");
+		debug_msg("mbus_send: sendto\n");
 	}
+
 	xfree(buffer);
 	return m->seqnum;
 }
