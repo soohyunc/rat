@@ -344,6 +344,8 @@ source_remove(source_list *plist, source *psrc)
         debug_msg("Destroying source decode path\n");
         
         block_free(psrc, sizeof(source));
+
+        assert(source_get_by_rtcp_dbentry(plist, psrc->dbe) == NULL);
 }
               
 /* Source Processing Routines ************************************************/
