@@ -116,7 +116,7 @@ render_3D_init(session_struct *sp)
 
         sampling_rate = audio_get_freq(sp->audio_device);
 
-        azimuth = 0;
+        azimuth = 20;
         length = DEFAULT_RESPONSE_LENGTH;
         default_filter_name = "HRTF";
         default_filter_num  = render_3D_filter_get_by_name(default_filter_name);
@@ -147,8 +147,9 @@ void
 render_3D_set_parameters(int sampling_rate, struct s_render_3D_dbentry *p_3D_data, int azimuth, int filter_number, int length)
 {
         int i;
-        int d_time;         /* delay in seconds. auxiliary to calculate delay in samples. */
-        int d_intensity;    /* interaural intensity difference 0.0 <d_intensity < 1.0 */
+        double aux;
+        double d_time;         /* delay in seconds. auxiliary to calculate delay in samples. */
+        double d_intensity;    /* interaural intensity difference 0.0 <d_intensity < 1.0 */
 
         double   filters[][32] = { { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
@@ -172,7 +173,7 @@ render_3D_set_parameters(int sampling_rate, struct s_render_3D_dbentry *p_3D_dat
         filter_set[2] = *(filters+2);
 
         /* derive interaural time difference from azimuth */
-        azimuth *= 0.017453203;                                /* conversion into radians */
+        aux= azimuth * 0.017453203;                                /* conversion into radians */
         d_time = 2.72727 * sin((double) azimuth);
         p_3D_data->delay = (int) (sampling_rate * d_time / 1000);
 
