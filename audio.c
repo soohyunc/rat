@@ -271,7 +271,7 @@ audio_device_take(session_struct *sp)
          */
         if (sp->device_clock) xfree(sp->device_clock);
         sp->device_clock = new_time(sp->clock, cp->freq);
-        sp->meter_period = cp->freq / 10;
+        sp->meter_period = cp->freq / 15;
         sp->bc           = bias_ctl_create(cp->channels, cp->freq);
         sp->tb           = tx_create(sp, (u_int16)cp->unit_len, (u_int16)cp->channels);
         sp->ms           = mix_create(sp, 32640);

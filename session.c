@@ -84,6 +84,7 @@ init_session(session_struct *sp)
 	set_dynamic_payload(&sp->dpt_list, "L16-48K-STEREO", PT_L16_48K_STEREO);
 
 	codec_init(sp);
+        vu_table_init();
 	cp = get_codec_by_name("DVI-8K-MONO");
         channel_set_coder(sp, PT_VANILLA);
         sp->last_depart_ts              = 1;

@@ -52,6 +52,7 @@ u_int16	avg_audio_energy (sample *buf, u_int32 dur, u_int32 channels);
 #define VU_INPUT  0
 #define VU_OUTPUT 1
 
+void    vu_table_init(void);
 int     lin2vu(u_int16 avg_energy, int peak, int io_dir);
 
 struct  s_sd *sd_init (u_int16 blk_dur, u_int16 freq);

@@ -79,21 +79,32 @@ avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
         return (u_int16)(e1*STEP/samples);
 }
 
+#define Q3_MAX 4096
+#define L16TOQ3(x) ((x)>>3)
+#define Q3TOL16(x) ((x)<<3)
+#define MAX_VU 255.0
+
+static u_char vu_tbl[4096];
+
+void
+vu_table_init()
+{
+        int i;
+        vu_tbl[0] = 0;
+        for (i=1; i<Q3_MAX; i++) {
+                vu_tbl[i] = (u_char)(255.0 * (2.0 / (1.0 + exp(-Q3TOL16(i)*1.0/1000)) - 1));
+        }
+}
+
 int lin2vu(u_int16 energy, int range, int io_dir)
 {
         static double v[2];
         double gain;
 
-        if (energy) {
-                /* This has same form as power in db's, but 
-                 * has gentler knee to look at.
-                 */
-                gain = 2 / ( 1 + exp(-energy/4000.0)) - 1;
-        } else {
-                gain = 0.0;
-        }
-        
+        gain = vu_tbl[L16TOQ3(energy)]/MAX_VU;
+
         v[io_dir] = max(v[io_dir] - 0.1, 0.0);
+
         if (gain > v[io_dir]) {
                 v[io_dir] += 0.80 * (gain - v[io_dir]);
         } 
