@@ -495,6 +495,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			dbe->last_active = cur_time;
 			dbe->last_sr     = ((dbe->last_ntp_sec & 0xffff) << 16) | (((dbe->last_ntp_frac & 0xffff0000) >> 16) & 0xffffffff);
 			dbe->last_sr_rx  = real_time;
+			debug_msg("%x %x %x\n", dbe->last_sr, dbe->last_ntp_sec, dbe->last_ntp_frac);
 
 			/* Store the reception statistics for that user... */
 			/* Clear the old RR list... */
@@ -520,6 +521,15 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				other_source = rtcp_getornew_dbentry(sp, rr->ssrc, cur_time);
 				if (dbe->sentry->cname != NULL) {
 					ui_update_loss(sp, dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
+				}
+				/* is it reporting on my traffic? */
+				if ((rr->ssrc == sp->db->myssrc) && (dbe->sentry->cname != NULL)) {
+					/* Need to store stats in ssrc's db */
+					dbe->loss_from_me = rr->fraction_lost;
+					dbe->last_rr_for_me = cur_time;
+					ui_update_loss(sp, dbe->sentry->cname, sp->db->my_dbe->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5)); 
+					/* Work out the round-trip-time... */
+					debug_msg("rtt %x %f\n", ntohl(pkt->r.sr.ssrc), ((double) (real_time - rr->lsr - rr->dlsr)) / 65536.0);
 				}
 			}
 			break;

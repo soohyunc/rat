@@ -189,6 +189,17 @@ ui_info_update_note(session_struct *sp, rtcp_dbentry *e)
 }
 
 void
+ui_info_mute(session_struct *sp, rtcp_dbentry *e)
+{
+	char *cname = mbus_encode_str(e->sentry->cname);
+        char *args = (char*)xmalloc(strlen(cname) + 4);
+	sprintf(args, "%s %2d", cname, e->mute);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.mute", args, TRUE);
+	xfree(cname);
+        xfree(args);
+}
+
+void
 ui_info_remove(session_struct *sp, rtcp_dbentry *e)
 {
         char *cname;

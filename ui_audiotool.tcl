@@ -611,6 +611,8 @@ proc mbus_recv_rtp.source.remove {cname} {
 }
 
 proc mbus_recv_rtp.source.mute {cname val} {
+	global iht
+
 	if {$val} {
 		[window_plist $cname] create line [expr $iht + 2] [expr $iht / 2] 500 [expr $iht / 2] -tags a -width 2.0 -fill gray95
 	} else {

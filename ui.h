@@ -52,6 +52,7 @@ void	  ui_info_update_phone(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	    ui_info_update_loc(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	   ui_info_update_tool(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	   ui_info_update_note(struct session_tag *s, struct s_rtcp_dbentry *e);
+void	          ui_info_mute(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	        ui_info_remove(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	      ui_info_activate(struct session_tag *s, struct s_rtcp_dbentry *e);
 void	    ui_info_deactivate(struct session_tag *s, struct s_rtcp_dbentry *e);
