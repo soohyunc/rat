@@ -1044,13 +1044,13 @@ pack .about.m.f.l .about.m.f.mb -side left
 frame     .about.rim.d.copyright
 frame     .about.rim.d.copyright.f
 frame     .about.rim.d.copyright.f.f
-text      .about.rim.d.copyright.f.f.blurb -height 17 -width 64  -yscrollcommand ".about.rim.d.copyright.f.f.scroll set"
-scrollbar .about.rim.d.copyright.f.f.scroll -command ".about.rim.d.copyright.f.blurb yview"
+text      .about.rim.d.copyright.f.f.blurb -height 17 -yscrollcommand ".about.rim.d.copyright.f.f.scroll set"
+scrollbar .about.rim.d.copyright.f.f.scroll -command ".about.rim.d.copyright.f.f.blurb yview"
 
 pack      .about.rim.d.copyright.f -expand 1 -fill both
 pack      .about.rim.d.copyright.f.f 
-pack      .about.rim.d.copyright.f.f.blurb -side left
-pack      .about.rim.d.copyright.f.f.scroll -fill y -expand 1
+pack      .about.rim.d.copyright.f.f.scroll -side right -fill y -expand 1
+pack      .about.rim.d.copyright.f.f.blurb -side left -expand 1
 
 frame     .about.rim.d.credits 
 frame     .about.rim.d.credits.f -relief sunken 
