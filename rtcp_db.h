@@ -85,10 +85,12 @@ typedef struct s_rtcp_dbentry {
 	u_int32         jit_TOGed;		/* TOGed = Thrown on the Ground */
 	u_char		cont_toged;		/* Toged in a row */
 	u_char          first_pckt_flag:1;
+        u_char          first_mix:1;
 	u_char		mute:1;
+
 	struct s_time  *clock;
         struct s_render_3D_dbentry  *render_3D_data;
-	u_int32         last_mixed_playout;	/* from device_clock */
+	ts_t            last_mixed;             /* Used to check mixing */
         u_int32         ui_last_update;         /* Used for periodic update of packet counts, etc */
         u_char          update_req:1;           /* ui info needs update as format changed */
 	u_int16		units_per_packet;

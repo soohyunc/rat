@@ -44,6 +44,7 @@
 #define _mix_h_
 
 #include "codec_types.h"
+#include "ts.h"
 
 struct s_mix_info;
 struct session_tag;

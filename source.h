@@ -45,6 +45,7 @@
 struct s_source;
 struct s_source_list;
 struct s_rtcp_dbentry;
+struct s_playout_buffer;
 
 int              source_list_create  (struct s_source_list **pplist);
 
@@ -60,36 +61,42 @@ struct s_source* source_list_get_source_no (struct s_source_list *plist,
 struct s_source* source_get_by_rtcp_dbentry (struct s_source_list  *list,
                                              struct s_rtcp_dbentry *dbe);
 
-struct s_source* source_create (struct s_source_list  *list, 
-                                struct s_rtcp_dbentry *dbe,
-                                converter_id_t current_id,
-                                u_int16 out_rate,
-                                u_int16 out_channels);
+struct s_source* source_create             (struct s_source_list  *list, 
+                                            struct s_rtcp_dbentry *dbe,
+                                            converter_id_t current_id,
+                                            u_int16 out_rate,
+                                            u_int16 out_channels);
 
-void             source_reconfigure(struct s_source* src,
-                                    converter_id_t   current_id,
-                                    u_int16          out_rate,
-                                    u_int16          out_channels);
+void             source_reconfigure        (struct s_source* src,
+                                            converter_id_t   current_id,
+                                            u_int16          out_rate,
+                                            u_int16          out_channels);
 
-void             source_remove     (struct s_source_list *list,
-                                    struct s_source      *src);
+void             source_remove             (struct s_source_list *list,
+                                            struct s_source      *src);
 
-int              source_add_packet (struct s_source *src, 
-                                    u_char          *pckt, 
-                                    u_int32          pckt_len,
-                                    u_char          *data_start,
-                                    u_int8           payload,
-                                    ts_t             playout);
+int              source_add_packet         (struct s_source *src, 
+                                            u_char          *pckt, 
+                                            u_int32          pckt_len,
+                                            u_char          *data_start,
+                                            u_int8           payload,
+                                            ts_t             playout);
 
-int              source_process        (struct s_source *src,
-                                        int              repair,
-                                        ts_t             now);
+int              source_process            (struct s_source *src,
+                                            int              repair,
+                                            ts_t             now);
 
-int              source_relevant       (struct s_source *src,
-                                        ts_t             now);
+int              source_relevant           (struct s_source *src,
+                                            ts_t             now);
 
-ts_sequencer*    source_get_sequencer  (struct s_source *src);
+ts_sequencer*    source_get_sequencer      (struct s_source *src);
 
-u_int32          source_buffer_length_ms (struct s_source *src);
+u_int32          source_buffer_length_ms   (struct s_source *src);
+
+struct s_playout_buffer*
+                 source_get_decoded_buffer (struct s_source *src);
+
+struct s_rtcp_dbentry*
+                 source_get_rtcp_dbentry   (struct s_source *src);
 
 #endif /* __SOURCE_H__ */

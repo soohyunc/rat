@@ -51,29 +51,29 @@
 #include "codec.h"
 #include "audio.h"
 #include "audio_fmt.h"
-#include "receive.h"
 #include "timers.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
-#include "convert.h"
+#include "source.h"
+#include "playout.h"
 #include "debug.h"
 #include "parameters.h"
 #include "ui.h"
-#include "render_3D.h"
 
 typedef struct s_mix_info {
 	int	buf_len;        /* Length of circular buffer */
 	int	head, tail;     /* Index to head and tail of buffer */
-	u_int32	head_time;      /* Time of latest sample in buffer.
+	ts_t	head_time;      /* Time of latest sample in buffer.
 				 * In fact pad_time has to be taken into
 				 * account to get the actual value. */
-	u_int32	tail_time;	/* Current time */
+	ts_t	tail_time;	/* Current time */
 	int	dist;		/* Distance between head and tail.
 				 * We must make sure that this is kept
 				 * equal to value of the device cushion
 				 * unless there is no audio to mix. */
 	sample	*mix_buffer;	/* The buffer containing mixed audio data. */
         int      channels;      /* number of channels being mixed. */
+        int      rate;          /* Sampling frequency */
 } mix_struct;
 
 #define ROUND_UP(x, y)  (x) % (y) > 0 ? (x) - (x) % (y) : (x)
@@ -98,11 +98,12 @@ mix_create(session_struct * sp, int buffer_length)
 	ms = (mix_struct *) xmalloc(sizeof(mix_struct));
 	memset(ms, 0 , sizeof(mix_struct));
         ms->channels    = cf->format.channels;
+        ms->rate        = cf->format.sample_rate;
         ms->buf_len     = buffer_length * ms->channels;
 	ms->mix_bur  = (sample *)xmalloc(3 * ms->buf_len * BYTES_PER_SAMPLE);
 	audio_zero(ms->mix_buffer, 3 * buffer_length , DEV_S16);
 	ms->mix_buffer += ms->buf_len;
-        ms->head_time = ms->tail_time = get_time(sp->device_clock);
+        ms->head_time = ms->tail_time = ts_map32(ms->rate, 0);
 	return (ms);
 }
 
@@ -116,21 +117,21 @@ mix_destroy(mix_struct *ms)
 static void
 mix_audio(sample *dst, sample *src, int len)
 {
-	int tmp;
+	int tmp, i;
+        
+        /* On gcc on i386 using array offset is quicker than shifting
+         * pointers, ie *dst = *dst + *src; dst++;src++; 
+         * On risc boxes this is not always so.  we probably don't care
+         * at the moment, but it is ripe for optimization and SIMD.
+         */
 
-        /* do a quick survey to see if this actually needs mixing */
-
-        if (slen==0) {
-                memcpy(dst, src, len * sizeof(sample));
-        } else {
-                for (; len > 0; len--) {
-                        tmp = *dst + *src++;
-                        if (tmp > 32767)
-                                tmp = 32767;
-                        else if (tmp < -32768)
-                                tmp = -32768;
-                        *dst++ = tmp;
-                157 1
+        for (i = 0 ; i < len; i++) {
+                tmp = dst[i] + src[i];
+                if (tmp > 32767)
+                        tmp = 32767;
+                else if (tmp < -32768)
+                        tmp = -32768;
+                dst[i] = tmp;
         }
 }
 
@@ -155,120 +156,241 @@ mix_zero(mix_struct *ms, int offset, int len)
  */
 
 void
-mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el)
+mix_process(session_struct  *sp,
+            mix_struct      *ms,
+            struct s_source *s,
+            ts_t             now)
 {
-        u_int32	playout; 
-        int	pos, i, nsamples, dur, diff;
-	codec_id_t from, to;
-        const codec_format_t *cf_from, *cf_to;
-	sample	*buf;
+        struct s_playout_buffer *buffer;
+        rtcp_dbentry            *dbe;
+        media_data              *md;
+        coded_unit              *frame;
+        sample                  *samples;
+        u_int32                  md_len;
+        u_int32                  nticks, nsamples;
+        u_int16                  channels, rate;
+        ts_t                     playout, frame_period, expected_playout, overlap;
 
 	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+        
+        buffer = source_get_decoded_buffer(s);
+        dbe    = source_get_rtcp_dbentry(s);
 
-	/* Receive unit at this point has a playout at the receiver frequency
-	 * and decompressed data at the codec output rate and channels.
-	 * These must be converted before mixing. */
-	from = el->comp_data[0].id;
-	to   = codec_get_by_payload((u_char)sp->encodings[0]);
-
-        playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
-
-        cf_from = codec_get_format(from);
-        cf_to   = codec_get_format(to);
-
-	if (cf_from->format.sample_rate == cf_to->format.sample_rate && 
-            cf_from->format.channels == cf_to->format.channels) {
-                dur      = codec_get_samples_per_frame(from);
-		nsamples = dur * ms->channels;
-	} else {
-                if (el->dbe_source[0]->converter) {
-                        converter_format(el->dbe_source[0]->converter, el);
-                        nsamples = ms->channels * codec_get_samples_per_frame(from) * 
-                                cf_to->format.sample_rate / cf_from->format.sample_rate;
-                        dur = nsamples / ms->channels;
-                } else {
-                        el->mixed = TRUE;
-                        return;
-                }
-	}
-
-	if (sp->render_3d) {
-	        /* 3d rendering hook here */
-                render_3D(el, ms->channels);
+        if (playout_buffer_get(buffer, (u_char**)&md, &md_len, &playout) == FALSE ||
+                dbe->mute) {
+                return;
         }
 
-        buf = el->native_data[el->native_count - 1];
+        frame           = md->rep[md->nrep - 1]; /* Appropriate representation should be in last element */
+        codec_get_native_info(frame->id, &rate, &channels);
 
-	if (ts_gt(ms->tail_time, playout)) {
-#ifdef DEBUG_MIX
-	    	debug_msg("Unit arrived late in mix %ld - %ld = %ld (dist = %d)\n", ms->tail_time, playout, ms->tail_time - playout, ms->dist);
-#endif
-	    	return;
-	}
+        assert(rate     == (u_int32)ms->rate);
+        assert(channels == (u_int32)ms->channels);
 
-	if (ts_gt(el->dbe_source[0]->last_mixed_playout + dur, playout)) {
-                /* If there is an overlap between what we last mixed and what we are mixing
-                 * now discard samples from current block that overlap with last to avoid
-                 * inducing interference.
-                 */
-                int over = ts_abs_diff(el->dbe_source[0]->last_mixed_playout + dur, playout);
-                if (over < dur) {
-                        dur  -= over;
-                        over *= ms->channels;
-                        buf      += over;
-                        nsamples -= over;
-                }
-		debug_msg("New unit overlaps with previous by %ld samples\n", over);
+        nticks          = frame->data_len / (sizeof(sample) * channels);
+        frame_period    = ts_map32(rate, nticks);
+
+        if (dbe->first_mix) {
+                dbe->last_mixed = ts_sub(playout, frame_period);
+                dbe->first_mix  = 0;
         }
 
-#ifdef DEBUG_MIX
-	if (ts_gt(playout, el->dbe_source[0]->last_mixed_playout + dur))
-		debug_msg("Gap between units %ld samples\n", playout - el->dbe_source[0]->last_mixed_playout - dur);
-#endif
+        assert(ts_gt(playout, dbe->last_mixed));
+        assert(md_len == sizeof(media_data));
+        do {
+                frame = md->rep[md->nrep - 1]; /* Appropriate representation should be in last element */
+                assert(frame->id == codec_get_native_coding((u_int16)ms->rate, (u_int16)ms->channels));
+                samples  = (sample*)frame->data;
+                nsamples = frame->data_len / sizeof(sample);
+                
+                /* Check for overlap in decoded frames */
+                expected_playout = ts_add(dbe->last_mixed, frame_period);
+                if (!ts_eq(expected_playout, playout)) {
+                        if (ts_gt(expected_playout, playout)) {
+                                overlap = ts_sub(expected_playout, playout);
+                                debug_msg("Overlapping units\n");
+                                if (ts_gt(frame_period, overlap)) {
+                                        u_int32  trim = overlap.ticks * ms->channels;
+                                        samples  += trim;
+                                        nsamples -= trim;
+                                        debug_msg("Trimmed %d samples\n", trim);
+                                } else {
+                                        debug_msg("Skipped unit\n");
+                                        goto process_next;
+                                }
+                        } else {
+                                debug_msg("Gap between units\n");
+                        }
 
-	for (i=0; i < el->dbe_source_count; i++) {
-		if (el->dbe_source[i] != NULL) {
-			el->dbe_source[i]->last_mixed_playout = playout;
-		}
-	}
+                        /* Zero ahead if necessary */
 
-	if (el->dbe_source[0]->mute) {
-		return;
-	}
+                        if (ts_gt(ts_add(playout + ts_map32(ms->freq, nsamples / ms->channels),
+                                         ms->head_time))) 
+                        {
+                                
+                        }
+                                         
 
-	/* Convert playout to position in buffer */
-	pos = ((playout - ms->head_time)*ms->channels + ms->head) % ms->buf_len;
-	assert(pos >= 0);
 
-	/* Should clear buffer before advancing...
-	 * Or better only mix if something there otherwise copy...
-	 */
+                }
 
-	/*
-	 * If we have not mixed this far (normal case)
-	 * we mast clear the buffer ahead (or copy)
-	 */
-	if (ts_gt(playout + dur, ms->head_time)) {
-		diff = (playout - ms->head_time)*ms->channels + nsamples;
-		assert(diff > 0);
-		assert(diff < ms->buf_len);
-		mix_zero(ms, ms->head, diff);
-		ms->dist += diff;
-		ms->head += diff;
-		ms->head %= ms->buf_len;
-		ms->head_time += diff/ms->channels;
-	}
-	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+             
+/* 	Convert playout to position in buffer */ 
+/* 	pos = ((playout - ms->head_time)*ms->channels + ms->head) % ms->buf_len; */
+/* 	assert(pos >= 0); */
 
-	/* Do the mixing... */
-	if (pos + nsamples > ms->buf_len) {
-		mix_audio(ms->mix_buffer + pos, buf, ms->buf_len - pos);
-		mix_audio(ms->mix_buffer, buf, pos + nsamples - ms->buf_len);
-	} else {
-		mix_audio(ms->mix_buffer + pos, buf, nsamples);
-	}
-	el->mixed = TRUE;
+/* 	 Should clear buffer before advancing... */
+/* 	 * Or better only mix if something there otherwise copy... */
+/* 	 */
+
+/* 	 */
+/* 	 * If we have not mixed this far (normal case) */
+/* 	 * we mast clear the buffer ahead (or copy) */
+/* 	 */ 
+/* 	if (ts_gt(playout + dur, ms->head_time)) { */
+/* 		diff = (playout - ms->head_time)*ms->channels + nsamples; */
+/* 		assert(diff > 0); */
+/* 		assert(diff < ms->buf_len); */
+/* 		mix_zero(ms, ms->head, diff); */
+/* 		ms->dist += diff; */
+/* 		ms->head += diff; */
+/* 		ms->head %= ms->buf_len; */
+/* 		ms->head_time += diff/ms->channels; */
+/* 	} */
+/* 	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist); */
+
+/* 	Do the mixing... */ 
+/* 	if (pos + nsamples > ms->buf_len) { */
+/* 		mix_audio(ms->mix_buffer + pos, buf, ms->buf_len - pos); */
+/* 		mix_audio(ms->mix_buffer, buf, pos + nsamples - ms->buf_len); */
+/* 	} else { */
+/* 		mix_audio(ms->mix_buffer + pos, buf, nsamples); */
+/* 	} */
+
+                
+
+        process_next:
+                dbe->last_mixed = playout;
+        } while(playout_buffer_advance(buffer, (u_char**)&md, &md_len, &playout) && !ts_gt(playout, now));
+        
+        return;
 }
+
+/* void */
+/* mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el) */
+/* { */
+/*         u_int32	playout;  */
+/*         int	pos, i, nsamples, dur, diff; */
+/* 	codec_id_t from, to; */
+/*         const codec_format_t *cf_from, *cf_to; */
+/* 	sample	*buf; */
+
+/* 	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist); */
+
+/* 	 Receive unit at this point has a playout at the receiver frequency */
+/* 	 * and decompressed data at the codec output rate and channels. */
+/* 	 * These must be converted before mixing. */ 
+/* 	from = el->comp_data[0].id; */
+/* 	to   = codec_get_by_payload((u_char)sp->encodings[0]); */
+
+/*         playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock); */
+
+/*         cf_from = codec_get_format(from); */
+/*         cf_to   = codec_get_format(to); */
+
+/* 	if (cf_from->format.sample_rate == cf_to->format.sample_rate &&  */
+/*             cf_from->format.channels == cf_to->format.channels) { */
+/*                 dur      = codec_get_samples_per_frame(from); */
+/* 		nsamples = dur * ms->channels; */
+/* 	} else { */
+/*                 if (el->dbe_source[0]->converter) { */
+/*                         converter_format(el->dbe_source[0]->converter, el); */
+/*                         nsamples = ms->channels * codec_get_samples_per_frame(from) *  */
+/*                                 cf_to->format.sample_rate / cf_from->format.sample_rate; */
+/*                         dur = nsamples / ms->channels; */
+/*                 } else { */
+/*                         el->mixed = TRUE; */
+/*                         return; */
+/*                 } */
+/* 	} */
+
+/* 	if (sp->render_3d) { */
+/* 	         3d rendering hook here */ 
+/*                 render_3D(el, ms->channels); */
+/*         } */
+
+/*         buf = el->native_data[el->native_count - 1]; */
+
+/* 	if (ts_gt(ms->tail_time, playout)) { */
+/* #ifdef DEBUG_MIX */
+/* 	    	debug_msg("Unit arrived late in mix %ld - %ld = %ld (dist = %d)\n", ms->tail_time, playout, ms->tail_time - playout, ms->dist); */
+/* #endif */
+/* 	    	return; */
+/* 	} */
+
+/* 	if (ts_gt(el->dbe_source[0]->last_mixed_playout + dur, playout)) { */
+/*                  If there is an overlap between what we last mixed and what we are mixing */
+/*                  * now discard samples from current block that overlap with last to avoid */
+/*                  * inducing interference. */
+/*                  */
+/*                 int over = ts_abs_diff(el->dbe_source[0]->last_mixed_playout + dur, playout); */
+/*                 if (over < dur) { */
+/*                         dur  -= over; */
+/*                         over *= ms->channels; */
+/*                         buf      += over; */
+/*                         nsamples -= over; */
+/*                 } */
+/* 		debug_msg("New unit overlaps with previous by %ld samples\n", over); */
+/*         } */
+
+/* #ifdef DEBUG_MIX */
+/* 	if (ts_gt(playout, el->dbe_source[0]->last_mixed_playout + dur)) */
+/* 		debug_msg("Gap between units %ld samples\n", playout - el->dbe_source[0]->last_mixed_playout - dur); */
+/* #endif */
+
+/* 	for (i=0; i < el->dbe_source_count; i++) { */
+/* 		if (el->dbe_source[i] != NULL) { */
+/* 			el->dbe_source[i]->last_mixed_playout = playout; */
+/* 		} */
+/* 	} */
+
+/* 	if (el->dbe_source[0]->mute) { */
+/* 		return; */
+/* 	} */
+
+/* 	Convert playout to position in buffer */ 
+/* 	pos = ((playout - ms->head_time)*ms->channels + ms->head) % ms->buf_len; */
+/* 	assert(pos >= 0); */
+
+/* 	 Should clear buffer before advancing... */
+/* 	 * Or better only mix if something there otherwise copy... */
+/* 	 */
+
+/* 	 */
+/* 	 * If we have not mixed this far (normal case) */
+/* 	 * we mast clear the buffer ahead (or copy) */
+/* 	 */ 
+/* 	if (ts_gt(playout + dur, ms->head_time)) { */
+/* 		diff = (playout - ms->head_time)*ms->channels + nsamples; */
+/* 		assert(diff > 0); */
+/* 		assert(diff < ms->buf_len); */
+/* 		mix_zero(ms, ms->head, diff); */
+/* 		ms->dist += diff; */
+/* 		ms->head += diff; */
+/* 		ms->head %= ms->buf_len; */
+/* 		ms->head_time += diff/ms->channels; */
+/* 	} */
+/* 	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist); */
+
+/* 	Do the mixing... */ 
+/* 	if (pos + nsamples > ms->buf_len) { */
+/* 		mix_audio(ms->mix_buffer + pos, buf, ms->buf_len - pos); */
+/* 		mix_audio(ms->mix_buffer, buf, pos + nsamples - ms->buf_len); */
+/* 	} else { */
+/* 		mix_audio(ms->mix_buffer + pos, buf, nsamples); */
+/* 	} */
+/* 	el->mixed = TRUE; */
+/* } */
 
 /*
  * The mix_get_audio function returns a pointer to "amount" samples of mixed 
@@ -311,7 +433,8 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
                 xmemchk();
 		ms->head      += silence;
 		ms->head      %= ms->buf_len;
-		ms->head_time += silence/ms->channels;
+		ms->head_time  = ts_add(ms->head_time,
+                                        ts_map32(ms->rate, silence/ms->channels));
 		ms->dist       = amount;
 		assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
 	} else {
@@ -344,7 +467,8 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
 #endif
 	}
 	*bufp = ms->mix_buffer + ms->tail;
-	ms->tail_time += amount/ms->channels;
+	ms->tail_time = ts_add(ms->tail_time, 
+                               ts_map32(ms->rate, amount/ms->channels));
 	ms->tail      += amount;
 	ms->tail      %= ms->buf_len;
 	ms->dist      -= amount;
@@ -387,7 +511,8 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 		}
 		ms->dist += diff;
 		assert(ms->dist <= ms->buf_len);
-		ms->tail_time -= diff/ms->channels;
+		ms->tail_time = ts_sub(ms->tail_time,
+                                       ts_map32(ms->rate, diff/ms->channels));
 		assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
 	} else if (new_cushion_size < elapsed_time) {
 		/*
@@ -396,7 +521,8 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 		 */
 		ms->tail += diff;
 		ms->tail %= ms->buf_len;
-		ms->tail_time += diff/ms->channels;
+		ms->tail_time = ts_add(ms->tail_time,
+                                       ts_map32(ms->rate, diff/ms->channels));
 		if (diff > ms->dist) {
 			ms->head = ms->tail;
 			ms->head_time = ms->tail_time;
@@ -427,5 +553,5 @@ mix_update_ui(session_struct *sp, mix_struct *ms)
 int
 mix_active(mix_struct *ms)
 {
-        return ms->head_time != ms->tail_time;
+        return !ts_eq(ms->head_time, ms->tail_time);
 }

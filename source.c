@@ -189,8 +189,10 @@ source_create(source_list    *plist,
         if (psrc == NULL) return NULL;
 
         memset(psrc, 0, sizeof(source));
-        psrc->dbe           = dbe;
-        psrc->channel_state = NULL;        
+        psrc->dbe            = dbe;
+        psrc->dbe->first_mix = 1; /* Used to note we have not mixed anything
+                                   * for this decode path yet */
+        psrc->channel_state  = NULL;        
 
         /* Allocate channel and media buffers */
         success = playout_buffer_create(&psrc->channel,
