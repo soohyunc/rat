@@ -281,7 +281,7 @@ proc cb_recv_ssrc {ssrc cmd args} {
 	switch $cmd {
 		cname {
 			set CNAME($ssrc) [lindex $args 0]
-			if {[string compare NAME($ssrc) "unknown"] == 0} {
+			if {[string compare $NAME($ssrc) "unknown"] == 0} {
 				set NAME($ssrc) [lindex $args 0]
 			}
 			chart_label $ssrc
