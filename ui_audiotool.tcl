@@ -1489,7 +1489,7 @@ label .l.f.title -bd 0 -textvariable session_title -justify center
 label .l.f.addr  -bd 0 -textvariable session_address
 
 frame  .st -bd 0
-label  .st.tool -textvariable tool_name -font $smallfont -justify center -pady 0
+label  .st.tool -textvariable tool_name -font $infofont -justify center -pady 0
 button .st.opts  -text "Options"   -command {wm deiconify .prefs; raise .prefs}
 button .st.about -text "About"     -command {jiggle_credits; wm deiconify .about}
 button .st.quit  -text "Quit"      -command do_quit

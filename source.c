@@ -62,10 +62,11 @@ typedef enum { SOURCE_SKEW_SLOW, SOURCE_SKEW_FAST, SOURCE_SKEW_NONE } skew_t;
 typedef struct s_source {
         struct s_source            *next;
         struct s_source            *prev;
-        pdb_entry_t                *pdbe; /* persistent database entry */
+        pdb_entry_t                *pdbe;       /* persistent database entry */
         u_int32                     age;
-        ts_t                        next_played; /* anticipated next unit   */
+        ts_t                        next_played; /* anticipated next unit    */
         ts_t                        last_repair;
+        ts_t                        talkstart;  /* start of latest talkspurt */
         u_int16                     consec_lost;
         u_int32                     mean_energy;
         ts_sequencer                seq;
@@ -678,8 +679,11 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 }
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
-
                 e->last_transit = transit;
+
+                if (adjust_playout) {
+                        src->talkstart = playout; /* Note start of new talkspurt  */
+                }
 
                 if (src->packets_done == 0) {
                         /* This is first packet so expect next played to have its */
@@ -722,10 +726,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 e->last_seq = p->seq;
                 e->last_ts  = p->ts;
                 e->last_arr = sp->cur_ts;
-/*
-                debug_msg("src_ts % 8u playout % 8u buffered % 8u\n",
-                          p->ts, ts_to_us(source_get_playout_delay(src)), ts_to_us(source_get_audio_buffered(src)));
-                          */
+
                 src->packets_done++;
                 xfree(p);
         }
@@ -1098,18 +1099,19 @@ source_process(session_t *sp,
                 assert(md != NULL);
                 assert(md_len == sizeof(media_data));
                 
-                /* Conditions for repair: 
-                 * (a) playout point of unit is further away than expected.
-                 * (b) don't have a hold on.
-                 */
+                /* Conditions for repair:                                    */
+                /* (a) playout point of unit is further away than expected.  */
+                /* (b) playout does not correspond to new talkspurt (don't   */
+                /* fill between end of last talkspurt and start of next).    */
+                /* (c) don't have a hold on.                                 */
 
                 if (ts_gt(playout, src->next_played) &&
+                    ts_eq(playout, src->talkstart) == FALSE &&
                     hold_repair == 0) {
-                        /* If repair was successful media_pos is moved,
-                         * so get data at media_pos again.
-                         */
+                        /* If repair was successful media_pos is moved,      */
+                        /* so get data at media_pos again.                   */
                         if (source_repair(src, repair_type, src->next_played) == TRUE) {
-                                debug_msg("Repair\n");
+                                debug_msg("Repair %d\n", src->consec_lost);
                                 success = pb_iterator_get_at(src->media_pos, 
                                                              (u_char**)&md, 
                                                              &md_len, 
@@ -1117,8 +1119,9 @@ source_process(session_t *sp,
                                 assert(success);
                                 assert(ts_eq(playout, src->next_played));
                         } else {
-                                /* Repair failed for some reason.  Wait a while before */
-                                /* re-trying.                                          */
+                                /* Repair failed for some reason.  Wait a    */
+                                /* while before re-trying.                   */
+                                debug_msg("Repair failed unexpectedly\n");
                                 hold_repair += 2; 
                         }
                 } else {
@@ -1255,8 +1258,9 @@ source_audit(source *src)
 ts_t
 source_get_audio_buffered (source *src)
 {
-        /* Changes in avg_transit change amount of audio buffered. */
         ts_t delta;
+        /* Changes in avg_transit change amount of audio buffered. */
+        /* It's how much transit is off from start.                */
         delta = ts_sub(src->pdbe->transit, src->pdbe->avg_transit);
         return ts_add(src->pdbe->playout, delta);
 }
@@ -1265,7 +1269,6 @@ ts_t
 source_get_playout_delay (source *src)
 {
         return src->pdbe->playout;
-        /*  return ts_sub(src->pdbe->playout, src->pdbe->transit); */
 }
 
 int
@@ -1301,6 +1304,9 @@ source_get_ssrc(source *src)
 double
 source_get_skew_rate(source *src)
 {
-        double r = (double)(src->samples_played + src->samples_added) / (double)src->samples_played;
-        return r;
+        if (src->samples_played) {
+                double r = (double)(src->samples_played + src->samples_added) / (double)src->samples_played;
+                return r;
+        }
+        return 1.0;
 }
