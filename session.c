@@ -86,8 +86,10 @@ init_session(session_struct *sp)
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); 	/* this is the global clock */
         assert(!(GLOBAL_CLOCK_FREQ%cf->format.sample_rate));                	/* just in case someone adds weird freq codecs */
 	sp->mode         		= AUDIO_TOOL;	
-	sp->rtp_port			= 5004;					/* default: draft-ietf-avt-profile-new-00 */
-	sp->rtcp_port			= 5005;					/* default: draft-ietf-avt-profile-new-00 */
+	sp->rx_rtp_port			= 5004;					/* default: draft-ietf-avt-profile-new-00 */
+	sp->tx_rtp_port			= 5004;					/* default: draft-ietf-avt-profile-new-00 */
+	sp->rx_rtcp_port		= 5005;					/* default: draft-ietf-avt-profile-new-00 */
+	sp->tx_rtcp_port		= 5005;					/* default: draft-ietf-avt-profile-new-00 */
         sp->rtp_pckt_queue              = pckt_queue_create(PCKT_QUEUE_RTP_LEN);
         sp->rtcp_pckt_queue             = pckt_queue_create(PCKT_QUEUE_RTCP_LEN);
 	sp->ttl				= 16;
@@ -257,23 +259,13 @@ parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
 	p = (char *) strtok(argv[argc - 1], "/");
 	strcpy(sp->asc_address, p);
 	if ((p = (char *) strtok(NULL, "/")) != NULL) {
-		sp->rtp_port = atoi(p);
-		sp->rtp_port &= ~1;
-		sp->rtcp_port = sp->rtp_port + 1;
-	}
+		sp->rx_rtp_port = atoi(p);
+		sp->rx_rtp_port &= ~1;
+		sp->rx_rtcp_port = sp->rx_rtp_port + 1;
 
-	if (inet_addr(sp->asc_address) == 0xffffffff &&
-	    gethostbyname(sp->asc_address) == NULL) {
-#ifdef WIN32
-	  char win_err[255];
-	  sprintf(win_err, "%s is not a valid address", sp->asc_address);
-	  MessageBox(NULL, win_err,  "RAT - Command line error", MB_OK | MB_ICONERROR);
-#else
-	  fprintf(stderr, "%s is not a valid address\n", sp->asc_address);
-#endif
-	  exit(-1);
+		sp->tx_rtp_port  = sp->rx_rtp_port;
+		sp->tx_rtcp_port = sp->rx_rtcp_port;
 	}
-
 	if (atoi(p) > 0xfffe) {
 #ifdef WIN32
 	  char win_err[255];
@@ -285,7 +277,22 @@ parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
 
 	  exit(-1);
 	}
+	if ((p = (char *) strtok(NULL, "/")) != NULL) {
+		sp->tx_rtp_port = atoi(p);
+		sp->tx_rtp_port &= ~1;
+		sp->tx_rtcp_port = sp->tx_rtp_port + 1;
+	}
 
+	if (inet_addr(sp->asc_address) == 0xffffffff && gethostbyname(sp->asc_address) == NULL) {
+#ifdef WIN32
+	  char win_err[255];
+	  sprintf(win_err, "%s is not a valid address", sp->asc_address);
+	  MessageBox(NULL, win_err,  "RAT - Command line error", MB_OK | MB_ICONERROR);
+#else
+	  fprintf(stderr, "%s is not a valid address\n", sp->asc_address);
+#endif
+	  exit(-1);
+	}
 }
 
 static void 
@@ -305,9 +312,12 @@ parse_early_options_transcoder(int argc, char *argv[], session_struct *sp[])
 		strcpy(sp[i]->asc_address, p);
 		/* port */
 		if ((p = (char *) strtok(NULL, "/")) != NULL) {
-			sp[i]->rtp_port  = atoi(p);
-			sp[i]->rtp_port &= ~1;
-			sp[i]->rtcp_port = sp[i]->rtp_port + 1;
+			sp[i]->rx_rtp_port  = atoi(p);
+			sp[i]->rx_rtp_port &= ~1;
+			sp[i]->rx_rtcp_port = sp[i]->rx_rtp_port + 1;
+
+			sp[i]->tx_rtp_port  = sp[i]->rx_rtp_port;
+			sp[i]->tx_rtcp_port = sp[i]->rx_rtcp_port;
 		} else {
 			continue;
 		}
@@ -374,7 +384,7 @@ parse_early_options(int argc, char *argv[], session_struct *sp[])
 	}
 
 	for (i=0; i<num_sessions; i++) {
-		if (sp[i]->rtp_port == 0) {
+		if (sp[i]->rx_rtp_port == 0) {
 			usage();
 		}
 	}
@@ -607,7 +617,7 @@ void parse_late_options(int argc, char *argv[], session_struct *sp[])
 		default        : abort();
 	}
 	for (i=0; i<num_sessions; i++) {
-		if (sp[i]->rtp_port == 0) {
+		if (sp[i]->rx_rtp_port == 0) {
 			usage();
 		}
 	}

@@ -853,7 +853,7 @@ ui_title(session_struct *sp)
         xfree(title);
 
 	addr = mbus_encode_str(sp->asc_address);
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "session.address", "%s %5d %3d", addr, sp->rtp_port, sp->ttl);
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "session.address", "%s %5d %3d", addr, sp->rx_rtp_port, sp->ttl);
         xfree(addr);
 }
 

@@ -45,8 +45,10 @@ typedef struct session_tag {
 	int		mode;                           /* audio tool, transcoder */
         char            title[SESSION_TITLE_LEN+1];
 	char            asc_address[MAXHOSTNAMELEN+1];  /* their ascii name if unicast */
-	u_short		         rtp_port;
-	u_short		         rtcp_port;
+	u_short		         rx_rtp_port;
+	u_short		         tx_rtp_port;
+	u_short		         rx_rtcp_port;
+	u_short		         tx_rtcp_port;
 	socket_udp              *rtp_socket;
 	socket_udp              *rtcp_socket;
         struct s_pckt_queue     *rtp_pckt_queue;
