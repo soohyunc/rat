@@ -28,7 +28,7 @@ int pb_destroy (struct s_pb **pb);
 int pb_add    (struct s_pb *pb, 
                u_char*      data, 
                uint32_t      datalen,
-               ts_t         playout);
+               timestamp_t         playout);
 
 void pb_flush (struct s_pb *pb);
 
@@ -39,9 +39,9 @@ int  pb_is_empty (struct s_pb *pb);
  */
 uint32_t pb_node_count (struct s_pb *pb);
 
-void pb_shift_back(struct s_pb *pb, ts_t delta);
-void pb_shift_forward(struct s_pb *pb, ts_t delta);
-void pb_shift_units_back_after(struct s_pb *pb, ts_t ref_time, ts_t delta);
+void pb_shift_back(struct s_pb *pb, timestamp_t delta);
+void pb_shift_forward(struct s_pb *pb, timestamp_t delta);
+void pb_shift_units_back_after(struct s_pb *pb, timestamp_t ref_time, timestamp_t delta);
 
 uint16_t pb_iterator_count(struct s_pb *pb);
 
@@ -69,13 +69,13 @@ int
 pb_iterator_get_at (struct s_pb_iterator *pbi,
                     u_char              **data,
                     uint32_t              *datalen, 
-                    ts_t                 *playout);
+                    timestamp_t                 *playout);
 
 int
 pb_iterator_detach_at (struct s_pb_iterator *pbi,
                        u_char              **data,
                        uint32_t              *datalen, 
-                       ts_t                 *playout);
+                       timestamp_t                 *playout);
 
 /* Single step movements */
 int
@@ -95,7 +95,7 @@ pb_iterator_rwd  (struct s_pb_iterator *pbi);
 /* Trims data more than history_len before iterator */
 int 
 pb_iterator_audit (struct s_pb_iterator *pi,
-                   ts_t                  history_len);
+                   timestamp_t                  history_len);
 
 /* Return whether 2 iterators refer to same time interval */
 int
@@ -105,7 +105,7 @@ pb_iterators_equal(struct s_pb_iterator *pi1,
 /* Returns whether playout buffer has data to be played out */
 int 
 pb_relevant (struct s_pb *pb, 
-             ts_t         now);
+             timestamp_t         now);
 
 struct s_pb*
 pb_iterator_get_playout_buffer(struct s_pb_iterator*);
@@ -113,8 +113,8 @@ pb_iterator_get_playout_buffer(struct s_pb_iterator*);
 /* Return the times of interest for playout buffer in ts, returns
  * TRUE or FALSE depending on whether request successful
  */
-int pb_get_start_ts     (struct s_pb *pb, ts_t *ts);
-int pb_get_end_ts       (struct s_pb *pb, ts_t *ts);
-int pb_iterator_get_ts  (struct s_pb_iterator *pbi, ts_t *ts);
+int pb_get_start_ts     (struct s_pb *pb, timestamp_t *ts);
+int pb_get_end_ts       (struct s_pb *pb, timestamp_t *ts);
+int pb_iterator_get_ts  (struct s_pb_iterator *pbi, timestamp_t *ts);
 
 #endif /* __UCLMM_PLAYOUT_BUFFER_H__ */

@@ -17,8 +17,8 @@ int  tonegen_create  (tonegen_t          **ppv,
                       uint16_t            tonefreq,
                       uint16_t            toneamp);
 int  tonegen_play    (tonegen_t           *ppv, 
-                      ts_t                start, 
-                      ts_t                end);
+                      timestamp_t                start, 
+                      timestamp_t                end);
 void tonegen_destroy (tonegen_t          **ppv);
 
 

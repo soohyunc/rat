@@ -57,8 +57,8 @@ typedef struct {
         struct s_pb          *media_buffer;
         struct s_pb_iterator *media_pos;
         uint32_t              units_ready;
-        ts_t                  history; /* How much audio history is needed for coding */
-        ts_t                  last_in; /* timestamp of last media unit accepted */
+        timestamp_t                  history; /* How much audio history is needed for coding */
+        timestamp_t                  last_in; /* timestamp of last media unit accepted */
 } red_enc_state;
 
 int
@@ -179,7 +179,7 @@ make_pdu(struct s_pb_iterator *pbi,
         struct s_pb_iterator *p;
         uint32_t        i, j, md_len, used;
         media_data    *md;
-        ts_t           playout;
+        timestamp_t           playout;
         int            success;
 
         pb_iterator_dup(&p, pbi);
@@ -333,7 +333,7 @@ redundancy_encoder_encode (u_char      *state,
                            uint32_t      upp)
 {
         uint32_t        m_len;
-        ts_t           playout;
+        timestamp_t           playout;
         struct s_pb_iterator *pi;
         media_data     *m;
         red_enc_state  *re = (red_enc_state*)state;
@@ -711,12 +711,12 @@ place_unit(media_data *md, coded_unit *cu)
 }
 
 static media_data *
-red_media_data_create_or_get(struct s_pb *p, ts_t playout)
+red_media_data_create_or_get(struct s_pb *p, timestamp_t playout)
 {
         struct s_pb_iterator *pi;
         media_data *md;
         uint32_t     md_len, success;
-        ts_t        md_playout;
+        timestamp_t        md_playout;
 
         pb_iterator_create(p, &pi);
         /* iterator is attached to sentinel - can move back or forwards */
@@ -747,7 +747,7 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
                u_char  bpt,        /* Block payload type   */
                u_char *b,          /* Block pointer        */
                uint32_t blen,       /* Block len            */
-               ts_t    playout,    /* Block playout time   */
+               timestamp_t    playout,    /* Block playout time   */
                struct s_pb *out)   /* media buffer         */
 {
         const codec_format_t *cf;
@@ -755,7 +755,7 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
         codec_id_t  cid, pid;
         coded_unit *cu;
         u_char     *p,*pe;
-        ts_t        step;
+        timestamp_t        step;
 
         pid = codec_get_by_payload(ppt);
         if (!pid) {
@@ -813,13 +813,13 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
 }
 
 static void
-redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
+redundancy_decoder_output(channel_unit *chu, struct s_pb *out, timestamp_t playout)
 {
         const codec_format_t *cf;
         codec_id_t cid;
         u_char  *hp, *dp, *de, ppt, bpt;
         uint32_t hdr32, blen, boff;
-        ts_t ts_max_off, ts_blk_off, this_playout;
+        timestamp_t ts_max_off, ts_blk_off, this_playout;
 
         hp = dp = chu->data;
         de = chu->data + chu->data_len;
@@ -885,12 +885,12 @@ int
 redundancy_decoder_decode(u_char      *state,
                            struct s_pb *in,
                            struct s_pb *out,
-                           ts_t         now)
+                           timestamp_t         now)
 {
         struct s_pb_iterator *pi;
         channel_data         *c;
         uint32_t               clen;
-        ts_t                  cplayout;
+        timestamp_t                  cplayout;
 
         pb_iterator_create(in, &pi);
         assert(pi != NULL);

@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
 			if (sp[i]->playing_audio) {
 				struct s_source *s;
 				int 		 sidx;
-				ts_t 		 cush_ts;
+				timestamp_t 		 cush_ts;
 
 				session_validate(sp[i]);
 				cush_ts = ts_map32(ts_get_freq(sp[i]->cur_ts), cushion_get_size(sp[i]->cushion));
@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
 					s = source_list_get_source_no(sp[i]->active_sources, sidx);
 					if (source_relevant(s, sp[i]->cur_ts)) {
 						pdb_entry_t *e;
-						ts_t         two_secs, delta;
+						timestamp_t         two_secs, delta;
 						source_check_buffering(s);
 						source_process(sp[i], s, sp[i]->cur_ts, cush_ts);
 						source_audit(s);

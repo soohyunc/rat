@@ -31,7 +31,7 @@ int  layered_encoder_encode  (u_char                  *state,
 int  layered_decoder_decode  (u_char                  *state,
                               struct s_pb *in,
                               struct s_pb *out,
-                              ts_t                     now);
+                              timestamp_t                     now);
 int layered_decoder_peek     (uint8_t   pkt_pt,
                               u_char  *data,
                               uint32_t  len,

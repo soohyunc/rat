@@ -23,7 +23,7 @@ static const char cvsid[] =
 
 #define PLAYOUT_JITTER_SCALE 3
 
-static ts_t
+static timestamp_t
 playout_constraints_component(session_t *sp, pdb_entry_t *e)
 /*****************************************************************************/
 /* playout_variable component works out the variable components that RAT has */
@@ -54,8 +54,8 @@ playout_constraints_component(session_t *sp, pdb_entry_t *e)
 } 
 
 
-ts_t 
-playout_calc(session_t *sp, uint32_t ssrc, ts_t transit, int new_spurt)
+timestamp_t 
+playout_calc(session_t *sp, uint32_t ssrc, timestamp_t transit, int new_spurt)
 /*****************************************************************************/
 /* The primary purpose of this function is to calculate the playout point    */
 /* for new talkspurts (new_spurt).  It also maintains the jitter and transit */
@@ -63,7 +63,7 @@ playout_calc(session_t *sp, uint32_t ssrc, ts_t transit, int new_spurt)
 /* playout time.                                                             */
 /*****************************************************************************/
 {
-        ts_t delta_transit;
+        timestamp_t delta_transit;
         pdb_entry_t *e;
 
         pdb_item_get(sp->pdb, ssrc, &e);
@@ -77,7 +77,7 @@ playout_calc(session_t *sp, uint32_t ssrc, ts_t transit, int new_spurt)
         }
 
         if (new_spurt == TRUE) {
-                ts_t hvar, jvar; /* Host and jitter components       */
+                timestamp_t hvar, jvar; /* Host and jitter components       */
                 debug_msg("New talkspurt\n");
                 hvar = playout_constraints_component(sp, e);
                 jvar = ts_mul(e->jitter, PLAYOUT_JITTER_SCALE);

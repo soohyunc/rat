@@ -25,7 +25,7 @@ static const char cvsid[] =
 typedef struct s_pb_node {
         struct s_pb_node* prev;
         struct s_pb_node* next;
-        ts_t              playout;    /* playout  timestamp */
+        timestamp_t              playout;    /* playout  timestamp */
         u_char           *data;
         uint32_t          data_len;
 	uint32_t	  magic;
@@ -164,7 +164,7 @@ pb_flush (pb_t *pb)
 }
 
 int 
-pb_add (pb_t *pb, u_char *data, uint32_t data_len, ts_t playout)
+pb_add (pb_t *pb, u_char *data, uint32_t data_len, timestamp_t playout)
 {
         pb_node_t *curr, *stop, *made;
         
@@ -204,7 +204,7 @@ pb_add (pb_t *pb, u_char *data, uint32_t data_len, ts_t playout)
 }
 
 void
-pb_shift_back(pb_t *pb, ts_t delta)
+pb_shift_back(pb_t *pb, timestamp_t delta)
 {
         pb_node_t *stop, *curr;
 
@@ -220,7 +220,7 @@ pb_shift_back(pb_t *pb, ts_t delta)
 }
 
 void
-pb_shift_forward(pb_t *pb, ts_t delta)
+pb_shift_forward(pb_t *pb, timestamp_t delta)
 {
         pb_node_t *stop, *curr;
 
@@ -236,7 +236,7 @@ pb_shift_forward(pb_t *pb, ts_t delta)
 }
 
 void
-pb_shift_units_back_after(pb_t *pb, ts_t ref_ts, ts_t delta)
+pb_shift_units_back_after(pb_t *pb, timestamp_t ref_ts, timestamp_t delta)
 {
         pb_node_t *stop, *curr;
 
@@ -337,7 +337,7 @@ int
 pb_iterator_get_at(pb_iterator_t *pi,
                    u_char       **data,
                    uint32_t       *data_len,
-                   ts_t          *playout)
+                   timestamp_t          *playout)
 {
         pb_node_t *sentinel = pi->buffer->psentinel;
        /* This can be rewritten in fewer lines, but the obvious way is not as efficient. */
@@ -360,7 +360,7 @@ pb_iterator_get_at(pb_iterator_t *pi,
         /* There is data on the list */
         *data     = NULL;
         *data_len = 0;
-        memset(playout, 0, sizeof(ts_t));
+        memset(playout, 0, sizeof(timestamp_t));
         return FALSE;
 }
 
@@ -368,7 +368,7 @@ int
 pb_iterator_detach_at (pb_iterator_t *pi,
                        u_char       **data,
                        uint32_t      *data_len,
-                       ts_t          *playout)
+                       timestamp_t          *playout)
 {
         pb_iterator_t  *iterators;
         pb_node_t      *curr_node, *next_node;
@@ -490,9 +490,9 @@ pb_iterators_equal(pb_iterator_t *pi1,
 /* Book-keeping functions ****************************************************/
 
 int
-pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
+pb_iterator_audit(pb_iterator_t *pi, timestamp_t history_len)
 {
-        ts_t cutoff;
+        timestamp_t cutoff;
         int  removed;
         pb_node_t *stop, *curr, *next;
         pb_t      *pb;
@@ -535,7 +535,7 @@ pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
 }
 
 int
-pb_relevant (struct s_pb *pb, ts_t now)
+pb_relevant (struct s_pb *pb, timestamp_t now)
 {
         pb_node_t *last;
 
@@ -551,7 +551,7 @@ pb_relevant (struct s_pb *pb, ts_t now)
 /* Timestamp info functions **************************************************/
 
 int
-pb_get_start_ts(pb_t *pb, ts_t *ts)
+pb_get_start_ts(pb_t *pb, timestamp_t *ts)
 {
         pb_validate(pb);
         assert(ts);
@@ -564,7 +564,7 @@ pb_get_start_ts(pb_t *pb, ts_t *ts)
 }
 
 int
-pb_get_end_ts(pb_t *pb, ts_t *ts)
+pb_get_end_ts(pb_t *pb, timestamp_t *ts)
 {
         pb_validate(pb);
         assert(ts);
@@ -577,7 +577,7 @@ pb_get_end_ts(pb_t *pb, ts_t *ts)
 }
 
 int
-pb_iterator_get_ts(pb_iterator_t *pbi, ts_t *ts)
+pb_iterator_get_ts(pb_iterator_t *pbi, timestamp_t *ts)
 {
         pb_validate(pbi->buffer);
         assert(ts);

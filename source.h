@@ -57,17 +57,17 @@ int              source_check_buffering    (struct s_source   *src);
 
 void             source_process            (struct s_session  *sp,
                                             struct s_source   *src,
-                                            ts_t               start_ts,
-                                            ts_t               end_ts);
+                                            timestamp_t               start_ts,
+                                            timestamp_t               end_ts);
 
 int              source_relevant           (struct s_source *src,
-                                            ts_t             now);
+                                            timestamp_t             now);
 
 int              source_audit              (struct s_source *src);
 
-ts_t             source_get_audio_buffered (struct s_source *src);
+timestamp_t             source_get_audio_buffered (struct s_source *src);
 
-ts_t             source_get_playout_delay  (struct s_source *src);
+timestamp_t             source_get_playout_delay  (struct s_source *src);
 
 double           source_get_bps            (struct s_source *src);
 double           source_get_skew_rate      (struct s_source *src);

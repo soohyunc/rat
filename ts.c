@@ -54,11 +54,11 @@ ticker tickers[] = {
 
 #define TS_CHECK_BITS 0x07
 
-ts_t
+timestamp_t
 ts_map32(uint32_t freq, uint32_t ticks32)
 {
         uint32_t i;
-        ts_t out;
+        timestamp_t out;
 
         /* Make invalid timestamp */
         out.check = ~TS_CHECK_BITS;
@@ -75,8 +75,8 @@ ts_map32(uint32_t freq, uint32_t ticks32)
         return out;
 }
 
-static ts_t
-ts_rebase(uint32_t new_idx, ts_t t)
+static timestamp_t
+ts_rebase(uint32_t new_idx, timestamp_t t)
 {
         /* Use 64 bit quantity as temporary since 
          * we are multiplying a 25 bit quantity by a
@@ -104,7 +104,7 @@ ts_rebase(uint32_t new_idx, ts_t t)
 }
 
 int
-ts_gt(ts_t t1, ts_t t2)
+ts_gt(timestamp_t t1, timestamp_t t2)
 {
         uint32_t half_range, x1, x2;
         
@@ -131,7 +131,7 @@ ts_gt(ts_t t1, ts_t t2)
 }
 
 int
-ts_eq(ts_t t1, ts_t t2)
+ts_eq(timestamp_t t1, timestamp_t t2)
 {
         assert(ts_valid(t1));
         assert(ts_valid(t2));
@@ -146,8 +146,8 @@ ts_eq(ts_t t1, ts_t t2)
         return (t2.ticks == t1.ticks);
 }
 
-ts_t
-ts_add(ts_t t1, ts_t t2)
+timestamp_t
+ts_add(timestamp_t t1, timestamp_t t2)
 {
         uint32_t ticks;
         assert(ts_valid(t1));        
@@ -167,10 +167,10 @@ ts_add(ts_t t1, ts_t t2)
         return t1;
 }
 
-ts_t
-ts_sub(ts_t t1, ts_t t2)
+timestamp_t
+ts_sub(timestamp_t t1, timestamp_t t2)
 {
-        ts_t out;
+        timestamp_t out;
         uint32_t ticks;
 
         assert(ts_valid(t1));        
@@ -201,8 +201,8 @@ ts_sub(ts_t t1, ts_t t2)
         return out;
 }
 
-ts_t
-ts_abs_diff(ts_t t1, ts_t t2)
+timestamp_t
+ts_abs_diff(timestamp_t t1, timestamp_t t2)
 {
         if (ts_gt(t1, t2)) {
                 return ts_sub(t1, t2);
@@ -211,27 +211,27 @@ ts_abs_diff(ts_t t1, ts_t t2)
         }
 }
 
-ts_t
-ts_mul(ts_t t, uint32_t x)
+timestamp_t
+ts_mul(timestamp_t t, uint32_t x)
 {
         assert(ts_valid(t));
         t.ticks = t.ticks * x;
         return t;
 }
 
-ts_t
-ts_div(ts_t t, uint32_t x)
+timestamp_t
+ts_div(timestamp_t t, uint32_t x)
 {
         assert(ts_valid(t));
         t.ticks = t.ticks / x;
         return t;
 }
 
-ts_t 
-ts_convert(uint32_t new_freq, ts_t ts)
+timestamp_t 
+ts_convert(uint32_t new_freq, timestamp_t ts)
 {
         uint32_t i;
-        ts_t out;
+        timestamp_t out;
         
         out.check = 0;
 
@@ -248,7 +248,7 @@ ts_convert(uint32_t new_freq, ts_t ts)
 }
 
 uint32_t
-ts_to_ms(ts_t t1)
+timestamp_to_ms(timestamp_t t1)
 {
         double r;
         uint32_t f;
@@ -259,7 +259,7 @@ ts_to_ms(ts_t t1)
 }
 
 uint32_t
-ts_to_us(ts_t t1)
+timestamp_to_us(timestamp_t t1)
 {
         double  r;
         uint32_t f;
@@ -270,7 +270,7 @@ ts_to_us(ts_t t1)
 }
 
 int 
-ts_valid(ts_t t1)
+ts_valid(timestamp_t t1)
 {
         return ((unsigned)t1.idx < TS_NUM_TICKERS && 
                 (t1.check == TS_CHECK_BITS) &&
@@ -278,7 +278,7 @@ ts_valid(ts_t t1)
 }
 
 uint32_t
-ts_get_freq(ts_t t1)
+ts_get_freq(timestamp_t t1)
 {
         assert(ts_valid(t1));
         return tickers[t1.idx].freq;
@@ -301,11 +301,11 @@ int ts32_gt(uint32_t a, uint32_t b)
         return (diff < TS_WRAP_32 && diff != 0);
 }
 
-ts_t
+timestamp_t
 ts_seq32_in(ts_sequencer *s, uint32_t freq, uint32_t curr_32)
 {
         uint32_t delta_32;
-        ts_t    delta_ts; 
+        timestamp_t    delta_ts; 
 
         /* Inited or freq changed check */
         if (s->freq != freq || !ts_valid(s->last_ts)) {
@@ -315,7 +315,7 @@ ts_seq32_in(ts_sequencer *s, uint32_t freq, uint32_t curr_32)
                 return s->last_ts;
         }
 
-        /* Find difference in 32 bit timestamps, scale to ts_t size
+        /* Find difference in 32 bit timestamps, scale to timestamp_t size
          * and add to last returned timestamp.
          */
         
@@ -334,10 +334,10 @@ ts_seq32_in(ts_sequencer *s, uint32_t freq, uint32_t curr_32)
 }
 
 uint32_t
-ts_seq32_out(ts_sequencer *s, uint32_t freq, ts_t curr_ts)
+ts_seq32_out(ts_sequencer *s, uint32_t freq, timestamp_t curr_ts)
 {
         uint32_t delta_32;
-        ts_t    delta_ts; 
+        timestamp_t    delta_ts; 
 
         /* Inited or freq change check */
         if (s->freq != freq || !ts_valid(s->last_ts)) {

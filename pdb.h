@@ -33,24 +33,24 @@ typedef struct {
 	u_char	        mute:1;                      /* source muted */
 	uint16_t        units_per_packet;
         uint16_t        inter_pkt_gap;               /* expected time between pkt arrivals */
-        ts_t            frame_dur;
+        timestamp_t            frame_dur;
         u_char          enc;
         char*           enc_fmt;
         int             enc_fmt_len;
 	uint16_t        sample_rate;
         uint32_t        last_ts;
         uint32_t        last_seq;
-        ts_t            last_arr;                    /* ts_t representation of last_ts */
+        timestamp_t            last_arr;                    /* timestamp_t representation of last_ts */
 
         /* Playout info */
-        ts_t            jitter;
-        ts_t            transit;
-        ts_t            last_transit;
-        ts_t            last_last_transit;
-        ts_t            avg_transit;
+        timestamp_t            jitter;
+        timestamp_t            transit;
+        timestamp_t            last_transit;
+        timestamp_t            last_last_transit;
+        timestamp_t            avg_transit;
         cc_id_t         channel_coder_id;            /* channel_coder of last received packet    */
-	ts_t            next_mix;                    /* Used to check mixing                     */
-	ts_t            playout;                     /* Playout delay for this talkspurt         */
+	timestamp_t            next_mix;                    /* Used to check mixing                     */
+	timestamp_t            playout;                     /* Playout delay for this talkspurt         */
         ts_sequencer    seq;                         /* Mapper from RTP time rep to rat time rep */
         uint32_t        spike_events;                /* Number of spike events                   */
         uint32_t        spike_toged;                 /* Number of packets dropped in spike mode  */
@@ -58,7 +58,7 @@ typedef struct {
         double          avg_rtt;
 
         /* Display Info */
-        ts_t            last_ui_update;              /* Used for periodic update of packet counts, etc */
+        timestamp_t            last_ui_update;              /* Used for periodic update of packet counts, etc */
 
         /* Packet info */
         uint32_t        received;

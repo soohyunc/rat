@@ -115,7 +115,7 @@ int
 pdb_item_create(pdb_t *p, uint16_t freq, uint32_t id)
 {
         pdb_entry_t *item;
-        ts_t         zero_ts;
+        timestamp_t         zero_ts;
 
         if (btree_find(p->db, id, (void**)&item)) {
                 debug_msg("Item already exists\n");

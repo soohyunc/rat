@@ -39,7 +39,7 @@ struct s_voxlet {
         pdb_t              *pdb;
         pdb_entry_t        *pdbe;       /* spoof participant                 */
         struct s_converter *converter;  /* sample rate and channel converter */
-        ts_t                write_end;  /* last time played                  */
+        timestamp_t                write_end;  /* last time played                  */
         uint16_t            played;
         uint32_t            magic;
 };
@@ -159,9 +159,9 @@ voxlet_destroy(voxlet_t **ppv)
 }
 
 int 
-voxlet_play(voxlet_t *pv, ts_t start, ts_t end)
+voxlet_play(voxlet_t *pv, timestamp_t start, timestamp_t end)
 {
-        ts_t          duration, safety;
+        timestamp_t          duration, safety;
         uint32_t      samples;
         coded_unit    src, dst;
         sndfile_fmt_t sfmt;

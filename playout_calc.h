@@ -12,6 +12,6 @@
 #ifndef __PLAYOUT_CALC_H__
 #define __PLAYOUT_CALC_H__
 
-ts_t playout_calc(struct s_session *sp, uint32_t ssrc, ts_t transit_ts, int new_spurt);
+timestamp_t playout_calc(struct s_session *sp, uint32_t ssrc, timestamp_t transit_ts, int new_spurt);
 
 #endif /* __PLAYOUT_CALC_H__ */

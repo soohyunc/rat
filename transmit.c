@@ -76,11 +76,11 @@ typedef struct s_tx_buffer {
         /* Statistics log */
         double          mean_read_dur;
         /* These are a hack because we use playout buffer
-         * which expects time units of type ts_t so we need
+         * which expects time units of type timestamp_t so we need
          * to be able to map to and from 32 bit no for
          * packet timestamp */
-        ts_sequencer    down_seq;  /* used for 32 -> ts_t */
-        ts_sequencer    up_seq;    /* used for ts_t -> 32 */
+        ts_sequencer    down_seq;  /* used for 32 -> timestamp_t */
+        ts_sequencer    up_seq;    /* used for timestamp_t -> 32 */
 
         /* place for the samples */
         sample samples[DEVICE_REC_BUF];
@@ -88,7 +88,7 @@ typedef struct s_tx_buffer {
 
         /* bandwidth estimate parameters */
         int    bps_bytes_sent;
-        ts_t   bps_last_update;
+        timestamp_t   bps_last_update;
 
 	/* For debugging... */
 	uint32_t	magic;
@@ -217,7 +217,7 @@ void
 tx_start(tx_buffer *tb)
 {
         tx_unit *tu_new;
-        ts_t     unit_start;
+        timestamp_t     unit_start;
 
 	debug_msg("Starting to transmit...\n");
 	tx_buffer_validate(tb);
@@ -294,7 +294,7 @@ tx_read_audio(tx_buffer *tb)
 {
         session_t *sp;
         tx_unit   *u;
-	ts_t       u_ts;
+	timestamp_t       u_ts;
         uint32_t   read_dur = 0, this_read, ulen;
 
 	tx_buffer_validate(tb);
@@ -368,7 +368,7 @@ tx_process_audio(tx_buffer *tb)
         struct s_pb_iterator *marker;
         tx_unit              *u;
         uint32_t              u_len;
-        ts_t                  u_ts;
+        timestamp_t                  u_ts;
         int                   to_send;
         
 	tx_buffer_validate(tb);
@@ -500,8 +500,8 @@ tx_send(tx_buffer *tb)
         channel_data            *cd;
         channel_unit            *cu;
         tx_unit        		*u;
-        ts_t            	 u_ts, u_sil_ts, delta;
-        ts_t            	 time_ts;
+        timestamp_t            	 u_ts, u_sil_ts, delta;
+        timestamp_t            	 time_ts;
         uint32_t         	 time_32, cd_len;
         uint32_t         	 u_len, units, i, j, k, n, send, encoding;
         int 			 success;
@@ -671,7 +671,7 @@ tx_update_ui(tx_buffer *tb)
                 struct s_pb_iterator *prev;  
                 tx_unit              *u;
                 uint32_t               u_len;
-                ts_t                  u_ts;
+                timestamp_t                  u_ts;
 
                 /* Silence point should be upto read point here so use last
                  * completely read unit.
@@ -743,8 +743,8 @@ tx_get_bps(tx_buffer *tb)
         } else {
                 uint32_t dms;
                 double  bps;
-                ts_t delta = ts_abs_diff(tb->bps_last_update, tb->sp->cur_ts);
-                dms        = ts_to_us(delta);
+                timestamp_t delta = ts_abs_diff(tb->bps_last_update, tb->sp->cur_ts);
+                dms        = timestamp_to_us(delta);
                 bps        = tb->bps_bytes_sent * 8e6 / (double)dms;
                 tb->bps_bytes_sent  = 0;
                 tb->bps_last_update = tb->sp->cur_ts;

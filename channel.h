@@ -61,7 +61,7 @@ int       channel_encoder_encode (struct s_channel_state  *cs,
 int       channel_decoder_decode (struct s_channel_state  *cs, 
                                   struct s_pb *channel_buffer,
                                   struct s_pb *media_buffer, 
-                                  ts_t                     now);
+                                  timestamp_t                     now);
 
 int       channel_decoder_matches (cc_id_t                 cid, 
                                    struct s_channel_state *cs);

@@ -65,8 +65,8 @@ ui_send_stats(session_t *sp, char *addr, uint32_t ssrc)
 
         src = source_get_by_ssrc(sp->active_sources, pdbe->ssrc);
         if (src) {
-                buffered = ts_to_ms(source_get_audio_buffered(src));
-                delay    = ts_to_ms(source_get_playout_delay(src));
+                buffered = timestamp_to_ms(source_get_audio_buffered(src));
+                delay    = timestamp_to_ms(source_get_playout_delay(src));
                 skew_rate = source_get_skew_rate(src);
         } else {
                 buffered  = 0;
@@ -92,7 +92,7 @@ ui_send_stats(session_t *sp, char *addr, uint32_t ssrc)
 
         ui_send_rtp_packet_loss(sp, addr, my_ssrc, pdbe->ssrc, fract_lost);
 	mbus_qmsgf(sp->mbus_engine, addr, FALSE, "rtp.source.reception", "\"%08lx\" %6ld %6ld %6ld %6ld %6ld %6d", 
-		  pdbe->ssrc, pdbe->received, total_lost, pdbe->misordered, pdbe->duplicates, ts_to_ms(pdbe->jitter), pdbe->jit_toged);
+		  pdbe->ssrc, pdbe->received, total_lost, pdbe->misordered, pdbe->duplicates, timestamp_to_ms(pdbe->jitter), pdbe->jit_toged);
 	mbus_qmsgf(sp->mbus_engine, addr, FALSE, "rtp.source.packet.duration", "\"%08lx\" %3d", 
 	           pdbe->ssrc, pdbe->inter_pkt_gap * 1000 / pdbe->sample_rate);
 }

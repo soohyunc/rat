@@ -55,7 +55,7 @@ typedef struct {
         int     (*dec_decode)         (u_char                  *state, 
                                        struct s_pb *in, 
                                        struct s_pb *out,
-                                       ts_t                     now);
+                                       timestamp_t                     now);
         int     (*dec_peek)           (uint8_t                   ccpt,
                                        u_char                  *data,
                                        uint32_t                  len,
@@ -317,7 +317,7 @@ int
 channel_decoder_decode(channel_state_t         *cs, 
                        struct s_pb *media_buffer, 
                        struct s_pb *channel_buffer,
-                       ts_t                     now)
+                       timestamp_t                     now)
 {
         assert(table[cs->coder].dec_decode != NULL);
         return table[cs->coder].dec_decode(cs->state, media_buffer, channel_buffer, now);

@@ -28,7 +28,7 @@ struct s_rtcp_dbentry;
 
 int  mix_create    (mixer_t            **ms, 
                     const mixer_info_t  *mi,
-		    ts_t                 now);
+		    timestamp_t                 now);
 
 const mixer_info_t* 
      mix_query     (const mixer_t      *ms);
@@ -38,7 +38,7 @@ void mix_destroy   (mixer_t           **ms);
 int  mix_put_audio (mixer_t            *ms,
                     pdb_entry_t        *pdbe,
                     coded_unit         *raw_frame,
-                    ts_t                now);
+                    timestamp_t                now);
 
 int  mix_get_audio (mixer_t            *ms, 
                     int                 amount, 

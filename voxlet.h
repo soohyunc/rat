@@ -16,6 +16,6 @@ int  voxlet_create  (voxlet_t          **ppv,
                      struct s_pdb       *pdb, 
                      const char         *sndfile);
 int  voxlet_play    (voxlet_t           *ppv, 
-                     ts_t                start, 
-                     ts_t                end);
+                     timestamp_t                start, 
+                     timestamp_t                end);
 void voxlet_destroy (voxlet_t          **ppv);

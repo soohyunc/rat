@@ -63,7 +63,7 @@ typedef struct s_session {
         int             	 rtp_session_count;
 	uint8_t          	 layers; 			/* number of layers == rtp_session_count */
         int             	 filter_loopback;
-        ts_t                	 cur_ts; 			/* current device time */
+        timestamp_t                	 cur_ts; 			/* current device time */
         struct s_cushion_struct *cushion;
         struct s_audio_config   *new_config;
         struct s_mixer          *ms;

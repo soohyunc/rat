@@ -33,7 +33,7 @@ int  redundancy_encoder_get_parameters(u_char *state, char *buf, uint32_t blen);
 int  redundancy_decoder_decode  (u_char                  *state,
                                  struct s_pb *in,
                                  struct s_pb *out,
-                                 ts_t                     now);
+                                 timestamp_t                     now);
 
 int redundancy_decoder_peek     (uint8_t   pkt_pt,
                                  u_char  *data,

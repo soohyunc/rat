@@ -36,7 +36,7 @@ struct s_tonegen {
         struct s_mixer     *ms;
         pdb_t              *pdb;
         pdb_entry_t        *pdbe;       /* spoof participant                 */
-        ts_t                write_end;  /* last time played                  */
+        timestamp_t                write_end;  /* last time played                  */
         uint8_t             played;     /* initialized indicator             */
         uint16_t            tonefreq;
         uint16_t            toneamp;
@@ -94,9 +94,9 @@ tonegen_destroy(tonegen_t **ppt)
 }
 
 int 
-tonegen_play(tonegen_t *pt, ts_t start, ts_t end)
+tonegen_play(tonegen_t *pt, timestamp_t start, timestamp_t end)
 {
-        ts_t                delta, duration;
+        timestamp_t                delta, duration;
         uint32_t            samples, phase, i;
         coded_unit          src;
         const mixer_info_t *mi; 

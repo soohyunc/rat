@@ -37,7 +37,7 @@ static const char cvsid[] =
 
 typedef struct {
         codec_id_t  codec_id;
-        ts_t        playout;
+        timestamp_t        playout;
         uint8_t      n_layers;
         uint32_t     nelem;
         media_data *elem[MAX_UNITS_PER_PACKET];
@@ -287,7 +287,7 @@ layered_encoder_encode (u_char      *state,
                         uint32_t      upp)
 {
         uint32_t     m_len;
-        ts_t        playout;
+        timestamp_t        playout;
         struct      s_pb_iterator *pi;
         media_data *m;
         lay_state   *le = (lay_state*)state;
@@ -353,7 +353,7 @@ layered_encoder_encode (u_char      *state,
  * one coded_unit, with zeros if a layer was not received.            */
 
 static int
-layered_decoder_reorganise(channel_data *in, struct s_pb *out, ts_t playout)
+layered_decoder_reorganise(channel_data *in, struct s_pb *out, timestamp_t playout)
 {
         const codec_format_t *cf;
         codec_id_t            id;
@@ -363,7 +363,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, ts_t playout)
         uint8_t hdrpt, i;
         uint16_t len[LAY_MAX_LAYERS], mrk[LAY_MAX_LAYERS];
         media_data           *m;
-        ts_t                  playout_step;
+        timestamp_t                  playout_step;
         
         media_data_create(&m, 1);
         assert(m->nrep == 1);
@@ -539,12 +539,12 @@ int
 layered_decoder_decode(u_char      *state,
                        struct s_pb *in, 
                        struct s_pb *out, 
-                       ts_t         now)
+                       timestamp_t         now)
 {
         struct s_pb_iterator *pi;
         channel_data *c;
         uint32_t       clen;
-        ts_t          playout;
+        timestamp_t          playout;
 
         UNUSED(state);
 

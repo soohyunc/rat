@@ -35,7 +35,7 @@ static const char cvsid[] =
 struct s_mixer {
         int          buf_len;              /* Length of circular buffer                */
         int          head, tail;           /* Index to head and tail samples in buffer */
-        ts_t         head_time, tail_time; /* Time rep of head and tail                */
+        timestamp_t         head_time, tail_time; /* Time rep of head and tail                */
         int          dist;                 /* Distance between head and tail. (for debug)  */
         sample      *mix_buffer;           /* The buffer containing mixed audio data. */
         mixer_info_t info;      
@@ -49,7 +49,7 @@ static void
 mix_verify(const mixer_t *ms) 
 {
 #ifdef DEBUG
-        ts_t delta;
+        timestamp_t delta;
         int  dist;
 
         assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
@@ -80,7 +80,7 @@ mix_verify(const mixer_t *ms)
 int
 mix_create(mixer_t            **ppms, 
            const mixer_info_t  *pmi,
-	   ts_t                 now)
+	   timestamp_t                 now)
 {
         mixer_t *pms;
 
@@ -140,9 +140,9 @@ mix_zero(mixer_t *ms, int offset, int len)
 }
 
 static void
-mix_advance_head(mixer_t *ms, ts_t new_head_time)
+mix_advance_head(mixer_t *ms, timestamp_t new_head_time)
 {
-	ts_t	delta;
+	timestamp_t	delta;
 	int	zeros;
 	
 	mix_verify(ms);
@@ -168,7 +168,7 @@ int
 mix_put_audio(mixer_t     *ms,
               pdb_entry_t *pdbe,
               coded_unit  *frame,
-              ts_t         playout)
+              timestamp_t         playout)
 {
         static int      hits;
         sample          *samples;
@@ -176,7 +176,7 @@ mix_put_audio(mixer_t     *ms,
         int32_t         pos;
         uint32_t        nticks, nsamples;
         uint16_t        channels, rate;
-        ts_t            frame_period, playout_end, delta;
+        timestamp_t            frame_period, playout_end, delta;
 
         mix_verify(ms);
         hits++;
@@ -227,7 +227,7 @@ mix_put_audio(mixer_t     *ms,
 	/* Advance head if necessary */
         playout_end = ts_add(playout, ts_map32(ms->info.sample_rate, nsamples / ms->info.channels));
 	if (ts_gt(playout_end, ms->head_time)) {
-		uint32_t playout_delta = ts_to_ms(ts_sub(playout_end, ms->head_time));
+		uint32_t playout_delta = timestamp_to_ms(ts_sub(playout_end, ms->head_time));
 		if (playout_delta > 1000) {
 		 	debug_msg("WARNING: Large playout buffer advancement (%dms)\n", playout_delta);
 		}
@@ -303,14 +303,14 @@ int
 mix_get_audio(mixer_t *ms, int request, sample **bufp)
 {
         int  silence, amount;
-        ts_t delta;
+        timestamp_t delta;
 
         xmemchk();
         mix_verify(ms);
         amount = request;
         assert(amount < ms->buf_len);
         if (amount > ms->dist) {
-		ts_t new_head_time;
+		timestamp_t new_head_time;
                 /*
 		 * If we dont have enough to give one of two things
                  * must have happened.

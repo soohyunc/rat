@@ -27,7 +27,7 @@ static const char cvsid[] =
 typedef struct {
         /* Encoder state is just buffering of media data to compose a packet */
         codec_id_t  codec_id;
-        ts_t        playout;
+        timestamp_t        playout;
         uint32_t     nelem;
         media_data *elem[MAX_UNITS_PER_PACKET];
 } ve_state;
@@ -121,7 +121,7 @@ vanilla_encoder_encode (u_char      *state,
                         uint32_t      upp)
 {
         uint32_t     m_len;
-        ts_t        playout;
+        timestamp_t        playout;
         struct      s_pb_iterator *pi;
         media_data *m;
         ve_state   *ve = (ve_state*)state;
@@ -182,14 +182,14 @@ vanilla_encoder_encode (u_char      *state,
 
 
 static void
-vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
+vanilla_decoder_output(channel_unit *cu, struct s_pb *out, timestamp_t playout)
 {
         const codec_format_t *cf;
         codec_id_t            id;
         uint32_t              data_len;
         u_char               *p, *end;
         media_data           *m;
-        ts_t                  unit_dur;
+        timestamp_t                  unit_dur;
 
         id       = codec_get_by_payload(cu->pt);
         cf       = codec_get_format(id);
@@ -227,13 +227,13 @@ int
 vanilla_decoder_decode(u_char      *state,
                        struct s_pb *in, 
                        struct s_pb *out, 
-                       ts_t         now)
+                       timestamp_t         now)
 {
         struct s_pb_iterator *pi;
         channel_unit *cu;
         channel_data *c;
         uint32_t       clen;
-        ts_t          playout;
+        timestamp_t          playout;
 
         assert(state == NULL); /* No decoder state needed */
         UNUSED(state);
