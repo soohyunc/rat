@@ -101,7 +101,7 @@ void xfree(void *y)
 	for (i = 0; i < naddr - j; i++) {
 		if (addrs[i] == (int *)(x-8)) {
 			if (j != 0) {
-				printf("ERROR: Attempt to free memory twice! (addr=0x%p)\n", y);
+				printf("ERROR: Attempt to free memory twice! (addr=%p)\n", y);
 				abort();
 			}
 			j = 1;
@@ -119,7 +119,7 @@ void xfree(void *y)
 		length[i] = length[i + j];
 	}
 	if (j != 1) {
-		printf("ERROR: Attempt to free memory which was never allocated! (addr=0x%p)\n", y);
+		printf("ERROR: Attempt to free memory which was never allocated! (addr=%p)\n", y);
 		abort();
 	}
 	naddr -= j;
@@ -136,6 +136,10 @@ _xmalloc(unsigned size, char *filen, int line)
 	int  s = (((size + 7)/8)*8) + 8;
 	int *p = (int *) malloc(s + 16);
 	int  q;
+
+#ifdef NDEF
+printf("malloc %d %s %d\n", size, filen, line);
+#endif
 
 	assert(p     != NULL);
 	assert(filen != NULL);
@@ -162,11 +166,11 @@ _xmalloc(unsigned size, char *filen, int line)
 #endif
 }
 
-char *xstrdup(char *s1)
+char *_xstrdup(char *s1, char *filen, int line)
 {
 	char 	*s2;
   
-	s2 = (char *) xmalloc(strlen(s1)+1);
+	s2 = (char *) _xmalloc(strlen(s1)+1, filen, line);
 	if (s2 != NULL)
 		strcpy(s2, s1);
 	return (s2);

@@ -40,18 +40,20 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _BAT_UTIL_H_
-#define _BAT_UTIL_H_
+#ifndef _UTIL_H_
+#define _UTIL_H_
 
 #define strsave(s)	strcpy(xmalloc(strlen(s) + 1), s)
 
+#define xmalloc(x) _xmalloc(x,__FILE__,__LINE__)
+#define xstrdup(x) _xstrdup(x,__FILE__,__LINE__)
+
 void	xmemchk(void);
 void	xfree(void *x);
-#define xmalloc(x) _xmalloc(x,__FILE__,__LINE__)
 char   *_xmalloc(unsigned size,char *filen,int line);
-char   *xstrdup(char *s1);
+char   *_xstrdup(char *s1, char *filen, int line);
 
 char  *block_alloc(unsigned size);
 void  block_free(void *p, int size);
 
-#endif /* _BAT_UTIL_H_ */
+#endif /* _UTIL_H_ */
