@@ -318,7 +318,6 @@ audio_block(int audio_fd)
 
 }
 
-
 /* Gain and volume values are in the range 0 - MAX_AMP */
 void
 audio_set_volume(int audio_fd, int vol)
@@ -346,6 +345,19 @@ audio_get_volume(int audio_fd)
 
 	return device_to_bat(volume & 0xff); /* Extract left channel volume */
 }
+
+void
+audio_loopback(int audio_fd, int gain)
+{
+        if (audio_fd < 0) {
+                return;
+        }
+        gain = gain << 8 | gain;
+        if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &gain) == -1) {
+                perror("loopback");
+        }
+}
+
 
 void
 audio_set_oport(int audio_fd, int port)

@@ -288,6 +288,18 @@ if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_PCM), &volume) == -1) {
 	}
 }
 
+void
+audio_loopback(int audio_fd, int gain)
+{
+        if (audio_fd < 0)  {
+                return;
+        }
+        gain = gain << 8 | gain;
+        if (ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &gain) == -1) {
+                perror("loopback");
+        }
+}
+
 int
 audio_get_volume(int audio_fd)
 {
