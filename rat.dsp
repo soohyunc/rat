@@ -134,6 +134,14 @@ SOURCE=.\auddev.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\auddev_null.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\auddev_null.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\auddev_win32.c
 # End Source File
 # Begin Source File
