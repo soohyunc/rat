@@ -362,6 +362,10 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
 	sample	*bufp;
 
         c = spi->cushion;
+
+        spi->over_read -= 2 * cushion_get_step(c);
+        if (spi->over_read < 0) spi->over_read = 0;
+
 	if ((read_dur = tx_read_audio(spi->tb)) <= 0) {
 		return 0;
 	} else {
@@ -411,12 +415,13 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
                 debug_msg("catch up! read_dur(%d) > cushion_size(%d)\n",
                         read_dur,
                         cushion_size);
-                cushion_size = new_cushion;
+                /* We've blocked for this long for whatever reason           */
+                spi->over_read += read_dur - cushion_size;
+                cushion_size    = new_cushion;
         } else {
                 trailing_silence = mix_get_audio(ms, read_dur * ofmt->channels, &bufp);
                 cushion_step = cushion_get_step(c);
                 diff  = 0;
-
                 if (trailing_silence > cushion_step) {
                         /* Check whether we need to adjust the cushion */
                         diff = cushion_diff_estimate_size(c);

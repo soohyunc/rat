@@ -21,6 +21,7 @@
 #include "rtp.h"
 #include "rtp_callback.h"
 #include "session.h"
+#include "cushion.h"
 #include "pdb.h"
 #include "source.h"
 #include "playout_calc.h"
@@ -216,6 +217,12 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                           e->inter_pkt_gap,
                           delta_ts);
                 adjust_playout = TRUE;
+        }
+
+        if (sp->over_read > 0 && adjust_playout) {
+                debug_msg("App blocked packet discarded (%d)\n", sp->over_read);
+                xfree(p);
+                return;
         }
 
         /* Calculate the playout point for this packet */

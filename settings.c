@@ -358,7 +358,7 @@ void settings_load_early(session_t *sp)
 	char				*ad_name, *primary_codec, *cc_name, *port;
 	int				 i, freq, chan;
 	cc_details			 ccd;
-        const audio_port_details_t 	*apd;
+        const audio_port_details_t 	*apd = NULL;
         codec_id_t                       cid;
 
 	load_init();		/* Initial settings come from the common prefs file... */
@@ -544,7 +544,7 @@ void settings_save(session_t *sp)
 	int		 		 i;
 	audio_device_details_t		 ad;
         const audio_format 		*af;
-        const audio_port_details_t 	*iapd, *oapd;
+        const audio_port_details_t 	*iapd = NULL, *oapd = NULL;
         u_int32                          my_ssrc;
 
 	pri_id   = codec_get_by_payload(sp->encodings[0]);

@@ -15,6 +15,7 @@
 #include "config_win32.h"
 #include "converter_types.h"
 #include "convert_util.h"
+#include "debug.h"
 
 /* Mono-Stereo Conversion ****************************************************/ 
 /* Note src_len is length block in number of samples i.e
@@ -62,6 +63,7 @@ converter_change_channels (sample *src,
                 }
                 break;
         }
+        UNUSED(dst_channels);
 }
 
 int

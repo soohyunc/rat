@@ -64,6 +64,7 @@ typedef struct s_session {
         struct s_cushion_struct *cushion;
         struct s_mix_info       *ms; 
         struct s_audio_config   *new_config;
+        int32                    over_read; /* Time device blocked for i.e. amount read size is over cushion size */
 	u_int16		         rtp_seq;
 	u_char		         encodings[MAX_ENCODINGS];
 	int                      num_encodings; /* no of unique encs in used */
