@@ -31,7 +31,7 @@ static const char cvsid[] =
 #define rat_to_device(x)	(((x) * MAX_DEVICE_GAIN / MAX_AMP) << 16 | ((x) * MAX_DEVICE_GAIN / MAX_AMP))
 #define device_to_rat(x)	((x & 0xffff) * MAX_AMP / MAX_DEVICE_GAIN)
 
-#define W32SDK_MAX_DEVICES 5
+#define W32SDK_MAX_DEVICES 20
 static  int have_probed[W32SDK_MAX_DEVICES];
 static  int w32sdk_probe_formats(audio_desc_t ad);
 
@@ -836,7 +836,7 @@ static WAVEHDR *whWriteHdrs;       /* Pointer to blovk of wavehdr's alloced for 
 static u_char  *lpWriteData;       /* Pointer to raw audio data buffer                   */
 
 static int
-w32sdk_audio_open_out(UINT uId, WAVEFORMATEX *pwfx)
+w32sdk_audio_open_out_probe(UINT uId, WAVEFORMATEX *pwfx, int probe)
 {
         MMRESULT        mmr;
         int		i;
@@ -852,19 +852,20 @@ w32sdk_audio_open_out(UINT uId, WAVEFORMATEX *pwfx)
                 return (FALSE);
         }
         
-        if (lpWriteData != NULL) {
-                xfree(lpWriteData);
-        }
-        lpWriteData = (u_char*)xmalloc(nblks * blksz);
-        memset(lpWriteData, 0, nblks * blksz);
-        
-        if (whWriteHdrs != NULL) {
-                xfree(whWriteHdrs);
-        }
-        whWriteHdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks);
-        memset(whWriteHdrs, 0, sizeof(WAVEHDR)*nblks);
-
-        for (i = 0; i < nblks; i++) {
+	if (lpWriteData != NULL) {
+	    xfree(lpWriteData);
+	}
+	lpWriteData = (u_char*)xmalloc(nblks * blksz);
+	memset(lpWriteData, 0, nblks * blksz);
+	  
+	if (whWriteHdrs != NULL) {
+	    xfree(whWriteHdrs);
+	}
+	whWriteHdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks);
+	memset(whWriteHdrs, 0, sizeof(WAVEHDR)*nblks);
+	  
+	if (!probe) {
+	  for (i = 0; i < nblks; i++) {
                 whWriteHdrs[i].dwFlags        = 0;
                 whWriteHdrs[i].dwBufferLength = blksz;
                 whWriteHdrs[i].lpData         = lpWriteData + i * blksz;
@@ -872,11 +873,16 @@ w32sdk_audio_open_out(UINT uId, WAVEFORMATEX *pwfx)
                 mmr = waveOutPrepareHeader(shWaveOut, &whWriteHdrs[i], sizeof(WAVEHDR));
                 whWriteHdrs[i].dwFlags |= WHDR_DONE; /* Mark buffer as done - used to find free buffers */
 		assert(mmr == MMSYSERR_NOERROR);
-        }
+	  }
+	}
 
         return (TRUE);
 }
-
+static int
+w32sdk_audio_open_out(UINT uId, WAVEFORMATEX *pwfx)
+{
+  return w32sdk_audio_open_out_probe(uId, pwfx, 0);
+}
 static void
 w32sdk_audio_close_out()
 {
@@ -892,11 +898,11 @@ w32sdk_audio_close_out()
                 if (whWriteHdrs[i].dwFlags & WHDR_PREPARED) {
                         waveOutUnprepareHeader(shWaveOut, &whWriteHdrs[i], sizeof(WAVEHDR));
                 }
-        }
-        
+	}
+
 	waveOutClose(shWaveOut);
         
-	xfree(whWriteHdrs); whWriteHdrs = NULL;
+	xfree(whWriteHdrs); whWriteHdrs = NULL; 
         xfree(lpWriteData); lpWriteData  = NULL;
       
         xmemchk();
@@ -1021,7 +1027,7 @@ waveInProc(HWAVEIN hwi,
 }
 
 static int
-w32sdk_audio_open_in(UINT uId, WAVEFORMATEX *pwfx)
+w32sdk_audio_open_in_probe(UINT uId, WAVEFORMATEX *pwfx, int probe)
 {
         MMRESULT mmr;
         int      i;
@@ -1034,18 +1040,20 @@ w32sdk_audio_open_in(UINT uId, WAVEFORMATEX *pwfx)
 		xfree(lpReadData);
 	}
         lpReadData = (u_char*)xmalloc(nblks * blksz);
-        
+        memset(lpReadData, 0, nblks * blksz);
+
         if (whReadHdrs != NULL) {
 		xfree(whReadHdrs);
 	}
         whReadHdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks); 
-        
+        memset(whReadHdrs, 0, sizeof(WAVEHDR)*nblks); 
+
         mmr = waveInOpen(&shWaveIn, 
                          uId, 
                          pwfx,
                          (DWORD)waveInProc,
                          0,
-                         CALLBACK_FUNCTION);
+                         (probe ? CALLBACK_NULL : CALLBACK_FUNCTION));
         
 	if (mmr != MMSYSERR_NOERROR) {
                 waveInGetErrorText(mmr, errorText, sizeof(errorText));
@@ -1053,8 +1061,9 @@ w32sdk_audio_open_in(UINT uId, WAVEFORMATEX *pwfx)
                 return (FALSE);
         }
 
-        /* Initialize wave headers */
-        for (i = 0; i < nblks; i++) {
+        if (!probe) {
+          /* Initialize wave headers */
+	  for (i = 0; i < nblks; i++) {
                 whReadHdrs[i].lpData         = lpReadData + i * blksz;
                 whReadHdrs[i].dwBufferLength = blksz;
                 whReadHdrs[i].dwFlags        = 0;
@@ -1062,20 +1071,26 @@ w32sdk_audio_open_in(UINT uId, WAVEFORMATEX *pwfx)
                 assert(mmr == MMSYSERR_NOERROR);               
                 mmr = waveInAddBuffer(shWaveIn, &whReadHdrs[i], sizeof(WAVEHDR));
                 assert(mmr == MMSYSERR_NOERROR);
-        }
+	  }
 
-        whReadList           = NULL;
-        dwBytesUsedAtReadHead = 0;
-
-        error = waveInStart(shWaveIn);
-        if (error) {
+	  whReadList           = NULL;
+	  dwBytesUsedAtReadHead = 0;
+	  
+	  error = waveInStart(shWaveIn);
+	  if (error) {
                 waveInGetErrorText(error, errorText, sizeof(errorText));
                 debug_msg("Win32Audio: waveInStart: (%d) %s\n", error, errorText);
                 exit(1);
+	  }
+	  hAudioReady = CreateEvent(NULL, TRUE, FALSE, "RAT Audio Ready");
         }
-        hAudioReady = CreateEvent(NULL, TRUE, FALSE, "RAT Audio Ready");
-        
+
 	return (TRUE);
+}
+static int
+w32sdk_audio_open_in(UINT uId, WAVEFORMATEX *pwfx)
+{
+  return w32sdk_audio_open_in_probe(uId, pwfx, 0);
 }
 
 static void
@@ -1214,7 +1229,7 @@ w32sdk_audio_wait_for(audio_desc_t ad, int delay_ms)
 static int audio_dev_open = 0;
 
 static int
-w32sdk_audio_open_mixer(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
+w32sdk_audio_open_mixer_probe(audio_desc_t ad, audio_format *fmt, audio_format *ofmt, int probe)
 {
         static int virgin;
         WAVEFORMATEX owfx, wfx;
@@ -1261,14 +1276,14 @@ w32sdk_audio_open_mixer(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
         blksz  = fmt->bytes_per_block;
         nblks  = wfx.nAvgBytesPerSec / blksz;
         
-        if (w32sdk_audio_open_in(uWavIn, &wfx) == FALSE){
+        if (w32sdk_audio_open_in_probe(uWavIn, &wfx, probe) == FALSE){
                 debug_msg("Open input failed\n");
                 return FALSE;
         }
         
         assert(memcmp(&owfx, &wfx, sizeof(WAVEFORMATEX)) == 0);
         
-        if (w32sdk_audio_open_out(uWavOut, &wfx) == FALSE) {
+        if (w32sdk_audio_open_out_probe(uWavOut, &wfx, probe) == FALSE) {
                 debug_msg("Open output failed\n");
                 w32sdk_audio_close_in();
                 return FALSE;
@@ -1290,6 +1305,11 @@ w32sdk_audio_open_mixer(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
  
         audio_dev_open = TRUE;
         return TRUE;
+}
+static int
+w32sdk_audio_open_mixer(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
+{
+  return w32sdk_audio_open_mixer_probe(ad, fmt, ofmt, 0);
 }
 
 int 
@@ -1599,7 +1619,7 @@ w32sdk_audio_init(void)
         af.sample_rate     = 8000;
         
         for(i = 0; i < mixerGetNumDevs(); i++) {
-                if (w32sdk_audio_open_mixer(i, &af, &af)) {
+                if (w32sdk_audio_open_mixer_probe(i, &af, &af, 1)) {
                         w32sdk_audio_close_mixer(i);
                         mixerIdMap[nMixersWithFullDuplex] = i;
                         nMixersWithFullDuplex++;
