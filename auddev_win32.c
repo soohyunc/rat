@@ -64,6 +64,10 @@ static audio_port_details_t *input_ports, *loop_ports;
 static int                   n_input_ports, n_loop_ports;
 static int iport; /* Current input port */
 
+/* Macro to convert macro name to string so we diagnose controls and error  */
+/* codes.                                                                   */ 
+#define CASE_STRING(x) case x: return #x
+
 /* DEBUGGING FUNCTIONS ******************************************************/
 
 static const char *
@@ -71,18 +75,19 @@ mixGetErrorText(MMRESULT mmr)
 {
 #ifndef NDEBUG
         switch (mmr) {
-        case MMSYSERR_NOERROR:     return "no error"; 
-        case MIXERR_INVALLINE:     return "invalid line";
-        case MIXERR_INVALCONTROL:  return "invalid control";
-        case MIXERR_INVALVALUE:    return "invalid value";
-        case WAVERR_BADFORMAT:     return "bad format";
-        case MMSYSERR_BADDEVICEID: return "bad device id";
-        case MMSYSERR_INVALFLAG:   return "invalid flag";
-        case MMSYSERR_INVALHANDLE: return "invalid handle";
-        case MMSYSERR_INVALPARAM:  return "invalid param";
-        case MMSYSERR_NODRIVER:    return "no driver!";
+        CASE_STRING(MMSYSERR_NOERROR);     
+        CASE_STRING(MIXERR_INVALLINE);     
+        CASE_STRING(MIXERR_INVALCONTROL);  
+        CASE_STRING(MIXERR_INVALVALUE);    
+        CASE_STRING(WAVERR_BADFORMAT);     
+        CASE_STRING(MMSYSERR_BADDEVICEID); 
+        CASE_STRING(MMSYSERR_INVALFLAG);   
+        CASE_STRING(MMSYSERR_INVALHANDLE); 
+        CASE_STRING(MMSYSERR_INVALPARAM);  
+        CASE_STRING(MMSYSERR_NODRIVER);
+        default:
+                return "Undefined Error";
         }
-        return "Undefined Error";
 #endif /* NDEBUG */
         return "Mixer Error.";
 }
@@ -92,36 +97,36 @@ mixGetControlType(DWORD dwCtlType)
 {
 #ifndef NDEBUG
         switch(dwCtlType) {
-        case MIXERCONTROL_CONTROLTYPE_CUSTOM:        return "Custom";         
-        case MIXERCONTROL_CONTROLTYPE_BOOLEANMETER:  return "Boolean Meter";
-        case MIXERCONTROL_CONTROLTYPE_SIGNEDMETER:   return "Signed Meter";
-        case MIXERCONTROL_CONTROLTYPE_PEAKMETER:     return "PeakMeter";
-        case MIXERCONTROL_CONTROLTYPE_UNSIGNEDMETER: return "Unsigned Meter";
-        case MIXERCONTROL_CONTROLTYPE_BOOLEAN:       return "Boolean";
-        case MIXERCONTROL_CONTROLTYPE_ONOFF:         return "OnOff";
-        case MIXERCONTROL_CONTROLTYPE_MUTE:          return "Mute";
-        case MIXERCONTROL_CONTROLTYPE_MONO:          return "Mono";
-        case MIXERCONTROL_CONTROLTYPE_LOUDNESS:      return "Loudness";
-        case MIXERCONTROL_CONTROLTYPE_STEREOENH:     return "Stereo Enhanced";
-        case MIXERCONTROL_CONTROLTYPE_BUTTON:        return "Button";
-        case MIXERCONTROL_CONTROLTYPE_DECIBELS:      return "Decibels";
-        case MIXERCONTROL_CONTROLTYPE_SIGNED:        return "Signed";
-        case MIXERCONTROL_CONTROLTYPE_UNSIGNED:      return "Unsigned";
-        case MIXERCONTROL_CONTROLTYPE_PERCENT:       return "Percent";
-        case MIXERCONTROL_CONTROLTYPE_SLIDER:        return "Slider";
-        case MIXERCONTROL_CONTROLTYPE_PAN:           return "Pan";
-        case MIXERCONTROL_CONTROLTYPE_QSOUNDPAN:     return "Q Sound Pan";
-        case MIXERCONTROL_CONTROLTYPE_FADER:         return "Fader";
-        case MIXERCONTROL_CONTROLTYPE_VOLUME:        return "Volume";
-        case MIXERCONTROL_CONTROLTYPE_BASS:          return "Bass";
-        case MIXERCONTROL_CONTROLTYPE_TREBLE:        return "Treble";
-        case MIXERCONTROL_CONTROLTYPE_EQUALIZER:     return "Equalizer";
-        case MIXERCONTROL_CONTROLTYPE_SINGLESELECT:  return "Single Select";
-        case MIXERCONTROL_CONTROLTYPE_MUX:           return "Mux";
-        case MIXERCONTROL_CONTROLTYPE_MULTIPLESELECT:return "Multiple Select";
-        case MIXERCONTROL_CONTROLTYPE_MIXER:         return "Mixer";
-        case MIXERCONTROL_CONTROLTYPE_MICROTIME:     return "Micro Time";
-        case MIXERCONTROL_CONTROLTYPE_MILLITIME:     return "Milli Time";
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_CUSTOM);        
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_BOOLEANMETER);  
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_SIGNEDMETER);   
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_PEAKMETER);     
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_UNSIGNEDMETER); 
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_BOOLEAN);       
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_ONOFF);         
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_MUTE);          
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_MONO);          
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_LOUDNESS);      
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_STEREOENH);     
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_BUTTON);        
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_DECIBELS);      
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_SIGNED);        
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_UNSIGNED);      
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_PERCENT);       
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_SLIDER);        
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_PAN);           
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_QSOUNDPAN);     
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_FADER);         
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_VOLUME);        
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_BASS);          
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_TREBLE);        
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_EQUALIZER);     
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_SINGLESELECT);  
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_MUX);           
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_MULTIPLESELECT);
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_MIXER);         
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_MICROTIME);     
+        CASE_STRING(MIXERCONTROL_CONTROLTYPE_MILLITIME);    
         }
 #endif /* NDEBUG */
         return "Unknown";
@@ -924,14 +929,13 @@ w32sdk_audio_close_out()
 
 const char *waveOutError(MMRESULT mmr)
 {
-#define WOERR(x) case x: return #x
 	switch (mmr){
-		WOERR(MMSYSERR_NOERROR);
-		WOERR(MMSYSERR_INVALHANDLE);
-		WOERR(MMSYSERR_NODRIVER);
-		WOERR(MMSYSERR_NOMEM);
-		WOERR(WAVERR_UNPREPARED);
-		WOERR(WRITE_ERROR_STILL_PLAYING);
+		CASE_STRING(MMSYSERR_NOERROR);
+		CASE_STRING(MMSYSERR_INVALHANDLE);
+		CASE_STRING(MMSYSERR_NODRIVER);
+		CASE_STRING(MMSYSERR_NOMEM);
+		CASE_STRING(WAVERR_UNPREPARED);
+		CASE_STRING(WRITE_ERROR_STILL_PLAYING);
 	default:
 		return "Unknown";
 	}
