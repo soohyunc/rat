@@ -43,7 +43,7 @@ static int audio_fd = -1;
 static int dev_ids[NEWPCM_MAX_AUDIO_DEVICES];
 static char names[NEWPCM_MAX_AUDIO_DEVICES][NEWPCM_MAX_AUDIO_NAME_LEN];
 static int ndev = 0;
-static int newpcm_error;
+static int newpcm_error, blocksize;
 static audio_format *input_format, *output_format, *tmp_format;
 static snd_capabilities soundcaps[NEWPCM_MAX_AUDIO_DEVICES];
 
@@ -55,7 +55,6 @@ static void newpcm_audio_loopback_config(int gain);
 int 
 newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
-        int32_t         blocksize;
         char            thedev[64];
         
         assert(ad >= 0 && ad < ndev); 
@@ -142,7 +141,7 @@ newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 debug_msg("rec size %d, play size %d bytes\n",
                           sz.rec_size, sz.play_size);
 
-		blocksize = 4096;
+		blocksize = 256;
 		NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SETBLKSIZE, &blocksize);
                
                 if (newpcm_error != 0) {
@@ -240,44 +239,36 @@ newpcm_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 {
         int done, this_read;
         int len;
-        /* Figure out how many bytes we can read before blocking... */
 
         UNUSED(ad); assert(audio_fd > 0);
 
-        NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &len);
-
-        len = min(len, read_bytes);
-
-        /* Read the data... */
-        done = 0;
-        while(done < len) {
-                this_read = read(audio_fd, (void*)buf, len - done);
-                done += this_read;
-                buf  += this_read;
-        }
-        return done;
+	done = 0;
+	len = min(read_bytes, blocksize);
+	do {
+	    this_read = read(audio_fd, buf + done, len);
+	    if (this_read == -1) break;
+	    done += this_read;
+	} while (this_read == len && (done + this_read < read_bytes));
+	
+	return done;
 }
 
 int
 newpcm_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 {
-	int            done;
+	int done, wrote;
 
         UNUSED(ad); assert(audio_fd > 0);
 
-        done = write(audio_fd, (void*)buf, write_bytes);
-        if (done != write_bytes && errno != EINTR) {
-                /* Only ever seen this with soundblaster cards and CS461x cards that
-		 * opened at 8kHz even though minimum rate was 11.025kHz.  We now
-                 * bounds check the device rates when opened, hopefully this will
-		 * not re-occur.
-                 */
-                perror("Error writing device.");
-		fprintf(stderr, "Please email this message to rat-trap@cs.ucl.ac.uk with output of:\n\t uname -a\n\t cat /dev/sndstat\n");
-                return (write_bytes - done);
-        }
-
-        return write_bytes;
+	done = 0;
+	while (done < write_bytes) {
+	    wrote = write(audio_fd, 
+			  buf + done, 
+			  min(blocksize, write_bytes - done));
+	    if (wrote == -1) break;
+	    done += wrote;
+	}
+	return done;
 }
 
 /* Set ops on audio device to be non-blocking */
