@@ -51,16 +51,13 @@ struct session_tag;
 struct s_speaker_table;
 struct s_minibuf;
 
-struct s_read_buffer *read_device_init(struct session_tag *sp, int unit_size);
-int read_device(struct session_tag *sp);
-int process_read_audio(struct session_tag *sp);
-void start_sending(struct session_tag *sp);
-void stop_sending(struct session_tag *sp);
-int read_set_unit_size(struct s_read_buffer *rb, int unit_size);
-void service_transmitter(struct session_tag *sp, struct s_speaker_table *sa);
-void transmitter_update_ui(struct session_tag *sp);
-
+struct s_read_buffer *read_device_init(struct session_tag *sp, u_int16 unit_size, u_int16 channels);
+void                  read_device_destroy(struct session_tag *sp);
+int                   read_device(struct session_tag *sp);
+int                   process_read_audio(struct session_tag *sp);
+void                  start_sending(struct session_tag *sp);
+void                  stop_sending(struct session_tag *sp);
+void                  service_transmitter(struct session_tag *sp, struct s_speaker_table *sa);
+void                  transmitter_update_ui(struct session_tag *sp);
+void                  read_device_igain_update(session_struct *sp);
 #endif /* _transmit_h_ */
-
-
-

@@ -84,7 +84,7 @@ cushion_new(cushion_t **c)
         nc = (cushion_t*) xmalloc (sizeof(cushion_t));
         if (nc == NULL) goto bail_cushion;
 
-        blocksize = audio_blocksize() / audio_get_channels();
+        blocksize = audio_get_blocksize() / audio_get_channels();
         assert(blocksize > 0);
 
         nc->cushion_size     = 2 * blocksize;

@@ -6,7 +6,7 @@
  *	$Revision$
  *	$Date$
  *
- * Copyright (c) 1995,1998 University College London
+ * Copyright (c) 1998 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,16 +47,8 @@
 #include "util.h"
 #include "math.h"
 
-#define SD_BINS   256
-#define SD_SCALE  (32768/SD_BINS)
-#define SD_COUNTS 0.25f 
-
-typedef struct s_sd {
-        u_char  sbins[SD_BINS];      /* loose measure of freq dist */
-} sd_t;
-
-#define STEP	16
-#define SD_MAX_CHANNELS 5
+#define STEP	        16
+#define SD_MAX_CHANNELS  5
 
 u_int16 
 avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
@@ -74,7 +66,7 @@ avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
                         buf  += STEP;
                         i    += STEP;
                 }
-                return ((u_int16)((*e)*STEP/samples));
+                break;
         default:
                 /* SIMD would improve this */
                 step = STEP - channels + 1;
@@ -88,8 +80,8 @@ avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
                 for(j=1;j<channels;j++) {
                         e[0] = max(e[0], e[j]);
                 }
-                return (u_int16)((*e)*STEP/samples);
         }
+        return (u_int16)((*e)*STEP/samples);
 }
 
 /* ad hoc values - aesthetically better than 0.1, 0.01, 0.001, and so on */
@@ -105,44 +97,212 @@ lin2db(u_int16 energy, double peak)
         return (int) (peak * quasi_db);
 }
 
+/* The silence detection algorithm is: 
+ *
+ *    Everytime someone adjusts volume, or starts talking, use
+ *    a short parole period to calculate reasonable threshold.
+ *
+ *    This assumes that person is not talking as they adjust the
+ *    volume, or click on start talking button.  This can be false
+ *    when the source is music, or the speaker is a project leader :-)
+ * 
+ */
+
+typedef struct s_sd {
+        u_int32 parole;
+        int32 tot, tot_sq;
+        u_int16 thresh;
+        u_int16 cnt;
+} sd_t;
+
+/* 50 ms snapshot to adjust silence threshold */
+#define SD_PAROLE_PERIOD 200
+
 sd_t *
-sd_init(void)
+sd_init(u_int16 blk_dur, u_int16 freq)
 {
 	sd_t *s = (sd_t *)xmalloc(sizeof(sd_t));
-        memset(s->sbins,0,SD_BINS);
+        s->parole = SD_PAROLE_PERIOD * freq / (blk_dur*1000) + 1;
+        sd_reset(s);
 	return (s);
 }
 
-int
-sd(sd_t *s, int energy)
+void
+sd_reset(sd_t *s)
 {
-        int maxb,c,thresh;
-        assert(energy>=0 && energy<65535);
+        s->cnt    = 0;
+        s->tot    = 0;
+        s->tot_sq = 0;
+}
 
-        maxb = energy/SD_SCALE;
+void
+sd_destroy(sd_t *s)
+{
+        xfree(s);
+}
 
-        c = 0;
-        while(c<=maxb) {
-                s->sbins[maxb]++;
-                c++;
-        }
-                
-        if (s->sbins[maxb]==255) {
-                for(c=0;c<SD_BINS;c++) {
-                        s->sbins[c]>>=1;
-                }
-        } 
-          
-        c = 1;
-        while((c<SD_BINS) && (s->sbins[c]>SD_COUNTS*s->sbins[0])) {
-                c++;
-        }
-        
-        thresh = 5*c*SD_SCALE/4;
-
-        if (energy>thresh) {
-                return FALSE;
+int
+sd(sd_t *s, u_int16 energy)
+{
+        if (s->cnt > s->parole) {
+                return (energy < s->thresh);
+        } else if (s->cnt < s->parole) {
+                s->tot    += energy;
+                s->tot_sq += (energy * energy);
         } else {
-                return TRUE;
+                u_int32 m,stdd;
+                m  = s->tot / s->cnt;
+                stdd = (sqrt(abs(m * m - s->tot_sq / s->cnt)));
+                s->thresh = (m + 3*stdd);
+                dprintf("Mean %d std dev %d Threshold %d, last energy %d\n", 
+                        m, 
+                        stdd,
+                        s->thresh, 
+                        energy);
+        }
+        s->cnt++;
+        return 1;
+}
+
+typedef struct {
+        u_char sig;
+        u_char pre;
+        u_char post;
+} vad_limit_t;
+
+typedef struct s_vad {
+        /* limits */
+        vad_limit_t limit[2];
+        u_int32 tick;
+        /* state */
+        u_char state;
+        u_char sig_cnt;
+        u_char post_cnt;
+} vad_t;
+
+vad_t *
+vad_create(u_int16 blockdur, u_int16 freq)
+{
+        vad_t *v = (vad_t*)xmalloc(sizeof(vad_t));
+        memset(v,0,sizeof(vad_t));
+        vad_config(v, blockdur, freq);
+        return v;
+}
+
+/* Duration of limits in ms */
+#define VAD_SIG_LECT     60
+#define VAD_SIG_CONF     20
+#define VAD_PRE_LECT     60
+#define VAD_PRE_CONF     20
+#define VAD_POST_LECT   160
+#define VAD_POST_CONF   160
+
+void
+vad_config(vad_t *v, u_int16 blockdur, u_int16 freq)
+{
+        u_int32 time_ms;
+
+        assert(blockdur != 0);
+        assert(freq     != 0);
+
+        time_ms = (blockdur * 1000) / freq;
+
+        v->limit[VAD_MODE_LECT].sig  = VAD_SIG_LECT  / time_ms; 
+        v->limit[VAD_MODE_LECT].pre  = VAD_PRE_LECT  / time_ms;
+        v->limit[VAD_MODE_LECT].post = VAD_POST_LECT / time_ms;
+
+        v->limit[VAD_MODE_CONF].sig  = VAD_SIG_CONF  / time_ms; 
+        v->limit[VAD_MODE_CONF].pre  = VAD_PRE_CONF  / time_ms;
+        v->limit[VAD_MODE_CONF].post = VAD_POST_CONF / time_ms;
+}
+
+void
+vad_destroy(vad_t *v)
+{
+        assert (v != NULL);
+        xfree(v);
+}
+
+#define VAD_SILENT        0
+#define VAD_SPURT         1
+
+u_int16
+vad_to_get(vad_t *v, u_char silence, u_char mode)
+{
+        vad_limit_t *l = &v->limit[mode];
+
+        assert(mode == VAD_MODE_LECT || mode == VAD_MODE_CONF);
+
+        v->tick++;
+
+        switch (v->state) {
+        case VAD_SILENT:
+                if (silence == FALSE) {
+                        v->sig_cnt++;
+                        if (v->sig_cnt == l->sig) {
+                                v->state = VAD_SPURT;
+                                v->post_cnt = 0;
+                                v->sig_cnt  = 0;
+                                return l->pre;
+                        }
+                } else {
+                        v->sig_cnt = 0;
+                }
+                return 0;
+                break;
+        case VAD_SPURT:
+                if (silence == FALSE) {
+                        v->post_cnt = 0;
+                        return 1;
+                } else {
+                        if (++v->post_cnt < l->post) {
+                                return 1;
+                        } else {
+                                v->sig_cnt  = 0;
+                                v->post_cnt = 0;
+                                v->state = VAD_SILENT;
+                                return 0;
+                        }
+                }
+                break;
+        }
+        return 0; /* never arrives here */
+}
+
+u_int16
+vad_max_could_get(vad_t *v)
+{
+        if (v->state == VAD_SILENT) {
+                return v->limit[VAD_MODE_LECT].pre;
+        } else {
+                return 1;
         }
 }
+
+void
+vad_reset(vad_t* v)
+{
+        v->state    = VAD_SILENT;
+        v->sig_cnt  = 0;
+        v->post_cnt = 0;
+}
+
+u_char
+vad_talkspurt(vad_t *v)
+{
+        return (v->state == VAD_SPURT) ? TRUE : FALSE;
+}
+
+void
+vad_dump(vad_t *v)
+{
+        dprintf("vad tick %05d state %d sig %d post %d\n",
+                v->tick,
+                v->state,
+                v->sig_cnt,
+                v->post_cnt
+                );
+}
+
+
+

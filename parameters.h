@@ -1,13 +1,12 @@
 /*
  *	FILE: parameters.h
- *	PROGRAM: BAT
- *	AUTHOR:	Vicky Hardman
- *		Colin Perkins
+ *      PROGRAM: RAT
+ *      AUTHOR: O.Hodson
  *
  *	$Revision$
  *	$Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1998 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,12 +44,26 @@
 #define _RAT_PARAMETERS_H_
 
 struct s_sd;
+struct s_vad;
 
 u_int16	avg_audio_energy(sample *buf, u_int32 dur, u_int32 channels);
 int     lin2db(u_int16 avg_energy, double peak);
-struct  s_sd *sd_init(void);
-void	set_silence_params(char *s);
-int	sd(struct s_sd *s, int energy);
+struct  s_sd *sd_init(u_int16 blk_dur, u_int16 freq);
+void    sd_destroy(struct s_sd *s);
+void	sd_reset(struct s_sd *s);
+int	sd(struct s_sd *s, u_int16 energy);
+
+#define VAD_MODE_LECT     0
+#define VAD_MODE_CONF     1
+
+struct s_vad * vad_create(u_int16 blockdur, u_int16 freq);
+void           vad_config(struct s_vad *v, u_int16 blockdur, u_int16 freq);
+void           vad_reset(struct s_vad *v);
+void           vad_destroy(struct s_vad *v);
+u_int16        vad_to_get(struct s_vad *v, u_char silence, u_char mode);
+u_int16        vad_max_could_get(struct s_vad *v);
+u_char         vad_talkspurt(struct s_vad *v);
+void           vad_dump(struct s_vad *v);
 
 #endif /* _RAT_PARAMETERS_H_ */
 
