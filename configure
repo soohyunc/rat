@@ -139,7 +139,7 @@ fi
 # Do we have osprey audio device (AKA SunVideo Plus audio)
 O1KHOME=${O1KHOME:=/opt/SUNWo1kp}
 if [ -r $O1KHOME/include/oti_audio_device.h ] ; then
-    AUDIO="$AUDIO auddev_oti.o"
+    AUDIO="$AUDIO auddev_osprey.o"
     INCLUDE="$INCLUDE -I${O1KHOME}/include"
     DEFS="$DEFS -DHAVE_OSPREY"
     echo "Osprey Audio support found"

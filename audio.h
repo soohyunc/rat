@@ -45,7 +45,6 @@
 
 #include "audio_types.h"
 
-
 #define BD_THRESHOLD    16
 #define BD_CONSECUTIVE  54
 
@@ -64,9 +63,10 @@ int     audio_get_number_of_interfaces(void);
 char*   audio_get_interface_name(int idx);
 void    audio_set_interface(int idx);
 int     audio_get_interface(void);
+int     audio_device_supports    (audio_desc_t ad, u_int16 rate, u_int16 channels);
 
 /* Audio functions implemented by device interfaces */
-int	audio_open          (audio_format *format);
+audio_desc_t	audio_open          (audio_format *format);
 void	audio_close         (audio_desc_t ad);
 void	audio_drain         (audio_desc_t ad);
 void	audio_set_gain      (audio_desc_t ad, int gain);

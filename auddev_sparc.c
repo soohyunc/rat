@@ -97,7 +97,7 @@ sparc_audio_open(audio_desc_t ad, audio_format* format)
 		dev_info.play.buffer_size   = DEVICE_BUF_UNIT * (format->sample_rate / 8000) * (format->bits_per_sample / 8);
 		dev_info.record.buffer_size = DEVICE_BUF_UNIT * (format->sample_rate / 8000) * (format->bits_per_sample / 8);
 #ifdef DEBUG
-		printf("Setting device buffer_size to %d\n", dev_info.play.buffer_size);
+		debug_msg("Setting device buffer_size to %d\n", dev_info.play.buffer_size);
 #endif /* DEBUG */
 #endif /* Solaris */
                 blocksize = format->blocksize;
@@ -117,7 +117,7 @@ sparc_audio_open(audio_desc_t ad, audio_format* format)
 			dev_info.play.encoding   = AUDIO_ENCODING_LINEAR;
 			break;
 		default:
-			printf("ERROR: Unknown audio encoding in audio_open!\n");
+			debug_msg("ERROR: Unknown audio encoding in audio_open!\n");
 			abort();
                 }
 
@@ -125,7 +125,7 @@ sparc_audio_open(audio_desc_t ad, audio_format* format)
 		if (ioctl(audio_fd[ad], AUDIO_SETINFO, (caddr_t)&tmp_info) < 0) {
 			if (format->encoding == DEV_L16) {
 #ifdef DEBUG
-				printf("Old hardware detected: can't do 16 bit audio, trying 8 bit...\n");
+				debug_msg("Old hardware detected: can't do 16 bit audio, trying 8 bit...\n");
 #endif
 				dev_info.play.precision = 8;
 				dev_info.record.precision = 8;
@@ -170,7 +170,7 @@ sparc_audio_close(audio_desc_t ad)
         }
 
 	close(audio_fd[ad]);
-	audio_fd[ad] = -1;
+	audio_fd[ad] = 0;
 }
 
 /* Flush input buffer */

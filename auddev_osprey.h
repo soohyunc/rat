@@ -1,5 +1,5 @@
 /*
- * FILE:     auddev_oti.h
+ * FILE:     auddev_osprey.h
  * PROGRAM:  RAT
  * AUTHOR:   Orion Hodson
  *
@@ -40,8 +40,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _AUDDEV_OTI_H_
-#define _AUDDEV_OTI_H_
+#ifndef _AUDDEV_OSPREY_H_
+#define _AUDDEV_OSPREY_H_
 
 int osprey_audio_init(void);
 
@@ -70,4 +70,4 @@ int  osprey_audio_get_freq  (audio_desc_t ad);
 int  osprey_audio_is_ready  (audio_desc_t ad);
 void osprey_audio_wait_for  (audio_desc_t ad, int delay_ms);
 
-#endif /* _AUDDEV_OTI_H_ */
+#endif /* _AUDDEV_OSPREY_H_ */

@@ -148,7 +148,7 @@ proc mbus_recv {cmnd args} {
 		mbus.hello			{eval mbus_recv_mbus.hello $args}
 		mbus.quit  			{eval mbus_recv_mbus.quit $args}
 		tool.rat.load.settings 		{eval mbus_recv_tool.rat.load.settings $args}
-		tool.rat.frequencies.supported 	{eval mbus_recv_tool.rat.frequencies.supported $args}
+		tool.rat.sampling.supported 	{eval mbus_recv_tool.rat.sampling.supported $args}
 		tool.rat.codec.supported  	{eval mbus_recv_tool.rat.codec.supported $args}
 		tool.rat.redundancy.supported  	{eval mbus_recv_tool.rat.redundancy.supported $args}
 		tool.rat.converter.supported	{eval mbus_recv_tool.rat.converter.supported $args}
@@ -227,22 +227,50 @@ proc mbus_recv_tool.rat.load.settings {} {
     toggle_plist
 }
 
+proc update_channels_displayed {} {
+    global freq channel_support
+
+    set m .prefs.pane.audio.dd.sampling.mchannels.menu
+    $m delete 0 last
+    
+    set s [lsearch -glob $channel_support *$freq*]
+    
+    foreach i [lrange [split [lindex $channel_support $s] ","] 1 2] {
+	$m add command -label "$i" -command "set channels $i; change_sampling"
+    }
+}
+
 proc change_sampling { } {
     global freq channels
+
+    update_channels_displayed
 
     mbus_send "R" "tool.rat.sampling" "[mbus_encode_str $freq] [mbus_encode_str $channels]"
 }
 
-proc mbus_recv_tool.rat.frequencies.supported {arg} {
-    global freq
+proc mbus_recv_tool.rat.sampling.supported {arg} {
+    global freq channel_support
+
+    #clear away old state of channel support
+    if [info exists channel_support] {
+	unset channel_support
+    }
+
+    set freqs [list]
+    set channel_support [list]
 
     .prefs.pane.audio.dd.sampling.mfreq.menu delete 0 last
 
-    set freqs [split $arg]
-    foreach f $freqs {
+    set mode [split $arg]
+    foreach m $mode {
+	lappend channel_support $m
+	set support [split $m ","]
+	set f [lindex $support 0]
+	lappend freqs $f
 	.prefs.pane.audio.dd.sampling.mfreq.menu add command -label $f -command "set freq $f; change_sampling"
     }
     set freq [lindex $freqs 0]
+    update_channels_displayed
 }
 
 proc mbus_recv_tool.rat.codec.supported {arg} {
@@ -1192,8 +1220,6 @@ menubutton $i.dd.sampling.mchannels -menu $i.dd.sampling.mchannels.menu -indicat
                                     -textvariable channels -relief raised -width 7
 pack $i.dd.sampling.mchannels -side left
 menu $i.dd.sampling.mchannels.menu -tearoff 0
-$i.dd.sampling.mchannels.menu add command -label "Mono"   -command "set channels Mono; change_sampling"
-$i.dd.sampling.mchannels.menu add command -label "Stereo" -command "set channels Stereo; change_sampling"
 set channels Mono
 
 frame $i.cks -relief sunken

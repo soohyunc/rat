@@ -290,9 +290,9 @@ main(int argc, char *argv[])
                         
                         /* Choke CPU usage */
                         if (sp[i]->have_device) {
-                                while(!audio_is_ready(sp[i]->audio_fd)) {
+/*                                while(!audio_is_ready(sp[i]->audio_fd)) { */
                                         audio_wait_for(sp[i]->audio_fd, 160);
-                                }
+/*                                } */
                         } else {
                                 usleep(20000);
                         }

@@ -1,5 +1,5 @@
 /*
- * FILE:     auddev_oti.c
+ * FILE:     auddev_osprey.c
  * PROGRAM:  RAT
  * AUTHOR:   Orion Hodson
  *
@@ -54,17 +54,28 @@
 #include "config_unix.h"
 #include "assert.h"
 #include "debug.h"
-#include "audio.h"
 #include "audio_types.h"
-#include "auddev_oti.h"
+#include "auddev_osprey.h"
 
 static int blocksize;
 static audio_info_t     dev_info;
-
+audio_format            format;
 static int audio_available = 0;
 static int audioctl_fd     = -1;
 static int audio_fd        = -1;
 static char *dlh;                /* Handle for dynamic library. */
+
+static void osprey_audio_service(void);
+
+static void 
+osprey_poll_handler(int signo)
+{
+        signal(signo, osprey_poll_handler);
+
+        debug_msg("Hello");
+        
+        osprey_audio_service();
+}
 
 #define OTI_MAX_GAIN 1.0f
 #define OTI_RAT_TO_DEVICE(x)	(((double)(x)) * (double)OTI_MAX_GAIN / (double)MAX_AMP)
@@ -119,7 +130,7 @@ int
 osprey_audio_init()
 {
         char path[255], *locenv, otipath[] = "/libotiaudio.so";
-        int err;
+        int err, success;
         dlh = NULL;
 
         /* Find and load dynamic library */
@@ -169,23 +180,7 @@ osprey_audio_init()
 
         if (err) {
                 dlclose(dlh);
-                return 0;
-        }
-        return 1;
-}
-
-/* Try to open the audio device.                        */
-/* Returns a TRUE if ok, FALSE otherwise.               */
-int
-osprey_audio_open(audio_desc_t ad, audio_format *format)
-{
-        int success, audio_fd;
-        Audio_hdr ah_play, ah_record;
-        char audctl_device[16] = "o1kctl0";
-
-        if (audio_fd != -1) {
-                osprey_audio_close(ad);
-                debug_msg("Osprey device was not closed\n");
+                return FALSE;
         }
 
         success = oti_audio_init(NULL, NULL);
@@ -194,70 +189,101 @@ osprey_audio_open(audio_desc_t ad, audio_format *format)
                 return FALSE;
         }
 
-	audio_fd = oti_open("/dev/o1k0", O_RDWR | O_NDELAY);
+        return TRUE;
+}
 
-	if (audio_fd > 0) {
-                ah_play.sample_rate      = format->sample_rate;
-                ah_play.samples_per_unit = 1;
-                ah_play.bytes_per_unit   = 2 * format->num_channels;
-                ah_play.channels         = format->num_channels;
-                ah_play.encoding         = AUDIO_ENCODING_LINEAR;
-                ah_play.endian           = AUDIO_ENDIAN_BIG;
-                ah_play.data_size        = AUDIO_UNKNOWN_SIZE; /* No effect */
+/* Try to open the audio device.                        */
+/* Returns a TRUE if ok, FALSE otherwise.               */
+int
+osprey_audio_open(audio_desc_t ad, audio_format *fmt)
+{
+        Audio_hdr ah_play, ah_record;
+        int eofm;
 
-                if (oti_audio_set_play_config(audio_fd, &ah_play) != AUDIO_SUCCESS) {
-                        debug_msg("Error setting play config\n");
-                        osprey_audio_close(ad);
-                        return FALSE;
-                }
-                
-                ah_record.sample_rate      = format->sample_rate;
-                ah_record.samples_per_unit = 1;
-                ah_record.bytes_per_unit   = 2 * format->num_channels;
-                ah_record.channels         = format->num_channels;
-                ah_record.encoding         = AUDIO_ENCODING_LINEAR;
-                ah_record.endian           = AUDIO_ENDIAN_BIG;
-                ah_record.data_size        = AUDIO_UNKNOWN_SIZE; /* No effect */
-                if (oti_audio_set_record_config(audio_fd, &ah_record) != AUDIO_SUCCESS) {
-                        debug_msg("Error setting play config\n");
-                        osprey_audio_close(ad);
-                        return FALSE;
-                }
+        char audctl_device[16] = "/dev/o1kctl0";
+        char audio_device[16]  = "/dev/o1k0";
 
-                AUDIO_INITINFO(&dev_info);
-                if (oti_audio_getinfo(audio_fd, &dev_info) != AUDIO_SUCCESS)
-                        perror("Getting info");
+        if (audio_fd != -1) {
+                osprey_audio_close(ad);
+                debug_msg("Osprey device was not closed\n");
+        }
 
-                dev_info.play.buffer_size   = format->sample_rate;
-                dev_info.record.buffer_size = format->sample_rate;
-                if (oti_audio_setinfo(audio_fd, &dev_info) != AUDIO_SUCCESS)
-                        perror("Setting info");
+        signal(SIGPOLL, osprey_poll_handler);
+
+	audio_fd = oti_open(audio_device, O_RDWR | O_NDELAY);
+
+        if (audio_fd <= 0) {
+                audio_fd = -1;
+                return FALSE;
+        }
 /*
-                signal(SIGPOLL, audio_poll_handler);
-                poll_enabled = 1;
-
-                if (oti_ioctl(audio_fd, I_SETSIG, (void*)(S_INPUT | S_OUTPUT | S_MSG)) < AUDIO_SUCCESS) {
-                        perror("I_SETSIG ioctl");
-                        exit(-1);
-                }
-                */
-                 if ((audioctl_fd = oti_open(audctl_device, O_RDWR))<0){
-                         fprintf(stderr,"could not open audio ctl device\n");
-                         osprey_audio_close(ad);
-                         return FALSE;
-                 }   
+        if (oti_ioctl(audio_fd, I_SETSIG, (void*)(S_INPUT | S_OUTPUT | S_MSG)) < AUDIO_SUCCESS) {
+                perror("I_SETSIG ioctl(audio_fd)");
+                exit(-1);
+        }
+        */
+        if ((audioctl_fd = oti_open(audctl_device, O_RDWR))<0){
+                fprintf(stderr,"could not open audio ctl device\n");
+                osprey_audio_close(ad);
+                return FALSE;
+        }   
 /*
-                 if (oti_ioctl(audioctl_fd, I_SETSIG, (void*)(S_MSG)) < 0){
-                         oti_close(audioctl_fd);
-                         oti_close(audio_fd);
-                         return -1;
-                 }
-                 audio_drain(audio_fd);
-                 */               
+        if (oti_ioctl(audioctl_fd, I_SETSIG, (void*)(S_MSG)) < 0){
+                perror("I_SETSIG ioctl(audioctl_fd)");
+                osprey_audio_close(ad);
+                return FALSE;
+        }
+        */
+        memcpy(&format, fmt, sizeof(audio_format));
 
-		return TRUE;
-	}
-        return FALSE;
+        ah_play.sample_rate      = fmt->sample_rate; 
+        ah_play.samples_per_unit = 1;
+        ah_play.bytes_per_unit   = 2 * fmt->num_channels;
+        ah_play.channels         = fmt->num_channels;
+        ah_play.encoding         = AUDIO_ENCODING_LINEAR;
+        ah_play.endian           = AUDIO_ENDIAN_BIG;
+        ah_play.data_size        = AUDIO_UNKNOWN_SIZE; /* No effect */
+        memcpy(&ah_record, &ah_play, sizeof(ah_play));
+
+        oti_audio_pause_record(audio_fd);
+        oti_audio_flush_record(audio_fd);
+
+        AUDIO_INITINFO(&dev_info);
+        dev_info.play.buffer_size   = 8000 /*fmt->sample_rate*/;
+        dev_info.record.buffer_size = 8000 /*fmt->sample_rate*/;
+
+        if (oti_audio_setinfo(audio_fd, &dev_info) != AUDIO_SUCCESS)
+                perror("Setting info");
+        
+        if (oti_audio_set_play_config(audio_fd, &ah_play) != AUDIO_SUCCESS) {
+                debug_msg("Error setting play config\n");
+                osprey_audio_close(ad);
+                return FALSE;
+        }
+
+        eofm = 0;
+        oti_audio_set_play_eof(audio_fd, &eofm);
+        
+        if (oti_audio_set_record_config(audio_fd, &ah_record) != AUDIO_SUCCESS) {
+                debug_msg("Error setting play config\n");
+                osprey_audio_close(ad);
+                return FALSE;
+        }
+        
+        oti_audio_pause_record(audio_fd);
+        
+        AUDIO_INITINFO(&dev_info);
+        dev_info.record.pause = 0;
+        dev_info.record.samples = 0;
+        dev_info.record.error = 0;
+        dev_info.play.pause = 0;
+        dev_info.play.samples = 0;
+        dev_info.play.error = 0;
+        oti_audio_setinfo(audio_fd, &dev_info);
+        
+        oti_audio_flush_record(audio_fd);
+        
+        return TRUE;
 }
 
 /* Close the audio device */
@@ -266,8 +292,11 @@ osprey_audio_close(audio_desc_t ad)
 {
         UNUSED(ad);
 
-        if (audio_fd != -1) 
+        if (audio_fd != -1) {
+                oti_audio_pause(audio_fd);
+                oti_audio_flush(audio_fd);
                 oti_close(audio_fd);
+        }
 
         if (audioctl_fd != -1)
                 oti_close(audioctl_fd);
@@ -279,10 +308,13 @@ osprey_audio_close(audio_desc_t ad)
 void
 osprey_audio_drain(audio_desc_t ad)
 {
+/*        oti_audio_drain(audio_fd, FALSE);  
+
         audio_info_t tmpinfo;
 
         oti_audio_pause(audio_fd);
         AUDIO_INITINFO(&tmpinfo);
+        oti_audio_getinfo(audio_fd, &tmpinfo);
         tmpinfo.record.pause   = 0;
         tmpinfo.record.samples = 0;
         tmpinfo.record.error   = 0;
@@ -290,9 +322,9 @@ osprey_audio_drain(audio_desc_t ad)
         tmpinfo.play.samples   = 0;
         tmpinfo.play.error     = 0;
 
-        oti_audio_setinfo(audio_fd, &tmpinfo);
-/*      oti_audio_flush(audio_fd); */
-        oti_audio_resume(audio_fd);
+        oti_audio_setinfo(audio_fd, &tmpinfo); 
+
+        oti_audio_resume(audio_fd); */
 
         UNUSED(ad);
 }
@@ -369,8 +401,6 @@ osprey_audio_read(audio_desc_t ad, sample *buf, int samples)
 
         if ((read_size = osprey_audio_is_ready(audio_fd))) {
 
-                /* Underflow check for Sun's /dev/audio */
-
                 oti_audio_get_record_error(audio_fd, &error);
                 if (error){
                         error = 0;
@@ -379,7 +409,7 @@ osprey_audio_read(audio_desc_t ad, sample *buf, int samples)
                 }
 
                 len=oti_read(audio_fd, (char *)buf, samples * BYTES_PER_SAMPLE);
-                debug_msg("read %d bytes\n", len);
+/*                debug_msg("read %d bytes\n", len); */
                 if (len < 0) {
                         return 0;
                 } 
@@ -546,24 +576,73 @@ osprey_audio_get_freq(audio_desc_t ad)
 int 
 osprey_audio_is_ready(audio_desc_t ad)
 {
-        int read_size;
+
+        audio_info_t tmpinfo;
 
         UNUSED(ad); assert(audio_fd > 0);
+
+        oti_audio_getinfo(audio_fd, &tmpinfo);
+
+        if (tmpinfo.record.samples >= (unsigned)format.blocksize && tmpinfo.record.samples < 0x00ffffff) {
+/*                debug_msg("samples available = %d pause %d error %d active %d buffer size %d\n", tmpinfo.record.samples, tmpinfo.record.pause, tmpinfo.record.error, tmpinfo.record.active, tmpinfo.record.buffer_size); */
+                return tmpinfo.record.samples;
+        } else {
+                return 0;
+        }
+
+        
+/*        int read_size;
+
 
         if (oti_ioctl(audio_fd, FIONREAD, &read_size) < 0) {
                 debug_msg("oti_ioctl FIONREAD\n");
         }
 
-        debug_msg("Audio ready %d bytes\n", read_size);
-
         return (read_size);
+        */
+
+
 }
 
 void
 osprey_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
-        UNUSED(ad);
-        UNUSED(delay_ms);
+        int len, us;
+        struct timeval tv;
+
+        signal(SIGPOLL, osprey_poll_handler);
+
+        len = osprey_audio_is_ready(ad);
+        
+        if (len >= format.blocksize) return;
+
+        if (len != 0) {
+                us = 1000000 * len / (format.num_channels * BYTES_PER_SAMPLE * format.sample_rate);
+                us= min(delay_ms * 1000, us);
+        } else {
+                us = delay_ms;
+        }                
+        
+        tv.tv_sec = 0;
+        tv.tv_usec = delay_ms;
+        poll(0,0,delay_ms);
+/*         select(0, NULL, NULL, NULL, &tv); */
+        
+}
+
+static void 
+osprey_audio_service()
+{
+        static int inservice = FALSE;
+
+        if (inservice) return;
+        inservice = TRUE;
+
+        audio_available++;
+
+        debug_msg("Audio available %d\n", audio_available);
+
+        inservice = FALSE;
 }
 
 #endif /* HAVE_OSPREY */

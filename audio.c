@@ -449,68 +449,6 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
         return (read_dur);
 }
 
-#ifdef BAR
-
-#if  !defined(WIN32) && !defined(OTI_AUDIO)
-int 
-audio_is_ready(int audio_fd)
-{
-        struct timeval tv;
-        fd_set afds;
-
-        memset(&tv, 0, sizeof(struct timeval));
-        FD_ZERO(&afds);
-        FD_SET(audio_fd,&afds);
-        select(audio_fd+1, &afds, NULL, NULL, &tv);
-        return FD_ISSET(audio_fd, &afds);
-}
-
-#endif
-
-void
-audio_wait_for(session_struct *sp)
-{
-#ifdef WIN32
-        DWORD   dwPeriod;
-        codec_t *cp;
-        
-        cp = get_codec_by_pt(sp->encodings[0]);
-        dwPeriod = cp->unit_len / 2  * 1000 / get_freq(sp->device_clock);
-        /* The blocks we are passing to the audio interface are of duration dwPeriod.
-         * dwPeriod is usually around 20ms (8kHz), but mmtask often doesn't give
-         * us audio that often, more like every 40ms.
-         */
-        while (!audio_is_ready(sp->audio_fd)) {
-                Sleep(dwPeriod);
-        }
-
-#elif defined(OTI_AUDIO)
-
-        u_int32   period;
-        codec_t *cp;
-        
-        cp = get_codec_by_pt(sp->encodings[0]);
-        period = cp->unit_len / 2 * 1000 / get_freq(sp->device_clock);
-        poll(NULL, 0, period);
-
-#else /* UN*X with select on audio file descriptor */
-        fd_set rfds;
-        codec_t *cp;
-        struct timeval tv;
-
-        cp         = get_codec_by_pt(sp->encodings[0]);
-        tv.tv_sec  = 0;
-        tv.tv_usec = cp->unit_len / 2 * 1000 / get_freq(sp->device_clock);
-
-        FD_ZERO(&rfds);
-        FD_SET(sp->audio_fd,&rfds);
-        select(sp->audio_fd+1, &rfds, NULL, NULL, &tv);
-#endif
-        return;
-}
-
-#endif /* BAR */
-
 #define AUDIO_INTERFACE_NAME_LEN 32
 
 typedef struct {
@@ -563,6 +501,19 @@ static int num_active_interfaces = 0;
 /* This is the index of the next audio interface that audio_open */
 static int selected_interface = 0;
 
+/* This is used to store the device formats supported */
+static u_int32 if_support[AUDIO_MAX_INTERFACES];
+
+/* Macros for format support manipulation */
+#define AUDIO_FMT_ZERO 0
+#define AUDIO_INIT_FMT_SUPPORT(mask) (mask) = AUDIO_FMT_ZERO
+#define AUDIO_ADD_FMT_SUPPORT(mask, freq, channels) (mask) |= (1 << ((2*(freq)/8000) + channels - 3))
+#define AUDIO_GET_FMT_SUPPORT(mask, freq, channels) ((1 << ((2*freq/8000) + channels - 3)) & mask)
+#define AUDIO_HAVE_PROBED(mask) (mask != AUDIO_FMT_ZERO)
+
+static int audio_probe_support(int);
+static int am_probing;
+
 /* We map indexes outside range for file descriptors so people don't attempt
  * to circumvent audio interface.  If something is missing it should be added
  * to the interfaces...
@@ -609,7 +560,7 @@ audio_get_interface()
         return selected_interface;
 }
 
-int 
+audio_desc_t
 audio_open(audio_format *format)
 {
         audio_if_t *aif;
@@ -617,6 +568,12 @@ audio_open(audio_format *format)
 
         aif = &audio_interfaces[selected_interface];
         assert(aif->audio_if_open);
+
+        /* Have we probed supported formats for this card ? */
+        if (am_probing == FALSE && AUDIO_HAVE_PROBED(selected_interface) == AUDIO_FMT_ZERO) {
+                /* First time we open device expect some latency... */
+                audio_probe_support(selected_interface);
+        }
 
         if (aif->audio_if_open(selected_interface, format)) {
                 /* Add selected interface to those active*/
@@ -628,7 +585,6 @@ audio_open(audio_format *format)
 
         return 0;
 }
-
 
 void
 audio_close(audio_desc_t ad)
@@ -896,6 +852,68 @@ audio_wait_for(audio_desc_t ad, int delay_ms)
 /* Code for adding/initialising/removing audio interfaces */
 
 static int
+audio_probe_support(int idx)
+{
+        int rate, channels, support, active_if;
+        audio_format format;
+        audio_desc_t ad;
+
+        /* Note no magic processing on ad since this function is
+         * only used by audio interface functions.
+         */
+
+        assert(idx < num_interfaces);
+
+        am_probing = TRUE;
+
+        active_if = selected_interface;
+
+        audio_set_interface(idx);
+
+        format.encoding        = DEV_L16;
+        format.bits_per_sample = 16;
+        format.blocksize       = 320;
+
+        AUDIO_INIT_FMT_SUPPORT(support);
+
+        for (rate = 8000; rate <= 48000; rate += 8000) {
+                if (rate == 24000 || rate == 40000) continue;
+                for(channels = 1; channels <= 2; channels++) {
+                        format.num_channels = channels;
+                        format.sample_rate  = rate;
+                        ad = audio_open(&format);
+                        if (ad) {
+                                AUDIO_ADD_FMT_SUPPORT(support, rate, channels);
+                                audio_close(ad);
+                        }
+                }
+        }
+
+        audio_set_interface(active_if);
+
+        am_probing = FALSE;
+        
+        if_support[idx] = support;
+
+        return support;
+}
+
+int
+audio_device_supports(audio_desc_t ad, u_int16 rate, u_int16 channels)
+{
+        int supported;
+        ad = AIF_MAGIC_TO_IDX(ad);
+
+        if (rate % 8000 || channels > 2) {
+                debug_msg("Invalid combo %d Hz %d channels\n", rate, channels);
+                return FALSE;
+        }
+        supported = AUDIO_GET_FMT_SUPPORT(if_support[ad], rate, channels) ? 1 : 0;
+        debug_msg("rate %d channels %d support %d\n", rate, channels, supported);
+        return supported;
+}
+
+static int
 audio_add_interface(audio_if_t *aif_new)
 {
         if ((aif_new->audio_if_init == NULL || aif_new->audio_if_init()) &&
@@ -909,8 +927,8 @@ audio_add_interface(audio_if_t *aif_new)
 }
 
 #include "auddev_luigi.h"
+#include "auddev_osprey.h"
 #include "auddev_oss.h"
-#include "auddev_oti.h"
 #include "auddev_pca.h"
 #include "auddev_sparc.h"
 #include "auddev_sgi.h"

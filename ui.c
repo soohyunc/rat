@@ -595,6 +595,7 @@ ui_update(session_struct *sp)
         ui_codecs(sp, sp->encodings[0]);
         ui_devices(sp);
         ui_device(sp);
+        ui_sampling_modes(sp);
         ui_converters(sp);
         ui_update_frequency(sp);
         ui_update_channels(sp);
@@ -846,13 +847,37 @@ ui_converters(session_struct *sp)
 void
 ui_sampling_modes(session_struct *sp)
 {
-	char	*freqs;
+	char	*mbes;
+        char    modes[255]="";
+        char    tmp[22];
+        u_int16 rate, channels, support, zap;
+        
+        for(rate = 8000; rate <=48000; rate += 8000) {
+                support = 0;
+                for(channels = 1; channels <= 2; channels++) {
+                        if (audio_device_supports(sp->audio_fd, rate, channels)) support += channels;
+                }
+                switch(support) {
+                case 3: sprintf(tmp, "%d-kHz,Mono,Stereo ", rate/1000); break; 
+                case 2: sprintf(tmp, "%d-kHz,Stereo ", rate/1000);      break;
+                case 1: sprintf(tmp, "%d-kHz,Mono ", rate/1000);        break;
+                case 0: continue;
+                }
+                strcat(modes, tmp);
+        }
 
-        UNUSED(sp);
-        /* this is just a quick con job for the moment */
-	freqs = mbus_encode_str("8-kHz 16-kHz 32-kHz 48-kHz");
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.frequencies.supported", freqs, TRUE);
-	xfree(freqs);
+        debug_msg("Sampling modes: %s\n", modes);
+
+        /* Remove trailing space */
+        zap = strlen(modes);
+        if (zap) {
+                zap -= 1;
+                modes[zap] = '\0';
+        }
+
+	mbes = mbus_encode_str(modes);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.sampling.supported", mbes, TRUE);
+	xfree(mbes);
 }
 
 void
