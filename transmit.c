@@ -428,7 +428,7 @@ tx_encode(struct s_codec_state_store *css,
 
         cf = codec_get_format(id);
         cs = codec_state_store_get(css, id);
-        return codec_encode(cs, buf, cf->format.bytes_per_block, cu);
+        return codec_encode(cs, buf, (u_int16)cf->format.bytes_per_block, cu);
 }
 
 void

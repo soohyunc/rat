@@ -392,7 +392,7 @@ ui_repair(session_struct *sp)
 {
 	char	*mbes;
 
-        mbes = mbus_encode_str(repair_get_name(sp->repair));
+        mbes = mbus_encode_str(repair_get_name((u_int16)sp->repair));
 	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.repair", mbes, FALSE);
 	xfree(mbes);
 }
@@ -826,7 +826,7 @@ ui_get_codecs(int pt, char *buf, unsigned int buf_len, int loose)
         char *bp = buf;
         
         codec_cnt = codec_get_number_of_codecs();
-        sel_id    = codec_get_by_payload(pt);
+        sel_id    = codec_get_by_payload((u_char)pt);
         
         nc = 0;
         for (i = 0; i < codec_cnt && nc < 100; i++) {
@@ -960,7 +960,7 @@ ui_repair_schemes(session_struct *sp)
         
         buf[0] = '\0';
         for(i = cnt - 1; i >= 0; i--) {
-                strcat(buf, repair_get_name(i));
+                strcat(buf, repair_get_name((u_char)i));
                 if (i) strcat(buf, ",");
         }
         
