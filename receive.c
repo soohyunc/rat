@@ -356,6 +356,7 @@ destroy_playout_buffers(ppb_t **list)
                 xfree(p);
                 p = *list;
         }
+        *list = NULL;
 }
 
 static ppb_t *
