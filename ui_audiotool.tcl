@@ -11,30 +11,26 @@ catch {profile on}
 
 if {[string compare [info commands registry] "registry"] == 0} {
 	set win32 1
-	set statsfont     {helvetica 10}
-	set titlefont     {helvetica 10}
-	set infofont      {helvetica 10}
-	set smallfont     {helvetica  8}
-	set verysmallfont {helvetica  8}
 } else {
 	set win32 0
-	set statsfont     -*-helvetica-normal-r-normal--10-*-p-*-iso8859-1
-	set titlefont     -*-helvetica-medium-r-normal--14-*-p-*-iso8859-1
-	set infofont      -*-helvetica-medium-r-normal--12-*-p-*-iso8859-1
-	set smallfont     -*-helvetica-medium-r-normal--10-*-p-*-iso8859-1
-	set verysmallfont -*-courier-medium-o-normal--8-*-m-*-iso8859-1
-	option add *Menu*selectColor 		forestgreen widgetDefault
-	option add *Radiobutton*selectColor forestgreen widgetDefault
-	option add *Checkbutton*selectColor forestgreen widgetDefault 
-	option add *Entry.background 		gray70 		widgetDefault
+	option add *Menu*selectColor 		forestgreen
+	option add *Radiobutton*selectColor 	forestgreen
+	option add *Checkbutton*selectColor 	forestgreen
+	option add *Entry.background 		gray70
 }
 
-option add *Entry.relief            sunken      widgetDefault
-option add *borderWidth 		1
+set statsfont     {helvetica 10}
+set titlefont     {helvetica 10}
+set infofont      {helvetica 10}
+set smallfont     {helvetica  8}
+set verysmallfont {helvetica  8}
+
+option add *Entry.relief	sunken 
+option add *borderWidth 	1
 option add *highlightThickness	0
-option add *padx			0
-option add *pady			0
-option add *font $infofont
+option add *padx		0
+option add *pady		0
+option add *font 		$infofont
 
 set V(class) "Mbone Applications"
 set V(app)   "rat"
@@ -430,7 +426,7 @@ proc mbus_recv_source.packet.loss {dest srce loss} {
 		set LOSS_TO_ME($srce) $loss
 	}
 	if {[string compare $srce $my_cname] == 0} {
-		set LOSS_TO_ME($dest) $loss
+		set LOSS_FROM_ME($dest) $loss
 	}
 	cname_update $srce
 	cname_update $dest
@@ -464,13 +460,13 @@ proc mbus_recv_source.inactive {cname} {
 
 proc mbus_recv_source.remove {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER BUFFER_SIZE
-	global LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED num_cname mylosstimers his_or_her_losstimers
+	global LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED num_cname loss_to_me_timer loss_from_me_timer
 
 	# Disable updating of loss diamonds. This has to be done before we destroy the
 	# window representing the participant, else the background update may try to 
 	# access a window which has been destroyed...
-	catch {after cancel $mylosstimers($cname)}
-	catch {after cancel $his_or_her_losstimers($cname)}
+	catch {after cancel $loss_to_me_timer($cname)}
+	catch {after cancel $loss_from_me_timer($cname)}
 
 	catch [destroy [window_plist $cname]]
 
@@ -495,14 +491,11 @@ proc mbus_recv_quit {} {
 	destroy .
 }
 
-set prev_loss_to_me 0
 proc set_loss_to_me {cname loss} {
-	global prev_loss_to_me
+	global prev_loss_to_me loss_to_me_timer
 
-	if {$prev_loss_to_me == $loss} {
-		return
-	}
-	set prev_loss_to_me $loss
+	catch {after cancel $loss_to_me_timer($cname)}
+	set loss_to_me_timer($cname) [after 7500 catch \"[window_plist $cname] itemconfigure h -fill grey\"]
 
 	if {$loss < 5} {
 		catch [[window_plist $cname] itemconfigure m -fill green]
@@ -515,14 +508,11 @@ proc set_loss_to_me {cname loss} {
 	}
 }
 
-set prev_loss_from_me 0
 proc set_loss_from_me {cname loss} {
-	global prev_loss_from_me
+	global prev_loss_from_me loss_from_me_timer
 
-	if {$prev_loss_from_me == $loss} {
-		return
-	}
-	set prev_loss_from_me $loss
+	catch {after cancel $loss_from_me_timer($cname)}
+	set loss_from_me_timer($cname) [after 7500 catch \"[window_plist $cname] itemconfigure h -fill grey\"]
 
 	if {$loss < 5} {
 		catch [[window_plist $cname] itemconfigure h -fill green]
@@ -539,7 +529,7 @@ proc cname_update {cname} {
 	# This procedure updates the on-screen representation of
 	# a participant. 
 	global NAME LOSS_TO_ME LOSS_FROM_ME
-	global fw iht iwd my_cname mylosstimers his_or_her_losstimers
+	global fw iht iwd my_cname 
 
 	set cw [window_plist $cname]
 
@@ -568,12 +558,7 @@ proc cname_update {cname} {
 	}
 
 	set_loss_to_me $cname $LOSS_TO_ME($cname)
-	catch {after cancel $mylosstimers($cname)}
-	set mylosstimers($cname) [after 7500 set_loss_to_me \"$cname\" 101]
-
 	set_loss_from_me $cname $LOSS_FROM_ME($cname)
-	catch {after cancel $his_or_her_losstimers($cname)}
-	set his_or_her_losstimers($cname) [after 7500 set_loss_from_me \"$cname\" 101]
 }
 
 #power meters
@@ -665,10 +650,10 @@ proc info_timer {} {
 proc stats_add_field {widget label watchVar} {
     global statsfont
     frame $widget -relief sunk 
-    label $widget.l -text $label -font $statsfont
+    label $widget.l -text $label -font $statsfont -anchor w
     label $widget.w -textvariable $watchVar -font $statsfont
     pack $widget -side top -fill x -expand 1 
-    pack $widget.l  -side left
+    pack $widget.l -side left  -fill x -expand 1
     pack $widget.w -side right 
 }
 
@@ -689,19 +674,20 @@ proc toggle_stats {cname} {
 	pack $win.mf.l $win.mf.mb -side left
 	menu $win.mf.mb.menu -tearoff 0
 	$win.mf.mb.menu add command -label "Personal Details" -command "set_pane stats_pane($win) $win.df \"Personal Details\""
-	$win.mf.mb.menu add command -label "Reception" -command "set_pane stats_pane($win) $win.df Reception"
+	$win.mf.mb.menu add command -label "Reception"        -command "set_pane stats_pane($win) $win.df Reception"
 
 	set stats_pane($win) "Personal Details"
 	frame $win.df 
 	frame $win.df.personal
-	pack  $win.df $win.df.personal
-	global NAME EMAIL PHONE LOC NOTE CNAME 
+	pack  $win.df $win.df.personal -fill x 
+	global NAME EMAIL PHONE LOC NOTE CNAME TOOL
 	stats_add_field $win.df.personal.1 "Name: "     NAME($cname)
 	stats_add_field $win.df.personal.2 "Email: "    EMAIL($cname)
 	stats_add_field $win.df.personal.3 "Phone: "    PHONE($cname)
 	stats_add_field $win.df.personal.4 "Location: " LOC($cname)
 	stats_add_field $win.df.personal.5 "Note: "     NOTE($cname)
-	stats_add_field $win.df.personal.6 "CName: "    CNAME($cname)
+	stats_add_field $win.df.personal.6 "Tool: "     TOOL($cname)
+	stats_add_field $win.df.personal.7 "CNAME: "    CNAME($cname)
 
 	frame $win.df.reception
 	global CODEC DURATION BUFFER_SIZE PCKTS_RECV PCKTS_LOST PCKTS_MISO \
@@ -721,7 +707,7 @@ proc toggle_stats {cname} {
 	button $win.d -highlightthickness 0 -padx 0 -pady 0 -text "Dismiss" -command "destroy $win" 
 	pack $win.d -side bottom -fill x
 	wm title $win "Participant $NAME($cname)"
-	wm resizable $win 0 0
+	wm resizable $win 1 0
 	constrain_window $win 0 200 20 0
     }
 }
