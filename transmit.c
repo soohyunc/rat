@@ -250,10 +250,8 @@ tx_read_audio(tx_buffer *tb)
 {
         session_struct  *sp;
         tx_unit 	*u;
-        u_int32          ulen, freq;
+        u_int32          read_dur = 0, this_read, ulen, freq;
         ts_t             u_ts;
-        unsigned int	 read_dur = 0;
-        unsigned int     this_read;
 
         assert(tb->channels > 0 && tb->channels <= 2);
 
@@ -294,16 +292,19 @@ tx_read_audio(tx_buffer *tb)
         } else {
                 /* We're not sending, but have access to the audio device. Read the audio anyway. */
                 /* to get exact timing values, and then throw the data we've just read away...    */
-                read_dur = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 16) / sp->tb->channels;
+                read_dur = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 4) / sp->tb->channels;
                 time_advance(sp->clock, get_freq(sp->tb->clock), read_dur);
         }
-        
-        if ((double)read_dur > 3.0 * sp->tb->mean_read_dur) {
-                debug_msg("read_len big (%d cf %0.0f)\n",
-                          read_dur,
-                          sp->tb->mean_read_dur);
-        } 
 
+        if (read_dur >= (u_int32)(DEVICE_REC_BUF / (4 * tb->channels))) {
+                debug_msg("Read a lot of audio %d\n", read_dur);
+                if (tb->sending_audio) {
+                        debug_msg("Resetting transmitter\n");
+                        tx_stop(tb);
+                        tx_start(tb);
+                }
+        }
+        
         if (read_dur) {
                 sp->tb->mean_read_dur += ((double)read_dur - sp->tb->mean_read_dur) / 8.0;
         }
