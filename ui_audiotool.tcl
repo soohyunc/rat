@@ -268,13 +268,13 @@ proc mbus_recv_repair {arg} {
 }
 
 proc mbus_recv_powermeter.input {level} {
-	global bargraphHeight
-	bargraphSetHeight .r.c.gain.b2 [expr ($level * $bargraphHeight) / 100]
+	global bargraphTotalHeight
+	bargraphSetHeight .r.c.gain.b2 [expr ($level * $bargraphTotalHeight) / 100]
 }
 
 proc mbus_recv_powermeter.output {level} {
-	global bargraphHeight
-	bargraphSetHeight .r.c.vol.b1  [expr ($level * $bargraphHeight) / 100]
+	global bargraphTotalHeight
+	bargraphSetHeight .r.c.vol.b1  [expr ($level * $bargraphTotalHeight) / 100]
 }
 
 proc mbus_recv_input.gain {new_gain} {
@@ -366,21 +366,21 @@ proc mbus_recv_source.email {cname email} {
 	global EMAIL
 	init_source $cname
 	set EMAIL($cname) $email
-	cname_update $cname
+	update_stats $cname
 }
 
 proc mbus_recv_source.phone {cname phone} {
 	global PHONE
 	init_source $cname
 	set PHONE($cname) $phone
-	cname_update $cname
+	update_stats $cname
 }
 
 proc mbus_recv_source.loc {cname loc} {
 	global LOC
 	init_source $cname
 	set LOC($cname) $loc
-	cname_update $cname
+	update_stats $cname
 }
 
 proc mbus_recv_source.tool {cname tool} {
@@ -390,28 +390,28 @@ proc mbus_recv_source.tool {cname tool} {
 	if {[string compare $cname $my_cname] == 0} {
 	    wm title . "UCL $tool"
 	}
-	cname_update $cname
+	update_stats $cname
 }
 
 proc mbus_recv_source.note {cname note} {
 	global NOTE
 	init_source $cname
 	set NOTE($cname) $note
-	cname_update $cname
+	update_stats $cname
 }
 
 proc mbus_recv_source.codec {cname codec} {
 	global CODEC
 	init_source $cname
 	set CODEC($cname) $codec
-	cname_update $cname
+	update_stats $cname
 }
 
 proc mbus_recv_source.packet.duration {cname packet_duration} {
 	global DURATION
 	init_source $cname
 	set DURATION($cname) $packet_duration
-	cname_update $cname
+	update_stats $cname
 }
 
 proc mbus_recv_source.audio.buffered {cname buffered} {
@@ -447,7 +447,7 @@ proc mbus_recv_source.reception {cname packets_recv packets_lost packets_miso pa
 	set PCKTS_DUP($cname)  $packets_dup
 	set JITTER($cname) $jitter
 	set JIT_TOGED($cname) $jit_tog
-	cname_update $cname
+	update_stats $cname
 }
 
 proc mbus_recv_source.active.now {cname} {
@@ -498,7 +498,15 @@ proc mbus_recv_quit {} {
 	destroy .
 }
 
+set prev_loss_to_me 0
 proc set_loss_to_me {cname loss} {
+	global prev_loss_to_me
+
+	if {$prev_loss_to_me == $loss} {
+		return
+	}
+	set prev_loss_to_me $loss
+
 	if {$loss < 5} {
 		catch [[window_plist $cname] itemconfigure m -fill green]
 	} elseif {$loss < 10} {
@@ -510,7 +518,15 @@ proc set_loss_to_me {cname loss} {
 	}
 }
 
+set prev_loss_from_me 0
 proc set_loss_from_me {cname loss} {
+	global prev_loss_from_me
+
+	if {$prev_loss_from_me == $loss} {
+		return
+	}
+	set prev_loss_from_me $loss
+
 	if {$loss < 5} {
 		catch [[window_plist $cname] itemconfigure h -fill green]
 	} elseif {$loss < 10} {
@@ -525,22 +541,15 @@ proc set_loss_from_me {cname loss} {
 proc cname_update {cname} {
 	# This procedure updates the on-screen representation of
 	# a participant. 
-	global CNAME NAME EMAIL LOC PHONE TOOL NOTE INDEX 
-	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP LOSS_TO_ME LOSS_FROM_ME
+	global NAME LOSS_TO_ME LOSS_FROM_ME
 	global fw iht iwd my_cname mylosstimers his_or_her_losstimers
-
-	if {[array names INDEX $cname] != [list $cname]} {
-		error "Can't update \"$cname\", source doesn't exist."
-	}
 
 	set cw [window_plist $cname]
 
 	if {[winfo exists $cw]} {
 		$cw itemconfigure t -text $NAME($cname)
-		if {[regexp {^\{?RAT} $TOOL($cname)]} {
-			$cw itemconfigure t -fill DarkSlateGrey
-		}
 	} else {
+		# Add this participant to the list...
 		set thick 0
 		set l $thick
 		set h [expr $iht / 2 + $thick]
@@ -553,15 +562,14 @@ proc cname_update {cname} {
 		bind $cw <Button-1>         "toggle_stats \"$cname\""
 		bind $cw <Button-2>         "toggle_mute $cw \"$cname\""
 		bind $cw <Control-Button-1> "toggle_mute $cw \"$cname\""
+
+		if {[info exists my_cname] && ([string compare $cname $my_cname] == 0) && ([pack slaves $fw] != "")} {
+			pack $cw -before [lindex [pack slaves $fw] 0] -fill x
+		}
+		pack $cw -fill x
+		fix_scrollbar
 	}
 
-	# Add this participant to the list...
-	if {[info exists my_cname] && ([string compare $cname $my_cname] == 0) && ([pack slaves $fw] != "")} {
-		pack $cw -before [lindex [pack slaves $fw] 0] -fill x
-	}
-	pack $cw -fill x
-
-	fix_scrollbar
 	update_stats $cname
 
 	set_loss_to_me $cname $LOSS_TO_ME($cname)
@@ -576,15 +584,16 @@ proc cname_update {cname} {
 #power meters
 
 # number of elements in the bargraphs...
-set bargraphHeight 24
+set bargraphTotalHeight 24
+set bargraphRedHeight [expr $bargraphTotalHeight * 0.75] 
 
 proc bargraphCreate {bgraph} {
-	global oh$bgraph bargraphHeight
+	global oh$bgraph bargraphTotalHeight
 
 	frame $bgraph -bg black
 	frame $bgraph.inner0 -width 8 -height 6 -bg green
 	pack $bgraph.inner0 -side left -padx 0 -fill both -expand true
-	for {set i 1} {$i < $bargraphHeight} {incr i} {
+	for {set i 1} {$i < $bargraphTotalHeight} {incr i} {
 		frame $bgraph.inner$i -width 8 -height 8 -bg black
 		pack $bgraph.inner$i -side left -padx 0 -fill both -expand true
 	}
@@ -593,18 +602,23 @@ proc bargraphCreate {bgraph} {
 
 proc bargraphSetHeight {bgraph height} {
 	upvar #0 oh$bgraph oh 
-	global bargraphHeight
+	global bargraphTotalHeight bargraphRedHeight
 
 	if {$oh > $height} {
 		for {set i [expr $height + 1]} {$i <= $oh} {incr i} {
 			$bgraph.inner$i config -bg black
 		}
 	} else {
-		for {set i [expr $oh + 1]} {$i <= $height} {incr i} {
-			if {$i > ($bargraphHeight * 0.75)} {
-				$bgraph.inner$i config -bg red
-			} else {
+		if {$bargraphRedHeight > $height} {
+			for {set i [expr $oh + 1]} {$i <= $height} {incr i} {
 				$bgraph.inner$i config -bg green
+			}
+		} else {
+			for {set i [expr $oh + 1]} {$i <= $bargraphRedHeight} {incr i} {
+				$bgraph.inner$i config -bg green
+			}
+			for {set i $bargraphRedHeight} {$i <= $height} {incr i} {
+				$bgraph.inner$i config -bg red
 			}
 		}
 	}
@@ -654,38 +668,40 @@ proc info_timer {} {
 }
 
 proc update_stats {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL NOTE
-	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME JIT_TOGED BUFFER_SIZE
-
-	set loss_to_me   "unknown"
-	set loss_from_me "unknown"
-
-	if {[winfo exists [window_stats $cname]]} {
-		if {$LOSS_TO_ME($cname) != 101} {
-			set loss_to_me "$LOSS_TO_ME($cname)%"
-		}
-		if {$LOSS_FROM_ME($cname) != 101} {
-			set loss_from_me "$LOSS_FROM_ME($cname)%"
-		}
-		[window_stats $cname].m configure -text " Name:                        $NAME($cname)\n\
-	                                	          Email:                       $EMAIL($cname)\n\
-				        	          Phone:                       $PHONE($cname)\n\
-				        	          Location:                    $LOC($cname)\n\
-				        	          Tool:                        $TOOL($cname)\n\
-							  Note:			       $NOTE($cname)\n\
-				        	          CNAME:                       $CNAME($cname)\n\
-				        	          Audio Encoding:              $CODEC($cname)\n\
-				        	          Packet duration:             $DURATION($cname)ms\n\
-							  Buffered Audio:              $BUFFER_SIZE($cname)ms\n\
-				        	          Total packets received:      $PCKTS_RECV($cname)\n\
-				        	          Total packets lost:          $PCKTS_LOST($cname)\n\
-				        	          Total packets misordered:    $PCKTS_MISO($cname)\n\
-				        	          Total packets duplicated:    $PCKTS_DUP($cname)\n\
-				        	          Current packet loss to me:   $loss_to_me\n\
-						          Current packet loss from me: $loss_from_me\n\
-				        	          Network timing jitter:       $JITTER($cname)\n\
-							  Total units lost (jitter):   $JIT_TOGED($cname)\n"
+	if {![winfo exists [window_stats $cname]]} {
+		# Nothing to update...
+		return
 	}
+	global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION 
+	global PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME JIT_TOGED BUFFER_SIZE
+	if {$LOSS_TO_ME($cname) != 101} {
+		set loss_to_me "$LOSS_TO_ME($cname)%"
+	} else {
+		set loss_to_me   "unknown"
+	}
+	if {$LOSS_FROM_ME($cname) != 101} {
+		set loss_from_me "$LOSS_FROM_ME($cname)%"
+	} else {
+		set loss_from_me "unknown"
+	}
+	[window_stats $cname].m configure -text " Name:                        $NAME($cname)\n\
+						  Email:                       $EMAIL($cname)\n\
+						  Phone:                       $PHONE($cname)\n\
+						  Location:                    $LOC($cname)\n\
+						  Tool:                        $TOOL($cname)\n\
+						  Note:			       $NOTE($cname)\n\
+						  CNAME:                       $CNAME($cname)\n\
+						  Audio Encoding:              $CODEC($cname)\n\
+						  Packet duration:             $DURATION($cname)ms\n\
+						  Buffered Audio:              $BUFFER_SIZE($cname)ms\n\
+						  Total packets received:      $PCKTS_RECV($cname)\n\
+						  Total packets lost:          $PCKTS_LOST($cname)\n\
+						  Total packets misordered:    $PCKTS_MISO($cname)\n\
+						  Total packets duplicated:    $PCKTS_DUP($cname)\n\
+						  Current packet loss to me:   $loss_to_me\n\
+						  Current packet loss from me: $loss_from_me\n\
+						  Network timing jitter:       $JITTER($cname)\n\
+						  Total units lost (jitter):   $JIT_TOGED($cname)\n"
 }
 
 proc toggle_stats {cname} {
@@ -708,7 +724,7 @@ proc toggle_stats {cname} {
 proc do_quit {} {
 	catch {
 		profile off pdat
-		profrep pdat real
+		profrep pdat cpu
 	}
 	save_settings 
 	destroy .
