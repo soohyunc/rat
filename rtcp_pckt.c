@@ -7,7 +7,7 @@
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995,1996,1997 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,11 +60,11 @@
 #include "transmit.h"
 #include "rat_time.h"
 
+#define SECS_BETWEEN_1900_1970 2208988800u
+
 /*
  * Sets the ntp 64 bit values, one 32 bit quantity at a time.
  */
-#define SECS_BETWEEN_1900_1970 2208988800u
-
 static void 
 rtcp_ntp_format(u_int32 * sec, u_int32 * frac)
 {
@@ -184,19 +184,13 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 	while (len > 0) {
 		len -= ntohs(pkt->common.length) + 1;
 		if (len < 0 || pkt->common.length == 0) {
-#ifdef DEBUG
-			printf("rtcp_decode_rtcp_pkt: packet format is weird... this should never happen\n");
-			printf("since the packet has already gone through the header validation step... \n");
-			abort();
-#else
+			dprintf("Ignoring RTCP packet with weird format...\n");
 			return;
-#endif
 		}
 		switch (pkt->common.pt) {
 		case RTCP_SR:
 			ssrc = ntohl(pkt->r.sr.ssrc);
-			if (ssrc == sp->db->myssrc && 
-                            sp->filter_loopback) {
+			if (ssrc == sp->db->myssrc && sp->filter_loopback) {
 				/* Loopback packet, discard it... */
 				return;
 			}
@@ -234,9 +228,9 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				}
 			}
 			break;
-		case RTCP_RR:	/* We won't deal with this just yet */
+		case RTCP_RR:
 			ssrc = ntohl(pkt->r.sr.ssrc);
-			if (ssrc == sp->db->myssrc) {
+			if (ssrc == sp->db->myssrc && sp->filter_loopback) {
 				/* Loopback packet, discard it... */
 				return;
 			}
@@ -385,7 +379,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
                                                 }
 						break;
 					default:
-						dprintf("Unknown SDES packet type %d\n", sdes->type);
+						dprintf("SDES packet type %d ignored\n", sdes->type);
 						break;
 					}
 					sdes = (rtcp_sdes_item_t *) ((u_int8 *) sdes + sdes->length);
@@ -405,23 +399,24 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 }
 
 /*
- * Fill out an SDS item.  I assume here that the item is a NULL terminated
+ * Fill out an SDES item.  I assume here that the item is a NULL terminated
  * string.
  */
 int 
-rtcp_add_sdes_item(u_int8 * buf, int type, char * val)
+rtcp_add_sdes_item(u_int8 *buf, int type, char *val)
 {
 	rtcp_sdes_item_t *shdr = (rtcp_sdes_item_t *) buf;
 	int             namelen;
 
-	if (!val) {
+	if (val == NULL) {
+		dprintf("Cannot format SDES item. type=%d val=%xp\n", type, val);
 		return 0;
 	}
 	shdr->type = type;
 	namelen = strlen(val);
 	shdr->length = namelen;
 	strcpy(shdr->data, val);
-	return (namelen + 2);
+	return namelen + 2;
 }
 
 /*
@@ -462,35 +457,24 @@ rtcp_packet_fmt_sdes(session_struct *sp, u_int8 * ptr)
 			case 0 : if (sp->db->my_dbe->sentry->email != NULL) {
 			         	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_EMAIL, sp->db->my_dbe->sentry->email);
 			  	 	break;
-			 	 } else {
-				   	dprintf("Can't send RTCP SDES EMAIL: NULL pointer\n");
 				 }
 			case 1 : if (sp->db->my_dbe->sentry->phone != NULL) {
 			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_PHONE, sp->db->my_dbe->sentry->phone);
 			  	   	break;
-			 	 } else {
-				   	dprintf("Can't send RTCP SDES PHONE: NULL pointer\n");
 			 	 }
 			case 2 : if (sp->db->my_dbe->sentry->loc != NULL) {
 			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_LOC, sp->db->my_dbe->sentry->loc);
 			  	   	break;
-			 	 } else {
-				   	dprintf("Can't send RTCP SDES LOC: NULL pointer\n");
 			 	 }
 			case 3 : if (sp->mode == TRANSCODER) {
 				 	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_TOOL, RAT_VERSION " " OSNAME " [Transcoder]");
 				 } else {
 				 	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_TOOL, RAT_VERSION " " OSNAME);
 				 }
-			  	 break;
-			default: printf("ERROR: sdes_ter_count has strange value! %ld\n", sp->db->sdes_ter_count);
-			         abort();
 			}
 		} else {
 			if (sp->db->my_dbe->sentry->name != NULL) {
 				len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_NAME, sp->db->my_dbe->sentry->name);
-			} else {
-				dprintf("Can't send RTCP SDES NAME: NULL pointer\n");
 			}
 		}
 	}
@@ -534,8 +518,8 @@ u_int8 *
 rtcp_packet_fmt_sr(session_struct *sp, u_int8 * ptr)
 {
 	rtcp_common_t  *hdr = (rtcp_common_t *) ptr;
-	u_int32				sec;
-	u_int32				frac;
+	u_int32		sec;
+	u_int32		frac;
 
 	hdr->type  = 2;
 	hdr->p     = 0;
@@ -551,7 +535,7 @@ rtcp_packet_fmt_sr(session_struct *sp, u_int8 * ptr)
 	*((u_int32 *) ptr + 4) = htonl(sp->db->map_rtp_time);
 	*((u_int32 *) ptr + 5) = htonl(sp->db->pkt_count);
 	*((u_int32 *) ptr + 6) = htonl(sp->db->byte_count);
-	return (ptr + 28);
+	return ptr + 28;
 }
 
 /*
@@ -718,14 +702,14 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 		if (now - sptr->last_active > RTP_SSRC_EXPIRE) {
 			rtcp_delete_dbentry(sp, sptr->ssrc);
 		} else {
-			if (sptr->is_sender) {	/* Is this an active source? */
+			if (sptr->is_sender) {
 				sp->db->senders++;
 				sptr->is_sender = 0;	/* Reset this every report time */
 				ptr = rtcp_packet_fmt_addrr(sp, ptr, sptr);
 				hdr->count++;
 				packlen = ptr - packet;
 				hdr->length = htons((packlen - offset) / 4 - 1);
-				if (packlen + 84 > MAX_PACKLEN) {	/* In case packet filled in report */
+				if (packlen + 84 > MAX_PACKLEN) {
 					/* Too many sources sent data, and the result doesn't fit into a */
 					/* single SR/RR packet. We just ignore the excess here. Oh well. */
 					break;
