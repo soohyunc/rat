@@ -579,8 +579,8 @@ oss_audio_supports(audio_desc_t ad, audio_format *fmt)
         return FALSE;
 }
 
-void
-oss_audio_query_devices()
+int
+oss_audio_query_devices(void)
 {
         FILE *f;
         char buf[OSS_MAX_NAME_LEN], *name_start;
@@ -591,6 +591,7 @@ oss_audio_query_devices()
 
         f = fopen("/dev/sndstat", "r");
         
+	ndev = 0;
         if (f) {
                 while(!feof(f)) {
                         fgets(buf, OSS_MAX_NAME_LEN, f);
@@ -613,7 +614,10 @@ oss_audio_query_devices()
                         }
                 }
                 fclose(f);
-        }
+        } else {
+		debug_msg("Cannot open /dev/sndstat\n");
+	}
+	return ndev;
 }
 
 int
