@@ -273,7 +273,8 @@ convolve(sample *signal, sample *answer, double *overlap, double *response, int 
                 if (current > 32767.0) current = 32767.0;
                 if (current < -32768.0) current = -32768.0;
                 /* store 'current' in answer vector. */
-                *answer_rptr++ = (short)(ceil(current-0.5));
+                current = ceil(current-0.5);
+                *answer_rptr++ = (short)current;
         }
 }
 
