@@ -1393,7 +1393,7 @@ proc toggle_stats {ssrc} {
 
 	frame $win.df.3d.opts.filters
 	label $win.df.3d.opts.filters.l -text "Filter Type:"
-	pack $win.df.3d.opts.filters.l -side left -fill x -expand 1 -anchor w
+	pack $win.df.3d.opts.filters.l -side left -fill x -expand 1 -anchor n
 	global 3d_filters 3d_filter_lengths
 	
 	global filter_type
@@ -1404,13 +1404,13 @@ proc toggle_stats {ssrc} {
 	    radiobutton $win.df.3d.opts.filters.$cnt \
 		    -value "$i" -variable filter_type($ssrc) \
 		    -text "$i"
- 		pack $win.df.3d.opts.filters.$cnt -side left -anchor w
+ 		pack $win.df.3d.opts.filters.$cnt -side top -anchor w
 	    incr cnt
 	}
 
 	frame $win.df.3d.opts.lengths 
-	label $win.df.3d.opts.lengths.l -text "Filter Length:" -width 16
-	pack $win.df.3d.opts.lengths.l -side left -fill x -expand 1
+	label $win.df.3d.opts.lengths.l -text "Length:"
+	pack $win.df.3d.opts.lengths.l -side left -fill x -expand 1 -anchor n
 	
 	global filter_length
 	set filter_length($ssrc) [lindex $3d_filter_lengths 0]
@@ -1420,16 +1420,19 @@ proc toggle_stats {ssrc} {
 	    radiobutton $win.df.3d.opts.lengths.$cnt \
 		    -value "$i" -variable filter_length($ssrc) \
 		    -text "$i"
-	    pack $win.df.3d.opts.lengths.$cnt -side left -anchor w
+	    pack $win.df.3d.opts.lengths.$cnt -side top -anchor w
 	    incr cnt
 	}
-	pack $win.df.3d.opts.filters -side top -expand 1 -anchor n
-	pack $win.df.3d.opts.lengths -side top -expand 1 -anchor n
+	pack $win.df.3d.opts.filters -side left -expand 1 -anchor n -fill x
+	pack $win.df.3d.opts.lengths -side right -expand 1 -anchor n -fill x
 	
 	global 3d_azimuth azimuth
-	scale $win.df.3d.azimuth -from $3d_azimuth(min) -to $3d_azimuth(max) \
-		-orient horizontal -label "Azimuth" -variable azimuth($ssrc)
-	pack  $win.df.3d.azimuth 
+	frame $win.df.3d.azi
+	label $win.df.3d.azi.lab -text "Azimuth:"
+	scale $win.df.3d.azi.sca -from $3d_azimuth(min) -to $3d_azimuth(max) \
+		-orient horizontal -variable azimuth($ssrc)
+	pack  $win.df.3d.azi 
+	pack $win.df.3d.azi.lab $win.df.3d.azi.sca -side left
 
 	button $win.df.3d.apply -text "Apply" -command "3d_send_parameters $ssrc"
 	pack   $win.df.3d.apply -side bottom  -anchor e -padx 2 -pady 2
@@ -1440,8 +1443,8 @@ proc toggle_stats {ssrc} {
 	pack   $win.dis   -side bottom -anchor e 
 	pack   $win.dis.b -side right -anchor e -padx 2 -pady 2
 	wm title $win "Participant $NAME($ssrc)"
-	wm resizable $win 0 0
-	constrain_window $win $statsfont 36 26
+#	wm resizable $win 1 1
+	constrain_window $win $statsfont 36 24
     }
 }
 
