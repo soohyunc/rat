@@ -51,7 +51,7 @@ struct _socket_udp {
 #ifdef WIN32
 	int	 ttl;
 #else
-	char	 tll;
+	char	 ttl;
 #endif
 	u_int32	 addr4;
 	fd_t	 fd;
