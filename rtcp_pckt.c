@@ -414,7 +414,7 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 	}
 	while (sptr) {
 		sptmp = sptr->next;	/* We may free things below */
-		if (now - sptr->last_active > expiry) {
+		if (now - sptr->last_active > expiry & sp->db->my_dbe != sptr->ssrc) {
 			rtcp_delete_dbentry(sp, sptr->ssrc);
 		} else {
 			if (sptr->is_sender) {

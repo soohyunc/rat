@@ -319,8 +319,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
  	 * condition in service_receiver... (see comment in that function) [csp] 
  	 */
 	rtcp_dbentry   *dbptr = sp->db->ssrc_db;
-	rtcp_dbentry   *next;
-        rtcp_dbentry  **pprev = &sp->db->ssrc_db; /* Used to fix list */
+	rtcp_dbentry   *next, *prev = NULL;
 
 #ifdef LOG_PARTICIPANTS
 	printf("BYE: ssrc=%lx time=%ld\n", ssrc, get_time(sp->device_clock));
@@ -342,12 +341,18 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 				source_remove(sp->active_sources, s);
 			}
                         ui_info_remove(sp, dbptr);
-                        *pprev = dbptr->next;
+                        if (dbptr == sp->db->ssrc_db) {
+                                sp->db->ssrc_db = next;
+                        }
+                        if (prev) {
+                                prev->next = next;
+                        }
                         rtcp_free_dbentry(dbptr);
 			sp->db->members--;
                         return;
+                } else {
+                        prev = dbptr;
                 }
-                pprev = &dbptr;
                 dbptr = next;
         }
 }
