@@ -5,7 +5,7 @@
 #
 # Configure substitutes variables here... #####################################
 
-DEFS    = @DEFS@
+DEFS    = @DEFS@ -DHIDE_SOURCE_STRINGS
 CFLAGS  = @CFLAGS@ $(DEFS)
 LIBS    = @LIBS@ @MATHLIBS@
 LDLIBS  = 
