@@ -282,7 +282,8 @@ int getpid(void);
 int nice(int);
 time_t time(time_t *);
 
-int RegGetValue(HKEY *, char *, char*, char*, int);
+int  RegGetValue(HKEY *, char *, char*, char*, int);
+void ShowMessage(int level, char *msg);
 
 #define bcopy(from,to,len) memcpy(to,from,len)
 

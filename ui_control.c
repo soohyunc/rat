@@ -446,22 +446,24 @@ ui_update_redundancy(session_struct *sp)
 {
         int  pt;
         int  ioff;
-        char buf[128], *codec_name=NULL, *offset=NULL, *dummy, *args;
+        char buf[128]= "", *codec_name=NULL, *offset=NULL, *dummy, *args;
 
         pt = get_cc_pt(sp,"REDUNDANCY");
         if (pt != -1) { 
                 codec_t *cp;
                 query_channel_coder(sp, pt, buf, 128);
-                dummy  = strtok(buf,"/");
-                dummy  = strtok(NULL,"/");
-                codec_name  = strtok(NULL,"/");
-                /* redundant coder returns long name convert to short*/
-                if (codec_name) {
-                        cp         = get_codec_byname(codec_name, sp);
-                        assert(cp);
-                        codec_name = cp->short_name;
+                if (strlen(buf)) {
+                        dummy  = strtok(buf,"/");
+                        dummy  = strtok(NULL,"/");
+                        codec_name  = strtok(NULL,"/");
+                        /* redundant coder returns long name convert to short*/
+                        if (codec_name) {
+                                cp         = get_codec_byname(codec_name, sp);
+                                assert(cp);
+                                codec_name = cp->short_name;
+                        }
+                        offset = strtok(NULL,"/");
                 }
-                offset = strtok(NULL,"/");
         } else {
                 debug_msg("Could not find redundant channel coder!\n");
         } 

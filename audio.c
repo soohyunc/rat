@@ -269,6 +269,7 @@ audio_device_take(session_struct *sp)
         /* We initialize the pieces above the audio device here since their parameters
          * depend on what is set here
          */
+        if (sp->device_clock) xfree(sp->device_clock);
         sp->device_clock = new_time(sp->clock, cp->freq);
         sp->meter_period = cp->freq / 20;
         sp->bc           = bias_ctl_create(cp->channels, cp->freq);
@@ -312,14 +313,14 @@ audio_device_give(session_struct *sp)
         mix_destroy(sp->ms);
         tx_destroy(sp);
         destroy_playout_buffers(&sp->playout_buf_list);
-        free_time(sp->device_clock);
+        free_time(sp->device_clock); 
+        sp->device_clock = NULL;
 }
 
 void
 audio_device_reconfigure(session_struct *sp)
 {
         u_int16 oldpt    = sp->encodings[0];
-
         audio_device_give(sp);
         tx_stop(sp);
         sp->encodings[0] = sp->next_encoding;

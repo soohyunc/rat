@@ -275,7 +275,8 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 	u_long			 addr = MBUS_ADDR;
 	char			*b, *bp;
 	int			 i;
-
+        
+        
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons((short)(MBUS_PORT+m->channel));
@@ -289,14 +290,29 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 		xfree(curr->qmsg_cmnd[i]); curr->qmsg_cmnd[i] = NULL;
 		xfree(curr->qmsg_args[i]); curr->qmsg_args[i] = NULL;
 	}
-	sprintf(bp, "%s (%s)\n", curr->cmnd, curr->args);
+        curr->qmsg_size = 0;
+        
+        sprintf(bp, "%s (%s)\n", curr->cmnd, curr->args);
 	bp += strlen(curr->cmnd) + strlen(curr->args) + 4;
-
+        assert(strlen(b) < MBUS_BUF_SIZE);
 	if ((sendto(m->fd, b, strlen(b), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
 		perror("mbus_send: sendto");
 	}
+        if (m == mbus_ui(FALSE)) {
+                fprintf(stderr, "mbus_ui(base) ");
+        } else if (m == mbus_ui(TRUE)) {
+                fprintf(stderr, "mbus_ui(chan) ");
+        } else if (m == mbus_engine(FALSE)) {
+                fprintf(stderr, "mbus_engine(base) ");
+        } else if (m == mbus_engine(TRUE)) {
+                fprintf(stderr, "mbus_engine(chan) ");
+        }    
+
+        fprintf(stderr, "resending %s\n", b);
 	curr->rtcnt++;
-	xfree(b);
+	
+        xfree(b);
+        
 }
 
 void mbus_retransmit(struct mbus *m)
@@ -309,10 +325,10 @@ void mbus_retransmit(struct mbus *m)
 
 	gettimeofday(&time, NULL);
 
-	while (curr != NULL) {
+        while (curr != NULL) {
 		/* diff is time in milliseconds that the message has been awaiting an ACK */
 		diff = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - ((curr->time.tv_sec * 1000) + (curr->time.tv_usec / 1000));
-		if (diff > 1000) {
+                if (diff > 1000) {
 			debug_msg("Reliable mbus message failed!\n");
 			debug_msg("   mbus/1.0 %d R (%s) %s ()\n", curr->seqn, curr->srce, curr->dest);
 			debug_msg("   %s (%s)\n", curr->cmnd, curr->args);
@@ -339,6 +355,8 @@ void mbus_retransmit(struct mbus *m)
 		}
 		curr = curr->next;
 	}
+
+        
 }
 
 static int mbus_socket_init(unsigned short channel)

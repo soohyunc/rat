@@ -87,6 +87,7 @@ static char		errorText[MAXERRORLENGTH];
 extern int thread_pri;
 static WAVEFORMATEX	format;
 static int		duplex;
+static char szDevOut[255], szDevIn[255];
 
 /* Mixer Code (C) 1998 Orion Hodson.
  *
@@ -125,6 +126,7 @@ static u_int32  nMixIn, nMixOut, nMixInID, curMixIn, curMixOut;
 static int32	play_vol, rec_vol;
 
 static HMIXER hMixIn, hMixOut;
+static UINT   uWavIn, uWavOut;
 
 static MapEntry meInputs[] = {
         {"mic",  AUDIO_MICROPHONE},
@@ -335,24 +337,12 @@ mixSetup()
         MIXERCAPS m;
         MMRESULT  res;
         HMIXER    hMix;
-        HKEY      hKey;
-        char szMixOut[255], szMixIn[255];	
+	
         int i, nDevs, nDstIn, nDstOut;
 
         if (hMixIn)  {mixerClose(hMixIn);  hMixIn  = 0;}
         if (hMixOut) {mixerClose(hMixOut); hMixOut = 0;}
 
-        hKey = HKEY_CURRENT_USER;
-        RegGetValue(&hKey, 
-		    "Software\\Microsoft\\Multimedia\\Sound Mapper", 
-		    "Playback", 
-		    szMixOut, 
-		    255);
-	RegGetValue(&hKey, 
-		    "Software\\Microsoft\\Multimedia\\Sound Mapper", 
-		    "Record", 
-		    szMixIn, 
-		    255);
         nDevs = mixerGetNumDevs();
         for(i = 0; i < nDevs; i++) {
                 char doClose = TRUE;
@@ -361,7 +351,7 @@ mixSetup()
                 res = mixerGetDevCaps(i,  &m, sizeof(m));
                 if (res == MMSYSERR_NOERROR && 
                     (strstr(m.szPname, "Mixer")||strstr(m.szPname, "mixer")||strstr(m.szPname,"MIXER"))){
-                        if (mixNameMatch(m.szPname, szMixOut)==0) {
+                        if (mixNameMatch(m.szPname, szDevOut)==0) {
                                 hMixIn  = hMix;
                                 nDstIn  = m.cDestinations;
                                 doClose = FALSE;
@@ -369,7 +359,7 @@ mixSetup()
                                 fprintf(stderr, "Input mixer %s\n", m.szPname); 
 #endif /* DEBUG_WIN32_AUDIO */
                         }
-                        if (mixNameMatch(m.szPname, szMixOut)==0) {
+                        if (mixNameMatch(m.szPname, szDevOut)==0) {
                                 hMixOut = hMix;
                                 nDstOut = m.cDestinations;
                                 doClose = FALSE;
@@ -408,11 +398,29 @@ audio_open_out()
 	if (shWaveOut)
 		return (TRUE);
 
-	error = waveOutOpen(&shWaveOut, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL);
+        error = waveOutOpen(&shWaveOut, uWavOut, &format, 0, 0, WAVE_FORMAT_QUERY|WAVE_FORMAT_DIRECT);
 	if (error) {
 #ifdef DEBUG
 		waveOutGetErrorText(error, errorText, sizeof(errorText));
-		fprintf(stderr, "OpenOut: unable to waveOutOpen: %s\n", errorText);
+		debug_msg("waveOutOpen(query): (%d) %s\n", error, errorText);
+#endif
+                if (error == 32) {
+                        char msg[128];
+                        sprintf(msg, "%s does not support %d kHz (%d channels).", 
+                                szDevOut, 
+                                format.nSamplesPerSec/1000,
+                                format.nChannels);
+                        ShowMessage(MB_ICONINFORMATION, msg);
+                }
+		return (FALSE);
+	}
+
+
+	error = waveOutOpen(&shWaveOut, uWavOut, &format, 0, 0, CALLBACK_NULL);
+	if (error) {
+#ifdef DEBUG
+		waveOutGetErrorText(error, errorText, sizeof(errorText));
+		debug_msg("waveOutOpen: (%d) %s\n", error, errorText);
 #endif
 		return (FALSE);
 	}
@@ -577,17 +585,38 @@ audio_open_in()
 	if (read_hdrs != NULL) xfree(read_hdrs);
 	read_hdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks); 
 
-	error = waveInOpen(&shWaveIn, 
-                           WAVE_MAPPER, 
+        /* Check format is actually supported */
+        error = waveInOpen(&shWaveIn,
+                           uWavIn,
+                           &format,
+                           0,
+                           0,
+                           WAVE_FORMAT_QUERY);	
+        
+        if (error != MMSYSERR_NOERROR) {
+		waveInGetErrorText(error, errorText, sizeof(errorText));
+		debug_msg("waveInOpen(query): (%d) %s\n", error, errorText);
+                if (error == 32) {
+                        char msg[128];
+                        sprintf(msg, "%s does not support %d kHz (%d channels).", 
+                                szDevOut, 
+                                format.nSamplesPerSec/1000,
+                                format.nChannels);
+                        ShowMessage(MB_ICONINFORMATION, msg);
+                }
+                return (FALSE);
+	}
+
+        error = waveInOpen(&shWaveIn, 
+                           uWavIn, 
                            &format,
                            (unsigned long)waveInProc,
                            0,
                            CALLBACK_FUNCTION);
-
 	if (error != MMSYSERR_NOERROR) {
 		waveInGetErrorText(error, errorText, sizeof(errorText));
-		//fprintf(stderr, "Win32Audio: waveInOpen Error: (%d) %s\n", error, errorText);
-		return (FALSE);
+		fprintf(stderr, "waveInOpen: (%d) %s\n", error, errorText);
+                return (FALSE);
 	}
 
 	/* Provide buffers for reading */
@@ -726,8 +755,47 @@ int audio_get_channels()
 int
 audio_open(audio_format fmt)
 {
+        static int virgin;
         WAVEFORMATEX tfmt;
-	format.wFormatTag      = WAVE_FORMAT_PCM;
+	
+        if (virgin == 0) {
+                HKEY hKey = HKEY_CURRENT_USER;
+                WAVEOUTCAPS woc;
+                WAVEINCAPS  wic;
+                UINT        uDevId,uNumDevs;
+
+                RegGetValue(&hKey, 
+		    "Software\\Microsoft\\Multimedia\\Sound Mapper", 
+		    "Playback", 
+		    szDevOut, 
+		    255);
+	        RegGetValue(&hKey, 
+		    "Software\\Microsoft\\Multimedia\\Sound Mapper", 
+		    "Record", 
+		    szDevIn, 
+		    255);
+                
+                uWavOut  = WAVE_MAPPER;
+                uNumDevs = waveOutGetNumDevs();
+                for (uDevId = 0; uDevId < uNumDevs; uDevId++) {
+                       waveOutGetDevCaps(uDevId, &woc, sizeof(woc));
+                       if (strcmp(woc.szPname, szDevOut) == 0) uWavOut = uDevId;
+                }
+                
+                uWavIn   = WAVE_MAPPER;
+                uNumDevs = waveInGetNumDevs();
+                for (uDevId = 0; uDevId < uNumDevs; uDevId++) {
+                       waveInGetDevCaps(uDevId, &wic, sizeof(wic));
+                       if (strcmp(wic.szPname, szDevIn) == 0) uWavIn = uDevId;
+                }
+                
+                if (mixerGetNumDevs()) {
+                        mixSetup();    
+	        }
+                virgin = 1;
+        }
+
+        format.wFormatTag      = WAVE_FORMAT_PCM;
 	format.nChannels       = fmt.num_channels;
 	format.nSamplesPerSec  = fmt.sample_rate;
 	format.wBitsPerSample  = fmt.bits_per_sample;
@@ -735,15 +803,16 @@ audio_open(audio_format fmt)
         format.nAvgBytesPerSec = format.nChannels * format.nSamplesPerSec * smplsz;
 	format.nBlockAlign     = format.nChannels * smplsz;
 	format.cbSize          = 0;
-
         memcpy(&tfmt, &format, sizeof(format));
         /* Use 1 sec device buffer */
 	blksz  = fmt.blocksize * smplsz;
 	nblks  = format.nAvgBytesPerSec / blksz;
-
 	if (audio_open_in() == FALSE)   return -1;
-	duplex = audio_open_out();
-        
+        if ((duplex = audio_open_out()) == FALSE) {
+                audio_close_in();
+                return -1;
+        }
+        /* because i've seen these get corrupted... */
         assert(tfmt.wFormatTag      == format.wFormatTag);
         assert(tfmt.nChannels       == format.nChannels);
         assert(tfmt.nSamplesPerSec  == format.nSamplesPerSec);
@@ -751,10 +820,6 @@ audio_open(audio_format fmt)
         assert(tfmt.nAvgBytesPerSec == format.nAvgBytesPerSec);
         assert(tfmt.nBlockAlign     == format.nBlockAlign);
 	
-        if (mixerGetNumDevs()) {
-            mixSetup();    
-	}
-
 	switch(thread_pri) {
 	case 1:
 		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
@@ -776,8 +841,17 @@ audio_open(audio_format fmt)
 void
 audio_close(int audio_fd)
 {
+#ifdef DEBUG
+        fprintf(stderr, "Closing input device.\n");
+#endif
 	audio_close_in();
+#ifdef DEBUG
+        fprintf(stderr, "Closing output device.\n");
+#endif DEBUG
 	audio_close_out();
+#ifdef DEBUG
+        fprintf(stderr, "Closed output device.\n");
+#endif DEBUG
 }
 
 int
