@@ -815,6 +815,7 @@ w32sdk_audio_open_out(UINT uId, WAVEFORMATEX *pwfx)
         
         if (write_mem != NULL) xfree(write_mem);
         write_mem = (u_char*)xmalloc(nblks * blksz);
+        memset(write_mem, 0, nblks * blksz);
         if (write_hdrs != NULL) xfree(write_hdrs);
         write_hdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks);
         memset(write_hdrs, 0, sizeof(WAVEHDR)*nblks);
