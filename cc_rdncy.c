@@ -311,16 +311,13 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
         /*** Stage 3: Transfering coded units into output unit ***************/
 
         for(i = layers - 1; i >= 0; i--) {
-                j = 0;
-                while(cd_coded[i]->elem[j]->data != NULL) {
-                        assert(cd_out->elem[used]->data == NULL);
+                for (j = 0; j < cd_coded[i]->nelem && cd_coded[i]->elem[j]->data != NULL; j++) {
                         cd_out->elem[used]->data       =  cd_coded[i]->elem[j]->data;
                         cd_out->elem[used]->data_len   =  cd_coded[i]->elem[j]->data_len;
                         cd_coded[i]->elem[j]->data     = NULL;
                         cd_coded[i]->elem[j]->data_len = 0;
                         used++;
                         assert(used <= cd_out->nelem);
-                        j++;
                 }
                 assert(used <= cd_out->nelem);
                 channel_data_destroy(&cd_coded[i], sizeof(channel_data));
