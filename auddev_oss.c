@@ -51,7 +51,7 @@ int	bytes_per_block;
 static int ndev;
 char   dev_name[OSS_MAX_DEVICES][OSS_MAX_NAME_LEN];
 
-static char the_dev[] = "/dev/dspWX";
+static char the_dev[] = "/dev/dspX";
 static int audio_fd[OSS_MAX_DEVICES];
 
 
@@ -159,10 +159,13 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		}
 
                 speed = ifmt->sample_rate;
-		if ((ioctl(audio_fd[ad], SNDCTL_DSP_SPEED, &speed) == -1) || (speed != ifmt->sample_rate)) {
-			printf("Audio device doesn't support %d sampling rate in full duplex!\n", ifmt->sample_rate);
+		if (ioctl(audio_fd[ad], SNDCTL_DSP_SPEED, &speed) == -1) {
+			printf("Audio device doesn't support %dHz sampling rate in full duplex!\n", ifmt->sample_rate);
                         oss_audio_close(ad);
                         return FALSE;
+		}
+		if (speed != ifmt->sample_rate) {
+			debug_msg("Audio device sampling rate skew: %d should be %d\n", speed, ifmt->sample_rate);
 		}
 
 		/* Set global gain/volume to maximum values. This may fail on */
@@ -568,40 +571,24 @@ oss_audio_supports(audio_desc_t ad, audio_format *fmt)
 int
 oss_audio_query_devices(void)
 {
-        FILE 	*f;
-        char 	 buf[OSS_MAX_NAME_LEN];
-	char	*name_start;
-        int  	 found_devices = FALSE;
-        char 	 devices_tag[] = "Audio devices:";
-        int 	 len           = strlen(devices_tag);
+	int	 	fd;
+	mixer_info	info;
 
 	ndev = 0;
-
-        f = fopen("/dev/sndstat", "r");
-        if (f) {
-                while(!feof(f)) {
-                        fgets(buf, OSS_MAX_NAME_LEN, f);
-                        if (!strncmp(buf, devices_tag, len)) {
-                                found_devices = TRUE;
-                                debug_msg("Found devices entry\n");
-                                continue;
-                        }
-                        if (found_devices) {
-                                if ((name_start = strstr(buf, ":")) && ndev < OSS_MAX_DEVICES) {
-                                        name_start += 2; /* pass colon plus space */
-                                        strncpy(dev_name[ndev], name_start, OSS_MAX_NAME_LEN);
-                                        purge_chars(dev_name[ndev],"\n");
-                                        ndev++;
-                                        debug_msg("OSS device found: %s", name_start);
-                                } else {
-                                        break;
-                                }
-                        }
-                }
-                fclose(f);
-        } else {
-		debug_msg("Cannot open /dev/sndstat\n");
+	fd = open("/dev/mixer", O_RDWR);
+	if (fd > 0) {
+		if (ioctl(fd, SOUND_MIXER_INFO, &info) == 0) {
+			strncpy(dev_name[ndev], info.name, OSS_MAX_NAME_LEN);
+			purge_chars(dev_name[ndev],"\n");
+			debug_msg("Mixer device found: %s\n", dev_name[ndev]);
+			ndev++;
+		} else {
+			debug_msg("Cannot query mixer capabilities\n");
+		}
+	} else {
+		debug_msg("Cannot open /dev/mixer\n");
 	}
+
 	return ndev;
 }
 
