@@ -629,7 +629,7 @@ set_cc_pt(char *name, int pt)
 {
         int i=0;
     
-        while(i<N_CC_CODERS && !strcasecmp(name,cc_list[i].name))
+        while(i<N_CC_CODERS && strcasecmp(name,cc_list[i].name))
                 i++;
         if (i<N_CC_CODERS && cc_list[i].pt !=-1 && pt>96 && pt<127) {
                 cc_list[i].pt = pt;
