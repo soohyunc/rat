@@ -41,7 +41,7 @@
 
 typedef struct _socket_udp socket_udp;
 
-socket_udp *udp_init(char *addr, int port, int ttl);
+socket_udp *udp_init(char *addr, u_int16 port, int ttl);
 int         udp_send(socket_udp *s, char *buffer, int buflen);
 int         udp_recv(socket_udp *s, char *buffer, int buflen);
 

@@ -86,11 +86,32 @@ static int inet_aton(const char *name, struct in_addr *addr)
 }
 #endif
 
+#ifdef NEED_INET_PTON
+static int inet_pton(int family, const char *name, void *addr)
+{
+	if (family == AF_INET) {
+		struct in_addr	in_val;
+
+		if (inet_aton(name, &in_val)) {
+			memcpy(addr, &in_val, sizeof(struct in_addr));
+			return 1;
+		}
+		return 0;
+#ifdef HAVE_IPv6
+	} else if (family == AF_INET6) {
+		return -1;
+#endif
+	} else {
+		return -1;
+	}
+}
+#endif
+
 /*****************************************************************************/
 /* IPv4 specific functions...                                                */
 /*****************************************************************************/
 
-static socket_udp *udp_init4(char *addr, int port, int ttl)
+static socket_udp *udp_init4(char *addr, u_int16 port, int ttl)
 {
 	int                 reuse = 1;
 	struct sockaddr_in  s_in;
@@ -99,7 +120,7 @@ static socket_udp *udp_init4(char *addr, int port, int ttl)
 	s->addr  = addr;
 	s->port  = port;
 	s->ttl   = ttl;
-	if (!inet_aton(addr, &s->addr4)) {
+	if (!inet_pton(AF_INET, addr, &s->addr4)) {
 		struct hostent *h = gethostbyname(addr);
 		if (h == NULL) {
 			return NULL;
@@ -176,7 +197,7 @@ static int udp_send4(socket_udp *s, char *buffer, int buflen)
 /* IPv6 specific functions...                                                */
 /*****************************************************************************/
 
-static socket_udp *udp_init6(char *addr, int port, int ttl)
+static socket_udp *udp_init6(char *addr, u_int16 port, int ttl)
 {
 #ifdef HAVE_IPv6
 	int                 reuse = 1;
@@ -200,33 +221,35 @@ static socket_udp *udp_init6(char *addr, int port, int ttl)
 		socket_error("setsockopt SO_REUSEADDR");
 		abort();
 	}
+#ifdef SO_REUSEPORT
 	if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) != 0) {
 		socket_error("setsockopt SO_REUSEPORT");
 		abort();
 	}
-	s_in.sin6_family       = AF_INET6;
-	s_in.sin6_addr.s6_addr = s->addr6;
-	s_in.sin6_port         = htons(port);
+#endif
+	s_in.sin6_family = AF_INET6;
+	s_in.sin6_port   = htons(port);
+	memcpy(s_in.sin6_addr.s6_addr, &s->addr6, sizeof(struct in6_addr));
 	if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
 		socket_error("bind");
 		abort();
 	}
-	if (IN6_IS_ADDR_MULTICAST(ntohl(s->addr6.s6_addr))) {
+	if (IN6_IS_ADDR_MULTICAST(s->addr6.s6_addr)) {
 		char              loop = 1;
 		struct ipv6_mreq  imr;
 
 		imr.ipv6mr_multiaddr = s->addr6;
 		imr.ipv6mr_interface = 0;
 
-		if (setsockopt(s->fd, IPPROTO_IP6, IPV6_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
+		if (setsockopt(s->fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
 			socket_error("setsockopt IPV6_ADD_MEMBERSHIP");
 			abort();
 		}
-		if (setsockopt(s->fd, IPPROTO_IP6, IPV6_MULTICAST_LOOP, &loop, sizeof(loop)) != 0) {
+		if (setsockopt(s->fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &loop, sizeof(loop)) != 0) {
 			socket_error("setsockopt IPV6_MULTICAST_LOOP");
 			abort();
 		}
-		if (setsockopt(s->fd, IPPROTO_IP6, IPV6_MULTICAST_HOPS, (char *) &s->ttl, sizeof(s->ttl)) != 0) {
+		if (setsockopt(s->fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &s->ttl, sizeof(s->ttl)) != 0) {
 			socket_error("setsockopt IPV6_MULTICAST_HOPS");
 			abort();
 		}
@@ -270,7 +293,7 @@ static int udp_send6(socket_udp *s, char *buffer, int buflen)
 /* Generic functions, which call the appropriate protocol specific routines. */
 /*****************************************************************************/
 
-socket_udp *udp_init(char *addr, int port, int ttl)
+socket_udp *udp_init(char *addr, u_int16 port, int ttl)
 {
 	socket_udp *res;
 

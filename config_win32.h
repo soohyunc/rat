@@ -1,3 +1,4 @@
+
 /*
  *  config-win32.h
  *
@@ -52,6 +53,9 @@
 #include <stdlib.h>   /* abs() */
 #include <string.h>
 #include <winsock2.h>
+#ifdef HAVE_IPv6
+#include <ws2ip6.h>
+#endif
 #include <ws2tcpip.h>
 #include <mmreg.h>
 #include <msacm.h>
@@ -72,16 +76,15 @@ typedef unsigned char	byte;
  * the definitions below are valid for 32-bit architectures and will have to
  * be adjusted for 16- or 64-bit architectures
  */
-typedef u_char  u_int8;
-typedef u_short u_int16;
-typedef u_long  u_int32;
-typedef char	int8;
-typedef short	int16;
-typedef long	int32;
-typedef __int64   int64;
-
-typedef short  sample;
-
+typedef u_char		u_int8;
+typedef u_short		u_int16;
+typedef u_long		u_int32;
+typedef char		int8;
+typedef short		int16;
+typedef long		int32;
+typedef __int64		int64;
+typedef short		sample;
+typedef unsigned long	in_addr_t;
 
 #ifndef TRUE
 #define FALSE	0
@@ -91,6 +94,8 @@ typedef short  sample;
 #define USERNAMELEN	8
 
 #define DIFF_BYTE_ORDER	1
+#define NEED_INET_ATON
+#define NEED_INET_PTON
 
 #include <time.h>		/* For clock_t */
 

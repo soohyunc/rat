@@ -180,7 +180,7 @@ struct mbus *mbus_init(unsigned short channel,
 	int		 i;
 
 	m = (struct mbus *) xmalloc(sizeof(struct mbus));
-	m->s		= udp_init("224.255.222.239", 47000 + channel, 0);
+	m->s		= udp_init("224.255.222.239", (u_int16) (47000 + channel), 0);
 	m->channel	= channel;
 	m->seqnum       = 0;
 	m->cmd_handler  = cmd_handler;

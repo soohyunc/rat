@@ -105,6 +105,7 @@ typedef int	fd_t;
 #endif /* TRUE */
 
 #define USERNAMELEN	8
+#define NEED_INET_PTON
 
 #define max(a, b)	(((a) > (b))? (a): (b))
 #define min(a, b)	(((a) < (b))? (a): (b))
