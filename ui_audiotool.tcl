@@ -2637,13 +2637,10 @@ proc file_play_play {} {
 	global play_file
 	
 	catch {
-		puts stderr $play_file(state)
 		if {$play_file(state) == "paused"} {
 			mbus_send "R" "audio.file.play.pause" 0
-			puts stderr "unpaused"
 		} else {
 			mbus_send "R" "audio.file.play.open" [mbus_encode_str $play_file(name)]
-			puts stderr "re-opening"
 		}
 		set play_file(state) play
 	} pferr
@@ -2680,7 +2677,6 @@ proc file_rec_rec {} {
 	global rec_file
 	
 	catch {
-		puts stderr $rec_file(state)
 		if {$rec_file(state) == "paused"} {
 			mbus_send "R" "audio.file.record.pause" 0
 		} else {
