@@ -97,7 +97,7 @@ case $OSTYPE in
             ;;
   FreeBSD ) CC="gcc"
             WFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
-	    INCLUDE="-I/usr/X11R6/include -I/usr/local/include -I/cs/research/mice/starship/common/FreeBSD/include"
+	    INCLUDE="-I/usr/X11R6/include -I/cs/research/mice/starship/common/FreeBSD/include -I/usr/local/include"
 	    LDLIBS="-L/cs/research/mice/starship/common/freebsd/lib -ltk80 -ltcl80 -L/usr/X11R6/lib -lXext -lX11 -lm"
 	    AUDIO="auddev_luigi.o"
 	    DEBUG="-g"

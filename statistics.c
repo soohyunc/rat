@@ -178,7 +178,6 @@ adapt_playout(rtp_hdr_t *hdr,
         int     ntp_delay;
 	u_int32	rtp_time;
 
-        
 	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
 	delay = arrival_ts - hdr->ts;
         
