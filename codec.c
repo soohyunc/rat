@@ -281,11 +281,11 @@ set_dynamic_payload(dpt **dpt_list, char *name, int pt)
 		p->name = strsave(name);
 		p->next = *dpt_list;
 		*dpt_list = p;
-#ifdef DEBUG
+#ifdef DEBUG_CODEC
                 printf("added %s\n",name);
 #endif
 	} else {
-#ifdef DEBUG
+#ifdef DEBUG_CODEC
 		if (p->pt != pt) {
 			printf("Reassigning dynamic payload type for encoding \"%s\". Old: %d New: %d\n", name, p->pt, pt);
 		}
@@ -303,7 +303,7 @@ get_dynamic_payload(dpt **dpt_list, char *name)
 		if (strcmp(name, p->name) == 0)
 			return (p->pt);
 	}
-#ifdef DEBUG
+#ifdef DEBUG_CODEC
 	printf("get_dynamic_payload: payload_type for \"%s\" not specified.\n", name);
 #endif
 	return DYNAMIC;
@@ -356,7 +356,7 @@ get_codec_byname(char *name, session_struct *sp)
             if (cd[i].name && strcmp(name, cd[i].name) == 0)
                 return (&cd[i]);
 	}
-#ifdef DEBUG
+#ifdef DEBUG_CODEC
 	printf("get_codec_byname: codec \"%s\" not found.\n", name);
 #endif
 	return NULL;
