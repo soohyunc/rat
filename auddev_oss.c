@@ -146,9 +146,10 @@ oss_probe_mixer_device(int i, struct oss_device *device)
 	if (ioctl(fd, SOUND_MIXER_INFO, &info) != 0) {
 		debug_msg("cannot query mixer capabilities\n");
 	} else {
-		device->name = (char *) xmalloc(OSS_MAX_NAME_LEN + 1);
-		memset(device->name, 0, OSS_MAX_NAME_LEN + 1);
-		strncpy(device->name, info.name, OSS_MAX_NAME_LEN);
+		device->name = (char *) xmalloc(OSS_MAX_NAME_LEN + 6);
+		memset(device->name, 0, OSS_MAX_NAME_LEN + 6);
+		sprintf(device->name, "OSS: ");
+		strncpy(device->name + 5, info.name, OSS_MAX_NAME_LEN);
 		valid_mixer = TRUE;
 	}
 
@@ -230,7 +231,7 @@ oss_probe_audio_device(int i, struct oss_device *device)
 	device->num_supported_formats = 0;
 	for (speed_index = 0; speed_index < 7; speed_index++) {
                 for (stereo = 0; stereo < 2; stereo++) {
-			debug_msg("testing %s support for %dHz %s\n", device->audio_rdev, speed, stereo?"stereo":"mono");
+			debug_msg("testing %s support for %dHz %s\n", device->audio_rdev, speed[speed_index], stereo?"stereo":"mono");
                         if (oss_test_mode(fd, speed[speed_index], stereo)) {
 				device->supported_formats[device->num_supported_formats].sample_rate = speed[speed_index];
 				device->supported_formats[device->num_supported_formats].channels    = stereo + 1;
@@ -288,7 +289,7 @@ oss_audio_init(void)
 		valid_device &= oss_probe_audio_device(i, &device);
 		if (valid_device) {
 			devices[num_devices++] = device;
-			debug_msg("found %s as %s,%s\n", device.name, device.audio_rdev, device.mixer_rdev);
+			debug_msg("found \"%s\" as %s,%s\n", device.name, device.audio_rdev, device.mixer_rdev);
 		}
 	}
 	oss_pair_devices();
