@@ -297,6 +297,10 @@ SOURCE=.\usleep.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\voxlet.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\win32.c
 # End Source File
 # End Group
@@ -478,6 +482,10 @@ SOURCE=.\usleep.h
 # Begin Source File
 
 SOURCE=.\version.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\voxlet.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"
