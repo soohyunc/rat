@@ -351,7 +351,7 @@ mixSetup()
                 res = mixerGetDevCaps(i,  &m, sizeof(m));
                 if (res == MMSYSERR_NOERROR && 
                     (strstr(m.szPname, "Mixer")||strstr(m.szPname, "mixer")||strstr(m.szPname,"MIXER"))){
-                        if (mixNameMatch(m.szPname, szDevOut)==0) {
+                        if (mixNameMatch(m.szPname, szDevOut)==0 || (unsigned)i == uWavIn) {
                                 hMixIn  = hMix;
                                 nDstIn  = m.cDestinations;
                                 doClose = FALSE;
@@ -359,7 +359,7 @@ mixSetup()
                                 fprintf(stderr, "Input mixer %s\n", m.szPname); 
 #endif /* DEBUG_WIN32_AUDIO */
                         }
-                        if (mixNameMatch(m.szPname, szDevOut)==0) {
+                        if (mixNameMatch(m.szPname, szDevOut)==0 || (unsigned)i == uWavOut) {
                                 hMixOut = hMix;
                                 nDstOut = m.cDestinations;
                                 doClose = FALSE;
@@ -398,25 +398,7 @@ audio_open_out()
 	if (shWaveOut)
 		return (TRUE);
 
-        error = waveOutOpen(&shWaveOut, uWavOut, &format, 0, 0, WAVE_FORMAT_QUERY|WAVE_FORMAT_DIRECT);
-	if (error) {
-#ifdef DEBUG
-		waveOutGetErrorText(error, errorText, sizeof(errorText));
-		debug_msg("waveOutOpen(query): (%d) %s\n", error, errorText);
-#endif
-                if (error == 32) {
-                        char msg[128];
-                        sprintf(msg, "%s does not support %d kHz (%d channels).", 
-                                szDevOut, 
-                                format.nSamplesPerSec/1000,
-                                format.nChannels);
-                        ShowMessage(MB_ICONINFORMATION, msg);
-                }
-		return (FALSE);
-	}
-
-
-	error = waveOutOpen(&shWaveOut, uWavOut, &format, 0, 0, CALLBACK_NULL);
+	error = waveOutOpen(&shWaveOut, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL);
 	if (error) {
 #ifdef DEBUG
 		waveOutGetErrorText(error, errorText, sizeof(errorText));
@@ -585,30 +567,8 @@ audio_open_in()
 	if (read_hdrs != NULL) xfree(read_hdrs);
 	read_hdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks); 
 
-        /* Check format is actually supported */
-        error = waveInOpen(&shWaveIn,
-                           uWavIn,
-                           &format,
-                           0,
-                           0,
-                           WAVE_FORMAT_QUERY);	
-        
-        if (error != MMSYSERR_NOERROR) {
-		waveInGetErrorText(error, errorText, sizeof(errorText));
-		debug_msg("waveInOpen(query): (%d) %s\n", error, errorText);
-                if (error == 32) {
-                        char msg[128];
-                        sprintf(msg, "%s does not support %d kHz (%d channels).", 
-                                szDevOut, 
-                                format.nSamplesPerSec/1000,
-                                format.nChannels);
-                        ShowMessage(MB_ICONINFORMATION, msg);
-                }
-                return (FALSE);
-	}
-
         error = waveInOpen(&shWaveIn, 
-                           uWavIn, 
+                           WAVE_MAPPER, 
                            &format,
                            (unsigned long)waveInProc,
                            0,
