@@ -208,13 +208,15 @@ render_3D_set_parameters(struct s_render_3D_dbentry *p_3D_data, int sampling_rat
         /* simple echo filter */
         filter_set[2] = *(filters+2);
 
+        p_3D_data->azimuth = azimuth;
+
         /* derive interaural time difference from azimuth */
         aux= azimuth * 0.017453203;                                /* conversion into radians */
         d_time = 2.72727 * sin((double) azimuth);
         p_3D_data->delay = abs((int) (sampling_rate * d_time / 1000));
 
         /* derive interaural intensity difference from azimuth */
-        d_intensity = 1.0 - (0.3 * sin((double) azimuth));
+        d_intensity = 1.0 - (0.3 * fabs(sin((double) azimuth)));
         p_3D_data->attenuation = d_intensity;
 
         /* fill up participant's response filter */
@@ -327,8 +329,8 @@ render_3D(rx_queue_element_struct *el, int no_channels)
                         }
                 } else {
                         for (i=0; i<n_samples/2; i++) {
-                                proc_buf[2*i+1] = p_3D_data->contra_buf[i];
-                                proc_buf[2*i]   = p_3D_data->ipsi_buf[i];
+                                proc_buf[2*i]   = p_3D_data->contra_buf[i];
+                                proc_buf[2*i+1] = p_3D_data->ipsi_buf[i];
                         }
                 }
         }
