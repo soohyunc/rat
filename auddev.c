@@ -25,6 +25,7 @@ static const char cvsid[] =
 #include "auddev_newpcm.h"
 #include "auddev_osprey.h"
 #include "auddev_oss.h"
+#include "auddev_ixj.h"
 #include "auddev_alsa.h"
 #include "auddev_pca.h"
 #include "auddev_sgi.h"
@@ -235,6 +236,38 @@ audio_if_t audio_if_table[] = {
                 oss_audio_supports
         },
 #endif /* HAVE_OSS_AUDIO */
+#ifdef HAVE_IXJ_AUDIO
+        {
+                ixj_audio_init, 
+                NULL,
+                ixj_get_device_count,
+                ixj_get_device_name,
+                ixj_audio_open,
+                ixj_audio_close,
+                ixj_audio_drain,
+                ixj_audio_duplex,
+                ixj_audio_read,
+                ixj_audio_write,
+                ixj_audio_non_block,
+                ixj_audio_block,
+                ixj_audio_set_igain,
+                ixj_audio_get_igain,
+                ixj_audio_set_ogain,
+                ixj_audio_get_ogain,
+                ixj_audio_loopback,
+                ixj_audio_oport_set,
+                ixj_audio_oport_get,
+                ixj_audio_oport_details,
+                ixj_audio_oport_count,
+                ixj_audio_iport_set,
+                ixj_audio_iport_get,
+                ixj_audio_iport_details,
+                ixj_audio_iport_count,
+                ixj_audio_is_ready,
+                ixj_audio_wait_for,
+                ixj_audio_supports
+        },
+#endif /* HAVE_IXJ_AUDIO */
 #ifdef WIN32
         {
                 w32sdk_audio_init,
@@ -881,6 +914,7 @@ audio_get_igain(audio_desc_t ad)
         device = AIF_GET_DEVICE_NO(ad);
 
         gain = audio_if_table[iface].audio_if_get_igain(device);
+	debug_msg("GAIN=%d\n", gain);
 
         assert(gain >= 0);
         assert(gain <= MAX_AMP);
