@@ -203,7 +203,7 @@ render_3D_init(session_struct *sp)
 
         render_3D_set_parameters(render_3D_data, sampling_rate, azimuth, default_filter_num, length);
 
-#ifdef DEBUG
+#ifdef DEBUG_3D
         {
                 int               i;
                 fprintf(stdout, "\tdelay:\t%d\n", render_3D_data->delay);
