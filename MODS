@@ -1522,9 +1522,14 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 	- Change linear converter to use same structure arrangement as sinc
 	  converter and fix linear converter selection bug (derived from 
 	  convert_sinc.c).
+	- Fix reverse reconsideration of RTCP interval
+	- Mark entries in the RTP database as active senders if we get an
+	  RTCP SR packet from them.
 	- Added support for G.728 encoding and decoding.  See README.g728
 	  for build instructions and comments.
 	- Add support for non-AC97 mixers on FreeBSD's newpcm.
+
+
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1609,4 +1614,6 @@ TODO -- They're features not bugs dammit!
   is order of magnitude greater than observed on UCL machines, direct sound
   sound driver anyone...].
 - Crash when playing .wav files? <thavaqos@yahoo.com> 
-
+- Build problems on Windows: some of the *.dsp/*.dsw files have unix end of
+  line characters which cause problems for some versions of VC++? Reported
+  by Fulvio Risso <risso@polito.it>
