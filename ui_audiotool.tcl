@@ -2780,7 +2780,7 @@ wm overrideredirect .help true
 
 add_help .r.c.gain.gra.s2 	"This slider controls the volume\nof the sound you send."
 add_help .r.c.gain.but.l2 	"Click to change input device."
-add_help .r.c.gain.but.t2 	"If this button is not pushed in, you are are transmitting,\nand may be\
+add_help .r.c.gain.but.t2 	"If this button is pushed in, you are are transmitting, and\nmay be\
                          heard by other participants. Holding down the\nright mouse button in\
 			 any RAT window will temporarily\ntoggle the state of this button,\
 			 allowing for easy\npush-to-talk operation."
