@@ -144,6 +144,10 @@ proc mbus_recv {cmd args} {
   }
 }
 
+proc mbus_recv_alive {} {
+	# Ignore...
+}
+
 proc mbus_recv_load.settings {} {
     load_settings
     check_rtcp_name

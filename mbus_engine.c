@@ -790,6 +790,13 @@ static void rx_init(char *srce, char *args, session_struct *sp)
 	sp->wait_on_startup = FALSE;
 }
 
+static void rx_alive(char *srce, char *args, session_struct *sp)
+{
+	/* Ignore "alive" messages... */
+	UNUSED(args);
+	UNUSED(srce);
+}
+
 const char *rx_cmnd[] = {
 	"get_audio",
 	"toggle.input.port",
@@ -830,6 +837,7 @@ const char *rx_cmnd[] = {
         "settings",
 	"quit",
 	"init",
+	"alive",
 	""
 };
 
@@ -872,7 +880,8 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_channel_code,
         rx_settings,
 	rx_quit,
-	rx_init
+	rx_init,
+	rx_alive
 };
 
 void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)

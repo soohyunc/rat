@@ -80,6 +80,16 @@ signal_handler(int signal)
 }
 #endif
 
+static void heartbeat(u_int32 curr_time, u_int32 interval)
+{
+	static u_int32	prev_time;
+
+	if (curr_time - prev_time > (interval << 16)) {
+		mbus_engine_tx(FALSE, "(* * * *)", "alive", "", FALSE);
+		prev_time = curr_time;
+	}
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -163,7 +173,8 @@ main(int argc, char *argv[])
         rtcp_clock_change(sp[0]);
 
 	do {
-		network_process_mbus(sp, num_sessions, 1000);
+		network_process_mbus(sp, num_sessions, 1500);
+		heartbeat(ntp_time32(), 1);
 	} while (sp[0]->wait_on_startup);
         
         if (!sp[0]->sending_audio && (sp[0]->mode != AUDIO_TOOL)) {
@@ -228,6 +239,7 @@ main(int argc, char *argv[])
 				mbus_ui_retransmit();
                 	}
 			mbus_engine_retransmit();
+			heartbeat(real_time, 10);
 
                         /* wait for mbus messages - closing audio device
                          * can timeout unprocessed messages as some drivers
