@@ -290,9 +290,11 @@ playout_buffer_get(session_struct *sp, ppb_t *buf, u_int32 from, u_int32 to)
 	}
 
 	if (ip) {
-		if (ts_gt(ip->playoutpt, to))
+		if (ts_gt(ip->playoutpt, to)) {
+                        debug_msg("bailing\n");
 			return (NULL);
-
+                }
+                debug_msg("decoding\n");
 		buf->last_got = ip;
                 channel_decode(sp, ip);
 		decode_unit(ip);
@@ -504,12 +506,13 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		/*
 		 * If we have already worked past this point then mix it!
 		 */
+                if (buf->last_got) debug_msg("last_got %ld playout %ld cur_time %ld buf->len %d\n", buf->last_got->playoutpt, up->playoutpt, cur_time, buf->len);
 		if (up && buf->last_got && up->mixed == FALSE
-		    && ts_gt(buf->last_got->playoutpt, up->playoutpt)
+		    && ts_gt(buf->last_got->playoutpt, up->playoutpt) 
 		    && ts_gt(up->playoutpt, cur_time)){
+                        debug_msg("Mixing late audio\n");
                         channel_decode(sp, up);
 			decode_unit(up);
-                        debug_msg("Mixing late audio\n");
 			if (up->native_count) {
 				mix_do_one_chunk(sp, ms, up);
 				if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
@@ -570,7 +573,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                         }
                         up->mixed = TRUE;
                         chunks_mixed++;
-                    }
+                    } else { debug_msg("already mixed\n"); }
 		}
 		clear_old_participant_history(buf);
 

@@ -1011,7 +1011,9 @@ extra_upsample(int offset, int channels, sample *src, int src_len, sample *dst, 
         dstep = channels * dst_len / src_len;
 
         loop = min(dst_len / dstep, src_len / channels);
+#ifdef DEBUG_CONVERT
         debug_msg("loop %d choice (%d, %d)\n", loop, dst_len/dstep, src_len/channels);
+#endif
         dstep /= channels;
         while(loop--) {
                 switch(dstep) {                   /* Duff's Device */

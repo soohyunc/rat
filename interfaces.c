@@ -49,6 +49,7 @@ put_on_rx_queue(rx_queue_element_struct *p_ptr, rx_queue_struct *q_ptr)
 {
 	rx_queue_element_struct *s;
 	/* put packet on the queue */
+        assert(p_ptr->cc_pt < 128);
 	p_ptr->next_ptr = q_ptr->head_ptr;
 	q_ptr->head_ptr = p_ptr;
 	if (q_ptr->tail_ptr == NULL) {

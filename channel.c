@@ -573,11 +573,14 @@ validate_and_split(int pt, char *blk, unsigned int blen, cc_unit *u, int *traili
          * 5) it fills in the expected gap between packets.
          */
         cc_coder_t *cc;
+        int success;
+
         if (!(cc = get_channel_coder(pt)))
                 return FALSE;
         u->cc = cc;
         u->pt = pt;
-        return cc->valsplit(blk, blen, u, trailing, inter_pkt_gap);
+        success = cc->valsplit(blk, blen, u, trailing, inter_pkt_gap);
+        return success;
 }
 
 int
