@@ -87,9 +87,10 @@ playout_buffer_create(playout_buffer **ppb, void (*datafreeproc)(u_char **data, 
 int 
 playout_buffer_destroy (playout_buffer **ppb)
 {
-        playout_buffer_flush(*ppb);
+        playout_buffer *pb = *ppb;
+        playout_buffer_flush(pb);
 
-        xfree(*ppb);
+        xfree(pb);
         *ppb = NULL;
 
         return TRUE;

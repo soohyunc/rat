@@ -43,6 +43,7 @@
 #include "playout.h"
 #include "ts.h"
 #include "memory.h"
+#include "debug.h"
 
 typedef struct s_channel_state {
         u_int16 coder;              /* Index of coder in coder table      */
@@ -310,6 +311,7 @@ channel_verify_and_stat(cc_id_t  cid,
 cc_id_t
 channel_coder_get_by_payload(u_int8 payload)
 {
+        UNUSED(payload);
         /* Only vanilla for the time being */
         return CC_IDX_TO_ID(0);
 }
