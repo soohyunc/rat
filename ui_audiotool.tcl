@@ -132,17 +132,6 @@ proc toggle_output_port {} {
   mbus_send "R" "toggle.output.port" ""
 }
 
-# 
-# The following function deal with receiving messages from the conference bus. The code
-# in ui.c will call mbus_recv with the appropriate arguments when a message is received. 
-#
-
-proc mbus_recv {cmd args} {
-  if [string match [info procs [lindex mbus_recv_$cmd 0]] cb_recv_$cmd] {
-    eval mbus_recv_$cmd $args
-  }
-}
-
 proc mbus_recv_alive {} {
 	# Ignore...
 }
