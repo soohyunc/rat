@@ -521,7 +521,34 @@ get_late_args_handler(char *cmdname)
         return NULL;
 }
 
-static int address_count(int argc, char *argv[])
+static int
+parse_options_late(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        const args_handler *a;
+        int                 i;
+
+        if (argc < 2) {
+                usage(NULL);
+                return FALSE;
+        }
+        argc -= 1; /* Skip process name */
+        argv += 1;
+        
+        for (i = 0; i < argc; i++) {
+                a = get_late_args_handler(argv[i]);
+                if (a == NULL) {
+                        break;
+                }
+                if (a->cmd_proc && (argc - i) > a->argc) {
+                        a->cmd_proc(m, addr, a->argc, argv + i + 1);
+                }
+                i += a->argc;
+        }
+        return (i != argc);
+}
+
+static int 
+address_count(int argc, char *argv[])
 {
         const args_handler *a;
         int                 i;
@@ -536,24 +563,6 @@ static int address_count(int argc, char *argv[])
         return argc - i;
 }
 
-static void
-parse_non_addr(struct mbus *m, char *addr, int argc, char *argv[])
-{
-        const args_handler *a;
-        int                 i;
-        
-        for (i = 0; i < argc; i++) {
-                a = get_late_args_handler(argv[i]);
-                if (a == NULL) {
-                        break;
-                }
-                if (a->cmd_proc && (argc - i) > a->argc) {
-                        a->cmd_proc(m, addr, a->argc, argv + i + 1);
-                }
-                i += a->argc;
-        }
-        return;
-}
 
 static int 
 parse_addr(char *arg, char **addr, int *rx_port, int *tx_port)
@@ -590,13 +599,12 @@ parse_addr(char *arg, char **addr, int *rx_port, int *tx_port)
         return TRUE;
 }
 
-static int 
-parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[])
+static int
+parse_addresses(struct mbus *m, char *e_addr, int argc, char *argv[])
 {
         char		*addr;
         int              i, naddr, rx_port, tx_port;
-        struct timeval	 timeout;
-        
+         
         if (argc < 2) {
                 usage(NULL);
                 return FALSE;
@@ -620,19 +628,6 @@ parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[]
 		mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
 		xfree(addr);
         }
-        parse_non_addr(m, e_addr, argc, argv);
-        
-        /* Synchronize with the sub-processes... */
-        do {
-                mbus_send(m);
-                mbus_heartbeat(m, 1);
-                mbus_retransmit(m);
-                timeout.tv_sec  = 0;
-                timeout.tv_usec = 20000;
-                mbus_recv(m, NULL, &timeout);
-        } while (!mbus_sent_all(m));
-        
-        UNUSED(u_addr);
         return TRUE;
 }
 
@@ -835,11 +830,10 @@ int main(int argc, char *argv[])
         
         u_addr = fork_process(m, UI_NAME,     c_addr, &pid_ui,     token_ui);
         e_addr = fork_process(m, ENGINE_NAME, c_addr, &pid_engine, token_engine);
-        
-        if (parse_options(m, e_addr, u_addr, argc, argv) == TRUE) {
+        if (parse_addresses(m, e_addr, argc, argv) == TRUE) {
                 mbus_rendezvous_go(m, token_engine, (void *) m);
                 mbus_rendezvous_go(m, token_ui,     (void *) m); 
-                
+                parse_options_late(m, e_addr, argc, argv);
 		final_iters = 25;
                 should_exit = FALSE;
                 while (final_iters > 0) {
