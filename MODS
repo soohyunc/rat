@@ -1094,6 +1094,7 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Patch G711 A-law, Sun's code was wrong and you only notice when 
 	  speaking with real h/w implementations.
 	- Fix two step sample format conversion assertion failure.
+	- Update README.mbus
 
 TODO -- They're features not bugs dammit!
 ----

@@ -1,32 +1,54 @@
-Message bus commands known by RAT
-=================================
+Use of the message bus by RAT
+=============================
 
 $Revision$
 $Date$
 
 This document documents the message bus commands known by RAT. It does not
 define the mbus transport mechanism, that is defined in a companion document
-draft-ietf-mmusic-mbus-transport-00.txt (not all features of that draft are
-implemented as of RAT v3.2.6).
+draft-ietf-mmusic-mbus-transport-01.txt (see http://www.mbus.org/ for any
+future updates to that document).
 
-The files mbus.[ch] provide a library implementing the message bus which is
-intended to be relatively simple to build standalone and may be of interest
-to those wishing to interface with RAT in this manner.
+The UCL common multimedia library contains an implementation of the message
+bus which is intended to be relatively simple to build standalone and may
+be of interest to those wishing to interface with RAT in this manner. This
+should have been supplied along with the RAT source code, but can also be
+retrieved from http://www-mice.cs.ucl.ac.uk/multimedia/software/
 
 The message bus is the sole means by which the RAT media engine communicates
 with the user interface. This allows for replacement of the UI and for remote
 control of the media engine.
 
-WARNING: THE MBUS CONTROL INTERFACE IS NOT YET STABLE AND THESE COMMANDS
-ARE SUBJECT TO CHANGE IN FUTURE RELEASES OF RAT!
+TODO: insert description of the startup sequence, showing how to spawn the
+media engine, user interface, etc.
+
+TODO: synchronization between UI and media engine
+
+Quick roadmap of the mbus related code in rat:
+	- mbus_*.c		reception of messages
+	- ui_send_*.c		sends messages from the media engine to the UI
+	- ui_audiotool.tcl	sends messages from the UI to the media engine
+				also handles processing of most of the messages
+				received by the UI
+the common library include mbus related code to actually send and receive
+the mbus packets.
+
+-------------------------------------------------------------------------------
+--- The mbus.* commands provide synchronization and coordination between    ---
+--- processes at a high level.                                              ---
 
 mbus.hello ()
 
-	Sent as a heartbeat message every few seconds to indicate liveness.
+	Sent as a heartbeat message every second to indicate liveness.
 
 mbus.quit ()
 
-	Sent to indicate the the receiving entity should quit.
+	Sent to indicate that the receiving entity should quit.
+
+mbus.bye()
+
+	Sent to indicate that the sender is about to exit. Should be the
+	last message sent by an entity.
 
 mbus.waiting (condition)
 mbus.go (condition)
@@ -35,38 +57,46 @@ mbus.go (condition)
 	the specified condition to be fulfilled. An mbus.go command is sent
 	to inform such a waiting entity that that condition has been met.
 
-rtp.cname (cname)
+-------------------------------------------------------------------------------
+--- The rtp.* commands have two purposes. Firstly, they are sent from the   ---
+--- media engine to the user interface to inform the UI of the participants ---
+--- in a session. Secondly, they can be used to control some aspects of the ---
+--- transmission of RTP packets by the media engine (e.g. the SDES details) ---
 
-	Indicates that the receiver should use the specified cname during
-	this session.
-	
-rtp.source.exists (cname)
+rtp.query ()
 
-	Indicate to the receiver that the participant with the specified
-	is present in the session.
+	Sent to the media engine to request an update of the current state
+	of the RTP session. 
 
-rtp.source.remove (cname)
+rtp.addr (addr rx_port tx_port ttl)
 
-	The specified source should be remove from the list of
-	participants.
+	This can be sent to the media engine on startup to set the
+	addresses used, thereafter it is sent by the media engine as part
+	of the response to rtp.query() to inform the recipient of the
+	addresses used for the session.
 
-rtp.source.name  (cname name)
-rtp.source.email (cname email)
-rtp.source.phone (cname phone)
-rtp.source.loc   (cname location)
-rtp.source.tool  (cname tool)
-rtp.source.note  (cname note)
+rtp.ssrc (my_ssrc)
 
-	Convey RTP SDES information about a source.
+	Inform the recipient of the SSRC the sender is using in the
+	session. Again, sent in response the rtp.query().
+
+rtp.source.cname (ssrc name)
+rtp.source.name  (ssrc name)
+rtp.source.email (ssrc email)
+rtp.source.phone (ssrc phone)
+rtp.source.loc   (ssrc location)
+rtp.source.tool  (ssrc tool)
+rtp.source.note  (ssrc note)
+
+	Convey RTP SDES information about a source. Can be sent to the
+	media engine to set the SDES information it includes in its RTCP
+	packets - in which case the ssrc used must be that from the
+	rtp.ssrc() message.
 
 rtp.source.mute (cname mute)
 
 	The specified source should be muted (if mute == 1) or unmuted (if
 	mute == 0).
-
-rtp.source.playout (cname playout-delay)
-
-	Convey playout delay being used for this source.
 
 rtp.source.codec (cname codec)
 
@@ -89,40 +119,46 @@ rtp.source.inactive (cname)
 
 	Indicate that the specified source is active/inactive now.
 
-audio.input.mute  (boolean)
+rtp.source.exists (cname)
+
+	Indicate to the receiver that the participant with the specified
+	is present in the session.
+
+rtp.source.remove (cname)
+
+	The specified source should be remove from the list of
+	participants.
+
+rtp.source.gain (ssrc gain)
+rtp.source.rtt (ssrc rtt)
+
+rtp.source.playout (cname playout-delay)
+
+	Convey playout delay being used for this source.
+
+-------------------------------------------------------------------------------
+
+audio.input.mute (boolean)
+audio.input.gain (percentage)
+audio.input.ports.flush ()
+audio.input.ports.add (port)
+audio.input.port (port)
+audio.input.powermeter (percentage)
+
 audio.output.mute (boolean)
-
-	Indicates that all input/output of audio is to be muted/unmuted.
-
-audio.input.gain  (percentage)
 audio.output.gain (percentage)
-
-	The main volume/gain control.
-
-audio.input.port  (port)
+audio.output.ports.flush ()
+audio.output.ports.add (port)
 audio.output.port (port)
-
-	Select the port to be used. Input ports are "microphone", "cd" and
-	"line_in". Output ports are "speaker", "headphone" and "line_out".
-
-audio.input.powermeter  (percentage)
 audio.output.powermeter (percentage)
 
-	Used to drive global powermeters for audio input/output levels.
-
 audio.channel.coding (coding)
-
-	Indicate the channel coding scheme being used/to be used. Legal
-	values of coding are "none", "redundant" and "interleaved".
-
 audio.channel.repair (repair)
 
-	Indicate the error concealment scheme being used/to be used. Legal
-	values of repair are "none", "repetition" and "pattern-match".
-
-audio.suppress.silence (boolean)
-
-	Indicates that silence suppression should/should not be used.
+audio.devices.flush ()
+audio.devices.add (device)
+audio.device (device)
+audio.query ()
 
 audio.file.play.open   
 audio.file.play.pause
@@ -142,72 +178,56 @@ audio.file.record.alive
 
 	Control the recording of the audio from a session into a file.
 
+audio.suppress.silence (boolean)
+
+
+audio.3d.filter.types 
+audio.3d.filter.lengths
+audio.3d.azimuth.min
+audio.3d.azimuth.max
+audio.3d.enabled
+audio.3d.user.settings
+
+-------------------------------------------------------------------------------
 security.encryption.key (key)
 
 	Enable DES encryption with the specified key.
 
+-------------------------------------------------------------------------------
 session.title (title)
-session.address (addr port ttl)
 
-	Indicates the title and address/port/ttl of this session.
+	Indicates the title of this session.
 
-tool.rat.get_audio  ()
+-------------------------------------------------------------------------------
 
-	Currently unused. Intended as part of a device trading scheme.
-
-tool.rat.toggle.input.port  ()
-tool.rat.toggle.output.port ()
-
-	Toggle the selected port. Will be replaced by commands which
-	explicitly set the port.
-
-tool.rat.silence (boolean)
-tool.rat.lecture (boolean)
-tool.rat.lecture.mode (boolean)
-tool.rat.externalise (boolean)
-tool.rat.agc (boolean)
-tool.rat.loopback (boolean)
-tool.rat.echo.suppress (boolean)
-tool.rat.sync (boolean)
-tool.rat.rate (boolean)
-tool.rat.powermeter (boolean)
-
-	Indicate that certain features are to be enabled/disabled.
-
-tool.rat.settings
-tool.rat.load.settings
-
-	Used in the initialisation process.
-
-tool.rat.codec
-tool.rat.codec.supported
-tool.rat.redundancy.supported
-
-	Control which codecs are used for transmission. Should be replaced
-	by audio.channel.coding, etc.
-
-tool.rat.converter
-tool.rat.converter.supported
-
-	Control sample rate conversion.
-
-tool.rat.frequency
-tool.rat.frequencies.supported
-tool.rat.sampling
-
-	Control sampling rate used.
-
-tool.rat.playout.limit
-tool.rat.playout.min
-tool.rat.playout.max
-
-	Limit playout buffer adaption.
-
-tool.rat.channels
-
-	Mono/stereo
-
-tool.rat.disable.audio.ctls
-tool.rat.enable.audio.ctls
+tool.rat.agc
 tool.rat.audio.buffered
+tool.rat.audio.delay
+tool.rat.audio.skew
+tool.rat.bps.in
+tool.rat.bps.out
+tool.rat.codec
+tool.rat.codec.details
+tool.rat.converter
+tool.rat.converters.add
+tool.rat.converters.flush
+tool.rat.echo.suppress
+tool.rat.format.in
+tool.rat.lecture
+tool.rat.lecture.mode
+tool.rat.loopback
+tool.rat.playout.limit
+tool.rat.playout.max
+tool.rat.playout.min
+tool.rat.powermeter
+tool.rat.powermeter
+tool.rat.rate
+tool.rat.repairs.add
+tool.rat.repairs.flush
+tool.rat.sampling.supported
+tool.rat.settings
+tool.rat.silence
+tool.rat.spike.events
+tool.rat.spike.toged
+tool.rat.ui.detach.request
 
