@@ -211,12 +211,12 @@ adapt_playout(rtp_hdr_t *hdr,
 		if (hdr->ts > src->last_rtp_ts) {
 			since_last_sr = hdr->ts - src->last_rtp_ts;	
 			since_last_sr = (since_last_sr << 16) / get_freq(src->clock);
-			sendtime = ntptime + since_last_sr; //(since_last_sr << 16) / get_freq(src->clock);
+			sendtime = ntptime + since_last_sr; /* (since_last_sr << 16) / get_freq(src->clock); */
 		}
 		else {
 			since_last_sr = src->last_rtp_ts - hdr->ts;
 			since_last_sr = (since_last_sr << 16) / get_freq(src->clock);
-			sendtime = ntptime + since_last_sr; //(since_last_sr << 16) / get_freq(src->clock);
+			sendtime = ntptime + since_last_sr; /* (since_last_sr << 16) / get_freq(src->clock); */
 		}
 
 		ntp_delay = real_time - sendtime; 
