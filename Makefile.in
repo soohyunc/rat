@@ -183,10 +183,10 @@ bin2c: bin2c.o
 	$(CC) bin2c.o -o bin2c
 
 etags:
-	etags ../common/*.[ch] *.[ch]
+	etags ../common/src/*.[ch] *.[ch]
 
 ctags:
-	ctags ../common/*.[ch] *.[ch] 
+	ctags ../common/src/*.[ch] *.[ch] 
 
 release:
 	cvs tag release-`cat VERSION | sed "s/\./-/g"`
