@@ -126,7 +126,7 @@ main(int argc, char *argv[])
 	settings_load_early(sp[0]);
 	settings_load_late(sp[0]);
 
-/**** Up to here is in _main.c *****/
+/**** Up to here is in main_engine.c *****/
 
 	ui_controller_init(sp[0], mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
         ui_initial_settings(sp[0]);

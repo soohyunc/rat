@@ -98,6 +98,7 @@ typedef struct session_tag {
         u_int32                              max_playout;
         u_int32          last_depart_ts;
 	struct s_speaker_table	*speakers_active;
+	char		*mbus_engine_addr;
 	struct mbus	*mbus_engine;
 	struct mbus	*mbus_ui;
         ts_t             cur_ts; /* current device time as timestamp */

@@ -34,6 +34,7 @@
 #include "sndfile.h"
 #include "timers.h"
 #include "util.h"
+#include "rtcp.h"
 
 extern int should_exit;
 
@@ -76,6 +77,7 @@ void mbus_engine_wait_handler(char *srce, char *cmnd, char *args, void *data)
 
 static void rx_tool_rat_addr_ui(char *srce, char *args, session_struct *sp)
 {
+	debug_msg("tool.rat.addr.ui ignored\n");
 	UNUSED(srce);
 	UNUSED(args);
 	UNUSED(sp);
@@ -684,9 +686,33 @@ static void rx_rtp_source_sdes(char *srce, char *args, session_struct *sp, int t
 
 static void rx_rtp_addr(char *srce, char *args, session_struct *sp)
 {
+	/* rtp.addr ("224.1.2.3" 1234 1234 16) */
+	char	*addr, *cname;
+	int	 rx_port, tx_port, ttl, i;
+
 	UNUSED(srce);
-	UNUSED(args);
-	UNUSED(sp);
+
+	if (sp->rtcp_socket != NULL) {
+		debug_msg("RTP code is already initialised, cannot re-initialise it!\n");
+		abort();
+	}
+
+	mbus_parse_init(sp->mbus_engine, args);
+	mbus_parse_str(sp->mbus_engine, &addr); addr = mbus_decode_str(addr);
+	mbus_parse_int(sp->mbus_engine, &rx_port);
+	mbus_parse_int(sp->mbus_engine, &tx_port);
+	mbus_parse_int(sp->mbus_engine, &ttl);
+	mbus_parse_done(sp->mbus_engine);
+
+	for (i = 0; i < sp->layers; i++) {
+		sp->rtp_socket[i] = udp_init(addr, rx_port, tx_port, ttl);
+	}
+	sp->rtcp_socket = udp_init(addr, rx_port, tx_port, ttl);
+
+	cname = get_cname(sp->rtcp_socket);
+	sp->db = rtcp_init(sp->device_clock, cname, 0);
+	xfree(cname);
+        rtcp_clock_change(sp);
 }
 
 static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
