@@ -1122,9 +1122,9 @@ audio_free_interfaces(void)
                 }
         }
 
-        if (dev_devices != NULL) {
-                xfree(dev_devices);
-                dev_devices = NULL;
+        if (dev_details != NULL) {
+                xfree(dev_details);
+                dev_details = NULL;
         }
 
         return TRUE;
