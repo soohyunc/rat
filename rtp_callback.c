@@ -256,7 +256,7 @@ process_rr(session_t *sp, u_int32 ssrc, rtcp_rr *r)
         /* is somewhere to send them.                                */
         if (sp->mbus_engine != NULL) {
                 fract_lost = (r->fract_lost * 100) >> 8;
-                ui_update_loss(sp, r->ssrc, ssrc, fract_lost);
+                ui_update_loss(sp, ssrc, r->ssrc, fract_lost);
         }
 }
 
