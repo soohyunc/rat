@@ -418,9 +418,14 @@ settings_username(char *n, uint32_t nlen)
 #else
         struct passwd *p;
         p = getpwuid(getuid());
-        if (p != NULL && p->pw_name != NULL) {
-                strncpy(n, p->pw_name, nlen);
-                return TRUE;
+        if (p != NULL) {
+                if (p->pw_gecos != NULL) {
+                        strncpy(n, p->pw_gecos, nlen);
+                        return TRUE;
+                } else if (p->pw_name != NULL) {
+                        strncpy(n, p->pw_name, nlen);
+                        return TRUE;
+                }
         }
         return FALSE;
 #endif        
