@@ -280,7 +280,10 @@ ui_repair(int mode, session_struct *sp)
 		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "repair", "None", FALSE);
                 break;
         case REPAIR_REPEAT:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "repair", "Repetition", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "repair", "PacketRepetition", FALSE);
+                break;
+	case REPAIR_PATTERN_MATCH:
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "repair", "PatternMatching", FALSE);
                 break;
         }
 }
