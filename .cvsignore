@@ -1,4 +1,5 @@
 Makefile
+rat
 rat-*
 ratconf.h
 sdr2.plugin.S02.audio.rtp.-.rat-*
