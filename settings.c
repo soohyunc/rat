@@ -420,7 +420,7 @@ void settings_load_early(session_t *sp)
         setting_load_int("audioOutputMute", 1);
 
 	channel_encoder_set_parameters(sp->channel_coder, setting_load_str("audioChannelParameters", "None"));
-	channel_encoder_set_units_per_packet(sp->channel_coder, (u_int16) setting_load_int("audioUnits", 2));
+	channel_encoder_set_units_per_packet(sp->channel_coder, (u_int16) setting_load_int("audioUnits", 1));
 
         setting_load_str("audioRepair", "Pattern-Match");
         setting_load_str("audioAutoConvert", "High Quality");
