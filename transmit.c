@@ -484,14 +484,14 @@ void
 transmitter_update_ui(session_struct *sp)
 {
 	if (sp->meter && sp->rb->silence_ptr && sp->rb->silence_ptr->prev) {
-                if (vad_talkspurt(sp->rb->vad) == TRUE) {
+                if (vad_talkspurt(sp->rb->vad) == TRUE || sp->detect_silence == FALSE) {
                         ui_input_level(lin2db(sp->rb->silence_ptr->prev->energy, 100.0));
                 } else {
-                        ui_input_level(lin2db(sp->rb->silence_ptr->prev->energy, 0.0));
+                        ui_input_level(0);
                 }
         }
 
-	if (vad_talkspurt(sp->rb->vad) == TRUE) {
+	if (vad_talkspurt(sp->rb->vad) == TRUE || sp->detect_silence == FALSE) {
 		ui_info_activate(sp->db->my_dbe);
 		sp->lecture = FALSE;
 		update_lecture_mode(sp);
