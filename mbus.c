@@ -223,14 +223,28 @@ static void mbus_send_ack(struct mbus *m, char *dest, int seqnum)
 	}
 }
 
+static void resend(struct mbus *m, struct mbus_ack *curr) 
+{
+	struct sockaddr_in	 saddr;
+	u_long			 addr = MBUS_ADDR;
+	char			*b;
+
+	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
+	saddr.sin_family = AF_INET;
+	saddr.sin_port   = htons(MBUS_PORT+m->channel);
+	b                = xmalloc(strlen(curr->dest)+strlen(curr->cmnd)+strlen(curr->args)+strlen(curr->srce)+80);
+	sprintf(b, "mbus/1.0 %d R (%s) (%s) ()\n%s (%s)\n", curr->seqn, curr->srce, curr->dest, curr->cmnd, curr->args);
+	if ((sendto(m->fd, b, strlen(b), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
+		perror("mbus_send: sendto");
+	}
+	xfree(b);
+}
+
 void mbus_retransmit(struct mbus *m)
 {
 	struct mbus_ack	 	*curr = m->ack_list;
 	struct timeval	 	 time;
 	long		 	 diff;
-	char			*b;
-	struct sockaddr_in	 saddr;
-	u_long			 addr = MBUS_ADDR;
 
 	mbus_ack_list_check(m);
 
@@ -247,18 +261,21 @@ void mbus_retransmit(struct mbus *m)
 				abort();
 			}
 			m->err_handler(curr->seqn);
-		}
+			return;
+		} 
+		/* Note: We only request one retransmission each time, to avoid
+		 * overflowing the receiver with a burst of requests...
+		 */
+		if (diff > 750) {
+			resend(m, curr);
+			return;
+		} 
+		if (diff > 500) {
+			resend(m, curr);
+			return;
+		} 
 		if (diff > 250) {
-			memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
-			saddr.sin_family = AF_INET;
-			saddr.sin_port   = htons(MBUS_PORT+m->channel);
-			b                = xmalloc(strlen(curr->dest)+strlen(curr->cmnd)+strlen(curr->args)+strlen(curr->srce)+80);
-			sprintf(b, "mbus/1.0 %d R (%s) (%s) ()\n%s (%s)\n", curr->seqn, curr->srce, curr->dest, curr->cmnd, curr->args);
-			if ((sendto(m->fd, b, strlen(b), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
-				perror("mbus_send: sendto");
-			}
-			xfree(b);
-			/* We don't want to cause a burst of packets, so only send one retransmission request each time... */
+			resend(m, curr);
 			return;
 		}
 		curr = curr->next;
