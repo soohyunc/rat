@@ -167,6 +167,15 @@ int main(int argc, char *argv[])
 	}
 	debug_msg("...got it\n");
 
+	mbus_qmsgf(m, c_addr, TRUE, "mbus.quit", "");
+	do {
+		mbus_send(m);
+		mbus_retransmit(m);
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 20000;
+		mbus_recv(m, NULL, &timeout);
+	} while (!mbus_sent_all(m));
+
 	mbus_qmsgf(m, "()", FALSE, "mbus.bye", "");
 	do {
 		mbus_send(m);
