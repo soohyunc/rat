@@ -297,6 +297,9 @@ channel_encoder_get_parameters(channel_state_t *cs, char *cmd, int cmd_len)
 {
         if (table[cs->coder].enc_get_parameters) {
                 return table[cs->coder].enc_get_parameters(cs->state, cmd, cmd_len);
+        } else {
+                assert(cmd_len != 0);
+                cmd[0] = 0;
         }
         return TRUE;
 }
