@@ -7,7 +7,7 @@
 *
 * $Id$
 *
-* Copyright (c) 1995-99 University College London
+* Copyright (c) 1995-2000 University College London
 * All rights reserved.
 *
 */
@@ -1593,7 +1593,7 @@ w32sdk_get_device_name(int idx)
         idx = mapAudioDescToMixerID(idx);
         if ((UINT)idx < mixerGetNumDevs()) {
                 mixerGetDevCaps((UINT)idx, &mc, sizeof(mc));
-                strcpy(tmpname, mc.szPname);
+                strncpy(tmpname, mc.szPname, MAXPNAMELEN);
                 return tmpname;
         }
         return NULL;

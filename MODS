@@ -1022,6 +1022,10 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	  rendering, gain scaling, are all performed if no native coding
 	  available rather than individually test.  Fixes problems introduced
 	  with media_data duplication in playout buffer shift code.
+	- Various fixes for potential buffer overflows
+	- Update copyright notices to welcome in the new millennium
+
+
 
 TODO -- They're features not bugs dammit!
 ----

@@ -71,12 +71,12 @@ read_and_encode(coded_unit        *out,
         const codec_format_t *cf;
         coded_unit           dummy;
         sample               *buf;
-        u_int16 req_samples, act_samples;
+        uint16_t req_samples, act_samples;
 
         req_samples = codec_get_samples_per_frame(encoder->id);
         buf         = (sample*)block_alloc(sizeof(sample) * req_samples);
 
-        act_samples = (u_int16)snd_read_audio(&sf_in, buf, req_samples);
+        act_samples = (uint16_t)snd_read_audio(&sf_in, buf, req_samples);
 
         if (req_samples != act_samples) {
                 memset(buf + act_samples, 0, sizeof(short) * (req_samples - act_samples));
@@ -84,8 +84,8 @@ read_and_encode(coded_unit        *out,
 
         cf = codec_get_format(encoder->id);
         assert(cf != NULL);
-        dummy.id = codec_get_native_coding((u_int16)cf->format.sample_rate, 
-                                            (u_int16)cf->format.channels);
+        dummy.id = codec_get_native_coding((uint16_t)cf->format.sample_rate, 
+                                            (uint16_t)cf->format.channels);
         dummy.state     = NULL;
         dummy.state_len = 0;
         dummy.data      = (u_char*)buf;
@@ -192,8 +192,8 @@ test_repair(struct s_sndfile *sf_out,
                         } else {
 
                                 /* Create a silent unit */
-                                cu->id = codec_get_native_coding((u_int16)cf->format.sample_rate,
-                                                                 (u_int16)cf->format.channels);
+                                cu->id = codec_get_native_coding((uint16_t)cf->format.sample_rate,
+                                                                 (uint16_t)cf->format.channels);
                                 cu->state     = NULL;
                                 cu->state_len = 0;
                                 cu->data      = (u_char*)block_alloc(cf->format.bytes_per_block);
@@ -244,7 +244,7 @@ list_repairs(void)
          * Does not have get_format get_details type fn, just get_name
          * (grumble, grumble, time, grumble) */
 
-        u_int16 i, cnt;
+        uint16_t i, cnt;
 
         cnt = repair_get_count();
         for(i = 0; i < cnt; i++) {
@@ -264,8 +264,8 @@ file_and_codec_compatible(const sndfile_fmt_t *sff, codec_id_t cid)
                 return FALSE;
         }
 
-        if (sff->sample_rate == (u_int32)cf->format.sample_rate &&
-            sff->channels    == (u_int32)cf->format.channels) {
+        if (sff->sample_rate == (uint32_t)cf->format.sample_rate &&
+            sff->channels    == (uint32_t)cf->format.channels) {
                 return TRUE;
         } 
 
@@ -275,7 +275,7 @@ file_and_codec_compatible(const sndfile_fmt_t *sff, codec_id_t cid)
 static void
 list_codecs(void)
 {
-        u_int32 i, cnt;
+        uint32_t i, cnt;
         codec_id_t cid;
         const codec_format_t *cf;
 

@@ -2,7 +2,7 @@
  * FILE:    mbus_ui.c
  * AUTHORS: Colin Perkins
  * 
- * Copyright (c) 1998 University College London
+ * Copyright (c) 1998-2000 University College London
  * All rights reserved.
  *
  */

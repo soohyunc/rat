@@ -3,7 +3,7 @@ Name: rat
 Version: VERSION
 Release: 1
 Source: http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/VERSION/rat-VERSION.tar.gz
-Copyright: Copyright (c) 1995-99 University College London
+Copyright: Copyright (c) 1995-2000 University College London
 Group: X11/Applications/Networking
 Packager: Colin Perkins <c.perkins@cs.ucl.ac.uk>
 Summary: RAT - unicast and multicast voice-over-IP application

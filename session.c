@@ -6,7 +6,7 @@
  * $Revision$
  * $Date$
  * 
- * Copyright (c) 1995-98 University College London
+ * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
  */
@@ -146,7 +146,7 @@ session_init(session_t *sp)
         source_list_create(&sp->active_sources);
 
 	sp->title = "Untitled session";
-	strcpy(sp->asc_address[0], "127.0.0.3");	/* Yeuch! This value should never be used! */
+	strncpy(sp->asc_address[0], "127.0.0.3", MAXHOSTNAMELEN);	/* Yeuch! This value should never be used! */
 }
 
 void

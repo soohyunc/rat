@@ -6,7 +6,7 @@
  * $Revision$
  * $Date$
  * 
- * Copyright (c) 1995-99 University College London
+ * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
  */

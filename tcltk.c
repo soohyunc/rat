@@ -3,7 +3,7 @@
  * PROGRAM: RAT
  * AUTHOR:  Isidor Kouvelas + Colin Perkins + Orion Hodson
  * 	
- * Copyright (c) 1995-98 University College London
+ * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
  */
@@ -140,7 +140,7 @@ WinReg(ClientData clientdata, Tcl_Interp *interp, int argc, char **argv)
                 return TCL_ERROR;
         }
 	
-        strcpy(szBuf, argv[2]);
+        strncpy(szBuf, argv[2], 255);
         szValueName = argv[3];
         szRegRoot   = szBuf;
         szRegPath   = strchr(szBuf, '\\');

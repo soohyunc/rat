@@ -1,7 +1,7 @@
 #
 # ui_transcoder.tcl
 #
-# Copyright (c) 1995-98 University College London
+# Copyright (c) 1995-2000 University College London
 # All rights reserved.
 #
 

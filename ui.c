@@ -7,7 +7,7 @@
  * direct connection between the user interface and the media engine: all
  * updates are done via the conference bus.
  *
- * Copyright (c) 1995-99 University College London
+ * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
  */
@@ -573,7 +573,7 @@ ui_devices(session_t *sp)
 
         for(i = 0; i < nDev; i++) {
                 add  = audio_get_device_details(i);
-                strcpy(dev_name, add->name);
+                strncpy(dev_name, add->name, AUDIO_DEVICE_NAME_LENGTH);
                 purge_chars(dev_name, "[]()");
                 mbes = mbus_encode_str(dev_name);
                 mbus_qmsg(sp->mbus_engine, sp->mbus_ui_addr, "audio.devices.add", mbes, TRUE);
@@ -598,7 +598,7 @@ ui_device(session_t *sp)
 
         if (i != n) {
                 char dev_name[AUDIO_DEVICE_NAME_LENGTH];
-                strcpy(dev_name, add->name);
+                strncpy(dev_name, add->name, AUDIO_DEVICE_NAME_LENGTH);
                 purge_chars(dev_name, "()[]");
                 mbes = mbus_encode_str(dev_name);
                 mbus_qmsg(sp->mbus_engine, sp->mbus_ui_addr, "audio.device", mbes, TRUE);

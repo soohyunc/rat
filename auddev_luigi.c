@@ -4,7 +4,7 @@
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1996-98 University College London
+ * Copyright (c) 1996-2000 University College London
  * All rights reserved.
  *
  */

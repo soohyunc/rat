@@ -36,35 +36,35 @@ uname(struct utsname *ub)
     
     switch (sysinfo.wProcessorArchitecture) {
     case PROCESSOR_ARCHITECTURE_INTEL:
-	(void)strcpy(ub->machine, "ix86");
+	(void)strncpy(ub->machine, "ix86", _SYS_NMLN);
 	break;
     case PROCESSOR_ARCHITECTURE_MIPS :
-	(void)strcpy(ub->machine, "mips");
+	(void)strncpy(ub->machine, "mips", _SYS_NMLN);
 	break;
     case PROCESSOR_ARCHITECTURE_ALPHA:
-	(void)strcpy(ub->machine, "alpha");
+	(void)strncpy(ub->machine, "alpha", _SYS_NMLN);
 	break;
     case PROCESSOR_ARCHITECTURE_PPC:
-	(void)strcpy(ub->machine, "ppc");
+	(void)strncpy(ub->machine, "ppc", _SYS_NMLN);
 	break;
     default:
-	(void)strcpy(ub->machine, "unknown");
+	(void)strncpy(ub->machine, "unknown", _SYS_NMLN);
 	break;
     }
     
     if (version < 0x80000000) {
-	(void)strcpy(ub->version, "NT");
+	(void)strncpy(ub->version, "NT", _SYS_NMLN);
     }
     else if (LOBYTE(LOWORD(version))<4) {
-	(void)strcpy(ub->version, "Win32s");
+	(void)strncpy(ub->version, "Win32s", _SYS_NMLN);
     }
     else				/* Win95 */ {
-	(void)strcpy(ub->version, "Win95");
+	(void)strncpy(ub->version, "Win95", _SYS_NMLN);
     }
     (void)sprintf(ub->release, "%u.%u",
 		  (DWORD)(LOBYTE(LOWORD(version))),
 		  (DWORD)(HIBYTE(LOWORD(version))));
-    (void)strcpy(ub->sysname, "Windows");
+    (void)strncpy(ub->sysname, "Windows", _SYS_NMLN);
     if (gethostname(hostname, sizeof(hostname)) == 0) {
         ptr = strchr(hostname, '.');
             if (ptr)
@@ -72,7 +72,7 @@ uname(struct utsname *ub)
     }
     else {
 	perror("uname: gethostname failed");
-	strcpy(hostname, "FAILURE");
+	strncpy(hostname, "FAILURE", _SYS_NMLN);
     }
     strncpy(ub->nodename, hostname, sizeof(ub->nodename));
     ub->nodename[_SYS_NMLN - 1] = '\0';
