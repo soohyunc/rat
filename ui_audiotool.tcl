@@ -727,7 +727,8 @@ proc mbus_recv_session.title {title} {
 }
 
 proc mbus_recv_session.address {addr port ttl} {
-    global session_address
+    global session_address group_addr
+    set group_addr $addr
     set session_address "Address: $addr Port: $port TTL: $ttl"
 }
 
@@ -2250,8 +2251,38 @@ pack .chart.c  -side left   -fill both -expand 1 -anchor n
 
 .chart.c create window 0 0 -anchor nw -window .chart.c.f
 
+proc mtrace_callback {fd src dst} {
+	if [winfo exists .mtrace-$src-$dst] {
+		.mtrace-$src-$dst.t insert end [read $fd]
+	} else {
+		# The user has closed the mtrace window before the trace has completed
+		close $fd
+	}
+	if [eof $fd] {
+		close $fd
+	}
+}
+
 proc mtrace {src dst} {
-	#puts "mtrace $src $dst"
+	global CNAME group_addr
+	regsub {.*@([0-9]+.[0-9]+.[0-9]+.[0-9]+)} $CNAME($src) {\1} src_addr
+	regsub {.*@([0-9]+.[0-9]+.[0-9]+.[0-9]+)} $CNAME($dst) {\1} dst_addr
+
+	toplevel  .mtrace-$src-$dst
+	text      .mtrace-$src-$dst.t -background white -font "Courier 8" -wrap none \
+	                              -yscrollcommand ".mtrace-$src-$dst.sr set" \
+	                              -xscrollcommand ".mtrace-$src-$dst.sb set"
+	scrollbar .mtrace-$src-$dst.sb -command ".mtrace-$src-$dst.t xview" -orient horizontal
+	scrollbar .mtrace-$src-$dst.sr -command ".mtrace-$src-$dst.t yview" -orient vertical
+	pack .mtrace-$src-$dst.sb -fill x    -expand 0 -side bottom -anchor s
+	pack .mtrace-$src-$dst.sr -fill y    -expand 0 -side right  -anchor e 
+	pack .mtrace-$src-$dst.t  -fill both -expand 1 -side left   -anchor w
+
+	wm title .mtrace-$src-$dst "mtrace from $src_addr to $dst_addr via group $group_addr"
+
+	set fd [open "|mtrace $src_addr $dst_addr $group_addr" "r"]
+	fconfigure $fd -blocking 0
+	fileevent  $fd readable "mtrace_callback $fd $src $dst"
 }
 
 proc chart_add {ssrc} {
