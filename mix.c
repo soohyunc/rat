@@ -229,7 +229,7 @@ mix_process(mix_struct          *ms,
                 int zeros;
                 delta = ts_sub(new_head_time, ms->head_time);
                 zeros = delta.ticks * ms->channels * ms->rate / ts_get_freq(delta);
-                assert(zeros < ms->buf_len);
+                assert(zeros <= ms->buf_len);
                 mix_verify(ms);
                 mix_zero(ms, ms->head, zeros);
                 ms->dist += zeros;
