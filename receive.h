@@ -44,9 +44,11 @@
 #define _RECEIVE_H_
 
 #include "codec.h"
-#include "session.h"	/* MAX_ENCODINGS */
+#include "channel.h"
+#include "session.h"	
 
-#define MAX_DUMMY 4	/* Maximum packet length */
+/* max forward fill in */
+#define MAX_DUMMY 4	
 
 /* Unit throughout receiver */
 typedef struct rx_element_tag {
@@ -56,16 +58,17 @@ typedef struct rx_element_tag {
 	int		dbe_source_count;	     /* Num elements of the following array that are used. Will be >= 1 */
 	struct s_rtcp_dbentry   *dbe_source[16];     /* originator info */
 	int             unit_size;		     /* in samples */
-        int             comp_count;                  /* Number of different coded data schemes for data */
-	coded_unit	comp_data[MAX_ENCODINGS];
+        cc_unit        *ccu[MAX_CC_PER_INTERVAL];    /* channel coded units */
+        int             ccu_cnt;                     /* number of channel coded units */
+        int             cc_pt;                       /* payload of channel coded unit (needed by proding rx units only) */
+        coded_unit	comp_data[MAX_ENCODINGS];    /* compressed data */
+        int             comp_count;
 	int             native_count;                /* Number of different types of decompressed data (only envisage 2) */
 	sample*	        native_data[MAX_NATIVE];     /* 0 used for whatever codec uses, 1 for conversion output */ 
 	int             dummy;                       /* Is a dummy unit */
 	int		mixed;
 	int             units_per_pckt;
-	int             unit_position;		     /* unit position in packet */
 	int             talk_spurt_start;	     /* talk spurt start marker */
-	int             talk_spurt_end;		     /* talk spurt end flag */
 } rx_queue_element_struct;
 
 typedef struct rx_queue_tag {

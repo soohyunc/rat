@@ -61,7 +61,7 @@
 #define FLAKEAWAY               4
 
 /*- global clock frequency -*/
-#define GLOBAL_CLOCK_FREQ 64000 /*96000*/
+#define GLOBAL_CLOCK_FREQ 96000
 
 /*- overrideable payload numbers -*/
 #define PT_WBS_16K_MONO   109
@@ -73,6 +73,9 @@
 #define PT_L16_32K_STEREO 115
 #define PT_L16_48K_MONO   116
 #define PT_L16_48K_STEREO 117
+#define PT_REDUNDANCY     121
+#define PT_INTERLEAVED    108
+#define PT_VANILLA         -1
 #define PT_REDUNDANCY     121		/* This has to be 121 for compatibility with RAT-3.0 */
 
 extern int thread_pri;
@@ -98,13 +101,13 @@ typedef struct session_tag {
 	int		num_encodings;			/* 1 - MAX_ENC */
 	int             sending_audio;
 	int             playing_audio;
+        int             last_tx_service_productive;     /* channel coder can output after talksprt ends */
 	int		repair;				/* Packet repair */
 	int		lecture;			/* UI lecture mode */
 	int		auto_lecture;			/* Used for dummy lecture mode */
 	int             transmit_audit_required;
 	int             receive_audit_required;
 	int             voice_switching;		/* NETMUTESMIKE etc. */
-	int		redundancy_pt;
 	int		detect_silence;
 	int             meter;                      /* if powermeters are on */
 	struct s_bias_ctl *bc;
@@ -128,8 +131,11 @@ typedef struct session_tag {
 	struct s_participant_playout_buffer	*playout_buf_list;
 
 	struct s_dpt	*dpt_list;		/* Dynamic payload types */
-	struct s_codec_state *state_list;
-
+	struct s_codec_state *state_list;       /* Source coding states  */
+        struct s_cc_state    *cc_state_list;    /* Channel coding states */
+        int              cc_encoding;
+        int              units_per_pckt;
+        int              last_depart_ts;
 	struct s_speaker_table	*speakers_active;
 	int		last_zero;		/* audio.c */
 	long		loop_delay;

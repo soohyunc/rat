@@ -1,12 +1,11 @@
 /*
- * FILE:    transmit.h
- * PROGRAM: RAT
- * AUTHOR:  Isidor Kouvelas
- *
+ * FILE: cc_intl.h
+ * PROGRAM: RAT / interleaver
+ * AUTHOR: Orion Hodson
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-97 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,27 +39,36 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _transmit_h_
-#define _transmit_h_
-#include "config.h"
-#include "session.h"
-#include "codec.h"
-
-struct s_read_buffer;
+#ifndef __INTERLEAVE_H_
+#define __INTERLEAVE_H_
+struct s_intl_coder;
 struct session_tag;
-struct s_speaker_table;
-struct s_minibuf;
+struct rx_element_tag;
 
-struct s_read_buffer *read_device_init(struct session_tag *sp, int unit_size);
-int read_device(struct session_tag *sp);
-int process_read_audio(struct session_tag *sp);
-void start_sending(struct session_tag *sp);
-void stop_sending(struct session_tag *sp);
-int read_set_unit_size(struct s_read_buffer *rb, int unit_size);
-void service_transmitter(struct session_tag *sp, struct s_speaker_table *sa);
-void transmitter_update_ui(struct session_tag *sp);
+struct s_intl_coder *new_intl_coder();
+int  intl_config(struct session_tag    *sp,
+                 struct s_intl_coder   *s,
+                 char                  *cmd);
+void intl_qconfig(struct session_tag   *sp,
+                  struct s_intl_coder  *s, 
+                  char                 *buf, 
+                  int                   blen);
+int  intl_encode(struct session_tag    *sp,
+                sample                 *raw,
+                cc_unit                *cu,
+                struct s_intl_coder    *s);
+int  intl_bps(struct session_tag       *sp, 
+             struct s_intl_coder       *s);
+void intl_decode(struct rx_element_tag *rx,
+                 struct s_intl_coder   *s);
+int  intl_valsplit(char                *blk,
+                   int                  blen,
+                   cc_unit             *cu,
+                   int                 *trailing);
+int  intl_wrapped_pt(char *blk,
+                     int   blen);
+void intl_reset(struct s_intl_coder    *s);
 
-#endif /* _transmit_h_ */
-
+#endif /* __INTERLEAVE_H_ */
 
 

@@ -12,7 +12,7 @@ DEFS = -DDEBUG -DDEBUG_MEM
 
 DEFS += -D$(OSTYPE) -D$(OSTYPE)_$(OSMVER) -D$(USER)
 CC     = gcc
-CFLAGS = -Wall $(INCS) $(DEFS) -g -O -fsigned-char -pipe
+CFLAGS = -Wall $(INCS) $(DEFS) -O -g -fsigned-char -pipe
 LDFLAGS=
 LDLIBS=  $(LDLIBS) -lm
 RANLIB = ranlib
@@ -34,6 +34,9 @@ OBJS  += $(OBJDIR)/convert.o \
          $(OBJDIR)/codec_lpc.o \
          $(OBJDIR)/codec_adpcm.o \
          $(OBJDIR)/codec_wbs.o \
+         $(OBJDIR)/channel.o \
+         $(OBJDIR)/cc_red.o \
+         $(OBJDIR)/cc_intl.o \
          $(OBJDIR)/rtcp_db.o \
          $(OBJDIR)/rtcp_pckt.o \
          $(OBJDIR)/qfDES.o \

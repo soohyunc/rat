@@ -1,7 +1,7 @@
 /*
  * FILE:    interfaces.c
  * PROGRAM: RAT
- * AUTHOR:  V.J.Hardman + O.Hodson
+ * AUTHOR:  V.J.Hardman
  * 
  * Copyright (c) 1995,1996 University College London
  * All rights reserved.
@@ -95,13 +95,15 @@ void
 free_rx_unit(rx_queue_element_struct **temp_ptr)
 {
         int i;
-        for (i = 0; i < (*temp_ptr)->comp_count; i++) {
-                if ((*temp_ptr)->comp_data[i].state) {
-                        xfree((*temp_ptr)->comp_data[i].state);
-                } else if ((*temp_ptr)->comp_data[i].data) {
-                        xfree((*temp_ptr)->comp_data[i].data);
-		}
+        
+        for(i=0;i<(*temp_ptr)->comp_count;i++) 
+            clear_coded_unit(&(*temp_ptr)->comp_data[i]);
+        
+        for(i=0;i<(*temp_ptr)->ccu_cnt;i++) {
+            clear_cc_unit((*temp_ptr)->ccu[i],0);
+            block_free((*temp_ptr)->ccu[i], sizeof(cc_unit));
         }
+
 	for (i = 0; i < (*temp_ptr)->native_count; i++) {
 		if ((*temp_ptr)->native_data[i]) {
 			xfree((*temp_ptr)->native_data[i]);
@@ -160,20 +162,18 @@ get_pckt_off_queue(pckt_queue_struct * q_ptr)
 void
 free_pckt_queue_element(pckt_queue_element_struct ** temp_ptr)
 {				/* This should be safe freeing */
-	if (*temp_ptr == (void *) 1)
+	if (*temp_ptr == (void *) 0)
 		printf("Error in freeing unit - already free\n");
 	else {
 		/* release packet storage */
-		if ((*temp_ptr)->pckt_ptr == (void *) 1)
-			printf("Error in freeing packet - already free\n");
-		else {
+            if ((*temp_ptr)->pckt_ptr) {
 			/* release packet */
 			block_free((*temp_ptr)->pckt_ptr, PACKET_LENGTH);
-			(*temp_ptr)->pckt_ptr = (void *) 1;
+                (*temp_ptr)->pckt_ptr = (void *) 0;
 		}
 		/* release queue element */
 		block_free(*temp_ptr, sizeof(pckt_queue_element_struct));
-		(*temp_ptr) = (void *) 1;	/* for debugging purposes */
+            (*temp_ptr) = (void *) 0;	/* for debugging purposes */
 	}
 }
 

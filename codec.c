@@ -51,6 +51,7 @@
 #include "receive.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
+#include "transmit.h"
 
 typedef struct s_codec_state {
 	struct s_codec_state *next;
@@ -124,7 +125,7 @@ alaw_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 }
 
 static void
-dvi_init(state_t *s, codec_t *c)
+dvi_init(session_struct *sp, state_t *s, codec_t *c)
 {
 	s->s = xmalloc(c->sent_state_sz);
 	memset(s->s, 0, c->sent_state_sz);
@@ -157,7 +158,7 @@ typedef struct s_wbs_state {
 } wbs_t;
 
 static void
-wbs_init(state_t *s,codec_t *c)
+wbs_init(session_struct *sp, state_t *s,codec_t *c)
 {
 	wbs_t *wsp;
 
@@ -201,7 +202,7 @@ lpc_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 }
 
 static void
-lpc_decode_init(state_t *s, codec_t *c)
+lpc_decode_init(session_struct *sp, state_t *s, codec_t *c)
 {
 	s->s = (char*) xmalloc (sizeof(lpc_intstate_t));
 	lpc_init((lpc_intstate_t*)s->s);
@@ -215,7 +216,7 @@ lpc_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 }
 
 static void
-gsm_init(state_t *s, codec_t *c)
+gsm_init(session_struct *sp, state_t *s, codec_t *c)
 {
 	s->s = (char *)gsm_create();
 }
@@ -352,8 +353,7 @@ get_codec_byname(char *name, session_struct *sp)
 	int i;
 
 	for (i = 0; i < MAX_CODEC; i++) {
-            if (cd[i].name) printf("%s %d\n",cd[i].name,cd[i].pt);
-            if (cd[i].name && strcmp(name, cd[i].name) == 0)
+            if (cd[i].name && strcasecmp(name, cd[i].name) == 0)
                 return (&cd[i]);
 	}
 #ifdef DEBUG_CODEC
@@ -368,40 +368,40 @@ enum co_e {
 };
 
 static state_t *
-get_codec_state(state_t **lp, int pt, enum co_e ed)
+get_codec_state(session_struct *sp, state_t **lp, int pt, enum co_e ed)
 {
-	state_t *sp;
+	state_t *stp;
 	codec_t *cp;
 
-	for (sp = *lp; sp; sp = sp->next)
-		if (sp->id == pt)
+	for (stp = *lp; stp; stp = stp->next)
+		if (stp->id == pt)
 			break;
 
-	if (sp == 0) {
-		sp = (state_t *)xmalloc(sizeof(state_t));
-		memset(sp, 0, sizeof(state_t));
+	if (stp == 0) {
+		stp = (state_t *)xmalloc(sizeof(state_t));
+		memset(stp, 0, sizeof(state_t));
 		cp = get_codec(pt);
-		sp->id = pt;
+		stp->id = pt;
 
 		switch(ed) {
 		case ENCODE:
 		        if (cp->enc_init)
-				cp->enc_init(sp, cp);
+				cp->enc_init(sp,stp, cp);
 			break;
 		case DECODE:
 			if (cp->dec_init)
-				cp->dec_init(sp, cp);
+				cp->dec_init(sp,stp, cp);
 			break;
 		default:
 			fprintf(stderr, "get_codec_state: unknown op\n");
 			exit(1);
 		}
 
-		sp->next = *lp;
-		*lp = sp;
+		stp->next = *lp;
+		*lp = stp;
 	}
 
-	return sp;
+	return (stp);
 }
 
 void
@@ -409,52 +409,54 @@ encoder(session_struct *sp, sample *data, int coding, coded_unit *c)
 {
 	codec_t	*cp;
 	state_t *stp;
-	char *p;
 
 	cp = get_codec(coding);
 	c->cp = cp;
-	stp = get_codec_state(&sp->state_list, cp->pt, ENCODE);
+	stp = get_codec_state(sp, &sp->state_list, cp->pt, ENCODE);
 
-	p = block_alloc(cp->sent_state_sz + cp->max_unit_sz);
-	c->state = cp->sent_state_sz > 0? p: NULL;
+	c->state = cp->sent_state_sz > 0? block_alloc(cp->sent_state_sz) : NULL;
 	c->state_len = cp->sent_state_sz;
-	c->data = p + cp->sent_state_sz;
+	c->data = block_alloc(cp->max_unit_sz);
 	c->data_len = cp->max_unit_sz;
 	cp->encode(data, c, stp, cp);
+}
+
+void
+reset_encoder(session_struct *sp, int coding)
+{
+
 }
 
 void
 decode_unit(rx_queue_element_struct *u)
 {
 	codec_t *cp;
-	state_t *sp;
+	state_t *stp;
 
 	if (u->comp_count == 0)
 		return;
 	cp = u->comp_data[0].cp;
 	assert(u->native_count<MAX_NATIVE);
-	sp = get_codec_state(&u->dbe_source[0]->state_list, cp->pt, DECODE);
+	stp = get_codec_state(NULL, &u->dbe_source[0]->state_list, cp->pt, DECODE);
 
 	/* XXX dummy packets are not denoted explicitly, dummies have non-zero
 	 * native_counts and zero comp_counts when dummy data is calculated  */ 
-
 	if (u->native_count == 0) {
 		u->native_data[u->native_count] = (sample*)xmalloc(cp->channels * cp->unit_len * cp->sample_size);
 		u->native_count++;
 	}
 	assert(cp->decode!=NULL);
-	cp->decode(&u->comp_data[0], u->native_data[u->native_count-1], sp, cp);
+	cp->decode(&u->comp_data[0], u->native_data[u->native_count-1], stp, cp);
 }
 
 void
 clear_coded_unit(coded_unit *u)
 {
-	if (u->cp->sent_state_sz > 0) {
-		block_free(u->state, u->state_len + u->data_len);
-	} else {
-		block_free(u->data, u->data_len);
-	}
-	memset(u, 0, sizeof(coded_unit));
+    if (u->state_len)
+        block_free(u->state, u->state_len);
+    assert(u->data_len);
+    block_free(u->data, u->data_len);
+    memset(u, 0, sizeof(coded_unit));
 }
 
 int
@@ -465,8 +467,6 @@ codec_compatible(codec_t *c1, codec_t *c2)
 		&& c1->unit_len == c2->unit_len
 		&& c1->sample_size == c2->sample_size;
 }
-
-
 
 
 

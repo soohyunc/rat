@@ -3,13 +3,13 @@
  * 
  * PROGRAM:	RAT
  * 
- * AUTHOR: V.J.Hardman + I.Kouvelas
+ * AUTHOR: V.J.Hardman + I.Kouvelas + O.Hodson
  * 
  * CREATED: 23/03/95
  * 
  * $Id$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,7 @@
 #include "audio.h"
 #include "speaker_table.h"
 #include "codec.h"
+#include "channel.h"
 #include "ui.h"
 
 static rtcp_dbentry *
@@ -83,41 +84,55 @@ update_database(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
 }
 
 static int
-split_block(u_int32 playout_pt, int pt, char *data_ptr, int len,
-	    rtcp_dbentry *src, rx_queue_struct *unitsrx_queue_ptr,
-            int talks, rtp_hdr_t *hdr, session_struct *sp, u_int32 cur_time)
+split_block(u_int32 playout_pt, 
+            codec_t *cp,
+            char *data_ptr, 
+            int len,
+	    rtcp_dbentry *src, 
+            rx_queue_struct *unitsrx_queue_ptr,
+            int talks, 
+            rtp_hdr_t *hdr, 
+            session_struct *sp, 
+            u_int32 cur_time)
 {
-	codec_t *cp;
-	int	units, ul, i, j, k;
-	char	*buf;
+	int	units, i, j, k, trailing; 
 	rx_queue_element_struct	*p;
+        cc_unit *ccu;
+        /* we no longer break data units across rx elements here.
+         * instead we leave channel coded data in first block and
+         * remove channel coding when we are ready to decode and play 
+         * samples. 
+         */
 
-	if ((cp = get_codec(pt)) == NULL) {
-		/* Log as bad encoding... XXX */
+        ccu = (cc_unit*)block_alloc(sizeof(cc_unit));
+        memset(ccu,0,sizeof(cc_unit));
+        units = validate_and_split(hdr->pt, data_ptr, len, ccu, &trailing);
+
+        if (units <=0) {
+#ifdef DEBUG
+            fprintf(stderr,"%s:%d validate and split failed.\n",__FILE__,__LINE__);
+#endif
+            block_free(ccu,sizeof(cc_unit));
 		return 0;
 	}
 
-	/* This is a problem with vbr codecs */
-	units = (len - cp->sent_state_sz) / cp->max_unit_sz;
+        for(i=0;i<ccu->iovc;i++) {
+            ccu->iov[i].iov_base = (caddr_t)block_alloc(ccu->iov[i].iov_len);
+            memcpy(ccu->iov[i].iov_base, 
+                   data_ptr,
+                   ccu->iov[i].iov_len);
+            data_ptr += ccu->iov[i].iov_len;
+        }
 
-	for (i = 0; i < units; i++) {
-		ul = cp->max_unit_sz;
-		if (i == 0)
-			ul += cp->sent_state_sz;
-
-		buf = xmalloc(ul);
-		memcpy(buf, data_ptr, ul);
-		data_ptr += ul;
-
+        for(i=0;i<trailing;i++) {
 		p = new_rx_unit();
-		p->talk_spurt_start = (i == 0 ? talks: FALSE);
-		p->talk_spurt_end   = FALSE;
 		p->unit_size        = cp->unit_len;
 		p->units_per_pckt   = units;
-		p->unit_position    = i + 1;
 		p->mixed            = FALSE;
 		p->dbe_source[0]    = src;
-
+                p->playoutpt        = playout_pt + i * cp->unit_len;;
+                p->comp_count       = 0;
+                p->cc_pt            = ccu->cc->pt;
 		mark_active_sender(src, sp);
 		for (j = 0, k = 1; j < hdr->cc; j++) {
 			p->dbe_source[k] = update_database(sp, ntohl(hdr->csrc[j]), cur_time);
@@ -127,25 +142,18 @@ split_block(u_int32 playout_pt, int pt, char *data_ptr, int len,
 			}
 		}
 		p->dbe_source_count = k;
-		p->playoutpt        = playout_pt + (i * cp->unit_len);
-                p->comp_count       = 1;
-
-		p->comp_data[0].cp = cp;
-		if (i == 0 && cp->sent_state_sz > 0) {
-			p->comp_data[0].state = buf;
-			p->comp_data[0].state_len = cp->sent_state_sz;
-			p->comp_data[0].data = buf + cp->sent_state_sz;
-			p->comp_data[0].data_len = cp->max_unit_sz;
-		} else {
-			p->comp_data[0].state = NULL;
-			p->comp_data[0].state_len = 0;
-			p->comp_data[0].data = buf;
-			p->comp_data[0].data_len = cp->max_unit_sz;
-		}
-		p->native_count = 0;
-		put_on_rx_queue(p, unitsrx_queue_ptr);
+                p->native_count = 0;
+                if (i==0) {
+                    p->ccu[0]  = ccu;
+                    p->ccu_cnt = 1;
+                    p->talk_spurt_start = talks;
+                } else {
+                    p->ccu[0]  = NULL;
+                    p->ccu_cnt = 0;
+                    p->talk_spurt_start = FALSE;
+                }
+                put_on_rx_queue(p, unitsrx_queue_ptr);
 	}
-
 	return (units);
 }
 
@@ -188,8 +196,6 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 			var += cushion->cushion_size * get_freq(src->clock) / get_freq(sp->device_clock);
 			if (src->clock!=sp->device_clock) 
 				var += cp->unit_len;
-			if (src->encoding == sp->redundancy_pt)
-				var += cp->unit_len * src->units_per_packet;
 			src->playout = src->delay + var;
 		} else {
 			/* Do not set encoding on TS start packets as they do not show if redundancy is used...   */
@@ -211,11 +217,6 @@ rtp_header_validation(rtp_hdr_t *hdr, int length, session_struct *sp)
 	/* This function checks the header info to make sure that the packet */
 	/* is valid. We return TRUE if the packet is valid, FALSE otherwise. */
 	/* This follows from page 52 of RFC1889.            [csp 22-10-1996] */
-	int	pt = 0;
-	int	pl = 0;
-	int     *data = 0;
-	u_int32	red_hdr;
-	codec_t	*cp;
 
 	/* We only accept RTPv2 packets... */
 	if (hdr->type != 2) {
@@ -235,56 +236,11 @@ rtp_header_validation(rtp_hdr_t *hdr, int length, session_struct *sp)
 
 	/* If padding or header-extension is set, we punt on this one... */
 	/* We should really deal with it though...                       */
-	if (hdr->x) {
+	if (hdr->p || hdr->x) {
 #ifdef DEBUG
-		printf("rtp_header_validation: x bit set\n");
+		printf("rtp_header_validation: p or x bit set\n");
 #endif
 		return FALSE;
-	}
-
-	/* Check the length is consistent... We have to check for 20,40,60,80ms packets*/
-	pl = (length - 12) - (hdr->cc * 4);	/* Size of the payload... */
-	if (hdr->p) {
-		int pad = *((unsigned char *)hdr + length - 1);
-
-		if (pad < 1) {
-#ifdef DEBUG
-			printf("rtp_header_validation: padding but 0 len\n");
-#endif
-			return FALSE;
-		}
-		pl -= pad;
-		if (pl < 1) {
-#ifdef DEBUG
-			printf("rtp_header_validation: whole pkt padding\n");
-#endif
-			return FALSE;
-		}
-	}
-
-	if (hdr->pt == sp->redundancy_pt) {
-		data  = (int *)hdr + 3 + hdr->cc;
-		while ((red_hdr = ntohl(*data)) & 0x80000000) {
-			pt  = RED_PT(red_hdr);
-			pl -= RED_LEN(red_hdr) + 4;
-			data++;
-		}
-		pl -= 1;
-		pt  = RED_PT(red_hdr) & 0x7f;
-	} else {
-		pt = hdr->pt;
-	}
-
-	if ((cp = get_codec(pt)) == 0) {
-		/* bad encoding */
-		return (FALSE);
-	}
-
-	if ((pl - cp->sent_state_sz) % cp->max_unit_sz != 0) {
-#ifdef DEBUG
-		printf("rtp_header_validation: %s packet length is wrong\n", cp->name);
-#endif
-		return (FALSE);
 	}
 
 	return (TRUE);
@@ -320,12 +276,12 @@ statistics(session_struct    *sp,
 	 */
 
 	rtp_hdr_t	*hdr;
-	u_char		*hdr_ptr, *data_ptr;
-	int		len, block_len, blocks, pri_pt;
+	u_char		*data_ptr;
+	int		len;
 	rtcp_dbentry	*src;
-	u_int32		red_hdr, block_ts, playout_pt;
+	u_int32		playout_pt;
 	pckt_queue_element_struct *e_ptr;
-	codec_t		*pcp, *scp;
+	codec_t		*pcp;
 
 	char update_req = FALSE;
 
@@ -358,86 +314,44 @@ statistics(session_struct    *sp,
 	}
 
 	if ((hdr->ssrc == sp->db->myssrc)&&!sp->no_filter_loopback) {
-		/* Discard loopback packets... */
+		/* Discard loopback packets...unless we have asked for them ;-) */
 		free_pckt_queue_element(&e_ptr);
 		return;
 	}
 
 	rtcp_update_seq(src, hdr->seq);
 
-	hdr_ptr = (char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc);
-	data_ptr = hdr_ptr; 
-	len = e_ptr->len - 4 * (3 + hdr->cc);
+	data_ptr =  (char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc);
 
-	if (hdr->pt == sp->redundancy_pt) {
-		/* Advance data_ptr past the headers... */
-		for (blocks = 1; len >= 4 && (*data_ptr & 0x80); blocks++) {
-			data_ptr += 4;
-			len -= 4;
-		}
-		pri_pt = *data_ptr & 0x7f;
-		data_ptr++;
-		len--;
-	} else
-		pri_pt = hdr->pt;
-	
-	if ((pcp = get_codec(pri_pt)) == NULL) {
-		/* We do not understand the primary encoding so forget about it */
-		free_pckt_queue_element(&e_ptr);
-		return;
+	len = e_ptr->len - 4 * (3 + hdr->cc);
+        if (!(pcp = get_codec(hdr->pt))) {
+            /* this is either a channel coded block or we can't decode it */
+                if (!(pcp = get_codec(get_wrapped_payload(hdr->pt, data_ptr, len)))) {
+                        free_pckt_queue_element(&e_ptr);
+                        return;
 	}
+        }
 
 	if (src->encs[0] == -1 || !codec_compatible(pcp, get_codec(src->encs[0])))
 		receiver_change_format(src, pcp);
 
-	if (src->encs[0] != pri_pt) {
-		src->encs[0] = pri_pt;
+        if (src->encs[0] != pcp->pt) {
+            /* we should tell update more about coded format */
+                src->encs[0] = pcp->pt;
 		update_req   = TRUE;
 	}
 
 	playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion);
+	src->units_per_packet = split_block(playout_pt, pcp, data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
 	
-	/* Continue redundancy processing */
-	if (hdr_ptr != data_ptr) {
-		/* Process the data... */
-		for (blocks = 1; *hdr_ptr & 0x80; blocks++) {
-			red_hdr = ntohl(*((int *)hdr_ptr));
-			if (src->encs[blocks] != RED_PT(red_hdr)) {
-				src->encs[blocks] = RED_PT(red_hdr);
-				update_req = TRUE;
-			}
-			block_len = RED_LEN(red_hdr);
-			block_ts = hdr->ts - RED_OFF(red_hdr);
-			if (block_len > len) {
-#ifdef DEBUG
-				fprintf(stderr, "Bad redundancy packet!\n");
-#endif
-				free_pckt_queue_element(&e_ptr);
-				return;
-			}
-			scp = get_codec(src->encs[blocks]);
-			if (scp != NULL) {
-				if (codec_compatible(scp, pcp))
-					split_block(playout_pt - RED_OFF(red_hdr), src->encs[blocks], data_ptr, block_len, src, unitsrx_queue_ptr, FALSE, hdr, sp, cur_time);
-				else {
-#ifdef DEBUG
-					fprintf(stderr, "Bad block in redundancy packet!\n");
-#endif
-				}
-			}
-			len      -= block_len;
-			data_ptr += block_len;
-			hdr_ptr  += 4;
-		}
-	} else {
-		blocks = 1;
-	}
-	if (src->encs[blocks] != -1) {
-		src->encs[blocks] = -1;
-		update_req        = TRUE;
-	}
-	src->units_per_packet = split_block(playout_pt, src->encs[0], data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
+        if (!src->units_per_packet) {
+            free_pckt_queue_element(&e_ptr);
+            return;
+        }
+
 	if (update_req) update_stats(src, sp);
 	free_pckt_queue_element(&e_ptr);
 }
+
+
 

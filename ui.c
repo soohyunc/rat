@@ -176,7 +176,7 @@ update_stats(rtcp_dbentry *e, session_struct *sp)
 	if (e->encs[0] != -1) {
 		cp = get_codec(e->encs[0]);
 		strcpy(encoding, cp->name);
-		for (l = 1, p = encoding; l < 10 && e->encs[l] != -1; l++) {
+		for (l = 1, p = encoding; l < 2 && e->encs[l] != -1; l++) {
 			p += strlen(p);
 			*p++ = '+';
 			cp = get_codec(e->encs[l]);

@@ -73,34 +73,19 @@ new_rx_unit()
 static void
 add_unit_to_interval(rx_queue_element_struct *ip, rx_queue_element_struct *ru)
 {
-        int i;
-        
-	assert(ru->comp_count == 1);
 	ip->talk_spurt_start |= ru->talk_spurt_start;
-	ip->talk_spurt_end |= ru->talk_spurt_end;
-	if (ip->comp_count == MAX_ENCODINGS) {
-		free_rx_unit(&ru);
-		return;
-	}
 
-	if (ip->comp_count > 0
-	    && !codec_compatible(ip->comp_data[0].cp, ru->comp_data[0].cp)) {
-#ifdef DEBUG
-		fprintf(stderr, "Incompatible unit received for same interval!\n");
-#endif
-		free_rx_unit(&ru);
-		return;
+        if (ru->cc_pt == ip->cc_pt) {
+            /* XXX we should detect duplicates here [oth] 
+             * if we have reached limit of number of ccu's or we have two or more with
+             * identical headers then we know we've had a duplicate
+             */
+            while(ru->ccu_cnt>0 && 
+                  ip->ccu_cnt < ru->ccu[--ru->ccu_cnt]->cc->max_cc_per_interval) {
+                ip->ccu[ip->ccu_cnt++] = ru->ccu[ru->ccu_cnt];
+                ru->ccu[ru->ccu_cnt] = NULL;
 	}
-
-	for (i = ip->comp_count - 1; i >= 0; i--) {
-		if (ru->comp_data[0].cp->value < ip->comp_data[i].cp->value)
-			break;
-		memcpy(&ip->comp_data[i + 1], &ip->comp_data[i], sizeof(coded_unit));
 	}
-	memcpy(&ip->comp_data[i + 1], &ru->comp_data[0], sizeof(coded_unit));
-	memset(&ru->comp_data[0], 0, sizeof(coded_unit));
-	ru->comp_count = 0;
-	ip->comp_count++;
 	free_rx_unit(&ru);
 }
 
@@ -138,8 +123,8 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 	}
 
 	/* Check here if there is any unit overlap */
-
 	ru = ip;
+/*
 	if (ru->talk_spurt_start == FALSE) {
 		for (i = 0; i < MAX_DUMMY; i++) {
 			if (ip->prev_ptr == NULL || ts_gt(ip->playoutpt - ip->unit_size, ip->prev_ptr->playoutpt + ip->prev_ptr->unit_size)) {
@@ -147,8 +132,6 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 				tp->dbe_source_count = ru->dbe_source_count;
 				memcpy(tp->dbe_source, ru->dbe_source, ru->dbe_source_count * sizeof(rtcp_dbentry *));
 				tp->playoutpt = ip->playoutpt - ip->unit_size;
-				tp->comp_count = 0;
-				tp->dummy = FALSE;
 				tp->unit_size = ru->unit_size;
 				assert(add_or_get_interval(buf, tp) == tp);
 				ip = tp;
@@ -156,6 +139,7 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 				break;
 		}
 	}
+        */
 	return (ru);
 }
 
@@ -179,6 +163,7 @@ playout_buffer_get(ppb_t *buf, u_int32 from, u_int32 to)
 			return (NULL);
 
 		buf->last_to_get = ip;
+                channel_decode(ip);
 		decode_unit(ip);
 	}
 	return (ip);
@@ -190,10 +175,12 @@ static void
 clear_old_participant_history(ppb_t *buf)
 { 
 	rx_queue_element_struct *ip;
-	u_int32	cutoff, cur_time;
+	u_int32	cutoff, cur_time, adj;
 
 	cur_time = get_time(buf->src->clock);
-	cutoff = cur_time - get_freq(buf->src->clock) * HISTORY_LEN / 1000;
+        adj = (get_freq(buf->src->clock)/1000) * HISTORY_LEN;
+	cutoff = cur_time - adj;
+        assert(cutoff!=cur_time);
 	while (buf->head_ptr && ts_gt(cutoff, buf->head_ptr->playoutpt)) {
 		ip = buf->head_ptr;
 		buf->head_ptr = ip->next_ptr;
@@ -340,6 +327,7 @@ service_receiver(cushion_struct *cushion, session_struct *sp, rx_queue_struct *r
 		if (up && buf->last_to_get && up->mixed == FALSE
 		    && ts_gt(buf->last_to_get->playoutpt, up->playoutpt)
 		    && ts_gt(up->playoutpt, cur_time)){
+                        channel_decode(up);
 			decode_unit(up);
 			if (up->native_count) {
 				mix_do_one_chunk(sp, ms, up);
@@ -356,17 +344,19 @@ service_receiver(cushion_struct *cushion, session_struct *sp, rx_queue_struct *r
 		cur_time = get_time(buf->src->clock);
 		cs = cushion->cushion_size * get_freq(buf->src->clock) / get_freq(sp->device_clock);
 		while ((up = playout_buffer_get(buf, cur_time, cur_time + cs))) {
-			if (!up->comp_count  && sp->repair != REPAIR_NONE && up->prev_ptr != NULL && up->next_ptr != NULL) {
-				repair(sp->repair, up);
-			}
-			if (up->native_count && up->mixed == FALSE) {
-				mix_do_one_chunk(sp, ms, up);
-				if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
-					/* I hope the cb code suppresses some of these */
-					lbl_cb_send_request(sp);
-				}
-				up->mixed = TRUE;
-			}
+
+                    if (!up->comp_count  && sp->repair != REPAIR_NONE 
+                        && up->prev_ptr != NULL && up->next_ptr != NULL
+                        && up->prev_ptr->native_count) 
+                        repair(sp->repair, up);
+                    if (up->native_count && up->mixed == FALSE) {
+                        mix_do_one_chunk(sp, ms, up);
+                        if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
+                            /* I hope the cb code suppresses some of these */
+                            lbl_cb_send_request(sp);
+                        }
+                        up->mixed = TRUE;
+                    }
 		}
 		clear_old_participant_history(buf);
 	}

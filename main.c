@@ -246,15 +246,15 @@ main(int argc, char *argv[])
 			        clear_old_history(&sp[i]->playout_buf_list, sp[i]);
 				receive_active_flag = FALSE;
 			}
-	
-			if (sp[i]->sending_audio == TRUE) {
-				if (receive_active_flag == FALSE || sp[i]->voice_switching != NET_MUTES_MIKE) {
-					service_transmitter(sp[i], sp[1-i]->speakers_active);
-					if (sp[i]->voice_switching == MIKE_MUTES_NET) {
-						receive_active_flag = FALSE;
-					}
-				}
-			}
+
+                        if (sp[i]->sending_audio == TRUE || sp[i]->last_tx_service_productive) {
+                            if (receive_active_flag == FALSE || sp[i]->voice_switching != NET_MUTES_MIKE) {
+                                service_transmitter(sp[i], sp[1-i]->speakers_active);
+                                if (sp[i]->voice_switching == MIKE_MUTES_NET) {
+                                    receive_active_flag = FALSE;
+                                }
+                            }
+                        }
 	
 			/* Impose RTP formatting on the packets in the netrx_queue
 			 * and update RTP reception statistics. Packets are moved to
@@ -357,6 +357,7 @@ main(int argc, char *argv[])
 					}
 					lbl_cb_send_release(sp[i], 0);
 				}
+                                xmemdmp();
                                 return 0;
                         }
 		}

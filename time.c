@@ -54,7 +54,7 @@ typedef struct s_fast_time {
 typedef struct s_time {
 	struct s_fast_time *ft;
 	int	freq;
-	int	shift;
+	int	scale;
 	u_int32	offset;
 } frtime_t;
 
@@ -73,7 +73,7 @@ void
 time_advance(ft_t *ft, int freq, u_int32 time)
 {
 	u_int32 tmp = ft->low;
-	ft->low += ft->freq / freq * time;
+	ft->low += time * ft->freq / freq;
 	if (ft->low < tmp)
 		ft->high++;
 }
@@ -87,6 +87,7 @@ new_time(ft_t *ft, int freq)
 	tp->offset = 0;
 	tp->freq = freq;
 	tp->ft = ft;
+        tp->scale = 1;
 	change_freq(tp, freq);
 
 	return (tp);
@@ -101,21 +102,18 @@ free_time(frtime_t *tp)
 void
 change_freq(frtime_t *tp, int freq)
 {
-	int	i, step;
 	u_int32	old;
 
 	assert(freq <= tp->ft->freq);
 
 	old = get_time(tp);
-	step = tp->ft->freq / freq;
-	for (i = -1; step > 0; i++)
-		step >>= 1;
-	tp->shift = i;
+        tp->scale = tp->ft->freq/freq;
 	tp->freq = freq;
 	tp->offset += old - get_time(tp);
 }
 
-int get_freq(frtime_t *tp)
+int 
+get_freq(frtime_t *tp)
 {
 	return (tp->freq);
 }
@@ -124,7 +122,7 @@ u_int32
 get_time(frtime_t *tp)
 {
 	u_int32	t;
-	t = (tp->ft->low >> tp->shift) | (tp->ft->high << (sizeof(u_int32) * 8 - tp->shift));
+	t = tp->ft->low / tp->scale + tp->ft->high * tp->scale;
 	t += tp->offset;
 	return (t);
 }
@@ -134,7 +132,6 @@ u_int32
 convert_time(u_int32 ts, frtime_t *from, frtime_t *to)
 {
 	u_int32	now, diff, conv;
-	int	s;
 
 	now = get_time(from);
 	if (ts_gt(ts, now))
@@ -142,11 +139,10 @@ convert_time(u_int32 ts, frtime_t *from, frtime_t *to)
 	else
 		diff = now - ts;
 
-	s = to->shift - from->shift;
-	if (s > 0)
-		diff >>= s;
-	else
-		diff <<= -s;
+        if (to->scale>from->scale)
+            diff = diff * to->scale / from->scale;
+        else 
+            diff = diff * from->scale / to->scale;
 
 	if (ts_gt(ts, now))
 		conv = get_time(to) + diff;

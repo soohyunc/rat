@@ -42,6 +42,7 @@
 
 #include "config.h"
 #include "codec.h"
+#include "channel.h"
 #include "session.h"
 #include "audio.h"
 #include "parameters.h"
@@ -53,6 +54,7 @@
 #include "speaker_table.h"
 #include "net.h"
 #include "rat_time.h"
+#include "transmit.h"
 
 #define POST_HANG_LENGTH	8	/* 160ms */
 #define FILTER_LENGTH		2
@@ -64,12 +66,11 @@ typedef struct s_tx_unit {
 	struct s_minibuf *buf;
 	sample		*data;			/* pointer to raw data in read_buf */
 	int		energy;
-	coded_unit	coded[MAX_ENCODINGS];
 	int		silence;		/* First pass */
 	int		send;			/* Silence second pass */
 	int		talkspurt_start;
-	u_int32		time;			/* TX timestamp */
-}tx_unit;
+	u_int32		time;			/* timestamp */
+} tx_unit;
 
 /* The point of a minibuf is that the unit size and sampling freq
  * remain the same throughout. */
@@ -82,7 +83,7 @@ typedef struct s_minibuf {
 	int	head;		/* Where we have read up to */
 
 	int	unit_size;	/* In samples (*= channels) */
-	u_int32	start_time;	/* TX timestamp */
+	u_int32	start_time;	/* timestamp */
 } minibuf;
 
 typedef struct s_read_buffer {
@@ -90,7 +91,6 @@ typedef struct s_read_buffer {
 	sd_t	*sd_info;
 	int	talkspurt;	/* Whether we are in a talkspurt */
 	int	posthang;	/* Posthang packet counter */
-	int	units_per_pckt;
 	tx_unit	*last_ptr;	/* Where reading is */
 	tx_unit	*silence_ptr;	/* Where rules based silence is */
 	tx_unit	*tx_ptr;	/* Where transmission is */
@@ -100,13 +100,6 @@ typedef struct s_read_buffer {
 static void
 clear_tx_unit(tx_unit *u)
 {
-	int l;
-
-	for (l = 0; l < MAX_ENCODINGS; l++) {
-		if (u->coded[l].data != NULL)
-			clear_coded_unit(u->coded + l);
-	}
-
 	u->talkspurt_start = FALSE;
 	u->send = FALSE;
 	u->data = NULL;			/* Mark as clear */
@@ -237,6 +230,7 @@ stop_sending(session_struct *sp)
 	sp->auto_lecture = tv.tv_sec;
 	sp->transmit_audit_required = TRUE;
 	sp->rb->talkspurt = FALSE;
+        reset_channel_encoder(sp,sp->cc_encoding);
 	ui_input_level(0, sp);
 	ui_info_deactivate(sp->db->my_dbe, sp);
 }
@@ -256,7 +250,6 @@ read_device_init(session_struct *sp, int unit_size)
 	memset(rb, 0, sizeof(read_buffer));
 	rb->clock = sp->device_clock;
 	rb->sd_info = sd_init();
-	rb->units_per_pckt = 2;
 	init_rb(rb, unit_size);
 
 	if (sp->mode != TRANSCODER) {
@@ -271,18 +264,6 @@ read_change_unit_size(read_buffer *rb, int unit_size)
 	if (rb->lbuf->unit_size == unit_size)
 		return;
 	add_new_buf(rb, unit_size);
-}
-
-void
-set_units_per_packet(read_buffer *rb, int units)
-{
-	rb->units_per_pckt = units;
-}
-
-int
-get_units_per_packet(read_buffer *rb)
-{
-	return (rb->units_per_pckt);
 }
 
 int
@@ -383,6 +364,7 @@ process_read_audio(session_struct *sp)
 	return (TRUE);
 }
 
+#define ASSUMED_FREQ         8000
 #define SIGNIFICANT_LECT	3
 #define SIGNIFICANT_CONF	1
 #define PREHANG_LECT		3
@@ -393,21 +375,24 @@ void
 rules_based_silence(session_struct *sp)
 {
 	tx_unit	*u;
-	int	change, i, prehang, significant;
+	int	change, i, prehang, posthang, significant, scale;
 	read_buffer *rb = sp->rb;
 
+        scale = get_freq(sp->device_clock)/ASSUMED_FREQ;
+
 	if (sp->lecture == TRUE) {
-		prehang = PREHANG_LECT;
-		significant = SIGNIFICANT_LECT;
+		prehang = PREHANG_LECT * scale;
+		significant = SIGNIFICANT_LECT * scale;
 	} else {
-		prehang = PREHANG_CONF;
-		significant = SIGNIFICANT_CONF;
+		prehang = PREHANG_CONF * scale;
+		significant = SIGNIFICANT_CONF * scale;
 	}
+        posthang = POSTHANG * scale;
 
 	while (rb->silence_ptr != rb->last_ptr) {
 		if (rb->silence_ptr->silence == rb->talkspurt) {
 			if (rb->talkspurt) {
-				if (++rb->posthang > POSTHANG) {
+				if (++rb->posthang > posthang) {
 					rb->talkspurt = FALSE;
 					rb->posthang = 0;
 				}
@@ -439,166 +424,116 @@ rules_based_silence(session_struct *sp)
 	}
 }
 
-static coded_unit *
-get_coded_unit(session_struct *sp, tx_unit *u, int coding)
-{
-	codec_t		*cp;
-	coded_unit	*c;
-	int		l;
-
-	cp = get_codec(coding);
-
-	if (cp->unit_len * cp->channels != u->buf->unit_size) {
-#ifdef DEBUG
-		printf("%d != %d\n",cp->unit_len * cp->channels, u->buf->unit_size);
-#endif
-		return (NULL);
-	}
-
-	/* Find the first free coded_unit, and code into it! */
-	for (l = 0, c = u->coded; l < MAX_ENCODINGS && c->data != NULL; l++, c++) {
-		if (c->cp == cp) {
-			break;
-		}
-	}
-	assert(l != MAX_ENCODINGS);	/* ...else we've run out of space to add units into! */
-	if (c->data == NULL)
-		encoder(sp, u->data, coding, c);
-	return (c);
-}
-
 static int
-fill_one_level(session_struct *sp, tx_unit *u, int coding, int max_units, struct iovec *iovp, int *len)
+new_ts(u_int32 last_time, u_int32 this_time, int encoding, int upp)
 {
-	int i, iovc = 0;
-	coded_unit *c;
+    codec_t *cp;
+    int diff, delta;
+    diff = this_time - last_time;
+    cp = get_codec(encoding);
+    delta = upp*cp->unit_len;
+    return (delta != diff);
+}  
 
-	*len = 0;
-	for (i = 0; i < max_units; i++, u = u->next) {
-		if (u->send == FALSE)
-			break;
-		if ((c = get_coded_unit(sp, u, coding)) == NULL)
-			break;
-		if (i == 0 && c->state != NULL) {
-			iovp[iovc].iov_base = (caddr_t)c->state;
-			*len += iovp[iovc].iov_len = c->state_len;
-			iovc++;
-		}
-		iovp[iovc].iov_base = (caddr_t)c->data;
-		*len += iovp[iovc].iov_len = c->data_len;
-		iovc++;
-	}
-
-	return (iovc);
-}
-
-void
+static void
 compress_transmit_audio(session_struct *sp, speaker_table *sa)
 {
-	int		units, red, i, blocks, iovc, *pt, len, l;
-	tx_unit		*u;
-	rtp_hdr_t	rtp_header;
-	u_int32		red_hdr[MAX_ENCODINGS], tmph;
-	struct iovec	send_ptrs[MAX_ENCODINGS * 8 + 2];
-	read_buffer	*rb = sp->rb;
-	codec_t		*cp;
+    int		units, i, n, ready;
+    tx_unit		*u;
+    rtp_hdr_t	rtp_header;
+    cc_unit             cu;
+    read_buffer	*rb = sp->rb;
+    
+    n = 0;
+    u = rb->tx_ptr;
 
-	rtp_header.type = 2;
-	rtp_header.x    = 0;
-	rtp_header.p    = 0;
-	rtp_header.cc   = 0;
-	rtp_header.ssrc = htonl(rtcp_myssrc(sp));
+    while (u != rb->silence_ptr) {
+        n++;
+        u = u->next;
+    }
 
-	units = 0;
-	u = rb->tx_ptr;
-	while (u != rb->silence_ptr) {
-		units++;
-		u = u->next;
-	}
+    rtp_header.cc=0;
+    if (sp->mode == TRANSCODER) {
+        speaker_table	*cs;
+        for (cs = sa; cs; cs = cs->next) {
+            /* 2 is a magic number, WHITE in speaker_table.c */
+            if (cs->state == 2)
+                rtp_header.csrc[rtp_header.cc++] = htonl(cs->dbe->ssrc);
+            if (rtp_header.cc == 15)
+                break;
+        }
+    }
 
-	while (units > rb->units_per_pckt) {
-		if (rb->tx_ptr->send == FALSE) {
-			rb->tx_ptr = rb->tx_ptr->next;
-			units--;
-			continue;
-		}
+    sp->last_tx_service_productive = 0;    
+    units = get_units_per_packet(sp);
+    u = rb->tx_ptr;
 
-		u = rb->tx_ptr;
-		i = rb->units_per_pckt * (sp->num_encodings - 1);
-		red = 0;
-		if (i > 0) {
-			for (; red < i && u->prev != NULL && u->prev->send == TRUE; red++)
-				u = u->prev;
-			/* Round to the nearest whole packet */
-			i = red % rb->units_per_pckt;
-			red -= i;
-			for (; i > 0; i--)
-				u = u->next;
-		}
+    /* When channel coders have enough data they fill in the iovec cu
+     * and return 1.  They are responsible for clearing items pointed to
+     * by iovec.  This is necessary because iovec is pointing to coded data and 
+     * redundancy (for example) needs earlier info and so we cannot free it
+     * here in case it is still needed by the channel coder.
+     */
 
-		send_ptrs->iov_base = (caddr_t)&rtp_header;
-		send_ptrs->iov_len = 12;
-		iovc = 1;
+    memset(&cu,0,sizeof(cc_unit));
+    cu.iov[0].iov_base = (caddr_t)&rtp_header;
+    cu.iov[0].iov_len  = 12+rtp_header.cc*4;
+    cu.iovc            = 1;
 
-		pt = sp->encodings + red / rb->units_per_pckt;
-		if (red > 0) {
-			rtp_header.pt = sp->redundancy_pt;
-			send_ptrs[1].iov_base = (caddr_t)red_hdr;
-			iovc++;
-			blocks = 0;
-			for (i = red; i > 0; i -= rb->units_per_pckt) {
-				cp = get_codec(*pt);
-				iovc += fill_one_level(sp, u, *pt, rb->units_per_pckt, send_ptrs + iovc, &len);
-				tmph = len;
-				tmph |= (i * cp->unit_len) << 10;
-				tmph |= (0x80 | *pt) << 24;
-				red_hdr[blocks++] = htonl(tmph);
-				pt--;
-				for (l = 0; l < rb->units_per_pckt; l++)
-					u = u->next;
-			}
-			(*(char *)(red_hdr + blocks)) = *pt;
-			send_ptrs[1].iov_len = blocks * 4 + 1;
-		} else {
-			rtp_header.pt = *pt;
-		}
-		rtp_header.m = u->talkspurt_start;
-		rtp_header.seq = htons(sp->rtp_seq);
-		sp->rtp_seq++;
-		rtp_header.ts = htonl(u->time);
+    while(n > units) {
+        for (i=0;i<units;i++,u=u->next) {
+            if (!i && !u->send) 
+                reset_encoder(sp, sp->encodings[0]);
 
-		/* Fill in CSRC information... */
-		if (sp->mode == TRANSCODER) {
-			speaker_table	*cs;
-			for (cs = sa; cs; cs = cs->next) {
-				/* 2 is a magic number, WHITE in speaker_table.c */
-				if (cs->state == 2)
-					rtp_header.csrc[rtp_header.cc++] = htonl(cs->dbe->ssrc);
-				if (rtp_header.cc == 15)
-					break;
-			}
-		}
+            /* if silence we pass dummy to encoder.  If the encoder 
+             * has latency, like an interleaver, it may need a pulse 
+             * in order to sync behaviour.
+             */
+            if (u->send) {          
+                ready = channel_code(sp, &cu, sp->cc_encoding, u->data);
+            } else {
+                ready = channel_code(sp, &cu, sp->cc_encoding, NULL);
+            }
 
-		send_ptrs->iov_len = 12 + (rtp_header.cc * 4);
+            if (ready && cu.iovc>1) {
+                /* rtp hdr fill in.
+                 * nb talkspurt as seen by classifer maybe behind that seen by 
+                 * channel coder so it is set later. 
+                 */
+                rtp_header.type = 2;
+                rtp_header.seq  = htons(sp->rtp_seq++);
+                rtp_header.ts   = htonl(u->time);
+                rtp_header.p = rtp_header.x = 0;
+                rtp_header.ssrc = htonl(rtcp_myssrc(sp));
 
-		iovc += fill_one_level(sp, u, *pt, rb->units_per_pckt, send_ptrs + iovc, &len);
-		if (sp->drop != 0.0) {
-			if (drand48() >= sp->drop)
-				net_write_iov(sp->rtp_fd, sp->net_maddress, sp->rtp_port, send_ptrs, iovc, PACKET_RTP);
-                } else {
-			net_write_iov(sp->rtp_fd, sp->net_maddress, sp->rtp_port, send_ptrs, iovc, PACKET_RTP);
-		}
-		/* Update RTP/RTCP statistics... [csp] */
-		sp->db->pkt_count  += 1;
-		sp->db->byte_count += len;
-		sp->db->sending     = TRUE;
+                if (sp->cc_encoding == PT_VANILLA) 
+                    rtp_header.pt = sp->encodings[0];
+                else
+                    rtp_header.pt = sp->cc_encoding;
 
-		units -= rb->units_per_pckt;
-		for (i = 0; i < rb->units_per_pckt; i++)
-			rb->tx_ptr = rb->tx_ptr->next;
-	}
+                rtp_header.m = new_ts(sp->last_depart_ts, u->time, sp->encodings[0], sp->units_per_pckt);
+
+                sp->last_depart_ts = u->time;
+                sp->db->pkt_count  += 1;
+                sp->db->byte_count += get_bytes(&cu);
+                sp->db->sending     = TRUE;
+                sp->last_tx_service_productive = 1;
+
+/*                fprintf(stderr,"bytes %04d iovc %02d\n", get_bytes(&cu),cu.iovc);*/
+                if (sp->drop == 0.0 || drand48() >= sp->drop) {
+                    net_write_iov(sp->rtp_fd, sp->net_maddress, sp->rtp_port, cu.iov, cu.iovc, PACKET_RTP);
+                }
+            }
+            
+            /* hook goes here to check for asynchonous channel coder data */
+
+        }
+        n -= units;
+        rb->tx_ptr = u;
+    }
+
 }
-
+ 
 void
 service_transmitter(session_struct *sp, speaker_table *sa)
 {
@@ -629,3 +564,10 @@ transmitter_update_ui(session_struct *sp)
 	} else
 		ui_info_deactivate(sp->db->my_dbe, sp);
 }
+
+
+
+
+
+
+

@@ -46,6 +46,7 @@
 #include "audio.h"
 #include "lbl_confbus.h"
 #include "codec.h"
+#include "channel.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "repair.h"
@@ -187,7 +188,7 @@ static void func_rate(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		cp = get_codec(sp->encodings[0]);
-		set_units_per_packet(sp->rb, (i * cp->freq) / (1000 * cp->unit_len));
+		set_units_per_packet(sp, (i * cp->freq) / (1000 * cp->unit_len));
 	} else {
 		printf("mbus: usage \"rate <integer>\"\n");
 	}

@@ -49,6 +49,7 @@
 #include "repair.h"
 #include "codec.h"
 #include "convert.h"
+#include "channel.h"
 #include "ui.h"
 #include "lbl_confbus.h"
 #include "parameters.h"
@@ -79,6 +80,9 @@ init_session(session_struct *sp)
 
 	codec_init(sp);
 	cp = get_codec_byname("DVI-8K-MONO",sp);
+        sp->cc_encoding    = PT_VANILLA;
+        sp->units_per_pckt = 2;
+        sp->last_depart_ts              = 1;
         sp->encodings[0]		= cp->pt;	/* user chosen encoding for primary */
 	sp->num_encodings		= 1;		/* Number of encodings in packet */
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
@@ -99,7 +103,6 @@ init_session(session_struct *sp)
 	sp->transmit_audit_required	= FALSE;
 	sp->receive_audit_required	= FALSE;
 	sp->voice_switching		= FULL_DUPLEX;	 /* NETMUTESMIKE etc. */
-	sp->redundancy_pt		= PT_REDUNDANCY; /* XXX obsolete */
 	sp->detect_silence		= TRUE;
 	sp->agc_on			= FALSE;
         sp->ui_on                       = TRUE;
@@ -190,21 +193,19 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
                 		/* Dynamic payload type mapping. Format: "-pt pt/codec/clock/channels" */
 				/* pt/codec must be specified. clock and channels are optional.        */
 				/* At present we only support "-pt .../redundancy"                     */
-				sp[s]->redundancy_pt = atoi(strtok(argv[i + 1], "/"));
-				if ((sp[s]->redundancy_pt > 127) || (sp[s]->redundancy_pt < 96)) {
+                                char *t;
+                                int pt;
+				pt = atoi(strtok(argv[i + 1], "/"));
+				if ((pt > 127) || (pt < 96)) {
 					printf("Dynamic payload types must be in the range 96-127. So there.\n");
 					usage();
 				}
-				if (!strncmp(strtok(NULL, "/"), "redundancy", 15)) {
-					if (strtok(NULL, "/") != NULL) {
-						printf("Hmmm.... Don't understand that -pt option\n");
-						usage();
-					}
-				} else {
-					printf("Unsupported -pt option.\n");
-					usage();
-				}
-				i++;
+                                t = strtok(NULL, "/");
+                                if (!set_cc_pt(t,pt)) {
+                                    printf("Hmmm.... Don't understand that -pt option\n");
+                                    usage();
+                                }
+                                i++;
 			}
 			if ((strcmp(argv[i], "-silence") == 0) && (argc > i+1)) {
                                 if (strcmp(argv[i+1], "on") == 0) {
@@ -215,9 +216,16 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
                                         i++;
                                 } else {
                                         printf("Unrecognized -silence option.\n");
-
                                 }
-			}
+                        }        
+                        if ((strcmp(argv[i], "-channel") == 0) && (argc > i+2)) {
+                            int pt;
+                            char *name = argv[i+1];
+                            pt = get_cc_pt(sp[s],name);
+                            sp[s]->cc_encoding = pt;
+                            config_channel_coder(sp[s], pt, argv[i+2]);
+                            i += 2;
+                        }
                         if ((strcmp(argv[i], "-silence_params") == 0) && (argc > i+1)) {
 				set_silence_params(argv[i + 1]);
                                 i++;
@@ -252,10 +260,10 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 					}
 					p = strtok(NULL, "/");
 				}
-
 				i++;
 			}
-		}
+                        
+                }
 	}
 }
 

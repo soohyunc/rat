@@ -87,8 +87,10 @@ typedef struct s_rtcp_dbentry {
 	int		cont_toged;		/* Toged in a row */
 	u_int32         lost;			/* Old unused? */
 
+        struct s_cc_state       *cc_state_list;
 	struct s_codec_state	*state_list;
 	struct s_time		*clock;
+        struct s_ch_coder       *chan_state;
 
 	u_int32         last_mixed_playout;	/* from device_clock */
 

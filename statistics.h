@@ -56,11 +56,6 @@
 
 #include "rat_time.h"
 
-#define RED_L(x)	((x) & 0x80000000)		/* More blocks */
-#define RED_PT(x)	(((x) & 0x7F000000) >> 24)	/* Payload type */
-#define RED_OFF(x)	(((x) & 0x00FFfC00) >> 10)	/* Timestamp offset */
-#define RED_LEN(x)	((x) & 0x000003FF)		/* Block length */
-
 struct session_tag;
 struct pckt_queue_tag;
 struct rx_queue_tag;

@@ -72,7 +72,7 @@ typedef struct s_coded_unit {
 	int	data_len;
 } coded_unit;
 
-typedef void (*init_f)(struct s_codec_state *s, struct s_codec *c);
+typedef void (*init_f)(struct session_tag *sp, struct s_codec_state *s, struct s_codec *c);
 typedef void (*code_f)(sample *in, coded_unit *c, struct s_codec_state *s, struct s_codec *cp);
 typedef void (*dec_f)(struct s_coded_unit *c, sample *data, struct s_codec_state *s, struct s_codec *cp);
 
@@ -95,9 +95,6 @@ typedef struct s_codec {
 	code_f	encode;
 	init_f	dec_init;
 	dec_f	decode;
-	int     native;         /* indicates whether format is understood by device -
-				 * needed because of multiple decompressed data 
-				 * because of channel/rate changes. XXX other ideas?*/
 } codec_t;
 
 struct s_codec *get_codec(int pt);
@@ -106,6 +103,7 @@ void	set_dynamic_payload(struct s_dpt **listp, char *name, int pt);
 int	get_dynamic_payload(struct s_dpt **listp, char *name);
 void	codec_init(struct session_tag *sp);
 void	encoder(struct session_tag *sp, sample *data, int coding, coded_unit *c);
+void    reset_encoder(struct session_tag *sp, int coding);
 void	decode_unit(struct rx_element_tag *u);
 void	clear_coded_unit(coded_unit *u);
 int	codec_compatible(struct s_codec *c1, struct s_codec *c2);

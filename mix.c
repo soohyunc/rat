@@ -1,8 +1,8 @@
 /*
  * FILE: mix.c
  * PROGRAM: RAT/Mixer
- * AUTHOR: Isidor Kouvelas + Colin Perkins
- *
+ * AUTHOR: Isidor Kouvelas 
+ * MODIFIED BY: Orion Hodson + Colin Perkins 
  * $Revision$
  * $Date$
  *
@@ -64,7 +64,8 @@ typedef struct s_mix_info {
 				 * We must make sure that this is kept
 				 * equal to value of the device cushion
 				 * unless there is no audio to mix. */
-	sample	*mix_buffer;	/* The buffer containing mixed audio data */
+	sample	*mix_buffer;	/* The buffer containing mixed audio data. */
+        int      channels;      /* number of channels being mixed. */
 } mix_struct;
 
 #define ROUND_UP(x, y)  (x) % (y) > 0 ? (x) - (x) % (y) : (x)
@@ -80,13 +81,18 @@ mix_struct *
 init_mix(session_struct *sp, int buffer_length)
 {
 	mix_struct	*ms;
+        codec_t         *cp;
+
+        cp = get_codec(sp->encodings[0]);
 
 	ms = (mix_struct *) xmalloc(sizeof(mix_struct));
 	memset(ms, 0 , sizeof(mix_struct));
-	ms->buf_len = buffer_length;
+        ms->channels   = cp->channels;
+	ms->buf_len    = buffer_length * cp->channels;
 	ms->mix_buffer = (sample *)xmalloc(3 * buffer_length * BYTES_PER_SAMPLE);
-	audio_zero(ms->mix_buffer, 3 * buffer_length, DEV_L16);
+	audio_zero(ms->mix_buffer, 3 * buffer_length , DEV_L16);
 	ms->mix_buffer += buffer_length;
+
 	return (ms);
 }
 
@@ -95,6 +101,7 @@ mix_audio(sample *v0, sample *v1, int len)
 {
 	int	tmp;
 
+        xmemchk();
 	for (; len > 0; len--) {
 		tmp = *v0 + *v1++;
 		if (tmp > 32767)
@@ -103,11 +110,15 @@ mix_audio(sample *v0, sample *v1, int len)
 			tmp = -32768;
 		*v0++ = tmp;
 	}
+        xmemchk();
 }
 
 static void
 mix_add(mix_struct *ms, sample *buf, int offset, int len)
 {
+#ifdef DEBUG_MIX
+    fprintf(stderr,"mix_add offset(%05d) len (%05d)\n",offset,len);
+#endif
 	if (offset + len > ms->buf_len) {
 		mix_audio(ms->mix_buffer + offset, buf, ms->buf_len - offset);
 		mix_audio(ms->mix_buffer, buf, offset + len - ms->buf_len);
@@ -119,6 +130,9 @@ mix_add(mix_struct *ms, sample *buf, int offset, int len)
 static void
 mix_zero(mix_struct *ms, int offset, int len)
 {
+#ifdef DEBUG_MIX
+    fprintf(stderr,"mix_zero offset(%05d) len (%05d)\n",offset,len);
+#endif
 	if (offset + len > ms->buf_len) {
 		audio_zero(ms->mix_buffer + offset, ms->buf_len - offset, DEV_L16);
 		audio_zero(ms->mix_buffer, offset + len-ms->buf_len, DEV_L16);
@@ -146,33 +160,36 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	 * and decompressed data at the codec output rate and channels.
 	from = el->comp_data[0].cp;
 	to = get_codec(sp->encodings[0]);
+        playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
 	playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
+
 	if (from->freq != to->freq || from->channels != to->channels) {
-		len = convert_format(el, to->freq, to->channels);
+		convert_format(el, to->freq, to->channels);
+                len = ms->channels * from->unit_len * to->freq / from->freq;
 		buf = el->native_data[1];
 	} else {
-		len = from->unit_len * from->channels;
+		len = ms->channels * from->unit_len;
 		buf = el->native_data[0];
                 }
 
 	/* If it is too late... */
 
-#ifdef DEBUG
-	    	printf("Unit arrived late in mix %ld - %ld = %ld\n", ms->tail_time, playout, ms->tail_time - playout);
+	if (ts_gt(ms->tail_time, playout)) {
+	    	fprintf(stderr,"Unit arrived late in mix %ld - %ld = %ld\n", ms->tail_time, playout, ms->tail_time - playout);
 	    	debug_msg("Unit arrived late in mix %ld - %ld = %ld (dist = %d)\n", ms->tail_time, playout, ms->tail_time - playout, ms->dist);
 #endif
 	    	return;
 	}
-#ifdef DEBUG
+#ifdef DEBUG_MIX
 	/* This should never really happen but you can't be too careful :-)
 	 * It can happen when switching unit size... */
-	if (ts_gt(el->dbe_source[0]->last_mixed_playout + len, playout))
-		printf("New unit overlaps with previous by %ld samples\n", el->dbe_source[0]->last_mixed_playout + len - playout);
+	if (ts_gt(el->dbe_source[0]->last_mixed_playout + len/ms->channels, playout))
+		fprintf(stderr,"New unit overlaps with previous by %ld samples\n", el->dbe_source[0]->last_mixed_playout + len/ms->channels - playout);
 #endif
         }
-#ifdef GAP_DEBUG
-	if (ts_gt(playout, el->dbe_source[0]->last_mixed_playout + len))
-		printf("Gap between units %ld samples\n", playout - el->dbe_source[0]->last_mixed_playout - len);
+
+	if (ts_gt(playout, el->dbe_source[0]->last_mixed_playout + len/ms->channels))
+		fprintf(stderr,"Gap between units %ld samples\n", playout - el->dbe_source[0]->last_mixed_playout - len/ms->channels);
 		debug_msg("Gap between units %ld samples\n", playout - el->dbe_source[0]->last_mixed_playout - dur);
 #endif
 
@@ -184,7 +201,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	if (el->dbe_source[0]->mute) {
 	}
 
-	pos = (playout - ms->head_time + ms->head) % ms->buf_len;
+	/* Convert playout to position in buffer */
 	pos = ((playout - ms->head_time)*ms->channels + ms->head) % ms->buf_len;
 	assert(pos >= 0);
 
@@ -196,14 +213,18 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	 * If we have not mixed this far (normal case)
 	 * we mast clear the buffer ahead (or copy)
 	if (ts_gt(playout + len, ms->head_time)) {
-		diff = playout + len - ms->head_time;
+#ifdef DEUBG_MIX
+                fprintf(stderr, "playout %08d head %08d(%05d) tail %08d(%05d) dist %05d len %05d\n", playout, ms->head_time,ms->head, ms->tail_time,ms->tail, ms->dist, ms->buf_len);
+#endif
+            
+		diff = (playout - ms->head_time)*ms->channels + len;
 		diff = (playout - ms->head_time)*ms->channels + nsamples;
 		assert(diff > 0);
 		assert(diff < ms->buf_len);
 		mix_zero(ms, ms->head, diff);
 		ms->dist += diff;
 		ms->head += diff;
-		ms->head_time += diff;
+		ms->head %= ms->buf_len;
 		ms->head_time += diff/ms->channels;
 	}
 	mix_add(ms, buf, pos, len);
@@ -219,7 +240,9 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
 mix_get_audio(mix_struct *ms, int amount, sample **bufp)
 {
 	int	silence;
+
         xmemchk();
+        amount *= ms->channels;
 	assert(amount < ms->buf_len);
 	if (amount > ms->dist) {
 		/*
@@ -231,8 +254,8 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
 		 * now so zero the rest of the buffer and move the head.
 		 */
 		silence = amount - ms->dist;
-#ifdef DEBUG
-			printf("Insufficient audio: zeroing end of mix buffer %d %d\n", ms->buf_len - ms->head, silence + ms->head - ms->buf_len);
+		if (ms->head + silence > ms->buf_len) {
+#ifdef DEBUG_MIX
 			fprintf(stderr,"Insufficient audio: zeroing end of mix buffer %d %d\n", ms->buf_len - ms->head, silence + ms->head - ms->buf_len);
 			audio_zero(ms->mix_buffer + ms->head, ms->buf_len - ms->head, DEV_L16);
 			audio_zero(ms->mix_buffer, silence + ms->head - ms->buf_len, DEV_L16);
@@ -241,7 +264,7 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
 			audio_zero(ms->mix_buffer + ms->head, silence, DEV_S16);
                 xmemchk();
 		ms->head      += silence;
-		ms->head_time += silence;
+		ms->head      %= ms->buf_len;
 		ms->dist      = amount;
 		ms->dist       = amount;
 		assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
@@ -267,12 +290,12 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
 		 * to our chunk sizes and we are a bit careful about the
 		 * possible cushion sizes this case can be avoided.
                 xmemchk();
-#ifdef DEBUG
-		printf("Copying start of mix len: %d\n", ms->tail + amount - ms->buf_len);
+                xmemchk();
+#ifdef DEBUG_MIX
 		fprintf(stderr,"Copying start of mix len: %d\n", ms->tail + amount - ms->buf_len);
 #endif
 	}
-	ms->tail_time += amount;
+	*bufp = ms->mix_buffer + ms->tail;
 	ms->tail_time += amount/ms->channels;
 	ms->tail      += amount;
 	ms->tail      %= ms->buf_len;
@@ -291,14 +314,16 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 			int dry_time, sample **bufp)
 {
 	int	diff, elapsed_time;
-#ifdef DEBUG
-	printf("Getting new cushion %d old %d\n", new_cushion_size, last_cushion_size);
+
+#ifdef DEBUG_MIX
 	fprintf(stderr, "Getting new cushion %d old %d\n", new_cushion_size, last_cushion_size);
 #endif
-	elapsed_time = last_cushion_size + dry_time;
-	diff = abs(new_cushion_size - elapsed_time);
-
-	if (new_cushion_size > elapsed_time) {
+	elapsed_time = last_cushion_size/ms->channels + dry_time;
+	diff = abs(new_cushion_size - elapsed_time*ms->channels);
+	diff = abs(new_cushion_size - elapsed_time) * ms->channels;
+#ifdef DEBUG_MIX
+        fprintf(stderr,"new cushion size %d\n",new_cushion_size);
+	if (new_cushion_size/ms->channels > elapsed_time) {
 	if (new_cushion_size > elapsed_time) {
 		/*
 		 * New cushion is larger so move tail back to get
@@ -312,16 +337,16 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 			ms->tail += ms->buf_len;
 		}
 		ms->dist += diff;
-		ms->tail_time -= diff;
+		assert(ms->dist <= ms->buf_len);
 		ms->tail_time -= diff/ms->channels;
-	} else if (new_cushion_size < elapsed_time) {
+	} else if (new_cushion_size/ms->channels < elapsed_time) {
 	} else if (new_cushion_size < elapsed_time) {
 		/*
 		 * New cushion is smaller so we have to throw away
 		 * some audio.
 		 */
 		ms->tail += diff;
-		ms->tail_time += diff;
+		ms->tail %= ms->buf_len;
 		ms->tail_time += diff/ms->channels;
 		if (diff > ms->dist) {
 			ms->head = ms->tail;
@@ -344,11 +369,20 @@ mix_update_ui(session_struct *sp, mix_struct *ms)
 	int	energy;
 	sample	*bp;
 
-		bp = ms->mix_buffer + ms->buf_len - POWER_METER_SAMPLES;
+	if (ms->tail < POWER_METER_SAMPLES) {
 		bp = ms->mix_buffer + ms->buf_len - POWER_METER_SAMPLES * ms->channels;
 	} else {
 		bp = ms->mix_buffer + ms->tail - POWER_METER_SAMPLES;
 	energy = audio_energy(bp, POWER_METER_SAMPLES);
 	ui_output_level(log10((double)1.0 + (double)energy / (double)127) * 67, sp);
 	ui_output_level(sp, lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
+
+
+
+
+
+
+
+
+}
 }

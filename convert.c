@@ -53,16 +53,23 @@ static void (*us)(short *,short *,short *,short *, int, int, int, int);
 
 /* Linear interpolation (sperm of the devil) */
 void
-upsample_linear(short *dst, short *src_prev, short *src, short *src_next, int src_len, int scale, int src_step, int dst_step)
+upsample_linear(short *dst, 
+                short *src_prev, 
+                short *src, 
+                short *src_next, 
+                int    src_len, 
+                int    scale, 
+                int    src_step, 
+                int    dst_step)
 {
     short *p,*ep;
     float w1,w2,ws,tmp;
-    assert(p!=NULL);
+
     if (src_prev) {
         p = src_prev+(src_len-1)*src_step;
     } else {
         p = src;
-	}
+    }
 
     ep = src+src_len*src_step;
     ws = 1.0f/((float)scale);
