@@ -1245,4 +1245,6 @@ TODO -- They're features not bugs dammit!
 - Fix skew and transit info in pdb when device format changes at either end.
 - Make rtp.addr() with an rx_port of 0, when sent to the media engine, mean
   that the media engine should get the kernel to select a receive RTP port.
+- Rework media engine initialization, so we can query it before sending
+  rtp.addr()
 
