@@ -310,6 +310,7 @@ done_multi1:            xfree(ltInputs);
 #ifdef DEBUG
                         printf("Control type %8x\n", mcMixIn->dwCtlType[i]);
 #endif /* DEBUG */
+                        return 0;
                 }
         }
 
