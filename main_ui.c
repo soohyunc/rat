@@ -12,8 +12,6 @@ static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
-#include "tcl.h"
-#include "tk.h"
 
 #include "config_unix.h"
 #include "config_win32.h"
@@ -22,6 +20,8 @@ static const char cvsid[] =
 #include "mbus.h"
 #include "mbus_ui.h"
 #include "mbus_parser.h"
+#include "tcl.h"
+#include "tk.h"
 #include "tcltk.h"
 #include "util.h"
 
@@ -93,13 +93,13 @@ int main(int argc, char *argv[])
 	struct mbus	*m;
 	struct timeval	 timeout;
 
-        appname = get_appname(argv[0]);
-
 #ifdef WIN32
         HANDLE     hWakeUpEvent;
         TkWinXInit(hAppInstance);
         hWakeUpEvent = CreateEvent(NULL, FALSE, FALSE, "Local\\RAT UI WakeUp Event");
 #endif
+
+        appname = get_appname(argv[0]);
 
         debug_set_core_dir(argv[0]);
 

@@ -178,6 +178,10 @@ SOURCE=.\cushion.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\fatal_error.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\main_engine.c
 # End Source File
 # Begin Source File
