@@ -338,7 +338,7 @@ g726_decode(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *dst)
 		break;
 	case G726_40:
 		for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 8) {
-			in += g726_unpack(cw, in, 8, 3);
+			in += g726_unpack(cw, in, 8, 5);
 			dst[i + 0] = (sample)g726_40_decoder(cw[0], AUDIO_ENCODING_LINEAR, g->gs);
 			dst[i + 1] = (sample)g726_40_decoder(cw[1], AUDIO_ENCODING_LINEAR, g->gs);
 			dst[i + 2] = (sample)g726_40_decoder(cw[2], AUDIO_ENCODING_LINEAR, g->gs);
