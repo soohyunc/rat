@@ -119,7 +119,7 @@ main(int argc, char *argv[])
                 sp[0]->rtp_session[i] = rtp_init(sp[0]->asc_address[i], 
                                                  sp[0]->tx_rtp_port[i], 
                                                  sp[0]->ttl, 
-                                                 5, /* Initial rtcp b/w guess */
+                                                 64000,
                                                  rtp_callback);
                 sp[0]->rtp_session_count++;
                 rtp_callback_init(sp[0]->rtp_session[i], sp[0]);
