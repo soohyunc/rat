@@ -99,17 +99,3 @@ get_time(frtime_t *tp)
 	t = tp->ft->low / tp->scale + tp->ft->high * tp->scale;
 	return (t);
 }
-
-u_int32
-convert_time(u_int32 ts, frtime_t *from, frtime_t *to)
-{
-        assert(to->freq % from->freq == 0 || from->freq % to->freq == 0);
-
-        if (from->freq == to->freq) {
-                return ts;
-        } else if (from->freq < to->freq) {
-                return ts * (to->freq / from->freq);
-        } else {
-                return ts / (from->freq / to->freq);
-        }
-}
