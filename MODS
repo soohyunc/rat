@@ -1365,6 +1365,30 @@ v4.2.7	- Split main() in the controller into two parts: one for normal
 	- Fix buffer overflow in tx_unit_create()
 	- Add missing initialization of reversal buffer for repetition plus
 	  (problem reported by Lingfen Sun).
+	- Only perform audio bias removal for live capture, not when reading
+	  from a file. This fixes the problem reported by Paxton Smith, where
+	  excess RTP packets are sent when playing from a file.
+	  	- Note that there are still some extra packets sent, due to 
+		  the pre- and/or post-hang in the voice activity detection
+		  code. This makes for a much nicer sound for speech (since
+		  we have continuous audio during short (<200ms at present)
+		  silence periods, but does cause some spurious transmission
+		  in this case. The following #define's in parameters.c can
+		  be changed to adjust this behaviour:
+			#define VAD_SIG_LECT     40
+			#define VAD_SIG_CONF     60
+			#define VAD_PRE_LECT     60
+			#define VAD_PRE_CONF     20
+			#define VAD_POST_LECT   200
+			#define VAD_POST_CONF   200
+	- Fix reading of .wav files 
+		- The last unit of audio data was not being sent, which also 
+		  contributed to Paxton Smith's problem.
+	- Fix bias removal for stereo signals
+	- Fix bias removal (you can't do >> with signed values and get a sensible answer)
+	- Fix arithmetic overflow problems in the bias removal code
+	- Remove spurious code in auddev_null.c which caused the NULL audio
+	  device to (incorrectly) generate non-silent a-law audio.
 
 
 TODO -- They're features not bugs dammit!
@@ -1388,8 +1412,6 @@ TODO -- They're features not bugs dammit!
 	- SGI O2's don't have autosensing audio interface selection like 
 	  Indy's.
 	- Thierry still has problems with the NM256 card and device pairing
-	- Maestro2 cards only support stereo recording, need to hack
-	  auddev_oss to deal with this (Joseph Eggleston)
 - Update the 3d audio rendering code
 	- should decimate when using sampling rates other than that for which 
 	  it was originally designed for.
@@ -1457,6 +1479,10 @@ TODO -- They're features not bugs dammit!
   Seems to be due to packets being received off the network, but never played
   out. Reported by Angel Mateo, and also observed at UCL. Not something I've
   found a way of reproducing.
+- Occasional weird behaviour of the playout buffer, where sources are
+  buffered for several _minutes_ before being played out? Reported by
+  Steven Dawson on the CAIRN list. Expect this is the same problem as
+  the previous.
 - Problems with the configure script on Irix 6.2. Works for Orion, but not
   for me. Must be something in the environment, or a software version issue
   but I don't know what...
@@ -1465,9 +1491,4 @@ TODO -- They're features not bugs dammit!
 	rat-4.2.4-media: source.c:1588: source_process: Assertion `md->nrep < 5 && md->nrep > 0' failed.
   FYI, I just triggered this same failure inadvertently at another site by 
   transmitting at 48khz when they were set to receive at 16khz. (Bob Olson).
-- Occasional weird behaviour of the playout buffer, where sources are
-  buffered for several _minutes_ before being played out? Reported by
-  Steven Dawson on the CAIRN list.
-- RTP packets sent three times when playing from a file. Reported by Paxton
-  Smith. Due to bias_remove() in tx_process_audio()???
 

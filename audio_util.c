@@ -44,7 +44,8 @@ bias_ctl_destroy(bias_ctl *bc)
 static void
 remove_lta(bias_ctl *bc, sample *buf, int len, int step)
 {
-        int  i , m, samples;
+        int  	i, samples;
+	sample	m;
         m = 0;
 
         samples = len / step;
@@ -53,20 +54,20 @@ remove_lta(bias_ctl *bc, sample *buf, int len, int step)
                 /* On first pass do expensive task of calculating and
                  * removing bias in two steps.
                  */
-                for (i = 0; i < len ; i += step) {
-                        m += buf[i];
+                for (i = 0; i < len; i += step) {
+                        m += buf[i] / samples;
                 }
-                bc->lta = m / samples;
+		bc->lta = m;
                 bc->age++;
-                for (i = 0; i < len; i++) {
+                for (i = 0; i < len; i += step) {
                         buf[i] -= bc->lta;
                 }
         } else {
-                for (i = 0; i < len; i++) {
-                        m      += buf[i];
+                for (i = 0; i < len; i += step) {
+                        m      += buf[i] / samples;
                         buf[i] -= bc->lta;
                 }
-                bc->lta -= (bc->lta - m / samples) >> 3;
+                bc->lta -= ((bc->lta - m) / 8);
         }
 }
 

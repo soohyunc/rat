@@ -35,12 +35,6 @@ static int read_virgin = 1;
 
 static int igain = 50, ogain = 50;
 
-
-#ifdef DEBUG
-/* Available to debug alaw conversions and check bounds etc. */
-#define ALAW_DEVICE
-#endif
-
 #ifdef WIN32
 HANDLE   hAudioWakeUp;   /* Event that gets blocked for in null_audio_wait_for on Win32 */ 
 #endif
@@ -52,12 +46,6 @@ null_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
                 debug_msg("Warning device not closed before opening.\n");
                 null_audio_close(ad);
         }
-
-#ifdef ALAW_DEVICE
-        /* These are just here to check format changing code works properly */
-        audio_format_change_encoding(infmt, DEV_PCMA);
-        audio_format_change_encoding(outfmt, DEV_PCMA);
-#endif /* ALAW_DEVICE */
 
         memcpy(&ifmt, infmt,  sizeof(ifmt));
         memcpy(&ofmt, outfmt, sizeof(ofmt));

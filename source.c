@@ -677,11 +677,9 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         discarded++;
                         xfree(p);
                 }
-#ifdef DEBUG
                 if (discarded > 0) {
                         debug_msg("Discarded %d surplus packets\n", discarded);
                 }
-#endif /* DEBUG */
         }
 
         while(pktbuf_dequeue(src->pktbuf, &p)) {

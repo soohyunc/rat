@@ -178,17 +178,17 @@ riff_read_hdr(FILE *fp, char **state, sndfile_fmt_t *fmt)
 
         switch(wf.wFormatTag) {
         case MS_AUDIO_FILE_ENCODING_ULAW:
-                debug_msg("ulaw\n");
+                debug_msg(".wav file encoding is ulaw\n");
                 break;
         case MS_AUDIO_FILE_ENCODING_ALAW:
-                debug_msg("alaw\n");
+                debug_msg(".wav file encoding is alaw\n");
                 break;
         case MS_AUDIO_FILE_ENCODING_PCM:
                 if (wf.wBitsPerSample != 16 && wf.wBitsPerSample != 8) {
                         debug_msg("%d bits per sample not supported.\n", wf.wBitsPerSample);
                         return FALSE;
                 }
-                debug_msg("l%d\n", wf.wBitsPerSample);
+                debug_msg(".wav file encoding is L%d\n", wf.wBitsPerSample);
                 break;
         default:
                 /* We could be really flash and open an acm stream and convert any
@@ -198,7 +198,7 @@ riff_read_hdr(FILE *fp, char **state, sndfile_fmt_t *fmt)
                 return FALSE;
         }
 
-        debug_msg("Channels (%d) SamplesPerSec (%d) BPS (%d) Align (%d) bps (%d)\n",
+        debug_msg("Channels (%d) SamplesPerSec (%d) BPS (%d) Align (%d) bits_per_samples (%d)\n",
                   wf.wChannels,
                   wf.dwSamplesPerSec,
                   wf.dwAvgBytesPerSec,
@@ -245,7 +245,13 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
                 return 0;
         }
         
+        if (rs->cbRemain == 0) {
+		debug_msg("Nothing remaining...\n");
+		return 0;
+	}
+
         samples_read = fread(buf, unit_sz, samples, pf);
+        rs->cbRemain -= (samples_read * unit_sz);
 
         switch(rs->wf.wFormatTag) {
         case MS_AUDIO_FILE_ENCODING_ALAW:
@@ -284,15 +290,7 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
                 break;
         }
 
-        rs->cbRemain -= samples * unit_sz;
-
-        /* Make sure we don't write any other data from riff file out 
-         *(i.e. copyright) */
-        if (rs->cbRemain > 0) {
-                return samples_read; 
-        } else {
-                return 0;
-        }
+	return samples_read; 
 }
 
 int

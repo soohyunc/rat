@@ -51,6 +51,7 @@ typedef struct s_tx_unit {
         char	 	 silence;	/* First pass                                          */
         u_char    	 send;		/* Silence second pass                                 */
 	u_char		 encoded;	/* TRUE if this unit has been encoded for transmission */
+	u_char		 live_capture;	/* TRUE if this unit came from a microphone, FALSE if it came from a file */
 } tx_unit;
 
 typedef struct s_tx_buffer {
@@ -130,6 +131,7 @@ tx_unit_create(tx_buffer *tb, tx_unit  **ptu, int n_samples)
 		tu->silence  = -1;	/* -1 == not yet performed silence detection */
 		tu->send     = 0;
 		tu->encoded  = FALSE;
+		tu->live_capture = TRUE;
                 tb->last_sample += n_samples;
 		tx_buffer_validate(tb);
                 return TRUE;
@@ -317,14 +319,16 @@ tx_read_audio(tx_buffer *tb)
                         if (u->dur_used == tb->unit_dur) {
                                 read_dur += tb->unit_dur;
                                 if (sp->in_file) {
+					/* Reading from a file overwrites any audio we've captured... */
                                         tx_read_sndfile(sp, tb->sample_rate, tb->channels, u);
 				}
 				sp->cur_ts = ts_add(sp->cur_ts, ts_map32(tb->sample_rate, tb->unit_dur));
                                 u_ts       = sp->cur_ts;
+                                filled_unit = TRUE;
+				/* We've filled one unit, so create the next one... */
 				tx_unit_create(tb, &u, tb->unit_dur * tb->channels);
                                 pb_add(tb->audio_buffer, (u_char*)u, ulen, u_ts);
                                 pb_iterator_advance(tb->reading);
-                                filled_unit = TRUE;
 			}
                 } while (filled_unit == TRUE);
                 assert(pb_iterator_count(tb->audio_buffer) == 3);
@@ -376,7 +380,12 @@ tx_process_audio(tx_buffer *tb)
         assert(pb_iterator_count(tb->audio_buffer) == 3);
         pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
         while (pb_iterators_equal(tb->silence, tb->reading) == FALSE) {
-                bias_remove(tb->bc, u->data, u->dur_used * tb->channels);
+		assert(u->dur_used == tb->unit_dur);
+		if (u->live_capture) {
+                	bias_remove(tb->bc, u->data, u->dur_used * tb->channels);
+		} else {
+			debug_msg("Unit came from a file, no need for bias removal\n");
+		}
                 u->energy = audio_avg_energy(u->data, u->dur_used * tb->channels, tb->channels);
                 u->send   = FALSE;
                 
@@ -621,7 +630,6 @@ tx_send(tx_buffer *tb)
                                 memcpy(data + done, cd->elem[i]->data, cd->elem[i]->data_len);
                                 done += cd->elem[i]->data_len;
                         }
-			debug_msg("Sending RTP packet on layer %d with timestamp %u\n", j, (unsigned long) time_32);
                         rtp_send_data(tb->sp->rtp_session[j], time_32, pt, marker, 0, csrc, data, data_len, extn, extn_len, extn_type);
                         block_free(data, data_len);
                         tb->bps_bytes_sent += data_len;
@@ -823,8 +831,10 @@ tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *
                 codec_clear_coded_unit(&out);
         } else {
                 samples_read = snd_read_audio(&sp->in_file, u->data, (uint16_t)(u->dur_used * tx_channels));
-		debug_msg("read %d samples\n", samples_read);
         }
+	if (samples_read > 0) {
+		u->live_capture = FALSE;
+	}
 }
 
 uint32_t

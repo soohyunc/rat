@@ -167,7 +167,9 @@ snd_read_audio(sndfile_t **sf, sample *buf, uint16_t samples)
         sndfile_handler_t *sfh;
         int samples_read;
 
-        if ((*sf)->action & SND_ACTION_PAUSED) return FALSE;
+        if ((*sf)->action & SND_ACTION_PAUSED) {
+		return 0;
+	}
 
         sfh = (*sf)->sfh;
         
