@@ -341,6 +341,16 @@ int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 	if (err != noErr) debug_msg("err: Set kAudioDevicePropertyBufferSize to %d\n", bufferByteSize);
 	else debug_msg("sucessfully set kAudioDevicePropertyBufferSize to %d\n", bufferByteSize);
 	*/
+
+        // Set the device sample rate -- a temporary fix for the G5's
+        //   built-in audio and possibly other audio devices.
+	Boolean IsInput = 0;
+	int inChannel = 0;
+         
+	Float64 theAnswer = 44100;
+	UInt32 theSize = sizeof(theAnswer);
+	err = AudioDeviceSetProperty(devices[ad].inputDeviceID_, NULL, inChannel, IsInput,
+                                kAudioDevicePropertyNominalSampleRate, theSize, &theAnswer);
 	
 	// Register the AudioDeviceIOProc.
 	err = AudioDeviceAddIOProc(devices[ad].inputDeviceID_, audioIOProc,NULL);
