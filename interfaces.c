@@ -114,6 +114,14 @@ free_rx_unit(rx_queue_element_struct **temp_ptr)
 		}
 	}
 
+        if ((*temp_ptr)->next_ptr != NULL) {
+                (*temp_ptr)->next_ptr->prev_ptr = NULL;
+        }
+
+        if ((*temp_ptr)->prev_ptr != NULL) {
+                (*temp_ptr)->prev_ptr->next_ptr = NULL;
+        }
+        
 	block_free(*temp_ptr, sizeof(rx_queue_element_struct));
 	(*temp_ptr) = (rx_queue_element_struct *) 1;	/* for debugging purposes */
 }
