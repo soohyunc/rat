@@ -1162,6 +1162,8 @@ v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	- Add repeat+ repair type.  It does standard repeat and then reverse
 	  blends samples from the end of the previous frame with the start
 	  of this frame.  Perhaps reduces some glitching.
+	- Add README.reporting-bugs describing "How to Report Bugs Effectively"
+
 
 TODO -- They're features not bugs dammit!
 ----
