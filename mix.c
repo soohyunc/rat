@@ -104,19 +104,28 @@ mix_destroy(mix_struct *ms)
 }
 
 static void
-mix_audio(sample *v0, sample *v1, int len)
+mix_audio(sample *dst, sample *src, int len)
 {
-	int	tmp;
-        xmemchk();
-	for (; len > 0; len--) {
-		tmp = *v0 + *v1++;
-		if (tmp > 32767)
-			tmp = 32767;
-		else if (tmp < -32768)
-			tmp = -32768;
-		*v0++ = tmp;
-	}
-        xmemchk();
+	int tmp, slen;
+        /* do a quick survey to see if this actually needs mixing */
+
+        slen = max(4,len);
+        while(--slen>0) {
+                if (dst[slen] != 0) break;
+        }
+
+        if (slen==0) {
+                memcpy(dst, src, len * sizeof(sample));
+        } else {
+                for (; len > 0; len--) {
+                        tmp = *dst + *src++;
+                        if (tmp > 32767)
+                                tmp = 32767;
+                        else if (tmp < -32768)
+                                tmp = -32768;
+                        *dst++ = tmp;
+                157 1
+        }
 }
 
 static void

@@ -111,11 +111,13 @@ lin2db(u_int16 energy, double peak)
 typedef struct s_sd {
         u_int32 parole;
         int32 tot, tot_sq;
-        u_int16 thresh;
-        u_int16 cnt;
+        u_int32 thresh;
+        u_int32 cnt;
+        u_int32 sil_cnt;
+        u_int32 last_step;
 } sd_t;
 
-/* 50 ms snapshot to adjust silence threshold */
+/* snapshot in ms to adjust silence threshold */
 #define SD_PAROLE_PERIOD 200
 
 sd_t *
@@ -130,9 +132,11 @@ sd_init(u_int16 blk_dur, u_int16 freq)
 void
 sd_reset(sd_t *s)
 {
-        s->cnt    = 0;
-        s->tot    = 0;
-        s->tot_sq = 0;
+        s->cnt         = 0;
+        s->tot         = 0;
+        s->tot_sq      = 0;
+        s->sil_cnt     = 0;
+        s->last_step   = 0;
         s->thresh = 0xffff;
 }
 
@@ -148,23 +152,35 @@ sd(sd_t *s, u_int16 energy)
         s->tot    += energy;
         s->tot_sq += (energy * energy);
 
-        if (s->cnt == s->parole) {
-                u_int32 m,stdd,trial_thresh;
-                m  = s->tot / s->cnt;
-                stdd = (sqrt(abs(m * m - s->tot_sq / s->cnt)));
-                trial_thresh = (m + 3 * stdd);
-                if (trial_thresh < (unsigned)(2*s->thresh)) {
-                        s->thresh = trial_thresh;
-                        s->tot = s->tot_sq = 0;
-                        s->cnt = 0;
-                        dprintf("Mean %d std dev %d Threshold %d, last energy %d\n", 
-                                m, 
-                                stdd,
-                                s->thresh, 
-                                energy);
-                }
+        if (energy<s->thresh) {
+                s->sil_cnt++;
         }
 
+        if (s->cnt == s->parole) {
+                u_int32 m,stdd,trial_thresh;
+
+                m  = s->tot / s->cnt;
+                stdd = (sqrt(abs(m * m - s->tot_sq / s->cnt)));
+
+                trial_thresh = (m + 3 * stdd);
+
+                if ((trial_thresh < s->thresh) && 
+                    (s->thresh - trial_thresh > s->thresh / 4) &&
+                    (s->sil_cnt == s->parole )) {
+                        s->last_step = (s->thresh - trial_thresh) * (s->thresh - trial_thresh) / s->thresh;
+                        assert(s->last_step < 0xffff);
+                        s->thresh -= s->last_step;
+                        dprintf("Threshold down to %d\n", s->thresh);
+                } else if (((u_int32)m > s->thresh) && 
+                            ((u_int32)m < s->thresh + s->last_step)) {
+                        /* go back up and let things settle again */
+                        s->thresh    += s->last_step;
+                        dprintf("Threshold up to %d\n", s->thresh);
+                }
+                s->tot = s->tot_sq = 0;
+                s->cnt = 0;
+                s->sil_cnt = 0;
+        }
         s->cnt++;
         return (energy < s->thresh);
 }
@@ -179,6 +195,7 @@ typedef struct s_vad {
         /* limits */
         vad_limit_t limit[2];
         u_int32 tick;
+        u_int32 spurt_cnt;
         /* state */
         u_char state;
         u_char sig_cnt;
@@ -196,7 +213,7 @@ vad_create(u_int16 blockdur, u_int16 freq)
 
 /* Duration of limits in ms */
 #define VAD_SIG_LECT     60
-#define VAD_SIG_CONF     20
+#define VAD_SIG_CONF     60
 #define VAD_PRE_LECT     60
 #define VAD_PRE_CONF     20
 #define VAD_POST_LECT   160
@@ -246,6 +263,7 @@ vad_to_get(vad_t *v, u_char silence, u_char mode)
                         v->sig_cnt++;
                         if (v->sig_cnt == l->sig) {
                                 v->state = VAD_SPURT;
+                                v->spurt_cnt++;
                                 v->post_cnt = 0;
                                 v->sig_cnt  = 0;
                                 return l->pre;
