@@ -1,3 +1,15 @@
+#
+# FILE:    sdr plugin for rat-__VERSION__
+# PROGRAM: RAT
+# AUTHOR:  Colin Perkins
+#
+# $Revision$
+# $Date$
+#
+# Copyright (C) 1999 University College London
+# All rights reserved
+#
+
 media:		audio
 proto:		RTP/AVP
 tool:		rat-__VERSION__
