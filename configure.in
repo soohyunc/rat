@@ -466,7 +466,7 @@ for h in ${COMMON_INC} ${COMMON_INC}/include
 do
 AC_CHECK_HEADER($h/mbus.h,
 	[
-		COMMON_INC="-I${h}"
+		COMMON_INC="${h}"
 		FOUND_COMMON_H=yes
 		break
 	])
@@ -488,24 +488,32 @@ then
 fi
 
 COMMON_DEP="${COMMON_LIB}/libuclmmbase.a"
+
 AC_CHECK_LIB(uclmmbase,
-	mbus_init,
-	[
-		COMMON_LIB="-L${COMMON_LIB} -luclmmbase"
-	],
-	[
-		echo "Could not find libuclmmbase.a.  RAT may not build because:"
-		echo "   (a) Library is not installed."
-		echo "   (b) Library is not built or not in expected location (--with-common=DIR)."
-		echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
-#		exit
-	],
-	-L${COMMON_LIB})
+	    mbus_init,
+	    COMMON_LIB=${COMMON_LIB},
+	    [
+		    echo "Could not find libuclmmbase.a.  RAT may not build because:"
+		    echo "   (a) Library is not installed."
+		    echo "   (b) Library is not built or not in expected location (--with-common=DIR)."
+		    echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
+		    echo "$COMMON_INC $DEFAULT_COMMON_INC"
+		    if test ${COMMON_INC} = ${DEFAULT_COMMON_INC} 
+		    then
+			COMMON_LIB="${DEFAULT_COMMON_LIB}"
+		    else 
+			exit
+		    fi
+], -L${COMMON_LIB})
+
+# Convert paths into compiler arguments
+COMMON_INC="-I${COMMON_INC}"
+AC_SUBST(COMMON_INC)
+
+COMMON_LIB="-L${COMMON_LIB} -luclmmbase"
+AC_SUBST(COMMON_LIB)
 
 EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_DEP}"
-
-AC_SUBST(COMMON_INC)
-AC_SUBST(COMMON_LIB)
 AC_SUBST(EXTERNAL_DEP)
 
 # GSM flag checks
