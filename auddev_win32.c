@@ -183,6 +183,23 @@ audioIDToMixCtls(int id, MapEntry *meMap, MixCtls *mcMix, int nMix)
         return (MixCtls *)NULL;
 }
 
+static void
+mixGetErrorText(MMRESULT mmr, char *szMsg, int cbMsg)
+{
+        assert(cbMsg > 15);
+        switch (mmr) {
+                case MMSYSERR_NOERROR:     sprintf(szMsg, "no error");        break; 
+                case MIXERR_INVALLINE:     sprintf(szMsg, "invalid line");    break;
+                case MIXERR_INVALCONTROL:  sprintf(szMsg, "invalid control"); break;
+                case MIXERR_INVALVALUE:    sprintf(szMsg, "invalid value");   break;
+                case MMSYSERR_BADDEVICEID: sprintf(szMsg, "bad device id");   break;
+                case MMSYSERR_INVALFLAG:   sprintf(szMsg, "invalid flag");    break;
+                case MMSYSERR_INVALHANDLE: sprintf(szMsg, "invalid handle");  break;
+                case MMSYSERR_INVALPARAM:  sprintf(szMsg, "invalid param");   break;
+                case MMSYSERR_NODRIVER:    sprintf(szMsg, "no driver!");      break;               
+        }
+}
+
 static int
 mixSetLoopback(char *szName)
 {
@@ -230,22 +247,15 @@ mixSetLoopback(char *szName)
                         break;
                 default:
 #ifdef DEBUG
-                        printf("Control type not recognised %x\n", mcMixOut[loopCtl].dwCtlType[i]);
+                        debug_msg("Control type not recognised %x\n", mcMixOut[loopCtl].dwCtlType[i]);
 #endif /* DEBUG */
                         continue;
                 }
                 
-                switch (r) {
-                case MMSYSERR_NOERROR:    break; 
-                case MIXERR_INVALLINE:     fprintf(stderr, "invalid line\n"); break;
-                case MIXERR_INVALCONTROL:  fprintf(stderr, "invalid control\n"); break;
-                case MIXERR_INVALVALUE:    fprintf(stderr, "invalid value\n"); break;
-                case MMSYSERR_BADDEVICEID: fprintf(stderr, "bad device id\n");   break;
-                case MMSYSERR_INVALFLAG:   fprintf(stderr, "invalid flag\n");    break;
-                case MMSYSERR_INVALHANDLE: fprintf(stderr, "invalid handle\n");  break;
-                case MMSYSERR_INVALPARAM:  fprintf(stderr, "invalid param\n");   break;
-                case MMSYSERR_NODRIVER:    fprintf(stderr, "no driver!\n");      break;
-                default:                   fprintf(stderr, "mixerSetControlDetails ?");
+                if (r != MMSYSERR_NOERROR) {
+                       char szError[30];
+                       mixGetErrorText(r, szError, 30);
+                       debug_msg(szError);
                 }
         }
 
@@ -265,9 +275,6 @@ mixSetIPort(MixCtls *mcMix)
         curMixIn = (mcMix - mcMixIn);
 
         /* now make sure line is selected */
-#ifdef DEBUG
-        fprintf(stderr, mcMix->szName);
-#endif /* DEBUG */
         mixSetLoopback(mcMix->szName);        
         
         for(i = 0; i < mcMixIn->nCtls; i++) {
@@ -308,7 +315,7 @@ done_multi1:            xfree(ltInputs);
                         break;
                 default:
 #ifdef DEBUG
-                        printf("Control type %8x\n", mcMixIn->dwCtlType[i]);
+                        debug_msg("Control type %8x\n", mcMixIn->dwCtlType[i]);
 #endif /* DEBUG */
                         return 0;
                 }
@@ -419,17 +426,13 @@ mixSetup()
                                 hMixIn  = hMix;
                                 nDstIn  = m.cDestinations;
                                 doClose = FALSE;
-#ifdef DEBUG_WIN32_AUDIO
-                                fprintf(stderr, "Input mixer %s destinations %d\n", m.szPname, nDstIn); 
-#endif /* DEBUG_WIN32_AUDIO */
+                                debug_msg("Input mixer %s destinations %d\n", m.szPname, nDstIn); 
                         }
                         if ((unsigned)i == uWavOut) {
                                 hMixOut = hMix;
                                 nDstOut = m.cDestinations;
                                 doClose = FALSE;
-#ifdef DEBUG_WIN32_AUDIO
-                                fprintf(stderr, "Output mixer %s destinations %d\n", m.szPname, nDstOut); 
-#endif /* DEBUG_WIN32_AUDIO */
+                                debug_msg("Output mixer %s destinations %d\n", m.szPname, nDstOut); 
                         }
                 }
                 if (doClose) mixerClose(hMix);
@@ -487,7 +490,7 @@ audio_open_out()
 		error = waveOutPrepareHeader(shWaveOut, whp, sizeof(WAVEHDR));
 		if (error) {
 			waveOutGetErrorText(error, errorText, sizeof(errorText));
-			fprintf(stderr, "Win32Audio: waveOutPrepareHeader: %s\n", errorText);
+			debug_msg("Win32Audio: waveOutPrepareHeader: %s\n", errorText);
 			exit(1);
 		}
 	}
@@ -530,21 +533,13 @@ audio_write(int audio_fd, sample *cp, int remain)
 
 	ret = remain;
 	if (write_hdrs_used > 4*nblks/5) {
-		char errmsg[80];
-		sprintf(errmsg, 
-				"Running out of write buffers %d left\n",
-				write_hdrs_used);
-		OutputDebugString(errmsg);
+		debug_msg("Running out of write buffers %d left\n", write_hdrs_used);
 	}
 
 	for (; remain > 0; remain -= len) {
 		if (write_curr->dwFlags & WHDR_DONE) {
 			/* Have overdone it! */
-			char msg[80];
-			sprintf(msg,
-				"audio_write, reached end of buffer (%06d bytes remain)\n",
-				remain);
-			OutputDebugString(msg);
+			debug_msg("audio_write, reached end of buffer (%06d bytes remain)\n", remain);
 			return (ret - remain);
 		}
 
@@ -556,22 +551,15 @@ audio_write(int audio_fd, sample *cp, int remain)
 		error = waveOutWrite(shWaveOut, write_curr, sizeof(WAVEHDR));
 		
 		if (error == WRITE_ERROR_STILL_PLAYING) { /* We've filled device buffer ? */
-				char msg[80];
-				sprintf(msg,
-						"Win32Audio - device filled. Discarding %d bytes.\n",
+				debug_msg("Win32Audio - device filled. Discarding %d bytes.\n",
 						ret - remain);
-				OutputDebugString(msg);
 					/* we return as if we wrote everything out
 					 * to give buffer a little breathing room
 					 */
-
 				return ret;
 		} else if (error) {
 			waveOutGetErrorText(error, errorText, sizeof(errorText));
-			fprintf(stderr, 
-					"Win32Audio: waveOutWrite (%d): %s\n", 
-					error,
-					errorText);
+			debug_msg("Win32Audio: waveOutWrite (%d): %s\n", error,	errorText);
 			return (ret - remain);
 		}
 
@@ -590,11 +578,9 @@ static unsigned char audio_ready = 0;
 unsigned char
 is_audio_ready()
 {
-#ifdef DEBUG
         if (audio_ready>nblks/5) {
-                printf("Lots of audio available (%d blocks)\n", audio_ready);
+                debug_msg("Lots of audio available (%d blocks)\n", audio_ready);
         }
-#endif
 
 	return (audio_ready>0) ? TRUE : FALSE;
 }
@@ -643,7 +629,7 @@ audio_open_in()
                            CALLBACK_FUNCTION);
 	if (error != MMSYSERR_NOERROR) {
 		waveInGetErrorText(error, errorText, sizeof(errorText));
-		fprintf(stderr, "waveInOpen: (%d) %s\n", error, errorText);
+		debug_msg("waveInOpen: (%d) %s\n", error, errorText);
                 return (FALSE);
 	}
 
@@ -656,13 +642,13 @@ audio_open_in()
 		error = waveInPrepareHeader(shWaveIn, whp, sizeof(WAVEHDR));
 		if (error) {
 			waveInGetErrorText(error, errorText, sizeof(errorText));
-			fprintf(stderr, "waveInPrepareHeader: (%d) %s\n", error, errorText);
+			debug_msg("waveInPrepareHeader: (%d) %s\n", error, errorText);
 			exit(1);
 		}
 		error = waveInAddBuffer(shWaveIn, whp, sizeof(WAVEHDR));
 		if (error) {
 			waveInGetErrorText(error, errorText, sizeof(errorText));
-			fprintf(stderr, "waveInAddBuffer: (%d) %s\n", error, errorText);
+			debug_msg("waveInAddBuffer: (%d) %s\n", error, errorText);
 			exit(1);
 		}
 	}
@@ -671,7 +657,7 @@ audio_open_in()
 	error = waveInStart(shWaveIn);
 	if (error) {
 		waveInGetErrorText(error, errorText, sizeof(errorText));
-		fprintf(stderr, "Win32Audio: waveInStart: (%d) %s\n", error, errorText);
+		debug_msg("Win32Audio: waveInStart: (%d) %s\n", error, errorText);
 		exit(1);
 	}
 
@@ -708,7 +694,7 @@ audio_read(int audio_fd, sample *buf, int samples)
         int len = 0;
 
         if (!virgin) {
-                fprintf(stderr,"ready %d\n", audio_ready);
+                debug_msg("ready %d\n", audio_ready);
                 virgin++;
         }
 
@@ -751,7 +737,7 @@ audio_read(int audio_fd, sample *buf, int samples)
 		        error = waveInAddBuffer(shWaveIn, read_curr, sizeof(WAVEHDR));
 		        if (error) {
         		        waveInGetErrorText(error, errorText, sizeof(errorText));
-			        fprintf(stderr, "waveInAddBuffer: (%d) %s\n", error, errorText);
+			        debug_msg("waveInAddBuffer: (%d) %s\n", error, errorText);
 			        exit(1);
 		        }
 		        read_curr++;
@@ -760,12 +746,10 @@ audio_read(int audio_fd, sample *buf, int samples)
                 }
 #ifdef DEBUG
                 if (audio_ready > 3*nblks/4) {
-                        char msg[255];
                         int i,used;
                         for(i=0,used=0;i<nblks;i++) 
                                 if (read_hdrs[i].dwFlags & WHDR_DONE) used++;
-                        sprintf(msg, "RB small %d of %d, samples %d len %d, ready %d\n", used, nblks, samples, len, audio_ready);
-		        OutputDebugString(msg);	
+                        debug_msg("RB small %d of %d, samples %d len %d, ready %d\n", used, nblks, samples, len, audio_ready);
                 }
 #endif
 	}
@@ -857,12 +841,15 @@ audio_open(audio_format fmt)
 	switch(thread_pri) {
 	case 1:
 		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
-		break;
+		debug_msg("Above Normal Priority\n");
+                break;
 	case 2:
 		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-		break;
+		debug_msg("Time Critical Priority\n");
+                break;
 	case 3:
 		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+                debug_msg("Highest Thread Priority\n"); /* Kiss all processes bye-bye ;-) */
 		break;
 	default:
 		break;
@@ -875,17 +862,10 @@ audio_open(audio_format fmt)
 void
 audio_close(int audio_fd)
 {
-#ifdef DEBUG
-        fprintf(stderr, "Closing input device.\n");
-#endif
+        debug_msg("Closing input device.\n");
 	audio_close_in();
-#ifdef DEBUG
-        fprintf(stderr, "Closing output device.\n");
-#endif DEBUG
+        debug_msg("Closing output device.\n");
 	audio_close_out();
-#ifdef DEBUG
-        fprintf(stderr, "Closed output device.\n");
-#endif DEBUG
 }
 
 int
@@ -926,18 +906,12 @@ audio_set_gain(int audio_fd, int level)
                         mcduDevLevel.dwValue = ((mcMixIn[curMixIn].dwUpperBound[i] - mcMixIn[curMixIn].dwLowerBound[i])/100) * level + mcMixIn[curMixIn].dwLowerBound[i];
                         play_vol   = level;
                         r = mixerSetControlDetails((HMIXEROBJ)hMixIn, &mcd, MIXER_OBJECTF_HMIXER);
-                        switch (r) {
-                                case MMSYSERR_NOERROR:    break; 
-                                case MIXERR_INVALLINE:     fprintf(stderr, "invalid line\n"); break;
-                                case MIXERR_INVALCONTROL:  fprintf(stderr, "invalid control\n"); break;
-                                case MIXERR_INVALVALUE:    fprintf(stderr, "invalid value\n"); break;
-                                case MMSYSERR_BADDEVICEID: fprintf(stderr, "bad device id\n");   break;
-                                case MMSYSERR_INVALFLAG:   fprintf(stderr, "invalid flag\n");    break;
-                                case MMSYSERR_INVALHANDLE: fprintf(stderr, "invalid handle\n");  break;
-                                case MMSYSERR_INVALPARAM:  fprintf(stderr, "invalid param\n");   break;
-                                case MMSYSERR_NODRIVER:    fprintf(stderr, "no driver!\n");      break;
-                                default:                   fprintf(stderr, "mixerSetControlDetails ?");
+                        if (r != MMSYSERR_NOERROR) {
+                                char szError[30];
+                                mixGetErrorText(r, szError, 30);
+                                debug_msg(szError);
                         }
+                        
                         break; 
                 }
         }
@@ -970,7 +944,7 @@ audio_set_volume(int audio_fd, int level)
 	if (error) {
 #ifdef DEBUG
 		waveOutGetErrorText(error, errorText, sizeof(errorText));
-		fprintf(stderr, "Win32Audio: waveOutSetVolume: %s\n", errorText);
+		debug_msg("Win32Audio: waveOutSetVolume: %s\n", errorText);
 #endif
 	}
 }
@@ -987,7 +961,7 @@ audio_get_volume(int audio_fd)
 	if (error) {
 #ifdef DEBUG
 		waveOutGetErrorText(error, errorText, sizeof(errorText));
-		fprintf(stderr, "Win32Audio: waveOutGetVolume Error: %s\n", errorText);
+		debug_msg("Win32Audio: waveOutGetVolume Error: %s\n", errorText);
 #endif
 		return (0);
 	} else

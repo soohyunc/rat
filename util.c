@@ -290,7 +290,6 @@ _block_alloc(unsigned int size, const char *filen, int line)
 #ifdef DEBUG_MEM
         blk_out[nblks_out].iov_base = (char*)c;
         blk_out[nblks_out].iov_len  = size;
-        debug_msg("Allocating (addr 0x%x, %d bytes).\n", (int)c, size);
         nblks_out++;
 #endif /* DEBUG_MEM */
 	c++;
@@ -347,8 +346,6 @@ _block_free(void *p, int size, int line)
 	c = (int *)((char *)p - 8);
 
 #ifdef DEBUG_MEM
-        /* Just check this block was actually allocated with block_alloc */
-        debug_msg("Freeing block (addr 0x%x, %d bytes).\n", (int)c, *(c+1));
         n = get_blk_idx_from_ptr((char*)c);
         if (n == -1) {
                 debug_msg("Freeing block (addr 0x%x, %d bytes) that was not allocated with block_alloc(?)\n", (int)c, *(c+1));
@@ -415,13 +412,23 @@ block_release_all(void)
 void _dprintf(const char *format, ...)
 {
 #ifdef DEBUG
+#ifdef WIN32
+        char msg[255];
+        va_list ap;
+        
+        va_start(ap, format);
+        vsprintf(msg, format, ap);
+        va_end(ap);
+        OutputDebugString(msg);
+#else 
         va_list ap;
  
         va_start(ap, format);
         vfprintf(stderr, format, ap);
         va_end(ap);
+#endif /* WIN32 */
 #else
         UNUSED (format);
-#endif
+#endif /* DEBUG */
 }
 
