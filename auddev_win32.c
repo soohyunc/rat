@@ -52,7 +52,6 @@
 #include "auddev_win32.h"
 #include "audio_types.h"
 #include "audio_fmt.h"
-#include "mmsystem.h"
 
 #define rat_to_device(x)	((x) * 255 / MAX_AMP)
 #define device_to_rat(x)	((x) * MAX_AMP / 255)
@@ -134,6 +133,21 @@ GetMatchingAudioComponents(UINT uWavIn, matchingAudioComponents *pmac)
         
         assert(pmac != NULL);
         pmac->uWavIn = uWavIn;
+
+        
+        
+        /* Known bug: We use mixerGetID to retrieve the mixer corresponding to
+         * audio card uWavIn.  With a SB16 and an SB Live card in a machine, the
+         * mixerGetID card corresponding to the SB16 returns the mixerID for the
+         * SB Live!
+         * Suspected cause: The manufacture id and product id's of the waveindevcaps
+         * for both cards is the same.  It is likely that mixerGetId does no more
+         * than match the first set id's since there are no other attributes to use
+         * aside from string matching, but that gets v. ugly since words like
+         * mixer and wave need stripping and this will only fly in english then.
+         */
+        
+        n = waveInGetNumDevs();
 
         mmr = mixerGetID((HMIXEROBJ)uWavIn, &pmac->uMixer, MIXER_OBJECTF_WAVEIN);
         if (mmr != MMSYSERR_NOERROR) {
