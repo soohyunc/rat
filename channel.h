@@ -140,14 +140,6 @@ struct rx_element_tag* get_rx_unit     (int n, int cc_pt, struct rx_element_tag 
 int                    fragment_sizes  (codec_t *cp, int len, struct iovec *store, int *iovc, int iovc_max);
 int                    fragment_spread (codec_t *cp, int len, struct iovec *iov,   int iovc,  struct rx_element_tag *u);
 
-/* defines for coded_unit_to_iov */
-
-#define INCLUDE_STATE    1
-#define NO_INCLUDE_STATE 0
-
-int    coded_unit_to_iov(coded_unit *cu, struct iovec *iov, int inc_state); 
-int    iov_to_coded_unit(struct iovec *iov, coded_unit *cu, int pt);
-
 #endif
 
 

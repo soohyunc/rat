@@ -221,8 +221,9 @@ proc mbus_recv_redundancy {new_codec new_off} {
     set red_off $new_off
 }
 
-proc mbus_recv_interleaving {separation} {
-    global int_gap
+proc mbus_recv_interleaving {units separation} {
+    global int_units int_gap
+    set int_units $units
     set int_gap $separation
 }
 
@@ -769,6 +770,24 @@ proc constrain_window {win maxstr xpad ylines ypad} {
     wm geometry $win [format "%sx%s" $w $h]
 }
 
+proc tk_optionCmdMenu {w varName firstValue args} {
+    upvar #0 $varName var
+ 
+    if ![info exists var] {
+        set var $firstValue
+    }
+    menubutton $w -textvariable $varName -indicatoron 1 -menu $w.menu \
+            -relief raised -bd 2 -highlightthickness 2 -anchor c 
+
+    menu $w.menu -tearoff 0
+    $w.menu add command -label $firstValue -command "set $varName \"$firstValue\""
+    foreach i $args {
+        $w.menu add command -label $i -command "set $varName \"$i\""
+    }
+    return $w.menu
+}
+
+
 ###############################################################################
 # Preferences Panel 
 #
@@ -880,39 +899,43 @@ pack $i.dd.pri.l $i.dd.pri.m -side top
 # fill in codecs 
 menu $i.dd.pri.m.menu -tearoff 0
 
-label $i.dd.units.l -text "Units Per Pckt:"
-tk_optionMenu $i.dd.units.m upp 1 2 4 8
+label $i.dd.units.l -text "Units:"
+tk_optionCmdMenu $i.dd.units.m upp 1 2 4 8
 $i.dd.units.m configure -width 13 -highlightthickness 0 -bd 1
 pack $i.dd.units.l $i.dd.units.m -side top -fill x
 
 radiobutton $i.cc.van.rb -text "No Loss Protection" -justify right -value "No Loss Protection" -variable channel_var
 radiobutton $i.cc.red.rb -text "Redundancy" -justify right -value "Redundancy" -variable channel_var 
+radiobutton $i.cc.int.rb -text "Interleaving" -value Interleaving -variable channel_var
+pack $i.cc.van.rb $i.cc.red.rb $i.cc.int.rb -side left -anchor nw -padx 2
+
 frame $i.cc.red.fc 
 label $i.cc.red.fc.l -text "Encoding:"
 menubutton $i.cc.red.fc.m -textvariable secenc -indicatoron 1 -menu $i.cc.red.fc.m.menu -relief raised -width 13
 menu $i.cc.red.fc.m.menu -tearoff 0
 
-radiobutton $i.cc.int.rb -text "Interleaving" -value Interleaving -variable channel_var
-
-pack $i.cc.van.rb $i.cc.red.rb $i.cc.int.rb -side left -anchor nw -padx 2
-
 frame $i.cc.red.u 
 label $i.cc.red.u.l -text "Offset in Pkts:"
-tk_optionMenu $i.cc.red.u.m red_off "1" "2" "4" "8" 
+tk_optionCmdMenu $i.cc.red.u.m red_off "1" "2" "4" "8" 
 $i.cc.red.u.m configure -width 13 -highlightthickness 0 -bd 1 
 pack $i.cc.red.u -side right -anchor e -fill y 
 pack $i.cc.red.u.l $i.cc.red.u.m -fill x 
 pack $i.cc.red.fc -side right
 pack $i.cc.red.fc.l $i.cc.red.fc.m 
 
-frame $i.cc.int.fc
+frame $i.cc.int.zz
+label $i.cc.int.zz.l -text "Units:"
+tk_optionCmdMenu $i.cc.int.zz.m int_units 2 4 6 8 
+$i.cc.int.zz.m configure -width 13 -highlightthickness 0 -bd 1
 
+frame $i.cc.int.fc
 label $i.cc.int.fc.l -text "Separation:"
-tk_optionMenu $i.cc.int.fc.m int_gap 4 8 12
+tk_optionCmdMenu $i.cc.int.fc.m int_gap 2 4 6 8 
 $i.cc.int.fc.m configure -width 13 -highlightthickness 0 -bd 1
 
-pack $i.cc.int.fc -side right
+pack $i.cc.int.fc $i.cc.int.zz -side right
 pack $i.cc.int.fc.l $i.cc.int.fc.m -fill x -expand 1
+pack $i.cc.int.zz.l $i.cc.int.zz.m -fill x -expand 1
 
 frame $i.cks.f
 frame $i.cks.f.f
@@ -932,7 +955,7 @@ pack $i.r -side top -fill x -pady 0 -ipady 1
 pack $i.o -side top -fill both  -pady 1
 pack $i.c -side top -fill both  -pady 1 -expand 1
 label $i.r.l -text "Repair Scheme:"
-tk_optionMenu $i.r.m repair_var "None" "Packet Repetition" "Pattern Matching"
+tk_optionCmdMenu $i.r.m repair_var {None} {Packet Repetition} {Pattern Matching}
 $i.r.m configure -width 20 -bd 1
 pack $i.r.l $i.r.m -side top 
 
@@ -1184,7 +1207,8 @@ proc sync_ui_to_engine {} {
 proc sync_engine_to_ui {} {
     # make audio engine concur with ui
     global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc 
-    global prenc upp channel_var secenc red_off int_gap silence_var agc_var 
+    global prenc upp channel_var secenc red_off int_gap int_units
+    global silence_var agc_var 
     global repair_var limit_var min_var max_var lecture_var convert_var  
     global meter_var sync_var gain volume input_port output_port 
     global in_mute_var out_mute_var channels freq key key_var
@@ -1200,7 +1224,7 @@ proc sync_engine_to_ui {} {
     mbus_qmsg "primary"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
     mbus_qmsg "rate"         $upp
     mbus_qmsg "redundancy"   "[mbus_encode_str $secenc] $red_off"
-    mbus_qmsg "interleaving" $int_gap
+    mbus_qmsg "interleaving" "$int_gap $int_units"
 
     # channel.code announcement  MUST go after config of channel coders communicated
     mbus_qmsg "channel.code" [mbus_encode_str $channel_var]
@@ -1269,16 +1293,17 @@ proc save_settings {} {
     save_setting $f rtpPhone    rtcp_phone
     save_setting $f rtpLoc      rtcp_loc
     # transmission
-    save_setting $f audioFrequency        freq
-    save_setting $f audioChannels         channels
-    save_setting $f audioPrimary          prenc
-    save_setting $f audioUnits            upp
-    save_setting $f audioChannelCoding    channel_var
-    save_setting $f audioRedundancy       secenc
-    save_setting $f audioRedundancyOffset red_off
-    save_setting $f audioInterleavingGap  int_gap
-    save_setting $f audioSilence          silence_var
-    save_setting $f audioAGC              agc_var
+    save_setting $f audioFrequency         freq
+    save_setting $f audioChannels          channels
+    save_setting $f audioPrimary           prenc
+    save_setting $f audioUnits             upp
+    save_setting $f audioChannelCoding     channel_var
+    save_setting $f audioRedundancy        secenc
+    save_setting $f audioRedundancyOffset  red_off
+    save_setting $f audioInterleavingGap   int_gap
+    save_setting $f audioInterleavingUnits int_units 
+    save_setting $f audioSilence           silence_var
+    save_setting $f audioAGC               agc_var
     # reception
     save_setting $f audioRepair           repair_var
     save_setting $f audioLimitPlayout     limit_var
@@ -1354,16 +1379,17 @@ proc load_settings {} {
     load_setting attr rtpPhone rtcp_phone    ""
     load_setting attr rtpLoc   rtcp_loc      ""
     # transmission
-    load_setting attr audioFrequency        freq          "8kHz"
-    load_setting attr audioChannels         channels      "Mono"
-    load_setting attr audioPrimary          prenc         "GSM"
-    load_setting attr audioUnits            upp           "2"
-    load_setting attr audioChannelCoding    channel_var   "None"
-    load_setting attr audioRedundancy       secenc        "GSM"
-    load_setting attr audioRedundancyOffset red_off       "1"
-    load_setting attr audioInterleavingGap  int_gap       "4"
-    load_setting attr audioSilence          silence_var   "1"
-    load_setting attr audioAGC              agc_var       "0"
+    load_setting attr audioFrequency         freq          "8kHz"
+    load_setting attr audioChannels          channels      "Mono"
+    load_setting attr audioPrimary           prenc         "GSM"
+    load_setting attr audioUnits             upp           "2"
+    load_setting attr audioChannelCoding     channel_var   "None"
+    load_setting attr audioRedundancy        secenc        "GSM"
+    load_setting attr audioRedundancyOffset  red_off       "1"
+    load_setting attr audioInterleavingGap   int_gap       "4"
+    load_setting attr audioInterleavingUnits int_units     "4"
+    load_setting attr audioSilence           silence_var   "1"
+    load_setting attr audioAGC               agc_var       "0"
     validate_red_codecs
 
     # reception

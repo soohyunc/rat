@@ -327,26 +327,28 @@ ui_repair(session_struct *sp)
 void
 ui_update_interleaving(session_struct *sp)
 {
-        int pt, isep;
-        char buf[128], *sep=NULL, *dummy, args[80];
+        int pt, isep, iu;
+        char buf[128], *sep=NULL, *units = NULL, *dummy, args[80];
 
         pt = get_cc_pt(sp,"INTERLEAVER");
         if (pt != -1) {
                 query_channel_coder(sp, pt, buf, 128);
                 dummy  = strtok(buf,"/");
-                dummy  = strtok(NULL,"/");
+                units  = strtok(NULL,"/");
                 sep    = strtok(NULL,"/");
         } else {
                 dprintf("Could not find interleaving channel coder!\n");
         }
         
-        if (sep != NULL) {
+        if (units != NULL && sep != NULL) {
+                iu   = atoi(units);
                 isep = atoi(sep);
         } else {
-                isep = 4; /* default */
+                iu   = 4;
+                isep = 4;
         }
 
-        sprintf(args,"%d",isep);
+        sprintf(args,"%d %d",iu, isep);
         mbus_engine_tx(TRUE, mbus_name_ui, "interleaving", args, TRUE);        
 }
 

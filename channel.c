@@ -519,7 +519,7 @@ validate_and_split(int pt, char *blk, unsigned int blen, cc_unit *u, int *traili
          * 3) it sets units = the units per packet
          * 4) it sets the number of trailing units that the channel coder 
          *    gets proded with.
-     */
+         */
         cc_coder_t *cc;
         if (!(cc = get_channel_coder(pt)))
                 return FALSE;
@@ -711,50 +711,6 @@ channel_set_coder(session_struct *sp, int pt)
         }
 }
 
-/* Channel coders operate over iovec and source coders use coded_units */
-/* so the following facilitate interchange                             */
-
-int
-coded_unit_to_iov(coded_unit   *cu,
-                  struct iovec *iov, 
-                  int inc_state)
-{
-        int i=0;
-        if (cu->cp->sent_state_sz) {
-                if (inc_state == INCLUDE_STATE) {
-                        iov[i].iov_base  = cu->state;
-                        iov[i++].iov_len = cu->state_len;
-                }
-        }
-        iov[i].iov_base  = cu->data;
-        iov[i++].iov_len = cu->data_len;
-        return i;
-}
-
-int
-iov_to_coded_unit(struct iovec *iov,
-                  coded_unit   *cu,
-                  int           pt)
-{
-        int i = 0;
-        cu->cp = get_codec(pt);
-        assert(cu->cp);
-        if (cu->cp->sent_state_sz) {
-                cu->state     = iov->iov_base;
-                cu->state_len = iov->iov_len;
-                memset(iov,0,sizeof(struct iovec));
-                iov++;
-                i++;
-        } else {
-                cu->state     = NULL;
-                cu->state_len = 0;
-        }
-        cu->data     = iov->iov_base;
-        cu->data_len = iov->iov_len;
-        memset(iov,0,sizeof(struct iovec));
-        return ++i;
-}
-
 typedef struct s_collator {
         u_char   units_in_group;
         u_char   units_done[MAX_ENCODINGS];
@@ -851,12 +807,12 @@ fragment_sizes(codec_t *cp, int blk_len, struct iovec *store, int *iovc, int sto
 
         if (blk_len > 0 && cp->sent_state_sz != 0 && (*iovc) < store_len) {
                 store[(*iovc)++].iov_len = cp->sent_state_sz;
-                blk_len           -= cp->sent_state_sz;
+                blk_len                 -= cp->sent_state_sz;
         }
         
         while(blk_len > 0 && (*iovc) < store_len) {
                 store[(*iovc)++].iov_len = cp->max_unit_sz;
-                blk_len           -= cp->max_unit_sz;
+                blk_len                 -= cp->max_unit_sz;
                 n++;
         }
 

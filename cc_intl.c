@@ -133,44 +133,35 @@ il_free(struct s_il *s)
 /*- Interface to rat --------------------------------------------------------*/
 
 /* For time being (this is experimental) header format is: 
- *     0                                   32
- *     +-+-------+---+---+------+---------+
- *     |R|  PT   | N1| N2| MASK | PHASE   |
- *     +-+-------+---+---+------+---------+
- *      1    7     3   3    8       10
  *
- * R     = reserved (maybe for denoting multiple payloads but redundancy
- *         format might suit this better)
- * PT    = payload
- * N1,N2 = parameters of interleaver (N1 = n1-1, N2 = n2-1).
- *         n1 being the number of units per packet and n2 the separation
- *         in units of adjacent units in packet.  Since N1,N2 are each 
- *         represented by 3 bits and mask is 8 bits we make n = N - 1 
- *         as n = 0 is not sensible.  Neither is n = 1, but we only have 8
- *         bits for the mask.
- * MASK  = denotes which of the interleaved elements are contained, 
- *         necessary because not all may have relevent data
- * PHASE = needed to find bearings by decoder - this has to be bigger
- *         than longest expected consecutive loss of packets.
+ * 31                                     0
+ *  +-------+--------+---+---+---+--------+
+ *  |  PT   |   UPL  |N1'|N2'|PHS|  MASK  |
+ *  +-------+--------+---+---+---+--------+
+ *      7         8    3   3   3      8
  *
- * The potential limitation with this scheme of things is that we only
- * support the interleaving of single units (typically 20ms slices).
- * However, this is not really a problem as this is the right order of
- * magnitude for the losses we can conceal from the ear.  It is not clear
- * interleaving of longer blocks serves any useful purpose.
+ *  where PT   = payload of interleaved media
+ *        UPL  = number of audio units per leaf 
+ *        N1'  = dimension of interleaver (N1' = N1 - 1)
+ *        N2'  = dimension of interleaver (N2' = N2 - 1)
+ *        PHS  = phase of interleaver (column being output) (1..n2)
+ *        MASK = bitmap of which units are present.
+ *  A version field would be nice here.
  */
 
-#define PUT_PT(x) ((x)<<24)
-#define PUT_N1(x) ((x-1)<<21)
-#define PUT_N2(x) ((x-1)<<18)
-#define PUT_MASK(x) ((x)<<10)
-#define PUT_PHASE(x) (x)
+#define PUT_PT(x)    ((x)   << 25)
+#define PUT_UPL(x)   ((x)   << 17)
+#define PUT_N1(x)    ((x-1) << 14)
+#define PUT_N2(x)    ((x-1) << 11)
+#define PUT_PHASE(x) ((x)   <<  8)
+#define PUT_MASK(x)  ((x))
 
-#define GET_PT(x) (((x)>>24)&0x7f)
-#define GET_N1(x) ((((x)>>21)&0x07)+1)
-#define GET_N2(x) ((((x)>>18)&0x07)+1)
-#define GET_MASK(x) (((x)>>10)&0xff)
-#define GET_PHASE(x) ((x)&0x3ff)
+#define GET_PT(x)    (((x)>>25)  & 0x7f)
+#define GET_UPL(x)   (((x)>>17)  & 0xff)
+#define GET_N1(x)    ((((x)>>14) & 0x07)+1)
+#define GET_N2(x)    ((((x)>>11) & 0x07)+1)
+#define GET_PHASE(x) (((x)>>8)   & 0x07)  
+#define GET_MASK(x)  ((x)        & 0xff)
 
 typedef struct s_intl_coder {
         u_char  cnt;
@@ -179,7 +170,8 @@ typedef struct s_intl_coder {
         u_int32 intl_hdr;
         il_t *il;  
         cc_unit last;     /* out going cc_unit    */
-        u_int32 last_ts; /* used only by decoder */
+        u_int32 last_ts;  /* used only by decoder */
+        u_int32 upl;      /* ditto */
 } intl_coder_t;
 
 intl_coder_t *
@@ -233,7 +225,7 @@ intl_config(struct session_tag *sp,
         n1   = atoi(strtok(cmd,  "/"));
         n2   = atoi(strtok(NULL, "/"));
 
-        if ((n1 < 0 || n1 > 15) || (n2 < 0 || n2 > 15)) 
+        if ((n1 < 0 || n1 > 8) || (n2 < 0 || n2 > 8)) 
                 return 0;
 
         intl_reset(s);
@@ -272,16 +264,16 @@ intl_bps(session_struct        *sp,
 }
 
 __inline static void
-intl_pack_hdr(intl_coder_t *s, u_int32* hdr)
+intl_pack_hdr(intl_coder_t *s, u_int32* hdr, int units_per_leaf)
 {
-        (*hdr)  = PUT_PT(s->src_pt);
-        (*hdr) |= PUT_N1(s->il->n1);
-        (*hdr) |= PUT_N2(s->il->n2);
-        (*hdr) |= PUT_MASK(s->mask);
-        (*hdr) |= PUT_PHASE(((s->cnt-s->il->sz)/s->il->n1-1)%(8*s->il->n2));
-        (*hdr)  = htonl((*hdr));
+        (*hdr)  = PUT_PT    (s->src_pt);
+        (*hdr) |= PUT_UPL   (units_per_leaf);
+        (*hdr) |= PUT_N1    (s->il->n1);
+        (*hdr) |= PUT_N2    (s->il->n2);
+        (*hdr) |= PUT_PHASE (s->il->idx / s->il->n1);
+        (*hdr) |= PUT_MASK  (s->mask);
+        (*hdr)  = htonl     ((*hdr));
 }
-
 
 /* This (c|sh)ould be much more efficient 
  * ... this is just a first pass [oth]
@@ -326,10 +318,11 @@ intl_encode(session_struct *sp,
         if ((s->cnt == s->il->n1) && s->mask) {
                 s->last.iov[0].iov_base = (caddr_t)block_alloc(sizeof(u_int32));
                 s->last.iov[0].iov_len  = sizeof(u_int32);
-                intl_pack_hdr(s, (u_int32*)s->last.iov[0].iov_base);
+                intl_pack_hdr(s, 
+                              (u_int32*)s->last.iov[0].iov_base, 
+                              collator_get_units(sp->collator));
                 (*out)  = &s->last;
                 s->mask = 0;
-                dprintf("ready\n");
                 return TRUE;
         }
 
@@ -338,17 +331,17 @@ intl_encode(session_struct *sp,
 }
 
 static void
-intl_check_hdr(u_int32        hdr, 
-               intl_coder_t  *s)
+intl_compat_chk(u_int32        hdr, 
+                intl_coder_t  *s)
 {
-        if ((GET_PT(hdr) != s->src_pt) ||
-            (GET_N1(hdr) != s->il->n2) ||
-            (GET_N2(hdr) != s->il->n1)) {
+        if (GET_N1(hdr) != s->il->n2 ||
+            GET_N2(hdr) != s->il->n1) {
                 intl_reset(s);
                 il_free(s->il);
                 /* unscrambler of an (n1,n2) interleaver is an (n2,n1) interleaver */
                 s->il     = il_create(GET_N2(hdr),GET_N1(hdr));
                 s->src_pt = GET_PT(hdr);
+                s->upl    = GET_UPL(hdr);
         }
 }
 
@@ -359,98 +352,72 @@ intl_decode(rx_queue_element_struct *u,
         rx_queue_element_struct *su;
         u_int32     hdr;
         codec_t    *cp;
-        coded_unit *cu;
-        int i,j,iovc,m,p,ep;
-        u_int32 units;
-        struct iovec iov[2];
+        cc_unit    *ccu;
+        int i, j, len, mask, idx, iovc;
 
-        /* we got a packet */
-        units = s->il->n2;
+        if ((cp = get_codec(s->src_pt)) == FALSE) return;
+
         if (u->ccu_cnt) {
                 hdr = ntohl(*(u_int32*)u->ccu[0]->iov[0].iov_base);
-                intl_check_hdr(hdr,s);
-                m = GET_MASK(hdr) << (32-units);
-                p = GET_PHASE(hdr);
+                intl_compat_chk(hdr,s);
                 /* free interleaver header */
                 block_free(u->ccu[0]->iov[0].iov_base,
                            u->ccu[0]->iov[0].iov_len);
                 memset(u->ccu[0]->iov,0,sizeof(struct iovec));
-        } else {
-                m   =  0;
-                p   = -1;
-        }
-
-        cp = get_codec(s->src_pt);
-    
-        if (!cp) {
-#ifdef DEBUG
-                fprintf(stderr,"%s:%d Codec not recognized.\n",__FILE__,__LINE__);
-#endif
-                return;
-        }
-
-        if (!u->ccu_cnt) {
-                if (il_empty(s->il)&&s->cnt) {
-                        intl_reset(s); /* we should delete this rx unit and all trailing
-                                        * ones here to stop burning CPU on repair cause
-                                        * this is almost definitely the end of the talkspurt
-                                        * [oth]
-                                        */
-                        return;
-                } else if ((u->playoutpt - s->last_ts)/cp->unit_len != units) {
-                        return;
-                }
-        }
-
-        s->last_ts = u->playoutpt;
-
-        ep = s->cnt/units;
-        while (p!=-1 && (ep % units) != (p % units)) {
-                /* we are out of phase so realign */
-                cu = (coded_unit*)il_exchange(s->il,NULL);
-                if (cu) {
-                        clear_coded_unit(cu);
-                        block_free(cu,sizeof(coded_unit));
-                }
-                ep = ++s->cnt/units;
-        }
-
-        su = u;
-        for(i=0, j=1; i < (int)units; i++) {
-                cu = NULL;
-                if (m & 0x80000000) {  
-                        cu = (coded_unit*)block_alloc(sizeof(coded_unit));
-                        j += iov_to_coded_unit(u->ccu[0]->iov+j,
-                                               cu,
-                                               cp->pt);
-                }
-                cu = (coded_unit*)il_exchange(s->il,(char*)cu);
-                if (cu) {
-                        if (su) {
-                                iovc = coded_unit_to_iov(cu,iov,INCLUDE_STATE);
-                                add_comp_data(su,
-                                              s->src_pt,
-                                              iov,
-                                              iovc);
-                                su = get_rx_unit(1,u->cc_pt,su);
-                        } else { 
-                                /* we had nowhere to write this block -
-                                 * probably because the playout offset got
-                                 * changed mid talkspurt
-                                 */
-                                clear_coded_unit(cu);
+                mask = GET_MASK(hdr);
+                for(i = 0, idx = 1; i < s->il->n1; i++, mask>>=1) {
+                        ccu = NULL;
+                        if (mask & 1) {
+                                ccu     = (cc_unit*)block_alloc(sizeof(cc_unit));
+                                ccu->pt = s->src_pt;
+                                iovc    = (cp->sent_state_sz ? 1 : 0) + s->upl * cp->max_unit_sz;
+                                memcpy(ccu->iov, u->ccu[0]->iov+idx, iovc * sizeof (struct iovec));
+                                memset(u->ccu[0]->iov+idx,        0, iovc * sizeof (struct iovec));
+                                ccu->iovc = iovc;
+                                idx      += iovc;
                         }
-                        block_free(cu,sizeof(coded_unit));
-                } 
-                m<<=1;
+                        /* i want a trade-in... */
+                        ccu = (cc_unit*) il_exchange(s->il, (char*)ccu);
+                        if (ccu) {
+                                codec_t *cp;
+                                for(j = 0, len = 0; j < ccu->iovc; j++) len += ccu->iov[j].iov_len;
+                                su = get_rx_unit(i * s->upl, u->cc_pt, u);
+                                cp = get_codec(s->src_pt);
+                                fragment_spread(cp, len, ccu->iov, ccu->iovc, su);
+                                block_free(ccu, sizeof(cc_unit));
+                        }
+                }
+        } else {
+                if (il_empty(s->il) && s->cnt) {
+                        intl_reset(s); 
+                        return;
+                } else if ((u->src_ts - s->last_ts)/cp->unit_len != (s->il->n1 * s->upl)) {
+                        return;
+                }
+                /* ... You can't always get what you want, x2
+                 * but if you try sometimes you just might find
+                 * you get what you neeed ...
+                 *
+                 * (c) Jagger/Richards 196x
+                 */ 
+                for(i=0;i<s->il->n1;i++) {
+                        ccu = (cc_unit*) il_exchange(s->il, NULL);
+                        if (ccu) {
+                                codec_t *cp;
+                                for(j = 0, len = 0; j < ccu->iovc; j++) len += ccu->iov[j].iov_len;
+                                su = get_rx_unit(i * s->upl, u->cc_pt, u);
+                                cp = get_codec(s->src_pt);
+                                fragment_spread(cp, len, ccu->iov, ccu->iovc, su);
+                                block_free(ccu, sizeof(cc_unit));
+                        }
+                }
         }
-    
+#ifdef DEBUG        
         for(i=0;i<CC_UNITS&&u->ccu_cnt;i++) {
                 assert(u->ccu[0]->iov[i].iov_len==0);
                 assert(u->ccu[0]->iov[i].iov_base==0);
         }
-
-        s->cnt += units;
+#endif
 }
 
 /* 
@@ -467,50 +434,42 @@ intl_valsplit(char                *blk,
               cc_unit             *cu,
               int                 *trailing)
 {
-        u_int32 hdr;
-        int i, m, units, todo;
+        u_int32 hdr, len;
+        int i, upl, mask;
         codec_t *cp;
 
-        todo = blen;
         hdr  = ntohl(*((u_int32*)blk));
 
         assert(cu->iovc == 0);
         cu->iov[0].iov_base = (caddr_t)blk;
         cu->iov[0].iov_len  = 4;
-        todo               -= 4;
 
         cp = get_codec(GET_PT(hdr));
         if (!cp) {
-#ifdef DEBUG
-                fprintf(stderr, "%s:%d Codec not recognized.\n",__FILE__,__LINE__);
-#endif
+                dprintf("Codec (pt = %d) not recognized.\n", GET_PT(hdr));
+                (*trailing) = 0;
                 return 0;
         }
 
-        cu->iovc = 1;
-        units = GET_N1(hdr);
-        m = GET_MASK(hdr) << (32-units);
-        for(i=units;i>0;i--) {
-                if (m&0x80000000) {
-                        if (cp->sent_state_sz) { 
-                                cu->iov[cu->iovc++].iov_len = cp->sent_state_sz;
-                                todo                       -= cp->sent_state_sz;
-                        }
-                        cu->iov[cu->iovc++].iov_len = cp->max_unit_sz;
-                        todo                       -= cp->max_unit_sz;
-                }
-                m<<=1;
-        }
+        upl = GET_UPL(hdr);
+        len = cp->max_unit_sz * upl + cp->sent_state_sz;
 
-        if (todo != 0) {
-#ifdef DEBUG
-                fprintf(stderr,"%s:%d Incorrect block length.\n", __FILE__, __LINE__);
-#endif
+        mask = GET_MASK(hdr);
+        while(mask) {
+                if (mask & 1) fragment_sizes(cp, len, cu->iov, &cu->iovc, CC_UNITS);
+                mask >>= 1;
+        }
+        
+        for(i = 0, len = 0; i < cu->iovc; i++) len += cu->iov[i].iov_len;
+
+        if (len != blen) {
+                dprintf("sizes don't tally\n");
+                (*trailing) = 0;
                 return 0;
         }
-
-        (*trailing) = 2 * units * GET_N2(hdr);
-        return units;
+        
+        (*trailing) = (GET_N2(hdr) - GET_PHASE(hdr)) * GET_N1(hdr) * upl; 
+        return GET_N1(hdr) * upl;
 }
 
 int

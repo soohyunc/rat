@@ -522,15 +522,17 @@ static void rx_source_playout(char *srce, char *args, session_struct *sp)
 static void
 rx_interleaving(char *srce, char *args, session_struct *sp)
 {
-        int separation, cc_pt;
+        int units, separation, cc_pt;
         char config[80];
 
 	UNUSED(srce);
 
 	mbus_parse_init(mbus_chan, args);
-	if (mbus_parse_int(mbus_chan, &separation)) {
+	if (mbus_parse_int(mbus_chan, &units) &&
+            mbus_parse_int(mbus_chan, &separation)) {
                 cc_pt        = get_cc_pt(sp,"INTERLEAVER");
-                sprintf(config, "%d/%d", 4, separation);
+                sprintf(config, "%d/%d", units, separation);
+                dprintf("config %s\n", config);
                 config_channel_coder(sp, cc_pt, config);
         } else {
                 printf("mbus: usage \"interleaving <codec> <separation in units>\"\n");
