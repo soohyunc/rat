@@ -83,10 +83,38 @@ render_3D_init()
         memset(render_3D_data->overlap, 0, sizeof render_3D_data->overlap);
         memset(render_3D_data->delay, 0, sizeof render_3D_data->delay);
 
-        for (i=0; i<RESPONSE_LENGTH; i++) {
-                render_3D_data->filter[i] = 0.4;
-        }
-	render_3D_data->filter[RESPONSE_LENGTH] = 1.0;
+	render_3D_data->filter[0] = 0.063113;
+	render_3D_data->filter[1] = -0.107530;
+	render_3D_data->filter[2] = 0.315168;
+	render_3D_data->filter[3] = 0.015218;
+	render_3D_data->filter[4] = -0.300535;
+	render_3D_data->filter[5] = 1.000000;
+	render_3D_data->filter[6] = 0.359786;
+	render_3D_data->filter[7] = -0.601145;
+	render_3D_data->filter[8] = -0.676947;
+	render_3D_data->filter[9] = -0.167251;
+	render_3D_data->filter[10] = 0.203305;
+	render_3D_data->filter[11] = 0.261645;
+	render_3D_data->filter[12] = 0.059649;
+	render_3D_data->filter[13] = 0.026661;
+	render_3D_data->filter[14] = -0.011648;
+	render_3D_data->filter[15] = -0.335958;
+	render_3D_data->filter[16] = -0.276208;
+	render_3D_data->filter[17] = 0.037719;
+	render_3D_data->filter[18] = 0.154546;
+	render_3D_data->filter[19] = 0.141399;
+	render_3D_data->filter[20] = -0.000902;
+	render_3D_data->filter[21] = -0.031835;
+	render_3D_data->filter[22] = -0.098318;
+	render_3D_data->filter[23] = -0.058072;
+	render_3D_data->filter[24] = -0.033449;
+	render_3D_data->filter[25] = 0.030325;
+	render_3D_data->filter[26] = 0.041670;
+	render_3D_data->filter[27] = -0.001182;
+	render_3D_data->filter[28] = -0.019692;
+	render_3D_data->filter[29] = -0.031318;
+	render_3D_data->filter[30] = -0.028427;
+	render_3D_data->filter[31] = -0.003031;
 
         for (i=0; i<RESPONSE_LENGTH; i++) {
                 fprintf(stdout, "\t%f\n", render_3D_data->filter[i]);
@@ -174,10 +202,7 @@ convolve(sample *signal, sample *answer, double *overlap, double *response, int 
                 /* Clamping */
                 if (current > 32767.0) current = 32767.0;
                 if (current < -32768.0) current = -32768.0;
-#ifdef NDEF
-                current *= *response_rptr;
-#endif
-                /* cast back into int and store 'current' in answer vector. */
+                /* store 'current' in answer vector. */
                 *answer_rptr++ = ceil(current-0.5);
         }
 }
