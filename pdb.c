@@ -150,7 +150,8 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, uint16_t freq, uint32_t id)
         item->avg_transit       = zero_ts;
         item->playout           = zero_ts;
         item->last_arr          = zero_ts;
-
+        item->last_rtt          = 0.0;
+        item->avg_rtt           = 0.0;
         /* Packet stats initialization                                       */
         item->received        = 0;
         item->duplicates      = 0;

@@ -790,6 +790,14 @@ ui_update_reception(session_t *sp, uint32_t ssrc, uint32_t recv, uint32_t lost, 
 }
 
 void
+ui_update_rtt(session_t *sp, uint32_t ssrc, double rtt_sec)
+{
+        uint32_t rtt_ms;
+        rtt_ms = (uint32_t)(1000 * rtt_sec);
+        mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "rtp.source.rtt", "\"%08lx\" %6ld", ssrc, rtt_ms);
+}
+
+void
 ui_update_duration(session_t *sp, uint32_t ssrc, int duration)
 {
 	mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "rtp.source.packet.duration", "\"%08lx\" %3d", ssrc, duration);

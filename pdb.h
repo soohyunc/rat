@@ -55,6 +55,10 @@ typedef struct {
         ts_sequencer    seq;                         /* Mapper from RTP time rep to rat time rep */
         uint32_t        spike_events;                /* Number of spike events                   */
         uint32_t        spike_toged;                 /* Number of packets dropped in spike mode  */
+        double          last_rtt;
+        double          avg_rtt;
+
+
         /* Display Info */
         ts_t            last_ui_update;              /* Used for periodic update of packet counts, etc */
 

@@ -305,6 +305,7 @@ proc mbus_recv {cmnd args} {
 		rtp.source.inactive  		{eval mbus_recv_rtp.source.inactive $args}
 		rtp.source.mute  		{eval mbus_recv_rtp.source.mute $args}
 		rtp.source.gain  		{eval mbus_recv_rtp.source.gain $args}
+		rtp.source.rtt                  {puts "rtt $args"}
 		security.encryption.key 	{eval mbus_recv_security.encryption.key $args}
 		default				{puts "Unknown mbus command $cmnd"}
 	}

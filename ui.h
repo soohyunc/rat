@@ -52,6 +52,7 @@ void ui_update               (struct s_session *session_pointer);
 void ui_update_loss          (struct s_session *sp, uint32_t srce, uint32_t dest, int loss);
 void ui_update_reception     (struct s_session *s, uint32_t ssrc, uint32_t recv, uint32_t lost, 
                               uint32_t misordered, uint32_t duplicates, uint32_t jitter, int jit_tog);
+void ui_update_rtt           (struct s_session *s, uint32_t ssrc, double rtt_secs);
 void ui_update_duration      (struct s_session *s, uint32_t ssrc, int duration);
 void ui_update_sync          (struct s_session *s, int sync);
 void ui_update_key           (struct s_session *s, char *key);

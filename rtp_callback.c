@@ -20,7 +20,7 @@ static const char cvsid[] =
 #include "channel.h"
 #include "codec.h"
 #include "rtp.h"
-#include "rtp_callback.h"
+#include "ntp.h"
 #include "session.h"
 #include "cushion.h"
 #include "pdb.h"
@@ -28,6 +28,8 @@ static const char cvsid[] =
 #include "playout_calc.h"
 #include "util.h"
 #include "ui.h"
+
+#include "rtp_callback.h"
 
 /* We need to be able to resolve the rtp session to a rat session in */
 /* order to get persistent participant information, etc.  We use a   */
@@ -119,6 +121,23 @@ get_session(struct rtp *rtps)
 
 /* Callback utility functions                                                */
 
+/* rtp_rtt_calc return rtt estimate in seconds */
+static double 
+rtp_rtt_calc(uint32_t arr, uint32_t dep, uint32_t delay)
+{
+        uint32_t delta;
+
+        /* rtt = arr - dep - delay */
+        delta = ntp32_sub(arr,   dep);
+        delta = ntp32_sub(delta, delay);
+        /*
+         * 16 high order bits are seconds 
+         * 16 low order bits are 1/65536 of sec
+         */
+        return  (double)((delta >> 16) & 0xffff) +
+                (double)(delta & 0xffff) / 65536.0;
+}
+
 static void
 process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
 {
@@ -166,15 +185,37 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
 static void
 process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
 {
+        pdb_entry_t  *e;
         uint32_t fract_lost;
-        /* Just update loss statistic in UI for this report if there */
-        /* is somewhere to send them.                                */
+
+        /* Calculate rtt estimate */
+
+        if (pdb_item_get(sp->pdb, ssrc, &e) &&
+            r->ssrc == rtp_my_ssrc(sp->rtp_session[0]) &&
+            r->lsr != 0) {
+                uint32_t ntp_sec, ntp_frac, ntp32;
+
+                ntp64_time(&ntp_sec, &ntp_frac);
+                ntp32 = ntp64_to_ntp32(ntp_sec, ntp_frac);
+                
+                e->last_rtt = rtp_rtt_calc(ntp32, r->lsr, r->dlsr);
+                if (e->avg_rtt == 0.0) {
+                        e->avg_rtt = e->last_rtt;
+                } else {
+                        e->avg_rtt += (e->last_rtt - e->avg_rtt) / 8.0;
+                }
+
+                if (sp->mbus_engine != NULL) {
+                        ui_update_rtt(sp,  ssrc, e->avg_rtt);
+                }
+        }
+
+        /* Update loss stats */
         if (sp->mbus_engine != NULL) {
                 fract_lost = (r->fract_lost * 100) >> 8;
                 ui_update_loss(sp, ssrc, r->ssrc, fract_lost);
         }
 }
-
 
 static void
 process_rr_timeout(session_t *sp, uint32_t ssrc, rtcp_rr *r)
