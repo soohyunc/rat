@@ -2022,10 +2022,10 @@ proc save_settings {} {
 }
 
 proc load_setting {attrname field var default} {
-    global V win32 $var
-    upvar 1 $attrname attr 
+	global V win32 $var
+	upvar 1 $attrname attr 
 	set fail 0
-    # who has the tcl manual? is the only way to pass arrays thru upvar...
+	# who has the tcl manual? is the only way to pass arrays thru upvar...
 	if {$win32} {
 		if {[string first "rtp" "$field"] == -1} {
 			set fail [ catch { set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app) *$field]" } msg ]
@@ -2038,20 +2038,20 @@ proc load_setting {attrname field var default} {
 		} else {
 			puts "$field $var $tmp"
 		}
-    } else {
+	} else {
 		set tmp [option get . $field rat]
 		if {$tmp == ""} {
-	    # not in xresources...
+			# not in xresources...
 			if {[info exists attr($field)]} {
-			set tmp $attr($field)
+				set tmp $attr($field)
 			}
 		}
-    }
-    if {$tmp == ""} {
+	}
+	if {$tmp == ""} {
 	# either not in rtp defaults, or registry...
-        set tmp $default
-    }
-    set $var $tmp
+		set tmp $default
+	}
+	set $var $tmp
 }
 
 proc tool_version {tool} {
@@ -2073,10 +2073,10 @@ proc load_settings {} {
 		if {[file readable $rtpfname]} {
 			set f [open $rtpfname]
 			while {[eof $f] == 0} {
-			gets $f line
-			set field [string trim [lindex $line 0] "*:"]
-			set value [lrange $line 1 end]
-			set attr($field) "$value"
+				gets $f line
+				set field [string trim [lindex $line 0] "*:"]
+				set value [lrange $line 1 end]
+				set attr($field) "$value"
 			}	
 			close $f
 		}
@@ -2093,6 +2093,7 @@ proc load_settings {} {
     # from those the current version use defaults.
     global audio_tool
     if {[tool_version $audio_tool] != [tool_version $TOOL($my_cname)]} {
+    	puts "New version of tool ([tool_version $audio_tool]), resetting preferences"
 	foreach i [array names attr audio*] {
 	    unset attr($i)
 	}
