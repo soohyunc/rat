@@ -166,9 +166,9 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 				sp[s]->ui_on   = FALSE;
 				sp[s]->ui_addr = strdup(argv[i+1]);
 			}
-                        if ((strcmp(argv[i], "-allowloopback")) == 0) {
-                                sp[s]->filter_loopback = FALSE;
-                        }
+            if (strcmp(argv[i], "-allowloopback") == 0 || strcmp(argv[i], "-allow_loopback") == 0) {
+                sp[s]->filter_loopback = FALSE;
+            }
 			if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
 				argv[i] = "-crypt";
 				i++;
@@ -207,7 +207,7 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 				i++;
 			}
 			if ((strcmp(argv[i], "-drop") == 0) && (argc > i+1)) {
-                        	sp[s]->drop = atof(argv[++i]);
+                        	sp[s]->drop = (float)atof(argv[++i]);
                         	if (sp[s]->drop > 1.0) {
                                 	sp[s]->drop = sp[s]->drop/100;
                         	}

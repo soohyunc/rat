@@ -10,7 +10,7 @@
 if {[string compare [info commands registry] "registry"] == 0} {
 	set win32 1
 	set statsfont     {courier 10}
-	set titlefont     {helvetica 12}
+	set titlefont     {helvetica 10}
 	set infofont      {helvetica 10}
 	set smallfont     {helvetica  8}
 	set verysmallfont {helvetica  8}
@@ -24,9 +24,9 @@ if {[string compare [info commands registry] "registry"] == 0} {
 	option add *Menu*selectColor 		forestgreen widgetDefault
 	option add *Radiobutton*selectColor forestgreen widgetDefault
 	option add *Checkbutton*selectColor forestgreen widgetDefault 
+	option add *Entry.background 		gray70 		widgetDefault
 }
 
-option add *Entry.background 		gray70 		widgetDefault
 option add *Entry.relief            sunken      widgetDefault
 option add *borderWidth 		1
 option add *highlightThickness	0
@@ -1284,8 +1284,12 @@ proc save_setting {f field var} {
     if {$win32 == 0} {
 		puts $f "*$field: $value"
     } else {
-		registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field" "$value"
-    }
+		if {[string first "rtp" "$field"] == -1} {
+			catch {registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field" "$value"} fail
+		} else {
+			catch {registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\common" "*$field" "$value"} fail
+		}
+	}
 }
 
 proc save_settings {} {
@@ -1350,7 +1354,14 @@ proc load_setting {attrname field var default} {
     # who has the tcl manual? is the only way to pass arrays thru upvar...
 
     if {$win32} {
-		catch {set $var [registry get "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "$field"]} 
+		if {[string first "rtp" "$field"] == -1} {
+			catch {set tmp [registry get "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field"]} fail
+		} else {
+			catch {set tmp [registry get "HKEY_CURRENT_USER\\Software\\$V(class)\\common" "*$field"]} fail
+		}
+		if {$fail != 0} {
+			set tmp ""
+		}
     } else {
 		set tmp [option get . $field rat]
 		if {$tmp == ""} {
@@ -1362,10 +1373,9 @@ proc load_setting {attrname field var default} {
     }
     if {$tmp == ""} {
 	# either not in rtp defaults, or registry...
-	set tmp $default
+        set tmp $default
     }
     set $var $tmp
-    #puts "$var = $tmp"
 }
 
 proc load_settings {} {
@@ -1638,10 +1648,11 @@ proc hide_help {window} {
 proc add_help {window text} {
 	global help_text 
 	set help_text($window)  $text
-	bind $window <Enter>  "+show_help $window"
-	bind $window <Leave>  "+hide_help $window"
+	bind $window <Enter>    "+show_help $window"
+	bind $window <Leave>    "+hide_help $window"
 }
 
+bind Entry   <KeyPress> "+hide_help %W"
 toplevel .help       -bg black
 label    .help.text  -bg lavender -justify left
 pack .help.text -side top -anchor w -fill x
