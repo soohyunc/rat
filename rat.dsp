@@ -337,6 +337,10 @@ SOURCE=.\sndfile_au.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\sndfile_raw.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\sndfile_wav.c
 # End Source File
 # Begin Source File
@@ -618,6 +622,10 @@ SOURCE=.\sndfile.h
 # Begin Source File
 
 SOURCE=.\sndfile_au.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\sndfile_raw.h
 # End Source File
 # Begin Source File
 
