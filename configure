@@ -65,7 +65,7 @@ case $OSTYPE in
 	    OPTIMIZE="-O4"
 	    PROFILE="-pg"
             ;;
-  SunOS_5 ) CC="gcc"
+  SunOS_5 ) CC="gcc -pipe"
             WFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
 	    INCLUDE="-I/cs/research/mice/starship/common/solaris/include -I/usr/demo/SOUND/include -I/usr/openwin/include"
 	    LDLIBS="-L/cs/research/mice/starship/common/solaris/lib -ltk8.0 -ltcl8.0 -L/usr/openwin/lib -lXext -lX11 -L/usr/demo/SOUND/lib -laudio -lsocket -ldl -lnsl -lm -lcheck"
