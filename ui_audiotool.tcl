@@ -675,10 +675,10 @@ proc mbus_recv_audio.suppress.silence {mode} {
 }
 
 proc mbus_recv_rtp.ssrc {ssrc} {
-	global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc num_ssrc
+	global my_ssrc 
 
-	set my_ssrc  $ssrc
-	init_source  $ssrc
+	set my_ssrc $ssrc
+	init_source $ssrc
 	ssrc_update $ssrc
 }
 
@@ -832,12 +832,15 @@ proc mbus_recv_rtp.source.reception {ssrc packets_recv packets_lost packets_miso
 }
 
 proc mbus_recv_rtp.source.active {ssrc} {
+    init_source $ssrc 
+    ssrc_update $ssrc
     global speaker_highlight
     catch [[window_plist $ssrc] configure -background $speaker_highlight]
-    ssrc_update $ssrc
 }
 
 proc mbus_recv_rtp.source.inactive {ssrc} {
+    init_source $ssrc 
+    ssrc_update $ssrc
     global speaker_highlight
     catch {
 	set w [window_plist $ssrc]
@@ -847,7 +850,6 @@ proc mbus_recv_rtp.source.inactive {ssrc} {
 	    after 120 "catch {$w configure -background [.l.t.list cget -bg]}"
 	}
     }
-    ssrc_update $ssrc
 }
 
 proc mbus_recv_rtp.source.remove {ssrc} {
@@ -2216,7 +2218,7 @@ proc tool_version {tool} {
 		# Unknown tool version, so put out something which won't
 		# match with the current version string to force a reset
 		# of the saved parameters.
-	    puts "*X*X*X tool failed regexp match: $tool"
+	    	puts "*X*X*X tool failed regexp match: $tool"
 		return "RAT v0.0.0"
 	}
 	regsub {(RAT v[0-9]+\.[0-9]+\.[0-9]+) [a-zA-Z]+} $tool {\1} v
