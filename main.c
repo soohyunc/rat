@@ -83,7 +83,7 @@ signal_handler(int signal)
 int
 main(int argc, char *argv[])
 {
-	u_int32			 ssrc, cur_time;
+	u_int32			 ssrc, cur_time, real_time;
 	int            		 num_sessions, i, elapsed_time, alc = 0;
 	char			*cname;
 	session_struct 		*sp[2];
@@ -183,6 +183,7 @@ main(int argc, char *argv[])
 				elapsed_time = read_write_audio(sp[i], sp[i], sp[i]->ms);
 			}
 			cur_time = get_time(sp[i]->device_clock);
+			real_time = ntp_time32();
 			network_read(sp[i], netrx_queue_p[i], rtcp_pckt_queue_p[i], cur_time);
 			if (sp[i]->sending_audio) {
 				tx_process_audio(sp[i]);
@@ -196,7 +197,7 @@ main(int argc, char *argv[])
                         if (sp[i]->sending_audio || sp[i]->last_tx_service_productive) {
                                 tx_send(sp[i], sp[1-i]->speakers_active);
                         }
-			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time);
+			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time, real_time);
 			if (sp[i]->playing_audio) {
 				service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, sp[i]->ms);
 			}
