@@ -662,6 +662,61 @@ ui_sampling_modes(session_t *sp)
 	xfree(mbes);
 }
 
+static void
+ui_update_powermeter(session_t *sp)
+{
+	if (sp->meter) {
+		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.powermeter", "1", TRUE);
+	} else {
+		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.powermeter", "0", TRUE);
+	}
+}
+
+static void
+ui_update_lipsync(session_t *sp) 
+{
+	if (sp->sync_on) {
+		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.sync", "1", TRUE);
+	} else {
+		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.sync", "0", TRUE);
+	}
+}
+
+static void
+ui_update_silence(session_t *sp)
+{
+	if (sp->detect_silence) {
+		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.suppress.silence", "1", TRUE);
+	} else {
+		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.suppress.silence", "0", TRUE);
+	}
+}
+
+static void
+ui_update_playout_bounds(session_t *sp)
+{
+        char tmp[6];
+        if (sp->limit_playout) {
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.playout.limit", "1", TRUE);
+        } else {
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.playout.limit", "0", TRUE);
+        }
+        sprintf(tmp, "%4d", (int)sp->min_playout);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.playout.min", tmp, TRUE);
+        sprintf(tmp, "%4d", (int)sp->max_playout);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.playout.max", tmp, TRUE);
+}
+
+static void
+ui_update_agc(session_t *sp)
+{
+        if (sp->agc_on) {
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.agc", "1", TRUE);
+        } else {
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.agc", "0", TRUE);
+        }
+}
+
 void
 ui_update(session_t *sp)
 {
@@ -681,6 +736,13 @@ ui_update(session_t *sp)
 	ui_update_primary(sp);
         ui_update_channel(sp);
         ui_repair(sp);
+        ui_update_converter(sp);
+        ui_update_lecture_mode(sp);
+        ui_update_powermeter(sp);
+        ui_update_lipsync(sp);
+        ui_update_silence(sp);
+        ui_update_agc(sp);
+        ui_update_playout_bounds(sp);
 }
 
 void
@@ -738,6 +800,7 @@ ui_update_duration(session_t *sp, u_int32 ssrc, int duration)
 {
 	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "rtp.source.packet.duration", "\"%08lx\" %3d", ssrc, duration);
 }
+
 
 void 
 ui_update_video_playout(session_t *sp, u_int32 ssrc, int playout)
@@ -1029,21 +1092,6 @@ ui_3d_options(session_t *sp)
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "tool.rat.3d.azimuth.max", "%d", render_3D_filter_get_upper_azimuth());
 }
 
-static void
-ui_update_options(session_t *sp)
-{
-	if (sp->meter) {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.powermeter", "1", TRUE);
-	} else {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.powermeter", "0", TRUE);
-	}
-	if (sp->sync_on) {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.sync", "1", TRUE);
-	} else {
-		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.sync", "0", TRUE);
-	}
-}
-
 void
 ui_initial_settings(session_t *sp)
 {
@@ -1061,12 +1109,9 @@ ui_initial_settings(session_t *sp)
 	ui_info_update_loc(sp,   my_ssrc); 	network_process_mbus(sp);
 	ui_info_update_tool(sp,  my_ssrc); 	network_process_mbus(sp);
         ui_title(sp); 				network_process_mbus(sp);
-	ui_update_options(sp); 			network_process_mbus(sp);
 #ifdef NDEF /* This is done by load_settings() now... */
 	ui_load_settings(sp); 			network_process_mbus(sp);
 #endif
-        ui_update_converter(sp);
-        ui_update_repair(sp);
 }
 
 void 

@@ -198,6 +198,9 @@ proc mbus_recv {cmnd args} {
 		tool.rat.3d.filter.types        {eval mbus_recv_tool.rat.3d.filter.types   $args}
 		tool.rat.3d.filter.lengths      {eval mbus_recv_tool.rat.3d.filter.lengths $args}
 		tool.rat.3d.user.settings       {eval mbus_recv_tool.rat.3d.user.settings  $args}
+		tool.rat.playout.limit          {eval mbus_recv_tool.rat.playout.limit $args}
+		tool.rat.playout.min            {eval mbus_recv_tool.rat.playout.min   $args}
+		tool.rat.playout.max            {eval mbus_recv_tool.rat.playout.max   $args}
 		audio.suppress.silence  	{eval mbus_recv_audio.suppress.silence $args}
 		audio.channel.coding  		{eval mbus_recv_audio.channel.coding $args}
 		audio.channel.repair 		{eval mbus_recv_audio.channel.repair $args}
@@ -1006,6 +1009,21 @@ proc mbus_recv_audio.file.record.alive {alive} {
 		set rec_file(state) end
 		file_enable_record                                          
 	}
+}
+
+proc mbus_recv_tool.rat.playout.limit {do_limit} {
+    global limit_var
+    set limit_var $do_limit
+}
+
+proc mbus_recv_tool.rat.playout.min {lower_bound} {
+    global min_var
+    set min_var $lower_bound
+}
+
+proc mbus_recv_tool.rat.playout.max {upper_bound} {
+    global max_var
+    set max_var $upper_bound
 }
 
 proc mbus_recv_mbus.quit {} {
