@@ -334,6 +334,11 @@ int main(int argc, char *argv[])
 			audio_wait_for(sp->audio_device, 20);
 		}
 
+                /* Check controller is still alive */
+                if (mbus_addr_valid(sp->mbus_engine, c_addr) == FALSE) {
+                        should_exit = TRUE;
+                }
+
 		/* Debugging sanity check of the session... */
 		session_validate(sp);
 		/* ...and check that nothing has trashed memory too badly! */
@@ -372,9 +377,11 @@ int main(int argc, char *argv[])
 	session_exit(sp);
         converters_free();
         audio_free_interfaces();
+
 	xfree(c_addr);
 	xfree(token);
 	xfree(token_e);
+
 	xmemdmp();
 	debug_msg("Media engine exit\n");
 	return 0;

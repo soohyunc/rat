@@ -22,7 +22,8 @@ static const char cvsid[] =
 #include "tk.h"
 #include "tcltk.h"
 
-char	*e_addr = NULL;
+char	*e_addr = NULL; /* Engine address */
+char	*c_addr = NULL; /* Controller address */
 char	 m_addr[100];
 char	*c_addr, *token, *token_e; 
 pid_t    ppid;
@@ -156,6 +157,13 @@ int main(int argc, char *argv[])
 		timeout.tv_usec = 10000;
                 select(0, NULL, NULL, NULL, &timeout);
 #endif
+                /* If controller has died call it a day.  Need this for Win32
+                 * as controller can die via terminate call and not be given
+                 * chance to send quit message
+                 */
+                if (mbus_addr_valid(m, c_addr) == FALSE) {
+                        should_exit = TRUE;
+                } 
 	}
 
 	/* Close things down nicely... Tell the media engine we wish to detach... */
@@ -201,10 +209,16 @@ int main(int argc, char *argv[])
 		mbus_recv(m, NULL, &timeout);
 	} while (!mbus_sent_all(m));
 	mbus_exit(m);
-        
+
+        xfree(c_addr);
+        xfree(e_addr);
+        xfree(token);
+        xfree(token_e);
+        tcl_exit();
 #ifdef WIN32
         TkWinXCleanup(hAppInstance);
 #endif
+        xmemdmp();
 	debug_msg("User interface exit\n");
         return 0;
 }

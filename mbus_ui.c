@@ -19,7 +19,7 @@ static const char cvsid[] =
 #include "mbus_ui.h"
 #include "tcltk.h"
 
-extern char 	*e_addr;
+extern char 	*e_addr, *c_addr;
 extern int	 ui_active;
 extern int	 should_exit;
 extern int	 got_detach;
@@ -57,8 +57,16 @@ static void rx_mbus_waiting(char *srce, char *args)
 
 	mp = mbus_parse_init(args);
 	if (mbus_parse_str(mp, &s)) {
-		if (strcmp("rat-ui-requested", mbus_decode_str(s)) == 0) {
-			e_addr = xstrdup(srce);
+		if (strcmp("rat-ui-requested", mbus_decode_str(s)) == 0 &&
+                    e_addr == NULL) {
+                        char *c_id, *e_id;
+                        /* srce is a candidate engine address */
+                        c_id = strstr(c_addr, "id:");
+                        e_id = strstr(srce, "id:");
+                        /* If pid's match up this is our engine */
+                        if (strcmp(c_id, e_id) == 0) {
+                                e_addr = xstrdup(srce);
+                        }
 		}
 	} else {
 		debug_msg("mbus: usage \"mbus.waiting (token)\"\n");
