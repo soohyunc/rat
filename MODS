@@ -993,6 +993,7 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 	- Fix redundancy decoder
 	- Fix path searching when starting subprocesses
 	- Add patch matching segment insertion when correcting for slow sources
+	- Migrated Makefiles and Headers to use autoconf
 
 TODO -- They're features not bugs dammit!
 ----
