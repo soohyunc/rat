@@ -7,6 +7,6 @@
  * All rights reserved.
  */
 
-char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid, char *token);
-void  kill_process(pid_t proc);
+void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, char *token[2]);
+void kill_process(pid_t proc);
 

@@ -17,7 +17,7 @@ static const char cvsid[] = "$Id";
 #include "mbus.h"
 #include "process.h"
 
-char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid, char *token)
+void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, char *token[2])
 {
 #ifdef WIN32
         char			 args[1024];
@@ -46,7 +46,11 @@ char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid,
         
         proc_info = (LPPROCESS_INFORMATION) xmalloc(sizeof(PROCESS_INFORMATION));
         
-        sprintf(args, "%s -ctrl \"%s\" -token %s", proc_name, ctrl_addr, token);
+	if (num_tokens == 1) {
+		sprintf(args, "%s -ctrl \"%s\" -token %s", proc_name, ctrl_addr, token[0]);
+	} else {
+		sprintf(args, "%s -T -ctrl \"%s\" -token %s -token %s", proc_name, ctrl_addr, token[0], token[1]);
+	}
         
         if (!CreateProcess(NULL, args, NULL, NULL, TRUE, 0, NULL, NULL, startup_info, proc_info)) {
                 perror("Couldn't create process");
@@ -64,7 +68,11 @@ char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid,
                 perror("Cannot fork");
                 abort();
         } else if (*pid == 0) {
-                execlp(proc_name, proc_name, "-ctrl", ctrl_addr, "-token", token, NULL);
+		if (num_tokens == 1) {
+			execlp(proc_name, proc_name, "-ctrl", ctrl_addr, "-token", token[0], NULL);
+		} else {
+			execlp(proc_name, proc_name, "-T", "-ctrl", ctrl_addr, "-token", token[0], "-token", token[1], NULL);
+		}
                 perror("Cannot execute subprocess");
                 /* Note: this MUST NOT be exit() or abort(), since they affect the standard */
                 /* IO channels in the parent process (fork duplicates file descriptors, but */
@@ -73,8 +81,6 @@ char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid,
         }
 #endif
 #endif
-        /* This is the parent: we have to wait for the child to say hello before continuing. */
-        return mbus_rendezvous_waiting(m, "()", token, m);
 }
 
 void kill_process(pid_t proc)
