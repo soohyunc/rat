@@ -403,7 +403,38 @@ static void func_primary(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-#define MBUS_NUM_CMND	19
+static void func_codec(char *srce, char *args, session_struct *sp)
+{
+	char	*cmd;
+
+	mbus_parse_init(sp->mbus_engine, args);
+	mbus_parse_sym(sp->mbus_engine, &cmd);
+	if (strcmp(cmd, "query") == 0) {
+		char	 arg[1000], *a;
+		codec_t	*codec;
+		int 	 i;
+
+		a = &arg[0];
+		sprintf(a, "supported (");
+		a += strlen("supported (");
+		for (i=0; i<MAX_CODEC; i++) {
+			codec = get_codec(i);
+			if (codec != NULL) {
+				sprintf(a, " %s", codec->name);
+				a += strlen(codec->name) + 1;
+			}
+		}
+		sprintf(a, ")");
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "codec", arg, TRUE);
+	}
+	if (strcmp(cmd, "supported") == 0) {
+		printf("mbus: \"codec supported\" is sent by the media engine to the UI in response\n");
+		printf("      to a \"codec query\" message. It cannot be sent to the media engine! \n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+}
+
+#define MBUS_NUM_CMND	20
 
 char *mbus_cmnd[] = {
 	"toggle_send",
@@ -425,6 +456,7 @@ char *mbus_cmnd[] = {
 	"update_key",
 	"play",
 	"rec",
+	"codec",
 	""
 };
 
@@ -448,6 +480,7 @@ void (*mbus_func[])(char *srce, char *args, session_struct *sp) = {
 	func_update_key,
 	func_play,
 	func_rec,
+	func_codec,
 };
 
 void mbus_handler_engine(char *srce, char *cmnd, char *args, void *data)

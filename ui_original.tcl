@@ -157,6 +157,13 @@ proc cb_recv {cmd args} {
 proc cb_recv_init {} {
 	# RAT has initialised itself, and we're now ready to go. 
 	# Perform any last minute initialisation...
+	mbus_send "R" "codec" "query"
+}
+
+proc cb_recv_codec {cmd args} {
+	switch $cmd {
+		supported {puts stdout "This RAT supports the following codecs $args"}
+	}
 }
 
 proc cb_recv_agc {args} {
