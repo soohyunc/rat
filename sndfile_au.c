@@ -184,18 +184,18 @@ sun_write_hdr(FILE *fp, char **state, const sndfile_fmt_t *fmt)
 int
 sun_write_audio(FILE *fp, char *state, sample *buf, int samples)
 {
-        int i, bytes_per_sample;
+        int i, bytes_per_sample = 1;
         sun_audio_filehdr *saf;
-        sample *l16buf;
-        u_char *outbuf;
+        u_char *outbuf = NULL;
 
         saf = (sun_audio_filehdr*)state;
 
         switch(saf->encoding) {
         case SUN_AUDIO_FILE_ENCODING_LINEAR_16:
-                l16buf = (sample*)block_alloc(sizeof(sample)*samples);
                 bytes_per_sample = (int)sizeof(sample);
                 if (ntohs(1) != 1) {
+                        sample *l16buf;
+                        l16buf = (sample*)block_alloc(sizeof(sample)*samples);
                         /* If we are on a little endian machine fix samples before
                          * writing them out.
                          */
@@ -203,7 +203,10 @@ sun_write_audio(FILE *fp, char *state, sample *buf, int samples)
                                 l16buf[i] = ntohs(buf[i]);
                         }
                         outbuf = (u_char*)l16buf;
+                } else {
+                        outbuf = (u_char*)buf;
                 }
+                
                 break;
         case SUN_AUDIO_FILE_ENCODING_ALAW:
                 outbuf = (u_char*)block_alloc(samples);
@@ -222,7 +225,11 @@ sun_write_audio(FILE *fp, char *state, sample *buf, int samples)
         }
 
         fwrite(outbuf, bytes_per_sample, samples, fp);
-        xfree(outbuf);
+
+        /* outbuf only equals buf if no sample type conversion was done */
+        if (outbuf != (u_char*)buf) {
+                xfree(outbuf);
+        }
 
         return TRUE;
 }

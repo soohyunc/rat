@@ -330,24 +330,28 @@ riff_write_hdr(FILE *fp, char **state, const sndfile_fmt_t *fmt)
 int
 riff_write_audio(FILE *fp, char *state, sample *buf, int samples)
 {
-        int i, bytes_per_sample;
+        int i, bytes_per_sample = 1;
         riff_state *rs = (riff_state*)state;
-        sample *l16buf;
-        u_char *outbuf;
+        u_char *outbuf = NULL;
 
         switch(rs->wf.wFormatTag) {
         case MS_AUDIO_FILE_ENCODING_L16:
                 bytes_per_sample = sizeof(sample);
-                l16buf = (sample*)block_alloc(samples * sizeof(sample));
                 if (ntohs(1) == 1) { 
+                        sample *l16buf;
+                        l16buf = (sample*)block_alloc(samples * sizeof(sample));
+
                         /* If we are on a big endian machine fix samples before
                          * writing them out.  
                          */
                         for(i = 0; i < samples; i++) {
                                 l16buf[i] = (u_int16)btols((u_int16)buf[i]);
                         }
+                        outbuf = (u_char*)l16buf;
+                } else {
+                        outbuf  = (u_char*)buf;
                 }
-                outbuf = (u_char*)l16buf;
+
                 break;
         case MS_AUDIO_FILE_ENCODING_ALAW:
                 outbuf = (u_char*)block_alloc(samples);
@@ -367,7 +371,11 @@ riff_write_audio(FILE *fp, char *state, sample *buf, int samples)
 
         fwrite(outbuf, bytes_per_sample, samples, fp);
         rs->cbUsed += bytes_per_sample * samples;
-        block_free(outbuf, bytes_per_sample * samples);
+
+        /* outbuf only equals buf if no sample conversion done */
+        if (outbuf != (u_char*)buf) {
+                block_free(outbuf, bytes_per_sample * samples);
+        }
 
         return TRUE;
 }
