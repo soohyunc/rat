@@ -2,9 +2,9 @@
  * FILE:	audwin32.c
  *
  * Win32 audio interface for RAT.
+ *
+ * Written by Isidor Kouvelas and Orion Hodson
  * Portions based on the VAT Win95 port by John Brezak.
- * Modifications by Isidor Kouvelas <I.Kouvelas@cs.ucl.ac.uk>
- * and Orion Hodson <O.Hodson@cs.ucl.ac.uk>.
  *
  * $Id$
  *
@@ -66,7 +66,7 @@
 
 #ifdef WIN32
 
-#include "config-win32.h"
+#include "config_win32.h"
 #include "assert.h"
 #include "rat_types.h"
 #include "audio.h"
@@ -80,7 +80,9 @@ static char		errorText[MAXERRORLENGTH];
 extern int thread_pri;
 static WAVEFORMATEX	format;
 static int		duplex;
-static char szDevOut[255], szDevIn[255];
+static int              nLoopGain = 100;
+#define MAX_DEV_NAME 64
+static char szDevOut[MAX_DEV_NAME], szDevIn[MAX_DEV_NAME];
 
 /* Mixer Code (C) 1998 Orion Hodson.
  *
@@ -115,7 +117,7 @@ typedef struct {
 } MapEntry;
 
 static MixCtls  mcMixIn[MAX_MIX_CTLS], mcMixOut[MAX_MIX_CTLS];
-static u_int32  nMixIn, nMixOut, nMixInID, curMixIn, curMixOut;
+static u_int32  nMixIn, nMixOut, nMixInID, curMixIn;
 static int32	play_vol, rec_vol;
 
 static HMIXER hMixIn, hMixOut;
@@ -167,7 +169,7 @@ audioIDToMixCtls(int id, MapEntry *meMap, MixCtls *mcMix, int nMix)
 {
         int i,j;
         const char *szName;
-       
+        
         if ((const char*)NULL == (szName = audioIDToName(id, meMap))) return (MixCtls*)NULL;
         for(j = 0; j < nMix; j++) {
                 i = 0;
@@ -179,6 +181,75 @@ audioIDToMixCtls(int id, MapEntry *meMap, MixCtls *mcMix, int nMix)
                 }
         }
         return (MixCtls *)NULL;
+}
+
+static int
+mixSetLoopback(char *szName)
+{
+        unsigned int i, loopCtl;
+        MIXERCONTROLDETAILS          mcd;
+        MIXERCONTROLDETAILS_BOOLEAN  mcdbOnOff;
+        MIXERCONTROLDETAILS_UNSIGNED mcduLoopGain;
+        MMRESULT r;
+
+        debug_msg("Name %s\n", szName);
+
+        for(i = 0; i < nMixOut; i++) {
+                if (!strcasecmp(szName, mcMixOut[i].szName)) {
+                        loopCtl = i;
+                        break;
+                }
+        }
+        
+        if (i == nMixOut) return 0;
+
+        /* We only set loopback for the named input.
+         */
+        for ( i = 0; i < (unsigned)mcMixOut[loopCtl].nCtls; i++) {
+                r = 0;
+                mcd.cbStruct = sizeof(MIXERCONTROLDETAILS);
+                mcd.dwControlID    = mcMixOut[loopCtl].dwCtlID[i];
+                mcd.cChannels      = 1;
+                mcd.cMultipleItems = 0;
+                switch(mcMixOut[loopCtl].dwCtlType[i]) {
+                case MIXERCONTROL_CONTROLTYPE_ONOFF:
+                case MIXERCONTROL_CONTROLTYPE_MUTE:
+                        mcd.cbDetails = sizeof(MIXERCONTROLDETAILS_BOOLEAN);
+                        mcd.paDetails = &mcdbOnOff;
+                        mcdbOnOff.fValue = nLoopGain ? FALSE : TRUE;
+                        r = mixerSetControlDetails((HMIXEROBJ)hMixOut, &mcd, MIXER_OBJECTF_HMIXER);
+                        break;
+                case MIXERCONTROL_CONTROLTYPE_VOLUME:
+                        /* Don't touch volume if just muting */
+                        if (nLoopGain) {
+                                mcd.cbDetails = sizeof(MIXERCONTROLDETAILS_UNSIGNED);
+                                mcd.paDetails = &mcduLoopGain;
+                                mcduLoopGain.dwValue = ((mcMixOut[loopCtl].dwUpperBound[i] - mcMixOut[loopCtl].dwLowerBound[i])/100) * nLoopGain + mcMixOut[loopCtl].dwLowerBound[i];
+                                r = mixerSetControlDetails((HMIXEROBJ)hMixOut, &mcd, MIXER_OBJECTF_HMIXER);                
+                        }
+                        break;
+                default:
+#ifdef DEBUG
+                        printf("Control type not recognised %x\n", mcMixOut[loopCtl].dwCtlType[i]);
+#endif /* DEBUG */
+                        continue;
+                }
+                
+                switch (r) {
+                case MMSYSERR_NOERROR:    break; 
+                case MIXERR_INVALLINE:     fprintf(stderr, "invalid line\n"); break;
+                case MIXERR_INVALCONTROL:  fprintf(stderr, "invalid control\n"); break;
+                case MIXERR_INVALVALUE:    fprintf(stderr, "invalid value\n"); break;
+                case MMSYSERR_BADDEVICEID: fprintf(stderr, "bad device id\n");   break;
+                case MMSYSERR_INVALFLAG:   fprintf(stderr, "invalid flag\n");    break;
+                case MMSYSERR_INVALHANDLE: fprintf(stderr, "invalid handle\n");  break;
+                case MMSYSERR_INVALPARAM:  fprintf(stderr, "invalid param\n");   break;
+                case MMSYSERR_NODRIVER:    fprintf(stderr, "no driver!\n");      break;
+                default:                   fprintf(stderr, "mixerSetControlDetails ?");
+                }
+        }
+
+        return 1;
 }
 
 static int
@@ -194,7 +265,11 @@ mixSetIPort(MixCtls *mcMix)
         curMixIn = (mcMix - mcMixIn);
 
         /* now make sure line is selected */
-        if (strncasecmp(mcMixIn->szName, "rec", 3) != 0) return 0;
+#ifdef DEBUG
+        fprintf(stderr, mcMix->szName);
+#endif /* DEBUG */
+        mixSetLoopback(mcMix->szName);        
+        
         for(i = 0; i < mcMixIn->nCtls; i++) {
                 switch(mcMixIn->dwCtlType[i]) {
                 case MIXERCONTROL_CONTROLTYPE_MUX:   /* a list with single select   */
@@ -228,8 +303,13 @@ mixSetIPort(MixCtls *mcMix)
                         r = mixerSetControlDetails((HMIXEROBJ)hMixIn, &mcd,MIXER_SETCONTROLDETAILSF_VALUE);
                         xfree(bInputs);
 done_multi1:            xfree(ltInputs);
+
                         return 0;            
                         break;
+                default:
+#ifdef DEBUG
+                        printf("Control type %8x\n", mcMixIn->dwCtlType[i]);
+#endif /* DEBUG */
                 }
         }
 
@@ -308,7 +388,6 @@ mixGetControls(HMIXER hMix, char *szDstName, int nDst, MixCtls *mcMix, int *nMix
                         xfree(mc);
                 }
         }
-
 }
 
 static void 
@@ -340,7 +419,7 @@ mixSetup()
                                 nDstIn  = m.cDestinations;
                                 doClose = FALSE;
 #ifdef DEBUG_WIN32_AUDIO
-                                fprintf(stderr, "Input mixer %s\n", m.szPname); 
+                                fprintf(stderr, "Input mixer %s destinations %d\n", m.szPname, nDstIn); 
 #endif /* DEBUG_WIN32_AUDIO */
                         }
                         if ((unsigned)i == uWavOut) {
@@ -348,7 +427,7 @@ mixSetup()
                                 nDstOut = m.cDestinations;
                                 doClose = FALSE;
 #ifdef DEBUG_WIN32_AUDIO
-                                fprintf(stderr, "Output mixer %s\n", m.szPname); 
+                                fprintf(stderr, "Output mixer %s destinations %d\n", m.szPname, nDstOut); 
 #endif /* DEBUG_WIN32_AUDIO */
                         }
                 }
@@ -359,6 +438,10 @@ mixSetup()
          * so we give a string to match to "Rec" or "Vol", great :-( */
 
         mixGetControls(hMixIn, "Rec", nDstIn,  mcMixIn,  &nMixIn);
+        mixGetControls(hMixIn, "Master", nDstOut,  mcMixOut,  &nMixOut);
+        if (nMixOut == 0) {
+                mixGetControls(hMixIn, "Vol", nDstOut,  mcMixOut,  &nMixOut);
+        }
         mixSetIPort(nameToMixCtls("mic", mcMixIn, nMixIn));
 }
 
@@ -712,12 +795,12 @@ audio_open(audio_format fmt)
 		    "Software\\Microsoft\\Multimedia\\Sound Mapper", 
 		    "Playback", 
 		    szDevOut, 
-		    255);
+		    MAX_DEV_NAME);
 	        RegGetValue(&hKey, 
 		    "Software\\Microsoft\\Multimedia\\Sound Mapper", 
 		    "Record", 
 		    szDevIn, 
-		    255);
+		    MAX_DEV_NAME);
                 
                 uWavOut  = WAVE_MAPPER;
                 uNumDevs = waveOutGetNumDevs();
@@ -862,7 +945,6 @@ audio_set_gain(int audio_fd, int level)
 int
 audio_get_gain(int audio_fd)
 {
-        fprintf(stderr, "audio_get_gain: %d\n", rec_vol);
 	return (rec_vol);
 }
 
@@ -909,6 +991,15 @@ audio_get_volume(int audio_fd)
 		return (0);
 	} else
 		return (device_to_rat(vol & 0xff));
+}
+
+void
+audio_loopback(int audio_fd, int gain)
+{
+        UNUSED(audio_fd);
+        
+        nLoopGain = gain;
+        mixSetLoopback(mcMixIn[curMixIn].szName);
 }
 
 void

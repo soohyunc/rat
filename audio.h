@@ -1,12 +1,12 @@
 /*
  * FILE:    audio.h
  * PROGRAM: RAT
- * AUTHOR:  Isidor Kouvelas
+ * AUTHOR:  Isidor Kouvelas / Orion Hodson / Colin Perkins
  *
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -94,6 +94,7 @@ void	audio_set_gain(int audio_fd, int gain);
 int	audio_get_gain(int audio_fd);
 void	audio_set_volume(int audio_fd, int vol);
 int	audio_get_volume(int audio_fd);
+void    audio_loopback(int audio_fd, int gain);
 int	audio_read(int audio_fd, sample *buf, int samples);
 int	audio_write(int audio_fd, sample *buf, int samples);
 int	audio_is_dry(int audio_fd);

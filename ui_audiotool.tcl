@@ -746,7 +746,7 @@ label .l.f.title -font $infofont  -textvariable session_title
 label .l.f.addr  -font $smallfont -textvariable session_address
 
 frame  .l.s1 -bd 0
-button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options"   -command {wm deiconify .prefs}
+button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options"   -command {wm deiconify .prefs; raise .prefs}
 button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"     -command {jiggle_credits; wm deiconify .about}
 button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"      -command do_quit
 
@@ -1006,9 +1006,10 @@ frame $i.cks.f
 frame $i.cks.f.f
 checkbutton $i.cks.f.f.silence -text "Silence Suppression"    -variable silence_var 
 checkbutton $i.cks.f.f.agc     -text "Automatic Gain Control" -variable agc_var 
-pack $i.cks.f -fill x -side left -expand 1
+checkbutton $i.cks.f.f.loop    -text "Audio Loopback"  -variable audio_loop_var
+pack $i.cks.f -fill x -side top -expand 1
 pack $i.cks.f.f
-pack $i.cks.f.f.silence $i.cks.f.f.agc -side top -anchor w
+pack $i.cks.f.f.silence $i.cks.f.f.agc $i.cks.f.f.loop -side left -anchor w
 
 # Reception Pane ##############################################################
 set i .prefs.pane.reception
@@ -1288,7 +1289,7 @@ proc sync_engine_to_ui {} {
     # make audio engine concur with ui
     global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc 
     global prenc upp channel_var secenc red_off int_gap int_units
-    global silence_var agc_var 
+    global silence_var agc_var audio_loop_var
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
     global meter_var sync_var gain volume input_port output_port 
     global in_mute_var out_mute_var channels freq key key_var
@@ -1311,14 +1312,15 @@ proc sync_engine_to_ui {} {
 
     mbus_qmsg "silence"      $silence_var
     mbus_qmsg "agc"          $agc_var
+	mbus_qmsg "audio.loopback" $audio_loop_var
 
     #Reception Options
     mbus_qmsg "repair"       [mbus_encode_str $repair_var]
     mbus_qmsg "playout.limit" $limit_var
     mbus_qmsg "playout.min"   $min_var
     mbus_qmsg "playout.max"   $max_var
-    mbus_qmsg "lecture"      $lecture_var
-    mbus_qmsg "externalise"      $3d_audio_var
+    mbus_qmsg "lecture"       $lecture_var
+    mbus_qmsg "externalise"   $3d_audio_var
     mbus_qmsg "converter"    [mbus_encode_str $convert_var]
 
     #Security
@@ -1394,6 +1396,7 @@ proc save_settings {} {
     save_setting $f audioInterleavingUnits int_units 
     save_setting $f audioSilence           silence_var
     save_setting $f audioAGC               agc_var
+	save_setting $f audioLoopback          audio_loop_var
     # reception
     save_setting $f audioRepair           repair_var
     save_setting $f audioLimitPlayout     limit_var
@@ -1517,7 +1520,8 @@ proc load_settings {} {
     # transmission
     load_setting attr audioSilence           silence_var   "1"
     load_setting attr audioAGC               agc_var       "0"
-    load_setting attr audioFrequency         freq          "8-kHz"
+    load_setting attr AudioLoopback          audio_loop_var "0"
+	load_setting attr audioFrequency         freq          "8-kHz"
     load_setting attr audioChannels          channels      "Mono"
     load_setting attr audioPrimary           prenc         "GSM"
     load_setting attr audioUnits             upp           "2"

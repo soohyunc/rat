@@ -189,7 +189,7 @@ static void rx_sync(char *srce, char *args, session_struct *sp)
 			ui_update_sync(FALSE);
 		}
 	} else {
-		printf("mbus: usage \"agc <boolean>\"\n");
+		printf("mbus: usage \"sync <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
@@ -205,6 +205,25 @@ static void rx_agc(char *srce, char *args, session_struct *sp)
 		sp->agc_on = i;
 	} else {
 		printf("mbus: usage \"agc <boolean>\"\n");
+	}
+	mbus_parse_done(mbus_chan);
+}
+
+static void rx_audio_loopback(char *srce, char *args, session_struct *sp)
+{
+	int i;
+
+	UNUSED(srce);
+
+	mbus_parse_init(mbus_chan, args);
+	if (mbus_parse_int(mbus_chan, &i)) {
+                if (i) {
+                        audio_loopback(sp->audio_fd, 100);
+                } else {
+                        audio_loopback(sp->audio_fd, 0);
+                }
+	} else {
+		printf("mbus: usage \"audio.loopback <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
@@ -835,6 +854,7 @@ const char *rx_cmnd[] = {
 	"lecture",
 	"externalise",
 	"agc",
+        "audio.loopback",
 	"sync",
 	"rate",
 	"input.mute",
@@ -880,6 +900,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_lecture,
 	rx_externalise,
 	rx_agc,
+        rx_audio_loopback,
 	rx_sync,
 	rx_rate,
 	rx_input_mute,

@@ -44,7 +44,7 @@ static char rcsid[] =
     "@(#) $Header$ (LBL)";
 #endif
 
-#include "config-win32.h"
+#include "config_win32.h"
 #include "assert.h"
 
 int

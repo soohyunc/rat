@@ -214,6 +214,18 @@ audio_get_volume(int audio_fd)
 	return (device_to_bat(dev_info.play.gain));
 }
 
+void
+audio_loopback(int audio_fd, int gain)
+{
+	if (audio_fd <= 0)
+		return (0);
+
+        AUDIO_INITINFO(&dev_info);
+	dev_info.play.monitor = bat_to_device(gain);
+	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
+		perror("Setting loopback");
+}
+
 int
 audio_read(int audio_fd, sample *buf, int samples)
 {
