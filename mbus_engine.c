@@ -516,7 +516,7 @@ static void rx_source_playout(char *srce, char *args, session_struct *sp)
 			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) break;
 		}
                 e->video_playout_received = TRUE;
-		e->video_playout = (playout * get_freq(e->clock)) / 1000;
+		e->video_playout = playout;
 	} else {
 		printf("mbus: usage \"source_playout <cname> <playout>\"\n");
 	}
