@@ -15,7 +15,8 @@
 typedef enum { 
         SNDFILE_ENCODING_PCMU,
         SNDFILE_ENCODING_PCMA,
-        SNDFILE_ENCODING_L16
+        SNDFILE_ENCODING_L16,
+        SNDFILE_ENCODING_L8
 } sndfile_encoding_e;
 
 typedef struct {

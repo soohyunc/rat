@@ -1168,16 +1168,19 @@ v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	- Add pointer to the RAT users mailing list <rat-users@cs.ucl.ac.uk>
 	  an open list for discussion of issues relating to RAT.
 	- RTT calculation fix (ntp32_sub was broken).
-	- Add checks to main processing loop for liveness of controller process.
+	- Add checks to main processing loop for liveness of controller 
+	  process.
 	- Add checks for sibling and parent process in ui and engine so proc's
 	  don't wait for messages that are never going to come.
-	- Change skew correction code to use audio_blend rather than repeat procedure
-	  in situ.  Fixes a memory corruption bug.
+	- Change skew correction code to use audio_blend rather than repeat 
+	  procedure in situ.  Fixes a memory corruption bug.
 	- Add null handler for RX_APP to rtp_callback, Circumvents abort call.
+	- Add linear8 to sndfile import and export functions.
 
 TODO -- They're features not bugs dammit!
 ----
 
+- Skew adjustment is temporarily noisy.
 - Assorted audio driver problems:
 	- FreeBSD driver bug on SoundBlaster 16 has small write buffers 
 	  and stops working full duplex mode after a time.  Hard to fix because

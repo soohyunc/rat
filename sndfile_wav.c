@@ -66,7 +66,7 @@ typedef struct {
         int          cbUsed;   /* Number of bytes written */
 } riff_state;
 
-#define MS_AUDIO_FILE_ENCODING_L16  (0x0001)
+#define MS_AUDIO_FILE_ENCODING_PCM  (0x0001)
 #define MS_AUDIO_FILE_ENCODING_ULAW (0x0007)
 #define MS_AUDIO_FILE_ENCODING_ALAW (0x0006)
 /* In the spec IBM u/alaw are 0x0102/0x0101 but this seems to be outdated. */
@@ -183,12 +183,12 @@ riff_read_hdr(FILE *fp, char **state, sndfile_fmt_t *fmt)
         case MS_AUDIO_FILE_ENCODING_ALAW:
                 debug_msg("alaw\n");
                 break;
-        case MS_AUDIO_FILE_ENCODING_L16:
-                if (wf.wBitsPerSample != 16) {
+        case MS_AUDIO_FILE_ENCODING_PCM:
+                if (wf.wBitsPerSample != 16 && wf.wBitsPerSample != 8) {
                         debug_msg("%d bits per sample not supported.\n", wf.wBitsPerSample);
                         return FALSE;
                 }
-                debug_msg("l16\n");
+                debug_msg("l%d\n", wf.wBitsPerSample);
                 break;
         default:
                 /* We could be really flash and open an acm stream and convert any
@@ -238,8 +238,8 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
         case MS_AUDIO_FILE_ENCODING_ULAW:
                 unit_sz = 1;
                 break;
-        case MS_AUDIO_FILE_ENCODING_L16: /* just linear 16 */
-                unit_sz = 2;
+        case MS_AUDIO_FILE_ENCODING_PCM:
+                unit_sz = rs->wf.wBitsPerSample / 8;
                 break;
         default:
                 return 0;
@@ -262,11 +262,23 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
                         *bp-- = u2s(*law--);
                 }
                 break;
-        case MS_AUDIO_FILE_ENCODING_L16:
-                if (htons(1) == 1) {
-                        for(i = 0; i < samples_read; i++) {
-                                buf[i] = (uint16_t)btols((u_char)buf[i]);
+        case MS_AUDIO_FILE_ENCODING_PCM:
+                if (rs->wf.wBitsPerSample == 16) {
+                        if (htons(1) == 1) {
+                                for(i = 0; i < samples_read; i++) {
+                                        buf[i] = (uint16_t)btols((u_char)buf[i]);
+                                }
                         }
+                } else if (rs->wf.wBitsPerSample == 8) {
+                        law = ((u_char*)buf) + samples_read - 1;
+                        bp  = buf + samples_read - 1;
+                        for(i = 0; i < samples_read; i++) {
+                                *bp-- = (sample)(*law) * 256;
+                                law--;
+                        }
+                        break;
+                } else {
+                        debug_msg("Not supported PCM %d bits per sample\n", rs->wf.wBitsPerSample);
                 }
                 break;
         }
@@ -296,8 +308,12 @@ riff_write_hdr(FILE *fp, char **state, const sndfile_fmt_t *fmt)
 
         switch(fmt->encoding) {
         case SNDFILE_ENCODING_L16:
-                rs->wf.wFormatTag       = MS_AUDIO_FILE_ENCODING_L16;
+                rs->wf.wFormatTag       = MS_AUDIO_FILE_ENCODING_PCM;
                 rs->wf.wBitsPerSample   = 16;
+                break;
+        case SNDFILE_ENCODING_L8:
+                rs->wf.wFormatTag       = MS_AUDIO_FILE_ENCODING_PCM;
+                rs->wf.wBitsPerSample   = 8;
                 break;
         case SNDFILE_ENCODING_PCMU:
                 rs->wf.wFormatTag       = MS_AUDIO_FILE_ENCODING_ULAW;
@@ -338,21 +354,30 @@ riff_write_audio(FILE *fp, char *state, sample *buf, int samples)
         u_char *outbuf = NULL;
 
         switch(rs->wf.wFormatTag) {
-        case MS_AUDIO_FILE_ENCODING_L16:
+        case MS_AUDIO_FILE_ENCODING_PCM:
                 bytes_per_sample = sizeof(sample);
-                if (ntohs(1) == 1) { 
-                        sample *l16buf;
-                        l16buf = (sample*)block_alloc(samples * sizeof(sample));
-
-                        /* If we are on a big endian machine fix samples before
-                         * writing them out.  
-                         */
-                        for(i = 0; i < samples; i++) {
-                                l16buf[i] = (uint16_t)btols((uint16_t)buf[i]);
+                if (rs->wf.wBitsPerSample == 16) {
+                        if (ntohs(1) == 1) { 
+                                sample *l16buf;
+                                l16buf = (sample*)block_alloc(samples * sizeof(sample));
+                                
+                                /* If we are on a big endian machine fix samples before
+                                 * writing them out.  
+                                 */
+                                for(i = 0; i < samples; i++) {
+                                        l16buf[i] = (uint16_t)btols((uint16_t)buf[i]);
+                                }
+                                outbuf = (u_char*)l16buf;
+                        } else {
+                                outbuf  = (u_char*)buf;
                         }
-                        outbuf = (u_char*)l16buf;
-                } else {
-                        outbuf  = (u_char*)buf;
+                } else if (rs->wf.wBitsPerSample == 8) {
+                        outbuf = (u_char*)block_alloc(samples);
+                        bytes_per_sample = 1;
+                        for(i = 0; i < samples; i++) {
+                                outbuf[i] = (u_char)(buf[i] >> 8);
+                        }
+                        break;
                 }
                 break;
         case MS_AUDIO_FILE_ENCODING_ALAW:
@@ -456,8 +481,12 @@ riff_get_format(char *state, sndfile_fmt_t *fmt)
         }
 
         switch(wf->wFormatTag) {
-        case MS_AUDIO_FILE_ENCODING_L16:
-                fmt->encoding = SNDFILE_ENCODING_L16;
+        case MS_AUDIO_FILE_ENCODING_PCM:
+                if (wf->wBitsPerSample == 16) {
+                        fmt->encoding = SNDFILE_ENCODING_L16;
+                } else if (wf->wBitsPerSample == 8) {
+                        fmt->encoding = SNDFILE_ENCODING_L8;
+                }
                 break;
         case MS_AUDIO_FILE_ENCODING_ULAW:
                 fmt->encoding = SNDFILE_ENCODING_PCMU;

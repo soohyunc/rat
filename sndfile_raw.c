@@ -59,6 +59,7 @@ raw_read_audio(FILE *pf, char* state, sample *buf, int samples)
         switch(rs->fmt.encoding) {
         case SNDFILE_ENCODING_PCMA:
         case SNDFILE_ENCODING_PCMU:
+        case SNDFILE_ENCODING_L8:
                 unit_sz = 1;
                 break;
         case SNDFILE_ENCODING_L16:
@@ -86,6 +87,14 @@ raw_read_audio(FILE *pf, char* state, sample *buf, int samples)
                 for(i = 0; i < samples_read; i++) {
                         *bp = u2s(*law);
                         assert(*law = s2u(*law));
+                        bp--; law--;
+                }
+                break;
+        case SNDFILE_ENCODING_L8:
+                law = ((u_char*)buf) + samples_read - 1;
+                bp  = buf + samples_read - 1;
+                for(i = 0; i < samples_read; i++) {
+                        *bp = (sample)(*law)*256;
                         bp--; law--;
                 }
                 break;
@@ -142,6 +151,13 @@ raw_write_audio(FILE *fp, char *state, sample *buf, int samples)
                         outbuf = (u_char*)l16buf;
                 } else {
                         outbuf = (u_char*)buf;
+                }
+                break;
+        case SNDFILE_ENCODING_L8:
+                outbuf = (u_char*)block_alloc(samples);
+                bytes_per_sample = 1;
+                for(i = 0; i < samples; i++) {
+                        outbuf[i] = (u_char)(buf[i]/256);
                 }
                 break;
         case SNDFILE_ENCODING_PCMA:
