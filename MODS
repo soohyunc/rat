@@ -890,7 +890,7 @@ v4.1.0  - Fixed slow memory leak reported by Emmanuel Duros.  Vanilla
 	- Complete split into media engine, user interface and controller
 	  processes. Only works on Unix at present, still debugging the
 	  Windows port.
-	* 5 October 1999
+	* Released 5 October 1999
 
 v4.1.1  - Added transcoder audio device.  Contributed by Michael Wallbaum 
 	  <wallbaum@informatik.rwth-aachen.de>
@@ -920,7 +920,7 @@ v4.1.1  - Added transcoder audio device.  Contributed by Michael Wallbaum
 	  are parsed in a backwards incompatible manner now, to make the code
 	  cleaner. 
 	- Tuples for mbus command switches in mbus_{control,engine,ui}.
-	* 2 November 1999
+	* Released 2 November 1999
 
 v4.1.2  - Added echo suppression back, it fell out of code base at some point.
 	- Fix ui sending input and output gain values before it's got values
@@ -999,6 +999,8 @@ v4.1.2  - Added echo suppression back, it fell out of code base at some point.
 	- Set thread priority of media engine to THREAD_PRIORITY_ABOVE_NORMAL 
 	  on Windows.
 	- Fix CPU usage of UI
+	- Update to common library 1.0.10
+	* Released 13 December 1999
 
 
 TODO -- They're features not bugs dammit!
