@@ -239,22 +239,24 @@ atm_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 	int len, avail, done = 0;
 	char cellbuf[ADA_CELL_SZ];
 
-        UNUSED(ad); assert(audio_fd > 0);
-
         assert(dev_info.rxresidue_bytes >= 0);
+        assert(dev_info.rx_residue_bytes < sizeof(dev_info.rxresidue_buf));
+
         if (dev_info.rxresidue_bytes > 0) {
                 if (buf_bytes >= dev_info.rxresidue_bytes) {
                         /* big read that completely drains the residue */
                         memcpy(buf, dev_info.rxresidue, dev_info.rxresidue_bytes);
-                        done                    += dev_info.rxresidue.bytes;
+                        done                    += dev_info.rxresidue_bytes;
 			dev_info.rxresidue       = dev_info.rxresidue_buf;
-                        dev_info.rxresidue.bytes = 0;
+                        dev_info.rxresidue_bytes = 0;
+                        debug_msg("read big\n");
                 } else {
                         /* little read */
                         memcpy(buf, dev_info.rxresidue, buf_bytes);
                         dev_info.rxresidue_bytes -= buf_bytes;
                         dev_info.rxresidue       += buf_bytes;
                         done                     += buf_bytes;
+                        debug_msg("read small\n");
                 }
         }
 
@@ -266,9 +268,10 @@ atm_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
                 if (len <= 0) {
                         break;
                 }
-                assert(len == CELL_SZ);
+                assert(len == ADA_CELL_SZ);
                 memcpy(buf + done, cellbuf + ADA_CELL_HEADER_SZ, ADA_CELL_SZ - ADA_CELL_HEADER_SZ);
                 done += ADA_CELL_SZ - ADA_CELL_HEADER_SZ;
+                debug_msg("read frame %d\n", (int)cellbuf[4]);
         }
         
         if (errno != 0) {
@@ -288,12 +291,13 @@ atm_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
                 assert(dev_info.rxresidue == dev_info.rxresidue_buf);
 
                 over = buf_bytes - done;
-                assert(over < ADA_CELL_SZ);
+                assert(over <= ADA_CELL_SZ - ADA_CELL_HEADER_SZ);
 
                 memcpy(dev_info.rxresidue, 
                        cellbuf + sizeof(cellbuf) - over, 
                        sizeof(cellbuf) - over);
                 dev_info.residue_bytes = over;
+                debug_msg("read residue %d\n", over);
         }
         return done;
 }
@@ -303,7 +307,7 @@ int
 atm_audio_write(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
 	int done;
-	unsigned char cellbuf[52];
+	unsigned char cellbuf[ADA_CELL_SZ];
 
         UNUSED(ad); assert(audio_fd > 0);
 
@@ -312,16 +316,24 @@ atm_audio_write(audio_desc_t ad, u_char *buf, int buf_bytes)
 	/* if we have anything left from before put it in the output cell first 
 	 * and then fill the cell from the buffer, fixing pointers and counts
 	 */
-	if (dev_info.txresidue_bytes > 0 && buf_bytes + dev_info.txresidue_bytes > ADA_CELL_SZ - ADA_CELL_HEADER_SZ) {
+	if (dev_info.txresidue_bytes > 0 && 
+            (buf_bytes + dev_info.txresidue_bytes) > (ADA_CELL_SZ - ADA_CELL_HEADER_SZ)) {
 		int rem = ADA_CELL_SZ - ADA_CELL_HEADER_SZ - dev_info.txresidue_bytes;
+                /* Fill in header */
 		memcpy(cellbuf, &dev_info.atmhdr, 4);
 		cellbuf[4] = aal1hdr[dev_info.seqno];
-                dev_info.seq_no = (dev_info.seqno + 1) & 0x07; /* values 0-7 valid */
-		memcpy(cellbuf + ATM_CELL_HEADER_SZ, dev_info.txresidue, dev_info.txresidue_bytes);
-		memcpy(cellbuf + ATM_CELL_HEADER_SZ + dev_info.txresidue_bytes, buf, rem);
-                write(audio_fd, (char *)cellbuf, ATM_CELL_SZ);
+                dev_info.seqno = (dev_info.seqno + 1) & 0x07; /* values 0-7 valid */
+                /* Fill in data   */
+                assert(dev_info.txresidue_bytes <= ADA_CELL_SZ - ADA_CELL_HEADER_SZ);
+		memcpy(cellbuf + ADA_CELL_HEADER_SZ, dev_info.txresidue, dev_info.txresidue_bytes);
+                if (rem > 0) {
+                        memcpy(cellbuf + ADA_CELL_HEADER_SZ + dev_info.txresidue_bytes, buf, rem);
+                }
+                write(audio_fd, (char *)cellbuf, ADA_CELL_SZ);
 		dev_info.txresidue_bytes = 0;
+                debug_msg("wrote frame %d using residue\n", dev_info.seqno);
 		done += rem;
+
 	}
 
         while(done - buf_bytes >= ADA_CELL_SZ - ADA_CELL_HEADER_SZ) {
@@ -330,13 +342,17 @@ atm_audio_write(audio_desc_t ad, u_char *buf, int buf_bytes)
 		memcpy(cellbuf + ADA_CELL_HEADER_SZ, buf + done, ADA_CELL_SZ - ADA_CELL_HEADER_SZ);
                 write(audio_fd, (char *)cellbuf, ADA_CELL_SZ);
 		done += ADA_CELL_SZ - ADA_CELL_HEADER_SZ;
-                dev_info.seq_no = (dev_info.seqno + 1) & 0x07; /* values 0-7 valid */
+                debug_msg("Wrote frame %d %d %d\n", dev_info.seqno, done, buf_bytes);
+                dev_info.seqno = (dev_info.seqno + 1) & 0x07; /* values 0-7 valid */
 	}
 
 	if (buf_bytes - done > 0) {
 		dev_info.txresidue_bytes = done - buf_bytes;
+                assert(dev_info.txresidue_bytes <= ADA_CELL_SZ - ADA_CELL_HEADER_SZ);
 		memcpy(dev_info.txresidue, buf + done, dev_info.txresidue_bytes);
 	}
+
+        debug_msg("write residue left over %d\n", buf_bytes - done);
 
 	return buf_bytes;
 }
