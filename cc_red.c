@@ -371,15 +371,20 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
         return CC_READY | new_ts;
 }
 
-__inline static int
+static int
 red_max_offset(cc_unit *ccu)
 {
-        int i,off=0,max_off=0;
-        for(i=0;i<ccu->iovc && ccu->iov[i].iov_len==4;i++) {
+        int i       = 0;
+	int off     = 0;
+	int max_off = 0;
+
+        for(i = 0; i < ccu->iovc && ccu->iov[i].iov_len == 4; i++) {
                 off = RED_OFF(ntohl(*((u_int32*)ccu->iov[i].iov_base)));
                 max_off = max(max_off, off);
         }
-        if (i > MAX_RED_OFFSET || i == ccu->iovc) return -1;
+        if (i > MAX_RED_OFFSET || i == ccu->iovc) {
+		return -1;
+	}
         return max_off;
 }
 
@@ -416,8 +421,7 @@ red_decode(session_struct *sp, rx_queue_element_struct *u, red_dec_state *r)
         hdr_idx  = cu->hdr_idx;
         data_idx = cu->data_idx;
 
-        if ((cu->iov[hdr_idx].iov_len != 4) ||
-            (max_off = red_max_offset(cu)) == -1) {
+        if ((cu->iov[hdr_idx].iov_len != 4) || (max_off = red_max_offset(cu)) == -1) {
                 return;
         }
         
@@ -508,11 +512,11 @@ red_bps(session_struct *sp, red_coder_t *r)
 
 int
 red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inter_pkt_gap) {
-        int tlen, n, todo;
-        int hdr_idx; 
-        u_int32 red_hdr, max_off;
+        int 	 tlen, n, todo;
+        int 	 hdr_idx; 
+        u_int32  red_hdr, max_off;
         codec_t *cp;
-        char *hdr, *media;
+        char	*media;
 
         assert(!cu->iovc);
         max_off  = 0;
@@ -520,13 +524,16 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
         cu->iovc = MAX_RED_LAYERS;
         todo     = blen;
         
-        hdr = media = blk;
-        while (RED_F((red_hdr = ntohl(*(u_int32*)hdr)))) {
-                hdr   += 4;
+	/* This next block finds the start of the media data. When it completes, "media" */
+	/* will point to the first byte of media data after the redundancy header.       */
+        media = blk;
+        while (RED_F((red_hdr = ntohl(*(u_int32*)media)))) {
                 media += 4;
         }
         media += 1;
 
+	/* Now work our way through the redundant data blocks, setting up the iov pointers */
+	/* in the cc_unit... */
         while(RED_F((red_hdr=ntohl(*((u_int32*)blk)))) && todo >0) {
                 cu->iov[hdr_idx++].iov_len = 4;
                 todo -= 4;
@@ -541,27 +548,24 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
                 }
                 todo  -= tlen;
                 media += tlen;
-#ifdef DEBUG
-                assert(hdr_idx <= 2);
-#endif
+                assert(hdr_idx <= MAX_RED_LAYERS);
         }
         
+	/* Next do the same thing, but with the primary encoding... */
         if (hdr_idx >= MAX_RED_LAYERS || todo <= 0) {
                 debug_msg("hdr ovr\n");
                 goto fail;
         }
         cp = get_codec_by_pt((*blk)&0x7f);
-                /* we discard data if cannot do primary */
-        if (!cp) {
-                debug_msg("primary?");
+        if (cp == NULL) {
+                debug_msg("Cannot decode primary, discarding entire packet...");
                 goto fail;
         }
-
         cu->iov[hdr_idx++].iov_len = 1;
         todo -= 1;
 
         if (hdr_idx >= MAX_RED_LAYERS || todo <= 0) {
-                debug_msg("hdr ovr\n");
+                debug_msg("Too many redundant encodings, discarding packet...\n");
                 goto fail;
         }
         
@@ -580,7 +584,7 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
         (*trailing)      = max_off/cp->unit_len + n;
         (*inter_pkt_gap) = cp->unit_len * n; 
 
-        return (n);
+        return n;
 
 fail:
         for(hdr_idx=0; hdr_idx<cu->iovc; hdr_idx++) {
