@@ -59,7 +59,7 @@ esac
 
 echo "Configuring RAT v$VERSION for $OSTYPE"
 
-GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Wno-implicit"
+GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Wno-implicit -Werror"
 TCL_LIBS="../tk-8.0/unix/libtk8.0.a ../tcl-8.0/unix/libtcl8.0.a"
 TCL_INCL="-I../tk-8.0/generic -I../tcl-8.0/generic"
 
