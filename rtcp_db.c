@@ -175,6 +175,7 @@ static rtcp_dbentry *
 rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 addr, u_int32 cur_time)
 {
 	rtcp_dbentry   *newdb;
+	int		i;
 
 #ifdef LOG_PARTICIPANTS
 	printf("JOIN: ssrc=%lx addr=%lx time=%ld\n", ssrc, addr, cur_time);
@@ -190,7 +191,9 @@ rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 addr, u_int32 cur_time)
 	newdb->firstseqno 		= 1;	/* So that "expected packets" starts out 0 */
 	newdb->last_active 		= cur_time;
 	newdb->encoding			= -1;	/* Used in playout calc */
-	newdb->encs[0] 			= -1;
+	for (i=0; i<10; i++) {
+		newdb->encs[i]		= -1;
+	}
 	newdb->first_pckt_flag 		= TRUE;
 	newdb->info_index 		= -1;		/* Indicate it is not entered in UI o list yet IK */
 
