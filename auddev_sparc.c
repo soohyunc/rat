@@ -366,6 +366,27 @@ sparc_audio_iport_set(audio_desc_t ad, audio_port_t port)
 	dev_info.record.port = port;
 	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
 		perror("Setting port");
+
+        /* If no CD-rom present then setting port fails silently... 
+         * not actually tested this code on a machine with a CD-rom
+         * since some kind folks stole it from g11...
+         */
+
+	AUDIO_INITINFO(&dev_info);
+	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
+		perror("Getting port");
+
+        if (dev_info.record.port != port) {
+                unsigned int i;
+                for(i = 1; i < NUM_IN_PORTS; i++) {
+                        if (in_ports[i].port == port) {
+                                debug_msg("Could not use port %s\n", in_ports[i].name);
+                        }
+                }
+                dev_info.record.port = AUDIO_MICROPHONE;
+                if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
+                        perror("Setting port");
+        }
 }
 
 audio_port_t
@@ -376,6 +397,7 @@ sparc_audio_iport_get(audio_desc_t ad)
 	AUDIO_INITINFO(&dev_info);
 	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
 		perror("Getting port");
+
 	return (dev_info.record.port);
 }
 
