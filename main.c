@@ -199,7 +199,6 @@ main(int argc, char *argv[])
 			}
 			mbus_engine_retransmit();
 			mbus_ui_retransmit();
-			/* Maintain last_sent dummy lecture var */
 
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {
 				if (!sp[i]->lecture && !sp[i]->sending_audio && sp[i]->auto_lecture != 0) {

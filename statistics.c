@@ -193,7 +193,7 @@ adapt_playout(rtp_hdr_t *hdr,
 	if (ts_gt(hdr->ts, src->last_ts)) {
 		cp = get_codec(src->encs[0]);
 		/* IF (a) TS start 
-                   OR (b) we've thrown 4 packets away 
+                   OR (b) we've thrown 4 consecutive packets away 
                    OR (c) ts have jumped by 8 packets worth 
                    THEN adapt playout and communicate it
                    */

@@ -568,7 +568,7 @@ ui_update_loss(char *srce, char *dest, int loss)
 }
 
 void
-ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, double jitter)
+ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, double jitter, int jit_tog)
 {
 	char	*cname_e, *args;
 
@@ -577,7 +577,7 @@ ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered,
 	cname_e = mbus_encode_str(cname);
 	args    = (char *) xmalloc(29 + strlen(cname_e));
 
-	sprintf(args, "%s %6ld %6ld %6ld %6f", cname_e, recv, lost, misordered, jitter);
+	sprintf(args, "%s %6ld %6ld %6ld %6f %d", cname_e, recv, lost, misordered, jitter, jit_tog);
 	mbus_engine_tx_queue(TRUE, "source.reception", args);
 	xfree(args);
 }

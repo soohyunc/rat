@@ -492,7 +492,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                         static struct timeval last_foo;
                         struct timeval foo;
                         gettimeofday(&foo, NULL);
-                        dprintf("%08ld: playout range: %ld - %ld\n\tbuffer playout range %ld - %ld\n\tbuffer ts range %ld - %ld\n" , 
+                        dprintf("%08ld: playout range: %ld - %ld\n\tbuffer playout range %ld - %ld\n\tbuffer ts range %ld - %ld\n",
                                 (foo.tv_sec  - last_foo.tv_sec) * 1000 +
                                 (foo.tv_usec - last_foo.tv_usec)/1000, 
                                 cur_time, 
