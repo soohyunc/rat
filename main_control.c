@@ -164,30 +164,6 @@ static void kill_process(pid_t proc)
 #endif
 }
 
-static void inform_addrs(struct mbus *m, char *e_addr, char *u_addr)
-{
-	/* Inform the media engine and user interface of each other's mbus address. */
-	char		*tmp;
-	struct timeval	 timeout;
-
-	tmp = mbus_encode_str(u_addr);
-	mbus_qmsgf(m, e_addr, TRUE, "tool.rat.addr.ui", "%s", tmp);
-	xfree(tmp);
-
-	tmp = mbus_encode_str(e_addr);
-	mbus_qmsgf(m, u_addr, TRUE, "tool.rat.addr.engine", "%s", tmp);
-	xfree(tmp);
-
-	do {
-		mbus_send(m);
-		mbus_heartbeat(m, 1);
-		mbus_retransmit(m);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 20000;
-		mbus_recv(m, NULL, &timeout);
-	} while (!mbus_sent_all(m));
-}
-
 static int parse_options_early(int argc, const char **argv) 
 {
         int i;
@@ -452,7 +428,6 @@ int main(int argc, char *argv[])
 	u_addr = fork_process(m, UI_NAME,     c_addr, &pid_ui,     token_ui);
 	e_addr = fork_process(m, ENGINE_NAME, c_addr, &pid_engine, token_engine);
 
-	inform_addrs(m, e_addr, u_addr);
         if (parse_options(m, e_addr, u_addr, argc, argv) == TRUE) {
                 mbus_rendezvous_go(m, token_ui,     (void *) m); 
                 mbus_rendezvous_go(m, token_engine, (void *) m);

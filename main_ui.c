@@ -128,9 +128,18 @@ int main(int argc, char *argv[])
 	mbus_rendezvous_waiting(m, c_addr, token, (void *) m);
 	debug_msg("...got it\n");
 
-	/* At this point we should know (at least) the address of the media engine. */
-	/* We may also have been given other information too...                     */
-	assert(e_addr != NULL);
+	/* Okay, we wait for the media engine to solicit for a user interface... */
+	debug_msg("Waiting for mbus.waiting(rat-ui-requested) from media engine...\n");
+	do {
+		mbus_heartbeat(m, 1);
+		mbus_retransmit(m);
+		mbus_send(m);
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 10000;
+		mbus_recv(m, (void *) m, &timeout);
+	} while (e_addr == NULL);
+	mbus_qmsgf(m, e_addr, TRUE, "mbus.go", "\"rat-ui-requested\"");
+	debug_msg("...got it\n");
 
 	tcl_init2(m, e_addr);
 	ui_active = TRUE;

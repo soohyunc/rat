@@ -27,8 +27,7 @@ static const char cvsid[] =
 #include "source.h"
 #include "playout_calc.h"
 #include "util.h"
-#include "ui.h"
-
+#include "ui_send_rtp.h"
 #include "rtp_callback.h"
 
 /* We need to be able to resolve the rtp session to a rat session in */
@@ -161,7 +160,7 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
         s = source_get_by_ssrc(sp->active_sources, ssrc);
         if (s == NULL) {
                 s = source_create(sp->active_sources, ssrc, sp->pdb);
-                ui_info_activate(sp, ssrc);
+                ui_send_rtp_active(sp, sp->mbus_ui_addr, ssrc);
                 debug_msg("Source created\n");
         }
 
@@ -215,14 +214,14 @@ process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
                         e->avg_rtt += (e->last_rtt - e->avg_rtt) / 8.0;
                 }
                 if (sp->mbus_engine != NULL) {
-                        ui_update_rtt(sp, ssrc, e->avg_rtt);
+                        ui_send_rtp_rtt(sp, sp->mbus_ui_addr, ssrc, e->avg_rtt);
                 }
         }
 
         /* Update loss stats */
         if (sp->mbus_engine != NULL) {
                 fract_lost = (r->fract_lost * 100) >> 8;
-                ui_update_loss(sp, ssrc, r->ssrc, fract_lost);
+                ui_send_rtp_packet_loss(sp, sp->mbus_ui_addr, ssrc, r->ssrc, fract_lost);
         }
 }
 
@@ -232,7 +231,7 @@ process_rr_timeout(session_t *sp, uint32_t ssrc, rtcp_rr *r)
         /* Just update loss statistic in UI for this report if there */
         /* is somewhere to send them.                                */
         if (sp->mbus_engine != NULL) {
-                ui_update_loss(sp, ssrc, r->ssrc, 101);
+                ui_send_rtp_packet_loss(sp, sp->mbus_ui_addr, ssrc, r->ssrc, 101);
         }
 }
 
@@ -254,25 +253,25 @@ process_sdes(session_t *sp, uint32_t ssrc, rtcp_sdes_item *d)
                 /* for us to deal with.                                      */
                 break;
         case RTCP_SDES_CNAME:
-                ui_info_update_cname(sp, ssrc);
+                ui_send_rtp_cname(sp, sp->mbus_ui_addr, ssrc);
                 break;
         case RTCP_SDES_NAME:
-                ui_info_update_name(sp, ssrc);
+                ui_send_rtp_name(sp, sp->mbus_ui_addr, ssrc);
                 break;
         case RTCP_SDES_EMAIL:
-                ui_info_update_email(sp, ssrc);
+                ui_send_rtp_email(sp, sp->mbus_ui_addr, ssrc);
                 break;
         case RTCP_SDES_PHONE:
-                ui_info_update_phone(sp, ssrc);
+                ui_send_rtp_phone(sp, sp->mbus_ui_addr, ssrc);
                 break;
         case RTCP_SDES_LOC:
-                ui_info_update_loc(sp, ssrc);
+                ui_send_rtp_loc(sp, sp->mbus_ui_addr, ssrc);
                 break;
         case RTCP_SDES_TOOL:
-                ui_info_update_tool(sp, ssrc);
+                ui_send_rtp_tool(sp, sp->mbus_ui_addr, ssrc);
                 break;
         case RTCP_SDES_NOTE:
-                ui_info_update_note(sp, ssrc);
+                ui_send_rtp_note(sp, sp->mbus_ui_addr, ssrc);
                 break;
         case RTCP_SDES_PRIV:
                 debug_msg("Discarding private data from (0x%08x)", ssrc);
@@ -295,7 +294,7 @@ process_delete(session_t *sp, uint32_t ssrc)
 {
         if (ssrc != rtp_my_ssrc(sp->rtp_session[0]) &&
             sp->mbus_engine != NULL) {
-                ui_info_remove(sp, ssrc);
+                ui_send_rtp_remove(sp, sp->mbus_ui_addr, ssrc);
         }
 }
 

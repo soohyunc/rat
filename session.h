@@ -79,11 +79,10 @@ typedef struct s_session {
 	int                 	 detect_silence;
 	int                 	 meter;       			/* if powermeters are on */
         uint32_t             	 meter_period; 
-	int		    	 ui_activated;
+	int		    	 ui_activated;			/* If our ssrc is highlighted in the ui */
 	int		    	 sync_on;
 	int		    	 agc_on;
-        int                 	 ui_on;
-	char		   	*ui_addr;
+        int                 	 ui_on;				/* If we have a user interface... */
 	struct s_sndfile   	*in_file;
 	struct s_sndfile   	*out_file;
 	audio_desc_t	    	 audio_device;

@@ -32,22 +32,6 @@ typedef struct {
         mbus_rx_proc  rxproc;
 } mbus_cmd_tuple;
 
-static void rx_tool_rat_addr_engine(char *srce, char *args)
-{
-	char			*addr;
-	struct mbus_parser	*mp;
-
-	UNUSED(srce);
-
-	mp = mbus_parse_init(args);
-	if (mbus_parse_str(mp, &addr)) {
-		e_addr = xstrdup(mbus_decode_str(addr));
-	} else {
-		debug_msg("mbus: usage \"tool.rat.addr.engine <addr>\"\n");
-	}
-	mbus_parse_done(mp);
-}
-
 static void rx_mbus_hello(char *srce, char *args)
 {
 	UNUSED(srce);
@@ -56,8 +40,20 @@ static void rx_mbus_hello(char *srce, char *args)
 
 static void rx_mbus_waiting(char *srce, char *args)
 {
+	char			*s;
+	struct mbus_parser	*mp;
+
 	UNUSED(srce);
-	UNUSED(args);
+
+	mp = mbus_parse_init(args);
+	if (mbus_parse_str(mp, &s)) {
+		if (strcmp("rat-ui-requested", mbus_decode_str(s)) == 0) {
+			e_addr = xstrdup(srce);
+		}
+	} else {
+		debug_msg("mbus: usage \"mbus.waiting (token)\"\n");
+	}
+	mbus_parse_done(mp);
 }
 
 static void rx_mbus_quit(char *srce, char *args)
@@ -74,7 +70,6 @@ static void rx_mbus_bye(char *srce, char *args)
 }
 
 static const mbus_cmd_tuple ui_cmds[] = {
-        { "tool.rat.addr.engine",	rx_tool_rat_addr_engine },
         { "mbus.hello",			rx_mbus_hello },
         { "mbus.waiting",		rx_mbus_waiting },
         { "mbus.quit",			rx_mbus_quit },

@@ -59,7 +59,8 @@ TOY_OBJS     = render_3D.o repair.o
 CORE_OBJS    = ts.o playout.o net.o source.o session.o \
                mbus_engine.o audio.o cushion.o mix.o \
                parameters.o timers.o transmit.o playout_calc.o \
-               transcoder.o ui.o rtp_callback.o settings.o \
+               ui_send_rtp.o ui_send_audio.o ui_send_prefs.o ui_send_stats.o \
+	       transcoder.o rtp_callback.o settings.o \
                pdb.o pktbuf.o $(EXTRA_OBJ)
 
 UI_OBJS      = tcltk.o mbus_ui.o main_ui.o

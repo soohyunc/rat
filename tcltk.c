@@ -336,13 +336,15 @@ tcl_init2(struct mbus *mbus_ui, char *mbus_engine_addr)
 
 	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) mbus_ui, NULL);
 	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, NULL, NULL);
-	Tcl_Eval(interp, "wm deiconify .");
 
 	/* Process Tcl/Tk events */
         while (Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS)) {
 		/* Process Tcl/Tk events */
 	}
 	Tcl_ResetResult(interp);
+
+	/* We do this last, so it is executed within the main loop... */
+	Tcl_Eval(interp, "rendezvous_with_media_engine");
 	return TRUE;
 }
 

@@ -1075,8 +1075,20 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Fix participant muting (reported by Bob Olson).
 	- Correct size of pb->buf allocation in pktbuf.c.
 	- Fix slow memory leak in pktbuf (didn't free pb->buf).
+	- Removed unused variables from the session struct
+	- Add checks for sp->ui_on to the user interface dispatcher code.
+	  This has currently broken the user interface, but is needed to
+	  make the initialization sequence reliable.
+	- Major update to the initialization sequence
+		- media engine solicits for the user interface
+		- user interface requests state information from the media
+		  engine
+		- split ui.c into ui_send_*.c
+	- Load/save the note setting.
 	- Remove all traces of operating specific defines.  Configure no longer
 	  subsitutes operating system.
+
+
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1135,4 +1147,5 @@ TODO -- They're features not bugs dammit!
 - Handling of SSRC collisions is broken
 - Sometime see messages of the form "source.c:767 Spike (160 > 2708390)"
   and hear nothing. Something uninitialized in the source?
+- @OSTYPE@ is SDES TOOL field?
 

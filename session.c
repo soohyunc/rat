@@ -28,7 +28,6 @@ static const char cvsid[] =
 #include "parameters.h"
 #include "audio.h"
 #include "pdb.h"
-#include "ui.h"
 #include "rtp.h"
 #include "source.h"
 #include "channel_types.h"
@@ -126,8 +125,7 @@ session_init(session_t *sp)
 	sp->detect_silence		= TRUE;
 	sp->sync_on			= FALSE;
 	sp->agc_on			= FALSE;
-        sp->ui_on                       = TRUE;
-	sp->ui_addr			= NULL;
+        sp->ui_on                       = FALSE;
 	sp->meter			= TRUE;					/* Powermeter operation */
 	sp->in_file 			= NULL;
 	sp->out_file  			= NULL;

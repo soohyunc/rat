@@ -31,7 +31,6 @@ static const char cvsid[] =
 #include "session.h"
 #include "transcoder.h"
 #include "pdb.h"
-#include "ui.h"
 #include "transmit.h"
 #include "mix.h"
 #include "cushion.h"

@@ -27,7 +27,9 @@ static const char cvsid[] =
 #include "converter.h"
 #include "tcltk.h"
 #include "pdb.h"
-#include "ui.h"
+#include "ui_send_rtp.h"
+#include "ui_send_audio.h"
+#include "ui_send_stats.h"
 #include "net.h"
 #include "timers.h"
 #include "parameters.h"
@@ -180,21 +182,13 @@ int main(int argc, char *argv[])
         pdb_item_create(sp->pdb, sp->clock, (uint16_t)get_freq(sp->device_clock), rtp_my_ssrc(sp->rtp_session[0])); 
 	settings_load_late(sp);
 
-        ui_initial_settings(sp);
-	ui_update(sp);
-	network_process_mbus(sp);
-        
-        audio_drain(sp->audio_device);
-        if (tx_is_sending(sp->tb)) {
-               	tx_start(sp->tb);
-        }
-
 	session_validate(sp);
 	xmemchk();
 	xdoneinit();
 
 	while (!should_exit) {
                 elapsed_time = 0;
+		alc++;
 
                 /* Process audio */
 		elapsed_time = audio_rw_process(sp, sp, sp->ms);
@@ -258,14 +252,14 @@ int main(int argc, char *argv[])
                                         delta    = ts_sub(sp->cur_ts, e->last_ui_update);
                                         two_secs = ts_map32(8000, 16000);
                                         if (ts_gt(delta, two_secs)) {
-                                                ui_update_stats(sp, e->ssrc);
+                                                ui_send_stats(sp, sp->mbus_ui_addr, e->ssrc);
                                                 e->last_ui_update = sp->cur_ts;
                                         }
 				} else {
 					/* Remove source as stopped */
                                         uint32_t ssrc;
                                         ssrc = source_get_ssrc(s);
-					ui_info_deactivate(sp, ssrc);
+					ui_send_rtp_inactive(sp, sp->mbus_ui_addr, ssrc);
 					source_remove(sp->active_sources, s);
 					sidx--;
 					scnt--;
@@ -294,7 +288,7 @@ int main(int argc, char *argv[])
                         }
                 }
                 /* Lecture Mode */
-		if (alc >= 50) {
+		if ((alc % 50) == 0) {
 			if (!sp->lecture && tx_is_sending(sp->tb) && sp->auto_lecture != 0) {
 				gettimeofday(&time, NULL);
 				if (time.tv_sec - sp->auto_lecture > 120) {
@@ -302,14 +296,19 @@ int main(int argc, char *argv[])
 					debug_msg("Dummy lecture mode\n");
 				}
 			}
-			alc = 0;
-		} else {
-			alc++;
 		}
 
-		if (sp->audio_device && elapsed_time != 0) {
-                        ui_periodic_updates(sp, elapsed_time);
-                }
+		if (sp->ui_on) {
+			/* We have a user interface... do any periodic updates needed. */
+			if (sp->audio_device && elapsed_time != 0) {
+				ui_send_periodic_updates(sp, sp->mbus_ui_addr, elapsed_time);
+			}
+		} else {
+			/* We don't yet have a user interface... send out a message soliciting one... */
+			if ((alc % 25) == 0) {
+				mbus_qmsgf(sp->mbus_engine, "()", FALSE, "mbus.waiting", "\"rat-ui-requested\"");
+			}
+		}
 		if (sp->new_config != NULL) {
 			/* wait for mbus messages - closing audio device    */
 			/* can timeout unprocessed messages as some drivers */
@@ -320,7 +319,7 @@ int main(int argc, char *argv[])
 				/* are misconfigured. Delete the source, and incoming */
 				/* data will drive the correct new path.              */
 				source_list_clear(sp->active_sources);
-                                ui_update(sp);
+				ui_send_audio_update(sp, sp->mbus_ui_addr);
 			}
 		}
 		

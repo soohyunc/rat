@@ -29,7 +29,7 @@ void             source_list_destroy (struct s_source_list **pplist);
 
 void             source_list_clear   (struct s_source_list *plist);
 
-uint32_t          source_list_source_count(struct s_source_list *plist);
+uint32_t         source_list_source_count(struct s_source_list *plist);
 
 struct s_source* source_list_get_source_no (struct s_source_list *plist,
                                             uint32_t               src_no);
@@ -78,6 +78,6 @@ double           source_get_skew_rate      (struct s_source *src);
 struct s_pb*
                  source_get_decoded_buffer (struct s_source *src);
 
-uint32_t          source_get_ssrc           (struct s_source *src);
+uint32_t         source_get_ssrc           (struct s_source *src);
 
 #endif /* __SOURCE_H__ */

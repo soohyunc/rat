@@ -251,13 +251,12 @@ proc mbus_recv {cmnd args} {
 		tool.rat.audio.skew     	{eval mbus_recv_tool.rat.audio.skew $args}
 		tool.rat.spike.events    	{eval mbus_recv_tool.rat.spike.events $args}
 		tool.rat.spike.toged     	{eval mbus_recv_tool.rat.spike.toged $args}
-		tool.rat.rtt                    {eval mbus_recv_tool.rat.rtt $args}
-		tool.rat.3d.enabled  		{eval mbus_recv_tool.rat.3d.enabled $args}
-		tool.rat.3d.azimuth.min         {eval mbus_recv_tool.rat.3d.azimuth.min $args}
-		tool.rat.3d.azimuth.max         {eval mbus_recv_tool.rat.3d.azimuth.max $args}
-		tool.rat.3d.filter.types        {eval mbus_recv_tool.rat.3d.filter.types   $args}
-		tool.rat.3d.filter.lengths      {eval mbus_recv_tool.rat.3d.filter.lengths $args}
-		tool.rat.3d.user.settings       {eval mbus_recv_tool.rat.3d.user.settings  $args}
+		audio.3d.enabled  		{eval mbus_recv_audio.3d.enabled $args}
+		audio.3d.azimuth.min            {eval mbus_recv_audio.3d.azimuth.min $args}
+		audio.3d.azimuth.max            {eval mbus_recv_audio.3d.azimuth.max $args}
+		audio.3d.filter.types           {eval mbus_recv_audio.3d.filter.types   $args}
+		audio.3d.filter.lengths         {eval mbus_recv_audio.3d.filter.lengths $args}
+		audio.3d.user.settings          {eval mbus_recv_audio.3d.user.settings  $args}
 		tool.rat.playout.limit          {eval mbus_recv_tool.rat.playout.limit $args}
 		tool.rat.playout.min            {eval mbus_recv_tool.rat.playout.min   $args}
 		tool.rat.playout.max            {eval mbus_recv_tool.rat.playout.max   $args}
@@ -307,6 +306,7 @@ proc mbus_recv {cmnd args} {
 		rtp.source.inactive  		{eval mbus_recv_rtp.source.inactive $args}
 		rtp.source.mute  		{eval mbus_recv_rtp.source.mute $args}
 		rtp.source.gain  		{eval mbus_recv_rtp.source.gain $args}
+		rtp.source.rtt                  {eval mbus_recv_rtp.source.rtt.rtt $args}
 		security.encryption.key 	{eval mbus_recv_security.encryption.key $args}
 		default				{puts "Unknown mbus command $cmnd"}
 	}
@@ -752,6 +752,7 @@ proc mbus_recv_session.title {title} {
     global session_title
     set session_title \"$title\"
     wm title . "RAT: $title"
+    wm deiconify .
 }
 
 proc mbus_recv_rtp.addr {addr rx_port tx_port ttl} {
@@ -890,7 +891,7 @@ proc mbus_recv_tool.rat.spike.toged {ssrc toged} {
     set SPIKE_TOGED($ssrc) $toged
 }
 
-proc mbus_recv_tool.rat.rtt {ssrc rtt} {
+proc mbus_recv_rtp.source.rtt {ssrc rtt} {
     global RTT
     init_source $ssrc
     if {$rtt != 0} {
@@ -898,32 +899,32 @@ proc mbus_recv_tool.rat.rtt {ssrc rtt} {
     }
 }
 
-proc mbus_recv_tool.rat.3d.enabled {mode} {
+proc mbus_recv_audio.3d.enabled {mode} {
 	global 3d_audio_var
 	set 3d_audio_var $mode
 }
 
-proc mbus_recv_tool.rat.3d.azimuth.min {min} {
+proc mbus_recv_audio.3d.azimuth.min {min} {
     global 3d_azimuth
     set 3d_azimuth(min) $min
 }
 
-proc mbus_recv_tool.rat.3d.azimuth.max {max} {
+proc mbus_recv_audio.3d.azimuth.max {max} {
     global 3d_azimuth
     set 3d_azimuth(max) $max
 }
 
-proc mbus_recv_tool.rat.3d.filter.types {args} {
+proc mbus_recv_audio.3d.filter.types {args} {
     global 3d_filters
     set 3d_filters [split $args ","]
 }
 
-proc mbus_recv_tool.rat.3d.filter.lengths {args} {
+proc mbus_recv_audio.3d.filter.lengths {args} {
     global 3d_filter_lengths
     set 3d_filter_lengths [split $args ","]
 }
 
-proc mbus_recv_tool.rat.3d.user.settings {args} {
+proc mbus_recv_audio.3d.user.settings {args} {
     global filter_type filter_length azimuth
     set ssrc                 [lindex $args 0]
     set filter_type($ssrc)   [lindex $args 1]
@@ -1391,7 +1392,7 @@ proc toggle_stats {ssrc} {
 
 # 3D settings
 	# Trigger engine to send details for this participant
-	mbus_send "R" "tool.rat.3d.user.settings.request" [mbus_encode_str $ssrc]
+	mbus_send "R" "audio.3d.user.settings.request" [mbus_encode_str $ssrc]
 
 	frame $win.df.3d -relief groove -bd 2
 	label $win.df.3d.advice -text "These options allow the rendering of the\nparticipant to be altered when 3D\nrendering is enabled."
@@ -1462,8 +1463,8 @@ proc toggle_stats {ssrc} {
 proc 3d_send_parameters {ssrc} {
     global azimuth filter_type filter_length 3d_audio_var
 
-    mbus_send "R" "tool.rat.3d.enabled"   $3d_audio_var
-    mbus_send "R" "tool.rat.3d.user.settings" "[mbus_encode_str $ssrc] [mbus_encode_str $filter_type($ssrc)] $filter_length($ssrc) $azimuth($ssrc)"
+    mbus_send "R" "audio.3d.enabled"   $3d_audio_var
+    mbus_send "R" "audio.3d.user.settings" "[mbus_encode_str $ssrc] [mbus_encode_str $filter_type($ssrc)] $filter_length($ssrc) $azimuth($ssrc)"
 }
 
 proc 3d_delete_parameters {ssrc} {
@@ -2299,7 +2300,7 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "tool.rat.playout.min"   $min_var
     mbus_send "R" "tool.rat.playout.max"   $max_var
     mbus_send "R" "tool.rat.lecture"       $lecture_var
-    mbus_send "R" "tool.rat.3d.enabled"    $3d_audio_var
+    mbus_send "R" "audio.3d.enabled"    $3d_audio_var
     mbus_send "R" "tool.rat.converter"     [mbus_encode_str $convert_var]
 
     #Security
@@ -2893,4 +2894,9 @@ if { $script_error != "" } {
     exit -1
 }
 
+proc rendezvous_with_media_engine {} {
+	mbus_send "R" "tool.rat.settings" ""
+	mbus_send "R" "audio.query" ""
+	mbus_send "R" "rtp.query" ""
+}
 

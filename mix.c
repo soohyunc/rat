@@ -30,7 +30,7 @@ static const char cvsid[] =
 #include "playout.h"
 #include "debug.h"
 #include "parameters.h"
-#include "ui.h"
+#include "ui_send_audio.h"
 
 #define MIX_MAGIC 0x81654620
 
@@ -466,9 +466,9 @@ mix_update_ui(session_t *sp, mix_struct *ms)
 		bp = ms->mix_buffer + ms->tail - POWER_METER_SAMPLES;
 	}
         if (sp->playing_audio) {
-                ui_output_level(sp, lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
+                ui_send_audio_output_powermeter(sp, sp->mbus_ui_addr, lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
         } else {
-                ui_output_level(sp, 0);
+                ui_send_audio_output_powermeter(sp, sp->mbus_ui_addr, 0);
         }
 }
 

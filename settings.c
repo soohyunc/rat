@@ -522,6 +522,10 @@ void settings_load_late(session_t *sp)
         if (rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC) == NULL) {
                 rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC,   field, strlen(field));
         }
+	field = setting_load_str("rtpNote", "");
+        if (rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NOTE) == NULL) {
+                rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NOTE,   field, strlen(field));
+        }
 #ifdef WIN32
 	field = (char *) w32_make_version_info(RAT_VERSION);
 #else
@@ -677,6 +681,7 @@ void settings_save(session_t *sp)
         setting_save_str("rtpEmail", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_EMAIL));
         setting_save_str("rtpPhone", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PHONE));
         setting_save_str("rtpLoc",   rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC));
+        setting_save_str("rtpNote",  rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NOTE));
         save_done();
         
         save_init_rat();

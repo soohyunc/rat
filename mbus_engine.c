@@ -40,7 +40,9 @@ static const char cvsid[] =
 #include "channel_types.h"
 #include "rtp.h"
 #include "rtp_callback.h"
-#include "ui.h"
+#include "ui_send_rtp.h"
+#include "ui_send_audio.h"
+#include "ui_send_prefs.h"
 
 extern int should_exit;
 
@@ -69,23 +71,6 @@ static void rx_session_title(char *srce, char *args, session_t *sp)
 	mbus_parse_done(mp);
 }
 
-static void rx_tool_rat_addr_ui(char *srce, char *args, session_t *sp)
-{
-	/* tool.rat.addr.ui ("addr") */
-	char			*addr;
-	struct mbus_parser	*mp;
-
-	UNUSED(srce);
-
-	mp = mbus_parse_init(args);
-	if (mbus_parse_str(mp, &addr)) {
-		sp->mbus_ui_addr = xstrdup(mbus_decode_str(addr));
-	} else {
-		debug_msg("mbus: usage \"tool.rat.addr.ui <addr>\"\n");
-	}
-	mbus_parse_done(mp);
-}
-
 static void rx_tool_rat_powermeter(char *srce, char *args, session_t *sp)
 {
 	int 			 i;
@@ -96,8 +81,8 @@ static void rx_tool_rat_powermeter(char *srce, char *args, session_t *sp)
 	mp = mbus_parse_init(args);
 	if (mbus_parse_int(mp, &i)) {
 		sp->meter = i;
-		ui_input_level(sp, 0);
-		ui_output_level(sp, 0);
+		ui_send_audio_input_powermeter(sp, sp->mbus_ui_addr, 0);
+		ui_send_audio_output_powermeter(sp, sp->mbus_ui_addr, 0);
 	} else {
 		debug_msg("mbus: usage \"tool.rat.powermeter <boolean>\"\n");
 	}
@@ -120,7 +105,7 @@ static void rx_tool_rat_silence(char *srce, char *args, session_t *sp)
 	mbus_parse_done(mp);
 }
 
-static void rx_tool_rat_3d_enable(char *srce, char *args, session_t *sp)
+static void rx_audio_3d_enable(char *srce, char *args, session_t *sp)
 {
 	int 			 i;
 	struct mbus_parser	*mp;
@@ -131,13 +116,13 @@ static void rx_tool_rat_3d_enable(char *srce, char *args, session_t *sp)
 	if (mbus_parse_int(mp, &i)) {
                 audio_device_register_change_render_3d(sp, i);
 	} else {
-		debug_msg("mbus: usage \"tool.rat.3d.enabled <boolean>\"\n");
+		debug_msg("mbus: usage \"audio.3d.enabled <boolean>\"\n");
 	}
 	mbus_parse_done(mp);
 }
 
 static void 
-rx_tool_rat_3d_user_settings(char *srce, char *args, session_t *sp)
+rx_audio_3d_user_settings(char *srce, char *args, session_t *sp)
 {
         pdb_entry_t             *p;
         char 			*filter_name;
@@ -173,13 +158,13 @@ rx_tool_rat_3d_user_settings(char *srce, char *args, session_t *sp)
 			debug_msg("Unknown source 0x%08lx\n", ssrc);
 		}
         } else {
-                debug_msg("mbus: usage \"tool.rat.3d.user.settings <cname> <filter name> <filter len> <azimuth>\"\n");
+                debug_msg("mbus: usage \"audio.3d.user.settings <cname> <filter name> <filter len> <azimuth>\"\n");
         }
 	mbus_parse_done(mp);
 }
 
 static void
-rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_t *sp)
+rx_audio_3d_user_settings_req(char *srce, char *args, session_t *sp)
 {
 	char			*ss;
         uint32_t         	 ssrc;
@@ -191,7 +176,7 @@ rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_t *sp)
 	if (mbus_parse_str(mp, &ss)) {
 		ss   = mbus_decode_str(ss);
                 ssrc = strtoul(ss, 0, 16);
-                ui_info_3d_settings(sp, ssrc);
+                ui_send_audio_3d_settings(sp, sp->mbus_ui_addr, ssrc);
         }
         mbus_parse_done(mp);
 }
@@ -311,7 +296,9 @@ static void rx_audio_input_mute(char *srce, char *args, session_t *sp)
 		}
                 /* Keep echo suppressor informed of change */
                 sp->echo_tx_active = !i;
-		ui_update_input_port(sp);
+		ui_send_audio_input_port(sp, sp->mbus_ui_addr);
+		ui_send_audio_input_mute(sp, sp->mbus_ui_addr);
+		ui_send_audio_input_gain(sp, sp->mbus_ui_addr);
 	} else {
 		debug_msg("mbus: usage \"audio.input.mute <boolean>\"\n");
 	}
@@ -366,7 +353,9 @@ static void rx_audio_input_port(char *srce, char *args, session_t *sp)
 		debug_msg("mbus: usage \"audio.input.port <port>\"\n");
 	}
 	mbus_parse_done(mp);
-        ui_update_input_port(sp);
+	ui_send_audio_input_port(sp, sp->mbus_ui_addr);
+	ui_send_audio_input_mute(sp, sp->mbus_ui_addr);
+	ui_send_audio_input_gain(sp, sp->mbus_ui_addr);
 }
 
 static void rx_audio_output_mute(char *srce, char *args, session_t *sp)
@@ -380,11 +369,11 @@ static void rx_audio_output_mute(char *srce, char *args, session_t *sp)
 	mp = mbus_parse_init(args);
 	if (mbus_parse_int(mp, &i)) {
         	sp->playing_audio = !i; 
-		ui_update_output_port(sp);
+		ui_send_audio_output_port(sp, sp->mbus_ui_addr);
                 n = (int)source_list_source_count(sp->active_sources);
                 for (i = 0; i < n; i++) {
                         s = source_list_get_source_no(sp->active_sources, i);
-                        ui_info_deactivate(sp, source_get_ssrc(s));
+                        ui_send_rtp_inactive(sp, sp->mbus_ui_addr, source_get_ssrc(s));
                         source_remove(sp->active_sources, s);
                         /* revise source no's since we removed a source */
                         i--;
@@ -444,7 +433,7 @@ static void rx_audio_output_port(char *srce, char *args, session_t *sp)
 		debug_msg("mbus: usage \"audio.output.port <port>\"\n");
 	}
 	mbus_parse_done(mp);
-	ui_update_output_port(sp);
+	ui_send_audio_output_port(sp, sp->mbus_ui_addr);
 }
 
 static void rx_audio_channel_repair(char *srce, char *args, session_t *sp)
@@ -476,7 +465,7 @@ static void rx_audio_channel_repair(char *srce, char *args, session_t *sp)
 		debug_msg("mbus: usage \"audio.channel.repair <repair>\"\n");
 	}
 	mbus_parse_done(mp);
-        ui_update_repair(sp);
+        ui_send_audio_channel_repair(sp, sp->mbus_ui_addr);
 }
 
 static void rx_security_encryption_key(char *srce, char *args, session_t *sp)
@@ -494,11 +483,11 @@ static void rx_security_encryption_key(char *srce, char *args, session_t *sp)
                 for(i = 0; i < sp->rtp_session_count; i++) {
 			if (strlen(key) == 0) {
                         	rtp_set_encryption_key(sp->rtp_session[i], NULL);
-				ui_update_key(sp, "none");
+				ui_send_encryption_key(sp, sp->mbus_ui_addr);
 				sp->encrkey = NULL;
 			} else {
                         	rtp_set_encryption_key(sp->rtp_session[i], key);
-				ui_update_key(sp, key);
+				ui_send_encryption_key(sp, sp->mbus_ui_addr);
 				sp->encrkey = xstrdup(key);
 			}
                 }
@@ -538,7 +527,7 @@ static void rx_audio_file_play_open(char *srce, char *args, session_t *sp)
 	}
 	mbus_parse_done(mp);
 
-        if (sp->in_file) ui_update_playback_file(sp, file);
+        if (sp->in_file) ui_send_audio_file_play_ready(sp, sp->mbus_ui_addr, file);
 
 }
 
@@ -571,7 +560,7 @@ static void rx_audio_file_play_live(char *srce, char *args, session_t *sp)
         /* This is a request to see if file we are playing is still valid */
         UNUSED(args);
         UNUSED(srce);
-        ui_update_file_live(sp, "play", (sp->in_file) ? 1 : 0);
+        ui_send_audio_file_alive(sp, sp->mbus_ui_addr, "play", (sp->in_file) ? 1 : 0);
 }
 
 static void rx_audio_file_rec_stop(char *srce, char *args, session_t *sp)
@@ -616,7 +605,7 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_t *sp)
 	}
 	mbus_parse_done(mp);
         
-        if (sp->out_file) ui_update_record_file(sp, file);
+        if (sp->out_file) ui_send_audio_file_record_ready(sp, sp->mbus_ui_addr, file);
 }
 
 static void rx_audio_file_rec_pause(char *srce, char *args, session_t *sp)
@@ -648,7 +637,7 @@ static void rx_audio_file_rec_live(char *srce, char *args, session_t *sp)
         UNUSED(args);
 	UNUSED(srce);
         debug_msg("%d\n", sp->out_file ? 1 : 0);
-        ui_update_file_live(sp, "record", (sp->out_file) ? 1 : 0);
+        ui_send_audio_file_alive(sp, sp->mbus_ui_addr, "record", (sp->out_file) ? 1 : 0);
 }
 
 static void 
@@ -706,6 +695,15 @@ rx_audio_device(char *srce, char *args, session_t *sp)
 	mbus_parse_done(mp);
 }
 
+static void 
+rx_audio_query(char *srce, char *args, session_t *sp)
+{
+	/* The audio.query() command solicits information about the audio device. */
+	/* We respond by dumping all our audio related state to the querier.     */
+	UNUSED(args);
+	ui_send_audio_update(sp, srce);
+}
+
 static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, uint8_t type)
 {
         char	           *arg, *ss;
@@ -743,6 +741,35 @@ static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, uint8_t ty
 		debug_msg("mbus: usage \"rtp_source_<sdes_item> <ssrc> <name>\"\n");
 	}
 	mbus_parse_done(mp);
+}
+
+static void rx_rtp_query(char *srce, char *args, session_t *sp)
+{
+	/* The rtp.query() command solicits information about the RTP session. */
+	/* We respond by dumping all our RTP related state to the querier.     */
+	uint32_t	 ssrc;
+	struct s_source	*s;
+
+	UNUSED(args);
+	ui_send_rtp_ssrc(sp, srce);
+	pdb_get_first_id(sp->pdb, &ssrc);
+	do {
+		ui_send_rtp_cname(sp, srce, ssrc);
+		ui_send_rtp_name(sp, srce, ssrc);
+		ui_send_rtp_email(sp, srce, ssrc);
+		ui_send_rtp_phone(sp, srce, ssrc);
+		ui_send_rtp_loc(sp, srce, ssrc);
+		ui_send_rtp_tool(sp, srce, ssrc);
+		ui_send_rtp_note(sp, srce, ssrc);
+		ui_send_rtp_mute(sp, srce, ssrc);
+		if ((s = source_get_by_ssrc(sp->active_sources, ssrc)) != NULL) {
+			ui_send_rtp_active(sp, srce, ssrc);
+		} else {
+			ui_send_rtp_inactive(sp, srce, ssrc);
+		}
+	} while (pdb_get_next_id(sp->pdb, ssrc, &ssrc));
+	ui_send_rtp_addr(sp, srce);
+	ui_send_rtp_title(sp, srce);
 }
 
 static void rx_rtp_addr(char *srce, char *args, session_t *sp)
@@ -825,7 +852,7 @@ static void rx_rtp_source_mute(char *srce, char *args, session_t *sp)
                         if (s != NULL) {
                                 source_remove(sp->active_sources, s);
                         }
-                        ui_info_mute(sp, pdbe->ssrc);
+                        ui_send_rtp_mute(sp, sp->mbus_ui_addr, pdbe->ssrc);
                 } else {
 			debug_msg("Unknown source 0x%08lx\n", ssrc);
 		}
@@ -897,7 +924,7 @@ rx_tool_rat_codec(char *srce, char *args, session_t *sp)
                 cid     = codec_get_by_payload ((u_char)sp->encodings[0]);
                 if (codec_audio_formats_compatible(next_cid, cid)) {
                         sp->encodings[0] = codec_get_payload(next_cid);
-                        ui_update_primary(sp);
+                        ui_send_audio_codec(sp, sp->mbus_ui_addr);
                 } else {
                         /* just register we want to make a change */
                         audio_device_register_change_primary(sp, next_cid);
@@ -996,12 +1023,12 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_t *sp)
                         assert(cf);
                         debug_msg("Codec map replacing %s\n", cf->long_name);
                         codec_unmap_payload(cid_replacing, (u_char)new_pt);
-                        ui_update_codec(sp, cid_replacing);
+                        ui_send_codec_details(sp, sp->mbus_ui_addr, cid_replacing);
                 }
 
                 cid = codec_get_by_name(codec_long_name);
                 if (cid && codec_map_payload(cid, (u_char)new_pt)) {
-                        ui_update_codec(sp, cid);
+                        ui_send_codec_details(sp, sp->mbus_ui_addr, cid);
                         debug_msg("map %s %d succeeded.\n", codec_long_name, new_pt);
                 } else {
                         debug_msg("map %s %d failed.\n", codec_long_name, new_pt);
@@ -1037,7 +1064,7 @@ static void rx_tool_rat_converter(char *srce, char *args, session_t *sp)
 		debug_msg("mbus: usage \"tool.rat.converter <name>\"\n");
 	}
 	mbus_parse_done(mp);
-        ui_update_converter(sp);
+        ui_send_converter(sp, sp->mbus_ui_addr);
 }
 
 
@@ -1112,7 +1139,7 @@ set_layered_parameters(session_t *sp, char *sec_enc, char *schan, char *sfreq, i
                         cid     = codec_get_by_payload ((u_char)sp->encodings[0]);
                         if (codec_audio_formats_compatible(lay_id, cid)) {
                                 sp->encodings[0] = codec_get_payload(lay_id);
-                                ui_update_primary(sp);
+                        	ui_send_audio_codec(sp, sp->mbus_ui_addr);
                         } else {
                                 /* just register we want to make a change */
                                 audio_device_register_change_primary(sp, lay_id);
@@ -1215,14 +1242,33 @@ static void rx_audio_channel_coding(char *srce, char *args, session_t *sp)
         ccd = channel_get_coder_identity(sp->channel_coder);
         debug_msg("***** %s\n", ccd->name);
 #endif /* DEBUG */
-	ui_update_channel(sp);
+	ui_send_audio_channel_coding(sp, sp->mbus_ui_addr);
 }
 
 static void rx_tool_rat_settings(char *srce, char *args, session_t *sp)
 {
+	/* When we get a tool.rat.settings() message, we dump out state  */
+	/* into the query source. We omit rtp and audio related state,   */
+	/* since there are other mbus commands which solicit that info.  */
+	/* It should be possible to query most of this information via   */
+	/* specific commands for each variable, but I haven't got around */
+	/* to implementing all that yet - please send in a patch! [csp]  */
 	UNUSED(args);
-	UNUSED(srce);
-        ui_update(sp);
+        ui_send_repair_scheme_list(sp, srce);
+	ui_send_codec_list        (sp, srce);
+        ui_send_converter_list    (sp, srce);
+        ui_send_converter         (sp, sp->mbus_ui_addr);
+        ui_send_lecture_mode      (sp, sp->mbus_ui_addr);
+        ui_send_sampling_mode_list(sp, srce);
+	ui_send_powermeter        (sp, srce);
+	ui_send_playout_bounds    (sp, srce);
+	ui_send_agc               (sp, srce);
+	ui_send_audio_loopback    (sp, srce);
+	ui_send_echo_suppression  (sp, srce);
+	ui_send_encryption_key    (sp, srce);
+	ui_send_device_config     (sp, srce);
+	ui_send_audio_codec       (sp, srce);
+	ui_send_rate              (sp, srce);
 }
 
 static void rx_mbus_quit(char *srce, char *args, session_t *sp)
@@ -1253,9 +1299,20 @@ static void rx_mbus_waiting(char *srce, char *args, session_t *sp)
 
 static void rx_mbus_go(char *srce, char *args, session_t *sp)
 {
-	UNUSED(srce);
-	UNUSED(args);
-	UNUSED(sp);
+	char	 		*s;
+	struct mbus_parser	*mp;
+
+	mp = mbus_parse_init(args);
+	if (mbus_parse_str(mp, &s)) {
+		if (strcmp(mbus_decode_str(s), "rat-ui-requested") == 0) {
+			/* We now have a user interface... :-) */
+			sp->ui_on = TRUE;
+			sp->mbus_ui_addr = xstrdup(srce);
+		}
+	} else {
+		debug_msg("mbus: usage \"mbus.go(token)\"\n");
+	}
+	mbus_parse_done(mp);
 }
 
 static void rx_mbus_hello(char *srce, char *args, session_t *sp)
@@ -1268,12 +1325,11 @@ static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 
 static const mbus_cmd_tuple engine_cmds[] = {
         { "session.title",                         rx_session_title },
-        { "tool.rat.addr.ui",                      rx_tool_rat_addr_ui },
         { "tool.rat.silence",                      rx_tool_rat_silence },
         { "tool.rat.lecture",                      rx_tool_rat_lecture },
-        { "tool.rat.3d.enabled",                   rx_tool_rat_3d_enable },
-        { "tool.rat.3d.user.settings",             rx_tool_rat_3d_user_settings },
-        { "tool.rat.3d.user.settings.request",     rx_tool_rat_3d_user_settings_req },
+        { "audio.3d.enabled",                      rx_audio_3d_enable },
+        { "audio.3d.user.settings",                rx_audio_3d_user_settings },
+        { "audio.3d.user.settings.request",        rx_audio_3d_user_settings_req },
         { "tool.rat.agc",                          rx_tool_rat_agc },
         { "tool.rat.loopback",                     rx_tool_rat_audio_loopback },
         { "tool.rat.echo.suppress",                rx_tool_rat_echo_suppress },
@@ -1303,7 +1359,9 @@ static const mbus_cmd_tuple engine_cmds[] = {
         { "audio.file.record.stop",                rx_audio_file_rec_stop },
         { "audio.file.record.live",                rx_audio_file_rec_live },
         { "audio.device",                          rx_audio_device },
+        { "audio.query",                           rx_audio_query },
         { "security.encryption.key",               rx_security_encryption_key },
+        { "rtp.query",                             rx_rtp_query },
         { "rtp.addr",                              rx_rtp_addr },
         { "rtp.source.name",                       rx_rtp_source_name },
         { "rtp.source.email",                      rx_rtp_source_email },

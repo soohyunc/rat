@@ -29,7 +29,9 @@ static const char cvsid[] =
 #include "sndfile.h"
 #include "parameters.h"
 #include "pdb.h"
-#include "ui.h"
+#include "ui_send_rtp.h"
+#include "ui_send_audio.h"
+#include "ui_send_prefs.h"
 #include "rtp.h"
 #include "timers.h"
 #include "transmit.h"
@@ -219,7 +221,7 @@ tx_start(tx_buffer *tb)
         assert(tb->state_store == NULL);
         codec_state_store_create(&tb->state_store, ENCODER);
         if (tb->sp->detect_silence == FALSE) {
-                ui_info_activate(tb->sp, rtp_my_ssrc(tb->sp->rtp_session[0]));
+                ui_send_rtp_active(tb->sp, tb->sp->mbus_ui_addr, rtp_my_ssrc(tb->sp->rtp_session[0]));
         }
 
         tb->bps_last_update = tb->sp->cur_ts;
@@ -238,7 +240,7 @@ tx_stop(tx_buffer *tb)
         tb->sp->auto_lecture  = tv.tv_sec;
         codec_state_store_destroy(&tb->state_store);
         channel_encoder_reset(tb->sp->channel_coder);
-        ui_input_level(tb->sp, 0);
+        ui_send_audio_input_powermeter(tb->sp, tb->sp->mbus_ui_addr, 0);
         tb->sending_audio = FALSE;
         tx_update_ui(tb);
         /* Detach iterators      */
@@ -386,7 +388,7 @@ tx_process_audio(tx_buffer *tb)
 
         if (sp->agc_on == TRUE && 
             agc_apply_changes(tb->agc) == TRUE) {
-                ui_update_input_gain(sp);
+                ui_send_audio_input_gain(sp, sp->mbus_ui_addr);
         }
 
         return TRUE;
@@ -626,9 +628,9 @@ tx_update_ui(tx_buffer *tb)
                 }
                 if (pb_iterator_get_at(prev, (u_char**)&u, &u_len, &u_ts) &&
                     (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE)) {
-                        ui_input_level(sp, lin2vu(u->energy, 100, VU_INPUT));
+                        ui_send_audio_input_powermeter(sp, sp->mbus_ui_addr, lin2vu(u->energy, 100, VU_INPUT));
                 } else {
-                        ui_input_level(sp, 0);
+                        ui_send_audio_input_powermeter(sp, sp->mbus_ui_addr, 0);
                 }
                 pb_iterator_destroy(tb->audio_buffer, &prev);
                 assert(pb_iterator_count(tb->audio_buffer) == 3);
@@ -638,20 +640,20 @@ tx_update_ui(tx_buffer *tb)
         if (sp->detect_silence && vad_in_talkspurt(sp->tb->vad) == TRUE) {
 		if (!sp->ui_activated) {
 			sp->ui_activated = TRUE;
-			ui_info_activate(sp, rtp_my_ssrc(sp->rtp_session[0]));
+			ui_send_rtp_active(sp, sp->mbus_ui_addr, rtp_my_ssrc(sp->rtp_session[0]));
 		}
 		if (sp->lecture) {
 			sp->lecture = FALSE;
-			ui_update_lecture_mode(sp);
+			ui_send_lecture_mode(sp, sp->mbus_ui_addr);
 		}
         } else {
 		if (sp->ui_activated) {
 			sp->ui_activated = FALSE;
-			ui_info_deactivate(sp, rtp_my_ssrc(sp->rtp_session[0]));
+			ui_send_rtp_inactive(sp, sp->mbus_ui_addr, rtp_my_ssrc(sp->rtp_session[0]));
         	}
 	}
         if (tb->sending_audio == FALSE) {
-                ui_info_deactivate(sp, rtp_my_ssrc(sp->rtp_session[0]));
+               	ui_send_rtp_inactive(sp, sp->mbus_ui_addr, rtp_my_ssrc(sp->rtp_session[0]));
         }
 }
 

@@ -40,8 +40,8 @@ static const char cvsid[] =
 #include "mix.h"
 #include "rtp.h"
 #include "playout_calc.h"
-#include "ui.h"
 #include "session.h"
+#include "ui_send_stats.h"
 #include "auddev.h"
 #include "mbus.h"
 
@@ -727,7 +727,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                                               p->data, p->data_len, 
                                               e->enc_fmt, e->enc_fmt_len);
                         if (sp->mbus_engine) {
-                                ui_update_stats(sp, e->ssrc);
+                                ui_send_stats(sp, sp->mbus_ui_addr, e->ssrc);
                         }
                         debug_msg("Encoding changed to %s\n", e->enc_fmt);
                         /* Configure converter */
