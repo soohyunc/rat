@@ -1,3 +1,4 @@
 echo #define RAT_VERSION "RAT %v%" > version.h
+echo #define VERSION_NUM "%v%" >> version.h
 
 

@@ -35,6 +35,69 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name tklib
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name uclaudio
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name uclcodec
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name uclsndfile
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ratui
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ratmedia
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ratmedia"=.\ratmedia.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name common
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name uclaudio
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name uclcodec
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name uclsndfile
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ratui"=.\ratui.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name common
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name tcl2c
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name tcllib
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name tklib
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -80,6 +143,42 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name tcl2c
     End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "uclaudio"=.\uclaudio.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "uclcodec"=.\uclcodec.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "uclsndfile"=.\uclsndfile.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
 }}}
 
 ###############################################################################
