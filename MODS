@@ -922,6 +922,10 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	- Tuples for mbus command switches in mbus_{control,engine,ui}.
 	* 2 November 1999
 	- Added echo suppression back, it fell out of code base at some point.
+	- Fix ui sending input and output gain values before it's got values
+	  from audio engine.  Was happening because scale widget invokes 
+	  -command option when created.  Now we don't send gain info until
+	  we've heard some from engine.
 
 TODO -- They're features not bugs dammit!
 ----

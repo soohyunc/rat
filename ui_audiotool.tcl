@@ -47,6 +47,17 @@ set fw			.l.t.list.f
 set input_ports         [list]
 set output_ports        [list]
 
+# Sliders use scale widget and this invokes it's -command option when
+# it is created (doh!)  We don't know what gain and volume settings
+# should be before we've received info from the audio engine.
+# Don't send our initial value if we've not heard anything from engine
+# first.  Otherwise we get catch-22 with both engine and ui queuing
+# messages of gains to each other and often UI wins, which it never
+# should do.
+
+set received(gain)      0
+set received(volume)    0
+
 ###############################################################################
 #
 # Debugging Functions
@@ -77,7 +88,7 @@ proc tvar {name element op} {
 
 ###############################################################################
 
-trace variable gain w tvar
+# trace variable gain w tvar
 
 proc init_source {ssrc} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE SSRC num_ssrc 
@@ -148,15 +159,19 @@ proc input_mute {state} {
 }
 
 proc set_vol {new_vol} {
-    global volume
+    global volume received
     set volume $new_vol
-    mbus_send "R" "audio.output.gain" $volume
+    if {$received(volume)} {
+	mbus_send "R" "audio.output.gain" $volume
+    }
 }
 
 proc set_gain {new_gain} {
-    global gain
+    global gain received
     set gain $new_gain
-    mbus_send "R" "audio.input.gain" $gain
+    if {$received(gain)} {
+	mbus_send "R" "audio.input.gain" $gain
+    }
 }
 
 proc toggle_input_port {} {
@@ -204,7 +219,6 @@ proc mbus_recv {cmnd args} {
 		mbus.go				{eval mbus_recv_mbus.go $args}
 		mbus.hello			{eval mbus_recv_mbus.hello $args}
 		mbus.quit  			{eval mbus_recv_mbus.quit $args}
-		tool.rat.load.setting           {eval mbus_recv_tool.rat.load.setting $args}
 		tool.rat.sampling.supported 	{eval mbus_recv_tool.rat.sampling.supported $args}
 		tool.rat.converter  		{eval mbus_recv_tool.rat.converter $args}
 		tool.rat.converters.flush 	{eval mbus_recv_tool.rat.converters.flush $args}
@@ -292,24 +306,6 @@ proc mbus_recv_mbus.go {condition} {
 
 proc mbus_recv_mbus.hello {} {
 	# Ignore...
-}
-
-proc mbus_recv_tool.rat.load.setting {sname} {
-    global attr
-# Note when settings get loaded the get set in attr and not updated.  So we
-# use this as a cache for desired values.  This is necessary as when the
-# settings first get loaded we have null audio device and can't set 
-# anything on it meaningfully - i.e. it only has 1 port for input and 1 for output.
-#
-    switch $sname {
-	audio.input.mute  { mbus_send "R" $sname $attr(audioInputMute) }
-	audio.input.gain  { mbus_send "R" $sname $attr(audioInputGain) }
-	audio.input.port  { mbus_send "R" $sname [mbus_encode_str $attr(audioInputPort)] }
-	audio.output.mute { mbus_send "R" $sname $attr(audioOutputMute) }
-	audio.output.gain { mbus_send "R" $sname $attr(audioOutputGain) }
-	audio.output.port { mbus_send "R" $sname [mbus_encode_str $attr(audioOutputPort)] }
-	default           { puts "setting requested has no handler"}
-    }
 }
 
 proc change_freq {new_freq} {
@@ -687,9 +683,9 @@ proc mbus_recv_audio.output.powermeter {level} {
 	bargraphSetHeight .r.c.vol.gra.b1  [expr ($level * $bargraphTotalHeight) / 100]
 }
 
-proc mbus_recv_audio.input.gain {new_gain} {
-    global gain
-    set gain $new_gain
+proc mbus_recv_audio.input.gain {gain} {
+    global received
+    set received(gain) 1
     .r.c.gain.gra.s2 set $gain
 }
 
@@ -721,7 +717,9 @@ proc mbus_recv_audio.input.mute {val} {
 }
 
 proc mbus_recv_audio.output.gain {gain} {
-	.r.c.vol.gra.s1 set $gain
+    global received
+    set received(volume) 1
+    .r.c.vol.gra.s1 set $gain
 }
 
 proc mbus_recv_audio.output.port {device} {
@@ -1524,6 +1522,7 @@ bind .l.t.list <Configure> {fix_scrollbar}
 set out_mute_var 0
 frame .r.c.vol.but
 frame .r.c.vol.gra
+
 checkbutton .r.c.vol.but.t1 -highlightthickness 0 -text "Receive" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $infofont -width 8 -anchor w -relief raised
 button .r.c.vol.but.l1 -highlightthickness 0 -command toggle_output_port -font $infofont -width 10
 bargraphCreate .r.c.vol.gra.b1
