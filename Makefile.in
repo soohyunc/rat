@@ -12,7 +12,7 @@ INCLUDE = @AU_INC@ @TCL_INC@ @TK_INC@ @COMMON_INC@
 CC      = @CC@
 AR      = ar
 RANLIB  = @RANLIB@
-ECHO   ?= echo
+ECHO    = echo
 
 VERSION = @VERSION@
 RATVER  = rat-$(VERSION)
@@ -114,8 +114,7 @@ tcl2c/tcl2c: tcl2c/tcl2c.c
 
 version.h: VERSION
 	@${ECHO} "Generating version.h"
-	@sed -e 's/.*/#define RAT_VERSION "RAT v&"/' VERSION > version.h
-	@sed -e 's/.*/#define VERSION_NUM "&"/' VERSION >> version.h
+	@sed -e 's/.*/#define RAT_VERSION "&"/' VERSION > version.h
 
 sdr2.plugin.S02.audio.rtp.-.rat-$(VERSION): sdr2.plugin.in
 	@${ECHO} "Generating sdr plugin"
@@ -164,7 +163,6 @@ rpm: tgz
 	@${ECHO} "Building $(RATVER).rpm -- this almost certainly needs to run as root on RedHat Linux"
 	install -m 644 $(RATVER)-$(OSTYPE).tar.gz /usr/src/redhat/SOURCES/rat-4.1.2.tar.gz
 	rpm -bb $(RATVER).spec
-
 
 depend:
 	makedepend $(X_CFLAGS) $(INCLUDE) $(ALL_SRCS)

@@ -435,7 +435,7 @@ void settings_load_late(session_t *sp)
 {
         uint32_t my_ssrc;
         struct   utsname u;
-        char     hostfmt[] = RAT_VERSION " %s %s (%s)";
+        char     hostfmt[] = "RAT v" RAT_VERSION " %s %s (%s)";
         char    *field, username[32];
 	load_init();		/* Initial settings come from the common prefs file... */
 

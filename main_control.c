@@ -33,8 +33,8 @@ static const char cvsid[] =
 #define UI_NAME     "ratui.exe"
 #define ENGINE_NAME "ratmedia.exe"
 #else
-#define UI_NAME     "rat-"##VERSION_NUM##"-ui"
-#define ENGINE_NAME "rat-"##VERSION_NUM##"-media"
+#define UI_NAME     "rat-"##RAT_VERSION##"-ui"
+#define ENGINE_NAME "rat-"##RAT_VERSION##"-media"
 #endif
 
 #define DEFAULT_RTP_PORT 5004
@@ -184,7 +184,7 @@ static int parse_options_early(int argc, const char **argv)
         for (i = 1; i < argc; i++) {
                 if ((argv[i][0] == '-' || argv[i][0] == '/') &&
                         (argv[i][1] == 'v' || argv[i][1] == 'V')) {
-                        printf("%s\n", RAT_VERSION);
+                        printf("%s\n", "RAT v" RAT_VERSION);
                         return FALSE;
                 } else if ((argv[i][0] == '-' || argv[i][0] == '/')&&
                         (argv[i][1] == '?' || argv[i][1] == 'h' || argv[i][1] == 'H')) {
