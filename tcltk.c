@@ -89,7 +89,7 @@ mbus_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 		return TCL_ERROR;
 	}
 
-	mbus_qmsg(sp->mbus_ui_conf, engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
+	mbus_qmsg(sp->mbus_ui, engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
 	return TCL_OK;
 }
 

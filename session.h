@@ -129,11 +129,8 @@ typedef struct session_tag {
         int              cc_encoding;
         u_int32          last_depart_ts;
 	struct s_speaker_table	*speakers_active;
-	struct mbus	*mbus_engine_base;
-	struct mbus	*mbus_engine_conf;
-	struct mbus	*mbus_ui_base;
-	struct mbus	*mbus_ui_conf;
-	int		 mbus_channel;
+	struct mbus	*mbus_engine;
+	struct mbus	*mbus_ui;
 	int		 wait_on_startup;
 } session_struct;
 

@@ -125,11 +125,8 @@ init_session(session_struct *sp)
 	sp->out_file  			= NULL;
 	sp->rtp_seq			= lrand48() & 0xffff;
 	sp->speakers_active 		= NULL;
-	sp->mbus_engine_base		= NULL;
-	sp->mbus_engine_conf		= NULL;
-	sp->mbus_ui_base		= NULL;
-	sp->mbus_ui_conf		= NULL;
-	sp->mbus_channel		= 0;
+	sp->mbus_engine			= NULL;
+	sp->mbus_ui			= NULL;
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
 	sp->wait_on_startup		= FALSE;
@@ -192,10 +189,6 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int sp_
             		}
 			if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
                                 strncpy(sp[s]->title, argv[i+1], SESSION_TITLE_LEN);
-				i++;
-			}
-			if ((strcmp(argv[i], "-mbus") == 0) && (argc > i+1)) {
-				sp[s]->mbus_channel = atoi(argv[i + 1]);
 				i++;
 			}
 			if (strcmp(argv[i], "-wait") == 0) {
@@ -373,12 +366,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 				i++;
 			}
                         if (strcmp(argv[i], "-sync") == 0) {
-				if (sp[s]->mbus_channel != 0) {
-                                	sp[s]->sync_on = TRUE;
-				} else {
-					printf("Lip-sync can only be used if an mbus channel is specified\n");
-					usage();
-				}
+                               	sp[s]->sync_on = TRUE;
                         }
 			if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
        				if (strcmp(argv[i+1], "on") == 0) {

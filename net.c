@@ -154,16 +154,10 @@ void network_process_mbus(session_struct *sp)
 	/* Process outstanding Mbus messages. */
 	int	rc;
 	do {
-		mbus_send(sp->mbus_ui_base);
-		rc  = mbus_recv(sp->mbus_engine_base, (void *) sp); 
-		mbus_send(sp->mbus_engine_base);
-                rc |= mbus_recv(sp->mbus_ui_base    , (void *) sp); 
-		if (sp->mbus_channel != 0) {
-			mbus_send(sp->mbus_ui_conf);
-			rc |= mbus_recv(sp->mbus_engine_conf, (void *) sp); 
-			mbus_send(sp->mbus_engine_conf);
-			rc |= mbus_recv(sp->mbus_ui_conf    , (void *) sp); 
-		}
+		mbus_send(sp->mbus_ui);
+		rc  = mbus_recv(sp->mbus_engine, (void *) sp); 
+		mbus_send(sp->mbus_engine);
+                rc |= mbus_recv(sp->mbus_ui, (void *) sp); 
 	} while (rc);
 }
 

@@ -337,9 +337,10 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
                 next = dbptr->next;
                 if (dbptr->ssrc == ssrc) {
                         struct s_source *s;
-                        s = source_get_by_rtcp_dbentry(sp->active_sources, 
-                                                       dbptr);
-                        if (s) source_remove(sp->active_sources, s);
+                        s = source_get_by_rtcp_dbentry(sp->active_sources, dbptr);
+                        if (s != NULL) {
+				source_remove(sp->active_sources, s);
+			}
                         ui_info_remove(sp, dbptr);
                         *pprev = dbptr->next;
                         rtcp_free_dbentry(dbptr);

@@ -102,15 +102,15 @@ static void rx_tool_rat_powermeter(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->meter = i;
 		ui_input_level(sp, 0);
 		ui_output_level(sp, 0);
 	} else {
 		printf("mbus: usage \"tool.rat.powermeter <boolean>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_silence(char *srce, char *args, session_struct *sp)
@@ -119,13 +119,13 @@ static void rx_tool_rat_silence(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->detect_silence = i;
 	} else {
 		printf("mbus: usage \"tool.rat.silence <boolean>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_3d_enable(char *srce, char *args, session_struct *sp)
@@ -134,13 +134,13 @@ static void rx_tool_rat_3d_enable(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->render_3d = (i ? 1 : 0);
 	} else {
 		printf("mbus: usage \"tool.rat.3d.enabled <boolean>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct *sp)
@@ -151,11 +151,11 @@ static void rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct 
 
         UNUSED(srce);
 
-        mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &cname) &&
-            mbus_parse_str(sp->mbus_engine_conf, &filter_name) &&
-            mbus_parse_int(sp->mbus_engine_conf, &filter_length) &&
-            mbus_parse_int(sp->mbus_engine_conf, &azimuth)) {
+        mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &cname) &&
+            mbus_parse_str(sp->mbus_engine, &filter_name) &&
+            mbus_parse_int(sp->mbus_engine, &filter_length) &&
+            mbus_parse_int(sp->mbus_engine, &azimuth)) {
 
                 mbus_decode_str(cname);
                 mbus_decode_str(filter_name);
@@ -172,7 +172,7 @@ static void rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct 
         } else {
                 printf("mbus: usage \"tool.rat.3d.user.settings <cname> <filter name> <filter len> <azimuth>\"\n");
         }
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void
@@ -183,12 +183,12 @@ rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-        mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &cname)) {
+        mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &cname)) {
                 mbus_decode_str(cname);
                 e = rtcp_get_dbentry_by_cname(sp, cname);
         }
-        mbus_parse_done(sp->mbus_engine_conf);
+        mbus_parse_done(sp->mbus_engine);
 
         if (e) {
                 ui_info_3d_settings(sp, e);
@@ -203,13 +203,13 @@ static void rx_tool_rat_lecture(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->lecture = i;
 	} else {
 		printf("mbus: usage \"tool.rat.lecture <boolean>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_sync(char *srce, char *args, session_struct *sp)
@@ -218,17 +218,13 @@ static void rx_tool_rat_sync(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
-		if (sp->mbus_channel != 0) {
-			sp->sync_on = i;
-		} else {
-			ui_update_sync(sp, FALSE);
-		}
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
+		sp->sync_on = i;
 	} else {
 		printf("mbus: usage \"tool.rat.sync <boolean>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_agc(char *srce, char *args, session_struct *sp)
@@ -237,13 +233,13 @@ static void rx_tool_rat_agc(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->agc_on = i;
 	} else {
 		printf("mbus: usage \"tool.rat.agc <boolean>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_audio_loopback(char *srce, char *args, session_struct *sp)
@@ -252,8 +248,8 @@ static void rx_tool_rat_audio_loopback(char *srce, char *args, session_struct *s
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
                 if (i) {
                         audio_loopback(sp->audio_device, 100);
                 } else {
@@ -262,7 +258,7 @@ static void rx_tool_rat_audio_loopback(char *srce, char *args, session_struct *s
 	} else {
 		printf("mbus: usage \"tool.rat.audio.loopback <boolean>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_echo_suppress(char *srce, char *args, session_struct *sp)
@@ -271,8 +267,8 @@ static void rx_tool_rat_echo_suppress(char *srce, char *args, session_struct *sp
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->echo_suppress = i;
                 if (sp->echo_suppress) {
                         source_list_clear(sp->active_sources);
@@ -280,7 +276,7 @@ static void rx_tool_rat_echo_suppress(char *srce, char *args, session_struct *sp
 	} else {
 		printf("mbus: usage \"tool.rat.echo.suppress <boolean>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_rate(char *srce, char *args, session_struct *sp)
@@ -289,14 +285,14 @@ static void rx_tool_rat_rate(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
                 assert(sp->channel_coder != NULL);
                 channel_encoder_set_units_per_packet(sp->channel_coder, (u_int16)i);
 	} else {
 		printf("mbus: usage \"tool.rat.rate <integer>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_audio_input_mute(char *srce, char *args, session_struct *sp)
@@ -305,8 +301,8 @@ static void rx_audio_input_mute(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		if (i) {
                         if (tx_is_sending(sp->tb)) {
                                 tx_stop(sp->tb);
@@ -321,7 +317,7 @@ static void rx_audio_input_mute(char *srce, char *args, session_struct *sp)
 	} else {
 		printf("mbus: usage \"audio.input.mute <boolean>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
@@ -330,15 +326,15 @@ static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->input_gain = i;
                 audio_set_gain(sp->audio_device, sp->input_gain);
                 tx_igain_update(sp->tb);
 	} else {
 		printf("mbus: usage \"audio.input.gain <integer>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
@@ -347,8 +343,8 @@ static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &s)) {
 		s = mbus_decode_str(s);
 		if (strcmp(s, "microphone") == 0) {
 			audio_set_iport(sp->audio_device, AUDIO_MICROPHONE);
@@ -365,7 +361,7 @@ static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
 	} else {
 		debug_msg("mbus: usage \"audio.input.port <port>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_audio_output_mute(char *srce, char *args, session_struct *sp)
@@ -374,14 +370,14 @@ static void rx_audio_output_mute(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
         	sp->playing_audio = !i; 
 		ui_update_output_port(sp);
 	} else {
 		printf("mbus: usage \"audio.output.mute <boolean>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_audio_output_gain(char *srce, char *args, session_struct *sp)
@@ -390,14 +386,14 @@ static void rx_audio_output_gain(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->output_gain = i;
 		audio_set_volume(sp->audio_device, sp->output_gain);
 	} else {
 		printf("mbus: usage \"audio.output.gain <integer>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
@@ -406,8 +402,8 @@ static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &s)) {
 		s = mbus_decode_str(s);
 		if (strcmp(s, "speaker") == 0) {
 			audio_set_oport(sp->audio_device, AUDIO_SPEAKER);
@@ -421,7 +417,7 @@ static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
 	} else {
 		printf("mbus: usage \"audio.output.port <port>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
         sp->output_mode = audio_get_oport(sp->audio_device);
 	ui_update_output_port(sp);
 }
@@ -432,14 +428,14 @@ static void rx_audio_channel_repair(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &s)) {
 		s = mbus_decode_str(s);
                 sp->repair = repair_get_by_name(s);
 	} else {
 		printf("mbus: usage \"audio.channel.repair <repair>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_security_encryption_key(char *srce, char *args, session_struct *sp)
@@ -449,13 +445,13 @@ static void rx_security_encryption_key(char *srce, char *args, session_struct *s
 	UNUSED(sp);
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &key)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &key)) {
 		Set_Key(mbus_decode_str(key));
 	} else {
 		printf("mbus: usage \"security.encryption.key <key>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_audio_file_play_stop(char *srce, char *args, session_struct *sp)
@@ -475,8 +471,8 @@ static void rx_audio_file_play_open(char *srce, char *args, session_struct *sp)
 	UNUSED(srce);
         UNUSED(sp);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &file)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &file)) {
                 mbus_decode_str(file);
                 if (sp->in_file) snd_read_close(&sp->in_file);
                 if (snd_read_open(&sp->in_file, file)) {
@@ -485,7 +481,7 @@ static void rx_audio_file_play_open(char *srce, char *args, session_struct *sp)
 	} else {
 		printf("mbus: usage \"audio.file.play.open <filename>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 
         if (sp->in_file) ui_update_playback_file(sp, file);
 
@@ -497,9 +493,9 @@ static void rx_audio_file_play_pause(char *srce, char *args, session_struct *sp)
 
         UNUSED(srce);
 
-        mbus_parse_init(sp->mbus_engine_conf, args);
+        mbus_parse_init(sp->mbus_engine, args);
 
-        if (mbus_parse_int(sp->mbus_engine_conf, &pause)) {
+        if (mbus_parse_int(sp->mbus_engine, &pause)) {
                 if (sp->in_file) {
                         if (pause) {
                                 snd_pause(sp->in_file);
@@ -510,7 +506,7 @@ static void rx_audio_file_play_pause(char *srce, char *args, session_struct *sp)
         } else {
                 printf("mbus: usage \"audio.file.play.pause <bool>\"\n");        
         }
-        mbus_parse_done(sp->mbus_engine_conf);
+        mbus_parse_done(sp->mbus_engine);
 }
 
 
@@ -538,8 +534,8 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &file)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &file)) {
                 const audio_format *ofmt;
                 ofmt = audio_get_ofmt(sp->audio_device);
                 mbus_decode_str(file);
@@ -551,7 +547,7 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_struct *sp)
 	} else {
 		printf("mbus: usage \"audio.file.record.open <filename>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
         
         if (sp->out_file) ui_update_record_file(sp, file);
 }
@@ -562,9 +558,9 @@ static void rx_audio_file_rec_pause(char *srce, char *args, session_struct *sp)
 
         UNUSED(srce);
 
-        mbus_parse_init(sp->mbus_engine_conf, args);
+        mbus_parse_init(sp->mbus_engine, args);
 
-        if (mbus_parse_int(sp->mbus_engine_conf, &pause)) {
+        if (mbus_parse_int(sp->mbus_engine, &pause)) {
                 if (sp->out_file) {
                         if (pause) {
                                 snd_pause(sp->out_file);
@@ -575,7 +571,7 @@ static void rx_audio_file_rec_pause(char *srce, char *args, session_struct *sp)
         } else {
                 printf("mbus: usage \"audio.file.record.pause <bool>\"\n");        
         }
-        mbus_parse_done(sp->mbus_engine_conf);
+        mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_audio_file_rec_live(char *srce, char *args, session_struct *sp)
@@ -595,8 +591,8 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &s)) {
 		s = mbus_decode_str(s);
                 purge_chars(s, "[]()");
                 next_device = -1;
@@ -624,7 +620,7 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
 	} else {
 		printf("mbus: usage \"audio.device <string>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
         
         sp->next_selected_device = next_device;
 }
@@ -635,13 +631,13 @@ static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine_conf, &arg)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_NAME,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"rtp_source_name <cname> <name>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_rtp_source_email(char *srce, char *args, session_struct *sp)
@@ -650,13 +646,13 @@ static void rx_rtp_source_email(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine_conf, &arg)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_EMAIL,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"rtp_source_email <cname> <email>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_rtp_source_phone(char *srce, char *args, session_struct *sp)
@@ -665,13 +661,13 @@ static void rx_rtp_source_phone(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine_conf, &arg)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_PHONE,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"rtp_source_phone <cname> <phone>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_rtp_source_loc(char *srce, char *args, session_struct *sp)
@@ -680,13 +676,13 @@ static void rx_rtp_source_loc(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine_conf, &arg)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &cname) && (strcmp(mbus_decode_str(cname), sp->db->my_dbe->sentry->cname) == 0) && mbus_parse_str(sp->mbus_engine, &arg)) {
 		rtcp_set_attribute(sp, RTCP_SDES_LOC,  mbus_decode_str(arg));
 	} else {
 		printf("mbus: usage \"rtp_source_loc <cname> <loc>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
@@ -697,8 +693,8 @@ static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &cname) && mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &cname) && mbus_parse_int(sp->mbus_engine, &i)) {
 		mbus_decode_str(cname);
                 e = rtcp_get_dbentry_by_cname(sp, cname);
                 if (e) {
@@ -708,7 +704,7 @@ static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
 	} else {
 		printf("mbus: usage \"rtp_source_mute <cname> <bool>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 
@@ -720,8 +716,8 @@ static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &cname) && mbus_parse_int(sp->mbus_engine_conf, &playout)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &cname) && mbus_parse_int(sp->mbus_engine, &playout)) {
 		for (e = sp->db->ssrc_db; e != NULL; e = e->next) {
 			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) break;
 		}
@@ -730,7 +726,7 @@ static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
 	} else {
 		printf("mbus: usage \"rtp_source_playout <cname> <playout>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void 
@@ -743,17 +739,17 @@ rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &short_name) &&
-            mbus_parse_str(sp->mbus_engine_conf, &schan) &&
-            mbus_parse_str(sp->mbus_engine_conf, &sfreq)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &short_name) &&
+            mbus_parse_str(sp->mbus_engine, &schan) &&
+            mbus_parse_str(sp->mbus_engine, &sfreq)) {
                 mbus_decode_str(short_name);
                 mbus_decode_str(schan);
                 mbus_decode_str(sfreq);
-                mbus_parse_done(sp->mbus_engine_conf);
+                mbus_parse_done(sp->mbus_engine);
         } else {
 		printf("mbus: usage \"audio.codec <codec> <freq> <channels>\"\n");
-                mbus_parse_done(sp->mbus_engine_conf);
+                mbus_parse_done(sp->mbus_engine);
                 return;
         }
 
@@ -796,9 +792,9 @@ rx_tool_rat_sampling(char *srce, char *args, session_struct *sp)
         UNUSED(sp);
 
         freq = channels = 0;
-        mbus_parse_init(sp->mbus_engine_conf, args);
-        if (mbus_parse_str(sp->mbus_engine_conf, &sfreq) && 
-            mbus_parse_str(sp->mbus_engine_conf, &schan)) {
+        mbus_parse_init(sp->mbus_engine, args);
+        if (mbus_parse_str(sp->mbus_engine, &sfreq) && 
+            mbus_parse_str(sp->mbus_engine, &schan)) {
                 mbus_decode_str(sfreq);
                 mbus_decode_str(schan);
                 if (strcasecmp(schan, "mono") == 0) {
@@ -816,7 +812,7 @@ rx_tool_rat_sampling(char *srce, char *args, session_struct *sp)
                 printf("mbus: usage \"tool.rat.sampling <freq> <channels>\"\n");
         }
         
-        mbus_parse_done(sp->mbus_engine_conf);
+        mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_playout_limit(char *srce, char *args, session_struct *sp)
@@ -824,13 +820,13 @@ static void rx_tool_rat_playout_limit(char *srce, char *args, session_struct *sp
         int i;
 
         UNUSED(srce);
-        mbus_parse_init(sp->mbus_engine_conf, args);
-        if (mbus_parse_int(sp->mbus_engine_conf, &i) && (1 == i || 0 == i)) {
+        mbus_parse_init(sp->mbus_engine, args);
+        if (mbus_parse_int(sp->mbus_engine, &i) && (1 == i || 0 == i)) {
                 sp->limit_playout = i;
         } else {
 		printf("mbus: usage \"tool.rat.playout.limit <bool>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_playout_min(char *srce, char *args, session_struct *sp)
@@ -839,13 +835,13 @@ static void rx_tool_rat_playout_min(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->min_playout = i;
 	} else {
 		printf("mbus: usage \"tool.rat.playout.min <integer>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_playout_max(char *srce, char *args, session_struct *sp)
@@ -854,13 +850,13 @@ static void rx_tool_rat_playout_max(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->max_playout = i;
 	} else {
 		printf("mbus: usage \"tool.rat.playout.max <integer>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
@@ -871,8 +867,8 @@ static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &name)) {
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &name)) {
                 mbus_decode_str(name);
                 n = converter_get_count();
                 for(i = 0; i < n; i++) {
@@ -885,15 +881,15 @@ static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
 	} else {
 		printf("mbus: usage \"tool.rat.converter <name>\"\n");
 	}
-	mbus_parse_done(sp->mbus_engine_conf);
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(srce);
 
-        mbus_parse_init(sp->mbus_engine_conf, args);
-        mbus_parse_done(sp->mbus_engine_conf);
+        mbus_parse_init(sp->mbus_engine, args);
+        mbus_parse_done(sp->mbus_engine);
 	ui_update_channel(sp);
 }
 
