@@ -24,6 +24,7 @@ static const char cvsid[] =
 #include "auddev_luigi.h"
 #include "auddev_osprey.h"
 #include "auddev_oss.h"
+#include "auddev_alsa.h"
 #include "auddev_pca.h"
 #include "auddev_sgi.h"
 #include "auddev_sparc.h"
@@ -202,6 +203,39 @@ audio_if_t audio_if_table[] = {
         },
 
 #endif /* HAVE_OSS_AUDIO */
+#ifdef HAVE_ALSA_AUDIO
+        {
+                alsa_audio_init, 
+                NULL,
+                alsa_get_device_count,
+                alsa_get_device_name,
+                alsa_audio_open,
+                alsa_audio_close,
+                alsa_audio_drain,
+                alsa_audio_duplex,
+                alsa_audio_read,
+                alsa_audio_write,
+                alsa_audio_non_block,
+                alsa_audio_block,
+                alsa_audio_set_igain,
+                alsa_audio_get_igain,
+                alsa_audio_set_ogain,
+                alsa_audio_get_ogain,
+                alsa_audio_loopback,
+                alsa_audio_oport_set,
+                alsa_audio_oport_get,
+                alsa_audio_oport_details,
+                alsa_audio_oport_count,
+                alsa_audio_iport_set,
+                alsa_audio_iport_get,
+                alsa_audio_iport_details,
+                alsa_audio_iport_count,
+                alsa_audio_is_ready,
+                alsa_audio_wait_for,
+                alsa_audio_supports
+        },
+
+#endif /* HAVE_ALSA_AUDIO */
 #ifdef WIN32
         {
                 w32sdk_audio_init,

@@ -177,9 +177,15 @@ case "$target" in
 		 AC_DEFINE(HAVE_OSPREY_AUDIO)])
 	;;
 *linux*)
-	AU_OBJ="$AU_OBJ auddev_oss.o"
-	AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
-	AC_DEFINE(HAVE_OSS_AUDIO)
+	if test -f /usr/include/sys/asoundlib.h ; then
+		AU_OBJ="$AU_OBJ auddev_alsa.o"
+		AU_LIB="$AU_LIB -lasound"
+		AC_DEFINE(HAVE_ALSA_AUDIO)
+	else
+		AU_OBJ="$AU_OBJ auddev_oss.o"
+		AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
+		AC_DEFINE(HAVE_OSS_AUDIO)
+	fi
 	;;
 *freebsd*)
 	# PC Speaker device on FreeBSD
