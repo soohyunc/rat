@@ -868,7 +868,6 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
                 ts_blk_off = ts_map32(cf->format.sample_rate, boff);
                 this_playout = ts_add(playout, ts_max_off);
                 this_playout = ts_sub(this_playout, ts_blk_off);
-                debug_msg("redundant playout %d\n", this_playout.ticks);
                 hp += 4; /* hdr */
                 red_split_unit(ppt, bpt, dp, blen, this_playout, out);
                 xmemchk();
@@ -877,7 +876,6 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
         }
         
         this_playout = ts_add(playout, ts_max_off);
-        debug_msg("primary playout %d\n", this_playout.ticks);
         hp += 1;
         blen = (uint32_t) (de - dp);
         red_split_unit(ppt, ppt, dp, blen, this_playout, out);
