@@ -32,7 +32,7 @@ void 	read_and_enqueue(socket_udp *s,
                          ts_t        now_ts,
                          struct s_pckt_queue *queue, 
                          int type);
-int     read_and_discard(socket_udp *s);
+void    read_and_discard(socket_udp *s);
 
 #endif /* _RAT_NET_H_ */
 

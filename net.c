@@ -120,11 +120,10 @@ read_and_enqueue(socket_udp *s, ts_t cur_ts, struct s_pckt_queue *queue, int typ
 }
 
 /* discard buffered packets and return how many were dumped */
-int read_and_discard(socket_udp *s)
+void read_and_discard(socket_udp *s)
 {
         struct timeval no_time_at_all;
         unsigned char *data;
-        int done = 0;
 
         memset(&no_time_at_all, 0, sizeof(no_time_at_all));
 
@@ -132,12 +131,9 @@ int read_and_discard(socket_udp *s)
         do {
                 udp_fd_zero();
                 udp_fd_set(s);
-                done++;
-        } while (( udp_select(&no_time_at_all) > 0 ) && 
-                 ( udp_recv(s, (char *) data, PACKET_LENGTH) > 0));
+        } while (( udp_select(&no_time_at_all) > 0 ) && ( udp_recv(s, (char *) data, PACKET_LENGTH) > 0));
 
         block_free(data, PACKET_LENGTH);
-        return (done - 1);
 }
 
 void network_process_mbus(session_struct *sp)
