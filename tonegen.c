@@ -97,7 +97,7 @@ tonegen_destroy(tonegen_t **ppt)
 int 
 tonegen_play(tonegen_t *pt, ts_t start, ts_t end)
 {
-        ts_t                duration;
+        ts_t                delta, duration;
         uint32_t            samples, phase, i;
         coded_unit          src;
         const mixer_info_t *mi; 
@@ -106,11 +106,13 @@ tonegen_play(tonegen_t *pt, ts_t start, ts_t end)
         assert(ts_gt(start, end) == FALSE);
 
         if (pt->played == 0) {
-                pt->write_end = start;
+                pt->write_end = end;
                 pt->played    = 1;
         }
 
-        if (ts_gt(end, pt->write_end) == FALSE) {
+        delta = ts_sub(pt->write_end, end);
+        duration = ts_map32(8000, 1280);
+        if (!ts_gt(duration, delta)) {
                 /* No audio needs putting into mixer but return TRUE to */
                 /* indicate still active thought.                       */
                 return TRUE;
@@ -118,10 +120,7 @@ tonegen_play(tonegen_t *pt, ts_t start, ts_t end)
 
         mi = mix_query(pt->ms);
 
-        duration       = ts_sub(end, pt->write_end);
-        /* Convert duration to sampling rate of file */
         duration       = ts_convert(mi->sample_rate, duration);
-        duration.ticks = duration.ticks + (320 - duration.ticks % 320);
         samples        = duration.ticks * mi->channels; 
 
         /* Initialize src for reading chunk of sound file */
