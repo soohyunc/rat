@@ -407,11 +407,10 @@ void
 audio_set_iport(audio_desc_t ad, int port)
 {
         audio_if_t *aif;
-        
         ad = AIF_MAGIC_TO_IDX(ad);
         aif = audio_get_active_interface(ad);
 
-        aif->audio_if_set_oport(ad, port);
+        aif->audio_if_set_iport(ad, port);
 }
 
 int
