@@ -211,10 +211,13 @@ mix_put_audio(mixer_t     *ms,
                 if (ts_gt(expected_playout, playout)) {
                         delta = ts_sub(expected_playout, playout);
                         if (ts_gt(frame_period, delta)) {
-                                uint32_t  trim = delta.ticks * ms->info.channels;
+                                uint32_t  trim;
+								delta = ts_convert(ms->info.sample_rate, delta);
+								trim = delta.ticks * ms->info.channels;
                                 samples  += trim;
-                                nsamples -= trim;
-                                debug_msg("Mixer trimmed %d samples (%d)\n", trim, playout.ticks);
+                                assert(nsamples > trim);
+								nsamples -= trim;
+								debug_msg("Mixer trimmed %d samples (%d)\n", trim, playout.ticks);
                         } else {
                                 debug_msg("Skipped unit\n");
                         }
@@ -264,7 +267,8 @@ mix_put_audio(mixer_t     *ms,
         }
         
         if (pos + nsamples > (uint32_t)ms->buf_len) { 
-                audio_mix_fn(ms->mix_buffer + pos, 
+            xmemchk();    
+				audio_mix_fn(ms->mix_buffer + pos, 
                              samples, 
                              ms->buf_len - pos); 
                 xmemchk();

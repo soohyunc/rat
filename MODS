@@ -1002,7 +1002,7 @@ v4.1.2  - Added echo suppression back, it fell out of code base at some point.
 	- Update to common library 1.0.10
 	* Released 13 December 1999
 
-v4.1.3	- Rename common library to libuclmmbase.a on unix
+v4.1.3  - Rename common library to libuclmmbase.a on unix
 	- Update RPM spec file
 	- Update installation instructions
 	- Fix "-t" option, to set the TTL. The v4.1.2 release would always
@@ -1051,13 +1051,13 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Incorporated auddev_atm.c and wrote auddev_atm.h.
 	* Released 31 January 2000 [X3D SDK CDROM]
 
-v4.1.4	- Fix dependencies in Makefile for rpm target
+v4.1.4  - Fix dependencies in Makefile for rpm target
 	- Fix handling of odd numbered RTP ports (pick next lower port).
 	- Fix loopback setting load and carry thru when changing device.
 	- Fix -version command line option.
 	* Released 1 February 2000
 
-v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
+v4.1.5  - Add support for ALSA audio drivers on Linux, contributed by
 	  Robert Olson of Argonne National Laboratory.
 	- Add rtt calculation to rtp_callback.c.
 	- Fix don't start mbus and processes if no command line args given.
@@ -1109,37 +1109,37 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	  file. Requested by Frode Kileng.
 	- Add use of username when no RTPdefault exists for participant name.
 	- Fix handling of audioInputMute in RATdefaults. Reported by 
-          Frode Kileng.
+	  Frode Kileng.
 	- Fix rtp.source.active for local user in response to rtp.query(), 
 	  didn't highlight local users transmit state.
-        - Update SDR plugin.
+	- Update SDR plugin.
 	- Transfer string associative array code out of settings.c into new 
 	  common library files asarray.[ch].
-        - Fix -allowloopback option.
-        - Add controller checks for child process termination on Win32. 
-        - Add message loop and watch for WM_DESTROY to controller.  Will now
-          shutdown engine and ui when Win32 task manager sends these.  NB,
-          Visual Studio debugger terminates processes and still leaves
-          children running.  AFAIK there is no way for children to spot this,
-          i.e. WaitForSingleObject watching process does not appear to work
-          for children watching parents.
-        - Use _vsnprintf for snprintf functionality on Win32.
+	- Fix -allowloopback option.
+	- Add controller checks for child process termination on Win32. 
+	- Add message loop and watch for WM_DESTROY to controller.  Will now
+	  shutdown engine and ui when Win32 task manager sends these.  NB,
+	  Visual Studio debugger terminates processes and still leaves
+	  children running.  AFAIK there is no way for children to spot this,
+	  i.e. WaitForSingleObject watching process does not appear to work
+	  for children watching parents.
+	- Use _vsnprintf for snprintf functionality on Win32.
 	- Fix "make tgz" target to include the sdr plugin 
 	* Released 14 February 2000
 
 v4.1.6  - Fix Windows port
-        * Released 15 February 2000
+	* Released 15 February 2000
 
-v4.1.7	- Update ALSA detection in configure script
+v4.1.7  - Update ALSA detection in configure script
 	- Fix display of names when SDES NAME is not known (fallback to
 	  CNAME or SSRC in that order).
 	- Add support for the rtp.addr.query() mbus message to media engine.
 	- Remove support for the tool.rat.codec.details() mbus message.
 	- Add support for the
-       		tool.rat.codecs.request()
-       		tool.rat.codecs.flush()
-       		tool.rat.codecs.add()
-  	  mbus messages.
+		tool.rat.codecs.request()
+		tool.rat.codecs.flush()
+		tool.rat.codecs.add()
+	  mbus messages.
 	- Add audio clip support to balloon help.
 	- Tidied mixer interface and cleaned session_struct out.
 	- Fix mixer wrap handling for multi-channel.
@@ -1153,10 +1153,10 @@ v4.1.7	- Update ALSA detection in configure script
 	  to the title bar
 	- Partially fix processing of Tcl events in the UI during the rendezvous
 	  with the media engine
-        - Partially fix audio processing on windows 2000
+	- Partially fix audio processing on windows 2000
 	* Released 24 February 2000
 
-v4.1.8	- Partially fix layered codec (recognises multiple addresses on
+v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  command line but doesn't send to all of them)
 	- Slay zombies when children die
 	- Add repeat+ repair type.  It does standard repeat and then reverse
@@ -1187,6 +1187,9 @@ v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	  not support these sampling rates, one of the sample rate converters
 	  supports conversion from m*11025 to n*8000.
 	- Fix noise during sample insertion from skew adaptation.
+	- Fix fatal mix error when downsampling.  Trim length did not
+	  compensate for the sample rate, causing trim length to wrap and
+	  attempt to remove zillions of samples.
 
 TODO -- They're features not bugs dammit!
 ----
