@@ -47,25 +47,25 @@ proc init_source {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE num_cname 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
 
-	if {[array names INDEX $cname] != $cname} {
+	if {[array names INDEX $cname] != [list $cname]} {
 		# This is a source we've not seen before...
-		set        CNAME($cname) "$cname"
-		set         NAME($cname) "$cname"
+		set        CNAME($cname) $cname
+		set         NAME($cname) $cname
 		set        EMAIL($cname) ""
 		set        PHONE($cname) ""
 		set          LOC($cname) ""
 		set         TOOL($cname) ""
 		set	    NOTE($cname) ""
-		set     CODEC($cname) "unknown"
+		set        CODEC($cname) unknown
 		set     DURATION($cname) ""
-		set   PCKTS_RECV($cname) "0"
-		set   PCKTS_LOST($cname) "0"
-		set   PCKTS_MISO($cname) "0"
-		set   PCKTS_DUP($cname)  "0"
-		set       JITTER($cname) "0"
-		set    JIT_TOGED($cname) "0"
-		set   LOSS_TO_ME($cname) "101"
-		set LOSS_FROM_ME($cname) "101"
+		set   PCKTS_RECV($cname) 0
+		set   PCKTS_LOST($cname) 0
+		set   PCKTS_MISO($cname) 0
+		set   PCKTS_DUP($cname)  0
+		set       JITTER($cname) 0
+		set    JIT_TOGED($cname) 0
+		set   LOSS_TO_ME($cname) 101
+		set LOSS_FROM_ME($cname) 101
 		set        INDEX($cname) $num_cname
 		incr num_cname
 		chart_enlarge $num_cname 
@@ -80,7 +80,7 @@ proc window_plist {cname} {
 }
 
 proc window_stats {cname} {
-	regsub -all {\.} $cname {-} foo
+	regsub -all {[\. ]} $cname {-} foo
 	return .stats$foo
 }
 
@@ -401,7 +401,7 @@ proc mbus_recv_source.packet.loss {dest srce loss} {
 	init_source $dest
 	catch {after cancel $losstimers($srce,$dest)}
 	chart_set $srce $dest $loss
-	set losstimers($srce,$dest) [after 7500 "chart_set $srce $dest 101"]
+	set losstimers($srce,$dest) [after 7500 chart_set "$srce" "$dest" 101]
 	if {[string compare $dest $my_cname] == 0} {
 		set LOSS_TO_ME($srce) $loss
 	}
@@ -479,8 +479,8 @@ proc cname_update {cname} {
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP LOSS_TO_ME LOSS_FROM_ME
 	global fw iht iwd my_cname mylosstimers his_or_her_losstimers
 
-	if {[array names INDEX $cname] != $cname} {
-		error "Can't update $cname, source doesn't exist."
+	if {[array names INDEX $cname] != [list $cname]} {
+		error "Can't update \"$cname\", source doesn't exist."
 	}
 
 	set cw [window_plist $cname]
@@ -500,9 +500,9 @@ proc cname_update {cname} {
 		$cw create polygon $l $h $h $l $h $f -outline black -fill grey50 -tag m
 		$cw create polygon $f $h $h $l $h $f -outline black -fill grey50 -tag h
 
-		bind $cw <Button-1>         "toggle_stats $cname"
-		bind $cw <Button-2>         "toggle_mute $cw $cname"
-		bind $cw <Control-Button-1> "toggle_mute $cw $cname"
+		bind $cw <Button-1>         "toggle_stats \"$cname\""
+		bind $cw <Button-2>         "toggle_mute $cw \"$cname\""
+		bind $cw <Control-Button-1> "toggle_mute $cw \"$cname\""
 	}
 
 	# Add this participant to the list...
@@ -1544,10 +1544,10 @@ proc chart_enlarge {new_size} {
 proc chart_set {srce dest val} {
   global INDEX chart_size chart_boxsize chart_xoffset chart_yoffset
 
-  if {[array names INDEX $srce] != $srce} {
+  if {[array names INDEX $srce] != [list $srce]} {
     return
   }
-  if {[array names INDEX $dest] != $dest} {
+  if {[array names INDEX $dest] != [list $dest]} {
     return
   }
   set x $INDEX($srce)
