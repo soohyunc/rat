@@ -228,6 +228,24 @@ static void rx_audio_loopback(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(mbus_chan);
 }
 
+static void rx_echo_suppress(char *srce, char *args, session_struct *sp)
+{
+	int i;
+
+	UNUSED(srce);
+
+	mbus_parse_init(mbus_chan, args);
+	if (mbus_parse_int(mbus_chan, &i)) {
+		sp->echo_suppress = i;
+                if (sp->echo_suppress) {
+                        playout_buffers_destroy(sp, &sp->playout_buf_list);
+                }
+	} else {
+		printf("mbus: usage \"echoSuppress <boolean>\"\n");
+	}
+	mbus_parse_done(mbus_chan);
+}
+
 static void rx_rate(char *srce, char *args, session_struct *sp)
 {
 	int	 i;
@@ -256,6 +274,7 @@ static void rx_input_mute(char *srce, char *args, session_struct *sp)
 		} else {
 			tx_start(sp);
 		}
+                sp->echo_was_sending = i;
 		ui_update_input_port(sp);
 	} else {
 		printf("mbus: usage \"input_mute <boolean>\"\n");
@@ -854,7 +873,8 @@ const char *rx_cmnd[] = {
 	"lecture",
 	"externalise",
 	"agc",
-        "audio.loopback",
+        "loopback",
+        "echoSuppress",
 	"sync",
 	"rate",
 	"input.mute",
@@ -901,6 +921,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_externalise,
 	rx_agc,
         rx_audio_loopback,
+        rx_echo_suppress,
 	rx_sync,
 	rx_rate,
 	rx_input_mute,

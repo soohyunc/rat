@@ -59,6 +59,7 @@ struct  s_sd *sd_init (u_int16 blk_dur, u_int16 freq);
 void    sd_destroy    (struct s_sd *s);
 void	sd_reset      (struct s_sd *s);
 int	sd            (struct s_sd *s, u_int16 energy);
+struct  s_sd *sd_dup  (struct s_sd *s);
 
 #define VAD_MODE_LECT     0
 #define VAD_MODE_CONF     1

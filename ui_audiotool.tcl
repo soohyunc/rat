@@ -164,11 +164,11 @@ proc change_sampling { } {
 proc mbus_recv_frequencies.supported {arg} {
     global freq
 
-    .prefs.pane.transmission.dd.sampling.mfreq.menu delete 0 last
+    .prefs.pane.audio.dd.sampling.mfreq.menu delete 0 last
 
     set freqs [split $arg]
     foreach f $freqs {
-	.prefs.pane.transmission.dd.sampling.mfreq.menu add command -label $f -command "set freq $f; change_sampling"
+	.prefs.pane.audio.dd.sampling.mfreq.menu add command -label $f -command "set freq $f; change_sampling"
     }
     set freq [lindex $freqs 0]
 }
@@ -875,6 +875,7 @@ menu .prefs.m.f.m.menu -tearoff 0
 .prefs.m.f.m.menu add command -label "Personal"     -command {set_pane prefs_pane .prefs.pane "Personal"}
 .prefs.m.f.m.menu add command -label "Transmission" -command {set_pane prefs_pane .prefs.pane "Transmission"}
 .prefs.m.f.m.menu add command -label "Reception"    -command {set_pane prefs_pane .prefs.pane "Reception"}
+.prefs.m.f.m.menu add command -label "Audio"        -command {set_pane prefs_pane .prefs.pane "Audio"}
 .prefs.m.f.m.menu add command -label "Security"     -command {set_pane prefs_pane .prefs.pane "Security"}
 .prefs.m.f.m.menu add command -label "Interface"    -command {set_pane prefs_pane .prefs.pane "Interface"}
 
@@ -932,31 +933,14 @@ frame $i.cc  -relief sunken
 frame $i.cc.van 
 frame $i.cc.red 
 frame $i.cc.int 
-frame $i.cks -relief sunken
+
 pack $i.dd -fill x
 pack $i.cc $i.cc.van $i.cc.red -fill x -anchor w -pady 1
 pack $i.cc.int -fill x -anchor w -pady 0
-pack $i.cks -fill both -expand 1 -anchor w -pady 1
-
 frame $i.dd.units
 frame $i.dd.pri
-frame $i.dd.sampling  
 
-pack $i.dd.units $i.dd.pri $i.dd.sampling -side right -fill x 
-
-label $i.dd.sampling.l -text "Sampling:"
-pack  $i.dd.sampling.l -side top -fill x
-
-menubutton $i.dd.sampling.mfreq -menu $i.dd.sampling.mfreq.menu -indicatoron 1 -textvariable freq -relief raised -width 6
-pack $i.dd.sampling.mfreq -side left
-menu $i.dd.sampling.mfreq.menu -tearoff 0
-
-menubutton $i.dd.sampling.mchannels -menu $i.dd.sampling.mchannels.menu -indicatoron 1 -textvariable channels -relief raised -width 7
-pack $i.dd.sampling.mchannels -side left
-menu $i.dd.sampling.mchannels.menu -tearoff 0
-$i.dd.sampling.mchannels.menu add command -label "Mono"   -command "set channels Mono; change_sampling"
-$i.dd.sampling.mchannels.menu add command -label "Stereo" -command "set channels Stereo; change_sampling"
-set channels Mono
+pack $i.dd.units $i.dd.pri -side right -fill x 
 
 label $i.dd.pri.l -text "Encoding:"
 menubutton $i.dd.pri.m -menu $i.dd.pri.m.menu -indicatoron 1 -textvariable prenc -relief raised -width 13
@@ -1002,14 +986,6 @@ pack $i.cc.int.fc $i.cc.int.zz -side right
 pack $i.cc.int.fc.l $i.cc.int.fc.m -fill x -expand 1
 pack $i.cc.int.zz.l $i.cc.int.zz.m -fill x -expand 1
 
-frame $i.cks.f
-frame $i.cks.f.f
-checkbutton $i.cks.f.f.silence -text "Silence Suppression"    -variable silence_var 
-checkbutton $i.cks.f.f.agc     -text "Automatic Gain Control" -variable agc_var 
-checkbutton $i.cks.f.f.loop    -text "Audio Loopback"  -variable audio_loop_var
-pack $i.cks.f -fill x -side top -expand 1
-pack $i.cks.f.f
-pack $i.cks.f.f.silence $i.cks.f.f.agc $i.cks.f.f.loop -side left -anchor w
 
 # Reception Pane ##############################################################
 set i .prefs.pane.reception
@@ -1052,6 +1028,43 @@ pack $i.c.f -fill x -side left -expand 1
 pack $i.c.f.f 
 pack $i.c.f.f.lec -side top  -anchor w
 pack $i.c.f.f.ext -side top  -anchor w
+
+# Audio #######################################################################
+set i .prefs.pane.audio
+frame $i 
+frame $i.dd -relief sunken 
+pack $i.dd -fill both -expand 1 -anchor w -pady 1
+
+frame $i.dd.sampling  
+pack  $i.dd.sampling 
+
+label $i.dd.sampling.l -text "Sampling:"
+pack  $i.dd.sampling.l -side top -fill x
+
+menubutton $i.dd.sampling.mfreq -menu $i.dd.sampling.mfreq.menu -indicatoron 1 \
+                                -textvariable freq -relief raised -width 6
+pack $i.dd.sampling.mfreq -side left
+menu $i.dd.sampling.mfreq.menu -tearoff 0
+
+menubutton $i.dd.sampling.mchannels -menu $i.dd.sampling.mchannels.menu -indicatoron 1 \
+                                    -textvariable channels -relief raised -width 7
+pack $i.dd.sampling.mchannels -side left
+menu $i.dd.sampling.mchannels.menu -tearoff 0
+$i.dd.sampling.mchannels.menu add command -label "Mono"   -command "set channels Mono; change_sampling"
+$i.dd.sampling.mchannels.menu add command -label "Stereo" -command "set channels Stereo; change_sampling"
+set channels Mono
+
+frame $i.cks -relief sunken
+pack $i.cks -fill both -expand 1 -anchor w -pady 1
+frame $i.cks.f 
+frame $i.cks.f.f
+checkbutton $i.cks.f.f.silence  -text "Silence Suppression"    -variable silence_var 
+checkbutton $i.cks.f.f.agc      -text "Automatic Gain Control" -variable agc_var 
+checkbutton $i.cks.f.f.loop     -text "Audio Loopback"         -variable audio_loop_var
+checkbutton $i.cks.f.f.suppress -text "Echo Suppression"       -variable echo_var
+pack $i.cks.f -fill x -side top -expand 1
+pack $i.cks.f.f
+pack $i.cks.f.f.silence $i.cks.f.f.agc $i.cks.f.f.loop $i.cks.f.f.suppress -side top -anchor w
 
 # Security Pane ###############################################################
 set i .prefs.pane.security
@@ -1289,7 +1302,7 @@ proc sync_engine_to_ui {} {
     # make audio engine concur with ui
     global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc 
     global prenc upp channel_var secenc red_off int_gap int_units
-    global silence_var agc_var audio_loop_var
+    global silence_var agc_var audio_loop_var echo_var
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
     global meter_var sync_var gain volume input_port output_port 
     global in_mute_var out_mute_var channels freq key key_var
@@ -1312,7 +1325,8 @@ proc sync_engine_to_ui {} {
 
     mbus_qmsg "silence"      $silence_var
     mbus_qmsg "agc"          $agc_var
-	mbus_qmsg "audio.loopback" $audio_loop_var
+    mbus_qmsg "loopback"     $audio_loop_var
+    mbus_qmsg "echoSuppress" $echo_var
 
     #Reception Options
     mbus_qmsg "repair"       [mbus_encode_str $repair_var]
@@ -1396,7 +1410,8 @@ proc save_settings {} {
     save_setting $f audioInterleavingUnits int_units 
     save_setting $f audioSilence           silence_var
     save_setting $f audioAGC               agc_var
-	save_setting $f audioLoopback          audio_loop_var
+    save_setting $f audioLoopback          audio_loop_var
+    save_setting $f audioEchoSuppress      echo_var
     # reception
     save_setting $f audioRepair           repair_var
     save_setting $f audioLimitPlayout     limit_var
@@ -1520,8 +1535,9 @@ proc load_settings {} {
     # transmission
     load_setting attr audioSilence           silence_var   "1"
     load_setting attr audioAGC               agc_var       "0"
-    load_setting attr AudioLoopback          audio_loop_var "0"
-	load_setting attr audioFrequency         freq          "8-kHz"
+    load_setting attr audioLoopback          audio_loop_var "0"
+    load_setting attr audioEchoSuppress      echo_var      "0"
+    load_setting attr audioFrequency         freq          "8-kHz"
     load_setting attr audioChannels          channels      "Mono"
     load_setting attr audioPrimary           prenc         "GSM"
     load_setting attr audioUnits             upp           "2"
@@ -1795,12 +1811,22 @@ add_help $i.email      	"Enter your email address for transmission\nto other par
 add_help $i.phone     	"Enter your phone number for transmission\nto other participants."
 add_help $i.loc      	"Enter your location for transmission\nto other participants."
 
-# transmission help
-set i .prefs.pane.transmission
+#audio help
+set i .prefs.pane.audio
 add_help $i.dd.sampling.mfreq \
                         "Sets the sampling rate of the audio device.\nThis changes the available codecs."
 add_help $i.dd.sampling.mchannels \
                         "Changes between mono and stereo sampling."
+add_help $i.cks.f.f.silence\
+			 "Prevents silence from being transmitted when the speaker is silent\n\
+                          and the input is unmuted."
+add_help $i.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound you send."
+add_help $i.cks.f.f.loop "Enables hardware for loopback of audio input."
+add_help $i.cks.f.f.suppress \
+                         "Mutes microphone when playing audio."
+
+# transmission help
+set i .prefs.pane.transmission
 
 add_help $i.dd.units.m	"Sets the duration of each packet sent.\nThere is a fixed per-packet\
                          overhead, so\nmaking this larger will reduce the total\noverhead.\
@@ -1824,9 +1850,6 @@ add_help $i.cc.int.zz.m "Number of compound units per packet."
 add_help $i.cc.int.rb	"Enables interleaving which exchanges latency\n\
 			 for protection against burst losses.  No other\n\
 			 audio tools can decode this format (experimental)."
-add_help $i.cks.f.f.silence\
-			 "If enabled, nothing is sent when the input\nis unmuted, but silent."
-add_help $i.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound you send."
 
 # Reception Help
 set i .prefs.pane.reception

@@ -107,6 +107,8 @@ typedef struct session_tag {
 	int		repair;				/* Packet repair */
 	int		lecture;			/* UI lecture mode */
 	int		externalise_audio;
+        int             echo_suppress;
+        int             echo_was_sending;               /* Used to store mute state when suppressing */
 	int		auto_lecture;			/* Used for dummy lecture mode */
 	int             transmit_audit_required;
 	int             receive_audit_required;

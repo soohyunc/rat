@@ -297,16 +297,65 @@ playout_buffer_get(session_struct *sp, ppb_t *buf, u_int32 from, u_int32 to)
 	return (ip);
 }
 
+static void
+playout_buffer_destroy(session_struct *sp, ppb_t **list, ppb_t *buf)
+{
+        ppb_t *pb, *lpb;
+        rx_queue_element_struct *nrx;
+
+        ui_info_deactivate(buf->src);
+
+        debug_msg("Destroying playout buffer\n");
+
+        while (buf->head_ptr) {
+                nrx = buf->head_ptr->next_ptr;
+                free_rx_unit(&buf->head_ptr);
+                buf->head_ptr = nrx;
+        }
+        
+        pb  = *list;
+        lpb = NULL;
+        while(pb) {
+                if (buf == pb) {
+                        pb = buf->next;
+                        block_free(buf, sizeof(ppb_t));
+                        if (buf == *list) {
+                                *list = pb;
+                                break;
+                        } else {
+                                lpb->next = pb;
+                                break;
+                        }
+                }
+                lpb = pb;
+                pb = pb->next;
+        }
+
+        if (*list == NULL && sp->echo_was_sending) {
+                debug_msg("Echo suppressor unmuting (%d).\n", sp->echo_was_sending);
+                if (sp->echo_was_sending) {
+                        tx_start(sp);
+                }
+                sp->echo_was_sending = FALSE;
+        }
+}
+
 #define HISTORY_LEN	60	/* ms */
+#define SUPPRESS_LEN   200      /* ms */
 
 static void
-clear_old_participant_history(ppb_t *buf)
+clear_old_participant_history(session_struct *sp, ppb_t *buf)
 { 
 	rx_queue_element_struct *ip;
 	u_int32	cutoff, cur_time, adj;
 
 	cur_time = get_time(buf->src->clock);
-        adj = (get_freq(buf->src->clock)/1000) * HISTORY_LEN;
+        if (sp->echo_suppress) {
+                adj = (get_freq(buf->src->clock)/1000) * SUPPRESS_LEN;
+                debug_msg("adjustment %d\n", adj);
+        } else {
+                adj = (get_freq(buf->src->clock)/1000) * HISTORY_LEN;
+        }
 	cutoff = cur_time - adj;
         assert(cutoff!=cur_time);
 
@@ -325,22 +374,7 @@ clear_old_participant_history(ppb_t *buf)
 		buf->head_ptr->prev_ptr = NULL;
 	} else {
 		buf->tail_ptr = NULL;
-	}
-}
-
-void
-clear_old_history(ppb_t **buf)
-{
-	ppb_t	*p;
-
-	while (*buf) {
-		clear_old_participant_history(*buf);
-		if ((*buf)->head_ptr == NULL) {
-			p = *buf;
-			*buf = p->next;
-			block_free(p, sizeof(ppb_t));
-		} else
-			buf = &(*buf)->next;
+                playout_buffer_destroy(sp, &sp->playout_buf_list, buf);
 	}
 }
 
@@ -376,26 +410,16 @@ playout_buffer_duration (ppb_t *list, rtcp_dbentry *src)
 }
 
 void
-destroy_playout_buffers(ppb_t **list)
+playout_buffers_destroy(session_struct *sp, ppb_t **list)
 {
-        rx_queue_element_struct *r;
-        ppb_t *p = *list;
-        while(p) {
-                *list = (*list)->next;
-                r = p->head_ptr;
-                while(r) {
-                        p->head_ptr = p->head_ptr->next_ptr;
-                        free_rx_unit(&r);
-                        r = p->head_ptr;
-                }
-                block_free(p, sizeof(ppb_t));
-                p = *list;
+        ppb_t *p;
+        while((p = *list)) {
+                playout_buffer_destroy(sp, list, p);
         }
-        *list = NULL;
 }
 
 static ppb_t *
-find_participant_queue(ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, struct s_pcm_converter *pc)
+find_participant_queue(session_struct *sp, ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, struct s_pcm_converter *pc)
 {
 	ppb_t *p;
         codec_t *cp_dev, *cp_src;
@@ -404,6 +428,16 @@ find_participant_queue(ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, 
 		if (p->src == src)
 			return (p);
 	}
+
+        /* Echo suppression */
+        if (*list == NULL && sp->echo_suppress) {
+                /* We are going to create a playout buffer so mute mike */
+                debug_msg("Echo suppressor muting.\n");
+                sp->echo_was_sending = sp->sending_audio;
+                if (sp->sending_audio) {
+                        tx_stop(sp);
+                }
+        }
 
 	p = (ppb_t*)block_alloc(sizeof(ppb_t));
 	memset(p, 0, sizeof(ppb_t));
@@ -432,60 +466,24 @@ find_participant_queue(ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, 
 }
 
 void
-playout_buffer_remove(ppb_t **list, rtcp_dbentry *src)
+playout_buffer_remove(session_struct *sp, ppb_t **list, rtcp_dbentry *src)
 {
 	/* We don't need to free "src", that's done elsewhere... [csp] */
-	ppb_t 			*curr, *prev, *tmp;
-	rx_queue_element_struct	*rxu, *rxt;
+	ppb_t *curr, *tmp;
 
         if (src->converter) converter_destroy(&src->converter);
 
 	assert(list != NULL);
 
-	if (*list == NULL) {
-		return;
-	}
-
-	if ((*list)->src == src) {
-		tmp = (*list)->next;
-		rxu = (*list)->head_ptr;
-		while(rxu != NULL) {
-			rxt = rxu->next_ptr;
-			free_rx_unit(&rxu);
-			rxu = rxt;
-		}
-		block_free(*list, sizeof(ppb_t));
-		*list = tmp;
-                ui_info_deactivate(src);
-	}
-
-	if (*list == NULL) return;
-
-	prev = *list;
-	curr = (*list)->next;
-
-	if (prev == NULL) return;
-
-	assert(prev != NULL);
-	while (curr != NULL) {
-		if (curr->src == src) {
-			prev->next = curr->next;
-			rxu = curr->head_ptr;
-			while(rxu != NULL) {
-				rxt = rxu->next_ptr;
-				free_rx_unit(&rxu);
-				rxu = rxt;
-			}
-			block_free(curr, sizeof(ppb_t));
-			curr = prev->next;
-                        ui_info_deactivate(src);
-		} else {
-			prev = curr;
-			curr = curr->next;
-		}
-	}
+        curr = *list;
+        while(curr) {
+                tmp = curr->next;
+                if (curr->src == src) {
+                        playout_buffer_destroy(sp, list, curr);
+                }
+                curr = tmp;
+        }
 }
-
 
 static void
 fix_first_playout_error(u_int32 now, rx_queue_element_struct *up)
@@ -511,7 +509,7 @@ fix_first_playout_error(u_int32 now, rx_queue_element_struct *up)
 #define PLAYOUT_SAFETY 5
 
 void 
-service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf_list, struct s_mix_info *ms)
+playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf_list, struct s_mix_info *ms)
 {
 	/* There is a nasty race condition in this function, which people
 	 * should be aware of: when a participant leaves a session (either
@@ -527,14 +525,14 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 	 * participant who is sending). Don't say I didn't warn you! [csp]
 	 */
 	rx_queue_element_struct	*up;
-	ppb_t			*buf, **bufp;
+	ppb_t			*buf;
 	u_int32			cur_time, cs, cu;
         
         cs = cu = 0;
         
 	while (receive_queue->queue_empty == FALSE) {
 		up       = get_unit_off_rx_queue(receive_queue);
-		buf      = find_participant_queue(buf_list, up->dbe_source[0], sp->encodings[0], up->dbe_source[0]->enc, sp->converter);
+		buf      = find_participant_queue(sp, buf_list, up->dbe_source[0], sp->encodings[0], up->dbe_source[0]->enc, sp->converter);
 		cur_time = get_time(buf->src->clock);
                 
 		/* This is to compensate for clock drift.
@@ -641,18 +639,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                                 }
                         }
 		}
-		clear_old_participant_history(buf);
-	}
-
-	for (bufp = buf_list; *bufp;) {
-		if ((*bufp)->head_ptr == NULL) {
-			buf = *bufp;
-			*bufp = buf->next;
-                        ui_info_deactivate(buf->src);
-			block_free(buf, sizeof(ppb_t));
-		} else {
-			bufp = &(*bufp)->next;
-		}
+		clear_old_participant_history(sp, buf);
 	}
 }
 

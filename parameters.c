@@ -176,6 +176,18 @@ sd_destroy(sd_t *s)
         xfree(s);
 }
 
+sd_t*
+sd_dup(sd_t *s)
+{
+        sd_t *d;
+        d = (sd_t*) xmalloc (sizeof(sd_t));
+        if (d) {
+                memcpy(d,s,sizeof(d));
+                return d;
+        }
+        return NULL;
+}
+
 #define SD_RES 8
 
 int

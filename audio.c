@@ -314,7 +314,7 @@ audio_device_give(session_struct *sp)
         cushion_destroy(sp->cushion);
         mix_destroy(sp->ms);
         tx_destroy(sp);
-        destroy_playout_buffers(&sp->playout_buf_list);
+        playout_buffers_destroy(sp, &sp->playout_buf_list);
 }
 
 void

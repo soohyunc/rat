@@ -87,17 +87,17 @@ struct s_participant_playout_buffer;
 rx_queue_element_struct*
 new_rx_unit(void);
 
-void playout_buffer_remove   (struct s_participant_playout_buffer **playout_buf_list, 
+void  playout_buffer_remove  (struct session_tag *sp,
+                              struct s_participant_playout_buffer **playout_buf_list, 
                               struct s_rtcp_dbentry *src);
-void service_receiver        (struct session_tag *sp,
+int   playout_buffer_exists   (struct s_participant_playout_buffer *buf_list, 
+                              struct s_rtcp_dbentry *src);
+void  playout_buffers_process(struct session_tag *sp,
 		              struct rx_queue_tag *receive_queue,
 		              struct s_participant_playout_buffer **buf_list,
 		              struct s_mix_info *ms);
-void clear_old_history       (struct s_participant_playout_buffer **buf);
-void destroy_playout_buffers (struct s_participant_playout_buffer **buf_list);
-int  playout_buffer_exists   (struct s_participant_playout_buffer *buf_list, 
-                              struct s_rtcp_dbentry *src);
-                            
+void  playout_buffers_destroy(struct session_tag *sp,
+                              struct s_participant_playout_buffer **buf_list);
 int32 playout_buffer_duration(struct s_participant_playout_buffer *buf_list, 
                               struct s_rtcp_dbentry *src);
 #endif /* _RECEIVE_H_ */

@@ -219,16 +219,21 @@ main(int argc, char *argv[])
 
 			if (!(sp[i]->playing_audio)) {
 				receive_unit_audit(rx_unit_queue_p[i]);
-			        clear_old_history(&sp[i]->playout_buf_list);
+                                if (sp[i]->playout_buf_list) {
+                                        playout_buffers_destroy(sp[i], &sp[i]->playout_buf_list);
+                                }
 			}
 
                         if (sp[i]->sending_audio || sp[i]->last_tx_service_productive) {
                                 tx_send(sp[i]);
                         }
+
 			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, real_time);
+
 			if (sp[i]->playing_audio) {
-				service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, sp[i]->ms);
+				playout_buffers_process(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, sp[i]->ms);
 			}
+
 			if (sp[i]->mode == TRANSCODER) {
 				service_rtcp(sp[i], sp[1-i], rtcp_pckt_queue_p[i], cur_time);
 			} else {

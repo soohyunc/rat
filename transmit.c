@@ -526,4 +526,3 @@ tx_igain_update(session_struct *sp)
         agc_reset(sp->tb->agc);
 }
 
-

@@ -551,6 +551,10 @@ void codec_end(session_struct *sp)
 #ifdef WIN32_ACM
         acmShutdown(); 
 #endif
+        if (cd) {
+                xfree(cd);
+                cd = NULL;
+        }
 }
 
 codec_t *
