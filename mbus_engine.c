@@ -582,28 +582,6 @@ static void func_primary(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void func_codec_query(char *srce, char *args, session_struct *sp)
-{
-	char	 arg[1000], *a;
-	codec_t	*codec;
-	int 	 i;
-
-	if ((strlen(args) != 1) || (args[0] != ' ')) {
-		printf("mbus: play-stop does not require parameters\n");
-		return;
-	}
-
-	a = &arg[0];
-	for (i=0; i<MAX_CODEC; i++) {
-		codec = get_codec(i);
-		if (codec != NULL) {
-			sprintf(a, " %s", codec->name);
-			a += strlen(codec->name) + 1;
-		}
-	}
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "codec_supported", arg, TRUE);
-}
-
 char *mbus_cmnd[] = {
 	"toggle_send",
 	"toggle_play",
@@ -637,7 +615,6 @@ char *mbus_cmnd[] = {
 	"source_playout",
 	"redundancy",
 	"primary",
-	"codec_query",
 	""
 };
 
@@ -674,7 +651,6 @@ void (*mbus_func[])(char *srce, char *args, session_struct *sp) = {
 	func_source_playout,
 	func_redundancy,
 	func_primary,
-	func_codec_query,
 };
 
 void mbus_handler_engine(char *srce, char *cmnd, char *args, void *data)

@@ -203,11 +203,10 @@ proc mbus_recv {cmd args} {
 proc mbus_recv_init {} {
 	# RAT has initialised itself, and we're now ready to go. 
 	# Perform any last minute initialisation...
-	mbus_send "R" "codec_query" ""
 }
 
-proc mbus_recv_codec_supported {codecs} {
-	puts stdout "This RAT supports the following codecs $codecs"
+proc mbus_recv_codec_supported {args} {
+	# We now have a list of codecs which this RAT supports...
 }
 
 proc mbus_recv_agc {args} {

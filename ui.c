@@ -297,6 +297,24 @@ ui_output_level(int level, session_struct *sp)
 	ol = level;
 }
  
+static void 
+ui_codecs(session_struct *sp)
+{
+	char	 arg[1000], *a;
+	codec_t	*codec;
+	int 	 i;
+
+	a = &arg[0];
+	for (i=0; i<MAX_CODEC; i++) {
+		codec = get_codec(i);
+		if (codec != NULL) {
+			sprintf(a, " %s", codec->name);
+			a += strlen(codec->name) + 1;
+		}
+	}
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "codec_supported", arg, TRUE);
+}
+
 static void
 ui_repair(int mode, session_struct *sp)
 {
@@ -335,16 +353,16 @@ ui_update(session_struct *sp)
 
 	ui_update_output_port(sp);
 	if (sp->playing_audio) {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_unmute", "", TRUE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_mute", "0", TRUE);
 	} else {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_mute", "", TRUE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_mute", "1", TRUE);
 	}
 
 	ui_update_input_port(sp);
 	if (sp->sending_audio) {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_unmute", "", TRUE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_mute", "0", TRUE);
 	} else {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_mute", "", TRUE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_mute", "1", TRUE);
 	}
 
 	if (sp->mode != TRANSCODER) {
@@ -543,6 +561,7 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 #endif
 	xfree(ecname);
 
+	ui_codecs(sp);
 	ui_repair(sp->repair, sp);
 	update_lecture_mode(sp);
 
