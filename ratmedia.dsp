@@ -155,6 +155,10 @@ SOURCE=.\pdb.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\pktbuf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\playout.c
 # End Source File
 # Begin Source File
@@ -296,6 +300,10 @@ SOURCE=.\pckt_queue.h
 # Begin Source File
 
 SOURCE=.\pdb.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\pktbuf.h
 # End Source File
 # Begin Source File
 
