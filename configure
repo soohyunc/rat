@@ -45,8 +45,6 @@ AR="ar"
 ECHO="echo"
 RANLIB="ranlib"
 
-${ECHO} "Configuring RAT v$VERSION for $OSTYPE"
-
 OSTYPE=`uname -s`
 case $OSTYPE in
   SunOS                  ) OSTYPE=`uname -s`_`uname -r | awk -F. '{print $1}'`
@@ -67,6 +65,7 @@ case $OSTYPE in
                            exit
                            ;;
 esac
+${ECHO} "Configuring RAT v$VERSION for $OSTYPE"
 
 case $OSTYPE in
   SunOS   ) CC="gcc"
