@@ -214,26 +214,17 @@ int Decrypt( const u_char* in, u_char* out, int* len)
 }
 
 int Decrypt_Ctrl( const u_char* in, u_char* out, int* len)
-/************************************************************************
-* DESCRIPTION                                                           *
-*                                                                       *
-* This function provides the external interface for decrypting control  *
-* packets                                                               *
-*                                                                       *
-* INPUT PARAMETERS                                                      *
-*                                                                       *
-* u_char* in: the buffer to be decrypted                                *
-* int* len:          the size of the buffer                             *
-*                                                                       *
-* OUTPUT PARAMETERS                                                     *
-*                                                                       *
-* u_char* out: the decrypted control information                        *
-*                                                                       *
-* RETURNS                                                               *
-*                                                                       *
-* int : the number of bytes removed                                     *
-*                                                                       *
-************************************************************************/
+/*
+ * This function provides the external interface for decrypting control packets
+ *
+ * INPUT PARAMETERS
+ * 	u_char* in: the buffer to be decrypted
+ * 	int* len:   the size of the buffer
+ * OUTPUT PARAMETERS
+ * 	u_char* out: the decrypted control information
+ * RETURNS
+ * 	int : the number of bytes removed
+ */
 {
 	int pad=0;
 	rtcp_t *rtcp_p;
@@ -256,22 +247,44 @@ int Decrypt_Ctrl( const u_char* in, u_char* out, int* len)
 	*len -= 4;
 	memcpy(out, (wrkbuf_+4), *len);
 	rtcp_p = (rtcp_t *) out;
-	do {
-		current_p = rtcp_p;
-		rtcp_p    = (rtcp_t *) ((u_int32 *) rtcp_p + ntohs(rtcp_p->common.length) + 1);
-	} while (rtcp_p < (rtcp_t *) (out + *len) && 
-	rtcp_p->common.type == 2);
-	if (current_p->common.p == 1) {
-		current_p->common.p = 0;	/* Clear the padding bit. */
+
+	if (rtcp_p->common.p == 1) {
+		/* Padding bit is set on the first packet in the compound. 
+		 * This is, of course, illegal, but vat insists on doing it, 
+		 * despite numerous people pointing out to Steve McCanne that
+		 * it's JUST PLAIN WRONG! Try to sort out the mess...
+		 */
+		rtcp_p->common.p = 0;
+		do {
+			current_p = rtcp_p;
+			rtcp_p    = (rtcp_t *) ((u_int32 *) rtcp_p + ntohs(rtcp_p->common.length) + 1);
+		} while (rtcp_p < (rtcp_t *) (out + *len) && rtcp_p->common.type == 2);
 		pad = out[*len - 1];
 		if (pad > 7 || pad == 0) {
 			++badpbit_;
-			return (0);
+			return 0;
 		}
 		current_p->common.length = htons(((((ntohs(current_p->common.length)+1)*4)-pad)/4)-1);
 		*len -= pad;
+		return pad+4;
+	} else {
+		/* Find the last packet, in this compound, and strip off the padding... */
+		do {
+			current_p = rtcp_p;
+			rtcp_p    = (rtcp_t *) ((u_int32 *) rtcp_p + ntohs(rtcp_p->common.length) + 1);
+		} while (rtcp_p < (rtcp_t *) (out + *len) && rtcp_p->common.type == 2);
+		if (current_p->common.p == 1) {
+			current_p->common.p = 0;	/* Clear the padding bit. */
+			pad = out[*len - 1];
+			if (pad > 7 || pad == 0) {
+				++badpbit_;
+				return 0;
+			}
+			current_p->common.length = htons(((((ntohs(current_p->common.length)+1)*4)-pad)/4)-1);
+			*len -= pad;
+		}
+		return pad+4;
 	}
-	return pad+4;
 }
 
 u_char* Encrypt_Ctrl( u_char* in, int* len)
