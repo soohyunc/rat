@@ -27,17 +27,18 @@ static const char cvsid[] =
  * cover for larger future jumps in workstation delay then SAFETY should be
  * larger. Sensible values are between 0.9 and 1
  */
-#define SAFETY		0.90
-#ifdef SunOS
-#define CUSHION_STEP	160
-#else
-#define CUSHION_STEP	80
-#endif
-#define HISTORY_SIZE	250
-#define MIN_COVER	((float)HISTORY_SIZE * SAFETY)
+#define SAFETY		 0.90
 
-#define MAX_CUSHION	4000
-#define MIN_CUSHION	320
+#define HISTORY_SIZE	 250
+#define MIN_COVER	 ((float)HISTORY_SIZE * SAFETY)
+#define CUSHION_MAX_MS	 500
+#define CUSHION_MIN_MS	 40
+#define CUSHION_STEP_MS  10
+
+/* Initial cushion value is high, but should guarantee no interruptions and 
+ * will come down during silent periods anyway
+ */
+#define CUSHION_START_MS 70
 
 /* All cushion measurements are in sampling intervals, not samples ! [oth] */
 
@@ -45,49 +46,57 @@ typedef struct s_cushion_struct {
 	uint32_t         cushion_estimate;
 	uint32_t         cushion_size;
 	uint32_t         cushion_step;
+        uint32_t         cushion_min;
+        uint32_t         cushion_max;
 	uint32_t        *read_history;	/* Circular buffer of read lengths */
-	int             last_in;	/* Index of last added value */
-	int            *histogram;	/* Histogram of read lengths */
+	int              last_in;	/* Index of last added value */
+	int             *histogram;	/* Histogram of read lengths */
         uint32_t         histbins;      /* Number of bins in histogram */
 } cushion_t;
 
 int 
-cushion_create(cushion_t **c, int blockdur)
+cushion_create(cushion_t **c, uint16_t sample_rate)
 {
         int i;
-        uint32_t *ip;
+        uint32_t cushion_start;
         cushion_t *nc;
 
         nc = (cushion_t*) xmalloc (sizeof(cushion_t));
-        if (nc == NULL) goto bail_cushion;
+        if (nc == NULL) {
+                return FALSE;
+        }
 
         /* cushion operates independently of the number of channels */
-        assert(blockdur > 0);
+        nc->cushion_min      = CUSHION_MIN_MS   * sample_rate / 1000;
+        nc->cushion_max      = CUSHION_MAX_MS   * sample_rate / 1000;
+        cushion_start        = CUSHION_START_MS * sample_rate / 1000;
+        nc->cushion_size     = nc->cushion_estimate = cushion_start;
+	nc->cushion_step     = CUSHION_STEP_MS  * sample_rate / 1000;
 
-        nc->cushion_size     = 2 * blockdur;
-	nc->cushion_estimate = blockdur;
-	nc->cushion_step     = blockdur / 2;
-	nc->read_history     = (uint32_t *) xmalloc (HISTORY_SIZE * sizeof(uint32_t));
-        if (nc->read_history == NULL) goto bail_history;
+	nc->read_history     = (uint32_t *)xmalloc(HISTORY_SIZE * sizeof(uint32_t));
+        if (nc->read_history == NULL) {
+                xfree(nc);
+                return FALSE;
+        }
 
-	for (i = 0, ip = nc->read_history; i < HISTORY_SIZE; i++, ip++)
-		*ip = 4;
+	for (i = 0; i < HISTORY_SIZE; i++) {
+                nc->read_history[i] = nc->cushion_estimate / nc->cushion_step;
+        }
 
-        nc->histbins  = 16000 / blockdur;
+        nc->histbins  = CUSHION_MAX_MS / CUSHION_STEP_MS + 1;
 	nc->histogram = (int *)xmalloc(nc->histbins * sizeof(int));
-        if (nc->histogram == NULL) goto bail_histogram;
+        if (nc->histogram == NULL) {
+                xfree(nc);
+                xfree(nc->read_history);
+                return FALSE;
+        }
 
 	memset(nc->histogram, 0, nc->histbins * sizeof(int));
-	nc->histogram[4] = HISTORY_SIZE;
+	nc->histogram[nc->cushion_estimate / nc->cushion_step] = HISTORY_SIZE;
 	nc->last_in = 0;
 
         *c = nc;
         return TRUE;
-        /* error cleanups... */
-        bail_histogram: xfree(nc->read_history);
-        bail_history:   xfree(nc); 
-        bail_cushion:   debug_msg("Cushion allocation failed.\n");
-                        return FALSE;
 }
 
 void
@@ -110,7 +119,6 @@ cushion_update(cushion_t *c, uint32_t read_dur, int mode)
         uint32_t lower, upper; 
 
         /* remove entry we are about to overwrite from histogram */
-        
         if (c->read_history[c->last_in] < c->histbins) {
                 c->histogram[ c->read_history[c->last_in] ]--;
         } else {
@@ -118,13 +126,14 @@ cushion_update(cushion_t *c, uint32_t read_dur, int mode)
         }
 
         /* slot in new entry and update histogram */
-	c->read_history[c->last_in] = read_dur / c->cushion_step;
+	c->read_history[c->last_in] = max(read_dur, c->cushion_min) / c->cushion_step;
         if (c->read_history[c->last_in] < c->histbins) {
                 c->histogram[ c->read_history[c->last_in] ]++;
         } else {
                 c->histogram[ c->read_history[c->histbins - 1] ]++;
                 debug_msg("WE ARE NOT KEEPING UP IN REAL-TIME\n");
         }
+
 	c->last_in++;
 	if (c->last_in == HISTORY_SIZE) {
 		c->last_in = 0;
@@ -142,40 +151,27 @@ cushion_update(cushion_t *c, uint32_t read_dur, int mode)
         }
         
         if (mode == CUSHION_MODE_LECTURE) {
-                lower = (cover_idx + 10) * c->cushion_step;
-                upper = (idx       + 10) * c->cushion_step;
+                lower = (cover_idx + 10);
+                upper = (idx       + 10);
         } else {
-                lower = (cover_idx + 2) * c->cushion_step;
-                upper = idx * c->cushion_step;
+                lower = (cover_idx + 2);
+                upper = idx;
         }
 
         /* it's a weird world :D lower can be above upper */
-        c->cushion_estimate = min(lower,upper);
+        c->cushion_estimate = min(lower,upper) * c->cushion_step;
+        c->cushion_estimate = max(c->cushion_estimate, c->cushion_min);
 
-        if (c->cushion_estimate < 2 * c->cushion_step) {
-                c->cushion_estimate = 2 * c->cushion_step;
-        }
-
-        /* Ignore first read from the device after startup */
-	if (c->cushion_size == 0) {
-		c->cushion_estimate = c->cushion_step;    
-        }
+        debug_msg("size % 3d cur % 3d\n", c->cushion_size, c->cushion_estimate);
+        assert(c->cushion_size     != 0);
+        assert(c->cushion_estimate != 0);
 }
 
 static void
 cushion_size_check(cushion_t *c)
 {
-        if (c->cushion_size < MIN_CUSHION) {
-                c->cushion_size = MIN_CUSHION;
-#ifdef DEBUG_CUSHION
-                debug_msg("cushion boosted.");
-#endif
-        } else if (c->cushion_size > MAX_CUSHION) {
-                c->cushion_size = MAX_CUSHION;
-#ifdef DEBUG_CUSHION
-                debug_msg("cushion clipped.\n");
-#endif
-        }
+        c->cushion_size = max(c->cushion_size, c->cushion_min);
+        c->cushion_size = min(c->cushion_size, c->cushion_max);
 }
 
 uint32_t 

@@ -1226,6 +1226,10 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	- Remove timers.[ch] to give a single internal representation of time.
 	- Add creation time to mix_create and remove mixer re-sync function.
 	- Fix MMX mix bounds calculation.
+	- Add sample rate factor into cushion.
+	- Change initial cushion value to be more conservative.
+	- Fix entries in cushion histogram being entered when less than
+	  minimum allowed cushion.
 
 TODO -- They're features not bugs dammit!
 ----

@@ -18,7 +18,7 @@
 
 struct s_cushion_struct;
 
-int     cushion_create             (struct s_cushion_struct **c, int block_dur);
+int     cushion_create             (struct s_cushion_struct **c, uint16_t sample_rate);
 void    cushion_destroy            (struct s_cushion_struct **c);
 
 void    cushion_update             (struct s_cushion_struct *c, uint32_t read_dur, int cushion_mode);
