@@ -1359,6 +1359,8 @@ TODO -- They're features not bugs dammit!
 	- SGI O2's don't have autosensing audio interface selection like 
 	  Indy's.
 	- Thierry still has problems with the NM256 card and device pairing
+	- Maestro2 cards only support stereo recording, need to hack
+	  auddev_oss to deal with this (Joseph Eggleston)
 - Update the 3d audio rendering code
 	- should decimate when using sampling rates other than that for which 
 	  it was originally designed for.
