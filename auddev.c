@@ -604,7 +604,10 @@ audio_close(audio_desc_t ad)
                         for(k = 0; k < AUDDEV_NUM_FORMATS; k++) {
                                 if (fmts[i][k] != NULL) audio_format_free(&fmts[i][k]);                                
                         }
-                        if (convert_buf[i]) xfree(convert_buf[i]);
+                        if (convert_buf[i]) {
+                                xfree(convert_buf[i]);
+                                convert_buf[i] = NULL;
+                        }
                         samples_written[i] = 0;
                         samples_read[i]    = 0;
                 } else {
@@ -699,8 +702,9 @@ audio_read(audio_desc_t ad, sample *buf, int samples)
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
 
+/*
         xmemchk();
-
+        */
         if (fmts[idx][AUDDEV_REQ_IFMT] == NULL) {
                 /* No conversion necessary as input format and real format are
                  * the same. [Input format only allocated if different from
@@ -719,7 +723,7 @@ audio_read(audio_desc_t ad, sample *buf, int samples)
                 samples_read[idx] += read_len / (sample_size * fmts[idx][AUDDEV_REQ_IFMT]->channels);
         }
 
-        xmemchk();
+/*        xmemchk(); */
         return read_len / sample_size;
 }
 

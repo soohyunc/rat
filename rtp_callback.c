@@ -80,7 +80,8 @@ rtp_callback_init(struct rtp *rtps, struct s_session *rats)
         cur->prev->next = cur;
 }
 
-void rtp_callback_exit(struct rtp *rtps)
+void 
+rtp_callback_exit(struct rtp *rtps)
 {
         rtp_assoc_t *cur, *sentinel;
         
@@ -187,17 +188,26 @@ process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
         pdb_entry_t  *e;
         uint32_t fract_lost, my_ssrc;
 
+        debug_msg("rr from 0x%lx on 0x%lx\n", ssrc, r->ssrc);
+
         /* Calculate rtt estimate */
         my_ssrc =  rtp_my_ssrc(sp->rtp_session[0]);
-        if (r->ssrc == my_ssrc &&
+        if (pdb_item_get(sp->pdb, r->ssrc, &e) == FALSE) {
+                /* Maybe deleted or not heard from yet */
+                debug_msg("Receiver report on unknown participant (0x%lx)\n",
+                          r->ssrc);
+                return;
+        }
+
+        if (pdb_item_get(sp->pdb, ssrc, &e) &&
+            r->ssrc == my_ssrc &&
             r->ssrc != ssrc    && /* filter self reports */
-            pdb_item_get(sp->pdb, ssrc, &e) &&
             r->lsr != 0) {
                 uint32_t ntp_sec, ntp_frac, ntp32;
                 double rtt;
                 ntp64_time(&ntp_sec, &ntp_frac);
                 ntp32 = ntp64_to_ntp32(ntp_sec, ntp_frac);
-                
+                    
                 rtt = rtp_rtt_calc(ntp32, r->lsr, r->dlsr);
                 /*
                  * Filter out blatantly wrong rtt values.  Some tools might not
@@ -211,20 +221,20 @@ process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
                 if (e->avg_rtt == 0.0) {
                         e->avg_rtt = e->last_rtt;
                 } else {
-                        e->avg_rtt += (e->last_rtt - e->avg_rtt) / 8.0;
+                            e->avg_rtt += (e->last_rtt - e->avg_rtt) / 8.0;
                 }
                 if (sp->mbus_engine != NULL) {
                         ui_send_rtp_rtt(sp, sp->mbus_ui_addr, ssrc, e->avg_rtt);
                 }
         }
-
+            
         /* Update loss stats */
         if (sp->mbus_engine != NULL) {
                 fract_lost = (r->fract_lost * 100) >> 8;
                 ui_send_rtp_packet_loss(sp, sp->mbus_ui_addr, ssrc, r->ssrc, fract_lost);
         }
 }
-
+        
 static void
 process_rr_timeout(session_t *sp, uint32_t ssrc, rtcp_rr *r)
 {
@@ -292,8 +302,17 @@ process_create(session_t *sp, uint32_t ssrc)
 static void
 process_delete(session_t *sp, uint32_t ssrc)
 {
+        debug_msg("got delete 0x%08lx\n", ssrc);
         if (ssrc != rtp_my_ssrc(sp->rtp_session[0]) &&
             sp->mbus_engine != NULL) {
+                struct s_source *s;
+                pdb_entry_t     *e;
+                if ((s = source_get_by_ssrc(sp->active_sources, ssrc)) != NULL) {
+                        source_remove(sp->active_sources, s);
+                }
+                if (pdb_item_get(sp->pdb, ssrc, &e)) {
+                        pdb_item_destroy(sp->pdb, ssrc);
+                }
                 ui_send_rtp_remove(sp, sp->mbus_ui_addr, ssrc);
         }
 }

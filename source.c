@@ -974,7 +974,7 @@ find_local_match(sample *buffer, uint16_t wstart, uint16_t wlen, uint16_t sstart
                 for(j = 0; j < wlen; j += channels) {
                         score += abs(buffer[wstart + j] - buffer[i + j]);
                 }
-                if (score < score_min) {
+                if (score <= score_min) {
                         score_min = score;
                         i_min     = i;
                 }

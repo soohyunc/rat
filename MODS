@@ -1065,7 +1065,7 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	  launching sub-processes.
 	- Fix controller only quits upon hearing byes from one of it's 
 	  children.
-	- Add playout buffer debugging/validation code
+	- Add playout buffer debugging/validation code.
 	- Add engine parsing of sdes commands accept my_ssrc as an acceptable
 	  ssrc identifier.  Then control does not need to know to set name,
 	  etc, from command line.
@@ -1091,10 +1091,17 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Add SIGCHLD to main_control to shutdown process tree when child 
 	  processes die in a timely manner.
 	- Fix shutdown sequence.
-	- Patch G711 A-law, Sun's code was wrong and you only notice when 
-	  speaking with real h/w implementations.
+	- Patch G711 A-law, Sun's reference implementation had a few glitches 
+	  and you only notice when speaking with real h/w implementations.
 	- Fix two step sample format conversion assertion failure.
+<<<<<<< MODS
+	- Fix device sample conversion layer freeing already freed pointer
+	  when swapping between devices with and without layer.
+	- Add RTCP DELETE messages trigger deletion corresponding pdb entry
+	  and source (if relevent).
+=======
 	- Update README.mbus
+>>>>>>> 1.84
 
 TODO -- They're features not bugs dammit!
 ----

@@ -19,6 +19,7 @@ static const char cvsid[] =
 #include "config_unix.h"
 #include "config_win32.h"
 #include "audio_types.h"
+#include "audio_fmt.h"
 #include "auddev_null.h"
 #include "memory.h"
 #include "debug.h"
@@ -44,6 +45,12 @@ null_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
                 debug_msg("Warning device not closed before opening.\n");
                 null_audio_close(ad);
         }
+
+#ifdef DEBUG
+        /* These are just here to check format changing code works properly */
+        audio_format_change_encoding(infmt, DEV_PCMA);
+        audio_format_change_encoding(outfmt, DEV_PCMA);
+#endif /* DEBUG */
 
         memcpy(&ifmt, infmt,  sizeof(ifmt));
         memcpy(&ofmt, outfmt, sizeof(ofmt));
