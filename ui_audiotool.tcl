@@ -1072,7 +1072,7 @@ frame $i
 frame $i.a -relief sunken
 frame $i.a.f 
 frame $i.a.f.f
-label $i.a.f.f.l -anchor w -justify left -text "Your communication can be secured with triple\nDES encryption.  Only conference participants\nwith the same key can receive audio data when\nencryption is enabled."
+label $i.a.f.f.l -anchor w -justify left -text "Your communication can be secured with\nDES encryption.  Only conference participants\nwith the same key can receive audio data when\nencryption is enabled."
 pack $i.a.f.f.l
 pack $i.a -side top -fill both -expand 1 
 label $i.a.f.f.lbl -text "Key:"
@@ -1188,10 +1188,8 @@ pack      .about.rim.d.feedback.f.f -side left -fill x -expand 1
 label     .about.rim.d.feedback.f.f.1                  -text "Comments, suggestions, and bug-reports should be sent to:"
 label     .about.rim.d.feedback.f.f.2 -foreground blue -text "rat-trap@cs.ucl.ac.uk\n"
 label     .about.rim.d.feedback.f.f.3                  -text "Further information is available on the world-wide web at:"
-label     .about.rim.d.feedback.f.f.4 -foreground blue -text "http://www-mice.cs.ucl.ac.uk/mice/rat/\n"
-label     .about.rim.d.feedback.f.f.5                  -text "Source code and binaries are publicly available at:"
-label     .about.rim.d.feedback.f.f.6 -foreground blue -text "ftp://cs.ucl.ac.uk/mice/rat/"
-for {set i 1} {$i<=6} {incr i} {
+label     .about.rim.d.feedback.f.f.4 -foreground blue -text "http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/\n"
+for {set i 1} {$i<=4} {incr i} {
     pack  .about.rim.d.feedback.f.f.$i -side top -fill x
 }
 #pack .about.rim.t.logo .about.rim.t.blurb .about.rim.t.scroll -side right -fill y
@@ -1473,6 +1471,14 @@ proc load_setting {attrname field var default} {
     set $var $tmp
 }
 
+proc tool_version {tool} {
+	if {![regexp {RAT v[0-9]+\.[0-9]+\.[0-9]+ [a-zA-Z]+} $tool]} {
+		error "Unknown tool version $tool"
+	}
+	regsub {(RAT v[0-9]+\.[0-9]+\.[0-9]+) [a-zA-Z]+} $tool {\1} v
+	return $v
+}
+
 proc load_settings {} {
     global rtpfname win32 my_cname TOOL
 
@@ -1500,7 +1506,7 @@ proc load_settings {} {
     # If the version of the saved settings is different 
     # from those the current version use defaults.
     global audio_tool
-    if {$audio_tool != $TOOL($my_cname)} {
+    if {[tool_version $audio_tool] != [tool_version $TOOL($my_cname)]} {
 	foreach i [array names attr audio*] {
 	    unset attr($i)
 	}

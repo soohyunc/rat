@@ -172,5 +172,5 @@ cat Makefile.in \
 
 # Create version.h
 echo "Generating version.h"
-echo \#define RAT_VERSION \"RAT v$VERSION\" > version.h
+echo \#define RAT_VERSION \"RAT v$VERSION $OSTYPE\" > version.h
 

@@ -233,11 +233,7 @@ rtcp_packet_fmt_sdes(session_struct *sp, u_int8 * ptr)
 			           	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_LOC, sp->db->my_dbe->sentry->loc);
 			  	   	break;
 			 	 }
-			case 3 : if (sp->mode == TRANSCODER) {
-				 	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_TOOL, RAT_VERSION " " OSNAME " [Transcoder]");
-				 } else {
-				 	len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_TOOL, RAT_VERSION " " OSNAME);
-				 }
+			case 3 : len += rtcp_add_sdes_item(&ptr[len], RTCP_SDES_TOOL, RAT_VERSION);
 			}
 		} else {
 			if (sp->db->my_dbe->sentry->name != NULL) {
