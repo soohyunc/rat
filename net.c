@@ -62,6 +62,10 @@
 #include "mbus_engine.h"
 #include "ui.h"
 
+#ifndef INADDR_NONE
+#define INADDR_NONE 0xffffffff
+#endif
+
 int
 net_write(socket_udp *s, unsigned char *msg, int msglen, int type)
 {
