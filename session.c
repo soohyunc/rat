@@ -88,16 +88,13 @@ init_session(session_struct *sp)
         cf  = codec_get_format(cid);
         sp->encodings[0]		= codec_get_payload(cid);           /* user chosen encoding for primary */
 	sp->num_encodings		= 1;                                /* Number of encodings applied */
-        sp->next_encoding               = -1;                               /* Coding to change to */
 
         channel_get_coder_details(channel_get_null_coder(), &ccd);
         channel_encoder_create(ccd.descriptor, &sp->channel_coder);
 
         converter_get_details(0, &conv_details);
         sp->converter                   = conv_details.id;
-
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
-        sp->device_clock                = new_time(sp->clock, cf->format.sample_rate);
         assert(!(GLOBAL_CLOCK_FREQ%cf->format.sample_rate));                        /* just in case someone adds weird freq codecs */
 	sp->mode         		= AUDIO_TOOL;	
         sp->input_mode                  = AUDIO_NO_DEVICE;
@@ -130,7 +127,6 @@ init_session(session_struct *sp)
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
 	sp->wait_on_startup		= FALSE;
-        sp->next_selected_device        = -1;
         sp->last_depart_ts              = 1;
 
         source_list_create(&sp->active_sources);
@@ -147,8 +143,6 @@ init_session(session_struct *sp)
 	}
 	memcpy(&netaddr, addr->h_addr, 4);
 	sp->ipaddr = ntohl(netaddr);
-
-	gettimeofday(&(sp->device_time), NULL); 
 
 	strcpy(sp->asc_address, "127.0.0.3");	/* Yeuch! This value should never be used! */
 }

@@ -97,7 +97,7 @@ null_audio_drain(audio_desc_t ad)
  * Set record gain.
  */
 void
-null_audio_set_gain(audio_desc_t ad, int gain)
+null_audio_set_igain(audio_desc_t ad, int gain)
 {
         UNUSED(ad);
         igain = gain;
@@ -108,7 +108,7 @@ null_audio_set_gain(audio_desc_t ad, int gain)
  * Get record gain.
  */
 int
-null_audio_get_gain(audio_desc_t ad)
+null_audio_get_igain(audio_desc_t ad)
 {
         UNUSED(ad);
 	return igain;
@@ -125,7 +125,7 @@ null_audio_duplex(audio_desc_t ad)
  * Set play gain.
  */
 void
-null_audio_set_volume(audio_desc_t ad, int vol)
+null_audio_set_ogain(audio_desc_t ad, int vol)
 {
         UNUSED(ad);
         ogain = vol;
@@ -136,7 +136,7 @@ null_audio_set_volume(audio_desc_t ad, int vol)
  * Get play gain.
  */
 int
-null_audio_get_volume(audio_desc_t ad)
+null_audio_get_ogain(audio_desc_t ad)
 {
         UNUSED(ad);
 	return ogain;

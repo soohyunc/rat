@@ -100,7 +100,7 @@ audio_format_match(audio_format *fmt1, audio_format *fmt2)
 }
 
 audio_format*
-audio_format_dup(audio_format *src)
+audio_format_dup(const audio_format *src)
 {
         audio_format *dst = (audio_format*)xmalloc(sizeof(audio_format));
         memcpy(dst, src, sizeof(audio_format));

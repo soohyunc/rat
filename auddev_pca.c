@@ -186,7 +186,7 @@ pca_audio_drain(audio_desc_t ad)
  * Set record gain.
  */
 void
-pca_audio_set_gain(audio_desc_t ad, int gain)
+pca_audio_set_igain(audio_desc_t ad, int gain)
 {
         UNUSED(ad);
         UNUSED(gain);
@@ -197,7 +197,7 @@ pca_audio_set_gain(audio_desc_t ad, int gain)
  * Get record gain.
  */
 int
-pca_audio_get_gain(audio_desc_t ad)
+pca_audio_get_igain(audio_desc_t ad)
 {
         UNUSED(ad);
 	return 0;
@@ -217,13 +217,13 @@ pca_audio_duplex(audio_desc_t ad)
  * Set play gain.
  */
 void
-pca_audio_set_volume(audio_desc_t ad, int vol)
+pca_audio_set_ogain(audio_desc_t ad, int vol)
 {
         UNUSED(ad);
         AUDIO_INITINFO(&dev_info);
         dev_info.play.gain = pca_bat_to_device(vol);
         if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) 
-                perror("pca_audio_set_volume");
+                perror("pca_audio_set_ogain");
 
 	return;
 }
@@ -232,12 +232,12 @@ pca_audio_set_volume(audio_desc_t ad, int vol)
  * Get play gain.
  */
 int
-pca_audio_get_volume(audio_desc_t ad)
+pca_audio_get_ogain(audio_desc_t ad)
 {
         UNUSED(ad);
 	AUDIO_INITINFO(&dev_info);
 	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
-		perror("pca_audio_get_volume");
+		perror("pca_audio_get_ogain");
 	return pca_device_to_bat(dev_info.play.gain);
 }
 

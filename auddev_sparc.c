@@ -181,7 +181,7 @@ sparc_audio_drain(audio_desc_t ad)
 /* Gain and volume values are in the range 0 - MAX_AMP */
 
 void
-sparc_audio_set_gain(audio_desc_t ad, int gain)
+sparc_audio_set_igain(audio_desc_t ad, int gain)
 {
         UNUSED(ad); assert(audio_fd > 0);
 
@@ -192,7 +192,7 @@ sparc_audio_set_gain(audio_desc_t ad, int gain)
 }
 
 int
-sparc_audio_get_gain(audio_desc_t ad)
+sparc_audio_get_igain(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
 
@@ -203,7 +203,7 @@ sparc_audio_get_gain(audio_desc_t ad)
 }
 
 void
-sparc_audio_set_volume(audio_desc_t ad, int vol)
+sparc_audio_set_ogain(audio_desc_t ad, int vol)
 {
         UNUSED(ad); assert(audio_fd > 0);
 
@@ -214,7 +214,7 @@ sparc_audio_set_volume(audio_desc_t ad, int vol)
 }
 
 int
-sparc_audio_get_volume(audio_desc_t ad)
+sparc_audio_get_ogain(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
 

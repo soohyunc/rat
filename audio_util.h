@@ -61,6 +61,6 @@ struct s_bias_ctl*
 
 void    bias_ctl_destroy(struct s_bias_ctl *bc);
 
-void    audio_unbias (struct s_bias_ctl *bc, sample *buf, int len);
+void    bias_remove (struct s_bias_ctl *bc, sample *buf, int len);
 
 #endif /* __AUDIO_UTIL_H__ */

@@ -46,11 +46,6 @@
 #include "assert.h"
 #include "codec_l16.h"
 
-/* This is where your sanity gives in and love begins...
- * never lose your grip don't fall don't fall you'll lose it all
- * [The Cardigans, Paralyszed - like my phd by this code ;-) ]
- */ 
-
 /* Note payload numbers are dynamic and selected so:
  * (a) we always have one codec that can be used at each sample rate and freq
  * (b) to backwards match earlier releases.
@@ -78,7 +73,7 @@ static codec_format_t cs[] = {
         {"Linear-16", "L16-48K-Mono",  
          "Linear 16 uncompressed audio, please do not use wide area.", 
          116, 0, 320, {DEV_S16,  48000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 3.3_ ms */
-        {"Linear-16", "L16-8K-Stereo",  
+        {"Linear-16", "L16-48K-Stereo",  
          "Linear 16 uncompressed audio, please do not use wide area.", 
          117, 0, 640, {DEV_S16,  48000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}} /* 3.3_ ms */
 };

@@ -46,7 +46,6 @@
 #include "config_win32.h"
 #include "memory.h"
 #include "transcoder.h"
-#include "audio.h"
 
 #define CHANNEL_SIZE  	8192
 #define NUM_CHANNELS 	2

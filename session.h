@@ -87,10 +87,10 @@ typedef struct session_tag {
 	struct s_time		*device_clock;
         struct s_cushion_struct *cushion;
         struct s_mix_info       *ms; 
+        struct s_audio_config   *new_config;
 	u_int16		rtp_seq;
 	u_char		encodings[MAX_ENCODINGS];
 	int		num_encodings;	/* number of unique encodings being used */
-        int             next_encoding;  /* used for changing device format */
         struct s_channel_state  *channel_coder;
 	int             playing_audio;
 	int		repair;				/* Packet repair */
@@ -103,7 +103,6 @@ typedef struct session_tag {
 	int		detect_silence;
 	int             meter;                      /* if powermeters are on */
         u_int32         meter_period; 
-	struct s_bias_ctl *bc;
 	int		sync_on;
 	int		agc_on;
         int             ui_on;
@@ -116,9 +115,7 @@ typedef struct session_tag {
         int             output_gain;                /* speaker volume */
         int             input_mode;                 /* mike/line input */
         int             output_mode;                /* speaker/line/head out */
-	struct timeval	device_time;
 	audio_desc_t	audio_device;
-        int             next_selected_device;       /* No to set selected device to when we want to change */
 	struct s_tx_buffer	            *tb;
 	struct rtp_db_tag	            *db;
         struct s_source_list                *active_sources;
@@ -140,4 +137,3 @@ int  parse_early_options(int argc, char *argv[], session_struct *sp[]);
 void parse_late_options(int argc, char *argv[], session_struct *sp[]);
 
 #endif /* _session_h_ */
-

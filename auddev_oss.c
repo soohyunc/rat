@@ -214,7 +214,7 @@ oss_audio_duplex(audio_desc_t ad)
 
 /* Gain and volume values are in the range 0 - MAX_AMP */
 void
-oss_audio_set_gain(audio_desc_t ad, int gain)
+oss_audio_set_igain(audio_desc_t ad, int gain)
 {
 
 	int volume = bat_to_device(gain) << 8 | bat_to_device(gain);
@@ -239,12 +239,12 @@ oss_audio_set_gain(audio_desc_t ad, int gain)
 		}
 		return;
 	}
-	printf("ERROR: Unknown iport in audio_set_gain!\n");
+	printf("ERROR: Unknown iport in audio_set_igain!\n");
 	abort();
 }
 
 int
-oss_audio_get_gain(audio_desc_t ad)
+oss_audio_get_igain(audio_desc_t ad)
 {
 	int volume;
 
@@ -267,14 +267,14 @@ oss_audio_get_gain(audio_desc_t ad)
 		}
 		break;
 	default : 
-		printf("ERROR: Unknown iport in audio_set_gain!\n");
+		printf("ERROR: Unknown iport in audio_set_igain!\n");
 		abort();
 	}
 	return device_to_bat(volume & 0xff);
 }
 
 void
-oss_audio_set_volume(audio_desc_t ad, int vol)
+oss_audio_set_ogain(audio_desc_t ad, int vol)
 {
 	int volume;
 
@@ -298,7 +298,7 @@ oss_audio_loopback(audio_desc_t ad, int gain)
 }
 
 int
-oss_audio_get_volume(audio_desc_t ad)
+oss_audio_get_ogain(audio_desc_t ad)
 {
 	int volume;
 
@@ -426,9 +426,9 @@ oss_audio_set_iport(audio_desc_t ad, int port)
 				debug_msg("WARNING: Unable to select recording source!\n");
 				return;
 			}
-			gain = oss_audio_get_gain(ad);
+			gain = oss_audio_get_igain(ad);
 			iport = port;
-			oss_audio_set_gain(ad, gain);
+			oss_audio_set_igain(ad, gain);
 		} else {
 			debug_msg("Audio device doesn't support recording from microphone\n");
 		}
@@ -440,9 +440,9 @@ oss_audio_set_iport(audio_desc_t ad, int port)
 				debug_msg("WARNING: Unable to select recording source!\n");
 				return;
 			}
-			gain = oss_audio_get_gain(ad);
+			gain = oss_audio_get_igain(ad);
 			iport = port;
-			oss_audio_set_gain(ad, gain);
+			oss_audio_set_igain(ad, gain);
 		} else {
 			debug_msg("Audio device doesn't support recording from line-input\n");
 		}
@@ -454,9 +454,9 @@ oss_audio_set_iport(audio_desc_t ad, int port)
 				debug_msg("WARNING: Unable to select recording source!\n");
 				return;
 			}
-			gain = oss_audio_get_gain(ad);
+			gain = oss_audio_get_igain(ad);
 			iport = port;
-			oss_audio_set_gain(ad, gain);
+			oss_audio_set_igain(ad, gain);
 		} else {
 			debug_msg("Audio device doesn't support recording from CD\n");
 		}

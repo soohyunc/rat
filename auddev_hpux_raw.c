@@ -109,7 +109,7 @@ audio_drain(int audio_fd)
 /* Gain and volume values are in the range 0 - MAX_AMP */
 
 void
-audio_set_gain(int audio_fd, int gain)
+audio_set_igain(int audio_fd, int gain)
 {
   if (audio_fd >= 0) {
     struct audio_gain ag;
@@ -120,16 +120,16 @@ audio_set_gain(int audio_fd, int gain)
       ag.cgain[0].receive_gain = ag.cgain[1].receive_gain = rxgain;
       ag.channel_mask = AUDIO_CHANNEL_RIGHT | AUDIO_CHANNEL_LEFT;
       if (ioctl(audio_fd, AUDIO_SET_GAINS, &ag) != 0) {
-	perror("audio_set_gain: ioctl()");
+	perror("audio_set_igain: ioctl()");
       }
     } else {
-      perror("audio_set_gain: ioctl()");
+      perror("audio_set_igain: ioctl()");
     }
   }
 }
 
 int
-audio_get_gain(int audio_fd)
+audio_get_igain(int audio_fd)
 {
   int gain = 0;
 
@@ -140,14 +140,14 @@ audio_get_gain(int audio_fd)
       gain=((ag.cgain[0].receive_gain - MIN_RX_GAIN_2) * MAX_AMP) /
 	(MAX_RX_GAIN_2 - MIN_RX_GAIN_2);
     } else {
-      perror("audio_get_gain: ioctl()");
+      perror("audio_get_igain: ioctl()");
     }
   }
   return gain;
 }
 
 void
-audio_set_volume(int audio_fd, int vol)
+audio_set_ogain(int audio_fd, int vol)
 {
   if (audio_fd >= 0) {
     struct audio_gain ag;
@@ -158,16 +158,16 @@ audio_set_volume(int audio_fd, int vol)
       ag.cgain[0].transmit_gain = ag.cgain[1].transmit_gain = txgain;
       ag.channel_mask = AUDIO_CHANNEL_RIGHT | AUDIO_CHANNEL_LEFT;
       if (ioctl(audio_fd,AUDIO_SET_GAINS, &ag) != 0) {
-	perror("audio_set_volume: ioctl()");
+	perror("audio_set_ogain: ioctl()");
       }
     } else {
-      perror("audio_set_volume: ioctl()");
+      perror("audio_set_ogain: ioctl()");
     }
   }
 }
 
 int
-audio_get_volume(int audio_fd)
+audio_get_ogain(int audio_fd)
 {
   int vol = 0;
 
@@ -178,7 +178,7 @@ audio_get_volume(int audio_fd)
       vol=((ag.cgain[0].transmit_gain - MIN_TX_GAIN_2) * MAX_AMP) /
 	(MAX_TX_GAIN_2 - MIN_TX_GAIN_2);
     } else {
-      perror("audio_get_volume: ioctl()");
+      perror("audio_get_ogain: ioctl()");
     }
   }
   return vol;

@@ -125,7 +125,7 @@ remove_lta(bias_ctl *bc, sample *buf, register int len, int step)
 }
 
 void
-audio_unbias(bias_ctl *bc, sample *buf, int len)
+bias_remove(bias_ctl *bc, sample *buf, int len)
 {
         if (bc->freq == 8000) {
                 if (bc->step == 1) {

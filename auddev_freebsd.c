@@ -74,10 +74,10 @@ void    vox_audio_close(int audio_fd);
 void    vox_audio_drain(int audio_fd);
 void    vox_audio_switch_out(int audio_fd, cushion_struct *cushion);      
 void    vox_audio_switch_in(int audio_fd);
-void    vox_audio_set_gain(int audio_fd, int gain);                       
-int     vox_audio_get_gain(int audio_fd);
-void    vox_audio_set_volume(int audio_fd, int vol);
-int     vox_audio_get_volume(int audio_fd);
+void    vox_audio_set_igain(int audio_fd, int gain);                       
+int     vox_audio_get_igain(int audio_fd);
+void    vox_audio_set_ogain(int audio_fd, int vol);
+int     vox_audio_get_ogain(int audio_fd);
 int     vox_audio_read(int audio_fd, sample *buf, int samples);
 int     vox_audio_write(int audio_fd, sample *buf, int samples);
 int     vox_audio_is_dry(int audio_fd);
@@ -153,8 +153,8 @@ vox_audio_open_rw(char rw)
 		/* Set the gain/volume properly. We use the controls for the  */
 		/* specific mixer channel to do this, relative to the global  */
 		/* maximum gain/volume we've just set...                      */
-		vox_audio_set_gain(audio_fd, MAX_AMP / 2);
-		vox_audio_set_volume(audio_fd, MAX_AMP / 2);
+		vox_audio_set_igain(audio_fd, MAX_AMP / 2);
+		vox_audio_set_ogain(audio_fd, MAX_AMP / 2);
 		/* Select microphone input. We can't select output source...  */
 		vox_audio_set_iport(audio_fd, iport);
 		/* Turn off loopback from input to output... */
@@ -227,7 +227,7 @@ vox_audio_duplex(int audio_fd)
 
 /* Gain and volume values are in the range 0 - MAX_AMP */
 void
-vox_audio_set_gain(int audio_fd, int gain)
+vox_audio_set_igain(int audio_fd, int gain)
 {
 	int volume = vox_bat_to_device(gain) << 8 | vox_bat_to_device(gain);
 
@@ -244,12 +244,12 @@ vox_audio_set_gain(int audio_fd, int gain)
 	}
 	return;
 	}
-	printf("ERROR: Unknown iport in vox_audio_set_gain!\n");
+	printf("ERROR: Unknown iport in vox_audio_set_igain!\n");
 	abort();
 }
 
 int
-vox_audio_get_gain(int audio_fd)
+vox_audio_get_igain(int audio_fd)
 {
 	int volume;
 
@@ -265,14 +265,14 @@ vox_audio_get_gain(int audio_fd)
 		perror("Getting gain");
 	}
 	break;
-	default               : printf("ERROR: Unknown iport in vox_audio_set_gain!\n");
+	default               : printf("ERROR: Unknown iport in vox_audio_set_igain!\n");
 		abort();
 	}
 	return vox_device_to_bat(volume & 0xff);
 }
 
 void
-vox_audio_set_volume(int audio_fd, int vol)
+vox_audio_set_ogain(int audio_fd, int vol)
 {
 	unsigned int volume;
 
@@ -286,7 +286,7 @@ vox_audio_set_volume(int audio_fd, int vol)
 }
 
 int
-vox_audio_get_volume(int audio_fd)
+vox_audio_get_ogain(int audio_fd)
 {
 	unsigned int volume;
 
@@ -459,9 +459,9 @@ vox_audio_set_iport(int audio_fd, int port)
 			printf("WARNING: Unable to select recording source!\n");
 			return;
 		}
-		gain = vox_audio_get_gain(audio_fd);
+		gain = vox_audio_get_igain(audio_fd);
 		iport = port;
-		vox_audio_set_gain(audio_fd, gain);
+		vox_audio_set_igain(audio_fd, gain);
 	}
 	break;
 	case AUDIO_LINE_IN    : if (recmask & SOUND_MASK_LINE) {
@@ -470,9 +470,9 @@ vox_audio_set_iport(int audio_fd, int port)
 			printf("WARNING: Unable to select recording source!\n");
 			return;
 		}
-		gain = vox_audio_get_gain(audio_fd);
+		gain = vox_audio_get_igain(audio_fd);
 		iport = port;
-		vox_audio_set_gain(audio_fd, gain);
+		vox_audio_set_igain(audio_fd, gain);
 	}
 	break;
 	default               : printf("audio_set_port: unknown port!\n");
@@ -630,7 +630,7 @@ pca_audio_switch_in(int audio_fd)
  * Set record gain.
  */
 void
-pca_audio_set_gain(int audio_fd, int gain)
+pca_audio_set_igain(int audio_fd, int gain)
 {
 	return;
 }
@@ -639,7 +639,7 @@ pca_audio_set_gain(int audio_fd, int gain)
  * Get record gain.
  */
 int
-pca_audio_get_gain(int audio_fd)
+pca_audio_get_igain(int audio_fd)
 {
 	return 0;
 }
@@ -648,13 +648,13 @@ pca_audio_get_gain(int audio_fd)
  * Set play gain.
  */
 void
-pca_audio_set_volume(int audio_fd, int vol)
+pca_audio_set_ogain(int audio_fd, int vol)
 {
 	if (audio_fd >= 0) {
 		AUDIO_INITINFO(&dev_info);
 		dev_info.play.gain = pca_bat_to_device(vol);
 		if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) 
-			perror("pca_audio_set_volume");
+			perror("pca_audio_set_ogain");
 	}
 	return;
 }
@@ -662,13 +662,13 @@ pca_audio_set_volume(int audio_fd, int vol)
  * Get play gain.
  */
 int
-pca_audio_get_volume(int audio_fd)
+pca_audio_get_ogain(int audio_fd)
 {
 	if (audio_fd < 0)
 		return 0;
 	AUDIO_INITINFO(&dev_info);
 	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
-		perror("pca_audio_get_volume");
+		perror("pca_audio_get_ogain");
 	return pca_device_to_bat(dev_info.play.gain);
 }
 
@@ -952,14 +952,14 @@ audio_switch_in(int audio_fd)
 	return;
 }
 void
-audio_set_gain(int audio_fd, int gain)
+audio_set_igain(int audio_fd, int gain)
 {
 	switch(audio_device){
 	case DEV_VOXWARE:
-		vox_audio_set_gain(audio_fd, gain);
+		vox_audio_set_igain(audio_fd, gain);
 		break;
 	case DEV_PCA:
-		pca_audio_set_gain(audio_fd, gain);
+		pca_audio_set_igain(audio_fd, gain);
 		break;
 	default:
 		break;
@@ -967,17 +967,17 @@ audio_set_gain(int audio_fd, int gain)
 	return;
 }
 int
-audio_get_gain(int audio_fd)
+audio_get_igain(int audio_fd)
 {
 	int	gain;
 
 	gain = 0;
 	switch(audio_device){
 	case DEV_VOXWARE:
-		gain = vox_audio_get_gain(audio_fd);
+		gain = vox_audio_get_igain(audio_fd);
 		break;
 	case DEV_PCA:
-		gain = pca_audio_get_gain(audio_fd);
+		gain = pca_audio_get_igain(audio_fd);
 		break;
 	default:
 		break;
@@ -985,14 +985,14 @@ audio_get_gain(int audio_fd)
 	return gain;
 }
 void
-audio_set_volume(int audio_fd, int vol)
+audio_set_ogain(int audio_fd, int vol)
 {
 	switch(audio_device){
 	case DEV_VOXWARE:
-		vox_audio_set_volume(audio_fd, vol);
+		vox_audio_set_ogain(audio_fd, vol);
 		break;
 	case DEV_PCA:
-		pca_audio_set_volume(audio_fd, vol);
+		pca_audio_set_ogain(audio_fd, vol);
 		break;
 	default:
 		break;
@@ -1000,17 +1000,17 @@ audio_set_volume(int audio_fd, int vol)
 	return;
 }
 int
-audio_get_volume(int audio_fd)
+audio_get_ogain(int audio_fd)
 {
 	int volume;
 
 	volume = 0;
 	switch(audio_device){
 	case DEV_VOXWARE:
-		volume = vox_audio_get_volume(audio_fd);
+		volume = vox_audio_get_ogain(audio_fd);
 		break;
 	case DEV_PCA:
-		volume = pca_audio_get_volume(audio_fd);
+		volume = pca_audio_get_ogain(audio_fd);
 		break;
 	default:
 		break;

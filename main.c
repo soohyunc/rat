@@ -146,11 +146,10 @@ main(int argc, char *argv[])
 	} while (sp[0]->wait_on_startup);
 
 	for (i = 0; i < num_sessions; i++) {
-                audio_device_details_t details;
-		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
-                audio_get_device_details(0, &details);
-		audio_device_take(sp[i], details.descriptor);
+                audio_device_get_safe_config(&sp[i]->new_config);
+                audio_device_reconfigure(sp[i]);
                 assert(audio_device_is_open(sp[i]->audio_device));
+		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
 	}
 
         ui_initial_settings(sp[0]);
@@ -174,9 +173,9 @@ main(int argc, char *argv[])
 	while (!should_exit) {
 		for (i = 0; i < num_sessions; i++) {
 			if (sp[i]->mode == TRANSCODER) {
-				elapsed_time = read_write_audio(sp[i], sp[1-i], sp[i]->ms);
+				elapsed_time = audio_rw_process(sp[i], sp[1-i], sp[i]->ms);
 			} else {
-				elapsed_time = read_write_audio(sp[i], sp[i], sp[i]->ms);
+				elapsed_time = audio_rw_process(sp[i], sp[i], sp[i]->ms);
 			}
 			cur_time = get_time(sp[i]->device_clock);
 			ntp_time = ntp_time32();
@@ -268,11 +267,11 @@ main(int argc, char *argv[])
 			mbus_recv(sp[i]->mbus_ui    , (void *) sp[i]);
 			mbus_heartbeat(sp[i]->mbus_engine, 10);
 
-                        /* wait for mbus messages - closing audio device
-                         * can timeout unprocessed messages as some drivers
-                         * pause to drain before closing.
-                         */
-                        if (sp[i]->next_encoding != -1 || sp[i]->next_selected_device != -1) {
+                        if (sp[i]->new_config != NULL) {
+                                /* wait for mbus messages - closing audio device
+                                 * can timeout unprocessed messages as some drivers
+                                 * pause to drain before closing.
+                                 */
                                 network_process_mbus(sp[i]);
                                 audio_device_reconfigure(sp[i]);
                         }
@@ -289,7 +288,7 @@ main(int argc, char *argv[])
 		rtcp_exit(sp[i], sp[1-i], sp[i]->rtcp_socket);
 		if (sp[i]->in_file  != NULL) snd_read_close (&sp[i]->in_file);
 		if (sp[i]->out_file != NULL) snd_write_close(&sp[i]->out_file);
-                audio_device_give(sp[i]);
+                audio_device_release(sp[i], sp[i]->audio_device);
 		network_process_mbus(sp[i]);
 	}
 

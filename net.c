@@ -54,7 +54,6 @@
 #include "crypt.h"
 #include "session.h"
 #include "pckt_queue.h"
-#include "audio.h"
 #include "util.h"
 #include "mbus.h"
 #include "mbus_ui.h"

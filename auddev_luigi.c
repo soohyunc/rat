@@ -142,8 +142,8 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 /* Set the gain/volume properly. We use the controls for the  */
                 /* specific mixer channel to do this, relative to the global  */
                 /* maximum gain/volume we've just set...                      */
-                luigi_audio_set_gain(audio_fd, MAX_AMP / 2);
-                luigi_audio_set_volume(audio_fd, MAX_AMP / 2);
+                luigi_audio_set_igain(audio_fd, MAX_AMP / 2);
+                luigi_audio_set_ogain(audio_fd, MAX_AMP / 2);
                 /* Select microphone input. We can't select output source...  */
                 luigi_audio_set_iport(audio_fd, iport);
                 /* Turn off loopback from input to output... */
@@ -261,7 +261,7 @@ luigi_audio_block(audio_desc_t ad)
 
 /* Gain and volume values are in the range 0 - MAX_AMP */
 void
-luigi_audio_set_volume(audio_desc_t ad, int vol)
+luigi_audio_set_ogain(audio_desc_t ad, int vol)
 {
 	int volume;
 
@@ -272,7 +272,7 @@ luigi_audio_set_volume(audio_desc_t ad, int vol)
 }
 
 int
-luigi_audio_get_volume(audio_desc_t ad)
+luigi_audio_get_ogain(audio_desc_t ad)
 {
 	int volume;
 
@@ -317,7 +317,7 @@ luigi_audio_next_oport(audio_desc_t ad)
 }
 
 void
-luigi_audio_set_gain(audio_desc_t ad, int gain)
+luigi_audio_set_igain(audio_desc_t ad, int gain)
 {
 	int volume = RAT_TO_DEVICE(gain) << 8 | RAT_TO_DEVICE(gain);
 
@@ -342,7 +342,7 @@ luigi_audio_set_gain(audio_desc_t ad, int gain)
 }
 
 int
-luigi_audio_get_gain(audio_desc_t ad)
+luigi_audio_get_igain(audio_desc_t ad)
 {
 	int volume;
 
@@ -359,7 +359,7 @@ luigi_audio_get_gain(audio_desc_t ad)
 		LUIGI_AUDIO_IOCTL(audio_fd, MIXER_READ(SOUND_MIXER_CD), &volume);
 		break;
 	default:
-		debug_msg("ERROR: Unknown iport in audio_set_gain!\n");
+		debug_msg("ERROR: Unknown iport in audio_set_igain!\n");
 	}
 	return (DEVICE_TO_RAT(volume & 0xff));
 }
@@ -388,15 +388,15 @@ luigi_audio_set_iport(audio_desc_t ad, int port)
 		break;
 	}
 
-	gain = luigi_audio_get_gain(ad);
-	luigi_audio_set_gain(ad, 0);
+	gain = luigi_audio_get_igain(ad);
+	luigi_audio_set_igain(ad, 0);
 
 	if ((ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_RECSRC), &src) < 0)) {
 		return;
 	}
 
 	iport = port;
-	luigi_audio_set_gain(ad, gain);
+	luigi_audio_set_igain(ad, gain);
 }
 
 int

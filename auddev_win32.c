@@ -886,7 +886,7 @@ w32sdk_audio_block(audio_desc_t ad)
 }
 
 void
-w32sdk_audio_set_gain(audio_desc_t ad, int level)
+w32sdk_audio_set_igain(audio_desc_t ad, int level)
 {
         int i;
         MIXERCONTROLDETAILS          mcd;
@@ -918,14 +918,14 @@ w32sdk_audio_set_gain(audio_desc_t ad, int level)
 }
 
 int
-w32sdk_audio_get_gain(audio_desc_t ad)
+w32sdk_audio_get_igain(audio_desc_t ad)
 {
         UNUSED(ad);
 	return (rec_vol);
 }
 
 void
-w32sdk_audio_set_volume(audio_desc_t ad, int level)
+w32sdk_audio_set_ogain(audio_desc_t ad, int level)
 {
 	DWORD	vol;
 
@@ -953,7 +953,7 @@ w32sdk_audio_set_volume(audio_desc_t ad, int level)
 }
 
 int
-w32sdk_audio_get_volume(audio_desc_t ad)
+w32sdk_audio_get_ogain(audio_desc_t ad)
 {
 	DWORD	vol;
         

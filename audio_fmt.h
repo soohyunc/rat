@@ -48,7 +48,7 @@ int           audio_format_get_common (audio_format  *fmt1,
                                        audio_format  *common_fmt);
 int           audio_format_match      (audio_format  *fmt1, 
                                        audio_format  *fmt2);
-audio_format* audio_format_dup        (audio_format  *src);
+audio_format* audio_format_dup        (const audio_format  *src);
 void          audio_format_free       (audio_format **bye);
 int           audio_format_buffer_convert (audio_format *src, 
                                            u_char       *src_buf, 

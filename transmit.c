@@ -81,7 +81,7 @@ typedef struct s_tx_buffer {
         struct s_vad         *vad;
         struct s_agc         *agc;
         struct s_time        *clock;
-
+        struct s_bias_ctl    *bc;
         struct s_pb          *media_buffer; 
         struct s_pb          *channel_buffer; 
         struct s_pb          *audio_buffer; /* Audio buffer and it's iterators */
@@ -149,6 +149,7 @@ tx_create(tx_buffer     **ntb,
           u_int16         channels)
 {
         tx_buffer *tb;
+        u_int16    freq;
 
         tb = (tx_buffer*)xmalloc(sizeof(tx_buffer));
         if (tb) {
@@ -158,10 +159,12 @@ tx_create(tx_buffer     **ntb,
                           channels);
                 tb->sp      = sp;
                 tb->clock   = clock;
+                freq        = (u_int16)get_freq(clock);
+                tb->bc      = bias_ctl_create(channels, freq);
                 tb->sd_info = sd_init    (unit_dur, 
-                                          (u_int16)get_freq(clock));
+                                          freq);
                 tb->vad     = vad_create (unit_dur, 
-                                          (u_int16)get_freq(clock));
+                                          freq);
                 tb->agc     = agc_create(sp);
                 tb->unit_dur = unit_dur;
                 tb->channels = channels;
@@ -191,6 +194,7 @@ tx_destroy(tx_buffer **ptb)
         tb = *ptb;
         assert(tb != NULL);
 
+        bias_ctl_destroy(tb->bc);
         sd_destroy(tb->sd_info);
         vad_destroy(tb->vad);
         agc_destroy(tb->agc);
@@ -252,7 +256,6 @@ tx_stop(tx_buffer *tb)
 {
         struct timeval tv;
 
-        /* Again not sure why this is here */
         if (tb->sending_audio == FALSE) {
                 return;
         }
@@ -356,7 +359,7 @@ tx_process_audio(tx_buffer *tb)
                  */
                 pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
                 while (pb_iterators_equal(tb->silence, tb->reading) == FALSE) {
-			audio_unbias(sp->bc, u->data, u->dur_used * tb->channels);
+			bias_remove(tb->bc, u->data, u->dur_used * tb->channels);
 			u->energy = avg_audio_energy(u->data, u->dur_used * tb->channels, tb->channels);
 			u->send   = FALSE;
 

@@ -65,10 +65,10 @@ typedef struct {
         void (*audio_if_non_block)(int);             /* Set device non-blocking (REQUIRED) */
         void (*audio_if_block)(int);                 /* Set device blocking (REQUIRED)     */
 
-        void (*audio_if_set_gain)(int,int);          /* Set input gain (REQUIRED)  */
-        int  (*audio_if_get_gain)(int);              /* Get input gain (REQUIRED)  */
-        void (*audio_if_set_volume)(int,int);        /* Set output gain (REQUIRED) */
-        int  (*audio_if_get_volume)(int);            /* Get output gain (REQUIRED) */
+        void (*audio_if_set_igain)(int,int);          /* Set input gain (REQUIRED)  */
+        int  (*audio_if_get_igain)(int);              /* Get input gain (REQUIRED)  */
+        void (*audio_if_set_ogain)(int,int);        /* Set output gain (REQUIRED) */
+        int  (*audio_if_get_ogain)(int);            /* Get output gain (REQUIRED) */
         void (*audio_if_loopback)(int, int);         /* Enable hardware loopback (OPTIONAL) */
 
         void (*audio_if_set_oport)(int, int);        /* Set output port (REQUIRED)        */
@@ -106,10 +106,10 @@ audio_if_t audio_if_table[] = {
                 sgi_audio_write,
                 sgi_audio_non_block,
                 sgi_audio_block,
-                sgi_audio_set_gain,
-                sgi_audio_get_gain,
-                sgi_audio_set_volume,
-                sgi_audio_get_volume,
+                sgi_audio_set_igain,
+                sgi_audio_get_igain,
+                sgi_audio_set_ogain,
+                sgi_audio_get_ogain,
                 sgi_audio_loopback,
                 sgi_audio_set_oport,
                 sgi_audio_get_oport,
@@ -136,10 +136,10 @@ audio_if_t audio_if_table[] = {
                 sparc_audio_write,
                 sparc_audio_non_block,
                 sparc_audio_block,
-                sparc_audio_set_gain,
-                sparc_audio_get_gain,
-                sparc_audio_set_volume,
-                sparc_audio_get_volume,
+                sparc_audio_set_igain,
+                sparc_audio_get_igain,
+                sparc_audio_set_ogain,
+                sparc_audio_get_ogain,
                 sparc_audio_loopback,
                 sparc_audio_set_oport,
                 sparc_audio_get_oport,
@@ -166,10 +166,10 @@ audio_if_t audio_if_table[] = {
                 osprey_audio_write,
                 osprey_audio_non_block,
                 osprey_audio_block,
-                osprey_audio_set_gain,
-                osprey_audio_get_gain,
-                osprey_audio_set_volume,
-                osprey_audio_get_volume,
+                osprey_audio_set_igain,
+                osprey_audio_get_igain,
+                osprey_audio_set_ogain,
+                osprey_audio_get_ogain,
                 osprey_audio_loopback,
                 osprey_audio_set_oport,
                 osprey_audio_get_oport,
@@ -196,10 +196,10 @@ audio_if_t audio_if_table[] = {
                 oss_audio_write,
                 oss_audio_non_block,
                 oss_audio_block,
-                oss_audio_set_gain,
-                oss_audio_get_gain,
-                oss_audio_set_volume,
-                oss_audio_get_volume,
+                oss_audio_set_igain,
+                oss_audio_get_igain,
+                oss_audio_set_ogain,
+                oss_audio_get_ogain,
                 oss_audio_loopback,
                 oss_audio_set_oport,
                 oss_audio_get_oport,
@@ -228,10 +228,10 @@ audio_if_t audio_if_table[] = {
                 w32sdk_audio_write,
                 w32sdk_audio_non_block,
                 w32sdk_audio_block,
-                w32sdk_audio_set_gain,
-                w32sdk_audio_get_gain,
-                w32sdk_audio_set_volume,
-                w32sdk_audio_get_volume,
+                w32sdk_audio_set_igain,
+                w32sdk_audio_get_igain,
+                w32sdk_audio_set_ogain,
+                w32sdk_audio_get_ogain,
                 w32sdk_audio_loopback,
                 w32sdk_audio_set_oport,
                 w32sdk_audio_get_oport,
@@ -259,10 +259,10 @@ audio_if_t audio_if_table[] = {
                 luigi_audio_write,
                 luigi_audio_non_block,
                 luigi_audio_block,
-                luigi_audio_set_gain,
-                luigi_audio_get_gain,
-                luigi_audio_set_volume,
-                luigi_audio_get_volume,
+                luigi_audio_set_igain,
+                luigi_audio_get_igain,
+                luigi_audio_set_ogain,
+                luigi_audio_get_ogain,
                 luigi_audio_loopback,
                 luigi_audio_set_oport,
                 luigi_audio_get_oport,
@@ -291,10 +291,10 @@ audio_if_t audio_if_table[] = {
                 pca_audio_write,
                 pca_audio_non_block,
                 pca_audio_block,
-                pca_audio_set_gain,
-                pca_audio_get_gain,
-                pca_audio_set_volume,
-                pca_audio_get_volume,
+                pca_audio_set_igain,
+                pca_audio_get_igain,
+                pca_audio_set_ogain,
+                pca_audio_get_ogain,
                 pca_audio_loopback,
                 pca_audio_set_oport,
                 pca_audio_get_oport,
@@ -324,10 +324,10 @@ audio_if_t audio_if_table[] = {
                 null_audio_write,
                 null_audio_non_block,
                 null_audio_block,
-                null_audio_set_gain,
-                null_audio_get_gain,
-                null_audio_set_volume,
-                null_audio_get_volume,
+                null_audio_set_igain,
+                null_audio_get_igain,
+                null_audio_set_ogain,
+                null_audio_get_ogain,
                 null_audio_loopback,
                 null_audio_set_oport,
                 null_audio_get_oport,
@@ -785,7 +785,7 @@ audio_block(audio_desc_t ad)
 }
 
 void
-audio_set_gain(audio_desc_t ad, int gain)
+audio_set_igain(audio_desc_t ad, int gain)
 {
         int iface, device;
 
@@ -798,11 +798,11 @@ audio_set_gain(audio_desc_t ad, int gain)
         assert(gain >= 0);
         assert(gain <= MAX_AMP);
 
-        audio_if_table[iface].audio_if_set_gain(device, gain);
+        audio_if_table[iface].audio_if_set_igain(device, gain);
 }
 
 int
-audio_get_gain(audio_desc_t ad)
+audio_get_igain(audio_desc_t ad)
 {
         int gain;
         int iface, device;
@@ -813,7 +813,7 @@ audio_get_gain(audio_desc_t ad)
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
 
-        gain = audio_if_table[iface].audio_if_get_gain(device);
+        gain = audio_if_table[iface].audio_if_get_igain(device);
 
         assert(gain >= 0);
         assert(gain <= MAX_AMP);
@@ -822,7 +822,7 @@ audio_get_gain(audio_desc_t ad)
 }
 
 void
-audio_set_volume(audio_desc_t ad, int volume)
+audio_set_ogain(audio_desc_t ad, int volume)
 {
         int iface, device;
 
@@ -835,11 +835,11 @@ audio_set_volume(audio_desc_t ad, int volume)
         assert(volume >= 0);
         assert(volume <= MAX_AMP);
 
-        audio_if_table[iface].audio_if_set_volume(device, volume);
+        audio_if_table[iface].audio_if_set_ogain(device, volume);
 }
 
 int
-audio_get_volume(audio_desc_t ad)
+audio_get_ogain(audio_desc_t ad)
 {
         int volume;
         int iface, device;
@@ -850,7 +850,7 @@ audio_get_volume(audio_desc_t ad)
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
         
-        volume = audio_if_table[iface].audio_if_get_volume(device);
+        volume = audio_if_table[iface].audio_if_get_ogain(device);
         assert(volume >= 0);
         assert(volume <= MAX_AMP);
 

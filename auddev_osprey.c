@@ -328,7 +328,7 @@ osprey_audio_drain(audio_desc_t ad)
 /* Gain and volume values are in the range 0 - MAX_AMP */
 
 void
-osprey_audio_set_gain(int ad, int gain)
+osprey_audio_set_igain(int ad, int gain)
 {
         double igain;
 
@@ -343,7 +343,7 @@ osprey_audio_set_gain(int ad, int gain)
 }
 
 int
-osprey_audio_get_gain(audio_desc_t ad)
+osprey_audio_get_igain(audio_desc_t ad)
 {
         double igain;
 
@@ -355,7 +355,7 @@ osprey_audio_get_gain(audio_desc_t ad)
 }
 
 void
-osprey_audio_set_volume(audio_desc_t ad, int vol)
+osprey_audio_set_ogain(audio_desc_t ad, int vol)
 {
         double ogain;
 
@@ -366,7 +366,7 @@ osprey_audio_set_volume(audio_desc_t ad, int vol)
 }
 
 int
-osprey_audio_get_volume(audio_desc_t ad)
+osprey_audio_get_ogain(audio_desc_t ad)
 {
         double ogain;
 

@@ -44,8 +44,8 @@
 #include "config_win32.h"
 #include "debug.h"
 #include "memory.h"
-#include "audio.h"
 #include "math.h"
+#include "auddev.h"
 #include "transmit.h"
 #include "session.h"
 #include "parameters.h"
@@ -439,13 +439,13 @@ agc_consider(agc_t *a)
 
         a->change = FALSE;
         if (a->peak > AGC_PEAK_UPPER) {
-                gain        = audio_get_gain(a->sp->audio_device);
+                gain        = audio_get_igain(a->sp->audio_device);
                 a->new_gain = min(gain * AGC_PEAK_UPPER / a->peak, 99);
                 if ((gain - a->new_gain) > AGC_GAIN_SIG) {
                         a->change   = TRUE;
                 }
         } else if (a->peak < AGC_PEAK_LOWER) {
-                gain        = audio_get_gain(a->sp->audio_device);
+                gain        = audio_get_igain(a->sp->audio_device);
                 a->new_gain = min(gain * AGC_PEAK_LOWER / a->peak, 99);
                 if ((a->new_gain - gain) > AGC_GAIN_SIG) {
                         a->change   = TRUE;
@@ -472,7 +472,7 @@ u_char
 agc_apply_changes(agc_t *a)
 {
         if (a->change == TRUE) {
-                audio_set_gain(a->sp->audio_device, a->new_gain);
+                audio_set_igain(a->sp->audio_device, a->new_gain);
                 a->sp->input_gain = a->new_gain;
                 tx_igain_update(a->sp->tb);
                 agc_reset(a);

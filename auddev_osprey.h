@@ -53,10 +53,10 @@ int  osprey_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format 
 void osprey_audio_close      (audio_desc_t ad);
 void osprey_audio_drain      (audio_desc_t ad);
 int  osprey_audio_duplex     (audio_desc_t ad);
-void osprey_audio_set_gain   (audio_desc_t ad, int gain);
-int  osprey_audio_get_gain   (audio_desc_t ad);
-void osprey_audio_set_volume (audio_desc_t ad, int vol);
-int  osprey_audio_get_volume (audio_desc_t ad);
+void osprey_audio_set_igain   (audio_desc_t ad, int gain);
+int  osprey_audio_get_igain   (audio_desc_t ad);
+void osprey_audio_set_ogain (audio_desc_t ad, int vol);
+int  osprey_audio_get_ogain (audio_desc_t ad);
 void osprey_audio_loopback   (audio_desc_t ad, int gain);
 int  osprey_audio_read       (audio_desc_t ad, u_char *buf, int in_bytes);
 int  osprey_audio_write      (audio_desc_t ad, u_char *buf, int out_bytes);

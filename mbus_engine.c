@@ -47,9 +47,9 @@
 #include "net_udp.h"
 #include "net.h"
 #include "transmit.h"
-#include "audio.h"
 #include "codec_types.h"
 #include "codec.h"
+#include "audio.h"
 #include "session.h"
 #include "new_channel.h"
 #include "convert.h"
@@ -136,7 +136,7 @@ static void rx_tool_rat_3d_enable(char *srce, char *args, session_struct *sp)
 
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_int(sp->mbus_engine, &i)) {
-		sp->render_3d = (i ? 1 : 0);
+                audio_device_register_change_render_3d(sp, i);
 	} else {
 		printf("mbus: usage \"tool.rat.3d.enabled <boolean>\"\n");
 	}
@@ -329,7 +329,7 @@ static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->input_gain = i;
-                audio_set_gain(sp->audio_device, sp->input_gain);
+                audio_set_igain(sp->audio_device, sp->input_gain);
                 tx_igain_update(sp->tb);
 	} else {
 		printf("mbus: usage \"audio.input.gain <integer>\"\n");
@@ -389,7 +389,7 @@ static void rx_audio_output_gain(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_int(sp->mbus_engine, &i)) {
 		sp->output_gain = i;
-		audio_set_volume(sp->audio_device, sp->output_gain);
+		audio_set_ogain(sp->audio_device, sp->output_gain);
 	} else {
 		printf("mbus: usage \"audio.output.gain <integer>\"\n");
 	}
@@ -587,7 +587,6 @@ static void
 rx_audio_device(char *srce, char *args, session_struct *sp)
 {
         char	*s, dev_name[64];
-        int next_device = 0;
 
 	UNUSED(srce);
 
@@ -595,7 +594,6 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(sp->mbus_engine, &s)) {
 		s = mbus_decode_str(s);
                 purge_chars(s, "[]()");
-                next_device = -1;
                 if (s) {
                         audio_device_details_t details;
                         int i, n;
@@ -606,23 +604,15 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
                                 strncpy(dev_name, details.name, AUDIO_DEVICE_NAME_LENGTH);
                                 purge_chars(dev_name, "[]()");
                                 if (!strcmp(s, dev_name)) {
-                                        next_device = details.descriptor;
+                                        audio_device_register_change_device(sp, details.descriptor);
                                         break;
                                 }
                         }
                 }
-                        
-		debug_msg("Next audio device: %s (%08x).\n", s, next_device);
-                /* We should close audio device, transmitter, etc
-                 * Then find corresponding audio interface, select it,
-                 * and re-open the device.
-                 */
 	} else {
 		printf("mbus: usage \"audio.device <string>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine);
-        
-        sp->next_selected_device = next_device;
 }
 
 static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
@@ -732,7 +722,6 @@ static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
 static void 
 rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
 {
-        static int virgin = 1;
 	char	*short_name, *sfreq, *schan;
         int      freq, channels;
         codec_id_t cid, next_cid;
@@ -772,11 +761,7 @@ rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
                         ui_update_primary(sp);
                 } else {
                         /* just register we want to make a change */
-                        sp->next_encoding = codec_get_payload(next_cid);
-                        if (virgin) {
-                                audio_device_reconfigure(sp);
-                                virgin = 0;
-                        }
+                        audio_device_register_change_primary(sp, next_cid);
                 }
         }
 }
@@ -784,7 +769,7 @@ rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
 static void 
 rx_tool_rat_sampling(char *srce, char *args, session_struct *sp)
 {
-        int channels, freq;
+        int channels=1, freq=8000;
         char *sfreq, *schan;
         codec_id_t id;
 

@@ -591,7 +591,7 @@ ui_update_input_gain(session_struct *sp)
 {
 	char	args[4];
 
-        sprintf(args, "%3d", audio_get_gain(sp->audio_device)); 
+        sprintf(args, "%3d", audio_get_igain(sp->audio_device)); 
         assert(strlen(args) < 4);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.input.gain", args, TRUE);
 }
@@ -601,7 +601,7 @@ ui_update_output_gain(session_struct *sp)
 {
 	char	args[4];
 
-        sprintf(args, "%3d", audio_get_volume(sp->audio_device)); 
+        sprintf(args, "%3d", audio_get_ogain(sp->audio_device)); 
         assert(strlen(args) < 4);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.gain", args, TRUE);
 }

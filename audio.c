@@ -1,12 +1,16 @@
 /*
  * FILE:     audio.c
  * PROGRAM:  RAT
- * AUTHOR:   Orion Hodson / Isidor Kouvelas / Colin Perkins 
+ * AUTHOR:   Orion Hodson 
+ *
+ * Based on necessity and earlier code by Isidor Kouvelas, Colin
+ * Perkins, and Orion Hodson.  The existence of this code is pretty
+ * offensive, but it's here for historical reasons.
  *
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995-98 University College London
+ * Copyright (c) 1995-99 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,13 +41,14 @@
  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- */
+ * SUCH DAMAGE.  */
 
 #include "config_unix.h"
 #include "config_win32.h"
 #include "memory.h"
 #include "debug.h"
+#include "codec_types.h"
+#include "codec.h"
 #include "audio.h"
 #include "audio_fmt.h"
 #include "audio_util.h"
@@ -51,8 +56,6 @@
 #include "transcoder.h"
 #include "ui.h"
 #include "transmit.h"
-#include "codec_types.h"
-#include "codec.h"
 #include "mix.h"
 #include "cushion.h"
 #include "source.h"
@@ -60,207 +63,321 @@
 #include "sndfile.h"
 
 /* Zero buf used for writing zero chunks during cushion adaption */
-static sample* audio_zero_buf;
+static sample* zero_buf;
+
+/*****************************************************************************/
+
+/* audio_device_release releases open the device.
+ * If it succeeds it returns TRUE, otherwise returns FALSE.
+ */
 
 int
+audio_device_release(session_struct *sp, audio_desc_t the_dev)
+{
+        if (sp->audio_device == 0) {
+                debug_msg("Audio device already released from session\n");
+                return FALSE;
+        }
+
+        if (sp->audio_device != the_dev) {
+                debug_msg("Releasing wrong device!\n");
+                return FALSE;
+        }
+
+        free_time(sp->device_clock);
+        sp->device_clock = NULL;
+
+        cushion_destroy(sp->cushion);
+        sp->cushion = NULL;
+
+        mix_destroy(sp->ms);
+        sp->ms = NULL;
+
+        tx_stop(sp->tb);
+        tx_destroy(&sp->tb);
+
+        source_list_clear(sp->active_sources);
+
+        audio_close(sp->audio_device);
+        sp->audio_device = 0;
+
+        xfree(zero_buf);
+        zero_buf = NULL;
+
+        return FALSE;
+}
+
+/* Reconfiguration code ******************************************************/
+
+typedef struct s_audio_config {
+        audio_desc_t device;
+        codec_id_t   primary;
+        int          render_3d;
+} audio_config;
+
+static int 
+ac_create(audio_config **ppac)
+{
+        audio_config *pac = (audio_config*)xmalloc(sizeof(audio_config));
+        if (pac) {
+                /* assign invalid values so easy to see what's change
+                 * in reconfigure. */
+                pac->device    = 0;
+                pac->primary   = 0 ;
+                pac->render_3d = -1;
+                *ppac = pac;
+                return TRUE;
+        }
+        return FALSE;
+}
+
+static void
+ac_destroy(audio_config **ac)
+{
+        assert(ac);
+        assert(*ac);
+        xfree(*ac);
+        *ac = NULL;
+}
+
+void
+audio_device_register_change_device(struct session_tag *sp,
+                                    audio_desc_t        new_dev)
+{
+        if (sp->new_config == NULL) {
+                ac_create(&sp->new_config);
+        }
+        assert(sp->new_config);
+        sp->new_config->device = new_dev;
+}
+
+void
+audio_device_register_change_primary(struct session_tag *sp,
+                                     codec_id_t          primary)
+{
+        if (sp->new_config == NULL) {
+                ac_create(&sp->new_config);
+        }
+        assert(sp->new_config);
+        sp->new_config->primary = primary;
+}
+
+void
+audio_device_register_change_render_3d(struct session_tag *sp,
+                                      int enabled)
+{
+        if (sp->new_config == NULL) {
+                ac_create(&sp->new_config);
+        }
+        assert(sp->new_config);
+        sp->new_config->render_3d = enabled;
+}
+
+static int
+audio_device_attempt_config(session_struct *sp, audio_config *config)
+{
+        audio_format *inf, *ouf;
+        const codec_format_t *incf;
+        int success;
+
+        incf = codec_get_format(config->primary);
+        assert(incf);
+        
+        inf = audio_format_dup(&incf->format);
+        ouf = audio_format_dup(&incf->format);
+
+        if (inf->channels != 2 && config->render_3d) {
+                /* If 3d rendering is enabled we need stereo output
+                 * format. 
+                 */
+                ouf->channels = 2;
+        }
+
+        success = audio_open(config->device, inf, ouf);
+        if (success) {
+                u_int16 unit_len;
+                assert(sp->device_clock == NULL);
+                assert(sp->ms           == NULL);
+                assert(sp->tb           == NULL);
+                assert(sp->cushion      == NULL);
+
+                /* Initialize read and write components */
+                sp->device_clock = new_time(sp->clock, inf->sample_rate);
+                sp->meter_period = inf->sample_rate / 15;
+                sp->ms           = mix_create(sp, 32640);
+                unit_len         = inf->bytes_per_block * 8 / (inf->bits_per_sample*inf->channels); 
+                tx_create(&sp->tb, sp, sp->device_clock, (u_int16)unit_len, (u_int16)inf->channels);
+                cushion_create(&sp->cushion, unit_len);
+
+                if (zero_buf == NULL) {
+                        zero_buf = (sample*)xmalloc(unit_len * sizeof(sample));
+                        audio_zero(zero_buf, unit_len, DEV_S16);
+                }
+        }
+
+        audio_format_free(&inf);
+        audio_format_free(&ouf);
+
+        return success;
+}
+
+/* audio_device_reconfigure returns TRUE if device reconfigured,
+ * FALSE otherwise
+ */
+
+int
+audio_device_reconfigure(session_struct *sp)
+{
+        audio_config prev_config, *curr_config, *new_config;
+        int change_req;
+
+        assert(sp->new_config != NULL);
+
+        new_config = sp->new_config;
+
+        change_req = FALSE;
+
+        if (new_config->device == 0) {
+                /* No request to change audio device */
+                new_config->device = sp->audio_device;
+        } else if (new_config->device != sp->audio_device) {
+                /* Request to change device */
+                change_req = TRUE;
+                debug_msg("Change device requested.\n");
+        }
+
+        if (new_config->primary == 0) {
+                /* No request to change primary encoding */
+                new_config->primary = codec_get_by_payload(sp->encodings[0]);
+        } else if (codec_audio_formats_compatible(new_config->primary, codec_get_by_payload(sp->encodings[0])) == FALSE) {
+                /* Request to change primary and format incompatible so
+                 * device needs rejigging */
+                change_req = TRUE;
+                debug_msg("Change primary requested.\n");
+        } else {
+                /* Request to change primary to compatible coding. */
+                sp->encodings[0] = codec_get_payload(new_config->primary);
+        }
+
+        if (new_config->render_3d == -1) {
+                /* No request to change 3d rendering */
+                new_config->render_3d = sp->render_3d;
+        } else if (new_config->render_3d != sp->render_3d) {
+                change_req = TRUE;
+                debug_msg("Change 3d rendering enabled requested.\n");
+        }
+
+        if (change_req) {
+                int iport, oport, igain, ogain, saved_ports = FALSE;
+
+                /* Store current config in case it reconfig attempt fails */
+                prev_config.device    = sp->audio_device;
+                prev_config.primary   = codec_get_by_payload(sp->encodings[0]);
+                prev_config.render_3d = sp->render_3d;
+
+                if (sp->audio_device) {
+                        /* Store ports and gain settings */
+                        iport = audio_get_iport(sp->audio_device);
+                        oport = audio_get_oport(sp->audio_device);
+                        igain = audio_get_igain(sp->audio_device);
+                        ogain = audio_get_ogain(sp->audio_device);
+                        saved_ports = TRUE;
+                        /* Release audio device */
+                        audio_device_release(sp, sp->audio_device);
+                }
+
+                if (audio_device_attempt_config(sp, new_config)) {
+                        /* New config acceptable */
+                        curr_config = new_config;
+                } else if (audio_device_attempt_config(sp, &prev_config)) {
+                        /* else attempt to fallback to previous config */
+                        curr_config = &prev_config;
+                        debug_msg("Fellback to old dev config\n");
+                } else {
+                        /* Fallback to guaranteed config - something
+                         * went badly wrong */
+                        ac_destroy(&new_config);
+                        audio_device_get_safe_config(&new_config);
+                        assert(new_config);
+
+                        if (audio_device_attempt_config(sp, new_config) == FALSE) {
+                                /* should never get here */
+                                abort();
+                        }
+                        curr_config = new_config;
+                        debug_msg("Fell back to safe config\n");
+                }
+
+                sp->audio_device  = curr_config->device;
+                sp->encodings[0]  = codec_get_payload(curr_config->primary);
+                sp->num_encodings = 1;
+                sp->render_3d     = curr_config->render_3d;
+
+                if (saved_ports) {
+                        audio_set_iport(sp->audio_device, iport);
+                        audio_set_oport(sp->audio_device, oport);
+                        audio_set_igain(sp->audio_device, igain);
+                        audio_set_ogain(sp->audio_device, ogain);
+                }
+        } else {
+                debug_msg("audio device reconfigure - nothing to do.\n");
+        }
+
+        /* Update ui */
+        tx_igain_update(sp->tb);
+        ui_update(sp);
+
+        ac_destroy(&sp->new_config);
+        return change_req;
+}
+
+int
+audio_device_get_safe_config(audio_config **ppac)
+{
+        if (ac_create(ppac)) {
+                audio_config *pac = *ppac;
+                pac->device  = audio_get_null_device();
+                pac->primary = codec_get_by_name("PCMU-8K-MONO");
+                pac->render_3d = FALSE;
+                assert(pac->primary); 
+                return TRUE;
+        }
+        return FALSE;
+}
+
+
+/*****************************************************************************/
+
+static int
 audio_device_write(session_struct *sp, sample *buf, int dur)
 {
         codec_id_t            id;
         const codec_format_t *cf;
         const audio_format *ofmt = audio_get_ofmt(sp->audio_device);
+        int len;
 
         if (sp->out_file) {
                 snd_write_audio(&sp->out_file, buf, (u_int16)(dur * ofmt->channels));
         }
-        if (sp->mode == TRANSCODER) {
-                return transcoder_write(sp->audio_device, buf, dur * ofmt->channels);
-        } else {
-                return audio_write(sp->audio_device, buf, dur * ofmt->channels);
-        }
+
+        len =  audio_write(sp->audio_device, buf, dur * ofmt->channels);
+
+#ifdef NDEBUG
+        return len;
+#endif
         
         id = codec_get_by_payload((u_char)sp->encodings[0]);
         assert(id);
         cf = codec_get_format(id);
-        return dur * cf->format.channels;
-}
-
-int
-audio_device_take(session_struct *sp, audio_desc_t device)
-{
-	codec_id_t	       id;
-        const codec_format_t  *cf;
-	audio_format           format;
-        u_int32                unit_len;
-        int success, failures;
-
-        if (audio_device_is_open(device)) {
-                audio_device_is_open(device);
-                debug_msg("new device %04x state %d, %04x state %d\n", 
-                          device, audio_device_is_open(device),
-                          sp->audio_device, audio_device_is_open(sp->audio_device));
-                assert(sp->audio_device == device);
-                return TRUE;
-        }
-
-	id = codec_get_by_payload((u_char)sp->encodings[0]);
-        cf = codec_get_format(id);
-
-        memcpy(&format, &cf->format, sizeof(audio_format));
-
-        failures = 0;
-
-        success  = audio_open(device, &format, &format);
-        
-        if (!success) {
-                /* Maybe we cannot support this format. Try minimal
-                 * case - ulaw 8k.
-                 */
-                audio_format fallback;
-                
-                failures ++;
-                id = codec_get_by_name("PCMU-8K-MONO");
-                assert(id); /* in case someone changes codec name */
-                
-                sp->encodings[0] = codec_get_payload(id);
-                cf = codec_get_format(id);
-                memcpy(&fallback, &cf->format, sizeof(audio_format));
-                
-                success = audio_open(device, &fallback, &fallback);
-                
-                if (!success) {
-                        /* Make format consistent just in case. */
-                        memcpy(&format, &fallback, sizeof(audio_format));
-                        debug_msg("Could use requested format, but could use mulaw 8k\n");
-                        failures++;
-                }
-        }
-        
-        if (!success) {
-                /* Both original request and fallback request to
-                 * device have failed.  This probably means device is in use.
-                 * So now use null device with original format requested.
-                 */
-                failures ++;
-                device  = audio_get_null_device();
-                success = audio_open(device, &format, &format);
-                debug_msg("Using null audio device\n");
-                assert(success);
-        }
-        
-        audio_drain(device);
-	
-        if (sp->input_mode!=AUDIO_NO_DEVICE) {
-                audio_set_iport(device, sp->input_mode);
-                audio_set_gain(device, sp->input_gain);
-        } else {
-                sp->input_mode=audio_get_iport(device);
-                sp->input_gain=audio_get_gain(device);
-        }
-        if (sp->output_mode!=AUDIO_NO_DEVICE) {
-                audio_set_oport(device, sp->output_mode);
-                audio_set_volume(device, sp->output_gain);
-        } else {
-                sp->output_mode=audio_get_oport(device);
-                sp->output_gain=audio_get_volume(device);
-        }
-        
-        if (audio_zero_buf == NULL) {
-                audio_zero_buf = (sample*) xmalloc (format.bytes_per_block * sizeof(sample));
-                audio_zero(audio_zero_buf, format.bytes_per_block, DEV_S16);
-        }
-
-        if (sp->mode != TRANSCODER) {
-                audio_non_block(device);
-        }
-
-        /* We initialize the pieces above the audio device here since their parameters
-         * depend on what is set here
-         */
-        sp->audio_device = device;
-        if (sp->device_clock) xfree(sp->device_clock);
-        sp->device_clock = new_time(sp->clock, format.sample_rate);
-        sp->meter_period = format.sample_rate / 15;
-        sp->bc           = bias_ctl_create(format.channels, format.sample_rate);
-        unit_len         = format.bytes_per_block * 8 / (format.bits_per_sample*format.channels); 
-        tx_create(&sp->tb, sp, sp->device_clock, (u_int16)unit_len, (u_int16)format.channels);
-        assert(sp->tb != NULL);
-        sp->ms           = mix_create(sp, 32640);
-        cushion_create(&sp->cushion, unit_len);
-        tx_igain_update(sp->tb);
-        ui_update(sp);
-        return (failures == 0);
-}
-
-void
-audio_device_give(session_struct *sp)
-{
-	gettimeofday(&sp->device_time, NULL);
-
-        tx_stop(sp->tb);
-        if (sp->mode == TRANSCODER) {
-                transcoder_close(sp->audio_device);
-        } else {
-                sp->input_mode = audio_get_iport(sp->audio_device);
-                sp->output_mode = audio_get_oport(sp->audio_device);
-                audio_close(sp->audio_device);
-        }
-        
-        if (audio_zero_buf) {
-                xfree(audio_zero_buf);
-                audio_zero_buf = NULL;
-        }
-        
-        bias_ctl_destroy(sp->bc);
-        sp->bc = NULL;
-
-        cushion_destroy(sp->cushion);
-        mix_destroy(sp->ms);
-        tx_destroy(&sp->tb);
-        source_list_clear(sp->active_sources);
-}
-
-void
-audio_device_reconfigure(session_struct *sp)
-{
-        if (sp->next_selected_device != -1 &&
-            sp->next_selected_device != sp->audio_device) {
-                        audio_device_give(sp);
-                        audio_device_take(sp, sp->next_selected_device);
-
-        } 
-        sp->next_selected_device = -1;
-        
-        if (sp->next_encoding != -1) {
-                codec_id_t  curr_id, next_id;
-                curr_id = codec_get_by_payload(sp->encodings[0]);
-                next_id = codec_get_by_payload((u_char)sp->next_encoding);
-
-                if (codec_audio_formats_compatible(curr_id, next_id)) {
-                        /* Formats compatible device needs no reconfig */
-                        sp->encodings[0]  = sp->next_encoding;
-                        sp->next_encoding = -1;
-                        return;
-                } else {
-                        u_char      oldpt;
-                        /* Changing encoding */
-                        oldpt            = sp->encodings[0];
-                        sp->encodings[0] = sp->next_encoding;
-                        if (audio_device_take(sp, sp->audio_device) == FALSE) {
-                                /* we failed, fallback */
-                                sp->encodings[0] = oldpt;
-                        }
-                        sp->next_encoding = -1;
-                }
-        } else {
-                /* Just changing device */
-        }
+        assert(dur * cf->format.channels == len);
+        return len;
 }
 
 /* This function needs to be modified to return some indication of how well
  * or not we are doing.                                                    
  */
 int
-read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *ms)
+audio_rw_process(session_struct *spi, session_struct *spo,  struct s_mix_info *ms)
 {
         u_int32 cushion_size, read_dur;
         struct s_cushion_struct *c;
@@ -354,7 +471,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                  * cushion so increase the amount of trailing silence.
                  */
                 if (diff > 0) {
-                        audio_device_write(spo, audio_zero_buf, cushion_step);
+                        audio_device_write(spo, zero_buf, cushion_step);
                         cushion_step_up(c);
                         debug_msg("Increasing cushion.\n");
                 }
