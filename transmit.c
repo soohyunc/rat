@@ -75,6 +75,10 @@ typedef struct s_tx_buffer {
         /* place for the samples */
         sample samples[DEVICE_REC_BUF];
         int    last_sample; /* Stores the index of the last read buffer */
+
+        /* bandwidth estimate parameters */
+        int    bps_bytes_sent;
+        ts_t   bps_last_update;
 } tx_buffer;
 
 static sample dummy_buf[DEVICE_REC_BUF];
@@ -215,6 +219,8 @@ tx_start(tx_buffer *tb)
         if (tb->sp->detect_silence == FALSE) {
                 ui_info_activate(tb->sp, rtp_my_ssrc(tb->sp->rtp_session[0]));
         }
+
+        tb->bps_last_update = tb->sp->cur_ts;
 }
 
 void
@@ -244,6 +250,8 @@ tx_stop(tx_buffer *tb)
         pb_flush(tb->audio_buffer);
         pb_flush(tb->media_buffer);
         pb_flush(tb->channel_buffer);
+
+        tb->bps_bytes_sent = 0;
 }
 
 
@@ -316,7 +324,7 @@ tx_read_audio(tx_buffer *tb)
         }
 
         assert(read_dur < 0x7fffffff);
-
+        
         return read_dur;
 }
 
@@ -567,6 +575,7 @@ tx_send(tx_buffer *tb)
                         }
                         rtp_send_data(sp->rtp_session[j], time_32, pt, marker, 0, csrc, data, data_len, NULL, 0);
                         block_free(data, data_len);
+                        tb->bps_bytes_sent += data_len;
                 }
                 /* layer loop ends here */
                 
@@ -655,4 +664,21 @@ int
 tx_is_sending(tx_buffer *tb)
 {
         return tb->sending_audio;
+}
+
+double
+tx_get_bps(tx_buffer *tb)
+{
+        if (tb->bps_bytes_sent == 0) {
+                return 0.0;
+        } else {
+                u_int32 dms;
+                double  bps;
+                ts_t delta = ts_abs_diff(tb->bps_last_update, tb->sp->cur_ts);
+                dms        = ts_to_us(delta);
+                bps        = tb->bps_bytes_sent * 8e6 / (double)dms;
+                tb->bps_bytes_sent  = 0;
+                tb->bps_last_update = tb->sp->cur_ts;
+                return bps;
+        }
 }

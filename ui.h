@@ -43,7 +43,7 @@ void ui_update_primary       (struct s_session *sp);
 void ui_update_channel       (struct s_session *sp);
 void ui_update_converter     (struct s_session *sp);
 void ui_update_repair        (struct s_session *sp);
-void ui_update_powermeters   (struct s_session *sp, struct s_mix_info *ms, int elapsed_time);
+void ui_periodic_updates     (struct s_session *sp, int elapsed_time);
 void ui_update_stats         (struct s_session *s, u_int32 ssrc);
 
 void ui_update_lecture_mode  (struct s_session *session_pointer);

@@ -45,6 +45,8 @@ set num_ssrc		0
 set fw			.l.t.list.f
 set iports             [list]
 set oports             [list]
+set bps_in              "0.0 b/s"
+set bps_out             $bps_in
 
 # Sliders use scale widget and this invokes it's -command option when
 # it is created (doh!)  We don't know what gain and volume settings
@@ -254,6 +256,8 @@ proc mbus_recv {cmnd args} {
 		tool.rat.playout.max            {eval mbus_recv_tool.rat.playout.max   $args}
 		tool.rat.echo.suppress          {eval mbus_recv_tool.rat.echo.suppress $args}
 		tool.rat.loopback               {eval mbus_recv_tool.rat.loopback      $args}
+		tool.rat.bps.in                 {eval mbus_recv_tool.rat.bps.in        $args}
+		tool.rat.bps.out                {eval mbus_recv_tool.rat.bps.out       $args}
 		audio.suppress.silence  	{eval mbus_recv_audio.suppress.silence $args}
 		audio.channel.coding  		{eval mbus_recv_audio.channel.coding $args}
 		audio.channel.repair 		{eval mbus_recv_audio.channel.repair $args}
@@ -1055,6 +1059,29 @@ proc mbus_recv_tool.rat.loopback {l} {
     set audio_loop_var $l
 }
 
+proc format_bps {bps} {
+    if {$bps < 999} {
+	set s "b/s"
+    } elseif {$bps < 999999} {
+	set s "kb/s"
+	set bps [expr $bps / 1000.0]
+    } else {
+	set s "Mb/s"
+	set bps [expr $bps / 1000000.0]
+    }
+    return [format "%.1f %s" $bps $s]
+}
+
+proc mbus_recv_tool.rat.bps.in {bps} {
+    global bps_in
+    set    bps_in [format_bps $bps]
+}
+
+proc mbus_recv_tool.rat.bps.out {bps} {
+    global bps_out
+    set    bps_out [format_bps $bps]
+}
+
 proc mbus_recv_mbus.quit {} {
 	destroy .
 }
@@ -1138,9 +1165,9 @@ proc ssrc_update {ssrc} {
 #power meters
 
 # Colors
-set bargraphLitColors [list #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #2ccf00 #58d200 #84d500 #b0d800 #dddd00 #ddb000 #dd8300 #dd5600 #dd2900]
+set bargraphLitColors [list #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #2ccf00 #58d200 #84d500 #b0d800 #dddd00 #ddb000 #dd8300 #dd5600 #dd2900]
 
-set bargraphUnlitColors [list #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #166700 #2c6900 #426a00 #586c00 #6e6e00 #6e5800 #6e4100 #6e2b00 #6e1400]
+set bargraphUnlitColors [list #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #166700 #2c6900 #426a00 #586c00 #6e6e00 #6e5800 #6e4100 #6e2b00 #6e1400]
 set bargraphTotalHeight [llength $bargraphLitColors]
 
 proc bargraphCreate {bgraph} {
@@ -1473,9 +1500,9 @@ frame .r.c.rx.au
 pack .r.c.rx.net -side top -anchor n -fill both
 pack .r.c.rx.au -side bottom -expand 1 -fill both
 
-checkbutton .r.c.rx.net.on -highlightthickness 0 -text "Listen" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $compfont -width 6 -anchor w -padx 4
-label       .r.c.rx.net.bw -text "0.0 kb/s" -width 8 -font $compfont -anchor e
-pack .r.c.rx.net.on -side left -fill x -expand 1
+checkbutton .r.c.rx.net.on -highlightthickness 0 -text "Listen" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $compfont -width 5 -anchor w -padx 4
+label       .r.c.rx.net.bw -textv bps_in -font $compfont -anchor e
+pack .r.c.rx.net.on -side left 
 pack .r.c.rx.net.bw -side right -fill x -expand 1
 
 frame  .r.c.rx.au.port -bd 0
@@ -1501,9 +1528,9 @@ frame .r.c.tx.au
 pack .r.c.tx.net -side top -anchor n  -fill both
 pack .r.c.tx.au -side bottom -expand 1 -fill both
 
-checkbutton .r.c.tx.net.on -highlightthickness 0 -text "Talk" -onvalue 0 -offvalue 1 -variable in_mute_var -command {input_mute $in_mute_var} -font $compfont -width 6 -anchor w -padx 4
-label       .r.c.tx.net.bw -text "0.0 kb/s" -width 8 -font $compfont -anchor e
-pack .r.c.tx.net.on -side left -fill x -expand 1
+checkbutton .r.c.tx.net.on -highlightthickness 0 -text "Talk" -onvalue 0 -offvalue 1 -variable in_mute_var -command {input_mute $in_mute_var} -font $compfont -width 5 -anchor w -padx 4
+label       .r.c.tx.net.bw -textv bps_out -font $compfont -anchor e
+pack .r.c.tx.net.on -side left 
 pack .r.c.tx.net.bw -side right -fill x -expand 1
 
 frame  .r.c.tx.au.port -bd 0

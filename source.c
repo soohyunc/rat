@@ -717,6 +717,10 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 e->last_seq = p->seq;
                 e->last_ts  = p->ts;
                 e->last_arr = sp->cur_ts;
+/*
+                debug_msg("src_ts % 8u playout % 8u buffered % 8u\n",
+                          p->ts, ts_to_us(source_get_playout_delay(src)), ts_to_us(source_get_audio_buffered(src)));
+                          */
                 src->packets_done++;
                 xfree(p);
         }

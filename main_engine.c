@@ -271,8 +271,8 @@ int main(int argc, char *argv[])
 			alc++;
 		}
 
-		if (sp->audio_device) {
-                        ui_update_powermeters(sp, sp->ms, elapsed_time);
+		if (sp->audio_device && elapsed_time != 0) {
+                        ui_periodic_updates(sp, elapsed_time);
                 }
 		if (sp->new_config != NULL) {
 			/* wait for mbus messages - closing audio device

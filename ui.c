@@ -729,22 +729,52 @@ ui_update_lecture_mode(session_t *sp)
 	mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, TRUE, "tool.rat.lecture.mode", "%1d", sp->lecture);
 }
 
-void
-ui_update_powermeters(session_t *sp, struct s_mix_info *ms, int elapsed_time)
+static void
+ui_update_powermeters(session_t *sp, struct s_mix_info *ms)
 {
-	static u_int32 power_time = 0;
+        if (sp->meter && (ms != NULL)) {
+                mix_update_ui(sp, ms);
+        }
+        if (tx_is_sending(sp->tb)) {
+                tx_update_ui(sp->tb);
+        }
+}
 
-	if (power_time > sp->meter_period) {
-		if (sp->meter && (ms != NULL)) {
-			mix_update_ui(sp, ms);
-		}
-                if (tx_is_sending(sp->tb)) {
-			tx_update_ui(sp->tb);
-		}
-		power_time = 0;
-	} else {
-		power_time += elapsed_time;
-	}
+static void
+ui_update_bps(session_t *sp)
+{
+        double inbps = 0.0, outbps = 0.0;
+        u_int32 scnt, sidx;
+        struct s_source *s;
+        
+        scnt = source_list_source_count(sp->active_sources);
+        for(sidx = 0; sidx < scnt; sidx++) {
+                s = source_list_get_source_no(sp->active_sources, sidx);
+                inbps += source_get_bps(s);
+        }
+	mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.bps.in", "%.0f", inbps);        
+
+        outbps = tx_get_bps(sp->tb);
+	mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, FALSE, "tool.rat.bps.out", "%.0f", outbps);        
+}
+
+void
+ui_periodic_updates(session_t *sp, int elapsed_time) 
+{
+        static u_int32 power_time = 0;
+        static u_int32 bps_time   = 0;
+
+        bps_time   += elapsed_time;
+        if (bps_time > 10 * sp->meter_period) {
+                ui_update_bps(sp);
+                bps_time = 0;
+        }
+
+        power_time += elapsed_time;
+        if (power_time > sp->meter_period) {
+                ui_update_powermeters(sp, sp->ms);
+                power_time = 0;
+        }
 }
 
 void
