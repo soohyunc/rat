@@ -63,6 +63,8 @@
 #define MAX_CUSHION	4000
 #define MIN_CUSHION	320
 
+/* All cushion measurements are in sampling intervals, not samples ! [oth] */
+
 typedef struct s_cushion_struct {
 	u_int32         cushion_estimate;
 	u_int32         cushion_size;
@@ -160,29 +162,36 @@ cushion_update(cushion_t *c, u_int32 read_dur, int mode)
         }
 }
 
- static void
+static void
 cushion_size_check(cushion_t *c)
 {
         if (c->cushion_size < MIN_CUSHION) {
                 c->cushion_size = MIN_CUSHION;
+#ifdef DEBUG_CUSHION
                 dprintf("cushion boosted.");
+#endif
         } else if (c->cushion_size > MAX_CUSHION) {
                 c->cushion_size = MAX_CUSHION;
+#ifdef DEBUG_CUSHION
                 dprintf("cushion clipped.\n");
+#endif
         }
 }
 
- u_int32 
+u_int32 
 cushion_get_size(cushion_t *c)
 {
         return c->cushion_size;
 }
 
- u_int32
+u_int32
 cushion_set_size(cushion_t *c, u_int32 new_size)
 {
         c->cushion_size = new_size;
         cushion_size_check(c);
+#ifdef DEBUG_CUSHION
+        dprintf("cushion size %ld\n", new_size);
+#endif
         return c->cushion_size;
 }
 
@@ -194,7 +203,7 @@ cushion_step_up(cushion_t *c)
         return c->cushion_size;
 }
 
- u_int32
+u_int32
 cushion_step_down(cushion_t *c)
 {
         c->cushion_size -= c->cushion_step;
@@ -202,22 +211,25 @@ cushion_step_down(cushion_t *c)
         return c->cushion_size;
 }
 
- u_int32
+u_int32
 cushion_get_step(cushion_t *c)
 {
         return c->cushion_step;
 }
 
- u_int32 
+u_int32 
 cushion_use_estimate(cushion_t *c)
 {
         c->cushion_size = c->cushion_estimate + c->cushion_step 
                 - (c->cushion_estimate % c->cushion_step);
         cushion_size_check(c);
+#ifdef DEBUG_CUSHION
+        dprintf("cushion using size %ld\n", c->cushion_size);
+#endif
         return c->cushion_size;
 }
 
- int32 
+int32 
 cushion_diff_estimate_size(cushion_t *c)
 {
         return (c->cushion_estimate - c->cushion_size);

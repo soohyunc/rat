@@ -1,12 +1,12 @@
 /*
- *	FILE:	parameters.c
+ *	FILE:    parameters.c
  *	PROGRAM: RAT
- *	AUTHOR:	Isidor Kouvelas + V.J.Hardman + Colin Perkins + O. Hodson
+ *	AUTHOR:	 O. Hodson
  *
  *	$Revision$
  *	$Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995,1998 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,7 @@ avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
         assert (channels > 0);
 
         switch (channels) {
-        case '1':
+        case 1:
                 while(i<samples) {
                         (*e) += abs(*buf);
                         buf  += STEP;

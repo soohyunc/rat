@@ -4,17 +4,20 @@
 # Note: On many systems (eg: HP-UX 9.x and FreeBSD) this REQUIRES GNU make
 #
 
-DEFS = -DDEBUG -DDEBUG_MIX
-# -DDEBUG_MIX
+DEFS = -DDEBUG -DDEBUG_MEM
+# -DDEBUG_MIX -DDEBUG_PLAYOUT -DDEBUG_CUSHION
 # -DDEBUG -DDEBUG_MEM -DDEBUG_CONFBUS
 # -DNDEBUG -DTEST -DGSM -DDEBUG_REPAIR
 # -DDEBUG_RTP -DREPEAT -DLOG_PARTICIPANTS
 
+PROFILE=
+# -pg
+
 DEFS += -D$(OSTYPE) -D$(OSTYPE)_$(OSMVER)
 # If your code doesn't compile with all these -W... flags, fix the code don't remove the warnings!
-CFLAGS = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror $(INCS) $(DEFS) -g -fsigned-char -pipe
+CFLAGS = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror $(INCS) $(DEFS) -g -fsigned-char -pipe $(PROFILE) 
 CC     = gcc
-LDFLAGS= 
+LDFLAGS= $(PROFILE)
 LDLIBS=  $(LDLIBS) -lm 
 RANLIB = ranlib
 

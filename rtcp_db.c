@@ -79,7 +79,7 @@ init_seq(rtcp_dbentry *s, u_int16 seq)
 int 
 rtcp_update_seq(rtcp_dbentry *s, u_int16 seq)
 {
-	u_int16         udelta = seq - s->lastseqno;
+	u_int16       udelta = seq - s->lastseqno;
 
 	if (s->pckts_recv == 0) {
 		s->probation = 0;
@@ -129,6 +129,11 @@ rtcp_update_seq(rtcp_dbentry *s, u_int16 seq)
 		}
 	} else {
 		/* duplicate or reordered packet */
+                if (udelta == 0) {
+                        s->duplicates ++;
+                } else {
+                        s->misordered ++;
+                }
 	}
 	s->pckts_recv++;
 	return 1;

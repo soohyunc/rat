@@ -1,7 +1,7 @@
 /*
  * FILE:    time.c
  * PROGRAM: RAT
- * AUTHOR:  I.Kouvelas
+ * AUTHOR:  I.Kouvelas + O.Hodson
  * 
  * $Revision$
  * $Date$
@@ -45,6 +45,8 @@
 #include "rat_time.h"
 #include "util.h"
 
+#define HALF_TS_CYCLE	0x80000000
+
 typedef struct s_fast_time {
 	int freq;
 	u_int32	low;
@@ -55,7 +57,6 @@ typedef struct s_time {
 	struct s_fast_time *ft;
 	int	freq;
 	int	scale;
-	u_int32	offset;
 } frtime_t;
 
 ft_t *
@@ -84,7 +85,6 @@ new_time(ft_t *ft, int freq)
 	frtime_t	*tp;
 
 	tp = (frtime_t*)xmalloc(sizeof(frtime_t));
-	tp->offset = 0;
 	tp->freq = freq;
 	tp->ft = ft;
         tp->scale = 1;
@@ -102,14 +102,10 @@ free_time(frtime_t *tp)
 void
 change_freq(frtime_t *tp, int freq)
 {
-	u_int32	old;
-
 	assert(freq <= tp->ft->freq);
 
-	old = get_time(tp);
         tp->scale = tp->ft->freq/freq;
 	tp->freq = freq;
-	tp->offset += old - get_time(tp);
 }
 
 int 
@@ -124,36 +120,65 @@ get_time(frtime_t *tp)
 {
 	u_int32	t;
 	t = tp->ft->low / tp->scale + tp->ft->high * tp->scale;
-	t += tp->offset;
 	return (t);
 }
 
-/* This function assumes that the time converted is "close" to current time */
+/* Calculates difference between two timestamps */
+
+static int32
+ts_diff(u_int32 t1, u_int32 t2)
+{
+        u_int32 d12, d21; 
+
+        d12 = t1 - t2;
+        d21 = t2 - t1;
+
+        if (d12 == 0) {
+                return 0;
+        } else if ((t1 > t2) && d12 < HALF_TS_CYCLE) {
+                /* t1 ahead of t2 */
+                return +(t1 - t2);
+        } else if ((t1 < t2) && d21 < HALF_TS_CYCLE) {
+                /* t2 ahead of t1 */
+                return  -(t2 - t1);
+        } else if ((t1 > t2) && d12 > HALF_TS_CYCLE) {
+                /* t2 ahead of t1 */
+                return -(t2 + ~t1);
+        } else if ((t1 < t2) && d21 > HALF_TS_CYCLE) {
+                /* t1 ahead of t2 */
+                return +(t1 + ~t2);
+        } else {
+                /* shouldn't ever get this far */
+                assert(0);
+        }
+        return 0;
+}
+
+/* This function assumes that the time converted is "close" to and
+ * prior to the current time 
+ */
+
 u_int32
 convert_time(u_int32 ts, frtime_t *from, frtime_t *to)
 {
-	u_int32	now, diff, conv;
+        assert(to->freq % from->freq == 0);
 
-	now = get_time(from);
-	if (ts_gt(ts, now))
-		diff = ts - now;
-	else
-		diff = now - ts;
+        if (from->freq == to->freq) {
+                return ts;
+        } else if (from->freq < to->freq) {
+                return ts * to->freq / from->freq;
+        } else {
+                u_int32 tod_slow_clk, tod_quick_clk;
+                int32   diff;
 
-        if (to->scale>from->scale)
-            diff = diff * to->scale / from->scale;
-        else 
-            diff = diff * from->scale / to->scale;
+                tod_quick_clk = get_time(from);
+                tod_slow_clk  = get_time(to);
+                
+                diff = ts_diff(ts, tod_quick_clk);
 
-	if (ts_gt(ts, now))
-		conv = get_time(to) + diff;
-	else
-		conv = get_time(to) - diff;
-
-	return (conv);
+                return tod_slow_clk + (diff) * (from->freq / to->freq);
+        }
 }
-
-#define HALF_TS_CYCLE	0x80000000
 
 /*
  * Compare two timestamps and return TRUE if t1 > t2 Assume that they are
@@ -184,34 +209,3 @@ ts_abs_diff(u_int32 t1, u_int32 t2)
 	return (diff);
 }
 
-int
-ts_cmp(u_int32 ts1, u_int32 ts2)
-{
-        u_int32 d1,d2,dmin;
-
-        d1 = ts2 - ts1;
-        d2 = ts1 - ts2;
-
-        /* look for smallest difference between ts (timestamps are unsigned) */
-        if (d1<d2) {
-                dmin = d1;
-        } else if (d1>d2) {
-                dmin = d2;
-        } else {
-                dmin = 0;
-        }
-
-        /* if either d1 or d2 have wrapped dmin > HALF_TS_CYCLE */
-
-        if (dmin<HALF_TS_CYCLE) {
-                if (ts1>ts2) return  1;
-                if (ts1<ts2) return -1;
-                return 0;
-        } else if (ts1<ts2) {
-                /* Believe t1 to have been wrapped and therefore greater */
-                return 1; 
-        } else {
-                /* believe t2 to have been wrapped and therefore greater */
-                return -1;
-        }
-}

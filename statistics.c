@@ -159,20 +159,24 @@ split_block(u_int32 playout_pt,
 }
 
 static u_int32
-adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
+adapt_playout(rtp_hdr_t *hdr, 
+              int arrival_ts, 
+              rtcp_dbentry *src,
 	      session_struct *sp, 
               struct s_cushion_struct *cushion, 
               u_int32 cur_time)
 {
 	u_int32	playout, var;
+        u_int32 minv, maxv; 
+
 	int	delay, diff;
 	codec_t	*cp;
 	char	pargs[1500];
 	int	real_playout;
-
+        
 	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
 	delay = arrival_ts - hdr->ts;
-
+        
 	if (src->first_pckt_flag == TRUE) {
 		src->first_pckt_flag = FALSE;
 		diff                 = 0;
@@ -197,10 +201,11 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 		if ((hdr->m) || 
                     src->cont_toged > 4 || 
                     ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * cp->unit_len * 8 + 1))) {
-                        u_int32 minv, maxv; 
 			var = (u_int32) src->jitter * 3;
                         minv = sp->min_playout * get_freq(src->clock) / 1000;
                         maxv = sp->max_playout * get_freq(src->clock) / 1000; 
+
+                        assert(maxv > minv);
                         if (var<minv) {
                                 dprintf("Extending %d to %d\n",var,minv);
                                 var = minv;
@@ -212,13 +217,9 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 			if (src->clock!=sp->device_clock) {
 				var += cp->unit_len;
 			}
-			src->playout = src->delay + var;
 
-                        dprintf("new playout calculated %d m(%d) toged(%d) jmp (%d)\n", 
-                                var,
-                                hdr->m,
-                                src->cont_toged,
-                                hdr->seq - src->last_seq);
+                        assert(var > 0);
+			src->playout = src->delay + var;
 
 			if (sp->sync_on) {
 				/* Communicate our playout delay to the video tool... */
@@ -247,6 +248,11 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 
 	/* Calculate the playout point in local source time for this packet. */
 	playout = hdr->ts + src->playout;
+
+        if (src->cont_toged > 12) {
+                /* something has gone wrong if this assertion fails*/
+                assert(playout > get_time(src->clock));
+        }
 
 	return playout;
 }
@@ -330,80 +336,76 @@ statistics(session_struct    *sp,
 
 	char update_req = FALSE;
 
-	if (netrx_pckt_queue->queue_empty) {
-		/* Nothing to do... */
-		return;
-	}
-	/* Process an incoming packet... */
-	e_ptr = get_pckt_off_queue(netrx_pckt_queue);
-	assert(e_ptr != NULL);
-
-	/* Impose RTP formating on it... */
-	hdr = (rtp_hdr_t *) (e_ptr->pckt_ptr);
-
-	if (rtp_header_validation(hdr, &e_ptr->len, &extlen) == FALSE) {
-		dprintf("RTP Packet failed header validation!\n");
-		/* XXX log as bad packet */
-                goto release;
-	}
-
-	/* Convert from network byte-order */
-	hdr->seq  = ntohs(hdr->seq);
-	hdr->ts   = ntohl(hdr->ts);
-	hdr->ssrc = ntohl(hdr->ssrc);
-
-	if ((hdr->ssrc == sp->db->myssrc) && 
-            sp->filter_loopback) {
-		/* Discard loopback packets...unless we have asked for them ;-) */
-                goto release;
-	}
-
-	/* Get database entry of participant that sent this packet */
-	src = update_database(sp, hdr->ssrc, cur_time);
-	if (src == NULL) {
-                dprintf("Packet from unknown participant\n");
-		/* Discard packets from unknown participant */
-                goto release;
-	}
-
-	rtcp_update_seq(src, hdr->seq);
-
-	data_ptr =  (char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + extlen;
-
-	len = e_ptr->len - 4 * (3 + hdr->cc) - extlen;
-
-        if (!(pcp = get_codec(hdr->pt))) {
-                /* this is either a channel coded block or we can't decode it */
-                if (!(pcp = get_codec(get_wrapped_payload(hdr->pt, data_ptr, len)))) {
-                        dprintf("Cannot decode data.\n");
+	/* Process an incoming packets */
+        while(netrx_pckt_queue->queue_empty == FALSE) {
+                e_ptr = get_pckt_off_queue(netrx_pckt_queue);
+                /* Impose RTP formating on it... */
+                hdr = (rtp_hdr_t *) (e_ptr->pckt_ptr);
+        
+                if (rtp_header_validation(hdr, &e_ptr->len, &extlen) == FALSE) {
+                        dprintf("RTP Packet failed header validation!\n");
+                        /* XXX log as bad packet */
                         goto release;
                 }
-        }
-
-        compat = codec_compatible(pcp, get_codec(sp->encodings[0]));
-        if (!compat && !sp->auto_convert) {
-                dprintf("Format conversion not enabled.\n");
-                goto release;
-        }
         
-	if ((src->encs[0] == -1) || (compat==0))
-                receiver_change_format(src, pcp);
-
-        if (src->encs[0] != pcp->pt) {
-            /* we should tell update more about coded format */
-                src->encs[0] = pcp->pt;
-		update_req   = TRUE;
-	}
-
-	playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, cur_time);
-	src->units_per_packet = split_block(playout_pt, pcp, data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
-	
-        if (!src->units_per_packet) {
-                goto release;
-        }
+                /* Convert from network byte-order */
+                hdr->seq  = ntohs(hdr->seq);
+                hdr->ts   = ntohl(hdr->ts);
+                hdr->ssrc = ntohl(hdr->ssrc);
         
-	if (update_req) update_stats(src, sp);
+                if ((hdr->ssrc == sp->db->myssrc) && 
+                    sp->filter_loopback) {
+                        /* Discard loopback packets...unless we have asked for them ;-) */
+                        goto release;
+                }
+        
+                /* Get database entry of participant that sent this packet */
+                src = update_database(sp, hdr->ssrc, cur_time);
+                if (src == NULL) {
+                        dprintf("Packet from unknown participant\n");
+                        /* Discard packets from unknown participant */
+                        goto release;
+                }
+        
+                rtcp_update_seq(src, hdr->seq);
+
+                data_ptr =  (char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + extlen;
+        
+                len = e_ptr->len - 4 * (3 + hdr->cc) - extlen;
+        
+                if (!(pcp = get_codec(hdr->pt))) {
+                        /* this is either a channel coded block or we can't decode it */
+                        if (!(pcp = get_codec(get_wrapped_payload(hdr->pt, data_ptr, len)))) {
+                                dprintf("Cannot decode data.\n");
+                                goto release;
+                        }
+                }
+        
+                compat = codec_compatible(pcp, get_codec(sp->encodings[0]));
+                if (!compat && !sp->auto_convert) {
+                        dprintf("Format conversion not enabled.\n");
+                        goto release;
+                }
+                
+                if ((src->encs[0] == -1) || (compat==0))
+                        receiver_change_format(src, pcp);
+                
+                if (src->encs[0] != pcp->pt) {
+                        /* we should tell update more about coded format */
+                        src->encs[0] = pcp->pt;
+                        update_req   = TRUE;
+                }
+                
+                playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, cur_time);
+                src->units_per_packet = split_block(playout_pt, pcp, data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
+                
+                if (!src->units_per_packet) {
+                        goto release;
+                }
+        
+                if (update_req) update_stats(src, sp);
         release:
-	free_pckt_queue_element(&e_ptr);
+                free_pckt_queue_element(&e_ptr);
+        }
 }
 

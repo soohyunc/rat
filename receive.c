@@ -59,6 +59,7 @@ typedef struct s_participant_playout_buffer {
 	rx_queue_element_struct *head_ptr;
 	rx_queue_element_struct *tail_ptr;
 	rx_queue_element_struct *last_got;
+        u_int32 len;
 } ppb_t;
 
 rx_queue_element_struct *
@@ -113,6 +114,7 @@ add_or_get_interval(ppb_t *buf, rx_queue_element_struct *ru)
 			(*ipp)->prev_ptr = ru;
 		}
 		*ipp = ru;
+                buf->len ++;
 	}
 	return (*ipp);
 }
@@ -120,7 +122,8 @@ add_or_get_interval(ppb_t *buf, rx_queue_element_struct *ru)
 #define MAX_FILLIN_UNITS 8
 
 static int
-fillin_playout_buffer(rx_queue_element_struct *from, 
+fillin_playout_buffer(ppb_t *buf,
+                      rx_queue_element_struct *from, 
                       rx_queue_element_struct *to)
 {
         rx_queue_element_struct *last, *curr; 
@@ -130,7 +133,7 @@ fillin_playout_buffer(rx_queue_element_struct *from,
 
         playout_step = ts_abs_diff(from->playoutpt, to->playoutpt) * 
                 from->unit_size / ts_abs_diff(from->src_ts, to->src_ts);
-#ifdef DEBUG
+#ifdef DEBUG_PLAYOUT
         if (playout_step > 4*from->unit_size) {
                 dprintf("playout_step is large %d.\n",
                         playout_step);
@@ -142,7 +145,7 @@ fillin_playout_buffer(rx_queue_element_struct *from,
               units_made < MAX_FILLIN_UNITS) {
 
                 curr = new_rx_unit();
-
+                buf->len ++;
                 curr->src_ts    = last->src_ts    + last->unit_size;
                 curr->playoutpt = last->playoutpt + playout_step;
                 curr->unit_size = last->unit_size;
@@ -163,13 +166,15 @@ fillin_playout_buffer(rx_queue_element_struct *from,
         }
 
         assert(units_made>0);
+#ifdef DEBUG_PLAYOUT
         dprintf("Allocated %d new units\n",units_made);
-
+#endif /* DEBUG_PLAYOUT */
         return units_made;
 }
 
 static void 
-smooth_playout_buffer(rx_queue_element_struct *from,
+smooth_playout_buffer(ppb_t *buf,
+                      rx_queue_element_struct *from,
                       rx_queue_element_struct *to)
 {
         if (from && to) {
@@ -184,12 +189,12 @@ smooth_playout_buffer(rx_queue_element_struct *from,
                 }
                 if (ts_abs_diff(from->src_ts, to->src_ts) > from->unit_size &&
                     to->talk_spurt_start == FALSE) {
-                        fillin_playout_buffer(from,to);
+                        fillin_playout_buffer(buf, from, to);
                 }
         }
 }
 
-#ifdef DEBUG
+#ifdef DEBUG_PLAYOUT
 static void
 verify_playout_buffer(ppb_t* buf)
 {
@@ -223,9 +228,14 @@ verify_playout_buffer(ppb_t* buf)
                  * to be present... 
                  */
         }
+        if (buf->len != buf_len + 1) {
+                dprintf("Buffer length estimate is wrong (%d %d)!\n",
+                        buf->len,
+                        buf_len + 1);
+        }
 
 }
-#endif /* DEBUG */
+#endif /* DEBUG_PLAYOUT */
 
 static rx_queue_element_struct *
 playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
@@ -236,12 +246,12 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 		add_unit_to_interval(ip, ru);
 	}
 
-        smooth_playout_buffer(ip->prev_ptr,ip);
-        smooth_playout_buffer(ip,ip->next_ptr); 
+        smooth_playout_buffer(buf, ip->prev_ptr, ip);
+        smooth_playout_buffer(buf, ip, ip->next_ptr); 
 
-#ifdef DEBUG
+#ifdef DEBUG_PLAYOUT
         verify_playout_buffer(buf);
-#endif /* DEBUG */
+#endif /* DEBUG_PLAYOUT */
 
 	return (ru);
 }
@@ -284,6 +294,7 @@ clear_old_participant_history(ppb_t *buf)
         adj = (get_freq(buf->src->clock)/1000) * HISTORY_LEN;
 	cutoff = cur_time - adj;
         assert(cutoff!=cur_time);
+
 	while (buf->head_ptr && ts_gt(cutoff, buf->head_ptr->playoutpt)) {
 		ip = buf->head_ptr;
 		buf->head_ptr = ip->next_ptr;
@@ -291,8 +302,8 @@ clear_old_participant_history(ppb_t *buf)
 		if (buf->last_got == ip) {
 			buf->last_got = NULL;
 		}
-
 		free_rx_unit(&ip);
+                buf->len --;
 	}
 
 	if (buf->head_ptr) {
@@ -447,6 +458,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 	for (buf = *buf_list; buf; buf = buf->next) {
 		cur_time = get_time(buf->src->clock);
 		cs = cushion_get_size(sp->cushion);
+#ifdef DEBUG_PLAYOUT
                 {
                         static struct timeval last_foo;
                         struct timeval foo;
@@ -463,14 +475,14 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                                 );
                         memcpy(&last_foo, &foo, sizeof(struct timeval));
                 }
-
+#endif /* DEBUG_PLAYOUT */
 		while ((up = playout_buffer_get(buf, cur_time, cur_time + cs))) {
                     if (!up->comp_count  && sp->repair != REPAIR_NONE 
                         && up->prev_ptr != NULL && up->next_ptr != NULL
                         && up->prev_ptr->native_count) 
                         repair(sp->repair, up);
                     if (up->native_count && up->mixed == FALSE) {
-#ifdef DEBUG
+#ifdef DEBUG_PLAYOUT
                             if (up->prev_ptr) 
                             {
                                     u_int32 src_diff = ts_abs_diff(up->prev_ptr->src_ts,up->src_ts);
@@ -479,7 +491,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                                             dprintf("src_ts jump %08d\n",src_diff);
                                     }
                             }
-#endif /* DEBUG */
+#endif /* DEBUG_PLAYOUT */
                         mix_do_one_chunk(sp, ms, up);
                         if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
 				/* Request device using the mbus... */

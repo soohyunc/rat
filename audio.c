@@ -360,9 +360,9 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 		/* The mix routine also needs to know for how long the output */
 		/* went dry so that it can adjust the time.                   */
 		mix_get_new_cushion(ms, 
-                                    cushion_size * channels, 
-                                    new_cushion  * channels, 
-                                    (read_dur - cushion_size) * channels, 
+                                    cushion_size, 
+                                    new_cushion, 
+                                    (read_dur - cushion_size), 
                                     &bufp);
 		audio_device_write(spo, bufp, new_cushion);
 		if ((spo->out_file) && (spo->flake_go == 0)) {

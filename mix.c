@@ -158,7 +158,9 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
         
 
         playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
+#ifdef DEBUG_PLAYOUT
         dprintf("mixing %ld\n", el->playoutpt);
+#endif DEBUG_PLAYOUT
 
 	if (from->freq == to->freq && from->channels == to->channels) {
 		nsamples = ms->channels * from->unit_len;
@@ -309,7 +311,10 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
 
 /*
  * We need the amount of time we went dry so that we can make a time
+ * adjustment to keep in sync with the receive buffer etc...
  *
+
+
  */
 void
 mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
@@ -321,7 +326,7 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 	fprintf(stderr, "Getting new cushion %d old %d\n", new_cushion_size, last_cushion_size);
 #endif
 
-	diff = abs(new_cushion_size - elapsed_time);
+	elapsed_time = (last_cushion_size + dry_time);
 	diff = abs(new_cushion_size - elapsed_time) * ms->channels;
 #ifdef DEBUG_MIX
         fprintf(stderr,"new cushion size %d\n",new_cushion_size);
@@ -341,7 +346,7 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 		ms->dist += diff;
 		assert(ms->dist <= ms->buf_len);
 		ms->tail_time -= diff/ms->channels;
-	} else if (new_cushion_size/ms->channels < elapsed_time) {
+		assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
 	} else if (new_cushion_size < elapsed_time) {
 		/*
 		 * New cushion is smaller so we have to throw away
@@ -358,7 +363,7 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 			ms->dist -= diff;
 		}
 		assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
-	mix_get_audio(ms, new_cushion_size, bufp);
+	}
 	mix_get_audio(ms, new_cushion_size * ms->channels, bufp);
 }
 
