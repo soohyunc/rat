@@ -145,15 +145,12 @@ found_it:
 
 void load_settings(session_struct *sp)
 {
-<<<<<<< settings.c
+#ifndef WIN32
 	audio_device_details_t	 ad;
 	char			*ad_name, *primary_codec, *primary_long, *cc_name;
 	int			 i, freq, chan;
 	cc_details		 ccd;
 
-=======
-#ifndef WIN32
->>>>>>> 1.5
 	load_init();
 	sp->db->my_dbe->sentry->name  = load_str_setting("rtpName", "Unknown");		/* We don't use rtcp_set_attribute() */ 
 	sp->db->my_dbe->sentry->email = load_str_setting("rtpEmail", "");		/* here, since that updates the UI   */
