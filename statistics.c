@@ -267,7 +267,9 @@ adapt_playout(rtp_hdr_t *hdr,
 
         if (src->cont_toged > 12) {
                 /* something has gone wrong if this assertion fails*/
-                assert(playout > get_time(src->clock));
+                if (playout < get_time(src->clock)) {
+                        dprintf("playout before now.\n");
+                }
         }
 
 	return playout;

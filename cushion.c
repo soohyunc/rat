@@ -69,16 +69,17 @@ typedef struct s_cushion_struct {
 	u_int32         cushion_estimate;
 	u_int32         cushion_size;
 	u_int32         cushion_step;
-	int		*read_history;	/* Circular buffer of read lengths */
-	int		last_in;	/* Index of last added value */
-	int		*histogram;	/* Histogram of read lengths */
-        u_int32          histbins;      /* Number of bins in histogram */
+	u_int32        *read_history;	/* Circular buffer of read lengths */
+	int             last_in;	/* Index of last added value */
+	int            *histogram;	/* Histogram of read lengths */
+        u_int32         histbins;      /* Number of bins in histogram */
 } cushion_t;
 
 int 
 cushion_create(cushion_t **c, int blockdur)
 {
-        int i, *ip;
+        int i;
+        u_int32 *ip;
         cushion_t *nc;
 
         nc = (cushion_t*) xmalloc (sizeof(cushion_t));
@@ -90,7 +91,7 @@ cushion_create(cushion_t **c, int blockdur)
         nc->cushion_size     = 2 * blockdur;
 	nc->cushion_estimate = blockdur;
 	nc->cushion_step     = blockdur;
-	nc->read_history     = (int *) xmalloc (HISTORY_SIZE * sizeof(int));
+	nc->read_history     = (u_int32 *) xmalloc (HISTORY_SIZE * sizeof(u_int32));
         if (nc->read_history == NULL) goto bail_history;
 
 	for (i = 0, ip = nc->read_history; i < HISTORY_SIZE; i++, ip++)
@@ -132,7 +133,12 @@ cushion_update(cushion_t *c, u_int32 read_dur, int mode)
 
         /* slot in new entry and update histogram */
 	c->read_history[c->last_in] = read_dur / c->cushion_step;
-	c->histogram[ c->read_history[c->last_in]  ]++;
+        if (c->read_history[c->last_in] < c->histbins) {
+                c->histogram[ c->read_history[c->last_in] ]++;
+        } else {
+                c->histogram[ c->read_history[c->histbins - 1] ]++;
+                dprintf("WE ARE NOT KEEPING UP IN REAL-TIME\n");
+        }
 	c->last_in++;
 	if (c->last_in == HISTORY_SIZE) {
 		c->last_in = 0;
