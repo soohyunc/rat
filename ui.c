@@ -368,7 +368,7 @@ ui_update_input_port(session_struct *sp)
 		fprintf(stderr, "Invalid input port!\n");
 		return ;
 	}
-	if (sp->sending_audio) {
+	if (tx_is_sending(sp->tb)) {
 		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.mute", "0", TRUE);
 	} else {
 		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.mute", "1", TRUE);
@@ -767,8 +767,8 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 		if (sp->meter && (ms != NULL)) {
 			mix_update_ui(sp, ms);
 		}
-                if (sp->sending_audio) {
-			tx_update_ui(sp);
+                if (tx_is_sending(sp->tb)) {
+			tx_update_ui(sp->tb);
 		}
 		power_time = 0;
 	} else {

@@ -157,8 +157,9 @@ pb_add (pb_t *pb, u_char *data, u_int32 data_len, ts_t playout)
         }
 
         /* Check if unit already exists */
-        if (ts_eq(curr->playout, playout)) {
+        if (curr != stop && ts_eq(curr->playout, playout)) {
                 debug_msg("Add failed - unit already exists");
+                assert(0);
                 return FALSE;
         }
 
@@ -180,12 +181,13 @@ pb_add (pb_t *pb, u_char *data, u_int32 data_len, ts_t playout)
 /* Iterator functions ********************************************************/
 
 int
-pb_iterator_new(pb_t           *pb,
+pb_iterator_create(pb_t           *pb,
                 pb_iterator_t **ppi) 
 {
         pb_iterator_t *pi;
         if (pb->n_iterators == PB_MAX_ITERATORS) {
                 debug_msg("Too many iterators\n");
+                assert(0);
                 *ppi = NULL;
                 return FALSE;
         }
@@ -193,7 +195,9 @@ pb_iterator_new(pb_t           *pb,
         /* Link the playout buffer to the iterator */
         pi = &pb->iterators[pb->n_iterators];
         pb->n_iterators++;
-        pi->node = &pb->sentinel;
+        /* Set up node and buffer references */
+        pi->node   = &pb->sentinel;
+        pi->buffer = pb;
         *ppi = pi;
         return TRUE;
 }
@@ -226,7 +230,7 @@ int
 pb_iterator_dup(pb_iterator_t **pb_dst,
                 pb_iterator_t  *pb_src)
 {
-        if (pb_iterator_new(pb_src->buffer,
+        if (pb_iterator_create(pb_src->buffer,
                             pb_dst)) {
                 (*pb_dst)->node = pb_src->node;
                 return TRUE;

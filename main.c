@@ -243,13 +243,14 @@ main(int argc, char *argv[])
                                 for(sidx = 0; sidx < scnt; sidx++) {
 
                                         s = source_list_get_source_no(sp[i]->active_sources, sidx);
-                                        source_process(s, sp[i]->repair, cush_ts);
-                                        mix_process(sp[i], sp[i]->ms, s, cush_ts);
+                                        source_process(s, sp[i]->ms, sp[i]->repair, cush_ts);
                                         if (!source_relevant(s, cush_ts)) {
                                                 /* Remove source as stopped */
                                                 source_remove(sp[i]->active_sources, s);
                                                 sidx--;
                                                 scnt--;
+                                        } else {
+                                                source_audit(s);
                                         }
                                 }
 			}

@@ -152,32 +152,18 @@ mix_zero(mix_struct *ms, int offset, int len)
  */
 
 void
-mix_process(session_struct  *sp,
-            mix_struct      *ms,
-            struct s_source *s,
-            ts_t             now)
+mix_process(mix_struct          *ms,
+            rtcp_dbentry        *dbe,
+            coded_unit          *frame,
+            ts_t                 playout)
 {
-        struct s_pb *buffer;
-        rtcp_dbentry            *dbe;
-        media_data              *md;
-        coded_unit              *frame;
-        sample                  *samples;
-        u_int32                  md_len;
-        u_int32                  nticks, nsamples, pos;
-        u_int16                  channels, rate;
-        ts_t                     playout, frame_period, expected_playout, delta, new_head_time;
+        sample  *samples;
+        u_int32  nticks, nsamples, pos;
+        u_int16  channels, rate;
+        ts_t     frame_period, expected_playout, delta, new_head_time;
 
 	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
-        
-        buffer = source_get_decoded_buffer(s);
-        dbe    = source_get_rtcp_dbentry(s);
 
-        if (playout_buffer_get(buffer, (u_char**)&md, &md_len, &playout) == FALSE ||
-                dbe->mute) {
-                return;
-        }
-
-        frame           = md->rep[md->nrep - 1]; /* Appropriate representation should be in last element */
         codec_get_native_info(frame->id, &rate, &channels);
 
         assert(rate     == (u_int32)ms->rate);
@@ -192,75 +178,66 @@ mix_process(session_struct  *sp,
         }
 
         assert(ts_gt(playout, dbe->last_mixed));
-        assert(md_len == sizeof(media_data));
-        do {
-                frame = md->rep[md->nrep - 1]; /* Appropriate representation should be in last element */
-                assert(frame->id == codec_get_native_coding((u_int16)ms->rate, (u_int16)ms->channels));
-                samples  = (sample*)frame->data;
-                nsamples = frame->data_len / sizeof(sample);
+
+        samples  = (sample*)frame->data;
+        nsamples = frame->data_len / sizeof(sample);
                 
-                /* Check for overlap in decoded frames */
-                expected_playout = ts_add(dbe->last_mixed, frame_period);
-                if (!ts_eq(expected_playout, playout)) {
-                        if (ts_gt(expected_playout, playout)) {
-                                delta = ts_sub(expected_playout, playout);
-                                debug_msg("Overlapping units\n");
-                                if (ts_gt(frame_period, delta)) {
-                                        u_int32  trim = delta.ticks * ms->channels;
-                                        samples  += trim;
-                                        nsamples -= trim;
-                                        debug_msg("Trimmed %d samples\n", trim);
-                                } else {
-                                        debug_msg("Skipped unit\n");
-                                        goto process_next;
-                                }
+        /* Check for overlap in decoded frames */
+        expected_playout = ts_add(dbe->last_mixed, frame_period);
+        if (!ts_eq(expected_playout, playout)) {
+                if (ts_gt(expected_playout, playout)) {
+                        delta = ts_sub(expected_playout, playout);
+                        debug_msg("Overlapping units\n");
+                        if (ts_gt(frame_period, delta)) {
+                                u_int32  trim = delta.ticks * ms->channels;
+                                samples  += trim;
+                                nsamples -= trim;
+                                debug_msg("Trimmed %d samples\n", trim);
                         } else {
-                                debug_msg("Gap between units\n");
+                                debug_msg("Skipped unit\n");
                         }
+                } else {
+                        debug_msg("Gap between units\n");
                 }
+        }
 
-                /* Zero ahead if necessary */
+        /* Zero ahead if necessary */
 
-                new_head_time = ts_add(playout, ts_map32(ms->rate, nsamples / ms->channels));
-                if (ts_gt(new_head_time, ms->head_time))  {
-                        int zeros;
-                        delta = ts_sub(new_head_time, ms->head_time);
-                        zeros = delta.ticks * ms->channels;
-                        mix_zero(ms, ms->head, zeros);
-                        ms->dist += zeros;
-                        ms->head += zeros;
-                        ms->head %= ms->buf_len;
-                        ms->head_time = ts_add(ms->head_time, delta);
-                }
-                assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);                                          
-                assert(!ts_gt(playout, ms->head_time));
+        new_head_time = ts_add(playout, ts_map32(ms->rate, nsamples / ms->channels));
+        if (ts_gt(new_head_time, ms->head_time))  {
+                int zeros;
+                delta = ts_sub(new_head_time, ms->head_time);
+                zeros = delta.ticks * ms->channels;
+                mix_zero(ms, ms->head, zeros);
+                ms->dist += zeros;
+                ms->head += zeros;
+                ms->head %= ms->buf_len;
+                ms->head_time = ts_add(ms->head_time, delta);
+        }
+        assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);                                          
+        assert(!ts_gt(playout, ms->head_time));
 
-                /* Work out where to write the data */
-                delta = ts_sub(ms->head_time, playout);
-                pos   = (ms->head - delta.ticks*ms->channels) % ms->buf_len;
-                assert(pos < 0x7fffffff); /* Check for pos < 0 */
-                        
-             	if (pos + nsamples > (u_int32)ms->buf_len) { 
-                        mix_audio(ms->mix_buffer + pos, 
-                                  samples, 
-                                  ms->buf_len - pos); 
-                        xmemchk();
-                        mix_audio(ms->mix_buffer, 
-                                  samples + (ms->buf_len - pos) * ms->channels, 
-                                  pos + nsamples - ms->buf_len); 
-                        xmemchk();
-                } else { 
-                        mix_audio(ms->mix_buffer + pos, 
-                                  samples, 
-                                  nsamples); 
-                        xmemchk();
-                } 
+        /* Work out where to write the data */
+        delta = ts_sub(ms->head_time, playout);
+        pos   = (ms->head - delta.ticks*ms->channels) % ms->buf_len;
+        assert(pos < 0x7fffffff); /* Check for pos < 0 */
+        
+        if (pos + nsamples > (u_int32)ms->buf_len) { 
+                mix_audio(ms->mix_buffer + pos, 
+                          samples, 
+                          ms->buf_len - pos); 
+                xmemchk();
+                mix_audio(ms->mix_buffer, 
+                          samples + (ms->buf_len - pos) * ms->channels, 
+                          pos + nsamples - ms->buf_len); 
+                xmemchk();
+        } else { 
+                mix_audio(ms->mix_buffer + pos, 
+                          samples, 
+                          nsamples); 
+                xmemchk();
+        } 
 
-        process_next:
-                debug_msg("Mixed.\n");
-                dbe->last_mixed = playout;
-        } while(playout_buffer_advance(buffer, (u_char**)&md, &md_len, &playout) && !ts_gt(playout, now));
-        UNUSED(sp);
         return;
 }
 

@@ -45,6 +45,7 @@
 struct s_source;
 struct s_source_list;
 struct s_rtcp_dbentry;
+struct s_mix_info;
 struct s_pb;
 
 int              source_list_create  (struct s_source_list **pplist);
@@ -84,12 +85,15 @@ int              source_add_packet         (struct s_source *src,
                                             u_int8           payload,
                                             ts_t             playout);
 
-int              source_process            (struct s_source *src,
-                                            int              repair,
-                                            ts_t             now);
+int              source_process            (struct s_source   *src,
+                                            struct s_mix_info *ms,
+                                            int                repair,
+                                            ts_t               now);
 
 int              source_relevant           (struct s_source *src,
                                             ts_t             now);
+
+int              source_audit              (struct s_source *src);
 
 ts_sequencer*    source_get_sequencer      (struct s_source *src);
 

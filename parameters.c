@@ -474,7 +474,7 @@ agc_apply_changes(agc_t *a)
         if (a->change == TRUE) {
                 audio_set_gain(a->sp->audio_device, a->new_gain);
                 a->sp->input_gain = a->new_gain;
-                tx_igain_update(a->sp);
+                tx_igain_update(a->sp->tb);
                 agc_reset(a);
                 a->change = FALSE;
                 return TRUE;

@@ -100,18 +100,28 @@ typedef struct s_tx_buffer {
          * packet timestamp */
         ts_sequencer    down_seq;  /* used for 32 -> ts_t */
         ts_sequencer    up_seq;    /* used for ts_t -> 32 */
+
+        /* place for the samples */
+        sample samples[DEVICE_REC_BUF];
+        int    last_sample; /* Stores the index of the last read buffer */
 } tx_buffer;
 
 static sample dummy_buf[DEVICE_REC_BUF];
 
 static int
-tx_unit_create(tx_unit  **ptu)
+tx_unit_create(tx_buffer *tb, tx_unit  **ptu, int n_samples)
 {
         tx_unit *tu;
         tu = block_alloc(sizeof(tx_unit));
         if (tu) {
                 memset(tu, 0, sizeof(tx_unit));
                 *ptu = tu;
+                /* Position sample pointer */
+                if (tb->last_sample + n_samples > DEVICE_REC_BUF) {
+                        tb->last_sample = 0;
+                }
+                tu->data = tb->samples + tb->last_sample;
+                tb->last_sample += n_samples;
                 return TRUE;
         }
         debug_msg("Failed to allocate tx_unit\n");
@@ -221,14 +231,13 @@ tx_start(tx_buffer *tb)
         agc_reset(tb->agc);
 
         /* Attach iterator for silence classification */
-        pb_iterator_new(tb->audio_buffer, &tb->transmit);
-        pb_iterator_new(tb->audio_buffer, &tb->silence);
-        pb_iterator_new(tb->audio_buffer, &tb->reading);
+        pb_iterator_create(tb->audio_buffer, &tb->transmit);
+        pb_iterator_create(tb->audio_buffer, &tb->silence);
+        pb_iterator_create(tb->audio_buffer, &tb->reading);
 
         /* Add one unit to media buffer to kick off audio reading */
-        tu_new = (tx_unit*)block_alloc(sizeof(tx_unit));
-        memset(tu_new, 0, sizeof(tx_unit));
         unit_start = ts_map32(get_freq(tb->clock), rand());
+        tx_unit_create(tb, &tu_new, tb->unit_dur * tb->channels);
         pb_add(tb->audio_buffer, 
                (u_char*)tu_new,
                sizeof(tx_unit),
@@ -303,8 +312,8 @@ tx_read_audio(tx_buffer *tb)
                         if (u->dur_used == tb->unit_dur) {
                                 read_dur += tb->unit_dur;
                                 time_advance(sp->clock, freq, tb->unit_dur);
-                                ts_add(u_ts, ts_map32(get_freq(tb->clock), tb->unit_dur));
-                                tx_unit_create(&u);
+                                u_ts = ts_add(u_ts, ts_map32(get_freq(tb->clock), tb->unit_dur));
+                                tx_unit_create(tb, &u, tb->unit_dur * tb->channels);
                                 pb_add(tb->audio_buffer, (u_char*)u, ulen, u_ts);
                                 pb_iterator_advance(tb->reading);
                         } 
@@ -512,7 +521,7 @@ tx_send(tx_buffer *tb)
                                tb->media_buffer, 
                                tb->channel_buffer);
 
-        pb_iterator_new(tb->channel_buffer, &cpos);
+        pb_iterator_create(tb->channel_buffer, &cpos);
         while(pb_iterator_get_at(cpos, (u_char**)&cd, &cd_len, &time_ts)) {
                 pb_iterator_detach_at(cpos, 
                                       (u_char**)&cd, 
@@ -587,6 +596,7 @@ tx_update_ui(tx_buffer *tb)
                 } else {
                         if (active == TRUE) ui_input_level(sp, 0);
                 }
+                pb_iterator_destroy(tb->audio_buffer, &prev);
         }
         if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
                 if (active == FALSE) {

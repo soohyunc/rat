@@ -138,33 +138,37 @@ vanilla_encoder_output(ve_state *ve, struct s_pb *out)
         }
         ve->nelem = 0;
 
-        playout_buffer_add(out, 
-                           (u_char*)cd, 
-                           sizeof(channel_data), 
-                           ve->playout);
+        pb_add(out, 
+               (u_char*)cd, 
+               sizeof(channel_data), 
+               ve->playout);
+
 }
 
 int
-vanilla_encoder_encode (u_char                  *state,
+vanilla_encoder_encode (u_char      *state,
                         struct s_pb *in,
                         struct s_pb *out,
-                        u_int32                  upp)
+                        u_int32      upp)
 {
         u_int32     m_len;
         ts_t        playout;
+        struct      s_pb_iterator *pi;
         media_data *m;
         ve_state   *ve = (ve_state*)state;
 
         assert(upp != 0 && upp <= MAX_UNITS_PER_PACKET);
 
-        while(playout_buffer_get(in, (u_char**)&m, &m_len, &playout)) {
+        pb_iterator_create(in, &pi);
+        assert(pi != NULL);
+
+        while(pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout)) {
                 /* Remove element from playout buffer - it belongs to
                  * the vanilla encoder now.
                  */
-                playout_buffer_remove(in, (u_char**)&m, &m_len, &playout);
-
                 if (ve->nelem == 0) {
-                        /* If it's the first unit make a note of it's playout */
+                        /* If it's the first unit make a note of it's
+                         *  playout */
                         ve->playout = playout;
                         if (m->nrep == 0) {
                                 /* We have no data ready to go and no data
@@ -198,6 +202,9 @@ vanilla_encoder_encode (u_char                  *state,
                         vanilla_encoder_output(ve, out);
                 }
         }
+
+        pb_iterator_destroy(in, &pi);
+
         return TRUE;
 }
 
@@ -236,7 +243,7 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
         memcpy(m->rep[0]->data, p, data_len);
         p += data_len;
 
-        playout_buffer_add(out, (u_char *)m, sizeof(media_data), playout);
+        pb_add(out, (u_char *)m, sizeof(media_data), playout);
 
         /* Now do other units which do not have state*/
         playout_step = ts_map32(cf->format.sample_rate, codec_get_samples_per_frame(id));
@@ -252,7 +259,7 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
 
                 memcpy(m->rep[0]->data, p, data_len);
                 p += data_len;
-                if (playout_buffer_add(out, (u_char *)m, sizeof(media_data), playout) == FALSE) {
+                if (pb_add(out, (u_char *)m, sizeof(media_data), playout) == FALSE) {
                         debug_msg("Vanilla decode failed\n");
                 }
         }
@@ -260,19 +267,23 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
 }
 
 int
-vanilla_decoder_decode(u_char                  *state,
+vanilla_decoder_decode(u_char      *state,
                        struct s_pb *in, 
                        struct s_pb *out, 
-                       ts_t                     now)
+                       ts_t         now)
 {
+        struct s_pb_iterator *pi;
         channel_unit *cu;
         channel_data *c;
         u_int32       clen;
         ts_t          playout;
 
         assert(state == NULL); /* No decoder state needed */
-                
-        while(playout_buffer_get(in, (u_char**)&c, &clen, &playout)) {
+
+        pb_iterator_create(in, &pi);
+        assert(pi != NULL);
+        
+        while(pb_iterator_get_at(pi, (u_char**)&c, &clen, &playout)) {
                 assert(c != NULL);
                 assert(clen == sizeof(channel_data));
 
@@ -280,13 +291,16 @@ vanilla_decoder_decode(u_char                  *state,
                         /* Playout point of unit is after now.  Stop! */
                         break;
                 }
-                playout_buffer_remove(in, (u_char**)&c, &clen, &playout);
+                pb_iterator_detach_at(pi, (u_char**)&c, &clen, &playout);
                 
                 assert(c->nelem == 1);
                 cu = c->elem[0];
                 vanilla_decoder_output(cu, out, playout);
                 channel_data_destroy(&c, sizeof(channel_data));
         }
+
+        pb_iterator_destroy(in, &pi);
+
         return TRUE;
 }
 

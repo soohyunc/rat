@@ -680,6 +680,7 @@ audio_read(audio_desc_t ad, sample *buf, int samples)
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));        
         assert(idx >= 0 && idx < active_devices);
+        assert(buf != NULL);
 
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);

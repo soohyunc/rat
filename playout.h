@@ -72,7 +72,7 @@ void pb_flush (struct s_pb *pb);
  */
 
 int
-pb_iterator_new (struct s_pb           *pb,
+pb_iterator_create (struct s_pb           *pb,
                  struct s_pb_iterator **pbi);
   
 void

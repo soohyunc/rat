@@ -308,9 +308,9 @@ static void rx_audio_input_mute(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
 		if (i) {
-			tx_stop(sp);
+			tx_stop(sp->tb);
 		} else {
-			tx_start(sp);
+			tx_start(sp->tb);
 		}
                 sp->echo_was_sending = i;
 		ui_update_input_port(sp);
@@ -330,7 +330,7 @@ static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
 		sp->input_gain = i;
                 audio_set_gain(sp->audio_device, sp->input_gain);
-                tx_igain_update(sp);
+                tx_igain_update(sp->tb);
 	} else {
 		printf("mbus: usage \"audio.input.gain <integer>\"\n");
 	}

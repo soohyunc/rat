@@ -53,7 +53,7 @@
 #include "timers.h"
 #include "ts.h"
 #include "source.h"
-
+#include "mix.h"
 #include "debug.h"
 #include "util.h"
 
@@ -65,21 +65,23 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 
-#define HISTORY 1000
 
-void mix_add_audio(struct s_rtcp_dbentry*, coded_unit *, ts_t);
+#define HISTORY 1000
 
 typedef struct s_source {
         struct s_source            *next;
         struct s_source            *prev;
         u_int32                     age;
         ts_t                        last_played;
+        ts_t                        last_repair;
+        u_int16                     consec_lost;
         ts_sequencer                seq;
         struct s_rtcp_dbentry      *dbe;
         struct s_channel_state     *channel_state;
         struct s_codec_state_store *codec_states;
-        struct s_pb    *channel;
-        struct s_pb    *media;
+        struct s_pb                *channel;
+        struct s_pb                *media;
+        struct s_pb_iterator       *media_pos;
         struct s_converter         *converter;
 } source;
 
@@ -196,36 +198,28 @@ source_create(source_list    *plist,
         psrc->channel_state  = NULL;        
 
         /* Allocate channel and media buffers */
-        success = playout_buffer_create(&psrc->channel,
-                                        (playoutfreeproc)channel_data_destroy,
-                                        ts_map32(8000,0));
-
+        success = pb_create(&psrc->channel, (playoutfreeproc)channel_data_destroy);
         if (!success) {
                 debug_msg("Failed to allocate channel buffer\n");
-                block_free(psrc, sizeof(source));
-                return NULL;
+                goto fail_create_channel;
         }
 
-        /* Note we hold onto HISTORY clock ticks worth audio for
-         * repair purposes.
-         */
-        success = playout_buffer_create(&psrc->media,
-                                        (playoutfreeproc)media_data_destroy,
-                                        ts_map32(8000,HISTORY));
+        success = pb_create(&psrc->media, (playoutfreeproc)media_data_destroy);
         if (!success) {
                 debug_msg("Failed to allocate media buffer\n");
-                playout_buffer_destroy(&psrc->channel);
-                block_free(psrc, sizeof(source));
-                return NULL;
+                goto fail_create_media;
+        }
+
+        success = pb_iterator_create(psrc->media, &psrc->media_pos);
+        if (!success) {
+                debug_msg("Failed to attach iterator to media buffer\n");
+                goto fail_create_iterator;
         }
 
         success = codec_state_store_create(&psrc->codec_states, DECODER);
         if (!success) {
                 debug_msg("Failed to allocate codec state storage\n");
-                playout_buffer_destroy(&psrc->media);
-                playout_buffer_destroy(&psrc->channel);
-                block_free(psrc, sizeof(source));
-                return NULL;
+                goto fail_create_states;
         }
 
         /* List maintenance    */
@@ -243,6 +237,18 @@ source_create(source_list    *plist,
                            out_channels);
 
         return psrc;
+
+        /* Failure fall throughs */
+fail_create_states:
+        pb_iterator_destroy(psrc->media, &psrc->media_pos);        
+fail_create_iterator:
+        pb_destroy(&psrc->media);
+fail_create_media:
+        pb_destroy(&psrc->channel);
+fail_create_channel:
+        block_free(psrc, sizeof(source));
+
+        return NULL;
 }
 
 /* All sources need to be reconfigured when anything changes in
@@ -268,7 +274,7 @@ source_reconfigure(source        *src,
          */
 
         src->age = 0;
-        playout_buffer_flush(src->media);
+        pb_flush(src->media);
 
         /* Get rate and channels of incoming media so we know
          * what we have to change.
@@ -330,8 +336,10 @@ source_remove(source_list *plist, source *psrc)
         psrc->prev->next = psrc->next;
 
         if (psrc->channel_state) channel_decoder_destroy(&psrc->channel_state);
-        playout_buffer_destroy(&psrc->channel);
-        playout_buffer_destroy(&psrc->media);
+
+        pb_iterator_destroy(psrc->media, &psrc->media_pos);
+        pb_destroy(&psrc->channel);
+        pb_destroy(&psrc->media);
         codec_state_store_destroy(&psrc->codec_states);
         plist->nsrcs--;
 
@@ -387,7 +395,7 @@ source_add_packet (source *src,
             channel_decoder_matches(cid, src->channel_state) == FALSE) {
                 debug_msg("Channel coder changed - flushing\n");
                 channel_decoder_destroy(&src->channel_state);
-                playout_buffer_flush(src->channel);
+                pb_flush(src->channel);
         }
 
         /* Make state if not there and create decoder */
@@ -397,7 +405,7 @@ source_add_packet (source *src,
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
 
-        if (playout_buffer_add(src->channel, (u_char*)cd, sizeof(channel_data), playout) == FALSE) {
+        if (pb_add(src->channel, (u_char*)cd, sizeof(channel_data), playout) == FALSE) {
                 debug_msg("Packet addition failed - duplicate ?\n");
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
@@ -405,14 +413,64 @@ source_add_packet (source *src,
         return TRUE;
 }
 
+static void
+source_repair(source *src,
+              int     repair_type,
+              ts_t    step)
+{
+        media_data* fill_md, *prev_md;
+        ts_t        fill_ts,  prev_ts;
+        u_int32     success,  prev_len;
+
+        /* Check for need to reset of consec_lost count */
+
+        if (!ts_eq(src->last_played, src->last_repair)) {
+                src->consec_lost = 0;
+        }
+
+        /* We repair one unit at a time since it may be all we need */
+        pb_iterator_retreat(src->media_pos);
+        pb_iterator_get_at(src->media_pos,
+                           (u_char**)&prev_md,
+                           &prev_len,
+                           &prev_ts);
+        assert(prev_md != NULL);
+        assert(ts_eq(prev_ts, src->last_played));
+
+        media_data_create(&fill_md, 1);
+        repair(repair_type,
+               src->consec_lost,
+               src->codec_states,
+               prev_md,
+               fill_md->rep[0]);
+        fill_ts = ts_add(src->last_played, step);
+        success = pb_add(src->media, 
+                         (u_char*)fill_md,
+                         sizeof(media_data),
+                         fill_ts);
+        assert(success);
+        src->consec_lost ++;
+        src->last_repair = fill_ts;
+        pb_iterator_advance(src->media_pos);
+
+#ifndef NDEBUG
+        /* Reusing prev_* - bad style */
+        pb_iterator_get_at(src->media_pos,
+                           (u_char**)&prev_md,
+                           &prev_len,
+                           &prev_ts);
+        assert(ts_eq(prev_ts, fill_ts));
+#endif
+}
+
 int
-source_process(source *src, int repair_type, ts_t now)
+source_process(source *src, struct s_mix_info *ms, int repair_type, ts_t now)
 {
         media_data  *md;
         coded_unit  *cu;
         codec_state *cs;
         u_int32     md_len, src_freq;
-        ts_t        playout, curr, step, cutoff;
+        ts_t        playout, step, cutoff;
         int         i, success;
 
         /* Split channel coder units up into media units */
@@ -424,58 +482,33 @@ source_process(source *src, int repair_type, ts_t now)
         src_freq = get_freq(src->dbe->clock);
         step = ts_map32(src_freq,src->dbe->inter_pkt_gap / src->dbe->units_per_packet);
 
-        success = playout_buffer_get(src->media, 
-                                     (u_char**)&md, 
-                                     &md_len, 
-                                     &playout); 
-
-        while(success) {
+        while (pb_iterator_get_at(src->media_pos, 
+                                  (u_char**)&md, 
+                                  &md_len, 
+                                  &playout)) {
                 assert(md != NULL);
                 assert(md_len == sizeof(media_data));
 
-                cutoff = ts_sub(now, 
-                                ts_map32(src_freq, HISTORY));
+                /* Conditions for repair: 
+                 * (a) buffer age is not zero (otherwise last_played
+                 *     has no meaning). 
+                 * (b) playout point does not what we expect.
+                 * (c) repair type is not no repair.
+                 * (d) last decoded was not too long ago.
+                 */
+                cutoff = ts_sub(now, ts_map32(src_freq, HISTORY));
                 if (src->age != 0 && 
-                    ts_eq(playout, ts_add(src->last_played, step)) &&
-                    ts_gt(cutoff, playout)) {
-                        media_data* md_filler;
-                        int         lost = 0;
-
-                        curr = playout;
-
-                        /* Rewind to last_played */
-                        while(ts_gt(playout, src->last_played)) {
-                                playout_buffer_rewind(src->media,
-                                                      (u_char**)&md,
-                                                      &md_len,
-                                                      &playout);
-                                assert(md != NULL);
-                        }
-
-                        curr = ts_add(playout, step);
-
-                        while(ts_gt(curr, playout)) {
-                                debug_msg("repairing\n");
-                                media_data_create(&md_filler, 1);
-                                repair(repair_type,
-                                       lost,
-                                       src->codec_states,
-                                       md,
-                                       md_filler->rep[0]);
-                                success = playout_buffer_add(src->media, 
-                                                             (u_char*)md,
-                                                             sizeof(media_data),
-                                                             curr);
-                                assert(success);
-                                curr = ts_add(curr, step);
-                                md = md_filler;
-                        }
-
-                        /* Step to next to be played i.e. the first we added */
-                        success = playout_buffer_advance(src->media, 
-                                                         (u_char**)&md,
-                                                         &md_len,
-                                                         &playout);
+                    ts_eq(playout, ts_add(src->last_played, step)) == FALSE &&
+                    repair_type != REPAIR_TYPE_NONE &&
+                    ts_gt(src->last_played, cutoff)) {
+                        /* If repair was successful media_pos is moved,
+                         * so get data at media_pos again.
+                         */
+                        source_repair(src, repair_type, step);
+                        success = pb_iterator_get_at(src->media_pos, 
+                                                     (u_char**)&md, 
+                                                     &md_len, 
+                                                     &playout);
                         assert(success);
                 }
 
@@ -484,15 +517,10 @@ source_process(source *src, int repair_type, ts_t now)
                         break;
                 }
 
-                success = playout_buffer_get(src->media, (u_char**)&md, &md_len, &playout);
-
-                assert(success);
-
                 if (codec_is_native_coding(md->rep[0]->id) == FALSE) {
                         /* There is data to be decoded.  There may not be
                          * when we have used repair.
                          */
-
 #ifdef DEBUG
                         for(i = 0; i < md->nrep; i++) {
                                 /* if there is a native coding this
@@ -544,22 +572,34 @@ source_process(source *src, int repair_type, ts_t now)
                         md->rep[md->nrep] = render;
                         md->nrep++;
                 }
-                success = playout_buffer_advance(src->media, 
-                                                 (u_char**)&md,
-                                                 &md_len,
-                                                 &playout);
+
+                mix_process(ms, src->dbe, md->rep[md->nrep - 1], playout);
+
+                src->last_played = playout;
+                success = pb_iterator_advance(src->media_pos);
+
+                assert(success);
         }
 
-        /* Get rid of stale data */
-        playout_buffer_audit(src->media);
-
         src->age++;
-        src->last_played = now;
 
         UNUSED(i); /* Except for debugging */
         
         return TRUE;
 }
+
+int
+source_audit(source *src) {
+        if (src->age != 0) {
+                ts_t history;
+                /* Keep 1/2 seconds worth of audio */
+                history =  ts_map32(8000,4000);
+                pb_iterator_audit(src->media_pos,history);
+                return TRUE;
+        }
+        return FALSE;
+}
+
 
 ts_sequencer*
 source_get_sequencer(source *src)
@@ -588,8 +628,8 @@ source_relevant(source *src, ts_t now)
 {
         assert(src);
         
-        if (playout_buffer_relevant(src->media, now) ||
-            playout_buffer_relevant(src->channel, now)) {
+        if (pb_relevant(src->media, now) ||
+            pb_relevant(src->channel, now)) {
                 return TRUE;
         }
         return FALSE;
