@@ -280,7 +280,9 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 					switch (sdes->type) {
 					case RTCP_SDES_CNAME:
 						if (dbe->sentry->cname) {
-							/* CNAME should remain constant... */
+							if (strncmp(dbe->sentry->cname, sdes->data, lenstr) != 0) {
+								dprintf("CNAME change %d : [%s] --> [%s]\n", lenstr, dbe->sentry->cname, sdes->data);
+							}
 							break;
 						}
 						dbe->sentry->cname = (char *) xmalloc(lenstr + 1);
@@ -299,7 +301,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						break;
 					case RTCP_SDES_NAME:
 						if (dbe->sentry->name) {
-							if (!strncmp(dbe->sentry->name, sdes->data, lenstr)) {
+							if (strncmp(dbe->sentry->name, sdes->data, lenstr) != 0) {
 								break;
 							}
 							xfree(dbe->sentry->name);

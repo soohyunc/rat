@@ -71,7 +71,7 @@ proc init_source {cname} {
 	if {[array names INDEX $cname] != $cname} {
 		# This is a source we've not seen before...
 		set        CNAME($cname) "$cname"
-		set         NAME($cname) "Why is the name wrong?"
+		set         NAME($cname) "$cname"
 		set        EMAIL($cname) ""
 		set        PHONE($cname) ""
 		set          LOC($cname) ""
@@ -312,7 +312,6 @@ proc mbus_recv_source_exists {cname} {
 
 proc mbus_recv_source_name {cname name} {
 	global NAME
-
 	init_source $cname
 	set NAME($cname) $name
 	chart_label $cname

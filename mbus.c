@@ -364,11 +364,11 @@ int mbus_parse_lst(struct mbus *m, char **l)
 	}
 	*(m->parse_buffer[m->parse_depth]) = ' ';
 	while (*m->parse_buffer[m->parse_depth] != '\0') {
-		if ((*m->parse_buffer[m->parse_depth] == '(') && (*(m->parse_buffer[m->parse_depth]-1) != '\\')) {
-			inlst = !inlst;
-		}
 		if ((*m->parse_buffer[m->parse_depth] == '"') && (*(m->parse_buffer[m->parse_depth]-1) != '\\')) {
 			instr = !instr;
+		}
+		if ((*m->parse_buffer[m->parse_depth] == '(') && (*(m->parse_buffer[m->parse_depth]-1) != '\\') && !instr) {
+			inlst = !inlst;
 		}
 		if ((*m->parse_buffer[m->parse_depth] == ')') && (*(m->parse_buffer[m->parse_depth]-1) != '\\') && !instr) {
 			if (inlst) {
@@ -536,7 +536,11 @@ void mbus_recv(struct mbus *m, void *data)
 				mbus_send_ack(m, src, seq);
 			}
 			/* ...and process the commands contained in the message */
-			while (mbus_parse_sym(m, &cmd) && mbus_parse_lst(m, &param)) {
+			while (mbus_parse_sym(m, &cmd)) {
+				if (mbus_parse_lst(m, &param) == FALSE) {
+					dprintf("Unable to parse mbus command paramaters...\n");
+					break;
+				}
 				m->cmd_handler(src, cmd, param, data);
 			}
 		}
