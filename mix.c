@@ -57,7 +57,7 @@
 #include "codec.h"
 #include "parameters.h"
 #include "ui.h"
-#include "pos_audio.h"
+#include "render_3D.h"
 
 typedef struct s_mix_info {
 	int	buf_len;        /* Length of circular buffer */
@@ -197,7 +197,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	if (sp->render_3d) {
 
 	        /* check if mixer is stereo using 'ms->channels' ('1' is mono, '2' ist stereo). */
-	        if (ms->channels == 2) {
+	        if (ms->channels == 1) {
 
 	                /* - take rx_queue_element_struct el
                          * - set size of buffer by filling in 'el->native_size[el->native_count]'
@@ -210,12 +210,23 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
                                 el->native_data[el->native_count]=(sample*)block_alloc(el->native_size[el->native_count]);
                         }
                         el->native_count++;
+                        xmemchk();
 #ifdef NDEF
                         finger_exercise(el);
-                        render_3D(el);
 #endif
-		}
-	}
+                        externalise(el);
+                        xmemchk();
+#ifdef NDEF
+                        if (ms->channels == 2) {
+                                render_3D(el);
+                                xmemchk
+                        }
+#endif
+                }
+                block_check((char*)el->native_data[el->native_count - 1]);
+                block_check((char*)el->native_data[el->native_count - 2]);
+                xmemchk();
+                render_3D(el, ms->channels);
         }
 
         buf = el->native_data[el->native_count - 1];

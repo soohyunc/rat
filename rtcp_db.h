@@ -91,6 +91,7 @@ typedef struct s_rtcp_dbentry {
 	struct s_codec_state	*state_list;
 	struct s_time		*clock;
         struct s_converter      *converter;
+        struct s_render_3D_dbentry  *render_3D_data;
 	u_int32         last_mixed_playout;	/* from device_clock */
 	int		units_per_packet;
         int             enc;
