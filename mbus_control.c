@@ -52,6 +52,8 @@ static void rx_mbus_quit(char *srce, char *args, void *data)
 	UNUSED(args);
 	UNUSED(data);
 
+        debug_msg("Got quit %s\n", srce);
+
 	/* We mark ourselves as ready to exit. The main() will */
 	/* cleanup and terminate all our subprocesses.         */
 	should_exit = TRUE;
@@ -59,13 +61,29 @@ static void rx_mbus_quit(char *srce, char *args, void *data)
 
 static void rx_mbus_bye(char *srce, char *args, void *data)
 {
-	UNUSED(srce);
+        pid_t pid_msgsrc;
+        char *lc;
+        int   i;
+
+        /* Find last colon */
+        for (i = 0, lc = NULL; srce[i] != 0; i++) {
+                if (srce[i] == ':') {
+                        lc = srce;
+                }
+        }
+
+        assert(lc != NULL);
+        /* Skip past colon, next char should okay for atoi */
+        pid_msgsrc = atoi(lc + 1);
+        if (pid_msgsrc == getpid() ||
+            pid_msgsrc == pid_ui   ||
+            pid_msgsrc == pid_engine) {
+                /* We mark ourselves as ready to exit. The main() will */
+                /* cleanup and terminate all our subprocesses.         */
+                should_exit = TRUE;
+        }
 	UNUSED(args);
 	UNUSED(data);
-
-	/* We mark ourselves as ready to exit. The main() will */
-	/* cleanup and terminate all our subprocesses.         */
-	should_exit = TRUE;
 }
 
 static void rx_mbus_waiting(char *srce, char *args, void *data)
