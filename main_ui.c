@@ -32,6 +32,7 @@ int	 ui_active   = FALSE;
 int	 should_exit = FALSE;
 int	 got_detach  = FALSE;
 int	 got_quit    = FALSE;
+static int mbus_shutdown_error = FALSE;
 
 static void parse_args(int argc, char *argv[])
 {
@@ -76,7 +77,8 @@ mbus_error_handler(int seqnum, int reason)
         debug_msg("mbus message failed (%d:%d)\n", seqnum, reason);
         if (should_exit == FALSE) {
                 abort();
-        } 
+        }
+	mbus_shutdown_error = TRUE;
         UNUSED(seqnum);
         UNUSED(reason);
         /* Ignore error we're closing down anyway */
@@ -172,7 +174,7 @@ int main(int argc, char *argv[])
                 mbus_qmsgf(m, e_addr, TRUE, "tool.rat.ui.detach.request", "");
                 mbus_send(m);
 		debug_msg("Waiting for tool.rat.ui.detach() from media engine...\n");
-                while (!got_detach  && mbus_addr_valid(m, e_addr)) {
+                while (!got_detach  && mbus_addr_valid(m, e_addr) && mbus_shutdown_error == FALSE) {
                         mbus_heartbeat(m, 1);
                         mbus_retransmit(m);
                         mbus_send(m);
@@ -194,10 +196,10 @@ int main(int argc, char *argv[])
                         timeout.tv_sec  = 0;
                         timeout.tv_usec = 20000;
                         mbus_recv(m, NULL, &timeout);
-                } while (!mbus_sent_all(m));
+                } while (!mbus_sent_all(m) && mbus_shutdown_error == FALSE);
                 
                 debug_msg("Waiting for mbus.quit() from controller...\n");
-                while (!got_quit) {
+                while (got_quit == FALSE && mbus_shutdown_error == FALSE) {
                         mbus_heartbeat(m, 1);
                         mbus_retransmit(m);
                         mbus_send(m);
@@ -217,7 +219,7 @@ int main(int argc, char *argv[])
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 20000;
 		mbus_recv(m, NULL, &timeout);
-	} while (!mbus_sent_all(m));
+	} while (mbus_sent_all(m) == FALSE && mbus_shutdown_error == FALSE);
 	mbus_exit(m);
 
         xfree(c_addr);

@@ -219,7 +219,7 @@ time_constants_init()
         skew_thresh    = ts_map32(8000, 320);
         skew_limit     = ts_map32(8000, 4000);
         transit_reset  = ts_map32(8000, 80000);
-        spike_jump     = ts_map32(8000, 2000); 
+        spike_jump     = ts_map32(8000, 3000); 
         spike_end      = ts_map32(8000, 64);
         repair_max_gap = ts_map32(8000, 3200); /* 400ms */
         time_constants_inited = TRUE;
