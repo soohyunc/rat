@@ -203,7 +203,7 @@ int
 audio_device_reconfigure(session_t *sp)
 {
         audio_config prev_config, *curr_config, *new_config;
-        audio_port_t iport, oport;
+        audio_port_t iport = 0, oport = 0;
         int change_req;
 
         assert(sp->new_config != NULL);
@@ -222,7 +222,7 @@ audio_device_reconfigure(session_t *sp)
 
         if (sp->audio_device) {
                 iport = audio_get_iport(sp->audio_device);
-                iport = audio_get_oport(sp->audio_device);
+                oport = audio_get_oport(sp->audio_device);
         }
 
         if (new_config->primary == 0) {
