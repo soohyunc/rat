@@ -143,6 +143,25 @@ rtcp_get_dbentry(session_struct *sp, u_int32 ssrc)
 	return NULL;
 }
 
+int rtcp_dbentry_valid(session_struct *sp, rtcp_dbentry *dbe)
+{
+	/* Checks if the specified dbe is valid... not efficient */
+#ifdef DEBUG
+	rtcp_dbentry   *dptr = sp->db->ssrc_db;
+
+	while (dptr) {
+		if (dptr == dbe) {
+			return TRUE;
+		}
+		dptr = dptr->next;
+	}
+	return FALSE;
+#else
+	/* :-) */
+	return TRUE;
+#endif
+}
+
 rtcp_dbentry *
 rtcp_get_dbentry_by_cname(session_struct *sp, char *cname)
 {
@@ -289,35 +308,33 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
  	 * references to the participant in sp->playout_buf_list to avoid the race
  	 * condition in service_receiver... (see comment in that function) [csp] 
  	 */
-	rtcp_dbentry   *dbptr = sp->db->ssrc_db;
-	rtcp_dbentry   *next, *prev = NULL;
-
-#ifdef LOG_PARTICIPANTS
-	printf("BYE: ssrc=%lx time=%ld\n", ssrc, get_time(sp->device_clock));
-#endif
+	rtcp_dbentry   	*dbptr = sp->db->ssrc_db;
+	rtcp_dbentry   	*next, *prev = NULL;
+        struct s_source *s;
 
 	if (dbptr == NULL) {
 		debug_msg("Freeing database entry for SSRC %lx when the database is empty! Huh?\n", ssrc);
 		return;
 	}
 
-	debug_msg("Removing RTCP database entry for SSRC 0x%lx\n", ssrc);
-
         while(dbptr != NULL) {
                 next = dbptr->next;
                 if (dbptr->ssrc == ssrc) {
-                        struct s_source *s;
+			debug_msg("Removing RTCP database entry for SSRC 0x%08lx\n", ssrc);
                         s = source_get_by_rtcp_dbentry(sp->active_sources, dbptr);
                         if (s != NULL) {
 				source_remove(sp->active_sources, s);
 			}
                         ui_info_remove(sp, dbptr);
+			/* Remove this dbentry from the list... */
                         if (dbptr == sp->db->ssrc_db) {
                                 sp->db->ssrc_db = next;
                         }
                         if (prev) {
                                 prev->next = next;
                         }
+			assert(!rtcp_dbentry_valid(sp, dbptr));
+			/* Free the dbentry... */
                         rtcp_free_dbentry(dbptr);
 			sp->db->members--;
                         return;
@@ -326,6 +343,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
                 }
                 dbptr = next;
         }
+	debug_msg("Tried to remove non-existent SSRC 0x%08lx from RTCP database\n", ssrc);
 }
 
 void

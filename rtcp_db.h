@@ -142,6 +142,7 @@ struct s_rtcp_dbentry   *rtcp_get_dbentry(struct session_tag *sp, u_int32 ssrc);
 struct s_rtcp_dbentry   *rtcp_get_dbentry_by_cname(struct session_tag *sp, char *cname);
 struct s_rtcp_dbentry   *rtcp_new_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 cur_time);
 struct s_rtcp_dbentry   *rtcp_getornew_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 cur_time);
+int 			 rtcp_dbentry_valid(struct session_tag *sp, struct s_rtcp_dbentry *dbe);
 void 			 rtcp_delete_dbentry(struct session_tag *sp, u_int32 ssrc);
 int 			 rtcp_set_attribute(struct session_tag *sp, int type, char *val);
 void			 rtcp_free_dbentry(rtcp_dbentry *dbptr);
