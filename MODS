@@ -996,6 +996,8 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 	- Fix system name in tool version
 	- Add version number to mbus config file. Should prevent crashes
 	  when we update the format of that file.
+	- Set thread priority of media engine to THREAD_PRIORITY_ABOVE_NORMAL 
+	  on Windows.
 
 
 

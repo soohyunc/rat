@@ -1080,8 +1080,12 @@ ui_3d_options(session_t *sp)
 void
 ui_initial_settings(session_t *sp)
 {
-        uint32_t my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
         /* One off setting transfers / initialization */
+        uint32_t my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
+
+	mbus_qmsgf(sp->mbus_engine, sp->mbus_ui_addr, TRUE, "rtp.ssrc", "%08lx", my_ssrc);
+	network_process_mbus(sp);
+
         ui_sampling_modes(sp); 			network_process_mbus(sp);
         ui_converters(sp); 			network_process_mbus(sp);
         ui_repair_schemes(sp); 			network_process_mbus(sp);
@@ -1094,23 +1098,11 @@ ui_initial_settings(session_t *sp)
 	ui_info_update_loc(sp,   my_ssrc); 	network_process_mbus(sp);
 	ui_info_update_tool(sp,  my_ssrc); 	network_process_mbus(sp);
         ui_title(sp); 				network_process_mbus(sp);
-#ifdef NDEF /* This is done by load_settings() now... */
-	ui_load_settings(sp); 			network_process_mbus(sp);
-#endif
 }
 
 void 
 ui_quit(session_t *sp)
 {
 	mbus_qmsg(sp->mbus_engine, sp->mbus_ui_addr, "mbus.quit", "", TRUE);
-}
-
-void
-ui_controller_init(session_t *sp)
-{
-	char	my_ssrc[11];
-
-	sprintf(my_ssrc, "\"%08x\"", rtp_my_ssrc(sp->rtp_session[0]));
-	mbus_qmsg(sp->mbus_engine, sp->mbus_ui_addr, "rtp.ssrc", my_ssrc, TRUE);
 }
 

@@ -43,8 +43,8 @@
 #include "rtp.h"
 #include "rtp_callback.h"
 
-int should_exit = FALSE;
-int thread_pri  = 2; /* Time Critical */
+int 	 should_exit = FALSE;
+char	*c_addr, *token, *token_e; /* These should be parameters of the session? */
 
 #ifndef WIN32
 static void
@@ -54,8 +54,6 @@ signal_handler(int signal)
         exit(-1);
 }
 #endif
-
-char	*c_addr, *token, *token_e; 
 
 #define MBUS_ADDR_ENGINE "(media:audio module:engine app:rat instance:%5u)"
 
@@ -101,27 +99,33 @@ int main(int argc, char *argv[])
 	struct timeval	 timeout;
         uint8_t		 j;
 
-#ifndef WIN32
+#ifdef WIN32
+	/* Not sure what the correct priority should be... rat-3.0.x uses  */
+	/* THREAD_PRIORITY_TIME_CRITICAL, but that's maybe too high. [csp] */
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+#else
  	signal(SIGINT, signal_handler); 
+        debug_set_core_dir(argv[0]);
 #endif
 
-        debug_set_core_dir(argv[0]);
-
+	/* Setup things which are independent of the session. These should */
+	/* be create static data only, since it will be accessed by BOTH   */
+	/* instances when running as a transcoder.                         */
         seed = (gethostid() << 8) | (getpid() & 0xff);
 	srand48(seed);
 	lbl_srandom(seed);
-
-	sp = (session_t *) xmalloc(sizeof(session_t));
-	session_init(sp);
         converters_init();
         audio_init_interfaces();
+	parse_args(argc, argv);
+
+	/* Initialize the session structure, and all session specific data */
+	sp = (session_t *) xmalloc(sizeof(session_t));
+	session_init(sp);
         audio_device_get_safe_config(&sp->new_config);
         audio_device_reconfigure(sp);
-        sp->cur_ts = ts_seq32_in(&sp->decode_sequencer, 
-                                 get_freq(sp->device_clock), 0);
+        sp->cur_ts = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), 0);
         assert(audio_device_is_open(sp->audio_device));
 	settings_load_early(sp);
-	parse_args(argc, argv);
 
 	/* Initialise our mbus interface... once this is done we can talk to our controller */
 	sp->mbus_engine = mbus_init(mbus_engine_rx, mbus_error_handler);
@@ -164,23 +168,10 @@ int main(int argc, char *argv[])
         pdb_item_create(sp->pdb, sp->clock, (uint16_t)get_freq(sp->device_clock), rtp_my_ssrc(sp->rtp_session[0])); 
 	settings_load_late(sp);
 
-	ui_controller_init(sp);
         ui_initial_settings(sp);
 	ui_update(sp);
 	network_process_mbus(sp);
         
-#ifdef NDEF
-        if (sp->new_config != NULL) {
-                network_process_mbus(sp);
-                audio_device_reconfigure(sp);
-                network_process_mbus(sp);
-        }
-#endif
-
-#ifdef NDEF
-        ui_final_settings(sp);
-	network_process_mbus(sp);
-#endif
         audio_drain(sp->audio_device);
         if (tx_is_sending(sp->tb)) {
                	tx_start(sp->tb);
@@ -221,9 +212,9 @@ int main(int argc, char *argv[])
 
                 /* Process audio */
 		elapsed_time += audio_rw_process(sp, sp, sp->ms);
-		cur_time = get_time(sp->device_clock);
-		ntp_time = ntp_time32();
-		sp->cur_ts   = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), cur_time);
+		cur_time      = get_time(sp->device_clock);
+		ntp_time      = ntp_time32();
+		sp->cur_ts    = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), cur_time);
 
                 if (tx_is_sending(sp->tb)) {
                         tx_process_audio(sp->tb);
@@ -233,8 +224,9 @@ int main(int argc, char *argv[])
 		/* Process and mix active sources */
 		if (sp->playing_audio) {
 			struct s_source *s;
-			int sidx;
-			ts_t cush_ts;
+			int 		 sidx;
+			ts_t 		 cush_ts;
+
 			cush_ts = ts_map32(get_freq(sp->device_clock), cushion_get_size(sp->cushion));
 			cush_ts = ts_add(sp->cur_ts, cush_ts);
 			scnt = (int)source_list_source_count(sp->active_sources);
@@ -268,7 +260,6 @@ int main(int argc, char *argv[])
 
                 /* Echo Suppression - cut off transmitter when receiving     */
                 /* audio, enable when stop receiving.                        */
-
                 if (sp->echo_suppress) {
                         if (scnt > 0) {
                                 if (tx_is_sending(sp->tb)) {
@@ -304,17 +295,14 @@ int main(int argc, char *argv[])
                         ui_periodic_updates(sp, elapsed_time);
                 }
 		if (sp->new_config != NULL) {
-			/* wait for mbus messages - closing audio device
-			 * can timeout unprocessed messages as some drivers
-			 * pause to drain before closing.
-			 */
+			/* wait for mbus messages - closing audio device    */
+			/* can timeout unprocessed messages as some drivers */
+			/* pause to drain before closing.                   */
 			network_process_mbus(sp);
 			if (audio_device_reconfigure(sp)) {
-				/* Device reconfigured so
-				 * decode paths of all sources
-				 * are misconfigured.  Delete
-				 * and incoming data will
-				 * drive correct new path */
+				/* Device reconfigured so decode paths of all sources */
+				/* are misconfigured. Delete the source, and incoming */
+				/* data will drive the correct new path.              */
 				source_list_clear(sp->active_sources);
 			}
 		}
@@ -344,7 +332,6 @@ int main(int argc, char *argv[])
 		mbus_recv(sp->mbus_engine, sp, &timeout);
 	} while (!mbus_sent_all(sp->mbus_engine));
 	mbus_exit(sp->mbus_engine);
-        sp->mbus_engine = NULL;
 
 	for (j = 0; j < sp->rtp_session_count; j++) {
 		rtp_send_bye(sp->rtp_session[j]);
@@ -353,11 +340,8 @@ int main(int argc, char *argv[])
 	}
 
 	session_exit(sp);
-	xfree(sp);
-
         converters_free();
         audio_free_interfaces();
-
 	xmemdmp();
 	return 0;
 }

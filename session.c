@@ -159,5 +159,6 @@ session_exit(session_t *sp)
         }
         channel_encoder_destroy(&sp->channel_coder);
         source_list_destroy(&sp->active_sources);
+	xfree(sp);
 }
 

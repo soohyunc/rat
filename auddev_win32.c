@@ -34,7 +34,6 @@ static  int w32sdk_probe_formats(audio_desc_t ad);
 
 static int  error = 0;
 static char errorText[MAXERRORLENGTH];
-extern int  thread_pri;
 static int  nLoopGain = 100;
 #define     MAX_DEV_NAME 64
 

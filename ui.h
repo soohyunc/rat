@@ -63,6 +63,4 @@ void ui_initial_settings     (struct s_session *s);
 void ui_final_settings       (struct s_session *s);
 void ui_quit                 (struct s_session *s);
 
-void ui_controller_init      (struct s_session *s);
-
 #endif
