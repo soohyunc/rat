@@ -203,10 +203,6 @@ int main(int argc, char *argv[])
 		mbus_retransmit(sp->mbus_engine);
 		mbus_send(sp->mbus_engine); 
 
-                /* Process audio */
-		elapsed_time += audio_rw_process(sp, sp, sp->ms);
-		ntp_time      = ntp_time32();
-
                 if (tx_is_sending(sp->tb)) {
                         tx_process_audio(sp->tb);
                         tx_send(sp->tb);
