@@ -648,6 +648,13 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         transit = ts_sub(sp->cur_ts, src_ts);
                 }
 
+                if (adjust_playout && src->packets_done && 
+                    ts_gt(ts_mul(src->pdbe->jitter, 3), ts_abs_diff(transit, src->pdbe->avg_transit))) {
+                        /* Use avg transit as it's close */
+                        transit = src->pdbe->avg_transit;
+                        debug_msg("transit %d  transit_avg %d\n", transit.ticks, src->pdbe->avg_transit.ticks);
+                }
+
                 playout = playout_calc(sp, e->ssrc, transit, adjust_playout);
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
