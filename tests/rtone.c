@@ -24,63 +24,61 @@
 /* Outgoing packet buffering for jitter */
 
 struct pkt {
-    uint32_t depart_ts;
-    uint32_t rtp_ts;
-    uint8_t  pt;
+	uint32_t depart_ts;
+	uint32_t rtp_ts;
+	uint8_t  pt;
 	int		 m;
-    void     *data;
-    int32_t   data_len;
-    struct pkt *next;
+	void     *data;
+	int32_t   data_len;
+	struct pkt *next;
 };
 
 static struct pkt pkt_queue;
 
 static void
 pkt_queue_init() {
-    pkt_queue.next = &pkt_queue;
+	pkt_queue.next = &pkt_queue;
 }
 
 static void 
 pkt_queue_add(uint32_t rtp_ts, 
-			  uint8_t  pt, int marker,
-			  void *data, int32_t data_len) {
+	      uint8_t  pt, int marker,
+	      void *data, int32_t data_len) {
 
-    struct pkt *p, **c, *sentinel;
+	struct pkt *p, **c, *sentinel;
 
-    p = (struct pkt *)xmalloc(sizeof(*p));
-    p->rtp_ts	= rtp_ts;
-    p->pt		= pt;
+	p = (struct pkt *)xmalloc(sizeof(*p));
+	p->rtp_ts	= rtp_ts;
+	p->pt		= pt;
 	p->m		= marker;
-    p->data		= data;
-    p->data_len	= data_len;
+	p->data		= data;
+	p->data_len	= data_len;
 
-    sentinel = &pkt_queue;
-    c = &sentinel->next;
-    while (*c != sentinel && (*c)->rtp_ts < rtp_ts) {
+	sentinel = &pkt_queue;
+	c = &sentinel->next;
+	while (*c != sentinel && (*c)->rtp_ts < rtp_ts) {
 		c = &((*c)->next);
-    }
-    p->next = *c;
-    *c = p;
+	}
+	p->next = *c;
+	*c = p;
 }
 
 static void
 pkt_queue_send(struct rtp *session, uint32_t now) {
-    struct pkt *sentinel, **c, *n;
-    struct timeval tv;
+	struct pkt *sentinel, **c, *n;
+	struct timeval tv;
     
-    sentinel = &pkt_queue;
-    c = &sentinel->next;
-    while (*c != sentinel && (*c)->rtp_ts <= now) {
+	sentinel = &pkt_queue;
+	c = &sentinel->next;
+	while (*c != sentinel && (*c)->rtp_ts <= now) {
 		n  = *c;
 		*c = n->next;
 		gettimeofday(&tv, NULL);
-		printf("% ld.%06ld %d %d % 8d\n", tv.tv_sec, tv.tv_usec, n->m,
-			   now, now - n->rtp_ts);
 		rtp_send_data(session, n->rtp_ts, n->pt, n->m, 0, 0,
-					  n->data, n->data_len, NULL, 0, 0);
+			      n->data, n->data_len, NULL, 0, 0);
 		xfree(n->data);
 		xfree(n);
-    }
+	}
 }
 
 /* speed is the fraction we are faster than the system clock */
@@ -229,6 +227,7 @@ main(int argc, char* argv[])
 	struct timeval last, now, delta, pause, wakeup;
 	struct s_sndfile *sf = NULL;
 	int      ac, gain = 5000, freq = 400, ttl = 4, upp = 2, i, ulen, done, file_mode = 0, bursty = 0, sleeping = 0, m = 1;
+	int      duration = -1, duration_step = 0;
 	long int packet_us, avail_us, jitter_ms = 0;
 	codec_state *cs;
 	coded_unit  *in;
@@ -252,11 +251,15 @@ main(int argc, char* argv[])
 			cid = codec_get_by_name(argv[++ac]);
 			if (codec_id_is_valid(cid) == FALSE) {
 				fprintf(stderr, 
-						"Codec %s is not one of:\n", 
-						argv[ac]);
+					"Codec %s is not one of:\n", 
+					argv[ac]);
 				list_codecs();
 				exit(-1);
 			}
+			break;
+		case 'd':
+			duration      = atoi(argv[++ac]);
+			duration_step = 1;
 			break;
 		case 'f':
 			freq = atoi(argv[++ac]);
@@ -314,9 +317,9 @@ main(int argc, char* argv[])
 	printf("Codec: %s %d units per packet
 Tone freq: %d gain: %d (%f dBov)
 Packets every %ld us\n",
-		   cf->long_name, upp, 
-		   freq, gain, -20 * log(32767.0/(double)gain),
-		   packet_us);
+	       cf->long_name, upp, 
+	       freq, gain, -20 * log(32767.0/(double)gain),
+	       packet_us);
 	printf("Speed %.2f real-time.\n", speed);
 
 	codec_encoder_create(cid, &cs);
@@ -331,7 +334,7 @@ Packets every %ld us\n",
 	srand48(last.tv_usec);
 
 	avail_us = 0;
-	while(1) {
+	while(duration != 0) {
 		gettime(&now);
 
 		if (bursty && drand48() < 0.005) {
@@ -356,8 +359,8 @@ Packets every %ld us\n",
 			ulen = 0;
 			for(i = 0; i < upp; i++) {
 				tone_gen((sample*)in->data, in->data_len / (sizeof(sample) * cf->format.channels), 
-						 gain, freq, 
-						 cf->format.sample_rate, cf->format.channels);
+					 gain, freq, 
+					 cf->format.sample_rate, cf->format.channels);
 				if (sf) {
 					snd_read_audio(&sf, (sample*)in->data, in->data_len / (sizeof(sample) * cf->format.channels));
 				}
@@ -368,7 +371,7 @@ Packets every %ld us\n",
 			}
 
 			ulen += out[0].state_len;
-			u     = (char*)malloc(ulen);
+			u     = (char*)xmalloc(ulen);
 			done  = 0;
 			for(i = 0; i < upp; i++) {
 				if (i == 0 && out[i].state_len) {
@@ -402,6 +405,7 @@ Packets every %ld us\n",
 		if (file_mode && sf == NULL) {
 			break;
 		}
+		duration -= duration_step;
 	}
 	free(in);
 	free(out);
