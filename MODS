@@ -3,7 +3,7 @@ MODIFICATIONS FILE
 
 $Id$
 
-Copyright (C) 1995-2001 University College London
+Copyright (C) 1995-2002 University College London
 All rights reserved. 
 
 This software is distributed under license, see the file COPYRIGHT for full
@@ -1605,7 +1605,7 @@ v4.2.21	- Fix FreeBSD support to work with 4.5-RELEASE (Orion Hodson)
 	  without dot in their path.
 	- Change sample rate variable types from uint16_t to uint32_t
 	  and add 96kHz timebase (Orion Hodson)
-
+	- Update configure script to better support IPv6 (Suzuki Shinsuke)
 
 
 
