@@ -128,8 +128,6 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 luigi_audio_set_ogain(audio_fd, MAX_AMP / 2);
                 /* Select microphone input. We can't select output source...  */
                 luigi_audio_iport_set(audio_fd, iport);
-                /* Turn off loopback from input to output... */
-                LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
 
                 if (luigi_error != 0) {
                         /* Failed somewhere in initialization - reset error and exit*/
@@ -137,7 +135,12 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                         luigi_error = 0;
                         return FALSE;
                 }
-                
+
+                /* Turn off loopback from input to output... not fatal so
+                 * after error check.
+                 */
+                LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
+
                 read(audio_fd, thedev, 64);
                 return TRUE;
         } else {
