@@ -57,6 +57,7 @@
 #include "cushion.h"
 #include "timers.h"
 #include "receive.h"
+#include "sndfile.h"
 
 /* Zero buf used for writing zero chunks during cushion adaption */
 static sample* audio_zero_buf;
@@ -406,7 +407,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                                     &bufp);
                 audio_device_write(spo, bufp, new_cushion);
                 if (spo->out_file) {
-                        snd_write_audio(&spo->out_file, bufp, new_cushion);
+                        snd_write_audio(&spo->out_file, bufp, (u_int16)new_cushion);
                 }
                 debug_msg("catch up! read_dur(%d) > cushion_size(%d)\n",
                         read_dur,
@@ -444,7 +445,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                 if (diff > 0) {
                         audio_device_write(spo, audio_zero_buf, cushion_step);
                         if (spo->out_file) {
-                                snd_write_audio(&spo->out_file, audio_zero_buf, cushion_step);
+                                snd_write_audio(&spo->out_file, audio_zero_buf, (u_int16)cushion_step);
                         }
                         cushion_step_up(c);
                         debug_msg("Increasing cushion.\n");

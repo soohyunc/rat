@@ -691,7 +691,7 @@ HighEnc(sample *hb_data, unsigned char *cw, int_32 state[])
         /* 4 is added to make lbInput castable into an unsigned quantity for bitmasking */
 	/* Bitmasking to set the 3 msb of codeword with the content of lbInput. */
 	aux = (unsigned char) (lbInput + 4);
-	*(cw+i) = (*(cw+i) & ~(~(~0 << 3) << 5)) | ((aux & ~(~0 << 3)) << 5);
+	*(cw+i) = (unsigned char)((*(cw+i) & ~(~(~0 << 3) << 5)) | ((aux & ~(~0 << 3)) << 5));
 #if 0
 	fprintf(stderr, "%X\n", *(cw+i));
 #endif

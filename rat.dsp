@@ -1,5 +1,5 @@
 # Microsoft Developer Studio Project File - Name="rat" - Package Owner=<4>
-# Microsoft Developer Studio Generated Build File, Format Version 5.00
+# Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Application" 0x0101
@@ -22,6 +22,7 @@ CFG=rat - Win32 Debug
 !MESSAGE 
 
 # Begin Project
+# PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
 CPP=cl.exe
@@ -43,8 +44,8 @@ RSC=rc.exe
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /O2 /I "c:\program files\tcl\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "SASR" /YX /FD /c
-# ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o NUL /win32
-# ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o NUL /win32
+# ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
+# ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x809 /d "NDEBUG"
 # ADD RSC /l 0x809 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -68,9 +69,9 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "c:\Program Files\Tcl\include" /I "c:\Program Files\Tcl\include\xlib" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "DEBUG_MEM" /FR /YX /FD /c
-# ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o NUL /win32
-# ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o NUL /win32
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "c:\Program Files\Tcl\include" /I "c:\Program Files\Tcl\include\xlib" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "DEBUG_MEM" /FR /YX /FD /c
+# ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
+# ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x809 /d "_DEBUG"
 # ADD RSC /l 0x809 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -86,6 +87,10 @@ LINK32=link.exe
 
 # Name "rat - Win32 Release"
 # Name "rat - Win32 Debug"
+# Begin Source File
+
+SOURCE=.\asfilebox.tcl
+# End Source File
 # Begin Source File
 
 SOURCE=.\assert.h
@@ -160,6 +165,10 @@ SOURCE=.\codec_g711.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\codec_gsm.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\codec_lpc.c
 # End Source File
 # Begin Source File
@@ -176,7 +185,11 @@ SOURCE=.\codec_wbs.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\config.h
+SOURCE=.\config_unix.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\config_win32.h
 # End Source File
 # Begin Source File
 
@@ -217,54 +230,6 @@ SOURCE=.\cushion.h
 # Begin Source File
 
 SOURCE=.\gsm.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_add.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_code.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_create.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_decode.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_destroy.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_encode.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_long_term.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_lpc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_preprocess.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_rpe.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_short_term.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsm_table.c
 # End Source File
 # Begin Source File
 
@@ -348,14 +313,6 @@ SOURCE=".\win32\rat-tk.res"
 # End Source File
 # Begin Source File
 
-SOURCE=.\rat_time.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\rat_types.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\receive.c
 # End Source File
 # Begin Source File
@@ -404,80 +361,19 @@ SOURCE=.\session.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\sndfile.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\sndfile.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\statistics.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\statistics.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\tcl_libs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\tcl_libs.tcl
-
-!IF  "$(CFG)" == "rat - Win32 Release"
-
-# Begin Custom Build - Building Tcl/Tk script libraries
-InputDir=.
-InputPath=.\tcl_libs.tcl
-
-"tcl_libs.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	erase $(InputDir)\tcl_libs.tcl 
-	copy $(InputDir)\tcl\init.tcl + $(InputDir)\tcl\history.tcl +\
-                  $(InputDir)\tcl\ldAout.tcl + $(InputDir)\tcl\parray.tcl +\
-                  $(InputDir)\tcl\word.tcl $(InputDir)\tcl_libs.tcl 
-	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\aatk.tcl +\
-                  $(InputDir)\tk\bgerror.tcl + $(InputDir)\tk\button.tcl +\
-                  $(InputDir)\tk\clrpick.tcl + $(InputDir)\tk\comdlg.tcl $(InputDir)\tcl_libs.tcl\
- 
-	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\dialog.tcl +\
-                  $(InputDir)\tk\entry.tcl + $(InputDir)\tk\focus.tcl +\
-                  $(InputDir)\tk\listbox.tcl + $(InputDir)\tk\menu.tcl $(InputDir)\tcl_libs.tcl 
-	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\msgbox.tcl +\
-                  $(InputDir)\tk\obsolete.tcl + $(InputDir)\tk\optMenu.tcl +\
-                  $(InputDir)\tk\palette.tcl + $(InputDir)\tk\scale.tcl $(InputDir)\tcl_libs.tcl 
-	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\scrlbar.tcl +\
-                  $(InputDir)\tk\tearoff.tcl + $(InputDir)\tk\text.tcl +\
-                  $(InputDir)\tk\tkfbox.tcl + $(InputDir)\tk\xmfbox.tcl $(InputDir)\tcl_libs.tcl 
-	type $(InputDir)\tcl_libs.tcl | tcl2c\tcl2c TCL_LIBS >\
-                  $(InputDir)\tcl_libs.c 
-	
-# End Custom Build
-
-!ELSEIF  "$(CFG)" == "rat - Win32 Debug"
-
-# Begin Custom Build - Building Tcl/Tk script libraries
-InputDir=.
-InputPath=.\tcl_libs.tcl
-
-"tcl_libs.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	erase $(InputDir)\tcl_libs.tcl 
-	copy $(InputDir)\tcl\init.tcl + $(InputDir)\tcl\history.tcl +\
-                  $(InputDir)\tcl\ldAout.tcl + $(InputDir)\tcl\parray.tcl +\
-                  $(InputDir)\tcl\word.tcl $(InputDir)\tcl_libs.tcl 
-	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\aatk.tcl +\
-                  $(InputDir)\tk\bgerror.tcl + $(InputDir)\tk\button.tcl +\
-                  $(InputDir)\tk\clrpick.tcl + $(InputDir)\tk\comdlg.tcl $(InputDir)\tcl_libs.tcl\
- 
-	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\dialog.tcl +\
-                  $(InputDir)\tk\entry.tcl + $(InputDir)\tk\focus.tcl +\
-                  $(InputDir)\tk\listbox.tcl + $(InputDir)\tk\menu.tcl $(InputDir)\tcl_libs.tcl 
-	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\msgbox.tcl +\
-                  $(InputDir)\tk\obsolete.tcl + $(InputDir)\tk\optMenu.tcl +\
-                  $(InputDir)\tk\palette.tcl + $(InputDir)\tk\scale.tcl $(InputDir)\tcl_libs.tcl 
-	copy $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\scrlbar.tcl +\
-                  $(InputDir)\tk\tearoff.tcl + $(InputDir)\tk\text.tcl +\
-                  $(InputDir)\tk\tkfbox.tcl + $(InputDir)\tk\xmfbox.tcl $(InputDir)\tcl_libs.tcl 
-	type $(InputDir)\tcl_libs.tcl | tcl2c\tcl2c TCL_LIBS >\
-                  $(InputDir)\tcl_libs.c 
-	
-# End Custom Build
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -489,7 +385,7 @@ SOURCE=.\tcltk.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\time.c
+SOURCE=.\timers.c
 # End Source File
 # Begin Source File
 
@@ -509,6 +405,14 @@ SOURCE=.\transmit.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\ui.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ui.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\ui_audiotool.c
 # End Source File
 # Begin Source File
@@ -522,8 +426,7 @@ InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_audiotool.tcl | tcl2c\tcl2c ui_audiotool >\
-                   $(InputDir)\ui_audiotool.c
+	type $(InputDir)\ui_audiotool.tcl | tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c
 
 # End Custom Build
 
@@ -534,21 +437,12 @@ InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_audiotool.tcl | tcl2c\tcl2c ui_audiotool >\
-                   $(InputDir)\ui_audiotool.c
+	type $(InputDir)\ui_audiotool.tcl | tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c
 
 # End Custom Build
 
 !ENDIF 
 
-# End Source File
-# Begin Source File
-
-SOURCE=.\ui.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ui.h
 # End Source File
 # Begin Source File
 
@@ -564,9 +458,10 @@ SOURCE=.\ui_transcoder.tcl
 InputDir=.
 InputPath=.\ui_transcoder.tcl
 
-"ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | tcl2c\tcl2c ui_transcoder >\
-                  $(InputDir)\ui_transcoder.c
+"$(InputDir)\ui_transocder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	type $(InputDir)\ui_transcoder.tcl | tcl2c2c ui_transcoder > $(InputDir)\ui_transocder.c
+
+# End Custom Build
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
 
@@ -574,9 +469,8 @@ InputPath=.\ui_transcoder.tcl
 InputDir=.
 InputPath=.\ui_transcoder.tcl
 
-"ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | tcl2c\tcl2c ui_transcoder >\
-                  $(InputDir)\ui_transcoder.c
+"$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	type $(InputDir)\ui_transcoder.tcl | tcl2c2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
@@ -594,10 +488,10 @@ SOURCE=.\util.h
 # Begin Source File
 
 SOURCE=.\Version
-USERDEP__VERSI="win32\echo.txt"	"win32\set.txt"	"win32\null.txt"	
 
 !IF  "$(CFG)" == "rat - Win32 Release"
 
+USERDEP__VERSI="win32\echo.txt"	"win32\set.txt"	"win32\null.txt"	
 # Begin Custom Build - Generating "version.h".
 InputPath=.\Version
 
@@ -614,6 +508,7 @@ InputPath=.\Version
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
 
+USERDEP__VERSI="win32\echo.txt"	"win32\set.txt"	"win32\null.txt"	
 # Begin Custom Build - Generating "version.h".
 InputPath=.\Version
 
