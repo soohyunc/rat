@@ -172,28 +172,6 @@ fillin_playout_buffer(ppb_t *buf,
         return units_made;
 }
 
-static void 
-smooth_playout_buffer(ppb_t *buf,
-                      rx_queue_element_struct *from,
-                      rx_queue_element_struct *to)
-{
-        if (from && to) {
-                assert(ts_gt(to->src_ts, from->src_ts));
-                if (ts_gt(from->playoutpt,to->playoutpt)) {
-                        u_int32 old_playoutpt = from->playoutpt;
-                        to->playoutpt = from->playoutpt + from->unit_size/16;
-                        dprintf("adjusting playout point from %d to %d\n", 
-                                to->playoutpt, 
-                                old_playoutpt);
-                        assert(to->playoutpt < 5*old_playoutpt);
-                }
-                if (ts_abs_diff(from->src_ts, to->src_ts) > from->unit_size &&
-                    to->talk_spurt_start == FALSE) {
-                        fillin_playout_buffer(buf, from, to);
-                }
-        }
-}
-
 #ifdef DEBUG_PLAYOUT
 static void
 verify_playout_buffer(ppb_t* buf)
@@ -203,7 +181,6 @@ verify_playout_buffer(ppb_t* buf)
 
         el = buf->head_ptr;
         while( el && el->next_ptr ) {
-
                 if (ts_gt(el->src_ts, el->next_ptr->src_ts)) {
                         src_diff = ts_abs_diff( el->next_ptr->src_ts, 
                                                 el->src_ts );
@@ -246,8 +223,39 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 		add_unit_to_interval(ip, ru);
 	}
 
-        smooth_playout_buffer(buf, ip->prev_ptr, ip);
-        smooth_playout_buffer(buf, ip, ip->next_ptr); 
+        assert(ip != NULL);
+
+
+        /* If there's a gap between us and the units around us, because of 
+         * loss or mis-ordering, fill in the units so that channel decoder
+         * does not get out of sync.
+         */
+        if (ip->next_ptr != NULL && 
+            ts_abs_diff(ip->src_ts, ip->next_ptr->src_ts) != ip->unit_size &&
+            ip->next_ptr->talk_spurt_start == FALSE) {
+                fillin_playout_buffer(buf, ip, ip->next_ptr);
+        }
+
+        if (ip->prev_ptr != NULL && 
+            ts_abs_diff(ip->src_ts, ip->prev_ptr->src_ts) != ip->unit_size &&
+            ip->prev_ptr->talk_spurt_start == FALSE) {
+                fillin_playout_buffer(buf, ip->prev_ptr, ip);
+        }
+
+        /* If playout point has been adjusted due to loss, late arrivals,
+         * or start of new talkspurt, shift any overlapping units to keep
+         * channel decoder in sync.
+         */
+        while(ip && 
+              ip->prev_ptr && 
+              ts_gt(ip->prev_ptr->playoutpt, ip->playoutpt)) {
+#ifdef DEBUG_PLAYOUT
+                dprintf("Shifting unit from %ld to %ld\n",
+                        ip->prev_ptr->playoutpt,
+                        ip->playoutpt);
+#endif
+                ip->prev_ptr->playoutpt = ip->playoutpt;
+        }
 
 #ifdef DEBUG_PLAYOUT
         verify_playout_buffer(buf);
@@ -458,7 +466,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 	for (buf = *buf_list; buf; buf = buf->next) {
 		cur_time = get_time(buf->src->clock);
 		cs = cushion_get_size(sp->cushion);
-#ifdef DEBUG_PLAYOUT
+#ifdef DEBUG_PLAYOUT_BROKEN
                 {
                         static struct timeval last_foo;
                         struct timeval foo;
@@ -475,23 +483,24 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                                 );
                         memcpy(&last_foo, &foo, sizeof(struct timeval));
                 }
-#endif /* DEBUG_PLAYOUT */
+#endif /* DEBUG_PLAYOUT_BROKEN */
 		while ((up = playout_buffer_get(buf, cur_time, cur_time + cs))) {
                     if (!up->comp_count  && sp->repair != REPAIR_NONE 
                         && up->prev_ptr != NULL && up->next_ptr != NULL
                         && up->prev_ptr->native_count) 
                         repair(sp->repair, up);
-                    if (up->native_count && up->mixed == FALSE) {
 #ifdef DEBUG_PLAYOUT
-                            if (up->prev_ptr) 
+                    if (up->prev_ptr) 
+                    {
+                            u_int32 src_diff = ts_abs_diff(up->prev_ptr->src_ts,up->src_ts);
+                            if (src_diff!= up->unit_size) 
                             {
-                                    u_int32 src_diff = ts_abs_diff(up->prev_ptr->src_ts,up->src_ts);
-                                    if (src_diff!= up->unit_size) 
-                                    {
-                                            dprintf("src_ts jump %08d\n",src_diff);
-                                    }
+                                    dprintf("src_ts jump %08d\n",src_diff);
                             }
+                    }
 #endif /* DEBUG_PLAYOUT */
+                    
+                    if (up->native_count && up->mixed == FALSE) {
                         mix_do_one_chunk(sp, ms, up);
                         if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
 				/* Request device using the mbus... */
