@@ -32,6 +32,10 @@ static int read_virgin = 1;
 
 static int igain = 0, ogain = 0;
 
+#ifdef WIN32
+HANDLE   hAudioWakeUp;   /* Event that gets blocked for in null_audio_wait_for on Win32 */ 
+#endif
+
 int
 null_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
 {
@@ -46,6 +50,10 @@ null_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
         avail_bytes = 0;
         read_virgin  = TRUE;
 
+#ifdef WIN32
+        hAudioWakeUp   = CreateEvent(NULL, FALSE, FALSE, "RAT Null Audio Device Event");
+#endif
+
 	return TRUE;
 }
 
@@ -58,7 +66,11 @@ null_audio_close(audio_desc_t ad)
         UNUSED(ad);
 	if (audio_fd > 0)
                 audio_fd = -1;
-	return;
+#ifdef WIN32
+        CloseHandle(hAudioWakeUp);
+#endif
+
+        return;
 }
 
 /*
@@ -333,7 +345,11 @@ null_audio_select(audio_desc_t ad, int delay_ms)
 
         dur = needed * 1000 * 8 / (ifmt.sample_rate * ifmt.bits_per_sample * ifmt.channels);
         dur = min(dur, delay_ms);
+#ifndef WIN32
         usleep(dur * 1000);
+#else
+        WaitForSingleObject(hAudioWakeUp, 100); /* Will time out since event never triggered */
+#endif
 }
 
 void
