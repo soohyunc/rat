@@ -206,33 +206,32 @@ static char szTemp[256];
 int
 printf(const char *fmt, ...)
 {
-    int retval;
-    
-    va_list ap;
-    va_start (ap, fmt);
-    retval = vsprintf(szTemp, fmt, ap);
-    OutputDebugString(szTemp);
-    va_end (ap);
+	int retval;
+	
+	va_list ap;
+	va_start(ap, fmt);
+	retval = vsnprintf(szTemp, 256, fmt, ap);
+	OutputDebugString(szTemp);
+	va_end(ap);
 
-    return(retval);
+	return retval;
 }
 
 int
 fprintf(FILE *f, const char *fmt, ...)
 {
-    int retval;
-    
-    va_list ap;
-    va_start (ap, fmt);
-    if (f == stderr) {
-	retval = vsprintf(szTemp, fmt, ap);
-	OutputDebugString(szTemp);
-	va_end (ap);
-    }
-    else
-	retval = vfprintf(stderr, fmt, ap);
-    
-    return(retval);
+	int 	retval;
+	va_list	ap;
+
+	va_start(ap, fmt);
+	if (f == stderr) {
+		retval = vsnprintf(szTemp, 256, fmt, ap);
+		OutputDebugString(szTemp);
+	} else {
+		retval = vfprintf(f, fmt, ap);
+	}
+	va_end(ap);
+	return retval;
 }
 
 void
