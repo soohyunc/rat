@@ -2351,8 +2351,9 @@ add_help $i.cc.int.rb	"Enables interleaving which exchanges latency\n\
 set i .prefs.pane.reception
 add_help $i.r.m 	"Sets the type of repair applied when packets are\nlost. The schemes\
 			 are listed in order of increasing\ncomplexity and quality of repair."
-add_help $i.r.ms        "Sets the maximum playout delay that will be\napplied to incoming\
-			 audio streams."
+add_help $i.r.ms        "Sets the type of sample rate conversion algorithm\n\
+			 that will be applied to streams that differ in rate\n\
+			 to the audio device rate."
 add_help $i.o.f.cb      "Enforce playout delay limits set below.\nThis is not usually desirable."
 add_help $i.o.f.fl.scmin   "Sets the minimum playout delay that will be\napplied to incoming\
 			 audio streams."

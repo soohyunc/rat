@@ -392,18 +392,9 @@ static void rx_audio_channel_repair(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
 		s = mbus_decode_str(s);
-		if (strcmp(s, "none") == 0) {
-			sp->repair = REPAIR_NONE;
-		} else if (strcmp(s, "repetition") == 0) {
-			sp->repair = REPAIR_REPEAT;
-        	} else if (strcmp(s, "pattern-match") == 0) {
-			sp->repair = REPAIR_PATTERN_MATCH;
-		} else {
-			debug_msg("Repair scheme %s unknown\n", s);
-			abort();
-		}
+                sp->repair = repair_get_by_name(s);
 	} else {
-		printf("mbus: usage \"audio.channel.repair none|repetition|pattern-match\"\n");
+		printf("mbus: usage \"audio.channel.repair <repair>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
 }
