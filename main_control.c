@@ -65,7 +65,7 @@ static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_
 
 #ifdef WIN32
 	startup_info = (LPSTARTUPINFO) xmalloc(sizeof(STARTUPINFO));
-	startup_info->cb              = 0;
+	startup_info->cb              = sizeof(STARTUPINFO);
 	startup_info->lpReserved      = 0;
 	startup_info->lpDesktop       = 0;
 	startup_info->lpTitle         = 0;
@@ -88,10 +88,11 @@ static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_
 
 	sprintf(args, "%s -ctrl %s %s", proc_name, ctrl_addr, token);
 
-	if (!CreateProcess(NULL, args, NULL, NULL, 0, 0, NULL, NULL, startup_info, proc_info)) {
+	if (!CreateProcess(NULL, args, NULL, NULL, 0, DEBUG_PROCESS, NULL, NULL, startup_info, proc_info)) {
 		perror("Couldn't create process");
 		abort();
 	}
+	debug_msg("Forked %s\n", proc_name);
 #else
 #ifdef DEBUG_FORK
 	debug_msg("%s -ctrl '%s' -token %s\n", proc_name, ctrl_addr, token);
