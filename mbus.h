@@ -41,9 +41,9 @@
 
 struct mbus;
 
-struct mbus *mbus_init(int  channel, 
-                       void (*cmd_handler)(char *src, char *cmd, char *arg, void *dat), 
-		       void (*err_handler)(int seqnum));
+struct mbus *mbus_init(unsigned short channel, 
+                       void  (*cmd_handler)(char *src, char *cmd, char *arg, void *dat), 
+		       void  (*err_handler)(int seqnum));
 void         mbus_addr(struct mbus *m, char *addr);
 int          mbus_fd(struct mbus *m);
 int          mbus_send(struct mbus *m, char *dest, char *cmnd, char *args, int reliable);

@@ -330,6 +330,7 @@ network_read(session_struct    *sp,
 	fd_set          rfds;
 
 	sel_fd = sp->rtp_fd;
+	sel_fd = max(sel_fd, sp->rtcp_fd);
 	sel_fd = max(sel_fd, mbus_fd(sp->mbus_engine));
      	sel_fd = max(sel_fd, mbus_fd(sp->mbus_ui));
 #if !defined(WIN32)
