@@ -154,6 +154,11 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
                 return;
         }
 
+	/* Remove any padding */
+	if (p->p) {
+		p->data_len -= p->data[p->data_len - 1];
+		p->p = 0;
+	}
         source_add_packet(s, p);
 }
 

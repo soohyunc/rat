@@ -1044,6 +1044,8 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Fix use of mbus structure after freeing it
 	- Fix freeing of memory on shutdown
 	- Add assorted debugging code
+	- Fix reception of RTP packets with padding (this is what caused a
+	  crash when using the GSM codec with encryption).
 
 
 TODO -- They're features not bugs dammit!
@@ -1101,7 +1103,5 @@ TODO -- They're features not bugs dammit!
   out. Suspect we're hitting the limitations of the old playout algorithm,
   rather than a specific bug, and the correct solution is to get everyone
   to update to rat-4.x
-- Can't playout encrypted GSM data - I suspect it's a padding issue, since
-  GSM frames are not a multiple of 8 bytes. Playing out DVI works fine, and
-  those don't need padding.
+- Handling of SSRC collisions is broken
 
