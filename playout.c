@@ -60,18 +60,17 @@ typedef struct s_playout_buffer {
         pb_node_t   sentinel;                              /* Stores head and tail     */
         pb_node_t  *pp;                                    /* Playout point            */
         void      (*freeproc)(u_char **data, u_int32 len); /* free proc for data added */
-        u_int32     history_len;        /* Amount of data before playout point to keep */
+        ts_t        history_len;        /* Amount of data before playout point to keep */
 } playout_buffer;
 
 /* Construction / Destruction functions **************************************/
 
 int 
-playout_buffer_create(playout_buffer **ppb, void (*datafreeproc)(u_char **data, u_int32 data_len), u_int32 history_len)
+playout_buffer_create(playout_buffer **ppb, void (*datafreeproc)(u_char **data, u_int32 data_len), ts_t history_len)
 {
         playout_buffer *pb;
 
         assert(datafreeproc  != NULL);
-        assert(history_len   != 0);
 
         pb = (playout_buffer*)xmalloc(sizeof(playout_buffer));
         if (pb) {
@@ -258,7 +257,7 @@ playout_buffer_audit(playout_buffer *pb)
 
         stop = &pb->sentinel;
         if (pb->pp != stop) {
-                cutoff = ts_add(pb->pp->playout, -pb->history_len);
+                cutoff = ts_sub(pb->pp->playout, pb->history_len);
                 curr = stop->next; /* head */
                 while(curr != stop && ts_gt(cutoff, curr->playout)) {
                         next = curr->next;

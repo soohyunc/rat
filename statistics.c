@@ -49,6 +49,8 @@
 #include "debug.h"
 #include "memory.h"
 #include "util.h"
+#include "ts.h"
+#include "timers.h"
 #include "session.h"
 #include "source.h"
 #include "timers.h"
@@ -94,35 +96,40 @@ update_database(session_struct *sp, u_int32 ssrc)
 	return dbe_source;
 }
 
-static u_int32
+/* Returns new playout timestamp */
+
+static ts_t 
 adapt_playout(rtp_hdr_t *hdr, 
-              u_int32 arrival_ts, 
+              u_int32   arr_time, 
               rtcp_dbentry *src,
 	      session_struct *sp, 
               struct s_cushion_struct *cushion, 
 	      u_int32 real_time)
 {
-	u_int32	playout, var;
+	u_int32	var;
         u_int32 minv, maxv; 
 
-	int	delay, diff;
+	int	src_freq;
 	codec_id_t            cid;
         const codec_format_t *cf;
 	u_int32	ntptime, play_time;
 	u_int32	sendtime = 0;
         int     ntp_delay = 0;
 	u_int32	rtp_time;
+        ts_t    delay_ts, diff_ts, playout;
 
         int64 since_last_sr;
+
+        /* This is kind of disgusting ... the device clock is a 64-bit 96kHz clock */
+        /* First map it to a 32-bit timestamp of the source */
     
-	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
-	delay = arrival_ts - hdr->ts;
+        src_freq = get_freq(src->clock);
+	arr_time = get_time(src->clock);
+        delay_ts = ts_map32(src_freq, arr_time - hdr->ts);
 
 	if (src->first_pckt_flag == TRUE) {
 		src->first_pckt_flag = FALSE;
-		diff                 = 0;
-		src->delay           = delay;
-		src->last_ts         = hdr->ts - 1;
+		src->delay           = delay_ts;
 		hdr->m               = TRUE;
                 cid = codec_get_by_payload(src->enc);
                 if (cid) {
@@ -133,10 +140,10 @@ adapt_playout(rtp_hdr_t *hdr,
                 }
 	} else {
                 if (hdr->seq != src->last_seq) {
-                        diff       = abs(delay - src->delay);
+                        diff_ts      = ts_abs_diff(delay_ts, src->delay);
                         /* Jitter calculation as in RTP spec */
-                        src->jitter += (((double) diff - src->jitter) / 16.0);
-                        src->delay = delay;
+                        src->jitter += (((double) diff_ts.ticks - src->jitter) / 16.0);
+                        src->delay = delay_ts;
                 }
 	}
 
@@ -162,23 +169,23 @@ adapt_playout(rtp_hdr_t *hdr,
 		}
 	}
 
-	if (ts_gt(hdr->ts, src->last_ts)) {
+	if (hdr->seq > src->last_seq) {
 		/* IF (a) TS start 
                    OR (b) we've thrown 4 consecutive packets away 
                    OR (c) ts have jumped by 8 packets worth 
                    OR (e) a new/empty playout buffer.
                    THEN adapt playout and communicate it
                    */
-		if ((hdr->m) || 
+		if (hdr->m || 
                     src->cont_toged || 
-                    ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * src->inter_pkt_gap * 8 + 1))) {
+                    (hdr->seq - src->last_seq > 8) ) {
 #ifdef DEBUG
                         if (hdr->m) {
                                 debug_msg("New talkspurt\n");
                         } else if (src->cont_toged) {
                                 debug_msg("Cont_toged\n");
                         } else {
-                                debug_msg("Time stamp jump %ld %ld\n", hdr->ts, src->last_ts);
+                                debug_msg("Seq jump %ld %ld\n", hdr->seq, src->last_seq);
                         }
 #endif
 			var = (u_int32) src->jitter * 3;
@@ -204,8 +211,12 @@ adapt_playout(rtp_hdr_t *hdr,
 
                         assert(var > 0);
 
-                        if (src->delay_in_playout_calc != src->delay) {
-                                debug_msg("Old delay (%u) new delay (%u) delta (%u)\n", src->delay_in_playout_calc, src->delay, max(src->delay_in_playout_calc, src->delay) - min(src->delay_in_playout_calc, src->delay));
+                        if (!ts_eq(src->delay_in_playout_calc, src->delay)) {
+                                debug_msg("Old delay (%u) new delay (%u) delta (%u)\n", 
+                                          src->delay_in_playout_calc.ticks, 
+                                          src->delay.ticks, 
+                                          max(src->delay_in_playout_calc.ticks, src->delay.ticks) - 
+                                          min(src->delay_in_playout_calc.ticks, src->delay.ticks));
                         }
 
                         src->delay_in_playout_calc = src->delay;
@@ -215,12 +226,16 @@ adapt_playout(rtp_hdr_t *hdr,
                                  * or, difference in time stamps is less than 1 sec,
                                  * we don't want playout point to be before that of existing data.
                                  */
-                                debug_msg("Buf exists (%u) (%u)\n", src->playout, src->delay+var);
-                                src->playout = max((unsigned)src->playout, src->delay + var);
+                                ts_t new_playout;
+                                new_playout = ts_add(src->delay, ts_map32(src_freq, var));
+                                debug_msg("Buf exists (%u) (%u)\n", src->playout.ticks, new_playout.ticks);
+                                if (ts_gt(new_playout, src->playout)) {
+                                        src->playout = new_playout;
+                                }
                         } else {
-                                debug_msg("delay (%lu) var (%lu)\n", src->delay, var);
-                                src->playout = src->delay + var;
-                                debug_msg("src playout %lu\n", src->playout);
+                                debug_msg("delay (%lu) var (%lu)\n", src->delay.ticks, var);
+                                src->playout = ts_add(src->delay, ts_map32(src_freq, var));
+                                debug_msg("src playout %lu\n", src->playout.ticks);
                         }
 
 			if (sp->sync_on && src->mapping_valid) {
@@ -283,7 +298,6 @@ adapt_playout(rtp_hdr_t *hdr,
                         */
                 }
         }
-        src->last_ts        = hdr->ts;
         src->last_seq       = hdr->seq;
 
 	/* Calculate the playout point in local source time for this packet. */
@@ -294,21 +308,19 @@ adapt_playout(rtp_hdr_t *hdr,
 		 */
 		play_time = sendtime + src->sync_playout_delay;
 		rtp_time = sp->db->map_rtp_time + (((play_time - sp->db->map_ntp_time) * get_freq(src->clock)) >> 16);
-                playout = rtp_time;
-		src->playout = playout - hdr->ts;
+                playout  = ts_map32(src_freq, rtp_time);
+		src->playout = ts_sub(playout, ts_map32(src_freq, hdr->ts));
 	} else {
-		playout = hdr->ts + src->playout;
+		playout = ts_add(ts_map32(src_freq, hdr->ts), src->playout);
 	}
 
-        if (ts_gt(arrival_ts, playout)) {
-                int now = get_time(sp->device_clock);
-                now = convert_time(now, sp->device_clock, src->clock);
-                debug_msg("Will be discarded - now (%u) arrival (%u) playout (%u) \n", now, arrival_ts, playout);
+        if (ts_gt(ts_map32(src_freq,arr_time), playout)) {
+                debug_msg("Will be discarded.\n");
         }
 
         if (src->cont_toged > 12) {
                 /* something has gone wrong if this assertion fails*/
-                if (playout < get_time(src->clock)) {
+                if (!ts_gt(playout, ts_map32(src_freq, get_time(src->clock)))) {
                         debug_msg("playout before now.\n");
                         src->first_pckt_flag = TRUE;
                 }

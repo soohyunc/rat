@@ -195,7 +195,7 @@ ts_add(ts_t t1, ts_t t2)
 }
 
 ts_t
-ts_diff(ts_t t1, ts_t t2)
+ts_sub(ts_t t1, ts_t t2)
 {
         ts_t out;
         u_int32 ticks;
@@ -226,6 +226,16 @@ ts_diff(ts_t t1, ts_t t2)
         assert((unsigned)out.ticks == ticks);
         assert(ts_valid(out));
         return out;
+}
+
+ts_t
+ts_abs_diff(ts_t t1, ts_t t2)
+{
+        if (ts_gt(t1, t2)) {
+                return ts_sub(t1, t2);
+        } else {
+                return ts_sub(t2, t1);
+        }
 }
 
 ts_t 

@@ -52,8 +52,9 @@ typedef struct {
 ts_t     ts_map32(u_int32 freq, u_int32 ts32);
 
 /* Addition and subtraction operations */
-ts_t     ts_add  (ts_t ts1, ts_t ts2);
-ts_t     ts_diff (ts_t ts1, ts_t ts2);
+ts_t     ts_add      (ts_t ts1, ts_t ts2);
+ts_t     ts_sub      (ts_t ts1, ts_t ts2);
+ts_t     ts_abs_diff (ts_t ts1, ts_t ts2);
 
 /* ts_gt = timestamp greater than */
 int      ts_gt(ts_t t1, ts_t t2);

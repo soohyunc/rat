@@ -25,13 +25,13 @@ main()
                         
                         a = ts_map32(fa,ta);
                         b = ts_map32(fb,tb);
-                        c = ts_diff(a, b);
+                        c = ts_sub(a, b);
                         
                         assert(ts_valid(a));
                         assert(ts_valid(b));
                         assert(ts_valid(c));
                         
-                        dac = ts_diff(a,c);
+                        dac = ts_sub(a,c);
                         assert(ts_eq(dac,b));
                 }
                 printf("."); fflush(stdout);

@@ -208,10 +208,11 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, ts_t play
 {
         const codec_format_t *cf;
         codec_id_t            id;
-        u_int32               data_len, playout_step;
+        u_int32               data_len;
         u_char               *p, *end;
         media_data           *m;
-        
+        ts_t                  playout_step;
+
         id = codec_get_by_payload(cu->pt);
         cf = codec_get_format(id);
 
@@ -238,7 +239,7 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, ts_t play
         playout_buffer_add(out, (u_char *)m, sizeof(media_data), playout);
 
         /* Now do other units which do not have state*/
-        playout_step = codec_get_samples_per_frame(id);
+        playout_step = ts_map32(cf->format.sample_rate, codec_get_samples_per_frame(id));
         while(p < end) {
                 playout = ts_add(playout, playout_step);
                 media_data_create(&m, 1);
