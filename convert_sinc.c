@@ -66,7 +66,7 @@ sinc_startup (void)
                         }
                         ham = 0.54 + 0.46 * cos(2.0*k*M_PI/ (double)w);
                         upfilter[m][k + c]   =  (int32)(SINC_SCALE * dv *ham);
-                        downfilter[m][k + c] =  (int32)(2.0 * ham * SINC_SCALE * dv / (double)m);
+                        downfilter[m][k + c] =  (int32)(ham * SINC_SCALE * dv / (double)m);
                 }
         }
         return TRUE;
@@ -262,7 +262,6 @@ sinc_convert (const converter_fmt_t *cfmt,
         }
 }
 
-
 /* Here begin the conversion functions... A quick word on the
  * principle of operation.  We use fixed point arithmetic to save time
  * converting to floating point and back again.  All of the
@@ -403,14 +402,14 @@ sinc_upsample_stereo (struct s_filter_state *fs,
         int32   t0, t1;
         int32  *h, *hc, *he, half_width;
 
-        work_len = src_len + fs->taps;
+        work_len = src_len + 2 * fs->taps - 1;
         work_buf = (sample*)block_alloc(sizeof(sample)*work_len);
-
-        assert(fs->hold_bytes == 2 * fs->taps * sizeof(sample));
+        
+        assert(fs->hold_bytes == 2 * fs->taps * sizeof (sample));
 
         /* Get samples into work_buf */
         memcpy(work_buf, fs->hold_buf, fs->hold_bytes);
-        memcpy(work_buf + fs->hold_bytes / sizeof(sample), src, src_len * sizeof(sample));
+        memcpy(work_buf + fs->hold_bytes/sizeof(sample), src, src_len * sizeof(sample));
         
         /* Save last samples in src into hold_buf for next time */
         memcpy(fs->hold_buf, src + src_len - fs->hold_bytes / sizeof(sample), fs->hold_bytes);
@@ -420,27 +419,54 @@ sinc_upsample_stereo (struct s_filter_state *fs,
         ss = work_buf;
         se = work_buf + work_len;
         he = fs->filter + fs->taps;
-
+        h = fs->filter;
         half_width = fs->taps / 2; 
 
         while (d < de) {
-                *d = (sample)(*(ss+half_width));
-                ss++;
+                hc = h;
+                t0 = t1 = 0;
+                sc = ss;
+                while (hc < he) {
+                        t0 += (*hc) * (*sc);
+                        sc++;
+                        t1 +=  (*hc) * (*sc);
+                        sc++;
+                        hc += fs->scale;
+                }
+
+                t0 = t0 >> SINC_ROLL;
+                if (t0 > 32767) {
+                        *d = 32767;
+                } else if (t0 < -32768) {
+                        *d = -32768;
+                } else {
+                        *d = (sample)t0;
+                }
                 d++;
-                *d = (sample)(*(ss+half_width));
-                ss++;
+
+                t1 = t1 >> SINC_ROLL;
+                if (t1 > 32767) {
+                        *d = 32767;
+                } else if (t1 < -32768) {
+                        *d = -32768;
+                } else {
+                        *d = (sample)t1;
+                }
+
                 d++;
+
+                ss+=2;
                 h  = fs->filter + fs->scale - 1;
                 while (h != fs->filter) {
                         hc = h;
                         t0 = t1 = 0;
                         sc = ss;
                         while (hc < he) {
-                                t0 += (*hc) * (*sc);
+                                t0  += (*hc) * (*sc);
                                 sc++;
-                                t1 += (*hc) * (*sc);
+                                t1  += (*hc) * (*sc);
                                 sc++;
-                                hc++;
+                                hc += fs->scale;
                         }
 
                         t0 = t0 >> SINC_ROLL;
@@ -452,7 +478,7 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                                 *d = (sample)t0;
                         }
                         d++;
-                        
+
                         t1 = t1 >> SINC_ROLL;
                         if (t1 > 32767) {
                                 *d = 32767;
@@ -462,12 +488,13 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                                 *d = (sample)t1;
                         }
                         d++;
+
                         h--;
                 }
         }
         assert(d == de);
-        assert(sc == se);
-        block_free(work_buf, work_len);
+/*        assert(sc == se);  */
+        block_free(work_buf, work_len * sizeof(sample));
         xmemchk();
 }
 
@@ -528,9 +555,9 @@ sinc_downsample_stereo(struct s_filter_state *fs,
 {
         int32 *hc, *he, t0, t1, work_len;
 
-        sample *work_buf, *ss, *sc, *se, *d;
+        sample *work_buf, *ss, *sc, *d, *de;
 
-        work_len = src_len + fs->taps - fs->scale;
+        work_len = src_len + 2 * (fs->taps - fs->scale);
         work_buf = (sample*)block_alloc(work_len * sizeof(sample));
 
         /* Get samples into work_buf */
@@ -541,11 +568,12 @@ sinc_downsample_stereo(struct s_filter_state *fs,
         memcpy(fs->hold_buf, src + src_len - fs->hold_bytes / sizeof(sample), fs->hold_bytes);
 
         d  = dst;
+        de = dst + dst_len;
         sc = ss = work_buf;
-        se      = work_buf + work_len;
-        he      = fs->filter + fs->taps;
 
-        while (sc < se) {
+        he = fs->filter + fs->taps;
+
+        while (d != de) {
                 t0 = t1 = 0;
                 hc = fs->filter;
                 sc = ss;
@@ -577,10 +605,9 @@ sinc_downsample_stereo(struct s_filter_state *fs,
                 }
                 d++;
 
-                ss += fs->scale;
+                ss += fs->scale * 2;
         }
 
-        assert(sc == se);
         assert(d  == dst + dst_len);
         block_free(work_buf, work_len * sizeof(sample));
         xmemchk();
