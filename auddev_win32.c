@@ -843,7 +843,7 @@ w32sdk_audio_open_out(UINT uId, WAVEFORMATEX *pwfx)
                 return (TRUE);
         }
         
-        mmr = waveOutOpen(&shWaveOut, uId, pwfx, 0, 0, CALLBACK_FUNCTION);
+        mmr = waveOutOpen(&shWaveOut, uId, pwfx, 0, 0, CALLBACK_NULL);
         if (mmr != MMSYSERR_NOERROR) {
                 waveOutGetErrorText(mmr, errorText, sizeof(errorText));
                 debug_msg("waveOutOpen: (%d) %s\n", mmr, errorText);
