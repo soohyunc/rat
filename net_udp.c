@@ -128,16 +128,11 @@ static socket_udp *udp_init4(char *addr, int port, int ttl)
 			socket_error("setsockopt IP_MULTICAST_LOOP");
 			abort();
 		}
-		if (setsockopt(s->fd, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &s->ttl, sizeof(s->ttl)) != 0) {
-			socket_error("setsockopt IP_MULTICAST_TTL");
-			abort();
-		}
-#else
-		if (setsockopt(s->fd, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &s->ttl, sizeof(s->ttl)) != 0) {
-			socket_error("setsockopt IP_MULTICAST_TTL");
-			abort();
-		}
 #endif
+		if (setsockopt(s->fd, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &s->ttl, sizeof(s->ttl)) != 0) {
+			socket_error("setsockopt IP_MULTICAST_TTL");
+			abort();
+		}
 	}
 	return s;
 }
