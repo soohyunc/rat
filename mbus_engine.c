@@ -1,6 +1,7 @@
 /*
  * FILE:    mbus_engine.c
  * AUTHORS: Colin Perkins
+ * MODIFICATIONS: Orion Hodson
  * 
  * Copyright (c) 1998 University College London
  * All rights reserved.
@@ -52,47 +53,10 @@
 #include "crypt.h"
 #include "session.h"
 #include "rat_time.h"
-
-/*****************************************************************************/
-/* All the func_toggle_* functions are obsolete and should be removed! [csp] */
-/*****************************************************************************/
-
-static void func_toggle_send(char *srce, char *args, session_struct *sp)
-{
-	dprintf("toggle_send is obsolete! Use input_mute\n");
-	if ((strlen(args) != 1) || (args[0] != ' ')) {
-		printf("mbus: toggle_send does not require parameters\n");
-		return;
-	}
-
-        if (sp->sending_audio) {
-		stop_sending(sp);
-	} else {
-		start_sending(sp);
-	}
-	ui_update_input_port(sp);
-}
-
-static void func_toggle_play(char *srce, char *args, session_struct *sp)
-{
-	dprintf("toggle_play is obsolete! Use output_mute\n");
-	if ((strlen(args) != 1) || (args[0] != ' ')) {
-		printf("mbus: toggle_play does not require parameters\n");
-		return;
-	}
-
-	if (sp->playing_audio) {
-        	sp->playing_audio = FALSE;
-	} else {
-        	sp->playing_audio = TRUE;
-	}
-        sp->receive_audit_required = TRUE;
-	ui_update_output_port(sp);
-}
+#include "channel.h"
 
 static void func_toggle_input_port(char *srce, char *args, session_struct *sp)
 {
-	dprintf("toggle_input_port is obsolete: use input_port instead!\n");
 	if ((strlen(args) != 1) || (args[0] != ' ')) {
 		printf("mbus: toggle_input_port does not require parameters\n");
 		return;
@@ -105,7 +69,6 @@ static void func_toggle_input_port(char *srce, char *args, session_struct *sp)
 
 static void func_toggle_output_port(char *srce, char *args, session_struct *sp)
 {
-	dprintf("toggle_output_port is obsolete: use output_port instead!\n");
 	if ((strlen(args) != 1) || (args[0] != ' ')) {
 		printf("mbus: toggle_output_port does not require parameters\n");
 		return;
@@ -115,8 +78,6 @@ static void func_toggle_output_port(char *srce, char *args, session_struct *sp)
 	sp->output_mode = audio_get_oport(sp->audio_fd);
 	ui_update_output_port(sp);
 }
-
-/*****************************************************************************/
 
 static void func_get_audio(char *srce, char *args, session_struct *sp)
 {
@@ -205,12 +166,10 @@ static void func_agc(char *srce, char *args, session_struct *sp)
 static void func_rate(char *srce, char *args, session_struct *sp)
 {
 	int	 i;
-	codec_t	*cp;
 
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_int(sp->mbus_engine, &i)) {
-		cp = get_codec(sp->encodings[0]);
-		set_units_per_packet(sp, (i * cp->freq) / (1000 * cp->unit_len));
+		set_units_per_packet(sp, i);
 	} else {
 		printf("mbus: usage \"rate <integer>\"\n");
 	}
@@ -278,7 +237,7 @@ static void func_output_mute(char *srce, char *args, session_struct *sp)
 
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_int(sp->mbus_engine, &i)) {
-        	sp->playing_audio = i;
+        	sp->playing_audio = !i; 
 		ui_update_output_port(sp);
 	} else {
 		printf("mbus: usage \"output_mute <boolean>\"\n");
@@ -351,9 +310,9 @@ static void func_repair(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &s)) {
 		s = mbus_decode_str(s);
-		if (strcmp(s,             "None") == 0) sp->repair = REPAIR_NONE;
-		if (strcmp(s, "PacketRepetition") == 0) sp->repair = REPAIR_REPEAT;
-        	if (strcmp(s,  "PatternMatching") == 0) sp->repair = REPAIR_PATTERN_MATCH;
+		if (strcmp(s,              "None") == 0) sp->repair = REPAIR_NONE;
+		if (strcmp(s, "Packet Repetition") == 0) sp->repair = REPAIR_REPEAT;
+        	if (strcmp(s,  "Pattern Matching") == 0) sp->repair = REPAIR_PATTERN_MATCH;
 	} else {
 		printf("mbus: usage \"repair None|Repetition\"\n");
 	}
@@ -582,9 +541,78 @@ static void func_primary(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
+static void func_min_playout(char *srce, char *args, session_struct *sp)
+{
+	int	 i;
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
+		sp->min_playout = i;
+	} else {
+		printf("mbus: usage \"min_playout <integer>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+}
+
+static void func_max_playout(char *srce, char *args, session_struct *sp)
+{
+	int	 i;
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
+		sp->max_playout = i;
+	} else {
+		printf("mbus: usage \"max_playout <integer>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+}
+
+static void func_auto_convert(char *srce, char *args, session_struct *sp)
+{
+	int	 i;
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
+                assert(i==0||i==1);
+		sp->min_playout = i;
+	} else {
+		printf("mbus: usage \"auto_convert <boolean>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+}
+
+static void func_channel_code(char *srce, char *args, session_struct *sp)
+{
+        char *channel;
+
+        mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &channel)) {
+                channel = mbus_decode_str(channel);
+                switch(channel[0]) {
+                case 'N':
+                        sp->cc_encoding = PT_VANILLA;
+                        break;
+                case 'R':
+                        sp->cc_encoding = PT_REDUNDANCY;
+                        break;
+                case 'I':
+                        sp->cc_encoding = PT_INTERLEAVED;
+                        break;
+                default:
+                        printf("%s %d: scheme %s not recognized.\n",__FILE__,__LINE__,channel);
+                }
+        } else {
+                printf("mbus: usage \"channel_code <scheme>\"\n");
+        }
+        mbus_parse_done(sp->mbus_engine);
+}
+
+static void func_settings(char *srce, char *args, session_struct *sp)
+{
+        ui_update(sp);
+}
+
 char *mbus_cmnd[] = {
-	"toggle_send",
-	"toggle_play",
 	"get_audio",
 	"toggle_input_port",
 	"toggle_output_port",
@@ -615,12 +643,15 @@ char *mbus_cmnd[] = {
 	"source_playout",
 	"redundancy",
 	"primary",
+        "min_playout",
+        "max_playout",
+        "auto_convert",
+        "channel_code",
+        "settings",
 	""
 };
 
 void (*mbus_func[])(char *srce, char *args, session_struct *sp) = {
-	func_toggle_send,
-	func_toggle_play,
 	func_get_audio,
 	func_toggle_input_port,
 	func_toggle_output_port,
@@ -651,6 +682,11 @@ void (*mbus_func[])(char *srce, char *args, session_struct *sp) = {
 	func_source_playout,
 	func_redundancy,
 	func_primary,
+        func_min_playout,
+        func_max_playout,
+        func_auto_convert,
+        func_channel_code,
+        func_settings
 };
 
 void mbus_handler_engine(char *srce, char *cmnd, char *args, void *data)
