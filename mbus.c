@@ -189,13 +189,16 @@ void mbus_retransmit(struct mbus *m)
 	char			*b;
 	struct sockaddr_in	 saddr;
 	u_long			 addr = MBUS_ADDR;
+	int			 wait;
 
 	gettimeofday(&time, NULL);
 
 	while (curr != NULL) {
+		/* wait is the delay before we send a retransmission request... */
+		wait = 8000 + (lrand48() % 4000);
 		/* diff is time in milliseconds that the message has been awaiting an ACK */
 		diff = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - ((curr->time.tv_sec * 1000) + (curr->time.tv_usec / 1000));
-		if (diff > 10000) {
+		if (diff > wait) {
 			dprintf("Reliable mbus message failed! (wait=%ld)\n", diff);
 			dprintf(">>>\n");
 			dprintf("   mbus/1.0 %d R (%s) %s ()\n   %s (%s)\n", curr->seqn, curr->srce, curr->dest, curr->cmnd, curr->args);
