@@ -83,13 +83,15 @@ typedef struct session_tag {
 	int		mode;                           /* audio tool, transcoder */
         char            title[SESSION_TITLE_LEN+1];
 	char            asc_address[MAXHOSTNAMELEN+1];  /* their ascii name if unicast */
-	u_short		rtp_port;
-	u_short		rtcp_port;
-        int             filter_loopback;
-	int             ttl;
-	socket_udp      *rtp_socket;
-	socket_udp      *rtcp_socket;
-        u_long          ipaddr;
+	u_short		         rtp_port;
+	u_short		         rtcp_port;
+	socket_udp              *rtp_socket;
+	socket_udp              *rtcp_socket;
+        struct s_pckt_queue     *rtp_pckt_queue;
+        struct s_pckt_queue     *rtcp_pckt_queue;
+	int    ttl;
+        int    filter_loopback;
+        u_long ipaddr;
 	struct s_fast_time	*clock;
 	struct s_time		*device_clock;
         struct s_cushion_struct *cushion;

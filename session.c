@@ -49,6 +49,7 @@
 #include "timers.h"
 #include "repair.h"
 #include "codec.h"
+#include "pckt_queue.h"
 #include "receive.h"
 #include "convert.h"
 #include "channel.h"
@@ -101,6 +102,8 @@ init_session(session_struct *sp)
         sp->output_mode                 = AUDIO_NO_DEVICE;
 	sp->rtp_port			= 5004;		/* default: draft-ietf-avt-profile-new-00 */
 	sp->rtcp_port			= 5005;		/* default: draft-ietf-avt-profile-new-00 */
+        sp->rtp_pckt_queue              = pckt_queue_create(PCKT_QUEUE_RTP_LEN);
+        sp->rtcp_pckt_queue             = pckt_queue_create(PCKT_QUEUE_RTCP_LEN);
 	sp->ttl				= 16;
 	sp->rtp_socket			= NULL;
 	sp->rtcp_socket			= NULL;
@@ -162,6 +165,8 @@ end_session(session_struct *sp)
                 sp->device_clock = NULL;
         }
         collator_destroy(sp->collator);
+        pckt_queue_destroy(&sp->rtp_pckt_queue);
+        pckt_queue_destroy(&sp->rtcp_pckt_queue);
 }
 
 static void 

@@ -9,7 +9,7 @@ OBJS = auddev.o auddev_null.o __AUDIO__ audio.o audio_fmt.o cc_red.o \
        cc_intl.o channel.o codec.o codec_adpcm.o codec_gsm.o codec_g711.o \
        codec_lpc.o codec_wbs.o convert.o crypt.o \
        cushion.o interfaces.o main.o mbus_engine.o \
-       mbus_ui.o mix.o net.o parameters.o  \
+       mbus_ui.o mix.o net.o parameters.o pckt_queue.o \
        receive.o render_3D.o repair.o rtcp.o rtcp_db.o rtcp_pckt.o \
        session.o sndfile.o statistics.o tcltk.o timers.o transmit.o \
        transcoder.o ui.o ui_audiotool.o ui_transcoder.o 

@@ -55,39 +55,20 @@
                         Q##_p[1]->head_ptr    = NULL; \
                         Q##_p[1]->tail_ptr    = NULL
 
-/* Packets off the net */
-typedef struct pckt_queue_element_tag {
-	struct pckt_queue_element_tag *next_pckt_ptr;
-	struct pckt_queue_element_tag *prev_pckt_ptr;
-	int                            len;
-	u_int32                        arrival_timestamp;
-        u_int32                        extlen;
-        u_int32                        playout;
-	u_int8                        *pckt_ptr;
-} pckt_queue_element_struct;
-
-typedef struct pckt_queue_tag {
-	int                        queue_empty;
-	pckt_queue_element_struct *head_ptr;
-	pckt_queue_element_struct *tail_ptr;
-} pckt_queue_struct;
-
 struct rx_element_tag;
 struct rx_queue_tag;
-struct pckt_queue_element_tag;
-struct pckt_queue_tag;
 
-void	put_on_rx_queue(struct rx_element_tag* p_ptr, struct rx_queue_tag *q_ptr);
-struct rx_element_tag *get_unit_off_rx_queue(struct rx_queue_tag *q_ptr);
-void	free_rx_unit(struct rx_element_tag **temp_ptr);
+void	
+put_on_rx_queue (struct rx_element_tag* p_ptr, struct rx_queue_tag *q_ptr);
 
-void	free_pckt_queue_element(struct pckt_queue_element_tag **temp_ptr);
-void    put_on_pckt_queue(struct pckt_queue_element_tag *pckt,
-			  struct pckt_queue_tag *q_ptr);
-struct pckt_queue_element_tag *get_pckt_off_queue(struct pckt_queue_tag *q_ptr);
+struct rx_element_tag *
+get_unit_off_rx_queue (struct rx_queue_tag *q_ptr);
 
-void receive_pkt_audit(struct pckt_queue_tag *pkt_queue_ptr);
-void receive_unit_audit(struct rx_queue_tag *unit_queue_ptr);
+void
+free_rx_unit (struct rx_element_tag **temp_ptr);
+
+void 
+receive_unit_audit (struct rx_queue_tag *unit_queue_ptr);
 
 #endif	/* _interfaces_h_ */
 

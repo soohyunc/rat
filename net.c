@@ -53,7 +53,7 @@
 #include "net.h"
 #include "crypt.h"
 #include "session.h"
-#include "interfaces.h"
+#include "pckt_queue.h"
 #include "audio.h"
 #include "util.h"
 #include "mbus.h"
@@ -112,14 +112,14 @@ network_init(session_struct *sp)
 }
 
 void
-read_and_enqueue(socket_udp *s, u_int32 cur_time, pckt_queue_struct *queue, int type)
+read_and_enqueue(socket_udp *s, u_int32 cur_time, struct s_pckt_queue *queue, int type)
 {
-	unsigned char			*data_in, *data_out, *tmp_data;
-	int             		 read_len;
-	pckt_queue_element_struct 	*pckt;
-
-	assert(type == PACKET_RTP || type == PACKET_RTCP);
-	while (1) {
+        unsigned char      *data_in, *data_out, *tmp_data;
+        int                 read_len;
+        pckt_queue_element *pckt;
+        
+        assert(type == PACKET_RTP || type == PACKET_RTCP);
+        while (1) {
 		data_in  = block_alloc(PACKET_LENGTH);
 		data_out = block_alloc(PACKET_LENGTH);
 		read_len = udp_recv(s, (char *) data_in, PACKET_LENGTH);
@@ -136,13 +136,11 @@ read_and_enqueue(socket_udp *s, u_int32 cur_time, pckt_queue_struct *queue, int 
 							  break;
 				}
 			}
-			pckt = (pckt_queue_element_struct *) block_alloc(sizeof(pckt_queue_element_struct));
+			pckt = pckt_queue_element_create();
 			pckt->len               = read_len;
 			pckt->pckt_ptr          = data_out;
-			pckt->next_pckt_ptr     = NULL;
-			pckt->prev_pckt_ptr     = NULL;
 			pckt->arrival_timestamp = cur_time;
-			put_on_pckt_queue(pckt, queue);
+			pckt_enqueue(queue, pckt);
 			block_free(data_in, PACKET_LENGTH);
 		} else {
 			block_free(data_in, PACKET_LENGTH);

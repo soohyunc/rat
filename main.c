@@ -51,6 +51,7 @@
 #include "convert.h"
 #include "tcltk.h"
 #include "ui.h"
+#include "pckt_queue.h"
 #include "interfaces.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
@@ -97,14 +98,9 @@ main(int argc, char *argv[])
 	session_struct 		*sp[2];
 	struct timeval  	 time;
 	char			 mbus_engine_addr[30], mbus_ui_addr[30], mbus_video_addr[30];
-
-	NEW_QUEUE(pckt_queue_struct, netrx_queue);
-	NEW_QUEUE(pckt_queue_struct, rtcp_pckt_queue);
-	NEW_QUEUE(rx_queue_struct,   rx_unit_queue);
-
-	INIT_QUEUE(pckt_queue_struct, netrx_queue);
-	INIT_QUEUE(pckt_queue_struct, rtcp_pckt_queue);
-	INIT_QUEUE(rx_queue_struct,   rx_unit_queue);
+        
+        NEW_QUEUE(rx_queue_struct, rx_unit_queue);
+        INIT_QUEUE(rx_queue_struct, rx_unit_queue);
 
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
@@ -124,6 +120,7 @@ main(int argc, char *argv[])
         audio_init_interfaces();
         audio_set_interface(0);
         converters_init();
+        statistics_init();
 
 	if (sp[0]->mode == AUDIO_TOOL) {
 		sprintf(mbus_engine_addr, "(audio engine rat %lu)", (u_int32) getpid());
@@ -200,8 +197,8 @@ main(int argc, char *argv[])
 			cur_time  = get_time(sp[i]->device_clock);
 			real_time = ntp_time32();
 
-			read_and_enqueue(sp[i]->rtp_socket , cur_time,     netrx_queue_p[i], PACKET_RTP);
-			read_and_enqueue(sp[i]->rtcp_socket, cur_time, rtcp_pckt_queue_p[i], PACKET_RTCP);
+			read_and_enqueue(sp[i]->rtp_socket , cur_time, sp[i]->rtp_pckt_queue, PACKET_RTP);
+			read_and_enqueue(sp[i]->rtcp_socket, cur_time, sp[i]->rtcp_pckt_queue, PACKET_RTCP);
 
 			tx_process_audio(sp[i]);
 
@@ -216,16 +213,16 @@ main(int argc, char *argv[])
                                 tx_send(sp[i]);
                         }
 
-                        statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, real_time);
+                        statistics(sp[i], sp[i]->rtp_pckt_queue, rx_unit_queue_p[i], sp[i]->cushion, real_time);
 
 			if (sp[i]->playing_audio) {
 				playout_buffers_process(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, sp[i]->ms);
 			}
 
 			if (sp[i]->mode == TRANSCODER) {
-				service_rtcp(sp[i], sp[1-i], rtcp_pckt_queue_p[i], cur_time, real_time);
+				service_rtcp(sp[i], sp[1-i], sp[i]->rtcp_pckt_queue, cur_time, real_time);
 			} else {
-				service_rtcp(sp[i],    NULL, rtcp_pckt_queue_p[i], cur_time, real_time);
+				service_rtcp(sp[i],    NULL, sp[i]->rtcp_pckt_queue, cur_time, real_time);
 			}
 
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {
@@ -302,6 +299,7 @@ main(int argc, char *argv[])
 
         converters_free();
         audio_free_interfaces();
+        statistics_free();
 
 	xmemdmp();
 	return 0;

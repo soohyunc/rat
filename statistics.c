@@ -51,6 +51,7 @@
 #include "session.h"
 #include "receive.h"
 #include "timers.h"
+#include "pckt_queue.h"
 #include "interfaces.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
@@ -382,7 +383,7 @@ adapt_playout(rtp_hdr_t *hdr,
 }
 
 static int
-rtp_header_validation(rtp_hdr_t *hdr, int *len, int *extlen)
+rtp_header_validation(rtp_hdr_t *hdr, int32 *len, int *extlen)
 {
 	/* This function checks the header info to make sure that the packet */
 	/* is valid. We return TRUE if the packet is valid, FALSE otherwise. */
@@ -429,10 +430,31 @@ receiver_change_format(rtcp_dbentry *dbe, codec_t *cp)
 	change_freq(dbe->clock, cp->freq);
 }  
 
+/* Statistics _init and _end allocate good_pckt_queue which is used
+ * as a temporary queue in rtp packet processing.
+ */
+
+static struct s_pckt_queue *good_pckt_queue;
+
+void 
+statistics_init()
+{
+        if (good_pckt_queue != NULL) {
+                statistics_free();
+        }
+        good_pckt_queue = pckt_queue_create(PCKT_QUEUE_RTP_LEN);
+}
+
 void
-statistics(session_struct    *sp,
-	   pckt_queue_struct *netrx_pckt_queue,
-	   rx_queue_struct   *unitsrx_queue_ptr,
+statistics_free()
+{
+        pckt_queue_destroy(&good_pckt_queue);
+}
+
+void
+statistics(session_struct      *sp,
+	   struct s_pckt_queue *rtp_pckt_queue,
+	   rx_queue_struct     *unitsrx_queue_ptr,
 	   struct s_cushion_struct    *cushion,
 	   u_int32	 real_time)
 {
@@ -465,26 +487,22 @@ statistics(session_struct    *sp,
 	int		 len;
 	rtcp_dbentry	*src = NULL;
 	u_int32		 now, now_device, late_adjust;
-	pckt_queue_element_struct *e_ptr;
+	pckt_queue_element *pckt;
 	codec_t		*pcp = NULL;
 	char 		 update_req = FALSE;
         int pkt_cnt = 0, late_cnt;
-
-        NEW_QUEUE(pckt_queue_struct, good_pckt_queue);
-        INIT_QUEUE(pckt_queue_struct, good_pckt_queue);
 
         now_device = get_time(sp->device_clock);
         late_adjust = 0;
         late_cnt    = 0;
 
 	/* Process incoming packets */
-        while(netrx_pckt_queue->queue_empty == FALSE /*&& !audio_is_ready(sp->audio_device)*/) {
+        while( (pckt = pckt_dequeue(rtp_pckt_queue)) != NULL ) {
                 block_trash_check();
-                e_ptr = get_pckt_off_queue(netrx_pckt_queue);
                 /* Impose RTP formating on it... */
-                hdr = (rtp_hdr_t *) (e_ptr->pckt_ptr);
+                hdr = (rtp_hdr_t *) (pckt->pckt_ptr);
         
-                if (rtp_header_validation(hdr, &e_ptr->len, (int*)&e_ptr->extlen) == FALSE) {
+                if (rtp_header_validation(hdr, &pckt->len, (int*)&pckt->extlen) == FALSE) {
                         debug_msg("RTP Packet failed header validation!\n");
                         block_trash_check();
                         goto release;
@@ -518,8 +536,8 @@ statistics(session_struct    *sp,
                         /* we don't have the audio device so there is no point processing data any further. */
                         goto release;
                 }
-                data_ptr =  (unsigned char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + e_ptr->extlen;
-                len      = e_ptr->len - 4 * (3 + hdr->cc) - e_ptr->extlen;
+                data_ptr =  (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
+                len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
         
                 if ( ((pcp = get_codec_by_pt(hdr->pt)) == NULL &&
                     (pcp = get_codec_by_pt(get_wrapped_payload(hdr->pt, (char*) data_ptr, len))) == NULL) || 
@@ -540,22 +558,22 @@ statistics(session_struct    *sp,
                         update_req = TRUE;
                 }
 
-                e_ptr->playout = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
+                pckt->playout = adapt_playout(hdr, pckt->arrival_timestamp, src, sp, cushion, real_time);
 
                 /* Is this packet going to be played out late */
                 now = convert_time(now_device, sp->device_clock, src->clock);
-                if (ts_gt(now, e_ptr->playout)) {
+                if (ts_gt(now, pckt->playout)) {
                         late_cnt ++;
-                        late_adjust = max(late_adjust, ts_abs_diff(now, e_ptr->playout));
+                        late_adjust = max(late_adjust, ts_abs_diff(now, pckt->playout));
                 }
                 
-                put_on_pckt_queue(e_ptr, good_pckt_queue);
+                pckt_enqueue(good_pckt_queue, pckt);
 
                 pkt_cnt++;
                 continue;
         release:
                 block_trash_check();
-                free_pckt_queue_element(&e_ptr);
+                pckt_queue_element_free(&pckt);
         }
 
         if (late_cnt) {
@@ -571,17 +589,16 @@ statistics(session_struct    *sp,
                 late_adjust = 0;
         }
 
-        while(good_pckt_queue->queue_empty == FALSE) {
-                e_ptr = get_pckt_off_queue(good_pckt_queue);
+        while( (pckt = pckt_dequeue(good_pckt_queue)) != NULL) {
                 block_trash_check();
 
-                hdr      = (rtp_hdr_t*)e_ptr->pckt_ptr;
-                data_ptr =  (unsigned char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + e_ptr->extlen;
-                len      = e_ptr->len - 4 * (3 + hdr->cc) - e_ptr->extlen;
+                hdr      = (rtp_hdr_t*)pckt->pckt_ptr;
+                data_ptr =  (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
+                len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
 
-                src->units_per_packet = split_block(e_ptr->playout + late_adjust, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp);
+                src->units_per_packet = split_block(pckt->playout + late_adjust, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp);
                 block_trash_check();
-                free_pckt_queue_element(&e_ptr);
+                pckt_queue_element_free(&pckt);
         }
 
         if (pkt_cnt > 5) {

@@ -25,12 +25,12 @@ set infofont      {helvetica 10}
 set smallfont     {helvetica  8}
 set verysmallfont {helvetica  8}
 
-option add *Entry.relief	sunken 
-option add *borderWidth 	1
-option add *highlightThickness	0
-option add *padx		0
-option add *pady		0
-option add *font 		$infofont
+option add *Entry.relief       sunken 
+option add *borderWidth        1
+option add *highlightThickness 0
+option add *Button*padX        4          
+option add *Button*padY        0          
+option add *font               $infofont
 
 set V(class) "Mbone Applications"
 set V(app)   "rat"
@@ -920,8 +920,9 @@ proc toggle_stats {cname} {
 
 	set stats_pane($win) "Personal Details"
 	frame $win.df 
-	frame $win.df.personal
-	pack  $win.df $win.df.personal -fill x 
+	frame $win.df.personal 
+	pack  $win.df $win.df.personal -fill x
+
 	global NAME EMAIL PHONE LOC NOTE CNAME TOOL
 	stats_add_field $win.df.personal.1 "Name: "     NAME($cname)
 	stats_add_field $win.df.personal.2 "Email: "    EMAIL($cname)
@@ -1000,14 +1001,16 @@ proc toggle_stats {cname} {
 	pack  $win.df.3d.azimuth -fill x -expand 1 
 
 	button $win.df.3d.apply -text "Apply" -command "3d_send_parameters $cname"
-	pack   $win.df.3d.apply -side left -fill x -expand 1 -anchor s
+	pack   $win.df.3d.apply -side bottom  -anchor e -padx 2 -pady 2
 
-# Window Magic 
-	button $win.d -highlightthickness 0 -padx 0 -pady 0 -text "Dismiss" -command "destroy $win; 3d_delete_parameters $cname" 
-	pack $win.d -side bottom -fill x
+# Window Magic
+	frame  $win.dis 
+	button $win.dis.b -text "Dismiss" -command "destroy $win; 3d_delete_parameters $cname"
+	pack   $win.dis   -side bottom -anchor s -fill x -expand 1
+	pack   $win.dis.b -side right -anchor e -padx 2 -pady 2
 	wm title $win "Participant $NAME($cname)"
 	wm resizable $win 1 0
-	constrain_window $win 0 250 20 0
+	constrain_window $win 0 250 21 0
     }
 }
 
@@ -1054,9 +1057,9 @@ label .l.f.addr  -font $smallfont -textvariable session_address
 
 frame  .l.s1 -bd 0
 label  .l.s1.tool -textvariable tool_name 
-button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options"   -command {wm deiconify .prefs; raise .prefs}
-button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"     -command {jiggle_credits; wm deiconify .about}
-button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"      -command do_quit
+button .l.s1.opts  -text "Options"   -command {wm deiconify .prefs; raise .prefs}
+button .l.s1.about -text "About"     -command {jiggle_credits; wm deiconify .about}
+button .l.s1.quit  -text "Quit"      -command do_quit
 
 frame .r.c
 frame .r.c.vol 
@@ -1068,11 +1071,12 @@ pack .r.c.vol  -side top -fill x
 pack .r.c.gain -side top -fill x
 
 pack .l -side top -fill both -expand 1
-pack .l.f -side top -fill x
+pack .l.f -side top -fill x -padx 2
 pack .l.f.title .l.f.addr -side top -fill x -pady 2
 pack .l.s1 -side bottom -fill x 
-pack .l.s1.tool .l.s1.opts .l.s1.about .l.s1.quit -side left -fill x -expand 1 -anchor w -padx 2 -pady 2
-pack .l.t  -side top -fill both -expand 1
+pack .l.s1.tool -side left -anchor w
+pack  .l.s1.quit .l.s1.about .l.s1.opts -side right -anchor w -padx 2 -pady 2
+pack .l.t  -side top -fill both -expand 1 -padx 2
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
 bind .l.t.list <Configure> {fix_scrollbar}
@@ -1081,7 +1085,7 @@ bind .l.t.list <Configure> {fix_scrollbar}
 set out_mute_var 0
 button .r.c.vol.t1 -highlightthickness 0 -pady 0 -padx 0 -text mute -command {toggle out_mute_var; output_mute $out_mute_var}
 set output_port "speaker"
-button .r.c.vol.l1 -highlightthickness 0 -command toggle_output_port
+button .r.c.vol.l1 -pady 0 -padx 0 -highlightthickness 0 -command toggle_output_port
 bargraphCreate .r.c.vol.b1
 scale .r.c.vol.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -relief raised -showvalue false -width 10 -variable volume
 label .r.c.vol.ml -text "Reception is muted" -relief sunken
@@ -1189,10 +1193,10 @@ menu .prefs.m.f.m.menu -tearoff 0
 
 frame  .prefs.buttons
 pack   .prefs.buttons       -side bottom -fill x 
-button .prefs.buttons.bye   -text "Cancel"                   -command {sync_ui_to_engine; wm withdraw .prefs} -width 10
-button .prefs.buttons.apply -text "Apply Preferences"        -command {wm withdraw .prefs; sync_engine_to_ui}
-button .prefs.buttons.save  -text "Save & Apply Preferences" -command {save_settings; wm withdraw .prefs; sync_engine_to_ui}
-pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side left -fill x -expand 1
+button .prefs.buttons.bye   -text "Cancel" -command {sync_ui_to_engine; wm withdraw .prefs} -padx 4 -pady 0 -highlightthickness 0
+button .prefs.buttons.apply -text "Apply Preferences" -command {wm withdraw .prefs; sync_engine_to_ui} -padx 4 -pady 0 -highlightthickness 0
+button .prefs.buttons.save  -text "Save & Apply Preferences" -command {save_settings; wm withdraw .prefs; sync_engine_to_ui} -padx 4 -pady 0 -highlightthickness 0
+pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side right -padx 2 -pady 2
 
 frame .prefs.pane -relief sunken
 pack  .prefs.pane -side left -fill both -expand 1 -padx 4 -pady 2
@@ -1493,8 +1497,8 @@ for {set i 1} {$i<=6} {incr i} {
     pack  .about.rim.d.credits.f.f.$i -side top -fill x
 }
 
-button    .about.dismiss -text Dismiss -command "wm withdraw .about" -highlightthickness 0 -padx 0 -pady 0
-pack      .about.dismiss -side bottom -fill x
+button    .about.dismiss -text Dismiss -command "wm withdraw .about"
+pack      .about.dismiss -side bottom -anchor e -padx 2 -pady 2
 
 frame     .about.rim.d.feedback 
 frame     .about.rim.d.feedback.f -relief sunken 
@@ -1515,7 +1519,7 @@ wm title     .about "About RAT"
 wm resizable .about 0 0
 set about_pane Copyright
 set_pane about_pane .about.rim.d "Credits" 
-constrain_window .about "XANDXFITNESSXFORXAXPARTICULARXPURPOSEXAREXDISCLAIMED.XINXNOXEVENTX" 0 20 28 
+constrain_window .about "XANDXFITNESSXFORXAXPARTICULARXPURPOSEXAREXDISCLAIMED.XINXNOXEVENTX" 0 21 28 
 
 .about.rim.d.copyright.f.f.blurb insert end {
 Copyright (C) 1995-1998 University College London
@@ -1902,7 +1906,7 @@ proc check_rtcp_name {} {
 	frame  .name.b
 	label  .name.b.res -text "Name:"
 	entry  .name.b.e -highlightthickness 0 -width 20 -relief sunken -textvariable rtcp_name
-	button .name.d -highlightthickness 0 -padx 0 -pady 0 -text Done -command {save_settings; sync_engine_to_ui; destroy .name}
+	button .name.d -text Done -command {save_settings; sync_engine_to_ui; destroy .name}
 	bind   .name.b.e <Return> {save_settings; sync_engine_to_ui; destroy .name}
 	
 	pack .name.m -side top -fill x -expand 1
@@ -1930,9 +1934,9 @@ toplevel  .chart
 canvas    .chart.c  -background white  -xscrollcommand {.chart.sb set} -yscrollcommand {.chart.sr set} 
 scrollbar .chart.sr -orient vertical   -command {.chart.c yview}
 scrollbar .chart.sb -orient horizontal -command {.chart.c xview}
-button    .chart.d  -text "Dismiss"    -command {set matrix_on 0; chart_show} -padx 0 -pady 0
+button    .chart.d  -text "Dismiss"    -command {set matrix_on 0; chart_show}
 
-pack .chart.d  -side bottom -fill x    -expand 0 -anchor s
+pack .chart.d  -side bottom -expand 0 -anchor e -padx 2 -pady 2
 pack .chart.sb -side bottom -fill x    -expand 0 -anchor s
 pack .chart.sr -side right  -fill y    -expand 0 -anchor e
 pack .chart.c  -side left   -fill both -expand 1 -anchor n

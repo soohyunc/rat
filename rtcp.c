@@ -43,25 +43,24 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "memory.h"
+#include "pckt_queue.h"
 #include "rtcp.h"
 #include "session.h"
-#include "interfaces.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "timers.h"
 
 void 
-service_rtcp(session_struct    *sp,
-             session_struct    *sp2,
-	     pckt_queue_struct *rtcp_pckt_queue_ptr,
-	     u_int32            cur_time,
-	     u_int32		real_time)
+service_rtcp(session_struct      *sp,
+             session_struct      *sp2,
+	     struct s_pckt_queue *rtcp_pckt_queue,
+	     u_int32              cur_time,
+	     u_int32		  real_time)
 {
-	double				 RTCP_SIZE_GAIN = (1.0/16.0);	/* Copied from RFC1889 [csp] */
-	pckt_queue_element_struct 	*pckt;
+	double RTCP_SIZE_GAIN = (1.0/16.0); /* Copied from RFC1889 [csp] */
+	pckt_queue_element *pckt;
 
-	while (rtcp_pckt_queue_ptr->queue_empty == FALSE) {
-		pckt = get_pckt_off_queue(rtcp_pckt_queue_ptr);
+	while ( (pckt = pckt_dequeue(rtcp_pckt_queue)) != NULL) {
 		if (rtcp_check_rtcp_pkt(pckt->pckt_ptr, pckt->len)) {
 			rtcp_decode_rtcp_pkt(sp, sp2, pckt->pckt_ptr, pckt->len, cur_time, real_time);
     			sp->db->avg_size += (int)((pckt->len - sp->db->avg_size)*RTCP_SIZE_GAIN);    /* Update the average RTCP packet size... */
@@ -81,7 +80,7 @@ service_rtcp(session_struct    *sp,
                          printf("\n");
 #endif
 		}
-		free_pckt_queue_element(&pckt);
+		pckt_queue_element_free(&pckt);
 	}
 	rtcp_update(sp, sp->rtcp_socket);
 }

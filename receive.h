@@ -100,4 +100,5 @@ void  playout_buffers_destroy(struct session_tag *sp,
                               struct s_participant_playout_buffer **buf_list);
 int32 playout_buffer_duration(struct s_participant_playout_buffer *buf_list, 
                               struct s_rtcp_dbentry *src);
+
 #endif /* _RECEIVE_H_ */

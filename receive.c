@@ -675,4 +675,3 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
 		clear_old_participant_history(sp, buf);
 	}
 }
-

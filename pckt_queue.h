@@ -1,12 +1,12 @@
 /*
- * FILE:    net.h
+ * FILE:    pckt_queue.h
  * PROGRAM: RAT
- * AUTHOR:  Isidor Kouvelas
- *
+ * AUTHOR:  Orion Hodson
+ * 
  * $Revision$
  * $Date$
- *
- * Copyright (c) 1995,1996 University College London
+ * 
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,8 +24,6 @@
  * 4. Neither the name of the University nor of the Department may be used
  *    to endorse or promote products derived from this software without
  *    specific prior written permission.
- * Use of this software for commercial purposes is explicitly forbidden
- * unless prior written permission is obtained from the authors.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -40,26 +38,30 @@
  * SUCH DAMAGE.
  */
 
+#ifndef _pckt_queue_h_
+#define _pckt_queue_h_
 
+#define PCKT_QUEUE_RTP_LEN  64
+#define PCKT_QUEUE_RTCP_LEN 32
 
-#ifndef _RAT_NET_H_
-#define _RAT_NET_H_
-
-#define PACKET_RTP    1
-#define PACKET_RTCP   2
-
-struct session_tag;
 struct s_pckt_queue;
 
-void	network_init(struct session_tag *session);
-int	net_write(socket_udp *s, unsigned char *msg, int msglen, int type);
-int	net_write_iov(socket_udp *s, struct iovec *iov, int iovlen, int type);
-void    network_process_mbus(struct session_tag *sp);
-void 	read_and_enqueue(socket_udp *s, 
-                         u_int32 cur_time, 
-                         struct s_pckt_queue *queue, 
-                         int type);
+typedef struct {
+	u_int8  *pckt_ptr;
+	int32    len;
+	u_int32  arrival_timestamp;
+        u_int32  extlen;
+        u_int32  playout;
+} pckt_queue_element;
 
-#endif /* _RAT_NET_H_ */
+pckt_queue_element*  pckt_queue_element_create (void);
+void                 pckt_queue_element_free   (pckt_queue_element **pe);
 
+struct s_pckt_queue* pckt_queue_create  (int len);
+void                 pckt_queue_destroy (struct s_pckt_queue **p);
+void                 pckt_queue_drain   (struct s_pckt_queue *p);
+void                 pckt_enqueue       (struct s_pckt_queue *q, pckt_queue_element *pe);
+pckt_queue_element*  pckt_dequeue       (struct s_pckt_queue *q);
+
+#endif	/* _pckt_queue_h_ */
 
