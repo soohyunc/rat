@@ -106,7 +106,7 @@ proc output_mute {state} {
     if {$state} {
 	.r.c.vol.t1 configure -relief sunken
 	pack forget .r.c.vol.b1 .r.c.vol.s1
-	pack .r.c.vol.ml -side top -fill x -expand 1
+	pack .r.c.vol.ml -side top -fill both -expand 1
     } else {
 	.r.c.vol.t1 configure -relief raised
 	pack forget .r.c.vol.ml
@@ -120,7 +120,7 @@ proc input_mute {state} {
     if {$state} {
 	.r.c.gain.t2 configure -relief sunken
 	pack forget .r.c.gain.b2 .r.c.gain.s2
-	pack .r.c.gain.ml -side top -fill x -expand 1
+	pack .r.c.gain.ml -side top -fill both -expand 1
     } else {
 	.r.c.gain.t2 configure -relief raised
 	pack forget .r.c.gain.ml
@@ -740,7 +740,7 @@ label .r.c.gain.ml -text "Transmission is muted" -relief sunken
 
 pack .r.c.gain.l2 -side left -fill y
 pack .r.c.gain.t2 -side left -fill y
-pack .r.c.gain.ml -side top  -fill x -expand 1
+pack .r.c.gain.ml -side top  -fill both -expand 1
 
 proc mbus_recv_disable_audio_ctls {} {
 	.r.c.vol.t1 configure -state disabled
