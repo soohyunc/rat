@@ -383,7 +383,7 @@ static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
 	ui_update_output_port(sp);
 }
 
-static void rx_tool_rat_repair(char *srce, char *args, session_struct *sp)
+static void rx_audio_channel_repair(char *srce, char *args, session_struct *sp)
 {
 	char	*s;
 
@@ -392,11 +392,18 @@ static void rx_tool_rat_repair(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
 		s = mbus_decode_str(s);
-		if (strcmp(s,          "none") == 0) sp->repair = REPAIR_NONE;
-		if (strcmp(s,    "repetition") == 0) sp->repair = REPAIR_REPEAT;
-        	if (strcmp(s, "pattern-match") == 0) sp->repair = REPAIR_PATTERN_MATCH;
+		if (strcmp(s, "none") == 0) {
+			sp->repair = REPAIR_NONE;
+		} else if (strcmp(s, "repetition") == 0) {
+			sp->repair = REPAIR_REPEAT;
+        	} else if (strcmp(s, "pattern-match") == 0) {
+			sp->repair = REPAIR_PATTERN_MATCH;
+		} else {
+			debug_msg("Repair scheme %s unknown\n", s);
+			abort();
+		}
 	} else {
-		printf("mbus: usage \"tool.rat.repair none|repetition|pattern-match\"\n");
+		printf("mbus: usage \"audio.channel.repair none|repetition|pattern-match\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
 }
@@ -991,7 +998,6 @@ const char *rx_cmnd[] = {
 	"tool.rat.powermeter",
         "tool.rat.converter",
         "tool.rat.settings",
-	"tool.rat.repair",
         "tool.rat.interleaving",
 	"tool.rat.redundancy",
 	"tool.rat.codec",
@@ -1006,6 +1012,7 @@ const char *rx_cmnd[] = {
 	"audio.output.gain",
 	"audio.output.port",
         "audio.channel.coding",
+	"audio.channel.repair",
         "audio.file.play.open",   
         "audio.file.play.pause",
         "audio.file.play.stop",
@@ -1044,7 +1051,6 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_tool_rat_powermeter,
         rx_tool_rat_converter,
         rx_tool_rat_settings,
-	rx_tool_rat_repair,
         rx_tool_rat_interleaving,
 	rx_tool_rat_redundancy,
 	rx_tool_rat_codec,
@@ -1059,6 +1065,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_audio_output_gain,
 	rx_audio_output_port,
         rx_audio_channel_coding,
+	rx_audio_channel_repair,
         rx_audio_file_play_open,       
         rx_audio_file_play_pause,
         rx_audio_file_play_stop,                

@@ -1499,7 +1499,7 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "tool.rat.echo.suppress" $echo_var
 
     #Reception Options
-    mbus_send "R" "tool.rat.repair"        [mbus_encode_str $repair_var]
+    mbus_send "R" "audio.channel.repair"   [mbus_encode_str $repair_var]
     mbus_send "R" "tool.rat.playout.limit" $limit_var
     mbus_send "R" "tool.rat.playout.min"   $min_var
     mbus_send "R" "tool.rat.playout.max"   $max_var
@@ -1519,7 +1519,7 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "tool.rat.sync"         $sync_var
 
     #device 
-	mbus_send "R" "audio.device"        [mbus_encode_str "$audio_device"]
+    mbus_send "R" "audio.device"        [mbus_encode_str "$audio_device"]
     mbus_send "R" "audio.input.gain"    $gain
     mbus_send "R" "audio.output.gain"   $volume
     mbus_send "R" "audio.input.port"    [mbus_encode_str $input_port]

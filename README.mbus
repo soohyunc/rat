@@ -179,7 +179,6 @@ tool.rat.load.settings
 
 	Used in the initialisation process.
 
-tool.rat.repair
 tool.rat.interleaving
 tool.rat.codec
 tool.rat.codec.supported
