@@ -258,7 +258,10 @@ adapt_playout(rtp_hdr_t *hdr,
 #endif
 			var = (u_int32) src->jitter * 3;
 
-                        if (var < (unsigned)src->inter_pkt_gap) var = src->inter_pkt_gap;
+                        if (var < (unsigned)src->inter_pkt_gap) {
+                                var = src->inter_pkt_gap;
+                                debug_msg("var = inter_pkt_gap(%d)\n", var);
+                        }
                         
                         if (src->playout_danger) {
                                 /* This is usually a sign that src clock is 
@@ -266,8 +269,10 @@ adapt_playout(rtp_hdr_t *hdr,
                                 var = max(var, 3 * cushion_get_size(cushion)); ;
                                 debug_msg("Playout danger, var (%ld)\n", var);
                         } else {
-                                var = max(var, cushion_get_size(cushion));
-                                debug_msg("Playout var (%ld)\n", var);
+                                u_int32 cs;
+                                cs = cushion_get_size(cushion);
+                                debug_msg("Playout var (%ld) cushion (%ld)\n", var, cs);
+                                var = max(var, cs);
                         }
 
                         minv = sp->min_playout * get_freq(src->clock) / 1000;
@@ -292,6 +297,7 @@ adapt_playout(rtp_hdr_t *hdr,
                         } else {
                                 debug_msg("delay (%lu) var (%lu)\n", src->delay, var);
                                 src->playout = src->delay + var;
+                                debug_msg("src playout %d\n", src->playout);
                         }
 
 			if (sp->sync_on && src->mapping_valid) {

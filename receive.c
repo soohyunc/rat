@@ -495,27 +495,6 @@ playout_buffer_remove(session_struct *sp, ppb_t **list, rtcp_dbentry *src)
         }
 }
 
-static void
-fix_first_playout_error(u_int32 now, rx_queue_element_struct *up)
-{
-        u_int32 error;
-        struct  s_rtcp_dbentry *ssrc;
-
-        error = now - up->playoutpt;
-        ssrc = up->dbe_source[0];
-        
-        ssrc->playout += error;
-
-        debug_msg("error = %ld\n", error);
-
-        while(up) {
-                if (up->dbe_source[0] == ssrc) {
-                        up->playoutpt += error;
-                }
-                up = up->next_ptr;
-        }
-}
-
 #define PLAYOUT_SAFETY 5
 
 void 
@@ -550,15 +529,16 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
 		 */
                 
 		if (ts_gt(cur_time, up->playoutpt)) {
-                        if (cur_time == buf->creation_time) {
-                                /* It is silly to throw first packet away */
-                                fix_first_playout_error(cur_time, up);
-                        } else {
-                                up->dbe_source[0]->jit_TOGed++;
-                                up->dbe_source[0]->cont_toged++;
-                                debug_msg("cont_toged %d\n",
-                                          up->dbe_source[0]->cont_toged); 
-                        }
+/* 
+   if (cur_time == buf->creation_time) this is the first block of a new playout buffer.
+   It is silly to throw first packet away, however what normally causes this is that
+   RAT has gone away (UI locked, or somesuch) and we have lots of audio.  Shifting it 
+   adds lots of delay which is not desirable
+   */
+                        up->dbe_source[0]->jit_TOGed++;
+                        up->dbe_source[0]->cont_toged++;
+                        debug_msg("cont_toged %d\n",
+                                  up->dbe_source[0]->cont_toged); 
 		} else {
 			up->dbe_source[0]->cont_toged = 0;
 		}
