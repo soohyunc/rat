@@ -9,7 +9,7 @@
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1996-98 University College London
+ * Copyright (c) 1996-99 University College London
  * All rights reserved.
  *
  */
@@ -318,18 +318,22 @@ oss_audio_get_ogain(audio_desc_t ad)
 int
 oss_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 {
-        int read_len;
-        audio_buf_info info;
+        int 		read_len, available;
+        audio_buf_info 	info;
 
         assert(audio_fd[ad] > 0);        
 
         /* Figure out how many bytes we can read before blocking... */
         ioctl(audio_fd[ad], SNDCTL_DSP_GETISPACE, &info);
 
-        read_len = min(info.bytes, read_bytes);
-        if ((read_len = read(audio_fd[ad], (char *)buf, read_len)) < 0) {
+        available = min(info.bytes, read_bytes);
+        read_len  = read(audio_fd[ad], (char *)buf, available);
+	if (read_len != available) {
+		debug_msg("Amount of audio read != amount available\n");
+	}
+	if (read_len < 0) {
                 perror("audio_read");
-			return 0;
+		return 0;
         }
 
         return read_len;
@@ -350,7 +354,7 @@ oss_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
                         break;
                 }
                 if (errno != EINTR) {
-				perror("Error writing device");
+				perror("audio_write");
 				return write_bytes - (len - done);
                 }
                 len -= done;
