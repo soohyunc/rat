@@ -450,13 +450,16 @@ proc mbus_recv_source.reception {cname packets_recv packets_lost packets_miso pa
 }
 
 proc mbus_recv_source.active.now {cname} {
-	catch [[window_plist $cname] configure -background white]
-	cname_update $cname
+    catch [[window_plist $cname] configure -background white]
+    cname_update $cname
 }
 
 proc mbus_recv_source.inactive {cname} {
-	catch [[window_plist $cname] configure -background gray85]
-	cname_update $cname
+    puts "Inactive $cname"
+    catch [[window_plist $cname] configure -background grey90]
+    after 60 "catch {[window_plist $cname] configure -background grey88}"
+    after 120 "catch {[window_plist $cname] configure -background grey85}"
+    cname_update $cname
 }
 
 proc mbus_recv_source.remove {cname} {

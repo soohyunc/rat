@@ -494,20 +494,28 @@ tx_send(session_struct *sp)
 void
 tx_update_ui(session_struct *sp)
 {
+        static int active = FALSE;
+
         if (sp->meter && sp->tb->silence_ptr && sp->tb->silence_ptr->prev) {
                 if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
                         ui_input_level(lin2vu(sp->tb->silence_ptr->prev->energy, 100, VU_INPUT));
                 } else {
-                        ui_input_level(0);
+                        if (active == TRUE) ui_input_level(0);
                 }
         }
 
         if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
-                sp->lecture = FALSE;
-                ui_update_lecture_mode(sp);
-                ui_info_activate(sp->db->my_dbe);
+                if (active == FALSE) { 
+                        ui_info_activate(sp->db->my_dbe);
+                        sp->lecture = FALSE;
+                        ui_update_lecture_mode(sp);
+                        active = TRUE;
+                }
         } else {
-		ui_info_deactivate(sp->db->my_dbe);
+                if (active == TRUE) {
+                        ui_info_deactivate(sp->db->my_dbe);
+                        active = FALSE;
+                }
         }
 }
 
