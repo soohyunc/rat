@@ -90,6 +90,7 @@ struct mbus {
 	int		 qmsg_size;
 	char		*qmsg_cmnd[MBUS_MAX_QLEN];
 	char		*qmsg_args[MBUS_MAX_QLEN];
+        struct hostent  *this_host;
 };
 
 static int mbus_addr_match(char *a, char *b)
@@ -173,8 +174,6 @@ static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, const c
 	m->ack_list = curr;
 	m->ack_list_size++;
 	mbus_ack_list_check(m);
-	assert(m->ack_list != NULL);
-	assert(m->ack_list_size > 0);
 }
 
 static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seqnum)
@@ -225,14 +224,8 @@ int mbus_waiting_acks(struct mbus *m)
 	 * messages we sent out.
 	 */
 	mbus_ack_list_check(m);
-	if (m->ack_list != NULL) {
-		dprintf("Waiting for ACKs on mbus 0x%p...\n", m);
-		return TRUE;
-	} else {
-		assert(m->ack_list == NULL);
-		assert(m->ack_list_size == 0);
-		return FALSE;
-	}
+	if (m->ack_list != NULL) dprintf("Waiting for ACKs on mbus 0x%p...\n", m);
+	return (m->ack_list != NULL);
 }
 
 static void mbus_send_ack(struct mbus *m, char *dest, int seqnum)
@@ -260,7 +253,7 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(MBUS_PORT+m->channel);
-	b                = (char *) xmalloc(MBUS_BUF_SIZE);
+	b                = (char *) block_alloc(MBUS_BUF_SIZE);
 	bp		 = b;
 	sprintf(bp, "mbus/1.0 %6d R (%s) (%s) ()\n", curr->seqn, curr->srce, curr->dest);
 	bp += strlen(curr->srce) + strlen(curr->dest) + 27;
@@ -277,7 +270,7 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 		perror("mbus_send: sendto");
 	}
 	curr->rtcnt++;
-	xfree(b);
+	block_free(b, MBUS_BUF_SIZE);
 }
 
 void mbus_retransmit(struct mbus *m)
@@ -385,6 +378,7 @@ struct mbus *mbus_init(unsigned short channel,
 		       void  (*err_handler)(int seqnum))
 {
 	struct mbus	*m;
+	char		 hostname[MAXHOSTNAMELEN];
 	int		 i;
 
 	m = (struct mbus *) xmalloc(sizeof(struct mbus));
@@ -402,6 +396,10 @@ struct mbus *mbus_init(unsigned short channel,
 	for (i = 0; i < MBUS_MAX_PD;   i++) m->parse_buffer[i] = NULL;
 	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_cmnd[i]    = NULL;
 	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_args[i]    = NULL;
+
+	gethostname(hostname, MAXHOSTNAMELEN);
+	m->this_host = gethostbyname(hostname);
+
 	return m;
 }
 
@@ -455,7 +453,7 @@ int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, in
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(MBUS_PORT+m->channel);
-	buffer           = (char *) xmalloc(MBUS_BUF_SIZE);
+	buffer           = (char *) block_alloc(MBUS_BUF_SIZE);
 	bufp		 = buffer;
 
 	sprintf(bufp, "mbus/1.0 %6d %c (%s) %s ()\n", m->seqnum, reliable?'R':'U', m->addr[0], dest);
@@ -475,7 +473,7 @@ int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, in
 	if ((sendto(m->fd, buffer, bufp - buffer, 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
 		perror("mbus_send: sendto");
 	}
-	xfree(buffer);
+	block_free(buffer, MBUS_BUF_SIZE);
 	return m->seqnum;
 }
 
@@ -633,8 +631,6 @@ void mbus_recv(struct mbus *m, void *data)
 	int			 buffer_len, seq, i, a;
 	struct sockaddr_in	 from;
 	int			 fromlen = sizeof(from);
-	char			 hostname[MAXHOSTNAMELEN];
-	struct hostent	 	*host;
 	u_long 	         	 inaddr = 0;
 	char			**p;
 	int			 match_addr = FALSE;
@@ -650,11 +646,10 @@ void mbus_recv(struct mbus *m, void *data)
 	 * people faking the source address and attacking a single host
 	 * though? Probably, because of the rpf check in the mrouters...
 	 */
-	gethostname(hostname, MAXHOSTNAMELEN);
-	host = gethostbyname(hostname);
-	for (p = host->h_addr_list; *p != 0; p++) {
+
+	for (p = m->this_host->h_addr_list; *p != 0; p++) {
 		memcpy(&inaddr, *p, sizeof(inaddr));
-		if (from.sin_addr.s_addr == inaddr) {
+		if (from.sin_addr.s_addr == inaddr || (ntohl(from.sin_addr.s_addr) == 0x7f000001)) {
 			match_addr = TRUE;
 		}
 	}

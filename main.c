@@ -227,6 +227,7 @@ main(int argc, char *argv[])
 		rtcp_exit(sp[i], sp[1-i], sp[i]->rtcp_fd, sp[i]->net_maddress, sp[i]->rtcp_port);
 		if (sp[i]->in_file  != NULL) fclose(sp[i]->in_file);
 		if (sp[i]->out_file != NULL) fclose(sp[i]->out_file);
+                read_device_destroy(sp[i]);
 		if (sp[i]->mode != TRANSCODER) {
 			audio_close(sp[i]->audio_fd);
 		}

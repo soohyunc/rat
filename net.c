@@ -356,7 +356,7 @@ network_read(session_struct    *sp,
                 	FD_SET(mbus_engine_fd(TRUE), &rfds);
      			FD_SET(mbus_ui_fd(TRUE),     &rfds);
 		}
-#if defined(WIN32) || defined(HPUX) || defined(Linux) || defined(FreeBSD)
+#if defined(WIN32) || defined(HPUX) || defined(Linux) 
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = sp->loop_delay;
 		tvp = &timeout;
@@ -398,7 +398,7 @@ network_read(session_struct    *sp,
      				}
 			}
                 }
-#if !defined(WIN32) && !defined(HPUX) && !defined(Linux) && !defined(FreeBSD)
+#if !defined(WIN32) && !defined(HPUX) && !defined(Linux) 
 		if (sp->mode == AUDIO_TOOL) {
 			if (sp->audio_fd == -1 || FD_ISSET(sp->audio_fd, &rfds)) {
 				break;

@@ -319,6 +319,8 @@ void _dprintf(const char *format, ...)
         va_start(ap, format);
         vfprintf(stderr, format, ap);
         va_end(ap);
+#else
+        UNUSED (format);
 #endif
 }
 

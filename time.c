@@ -70,7 +70,7 @@ new_fast_time(int freq)
 	return (ft);
 }
 
-void
+__inline void
 time_advance(ft_t *ft, int freq, u_int32 time)
 {
 	u_int32 tmp = ft->low;
@@ -108,14 +108,14 @@ change_freq(frtime_t *tp, int freq)
 	tp->freq = freq;
 }
 
-int 
+__inline int 
 get_freq(frtime_t *tp)
 {
 	return (tp->freq);
 }
 
 /* Calculates time scaled to tp->freq units */
-u_int32
+__inline u_int32
 get_time(frtime_t *tp)
 {
 	u_int32	t;
