@@ -59,22 +59,12 @@ typedef struct {
 
 void lbl_cb_init(session_struct *sp)
 {
-  char loop = 1;
-  char addr = 1;
-
   sp->lbl_cb_base_socket = sock_init(LBL_CB_ADDR, LBL_CB_PORT, 0);
-  setsockopt(sp->lbl_cb_base_socket, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop));
-  setsockopt(sp->lbl_cb_base_socket, IPPROTO_IP, SO_REUSEADDR, &addr, sizeof(addr));
 }
 
 void lbl_cb_init_channel(session_struct *sp, int channel)
 {
-  char loop = 1;
-  char addr = 1;
-
   sp->lbl_cb_channel_socket = sock_init(LBL_CB_ADDR, LBL_CB_PORT+channel, 0);
-  setsockopt(sp->lbl_cb_channel_socket, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop));
-  setsockopt(sp->lbl_cb_channel_socket, IPPROTO_IP, SO_REUSEADDR, &addr, sizeof(addr));
   sp->lbl_cb_channel = channel;
 }
 
