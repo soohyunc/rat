@@ -86,7 +86,7 @@ pdb_item_count(pdb_t *p)
 int
 pdb_get_first_id(pdb_t *p, u_int32 *id)
 {
-        return btree_get_root_key(p->db, id);
+        return btree_get_min_key(p->db, id);
 }
 
 int
