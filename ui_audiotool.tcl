@@ -1541,16 +1541,24 @@ pack $i.a.f.f.ents.name $i.a.f.f.ents.email $i.a.f.f.ents.phone $i.a.f.f.ents.lo
 
 # Transmission Pane ###########################################################
 set i .prefs.pane.transmission
-frame $i 
-frame $i.dd  -relief sunken
-frame $i.cc  -relief sunken
+frame $i
+frame $i.dd 
+frame $i.cc 
 frame $i.cc.van 
 frame $i.cc.red 
 frame $i.cc.int 
+label $i.intro -text "This panel allows you to select codecs for transmission.  The choice\nof codecs available depends on the sampling rate and channels\nin the audio panel."
+label $i.title1 -relief raised -text "Audio Encoding"
+pack $i.intro $i.title1 $i.dd -side top -fill x
 
-pack $i.dd -fill x
-pack $i.cc $i.cc.van $i.cc.red -fill x -anchor w -pady 1
-pack $i.cc.int -fill x -anchor w -pady 0
+#pack $i.dd -fill x -side top -anchor n
+
+label $i.title2 -relief raised -text "Channel Coding Options"
+pack $i.title2 -fill x -side top
+pack $i.cc -fill x -anchor w -pady 1
+
+pack $i.cc.van $i.cc.red -fill x -anchor w -pady 0
+# interleaving panel $i.cc.int not packed since interleaving isn't support in this release
 frame $i.dd.units
 frame $i.dd.pri
 
@@ -1569,7 +1577,7 @@ pack $i.dd.units.l $i.dd.units.m -side top -fill x
 
 radiobutton $i.cc.van.rb -text "No Loss Protection" -justify right -value none        -variable channel_var
 radiobutton $i.cc.red.rb -text "Redundancy"         -justify right -value redundancy  -variable channel_var 
-radiobutton $i.cc.int.rb -text "Interleaving"       -justify right -value interleaved -variable channel_var
+radiobutton $i.cc.int.rb -text "Interleaving"       -justify right -value interleaved -variable channel_var -state disabled
 pack $i.cc.van.rb $i.cc.red.rb $i.cc.int.rb -side left -anchor nw -padx 2
 
 frame $i.cc.red.fc 
@@ -1589,12 +1597,12 @@ pack $i.cc.red.fc.l $i.cc.red.fc.m
 frame $i.cc.int.zz
 label $i.cc.int.zz.l -text "Units:"
 tk_optionCmdMenu $i.cc.int.zz.m int_units 2 4 6 8 
-$i.cc.int.zz.m configure -width 13 -highlightthickness 0 -bd 1
+$i.cc.int.zz.m configure -width 13 -highlightthickness 0 -bd 1 -state disabled
 
 frame $i.cc.int.fc
-label $i.cc.int.fc.l -text "Separation:"
+label $i.cc.int.fc.l -text "Separation:" 
 tk_optionCmdMenu $i.cc.int.fc.m int_gap 2 4 6 8 
-$i.cc.int.fc.m configure -width 13 -highlightthickness 0 -bd 1
+$i.cc.int.fc.m configure -width 13 -highlightthickness 0 -bd 1 -state disabled
 
 pack $i.cc.int.fc $i.cc.int.zz -side right
 pack $i.cc.int.fc.l $i.cc.int.fc.m -fill x -expand 1
