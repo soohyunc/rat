@@ -485,10 +485,11 @@ source_process(source *src, struct s_mix_info *ms, int repair_type, ts_t now)
         src_freq = get_freq(src->dbe->clock);
         step = ts_map32(src_freq,src->dbe->inter_pkt_gap / src->dbe->units_per_packet);
 
-        while (pb_iterator_get_at(src->media_pos, 
+        while (pb_iterator_advance(src->media_pos)) {
+                pb_iterator_get_at(src->media_pos, 
                                   (u_char**)&md, 
                                   &md_len, 
-                                  &playout)) {
+                                  &playout);
                 assert(md != NULL);
                 assert(md_len == sizeof(media_data));
 
@@ -539,6 +540,7 @@ source_process(source *src, struct s_mix_info *ms, int repair_type, ts_t now)
                         memset(cu, 0, sizeof(coded_unit));
                         cs = codec_state_store_get(src->codec_states, md->rep[0]->id);
                         codec_decode(cs, md->rep[0], cu);
+                        debug_msg("Decoded unit t = %d\n", playout.ticks);
                         xmemchk();
                         md->rep[md->nrep] = cu;
                         md->nrep++;
@@ -578,7 +580,6 @@ source_process(source *src, struct s_mix_info *ms, int repair_type, ts_t now)
                 mix_process(ms, src->dbe, md->rep[md->nrep - 1], playout);
 
                 src->last_played = playout;
-                success = pb_iterator_advance(src->media_pos);
         }
 
         src->age++;
