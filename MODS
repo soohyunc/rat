@@ -1144,6 +1144,8 @@ v4.1.7	- Update ALSA detection in configure script
 	- Tidied mixer interface and cleaned session_struct out.
 	- Fix mixer wrap handling for multi-channel.
 	- Fix default device if not present in saved settings.
+	- Add support for rtp.source.mute ("ALL" 0|1), which is much more efficient
+	  than iterating all sources over the mbus.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1203,8 +1205,6 @@ TODO -- They're features not bugs dammit!
   and hear nothing.
 - mtrace doesn't work?
 - RTT estimate gets confused when others talk.
-- Add support for rtp.source.mute (ALL 0|1), which is much more efficient
-  than iterating all sources over the mbus.
 - Make rtp.addr() with an rx_port of 0, when sent to the media engine, mean
   that the media engine should get the kernel to select a receive RTP port.
 

@@ -884,22 +884,17 @@ static void rx_rtp_source_note(char *srce, char *args, session_t *sp)
 
 static void rx_rtp_source_mute(char *srce, char *args, session_t *sp)
 {
-	/*
-	 * Sources are active whilst packets are
-	 * arriving and maintaining statistics on
-	 * sender.  This is good, but we need to
-	 * remove source when changing mute state, if
-	 * packets are still arriving source will be
-	 * recreated when next packet arrives.  When
-	 * muting we want to remove source to stop
-	 * audio already buffered from playing.  When
-	 * unmuting want to remove source to
-	 * initialize state, particularly timestamps
-	 * of last repair etc.  
-	 */
-	pdb_entry_t *pdbe;
-	char        *ssrc;
-	int          i;
+	/* Sources are active whilst packets are arriving and maintaining      */
+	/* statistics on sender.  This is good, but we need to remove source   */
+	/* when changing mute state, if packets are still arriving source will */
+	/* be recreated when next packet arrives.  When muting we want to      */
+	/* remove source to stop audio already buffered from playing.  When    */
+	/* unmuting want to remove source to initialize state, particularly    */
+	/* timestamps of last repair etc.                                      */
+
+	pdb_entry_t 		*pdbe;
+	char        		*ssrc;
+	int         		 i;
 	struct mbus_parser	*mp;
 
 	UNUSED(srce);
@@ -908,6 +903,21 @@ static void rx_rtp_source_mute(char *srce, char *args, session_t *sp)
 	if (mbus_parse_str(mp, &ssrc) && mbus_parse_int(mp, &i)) {
 		ssrc = mbus_decode_str(ssrc);
 		if (strcmp(ssrc, "ALL") == 0) {
+			uint32_t	id;
+			pdb_get_first_id(sp->pdb, &id);
+			do {
+				if (pdb_item_get(sp->pdb, id, &pdbe)) {
+					struct s_source *s = source_get_by_ssrc(sp->active_sources, pdbe->ssrc);
+					if (s != NULL) {
+						source_remove(sp->active_sources, s);
+					}
+					pdbe->mute = i;
+					ui_send_rtp_mute(sp, sp->mbus_ui_addr, pdbe->ssrc);
+					debug_msg("mute ssrc 0x%08x (%d)\n", pdbe->ssrc, i);
+				} else {
+					debug_msg("Unknown source 0x%08lx\n", ssrc);
+				}
+			} while (pdb_get_next_id(sp->pdb, id, &id));
 		} else {
 			if (pdb_item_get(sp->pdb, strtoul(ssrc, 0, 16), &pdbe)) {
 				struct s_source *s = source_get_by_ssrc(sp->active_sources, pdbe->ssrc);
