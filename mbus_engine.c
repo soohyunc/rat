@@ -481,7 +481,11 @@ static void rx_security_encryption_key(char *srce, char *args, session_t *sp)
 	if (mbus_parse_str(sp->mbus_engine, &key)) {
                 key = mbus_decode_str(key);
                 for(i = 0; i < sp->rtp_session_count; i++) {
-                        rtp_set_encryption_key(sp->rtp_session[i], key);
+			if (strlen(key) == 0) {
+                        	rtp_set_encryption_key(sp->rtp_session[i], NULL);
+			} else {
+                        	rtp_set_encryption_key(sp->rtp_session[i], key);
+			}
                 }
 	} else {
 		debug_msg("mbus: usage \"security.encryption.key <key>\"\n");
