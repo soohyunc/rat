@@ -2785,6 +2785,7 @@ wm overrideredirect .help true
 
 add_help .r.c.tx.au.pow.sli 	"This slider controls the volume\nof the sound you send." "tx_gain.au"
 add_help .r.c.tx.au.port.l0 	"Click to change input device." "tx_port.au"
+add_help .r.c.tx.au.port.l1  	"Shows currently selected input device.\nClick the arrows on either side to change." "rx_port_name.au"
 add_help .r.c.tx.au.port.l2 	"Click to change input device." "tx_port.au"
 add_help .r.c.tx.net.on 	"If this button is pushed in, you are are transmitting, and\nmay be\
                                  heard by other participants. Holding down the\nright mouse button in\
@@ -2795,6 +2796,7 @@ add_help .r.c.tx.au.pow.bar 	"Indicates the loudness of the\nsound you are sendi
 
 add_help .r.c.rx.au.pow.sli  	"This slider controls the volume\nof the sound you hear." "rx_gain.au"
 add_help .r.c.rx.au.port.l0  	"Click to change output device." "rx_port.au"
+add_help .r.c.rx.au.port.l1  	"Shows currently selected output device.\nClick the arrows on either side to change." "rx_port_name.au"
 add_help .r.c.rx.au.port.l2  	"Click to change output device." "rx_port.au"
 add_help .r.c.rx.net.on  	"If pushed in, reception is muted." "rx_mute.au"
 add_help .r.c.rx.au.pow.bar  	"Indicates the loudness of the\nsound you are hearing." "rx_powermeter.au"
