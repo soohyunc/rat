@@ -2285,7 +2285,51 @@ proc mtrace {src dst} {
 	fileevent  $fd readable "mtrace_callback $fd $src $dst"
 }
 
+toplevel .chart_popup       -bg black
+label    .chart_popup.text  -bg lavender -justify left
+pack .chart_popup.text -side top -anchor w -fill x
+wm transient        .chart_popup .
+wm withdraw         .chart_popup
+wm overrideredirect .chart_popup true
+
+proc chart_popup_show {window} {
+	global chart_popup_src chart_popup_dst chart_popup_id NAME
+	.chart_popup.text  configure -text "From: $NAME($chart_popup_src($window))\nTo: $NAME($chart_popup_dst($window))"
+	# Beware! Don't put the popup under the cursor! Else we get window enter
+	# for .help and leave for $window, making us hide_help which removes the
+	# help window, giving us a window enter for $window making us popup the
+	# help again.....
+	if {[winfo width $window] > [winfo height $window]} {
+	    set xpos [expr [winfo pointerx $window] + 10]
+	    set ypos [expr [winfo rooty    $window] + [winfo height $window] + 4]
+	} else {
+	    set xpos [expr [winfo rootx    $window] + [winfo width $window] + 4]
+	    set ypos [expr [winfo pointery $window] + 10]
+	}
+	
+	wm geometry  .chart_popup +$xpos+$ypos
+	set chart_popup_id [after 100 wm deiconify .chart_popup]
+	raise .chart_popup $window
+}
+
+proc chart_popup_hide {window} {
+	global chart_popup_id 
+	if {[info exists chart_popup_id]} { 
+		after cancel $chart_popup_id
+	}
+	wm withdraw .chart_popup
+}
+
+proc chart_popup_add {window src dst} {
+	global chart_popup_src chart_popup_dst 
+	set chart_popup_src($window) $src
+	set chart_popup_dst($window) $dst
+	bind $window <Enter>    "+chart_popup_show $window"
+	bind $window <Leave>    "+chart_popup_hide $window"
+}
+
 proc chart_add {ssrc} {
+	global NAME
 	frame  .chart.c.f.$ssrc
 	frame  .chart.c.f.$ssrc.f
 	button .chart.c.f.$ssrc.l -width 25 -text $ssrc -padx 0 -pady 0 -anchor w -relief flat -command "toggle_stats $ssrc"
@@ -2296,9 +2340,11 @@ proc chart_add {ssrc} {
 		regsub {.chart.c.f.(.*)} $s {\1} s
 		button .chart.c.f.$s.f.$ssrc -width 4 -text "" -background white -padx 0 -pady 0 -command "mtrace $s $ssrc"
 		pack   .chart.c.f.$s.f.$ssrc -expand 0 -side left
+		chart_popup_add .chart.c.f.$s.f.$ssrc $s $ssrc
 		if {![winfo exists .chart.c.f.$ssrc.f.$s]} {
 			button .chart.c.f.$ssrc.f.$s -width 4 -text "" -background white -padx 0 -pady 0 -command "mtrace $ssrc $s"
 			pack   .chart.c.f.$ssrc.f.$s -expand 0 -side left
+			chart_popup_add .chart.c.f.$ssrc.f.$s $ssrc $s
 		}
 	}
 	update
@@ -2582,8 +2628,6 @@ proc file_rec_stop {} {
 #
 # End of File Window routines
 #
-
-bind . <t> {mbus_send "R" "toggle.input.port" ""} 
 
 proc show_help {window} {
 	global help_text help_on help_id
