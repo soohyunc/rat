@@ -238,10 +238,10 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                         /* Layering. Format: "-l num_layers" */
                         int lay = atoi(argv[i+1]);
                         if(lay > MAX_LAYERS) {
-                                printf("%d is too many layers - maximum is %d.\n", lay, MAX_LAYERS);
+                                debug_msg("%d is too many layers - maximum is %d.\n", lay, MAX_LAYERS);
                                 usage();
                         }
-                        debug_msg("Configuring %d layers\n", sp[s]->layers);
+                        debug_msg("Configuring %d layers\n", lay);
                         for(s = 0; s < num_sessions; s++) {
                                 sp[s]->layers = lay;
                         }
