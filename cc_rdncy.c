@@ -133,9 +133,8 @@ redundancy_encoder_reset(u_char *state)
 
 /* Adds header to next free slot in channel_data */
 static void
-add_hdr(channel_data *cd, int hdr_type, codec_id_t cid, u_int32 uo, u_int32 len)
+add_hdr(channel_unit *chu, int hdr_type, codec_id_t cid, u_int32 uo, u_int32 len)
 {
-        channel_unit *chu;
         u_int32 so;             /* sample time offset */
         u_char  pt;
 
@@ -147,9 +146,6 @@ add_hdr(channel_data *cd, int hdr_type, codec_id_t cid, u_int32 uo, u_int32 len)
         assert(so <= RED_MAX_OFFSET);
         assert(len <= RED_MAX_LEN );
 
-        chu = (channel_unit*)block_alloc(sizeof(channel_unit));
-        cd->elem[cd->nelem++] = chu;
-        
         if (hdr_type == RED_EXTRA) {
                 u_int32 *h;
                 h = (u_int32*)block_alloc(4);
@@ -171,219 +167,158 @@ add_hdr(channel_data *cd, int hdr_type, codec_id_t cid, u_int32 uo, u_int32 len)
         }
 }
 
+/* make_pdu - converts a string of coded units into a channel_unit */
+
 static u_int32
-make_pdu(struct s_pb          *pb, 
-         struct s_pb_iterator *pbi, 
-         codec_id_t            cid, 
-         channel_data         *cd, 
-         u_int32               upp)
+make_pdu(struct s_pb_iterator *pbi,
+         u_int32               upp,
+         codec_id_t            cid,
+         channel_data         *out)
 {
         struct s_pb_iterator *p;
-        u_int32        units, md_len, r;
-        channel_unit  *chu;
+        u_int32        i, j, md_len, used;
         media_data    *md;
-        coded_unit    *cdu_target[MAX_UNITS_PER_PACKET];
-        u_char        *dp;
         ts_t           playout;
+        int            success;
 
         pb_iterator_dup(&p, pbi);
 
-        chu = (channel_unit*)block_alloc(sizeof(channel_unit));
-        chu->data_start = 0;
-        chu->data_len   = 0;
-
-        chu->pt = codec_get_payload(cid);
-        assert(payload_is_valid(chu->pt));
-
-        /* Work out how much space this is going to need and
-         * to save time cache units wanted in cdu_target.
-         */
-
-        for(units = 0; units < upp; units++) {        
-                pb_iterator_get_at(p, (u_char**)&md, &md_len, &playout);
-                if (md == NULL) break;
-                assert(md_len == sizeof(media_data));
-                for(r = 0; r < md->nrep; r++) {
-                        if (md->rep[r]->id == cid) {
-                                cdu_target[units] = md->rep[r];
-                                chu->data_len += md->rep[r]->data_len;
-                                if (units == 0) {
-                                        chu->data_len += md->rep[r]->state_len;
-                                }
-                                break;
+        used = 0;
+        for (i = 0; i < upp; i++) {
+                success = pb_iterator_get_at(p, (u_char**)&md, &md_len, &playout);
+                assert(success); /* We could rewind this far so must be able to get something! */
+                
+                for(j = 0; j < md->nrep; j++) {
+                        if (md->rep[j]->id != cid) {
+                                continue;
                         }
+                        if (i == 0 && md->rep[j]->state != NULL) {
+                                /* This is first unit in block so we want state */
+                                out->elem[used]->data     = md->rep[j]->state;
+                                out->elem[used]->data_len = md->rep[j]->state_len;
+                                md->rep[j]->state     = NULL;
+                                md->rep[j]->state_len = 0;
+                                used++;
+                        }
+                        assert(used < out->nelem);
+                        out->elem[used]->data     = md->rep[j]->data;
+                        out->elem[used]->data_len = md->rep[j]->data_len;
+                        md->rep[j]->data     = NULL;
+                        md->rep[j]->data_len = 0;
+                        used++;
+                        assert(used <= out->nelem);
                 }
-                pb_iterator_advance(p);
         }
 
-        pb_iterator_destroy(pb, &p);
-
-        if (chu->data_len == 0) {
-                /* Nothing to do, chu not needed */
-                block_free(chu, sizeof(channel_unit));
-                return 0;
-        }
-
-        chu->data = (u_char*)block_alloc(chu->data_len);
-        dp = chu->data;
-        for(r = 0; r < units; r++) {
-                assert(cdu_target[r] != NULL);
-                if (r == 0 && cdu_target[r]->state_len) {
-                        memcpy(dp, cdu_target[r]->state, cdu_target[r]->state_len);
-                        dp += cdu_target[r]->state_len;
-                }
-                memcpy(dp, cdu_target[r]->data, cdu_target[r]->data_len);
-                dp += cdu_target[r]->data_len;
-        }
-
-        assert((u_int32)(dp - chu->data) == chu->data_len);
-        assert(cd->nelem < MAX_CHANNEL_UNITS);
-
-        cd->elem[cd->nelem] = chu;
-        cd->nelem++;
-
-        return r;
+        pb_iterator_destroy(pb_iterator_get_playout_buffer(pbi), &p);
+        return used;
 }
 
-/* redundancy_check_layers - checks codings specified for redundant
- * encoder are present in incomding media_data unit, m.  And only
- * those are present.
- */
-
-__inline static void
-redundancy_check_layers(red_enc_state *re, media_data *m)
+static u_int32
+channel_data_bytes(channel_data *cd)
 {
-        u_int8     i;
-        u_int32    lidx;
-        int        found, used[MAX_MEDIA_UNITS];
-        assert(re);
-        assert(m);
-
-        for(i = 0; i < m->nrep; i++) {
-                used[i] = 0;
-        }
+        u_int32 len, i;
         
-        for(lidx = 0; lidx < re->n_layers ; lidx++) {
-                found = FALSE;
-                for(i = 0; i < m->nrep; i++) {
-                        assert(m->rep[i] != NULL);
-                        if (m->rep[i]->id == re->layer[lidx].cid) {
-                                found = TRUE;
-                                used[i]++;
-                                break;
-                        }
-                }
-                assert(found == TRUE); /* Coding for layer not found */
+        len = 0;
+        for(i = 0; i < cd->nelem; i++) {
+                len += cd->elem[i]->data_len;
         }
+        return len;
 }
 
 static channel_data *
 redundancy_encoder_output(red_enc_state *re, u_int32 upp)
 {
         struct s_pb_iterator *pbm;
-        channel_data *cd_coded, *cd_ready, *cd_out;
-        u_char *u;
-        u_int32       i, units, lidx, data_idx, nhdr, len;
-        int           success;
+        channel_data         *cd_coded[RED_MAX_LAYERS], *cd_out;
+        u_int32               offset ;
+        int                   i, j, layers, success,  used = 0;
 
         pbm = re->media_pos;
         pb_iterator_ffwd(pbm);
 
+        /*** Stage 1: Packing coded audio units ************************************/
+
         /* Rewind iterator to start of first pdu */ 
-        for(i = 1; i < upp; i++) {
+        for(i = 1; (u_int32)i < upp; i++) {
                 success = pb_iterator_retreat(pbm);
                 assert(success);
         }
 
-        channel_data_create(&cd_coded, 0);
-
-        for(lidx = 0; lidx < re->n_layers; lidx++) {
-                for(i = 0; i < re->layer[lidx].pkts_off * upp; i++) {
-                        pb_iterator_retreat(pbm);
+        offset = 0;
+        for (i = 0; (u_int32)i < re->n_layers; i++) {
+                /* Move back to start of this layer */
+                while (offset < re->layer[i].pkts_off * upp) {
+                        success = pb_iterator_retreat(pbm);
+                        offset++;
                 }
-                units = make_pdu(re->media_buffer, pbm, re->layer[lidx].cid, cd_coded, upp);
-                if (units == 0) break;
-                assert(units == upp);
+                if (success == FALSE) {
+                        /* Stop immediately if we cannot move back since layers are
+                         * ordered by offset.
+                         */
+                        break;
+                }
+                channel_data_create(&cd_coded[i], upp + 1); /* upp lots of data + 1 state */
+                success = make_pdu(pbm, upp, re->layer[i].cid, cd_coded[i]);
+                /* make_pdu may fail because coding not available */
+                if (success == FALSE) {
+                        channel_data_destroy(&cd_coded[i], sizeof(channel_data));
+                        break;
+                }
+                layers++;
         }
 
-        assert(lidx != 0);
+        assert(layers != 0);
 
-        /* cd_coded contains pdu's for layer 0, layer 1, layer 2... in
-         * ascending order Now fill cd_ready with pdu's with headers in
-         * protocol order layer n, n-1, .. 1.  Note we must transfer
-         * pointers from cd_coded to cd_ready and make pointers in
-         * cd_coded null because channel_data_destroy will free the
-         * channel units referred to by cd_coded. 
-         */
-        
-        channel_data_create(&cd_ready, 0);
+        /* Create channel_data unit that will get output */
+        channel_data_create(&cd_out, layers * (upp + 1) + re->n_layers);
 
-        if (lidx != re->n_layers) {
-                /* Put maximum offset info if not present in the packet */
-                add_hdr(cd_ready, RED_EXTRA, 
+        /*** Stage 2: Packing redundancy headers ***********************************/
+        used = 0;
+        if ((u_int32)layers != re->n_layers) {
+                /* Add max offset if we didn't make all units */
+                add_hdr(cd_out->elem[used], 
+                        RED_EXTRA, 
                         re->layer[re->n_layers - 1].cid, 
                         re->layer[re->n_layers - 1].pkts_off * upp,
                         0);
+                used++;
         }
 
-        /* Slot in redundant payloads and their headers */
-        nhdr     = lidx + cd_ready->nelem;
-        data_idx = lidx;
-        while(--lidx) {
-                add_hdr(cd_ready, RED_EXTRA,
-                        re->layer[lidx].cid,
-                        re->layer[lidx].pkts_off * upp,
-                        cd_coded->elem[lidx]->data_len);
-                cd_ready->elem[data_idx] = cd_coded->elem[lidx];
-                cd_coded->elem[lidx] = NULL;
-                data_idx++;
+        i = layers - 1;
+        while (i > 0) {
+                add_hdr(cd_out->elem[used], 
+                        RED_EXTRA, 
+                        re->layer[re->n_layers - 1].cid, 
+                        re->layer[re->n_layers - 1].pkts_off * upp,
+                        channel_data_bytes(cd_coded[i]));
+                used++;
         }
 
-        /* Now the primary and it's header */
-        add_hdr(cd_ready, RED_PRIMARY,
-                re->layer[lidx].cid,
-                re->layer[lidx].pkts_off * upp,
-                cd_coded->elem[lidx]->data_len);
-        cd_ready->elem[data_idx] = cd_coded->elem[lidx];
-        cd_coded->elem[lidx] = NULL;
-        data_idx++;
-        cd_ready->nelem = data_idx;
+        add_hdr(cd_out->elem[used], 
+                RED_PRIMARY,
+                re->layer[0].cid,
+                re->layer[0].pkts_off * upp,
+                0);
+        used++;
 
-#ifndef NDEBUG
-        for(i = 0; i < cd_coded->nelem; i++) {
-                assert(cd_coded->elem[i] == NULL);
-        }
-#endif
-        cd_coded->nelem = 0;
-        channel_data_destroy(&cd_coded, sizeof(channel_data));
+        /*** Stage 3: Transfering coded units into output unit *********************/
 
-        /* Need to amalgamate data into one block since we want to
-         * free headers and keep data.
-         */
-
-        len = 0;
-        for(i = 0; i < cd_ready->nelem; i++) {
-                len += cd_ready->elem[i]->data_len;
-        }        
-
-        channel_data_create(&cd_out, 1);
-        cd_out->elem[0]->data     = (u_char*)block_alloc(len);
-        cd_out->elem[0]->data_len = len;   
-        u = cd_out->elem[0]->data;
-
-        for(i = 0; i < cd_ready->nelem; i++) {
-                memcpy(u, cd_ready->elem[i]->data, cd_ready->elem[i]->data_len);
-                u += cd_ready->elem[i]->data_len;
-                if (i >= nhdr) {
-                        block_free(cd_ready->elem[i]->data, cd_ready->elem[i]->data_len);
-                        cd_ready->elem[i]->data     = NULL;
-                        cd_ready->elem[i]->data_len = 0;
+        for(i = layers - 1; i >= 0; i--) {
+                j = 0;
+                while(cd_coded[i]->elem[i]->data != NULL) {
+                        cd_out->elem[used]->data       =  cd_coded[i]->elem[j]->data;
+                        cd_out->elem[used]->data_len   =  cd_coded[i]->elem[j]->data_len;
+                        cd_coded[i]->elem[j]->data     = NULL;
+                        cd_coded[i]->elem[j]->data_len = 0;
+                        used++;
+                        j++;
                 }
+                assert(used <= cd_out->nelem);
+                channel_data_destroy(&cd_coded[i], sizeof(channel_data));
         }
-        xmemchk();
-        channel_data_destroy(&cd_ready, sizeof(channel_data));
 
-        return cd_out;
+        return  cd_out;
 }
 
 int
@@ -408,10 +343,6 @@ redundancy_encoder_encode (u_char      *state,
                  * the redundancy encoder now.  */
                 pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout);
                 assert(m != NULL);
-
-#ifndef NDEBUG
-                redundancy_check_layers(re, m);
-#endif /* NDEBUG */
 
                 pb_add(re->media_buffer, 
                        (u_char*)m,
