@@ -161,7 +161,6 @@ main(int argc, char *argv[])
         /* Tcl processing can take arbitrary time and so audio accumulates */
         /* and gives a distorted view of time and where to start sending   */
         /* from.  Drain device and start transmitter if active.            */
-        rtp_recv_flush(sp[0]->rtp_session[0]);
         audio_drain(sp[0]->audio_device);
         if (tx_is_sending(sp[0]->tb)) {
                	tx_start(sp[0]->tb);

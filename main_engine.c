@@ -183,7 +183,6 @@ int main(int argc, char *argv[])
         ui_final_settings(sp);
 	network_process_mbus(sp);
 #endif
-        rtp_recv_flush(sp->rtp_session[0]);
         audio_drain(sp->audio_device);
         if (tx_is_sending(sp->tb)) {
                	tx_start(sp->tb);
