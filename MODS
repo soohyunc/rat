@@ -1234,6 +1234,8 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  blocks for audio nowadays.
 	* Release 5 April 2000.
 
+4.2.1   - Fix handling of 8bit PCM .WAV files (unsigned 8bit, not signed).
+
 TODO -- They're features not bugs dammit!
 ----
 

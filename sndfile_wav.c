@@ -270,10 +270,11 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
                                 }
                         }
                 } else if (rs->wf.wBitsPerSample == 8) {
+			/* 8-bit range is unsigned 0-255, not -127 to 128 */
                         law = ((u_char*)buf) + samples_read - 1;
                         bp  = buf + samples_read - 1;
                         for(i = 0; i < samples_read; i++) {
-                                *bp-- = (sample)(*law) * 256;
+                                *bp-- = ((sample)(*law) * 256) - 32767;
                                 law--;
                         }
                         break;
@@ -375,7 +376,7 @@ riff_write_audio(FILE *fp, char *state, sample *buf, int samples)
                         outbuf = (u_char*)block_alloc(samples);
                         bytes_per_sample = 1;
                         for(i = 0; i < samples; i++) {
-                                outbuf[i] = (u_char)(buf[i] >> 8);
+                                outbuf[i] = (u_char)((buf[i]+32767) >> 8);
                         }
                         break;
                 }
