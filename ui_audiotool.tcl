@@ -21,7 +21,7 @@ if {[string compare [info commands registry] "registry"] == 0} {
 }
 
 set statsfont     [font actual {helvetica 10}]
-set compfont      [font actual {arial 9 bold}]
+set compfont      [font actual {helvetica 10}]
 set titlefont     [font actual {helvetica 10}]
 set infofont      [font actual {helvetica 10}]
 set smallfont     [font actual {helvetica  8}]
@@ -32,8 +32,6 @@ set speaker_highlight white
 option add *Entry.relief       sunken 
 option add *borderWidth        1
 option add *highlightThickness 0
-#option add *Button*padX        4          
-#option add *Button*padY        0          
 option add *font               $infofont
 option add *Menu*tearOff       0
 
@@ -151,12 +149,12 @@ proc window_stats {ssrc} {
 # Commands to send message over the conference bus...
 proc output_mute {state} {
     mbus_send "R" "audio.output.mute" "$state"
-    bargraphState .r.c.vol.gra.b1 [expr ! $state]
+    bargraphState .r.c.rx.au.pow.bar [expr ! $state]
 }
 
 proc input_mute {state} {
     mbus_send "R" "audio.input.mute" "$state"
-    bargraphState .r.c.gain.gra.b2 [expr ! $state]
+    bargraphState .r.c.tx.au.pow.bar [expr ! $state]
 }
 
 proc set_vol {new_vol} {
@@ -683,18 +681,18 @@ proc mbus_recv_audio.channel.repair {arg} {
 
 proc mbus_recv_audio.input.powermeter {level} {
 	global bargraphTotalHeight
-	bargraphSetHeight .r.c.gain.gra.b2 [expr ($level * $bargraphTotalHeight) / 100]
+	bargraphSetHeight .r.c.tx.au.pow.bar [expr ($level * $bargraphTotalHeight) / 100]
 }
 
 proc mbus_recv_audio.output.powermeter {level} {
 	global bargraphTotalHeight
-	bargraphSetHeight .r.c.vol.gra.b1  [expr ($level * $bargraphTotalHeight) / 100]
+	bargraphSetHeight .r.c.rx.au.pow.bar  [expr ($level * $bargraphTotalHeight) / 100]
 }
 
 proc mbus_recv_audio.input.gain {gain} {
     global received
     set received(gain) 1
-    .r.c.gain.gra.s2 set $gain
+    .r.c.rx.au.pow.sli set $gain
 }
 
 proc mbus_recv_audio.input.ports.flush {} {
@@ -715,13 +713,13 @@ proc mbus_recv_audio.input.port {port} {
 proc mbus_recv_audio.input.mute {val} {
     global in_mute_var
     set in_mute_var $val
-    bargraphState .r.c.gain.gra.b2 [expr ! $val]
+    bargraphState .r.c.tx.au.pow.bar [expr ! $val]
 }
 
 proc mbus_recv_audio.output.gain {gain} {
     global received
     set received(volume) 1
-    .r.c.vol.gra.s1 set $gain
+    .r.c.rx.au.pow.sli set $gain
 }
 
 proc mbus_recv_audio.output.port {port} {
@@ -830,7 +828,7 @@ proc mbus_recv_rtp.source.loc {ssrc loc} {
 }
 
 proc mbus_recv_rtp.source.tool {ssrc tool} {
-	global TOOL my_ssrc
+	global TOOL my_ssrc tool_name
 	init_source $ssrc
 	set TOOL($ssrc) $tool
 	if {[string compare $ssrc $my_ssrc] == 0} {
@@ -1140,17 +1138,17 @@ proc ssrc_update {ssrc} {
 #power meters
 
 # Colors
-set bargraphLitColors [list #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #2ccf00 #58d200 #84d500 #b0d800 #dddd00 #ddb000 #dd8300 #dd5600 #dd2900]
+set bargraphLitColors [list #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #2ccf00 #58d200 #84d500 #b0d800 #dddd00 #ddb000 #dd8300 #dd5600 #dd2900]
 
-set bargraphUnlitColors [list #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #166700 #2c6900 #426a00 #586c00 #6e6e00 #6e5800 #6e4100 #6e2b00 #6e1400]
+set bargraphUnlitColors [list #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #166700 #2c6900 #426a00 #586c00 #6e6e00 #6e5800 #6e4100 #6e2b00 #6e1400]
 set bargraphTotalHeight [llength $bargraphLitColors]
 
 proc bargraphCreate {bgraph} {
 	global oh$bgraph bargraphTotalHeight bargraphUnlitColors
 
-	frame $bgraph -relief sunk -bg black
+	frame $bgraph -bd 0 -bg black
 	for {set i 0} {$i < $bargraphTotalHeight} {incr i} {
-		frame $bgraph.inner$i -bg "[lindex $bargraphUnlitColors $i]" -width 4 -height 8
+		frame $bgraph.inner$i -bg "[lindex $bargraphUnlitColors $i]" -width 4 -height 6
 		pack $bgraph.inner$i -side left -fill both -expand true -padx 1 -pady 1
 	}
 	set oh$bgraph 0
@@ -1197,7 +1195,7 @@ proc toggle {varname} {
 proc toggle_plist {} {
 	global plist_on
 	if {$plist_on} {
-		pack .l.t  -side top -fill both -expand 1
+		pack .l.t  -side top -fill both -expand 1 -padx 2
 	} else {
 		pack forget .l.t
 	}
@@ -1429,84 +1427,98 @@ proc do_quit {} {
 # Initialise RAT MAIN window
 frame .r 
 frame .l
-frame .l.t -relief sunken
+frame .l.t -relief groove -bd 2
 scrollbar .l.t.scr -relief flat -highlightthickness 0 -command ".l.t.list yview"
-canvas .l.t.list -highlightthickness 0 -bd 0 -relief sunk -width $iwd -height 160 -yscrollcommand ".l.t.scr set" -yscrollincrement $iht
+canvas .l.t.list -highlightthickness 0 -bd 0 -relief flat -width $iwd -height 120 -yscrollcommand ".l.t.scr set" -yscrollincrement $iht
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 
-frame .l.f -relief flat -bd 0
-label .l.f.title -bd 0 -textvariable session_title
+frame .l.f -relief groove -bd 2
+label .l.f.title -bd 0 -textvariable session_title -justify center
 label .l.f.addr  -bd 0 -textvariable session_address
 
 frame  .st -bd 0
-label  .st.tool -textvariable tool_name 
+label  .st.tool -textvariable tool_name -font $smallfont -justify center -pady 0
 button .st.opts  -text "Options"   -command {wm deiconify .prefs; raise .prefs}
 button .st.about -text "About"     -command {jiggle_credits; wm deiconify .about}
 button .st.quit  -text "Quit"      -command do_quit
 
 frame .r.c -bd 0
-frame .r.c.vol -bd 0
-frame .r.c.gain -bd 0
+frame .r.c.rx -relief groove -bd 2
+frame .r.c.tx -relief groove -bd 2
 
-pack .st -side bottom -fill x 
-pack .st.tool -side left -anchor w
+pack .st -side bottom -fill x -padx 2 -pady 0
+pack .st.tool -side left -fill both -expand 1 
+
 pack .st.quit .st.about .st.opts -side right -anchor w -padx 2 -pady 2
 
-pack .r -side top -fill x 
+pack .r -side top -fill x -padx 2
 pack .r.c -side top -fill x -expand 1
-pack .r.c.vol  -side left
-pack .r.c.gain -side right -fill x
+pack .r.c.rx -side left -fill x -expand 1
+pack .r.c.tx -side left -fill x -expand 1
 
 pack .l -side top -fill both -expand 1
 pack .l.f -side bottom -fill x -padx 2 -pady 2
-pack .l.f.title .l.f.addr -side top -pady 2 -anchor w
-pack .l.t  -side top -fill both -expand 1 -padx 2
+pack .l.f.title .l.f.addr -side top -pady 2 -anchor w -fill x
+pack .l.t  -side top -fill both -expand 1 -padx 2 
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
 bind .l.t.list <Configure> {fix_scrollbar}
 
 # Device output controls
 set out_mute_var 0
-frame .r.c.vol.but
-frame .r.c.vol.gra
+frame .r.c.rx.net
+frame .r.c.rx.au
 
-checkbutton .r.c.vol.but.t1 -highlightthickness 0 -text "Listen" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $compfont -width 6 -anchor w -padx 4
-button .r.c.vol.but.l0 -highlightthickness 0 -command {incr_port oport oports -1} -font $compfont -bitmap left
-label  .r.c.vol.but.l1 -highlightthickness 0 -textv oport -font $compfont -width 10
-button .r.c.vol.but.l2 -highlightthickness 0 -command {incr_port oport oports +1} -font $compfont -bitmap right
-bargraphCreate .r.c.vol.gra.b1
-scale .r.c.vol.gra.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -showvalue false -width 8 -variable volume -resolution 4
+pack .r.c.rx.net -side top -anchor n -fill both
+pack .r.c.rx.au -side bottom -expand 1 -fill both
 
-pack .r.c.vol.but -side top -fill both -expand 1
-pack .r.c.vol.but.t1 -side left -fill y
-pack .r.c.vol.but.l0 .r.c.vol.but.l1 .r.c.vol.but.l2 -side left -fill y
+checkbutton .r.c.rx.net.on -highlightthickness 0 -text "Listen" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $compfont -width 6 -anchor w -padx 4
+label       .r.c.rx.net.bw -text "0.0 kb/s" -width 8 -font $compfont -anchor e
+pack .r.c.rx.net.on -side left -fill x -expand 1
+pack .r.c.rx.net.bw -side right -fill x -expand 1
 
-pack .r.c.vol.gra -side bottom -fill x
-pack .r.c.vol.gra.b1 -side top  -fill both -padx 1 -pady 1
-pack .r.c.vol.gra.s1 -side bottom  -fill x -anchor s
+frame  .r.c.rx.au.port -bd 0
+button .r.c.rx.au.port.l0 -highlightthickness 0 -command {incr_port oport oports -1} -font $compfont -bitmap left -relief flat
+label  .r.c.rx.au.port.l1 -highlightthickness 0 -textv oport -font $compfont -width 10
+button .r.c.rx.au.port.l2 -highlightthickness 0 -command {incr_port oport oports +1} -font $compfont -bitmap right -relief flat
+pack   .r.c.rx.au.port -side top -fill x -expand 1
+pack   .r.c.rx.au.port.l0 -side left -fill y
+pack   .r.c.rx.au.port.l1 -side left -fill x -expand 1 
+pack   .r.c.rx.au.port.l2 -side left -fill y
+
+frame  .r.c.rx.au.pow -relief sunk -bd 2
+bargraphCreate .r.c.rx.au.pow.bar
+scale .r.c.rx.au.pow.sli -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -showvalue false -width 8 -variable volume -resolution 4 -bd 0 -troughcolor black -sliderl 16
+pack .r.c.rx.au.pow .r.c.rx.au.pow.bar .r.c.rx.au.pow.sli -side top -fill both -expand 1 
 
 # Device input controls
 set in_mute_var 1
 
-frame .r.c.gain.but
-checkbutton .r.c.gain.but.t2 -highlightthickness 0 -text "Talk" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $compfont -width 6 -anchor w -padx 4
-button .r.c.gain.but.l0 -highlightthickness 0 -command {incr_port iport iports -1} -font $compfont -bitmap left
-label  .r.c.gain.but.l1 -highlightthickness 0 -textv iport -font $compfont -width 10
-button .r.c.gain.but.l2 -highlightthickness 0 -command {incr_port iport iports +1} -font $compfont -bitmap right
+frame .r.c.tx.net
+frame .r.c.tx.au
 
-frame .r.c.gain.gra
-bargraphCreate .r.c.gain.gra.b2
-scale .r.c.gain.gra.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -showvalue false -width 8 -variable gain -font $smallfont
+pack .r.c.tx.net -side top -anchor n  -fill both
+pack .r.c.tx.au -side bottom -expand 1 -fill both
 
-pack .r.c.gain.but    -side top -fill both -expand 1 
-pack .r.c.gain.but.t2 -side left -fill y
+checkbutton .r.c.tx.net.on -highlightthickness 0 -text "Talk" -onvalue 0 -offvalue 1 -variable in_mute_var -command {input_mute $in_mute_var} -font $compfont -width 6 -anchor w -padx 4
+label       .r.c.tx.net.bw -text "0.0 kb/s" -width 8 -font $compfont -anchor e
+pack .r.c.tx.net.on -side left -fill x -expand 1
+pack .r.c.tx.net.bw -side right -fill x -expand 1
 
-pack .r.c.gain.but.l0 .r.c.gain.but.l1 .r.c.gain.but.l2 -side left -fill y
+frame  .r.c.tx.au.port -bd 0
+button .r.c.tx.au.port.l0 -highlightthickness 0 -command {incr_port iport iports -1} -font $compfont -bitmap left -relief flat
+label  .r.c.tx.au.port.l1 -highlightthickness 0 -textv iport -font $compfont -width 10
+button .r.c.tx.au.port.l2 -highlightthickness 0 -command {incr_port iport iports +1} -font $compfont -bitmap right -relief flat
+pack   .r.c.tx.au.port -side top -fill x -expand 1
+pack   .r.c.tx.au.port.l0 -side left -fill y
+pack   .r.c.tx.au.port.l1 -side left -fill x -expand 1 
+pack   .r.c.tx.au.port.l2 -side left -fill y
 
-pack .r.c.gain.gra -side bottom -fill x
-pack .r.c.gain.gra.b2 -side top  -fill both -expand 1 -padx 1 -pady 1
-pack .r.c.gain.gra.s2 -side top  -fill x -anchor s
+frame  .r.c.tx.au.pow -relief sunk -bd 2
+bargraphCreate .r.c.tx.au.pow.bar
+scale .r.c.tx.au.pow.sli -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -showvalue false -width 8 -variable gain -resolution 4 -bd 0 -sliderl 16 -troughco black
+pack .r.c.tx.au.pow .r.c.tx.au.pow.bar .r.c.tx.au.pow.sli -side top -fill both -expand 1 
 
 bind all <ButtonPress-3>   {toggle in_mute_var; input_mute $in_mute_var}
 bind all <ButtonRelease-3> {toggle in_mute_var; input_mute $in_mute_var}
@@ -1518,7 +1530,7 @@ wm protocol . WM_DELETE_WINDOW do_quit
 if {$win32 == 0} {
 	wm iconbitmap . rat_small
 }
-wm resizable . 0 1
+#wm resizable . 0 1
 if ([info exists geometry]) {
         wm geometry . $geometry
 }
@@ -2666,19 +2678,21 @@ wm transient        .help .
 wm withdraw         .help
 wm overrideredirect .help true
 
-add_help .r.c.gain.gra.s2 	"This slider controls the volume\nof the sound you send."
-add_help .r.c.gain.but.l2 	"Click to change input device."
-add_help .r.c.gain.but.t2 	"If this button is pushed in, you are are transmitting, and\nmay be\
-                         heard by other participants. Holding down the\nright mouse button in\
-			 any RAT window will temporarily\ntoggle the state of this button,\
-			 allowing for easy\npush-to-talk operation."
-add_help .r.c.gain.gra.b2 	"Indicates the loudness of the\nsound you are sending. If this\nis\
+add_help .r.c.tx.au.pow.sli 	"This slider controls the volume\nof the sound you send."
+add_help .r.c.tx.au.port.l0 	"Click to change input device."
+add_help .r.c.tx.au.port.l2 	"Click to change input device."
+add_help .r.c.tx.net.on 	"If this button is pushed in, you are are transmitting, and\nmay be\
+	heard by other participants. Holding down the\nright mouse button in\
+	any RAT window will temporarily\ntoggle the state of this button,\
+	allowing for easy\npush-to-talk operation."
+add_help .r.c.tx.au.pow.bar 	"Indicates the loudness of the\nsound you are sending. If this\nis\
                          moving, you may be heard by\nthe other participants."
 
-add_help .r.c.vol.gra.s1  	"This slider controls the volume\nof the sound you hear."
-add_help .r.c.vol.but.l1  	"Click to change output device."
-add_help .r.c.vol.but.t1  	"If pushed in, reception is muted."
-add_help .r.c.vol.gra.b1  	"Indicates the loudness of the\nsound you are hearing."
+add_help .r.c.rx.au.pow.sli  	"This slider controls the volume\nof the sound you hear."
+add_help .r.c.rx.au.port.l0  	"Click to change output device."
+add_help .r.c.rx.au.port.l2  	"Click to change output device."
+add_help .r.c.rx.au.pow.bar  	"Indicates the loudness of the\nsound you are hearing."
+add_help .r.c.rx.net.on  	"If pushed in, reception is muted."
 
 add_help .l.f		"Name of the session, and the IP address, port\n&\
 		 	 TTL used to transmit the audio data."
