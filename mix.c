@@ -425,4 +425,15 @@ mix_active(mix_struct *ms)
 {
 }
 
+u_int32
+mix_get_head_time(mix_struct *ms)
+{
+        return ms->head_time;
+}
+
+u_int32
+mix_get_tail_time(mix_struct *ms)
+{
+        return ms->tail_time;
+        return ms->head_time != ms->tail_time;
 }
