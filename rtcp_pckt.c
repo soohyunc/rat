@@ -73,12 +73,25 @@ static void
 rtcp_ntp_format(u_int32 * sec, u_int32 * frac)
 {
 	struct timeval  tv;
-	register u_int32 usec;
+	u_int32 usec;
 
 	gettimeofday(&tv, 0);
 	*sec = tv.tv_sec + SECS_BETWEEN_1900_1970;
 	usec = tv.tv_usec;
 	*frac = (usec << 12) + (usec << 8) - ((usec * 3650) >> 6);
+}
+
+static u_int32 
+ntp_time32(void)
+{
+	struct timeval  tv;
+	u_int32 sec, usec, frac;
+
+	gettimeofday(&tv, 0);
+	sec  = tv.tv_sec + SECS_BETWEEN_1900_1970;
+	usec = tv.tv_usec;
+	frac = (usec << 12) + (usec << 8) - ((usec * 3650) >> 6);
+	return (sec & 0xffff) << 16 | frac >> 16;
 }
 
 int
@@ -176,7 +189,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			}
 			dbe = rtcp_getornew_dbentry(sp, ssrc, addr, cur_time);
 			dbe->last_active   = cur_time;
-			dbe->last_sr       = cur_time;
+			dbe->last_sr       = ntp_time32();
 
 			/* Take note of mapping to use in synchronisation */
 			dbe->mapping_valid = TRUE;
@@ -589,13 +602,12 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 	sprintf(args, "%s %ld", mbus_encode_str(dbe->sentry->cname), (dbe->lost_frac * 100) >> 8); 	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_loss_to_me", args, FALSE);
 
 	rptr->ssrc     = htonl(dbe->ssrc);
-	rptr->loss     = (dbe->lost_frac << 24 | (dbe->lost_tot & 0xffffff));
-	rptr->loss     = htonl(rptr->loss);
+	rptr->loss     = htonl(dbe->lost_frac << 24 | (dbe->lost_tot & 0xffffff));
 	rptr->last_seq = htons(dbe->cycles + dbe->lastseqno);
 	rptr->jitter   = htonl((u_long) dbe->jitter);
+
 	rptr->lsr      = htonl(dbe->last_sr);
-	rptr->dlsr     = get_time(sp->device_clock) - dbe->last_sr;
-	rptr->dlsr     = htonl(rptr->dlsr);
+	rptr->dlsr     = htonl(ntp_time32() - dbe->last_sr);
 	return ptr + 24;
 }
 

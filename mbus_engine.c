@@ -710,6 +710,7 @@ void mbus_handler_engine(char *srce, char *cmnd, char *args, void *data)
 {
 	int i;
 
+	dprintf("%s %s\n", cmnd, args);
 	for (i=0; strlen(mbus_cmnd[i]) != 0; i++) {
 		if (strcmp(mbus_cmnd[i], cmnd) == 0) {
 			mbus_func[i](srce, args, (session_struct *) data);
