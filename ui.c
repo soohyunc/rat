@@ -373,81 +373,74 @@ ui_update_interleaving(session_struct *sp)
 
         UNUSED(sp);
 }
+*/
 
 static void
 ui_update_redundancy(session_struct *sp)
 {
-        int  pt;
-        int  ioff;
-        char buf[128]= "", *codec_name=NULL, *offset=NULL, *dummy, *args;
+        const codec_format_t *scf;
+        codec_id_t            scid;
+        char *cmd, *out, *sec_enc, *sec_off, *mbes;
+        
+        int clen;
 
-        pt = get_cc_pt(sp,"REDUNDANCY");
-        if (pt != -1) { 
-                query_channel_coder(sp, pt, buf, 128);
-                if (strlen(buf)) {
-                        dummy  = strtok(buf,"/");
-                        dummy  = strtok(NULL,"/");
-                        codec_name  = strtok(NULL,"/");
-                         redundant coder returns long name convert to short
-                        if (codec_name) {
-                                const codec_format_t *cf;
-                                codec_id_t            cid;
-                                cid  = codec_get_by_name(codec_name);
-                                assert(cid);
-                                cf   = codec_get_format(cid);
-                                codec_name = (char*)cf->short_name;
-                        }
-                        offset = strtok(NULL,"/");
-                }
-        } else {
-                debug_msg("Could not find redundant channel coder!\n");
-        } 
+        clen = 2 * (CODEC_LONG_NAME_LEN + 4) + 1;
+        cmd  = (char*)xmalloc(clen);
 
-        if (codec_name != NULL && offset != NULL) {
-                ioff  = atoi(offset);
-        } else {
-                const codec_format_t *cf;
-                codec_id_t            id;
-                id         = codec_get_by_payload(sp->encodings[0]);
-                assert(id);
-                cf         = codec_get_format(id);
-                codec_name = (char*)cf->short_name;
-                ioff  = 1;
-        } 
+        channel_encoder_get_parameters(sp->channel_coder, cmd, clen);
+        
+        sec_enc = strtok(cmd, "/");  /* ignore primary encoding   */
+        sec_enc = strtok(NULL, "/"); /* ignore primary offset     */
+        sec_enc = strtok(NULL, "/"); /* get secondary encoding    */
+        sec_off = strtok(NULL, "/"); /* get secondary offset      */
 
-	codec_name = mbus_encode_str(codec_name);
+        if (sec_enc == NULL || sec_off == NULL) {
+                goto redundancy_update_end;
+        }
 
-	args = (char *) xmalloc(strlen(codec_name) + 16);
-        sprintf(args,"\"redundant\" %s %2d", codec_name, ioff);
-        assert(strlen(args) < (strlen(codec_name) + 16));
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.channel.coding", args, TRUE);
-	xfree(codec_name);
-        xfree(args);
+        scid    = codec_get_by_name(sec_enc);
+        if (!codec_id_is_valid(scid)) {
+                   goto redundancy_update_end;
+        }
+        
+        scf = codec_get_format(scid);
+        out = (char*)xmalloc(clen);
+
+        mbes = mbus_encode_str("redundancy");
+        sprintf(out, "%s ", mbes);
+        xfree(mbes);
+
+        mbes = mbus_encode_str(scf->short_name);
+        strcat(out, mbes);
+        xfree(mbes);
+
+        strcat(out, " ");
+        strcat(out, sec_off);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.channel.coding", out, TRUE);
+        xfree(out);
+
+redundancy_update_end:
+        xfree(cmd);
 }
-*/
 
 void 
 ui_update_channel(session_struct *sp) 
 {
-/*
-        cc_coder_t *ccp;
-        */
-        mbus_qmsg(sp->mbus_engine, 
-                  mbus_name_ui, 
-                  "audio.channel.coding", "\"none\"", TRUE);
-/*
-        ccp = get_channel_coder(sp->cc_encoding);
-	if (strcmp(ccp->name, "VANILLA") == 0) {
-        	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.channel.coding", "\"none\"", TRUE);
-	} else if (strcmp(ccp->name, "REDUNDANCY") == 0) {
+        cc_details cd;
+        char *mbes;
+
+        channel_get_coder_identity(sp->channel_coder, &cd);
+        switch(tolower(cd.name[0])) {
+        case 'n':
+                mbes = mbus_encode_str("none");
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.channel.coding", mbes, TRUE);
+                xfree(mbes);
+                break;
+        case 'r':
                 ui_update_redundancy(sp);
-        } else if (strcmp(ccp->name, "INTERLEAVER") == 0) {
-                ui_update_interleaving(sp);
-        } else {
-                debug_msg("Channel coding failed mapping (%s)\n", ccp->name);
-                abort();
+                break;
         }
-        */
+        return;
 }
 
 void

@@ -134,6 +134,16 @@ channel_get_coder_details(int idx, cc_details *ccd)
 }
 
 int
+channel_get_coder_identity(channel_state_t *cs, cc_details *ccd)
+{
+        assert(cs != NULL);
+        assert(ccd != NULL);
+        ccd->descriptor = CC_IDX_TO_ID(cs->coder);
+        strcpy(ccd->name, table[cs->coder].name);
+        return TRUE;
+}
+
+int
 channel_get_null_coder(void)
 {
         return 0;

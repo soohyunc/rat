@@ -557,17 +557,19 @@ proc mbus_recv_tool.rat.rate {arg} {
     set upp $arg
 }
 
-proc mbus_recv_audio.channel.coding {channel args} {
+proc mbus_recv_audio.channel.coding {args} {
     global channel_var secenc red_off int_units int_gap
-    set channel_var $channel
-    switch $channel {
-    	redundant {
-		set secenc  [lindex $args 0]
-		set red_off [lindex $args 1]
+
+    set channel_var [lindex $args 0]
+
+    switch [string tolower $channel_var] {
+    	redundancy {
+		set secenc  [lindex $args 1]
+		set red_off [lindex $args 2]
 	}
 	interleaved {
-		set int_units [lindex $args 0]
-		set int_gap   [lindex $args 1]
+		set int_units [lindex $args 1]
+		set int_gap   [lindex $args 2]
 	}
     }
 }
@@ -1557,7 +1559,7 @@ $i.dd.units.m configure -width 13 -highlightthickness 0 -bd 1
 pack $i.dd.units.l $i.dd.units.m -side top -fill x
 
 radiobutton $i.cc.van.rb -text "No Loss Protection" -justify right -value none        -variable channel_var
-radiobutton $i.cc.red.rb -text "Redundancy"         -justify right -value redundant   -variable channel_var 
+radiobutton $i.cc.red.rb -text "Redundancy"         -justify right -value redundancy  -variable channel_var 
 radiobutton $i.cc.int.rb -text "Interleaving"       -justify right -value interleaved -variable channel_var
 pack $i.cc.van.rb $i.cc.red.rb $i.cc.int.rb -side left -anchor nw -padx 2
 
@@ -2042,8 +2044,8 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "tool.rat.rate"         $upp
 
     switch $channel_var {
-    	none        {mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var]"}
-	redundant   {mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var] [mbus_encode_str $secenc] $red_off"}
+    	none         {mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var]"}
+	redundancy   {mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var] [mbus_encode_str $secenc] $red_off"}
 	interleaved {mbus_send "R" "audio.channel.coding" "[mbus_encode_str $channel_var] $int_gap $int_units"}
     	*           {error "unknown channel coding scheme $channel_var"}
     }

@@ -25,8 +25,10 @@ struct s_channel_state;
 
 int       channel_get_coder_count   (void);
 int       channel_get_coder_details (int idx, cc_details *ccd);
-
 int       channel_get_null_coder    (void);
+
+/* channel_get_coder_identity fills coder name and descriptor into ccd */
+int       channel_get_coder_identity(struct s_channel_state *cs, cc_details *ccd);
 
 /* Don't use these two functions directly use macros channel_encoder_{create, destory, reset},
  * and channel_encoder_{create, destory, reset} instead.

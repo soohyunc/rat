@@ -870,9 +870,6 @@ set_red_parameters(session_struct *sp, char *sec_enc, int offset)
         }
         rcf = codec_get_format(red_id);
 
-        /* Offset is in packets, redundancy encoder wants units */
-        offset *= 
-
         clen = 2 * (CODEC_LONG_NAME_LEN + 4);
         cmd  = (char*)xmalloc(clen);
         sprintf(cmd, "%s/%d/%s/%d", pcf->long_name, 0, rcf->long_name, offset);
@@ -934,6 +931,10 @@ static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
                 }
         }
         mbus_parse_done(sp->mbus_engine);
+#ifdef DEBUG
+        channel_get_coder_identity(sp->channel_coder, &ccd);
+        debug_msg("***** %s\n", ccd.name);
+#endif /* DEBUG */
 	ui_update_channel(sp);
 }
 
