@@ -572,8 +572,6 @@ newpcm_audio_query_devices()
 		ndev = 0; /* Should be using Luigi's interface */
 	}
 
-	printf("XXX %d newpcm devices - newpcm (%d)\n", ndev, newpcm);
-
         return (ndev);
 }
 
