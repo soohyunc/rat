@@ -408,7 +408,7 @@ rtcp_set_attribute(session_struct *sp, int type, char *val)
  * canonical name. Modified by V.J.Hardman No decode arguments needed etc.
  * want to remove them Added more stats counters
  *
- * Most of this work is done in init_session() now, we just have to set up the
+ * Most of this work is done in session_init() now, we just have to set up the
  * dynamic stuff here. [csp]
  */
 rtp_db *rtcp_init(struct s_time *device_clock, char *cname, u_int32 ssrc, u_int32 cur_time)

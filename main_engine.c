@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
 	for (i = 0; i < 2;i++) {
 		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
-		init_session(sp[i]);
+		session_init(sp[i]);
 	}
 	num_sessions = 1;
 	for (i = 0; i < num_sessions; i++) {
@@ -186,9 +186,9 @@ main(int argc, char *argv[])
 
 	for (i = 0; i < 2;i++) {
 		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
-		init_session(sp[i]);
+		session_init(sp[i]);
 	}
-	num_sessions = parse_early_options(argc, argv, sp);
+	num_sessions = session_parse_early_options(argc, argv, sp);
 	for (i = 0; i < num_sessions; i++) {
 		network_init(sp[i]);
 	}
@@ -223,7 +223,7 @@ main(int argc, char *argv[])
         rtcp_clock_change(sp[0]);
 	network_process_mbus(sp[0]);
 
-	parse_late_options(argc, argv, sp);
+	session_parse_late_options(argc, argv, sp);
 	for (i = 0; i < num_sessions; i++) {
 		ui_update(sp[i]);
 	}
@@ -381,7 +381,7 @@ main(int argc, char *argv[])
         }
         
         for(i = 0; i < 2; i++) {
-                end_session(sp[i]);
+                session_exit(sp[i]);
                 xfree(sp[i]);
         }
 

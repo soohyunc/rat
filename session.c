@@ -101,7 +101,7 @@ sanity_check_payloads(void)
 }
 
 void
-init_session(session_struct *sp)
+session_init(session_struct *sp)
 {
 	codec_id_t            cid;
         const codec_format_t *cf;
@@ -169,7 +169,7 @@ init_session(session_struct *sp)
 }
 
 void
-end_session(session_struct *sp)
+session_exit(session_struct *sp)
 {
         codec_exit();
         free_fast_time(sp->clock);
@@ -184,7 +184,7 @@ end_session(session_struct *sp)
 }
 
 static int 
-parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num_sessions)
+session_parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num_sessions)
 {
 	/* Parse command-line options common to all the modes of
          * operation.  Variables: i scans through the options, s scans
@@ -285,7 +285,7 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
 }
 
 static void 
-parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
+session_parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
 {
 	/* Parse command-line options specific to the audio tool */
 	char *p;
@@ -350,7 +350,7 @@ parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
 }
 
 static void 
-parse_early_options_transcoder(int argc, char *argv[], session_struct *sp[])
+session_parse_early_options_transcoder(int argc, char *argv[], session_struct *sp[])
 {
 	/* Parse command-line options specific to the transcoder */
 	int   i, j;
@@ -399,7 +399,7 @@ parse_early_options_transcoder(int argc, char *argv[], session_struct *sp[])
 }
 
 int
-parse_early_options(int argc, char *argv[], session_struct *sp[])
+session_parse_early_options(int argc, char *argv[], session_struct *sp[])
 {
 	int	i, j, num_sessions = 0;
 
@@ -419,8 +419,8 @@ parse_early_options(int argc, char *argv[], session_struct *sp[])
 		num_sessions= 1;
 	}
 
-        if (parse_early_options_common(argc, argv, sp, num_sessions) > argc - 2) {
-                /* parse_early_options commmon returns number of args processed.
+        if (session_parse_early_options_common(argc, argv, sp, num_sessions) > argc - 2) {
+                /* session_parse_early_options commmon returns number of args processed.
                  * At least two argv[0] (the appname) and argv[argc - 1] (address)
                  * should not be processed.  Other args may not be processed, but
                  * these should be picked up by parse_late_* or the audiotool/transcoder
@@ -430,9 +430,9 @@ parse_early_options(int argc, char *argv[], session_struct *sp[])
         }
 
 	switch (sp[0]->mode) {
-		case AUDIO_TOOL: parse_early_options_audio_tool(argc, argv, sp[0]);
+		case AUDIO_TOOL: session_parse_early_options_audio_tool(argc, argv, sp[0]);
 				 break;
-		case TRANSCODER: parse_early_options_transcoder(argc, argv, sp);
+		case TRANSCODER: session_parse_early_options_transcoder(argc, argv, sp);
 				 break;
 		default        : abort();
 	}
@@ -482,7 +482,7 @@ rat3codec_to_rat4codec(const char *name)
 /************************************************************************************************************/
 
 static void 
-parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
+session_parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 {
 	/* Parse command-line options common to all the modes of operation.     */
 	/* Variables: i scans through the options, s scans through the sessions */
@@ -626,7 +626,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 	}
 }
 
-static void parse_late_options_audio_tool(int argc, char *argv[], session_struct *sp)
+static void session_parse_late_options_audio_tool(int argc, char *argv[], session_struct *sp)
 {
 	/* Audio tool specific late setup... */
 	UNUSED(argc);
@@ -634,7 +634,7 @@ static void parse_late_options_audio_tool(int argc, char *argv[], session_struct
 	UNUSED(sp);
 }
 
-static void parse_late_options_transcoder(int argc, char *argv[], session_struct *sp[])
+static void session_parse_late_options_transcoder(int argc, char *argv[], session_struct *sp[])
 {
 	/* Transcoder specific late setup... */
 	int	i;
@@ -648,7 +648,7 @@ static void parse_late_options_transcoder(int argc, char *argv[], session_struct
 	}
 }
 
-void parse_late_options(int argc, char *argv[], session_struct *sp[])
+void session_parse_late_options(int argc, char *argv[], session_struct *sp[])
 {
 	int	i, j, num_sessions = 0;
 
@@ -664,11 +664,11 @@ void parse_late_options(int argc, char *argv[], session_struct *sp[])
 		sp[0]->mode = AUDIO_TOOL;
 		num_sessions= 1;
 	}
-	parse_late_options_common(argc, argv, sp, num_sessions);
+	session_parse_late_options_common(argc, argv, sp, num_sessions);
 	switch (sp[0]->mode) {
-		case AUDIO_TOOL: parse_late_options_audio_tool(argc, argv, sp[0]);
+		case AUDIO_TOOL: session_parse_late_options_audio_tool(argc, argv, sp[0]);
 				 break;
-		case TRANSCODER: parse_late_options_transcoder(argc, argv, sp);
+		case TRANSCODER: session_parse_late_options_transcoder(argc, argv, sp);
 				 break;
 		default        : abort();
 	}

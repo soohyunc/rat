@@ -90,9 +90,9 @@ main(int argc, char *argv[])
 
 	for (i = 0; i < 2; i++) {
 		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
-		init_session(sp[i]);
+		session_init(sp[i]);
 	}
-	parse_early_options(argc, argv, sp);
+	session_parse_early_options(argc, argv, sp);
 	network_init(sp[0]);
 	cname = get_cname(sp[0]->rtp_socket[0]);
 	ssrc  = get_ssrc();
@@ -127,7 +127,7 @@ main(int argc, char *argv[])
 	settings_load(sp[0]);
         ui_initial_settings(sp[0]);
 
-	parse_late_options(argc, argv, sp);	/* Things which can override the settings we just loaded... */
+	session_parse_late_options(argc, argv, sp);	/* Things which can override the settings we just loaded... */
 	ui_update(sp[0]);			/* ...and push those to the UI */
 	network_process_mbus(sp[0]);
         
@@ -295,7 +295,7 @@ main(int argc, char *argv[])
         network_exit(sp[0]);
 
         for(i = 0; i < 2; i++) {
-                end_session(sp[i]);
+                session_exit(sp[i]);
                 xfree(sp[i]);
         }
 

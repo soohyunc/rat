@@ -104,9 +104,9 @@ typedef struct session_tag {
 	u_int8		 layers; /* number of layers */
 } session_struct;
 
-void init_session(session_struct *sp);
-void end_session(session_struct *sp);
-int  parse_early_options(int argc, char *argv[], session_struct *sp[]);
-void parse_late_options(int argc, char *argv[], session_struct *sp[]);
+void session_init(session_struct *sp);
+void session_exit(session_struct *sp);
+int  session_parse_early_options(int argc, char *argv[], session_struct *sp[]);
+void session_parse_late_options(int argc, char *argv[], session_struct *sp[]);
 
 #endif /* _session_h_ */
