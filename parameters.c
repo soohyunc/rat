@@ -49,7 +49,7 @@
 #include "session.h"
 #include "parameters.h"
 
-#define STEP	        16
+#define STEP	         4
 #define SD_MAX_CHANNELS  5
 
 u_int16 
