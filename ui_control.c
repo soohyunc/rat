@@ -398,30 +398,36 @@ ui_update_redundancy(session_struct *sp)
 {
         int  pt;
         int  ioff;
-        char buf[128], *codec=NULL, *offset=NULL, *dummy, args[80];
+        char buf[128], *codec_name=NULL, *offset=NULL, *dummy, args[80];
 
         pt = get_cc_pt(sp,"REDUNDANCY");
         if (pt != -1) { 
+                codec_t *cp;
                 query_channel_coder(sp, pt, buf, 128);
                 dummy  = strtok(buf,"/");
                 dummy  = strtok(NULL,"/");
-                codec  = strtok(NULL,"/");
+                codec_name  = strtok(NULL,"/");
+                /* redundant coder returns long name convert to short*/
+                if (codec_name) {
+                        cp          = get_codec_byname(codec_name, sp);
+                        codec_name  = cp->short_name;
+                }
                 offset = strtok(NULL,"/");
         } else {
                 dprintf("Could not find redundant channel coder!\n");
         } 
 
-        if (codec != NULL && offset != NULL) {
+        if (codec_name != NULL && offset != NULL) {
                 ioff  = atoi(offset);
                 ioff /= get_units_per_packet(sp);
         } else {
                 codec_t *pcp;
                 pcp   = get_codec(sp->encodings[0]);
-                codec = pcp->short_name;
+                codec_name = pcp->short_name;
                 ioff  = 1;
         } 
 
-        sprintf(args,"%s %d", mbus_encode_str(codec), ioff);
+        sprintf(args,"%s %d", mbus_encode_str(codec_name), ioff);
         mbus_engine_tx(TRUE, mbus_name_ui, "redundancy", args, TRUE);
 }
 
@@ -649,8 +655,10 @@ ui_codecs(int pt)
 	char	 arg[1000];
 
         ui_get_codecs(pt, arg, TRUE);
+        mbus_encode_str(arg);
 	mbus_engine_tx(TRUE, mbus_name_ui, "codec.supported", arg, TRUE);
         ui_get_codecs(pt, arg, FALSE);
+        mbus_encode_str(arg);
         mbus_engine_tx(TRUE, mbus_name_ui, "redundancy.supported", arg, TRUE);
 }
 
