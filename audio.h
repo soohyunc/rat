@@ -56,11 +56,13 @@ typedef enum {
 
 typedef struct s_audio_format {
   deve_e encoding;
-  int    sample_rate; 		/* Should be one of 8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000 */
+  int    sample_rate; 		/* Should be one of 8000, 16000, 24000, 32000, 48000 */
   int    bits_per_sample;	/* Should be 8 or 16 */
   int    num_channels;  	/* Should be 1 or 2  */
   int    blocksize;             /* size of unit we will read/write in */
 } audio_format;
+
+typedef int audio_desc_t;
 
 #define BYTES_PER_SAMPLE sizeof(sample)
 
@@ -83,47 +85,55 @@ struct session_tag;
 struct s_bias_ctl;
 struct s_mix_info;
 
-int	audio_open(audio_format format);
-void	audio_close(int audio_fd);
-void	audio_drain(int audio_fd);
-void	audio_switch_out(int audio_fd, struct s_cushion_struct *cushion);
-void	audio_switch_in(int audio_fd);
-void	audio_set_gain(int audio_fd, int gain);
-int	audio_get_gain(int audio_fd);
-void	audio_set_volume(int audio_fd, int vol);
-int	audio_get_volume(int audio_fd);
-void    audio_loopback(int audio_fd, int gain);
-int	audio_read(int audio_fd, sample *buf, int samples);
-int	audio_write(int audio_fd, sample *buf, int samples);
-int	audio_is_dry(int audio_fd);
-void	audio_non_block(int audio_fd);
-void	audio_block(int audio_fd);
-int	audio_requested(int audio_fd);
-void	audio_set_oport(int audio_fd, int port);
-int	audio_get_oport(int audio_fd);
-int	audio_next_oport(int audio_fd);
-void	audio_set_iport(int audio_fd, int port);
-int	audio_get_iport(int audio_fd);
-int	audio_next_iport(int audio_fd);
-int	audio_duplex(int audio_fd);
-int	audio_get_blocksize(void);
-int	audio_get_channels(void);
-int     audio_get_freq(void);
-int     audio_is_ready(int audio_fd); /* In auddev_win32.c for win32 and audio.c for UN*X */
+/* Audio interface fn's for dealing with multiple devices/device interfaces */
+int     audio_init_interfaces(void);
+int     audio_free_interfaces(void);
+int     audio_get_number_of_interfaces(void);
+char*   audio_get_interface_name(int idx);
+void    audio_set_interface(int idx);
+int     audio_get_interface(void);
 
-/* Stuff in audio.c */
-void	mix_init(void);
-void	mix2_pcmu(u_int8 *v0, u_int8 *v1, size_t len);
-void	mix2_l16(int16 *v0, int16 *v1, size_t len);
-void	mix2_l8(int8 *v0, int8 *v1, size_t len);
-void	audio_zero(sample *buf, int len, deve_e type);
-int     read_write_audio(struct session_tag *spi, struct session_tag *spo, struct s_mix_info *ms);
-void    read_write_init(struct session_tag *session_pointer);
-int     audio_device_read(struct session_tag *sp, sample *buf, int len);
-int     audio_device_write(struct session_tag *sp, sample *buf, int samples);
-int     audio_device_take(struct session_tag *sp);
-void	audio_device_give(struct session_tag *sp);
-void    audio_device_reconfigure(struct session_tag *sp);
-void    audio_unbias(struct s_bias_ctl *bc, sample *buf, int len);
-void    audio_wait_for(struct session_tag *sp);
+/* Audio functions implemented by device interfaces */
+int	audio_open          (audio_format *format);
+void	audio_close         (audio_desc_t ad);
+void	audio_drain         (audio_desc_t ad);
+void	audio_set_gain      (audio_desc_t ad, int gain);
+int     audio_duplex        (audio_desc_t ad);
+int	audio_get_gain      (audio_desc_t ad);
+void	audio_set_volume    (audio_desc_t ad, int vol);
+int	audio_get_volume    (audio_desc_t ad);
+void    audio_loopback      (audio_desc_t ad, int gain);
+int	audio_read          (audio_desc_t ad, sample *buf, int samples);
+int	audio_write         (audio_desc_t ad, sample *buf, int samples);
+void	audio_non_block     (audio_desc_t ad);
+void	audio_block         (audio_desc_t ad);
+void	audio_set_oport     (audio_desc_t ad, int port);
+int	audio_get_oport     (audio_desc_t ad);
+int	audio_next_oport    (audio_desc_t ad);
+void	audio_set_iport     (audio_desc_t ad, int port);
+int	audio_get_iport     (audio_desc_t ad);
+int	audio_next_iport    (audio_desc_t ad);
+int	audio_get_blocksize (audio_desc_t ad);
+int	audio_get_channels  (audio_desc_t ad);
+int     audio_get_freq      (audio_desc_t ad);
+int     audio_is_ready      (audio_desc_t ad);
+void    audio_wait_for      (audio_desc_t ad, int granularity_ms);
+
+/* General audio processing functions */
+void	mix_init     (void);
+void	mix2_pcmu    (u_int8 *v0, u_int8 *v1, size_t len);
+void	mix2_l16     (int16 *v0, int16 *v1, size_t len);
+void	mix2_l8      (int8 *v0, int8 *v1, size_t len);
+void	audio_zero   (sample *buf, int len, deve_e type);
+void    audio_unbias (struct s_bias_ctl *bc, sample *buf, int len);
+
+int     read_write_audio (struct session_tag *spi, struct session_tag *spo, struct s_mix_info *ms);
+void    read_write_init  (struct session_tag *session_pointer);
+
+int     audio_device_read        (struct session_tag *sp, sample *buf, int len);
+int     audio_device_write       (struct session_tag *sp, sample *buf, int samples);
+int     audio_device_take        (struct session_tag *sp);
+void	audio_device_give        (struct session_tag *sp);
+void    audio_device_reconfigure (struct session_tag *sp);
+
 #endif /* _RAT_AUDIO_H_ */

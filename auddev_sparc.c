@@ -1,13 +1,13 @@
 /*
- * FILE:     sparc.c
+ * FILE:     auddev_sparc.c
  * PROGRAM:  RAT
  * AUTHOR:   Isidor Kouvelas
- * MODIFIED: Colin Perkins
+ * MODIFIED: Colin Perkins / Orion Hodson
  *
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@
 #include "assert.h"
 #include "debug.h"
 #include "audio.h"
+#include "auddev_sparc.h"
 #include "codec_g711.h"
 #include "cushion.h"
 
@@ -52,7 +53,10 @@ typedef Audio_hdr* audio_header_pointer;
 
 static audio_info_t	dev_info;
 static int 		mulaw_device = FALSE;	/* TRUE if the hardware can only do 8bit mulaw sampling */
-static int              blocksize;
+static int              blocksize = 0;
+
+#define MAX_SUN_AUDIO_FILE_DESC 1
+static int audio_fd[MAX_SUN_AUDIO_FILE_DESC]; 
 
 #define bat_to_device(x)	((x) * AUDIO_MAX_GAIN / MAX_AMP)
 #define device_to_bat(x)	((x) * MAX_AMP / AUDIO_MAX_GAIN)
@@ -60,22 +64,29 @@ static int              blocksize;
 /* Try to open the audio device.                        */
 /* Returns a valid file descriptor if ok, -1 otherwise. */
 int
-audio_open(audio_format format)
+sparc_audio_open(audio_desc_t ad, audio_format* format)
 {
 	audio_info_t	tmp_info;
 
-	int audio_fd = open("/dev/audio", O_RDWR | O_NDELAY);
+        if (audio_fd[ad] != 0) {
+                debug_msg("Device already open!");
+                return FALSE;
+        }
 
-	if (audio_fd > 0) {
+        assert(ad < MAX_SUN_AUDIO_FILE_DESC);
+
+	audio_fd[ad] = open("/dev/audio", O_RDWR | O_NDELAY);
+
+	if (audio_fd[ad] > 0) {
 		AUDIO_INITINFO(&dev_info);
 		dev_info.monitor_gain       = 0;
 		dev_info.output_muted       = 0; /* 0==not muted */
-		dev_info.play.sample_rate   = format.sample_rate;
-		dev_info.record.sample_rate = format.sample_rate;
-		dev_info.play.channels      = format.num_channels;
-		dev_info.record.channels    = format.num_channels;
-		dev_info.play.precision     = format.bits_per_sample;
-		dev_info.record.precision   = format.bits_per_sample;
+		dev_info.play.sample_rate   = format->sample_rate;
+		dev_info.record.sample_rate = format->sample_rate;
+		dev_info.play.channels      = format->num_channels;
+		dev_info.record.channels    = format->num_channels;
+		dev_info.play.precision     = format->bits_per_sample;
+		dev_info.record.precision   = format->bits_per_sample;
 		dev_info.play.gain          = (AUDIO_MAX_GAIN - AUDIO_MIN_GAIN) * 0.75;
 		dev_info.record.gain        = (AUDIO_MAX_GAIN - AUDIO_MIN_GAIN) * 0.75;
 		dev_info.play.port          = AUDIO_HEADPHONE;
@@ -83,25 +94,25 @@ audio_open(audio_format format)
 		dev_info.play.balance       = AUDIO_MID_BALANCE;
 		dev_info.record.balance     = AUDIO_MID_BALANCE;
 #ifdef Solaris
-		dev_info.play.buffer_size   = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
-		dev_info.record.buffer_size = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
+		dev_info.play.buffer_size   = DEVICE_BUF_UNIT * (format->sample_rate / 8000) * (format->bits_per_sample / 8);
+		dev_info.record.buffer_size = DEVICE_BUF_UNIT * (format->sample_rate / 8000) * (format->bits_per_sample / 8);
 #ifdef DEBUG
 		printf("Setting device buffer_size to %d\n", dev_info.play.buffer_size);
 #endif /* DEBUG */
 #endif /* Solaris */
-                blocksize = format.blocksize;
-                switch (format.encoding) {
+                blocksize = format->blocksize;
+                switch (format->encoding) {
 		case DEV_PCMU:
 			dev_info.record.encoding = AUDIO_ENCODING_ULAW;
 			dev_info.play.encoding   = AUDIO_ENCODING_ULAW;
 			break;
 		case DEV_L8:
-			assert(format.bits_per_sample == 8);
+			assert(format->bits_per_sample == 8);
 			dev_info.record.encoding = AUDIO_ENCODING_LINEAR;
 			dev_info.play.encoding   = AUDIO_ENCODING_LINEAR;
 			break;
 		case DEV_L16:
-			assert(format.bits_per_sample == 16);
+			assert(format->bits_per_sample == 16);
 			dev_info.record.encoding = AUDIO_ENCODING_LINEAR;
 			dev_info.play.encoding   = AUDIO_ENCODING_LINEAR;
 			break;
@@ -111,8 +122,8 @@ audio_open(audio_format format)
                 }
 
 		memcpy(&tmp_info, &dev_info, sizeof(audio_info_t));
-		if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&tmp_info) < 0) {
-			if (format.encoding == DEV_L16) {
+		if (ioctl(audio_fd[ad], AUDIO_SETINFO, (caddr_t)&tmp_info) < 0) {
+			if (format->encoding == DEV_L16) {
 #ifdef DEBUG
 				printf("Old hardware detected: can't do 16 bit audio, trying 8 bit...\n");
 #endif
@@ -120,7 +131,7 @@ audio_open(audio_format format)
 				dev_info.record.precision = 8;
 				dev_info.record.encoding = AUDIO_ENCODING_ULAW;
 				dev_info.play.encoding = AUDIO_ENCODING_ULAW;
-				if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) {
+				if (ioctl(audio_fd[ad], AUDIO_SETINFO, (caddr_t)&dev_info) < 0) {
 					perror("Setting MULAW audio paramterts");
 					return -1;
 				}
@@ -130,109 +141,124 @@ audio_open(audio_format format)
 				return -1;
 			}
 		}
-		return audio_fd;
+		return audio_fd[ad];
 	} else {
 		/* Because we opened the device with O_NDELAY
 		 * the waiting flag was not updated so update
 		 * it manually using the audioctl device...
 		 */
-		audio_fd = open("/dev/audioctl", O_RDWR);
+		audio_fd[ad] = open("/dev/audioctl", O_RDWR);
 		AUDIO_INITINFO(&dev_info);
 		dev_info.play.waiting = 1;
-		if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) {
+		if (ioctl(audio_fd[ad], AUDIO_SETINFO, (caddr_t)&dev_info) < 0) {
 #ifdef DEBUG
 			perror("Setting requests");
 #endif
 		}
-		close(audio_fd);
+		close(audio_fd[ad]);
 		return -1;
 	}
 }
 
 /* Close the audio device */
 void
-audio_close(int audio_fd)
+sparc_audio_close(audio_desc_t ad)
 {
-	close(audio_fd);
-	audio_fd = -1;
+	if (audio_fd[ad] <= 0) {
+                debug_msg("Invalid desc");
+		return;
+        }
+
+	close(audio_fd[ad]);
+	audio_fd[ad] = -1;
 }
 
 /* Flush input buffer */
 void
-audio_drain(int audio_fd)
+sparc_audio_drain(audio_desc_t ad)
 {
-	ioctl(audio_fd, I_FLUSH, (caddr_t)FLUSHR);
+	if (audio_fd[ad] <= 0) {
+                debug_msg("Invalid desc");
+		return;
+        }
+
+	ioctl(audio_fd[ad], I_FLUSH, (caddr_t)FLUSHR);
 }
 
 /* Gain and volume values are in the range 0 - MAX_AMP */
 
 void
-audio_set_gain(int audio_fd, int gain)
+sparc_audio_set_gain(audio_desc_t ad, int gain)
 {
-	if (audio_fd <= 0)
+	if (audio_fd[ad] <= 0) {
+                debug_msg("Invalid desc");
 		return;
+        }
 
 	AUDIO_INITINFO(&dev_info);
 	dev_info.record.gain = bat_to_device(gain);
-	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
 		perror("Setting gain");
 }
 
 int
-audio_get_gain(int audio_fd)
+sparc_audio_get_gain(audio_desc_t ad)
 {
-	if (audio_fd <= 0)
-		return (0);
+	if (audio_fd[ad] <= 0) {
+                debug_msg("Invalid desc");
+		return 0;
+        }
 
 	AUDIO_INITINFO(&dev_info);
-	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
 		perror("Getting gain");
 	return (device_to_bat(dev_info.record.gain));
 }
 
 void
-audio_set_volume(int audio_fd, int vol)
+sparc_audio_set_volume(audio_desc_t ad, int vol)
 {
-	if (audio_fd <= 0)
+	if (audio_fd[ad] <= 0) {
+                debug_msg("Invalid desc");
 		return;
+        }
 
 	AUDIO_INITINFO(&dev_info);
 	dev_info.play.gain = bat_to_device(vol);
-	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
 		perror("Setting volume");
 }
 
 int
-audio_get_volume(int audio_fd)
+sparc_audio_get_volume(audio_desc_t ad)
 {
-	if (audio_fd <= 0)
+	if (audio_fd[ad] <= 0)
 		return (0);
 
 	AUDIO_INITINFO(&dev_info);
-	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
 		perror("Getting gain");
 	return (device_to_bat(dev_info.play.gain));
 }
 
 void
-audio_loopback(int audio_fd, int gain)
+sparc_audio_loopback(audio_desc_t ad, int gain)
 {
-        assert(audio_fd>0);
         AUDIO_INITINFO(&dev_info);
 	dev_info.monitor_gain = bat_to_device(gain);
-	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
 		perror("Setting loopback");
 }
 
 int
-audio_read(int audio_fd, sample *buf, int samples)
+sparc_audio_read(audio_desc_t ad, sample *buf, int samples)
 {
 	int	i, len;
 	static u_char mulaw_buf[DEVICE_REC_BUF];
 	u_char	*p;
 
 	if (mulaw_device) {
-		if ((len = read(audio_fd, mulaw_buf, samples)) < 0) {
+		if ((len = read(audio_fd[ad], mulaw_buf, samples)) < 0) {
 			return 0;
 		} else {
 			p = mulaw_buf;
@@ -243,7 +269,7 @@ audio_read(int audio_fd, sample *buf, int samples)
 			return (len);
 		}
 	} else {
-		if ((len = read(audio_fd, (char *)buf, samples * BYTES_PER_SAMPLE)) < 0) {
+		if ((len = read(audio_fd[ad], (char *)buf, samples * BYTES_PER_SAMPLE)) < 0) {
 			return 0;
 		} else {
 			return (len / BYTES_PER_SAMPLE);
@@ -252,7 +278,7 @@ audio_read(int audio_fd, sample *buf, int samples)
 }
 
 int
-audio_write(int audio_fd, sample *buf, int samples)
+sparc_audio_write(audio_desc_t ad, sample *buf, int samples)
 {
 	int		i, done, len, bps;
 	unsigned char	*p, *q;
@@ -273,7 +299,7 @@ audio_write(int audio_fd, sample *buf, int samples)
 
 	q = p;
 	while (1) {
-		if ((done = write(audio_fd, p, len)) == len)
+		if ((done = write(audio_fd[ad], p, len)) == len)
 			break;
 		if (errno != EINTR)
 			return (samples - ((len - done) / bps));
@@ -286,67 +312,66 @@ audio_write(int audio_fd, sample *buf, int samples)
 
 /* Set ops on audio device to be non-blocking */
 void
-audio_non_block(int audio_fd)
+sparc_audio_non_block(audio_desc_t ad)
 {
 	int	on = 1;
 
-	if (audio_fd <= 0)
+	if (audio_fd[ad] <= 0)
 		return;
 
-	if (ioctl(audio_fd, FIONBIO, (char *)&on) < 0)
+	if (ioctl(audio_fd[ad], FIONBIO, (char *)&on) < 0)
 		fprintf(stderr, "Failed to set non blocking mode on audio device!\n");
 }
 
 /* Set ops on audio device to block */
 void
-audio_block(int audio_fd)
+sparc_audio_block(audio_desc_t ad)
 {
 	int	on = 0;
 
-	if (audio_fd <= 0)
+	if (audio_fd[ad] <= 0)
 		return;
 
-	if (ioctl(audio_fd, FIONBIO, (char *)&on) < 0)
+	if (ioctl(audio_fd[ad], FIONBIO, (char *)&on) < 0)
 		fprintf(stderr, "Failed to set blocking mode on audio device!\n");
 }
 
 void
-audio_set_oport(int audio_fd, int port)
+sparc_audio_set_oport(audio_desc_t ad, int port)
 {
-	if (audio_fd <= 0)
+	if (audio_fd[ad] <= 0)
 		return;
 
 	AUDIO_INITINFO(&dev_info);
 	/* AUDIO_SPEAKER or AUDIO_HEADPHONE */
 	dev_info.play.port = port;
-	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
 		perror("Setting port");
 }
 
 int
-audio_get_oport(int audio_fd)
+sparc_audio_get_oport(audio_desc_t ad)
 {
-	if (audio_fd <= 0)
+	if (audio_fd[ad] <= 0)
 		return (AUDIO_SPEAKER);
 
 	AUDIO_INITINFO(&dev_info);
-	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
 		perror("Getting port");
 	return (dev_info.play.port);
 }
 
 int
-audio_next_oport(int audio_fd)
+sparc_audio_next_oport(audio_desc_t ad)
 {
 	int	port;
 
-	if (audio_fd <= 0)
+	if (audio_fd[ad] <= 0)
 		return (AUDIO_SPEAKER);
 
 	AUDIO_INITINFO(&dev_info);
-	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
 		perror("Getting port");
-
 	
 	port = dev_info.play.port;
 	port <<= 1;
@@ -360,46 +385,46 @@ audio_next_oport(int audio_fd)
 
 	AUDIO_INITINFO(&dev_info);
 	dev_info.play.port = port;
-	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
 		perror("Setting port");
 
 	return (port);
 }
 
 void
-audio_set_iport(int audio_fd, int port)
+sparc_audio_set_iport(audio_desc_t ad, int port)
 {
-	if (audio_fd <= 0)
+	if (audio_fd[ad] <= 0)
 		return;
 
 	AUDIO_INITINFO(&dev_info);
 	dev_info.record.port = port;
-	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
 		perror("Setting port");
 }
 
 int
-audio_get_iport(int audio_fd)
+sparc_audio_get_iport(audio_desc_t ad)
 {
-	if (audio_fd <= 0)
+	if (audio_fd[ad] <= 0)
 		return (AUDIO_SPEAKER);
 
 	AUDIO_INITINFO(&dev_info);
-	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
 		perror("Getting port");
 	return (dev_info.record.port);
 }
 
 int
-audio_next_iport(int audio_fd)
+sparc_audio_next_iport(audio_desc_t ad)
 {
 	int	port;
 
-	if (audio_fd <= 0)
+	if (audio_fd[ad] <= 0)
 		return (AUDIO_SPEAKER);
 
 	AUDIO_INITINFO(&dev_info);
-	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
 		perror("Getting port");
 
 	port = dev_info.record.port;
@@ -414,49 +439,70 @@ audio_next_iport(int audio_fd)
 
 	AUDIO_INITINFO(&dev_info);
 	dev_info.record.port = port;
-	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd[ad], AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
 		perror("Setting port");
 
 	return (port);
 }
 
-void
-audio_switch_out(int audio_fd, struct s_cushion_struct *ap)
-{
-        UNUSED(audio_fd);
-        UNUSED(ap);
-  /* Full duplex device: do nothing! */
-}
-   
-void
-audio_switch_in(int audio_fd)
-{
-        UNUSED(audio_fd);
-  /* Full duplex device: do nothing! */
-}
-
 int
-audio_duplex(int audio_fd)
+sparc_audio_duplex(audio_desc_t ad)
 {
-        UNUSED(audio_fd);
+        UNUSED(ad);
+
         return 1;
 }
 
 int 
-audio_get_blocksize(void)
+sparc_audio_get_blocksize(audio_desc_t ad)
 {
+        UNUSED(ad);
+
         return blocksize;
 }
 
 int
-audio_get_channels()
+sparc_audio_get_channels(audio_desc_t ad)
 {
+        UNUSED(ad);
+
         return dev_info.play.channels;
 }
 
 int
-audio_get_freq()
+sparc_audio_get_freq(audio_desc_t ad)
 {
+        UNUSED(ad);
+
         return dev_info.play.sample_rate;
+}
+
+static int
+sparc_audio_select(audio_desc_t ad, int delay_us)
+{
+        fd_set rfds;
+        struct timeval tv;
+        
+        tv.tv_sec = 0;
+        tv.tv_usec = delay_us;
+
+        FD_ZERO(&rfds);
+        FD_SET(audio_fd[ad], &rfds);
+
+        select(audio_fd[ad]+1, &rfds, NULL, NULL, &tv);
+
+        return FD_ISSET(audio_fd[ad], &rfds);
+}
+
+void
+sparc_audio_wait_for(audio_desc_t ad, int delay_ms)
+{
+        sparc_audio_select(ad, delay_ms * 1000);
+}
+
+int 
+sparc_audio_is_ready(audio_desc_t ad)
+{
+        return sparc_audio_select(ad, 0);
 }
 

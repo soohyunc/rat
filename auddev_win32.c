@@ -4,11 +4,11 @@
  * Win32 audio interface for RAT.
  *
  * Written by Orion Hodson and Isidor Kouvelas
- * Portions based on the VAT Win95 port by John Brezak.
+ * Some portions based on the VAT Win95 port by John Brezak.
  *
  * $Id$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,6 +71,7 @@
 #include "audio.h"
 #include "debug.h"
 #include "memory.h"
+#include "auddev_win32.h"
 
 #define rat_to_device(x)	((x) * 255 / MAX_AMP)
 #define device_to_rat(x)	((x) * MAX_AMP / 255)
@@ -82,7 +83,6 @@ static WAVEFORMATEX	format;
 static int		duplex;
 static int              nLoopGain = 100;
 #define MAX_DEV_NAME 64
-static char szDevOut[MAX_DEV_NAME], szDevIn[MAX_DEV_NAME];
 
 /* Mixer Code (C) 1998 Orion Hodson.
  *
@@ -463,7 +463,7 @@ static int      write_hdrs_used;
 static HWAVEOUT	shWaveOut;
 
 static int
-audio_open_out()
+w32sdk_audio_open_out()
 {
 	int		i;
 	WAVEHDR		*whp;
@@ -503,7 +503,7 @@ audio_open_out()
 }
 
 static void
-audio_close_out()
+w32sdk_audio_close_out()
 {
 	int	i;
 	WAVEHDR		*whp;
@@ -527,11 +527,11 @@ audio_close_out()
 #define WRITE_ERROR_STILL_PLAYING 33
 
 int
-audio_write(int audio_fd, sample *cp, int remain)
+w32sdk_audio_write(audio_desc_t ad, sample *cp, int remain)
 {
 	int		error, len, ret;
 
-        UNUSED(audio_fd);
+        UNUSED(ad);
 
 	if (shWaveOut == 0)
 		return (remain);
@@ -544,7 +544,7 @@ audio_write(int audio_fd, sample *cp, int remain)
 	for (; remain > 0; remain -= len) {
 		if (write_curr->dwFlags & WHDR_DONE) {
 			/* Have overdone it! */
-			debug_msg("audio_write, reached end of buffer (%06d bytes remain)\n", remain);
+			debug_msg("w32sdk_audio_write, reached end of buffer (%06d bytes remain)\n", remain);
 			return (ret - remain);
 		}
 
@@ -581,9 +581,9 @@ audio_write(int audio_fd, sample *cp, int remain)
 static unsigned char audio_ready = 0;
 
 int
-audio_is_ready(int audio_fd)
+w32sdk_audio_is_ready(audio_desc_t ad)
 {
-        UNUSED(audio_fd);
+        UNUSED(ad);
         if (audio_ready>nblks/5) {
                 debug_msg("Lots of audio available (%d blocks)\n", audio_ready);
         }
@@ -618,7 +618,7 @@ static u_char	*read_mem;
 static HWAVEIN	shWaveIn;
 
 static int
-audio_open_in()
+w32sdk_audio_open_in()
 {
 	WAVEHDR	*whp;
 	int	     l;
@@ -676,7 +676,7 @@ audio_open_in()
 }
 
 static void
-audio_close_in()
+w32sdk_audio_close_in()
 {
 	int		i;
 	WAVEHDR		*whp;
@@ -699,12 +699,12 @@ audio_close_in()
 }
 
 int
-audio_read(int audio_fd, sample *buf, int samples)
+w32sdk_audio_read(audio_desc_t ad, sample *buf, int samples)
 {
         static int virgin = 0;
         int len = 0;
 
-        UNUSED(audio_fd);
+        UNUSED(ad);
 
         if (!virgin) {
                 debug_msg("ready %d\n", audio_ready);
@@ -770,78 +770,63 @@ audio_read(int audio_fd, sample *buf, int samples)
 	return (len);
 }
 
-/* BEST OF THE REST (SIC) ************************************/
-
-int audio_get_channels()
+int 
+w32sdk_audio_get_channels(audio_desc_t ad)
 {
+        UNUSED(ad);
 	return format.nChannels;
 }
 
 int
-audio_open(audio_format fmt)
+w32sdk_audio_get_freq(audio_desc_t ad)
+{
+        UNUSED(ad);
+        return format.nSamplesPerSec;
+}
+
+int
+w32sdk_audio_get_blocksize(audio_desc_t ad)
+{
+        UNUSED(ad);
+        return blksz;
+}
+
+static int audio_dev_open = 0;
+
+int
+w32sdk_audio_open(audio_desc_t ad, audio_format *fmt)
 {
         static int virgin;
         WAVEFORMATEX tfmt;
 	
-        if (virgin == 0) {
-                HKEY hKey = HKEY_CURRENT_USER;
-                WAVEOUTCAPS woc;
-                WAVEINCAPS  wic;
-                UINT        uDevId,uNumDevs;
-
-                RegGetValue(&hKey, 
-		    "Software\\Microsoft\\Multimedia\\Sound Mapper", 
-		    "Playback", 
-		    szDevOut, 
-		    MAX_DEV_NAME);
-	        RegGetValue(&hKey, 
-		    "Software\\Microsoft\\Multimedia\\Sound Mapper", 
-		    "Record", 
-		    szDevIn, 
-		    MAX_DEV_NAME);
-                
-                uWavOut  = WAVE_MAPPER;
-                uNumDevs = waveOutGetNumDevs();
-                for (uDevId = 0; uDevId < uNumDevs; uDevId++) {
-                       waveOutGetDevCaps(uDevId, &woc, sizeof(woc));
-                       if (strcmp(woc.szPname, szDevOut) == 0) {
-                               uWavOut = uDevId;
-                               break;
-                       }
-                }
-                
-                uWavIn   = WAVE_MAPPER;
-                uNumDevs = waveInGetNumDevs();
-                for (uDevId = 0; uDevId < uNumDevs; uDevId++) {
-                       waveInGetDevCaps(uDevId, &wic, sizeof(wic));
-                       if (strcmp(wic.szPname, szDevIn) == 0) {
-                               uWavIn = uDevId;
-                               break;
-                       }
-                }
-                
-                if (mixerGetNumDevs()) {
-                        mixSetup();    
-	        }
-                virgin = 1;
+        if (audio_dev_open) {
+                debug_msg("Device not closed! Fix immediately");
+                w32sdk_audio_close(ad);
         }
 
+        uWavIn = uWavOut = (UINT)ad;
+        mixSetup();
+
         format.wFormatTag      = WAVE_FORMAT_PCM;
-	format.nChannels       = (WORD)fmt.num_channels;
-	format.nSamplesPerSec  = fmt.sample_rate;
-	format.wBitsPerSample  = (WORD)fmt.bits_per_sample;
+	format.nChannels       = (WORD)fmt->num_channels;
+	format.nSamplesPerSec  = fmt->sample_rate;
+	format.wBitsPerSample  = (WORD)fmt->bits_per_sample;
         smplsz                 = format.wBitsPerSample / 8;
         format.nAvgBytesPerSec = format.nChannels * format.nSamplesPerSec * smplsz;
 	format.nBlockAlign     = (WORD)(format.nChannels * smplsz);
 	format.cbSize          = 0;
+        
         memcpy(&tfmt, &format, sizeof(format));
         /* Use 1 sec device buffer */
-	blksz  = fmt.blocksize * smplsz;
+	
+        blksz  = fmt->blocksize * smplsz;
 	nblks  = format.nAvgBytesPerSec / blksz;
-	if (audio_open_in() == FALSE)   return -1;
-        if ((duplex = audio_open_out()) == FALSE) {
-                audio_close_in();
-                return -1;
+	
+        if (w32sdk_audio_open_in() == FALSE)   return -1;
+        
+        if ((duplex = w32sdk_audio_open_out()) == FALSE) {
+                w32sdk_audio_close_in();
+                return FALSE;
         }
         /* because i've seen these get corrupted... */
         assert(tfmt.wFormatTag      == format.wFormatTag);
@@ -868,52 +853,61 @@ audio_open(audio_format fmt)
 		break;
 	}
 
-	return 1;
+        audio_dev_open = TRUE;
+	return TRUE;
 }
 
 
 void
-audio_close(int audio_fd)
+w32sdk_audio_close(audio_desc_t ad)
 {
-        UNUSED(audio_fd);
+        UNUSED(ad);
         debug_msg("Closing input device.\n");
-	audio_close_in();
+	w32sdk_audio_close_in();
         debug_msg("Closing output device.\n");
-	audio_close_out();
+	w32sdk_audio_close_out();
+        audio_dev_open = FALSE;
 }
 
 int
-audio_duplex(int audio_fd)
+w32sdk_audio_duplex(audio_desc_t ad)
 {
-        UNUSED(audio_fd);
+        UNUSED(ad);
 	return (duplex);
 }
 
-
 void
-audio_drain(int audio_fd)
+w32sdk_audio_drain(audio_desc_t ad)
 {
         sample *buf;
         int samples = blksz / sizeof(sample);
         buf = (sample*)xmalloc(blksz);
-        while(audio_read(audio_fd, buf, samples) == samples);
+        while(w32sdk_audio_read(ad, buf, samples) == samples);
         xfree(buf);
 }
 
 void
-audio_non_block(int audio_fd)
+w32sdk_audio_non_block(audio_desc_t ad)
 {
-        UNUSED(audio_fd);
+        UNUSED(ad);
+        debug_msg("Windows audio interface is asynchronous!\n");
 }
 
 void
-audio_set_gain(int audio_fd, int level)
+w32sdk_audio_block(audio_desc_t ad)
+{
+        UNUSED(ad);
+        debug_msg("Windows audio interface is asynchronous!\n");
+}
+
+void
+w32sdk_audio_set_gain(audio_desc_t ad, int level)
 {
         int i;
         MIXERCONTROLDETAILS          mcd;
         MIXERCONTROLDETAILS_UNSIGNED mcduDevLevel;
         MMRESULT r;
-        UNUSED(audio_fd);
+        UNUSED(ad);
         
         for(i = 0; i < mcMixIn[curMixIn].nCtls; i++) {
                 switch (mcMixIn[curMixIn].dwCtlType[i]) {
@@ -939,18 +933,18 @@ audio_set_gain(int audio_fd, int level)
 }
 
 int
-audio_get_gain(int audio_fd)
+w32sdk_audio_get_gain(audio_desc_t ad)
 {
-        UNUSED(audio_fd);
+        UNUSED(ad);
 	return (rec_vol);
 }
 
 void
-audio_set_volume(int audio_fd, int level)
+w32sdk_audio_set_volume(audio_desc_t ad, int level)
 {
 	DWORD	vol;
 
-        UNUSED(audio_fd);
+        UNUSED(ad);
 
 	play_vol = level;
 
@@ -974,11 +968,11 @@ audio_set_volume(int audio_fd, int level)
 }
 
 int
-audio_get_volume(int audio_fd)
+w32sdk_audio_get_volume(audio_desc_t ad)
 {
 	DWORD	vol;
         
-        UNUSED(audio_fd);
+        UNUSED(ad);
 
 	if (shWaveOut == 0)
 		return (play_vol);
@@ -995,42 +989,42 @@ audio_get_volume(int audio_fd)
 }
 
 void
-audio_loopback(int audio_fd, int gain)
+w32sdk_audio_loopback(audio_desc_t ad, int gain)
 {
-        UNUSED(audio_fd);
+        UNUSED(ad);
         
         nLoopGain = gain;
         mixSetLoopback(mcMixIn[curMixIn].szName);
 }
 
 void
-audio_set_oport(int audio_fd, int port)
+w32sdk_audio_set_oport(audio_desc_t ad, int port)
 {
-	UNUSED(audio_fd);
+	UNUSED(ad);
 	UNUSED(port);
 }
 
 /* Return selected output port */
-int audio_get_oport(int audio_fd)
+int w32sdk_audio_get_oport(audio_desc_t ad)
 {
-        UNUSED(audio_fd);
+        UNUSED(ad);
 	return (AUDIO_SPEAKER);
 }
 
 /* Select next available output port */
 int
-audio_next_oport(int audio_fd)
+w32sdk_audio_next_oport(audio_desc_t ad)
 {
-        UNUSED(audio_fd);
+        UNUSED(ad);
         return (AUDIO_SPEAKER);
 }
 
 void 
-audio_set_iport(int audio_fd, int port)
+w32sdk_audio_set_iport(audio_desc_t ad, int port)
 {
         MixCtls *mcMix;
         
-        UNUSED(audio_fd);
+        UNUSED(ad);
 
         mcMix = audioIDToMixCtls(port, meInputs, mcMixIn, nMixIn);
         
@@ -1039,21 +1033,21 @@ audio_set_iport(int audio_fd, int port)
 
 /* Return selected input port */
 int
-audio_get_iport(int audio_fd)
+w32sdk_audio_get_iport(audio_desc_t ad)
 {
         int id = nameToAudioID(mcMixIn[curMixIn].szName, meInputs);
-        UNUSED(audio_fd);
+        UNUSED(ad);
 	return (id);
 }
 
 /* Select next available input port */
 int
-audio_next_iport(int audio_fd)
+w32sdk_audio_next_iport(audio_desc_t ad)
 {
         u_int32 trialMixIn;
         int id = -1;
 
-        UNUSED(audio_fd);
+        UNUSED(ad);
 
         trialMixIn = curMixIn;
         do {
@@ -1064,4 +1058,70 @@ audio_next_iport(int audio_fd)
         return (id);
 }
 
+void
+w32sdk_audio_wait_for(audio_desc_t ad, int delay_ms)
+{
+        DWORD   dwPeriod;
+        
+        dwPeriod = (DWORD)delay_ms/2;
+        /* The blocks we are passing to the audio interface are of duration dwPeriod.
+         * dwPeriod is usually around 20ms (8kHz), but mmtask often doesn't give
+         * us audio that often, more like every 40ms.  In order to make UI more responsive we
+         * block for half specified delay as the process of blocking seems to incur noticeable
+         * delay.  If anyone has more time this is worth looking into.
+         */
+        if (!w32sdk_audio_is_ready(ad)) {
+                Sleep(dwPeriod);
+        }
+}
+
+#define W32SDK_MAX_NAME_LEN 32
+#define W32SDK_MAX_DEVS      3
+
+static char szDevNames[W32SDK_MAX_DEVS][W32SDK_MAX_NAME_LEN];
+static int  nDevs;
+
+void 
+w32sdk_audio_query_devices(void)
+{
+        WAVEINCAPS wic;
+        int nWaveInDevs, nWaveOutDevs;
+        int i;
+
+        nWaveInDevs = waveInGetNumDevs();
+        nWaveOutDevs = waveOutGetNumDevs();
+
+        if (nWaveInDevs != nWaveOutDevs) {
+                debug_msg("Number of input devices (%d) does not correspond to number of output devices (%d)\n",
+                        nWaveInDevs, nWaveOutDevs);
+                /* This is fatal for all code as we assume a 1-to-1 correspondence 
+                 * between wave input devices, wave output devices, and mixers.
+                 * We don't abort just in case things work.  Look out for some really
+                 * strange bug reports.
+                 */
+        }
+
+        nDevs = min(nWaveInDevs, nWaveInDevs);
+        nDevs = min(nDevs, W32SDK_MAX_DEVS);
+
+        for(i = 0; i < nDevs; i++) {
+                waveInGetDevCaps((UINT)i, &wic, sizeof(WAVEINCAPS));
+                strncpy(szDevNames[i], wic.szPname, W32SDK_MAX_NAME_LEN);
+        }
+}
+
+int
+w32sdk_get_device_count()
+{
+        return nDevs;
+}
+
+char *
+w32sdk_get_device_name(int idx)
+{
+        if (idx >= 0 && idx < nDevs) {
+                return szDevNames[idx];
+        }
+        return NULL;
+}
 #endif /* WIN32 */

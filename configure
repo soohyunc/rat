@@ -62,6 +62,7 @@ echo "Configuring RAT v$VERSION for $OSTYPE"
 GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
 TCL_LIBS="../tk-8.0/unix/libtk8.0.a ../tcl-8.0/unix/libtcl8.0.a"
 TCL_INCL="-I../tk-8.0/generic -I../tcl-8.0/generic"
+DEFS=""
 
 case $OSTYPE in
   SunOS   ) CC="gcc"
@@ -131,14 +132,13 @@ esac
 DEBUG2=""
 OPTIMIZE2=""
 PROFILE2=""
-DEFS=""
 CHECK_FLAG=""
 CHECK_LIB=""
 while test $# -gt 0
 do
 	if [ $1 = "-debug" ]; then
 		DEBUG2=$DEBUG
-		DEFS="-DDEBUG"
+		DEFS="$DEFS -DDEBUG"
 		echo "Enabled debug option"
 	elif [ $1 = "-optimize" ]; then
 		OPTIMIZE2=$OPTIMIZE
@@ -150,7 +150,14 @@ do
 	elif [ $1 = "-bounds" ]; then
 		CHECK_FLAG=-fbounds-checking
 		CHECK_LIB=-lcheck
-		echo "Enabled bounds checking option"
+		echo "Enabled bounds checking option" 
+	elif [ $1 = "-oti" ]; then
+	    O1KHOME=${O1KHOME:=/opt/SUNWo1kp}
+	    if [ -d $O1KHOME ] ; then
+		AUDIO="$AUDIO auddev_oti.o"
+		INCLUDE="$INCLUDE -I${O1KHOME}/include"
+		DEFS="$DEFS -DOTI_AUDIO"
+	    fi
 	else 
 		DEFS="$DEFS $1"
 		echo "Added $1 compile flag"

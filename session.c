@@ -125,7 +125,7 @@ init_session(session_struct *sp)
         sp->drop                        = 0.0;
 	sp->in_file 			= NULL;
 	sp->out_file  			= NULL;
-	sp->audio_fd               	= -1;
+	sp->audio_fd               	= 0;
         sp->have_device                 = 0;
 	sp->rtp_seq			= lrand48() & 0xffff;
 	sp->speakers_active 		= NULL;

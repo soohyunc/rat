@@ -121,6 +121,10 @@ main(int argc, char *argv[])
 	INIT_QUEUE(pckt_queue_struct, rtcp_pckt_queue)
 	INIT_QUEUE(rx_queue_struct,   rx_unit_queue)
 
+#ifndef WIN32
+ 	signal(SIGINT, signal_handler); 
+#endif
+
 	gettimeofday(&time, NULL);
 	srand48(time.tv_usec);
 
@@ -132,6 +136,8 @@ main(int argc, char *argv[])
 	cname        = get_cname();
 	ssrc         = get_ssrc();
 
+        audio_init_interfaces();
+        audio_set_interface(0);
         converters_init();
 
 	sprintf(mbus_engine_addr, "(audio engine rat %ld)", (int32) getpid());
@@ -160,7 +166,6 @@ main(int argc, char *argv[])
 	} else {
 		strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
         }
-
 
 	ui_controller_init(sp[0], cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 	do {
@@ -196,10 +201,6 @@ main(int argc, char *argv[])
                 	tx_start(sp[i]);
 		}
         }
-
-#ifndef WIN32
-	signal(SIGINT, signal_handler);
-#endif
 	
 	xdoneinit();
 
@@ -284,7 +285,7 @@ main(int argc, char *argv[])
                         
                         /* Choke CPU usage */
                         if (sp[i]->have_device) {
-                                audio_wait_for(sp[i]);
+                                audio_wait_for(sp[i]->audio_fd, 160);
                         } else {
                                 usleep(20000);
                         }
@@ -312,6 +313,7 @@ main(int argc, char *argv[])
         xfree(cname);
 
         converters_free();
+        audio_free_interfaces();
 
 	xmemdmp();
 	return 0;
