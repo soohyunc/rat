@@ -293,17 +293,25 @@ snd_valid_format(sndfile_fmt_t *fmt)
 {
         if (fmt->channels != 1 && 
             fmt->channels != 2) {
+                debug_msg("Invalid channels %d\n", fmt->channels);
                 return FALSE;
         }
 
         if ((fmt->sample_rate % 8000)  != 0 &&
             (fmt->sample_rate % 11025) != 0) {
+                debug_msg("Invalid rate %d\n", fmt->sample_rate);
                 return FALSE;
         }
 
         if (fmt->encoding != SNDFILE_ENCODING_PCMU &&
             fmt->encoding != SNDFILE_ENCODING_PCMA &&
             fmt->encoding != SNDFILE_ENCODING_L16) {
+                debug_msg("Invalid encoding %d  - pcmu (%d) pcma (%d) l16 (%d)\n",
+                          fmt->encoding,
+                          SNDFILE_ENCODING_PCMU,
+                          SNDFILE_ENCODING_PCMA,
+                          SNDFILE_ENCODING_L16);
+                          
                 return FALSE;
         }
 
