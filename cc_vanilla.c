@@ -215,7 +215,11 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
         memcpy(m->rep[0]->data, p, data_len);
         p += data_len;
 
-        pb_add(out, (u_char *)m, sizeof(media_data), playout);
+        if (pb_add(out, (u_char *)m, sizeof(media_data), playout) == FALSE) {
+                debug_msg("XXX Failed to add unit\n");
+                media_data_destroy(&m, sizeof(media_data));
+                return;
+        }
         /* Now do other units which do not have state*/
         playout_step = ts_map32(cf->format.sample_rate, codec_get_samples_per_frame(id));
         while(p < end) {

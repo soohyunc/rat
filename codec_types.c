@@ -72,6 +72,15 @@ media_data_destroy(media_data **ppmd, u_int32 md_size)
                 assert(pcu->data_len == 0);
                 block_free(pcu, sizeof(coded_unit));
         }
+#ifdef DEBUG_MEM
+        for(i = pmd->nrep; i < MAX_MEDIA_UNITS; i++) {
+                if (pmd->rep[i] != NULL) {
+                        assert(pmd->rep[i]->state == NULL);
+                        assert(pmd->rep[i]->data  == NULL);
+                }
+        }
+#endif /* DEBUG_MEM */
+
         block_free(pmd, sizeof(media_data));
         *ppmd = NULL;
 }

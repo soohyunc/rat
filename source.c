@@ -954,6 +954,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         memset(cu, 0, sizeof(coded_unit));
                         cs = codec_state_store_get(src->codec_states, md->rep[0]->id);
                         codec_decode(cs, md->rep[0], cu);
+                        assert(md->rep[md->nrep] == NULL);
                         md->rep[md->nrep] = cu;
                         md->nrep++;
                 }
@@ -968,6 +969,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         memset(render, 0, sizeof(coded_unit));
                         
                         render_3D(src->dbe->render_3D_data,decoded,render);
+                        assert(md->rep[md->nrep] == NULL);
                         md->rep[md->nrep] = render;
                         md->nrep++;
                 }
@@ -983,6 +985,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         converter_process(src->converter,
                                           decoded,
                                           render);
+                        assert(md->rep[md->nrep] == NULL);
                         md->rep[md->nrep] = render;
                         md->nrep++;
                 }
