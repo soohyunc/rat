@@ -593,7 +593,7 @@ tx_update_ui(tx_buffer *tb)
 
                 pb_iterator_dup(&prev, tb->silence);
                 pb_iterator_retreat(prev);
-                assert(!pb_iterators_equal(tb->silence, prev));
+                if (pb_iterators_equal(tb->silence, prev)) return;
                 if (pb_iterator_get_at(prev, (u_char**)&u, &u_len, &u_ts) &&
                     (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE)) {
                         ui_input_level(sp, lin2vu(u->energy, 100, VU_INPUT));

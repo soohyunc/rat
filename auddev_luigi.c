@@ -50,9 +50,9 @@
 
 static int iport = AUDIO_MICROPHONE;
 static snd_chan_param pa;
-static int audio_fd = -1;
+static struct snd_size sz;
 
-#define BLOCKSIZE 320
+static int audio_fd = -1;
 
 #define RAT_TO_DEVICE(x) ((x) * 100 / MAX_AMP)
 #define DEVICE_TO_RAT(x) ((x) * MAX_AMP / 100)
@@ -83,7 +83,6 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 
         audio_fd = open(thedev, O_RDWR);
         if (audio_fd >= 0) {
-                struct snd_size sz;
                 snd_capabilities soundcaps;
                 /* Ignore any earlier errors */
                 luigi_error = 0;
@@ -463,12 +462,25 @@ luigi_audio_select(audio_desc_t ad, int delay_us)
 void
 luigi_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
-        luigi_audio_select(ad, delay_ms * 1000);
+        if (!luigi_audio_is_ready(ad)) {
+                struct timeval s;
+                s.tv_sec = 0;
+                s.tv_usec = delay_ms * 1000;
+                select(0, NULL, NULL, NULL, &s);
+        }
 }
 
 int 
 luigi_audio_is_ready(audio_desc_t ad)
 {
+        int avail;
+
+        UNUSED(ad);
+
+        LUIGI_AUDIO_IOCTL(audio_fd, FIONREAD, &avail);
+
+        return (avail >= sz.rec_size);
+
         return luigi_audio_select(ad, 0);
 }
 
