@@ -209,6 +209,22 @@ ts_abs_diff(ts_t t1, ts_t t2)
         }
 }
 
+ts_t
+ts_mul(ts_t t, u_int32 x)
+{
+        assert(ts_valid(t));
+        t.ticks = t.ticks * x;
+        return t;
+}
+
+ts_t
+ts_div(ts_t t, u_int32 x)
+{
+        assert(ts_valid(t));
+        t.ticks = t.ticks / x;
+        return t;
+}
+
 ts_t 
 ts_convert(u_int32 new_freq, ts_t ts)
 {

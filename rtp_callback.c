@@ -16,11 +16,14 @@
 #include "debug.h"
 #include "audio_types.h"
 #include "auddev.h"
+#include "channel.h"
+#include "codec.h"
 #include "rtp.h"
 #include "rtp_callback.h"
 #include "session.h"
 #include "pdb.h"
 #include "source.h"
+#include "playout_calc.h"
 #include "ui.h"
 
 /* We need to be able to resolve the rtp session to a rat session in */
@@ -112,43 +115,127 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
 {
         struct s_source *s;
         pdb_entry_t     *e;
+        cc_id_t          ccid;
+        u_int16          units_per_packet;
+        u_char           codec_pt;
+        ts_t             playout, src_ts;
+        int              new_spurt;
+        u_int32          delta_seq, delta_ts;
+
+        new_spurt = p->m;
+
+        if (p->m) {
+                debug_msg("New talkspurt\n");
+        }
 
         if (sp->filter_loopback && 
             ssrc == rtp_my_ssrc(sp->rtp_session[0])) {
                 /* This packet is from us and we are filtering our own       */
                 /* packets.                                                  */
                 xfree(p);
+                return;
         }
 
         if (sp->playing_audio == FALSE) {
                 /* We are not playing audio out */
                 debug_msg("Packet discarded: audio output muted.\n");
                 xfree(p);
+                return;
         }
 
-        if (pdb_item_get(sp->pdb, ssrc, &e) == FALSE ||
-            e->mute) {
-                /* We do not know who this source is, or it is muted */
-                debug_msg("Packet discarded: unknown/muted source (0x%08x).\n",
-                          ssrc);
+        if (pdb_item_get(sp->pdb, ssrc, &e) == FALSE) {
+                debug_msg("Packet discarded: unknown source (0x%08x).\n", ssrc);
                 xfree(p);
+                return;
+        }
+        
+        if (e->mute) {
+                debug_msg("Packet discarded: source muted (0x%08x).\n", ssrc);
+                xfree(p);
+                return;
+        }
+
+        ccid = channel_coder_get_by_payload(p->pt);
+        if (channel_verify_and_stat(ccid, p->pt, p->data, p->data_len, &units_per_packet, &codec_pt) == FALSE) {
+                debug_msg("Packet discarded: packet failed channel verification.\n");
+                xfree(p);
+                return;
+        }
+
+        if (e->channel_coder_id != ccid ||
+            e->enc              != codec_pt || 
+            e->units_per_packet != units_per_packet) {
+                /* Something has changed or is uninitialized... */
+                const codec_format_t *cf;
+                codec_id_t cid;
+                cid = codec_get_by_payload(codec_pt);
+                cf  = codec_get_format(cid);
+                /* Fix clock                                    */
+                change_freq(e->clock, cf->format.sample_rate);
+                /* Fix details                                  */
+                e->enc              = codec_pt;
+                e->units_per_packet = units_per_packet;
+                e->channel_coder_id = ccid;        
+                e->inter_pkt_gap    = e->units_per_packet * 
+                        (u_int16)codec_get_samples_per_frame(cid);
+                new_spurt           = 1;
+                debug_msg("Encoding change\n");
+                /* Get string describing encoding               */
+                channel_describe_data(ccid, codec_pt, p->data, p->data_len, 
+                                      e->enc_fmt, e->enc_fmt_len);
+                if (sp->mbus_engine) {
+                        ui_update_stats(sp, ssrc);
+                }
         }
 
         s = source_get_by_ssrc(sp->active_sources, ssrc);
         if (s == NULL) {
                 const audio_format *dev_fmt;
                 dev_fmt = audio_get_ofmt(sp->audio_device);
-                source_create(sp->active_sources, ssrc, sp->pdb, sp->converter,
-                              sp->render_3d, (u_int16)dev_fmt->sample_rate,
-                              (u_int16)dev_fmt->channels);
+                s = source_create(sp->active_sources, ssrc, sp->pdb, 
+                                  sp->converter, sp->render_3d, 
+                                  (u_int16)dev_fmt->sample_rate,
+                                  (u_int16)dev_fmt->channels);
+                new_spurt = 1;
+                debug_msg("Source created\n");
+        }
+        
+        /* Check for talkspurt start indicated by change in relationship */
+        /* between timestamps and sequence numbers                       */
+        delta_seq = p->seq - e->last_seq;
+        delta_ts  = p->ts  - e->last_ts;
+        if (delta_seq * e->inter_pkt_gap != delta_ts) {
+                debug_msg("Seq no / timestamp realign (%lu * %lu != %lu)\n", 
+                          delta_seq,
+                          e->inter_pkt_gap,
+                          delta_ts);
+                new_spurt = 1;
         }
 
+        src_ts = ts_seq32_in(source_get_sequencer(s), get_freq(e->clock), p->ts);
+        playout = playout_calc(sp, ssrc, src_ts, new_spurt);
+        e->last_seq = p->seq;
+        e->last_ts  = p->ts;
+        e->last_arr = sp->cur_ts;
         xfree(p);
 }
 
 static void
 process_sdes(session_t *sp, u_int32 ssrc, rtcp_sdes_item *d)
 {
+        pdb_entry_t *e;
+
+        if (pdb_item_get(sp->pdb, ssrc, &e) == FALSE) {
+                /* RAT knows nothing about sender so create a persistent     */
+                /* database entry for them.                                  */
+                pdb_item_create(sp->pdb, 
+                                sp->clock, 
+                                get_freq(sp->device_clock), 
+                                ssrc);
+                debug_msg("Created persisent database entry (0x%08x).\n", 
+                          ssrc);
+        }
+
         if (sp->mbus_engine == NULL) {
                 /* Nowhere to send updates to, so ignore them.               */
                 return;

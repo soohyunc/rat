@@ -32,6 +32,7 @@
 #include "mbus_engine.h"
 #include "transmit.h"
 #include "pdb.h"
+#include "rtp.h"
 #include "mix.h"
 #include "ui.h"
 #include "timers.h"

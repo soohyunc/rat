@@ -29,7 +29,6 @@ typedef struct s_pdb pdb_t;
  
 typedef struct {
         u_int32         ssrc;                        /* Unique Id */
-	u_char          first_pckt_flag:1;
         u_char          first_mix:1;
         struct s_render_3D_dbentry  *render_3D_data; /* Participant 3d state */
         double          gain;                        /* Participant gain */
@@ -37,13 +36,21 @@ typedef struct {
 	u_char		cont_toged;		     /* Toged in a row */
 	struct s_time  *clock;
         u_int32         ui_last_update;              /* Used for periodic update of packet counts, etc */
-        u_char          update_req:1;                /* ui info needs update as format changed */
 	u_int16		units_per_packet;
         u_int16         inter_pkt_gap;               /* expected time between pkt arrivals */
         u_char          enc;
         char*           enc_fmt;
+        int             enc_fmt_len;
+        u_int32         last_ts;
+        u_int32         last_seq;
+        ts_t            last_arr;                    /* ts_t representation of last_ts */
+
+        /* Playout info */
+        ts_t            jitter;
+        ts_t            transit;
+        ts_t            last_transit;
+
         cc_id_t         channel_coder_id;            /* channel_coder of last received packet */
-        ts_t            last_arr;                    /* Last packet arrival time    */
 	ts_t            last_mixed;                  /* Used to check mixing */
 	ts_t            playout;                     /* Playout delay for this talkspurt */
 	ts_t            delay;                       /* Current delay for this participant (varies per packet) */

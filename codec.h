@@ -10,6 +10,8 @@
 #ifndef _CODEC_H_
 #define _CODEC_H_
 
+#include "codec_types.h"
+
 /* Codec module startup and end */
 
 void codec_init (void);

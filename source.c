@@ -343,11 +343,6 @@ source_remove(source_list *plist, source *psrc)
         codec_state_store_destroy(&psrc->codec_states);
         plist->nsrcs--;
 
-        /* This is hook into the playout_adapt, we are signalling
-         * there is no source decode path.
-         */
-        psrc->pdbe->first_pckt_flag = TRUE;
-
         debug_msg("Destroying source decode path\n");
         
         block_free(psrc, sizeof(source));

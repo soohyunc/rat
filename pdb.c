@@ -105,11 +105,10 @@ pdb_item_get(pdb_t *p, u_int32 id, pdb_entry_t **item)
                 *item = NULL;
                 return FALSE;
         }
+        assert(v != NULL);
         *item = (pdb_entry_t*)v;
-
         return TRUE;
 }
-
 
 int
 pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16 freq, u_int32 id)
@@ -130,10 +129,11 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16 freq, u_int32 id)
 
         item->ssrc            = id;
         item->render_3D_data  = NULL;
-        item->first_pckt_flag = TRUE;
         item->enc             = -1;
-        item->enc_fmt         = NULL;
+        item->enc_fmt_len     = 2 * (CODEC_LONG_NAME_LEN + 1);
+        item->enc_fmt         = xmalloc(item->enc_fmt_len);
         item->gain            = 1.0;
+        item->mute            = 0;
 	item->clock           = new_time(clock, freq);
 
         /*********************************************************************/
@@ -173,7 +173,6 @@ pdb_item_destroy(pdb_t *p, u_int32 id)
                 xfree(item->enc_fmt);
                 item->enc_fmt = NULL;
         }
-
 
         /*********************************************************************/
 
