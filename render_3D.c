@@ -45,17 +45,6 @@
 #include "memory.h"
 #include "util.h"
 #include "debug.h"
-#include "mix.h"
-#include "session.h"
-#include "audio.h"
-#include "receive.h"
-#include "timers.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
-#include "convert.h"
-#include "codec.h"
-#include "parameters.h"
-#include "ui.h"
 #include "render_3D.h"
 
 #define MAX_RESPONSE_LENGTH 32
@@ -64,6 +53,8 @@
 #define LOWER_AZIMUTH -90
 #define UPPER_AZIMUTH  90
 #define IDENTITY_FILTER 0
+/* A guess...*/
+#define SAMPLE_BUFFER_SAMPLES 2048
 
 typedef struct s_3d_filter {
         char   name[16];
@@ -149,8 +140,8 @@ typedef struct s_render_3D_dbentry {
         short    azimuth;                             /* lateral angle of sound source */
         short    delay;                               /* based on interaural time difference (ITD); derived from 'azimuth' */
         double   attenuation;                         /* based on interaural intensity difference (IID); derived from 'azimuth' */
-        sample   ipsi_buf[MAX_PACKET_SAMPLES];        /* buffer for ipsi-lateral channel before merging into stereo buffer */
-        sample   contra_buf[MAX_PACKET_SAMPLES];      /* buffer for contra-lateral channel before merging into stereo buffer */
+        sample   ipsi_buf[SAMPLE_BUFFER_SAMPLES];        /* buffer for ipsi-lateral channel before merging into stereo buffer */
+        sample   contra_buf[SAMPLE_BUFFER_SAMPLES];      /* buffer for contra-lateral channel before merging into stereo buffer */
         sample   tmp_buf[64];                         /* temporary storage for swapping samples */
         sample   excess_buf[64];                      /* buffer for excess samples due to delay */
         double   filter[MAX_RESPONSE_LENGTH];         /* filter used for convolution */
@@ -182,15 +173,12 @@ render_3D_idx2azimuth(int idx)
 static int n_users_created;
 
 render_3D_dbentry *
-render_3D_init(session_struct *sp)
+render_3D_init(int sampling_rate)
 {
-        int               sampling_rate;
         int               azimuth, length;
         int               default_filter_num;
         char              *default_filter_name;
         render_3D_dbentry *render_3D_data;
-
-        sampling_rate = get_freq(sp->device_clock);
 
         azimuth = render_3D_idx2azimuth(n_users_created);
         length  = DEFAULT_RESPONSE_LENGTH;
@@ -270,20 +258,61 @@ render_3D_get_parameters(struct s_render_3D_dbentry *p_3D_data, int *azimuth, in
         *filter_length = p_3D_data->response_length;
 }
 
-#ifdef NDEF
-int
-int
-render_3D_get_lower_filter_length()
+/*=============================================================================================
+  convolve()   time-domain, on-the-fly convolution
+
+  Arguments:  signal           pointer to signal vector ('input')
+              answer           pointer to answer vector (answer of the system)
+              overlap          pointer to the overlap buffer
+              response         pointer to coefficients vector (transfer function of the system)
+              response_length  number of coefficients
+              signal_length    number of values in 'signal'
+=============================================================================================*/
+void
+convolve(sample *signal, sample *answer, double *overlap, double *response, int response_length, int signal_length)
 {
-        return MIN_RESPONSE_LENGTH;
+        sample  *signal_rptr, *answer_rptr;       /* running pointers within signal and answer vector */
+        int     i, j;                             /* loop counters */
+        double  *response_rptr;                   /* running pointer within response vector */
+        double  *overlap_rptr_1, *overlap_rptr_2; /* running pointer within the overlap buffer */
+        double  current;                          /* currently calculated answer value */
+
+        /* Initialise the running pointers for 'signal' and 'answer'. */
+        signal_rptr = signal;
+        answer_rptr = answer;
+        /*  Loop over the length of the signal vector. */
+        for(i = 0; i < signal_length ;i++) {
+                overlap[response_length-1] = *signal_rptr++;
+                response_rptr = response;
+                overlap_rptr_1 = overlap_rptr_2 = overlap;
+                current = *overlap_rptr_1++ * *response_rptr++;
+                /*  Use convolution method for computation */
+                for(j = 1; j < response_length ; j++) {
+                        *overlap_rptr_2++ = *overlap_rptr_1;
+                        current += *overlap_rptr_1++ * *response_rptr++;
+                }
+                /* Clamping */
+                if (current > 32767.0) {
+                        current = 32767.0;
+                        debug_msg("clipping\n");
+                } else if (current < -32767.0) {
+                        current = -32767.0;
+                        debug_msg("clipping\n");
+                }
+                /* store 'current' in answer vector. */
+                *answer_rptr++ = (short)current;
+        }
 }
 
-int
-render_3D_get_upper_filter_length()
-{
-        return MAX_RESPONSE_LENGTH;
-}
-#endif
+/* RAT specific */
+
+#include "session.h"
+#include "codec_types.h"
+#include "codec.h"
+#include "channel.h"
+#include "receive.h"
+#include "rtcp_pckt.h"
+#include "rtcp_db.h"
 
 void
 render_3D(rx_queue_element_struct *el, int no_channels)
@@ -372,50 +401,4 @@ render_3D(rx_queue_element_struct *el, int no_channels)
         block_check((char*)el->native_data[el->native_count - 1]);
         block_check((char*)el->native_data[el->native_count - 2]);
         xmemchk();
-}
-
-/*=============================================================================================
-  convolve()   time-domain, on-the-fly convolution
-
-  Arguments:  signal           pointer to signal vector ('input')
-              answer           pointer to answer vector (answer of the system)
-              overlap          pointer to the overlap buffer
-              response         pointer to coefficients vector (transfer function of the system)
-              response_length  number of coefficients
-              signal_length    number of values in 'signal'
-=============================================================================================*/
-void
-convolve(sample *signal, sample *answer, double *overlap, double *response, int response_length, int signal_length)
-{
-        sample  *signal_rptr, *answer_rptr;       /* running pointers within signal and answer vector */
-        int     i, j;                             /* loop counters */
-        double  *response_rptr;                   /* running pointer within response vector */
-        double  *overlap_rptr_1, *overlap_rptr_2; /* running pointer within the overlap buffer */
-        double  current;                          /* currently calculated answer value */
-
-        /* Initialise the running pointers for 'signal' and 'answer'. */
-        signal_rptr = signal;
-        answer_rptr = answer;
-        /*  Loop over the length of the signal vector. */
-        for(i = 0; i < signal_length ;i++) {
-                overlap[response_length-1] = *signal_rptr++;
-                response_rptr = response;
-                overlap_rptr_1 = overlap_rptr_2 = overlap;
-                current = *overlap_rptr_1++ * *response_rptr++;
-                /*  Use convolution method for computation */
-                for(j = 1; j < response_length ; j++) {
-                        *overlap_rptr_2++ = *overlap_rptr_1;
-                        current += *overlap_rptr_1++ * *response_rptr++;
-                }
-                /* Clamping */
-                if (current > 32767.0) {
-                        current = 32767.0;
-                        debug_msg("clipping\n");
-                } else if (current < -32767.0) {
-                        current = -32767.0;
-                        debug_msg("clipping\n");
-                }
-                /* store 'current' in answer vector. */
-                *answer_rptr++ = (short)current;
-        }
 }

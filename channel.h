@@ -138,8 +138,8 @@ int                collator_get_units  (struct s_collator *c);
 
 int                    add_comp_data   (struct rx_element_tag *u, int pt, struct iovec *iov, int iovc);
 struct rx_element_tag* get_rx_unit     (int n, int cc_pt, struct rx_element_tag *u);
-int                    fragment_sizes  (codec_t *cp, char *blk, int blen, struct iovec *store, int *iovc, int iovc_max);
-int                    fragment_spread (codec_t *cp, int len, struct iovec *iov,   int iovc,  struct rx_element_tag *u);
+int                    fragment_sizes  (codec_id_t id, char *blk, int blen, struct iovec *store, int *iovc, int iovc_max);
+int                    fragment_spread (codec_id_t id, int len, struct iovec *iov,   int iovc,  struct rx_element_tag *u);
 
 #endif
 

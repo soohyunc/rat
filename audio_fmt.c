@@ -42,11 +42,11 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-#include "codec_g711.h"
 #include "debug.h"
 #include "memory.h"
 #include "audio_types.h"
 #include "audio_fmt.h"
+#include "codec_g711.h"
 
 int
 audio_format_get_common(audio_format* ifmt, 
@@ -310,7 +310,7 @@ audio_format_buffer_convert(audio_format *src,
 int
 audio_format_change_encoding(audio_format *cur, deve_e new_enc)
 {
-        int bits_per_sample;
+        int bits_per_sample = 0;
 
         switch (new_enc) {
         case DEV_S16:  bits_per_sample = 16; break;

@@ -45,6 +45,7 @@
 #include "memory.h"
 #include "util.h"
 #include "session.h"
+#include "audio_fmt.h"
 #include "codec.h"
 #include "channel.h"
 #include "receive.h"
@@ -137,7 +138,7 @@ int
 red_config(session_struct *sp, red_coder_t *r, char *cmd)
 {
         char *s;
-        codec_t *cp;
+        codec_id_t id;
         int   i;
 
         UNUSED(sp);
@@ -148,12 +149,12 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
 
         s = strtok(cmd, "/");
         do {
-                cp = get_codec_by_name(s);
-                if (!cp) {
+                id = codec_get_by_name(s);
+                if (!id) {
                         debug_msg("Codec not recognized.\n");
                         abort();
                 }
-                r->coding[r->nlayers] = cp->pt;
+                r->coding[r->nlayers] = codec_get_payload(id);
                 s = strtok(NULL,"/");
                 r->offset[r->nlayers] = atoi(s);
 
@@ -170,11 +171,11 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
                 }
 
                 if (r->nlayers>0) {
-                        codec_t *cp0, *cp1;
-                        cp0 = get_codec_by_pt(r->coding[0]);
-                        cp1 = get_codec_by_pt(r->coding[r->nlayers]);
-                        assert(cp0 != NULL); assert(cp1 != NULL);
-                        assert(codec_compatible(cp0,cp1));
+                        codec_id_t id0, id1;
+                        id0 = codec_get_by_payload(r->coding[0]);
+                        id1 = codec_get_by_payload(r->coding[r->nlayers]);
+                        assert(id0); assert(id1);
+                        assert(codec_audio_formats_compatible(id0,id1));
                 }
                 r->nlayers++;
         } while((s=strtok(NULL,"/")) && r->nlayers<MAX_RED_LAYERS);
@@ -191,7 +192,8 @@ red_qconfig(session_struct    *sp,
             red_coder_t *r,
             char *buf, int blen) 
 {
-        codec_t *cp;
+        codec_id_t            id;
+        const codec_format_t *cf;
         int i,fraglen,len;
         char fragbuf[RED_FRAG_SZ];
 
@@ -199,8 +201,10 @@ red_qconfig(session_struct    *sp,
 
         len = 0;
         for(i=0;i<r->nlayers;i++) {
-                cp = get_codec_by_pt(r->coding[i]);
-                sprintf(fragbuf,"%s/%d/", cp->name, r->offset[i]);
+                id = codec_get_by_payload(r->coding[i]);
+                assert(id);
+                cf = codec_get_format(id);
+                sprintf(fragbuf,"%s/%d/", cf->long_name, r->offset[i]);
                 fraglen = strlen(fragbuf);
                 
                 if ((fraglen + len) < blen) {
@@ -223,7 +227,7 @@ red_pack_hdr(char *h, char more, char pt, short offset, short len)
         assert(((~0 <<  7) & pt)     == 0);
         assert(((~0 << 14) & offset) == 0);
         assert(((~0 << 10) & len)    == 0);
-        assert(get_codec_by_pt(pt));
+        assert(codec_get_by_payload((u_char)pt));
         if (more) {
                 u_int32 *hdr = (u_int32*)h;
                 (*hdr)       = 0;
@@ -281,7 +285,8 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
 {
         int i, avail, new_ts;
         cc_unit *u;
-        codec_t *cp;
+        codec_id_t id;
+        u_int16 samples_per_frame;
 
         r->head = (r->head + 1) % MAX_RED_OFFSET;
         r->len++;
@@ -322,8 +327,9 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
         avail = red_available(r);
         assert(avail <= r->nlayers);
 
-        cp = get_codec_by_pt(r->coding[0]);
-
+        id = codec_get_by_payload((u_char)r->coding[0]);
+        assert(id);
+        samples_per_frame = codec_get_samples_per_frame(id);
         if (avail != r->nlayers) {
                 /* Not enough redundancy available, so advertise max offset 
                  * to help receivers*/
@@ -332,7 +338,7 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
                 red_pack_hdr((char*)r->last.iov[0].iov_base, 
                              1, 
                              (char)r->coding[r->nlayers-1], 
-                             (short)(r->offset[r->nlayers-1] * collator_get_units(sp->collator) * cp->unit_len),
+                             (short)(r->offset[r->nlayers-1] * collator_get_units(sp->collator) * samples_per_frame),
                              0);
                 r->last_hdr_idx = 1;
                 r->last.iovc    = 1;
@@ -352,7 +358,7 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
                 red_pack_hdr((char*)r->last.iov[r->last.iovc].iov_base,
                              (char)i,
                              (char)r->coding[i],
-                             (short)(r->offset[r->nlayers-1] * collator_get_units(sp->collator) * cp->unit_len),
+                             (short)(r->offset[r->nlayers-1] * collator_get_units(sp->collator) * samples_per_frame),
                              (short)get_bytes(tmp)
                              );
                 r->last.iovc++;
@@ -414,8 +420,9 @@ red_decode(session_struct *sp, rx_queue_element_struct *u, red_dec_state *r)
         /* Second system 1 Old system 0 */
         rx_queue_element_struct *su;
         int i, max_off, hdr_idx, data_idx, off, len, update_req;
-        u_int32 red_hdr;
-        codec_t *cp;
+        u_int32 red_hdr, samples_per_frame;
+        codec_id_t            id;
+        
         cc_unit *cu = u->ccu[0];
 
         hdr_idx  = cu->hdr_idx;
@@ -429,55 +436,59 @@ red_decode(session_struct *sp, rx_queue_element_struct *u, red_dec_state *r)
 
         do {
                 red_hdr = ntohl(*((u_int32*)cu->iov[hdr_idx].iov_base));
-                cp      = get_codec_by_pt(RED_PT(red_hdr));
+                id      = codec_get_by_payload(RED_PT(red_hdr));
                 len     = RED_LEN(red_hdr);
-                if (cp != NULL && len != 0) {
+                if (id && len != 0) {
                         off = RED_OFF(red_hdr);
-                        su = get_rx_unit((max_off - off) / cp->unit_len, u->ccu[0]->pt, u);
-                        data_idx += fragment_spread(cp, len, &cu->iov[data_idx], cu->iovc - data_idx, su);
+                        samples_per_frame = codec_get_samples_per_frame(id);
+                        su = get_rx_unit((max_off - off) / samples_per_frame, u->ccu[0]->pt, u);
+                        data_idx += fragment_spread(id, len, &cu->iov[data_idx], cu->iovc - data_idx, su);
                 } else {
-                        if (cp==NULL) debug_msg("pt %d not decodable\n", cp->pt);
+                        if (!id) debug_msg("pt %d not decodable\n", RED_PT(red_hdr));
                 }
                 if ((hdr_idx >= 0          && 
                      hdr_idx<RED_MAX_RECV) && 
-                    cp                     &&
-                    cp->pt != r->encs[hdr_idx]) {
-                        r->encs[hdr_idx] = cp->pt;
+                    id                     &&
+                    codec_get_payload(id) != r->encs[hdr_idx]) {
+                        r->encs[hdr_idx] = codec_get_payload(id);
                         r->n = hdr_idx+1;
                         update_req = TRUE;
                 }
                 hdr_idx++;
         } while (cu->iov[hdr_idx].iov_len != 1);
 
-        cp = get_codec_by_pt(*((char*)cu->iov[hdr_idx].iov_base)&0x7f);
-        assert(cp);
+        id = codec_get_by_payload(*((char*)cu->iov[hdr_idx].iov_base)&0x7f);
+        assert(id);
         len = 0;
         i = data_idx;
         while (i < cu->iovc) 
                 len += cu->iov[i++].iov_len;
-        su = get_rx_unit(max_off / cp->unit_len, u->cc_pt, u);
-        data_idx += fragment_spread(cp, len, &cu->iov[data_idx], cu->iovc - data_idx, su);
+        samples_per_frame = codec_get_samples_per_frame(id);
+        su = get_rx_unit(max_off / samples_per_frame, u->cc_pt, u);
+        data_idx += fragment_spread(id, len, &cu->iov[data_idx], cu->iovc - data_idx, su);
         assert(data_idx == cu->iovc);
 
         if ((hdr_idx >= 0          && 
              hdr_idx<RED_MAX_RECV) && 
-            cp                     &&
-            cp->pt != r->encs[hdr_idx]) {
-                r->encs[hdr_idx] = cp->pt;
+            id                     &&
+            codec_get_payload(id) != r->encs[hdr_idx]) {
+                r->encs[hdr_idx] = codec_get_payload(id);
                 update_req = TRUE;
         }
 
         if (update_req) {
                 /* this is not nice, running out of time... */
+                const codec_format_t *cf;
                 char fmt[100];
                 sprintf(fmt, "REDUNDANCY(");
                 len = 11;
                 r->n = hdr_idx + 1;
                 for(i = 0; i < r->n; i++) {
-                        cp = get_codec_by_pt(r->encs[r->n - 1 - i]);
-                        if (cp) {
-                                sprintf(fmt+len, "%s,",cp->name);
-                                len += strlen(cp->name) + 1;
+                        id = codec_get_by_payload(r->encs[r->n - 1 - i]);
+                        cf = codec_get_format(id);
+                        if (id) {
+                                sprintf(fmt+len, "%s,", cf->short_name);
+                                len += strlen(cf->short_name) + 1;
                         } else {
                                 debug_msg("pt %d not recognized\n", r->encs[r->n - 1 - i]);
                         }
@@ -491,14 +502,17 @@ int
 red_bps(session_struct *sp, red_coder_t *r)
 {
         int i, b, ups, upp;
-        codec_t *cp;
+        codec_id_t id;
+        const codec_format_t *cf;
         b = 0;
         upp = collator_get_units(sp->collator);
-        cp  = get_codec_by_pt(r->coding[0]);
-        ups = cp->freq / cp->unit_len;
+        id  = codec_get_by_payload(r->coding[0]);
+        cf  = codec_get_format(id);
+        ups = cf->format.sample_rate / codec_get_samples_per_frame(id);
         for(i=0;i<r->nlayers;i++) {
-                cp = get_codec_by_pt(r->coding[i]);
-                b += cp->max_unit_sz * upp + cp->sent_state_sz + 4;
+                id = codec_get_by_payload(r->coding[i]);
+                cf  = codec_get_format(id);
+                b += cf->mean_coded_frame_size * upp + cf->mean_per_packet_state_size + 4;
         }
         b += 1 + (r->nlayers-1)*4 + 12; /* headers */
         return (8*b*ups/upp);
@@ -512,6 +526,13 @@ red_bps(session_struct *sp, red_coder_t *r)
 
 int
 red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inter_pkt_gap) {
+<<<<<<< cc_red.c
+        UNUSED(blk);
+        UNUSED(blen);
+        UNUSED(cu);
+        UNUSED(trailing);
+        UNUSED(inter_pkt_gap);
+=======
         int 	 tlen, n, todo;
         int 	 hdr_idx; 
         u_int32  red_hdr, max_off;
@@ -594,6 +615,7 @@ fail:
         }
 
         cu->iovc = 0;
+>>>>>>> 1.29
         return 0;
 }
 

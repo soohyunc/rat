@@ -48,7 +48,9 @@
 #include "net.h"
 #include "transmit.h"
 #include "audio.h"
+#include "codec_types.h"
 #include "codec.h"
+#include "session.h"
 #include "channel.h"
 #include "receive.h"
 #include "convert.h"
@@ -182,7 +184,7 @@ static void rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct 
                         filter_type = render_3D_filter_get_by_name(filter_name);
                         freq        = get_freq(sp->device_clock);
                         if (e->render_3D_data == NULL) {
-                                e->render_3D_data = render_3D_init(sp);
+                                e->render_3D_data = render_3D_init(get_freq(sp->device_clock));
                         }
                         render_3D_set_parameters(e->render_3D_data, freq, azimuth, filter_type, filter_length);
                 }
@@ -750,13 +752,10 @@ rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
 {
         static int virgin = 1;
 	char	*short_name, *sfreq, *schan;
-        int      pt, freq, channels;
-	codec_t *next_cp, *cp;
+        int      freq, channels;
+        codec_id_t cid, next_cid;
 
 	UNUSED(srce);
-
-        pt = -1;
-        next_cp = NULL;
 
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_str(sp->mbus_engine_conf, &short_name) &&
@@ -781,18 +780,17 @@ rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
         }
 
         freq = atoi(sfreq) * 1000;
+        next_cid = codec_get_matching(short_name, (u_int16)freq, (u_int16)channels);
 
-        if (-1 != (pt = codec_matching(short_name, freq, channels))) {
-                next_cp = get_codec_by_pt(pt);
-                cp      = get_codec_by_pt(sp->encodings[0]);
-                assert(next_cp != NULL);
-                assert(cp      != NULL);
-                if (codec_compatible(next_cp, cp)) {
-                        sp->encodings[0] = pt;
+        if (next_cid) {
+                cid     = codec_get_by_payload (sp->encodings[0]);
+                assert(cid);
+                if (codec_audio_formats_compatible(next_cid, cid)) {
+                        sp->encodings[0] = codec_get_payload(next_cid);
                         ui_update_primary(sp);
                 } else {
                         /* just register we want to make a change */
-                        sp->next_encoding = pt;
+                        sp->next_encoding = codec_get_payload(next_cid);
                         if (virgin) {
                                 audio_device_reconfigure(sp);
                                 virgin = 0;
@@ -804,8 +802,9 @@ rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
 static void 
 rx_tool_rat_sampling(char *srce, char *args, session_struct *sp)
 {
-        int channels, freq, pt;
+        int channels, freq;
         char *sfreq, *schan;
+        codec_id_t id;
 
         UNUSED(srce);
         UNUSED(sp);
@@ -824,9 +823,9 @@ rx_tool_rat_sampling(char *srce, char *args, session_struct *sp)
                 freq = atoi(sfreq) * 1000;
         }
 
-        pt = codec_first_with(freq, channels);
-        if (pt != -1) {
-                ui_codecs(sp, pt);
+        id = codec_get_first_mapped_with((u_int16)freq, (u_int16)channels);
+        if (id) {
+                ui_codecs(sp, codec_get_payload(id));
         } else {
                 printf("mbus: usage \"tool.rat.sampling <freq> <channels>\"\n");
         }
@@ -895,14 +894,13 @@ static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine_conf);
 }
 
-static codec_t*
-validate_redundant_codec(codec_t *primary, codec_t *redundant) 
+static codec_id_t
+validate_redundant_codec(codec_id_t primary, codec_id_t redundant) 
 {
-        assert(primary != NULL);
+        assert(primary);
         
-        if ((redundant == NULL) ||                       /* passed junk */
-            (!codec_compatible(primary, redundant)) ||   /* passed incompatible codec */
-            (redundant->unit_len > primary->unit_len)) { /* passed higher bandwidth codec */
+        if ((redundant) ||                       /* passed junk */
+            (!codec_audio_formats_compatible(primary, redundant))) {
                 return primary;
         }
         return redundant;
@@ -911,9 +909,10 @@ validate_redundant_codec(codec_t *primary, codec_t *redundant)
 static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
 {
         char	*channel, *codec;
-        int 	 units, separation, cc_pt, offset, rpt;
+        int 	 units, separation, cc_pt, offset;
         char 	 config[80];
-	codec_t *rcp, *pcp;
+	codec_id_t rcid, cid;
+        const codec_format_t *pcf, *rcf;
 
 	UNUSED(srce);
 
@@ -926,19 +925,20 @@ static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
                         channel_set_coder(sp, get_cc_pt(sp, "REDUNDANCY"));
 			if (mbus_parse_str(sp->mbus_engine_conf, &codec) && mbus_parse_int(sp->mbus_engine_conf, &offset)) {
 				if (offset<=0) offset = 0;;
-				pcp = get_codec_by_pt(sp->encodings[0]);
-				rpt = codec_matching(mbus_decode_str(codec), pcp->freq, pcp->channels);
-				if (rpt != -1) {
-					rcp = get_codec_by_pt(rpt);
-				} else {
+				cid  = codec_get_by_payload(sp->encodings[0]);
+                                pcf = codec_get_format(cid);
+				rcid = codec_get_matching(mbus_decode_str(codec), 
+                                                          pcf->format.sample_rate, 
+                                                          pcf->format.channels);
+				if (!rcid) {
 					/* Specified secondary codec doesn't exist. Make it the same */
 					/* as the primary, and hope that's a sensible choice.        */
-					rcp = pcp;
+					rcid = cid;
 				}
-				assert(rcp != NULL);
 				/* Check redundancy makes sense... */
-				rcp = validate_redundant_codec(pcp,rcp);
-				sprintf(config,"%s/0/%s/%d", pcp->name, rcp->name, offset);
+				rcid = validate_redundant_codec(cid,rcid);
+                                rcf = codec_get_format(rcid);
+				sprintf(config,"%s/0/%s/%d", pcf->long_name, rcf->long_name, offset);
 				debug_msg("Configuring redundancy %s\n", config);
 				cc_pt = get_cc_pt(sp,"REDUNDANCY");
 				config_channel_coder(sp, cc_pt, config);

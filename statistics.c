@@ -49,6 +49,8 @@
 #include "memory.h"
 #include "util.h"
 #include "session.h"
+#include "codec_types.h"
+#include "channel.h"
 #include "receive.h"
 #include "timers.h"
 #include "pckt_queue.h"
@@ -93,7 +95,7 @@ update_database(session_struct *sp, u_int32 ssrc)
 
 static int
 split_block(u_int32 playout_pt, 
-            codec_t *cp,
+            codec_id_t cid,
             char *data_ptr, 
             int len,
 	    rtcp_dbentry *src, 
@@ -102,7 +104,8 @@ split_block(u_int32 playout_pt,
             rtp_hdr_t *hdr, 
             session_struct *sp)
 {
-	int	units, i, j, k, trailing; 
+	int	units, i, j, k, trailing;
+        u_int32 samples_per_frame;
 	rx_queue_element_struct	*p;
         cc_unit *ccu;
 
@@ -131,14 +134,16 @@ split_block(u_int32 playout_pt,
         }
         xmemchk();
 
+        samples_per_frame = codec_get_samples_per_frame(cid);
+
         for(i=0;i<trailing;i++) {
 		p = new_rx_unit();
-		p->unit_size        = cp->unit_len;
+		p->unit_size        = samples_per_frame;
 		p->units_per_pckt   = units;
 		p->mixed            = FALSE;
 		p->dbe_source[0]    = src;
-                p->playoutpt        = playout_pt + i * cp->unit_len;
-                p->src_ts           = hdr->ts + i * cp->unit_len;
+                p->playoutpt        = playout_pt + i * samples_per_frame;
+                p->src_ts           = hdr->ts + i * samples_per_frame;
                 p->comp_count       = 0;
                 p->cc_pt            = ccu->cc->pt;
 		for (j = 0, k = 1; j < hdr->cc; j++) {
@@ -177,7 +182,8 @@ adapt_playout(rtp_hdr_t *hdr,
         u_int32 minv, maxv; 
 
 	int	delay, diff;
-	codec_t	*cp;
+	codec_id_t            cid;
+        const codec_format_t *cf;
 	u_int32	ntptime, play_time;
 	u_int32	sendtime = 0;
         int     ntp_delay = 0;
@@ -194,9 +200,10 @@ adapt_playout(rtp_hdr_t *hdr,
 		src->delay           = delay;
 		src->last_ts         = hdr->ts - 1;
 		hdr->m               = TRUE;
-                cp = get_codec_by_pt(src->enc);
-                if (cp) {
-                        src->jitter  = 3 * 20 * cp->freq / 1000;
+                cid = codec_get_by_payload(src->enc);
+                if (cid) {
+                        cf = codec_get_format(cid);
+                        src->jitter  = 3 * 20 * cf->format.sample_rate / 1000;
                 } else {
                         src->jitter  = 240; 
                 }
@@ -232,7 +239,6 @@ adapt_playout(rtp_hdr_t *hdr,
 	}
 
 	if (ts_gt(hdr->ts, src->last_ts)) {
-		cp = get_codec_by_pt(src->enc);
 		/* IF (a) TS start 
                    OR (b) we've thrown 4 consecutive packets away 
                    OR (c) ts have jumped by 8 packets worth 
@@ -422,12 +428,13 @@ rtp_header_validation(rtp_hdr_t *hdr, int32 *len, int *extlen)
 }
 
 static void
-receiver_change_format(rtcp_dbentry *dbe, codec_t *cp)
+receiver_change_format(rtcp_dbentry *dbe, codec_id_t cid)
 {
-        debug_msg("Changing Format. %d %d\n", dbe->enc, cp->pt);
+        const codec_format_t *cf = codec_get_format(cid);
+        debug_msg("Changing Format. %d %d\n", dbe->enc, codec_get_payload(cid));
         dbe->first_pckt_flag = TRUE;
-        dbe->enc             = cp->pt;
-	change_freq(dbe->clock, cp->freq);
+        dbe->enc             = codec_get_payload(cid);
+	change_freq(dbe->clock, cf->format.sample_rate);
 }  
 
 /* Statistics _init and _end allocate good_pckt_queue which is used
@@ -488,7 +495,7 @@ statistics(session_struct      *sp,
 	rtcp_dbentry	*src = NULL;
 	u_int32		 now, now_device, late_adjust;
 	pckt_queue_element *pckt;
-	codec_t		*pcp = NULL;
+	codec_id_t       cid = 0;
 	char 		 update_req = FALSE;
         int pkt_cnt = 0, late_cnt;
 
@@ -539,22 +546,21 @@ statistics(session_struct      *sp,
                 data_ptr =  (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
         
-                if ( ((pcp = get_codec_by_pt(hdr->pt)) == NULL &&
-                    (pcp = get_codec_by_pt(get_wrapped_payload(hdr->pt, (char*) data_ptr, len))) == NULL) || 
-                    (pcp != NULL && pcp->decode == NULL)) {
+                if ( ((cid = codec_get_by_payload(hdr->pt)) == 0 &&
+                    (cid = codec_get_by_payload(get_wrapped_payload(hdr->pt, (char*) data_ptr, len))) == 0) || 
+                    (cid != 0 && codec_can_decode(cid) == FALSE)) {
                         /* We don't recognise this payload, or we don't have a decoder for it. */
-                        assert(pcp->decode);
 			debug_msg("Cannot decode data (pt %d).\n",hdr->pt);
 			goto release;
                 }
         
-                if ((src->enc == -1) || (src->enc != pcp->pt))
-                        receiver_change_format(src, pcp);
+                if ((src->enc == -1) || (src->enc != codec_get_payload(cid)))
+                        receiver_change_format(src, cid);
                 
-                if (src->enc != pcp->pt) {
+                if (src->enc != codec_get_payload(cid)) {
                         /* we should tell update more about coded format */
-                        src->enc = pcp->pt;
-                        debug_msg("src enc %d pcp enc %d\n", src->enc, pcp->pt);
+                        debug_msg("src enc %d pcp enc %d\n", src->enc, codec_get_payload(cid));
+                        src->enc = codec_get_payload(cid);
                         update_req = TRUE;
                 }
 
@@ -596,7 +602,7 @@ statistics(session_struct      *sp,
                 data_ptr =  (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
 
-                src->units_per_packet = split_block(pckt->playout + late_adjust, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp);
+                src->units_per_packet = split_block(pckt->playout + late_adjust, cid, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp);
                 block_trash_check();
                 pckt_queue_element_free(&pckt);
         }

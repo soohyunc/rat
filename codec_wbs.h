@@ -1,43 +1,52 @@
-#ifndef _SUBBAND_H_
-#define _SUBBAND_H_
+/*
+ * FILE:    codec_wbs.h
+ * AUTHORS: Orion Hodson
+ * 
+ * Copyright (c) 1998 University College London
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, is permitted, for non-commercial use only, provided
+ * that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *      This product includes software developed by the Computer Science
+ *      Department at University College London
+ * 4. Neither the name of the University nor of the Department may be used
+ *    to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ * Use of this software for commercial purposes is explicitly forbidden
+ * unless prior written permission is obtained from the authors.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
 
-#define LO_ENC_DBG 0 /* Low band Encoder Debug switch */
-#define LO_DEC_DBG 0 /* Low band Decoder Debug switch */
-#define HI_ENC_DBG 0 /* High band Encoder Debug switch */
-#define HI_DEC_DBG 0 /* High band Decoder Debug switch */
-#define QMF_SP_DBG 0 /* QMF Split operation Debug switch */
-#define QMF_MX_DBG 0 /* QMF Combine operation Debug switch */
-#define LO_STATE_DBG 0 /* Low band State transmission Debug switch */
-#define HI_STATE_DBG 0 /* High band State transmission Debug switch */
-#define QMF_STATE_DBG 0 /* QMF State transmission Debug switch */
+#ifndef _CODEC_WBS_H_
+#define _CODEC_WBS_H_
 
-#define NOISE_SHAPE_ON 1
-#define NOISE_SHAPE_FACTOR 0.65
+u_int16               wbs_get_formats_count (void);
+const codec_format_t* wbs_get_format        (u_int16 idx);
+int                   wbs_state_create      (u_int16 idx, u_char **state);
+void                  wbs_state_destroy     (u_int16 idx, u_char **state);
+int                   wbs_encoder           (u_int16 idx, u_char *state, sample     *in, coded_unit *out);
+int                   wbs_decoder           (u_int16 idx, u_char *state, coded_unit *in, sample     *out);
 
-typedef short     int_16;
-typedef int       int_32;
+#endif /* _CODEC_WBS_H_ */
 
-typedef struct wbs_state_struct_tag {
-	int_32 low[6];
-	int_32 hi[2];
-} wbs_state_struct;
 
-#define SAMPLES_PER_WBS_UNIT 160
 
-#define WBS_STATE_SIZE sizeof(struct wbs_state_struct_tag)
-#define WBS_UNIT_SIZE (SAMPLES_PER_WBS_UNIT / 2)
-
-typedef struct subband_tag {
-	sample Low[SAMPLES_PER_WBS_UNIT / 2];
-	sample High[SAMPLES_PER_WBS_UNIT / 2];
-} subband_struct;
-
-int LowEnc(sample *data, unsigned char *cw, int_32 state[], sample *ns_state);
-int LowDec(unsigned char *cw, sample *data, int_32 state[], sample *ns_state);
-int HighEnc(sample *data, unsigned char *cw, int_32 state[]);
-int HighDec(unsigned char *cw, sample *data, int_32 state[]);
-int QMF(sample *data, subband_struct *SubBandData, double *, double *);
-int deQMF(subband_struct *SubBandData, sample *decomp_data, double *LowBandIntState, double *HighBandIntState);
-void wbs_state_init(wbs_state_struct *state, double qmf_lo[], double qmf_hi[], sample *ns);
-
-#endif /* _SUBBAND_H_ */

@@ -1,12 +1,8 @@
 /*
  * FILE:    codec.c
- * PROGRAM: RAT
- * AUTHOR:  I.Kouvelas / O.Hodson
+ * AUTHORS: Orion Hodson
  * 
- * $Revision$
- * $Date$
- *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1998 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,8 +20,6 @@
  * 4. Neither the name of the University nor of the Department may be used
  *    to endorse or promote products derived from this software without
  *    specific prior written permission.
- * Use of this software for commercial purposes is explicitly forbidden
- * unless prior written permission is obtained from the authors.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -42,798 +36,819 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-#include "audio.h"
-#include "memory.h"
 #include "debug.h"
+
+/* These two just for UCL memory debugging fn's */
+#include "memory.h"
 #include "util.h"
+
+#include "codec_types.h"
 #include "codec.h"
-#include "codec_gsm.h"
-#include "codec_acm.h"
-#include "codec_adpcm.h"
+#include "codec_l16.h"
 #include "codec_g711.h"
+#include "codec_adpcm.h"
+#include "codec_gsm.h"
 #include "codec_lpc.h"
+#include "codec_vdvi.h"
 #include "codec_wbs.h"
-#include "session.h"
-#include "receive.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
-#include "transmit.h"
 
-typedef struct s_codec_state {
-	struct s_codec_state *next;
-	int	id;	/* Codec payload type */
-	char	*s;	/* State */
-} state_t;
-
-static void
-l16_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
-{
-  	int i;
-	sample *d;
-
-        UNUSED(s);
-
-	d = (sample *)c->data;
-	/* As this codec can deal with variable unit sizes
-	 * let the table dictate what we do. */
-  	for (i=0; i < cp->unit_len*cp->channels; i++) {
-		*d++ = htons(*data);
-		data++;
-	}
-}
-
-static void
-l16_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
-{
-	int	i;
-	sample	*p = (sample *)c->data;
-
-        UNUSED(s);
-
-	for (i = 0; i < cp->unit_len*cp->channels; i++) {
-		*data++ = ntohs(*p);
-		p++;
-	}
-}
-
-static void
-ulaw_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
-{
-	int	i;
-	u_char	*p = c->data;
-
-        UNUSED(s);
-
-	for (i = 0; i < cp->unit_len; i++, p++, data++) {
-                *p = s2u(*data);
-        }
-}
-
-static void
-ulaw_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
-{
-	int	i;
-	u_char	*sc = (u_char *)c->data;
-
-        UNUSED(s);
-
-	for(i = 0; i < cp->unit_len; i++, sc++, data++) {
-		*data = u2s(*sc);
-	}
-}
-
-static void
-alaw_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
-{
-	int	i;
-	u_char	*p = c->data;
-
-        UNUSED(s);
-
-	for (i = 0; i < cp->unit_len; i++, p++, data++) {
-		*p = s2a(*data);
-        }
-}
-
-static void
-alaw_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
-{
-	int	i;
-	u_char	*sc = (u_char *)c->data;
-
-        UNUSED(s);
-
-	for(i = 0; i < cp->unit_len; i++, sc++, data++) {
-		*data = a2s(*sc);
-	}
-}
-
-static void
-dvi_init(session_struct *sp, state_t *s, codec_t *c)
-{
-        UNUSED(sp);
-
-	s->s = (char *) xmalloc(c->sent_state_sz);
-	memset(s->s, 0, c->sent_state_sz);
-}
-
-static void
-dvi_free(state_t *s)
-{
-        xfree(s->s);
-}
-
-static void
-dvi_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
-{
-	memcpy(c->state, s->s, sizeof(struct adpcm_state));
-	((struct adpcm_state*)c->state)->valprev = htons(((struct adpcm_state*)c->state)->valprev);
-	adpcm_coder(data, c->data, cp->unit_len, (struct adpcm_state*)s->s);
-}
-
-static void
-dvi_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
-{
-	if (c->state_len > 0) {
-		assert(c->state_len == cp->sent_state_sz);
-		memcpy(s->s, c->state, sizeof(struct adpcm_state));
-		((struct adpcm_state*)s->s)->valprev = ntohs(((struct adpcm_state*)s->s)->valprev);
-	}
-	adpcm_decoder(c->data, data, cp->unit_len, (struct adpcm_state*)s->s);
-}
-
-typedef struct s_wbs_state {
-	wbs_state_struct	state;
-	double			qmf_lo[16];
-	double			qmf_hi[16];
-	short			ns;		/* Noise shaping state */
-} wbs_t;
-
-static void
-wbs_init(session_struct *sp, state_t *s, codec_t *c)
-{
-	wbs_t *wsp;
-
-        UNUSED(sp);
-        UNUSED(c);
-
-	s->s = (char *) xmalloc(sizeof(wbs_t));
-	wsp = (wbs_t *)s->s;
-	wbs_state_init(&wsp->state, wsp->qmf_lo, wsp->qmf_hi, &wsp->ns);
-}
-
-static void
-wbs_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
-{
-	subband_struct SubBandData;
-	wbs_t *wsp;
-
-        UNUSED(cp);
-
-	wsp = (wbs_t *)s->s;
-	memcpy(c->state, &wsp->state, WBS_STATE_SIZE);
-	QMF(data, &SubBandData, wsp->qmf_lo, wsp->qmf_hi);
-	LowEnc(SubBandData.Low, c->data, wsp->state.low, &wsp->ns);
-	HighEnc(SubBandData.High, c->data, wsp->state.hi);
-}
-
-static void
-wbs_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
-{
-	subband_struct SubBandData;
-	wbs_t	*wsp = (wbs_t *)s->s;
-
-	if (c->state_len > 0)
-		memcpy(&wsp->state, c->state, cp->sent_state_sz);
-
-	LowDec(c->data, SubBandData.Low, wsp->state.low, &wsp->ns);
-	HighDec(c->data, SubBandData.High, wsp->state.hi);
-	deQMF(&SubBandData, data, wsp->qmf_lo, wsp->qmf_hi);
-}
-
-static void
-lpc_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
-{
-        UNUSED(s);
-        UNUSED(cp);
-
-	lpc_analyze(data, (lpc_txstate_t *)c->data);
-	((lpc_txstate_t *)c->data)->period = htons(((lpc_txstate_t *)c->data)->period);
-}
-
-static void
-lpc_decode_init(session_struct *sp, state_t *s, codec_t *c)
-{
-        UNUSED(sp);
-        UNUSED(c);
-
-	s->s = (char*) xmalloc (sizeof(lpc_intstate_t));
-	lpc_init((lpc_intstate_t*)s->s);
-}
-
-static void
-lpc_decode_free(state_t *s)
-{
-        xfree(s->s);
-}
-
-static void
-lpc_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
-{
-        UNUSED(cp);
-
-	((lpc_txstate_t *)c->data)->period = htons(((lpc_txstate_t *)c->data)->period);
-	lpc_synthesize(data, (lpc_txstate_t*)c->data, (lpc_intstate_t*)s->s);
-}
-
-static void
-gsm_init(session_struct *sp, state_t *s, codec_t *c)
-{
-        UNUSED(sp);
-        UNUSED(c);
-
-	s->s = (char *)gsm_create();
-}
-
-static void
-gsm_free(state_t *s)
-{
-        gsm_destroy((gsm)s->s);
-}
-
-static void
-gsm_encoding(sample *data, coded_unit *c, state_t *s, codec_t *cp)
-{
-        UNUSED(cp);
-
-	gsm_encode((gsm)s->s, data, (gsm_byte *)c->data); 
-}
-
-static void
-gsm_decoding(coded_unit *c, sample *data, state_t *s, codec_t *cp)
-{
-        UNUSED(cp);
-
-	gsm_decode((gsm)s->s, (gsm_byte*)c->data, (gsm_signal*)data);
-}
-
-#ifdef WIN32
-static void
-acm_enc_init(session_struct *sp, state_t *s, codec_t *cp)
-{
-        UNUSED(sp);
-        s->s = (char*)acmEncoderCreate(cp);
-        if (!s->s) disable_codec(cp);
-}
-
-static void
-acm_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
-{
-        UNUSED(cp);
-        acmEncode((struct s_acm_state*)s->s, data, c); 
-}
-
-static void
-acm_enc_free(state_t *s)
-{
-        acmEncoderDestroy((struct s_acm_state*)s->s);
-}
-
-#endif /* WIN32 */
-
-static u_int32
-g723_frame_size(char *blk)
-{       
-        switch(blk[0] & 0x03) {
-        case 0:  return 24;
-        case 1:  return 20;
-        case 2:  return  4;
-        default: return  0; /* 3 - Reserved */
-        }
-}
-
-#define DYNAMIC		-1
-
-/* Quality Ratings are add hoc and only used to choose between which format 
- * to decode when redundancy is used.
- * Scales are:  8000Hz   0 - 19
- *             11025Hz  20 - 39
- *             16000Hz  40 - 59
- *             22050Hz  60 - 79
- *             32000Hz  80 - 99
- *             44100Hz 100 - 119
- *             48000Hz 120 - 139
+/* Codec class initialization - hey didn't c++ happen somewhere along the 
+ * timeline ;-) 
  */
 
-/* If you change the short_names of the dynamically detected codecs
- * here, update the files that add fn's to this table, i.e.
- * G723.1, G728.
- */
+/* One time codec {con,de}struction */
+typedef void    (*cx_init_f) (void);
+typedef void    (*cx_exit_f) (void);
 
-static codec_t codec_list[] = {
-	{"LPC-8K-MONO", "LPC", 0, 7, 8000, 2, 1, 160, 
-         0, LPCTXSIZE, 
-         NULL, lpc_encode, NULL, 
-         lpc_decode_init, lpc_decode, lpc_decode_free, NULL},
-	{"GSM-8K-MONO", "GSM", 5, 3, 8000, 2, 1, 160, 
-         0, 33, 
-         gsm_init, gsm_encoding, gsm_free, 
-         gsm_init, gsm_decoding, gsm_free, NULL},
-#ifdef WIN32_ACM
-        {"G723.1-8K-MONO", "G723.1(6.3kb/s)", 10, 4, 8000, 2, 1, 240, 
-         0, 24, 
-         acm_enc_init, acm_encode, acm_enc_free, 
-         NULL, NULL, NULL, g723_frame_size},
-        {"G723.1-8K-MONO", "G723.1(5.3kb/s)", 9, 4, 8000, 2, 1, 240, 
-         0, 20, 
-         acm_enc_init, acm_encode, acm_enc_free, 
-         NULL, NULL, NULL, g723_frame_size},
-#else
-        {"G723.1-8K-MONO", "G723.1(6.3kb/s)", 10, 4, 8000, 2, 1, 240, 
-         0, 24, 
-         NULL, NULL, NULL, 
-         NULL, NULL, NULL, g723_frame_size},
-        {"G723.1-8K-MONO", "G723.1(5.3kb/s)", 9, 4, 8000, 2, 1, 240, 
-         0, 20, 
-         NULL, NULL, NULL, 
-         NULL, NULL, NULL, g723_frame_size},
-#endif
-        {"G728-8K-MONO", "G728(16kb/s)",11, 15, 8000, 2, 1, 160,
-         0, 40,
-         NULL, NULL, NULL,
-         NULL, NULL, NULL, NULL},
-        {"G729-8K-MONO", "G729(16kb/s)", 12, 18, 8000, 2, 1, 160,
-         0, 20,
-         NULL, NULL, NULL,
-         NULL, NULL, NULL, NULL},
-	{"DVI-8K-MONO", "DVI-ADPCM", 14, 5, 8000, 2, 1, 160, 
-         sizeof(struct adpcm_state), 80, 
-         dvi_init, dvi_encode, dvi_free, 
-         dvi_init, dvi_decode, dvi_free, NULL},
-        {"PCMA-8K-MONO", "A-Law", 15, 8, 8000, 2, 1, 160, 
-         0, 160, 
-         NULL, alaw_encode, NULL, 
-         NULL, alaw_decode, NULL, NULL},
-	{"PCMU-8K-MONO", "Mu-Law", 16, 0, 8000, 2, 1, 160, 
-         0, 160, 
-         NULL, ulaw_encode, NULL, 
-         NULL, ulaw_decode, NULL, NULL},
-	{"L16-8K-MONO", "Linear-16", 19, DYNAMIC, 8000, 2, 1, 160, 
-         0, 320, 
-         NULL, l16_encode, NULL, 
-         NULL, l16_decode, NULL, NULL},
-	{"L16-8K-STEREO", "Linear-16", 19, DYNAMIC, 8000, 2, 2, 160, 
-         0, 640, 
-         NULL, l16_encode, NULL, 
-         NULL, l16_decode, NULL, NULL},
-	{"DVI-16K-MONO", "DVI-ADPCM", 45, 6, 16000, 2, 1, 160, 
-         sizeof(struct adpcm_state), 80, 
-         dvi_init, dvi_encode, dvi_free, 
-         dvi_init, dvi_decode, dvi_free, NULL},
-	{"WBS-16K-MONO", "WB-ADPCM", 46, DYNAMIC, 16000, 2, 1, 160, 
-         WBS_STATE_SIZE, WBS_UNIT_SIZE, 
-         wbs_init, wbs_encode, NULL, 
-         wbs_init, wbs_decode, NULL, NULL},
-	{"L16-16K-MONO", "Linear-16", 59, DYNAMIC, 16000, 2, 1, 160, 
-         0, 320, 
-         NULL, l16_encode, NULL, 
-         NULL, l16_decode, NULL, NULL}, 
-	{"L16-16K-STEREO", "Linear-16", 59, DYNAMIC, 16000, 2, 2, 160, 
-         0, 640, 
-         NULL, l16_encode, NULL, 
-         NULL, l16_decode, NULL, NULL}, 
-	{"L16-32K-MONO", "Linear-16", 99, DYNAMIC, 32000, 2, 1, 160, 
-         0, 320, 
-         NULL, l16_encode, NULL, 
-         NULL, l16_decode, NULL, NULL},
-	{"L16-32K-STEREO", "Linear-16", 99, DYNAMIC, 32000, 2, 2, 160, 
-         0, 640, 
-         NULL, l16_encode, NULL, 
-         NULL, l16_decode, NULL, NULL},
-	{"L16-44K-MONO", "Linear-16", 119, 11, 44100, 2, 1, 160, 
-         0, 320, 
-         NULL, l16_encode, NULL, 
-         NULL, l16_decode, NULL, NULL},
-	{"L16-44K-STEREO", "Linear-16", 119, 10, 44100, 2, 2, 160, 
-         0, 640, 
-         NULL, l16_encode, NULL, 
-         NULL, l16_decode, NULL, NULL}, 
-	{"L16-48K-MONO", "Linear-16", 139, DYNAMIC, 48000, 2, 1, 160, 
-         0, 320, 
-         NULL, l16_encode, NULL, 
-         NULL, l16_decode, NULL, NULL}, 
-	{"L16-48K-STEREO", "Linear-16", 139, DYNAMIC, 48000, 2, 2, 160, 
-         0, 640, 
-         NULL, l16_encode, NULL, 
-         NULL, l16_decode, NULL, NULL}, 
-	{""}
+/* Codec Probing functions */
+typedef u_int16               (*cx_get_formats_count_f) (void);
+typedef const codec_format_t* (*cx_get_format_f)        (u_int16);
+
+/* Codec Encoding functions */
+typedef int     (*cx_encoder_create_f)    (u_int16 idx, u_char **state);
+typedef void    (*cx_encoder_destroy_f)   (u_int16 idx, u_char **state);
+typedef int     (*cx_encode_f)            (u_int16 idx, u_char *state, 
+                                           sample *in, coded_unit *out);
+typedef int     (*cx_can_encode_f)        (u_int16 idx);
+
+/* Codec Decoding functions */
+typedef int     (*cx_decoder_create_f)    (u_int16 idx, u_char **state);
+typedef void    (*cx_decoder_destroy_f)   (u_int16 idx, u_char **state);
+typedef int     (*cx_decode_f)            (u_int16 idx, u_char *state, 
+                                           coded_unit *in, sample *out);
+typedef int     (*cx_can_decode_f)        (u_int16 idx);
+
+/* For determining frame sizes of variable bit rate codecs */
+typedef int     (*cx_peek_size_f)         (u_int16 idx, u_char *data, int data_len);
+
+/* For codec domain repair schemes */
+typedef int     (*cx_repair_f)            (u_int16 idx, 
+                                           u_char *state,
+                                           u_int16 consec_missing,
+                                           coded_unit *prev,
+                                           coded_unit *missing,
+                                           coded_unit *next);
+
+typedef struct s_codec_fns {
+        cx_init_f               cx_init;
+        cx_exit_f               cx_exit;
+        cx_get_formats_count_f  cx_get_formats_count;
+        cx_get_format_f         cx_get_format;
+        cx_encoder_create_f     cx_encoder_create;
+        cx_encoder_destroy_f    cx_encoder_destroy;
+        cx_encode_f             cx_encode;
+        cx_can_encode_f         cx_can_encode;
+        cx_decoder_create_f     cx_decoder_create;
+        cx_decoder_destroy_f    cx_decoder_destroy;
+        cx_decode_f             cx_decode;
+        cx_can_decode_f         cx_can_decode;
+        cx_peek_size_f          cx_peek_size;
+        cx_repair_f             cx_repair;
+} codec_fns_t;
+
+static codec_fns_t codec_table[] = {
+        {
+                NULL, 
+                NULL,
+                l16_get_formats_count,
+                l16_get_format,
+                NULL, /* No encoder setup / tear down */
+                NULL, 
+                l16_encode,
+                NULL,
+                NULL,
+                NULL, /* No decoder setup / tear down */
+                l16_decode,
+                NULL,
+                NULL,
+                NULL
+        },
+        {       g711_init,
+                NULL,
+                g711_get_formats_count,
+                g711_get_format,
+                NULL,
+                NULL,
+                g711_encode,
+                NULL,
+                NULL,
+                NULL,
+                g711_decode,
+                NULL,
+                NULL,
+                NULL
+        },
+        {
+                NULL,
+                NULL,
+                dvi_get_formats_count,
+                dvi_get_format,
+                dvi_state_create,
+                dvi_state_destroy,
+                dvi_encode,
+                NULL,
+                dvi_state_create,
+                dvi_state_destroy,
+                dvi_decode,
+                NULL,
+                NULL,
+                NULL
+        },
+        {
+                NULL,
+                NULL,
+                vdvi_get_formats_count,
+                vdvi_get_format,
+                vdvi_state_create,
+                vdvi_state_destroy,
+                vdvi_encoder,
+                NULL,
+                vdvi_state_create,
+                vdvi_state_destroy,
+                vdvi_decoder,
+                NULL,
+                vdvi_peek_frame_size,
+                NULL
+        },
+        {
+                NULL,
+                NULL,
+                gsm_get_formats_count,
+                gsm_get_format,
+                gsm_state_create,
+                gsm_state_destroy,
+                gsm_encoder,
+                NULL,
+                gsm_state_create,
+                gsm_state_destroy,
+                gsm_decoder,
+                NULL,
+                NULL,
+                gsm_repair
+        },
+        {
+                NULL,
+                NULL,
+                lpc_get_formats_count,
+                lpc_get_format,
+                NULL,
+                NULL,
+                lpc_encoder,
+                NULL,
+                lpc_decoder_state_create,
+                lpc_decoder_state_destroy,
+                lpc_decoder,
+                NULL,
+                NULL,
+                lpc_repair
+        },
+        {
+                NULL,
+                NULL,
+                wbs_get_formats_count,
+                wbs_get_format,
+                wbs_state_create,
+                wbs_state_destroy,
+                wbs_encoder,
+                NULL,
+                wbs_state_create,
+                wbs_state_destroy,
+                wbs_decoder,
+                NULL,
+                NULL,
+                NULL
+        }
 };
 
-static codec_t *cd     = NULL;
-static u_int32  codecs = 0;
+/* NUM_CODEC_INTERFACES = number of codec interfaces */
+/* Applications never know this...                   */
+#define NUM_CODEC_INTERFACES (sizeof(codec_table)/sizeof(codec_fns_t))
 
-typedef struct s_dpt {
-	struct s_dpt *next;
-	char *name;
-	int pt;
-} dpt;
+/* These are used to save multiple function calls in
+ * codec_get_codec_number function. */
+static u_int16 num_fmts_supported[NUM_CODEC_INTERFACES];
+static u_int16 total_fmts_supported;
 
-void
-set_dynamic_payload(dpt **dpt_list, char *name, int pt)
-{
-	dpt *p;
+/* Codec identifier is 32 bits long. It's like an MS handle.
+ * First byte is always zero.
+ * Second byte is index in codec_table above plus 1.
+ * Third and fourth bytes hold index for encoding format
+ * used by codec.
+ */ 
 
-	for (p = *dpt_list; p; p = p->next) {
-            if (strcmp(name, p->name) == 0) {
-                printf("duplicate\n");
-                break;
-            }
-	}
-	if (p == 0) {
-		p = (dpt *)xmalloc(sizeof(dpt));
-		p->name = strcpy((char *) xmalloc(strlen(name) + 1), name);
-		p->next = *dpt_list;
-		*dpt_list = p;
-#ifdef DEBUG_CODEC
-                printf("added %s\n",name);
-#endif
-	} else {
-#ifdef DEBUG_CODEC
-		if (p->pt != pt) {
-			printf("Reassigning dynamic payload type for encoding \"%s\". Old: %d New: %d\n", name, p->pt, pt);
-		}
-#endif
-	}
-	p->pt = pt;
-}
+#define CODEC_GET_IFS_INDEX(id)     (((id  & 0x00ff0000) >> 16) - 1)
+#define CODEC_GET_FMT_INDEX(id)     ((id & 0x0000ffff) - 1)
+#define CODEC_MAKE_ID(ifs,fmt)      (((ifs) + 1) << 16)|((fmt+1)&0xffff)
+
+#define CODEC_VALID_PAD(id)          (!(id & 0xff000000))
+#define CODEC_VALID_IFS(id)           (id & 0x00ff0000)
+#define CODEC_VALID_FMT(id)           (id & 0x0000ffff)
 
 int
-get_dynamic_payload(dpt **dpt_list, char *name)
+codec_id_is_valid(codec_id_t id)
 {
-	dpt *p;
+        u_int32 ifs, fmt;
+        
+        if (!CODEC_VALID_PAD(id) || 
+            !CODEC_VALID_IFS(id) ||
+            !CODEC_VALID_FMT(id)) {
+                debug_msg("Codec id (0x%08x) invalid (pad %x, ifs %x, fmt %x)",
+                          id, CODEC_VALID_PAD(id), CODEC_VALID_IFS(id),
+                          CODEC_VALID_FMT(id));
+                return FALSE;
+        }
 
-	for (p = *dpt_list; p; p = p->next) {
-		if (strcmp(name, p->name) == 0)
-			return (p->pt);
-	}
-#ifdef DEBUG_CODEC
-	printf("get_dynamic_payload: payload_type for \"%s\" not specified.\n", name);
-#endif
-	return DYNAMIC;
+        ifs = CODEC_GET_IFS_INDEX(id);
+        fmt = CODEC_GET_FMT_INDEX(id);
+
+        if (ifs >= NUM_CODEC_INTERFACES) {
+                /* Table index too large */
+                debug_msg("Codec index outside table\n");
+                return FALSE; 
+        }
+
+        if (fmt >= num_fmts_supported[ifs]) {
+                /* Format index too large */
+                debug_msg("Format index outside table %d / %d\n", fmt, num_fmts_supported[ifs]);
+                return FALSE;
+        }
+        return TRUE;
 }
+
+static void codec_map_init(void);
+static void codec_map_exit(void);
 
 void
-codec_free_dynamic_payloads(dpt **dpt_list)
+codec_init()
 {
-	dpt	*elem, *tmp_elem;
+        u_int32 i;
 
-        elem = *dpt_list;
-        while(elem != NULL) {
-                tmp_elem = elem->next;
-                xfree(elem->name);
-                xfree(elem);
-                elem = tmp_elem;
-        }
-}
-
-void
-codec_init(session_struct *sp)
-{
-	int	pt;
-        u_int32 idx;
-
-	if (cd) {
-		return;
-	}
-
-        codecs = sizeof(codec_list) / sizeof(codec_t);
-        cd     = (codec_t*)xmalloc(sizeof(codec_list));
-        memcpy(cd, codec_list, sizeof(codec_list));
-        
-	for (idx = 0; idx < codecs; idx++) {
-		if (cd[idx].pt == DYNAMIC) {
-			if ((pt = get_dynamic_payload(&sp->dpt_list, cd[idx].name)) == DYNAMIC) {
-                                debug_msg("Dynamic payload for %s not found.\n", cd[idx].name);
-                                cd[idx].encode = NULL; /* Do not encode without payload number */
-                        }
-                        cd[idx].pt = pt;
-		}
-	}
-#ifdef WIN32_ACM
-        acmStartup();
-#endif
-        codec_g711_init();
-}
-
-void codec_end(session_struct *sp)
-{
-        codec_free_dynamic_payloads(&sp->dpt_list);
-#ifdef WIN32_ACM
-        acmShutdown(); 
-#endif
-        if (cd) {
-                xfree(cd);
-                cd = NULL;
-        }
-}
-
-codec_t *
-get_codec_by_pt(int pt)
-{
-        /* This code just went inefficient as G.723.1 has different
-         * codings for same payload type.  We used to have a big table
-         * indexed by payload but can't do this now.  
-         */
-        
-        u_int32 i = 0;
-
-        while(i < codecs) {
-                if (cd[i].pt == pt) return (cd + i);
-                i++;
-        }
-
-        return NULL;
-}
-
-codec_t *
-get_codec_by_index(u_int32 idx)
-{
-        assert(idx < codecs);
-        return cd + idx;
-}
-
-codec_t *
-get_codec_by_name(char *name)
-{
-	u_int32 i;
-
-	for (i = 0; i < codecs; i++) {
-            if (cd[i].name && strcasecmp(name, cd[i].name) == 0)
-                return (&cd[i]);
-	}
-
-	debug_msg("codec \"%s\" not found.\n", name);
-
-	return NULL;
-}
-
-u_int32 get_codec_count()
-{
-        return codecs;
-}
-
-enum co_e {
-	ENCODE,
-	DECODE
-};
-
-static state_t *
-get_codec_state(session_struct *sp, state_t **lp, int pt, enum co_e ed)
-{
-	state_t *stp;
-	codec_t *cp;
-
-	for (stp = *lp; stp; stp = stp->next)
-		if (stp->id == pt)
-			break;
-
-	if (stp == 0) {
-		stp = (state_t *)xmalloc(sizeof(state_t));
-		memset(stp, 0, sizeof(state_t));
-		cp = get_codec_by_pt(pt);
-		stp->id = pt;
-
-		switch(ed) {
-		case ENCODE:
-		        if (cp->enc_init)
-				cp->enc_init(sp,stp, cp);
-			break;
-		case DECODE:
-			if (cp->dec_init)
-				cp->dec_init(sp,stp, cp);
-			break;
-		default:
-			fprintf(stderr, "get_codec_state: unknown op\n");
-			exit(1);
-		}
-
-		stp->next = *lp;
-		*lp = stp;
-	}
-
-	return (stp);
-}
-
-static void
-clear_state_list(state_t **list, enum co_e ed)
-{
-        state_t *stp;
-        codec_t *cp;
-
-        while(*list != NULL) {
-                stp = *list;
-                *list = (*list)->next;
-                cp = get_codec_by_pt(stp->id);
-                switch(ed) {
-                case ENCODE:
-                        if (cp->enc_free) {
-                                cp->enc_free(stp);
-                        }
-                        break;
-                case DECODE:
-                        if (cp->dec_free) {
-                                cp->dec_free(stp);
-                        }
-                        break;
+        if (total_fmts_supported == 0) {
+                for(i = 0; i < NUM_CODEC_INTERFACES; i++) {
+                        if (codec_table[i].cx_init) codec_table[i].cx_init();
+                        num_fmts_supported[i] = codec_table[i].cx_get_formats_count();
+                        total_fmts_supported += num_fmts_supported[i];
                 }
-                xfree(stp);
+                codec_map_init();
+        } else {
+                debug_msg("codec_init already called - ignoring.\n");
         }
-        *list = NULL;
-}
+}        
 
 void
-clear_encoder_states(state_t **list)
+codec_exit()
 {
-        clear_state_list(list, ENCODE);
-}
-
-void
-clear_decoder_states(state_t **list)
-{
-        clear_state_list(list, DECODE);
-}
-
-
-void 
-encoder(session_struct *sp, sample *data, int coding, coded_unit *c)
-{
-	codec_t	*cp;
-	state_t *stp;
-
-	cp = get_codec_by_pt(coding);
-	c->cp = cp;
-	stp = get_codec_state(sp, &sp->state_list, cp->pt, ENCODE);
-
-	c->state = cp->sent_state_sz > 0 ? (u_char *) block_alloc(cp->sent_state_sz) : (u_char *) NULL;
-	c->state_len = cp->sent_state_sz;
-	c->data = (u_char *) block_alloc(cp->max_unit_sz);
-	c->data_len = cp->max_unit_sz;
-
-	cp->encode(data, c, stp, cp);
-}
-
-void
-reset_encoder(session_struct *sp, int coding)
-{
-        UNUSED(sp);
-        UNUSED(coding);
-        /* should write this soon! */
-
-}
-
-void
-decode_unit(rx_queue_element_struct *u)
-{
-	codec_t *cp;
-	state_t *stp;
-
-	if (u->comp_count == 0)
-		return;
-	cp = u->comp_data[0].cp;
-	assert(u->native_count<MAX_NATIVE);
-	stp = get_codec_state(NULL, &u->dbe_source[0]->state_list, cp->pt, DECODE);
-
-	/* XXX dummy packets are not denoted explicitly, dummies have non-zero
-	 * native_counts and zero comp_counts when dummy data is calculated  */ 
-	if (u->native_count == 0) {
-                u->native_size[u->native_count] = cp->channels * cp->unit_len * cp->sample_size;
-		u->native_data[u->native_count] = (sample*)block_alloc(u->native_size[u->native_count]);
-		u->native_count++;
-	}
-	assert(cp->decode!=NULL);
-	cp->decode(&u->comp_data[0], u->native_data[u->native_count-1], stp, cp);
+        u_int32 i;
+        if (total_fmts_supported != 0) {
+                for(i = 0; i < NUM_CODEC_INTERFACES; i++) {
+                        if (codec_table[i].cx_exit) codec_table[i].cx_exit();
+                }
+                codec_map_exit();
+                total_fmts_supported = 0;
+        } else {
+                debug_msg("codec_exit not inited - ignoring\n");
+        }
 }
 
 u_int32
-get_codec_frame_size(char *data, codec_t *cp)
+codec_get_number_of_codecs()
 {
-        if (cp->get_frame_size) {
-                return cp->get_frame_size(data);
+        return total_fmts_supported;
+}
+
+codec_id_t
+codec_get_codec_number(u_int32 n)
+{
+        codec_id_t id;
+        u_int32    ifs;
+        assert(n < total_fmts_supported);
+        
+        for(ifs = 0; n >= num_fmts_supported[ifs]; ifs++) {
+                n = n - num_fmts_supported[ifs];
+        }
+
+        id = CODEC_MAKE_ID(ifs, n);
+
+        assert(codec_id_is_valid(id));        
+
+        return id;
+}
+
+const codec_format_t*
+codec_get_format(codec_id_t id)
+{
+        u_int32 ifs, fmt;
+
+        assert(codec_id_is_valid(id));
+
+        ifs = CODEC_GET_IFS_INDEX(id);
+        fmt = CODEC_GET_FMT_INDEX(id);
+        return codec_table[ifs].cx_get_format(fmt);
+}
+
+int
+codec_can_encode(codec_id_t id)
+{
+        u_int32 ifs;
+
+        ifs = CODEC_GET_IFS_INDEX(id);
+
+        assert(codec_id_is_valid(id));                
+        assert(ifs < NUM_CODEC_INTERFACES);
+
+        if (codec_table[ifs].cx_can_encode) {
+                /* cx_can_encode only needs to exist if encoder and decoder are asymmetric */
+                return codec_table[ifs].cx_can_encode(CODEC_GET_FMT_INDEX(id));
+        }
+        
+        return TRUE;
+}
+
+int
+codec_can_decode(codec_id_t id)
+{
+        u_int32 ifs;
+
+        ifs = CODEC_GET_IFS_INDEX(id);
+
+        assert(codec_id_is_valid(id));        
+        assert(ifs < NUM_CODEC_INTERFACES);
+
+        if (codec_table[ifs].cx_can_decode) {
+                /* cx_can_encode only needs to exist if encoder and decoder are asymmetric */
+                return codec_table[ifs].cx_can_decode(CODEC_GET_FMT_INDEX(id));
+        }
+        
+        return TRUE;
+}
+
+int
+codec_audio_formats_compatible(codec_id_t id1, codec_id_t id2)
+{
+        const codec_format_t *cf1, *cf2;
+        int match;
+        
+        assert(codec_id_is_valid(id1));
+        assert(codec_id_is_valid(id2));
+        
+        cf1 = codec_get_format(id1);
+        cf2 = codec_get_format(id2);
+
+        match = !memcmp(&cf1->format, &cf2->format, sizeof(audio_format)); 
+
+        return match;
+}
+
+u_int32
+codec_get_samples_per_frame(codec_id_t id)
+{
+        const codec_format_t *cf;
+        u_int32 spf;
+
+        assert(codec_id_is_valid(id));
+        cf = codec_get_format(id);
+        spf = cf->format.bytes_per_block * 8 / 
+                (cf->format.channels * cf->format.bits_per_sample);
+
+        return spf;
+}
+
+/* Encoder related ***********************************************************/
+int
+codec_encoder_create(codec_id_t id, codec_state **cs)
+{
+        if (codec_id_is_valid(id)) {
+                u_int16 ifs, fmt;
+                *cs = (codec_state*)block_alloc(sizeof(codec_state));
+                if (!cs) {
+                        *cs = NULL;
+                        return 0;
+                }
+                (*cs)->state = NULL;
+                (*cs)->id = id;
+                ifs = CODEC_GET_IFS_INDEX(id);
+                fmt = CODEC_GET_FMT_INDEX(id);
+                if (codec_table[ifs].cx_encoder_create) {
+                        /* Must also have a destructor */
+                        assert(codec_table[ifs].cx_encoder_destroy != NULL);
+                        codec_table[ifs].cx_encoder_create(fmt, 
+                                                           &(*cs)->state);
+                }
+                return TRUE;
         } else {
-                return cp->max_unit_sz;
+                debug_msg("Attempting to initiate invalid codec\n");
+                abort();
         }
+        return 0;
 }
 
 void
-clear_coded_unit(coded_unit *u)
+codec_encoder_destroy(codec_state **cs)
 {
-        if (u->state_len)
+        codec_id_t id;
+        assert(*cs != NULL);
+        id = (*cs)->id;
+        if (codec_id_is_valid(id)) {
+                u_int16 ifs, fmt;
+                ifs = CODEC_GET_IFS_INDEX(id);
+                fmt = CODEC_GET_FMT_INDEX(id);
+                if (codec_table[ifs].cx_encoder_destroy) {
+                        /* Must also have a destructor */
+                        codec_table[ifs].cx_encoder_destroy(fmt, 
+                                                               &(*cs)->state);
+                }
+                block_free(*cs, sizeof(codec_state));
+                *cs = NULL;
+        } else {
+                debug_msg("Destroying corrupted codec\n");
+                abort();
+        }
+}
+
+int
+codec_encode(codec_state *cs,
+             sample      *in_buf,
+             u_int16      in_bytes,
+             coded_unit  *cu)
+{
+        u_int16    ifs, fmt;
+        int        success;
+
+        assert(cs);
+        assert(in_buf);
+        assert(cu);
+        UNUSED(in_bytes);
+
+        cu->id = cs->id;
+        ifs = CODEC_GET_IFS_INDEX(cu->id);
+        fmt = CODEC_GET_FMT_INDEX(cu->id);
+
+        xmemchk();
+        success = codec_table[ifs].cx_encode(fmt, cs->state, in_buf, cu);
+        xmemchk();
+
+        return success;
+}
+
+/* Decoder related ***********************************************************/
+int
+codec_decoder_create(codec_id_t id, codec_state **cs)
+{
+        if (codec_id_is_valid(id)) {
+                u_int16 ifs, fmt;
+                *cs = (codec_state*)block_alloc(sizeof(codec_state));
+                if (!cs) {
+                        *cs = NULL;
+                        return 0;
+                }
+                (*cs)->state = NULL;
+                (*cs)->id = id;
+                ifs = CODEC_GET_IFS_INDEX(id);
+                fmt = CODEC_GET_FMT_INDEX(id);
+                if (codec_table[ifs].cx_decoder_create) {
+                        /* Must also have a destructor */
+                        assert(codec_table[ifs].cx_decoder_destroy != NULL);
+                        codec_table[ifs].cx_decoder_create(fmt, 
+                                                               &(*cs)->state);
+                }
+                return TRUE;
+        } else {
+                debug_msg("Attempting to initiate invalid codec\n");
+                abort();
+        }
+        return 0;
+}
+
+void
+codec_decoder_destroy(codec_state **cs)
+{
+        codec_id_t id;
+        assert(*cs != NULL);
+        id = (*cs)->id;
+        if (codec_id_is_valid(id)) {
+                u_int16 ifs, fmt;
+                ifs = CODEC_GET_IFS_INDEX(id);
+                fmt = CODEC_GET_FMT_INDEX(id);
+                if (codec_table[ifs].cx_decoder_destroy) {
+                        /* Must also have a destructor */
+                        codec_table[ifs].cx_decoder_destroy(fmt, 
+                                                               &(*cs)->state);
+                }
+                block_free(*cs, sizeof(codec_state));
+                *cs = NULL;
+        } else {
+                debug_msg("Destroying corrupted codec\n");
+                abort();
+        }
+}
+
+int
+codec_decode(codec_state *cs,
+             coded_unit  *cu,
+             sample      *out_buf,
+             u_int16      out_bytes)
+{
+        codec_id_t id;
+        u_int16    ifs, fmt;
+        int        success;
+
+        assert(cs);
+        assert(out_buf);
+        assert(cu);
+        
+        UNUSED(out_bytes);
+
+        id = cs->id;
+        assert(cu->id == cs->id);
+        ifs = CODEC_GET_IFS_INDEX(id);
+        fmt = CODEC_GET_FMT_INDEX(id);
+
+        xmemchk();
+        success =  codec_table[ifs].cx_decode(fmt, cs->state, cu, out_buf);
+        xmemchk();
+
+        return success;
+}
+
+int
+codec_decoder_can_repair (codec_id_t id) 
+{
+        u_int16 ifs;
+        assert(codec_id_is_valid(id));
+        ifs = CODEC_GET_IFS_INDEX(id);
+        if (codec_table[ifs].cx_repair) {
+                return TRUE;
+        } else {
+                return FALSE;
+        }
+}
+
+int
+codec_decoder_repair(codec_id_t id, codec_state *cs, 
+                     u_int16 consec_missing, 
+                     coded_unit *prev, 
+                     coded_unit *miss, 
+                     coded_unit *next)
+{
+        u_int16    ifs, fmt;
+
+        assert(codec_id_is_valid(id));
+        assert(id == cs->id);
+
+        ifs = CODEC_GET_IFS_INDEX(id);
+        fmt = CODEC_GET_FMT_INDEX(id);
+
+        assert(codec_table[ifs].cx_repair != NULL);
+        return codec_table[ifs].cx_repair(fmt, 
+                                              cs->state, 
+                                              consec_missing,
+                                              prev, miss, next);
+}
+
+u_int32 
+codec_peek_frame_size(codec_id_t id, u_char *data, u_int16 blk_len)
+{
+        u_int16    ifs, fmt;
+
+        assert(codec_id_is_valid(id));
+
+        ifs = CODEC_GET_IFS_INDEX(id);
+        fmt = CODEC_GET_FMT_INDEX(id);        
+
+        if (codec_table[ifs].cx_peek_size) {
+                return codec_table[ifs].cx_peek_size(fmt, data, (int)blk_len);
+        } else {
+                const codec_format_t *cf = codec_get_format(id);
+                return cf->mean_coded_frame_size;
+        }
+}
+
+/* Codec clear coded unit - not sure where this should go - away? :-) */
+int
+codec_clear_coded_unit(coded_unit *u)
+{
+        if (u->state_len) {
+                assert(u->state != NULL);
                 block_free(u->state, u->state_len);
-        assert(u->data_len);
-        block_free(u->data, u->data_len);
+        }
+        if (u->data_len) {
+                assert(u->data != NULL);
+                block_free(u->data, u->data_len);
+        }
         memset(u, 0, sizeof(coded_unit));
+        return TRUE;
 }
 
-int
-codec_loosely_compatible(codec_t *c1, codec_t *c2)
-{
-	return ((c1->freq == c2->freq)                  &&
-                (c1->channels == c2->channels));
-}
+/* RTP related things like mapping and payload sanity checking ***************/
 
 int
-codec_compatible(codec_t *c1, codec_t *c2)
+payload_is_valid(u_char pt)
 {
-	return ((c1->freq == c2->freq)                  &&
-                (c1->channels == c2->channels)          &&
-		(c1->unit_len == c2->unit_len)          &&
-		(c1->sample_size == c2->sample_size));
+        /* Per rfc1890.txt */
+        if (pt < 29 || (pt>=96 && pt <=127)) return TRUE;
+        return FALSE;
 }
 
-int
-codec_first_with(int freq, int channels)
+/* RTP Mapping interface - 
+ * 2 maps one from payload to codec id and the other from codec id to 
+ * to payload.
+ */
+
+#define NUM_PAYLOADS 128
+static codec_id_t payload_map[NUM_PAYLOADS];
+static u_char    *codec_map[NUM_CODEC_INTERFACES];
+
+static void
+codec_map_init()
 {
-        u_int32 idx;
-        for(idx = 0; idx < codecs; idx++) {
-                if (cd[idx].name && cd[idx].freq == freq && cd[idx].channels == channels) {
-                        return cd[idx].pt;
+        u_int32 i,j;
+        const codec_format_t *fmt;
+
+        memset(payload_map, 0, NUM_PAYLOADS * sizeof(codec_id_t));
+        for(i = 0; i < NUM_CODEC_INTERFACES; i++) {
+                codec_map[i] = (u_char*)xmalloc(num_fmts_supported[i]);
+                memset(codec_map[i], CODEC_PAYLOAD_DYNAMIC, num_fmts_supported[i]);
+                for(j = 0; j < num_fmts_supported[i]; j++) {
+                        fmt = codec_table[i].cx_get_format(j);
+                        if (fmt->default_pt == CODEC_PAYLOAD_DYNAMIC) {
+                                continue;
+                        }
+                        codec_map_payload(CODEC_MAKE_ID(i,j), fmt->default_pt);
                 }
         }
-        return -1;
+}
+
+static void
+codec_map_exit()
+{
+        u_int32 i;
+        for(i = 0; i < NUM_CODEC_INTERFACES; i++) {
+                xfree(codec_map[i]);
+        }
 }
 
 int
-codec_matching(char *short_name, int freq, int channels)
+codec_map_payload(codec_id_t id, u_char pt)
 {
-	/* This has been changed to try really hard to find a matching codec.  */
-	/* The reason is that it's now called as part of the command-line      */
-	/* parsing, and so has to cope with user entered codec names. Also, it */
-	/* should recognise the names sdr gives the codecs, for compatibility  */
-	/* with rat-v3.0.                                                [csp] */
-	/* This is not quite as inefficient as it looks, since stage 1 will    */
-	/* almost always find a match.                                         */
-        u_int32	 idx;
-	char	*long_name;
+        if (payload_is_valid(pt) && codec_id_is_valid(id)) {
+                if (payload_map[pt] != 0) {
+                        codec_unmap_payload(id, pt);
+                }
+                payload_map[pt] = id;
+                codec_map[CODEC_GET_IFS_INDEX(id)][CODEC_GET_FMT_INDEX(id)] = pt;
+                return TRUE;
+        }
 
-	/* Stage 1: Try the designated short names... */
-        for(idx = 0; idx < codecs; idx++) {
-                if (cd[idx].freq == freq && cd[idx].channels == channels && !strcasecmp(short_name, cd[idx].short_name)) {
-			assert(cd[idx].name != NULL);
-                        return cd[idx].pt;
+        debug_msg("Failed to map payload\n");
+        return FALSE;
+}
+
+u_char
+codec_get_payload(codec_id_t id)
+{
+        u_char pt;
+
+        assert(codec_id_is_valid(id));
+        pt = codec_map[CODEC_GET_IFS_INDEX(id)][CODEC_GET_FMT_INDEX(id)];
+        if (payload_is_valid(pt)) {
+                assert(codec_get_by_payload(pt) == id);
+                return pt;
+        }
+        return CODEC_PAYLOAD_DYNAMIC;
+}
+
+int 
+codec_unmap_payload(codec_id_t id, u_char pt)
+{
+        if (payload_is_valid(pt) && 
+            codec_id_is_valid(id) &&
+            payload_map[pt] == id) {
+                payload_map[pt] = 0;
+                codec_map[CODEC_GET_IFS_INDEX(id)][CODEC_GET_FMT_INDEX(id)] = CODEC_PAYLOAD_DYNAMIC;
+                return TRUE;
+        }
+        debug_msg("Failed to unmap payload\n");
+        return FALSE;
+}
+
+codec_id_t
+codec_get_by_payload (u_char pt)
+{
+        if (payload_is_valid(pt)) {
+#ifdef DEBUG
+                if (payload_map[pt] == 0) {
+                        debug_msg("No codec for payload %d\n", pt);
+                }
+#endif       
+                return payload_map[pt];
+        } else {
+                debug_msg("codec_get_by_payload - invalid payload (%d)\n", pt);
+                return 0;
+        }
+}
+
+/* For compatibility only */
+codec_id_t 
+codec_get_first_mapped_with(u_int16 sample_rate, u_int16 channels)
+{
+        const codec_format_t *cf;
+        int pt;
+        
+        for(pt = 0; pt < NUM_PAYLOADS; pt++) {
+                if (payload_map[pt]) {
+                        cf = codec_get_format(payload_map[pt]);
+                        if (cf->format.sample_rate == sample_rate &&
+                            cf->format.channels    == channels) {
+                                return payload_map[pt];
+                        }
+                }
+        }
+        debug_msg("No mapped codecs compatible (%d, %d)\n",
+                  sample_rate, channels);
+        return 0;
+}
+
+
+codec_id_t 
+codec_get_by_name(const char *name)
+{
+        const codec_format_t *cf;
+        u_int32 ifs, fmt;
+
+        for(ifs = 0; ifs < NUM_CODEC_INTERFACES; ifs++) {
+                for(fmt = 0; fmt < num_fmts_supported[ifs]; fmt++) {
+                        cf = codec_table[ifs].cx_get_format(fmt);
+                        if (!strcasecmp(cf->long_name, name)) {
+                                return CODEC_MAKE_ID(ifs,fmt);
+                        }
                 }
         }
 
-	/* Stage 2: Try to generate a matching name... */
-	long_name = (char *) xmalloc(strlen(short_name) + 12);
-	sprintf(long_name, "%s-%dK-%s", short_name, freq/1000, channels==1?"MONO":"STEREO");
-        for(idx = 0; idx < codecs; idx++) {
-                if (cd[idx].freq == freq && cd[idx].channels == channels && !strcasecmp(long_name, cd[idx].name)) {
-                        return cd[idx].pt;
+        return 0;
+}
+
+
+codec_id_t
+codec_get_matching(const char *short_name, u_int16 freq, u_int16 channels)
+{
+        /* This has been changed to try really hard to find a matching codec.
+         * The reason is that it's now called as part of the command-line      
+         * parsing, and so has to cope with user entered codec names. Also, it 
+         * should recognise the names sdr gives the codecs, for compatibility 
+         * with rat-v3.0.                                                [csp] 
+         */
+
+        /* This is not quite as inefficient as it looks, since stage 1 will
+         * almost always find a match.                                     
+         */
+
+        const codec_format_t  *cf = NULL;
+        codec_id_t             cid = 0; 
+        u_int32                i, codecs;
+        char                  *long_name;
+
+        /* Stage 1: Try the designated short names... */
+        codecs = codec_get_number_of_codecs();
+        for(i = 0; i < codecs; i++) {
+                cid = codec_get_codec_number(i);
+                cf  = codec_get_format(cid);
+                if (cf->format.sample_rate == freq  && 
+                    cf->format.channels == channels && 
+                    !strcasecmp(short_name, cf->short_name)) {
+                        return cid;
                 }
         }
 
-	/* Stage 3: Nasty hack... PCM->PCMU for compatibility with sdr and old rat versions */
-	if (strcasecmp(short_name, "pcm") == 0) {
-		sprintf(long_name, "PCMU-%dK-%s", freq/1000, channels==1?"MONO":"STEREO");
-		for(idx = 0; idx < codecs; idx++) {
-			if (cd[idx].freq == freq && cd[idx].channels == channels && !strcasecmp(long_name, cd[idx].name)) {
-				return cd[idx].pt;
-			}
-		}
-	}
+        /* Stage 2: Try to generate a matching name... */
+        long_name = (char *) xmalloc(strlen(short_name) + 12);
+        sprintf(long_name, "%s-%dK-%s", short_name, freq/1000, channels==1?"MONO":"STEREO");
+        for(i = 0; i < codecs; i++) {
+                if (cf->format.sample_rate == freq  && 
+                    cf->format.channels == channels && 
+                    !strcasecmp(long_name, cf->long_name)) {
+                        xfree(long_name);
+                        return cid;
+                }
+        }
 
-	debug_msg("Unable to find codec \"%s\" at rate %d channels %d\n", short_name, freq, channels);
-        return -1;
+        /* Stage 3: Nasty hack... PCM->PCMU for compatibility with sdr 
+         * and old rat versions 
+         */
+        if (strcasecmp(short_name, "pcm") == 0) {
+                sprintf(long_name, "PCMU-%dK-%s", freq/1000, channels==1?"MONO":"STEREO");
+                for(i = 0; i < codecs; i++) {
+                        if (cf->format.sample_rate == freq  && 
+                            cf->format.channels == channels && 
+                            !strcasecmp(long_name, cf->long_name)) {
+                                xfree(long_name);
+                                return cid;
+                        }
+                }
+        }
+
+        xfree(long_name);
+
+        debug_msg("Unable to find codec \"%s\" at rate %d channels %d\n", short_name, freq, channels);
+        return 0;
 }
 
-void
-disable_codec(codec_t *cp)
-{
-        debug_msg("Disabling codec %s\n", cp->name);
-        cp->enc_init = NULL;
-        cp->encode   = NULL;
-        cp->enc_free = NULL;
-        cp->dec_init = NULL;
-        cp->decode   = NULL;
-        cp->dec_free = NULL;
-}

@@ -43,10 +43,6 @@
 #ifndef _RECEIVE_H_
 #define _RECEIVE_H_
 
-#include "codec.h"
-#include "channel.h"
-#include "session.h"	
-
 /* max forward fill in */
 #define MAX_DUMMY 4	
 
@@ -100,5 +96,7 @@ void  playout_buffers_destroy(struct session_tag *sp,
                               struct s_participant_playout_buffer **buf_list);
 int32 playout_buffer_duration(struct s_participant_playout_buffer *buf_list, 
                               struct s_rtcp_dbentry *src);
+
+void  decode_unit(rx_queue_element_struct *ru);
 
 #endif /* _RECEIVE_H_ */

@@ -43,18 +43,13 @@
 #ifndef _REPAIR_H_
 #define _REPAIR_H_
 
-#define REPAIR_NONE          0
-#define REPAIR_REPEAT        1
-#define REPAIR_PATTERN_MATCH 2
-#define REPAIR_PITCH_REPEAT  3
-
 struct rx_element_tag;
 
 void repair(int repair, struct rx_element_tag *up);
 
-int   repair_get_count(void);
-char *repair_get_name(int id);
-int   repair_get_by_name(char *name);
+u_int16         repair_get_count (void);
+const char     *repair_get_name  (u_int16 scheme);
+u_int16         repair_get_by_name(char *name);
 
 #endif /* _REPAIR_H_ */
 

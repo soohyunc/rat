@@ -1,8 +1,12 @@
 /*
- * FILE:    codec_adpcm.h
- * AUTHORS: Orion Hodson
- * 
- * Copyright (c) 1998 University College London
+ * FILE:    vdvi.h
+ * PROGRAM: RAT
+ * AUTHOR:  Orion Hodson
+ *
+ * $Revision$
+ * $Date$
+ *
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,16 +40,18 @@
  * SUCH DAMAGE.
  */
 
-/* Just wrote the RAT interface, see codec_adpcm.c for coder copyright [oth] */
+#ifndef _VDVI_H_
+#define _VDVI_H_
 
-#ifndef _ADPCM_H_
-#define _ADPCM_H_
+#define VDVI_SAMPLES_PER_FRAME 160
 
-u_int16               dvi_get_formats_count (void);
-const codec_format_t* dvi_get_format        (u_int16 idx);
-int                   dvi_state_create      (u_int16 idx, u_char **state);
-void                  dvi_state_destroy     (u_int16 idx, u_char **state);
-int                   dvi_encode            (u_int16 idx, u_char *state, sample     *in, coded_unit *out);
-int                   dvi_decode            (u_int16 idx, u_char *state, coded_unit *in, sample     *out);
+int /* Returns output frame size, 0 when error*/
+vdvi_encode(unsigned char *dvi_buf, int dvi_samples, unsigned char * out, int out_bytes);
 
-#endif /* _ADPCM_H_ */
+int /* Returns number of bytes in in_bytes used to generate dvi_samples */
+vdvi_decode(unsigned char *in, int in_bytes, unsigned char *buf, int dvi_samples);
+
+#endif  _VDVI_H_
+
+
+

@@ -46,9 +46,10 @@
 #include "memory.h"
 #include "util.h"
 #include "session.h"
-#include "receive.h"
+#include "codec_types.h"
 #include "codec.h"
 #include "channel.h"
+#include "receive.h"
 #include "cc_red.h"
 #include "cc_intl.h"
 #include "rtcp_pckt.h"
@@ -121,33 +122,36 @@ static int
 vanilla_bitrate(session_struct *sp, cc_state_t *cs)
 {
         int pps, upp;
-        codec_t *cp;
+        codec_id_t            id;
+        const codec_format_t *cf;
 
         UNUSED(cs);
 
-        cp = get_codec_by_pt(sp->encodings[0]);
-        pps = cp->freq / cp->unit_len;
+        id = codec_get_by_payload(sp->encodings[0]);
+        cf = codec_get_format(id);
+        pps = cf->format.sample_rate / codec_get_samples_per_frame(id);
         upp = collator_get_units(sp->collator);
-        return (8*pps*(cp->max_unit_sz * upp + cp->sent_state_sz + 12)/upp);
+        return (8*pps*(cf->mean_coded_frame_size * upp + 
+                       cf->mean_per_packet_state_size + 12)/upp);
 }
 
 static int
 vanilla_valsplit(char *blk, unsigned int blen, cc_unit *u, int *trailing, int *inter_pkt_gap) 
 {
-        codec_t *cp = get_codec_by_pt(u->pt);
+        codec_id_t id = codec_get_by_payload(u->pt);
         int n = 0;
 
         UNUSED(blk);
 
         assert(u->iovc == 0);
-        if (cp) {
-                n = fragment_sizes(cp, blk, blen, u->iov, &u->iovc, CC_UNITS);
+        if (id) {
+                n = fragment_sizes(id, blk, blen, u->iov, &u->iovc, CC_UNITS);
         }
 
         if (n < 0) n = 0;
 
         (*trailing) = n;
-        (*inter_pkt_gap) = n * cp->unit_len;
+        (*inter_pkt_gap) = n * codec_get_samples_per_frame(id);
         return (n);
 }
 
@@ -179,13 +183,16 @@ vanilla_decode(session_struct *sp, rx_queue_element_struct *u, cc_state_t *ccs)
 {
         int i,len,iovc;
         struct iovec *iov;
-        codec_t *cp;
+        codec_id_t id;
+        const codec_format_t *cf;
         v_dec_st *v;
         
         if (!u->ccu_cnt) return;
 
-        cp = get_codec_by_pt(u->ccu[0]->pt);
-        assert(cp);
+        id = codec_get_by_payload(u->ccu[0]->pt);
+        assert(id);
+        cf = codec_get_format(id);
+
         iov  = u->ccu[0]->iov;
         iovc = u->ccu[0]->iovc;
 
@@ -193,14 +200,15 @@ vanilla_decode(session_struct *sp, rx_queue_element_struct *u, cc_state_t *ccs)
         for(i = 0; i < iovc; i++)
                 len += iov[i].iov_len;
 
-        fragment_spread(cp, len, iov, iovc, u);
+        fragment_spread(id, len, iov, iovc, u);
         v = (v_dec_st*)ccs->s;
-        if (cp->pt != v->pt) {
-                v->pt = cp->pt;
-                rtcp_set_encoder_format(sp, u->dbe_source[0], cp->name);
+        if (codec_get_payload(id) != v->pt) {
+                v->pt = codec_get_payload(id);
+                rtcp_set_encoder_format(sp, u->dbe_source[0], (char*)cf->short_name);
         }
 }
 
+/*
 static void 
 red_enc_init(session_struct *sp, cc_state_t *cs) 
 {
@@ -337,8 +345,9 @@ intl_decoder(session_struct *sp,
 {
         intl_decode(sp, u, (struct s_intl_coder*)cs->s);
 }
+*/
 
-#define N_CC_CODERS 3
+#define N_CC_CODERS 1
 #define CC_ID_VANILLA     0
 #define CC_ID_REDUNDANCY  1
 #define CC_ID_INTERLEAVER 2
@@ -360,7 +369,7 @@ static cc_coder_t cc_list[] = {
          vanilla_dec_init,
          vanilla_decode,
          vanilla_dec_free },
-        {"REDUNDANCY", 
+/*        {"REDUNDANCY", 
          PT_REDUNDANCY,
          CC_ID_REDUNDANCY,
          red_enc_init,
@@ -392,13 +401,14 @@ static cc_coder_t cc_list[] = {
          intl_init,
          intl_decoder, 
          intl_free}
+         */
 }; 
 
 
 cc_coder_t *
 get_channel_coder(int pt)
 {
-        codec_t *c;
+        codec_id_t id;
         int i=0;
 
         while(i<N_CC_CODERS) {
@@ -406,7 +416,7 @@ get_channel_coder(int pt)
                         return &cc_list[i];
                 i++;
         }
-        if ((c=get_codec_by_pt(pt))) /* hack for vanilla */
+        if ((id=codec_get_by_payload(pt))) /* hack for vanilla */
                 return &cc_list[0];
     
         return NULL;
@@ -743,18 +753,17 @@ int
 add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
 {
         int i,j;
-        codec_t * cp = get_codec_by_pt(pt);
+        codec_id_t id = codec_get_by_payload(pt);
 
         assert(u != NULL);
         assert(u->comp_count < MAX_ENCODINGS-1);
 
         /* Look for appropriate place to add this data. */
-        i = 0;
-        while(i<u->comp_count && u->comp_data[i].cp->quality > cp->quality) 
-                i++;
+        i = u->comp_count;
 
         /* we already have this type of data */
-        if (i < u->comp_count && u->comp_data[i].cp->pt == cp->pt) {
+        if (i < u->comp_count && 
+            codec_get_payload(u->comp_data[i].id) == codec_get_payload(id)) {
                 for(i=0;i<iovc;i++) 
                         block_free(iov[i].iov_base, iov[i].iov_len);
                 memset(iov, 0, sizeof(struct iovec) * iovc);
@@ -779,18 +788,27 @@ add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
         if (iovc>1) {
                 u->comp_data[i].state     = (u_char *) iov[j].iov_base;
                 u->comp_data[i].state_len = iov[j++].iov_len;
-                assert(u->comp_data[i].state_len == cp->sent_state_sz);
+#ifdef DEBUG
+                {
+                        const codec_format_t *cf;
+                        cf = codec_get_format(id);
+                        assert(u->comp_data[i].state_len == 
+                               cf->mean_per_packet_state_size);
+                }
+#endif
         } else {
                 u->comp_data[i].state     = NULL;
                 u->comp_data[i].state_len = 0;
         }
         u->comp_data[i].data     = (u_char *) iov[j].iov_base;
         u->comp_data[i].data_len = iov[j++].iov_len;
-        u->comp_data[i].cp       = cp;
+        assert(codec_id_is_valid(id));
+        u->comp_data[i].id       = id;
+        u->comp_count++;
 
         memset(iov,0,j*sizeof(struct iovec));
 
-        return (u->comp_count++);
+        return u->comp_count;
 }
 
 void
@@ -802,8 +820,11 @@ channel_set_coder(session_struct *sp, int pt)
         cc = get_channel_coder(pt);
 
         if (0 == strcmp(cc->name, "REDUNDANCY")) {
+/*
                 cc_state_t *stp = get_cc_state(sp, &sp->cc_state_list, cc->pt, ENCODE);
-                red_fix_encodings(sp, (struct s_red_coder*)stp->s);
+
+  red_fix_encodings(sp, (struct s_red_coder*)stp->s);
+  */
         } else {
                 sp->num_encodings = 1;
         }
@@ -860,7 +881,7 @@ collate_coded_units(collator_t *c, coded_unit *cu, int enc_no)
 
         if (c->units_done[enc_no] == 0) {
                 out = c->cur[enc_no] = (cc_unit*) block_alloc (sizeof(cc_unit));
-                out->pt               = cu->cp->pt;
+                out->pt               = codec_get_payload(cu->id);
                 out->iovc             = 0; 
                 if (cu->state_len != 0) {
                         out->iov[out->iovc].iov_base = cu->state;
@@ -871,7 +892,7 @@ collate_coded_units(collator_t *c, coded_unit *cu, int enc_no)
                 } 
         } else {
                 out = c->cur[enc_no];
-                assert(cu->cp->pt == out->pt);
+                assert(codec_get_payload(cu->id) == out->pt);
                 if (cu->state_len != 0) {
                         block_free(cu->state, cu->state_len);
                         cu->state     = NULL;
@@ -895,19 +916,26 @@ collate_coded_units(collator_t *c, coded_unit *cu, int enc_no)
 }
 
 int 
-fragment_sizes(codec_t *cp, char *blk, int blk_len, struct iovec *store, int *iovc, int max_iovc)
+fragment_sizes(codec_id_t id, char *blk, int blk_len, struct iovec *store, int *iovc, int max_iovc)
 {
+        const codec_format_t *cf;
         int n = 0;
         u_int32 frame_size;
 
-        if (blk_len > 0 && cp->sent_state_sz != 0 && (*iovc) < max_iovc) {
-                store[(*iovc)++].iov_len = cp->sent_state_sz;
-                blk_len                 -= cp->sent_state_sz;
-                blk += cp->sent_state_sz;
+        cf = codec_get_format(id);
+
+        if (blk_len > 0 && 
+            cf->mean_per_packet_state_size != 0 && 
+            (*iovc) < max_iovc) {
+                store[(*iovc)++].iov_len = cf->mean_per_packet_state_size;
+                blk_len                 -= cf->mean_per_packet_state_size;
+                blk                     += cf->mean_per_packet_state_size;
         }
         
         while(blk_len > 0 && (*iovc) < max_iovc) {
-                frame_size = get_codec_frame_size(blk, cp);
+                frame_size = codec_peek_frame_size(id,
+                                                   (u_char*)blk,
+                                                   (u_int16)blk_len);
                 store[(*iovc)++].iov_len = frame_size;
                 blk_len                 -= frame_size;
                 blk                     += frame_size;
@@ -922,37 +950,47 @@ fragment_sizes(codec_t *cp, char *blk, int blk_len, struct iovec *store, int *io
 }
 
 int 
-fragment_spread(codec_t *cp, int len, struct iovec *iov, int iovc, rx_queue_element_struct *start)
+fragment_spread(codec_id_t id, int len, struct iovec *iov, int iovc, rx_queue_element_struct *start)
 {
         int done = 0, cc_pt, i,cnt;
         rx_queue_element_struct *u;
-        assert(cp);
+        const codec_format_t *cf;
 
-        u   = start;
-	cnt = 0;
-        for (i = 0; i<u->ccu[0]->iovc; i++) {
-                if ((u->ccu[0]->iov[i].iov_base != NULL) && (u->ccu[0]->iov[i].iov_len != 0)) {
+        assert(id);
+
+        cf = codec_get_format(id);
+
+        u = start;
+        for (cnt = i = 0; i<u->ccu[0]->iovc; i++) {
+                if (u->ccu[0]->iov[i].iov_base && u->ccu[0]->iov[i].iov_len)
                         cnt++;
-		}
         }
         assert(cnt == u->ccu[0]->iovc);
 
         while(len > 0 && done < iovc) {
-                if (u != NULL) {
+                if (u) {
                         cc_pt = u->cc_pt;
-                        if (done != 0 || (done == 0 && cp->sent_state_sz == 0)) {
+                        if (done != 0 || 
+                            (done == 0 && 
+                             cf->mean_per_packet_state_size == 0)) {
                                 len -= iov[done].iov_len;
-                                add_comp_data(u, cp->pt, iov + done, 1);
+                                add_comp_data(u, 
+                                              codec_get_payload(id),
+                                              iov + done, 1);
                                 done += 1;
                         } else {
                                 len -= iov[done].iov_len + iov[done+1].iov_len;
-                                add_comp_data(u, cp->pt, iov + done, 2);
+                                add_comp_data(u, 
+                                              codec_get_payload(id),
+                                              iov + done, 2);
                                 done += 2;
                         }
                         if (len) u = get_rx_unit(1, cc_pt, u);
                 } else {
                         debug_msg("Unit missing\n");
-                        if (done != 0 || (done == 0 && cp->sent_state_sz == 0)) {
+                        if (done != 0 || 
+                            (done == 0 && 
+                             cf->mean_per_packet_state_size == 0)) {
                                 len -= iov[done].iov_len;
                                 done += 1;
                         } else {
@@ -967,14 +1005,13 @@ fragment_spread(codec_t *cp, int len, struct iovec *iov, int iovc, rx_queue_elem
         
         u->ccu[0]->iovc -= done;
 
-	cnt = 0;
-	for (i = 0; i<u->ccu[0]->iovc; i++) {
-		if ((u->ccu[0]->iov[i].iov_base != NULL) && (u->ccu[0]->iov[i].iov_len != 0)) { 
-			cnt++;
-		}
-	}
-	assert(cnt == u->ccu[0]->iovc);
+        if (u->ccu[0]) {
+                for (cnt = i = 0; i<u->ccu[0]->iovc; i++) {
+                        if (u->ccu[0]->iov[i].iov_base && u->ccu[0]->iov[i].iov_len)
+                                cnt++;
+                }
+                assert(cnt == u->ccu[0]->iovc);
+        }
 
         return done;
 }
-

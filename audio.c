@@ -50,6 +50,8 @@
 #include "ui.h"
 #include "transmit.h"
 #include "mix.h"
+#include "audio_fmt.h"
+#include "codec_types.h"
 #include "codec.h"
 #include "channel.h"
 #include "cushion.h"
@@ -185,39 +187,41 @@ audio_zero(sample *buf, int len, deve_e type)
 int
 audio_device_write(session_struct *sp, sample *buf, int dur)
 {
-        codec_t *cp = get_codec_by_pt(sp->encodings[0]);
-
+        codec_id_t            id;
+        const codec_format_t *cf;
 	if (sp->audio_device) {
                 const audio_format *ofmt = audio_get_ofmt(sp->audio_device);
                 if (sp->out_file) {
                         snd_write_audio(&sp->out_file, buf, (u_int16)(dur * ofmt->channels));
                 }
 		if (sp->mode == TRANSCODER) {
-			return transcoder_write(sp->audio_device, buf, dur*cp->channels);
+			return transcoder_write(sp->audio_device, buf, dur * ofmt->channels);
 		} else {
 			return audio_write(sp->audio_device, buf, dur * ofmt->channels);
 		}
-        } else {
-		return (dur * cp->channels);
         }
+        id = codec_get_by_payload(sp->encodings[0]);
+        assert(id);
+        cf = codec_get_format(id);
+        return dur * cf->format.channels;
 }
 
 int
 audio_device_take(session_struct *sp)
 {
-	codec_t		*cp;
-	audio_format    format;
+	codec_id_t	       id;
+        const codec_format_t  *cf;
+	audio_format           format;
+        u_int32                unit_len;
 
         if (sp->audio_device) {
                 return (TRUE);
         }
 
-	cp = get_codec_by_pt(sp->encodings[0]);
-	format.encoding        = DEV_S16;
-	format.sample_rate     = cp->freq;
-        format.bits_per_sample = 16;
-	format.channels    = cp->channels;
-        format.bytes_per_block       = cp->unit_len * cp->channels * BYTES_PER_SAMPLE;
+	id = codec_get_by_payload(sp->encodings[0]);
+        cf = codec_get_format(id);
+
+        memcpy(&format, &cf->format, sizeof(audio_format));
 
 	if (sp->mode == TRANSCODER) {
 		if ((sp->audio_device = transcoder_open()) == 0) {
@@ -231,16 +235,13 @@ audio_device_take(session_struct *sp)
                          * case - ulaw 8k.
                          */
                         audio_format fallback;
-                        cp = get_codec_by_name("PCMU-8K-MONO");
-                        assert(cp); /* in case someone changes codec name */
+                        id = codec_get_by_name("PCMU-8K-MONO");
+                        assert(id); /* in case someone changes codec name */
 
-                        sp->encodings[0] = cp->pt;
+                        sp->encodings[0] = codec_get_payload(id);
+                        cf = codec_get_format(id);
+                        memcpy(&fallback, &cf->format, sizeof(audio_format));
 
-                        fallback.encoding        = DEV_S16;
-                        fallback.sample_rate     = cp->freq;
-                        fallback.bits_per_sample = 16;
-                        fallback.channels    = cp->channels;
-                        fallback.bytes_per_block       = cp->unit_len * cp->channels * BYTES_PER_SAMPLE;
                         sp->audio_device = audio_open(&fallback, &fallback);
                         
                         if (sp->audio_device) {
@@ -292,12 +293,14 @@ audio_device_take(session_struct *sp)
          * depend on what is set here
          */
         if (sp->device_clock) xfree(sp->device_clock);
-        sp->device_clock = new_time(sp->clock, cp->freq);
-        sp->meter_period = cp->freq / 15;
-        sp->bc           = bias_ctl_create(cp->channels, cp->freq);
-        sp->tb           = tx_create(sp, (u_int16)cp->unit_len, (u_int16)cp->channels);
+        sp->device_clock = new_time(sp->clock, format.sample_rate);
+        sp->meter_period = format.sample_rate / 15;
+        sp->bc           = bias_ctl_create(format.channels, format.sample_rate);
+
+        unit_len         = format.bytes_per_block * 8 / (format.bits_per_sample*format.channels); 
+        sp->tb           = tx_create(sp, (u_int16)unit_len, (u_int16)format.channels);
         sp->ms           = mix_create(sp, 32640);
-        cushion_create(&sp->cushion, cp->unit_len);
+        cushion_create(&sp->cushion, unit_len);
         tx_igain_update(sp);
         ui_update(sp);
         return sp->audio_device;

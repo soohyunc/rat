@@ -44,7 +44,6 @@
 #define _transmit_h_
 
 #include "session.h"
-#include "codec.h"
 
 struct s_tx_buffer;
 struct session_tag;

@@ -1,8 +1,8 @@
 /*
- * $Revision$
- * $Date$
- *
- * Copyright (c) 1995,1996 University College London
+ * FILE:    codec_lpc.h
+ * AUTHORS: Orion Hodson
+ * 
+ * Copyright (c) 1998 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,38 +36,19 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _codec_lpc_h_
-#define _codec_lpc_h_
+#ifndef _CODEC_LPC_H_
+#define _CODEC_LPC_H_
 
-#define FRAMESIZE 160
+u_int16                      lpc_get_formats_count (void);
+const struct s_codec_format* lpc_get_format(u_int16 idx);
 
-#define LPC_FILTORDER		10
+int  lpc_encoder (u_int16 idx, u_char *state, sample *in, coded_unit *out);
 
-/* lpc transmitted state */
+int  lpc_decoder_state_create  (u_int16 idx, u_char **state);
+void lpc_decoder_state_destroy (u_int16 idx, u_char **state);
+int  lpc_decoder               (u_int16 idx, u_char *state, coded_unit *in, sample *out);
 
-typedef struct {
-	unsigned short period;
-	unsigned char gain;
-	char k[LPC_FILTORDER];
-	char pad;
-} lpc_txstate_t;
-#define LPCTXSIZE 14
+int  lpc_repair  (u_int16 idx, u_char *state, u_int16 consec_lost,
+                  coded_unit *prev, coded_unit *missing, coded_unit *next);
 
-/*
- * we can't use 'sizeof(lpcparams_t)' because some compilers
- * add random padding so define size of record that goes over net.
- */
-
-
-/* lpc decoder internal state */
-typedef struct {
-	double Oldper, OldG, Oldk[LPC_FILTORDER + 1], bp[LPC_FILTORDER + 1];
-	int pitchctr;
-} lpc_intstate_t;
-
-void lpc_init(lpc_intstate_t* state);
-void lpc_analyze(const short *buf, lpc_txstate_t *params);
-void lpc_synthesize(short *buf, lpc_txstate_t *params, lpc_intstate_t* state);
-void lpc_extend_synthesize(short *buf, int len, lpc_intstate_t* state);
-
-#endif /* _codec_lpc_h_ */
+#endif /* _CODEC_LPC_H_ */

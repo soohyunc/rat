@@ -39,11 +39,13 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "pckt_queue.h"
-#include "receive.h"
 #include "util.h"
 #include "audio.h"
 #include "memory.h"
 #include "debug.h"
+
+/* For PACKET_LENGTH */
+#include "session.h"
 
 typedef struct s_pckt_queue {
         pckt_queue_element **buf;

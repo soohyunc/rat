@@ -54,6 +54,19 @@ extern unsigned char lintoalaw[8192];
 #define s2a(x)  lintoalaw[((unsigned short)(x))>>3]
 #define a2s(x)  alawtolin[((unsigned char)x)]
 
-void codec_g711_init(void);
+struct s_coded_unit;
+
+void g711_init(void);
+
+u_int16                      g711_get_formats_count (void);
+const struct s_codec_format* g711_get_format (u_int16 idx);
+int                          g711_encode     (u_int16 idx, 
+                                              u_char *state, 
+                                              sample  *in, 
+                                              struct s_coded_unit *out);
+int                          g711_decode     (u_int16 idx, 
+                                              u_char *state, 
+                                              struct s_coded_unit *in, 
+                                              sample     *out);
 
 #endif

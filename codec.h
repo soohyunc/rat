@@ -1,12 +1,8 @@
 /*
  * FILE:    codec.h
- * PROGRAM: RAT
- * AUTHOR:  Isidor Kouvelas / Orion Hodson
- *
- * $Revision$
- * $Date$
- *
- * Copyright (c) 1995,1996 University College London
+ * AUTHORS: Orion Hodson
+ * 
+ * Copyright (c) 1998 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,8 +20,6 @@
  * 4. Neither the name of the University nor of the Department may be used
  *    to endorse or promote products derived from this software without
  *    specific prior written permission.
- * Use of this software for commercial purposes is explicitly forbidden
- * unless prior written permission is obtained from the authors.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -40,89 +34,87 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _RAT_CODEC_H_
-#define _RAT_CODEC_H_
+#ifndef _CODEC_H_
+#define _CODEC_H_
 
-#define MAX_CODEC        128
+/* Codec module startup and end */
 
-#define DUMMY			255
+void codec_init (void);
+void codec_exit (void);
 
-#define DVI_UNIT_SIZE		80
-#define DVI_STATE_SIZE		sizeof(struct adpcm_state)
+/* Use these two functions to finder number of available codecs 
+ * and to get an codec id of the num'th codec.
+ */
+u_int32    codec_get_number_of_codecs (void);
+codec_id_t codec_get_codec_number     (u_int32 num);
 
-#define POST_LPC_BLEND_LENGTH 10
+/* Use this function to check if codec id is valid / corrupted */
+int codec_id_is_valid(codec_id_t id);
 
-#ifndef M_PI
-#define M_PI            3.14159265358979323846
-#endif
+/* Use these functions to see what formats a codec supports
+ * and whether they are encode from or decode to.
+ */
 
-#define AUDIO_PT(x)  ((((x)>0) && (((x)<24) || (((x)>95) && ((x)<127)))
+const codec_format_t* codec_get_format        (codec_id_t id);
+int                   codec_can_encode_from   (codec_id_t id, 
+                                               const audio_format *qfmt);
+int                   codec_can_encode        (codec_id_t id);
+int                   codec_can_decode_to     (codec_id_t id, 
+                                               const audio_format *qfmt);
+int                   codec_can_decode        (codec_id_t id);
+int                   codec_audio_formats_compatible(codec_id_t id1,
+                                                     codec_id_t id2);
 
-struct s_codec;
-struct s_dpt;
-struct session_tag;
-struct rx_element_tag;
-struct s_codec_state;
+/* This is easily calculable but crops up everywhere */
+u_int32               codec_get_samples_per_frame (codec_id_t id);
 
-typedef struct s_coded_unit {
-	struct s_codec *cp;
-	u_char	*state;
-	int	state_len;
-	u_char	*data;
-	int	data_len;
-} coded_unit;
+/* Codec encoder functions */
+int  codec_encoder_create  (codec_id_t id, codec_state **cs);
+void codec_encoder_destroy (codec_state **cs);
+int  codec_encode          (codec_state* cs, 
+                            sample*      in_buf, 
+                            u_int16      in_bytes, 
+                            coded_unit*  cu);
 
-typedef void     (*init_f)(struct session_tag *sp, struct s_codec_state *s, struct s_codec *c);
-typedef void     (*free_f)(struct s_codec_state *s);
-typedef void     (*code_f)(sample *in, coded_unit *c, struct s_codec_state *s, struct s_codec *cp);
-typedef void     (*dec_f)(struct s_coded_unit *c, sample *data, struct s_codec_state *s, struct s_codec *cp);
-typedef u_int32  (*dec_peek_f)(char *data);
+/* Codec decoder functions */
+int  codec_decoder_create  (codec_id_t id, codec_state **cs);
+void codec_decoder_destroy (codec_state **cs);
+int  codec_decode          (codec_state* cs, 
+                            coded_unit*  cu,
+                            sample*      out_buf, 
+                            u_int16      out_bytes);
 
-typedef struct s_codec {
-	char	*name;           /* unique name */
-        char    *short_name;     /* short name unique for particular combination of freq and channels only */
-	int	quality;		/* Value for sorting redundancy in receiver */
-	int	pt;
+/* Repair related */
+int  codec_decoder_can_repair (codec_id_t id);
+int  codec_decoder_repair     (codec_id_t id, 
+                               codec_state *cs,
+                               u_int16 consec_missing,
+                               coded_unit *prev, 
+                               coded_unit *miss, 
+                               coded_unit *next);
 
-	/* Raw input format description */
-	int	freq;		/* Sampling frequency required in Hz */
-	int	sample_size;	/* Number of bytes per sample */
-	int	channels;	/* 1 mono, 2 stereo */
-	int	unit_len;	/* Duration of unit in samples.
-				 * This does not include the number of channels
-				 * like the transmitter unit */
-	int	sent_state_sz;	/* Transmitted sate size in bytes */
-	int	max_unit_sz;	/* Maximum size of coded unit in bytes */
-	init_f	enc_init;
-	code_f	encode;
-        free_f  enc_free;
-	init_f	dec_init;
-	dec_f	decode;
-        free_f  dec_free;
-        dec_peek_f get_frame_size;  /* Returns size of block based on inspection i.e. for G723.1 */
-} codec_t;
+/* Peek function for variable frame size codecs */
+u_int32 codec_peek_frame_size(codec_id_t id, u_char *data, u_int16 blk_len);
 
-struct s_codec *get_codec_by_pt(int pt);
-struct s_codec *get_codec_by_name(char *name);
-struct s_codec *get_codec_by_index(u_int32 idx);
-u_int32         get_codec_count(void);
+int     codec_clear_coded_unit(coded_unit *u);
 
-void	set_dynamic_payload(struct s_dpt **listp, char *name, int pt);
-int	get_dynamic_payload(struct s_dpt **listp, char *name);
-void    codec_free_dynamic_payloads(struct s_dpt **dpt_list);
-void	codec_init(struct session_tag *sp);
-void    codec_end (struct session_tag *sp);
-void	encoder(struct session_tag *sp, sample *data, int coding, coded_unit *c);
-void    reset_encoder(struct session_tag *sp, int coding);
-void	decode_unit(struct rx_element_tag *u);
-u_int32 get_codec_frame_size(char *data, codec_t *cp);
-void	clear_coded_unit(coded_unit *u);
-void    clear_encoder_states(struct s_codec_state **list);
-void    clear_decoder_states(struct s_codec_state **list);
-int	codec_compatible(struct s_codec *c1, struct s_codec *c2);
-int     codec_loosely_compatible(struct s_codec *c1, struct s_codec *c2);
-int     codec_first_with(int freq, int channels);
-int     codec_matching(char *shortname, int freq, int channels);
-void    disable_codec(struct s_codec *cp);
+/* RTP payload mapping interface */
+int        payload_is_valid     (u_char pt);
+int        codec_map_payload    (codec_id_t id, u_char pt);
+int        codec_unmap_payload  (codec_id_t id, u_char pt);
+u_char     codec_get_payload    (codec_id_t id);
+codec_id_t codec_get_by_payload (u_char pt);
 
-#endif /* _RAT_CODEC_H_ */
+/* For compatibility only */
+codec_id_t codec_get_first_mapped_with(u_int16 sample_rate, u_int16 channels);
+
+/* Name to codec mappings */
+codec_id_t codec_get_by_name    (const char *name);
+codec_id_t codec_get_matching   (const char *short_name, u_int16 sample_rate, u_int16 channels);
+
+#endif /* _CODEC_H_ */
+
+
+
+
+

@@ -43,6 +43,8 @@
 #ifndef _convert_h_
 #define _convert_h_
 
+struct rx_element_tag;
+
 typedef struct s_converter {
         struct s_pcm_converter *pcm_conv;
         struct s_converter_fmt *conv_fmt;
@@ -56,7 +58,7 @@ void         converters_free(void);
 
 /* Participant specific pcm conversion functions */
 converter_t            *converter_create  (struct s_pcm_converter *pc, int from_channels, int from_freq, int to_channels, int to_freq);
-int                     converter_format  (converter_t *c, rx_queue_element_struct *ip);
+int                     converter_format  (converter_t *c, struct rx_element_tag *ip);
 void                    converter_destroy (converter_t **c);
 
 /* Converter selection functions */

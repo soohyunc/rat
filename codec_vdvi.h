@@ -1,5 +1,5 @@
 /*
- * FILE:    codec_adpcm.h
+ * FILE:    codec_vdvi.h
  * AUTHORS: Orion Hodson
  * 
  * Copyright (c) 1998 University College London
@@ -38,14 +38,18 @@
 
 /* Just wrote the RAT interface, see codec_adpcm.c for coder copyright [oth] */
 
-#ifndef _ADPCM_H_
-#define _ADPCM_H_
+#ifndef _CODEC_VDVI_H_
+#define _CODEC_VDVI_H_
 
-u_int16               dvi_get_formats_count (void);
-const codec_format_t* dvi_get_format        (u_int16 idx);
-int                   dvi_state_create      (u_int16 idx, u_char **state);
-void                  dvi_state_destroy     (u_int16 idx, u_char **state);
-int                   dvi_encode            (u_int16 idx, u_char *state, sample     *in, coded_unit *out);
-int                   dvi_decode            (u_int16 idx, u_char *state, coded_unit *in, sample     *out);
+u_int16               vdvi_get_formats_count (void);
+const codec_format_t* vdvi_get_format        (u_int16 idx);
+int                   vdvi_state_create      (u_int16 idx, u_char **state);
+void                  vdvi_state_destroy     (u_int16 idx, u_char **state);
+int                   vdvi_encoder           (u_int16 idx, u_char *state, sample     *in, coded_unit *out);
+int                   vdvi_decoder           (u_int16 idx, u_char *state, coded_unit *in, sample     *out);
+int                   vdvi_peek_frame_size   (u_int16 idx, u_char *data, int data_len);
 
-#endif /* _ADPCM_H_ */
+#endif /* _CODEC_VDVI_H_ */
+
+
+

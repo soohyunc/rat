@@ -44,7 +44,6 @@
 #include "config_win32.h"
 #include "memory.h"
 #include "util.h"
-#include "receive.h"
 #include "convert.h"
 
 typedef struct s_converter_fmt{
@@ -1296,28 +1295,6 @@ converter_destroy(converter_t **c)
         xfree(*c); (*c) = NULL;
 }
 
-int
-converter_format (converter_t *c, rx_queue_element_struct *ip)
-{
-        converter_fmt_t *cf;
-        assert(c);
-        assert(c->pcm_conv);
-        assert(c->pcm_conv->cf_convert);
-        assert(ip->native_data);
-        assert(ip->native_count);
-        
-        cf = c->conv_fmt;
-        ip->native_size[ip->native_count] = cf->to_channels * (u_int16) (((double)ip->native_size[ip->native_count - 1] * (double)cf->to_freq / (double)cf->from_freq) + 0.5) / cf->from_channels;
-        ip->native_data[ip->native_count] = (sample*)block_alloc(ip->native_size[ip->native_count]);
-        c->pcm_conv->cf_convert(c,
-                                ip->native_data[ip->native_count - 1], 
-                                ip->native_size[ip->native_count - 1] / sizeof(sample),
-                                ip->native_data[ip->native_count], 
-                                ip->native_size[ip->native_count] / sizeof(sample));
-        ip->native_count++;
-        return TRUE;
-}
-
 void         
 converters_init()
 {
@@ -1377,6 +1354,34 @@ converter_get_name(int idx)
        } while (pc->id != CONVERT_NONE);
        
        return pc->name;
+}
+
+#include "codec_types.h"
+#include "codec.h"
+#include "channel.h"
+#include "session.h"
+#include "receive.h"
+
+int
+converter_format (converter_t *c, rx_queue_element_struct *ip)
+{
+        converter_fmt_t *cf;
+        assert(c);
+        assert(c->pcm_conv);
+        assert(c->pcm_conv->cf_convert);
+        assert(ip->native_data);
+        assert(ip->native_count);
+        
+        cf = c->conv_fmt;
+        ip->native_size[ip->native_count] = cf->to_channels * (u_int16) (((double)ip->native_size[ip->native_count - 1] * (double)cf->to_freq / (double)cf->from_freq) + 0.5) / cf->from_channels;
+        ip->native_data[ip->native_count] = (sample*)block_alloc(ip->native_size[ip->native_count]);
+        c->pcm_conv->cf_convert(c,
+                                ip->native_data[ip->native_count - 1], 
+                                ip->native_size[ip->native_count - 1] / sizeof(sample),
+                                ip->native_data[ip->native_count], 
+                                ip->native_size[ip->native_count] / sizeof(sample));
+        ip->native_count++;
+        return TRUE;
 }
 
 #ifdef DEBUG_CONVERT

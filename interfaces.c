@@ -39,10 +39,15 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-#include "interfaces.h"
+#include "codec_types.h"
+#include "codec.h"
+#include "channel.h"
+#include "session.h"
 #include "receive.h"
 #include "util.h"
 #include "audio.h"
+
+#include "interfaces.h"
 
 /* This routine assumes a doubly linked list */
 void
@@ -99,7 +104,7 @@ free_rx_unit(rx_queue_element_struct **temp_ptr)
         int i;
         
         for(i=0;i<(*temp_ptr)->comp_count;i++) 
-            clear_coded_unit(&(*temp_ptr)->comp_data[i]);
+            codec_clear_coded_unit(&(*temp_ptr)->comp_data[i]);
 
         if ((*temp_ptr)->ccu[0] != NULL) assert((*temp_ptr)->ccu_cnt);
         for(i=0;i<(*temp_ptr)->ccu_cnt;i++) {

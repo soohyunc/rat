@@ -6,7 +6,7 @@
  * $Revision$
  * $Date$
  * 
- * Copyright (c) 1995,1996,1997 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,9 @@
 #include "session.h"
 #include "timers.h"
 #include "repair.h"
+#include "codec_types.h"
 #include "codec.h"
+#include "channel.h"
 #include "pckt_queue.h"
 #include "receive.h"
 #include "convert.h"
@@ -71,31 +73,24 @@ init_session(session_struct *sp)
 	struct hostent *addr;
 	u_long          netaddr;
 	char            hostname[MAXHOSTNAMELEN + 1];
-	struct s_codec	*cp;
+	codec_id_t      cid;
+        const codec_format_t *cf;
 
 	memset(sp, 0, sizeof(session_struct));
 
-	set_dynamic_payload(&sp->dpt_list, "WBS-16K-MONO",   PT_WBS_16K_MONO);
-	set_dynamic_payload(&sp->dpt_list, "L16-8K-MONO",    PT_L16_8K_MONO);
-	set_dynamic_payload(&sp->dpt_list, "L16-8K-STEREO",  PT_L16_8K_STEREO);
-	set_dynamic_payload(&sp->dpt_list, "L16-16K-MONO",   PT_L16_16K_MONO);
-	set_dynamic_payload(&sp->dpt_list, "L16-16K-STEREO", PT_L16_16K_STEREO);
-	set_dynamic_payload(&sp->dpt_list, "L16-32K-MONO",   PT_L16_32K_MONO);
-	set_dynamic_payload(&sp->dpt_list, "L16-32K-STEREO", PT_L16_32K_STEREO);
-	set_dynamic_payload(&sp->dpt_list, "L16-48K-MONO",   PT_L16_48K_MONO);
-	set_dynamic_payload(&sp->dpt_list, "L16-48K-STEREO", PT_L16_48K_STEREO);
-
-	codec_init(sp);
+	codec_init();
         vu_table_init();
-	cp = get_codec_by_name("DVI-8K-MONO");
+	cid = codec_get_by_name("DVI-8K-MONO");
+        assert(cid);
+        cf  = codec_get_format(cid);
         channel_set_coder(sp, PT_VANILLA);
         sp->last_depart_ts              = 1;
-        sp->encodings[0]		= cp->pt;	/* user chosen encoding for primary */
-	sp->num_encodings		= 1;		/* Number of encodings in packet */
-        sp->next_encoding               = -1; /* Coding to change to */
+        sp->encodings[0]		= codec_get_payload(cid);           /* user chosen encoding for primary */
+	sp->num_encodings		= 1;                                /* Number of encodings in packet */
+        sp->next_encoding               = -1;                               /* Coding to change to */
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
-        sp->device_clock                = new_time(sp->clock, cp->freq);
-        assert(!(GLOBAL_CLOCK_FREQ%cp->freq));                        /* just in case someone adds weird freq codecs */
+        sp->device_clock                = new_time(sp->clock, cf->format.sample_rate);
+        assert(!(GLOBAL_CLOCK_FREQ%cf->format.sample_rate));                        /* just in case someone adds weird freq codecs */
         sp->collator                    = collator_create();
 	sp->mode         		= AUDIO_TOOL;	
         sp->input_mode                  = AUDIO_NO_DEVICE;
@@ -119,7 +114,6 @@ init_session(session_struct *sp)
 	sp->agc_on			= FALSE;
         sp->ui_on                       = TRUE;
 	sp->ui_addr			= NULL;
-	sp->repair			= REPAIR_REPEAT;/* Packet repetition */
 	sp->meter			= TRUE;		/* Powermeter operation */
         sp->drop                        = 0.0;
 	sp->in_file 			= NULL;
@@ -158,7 +152,7 @@ init_session(session_struct *sp)
 void
 end_session(session_struct *sp)
 {
-        codec_end(sp);
+        codec_exit();
         free_fast_time(sp->clock);
         if (sp->device_clock) {
                 xfree(sp->device_clock);
@@ -291,14 +285,14 @@ parse_early_options_transcoder(int argc, char *argv[], session_struct *sp[])
 		/* encoding */
 		j = 0;
 		while ((p = strtok(NULL, "/")) != NULL) {
-			codec_t *cp;
+			codec_id_t cid;
 			char *pu;
 			for (pu = p; *pu; pu++)
 					*pu = toupper(*pu);
-			if ((cp = get_codec_by_name(p)) == NULL)
+			if ((cid = codec_get_by_name(p)) == 0)
 				usage();
 			else {
-				sp[i]->encodings[j]  = cp->pt;
+				sp[i]->encodings[j]  = codec_get_payload(cid);
 				sp[i]->num_encodings = ++j;
 			}
 		}
@@ -395,15 +389,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                 }
                         }        
                         if ((strcmp(argv[i], "-repair") == 0) && (argc > i+1)) {
-                                if (strncmp(argv[i+1], "none", 4)==0) {
-                                        sp[s]->repair = REPAIR_NONE;
-                                        i++;
-                                } else if (strncmp(argv[i+1], "repeat", 6)==0) {
-                                        sp[s]->repair = REPAIR_REPEAT;
-                                        i++;
-                                } else {
-                                        printf("Unsupported -repair option: %s\n", argv[i++]);
-                                }
+                                sp[s]->repair = repair_get_by_name(argv[i+1]);
                         }
                         if ((strcmp(argv[i], "-interleave") == 0) && (argc > i+1)) {
 				/* expects string of form "codec/units/separation" */
@@ -421,11 +407,12 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 			}
                         if ((strcmp(argv[i], "-redundancy") == 0) && (argc > i+1)) {
 				/* Takes "-redundancy  redundant_codec/offset" */
-				codec_t	*pcp = get_codec_by_pt(sp[s]->encodings[0]);
+				codec_id_t pcid = codec_get_by_payload(sp[s]->encodings[0]);
+                                const codec_format_t *cf = codec_get_format(pcid);
                             	int      pt  = get_cc_pt(sp[s], "redundancy");
 				char     cfg[80];
 
-				sprintf(cfg, "%s/0/%s", pcp->name, argv[i+1]);
+				sprintf(cfg, "%s/0/%s", cf->long_name, argv[i+1]);
 				debug_msg("Configure redundancy %s\n", cfg);
                             	config_channel_coder(sp[s], pt, cfg);
 				channel_set_coder(sp[s], pt);
@@ -434,22 +421,23 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                             	i++;
                         }
 			if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
-				codec_t *cp;
+				codec_id_t cid;
 				char    *pu;
-				int	 pt;
                                 for (pu = argv[i+1]; *pu; pu++) {
                                         *pu = toupper(*pu);
 				}
                                 pu = argv[i+1];
-                                if ((cp = get_codec_by_name(pu)) != NULL) {
-                                        change_freq(sp[s]->device_clock, cp->freq);
-                                        sp[s]->encodings[0]  = cp->pt;
+                                if ((cid = codec_get_by_name(pu)) != 0) {
+                                        const codec_format_t *cf = codec_get_format(cid);
+                                        change_freq(sp[s]->device_clock, cf->format.sample_rate);
+                                        sp[s]->encodings[0]  = codec_get_payload(cid);
 					sp[s]->num_encodings = 1;
 					channel_set_coder(sp[s], get_cc_pt(sp[s], "vanilla"));
 					debug_msg("Configure codec %d\n", sp[s]->encodings[0]);
-				} else if (((pt = codec_matching(pu, 8000, 1)) != -1) && ((cp = get_codec_by_pt(pt)) != NULL)) {
-                                        change_freq(sp[s]->device_clock, cp->freq);
-                                        sp[s]->encodings[0]  = cp->pt;
+				} else if ((cid = codec_get_matching(pu, 8000, 1)) != 0) {
+                                        const codec_format_t *cf = codec_get_format(cid);
+                                        change_freq(sp[s]->device_clock, cf->format.sample_rate);
+                                        sp[s]->encodings[0]  = codec_get_payload(cid);
 					sp[s]->num_encodings = 1;
 					channel_set_coder(sp[s], get_cc_pt(sp[s], "vanilla"));
 					debug_msg("Configure codec %d\n", sp[s]->encodings[0]);
@@ -459,8 +447,8 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 					/* by sdr. Try to parse it that way, just in case...        [csp] */
 					char *pri_name = strtok(argv[i+1], "/");
 					char *sec_name = strtok(NULL, "/");
-					int   pri_pt, sec_pt;
-					codec_t *pri_cp, *sec_cp;
+					codec_id_t pri_cid, sec_cid;
+                                        const codec_format_t *pri_cf, *sec_cf;
 					char     cfg[80];
 					int	red_pt;
 
@@ -468,18 +456,20 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 						printf("Unknown codec\n");
 						usage();
 					}
-					if (((pri_pt = codec_matching(pri_name, 8000, 1)) == -1) || ((pri_cp = get_codec_by_pt(pri_pt)) == NULL)) {
+					if ((pri_cid = codec_get_matching(pri_name, 8000, 1)) == 0) {
 						printf("Unknown primary codec\n");
 						usage();
 					}
-					if (((sec_pt = codec_matching(sec_name, 8000, 1)) == -1) || ((sec_cp = get_codec_by_pt(sec_pt)) == NULL)) {
+					if ((sec_cid = codec_get_matching(sec_name, 8000, 1)) == 0) {
 						printf("Unknown redundant codec\n");
 						usage();
 					}
-                                        change_freq(sp[s]->device_clock, pri_cp->freq);
-                                        sp[s]->encodings[0]  = pri_cp->pt;
+                                        pri_cf = codec_get_format(pri_cid);
+                                        sec_cf = codec_get_format(sec_cid);
+                                        change_freq(sp[s]->device_clock, pri_cf->format.sample_rate);
+                                        sp[s]->encodings[0]  = codec_get_payload(pri_cid);
 					sp[s]->num_encodings = 1;
-					sprintf(cfg, "%s/0/%s/1", pri_cp->name, sec_cp->name);
+					sprintf(cfg, "%s/0/%s/1", pri_cf->long_name,sec_cf->long_name);
 					debug_msg("Configuring codec+redundancy: %s+%s\n", pri_name, sec_name);
 					red_pt = get_cc_pt(sp[s], "redundancy");
 					config_channel_coder(sp[s], red_pt, cfg);

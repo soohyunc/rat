@@ -60,9 +60,13 @@
 #include "rtcp_db.h"
 #include "session.h"
 #include "ui.h"
-#include "receive.h"
 #include "transmit.h"
 #include "timers.h"
+#include "session.h"
+#include "codec_types.h"
+#include "codec.h"
+#include "channel.h"
+#include "receive.h"
 
 #define SECS_BETWEEN_1900_1970 2208988800u
 #define RTP_SSRC_EXPIRE        70u
@@ -355,10 +359,11 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 
         if ((dbe->ui_last_update - get_time(dbe->clock)) >= (unsigned)get_freq(sp->device_clock)) {
                 double jit;
-                codec_t *cp;
-                cp = get_codec_by_pt(dbe->enc);
-                if (cp) {
-                        ui_update_duration(sp, dbe->sentry->cname, dbe->units_per_packet * 1000 * cp->unit_len / cp->freq);
+                codec_id_t id;
+                id = codec_get_by_payload(dbe->enc);
+                if (id) {
+                        const codec_format_t *cf = codec_get_format(id);
+                        ui_update_duration(sp, dbe->sentry->cname, dbe->units_per_packet * 1000 * codec_get_samples_per_frame(id) / cf->format.sample_rate);
                 } else {
                         ui_update_duration(sp, dbe->sentry->cname, dbe->units_per_packet * 20);
                 }
@@ -806,6 +811,9 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, socket_udp *s)
 	while ((src = sp1->db->ssrc_db) != NULL) {
 		rtcp_delete_dbentry(sp1, src->ssrc);
 	}
+        if (sp1->db->my_dbe) {
+                rtcp_free_dbentry(sp1->db->my_dbe);
+        }
 	if (sp1->mode == TRANSCODER) {
 		rtcp_free_dbentry(sp2->db->my_dbe);
 		while ((src = sp2->db->ssrc_db) != NULL) {

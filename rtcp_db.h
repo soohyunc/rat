@@ -88,7 +88,7 @@ typedef struct s_rtcp_dbentry {
         u_char          playout_danger;         /* not enough audio in playout buffer */
         int             inter_pkt_gap;          /* expected time between pkt arrivals */
         struct s_cc_state       *cc_state_list;
-	struct s_codec_state	*state_list;
+	struct s_codec_state_store *state_store;
 	struct s_time		*clock;
         struct s_converter      *converter;
         struct s_render_3D_dbentry  *render_3D_data;

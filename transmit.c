@@ -44,7 +44,9 @@
 #include "config_win32.h"
 #include "memory.h"
 #include "debug.h"
+#include "codec_types.h"
 #include "codec.h"
+#include "codec_state.h"
 #include "channel.h"
 #include "session.h"
 #include "audio.h"
@@ -251,6 +253,10 @@ tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
                 audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF);
         }
 
+        if (!sp->state_store) {
+                codec_state_store_create(&sp->state_store, ENCODER);
+        }
+
         return (tb);
 }
 
@@ -283,7 +289,7 @@ tx_destroy(session_struct *sp)
         xfree(tb);
         sp->tb = NULL;
 
-        clear_encoder_states    (&sp->state_list);
+        codec_state_store_destroy(&sp->state_store);
         clear_cc_encoder_states (&sp->cc_state_list);
 }
 
@@ -407,6 +413,24 @@ tx_process_audio(session_struct *sp)
         return TRUE;
 }
 
+static int
+tx_encode(struct s_codec_state_store *css, 
+          sample *buf, 
+          u_char payload, 
+          coded_unit *cu)
+{
+        codec_id_t id;
+        codec_state *cs;
+        const codec_format_t *cf;
+
+        id = codec_get_by_payload(payload);
+        assert(id);
+
+        cf = codec_get_format(id);
+        cs = codec_state_store_get(css, id);
+        return codec_encode(cs, buf, cf->format.bytes_per_block, cu);
+}
+
 void
 tx_send(session_struct *sp)
 {
@@ -473,7 +497,7 @@ tx_send(session_struct *sp)
                                 num_encodings = 0;
                                 assert(u != tb->silence_ptr);
                                 while(num_encodings != sp->num_encodings) {
-                                        encoder(sp, u->data, sp->encodings[num_encodings], &coded[num_encodings]);
+                                        tx_encode(sp->state_store, u->data, sp->encodings[num_encodings], &coded[num_encodings]);
                                         collated[num_encodings] = collate_coded_units(sp->collator, &coded[num_encodings], num_encodings);
                                         num_encodings++;
                                 }

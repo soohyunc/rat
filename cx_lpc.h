@@ -1,8 +1,8 @@
 /*
- * FILE:    codec_adpcm.h
- * AUTHORS: Orion Hodson
- * 
- * Copyright (c) 1998 University College London
+ * $Revision$
+ * $Date$
+ *
+ * Copyright (c) 1995,1996 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,16 +36,37 @@
  * SUCH DAMAGE.
  */
 
-/* Just wrote the RAT interface, see codec_adpcm.c for coder copyright [oth] */
+#ifndef _LPC_H_
+#define _LPC_H_
 
-#ifndef _ADPCM_H_
-#define _ADPCM_H_
+#define FRAMESIZE 160
 
-u_int16               dvi_get_formats_count (void);
-const codec_format_t* dvi_get_format        (u_int16 idx);
-int                   dvi_state_create      (u_int16 idx, u_char **state);
-void                  dvi_state_destroy     (u_int16 idx, u_char **state);
-int                   dvi_encode            (u_int16 idx, u_char *state, sample     *in, coded_unit *out);
-int                   dvi_decode            (u_int16 idx, u_char *state, coded_unit *in, sample     *out);
+#define LPC_FILTORDER		10
 
-#endif /* _ADPCM_H_ */
+/* lpc transmitted state */
+
+typedef struct {
+	unsigned short period;
+	unsigned char gain;
+	char k[LPC_FILTORDER];
+	char pad;
+} lpc_txstate_t;
+#define LPCTXSIZE 14
+
+/*
+ * we can't use 'sizeof(lpcparams_t)' because some compilers
+ * add random padding so define size of record that goes over net.
+ */
+
+/* lpc decoder internal state */
+typedef struct {
+	double Oldper, OldG, Oldk[LPC_FILTORDER + 1], bp[LPC_FILTORDER + 1];
+	int pitchctr;
+} lpc_intstate_t;
+
+void lpc_init(lpc_intstate_t* state);
+void lpc_analyze(const short *buf, lpc_txstate_t *params);
+void lpc_synthesize(short *buf, lpc_txstate_t *params, lpc_intstate_t* state);
+void lpc_extend_synthesize(short *buf, int len, lpc_intstate_t* state);
+
+#endif /* _codec_lpc_h_ */

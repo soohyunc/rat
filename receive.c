@@ -44,6 +44,12 @@
 #include "config_win32.h"
 #include "debug.h"
 #include "util.h"
+#include "session.h"
+#include "codec_types.h"
+#include "codec_state.h"
+#include "codec.h"
+#include "audio.h"
+#include "channel.h"
 #include "receive.h"
 #include "interfaces.h"
 #include "timers.h"
@@ -51,7 +57,6 @@
 #include "rtcp_db.h"
 #include "repair.h"
 #include "mix.h"
-#include "audio.h"
 #include "convert.h"
 #include "cushion.h"
 #include "transmit.h"
@@ -285,6 +290,36 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 	return (ru);
 }
 
+void
+decode_unit(rx_queue_element_struct *u)
+{
+        const codec_format_t *cf;
+        codec_state          *st;
+
+        if (u->comp_count == 0) {
+                return;
+        }
+
+        assert(u->native_count<MAX_NATIVE);
+        assert(codec_id_is_valid(u->comp_data[0].id));
+
+        st = codec_state_store_get(u->dbe_source[0]->state_store, 
+                                   u->comp_data[0].id);
+
+        assert(st);
+        cf = codec_get_format(u->comp_data[0].id);
+        if (u->native_count == 0) {
+                u->native_size[u->native_count] = cf->format.bytes_per_block;
+                u->native_data[u->native_count] = (sample*)block_alloc(cf->format.bytes_per_block);
+                u->native_count++;
+        }
+
+        codec_decode(st, 
+                     &u->comp_data[0], 
+                     u->native_data[u->native_count - 1], 
+                     u->native_size[u->native_count - 1]);
+}
+
 static rx_queue_element_struct *
 playout_buffer_get(session_struct *sp, ppb_t *buf, u_int32 from, u_int32 to)
 {
@@ -455,7 +490,8 @@ static ppb_t *
 find_participant_queue(session_struct *sp, ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, struct s_pcm_converter *pc)
 {
 	ppb_t *p;
-        codec_t *cp_dev, *cp_src;
+        codec_id_t id_dev, id_src;
+        const codec_format_t *cf_dev, *cf_src;
 
 	for (p = *list; p; p = p->next) {
 		if (p->src == src)
@@ -481,22 +517,25 @@ find_participant_queue(session_struct *sp, ppb_t **list, rtcp_dbentry *src, int 
         
         ui_info_activate(sp, src);
 
-        cp_dev = get_codec_by_pt(dev_pt);
-        cp_src = get_codec_by_pt(src_pt);
-        assert(cp_dev);
-        assert(cp_src);
-        if (!codec_compatible(cp_dev,cp_src)) {
+        id_dev = codec_get_by_payload(dev_pt);
+        id_src = codec_get_by_payload(src_pt);
+        assert(id_dev);
+        assert(id_src);
+        cf_dev = codec_get_format(id_dev);
+        cf_src = codec_get_format(id_src);
+        if (cf_dev->format.channels    != cf_src->format.channels ||
+            cf_dev->format.sample_rate != cf_src->format.sample_rate) {
                 if (src->converter) converter_destroy(&src->converter);
                 assert(src->converter == NULL);
                 src->converter = converter_create(pc, 
-                                                  cp_src->channels, 
-                                                  cp_src->freq,
-                                                  cp_dev->channels,
-                                                  cp_dev->freq);
+                                                  cf_src->format.channels, 
+                                                  cf_src->format.sample_rate,
+                                                  cf_dev->format.channels,
+                                                  cf_dev->format.sample_rate);
         } 
 
         if (sp->render_3d && src->render_3D_data == NULL) {
-                src->render_3D_data = render_3D_init(sp);
+                src->render_3D_data = render_3D_init(get_freq(sp->device_clock));
         }
 
 	return (p);
@@ -642,10 +681,11 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
 #endif
                 
 		while ((up = playout_buffer_get(sp, buf, cur_time, cur_time + cs))) {
-                        if (!up->comp_count  && sp->repair != REPAIR_NONE 
-                            && up->prev_ptr != NULL && up->next_ptr != NULL
-                            && up->prev_ptr->native_count) 
-                        repair(sp->repair, up);
+                        if (!up->comp_count &&
+                            up->prev_ptr != NULL && up->next_ptr != NULL &&
+                            up->prev_ptr->native_count) {
+                                repair(sp->repair, up);
+                        }
 #ifdef DEBUG_PLAYOUT
                         if (up->prev_ptr) {
                                 u_int32 src_diff = ts_abs_diff(up->prev_ptr->src_ts,up->src_ts);

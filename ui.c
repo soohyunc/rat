@@ -25,8 +25,6 @@
  * 4. Neither the name of the University nor of the Department may be used
  *    to endorse or promote products derived from this software without
  *    specific prior written permission.
- * Use of this software for commercial purposes is explicitly forbidden
- * unless prior written permission is obtained from the authors.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -46,13 +44,14 @@
 #include "debug.h"
 #include "memory.h"
 #include "version.h"
+#include "codec_types.h"
+#include "codec.h"
+#include "codec_state.h"
 #include "session.h"
 #include "crypt.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "repair.h"
-#include "receive.h"
-#include "codec.h"
 #include "convert.h"
 #include "audio.h"
 #include "audio_fmt.h"
@@ -64,6 +63,7 @@
 #include "ui.h"
 #include "timers.h"
 #include "render_3D.h"
+#include "receive.h"
 
 static char *mbus_name_engine = NULL;
 static char *mbus_name_ui     = NULL;
@@ -243,7 +243,7 @@ ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e)
         int   azimuth, filter_type, filter_length;
 
         if (e->render_3D_data == NULL) {
-                e->render_3D_data = render_3D_init(sp);
+                e->render_3D_data = render_3D_init(get_freq(sp->device_clock));
         }
 
         render_3D_get_parameters(e->render_3D_data, &azimuth, &filter_type, &filter_length);
@@ -261,7 +261,8 @@ void
 ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 {
 	char	*my_cname, *their_cname, *args, *mbes;
-	codec_t	*pcp;
+	codec_id_t            pri_id;
+        const codec_format_t *pri_cf;
 
         if (sp->db->my_dbe->sentry == NULL || sp->db->my_dbe->sentry->cname == NULL) {
                 debug_msg("Warning sentry or name == NULL\n");
@@ -276,8 +277,9 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 	their_cname = mbus_encode_str(e->sentry->cname);
 
         if (e->enc_fmt) {
-		pcp  = get_codec_by_pt(e->enc);
-		mbes = mbus_encode_str(pcp->short_name);
+		pri_id = codec_get_by_payload(e->enc);
+                pri_cf = codec_get_format(pri_id);
+		mbes = mbus_encode_str(pri_cf->short_name);
                 args = (char *) xmalloc(strlen(their_cname) + strlen(mbes) + 2);
                 sprintf(args, "%s %s", their_cname, mbes);
         } else {
@@ -420,11 +422,13 @@ ui_update_device_config(session_struct *sp)
 void
 ui_update_primary(session_struct *sp)
 {
-	codec_t *pcp;
+	codec_id_t            pri_id;
+        const codec_format_t *pri_cf;
         char *mbes;
 
-	pcp = get_codec_by_pt(sp->encodings[0]);
-	mbes = mbus_encode_str(pcp->short_name);
+	pri_id = codec_get_by_payload(sp->encodings[0]);
+        pri_cf = codec_get_format(pri_id);
+	mbes = mbus_encode_str(pri_cf->short_name);
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.codec", mbes, FALSE);
         xfree(mbes);
 }
@@ -466,7 +470,6 @@ ui_update_redundancy(session_struct *sp)
 
         pt = get_cc_pt(sp,"REDUNDANCY");
         if (pt != -1) { 
-                codec_t *cp;
                 query_channel_coder(sp, pt, buf, 128);
                 if (strlen(buf)) {
                         dummy  = strtok(buf,"/");
@@ -474,9 +477,12 @@ ui_update_redundancy(session_struct *sp)
                         codec_name  = strtok(NULL,"/");
                         /* redundant coder returns long name convert to short*/
                         if (codec_name) {
-                                cp         = get_codec_by_name(codec_name);
-                                assert(cp);
-                                codec_name = cp->short_name;
+                                const codec_format_t *cf;
+                                codec_id_t            cid;
+                                cid  = codec_get_by_name(codec_name);
+                                assert(cid);
+                                cf   = codec_get_format(cid);
+                                codec_name = (char*)cf->short_name;
                         }
                         offset = strtok(NULL,"/");
                 }
@@ -487,9 +493,12 @@ ui_update_redundancy(session_struct *sp)
         if (codec_name != NULL && offset != NULL) {
                 ioff  = atoi(offset);
         } else {
-                codec_t *pcp;
-                pcp   = get_codec_by_pt(sp->encodings[0]);
-                codec_name = pcp->short_name;
+                const codec_format_t *cf;
+                codec_id_t            id;
+                id         = codec_get_by_payload(sp->encodings[0]);
+                assert(id);
+                cf         = codec_get_format(id);
+                codec_name = (char*)cf->short_name;
                 ioff  = 1;
         } 
 
@@ -785,51 +794,84 @@ ui_update_key(session_struct *sp, char *key)
 static int
 codec_bw_cmp(const void *a, const void *b)
 {
-        int bwa, bwb;
-        bwa = (*((codec_t**)a))->max_unit_sz;
-        bwb = (*((codec_t**)b))->max_unit_sz;
-        if (bwa<bwb) {
+        codec_id_t *id_a, *id_b;
+        const codec_format_t *cf_a, *cf_b;
+
+        id_a = (codec_id_t*)a;
+        id_b = (codec_id_t*)b;
+        cf_a = codec_get_format(*id_a);
+        cf_b = codec_get_format(*id_b);
+        
+        if (cf_a->mean_coded_frame_size < cf_b->mean_coded_frame_size) {
                 return 1;
-        } else if (bwa>bwb) {
+        } else if (cf_a->mean_coded_frame_size > cf_b->mean_coded_frame_size) {
                 return -1;
         } 
         return 0;
 }
 
+/* This code is particularly wasteful - what we want to do now is have
+ * the codecs passed to the ui with all their associated settings and
+ * have the ui worry about compatibility and sorting of codecs */
+
 static char *
 ui_get_codecs(int pt, char *buf, unsigned int buf_len, int loose) 
 {
-	codec_t	*codec[10],*sel;
-	u_int32	 i,nc, cnt;
+	codec_id_t cid[100], sel_id;
+        const codec_format_t *cf_sel = NULL, *cf_cur = NULL;
+	u_int32	 i, nc, codec_cnt, req_buf_len = 0;
         char *bp = buf;
         
-        cnt = get_codec_count();
-        sel = get_codec_by_pt(pt);
+        codec_cnt = codec_get_number_of_codecs();
+        sel_id    = codec_get_by_payload(pt);
         
-        for (nc = i = 0; i< cnt ; i++) {
-                codec[nc] = get_codec_by_index(i);
-                if (codec[nc] != NULL && codec[nc]->encode != NULL) {
-                        if (loose == TRUE && codec_loosely_compatible(sel,codec[nc])) {
-                                /* Picking out primary codecs, i.e. not bothered 
-                                 * about sample size and block sizes matching.
-                                 */
+        nc = 0;
+        for (i = 0; i < codec_cnt && nc < 100; i++) {
+                cid[nc]  = codec_get_codec_number(i);
+                if (!cid[nc]                   || 
+                    !codec_can_encode(cid[nc]) ||
+                    !payload_is_valid(codec_get_payload(cid[nc]))) {
+                        continue;
+                }
+
+                if (loose == TRUE) {
+                        cf_sel = codec_get_format(sel_id);
+                        cf_cur = codec_get_format(cid[nc]);
+                        /* Picking out primary codecs, i.e. not bothered 
+                         * about sample size and block sizes matching.
+                         */
+                        assert(cf_sel);
+                        assert(cf_cur);
+                        if (cf_sel->format.channels == cf_cur->format.channels &&
+                            cf_sel->format.sample_rate == cf_cur->format.sample_rate) {
+                                req_buf_len += strlen(cf_cur->short_name);
                                 nc++;
-                                assert(nc<10); 
-                        } else if (codec_compatible(sel, codec[nc])) {
-                                /* Picking out redundant codecs where we are 
-                                 * fussed about sample and block size matching.
-                                 */
-                                nc++;
-                                assert(nc<10);
                         }
+                        assert(nc<100); 
+                } else if (codec_audio_formats_compatible(sel_id, cid[nc])) {
+                        /* Picking out redundant codecs where we are 
+                         * fussed about sample and block size matching.
+                         */
+                        cf_cur = codec_get_format(cid[nc]);
+                        assert(cf_cur);
+                        req_buf_len += strlen(cf_cur->short_name);
+                        nc++;
+                        assert(nc<100);
                 }
         }
-        
+
+        req_buf_len += nc + 1; /* number of spaces in output fmt + zero end */
+
+        if (req_buf_len > buf_len) {
+                debug_msg("Insufficient buffer space\n");
+        }
+
         /* sort by bw as this makes handling of acceptable redundant codecs easier in ui */
-        qsort(codec,nc,sizeof(codec_t*),codec_bw_cmp);
-        for(i=0;i<nc && strlen(buf) + strlen(codec[i]->short_name) < buf_len;i++) {
-                sprintf(bp, "%s ", codec[i]->short_name);
-                bp += strlen(codec[i]->short_name) + 1;
+        qsort(cid,nc,sizeof(codec_id_t),codec_bw_cmp);
+        for(i=0;i<nc && strlen(buf) < buf_len;i++) {
+                cf_cur = codec_get_format(cid[i]);
+                sprintf(bp, "%s ", cf_cur->short_name);
+                bp += strlen(cf_cur->short_name) + 1;
         }
 
         if (i != nc) {

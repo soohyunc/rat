@@ -44,6 +44,7 @@
 #include "config_win32.h"
 #include "debug.h"
 #include "memory.h"
+#include "codec_types.h"
 #include "codec_g711.h"
 #include "sndfile.h"
 

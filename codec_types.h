@@ -1,8 +1,12 @@
 /*
- * FILE:    codec_adpcm.h
- * AUTHORS: Orion Hodson
- * 
- * Copyright (c) 1998 University College London
+ * FILE:    codec_types.h
+ * PROGRAM: RAT
+ * AUTHOR:  Orion Hodson
+ *
+ * $Revision$
+ * $Date$
+ *
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,16 +40,34 @@
  * SUCH DAMAGE.
  */
 
-/* Just wrote the RAT interface, see codec_adpcm.c for coder copyright [oth] */
+#ifndef _CODEC_TYPES_H_
+#define _CODEC_TYPES_H_
 
-#ifndef _ADPCM_H_
-#define _ADPCM_H_
+#define CODEC_PAYLOAD_DYNAMIC   255
 
-u_int16               dvi_get_formats_count (void);
-const codec_format_t* dvi_get_format        (u_int16 idx);
-int                   dvi_state_create      (u_int16 idx, u_char **state);
-void                  dvi_state_destroy     (u_int16 idx, u_char **state);
-int                   dvi_encode            (u_int16 idx, u_char *state, sample     *in, coded_unit *out);
-int                   dvi_decode            (u_int16 idx, u_char *state, coded_unit *in, sample     *out);
+typedef u_int32 codec_id_t;
 
-#endif /* _ADPCM_H_ */
+typedef struct {
+        u_char    *state;
+        codec_id_t id;
+} codec_state;
+
+typedef struct s_codec_format {
+        char         short_name[10];
+        char         long_name[32];
+        char         description[128];
+        u_char       default_pt;
+        u_int16      mean_per_packet_state_size;
+        u_int16      mean_coded_frame_size;
+        const audio_format format;
+} codec_format_t;
+
+typedef struct s_coded_unit {
+        codec_id_t id;
+	u_char	*state;
+	int	state_len;
+	u_char	*data;
+	int	data_len;
+} coded_unit;
+
+#endif /* _CODEC_TYPES_H_ */

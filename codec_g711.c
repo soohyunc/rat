@@ -30,10 +30,6 @@
  * u-law, A-law and linear PCM conversions.
  */
 
-/* Minor modifications Orion Hodson <O.Hodson@cs.ucl.ac.uk> */
-
-#include "codec_g711.h"
-
 #define	SIGN_BIT	(0x80)		/* Sign bit for a A-law byte. */
 #define	QUANT_MASK	(0xf)		/* Quantization field mask. */
 #define	NSEGS		(8)		/* Number of A-law segments. */
@@ -290,6 +286,20 @@ ulaw2alaw(
 
 #endif /* INTER_LAW_CONVERSION */
 
+/****************************************************************************/
+/* RAT specific interface (Orion Hodson, November 1998)                     */
+/****************************************************************************/
+
+#include "config_unix.h"
+#include "config_win32.h"
+#include "memory.h"
+#include "util.h"
+#include "debug.h"
+#include "audio_types.h"
+#include "codec_types.h"
+#include "assert.h"
+#include "codec_g711.h"
+
 short         mulawtolin[256];
 unsigned char lintomulaw[65536];
 
@@ -297,7 +307,7 @@ short         alawtolin[256];
 unsigned char lintoalaw[8192]; 
 
 void 
-codec_g711_init()
+g711_init()
 {
         int i;
         
@@ -313,4 +323,159 @@ codec_g711_init()
         for(i = -32767; i < 32768; i+= 8) 
                 lintoalaw[(unsigned short)i>>3] = linear2alaw(i);
 
+}
+
+#define PAYLOAD(x)    (x)
+#define STATE_SIZE(x) (x)
+#define FRAME_SIZE(x) (x)
+
+static codec_format_t cs[] = {
+/* 8kHz */
+        {"Mu-law", "PCMU-8K-Mono",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         PAYLOAD(0), STATE_SIZE(0), FRAME_SIZE(160), /* 20 ms */
+         {DEV_S16, 8000, 16, 1, 160 * BYTES_PER_SAMPLE}},
+        {"Mu-law", "PCMU-8K-Stereo",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 20 ms */
+         {DEV_S16, 8000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
+/* 16kHz */
+        {"Mu-law", "PCMU-16K-Mono",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 10 ms */
+         {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}},
+        {"Mu-law", "PCMU-16K-Stereo",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 10 ms */
+         {DEV_S16, 16000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
+/* 32kHz */
+        {"Mu-law", "PCMU-32K-Mono",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 5 ms */
+         {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}},
+        {"Mu-law", "PCMU-32K-Stereo",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 5 ms */
+         {DEV_S16, 32000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
+/* 48kHz */                
+        {"Mu-law", "PCMU-48K-Mono",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 3.333... ms */
+         {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}},
+        {"Mu-law", "PCMU-48K-Stereo",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 3.333... ms */
+         {DEV_S16, 48000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
+/* 8kHz */
+        {"A-law", "PCMA-8K-Mono",
+         "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
+         PAYLOAD(8), STATE_SIZE(0), FRAME_SIZE(160), /* 20 ms */
+         {DEV_S16, 8000, 16, 1, 160 * BYTES_PER_SAMPLE}},
+        {"A-law", "PCMA-8K-Stereo",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 20 ms */
+         {DEV_S16, 8000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
+/* 16kHz */
+        {"A-law", "PCMA-16K-Mono",
+         "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 10 ms */
+         {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}},
+        {"A-law", "PCMA-16K-Stereo",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 10 ms */
+         {DEV_S16, 16000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
+/* 32kHz */
+        {"A-law", "PCMA-32K-Mono",
+         "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 5 ms */
+         {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}},
+        {"A-law", "PCMA-32K-Stereo",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 5 ms */
+         {DEV_S16, 32000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
+/* 48kHz */
+        {"A-law", "PCMA-48K-Mono",
+         "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 3.333... ms */
+         {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}},
+        {"A-law", "PCMA-48K-Stereo",
+         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 3.333... ms */
+         {DEV_S16, 48000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
+};
+
+#define G711_NUM_FORMATS (sizeof(cs) / sizeof (codec_format_t))
+#define G711_IS_MULAW(idx)  (idx < (G711_NUM_FORMATS / 2))
+
+u_int16
+g711_get_formats_count()
+{
+        return (u_int16) G711_NUM_FORMATS;
+}
+
+const codec_format_t*
+g711_get_format(u_int16 idx)
+{
+        assert(idx < G711_NUM_FORMATS);
+        return &cs[idx];
+}
+
+int
+g711_encode (u_int16 idx, u_char *state, sample *in, coded_unit *out)
+{
+        int len, remain;
+        u_char *p;
+
+        assert(idx < G711_NUM_FORMATS);
+        UNUSED(state);
+
+        /* No difference between A-law and U-law sizes */
+        remain = len = cs[idx].mean_coded_frame_size;
+        
+        out->state     = NULL;
+        out->state_len = 0;
+        out->data      = (u_char*)block_alloc(len);
+        out->data_len  = len;
+
+        p = out->data;
+        if (G711_IS_MULAW(idx)) {
+                while(remain--) {
+                        *p = s2u(*in);
+                        p++; in++;
+                }
+        } else {
+                while(remain--) {
+                        *p = s2a(*in);
+                        p++; in++;
+                }
+        }
+        
+        return len;
+}
+
+int
+g711_decode(u_int16 idx, u_char *state, coded_unit *in, sample *out)
+{
+        int len, remain;
+        u_char *p;
+
+        assert(idx < G711_NUM_FORMATS);
+        UNUSED(state);
+
+        len = remain = cs[idx].mean_coded_frame_size;
+
+        p = in->data;
+        if (G711_IS_MULAW(idx)) {
+                while(remain--) {
+                        *out = u2s(*p);
+                        out++; p++;
+                }
+        } else {
+                while(remain--) {
+                        *out = a2s(*p);
+                        out++; p++;
+                }
+        }
+
+        return len;
 }

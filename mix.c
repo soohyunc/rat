@@ -47,13 +47,16 @@
 #include "util.h"
 #include "mix.h"
 #include "session.h"
+#include "codec_types.h"
+#include "codec.h"
 #include "audio.h"
+#include "audio_fmt.h"
+#include "channel.h"
 #include "receive.h"
 #include "timers.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "convert.h"
-#include "codec.h"
 #include "debug.h"
 #include "parameters.h"
 #include "ui.h"
@@ -86,14 +89,16 @@ typedef struct s_mix_info {
 mix_struct *
 mix_create(session_struct * sp, int buffer_length)
 {
-	mix_struct	*ms;
-        codec_t         *cp;
+	mix_struct	     *ms;
+        codec_id_t            cid;
+        const codec_format_t *cf;
 
-        cp = get_codec_by_pt(sp->encodings[0]);
-
+        cid = codec_get_by_payload(sp->encodings[0]);
+        assert(cid);
+        cf = codec_get_format(cid);
 	ms = (mix_struct *) xmalloc(sizeof(mix_struct));
 	memset(ms, 0 , sizeof(mix_struct));
-        ms->channels    = cp->channels;
+        ms->channels    = cf->format.channels;
         ms->buf_len     = buffer_length * ms->channels;
 	ms->mix_bur  = (sample *)xmalloc(3 * ms->buf_len * BYTES_PER_SAMPLE);
 	audio_zero(ms->mix_buffer, 3 * buffer_length , DEV_S16);
@@ -158,7 +163,8 @@ void
 mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el)
 {
         u_int32	playout; 
-	codec_t	*from, *to;
+        int	pos, i, nsamples, dur, diff;
+	codec_id_t from, to;
         const codec_format_t *cf_from, *cf_to;
 	sample	*buf;
 	if (sp->mode == AUDIO_TOOL && !sp->audio_device && (audio_device_take(sp) == FALSE)) {
@@ -174,18 +180,23 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 
 	/* Receive unit at this point has a playout at the receiver frequency
 	 * and decompressed data at the codec output rate and channels.
-	from = el->comp_data[0].cp;
-	to   = get_codec_by_pt(sp->encodings[0]);
+	 * These must be converted before mixing. */
+	to   = codec_get_by_payload(sp->encodings[0]);
 	to   = codec_get_by_payload((u_char)sp->encodings[0]);
 
         playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
-	if (from->freq == to->freq && from->channels == to->channels) {
-		nsamples = ms->channels * from->unit_len;
-                dur = from->unit_len;
+
+        cf_from = codec_get_format(from);
+        cf_to   = codec_get_format(to);
+
+	if (cf_from->format.sample_rate == cf_to->format.sample_rate && 
+            cf_from->format.channels == cf_to->format.channels) {
+                dur      = codec_get_samples_per_frame(from);
 		nsamples = dur * ms->channels;
 	} else {
                 if (el->dbe_source[0]->converter) {
-                        nsamples = ms->channels * from->unit_len * to->freq / from->freq ;
+                        converter_format(el->dbe_source[0]->converter, el);
+                        nsamples = ms->channels * codec_get_samples_per_frame(from) * 
                                 cf_to->format.sample_rate / cf_from->format.sample_rate;
                         dur = nsamples / ms->channels;
                 } else {

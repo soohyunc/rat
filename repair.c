@@ -6,7 +6,7 @@
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,8 +24,6 @@
  * 4. Neither the name of the University nor of the Department may be used
  *    to endorse or promote products derived from this software without
  *    specific prior written permission.
- * Use of this software for commercial purposes is explicitly forbidden
- * unless prior written permission is obtained from the authors.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -42,47 +40,247 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
+#include "audio_types.h"
 #include "util.h"
-#include "repair.h"
-#include "receive.h"
-#include "codec_gsm.h"
-#include "codec_lpc.h"
+#include "debug.h"
 
-/* fade and pitch measures in ms */
+/* This is prototype for repair functions - */
+/* Repair scheme is passed a set of pointers to sample buffers, their formats,
+ * how many of them there are, the index of the buffer to be repaired and how
+ * many losses have happened consecutively
+ */
+
+typedef int (*repair_f)(sample **audio_buf, 
+                        const audio_format **buffer_formats, 
+                        int nbufs, 
+                        int missing_buf, 
+                        int consec_lost);
+
+typedef struct {
+        const char *name;
+        repair_f    action;
+} repair_scheme;
+
+/* Lots of room for optimization here on in - went for cleanliness + 
+ * min of coding time */
+
+/* fade in ms */
 #define FADE_DURATION   320.0f
-#define MIN_PITCH         5.0f
 
-#define ALPHA             0.9f
-#define MATCH_LEN         20    
-#define MAX_BUF_LEN       1024
-
-#define NUM_REPAIR_SCHEMES 3
-static char * repair_names[NUM_REPAIR_SCHEMES] = {"None", 
-                                                  "Repeat", 
-                                                  "Pattern-Match"};
-
-char *
-repair_get_name(int id)
+static void
+fade_buffer(sample *buffer, const audio_format *fmt, int consec_lost)
 {
-        if (id >= 0 && id < NUM_REPAIR_SCHEMES) return repair_names[id];
-        return repair_names[REPAIR_NONE];
+        sample *src, *srce;
+        float fade_per_sample, scale_factor;
+        int samples;
+        
+        samples = fmt->bytes_per_block * 8 / 
+                (fmt->bits_per_sample * fmt->channels);
+        
+        src  = buffer;
+        srce = src + samples * fmt->channels;
+        
+        fade_per_sample = 1000.0f / 
+                (FADE_DURATION * fmt->sample_rate);
+        
+        scale_factor = 1.0f - consec_lost * samples * fade_per_sample;
+        assert(scale_factor < 1.0);
+        if (scale_factor <= 0.0) {
+                scale_factor = fade_per_sample = 0.0;
+        }
+
+        switch(fmt->channels) {
+        case 1:
+                while (src != srce) {
+                        *src = (sample)(scale_factor * (float)(*src));
+                        src++;
+                        scale_factor -= fade_per_sample;
+                }
+                break;
+        case 2:
+                while (src != srce) {
+                        *src = (sample)(scale_factor * (float)(*src));
+                        src++;
+                        *src = (sample)(scale_factor * (float)(*src));
+                        src++;
+                        scale_factor -= fade_per_sample;
+                }
+                break;
+        }
 }
 
-int
+static int
+repetition(sample **audio_buf, const audio_format **audio_fmt, int nbufs,
+           int missing, int consec_lost)
+{
+        if ((audio_buf[missing - 1] == NULL) || 
+            (nbufs < 2)) {
+                debug_msg("no prior audio\n");
+                return FALSE;
+        }
+
+        memcpy(audio_buf[missing], 
+               audio_buf[missing - 1], 
+               audio_fmt[missing]->bytes_per_block);
+        
+        if (consec_lost > 0) {
+                fade_buffer(audio_buf[missing], audio_fmt[missing], consec_lost);
+        }
+
+        return TRUE;
+}
+
+/* Based on 'Waveform Subsititution Techniques for Recovering Missing Speech
+ *           Segments in Packet Voice Communications', Goodman, D.J., et al,
+ *           IEEE Trans Acoustics, Speech and Signal Processing, Vol ASSP-34,
+ *           Number 6, pages 1440-47, December 1986. (see also follow up by 
+ *           Waseem 1988)
+ * Equation (7) as this is cheapest.  Should stretch across multiple 
+ * previous units  so that it has a chance to work at higher frequencies. 
+ * Should also have option for 2 sided repair with interpolation.[oth]
+ */
+
+#define MATCH_WINDOW        20    
+#define MAX_MATCH_WINDOW    64
+#define MIN_PITCH            5
+
+static u_int16 
+get_match_length(sample *buf, const audio_format *fmt, u_int16 window_length)
+{
+        /* Only do first channel */
+        float fwin[MAX_MATCH_WINDOW], fbuf[MAX_MATCH_WINDOW], fnorm, score, target = 1e6;
+        sample *win_s, *win_e, *win;
+        int samples = fmt->bytes_per_block * 8 / (fmt->bits_per_sample * fmt->channels);
+        int norm, i, j, k, cmp_end;
+        int best_match = 0; 
+
+        assert(window_length < MAX_MATCH_WINDOW);
+
+        /* Calculate normalization of match window */
+        win_s = buf + (samples - window_length) * fmt->channels;
+        win_e = buf + samples *fmt->channels;
+
+        norm  = 1;
+        win   = win_s;
+        while(win != win_e) {
+                norm += abs(*win);
+                win += fmt->channels;
+        }
+
+        /* Normalize and store match window */
+        fnorm = (float)norm;
+
+        win = win_s;
+        i = 0;
+        while(win != win_e) {
+                fwin[i] = ((float)(*win)) / fnorm;
+                win += fmt->channels;
+                i++;
+        }
+
+        /* Find best match */
+        cmp_end = samples - (window_length + MIN_PITCH * (fmt->sample_rate / 1000)) * fmt->channels;
+
+        if (cmp_end <= 0) return samples;
+
+        for(i = 0; i < cmp_end; i += fmt->channels) {
+                norm = 1;
+                for(j = i, k = 0;  k < window_length; j+= fmt->channels, k++) {
+                        fbuf[k] = (float)buf[j];
+                        norm += abs(buf[j]);
+                }
+                fnorm = (float)norm;
+                score = 0.0;
+                for(k = 0;  k < window_length; k++) {
+                        score += (float)fabs(fbuf[k]/fnorm - fwin[k]);
+                }
+                if (score < target) {
+                        target = score;
+                        best_match = i / fmt->channels;
+                } 
+        }
+        return (u_int16)(samples - best_match - window_length);
+}
+
+static int
+single_side_pattern_match(sample **audio_buf, const audio_format **audio_fmt, int nbufs,
+                          int missing, int consec_lost)
+{
+        u_int16 match_length;
+        sample *pat, *dst;
+        int remain;
+
+        if ((audio_buf[missing - 1] == NULL) || 
+            (nbufs < 2)) {
+                debug_msg("no prior audio\n");
+                return FALSE;
+        }
+
+        match_length = get_match_length(audio_buf[missing-1], audio_fmt[missing-1], MATCH_WINDOW);
+
+        remain = audio_fmt[missing]->bytes_per_block * 8 / (audio_fmt[missing]->bits_per_sample * audio_fmt[missing]->channels);
+        pat = audio_buf[missing-1] + (remain - match_length) * audio_fmt[missing]->channels;
+        dst = audio_buf[missing];
+        while(remain > 0) {
+                memcpy(dst, pat, match_length * audio_fmt[missing]->channels * audio_fmt[missing]->bits_per_sample / 8);
+                remain -= match_length;
+                dst    += match_length;
+                match_length = min(remain, match_length);
+        }
+
+        if (consec_lost > 0) {
+                fade_buffer(audio_buf[missing], audio_fmt[missing], consec_lost);
+        }
+
+        return TRUE;
+}
+
+static repair_scheme schemes[] = {
+        {"None",          NULL},  /* Special place for scheme none - move at own peril */
+        {"Repeat",        repetition},
+        {"Pattern-Match", single_side_pattern_match}
+};
+
+/* General interface */
+
+#define REPAIR_NUM_SCHEMES sizeof(schemes)/sizeof(repair_scheme)
+#define REPAIR_NONE        0
+
+#include "repair.h"
+
+const char *
+repair_get_name(u_int16 id)
+{
+        if (id < REPAIR_NUM_SCHEMES) return schemes[id].name;
+        return schemes[REPAIR_NONE].name;
+}
+
+u_int16
 repair_get_by_name(char *name)
 {
-        int i;
-        for(i = 0; i < NUM_REPAIR_SCHEMES; i++) {
-                if (!strcasecmp(name, repair_names[i])) return i;
+        u_int16 i;
+        for(i = 0; i < REPAIR_NUM_SCHEMES; i++) {
+                if (!strcasecmp(name, schemes[i].name)) return i;
         }
         return REPAIR_NONE;
 }
 
-int
+u_int16
 repair_get_count()
 {
-        return NUM_REPAIR_SCHEMES;
+        return REPAIR_NUM_SCHEMES;
 }
+
+/* RAT droppings - everything below here depends on RAT code base */
+
+#include "codec_types.h"
+#include "codec_state.h"
+#include "codec.h"
+#include "session.h"
+#include "channel.h"
+#include "receive.h"
+#include "rtcp_pckt.h"
+#include "rtcp_db.h"
 
 /* Consecutive dummies behind */
 static int
@@ -96,415 +294,80 @@ count_dummies_back(rx_queue_element_struct *up)
         return n;
 }
 
-/* Consecutive dummies ahead */
-#ifdef NDEF
-static int
-count_dummies_ahead(rx_queue_element_struct *up)
-{
-        int n = 0; 
-
-        while (up->next_ptr && up->dummy) {
-		up = up->next_ptr;
-		n++;
-	}
-	return n;
-}
-#endif
-
-/* assumes buffer consists of interleaved samples for each channel
- * and that pointers passed are to first of interleaved samples in block i.e.
- *  C1S1 C2S1 C1S2 C2S2 C1S3 C2S3 where C = channel, S = sample 
- * (we always pass pointers to C1S1).
- */ 
-
-static void
-repeat_block(short *src_buf, int rep_len, rx_queue_element_struct *ip, int channel)
-{
-	register float sf,fps; 
-	register int step = ip->comp_data[0].cp->channels;
-	register short *src,*dst;
-	int cd;
-	int i=0, j=0;
-
-	dst = ip->native_data[0]+channel;
-
-	if (ip && ip->prev_ptr->dummy) {
-		cd = count_dummies_back(ip->prev_ptr);
-		fps = 1000.0f/(FADE_DURATION * (float)ip->comp_data[0].cp->freq);
-		sf = 1.0f - fps * cd * ip->comp_data[0].cp->unit_len;
-		if (sf<=0.0f) 
-			sf = fps = 0.0f;
-		while(i<ip->comp_data[0].cp->unit_len) {
-			j = 0;
-			src = src_buf+channel;
-			while(j++<rep_len && i++<ip->comp_data[0].cp->unit_len) {
-				*dst = (short)(sf*(float)(*src));
-				dst += step;
-				src += step;
-				sf -= fps;
-			}
-		}
-	} else {
-		while(i<ip->comp_data[0].cp->unit_len) {
-			j = 0;
-			src = src_buf+channel;
-			while(j++<rep_len && i++<ip->comp_data[0].cp->unit_len) {
-				*dst = *src;
-				dst += step;
-				src += step;
-			}
-		}
-	}
-}
-
-/* Based on 'Waveform Subsititution Techniques for Recovering Missing Speech
- *           Segments in Packet Voice Communications', Goodman, D.J., et al,
- *           IEEE Trans Acoustics, Speech and Signal Processing, Vol ASSP-34,
- *           Number 6, pages 1440-47, December 1986. (see also follow up by 
- *           Waseem 1988)
- * Equation (7) as this is cheapest.  Should stretch across multiple 
- * previous units  so that it has a chance to work at higher frequencies. 
- * Should also have option for 2 sided repair with interpolation.[oth]
- */
-
-static void
-pm_repair(rx_queue_element_struct *pp, rx_queue_element_struct *ip, int channel)
-{
-	static float mb[MAX_BUF_LEN], *mbp;
-	short *src = pp->native_data[0] + channel;
-	register short *bp;
-	int len = pp->comp_data[0].cp->unit_len, step = pp->comp_data[0].cp->channels;
-	register int   i,j;
-	register int norm;
-	int pos = 0,min_pitch;
-	float score, target = 1e6;
-
-	norm = 0;
-	bp = src + (len-MATCH_LEN)*step;
-	i=0;
-	/* determine match buffer*/
-	while(i++<MATCH_LEN){
-		norm += abs(*bp);
-		bp   += step;
-	}
-	bp = src + (len-MATCH_LEN)*step;
-	mbp = mb;
-	i=0;
-	while(i++<MATCH_LEN){
-		*mbp++ = (float)*bp/(float)norm;
-		bp    += step;
-	}
-	/* hit off normalization */
-	min_pitch = (int)(ip->comp_data[0].cp->freq*MIN_PITCH/1000);
-	i = (len-MATCH_LEN-min_pitch)*step;
-	bp = src + i;
-	for (j = 0; j < MATCH_LEN; j++) {
-		norm += abs(*bp);
-		bp   += step;
-	}
-	bp = src + i;
-	while(i>0) {
-		score = 0.0;
-		j = 0;
-		mbp = mb;
-		while(j++<MATCH_LEN) {
-			score += (float)fabs((float)*bp/(float)norm - *mbp++);
-			bp    += step;
-		}
-		if (score<target) {
-			pos = i/step;
-			target = score;
-		}
-		norm -= abs(*(bp+step));
-		bp -= (MATCH_LEN+1)*step;
-		norm += abs(*bp);
-		i -= step;
-	}
-
-#ifdef DEBUG_REPAIR
-	debug_msg("match score %.4f period %d \n", target, len-MATCH_LEN-pos);
-#endif
-
-	repeat_block(pp->native_data[0]+(MATCH_LEN+pos)*step, 
-		     len-MATCH_LEN-pos, /*period*/ 
-		     ip, 
-		     channel);
-}
-
-static void
-repeat_lpc(rx_queue_element_struct *pp, rx_queue_element_struct *ip)
-{
-	lpc_txstate_t	*lp=NULL;
-
-	assert(pp->comp_data != NULL);
-        if (ip->comp_count == 0) {
-		/* XXX */
-		ip->comp_count = 1;
-                ip->comp_data[0].data = (unsigned char*)block_alloc(LPCTXSIZE);
-	}
-	ip->comp_data[0].data_len = LPCTXSIZE;
-	memcpy(ip->comp_data[0].data, pp->comp_data[0].data, LPCTXSIZE);
-	ip->comp_data[0].cp = pp->comp_data[0].cp;
-	lp = (lpc_txstate_t*)ip->comp_data[0].data;
-	if (ip->dummy) 
-		lp->gain = (u_char)((float)lp->gain * 0.8f);
-
-	decode_unit(ip);
-}
-
-static void
-repeat_gsm(rx_queue_element_struct *pp, rx_queue_element_struct *ip)
-{
-	/* GSM 06.11 repair mechanism */
-	int		i;
-	gsm_byte	*rep = NULL;
- 	char		xmaxc;
-    
-	assert(pp->comp_data != NULL);
-	
-	if (ip->comp_count == 0) {
-		ip->comp_data[0].data = (unsigned char*)block_alloc(GSM_FRAMESIZE);
-		ip->comp_data[0].data_len = GSM_FRAMESIZE;
-		ip->comp_count = 1;
-	}
-
-	rep = (gsm_byte*)ip->comp_data[0].data;
-	memcpy(rep, pp->comp_data[0].data, GSM_FRAMESIZE);
-
-	if (pp->dummy) {
-		for(i=6;i<28;i+=7) {
-			xmaxc  = (rep[i] & 0x1f) << 1;
-			xmaxc |= (rep[i+1] >> 7) & 0x01;
-			if (xmaxc > 4) { 
-				xmaxc -= 4;
-			} else { 
-				xmaxc = 0;
-			}
-			rep[i]   = (rep[i] & 0xe0) | (xmaxc >> 1);
-			rep[i+1] = (rep[i+1] & 0x7f) | ((xmaxc & 0x01) << 7);
-		}
-#ifdef DEBUG_REPAIR
-		printf("fade\n");
-#endif
-	}
-#ifdef DEBUG_REPAIR
-	else printf("replica\n");
-#endif
-	decode_unit(ip);
-
-	return;
-}
-
 void
 repair(int repair, rx_queue_element_struct *ip)
 {
-	static codec_t *gsmcp, *lpccp;
-	static int virgin = 1;
+	rx_queue_element_struct *pp, *np;
+        const codec_format_t    *cf;
+        const audio_format      *fmt[2];
+        sample                  *bufs[2];
+	int consec_lost;
 
-	rx_queue_element_struct *pp;
-        u_int32 size;
-	int i;
-
-	if (virgin) {
-		gsmcp = get_codec_by_pt(codec_matching("GSM", 8000, 1));
-                lpccp = get_codec_by_pt(codec_matching("LPC", 8000, 1));
-                assert(gsmcp);
-                assert(lpccp);
-		virgin = 0;
-	}
-	
 	pp = ip->prev_ptr;
+        np = ip->next_ptr;
+
 	if (!pp) {
+		debug_msg("repair - no previous unit\n");
 		return;
-#ifdef DEBUG_REPAIR
-		fprintf(stderr,"repair: no previous unit\n");
-#endif
 	}
 	ip->dummy = TRUE;
+        
+	if (!pp->native_count) {
+                /* XXX should never happen */
+                debug_msg("repair - previous block not yet decoded - error!\n");
+                decode_unit(pp); 
+        }
 
-	if (pp->comp_data[0].cp) {
-		ip->comp_data[0].cp = pp->comp_data[0].cp;
+	if (pp->comp_data[0].id) {
+		ip->comp_data[0].id = pp->comp_data[0].id;
 	} else {
-#ifdef DEBUG_REPAIR
 		fprintf(stderr, "Could not repair as no codec pointer for previous interval\n");
-#endif
 		return;
 	}
-	
-	if (!pp->native_count) decode_unit(pp); /* XXX should never happen */
+        
+        consec_lost = count_dummies_back(pp);
+
+	if (codec_decoder_can_repair(pp->comp_data[0].id)) {
+                /* Codec can do own repair */
+                int success      = FALSE;
+                codec_state *st  = codec_state_store_get(
+                        ip->dbe_source[0]->state_store, 
+                        ip->comp_data[0].id);
+                assert(st);
+                if (np) {
+                        success = codec_decoder_repair(pp->comp_data[0].id, 
+                                                       st,
+                                                       (u_int16)consec_lost,
+                                                       &pp->comp_data[0], 
+                                                       &ip->comp_data[0], 
+                                                       &np->comp_data[0]);
+                } else {
+                        success = codec_decoder_repair(pp->comp_data[0].id, 
+                                                       st,
+                                                       (u_int16)consec_lost,
+                                                       &pp->comp_data[0], 
+                                                       &ip->comp_data[0], 
+                                                       NULL);
+                }
+                if (success) {
+                        ip->comp_count++;
+                        decode_unit(ip);
+                        return;
+                }
+        } 
 	
 	assert(!ip->native_count);
 
-        size  = ip->comp_data[0].cp->sample_size *
-                ip->comp_data[0].cp->channels*
-                ip->comp_data[0].cp->unit_len;
-        ip->native_size[0] = (unsigned short) size;
-	ip->native_data[0] = (sample*)block_alloc(size);
+        cf = codec_get_format(pp->comp_data[0].id);
+        fmt[0] = fmt[1] = &cf->format;
+
+        ip->native_size[0] = fmt[0]->bytes_per_block;
+	ip->native_data[0] = (sample*)block_alloc(fmt[0]->bytes_per_block);
 	ip->native_count   = 1;
-        
-	switch(repair) {
-	case REPAIR_REPEAT:
-		if (pp->comp_data[0].cp && pp->comp_data[0].cp == lpccp)
-			repeat_lpc(pp, ip);
-		else if (pp->comp_data[0].cp && pp->comp_data[0].cp == gsmcp) 
-			repeat_gsm(pp, ip);
-		else 
-			for(i=0;i<pp->comp_data[0].cp->channels;i++)
-				repeat_block(pp->native_data[0],pp->comp_data[0].cp->unit_len,ip,i);
-		break;
-	case REPAIR_PATTERN_MATCH:
-		for(i=0;i<pp->comp_data[0].cp->channels;i++)
-			pm_repair(pp,ip,i);
-		break;
-        } 
-        return;
+        bufs[0] = pp->native_data[0];
+        bufs[1] = ip->native_data[0];
+
+        assert((unsigned)repair < REPAIR_NUM_SCHEMES);
+        schemes[repair].action(bufs, fmt, 2, 1, consec_lost);
 }
-
-#ifdef REPAIR_TEST
-#include "session.h"
-
-/* Compile with:
-% cc -DREPAIR_TEST -DSASR repair.c codec*.c gsm*.c util.c -lm
-*/
-
-void usage()
-{
-        printf("repair [-b <samples>] [-c <channels>] [-f <freq>] [-l <loss>] -p [-r <repair>] [-s <seed>] infile outfile\n");
-        exit(-1);
-}
-
-static void
-print_block(sample *s, int len, int freq)
-{
-        static int blk;
-        int i;
-        for(i = 0; i < len; i++) {
-                printf("%.6f\t %d\n", ((float)(blk*len+i))/freq, s[i]);
-        }
-        blk++;
-}
-
-int
-main(int argc, char *argv[])
-{
-        FILE *fin, *fout;
-        session_struct sp;
-        int ac, rep = REPAIR_NONE, print = FALSE;
-        int blksz = 160, freq = 8000, channels = 1;
-        double loss = 0.0;
-        rx_queue_element_struct rx_curr, rx_prev;
-
-        memset(&sp, 0, sizeof(session_struct));
-	set_dynamic_payload(&sp.dpt_list, "WBS-16K-MONO",   PT_WBS_16K_MONO);
-	set_dynamic_payload(&sp.dpt_list, "L16-8K-MONO",    PT_L16_8K_MONO);
-	set_dynamic_payload(&sp.dpt_list, "L16-8K-STEREO",  PT_L16_8K_STEREO);
-	set_dynamic_payload(&sp.dpt_list, "L16-16K-MONO",   PT_L16_16K_MONO);
-	set_dynamic_payload(&sp.dpt_list, "L16-16K-STEREO", PT_L16_16K_STEREO);
-	set_dynamic_payload(&sp.dpt_list, "L16-32K-MONO",   PT_L16_32K_MONO);
-	set_dynamic_payload(&sp.dpt_list, "L16-32K-STEREO", PT_L16_32K_STEREO);
-	set_dynamic_payload(&sp.dpt_list, "L16-48K-MONO",   PT_L16_48K_MONO);
-	set_dynamic_payload(&sp.dpt_list, "L16-48K-STEREO", PT_L16_48K_STEREO);
-        codec_init (&sp);
-        
-        ac = 1;
-        while(ac < argc && argv[ac][0]=='-') {
-                switch(argv[ac][1]) {
-                case 'b':
-                        /* block size in samples */
-                        blksz = atoi(argv[++ac]);
-                        break;
-                case 'c':
-                        channels = atoi(argv[++ac]);
-                        break;
-                case 'f':
-                        freq = atoi(argv[++ac]);
-                        break;
-                case 'l':
-                        loss = strtod(argv[++ac], NULL) / 100.0;
-                        break;
-                case 'p':
-                        print = TRUE;
-                        break;
-                case 'r':
-                        switch(argv[++ac][0]) {
-                        case 'r':
-                                rep = REPAIR_REPEAT;
-                                break;
-                        case 'p':
-                                rep = REPAIR_PATTERN_MATCH;
-                                break;
-                        default:
-                                rep = REPAIR_NONE;
-                                break;
-                        }
-                        break;
-                case 's':
-                        srand48(atoi(argv[++ac]));
-                        break;
-        
-                default:
-                        usage();
-                }
-                ac++;
-        }
-        
-        if ((argc - ac) != 2) usage();
-        
-        fin  = fopen(argv[ac++], "rb");
-        fout = fopen(argv[ac++], "wb");
-        
-        if (!fin) { 
-                fprintf(stderr, "Could not open %s\n", argv[ac-2]); 
-                exit(-1);
-        }
-
-        if (!fout) { 
-                fprintf(stderr, "Could not open %s\n", argv[ac-1]); 
-                exit(-1);
-        }
-
-        memset(&rx_curr,0,sizeof(rx_queue_element_struct));
-        memset(&rx_prev,0,sizeof(rx_queue_element_struct));
-
-        rx_curr.prev_ptr = &rx_prev;
-        rx_prev.comp_data[0].cp = get_codec_by_pt(codec_matching("Linear-16",freq,channels));
-        rx_prev.native_data[0] = (sample*)block_alloc(sizeof(sample) * blksz);
-        rx_prev.native_size[0] = sizeof(sample) * blksz;
-        rx_prev.native_count   = 1;
-        fread  (rx_prev.native_data[0], sizeof(sample), blksz, fin);
-        fwrite (rx_prev.native_data[0], sizeof(sample), blksz, fout);
-
-        while (!feof(fin)) {
-                rx_curr.native_data[0]  = block_alloc(sizeof(sample) * blksz);
-                rx_curr.native_size[0]  = sizeof(sample) * blksz;
-                memset(rx_curr.native_data[0], 0, rx_curr.native_size[0]);
-                rx_curr.dummy           = 0;
-                
-                fread(rx_curr.native_data[0], 2, blksz, fin);
-                if (drand48()<loss) {
-                        if (rep == REPAIR_NONE) {
-                                memset(rx_curr.native_data[0],0,sizeof(sample) * blksz);
-                        } else {
-                                block_free(rx_curr.native_data[0], rx_curr.native_size[0]);
-                                rx_curr.native_data[0] = NULL;
-                                rx_curr.native_size[0]  = 0;
-                                repair(rep, &rx_curr);
-                        }
-                }
-                fwrite(rx_curr.native_data[0], 1, rx_curr.native_size[0], fout);
-                if (print) print_block(rx_curr.native_data[0], rx_curr.native_size[0]/sizeof(sample), freq);
-                block_free(rx_prev.native_data[0], rx_prev.native_size[0]);
-                rx_prev.native_data[0] = rx_curr.native_data[0];
-                rx_prev.native_size[0] = rx_curr.native_size[0];
-                rx_prev.dummy          = rx_curr.dummy;
-                rx_curr.native_data[0] = NULL;
-                rx_curr.native_size[0] = 0;
-                rx_curr.native_count   = 0;
-                rx_curr.dummy          = FALSE;
-        }
-
-        return 0;
-}
-
-#endif 
 

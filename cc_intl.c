@@ -45,6 +45,7 @@
 #include "memory.h"
 #include "util.h"
 #include "session.h"
+#include "codec_types.h"
 #include "codec.h"
 #include "channel.h"
 #include "receive.h"
