@@ -194,7 +194,6 @@ void
 null_audio_non_block(audio_desc_t ad)
 {
         UNUSED(ad);
-        debug_msg("null_audio_non_block");
 }
 
 /*
@@ -204,7 +203,6 @@ void
 null_audio_block(audio_desc_t ad)
 {
         UNUSED(ad);
-	debug_msg("null_audio_block");
 }
 
 #define NULL_SPEAKER    0x0101

@@ -110,13 +110,13 @@ main(int argc, char *argv[])
 	}
 	sprintf(mbus_video_addr, "(media:video module:engine)");
 
-	ui_controller_init(sp[0], ssrc, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 	do {
-		network_process_mbus(sp[0]);
+		usleep(20000);
 		mbus_heartbeat(sp[0]->mbus_engine, 1);
 		mbus_heartbeat(sp[0]->mbus_ui, 1);
-		usleep(20000);
+		network_process_mbus(sp[0]);
 	} while (sp[0]->wait_on_startup);
+	ui_controller_init(sp[0], ssrc, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 
 	for (i = 0; i < num_sessions; i++) {
                 audio_device_get_safe_config(&sp[i]->new_config);

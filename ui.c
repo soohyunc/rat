@@ -542,8 +542,6 @@ ui_sampling_modes(session_struct *sp)
                 strcat(modes, tmp);
         }
 
-        debug_msg("Sampling modes: %s\n", modes);
-
         /* Remove trailing space */
         zap = strlen(modes);
         if (zap) {
