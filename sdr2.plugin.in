@@ -12,7 +12,7 @@
 
 media:		audio
 proto:		RTP/AVP
-tool:		rat-__VERSION__
+tool:		rat-VERSION
 protoname: 	RTP
 cryptflag: 	-K
 
