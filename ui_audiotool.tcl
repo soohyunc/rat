@@ -319,7 +319,7 @@ proc mbus_recv_output.mute {val} {
 proc mbus_recv_session.title {title} {
     global session_title
     set session_title $title
-    wm title . $title
+    wm title . "[wm title .]: $title"
 }
 
 proc mbus_recv_session.address {addr port ttl} {
