@@ -79,14 +79,14 @@ tcl_send(char *command)
 static int
 mbus_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 {
-	UNUSED(ttp);
+	session_struct *sp = (session_struct *) ttp;
 
 	if (argc != 4) {
 		i->result = "mbus_send <reliable> <cmnd> <args>";
 		return TCL_ERROR;
 	}
 
-	mbus_ui_tx(TRUE, engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
+	mbus_qmsg(sp->mbus_ui_conf, engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
 	return TCL_OK;
 }
 

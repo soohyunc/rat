@@ -44,9 +44,6 @@
 #include "tcltk.h"
 #include "util.h"
 
-static struct mbus *mbus_base = NULL;
-static struct mbus *mbus_chan = NULL;
-
 void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 {
 	char        command[1500];
@@ -54,9 +51,7 @@ void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 
 	UNUSED(srce);
 	UNUSED(data);
-#ifdef DEBUG_MBUS
-	debug_msg("%s %s\n", cmnd, args);
-#endif /* DEBUG_MBUS */
+
 	sprintf(command, "mbus_recv %s %s", cmnd, args);
 
 	for (i = 0; i < (unsigned)strlen(command); i++) {
@@ -67,43 +62,3 @@ void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 	tcl_send(command);
 }
 
-void mbus_ui_tx(int channel, char *dest, char *cmnd, char *args, int reliable)
-{
-	if (channel == 0) {
-		mbus_qmsg(mbus_base, dest, cmnd, args, reliable);
-		mbus_send(mbus_base);
-	} else {
-		mbus_qmsg(mbus_chan, dest, cmnd, args, reliable);
-		mbus_send(mbus_chan);
-	}
-}
-
-void mbus_ui_init(char *name_ui, int channel)
-{
-	mbus_base = mbus_init(0, mbus_ui_rx, NULL); mbus_addr(mbus_base, name_ui);
-	if (channel == 0) {
-		mbus_chan = mbus_base;
-	} else {
-		mbus_chan = mbus_init((unsigned short) channel, mbus_ui_rx, NULL); mbus_addr(mbus_chan, name_ui);
-	}
-}
-
-struct mbus *mbus_ui(int channel)
-{
-	if (channel == 0) {
-		return mbus_base;
-	} else {
-		return mbus_chan;
-	}
-}
-
-void mbus_ui_retransmit(void)
-{
-	mbus_retransmit(mbus_base);
-	mbus_retransmit(mbus_chan);
-}
-
-int mbus_ui_waiting(void)
-{
-        return mbus_waiting_ack(mbus_base) | mbus_waiting_ack(mbus_chan);
-}

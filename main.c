@@ -147,11 +147,19 @@ main(int argc, char *argv[])
 	}
 
         if (sp[0]->ui_on) {
-		mbus_ui_init(mbus_ui_addr, sp[0]->mbus_channel);
+		sp[0]->mbus_ui_base = mbus_init(0, mbus_ui_rx, NULL);
+		mbus_addr(sp[0]->mbus_ui_base, mbus_ui_addr);
+		if (sp[0]->mbus_channel == 0) {
+			sp[0]->mbus_ui_conf = sp[0]->mbus_ui_base;
+		} else {
+			sp[0]->mbus_ui_conf = mbus_init((short)sp[0]->mbus_channel, mbus_ui_rx, NULL);
+			mbus_addr(sp[0]->mbus_ui_conf, mbus_ui_addr);
+		}
 		tcl_init(sp[0], argc, argv, mbus_engine_addr);
 	} else {
 		strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
         }
+
 
 	ui_controller_init(sp[0], cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 	do {
@@ -246,7 +254,8 @@ main(int argc, char *argv[])
 			if (sp[i]->have_device) ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
                 	if (sp[i]->ui_on) {
 				tcl_process_events();
-				mbus_ui_retransmit();
+				mbus_send(sp[0]->mbus_ui_base); mbus_retransmit(sp[0]->mbus_ui_base);
+				mbus_send(sp[0]->mbus_ui_conf); mbus_retransmit(sp[0]->mbus_ui_conf);
                 	}
 			mbus_send(sp[0]->mbus_engine_base); mbus_retransmit(sp[0]->mbus_engine_base);
 			mbus_send(sp[0]->mbus_engine_conf); mbus_retransmit(sp[0]->mbus_engine_conf);

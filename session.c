@@ -130,6 +130,8 @@ init_session(session_struct *sp)
 	sp->speakers_active 		= NULL;
 	sp->mbus_engine_base		= NULL;
 	sp->mbus_engine_conf		= NULL;
+	sp->mbus_ui_base		= NULL;
+	sp->mbus_ui_conf		= NULL;
 	sp->mbus_channel		= 0;
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;

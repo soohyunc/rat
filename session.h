@@ -147,6 +147,8 @@ typedef struct session_tag {
 	long		 loop_estimate;
 	struct mbus	*mbus_engine_base;
 	struct mbus	*mbus_engine_conf;
+	struct mbus	*mbus_ui_base;
+	struct mbus	*mbus_ui_conf;
 	int		 mbus_channel;
 	int		 wait_on_startup;
 } session_struct;
