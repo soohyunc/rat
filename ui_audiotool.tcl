@@ -1045,13 +1045,13 @@ proc do_quit {} {
 # Initialise RAT MAIN window
 frame .r 
 frame .l 
-frame .l.t -relief raised
+frame .l.t -relief sunken
 scrollbar .l.t.scr -relief flat -highlightthickness 0 -command ".l.t.list yview"
 canvas .l.t.list -highlightthickness 0 -bd 0 -relief raised -width $iwd -height 160 -yscrollcommand ".l.t.scr set" -yscrollincrement $iht
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 
-frame .l.f -relief raised
+frame .l.f -relief flat
 label .l.f.title -font $infofont  -textvariable session_title
 label .l.f.addr  -font $smallfont -textvariable session_address
 
