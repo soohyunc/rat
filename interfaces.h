@@ -56,7 +56,7 @@ typedef struct pckt_queue_element_tag {
 } pckt_queue_element_struct;
 
 typedef struct pckt_queue_tag {
-	int                        queue_empty_flag;
+	int                        queue_empty;
 	pckt_queue_element_struct *head_ptr;
 	pckt_queue_element_struct *tail_ptr;
 } pckt_queue_struct;

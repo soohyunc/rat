@@ -53,7 +53,7 @@ put_on_rx_queue(rx_queue_element_struct *p_ptr, rx_queue_struct *q_ptr)
 	q_ptr->head_ptr = p_ptr;
 	if (q_ptr->tail_ptr == NULL) {
 		q_ptr->tail_ptr = q_ptr->head_ptr;	/* one packet on queue */
-		q_ptr->queue_empty_flag = FALSE;
+		q_ptr->queue_empty = FALSE;
 	} else {		/* must set up second element on queue to
 				 * point to first */
 		s = q_ptr->head_ptr->next_ptr;
@@ -83,7 +83,7 @@ get_unit_off_rx_queue(rx_queue_struct * q_ptr)
 		q_ptr->head_ptr = NULL;
 		q_ptr->tail_ptr = NULL;
 		/* packets not waiting to be encoded */
-		q_ptr->queue_empty_flag = TRUE;
+		q_ptr->queue_empty = TRUE;
 	}
 
 	p->next_ptr = NULL;	/* no home to go to */
@@ -127,7 +127,7 @@ put_on_pckt_queue(pckt_queue_element_struct * pckt_ptr,
 	q_ptr->head_ptr = pckt_ptr;
 	if (q_ptr->tail_ptr == NULL) {
 		q_ptr->tail_ptr = q_ptr->head_ptr;	/* one packet on queue */
-		q_ptr->queue_empty_flag = FALSE;
+		q_ptr->queue_empty = FALSE;
 	} else {
 		/* must set up second element on queue to point to first */
 		s_ptr = q_ptr->head_ptr->next_pckt_ptr;
@@ -151,7 +151,7 @@ get_pckt_off_queue(pckt_queue_struct * q_ptr)
 		q_ptr->head_ptr = NULL;
 		q_ptr->tail_ptr = NULL;
 		/* packets not waiting to be encoded */
-		q_ptr->queue_empty_flag = TRUE;
+		q_ptr->queue_empty = TRUE;
 	}
 
 	p_ptr->next_pckt_ptr = NULL;	/* no gnome to go to */
@@ -181,7 +181,7 @@ void
 receive_pkt_audit(pckt_queue_struct * pckt_queue_ptr)
 {
 	pckt_queue_element_struct *temp_ptr;
-	while (pckt_queue_ptr->queue_empty_flag != TRUE) {
+	while (pckt_queue_ptr->queue_empty != TRUE) {
 		temp_ptr = get_pckt_off_queue(pckt_queue_ptr);
 		free_pckt_queue_element(&temp_ptr);
 	}
@@ -191,7 +191,7 @@ void
 receive_unit_audit(rx_queue_struct * unit_queue_ptr)
 {
 	rx_queue_element_struct *temp_ptr;
-	while (unit_queue_ptr->queue_empty_flag != TRUE) {
+	while (unit_queue_ptr->queue_empty != TRUE) {
 		temp_ptr = get_unit_off_rx_queue(unit_queue_ptr);
 		free_rx_unit(&temp_ptr);
 	}

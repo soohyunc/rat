@@ -409,7 +409,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 	ppb_t			*buf, **bufp;
 	u_int32			cur_time, cs;
         
-	while (receive_queue->queue_empty_flag == FALSE) {
+	while (receive_queue->queue_empty == FALSE) {
 		up       = get_unit_off_rx_queue(receive_queue);
 		buf      = find_participant_queue(buf_list, up->dbe_source[0]);
 		cur_time = get_time(buf->src->clock);

@@ -212,7 +212,16 @@ tcl_init(session_struct *sp, char *cname, int argc, char **argv)
 int
 tcl_process_event(void)
 {
-	return Tcl_DoOneEvent(TCL_DONT_WAIT | TK_X_EVENTS | TCL_IDLE_EVENTS);
+	return Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS);
+}
+
+void
+tcl_process_events(void)
+{
+	int i;
+	for (i=0; i<16; i++) {
+		tcl_process_event();
+	}
 }
 
 int

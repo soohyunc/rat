@@ -40,6 +40,9 @@
  * SUCH DAMAGE.
  */
 
+#include <pwd.h>
+#include "config.h"
+#include "util.h"
 #include "rtcp.h"
 #include "session.h"
 #include "interfaces.h"
@@ -55,7 +58,7 @@ service_rtcp(session_struct    *sp,
 	double				 RTCP_SIZE_GAIN = (1.0/16.0);	/* Copied from RFC1889 [csp] */
 	pckt_queue_element_struct 	*pckt;
 
-	while (rtcp_pckt_queue_ptr->queue_empty_flag != TRUE) {
+	while (rtcp_pckt_queue_ptr->queue_empty == FALSE) {
 		pckt = get_pckt_off_queue(rtcp_pckt_queue_ptr);
 		if (rtcp_check_rtcp_pkt(pckt->pckt_ptr, pckt->len)) {
 			rtcp_decode_rtcp_pkt(sp, sp2, pckt->pckt_ptr, pckt->len, pckt->addr, cur_time);
@@ -78,5 +81,52 @@ service_rtcp(session_struct    *sp,
 		}
 		free_pckt_queue_element(&pckt);
 	}
+	rtcp_update(sp, sp->rtcp_fd, sp->net_maddress, sp->rtcp_port);
+}
+
+char *get_cname(void)
+{
+	char           		*uname;
+	char	       		*hname;
+	char			*cname;
+	struct passwd  		*pwent;
+	struct hostent 		*hent;
+	struct in_addr  	 iaddr;
+
+	cname = (char *) xmalloc(MAXHOSTNAMELEN + 10);
+	/* Set the CNAME. This is "user@hostname" or just "hostname" if the username cannot be found. */
+	/* First, fill in the username.....                                                           */
+#ifdef WIN32
+	if ((uname = getenv("USER")) == NULL) {
+		uname = "unknown";
+	}
+#else 		/* ...it's a unix machine... */
+	pwent = getpwuid(getuid());
+	uname = pwent->pw_name;
+#endif
+	sprintf(cname, "%s@", uname);
+
+	/* Now the hostname. Must be FQDN or dotted-quad IP address (RFC1889) */
+	hname = cname + strlen(cname);
+	if (gethostname(hname, MAXHOSTNAMELEN) != 0) {
+		perror("Cannot get hostname!");
+		return NULL;
+	}
+	hent = gethostbyname(hname);
+	memcpy(&iaddr.s_addr, hent->h_addr, sizeof(iaddr.s_addr));
+	strcpy(hname, inet_ntoa(iaddr));
+	return cname;
+}
+
+u_int32 get_ssrc(void)
+{
+	u_int32		ssrc;
+	struct timeval 	time;
+
+	gettimeofday(&time, NULL);
+	srand48(time.tv_usec);
+	while (!(ssrc = lrand48()));	/* Making 0 a special value */
+
+	return ssrc;
 }
 

@@ -55,6 +55,9 @@
 #include "ui.h"
 #include "channel.h"
 #include "ui_update.h"
+#include "mix.h"
+#include "transmit.h"
+#include "speaker_table.h"
 
 static char args[1000];
 
@@ -402,9 +405,13 @@ ui_update(session_struct *sp)
 	static   int done=0;
 	codec_t	*cp;
 
+	if (!sp->ui_on) {
+		/* UI is disabled, do nothing... */
+		return;
+	}
+
         /* we want to dump ALL settings here to ui */
         /* Device settings */
-
 
 	/*XXX solaris seems to give a different volume back to what we   */
 	/*    actually set.  So don't even ask if it's not the first time*/
@@ -459,13 +466,13 @@ ui_update(session_struct *sp)
 void
 ui_show_audio_busy(session_struct *sp)
 {
-	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "disable.audio.ctls", "", TRUE);
+	if (sp->ui_on) mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "disable.audio.ctls", "", TRUE);
 }
 
 void
 ui_hide_audio_busy(session_struct *sp)
 {
-	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "enable.audio.ctls", "", TRUE);
+	if (sp->ui_on) mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "enable.audio.ctls", "", TRUE);
 }
 
 
@@ -474,6 +481,27 @@ update_lecture_mode(session_struct *sp)
 {
 	/* Update the UI to reflect the lecture mode setting...*/
 	sprintf(args, "%d", sp->lecture);
-	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "lecture.mode", args, TRUE);
+	if (sp->ui_on) mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "lecture.mode", args, TRUE);
+}
+
+void
+ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_time)
+{
+	static u_int32 power_time = 0;
+
+	if (power_time == 0) {
+		if (sp->meter) {
+			mix_update_ui(ms, sp);
+		}
+		clear_active_senders(sp);
+	}
+	if (power_time > 400) {
+		if (sp->sending_audio) {
+			transmitter_update_ui(sp);
+		}
+		power_time = 0;
+	} else {
+		power_time += elapsed_time;
+	}
 }
 

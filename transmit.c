@@ -307,10 +307,15 @@ process_read_audio(session_struct *sp)
 	read_buffer	*rb = sp->rb;
 	minibuf		*mbp;
 
-	if (rb->last_ptr->buf != rb->lbuf)
+	if (sp->sending_audio == FALSE) {
+		return FALSE;
+	}
+
+	if (rb->last_ptr->buf != rb->lbuf) {
 		last_ind = 0;
-	else
+	} else {
 		last_ind = rb->last_ptr->time - rb->lbuf->start_time + rb->lbuf->unit_size;
+	}
 
 	dist = rb->lbuf->head - last_ind;
 
@@ -352,7 +357,7 @@ process_read_audio(session_struct *sp)
 		} while (mbp != rb->tx_ptr->buf);
 	}
 
-	return (TRUE);
+	return TRUE;
 }
 
 #define ASSUMED_FREQ         8000

@@ -324,7 +324,11 @@ statistics(session_struct    *sp,
 
 	char update_req = FALSE;
 
-	/* Get a packet to process */
+	if (netrx_pckt_queue->queue_empty) {
+		/* Nothing to do... */
+		return;
+	}
+	/* Process an incoming packet... */
 	e_ptr = get_pckt_off_queue(netrx_pckt_queue);
 	assert(e_ptr != NULL);
 

@@ -74,7 +74,7 @@ typedef struct rx_element_tag {
 } rx_queue_element_struct;
 
 typedef struct rx_queue_tag {
-	int                      queue_empty_flag;
+	int                      queue_empty;
 	rx_queue_element_struct *head_ptr;
 	rx_queue_element_struct *tail_ptr;
 } rx_queue_struct;

@@ -42,20 +42,17 @@
 
 #include "config.h"
 #ifndef WIN32
-#include <pwd.h>
 #include <signal.h>
 #endif
 #include <math.h>
 
 #include "session.h"
 #include "receive.h"
-#include "transmit.h"
 #include "util.h"
 #include "audio.h"
 #include "convert.h"
 #include "tcltk.h"
 #include "ui_update.h"
-#include "mix.h"
 #include "interfaces.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
@@ -64,7 +61,9 @@
 #include "agc.h"
 #include "statistics.h"
 #include "parameters.h"
+#include "transmit.h"
 #include "speaker_table.h"
+#include "mix.h"
 #include "mbus.h"
 #include "mbus_ui.h"
 #include "mbus_engine.h"
@@ -97,75 +96,46 @@ static int waiting_on_mbus(session_struct *sp[2], int num_sessions)
 int
 main(int argc, char *argv[])
 {
-	u_int32			 ssrc = 0, cur_time;
-	int            		 num_sessions, i, l, elapsed_time, power_time = 0, alc = 0;
-	char           		*uname;
-	char	       		*hname;
-	char			 cname[MAXHOSTNAMELEN + 10];
+	u_int32			 ssrc, cur_time;
+	int            		 num_sessions, i, elapsed_time, alc = 0;
+	char			*cname;
 	session_struct 		*sp[2];
-	int             	 transmit_active_flag = FALSE;
-	int             	 receive_active_flag  = FALSE;
+	int             	 tx_active = FALSE;
+	int             	 rx_active = FALSE;
 	struct s_mix_info 	*ms[2];
-	struct passwd  		*pwent;
-	struct hostent 		*hent;
-	struct in_addr  	 iaddr;
 	struct timeval  	 time;
 
 #define NEW_QUEUE(T,Q) T  Q[2]; \
-                       T *Q##_ptr[2];
+                       T *Q##_p[2];
 
 	NEW_QUEUE(pckt_queue_struct, netrx_queue)
 	NEW_QUEUE(rx_queue_struct,   rx_queue)
 	NEW_QUEUE(pckt_queue_struct, rtcp_pckt_queue)
 	NEW_QUEUE(rx_queue_struct,   rx_unit_queue)
 
-#define INIT_QUEUE(T,Q) Q##_ptr[0] = &Q##[0]; \
-			Q##_ptr[0]->queue_empty_flag = 1; \
-                        Q##_ptr[0]->head_ptr         = NULL; \
-                        Q##_ptr[0]->tail_ptr         = NULL; \
-			Q##_ptr[1] = &Q##[1]; \
-			Q##_ptr[1]->queue_empty_flag = 1; \
-                        Q##_ptr[1]->head_ptr         = NULL; \
-                        Q##_ptr[1]->tail_ptr         = NULL;
+#define INIT_QUEUE(T,Q) Q##_p[0] = &Q##[0]; \
+			Q##_p[0]->queue_empty = 1; \
+                        Q##_p[0]->head_ptr    = NULL; \
+                        Q##_p[0]->tail_ptr    = NULL; \
+			Q##_p[1] = &Q##[1]; \
+			Q##_p[1]->queue_empty = 1; \
+                        Q##_p[1]->head_ptr    = NULL; \
+                        Q##_p[1]->tail_ptr    = NULL;
 
 	INIT_QUEUE(pckt_queue_struct, netrx_queue)
 	INIT_QUEUE(rx_queue_struct,   rx_queue)
 	INIT_QUEUE(pckt_queue_struct, rtcp_pckt_queue)
 	INIT_QUEUE(rx_queue_struct,   rx_unit_queue)
 
-	thread_pri = 2;	/* TIME_CRITICAL */
+	thread_pri = 2;			/* TIME_CRITICAL */
+	cname      = get_cname();
+	ssrc       = get_ssrc();
 
 	for (i = 0; i < 2;i++) {
 		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
 		init_session(sp[i]);
 	}
 	num_sessions = parse_options(argc, argv, sp);
-
-	/* Set the CNAME. This is "user@hostname" or just "hostname" if the username cannot be found. */
-	/* First, fill in the username.....                                                           */
-#ifdef WIN32
-	if ((uname = getenv("USER")) == NULL) {
-		uname = "unknown";
-	}
-#else 		/* ...it's a unix machine... */
-	pwent = getpwuid(getuid());
-	uname = pwent->pw_name;
-#endif
-	sprintf(cname, "%s@", uname);
-
-	/* Now the hostname. Must be FQDN or dotted-quad IP address (RFC1889) */
-	hname = cname + strlen(cname);
-	if (gethostname(hname, MAXHOSTNAMELEN) != 0) {
-		perror("Cannot get hostname!");
-		return 1;
-	}
-	hent = gethostbyname(hname);
-	memcpy(&iaddr.s_addr, hent->h_addr, sizeof(iaddr.s_addr));
-	strcpy(hname, inet_ntoa(iaddr));
-	/* Pick an SSRC value... */
-	gettimeofday(&time, NULL);
-	srand48(time.tv_usec);
-	while (!(ssrc = lrand48()));	/* Making 0 a special value */
 
 	for (i = 0; i < num_sessions; i++) {
 		sp[i]->mbus_engine_addr = (char *) xmalloc(30); sprintf(sp[i]->mbus_engine_addr, "(audio engine rat %d)", (int) getpid());
@@ -186,38 +156,32 @@ main(int argc, char *argv[])
 		}
 	}
 
-	for (i = 0; i < num_sessions; i++) {
-		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
-	}
-
         if (sp[0]->ui_on) {
 		tcl_init(sp[0], cname, argc, argv);
         }
 
 	 /* Now initialise everything else... */
 	for (i = 0; i < num_sessions; i++) {
+		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
 		audio_init(sp[i]);
 		network_init(sp[i]);
-		if (audio_device_take(sp[i]) == FALSE) {
-			if (sp[i]->ui_on) {
-				ui_show_audio_busy(sp[i]);
-			}
+		if (!audio_device_take(sp[i])) {
+			ui_show_audio_busy(sp[i]);
 		}
                 read_write_init(sp[i]);
 		ms[i] = init_mix(sp[i], 32640);
 	}
 	agc_table_init();
         set_converter(CONVERT_LINEAR);
+
 	/* Show the interface before starting processing */
-        if (sp[0]->ui_on) {
-		while (tcl_process_event()) {
-			network_process_mbus(sp, num_sessions, 20);
-		}
-                ui_update(sp[0]);
-        }
+	while (tcl_process_event()) {
+		network_process_mbus(sp, num_sessions, 20);
+	}
+        ui_update(sp[0]);
 	network_process_mbus(sp, num_sessions, 1000);
 
-        if ((sp[0]->sending_audio == FALSE) && (sp[0]->mode != AUDIO_TOOL)) {
+        if (!sp[0]->sending_audio && (sp[0]->mode != AUDIO_TOOL)) {
 		for (i=0; i<num_sessions; i++) {
                 	start_sending(sp[i]);
 		}
@@ -231,7 +195,7 @@ main(int argc, char *argv[])
 	
 	xdoneinit();
 
-	for (;;) {
+	while (TRUE) {
 		for (i = 0; i < num_sessions; i++) {
 			if (sp[i]->mode == TRANSCODER) {
 				elapsed_time = read_write_audio(sp[i], sp[1-i], ms[i]);
@@ -239,83 +203,49 @@ main(int argc, char *argv[])
 				elapsed_time = read_write_audio(sp[i], sp[i], ms[i]);
 			}
 			cur_time = get_time(sp[i]->device_clock);
-			network_read(sp[i], netrx_queue_ptr[i], rtcp_pckt_queue_ptr[i], cur_time);
-	
-			if (sp[i]->sending_audio == TRUE) {
-				transmit_active_flag = process_read_audio(sp[i]);
-			} else {
-				transmit_active_flag = FALSE;
-			}
-	
-			if (sp[i]->playing_audio == TRUE) {
-				receive_active_flag = !netrx_queue_ptr[i]->queue_empty_flag    ||
-					      	!rx_unit_queue_ptr[i]->queue_empty_flag  ||
+			network_read(sp[i], netrx_queue_p[i], rtcp_pckt_queue_p[i], cur_time);
+			tx_active = process_read_audio(sp[i]);
+
+			if (sp[i]->playing_audio) {
+				rx_active = !netrx_queue_p[i]->queue_empty || !rx_unit_queue_p[i]->queue_empty ||
 					      	sp[i]->playout_buf_list != NULL;
 			} else {
-				receive_unit_audit(rx_unit_queue_ptr[i]);
+				receive_unit_audit(rx_unit_queue_p[i]);
 			        clear_old_history(&sp[i]->playout_buf_list);
-				receive_active_flag = FALSE;
+				rx_active = FALSE;
 			}
 
-                        if (sp[i]->sending_audio == TRUE || sp[i]->last_tx_service_productive) {
-                            if (receive_active_flag == FALSE || sp[i]->voice_switching != NET_MUTES_MIKE) {
+                        if (sp[i]->sending_audio || sp[i]->last_tx_service_productive) {
+                            if (!rx_active || (sp[i]->voice_switching != NET_MUTES_MIKE)) {
                                 service_transmitter(sp[i], sp[1-i]->speakers_active);
                                 if (sp[i]->voice_switching == MIKE_MUTES_NET) {
-                                    receive_active_flag = FALSE;
+                                    rx_active = FALSE;
                                 }
                             }
                         }
-	
-			/* Impose RTP formatting on the packets in the netrx_queue
-			 * and update RTP reception statistics. Packets are moved to
-			 * rx_unit_queue. [csp[i]] */
-			while (netrx_queue_ptr[i]->queue_empty_flag == FALSE) {
-				statistics(sp[i], 
-                                           netrx_queue_ptr[i], 
-                                           rx_unit_queue_ptr[i], 
-                                           sp[i]->cushion, 
-                                           cur_time);
-			}
-		
-			if (receive_active_flag == TRUE) {
+
+			/* Impose RTP formatting on the packets in the netrx_queue and update RTP */
+			/* reception statistics. Packets are moved to rx_unit_queue.        [csp] */
+			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time);
+
+			if (rx_active) {
 				audio_switch_out(sp[i]->audio_fd, sp[i]->cushion);
-				service_receiver(sp[i], 
-                                                 rx_unit_queue_ptr[i], 
-                                                 &sp[i]->playout_buf_list, 
-                                                 ms[i]);
-				if (transmit_active_flag && (sp[i]->voice_switching == NET_MUTES_MIKE)) {
+				service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, ms[i]);
+				if (tx_active && (sp[i]->voice_switching == NET_MUTES_MIKE)) {
 					sp[i]->transmit_audit_required = TRUE;
 				}
 			} else {
 				audio_switch_in(sp[i]->audio_fd);
-				if (sp[i]->playing_audio == FALSE || sp[i]->voice_switching == MIKE_MUTES_NET) {
+				if (!sp[i]->playing_audio || (sp[i]->voice_switching == MIKE_MUTES_NET)) {
 					sp[i]->receive_audit_required = TRUE;
 				}
 			}
-	
+
 			/* Do funky RTCP stuff... */
-			if (rtcp_pckt_queue_ptr[i]->queue_empty_flag == FALSE) {
-				if (sp[i]->mode == TRANSCODER) {
-					service_rtcp(sp[i], sp[1-i], rtcp_pckt_queue_ptr[i], cur_time);
-				} else {
-					service_rtcp(sp[i],    NULL, rtcp_pckt_queue_ptr[i], cur_time);
-				}
-			}
-			rtcp_update(sp[i], sp[i]->rtcp_fd, sp[i]->net_maddress, sp[i]->rtcp_port);
-	
-			if (power_time == 0 && sp[i]->ui_on) {
-				if (sp[i]->meter)
-					mix_update_ui(ms[i], sp[i]);
-				clear_active_senders(sp[i]);
-			}
-	
-			if (power_time > 400) {
-				if (sp[i]->sending_audio && sp[i]->ui_on) {
-					transmitter_update_ui(sp[i]);
-				}
-				power_time = 0;
+			if (sp[i]->mode == TRANSCODER) {
+				service_rtcp(sp[i], sp[1-i], rtcp_pckt_queue_p[i], cur_time);
 			} else {
-				power_time += elapsed_time;
+				service_rtcp(sp[i],    NULL, rtcp_pckt_queue_p[i], cur_time);
 			}
 
 			/* Schedule any outstanding retransmissions of mbus messages... */
@@ -328,7 +258,7 @@ main(int argc, char *argv[])
 
 			/* Maintain last_sent dummy lecture var */
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {
-				if (sp[i]->lecture == FALSE && sp[i]->sending_audio == FALSE && sp[i]->auto_lecture != 0) {
+				if (!sp[i]->lecture && !sp[i]->sending_audio && sp[i]->auto_lecture != 0) {
 					gettimeofday(&time, NULL);
 					if (time.tv_sec - sp[i]->auto_lecture > 120) {
 						sp[i]->auto_lecture = 0;
@@ -336,22 +266,19 @@ main(int argc, char *argv[])
 					}
 				}
 				alc = 0;
-			} else
+			} else {
 				alc++;
+			}
 
-			/* Process UI Might want to not update every cycle, or bring up to date in one go... */
                 	if (sp[i]->ui_on) {
+				ui_update_powermeters(sp[i], ms[i], elapsed_time);
 				if (tcl_active()) {
-					for (l = 16; l > 0; l--) {
-						if (!tcl_process_event()) {
-               						break;
-						}
-					}
+					tcl_process_events();
 				} else {
 					should_exit = TRUE;
 				}
                 	} 
-			
+
 			if ((sp[i]->mode == FLAKEAWAY) && (sp[i]->flake_go == 0) && (sp[i]->flake_os < 0)) {
                                 should_exit = TRUE;
                         }

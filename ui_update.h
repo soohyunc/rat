@@ -43,6 +43,7 @@
 struct session_tag;
 struct s_rtcp_dbentry;
 struct s_cbaddr;
+struct s_mix_info;
 
 void	   ui_info_update_name(struct s_rtcp_dbentry *e, struct session_tag *sp);
 void	  ui_info_update_cname(struct s_rtcp_dbentry *e, struct session_tag *sp);
@@ -57,14 +58,15 @@ void	    ui_info_deactivate(struct s_rtcp_dbentry *e, struct session_tag *sp);
 void	ui_update_loss_from_me(struct s_rtcp_dbentry *e, struct session_tag *sp);
 void	  ui_update_loss_to_me(struct s_rtcp_dbentry *e, struct session_tag *sp);
 
-void	    ui_show_audio_busy(struct session_tag *sp);
-void	    ui_hide_audio_busy(struct session_tag *sp);
-void	        ui_input_level(int level, struct session_tag *sp);
-void	       ui_output_level(int level, struct session_tag *sp);
-void 	  ui_update_input_port(struct session_tag *sp);
-void 	 ui_update_output_port(struct session_tag *sp);
-void	  ui_update_redundancy(struct session_tag *sp);
-void	  ui_update_interleaving(struct session_tag *sp);
+void	ui_show_audio_busy(struct session_tag *sp);
+void	ui_hide_audio_busy(struct session_tag *sp);
+void	ui_input_level(int level, struct session_tag *sp);
+void	ui_output_level(int level, struct session_tag *sp);
+void 	ui_update_input_port(struct session_tag *sp);
+void 	ui_update_output_port(struct session_tag *sp);
+void	ui_update_redundancy(struct session_tag *sp);
+void	ui_update_interleaving(struct session_tag *sp);
+void	ui_update_powermeters(struct session_tag *sp, struct s_mix_info *ms, int elapsed_time);
 
 void	update_stats(struct s_rtcp_dbentry *e, struct session_tag *sp);
 void	update_lecture_mode(struct session_tag *session_pointer);
