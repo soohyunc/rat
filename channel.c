@@ -91,7 +91,6 @@ static const channel_coder_t table[] = {
          vanilla_decoder_peek,
          vanilla_decoder_describe
         },
-#ifdef DEBUG_REDUNDANCY
         {"Redundancy",
          CC_REDUNDANCY_PT,
          redundancy_encoder_create,
@@ -107,7 +106,6 @@ static const channel_coder_t table[] = {
          redundancy_decoder_peek,
          redundancy_decoder_describe
         },
-#endif
 };
 
 #define CC_IDX_TO_ID(x) (((x)+1) | 0x0e00)
