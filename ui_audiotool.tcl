@@ -2060,7 +2060,7 @@ proc set_pane {p base desc} {
 
 # Initialise "About..." toplevel window
 toplevel   .about
-frame      .about.rim -relief sunken
+frame      .about.rim -relief groove -bd 2
 frame      .about.m
 frame      .about.rim.d
 pack .about.m -fill x
@@ -2078,39 +2078,37 @@ menu .about.m.f.mb.menu -tearoff 0
 pack .about.m.f 
 pack .about.m.f.l .about.m.f.mb -side left
 
-#label     .about.rim.t.d.logo  -highlightthickness 0 -bitmap rat_med 
-
 frame     .about.rim.d.copyright
-frame     .about.rim.d.copyright.f
+frame     .about.rim.d.copyright.f -relief flat
 frame     .about.rim.d.copyright.f.f
-text      .about.rim.d.copyright.f.f.blurb -height 14 -yscrollcommand ".about.rim.d.copyright.f.f.scroll set"
-scrollbar .about.rim.d.copyright.f.f.scroll -command ".about.rim.d.copyright.f.f.blurb yview"
+text      .about.rim.d.copyright.f.f.blurb -height 14 -yscrollcommand ".about.rim.d.copyright.f.f.scroll set" -relief flat
+scrollbar .about.rim.d.copyright.f.f.scroll -command ".about.rim.d.copyright.f.f.blurb yview" -relief flat
 
 pack      .about.rim.d.copyright.f -expand 1 -fill both
-pack      .about.rim.d.copyright.f.f 
+pack      .about.rim.d.copyright.f.f -expand 1 -fill both
 pack      .about.rim.d.copyright.f.f.scroll -side right -fill y -expand 1
 pack      .about.rim.d.copyright.f.f.blurb -side left -expand 1
 
 frame     .about.rim.d.credits 
-frame     .about.rim.d.credits.f -relief sunken 
+frame     .about.rim.d.credits.f -relief flat
 frame     .about.rim.d.credits.f.f 
 pack      .about.rim.d.credits.f -fill both -expand 1
-pack      .about.rim.d.credits.f.f -side left -fill x -expand 1
+pack      .about.rim.d.credits.f.f -side left -fill x -expand 1 
 label     .about.rim.d.credits.f.f.1                  -text "The Robust-Audio Tool was developed in the Department of\nComputer Science, University College London.\n\nProject Supervision:"
 label     .about.rim.d.credits.f.f.2 -foreground blue -text Good
-label     .about.rim.d.credits.f.f.3                  -text "\nDevelopment Team:"
+label     .about.rim.d.credits.f.f.3                  -text "Development Team:"
 label     .about.rim.d.credits.f.f.4 -foreground blue -text Bad
 label     .about.rim.d.credits.f.f.5                  -text "Additional Contributions:"
 label     .about.rim.d.credits.f.f.6 -foreground blue -text Ugly
 for {set i 1} {$i<=6} {incr i} {
-    pack  .about.rim.d.credits.f.f.$i -side top -fill x
+    pack  .about.rim.d.credits.f.f.$i -side top -fill x -anchor n
 }
 
 button    .about.dismiss -text Dismiss -command "wm withdraw .about"
 pack      .about.dismiss -side bottom -anchor e -padx 2 -pady 2
 
 frame     .about.rim.d.feedback 
-frame     .about.rim.d.feedback.f -relief sunken 
+frame     .about.rim.d.feedback.f -relief flat
 frame     .about.rim.d.feedback.f.f
 pack      .about.rim.d.feedback.f -fill both -expand 1
 pack      .about.rim.d.feedback.f.f -side left -fill x -expand 1
@@ -2121,7 +2119,6 @@ label     .about.rim.d.feedback.f.f.4 -foreground blue -text "http://www-mice.cs
 for {set i 1} {$i<=4} {incr i} {
     pack  .about.rim.d.feedback.f.f.$i -side top -fill x
 }
-#pack .about.rim.t.logo .about.rim.t.blurb .about.rim.t.scroll -side right -fill y
 
 wm withdraw  .about
 wm title     .about "About RAT"
@@ -2130,8 +2127,8 @@ set about_pane Copyright
 set_pane about_pane .about.rim.d "Credits" 
 constrain_window .about $infofont 64 25 
 
-.about.rim.d.copyright.f.f.blurb insert end {
-Copyright (C) 1995-1999 University College London
+.about.rim.d.copyright.f.f.blurb insert end \
+{Copyright (C) 1995-1999 University College London
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -2217,7 +2214,7 @@ proc jiggle_credits {} {
 # Software really developed by the Socialist Department of Computer Science
     .about.rim.d.credits.f.f.2 configure -text [shuffle_rats "Angela Sasse" "Vicky Hardman"]
     .about.rim.d.credits.f.f.4 configure -text [shuffle_rats "Colin Perkins" "Orion Hodson"]
-    .about.rim.d.credits.f.f.6 configure -text [shuffle_rats "Isidor Kouvelas" "Darren Harris" "Anna Watson" "Mark Handley" "Jon Crowcroft" "Marcus Iken" "Kris Hasler" "Tristan Henderson"]
+    .about.rim.d.credits.f.f.6 configure -text [shuffle_rats "Isidor Kouvelas" "Darren Harris" "Anna Watson" "Mark Handley" "Jon Crowcroft" "Marcus Iken" "Kris Hasler" "Tristan Henderson" "Dimitrios Miras" "Socrates Varakliotis"]
 }
 
 proc sync_ui_to_engine {} {
