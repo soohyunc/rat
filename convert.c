@@ -1,7 +1,7 @@
 /*
  * FILE:    convert.c
  * PROGRAM: RAT
- * AUTHOR:  O.Hodson
+ * AUTHOR:  O.Hodson <O.Hodson@cs.ucl.ac.uk>
  * 
  * $Revision$
  * $Date$
@@ -48,223 +48,274 @@
 #include "convert.h"
 #include "util.h"
 
-static void (*ds)(short *,short *,short *,short *, int, int, int, int);
-static void (*us)(short *,short *,short *,short *, int, int, int, int);
+#ifdef WIN32
+#include <mmreg.h>
+#include <msacm.h>
+#endif
 
-/* Linear interpolation (sperm of the devil) */
-static void
-upsample_linear(short *dst, 
-                short *src_prev, 
-                short *src, 
-                short *src_next, 
-                int    src_len, 
-                int    scale, 
-                int    src_step, 
-                int    dst_step)
+typedef struct s_converter_fmt{
+        u_int16 from_channels;
+        u_int16 from_freq;
+        u_int16 to_channels;
+        u_int16 to_freq;
+} converter_fmt_t;
+
+#ifdef WIN32
+
+/* WINDOWS ACM CONVERSION CODE **********************************************/
+
+static HACMDRIVER hDrv;
+
+static BOOL CALLBACK 
+getPCMConverter(HACMDRIVERID hadid, DWORD dwInstance, DWORD fdwSupport)
 {
-        short *p,*ep;
-        float w1,w2,ws,tmp;
-
-        UNUSED(src_next);
-        UNUSED(src_prev);
-
-        if (src_prev) {
-                p = src_prev+(src_len-1)*src_step;
-        } else {
-                p = src;
+        if (fdwSupport & ACMDRIVERDETAILS_SUPPORTF_CONVERTER) {
+                ACMDRIVERDETAILS add;
+                add.cbStruct = sizeof(ACMDRIVERDETAILS);
+                if (acmDriverDetails(hadid, &add, 0)
+                    || strcmp(add.szShortName,"MS-PCM")
+                    || acmDriverOpen(&hDrv, hadid, 0)) return TRUE;
+                return FALSE;
         }
-    
-        ep = src+src_len*src_step;
-        ws = 1.0f/((float)scale);
-    
-        while(src<ep){
-                w1 = ws;
-                w2 = 1.0f-ws;
-                tmp = 0;
-                while(w1<1.0) {
-                        *dst = *p;
-/*(short)(w1*((float)*p)+w2*((float)*src));*/
-                        dst += dst_step;
-                        w1  += ws;
-                        w2  -= ws;
-                }
-                p    = src;
-                src += src_step;
-                *dst = *p;
-                dst += dst_step;
-        }
+        return TRUE;
 }
 
-static void
-downsample_linear(short *dst, 
-                  short *src_prev, 
-                  short *src, 
-                  short *src_next, 
-                  int src_len, 
-                  int scale, 
-                  int src_step, 
-                  int dst_step)
+static int 
+acm_conv_load(void)
 {
-        register int tmp,j;
-        short *ep = src + src_len*src_step;
+     acmDriverEnum(getPCMConverter, 0L, 0L);
+     if (HACMDRIVER) return TRUE;
+     return FALSE;                /* Failed initialization, entry disabled in table */
+}
 
-        UNUSED(src_next);
-        UNUSED(src_prev);
-
-        printf("downsample linear %d %d\n",src_len,scale);
-
-        while(src<ep) {
-                tmp = 0;
-                j = 0;
-                while(j++<scale) {
-                        tmp += *src;
-                        src += src_step;
-		}
-                tmp /= scale;
-                *dst = tmp;
-                dst += dst_step;
-	}
+static void 
+acm_conv_unload(void)
+{
+        if (hDrv) acmDriverClose(hDrv, 0);
+        hDrv = 0;
 }
 
 void
-set_converter(int mode)
+acm_conv_init_fmt(WAVEFORMATEX *pwfx, u_int16 nChannels, u_int16 nSamplesPerSec)
 {
-        switch (mode) {
-        case CONVERT_LINEAR:
-                ds = &downsample_linear;
-                us = &upsample_linear;
-                break;
-        default:
-                debug_msg("Converter not implemented!\n");
+       pwfx->wFormatTag = WAVE_FORMAT_PCM;
+       pwfx->nChannels       = nChannels;
+       pwfx->nSamplesPerSec  = nSamplesPerSec;
+       pwfx->nAvgBytesPerSec = nSamplesPerSec * nChannels * sizeof(sample);
+       pwfx->nBlockAlign     = nChannels * sizeof(sample);
+       pwfx->wBitsPerSample  = 8 * sizeof(sample);
+}
+
+static int
+acm_conv_init(converter_t *c)
+{
+        LPHACMSTREAM lpa;
+        WAVEFORMATEX wfxSrc, wfxDst;
+
+        lpa = (LPHACMSTREAM)c->data;
+
+        acm_conv_init_fmt(&wfxSrc, c->conv_fmt->from_channels, c->conv_fmt->from_freq);
+        acm_conv_init_fmt(&wfxDst, c->conv_fmt->to_channels,   c->conv_fmt->to_freq);
+
+        if (acmStreamOpen(lpa, hDrv, &wfxSrc, &wfxDst, NULL, 0L, 0L, 0L)) return FALSE;
+ 
+        return TRUE;
+}
+
+static void
+acm_conv_do(converter_t *c, sample *src_buf, int src_len, sample *dst_buf, int dst_len)
+{
+        ACMSTREAMHEADER ash;
+        LPHACMSTREAM    lphs;
+
+        memset(&ash, 0, sizeof(ash));
+        ash.cbStruct        = sizeof(ash);
+        ash.pbSrc           = (LPBYTE)src_buf;
+        ash.cbSrcLength     = src_len;
+        ash.pbDst           = (LPBYTE)dst_buf;
+        ash.cbDstLength     = dst_len;
+
+        lphs = (LPHACMSTREAM)c->data;
+
+        if (acmStreamPrepareHeader(*lphs, &ash, 0) || 
+            acmStreamConvert(*lphs, &ash, ACM_STREAMCONVERTF_BLOCKALIGN)) {
+                memset(dst_buf, 0, dst_len * sizeof(sample));
+        }
+        return;
+}
+
+static void
+acm_conv_free(converter_t *c)
+{
+        if (c->data) {
+                xfree(c->data);
+                c->data     = NULL;
+                c->data_len = 0;
         }
 }
 
-static short*
-get_unconverted_audio(rx_queue_element_struct *ip)
+#endif /* WIN32 */
+
+static int 
+linear_init (converter_t *c)
 {
-        if (ip && ip->native_count>0) {
-                return ip->native_data[0];
-        } else {
+        UNUSED(c);
+        return TRUE;
+}
+
+static void
+linear_convert (converter_t  *c, sample* src_buf, int src_len, sample *dst_buf, int dst_len)
+{
+        UNUSED(c);
+        UNUSED(src_buf);
+        UNUSED(src_len);
+        UNUSED(dst_buf);
+        UNUSED(dst_len);
+}
+
+static void 
+linear_free (converter_t *c)
+{
+        UNUSED(c);
+}
+
+typedef int  (*pcm_startup)     (void);  /* converter specific one time initialization */
+typedef void (*pcm_cleanup)     (void);  /* converter specific one time cleanup */
+typedef int  (*pcm_conv_init_f) (converter_t *c);
+typedef void (*pcm_conv_do_f)   (converter_t *c, sample* src_buf, int src_len, sample *dst_buf, int dst_len);
+typedef void (*pcm_conv_free_f) (converter_t *c);
+
+typedef struct s_pcm_converter{
+        u_char  id;
+        char    *name;
+        u_char  enabled;
+        pcm_startup     cf_start;
+        pcm_cleanup     cf_clean;
+        pcm_conv_init_f cf_init;
+        pcm_conv_do_f   cf_convert;
+        pcm_conv_free_f cf_free;
+        int      data_len;
+} pcm_converter_t;
+
+#define CONVERT_NONE     0
+#define CONVERT_PLATFORM 1
+#define CONVERT_LINEAR   2
+#define CONVERT_LINEARF  3
+#define CONVERT_CUBIC    4
+
+/* In this table of converters the platform specific converters should go at the
+ * beginning, before the default (and worst) linear interpolation conversion.  The
+ * intension is to have a mechanism which enables/disables more complex default schemes
+ * such as interpolation with filtering, cubic interpolation, etc...
+ */
+
+pcm_converter_t converter_tbl[] = {
+#ifdef WIN32
+        {CONVERT_PLATFORM, "MS PCM Converter", FALSE, acm_conv_load, acm_conv_unload, acm_conv_init, acm_conv_do,  acm_conv_free, sizeof(HACMSTREAM)},
+#endif
+        {CONVERT_LINEAR  , "Linear",           TRUE , NULL,          NULL,            linear_init, linear_convert, linear_free,   0},
+        {CONVERT_NONE    , "None",             FALSE, NULL,          NULL,            NULL,        NULL,           NULL,          0}
+};
+
+converter_t *
+converter_create(int from_channels, int from_freq, int to_channels, int to_freq)
+{
+        converter_t     *c  = NULL;
+        converter_fmt_t *cf = NULL;
+        pcm_converter_t *pc = converter_tbl;
+
+        while(pc->id != CONVERT_NONE) {
+                if (pc->enabled) break;
+                pc++;
+        }
+        
+        if (pc->id == CONVERT_NONE) return NULL;
+        
+        c  = (converter_t*)xmalloc(sizeof(converter_t));
+        if (c == NULL) {
                 return NULL;
         }
+
+        cf = (converter_fmt_t*)xmalloc(sizeof(converter_fmt_t));
+        if (cf == NULL) {
+                converter_destroy(&c); 
+                return NULL;
+        }
+
+        cf->from_channels = from_channels;
+        cf->from_freq     = from_freq;
+        cf->to_channels   = to_channels;
+        cf->to_freq       = to_freq;
+
+        c->pcm_conv = pc;
+        c->conv_fmt = cf;
+
+        if (pc->data_len) {
+                c->data     = (char*)xmalloc(pc->data_len);
+                c->data_len = pc->data_len;
+                if (c->data == NULL) {
+                        converter_destroy(&c);
+                        return NULL;
+                }
+        }
+
+        if ((pc->cf_init) && (pc->cf_init(c) == FALSE)) {
+                converter_destroy(&c);
+                return NULL;
+        }
+        return c;
+}
+
+void 
+converter_destroy(converter_t **c)
+{
+        assert(*c);
+        if ((*c)->pcm_conv->cf_free) (*c)->pcm_conv->cf_free(*c);
+        if ((*c)->pcm_conv)          xfree((*c)->pcm_conv);
+        if ((*c)->conv_fmt)          xfree((*c)->conv_fmt);
+        if ((*c)->data != NULL)      xfree((*c)->data);
+        xfree(*c); (*c) = NULL;
 }
 
 int
-convert_format(rx_queue_element_struct *ip, int to_freq, int to_channels)
+converter_format (converter_t *c, rx_queue_element_struct *ip)
 {
-        register int i;
-        register short *p;
-        codec_t *cp;
-        short *prev, *next;
-        int scale=0,size=0;
-        void (*converter)(short *, short*, short*, short *, int, int, int, int) = NULL;
+        converter_fmt_t *cf;
 
-        /* get audio blocks from side for conversion methods that need them */
-        prev = get_unconverted_audio(ip->prev_ptr);
-        next = get_unconverted_audio(ip->next_ptr);
-        cp = ip->comp_data[0].cp;
-
-        if ( cp->freq > to_freq && 
-             cp->freq % to_freq == 0) {
-                scale = cp->freq/to_freq;
-                size  = cp->unit_len * to_channels * sizeof(sample) / scale;
-                converter = ds;
-        } else if ( cp->freq < to_freq && 
-                    to_freq % cp->freq == 0) {
-                scale = to_freq/cp->freq;
-                size  = cp->unit_len * to_channels * sizeof(sample) * scale;
-                converter = us;
-	} else {
-                /* just doing number of channels conversion */
-                size  = cp->unit_len * to_channels * sizeof(sample);
-        }
-        ip->native_size[ip->native_count] = size;
-        ip->native_data[ip->native_count] = (sample*)block_alloc(size);
+        assert(c);
+        assert(c->pcm_conv);
+        assert(c->pcm_conv->cf_convert);
+        assert(ip->native_data);
+        assert(ip->native_count);
+        
+        cf = c->conv_fmt;
+        ip->native_size[ip->native_count] = ip->native_size[ip->native_count - 1] * cf->to_channels * cf->to_freq / (cf->from_channels * cf->from_freq);
+        ip->native_data[ip->native_count] = (sample*)xmalloc(sizeof(sample) * ip->native_size[ip->native_count]);
         ip->native_count++;
-
-        if (converter && scale) {
-                if (to_channels == cp->channels) {
-                        /* m channels to m channels */
-                        for(i=0;i<to_channels;i++) {
-                                (*converter)(ip->native_data[ip->native_count-1]+i,
-                                             prev,
-                                             ip->native_data[ip->native_count-2]+i,
-                                             next,
-                                             cp->unit_len,
-                                             scale,
-                                             to_channels,
-                                             to_channels);
-                                if (prev) prev++;
-                                if (next) next++;
-                        }
-                } else if (to_channels == 1) {
-                        /* XXX 2 channels to 1 - we should do channel selection here [oth] */
-                        assert(cp->channels == 2);
-                        (*converter)(ip->native_data[ip->native_count-1],
-                                     prev,
-                                     ip->native_data[ip->native_count-2],
-                                     next,
-                                     cp->unit_len,
-                                     scale,
-                                     2,
-                                     1);
-                } else if (to_channels == 2) {
-                        /* XXX 1 channel to 2 */
-                        assert(cp->channels == 1);
-                        (*converter)(ip->native_data[ip->native_count-1],
-                                     prev,
-                                     ip->native_data[ip->native_count-2],
-                                     next,
-                                     cp->unit_len,
-                                     scale,
-                                     1,
-                                     2);
-                        p = ip->native_data[ip->native_count-1];
-                        for(i=0;i<cp->unit_len;i++,p+=2)
-                                *(p+1) = *p;
-                } else {
-                        /* non-integer conversion attempted */
-                        return 0;
-		}
-                return (size>>1);
-        } else if (cp->freq == to_freq) {
-                /* channel conversion only */
-                if (to_channels > cp->channels) {
-                        /* 1 to 2 channels */
-                        printf("1 to 2 channels\n");
-                        assert(to_channels == 2);
-                        prev = ip->native_data[0];
-                        p    = ip->native_data[1];
-                        i = 0;
-                        while(i++ < cp->unit_len) {
-                                *p = *(p+1) = *prev++;
-                                p += 2;
-                        }
-                        return (size / 2);
-                } else if (to_channels < cp->channels) {
-                        /* 2 to 1 channels */
-                        printf("2 to 1 channels\n");
-                        assert(cp->channels == 2);
-                        prev = ip->native_data[0];
-                        p    = ip->native_data[1];
-                        i = 0;
-                        while(i++<cp->unit_len) {
-                                *p++  = *prev++;
-                                prev += 2;
-                        }
-                        return (size / 2);
-                } else {
-#ifdef DEBUG
-                        /* should never be here */
-                        fprintf(stderr, "convert_format: neither sample rate conversion nor channel count conversion.");
-#endif            
-                }
-        }
-        return 0;
+        c->pcm_conv->cf_convert(c,
+                                ip->native_data[ip->native_count - 1], 
+                                ip->native_size[ip->native_count - 1],
+                                ip->native_data[ip->native_count], 
+                                ip->native_size[ip->native_count]);
+        return TRUE;
 }
 
+void         
+converters_init()
+{
+        pcm_converter_t *pc = converter_tbl;
+        while(pc->id != CONVERT_NONE) {
+                if (pc->cf_start) pc->enabled = pc->cf_start();
+                pc++;
+        }
+}
 
-
-
-
-
+void
+converters_free()
+{
+        pcm_converter_t *pc = converter_tbl;
+        while(pc->id != CONVERT_NONE) {
+                if (pc->cf_clean) pc->cf_clean();
+                pc++;
+        }
+}

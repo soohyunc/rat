@@ -50,6 +50,7 @@
 #include "repair.h"
 #include "mix.h"
 #include "audio.h"
+#include "convert.h"
 #include "cushion.h"
 #include "transmit.h"
 
@@ -366,9 +367,10 @@ destroy_playout_buffers(ppb_t **list)
 }
 
 static ppb_t *
-find_participant_queue(ppb_t **list, rtcp_dbentry *src)
+find_participant_queue(ppb_t **list, rtcp_dbentry *src, int dev_pt, codec_t *cp_src)
 {
 	ppb_t *p;
+        codec_t *cp_dev;
 
 	for (p = *list; p; p = p->next) {
 		if (p->src == src)
@@ -383,6 +385,16 @@ find_participant_queue(ppb_t **list, rtcp_dbentry *src)
 	p->next = *list;
 	*list = p;
 
+        cp_dev = get_codec(dev_pt);
+        assert(cp_dev);
+        if (!codec_compatible(cp_dev,cp_src)) {
+                assert(src->converter == NULL);
+                src->converter = converter_create(cp_src->channels, 
+                                                  cp_src->freq,
+                                                  cp_dev->channels,
+                                                  cp_dev->freq);
+        } 
+
 	return (p);
 }
 
@@ -392,6 +404,8 @@ playout_buffer_remove(ppb_t **list, rtcp_dbentry *src)
 	/* We don't need to free "src", that's done elsewhere... [csp] */
 	ppb_t 			*curr, *prev, *tmp;
 	rx_queue_element_struct	*rxu, *rxt;
+
+        if (src->converter) converter_destroy(&src->converter);
 
 	assert(list != NULL);
 
@@ -432,7 +446,7 @@ playout_buffer_remove(ppb_t **list, rtcp_dbentry *src)
 			curr = prev->next;
 		} else {
 			prev = curr;
-			curr = curr->next;;
+			curr = curr->next;
 		}
 	}
 }
@@ -463,7 +477,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
         
 	while (receive_queue->queue_empty == FALSE) {
 		up       = get_unit_off_rx_queue(receive_queue);
-		buf      = find_participant_queue(buf_list, up->dbe_source[0]);
+		buf      = find_participant_queue(buf_list, up->dbe_source[0], sp->encodings[0], up->comp_data[0].cp);
 		cur_time = get_time(buf->src->clock);
 
 		/* This is to compensate for clock drift.

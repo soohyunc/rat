@@ -183,8 +183,8 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
                 dur = from->unit_len;
 		buf = el->native_data[0];
 		nsamples = dur * ms->channels;
-		convert_format(el, to->freq, to->channels);
-                nsamples = ms->channels * from->unit_len * to->freq / from->freq;
+		converter_format(el->dbe_source[0]->converter, el);
+                nsamples = ms->channels * from->unit_len * to->freq / from->freq ;
                 dur = nsamples / ms->channels;
 		buf = el->native_data[1];
                 }

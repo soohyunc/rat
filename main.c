@@ -133,6 +133,8 @@ main(int argc, char *argv[])
 	cname        = get_cname();
 	ssrc         = get_ssrc();
 
+        converters_init();
+
 	if (sp[0]->mode == AUDIO_TOOL) {
 		assert(num_sessions == 1);
 		sprintf(mbus_engine_addr, "(audio engine rat %ld)", (int32) getpid());
@@ -163,8 +165,6 @@ main(int argc, char *argv[])
 		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
 		audio_device_take(sp[i]);
 	}
-
-        set_converter(CONVERT_LINEAR);
 
 	ui_info_update_cname(sp[0]->db->my_dbe);
 	ui_info_update_tool(sp[0]->db->my_dbe);
@@ -273,7 +273,7 @@ main(int argc, char *argv[])
 
         xfree(cname);
 
-
+        converters_free();
 
 	xmemdmp();
 	return 0;
