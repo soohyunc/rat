@@ -257,10 +257,6 @@ SOURCE=.\source.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\timers.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\tonegen.c
 # End Source File
 # Begin Source File
@@ -434,10 +430,6 @@ SOURCE=.\source.h
 # Begin Source File
 
 SOURCE=.\statistics.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\timers.h
 # End Source File
 # Begin Source File
 
