@@ -113,39 +113,6 @@ repetition(sample             **audio_buf,
         return TRUE;
 }
 
-/* Repetition plus - reverse mix last samples from previous frame with
- * current to avoid discontinuity at the frame borders.  
- */
-
-#define REVERSE_SAMPLES 12
-static int
-repetition_plus(sample             **audio_buf, 
-                const audio_format **audio_fmt, 
-                int                  nbufs,
-                int                  missing,
-                int                  consec_lost)
-{
-        sample  r[REVERSE_SAMPLES];
-        uint32_t i,n, samples_per_block, success;
-
-        n = sizeof(r)/sizeof(r[0]);
-        samples_per_block = audio_fmt[missing - 1]->bytes_per_block /  
-                (audio_fmt[missing - 1]->bits_per_sample / 8);
-
-        success = repetition(audio_buf, audio_fmt, nbufs, missing, consec_lost);
-
-        if (success && samples_per_block >= n) {
-		/* Copy and reverse end of previous block. */
-		for(i = 1; i <= n; i++) {
-			r[i] = audio_buf[missing - 1][samples_per_block - i];
-		}
-		/* Fade out reversed copy segment of previous block. */
-                audio_blend(r, audio_buf[missing], audio_buf[missing], n, audio_fmt[missing - 1]->channels);
-        }
-        
-        return success;
-}
-
 static int
 repair_none(sample             **audio_buf, 
             const audio_format **audio_fmt, 
@@ -233,47 +200,51 @@ noise_substitution(sample             **audio_buf,
 #define MIN_PITCH            5
 
 static uint16_t 
-get_match_length(sample *buf, const audio_format *fmt, uint16_t window_length)
+get_match_length(sample		*buf, 
+		 const int	samples, 
+		 const uint16_t	window_length,
+		 const uint16_t	sample_rate) 
 {
-        /* Only do first channel */
-        float fwin[MAX_MATCH_WINDOW], fbuf[MAX_MATCH_WINDOW], fnorm, score, target = 1e6;
+        /* Match ignores channels - treated as one continuous buffer
+	 * of samples */
+        double fwin[MAX_MATCH_WINDOW], fbuf[MAX_MATCH_WINDOW];
+	double fnorm, score, target = 1e6;
         sample *win_s, *win_e, *win;
-        int samples = fmt->bytes_per_block * 8 / (fmt->bits_per_sample * fmt->channels);
         int norm, i, j, k, cmp_end;
         int best_match = 0; 
 
         assert(window_length < MAX_MATCH_WINDOW);
 
         /* Calculate normalization of match window */
-        win_s = buf + (samples - window_length) * fmt->channels;
-        win_e = buf + samples *fmt->channels;
+        win_s = buf + (samples - window_length);
+        win_e = buf + samples;
 
         norm  = 1;
         win   = win_s;
         while(win != win_e) {
                 norm += abs(*win);
-                win += fmt->channels;
+                win ++;
         }
 
         /* Normalize and store match window */
-        fnorm = (float)norm;
+        fnorm = (double)norm;
 
         win = win_s;
         i = 0;
         while(win != win_e) {
-                fwin[i] = ((float)(*win)) / fnorm;
-                win += fmt->channels;
+                fwin[i] = ((double)(*win)) / fnorm;
+                win ++;
                 i++;
         }
 
         /* Find best match */
-        cmp_end = samples - (window_length + MIN_PITCH * (fmt->sample_rate / 1000)) * fmt->channels;
+        cmp_end = samples - (window_length + MIN_PITCH * sample_rate / 1000);
 
         if (cmp_end <= 0) return samples;
 
-        for(i = 0; i < cmp_end; i += fmt->channels) {
+        for(i = 0; i < cmp_end; i ++) {
                 norm = 1;
-                for(j = i, k = 0;  k < window_length; j+= fmt->channels, k++) {
+                for(j = i, k = 0;  k < window_length; j++, k++) {
                         fbuf[k] = (float)buf[j];
                         norm += abs(buf[j]);
                 }
@@ -284,19 +255,22 @@ get_match_length(sample *buf, const audio_format *fmt, uint16_t window_length)
                 }
                 if (score < target) {
                         target = score;
-                        best_match = i / fmt->channels;
+                        best_match = i;
                 } 
         }
         return (uint16_t)(samples - best_match - window_length);
 }
 
 static int
-single_side_pattern_match(sample **audio_buf, const audio_format **audio_fmt, int nbufs,
-                          int missing, int consec_lost)
+single_side_pattern_match(sample		**audio_buf, 
+			  const audio_format	**audio_fmt, 
+			  int			nbufs,
+                          int			missing, 
+			  int			consec_lost)
 {
-        uint16_t match_length;
         sample *pat, *dst;
-        int remain, bytes_per_sample;
+	uint16_t match_length;
+        int remain, bytes_per_sample, buffer_samples, match_samples;
 
         if ((audio_buf[missing - 1] == NULL) || 
             (nbufs < 2)) {
@@ -307,14 +281,20 @@ single_side_pattern_match(sample **audio_buf, const audio_format **audio_fmt, in
 	bytes_per_sample = audio_fmt[missing]->bits_per_sample * 
 		audio_fmt[missing]->channels / 8;
 
-        match_length = get_match_length(audio_buf[missing-1], audio_fmt[missing-1], MATCH_WINDOW);
+	buffer_samples = audio_fmt[missing - 1]->bytes_per_block / 
+		bytes_per_sample * audio_fmt[missing - 1]->channels;
+	match_samples = MATCH_WINDOW * audio_fmt[missing - 1]->channels,
+        match_length = get_match_length(audio_buf[missing - 1], 
+					buffer_samples,
+					match_samples,
+					audio_fmt[missing - 1]->sample_rate);
 
-        remain = audio_fmt[missing]->bytes_per_block / bytes_per_sample;
-        pat = audio_buf[missing-1] + (remain - match_length) * audio_fmt[missing]->channels;
-        dst = audio_buf[missing];
+        remain	= buffer_samples;
+        pat	= audio_buf[missing-1] + (remain - match_length);
+        dst	= audio_buf[missing];
         while(remain > 0) {
-                match_length = min(remain, match_length);
-                memcpy(dst, pat, match_length * bytes_per_sample);
+		match_length = min(remain, match_length);
+                memcpy(dst, pat, match_length * sizeof(sample));
                 remain -= match_length;
                 dst    += match_length;
         }
@@ -333,10 +313,6 @@ static repair_scheme schemes[] = {
         {
                 {"Pattern-Match", IDX_TO_REPAIR_ID(0)}, 
                 single_side_pattern_match
-        },
-        {
-                {"Repeat+",       IDX_TO_REPAIR_ID(1)}, 
-                repetition_plus
         },
         {
                 {"Repeat",        IDX_TO_REPAIR_ID(2)},
