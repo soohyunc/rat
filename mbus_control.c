@@ -35,12 +35,16 @@ int mbus_control_wait_done(void)
 
 static void rx_mbus_quit(char *srce, char *args, void *data)
 {
-	debug_msg("%s %s %p\n", srce, args, data);
+	UNUSED(srce);
+	UNUSED(args);
+	UNUSED(data);
 }
 
 static void rx_mbus_waiting(char *srce, char *args, void *data)
 {
-	debug_msg("%s %s %p\n", srce, args, data);
+	UNUSED(srce);
+	UNUSED(args);
+	UNUSED(data);
 }
 
 static void rx_mbus_go(char *srce, char *args, void *data)
@@ -60,7 +64,9 @@ static void rx_mbus_go(char *srce, char *args, void *data)
 
 static void rx_mbus_hello(char *srce, char *args, void *data)
 {
-	debug_msg("%s %s %p\n", srce, args, data);
+	UNUSED(srce);
+	UNUSED(args);
+	UNUSED(data);
 }
 
 static const char *rx_cmnd[] = {
