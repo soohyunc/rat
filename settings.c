@@ -372,9 +372,6 @@ void settings_save(session_struct *sp)
         channel_encoder_get_parameters(sp->channel_coder, cc_param, cc_len);
         channel_get_coder_identity(sp->channel_coder, &cd);
 
-        xfree(cc_param);
-        cc_param = NULL;
-
         for(i = 0; i < (int) converter_get_count(); i++) {
                 converter_get_details(i, &converter);
                 if (sp->converter == converter.id) {
@@ -437,5 +434,6 @@ void settings_save(session_struct *sp)
 	/* We do not save audioOutputMute and audioInputMute by default, but should */
 	/* recognize them when reloading.                                           */
 	save_done();
+        xfree(cc_param);
 }
 
