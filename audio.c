@@ -21,6 +21,8 @@
 #include "debug.h"
 #include "codec_types.h"
 #include "codec.h"
+#include "channel_types.h"
+#include "channel.h"
 #include "audio.h"
 #include "audio_fmt.h"
 #include "audio_util.h"
@@ -281,7 +283,15 @@ audio_device_reconfigure(session_struct *sp)
 
                 sp->audio_device  = curr_config->device;
                 sp->encodings[0]  = codec_get_payload(curr_config->primary);
-                sp->num_encodings = 1;
+
+                /* If using redundancy check it is still relevent */
+                if (sp->num_encodings > 1 && 
+                    !codec_audio_formats_compatible(curr_config->primary, codec_get_by_payload(sp->encodings[1]))) {
+                        debug_msg("Redundant encoding not comptible, falling back to none\n");
+                        channel_encoder_destroy(&sp->channel_coder);
+                        channel_encoder_create(channel_get_null_coder(), &sp->channel_coder);
+                        sp->num_encodings = 1;
+                }
                 sp->render_3d     = curr_config->render_3d;
         } else {
                 debug_msg("audio device reconfigure - nothing to do.\n");
