@@ -575,6 +575,42 @@ ui_device(session_struct *sp)
         }
 }
 
+static void
+ui_sampling_modes(session_struct *sp)
+{
+	char	*mbes;
+        char    modes[255]="";
+        char    tmp[22];
+        u_int16 rate, channels, support, zap;
+        
+        for(rate = 8000; rate <=48000; rate += 8000) {
+                support = 0;
+                for(channels = 1; channels <= 2; channels++) {
+                        if (audio_device_supports(sp->audio_device, rate, channels)) support += channels;
+                }
+                switch(support) {
+                case 3: sprintf(tmp, "%d-kHz,Mono,Stereo ", rate/1000); break; 
+                case 2: sprintf(tmp, "%d-kHz,Stereo ", rate/1000);      break;
+                case 1: sprintf(tmp, "%d-kHz,Mono ", rate/1000);        break;
+                case 0: continue;
+                }
+                strcat(modes, tmp);
+        }
+
+        debug_msg("Sampling modes: %s\n", modes);
+
+        /* Remove trailing space */
+        zap = strlen(modes);
+        if (zap) {
+                zap -= 1;
+                modes[zap] = '\0';
+        }
+
+	mbes = mbus_encode_str(modes);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.sampling.supported", mbes, TRUE);
+	xfree(mbes);
+}
+
 void
 ui_update(session_struct *sp)
 {
@@ -623,7 +659,6 @@ ui_hide_audio_busy(session_struct *sp)
 {
 	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.enable.audio.ctls", "", TRUE);
 }
-
 
 void
 ui_update_lecture_mode(session_struct *sp)
@@ -794,6 +829,21 @@ ui_get_codecs(int pt, char *buf, unsigned int buf_len, int loose)
         return buf;
 }
 
+void 
+ui_codecs(session_struct *sp, int pt)
+{
+	char	args[256], *mbes;	/* Hope that's big enough... :-) */
+
+        ui_get_codecs(pt, args, 256, TRUE);
+        mbes = mbus_encode_str(args);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.codec.supported", mbes, TRUE);
+        xfree(mbes);
+        ui_get_codecs(pt, args, 256, FALSE);
+        mbes = mbus_encode_str(args);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.redundancy.supported", mbes, TRUE);
+        xfree(mbes);
+}
+
 void
 ui_update_playback_file(session_struct *sp, char *name)
 {
@@ -825,21 +875,6 @@ ui_update_file_live(session_struct *sp, char *mode, int valid)
 }
 
 void 
-ui_codecs(session_struct *sp, int pt)
-{
-	char	args[256], *mbes;	/* Hope that's big enough... :-) */
-
-        ui_get_codecs(pt, args, 256, TRUE);
-        mbes = mbus_encode_str(args);
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.codec.supported", mbes, TRUE);
-        xfree(mbes);
-        ui_get_codecs(pt, args, 256, FALSE);
-        mbes = mbus_encode_str(args);
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.redundancy.supported", mbes, TRUE);
-        xfree(mbes);
-}
-
-void 
 ui_converters(session_struct *sp)
 {
         char buf[255], *mbes;
@@ -848,42 +883,6 @@ ui_converters(session_struct *sp)
                 mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.converter.supported", mbes, TRUE);
                 xfree(mbes);
         }
-}
-
-void
-ui_sampling_modes(session_struct *sp)
-{
-	char	*mbes;
-        char    modes[255]="";
-        char    tmp[22];
-        u_int16 rate, channels, support, zap;
-        
-        for(rate = 8000; rate <=48000; rate += 8000) {
-                support = 0;
-                for(channels = 1; channels <= 2; channels++) {
-                        if (audio_device_supports(sp->audio_device, rate, channels)) support += channels;
-                }
-                switch(support) {
-                case 3: sprintf(tmp, "%d-kHz,Mono,Stereo ", rate/1000); break; 
-                case 2: sprintf(tmp, "%d-kHz,Stereo ", rate/1000);      break;
-                case 1: sprintf(tmp, "%d-kHz,Mono ", rate/1000);        break;
-                case 0: continue;
-                }
-                strcat(modes, tmp);
-        }
-
-        debug_msg("Sampling modes: %s\n", modes);
-
-        /* Remove trailing space */
-        zap = strlen(modes);
-        if (zap) {
-                zap -= 1;
-                modes[zap] = '\0';
-        }
-
-	mbes = mbus_encode_str(modes);
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.sampling.supported", mbes, TRUE);
-	xfree(mbes);
 }
 
 void
@@ -900,7 +899,7 @@ ui_controller_init(session_struct *sp, char *cname, char *name_engine, char *nam
         xfree(my_cname);
 }
 
-void
+static void
 ui_title(session_struct *sp) 
 {
 	char	*addr, *args, *title;
@@ -917,10 +916,51 @@ ui_title(session_struct *sp)
         xfree(addr);
 }
 
-void
+static void
 ui_load_settings(session_struct *sp)
 {
 	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.load.settings", "", TRUE);
+}
+
+static void
+ui_3d_options(session_struct *sp)
+{
+        char args[256];
+        char *mbes;
+
+        sprintf(args,"none,lateralization,externalization");
+        mbes = mbus_encode_str(args);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, 
+                  "tool.rat.3d.filter.types", mbes, TRUE);
+        xfree(mbes);
+
+        sprintf(args,"32,64,96,128");
+        mbes = mbus_encode_str(args);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, 
+                  "tool.rat.3d.filter.lengths", 
+                  mbes, TRUE);
+        xfree(mbes);
+
+        sprintf(args, "%d", -90);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, 
+                  "tool.rat.3d.azimuth.min", args, TRUE);
+
+        sprintf(args, "%d", 90);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, 
+                  "tool.rat.3d.azimuth.max", args, TRUE);
+}
+
+void
+ui_initial_settings(session_struct *sp)
+{
+        /* One off setting transfers / initialization */
+        ui_sampling_modes(sp);
+        ui_3d_options(sp);
+	ui_codecs(sp, sp->encodings[0]);
+	ui_info_update_cname(sp, sp->db->my_dbe);
+	ui_info_update_tool(sp, sp->db->my_dbe);
+        ui_title(sp);
+	ui_load_settings(sp);
 }
 
 void 

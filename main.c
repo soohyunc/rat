@@ -177,19 +177,14 @@ main(int argc, char *argv[])
 		usleep(20000);
 	} while (sp[0]->wait_on_startup);
 
-        ui_sampling_modes(sp[0]);
-	ui_codecs(sp[0], sp[0]->encodings[0]);
-
 	for (i = 0; i < num_sessions; i++) {
 		network_init(sp[i]);
 		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
 		audio_device_take(sp[i]);
 	}
 
-	ui_info_update_cname(sp[0], sp[0]->db->my_dbe);
-	ui_info_update_tool(sp[0], sp[0]->db->my_dbe);
-        ui_title(sp[0]);
-	ui_load_settings(sp[0]);
+        ui_initial_settings(sp[0]);
+
         rtcp_clock_change(sp[0]);
 
 	network_process_mbus(sp[0]);

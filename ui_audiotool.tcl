@@ -163,6 +163,10 @@ proc mbus_recv {cmnd args} {
 		tool.rat.disable.audio.ctls  	{eval mbus_recv_tool.rat.disable.audio.ctls $args}
 		tool.rat.enable.audio.ctls  	{eval mbus_recv_tool.rat.enable.audio.ctls $args}
 		tool.rat.audio.buffered  	{eval mbus_recv_tool.rat.audio.buffered $args}
+		tool.rat.3d.azimuth.min         {eval mbus_recv_tool.rat.3d.azimuth.min $args}
+		tool.rat.3d.azimuth.max         {eval mbus_recv_tool.rat.3d.azimuth.max $args}
+		tool.rat.3d.filter.types        {eval mbus_recv_tool.rat.3d.filter.types   $args}
+		tool.rat.3d.filter.lengths      {eval mbus_recv_tool.rat.3d.filter.lengths $args}
 		audio.suppress.silence  	{eval mbus_recv_audio.suppress.silence $args}
 		audio.channel.coding  		{eval mbus_recv_audio.channel.coding $args}
 		audio.channel.repair 		{eval mbus_recv_audio.channel.repair $args}
@@ -546,6 +550,26 @@ proc mbus_recv_tool.rat.audio.buffered {cname buffered} {
 # we don't update cname as source.packet.duration always follows 
 }
 
+proc mbus_recv_tool.rat.3d.azimuth.min {min} {
+    global 3d_azimuth
+    set 3d_azimuth(min) $min
+}
+
+proc mbus_recv_tool.rat.3d.azimuth.max {max} {
+    global 3d_azimuth
+    set 3d_azimuth(max) $max
+}
+
+proc mbus_recv_tool.rat.3d.filter.types {args} {
+    global 3d_filters
+    set 3d_filters [split $args ","]
+}
+
+proc mbus_recv_tool.rat.3d.filter.lengths {args} {
+    global 3d_filter_lengths
+    set 3d_filter_lengths [split $args ","]
+}
+
 proc mbus_recv_rtp.source.packet.loss {dest srce loss} {
 	global losstimers my_cname LOSS_FROM_ME LOSS_TO_ME
 	init_source $srce
@@ -825,6 +849,11 @@ proc stats_add_field {widget label watchVar} {
     pack $widget.w -side right 
 }
 
+set 3d_azimuth(min) 0
+set 3d_azimuth(max) 0
+set 3d_filters        [list "Not Available"]
+set 3d_filter_lengths [list "0"]
+
 proc toggle_stats {cname} {
     global statsfont
     set win [window_stats $cname]
@@ -843,6 +872,7 @@ proc toggle_stats {cname} {
 	menu $win.mf.mb.menu -tearoff 0
 	$win.mf.mb.menu add command -label "Personal Details" -command "set_pane stats_pane($win) $win.df \"Personal Details\""
 	$win.mf.mb.menu add command -label "Reception"        -command "set_pane stats_pane($win) $win.df Reception"
+	$win.mf.mb.menu add command -label "3D Positioning"   -command "set_pane stats_pane($win) $win.df \"3D Positioning\""
 
 	set stats_pane($win) "Personal Details"
 	frame $win.df 
@@ -872,6 +902,60 @@ proc toggle_stats {cname} {
 	stats_add_field $win.df.reception.a "Packets duplicated: "     PCKTS_DUP($cname)
 	stats_add_field $win.df.reception.b "Units dropped (jitter): " JIT_TOGED($cname)
 
+# 3D settings
+	frame $win.df.3d -relief sunk
+	label $win.df.3d.advice -text "These options allow the rendering of the\nparticipant to be altered when sound\nexternalization is enabled."
+	checkbutton $win.df.3d.ext -text "Sound Externalization" -variable 3d_audio_var
+	pack $win.df.3d.advice 
+	pack $win.df.3d.ext 
+
+	frame $win.df.3d.opts 
+	pack $win.df.3d.opts -side top 
+
+	frame $win.df.3d.opts.filters
+	label $win.df.3d.opts.filters.l -text "Filter Type:"
+	pack $win.df.3d.opts.filters.l -side top -fill x -expand 1 -anchor w
+	global 3d_filters 3d_filter_lengths
+	
+	global filter_type
+	set filter_type($cname) [lindex $3d_filters 0]
+
+	set cnt 0
+	foreach i $3d_filters {
+	    radiobutton $win.df.3d.opts.filters.$cnt \
+		    -value "$i" -variable filter_type($cname) \
+		    -text "$i"
+ 		pack $win.df.3d.opts.filters.$cnt -side top -anchor w
+	    incr cnt
+	}
+
+	frame $win.df.3d.opts.lengths 
+	label $win.df.3d.opts.lengths.l -text "Filter Length:" -width 16
+	pack $win.df.3d.opts.lengths.l -side top -fill x -expand 1
+	
+	global filter_length
+	set filter_length($cname) [lindex $3d_filter_lengths 0]
+	
+	set cnt 0
+	foreach i $3d_filter_lengths {
+	    radiobutton $win.df.3d.opts.lengths.$cnt \
+		    -value "$i" -variable filter_length($cname) \
+		    -text "$i"
+	    pack $win.df.3d.opts.lengths.$cnt -side top -anchor w
+	    incr cnt
+	}
+	pack $win.df.3d.opts.filters -side left -expand 1 -anchor n
+	pack $win.df.3d.opts.lengths -side left -expand 1 -anchor n
+	
+	global 3d_azimuth
+	scale $win.df.3d.azimuth -from $3d_azimuth(min) -to $3d_azimuth(max) \
+		-orient horizontal -label "Azimuth" 
+	pack $win.df.3d.azimuth -fill x -expand 1 
+
+	button $win.df.3d.apply -text "Apply"
+	pack $win.df.3d.apply -side left -fill x -expand 1 -anchor s
+
+# Window Magic 
 	button $win.d -highlightthickness 0 -padx 0 -pady 0 -text "Dismiss" -command "destroy $win" 
 	pack $win.d -side bottom -fill x
 	wm title $win "Participant $NAME($cname)"

@@ -85,13 +85,10 @@ void	ui_update_key(struct session_tag *s, char *key);
 void    ui_update_playback_file(struct session_tag *s, char *name);
 void    ui_update_record_file(struct session_tag *s, char *name);
 void    ui_update_file_live(struct session_tag *s, char *mode, int valid);
-
 void	ui_codecs(struct session_tag *s, int pt);
 void    ui_converters(struct session_tag *s);
-void    ui_sampling_modes(struct session_tag *sp);
-void    ui_title(struct session_tag *sp);
 void	ui_controller_init(struct session_tag *s, char *cname, char *name_engine, char *name_ui, char *name_video);
-void	ui_load_settings(struct session_tag *s);
+void    ui_initial_settings(struct session_tag *s);
 void    ui_quit(struct session_tag *s);
 
 #endif
