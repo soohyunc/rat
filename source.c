@@ -211,7 +211,7 @@ time_constants_init()
         keep_source_ts = ts_map32(8000, 24000);
         history_ts     = ts_map32(8000, 1000); 
         bw_avg_period  = ts_map32(8000, 8000);
-        skew_thresh    = ts_map32(8000, 160);
+        skew_thresh    = ts_map32(8000, 320);
         skew_limit     = ts_map32(8000, 4000);
         transit_reset  = ts_map32(8000, 80000);
         spike_jump     = ts_map32(8000, 800); 
@@ -907,12 +907,12 @@ find_local_match(sample *buffer, uint16_t wstart, uint16_t wlen, uint16_t sstart
         return 0;
 }
 
-/* recommend_drop_dur does quick pattern match with audio that is about to   */
-/* be played i.e. first few samples to determine how much audio can be       */
-/* dropped with causing glitch.                                              */
+/* recommend_skew_adjust_dur examines a frame to determine how much audio    */
+/* to insert or drop.   Argument drop is boolean to indicate whether         */
+/* dropping samples (TRUE) or inserting (FALSE).                             */
 
 static ts_t
-recommend_drop_dur(media_data *md) 
+recommend_skew_adjust_dur(media_data *md, int drop) 
 {
         uint16_t matchlen;
         uint16_t rate, channels, samples;
@@ -930,18 +930,29 @@ recommend_drop_dur(media_data *md)
         
         buffer  = (sample*)md->rep[i]->data;
         samples = md->rep[i]->data_len / (sizeof(sample) * channels);
-
-        matchlen = find_local_match((sample*)md->rep[i]->data, 
-                                    0, 
-                                    SOURCE_COMPARE_WINDOW_SIZE * channels,
-                                    SOURCE_COMPARE_WINDOW_SIZE * channels,
-                                    (samples - SOURCE_COMPARE_WINDOW_SIZE) * channels,
-                                    channels);
-        if (matchlen) {
-                return ts_map32(rate, matchlen);
+        if (drop) {
+                /* match with first samples of frame */
+                /* start just past search window and finish at end of frame */
+                matchlen = find_local_match((sample*)md->rep[i]->data, 
+                                            0, 
+                                            SOURCE_COMPARE_WINDOW_SIZE * channels,
+                                            SOURCE_COMPARE_WINDOW_SIZE * channels,
+                                            (samples - SOURCE_COMPARE_WINDOW_SIZE) * channels,
+                                            channels);
         } else {
-                return zero_ts;
+                /* match with last samples of frame.  Start at the start of   */
+                /* frame and finish just before search window.                */
+                matchlen = find_local_match((sample*)md->rep[i]->data,                             /* buffer */
+                                            (samples - SOURCE_COMPARE_WINDOW_SIZE) * channels,     /* wstart */
+                                            SOURCE_COMPARE_WINDOW_SIZE * channels,                 /* wlen   */
+                                            0,                                           /* sstart */
+                                            (samples - 2 * SOURCE_COMPARE_WINDOW_SIZE) * channels, /* slen   */
+                                            channels);
+                /* Want to measure from where frames will overlap.            */
+                matchlen = samples - matchlen - SOURCE_COMPARE_WINDOW_SIZE;
         }
+
+        return ts_map32(rate, matchlen);
 }
 
 #define SOURCE_MERGE_LEN_SAMPLES 5
@@ -957,12 +968,10 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         int32_t tmp, a, b, i, merge_len;
         sample *new_start, *old_start;
 
-        i = md->nrep - 1;
-        while(i >= 0) {
+        for (i = md->nrep - 1; i >= 0; i--) {
                 if (codec_get_native_info(md->rep[i]->id, &rate, &channels)) {
                         break;
                 }
-                i--;
         }
 
         assert(i != -1);
@@ -976,11 +985,54 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
 
         merge_len = SOURCE_MERGE_LEN_SAMPLES * channels;
         for (i = 0; i < merge_len; i++) {
-                a   = (merge_len - i) * old_start[i] / merge_len;
-                b   = i * new_start[i]/ merge_len;
-                tmp =  (sample)(a + b);
-                new_start[i] = (short)tmp;
+                a   = (merge_len - i) * old_start[i];
+                b   = i * new_start[i];
+                tmp = (a + b) / merge_len;
+                new_start[i] = (sample)tmp;
         }
+}
+
+/* Source conceal_inserted_samples blends end of omd with overlap in imd    */
+/* just before insert takes over.  Aims to provide transparent transitition */
+/* between added block and old block.                                       */
+
+static void
+conceal_inserted_samples(media_data *omd, media_data *imd, ts_t insert_dur)
+{
+        uint16_t rate, channels;
+        int32_t tmp, a, b, i, merge_len;
+        sample *dst, *src;
+
+        assert(omd != NULL);
+        assert(imd != NULL);
+
+        for (i = omd->nrep - 1; i >= 0; i--) {
+                if (codec_get_native_info(omd->rep[i]->id, &rate, &channels)) {
+                        break;
+                }
+        }
+        assert(i >= 0);
+        merge_len = SOURCE_MERGE_LEN_SAMPLES * channels;
+        a         = omd->rep[i]->data_len / sizeof(sample) * channels - merge_len;
+        dst       = (sample*)omd->rep[i]->data + a;
+
+        for (i = imd->nrep - 1; i >= 0; i--) {
+                if (codec_get_native_info(imd->rep[i]->id, &rate, &channels)) {
+                        break;
+                }
+        }
+        assert(i >= 0);
+        b   = insert_dur.ticks * channels;
+        src = (sample*)imd->rep[i]->data + b;
+
+        for(i = 0; i < merge_len; i++) {
+                a = (merge_len - i) * dst[i];
+                b = i * src[i];
+                tmp = (a + b) / merge_len;
+                dst[i] = (sample)tmp;
+        }
+
+        UNUSED(tmp);
 }
 
 /* source_check_buffering is supposed to check amount of audio buffered      */
@@ -1002,19 +1054,23 @@ source_check_buffering(source *src)
         desired = source_get_playout_delay(src);
         diff    = ts_abs_diff(actual, desired);
 
-        if (ts_gt(diff, skew_thresh)) {
+        if (ts_gt(actual, desired) && ts_gt(diff, skew_thresh)) {
                 src->skew_adjust = diff;
-                if (ts_gt(actual, desired)) {
-                        /* We're accumulating audio, their clock faster   */
-                        src->skew = SOURCE_SKEW_FAST; 
-                        src->skew_cnt++;
-                } else {
-                        /* We're short of audio, so their clock is slower */
-                        src->skew = SOURCE_SKEW_SLOW;
-                }
+                /* We're accumulating audio, their clock faster   */
+                src->skew = SOURCE_SKEW_FAST; 
+                src->skew_cnt++;
+                return TRUE;
+        } else if (ts_gt(desired, actual)) {
+                /* We're short of audio, so their clock is slower */
+                /* Lower bound is much harder than upper bound    */
+                /* since mixer will dry up / repair will start to */
+                /* be invoked as we decode units late.            */
+                src->skew_adjust = diff;
+                src->skew = SOURCE_SKEW_SLOW;
                 return TRUE;
         }
         src->skew = SOURCE_SKEW_NONE;
+        src->skew_adjust = zero_ts;
         return FALSE;
 }
 
@@ -1031,7 +1087,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
 {
         uint32_t i, e = 0, samples = 0;
         uint16_t rate, channels;
-        ts_t adjustment;
+        ts_t adjustment, frame_dur;
 
         assert(src);
         assert(md);
@@ -1042,6 +1098,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                         samples = md->rep[i]->data_len / (channels * sizeof(sample));
                         e = avg_audio_energy((sample*)md->rep[i]->data, samples * channels, channels);
                         src->mean_energy = (15 * src->mean_energy + e)/16;
+                        frame_dur = ts_map32(rate, samples);
                         break;
                 }
         }
@@ -1057,15 +1114,14 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
         /* careful with last repair because it is not valid if no repair has */
         /* taken place.                                                      */
 
-        if (src->skew == SOURCE_SKEW_FAST && src->skew_cnt > 3 /* &&
-                (2*e <=  src->mean_energy || e < 200) */) {
+        if (src->skew == SOURCE_SKEW_FAST && src->skew_cnt > 3) {
                 /* source is fast so we need to bring units forward.
                  * Should only move forward at most a single unit
                  * otherwise we might discard something we have not
                  * classified.  */
 
                 if (ts_gt(skew_limit, src->skew_adjust)) {
-                        adjustment = recommend_drop_dur(md); 
+                        adjustment = recommend_skew_adjust_dur(md, TRUE); 
                 } else {
                         /* Things are really skewed.  We're more than        */
                         /* skew_limit off of where we ought to be.  Just     */
@@ -1107,13 +1163,29 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
 
                 return SOURCE_SKEW_FAST;
         } else if (src->skew == SOURCE_SKEW_SLOW) {
-                adjustment = ts_map32(rate, samples);
-                if (ts_gt(src->skew_adjust, adjustment)) {
-                        adjustment = ts_map32(rate, samples);
+                media_data *fmd;
+                ts_t        insert_playout;
+
+                adjustment = recommend_skew_adjust_dur(md, FALSE);
+                if (adjustment.ticks == 152) {
+                        debug_msg("bad match\n");
+                        return src->skew;
                 }
+                debug_msg("Insert %d samples\n", adjustment.ticks);
                 pb_shift_units_back_after(src->media,   playout, adjustment);
                 pb_shift_units_back_after(src->channel, playout, adjustment);
                 src->pdbe->transit = ts_add(src->pdbe->transit, adjustment);
+
+                /* Insert a unit: buffer looks like current frame -> gap of adjustment -> next frame */
+                media_data_dup(&fmd, md);
+                insert_playout = ts_add(playout, adjustment);
+
+                if (pb_add(src->media, (u_char*)fmd, sizeof(media_data), insert_playout) == TRUE) {
+                        conceal_inserted_samples(md, fmd, adjustment);
+                } else {
+                        debug_msg("Buffer push back: insert failed\n");
+                        media_data_destroy(&fmd, sizeof(media_data));
+                }
 
                 if (ts_gt(adjustment, src->skew_adjust)) {
                         src->skew_adjust = zero_ts;
@@ -1121,7 +1193,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                         src->skew_adjust = ts_sub(src->skew_adjust, adjustment);
                 }
 
-                src->samples_added -= samples;
+                src->samples_added -= adjustment.ticks;
 
                 debug_msg("Playout buffer shift back %d samples.\n", adjustment.ticks);
                 src->skew = SOURCE_SKEW_NONE;
@@ -1240,10 +1312,11 @@ source_process(session_t *sp,
                         /* If repair was successful media_pos is moved,      */
                         /* so get data at media_pos again.                   */
                         if (source_repair(src, repair_type, src->next_played) == TRUE) {
-#ifdef NDEF
                                 debug_msg("Repair % 2d got % 6d exp % 6d talks % 6d\n", 
-                                          src->consec_lost, playout.ticks, src->next_played.ticks, src->talkstart.ticks);
-#endif
+                                          src->consec_lost, 
+                                          playout.ticks, 
+                                          src->next_played.ticks, 
+                                          src->talkstart.ticks);
                                 success = pb_iterator_get_at(src->media_pos, 
                                                              (u_char**)&md, 
                                                              &md_len, 
