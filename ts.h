@@ -40,17 +40,17 @@ int      ts_eq(ts_t t1, ts_t t2);
 ts_t     ts_convert(uint32_t new_freq, ts_t ts);
 
 /* Conversion to milliseconds */
-uint32_t  ts_to_ms(ts_t t1);
+uint32_t ts_to_ms(ts_t t1);
 
 /* Conversion to microseconds */
-uint32_t  ts_to_us(ts_t t1);
+uint32_t ts_to_us(ts_t t1);
 
 /* Debugging functions */
 int      ts_valid(ts_t t1);
-uint32_t  ts_get_freq(ts_t t1);
+uint32_t ts_get_freq(ts_t t1);
 
 typedef struct {
-        ts_t    last_ts;
+        ts_t     last_ts;
         uint32_t last_32;
         uint32_t freq;
 } ts_sequencer;
@@ -59,7 +59,8 @@ typedef struct {
  * 32 bit timestamps to ts_t and vice-versa.
  */
 
-ts_t    ts_seq32_in  (ts_sequencer *s, uint32_t f, uint32_t curr_32);
-uint32_t ts_seq32_out (ts_sequencer *s, uint32_t f, ts_t    curr_ts);
+ts_t     ts_seq32_in  (ts_sequencer *s, uint32_t f, uint32_t curr_32);
+uint32_t ts_seq32_out (ts_sequencer *s, uint32_t f, ts_t     curr_ts);
 
 #endif
+

@@ -40,8 +40,8 @@ int  snd_read_open (struct s_sndfile **sf,
 int  snd_read_close (struct s_sndfile **sf);
 
 int  snd_read_audio (struct s_sndfile **sf, 
-                     sample *buf, 
-                     uint16_t buf_len);
+                     sample *buf,           /* buffer                        */
+                     uint16_t buf_len);     /* sampling_intervals * channels */
 
 int  snd_write_open (struct s_sndfile **sf,
                      char         *path,
