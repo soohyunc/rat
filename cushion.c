@@ -76,7 +76,7 @@ typedef struct s_cushion_struct {
 } cushion_t;
 
 int 
-cushion_new(cushion_t **c)
+cushion_create(cushion_t **c)
 {
         int i, *ip, blocksize;
         cushion_t *nc;
@@ -111,6 +111,14 @@ cushion_new(cushion_t **c)
         bail_history:   xfree(nc); 
         bail_cushion:   dprintf("Cushion allocation failed.\n");
                         return FALSE;
+}
+
+void
+cushion_destroy(cushion_t *c)
+{
+        xfree(c->read_history);
+        xfree(c->histogram);
+        xfree(c);
 }
 
 void

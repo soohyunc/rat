@@ -50,6 +50,7 @@
 #include "receive.h"
 #include "util.h"
 #include "audio.h"
+#include "cushion.h"
 #include "convert.h"
 #include "tcltk.h"
 #include "ui_control.h"
@@ -143,6 +144,7 @@ main(int argc, char *argv[])
 		audio_init(sp[i]);
 		audio_device_take(sp[i]);
                 read_write_init(sp[i]);
+                cushion_create(&sp[i]->cushion);
 		ms[i] = mix_create(sp[i], 32640);
 	}
 	agc_table_init();
@@ -228,6 +230,7 @@ main(int argc, char *argv[])
 		if (sp[i]->in_file  != NULL) fclose(sp[i]->in_file);
 		if (sp[i]->out_file != NULL) fclose(sp[i]->out_file);
                 read_device_destroy(sp[i]);
+                cushion_destroy(sp[i]->cushion);
                 mix_destroy(ms[i]);
 		if (sp[i]->mode != TRANSCODER) {
 			audio_close(sp[i]->audio_fd);

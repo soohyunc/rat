@@ -224,10 +224,6 @@ audio_device_take(session_struct *sp)
 			return FALSE;
 		}
 
-                if (sp->cushion == NULL) {
-                        cushion_new(&sp->cushion);
-                }
-
 		audio_drain(sp->audio_fd);
 		sp->have_device = TRUE;
 	
