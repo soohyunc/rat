@@ -21,7 +21,13 @@
 #include "auddev_oss.h"
 #include "util.h"
 
-#include <soundcard.h>
+#ifdef HAVE_SOUNDCARD_H
+# include <soundcard.h>
+#else
+#ifdef HAVE_SYS_SOUNDCARD_H
+#  include <sys/soundcard.h>
+#endif
+#endif
 
 enum { AUDIO_SPEAKER, AUDIO_HEADPHONE, AUDIO_LINE_OUT, AUDIO_MICROPHONE, AUDIO_LINE_IN, AUDIO_CD};
 

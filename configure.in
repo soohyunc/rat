@@ -169,7 +169,7 @@ case "$target" in
 	;;
 *linux*)
 	AU_OBJ="$AU_OBJ auddev_oss.o"
-	AU_INC="-I/usr/include/sys"
+	AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
 	AC_DEFINE(HAVE_OSS_AUDIO)
 	;;
 *freebsd*)
