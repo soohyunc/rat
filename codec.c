@@ -985,7 +985,7 @@ codec_get_native_info(codec_id_t cid,
                       uint16_t   *p_rate, 
                       uint16_t   *p_channels)
 {
-        u_int32_t i, c, index;
+        uint32_t i, c, index;
 
         if (codec_is_native_coding(cid)) {
                 index = CODEC_GET_FMT_INDEX(cid);
@@ -997,7 +997,7 @@ codec_get_native_info(codec_id_t cid,
                 /* Calculate and verify number of channels */
                 c = (index % max_channels) + 1;
                 if (p_channels != NULL) {
-                        *p_channels = c;
+                        *p_channels = (uint16_t)c;
                 }
                 return TRUE;
         }
