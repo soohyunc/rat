@@ -216,7 +216,7 @@ process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
                 if (rtt < 100.0) {
                         e->last_rtt = rtt;
                 } else {
-                        debug_msg("Junk rtt (%f secs) - receiver rtp misimplementation?\n");
+                        debug_msg("Junk rtt (%f secs) - receiver rtp misimplementation?\n", rtt);
                 }
                 if (e->avg_rtt == 0.0) {
                         e->avg_rtt = e->last_rtt;
