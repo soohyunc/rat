@@ -175,11 +175,11 @@ case "$target" in
 		 AC_DEFINE(HAVE_OSPREY_AUDIO)])
 	;;
 *linux*)
-	if test -f /usr/include/sys/asoundlib.h ; then
+	AC_CHECK_HEADER(sys/asoundlib.h,[
 		AU_OBJ="$AU_OBJ auddev_alsa.o"
 		AU_LIB="$AU_LIB -lasound"
 		AC_DEFINE(HAVE_ALSA_AUDIO)
-	fi
+	])
 	AU_OBJ="$AU_OBJ auddev_oss.o"
 	AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
 	AC_DEFINE(HAVE_OSS_AUDIO)
