@@ -33,6 +33,7 @@ static const char cvsid[] =
 #include "channel_types.h"
 #include "channel.h"
 #include "sndfile.h"
+#include "tonegen.h"
 #include "voxlet.h"
 
 #define PCKT_QUEUE_RTP_LEN  24
@@ -164,6 +165,9 @@ session_exit(session_t *sp)
         if (sp->local_file_player) {
                 voxlet_destroy(&sp->local_file_player);
         }
+	if (sp->tone_generator) {
+		tonegen_destroy(&sp->tone_generator);
+	}
         if (sp->in_file_converter) {
                 converter_destroy(&sp->in_file_converter);
         }
@@ -173,6 +177,9 @@ session_exit(session_t *sp)
 	if (sp->out_file != NULL) {
                 snd_write_close(&sp->out_file);
         }
+	if (sp->pdb != NULL) {
+		pdb_destroy(&sp->pdb);
+	}
         channel_encoder_destroy(&sp->channel_coder);
         source_list_destroy(&sp->active_sources);
 	xfree(sp->mbus_engine_addr);

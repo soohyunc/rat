@@ -1209,6 +1209,7 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  processing, believe this is part of the bad spike messages (160>nnnnn).
         - Changes to Win32 driver to remove race condition (audio callback
           occuring as audio being taken from list of ready buffers).
+        - Move participant database clean up into session_exit.
 
 TODO -- They're features not bugs dammit!
 ----

@@ -355,8 +355,6 @@ int main(int argc, char *argv[])
 		rtp_callback_exit(sp->rtp_session[j]);
 	}
 
-        pdb_destroy(&sp->pdb);
-
 	/* Inform other processes that we're about to quit... */
 	mbus_qmsgf(sp->mbus_engine, "()", FALSE, "mbus.bye", "");
 	mbus_send(sp->mbus_engine);
@@ -373,7 +371,8 @@ int main(int argc, char *argv[])
 	audio_device_release(sp, sp->audio_device);
 	session_validate(sp);
 	session_exit(sp);
-        converters_free();
+        
+	converters_free();
         audio_free_interfaces();
 
 	xfree(c_addr);
