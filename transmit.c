@@ -588,8 +588,7 @@ tx_send(tx_buffer *tb)
 void
 tx_update_ui(tx_buffer *tb)
 {
-        static int            active = FALSE;
-        session_struct       *sp     = tb->sp;
+        session_struct	*sp           = tb->sp;
 
         if (sp->meter && tb->sending_audio) {
                 struct s_pb_iterator *prev;  
@@ -611,28 +610,21 @@ tx_update_ui(tx_buffer *tb)
                     (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE)) {
                         ui_input_level(sp, lin2vu(u->energy, 100, VU_INPUT));
                 } else {
-                        if (active == TRUE) ui_input_level(sp, 0);
+                        ui_input_level(sp, 0);
                 }
                 pb_iterator_destroy(tb->audio_buffer, &prev);
                 assert(pb_iterator_count(tb->audio_buffer) == 3);
         }
         if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
-                if (active == FALSE) {
-                        ui_info_activate(sp, sp->db->my_dbe);
-                        sp->lecture = FALSE;
-                        ui_update_lecture_mode(sp);
-                        active = TRUE;
-                }
+		ui_info_activate(sp, sp->db->my_dbe);
+		sp->lecture = FALSE;
+		ui_update_lecture_mode(sp);
         } else {
-                if (active == TRUE) {
-                        ui_info_deactivate(sp, sp->db->my_dbe);
-                        active = FALSE;
-                }
+		ui_info_deactivate(sp, sp->db->my_dbe);
         }
 
         if (tb->sending_audio == FALSE) {
                 ui_info_deactivate(sp, sp->db->my_dbe);
-                active = FALSE;
         }
 }
 
