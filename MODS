@@ -1475,7 +1475,7 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 	  TRUE which indicates mixer and source formats not compatible, this
 	  caused source media and channel buffers to be wrongly flushed.  
 	- Remove debug sample that made concealment distinctly audible.
-	  Debug code that slipped in by mistake but went un-noticed...
+	  Should not have gone into code base.
 	- Re-jig source_process so that frames generated through loss
 	  concealment get passed onto mixer.  This must have broke during
 	  tidying.
@@ -1501,9 +1501,12 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 	- Reduce source packet buffer size.
 	- Change all G726 packings to gratuitously painful little endian.
 	- Increase initial cushion estimate to 2 * min cushion size.
-	- Enable 11025 sample rates.
-	- Fix detection of incompatible conversions, for time being this is
-	  M * 11025 <-> N * 8000.
+	- Enable 11025 sample rates and codecs.
+	- Fix detection of incompatible conversions, M * 11025 <-> N * 8000
+	  is not supported.
+	* Released 14 January 2001.
+
+4.2.13	-
 
 TODO -- They're features not bugs dammit!
 ----
