@@ -6,6 +6,9 @@ CFLAGS         = __WFLAGS__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_
 INCLUDE        = __INCLUDE__
 CC             = __CC__
 
+AR=__AR__
+RANLIB=__RANLIB__
+
 AUDIO_OBJS = __AUDIO__ auddev.o auddev_null.o audio_fmt.o audio_util.o
 
 CODEC_OBJS = codec.o codec_state.o codec_dvi.o codec_gsm.o \
@@ -14,10 +17,11 @@ CODEC_OBJS = codec.o codec_state.o codec_dvi.o codec_gsm.o \
              cx_g726.o cx_g726_16.o cx_g726_24.o cx_g726_32.o cx_g726_40.o \
              cx_gsm.o cx_lpc.o cx_vdvi.o cx_wbs.o
 
+SNDFILE_OBJS = sndfile.o sndfile_au.o sndfile_wav.o
+
 CC_OBJS    = channel.o channel_types.o cc_vanilla.o cc_rdncy.o
 
-TOY_OBJS   = convert.o crypt.o render_3D.o repair.o \
-             sndfile.o sndfile_au.o sndfile_wav.o
+TOY_OBJS   = convert.o crypt.o render_3D.o repair.o 
 
 CORE_OBJS  = ts.o playout.o statistics.o source.o \
              rtcp.o rtcp_db.o rtcp_pckt.o session.o \
@@ -26,15 +30,29 @@ CORE_OBJS  = ts.o playout.o statistics.o source.o \
              tcltk.o timers.o transmit.o transcoder.o \
              ui.o rtp_callback.o
 
-OBJS = $(AUDIO_OBJS) $(CODEC_OBJS) $(CC_OBJS) $(TOY_OBJS) $(CORE_OBJS)
+MEDIALIBS = libuclaudio.a libuclcodec.a libuclsndfile.a
+
+OBJS = $(CC_OBJS) $(TOY_OBJS) $(CORE_OBJS)
 
 SRCS := $(OBJS:%.o=%.c)
 
 TCL_OBJS = ui_audiotool.o ui_transcoder.o
 TCL_SRCS := $(TCL_OBJS:%.o=%.c)
 
-rat-__VERSION__: $(OBJS) $(TCL_OBJS) ../common/libcommon.a 
-	$(CC) $(OBJS) $(TCL_OBJS) $(CFLAGS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat-__VERSION__
+rat-__VERSION__: $(OBJS) $(TCL_OBJS) $(MEDIALIBS) ../common/libcommon.a 
+	$(CC) $(OBJS) libuclaudio.a libuclcodec.a libuclsndfile.a $(TCL_OBJS) $(CFLAGS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat-__VERSION__
+
+libuclaudio.a: $(AUDIO_OBJS)
+	$(AR) r $@ $(AUDIO_OBJS)
+	$(RANLIB) $@
+
+libuclcodec.a: $(CODEC_OBJS)
+	$(AR) r $@ $(CODEC_OBJS)
+	$(RANLIB) $@
+
+libuclsndfile.a: $(SNDFILE_OBJS)
+	$(AR) r $@ $(SNDFILE_OBJS)
+	$(RANLIB) $@
 
 .c.o:
 	$(CC) $(INCLUDE) $(CFLAGS) -c $<
@@ -53,6 +71,7 @@ ui_audiotool.c: ui_audiotool.tcl tcl2c/tcl2c
 clean:
 	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile Makefile.sed 
 	-rm -f tcl2c/tcl2c rat-__VERSION__ sdr2.plugin.S02.audio.rtp.\*.rat-__VERSION__
+	-rm -f $(MEDIALIBS)
 
 etags:
 	etags *.[ch] ../common/*.[ch]
