@@ -42,13 +42,19 @@
 #include "auddev_alsa.h"
 #include "memory.h"
 #include "debug.h"
+#undef UNUSED
 #include <sys/asoundlib.h>
+#undef UNUSED
+#define UNUSED(x) (x=x)
 #include <stdarg.h>
 
 #define PB SND_PCM_CHANNEL_PLAYBACK
 #define CAP SND_PCM_CHANNEL_CAPTURE
 
+static int doCheckStatus(int channel, int line);
 #define checkStatus(x) doCheckStatus(x, __LINE__)
+
+static int channelPrepare(snd_pcm_t *handle, int channel);
 
 /*
  * Structure that keeps track of the cards we know about. Rat wants a linear
@@ -357,11 +363,38 @@ static void setupInputBuffer(int ratSize, int deviceSize)
 static int deviceReadAudio(char *buf, int bufsize)
 {
     int read_bytes;
+    int status;
     
     if ((read_bytes = snd_pcm_read(CurHandle, buf, bufsize)) < 0)
     {
-/*	debug_msg("read(%x %d) failed: %s\n",buf, buf_bytes, snd_strerror(read_bytes));*/
-	read_bytes = 0;
+	switch (read_bytes)
+	{
+	case -EAGAIN:
+	    return 0;
+
+	case -EPIPE:
+	    status = checkStatus(CAP);
+
+	    if (status == SND_PCM_STATUS_READY || status == SND_PCM_STATUS_OVERRUN)
+	    {
+		debug_msg("preparing capture due to non-ready status %d\n", status);
+		channelPrepare(CurHandle, CAP);
+		status = checkStatus(CAP);
+		debug_msg("after prepare, status=%d\n", status);
+	    }
+	    else
+	    {
+		debug_msg("Why is capture in status %d?\n", status);
+	    }
+	    return 0;
+
+	default:
+	    status = checkStatus(CAP);
+	
+	    debug_msg("read %d failed status=%d: %s\n", bufsize, status, snd_strerror(read_bytes));
+	    read_bytes = 0;
+	    break;
+	}
     }
     else
     {
@@ -442,6 +475,8 @@ static int streamAudioReady(void)
 	return 0;
     }
 
+//    debug_msg("stream ready check status=%d count=%d bytes_per_block=%d\n",
+//	      status.status, status.count, CurCaptureFormat.bytes_per_block);
     return status.count >= CurCaptureFormat.bytes_per_block;
 }
 
@@ -540,7 +575,7 @@ static char *encodingToString[] = {
 
 static int doCheckStatus(int channel, int line)
 {
-  /*    int rc;*/
+    int rc;
   
     snd_pcm_channel_status_t status;
 
@@ -548,7 +583,6 @@ static int doCheckStatus(int channel, int line)
 
     memset(&status, 0, sizeof(status));
     status.channel = channel;
-/*
     if ((rc = snd_pcm_channel_status(CurHandle, &status)) != 0)
 	debug_msg("channel status failed: %s\n", snd_strerror(rc));
     else
@@ -557,7 +591,6 @@ static int doCheckStatus(int channel, int line)
 		  channel == PB ? "PB" : "CAP",
 		  status.mode, status.status, status.scount,
 		  status.free, status.underrun, status.overrun);
-*/
     return status.status;
 }
 
@@ -795,8 +828,8 @@ static int channelSetParams(snd_pcm_t *handle,
 
     if (channel == SND_PCM_CHANNEL_PLAYBACK)
     {
-	p.start_mode = SND_PCM_START_FULL;
-	p.stop_mode = SND_PCM_STOP_ROLLOVER;
+	p.start_mode = SND_PCM_START_DATA;
+	p.stop_mode = SND_PCM_STOP_STOP;
     }
     else
     {
@@ -813,6 +846,7 @@ static int channelSetParams(snd_pcm_t *handle,
     else
     {
 	p.buf.stream.queue_size = 1024 * 512;
+	//p.buf.stream.queue_size = format->bytes_per_block * 10;
 	p.buf.stream.fill = SND_PCM_FILL_NONE;
 	p.buf.stream.max_fill = 1024;
     }
@@ -1094,9 +1128,26 @@ alsa_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
     CurInPort = ALSA_MIC;
     CurOutPort = ALSA_SPEAKER;
 
+    /* Flush channels */
+
+    if ((rc = snd_pcm_playback_flush(CurHandle)) != 0)
+	debug_msg("initial flush failed: %s\n", snd_strerror(rc));
+    if ((rc = snd_pcm_capture_flush(CurHandle)) != 0)
+	debug_msg("initial flush failed: %s\n", snd_strerror(rc));
+
+    checkStatus(CAP);
+    checkStatus(PB);
+    channelPrepare(CurHandle, SND_PCM_CHANNEL_CAPTURE);
+    checkStatus(CAP);
+    channelPrepare(CurHandle, SND_PCM_CHANNEL_PLAYBACK);
+    checkStatus(PB);
+      
+
     /* Kick off capture & playback */
     channelGo(CurHandle, SND_PCM_CHANNEL_PLAYBACK);
+    checkStatus(PB);
     channelGo(CurHandle, SND_PCM_CHANNEL_CAPTURE);
+    checkStatus(CAP);
 
     debug_msg("Audio open ad=%d\n", ad);
     debug_msg("Input format:\n");
@@ -1312,26 +1363,54 @@ alsa_audio_write(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
     int rc;
     int write_bytes;
+    int retry = 0;
+    snd_pcm_channel_status_t status;
 
     UNUSED(ad);
+
+    memset(&status, 0, sizeof(status));
+    status.channel = SND_PCM_CHANNEL_PLAYBACK;
+    if ((rc = snd_pcm_channel_status(CurHandle, &status)) != 0)
+	debug_msg("channel_status failed: %s\n", snd_strerror(rc));
+    else
+    {
+	if (status.status == SND_PCM_STATUS_READY || status.status == SND_PCM_STATUS_UNDERRUN)
+	{
+	    debug_msg("Had to prepare before write, status=%d\n", status.status);
+	    channelPrepare(CurHandle, PB);
+	}
+    }
 
     write_bytes  = snd_pcm_write(CurHandle, buf, buf_bytes);
 
     if (write_bytes < 0)
     {
-	if (write_bytes == -EAGAIN)
-	    return 0;
-	else if (write_bytes == -EIO)
+	int status;
+	debug_msg("top write failed: %d %s\n", write_bytes, snd_strerror(write_bytes));
+	checkStatus(PB);
+	switch (write_bytes)
 	{
+	case -EAGAIN:
+	    return 0;
+
+	case -EPIPE:
+	    status = checkStatus(PB);
+	    if (status == SND_PCM_STATUS_READY || status == SND_PCM_STATUS_UNDERRUN)
+		channelPrepare(CurHandle, PB);
+	    status = checkStatus(PB);
+	    debug_msg("in write after prepare, status=%d\n", status);
+
+	    retry = 1;
+	    break;
+
+	case -EIO:
 	    if ((rc = snd_pcm_playback_flush(CurHandle)) != 0)
 		debug_msg("playback_flush failed: %s\n", snd_strerror(rc));
 	    checkStatus(PB);
 	    return 0;
-	}
-	else if (write_bytes == -EINVAL)
-	{
-	    int status;
-	    
+
+	case -EINVAL:
+
 	    /*
 	    debug_msg("write %d failed: %d %s\n",
 		      buf_bytes, 
@@ -1358,12 +1437,28 @@ alsa_audio_write(audio_desc_t ad, u_char *buf, int buf_bytes)
 		checkStatus(PB);
 	    */
 	    }
-	    
 	    return 0;
+	default:
+	    debug_msg("write failed: %d %s\n", write_bytes, snd_strerror(write_bytes));
+	    checkStatus(PB);
+	    break;
+	    
 	}
-	
 
-	debug_msg("write failed: %d %s\n", write_bytes, snd_strerror(write_bytes));
+	if (retry)
+	{
+	    write_bytes = snd_pcm_write(CurHandle, buf, buf_bytes);
+	    if (write_bytes < 0)
+	    {
+		debug_msg("retry write failed: %s\n", snd_strerror(write_bytes));
+		return 0;
+	    }
+	    else
+	    {
+		debug_msg("retry write succeeded %d\n", write_bytes);
+		return write_bytes;
+	    }
+	}
 	return 0;
     }
     
@@ -1379,12 +1474,12 @@ alsa_audio_non_block(audio_desc_t ad)
 {
     int rc;
     debug_msg("set nonblocking\n");
-    checkStatus(CAP);
+//    checkStatus(CAP);
     if (ad != CurCardIndex)
 	debug_msg("alsa_audio_non_block: ad != current\n");
     if ((rc = snd_pcm_nonblock_mode(CurHandle, 1)) != 0)
 	debug_msg("nonblock_mode failed: %s\n", snd_strerror(rc));
-    checkStatus(CAP);
+//    checkStatus(CAP);
 }
 
 /*
@@ -1395,12 +1490,12 @@ alsa_audio_block(audio_desc_t ad)
 {
     int rc;
     debug_msg("set blocking\n");
-    checkStatus(CAP);
+//    checkStatus(CAP);
     if (ad != CurCardIndex)
 	debug_msg("alsa_audio_non_block: ad != current\n");
     if ((rc = snd_pcm_nonblock_mode(CurHandle, 0)) != 0)
 	debug_msg("nonblock_mode failed: %s\n", snd_strerror(rc));
-    checkStatus(CAP);
+//    checkStatus(CAP);
 }
 
 /*
@@ -1449,7 +1544,7 @@ static void enable_mute(snd_mixer_gid_t *gid, int enabled)
 	return;
     }
 
-    checkStatus(CAP);
+//    checkStatus(CAP);
 }
 
 
@@ -1500,7 +1595,7 @@ static void enable_capture(snd_mixer_gid_t *gid, int enabled)
 	return;
     }
 
-    checkStatus(CAP);
+//    checkStatus(CAP);
 }
 
 

@@ -18,6 +18,7 @@ static const char cvsid[] = "$Id";
 #include "mbus_parser.h"
 #include "codec_compat.h"
 #include "cmd_parser.h"
+#include "version.h"
 
 void 
 usage(char *szOffending)

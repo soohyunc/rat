@@ -2,7 +2,7 @@
  * FILE:    auddev_oss.c - Open Sound System audio device driver
  * PROGRAM: RAT
  * AUTHOR:  Colin Perkins
- * MODS:    Orion Hodson
+ * MODS:    Orion Hodson + Robert Olson
  *
  * Copyright (c) 1996-2000 University College London
  * All rights reserved.
@@ -30,8 +30,11 @@ static const char cvsid[] = "$Id$";
 #endif
 
 #ifdef HAVE_ALSA_AUDIO
+#undef UNUSED
 #include <sys/asoundlib.h>
 #include "auddev_alsa.h"
+#undef UNUSED
+#define UNUSED(x) (x=x)
 
 static void
 alsa_mute_mic(audio_desc_t ad)
@@ -96,10 +99,25 @@ struct oss_device {
 	int		 num_supported_formats;
 	int		 dev_mask;	/* Supported mixer channels     */
 	int		 rec_mask;	/* Supported recording channels */
+  int		 is_ac97;
 };
 
 static struct oss_device	devices[OSS_MAX_DEVICES];
 static int			num_devices;
+
+
+/*
+ * Device names that we're going to consider as AC97 compatible.
+ * That means we only touch igain, not the individual
+ * input gains. We also don't touch the master output gains,
+ * and only set the PCM output gain for ogain adjustment.
+ */
+static char *ac97_devices[] = {
+  "OSS: AudioPCI 97 (STAC9708)",
+  "OSS: AudioPCI 97 (CRY13/0x43525913)",
+  0
+};
+  
 
 static int
 deve2oss(deve_e encoding)
@@ -364,17 +382,49 @@ oss_audio_init(void)
 	/* corresponding mixer device.                                      */
 	int			i;
 	struct oss_device	device;
+	int aidx;
 
 	num_devices = 0;
 	for (i = 0; i < OSS_MAX_DEVICES; i++) {
 		oss_probe_mixer_device(i, &device);
 		if (oss_probe_audio_device(i, &device)) {
+			/*
+			 * Check to see if it's one of the AC97 devices
+			 * For now we will use a hardcoded list of device names
+			 * for this.
+			 *
+			 * Also check the OSS_IS_AC97 environment variable. If it
+			 * is set, make all devices AC97.
+			 */
+
+			device.is_ac97 = 0;
+
+			if (getenv("OSS_IS_AC97") != 0)
+			  {
+			    debug_msg("Device %d  %s tagged as ac97 by environment var\n",
+				      i, device.name);
+			    device.is_ac97 = 1;
+			  }
+			
+			for (aidx = 0; ac97_devices[aidx] != 0; aidx++)
+			  {
+			    if (strcmp(device.name, ac97_devices[aidx]) == 0)
+			      {
+				device.is_ac97 = 1;
+				debug_msg("Device %d  %s tagged as ac97\n",
+					  i, device.name);
+				break;
+			      }
+			  }
+
 			devices[num_devices++] = device;
 			debug_msg("found \"%s\" as %s,%s\n", device.name, device.audio_rdev, device.mixer_rdev);
+
 		}
 	}
 	oss_pair_devices();
 	oss_remove_half_duplex_devices();
+
 	debug_msg("number of valid devices: %d\n", num_devices);
 	return num_devices;
 }
@@ -420,7 +470,9 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 	/* Try to open the audio device, returning TRUE if successful. Note  */
 	/* that the order in which the device is set up is important: don't  */
 	/* reorder this code unless you really know what you're doing.       */
+#if 0
 	int  	volume   = (100<<8)|100;
+#endif
 	int  	frag     = 0x7fff0000; 			/* unlimited number of fragments */
 	char 	buffer[128];				/* sigh. */
 	int	bytes_per_block;
@@ -517,8 +569,11 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 
 	/* Set global gain/volume to maximum values. This may fail on */
 	/* some cards, but shouldn't cause any harm when it does..... */ 
+
+#if 0
 	ioctl(devices[ad].mixer_rfd, MIXER_WRITE(SOUND_MIXER_RECLEV), &volume);
 	ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_VOLUME), &volume);
+#endif
 	/* Select microphone input. We can't select output source...  */
 	oss_audio_iport_set(ad, iport);
 	/* Device driver bug: we must read some data before the ioctl */
@@ -570,15 +625,20 @@ oss_audio_duplex(audio_desc_t ad)
 void
 oss_audio_set_igain(audio_desc_t ad, int gain)
 {
-
+  int which_port;
 	int volume = (gain << 8) | gain;
 
         assert(ad < OSS_MAX_DEVICES);
         assert(devices[ad].audio_rfd > 0);
 
+
 	switch (iport) {
 	case AUDIO_MICROPHONE : 
-		if (ioctl(devices[ad].mixer_rfd, MIXER_WRITE(SOUND_MIXER_MIC), &volume) == -1) {
+	  if (devices[ad].is_ac97)
+	    which_port = SOUND_MIXER_IGAIN;
+	  else
+	    which_port = SOUND_MIXER_MIC;
+		if (ioctl(devices[ad].mixer_rfd, MIXER_WRITE(which_port), &volume) == -1) {
 			perror("Setting gain");
 		}
 #ifdef HAVE_ALSA_AUDIO
@@ -603,13 +663,19 @@ oss_audio_set_igain(audio_desc_t ad, int gain)
 		/* {write,read} the SOUND_MIXER_IGAIN value.  Only if that fails --  */
 		/* which I *hope* happens iff the card has no such control --        */
 		/* does it {write,read} SOUND_MIXER_LINE.                            */
-		if (ioctl(devices[ad].mixer_rfd, MIXER_WRITE(SOUND_MIXER_IGAIN), &volume) == -1 &&
-		    ioctl(devices[ad].mixer_rfd, MIXER_WRITE(SOUND_MIXER_LINE), &volume) == -1) {
-			perror("Setting gain");
-		}
+	  if (devices[ad].is_ac97)
+	    which_port = SOUND_MIXER_IGAIN;
+	  else
+	    which_port = SOUND_MIXER_LINE;
+	  if (ioctl(devices[ad].mixer_rfd, MIXER_WRITE(which_port), &volume) == -1) 
+	    perror("Setting gain");
 		return;
 	case AUDIO_CD:
-		if (ioctl(devices[ad].mixer_rfd, MIXER_WRITE(SOUND_MIXER_CD), &volume) < 0) {
+	  if (devices[ad].is_ac97)
+	    which_port = SOUND_MIXER_IGAIN;
+	  else
+	    which_port = SOUND_MIXER_CD;
+		if (ioctl(devices[ad].mixer_rfd, MIXER_WRITE(which_port), &volume) < 0) {
 			perror("Setting gain");
 		}
 		return;
@@ -622,31 +688,39 @@ int
 oss_audio_get_igain(audio_desc_t ad)
 {
 	int volume;
+	int which_port;
+
+	if (devices[ad].is_ac97)
+	  which_port = SOUND_MIXER_IGAIN;
+	else
+	  {
+	    switch (iport) {
+	    case AUDIO_MICROPHONE:
+	      which_port = SOUND_MIXER_MIC;
+	      break;
+
+	    case AUDIO_LINE_IN:
+	      which_port = SOUND_MIXER_LINE;
+	      break;
+
+	    case AUDIO_CD:
+	      which_port = SOUND_MIXER_CD;
+	      break;
+
+	    default:
+		printf("ERROR: Unknown iport in audio_set_igain!\n");
+		abort();
+	    }
+	  }
 
         UNUSED(ad); assert(devices[ad].mixer_rfd > 0); assert(ad < OSS_MAX_DEVICES);
 
-	switch (iport) {
-	case AUDIO_MICROPHONE : 
-		if (ioctl(devices[ad].mixer_rfd, MIXER_READ(SOUND_MIXER_MIC), &volume) == -1) {
-			perror("Getting gain");
-		}
-		break;
-	case AUDIO_LINE_IN : 
-		/* See comment in oss_audio_set_igain... */
-		if (ioctl(devices[ad].mixer_rfd, MIXER_READ(SOUND_MIXER_IGAIN), &volume) == -1 &&
-		    ioctl(devices[ad].mixer_rfd, MIXER_READ(SOUND_MIXER_LINE), &volume) == -1) {
-			perror("Getting gain");
-		}
-		break;
-	case AUDIO_CD:
-		if (ioctl(devices[ad].mixer_rfd, MIXER_READ(SOUND_MIXER_CD), &volume) < 0) {
-			perror("Getting gain");
-		}
-		break;
-	default : 
-		printf("ERROR: Unknown iport in audio_set_igain!\n");
-		abort();
+	if (ioctl(devices[ad].mixer_rfd, MIXER_READ(which_port), &volume) == -1) {
+	  perror("Getting gain");
 	}
+	debug_msg("getting igain; port=%d is_ac97=%d vol=%d %d\n",
+		  which_port, devices[ad].is_ac97, volume, volume & 0xff);
+
 	return volume & 0xff;
 }
 
@@ -672,14 +746,30 @@ oss_audio_set_ogain(audio_desc_t ad, int vol)
         UNUSED(ad); assert(devices[ad].mixer_wfd > 0);
 
 	volume = vol << 8 | vol;
-	/* Use & not && -- we want to execute all of these */
-	if ((ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_PCM), &volume) < 0)
-	  & (ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_SPEAKER), &volume) < 0)
-	  & (ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_OGAIN), &volume) < 0)
-	  & (ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_LINE1), &volume) < 0)
-	  & (ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_LINE2), &volume) < 0)) {
-		perror("Setting volume");
-	}
+
+
+	/*
+	 * On the AC97-based cards, we want to just set the PCM gain.
+	 */
+
+	if (devices[ad].is_ac97)
+	  {
+	    if (ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_PCM), &volume) < 0)
+	    {
+	      perror("setting volume");
+	    }
+	  }
+	else
+	  {
+	    /* Use & not && -- we want to execute all of these */
+	    if ((ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_PCM), &volume) < 0)
+		& (ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_SPEAKER), &volume) < 0)
+		& (ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_OGAIN), &volume) < 0)
+		& (ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_LINE1), &volume) < 0)
+		& (ioctl(devices[ad].mixer_wfd, MIXER_WRITE(SOUND_MIXER_LINE2), &volume) < 0)) {
+	      perror("Setting volume");
+	    }
+	  }
 }
 
 int

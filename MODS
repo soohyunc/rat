@@ -1337,7 +1337,26 @@ v4.2.5	- Fix assert failure in auddev_trans.c, contributed by Jakub Segen
 	- Cleanup main_control.c - code moved into process.c and cmd_parser.c
 	* Released 16 June 2000
 
-v4.2.6	- 
+v4.2.6	- Compilation fixes for Win32 contributed by Marcin Michalak.
+	- Merge ALSA fixes from Robert Olson
+	- Merge OSS fixes for AC97 based soundcards from Robert Olson:	
+		"I went ahead and did the (more) proper fixes for AC97
+		cards. I don't have a reliable way to detect which cards
+		are AC97-based, so there's currently a hard-coded list of
+		them in the OSS code:
+		   "OSS: AudioPCI 97 (STAC9708)",
+		   "OSS: AudioPCI 97 (CRY13/0x43525913)",
+		These two are the one that Jay told me about and my ES1371
+		card. If you have a card that you think this will help for
+		(probably SBLive falls into this category, and any of the
+		ES1371 based cards), you can force rat into AC97 mode by
+		setting the OSS_IS_AC97 environment variable to 1, in bash:
+			 export OSS_IS_AC97=1
+		or in tcsh:
+			 setenv OSS_IS_AC97 1
+		If this makes things work for you, please mail the output of
+			 cat /dev/sndstat
+		to rat-users@cs.ucl.ac.uk and we can add your card."
 
 
 TODO -- They're features not bugs dammit!
