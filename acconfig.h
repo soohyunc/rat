@@ -57,6 +57,7 @@
 #undef HAVE_NETBSD_AUDIO
 #undef HAVE_OSPREY_AUDIO
 #undef HAVE_MACHINE_PCAUDIOIO_H
+#undef HAVE_ALSA_AUDIO
 
 /* GSM related */
 #undef SASR

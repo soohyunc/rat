@@ -3875,15 +3875,6 @@ fi
 
 
 
-if test "x$exec_prefix" = xNONE ; then
-	if test "x$prefix" = xNONE ; then
-		exec_prefix=$ac_default_prefix/bin
-	else
-		exec_prefix=$prefix/bin
-	fi
-fi
-
-
 
 trap '' 1 2 15
 cat > confcache <<\EOF

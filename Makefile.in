@@ -30,8 +30,9 @@ COMMON_LIB = @COMMON_LIB@
 EXTRA_OBJ  = @EXTRA_OBJ@
 EXTERNAL_DEP = @EXTERNAL_DEP@
 
-EXEC_PREFIX = @exec_prefix@
-PREFIX      = @prefix@
+prefix      = @prefix@
+exec_prefix = @exec_prefix@
+bindir      = @bindir@
 
 # Nothing below here set by configure #########################################
 
@@ -76,12 +77,11 @@ ALL_SRCS     = $(ALL_OBJS:%.o=%.c)
 all: version.h sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec $(RATVER) $(RATVER)-ui $(RATVER)-media
 
 install: all
-	echo "E $(EXEC_PREFIX)"
-	./install-sh -m 555 -c $(RATVER)       $(EXEC_PREFIX)
-	./install-sh -m 555 -c $(RATVER)-media $(EXEC_PREFIX)
-	./install-sh -m 555 -c $(RATVER)-ui    $(EXEC_PREFIX)
-	./install-sh -m 444 -c man/man1/rat.1  $(PREFIX)/man/man1
-	./install-sh -m 444 -c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(PREFIX)/etc/sdr/plugins
+	./install-sh -m 555 -c $(RATVER)       $(bindir)
+	./install-sh -m 555 -c $(RATVER)-media $(bindir)
+	./install-sh -m 555 -c $(RATVER)-ui    $(bindir)
+	./install-sh -m 444 -c man/man1/rat.1  $(prefix)/man/man1/rat.1
+	./install-sh -m 444 -c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(prefix)/etc/sdr/plugins
 
 libuclaudio.a: $(AUDIO_OBJS)
 	$(AR) r $@ $(AUDIO_OBJS)
