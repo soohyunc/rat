@@ -776,7 +776,12 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         delta_transit = ts_abs_diff(transit, e->last_transit);
                         if (ts_gt(delta_transit, spt)) {
 				/* Transit delay increased suddenly - this is a "spike" */
-                                debug_msg("Spike (%d > %d)\n", delta_transit.ticks, spt.ticks);
+                                debug_msg("Spike (%d, %dHz) > (%d, %dHz))\n", 
+					  delta_transit.ticks, ts_get_freq(delta_transit),
+					  spt.ticks, ts_get_freq(spt));
+				debug_msg("transit (%d, %dHz) last_transit (%d, %dHz)\n",
+					  transit.ticks, ts_get_freq(transit),
+					  e->last_transit.ticks, ts_get_freq(e->last_transit));
                                 src->playout_mode = PLAYOUT_MODE_SPIKE;
                                 src->spike_var    = zero_ts;
                                 e->spike_events++;
