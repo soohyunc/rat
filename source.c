@@ -554,11 +554,6 @@ source_process_packets(session_t *sp, source *src, ts_t now)
         int              adjust_playout;
 
         e = src->pdbe;
-
-/*        if (pktbuf_get_count(src->pktbuf) < 2) {
-                return;
-        }
-        */
         while(pktbuf_dequeue(src->pktbuf, &p)) {
                 adjust_playout = FALSE;
 
