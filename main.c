@@ -118,14 +118,12 @@ main(int argc, char *argv[])
         audio_device_get_safe_config(&sp[0]->new_config);
         audio_device_reconfigure(sp[0]);				/* UI */
         assert(audio_device_is_open(sp[0]->audio_device));
-	rtcp_init(sp[0], cname, ssrc, 0);
+	sp[0]->db = rtcp_init(sp[0]->device_clock, cname, ssrc, 0);
         rtcp_clock_change(sp[0]);
 
-        ui_initial_settings(sp[0]);
-	network_process_mbus(sp[0]);
-
-	parse_late_options(argc, argv, sp);
-	ui_update(sp[0]);
+        ui_initial_settings(sp[0]);		/* Load settings... */
+	parse_late_options(argc, argv, sp);	/* Things which can override the settings we just loaded... */
+	ui_update(sp[0]);			/* ...and push those to the UI */
 	network_process_mbus(sp[0]);
         
         if (sp[0]->new_config != NULL) {

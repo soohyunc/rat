@@ -25,21 +25,20 @@
 #include "debug.h"
 #include "memory.h"
 #include "version.h"
+#include "session.h"
 #include "net_udp.h"
 #include "ts.h"
 #include "converter.h"
 #include "channel_types.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
-#include "session.h"
 #include "ui.h"
 #include "timers.h"
-#include "session.h"
 #include "codec_types.h"
 #include "codec.h"
 #include "codec_state.h"
 #include "render_3D.h"
 #include "source.h"
+#include "rtcp_pckt.h"
+#include "rtcp_db.h"
 
 #define MAX_DROPOUT	3000
 #define MAX_MISORDER	100
@@ -411,33 +410,33 @@ rtcp_set_attribute(session_struct *sp, int type, char *val)
  * Most of this work is done in init_session() now, we just have to set up the
  * dynamic stuff here. [csp]
  */
-void 
-rtcp_init(session_struct *sp, char *cname, u_int32 ssrc, u_int32 cur_time)
+rtp_db *rtcp_init(struct s_time *device_clock, char *cname, u_int32 ssrc, u_int32 cur_time)
 {
-	sp->db = (rtp_db*)xmalloc(sizeof(rtp_db));
-	memset(sp->db, 0, sizeof(rtp_db));
+	rtp_db *db = (rtp_db*)xmalloc(sizeof(rtp_db));
+	memset(db, 0, sizeof(rtp_db));
 
-	sp->db->members		= 1;
-	sp->db->rtcp_bw		= 417; /* 5% of 8350 bytes/sec (8khz, pcmu) session bandwidth */
-	sp->db->initial_rtcp	= TRUE;
-	sp->db->report_interval = rtcp_interval(sp->db->members, sp->db->senders, sp->db->rtcp_bw, sp->db->sending, 
-					        128, &(sp->db->avg_size), sp->db->initial_rtcp, get_freq(sp->device_clock));
+	db->members		= 1;
+	db->rtcp_bw		= 417; /* 5% of 8350 bytes/sec (8khz, pcmu) session bandwidth */
+	db->initial_rtcp	= TRUE;
+	db->report_interval = rtcp_interval(db->members, db->senders, db->rtcp_bw, db->sending, 
+					        128, &(db->avg_size), db->initial_rtcp, get_freq(device_clock));
 
-	sp->db->myssrc = ssrc;
+	db->myssrc = ssrc;
 
-	sp->db->my_dbe                = rtcp_new_dbentry_noqueue(sp->db->myssrc, cur_time);
-	sp->db->my_dbe->sentry->cname = xstrdup(cname);
+	db->my_dbe                = rtcp_new_dbentry_noqueue(db->myssrc, cur_time);
+	db->my_dbe->sentry->cname = xstrdup(cname);
 #ifdef WIN32
         /* Would like to know exactly what they are running for W32 and
          * not just what the build platform was. */
-        sp->db->my_dbe->sentry->tool  = xstrdup(w32_make_version_info(RAT_VERSION));
+        db->my_dbe->sentry->tool  = xstrdup(w32_make_version_info(RAT_VERSION));
 #else
-	sp->db->my_dbe->sentry->tool  = xstrdup(RAT_VERSION);
+	db->my_dbe->sentry->tool  = xstrdup(RAT_VERSION);
 #endif
-	sp->db->last_rpt     = get_time(sp->device_clock);
-	sp->db->initial_rtcp = TRUE;
-	sp->db->sending      = FALSE;
-	sp->db->senders      = 0;
+	db->last_rpt     = get_time(device_clock);
+	db->initial_rtcp = TRUE;
+	db->sending      = FALSE;
+	db->senders      = 0;
+	return db;
 }
 
 void
