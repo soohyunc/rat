@@ -375,7 +375,7 @@ static void terminate(struct mbus *m, char *addr, pid_t *pid)
 {
 	if (mbus_addr_valid(m, addr)) {
 		/* This is a valid address, ask that process to quit. */
-		debug_msg("Sending mbus.quit() to %s\n", addr);
+		debug_msg("Sending mbus.quit() to %s...\n", addr);
 		mbus_qmsgf(m, addr, TRUE, "mbus.quit", "");
 		do {
 			struct timeval	 timeout;
@@ -386,10 +386,11 @@ static void terminate(struct mbus *m, char *addr, pid_t *pid)
 			timeout.tv_usec = 20000;
 			mbus_recv(m, NULL, &timeout);
 			if (!mbus_addr_valid(m, addr)) {
-				debug_msg("Process died...\n");
+				debug_msg("[Process died]\n");
 				break;
 			}
 		} while (!mbus_sent_all(m));
+		debug_msg("...done\n");
 	} else {
 		/* That process has already terminated, do nothing. */
 	}
