@@ -1187,8 +1187,9 @@ static void rx_mbus_bye(char *srce, char *args, session_t *sp)
 {
 	/* mbus.bye() means that the sender of the message is about to quit */
 	UNUSED(args);
-	UNUSED(srce);
-	UNUSED(sp);
+	if (strstr(srce, "media:video") != NULL) {
+		sp->sync_on = FALSE;
+	}
 }
 
 static void rx_mbus_waiting(char *srce, char *args, session_t *sp)
@@ -1207,11 +1208,9 @@ static void rx_mbus_go(char *srce, char *args, session_t *sp)
 
 static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 {
-	/* Ignore "hello" messages... */
 	UNUSED(args);
-	UNUSED(sp);
 	if (strstr(srce, "media:video") != NULL) {
-		debug_msg("Found video tool\n");
+		sp->sync_on = TRUE;
 	}
 }
 
