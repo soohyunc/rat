@@ -1252,6 +1252,7 @@ w32sdk_audio_duplex(audio_desc_t ad)
 void
 w32sdk_audio_drain(audio_desc_t ad)
 {
+        /* We should STOP and clear buffers here */
         while(read_curr->dwFlags & WHDR_DONE) {
                 read_curr->dwFlags &= ~WHDR_DONE;
                 error = waveInAddBuffer(shWaveIn, read_curr, sizeof(WAVEHDR));
@@ -1513,6 +1514,29 @@ w32sdk_audio_supports(audio_desc_t ad, audio_format *paf)
                 }
         }
         return FALSE;
+}
+
+static int nMixersWithFullDuplex = 0;
+
+int
+w32sdk_audio_init()
+{
+        audio_format af;
+        unsigned int i;
+
+        af.bits_per_sample = 16;
+        af.bytes_per_block = 320;
+        af.channels        = 1;
+        af.encoding        = DEV_S16;
+        af.sample_rate     = 8000;
+        
+        for(i = 0; i < mixerGetNumDevs(); i++) {
+                if (w32sdk_audio_open(i, &af, &af)) {
+                        w32sdk_audio_close(i);
+                        nMixersWithFullDuplex++;
+                }
+        }
+        return nMixersWithFullDuplex;
 }
 
 int

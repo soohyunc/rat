@@ -203,7 +203,7 @@ audio_if_t audio_if_table[] = {
 
 #if defined(WIN32)
         {
-                NULL,
+                w32sdk_audio_init,
                 NULL, 
                 w32sdk_get_device_count,
                 w32sdk_get_device_name,

@@ -45,8 +45,8 @@ void w32sdk_audio_wait_for  (audio_desc_t ad, int delay_ms);
 int  w32sdk_audio_supports  (audio_desc_t ad, audio_format *paf);
 
 /* Functions to get names of win32 devices */
-int   w32sdk_audio_query_devices (void);       /* This fn works out what we have           */
-int   w32sdk_get_device_count    (void);       /* Then this one tells us the number of 'em */
-char *w32sdk_get_device_name     (int idx);    /* Then this one tells us the name          */
+int   w32sdk_audio_init        (void);      /* Startup initialization                   */
+int   w32sdk_get_device_count (void);       /* Then this one tells us the number of 'em */
+char *w32sdk_get_device_name  (int idx);    /* Then this one tells us the name          */
 
 #endif /* _AUDDEV_W32SDK_H_ */
