@@ -411,7 +411,7 @@ network_read(session_struct    *sp,
 
 void network_process_mbus(session_struct *sp[], int num_sessions, int delay)
 {
-	int             sel_fd, i, rc;
+	int             sel_fd = 0, i, rc;
 	struct timeval  timeout, *tvp;
 	fd_set          rfds;
 
