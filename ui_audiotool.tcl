@@ -808,7 +808,7 @@ proc mbus_recv_rtp.source.email {ssrc email} {
 }
 
 proc mbus_recv_rtp.source.phone {ssrc phone} {
-	global PHONE my_ssrc
+	global PHONE
 	init_source $ssrc
 	set PHONE($ssrc) $phone
 }
@@ -823,7 +823,7 @@ proc mbus_recv_rtp.source.tool {ssrc tool} {
 	global TOOL my_ssrc tool_name
 	init_source $ssrc
 	set TOOL($ssrc) $tool
-	if {[string compare $ssrc $my_ssrc] == 0} {
+	if {[info exists mm_ssrc] && [string compare $ssrc $my_ssrc] == 0} {
 	    global tool_name
 	    # tool name looks like RAT x.x.x platform ....
 	    # lose the platform stuff
@@ -833,7 +833,7 @@ proc mbus_recv_rtp.source.tool {ssrc tool} {
 }
 
 proc mbus_recv_rtp.source.note {ssrc note} {
-	global NOTE my_ssrc
+	global NOTE
 	init_source $ssrc
 	set NOTE($ssrc) $note
 }
