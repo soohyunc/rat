@@ -84,7 +84,11 @@ pktbuf_enqueue(struct s_pktbuf *pb, rtp_packet *p)
         assert(p != NULL);
 	playout = ts_seq32_in(&pb->rtp_sequencer, 8000 /* Arbitrary */, p->ts);
 	psize   = sizeof(rtp_packet);
-	pb_add(pb->rtp_buffer, (u_char*)p, psize, playout);
+	
+	if (!pb_add(pb->rtp_buffer, (u_char*)p, psize, playout)) {
+		pktbuf_free_rtp((u_char**)&p, psize);
+		return TRUE;
+	}
 
 	if (pb_node_count(pb->rtp_buffer) > pb->max_packets) {
 		debug_msg("RTP packet queue overflow\n");
