@@ -6,10 +6,10 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  *
- * The WB-ADPCM algorithm was developed by British Telecommunications */
- * plc.  Permission has been granted to use it for non-commercial     */
- * research and development projects.  BT retain the intellectual     */
- * property rights to this algorithm.                                 */
+ * The WB-ADPCM algorithm was developed by British Telecommunications 
+ * plc.  Permission has been granted to use it for non-commercial    
+ * research and development projects.  BT retain the intellectual   
+ * property rights to this algorithm.                              
  */
  
 #ifndef HIDE_SOURCE_STRINGS
