@@ -627,10 +627,10 @@ proc update_stats {cname} {
 	set loss_from_me "unknown"
 
 	if {[winfo exists [window_stats $cname]]} {
-		if {$LOSS_TO_ME($cname) == 101} {
+		if {$LOSS_TO_ME($cname) != 101} {
 			set loss_to_me "$LOSS_TO_ME($cname)%"
 		}
-		if {$LOSS_FROM_ME($cname) == 101} {
+		if {$LOSS_FROM_ME($cname) != 101} {
 			set loss_from_me "$LOSS_FROM_ME($cname)%"
 		}
 		[window_stats $cname].m configure -text " Name:                        $NAME($cname)\n\
