@@ -65,6 +65,7 @@
 
 extern int should_exit;
 
+#ifdef NDEF
 static void rx_tool_rat_toggle_input_port(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(srce);
@@ -92,6 +93,7 @@ static void rx_tool_rat_toggle_output_port(char *srce, char *args, session_struc
 	sp->output_mode = audio_get_oport(sp->audio_device);
 	ui_update_output_port(sp);
 }
+#endif
 
 static void rx_tool_rat_get_audio(char *srce, char *args, session_struct *sp)
 {
@@ -365,19 +367,20 @@ static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
 		s = mbus_decode_str(s);
 		if (strcmp(s, "microphone") == 0) {
 			audio_set_iport(sp->audio_device, AUDIO_MICROPHONE);
-		}
-		if (strcmp(s, "cd") == 0) {
+		} else if (strcmp(s, "cd") == 0) {
 			audio_set_iport(sp->audio_device, AUDIO_CD);
-		}
-		if (strcmp(s, "line_in") == 0) {
+		} else if (strcmp(s, "line_in") == 0) {
 			audio_set_iport(sp->audio_device, AUDIO_LINE_IN);
+		} else {
+			debug_msg("unknown input port %s\n", s);
+			abort();
 		}
+		sp->input_mode = audio_get_iport(sp->audio_device);
+		ui_update_input_port(sp);
 	} else {
-		printf("mbus: usage \"audio.input.port <port>\"\n");
+		debug_msg("mbus: usage \"audio.input.port <port>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
-        sp->input_mode = audio_get_iport(sp->audio_device);
-	ui_update_input_port(sp);
 }
 
 static void rx_audio_output_mute(char *srce, char *args, session_struct *sp)
@@ -1005,8 +1008,6 @@ static void rx_mbus_hello(char *srce, char *args, session_struct *sp)
 
 const char *rx_cmnd[] = {
 	"tool.rat.get_audio",              
-	"tool.rat.toggle.input.port",
-	"tool.rat.toggle.output.port",
 	"tool.rat.silence",
 	"tool.rat.lecture",
 	"tool.rat.3d.enabled",
@@ -1058,8 +1059,6 @@ const char *rx_cmnd[] = {
 
 static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_tool_rat_get_audio,                  
-	rx_tool_rat_toggle_input_port,
-	rx_tool_rat_toggle_output_port,
 	rx_tool_rat_silence,
 	rx_tool_rat_lecture,
 	rx_tool_rat_3d_enable,

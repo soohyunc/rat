@@ -125,11 +125,25 @@ proc set_gain {new_gain} {
 }
 
 proc toggle_input_port {} {
-  mbus_send "R" "tool.rat.toggle.input.port" ""
+  global input_port
+  switch $input_port {
+  	microphone {set input_port "line_in"}
+	line_in    {set input_port "cd"}
+	cd         {set input_port "microphone"}
+	*          {error "unknown port $input_port"}
+  }
+  mbus_send "R" "audio.input.port" [mbus_encode_str $input_port]
 }
 
 proc toggle_output_port {} {
-  mbus_send "R" "tool.rat.toggle.output.port" ""
+  global output_port
+  switch $output_port {
+  	speaker   {set output_port "line_out"}
+	line_out  {set output_port "headphone"}
+	headphone {set output_port "speaker"}
+	*         {error "unknown port $output_port"}
+  }
+  mbus_send "R" "audio.output.port" [mbus_encode_str $output_port]
 }
 
 proc mbus_heartbeat {} {
@@ -424,6 +438,7 @@ proc mbus_recv_audio.input.port {device} {
 	global input_port
 	set input_port $device
 	.r.c.gain.l2 configure -bitmap $device
+	puts "set iport $input_port"
 }
 
 proc mbus_recv_audio.input.mute {val} {

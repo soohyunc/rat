@@ -306,13 +306,13 @@ ui_update_input_port(session_struct *sp)
 {
 	switch (sp->input_mode) {
 	case AUDIO_MICROPHONE:
-		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.port", "microphone", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.port", "\"microphone\"", TRUE);
 		break;
 	case AUDIO_LINE_IN:
-		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.port", "line_in", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.port", "\"line_in\"", TRUE);
 		break;	
 	case AUDIO_CD:
-		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.port", "cd", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.port", "\"cd\"", TRUE);
 		break;
 	default:
 		fprintf(stderr, "Invalid input port!\n");
