@@ -1462,7 +1462,10 @@ proc load_setting {attrname field var default} {
 
 proc tool_version {tool} {
 	if {![regexp {RAT v[0-9]+\.[0-9]+\.[0-9]+ [a-zA-Z]+} $tool]} {
-		error "Unknown tool version $tool"
+		# Unknown tool version, so put out something which won't
+		# match with the current version string to force a reset
+		# of the saved parameters.
+		return "RAT v0.0.0"
 	}
 	regsub {(RAT v[0-9]+\.[0-9]+\.[0-9]+) [a-zA-Z]+} $tool {\1} v
 	return $v
