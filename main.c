@@ -284,14 +284,8 @@ main(int argc, char *argv[])
                         }
                         
                         /* Choke CPU usage */
-                        if (sp[i]->audio_device) {
-                                int n = 2;
-                                while(!audio_is_ready(sp[i]->audio_device) && n) { 
-                                        audio_wait_for(sp[i]->audio_device, 20);
-                                        n--; /* Don't hang too long if audio blocksize is big (e.g. mpeg-x) */
-                                } 
-                        } else {
-                                usleep(20000);
+                        if (!audio_is_ready(sp[i]->audio_device)) {
+                                audio_wait_for(sp[i]->audio_device, 10);
                         }
 		}
         }
