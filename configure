@@ -182,7 +182,7 @@ else
 	DEFS="$DEFS -DNEED_USLEEP"
 fi
 
-rm -f configure.usleep.c configure.usleep.bin condigure.usleep.out
+rm -f configure.usleep.c configure.usleep.bin configure.usleep.out
 
 # Process options to the configure script...
 DEBUG2=""

@@ -943,7 +943,7 @@ codec_get_native_coding(u_int16 sample_rate, u_int16 channels)
 {
         codec_id_t cid;
 
-        assert(sample_rate % 8000 == 0 && sample_rate <= 48000);
+        assert((sample_rate % 8000) == 0 && sample_rate <= 48000);
         assert(channels == 1 || channels == 2);
 
         channels    = channels - 1;
