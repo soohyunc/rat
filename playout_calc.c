@@ -79,7 +79,6 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t transit, int new_spurt)
                 debug_msg("Playout offset (%08lu)\n", e->playout.ticks);
                 e->transit     = transit;
                 e->avg_transit = transit;
-                e->playout = ts_add(transit, e->playout);
         } else {
                 ts_t delta_transit;
                 /* delta_transit is abs((s[j+1] - d[j+1]) - (s[j] - d[j]))  */
@@ -92,14 +91,11 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t transit, int new_spurt)
 
                 delta_transit = ts_abs_diff(transit, e->avg_transit);
                 if (ts_gt(transit, e->avg_transit)) {
-                        e->avg_transit = ts_add(e->avg_transit, ts_div(delta_transit,8));
+                        e->avg_transit = ts_add(e->avg_transit, ts_div(delta_transit,16));
                 } else {
-                        e->avg_transit = ts_sub(e->avg_transit, ts_div(delta_transit,8));
+                        e->avg_transit = ts_sub(e->avg_transit, ts_div(delta_transit,16));
                 }
-/*                debug_msg("transit using % 6d avg % 6d\n", e->transit.ticks, e->avg_transit.ticks); */
         }
-
-        e->last_transit = transit;
 
         return e->playout;
 }

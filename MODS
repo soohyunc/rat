@@ -921,7 +921,8 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	  cleaner. 
 	- Tuples for mbus command switches in mbus_{control,engine,ui}.
 	* 2 November 1999
-	- Added echo suppression back, it fell out of code base at some point.
+
+v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 	- Fix ui sending input and output gain values before it's got values
 	  from audio engine.  Was happening because scale widget invokes 
 	  -command option when created.  Now we don't send gain info until
@@ -929,10 +930,15 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	- Add signal handler to main_control.
 	- Add back default port 5004.
 	- Fix luigi_audio_drain to reset, sync, and trigger reading.
-	- Moved packet reception handling from rtp_callback to source_add_packet.
+	- Moved packet reception handling from rtp_callback to 
+	  source_add_packet.
 	- Changed playout buffer length estimation to use transit times and 
-	  average transit.  Previously used observations of playout buffer lengths,
-	  but this maybe unreliable due to packet losses.
+	  average transit.  Previously used observations of playout buffer 
+	  lengths, but this maybe unreliable due to packet losses.
+	- Revised skew adaptation.  Now compares transit time in use with 
+	  transit average, instead of monitoring playout buffer length which 
+	  is tainted by packet losses.
+	- Playout variable now refers to playout offset only.
 
 TODO -- They're features not bugs dammit!
 ----

@@ -1303,10 +1303,10 @@ proc toggle_stats {ssrc} {
 
 	frame $win.df.reception
 	global CODEC DURATION BUFFER_SIZE PLAYOUT_DELAY PCKTS_RECV PCKTS_LOST PCKTS_MISO \
-	       PCKTS_DUP LOSS_FROM_ME LOSS_TO_ME JITTER JIT_TOGED
+	       PCKTS_DUP LOSS_FROM_ME LOSS_TO_ME JITTER JIT_TOGED BUFFER_SIZE
 	stats_add_field $win.df.reception.1 "Audio encoding: "         CODEC($ssrc)
 	stats_add_field $win.df.reception.2 "Packet duration (ms): "   DURATION($ssrc)
-	stats_add_field $win.df.reception.3 "Playout delay (ms): "     PLAYOUT_DELAY($ssrc)
+	stats_add_field $win.df.reception.3 "Buffered audio (ms): "     BUFFER_SIZE($ssrc)
 	stats_add_field $win.df.reception.5 "Arrival jitter (ms): "    JITTER($ssrc)
 	stats_add_field $win.df.reception.6 "Loss from me (%): "       LOSS_FROM_ME($ssrc)
 	stats_add_field $win.df.reception.7 "Loss to me (%): "         LOSS_TO_ME($ssrc)

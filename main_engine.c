@@ -81,8 +81,8 @@ static void parse_args(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	u_int32		 cur_time, ntp_time;
-	int            	 seed, elapsed_time, alc, scnt;
+	u_int32		 cur_time = 0, ntp_time = 0;
+	int            	 seed, elapsed_time, alc = 0, scnt = 0;
 	session_t 	*sp;
 	struct timeval   time;
 	struct timeval	 timeout;
@@ -215,6 +215,7 @@ int main(int argc, char *argv[])
                                 if (source_relevant(s, sp->cur_ts)) {
                                         pdb_entry_t *e;
                                         ts_t         two_secs, delta;
+                                        source_check_buffering(s);
 					source_process(sp, s, sp->ms, sp->render_3d, sp->repair, sp->cur_ts, cush_ts);
 					source_audit(s);
                                         /* Check for UI update necessary, updating once per 2 secs */
@@ -291,7 +292,7 @@ int main(int argc, char *argv[])
 		
 		/* Choke CPU usage */
 		if (!audio_is_ready(sp->audio_device)) {
-			audio_wait_for(sp->audio_device, 10);
+			audio_wait_for(sp->audio_device, 20);
 		}
         }
 

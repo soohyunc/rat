@@ -42,9 +42,7 @@
 #include "session.h"
 #include "auddev.h"
 
-#define SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER  8 
-#define SKEW_OFFENSES_BEFORE_EXPANDING_BUFFER    3
-#define SKEW_ADAPT_THRESHOLD       1000
+#define SKEW_ADAPT_THRESHOLD       5000
 #define SOURCE_YOUNG_AGE             20
 #define SOURCE_AUDIO_HISTORY_MS    1000
 #define NO_CONT_TOGED_FOR_PLAYOUT_RECALC 4
@@ -77,7 +75,6 @@ typedef struct s_source {
         /* attempts to correct for clock skew between source and local host. */
         skew_t 			    skew;
         ts_t   			    skew_adjust;
-        int32  			    skew_offenses;
         /* b/w estimation variables                                          */
         u_int32                     byte_count;
         ts_t                        byte_count_start;
@@ -180,7 +177,10 @@ static ts_t zero_ts;        /* No time at all :-)                            */
 static ts_t keep_source_ts; /* How long source kept after source goes quiet  */
 static ts_t history_ts;     /* How much old audio hang onto for repair usage */
 static ts_t bw_avg_period;  /* Average period for bandwidth estimate         */
+static ts_t skew_thresh;    /* Significant size b4 consider playout adapt    */
+static ts_t skew_limit;     /* Upper bound, otherwise clock reset.           */
 static int  time_constants_inited = FALSE;
+
 
 static void
 time_constants_init()
@@ -190,6 +190,8 @@ time_constants_init()
         keep_source_ts = ts_map32(8000, 2000); 
         history_ts     = ts_map32(8000, 1000); 
         bw_avg_period  = ts_map32(8000, 8000);
+        skew_thresh    = ts_map32(8000, 160);
+        skew_limit     = ts_map32(8000, 2000);
         time_constants_inited = TRUE;
 }
 
@@ -231,7 +233,6 @@ source_create(source_list    *plist,
         psrc->pdbe->cont_toged = 0; /* Reset continuous thrown on ground cnt */
         psrc->channel_state    = NULL;        
         psrc->skew             = SOURCE_SKEW_NONE;
-        psrc->skew_offenses    = 0;
 
         /* Allocate channel and media buffers                                */
         success = pb_create(&psrc->channel, 
@@ -554,6 +555,10 @@ source_process_packets(session_t *sp, source *src, ts_t now)
 
         e = src->pdbe;
 
+/*        if (pktbuf_get_count(src->pktbuf) < 2) {
+                return;
+        }
+        */
         while(pktbuf_dequeue(src->pktbuf, &p)) {
                 adjust_playout = FALSE;
 
@@ -624,6 +629,8 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 if (e->cont_toged == NO_CONT_TOGED_FOR_PLAYOUT_RECALC) {
                         adjust_playout = TRUE;
                         e->cont_toged  = 0;
+                } else if (e->cont_toged != 0) {
+                        debug_msg("cont_toged %d\n", e->cont_toged);
                 }
 
                 /* Calculate the playout point for this packet.              */
@@ -647,7 +654,10 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 }
 
                 playout = playout_calc(sp, e->ssrc, transit, adjust_playout);
+                playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
+
+                e->last_transit = transit;
 
                 /* If last_played is valid then enough audio is buffer for   */
                 /* the playout check to be sensible.                         */
@@ -735,7 +745,7 @@ source_get_bps(source *src)
 /* Match threshold is mean abs diff. lower score gives less noise, but less  */
 /* adaption..., might be better if threshold adapted with how much extra     */
 /* data we have buffered...                                                  */
-#define MATCH_THRESHOLD 70
+#define MATCH_THRESHOLD 1000
 
 static ts_t
 recommend_drop_dur(media_data *md) 
@@ -827,7 +837,7 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
 int
 source_check_buffering(source *src)
 {
-        ts_t actual, desired, low;
+        ts_t actual, desired, diff;
 
         if (src->age < SOURCE_YOUNG_AGE) {
                 /* If the source is new(ish) then not enough audio will be   */
@@ -837,44 +847,21 @@ source_check_buffering(source *src)
 
         actual  = source_get_audio_buffered(src);
         desired = source_get_playout_delay(src);
-        low     = ts_sub(desired, ts_div(desired, 3)); /* low = 2 / 3 desired */
+        diff    = ts_abs_diff(actual, desired);
 
-        if (ts_gt(actual, desired)) {
-                /* buffer maybe longer than anticipated, src clock is faster */
-                ts_t delta, igap;
-                src->skew = SOURCE_SKEW_FAST;
-                delta = ts_sub(actual, desired);
-                igap  = ts_map32(get_freq(src->pdbe->clock), src->pdbe->inter_pkt_gap);
-                if (ts_gt(delta, igap)) {
-                        src->skew_offenses++;
-                        src->skew = SOURCE_SKEW_FAST;
-                        src->skew_adjust = delta;
+        if (ts_gt(diff, skew_thresh) && ts_gt(skew_limit, diff)) {
+                src->skew_adjust = diff;
+                if (ts_gt(actual, desired)) {
+                        /* We're accumulating audio, their clock faster   */
+                        src->skew = SOURCE_SKEW_FAST; 
+                } else {
+                        /* We're short of audio, so their clock is slower */
+                        src->skew = SOURCE_SKEW_SLOW;
                 }
-        } else if (ts_gt(low, actual)) {
-                /* buffer is running dry so src clock is slower */
-                src->skew        = SOURCE_SKEW_SLOW;
-                src->skew_adjust = ts_sub(desired, actual);
-                if (src->skew_offenses > 0) {
-                        /* Reset offenses for faster operation    */
-                        /* We care about not going dry.  We don't */
-                        /* care quite so passionately about being */
-                        /* over the desired level.                */
-                        src->skew_offenses = 0;
-                }
-                src->skew_offenses--;
-        } else {
-                src->skew = SOURCE_SKEW_NONE;
-                if (src->skew_offenses != 0) {
-                        /* Retreat slowly from opinion */
-                        if (src->skew_offenses > 0) {
-                                src->skew_offenses--;
-                        } else {
-                                src->skew_offenses++;
-                        }
-                }
+                return TRUE;
         }
-
-        return TRUE;
+        src->skew = SOURCE_SKEW_NONE;
+        return FALSE;
 }
 
 /* source_skew_adapt exists to shift playout units if source clock appears   */
@@ -916,9 +903,8 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
         /* careful with last repair because it is not valid if no repair has */
         /* taken place.                                                      */
 
-        if (src->skew == SOURCE_SKEW_FAST &&
-            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER /* && 
-                2*e <=  src->mean_energy */) {
+        if (src->skew == SOURCE_SKEW_FAST/* &&
+                (2*e <=  src->mean_energy || e < 200) */) {
                 /* source is fast so we need to bring units forward.
                  * Should only move forward at most a single unit
                  * otherwise we might discard something we have not
@@ -929,16 +915,14 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                         /* adjustment needed is greater than adjustment period
                          * that best matches dropable by signal matching.
                          */
-                        src->skew_offenses = 0;
                         return SOURCE_SKEW_NONE;
                 }
                 debug_msg("dropping %d / %d samples\n", adjustment.ticks, src->skew_adjust.ticks);
                 pb_shift_forward(src->media,   adjustment);
                 pb_shift_forward(src->channel, adjustment);
-                src->pdbe->playout = ts_sub(src->pdbe->playout, adjustment);
-                src->pdbe->transit = ts_sub(src->pdbe->transit, adjustment);
-                src->last_played   = ts_sub(src->last_played, adjustment);
-                src->skew_offenses = 0;
+                src->pdbe->transit      = ts_sub(src->pdbe->transit,      adjustment);
+                src->pdbe->last_transit = ts_sub(src->pdbe->last_transit, adjustment);
+                src->pdbe->avg_transit  = ts_sub(src->pdbe->avg_transit,  adjustment);
 
                 if (ts_valid(src->last_repair)) {
                         src->last_repair = ts_sub(src->last_repair, adjustment);
@@ -958,24 +942,23 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 conceal_dropped_samples(md, adjustment); 
 
                 return SOURCE_SKEW_FAST;
-        } else if (src->skew == SOURCE_SKEW_SLOW && 
-                   abs(src->skew_offenses) >= SKEW_OFFENSES_BEFORE_EXPANDING_BUFFER) {
+        } else if (src->skew == SOURCE_SKEW_SLOW) {
                 adjustment = ts_map32(rate, samples);
                 if (ts_gt(src->skew_adjust, adjustment)) {
-                        adjustment = ts_map32(rate, samples * 2);
+                        adjustment = ts_map32(rate, samples);
                 }
                 pb_shift_units_back_after(src->media,   playout, adjustment);
                 pb_shift_units_back_after(src->channel, playout, adjustment);
-                src->pdbe->playout = ts_add(src->pdbe->playout, adjustment);
-                src->pdbe->transit = ts_add(src->pdbe->transit, adjustment);
+                src->pdbe->transit      = ts_add(src->pdbe->transit,      adjustment);
+                src->pdbe->last_transit = ts_add(src->pdbe->last_transit, adjustment);
+                src->pdbe->avg_transit  = ts_add(src->pdbe->avg_transit,  adjustment);
 
                 if (ts_gt(adjustment, src->skew_adjust)) {
                         src->skew_adjust = zero_ts;
                 } else {
                         src->skew_adjust = ts_sub(src->skew_adjust, adjustment);
                 }
-                
-                src->skew_offenses /= 2;
+
 /* shouldn't have to make this adjustment since we are now adjusting
  * units in future only. 
                 src->last_played = ts_add(src->last_played, adjustment);
@@ -983,7 +966,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                         src->last_repair = ts_add(src->last_repair, adjustment);
                 }
                 */
-                debug_msg("Playout buffer shift back %d. *-*-*\n", adjustment.ticks);
+                debug_msg("Playout buffer shift back %d (%d).\n", adjustment.ticks, src->last_played.ticks);
                 src->skew = SOURCE_SKEW_NONE;
                 return SOURCE_SKEW_SLOW;
         }
@@ -1124,6 +1107,7 @@ source_process(session_t *sp,
                         if (source_repair(src, repair_type, step) == FALSE) {
                                 hold_repair += 2; /* 1 works, but 2 is probably better */
                         }
+                        debug_msg("Repair\n");
                         success = pb_iterator_get_at(src->media_pos, 
                                                      (u_char**)&md, 
                                                      &md_len, 
@@ -1259,13 +1243,16 @@ ts_t
 source_get_audio_buffered (source *src)
 {
         /* Changes in avg_transit change amount of audio buffered. */
-        return ts_sub(src->pdbe->playout, src->pdbe->avg_transit);
+        ts_t delta;
+        delta = ts_sub(src->pdbe->transit, src->pdbe->avg_transit);
+        return ts_add(src->pdbe->playout, delta);
 }
 
 ts_t
 source_get_playout_delay (source *src)
 {
-        return ts_sub(src->pdbe->playout, src->pdbe->transit);
+        return src->pdbe->playout;
+        /*  return ts_sub(src->pdbe->playout, src->pdbe->transit); */
 }
 
 int
