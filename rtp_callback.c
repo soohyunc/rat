@@ -267,6 +267,17 @@ process_rr(session_t *sp, u_int32 ssrc, rtcp_rr *r)
         }
 }
 
+
+static void
+process_rr_timeout(session_t *sp, u_int32 ssrc, rtcp_rr *r)
+{
+        /* Just update loss statistic in UI for this report if there */
+        /* is somewhere to send them.                                */
+        if (sp->mbus_engine != NULL) {
+                ui_update_loss(sp, ssrc, r->ssrc, 101);
+        }
+}
+
 static void
 process_sdes(session_t *sp, u_int32 ssrc, rtcp_sdes_item *d)
 {
@@ -373,6 +384,7 @@ rtp_callback(struct rtp *s, rtp_event *e)
 		process_create(sp, e->ssrc);
 		break;
 	case RR_TIMEOUT:
+                process_rr_timeout(sp, e->ssrc, (rtcp_rr*)e->data);
 		break;
 	default:
 		debug_msg("Unknown RTP event (type=%d)\n", e->type);

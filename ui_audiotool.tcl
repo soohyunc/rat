@@ -890,12 +890,10 @@ proc mbus_recv_tool.rat.3d.user.settings {args} {
 }
 
 proc mbus_recv_rtp.source.packet.loss {dest srce loss} {
-	global losstimers my_ssrc LOSS_FROM_ME LOSS_TO_ME HEARD_LOSS_FROM_ME HEARD_LOSS_TO_ME
+	global my_ssrc LOSS_FROM_ME LOSS_TO_ME HEARD_LOSS_FROM_ME HEARD_LOSS_TO_ME
 	init_source $srce
 	init_source $dest
-	catch {after cancel $losstimers($srce,$dest)}
 	chart_set $srce $dest $loss
-	set losstimers($srce,$dest) [after 7500 chart_set \"$srce\" \"$dest\" 101]
 	if {[string compare $dest $my_ssrc] == 0} {
 		set LOSS_TO_ME($srce) $loss
     		set HEARD_LOSS_TO_ME($srce) 1
@@ -2380,7 +2378,7 @@ proc chart_set {src dst val} {
 		set txtval "$val%"
 	} else {
 		set colour white
-		set txtval " "
+		set txtval { }
 	}
 	.chart.c.f.$src.f.$dst configure -background $colour -text "$txtval"
 }
