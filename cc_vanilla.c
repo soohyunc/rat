@@ -301,7 +301,7 @@ vanilla_decoder_peek(uint8_t   pkt_pt,
                         unit ++;
                 }
 
-                assert(done <= len);
+                assert(done >= len);
 
                 if (done != len) goto fail;
                 *upp = (uint16_t)unit;
