@@ -408,6 +408,25 @@ then
         fi
 fi
 
+# GSM flag checks
+#-----------------------------------------------------------------------------
+# Check if Signed arithmetic shift right (SASR).  If SASR then -1 >> 1 == 1.
+# Return value from test program of zero indicates success.
+#-----------------------------------------------------------------------------
+AC_CACHE_CHECK(signed arithmetic shift right, gsm_cv_sasr,
+	AC_TRY_RUN([int main() { return (-1 >> 1) != -1;}], 
+		 gsm_cv_sasr=yes,
+		 gsm_cv_sasr=no))
+if test $gsm_cv_sasr = yes ; then
+	AC_DEFINE(SASR)
+fi
+#-----------------------------------------------------------------------------
+# GSM Options, almost certainly not sensible on all platforms, performance
+# tests in a configure script ?
+#-----------------------------------------------------------------------------
+AC_DEFINE(FAST)
+AC_DEFINE(USE_FLOAT_MUL)
+
 AC_CONFIG_HEADER(config.h)
 
 AC_OUTPUT(Makefile)

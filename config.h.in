@@ -61,8 +61,12 @@
 #undef HAVE_HP_AUDIO
 #undef HAVE_NETBSD_AUDIO
 #undef HAVE_OSPREY_AUDIO
-/* FreeBSD Speaker device */
 #undef HAVE_MACHINE_PCAUDIOIO_H
+
+/* GSM related */
+#undef SASR
+#undef FAST
+#undef USE_FLOAT_MUL
 
 /* Define if you have the <bstring.h> header file.  */
 #undef HAVE_BSTRING_H

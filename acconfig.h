@@ -49,8 +49,12 @@
 #undef HAVE_HP_AUDIO
 #undef HAVE_NETBSD_AUDIO
 #undef HAVE_OSPREY_AUDIO
-/* FreeBSD Speaker device */
 #undef HAVE_MACHINE_PCAUDIOIO_H
+
+/* GSM related */
+#undef SASR
+#undef FAST
+#undef USE_FLOAT_MUL
 
 @BOTTOM@
 

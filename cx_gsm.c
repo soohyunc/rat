@@ -8,6 +8,10 @@
 #include "config_win32.h"
 #include "cx_gsm.h"
 
+#ifndef UNUSED
+#define UNUSED(x) (x) = (x)
+#endif
+
 #define	saturate(x) 	((x) < MIN_WORD ? MIN_WORD : (x) > MAX_WORD ? MAX_WORD: (x))
 
 word gsm_add(word a, word b)
@@ -715,6 +719,7 @@ void Gsm_LPC_Analysis(
 	Reflection_coefficients		  (L_ACF, LARc	);
 	Transformation_to_Log_Area_Ratios (LARc);
 	Quantization_and_coding		  (LARc);
+        UNUSED(S);
 }
 
 /*
@@ -2011,6 +2016,7 @@ void Gsm_Long_Term_Predictor(
 			Calculation_of_the_LTP_parameters(d, dp, bc, Nc);
 
 	Long_term_analysis_filtering( *bc, *Nc, dp, d, dpp, e );
+        UNUSED(S);
 }
 
 /* 4.3.2 */

@@ -3563,6 +3563,58 @@ then
         fi
 fi
 
+# GSM flag checks
+#-----------------------------------------------------------------------------
+# Check if Signed arithmetic shift right (SASR).  If SASR then -1 >> 1 == 1.
+# Return value from test program of zero indicates success.
+#-----------------------------------------------------------------------------
+echo $ac_n "checking signed arithmetic shift right""... $ac_c" 1>&6
+echo "configure:3573: checking signed arithmetic shift right" >&5
+if eval "test \"`echo '$''{'gsm_cv_sasr'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
+else
+  cat > conftest.$ac_ext <<EOF
+#line 3581 "configure"
+#include "confdefs.h"
+int main() { return (-1 >> 1) != -1;}
+EOF
+if { (eval echo configure:3585: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+then
+  gsm_cv_sasr=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -fr conftest*
+  gsm_cv_sasr=no
+fi
+rm -fr conftest*
+fi
+
+fi
+
+echo "$ac_t""$gsm_cv_sasr" 1>&6
+if test $gsm_cv_sasr = yes ; then
+	cat >> confdefs.h <<\EOF
+#define SASR 1
+EOF
+
+fi
+#-----------------------------------------------------------------------------
+# GSM Options, almost certainly not sensible on all platforms, performance
+# tests in a configure script ?
+#-----------------------------------------------------------------------------
+cat >> confdefs.h <<\EOF
+#define FAST 1
+EOF
+
+cat >> confdefs.h <<\EOF
+#define USE_FLOAT_MUL 1
+EOF
+
+
 
 
 trap '' 1 2 15
