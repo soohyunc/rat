@@ -45,6 +45,11 @@ typedef struct s_hash_chain {
 #define SETTINGS_READ_SIZE 100
 #define SETTINGS_TABLE_SIZE 11
 
+#ifdef WIN32
+#define SETTINGS_BUF_SIZE 1500
+static HKEY cfgKey;
+#endif
+
 #ifndef WIN32
 static hash_chain *table;          /* Use hashtable to load settings    */
 static FILE       *settings_file;  /* Write direct to this file to save */
@@ -55,6 +60,7 @@ static FILE       *settings_file;  /* Write direct to this file to save */
 static u_int32 
 setting_hash(char *key)
 {
+#ifndef WIN32
         u_int32 hash = 0;
 
         while(*key != '\0') {
@@ -64,11 +70,13 @@ setting_hash(char *key)
         }
 
         return hash;
+#endif
 }
 
 static void
 settings_table_add(char *key, char *value)
 {
+#ifndef WIN32
         hash_tuple *t;
         int row;
 
@@ -83,6 +91,7 @@ settings_table_add(char *key, char *value)
         t->next  = table[row].head;
         table[row].head = t;
         table[row].nelem++;
+#endif
 }
 
 /* settings_table_lookup points value at actual value
@@ -90,6 +99,7 @@ settings_table_add(char *key, char *value)
 static int
 settings_table_lookup(char *key, char **value)
 {
+#ifndef WIN32
         hash_tuple *t;
         u_int32     hash;
 
@@ -105,18 +115,22 @@ settings_table_lookup(char *key, char **value)
         }
         *value = NULL;
         return FALSE;
+#endif
 }
 
 static void
 settings_table_create()
 {
+#ifndef WIN32
         table = (hash_chain*)xmalloc(sizeof(hash_chain) * SETTINGS_TABLE_SIZE);
         memset(table, 0, sizeof(hash_chain) * SETTINGS_TABLE_SIZE);
+#endif
 }
 
 static void
 settings_table_destroy(void)
 {
+#ifndef WIN32
         hash_tuple *t;
         int i;
 
@@ -134,9 +148,49 @@ settings_table_destroy(void)
         xfree(table);
         table = NULL;
         xmemchk();
+#endif
 }
 
 /* SETTINGS CODE *************************************************************/
+
+void open_registry(void)
+{
+#ifdef WIN32
+        HKEY			key    = HKEY_CURRENT_USER;
+	LPCTSTR			subKey = "Software\\Mbone Applications\\rat";
+	DWORD			disp;
+	char			buffer[SETTINGS_BUF_SIZE];
+	LONG			status;
+
+	status = RegCreateKeyEx(key, subKey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &cfgKey, &disp);
+	if (status != ERROR_SUCCESS) {
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
+		debug_msg("Unable to open registry: %s\n", buffer);
+		abort();
+	}
+	if (disp == REG_CREATED_NEW_KEY) {
+		debug_msg("Created new registry entry...\n");
+	} else {
+		debug_msg("Opened existing registry entry...\n");
+	}
+#endif
+}
+
+void close_registry(void)
+{
+#ifdef WIN32
+	LONG status;
+	char buffer[SETTINGS_BUF_SIZE];
+	
+	status = RegCloseKey(cfgKey);
+	if (status != ERROR_SUCCESS) {
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
+		debug_msg("Unable to close registry: %s\n", buffer);
+		abort();
+	}
+	debug_msg("Closed registry entry...\n");
+#endif
+}
 
 static void load_init(void)
 {
@@ -190,24 +244,26 @@ static void load_init(void)
         xfree(buffer);
 
 #else
+        open_registry();
 #endif
 }
 
 static void load_done(void)
 {
 #ifdef WIN32
+        close_registry();
 #else
         settings_table_destroy();
 #endif
 }
 
-#ifndef WIN32
 static int 
 setting_load(char *key, char **value)
 {
+#ifndef WIN32
         return settings_table_lookup(key, value);
-}
 #endif
+}
 
 static char *
 setting_load_str(char *name, char *default_value)
@@ -219,6 +275,29 @@ setting_load_str(char *name, char *default_value)
         }
         return default_value;
 #else
+        LONG status;
+        char buffer[SETTINGS_BUF_SIZE];
+        DWORD ValueType;
+        int val_len;
+        char *value;
+
+        ValueType = REG_SZ;
+        /* call RegQueryValueEx once first to get size of string */
+        status = RegQueryValueEx(cfgKey, name, NULL, &ValueType, NULL, &val_len);
+        if (status != ERROR_SUCCESS) {
+                FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
+                debug_msg("Unable to load setting: %s\n", buffer);
+                return default_value;
+        }	
+        /* now that we know size we can allocate memory and call RegQueryValueEx again */
+        value = (char*)xmalloc(val_len * sizeof(char));
+        status = RegQueryValueEx(cfgKey, name, NULL, &ValueType, value, &val_len);
+        if (status != ERROR_SUCCESS) {
+                FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
+                debug_msg("Unable to load setting %s: %s\n", name, buffer);
+                return default_value;
+        }	
+        return value;
 #endif
 }
 
@@ -233,12 +312,25 @@ setting_load_int(char *name, int default_value)
         }
         return default_value;
 #else
+        LONG status;
+        char buffer[SETTINGS_BUF_SIZE];
+        DWORD ValueType;
+        int value, val_len;
+
+        ValueType = REG_DWORD;
+        val_len = sizeof(int);
+        status = RegQueryValueEx(cfgKey, name, NULL, &ValueType, &(char)value, &val_len);
+        if (status != ERROR_SUCCESS) {
+                FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
+                debug_msg("Unable to load setting %s: %s\n", name, buffer);
+                return default_value;
+        }	
+        return value;
 #endif
 }
 
 void settings_load(session_struct *sp)
 {
-#ifndef WIN32
 	audio_device_details_t	 ad;
 	char			*ad_name, *primary_codec, *primary_long, *cc_name;
 	int			 i, freq, chan;
@@ -306,7 +398,6 @@ void settings_load(session_struct *sp)
         setting_load_int("audioInputMute", 1);
         xmemchk();
 	load_done();
-#endif
 }
 
 static void 
@@ -328,6 +419,8 @@ save_init(void)
 	sprintf(filen, "%s/.RTPdefaults", p->pw_dir);
 	settings_file = fopen(filen, "w");
         xfree(filen);
+#else
+        open_registry();
 #endif
 }
 
@@ -337,6 +430,7 @@ static void save_done(void)
 	fclose(settings_file);
         settings_file = NULL;
 #else
+        close_registry();
 #endif
 }
 
@@ -346,6 +440,15 @@ setting_save_str(const char *name, const char *val)
 #ifndef WIN32
 	fprintf(settings_file, "*%s: %s\n", name, val);
 #else
+        LONG status;
+        char buffer[SETTINGS_BUF_SIZE];
+
+        status = RegSetValueEx(cfgKey, name, 0, REG_SZ, val, strlen(val) + 1);
+        if (status != ERROR_SUCCESS) {
+                FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
+                debug_msg("Unable to save setting %s: %s\n", name, buffer);
+                abort();
+        }	
 #endif
 }
 
@@ -354,6 +457,15 @@ static void setting_save_int(const char *name, const long val)
 #ifndef WIN32
 	fprintf(settings_file, "*%s: %ld\n", name, val);
 #else
+        LONG status;
+        char buffer[SETTINGS_BUF_SIZE];
+
+        status = RegSetValueEx(cfgKey, name, 0, REG_DWORD, &(char)val, sizeof(val));
+        if (status != ERROR_SUCCESS) {
+                FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
+                debug_msg("Unable to save setting %s: %s\n", name, buffer);
+                abort();
+        }	
 #endif
 }
 
@@ -436,6 +548,7 @@ void settings_save(session_struct *sp)
 	setting_save_str("audioInputPort",         iapd->name); 
 	setting_save_int("audioPowermeters",       sp->meter);
 	setting_save_int("audioLipSync",           sp->sync_on);
+        setting_save_int("audioLayers",            sp->layers);
 	/* We do not save audioOutputMute and audioInputMute by default, but should */
 	/* recognize them when reloading.                                           */
 	save_done();
