@@ -153,7 +153,11 @@ static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seq
 			xfree(curr->args);
 			if (curr->next != NULL) curr->next->prev = curr->prev;
 			if (curr->prev != NULL) curr->prev->next = curr->next;
-			if (m->ack_list == curr) m->ack_list = curr->next;
+			if (m->ack_list == curr) {
+				assert(curr->prev == NULL);
+				if (curr->next != NULL) assert(curr->next->prev == NULL);
+				m->ack_list = curr->next;
+			}
 			xfree(curr);
 			return;
 		}
