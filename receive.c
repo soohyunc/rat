@@ -354,7 +354,7 @@ destroy_playout_buffers(ppb_t **list)
                         free_rx_unit(&r);
                         r = p->head_ptr;
                 }
-                xfree(p);
+                block_free(p, sizeof(ppb_t));
                 p = *list;
         }
         *list = NULL;
