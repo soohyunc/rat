@@ -443,13 +443,13 @@ static void rx_audio_channel_repair(char *srce, char *args, session_t *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &s)) {
 		s = mbus_decode_str(s);
-                if (!strcasecmp(s, "first")) {
+                if (strcasecmp(s, "first") == 0) {
                         r = repair_get_details(0);
                         sp->repair = r->id;
                 } else {
                         n = repair_get_count();
                         for(i = 0; i < n; i++) {
-                                r = repair_get_details(0);
+                                r = repair_get_details(i);
                                 if (strcasecmp(r->name, s) == 0 || strcasecmp("first", s) == 0) {
                                         sp->repair = r->id;
                                         break;
