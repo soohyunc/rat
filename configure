@@ -20,7 +20,7 @@ ac_help="$ac_help
 ac_help="$ac_help
   --with-tcl=DIR          specify location of Tcl installation"
 ac_help="$ac_help
-  --with-tk=DIR           specify location of Tk installation"
+  --with-tk=DIR          specify location of Tk installation"
 ac_help="$ac_help
   --with-common=DIR       specify location of UCL's common library"
 ac_help="$ac_help
@@ -3064,31 +3064,41 @@ fi
 
 # TCL/TK 
 # Hopefully using UCL modified Tcl/Tk.
+
 PARENT=`echo $PWD | sed -e 's%/[^/]*$%%'`
-TCL_INC=${PARENT}/tcl-8.0/generic
-TCL_LIB=${PARENT}/tcl-8.0/unix
+TCL_INC=${PARENT}/tcl-8.0
+TCL_LIB=${PARENT}/tcl-8.0
 
 # Check whether --with-tcl or --without-tcl was given.
 if test "${with_tcl+set}" = set; then
   withval="$with_tcl"
-   TCL_INC=$withval/include
-	  TCL_LIB=$withval/lib
+   TCL_INC=$withval
+	  TCL_LIB=$withval
 fi
 
 
+# Depending on config expect tcl.h to be tcl source dir or include path
+for i in $TCL_INC/generic $TCL_INC/include/tcl8.0 $TCL_INC/include $TCL_INC
+do
+	if test -d $i ; then
+		TCL_INC=$i
+		break
+	fi
+done
+
 ac_safe=`echo "${TCL_INC}/tcl.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ${TCL_INC}/tcl.h""... $ac_c" 1>&6
-echo "configure:3082: checking for ${TCL_INC}/tcl.h" >&5
+echo "configure:3092: checking for ${TCL_INC}/tcl.h" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 3087 "configure"
+#line 3097 "configure"
 #include "confdefs.h"
 #include <${TCL_INC}/tcl.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:3092: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3102: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -3104,63 +3114,45 @@ rm -f conftest*
 fi
 if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
   echo "$ac_t""yes" 1>&6
-  TCL_INC=-I${TCL_INC}
+  TCL_INC=-I${inc}
+	 break
 else
   echo "$ac_t""no" 1>&6
-ac_safe=`echo "${TCL_INC}/tcl8.0/tcl.h" | sed 'y%./+-%__p_%'`
-echo $ac_n "checking for ${TCL_INC}/tcl8.0/tcl.h""... $ac_c" 1>&6
-echo "configure:3113: checking for ${TCL_INC}/tcl8.0/tcl.h" >&5
-if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
+TCL_INC=no
+fi
+
+
+if test $TCL_INC = no 
+then
+	echo "Could not find tcl.h.  One of the following halted progress:"
+	echo "   (a) Tcl is not installed."
+	echo "   (b) Tcl's location was mis-specified, or not specified (--with-tcl=DIR)."
+	echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
+	exit
+fi
+
+# Guess most probable tcl lib location
+for i in $TCL_LIB/unix $TCL_LIB/lib $TCL_LIB
+do
+	if test -d $i ; then
+		TCL_LIB=$i
+		break
+	fi
+done
+
+SAVED_LIBS=$LIBS
+LIBS=""
+FOUND_TCL_LIB=no
+
+echo $ac_n "checking for library containing Tcl_Init""... $ac_c" 1>&6
+echo "configure:3149: checking for library containing Tcl_Init" >&5
+if eval "test \"`echo '$''{'ac_cv_search_Tcl_Init'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
-  cat > conftest.$ac_ext <<EOF
-#line 3118 "configure"
-#include "confdefs.h"
-#include <${TCL_INC}/tcl8.0/tcl.h>
-EOF
-ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:3123: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
-ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
-if test -z "$ac_err"; then
-  rm -rf conftest*
-  eval "ac_cv_header_$ac_safe=yes"
-else
-  echo "$ac_err" >&5
-  echo "configure: failed program was:" >&5
-  cat conftest.$ac_ext >&5
-  rm -rf conftest*
-  eval "ac_cv_header_$ac_safe=no"
-fi
-rm -f conftest*
-fi
-if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
-  echo "$ac_t""yes" 1>&6
-  TCL_INC=-I${TCL_INC}/tcl8.0
-else
-  echo "$ac_t""no" 1>&6
- 
-			echo "Could not find tcl.h.  One of the following halted progress:"
-			echo "   (a) Tcl is not installed."
-			echo "   (b) Tcl's location was mis-specified, or not specified (--with-tcl=DIR)."
-			echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
-			exit
-		
-fi
-
-	
-fi
-
-
-echo $ac_n "checking for Tcl_Init in -ltcl8.0""... $ac_c" 1>&6
-echo "configure:3156: checking for Tcl_Init in -ltcl8.0" >&5
-ac_lib_var=`echo tcl8.0'_'Tcl_Init | sed 'y%./+-%__p_%'`
-if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  ac_save_LIBS="$LIBS"
-LIBS="-ltcl8.0 -L${TCL_LIB} -lm $LIBS"
+  ac_func_search_save_LIBS="$LIBS"
+ac_cv_search_Tcl_Init="no"
 cat > conftest.$ac_ext <<EOF
-#line 3164 "configure"
+#line 3156 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -3171,34 +3163,18 @@ int main() {
 Tcl_Init()
 ; return 0; }
 EOF
-if { (eval echo configure:3175: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3167: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  eval "ac_cv_lib_$ac_lib_var=yes"
+  ac_cv_search_Tcl_Init="none required"
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
-  rm -rf conftest*
-  eval "ac_cv_lib_$ac_lib_var=no"
 fi
 rm -f conftest*
-LIBS="$ac_save_LIBS"
-
-fi
-if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
-  echo "$ac_t""yes" 1>&6
-  TCL_LIB="-L$TCL_LIB -ltcl8.0"
-else
-  echo "$ac_t""no" 1>&6
-echo $ac_n "checking for Tcl_Init in -ltcl80""... $ac_c" 1>&6
-echo "configure:3194: checking for Tcl_Init in -ltcl80" >&5
-ac_lib_var=`echo tcl80'_'Tcl_Init | sed 'y%./+-%__p_%'`
-if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  ac_save_LIBS="$LIBS"
-LIBS="-ltcl80 -L${TCL_LIB} -lm $LIBS"
+test "$ac_cv_search_Tcl_Init" = "no" && for i in tcl8.0 tcl80; do
+LIBS="-l$i -L${TCL_LIB} -lm $ac_func_search_save_LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 3202 "configure"
+#line 3178 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -3209,119 +3185,96 @@ int main() {
 Tcl_Init()
 ; return 0; }
 EOF
-if { (eval echo configure:3213: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3189: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  eval "ac_cv_lib_$ac_lib_var=yes"
+  ac_cv_search_Tcl_Init="-l$i"
+break
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
-  rm -rf conftest*
-  eval "ac_cv_lib_$ac_lib_var=no"
 fi
 rm -f conftest*
-LIBS="$ac_save_LIBS"
-
-fi
-if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
-  echo "$ac_t""yes" 1>&6
-  TCL_LIB="-L$TCL_LIB -ltcl80"
-else
-  echo "$ac_t""no" 1>&6
-
-			echo "Could not find Tcl library.  One of the following halted progess:"
-			echo "   (a) Tcl is not installed."
-			echo "   (b) Library is not built or not in expected location (--with-tcl=DIR)."
-			echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
-			exit
-		
+done
+LIBS="$ac_func_search_save_LIBS"
 fi
 
+echo "$ac_t""$ac_cv_search_Tcl_Init" 1>&6
+if test "$ac_cv_search_Tcl_Init" != "no"; then
+  test "$ac_cv_search_Tcl_Init" = "none required" || LIBS="$ac_cv_search_Tcl_Init $LIBS"
+  FOUND_TCL_LIB=yes
+else :
+  
+fi
+TCL_LIB="-L${TCL_LIB} $LIBS"
+LIBS=$SAVED_LIBS
+
+if test $FOUND_TCL_LIB = no
+then
+	echo "Could not find Tcl library.  One of the following halted progess:"
+	echo "   (a) Tcl is not installed."
+	echo "   (b) Library is not built or not in expected location (--with-tcl=DIR)."
+	echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
+	exit
 fi
 
-
-TK_INC=${PARENT}/tk-8.0/generic
-TK_LIB=${PARENT}/tk-8.0/unix
+TK_INC=${PARENT}/tk-8.0
+TK_LIB=${PARENT}/tk-8.0
 
 # Check whether --with-tk or --without-tk was given.
 if test "${with_tk+set}" = set; then
   withval="$with_tk"
-   TK_INC=$withval/include
-	  TK_LIB=$withval/lib
+   TK_INC=$withval
+	  TK_LIB=$withval
 fi
 
 
-# NB for tk.h we don't want to compile anything, AC_CHECK_HEADER(S) compiles
-# a file with specified header, but does not include X and tcl headers.
-# Could use AC_TRY_CPP with $ac_x_include/Xlib.h, etc... for time being just
-# check for existence...autoconf generates a warning here.
+# Depending on config expect tk.h to be tk source dir or include path
+# AC_CHECK_HEADER(S) are totally inadequate since it is necessary to
+# include tcl.h, Xlib.h, Xutil.h before tk.h.
+FOUND_TK_INC=0
+for i in $TK_INC/generic $TK_INC/include/tk8.0 $TK_INC/include $TK_INC
+do
+	echo $ac_n "checking $i/tk.h""... $ac_c" 1>&6
+echo "configure:3239: checking $i/tk.h" >&5
+	if test -r $i/tk.h ; then
+		TK_INC=$i
+		FOUND_TK_INC=1
+		echo "$ac_t""yes" 1>&6
+		break
+	fi
+	echo "$ac_t""no" 1>&6
+done
 
-ac_safe=`echo "$TK_INC/tk.h" | sed 'y%./+-%__p_%'`
-echo $ac_n "checking for $TK_INC/tk.h""... $ac_c" 1>&6
-echo "configure:3261: checking for $TK_INC/tk.h" >&5
-if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+if test $FOUND_TK_INC = 0 ; then
+	echo "Could not find tk.h.  One of the following halted progress:"
+	echo "   (a) Tk is not installed."
+	echo "   (b) Tk's location was mis-specified, or not specified (--with-tk=DIR)."
+	echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
+	exit
+fi
+
+# Guess most probable tk lib location
+for i in $TK_LIB/unix $TK_LIB/lib $TK_LIB
+do
+	if test -d $i ; then
+		TK_LIB=$i
+		break
+	fi
+done
+
+SAVED_LIBS=$LIBS
+LIBS=""
+FOUND_TK_LIB=no
+
+echo $ac_n "checking for library containing Tk_Init""... $ac_c" 1>&6
+echo "configure:3271: checking for library containing Tk_Init" >&5
+if eval "test \"`echo '$''{'ac_cv_search_Tk_Init'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
-  if test "$cross_compiling" = yes; then
-    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
-else
-  if test -r $TK_INC/tk.h; then
-    eval "ac_cv_file_$ac_safe=yes"
-  else
-    eval "ac_cv_file_$ac_safe=no"
-  fi
-fi
-fi
-if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
-  echo "$ac_t""yes" 1>&6
-  TK_INC=-I${TK_INC}
-else
-  echo "$ac_t""no" 1>&6
-
-		
-ac_safe=`echo "$TK_INC/tk8.0/tk.h" | sed 'y%./+-%__p_%'`
-echo $ac_n "checking for $TK_INC/tk8.0/tk.h""... $ac_c" 1>&6
-echo "configure:3284: checking for $TK_INC/tk8.0/tk.h" >&5
-if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  if test "$cross_compiling" = yes; then
-    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
-else
-  if test -r $TK_INC/tk8.0/tk.h; then
-    eval "ac_cv_file_$ac_safe=yes"
-  else
-    eval "ac_cv_file_$ac_safe=no"
-  fi
-fi
-fi
-if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
-  echo "$ac_t""yes" 1>&6
-  TK_INC=-I${TK_INC}/tk8.0
-else
-  echo "$ac_t""no" 1>&6
- 
-			echo "Could not find tk.h.  One of the following halted progress:"
-			echo "   (a) Tk is not installed."
-			echo "   (b) Tk's location was mis-specified, or not specified (--with-tk=DIR)."
-			echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
-			exit
-		
-fi
-
-	
-fi
-
-
-echo $ac_n "checking for Tk_Init in -ltk8.0""... $ac_c" 1>&6
-echo "configure:3317: checking for Tk_Init in -ltk8.0" >&5
-ac_lib_var=`echo tk8.0'_'Tk_Init | sed 'y%./+-%__p_%'`
-if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  ac_save_LIBS="$LIBS"
-LIBS="-ltk8.0 -L${TK_LIB} ${TCL_LIB} $X_LIBS $X_PRE_LIBS  -lXext -lX11 $X_EXTRA_LIBS -lm $LIBS"
+  ac_func_search_save_LIBS="$LIBS"
+ac_cv_search_Tk_Init="no"
 cat > conftest.$ac_ext <<EOF
-#line 3325 "configure"
+#line 3278 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -3332,34 +3285,18 @@ int main() {
 Tk_Init()
 ; return 0; }
 EOF
-if { (eval echo configure:3336: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3289: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  eval "ac_cv_lib_$ac_lib_var=yes"
+  ac_cv_search_Tk_Init="none required"
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
-  rm -rf conftest*
-  eval "ac_cv_lib_$ac_lib_var=no"
 fi
 rm -f conftest*
-LIBS="$ac_save_LIBS"
-
-fi
-if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
-  echo "$ac_t""yes" 1>&6
-  TK_LIB="-L$TK_LIB -ltk8.0"
-else
-  echo "$ac_t""no" 1>&6
-echo $ac_n "checking for Tk_Init in -ltk80""... $ac_c" 1>&6
-echo "configure:3355: checking for Tk_Init in -ltk80" >&5
-ac_lib_var=`echo tk80'_'Tk_Init | sed 'y%./+-%__p_%'`
-if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  ac_save_LIBS="$LIBS"
-LIBS="-ltk80 -L${TK_LIB} ${TCL_LIB} $X_LIBS $X_PRE_LIBS -lXext -lX11 $X_EXTRA_LIBS -lm $LIBS"
+test "$ac_cv_search_Tk_Init" = "no" && for i in tk8.0 tk80; do
+LIBS="-l$i -L${TK_LIB} ${TCL_LIB} $X_LIBS $X_PRE_LIBS  -lXext -lX11 $X_EXTRA_LIBS -lm $ac_func_search_save_LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 3363 "configure"
+#line 3300 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -3370,35 +3307,37 @@ int main() {
 Tk_Init()
 ; return 0; }
 EOF
-if { (eval echo configure:3374: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3311: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  eval "ac_cv_lib_$ac_lib_var=yes"
+  ac_cv_search_Tk_Init="-l$i"
+break
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
-  rm -rf conftest*
-  eval "ac_cv_lib_$ac_lib_var=no"
 fi
 rm -f conftest*
-LIBS="$ac_save_LIBS"
-
-fi
-if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
-  echo "$ac_t""yes" 1>&6
-  TK_LIB="-L$TK_LIB -ltk80"
-else
-  echo "$ac_t""no" 1>&6
-
-			echo "Could not find Tk library.  One of the following halted progess:"
-			echo "   (a) Tk is not installed."
-			echo "   (b) Library is not built or not in expected location (--with-tk=DIR)."
-			echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
-			exit
-		
+done
+LIBS="$ac_func_search_save_LIBS"
 fi
 
+echo "$ac_t""$ac_cv_search_Tk_Init" 1>&6
+if test "$ac_cv_search_Tk_Init" != "no"; then
+  test "$ac_cv_search_Tk_Init" = "none required" || LIBS="$ac_cv_search_Tk_Init $LIBS"
+  FOUND_TK_LIB=yes
+else :
+  
 fi
+TK_LIB="$L{TK_LIB} $LIBS"
+LIBS=$SAVED_LIBS
 
+if test $FOUND_TK_LIB = no
+then
+	echo "Could not find Tk library.  One of the following halted progess:"
+	echo "   (a) Tk is not installed."
+	echo "   (b) Library is not built or not in expected location (--with-tk=DIR)."
+	echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
+	exit
+fi
 
 
 
@@ -3418,19 +3357,22 @@ if test "${with_common+set}" = set; then
 fi
 
 
-ac_safe=`echo "${COMMON_INC}/mbus.h" | sed 'y%./+-%__p_%'`
-echo $ac_n "checking for ${COMMON_INC}/mbus.h""... $ac_c" 1>&6
-echo "configure:3424: checking for ${COMMON_INC}/mbus.h" >&5
+FOUND_COMMON_H=no
+for h in ${COMMON_INC} ${COMMON_INC}/include
+do
+ac_safe=`echo "$h/mbus.h" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for $h/mbus.h""... $ac_c" 1>&6
+echo "configure:3366: checking for $h/mbus.h" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 3429 "configure"
+#line 3371 "configure"
 #include "confdefs.h"
-#include <${COMMON_INC}/mbus.h>
+#include <$h/mbus.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:3434: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3376: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -3446,56 +3388,34 @@ rm -f conftest*
 fi
 if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
   echo "$ac_t""yes" 1>&6
-  COMMON_INC=-I$COMMON_INC
-else
-  echo "$ac_t""no" 1>&6
-ac_safe=`echo "${COMMON_INC}/include/mbus.h" | sed 'y%./+-%__p_%'`
-echo $ac_n "checking for ${COMMON_INC}/include/mbus.h""... $ac_c" 1>&6
-echo "configure:3455: checking for ${COMMON_INC}/include/mbus.h" >&5
-if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  cat > conftest.$ac_ext <<EOF
-#line 3460 "configure"
-#include "confdefs.h"
-#include <${COMMON_INC}/include/mbus.h>
-EOF
-ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:3465: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
-ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
-if test -z "$ac_err"; then
-  rm -rf conftest*
-  eval "ac_cv_header_$ac_safe=yes"
-else
-  echo "$ac_err" >&5
-  echo "configure: failed program was:" >&5
-  cat conftest.$ac_ext >&5
-  rm -rf conftest*
-  eval "ac_cv_header_$ac_safe=no"
-fi
-rm -f conftest*
-fi
-if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
-  echo "$ac_t""yes" 1>&6
-  COMMON_INC=-I${COMMON_INC}/include
-		 COMMON_LIB=${COMMON_LIB}/lib
-else
-  echo "$ac_t""no" 1>&6
-
-			echo "Could not find mbus.h from UCL's common library.  Maybe:"
-			echo "   (a) common library is not installed."
-			echo "   (b) common library's locations was mis/not specified (--with-common=DIR)."
-			echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
-			exit
-		
-fi
-
+  
+		COMMON_INC=$h
+		FOUND_COMMON_H=yes
+		break
 	
+else
+  echo "$ac_t""no" 1>&6
 fi
 
+done
+
+if test $FOUND_COMMON_H = no
+then
+	echo "Could not find mbus.h from UCL's common library.  Maybe:"
+	echo "   (a) common library is not installed."
+	echo "   (b) common library's locations was mis/not specified (--with-common=DIR)."
+	echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
+	exit
+fi
+
+# Check if installed it on it's own...
+if test ! -d ${COMMON_LIB} 
+then
+	COMMON_LIB=${COMMON_LIB}/lib
+fi
 
 echo $ac_n "checking for mbus_init in -lcommon""... $ac_c" 1>&6
-echo "configure:3499: checking for mbus_init in -lcommon" >&5
+echo "configure:3419: checking for mbus_init in -lcommon" >&5
 ac_lib_var=`echo common'_'mbus_init | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -3503,7 +3423,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lcommon -L${COMMON_LIB} $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 3507 "configure"
+#line 3427 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -3514,7 +3434,7 @@ int main() {
 mbus_init()
 ; return 0; }
 EOF
-if { (eval echo configure:3518: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3438: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
