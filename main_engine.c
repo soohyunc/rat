@@ -235,6 +235,7 @@ int main(int argc, char *argv[])
 		audio_device_reconfigure(sp[i]);
 		assert(audio_device_is_open(sp[i]->audio_device));
 
+                settings_load_early(sp[i]);
 		/* Initialise our mbus interface... once this is done we can talk to our controller */
 		sp[i]->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 15);
 		sprintf(sp[i]->mbus_engine_addr, MBUS_ADDR_ENGINE, i, (unsigned long) ppid);
@@ -256,7 +257,6 @@ int main(int argc, char *argv[])
 	/*        have different saved settings for each domain.       */
 	/* FIXME: this gets the wrong device name for the transcoder.  */
 	for (i = 0; i < num_sessions; i++) {
-		settings_load_early(sp[i]);
 		if (pdb_create(&sp[i]->pdb) == FALSE) {
 			debug_msg("Failed to create participant database\n");
 			abort();
