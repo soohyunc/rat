@@ -158,17 +158,6 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
 }
 
 static void
-process_sr(session_t *sp, uint32_t ssrc, rtcp_sr *s)
-{
-        pdb_entry_t     *e;
-
-        if (pdb_item_get(sp->pdb, ssrc, &e) == FALSE) {
-                debug_msg("Sender report discarded: unknown source (0x%08x).\n", ssrc);
-                return;
-        }
-}
-
-static void
 process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
 {
         uint32_t fract_lost;
@@ -279,7 +268,6 @@ rtp_callback(struct rtp *s, rtp_event *e)
 	case RX_RTCP_FINISH:
 		break;
 	case RX_SR:
-                process_sr(sp, e->ssrc, (rtcp_sr*)e->data);
 		break;
 	case RX_RR:
                 process_rr(sp, e->ssrc, (rtcp_rr*)e->data);
