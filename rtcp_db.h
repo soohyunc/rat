@@ -94,7 +94,7 @@ typedef struct s_rtcp_dbentry {
         struct s_render_3D_dbentry  *render_3D_data;
 	u_int32         last_mixed_playout;	/* from device_clock */
 	int		units_per_packet;
-        int             enc;
+        u_char          enc;
         char*           enc_fmt;
         u_int32         ui_last_update;            
 	/* Variables for playout time calculation */

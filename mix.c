@@ -93,7 +93,7 @@ mix_create(session_struct * sp, int buffer_length)
         codec_id_t            cid;
         const codec_format_t *cf;
 
-        cid = codec_get_by_payload(sp->encodings[0]);
+        cid = codec_get_by_payload((u_char)sp->encodings[0]);
         assert(cid);
         cf = codec_get_format(cid);
 	ms = (mix_struct *) xmalloc(sizeof(mix_struct));
@@ -181,7 +181,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	/* Receive unit at this point has a playout at the receiver frequency
 	 * and decompressed data at the codec output rate and channels.
 	 * These must be converted before mixing. */
-	to   = codec_get_by_payload(sp->encodings[0]);
+	from = el->comp_data[0].id;
 	to   = codec_get_by_payload((u_char)sp->encodings[0]);
 
         playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);

@@ -783,7 +783,7 @@ rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
         next_cid = codec_get_matching(short_name, (u_int16)freq, (u_int16)channels);
 
         if (next_cid) {
-                cid     = codec_get_by_payload (sp->encodings[0]);
+                cid     = codec_get_by_payload ((u_char)sp->encodings[0]);
                 assert(cid);
                 if (codec_audio_formats_compatible(next_cid, cid)) {
                         sp->encodings[0] = codec_get_payload(next_cid);
@@ -925,11 +925,11 @@ static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
                         channel_set_coder(sp, get_cc_pt(sp, "REDUNDANCY"));
 			if (mbus_parse_str(sp->mbus_engine_conf, &codec) && mbus_parse_int(sp->mbus_engine_conf, &offset)) {
 				if (offset<=0) offset = 0;;
-				cid  = codec_get_by_payload(sp->encodings[0]);
+				cid  = codec_get_by_payload((u_char)sp->encodings[0]);
                                 pcf = codec_get_format(cid);
 				rcid = codec_get_matching(mbus_decode_str(codec), 
-                                                          pcf->format.sample_rate, 
-                                                          pcf->format.channels);
+                                                          (u_int16)pcf->format.sample_rate, 
+                                                          (u_int16)pcf->format.channels);
 				if (!rcid) {
 					/* Specified secondary codec doesn't exist. Make it the same */
 					/* as the primary, and hope that's a sensible choice.        */

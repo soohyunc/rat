@@ -200,7 +200,7 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
 			return audio_write(sp->audio_device, buf, dur * ofmt->channels);
 		}
         }
-        id = codec_get_by_payload(sp->encodings[0]);
+        id = codec_get_by_payload((u_char)sp->encodings[0]);
         assert(id);
         cf = codec_get_format(id);
         return dur * cf->format.channels;
@@ -218,7 +218,7 @@ audio_device_take(session_struct *sp)
                 return (TRUE);
         }
 
-	id = codec_get_by_payload(sp->encodings[0]);
+	id = codec_get_by_payload((u_char)sp->encodings[0]);
         cf = codec_get_format(id);
 
         memcpy(&format, &cf->format, sizeof(audio_format));
@@ -342,7 +342,7 @@ audio_device_give(session_struct *sp)
 void
 audio_device_reconfigure(session_struct *sp)
 {
-        u_int16 oldpt    = sp->encodings[0];
+        u_char oldpt    = sp->encodings[0];
         audio_device_give(sp);
         tx_stop(sp);
         

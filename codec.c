@@ -236,8 +236,8 @@ static u_int16 total_fmts_supported;
  * used by codec.
  */ 
 
-#define CODEC_GET_IFS_INDEX(id)     (((id  & 0x00ff0000) >> 16) - 1)
-#define CODEC_GET_FMT_INDEX(id)     ((id & 0x0000ffff) - 1)
+#define CODEC_GET_IFS_INDEX(id)     (u_int16)(((id  & 0x00ff0000) >> 16) - 1)
+#define CODEC_GET_FMT_INDEX(id)     (u_int16)((id & 0x0000ffff) - 1)
 #define CODEC_MAKE_ID(ifs,fmt)      (((ifs) + 1) << 16)|((fmt+1)&0xffff)
 
 #define CODEC_VALID_PAD(id)          (!(id & 0xff000000))
@@ -337,7 +337,7 @@ codec_get_codec_number(u_int32 n)
 const codec_format_t*
 codec_get_format(codec_id_t id)
 {
-        u_int32 ifs, fmt;
+        u_int16 ifs, fmt;
 
         assert(codec_id_is_valid(id));
 
@@ -349,7 +349,7 @@ codec_get_format(codec_id_t id)
 int
 codec_can_encode(codec_id_t id)
 {
-        u_int32 ifs;
+        u_int16 ifs;
 
         ifs = CODEC_GET_IFS_INDEX(id);
 
@@ -661,7 +661,7 @@ static u_char    *codec_map[NUM_CODEC_INTERFACES];
 static void
 codec_map_init()
 {
-        u_int32 i,j;
+        u_int16 i,j;
         const codec_format_t *fmt;
 
         memset(payload_map, 0, NUM_PAYLOADS * sizeof(codec_id_t));
@@ -773,7 +773,7 @@ codec_id_t
 codec_get_by_name(const char *name)
 {
         const codec_format_t *cf;
-        u_int32 ifs, fmt;
+        u_int16 ifs, fmt;
 
         for(ifs = 0; ifs < NUM_CODEC_INTERFACES; ifs++) {
                 for(fmt = 0; fmt < num_fmts_supported[ifs]; fmt++) {

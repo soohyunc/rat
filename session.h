@@ -87,7 +87,7 @@ typedef struct session_tag {
         struct s_mix_info       *ms; 
         struct s_collator       *collator; /* collates media units into groups for transmission */
 	u_int16		rtp_seq;
-	int		encodings[MAX_ENCODINGS];
+	u_char		encodings[MAX_ENCODINGS];
 	int		num_encodings;	/* number of unique encodings being used */
         int             next_encoding;  /* used for changing device format */
 	int             sending_audio;

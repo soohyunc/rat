@@ -167,22 +167,6 @@ SOURCE=.\audio_types.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\cc_intl.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\cc_intl.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\cc_red.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\cc_red.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\channel.c
 # End Source File
 # Begin Source File
@@ -196,14 +180,6 @@ SOURCE=.\codec.c
 # Begin Source File
 
 SOURCE=.\codec.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec_acm.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec_acm.h
 # End Source File
 # Begin Source File
 
@@ -227,11 +203,39 @@ SOURCE=.\codec_gsm.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\codec_l16.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_l16.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\codec_lpc.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\codec_lpc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_state.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_state.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_types.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_vdvi.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_vdvi.h
 # End Source File
 # Begin Source File
 
@@ -276,6 +280,46 @@ SOURCE=.\cushion.c
 # Begin Source File
 
 SOURCE=.\cushion.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_dvi.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_dvi.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_gsm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_gsm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_lpc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_lpc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_vdvi.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_vdvi.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_wbs.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_wbs.h
 # End Source File
 # Begin Source File
 
@@ -346,6 +390,14 @@ SOURCE=.\parameters.c
 # Begin Source File
 
 SOURCE=.\parameters.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\pckt_queue.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\pckt_queue.h
 # End Source File
 # Begin Source File
 

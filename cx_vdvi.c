@@ -246,8 +246,8 @@ vdvi_encode(u_char *dvi_buf, int dvi_samples, u_char *out, int out_bytes)
                 t = *dp;
                 s1 = (*dp  & 0xf0) >> 4;
                 s2 = (*dp  & 0x0f);
-                bs_put(&dst, dmap[s1], dmap_bits[s1]);
-                bs_put(&dst, dmap[s2], dmap_bits[s2]);
+                bs_put(&dst, (u_char)dmap[s1], dmap_bits[s1]);
+                bs_put(&dst, (u_char)dmap[s2], dmap_bits[s2]);
                 assert(*dp == t);
                 dp ++;
         }

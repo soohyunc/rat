@@ -550,9 +550,9 @@ statistics(session_struct      *sp,
                 data_ptr =  (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
         
-                if ( ((cid = codec_get_by_payload(hdr->pt)) == 0 &&
-                    (cid = codec_get_by_payload(get_wrapped_payload(hdr->pt, (char*) data_ptr, len))) == 0) || 
-                    (cid != 0 && codec_can_decode(cid) == FALSE)) {
+                if ( ((cid = codec_get_by_payload((u_char)hdr->pt)) == 0 &&
+                    (cid = codec_get_by_payload((u_char)get_wrapped_payload(hdr->pt, (char*) data_ptr, len))) == 0) || 
+                    (cid != (codec_id_t)0 && codec_can_decode(cid) == FALSE)) {
                         /* We don't recognise this payload, or we don't have a decoder for it. */
 			debug_msg("Cannot decode data (pt %d).\n",hdr->pt);
 			goto release;

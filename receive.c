@@ -513,8 +513,8 @@ playout_buffer_find_or_create(session_struct *sp, ppb_t **list, rtcp_dbentry *sr
         
         ui_info_activate(sp, src);
 
-        id_dev = codec_get_by_payload(dev_pt);
-        id_src = codec_get_by_payload(src_pt);
+        id_dev = codec_get_by_payload((u_char)dev_pt);
+        id_src = codec_get_by_payload((u_char)src_pt);
         assert(id_dev);
         assert(id_src);
         cf_dev = codec_get_format(id_dev);
@@ -561,7 +561,7 @@ playout_buffer_duration (ppb_t *list, rtcp_dbentry *src)
                                 not_mixed ++;
                         }
                         
-                        cid = codec_get_by_payload(src->enc);
+                        cid = codec_get_by_payload((u_char)src->enc);
                         
                         return not_mixed * codec_get_samples_per_frame(cid);
                 }

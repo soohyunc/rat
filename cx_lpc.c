@@ -39,6 +39,9 @@
 #include "string.h"
 #include "math.h"
 #include "cx_lpc.h"
+/* For M_PI on W32 (euk!) */
+#include "config_win32.h"
+
 
 #define MAXWINDOW	1000	/* Max analysis window length */
 #define FS		8000.0f	/* Sampling rate */
