@@ -64,7 +64,7 @@ set V(class) "Mbone Applications"
 set V(app)   "rat"
 
 set iht			16
-set iwd 		190
+set iwd 		300
 set cancel_info_timer 	0
 set num_cname		0
 set DEBUG		0
@@ -223,11 +223,13 @@ proc mbus_recv_repair {args} {
 }
 
 proc mbus_recv_powermeter_input {level} {
-	bargraphSetHeight .r.c.gain.b2 $level
+	global bargraphHeight
+	bargraphSetHeight .r.c.gain.b2 [expr ($level * $bargraphHeight) / 100]
 }
 
 proc mbus_recv_powermeter_output {level} {
-	bargraphSetHeight .r.c.vol.b1  $level
+	global bargraphHeight
+	bargraphSetHeight .r.c.vol.b1  [expr ($level * $bargraphHeight) / 100]
 }
 
 proc mbus_recv_input_gain {gain} {
@@ -552,13 +554,17 @@ proc cname_update {cname} {
 }
 
 #power meters
+
+# number of elements in the bargraphs...
+set bargraphHeight 32
+
 proc bargraphCreate {bgraph} {
-	global oh$bgraph
+	global oh$bgraph bargraphHeight
 
 	frame $bgraph -bg black
 	frame $bgraph.inner0 -width 8 -height 6 -bg green
 	pack $bgraph.inner0 -side left -padx 1 -fill both -expand true
-	for {set i 1} {$i < 16} {incr i} {
+	for {set i 1} {$i < $bargraphHeight} {incr i} {
 		frame $bgraph.inner$i -width 8 -height 8 -bg black
 		pack $bgraph.inner$i -side left -padx 1 -fill both -expand true
 	}
@@ -566,7 +572,8 @@ proc bargraphCreate {bgraph} {
 }
 
 proc bargraphSetHeight {bgraph height} {
-	upvar #0 oh$bgraph oh
+	upvar #0 oh$bgraph oh 
+	global bargraphHeight
 
 	if {$oh > $height} {
 		for {set i [expr $height + 1]} {$i <= $oh} {incr i} {
@@ -574,7 +581,7 @@ proc bargraphSetHeight {bgraph height} {
 		}
 	} else {
 		for {set i [expr $oh + 1]} {$i <= $height} {incr i} {
-			if {$i > 12} {
+			if {$i > ($bargraphHeight * 0.8)} {
 				$bgraph.inner$i config -bg red
 			} else {
 				$bgraph.inner$i config -bg green
@@ -678,7 +685,7 @@ frame .r
 frame .l 
 frame .l.t -relief raised
 scrollbar .l.t.scr -relief flat -highlightthickness 0 -command ".l.t.list yview"
-canvas .l.t.list -highlightthickness 0 -bd 0 -relief raised -width $iwd -yscrollcommand ".l.t.scr set" -yscrollincrement $iht
+canvas .l.t.list -highlightthickness 0 -bd 0 -relief raised -width $iwd -height 200 -yscrollcommand ".l.t.scr set" -yscrollincrement $iht
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 frame  .l.s1 -bd 0
