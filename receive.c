@@ -542,8 +542,29 @@ playout_buffer_duration (ppb_t *list, rtcp_dbentry *src)
 {
         ppb_t *p;
 
-        if ((p = playout_buffer_find(list, src)) != NULL && p->last_got != NULL) {
-                return (p->tail_ptr->playoutpt - p->last_got->playoutpt) * 1000 / get_freq(p->src->clock);
+        if ((p = playout_buffer_find(list, src)) != NULL) {
+                if (p->last_got != NULL) {
+                        return (p->tail_ptr->playoutpt - p->last_got->playoutpt) * 1000 / get_freq(p->src->clock);
+                } else {
+                        /* If nothing has been mixed already we can count playout units
+                         * and then multiply by duration of each unit to return an estimate
+                         * of buffer length.
+                         */
+                        rx_queue_element_struct *ru;
+                        u_int32                  not_mixed;
+                        codec_id_t               cid;
+
+                        not_mixed = 0;
+                        ru = p->tail_ptr;
+                        while(ru && ru->mixed == FALSE) {
+                                ru = ru->prev_ptr;
+                                not_mixed ++;
+                        }
+                        
+                        cid = codec_get_by_payload(src->enc);
+                        
+                        return not_mixed * codec_get_samples_per_frame(cid);
+                }
         }
         return 0;
 }

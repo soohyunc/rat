@@ -263,8 +263,8 @@ adapt_playout(rtp_hdr_t *hdr,
 			var = (u_int32) src->jitter * 3;
 
                         if (var < (unsigned)src->inter_pkt_gap) {
+                                debug_msg("var (%d) < inter_pkt_gap (%d)\n", var, src->inter_pkt_gap);
                                 var = src->inter_pkt_gap;
-                                debug_msg("var = inter_pkt_gap(%d)\n", var);
                         }
                         
                         if (src->playout_danger) {
@@ -282,6 +282,10 @@ adapt_playout(rtp_hdr_t *hdr,
                         }
 
                         assert(var > 0);
+
+                        if (src->delay_in_playout_calc != src->delay) {
+                                debug_msg("Old delay (%u) new delay (%u) delta (%u)\n", src->delay_in_playout_calc, src->delay, max(src->delay_in_playout_calc, src->delay) - min(src->delay_in_playout_calc, src->delay));
+                        }
 
                         src->delay_in_playout_calc = src->delay;
                         
@@ -337,17 +341,17 @@ adapt_playout(rtp_hdr_t *hdr,
                                         src->playout += cs - bufdur + 2 * step;
                                 }
                                 src->playout_danger = FALSE;
-                        } else {
+                        } /*else {
                                 int offset = src->playout - src->delay_in_playout_calc;
                                 if (bufdur > cs && (bufdur - cs) > (unsigned)offset + 2u * step) {
                                         debug_msg("offset %d bufdur %d\n", offset, bufdur);
-                                        /* We are probably here because delay changed, or src clock
+                                         * We are probably here because delay changed, or src clock
                                          * is quicker than ours. Shift by 2 ms only and hope it is not
                                          * noticeable.
-                                         */
+                                         *
                                         src->playout -= 2 * src_freq / 1000;
                                 } 
-                        }
+                        } */
                 } 
         }
 
