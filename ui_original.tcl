@@ -753,9 +753,9 @@ menu .prefs.m.f.m.menu -tearoff 0
 
 frame  .prefs.buttons
 pack   .prefs.buttons       -side bottom -fill x 
-button .prefs.buttons.bye   -text "Cancel"  -command {sync_ui_to_engine} 
-button .prefs.buttons.apply -text "Apply"   -command {sync_engine_to_ui}
-button .prefs.buttons.save  -text "Dismiss" -command {save_settings; wm withdraw .prefs}
+button .prefs.buttons.bye   -text "Cancel"                   -command {sync_ui_to_engine; wm withdraw .prefs} 
+button .prefs.buttons.apply -text "Apply Preferences"        -command {sync_engine_to_ui}
+button .prefs.buttons.save  -text "Save & Apply Preferences" -command {save_settings; wm withdraw .prefs}
 pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side left -fill x -expand 1
 
 frame .prefs.pane -relief sunken
