@@ -272,7 +272,7 @@ vanilla_decoder_decode(u_char *state,
                 assert(clen == sizeof(channel_data));
 
                 if (ts_gt(playout, now)) {
-                        /* Playout point of unit is after now.  Stop already!  */
+                        /* Playout point of unit is after now.  Stop! */
                         break;
                 }
                 playout_buffer_remove(in, (u_char**)&c, &clen, &playout);
@@ -283,4 +283,50 @@ vanilla_decoder_decode(u_char *state,
                 channel_data_destroy(&c, sizeof(channel_data));
         }
         return TRUE;
+}
+
+int
+vanilla_decoder_peek(u_int8   pkt_pt,
+                     u_char  *buf,
+                     u_int32  len,
+                     u_int16  *upp,
+                     u_int8   *pt)
+{
+        codec_id_t cid;
+
+        assert(buf != NULL);
+        assert(upp != NULL);
+        assert(pt  != NULL);
+
+        cid = codec_get_by_payload(pkt_pt);
+        if (cid) {
+                const codec_format_t *cf;
+                u_int32               unit, done, step;
+                /* Vanilla coding does nothing but group
+                 * units.
+                 */
+                cf   = codec_get_format(cid);
+                unit = 0;
+                done = cf->mean_per_packet_state_size;
+                while(done < len) {
+                        step = codec_peek_frame_size(cid, buf+done, done);
+                        if (step == 0) {
+                                debug_msg("Zero data len for audio unit ?\n");
+                                goto fail;
+                        }
+                        done += step;
+                        unit ++;
+                }
+
+                assert(done <= len);
+
+                if (done != len) goto fail;
+                *upp = unit;
+                *pt  = pkt_pt;
+                return TRUE;
+        }
+fail:
+        *upp = 0;
+        *pt  = 255;
+        return FALSE;
 }

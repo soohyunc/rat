@@ -50,6 +50,11 @@ int  vanilla_decoder_decode  (u_char  *state,
                               struct s_playout_buffer *in,
                               struct s_playout_buffer *out,
                               u_int32 now);
+int vanilla_decoder_peek     (u_int8   pkt_pt,
+                              u_char  *data,
+                              u_int32  len,
+                              u_int16  *upp,
+                              u_int8   *pt);
  
 #endif /* __CC_VANILLA_H__ */
 

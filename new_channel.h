@@ -88,10 +88,21 @@ int       channel_decoder_decode (struct s_channel_state  *cs,
                                   struct s_playout_buffer *media_buffer, 
                                   u_int32                  now);
 
-int       channel_decoder_matches (cc_id_t cid, struct s_channel_state *cs);
+int       channel_decoder_matches (cc_id_t                 cid, 
+                                   struct s_channel_state *cs);
 
-int       channel_get_compatible_codec (u_int8 pt, u_char*data, u_int32 data_len);
-int       channel_get_units_in_packet  (u_int8 pt, u_char*data, u_int32 data_len);
+int       channel_get_compatible_codec (u_int8  pt, 
+                                        u_char *data, 
+                                        u_int32 data_len);
+
+int       channel_verify_and_stat (cc_id_t  cid,
+                                   u_int8   pktpt,
+                                   u_char  *data,
+                                   u_int32  data_len,
+                                   u_int16 *units_per_packet,
+                                   u_char  *codec_pt);
+
+                                   
 
 /* Payload mapping functions */
 cc_id_t   channel_coder_get_by_payload (u_int8 payload);

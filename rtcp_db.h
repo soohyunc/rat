@@ -80,23 +80,25 @@ typedef struct s_rtcp_dbentry {
 	double          jitter;
 	rtcp_user_rr	*rr;
 
-	u_char		mute;
 	u_int32         misordered;		
 	u_int32         duplicates;
 	u_int32         jit_TOGed;		/* TOGed = Thrown on the Ground */
 	u_char		cont_toged;		/* Toged in a row */
-        int             inter_pkt_gap;          /* expected time between pkt arrivals */
-	struct s_time		*clock;
-        struct s_converter      *converter;
+	u_char          first_pckt_flag:1;
+	u_char		mute:1;
+	struct s_time  *clock;
         struct s_render_3D_dbentry  *render_3D_data;
 	u_int32         last_mixed_playout;	/* from device_clock */
-	int		units_per_packet;
+        u_int32         ui_last_update;         /* Used for periodic update of packet counts, etc */
+        u_char          update_req:1;           /* ui info needs update as format changed */
+	u_int16		units_per_packet;
+        u_int16         inter_pkt_gap;          /* expected time between pkt arrivals */
         u_char          enc;
         char*           enc_fmt;
-        u_int32         ui_last_update;            
+
 	/* Variables for playout time calculation */
 	int		video_playout;		/* Playout delay in the video tool -- for lip-sync [csp] */
-        u_char          video_playout_received; /* video playout is relevent */
+        u_char          video_playout_received:1; /* video playout is relevent */
 	int		sync_playout_delay;	/* same interpretation as delay, used when sync is on [dm] */
 	u_int32         playout;		/* Playout delay for this talkspurt */
 	u_int32         delay;			/* Current delay for this participant (varies per packet) */
@@ -104,7 +106,6 @@ typedef struct s_rtcp_dbentry {
         int32           skew_adjust;
 	u_int32         last_ts;		/* Last packet timestamp */
 	u_int16         last_seq;		/* Last packet sequence number */
-	u_char          first_pckt_flag;
 
 	int		loss_from_me;		/* Loss rate that this receiver heard from me */
 	u_int32		last_rr_for_me;

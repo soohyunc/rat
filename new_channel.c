@@ -86,7 +86,11 @@ typedef struct {
                                        struct s_playout_buffer *in, 
                                        struct s_playout_buffer *out,
                                        u_int32                  now);
-
+        int     (*dec_peek)           (u_int8                   ccpt,
+                                       u_char                  *data,
+                                       u_int32                  len,
+                                       u_int16                 *upp,
+                                       u_int8                  *pt);
 } channel_coder_t;
 
 #include "cc_vanilla.h"
@@ -105,7 +109,8 @@ static channel_coder_t table[] = {
          NULL,
          NULL,
          NULL,
-         vanilla_decoder_decode}
+         vanilla_decoder_decode,
+         vanilla_decoder_peek}
 };
 
 #define CC_IDX_TO_ID(x) (((x)+1) | 0x0e00)
@@ -287,4 +292,17 @@ channel_decoder_matches(cc_id_t          id,
 {
         u_int16 coder = CC_ID_TO_IDX(id);
         return (coder == cs->coder);
+}
+
+int
+channel_verify_and_stat(cc_id_t  cid,
+                        u_int8   pktpt,
+                        u_char  *data,
+                        u_int32  data_len,
+                        u_int16 *units_per_packet,
+                        u_char  *codec_pt)
+{
+        u_int16 idx = CC_ID_TO_IDX(cid);
+        assert(idx < CC_NUM_CODERS);
+        return table[idx].dec_peek(pktpt, data, data_len, units_per_packet, codec_pt);
 }

@@ -39,15 +39,19 @@
 #ifndef __SOURCE_H__
 #define __SOURCE_H__
 
+#include "convert.h"
+
 struct s_source;
 struct s_source_list;
 struct s_rtcp_dbentry;
 
 int              source_list_create  (struct s_source_list **pplist);
+
 void             source_list_destroy (struct s_source_list **pplist);
 
 /* Methods for extracting dbe entry participants that are active */
 u_int32          source_list_source_count(struct s_source_list *plist);
+
 struct s_rtcp_dbentry* 
                  source_list_get_rtcp_dbentry(struct s_source_list *plist,
                                               u_int32               src_no);

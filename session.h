@@ -109,7 +109,7 @@ typedef struct session_tag {
 	int		agc_on;
         int             ui_on;
 	char		*ui_addr;
-        struct s_pcm_converter *converter;
+        converter_id_t  converter;
         float           drop;                       /* Flakeaway drop percentage [0,1] */
 	struct s_snd_file *in_file;
 	struct s_snd_file *out_file;

@@ -44,6 +44,7 @@
 #include "config_win32.h"
 #include "codec_types.h"
 #include "new_channel.h"
+#include "convert.h"
 #include "codec.h"
 #include "debug.h"
 #include "memory.h"
@@ -355,16 +356,6 @@ rtp_header_validation(rtp_hdr_t *hdr, int32 *len, int *extlen)
 	return (TRUE);
 }
 
-static void
-receiver_change_format(rtcp_dbentry *dbe, codec_id_t cid)
-{
-        const codec_format_t *cf = codec_get_format(cid);
-        debug_msg("Changing Format. %d %d\n", dbe->enc, codec_get_payload(cid));
-        dbe->first_pckt_flag = TRUE;
-        dbe->enc             = codec_get_payload(cid);
-	change_freq(dbe->clock, cf->format.sample_rate);
-}  
-
 /* Statistics _init and _end allocate good_pckt_queue which is used
  * as a temporary queue in rtp packet processing.
  */
@@ -384,6 +375,51 @@ void
 statistics_free()
 {
         pckt_queue_destroy(&good_pckt_queue);
+}
+
+static int
+statistics_channel_extract(rtcp_dbentry *dbe,
+                           u_int8        pt,
+                           u_char*       data,
+                           u_int32       len)
+{
+        cc_id_t ccid;
+        u_int16 upp;
+        u_int8  codec_pt;
+        assert(dbe != NULL);
+
+        ccid = channel_coder_get_by_payload(pt);
+        if (!ccid) {
+                debug_msg("No channel decoder\n");
+                return FALSE;
+        }
+
+        if (!channel_verify_and_stat(ccid,pt,data,len,&upp,&codec_pt)) {
+                debug_msg("Failed verify and stat\n");
+                return FALSE;
+        }
+
+        if (dbe->units_per_packet != upp) {
+                dbe->units_per_packet = upp;
+                dbe->update_req       = TRUE;
+        }
+
+        if (dbe->enc != codec_pt) {
+                const codec_format_t *cf;
+                codec_id_t            id;
+
+                id = codec_get_by_payload(codec_pt);
+                cf = codec_get_format(id);
+
+                change_freq(dbe->clock, cf->format.sample_rate);
+
+                dbe->enc             = codec_pt;
+                dbe->inter_pkt_gap   = dbe->units_per_packet * codec_get_samples_per_frame(id);
+                dbe->first_pckt_flag = TRUE;
+                dbe->update_req      = TRUE;
+        }
+
+        return TRUE;
 }
 
 void
@@ -425,8 +461,6 @@ statistics(session_struct          *sp,
 	u_int32		 now, now_device, late_adjust;
 	pckt_queue_element *pckt;
         struct s_source *src;
-	codec_id_t       cid = 0;
-	char 		 update_req = FALSE;
         int pkt_cnt = 0, late_cnt;
 
         now_device  = get_time(sp->device_clock);
@@ -479,25 +513,15 @@ statistics(session_struct          *sp,
                 data_ptr =  (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
 
-                cid = channel_get_compatible_codec(hdr->pt, (u_char*)data_ptr, len);
-                if (cid == 0) {
-			debug_msg("Cannot decode data (pt %d).\n",hdr->pt);
-			goto release;
+                if (statistics_channel_extract(sender, 
+                                               hdr->pt, 
+                                               data_ptr, 
+                                               len) == FALSE) {
+                        debug_msg("Failed channel check\n");
+                        goto release;
                 }
 
-                sender->units_per_packet = channel_get_units_in_packet(hdr->pt, (u_char*)data_ptr, len);
-        
-                if ((sender->enc == 0xff) || (sender->enc != codec_get_payload(cid)))
-                        receiver_change_format(sender, cid);
-                
-                if (sender->enc != codec_get_payload(cid)) {
-                        /* we should tell update more about coded format */
-                        debug_msg("sender enc %d pcp enc %d\n", sender->enc, codec_get_payload(cid));
-                        sender->enc = codec_get_payload(cid);
-                        update_req = TRUE;
-                }
-
-                pckt->sender     = sender;
+                pckt->sender  = sender;
                 pckt->playout = adapt_playout(hdr, pckt->arrival_timestamp, sender, sp, cushion, real_time);
 
                 /* Is this packet going to be played out late */
@@ -533,7 +557,13 @@ statistics(session_struct          *sp,
                 block_trash_check();
 
                 if ((src = source_get(sp->active_sources, pckt->sender)) == NULL) {
-                        src = source_create(sp->active_sources, pckt->sender);
+                        const audio_format* af;
+                        af = audio_get_ofmt(sp->audio_device);
+                        src = source_create(sp->active_sources, 
+                                            pckt->sender,
+                                            sp->converter,
+                                            af->sample_rate,
+                                            af->channels);
                         assert(src != NULL);
                 }
 
@@ -542,7 +572,7 @@ statistics(session_struct          *sp,
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
 
                 if (source_add_packet(src, 
-                                      pckt_ptr, 
+                                      pckt->pckt_ptr, 
                                       pckt->len, 
                                       data_ptr, 
                                       hdr->pt, 
