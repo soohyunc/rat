@@ -387,11 +387,12 @@ rtp_header_validation(rtp_hdr_t *hdr, int32 *len, int *extlen)
 }
 
 static int
-statistics_channel_extract(session_struct *sp,
-                           rtcp_dbentry *dbe,
-                           u_int8        pt,
-                           u_char*       data,
-                           u_int32       len)
+statistics_channel_extract(session_struct     *sp,
+                           rtcp_dbentry       *dbe,
+                           const audio_format *afout,
+                           u_int8              pt,
+                           u_char*             data,
+                           u_int32             len)
 {
         cc_id_t ccid;
         const codec_format_t *cf;
@@ -419,10 +420,22 @@ statistics_channel_extract(session_struct *sp,
         id = codec_get_by_payload(codec_pt);
         cf = codec_get_format(id);
 
-        if (mix_compatible(sp->ms, cf->format.sample_rate, cf->format.channels) == FALSE && 
-            sp->converter == null_converter) {
-                debug_msg("Rejected - needs sample rate conversion\n");
-                return FALSE;
+        if (mix_compatible(sp->ms, cf->format.sample_rate, cf->format.channels) == FALSE) { 
+
+                /* Won't go into mixer without some form of
+                 * conversion.  converter will convert sample_rate and
+                 * sample_channels if enabled and 3d renderer will
+                 * convert number of channels from 1 to 2 if enabled
+                 */
+                
+                if (sp->converter == null_converter &&
+                    !(sp->render_3d == TRUE && 
+                      cf->format.sample_rate == afout->sample_rate &&
+                      afout->channels == 2)) {
+                        
+                        debug_msg("Rejected - needs sample rate conversion\n");
+                        return FALSE;
+                }
         }
 
         if (dbe->enc != codec_pt) {
@@ -530,7 +543,8 @@ statistics_process(session_struct          *sp,
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
 
                 if (statistics_channel_extract(sp, 
-                                               sender, 
+                                               sender,
+                                               afout, 
                                                (u_char)hdr->pt, 
                                                data_ptr, 
                                                (u_int32)len) == FALSE) {
