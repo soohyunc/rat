@@ -200,6 +200,7 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                                   sp->converter, sp->render_3d, 
                                   (u_int16)dev_fmt->sample_rate,
                                   (u_int16)dev_fmt->channels);
+                ui_info_activate(sp, ssrc);
                 adjust_playout = TRUE;
                 debug_msg("Source created\n");
         }

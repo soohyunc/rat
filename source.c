@@ -635,7 +635,7 @@ source_check_buffering(source *src, ts_t now)
 
         buf_ms = ts_to_ms(source_get_playout_delay(src, now));
 
-        playout_dur = ts_sub(src->pdbe->playout, src->pdbe->delay_in_playout_calc);
+        playout_dur = ts_sub(src->pdbe->playout, src->pdbe->transit);
         playout_ms  = ts_to_ms(playout_dur);
 
         if (buf_ms > playout_ms) {
@@ -726,9 +726,9 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 debug_msg("dropping %d / %d samples\n", adjustment.ticks, src->skew_adjust.ticks);
                 pb_shift_forward(src->media,   adjustment);
                 pb_shift_forward(src->channel, adjustment);
-                src->pdbe->playout               = ts_sub(src->pdbe->playout, adjustment);
-                src->pdbe->delay_in_playout_calc = ts_sub(src->pdbe->delay_in_playout_calc, adjustment);
-                src->last_played = ts_sub(src->last_played, adjustment);
+                src->pdbe->playout = ts_sub(src->pdbe->playout, adjustment);
+                src->pdbe->transit = ts_sub(src->pdbe->transit, adjustment);
+                src->last_played   = ts_sub(src->last_played, adjustment);
                 src->skew_offenses = 0;
 
                 if (ts_valid(src->last_repair)) {
@@ -757,8 +757,8 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 }
                 pb_shift_units_back_after(src->media,   playout, adjustment);
                 pb_shift_units_back_after(src->channel, playout, adjustment);
-                src->pdbe->playout               = ts_add(src->pdbe->playout, adjustment);
-                src->pdbe->delay_in_playout_calc = ts_add(src->pdbe->delay_in_playout_calc, adjustment);
+                src->pdbe->playout = ts_add(src->pdbe->playout, adjustment);
+                src->pdbe->transit = ts_add(src->pdbe->transit, adjustment);
 
                 if (ts_gt(adjustment, src->skew_adjust)) {
                         src->skew_adjust = ts_map32(8000, 0);

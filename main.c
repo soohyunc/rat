@@ -200,9 +200,7 @@ main(int argc, char *argv[])
 				s = source_list_get_source_no(sp[0]->active_sources, sidx);
 
                                 if (source_relevant(s, sp[0]->cur_ts)) {
-/*
 					source_check_buffering(s, sp[0]->cur_ts);
-                                        */
 					source_process(s, sp[0]->ms, sp[0]->render_3d, sp[0]->repair, cush_ts);
 					source_audit(s);
 				} else {

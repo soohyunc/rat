@@ -49,12 +49,13 @@ typedef struct {
         ts_t            jitter;
         ts_t            transit;
         ts_t            last_transit;
-
         cc_id_t         channel_coder_id;            /* channel_coder of last received packet */
 	ts_t            last_mixed;                  /* Used to check mixing */
 	ts_t            playout;                     /* Playout delay for this talkspurt */
-	ts_t            delay;                       /* Current delay for this participant (varies per packet) */
-        ts_t            delay_in_playout_calc;       /* Delay used for last playout point calculation */
+
+        /* Packet info */
+        u_int32         duplicates;
+        u_int32         misordered;
 
 	/* Variables for playout time calculation */
 	int		video_playout;		     /* Playout delay in the video tool -- for lip-sync [csp] */
@@ -66,7 +67,6 @@ typedef struct {
 	u_int32         last_ntp_sec;	/* NTP timestamp */
 	u_int32         last_ntp_frac;
 	u_int32         last_rtp_ts;	/* RTP timestamp */
-        u_int32         duplicates;
 } pdb_entry_t;
 
 /* Functions for creating and destroying persistent database.  Return
