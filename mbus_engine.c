@@ -72,8 +72,8 @@ static void rx_tool_rat_toggle_input_port(char *srce, char *args, session_struct
 		return;
 	}
 
-	audio_next_iport(sp->audio_fd);
-	sp->input_mode = audio_get_iport(sp->audio_fd);
+	audio_next_iport(sp->audio_device);
+	sp->input_mode = audio_get_iport(sp->audio_device);
 	ui_update_input_port(sp);
 }
 
@@ -86,8 +86,8 @@ static void rx_tool_rat_toggle_output_port(char *srce, char *args, session_struc
 		return;
 	}
 
-	audio_next_oport(sp->audio_fd);
-	sp->output_mode = audio_get_oport(sp->audio_fd);
+	audio_next_oport(sp->audio_device);
+	sp->output_mode = audio_get_oport(sp->audio_device);
 	ui_update_output_port(sp);
 }
 
@@ -215,9 +215,9 @@ static void rx_tool_rat_audio_loopback(char *srce, char *args, session_struct *s
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
                 if (i) {
-                        audio_loopback(sp->audio_fd, 100);
+                        audio_loopback(sp->audio_device, 100);
                 } else {
-                        audio_loopback(sp->audio_fd, 0);
+                        audio_loopback(sp->audio_device, 0);
                 }
 	} else {
 		printf("mbus: usage \"tool.rat.audio.loopback <boolean>\"\n");
@@ -289,7 +289,7 @@ static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
 		sp->input_gain = i;
 		if (sp->have_device) {
-			audio_set_gain(sp->audio_fd, sp->input_gain);
+			audio_set_gain(sp->audio_device, sp->input_gain);
 			tx_igain_update(sp);
 		}
 	} else {
@@ -308,19 +308,19 @@ static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
 		s = mbus_decode_str(s);
 		if (strcmp(s, "microphone") == 0) {
-			audio_set_iport(sp->audio_fd, AUDIO_MICROPHONE);
+			audio_set_iport(sp->audio_device, AUDIO_MICROPHONE);
 		}
 		if (strcmp(s, "cd") == 0) {
-			audio_set_iport(sp->audio_fd, AUDIO_CD);
+			audio_set_iport(sp->audio_device, AUDIO_CD);
 		}
 		if (strcmp(s, "line_in") == 0) {
-			audio_set_iport(sp->audio_fd, AUDIO_LINE_IN);
+			audio_set_iport(sp->audio_device, AUDIO_LINE_IN);
 		}
 	} else {
 		printf("mbus: usage \"audio.input.port <port>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
-        sp->input_mode = audio_get_iport(sp->audio_fd);
+        sp->input_mode = audio_get_iport(sp->audio_device);
 	ui_update_input_port(sp);
 }
 
@@ -349,7 +349,7 @@ static void rx_audio_output_gain(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
 		sp->output_gain = i;
-		audio_set_volume(sp->audio_fd, sp->output_gain);
+		audio_set_volume(sp->audio_device, sp->output_gain);
 	} else {
 		printf("mbus: usage \"audio.output.gain <integer>\"\n");
 	}
@@ -366,19 +366,19 @@ static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
 		s = mbus_decode_str(s);
 		if (strcmp(s, "speaker") == 0) {
-			audio_set_oport(sp->audio_fd, AUDIO_SPEAKER);
+			audio_set_oport(sp->audio_device, AUDIO_SPEAKER);
 		}
 		if (strcmp(s, "headphone") == 0) {
-			audio_set_oport(sp->audio_fd, AUDIO_HEADPHONE);
+			audio_set_oport(sp->audio_device, AUDIO_HEADPHONE);
 		}
 		if (strcmp(s, "line_out") == 0) {
-			audio_set_oport(sp->audio_fd, AUDIO_LINE_OUT);
+			audio_set_oport(sp->audio_device, AUDIO_LINE_OUT);
 		}
 	} else {
 		printf("mbus: usage \"audio.output.port <port>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
-        sp->output_mode = audio_get_oport(sp->audio_fd);
+        sp->output_mode = audio_get_oport(sp->audio_device);
 	ui_update_output_port(sp);
 }
 
@@ -500,7 +500,7 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(sp->mbus_engine_conf, &file)) {
                 mbus_decode_str(file);
                 if (sp->out_file) snd_write_close(&sp->out_file);
-                if (snd_write_open(&sp->out_file, file, (u_int16)get_freq(sp->device_clock), (u_int16)audio_get_channels(sp->audio_fd))) {
+                if (snd_write_open(&sp->out_file, file, (u_int16)get_freq(sp->device_clock), (u_int16)audio_get_channels(sp->audio_device))) {
                         debug_msg("Hooray opened %s\n",file);
                 }
 	} else {

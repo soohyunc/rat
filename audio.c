@@ -184,9 +184,9 @@ audio_device_read(session_struct *sp, sample *buf, int samples)
 {
 	assert(sp->have_device);
 	if (sp->mode == TRANSCODER) {
-		return transcoder_read(sp->audio_fd, buf, samples);
+		return transcoder_read(sp->audio_device, buf, samples);
 	} else {
-		return audio_read(sp->audio_fd, buf, samples);
+		return audio_read(sp->audio_device, buf, samples);
 	}
 }
 
@@ -196,14 +196,14 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
         codec_t *cp = get_codec_by_pt(sp->encodings[0]);
 
 	if (sp->have_device) {
-                u_int16 channels = audio_get_channels(sp->audio_fd);
+                u_int16 channels = audio_get_channels(sp->audio_device);
                 if (sp->out_file) {
                         snd_write_audio(&sp->out_file, buf, (u_int16)(dur * channels));
                 }
 		if (sp->mode == TRANSCODER) {
-			return transcoder_write(sp->audio_fd, buf, dur*cp->channels);
+			return transcoder_write(sp->audio_device, buf, dur*cp->channels);
 		} else {
-			return audio_write(sp->audio_fd, buf, dur * channels);
+			return audio_write(sp->audio_device, buf, dur * channels);
 		}
         } else {
 		return (dur * cp->channels);
@@ -228,38 +228,38 @@ audio_device_take(session_struct *sp)
         format.blocksize       = cp->unit_len * cp->channels;
 
 	if (sp->mode == TRANSCODER) {
-		if ((sp->audio_fd = transcoder_open()) == 0) {
+		if ((sp->audio_device = transcoder_open()) == 0) {
                         return FALSE;
                 }
 		sp->have_device = TRUE;
 	} else {
 		/* XXX should pass a pointer to format ???!!! */
-		if ((sp->audio_fd = audio_open(&format)) == 0) {
+		if ((sp->audio_device = audio_open(&format)) == 0) {
 			return FALSE;
 		}
 
-		if (audio_duplex(sp->audio_fd) == FALSE) {
+		if (audio_duplex(sp->audio_device) == FALSE) {
 			printf("RAT v3.2.0 and later require a full duplex audio device, but \n");
 			printf("your audio device only supports half-duplex operation. Sorry.\n");
 			return FALSE;
 		}
 
-		audio_drain(sp->audio_fd);
+		audio_drain(sp->audio_device);
 		sp->have_device = TRUE;
 	
 		if (sp->input_mode!=AUDIO_NO_DEVICE) {
-			audio_set_iport(sp->audio_fd, sp->input_mode);
-			audio_set_gain(sp->audio_fd, sp->input_gain);
+			audio_set_iport(sp->audio_device, sp->input_mode);
+			audio_set_gain(sp->audio_device, sp->input_gain);
 		} else {
-			sp->input_mode=audio_get_iport(sp->audio_fd);
-			sp->input_gain=audio_get_gain(sp->audio_fd);
+			sp->input_mode=audio_get_iport(sp->audio_device);
+			sp->input_gain=audio_get_gain(sp->audio_device);
 		}
 		if (sp->output_mode!=AUDIO_NO_DEVICE) {
-			audio_set_oport(sp->audio_fd, sp->output_mode);
-			audio_set_volume(sp->audio_fd, sp->output_gain);
+			audio_set_oport(sp->audio_device, sp->output_mode);
+			audio_set_volume(sp->audio_device, sp->output_gain);
 		} else {
-			sp->output_mode=audio_get_oport(sp->audio_fd);
-			sp->output_gain=audio_get_volume(sp->audio_fd);
+			sp->output_mode=audio_get_oport(sp->audio_device);
+			sp->output_gain=audio_get_volume(sp->audio_device);
 		}
 	}
         
@@ -268,8 +268,8 @@ audio_device_take(session_struct *sp)
                 audio_zero(audio_zero_buf, format.blocksize, DEV_L16);
         }
 
-        if ((sp->audio_fd != 0) && (sp->mode != TRANSCODER)) {
-                audio_non_block(sp->audio_fd);
+        if ((sp->audio_device != 0) && (sp->mode != TRANSCODER)) {
+                audio_non_block(sp->audio_device);
         }
 
         /* We initialize the pieces above the audio device here since their parameters
@@ -295,13 +295,13 @@ audio_device_give(session_struct *sp)
 	if (sp->have_device) {
                 tx_stop(sp);
 		if (sp->mode == TRANSCODER) {
-			transcoder_close(sp->audio_fd);
+			transcoder_close(sp->audio_device);
 		} else {
-		        sp->input_mode = audio_get_iport(sp->audio_fd);
-		        sp->output_mode = audio_get_oport(sp->audio_fd);
-			audio_close(sp->audio_fd);
+		        sp->input_mode = audio_get_iport(sp->audio_device);
+		        sp->output_mode = audio_get_oport(sp->audio_device);
+			audio_close(sp->audio_device);
 		}
-		sp->audio_fd = 0;
+		sp->audio_device = 0;
 		sp->have_device = FALSE;
 	} else {
                 return;
@@ -396,7 +396,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 	 * another silence gap...
 	 */
         cushion_size = cushion_get_size(c);
-        channels = audio_get_channels(spi->audio_fd);
+        channels = audio_get_channels(spi->audio_device);
 
 	if ( cushion_size < read_dur ) {
 		/* Use a step for the cushion to keep things nicely rounded   */

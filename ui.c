@@ -517,7 +517,7 @@ ui_update_input_gain(session_struct *sp)
 {
 	char	args[4];
 
-        sprintf(args, "%3d", audio_get_gain(sp->audio_fd)); 
+        sprintf(args, "%3d", audio_get_gain(sp->audio_device)); 
         assert(strlen(args) < 4);
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.gain", args, TRUE);
 }
@@ -527,7 +527,7 @@ ui_update_output_gain(session_struct *sp)
 {
 	char	args[4];
 
-        sprintf(args, "%3d", audio_get_volume(sp->audio_fd)); 
+        sprintf(args, "%3d", audio_get_volume(sp->audio_device)); 
         assert(strlen(args) < 4);
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.output.gain", args, TRUE);
 }
@@ -855,7 +855,7 @@ ui_sampling_modes(session_struct *sp)
         for(rate = 8000; rate <=48000; rate += 8000) {
                 support = 0;
                 for(channels = 1; channels <= 2; channels++) {
-                        if (audio_device_supports(sp->audio_fd, rate, channels)) support += channels;
+                        if (audio_device_supports(sp->audio_device, rate, channels)) support += channels;
                 }
                 switch(support) {
                 case 3: sprintf(tmp, "%d-kHz,Mono,Stereo ", rate/1000); break; 

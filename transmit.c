@@ -207,7 +207,7 @@ tx_start(session_struct *sp)
         sp->auto_lecture = 1;       /* Turn off auto lecture */
         sd_reset(tb->sd_info);
         agc_reset(tb->agc);
-        audio_drain(sp->audio_fd);  /* Clear any audio that may have accumulated */
+        audio_drain(sp->audio_device);  /* Clear any audio that may have accumulated */
 }
 
 void
@@ -243,8 +243,8 @@ tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
         tb->channels = channels;
 
         if (sp->mode != TRANSCODER) {
-                audio_drain(sp->audio_fd);
-                audio_read(sp->audio_fd, dummy_buf, DEVICE_REC_BUF);
+                audio_drain(sp->audio_device);
+                audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF);
         }
 
         return (tb);

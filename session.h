@@ -128,7 +128,7 @@ typedef struct session_tag {
         int             input_mode;                 /* mike/line input */
         int             output_mode;                /* speaker/line/head out */
 	struct timeval	device_time;
-	fd_t		audio_fd;
+	audio_desc_t	audio_device;
 	struct s_tx_buffer	*tb;
 	struct rtp_db_tag	*db;
 	struct s_participant_playout_buffer	*playout_buf_list;
