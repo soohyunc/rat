@@ -136,7 +136,11 @@ rtcp_check_rtcp_pkt(u_int8 *packet, int len)
 
 
 /*
- * Decode an RTCP packet.
+ *  Decode an RTCP packet.
+ *
+ *  We must be careful not to decode loopback packets! This is relatively easy: all RTCP packets MUST start with
+ *  either an SR or RR sub-packet. We check the SSRC of that sub-packet, and if it's our SSRC then throw out the
+ *  packet. [csp]
  */
 void 
 rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, int len, u_int32 addr, u_int32 cur_time)
@@ -160,6 +164,10 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 		switch (pkt->common.pt) {
 		case RTCP_SR:
 			ssrc = ntohl(pkt->r.sr.ssrc);
+			if (ssrc == sp->db->myssrc) {
+				/* Loopback packet, discard it... */
+				return;
+			}
 			dbe = rtcp_getornew_dbentry(sp, ssrc, addr, cur_time);
 			dbe->last_active   = cur_time;
 			dbe->last_sr       = cur_time;
@@ -193,6 +201,11 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			}
 			break;
 		case RTCP_RR:	/* We won't deal with this just yet */
+			ssrc = ntohl(pkt->r.sr.ssrc);
+			if (ssrc == sp->db->myssrc) {
+				/* Loopback packet, discard it... */
+				return;
+			}
 			dbe = rtcp_getornew_dbentry(sp, ntohl(pkt->r.rr.ssrc), addr, cur_time);
 			dbe->last_active = cur_time;
 
@@ -645,7 +658,7 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 	rtcp_common_t  *hdr    	= (rtcp_common_t *) ptr;
 	rtcp_dbentry   *sptr 	= sp->db->ssrc_db;
 	rtcp_dbentry   *sptmp	= NULL;
-	int		now 	= get_time(sp->device_clock);
+	u_int32		now 	= get_time(sp->device_clock);
 	int             packlen = 0;
 	int		offset	= 0;
 
@@ -709,7 +722,7 @@ rtcp_update(session_struct *sp, int fd, u_int32 addr, u_int16 port)
 	u_int32  	packet[MAX_PACKLEN / 4];
 	u_int8         *ptr 	= (u_int8 *) packet;
 	int             packlen = 0;
-	int		now 	= get_time(sp->device_clock);
+	u_int32		now 	= get_time(sp->device_clock);
 
 	if (sp->db->old_ssrc) {
 		/* Our SSRC has changed, so send a BYE packet for that SSRC */
@@ -746,7 +759,7 @@ rtcp_forward(rtcp_t *pckt, session_struct *sp1, session_struct *sp2)
 	u_int8         *ptr 	= (u_int8 *) packet;
 	int             packlen = 0;
 	/* XXX why are these ints */
-	int		now 	= get_time(sp2->device_clock);
+	u_int32		now 	= get_time(sp2->device_clock);
 
 	if (sp1 == NULL || sp1->mode != TRANSCODER || sp2->mode != TRANSCODER)
 		return;
