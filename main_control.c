@@ -174,7 +174,14 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 
 	/* Parse command line parameters... */
 	for (i = 1; i < argc; i++) {
-                if  (strcmp(argv[i], "-allowloopback") == 0) {
+                if ((strcmp(argv[i], "-allowloopback") == 0) && (argc > i+1)) {
+			if (strcmp(argv[i+1], "on") == 0) {
+				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.audio.loopback", "1");
+			} else if (strcmp(argv[i+1], "off") == 0) {
+				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.audio.loopback", "0");
+			} else {
+				printf("Usage: -allowloopback on|off\n");
+			}
                 } else if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
 			tmp = mbus_encode_str(argv[i+1]);
 			mbus_qmsgf(m, e_addr, TRUE, "session.title", tmp);
