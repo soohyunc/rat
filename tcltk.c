@@ -321,6 +321,7 @@ tcl_init1(int argc, char **argv)
 int 
 tcl_init2(struct mbus *mbus_ui, char *mbus_engine_addr)
 {
+	struct timeval	 timeout;
 	Tcl_Obj 	*audiotool_obj;
 	engine_addr   = xstrdup(mbus_engine_addr);
 
@@ -332,8 +333,14 @@ tcl_init2(struct mbus *mbus_ui, char *mbus_engine_addr)
 		fprintf(stderr, "ui_audiotool error: %s\n", Tcl_GetStringResult(interp));
 	}
 
+	/* Process Tcl/Tk events */
         while (Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS)) {
-		/* Process Tcl/Tk events */
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 0;
+		mbus_heartbeat(mbus_ui, 1);
+		mbus_retransmit(mbus_ui);
+		mbus_send(mbus_ui);
+		mbus_recv(mbus_ui, NULL, &timeout);
 	}
 	Tcl_ResetResult(interp);
 	return TRUE;

@@ -99,6 +99,9 @@ int main(int argc, char *argv[])
 	struct timeval	 timeout;
         uint8_t		 j;
 
+
+	Sleep(10000);
+
 #ifdef WIN32
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 #else
@@ -149,7 +152,7 @@ int main(int argc, char *argv[])
 	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */
 	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
 	debug_msg("Waiting for mbus.waiting(%s) from controller...\n", token);
-	mbus_rendezvous_go(sp->mbus_engine, token, (void *) sp->mbus_engine);
+	mbus_rendezvous_go(sp->mbus_engine, token, (void *) sp);
 	debug_msg("...got it\n");
 
 	/* At this point we know the mbus address of our controller, and have conducted */
@@ -204,10 +207,10 @@ int main(int argc, char *argv[])
                 /* Process mbus */
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 0;
-		mbus_send(sp->mbus_engine); 
 		mbus_recv(sp->mbus_engine, (void *) sp, &timeout);
-		mbus_retransmit(sp->mbus_engine);
 		mbus_heartbeat(sp->mbus_engine, 1);
+		mbus_retransmit(sp->mbus_engine);
+		mbus_send(sp->mbus_engine); 
 
                 /* Process audio */
 		elapsed_time += audio_rw_process(sp, sp, sp->ms);

@@ -227,6 +227,7 @@ proc mbus_recv {cmnd args} {
 	# This is not the most efficient way of doing this, since we could call mbus_recv_... 
 	# directly from the C code. It does, however, make it explicit which Mbus commands we
 	# understand.
+	puts "got $cmnd"
 	switch $cmnd {
 		mbus.waiting			{eval mbus_recv_mbus.waiting $args}
 		mbus.go				{eval mbus_recv_mbus.go $args}
@@ -774,6 +775,7 @@ proc mbus_recv_rtp.ssrc {ssrc} {
 	set my_ssrc $ssrc
 	init_source $ssrc
 	ssrc_update $ssrc
+	puts "done rtp.ssrc"
 }
 
 proc mbus_recv_rtp.source.exists {ssrc} {

@@ -77,6 +77,8 @@ int main(int argc, char *argv[])
         hWakeUpEvent = CreateEvent(NULL, FALSE, FALSE, "Local\\RAT UI WakeUp Event");
 #endif
 
+	Sleep(10000);
+
         debug_set_core_dir(argv[0]);
 
 	debug_msg("rat-ui started argc=%d\n", argc);
@@ -113,7 +115,7 @@ int main(int argc, char *argv[])
 	/* We do mbus.waiting(foo) where "foo" is the original token. The controller will */
 	/* eventually respond with mbus.go(foo) when it has finished sending us commands. */
 	debug_msg("Waiting for mbus.go(%s) from controller...\n", token);
-	mbus_rendezvous_waiting(m, c_addr, token, m);
+	mbus_rendezvous_waiting(m, c_addr, token, (void *) m);
 	debug_msg("...got it\n");
 
 	/* At this point we should know (at least) the address of the media engine. */
@@ -125,23 +127,23 @@ int main(int argc, char *argv[])
 	while (!should_exit) {
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 20000;
-		mbus_recv(m, NULL, &timeout);
-		mbus_send(m);
+		mbus_recv(m, (void *)m, &timeout);
 		mbus_heartbeat(m, 1);
 		mbus_retransmit(m);
+		mbus_send(m);
 		while (Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS)) {
 			/* Process Tcl/Tk events... */
 		}
 		if (Tk_GetNumMainWindows() == 0) {
 			should_exit = TRUE;
 		}
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 40000;
 		/* Throttle CPU usage */
 #ifdef WIN32
                 /* Just timeout waiting for event that never happens */
-                WaitForSingleObject(hWakeUpEvent, 40);
+                WaitForSingleObject(hWakeUpEvent, 10);
 #else
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 10000;
                 select(0, NULL, NULL, NULL, &timeout);
 #endif
 	}
