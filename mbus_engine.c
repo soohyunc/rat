@@ -822,7 +822,7 @@ rx_tool_rat_codec(char *srce, char *args, session_t *sp)
                 mbus_decode_str(sfreq);
                 mbus_parse_done(sp->mbus_engine);
         } else {
-		debug_msg("mbus: usage \"tool.rat.codec <codec> <freq> <channels>\"\n");
+		debug_msg("mbus: usage \"tool.rat.codec <codec> <channels> <freq>\"\n");
                 mbus_parse_done(sp->mbus_engine);
                 return;
         }

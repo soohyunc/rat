@@ -215,7 +215,7 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 			name = mbus_encode_str(name);
 			freq = mbus_encode_str(freq);
 			chan = mbus_encode_str(chan);
-			mbus_qmsgf(m, e_addr, TRUE, "tool.rat.codec", "%s %s %s", name, freq, chan);
+			mbus_qmsgf(m, e_addr, TRUE, "tool.rat.codec", "%s %s %s", name, chan, freq);
 			xfree(name);
 			xfree(freq);
 			xfree(chan);
