@@ -15,19 +15,93 @@ AC_HEADER_STDC
 AC_C_CONST
 AC_TYPE_SIZE_T
 
-# Check for standard size types.  The defaults are only valid on some
-# systems so we hope that <inttypes.h> exists when they're wrong.
+# Check for various headers #################################################
+AC_CHECK_HEADERS(stdint.h inttypes.h stropts.h sys/filio.h malloc.h)
+AC_CHECK_HEADERS(sys/sockio.h)
 
-AC_CHECK_TYPE(uint8_t, unsigned char)
-AC_CHECK_TYPE(uint16_t, unsigned short)
-AC_CHECK_TYPE(uint32_t, unsigned long)
-AC_CHECK_TYPE(int8_t, signed char)
+# Check for libraries #######################################################
+AC_SEARCH_LIBS(socket, socket)
+AC_SEARCH_LIBS(inet_addr, nsl)
+
+AC_CHECK_FUNC(sin, MATHLIBS="", MATHLIBS="-lm")
+AC_CHECK_LIB(ieee, main, [MATHLIBS="-lieee $MATHLIBS"])
+AC_SUBST(MATHLIBS)
+
+# Check for standard size types.  The defaults are only valid on some ########
+# systems so we hope that <inttypes.h> exists when they're wrong. ############
+
+AC_CHECK_TYPE(int8_t,  signed char)
 AC_CHECK_TYPE(int16_t, short)
 AC_CHECK_TYPE(int32_t, long)
 AC_CHECK_TYPE(int64_t, long long)
 
-# Audio device selection,  derived from host type.  Could be smart and
-# probe what's there...
+# Some systems have these in <stdint.h>, just to be difficult...
+AC_CACHE_CHECK(for uint8_t in <stdint.h>, ucl_cv_uint8_t_in_stdint_h,
+        AC_EGREP_HEADER(uint8_t,
+                        stdint.h,
+                        ucl_cv_uint8_t_in_stdint_h=yes,
+                        ucl_cv_uint8_t_in_stdint_h=no))
+if test $ucl_cv_uint8_t_in_stdint_h = "no"
+then
+         AC_CHECK_TYPE(uint8_t,  unsigned char)
+fi
+
+AC_CACHE_CHECK(for uint16_t in <stdint.h>, ucl_cv_uint16_t_in_stdint_h,
+        AC_EGREP_HEADER(uint16_t,
+                        stdint.h,
+                        ucl_cv_uint16_t_in_stdint_h=yes,
+                        ucl_cv_uint16_t_in_stdint_h=no))
+if test $ucl_cv_uint16_t_in_stdint_h = "no"
+then
+         AC_CHECK_TYPE(uint16_t,  unsigned short)
+fi
+
+AC_CACHE_CHECK(for uint32_t in <stdint.h>, ucl_cv_uint32_t_in_stdint_h,
+        AC_EGREP_HEADER(uint32_t,
+                        stdint.h,
+                        ucl_cv_uint32_t_in_stdint_h=yes,
+                        ucl_cv_uint32_t_in_stdint_h=no))
+if test $ucl_cv_uint32_t_in_stdint_h = "no"
+then
+         AC_CHECK_TYPE(uint32_t,  unsigned int)
+fi
+
+# The following two macros cause autoconf to complain.
+AC_C_BIGENDIAN
+AC_C_CHAR_UNSIGNED
+#
+# The (?which?) library does not work with unsigned characters.
+# Force the compiler to use signed chars.
+if test $ac_cv_c_char_unsigned = yes
+then
+        if test "$GCC" = yes
+        then
+                CFLAGS="$CFLAGS -fsigned-char"
+        else
+                case "$host_os" in
+                # I don't know when "-signed" was added to IRIX CC
+                # so err on the side of using it.
+                irix*)  CFLAGS="$CFLAGS -signed"
+                        ;;
+                # need e.g. --force-signed-chars=-signed
+                *)      AC_MSG_ERROR([I don't know how to force signed chars])
+                        ;;
+                esac
+        fi
+fi
+#  __CHAR_UNSIGNED__ will be defined; hope this is OK.
+
+# Check for missing functions ################################################
+EXTRAOBJ=
+AC_CHECK_FUNC(usleep,,
+	[EXTRAOBJ="$EXTRAOBJ usleep.o"
+	 AC_DEFINE(NEED_USLEEP)])
+
+AC_SUBST(EXTRAOBJ)
+
+# Audio device selection,  derived from host type.  Could be smart and ######
+# probe what's there... #####################################################
+
 AUDIOINC=
 AUDIOLIB=
 AUDIOOBJ=
@@ -77,6 +151,58 @@ esac
 AC_SUBST(AUDIOOBJ)
 AC_SUBST(AUDIOINC)
 AC_SUBST(AUDIOLIB)
+
+# X and Tcl/Tk ##############################################################
+AC_PATH_XTRA
+AC_SUBST(X_CFLAGS)
+AC_SUBST(X_LIBS)
+
+# Enable options ############################################################
+AC_ARG_ENABLE(profile,
+        [  --enable-profile        enable profiling],
+        [if test $enableval = yes
+        then
+                if test "$GCC" = yes
+                then
+                        CFLAGS="$CFLAGS -pg"
+                else
+                        AC_ERROR([Don't know how to enable profiling for $CC])
+                fi
+        fi])
+AC_ARG_ENABLE(bounds,
+        [  --enable-bounds         enable bounds checking],
+        [if test $enableval = yes
+        then
+                if test "$GCC" = yes
+                then
+                        CFLAGS="$CFLAGS -fbounds-checking"
+                        LIBS="$LIBS -lcheck"
+                else
+                        AC_ERROR([Don't know how to enable profiling for $CC])
+                fi
+        fi])
+AC_ARG_ENABLE(debug,
+        [  --enable-debug          enable debug messages and code],
+        [if test $enableval = yes
+        then
+                AC_DEFINE(DEBUG)
+        fi])
+AC_ARG_ENABLE(debug-mem,
+        [  --enable-debug-mem      enable memory debugging code],
+        [if test $enableval = yes
+        then
+                AC_DEFINE(DEBUG_MEM)
+        fi])
+
+# GCC-specific warning flags ################################################
+if test "$GCC" = yes
+then
+        CFLAGS="$CFLAGS -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
+        if test -f .devel
+        then
+                CFLAGS="$CFLAGS -Werror"
+        fi
+fi
 
 AC_CONFIG_HEADER(config.h)
 

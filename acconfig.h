@@ -1,17 +1,7 @@
 /*
- * Define this if you have a /dev/urandom which can supply good random numbers.
+ * Define this if your C library doesn't have usleep.
  */
-#undef HAVE_DEV_URANDOM
-
-/*
- * Define this if you want IPv6 support.
- */
-#undef HAVE_IPv6
-
-/*
- * Define this if your C library doesn't have vsnprintf.
- */
-#undef NEED_VSNPRINTF
+#undef NEED_USLEEP
 
 /*
  * If you don't have these types in <inttypes.h>, #define these to be

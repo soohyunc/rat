@@ -1,5 +1,10 @@
 /* config.h.in.  Generated automatically from configure.in by autoheader.  */
 
+/* Define if type char is unsigned and you are not using gcc.  */
+#ifndef __CHAR_UNSIGNED__
+#undef __CHAR_UNSIGNED__
+#endif
+
 /* Define to empty if the keyword does not work.  */
 #undef const
 
@@ -8,6 +13,18 @@
 
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
+
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
+#undef WORDS_BIGENDIAN
+
+/* Define if the X Window System is missing or not being used.  */
+#undef X_DISPLAY_MISSING
+
+/*
+ * Define this if your C library doesn't have usleep.
+ */
+#undef NEED_USLEEP
 
 /*
  * If you don't have these types in <inttypes.h>, #define these to be
@@ -21,6 +38,14 @@
 #undef uint32_t
 #undef uint8_t
 
+/*
+ * Debugging:
+ * DEBUG: general debugging
+ * DEBUG_MEM: debug memory allocation
+ */
+#undef DEBUG
+#undef DEBUG_MEM
+
 /* Audio device relate */
 #undef HAVE_SPARC_AUDIO
 #undef HAVE_SGI_AUDIO
@@ -33,8 +58,26 @@
 /* FreeBSD Speaker device */
 #undef HAVE_MACHINE_PCAUDIOIO_H
 
+/* Define if you have the <inttypes.h> header file.  */
+#undef HAVE_INTTYPES_H
+
 /* Define if you have the <machine/pcaudioio.h> header file.  */
 #undef HAVE_MACHINE_PCAUDIOIO_H
+
+/* Define if you have the <malloc.h> header file.  */
+#undef HAVE_MALLOC_H
+
+/* Define if you have the <stdint.h> header file.  */
+#undef HAVE_STDINT_H
+
+/* Define if you have the <stropts.h> header file.  */
+#undef HAVE_STROPTS_H
+
+/* Define if you have the <sys/filio.h> header file.  */
+#undef HAVE_SYS_FILIO_H
+
+/* Define if you have the <sys/sockio.h> header file.  */
+#undef HAVE_SYS_SOCKIO_H
 
 #ifndef WORDS_BIGENDIAN
 #define WORDS_SMALLENDIAN
