@@ -1154,6 +1154,8 @@ v4.1.7	- Update ALSA detection in configure script
 	- Partially fix processing of Tcl events in the UI during the rendezvous
 	  with the media engine
         - Partially fix audio processing on windows 2000
+	* Released 24 February 2000
+
 
 TODO -- They're features not bugs dammit!
 ----
