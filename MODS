@@ -1517,6 +1517,9 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 		- Another crash in convert_sinc.c:
 			convert_sinc.c:1107: sinc_upsample_stereo: Assertion `out == dst + dst_len' failed.
 		  reported by <thavaqos@yahoo.com>
+	- Change linear converter to use same structure arrangement as sinc
+	  converter and fix linear converter selection bug (derived from 
+	  convert_sinc.c).
 
 TODO -- They're features not bugs dammit!
 ----

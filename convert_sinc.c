@@ -159,7 +159,7 @@ sinc_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 {
 	converter_fmt_t	sfmt, ufmt;
         sinc_state_t	*s;
-        int		steps, g;
+        int		g;
 
 	if (((cfmt->src_freq % 8000) == 0 && (cfmt->dst_freq % 8000)) ||
 	    ((cfmt->src_freq % 11025) == 0 && (cfmt->dst_freq % 11025))) {
@@ -171,10 +171,9 @@ sinc_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 
         g = gcd(cfmt->src_freq, cfmt->dst_freq);
 
-        steps    = conversion_steps(cfmt->src_freq, cfmt->dst_freq);        
         s        = (sinc_state_t*) xmalloc(sizeof(sinc_state_t));
         memset(s, 0, sizeof(sinc_state_t));
-        s->steps = steps;
+        s->steps = conversion_steps(cfmt->src_freq, cfmt->dst_freq);        
 
 	sfmt = *cfmt;
 

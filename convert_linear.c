@@ -24,24 +24,28 @@ static const char cvsid[] =
 
 /* Linear Interpolation Conversion *******************************************/
 
-struct s_li_state;
-typedef void (*inter_cf)(int offset, int channels, sample *src, int src_len, sample *dst, int dst_len, struct s_li_state *s);
+struct s_filter_state;
+typedef void (*inter_cf)(int offset, int channels, sample *src, int src_len, sample *dst, int dst_len, struct s_filter_state *s);
 
-typedef struct s_li_state {
-        int      steps;
+typedef struct s_filter_state {
         int      scale;
         sample  *tmp_buf;
         int      tmp_len;
         sample  *last;
         int      last_len;
         inter_cf convert_f;
-} li_state_t;
+} filter_state_t;
+
+typedef struct s_linear_state {
+        int      	steps;
+	filter_state_t	fs[2];
+} linear_state_t;
 
 static void 
 linear_upsample(int offset, int channels, 
                 sample *src, int src_len, 
                 sample *dst, int dst_len, 
-                li_state_t *l)
+                filter_state_t *l)
 {
         register int r, loop;
         register short *sp, *dp;
@@ -131,7 +135,7 @@ static void
 linear_downsample(int offset, int channels, 
                   sample *src, int src_len, 
                   sample *dst, int dst_len, 
-                  li_state_t *l)
+                  filter_state_t *l)
 {
         register int loop, r, c, lim;
         register short *sp, *dp;
@@ -153,26 +157,27 @@ linear_downsample(int offset, int channels,
 }
 
 static void
-linear_init_state(li_state_t *l, int channels, int src_freq, int dst_freq)
+linear_init_state(filter_state_t *l, const converter_fmt_t *cfmt)
 {
-        if (src_freq > dst_freq) {
-                l->scale = src_freq / dst_freq;
+        if (cfmt->src_freq > cfmt->dst_freq) {
+                l->scale = cfmt->src_freq / cfmt->dst_freq;
                 l->last_len = 0;
                 l->convert_f = linear_downsample;
-        } else if (src_freq < dst_freq) {
-                l->scale = dst_freq / src_freq;
-                l->last_len = channels;
+        } else if (cfmt->src_freq < cfmt->dst_freq) {
+                l->scale = cfmt->dst_freq / cfmt->src_freq;
+                l->last_len = cfmt->src_channels;
                 l->convert_f = linear_upsample;
                 l->last = (sample*)xmalloc(sizeof(sample) * l->last_len);
-                memset(l->last,0,sizeof(sample)*channels);
+                memset(l->last, 0, sizeof(sample) * cfmt->src_channels);
         }
 }
 
 int 
 linear_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 {
-        li_state_t *l;
-        int denom, steps, g;
+	converter_fmt_t	sfmt, ufmt;
+	linear_state_t	*l;
+        int		g;
 
 	if (((cfmt->src_freq % 8000) == 0 && (cfmt->dst_freq % 8000)) ||
 	    ((cfmt->src_freq % 11025) == 0 && (cfmt->dst_freq % 11025))) {
@@ -180,24 +185,41 @@ linear_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 		return FALSE;
 	}
 
+	xmemchk();
         g = gcd(cfmt->src_freq, cfmt->dst_freq);        
-        steps    = conversion_steps(cfmt->src_freq, cfmt->dst_freq);        
-        l        = (li_state_t*) xmalloc(steps * sizeof(li_state_t));
-        memset(l, 0 , steps * sizeof(li_state_t));
-        l->steps = steps;
+
+	l = (linear_state_t*)xmalloc(sizeof(linear_state_t));
+        memset(l, 0 , sizeof(linear_state_t));
+        l->steps = conversion_steps(cfmt->src_freq, cfmt->dst_freq);
+	xmemchk();
+
+	sfmt = *cfmt;
+
+	if (sfmt.src_channels != sfmt.dst_channels) {
+		/* In addition to rate conversion, this requires
+		 * channel number conversion, this can happen
+		 * either side of rate conversion - see sinc_convert() */
+		if (sfmt.src_channels == 2 && sfmt.dst_channels == 1) {
+			sfmt.src_channels = 1; /* Stereo->Mono, R1->R2 */
+		} 
+	}
 
         switch(l->steps) {
         case 1:
-                linear_init_state(l, cfmt->src_channels, cfmt->src_freq, cfmt->dst_freq);
+                linear_init_state(l->fs, &sfmt);
                 break;
         case 2:
-                denom = g;
-                linear_init_state(l, cfmt->src_channels,     cfmt->src_freq, denom);
-                linear_init_state(l + 1, cfmt->src_channels, denom, cfmt->dst_freq);                
+		ufmt = sfmt;
+		ufmt.dst_freq = g;
+                linear_init_state(l->fs,     &ufmt);
+		ufmt = sfmt;
+		ufmt.src_freq = g;
+                linear_init_state(l->fs + 1, &ufmt);
                 break;
         }
+	xmemchk();
         *state     = (u_char*)l;
-        *state_len = steps * sizeof(li_state_t);
+        *state_len = sizeof(linear_state_t);
         return TRUE;
 }
 
@@ -207,12 +229,12 @@ linear_convert (const converter_fmt_t *cfmt,
                 sample* src_buf, int src_len, 
                 sample *dst_buf, int dst_len)
 {
-        li_state_t *l;
+        linear_state_t *l;
         int         channels, i;
 
         channels = cfmt->src_channels;
 
-        l = (li_state_t*)state;
+        l = (linear_state_t*)state;
 
         if (cfmt->src_channels == 2 && cfmt->dst_channels == 1) {
                 /* stereo->mono then sample rate change */
@@ -232,24 +254,24 @@ linear_convert (const converter_fmt_t *cfmt,
         
         switch(l->steps) {
         case 1:
-                assert(l[0].convert_f);
+                assert(l->fs->convert_f);
                 for(i = 0; i < channels; i++) {
-                        l[0].convert_f(i, channels, src_buf, src_len, dst_buf, dst_len, l);
+                        l->fs->convert_f(i, channels, src_buf, src_len, dst_buf, dst_len, l->fs);
                 }
                 break;
         case 2:
                 /* first step is always downsampling for moment */
-                if (l->tmp_buf == NULL) {
-                        l->tmp_len  = src_len / l->scale;
-                        l->tmp_buf = (sample*)xmalloc(sizeof(sample) * l->tmp_len);
+                if (l->fs->tmp_buf == NULL) {
+                        l->fs->tmp_len  = src_len / l->fs->scale;
+                        l->fs->tmp_buf = (sample*)xmalloc(sizeof(sample) * l->fs->tmp_len);
                 }
-                assert(l[0].convert_f);
-                assert(l[1].convert_f);
+                assert(l->fs[0].convert_f);
+                assert(l->fs[1].convert_f);
 
                 for(i = 0; i < channels; i++)
-                        l[0].convert_f(i, channels, src_buf, src_len, l->tmp_buf, l->tmp_len, l);
+                        l->fs[0].convert_f(i, channels, src_buf, src_len, l->fs->tmp_buf, l->fs->tmp_len, l->fs);
                 for(i = 0; i < channels; i++)
-                        l[1].convert_f(i, channels, l->tmp_buf, l->tmp_len, dst_buf, dst_len, l + 1);
+                        l->fs[1].convert_f(i, channels, l->fs->tmp_buf, l->fs->tmp_len, dst_buf, dst_len, l->fs + 1);
                 break;
         }
         
@@ -268,15 +290,14 @@ linear_convert (const converter_fmt_t *cfmt,
 void 
 linear_destroy (u_char **state, uint32_t *state_len)
 {
+        linear_state_t *l = (linear_state_t*)*state;
         int i;
 
-        li_state_t *l = (li_state_t*)*state;
-
-        assert(*state_len == l->steps * sizeof(li_state_t));
+        assert(*state_len == sizeof(linear_state_t));
         
         for(i = 0; i < l->steps; i++) {
-                if (l[i].last)    xfree(l[i].last);
-                if (l[i].tmp_buf) xfree(l[i].tmp_buf);
+                if (l->fs[i].last)    xfree(l->fs[i].last);
+                if (l->fs[i].tmp_buf) xfree(l->fs[i].tmp_buf);
         }
         xfree(l);
         *state     = NULL;
