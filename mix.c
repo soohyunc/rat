@@ -447,7 +447,7 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 #define POWER_METER_SAMPLES 160
 
 void
-mix_update_ui(session_struct *sp, mix_struct *ms)
+mix_update_ui(session_t *sp, mix_struct *ms)
 {
 	sample	*bp;
 

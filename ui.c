@@ -46,80 +46,80 @@ static char *mbus_name_engine = NULL;
 static char *mbus_name_ui     = NULL;
 static char *mbus_name_video  = NULL;
 
-static void ui_info_update_sdes(session_struct *sp, char *item, char *val, u_int32 ssrc)
+static void ui_info_update_sdes(session_t *sp, char *item, char *val, u_int32 ssrc)
 {
 	char *arg   = mbus_encode_str(val);
 	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, item, "\"%08lx\" %s", ssrc, arg);
 	xfree(arg);
 }
 
-void ui_info_update_cname(session_struct *sp, rtcp_dbentry *e)
+void ui_info_update_cname(session_t *sp, rtcp_dbentry *e)
 {
 	ui_info_update_sdes(sp, "rtp.source.cname", e->sentry->cname, e->sentry->ssrc);
 }
 
-void ui_info_update_name(session_struct *sp, rtcp_dbentry *e)
+void ui_info_update_name(session_t *sp, rtcp_dbentry *e)
 {
 	ui_info_update_sdes(sp, "rtp.source.name", e->sentry->name, e->sentry->ssrc);
 }
 
-void ui_info_update_email(session_struct *sp, rtcp_dbentry *e)
+void ui_info_update_email(session_t *sp, rtcp_dbentry *e)
 {
 	ui_info_update_sdes(sp, "rtp.source.email", e->sentry->email, e->sentry->ssrc);
 }
 
-void ui_info_update_phone(session_struct *sp, rtcp_dbentry *e)
+void ui_info_update_phone(session_t *sp, rtcp_dbentry *e)
 {
 	ui_info_update_sdes(sp, "rtp.source.phone", e->sentry->phone, e->sentry->ssrc);
 }
 
-void ui_info_update_loc(session_struct *sp, rtcp_dbentry *e)
+void ui_info_update_loc(session_t *sp, rtcp_dbentry *e)
 {
 	ui_info_update_sdes(sp, "rtp.source.loc", e->sentry->loc, e->sentry->ssrc);
 }
 
-void ui_info_update_tool(session_struct *sp, rtcp_dbentry *e)
+void ui_info_update_tool(session_t *sp, rtcp_dbentry *e)
 {
 	ui_info_update_sdes(sp, "rtp.source.tool", e->sentry->tool, e->sentry->ssrc);
 }
 
-void ui_info_update_note(session_struct *sp, rtcp_dbentry *e)
+void ui_info_update_note(session_t *sp, rtcp_dbentry *e)
 {
 	ui_info_update_sdes(sp, "rtp.source.note", e->sentry->note, e->sentry->ssrc);
 }
 
 void 
-ui_info_gain(session_struct *sp, pdb_entry_t *pdbe)
+ui_info_gain(session_t *sp, pdb_entry_t *pdbe)
 {
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.gain", "\"%08lx\" %.2f", pdbe->ssrc, pdbe->gain);
 }
 
 void
-ui_info_mute(session_struct *sp, pdb_entry_t *pdbe)
+ui_info_mute(session_t *sp, pdb_entry_t *pdbe)
 {
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.mute", "\"%08lx\" %d", pdbe->ssrc, pdbe->mute);
 }
 
 void
-ui_info_remove(session_struct *sp, rtcp_dbentry *e)
+ui_info_remove(session_t *sp, rtcp_dbentry *e)
 {
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.remove", "\"%08lx\"", e->sentry->ssrc);
 }
 
 void
-ui_info_activate(session_struct *sp, rtcp_dbentry *e)
+ui_info_activate(session_t *sp, rtcp_dbentry *e)
 {
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.active", "\"%08lx\"", e->sentry->ssrc);
 }
 
 void
-ui_info_deactivate(session_struct *sp, rtcp_dbentry *e)
+ui_info_deactivate(session_t *sp, rtcp_dbentry *e)
 {
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.inactive", "\"%08lx\"", e->sentry->ssrc);
 }
 
 void
-ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e, pdb_entry_t *p)
+ui_info_3d_settings(session_t *sp, rtcp_dbentry *e, pdb_entry_t *p)
 {
         char *filter_name;
         int   azimuth, filter_type, filter_length;
@@ -136,7 +136,7 @@ ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e, pdb_entry_t *p)
 }
 
 void
-ui_update_stats(session_struct *sp, pdb_entry_t *pdbe)
+ui_update_stats(session_t *sp, pdb_entry_t *pdbe)
 {
 	char			*args, *mbes;
         struct s_source      	*src;
@@ -179,7 +179,7 @@ ui_update_stats(session_struct *sp, pdb_entry_t *pdbe)
 }
 
 void
-ui_update_input_port(session_struct *sp)
+ui_update_input_port(session_t *sp)
 {
         const audio_port_details_t 	*apd = NULL;
         audio_port_t 			 port;
@@ -216,7 +216,7 @@ ui_update_input_port(session_struct *sp)
 }
 
 void
-ui_update_output_port(session_struct *sp)
+ui_update_output_port(session_t *sp)
 {
         const audio_port_details_t 	*apd = NULL;
         audio_port_t 			 port;
@@ -254,7 +254,7 @@ ui_update_output_port(session_struct *sp)
 }
 
 void
-ui_input_level(session_struct *sp, int level)
+ui_input_level(session_t *sp, int level)
 {
 	static int	ol;
 
@@ -269,7 +269,7 @@ ui_input_level(session_struct *sp, int level)
 }
 
 void
-ui_output_level(session_struct *sp, int level)
+ui_output_level(session_t *sp, int level)
 {
 	static int	ol;
         assert(level>=0 && level <=100);
@@ -283,7 +283,7 @@ ui_output_level(session_struct *sp, int level)
 }
 
 static void
-ui_repair(session_struct *sp)
+ui_repair(session_t *sp)
 {
 	char	*mbes;
 
@@ -293,7 +293,7 @@ ui_repair(session_struct *sp)
 }
 
 void
-ui_update_device_config(session_struct *sp)
+ui_update_device_config(session_t *sp)
 {
         char          		 fmt_buf[64], *mbes;
         const audio_format 	*af;
@@ -309,7 +309,7 @@ ui_update_device_config(session_struct *sp)
 }
 
 void
-ui_update_primary(session_struct *sp)
+ui_update_primary(session_t *sp)
 {
 	codec_id_t            pri_id;
         const codec_format_t *pri_cf;
@@ -324,7 +324,7 @@ ui_update_primary(session_struct *sp)
 
 /*
 static void
-ui_update_interleaving(session_struct *sp)
+ui_update_interleaving(session_t *sp)
 {
 
         int pt, isep, iu;
@@ -355,7 +355,7 @@ ui_update_interleaving(session_struct *sp)
 */
 
 static void
-ui_update_redundancy(session_struct *sp)
+ui_update_redundancy(session_t *sp)
 {
         const codec_format_t *scf;
         codec_id_t            scid;
@@ -403,7 +403,7 @@ redundancy_update_end:
 }
 
 static void
-ui_update_layering(session_struct *sp)
+ui_update_layering(session_t *sp)
 {
         const codec_format_t *lcf;
         codec_id_t            lcid;
@@ -449,7 +449,7 @@ layering_update_end:
 }
 
 void 
-ui_update_channel(session_struct *sp) 
+ui_update_channel(session_t *sp) 
 {
         cc_details cd;
         char *mbes;
@@ -475,25 +475,25 @@ ui_update_channel(session_struct *sp)
 }
 
 void
-ui_update_input_gain(session_struct *sp)
+ui_update_input_gain(session_t *sp)
 {
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "audio.input.gain", "%3d", audio_get_igain(sp->audio_device));
 }
 
 void
-ui_update_output_gain(session_struct *sp)
+ui_update_output_gain(session_t *sp)
 {
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "audio.output.gain", "%3d", audio_get_ogain(sp->audio_device));
 }
 
 static void
-ui_update_3d_enabled(session_struct *sp)
+ui_update_3d_enabled(session_t *sp)
 {
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "tool.rat.3d.enabled", "%d", (sp->render_3d ? 1 : 0));
 }
 
 static void
-ui_input_ports(session_struct *sp)
+ui_input_ports(session_t *sp)
 {
         const audio_port_details_t *apd;
         char *mbes;
@@ -513,7 +513,7 @@ ui_input_ports(session_struct *sp)
 }
 
 static void
-ui_output_ports(session_struct *sp)
+ui_output_ports(session_t *sp)
 {
         const audio_port_details_t *apd;
         char *mbes;
@@ -533,7 +533,7 @@ ui_output_ports(session_struct *sp)
 }
 
 static void
-ui_devices(session_struct *sp)
+ui_devices(session_t *sp)
 {
         audio_device_details_t ad;
         char *mbes;
@@ -551,7 +551,7 @@ ui_devices(session_struct *sp)
 }
 
 static void
-ui_device(session_struct *sp)
+ui_device(session_t *sp)
 {
         audio_device_details_t ad;
         char                  *mbes, *cur_dev;
@@ -577,7 +577,7 @@ ui_device(session_struct *sp)
 }
 
 static void
-ui_sampling_modes(session_struct *sp)
+ui_sampling_modes(session_t *sp)
 {
 	char	*mbes;
         char    modes[255]="";
@@ -612,7 +612,7 @@ ui_sampling_modes(session_struct *sp)
 }
 
 void
-ui_update(session_struct *sp)
+ui_update(session_t *sp)
 {
 	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "tool.rat.rate", "%3d", channel_encoder_get_units_per_packet(sp->channel_coder));
         
@@ -633,26 +633,26 @@ ui_update(session_struct *sp)
 }
 
 void
-ui_show_audio_busy(session_struct *sp)
+ui_show_audio_busy(session_t *sp)
 {
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.disable.audio.ctls", "", TRUE);
 }
 
 void
-ui_hide_audio_busy(session_struct *sp)
+ui_hide_audio_busy(session_t *sp)
 {
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.enable.audio.ctls", "", TRUE);
 }
 
 void
-ui_update_lecture_mode(session_struct *sp)
+ui_update_lecture_mode(session_t *sp)
 {
 	/* Update the UI to reflect the lecture mode setting...*/
 	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "tool.rat.lecture.mode", "%1d", sp->lecture);
 }
 
 void
-ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_time)
+ui_update_powermeters(session_t *sp, struct s_mix_info *ms, int elapsed_time)
 {
 	static u_int32 power_time = 0;
 
@@ -670,26 +670,26 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 }
 
 void
-ui_update_loss(session_struct *sp, u_int32 srce, u_int32 dest, int loss)
+ui_update_loss(session_t *sp, u_int32 srce, u_int32 dest, int loss)
 {
 	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "rtp.source.packet.loss", "\"%08lx\" \"%08lx\" %3d", srce, dest, loss);
 }
 
 void
-ui_update_reception(session_struct *sp, u_int32 ssrc, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog)
+ui_update_reception(session_t *sp, u_int32 ssrc, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog)
 {
 	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "rtp.source.reception", "\"%08lx\" %6ld %6ld %6ld %6ld %6ld %6d", 
 		  ssrc, recv, lost, misordered, duplicates, jitter, jit_tog);
 }
 
 void
-ui_update_duration(session_struct *sp, u_int32 ssrc, int duration)
+ui_update_duration(session_t *sp, u_int32 ssrc, int duration)
 {
 	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "rtp.source.packet.duration", "\"%08lx\" %3d", ssrc, duration);
 }
 
 void 
-ui_update_video_playout(session_struct *sp, u_int32 ssrc, int playout)
+ui_update_video_playout(session_t *sp, u_int32 ssrc, int playout)
 {
 	rtcp_dbentry	*dbe = rtcp_get_dbentry(sp->db, ssrc);
 	char 		*arg = mbus_encode_str(dbe->sentry->cname);
@@ -699,7 +699,7 @@ ui_update_video_playout(session_struct *sp, u_int32 ssrc, int playout)
 }
 
 void
-ui_update_key(session_struct *sp, char *key)
+ui_update_key(session_t *sp, char *key)
 {
 	char	*key_e;
 
@@ -709,7 +709,7 @@ ui_update_key(session_struct *sp, char *key)
 }
 
 void
-ui_update_codec(session_struct *sp, codec_id_t cid)
+ui_update_codec(session_t *sp, codec_id_t cid)
 {
         char 			*caps, *long_name_e, *short_name_e, *pay_e, *descr_e;
         int 			 can_enc, can_dec, layers;
@@ -768,7 +768,7 @@ ui_update_codec(session_struct *sp, codec_id_t cid)
 }
 
 static void
-ui_codecs(session_struct *sp)
+ui_codecs(session_t *sp)
 {
         u_int32 nCodecs, iCodec;
         codec_id_t cid;
@@ -782,7 +782,7 @@ ui_codecs(session_struct *sp)
 }
 
 void
-ui_update_playback_file(session_struct *sp, char *name)
+ui_update_playback_file(session_t *sp, char *name)
 {
         char *mbes;
         mbes = mbus_encode_str(name);
@@ -791,7 +791,7 @@ ui_update_playback_file(session_struct *sp, char *name)
 }
 
 void
-ui_update_record_file(session_struct *sp, char *name)
+ui_update_record_file(session_t *sp, char *name)
 {
         char *mbes;
         mbes = mbus_encode_str(name);
@@ -800,7 +800,7 @@ ui_update_record_file(session_struct *sp, char *name)
 }
 
 void
-ui_update_file_live(session_struct *sp, char *mode, int valid)
+ui_update_file_live(session_t *sp, char *mode, int valid)
 {
         char cmd[32], arg[2];
         
@@ -812,7 +812,7 @@ ui_update_file_live(session_struct *sp, char *mode, int valid)
 }
 
 static void 
-ui_converters(session_struct *sp)
+ui_converters(session_t *sp)
 {
         converter_details_t details;
         char *mbes;
@@ -831,7 +831,7 @@ ui_converters(session_struct *sp)
 }
 
 void
-ui_update_converter(session_struct *sp)
+ui_update_converter(session_t *sp)
 {
         converter_details_t details;
         char *mbes;
@@ -851,7 +851,7 @@ ui_update_converter(session_struct *sp)
 }
 
 static void
-ui_repair_schemes(session_struct *sp)
+ui_repair_schemes(session_t *sp)
 {
         char *mbes;
         u_int16 i, cnt;
@@ -867,7 +867,7 @@ ui_repair_schemes(session_struct *sp)
 }
 
 void
-ui_update_repair(session_struct *sp)
+ui_update_repair(session_t *sp)
 {
         char *mbes;
 
@@ -878,7 +878,7 @@ ui_update_repair(session_struct *sp)
 }
 
 void
-ui_controller_init(session_struct *sp, char *name_engine, char *name_ui, char *name_video)
+ui_controller_init(session_t *sp, char *name_engine, char *name_ui, char *name_video)
 {
 	char	my_ssrc[11];
 
@@ -891,7 +891,7 @@ ui_controller_init(session_struct *sp, char *name_engine, char *name_ui, char *n
 }
 
 static void
-ui_title(session_struct *sp) 
+ui_title(session_t *sp) 
 {
 	char	*addr, *title;
 
@@ -910,7 +910,7 @@ ui_title(session_struct *sp)
  */
 
 void
-ui_final_settings(session_struct *sp)
+ui_final_settings(session_t *sp)
 {
         int i, n;
         char *mbes;
@@ -932,7 +932,7 @@ ui_final_settings(session_struct *sp)
 }
 
 static void
-ui_3d_options(session_struct *sp)
+ui_3d_options(session_t *sp)
 {
         char args[256], tmp[5];
         char *mbes;
@@ -966,7 +966,7 @@ ui_3d_options(session_struct *sp)
 }
 
 static void
-ui_update_options(session_struct *sp)
+ui_update_options(session_t *sp)
 {
 	if (sp->meter) {
 		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.powermeter", "1", TRUE);
@@ -981,7 +981,7 @@ ui_update_options(session_struct *sp)
 }
 
 void
-ui_initial_settings(session_struct *sp)
+ui_initial_settings(session_t *sp)
 {
         /* One off setting transfers / initialization */
         ui_sampling_modes(sp); 				network_process_mbus(sp);
@@ -1003,7 +1003,7 @@ ui_initial_settings(session_struct *sp)
 }
 
 void 
-ui_quit(session_struct *sp)
+ui_quit(session_t *sp)
 {
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "mbus.quit", "", TRUE);
 }

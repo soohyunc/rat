@@ -336,11 +336,11 @@ typedef struct s_agc {
         u_int32 spurtno;
         u_char  new_gain;
         u_char  change;
-        session_struct *sp; /* this is unpleasant to have and i wrote it! */
+        session_t *sp; /* this is unpleasant to have and i wrote it! */
 } agc_t;
 
 agc_t *
-agc_create(session_struct *sp)
+agc_create(session_t *sp)
 {
         agc_t *a = (agc_t*)xmalloc(sizeof(agc_t));
         memset(a,0,sizeof(agc_t));

@@ -48,7 +48,7 @@ typedef struct s_tx_unit {
 } tx_unit;
 
 typedef struct s_tx_buffer {
-        struct session_tag   *sp;
+        struct s_session   *sp;
         struct s_sd          *sd_info;
         struct s_vad         *vad;
         struct s_agc         *agc;
@@ -115,7 +115,7 @@ tx_unit_destroy(tx_unit **ptu, u_int32 len)
 
 int
 tx_create(tx_buffer     **ntb, 
-          session_struct *sp,
+          session_t *sp,
           struct s_time  *clock,
           u_int16         unit_dur, 
           u_int16         channels)
@@ -249,7 +249,7 @@ tx_stop(tx_buffer *tb)
 int
 tx_read_audio(tx_buffer *tb)
 {
-        session_struct  *sp;
+        session_t  *sp;
         tx_unit 	*u;
         u_int32          read_dur = 0, this_read, ulen, freq;
         ts_t             u_ts;
@@ -318,7 +318,7 @@ tx_read_audio(tx_buffer *tb)
 int
 tx_process_audio(tx_buffer *tb)
 {
-        session_struct       *sp;
+        session_t       *sp;
         struct s_pb_iterator *marker;
         tx_unit              *u;
         u_int32               u_len;
@@ -436,7 +436,7 @@ tx_send(tx_buffer *tb)
         channel_data            *cd;
         channel_unit            *cu;
 
-        session_struct *sp;
+        session_t *sp;
 
         tx_unit        *u;
         rtp_hdr_t       rtp_header;
@@ -597,7 +597,7 @@ tx_send(tx_buffer *tb)
 void
 tx_update_ui(tx_buffer *tb)
 {
-        session_struct	*sp           = tb->sp;
+        session_t	*sp           = tb->sp;
 
         if (sp->meter && tb->sending_audio) {
                 struct s_pb_iterator *prev;  

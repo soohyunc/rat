@@ -47,7 +47,7 @@ static sample* zero_buf;
  */
 
 int
-audio_device_release(session_struct *sp, audio_desc_t the_dev)
+audio_device_release(session_t *sp, audio_desc_t the_dev)
 {
         if (sp->audio_device == 0) {
                 debug_msg("Audio device already released from session\n");
@@ -113,7 +113,7 @@ ac_destroy(audio_config **ac)
 }
 
 void
-audio_device_register_change_device(struct session_tag *sp,
+audio_device_register_change_device(struct s_session *sp,
                                     audio_desc_t        new_dev)
 {
         if (sp->new_config == NULL) {
@@ -124,7 +124,7 @@ audio_device_register_change_device(struct session_tag *sp,
 }
 
 void
-audio_device_register_change_primary(struct session_tag *sp,
+audio_device_register_change_primary(struct s_session *sp,
                                      codec_id_t          primary)
 {
         if (sp->new_config == NULL) {
@@ -135,7 +135,7 @@ audio_device_register_change_primary(struct session_tag *sp,
 }
 
 void
-audio_device_register_change_render_3d(struct session_tag *sp,
+audio_device_register_change_render_3d(struct s_session *sp,
                                       int enabled)
 {
         if (sp->new_config == NULL) {
@@ -146,7 +146,7 @@ audio_device_register_change_render_3d(struct session_tag *sp,
 }
 
 static int
-audio_device_attempt_config(session_struct *sp, audio_config *config)
+audio_device_attempt_config(session_t *sp, audio_config *config)
 {
         audio_format *inf, *ouf;
         const codec_format_t *incf;
@@ -200,7 +200,7 @@ audio_device_attempt_config(session_struct *sp, audio_config *config)
  */
 
 int
-audio_device_reconfigure(session_struct *sp)
+audio_device_reconfigure(session_t *sp)
 {
         audio_config prev_config, *curr_config, *new_config;
         int change_req;
@@ -331,7 +331,7 @@ audio_device_get_safe_config(audio_config **ppac)
 /*****************************************************************************/
 
 static int
-audio_device_write(session_struct *sp, sample *buf, int dur)
+audio_device_write(session_t *sp, sample *buf, int dur)
 {
         const audio_format *ofmt = audio_get_ofmt(sp->audio_device);
         int len;
@@ -353,7 +353,7 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
  * or not we are doing.                                                    
  */
 int
-audio_rw_process(session_struct *spi, session_struct *spo,  struct s_mix_info *ms)
+audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
 {
         u_int32 cushion_size, read_dur;
         struct s_cushion_struct *c;

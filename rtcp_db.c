@@ -145,7 +145,7 @@ rtcp_get_dbentry(rtp_db *db, u_int32 ssrc)
 	return NULL;
 }
 
-int rtcp_dbentry_valid(session_struct *sp, rtcp_dbentry *dbe)
+int rtcp_dbentry_valid(session_t *sp, rtcp_dbentry *dbe)
 {
 	/* Checks if the specified dbe is valid... not efficient */
 #ifdef DEBUG
@@ -167,7 +167,7 @@ int rtcp_dbentry_valid(session_struct *sp, rtcp_dbentry *dbe)
 }
 
 rtcp_dbentry *
-rtcp_get_dbentry_by_cname(session_struct *sp, char *cname)
+rtcp_get_dbentry_by_cname(session_t *sp, char *cname)
 {
 	/* This needs to be optimised! [csp] */
 	rtcp_dbentry   *dptr = sp->db->ssrc_db;
@@ -193,7 +193,7 @@ rtcp_get_dbentry_by_cname(session_struct *sp, char *cname)
  * Get my SSRC
  */
 u_int32 
-rtcp_myssrc(session_struct *sp)
+rtcp_myssrc(session_t *sp)
 {
 	return sp->db->myssrc;
 }
@@ -226,7 +226,7 @@ rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 cur_time)
 }
 
 rtcp_dbentry   *
-rtcp_new_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
+rtcp_new_dbentry(session_t *sp, u_int32 ssrc, u_int32 cur_time)
 {
 	rtcp_dbentry   *newdb;
 	rtcp_dbentry   *dbptr;
@@ -252,7 +252,7 @@ rtcp_new_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
  * not exist yet.
  */
 rtcp_dbentry   *
-rtcp_getornew_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
+rtcp_getornew_dbentry(session_t *sp, u_int32 ssrc, u_int32 cur_time)
 {
 	rtcp_dbentry   *dbe;
 	dbe = rtcp_get_dbentry(sp->db, ssrc);
@@ -295,7 +295,7 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 }
 
 void 
-rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
+rtcp_delete_dbentry(session_t *sp, u_int32 ssrc)
 {
 	/*
  	 * This function remove a participant from the RTCP database, and frees the
@@ -347,7 +347,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
  * Set a database attribute
  */
 int 
-rtcp_set_attribute(session_struct *sp, int type, char *val)
+rtcp_set_attribute(session_t *sp, int type, char *val)
 {
 	assert(val != NULL);
 	assert(sp->db->my_dbe != NULL);
@@ -424,7 +424,7 @@ rtp_db *rtcp_init(struct s_time *device_clock, char *cname, u_int32 cur_time)
 }
 
 void
-rtcp_clock_change(session_struct *sp)
+rtcp_clock_change(session_t *sp)
 {
         	sp->db->report_interval = rtcp_interval(sp->db->members, 
                                                         sp->db->senders, 
@@ -438,7 +438,7 @@ rtcp_clock_change(session_struct *sp)
 }
 
 void
-rtcp_db_exit(session_struct *sp)
+rtcp_db_exit(session_t *sp)
 {
         xfree(sp->db);
         sp->db = NULL;

@@ -172,7 +172,7 @@ rtcp_add_sdes_item(u_int8 *buf, int type, char *val)
  * database and compiles them into a complete SDES packet to be sent out.
  */
 static u_int8 *
-rtcp_packet_fmt_sdes(session_struct *sp, u_int8 * ptr)
+rtcp_packet_fmt_sdes(session_t *sp, u_int8 * ptr)
 {
 	rtcp_common_t  *hdr = (rtcp_common_t *) ptr;
 	int             i, len;
@@ -259,7 +259,7 @@ rtcp_packet_fmt_bye(u_int8 *ptr, u_int32 ssrc, rtcp_dbentry *ssrc_db)
  * database.
  */
 static u_int8 *
-rtcp_packet_fmt_sr(session_struct *sp, u_int8 * ptr)
+rtcp_packet_fmt_sr(session_t *sp, u_int8 * ptr)
 {
 	rtcp_common_t  *hdr = (rtcp_common_t *) ptr;
 	u_int32		sec;
@@ -285,7 +285,7 @@ rtcp_packet_fmt_sr(session_struct *sp, u_int8 * ptr)
  * Create a recipient report header.
  */
 static u_int8 *
-rtcp_packet_fmt_rrhdr(session_struct *sp, u_int8 * ptr)
+rtcp_packet_fmt_rrhdr(session_t *sp, u_int8 * ptr)
 {
 	rtcp_common_t  *hdr = (rtcp_common_t *) ptr;
 	u_int32         sec;
@@ -309,7 +309,7 @@ rtcp_packet_fmt_rrhdr(session_struct *sp, u_int8 * ptr)
  * refer to.
  */
 static u_int8 *
-rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
+rtcp_packet_fmt_addrr(session_t *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 {
         pdb_entry_t    *pdbe;
 	rtcp_rr_t      *rptr = (rtcp_rr_t *) ptr;
@@ -376,7 +376,7 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 }
 
 static u_int8 *
-rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
+rtcp_packet_fmt_srrr(session_t *sp, u_int8 *ptr)
 {
 	u_int8	       *packet 	= ptr;
 	rtcp_common_t  *hdr    	= (rtcp_common_t *) ptr;
@@ -424,7 +424,7 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 }
 
 static void
-rtcp_forward(rtcp_t *pckt, session_struct *sp1, session_struct *sp2)
+rtcp_forward(rtcp_t *pckt, session_t *sp1, session_t *sp2)
 {
 	u_int32  	packet[MAX_PACKLEN / 4];
 	u_int8         *ptr 	= (u_int8 *) packet;
@@ -452,7 +452,7 @@ rtcp_forward(rtcp_t *pckt, session_struct *sp1, session_struct *sp2)
  *  packet. [csp]
  */
 void 
-rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, int len, u_int32 cur_time, u_int32 real_time)
+rtcp_decode_rtcp_pkt(session_t *sp, session_t *sp2, u_int8 *packet, int len, u_int32 cur_time, u_int32 real_time)
 {
 	rtcp_t			*pkt = (rtcp_t *) packet;
 	rtcp_dbentry		*dbe, *other_source;
@@ -787,7 +787,7 @@ u_int32 rtcp_interval(int 	 members,
 }
 
 void 
-rtcp_exit(session_struct *sp1, session_struct *sp2, socket_udp *s)
+rtcp_exit(session_t *sp1, session_t *sp2, socket_udp *s)
 {
 	u_int8           packet[MAX_PACKLEN];
 	u_int8          *ptr = packet;
@@ -828,7 +828,7 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, socket_udp *s)
  *
  */
 void 
-rtcp_update(session_struct *sp, socket_udp *s)
+rtcp_update(session_t *sp, socket_udp *s)
 {
 	u_int8  	packet[MAX_PACKLEN];
 	u_int8         *ptr 	= packet;

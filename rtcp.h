@@ -14,13 +14,13 @@
 #ifndef _service_rtcp_h_
 #define _service_rtcp_h_
 
-struct session_tag;
+struct s_session;
 struct s_pckt_queue;
 
 char    *get_cname(socket_udp *s);
 
-void 	 service_rtcp(struct session_tag *sp, 
-                      struct session_tag *sp2, 
+void 	 service_rtcp(struct s_session *sp, 
+                      struct s_session *sp2, 
                       struct s_pckt_queue *rtcp_pckt_queue, 
                       u_int32 cur_time, u_int32 real_time);
 

@@ -45,8 +45,8 @@
 
 extern int thread_pri;
 
-typedef struct session_tag {
-        short           id;                             /* idx of this session_tag - nasty hack - we know session_structs allocated as an array of 2 */
+typedef struct s_session {
+        short           id;                             /* idx of this s_session - nasty hack - we know session_ts allocated as an array of 2 */
 	int		mode;                           /* audio tool, transcoder */
         char            title[SESSION_TITLE_LEN+1];
 	char            asc_address[MAX_LAYERS][MAXHOSTNAMELEN+1];  /* their ascii name if unicast */
@@ -108,11 +108,11 @@ typedef struct session_tag {
         ts_t             cur_ts; /* current device time as timestamp */
 	int		 loopback_gain;
 	u_int8		 layers; /* number of layers */
-} session_struct;
+} session_t;
 
-void session_init(session_struct *sp);
-void session_exit(session_struct *sp);
-int  session_parse_early_options(int argc, char *argv[], session_struct *sp[]);
-void session_parse_late_options(int argc, char *argv[], session_struct *sp[]);
+void session_init(session_t *sp);
+void session_exit(session_t *sp);
+int  session_parse_early_options(int argc, char *argv[], session_t *sp[]);
+void session_parse_late_options(int argc, char *argv[], session_t *sp[]);
 
 #endif /* _session_h_ */

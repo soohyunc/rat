@@ -25,14 +25,14 @@
 #ifndef _rat_statistics_h_
 #define _rat_statistics_h_
 
-struct session_tag;
+struct s_session;
 struct pckt_queue_tag;
 struct rx_queue_tag;
 struct s_cushion_struct;
 
 void statistics_init(void);
 
-void statistics_process(struct session_tag      *session_pointer, 
+void statistics_process(struct s_session      *session_pointer, 
                         struct s_pckt_queue     *rtp_pckt_queue,
                         struct s_cushion_struct *cushion,
                         u_int32                  ntp_time,

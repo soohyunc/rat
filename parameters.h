@@ -17,7 +17,7 @@
 struct s_sd;
 struct s_vad;
 struct s_agc;
-struct session_tag;
+struct s_session;
 
 #define VU_INPUT  0
 #define VU_OUTPUT 1
@@ -44,7 +44,7 @@ u_char         vad_in_talkspurt  (struct s_vad *v);
 u_int32        vad_talkspurt_no  (struct s_vad *v);
 void           vad_dump          (struct s_vad *v);
 
-struct s_agc * agc_create        (struct session_tag *sp);
+struct s_agc * agc_create        (struct s_session *sp);
 void           agc_destroy       (struct s_agc *a);
 void           agc_update        (struct s_agc *a, u_int16 energy, u_int32 spurtno);
 void           agc_reset         (struct s_agc *a);

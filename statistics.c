@@ -53,7 +53,7 @@ statistics_init()
 }
 
 static rtcp_dbentry *
-update_database(session_struct *sp, u_int32 ssrc)
+update_database(session_t *sp, u_int32 ssrc)
 {
 	rtcp_dbentry   *dbe_source;
 
@@ -85,7 +85,7 @@ update_database(session_struct *sp, u_int32 ssrc)
 static u_int32
 statistics_variable_component(rtcp_dbentry            *dbe,
                               pdb_entry_t             *pdbe,
-                              session_struct          *sp, 
+                              session_t          *sp, 
                               struct s_cushion_struct *cushion) 
 {
         u_int32 var, cush;
@@ -125,7 +125,7 @@ adapt_playout(rtp_hdr_t               *hdr,
               ts_t                     src_ts,
               rtcp_dbentry            *src,
               pdb_entry_t             *pdbe,
-	      session_struct          *sp, 
+	      session_t          *sp, 
               struct s_cushion_struct *cushion, 
 	      u_int32                  ntp_time)
 {
@@ -337,7 +337,7 @@ rtp_header_validation(rtp_hdr_t *hdr, int32 *len, int *extlen)
 }
 
 static int
-statistics_channel_extract(session_struct     *sp,
+statistics_channel_extract(session_t     *sp,
                            rtcp_dbentry       *dbe,
                            pdb_entry_t        *pdbe,
                            const audio_format *afout,
@@ -423,7 +423,7 @@ statistics_channel_extract(session_struct     *sp,
 }
 
 void
-statistics_process(session_struct          *sp,
+statistics_process(session_t          *sp,
                    struct s_pckt_queue     *rtp_pckt_queue,
                    struct s_cushion_struct *cushion,
                    u_int32	            ntp_time,

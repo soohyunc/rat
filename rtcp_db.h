@@ -23,7 +23,7 @@
 #ifndef _RTCP_DB
 #define _RTCP_DB
 
-struct session_tag;
+struct s_session;
 
 typedef struct _rr {
 	struct _rr      *next;
@@ -102,19 +102,19 @@ typedef struct rtp_db_tag {
 	u_int32			 sdes_ter_count;
 } rtp_db;
 
-u_int32 		 rtcp_myssrc(struct session_tag *sp);
+u_int32 		 rtcp_myssrc(struct s_session *sp);
 rtp_db 			*rtcp_init(struct s_time *device_clock, char *cname, u_int32 cur_time);
-void                     rtcp_db_exit(struct session_tag *sp);
+void                     rtcp_db_exit(struct s_session *sp);
 int 			 rtcp_update_seq(rtcp_dbentry *s, u_int16 seq);
 struct s_rtcp_dbentry   *rtcp_get_dbentry(rtp_db *db, u_int32 ssrc);
-struct s_rtcp_dbentry   *rtcp_get_dbentry_by_cname(struct session_tag *sp, char *cname);
-struct s_rtcp_dbentry   *rtcp_new_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 cur_time);
-struct s_rtcp_dbentry   *rtcp_getornew_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 cur_time);
-int 			 rtcp_dbentry_valid(struct session_tag *sp, struct s_rtcp_dbentry *dbe);
-void 			 rtcp_delete_dbentry(struct session_tag *sp, u_int32 ssrc);
-int 			 rtcp_set_attribute(struct session_tag *sp, int type, char *val);
+struct s_rtcp_dbentry   *rtcp_get_dbentry_by_cname(struct s_session *sp, char *cname);
+struct s_rtcp_dbentry   *rtcp_new_dbentry(struct s_session *sp, u_int32 ssrc, u_int32 cur_time);
+struct s_rtcp_dbentry   *rtcp_getornew_dbentry(struct s_session *sp, u_int32 ssrc, u_int32 cur_time);
+int 			 rtcp_dbentry_valid(struct s_session *sp, struct s_rtcp_dbentry *dbe);
+void 			 rtcp_delete_dbentry(struct s_session *sp, u_int32 ssrc);
+int 			 rtcp_set_attribute(struct s_session *sp, int type, char *val);
 void			 rtcp_free_dbentry(rtcp_dbentry *dbptr);
-void                     rtcp_clock_change(struct session_tag *sp);
+void                     rtcp_clock_change(struct s_session *sp);
 
 #endif
 

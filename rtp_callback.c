@@ -27,14 +27,14 @@ typedef struct s_rtp_assoc {
         struct s_rtp_assoc *next;
         struct s_rtp_assoc *prev;
         struct rtp         *rtps;
-        struct session_tag *rats;
+        struct s_session *rats;
 } rtp_assoc_t;
 
 /* Sentinel for linked list that is used as small associative array */
 static rtp_assoc_t rtp_as;
 
 void 
-rtp_callback_init(struct rtp *rtps, struct session_tag *rats)
+rtp_callback_init(struct rtp *rtps, struct s_session *rats)
 {
         rtp_assoc_t *cur, *sentinel;
 
@@ -82,7 +82,7 @@ void rtp_callback_exit(struct rtp *rtps)
         }
 }
 
-static struct session_tag *
+static struct s_session *
 get_session(struct rtp *rtps)
 {
         rtp_assoc_t *cur, *sentinel;
@@ -100,7 +100,7 @@ get_session(struct rtp *rtps)
 
 void rtp_callback(struct rtp *s, rtp_event *e)
 {
-        struct session_tag *sp;
+        struct s_session *sp;
 	assert(s != NULL);
 	assert(e != NULL);
 

@@ -353,7 +353,7 @@ setting_load_int(char *name, int default_value)
 #endif
 }
 
-void settings_load_early(session_struct *sp)
+void settings_load_early(session_t *sp)
 {
 	audio_device_details_t		 ad;
 	char				*ad_name, *primary_codec, *cc_name, *port;
@@ -440,7 +440,7 @@ void settings_load_early(session_struct *sp)
 	load_done();
 }
 
-void settings_load_late(session_struct *sp)
+void settings_load_late(session_t *sp)
 {
 	load_init();		/* Initial settings come from the common prefs file... */
 	sp->db->my_dbe->sentry->name  = xstrdup(setting_load_str("rtpName", "Unknown"));/* We don't use rtcp_set_attribute() */ 
@@ -521,7 +521,7 @@ static void setting_save_int(const char *name, const long val)
 #endif
 }
 
-void settings_save(session_struct *sp)
+void settings_save(session_t *sp)
 {
 	codec_id_t	 		 pri_id;
         const codec_format_t 		*pri_cf;

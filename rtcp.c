@@ -25,8 +25,8 @@
 #include "util.h"
 
 void 
-service_rtcp(session_struct      *sp,
-             session_struct      *sp2,
+service_rtcp(session_t      *sp,
+             session_t      *sp2,
 	     struct s_pckt_queue *rtcp_pckt_queue,
 	     u_int32              cur_time,
 	     u_int32		  real_time)

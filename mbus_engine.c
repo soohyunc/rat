@@ -78,7 +78,7 @@ void mbus_engine_wait_handler(char *srce, char *cmnd, char *args, void *data)
 	}
 }
 
-static void rx_tool_rat_addr_ui(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_addr_ui(char *srce, char *args, session_t *sp)
 {
 	/* tool.rat.addr.ui ("addr") */
 	char	*addr;
@@ -94,7 +94,7 @@ static void rx_tool_rat_addr_ui(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_powermeter(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_powermeter(char *srce, char *args, session_t *sp)
 {
 	int i;
 
@@ -111,7 +111,7 @@ static void rx_tool_rat_powermeter(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_silence(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_silence(char *srce, char *args, session_t *sp)
 {
 	int i;
 
@@ -126,7 +126,7 @@ static void rx_tool_rat_silence(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_3d_enable(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_3d_enable(char *srce, char *args, session_t *sp)
 {
 	int i;
 
@@ -142,7 +142,7 @@ static void rx_tool_rat_3d_enable(char *srce, char *args, session_struct *sp)
 }
 
 static void 
-rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct *sp)
+rx_tool_rat_3d_user_settings(char *srce, char *args, session_t *sp)
 {
         pdb_entry_t                 *p;
         char 			*filter_name;
@@ -183,7 +183,7 @@ rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct *sp)
 }
 
 static void
-rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_struct *sp)
+rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_t *sp)
 {
 	char		*ss;
         pdb_entry_t         *p;
@@ -205,7 +205,7 @@ rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_struct *sp)
         mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_lecture(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_lecture(char *srce, char *args, session_t *sp)
 {
 	int i;
 
@@ -220,7 +220,7 @@ static void rx_tool_rat_lecture(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_sync(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_sync(char *srce, char *args, session_t *sp)
 {
 	int i;
 
@@ -235,7 +235,7 @@ static void rx_tool_rat_sync(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_agc(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_agc(char *srce, char *args, session_t *sp)
 {
 	int i;
 
@@ -250,7 +250,7 @@ static void rx_tool_rat_agc(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_audio_loopback(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_audio_loopback(char *srce, char *args, session_t *sp)
 {
 	int i;
 
@@ -271,7 +271,7 @@ static void rx_tool_rat_audio_loopback(char *srce, char *args, session_struct *s
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_echo_suppress(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_echo_suppress(char *srce, char *args, session_t *sp)
 {
 	int i;
 
@@ -289,7 +289,7 @@ static void rx_tool_rat_echo_suppress(char *srce, char *args, session_struct *sp
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_rate(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_rate(char *srce, char *args, session_t *sp)
 {
 	int	 i;
 
@@ -305,7 +305,7 @@ static void rx_tool_rat_rate(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_audio_input_mute(char *srce, char *args, session_struct *sp)
+static void rx_audio_input_mute(char *srce, char *args, session_t *sp)
 {
 	int i;
 
@@ -330,7 +330,7 @@ static void rx_audio_input_mute(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
+static void rx_audio_input_gain(char *srce, char *args, session_t *sp)
 {
 	int   i;
 
@@ -347,7 +347,7 @@ static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
+static void rx_audio_input_port(char *srce, char *args, session_t *sp)
 {
         const audio_port_details_t *apd = NULL;
 	char	*s;
@@ -378,7 +378,7 @@ static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
         ui_update_input_port(sp);
 }
 
-static void rx_audio_output_mute(char *srce, char *args, session_struct *sp)
+static void rx_audio_output_mute(char *srce, char *args, session_t *sp)
 {
         struct s_source *s;
         rtcp_dbentry    *dbe;
@@ -406,7 +406,7 @@ static void rx_audio_output_mute(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_audio_output_gain(char *srce, char *args, session_struct *sp)
+static void rx_audio_output_gain(char *srce, char *args, session_t *sp)
 {
 	int   i;
 
@@ -422,7 +422,7 @@ static void rx_audio_output_gain(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
+static void rx_audio_output_port(char *srce, char *args, session_t *sp)
 {
         const audio_port_details_t *apd = NULL;
 	char *s;
@@ -455,7 +455,7 @@ static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
 	ui_update_output_port(sp);
 }
 
-static void rx_audio_channel_repair(char *srce, char *args, session_struct *sp)
+static void rx_audio_channel_repair(char *srce, char *args, session_t *sp)
 {
 	char	*s;
 
@@ -476,7 +476,7 @@ static void rx_audio_channel_repair(char *srce, char *args, session_struct *sp)
         ui_update_repair(sp);
 }
 
-static void rx_security_encryption_key(char *srce, char *args, session_struct *sp)
+static void rx_security_encryption_key(char *srce, char *args, session_t *sp)
 {
 	char	*key;
 
@@ -492,7 +492,7 @@ static void rx_security_encryption_key(char *srce, char *args, session_struct *s
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_audio_file_play_stop(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_play_stop(char *srce, char *args, session_t *sp)
 {
 	UNUSED(srce);
         UNUSED(args);
@@ -502,7 +502,7 @@ static void rx_audio_file_play_stop(char *srce, char *args, session_struct *sp)
 	}
 }
 
-static void rx_audio_file_play_open(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_play_open(char *srce, char *args, session_t *sp)
 {
 	char	*file;
 
@@ -525,7 +525,7 @@ static void rx_audio_file_play_open(char *srce, char *args, session_struct *sp)
 
 }
 
-static void rx_audio_file_play_pause(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_play_pause(char *srce, char *args, session_t *sp)
 {
         int pause;
 
@@ -548,7 +548,7 @@ static void rx_audio_file_play_pause(char *srce, char *args, session_struct *sp)
 }
 
 
-static void rx_audio_file_play_live(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_play_live(char *srce, char *args, session_t *sp)
 {
         /* This is a request to see if file we are playing is still valid */
         UNUSED(args);
@@ -556,7 +556,7 @@ static void rx_audio_file_play_live(char *srce, char *args, session_struct *sp)
         ui_update_file_live(sp, "play", (sp->in_file) ? 1 : 0);
 }
 
-static void rx_audio_file_rec_stop(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_rec_stop(char *srce, char *args, session_t *sp)
 {
 	UNUSED(srce);
         UNUSED(args);
@@ -566,7 +566,7 @@ static void rx_audio_file_rec_stop(char *srce, char *args, session_struct *sp)
 	}
 }
 
-static void rx_audio_file_rec_open(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_rec_open(char *srce, char *args, session_t *sp)
 {
 	char	*file;
 
@@ -600,7 +600,7 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_struct *sp)
         if (sp->out_file) ui_update_record_file(sp, file);
 }
 
-static void rx_audio_file_rec_pause(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_rec_pause(char *srce, char *args, session_t *sp)
 {
         int pause;
 
@@ -622,7 +622,7 @@ static void rx_audio_file_rec_pause(char *srce, char *args, session_struct *sp)
         mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_audio_file_rec_live(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_rec_live(char *srce, char *args, session_t *sp)
 {
         /* This is a request to see if file we are recording is still valid */
         UNUSED(args);
@@ -632,7 +632,7 @@ static void rx_audio_file_rec_live(char *srce, char *args, session_struct *sp)
 }
 
 static void 
-rx_audio_device(char *srce, char *args, session_struct *sp)
+rx_audio_device(char *srce, char *args, session_t *sp)
 {
         char	*s, dev_name[64], first_dev_name[64];
 
@@ -685,7 +685,7 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_rtp_source_sdes(char *srce, char *args, session_struct *sp, int type)
+static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, int type)
 {
 	char	*arg, *ssrc;
 
@@ -705,7 +705,7 @@ static void rx_rtp_source_sdes(char *srce, char *args, session_struct *sp, int t
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_rtp_addr(char *srce, char *args, session_struct *sp)
+static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 {
 	/* rtp.addr ("224.1.2.3" 1234 1234 16) */
 	char	*addr, *cname;
@@ -736,27 +736,27 @@ static void rx_rtp_addr(char *srce, char *args, session_struct *sp)
         rtcp_clock_change(sp);
 }
 
-static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_name(char *srce, char *args, session_t *sp)
 {
 	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_NAME);
 }
 
-static void rx_rtp_source_email(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_email(char *srce, char *args, session_t *sp)
 {
 	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_EMAIL);
 }
 
-static void rx_rtp_source_phone(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_phone(char *srce, char *args, session_t *sp)
 {
 	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_PHONE);
 }
 
-static void rx_rtp_source_loc(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_loc(char *srce, char *args, session_t *sp)
 {
 	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_LOC);
 }
 
-static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_mute(char *srce, char *args, session_t *sp)
 {
 	pdb_entry_t *pdbe;
 	char        *ssrc;
@@ -779,7 +779,7 @@ static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_rtp_source_gain(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_gain(char *srce, char *args, session_t *sp)
 {
 	pdb_entry_t	*pdbe;
 	char		*ssrc;
@@ -801,7 +801,7 @@ static void rx_rtp_source_gain(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_playout(char *srce, char *args, session_t *sp)
 {
 	pdb_entry_t	*pdbe;
 	char		*ssrc;
@@ -825,7 +825,7 @@ static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
 }
 
 static void 
-rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
+rx_tool_rat_codec(char *srce, char *args, session_t *sp)
 {
 	char	*short_name, *sfreq, *schan;
         int      freq, channels;
@@ -870,7 +870,7 @@ rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
         }
 }
 
-static void rx_tool_rat_playout_limit(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_playout_limit(char *srce, char *args, session_t *sp)
 {
         int i;
 
@@ -884,7 +884,7 @@ static void rx_tool_rat_playout_limit(char *srce, char *args, session_struct *sp
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_playout_min(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_playout_min(char *srce, char *args, session_t *sp)
 {
 	int	 i;
 
@@ -899,7 +899,7 @@ static void rx_tool_rat_playout_min(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_playout_max(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_playout_max(char *srce, char *args, session_t *sp)
 {
 	int	 i;
 
@@ -914,7 +914,7 @@ static void rx_tool_rat_playout_max(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_payload_set(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_payload_set(char *srce, char *args, session_t *sp)
 {
         codec_id_t cid, cid_replacing;
         char *codec_long_name;
@@ -971,7 +971,7 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_struct *sp)
         mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_converter(char *srce, char *args, session_t *sp)
 {
         converter_details_t d;
         u_int32             i, n;
@@ -1007,7 +1007,7 @@ static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
  */
 
 static void
-set_red_parameters(session_struct *sp, char *sec_enc, int offset)
+set_red_parameters(session_t *sp, char *sec_enc, int offset)
 {
         const codec_format_t *pcf, *rcf;
         codec_id_t            pri_id, red_id;
@@ -1041,7 +1041,7 @@ set_red_parameters(session_struct *sp, char *sec_enc, int offset)
 
 
 static void
-set_layered_parameters(session_struct *sp, char *sec_enc, char *schan, char *sfreq, int layerenc)
+set_layered_parameters(session_t *sp, char *sec_enc, char *schan, char *sfreq, int layerenc)
 {
         const codec_format_t *pcf, *lcf;
         codec_id_t            pri_id, lay_id;
@@ -1113,7 +1113,7 @@ set_layered_parameters(session_struct *sp, char *sec_enc, char *schan, char *sfr
  * we assume we know what channel coders are which kind of defies point
  * 'generic' structure but that's probably because it's not generic enough.
  */
-static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
+static void rx_audio_channel_coding(char *srce, char *args, session_t *sp)
 {
         cc_details   ccd;
         char        *coding, *sec_enc, *schan, *sfreq;
@@ -1178,14 +1178,14 @@ static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
 	ui_update_channel(sp);
 }
 
-static void rx_tool_rat_settings(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_settings(char *srce, char *args, session_t *sp)
 {
 	UNUSED(args);
 	UNUSED(srce);
         ui_update(sp);
 }
 
-static void rx_mbus_quit(char *srce, char *args, session_struct *sp)
+static void rx_mbus_quit(char *srce, char *args, session_t *sp)
 {
 	UNUSED(args);
 	UNUSED(srce);
@@ -1194,21 +1194,21 @@ static void rx_mbus_quit(char *srce, char *args, session_struct *sp)
         should_exit = TRUE;
 }
 
-static void rx_mbus_waiting(char *srce, char *args, session_struct *sp)
+static void rx_mbus_waiting(char *srce, char *args, session_t *sp)
 {
 	UNUSED(srce);
 	UNUSED(args);
 	UNUSED(sp);
 }
 
-static void rx_mbus_go(char *srce, char *args, session_struct *sp)
+static void rx_mbus_go(char *srce, char *args, session_t *sp)
 {
 	UNUSED(srce);
 	UNUSED(args);
 	UNUSED(sp);
 }
 
-static void rx_mbus_hello(char *srce, char *args, session_struct *sp)
+static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 {
 	/* Ignore "hello" messages... */
 	UNUSED(args);
@@ -1271,7 +1271,7 @@ const char *rx_cmnd[] = {
 	""
 };
 
-static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
+static void (*rx_func[])(char *srce, char *args, session_t *sp) = {
 	rx_tool_rat_addr_ui,
 	rx_tool_rat_silence,
 	rx_tool_rat_lecture,
@@ -1330,7 +1330,7 @@ void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 
 	for (i=0; strlen(rx_cmnd[i]) != 0; i++) {
 		if (strcmp(rx_cmnd[i], cmnd) == 0) {
-                        rx_func[i](srce, args, (session_struct *) data);
+                        rx_func[i](srce, args, (session_t *) data);
 			return;
 		} 
 	}

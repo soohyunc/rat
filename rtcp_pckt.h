@@ -23,7 +23,7 @@
 #ifndef _RTCP_PCKT
 #define _RTCP_PCKT
 
-struct session_tag;
+struct s_session;
 struct s_rtcp_dbentry;
 
 #define MAX_PACKLEN     1200
@@ -162,9 +162,9 @@ typedef struct {
 
 u_int32		ntp_time32(void);
 int 		rtcp_check_rtcp_pkt(u_int8 *packet, int len);
-void 		rtcp_decode_rtcp_pkt(struct session_tag *sp, struct session_tag *sp2, u_int8 *packet, int len, u_int32 cur_time, u_int32 real_time);
-void 		rtcp_exit(struct session_tag *sp1, struct session_tag *sp2, socket_udp *s);
+void 		rtcp_decode_rtcp_pkt(struct s_session *sp, struct s_session *sp2, u_int8 *packet, int len, u_int32 cur_time, u_int32 real_time);
+void 		rtcp_exit(struct s_session *sp1, struct s_session *sp2, socket_udp *s);
 u_int32  	rtcp_interval(int members, int senders, double rtcp_bw, int we_sent, int packet_size, int *avg_rtcp_size, int initial, u_int32 clock_freq);
-void 		rtcp_update(struct session_tag *sp, socket_udp *s);
+void 		rtcp_update(struct s_session *sp, socket_udp *s);
 
 #endif

@@ -17,12 +17,12 @@
 #include "session.h"
 
 struct s_tx_buffer;
-struct session_tag;
+struct s_session;
 struct s_speaker_table;
 struct s_minibuf;
 
 int   tx_create      (struct s_tx_buffer **tb,
-                      struct session_tag  *sp,
+                      struct s_session  *sp,
                       struct s_time       *clock,
                       u_int16 unit_size, 
                       u_int16 channels);

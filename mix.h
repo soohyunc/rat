@@ -18,7 +18,7 @@
 #include "ts.h"
 
 struct s_mix_info;
-struct session_tag;
+struct s_session;
 struct s_source;
 struct s_rtcp_dbentry;
 
@@ -42,7 +42,7 @@ void mix_get_new_cushion (struct s_mix_info *ms,
                           int dry_time, 
                           sample **bufp);
 
-void mix_update_ui       (struct session_tag *sp, struct s_mix_info *ms);
+void mix_update_ui       (struct s_session *sp, struct s_mix_info *ms);
 
 int  mix_active          (struct s_mix_info *ms);
 

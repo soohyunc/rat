@@ -21,14 +21,14 @@
 
 #include "ts.h"
 
-struct session_tag;
+struct s_session;
 struct s_pckt_queue;
 
-void	network_init(struct session_tag *session);
-void	network_exit(struct session_tag *session);
+void	network_init(struct s_session *session);
+void	network_exit(struct s_session *session);
 int	net_write(socket_udp *s, unsigned char *msg, int msglen, int type);
 int	net_write_iov(socket_udp *s, struct iovec *iov, int iovlen, int type);
-void    network_process_mbus(struct session_tag *sp);
+void    network_process_mbus(struct s_session *sp);
 void 	read_and_enqueue(socket_udp *s, 
                          ts_t        now_ts,
                          struct s_pckt_queue *queue, 

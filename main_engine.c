@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 {
 	u_int32		 cur_time, ntp_time;
 	int            	 seed, i, elapsed_time, alc;
-	session_struct 	*sp;
+	session_t 	*sp;
 	struct timeval   time;
 	struct timeval	 timeout;
         u_int8		 j;
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 	srand48(seed);
 	lbl_srandom(seed);
 
-	sp = (session_struct *) xmalloc(sizeof(session_struct));
+	sp = (session_t *) xmalloc(sizeof(session_t));
 	session_init(sp);
         converters_init();
         statistics_init();

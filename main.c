@@ -58,7 +58,7 @@ signal_handler(int signal)
 }
 #endif
 
-static int tcl_process_events(session_struct *sp)
+static int tcl_process_events(session_t *sp)
 {
 	int i = 0;
 
@@ -74,7 +74,7 @@ main(int argc, char *argv[])
 	u_int32			 cur_time, ntp_time;
 	int            		 i, elapsed_time, alc = 0, seed;
 	char			*cname;
-	session_struct 		*sp[2];
+	session_t 		*sp[2];
 	struct timeval  	 time;
 	struct timeval      	 timeout;
 	char			 mbus_engine_addr[100], mbus_ui_addr[100], mbus_video_addr[100];
@@ -90,7 +90,7 @@ main(int argc, char *argv[])
 	lbl_srandom(seed);
 
 	for (i = 0; i < 2; i++) {
-		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
+		sp[i] = (session_t *) xmalloc(sizeof(session_t));
 		session_init(sp[i]);
 	}
 	session_parse_early_options(argc, argv, sp);

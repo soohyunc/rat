@@ -11,8 +11,8 @@
  *
  */
 
-struct session_tag;
+struct s_session;
 
-void rtp_callback_init (struct rtp *s, struct session_tag *sp);
+void rtp_callback_init (struct rtp *s, struct s_session *sp);
 void rtp_callback      (struct rtp *s, rtp_event *e);
 void rtp_callback_exit (struct rtp *s);

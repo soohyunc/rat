@@ -75,7 +75,7 @@ int net_write_iov(socket_udp *s, struct iovec *iov, int len, int type)
 }
 
 void 
-network_init(session_struct *sp)
+network_init(session_t *sp)
 {
         u_int8 i;
 
@@ -93,7 +93,7 @@ network_init(session_struct *sp)
 }
 
 void
-network_exit(session_struct *sp)
+network_exit(session_t *sp)
 {
         u_int8 i;
 
@@ -159,7 +159,7 @@ void read_and_discard(socket_udp *s)
         block_free(data, PACKET_LENGTH);
 }
 
-void network_process_mbus(session_struct *sp)
+void network_process_mbus(session_t *sp)
 {
 	/* Process outstanding Mbus messages. */
 	int		rc, c;
