@@ -13,7 +13,7 @@ DEFS = -DDEBUG
 DEBUG=-g -ggdb -fbounds-checking
 # -g -ggdb
 
-OPTS= 
+OPTS= #-O4
 #-O -O2 -O3 -O4 
 
 PROFILE=
@@ -25,7 +25,7 @@ DEFS += -D$(OSTYPE) -D$(OSTYPE)_$(OSMVER)
 CFLAGS = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror $(INCS) $(DEFS) $(DEBUG) -fsigned-char -pipe $(PROFILE) $(OPTS)
 CC     = gcc
 LDFLAGS= $(PROFILE) $(OPTS)
-LDLIBS=  $(LDLIBS) -lm 
+LDLIBS=  $(LDLIBS)
 RANLIB = ranlib
 
 # Not sure these are correct for anything other than a sparc??? [csp]
@@ -35,7 +35,7 @@ include Makefile_$(OSTYPE)_$(OSMVER)
 
 SRCDIR = .
 BINDIR = .
-OBJDIR = /tmp
+OBJDIR = .
 OBJS  += $(OBJDIR)/convert.o \
 	 $(OBJDIR)/time.o \
 	 $(OBJDIR)/codec.o \

@@ -482,7 +482,7 @@ int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, in
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(MBUS_PORT+m->channel);
-	buffer           = (char *)xmalloc(MBUS_BUF_SIZE);
+	buffer           = (char *) xmalloc(MBUS_BUF_SIZE);
 	bufp		 = buffer;
 
 	sprintf(bufp, "mbus/1.0 %6d %c (%s) %s ()\n", m->seqnum, reliable?'R':'U', m->addr[0], dest);
