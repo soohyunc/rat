@@ -195,7 +195,7 @@ rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 addr, u_int32 cur_time)
 	newdb->sentry->addr 		= addr;
 	newdb->firstseqno 		= 1;	/* So that "expected packets" starts out 0 */
 	newdb->last_active 		= cur_time;
-	newdb->encoding			= -1;	/* Used in playout calc */
+
 	for (i=0; i<10; i++) {
 		newdb->encs[i]		= -1;
 	}

@@ -80,40 +80,36 @@ typedef struct s_rtcp_dbentry {
 	double          jitter;
 	rtcp_user_rr	*rr;
 
-	int		mute;
+	u_char		mute;
 	u_int32         misordered;		
 	u_int32         duplicates;
 	u_int32         jit_TOGed;		/* TOGed = Thrown on the Ground */
-	short		cont_toged;		/* Toged in a row */
-        short           playout_danger;         /* not enough audio in playout buffer */
-	u_int32         lost;			/* Old unused? */
+	u_char		cont_toged;		/* Toged in a row */
+        u_char          playout_danger;         /* not enough audio in playout buffer */
+        int32         playout_ceil;          /* a rounded up playout estimate to watch for rx buffer dry/flooding */
+
         int             inter_pkt_gap;          /* expected time between pkt arrivals */
         struct s_cc_state       *cc_state_list;
 	struct s_codec_state	*state_list;
 	struct s_time		*clock;
 
 	u_int32         last_mixed_playout;	/* from device_clock */
-	int             encoding;		/* Used to mark red in playout calculation */
+
 	int		units_per_packet;
-	int		encs[10];		/* Different encodings in packet */
+	int		encs[3];		/* Different encodings in packet */
         u_int32         ui_last_update;            
 	/* Variables for playout time calculation */
 	int		video_playout;		/* Playout delay in the video tool -- for lip-sync [csp] */
         u_char          video_playout_received; /* video playout is relevent */
-	int             playout;		/* Playout delay for this talkspurt */
+	int32           playout;		/* Playout delay for this talkspurt */
 	int             delay;			/* Average delay for this participant */
 	u_int32         last_ts;		/* Last packet timestamp */
 	u_int16         last_seq;		/* Last packet sequence number */
 	int             last_delay;		/* Last packet relative delay */
-	int             first_pckt_flag;
+	u_char          first_pckt_flag;
 
 	int		loss_from_me;		/* Loss rate that this receiver heard from me */
 	u_int32		last_rr_for_me;
-
-	/* info from the decode components */
-	u_int32         sec_count;		/* no of redundant packets decoded */
-	u_int32         dummy_count;		/* no of dummy packets decoded */
-	u_int32		normal_count;		/* no of primary packets decoded */
 
 	/* The variables must be properly set up for first data packet */
 	/* - zero is no good                                           */
@@ -130,18 +126,16 @@ typedef struct s_rtcp_dbentry {
 	u_int16         lastseqno;
 	u_int32         cycles;
 	u_int32		bad_seq;
-	int		probation;
+	int8		probation;
 	u_int32         last_sr;
 	u_int32         last_active;
-	int             is_sender;
+	u_char          is_sender;
 
 	/* Mapping between rtp time and NTP time for this sender */
 	int             mapping_valid;
 	u_int32         last_ntp_sec;	/* NTP timestamp */
 	u_int32         last_ntp_frac;
 	u_int32         last_rtp_ts;	/* RTP timestamp */
-	int             video_valid;
-	int32           video_delay;	/* Middle of NTP (subtracted) */
 } rtcp_dbentry;
 
 #define RTP_NUM_SDES 		6
