@@ -870,7 +870,7 @@ pack $i.o -side top -fill both  -pady 1
 pack $i.c -side top -fill both  -pady 1 -expand 1
 label $i.r.l -text "Repair Scheme:"
 tk_optionMenu $i.r.m repair_var "None" "Packet Repetition" "Pattern Matching"
-$i.r.m configure -width 20
+$i.r.m configure -width 20 -bd 1
 pack $i.r.l $i.r.m -side top 
 
 frame $i.o.f 
