@@ -567,7 +567,7 @@ static void
 rx_redundancy(char *srce, char *args, session_struct *sp)
 {
 	char	*codec;
-        int      offset, cc_pt;
+        int      offset, cc_pt, rpt;
 	char	 config[80];
 	codec_t *rcp, *pcp;
 
@@ -577,11 +577,18 @@ rx_redundancy(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(mbus_chan, &codec) && 
             mbus_parse_int(mbus_chan, &offset)) {
                 if (offset<=0) offset = 0;;
-                pcp    = get_codec(sp->encodings[0]);
-		rcp    = get_codec(codec_matching(mbus_decode_str(codec), pcp->freq, pcp->channels));
+                pcp = get_codec(sp->encodings[0]);
+		rpt = codec_matching(mbus_decode_str(codec), pcp->freq, pcp->channels);
+		if (rpt != -1) {
+			rcp = get_codec(rpt);
+		} else {
+			/* Specified secondary codec doesn't exist. Make it the same */
+			/* as the primary, and hope that's a sensible choice.        */
+			rcp = pcp;
+		}
                 assert(rcp != NULL);
                 /* Check redundancy makes sense... */
-                rcp    = validate_redundant_codec(pcp,rcp);
+                rcp = validate_redundant_codec(pcp,rcp);
                 sprintf(config,"%s/0/%s/%d", pcp->name, rcp->name, offset);
                 debug_msg("Configuring redundancy %s\n", config);
                 cc_pt = get_cc_pt(sp,"REDUNDANCY");

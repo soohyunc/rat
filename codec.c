@@ -656,5 +656,6 @@ codec_matching(char *short_name, int freq, int channels)
 		}
 	}
 
+	debug_msg("Unable to find codec \"%s\" at rate %d channels %d\n", short_name, freq, channels);
         return -1;
 }
