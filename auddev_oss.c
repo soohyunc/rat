@@ -80,6 +80,7 @@ deve2oss(deve_e encoding)
 {
         switch(encoding) {
         	case DEV_PCMU: return AFMT_MU_LAW;
+        	case DEV_PCMA: return AFMT_A_LAW;
         	case DEV_S8:   return AFMT_S8;
         	case DEV_S16:  return AFMT_S16_LE;
                 case DEV_U8:   return AFMT_U8;
