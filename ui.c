@@ -182,13 +182,13 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
                 delay    = 0;
         }
 
-        if (src == NULL || delay != 0) {
-                sprintf(args, "\"%08lx\" %ld", e->sentry->ssrc, buffered);
-                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.audio.buffered", args, FALSE);
-        }
+        sprintf(args, "\"%08lx\" %ld", e->sentry->ssrc, buffered);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.audio.buffered", args, FALSE);
         
-        sprintf(args, "\"%08lx\" %ld", e->sentry->ssrc, delay);
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.audio.delay", args, FALSE);
+        if (src == NULL || delay != 0) {
+                sprintf(args, "\"%08lx\" %ld", e->sentry->ssrc, delay);
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.audio.delay", args, FALSE);
+        }
 
 	sprintf(args, "\"%08lx\" \"%08lx\" %8ld", sp->db->my_dbe->sentry->ssrc, e->sentry->ssrc, (e->lost_frac * 100) >> 8);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
