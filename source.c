@@ -258,8 +258,8 @@ source_reconfigure(source        *src,
                    u_int16        out_channels)
 {
         u_int16    src_rate, src_channels;
-        codec_id_t src_cid;
-
+        codec_id_t            src_cid;
+        const codec_format_t *src_cf;
         assert(src->dbe != NULL);
 
         /* Set age to zero and flush existing media
@@ -274,9 +274,9 @@ source_reconfigure(source        *src,
          * what we have to change.
          */
         src_cid = codec_get_by_payload(src->dbe->enc);
-        codec_get_native_info(src_cid, 
-                              &src_rate, 
-                              &src_channels);
+        src_cf  = codec_get_format(src_cid);
+        src_rate     = (u_int16)src_cf->format.sample_rate;
+        src_channels = (u_int16)src_cf->format.channels;
 
         if (render_3d) {
                 assert(out_channels == 2);
@@ -333,8 +333,12 @@ source_remove(source_list *plist, source *psrc)
         playout_buffer_destroy(&psrc->channel);
         playout_buffer_destroy(&psrc->media);
         codec_state_store_destroy(&psrc->codec_states);
-
         plist->nsrcs--;
+
+        /* This is hook into the playout_adapt, we are signalling
+         * there is no source decode path.
+         */
+        psrc->dbe->first_pckt_flag = TRUE;
 
         block_free(psrc, sizeof(source));
 }
@@ -388,7 +392,7 @@ source_add_packet (source *src,
 
         /* Make state if not there and create decoder */
         if (src->channel_state == NULL && 
-            channel_decoder_create(cid, &src->channel_state)) {
+            channel_decoder_create(cid, &src->channel_state) == FALSE) {
                 debug_msg("Cannot decode payload %d\n", cu->pt);
                 channel_data_destroy(&cd, sizeof(channel_data));
         }

@@ -120,15 +120,20 @@ adapt_playout(rtp_hdr_t               *hdr,
 
         int64 since_last_sr;
 
-        /* This is kind of disgusting ... the device clock is a 64-bit 96kHz clock */
-        /* First map it to a 32-bit timestamp of the source */
+        /* This is kind of disgusting ... the device clock is a 64-bit 96kHz 
+         * clock.  First map it to a 32-bit timestamp of the source 
+         */
     
         delay_ts = ts_sub(arr_ts, src_ts);
 
+        /* Keep a note a source freq */
+        src_freq = get_freq(src->clock);
+        assert(src_freq % 8000 == 0 || src_freq % 11025 == 0);
+
 	if (src->first_pckt_flag == TRUE) {
-		src->first_pckt_flag = FALSE;
-		src->delay           = delay_ts;
-		hdr->m               = TRUE;
+		src->delay                 = delay_ts;
+                src->delay_in_playout_calc = delay_ts;
+		hdr->m                     = TRUE;
                 cid = codec_get_by_payload(src->enc);
                 if (cid) {
                         cf = codec_get_format(cid);
@@ -219,8 +224,8 @@ adapt_playout(rtp_hdr_t               *hdr,
 
                         src->delay_in_playout_calc = src->delay;
                         
-                        if (source_get_by_rtcp_dbentry(sp->active_sources, 
-                                                       src) != 0) {
+                        if (src->first_pckt_flag != TRUE &&
+                            source_get_by_rtcp_dbentry(sp->active_sources, src) != 0) {
                                 /* If playout buffer is not empty
                                  * or, difference in time stamps is less than 1 sec,
                                  * we don't want playout point to be before that of existing data.
@@ -327,6 +332,8 @@ adapt_playout(rtp_hdr_t               *hdr,
                         src->first_pckt_flag = TRUE;
                 }
         }
+
+        src->first_pckt_flag = FALSE;
 
 	return playout;
 }

@@ -510,8 +510,9 @@ tx_send(session_struct *sp)
                                 break;
                         }
                 }
-
-                for (i = 0, u = tb->tx_ptr; i < units; i++, u=u->next) {
+                
+                u = tb->tx_ptr;
+                for (i = 0;i < units; i++) {
                         media_data *m;
                         if (send) {
                                 media_data_create(&m, sp->num_encodings);
@@ -525,11 +526,12 @@ tx_send(session_struct *sp)
                         } else {
                                 media_data_create(&m, 0);
                         }
-                        time_ts = ts_seq32_in(&tb->down_seq, freq, tb->tx_ptr->time);
+                        time_ts = ts_seq32_in(&tb->down_seq, freq, u->time);
                         playout_buffer_add(tb->media_buf, 
                                            (u_char*)m, 
                                            sizeof(media_data), 
                                            time_ts);
+                        u = u->next;
                 }
                 n -= units;
                 tb->tx_ptr = u;
