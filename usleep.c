@@ -30,7 +30,7 @@ int usleep(unsigned int usec)
 
 /* On Irix 6.5.4m this function isn't needed.... we should probably have */
 /* a check in the configure script for usleep().                         */
-#ifdef IRIX	
+#ifdef NEED_USLEEP
 int usleep(unsigned int usec)
 {
 	struct timespec sleeptime,t2;
