@@ -24,7 +24,7 @@ include Makefile_$(OSTYPE)_$(OSMVER)
 
 SRCDIR = .
 BINDIR = .
-OBJDIR = .
+OBJDIR = /tmp
 OBJS  += $(OBJDIR)/convert.o \
 	 $(OBJDIR)/time.o \
 	 $(OBJDIR)/codec.o \
