@@ -713,7 +713,6 @@ frame  .l.s1 -bd 0
 button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options"   -command {wm deiconify .prefs}
 button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"     -command {wm deiconify .about}
 button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"      -command {save_settings; destroy .}
-button .l.s1.audio -highlightthickness 0 -padx 0 -pady 0 -text "Get Audio" -command {mbus_send "R" "get_audio" ""}
 
 frame .r.c
 frame .r.c.vol  
@@ -766,7 +765,6 @@ proc mbus_recv_disable_audio_ctls {} {
 	.r.c.gain.t2 configure -state disabled
 	.r.c.gain.l2 configure -state disabled
 	.r.c.gain.s2 configure -state disabled
-	.l.s1.audio  configure -state normal
 }
 
 proc mbus_recv_enable_audio_ctls {} {
@@ -776,7 +774,6 @@ proc mbus_recv_enable_audio_ctls {} {
 	.r.c.gain.t2 configure -state normal
 	.r.c.gain.l2 configure -state normal
 	.r.c.gain.s2 configure -state normal
-	.l.s1.audio  configure -state disabled
 }
 
 bind all <ButtonPress-3> "toggle_send"
@@ -784,7 +781,7 @@ bind all <ButtonRelease-3> "toggle_send"
 bind all <q> {destroy .}
 
 wm iconbitmap . rat_small
-wm resizable . 1 1
+wm resizable . 0 1
 if ([info exists geometry]) {
         wm geometry . $geometry
 }
@@ -1570,7 +1567,6 @@ add_help .l.t		"The participants in this session with you at the top.\nClick on 
 add_help .l.s1.opts   	"Brings up another window allowing\nthe control of various options."
 add_help .l.s1.about  	"Brings up another window displaying\ncopyright & author information."
 add_help .l.s1.quit   	"Press to leave the session."
-add_help .l.s1.audio  	""
 
 # preferences help
 add_help .prefs.m.f.mb  "Click here to change the preference\ncategory."
