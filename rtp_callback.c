@@ -342,6 +342,10 @@ rtp_callback(struct rtp *s, rtp_event *e)
 	case RX_RTP:
                 process_rtp_data(sp, e->ssrc, (rtp_packet*)e->data);
                 break;
+	case RX_RTCP_START:
+		break;
+	case RX_RTCP_FINISH:
+		break;
 	case RX_SR:
 		break;
 	case RX_RR:
