@@ -140,10 +140,10 @@ wbs_decoder(u_int16 idx, u_char *decoder_state, coded_unit *c, sample *data)
 u_int8
 wbs_max_layers(void)
 {
-        return (int)WBS_NUM_LAYERS;
+        return (u_int8)WBS_NUM_LAYERS;
 }
 
-int wbs_get_layer (coded_unit *in, u_int8 layer, u_int8 *markers, coded_unit *out)
+int wbs_get_layer (u_int16 idx, coded_unit *in, u_int8 layer, u_int16 *markers, coded_unit *out)
 {
         int i, j;
         u_char base[WBS_UNIT_SIZE];
@@ -152,6 +152,8 @@ int wbs_get_layer (coded_unit *in, u_int8 layer, u_int8 *markers, coded_unit *ou
         u_char tmp_enh;
         u_char tmp_base[3];
         coded_unit *tmp_out;
+
+		UNUSED(idx);
 
         if(layer >= WBS_NUM_LAYERS) {
                 debug_msg("Too many layers: WBS only supports %d\n", WBS_NUM_LAYERS);
@@ -233,13 +235,16 @@ int wbs_get_layer (coded_unit *in, u_int8 layer, u_int8 *markers, coded_unit *ou
         return out->data_len;
 }
 
-int wbs_combine_layer (coded_unit *in, coded_unit *out)
+int wbs_combine_layer (u_int16 idx, coded_unit *in, coded_unit *out, u_int8 nelem, u_int16 *markers)
 {
         int i, j, k, marker;
         u_char cont_layer[WBS_UNIT_SIZE];
         u_char tmp1, tmp2, tmp3, tmp4;
         
         assert(in);
+        UNUSED(idx);
+		UNUSED(nelem);
+        UNUSED(markers);
         
        /* By the time we get here we assume that the  *
         * data is in one contiguous block again, and  *

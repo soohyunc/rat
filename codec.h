@@ -97,11 +97,13 @@ u_int8     codec_can_layer         (codec_id_t id);
 int        codec_get_layer         (codec_id_t id,
                                     coded_unit *cu_whole,
                                     u_int8 layer,
-                                    u_int8 *markers,
+                                    u_int16 *markers,
                                     coded_unit *cu_layer);
 int        codec_combine_layer     (codec_id_t id,
                                     coded_unit *cu_layer,
-                                    coded_unit *whole);
+                                    coded_unit *whole,
+                                    u_int8 nelem,
+                                    u_int16 *markers);
 
 
 #endif /* _CODEC_H_ */

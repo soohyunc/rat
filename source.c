@@ -437,7 +437,8 @@ source_add_packet (source *src,
 
                         for(i=0; i<cd->nelem; i++) {
                                 if(cu->data_len!=cd->elem[i]->data_len) break;
-                                if(memcmp(cu->data, cd->elem[i]->data, cu->data_len)==0) dup=1;
+                                /* This memcmp arbitrarily only checks 20 bytes, otherwise it takes too long */
+								if(memcmp(cu->data, cd->elem[i]->data, 20)==0) dup=1;
                         }
 
                        /* duplicate, so stick the channel_data back on *

@@ -65,9 +65,9 @@ typedef int     (*cx_repair_f)            (u_int16 idx,
 
 /* For layered codecs */
 typedef u_int8		(*cx_can_layer_f)	  (void);
-typedef int             (*cx_get_layer_f)         (coded_unit *cu_whole, u_int8 layer,
-                                                   u_int8 *markers, coded_unit *cu_layer);
-typedef int             (*cx_combine_layer_f)     (coded_unit *cu_layer, coded_unit *cu_whole);
+typedef int             (*cx_get_layer_f)         (u_int16 idx, coded_unit *cu_whole, u_int8 layer,
+                                                   u_int16 *markers, coded_unit *cu_layer);
+typedef int             (*cx_combine_layer_f)     (u_int16 idx, coded_unit *cu_layer, coded_unit *cu_whole, u_int8 nelem, u_int16 *markers);
 
 typedef struct s_codec_fns {
         cx_init_f               cx_init;
@@ -998,20 +998,27 @@ codec_can_layer(codec_id_t id)
 }
 
 int
-codec_get_layer(codec_id_t id, coded_unit *cu_whole, u_int8 layer, u_int8 *markers, coded_unit *cu_layer)
+codec_get_layer(codec_id_t id, coded_unit *cu_whole, u_int8 layer, u_int16 *markers, coded_unit *cu_layer)
 {
-        int ifs = CODEC_GET_IFS_INDEX(id);
+        u_int16 ifs, fmt;
+		
+        ifs = CODEC_GET_IFS_INDEX(id);
+        fmt = CODEC_GET_FMT_INDEX(id);        
+
         if (codec_table[ifs].cx_get_layer) {
-                return codec_table[ifs].cx_get_layer(cu_whole, layer, markers, cu_layer);
+                return codec_table[ifs].cx_get_layer(fmt, cu_whole, layer, markers, cu_layer);
         }
         return FALSE;
 }
 
 int
-codec_combine_layer (codec_id_t id, coded_unit *cu_layer, coded_unit *cu_whole)
+codec_combine_layer (codec_id_t id, coded_unit *cu_layer, coded_unit *cu_whole, u_int8 nelem, u_int16 *markers)
 {
-        int ifs = CODEC_GET_IFS_INDEX(id);
-
+        u_int16 ifs, fmt;
+		
+        ifs = CODEC_GET_IFS_INDEX(id);
+        fmt = CODEC_GET_FMT_INDEX(id);        
+		
         assert(codec_table[ifs].cx_combine_layer);
-        return codec_table[ifs].cx_combine_layer(cu_layer, cu_whole);
+        return codec_table[ifs].cx_combine_layer(fmt, cu_layer, cu_whole, nelem, markers);
 }

@@ -982,15 +982,6 @@ set_red_parameters(session_struct *sp, char *sec_enc, int offset)
 }
 
 
-/* This fn is excessively complicated because when rat is first started up
- * and sync_engine_to_ui is called, tool.rat.codec is processed, but the loaded
- * codec is not passed back to the UI before audio.channel.coding is sent. Thus
- * the first time that the channel coder settings are loaded, the wrong primary
- * encoding is sent. To get around this we have to send the codec name, channels
- * and frequency. Ideally this would be sorted, and then we would just have to 
- * send the number of layers to the layered channel coder. But that can wait.
- */
-
 static void
 set_layered_parameters(session_struct *sp, char *sec_enc, char *schan, char *sfreq, int layerenc)
 {
@@ -1017,9 +1008,19 @@ set_layered_parameters(session_struct *sp, char *sec_enc, char *schan, char *sfr
                 debug_msg("Can't find layered codec (%s) - need to change primary codec\n", sec_enc);
         }
         if (pri_id!=lay_id) {
-                debug_msg("Layered codec (%s) not same as primary codec (%s)\n", sec_enc, pcf->short_name);
-                /* this should be uncommented out if the load settings problem (see above) is fixed */
-                /*lay_id = pri_id; */
+                /* This can happen if you change codec and select layering    * 
+                 * before pushing apply, so change the primary encoding here. */
+                codec_id_t cid;
+                if (lay_id && codec_get_payload(lay_id) != 255) {
+                        cid     = codec_get_by_payload ((u_char)sp->encodings[0]);
+                        if (codec_audio_formats_compatible(lay_id, cid)) {
+                                sp->encodings[0] = codec_get_payload(lay_id);
+                                ui_update_primary(sp);
+                        } else {
+                                /* just register we want to make a change */
+                                audio_device_register_change_primary(sp, lay_id);
+                        }
+                }
         }                    
         lcf = codec_get_format(lay_id);
         
@@ -1047,7 +1048,6 @@ set_layered_parameters(session_struct *sp, char *sec_enc, char *schan, char *sfr
         /* Now tweak session parameters */
         sp->layers = layerenc;
         sp->num_encodings = 1;
-        sp->encodings[0]  = codec_get_payload(lay_id);
 }
 
 /* This function is a bit nasty because it has to coerce what the
