@@ -166,7 +166,7 @@ proc input_mute {state} {
 
 proc set_vol {new_vol} {
     global volume received
-    set volume [format "%03d" $new_vol]
+    set volume $new_vol
     if {$received(volume)} {
 	mbus_send "R" "audio.output.gain" $volume
     }
@@ -174,7 +174,7 @@ proc set_vol {new_vol} {
 
 proc set_gain {new_gain} {
     global gain received
-    set gain [format "%03d" $new_gain]
+    set gain $new_gain
     if {$received(gain)} {
 	mbus_send "R" "audio.input.gain" $gain
     }
@@ -718,7 +718,7 @@ proc mbus_recv_audio.output.powermeter {level} {
 proc mbus_recv_audio.input.gain {new_gain} {
     global received gain
     set received(gain) 1
-    set gain [format "%03d" $new_gain]
+    set gain $new_gain
 }
 
 proc mbus_recv_audio.input.ports.flush {} {
@@ -745,7 +745,7 @@ proc mbus_recv_audio.input.mute {val} {
 proc mbus_recv_audio.output.gain {new_gain} {
     global received volume
     set received(volume) 1
-    set volume [format "%03d" $new_gain]
+    set volume $new_gain
 }
 
 proc mbus_recv_audio.output.port {port} {

@@ -1203,18 +1203,19 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  does not exist on host.
 	* Released 20 March 2000.
 
-4.1.9	- fix configure script handling of X_CFLAGS during broken header tests
+4.1.8a  - fix configure script handling of X_CFLAGS during broken header tests
 	  reported by Atanu.
 	- remove variable component (e->playout) from spike threshold in 
 	  source processing, believe this is part of the bad spike messages 
 	  (160>nnnnn).
-        - Changes to Win32 driver read code to remove race condition (audio
+	- Changes to Win32 driver read code to remove race condition (audio
 	  callback occuring as audio being taken from list of ready buffers).
-        - Move participant database clean up into session_exit.
-        - Destroy local file player and tone generator when reconfiguring
-          device.
+	- Move participant database clean up into session_exit.
+	- Destroy local file player and tone generator when reconfiguring
+	  device.
 	- Changes to Win32 driver interface write code.  Appears to resolve
 	  problems with a few troublesome cards.
+	* Released 30 March 2000.
 
 TODO -- They're features not bugs dammit!
 ----
