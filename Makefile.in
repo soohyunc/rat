@@ -15,13 +15,13 @@ CODEC_OBJS = codec.o codec_state.o codec_dvi.o codec_gsm.o \
              codec_l16.o codec_g711.o codec_g726.o codec_lpc.o \
              codec_types.o codec_vdvi.o codec_wbs.o cx_dvi.o \
              cx_g726.o cx_g726_16.o cx_g726_24.o cx_g726_32.o cx_g726_40.o \
-             cx_gsm.o cx_lpc.o cx_vdvi.o cx_wbs.o
+             cx_gsm.o cx_lpc.o cx_vdvi.o cx_wbs.o convert.o
 
 SNDFILE_OBJS = sndfile.o sndfile_au.o sndfile_raw.o sndfile_wav.o
 
 CC_OBJS    = channel.o channel_types.o cc_vanilla.o cc_rdncy.o
 
-TOY_OBJS   = convert.o crypt.o render_3D.o repair.o 
+TOY_OBJS   = crypt.o render_3D.o repair.o 
 
 CORE_OBJS  = ts.o playout.o statistics.o source.o \
              rtcp.o rtcp_db.o rtcp_pckt.o session.o \
