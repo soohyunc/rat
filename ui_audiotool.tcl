@@ -1664,23 +1664,23 @@ pack   .prefs.buttons.bye .prefs.buttons.apply -side right -padx 2 -pady 2
 
 wm protocol .prefs WM_DELETE_WINDOW {sync_ui_to_engine; wm withdraw .prefs}
 
-frame .prefs.pane -relief sunken
+frame .prefs.pane -relief groove -bd 2
 pack  .prefs.pane -side left -fill both -expand 1 -padx 4 -pady 2
 
 # setup width of prefs panel
 constrain_window .prefs $infofont 56 30
 
-# Personal Info Pane
+# Personal Info Pane ##########################################################
 set i .prefs.pane.personal
 frame $i
 pack $i -fill both -expand 1 -pady 2 -padx 2
 
-frame $i.a -relief sunken 
-frame $i.a.f 
+frame $i.a
+frame $i.a.f -rel fl 
 pack $i.a -side top -fill both -expand 1 
 pack $i.a.f -side left -fill x -expand 1
 
-frame $i.a.f.f 
+frame $i.a.f.f -rel fl
 pack $i.a.f.f
 
 label $i.a.f.f.l -width 40 -height 2 -text "The personal details below are conveyed\nto the other conference participants." -justify left -anchor w
@@ -1713,12 +1713,12 @@ frame $i.cc.red
 frame $i.cc.layer
 frame $i.cc.int 
 label $i.intro -text "This panel allows you to select codecs for transmission.  The choice\nof codecs available depends on the sampling rate and channels\nin the audio panel."
-label $i.title1 -relief raised -text "Audio Encoding"
+label $i.title1 -text "Audio Encoding" -bg black -fg grey
 pack $i.intro $i.title1 $i.dd -side top -fill x
 
 #pack $i.dd -fill x -side top -anchor n
 
-label $i.title2 -relief raised -text "Channel Coding Options"
+label $i.title2 -text "Channel Coding Options" -bg black -fg grey
 pack $i.title2 -fill x -side top
 pack $i.cc -fill x -anchor w -pady 1
 
@@ -1784,9 +1784,9 @@ pack $i.cc.int.zz.l $i.cc.int.zz.m -fill x -expand 1
 # Reception Pane ##############################################################
 set i .prefs.pane.reception
 frame $i 
-frame $i.r -relief sunken
-frame $i.o -relief sunken
-frame $i.c -relief sunken
+frame $i.r -rel f
+frame $i.o -rel f
+frame $i.c -rel f
 pack $i.r -side top -fill x -pady 0 -ipady 1
 pack $i.o -side top -fill both  -pady 1
 pack $i.c -side top -fill both  -pady 1 -expand 1
@@ -1826,7 +1826,7 @@ pack $i.c.f.f.ext -side top  -anchor w
 # Audio #######################################################################
 set i .prefs.pane.audio
 frame $i 
-frame $i.dd -relief sunken 
+frame $i.dd -rel fl
 pack $i.dd -fill both -expand 1 -anchor w -pady 1
 
 label $i.dd.title -height 2 -width 40 -text "This panel allows for the selection of alternate audio devices\nand the configuring of device related options." -justify left
@@ -1878,7 +1878,7 @@ pack $i.dd.cks.f.f.silence $i.dd.cks.f.f.agc $i.dd.cks.f.f.loop $i.dd.cks.f.f.su
 # Codecs pane #################################################################
 set i .prefs.pane.codecs
 frame $i 
-frame $i.of -relief sunken
+frame $i.of -rel fl
 pack  $i.of -fill both -expand 1 -anchor w -pady 1
 
 label $i.of.l -height 2 -width 40 -justify left -text "This panel shows the available codecs, their properties and allows\n their RTP payload types to be re-mapped." 
@@ -1887,14 +1887,14 @@ pack $i.of.l -side top -fill x
 frame   $i.of.codecs
 
 pack    $i.of.codecs -side left -padx 2 -fill y
-label   $i.of.codecs.l    -text "Codec" -relief raised
-listbox $i.of.codecs.lb -width 20 -yscrollcommand "$i.of.codecs.scroll set"
-scrollbar $i.of.codecs.scroll -command "$i.of.codecs.lb yview"
+label   $i.of.codecs.l    -text "Codec" -bg black -fg grey
+listbox $i.of.codecs.lb -width 20 -yscrollcommand "$i.of.codecs.scroll set" -relief flat -bg white
+scrollbar $i.of.codecs.scroll -command "$i.of.codecs.lb yview" 
 pack    $i.of.codecs.l -side top -fill x
 pack    $i.of.codecs.scroll $i.of.codecs.lb -side left -fill both 
 
-frame   $i.of.details 
-pack    $i.of.details -side left -fill both -expand 1
+frame   $i.of.details -bd 0
+pack    $i.of.details -side left -fill both -expand 1 -anchor n
 
 frame $i.of.details.upper
 pack $i.of.details.upper -fill x
@@ -1913,7 +1913,7 @@ pack  $i.of.details.pt.e -side left -padx 4
 button $i.of.details.pt.b -text "Map Codec" -command map_codec
 pack  $i.of.details.pt.b -side left -padx 4
 
-label $i.of.details.upper.l0 -text "Details" -relief raised
+label $i.of.details.upper.l0 -text "Details" -bg black -fg grey
 pack $i.of.details.upper.l0 -side top -fill x -expand 1
 
 frame $i.of.details.upper.l 
@@ -2018,7 +2018,7 @@ proc map_codec {} {
 # Security Pane ###############################################################
 set i .prefs.pane.security
 frame $i 
-frame $i.a -relief sunken
+frame $i.a -rel fl
 frame $i.a.f 
 frame $i.a.f.f
 label $i.a.f.f.l -anchor w -justify left -text "Your communication can be secured with\nDES encryption.  Only conference participants\nwith the same key can receive audio data when\nencryption is enabled."
@@ -2034,7 +2034,7 @@ pack $i.a.f.f.lbl $i.a.f.f.e $i.a.f.f.cb -side left -pady 4 -padx 2 -fill x
 # Interface Pane ##############################################################
 set i .prefs.pane.interface
 frame $i 
-frame $i.a -relief sunken 
+frame $i.a -rel fl
 frame $i.a.f 
 frame $i.a.f.f
 label $i.a.f.f.l -anchor w -justify left -text "The following features may be\ndisabled to conserve processing\npower."
@@ -2081,13 +2081,13 @@ pack .about.m.f.l .about.m.f.mb -side left
 frame     .about.rim.d.copyright
 frame     .about.rim.d.copyright.f -relief flat
 frame     .about.rim.d.copyright.f.f
-text      .about.rim.d.copyright.f.f.blurb -height 14 -yscrollcommand ".about.rim.d.copyright.f.f.scroll set" -relief flat
+text      .about.rim.d.copyright.f.f.blurb -height 14 -yscrollcommand ".about.rim.d.copyright.f.f.scroll set" -relief flat -bg white
 scrollbar .about.rim.d.copyright.f.f.scroll -command ".about.rim.d.copyright.f.f.blurb yview" -relief flat
 
 pack      .about.rim.d.copyright.f -expand 1 -fill both
 pack      .about.rim.d.copyright.f.f -expand 1 -fill both
-pack      .about.rim.d.copyright.f.f.scroll -side right -fill y -expand 1
-pack      .about.rim.d.copyright.f.f.blurb -side left -expand 1
+pack      .about.rim.d.copyright.f.f.scroll -side left -fill y -expand 1
+pack      .about.rim.d.copyright.f.f.blurb -side left -fill y -expand 1
 
 frame     .about.rim.d.credits 
 frame     .about.rim.d.credits.f -relief flat
