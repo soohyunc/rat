@@ -158,24 +158,23 @@ main(int argc, char *argv[])
 		mbus_addr(sp[0]->mbus_engine_conf, mbus_engine_addr);
 	}
 
-        if (sp[0]->ui_on) {
-		sp[0]->mbus_ui_base = mbus_init(0, mbus_ui_rx, NULL);
-		mbus_addr(sp[0]->mbus_ui_base, mbus_ui_addr);
-		if (sp[0]->mbus_channel == 0) {
-			sp[0]->mbus_ui_conf = sp[0]->mbus_ui_base;
-		} else {
-			sp[0]->mbus_ui_conf = mbus_init((short)sp[0]->mbus_channel, mbus_ui_rx, NULL);
-			mbus_addr(sp[0]->mbus_ui_conf, mbus_ui_addr);
-		}
-		tcl_init(sp[0], argc, argv, mbus_engine_addr);
+        if (!sp[0]->ui_on) strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
+
+	sp[0]->mbus_ui_base = mbus_init(0, mbus_ui_rx, NULL);
+	mbus_addr(sp[0]->mbus_ui_base, mbus_ui_addr);
+	if (sp[0]->mbus_channel == 0) {
+		sp[0]->mbus_ui_conf = sp[0]->mbus_ui_base;
 	} else {
-		strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
-        }
+		sp[0]->mbus_ui_conf = mbus_init((short)sp[0]->mbus_channel, mbus_ui_rx, NULL);
+		mbus_addr(sp[0]->mbus_ui_conf, mbus_ui_addr);
+	}
+	if (sp[0]->ui_on) tcl_init(sp[0], argc, argv, mbus_engine_addr);
 
 	ui_controller_init(sp[0], cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 	do {
 		network_process_mbus(sp[0]);
 		heartbeat(sp[0], ntp_time32(), 1);
+		usleep(20000);
 	} while (sp[0]->wait_on_startup);
 
         ui_sampling_modes(sp[0]);
