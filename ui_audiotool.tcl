@@ -455,10 +455,9 @@ proc mbus_recv_source.active.now {cname} {
 }
 
 proc mbus_recv_source.inactive {cname} {
-    puts "Inactive $cname"
     catch [[window_plist $cname] configure -background grey90]
     after 60 "catch {[window_plist $cname] configure -background grey88}"
-    after 120 "catch {[window_plist $cname] configure -background grey85}"
+    after 120 "catch {[window_plist $cname] configure -background [.l.t.list cget -background]}"
     cname_update $cname
 }
 
