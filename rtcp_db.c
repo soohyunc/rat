@@ -56,7 +56,7 @@
 #include "session.h"
 #include "util.h"
 #include "speaker_table.h"
-#include "ui.h"
+#include "ui_update.h"
 #include "rat_time.h"
 #include "receive.h"
 

@@ -40,43 +40,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _RAT_UI_H_
-#define _RAT_UI_H_
+#ifndef _UI_H
+#define _UI_H
 
 struct session_tag;
-struct s_rtcp_dbentry;
-struct s_cbaddr;
-
-void	update_lecture_mode(struct session_tag *session_pointer);
 
 void    ui_send(char *command);
-void	ui_update(struct session_tag *session_pointer);
 int	ui_init(struct session_tag *session_pointer, char *cname, int argc, char **argv);
-void	usage(void);
 
-void	   ui_info_update_name(struct s_rtcp_dbentry *e, struct session_tag *sp);
-void	  ui_info_update_cname(struct s_rtcp_dbentry *e, struct session_tag *sp);
-void	  ui_info_update_email(struct s_rtcp_dbentry *e, struct session_tag *sp);
-void	  ui_info_update_phone(struct s_rtcp_dbentry *e, struct session_tag *sp);
-void	    ui_info_update_loc(struct s_rtcp_dbentry *e, struct session_tag *sp);
-void	   ui_info_update_tool(struct s_rtcp_dbentry *e, struct session_tag *sp);
-void	        ui_info_remove(struct s_rtcp_dbentry *e, struct session_tag *sp);
-void	      ui_info_activate(struct s_rtcp_dbentry *e, struct session_tag *sp);
-void	          ui_info_gray(struct s_rtcp_dbentry *e, struct session_tag *sp);
-void	    ui_info_deactivate(struct s_rtcp_dbentry *e, struct session_tag *sp);
-void	ui_update_loss_from_me(struct s_rtcp_dbentry *e, struct session_tag *sp);
-void	  ui_update_loss_to_me(struct s_rtcp_dbentry *e, struct session_tag *sp);
-
-void	    ui_show_audio_busy(struct session_tag *sp);
-void	    ui_hide_audio_busy(struct session_tag *sp);
-void	        ui_input_level(int level, struct session_tag *sp);
-void	       ui_output_level(int level, struct session_tag *sp);
-void 	  ui_update_input_port(struct session_tag *sp);
-void 	 ui_update_output_port(struct session_tag *sp);
-void	  ui_update_redundancy(struct session_tag *sp);
-void	  ui_update_interleaving(struct session_tag *sp);
-
-void	update_stats(struct s_rtcp_dbentry *e, struct session_tag *sp);
-
-#endif /* _RAT_UI_H_ */
-
+#endif

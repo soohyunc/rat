@@ -40,7 +40,7 @@
 #include <stdio.h>
 #include "mbus_engine.h"
 #include "mbus.h"
-#include "ui.h"
+#include "ui_update.h"
 #include "net.h"
 #include "util.h"
 #include "transmit.h"

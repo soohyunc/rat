@@ -51,7 +51,7 @@
 #include "convert.h"
 #include "codec.h"
 #include "parameters.h"
-#include "ui.h"
+#include "ui_update.h"
 
 typedef struct s_mix_info {
 	int	buf_len;        /* Length of circular buffer */

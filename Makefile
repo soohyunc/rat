@@ -12,7 +12,7 @@ DEFS = -DDEBUG -DDEBUG_MIX
 
 DEFS += -D$(OSTYPE) -D$(OSTYPE)_$(OSMVER)
 # If your code doesn't compile with all these -W... flags, fix the code don't remove the warnings!
-CFLAGS = -W -Wall -Wbad-function-cast -Wmissing-prototypes $(INCS) $(DEFS) -g -fsigned-char -pipe
+CFLAGS = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror $(INCS) $(DEFS) -g -fsigned-char -pipe
 CC     = gcc
 LDFLAGS= 
 LDLIBS=  $(LDLIBS) -lm 
@@ -69,6 +69,7 @@ OBJS  += $(OBJDIR)/convert.o \
          $(OBJDIR)/speaker_table.o \
          $(OBJDIR)/net.o \
          $(OBJDIR)/ui.o \
+         $(OBJDIR)/ui_update.o \
          $(OBJDIR)/transcoder.o \
          $(OBJDIR)/agc.o \
 	 $(OBJDIR)/crypt.o \

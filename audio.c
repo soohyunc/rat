@@ -49,7 +49,7 @@
 #include "util.h"
 #include "session.h"
 #include "transcoder.h"
-#include "ui.h"
+#include "ui_update.h"
 #include "transmit.h"
 #include "mix.h"
 #include "codec.h"

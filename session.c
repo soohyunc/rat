@@ -55,6 +55,13 @@
 
 extern char ui_original[];
 
+static void 
+usage(void)
+{
+	printf("Usage: rat -t <ttl> <addr>/<port>\n");
+	exit(1);
+}
+
 void
 init_session(session_struct *sp)
 {

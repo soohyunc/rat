@@ -46,7 +46,7 @@
 #include "session.h"
 #include "audio.h"
 #include "parameters.h"
-#include "ui.h"
+#include "ui_update.h"
 #include "util.h"
 #include "agc.h"
 #include "rtcp_pckt.h"

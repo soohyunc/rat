@@ -54,7 +54,7 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "session.h"
-#include "ui.h"
+#include "ui_update.h"
 #include "util.h"
 #include "net.h"
 #include "transmit.h"

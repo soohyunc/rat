@@ -55,7 +55,7 @@
 #include "speaker_table.h"
 #include "codec.h"
 #include "channel.h"
-#include "ui.h"
+#include "ui_update.h"
 #include "mbus.h"
 
 static rtcp_dbentry *

@@ -42,7 +42,7 @@
 #include "agc.h"
 #include "session.h"
 #include "audio.h"
-#include "ui.h"
+#include "ui_update.h"
 
 #define ENERGY_MAX 32
 

@@ -46,7 +46,7 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "util.h"
-#include "ui.h"
+#include "ui_update.h"
 #include "rat_time.h"
 #include "transmit.h"
 

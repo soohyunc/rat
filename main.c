@@ -56,6 +56,7 @@
 #include "audio.h"
 #include "convert.h"
 #include "ui.h"
+#include "ui_update.h"
 #include "mix.h"
 #include "interfaces.h"
 #include "rtcp_pckt.h"
