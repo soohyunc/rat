@@ -77,10 +77,18 @@ void mbus_engine_wait_handler(char *srce, char *cmnd, char *args, void *data)
 
 static void rx_tool_rat_addr_ui(char *srce, char *args, session_struct *sp)
 {
-	debug_msg("tool.rat.addr.ui ignored\n");
+	/* tool.rat.addr.ui ("addr") */
+	char	*addr;
+
 	UNUSED(srce);
-	UNUSED(args);
-	UNUSED(sp);
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &addr)) {
+		sp->mbus_ui_addr = mbus_decode_str(addr);
+	} else {
+		debug_msg("mbus: usage \"tool.rat.addr.ui <addr>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
 }
 
 static void rx_tool_rat_powermeter(char *srce, char *args, session_struct *sp)
