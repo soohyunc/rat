@@ -250,15 +250,16 @@ int mbus_waiting_acks(struct mbus *m)
 
 static void mbus_send_ack(struct mbus *m, char *dest, int seqnum)
 {
-	char			buffer[80];
+	char			buffer[96];
 	struct sockaddr_in	saddr;
 	u_long			addr = MBUS_ADDR;
 
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
-	saddr.sin_port   = htons(MBUS_PORT+m->channel);
+	saddr.sin_port   = htons((short)(MBUS_PORT+m->channel));
 	sprintf(buffer, "mbus/1.0 %d U (%s) (%s) (%d)\n", ++m->seqnum, m->addr[0], dest, seqnum);
-	if ((sendto(m->fd, buffer, strlen(buffer), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
+        assert(strlen(buffer) < 96);
+        if ((sendto(m->fd, buffer, strlen(buffer), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
 		perror("mbus_send: sendto");
 	}
 }
@@ -272,7 +273,7 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
 
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
-	saddr.sin_port   = htons(MBUS_PORT+m->channel);
+	saddr.sin_port   = htons((short)(MBUS_PORT+m->channel));
 	b                = (char *) xmalloc(MBUS_BUF_SIZE);
 	bp		 = b;
 	sprintf(bp, "mbus/1.0 %6d R (%s) (%s) ()\n", curr->seqn, curr->srce, curr->dest);
@@ -371,7 +372,7 @@ static int mbus_socket_init(unsigned short channel)
 
 	sinme.sin_family      = AF_INET;
 	sinme.sin_addr.s_addr = htonl(INADDR_ANY);
-	sinme.sin_port        = htons(MBUS_PORT+channel);
+	sinme.sin_port        = htons((short)(MBUS_PORT+channel));
 	if (bind(fd, (struct sockaddr *) & sinme, sizeof(sinme)) < 0) {
 		perror("mbus: bind");
 		return -1;
@@ -495,7 +496,7 @@ int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, in
 
 	memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 	saddr.sin_family = AF_INET;
-	saddr.sin_port   = htons(MBUS_PORT+m->channel);
+	saddr.sin_port   = htons((short)(MBUS_PORT+m->channel));
 	buffer           = (char *) xmalloc(MBUS_BUF_SIZE);
 	bufp		 = buffer;
 
