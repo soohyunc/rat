@@ -1118,7 +1118,8 @@ source_process(session_t *sp,
                 /* (d) don't have a hold on.                                 */
 
                 if (ts_gt(playout, src->next_played) &&
-                    (ts_eq(playout, src->talkstart) == FALSE || src->post_talkstart_units < 100) &&
+                    (ts_gt(src->talkstart, src->next_played) == FALSE || src->post_talkstart_units < 100) &&
+                    ts_eq(playout, src->talkstart) == FALSE &&
                     hold_repair == 0) {
                         /* If repair was successful media_pos is moved,      */
                         /* so get data at media_pos again.                   */
