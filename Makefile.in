@@ -109,8 +109,8 @@ $(TCL_OBJS): $(TCL_SRCS)
 ui_transcoder.c: ui_transcoder.tcl tcl2c/tcl2c
 	cat ui_transcoder.tcl | tcl2c/tcl2c ui_transcoder > ui_transcoder.c
 
-ui_audiotool.c: ui_audiotool.tcl tcl2c/tcl2c
-	cat uicomponent_bargraph.tcl uicomponent_chart.tcl asfilebox.tcl ui_audiotool.tcl | tcl2c/tcl2c ui_audiotool > ui_audiotool.c
+ui_audiotool.c: uicomponent_bargraph.tcl uicomponent_chart.tcl uicomponent_help.tcl asfilebox.tcl ui_audiotool.tcl tcl2c/tcl2c
+	cat uicomponent_bargraph.tcl uicomponent_chart.tcl uicomponent_help.tcl asfilebox.tcl ui_audiotool.tcl | tcl2c/tcl2c ui_audiotool > ui_audiotool.c
 
 ui_installer.c: ui_installer.tcl tcl2c/tcl2c
 	cat ui_installer.tcl | tcl2c/tcl2c ui_installer > ui_installer.c

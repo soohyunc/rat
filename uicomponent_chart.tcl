@@ -25,6 +25,7 @@ namespace eval chart {
 		wm protocol .chart WM_DELETE_WINDOW chart::hide
 	}
 
+	# Private - do not use outside this namespace
 	proc popup_show {window} {
 		variable chart_popup_src 
 		variable chart_popup_dst 
@@ -48,6 +49,7 @@ namespace eval chart {
 		raise .chart_popup $window
 	}
 
+	# Private - do not use outside this namespace
 	proc popup_hide {window} {
 		variable chart_popup_id 
 		if {[info exists chart_popup_id]} { 
@@ -56,6 +58,7 @@ namespace eval chart {
 		wm withdraw .chart_popup
 	}
 
+	# Private - do not use outside this namespace
 	proc popup_add {window src dst} {
 		variable chart_popup_src 
 		variable chart_popup_dst 
