@@ -1147,6 +1147,7 @@ v4.1.7	- Update ALSA detection in configure script
 	- Add support for rtp.source.mute ("ALL" 0|1), which is much more efficient
 	  than iterating all sources over the mbus.
 
+
 TODO -- They're features not bugs dammit!
 ----
 
@@ -1165,28 +1166,21 @@ TODO -- They're features not bugs dammit!
 	  G722, and "CD Quality" audio: it may do, but you can't access them.
 	- SGI O2's don't have autosensing audio interface selection like 
 	  Indy's.
-	- Need to allow manual input and output switching.
 - 3d renderer should decimate when using sampling rates other than
   that for which it was originally designed for.
 - 3d renderer could use finite precision maths for better performance 
   (eliminate type conversions).
-- sndfile routines should use conversion functions in audio_fmt.c, not their 
-  own.
+- sndfile routines should use conversion functions in audio_fmt.c, not their own.
 - Bias estimate should be sample continuous, not block stepped.
 - Channel coders need intelligent bail out fn's for when units overflow 
   (rare, but real problem).
 - UI lets you select packets larger than the MTU, which can't be sent
-- Release audio option
 - Add/restore audio device trading 
 - Disabling participant list doesn't work if the window has been resized:
   not sure if this is a feature of Tk or the window manager, but there's 
   little we can do about it.
-- When silence suppression is off, then no mbus lip-sync messages are exchanged
-  between rat & vic since this is done on a per-talkspurt basis by rat.  We 
-  may use a timer to send such messages every so often. 
 - Reimplement transcoder.
 - Add support for conversion between m*8000 and n*11025
-- Better code documentation.
 - Sample based codecs should accept frame lengths of 0-200ms, not just 
   multiples of frame lengths in tables.  Should add codec_is_sample_based 
   test and data to codec tables and relax receiver sanity checking so that
@@ -1203,7 +1197,6 @@ TODO -- They're features not bugs dammit!
 - Handling of SSRC collisions is broken
 - Sometime see messages of the form "source.c:767 Spike (160 > 2708390)"
   and hear nothing.
-- mtrace doesn't work?
 - RTT estimate gets confused when others talk.
 - Make rtp.addr() with an rx_port of 0, when sent to the media engine, mean
   that the media engine should get the kernel to select a receive RTP port.
