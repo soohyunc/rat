@@ -45,18 +45,19 @@
 
 #define strsave(s)	strcpy(xmalloc(strlen(s) + 1), s)
 
-#define xmalloc(x)     _xmalloc(x,__FILE__,__LINE__)
-#define block_alloc(x) _block_alloc(x,__FILE__,__LINE__)
-#define xstrdup(x)     _xstrdup(x,__FILE__,__LINE__)
+#define xmalloc(x)	_xmalloc(x,__FILE__,__LINE__)
+#define block_alloc(x)	_block_alloc(x,__FILE__,__LINE__)
+#define xstrdup(x)	_xstrdup(x,__FILE__,__LINE__)
+#define dprintf		_dprintf("%s:%d ", __FILE__, __LINE__), _dprintf
 
-void	xmemchk(void);
-void    xmemdmp(void);
-void	xfree(void *x);
-char   *_xmalloc(unsigned size,char *filen,int line);
-char   *_xstrdup(char *s1, char *filen, int line);
-char  *_block_alloc(unsigned size, char *filen, int line);
-void  block_free(void *p, int size);
-void  block_release_all(void);
-void  dprintf(const char *format, ...);
+void	 xmemchk(void);
+void     xmemdmp(void);
+void	 xfree(void *x);
+char	*_xmalloc(unsigned size,char *filen,int line);
+char	*_xstrdup(char *s1, char *filen, int line);
+char	*_block_alloc(unsigned size, char *filen, int line);
+void	 block_free(void *p, int size);
+void	 block_release_all(void);
+void	 _dprintf(const char *format, ...);
 
 #endif /* _UTIL_H_ */

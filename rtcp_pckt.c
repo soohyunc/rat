@@ -146,7 +146,7 @@ void
 rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, int len, u_int32 addr, u_int32 cur_time)
 {
 	rtcp_t			*pkt = (rtcp_t *) packet;
-	rtcp_dbentry		*dbe;
+	rtcp_dbentry		*dbe, *other_source;
 	rtcp_sdes_item_t	*sdes;
 	u_int32			ssrc;
 	u_int32			*alignptr;
@@ -200,9 +200,12 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				rr->jitter        = pkt->r.sr.rr[i].jitter;
 				rr->lsr           = pkt->r.sr.rr[i].lsr;
 				rr->dlsr          = pkt->r.sr.rr[i].dlsr;
-				dbe->rr = rr;
-				sprintf(args, "%lu loss_from %ld %d", dbe->ssrc, rr->ssrc, (int) ((rr->fraction_lost / 2.56)+0.5));
-				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
+				dbe->rr    = rr;
+				other_source = rtcp_get_dbentry(sp, rr->ssrc);
+				if ((dbe->sentry->cname != NULL) && (other_source != NULL)) {
+					sprintf(args, "%s loss_from %s %d", dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
+					mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source", args, FALSE);
+				}
 			}
 			break;
 		case RTCP_RR:	/* We won't deal with this just yet */
@@ -232,8 +235,11 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				rr->lsr           =  pkt->r.rr.rr[i].lsr;
 				rr->dlsr          = pkt->r.rr.rr[i].dlsr;
 				dbe->rr = rr;
-				sprintf(args, "%lu loss_from %ld %d", dbe->ssrc, rr->ssrc, (int) ((rr->fraction_lost / 2.56)+0.5));
-				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
+				other_source =  rtcp_get_dbentry(sp, rr->ssrc);
+				if ((dbe->sentry->cname != NULL) && (other_source != NULL)) {
+					sprintf(args, "%s loss_from %s %d", dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
+					mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source", args, FALSE);
+				}
 			}
 
 			/* is it reporting on my traffic? */
@@ -241,8 +247,8 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				/* Need to store stats in ssrc's db not r.rr.ssrc's */
 				dbe->loss_from_me = (ntohl(pkt->r.rr.rr[0].loss) >> 24) & 0xff;
 				dbe->last_rr_for_me = cur_time;
-				sprintf(args, "%lu loss_from_me  %d", dbe->ssrc, (dbe->loss_from_me*100)>>8);
-				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
+				sprintf(args, "%s loss_from_me  %d", dbe->sentry->cname, (dbe->loss_from_me*100)>>8);
+				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source", args, FALSE);
 			}
 			break;
 		case RTCP_BYE:
@@ -562,13 +568,13 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 	} else {
 		dbe->lost_frac = (losti << 8) / expi;
 	}
-	sprintf(args, "%lu packet_duration  %d", dbe->ssrc, dbe->units_per_packet * 20); 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
-	sprintf(args, "%lu packets_recv %ld", dbe->ssrc, dbe->pckts_recv); 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
-	sprintf(args, "%lu packets_lost %ld", dbe->ssrc, dbe->lost_tot); 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE;
-	sprintf(args, "%lu packets_miso %ld", dbe->ssrc, dbe->misordered); 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
-	sprintf(args, "%lu jitter_drop  %ld", dbe->ssrc, dbe->jit_TOGed); 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
-	sprintf(args, "%lu jitter       %f",  dbe->ssrc, dbe->jitter); 				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
-	sprintf(args, "%lu loss_to_me   %ld", dbe->ssrc, (dbe->lost_frac * 100) >> 8); 		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
+	sprintf(args, "%s packet_duration  %d", dbe->sentry->cname, dbe->units_per_packet * 20); 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source", args, FALSE);
+	sprintf(args, "%s packets_recv %ld", dbe->sentry->cname, dbe->pckts_recv); 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source", args, FALSE);
+	sprintf(args, "%s packets_lost %ld", dbe->sentry->cname, dbe->lost_tot); 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source", args, FALSE);
+	sprintf(args, "%s packets_miso %ld", dbe->sentry->cname, dbe->misordered); 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source", args, FALSE);
+	sprintf(args, "%s jitter_drop  %ld", dbe->sentry->cname, dbe->jit_TOGed); 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source", args, FALSE);
+	sprintf(args, "%s jitter       %f",  dbe->sentry->cname, dbe->jitter); 				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source", args, FALSE);
+	sprintf(args, "%s loss_to_me   %ld", dbe->sentry->cname, (dbe->lost_frac * 100) >> 8); 		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source", args, FALSE);
 
 	rptr->ssrc     = htonl(dbe->ssrc);
 	rptr->loss     = (dbe->lost_frac << 24 | (dbe->lost_tot & 0xffffff));

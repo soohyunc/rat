@@ -39,12 +39,14 @@
 #include <stdio.h>
 #include "mbus_ui.h"
 #include "ui.h"
+#include "util.h"
 
 void mbus_handler_ui(char *srce, char *cmnd, char *args, void *data)
 {
 	char		 command[1500];
 	int		 i;
 
+	dprintf("mbus_handler_ui: %s %s\n", cmnd, args);
 	sprintf(command, "cb_recv_%s %s", cmnd, args);
 
 	for (i = 0; i < strlen(command); i++) {

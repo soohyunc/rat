@@ -81,9 +81,7 @@ int thread_pri;
 void
 signal_handler(int signal)
 {
-#ifdef DEBUG
-  printf("Caught signal %d\n", signal);
-#endif
+  dprintf("Caught signal %d\n", signal);
   should_exit = TRUE;
 }
 #endif
@@ -184,7 +182,7 @@ main(int argc, char *argv[])
 	}
 
         if (sp[0]->ui_on) {
-		ui_init(sp[0], argc, argv);
+		ui_init(sp[0], cname, argc, argv);
         }
 
 	 /* Now initialise everything else... */
@@ -316,9 +314,7 @@ main(int argc, char *argv[])
 					gettimeofday(&time, NULL);
 					if (time.tv_sec - sp[i]->auto_lecture > 120) {
 						sp[i]->auto_lecture = 0;
-#ifdef DEBUG
-						printf("Dummy lecture mode\n");
-#endif
+						dprintf("Dummy lecture mode\n");
 					}
 				}
 				alc = 0;

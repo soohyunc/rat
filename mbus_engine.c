@@ -308,15 +308,14 @@ static void func_rec(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void func_ssrc(char *srce, char *args, session_struct *sp)
+static void func_source(char *srce, char *args, session_struct *sp)
 {
-	u_int32		 ssrc;
 	rtcp_dbentry	*e;
-	char		*cmd, *arg;
+	char		*cmd, *arg, *cname;
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && mbus_parse_sym(sp->mbus_engine, &cmd)) {
-		if (sp->db->myssrc == ssrc) {
+	if (mbus_parse_sym(sp->mbus_engine, &cname) && mbus_parse_sym(sp->mbus_engine, &cmd)) {
+		if (cname == sp->db->my_dbe->sentry->cname) {
 			if ((strcmp(cmd,  "name") == 0) && mbus_parse_str(sp->mbus_engine, &arg)) rtcp_set_attribute(sp, RTCP_SDES_NAME,  mbus_decode_str(arg));
 			if ((strcmp(cmd, "email") == 0) && mbus_parse_str(sp->mbus_engine, &arg)) rtcp_set_attribute(sp, RTCP_SDES_EMAIL, mbus_decode_str(arg));
 			if ((strcmp(cmd, "phone") == 0) && mbus_parse_str(sp->mbus_engine, &arg)) rtcp_set_attribute(sp, RTCP_SDES_PHONE, mbus_decode_str(arg));
@@ -324,7 +323,7 @@ static void func_ssrc(char *srce, char *args, session_struct *sp)
 			if ((strcmp(cmd,  "tool") == 0) && mbus_parse_str(sp->mbus_engine, &arg)) rtcp_set_attribute(sp, RTCP_SDES_TOOL,  mbus_decode_str(arg));
 		} else {
 			for (e = sp->db->ssrc_db; e != NULL; e = e->next) {
-				if (e->ssrc == ssrc) break;
+				if (strcmp(e->sentry->cname, cname) == 0) break;
 			}
 			if (e != NULL) {
 				if (strcmp(cmd,   "mute") == 0) e->mute = TRUE;
@@ -443,7 +442,7 @@ char *mbus_cmnd[] = {
 	"get_audio",
 	"primary",
 	"redundancy",
-	"ssrc",
+	"source",
 	"input",
 	"output",
 	"toggle_input_port",
@@ -467,7 +466,7 @@ void (*mbus_func[])(char *srce, char *args, session_struct *sp) = {
 	func_get_audio,
 	func_primary,
 	func_redundancy,
-	func_ssrc,
+	func_source,
 	func_input,
 	func_output,
 	func_toggle_input_port,
@@ -494,5 +493,8 @@ void mbus_handler_engine(char *srce, char *cmnd, char *args, void *data)
 			return;
 		}
 	}
+#ifdef DEBUG_MBUS
+	printf("Unknown mbus command: %s %s\n", cmnd, args);
+#endif
 }
 

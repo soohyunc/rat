@@ -59,10 +59,21 @@ set V(app)   "rat"
 
 set iht			16
 set iwd 		190
-set fw 			.l.t.list.f
 set cancel_info_timer 	0
-set num_ssrc		0
+set num_cname		0
 set DEBUG		0
+set fw			.l.t.list.f
+
+proc window_plist {cname} {
+	global fw
+	regsub -all {@|\.} $cname {-} foo
+	return $fw.source-$foo
+}
+
+proc window_stats {cname} {
+	regsub -all {\.} $cname {-} foo
+	return .stats$foo
+}
 
 # Commands to send message over the conference bus...
 proc toggle_play {} {
@@ -189,7 +200,7 @@ proc cb_recv_repair {args} {
 proc cb_recv_powermeter {type level} {
 	# powermeter input  <value>
 	# powermeter output <value>
-	# powermeter <ssrc> <value>
+	# powermeter <cname> <value>
 	switch $type {
 		input   {bargraphSetHeight .r.c.gain.b2 $level}
 		output  {bargraphSetHeight .r.c.vol.b1  $level}
@@ -242,82 +253,106 @@ proc cb_recv_detect_silence {mode} {
 	set silence_var $mode
 }
 
-proc cb_recv_my_ssrc {ssrc} {
-	global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc
-	set my_ssrc $ssrc
+proc cb_recv_my-cname {cname} {
+	global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc num_cname
+	global CNAME NAME EMAIL LOC PHONE TOOL ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX
 
-	# Now we know our SSRC, we can inform RAT of our SDES information...
-	mbus_send "R" "ssrc" "$ssrc name  [mbus_encode_str $rtcp_name]"
-	mbus_send "R" "ssrc" "$ssrc email [mbus_encode_str $rtcp_email]"
-	mbus_send "R" "ssrc" "$ssrc phone [mbus_encode_str $rtcp_phone]"
-	mbus_send "R" "ssrc" "$ssrc loc   [mbus_encode_str $rtcp_loc]"
+	set my_cname $cname
+	set        CNAME($cname) "$cname"
+	set         NAME($cname) "$rtcp_name"
+	set        EMAIL($cname) "$rtcp_email"
+	set        PHONE($cname) "$rtcp_phone"
+	set          LOC($cname) "$rtcp_loc"
+	set         TOOL($cname) ""
+	set     ENCODING($cname) "unknown"
+	set     DURATION($cname) ""
+	set   PCKTS_RECV($cname) "0"
+	set   PCKTS_LOST($cname) "0"
+	set   PCKTS_MISO($cname) "0"
+	set  JITTER_DROP($cname) "0"
+	set       JITTER($cname) "0"
+	set   LOSS_TO_ME($cname) "101"
+	set LOSS_FROM_ME($cname) "101"
+	set        INDEX($cname) $num_cname
+	incr num_cname
+	chart_enlarge $num_cname 
+	chart_label   $cname
+
+	mbus_send "R" "source" "$cname name  [mbus_encode_str $rtcp_name]"
+	mbus_send "R" "source" "$cname email [mbus_encode_str $rtcp_email]"
+	mbus_send "R" "source" "$cname phone [mbus_encode_str $rtcp_phone]"
+	mbus_send "R" "source" "$cname loc   [mbus_encode_str $rtcp_loc]"
+
+	cname_update $cname
 }
 
-proc cb_recv_ssrc {ssrc cmd args} {
-	global CNAME NAME EMAIL LOC PHONE TOOL num_ssrc fw iht losstimers my_ssrc
+proc cb_recv_source {cname cmd args} {
+	global CNAME NAME EMAIL LOC PHONE TOOL num_cname fw iht losstimers my_cname
 	global ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX
-	if {[array names INDEX $ssrc] != $ssrc} {
-		# This is an SSRC we've not seen before...
-		set        CNAME($ssrc) "unknown"
-		set         NAME($ssrc) "unknown"
-		set        EMAIL($ssrc) ""
-		set        PHONE($ssrc) ""
-		set          LOC($ssrc) ""
-		set         TOOL($ssrc) ""
-		set     ENCODING($ssrc) "unknown"
-		set     DURATION($ssrc) ""
-		set   PCKTS_RECV($ssrc) "0"
-		set   PCKTS_LOST($ssrc) "0"
-		set   PCKTS_MISO($ssrc) "0"
-		set  JITTER_DROP($ssrc) "0"
-		set       JITTER($ssrc) "0"
-		set   LOSS_TO_ME($ssrc) "101"
-		set LOSS_FROM_ME($ssrc) "101"
-		set        INDEX($ssrc) $num_ssrc
-		incr num_ssrc
-		chart_enlarge $num_ssrc 
+
+	if {[array names INDEX $cname] != $cname} {
+		# This is a source we've not seen before...
+		set        CNAME($cname) "$cname"
+		set         NAME($cname) "$cname"
+		set        EMAIL($cname) ""
+		set        PHONE($cname) ""
+		set          LOC($cname) ""
+		set         TOOL($cname) ""
+		set     ENCODING($cname) "unknown"
+		set     DURATION($cname) ""
+		set   PCKTS_RECV($cname) "0"
+		set   PCKTS_LOST($cname) "0"
+		set   PCKTS_MISO($cname) "0"
+		set  JITTER_DROP($cname) "0"
+		set       JITTER($cname) "0"
+		set   LOSS_TO_ME($cname) "101"
+		set LOSS_FROM_ME($cname) "101"
+		set        INDEX($cname) $num_cname
+		incr num_cname
+		chart_enlarge $num_cname 
+		chart_label   $cname
 	}
 	switch $cmd {
-		cname {
-			set CNAME($ssrc) [lindex $args 0]
-			if {[string compare $NAME($ssrc) "unknown"] == 0} {
-				set NAME($ssrc) [lindex $args 0]
-			}
-			chart_label $ssrc
+		cname		{
+			# This one is a little strange, since the CNAME is
+			# used as the identifier, why pass it? Well, since
+			# that creates the database entry..... We don't do
+			# anything with the information here it's all done
+			# above...
 		}
 		name            { 
-			set NAME($ssrc) [lindex $args 0]
-			chart_label $ssrc
+			set NAME($cname) [lindex $args 0]
+			chart_label $cname
 		}
-		email           { set       EMAIL($ssrc) [lindex $args 0]}
-		phone           { set       PHONE($ssrc) [lindex $args 0]}
-		loc             { set         LOC($ssrc) [lindex $args 0]}
-		tool            { set        TOOL($ssrc) [lindex $args 0]}
-		encoding        { set    ENCODING($ssrc) [lindex $args 0]}
-		packet_duration { set    DURATION($ssrc) [lindex $args 0]}
-		packets_recv    { set  PCKTS_RECV($ssrc) [lindex $args 0]}
-		packets_lost    { set  PCKTS_LOST($ssrc) [lindex $args 0]}
-		packets_miso    { set  PCKTS_MISO($ssrc) [lindex $args 0]}
-		jitter_drop     { set JITTER_DROP($ssrc) [lindex $args 0]}
-		jitter          { set      JITTER($ssrc) [lindex $args 0]}
+		email           { set       EMAIL($cname) [lindex $args 0]}
+		phone           { set       PHONE($cname) [lindex $args 0]}
+		loc             { set         LOC($cname) [lindex $args 0]}
+		tool            { set        TOOL($cname) [lindex $args 0]}
+		encoding        { set    ENCODING($cname) [lindex $args 0]}
+		packet_duration { set    DURATION($cname) [lindex $args 0]}
+		packets_recv    { set  PCKTS_RECV($cname) [lindex $args 0]}
+		packets_lost    { set  PCKTS_LOST($cname) [lindex $args 0]}
+		packets_miso    { set  PCKTS_MISO($cname) [lindex $args 0]}
+		jitter_drop     { set JITTER_DROP($cname) [lindex $args 0]}
+		jitter          { set      JITTER($cname) [lindex $args 0]}
 		loss_to_me      { 
-			set LOSS_TO_ME($ssrc) [lindex $args 0] 
-			set srce $ssrc
-			set dest $my_ssrc
+			set LOSS_TO_ME($cname) [lindex $args 0] 
+			set srce $cname
+			set dest $my_cname
 			catch {after cancel $losstimers($srce,$dest)}
 			chart_set $srce $dest [lindex $args 0]
 			set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
 		}
 		loss_from_me    { 
-			set LOSS_FROM_ME($ssrc) [lindex $args 0] 
-			set srce $my_ssrc
-			set dest $ssrc
+			set LOSS_FROM_ME($cname) [lindex $args 0] 
+			set srce $my_cname
+			set dest $cname
 			catch {after cancel $losstimers($srce,$dest)}
 			chart_set $srce $dest [lindex $args 0]
 			set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
 		}
 		loss_from	{ 
-			set dest $ssrc
+			set dest $cname
 			set srce [lindex $args 0]
 			set loss [lindex $args 1]
 			catch {after cancel $losstimers($srce,$dest)}
@@ -326,73 +361,73 @@ proc cb_recv_ssrc {ssrc cmd args} {
 		}
 		active          {
 			if {[string compare [lindex $args 0] "now"] == 0} {
-				catch [$fw.c$ssrc configure -background white]
+				catch [[window_plist $cname] configure -background white]
 			}
 			if {[string compare [lindex $args 0] "recent"] == 0} {
-				catch [$fw.c$ssrc configure -background gray90]
+				catch [[window_plist $cname] configure -background gray90]
 			}
 		}
 		inactive {
-			catch [$fw.c$ssrc configure -background gray80]
+			catch [[window_plist $cname] configure -background gray80]
 		}	
 		remove {
-			catch [destroy $fw.c$ssrc]
-			unset CNAME($ssrc) NAME($ssrc) EMAIL($ssrc) PHONE($ssrc) LOC($ssrc) TOOL($ssrc)
-			unset ENCODING($ssrc) DURATION($ssrc) PCKTS_RECV($ssrc) PCKTS_LOST($ssrc) PCKTS_MISO($ssrc)
-			unset JITTER_DROP($ssrc) JITTER($ssrc) LOSS_TO_ME($ssrc) LOSS_FROM_ME($ssrc) INDEX($ssrc)
-			incr num_ssrc -1
-			chart_redraw $num_ssrc
+			catch [destroy [window_plist $cname]]
+			unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname)
+			unset ENCODING($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname)
+			unset JITTER_DROP($cname) JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname)
+			incr num_cname -1
+			chart_redraw $num_cname
 			# Make sure we don't try to update things later...
 			return
 		}
 		mute {
-			$fw.c$ssrc create line [expr $iht + 2] [expr $iht / 2] 500 [expr $iht / 2] -tags a -width 2.0 -fill gray95
+			[window_plist $cname] create line [expr $iht + 2] [expr $iht / 2] 500 [expr $iht / 2] -tags a -width 2.0 -fill gray95
 		}
 		unmute {
-			catch [$fw.c$ssrc delete a]
+			catch [[window_plist $cname] delete a]
 		}
 		default {
-			puts stdout "WARNING: ConfBus message 'ssrc $ssrc $cmd $args' not understood"
+			puts stdout "WARNING: ConfBus message 'cname $cname $cmd $args' not understood"
 		}
 	}
-	ssrc_update $ssrc
+	cname_update $cname
 }
 
 
 
-proc ssrc_update {ssrc} {
+proc cname_update {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL INDEX
 	global ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME
-	global fw iht iwd my_ssrc mylosstimers his_or_her_losstimers
+	global fw iht iwd my_cname mylosstimers his_or_her_losstimers
 
-	if {[array names INDEX $ssrc] != $ssrc} {
-		# This ssrc doesn't exist...
+	if {[array names INDEX $cname] != $cname} {
+		puts stdout "$cname doesn't exist (this should never happen)"
 		return
 	}
 
-	set cw 		$fw.c$ssrc
+	set cw [window_plist $cname]
 
 	if {[winfo exists $cw]} {
-		$cw itemconfigure t -text $NAME($ssrc)
+		$cw itemconfigure t -text $NAME($cname)
 	} else {
 		set thick 0
 		set l $thick
 		set h [expr $iht / 2 + $thick]
 		set f [expr $iht + $thick]
 		canvas $cw -width $iwd -height $f -highlightthickness $thick
-		$cw create text [expr $f + 2] $h -anchor w -text $NAME($ssrc) -fill black -tag t
+		$cw create text [expr $f + 2] $h -anchor w -text $NAME($cname) -fill black -tag t
 		$cw create polygon $l $h $h $l $h $f -outline black -fill grey50 -tag m
-		$cw create polygon $f $h $h $l $h $f -outline black -fill grey -tag h
+		$cw create polygon $f $h $h $l $h $f -outline black -fill grey50 -tag h
 
-		bind $cw <Button-1> "toggle_stats $ssrc"
-		bind $cw <Button-2> "toggle_mute $cw $ssrc"
+		bind $cw <Button-1> "toggle_stats $cname"
+		bind $cw <Button-2> "toggle_mute $cw $cname"
 	}
 
 	# XXX This is not very efficient
-	if {[info exists my_ssrc] && [string compare $ssrc $my_ssrc]} {
+	if {[info exists my_cname] && [string compare $cname $my_cname]} {
 		foreach i [pack slaves $fw] {
-			set u [string toupper $NAME($ssrc)]
-			if {[string compare $u [string toupper [$i itemcget t -text]]] < 0 && [string compare $i $fw.c$my_ssrc] != 0} {
+			set u [string toupper $NAME($cname)]
+			if {[string compare $u [string toupper [$i itemcget t -text]]] < 0 && [string compare $i $fw.c$my_cname] != 0} {
 				pack $cw -before $i
 				break
 			}
@@ -405,34 +440,34 @@ proc ssrc_update {ssrc} {
 	pack $cw -fill x
 
 	fix_scrollbar
-	update_stats $ssrc
+	update_stats $cname
 
-	if {$LOSS_TO_ME($ssrc) < 5} {
-		catch [$fw.c$ssrc itemconfigure m -fill green]
-	} elseif {$LOSS_TO_ME($ssrc) < 10} {
-		catch [$fw.c$ssrc itemconfigure m -fill orange]
-	} elseif {$LOSS_TO_ME($ssrc) <= 100} {
-		catch [$fw.c$ssrc itemconfigure m -fill red]
+	if {$LOSS_TO_ME($cname) < 5} {
+		catch [[window_plist $cname] itemconfigure m -fill green]
+	} elseif {$LOSS_TO_ME($cname) < 10} {
+		catch [[window_plist $cname] itemconfigure m -fill orange]
+	} elseif {$LOSS_TO_ME($cname) <= 100} {
+		catch [[window_plist $cname] itemconfigure m -fill red]
 	} else {
-		catch [$fw.c$ssrc itemconfigure m -fill grey50]
+		catch [[window_plist $cname] itemconfigure m -fill grey50]
 	}
-	catch {after cancel $mylosstimers($ssrc)}
-	if {$LOSS_TO_ME($ssrc) <= 100} {
-		set mylosstimers($ssrc) [after 10000 "set LOSS_TO_ME($ssrc) 101; ssrc_update $ssrc"]
+	catch {after cancel $mylosstimers($cname)}
+	if {$LOSS_TO_ME($cname) <= 100} {
+		set mylosstimers($cname) [after 10000 "set LOSS_TO_ME($cname) 101; cname_update $cname"]
 	}
 
-	if {$LOSS_FROM_ME($ssrc) < 5} {
-		catch [$fw.c$ssrc itemconfigure h -fill green]
-	} elseif {$LOSS_FROM_ME($ssrc) < 10} {
-		catch [$fw.c$ssrc itemconfigure h -fill orange]
-	} elseif {$LOSS_FROM_ME($ssrc) <= 100} {
-		catch [$fw.c$ssrc itemconfigure h -fill red]
+	if {$LOSS_FROM_ME($cname) < 5} {
+		catch [[window_plist $cname] itemconfigure h -fill green]
+	} elseif {$LOSS_FROM_ME($cname) < 10} {
+		catch [[window_plist $cname] itemconfigure h -fill orange]
+	} elseif {$LOSS_FROM_ME($cname) <= 100} {
+		catch [[window_plist $cname] itemconfigure h -fill red]
 	} else {
-		catch [$fw.c$ssrc itemconfigure h -fill grey]
+		catch [[window_plist $cname] itemconfigure h -fill grey]
 	}
-	catch {after cancel $his_or_her_losstimers($ssrc)}
-	if {$LOSS_FROM_ME($ssrc)<=100} {
-		set his_or_her_losstimers($ssrc) [after 30000 "set LOSS_FROM_ME($ssrc) 101; ssrc_update $ssrc"]
+	catch {after cancel $his_or_her_losstimers($cname)}
+	if {$LOSS_FROM_ME($cname)<=100} {
+		set his_or_her_losstimers($cname) [after 30000 "set LOSS_FROM_ME($cname) 101; cname_update $cname"]
 	}
 }
 
@@ -487,12 +522,12 @@ proc dropdown {w varName command args} {
     return $w.menu
 }
 
-proc toggle_mute {cw ssrc} {
+proc toggle_mute {cw cname} {
 	global iht
 	if {[$cw gettags a] == ""} {
-		mbus_send "R" "ssrc" "$ssrc mute"
+		mbus_send "R" "source" "$cname mute"
 	} else {
-		mbus_send "R" "ssrc" "$ssrc unmute"
+		mbus_send "R" "source" "$cname unmute"
 	}
 }
 
@@ -515,55 +550,55 @@ proc info_timer {} {
 	}
 }
 
-proc update_stats {ssrc} {
+proc update_stats {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL
 	global ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME
 
-	if {$LOSS_TO_ME($ssrc) == 101} {
+	if {$LOSS_TO_ME($cname) == 101} {
 		set loss_to_me "unknown"
 	} else {
-		set loss_to_me "$LOSS_TO_ME($ssrc)%"
+		set loss_to_me "$LOSS_TO_ME($cname)%"
 	}
 
-	if {$LOSS_FROM_ME($ssrc) == 101} {
+	if {$LOSS_FROM_ME($cname) == 101} {
 		set loss_from_me "unknown"
 	} else {
-		set loss_from_me "$LOSS_FROM_ME($ssrc)%"
+		set loss_from_me "$LOSS_FROM_ME($cname)%"
 	}
 
-	if {[winfo exists .stats$ssrc]} {
-		.stats$ssrc.m configure -text " Name:                    $NAME($ssrc)\n\
-	                                	Email:                   $EMAIL($ssrc)\n\
-				        	Phone:                   $PHONE($ssrc)\n\
-				        	Location:                $LOC($ssrc)\n\
-				        	Tool:                    $TOOL($ssrc)\n\
-				        	CNAME:                   $CNAME($ssrc)\n\
-				        	Audio Encoding:          $ENCODING($ssrc)\n\
-				        	Audio Length:            $DURATION($ssrc)\n\
-				        	Packets Received:        $PCKTS_RECV($ssrc)\n\
-				        	Packets Lost:            $PCKTS_LOST($ssrc)\n\
-				        	Packets Misordered:      $PCKTS_MISO($ssrc)\n\
-				        	Units Dropped (jitter):  $JITTER_DROP($ssrc)\n\
-				        	Network Timing Jitter:   $JITTER($ssrc)\n\
+	if {[winfo exists [window_stats $cname]]} {
+		[window_stats $cname].m configure -text " Name:                    $NAME($cname)\n\
+	                                	Email:                   $EMAIL($cname)\n\
+				        	Phone:                   $PHONE($cname)\n\
+				        	Location:                $LOC($cname)\n\
+				        	Tool:                    $TOOL($cname)\n\
+				        	CNAME:                   $CNAME($cname)\n\
+				        	Audio Encoding:          $ENCODING($cname)\n\
+				        	Audio Length:            $DURATION($cname)\n\
+				        	Packets Received:        $PCKTS_RECV($cname)\n\
+				        	Packets Lost:            $PCKTS_LOST($cname)\n\
+				        	Packets Misordered:      $PCKTS_MISO($cname)\n\
+				        	Units Dropped (jitter):  $JITTER_DROP($cname)\n\
+				        	Network Timing Jitter:   $JITTER($cname)\n\
 				        	Instantaneous Loss Rate: $loss_to_me\n\
 						Loss from me:            $loss_from_me"
 	}
 }
 
-proc toggle_stats {ssrc} {
+proc toggle_stats {cname} {
 	global statsfont
-	if {[winfo exists .stats$ssrc]} {
-		destroy .stats$ssrc
+	if {[winfo exists [window_stats $cname]]} {
+		destroy [window_stats $cname]
 	} else {
 		# Window does not exist so create it
-		toplevel .stats$ssrc
-		message .stats$ssrc.m -width 600 -font $statsfont
-		pack .stats$ssrc.m -side top
-		button .stats$ssrc.d -highlightthickness 0 -padx 0 -pady 0 -text "Dismiss" -command "destroy .stats$ssrc" 
-		pack .stats$ssrc.d -side bottom -fill x
-		wm title .stats$ssrc "RAT user info"
-		wm resizable .stats$ssrc 0 0
-		update_stats $ssrc
+		toplevel [window_stats $cname]
+		message [window_stats $cname].m -width 600 -font $statsfont
+		pack [window_stats $cname].m -side top
+		button [window_stats $cname].d -highlightthickness 0 -padx 0 -pady 0 -text "Dismiss" -command "destroy [window_stats $cname]" 
+		pack [window_stats $cname].d -side bottom -fill x
+		wm title [window_stats $cname] "RAT user info"
+		wm resizable [window_stats $cname] 0 0
+		update_stats $cname
 	}
 }
 
@@ -877,32 +912,32 @@ pack  .b.a.address -side top -fill x
 frame .b.a.rn -bd 0
 pack  .b.a.rn -side top -fill x
 entry .b.a.rn.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_name
-bind  .b.a.rn.name <Return> {mbus_send "R" "ssrc" "$my_ssrc name [mbus_encode_str $rtcp_name]"; savename}
-bind  .b.a.rn.name <Tab>    {mbus_send "R" "ssrc" "$my_ssrc name [mbus_encode_str $rtcp_name]"; savename}
+bind  .b.a.rn.name <Return> {mbus_send "R" "source" "$my_cname name [mbus_encode_str $rtcp_name]"; savename}
+bind  .b.a.rn.name <Tab>    {mbus_send "R" "source" "$my_cname name [mbus_encode_str $rtcp_name]"; savename}
 pack  .b.a.rn.name -side right -fill x 
 label .b.a.rn.l -highlightthickness 0 -text "Name:"
 pack  .b.a.rn.l -side left -fill x -expand 1
 frame .b.a.re -bd 0
 pack  .b.a.re -side top -fill x
 entry .b.a.re.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_email
-bind  .b.a.re.name <Return> {mbus_send "R" "ssrc" "$my_ssrc email [mbus_encode_str $rtcp_email]"; savename}
-bind  .b.a.re.name <Tab>    {mbus_send "R" "ssrc" "$my_ssrc email [mbus_encode_str $rtcp_email]"; savename}
+bind  .b.a.re.name <Return> {mbus_send "R" "source" "$my_cname email [mbus_encode_str $rtcp_email]"; savename}
+bind  .b.a.re.name <Tab>    {mbus_send "R" "source" "$my_cname email [mbus_encode_str $rtcp_email]"; savename}
 pack  .b.a.re.name -side right -fill x
 label .b.a.re.l -highlightthickness 0 -text "Email:"
 pack  .b.a.re.l -side left -fill x -expand 1
 frame .b.a.rp -bd 0
 pack  .b.a.rp -side top -fill x
 entry .b.a.rp.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_phone
-bind  .b.a.rp.name <Return> {mbus_send "R" "ssrc" "$my_ssrc phone [mbus_encode_str $rtcp_phone]"; savename}
-bind  .b.a.rp.name <Tab>    {mbus_send "R" "ssrc" "$my_ssrc phone [mbus_encode_str $rtcp_phone]"; savename}
+bind  .b.a.rp.name <Return> {mbus_send "R" "source" "$my_cname phone [mbus_encode_str $rtcp_phone]"; savename}
+bind  .b.a.rp.name <Tab>    {mbus_send "R" "source" "$my_cname phone [mbus_encode_str $rtcp_phone]"; savename}
 pack  .b.a.rp.name -side right -fill x
 label .b.a.rp.l -highlightthickness 0 -text "Phone:"
 pack  .b.a.rp.l -side left -fill x -expand 1
 frame .b.a.rl -bd 0
 pack  .b.a.rl -side top -fill x
 entry .b.a.rl.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_loc
-bind  .b.a.rl.name <Return> {mbus_send "R" "ssrc" "$my_ssrc loc [mbus_encode_str $rtcp_loc]"; savename}
-bind  .b.a.rl.name <Tab>    {mbus_send "R" "ssrc" "$my_ssrc loc [mbus_encode_str $rtcp_loc]"; savename}
+bind  .b.a.rl.name <Return> {mbus_send "R" "source" "$my_cname loc [mbus_encode_str $rtcp_loc]"; savename}
+bind  .b.a.rl.name <Tab>    {mbus_send "R" "source" "$my_cname loc [mbus_encode_str $rtcp_loc]"; savename}
 pack  .b.a.rl.name -side right -fill x
 label .b.a.rl.l -highlightthickness 0 -text "Location:"
 pack  .b.a.rl.l -side left -fill x -expand 1
@@ -1195,20 +1230,20 @@ proc chart_set {srce dest val} {
   .chart.c create rectangle $xv $yv [expr $xv + $chart_boxsize - 2] [expr $yv + $chart_boxsize - 2] -fill $colour -outline $colour
 }
 
-proc chart_label {ssrc} {
+proc chart_label {cname} {
   global CNAME NAME INDEX chart_size chart_boxsize chart_xoffset chart_yoffset chart_font
 
-  set pos $INDEX($ssrc)
-  set val $NAME($ssrc)
+  set pos $INDEX($cname)
+  set val $NAME($cname)
   if {[string length $val] == 0} {
-    set val $CNAME($ssrc)
+    set val $CNAME($cname)
   }
 
   if {($pos > $chart_size) || ($pos < 0)} return
 
   set ypos [expr $chart_yoffset + ($chart_boxsize * $pos) + ($chart_boxsize / 2)]
-  .chart.c delete ssrc_$ssrc
-  .chart.c create text 2 $ypos -text [string range $val 0 25] -anchor w -font $chart_font -tag ssrc_$ssrc
+  .chart.c delete cname_$cname
+  .chart.c create text 2 $ypos -text [string range $val 0 25] -anchor w -font $chart_font -tag cname_$cname
 }
 
 proc chart_redraw {size} {
