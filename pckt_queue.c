@@ -87,19 +87,15 @@ pckt_enqueue(pckt_queue *q,
                 insert = q->buf_head;
         }
 
-        if (insert == q->buf_tail) {
-                if (q->buf[q->buf_tail]) {
-                        pckt_queue_element_free(q->buf + q->buf_tail);
-                        q->buf_tail = (q->buf_tail + 1) % q->buf_len;
-                        q->buf_used--;
-                        debug_msg("Packet queue overrun\n");
-                }
+        if (insert == q->buf_tail && q->buf[q->buf_tail] != NULL) {
+                pckt_queue_element_free(&pe);
+                debug_msg("discarding packet - out of buffer space\n");
+        } else {
+                q->buf[insert] = pe;
+                q->buf_head    = insert;
+                q->buf_used++;
+                assert(q->buf_used <= q->buf_len);
         }
-
-        q->buf[insert] = pe;
-        q->buf_head    = insert;
-        q->buf_used++;
-        assert(q->buf_used <= q->buf_len);
 }
 
 pckt_queue_element *
