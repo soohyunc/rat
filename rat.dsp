@@ -361,6 +361,10 @@ SOURCE=.\pckt_queue.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\pdb.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\playout.c
 # End Source File
 # Begin Source File
@@ -682,6 +686,10 @@ SOURCE=.\parameters.h
 # Begin Source File
 
 SOURCE=.\pckt_queue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\pdb.h
 # End Source File
 # Begin Source File
 
