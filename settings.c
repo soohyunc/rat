@@ -498,7 +498,7 @@ void settings_load_late(session_t *sp)
                 rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NOTE,   field, strlen(field));
         }
 
-        field = (char*)xmalloc(3 * SYS_NMLN + sizeof(hostfmt));
+        field = (char*)xmalloc(3 * 256 + sizeof(hostfmt));
         uname(&u);
         sprintf(field, hostfmt, u.sysname, u.release, u.machine);
 	rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_TOOL,  field, strlen(field));
