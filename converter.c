@@ -54,6 +54,7 @@ typedef struct s_pcm_converter{
 #include "convert_acm.h"
 #include "convert_extra.h"
 #include "convert_linear.h"
+#include "convert_sinc.h"
 
 pcm_converter_t converter_tbl[] = {
 #ifdef WIN32
@@ -67,18 +68,15 @@ pcm_converter_t converter_tbl[] = {
          acm_cv_destroy 
         },
 #endif
-#ifdef SRF_GOOD
         {
          "High Quality",
          TRUE,
-         srf_tbl_init,
-         srf_tbl_free,
-         srf_init,
-         srf_convert,
-         srf_free,
-         2 * sizeof(srf_state_t)
+         sinc_startup,
+         sinc_shutdown,
+         sinc_create,
+         sinc_convert,
+         sinc_destroy
         },
-#endif /* SRF_GOOD */
         {
          "Intermediate Quality",
          TRUE,  
