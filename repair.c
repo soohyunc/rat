@@ -198,8 +198,7 @@ pm_repair(rx_queue_element_struct *pp, rx_queue_element_struct *ip, int channel)
 	min_pitch = (int)(ip->comp_data[0].cp->freq*MIN_PITCH/1000);
 	i = (len-MATCH_LEN-min_pitch)*step;
 	bp = src + i;
-	j=0;
-	while(j++<MATCH_LEN) {
+	for (j = 0; j < MATCH_LEN; j++) {
 		norm += abs(*bp);
 		bp   += step;
 	}
