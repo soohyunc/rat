@@ -262,11 +262,18 @@ adapt_playout(rtp_hdr_t *hdr,
                         }
 
                         if (src->playout_danger) {
-                                var += 3 * cushion_get_size(cushion) / 2;
-                        } else {
-                                var += cushion_get_size(cushion);
+                                var += cushion_get_size(cushion) + cp->unit_len;
+                                debug_msg("Playout danger\n");
+                        } 
+                        {
+                                int ovr_cushion = var - cushion_get_size(cushion);
+                                if (ovr_cushion > 0) {
+                                        debug_msg("var (%ld) > cushion (%ld)\n", var, cushion_get_size(cushion));
+                                        var -= ovr_cushion;
+                                }
                         }
-			if (src->clock!=sp->device_clock) {
+                        debug_msg("var %ld cushion %ld\n", var, cushion_get_size(cushion));
+                        if (src->clock!=sp->device_clock) {
 				var += cp->unit_len;
 			}
 

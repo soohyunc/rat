@@ -364,8 +364,8 @@ playout_buffer_duration (ppb_t *list, rtcp_dbentry *src)
 
         p = list;
         while(p != NULL) {
-                if (p->src == src) {
-                        return (p->tail_ptr->playoutpt - p->head_ptr->playoutpt) * 1000 / get_freq(p->src->clock);;
+                if (p->src == src && p->last_got) {
+                        return (p->tail_ptr->playoutpt - p->last_got->playoutpt) * 1000 / get_freq(p->src->clock);
                 }
                 p = p->next;
         }
