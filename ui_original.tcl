@@ -64,6 +64,7 @@ set cancel_info_timer 	0
 set num_ssrc		0
 set DEBUG		0
 set help_on 		1
+set help_id		0
 
 # Commands to send message over the conference bus...
 proc toggle_play {} {
@@ -1244,7 +1245,7 @@ proc show_help {window} {
 
 proc hide_help {window} {
 	global help_id help_on
-	catch "after cancel $help_id"
+	after cancel $help_id
 	wm withdraw .help
 }
 
