@@ -172,13 +172,60 @@ g726_state_destroy(uint16_t idx, u_char **s)
         UNUSED(idx);
 }
 
+/* G726 packing is little endian (i.e. gratuitously painful on modern
+ * machines) */
+
+static int
+g726_pack(u_char *buf, u_char *cw, u_char num_cw, int bps)
+{
+	int i, bits = 0, x = 0;
+	
+	for (i = 0; i < num_cw; i++) {
+		buf[x] |= cw[i] << bits;
+		bits += bps;
+		assert((bits != 8) || (i == num_cw - 1));
+		if (bits > 8) {
+			bits &= 0x07;
+			x++;
+			buf[x] |= cw[i] >> (bps - bits);
+		}
+	}
+	return (num_cw * bps / 8);
+}
+
+static int
+g726_unpack(u_char *cw, u_char *buf, u_char num_cw, int bps) 
+{
+	int i = 0, bits = 0, x = 0;
+	u_char mask = 0;
+
+	while (i < bps) {
+		mask |= 1 << i;
+		i++;
+	}
+
+	for(i = 0; i < num_cw; i++) {
+		cw[i] = (buf[x] >> bits) & mask;
+		bits += bps;
+		assert((bits != 8) || (i == num_cw - 1));
+		if (bits > 8) {
+			bits &= 0x07;
+			x++;
+			cw[i] |= buf[x] << (bps - bits);
+			cw[i] &= mask;
+		}
+	}
+	return (num_cw * bps / 8);
+}
+
 int
 g726_encode(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 {
         register sample *s;
         g726_t *g;
         int     i;
-        u_char  cw;
+        u_char  cw[8]; /* Maximum of 8 codewords in octet aligned packing */
+	u_char *out;
 
         assert(encoder_state);
         assert(inbuf);
@@ -193,34 +240,52 @@ g726_encode(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
         c->data_len  = cs[idx].mean_coded_frame_size;
 
         memset(c->data, 0, c->data_len);
+	out = c->data;
+
         bs_attach(g->bs, c->data, c->data_len);
 
         idx = idx / G726_NUM_RATES;
         switch(idx) {
         case G726_16:
-                for(i = 0; i < G726_SAMPLES_PER_FRAME; i++) {
-                        cw = g726_16_encoder(s[i], AUDIO_ENCODING_LINEAR, g->gs);
-                        bs_put(g->bs, cw, 2);
+                for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 4) {
+			cw[0] = g726_16_encoder(s[i], AUDIO_ENCODING_LINEAR, g->gs);
+                        cw[1] = g726_16_encoder(s[i + 1], AUDIO_ENCODING_LINEAR, g->gs);
+			cw[2] = g726_16_encoder(s[i + 2], AUDIO_ENCODING_LINEAR, g->gs);
+                        cw[3] = g726_16_encoder(s[i + 3], AUDIO_ENCODING_LINEAR, g->gs);
+			out += g726_pack(out, cw, 4, 2);
                 }
                 break;
         case G726_24:
-                for(i = 0; i < G726_SAMPLES_PER_FRAME; i++) {
-                        cw = g726_24_encoder(s[i], AUDIO_ENCODING_LINEAR, g->gs);
-                        bs_put(g->bs, cw, 3);
+                for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 8) {
+			cw[0] = g726_24_encoder(s[i], AUDIO_ENCODING_LINEAR, g->gs);
+                        cw[1] = g726_24_encoder(s[i + 1], AUDIO_ENCODING_LINEAR, g->gs);
+			cw[2] = g726_24_encoder(s[i + 2], AUDIO_ENCODING_LINEAR, g->gs);
+                        cw[3] = g726_24_encoder(s[i + 3], AUDIO_ENCODING_LINEAR, g->gs);
+			cw[4] = g726_24_encoder(s[i + 4], AUDIO_ENCODING_LINEAR, g->gs);
+                        cw[5] = g726_24_encoder(s[i + 5], AUDIO_ENCODING_LINEAR, g->gs);
+			cw[6] = g726_24_encoder(s[i + 6], AUDIO_ENCODING_LINEAR, g->gs);
+                        cw[7] = g726_24_encoder(s[i + 7], AUDIO_ENCODING_LINEAR, g->gs);
+			out += g726_pack(out, cw, 8, 3);
                 }
                 break;
         case G726_32:
                 for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 2) {
-                        cw = g726_32_encoder(s[i + 1], AUDIO_ENCODING_LINEAR, g->gs);
-                        bs_put(g->bs, cw, 4);
-                        cw = g726_32_encoder(s[i], AUDIO_ENCODING_LINEAR, g->gs);
-                        bs_put(g->bs, cw, 4);
+			cw[0] = g726_32_encoder(s[i], AUDIO_ENCODING_LINEAR, g->gs);
+                        cw[1] = g726_32_encoder(s[i + 1], AUDIO_ENCODING_LINEAR, g->gs);
+			out += g726_pack(out, cw, 2, 4);
                 }
                 break;
         case G726_40:
                 for(i = 0; i < G726_SAMPLES_PER_FRAME; i++) {
-                        cw = g726_40_encoder(s[i], AUDIO_ENCODING_LINEAR, g->gs);
-                        bs_put(g->bs, cw, 5);
+			cw[0] = g726_40_encoder(s[i], AUDIO_ENCODING_LINEAR, g->gs);
+                        cw[1] = g726_40_encoder(s[i + 1], AUDIO_ENCODING_LINEAR, g->gs);
+			cw[2] = g726_40_encoder(s[i + 2], AUDIO_ENCODING_LINEAR, g->gs);
+                        cw[3] = g726_40_encoder(s[i + 3], AUDIO_ENCODING_LINEAR, g->gs);
+			cw[4] = g726_40_encoder(s[i + 4], AUDIO_ENCODING_LINEAR, g->gs);
+                        cw[5] = g726_40_encoder(s[i + 5], AUDIO_ENCODING_LINEAR, g->gs);
+			cw[6] = g726_40_encoder(s[i + 6], AUDIO_ENCODING_LINEAR, g->gs);
+                        cw[7] = g726_40_encoder(s[i + 7], AUDIO_ENCODING_LINEAR, g->gs);
+			out += g726_pack(out, cw, 8, 5);
                 }
                 break;
         }
@@ -231,7 +296,9 @@ g726_encode(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 int
 g726_decode(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
 {
-        int cw,i;
+	u_char cw[8], *in;
+        int i;
+	
         sample *dst;
         g726_t *g; 
 
@@ -245,45 +312,57 @@ g726_decode(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
 
         g = (g726_t*)decoder_state;
         bs_attach(g->bs, c->data, c->data_len);
+	in = c->data;
 
         dst = data;
 
         idx = idx / G726_NUM_RATES;
         switch(idx) {
         case G726_16:
-                for(i = 0; i < G726_SAMPLES_PER_FRAME; i++) {
-                        cw = bs_get(g->bs, 2);
-                        cw = g726_16_decoder(cw, AUDIO_ENCODING_LINEAR, g->gs);
-                        dst[i] = (sample)cw;
-                }
-                break;
+                for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 4) {
+			in += g726_unpack(cw, in, 4, 2);
+			dst[i + 0] = (sample)g726_16_decoder(cw[0], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 1] = (sample)g726_16_decoder(cw[1], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 2] = (sample)g726_16_decoder(cw[2], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 3] = (sample)g726_16_decoder(cw[3], AUDIO_ENCODING_LINEAR, g->gs);
+                }	
+                break;	
         case G726_24:
-                for(i = 0; i < G726_SAMPLES_PER_FRAME; i++) {
-                        cw = bs_get(g->bs, 3);
-                        cw = g726_24_decoder(cw, AUDIO_ENCODING_LINEAR, g->gs);
-                        dst[i] = (sample)cw;
+                for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 8) {
+			in += g726_unpack(cw, in, 8, 3);
+			dst[i + 0] = (sample)g726_24_decoder(cw[0], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 1] = (sample)g726_24_decoder(cw[1], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 2] = (sample)g726_24_decoder(cw[2], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 3] = (sample)g726_24_decoder(cw[3], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 4] = (sample)g726_24_decoder(cw[4], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 5] = (sample)g726_24_decoder(cw[5], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 7] = (sample)g726_24_decoder(cw[6], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 8] = (sample)g726_24_decoder(cw[7], AUDIO_ENCODING_LINEAR, g->gs);
                 }
                 break;
         case G726_32:
                 for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 2) {
-                        cw = bs_get(g->bs, 4);
-                        cw = g726_32_decoder(cw, AUDIO_ENCODING_LINEAR, g->gs);
-                        dst[i + 1] = (sample)cw;
-                        cw = bs_get(g->bs, 4);
-                        cw = g726_32_decoder(cw, AUDIO_ENCODING_LINEAR, g->gs);
-                        dst[i] = (sample)cw;
-                }
-                break;
-        case G726_40:
-                for(i = 0; i < G726_SAMPLES_PER_FRAME; i++) {
-                        cw = bs_get(g->bs, 5);
-                        cw = g726_40_decoder(cw, AUDIO_ENCODING_LINEAR, g->gs);
-                        dst[i] = (sample)cw;
-                }
-                break;
-        }
+			in += g726_unpack(cw, in, 2, 4);
+			dst[i + 0] = (sample)g726_32_decoder(cw[0], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 1] = (sample)g726_32_decoder(cw[1], AUDIO_ENCODING_LINEAR, g->gs);
+		}
+		break;
+	case G726_40:
+		for(i = 0; i < G726_SAMPLES_PER_FRAME; i++) {
+			in += g726_unpack(cw, in, 8, 3);
+			dst[i + 0] = (sample)g726_40_decoder(cw[0], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 1] = (sample)g726_40_decoder(cw[1], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 2] = (sample)g726_40_decoder(cw[2], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 3] = (sample)g726_40_decoder(cw[3], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 4] = (sample)g726_40_decoder(cw[4], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 5] = (sample)g726_40_decoder(cw[5], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 7] = (sample)g726_40_decoder(cw[6], AUDIO_ENCODING_LINEAR, g->gs);
+			dst[i + 8] = (sample)g726_40_decoder(cw[7], AUDIO_ENCODING_LINEAR, g->gs);
+		}
+		break;
+	}
 
-        return c->data_len;
+	return c->data_len;
 }
 
 
