@@ -77,7 +77,7 @@ rtcp_ntp_format(u_int32 * sec, u_int32 * frac)
 	*frac = (usec << 12) + (usec << 8) - ((usec * 3650) >> 6);
 }
 
-static u_int32 
+u_int32 
 ntp_time32(void)
 {
 	struct timeval  tv;
@@ -533,7 +533,6 @@ rtcp_packet_fmt_sr(session_struct *sp, u_int8 * ptr)
 	rtcp_common_t  *hdr = (rtcp_common_t *) ptr;
 	u_int32		sec;
 	u_int32		frac;
-
 	hdr->type  = 2;
 	hdr->p     = 0;
 	hdr->count = 0;
