@@ -208,12 +208,20 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 #endif
 	    	return;
 	}
-#ifdef DEBUG_MIX
-	/* This should never really happen but you can't be too careful :-)
-	 * It can happen when switching unit size... */
-	if (ts_gt(el->dbe_source[0]->last_mixed_playout + dur, playout))
-		debug_msg("New unit overlaps with previous by %ld samples\n", el->dbe_source[0]->last_mixed_playout + dur - playout);
-#endif
+
+	if (ts_gt(el->dbe_source[0]->last_mixed_playout + dur, playout)) {
+                /* If there is an overlap between what we last mixed and what we are mixing
+                 * now discard samples from current block that overlap with last to avoid
+                 * inducing interference.
+                 */
+                int over = ts_abs_diff(el->dbe_source[0]->last_mixed_playout + dur, playout);
+                if (over < dur) {
+                        dur  -= over;
+                        over *= ms->channels;
+                        buf      += over;
+                        nsamples -= over;
+                }
+		debug_msg("New unit overlaps with previous by %ld samples\n", over);
         }
 
 #ifdef DEBUG_MIX

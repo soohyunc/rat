@@ -315,8 +315,6 @@ proc mbus_recv_tool.rat.converter.supported {arg} {
 }
 
 proc mbus_recv_tool.rat.repair.supported {arg} {
-    puts "$arg"
-    
     .prefs.pane.reception.r.m.menu delete 0 last
     
     set schemes [split $arg ","]

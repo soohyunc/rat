@@ -368,7 +368,6 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
                 ui_update_reception(sp, dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->duplicates, (u_int32)jit, dbe->jit_TOGed);
                 ui_update_stats(sp, dbe);
                 dbe->ui_last_update = get_time(dbe->clock);
-                debug_msg("Updating\n");
                 if (playout_buffer_exists(sp->playout_buf_list, dbe)) {
                         ui_info_activate(sp, dbe);
                 } else {

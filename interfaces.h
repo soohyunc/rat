@@ -43,12 +43,26 @@
 #ifndef _interfaces_h_
 #define _interfaces_h_
 
+#define NEW_QUEUE(T,Q) T  Q[2]; \
+                       T *Q##_p[2]
+
+#define INIT_QUEUE(T,Q) Q##_p[0] = &Q##[0]; \
+			Q##_p[0]->queue_empty = 1; \
+                        Q##_p[0]->head_ptr    = NULL; \
+                        Q##_p[0]->tail_ptr    = NULL; \
+			Q##_p[1] = &Q##[1]; \
+			Q##_p[1]->queue_empty = 1; \
+                        Q##_p[1]->head_ptr    = NULL; \
+                        Q##_p[1]->tail_ptr    = NULL
+
 /* Packets off the net */
 typedef struct pckt_queue_element_tag {
 	struct pckt_queue_element_tag *next_pckt_ptr;
 	struct pckt_queue_element_tag *prev_pckt_ptr;
 	int                            len;
 	u_int32                        arrival_timestamp;
+        u_int32                        extlen;
+        u_int32                        playout;
 	u_int8                        *pckt_ptr;
 } pckt_queue_element_struct;
 

@@ -104,7 +104,11 @@ add_unit_to_interval(rx_queue_element_struct *ip, rx_queue_element_struct *ru)
                         ru->ccu[ru->ccu_cnt] = NULL;
                 }
         } else {
-                debug_msg("duplicate\n");        ip->dbe_source[0]->duplicates++;
+                debug_msg("duplicate, mixed (%d) pt (%d) ccu_cnt (%d)\n",
+                          ip->mixed,
+                          ip->cc_pt,
+                          ip->ccu_cnt);       
+                ip->dbe_source[0]->duplicates++;
                 success = FALSE;
         } 
 	free_rx_unit(&ru);
@@ -150,6 +154,7 @@ verify_playout_buffer(ppb_t* buf)
 
         while( el && el->next_ptr ) {
                 if (el->next_ptr->ccu[0] != NULL) assert(validate_cc_unit(el->next_ptr->ccu[0]));
+                assert(ts_gt(el->next_ptr->src_ts, el->src_ts) && el->next_ptr->src_ts != el->src_ts);
                 if (ts_gt(el->src_ts, el->next_ptr->src_ts)) {
                         src_diff = ts_abs_diff( el->next_ptr->src_ts, 
                                                 el->src_ts );
@@ -223,9 +228,9 @@ fillin_playout_buffer(ppb_t *buf,
 
         assert(units_made>0);
 #ifdef DEBUG_PLAYOUT
-        debug_msg("Allocated %d new units with separation %d\n",
+/*        debug_msg("Allocated %d new units with separation %d\n",
                 units_made,
-                playout_step);
+                playout_step); */
         verify_playout_buffer(buf);
 #endif /* DEBUG_PLAYOUT */
         return units_made;

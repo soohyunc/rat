@@ -102,10 +102,10 @@ typedef struct s_rtcp_dbentry {
         u_char          video_playout_received; /* video playout is relevent */
 	int		sync_playout_delay;	/* same interpretation as delay, used when sync is on [dm] */
 	int32           playout;		/* Playout delay for this talkspurt */
-	int             delay;			/* Average delay for this participant */
+	int             delay;			/* Current delay for this participant (varies per packet) */
+        int             delay_in_playout_calc;  /* Delay used for last playout point calculation */
 	u_int32         last_ts;		/* Last packet timestamp */
 	u_int16         last_seq;		/* Last packet sequence number */
-	int             last_delay;		/* Last packet relative delay */
 	u_char          first_pckt_flag;
 
 	int		loss_from_me;		/* Loss rate that this receiver heard from me */

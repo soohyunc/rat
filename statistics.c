@@ -202,13 +202,11 @@ adapt_playout(rtp_hdr_t *hdr,
                 }
 	} else {
                 if (hdr->seq != src->last_seq) {
-                        diff       = abs(delay - src->delay) / abs(hdr->seq - src->last_seq);
-                } else { /* Duplicate */
                         diff       = abs(delay - src->delay);
+                        /* Jitter calculation as in RTP spec */
+                        src->jitter += (((double) diff - src->jitter) / 16.0);
+                        src->delay = delay;
                 }
-                /* Jitter calculation as in RTP spec */
-                src->jitter += (((double) diff - src->jitter) / 16.0);
-                src->delay = delay;
 	}
 
 	/* 
@@ -238,22 +236,18 @@ adapt_playout(rtp_hdr_t *hdr,
 		/* IF (a) TS start 
                    OR (b) we've thrown 4 consecutive packets away 
                    OR (c) ts have jumped by 8 packets worth 
-                   OR (d) playout buffer running dry 
                    OR (e) a new/empty playout buffer.
                    THEN adapt playout and communicate it
                    */
 		if ((hdr->m) || 
                     src->cont_toged || 
                     ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * src->inter_pkt_gap * 8 + 1)) ||
-                    src->playout_danger ||
                     playout_buffer_duration(sp->playout_buf_list, src) == 0) {
 #ifdef DEBUG
                         if (hdr->m) {
                                 debug_msg("New talkspurt\n");
                         } else if (src->cont_toged) {
                                 debug_msg("Cont_toged\n");
-                        } else if (src->playout_danger) {
-                                debug_msg("playout danger\n");
                         } else if (playout_buffer_duration(sp->playout_buf_list, src) == 0) {
                                 debug_msg("playout buffer empty\n");
                         } else {
@@ -268,17 +262,10 @@ adapt_playout(rtp_hdr_t *hdr,
                         }
                         
                         if (src->playout_danger) {
-                                /* This is usually a sign that src clock is 
-                                 * slower than ours. */
-                                var = max(var, 3 * cushion_get_size(cushion) / 2); ;
-                                debug_msg("Playout danger, var (%ld)\n", var);
+                                var = max(var, 3 * cushion_get_size(cushion));
                         } else {
-                                u_int32 cs;
-                                cs = cushion_get_size(cushion);
-                                debug_msg("Playout var (%ld) cushion (%ld)\n", var, cs);
-                                var = max(var, cs);
+                                var = max(var, 3 * cushion_get_size(cushion) / 2);
                         }
-
                         minv = sp->min_playout * get_freq(src->clock) / 1000;
                         maxv = sp->max_playout * get_freq(src->clock) / 1000; 
 
@@ -289,9 +276,10 @@ adapt_playout(rtp_hdr_t *hdr,
                         }
 
                         assert(var > 0);
+
+                        src->delay_in_playout_calc = src->delay;
                         
-                        if (playout_buffer_duration(sp->playout_buf_list , src) != 0|| 
-                            hdr->ts - src->last_ts < (unsigned)get_freq(src->clock)) {
+                        if (playout_buffer_duration(sp->playout_buf_list , src) != 0) {
                                 /* If playout buffer is not empty
                                  * or, difference in time stamps is less than 1 sec,
                                  * we don't want playout point to be before that of existing data.
@@ -320,16 +308,42 @@ adapt_playout(rtp_hdr_t *hdr,
                                     src->video_playout > src->sync_playout_delay) {
                                         src->sync_playout_delay = src->video_playout;
                                 }
-
 			}
 		} else {
-			/* Do not set encoding on TS start packets as they do not show if redundancy is used...   */
-                        /*	src->encoding = hdr->pt; */
-		}
+                        /* check whether to increase or decrease amount of audio buffered */
+                        u_int32 cs, step, bufdur;
+                        int     src_freq;
 
-                src->playout_danger = FALSE;
-	} else {
-                debug_msg("last %u curr %u\n", src->last_ts, hdr->ts);
+                        cs       = cushion_get_size(cushion);
+                        step     = cushion_get_step(cushion);
+                        src_freq = get_freq(src->clock);
+                        bufdur   = playout_buffer_duration(sp->playout_buf_list , src) * src_freq / 1000;
+                     
+                        if (src->playout_danger) {
+                                /* For the time being if the buffer is going dry we make
+                                 * one large adjustment.  We should stagger this change
+                                 * across multiple packets.  Unfortunately there is no
+                                 * mechanism in the mixer to cover short adjustments for
+                                 * the time being.
+                                 */
+                                if (cs > bufdur) {
+                                        debug_msg("Playout danger %u samples short - corrected\n", cs - bufdur);
+                                        src->playout += cs - bufdur + 2 * step;
+                                }
+                                src->playout_danger = FALSE;
+                        } else {
+                                int offset = src->playout - src->delay_in_playout_calc;
+                                if (bufdur > cs && (bufdur - cs) > (unsigned)offset + 2u * step) {
+                                        debug_msg("offset %d bufdur %d\n", offset, bufdur);
+
+                                        /* We are probably here because delay changed, or src clock
+                                         * is quicker than ours. Shift by 4 ms only.
+                                         */
+
+                                        src->playout -= 4 * src_freq / 1000;
+                                } 
+                        }
+                } 
         }
 
         src->last_ts        = hdr->ts;
@@ -349,6 +363,12 @@ adapt_playout(rtp_hdr_t *hdr,
 		playout = hdr->ts + src->playout;
 	}
 
+        if (ts_gt(arrival_ts, playout)) {
+                int now = get_time(sp->device_clock);
+                now = convert_time(now, sp->device_clock, src->clock);
+                debug_msg("Will be discarded - now (%u) arrival (%u) playout (%u) \n", now, arrival_ts, playout);
+        }
+
         if (src->cont_toged > 12) {
                 /* something has gone wrong if this assertion fails*/
                 if (playout < get_time(src->clock)) {
@@ -356,6 +376,9 @@ adapt_playout(rtp_hdr_t *hdr,
                         src->first_pckt_flag = TRUE;
                 }
         }
+
+/*        debug_msg("Playout delay (%.2f) cushion (%.2f) jitter buf (%.2f)\n", 
+                  (float)(playout - arrival_ts)/get_freq(src->clock), 1.0 * cushion_get_size(cushion) / get_freq(src->clock), 3 * src->jitter / get_freq(src->clock)); */
 
 	return playout;
 }
@@ -428,26 +451,42 @@ statistics(session_struct    *sp,
 	 * has not yet been decided whether or not loss will be 'indicated'
 	 * to later modules - put a dummy unit(s) on the queue for the receive
 	 * buffer
-	 */
+         * 
+         * Added split between netrx_pckt_queue and good_pckt_queue.
+         * Basically, packets on the netrx_pckt_queue are validated and have their
+         * playout calculated before being placed on good_pckt_queue.  If all of the
+         * packets on the good_pckt_queue will fail playout because calculation is wrong
+         * (probably because delay estimate or jitter has suddenly changed) then we 
+         * up their playout so that they get played out, rather than wait for cont_toged
+         * count to go up.  This is only really necessary when processing packets at 
+         * rates other than 8kHz.
+         */
 
 	rtp_hdr_t	*hdr;
 	u_char		*data_ptr;
-	int		 len,extlen;
+	int		 len;
 	rtcp_dbentry	*src;
-	u_int32		 playout;
+	u_int32		 now, now_device, late_adjust;
 	pckt_queue_element_struct *e_ptr;
 	codec_t		*pcp;
 	char 		 update_req = FALSE;
-        int pkt_cnt = 0;
+        int pkt_cnt = 0, late_cnt;
+
+        NEW_QUEUE(pckt_queue_struct, good_pckt_queue);
+        INIT_QUEUE(pckt_queue_struct, good_pckt_queue);
+
+        now_device = get_time(sp->device_clock);
+        late_adjust = 0;
+        late_cnt    = 0;
 
 	/* Process incoming packets */
-        while(netrx_pckt_queue->queue_empty == FALSE && !audio_is_ready(sp->audio_device)) {
+        while(netrx_pckt_queue->queue_empty == FALSE /*&& !audio_is_ready(sp->audio_device)*/) {
                 block_trash_check();
                 e_ptr = get_pckt_off_queue(netrx_pckt_queue);
                 /* Impose RTP formating on it... */
                 hdr = (rtp_hdr_t *) (e_ptr->pckt_ptr);
         
-                if (rtp_header_validation(hdr, &e_ptr->len, &extlen) == FALSE) {
+                if (rtp_header_validation(hdr, &e_ptr->len, (int*)&e_ptr->extlen) == FALSE) {
                         debug_msg("RTP Packet failed header validation!\n");
                         block_trash_check();
                         goto release;
@@ -481,8 +520,8 @@ statistics(session_struct    *sp,
                         /* we don't have the audio device so there is no point processing data any further. */
                         goto release;
                 }
-                data_ptr =  (unsigned char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + extlen;
-                len      = e_ptr->len - 4 * (3 + hdr->cc) - extlen;
+                data_ptr =  (unsigned char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + e_ptr->extlen;
+                len      = e_ptr->len - 4 * (3 + hdr->cc) - e_ptr->extlen;
         
                 if ( ((pcp = get_codec_by_pt(hdr->pt)) == NULL &&
                     (pcp = get_codec_by_pt(get_wrapped_payload(hdr->pt, (char*) data_ptr, len))) == NULL) || 
@@ -502,25 +541,53 @@ statistics(session_struct    *sp,
                         debug_msg("src enc %d pcp enc %d\n", src->enc, pcp->pt);
                         update_req = TRUE;
                 }
-                playout = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
 
-                block_trash_check();
+                e_ptr->playout = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
 
-                src->units_per_packet = split_block(playout, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp);
-                block_trash_check();
+                /* Is this packet going to be played out late */
+                now = convert_time(now_device, sp->device_clock, src->clock);
+                if (ts_gt(now, e_ptr->playout)) {
+                        late_cnt ++;
+                        late_adjust = max(late_adjust, ts_abs_diff(now, e_ptr->playout));
+                }
+                
+                put_on_pckt_queue(e_ptr, good_pckt_queue);
 
                 pkt_cnt++;
+                continue;
         release:
+                block_trash_check();
+                free_pckt_queue_element(&e_ptr);
+        }
+
+        if (late_cnt) {
+                /* Would we through away all the data packets in the queue ? */
+                debug_msg("Late %d / %d\n", late_cnt, pkt_cnt);
+                if (late_cnt * src->units_per_packet > 4 || src->units_per_packet == 0) {
+                        /* this would fail the cont_toged test */
+                        debug_msg("Would fail cont_toged test so adapting (%u samples)\n", late_adjust);
+                        src->playout += late_adjust;
+                } else {
+                        late_adjust  = 0;
+                } 
+                late_adjust = 0;
+        }
+
+        while(good_pckt_queue->queue_empty == FALSE) {
+                e_ptr = get_pckt_off_queue(good_pckt_queue);
+                block_trash_check();
+
+                hdr      = (rtp_hdr_t*)e_ptr->pckt_ptr;
+                data_ptr =  (unsigned char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + e_ptr->extlen;
+                len      = e_ptr->len - 4 * (3 + hdr->cc) - e_ptr->extlen;
+
+                src->units_per_packet = split_block(e_ptr->playout + late_adjust, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp);
                 block_trash_check();
                 free_pckt_queue_element(&e_ptr);
         }
 
         if (pkt_cnt > 5) {
                 debug_msg("Processed lots of packets(%d).\n", pkt_cnt);
-        }
-
-        if (netrx_pckt_queue->queue_empty == FALSE) {
-                debug_msg("Stopped processing packets because audio ready\n");
         }
 }
 

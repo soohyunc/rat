@@ -99,25 +99,13 @@ main(int argc, char *argv[])
 	struct timeval  	 time;
 	char			 mbus_engine_addr[30], mbus_ui_addr[30], mbus_video_addr[30];
 
-#define NEW_QUEUE(T,Q) T  Q[2]; \
-                       T *Q##_p[2];
+	NEW_QUEUE(pckt_queue_struct, netrx_queue);
+	NEW_QUEUE(pckt_queue_struct, rtcp_pckt_queue);
+	NEW_QUEUE(rx_queue_struct,   rx_unit_queue);
 
-	NEW_QUEUE(pckt_queue_struct, netrx_queue)
-	NEW_QUEUE(pckt_queue_struct, rtcp_pckt_queue)
-	NEW_QUEUE(rx_queue_struct,   rx_unit_queue)
-
-#define INIT_QUEUE(T,Q) Q##_p[0] = &Q##[0]; \
-			Q##_p[0]->queue_empty = 1; \
-                        Q##_p[0]->head_ptr    = NULL; \
-                        Q##_p[0]->tail_ptr    = NULL; \
-			Q##_p[1] = &Q##[1]; \
-			Q##_p[1]->queue_empty = 1; \
-                        Q##_p[1]->head_ptr    = NULL; \
-                        Q##_p[1]->tail_ptr    = NULL;
-
-	INIT_QUEUE(pckt_queue_struct, netrx_queue)
-	INIT_QUEUE(pckt_queue_struct, rtcp_pckt_queue)
-	INIT_QUEUE(rx_queue_struct,   rx_unit_queue)
+	INIT_QUEUE(pckt_queue_struct, netrx_queue);
+	INIT_QUEUE(pckt_queue_struct, rtcp_pckt_queue);
+	INIT_QUEUE(rx_queue_struct,   rx_unit_queue);
 
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
