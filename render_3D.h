@@ -40,8 +40,11 @@
  * SUCH DAMAGE.
  */
 
-#include <math.h>
+#ifndef __RENDER_3D_H__
+#define __RENDER_3D_H__
 
+#include <math.h>
+#include "codec_types.h"
 struct rx_element_tag;
 struct s_render_3D_dbentry;
 
@@ -55,9 +58,9 @@ int render_3D_filter_get_upper_azimuth(void);
 
 struct s_render_3D_dbentry *render_3D_init(int sampling_rate);
 void render_3D_free(struct s_render_3D_dbentry **data);
-void render_3D(struct rx_element_tag *el, int no_channels);
+void render_3D(struct s_render_3D_dbentry *data, coded_unit *in_native, coded_unit *out_native);
 void convolve(short *signal, short *answer, double *overlap, double *response, int response_length, int signal_length);
 void render_3D_set_parameters(struct s_render_3D_dbentry *p_3D_data, int sampling_rate, int azimuth, int filter_number, int length);
 void render_3D_get_parameters(struct s_render_3D_dbentry *p_3D_data, int *azimuth, int *filter_type, int *filter_length);
 
-
+#endif /* __RENDER_3D_H__ */

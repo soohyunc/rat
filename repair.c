@@ -6,7 +6,7 @@
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995-98 University College London
+ * Copyright (c) 1995-99 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -276,6 +276,70 @@ repair_get_count()
 #include "codec_types.h"
 #include "codec_state.h"
 #include "codec.h"
+
+int
+repair2(int                          repair, 
+        int                          consec,
+        struct s_codec_states_store *states,
+        media_data                  *prev, 
+        coded_unit                  *missing)
+{
+        audio_format fmt;
+        int          src, success;
+        assert((unsigned)repair < REPAIR_NUM_SCHEMES);
+
+        if (schemes[repair].action == NULL) {
+                /* Nothing to do - this must be repair scheme "none" */
+                return FALSE;
+        } else if (prev->nrep == 0) {
+                debug_msg("No data to repair from\n");
+                return FALSE;
+        }
+
+        assert(missing->state == 0);
+        assert(missing->data  == 0);
+
+        /* check if first encoding has repair routine */
+        if (codec_decoder_can_repair(prev->rep[0]->id)) {
+                codec_state *st;
+
+                st = codec_state_store_get(states, prev->rep[0]->id);
+                success = codec_decoder_repair(prev->rep[0].id, 
+                                               st, 
+                                               prev->rep[0],
+                                               missing,
+                                               NULL);
+                return success;
+        }
+
+        /* No codec specific repair exists look for waveform to repair.
+         * Start at the back since further codings are appended to the
+         * list.
+         */
+        for(src = prev->nrep - 1; src >= 0 ; src--) {
+                if (codec_is_native_coding(prev->rep[src]->id)) {
+                        u_int16 rate, u_int16 channels;
+                        coded_unit *p = prev->rep[src];
+
+                        /* set up missing block */
+                        missing->id       = p;
+                        missing->data     = (u_char*)block_alloc(p->data_len);
+                        missing->data_len = p->data_len;
+
+                        /* set up format */
+                        codec_get_native_info(cu, &rate, &channels);
+                        fmt.encoding        = DEV_S16;
+                        fmt.sample_rate     = (int)rate;
+                        fmt.bits_per_sample = 16;
+                        fmt.channels        = channels;
+                        fmt.bytes_per_block = p->data_len;
+
+
+                }
+        }
+        return FALSE;
+}
+
 #include "session.h"
 #include "channel.h"
 #include "receive.h"

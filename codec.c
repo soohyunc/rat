@@ -248,6 +248,13 @@ int
 codec_id_is_valid(codec_id_t id)
 {
         u_int32 ifs, fmt;
+
+        if (codec_is_native_coding(id)) {
+                /* Native codings should be tested with
+                 * codec_is_native_coding */
+                debug_msg("Coding is invalid because it is a native coding\n");
+                return FALSE;
+        }
         
         if (!CODEC_VALID_PAD(id) || 
             !CODEC_VALID_IFS(id) ||
@@ -598,11 +605,14 @@ codec_decoder_repair(codec_id_t id, codec_state *cs,
         ifs = CODEC_GET_IFS_INDEX(id);
         fmt = CODEC_GET_FMT_INDEX(id);
 
+        assert(miss->id == id);
+        miss->id = prev->id;
+
         assert(codec_table[ifs].cx_repair != NULL);
         return codec_table[ifs].cx_repair(fmt, 
-                                              cs->state, 
-                                              consec_missing,
-                                              prev, miss, next);
+                                          cs->state, 
+                                          consec_missing,
+                                          prev, miss, next);
 }
 
 u_int32 
@@ -852,3 +862,49 @@ codec_get_matching(const char *short_name, u_int16 freq, u_int16 channels)
         return 0;
 }
 
+/* These three functions are a hack so we can have
+ * encode and decode functions take coded_units as
+ * input and output.  This makes paths cleaner
+ * since we don't have two data types for coded and
+ * raw units.
+ */
+
+codec_id_t 
+codec_get_native_coding(u_int16 sample_rate, u_int16 channels)
+{
+        codec_id_t cid;
+
+        assert(sample_rate % 8000 == 0 && sample_rate <= 48000);
+        assert(channels == 1 || channels == 2);
+
+        channels    = channels - 1;
+        sample_rate = sample_rate / 4000 - 2;
+        /* There is no codec corresponding to this but make it
+         * have right form we set it interfaces to the number
+         * of interfaces, i.e. one more than is legal.
+         */
+        cid = CODEC_MAKE_ID(NUM_CODEC_INTERFACES, (sample_rate + channels));
+        return cid;
+}
+
+int
+codec_is_native_coding(codec_id_t cid)
+{
+        return (CODEC_GET_IFS_INDEX(cid) == NUM_CODEC_INTERFACES &&
+                CODEC_GET_FMT_INDEX(cid) < 12);
+}
+
+int 
+codec_get_native_info(codec_id_t cid, 
+                      u_int16   *p_rate, 
+                      u_int16   *p_channels)
+{
+        if (codec_is_native_coding(cid)) {
+                *p_rate     = ((CODEC_GET_FMT_INDEX(cid)>>1)+2) * 4000;
+                assert(*p_rate % 8000 == 0 && *p_rate <= 48000);
+                *p_channels = (CODEC_GET_FMT_INDEX(cid)&0x01) + 1;
+                assert(*p_channels == 1 || *p_channels == 2);
+                return TRUE;
+        }
+        return FALSE;
+}

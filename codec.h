@@ -112,11 +112,9 @@ codec_id_t codec_get_first_mapped_with(u_int16 sample_rate, u_int16 channels);
 codec_id_t codec_get_by_name      (const char *name);
 codec_id_t codec_get_matching     (const char *short_name, u_int16 sample_rate, u_int16 channels);
 
-codec_id_t codec_get_l16_matching (u_int16 sample_rate, u_int16 channels);
-
+codec_id_t codec_get_native_coding (u_int16 sample_rate, u_int16 channels);
+int        codec_is_native_coding  (codec_id_t id);
+int        codec_get_native_info   (codec_id_t cid, 
+                                    u_int16 *sample_rate, 
+                                    u_int16 *channels);
 #endif /* _CODEC_H_ */
-
-
-
-
-

@@ -309,12 +309,11 @@ convolve(sample *signal, sample *answer, double *overlap, double *response, int 
 #include "session.h"
 #include "codec_types.h"
 #include "codec.h"
-#include "receive.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 
 void
-render_3D(rx_queue_element_struct *el, int no_channels)
+render_3D(render_3D_dbentry *p_3D_data, coded_unit *in, coded_unit *out)
 {
         int      i;
         int      n_samples;
@@ -322,34 +321,31 @@ render_3D(rx_queue_element_struct *el, int no_channels)
         sample   *raw_buf, *proc_buf;
         sample   *mono_raw, *mono_filtered;  /* auxiliary buffers in case of stereo */
         int       mono_buf_len;
-        struct   s_render_3D_dbentry  *p_3D_data;
+        u_int16   n_channels, n_rate;
 
-        /* - take rx_queue_element_struct el
-         * - set size of buffer by filling in 'el->native_size[el->native_count]'
-         * - add extra native_data buffer of that size
-         * - increment 'el->native_count'
-         * - render audio into that buffer created in step 3
-         */
-        if (el->native_count < MAX_NATIVE) {
-                el->native_size[el->native_count] = el->native_size[el->native_count-1];
-                el->native_data[el->native_count] = (sample *) block_alloc(el->native_size[el->native_count]);
-        }
-        el->native_count++;
+        assert(codec_is_native_coding(in->id));
 
-        p_3D_data = el->dbe_source[0]->render_3D_data;
+        codec_get_native_info(in->id, &n_rate, &n_channels);
 
-        assert(el->native_size[el->native_count - 1] == el->native_size[el->native_count - 2]);
+        assert(out->state   == NULL);
+        assert(out->data    == NULL);
+        assert(in->data     != NULL);
+        assert(in->data_len != 0);
 
-        n_samples = (int) el->native_size[el->native_count-1] / BYTES_PER_SAMPLE;
+        /* - Allocate memory for outgoing unit */
+        out->id       = in->id;
+        out->data     = (u_char*)block_alloc(in->data_len);
+        out->data_len = in->data_len;
+        n_samples     = in->data_len / sizeof(sample);
 
-        raw_buf = el->native_data[el->native_count - 2];   /* buffer handed over _for_ 3D rendering */
-        proc_buf = el->native_data[el->native_count - 1];  /* buffer returned _from_ 3D rendering */
+        raw_buf  = (sample*)in->data;  /* buffer handed over _for_ 3D rendering */
+        proc_buf = (sample*)out->data; /* buffer returned _from_ 3D rendering */
         memset(proc_buf, 0, n_samples * sizeof(sample));
 
         /* check if mixer is stereo using 'no_channels' ('1' is mono, '2' ist stereo). */
-        if (no_channels == 2) {
+        if (n_channels == 2) {
                 /* extract mono buffer from stereo buffer */
-                mono_buf_len = el->native_size[el->native_count-1] / 2;
+                mono_buf_len  = in->data_len / 2;
                 mono_raw      = (sample *) block_alloc(mono_buf_len);
                 mono_filtered = (sample *) block_alloc(mono_buf_len);
                 for (i=0; i<n_samples/2; i++) {
@@ -390,14 +386,12 @@ render_3D(rx_queue_element_struct *el, int no_channels)
                 }
                 block_free(mono_raw, mono_buf_len);
                 block_free(mono_filtered, mono_buf_len);
-        }
-
-        if (no_channels == 1) {
+        } else if (n_channels == 1) {
                 xmemchk();
                 convolve(raw_buf, proc_buf, p_3D_data->overlap_buf, p_3D_data->filter, p_3D_data->response_length, n_samples);
                 xmemchk();
         }
-        block_check((char*)el->native_data[el->native_count - 1]);
-        block_check((char*)el->native_data[el->native_count - 2]);
+        block_check(in->data);
+        block_check(out->data);
         xmemchk();
 }

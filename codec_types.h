@@ -64,10 +64,10 @@ typedef struct s_codec_format {
 
 typedef struct s_coded_unit {
         codec_id_t id;
-	u_char	*state;
-	int	state_len;
+	u_char  *state;
+	u_int16  state_len;
 	u_char	*data;
-	int	data_len;
+	u_int16  data_len;
 } coded_unit;
 
 #define MAX_MEDIA_UNITS  3

@@ -43,13 +43,16 @@
 #ifndef _REPAIR_H_
 #define _REPAIR_H_
 
-struct rx_element_tag;
+int repair2(int                          repair,
+            int                          consec_lost,
+            struct s_codec_states_store *states,
+            media_data                  *prev, 
+            coded_unit                  *missing);
 
-void repair(int repair, struct rx_element_tag *up);
 
-u_int16         repair_get_count (void);
-const char     *repair_get_name  (u_int16 scheme);
-u_int16         repair_get_by_name(char *name);
+u_int16         repair_get_count   (void);
+const char     *repair_get_name    (u_int16 scheme);
+u_int16         repair_get_by_name (char *name);
 
 #endif /* _REPAIR_H_ */
 
