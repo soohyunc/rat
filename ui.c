@@ -723,18 +723,6 @@ ui_update(session_t *sp)
 }
 
 void
-ui_show_audio_busy(session_t *sp)
-{
-	mbus_qmsg(sp->mbus_engine, sp->mbus_ui_addr, "tool.rat.disable.audio.ctls", "", TRUE);
-}
-
-void
-ui_hide_audio_busy(session_t *sp)
-{
-	mbus_qmsg(sp->mbus_engine, sp->mbus_ui_addr, "tool.rat.enable.audio.ctls", "", TRUE);
-}
-
-void
 ui_update_lecture_mode(session_t *sp)
 {
 	/* Update the UI to reflect the lecture mode setting...*/

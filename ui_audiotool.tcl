@@ -243,8 +243,6 @@ proc mbus_recv {cmnd args} {
 		tool.rat.codec.details          {eval mbus_recv_tool.rat.codec.details $args}
 		tool.rat.rate  			{eval mbus_recv_tool.rat.rate $args}
 		tool.rat.lecture.mode  		{eval mbus_recv_tool.rat.lecture.mode $args}
-		tool.rat.disable.audio.ctls  	{eval mbus_recv_tool.rat.disable.audio.ctls $args}
-		tool.rat.enable.audio.ctls  	{eval mbus_recv_tool.rat.enable.audio.ctls $args}
 		tool.rat.audio.buffered  	{eval mbus_recv_tool.rat.audio.buffered $args}
 		tool.rat.audio.delay    	{eval mbus_recv_tool.rat.audio.delay $args}
 		tool.rat.3d.enabled  		{eval mbus_recv_tool.rat.3d.enabled $args}
@@ -1510,23 +1508,6 @@ pack .r.c.gain.gra -side bottom -fill x
 pack .r.c.gain.gra.b2 -side top  -fill both -expand 1 -padx 1 -pady 1
 pack .r.c.gain.gra.s2 -side top  -fill x -anchor s
 
-proc mbus_recv_tool.rat.disable.audio.ctls {} {
-#	.r.c.vol.but.t1 configure -state disabled
-	.r.c.vol.but.l1 configure -state disabled
-	.r.c.vol.gra.s1 configure -state disabled
-#	.r.c.gain.but.t2 configure -state disabled
-	.r.c.gain.but.l2 configure -state disabled
-	.r.c.gain.gra.s2 configure -state disabled
-}
-
-proc mbus_recv_tool.rat.enable.audio.ctls {} {
-#	.r.c.vol.but.t1 configure -state normal
-	.r.c.vol.but.l1 configure -state normal
-	.r.c.vol.gra.s1 configure -state normal
-#	.r.c.gain.but.t2 configure -state normal
-	.r.c.gain.but.l2 configure -state normal
-	.r.c.gain.gra.s2 configure -state normal
-}
 bind all <ButtonPress-3>   {toggle in_mute_var; input_mute $in_mute_var}
 bind all <ButtonRelease-3> {toggle in_mute_var; input_mute $in_mute_var}
 bind all <q>               {+if {[winfo class %W] != "Entry"} {do_quit}}

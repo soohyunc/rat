@@ -32,8 +32,6 @@ void ui_info_activate     (struct s_session *s, u_int32 ssrc);
 void ui_info_deactivate   (struct s_session *s, u_int32 ssrc);
 void ui_info_3d_settings  (struct s_session *s, u_int32 ssrc);
 
-void ui_show_audio_busy      (struct s_session *s);
-void ui_hide_audio_busy      (struct s_session *s);
 void ui_input_level          (struct s_session *s, int level);
 void ui_output_level         (struct s_session *s, int level);
 void ui_update_input_gain    (struct s_session *sp);
