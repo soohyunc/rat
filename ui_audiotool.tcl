@@ -1237,6 +1237,7 @@ Copyright (C) 1991-1992 RSA Data Security, Inc
 Copyright (C) 1992 Jutta Degener and Carsten Bormann, TU Berlin
 Copyright (C) 1994 Paul Stewart
 Copyright (C) 1996 Regents of the University of California
+Copyright (C) 1992-1997 Karl Lehenbauer and Mark Diekhans
 
 This product includes software developed by the Computer
 Systems Engineering Group and by the Network Research Group

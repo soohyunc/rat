@@ -8,7 +8,7 @@
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1996,1997 University College London
+ * Copyright (c) 1996-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -105,8 +105,6 @@ audio_open_rw(char rw)
 		/*       reorder this code unless you really know what you're doing! */
 		if ((rw == O_RDWR) && ioctl(audio_fd, SNDCTL_DSP_SETDUPLEX, 0) == -1) {
 			printf("ERROR: Cannot enable full-duplex mode!\n");
-			printf("       RAT should automatically select half-duplex operation\n");
-			printf("       in this case, so this error should never happen......\n");
 			abort();
 		}
 		if ((ioctl(audio_fd, SNDCTL_DSP_SETFRAGMENT, &frag) == -1)) {

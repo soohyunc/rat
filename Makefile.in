@@ -46,8 +46,8 @@ tcl_libs.o: tcl2c/tcl2c
 	cat tcl/*.tcl tk/*.tcl | tcl2c/tcl2c TCL_LIBS > tcl_libs.c
 	$(CC) $(CFLAGS) -c tcl_libs.c -o tcl_libs.o
 
-profrep.o: tcl2c
-	cat profrep.tcl | ./tcl2c profrep > profrep.c
+profrep.o: tcl2c/tcl2c
+	cat profrep.tcl | tcl2c/tcl2c profrep > profrep.c
 	$(CC) $(CFLAGS) -c profrep.c -o profrep.o
 
 clean:
