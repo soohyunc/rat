@@ -579,7 +579,6 @@ tx_send(tx_buffer *tb)
 #else
 			extn      = NULL;
 			extn_len  = 0;
-			extn_type = 0;
 #endif
                         data_len = 0;
                         /* determine data length for packet.  This is a   */  
