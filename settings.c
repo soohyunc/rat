@@ -31,7 +31,6 @@ static const char cvsid[] =
 #include "rtp.h"
 #include "util.h"
 #include "parameters.h"
-
 #include "asarray.h"
 
 #define SETTINGS_READ_SIZE 100
@@ -280,7 +279,12 @@ void settings_load_early(session_t *sp)
 	load_init();		/* Initial settings come from the common prefs file... */
         init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 
-	name = setting_load_str("audioDevice", "No Audio Device");
+	if (sp->mode == AUDIO_TOOL) {
+		name = setting_load_str("audioDevice", "No Audio Device");
+	} else {
+		name = (char *) xmalloc(20);
+		sprintf(name, "Transcoder Port %d", sp->id+1);
+	}
         /* User may not have a (valid) audio device entry in the */
         /* settings file, or have "No Audio Device" there.  In   */
         /* either case try to use first available device, if     */
