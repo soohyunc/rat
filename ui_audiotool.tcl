@@ -170,8 +170,12 @@ proc mbus_recv {cmnd args} {
 		mbus.quit  			{eval mbus_recv_mbus.quit $args}
 		tool.rat.load.settings 		{eval mbus_recv_tool.rat.load.settings $args}
 		tool.rat.sampling.supported 	{eval mbus_recv_tool.rat.sampling.supported $args}
-		tool.rat.converter.supported	{eval mbus_recv_tool.rat.converter.supported $args}
-		tool.rat.repair.supported	{eval mbus_recv_tool.rat.repair.supported $args}
+		tool.rat.converter  		{eval mbus_recv_tool.rat.converter $args}
+		tool.rat.converters.flush 	{eval mbus_recv_tool.rat.converters.flush $args}
+		tool.rat.converters.add 	{eval mbus_recv_tool.rat.converters.add $args}
+		tool.rat.repair			{eval mbus_recv_tool.rat.repair $args}
+		tool.rat.repairs.flush		{eval mbus_recv_tool.rat.repairs.flush $args}
+		tool.rat.repairs.add		{eval mbus_recv_tool.rat.repairs.add $args}
 		tool.rat.agc  			{eval mbus_recv_tool.rat.agc $args}
 		tool.rat.sync  			{eval mbus_recv_tool.rat.sync $args}
 		tool.rat.format.in              {eval mbus_recv_tool.rat.format.in $args}
@@ -465,24 +469,33 @@ proc change_sampling { } {
 
 ###############################################################################
 
-proc mbus_recv_tool.rat.converter.supported {arg} {
-    global convert_var
-    
+proc mbus_recv_tool.rat.converters.flush {} {
     .prefs.pane.reception.r.ms.menu delete 0 last
-    
-    set converters [split $arg ","]
-    foreach c $converters {
-	.prefs.pane.reception.r.ms.menu add command -label $c -command "set convert_var \"$c\""
-    }
 }
 
-proc mbus_recv_tool.rat.repair.supported {arg} {
+proc mbus_recv_tool.rat.converters.add {arg} {
+    global convert_var
+    .prefs.pane.reception.r.ms.menu add command -label "$arg" -command "set convert_var \"$arg\""
+}
+
+proc mbus_recv_tool.rat.converter {arg} {
+    global convert_var
+    set convert_var $arg
+}
+
+proc mbus_recv_tool.rat.repairs.flush {} {
     .prefs.pane.reception.r.m.menu delete 0 last
-    
-    set schemes [split $arg ","]
-    foreach rep $schemes {
-	.prefs.pane.reception.r.m.menu add command -label $rep -command "set repair_var \"$rep\""
-    }
+}
+
+
+proc mbus_recv_tool.rat.repairs.add {arg} {
+    global repair_var
+    .prefs.pane.reception.r.m.menu add command -label "$arg" -command "set repair_var \"$arg\""
+}
+
+proc mbus_recv_tool.rat.repair {arg} {
+    global repair_var
+    set repair_var $arg
 }
 
 proc mbus_recv_audio_devices {arg} {
@@ -2239,14 +2252,14 @@ proc load_settings {} {
     unset audio_tool
 
     # reception
-    load_setting attr audioRepair       repair_var    "Repetition"
+    load_setting attr audioRepair       repair_var    "first"
 
     load_setting attr audioLimitPlayout limit_var     "0"
     load_setting attr audioMinPlayout   min_var       "0"
     load_setting attr audioMaxPlayout   max_var       "2000"
     load_setting attr audioLecture      lecture_var   "0"
     load_setting attr audio3dRendering  3d_audio_var   "0"
-    load_setting attr audioAutoConvert  convert_var   "None"
+    load_setting attr audioAutoConvert  convert_var   "first"
     #security
    
     # ui bits

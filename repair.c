@@ -209,15 +209,15 @@ single_side_pattern_match(sample **audio_buf, const audio_format **audio_fmt, in
 }
 
 static repair_scheme schemes[] = {
-        {"None",          NULL},  /* Special place for scheme none - move at own peril */
+        {"Pattern-Match", single_side_pattern_match},
         {"Repeat",        repetition},
-        {"Pattern-Match", single_side_pattern_match}
+        {"None",          NULL},  /* Special place for scheme none - move at own peril */
 };
 
 /* General interface */
 
 #define REPAIR_NUM_SCHEMES sizeof(schemes)/sizeof(repair_scheme)
-#define REPAIR_NONE        0
+#define REPAIR_NONE        ((REPAIR_NUM_SCHEMES) - 1)
 
 #include "codec_types.h"
 #include "codec_state.h"
@@ -232,7 +232,7 @@ repair_get_name(u_int16 id)
 }
 
 u_int16
-repair_get_by_name(char *name)
+repair_get_by_name(const char *name)
 {
         u_int16 i;
         for(i = 0; i < REPAIR_NUM_SCHEMES; i++) {

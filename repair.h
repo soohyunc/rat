@@ -26,10 +26,10 @@ int repair(int                          repair,
 
 u_int16         repair_get_count   (void);
 const char     *repair_get_name    (u_int16 scheme);
-u_int16         repair_get_by_name (char *name);
+u_int16         repair_get_by_name (const char *name);
 
 /* Zero is no repair mechanism */
-#define REPAIR_TYPE_NONE 0
+#define REPAIR_TYPE_NONE 2
 
 #endif /* _REPAIR_H_ */
 

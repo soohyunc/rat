@@ -816,43 +816,71 @@ static void
 ui_converters(session_struct *sp)
 {
         converter_details_t details;
-        char buf[255], *mbes;
+        char *mbes;
         int i, cnt;
 
-        cnt = converter_get_count() - 1;
+        cnt = converter_get_count();
 
-        buf[0] = '\0';
-        
-        for (i = 0; i <= cnt; i++) {
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.converters.flush", "", TRUE);
+
+        for (i = 0; i < cnt; i++) {
                 converter_get_details(i, &details);
-                strcat(buf, details.name);
-                if (i != cnt) strcat(buf, ",");
+                mbes = mbus_encode_str(details.name);
+                mbus_qmsg(sp->mbus_engine, 
+                          mbus_name_ui, 
+                          "tool.rat.converters.add", 
+                          mbes, TRUE);
+                xfree(mbes);
         }
-        
-        mbes = mbus_encode_str(buf);
-        mbus_qmsg(sp->mbus_engine, 
-                  mbus_name_ui, 
-                  "tool.rat.converter.supported", 
-                  mbes, TRUE);
-        xfree(mbes);
+}
+
+void
+ui_update_converter(session_struct *sp)
+{
+        converter_details_t details;
+        char *mbes;
+        int i, cnt;
+
+        cnt = converter_get_count();
+
+        for(i = 0; i < cnt; i++) {
+                converter_get_details(i, &details);
+                if (sp->converter == details.id) {
+                        mbes = mbus_encode_str(details.name);
+                        mbus_qmsg(sp->mbus_engine, 
+                                  mbus_name_ui, 
+                                  "tool.rat.converter", 
+                                  mbes, TRUE);
+                        xfree(mbes);
+                        return;
+                }
+        }
 }
 
 static void
 ui_repair_schemes(session_struct *sp)
 {
-        char buf[255], *mbes;
+        char *mbes;
         int  i, cnt;
         
         cnt = repair_get_count();
-        
-        buf[0] = '\0';
-        for(i = cnt - 1; i >= 0; i--) {
-                strcat(buf, repair_get_name((u_char)i));
-                if (i) strcat(buf, ",");
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.repairs.flush", "", TRUE);
+
+        for(i = 0; i < cnt; i++) {
+                mbes = mbus_encode_str(repair_get_name(i));
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.repairs.add", mbes, TRUE);
+                xfree(mbes);
         }
-        
-        mbes = mbus_encode_str(buf);
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.repair.supported", mbes, TRUE);
+}
+
+void
+ui_update_repair(session_struct *sp)
+{
+        char *mbes;
+
+        assert(sp->repair < repair_get_count());
+        mbes = mbus_encode_str(repair_get_name(sp->repair));
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.repair", mbes, TRUE);
         xfree(mbes);
 }
 

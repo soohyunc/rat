@@ -383,11 +383,16 @@ static void rx_audio_channel_repair(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &s)) {
 		s = mbus_decode_str(s);
-                sp->repair = repair_get_by_name(s);
+                if (!strcasecmp(s, "first")) {
+                        sp->repair = repair_get_by_name(repair_get_name(0));
+                } else {
+                        sp->repair = repair_get_by_name(s);
+                }
 	} else {
 		debug_msg("mbus: usage \"audio.channel.repair <repair>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine);
+        ui_update_repair(sp);
 }
 
 static void rx_security_encryption_key(char *srce, char *args, session_struct *sp)
@@ -833,14 +838,19 @@ static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
                 for(i = 0; i < n; i++) {
                         converter_get_details(i, &d);
                         if (0 == strcasecmp(d.name,name)) {
-                                sp->converter = d.id;
                                 break;
                         }
                 }
+                if (i == n) {
+                        converter_get_details(0, &d);
+                }
+                sp->converter = d.id;
+
 	} else {
 		debug_msg("mbus: usage \"tool.rat.converter <name>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine);
+        ui_update_converter(sp);
 }
 
 static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)

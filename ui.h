@@ -42,6 +42,8 @@ void    ui_update_device_config(struct session_tag *sp);
 void 	ui_update_output_port(struct session_tag *sp);
 void	ui_update_primary(struct session_tag *sp);
 void	ui_update_channel(struct session_tag *sp) ;
+void    ui_update_converter(struct session_tag *sp);
+void    ui_update_repair(struct session_tag *sp);
 void	ui_update_powermeters(struct session_tag *sp, struct s_mix_info *ms, int elapsed_time);
 
 void	ui_update_stats(struct session_tag *s, struct s_rtcp_dbentry *e);
