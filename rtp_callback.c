@@ -347,6 +347,8 @@ rtp_callback(struct rtp *s, rtp_event *e)
 	case RX_RR:
                 process_rr(sp, e->ssrc, (rtcp_rr*)e->data);
 		break;
+	case RX_RR_EMPTY:
+		break;
 	case RX_SDES:
                 process_sdes(sp, e->ssrc, (rtcp_sdes_item*)e->data);
 		break;
