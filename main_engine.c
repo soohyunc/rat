@@ -100,11 +100,9 @@ int main(int argc, char *argv[])
         uint8_t		 j;
 
 #ifdef WIN32
-	/* Not sure what the correct priority should be... rat-3.0.x uses  */
-	/* THREAD_PRIORITY_TIME_CRITICAL, but that's maybe too high. [csp] */
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 #else
- 	signal(SIGINT, signal_handler); 
+	signal(SIGINT, signal_handler); 
         debug_set_core_dir(argv[0]);
 #endif
 
@@ -320,6 +318,12 @@ int main(int argc, char *argv[])
 	audio_device_release(sp, sp->audio_device);
         pdb_destroy(&sp->pdb);
 
+	for (j = 0; j < sp->rtp_session_count; j++) {
+		rtp_send_bye(sp->rtp_session[j]);
+		rtp_done(sp->rtp_session[j]);
+		rtp_callback_exit(sp->rtp_session[j]);
+	}
+
 	/* Inform other processes that we're about to quit... */
 	mbus_qmsgf(sp->mbus_engine, "()", FALSE, "mbus.bye", "");
 	mbus_send(sp->mbus_engine);
@@ -332,12 +336,6 @@ int main(int argc, char *argv[])
 		mbus_recv(sp->mbus_engine, sp, &timeout);
 	} while (!mbus_sent_all(sp->mbus_engine));
 	mbus_exit(sp->mbus_engine);
-
-	for (j = 0; j < sp->rtp_session_count; j++) {
-		rtp_send_bye(sp->rtp_session[j]);
-		rtp_done(sp->rtp_session[j]);
-		rtp_callback_exit(sp->rtp_session[j]);
-	}
 
 	session_exit(sp);
         converters_free();
