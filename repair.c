@@ -375,45 +375,45 @@ repair(repair_id_t                 r,
                 return success;
         }
 
-        /* No codec specific repair exists look for waveform to repair.
-         * Start at the back since further codings are appended to the
-         * list.
-         */
-        for(src = 0; src < prev->nrep; src++) {
-                if (codec_is_native_coding(prev->rep[src]->id)) {
-                        const audio_format *pfmts[2];
-                        audio_format        fmt;
-                        coded_unit  *p;
-                        uint16_t      rate, channels;
-                        sample      *bufs[2];
+/* If native (waveform) audio is available, the last entry is device
+ * compatible if it is native.  We use this as it means we don't have to
+ * re-apply 3d rendering and sample rate conversion if they are in use.
+ */
+        src = prev->nrep - 1;
+        if (src >= 0 && codec_is_native_coding(prev->rep[src]->id)) {
+                const audio_format *pfmts[2];
+                audio_format        fmt;
+                coded_unit  *p;
+                uint16_t      rate, channels;
+                sample      *bufs[2];
 
-                        p = prev->rep[src];
-
-                        /* set up missing block */
-                        missing->id       = p->id;
-                        missing->data     = (u_char*)block_alloc(p->data_len);
-                        missing->data_len = p->data_len;
-
-                        /* set up format */
-                        codec_get_native_info(p->id, &rate, &channels);
-                        fmt.encoding        = DEV_S16;
-                        fmt.sample_rate     = (int)rate;
-                        fmt.bits_per_sample = 16;
-                        fmt.channels        = channels;
-                        fmt.bytes_per_block = p->data_len;
-
-                        /* Pointer tweaking to get data in format repair function
-                         * expects.
-                         */
-                        pfmts[0] = &fmt;
-                        pfmts[1] = &fmt;
-
-                        bufs[0] = (sample*) p->data;
-                        bufs[1] = (sample*) missing->data;
-
-                        schemes[r].action(bufs, pfmts, 2, 1, consec_lost);
-                        return TRUE;
-                }
+                p = prev->rep[src];
+                /* set up missing block */
+                missing->id       = p->id;
+                missing->data     = (u_char*)block_alloc(p->data_len);
+                missing->data_len = p->data_len;
+                
+                /* set up format */
+                codec_get_native_info(p->id, &rate, &channels);
+                fmt.encoding        = DEV_S16;
+                fmt.sample_rate     = (int)rate;
+                fmt.bits_per_sample = 16;
+                fmt.channels        = channels;
+                fmt.bytes_per_block = p->data_len;
+                
+                /* Pointer tweaking to get data in format repair function
+                 * expects.
+                 */
+                pfmts[0] = &fmt;
+                pfmts[1] = &fmt;
+                
+                bufs[0] = (sample*) p->data;
+                bufs[1] = (sample*) missing->data;
+                
+                schemes[r].action(bufs, pfmts, 2, 1, consec_lost);
+                return TRUE;
+        } else {
+                debug_msg("No native audio in previous unit to use for repair\n");
         }
         return FALSE;
 }

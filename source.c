@@ -1442,41 +1442,50 @@ source_process(session_t 	 *sp,
                         assert(md->rep[md->nrep] == NULL);
                         md->rep[md->nrep] = cu;
                         md->nrep++;
-		}
-		assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
-		assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
 
-                if (render_3d && src->pdbe->render_3D_data) {
-                        /* 3d rendering necessary */
-                        coded_unit *decoded, *render;
-                        decoded = md->rep[md->nrep - 1];
-                        assert(codec_is_native_coding(decoded->id));
-                        
-                        render = (coded_unit*)block_alloc(sizeof(coded_unit));
-                        memset(render, 0, sizeof(coded_unit));
-                        
-                        render_3D(src->pdbe->render_3D_data,decoded,render);
-                        assert(md->rep[md->nrep] == NULL);
-                        md->rep[md->nrep] = render;
-                        md->nrep++;
                         assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
                         assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
-                }
 
-                if (src->converter) {
-                        /* convert frame */
-                        coded_unit *decoded, *render;
-                        decoded = md->rep[md->nrep - 1];
-                        assert(codec_is_native_coding(decoded->id));
+                        if (render_3d && src->pdbe->render_3D_data) {
+                                /* 3d rendering necessary */
+                                coded_unit *decoded, *render;
+                                decoded = md->rep[md->nrep - 1];
+                                assert(codec_is_native_coding(decoded->id));
+                                
+                                render = (coded_unit*)block_alloc(sizeof(coded_unit));
+                                memset(render, 0, sizeof(coded_unit));
+                                
+                                render_3D(src->pdbe->render_3D_data,decoded,render);
+                                assert(md->rep[md->nrep] == NULL);
+                                md->rep[md->nrep] = render;
+                                md->nrep++;
+                                assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
+                                assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
+                        }
 
-                        render = (coded_unit*) block_alloc(sizeof(coded_unit));
-                        memset(render, 0, sizeof(coded_unit));
-                        converter_process(src->converter, decoded, render);
-                        assert(md->rep[md->nrep] == NULL);
-                        md->rep[md->nrep] = render;
-                        md->nrep++;
-                        assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
-                        assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
+                        if (src->converter) {
+                                /* convert frame */
+                                coded_unit *decoded, *render;
+                                decoded = md->rep[md->nrep - 1];
+                                assert(codec_is_native_coding(decoded->id));
+                                
+                                render = (coded_unit*) block_alloc(sizeof(coded_unit));
+                                memset(render, 0, sizeof(coded_unit));
+                                converter_process(src->converter, decoded, render);
+                                assert(md->rep[md->nrep] == NULL);
+                                md->rep[md->nrep] = render;
+                                md->nrep++;
+                                assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
+                                assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
+                        }
+
+                        if (src->pdbe->gain != 1.0 && codec_is_native_coding(md->rep[md->nrep - 1]->id)) {
+                                audio_scale_buffer((sample*)md->rep[md->nrep - 1]->data,
+                                                   md->rep[md->nrep - 1]->data_len / sizeof(sample),
+                                                   src->pdbe->gain);
+                                assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
+                                assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
+                        }
                 }
 
                 if (src->skew != SOURCE_SKEW_NONE && source_skew_adapt(src, md, playout) != SOURCE_SKEW_NONE) {
@@ -1486,14 +1495,6 @@ source_process(session_t 	 *sp,
                         pb_iterator_get_at(src->media_pos, (u_char**)&md, &md_len, &playout);
                         assert(md != NULL);
                         assert(md_len == sizeof(media_data));
-                        assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
-                        assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
-                }
-
-                if (src->pdbe->gain != 1.0 && codec_is_native_coding(md->rep[md->nrep - 1]->id)) {
-                        audio_scale_buffer((sample*)md->rep[md->nrep - 1]->data,
-                                           md->rep[md->nrep - 1]->data_len / sizeof(sample),
-                                           src->pdbe->gain);
                         assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
                         assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
                 }
