@@ -85,7 +85,7 @@ l16_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 }
 
 static void
-pcm_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
+ulaw_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 {
 	int	i;
 	u_char	*p = c->data;
@@ -94,13 +94,32 @@ pcm_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 }
 
 static void
-pcm_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
+ulaw_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 {
 	int	i;
 	u_char	*sc = (u_char *)c->data;
 	for(i = 0; i < cp->unit_len; i++) {
 		*data++ = u2s(*sc);
 		sc++;
+	}
+}
+
+static void
+alaw_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
+{
+	int	i;
+	u_char	*p = c->data;
+	for (i = 0; i < cp->unit_len; i++,data++)
+		*p++ = s2a(*data);
+}
+
+static void
+alaw_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
+{
+	int	i;
+	u_char	*sc = (u_char *)c->data;
+	for(i = 0; i < cp->unit_len; i++, sc++) {
+		*data++ = a2s(*sc);
 	}
 }
 
@@ -218,22 +237,23 @@ gsm_decoding(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 static codec_t codec_list[] = {
 	{"LPC",             2,       7, 8000, 2, 1, 0, 160, LPCTXSIZE, NULL, lpc_encode, lpc_decode_init, lpc_decode},
 	{"GSM",             4,       3, 8000, 2, 1, 0, 160, 33, gsm_init, gsm_encoding, gsm_init, gsm_decoding},
-	{"PCM",             8,       0, 8000, 2, 1, 0, 160, 160, NULL, pcm_encode, NULL, pcm_decode},
+        {"a-law",           8,       8, 8000, 2, 1, 0, 160, 160, NULL, alaw_encode, NULL, alaw_decode},
+	{"mu-law",          9,       0, 8000, 2, 1, 0, 160, 160, NULL, ulaw_encode, NULL, ulaw_decode},
 	{"DVI",             7,       5, 8000, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_init, dvi_decode},
 	{"DVI-11K-MONO",   10,      16,11025, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_init, dvi_decode},
 	{"DVI-16K-MONO",   11,       6,16000, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_init, dvi_decode},
 	{"DVI-22K-MONO",   12,      17,22050, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_init, dvi_decode},
 	{"WBS",            10, DYNAMIC,16000, 2, 1, WBS_STATE_SIZE, 160, WBS_UNIT_SIZE, wbs_init, wbs_encode, wbs_init, wbs_decode},
 	{"L16-8K-MONO",     9, DYNAMIC, 8000, 2, 1, 0, 160, 320, NULL, l16_encode, NULL, l16_decode},
-	{"L16-8K-STEREO",   9, DYNAMIC, 8000, 2, 2, 0, 160, 320, NULL, l16_encode, NULL, l16_decode},
+	{"L16-8K-STEREO",   9, DYNAMIC, 8000, 2, 2, 0, 160, 640, NULL, l16_encode, NULL, l16_decode},
 	{"L16-16K-MONO",   11, DYNAMIC,16000, 2, 1, 0, 160, 320, NULL, l16_encode, NULL, l16_decode}, 
-	{"L16-16K-STEREO", 11, DYNAMIC,16000, 2, 2, 0, 160, 320, NULL, l16_encode, NULL, l16_decode}, 
+	{"L16-16K-STEREO", 11, DYNAMIC,16000, 2, 2, 0, 160, 640, NULL, l16_encode, NULL, l16_decode}, 
 	{"L16-32K-MONO",   12, DYNAMIC,32000, 2, 1, 0, 160, 320, NULL, l16_encode, NULL, l16_decode},
-	{"L16-32K-STEREO", 12, DYNAMIC,32000, 2, 2, 0, 160, 320, NULL, l16_encode, NULL, l16_decode},
+	{"L16-32K-STEREO", 12, DYNAMIC,32000, 2, 2, 0, 160, 640, NULL, l16_encode, NULL, l16_decode},
 	{"L16-44K-MONO",   13,      11,44100, 2, 1, 0, 160, 320, NULL, l16_encode, NULL, l16_decode},
-	{"L16-44K-STEREO", 13,      10,44100, 2, 2, 0, 160, 320, NULL, l16_encode, NULL, l16_decode}, 
+	{"L16-44K-STEREO", 13,      10,44100, 2, 2, 0, 160, 640, NULL, l16_encode, NULL, l16_decode}, 
 	{"L16-48K-MONO",   14, DYNAMIC,48000, 2, 1, 0, 160, 320, NULL, l16_encode, NULL, l16_decode}, 
-	{"L16-48K-STEREO", 14, DYNAMIC,48000, 2, 2, 0, 160, 320, NULL, l16_encode, NULL, l16_decode}, 
+	{"L16-48K-STEREO", 14, DYNAMIC,48000, 2, 2, 0, 160, 640, NULL, l16_encode, NULL, l16_decode}, 
 	{""}
 };
 
@@ -253,14 +273,17 @@ set_dynamic_payload(dpt **dpt_list, char *name, int pt)
 	dpt *p;
 
 	for (p = *dpt_list; p; p = p->next) {
-		if (strcmp(name, p->name) == 0)
-			break;
+            if (strcmp(name, p->name) == 0) {
+                printf("duplicate\n");
+                break;
+            }
 	}
 	if (p == 0) {
 		p = (dpt *)xmalloc(sizeof(dpt));
 		p->name = strsave(name);
 		p->next = *dpt_list;
 		*dpt_list = p;
+                printf("added %s\n",name);
 	} else {
 #ifdef DEBUG
 		if (p->pt != pt)
@@ -268,6 +291,7 @@ set_dynamic_payload(dpt **dpt_list, char *name, int pt)
 #endif
 	}
 	p->pt = pt;
+
 }
 
 int
@@ -326,8 +350,9 @@ get_codec_byname(char *name, session_struct *sp)
 	int i;
 
 	for (i = 0; i < MAX_CODEC; i++) {
-		if (cd[i].name != 0 && strcmp(name, cd[i].name) == 0)
-			return (&cd[i]);
+            if (cd[i].name) printf("%s %d\n",cd[i].name,cd[i].pt);
+            if (cd[i].name && strcmp(name, cd[i].name) == 0)
+                return (&cd[i]);
 	}
 #ifdef DEBUG
 	fprintf(stderr, "get_codec_byname: codec \"%s\" not found.\n", name);

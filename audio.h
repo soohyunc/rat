@@ -139,7 +139,13 @@ void	pcmu_linear_init(void);
 /* Use the IRIX definition in all cases..... [csp] */
 extern short mulawtolin[256];
 extern unsigned char lintomulaw[65536];
+
+extern short         alawtolin[256];
+extern unsigned char lintoalaw[8192]; 
+
 #define s2u(x)	lintomulaw[((unsigned short)(x)) & 0xffff]
 #define u2s(x)	mulawtolin[x]
+#define s2a(x)  lintoalaw[((unsigned short)(x))>>3]
+#define a2s(x)  alawtolin[((unsigned char)x)]
 
 #endif /* _RAT_AUDIO_H_ */
