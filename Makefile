@@ -104,19 +104,19 @@ $(OBJDIR)/ui.o:	      		xbm/rat_small.xbm
 $(BINDIR)/tcl2c: $(SRCDIR)/tcl2c.c
 	$(CC) -o $(BINDIR)/tcl2c $(SRCDIR)/tcl2c.c
 
-$(OBJDIR)/ui_original.o: $(SRCDIR)/ui_original.tcl tcl2c
+$(OBJDIR)/ui_original.o: $(SRCDIR)/ui_original.tcl $(BINDIR)/tcl2c
 	cat $(SRCDIR)/ui_original.tcl | tcl2c ui_original > $(OBJDIR)/ui_original.c
 	$(CC) $(CFLAGS) -c $(OBJDIR)/ui_original.c -o $(OBJDIR)/ui_original.o
 
-$(OBJDIR)/ui_anna.o: $(SRCDIR)/ui_anna.tcl tcl2c
+$(OBJDIR)/ui_anna.o: $(SRCDIR)/ui_anna.tcl $(BINDIR)/tcl2c
 	cat $(SRCDIR)/ui_anna.tcl | tcl2c ui_anna > $(OBJDIR)/ui_anna.c
 	$(CC) $(CFLAGS) -c $(OBJDIR)/ui_anna.c -o $(OBJDIR)/ui_anna.o
 
-$(OBJDIR)/ui_relate.o: ui_relate.tcl tcl2c
+$(OBJDIR)/ui_relate.o: ui_relate.tcl $(BINDIR)/tcl2c
 	cat $(SRCDIR)/ui_relate.tcl | tcl2c ui_relate > $(OBJDIR)/ui_relate.c
 	$(CC) $(CFLAGS) -c $(OBJDIR)/ui_relate.c -o $(OBJDIR)/ui_relate.o
 
-$(OBJDIR)/tcl_libs.o: $(OBJDIR)/tcl2c
+$(OBJDIR)/tcl_libs.o: $(BINDIR)/tcl2c
 	cat tcl/*.tcl tk/*.tcl | tcl2c TCL_LIBS > $(OBJDIR)/tcl_libs.c
 	$(CC) $(CFLAGS) -c $(OBJDIR)/tcl_libs.c -o $(OBJDIR)/tcl_libs.o
 
