@@ -919,7 +919,23 @@ w32sdk_audio_close_out()
         shWaveOut = 0;
 }
 
+
 #define WRITE_ERROR_STILL_PLAYING 33
+
+const char *waveOutError(MMRESULT mmr)
+{
+#define WOERR(x) case x: return #x
+	switch (mmr){
+		WOERR(MMSYSERR_NOERROR);
+		WOERR(MMSYSERR_INVALHANDLE);
+		WOERR(MMSYSERR_NODRIVER);
+		WOERR(MMSYSERR_NOMEM);
+		WOERR(WAVERR_UNPREPARED);
+		WOERR(WRITE_ERROR_STILL_PLAYING);
+	default:
+		return "Unknown";
+	}
+}
 
 int
 w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
@@ -952,15 +968,16 @@ w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
 
         assert(done <= buf_bytes);
         if (done != buf_bytes) {
-                debug_msg("Write overflow %d > %d bytes\n", buf_bytes, done);
-                if (whWriteFreeList != NULL) {
-                        debug_msg("Out of write buffers\n");
-                }
-                if (mmr == WRITE_ERROR_STILL_PLAYING) {
-                        debug_msg("Write Error: still playing\n");
-                }
+		WAVEHDR *iter = whWriteFreeList;
+		int count = 0;
+		while (iter != NULL) {
+			iter = iter->lpNext;
+			count++;
+		}
                 assert(whWriteFreeList == NULL || mmr == WRITE_ERROR_STILL_PLAYING);
-                /* XXX With a 1 second buffer this should never happen! */              
+                /* XXX With a 1 second buffer this should never happen! */
+		debug_msg("Write overflow %d > %d bytes (free %d) (mmr %d)\n", buf_bytes, done, count, mmr);
+		debug_msg("waveOutError: %s\n", waveOutError(mmr));
         }
         return done;
 }
