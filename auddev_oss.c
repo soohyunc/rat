@@ -171,7 +171,8 @@ audio_close(int audio_fd)
 void
 audio_drain(int audio_fd)
 {
-	UNUSED(audio_fd);
+        sample buf[160];
+        while(audio_read(audio_fd, buf, 160) == 160);
 }
 
 int
