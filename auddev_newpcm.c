@@ -21,6 +21,8 @@ static const char cvsid[] =
 #include "debug.h"
 
 #include <machine/soundcard.h>
+#include <sys/types.h>
+#include <dirent.h>
 
 static char *port_names[] = SOUND_DEVICE_LABELS;
 static int  iport, oport, loop;
@@ -41,9 +43,8 @@ static int audio_fd = -1;
 #define IN_RANGE(x,l,u) ((x) >= (l) && (x) <= (u))
 
 #define NEWPCM_MAX_AUDIO_NAME_LEN 32
-#define NEWPCM_MAX_AUDIO_DEVICES  3
+#define NEWPCM_MAX_AUDIO_DEVICES  10
 
-static int dev_ids[NEWPCM_MAX_AUDIO_DEVICES];
 static char names[NEWPCM_MAX_AUDIO_DEVICES][NEWPCM_MAX_AUDIO_NAME_LEN];
 static int ndev = 0;
 static int newpcm_error;
@@ -59,11 +60,11 @@ int
 newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
 	audio_buf_info	abi;
-	char		thedev[64];
+	char		*thedev;
 	int		frag;
  
 	assert(ad >= 0 && ad < ndev); 
-	sprintf(thedev, "/dev/audio%d", dev_ids[ad]);
+	thedev = names[ad];
 
 	debug_msg("Opening %s\n", thedev);
 
@@ -625,30 +626,50 @@ newpcm_audio_supports(audio_desc_t ad, audio_format *fmt)
 	return FALSE;
 }
 
+static int
+newpcm_is_driver() {
+	FILE	*f;
+	char	buf[128], *p;
+	int	newpcm = FALSE;
+
+	f = fopen("/dev/sndstat", "r");
+	if (f == NULL) return FALSE;
+
+	while(!feof(f)) {
+		p = fgets(buf, 128, f);		
+		if (p && strstr(buf, "newpcm")) {
+			newpcm = TRUE;
+			break;
+		}
+	}
+	fclose(f);
+	return newpcm;
+}
+
 int
 newpcm_audio_query_devices()
 {
-	FILE *f;
-	char buf[128], *p;
-	int n, newpcm = FALSE;
 
-	f = fopen("/dev/sndstat", "r");
-	if (f) {
-		while (!feof(f) && ndev < NEWPCM_MAX_AUDIO_DEVICES) {
-			p = fgets(buf, 128, f);
-			n = sscanf(buf, "pcm%d: <%[A-z0-9 ]>", dev_ids + ndev, names[ndev]);
-			if (p && n == 2) {
-				debug_msg("dev (%d) name (%s)\n", dev_ids[ndev], names[ndev]);
-				ndev++;
-			} else if (strstr(buf, "newpcm")) {
-				newpcm = TRUE;
-			} 
-		}
-		fclose(f);
+	DIR  		*d;
+	struct dirent	*de;
+
+	if (newpcm_is_driver() == 0)
+		return 0;
+
+	if (ndev)
+		return ndev;
+
+	d = opendir("/dev");
+	if (d == NULL) {
+		perror("opendir /dev");
+		return 0;
 	}
 
-	if (newpcm == FALSE) {
-		ndev = 0; /* Should be using Luigi's interface */
+	while ((de = readdir(d)) != NULL && ndev < NEWPCM_MAX_AUDIO_DEVICES) {
+		if (de->d_type != DT_CHR) continue;
+		if (strncmp(de->d_name, "audio", 5) != 0) continue;
+		sprintf(names[ndev], "/dev/%s", de->d_name); 
+		ndev++;
 	}
 
 	return (ndev);
