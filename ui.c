@@ -40,6 +40,8 @@
  * SUCH DAMAGE.
  */
 
+#include <tcl.h>
+#include <tk.h>
 #include "config.h"
 #include "version.h"
 #include "session.h"
@@ -47,8 +49,6 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "util.h"
-#include "tcl.h"
-#include "tk.h"
 #include "repair.h"
 #include "codec.h"
 #include "audio.h"

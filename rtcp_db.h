@@ -102,7 +102,6 @@ typedef struct s_rtcp_dbentry {
 	u_int32         last_ts;		/* Last packet timestamp */
 	u_int16         last_seq;		/* Last packet sequence number */
 	int             last_delay;		/* Last packet relative delay */
-	int             last_diff;		/* Last difference of packet delay from avg */
 	int             first_pckt_flag;
 
 	int		loss_from_me;		/* Loss rate that this receiver heard from me */
