@@ -308,7 +308,7 @@ ts_seq32_in(ts_sequencer *s, u_int32 freq, u_int32 curr_32)
 
         /* Inited or freq changed check */
         if (s->freq != freq || !ts_valid(s->last_ts)) {
-                s->last_ts = ts_map32(freq, 0);
+                s->last_ts = ts_map32(freq, lrand48());
                 s->last_32 = curr_32;
                 s->freq    = freq;
                 return s->last_ts;
@@ -341,7 +341,7 @@ ts_seq32_out(ts_sequencer *s, u_int32 freq, ts_t curr_ts)
         /* Inited or freq change check */
         if (s->freq != freq || !ts_valid(s->last_ts)) {
                 s->last_ts = curr_ts;
-                s->last_32 = 0;
+                s->last_32 = lrand48();
                 s->freq    = freq;
                 return s->last_32;
         }
