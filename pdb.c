@@ -139,6 +139,8 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16 freq, u_int32 id)
 
         /* Initial jitter estimate (10ms = 80 ticks of 8kHz clock)           */
         item->jitter          = ts_map32(8000, 80);
+        item->transit         = ts_map32(8000, 0);
+        item->playout         = item->transit;
 
         /* Packet stats initialization                                       */
         item->received        = 0;
