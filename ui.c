@@ -66,6 +66,7 @@
 #include "timers.h"
 #include "render_3D.h"
 #include "source.h"
+#include "net.h"
 
 static char *mbus_name_engine = NULL;
 static char *mbus_name_ui     = NULL;
@@ -1059,15 +1060,15 @@ void
 ui_initial_settings(session_struct *sp)
 {
         /* One off setting transfers / initialization */
-        ui_sampling_modes(sp);
-        ui_converters(sp);
-        ui_repair_schemes(sp);
-        ui_codecs(sp);
-        ui_3d_options(sp);
-	ui_info_update_cname(sp, sp->db->my_dbe);
-	ui_info_update_tool(sp, sp->db->my_dbe);
-        ui_title(sp);
-	ui_load_settings(sp);
+        ui_sampling_modes(sp); 				network_process_mbus(sp);
+        ui_converters(sp); 				network_process_mbus(sp);
+        ui_repair_schemes(sp); 				network_process_mbus(sp);
+        ui_codecs(sp); 					network_process_mbus(sp);
+        ui_3d_options(sp); 				network_process_mbus(sp);
+	ui_info_update_cname(sp, sp->db->my_dbe); 	network_process_mbus(sp);
+	ui_info_update_tool(sp, sp->db->my_dbe); 	network_process_mbus(sp);
+        ui_title(sp); 					network_process_mbus(sp);
+	ui_load_settings(sp); 				network_process_mbus(sp);
 }
 
 void 
