@@ -25,12 +25,12 @@ void ui_info_update_phone (struct session_tag *s, struct s_rtcp_dbentry *e);
 void ui_info_update_loc   (struct session_tag *s, struct s_rtcp_dbentry *e);
 void ui_info_update_tool  (struct session_tag *s, struct s_rtcp_dbentry *e);
 void ui_info_update_note  (struct session_tag *s, struct s_rtcp_dbentry *e);
-void ui_info_mute         (struct session_tag *s, struct s_rtcp_dbentry *e);
-void ui_info_gain         (struct session_tag *s, struct s_rtcp_dbentry *e);
+void ui_info_mute         (struct session_tag *s, pdb_entry_t           *pdbe);
+void ui_info_gain         (struct session_tag *s, pdb_entry_t           *pdbe);
 void ui_info_remove       (struct session_tag *s, struct s_rtcp_dbentry *e);
 void ui_info_activate     (struct session_tag *s, struct s_rtcp_dbentry *e);
 void ui_info_deactivate   (struct session_tag *s, struct s_rtcp_dbentry *e);
-void ui_info_3d_settings  (struct session_tag *s, struct s_rtcp_dbentry *e, pitem_t *p);
+void ui_info_3d_settings  (struct session_tag *s, struct s_rtcp_dbentry *e, pdb_entry_t *p);
 
 void ui_show_audio_busy      (struct session_tag *s);
 void ui_hide_audio_busy      (struct session_tag *s);
@@ -46,8 +46,8 @@ void ui_update_channel       (struct session_tag *sp) ;
 void ui_update_converter     (struct session_tag *sp);
 void ui_update_repair        (struct session_tag *sp);
 void ui_update_powermeters   (struct session_tag *sp, struct s_mix_info *ms, int elapsed_time);
+void ui_update_stats         (struct session_tag *s, pdb_entry_t *pdbe);
 
-void ui_update_stats         (struct session_tag *s, struct s_rtcp_dbentry *e);
 void ui_update_lecture_mode  (struct session_tag *session_pointer);
 void ui_update               (struct session_tag *session_pointer);
 void ui_update_loss          (struct session_tag *sp, u_int32 srce, u_int32 dest, int loss);

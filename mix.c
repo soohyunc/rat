@@ -16,7 +16,6 @@
 #include "config_win32.h"
 #include "memory.h"
 #include "util.h"
-#include "mix.h"
 #include "session.h"
 #include "codec_types.h"
 #include "codec.h"
@@ -24,9 +23,11 @@
 #include "audio_fmt.h"
 #include "timers.h"
 #include "channel_types.h"
+#include "pdb.h"
+#include "source.h"
+#include "mix.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
-#include "source.h"
 #include "playout.h"
 #include "debug.h"
 #include "parameters.h"
@@ -85,7 +86,10 @@ mix_verify(mix_struct *ms)
  * dont have to copy everything when we hit the boundaries..
  */
 int
-mix_create(mix_struct **ppms, int sample_rate, int sample_channels, int buffer_length)
+mix_create(mix_struct **ppms, 
+           int          sample_rate, 
+           int          sample_channels, 
+           int          buffer_length)
 {
 	mix_struct *pms;
 
@@ -147,7 +151,7 @@ mix_zero(mix_struct *ms, int offset, int len)
 
 int
 mix_process(mix_struct          *ms,
-            rtcp_dbentry        *dbe,
+            pdb_entry_t         *pdbe,
             coded_unit          *frame,
             ts_t                 playout)
 {
@@ -179,10 +183,10 @@ mix_process(mix_struct          *ms,
         nticks          = frame->data_len / (sizeof(sample) * channels);
         frame_period    = ts_map32(rate, nticks);
 
-        if (dbe->first_mix) {
+        if (pdbe->first_mix) {
                 debug_msg("New mix\n");
-                dbe->last_mixed = ts_sub(playout, frame_period);
-                dbe->first_mix  = 0;
+                pdbe->last_mixed = ts_sub(playout, frame_period);
+                pdbe->first_mix  = 0;
         }
 
         mix_verify(ms);
@@ -191,7 +195,7 @@ mix_process(mix_struct          *ms,
         nsamples = frame->data_len / sizeof(sample);
                 
         /* Check for overlap in decoded frames */
-        expected_playout = ts_add(dbe->last_mixed, frame_period);
+        expected_playout = ts_add(pdbe->last_mixed, frame_period);
 
         if (!ts_eq(expected_playout, playout)) {
                 if (ts_gt(expected_playout, playout)) {
@@ -275,7 +279,7 @@ mix_process(mix_struct          *ms,
                              nsamples); 
                 xmemchk();
         } 
-        dbe->last_mixed = playout;
+        pdbe->last_mixed = playout;
 
         return TRUE;
 }

@@ -27,20 +27,22 @@
 #include "version.h"
 #include "net_udp.h"
 #include "net.h"
-#include "pdb.h"
-#include "source.h"
 #include "ts.h"
 #include "converter.h"
 #include "channel_types.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
 #include "session.h"
-#include "ui.h"
 #include "transmit.h"
-#include "timers.h"
 #include "session.h"
 #include "codec_types.h"
 #include "codec.h"
+#include "timers.h"
+#include "pdb.h"
+#include "pdb.h"
+#include "source.h"
+#include "rtcp_pckt.h"
+#include "rtcp_db.h"
+#include "source.h"
+#include "ui.h"
 
 #define SECS_BETWEEN_1900_1970 2208988800u
 #define RTP_SSRC_EXPIRE        70u
@@ -309,6 +311,7 @@ rtcp_packet_fmt_rrhdr(session_struct *sp, u_int8 * ptr)
 static u_int8 *
 rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 {
+        pdb_entry_t    *pdbe;
 	rtcp_rr_t      *rptr = (rtcp_rr_t *) ptr;
 	u_int32		ext_max, expected, expi, reci;
 	int32		losti;
@@ -332,23 +335,30 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 	} else {
 		dbe->lost_frac = (losti << 8) / expi;
 	}
-
-        if ((dbe->ui_last_update - get_time(dbe->clock)) >= (unsigned)get_freq(sp->device_clock)) {
+        
+        if ((pdb_item_get(sp->pdb, dbe->ssrc, &pdbe) == TRUE) &&
+             (pdbe->ui_last_update - get_time(pdbe->clock)) >= (unsigned)get_freq(sp->device_clock)) {
                 double jit;
                 codec_id_t id;
 
-                id = codec_get_by_payload(dbe->enc);
+                id = codec_get_by_payload(pdbe->enc);
                 if (id) {
                         const codec_format_t *cf = codec_get_format(id);
-                        ui_update_duration(sp, dbe->sentry->ssrc, dbe->units_per_packet * 1000 * codec_get_samples_per_frame(id) / cf->format.sample_rate);
+                        ui_update_duration(sp, 
+                                           dbe->sentry->ssrc, 
+                                           pdbe->units_per_packet * 1000 * 
+                                           codec_get_samples_per_frame(id) / 
+                                           cf->format.sample_rate);
                 } else {
-                        ui_update_duration(sp, dbe->sentry->ssrc, dbe->units_per_packet * 20);
+                        ui_update_duration(sp, 
+                                           dbe->sentry->ssrc, 
+                                           pdbe->units_per_packet * 20);
                 }
                 ui_update_loss(sp, sp->db->my_dbe->sentry->ssrc, dbe->sentry->ssrc, (dbe->lost_frac * 100) >> 8);
-                jit = ceil(dbe->jitter * 1000/get_freq(dbe->clock));
+                jit = ceil(dbe->jitter * 1000/get_freq(pdbe->clock));
                 ui_update_reception(sp, dbe->sentry->ssrc, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->duplicates, (u_int32)jit, dbe->jit_TOGed);
-                ui_update_stats(sp, dbe);
-                dbe->ui_last_update = get_time(dbe->clock);
+                ui_update_stats(sp, pdbe);
+                pdbe->ui_last_update = get_time(pdbe->clock);
         }
 
 	rptr->ssrc     = htonl(dbe->ssrc);
@@ -447,6 +457,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 	rtcp_t			*pkt = (rtcp_t *) packet;
 	rtcp_dbentry		*dbe, *other_source;
 	rtcp_sdes_item_t	*sdes;
+        pdb_entry_t             *pdbe;
 	u_int32			ssrc;
 	u_int32			*alignptr;
 	int			i, lenstr;
@@ -470,10 +481,12 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			dbe = rtcp_getornew_dbentry(sp, ssrc, cur_time);
 
 			/* Take note of mapping to use in synchronisation */
-			dbe->mapping_valid = TRUE;
-			dbe->last_ntp_sec  = ntohl(pkt->r.sr.ntp_sec);
-			dbe->last_ntp_frac = ntohl(pkt->r.sr.ntp_frac);
-			dbe->last_rtp_ts   = ntohl(pkt->r.sr.rtp_ts);
+                        pdb_item_get(sp->pdb, ssrc, &pdbe);
+                        
+			pdbe->mapping_valid = TRUE;
+			pdbe->last_ntp_sec  = ntohl(pkt->r.sr.ntp_sec);
+			pdbe->last_ntp_frac = ntohl(pkt->r.sr.ntp_frac);
+			pdbe->last_rtp_ts   = ntohl(pkt->r.sr.rtp_ts);
 
 			/* Update local clock map, need it for the sync [dm] */
 		        rtcp_ntp_format(&sec, &frac);
@@ -481,7 +494,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			sp->db->map_rtp_time = get_time(sp->device_clock);
 
 			dbe->last_active = cur_time;
-			dbe->last_sr     = ((dbe->last_ntp_sec & 0xffff) << 16) | (((dbe->last_ntp_frac & 0xffff0000) >> 16) & 0xffffffff);
+			dbe->last_sr     = ((pdbe->last_ntp_sec & 0xffff) << 16) | (((pdbe->last_ntp_frac & 0xffff0000) >> 16) & 0xffffffff);
 			dbe->last_sr_rx  = real_time;
 
 			/* Store the reception statistics for that user... */

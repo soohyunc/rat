@@ -24,6 +24,7 @@
 #include "cushion.h"
 #include "converter.h"
 #include "tcltk.h"
+#include "pdb.h"
 #include "ui.h"
 #include "pckt_queue.h"
 #include "rtcp_pckt.h"
@@ -119,14 +120,13 @@ main(int argc, char *argv[])
 	network_init(sp[0]);
 	cname = get_cname(sp[0]->rtp_socket[0]);
 	sp[0]->db = rtcp_init(sp[0]->device_clock, cname, 0);
+        rtcp_clock_change(sp[0]);
 
         if (pdb_create(&sp[0]->pdb) == FALSE) {
                 debug_msg("Failed to create persistent database\n");
                 abort();
         }
-        pdb_item_create(sp[0]->pdb, sp[0]->db->myssrc); 
-
-        rtcp_clock_change(sp[0]);
+        pdb_item_create(sp[0]->pdb, sp[0]->clock, get_freq(sp[0]->device_clock), sp[0]->db->myssrc); 
 
 	network_process_mbus(sp[0]);
 
@@ -228,7 +228,11 @@ main(int argc, char *argv[])
 					source_audit(s);
 				} else {
 					/* Remove source as stopped */
-					ui_info_deactivate(sp[0], source_get_rtcp_dbentry(s));
+                                        rtcp_dbentry *dbe;
+                                        u_int32 ssrc;
+                                        ssrc = source_get_ssrc(s);
+                                        dbe  = rtcp_get_dbentry(sp[0]->db, ssrc);
+					ui_info_deactivate(sp[0], dbe);
 					source_remove(sp[0]->active_sources, s);
 					sidx--;
 					scnt--;

@@ -33,11 +33,11 @@ u_int32          source_list_source_count(struct s_source_list *plist);
 struct s_source* source_list_get_source_no (struct s_source_list *plist,
                                             u_int32               src_no);
 
-struct s_source* source_get_by_rtcp_dbentry (struct s_source_list  *list,
-                                             struct s_rtcp_dbentry *dbe);
+struct s_source* source_get_by_ssrc (struct s_source_list  *list,
+                                     u_int32                ssrc);
 
 struct s_source* source_create             (struct s_source_list  *list, 
-                                            struct s_rtcp_dbentry *dbe,
+                                            u_int32                ssrc,
 					    pdb_t		  *pdb,
                                             converter_id_t current_id,
                                             int render_3D_enabled,
@@ -77,12 +77,13 @@ int              source_audit              (struct s_source *src);
 ts_sequencer*    source_get_sequencer      (struct s_source *src);
 
 ts_t             source_get_audio_buffered (struct s_source *src);
-ts_t             source_get_playout_delay  (struct s_source *src, ts_t now);
+
+ts_t             source_get_playout_delay  (struct s_source *src, 
+                                            ts_t             now);
 
 struct s_pb*
                  source_get_decoded_buffer (struct s_source *src);
 
-struct s_rtcp_dbentry*
-                 source_get_rtcp_dbentry   (struct s_source *src);
+u_int32          source_get_ssrc           (struct s_source *src);
 
 #endif /* __SOURCE_H__ */

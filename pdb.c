@@ -23,6 +23,10 @@
 #include "debug.h"
 #include "memory.h"
 #include "btree.h"
+#include "channel_types.h"
+#include "codec_types.h"
+#include "timers.h"
+#include "session.h"
 #include "pdb.h"
 
 struct s_pdb {
@@ -94,40 +98,43 @@ pdb_get_next_id(pdb_t *p, u_int32 cur, u_int32 *next)
 }
 
 int
-pdb_item_get(pdb_t *p, u_int32 id, pitem_t **item)
+pdb_item_get(pdb_t *p, u_int32 id, pdb_entry_t **item)
 {
         void *v;
         if (btree_find(p->db, id, &v) == FALSE) {
                 *item = NULL;
                 return FALSE;
         }
-        *item = (pitem_t*)v;
+        *item = (pdb_entry_t*)v;
 
         return TRUE;
 }
 
-/* RAT specific includes here */
-#include "render_3D.h"
 
 int
-pdb_item_create(pdb_t *p, u_int32 id)
+pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16 freq, u_int32 id)
 {
-        pitem_t *item;
+        pdb_entry_t *item;
 
         if (btree_find(p->db, id, (void**)&item)) {
                 debug_msg("Item already exists\n");
                 return FALSE;
         }
 
-        item = (pitem_t*)xmalloc(sizeof(pitem_t));
+        item = (pdb_entry_t*)xmalloc(sizeof(pdb_entry_t));
         if (item == NULL) {
                 return FALSE;
         }
 
         /* Initialize elements of item here as necesary **********************/
 
-        item->ssrc = id;
-        item->render_3D_data = NULL;
+        item->ssrc            = id;
+        item->render_3D_data  = NULL;
+        item->first_pckt_flag = TRUE;
+        item->enc             = -1;
+        item->enc_fmt         = NULL;
+        item->gain            = 1.0;
+	item->clock           = new_time(clock, freq);
 
         /*********************************************************************/
 
@@ -143,7 +150,7 @@ pdb_item_create(pdb_t *p, u_int32 id)
 int
 pdb_item_destroy(pdb_t *p, u_int32 id)
 {
-        pitem_t *item;
+        pdb_entry_t *item;
 
         if (btree_remove(p->db, id, (void**)&item) == FALSE) {
                 debug_msg("Cannot delete item because it does not exist!\n");
@@ -157,6 +164,16 @@ pdb_item_destroy(pdb_t *p, u_int32 id)
         if (item->render_3D_data != NULL) {
                 render_3D_free(&item->render_3D_data);
         }
+
+        if (item->clock) {
+                free_time(item->clock);
+        }
+
+        if (item->enc_fmt != NULL) {
+                xfree(item->enc_fmt);
+                item->enc_fmt = NULL;
+        }
+
 
         /*********************************************************************/
 

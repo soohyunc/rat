@@ -23,17 +23,19 @@
 #include "ts.h"
 #include "timers.h"
 #include "session.h"
-#include "source.h"
 #include "timers.h"
 #include "pckt_queue.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "audio.h"
-#include "mix.h"
 #include "cushion.h"
 #include "codec.h"
+#include "pdb.h"
+#include "mix.h"
 #include "ui.h"
+#include "source.h"
 #include "statistics.h"
+
 
 static converter_id_t null_converter;
 
@@ -56,7 +58,7 @@ update_database(session_struct *sp, u_int32 ssrc)
 	rtcp_dbentry   *dbe_source;
 
 	/* This function gets the relevant data base entry */
-	dbe_source = rtcp_get_dbentry(sp, ssrc);
+	dbe_source = rtcp_get_dbentry(sp->db, ssrc);
 	if (dbe_source == NULL) {
 		/* We haven't received an RTCP packet for this source,
 		 * so we must throw the packets away. This seems a
@@ -70,30 +72,30 @@ update_database(session_struct *sp, u_int32 ssrc)
 		 * participants...)  2) The RTP specification says
 		 * that we should do it this way (sec 6.2.1) [csp] 
                  */
-
 		return NULL;
 	}
 
-	dbe_source->last_active = get_time(sp->device_clock);
-	dbe_source->is_sender   = 1;
+        dbe_source->last_active = get_time(sp->device_clock);
+        dbe_source->is_sender   = 1;
+        sp->db->pckts_received++;
 
-	sp->db->pckts_received++;
-
-	return dbe_source;
+        return dbe_source;
 }
 
 static u_int32
-statistics_variable_component(rtcp_dbentry            *src,
+statistics_variable_component(rtcp_dbentry            *dbe,
+                              pdb_entry_t             *pdbe,
                               session_struct          *sp, 
                               struct s_cushion_struct *cushion) 
 {
         u_int32 var, cush;
-        var = (u_int32) src->jitter * 3;
+
+        var = (u_int32) dbe->jitter * 3;
 
         debug_msg("var (jitter) %d\n", var);
         
-        if (var < (unsigned)src->inter_pkt_gap) {
-                var = src->inter_pkt_gap;
+        if (var < (unsigned)pdbe->inter_pkt_gap) {
+                var = pdbe->inter_pkt_gap;
                 debug_msg("jitter < pkt_gap -> %d\n", var);
         }
         
@@ -105,8 +107,8 @@ statistics_variable_component(rtcp_dbentry            *src,
 
         if (sp->limit_playout) {
                 u_int32 minv, maxv;
-                minv = sp->min_playout * get_freq(src->clock) / 1000;
-                maxv = sp->max_playout * get_freq(src->clock) / 1000; 
+                minv = sp->min_playout * get_freq(pdbe->clock) / 1000;
+                maxv = sp->max_playout * get_freq(pdbe->clock) / 1000; 
                 assert(maxv > minv);
                 var = max(minv, var);
                 var = min(maxv, var);
@@ -122,6 +124,7 @@ adapt_playout(rtp_hdr_t               *hdr,
               ts_t                     arr_ts,
               ts_t                     src_ts,
               rtcp_dbentry            *src,
+              pdb_entry_t             *pdbe,
 	      session_struct          *sp, 
               struct s_cushion_struct *cushion, 
 	      u_int32                  ntp_time)
@@ -145,17 +148,17 @@ adapt_playout(rtp_hdr_t               *hdr,
         delay_ts = ts_sub(arr_ts, src_ts);
 
         /* Keep a note a source freq */
-        src_freq = get_freq(src->clock);
+        src_freq = get_freq(pdbe->clock);
         assert(src_freq % 8000 == 0 || src_freq % 11025 == 0);
 
-	if (src->first_pckt_flag == TRUE) {
-		src->delay                 = delay_ts;
-                src->delay_in_playout_calc = delay_ts;
-		hdr->m                     = TRUE;
-                cid = codec_get_by_payload(src->enc);
+	if (pdbe->first_pckt_flag == TRUE) {
+		pdbe->delay                 = delay_ts;
+                pdbe->delay_in_playout_calc = delay_ts;
+		hdr->m                      = TRUE;
+                cid = codec_get_by_payload(pdbe->enc);
 
-                if ((ts_valid(src->last_arr) == FALSE) ||
-                    (ts_gt(ts_sub(arr_ts, src->last_arr), discard_jitter_period))) {
+                if ((ts_valid(pdbe->last_arr) == FALSE) ||
+                    (ts_gt(ts_sub(arr_ts, pdbe->last_arr), discard_jitter_period))) {
                         /* Guess suitable playout only if we have not
                          *  heard from this source recently...  
                          */
@@ -173,7 +176,7 @@ adapt_playout(rtp_hdr_t               *hdr,
                 }
 	} else {
                 if (hdr->seq != src->last_seq) {
-                        diff_ts      = ts_abs_diff(delay_ts, src->delay);
+                        diff_ts      = ts_abs_diff(delay_ts, pdbe->delay);
                         /* Jitter calculation as in RTP spec */
                         src->jitter += (((double) diff_ts.ticks - src->jitter) / 16.0);
 #ifdef DEBUG
@@ -181,7 +184,7 @@ adapt_playout(rtp_hdr_t               *hdr,
                                 debug_msg("Jitter zero\n");
                         }
 #endif
-                        src->delay = delay_ts;
+                        pdbe->delay = delay_ts;
                 }
 	}
 
@@ -189,21 +192,21 @@ adapt_playout(rtp_hdr_t               *hdr,
 	 * besides having the lip-sync option enabled, we also need to have
 	 * a SR received [dm]
 	 */	
-	if (sp->sync_on && src->mapping_valid) {
+	if (sp->sync_on && pdbe->mapping_valid) {
 		/* calculate delay in absolute (real) time [dm] */ 
-		ntptime = (src->last_ntp_sec & 0xffff) << 16 | src->last_ntp_frac >> 16;
-		if (hdr->ts > src->last_rtp_ts) {
-			since_last_sr = hdr->ts - src->last_rtp_ts;	
+		ntptime = (pdbe->last_ntp_sec & 0xffff) << 16 | pdbe->last_ntp_frac >> 16;
+		if (hdr->ts > pdbe->last_rtp_ts) {
+			since_last_sr = hdr->ts - pdbe->last_rtp_ts;	
 		} else {
-			since_last_sr = src->last_rtp_ts - hdr->ts;
+			since_last_sr = pdbe->last_rtp_ts - hdr->ts;
 		}
-		since_last_sr = (since_last_sr << 16) / get_freq(src->clock);
+		since_last_sr = (since_last_sr << 16) / get_freq(pdbe->clock);
 		sendtime = (u_int32)(ntptime + since_last_sr); /* (since_last_sr << 16) / get_freq(src->clock); */
 
 		ntp_delay = ntp_time - sendtime; 
 
-		if (src->first_pckt_flag == TRUE) { 
-			src->sync_playout_delay = ntp_delay;
+		if (pdbe->first_pckt_flag == TRUE) { 
+			pdbe->sync_playout_delay = ntp_delay;
 		}
 	}
 
@@ -215,52 +218,52 @@ adapt_playout(rtp_hdr_t               *hdr,
                    THEN adapt playout and communicate it
                    */
 		if (hdr->m || 
-                    src->cont_toged || 
+                    pdbe->cont_toged || 
                     (hdr->seq - src->last_seq > 8) ) {
 #ifdef DEBUG
                         if (hdr->m) {
                                 debug_msg("New talkspurt\n");
-                        } else if (src->cont_toged) {
+                        } else if (pdbe->cont_toged) {
                                 debug_msg("Cont_toged\n");
                         } else {
                                 debug_msg("Seq jump %ld %ld\n", hdr->seq, src->last_seq);
                         }
 #endif
-                        var = statistics_variable_component(src, sp, cushion);
+                        var = statistics_variable_component(src, pdbe, sp, cushion);
                         debug_msg("var = %d\n", var);
 
-                        if (!ts_eq(src->delay_in_playout_calc, src->delay)) {
+                        if (!ts_eq(pdbe->delay_in_playout_calc, pdbe->delay)) {
                                 debug_msg("Old delay (%u) new delay (%u) delta (%u)\n", 
-                                          src->delay_in_playout_calc.ticks, 
-                                          src->delay.ticks, 
-                                          max(src->delay_in_playout_calc.ticks, src->delay.ticks) - 
-                                          min(src->delay_in_playout_calc.ticks, src->delay.ticks));
+                                          pdbe->delay_in_playout_calc.ticks, 
+                                          pdbe->delay.ticks, 
+                                          max(pdbe->delay_in_playout_calc.ticks, pdbe->delay.ticks) - 
+                                          min(pdbe->delay_in_playout_calc.ticks, pdbe->delay.ticks));
                         }
 
-                        src->delay_in_playout_calc = src->delay;
+                        pdbe->delay_in_playout_calc = pdbe->delay;
                         
-			debug_msg("delay (%lu) var (%lu)\n", src->delay.ticks, var);
-			src->playout = ts_add(src->delay, ts_map32(src_freq, var));
-			debug_msg("src playout %lu\n", src->playout.ticks);
+			debug_msg("delay (%lu) var (%lu)\n", pdbe->delay.ticks, var);
+			pdbe->playout = ts_add(pdbe->delay, ts_map32(src_freq, var));
+			debug_msg("src playout %lu\n", pdbe->playout.ticks);
 
-			if (sp->sync_on && src->mapping_valid) {
+			if (sp->sync_on && pdbe->mapping_valid) {
 				/* use the jitter value as calculated
                                  * but convert it to a ntp_ts freq
                                  * [dm] */
-				src->sync_playout_delay = ntp_delay + ((var << 16) / get_freq(src->clock));
+				pdbe->sync_playout_delay = ntp_delay + ((var << 16) / get_freq(pdbe->clock));
                                 
 				/* Communicate our playout delay to
                                    the video tool... */
-                                ui_update_video_playout(sp, src->sentry->ssrc, src->sync_playout_delay);
+                                ui_update_video_playout(sp, src->sentry->ssrc, pdbe->sync_playout_delay);
 		
 				/* If the video tool is slower than
                                  * us, then adjust to match it...
                                  * src->video_playout is the delay of
                                  * the video in real time */
-				debug_msg("ad=%d\tvd=%d\n", src->sync_playout_delay, src->video_playout);
-                                if (src->video_playout_received == TRUE &&
-                                    src->video_playout > src->sync_playout_delay) {
-                                        src->sync_playout_delay = src->video_playout;
+				debug_msg("ad=%d\tvd=%d\n", pdbe->sync_playout_delay, pdbe->video_playout);
+                                if (pdbe->video_playout_received == TRUE &&
+                                    pdbe->video_playout > pdbe->sync_playout_delay) {
+                                        pdbe->sync_playout_delay = pdbe->video_playout;
                                 }
 			}
                 }
@@ -268,28 +271,28 @@ adapt_playout(rtp_hdr_t               *hdr,
         src->last_seq       = hdr->seq;
 
 	/* Calculate the playout point in local source time for this packet. */
-        if (sp->sync_on && src->mapping_valid) {
+        if (sp->sync_on && pdbe->mapping_valid) {
 		/* 	
 		 * Use the NTP to RTP ts mapping to calculate the playout time 
 		 * converted to the clock base of the receiver
 		 */
-		play_time = sendtime + src->sync_playout_delay;
-		rtp_time = sp->db->map_rtp_time + (((play_time - sp->db->map_ntp_time) * get_freq(src->clock)) >> 16);
+		play_time = sendtime + pdbe->sync_playout_delay;
+		rtp_time = sp->db->map_rtp_time + (((play_time - sp->db->map_ntp_time) * get_freq(pdbe->clock)) >> 16);
                 playout  = ts_map32(src_freq, rtp_time);
-		src->playout = ts_sub(playout, src_ts);
+		pdbe->playout = ts_sub(playout, src_ts);
 	} else {
-		playout = ts_add(src_ts, src->playout);
+		playout = ts_add(src_ts, pdbe->playout);
 	}
 
-        if (src->cont_toged > 12) {
+        if (pdbe->cont_toged > 12) {
                 /* something has gone wrong if this assertion fails*/
-                if (!ts_gt(playout, ts_map32(src_freq, get_time(src->clock)))) {
+                if (!ts_gt(playout, ts_map32(src_freq, get_time(pdbe->clock)))) {
                         debug_msg("playout before now.\n");
-                        src->first_pckt_flag = TRUE;
+                        pdbe->first_pckt_flag = TRUE;
                 }
         }
 
-        src->first_pckt_flag = FALSE;
+        pdbe->first_pckt_flag = FALSE;
 
 	return playout;
 }
@@ -336,6 +339,7 @@ rtp_header_validation(rtp_hdr_t *hdr, int32 *len, int *extlen)
 static int
 statistics_channel_extract(session_struct     *sp,
                            rtcp_dbentry       *dbe,
+                           pdb_entry_t        *pdbe,
                            const audio_format *afout,
                            u_int8              pt,
                            u_char*             data,
@@ -346,7 +350,9 @@ statistics_channel_extract(session_struct     *sp,
         codec_id_t            id;
         u_int16 upp;
         u_int8  codec_pt;
+
         assert(dbe != NULL);
+        assert(pdbe != NULL);
 
         ccid = channel_coder_get_by_payload(pt);
         if (!ccid) {
@@ -359,9 +365,9 @@ statistics_channel_extract(session_struct     *sp,
                 return FALSE;
         }
 
-        if (dbe->units_per_packet != upp) {
-                dbe->units_per_packet = upp;
-                dbe->update_req       = TRUE;
+        if (pdbe->units_per_packet != upp) {
+                pdbe->units_per_packet = upp;
+                pdbe->update_req       = TRUE;
         }
 
         id = codec_get_by_payload(codec_pt);
@@ -385,32 +391,32 @@ statistics_channel_extract(session_struct     *sp,
                 }
         }
 
-        if (dbe->channel_coder_id != ccid) {
+        if (pdbe->channel_coder_id != ccid) {
                 debug_msg("Channel coding changed\n");
-                dbe->channel_coder_id = ccid;
-                dbe->update_req = TRUE;
+                pdbe->channel_coder_id = ccid;
+                pdbe->update_req = TRUE;
         }
 
 
-        if (dbe->enc != codec_pt) {
+        if (pdbe->enc != codec_pt) {
                 debug_msg("Format changed\n");
-                change_freq(dbe->clock, cf->format.sample_rate);
-                dbe->enc             = codec_pt;
-                dbe->inter_pkt_gap   = dbe->units_per_packet * (u_int16)codec_get_samples_per_frame(id);
-                dbe->first_pckt_flag = TRUE;
-                dbe->update_req      = TRUE;
+                change_freq(pdbe->clock, cf->format.sample_rate);
+                pdbe->enc             = codec_pt;
+                pdbe->inter_pkt_gap   = pdbe->units_per_packet * (u_int16)codec_get_samples_per_frame(id);
+                pdbe->first_pckt_flag = TRUE;
+                pdbe->update_req      = TRUE;
         }
 
-        if (dbe->update_req) {
+        if (pdbe->update_req) {
                 /* Format len must be long enough for at least 2
                  * redundant encodings, a separator and a zero */
                 int fmt_len = 2 * CODEC_LONG_NAME_LEN + 2;
-                if (dbe->enc_fmt == NULL) {
-                        dbe->enc_fmt = (char*)xmalloc(fmt_len);
+                if (pdbe->enc_fmt == NULL) {
+                        pdbe->enc_fmt = (char*)xmalloc(fmt_len);
                 }
-                channel_describe_data(ccid, pt, data, len, dbe->enc_fmt, fmt_len);
-                ui_update_stats(sp, dbe);
-                dbe->update_req = FALSE;
+                channel_describe_data(ccid, pt, data, len, pdbe->enc_fmt, fmt_len);
+                ui_update_stats(sp, pdbe);
+                pdbe->update_req = FALSE;
         }
 
         return TRUE;
@@ -445,6 +451,7 @@ statistics_process(session_struct          *sp,
 	u_char		     *data_ptr;
 	int		      len;
 	rtcp_dbentry	     *sender = NULL;
+        pdb_entry_t          *pdbe;
         const audio_format   *afout;
 
 	pckt_queue_element *pckt;
@@ -488,11 +495,17 @@ statistics_process(session_struct          *sp,
                         debug_msg("Packet from unknown participant discarded\n");
                         goto release;
                 }
-                if (sender->mute) {
+                rtcp_update_seq(sender, hdr->seq);
+
+                if (pdb_item_get(sp->pdb, hdr->ssrc, &pdbe) == FALSE) {
+                        debug_msg("Could not get pdbe entry\n");
+                        abort();
+                }
+
+                if (pdbe->mute) {
                         debug_msg("Packet to muted participant discarded\n");
                         goto release;
                 }
-                rtcp_update_seq(sender, hdr->seq);
 
                 if (hdr->cc) {
                         int k;
@@ -506,6 +519,7 @@ statistics_process(session_struct          *sp,
 
                 if (statistics_channel_extract(sp, 
                                                sender,
+                                               pdbe,
                                                afout, 
                                                (u_char)hdr->pt, 
                                                data_ptr, 
@@ -516,11 +530,11 @@ statistics_process(session_struct          *sp,
 
                 pckt->sender  = sender;
 
-                if ((src = source_get_by_rtcp_dbentry(sp->active_sources, 
-                                                      pckt->sender)) == NULL) {
+                if ((src = source_get_by_ssrc(sp->active_sources, 
+                                              pckt->sender->ssrc)) == NULL) {
 			ui_info_activate(sp, pckt->sender);
                         src = source_create(sp->active_sources, 
-                                            pckt->sender,
+                                            pckt->sender->ssrc,
 					    sp->pdb,
                                             sp->converter,
                                             sp->render_3d,
@@ -533,18 +547,19 @@ statistics_process(session_struct          *sp,
 
                 /* Convert originator timestamp in ts_t */
                 src_ts = ts_seq32_in(source_get_sequencer(src), 
-                                     get_freq(sender->clock), 
+                                     get_freq(pdbe->clock), 
                                      hdr->ts);
 
                 pckt->playout = adapt_playout(hdr, 
                                               arr_ts,
                                               src_ts,
                                               sender, 
+                                              pdbe,
                                               sp, 
                                               cushion, 
                                               ntp_time);
 
-                if (source_add_packet(src, 
+                if (source_add_packet(src,
                                       pckt->pckt_ptr, 
                                       pckt->len, 
                                       data_ptr - pckt->pckt_ptr, 
@@ -556,7 +571,7 @@ statistics_process(session_struct          *sp,
                         pckt->len      = 0;
                 }
 
-                sender->last_arr = curr_ts;
+                pdbe->last_arr = curr_ts;
         release:
                 block_trash_check();
                 pckt_queue_element_free(&pckt);

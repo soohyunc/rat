@@ -17,7 +17,6 @@
 #include "debug.h"
 #include "memory.h"
 #include "version.h"
-#include "pdb.h"
 #include "codec_types.h"
 #include "codec_state.h"
 #include "codec.h"
@@ -34,8 +33,9 @@
 #include "auddev.h"
 #include "mbus.h"
 #include "mbus_engine.h"
-#include "mix.h"
 #include "transmit.h"
+#include "pdb.h"
+#include "mix.h"
 #include "ui.h"
 #include "timers.h"
 #include "render_3D.h"
@@ -89,15 +89,15 @@ void ui_info_update_note(session_struct *sp, rtcp_dbentry *e)
 }
 
 void 
-ui_info_gain(session_struct *sp, rtcp_dbentry *e)
+ui_info_gain(session_struct *sp, pdb_entry_t *pdbe)
 {
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.gain", "\"%08lx\" %.2f", e->sentry->ssrc, e->gain);
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.gain", "\"%08lx\" %.2f", pdbe->ssrc, pdbe->gain);
 }
 
 void
-ui_info_mute(session_struct *sp, rtcp_dbentry *e)
+ui_info_mute(session_struct *sp, pdb_entry_t *pdbe)
 {
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.mute", "\"%08lx\" %d", e->sentry->ssrc, e->mute);
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.mute", "\"%08lx\" %d", pdbe->ssrc, pdbe->mute);
 }
 
 void
@@ -119,7 +119,7 @@ ui_info_deactivate(session_struct *sp, rtcp_dbentry *e)
 }
 
 void
-ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e, pitem_t *p)
+ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e, pdb_entry_t *p)
 {
         char *filter_name;
         int   azimuth, filter_type, filter_length;
@@ -136,32 +136,28 @@ ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e, pitem_t *p)
 }
 
 void
-ui_update_stats(session_struct *sp, rtcp_dbentry *e)
+ui_update_stats(session_struct *sp, pdb_entry_t *pdbe)
 {
 	char			*args, *mbes;
         struct s_source      	*src;
+        rtcp_dbentry            *e;
         u_int32               	 buffered, delay;
 
-        if (sp->db->my_dbe->sentry == NULL) {
-                debug_msg("Warning sentry or name == NULL\n");
-                return;
-        }
-
-        if (e->enc_fmt) {
-		mbes = mbus_encode_str(e->enc_fmt);
+        if (pdbe->enc_fmt) {
+		mbes = mbus_encode_str(pdbe->enc_fmt);
                 args = (char *) xmalloc(strlen(mbes) + 12);
-                sprintf(args, "\"%08lx\" %s", e->sentry->ssrc, mbes);
+                sprintf(args, "\"%08lx\" %s", pdbe->ssrc, mbes);
                 xfree(mbes);
         } else {
                 args = (char *) xmalloc(19);
-                sprintf(args, "\"%08lx\" unknown", e->sentry->ssrc);
+                sprintf(args, "\"%08lx\" unknown", pdbe->ssrc);
         }
 
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.codec", args, FALSE);
 
         xfree(args);
 
-        src = source_get_by_rtcp_dbentry(sp->active_sources, e);
+        src = source_get_by_ssrc(sp->active_sources, pdbe->ssrc);
         if (src) {
                 buffered = ts_to_ms(source_get_audio_buffered (src));
                 delay    = ts_to_ms(source_get_playout_delay  (src, sp->cur_ts));
@@ -170,14 +166,16 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
                 delay    = 0;
         }
 
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.buffered", "\"%08lx\" %ld", e->sentry->ssrc, buffered);
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.buffered", "\"%08lx\" %ld", pdbe->ssrc, buffered);
         
         if (src == NULL || delay != 0) {
-                mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", e->sentry->ssrc, delay);
+                mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", pdbe->ssrc, delay);
         }
 
+        e = rtcp_get_dbentry(sp->db, pdbe->ssrc);
+
 	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "rtp.source.packet.loss", "\"%08lx\" \"%08lx\" %8ld", 
-		  sp->db->my_dbe->sentry->ssrc, e->sentry->ssrc, (e->lost_frac * 100) >> 8);
+		  sp->db->my_dbe->sentry->ssrc, pdbe->ssrc, (e->lost_frac * 100) >> 8);
 }
 
 void
@@ -693,7 +691,7 @@ ui_update_duration(session_struct *sp, u_int32 ssrc, int duration)
 void 
 ui_update_video_playout(session_struct *sp, u_int32 ssrc, int playout)
 {
-	rtcp_dbentry	*dbe = rtcp_get_dbentry(sp, ssrc);
+	rtcp_dbentry	*dbe = rtcp_get_dbentry(sp->db, ssrc);
 	char 		*arg = mbus_encode_str(dbe->sentry->cname);
 	mbus_qmsgf(sp->mbus_engine, mbus_name_video, FALSE, "rtp.source.cname",   "\"%08lx\" %s",   ssrc, arg);
 	mbus_qmsgf(sp->mbus_engine, mbus_name_video, FALSE, "rtp.source.playout", "\"%08lx\" %12d", ssrc, playout);

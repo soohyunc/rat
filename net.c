@@ -30,7 +30,6 @@
 #include "mbus_ui.h"
 #include "mbus_engine.h"
 #include "ts.h"
-#include "ui.h"
 
 #ifndef INADDR_NONE
 #define INADDR_NONE 0xffffffff

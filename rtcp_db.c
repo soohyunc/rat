@@ -25,20 +25,22 @@
 #include "debug.h"
 #include "memory.h"
 #include "version.h"
+#include "codec_types.h"
+#include "codec.h"
+#include "codec_state.h"
+#include "channel_types.h"
+#include "render_3D.h"
 #include "session.h"
+#include "timers.h"
+#include "pdb.h"
 #include "net_udp.h"
 #include "ts.h"
 #include "converter.h"
 #include "channel_types.h"
 #include "ui.h"
-#include "timers.h"
-#include "codec_types.h"
-#include "codec.h"
-#include "codec_state.h"
-#include "render_3D.h"
-#include "source.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
+#include "source.h"
 
 #define MAX_DROPOUT	3000
 #define MAX_MISORDER	100
@@ -124,10 +126,10 @@ rtcp_update_seq(rtcp_dbentry *s, u_int16 seq)
  * ssrc: SSRC number Returns: The database entry.
  */
 rtcp_dbentry   *
-rtcp_get_dbentry(session_struct *sp, u_int32 ssrc)
+rtcp_get_dbentry(rtp_db *db, u_int32 ssrc)
 {
 	/* This needs to be optimised! [csp] */
-	rtcp_dbentry   *dptr = sp->db->ssrc_db;
+	rtcp_dbentry   *dptr = db->ssrc_db;
 
 	while (dptr) {
 		if (dptr->ssrc == ssrc) {
@@ -217,13 +219,9 @@ rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 cur_time)
 	newdb->sentry->ssrc 		= ssrc;
 	newdb->firstseqno 		= 1;	/* So that "expected packets" starts out 0 */
 	newdb->last_active 		= cur_time;
-	newdb->first_pckt_flag 		= TRUE;
-        newdb->enc                      = -1;
-        newdb->enc_fmt                  = NULL;
 	newdb->last_sr_rx		= 0;
 
         /* This is not the right place for this */
-        newdb->gain                     = 1.0;
 	return newdb;
 }
 
@@ -233,10 +231,9 @@ rtcp_new_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
 	rtcp_dbentry   *newdb;
 	rtcp_dbentry   *dbptr;
 
-        pdb_item_create(sp->pdb, ssrc);
+        pdb_item_create(sp->pdb, sp->clock, (u_int16)get_freq(sp->device_clock), ssrc);
 
 	newdb = rtcp_new_dbentry_noqueue(ssrc, cur_time);
-	newdb->clock = new_time(sp->clock, get_freq(sp->device_clock));
 	if (!sp->db->ssrc_db) {
 		sp->db->ssrc_db = newdb;
 	} else {
@@ -258,7 +255,7 @@ rtcp_dbentry   *
 rtcp_getornew_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
 {
 	rtcp_dbentry   *dbe;
-	dbe = rtcp_get_dbentry(sp, ssrc);
+	dbe = rtcp_get_dbentry(sp->db, ssrc);
 	if (dbe == NULL) {
 		dbe = rtcp_new_dbentry(sp, ssrc, cur_time);
 	}
@@ -273,9 +270,6 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 {
 	assert(dbptr != NULL);
 
-	if (dbptr->clock) {
-		free_time(dbptr->clock);
-	}
 	if (dbptr->sentry != NULL) {
 		if (dbptr->sentry->cname) xfree(dbptr->sentry->cname);
 		if (dbptr->sentry->name)  xfree(dbptr->sentry->name);
@@ -288,10 +282,6 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 		xfree(dbptr->sentry);
                 dbptr->sentry = NULL;
 	}
-        if (dbptr->enc_fmt != NULL) {
-                xfree(dbptr->enc_fmt);
-                dbptr->enc_fmt = NULL;
-        }
 	if (dbptr->rr != NULL) {
 		rtcp_user_rr	*rr, *tmp_rr;
 		rr = dbptr->rr;
@@ -328,9 +318,9 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
                 next = dbptr->next;
                 if (dbptr->ssrc == ssrc) {
 			debug_msg("Removing RTCP database entry for SSRC 0x%08lx\n", ssrc);
-                        s = source_get_by_rtcp_dbentry(sp->active_sources, dbptr);
+                        s = source_get_by_ssrc(sp->active_sources, dbptr->ssrc);
                         if (s != NULL) {
-				ui_info_deactivate(sp, source_get_rtcp_dbentry(s));
+				ui_info_deactivate(sp, dbptr);
 				source_remove(sp->active_sources, s);
 			}
                         ui_info_remove(sp, dbptr);
@@ -351,17 +341,6 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
                 dbptr = next;
         }
 	debug_msg("Tried to remove non-existent SSRC 0x%08lx from RTCP database\n", ssrc);
-}
-
-void
-rtcp_set_encoder_format(session_struct *sp, rtcp_dbentry *e, char *enc_fmt)
-{
-        if (e->enc_fmt) {
-                xfree(e->enc_fmt);
-                e->enc_fmt = NULL;
-        }
-        e->enc_fmt = xstrdup(enc_fmt);
-        ui_update_stats(sp, e);
 }
 
 /*

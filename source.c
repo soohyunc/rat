@@ -15,7 +15,6 @@
 
 #include "ts.h"
 #include "playout.h"
-#include "pdb.h"
 #include "channel.h"
 #include "channel_types.h"
 #include "codec_types.h"
@@ -27,11 +26,17 @@
 #include "repair.h"
 #include "timers.h"
 #include "ts.h"
+#include "channel_types.h"
+#include "pdb.h"
+/* XXX These are for backwards compat whilst migrating out old RTP code */
+#include "net_udp.h"
+#include "rtcp_pckt.h"
+#include "rtcp_db.h"
+/* XXX end */
 #include "source.h"
-#include "mix.h"
+
 #include "debug.h"
 #include "util.h"
-
 /* And we include all of the below just so we can get at
  * the render_3d_data field of the rtcp_dbentry for the source!
  */
@@ -40,6 +45,7 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "pdb.h"
+#include "mix.h"
 
 #define SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER  8 
 #define SKEW_OFFENSES_BEFORE_EXPANDING_BUFFER    3
@@ -56,14 +62,13 @@ typedef enum { SOURCE_SKEW_SLOW, SOURCE_SKEW_FAST, SOURCE_SKEW_NONE } skew_t;
 typedef struct s_source {
         struct s_source            *next;
         struct s_source            *prev;
+        pdb_entry_t                *pdbe; /* persistent database entry */
         u_int32                     age;
         ts_t                        last_played;
         ts_t                        last_repair;
         u_int16                     consec_lost;
         u_int32                     mean_energy;
         ts_sequencer                seq;
-        struct s_rtcp_dbentry      *dbe;  /* rtcp database entry (being faded out) */
-        pitem_t                    *pdbe; /* persistent database entry */
         struct s_channel_state     *channel_state;
         struct s_codec_state_store *codec_states;
         struct s_pb                *channel;
@@ -127,9 +132,10 @@ source_list_source_count(source_list *plist)
 source*
 source_list_get_source_no(source_list *plist, u_int32 n)
 {
-/* This obviously does not scale, but does not have to for audio! */
         source *curr;
+
         assert(plist != NULL);
+
         if (n < plist->nsrcs) {
                 curr = plist->sentinel.next;
                 while(n != 0) {
@@ -142,16 +148,16 @@ source_list_get_source_no(source_list *plist, u_int32 n)
 }
 
 source*
-source_get_by_rtcp_dbentry(source_list *plist, struct s_rtcp_dbentry *dbe)
+source_get_by_ssrc(source_list *plist, u_int32 ssrc)
 {
         source *curr, *stop;
-        assert(plist != NULL);
-        assert(dbe   != NULL);
         
         curr = plist->sentinel.next; 
         stop = &plist->sentinel;
         while(curr != stop) {
-                if (curr->dbe == dbe) return curr;
+                if (curr->pdbe->ssrc == ssrc) {
+                        return curr;
+                }
                 curr = curr->next;
         }
  
@@ -160,7 +166,7 @@ source_get_by_rtcp_dbentry(source_list *plist, struct s_rtcp_dbentry *dbe)
 
 source*
 source_create(source_list    *plist, 
-              rtcp_dbentry   *dbe,
+              u_int32         ssrc,
 	      pdb_t	     *pdb,
               converter_id_t  conv_id,
               int             render_3D_enabled,
@@ -171,18 +177,23 @@ source_create(source_list    *plist,
         int     success;
 
         assert(plist != NULL);
-        assert(dbe   != NULL);
-        assert(source_get_by_rtcp_dbentry(plist, dbe) == NULL);
+        assert(source_get_by_ssrc(plist, ssrc) == NULL);
 
         psrc = (source*)block_alloc(sizeof(source));
         
-        if (psrc == NULL) return NULL;
+        if (psrc == NULL) {
+                return NULL;
+        }
 
         memset(psrc, 0, sizeof(source));
-	pdb_item_get(pdb, dbe->ssrc, &(psrc->pdbe));
-        psrc->dbe            = dbe;
-        psrc->dbe->first_mix = 1; /* Used to note we have not mixed anything
-                                   * for this decode path yet */
+
+        if (pdb_item_get(pdb, ssrc, &psrc->pdbe) == FALSE) {
+                debug_msg("Persistent database item not found\n");
+                abort();
+        }
+
+        psrc->pdbe->first_mix = 1; /* Used to note we have not mixed anything
+                                    * for this decode path yet */
         psrc->channel_state  = NULL;        
 
         psrc->skew           = SOURCE_SKEW_NONE;
@@ -258,7 +269,8 @@ source_reconfigure(source        *src,
         u_int16    src_rate, src_channels;
         codec_id_t            src_cid;
         const codec_format_t *src_cf;
-        assert(src->dbe != NULL);
+
+        assert(src->pdbe != NULL);
 
         /* Set age to zero and flush existing media
          * so that repair mechanism does not attempt
@@ -271,7 +283,7 @@ source_reconfigure(source        *src,
         /* Get rate and channels of incoming media so we know
          * what we have to change.
          */
-        src_cid = codec_get_by_payload(src->dbe->enc);
+        src_cid = codec_get_by_payload(src->pdbe->enc);
         src_cf  = codec_get_format(src_cid);
         src_rate     = (u_int16)src_cf->format.sample_rate;
         src_channels = (u_int16)src_cf->format.channels;
@@ -325,7 +337,7 @@ source_remove(source_list *plist, source *psrc)
 {
         assert(plist);
         assert(psrc);
-        assert(source_get_by_rtcp_dbentry(plist, psrc->dbe) != NULL);
+        assert(source_get_by_ssrc(plist, psrc->pdbe->ssrc) != NULL);
 
         psrc->next->prev = psrc->prev;
         psrc->prev->next = psrc->next;
@@ -347,13 +359,13 @@ source_remove(source_list *plist, source *psrc)
         /* This is hook into the playout_adapt, we are signalling
          * there is no source decode path.
          */
-        psrc->dbe->first_pckt_flag = TRUE;
+        psrc->pdbe->first_pckt_flag = TRUE;
 
         debug_msg("Destroying source decode path\n");
         
         block_free(psrc, sizeof(source));
 
-        assert(source_get_by_rtcp_dbentry(plist, psrc->dbe) == NULL);
+        assert(source_get_by_ssrc(plist, psrc->pdbe->ssrc) == NULL);
 }
               
 /* Source Processing Routines ************************************************/
@@ -424,7 +436,7 @@ source_add_packet (source *src,
                         * be a duplicate, so we don't need to check          */
                         if(cd->nelem >= clayers) {
                                 debug_msg("source_add_packet failed - duplicate layer\n");
-                                src->dbe->duplicates++;
+                                src->pdbe->duplicates++;
                                 pb_iterator_destroy(src->channel, &pi);
                                 goto done;
                         }
@@ -438,18 +450,21 @@ source_add_packet (source *src,
                         dup = 0;
 
                        /* compare existing channel_units to this one */
-
                         for(i=0; i<cd->nelem; i++) {
                                 if(cu->data_len!=cd->elem[i]->data_len) break;
-                                /* This memcmp arbitrarily only checks 20 bytes, otherwise it takes too long */
-								if(memcmp(cu->data, cd->elem[i]->data, 20)==0) dup=1;
+                                /* This memcmp arbitrarily only checks
+                                 * 20 bytes, otherwise it takes too
+                                 * long */
+                                if (memcmp(cu->data, cd->elem[i]->data, 20) == 0) {
+                                        dup=1;
+                                }
                         }
 
                        /* duplicate, so stick the channel_data back on *
                         * the playout buffer and swiftly depart        */
                         if(dup) {
                                 debug_msg("source_add_packet failed - duplicate layer\n");
-                                src->dbe->duplicates++;
+                                src->pdbe->duplicates++;
                                 /* destroy temporary channel_unit */
                                 block_free(cu->data, cu->data_len);
                                 cu->data_len = 0;
@@ -496,9 +511,9 @@ source_add_packet (source *src,
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
 
-done:   if (pb_add(src->channel, (u_char*)cd, sizeof(channel_data), playout) == FALSE) {
-                debug_msg("Packet addition failed - duplicate ?\n");
-                src->dbe->duplicates++;
+done:   
+        if (pb_add(src->channel, (u_char*)cd, sizeof(channel_data), playout) == FALSE) {
+                src->pdbe->duplicates++;
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
 
@@ -615,7 +630,7 @@ source_check_buffering(source *src, ts_t now)
         ts_t    playout_dur, buf_end;
         u_int32 buf_ms, playout_ms;
 
-        if (ts_eq(src->dbe->last_arr, now) == FALSE) { 
+        if (ts_eq(src->pdbe->last_arr, now) == FALSE) { 
                 /* We are only interested in adaption if we are sure
                  * source is still sending. */
                 return FALSE; 
@@ -638,7 +653,7 @@ source_check_buffering(source *src, ts_t now)
 
         buf_ms = ts_to_ms(source_get_playout_delay(src, now));
 
-        playout_dur = ts_sub(src->dbe->playout, src->dbe->delay_in_playout_calc);
+        playout_dur = ts_sub(src->pdbe->playout, src->pdbe->delay_in_playout_calc);
         playout_ms  = ts_to_ms(playout_dur);
 
         if (buf_ms > playout_ms) {
@@ -729,8 +744,8 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 debug_msg("dropping %d / %d samples\n", adjustment.ticks, src->skew_adjust.ticks);
                 pb_shift_forward(src->media,   adjustment);
                 pb_shift_forward(src->channel, adjustment);
-                src->dbe->playout               = ts_sub(src->dbe->playout, adjustment);
-                src->dbe->delay_in_playout_calc = ts_sub(src->dbe->delay_in_playout_calc, adjustment);
+                src->pdbe->playout               = ts_sub(src->pdbe->playout, adjustment);
+                src->pdbe->delay_in_playout_calc = ts_sub(src->pdbe->delay_in_playout_calc, adjustment);
                 src->last_played = ts_sub(src->last_played, adjustment);
                 src->skew_offenses = 0;
 
@@ -760,8 +775,8 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 }
                 pb_shift_units_back_after(src->media,   playout, adjustment);
                 pb_shift_units_back_after(src->channel, playout, adjustment);
-                src->dbe->playout               = ts_add(src->dbe->playout, adjustment);
-                src->dbe->delay_in_playout_calc = ts_add(src->dbe->delay_in_playout_calc, adjustment);
+                src->pdbe->playout               = ts_add(src->pdbe->playout, adjustment);
+                src->pdbe->delay_in_playout_calc = ts_add(src->pdbe->delay_in_playout_calc, adjustment);
 
                 if (ts_gt(adjustment, src->skew_adjust)) {
                         src->skew_adjust = ts_map32(8000, 0);
@@ -891,17 +906,17 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                                src->media,
                                now);
 
-        src_freq = get_freq(src->dbe->clock);
-        step = ts_map32(src_freq,src->dbe->inter_pkt_gap / src->dbe->units_per_packet);
+        src_freq = get_freq(src->pdbe->clock);
+        step = ts_map32(src_freq, src->pdbe->inter_pkt_gap / src->pdbe->units_per_packet);
 
         while (pb_iterator_advance(src->media_pos)) {
                 pb_iterator_get_at(src->media_pos, 
-                                  (u_char**)&md, 
-                                  &md_len, 
-                                  &playout);
+                                   (u_char**)&md, 
+                                   &md_len, 
+                                   &playout);
                 assert(md != NULL);
                 assert(md_len == sizeof(media_data));
-
+                
                 /* Conditions for repair: 
                  * (a) last_played has meaning. 
                  * (b) playout point does not what we expect.
@@ -1012,13 +1027,13 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         assert(md_len == sizeof(media_data));
                 }
 
-                if (src->dbe->gain != 1.0 && codec_is_native_coding(md->rep[md->nrep - 1]->id)) {
+                if (src->pdbe->gain != 1.0 && codec_is_native_coding(md->rep[md->nrep - 1]->id)) {
                         audio_scale_buffer((sample*)md->rep[md->nrep - 1]->data,
                                            md->rep[md->nrep - 1]->data_len / sizeof(sample),
-                                           src->dbe->gain);
+                                           src->pdbe->gain);
                 }
 
-                if (mix_process(ms, src->dbe, md->rep[md->nrep - 1], playout) == FALSE) {
+                if (mix_process(ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
                         /* Sources sampling rate changed mid-flow?,
                          * dump data, make source look irrelevant, it
                          * should get destroyed and the recreated with
@@ -1104,7 +1119,7 @@ source_relevant(source *src, ts_t now)
         keep_source_time = ts_map32(8000, 2000); /* 1 quarter of a second */
 
         if (!ts_eq(source_get_playout_delay(src, now), ts_map32(8000, 0)) ||
-                ts_gt(ts_add(src->dbe->last_arr, keep_source_time), now)) {
+                ts_gt(ts_add(src->pdbe->last_arr, keep_source_time), now)) {
                 return TRUE;
         }
         
@@ -1117,8 +1132,8 @@ source_get_decoded_buffer(source *src)
         return src->media;
 }
 
-struct s_rtcp_dbentry*
-source_get_rtcp_dbentry(source *src)
+u_int32
+source_get_ssrc(source *src)
 {
-        return src->dbe;
+        return src->pdbe->ssrc;
 }

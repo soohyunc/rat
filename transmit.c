@@ -26,6 +26,7 @@
 #include "audio_util.h"
 #include "sndfile.h"
 #include "parameters.h"
+#include "pdb.h"
 #include "ui.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"

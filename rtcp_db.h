@@ -44,44 +44,17 @@ typedef struct _rr {
 
 typedef struct s_rtcp_dbentry {
 	struct s_rtcp_dbentry *next;
-
 	u_int32         ssrc;
 	ssrc_entry     *sentry;
 	u_int32         pckts_recv;
 	double          jitter;
 	rtcp_user_rr	*rr;
-
 	u_int32         misordered;		
-	u_int32         duplicates;
+        u_int32         duplicates;             /* Should be in rtcp_db ? */
 	u_int32         jit_TOGed;		/* TOGed = Thrown on the Ground */
-	u_char		cont_toged;		/* Toged in a row */
-	u_char          first_pckt_flag:1;
-        u_char          first_mix:1;
-	u_char		mute:1;
-
-	struct s_time  *clock;
-	ts_t            last_mixed;             /* Used to check mixing */
-        u_int32         ui_last_update;         /* Used for periodic update of packet counts, etc */
-        u_char          update_req:1;           /* ui info needs update as format changed */
-	u_int16		units_per_packet;
-        u_int16         inter_pkt_gap;          /* expected time between pkt arrivals */
-        u_char          enc;
-        char*           enc_fmt;
-        cc_id_t         channel_coder_id;       /* channel_coder of last received packet */
-
-	/* Variables for playout time calculation */
-	int		video_playout;		/* Playout delay in the video tool -- for lip-sync [csp] */
-        u_char          video_playout_received:1; /* video playout is relevent */
-	int		sync_playout_delay;	/* same interpretation as delay, used when sync is on [dm] */
-	ts_t            playout;		/* Playout delay for this talkspurt */
-	ts_t            delay;			/* Current delay for this participant (varies per packet) */
-        ts_t            delay_in_playout_calc;  /* Delay used for last playout point calculation */
 	u_int16         last_seq;		/* Last packet sequence number */
-        ts_t            last_arr;               /* Last packet arrival time    */
 	int		loss_from_me;		/* Loss rate that this receiver heard from me */
 	u_int32		last_rr_for_me;
-
-        double          gain;                   /* Participant gain */
 
 	/* The variables must be properly set up for first data packet */
 	/* - zero is no good                                           */
@@ -100,12 +73,6 @@ typedef struct s_rtcp_dbentry {
 	u_int32		last_sr_rx;	/* The time the last SR packet was received. */
 	u_int32         last_active;
 	u_char          is_sender;
-
-	/* Mapping between rtp time and NTP time for this sender */
-	int             mapping_valid;
-	u_int32         last_ntp_sec;	/* NTP timestamp */
-	u_int32         last_ntp_frac;
-	u_int32         last_rtp_ts;	/* RTP timestamp */
 } rtcp_dbentry;
 
 #define RTP_NUM_SDES 		6
@@ -139,7 +106,7 @@ u_int32 		 rtcp_myssrc(struct session_tag *sp);
 rtp_db 			*rtcp_init(struct s_time *device_clock, char *cname, u_int32 cur_time);
 void                     rtcp_db_exit(struct session_tag *sp);
 int 			 rtcp_update_seq(rtcp_dbentry *s, u_int16 seq);
-struct s_rtcp_dbentry   *rtcp_get_dbentry(struct session_tag *sp, u_int32 ssrc);
+struct s_rtcp_dbentry   *rtcp_get_dbentry(rtp_db *db, u_int32 ssrc);
 struct s_rtcp_dbentry   *rtcp_get_dbentry_by_cname(struct session_tag *sp, char *cname);
 struct s_rtcp_dbentry   *rtcp_new_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 cur_time);
 struct s_rtcp_dbentry   *rtcp_getornew_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 cur_time);
@@ -148,6 +115,6 @@ void 			 rtcp_delete_dbentry(struct session_tag *sp, u_int32 ssrc);
 int 			 rtcp_set_attribute(struct session_tag *sp, int type, char *val);
 void			 rtcp_free_dbentry(rtcp_dbentry *dbptr);
 void                     rtcp_clock_change(struct session_tag *sp);
-void                     rtcp_set_encoder_format(struct session_tag *sp, rtcp_dbentry *e, char *new_fmt);
+
 #endif
 

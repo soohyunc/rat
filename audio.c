@@ -28,6 +28,7 @@
 #include "audio_util.h"
 #include "session.h"
 #include "transcoder.h"
+#include "pdb.h"
 #include "ui.h"
 #include "transmit.h"
 #include "mix.h"

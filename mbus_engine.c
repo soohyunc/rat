@@ -13,8 +13,6 @@
 #include "debug.h"
 #include "mbus_engine.h"
 #include "mbus.h"
-#include "pdb.h"
-#include "ui.h"
 #include "net_udp.h"
 #include "net.h"
 #include "transmit.h"
@@ -30,11 +28,16 @@
 #include "render_3D.h"
 #include "crypt.h"
 #include "session.h"
+#include "pdb.h"
 #include "source.h"
 #include "sndfile.h"
 #include "timers.h"
 #include "util.h"
 #include "rtcp.h"
+#include "rtcp_db.h"
+#include "codec_types.h"
+#include "channel_types.h"
+#include "ui.h"
 
 extern int should_exit;
 
@@ -141,7 +144,7 @@ static void rx_tool_rat_3d_enable(char *srce, char *args, session_struct *sp)
 static void 
 rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct *sp)
 {
-        pitem_t                 *p;
+        pdb_entry_t                 *p;
         char 			*filter_name;
         int 			 filter_type, filter_length, azimuth, freq;
 	char			*ss;
@@ -183,7 +186,7 @@ static void
 rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_struct *sp)
 {
 	char		*ss;
-        pitem_t         *p;
+        pdb_entry_t         *p;
         rtcp_dbentry 	*e = NULL;
         u_int32         ssrc;
 
@@ -193,7 +196,7 @@ rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(sp->mbus_engine, &ss)) {
 		ss   = mbus_decode_str(ss);
                 ssrc = strtoul(ss, 0, 16);
-                e = rtcp_get_dbentry(sp, ssrc);
+                e = rtcp_get_dbentry(sp->db, ssrc);
                 pdb_item_get(sp->pdb, ssrc, &p);
 		if (e != NULL && p != NULL && p->render_3D_data != NULL) {
 			ui_info_3d_settings(sp, e, p);
@@ -378,6 +381,7 @@ static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
 static void rx_audio_output_mute(char *srce, char *args, session_struct *sp)
 {
         struct s_source *s;
+        rtcp_dbentry    *dbe;
 	int i, n;
 
 	UNUSED(srce);
@@ -389,7 +393,8 @@ static void rx_audio_output_mute(char *srce, char *args, session_struct *sp)
                 n = (int)source_list_source_count(sp->active_sources);
                 for (i = 0; i < n; i++) {
                         s = source_list_get_source_no(sp->active_sources, i);
-                        ui_info_deactivate(sp, source_get_rtcp_dbentry(s));
+                        dbe = rtcp_get_dbentry(sp->db, source_get_ssrc(s));
+                        ui_info_deactivate(sp, dbe);
                         source_remove(sp->active_sources, s);
                         /* revise source no's since we removed a source */
                         i--;
@@ -753,19 +758,18 @@ static void rx_rtp_source_loc(char *srce, char *args, session_struct *sp)
 
 static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
 {
-	rtcp_dbentry	*e;
-	char		*ssrc;
-	int		 i;
+	pdb_entry_t *pdbe;
+	char        *ssrc;
+	int          i;
 
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &ssrc) && mbus_parse_int(sp->mbus_engine, &i)) {
 		ssrc = mbus_decode_str(ssrc);
-                e = rtcp_get_dbentry(sp, strtoul(ssrc, 0, 16));
-		if (e != NULL) {
-                        e->mute = i;
-                        ui_info_mute(sp, e);
+                if (pdb_item_get(sp->pdb, strtoul(ssrc, 0, 16), &pdbe)) {
+                        pdbe->mute = i;
+                        ui_info_mute(sp, pdbe);
                 } else {
 			debug_msg("Unknown source 0x%08lx\n", ssrc);
 		}
@@ -777,7 +781,7 @@ static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
 
 static void rx_rtp_source_gain(char *srce, char *args, session_struct *sp)
 {
-	rtcp_dbentry	*e;
+	pdb_entry_t	*pdbe;
 	char		*ssrc;
         double           g;
 
@@ -786,9 +790,8 @@ static void rx_rtp_source_gain(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &ssrc) && mbus_parse_flt(sp->mbus_engine, &g)) {
 		ssrc = mbus_decode_str(ssrc);
-                e = rtcp_get_dbentry(sp, strtoul(ssrc, 0, 16));
-		if (e != NULL) {
-                        e->gain = g;
+                if (pdb_item_get(sp->pdb, strtoul(ssrc, 0, 16), &pdbe)) {
+                        pdbe->gain = g;
                 } else {
 			debug_msg("Unknown source 0x%08lx\n", ssrc);
 		}
@@ -800,7 +803,7 @@ static void rx_rtp_source_gain(char *srce, char *args, session_struct *sp)
 
 static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
 {
-	rtcp_dbentry	*e;
+	pdb_entry_t	*pdbe;
 	char		*ssrc;
 	int	 	 playout;
 
@@ -809,10 +812,9 @@ static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &ssrc) && mbus_parse_int(sp->mbus_engine, &playout)) {
 		ssrc = mbus_decode_str(ssrc);
-                e = rtcp_get_dbentry(sp, strtoul(ssrc, 0, 16));
-		if (e != NULL) {
-                	e->video_playout_received = TRUE;
-			e->video_playout          = playout;
+                if (pdb_item_get(sp->pdb, strtoul(ssrc, 0, 16), &pdbe)) {
+                        pdbe->video_playout_received = TRUE;
+			pdbe->video_playout          = playout;
 		} else {
 			debug_msg("Unknown source 0x%08lx\n", ssrc);
 		}
