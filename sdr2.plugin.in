@@ -25,12 +25,12 @@ cryptflag:-K
 		attrname:Packetisation interval
 		attrvalue:20
 		{
+			def:true
 			attrvaluename:20ms
 		}
 		attrvalue:40
 		{
 			attrvaluename:40ms
-			def:true
 		}
 		attrvalue:80
 		{
