@@ -721,7 +721,7 @@ ui_title(session_struct *sp)
 }
 
 void
-ui_load_settings(void)
+ui_load_settings()
 {
 	mbus_engine_tx(TRUE, mbus_name_ui, "load.settings", "", TRUE);
 }

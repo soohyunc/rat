@@ -264,6 +264,7 @@ static void rx_input_port(char *srce, char *args, session_struct *sp)
 		printf("mbus: usage \"input_port <port>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
+        sp->input_mode = audio_get_iport(sp->audio_fd);
 	ui_update_input_port(sp);
 }
 
@@ -321,6 +322,7 @@ static void rx_output_port(char *srce, char *args, session_struct *sp)
 		printf("mbus: usage \"output_port <port>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
+        sp->output_mode = audio_get_oport(sp->audio_fd);
 	ui_update_output_port(sp);
 }
 
