@@ -39,9 +39,13 @@
  * SUCH DAMAGE.
  */
 
+#ifndef   WIN32
+#include <sys/param.h>
+#endif /* WIN32 */
+
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/param.h>
+
 #include "assert.h"
 #include "config.h"
 #include "session.h"
@@ -316,10 +320,10 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
                 /* Not enough redundancy available, so advertise max offset to help receivers*/
                 r->last.iov[0].iov_base = (caddr_t)block_alloc(sizeof(u_int32));
                 r->last.iov[0].iov_len  = sizeof(u_int32);
-                red_pack_hdr(r->last.iov[0].iov_base, 
+                red_pack_hdr((char*)r->last.iov[0].iov_base, 
                              1, 
-                             r->coding[r->nlayers-1], 
-                             r->offset[r->nlayers-1] * collator_get_units(sp->collator) * cp->unit_len,
+                             (char)r->coding[r->nlayers-1], 
+                             (short)(r->offset[r->nlayers-1] * collator_get_units(sp->collator) * cp->unit_len),
                              0);
                 r->last_hdr_idx = 1;
                 r->last.iovc    = 1;
@@ -336,11 +340,11 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
 
                 r->last.iov[r->last.iovc].iov_base = (caddr_t)block_alloc(sz);
                 r->last.iov[r->last.iovc].iov_len  = sz;
-                red_pack_hdr(r->last.iov[r->last.iovc].iov_base,
-                             i,
-                             r->coding[i],
-                             r->offset[r->nlayers-1] * collator_get_units(sp->collator) * cp->unit_len,
-                             get_bytes(tmp)
+                red_pack_hdr((char*)r->last.iov[r->last.iovc].iov_base,
+                             (char)i,
+                             (char)r->coding[i],
+                             (short)(r->offset[r->nlayers-1] * collator_get_units(sp->collator) * cp->unit_len),
+                             (short)get_bytes(tmp)
                              );
                 r->last.iovc++;
                 r->last_hdr_idx++;

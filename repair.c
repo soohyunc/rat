@@ -51,10 +51,10 @@
 #include "codec_lpc.h"
 
 /* fade and pitch measures in ms */
-#define FADE_DURATION   320.0
-#define MIN_PITCH         2.0
+#define FADE_DURATION   320.0f
+#define MIN_PITCH         2.0f
 
-#define ALPHA             0.9
+#define ALPHA             0.9f
 #define MATCH_LEN         20    
 #define MAX_BUF_LEN       1024
 
@@ -121,10 +121,10 @@ repeat_block(short *src_buf, int rep_len, rx_queue_element_struct *ip, int chann
 
 	if (ip && ip->prev_ptr->dummy) {
 		cd = count_dummies_back(ip->prev_ptr);
-		fps = 1000.0/(FADE_DURATION * (float)ip->comp_data[0].cp->freq);
-		sf = 1.0 - fps * cd * ip->comp_data[0].cp->unit_len;
-		if (sf<=0.0) 
-			sf = fps = 0.0;
+		fps = 1000.0f/(FADE_DURATION * (float)ip->comp_data[0].cp->freq);
+		sf = 1.0f - fps * cd * ip->comp_data[0].cp->unit_len;
+		if (sf<=0.0f) 
+			sf = fps = 0.0f;
 		while(i<ip->comp_data[0].cp->unit_len) {
 			j = 0;
 			src = src_buf+channel;
@@ -186,7 +186,7 @@ pm_repair(rx_queue_element_struct *pp, rx_queue_element_struct *ip, int channel)
 		bp    += step;
 	}
 	/* hit off normalization */
-	min_pitch = ip->comp_data[0].cp->freq*MIN_PITCH/1000;
+	min_pitch = (int)(ip->comp_data[0].cp->freq*MIN_PITCH/1000);
 	i = (len-MATCH_LEN-min_pitch)*step;
 	bp = src + i;
 	j=0;
@@ -200,7 +200,7 @@ pm_repair(rx_queue_element_struct *pp, rx_queue_element_struct *ip, int channel)
 		j = 0;
 		mbp = mb;
 		while(j++<MATCH_LEN) {
-			score += fabs((float)*bp/(float)norm - *mbp++);
+			score += (float)fabs((float)*bp/(float)norm - *mbp++);
 			bp    += step;
 		}
 		if (score<target) {
@@ -238,7 +238,7 @@ repeat_lpc(rx_queue_element_struct *pp, rx_queue_element_struct *ip)
 	ip->comp_data[0].cp = pp->comp_data[0].cp;
 	lp = (lpc_txstate_t*)ip->comp_data[0].data;
 	if (ip->dummy) 
-		lp->gain = (short)((float)lp->gain * 0.8);
+		lp->gain = (u_char)((float)lp->gain * 0.8f);
 
 	decode_unit(ip);
 }
@@ -324,10 +324,10 @@ repair(int repair, rx_queue_element_struct *ip)
 	
 	assert(!ip->native_count);
 
-        size  = ip->comp_data[0].cp->sample_size *
-                ip->comp_data[0].cp->channels*
-                ip->comp_data[0].cp->unit_len;
-        ip->native_size[0] = size;
+    size  = ip->comp_data[0].cp->sample_size *
+            ip->comp_data[0].cp->channels*
+            ip->comp_data[0].cp->unit_len;
+    ip->native_size[0] = (unsigned short) size;
 	ip->native_data[0] = (sample*)block_alloc(size);
 	ip->native_count   = 1;
 

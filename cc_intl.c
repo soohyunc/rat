@@ -208,7 +208,12 @@ intl_reset(intl_coder_t *s)
                 }
         }
         clear_cc_unit(&s->last,0);
-        s->il->idx = s->cnt = s->mask = s->last_ts = s->last.iovc = 0;
+        s->il->idx   = 0; 
+		s->cnt       = 0;
+		s->mask      = 0;
+		s->last_ts   = 0;
+		s->last.iovc = 0;
+		
         dprintf("intl_reset\n");
 }
 
@@ -340,7 +345,7 @@ intl_compat_chk(u_int32        hdr,
                 il_free(s->il);
                 /* unscrambler of an (n1,n2) interleaver is an (n2,n1) interleaver */
                 s->il     = il_create(GET_N2(hdr),GET_N1(hdr));
-                s->src_pt = GET_PT(hdr);
+                s->src_pt = (u_char)GET_PT(hdr);
                 s->upl    = GET_UPL(hdr);
         }
 }

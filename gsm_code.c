@@ -6,6 +6,10 @@
 
 /* $Header$ */
 
+#ifdef WIN32
+#include <memory.h>
+#endif
+
 #include	<stdlib.h>
 #include	"gsm.h"
 

@@ -35,23 +35,27 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
+#ifndef   WIN32
 #include <strings.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
+#endif /* WIN32 */
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
+
 #ifdef SunOS_5
 #include <sys/sockio.h>		/* For SIOCGIFCONF, which according the the Sun manual pages */
 #endif				/* is in <net/if.h>, but why should we believe them?         */
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
+
 #include "assert.h"
 #include "rat_types.h"
 #include "config.h"
@@ -386,10 +390,11 @@ struct mbus *mbus_init(unsigned short channel,
 {
 	struct mbus	*m;
 	int		 i;
+#ifndef WIN32
 	struct ifreq	 ifbuf[32];
 	struct ifreq	*ifp;
 	struct ifconf	 ifc;
-
+#endif
 	m = (struct mbus *) xmalloc(sizeof(struct mbus));
 	m->fd           = mbus_socket_init(channel);
 	m->channel	= channel;
@@ -407,6 +412,7 @@ struct mbus *mbus_init(unsigned short channel,
 	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_args[i]    = NULL;
 
 	/* Determine the network interfaces on this host... */
+#ifndef WIN32
 	ifc.ifc_buf = (char *)ifbuf;
 	ifc.ifc_len = sizeof(ifbuf);
 	if (ioctl(m->fd, SIOCGIFCONF, (char *) &ifc) < 0) {
@@ -419,7 +425,8 @@ struct mbus *mbus_init(unsigned short channel,
 	while (ifp < (struct ifreq *) ((char *) ifbuf + ifc.ifc_len)) {
 		m->interfaces[m->num_interfaces++] = ((struct sockaddr_in *) &((ifp++)->ifr_addr))->sin_addr.s_addr;
 	}
-        m->interfaces[0] = htonl(0x7f000001);
+#endif
+    m->interfaces[0] = htonl(0x7f000001);
 	return m;
 }
 

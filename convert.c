@@ -79,7 +79,7 @@ upsample_linear(short *dst,
     
         while(src<ep){
                 w1 = ws;
-                w2 = 1.0-ws;
+                w2 = 1.0f-ws;
                 tmp = 0;
                 while(w1<1.0) {
                         *dst = *p;

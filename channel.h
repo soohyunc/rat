@@ -43,8 +43,11 @@
 #ifndef __CHANNEL_H__
 #define __CHANNEL_H__
 
-#include <sys/types.h>
+#ifndef   WIN32
 #include <sys/uio.h>
+#endif /* WIN32 */
+
+#include <sys/types.h>
 #include "rat_types.h"
 
 /* this is large because interleaver can make things large v. quickly */

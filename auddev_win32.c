@@ -4,6 +4,7 @@
  * Win32 audio interface for RAT.
  * Portions based on the VAT Win95 port by John Brezak.
  * Modifications by Isidor Kouvelas <I.Kouvelas@cs.ucl.ac.uk>
+ * and Orion Hodson <O.Hodson@cs.ucl.ac.uk>.
  *
  * $Id$
  *
@@ -72,7 +73,10 @@
 #include <string.h>
 #include <errno.h>
 #include "assert.h"
+
+#include "rat_types.h"
 #include "audio.h"
+#include "util.h"
 
 #define rat_to_device(x)	((x) * 255 / MAX_AMP)
 #define device_to_rat(x)	((x) * MAX_AMP / 255)
@@ -99,6 +103,7 @@ static WAVEHDR	read_bufs[NUM_BUFFERS], *read_curr;
 static u_char	read_mem[NUM_BUFFERS * BUFFER_SIZE * 2];
 static WAVEHDR	write_bufs[NUM_BUFFERS], *write_curr, *write_tail;
 static u_char	write_mem[NUM_BUFFERS * BUFFER_SIZE * 2];
+static u_int32  write_bufs_used;
 
 typedef struct audMux_s {
 	MIXERCONTROLDETAILS select_[8];
@@ -120,6 +125,7 @@ static int	play_vol, rec_vol;
 static int
 mapName(audMux *mux, const char* name)
 {
+
 	return (0);
 #ifdef NDEF
 	return (mux->isOut_? StrToOPort(name) : StrToIPort(name));
@@ -257,7 +263,6 @@ audio_open_out()
 	if (shWaveOut)
 		return (TRUE);
 
-/*	sndPlaySound(NULL, 0); */
 	error = waveOutOpen(&shWaveOut, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL);
 	if (error) {
 #ifdef DEBUG
@@ -285,6 +290,36 @@ audio_open_out()
 	return (TRUE);
 }
 
+static unsigned char audio_ready = 0;
+
+unsigned char
+is_audio_ready()
+{
+#ifdef DEBUG
+        if (audio_ready>10) {
+                printf("Lots of audio available (%d blocks)\n", audio_ready);
+        }
+#endif
+
+	return (audio_ready>0) ? TRUE : FALSE;
+}
+
+static void CALLBACK
+waveInProc(HWAVEIN hwi,
+		   UINT    uMsg,
+		   DWORD   dwInstance,
+		   DWORD   dwParam1,
+		   DWORD   dwParam2)
+{
+	switch(uMsg) {
+	case WIM_DATA:
+		audio_ready++;
+		break;
+	}
+	
+	return;
+}
+
 static int
 audio_open_in()
 {
@@ -295,10 +330,15 @@ audio_open_in()
 	if (shWaveIn)
 		return (TRUE);
 
-	error = waveInOpen(&shWaveIn, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL);
+	error = waveInOpen(&shWaveIn, 
+					   WAVE_MAPPER, 
+					   &format, 
+					   waveInProc, 
+					   0, 
+					   CALLBACK_FUNCTION);
 	if (error != MMSYSERR_NOERROR) {
 		waveInGetErrorText(error, errorText, sizeof(errorText));
-		fprintf(stderr, "Win32Audio: waveInOpen Error: (%d) %s\n", error, errorText);
+		//fprintf(stderr, "Win32Audio: waveInOpen Error: (%d) %s\n", error, errorText);
 		return (FALSE);
 	}
 
@@ -322,7 +362,7 @@ audio_open_in()
 	}
 	read_curr = read_bufs;
 
-	audio_set_gain(0, rec_vol);
+	audio_set_gain(20, rec_vol);
 
 	error = waveInStart(shWaveIn);
 	if (error) {
@@ -334,19 +374,26 @@ audio_open_in()
 	return (TRUE);
 }
 
+extern int thread_pri;
+
+int audio_get_channels()
+{
+	return format.nChannels;
+}
+
 int
 audio_open(audio_format fmt)
 {
 	play_vol = rec_vol = 50;
 	memset(zbuf, 0, ZBUF_LEN);
 
-	format.wFormatTag = WAVE_FORMAT_PCM;
-	format.nChannels = 1;
-	format.nSamplesPerSec = 8000;
-	format.wBitsPerSample = 16;
+	format.wFormatTag      = WAVE_FORMAT_PCM;
+	format.nChannels       = 1;
+	format.nSamplesPerSec  = 8000;
+	format.wBitsPerSample  = 16;
 	format.nAvgBytesPerSec = format.nChannels * format.nSamplesPerSec * format.wBitsPerSample / 8;
-	format.nBlockAlign = format.nChannels * format.wBitsPerSample / 8;
-	format.cbSize = 0;
+	format.nBlockAlign     = format.nChannels * format.wBitsPerSample / 8;
+	format.cbSize          = 0;
 
 	if (audio_open_in() == FALSE)
 		return -1;
@@ -442,29 +489,6 @@ audio_duplex(int audio_fd)
 	return (duplex);
 }
 
-void
-audio_switch_out(int audio_fd, cushion_struct *ap)
-{
-	if (duplex || shWaveOut != 0)
-		return;
-	audio_close_in();
-	audio_open_out();
-	elapsed_time = 0;
-
-	/* XXX Should really write out cushion */
-	audio_write(0, zbuf, WRITE_AHEAD);
-	ap->cushion_size = WRITE_AHEAD;
-	ap->cushion_estimate = WRITE_AHEAD;
-}
-
-void
-audio_switch_in(int audio_fd)
-{
-	if (duplex || shWaveIn != 0)
-		return;
-	audio_close_out();
-	audio_open_in();
-}
 
 void
 audio_drain(int audio_fd)
@@ -474,19 +498,19 @@ audio_drain(int audio_fd)
 int
 audio_read(int audio_fd, sample *buf, int samples)
 {
-	int		len = 0, l;
-	short		*sp;
+	int		len = 0;
 
 	if (shWaveIn == 0) {
 		assert(shWaveOut);
 		for (len = 0; write_tail->dwFlags & WHDR_DONE;) {
-			if (len + write_tail->dwBufferLength / 2 > samples)
+			if (len + write_tail->dwBufferLength / 2 > (unsigned)samples)
 				break;
 			else
 				len += write_tail->dwBufferLength / 2;
 
 			write_tail->dwFlags &=~ WHDR_DONE;
 			write_tail++;
+			write_bufs_used--;
 			if (write_tail >= write_bufs + NUM_BUFFERS)
 				write_tail = write_bufs;
 		}
@@ -500,87 +524,100 @@ audio_read(int audio_fd, sample *buf, int samples)
 		while (write_tail->dwFlags & WHDR_DONE) {
 			write_tail->dwFlags &= ~WHDR_DONE;
 			write_tail++;
+			write_bufs_used--;
 			if (write_tail >= write_bufs + NUM_BUFFERS)
 				write_tail = write_bufs;
 		}
 
 	}
 
-	while (read_curr->dwFlags & WHDR_DONE) {
-		if (len + BUFFER_SIZE > samples) {
-#ifdef DEBUG
-			printf("audio_read: buffer too small %d\n", samples);
-#endif
-			return (len);
-		}
-
-#ifdef MULAW_RAT
-		for (l = 0, sp = (short *)read_curr->lpData; l < BUFFER_SIZE; l++) {
-			*buf = s2u(*sp);
-			buf++;
-			sp++;
-		}
-#else
+	while ( (read_curr->dwFlags & WHDR_DONE) &&
+			(len < samples) ) {
 		memcpy(buf, read_curr->lpData, BUFFER_SIZE * BYTES_PER_SAMPLE);
 		buf += BUFFER_SIZE;
-#endif
 		len += BUFFER_SIZE;
-
+		if (len + BUFFER_SIZE < samples) {
 		read_curr->dwFlags &=~ WHDR_DONE;
-
 		error = waveInAddBuffer(shWaveIn, read_curr, sizeof(WAVEHDR));
 		if (error) {
 			waveInGetErrorText(error, errorText, sizeof(errorText));
 			fprintf(stderr, "waveInAddBuffer: (%d) %s\n", error, errorText);
 			exit(1);
 		}
-
 		read_curr++;
 		if (read_curr >= read_bufs + NUM_BUFFERS)
 			read_curr = read_bufs;
+			if (audio_ready > 0) {
+				audio_ready--;
+	}
+		} else { 
+			OutputDebugString("Read buffer too small - cheating\n");
+		}		
 	}
 
 	return (len);
 }
 
+#define WRITE_ERROR_STILL_PLAYING 33
+
 int
 audio_write(int audio_fd, sample *cp, int remain)
 {
-	int		error, l, len, ret;
-	short		*sp;
+	int		error, len, ret;
 
 	if (shWaveOut == 0)
 		return (remain);
 
 	ret = remain;
+	if (write_bufs_used > NUM_BUFFERS - 10) {
+		char errmsg[80];
+		sprintf(errmsg, 
+				"Running out of write buffers %d left\n",
+				write_bufs_used);
+		OutputDebugString(errmsg);
+	}
+
+
 	for (; remain > 0; remain -= len) {
 		if (write_curr->dwFlags & WHDR_DONE) {
 			/* Have overdone it! */
-#ifdef DEBUG
-			fprintf(stderr, "audio_write, reached end of buffer");
-#endif
+			char msg[80];
+			sprintf(msg,
+				"audio_write, reached end of buffer (%06d bytes remain)\n",
+				remain);
+			OutputDebugString(msg);
 			return (ret - remain);
 		}
 
 		len = remain > BUFFER_SIZE? BUFFER_SIZE: remain;
-#ifdef MULAW_RAT
-		for (l = 0, sp = (short *)write_curr->lpData; l < len; l++) {
-			*sp++ = u2s(*cp);
-			cp++;
-		}
-#else
+
 		memcpy(write_curr->lpData, cp, len * BYTES_PER_SAMPLE);
 		cp += len;
-#endif
 
 		error = waveOutWrite(shWaveOut, write_curr, sizeof(WAVEHDR));
-		if (error) {
+		
+		if (error == WRITE_ERROR_STILL_PLAYING) { /* We've filled device buffer ? */
+				char msg[80];
+				sprintf(msg,
+						"Win32Audio - device filled. Discarding %d bytes.\n",
+						ret - remain);
+				OutputDebugString(msg);
+					/* we return as if we wrote everything out
+					 * to give buffer a little breathing room
+					 */
+
+				return ret;
+		} else if (error) {
 			waveOutGetErrorText(error, errorText, sizeof(errorText));
-			fprintf(stderr, "Win32Audio: waveOutWrite: %s\n", errorText);
+			fprintf(stderr, 
+					"Win32Audio: waveOutWrite (%d): %s\n", 
+					error,
+					errorText);
 			return (ret - remain);
 		}
 
 		write_curr++;
+		write_bufs_used++;
 		if (write_curr >= write_bufs + NUM_BUFFERS)
 			write_curr = write_bufs;
 	}
@@ -665,6 +702,13 @@ audio_get_volume(int audio_fd)
 		return (device_to_rat(vol & 0xff));
 }
 
+void
+audio_set_oport(int audio_fd, int port)
+{
+	UNUSED(audio_fd);
+	UNUSED(port);
+}
+
 /* Return selected output port */
 int audio_get_oport(int audio_fd)
 {
@@ -676,6 +720,13 @@ int
 audio_next_oport(int audio_fd)
 {
 	return (AUDIO_SPEAKER);
+}
+
+void 
+audio_set_iport(int audio_fd, int port)
+{
+	UNUSED(audio_fd);
+	UNUSED(port);
 }
 
 /* Return selected input port */

@@ -37,6 +37,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "mbus.h"
 #include "mbus_ui.h"
 #include "tcltk.h"
@@ -47,15 +48,15 @@ static struct mbus *mbus_chan = NULL;
 
 void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 {
-	char		 command[1500];
-	unsigned int	 i;
+	char        command[1500];
+	unsigned int i;
 
 	UNUSED(srce);
 	UNUSED(data);
 
 	sprintf(command, "mbus_recv_%s %s", cmnd, args);
 
-	for (i = 0; i < strlen(command); i++) {
+	for (i = 0; i < (unsigned)strlen(command); i++) {
 		if (command[i] == '[') command[i] = '(';
 		if (command[i] == ']') command[i] = ')';
 	}

@@ -40,9 +40,12 @@
  * SUCH DAMAGE.
  */
 
+#ifndef   WIN32
+#include <sys/types.h>
+#endif /* WIN32 */
+
 #include <stdlib.h>
 #include <ctype.h>
-#include <sys/types.h>
 #include "config.h"
 #include "session.h"
 #include "receive.h"
@@ -773,7 +776,7 @@ collate_coded_units(collator_t *c, coded_unit *cu, int enc_no)
         } else {
                 out = c->cur[enc_no];
                 assert(cu->cp->pt == out->pt);
-                if (cu->state_len != NULL) {
+                if (cu->state_len != 0) {
                         block_free(cu->state, cu->state_len);
                         cu->state     = NULL;
                         cu->state_len = 0;

@@ -165,7 +165,7 @@ audio_device_read(session_struct *sp, sample *buf, int samples)
 		}
 	else {
 		gettimeofday(&curr_time, NULL);
-		diff = (((curr_time.tv_sec - sp->device_time.tv_sec) * 1e6)
+		diff = ((u_int32)((curr_time.tv_sec - sp->device_time.tv_sec) * 1e6)
 			+ (curr_time.tv_usec - sp->device_time.tv_usec)) / 125;
 		memcpy(&sp->device_time, &curr_time, sizeof(struct timeval));
 		if (diff > samples)
@@ -251,14 +251,14 @@ audio_device_take(session_struct *sp)
         if ((sp->audio_fd != -1) && (sp->mode != TRANSCODER)) {
                 audio_non_block(sp->audio_fd);
         }
-	sp->loop_delay = sp->loop_estimate = 20000;
+        sp->loop_delay = sp->loop_estimate = 20000;
 
         /* We initialize the pieces above the audio device here since their parameters
          * depend on what is set here
          */
         sp->device_clock = new_time(sp->clock, cp->freq);
         sp->bc           = bias_ctl_create(cp->channels);
-	sp->tb           = tx_create(sp, cp->unit_len, cp->channels);
+        sp->tb           = tx_create(sp, (u_int16)cp->unit_len, (u_int16)cp->channels);
         sp->ms           = mix_create(sp, 32640);
         cushion_create(&sp->cushion, cp->unit_len);
         tx_igain_update(sp);

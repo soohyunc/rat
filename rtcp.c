@@ -40,7 +40,10 @@
  * SUCH DAMAGE.
  */
 
+#ifndef WIN32
 #include <pwd.h>
+#endif
+
 #include "config.h"
 #include "util.h"
 #include "rtcp.h"
@@ -63,7 +66,7 @@ service_rtcp(session_struct    *sp,
 		pckt = get_pckt_off_queue(rtcp_pckt_queue_ptr);
 		if (rtcp_check_rtcp_pkt(pckt->pckt_ptr, pckt->len)) {
 			rtcp_decode_rtcp_pkt(sp, sp2, pckt->pckt_ptr, pckt->len, pckt->addr, cur_time);
-    			sp->db->avg_size += (pckt->len - sp->db->avg_size)*RTCP_SIZE_GAIN;    /* Update the average RTCP packet size... */
+    			sp->db->avg_size += (int)((pckt->len - sp->db->avg_size)*RTCP_SIZE_GAIN);    /* Update the average RTCP packet size... */
 			sp->db->report_interval = rtcp_interval(sp->db->members, sp->db->senders, sp->db->rtcp_bw, sp->db->sending, 
 						       	0, &(sp->db->avg_size), sp->db->initial_rtcp, get_freq(sp->device_clock));
 		} else {
@@ -82,7 +85,7 @@ service_rtcp(session_struct    *sp,
 		}
 		free_pckt_queue_element(&pckt);
 	}
-	rtcp_update(sp, sp->rtcp_fd, sp->net_maddress, sp->rtcp_port);
+	rtcp_update(sp, sp->rtcp_fd, sp->net_maddress, (u_int16)sp->rtcp_port);
 }
 
 char *get_cname(void)
@@ -90,9 +93,11 @@ char *get_cname(void)
 	char           		*uname;
 	char	       		*hname;
 	char			*cname;
-	struct passwd  		*pwent;
 	struct hostent 		*hent;
 	struct in_addr  	 iaddr;
+#ifndef WIN32
+	struct passwd  		*pwent;
+#endif
 
 	cname = (char *) xmalloc(MAXHOSTNAMELEN + 10);
 	/* Set the CNAME. This is "user@hostname" or just "hostname" if the username cannot be found. */

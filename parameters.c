@@ -80,7 +80,7 @@ avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
 }
 
 /* ad hoc values - aesthetically better than 0.1, 0.01, 0.001, and so on */
-#define DB_BIAS     (0.005)
+#define DB_BIAS     (0.005f)
 #define DB_BIAS_LOG (-2.3f)
 
 int 
@@ -88,7 +88,7 @@ lin2db(u_int16 energy, double peak)
 {
         float quasi_db;
 
-        quasi_db = ( -DB_BIAS_LOG + log10(DB_BIAS+(float)energy/65535.0f) ) / -DB_BIAS_LOG;
+        quasi_db = ( -DB_BIAS_LOG + (float)log10(DB_BIAS+(float)energy/65535.0f) ) / -DB_BIAS_LOG;
         return (int) (peak * quasi_db);
 }
 
@@ -161,7 +161,7 @@ sd(sd_t *s, u_int16 energy)
                 u_int32 m,stdd,trial_thresh;
 
                 m    = s->tot / s->cnt;
-                stdd = (sqrt(abs(m * m - s->tot_sq / s->cnt)));
+                stdd = sqrt(abs(m * m - s->tot_sq / s->cnt));
 
                 trial_thresh = m + 3 * stdd;
                 if (trial_thresh < s->thresh) {
@@ -242,13 +242,13 @@ vad_config(vad_t *v, u_int16 blockdur, u_int16 freq)
 
         time_ms = (blockdur * 1000) / freq;
 
-        v->limit[VAD_MODE_LECT].sig  = VAD_SIG_LECT  / time_ms; 
-        v->limit[VAD_MODE_LECT].pre  = VAD_PRE_LECT  / time_ms;
-        v->limit[VAD_MODE_LECT].post = VAD_POST_LECT / time_ms;
+        v->limit[VAD_MODE_LECT].sig  = (u_char)(VAD_SIG_LECT  / time_ms); 
+        v->limit[VAD_MODE_LECT].pre  = (u_char)(VAD_PRE_LECT  / time_ms);
+        v->limit[VAD_MODE_LECT].post = (u_char)(VAD_POST_LECT / time_ms);
 
-        v->limit[VAD_MODE_CONF].sig  = VAD_SIG_CONF  / time_ms; 
-        v->limit[VAD_MODE_CONF].pre  = VAD_PRE_CONF  / time_ms;
-        v->limit[VAD_MODE_CONF].post = VAD_POST_CONF / time_ms;
+        v->limit[VAD_MODE_CONF].sig  = (u_char)(VAD_SIG_CONF  / time_ms); 
+        v->limit[VAD_MODE_CONF].pre  = (u_char)(VAD_PRE_CONF  / time_ms);
+        v->limit[VAD_MODE_CONF].post = (u_char)(VAD_POST_CONF / time_ms);
 }
 
 void

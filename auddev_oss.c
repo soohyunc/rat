@@ -42,6 +42,8 @@
  * SUCH DAMAGE.
  */
 
+#if defined(OSS)||defined(Linux)
+
 #include "assert.h"
 #include "config.h"
 #include "audio.h"
@@ -546,3 +548,4 @@ audio_get_channels()
 	return format.num_channels;
 }
 
+#endif /* OSS */

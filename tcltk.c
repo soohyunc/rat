@@ -55,8 +55,6 @@ extern char	TCL_LIBS[];
 
 /* Should probably have these functions inline here, rather than in win32.c??? [csp] */
 #ifdef WIN32		
-int WinPutRegistry(ClientData, Tcl_Interp*, int ac, char** av);
-int WinGetRegistry(ClientData, Tcl_Interp*, int ac, char** av);
 int WinPutsCmd(ClientData, Tcl_Interp*, int ac, char** av);
 int WinGetUserName(ClientData, Tcl_Interp*, int ac, char** av);
 #endif
@@ -183,11 +181,9 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tcl_CreateCommand(interp, "mbus_qmsg",	     mbus_qmsg_cmd,   (ClientData) sp, NULL);
 	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, (ClientData) sp, NULL);
 #ifdef WIN32
-	Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);
-	Tcl_CreateCommand(interp, "putregistry", WinPutRegistry,  (ClientData)sp, NULL);
-        Tcl_CreateCommand(interp, "getregistry", WinGetRegistry,  (ClientData)sp, NULL);
-	Tcl_CreateCommand(interp, "puts",        WinPutsCmd,      (ClientData)sp, NULL);
-        Tcl_CreateCommand(interp, "getusername", WinGetUserName,  (ClientData)sp, NULL);
+    Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);
+    Tcl_CreateCommand(interp, "puts",        WinPutsCmd,      (ClientData)sp, NULL);
+    Tcl_CreateCommand(interp, "getusername", WinGetUserName,  (ClientData)sp, NULL);
 #else
 	Tcl_SetVar(interp, "win32", "0", TCL_GLOBAL_ONLY);
 #endif

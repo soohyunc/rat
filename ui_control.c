@@ -243,7 +243,7 @@ ui_update_input_port(session_struct *sp)
 		break;
 	case AUDIO_LINE_IN:
 		mbus_engine_tx_queue(TRUE, "input.port", "line_in");
-		break;
+		break;	
 	case AUDIO_CD:
 		mbus_engine_tx_queue(TRUE, "input.port", "cd");
 		break;

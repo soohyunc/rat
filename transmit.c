@@ -58,12 +58,12 @@
 typedef struct s_tx_unit {
 	struct s_tx_unit *next;
 	struct s_tx_unit *prev;
-	sample		 *data;			/* pointer to raw data in read_buf */
-        u_int32          dur_used;              /* number of time intervals filled */
-	int		 energy;
-	int		 silence;		/* First pass */
-	int		 send;			/* Silence second pass */
-	u_int32		 time;			/* timestamp */
+	sample	*data;			/* pointer to raw data in read_buf */
+    u_int32  dur_used;              /* number of time intervals filled */
+	u_int16  energy;
+	u_char   silence;		/* First pass */
+	u_char   send;			/* Silence second pass */
+	u_int32  time;			/* timestamp */
 } tx_unit;
 
 typedef struct s_tx_buffer {
@@ -233,11 +233,11 @@ tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
         memset(tb, 0, sizeof(tx_buffer));
 
 	tb->clock    = sp->device_clock;
-	tb->sd_info  = sd_init(unit_dur, get_freq(tb->clock));
-        tb->vad      = vad_create(unit_dur, get_freq(tb->clock));
-        tb->agc      = agc_create(sp);
-        tb->unit_dur = unit_dur;
-        tb->channels = channels;
+	tb->sd_info  = sd_init    (unit_dur, (u_int16)get_freq(tb->clock));
+    tb->vad      = vad_create (unit_dur, (u_int16)get_freq(tb->clock));
+    tb->agc      = agc_create(sp);
+    tb->unit_dur = unit_dur;
+    tb->channels = channels;
 
 	if (sp->mode != TRANSCODER) {
 		audio_drain(sp->audio_fd);
@@ -320,7 +320,7 @@ tx_process_audio(session_struct *sp)
         tx_unit *u, *u_mark;
         int to_send;
 
-	tx_buffer *tb = sp->tb;
+        tx_buffer *tb = sp->tb;
 
         if (tb->silence_ptr == NULL) {
                 tb->silence_ptr = tb->head_ptr;
@@ -331,15 +331,15 @@ tx_process_audio(session_struct *sp)
                 audio_unbias(sp->bc, u->data, u->dur_used * tb->channels);
 
 		u->energy = avg_audio_energy(u->data, u->dur_used * tb->channels, tb->channels);
-                u->send   = FALSE;
+        u->send   = FALSE;
                 
-                /* we do silence detection and voice activity detection
-                 * all the time.  agc depends on them and they are all 
-                 * cheap.
-                 */
-                u->silence = sd(tb->sd_info, u->energy);
-                to_send    = vad_to_get(tb->vad, u->silence, (sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF);           
-		agc_update(tb->agc, u->energy, vad_talkspurt_no(tb->vad));
+        /* we do silence detection and voice activity detection
+         * all the time.  agc depends on them and they are all 
+         * cheap.
+         */
+        u->silence = sd(tb->sd_info, (u_int16)u->energy);
+        to_send    = vad_to_get(tb->vad, (u_char)u->silence, (u_char)((sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF));           
+		agc_update(tb->agc, (u_int16)u->energy, vad_talkspurt_no(tb->vad));
 
 		if (sp->detect_silence) {
                         u_mark = u;
@@ -462,7 +462,7 @@ tx_send(session_struct *sp, speaker_table *sa)
                         assert(ovec_elem < 20);
                         memcpy(ovec + 1, out->iov, sizeof(struct iovec) * out->iovc);
                         rtp_header.type = 2;
-                        rtp_header.seq  = htons(sp->rtp_seq++);
+                        rtp_header.seq  = (u_int16)htons(sp->rtp_seq++);
                         rtp_header.ts   = htonl(u->time);
                         rtp_header.p    = rtp_header.x = 0;
                         rtp_header.ssrc = htonl(rtcp_myssrc(sp));

@@ -203,9 +203,11 @@ int gethostname(char *hostname, size_t size);
 #include <winsock.h>
 
 #define inline
-     
+#define __inline     
+
 #define AUDIO_MICROPHONE	1
 #define AUDIO_LINE_IN		2
+#define AUDIO_CD            4
 #define AUDIO_SPEAKER		0
 #define AUDIO_HEADPHONE		1
 #define AUDIO_LINE_OUT		4
@@ -270,6 +272,8 @@ int getgid(void);
 int getpid(void);
 int nice(int);
 time_t time(time_t *);
+
+#define bcopy(from,to,len) memcpy(to,from,len)
 
 #if defined(__cplusplus)
 }

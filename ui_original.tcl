@@ -27,6 +27,12 @@ option add *font                        $infofont
 set V(class) "Mbone Applications"
 set V(app)   "rat"
 
+if {[string compare [info commands registry] "registry"] == 0} {
+	set win32 1
+} else {
+	set win32 0
+}
+
 set iht			16
 set iwd 		250
 set cancel_info_timer 	0
@@ -1270,7 +1276,7 @@ proc save_setting {f field var} {
     global win32 V rtpfname
     upvar #0 $var value
     if {$win32} {
-	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field" "$value"
+	registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field" "$value"
     } else {
 	puts $f "*$field: $value"
     }
@@ -1338,7 +1344,7 @@ proc load_setting {attrname field var default} {
     # who has the tcl manual? is the only way to pass arrays thru upvar...
 
     if {$win32} {
-	catch {set $var [getregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "$field"]} 
+		catch {set $var [registry get "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "$field"]} 
     } else {
 	set tmp [option get . $field rat]
 	if {$tmp == ""} {

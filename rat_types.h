@@ -15,8 +15,7 @@ typedef u_long  u_int32;
 typedef char	int8;
 typedef short	int16;
 typedef long	int32;
-typedef unsigned long long u_int64;
-typedef long long int64;
+
 typedef short  sample;
 
 #endif /* _rat_types_h_ */

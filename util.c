@@ -241,9 +241,9 @@ static block  *blocks[MAX_INDEX];
 void *
 _block_alloc(unsigned int size, const char *filen, int line)
 {
-	int     	 i;
+	int         	 i;
 	unsigned int 	*c;
-	void    	*p;
+	char        	*p;
 
 	assert(size > 0);
 	assert(size < MAX_SIZE);
@@ -270,7 +270,7 @@ _block_alloc(unsigned int size, const char *filen, int line)
 	*c = size;
  
 	assert(p != NULL);
-	return p;
+	return (void*)p;
 }
  
 void

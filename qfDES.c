@@ -9,14 +9,18 @@ Added 2 August 1996, Saleem
 
 #include "config.h"
 #include <sys/types.h>
-#if defined(IRIX)
+#if defined(IRIX) || defined(WIN32)
 #include <time.h>
 #else
 #include <sys/time.h>
 #endif
+
+#ifndef WIN32 
 #include <netinet/in.h>
-#include <stdlib.h>
 #include <unistd.h>
+#endif
+
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <memory.h>

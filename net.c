@@ -284,7 +284,11 @@ read_net(int fd, u_int32 cur_time, int type, int *nbdecryption)
 static void
 read_packets_and_add_to_queue(int fd, u_int32 cur_time, pckt_queue_struct * queue, int type)
 {
-	int             l, nb, nbdecryption;
+#ifndef WIN32
+	int l, nb;
+#endif
+	
+	int nbdecryption;
 	pckt_queue_element_struct pckt;
 	pckt_queue_element_struct *pckt_ptr = &pckt;
 
@@ -311,7 +315,7 @@ read_packets_and_add_to_queue(int fd, u_int32 cur_time, pckt_queue_struct * queu
 	fd_set          rfds;
 	struct timeval  timeout;
 	do {
-		if ((pckt_ptr = read_net(fd, cur_time, type)) != NULL)
+		if ((pckt_ptr = read_net(fd, cur_time, type, &nbdecryption)) != NULL)
 			put_on_pckt_queue(pckt_ptr, queue);
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 0;

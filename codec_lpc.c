@@ -42,11 +42,11 @@
 #include "codec_lpc.h"
 
 #define MAXWINDOW	1000	/* Max analysis window length */
-#define FS		8000.0	/* Sampling rate */
+#define FS		8000.0f	/* Sampling rate */
 
 #define DOWN		5	/* Decimation for pitch analyzer */
 #define PITCHORDER	4	/* Model order for pitch analyzer */
-#define FC		600.0	/* Pitch analyzer filter cutoff */
+#define FC		600.0f	/* Pitch analyzer filter cutoff */
 #define MINPIT		50.0	/* Minimum pitch */
 #define MAXPIT		300.0	/* Maximum pitch */
 
@@ -150,13 +150,13 @@ calc_pitch(float *w, float *per)
 	rp = r[rpos + 1];
 	rval = rmax / r[0];
 
-	a = 0.5 * rm - rmax + 0.5 * rp;
-	b = -0.5 * rm * (2.0 * rpos + 1.0) + 
-	    2.0 * rpos * rmax + 0.5 * rp * (1.0 - 2.0 * rpos);
-	c = 0.5 * rm * (rpos * rpos + rpos) +
-	    rmax * (1.0 - rpos * rpos) + 0.5 * rp * (rpos * rpos - rpos);
+	a = 0.5f * rm - rmax + 0.5f * rp;
+	b = -0.5f * rm * (2.0f * rpos + 1.0f) + 
+	    2.0f * rpos * rmax + 0.5f * rp * (1.0f - 2.0f * rpos);
+	c = 0.5f * rm * (rpos * rpos + rpos) +
+	    rmax * (1.0f - rpos * rpos) + 0.5f * rp * (rpos * rpos - rpos);
 
-	x = -b / (2.0 * a);
+	x = -b / (2.0f * a);
 	y = a * x * x + b * x + c;
 	x *= DOWN;
 
@@ -195,18 +195,18 @@ lpc_init(lpc_intstate_t* state)
 
 	for (i = 0; i < BUFLEN; i++) {
 		s[i] = 0.0;
-		h[i] = WSCALE * (0.54 - 0.46 *
-		       cos(2 * M_PI * i / (BUFLEN - 1.0)));
+		h[i] = (float)WSCALE * (0.54f - 0.46f *
+		       (float)cos(2 * (float)M_PI * i / (BUFLEN - 1.0f)));
 	}
-	wcT = 2 * M_PI * FC / FS;
+	wcT = 2 * (float)M_PI * FC / FS;
 	r = 0.36891079f * wcT;
 	v = 0.18445539f * wcT;
 	w = 0.92307712f * wcT;
-	fa[1] = -exp(-r);
-	fa[2] = 1.0 + fa[1];
-	fa[3] = -2.0 * exp(-v) * cos(w);
-	fa[4] = exp(-2.0 * v);
-	fa[5] = 1.0 + fa[3] + fa[4];
+	fa[1] = -(float)exp(-r);
+	fa[2] = 1.0f + fa[1];
+	fa[3] = -2.0f * (float)exp(-v) * (float)cos(w);
+	fa[4] = (float)exp(-2.0f * v);
+	fa[5] = 1.0f + fa[3] + fa[4];
 
 	u1 = 0.0f;
 	yp1 = 0.0f;
@@ -229,7 +229,7 @@ lpc_analyze(const short *buf, lpc_txstate_t *params)
 	float   per, G, k[LPC_FILTORDER + 1];
 
 	for (i = 0, j = BUFLEN - FRAMESIZE; i < FRAMESIZE; i++, j++) {
-		s[j] = ((float)*buf++) / 32768.;
+		s[j] = ((float)*buf++) / 32768.0f;
 		u = fa[2] * s[j] - fa[1] * u1;
 		y[j] = fa[5] * u1 - fa[3] * yp1 - fa[4] * yp2;
 		u1 = u;
@@ -245,7 +245,7 @@ lpc_analyze(const short *buf, lpc_txstate_t *params)
 	durbin(r, LPC_FILTORDER, k, &G);
 
 	params->period = (u_int16)(per * 256.0f);
-	params->gain = (u_int16)(G * (256.0f));
+	params->gain   = (u_char) (G   * 256.0f);
 	for (i = 0; i < LPC_FILTORDER; i++)
 		params->k[i] = (char)(k[i + 1] * 128.0f);
 
