@@ -668,12 +668,11 @@ ui_update_key(session_struct *sp, char *key)
 void
 ui_update_codec(session_struct *sp, codec_id_t cid)
 {
-        const char *caps;
-        int can_enc, can_dec;
-        char pay[4];
-
-        u_char pt;
-        const codec_format_t *cf;
+        char 			*caps, *long_name_e, *short_name_e, *pay_e, *descr_e;
+        int 			 can_enc, can_dec;
+        char 			 pay[4];
+        u_char 			 pt;
+        const codec_format_t	*cf;
         
         cf  = codec_get_format(cid);
         assert(cf != NULL);
@@ -683,11 +682,11 @@ ui_update_codec(session_struct *sp, codec_id_t cid)
 
         assert(can_enc || can_dec);
         if (can_enc && can_dec) {
-                caps = "Encode and decode";
+                caps = mbus_encode_str("Encode and decode");
         } else if (can_enc) {
-                caps = "Encode only";
+                caps = mbus_encode_str("Encode only");
         } else if (can_dec) {
-                caps = "Decode only";
+                caps = mbus_encode_str("Decode only");
         }
 
         pt = codec_get_payload(cid);
@@ -696,20 +695,29 @@ ui_update_codec(session_struct *sp, codec_id_t cid)
         } else {
                 sprintf(pay, "-");
         }
-        
+	pay_e        = mbus_encode_str(pay);
+	long_name_e  = mbus_encode_str(cf->long_name);
+	short_name_e = mbus_encode_str(cf->short_name);
+	descr_e      = mbus_encode_str(cf->description);
+
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, 
                    "tool.rat.codec.details",
                    "%s %s %s %d %d %d %d %d %s %s",
-                   pay,                         
-                   cf->long_name,
-                   cf->short_name,
+                   pay_e,
+                   long_name_e,
+                   short_name_e,
                    cf->format.channels,
                    cf->format.sample_rate,
                    cf->format.bytes_per_block,
                    cf->mean_per_packet_state_size,
                    cf->mean_coded_frame_size,
-                   cf->description,
+                   descr_e,
                    caps);
+	xfree(caps);
+	xfree(pay_e);
+	xfree(long_name_e);
+	xfree(short_name_e);
+	xfree(descr_e);
 }
 
 static void
