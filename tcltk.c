@@ -192,7 +192,10 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tk_DefineBitmap(interp, Tk_GetUid("stop"),  stop_bits,  stop_width,  stop_height);
 
 	if (sp->mode == AUDIO_TOOL) {
-		if (Tcl_EvalObj(interp, Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool))) != TCL_OK) {
+		int      len           = strlen(ui_audiotool);
+		Tcl_Obj *audiotool_obj = Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool));
+		debug_msg("ui_script len %d bytes\n", len);
+		if (Tcl_EvalObj(interp, audiotool_obj) != TCL_OK) {
 			fprintf(stderr, "ui_audiotool error: %s\n", interp->result);
 		}
 	} else if (sp->mode == TRANSCODER) {
