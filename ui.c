@@ -507,7 +507,7 @@ ui_init(session_struct *sp, int argc, char **argv)
 	sprintf(args, "%lu cname %s", sp->db->myssrc, sp->db->my_dbe->sentry->cname); 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, TRUE);
 	sprintf(args, "%lu", sp->db->myssrc); 						mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "my_ssrc", args, TRUE);
 	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); 		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "address", args, TRUE);
-        sprintf(args, "%d", (sp->detect_silence) ? 1 : 0); 				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "detect_silence", args, TRUE);
+        sprintf(args, "%d", sp->detect_silence); 					mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "detect_silence", args, TRUE);
 	sprintf(args, "%d", sp->agc_on); 						mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "agc", args, TRUE);
 #ifndef NDEBUG
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "debug", "", TRUE);
