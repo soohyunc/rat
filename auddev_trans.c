@@ -131,9 +131,7 @@ trans_audio_close(audio_desc_t ad)
 void
 trans_audio_drain(audio_desc_t ad)
 {
-
-        // MW
-                   ad = mapAudioDescToDeviceID(ad);
+        ad = mapAudioDescToDeviceID(ad);
         bufdev[ad].read_virgin = TRUE;
         bufdev[ad].head = 0;
         bufdev[ad].tail = 0;
@@ -280,7 +278,7 @@ trans_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
         }
         bufdev[ad].tail = (bufdev[ad].tail + write_bytes) % CHANNEL_SIZE;
 
-        // reposition head if necessary
+        /* reposition head if necessary */
                 if(write_bytes > CHANNEL_SIZE - bufdev[ad].avail_bytes)
                         bufdev[ad].head = (bufdev[ad].tail + 1) % CHANNEL_SIZE;
 

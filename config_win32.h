@@ -76,7 +76,6 @@ typedef unsigned long	in_addr_t;
 
 #include <time.h>		/* For clock_t */
 #include "audio_types.h"
-#include "crypt_random.h"
 #include "usleep.h"
 
 #define srand48	lbl_srandom
