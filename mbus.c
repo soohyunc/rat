@@ -44,11 +44,10 @@
 #include "net.h"
 #include "mbus.h"
 
-#define MBUS_BUF_SIZE	65535		/* FIXME: should be < 1500 */
+#define MBUS_BUF_SIZE	1500
 #define MBUS_MAX_ADDR	10
 #define MBUS_MAX_PD	10
 #define MBUS_MAX_QLEN	50		/* Number of messages we can queue with mbus_qmsg() */
-#define MBUS_MAX_IF	16
 
 struct mbus_msg {
 	struct mbus_msg	*next;
@@ -56,7 +55,8 @@ struct mbus_msg {
 	char		*dest;
 	int		 reliable;
 	int		 seqnum;
-	int		 rtcnt;
+	int		 retransmit_count;
+	int		 message_size;
 	int		 num_cmds;
 	char		*cmd_list[MBUS_MAX_QLEN];
 	char		*arg_list[MBUS_MAX_QLEN];
@@ -124,7 +124,7 @@ static void resend(struct mbus *m, struct mbus_msg *curr)
 	}
 	debug_msg("### resending %d\n", curr->seqnum);
 	udp_send(m->s, buffer, bufp - buffer);
-	curr->rtcnt++;
+	curr->retransmit_count++;
 }
 
 void mbus_retransmit(struct mbus *m)
@@ -152,15 +152,15 @@ void mbus_retransmit(struct mbus *m)
 	/* Note: We only send one retransmission each time, to avoid
 	 * overflowing the receiver with a burst of requests...
 	 */
-	if ((diff > 750) && (curr->rtcnt == 2)) {
+	if ((diff > 750) && (curr->retransmit_count == 2)) {
 		resend(m, curr);
 		return;
 	} 
-	if ((diff > 500) && (curr->rtcnt == 1)) {
+	if ((diff > 500) && (curr->retransmit_count == 1)) {
 		resend(m, curr);
 		return;
 	} 
-	if ((diff > 250) && (curr->rtcnt == 0)) {
+	if ((diff > 250) && (curr->retransmit_count == 0)) {
 		resend(m, curr);
 		return;
 	}
@@ -215,12 +215,10 @@ void mbus_send(struct mbus *m)
 	int		 i;
 
 	if (m->waiting_ack != NULL) {
-		debug_msg("Still waiting an ACK, not sending this time...\n");
 		return;
 	}
 
 	while (curr != NULL) {
-		/* FIXME: This code is broken since it doesn't check for overflow of buffer */
 		memset(buffer, 0, MBUS_BUF_SIZE);
 		sprintf(bufp, "mbus/1.0 %6d %c (%s) %s ()\n", curr->seqnum, curr->reliable?'R':'U', m->addr[0], curr->dest);
 		bufp += strlen(m->addr[0]) + strlen(curr->dest) + 25;
@@ -254,27 +252,30 @@ void mbus_qmsg(struct mbus *m, char *dest, const char *cmnd, const char *args, i
 	/* actually sent until mbus_send() is called.         */
 	struct mbus_msg	*curr = m->cmd_queue;
 	struct mbus_msg	*prev = NULL;
+	int		 alen = strlen(cmnd) + strlen(args) + 4;
 
 	while (curr != NULL) {
-		if (mbus_addr_match(curr->dest, dest) && (curr->num_cmds < MBUS_MAX_QLEN)) {
+		if (mbus_addr_match(curr->dest, dest) && (curr->num_cmds < MBUS_MAX_QLEN) && ((curr->message_size + alen) < MBUS_BUF_SIZE)) {
 			curr->num_cmds++;
 			curr->reliable |= reliable;
 			curr->cmd_list[curr->num_cmds-1] = xstrdup(cmnd);
 			curr->arg_list[curr->num_cmds-1] = xstrdup(args);
+			curr->message_size += alen;
 			return;
 		}
 		prev = curr;
 		curr = curr->next;
 	}
 	curr = (struct mbus_msg *) xmalloc(sizeof(struct mbus_msg));
-	curr->next        = NULL;
-	curr->dest        = xstrdup(dest);
-	curr->rtcnt       = 0;
-	curr->seqnum      = m->seqnum++;
-	curr->reliable    = reliable;
-	curr->num_cmds    = 1;
-	curr->cmd_list[0] = xstrdup(cmnd);
-	curr->arg_list[0] = xstrdup(args);
+	curr->next             = NULL;
+	curr->dest             = xstrdup(dest);
+	curr->retransmit_count = 0;
+	curr->message_size     = alen + 25 + strlen(dest) + strlen(m->addr[0]);
+	curr->seqnum           = m->seqnum++;
+	curr->reliable         = reliable;
+	curr->num_cmds         = 1;
+	curr->cmd_list[0]      = xstrdup(cmnd);
+	curr->arg_list[0]      = xstrdup(args);
 	if (prev == NULL) {
 		m->cmd_queue = curr;
 	} else {
