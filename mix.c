@@ -206,7 +206,6 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 		ms->head_time += diff;
 		ms->head_time += diff/ms->channels;
 	}
-printf("head_time=%ld tail_time=%ld\n", ms->head_time, ms->tail_time);
 	mix_add(ms, buf, pos, len);
 	el->mixed = TRUE;
 }
