@@ -883,10 +883,12 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
          */
 
         /* Split channel coder units up into media units */
-        channel_decoder_decode(src->channel_state,
-                               src->channel,
-                               src->media,
-                               now);
+        if (pb_node_count(src->channel)) {
+                channel_decoder_decode(src->channel_state,
+                                       src->channel,
+                                       src->media,
+                                       now);
+        }
 
         src_freq = get_freq(src->pdbe->clock);
         step = ts_map32(src_freq, src->pdbe->inter_pkt_gap / src->pdbe->units_per_packet);
@@ -1086,7 +1088,8 @@ source_get_playout_delay (source *src, ts_t now)
 
         if ((pb_get_end_ts(src->channel, &end) || pb_get_end_ts(src->media, &end)) &&
             ts_gt(end, now)) {
-                return ts_sub(end, now);
+                ts_t delta = ts_sub(end, now);
+                return delta;
         }
 
         return ts_map32(8000,0);
@@ -1097,6 +1100,10 @@ source_relevant(source *src, ts_t now)
 {
         ts_t keep_source_time;
         assert(src);
+
+        if (src->age < 50) {
+                return TRUE;
+        }
 
         keep_source_time = ts_map32(8000, 2000); /* 1 quarter of a second */
 
