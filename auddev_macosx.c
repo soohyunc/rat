@@ -593,7 +593,6 @@ int  macosx_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 
 int macosx_audio_write(audio_desc_t ad, u_char* data, int write_bytes)
 {
-        debug_msg("macosx_audio_write\n");
 	UNUSED(ad);
 	// Don't do anything if output is not supported.
 	//return write_bytes;
@@ -710,7 +709,6 @@ const audio_port_details_t* macosx_audio_iport_details(audio_desc_t ad, int idx)
 int  macosx_audio_is_ready(audio_desc_t ad)
 {
 	UNUSED(ad);
-	debug_msg("macosx_audio_is_ready\n");
 	return (availableInput_ != NULL);
 }
 
