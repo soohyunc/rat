@@ -119,7 +119,7 @@ add_or_get_interval(ppb_t *buf, rx_queue_element_struct *ru)
 	return (*ipp);
 }
 
-#define MAX_FILLIN_UNITS 8
+#define MAX_FILLIN_UNITS 32
 
 static int
 fillin_playout_buffer(ppb_t *buf,
@@ -133,14 +133,15 @@ fillin_playout_buffer(ppb_t *buf,
 
         playout_step = ts_abs_diff(from->playoutpt, to->playoutpt) * 
                 from->unit_size / ts_abs_diff(from->src_ts, to->src_ts);
+
 #ifdef DEBUG_PLAYOUT
         if (playout_step > 4*from->unit_size) {
                 dprintf("playout_step is large %d.\n",
                         playout_step);
         }
 #endif
-        last = from;
 
+        last = from;
         while(last->src_ts + last->unit_size != to->src_ts &&
               units_made < MAX_FILLIN_UNITS) {
 
@@ -167,7 +168,9 @@ fillin_playout_buffer(ppb_t *buf,
 
         assert(units_made>0);
 #ifdef DEBUG_PLAYOUT
-        dprintf("Allocated %d new units\n",units_made);
+        dprintf("Allocated %d new units with separation %d\n",
+                units_made,
+                playout_step);
 #endif /* DEBUG_PLAYOUT */
         return units_made;
 }
