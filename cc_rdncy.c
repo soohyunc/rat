@@ -50,7 +50,7 @@
 
 typedef struct s_red_layer {
         codec_id_t          cid;
-        u_int32             units_off;
+        u_int32             pkts_off;
 } red_layer;
 
 typedef struct {
@@ -291,7 +291,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
         channel_data_create(&cd_part, 0);
 
         for(lidx = 0; lidx < re->n_layers; lidx++) {
-                for(i = 0; i < re->layer[lidx].units_off; i++) {
+                for(i = 0; i < re->layer[lidx].pkts_off * upp; i++) {
                         pb_iterator_retreat(pbm);
                 }
                 units = make_pdu(re->media_buffer, pbm, re->layer[lidx].cid, cd_part, upp);
@@ -315,7 +315,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
                 /* Put maximum offset info if not present in the packet */
                 add_hdr(cd_out, RED_EXTRA, 
                         re->layer[re->n_layers - 1].cid, 
-                        re->layer[re->n_layers - 1].units_off,
+                        re->layer[re->n_layers - 1].pkts_off * upp,
                         0);
         }
 
@@ -323,7 +323,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
         while(lidx != 0) {
                 add_hdr(cd_out, RED_EXTRA,
                         re->layer[lidx].cid,
-                        re->layer[lidx].units_off,
+                        re->layer[lidx].pkts_off * upp,
                         cd_part->elem[lidx]->data_len);
                 cd_out->elem[cd_out->nelem] = cd_part->elem[lidx];
                 cd_out->nelem ++;
@@ -333,7 +333,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
         /* Now the primary and it's header */
         add_hdr(cd_out, RED_PRIMARY,
                 re->layer[lidx].cid,
-                re->layer[lidx].units_off,
+                re->layer[lidx].pkts_off * upp,
                 cd_part->elem[lidx]->data_len);
         cd_out->elem[cd_out->nelem] = cd_part->elem[lidx];
         cd_out->nelem++;
@@ -406,7 +406,7 @@ int
 redundancy_encoder_set_parameters(u_char *state, char *cmd)
 {
         red_enc_state *n;
-        u_int32 nl, uo;
+        u_int32 nl, po;
         codec_id_t  cid;
         char *s;
 
@@ -425,15 +425,15 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
         }
 
         s = strtok(NULL, "/");
-        uo = atoi(s);
+        po = atoi(s);
 
-        if (uo > 20) {
+        if (po > 20) {
                 debug_msg("offset too big\n");
                 goto done;
         }
         
         n->layer[0].cid       = cid;
-        n->layer[0].units_off = uo;
+        n->layer[0].pkts_off  = po;
         n->n_layers           = 1;
 
         while (n->n_layers < RED_MAX_LAYERS) {
@@ -450,14 +450,14 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
                         debug_msg("Incomplete layer info\n");
                         goto done;
                 }
-                uo = atoi(s);
-                if (uo > 20) {
+                po = atoi(s);
+                if (po > 20) {
                         debug_msg("offset too big\n");
                         goto done;
                 }
         
-                n->layer[n->n_layers].cid       = cid;
-                n->layer[n->n_layers].units_off = uo;
+                n->layer[n->n_layers].cid      = cid;
+                n->layer[n->n_layers].pkts_off = po;
                 n->n_layers ++;
         }
 
@@ -497,7 +497,7 @@ redundancy_encoder_get_parameters(u_char *state, char *buf, u_int32 blen)
                 sprintf(frag,
                         "%s/%ld/",
                         cf->long_name,
-                        r->layer[i].units_off);
+                        r->layer[i].pkts_off);
                 flen += strlen(frag);
                 if (used+flen > blen) {
                         debug_msg("buffer overflow would have occured.\n");

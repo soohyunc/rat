@@ -847,24 +847,88 @@ static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
         ui_update_converter(sp);
 }
 
+
+/* set_red_parameters translates what mbus_receives into command 
+ * redundancy encoder understands.
+ */
+
+static void
+set_red_parameters(session_struct *sp, char *sec_enc, int offset)
+{
+        const codec_format_t *pcf, *rcf;
+        codec_id_t            pri_id, red_id;
+        char *cmd;
+        int   clen;
+        assert(offset>0);
+
+        pri_id = codec_get_by_payload(sp->encodings[0]);
+        pcf    = codec_get_format(pri_id);
+        red_id = codec_get_matching(sec_enc, pcf->format.sample_rate, pcf->format.channels);
+        if (!codec_id_is_valid(red_id)) {
+                debug_msg("Failed to get redundant codec requested (%s)\n", sec_enc);
+                red_id = pri_id;  /* Use same as primary */
+        }
+        rcf = codec_get_format(red_id);
+
+        /* Offset is in packets, redundancy encoder wants units */
+        offset *= 
+
+        clen = 2 * (CODEC_LONG_NAME_LEN + 4);
+        cmd  = (char*)xmalloc(clen);
+        sprintf(cmd, "%s/%d/%s/%d", pcf->long_name, 0, rcf->long_name, offset);
+ 
+        xmemchk();
+        if (channel_encoder_set_parameters(sp->channel_coder, cmd) == 0) {
+                debug_msg("Red command failed: %s\n", cmd);
+        }
+        xmemchk();
+        xfree(cmd);
+        /* Now tweak session parameters */
+        sp->num_encodings = 2;
+        sp->encodings[1]  = codec_get_payload(red_id);
+}
+
+/* This function is a bit nasty because it has to coerce what the
+ * mbus gives us into something the channel coders understand.  In addition,
+ * we assume we know what channel coders are which kind of defies point
+ * 'generic' structure but that's probably because it's not generic enough.
+ */
 static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
 {
         cc_details   ccd;
-        char        *coding;
-        int          i, n;
+        char        *coding, *sec_enc;
+        int          i, n, offset;
+        u_int16      upp;
 
 	UNUSED(srce);
 
         mbus_parse_init(sp->mbus_engine, args);
         if (mbus_parse_str(sp->mbus_engine, &coding)) {
                 mbus_decode_str(coding);
-                
+
+                upp = channel_encoder_get_units_per_packet(sp->channel_coder);
                 n = channel_get_coder_count();
                 for(i = 0; i < n; i++) {
                         channel_get_coder_details(i, &ccd);
                         if (strncasecmp(ccd.name, coding, 3) == 0) {
-                                channel_encoder_destroy(&sp->channel_coder);
-                                channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+                                switch(tolower(ccd.name[0])) {
+                                case 'n':   /* No channel coding */
+                                        sp->num_encodings = 1;
+                                        channel_encoder_destroy(&sp->channel_coder);
+                                        channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+                                        channel_encoder_set_units_per_packet(sp->channel_coder, upp);
+                                break;
+                                case 'r':   /* Redundancy -> extra parameters */
+                                        if (mbus_parse_str(sp->mbus_engine, &sec_enc) &&
+                                            mbus_parse_int(sp->mbus_engine, &offset)) {
+                                                mbus_decode_str(sec_enc);
+                                                channel_encoder_destroy(&sp->channel_coder);
+                                                channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+                                                channel_encoder_set_units_per_packet(sp->channel_coder, upp);
+                                                set_red_parameters(sp, sec_enc, offset);
+                                        }
+                                        break;
+                                }
                                 break;
                         }
                 }
