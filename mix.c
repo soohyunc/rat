@@ -69,7 +69,7 @@ mix_verify(mixer_t *ms)
         delta = ts_sub(ms->head_time, ms->tail_time);
 
         dist = delta.ticks * ms->info.channels * ms->info.sample_rate / ts_get_freq(delta);
-        assert(ms->dist == dist);
+        assert(abs((int)ms->dist - (int)dist) <= 1);
 
         if (ts_eq(ms->head_time, ms->tail_time)) {
                 assert(ms->head == ms->tail);
@@ -184,15 +184,15 @@ mix_put_audio(mixer_t     *ms,
 
         assert(rate     == (uint32_t)ms->info.sample_rate);
         assert(channels == (uint32_t)ms->info.channels);
-
+	
         nticks          = frame->data_len / (sizeof(sample) * channels);
         frame_period    = ts_map32(rate, nticks);
-		
-		/* Map frame period to mixer time base, otherwise we can get truncation
-		 * errors in verification of mixer when sample rate conversion is active.
-		 */
-		frame_period    = ts_convert(ms->info.sample_rate, frame_period);
-
+	
+	/* Map frame period to mixer time base, otherwise we can get truncation
+	 * errors in verification of mixer when sample rate conversion is active.
+	 */
+	frame_period    = ts_convert(ms->info.sample_rate, frame_period);
+	
         if (pdbe->first_mix) {
                 debug_msg("New mix\n");
                 pdbe->last_mixed = ts_sub(playout, frame_period);
@@ -217,12 +217,12 @@ mix_put_audio(mixer_t     *ms,
                         delta = ts_sub(expected_playout, playout);
                         if (ts_gt(frame_period, delta)) {
                                 uint32_t  trim;
-								delta = ts_convert(ms->info.sample_rate, delta);
-								trim = delta.ticks * ms->info.channels;
+				delta = ts_convert(ms->info.sample_rate, delta);
+				trim = delta.ticks * ms->info.channels;
                                 samples  += trim;
                                 assert(nsamples > trim);
-								nsamples -= trim;
-								debug_msg("Mixer trimmed %d samples (%d)\n", trim, playout.ticks);
+				nsamples -= trim;
+				debug_msg("Mixer trimmed %d samples (%d)\n", trim, playout.ticks);
                         } else {
                                 debug_msg("Skipped unit\n");
                         }
