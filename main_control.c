@@ -436,6 +436,51 @@ cmd_redundancy(struct mbus *m, char *addr, int argc, char *argv[])
         return FALSE;
 }
 
+static void
+cmd_sdes(struct mbus *m, char *addr, const char *msg_name, const char *value)
+{
+        char *sdes_value, *local_user;
+        local_user = mbus_encode_str("localuser");
+        sdes_value = mbus_encode_str(value);
+        mbus_qmsgf(m, addr, TRUE, msg_name, "%s %s", local_user, sdes_value);
+        xfree(local_user);
+        xfree(sdes_value);
+}
+
+static int
+cmd_sdes_name(struct mbus *m, char *addr, int argc, char *argv[]) {
+        assert(argc == 1);
+        UNUSED(argc);
+        cmd_sdes(m, addr, "rtp.source.name", argv[0]);
+        return TRUE;
+}
+
+static int
+cmd_sdes_email(struct mbus *m, char *addr, int argc, char *argv[]) {
+        assert(argc == 1);
+        UNUSED(argc);
+        cmd_sdes(m, addr, "rtp.source.email", argv[0]);
+        return TRUE;
+}
+
+static int
+cmd_sdes_phone(struct mbus *m, char *addr, int argc, char *argv[]) {
+        assert(argc == 1);
+        UNUSED(argc);
+        cmd_sdes(m, addr, "rtp.source.phone", argv[0]);
+        return TRUE;
+}
+
+static int
+cmd_sdes_loc(struct mbus *m, char *addr, int argc, char *argv[]) {
+        assert(argc == 1);
+        UNUSED(argc);
+        cmd_sdes(m, addr, "rtp.source.loc", argv[0]);
+        return TRUE;
+}
+
+
+
 typedef struct {
         const char *cmdname;                               /* Command line flag */
         int       (*cmd_proc)(struct mbus *m, char *addr, int argc, char *argv[]); /* TRUE = success, FALSE otherwise */
@@ -447,9 +492,13 @@ static args_handler late_args[] = {
         { "-allowloopback",  cmd_allowloop,    0 },
         { "-allow_loopback", cmd_allowloop,    0 },
         { "-C",              cmd_session_name, 1 },
+        { "-E",              cmd_sdes_email,   1 },
         { "-pt",             cmd_payload_map,  1 },
         { "-crypt",          cmd_crypt,        1 },
         { "-K",              cmd_crypt,        1 },
+        { "-L",              cmd_sdes_loc,     1 },
+        { "-N",              cmd_sdes_name,    1 },
+        { "-P",              cmd_sdes_phone,   1 },
         { "-agc",            cmd_agc,          1 },
         { "-silence",        cmd_silence,      1 },
         { "-repair",         cmd_repair,       1 },

@@ -1245,6 +1245,8 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	- Round ttl to maximum of 127.
 	- Change parse_args_early in main_control.c to pass over all args.
 	  (problem reported by Didier Lambllais).
+	- Add -N,-E,-P,-L for sdes item setting from command-line (name, email,
+	  phone, location).
 
 TODO -- They're features not bugs dammit!
 ----
