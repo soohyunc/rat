@@ -296,7 +296,7 @@ single_side_pattern_match(sample **audio_buf, const audio_format **audio_fmt, in
 {
         uint16_t match_length;
         sample *pat, *dst;
-        int remain;
+        int remain, bytes_per_sample;
 
         if ((audio_buf[missing - 1] == NULL) || 
             (nbufs < 2)) {
@@ -304,16 +304,19 @@ single_side_pattern_match(sample **audio_buf, const audio_format **audio_fmt, in
                 return FALSE;
         }
 
+	bytes_per_sample = audio_fmt[missing]->bits_per_sample * 
+		audio_fmt[missing]->channels / 8;
+
         match_length = get_match_length(audio_buf[missing-1], audio_fmt[missing-1], MATCH_WINDOW);
 
-        remain = audio_fmt[missing]->bytes_per_block * 8 / (audio_fmt[missing]->bits_per_sample * audio_fmt[missing]->channels);
+        remain = audio_fmt[missing]->bytes_per_block / bytes_per_sample;
         pat = audio_buf[missing-1] + (remain - match_length) * audio_fmt[missing]->channels;
         dst = audio_buf[missing];
         while(remain > 0) {
-                memcpy(dst, pat, match_length * audio_fmt[missing]->channels * audio_fmt[missing]->bits_per_sample / 8);
+                match_length = min(remain, match_length);
+                memcpy(dst, pat, match_length * bytes_per_sample);
                 remain -= match_length;
                 dst    += match_length;
-                match_length = min(remain, match_length);
         }
 
         if (consec_lost > 0) {
@@ -452,7 +455,6 @@ repair(repair_id_t                 r,
                 bufs[1] = (sample*) missing->data;
                 
                 schemes[r].action(bufs, pfmts, 2, 1, consec_lost);
-		bufs[1][0] = 32767;
                 return TRUE;
         } else {
                 debug_msg("No native audio in previous unit to use for repair\n");
