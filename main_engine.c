@@ -354,6 +354,7 @@ int main(int argc, char *argv[])
 	xfree(token);
 	xfree(token_e);
 	xmemdmp();
+	debug_msg("Media engine exit\n");
 	return 0;
 }
 

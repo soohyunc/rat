@@ -465,7 +465,7 @@ int main(int argc, char *argv[])
 #ifdef WIN32
         WSACleanup();
 #endif
-
+	debug_msg("Controller exit\n");
 	return 0;
 }
 

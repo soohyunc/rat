@@ -30,6 +30,7 @@ pid_t    ppid;
 int	 ui_active   = FALSE;
 int	 should_exit = FALSE;
 int	 got_detach  = FALSE;
+int	 got_quit    = FALSE;
 
 static void parse_args(int argc, char *argv[])
 {
@@ -178,8 +179,7 @@ int main(int argc, char *argv[])
 	} while (!mbus_sent_all(m));
 
 	debug_msg("Waiting for mbus.quit() from controller...\n");
-	should_exit = FALSE;
-	while (!should_exit) {
+	while (!got_quit) {
 		mbus_heartbeat(m, 1);
 		mbus_retransmit(m);
 		mbus_send(m);
@@ -202,6 +202,7 @@ int main(int argc, char *argv[])
 #ifdef WIN32
         TkWinXCleanup(hAppInstance);
 #endif
+	debug_msg("User interface exit\n");
         return 0;
 }
 

@@ -23,6 +23,7 @@ extern char 	*e_addr;
 extern int	 ui_active;
 extern int	 should_exit;
 extern int	 got_detach;
+extern int	 got_quit;
 
 /* Mbus command reception function type */
 typedef void (*mbus_rx_proc)(char *srce, char *args);
@@ -69,6 +70,7 @@ static void rx_mbus_quit(char *srce, char *args)
 {
 	UNUSED(args);
 	should_exit = TRUE;
+	got_quit    = TRUE;
 	debug_msg("Got mbus.quit() from %s\n", srce);
 }
 
