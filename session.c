@@ -158,81 +158,116 @@ end_session(session_struct *sp)
         source_list_destroy(&sp->active_sources);
 }
 
-static void 
-parse_early_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
+static int 
+parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num_sessions)
 {
-	/* Parse command-line options common to all the modes of operation.     */
-	/* Variables: i scans through the options, s scans through the sessions */
-	/* This is for options set initially, before the main initialisation is */
-	/* done. For example, the UI is not yet setup, and anything initialised */
-	/* there will overwrite changes made here...                            */
-	int i, s;
+	/* Parse command-line options common to all the modes of
+         * operation.  Variables: i scans through the options, s scans
+         * through the sessions This is for options set initially,
+	 * before the main initialisation is done. For example, the UI
+	 * is not yet setup, and anything initialised there will
+	 * overwrite changes made here...  */
 
+	int lasti, i, s, args_processed = 0;
+        lasti = 0;
 	for (i = 1; i < argc; i++) {
-		for (s = 0; s < sp_size; s++) {
-			if ((strcmp(argv[i], "-ui") == 0) && (argc > i+1)) {
-				sp[s]->ui_on   = FALSE;
-				sp[s]->ui_addr = strdup(argv[i+1]);
-			}
-            		if (strcmp(argv[i], "-allowloopback") == 0 || strcmp(argv[i], "-allow_loopback") == 0) {
-                		sp[s]->filter_loopback = FALSE;
-            		}
-			if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
+                if ((strcmp(argv[i], "-ui") == 0) && (argc > i+1)) {
+                        for(s = 0; s < num_sessions; s++) {
+                                sp[s]->ui_on   = FALSE;
+                                sp[s]->ui_addr = strdup(argv[i+1]);
+                        }
+                } else if (strcmp(argv[i], "-allowloopback") == 0 || strcmp(argv[i], "-allow_loopback") == 0) {
+                        for(s = 0; s < num_sessions; s++) {
+                                sp[s]->filter_loopback = FALSE;
+                        }
+                } else 	if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
+                        for(s = 0; s < num_sessions; s++) {
                                 strncpy(sp[s]->title, argv[i+1], SESSION_TITLE_LEN);
-				i++;
-			}
-			if (strcmp(argv[i], "-wait") == 0) {
-				sp[s]->wait_on_startup = TRUE;
-			}
-			if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
-				sp[s]->ttl = atoi(argv[i + 1]);
-				if (sp[s]->ttl > 255) {
-					usage();
-				}
-				i++;
-			}
-			if ((strcmp(argv[i], "-p") == 0) && (argc > i+1)) {
-				if ((thread_pri = atoi(argv[i + 1])) > 3) {
-					usage();
-				}
-				i++;
-			}
-			if ((strcmp(argv[i], "-drop") == 0) && (argc > i+1)) {
-                        	sp[s]->drop = (float)atof(argv[++i]);
-                        	if (sp[s]->drop > 1.0) {
-                                	sp[s]->drop = sp[s]->drop/100;
-                        	}
-				i++;
-                	}
-                	if (strcmp(argv[i], "-seed") == 0) {
-                        	srand48(atoi(argv[++i]));
-                	}
-			if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
-                		/* Dynamic payload type mapping. Format: "-pt pt/codec/clock/channels" */
-				/* pt/codec must be specified. clock and channels are optional.        */
-				/* At present we only support "-pt .../redundancy"                     */
-                                codec_id_t cid;
-                                char *t;
-                                int pt;
-				pt = atoi(strtok(argv[i + 1], "/"));
-				if ((pt > 127) || (pt < 96)) {
-					printf("Dynamic payload types must be in the range 96-127. So there.\n");
-					usage();
-				}
-                                t = strtok(NULL, "/");
-                                cid = codec_get_by_name(t);
-                                if (cid) {
-                                        codec_map_payload(cid, (u_char)pt);
-                                        if (codec_get_payload(cid) != pt) {
-                                                printf("Payload %d either in use or invalid.\n", pt);
-                                        }
+                        }
+                        i++;
+                } else if (strcmp(argv[i], "-wait") == 0) {
+                        for(s = 0; s < num_sessions; s++) {
+                                sp[s]->wait_on_startup = TRUE;
+                        }
+                } else if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
+                        int ttl = atoi(argv[i + 1]);
+                        if (ttl > 255) {
+                                fprintf(stderr, "ttl must be in the range 0 to 255.\n");
+                                usage();
+                        }
+                        for(s = 0; s < num_sessions; s++) {
+                                sp[s]->ttl = ttl;
+                        }
+                        i++;
+                } else if ((strcmp(argv[i], "-p") == 0) && (argc > i+1)) {
+                        if ((thread_pri = atoi(argv[i + 1])) > 3) {
+                                usage();
+                        }
+                        i++;
+                } else if ((strcmp(argv[i], "-drop") == 0) && (argc > i+1)) {
+                        double drop;
+                        drop = (float)atof(argv[++i]);
+                        if (drop > 1.0) {
+                                drop = drop/100.0;
+                        }
+                        printf("Drop probability %.4f\n", drop);
+                        for(s = 0; s < num_sessions; s++) {
+                                sp[s]->drop = drop;
+                        }
+                } else if (strcmp(argv[i], "-seed") == 0) {
+                        srand48(atoi(argv[++i]));
+                } else if (strcmp(argv[i], "-codecs") == 0) {
+                        const codec_format_t *cf;
+                        codec_id_t            cid;
+                        u_int32     n_codecs, idx;
+                        u_char      pt;
+                        n_codecs = codec_get_number_of_codecs();
+                        printf("# <name> <rate> <channels> [<payload>]\n");
+                        for(idx = 0; idx < n_codecs; idx++) {
+                                cid = codec_get_codec_number(idx);
+                                cf  = codec_get_format(cid);
+                                printf("%s\t\t%5d %d", 
+                                       cf->long_name,
+                                       cf->format.sample_rate,
+                                       cf->format.channels);
+                                pt = codec_get_payload(cid);
+                                if (pt<=127) {
+                                        printf(" %3u\n", pt);
                                 } else {
-                                        printf("Codec %s not recognized, check name.\n", t);
+                                        printf("\n");
                                 }
-                                i++;
-			}
+                        }
+                } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
+                        /* Dynamic payload type mapping. Format: "-pt pt/codec/clock/channels" */
+                        /* pt/codec must be specified. clock and channels are optional.        */
+                        /* At present we only support "-pt .../redundancy"                     */
+                        codec_id_t cid;
+                        char *t;
+                        int pt;
+                        pt = atoi(strtok(argv[i + 1], "/"));
+                        if ((pt > 127) || (pt < 96)) {
+                                printf("Dynamic payload types must be in the range 96-127.\n");
+                                usage();
+                        }
+                        t = strtok(NULL, "/");
+                        cid = codec_get_by_name(t);
+                        if (cid) {
+                                codec_map_payload(cid, (u_char)pt);
+                                if (codec_get_payload(cid) != pt) {
+                                        printf("Payload %d either in use or invalid.\n", pt);
+                                }
+                        } else {
+                                printf("Codec %s not recognized, check name.\n", t);
+                        }
+                        i++;
+                } else {
+                        break;
                 }
-	}
+                args_processed += i - lasti;
+                lasti = i;
+        }
+        debug_msg("Processed %d / %d args\n", args_processed, argc);
+        return args_processed;
 }
 
 static void 
@@ -316,7 +351,17 @@ parse_early_options(int argc, char *argv[], session_struct *sp[])
 		sp[0]->mode = AUDIO_TOOL;
 		num_sessions= 1;
 	}
-	parse_early_options_common(argc, argv, sp, num_sessions);
+
+        if (parse_early_options_common(argc, argv, sp, num_sessions) > argc - 2) {
+                /* parse_early_options commmon returns number of args processed.
+                 * At least two argv[0] (the appname) and argv[argc - 1] (address)
+                 * should not be processed.  Other args may not ve processed, but
+                 * these should be picked up by parse_late_* or the audiotool/transcoder
+                 * specific bits.  Hopefully more people will RTFM.
+                 */
+                usage();
+        }
+
 	switch (sp[0]->mode) {
 		case AUDIO_TOOL: parse_early_options_audio_tool(argc, argv, sp[0]);
 				 break;
@@ -324,6 +369,7 @@ parse_early_options(int argc, char *argv[], session_struct *sp[])
 				 break;
 		default        : abort();
 	}
+
 	for (i=0; i<num_sessions; i++) {
 		if (sp[i]->rtp_port == 0) {
 			usage();
