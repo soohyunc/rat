@@ -308,7 +308,7 @@ rtp_header_validation(rtp_hdr_t *hdr, int32 *len, int *extlen)
 	}
 
 	/* Check for valid audio payload types... */
-	if (((hdr->pt > 23) && (hdr->pt < 96)) || (hdr->pt > 127)) {
+	if (((hdr->pt > 23) && (hdr->pt < 33)) || ((hdr->pt > 71) && (hdr->pt < 77)) || (hdr->pt > 127)) {
 		debug_msg("rtp_header_validation: payload-type out of audio range\n");
 		return FALSE;
 	}
