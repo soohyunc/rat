@@ -200,7 +200,7 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
 	if (sp->have_device) {
                 u_int16 channels = audio_get_channels();
                 if (sp->out_file) {
-                        snd_write_audio(&sp->out_file, buf, dur * channels);
+                        snd_write_audio(&sp->out_file, buf,(u_int16)(dur * channels));
                 }
 		if (sp->mode == TRANSCODER) {
 			return transcoder_write(sp->audio_fd, buf, dur*cp->channels);
