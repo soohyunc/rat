@@ -1459,6 +1459,9 @@ v4.2.11	- Fix port restoration when changing device (Shirasaki Yasuhiro)
 	- Change newpcm_audio_open() to use SNDCTL_DSP_SETFRAGMENT from 
 	  SNDCTL_DSP_SETBLKSIZE.  The latter creates just 2 frags in 
 	  secondary buffer and this is not enough for cushion fill levels.
+	- Fix breakage due to "gcc 2.96" shipped with Red Hat Linux 7
+
+
 
 TODO -- They're features not bugs dammit!
 ----

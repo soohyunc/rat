@@ -34,8 +34,8 @@ static const char cvsid[] =
 #define ENGINE_NAME  "ratmedia.exe"
 #define CONTROL_NAME "rat.exe"
 #else
-#define UI_NAME      "rat-"##RAT_VERSION##"-ui"
-#define ENGINE_NAME  "rat-"##RAT_VERSION##"-media"
+#define UI_NAME      "rat-"RAT_VERSION"-ui"
+#define ENGINE_NAME  "rat-"RAT_VERSION"-media"
 #endif
 
 #define DEFAULT_RTP_PORT 5004
