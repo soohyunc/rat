@@ -1512,12 +1512,11 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 		(a) Crash in convert_sinc.c:
 			convert_sinc.c:134: failed assertion
 			convert_sinc.c:122: failed assertion
-			rat-4.2.8-media: util.c:87: _block_alloc: Assertion 
-			`size > 0' failed.  
+			util.c:87: _block_alloc: Assertion `size > 0' failed.  
 		    reported by Greg Herlein.
 		(b) Another crash in convert_sinc.c:
-			convert_sinc.c:1107: sinc_upsample_stereo: Assertion 
-			`out == dst + dst_len' failed.
+			convert_sinc.c:1107: sinc_upsample_stereo: 
+			Assertion `out == dst + dst_len' failed.
  		    reported by <thavaqos@yahoo.com>
 	- Change linear converter to use same structure arrangement as sinc
 	  converter and fix linear converter selection bug (derived from 
@@ -1548,7 +1547,9 @@ TODO -- They're features not bugs dammit!
 	  G722, and "CD Quality" audio: it may do, but you can't access them.
 	- SGI O2's don't have autosensing audio interface selection like 
 	  Indy's.
-	- Thierry still has problems with the NM256 card and device pairing
+	- Linux/OSS driver is buggy
+		- Thierry still has problems with the NM256 card and device pairing
+		- Some cards are not detected correctly
 - Update the 3d audio rendering code
 	- should decimate when using sampling rates other than that for which 
 	  it was originally designed for.
@@ -1558,9 +1559,6 @@ TODO -- They're features not bugs dammit!
 - Channel coders need intelligent bail out fn's for when units overflow 
   (rare, but real problem).
 - UI lets you select packets larger than the MTU, which can't be sent
-- Disabling participant list doesn't work if the window has been resized:
-  not sure if this is a feature of Tk or the window manager, but there's 
-  little we can do about it.
 - Reimplement transcoder.
 	- Convertors need to be moved into the session struct, rather than being 
 	  statically allocated.
@@ -1582,33 +1580,19 @@ TODO -- They're features not bugs dammit!
   rather than a specific bug, and the correct solution is to get everyone
   to update to rat-4.x
 - Handling of SSRC collisions is broken
-- Make rtp.addr() with an rx_port of 0, when sent to the media engine, mean
-  that the media engine should get the kernel to select a receive RTP port.
-  Requested by Joerg Ott.
 - Rework media engine initialization, so we can query it before sending
   rtp.addr()
-- send doesn't always send. Several times when I turn on the mic nothing
-  is sent. The mic-volumebar doesn't move. Turning on-off a couple of
-  times help (couple = 1-3 times). Reported by Peter Parnes.
 - when rat starts it turns of "playback-mute" on the mic input which
   gives feedback for the mic. Muting it via the audio control turns of the
   feedback. Note that record-mute and playback-mute is not the same thing.
   Reported by Peter Parnes. [Depends on feedback settings and platform, oh].
 - Add ability to change RTP sessions whilst rat is running. Requested by
   lots of people (Robert Olson, Joerg Ott, etc).
-- option to allow operation on odd-numbered RTP ports
-	- should be a "-not-really-standards-compliant" option, which also 
-	  turns off things like the requirement to receive for RTCP packets 
-	  before accepting a stream.
-	- Requested by Joerg Ott
 - When weak RTP validation is enabled, spurious sources can be
   added to the database (from the CSRC area of a packet?). Reported
   by Xiaotao Wu <xiaotaow@cs.columbia.edu>
 - Crashes on WinNT if another version of Tcl/Tk is installed on the machine?
   Reported by Didier Lamballais <Didier.Lamballais@irisa.fr>.
-- Problems with the configure script on Irix 6.2. Works for Orion, but not
-  for me. Must be something in the environment, or a software version issue
-  but I don't know what...
 - Excessive end-to-end delay on Windows? Gerry Wolfson. [The scale of delay
   is order of magnitude greater than observed on UCL machines, direct sound
   sound driver anyone...].
@@ -1616,3 +1600,4 @@ TODO -- They're features not bugs dammit!
 - Build problems on Windows: some of the *.dsp/*.dsw files have unix end of
   line characters which cause problems for some versions of VC++? Reported
   by Fulvio Risso <risso@polito.it>
+
