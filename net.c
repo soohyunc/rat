@@ -59,6 +59,7 @@
 #include "mbus.h"
 #include "mbus_ui.h"
 #include "mbus_engine.h"
+#include "ts.h"
 #include "ui.h"
 
 #ifndef INADDR_NONE
@@ -112,7 +113,7 @@ network_init(session_struct *sp)
 }
 
 void
-read_and_enqueue(socket_udp *s, u_int32 cur_time, struct s_pckt_queue *queue, int type)
+read_and_enqueue(socket_udp *s, ts_t cur_ts, struct s_pckt_queue *queue, int type)
 {
         unsigned char      *data_in, *data_out, *tmp_data;
         int                 read_len;
@@ -138,7 +139,7 @@ read_and_enqueue(socket_udp *s, u_int32 cur_time, struct s_pckt_queue *queue, in
 		pckt = pckt_queue_element_create();
 		pckt->len               = read_len;
 		pckt->pckt_ptr          = data_out;
-		pckt->arrival_timestamp = cur_time;
+		pckt->arrival = cur_time;
 		pckt_enqueue(queue, pckt);
 		block_free(data_in, PACKET_LENGTH);
 	} else {

@@ -62,6 +62,7 @@
 #include "statistics.h"
 #include "parameters.h"
 #include "transmit.h"
+#include "source.h"
 #include "mix.h"
 #include "sndfile.h"
 #include "mbus.h"
@@ -94,7 +95,8 @@ static void heartbeat(session_struct *sp, u_int32 curr_time, u_int32 interval)
 int
 main(int argc, char *argv[])
 {
-	u_int32			 ssrc, cur_time, real_time;
+	u_int32			 ssrc, cur_time, ntp_time;
+        ts_t                     cur_ts;
 	int            		 num_sessions, i, elapsed_time, alc = 0;
 	char			*cname;
 	session_struct 		*sp[2];
@@ -194,8 +196,11 @@ main(int argc, char *argv[])
 			} else {
 				elapsed_time = read_write_audio(sp[i], sp[i], sp[i]->ms);
 			}
-			cur_time  = get_time(sp[i]->device_clock);
-			real_time = ntp_time32();
+			cur_time = get_time(sp[i]->device_clock);
+			ntp_time = ntp_time32();
+                        cur_ts   = ts_seq32_in(&sp[i]->decode_sequencer,
+                                               get_freq(sp[i]->device_clock),
+                                               cur_time);
 
 			timeout.tv_sec  = 0;
 			timeout.tv_usec = 0;
@@ -205,36 +210,49 @@ main(int argc, char *argv[])
 			udp_fd_set(sp[i]->rtcp_socket);
 			if (udp_select(&timeout) > 0) {
 				if (udp_fd_isset(sp[i]->rtp_socket)) {
-					read_and_enqueue(sp[i]->rtp_socket , cur_time, sp[i]->rtp_pckt_queue, PACKET_RTP);
+					read_and_enqueue(sp[i]->rtp_socket , cur_ts, sp[i]->rtp_pckt_queue, PACKET_RTP);
 				}
 				if (udp_fd_isset(sp[i]->rtcp_socket)) {
-					read_and_enqueue(sp[i]->rtcp_socket, cur_time, sp[i]->rtcp_pckt_queue, PACKET_RTCP);
+					read_and_enqueue(sp[i]->rtcp_socket, cur_ts, sp[i]->rtcp_pckt_queue, PACKET_RTCP);
 				}
 			}
 
 			tx_process_audio(sp[i]);
 
-			if (!sp[i]->playing_audio) {
-				receive_unit_audit(rx_unit_queue_p[i]);
-                                if (sp[i]->receive_buf_list) {
-                                        receive_buffers_destroy(sp[i], &sp[i]->receive_buf_list);
-                                }
-			}
-
                         if (sp[i]->sending_audio || sp[i]->last_tx_service_productive) {
                                 tx_send(sp[i]);
                         }
 
-                        statistics(sp[i], sp[i]->rtp_pckt_queue, rx_unit_queue_p[i], sp[i]->cushion, real_time);
+                        /* Process incoming packets */
+                        statistics(sp[i], 
+                                   sp[i]->rtp_pckt_queue, 
+                                   sp[i]->cushion, 
+                                   ntp_time);
 
+                        /* Process and mix active sources */
 			if (sp[i]->playing_audio) {
-				receive_buffers_process(sp[i], rx_unit_queue_p[i], &sp[i]->receive_buf_list, sp[i]->ms);
+                                struct s_source *s;
+                                int sidx, scnt;
+
+                                scnt = (int)source_list_source_count(sp[i]->active_sources);
+
+                                for(sidx = 0; sidx < scnt; sidx++) {
+                                        s = source_list_get_source_no(sp[i]->active_sources, sidx);
+                                        source_process(s, sp[i]->repair, cur_ts);
+                                        mix_process(sp[i], sp[i]->ms, s, cur_ts);
+                                        if (!source_relevant(s, cur_ts)) {
+                                                /* Remove source if it has stopped sending*/
+                                                source_remove(sp[i]->active_sources, s);
+                                                sidx--;
+                                                scnt--;
+                                        }
+                                }
 			}
 
 			if (sp[i]->mode == TRANSCODER) {
-				service_rtcp(sp[i], sp[1-i], sp[i]->rtcp_pckt_queue, cur_time, real_time);
+				service_rtcp(sp[i], sp[1-i], sp[i]->rtcp_pckt_queue, cur_time, ntp_time);
 			} else {
-				service_rtcp(sp[i],    NULL, sp[i]->rtcp_pckt_queue, cur_time, real_time);
+				service_rtcp(sp[i],    NULL, sp[i]->rtcp_pckt_queue, cur_time, ntp_time);
 			}
 
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {
@@ -265,7 +283,7 @@ main(int argc, char *argv[])
 				mbus_recv(sp[i]->mbus_engine_conf, (void *) sp[i]);
 				mbus_recv(sp[i]->mbus_ui_conf    , (void *) sp[i]);
 			}
-			heartbeat(sp[i], real_time, 10);
+			heartbeat(sp[i], ntp_time, 10);
 
                         /* wait for mbus messages - closing audio device
                          * can timeout unprocessed messages as some drivers

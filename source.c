@@ -136,9 +136,10 @@ source_list_source_count(source_list *plist)
         return plist->nsrcs;
 }
 
-struct s_rtcp_dbentry*
-source_list_get_rtcp_dbentry(source_list *plist, u_int32 n)
+source*
+source_list_get_source_no(source_list *plist, u_int32 n)
 {
+/* This obviously does not scale, but does not have to for audio! */
         source *curr;
         assert(plist != NULL);
         if (n < plist->nsrcs) {
@@ -147,13 +148,13 @@ source_list_get_rtcp_dbentry(source_list *plist, u_int32 n)
                         curr = curr->next;
                         n--;
                 }
-                return curr->dbe;
+                return curr;
         }
         return NULL;
 }
 
 source*
-source_get(source_list *plist, struct s_rtcp_dbentry *dbe)
+source_get_by_rtcp_dbentry(source_list *plist, struct s_rtcp_dbentry *dbe)
 {
         source *curr, *stop;
         assert(plist != NULL);
@@ -181,7 +182,7 @@ source_create(source_list    *plist,
 
         assert(plist != NULL);
         assert(dbe   != NULL);
-        assert(source_get(plist, dbe) != NULL);
+        assert(source_get_by_rtcp_dbentry(plist, dbe) == NULL);
 
         psrc = (source*)block_alloc(sizeof(source));
         
@@ -242,7 +243,7 @@ source_remove(source_list *plist, source *psrc)
 {
         assert(plist);
         assert(psrc);
-        assert(source_get(plist, psrc->dbe) != NULL);
+        assert(source_get_by_rtcp_dbentry(plist, psrc->dbe) != NULL);
 
         psrc->next->prev = psrc->prev;
         psrc->prev->next = psrc->next;
@@ -453,12 +454,6 @@ source_process(source *src, int repair_type, ts_t now)
                         md->rep[md->nrep] = render;
                         md->nrep++;
                 }
-
-                /* write to mixer */
-
-                cu = md->rep[md->nrep - 1];
-                assert(codec_is_native_coding(cu->id));
-                mix_add_audio(src->dbe, cu, playout);
         }
 
         /* Get rid of stale data */
@@ -477,3 +472,4 @@ source_get_sequencer(source *src)
 {
         return &src->seq;
 }
+

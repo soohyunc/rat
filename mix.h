@@ -43,22 +43,23 @@
 #ifndef _mix_h_
 #define _mix_h_
 
+#include "codec_types.h"
+
 struct s_mix_info;
-struct rx_element_tag;
 struct session_tag;
+struct s_source;
 
 struct s_mix_info *mix_create  (struct session_tag *sp, int buffer_length);
 void               mix_destroy (struct s_mix_info *ms);
-void    mix_add_audio       (struct s_rtcp_dbentry *dbe, 
-                             coded_unit *cu, 
-                             u_int32     time);
-void	mix_do_one_chunk    (struct session_tag *sp, struct s_mix_info *ms, struct rx_element_tag *el);
+
+void    mix_process(struct session_tag *sp, 
+                    struct s_mix_info  *ms,
+                    struct s_source    *sender,
+                    ts_t                now);
+
 int	mix_get_audio       (struct s_mix_info *ms, int amount, sample **bufp);
 void	mix_get_new_cushion (struct s_mix_info *ms, int last_cushion_size, int new_cushion_size, int dry_time, sample **bufp);
 void	mix_update_ui       (struct session_tag *sp, struct s_mix_info *ms);
 int     mix_active          (struct s_mix_info *ms);
-
-u_int32 mix_get_head_time   (struct s_mix_info *ms);
-u_int32 mix_get_tail_time   (struct s_mix_info *ms);
 
 #endif /* _mix_h_ */

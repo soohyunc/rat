@@ -52,8 +52,8 @@ struct s_rtcp_dbentry;
 typedef struct {
 	u_int8                 *pckt_ptr;
 	int32                   len;
-	u_int32                 arrival_timestamp;
         u_int32                 extlen;
+	ts_t                    arrival;
         ts_t                    playout;
         struct  s_rtcp_dbentry *sender;
 } pckt_queue_element;

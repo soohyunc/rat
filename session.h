@@ -125,6 +125,7 @@ typedef struct session_tag {
 	struct s_tx_buffer	            *tb;
 	struct rtp_db_tag	            *db;
         struct s_source_list                *active_sources;
+        ts_sequencer                         decode_sequencer;
         int                                  limit_playout;
         u_int32                              min_playout;
         u_int32                              max_playout;

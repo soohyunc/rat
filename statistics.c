@@ -104,7 +104,7 @@ adapt_playout(rtp_hdr_t               *hdr,
               rtcp_dbentry            *src,
 	      session_struct          *sp, 
               struct s_cushion_struct *cushion, 
-	      u_int32                  real_time)
+	      u_int32                  ntp_time)
 {
 	u_int32	var;
         u_int32 minv, maxv; 
@@ -160,7 +160,7 @@ adapt_playout(rtp_hdr_t               *hdr,
 		since_last_sr = (since_last_sr << 16) / get_freq(src->clock);
 		sendtime = (u_int32)(ntptime + since_last_sr); /* (since_last_sr << 16) / get_freq(src->clock); */
 
-		ntp_delay = real_time - sendtime; 
+		ntp_delay = ntp_time - sendtime; 
 
 		if (src->first_pckt_flag == TRUE) { 
 			src->sync_playout_delay = ntp_delay;
@@ -219,14 +219,18 @@ adapt_playout(rtp_hdr_t               *hdr,
 
                         src->delay_in_playout_calc = src->delay;
                         
-                        if (source_get(sp->active_sources, src) != 0) {
+                        if (source_get_by_rtcp_dbentry(sp->active_sources, 
+                                                       src) != 0) {
                                 /* If playout buffer is not empty
                                  * or, difference in time stamps is less than 1 sec,
                                  * we don't want playout point to be before that of existing data.
                                  */
                                 ts_t new_playout;
-                                new_playout = ts_add(src->delay, ts_map32(src_freq, var));
-                                debug_msg("Buf exists (%u) (%u)\n", src->playout.ticks, new_playout.ticks);
+                                new_playout = ts_add(src->delay, 
+                                                     ts_map32(src_freq, var));
+                                debug_msg("Buf exists (%u) (%u)\n", 
+                                          src->playout.ticks, 
+                                          new_playout.ticks);
                                 if (ts_gt(new_playout, src->playout)) {
                                         src->playout = new_playout;
                                 }
@@ -415,7 +419,7 @@ void
 statistics(session_struct          *sp,
 	   struct s_pckt_queue     *rtp_pckt_queue,
 	   struct s_cushion_struct *cushion,
-	   u_int32	            real_time)
+	   u_int32	            ntp_time)
 {
 	/*
 	 * We expect to take in an RTP packet, and decode it - read fields
@@ -433,7 +437,6 @@ statistics(session_struct          *sp,
          * 
          */
 
-        static ts_sequencer arr_seq;
         ts_t                arr_ts, src_ts;
 
 	rtp_hdr_t	   *hdr;
@@ -505,7 +508,8 @@ statistics(session_struct          *sp,
 
                 pckt->sender  = sender;
 
-                if ((src = source_get(sp->active_sources, pckt->sender)) == NULL) {
+                if ((src = source_get_by_rtcp_dbentry(sp->active_sources, 
+                                                      pckt->sender)) == NULL) {
                         src = source_create(sp->active_sources, 
                                             pckt->sender,
                                             sp->converter,
@@ -514,10 +518,7 @@ statistics(session_struct          *sp,
                         assert(src != NULL);
                 }
 
-                /* Convert arrival time in ts_t type */
-                arr_ts = ts_seq32_in(&arr_seq,
-                                     af->sample_rate,
-                                     pckt->arrival_timestamp);
+                arr_ts = pckt->arrival;
 
                 /* Convert originator timestamp in ts_t */
                 src_ts = ts_seq32_in(source_get_sequencer(src), 
@@ -530,7 +531,7 @@ statistics(session_struct          *sp,
                                               sender, 
                                               sp, 
                                               cushion, 
-                                              real_time);
+                                              ntp_time);
 
                 if (source_add_packet(src, 
                                       pckt->pckt_ptr, 

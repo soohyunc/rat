@@ -49,13 +49,13 @@
 #include "transcoder.h"
 #include "ui.h"
 #include "transmit.h"
-#include "mix.h"
 #include "audio_fmt.h"
 #include "codec_types.h"
 #include "codec.h"
+#include "mix.h"
 #include "cushion.h"
+#include "source.h"
 #include "timers.h"
-#include "receive.h"
 #include "sndfile.h"
 
 /* Zero buf used for writing zero chunks during cushion adaption */
@@ -347,7 +347,7 @@ audio_device_give(session_struct *sp)
         cushion_destroy(sp->cushion);
         mix_destroy(sp->ms);
         tx_destroy(sp);
-        receive_buffers_destroy(sp, &sp->receive_buf_list);
+        source_list_clear(sp->active_sources);
         audio_device_take(sp, audio_get_null_device());
 }
 
@@ -371,7 +371,6 @@ audio_device_reconfigure(session_struct *sp)
                         /* Formats compatible device needs no reconfig */
                         sp->encodings[0]  = sp->next_encoding;
                         sp->next_encoding = -1;
-                        channel_set_coder(sp, sp->encodings[0]);
                         return;
                 } else {
                         u_char      oldpt;
@@ -382,12 +381,10 @@ audio_device_reconfigure(session_struct *sp)
                                 /* we failed, fallback */
                                 sp->encodings[0] = oldpt;
                         }
-                        channel_set_coder(sp, sp->encodings[0]);
                         sp->next_encoding = -1;
                 }
         } else {
                 /* Just changing device */
-                channel_set_coder(sp, sp->encodings[0]);
         }
 }
 
@@ -436,11 +433,11 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
         ofmt         = audio_get_ofmt(spi->audio_device);
 
 	if ( cushion_size < read_dur ) {
-		/* Use a step for the cushion to keep things nicely rounded   */
-                /* in the mixing. Round it up.                                */
+		/* Use a step for the cushion to keep things nicely rounded  */
+                /* in the mixing. Round it up.                               */
                 new_cushion = cushion_use_estimate(c);
-                /* The mix routine also needs to know for how long the output */
-                /* went dry so that it can adjust the time.                   */
+                /* The mix routine also needs to know for how long the       */
+                /* output went dry so that it can adjust the time.           */
                 mix_get_new_cushion(ms, 
                                     cushion_size, 
                                     new_cushion, 
@@ -466,7 +463,9 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                 
                 /* If diff is less than zero then we must decrease the */
                 /* cushion so loose some of the trailing silence.      */
-                if (diff < 0 && mix_active(ms) == FALSE && spi->receive_buf_list == NULL) {
+                if (diff < 0 && 
+                    mix_active(ms) == FALSE && 
+                    source_list_source_count(spi->active_sources) == 0) {
                         /* Only decrease cushion if not playing anything out */
                         read_dur -= cushion_step;
                         cushion_step_down(c);

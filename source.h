@@ -52,15 +52,13 @@ void             source_list_destroy (struct s_source_list **pplist);
 
 void             source_list_clear   (struct s_source_list *plist);
 
-/* Methods for extracting dbe entry participants that are active */
 u_int32          source_list_source_count(struct s_source_list *plist);
 
-struct s_rtcp_dbentry* 
-                 source_list_get_rtcp_dbentry(struct s_source_list *plist,
-                                              u_int32               src_no);
+struct s_source* source_list_get_source_no (struct s_source_list *plist,
+                                            u_int32               src_no);
 
-struct s_source* source_get (struct s_source_list  *list,
-                             struct s_rtcp_dbentry *dbe);
+struct s_source* source_get_by_rtcp_dbentry (struct s_source_list  *list,
+                                             struct s_rtcp_dbentry *dbe);
 
 struct s_source* source_create (struct s_source_list  *list, 
                                 struct s_rtcp_dbentry *dbe,
@@ -85,6 +83,9 @@ int              source_add_packet (struct s_source *src,
 
 int              source_process        (struct s_source *src,
                                         int              repair,
+                                        ts_t             now);
+
+int              source_relevant       (struct s_source *src,
                                         ts_t             now);
 
 ts_sequencer*    source_get_sequencer  (struct s_source *src);
