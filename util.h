@@ -45,15 +45,16 @@
 
 #define strsave(s)	strcpy(xmalloc(strlen(s) + 1), s)
 
-#define xmalloc(x) _xmalloc(x,__FILE__,__LINE__)
-#define xstrdup(x) _xstrdup(x,__FILE__,__LINE__)
+#define xmalloc(x)     _xmalloc(x,__FILE__,__LINE__)
+#define block_alloc(x) _block_alloc(x,__FILE__,__LINE__)
+#define xstrdup(x)     _xstrdup(x,__FILE__,__LINE__)
 
 void	xmemchk(void);
 void	xfree(void *x);
 char   *_xmalloc(unsigned size,char *filen,int line);
 char   *_xstrdup(char *s1, char *filen, int line);
 
-char  *block_alloc(unsigned size);
+char  *_block_alloc(unsigned size, char *filen, int line);
 void  block_free(void *p, int size);
 
 #endif /* _UTIL_H_ */

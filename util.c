@@ -189,7 +189,7 @@ typedef struct s_block {
 static block  *blocks[MAX_INDEX];
  
 char *
-block_alloc(unsigned size)
+_block_alloc(unsigned size, char *filen, int line)
 {
 	int     i, *c;
 	char    *p;
@@ -203,7 +203,7 @@ block_alloc(unsigned size)
 		p = (char *)blocks[i];
 		blocks[i] = blocks[i]->next;
 	} else {
-		p = xmalloc(INDEX_TO_SIZE(i) + 8);
+		p = _xmalloc(INDEX_TO_SIZE(i) + 8,filen,line);
 		*((int *)p) = INDEX_TO_SIZE(i);
 		p += 8;
 	}
