@@ -15,7 +15,6 @@ RANLIB  = @RANLIB@
 ECHO   ?= echo
 
 VERSION = @VERSION@
-OSTYPE  = @OSTYPE@
 RATVER  = rat-$(VERSION)
 
 AU_OBJ  = @AU_OBJ@
@@ -115,7 +114,7 @@ tcl2c/tcl2c: tcl2c/tcl2c.c
 
 version.h: VERSION
 	@${ECHO} "Generating version.h"
-	@sed -e 's/.*/#define RAT_VERSION "RAT v& $(OSTYPE)"/' VERSION > version.h
+	@sed -e 's/.*/#define RAT_VERSION "RAT v&"/' VERSION > version.h
 	@sed -e 's/.*/#define VERSION_NUM "&"/' VERSION >> version.h
 
 sdr2.plugin.S02.audio.rtp.-.rat-$(VERSION): sdr2.plugin.in
