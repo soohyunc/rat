@@ -64,7 +64,6 @@
 #include "codec_types.h"
 #include "codec.h"
 #include "codec_state.h"
-#include "channel.h"
 #include "receive.h"
 #include "render_3D.h"
 
@@ -339,7 +338,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 	debug_msg("Removing RTCP database entry for SSRC 0x%lx\n", ssrc);
 	if (dbptr->ssrc == ssrc) {
 		sp->db->ssrc_db = dbptr->next;
-		playout_buffer_remove(sp, &(sp->playout_buf_list), dbptr);
+		receive_buffer_remove(sp, &(sp->receive_buf_list), dbptr);
 		ui_info_remove(sp, dbptr);
 		rtcp_free_dbentry(dbptr);
 		return;
@@ -348,7 +347,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 		if (dbptr->next->ssrc == ssrc) {
 			tmp = dbptr->next;
 			dbptr->next = dbptr->next->next;
-			playout_buffer_remove(sp, &(sp->playout_buf_list), dbptr);
+			receive_buffer_remove(sp, &(sp->receive_buf_list), dbptr);
 			rtcp_free_dbentry(tmp);
 			sp->db->members--;
 			return;

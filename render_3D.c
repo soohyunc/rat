@@ -309,7 +309,6 @@ convolve(sample *signal, sample *answer, double *overlap, double *response, int 
 #include "session.h"
 #include "codec_types.h"
 #include "codec.h"
-#include "channel.h"
 #include "receive.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"

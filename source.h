@@ -1,16 +1,16 @@
 /*
- * FILE: cc_intl.h
- * PROGRAM: RAT / interleaver
- * AUTHOR: Orion Hodson
+ * FILE:      source.h
+ * AUTHOR(S): Orion Hodson 
+ *	
  * $Revision$
  * $Date$
- *
- * Copyright (c) 1995-97 University College London
+ * 
+ * Copyright (c) 1999 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, is permitted, for non-commercial use only, provided
- * that the following conditions are met:
+ * modification, is permitted provided that the following conditions 
+ * are met:
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
@@ -23,9 +23,6 @@
  * 4. Neither the name of the University nor of the Department may be used
  *    to endorse or promote products derived from this software without
  *    specific prior written permission.
- * Use of this software for commercial purposes is explicitly forbidden
- * unless prior written permission is obtained from the authors.
- *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -39,23 +36,36 @@
  * SUCH DAMAGE.
  */
 
-#ifndef __INTERLEAVE_H_
-#define __INTERLEAVE_H_
-struct s_intl_coder;
-struct session_tag;
-struct rx_element_tag;
+#ifndef __SOURCE_H__
+#define __SOURCE_H__
 
-struct s_intl_coder  *new_intl_coder(session_struct *sp);
-void free_intl_coder (struct s_intl_coder *s);
-int  intl_config     (struct session_tag *sp, struct s_intl_coder *s, char *cmd);
-void intl_qconfig    (struct session_tag *sp, struct s_intl_coder *s, char *buf, unsigned int blen);
-int  intl_encode     (struct session_tag *sp, cc_unit *in, cc_unit **out, struct s_intl_coder *s);
-int  intl_bps        (struct session_tag *sp, struct s_intl_coder *s);
-void intl_decode     (struct session_tag *sp, struct rx_element_tag *rx, struct s_intl_coder *s);
-int  intl_valsplit   (char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inter_pkt_gap);
-int  intl_wrapped_pt (char *blk, unsigned int blen);
-void intl_reset      (struct s_intl_coder *s);
+struct s_source;
+struct s_source_list;
+struct s_rtcp_dbentry;
 
-#endif /* __INTERLEAVE_H_ */
+int              source_list_create  (struct s_source_list **pplist);
+void             source_list_destroy (struct s_source_list **pplist);
 
+/* Methods for extracting dbe entry participants that are active */
+u_int32          source_list_source_count(struct s_source_list *plist);
+struct s_rtcp_dbentry* 
+                 source_list_get_rtcp_dbentry(struct s_source_list *plist,
+                                              u_int32               src_no);
 
+struct s_source* source_get (struct s_source_list  *list,
+                             struct s_rtcp_dbentry *dbe);
+
+struct s_source* source_create (struct s_source_list  *list, 
+                                struct s_rtcp_dbentry *dbe);
+
+void             source_remove         (struct s_source_list *list,
+                                        struct s_source      *src);
+
+void             source_add_packet     (struct s_source *src, 
+                                        u_char          *pckt, 
+                                        u_int32          pckt_len, 
+                                        u_int32          playout);
+
+u_int32          source_buffer_length_ms (struct s_source *src);
+
+#endif /* __SOURCE_H__ */

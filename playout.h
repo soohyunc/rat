@@ -45,9 +45,11 @@
 
 struct s_playout_buffer;
 
+typedef void (*playoutfreeproc)(u_char**, u_int32);
+
 /* All functions return TRUE on success, and FALSE on failure */
 int playout_buffer_create  (struct s_playout_buffer **pb, 
-                            void (*datafreeproc)     (u_char **, u_int32), 
+                            playoutfreeproc           callback,
                             u_int32                   history_store);
 
 int playout_buffer_destroy (struct s_playout_buffer **pb);

@@ -51,7 +51,6 @@
 #include "codec.h"
 #include "audio.h"
 #include "audio_fmt.h"
-#include "channel.h"
 #include "receive.h"
 #include "timers.h"
 #include "rtcp_pckt.h"

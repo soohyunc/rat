@@ -46,7 +46,6 @@
 #include "memory.h"
 #include "codec_types.h"
 #include "codec.h"
-#include "channel.h"
 #include "session.h"
 #include "receive.h"
 #include "audio.h"
@@ -56,7 +55,6 @@
 #include "tcltk.h"
 #include "ui.h"
 #include "pckt_queue.h"
-#include "interfaces.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "rtcp.h"
@@ -223,8 +221,8 @@ main(int argc, char *argv[])
 
 			if (!sp[i]->playing_audio) {
 				receive_unit_audit(rx_unit_queue_p[i]);
-                                if (sp[i]->playout_buf_list) {
-                                        playout_buffers_destroy(sp[i], &sp[i]->playout_buf_list);
+                                if (sp[i]->receive_buf_list) {
+                                        receive_buffers_destroy(sp[i], &sp[i]->receive_buf_list);
                                 }
 			}
 
@@ -235,7 +233,7 @@ main(int argc, char *argv[])
                         statistics(sp[i], sp[i]->rtp_pckt_queue, rx_unit_queue_p[i], sp[i]->cushion, real_time);
 
 			if (sp[i]->playing_audio) {
-				playout_buffers_process(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, sp[i]->ms);
+				receive_buffers_process(sp[i], rx_unit_queue_p[i], &sp[i]->receive_buf_list, sp[i]->ms);
 			}
 
 			if (sp[i]->mode == TRANSCODER) {

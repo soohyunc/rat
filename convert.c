@@ -1339,7 +1339,7 @@ converter_get_count()
         return count;
 }
 
-char *
+const char *
 converter_get_name(int idx)
 {
        pcm_converter_t *pc = converter_tbl;
@@ -1358,29 +1358,37 @@ converter_get_name(int idx)
 
 #include "codec_types.h"
 #include "codec.h"
-#include "channel.h"
-#include "session.h"
-#include "receive.h"
 
 int
-converter_format (converter_t *c, rx_queue_element_struct *ip)
+converter_format (converter_t *c, coded_unit *in, coded_unit *out)
 {
         converter_fmt_t *cf;
+        u_int32          n_in, n_out;
         assert(c);
         assert(c->pcm_conv);
         assert(c->pcm_conv->cf_convert);
-        assert(ip->native_data);
-        assert(ip->native_count);
-        
+        assert(in->data != NULL);
+        assert(in->data_len != 0);
+
         cf = c->conv_fmt;
-        ip->native_size[ip->native_count] = cf->to_channels * (u_int16) (((double)ip->native_size[ip->native_count - 1] * (double)cf->to_freq / (double)cf->from_freq) + 0.5) / cf->from_channels;
-        ip->native_data[ip->native_count] = (sample*)block_alloc(ip->native_size[ip->native_count]);
+        n_in  = in->data_len / sizeof(sample);
+        n_out = n_in * cf->to_channels * cf->to_freq / (cf->from_channels * cf->from_freq); 
+
+        assert(out->state     == NULL);
+        assert(out->state_len == NULL);
+        assert(out->data      == NULL);
+        assert(out->data_len  == NULL);
+
+        out->id       = codec_get_l16_matching(cf->to_freq, cf->to_channels);
+        out->data_len = sizeof(sample) * n_out;
+        out->data     = (u_char*)block_alloc(out->data_len);
+
         c->pcm_conv->cf_convert(c,
-                                ip->native_data[ip->native_count - 1], 
-                                ip->native_size[ip->native_count - 1] / sizeof(sample),
-                                ip->native_data[ip->native_count], 
-                                ip->native_size[ip->native_count] / sizeof(sample));
-        ip->native_count++;
+                                (sample*)in->data, 
+                                n_in,
+                                (sample*)out->data, 
+                                n_out);
+
         return TRUE;
 }
 

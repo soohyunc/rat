@@ -1,15 +1,12 @@
 /*
  * FILE:	statistics.c
- * 
  * PROGRAM:	RAT
- * 
- * AUTHOR: V.J.Hardman + I.Kouvelas + O.Hodson
- * 
- * CREATED: 23/03/95
- * 
- * $Id$
+ * AUTHOR(S):   O.Hodson, I.Kouvelas, C.Perkins, D.Miras, and V.J.Hardman
  *
- * Copyright (c) 1995-98 University College London
+ * $Revision$
+ * $Date$
+ *
+ * Copyright (c) 1995-99 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,23 +43,20 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "codec_types.h"
+#include "new_channel.h"
 #include "codec.h"
 #include "debug.h"
 #include "memory.h"
 #include "util.h"
 #include "session.h"
-#include "codec_types.h"
-#include "channel.h"
-#include "receive.h"
+#include "source.h"
 #include "timers.h"
 #include "pckt_queue.h"
-#include "interfaces.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "audio.h"
 #include "cushion.h"
 #include "codec.h"
-#include "channel.h"
 #include "ui.h"
 #include "mbus.h"
 #include "statistics.h"
@@ -75,15 +69,19 @@ update_database(session_struct *sp, u_int32 ssrc)
 	/* This function gets the relevant data base entry */
 	dbe_source = rtcp_get_dbentry(sp, ssrc);
 	if (dbe_source == NULL) {
-		/* We haven't received an RTCP packet for this source, so we must throw the   */
-		/* packets away. This seems a little extreme, but there are actually a couple */
-		/* of good reasons for it:                                                    */
-		/*   1) If we're receiving encrypted data, but we don't have the decryption   */
-		/*      key, then every RTP packet we receive will have a different SSRC      */
-		/*      and if we create a new database entry for it, we fill up the database */
-		/*      with garbage (which is then displayed in the list of participants...) */
-		/*   2) The RTP specification says that we should do it this way (sec 6.2.1)  */
-		/*                                                                     [csp]  */
+		/* We haven't received an RTCP packet for this source,
+		 * so we must throw the packets away. This seems a
+		 * little extreme, but there are actually a couple of
+		 * good reasons for it: 1) If we're receiving
+		 * encrypted data, but we don't have the decryption
+		 * key, then every RTP packet we receive will have a
+		 * different SSRC and if we create a new database
+		 * entry for it, we fill up the database with garbage
+		 * (which is then displayed in the list of
+		 * participants...)  2) The RTP specification says
+		 * that we should do it this way (sec 6.2.1) [csp] 
+                 */
+
 		return NULL;
 	}
 
@@ -94,83 +92,6 @@ update_database(session_struct *sp, u_int32 ssrc)
 
 	return dbe_source;
 }
-
-static int
-split_block(u_int32 playout_pt, 
-            codec_id_t cid,
-            char *data_ptr, 
-            int len,
-	    rtcp_dbentry *src, 
-            rx_queue_struct *unitsrx_queue_ptr,
-            int talks, 
-            rtp_hdr_t *hdr, 
-            session_struct *sp)
-{
-	int	units, i, j, k, trailing;
-        u_int32 samples_per_frame;
-	rx_queue_element_struct	*p;
-        cc_unit *ccu;
-
-        /* we no longer break data units across rx elements here.
-         * instead we leave channel coded data in first block and
-         * remove channel coding when we are ready to decode and play 
-         * samples. 
-         */
-        ccu = (cc_unit*)block_alloc(sizeof(cc_unit));
-        memset(ccu,0,sizeof(cc_unit));
-        block_trash_check();
-        units = validate_and_split(hdr->pt, data_ptr, len, ccu, &trailing, &src->inter_pkt_gap);
-        block_trash_check();
-        if (units <=0) {
-	    	debug_msg("Validate and split failed!\n");
-            	block_free(ccu,sizeof(cc_unit));
-		return 0;
-	}
-
-        for(i=0;i<ccu->iovc;i++) {
-                ccu->iov[i].iov_base = (caddr_t)block_alloc(ccu->iov[i].iov_len);
-                memcpy(ccu->iov[i].iov_base, 
-                       data_ptr,
-                       ccu->iov[i].iov_len);
-                data_ptr += ccu->iov[i].iov_len;
-        }
-        xmemchk();
-
-        samples_per_frame = codec_get_samples_per_frame(cid);
-
-        for(i=0;i<trailing;i++) {
-		p = new_rx_unit();
-		p->unit_size        = samples_per_frame;
-		p->units_per_pckt   = units;
-		p->mixed            = FALSE;
-		p->dbe_source[0]    = src;
-                p->playoutpt        = playout_pt + i * samples_per_frame;
-                p->src_ts           = hdr->ts + i * samples_per_frame;
-                p->comp_count       = 0;
-                p->cc_pt            = ccu->cc->pt;
-		for (j = 0, k = 1; j < hdr->cc; j++) {
-			p->dbe_source[k] = update_database(sp, ntohl(hdr->csrc[j]));
-			if (p->dbe_source[k] != NULL) {
-				k++;
-			}
-		}
-		p->dbe_source_count = k;
-                p->native_count = 0;
-                if (i == 0) {
-                    p->ccu[0]  = ccu;
-                    p->ccu_cnt = 1;
-                    p->talk_spurt_start = talks;
-                } else {
-                    p->ccu[0]  = NULL;
-                    p->ccu_cnt = 0;
-                    p->talk_spurt_start = FALSE;
-                }
-                put_on_rx_queue(p, unitsrx_queue_ptr);
-	}
-
-	return (units);
-}
-
 
 static u_int32
 adapt_playout(rtp_hdr_t *hdr, 
@@ -249,15 +170,12 @@ adapt_playout(rtp_hdr_t *hdr,
                    */
 		if ((hdr->m) || 
                     src->cont_toged || 
-                    ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * src->inter_pkt_gap * 8 + 1)) ||
-                    playout_buffer_duration_ms(sp->playout_buf_list, src) == 0) {
+                    ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * src->inter_pkt_gap * 8 + 1))) {
 #ifdef DEBUG
                         if (hdr->m) {
                                 debug_msg("New talkspurt\n");
                         } else if (src->cont_toged) {
                                 debug_msg("Cont_toged\n");
-                        } else if (playout_buffer_duration_ms(sp->playout_buf_list, src) == 0) {
-                                debug_msg("playout buffer empty\n");
                         } else {
                                 debug_msg("Time stamp jump %ld %ld\n", hdr->ts, src->last_ts);
                         }
@@ -291,7 +209,7 @@ adapt_playout(rtp_hdr_t *hdr,
 
                         src->delay_in_playout_calc = src->delay;
                         
-                        if (playout_buffer_duration_ms(sp->playout_buf_list , src) != 0) {
+                        if (source_get(sp->active_sources, src) != 0) {
                                 /* If playout buffer is not empty
                                  * or, difference in time stamps is less than 1 sec,
                                  * we don't want playout point to be before that of existing data.
@@ -305,16 +223,19 @@ adapt_playout(rtp_hdr_t *hdr,
                         }
 
 			if (sp->sync_on && src->mapping_valid) {
-				/* use the jitter value as calculated but convert it to a ntp_ts freq [dm] */ 
+				/* use the jitter value as calculated
+                                 * but convert it to a ntp_ts freq
+                                 * [dm] */
 				src->sync_playout_delay = ntp_delay + ((var << 16) / get_freq(src->clock));
                                 
-				/* Communicate our playout delay to the video tool... */
+				/* Communicate our playout delay to
+                                   the video tool... */
                                 ui_update_video_playout(sp, src->sentry->cname, src->sync_playout_delay);
 		
-				/* If the video tool is slower than us, then
-                                 * adjust to match it...  src->video_playout is
-                                 * the delay of the video in real time 
-				*/
+				/* If the video tool is slower than
+                                 * us, then adjust to match it...
+                                 * src->video_playout is the delay of
+                                 * the video in real time */
 				debug_msg("ad=%d\tvd=%d\n", src->sync_playout_delay, src->video_playout);
                                 if (src->video_playout_received == TRUE &&
                                     src->video_playout > src->sync_playout_delay) {
@@ -323,8 +244,10 @@ adapt_playout(rtp_hdr_t *hdr,
 			}
                         src->skew_adjust = 0;
                 } else {
-                        /* No reason to adapt playout unless too little or too much audio buffered in comparison to
-                         * to amount of audio in a packet. */
+                        /* No reason to adapt playout unless too
+                         * little or too much audio buffered in
+                         * comparison to to amount of audio in a
+                         * packet. 
                         codec_id_t id;
                         u_int32 buffered, audio_per_pckt, adjust, samples_per_frame, cs;
                         static u_int32 last_adjust;
@@ -338,7 +261,7 @@ adapt_playout(rtp_hdr_t *hdr,
 
                         audio_per_pckt    = src->units_per_packet * samples_per_frame;
 
-                        buffered = playout_buffer_duration_ms(sp->playout_buf_list, src) * 8;
+                        buffered = receive_buffer_duration_ms(sp->receive_buf_list, src) * 8;
                         cs = cushion_get_size(cushion);
                         if (ts_gt(get_time(sp->device_clock), last_adjust + 4000)) {
                                 if (buffered < cs + audio_per_pckt) {
@@ -356,6 +279,7 @@ adapt_playout(rtp_hdr_t *hdr,
                                 }
                                 
                         }
+                        */
                 }
         }
         src->last_ts        = hdr->ts;
@@ -389,8 +313,6 @@ adapt_playout(rtp_hdr_t *hdr,
                 }
         }
 
-/*        debug_msg("Playout delay (%.2f) cushion (%.2f) jitter buf (%.2f)\n", 
-                  (float)(playout - arrival_ts)/get_freq(src->clock), 1.0 * cushion_get_size(cushion) / get_freq(src->clock), 3 * src->jitter / get_freq(src->clock)); */
 	return playout;
 }
 
@@ -465,11 +387,10 @@ statistics_free()
 }
 
 void
-statistics(session_struct      *sp,
-	   struct s_pckt_queue *rtp_pckt_queue,
-	   rx_queue_struct     *unitsrx_queue_ptr,
-	   struct s_cushion_struct    *cushion,
-	   u_int32	 real_time)
+statistics(session_struct          *sp,
+	   struct s_pckt_queue     *rtp_pckt_queue,
+	   struct s_cushion_struct *cushion,
+	   u_int32	            real_time)
 {
 	/*
 	 * We expect to take in an RTP packet, and decode it - read fields
@@ -486,26 +407,29 @@ statistics(session_struct      *sp,
 	 * buffer
          * 
          * Added split between netrx_pckt_queue and good_pckt_queue.
-         * Basically, packets on the netrx_pckt_queue are validated and have their
-         * playout calculated before being placed on good_pckt_queue.  If all of the
-         * packets on the good_pckt_queue will fail playout because calculation is wrong
-         * (probably because delay estimate or jitter has suddenly changed) then we 
-         * up their playout so that they get played out, rather than wait for cont_toged
-         * count to go up.  This is only really necessary when processing packets at 
-         * rates other than 8kHz.
+         * Basically, packets on the netrx_pckt_queue are validated
+         * and have their playout calculated before being placed on
+         * good_pckt_queue.  If all of the packets on the
+         * good_pckt_queue will fail playout because calculation is
+         * wrong (probably because delay estimate or jitter has
+         * suddenly changed) then we up their playout so that they get
+         * played out, rather than wait for cont_toged count to go up.
+         * This is only really necessary when processing packets at
+         * rates other than 8kHz.  
          */
 
 	rtp_hdr_t	*hdr;
 	u_char		*data_ptr;
 	int		 len;
-	rtcp_dbentry	*src = NULL;
+	rtcp_dbentry	*sender = NULL;
 	u_int32		 now, now_device, late_adjust;
 	pckt_queue_element *pckt;
+        struct s_source *src;
 	codec_id_t       cid = 0;
 	char 		 update_req = FALSE;
         int pkt_cnt = 0, late_cnt;
 
-        now_device = get_time(sp->device_clock);
+        now_device  = get_time(sp->device_clock);
         late_adjust = 0;
         late_cnt    = 0;
 
@@ -538,38 +462,46 @@ statistics(session_struct      *sp,
                 }
         
                 /* Get database entry of participant that sent this packet */
-                src = update_database(sp, hdr->ssrc);
-                if (src == NULL) {
+                sender = update_database(sp, hdr->ssrc);
+                if (sender == NULL) {
                         debug_msg("Packet from unknown participant discarded\n");
                         goto release;
                 }
-                rtcp_update_seq(src, hdr->seq);
+                rtcp_update_seq(sender, hdr->seq);
+
+                if (hdr->cc) {
+                        int k;
+                        for(k = 0; k < hdr->cc; k++) {
+                                update_database(sp, ntohl(hdr->csrc[k]));
+                        }
+                }
 
                 data_ptr =  (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
-        
-                if ( ((cid = codec_get_by_payload((u_char)hdr->pt)) == 0 &&
-                    (cid = codec_get_by_payload((u_char)get_wrapped_payload(hdr->pt, (char*) data_ptr, len))) == 0) || 
-                    (cid != (codec_id_t)0 && codec_can_decode(cid) == FALSE)) {
-                        /* We don't recognise this payload, or we don't have a decoder for it. */
+
+                cid = channel_get_compatible_codec(hdr->pt, (u_char*)data_ptr, len);
+                if (cid == 0) {
 			debug_msg("Cannot decode data (pt %d).\n",hdr->pt);
 			goto release;
                 }
+
+                sender->units_per_packet = channel_get_units_in_packet(hdr->pt, (u_char*)data_ptr, len);
         
-                if ((src->enc == 0xff) || (src->enc != codec_get_payload(cid)))
-                        receiver_change_format(src, cid);
+                if ((sender->enc == 0xff) || (sender->enc != codec_get_payload(cid)))
+                        receiver_change_format(sender, cid);
                 
-                if (src->enc != codec_get_payload(cid)) {
+                if (sender->enc != codec_get_payload(cid)) {
                         /* we should tell update more about coded format */
-                        debug_msg("src enc %d pcp enc %d\n", src->enc, codec_get_payload(cid));
-                        src->enc = codec_get_payload(cid);
+                        debug_msg("sender enc %d pcp enc %d\n", sender->enc, codec_get_payload(cid));
+                        sender->enc = codec_get_payload(cid);
                         update_req = TRUE;
                 }
 
-                pckt->playout = adapt_playout(hdr, pckt->arrival_timestamp, src, sp, cushion, real_time);
+                pckt->sender     = sender;
+                pckt->playout = adapt_playout(hdr, pckt->arrival_timestamp, sender, sp, cushion, real_time);
 
                 /* Is this packet going to be played out late */
-                now = convert_time(now_device, sp->device_clock, src->clock);
+                now = convert_time(now_device, sp->device_clock, sender->clock);
                 if (ts_gt(now, pckt->playout)) {
                         late_cnt ++;
                         late_adjust = max(late_adjust, ts_abs_diff(now, pckt->playout));
@@ -587,10 +519,10 @@ statistics(session_struct      *sp,
         if (late_cnt) {
                 /* Would we through away all the data packets in the queue ? */
                 debug_msg("Late %d / %d\n", late_cnt, pkt_cnt);
-                if (late_cnt * src->units_per_packet > 4 || src->units_per_packet == 0) {
+                if (late_cnt * sender->units_per_packet > 4 || sender->units_per_packet == 0) {
                         /* this would fail the cont_toged test */
                         debug_msg("Would fail cont_toged test so adapting (%u samples)\n", late_adjust);
-                        src->playout += late_adjust;
+                        sender->playout += late_adjust;
                 } else {
                         late_adjust  = 0;
                 } 
@@ -600,11 +532,17 @@ statistics(session_struct      *sp,
         while( (pckt = pckt_dequeue(good_pckt_queue)) != NULL) {
                 block_trash_check();
 
+                if ((src = source_get(sp->active_sources, pckt->sender)) == NULL) {
+                        src = source_create(sp->active_sources, pckt->sender);
+                        assert(src != NULL);
+                }
+
                 hdr      = (rtp_hdr_t*)pckt->pckt_ptr;
-                data_ptr =  (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
+                data_ptr = (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
 
-                src->units_per_packet = split_block(pckt->playout + late_adjust, cid, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp);
+                source_add_packet(src, data_ptr, len, pckt->playout + late_adjust);
+
                 block_trash_check();
                 pckt_queue_element_free(&pckt);
         }

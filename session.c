@@ -50,11 +50,11 @@
 #include "repair.h"
 #include "codec_types.h"
 #include "codec.h"
-#include "channel.h"
+#include "channel_types.h"
+#include "new_channel.h"
 #include "pckt_queue.h"
 #include "receive.h"
 #include "convert.h"
-#include "channel.h"
 #include "parameters.h"
 #include "audio.h"
 #include "ui.h"
@@ -71,27 +71,30 @@ void
 init_session(session_struct *sp)
 {
 	struct hostent *addr;
-	u_long          netaddr;
-	char            hostname[MAXHOSTNAMELEN + 1];
-	codec_id_t      cid;
+	u_long                netaddr;
+	char                  hostname[MAXHOSTNAMELEN + 1];
+	codec_id_t            cid;
         const codec_format_t *cf;
+        cc_details            ccd; 
 
 	memset(sp, 0, sizeof(session_struct));
 
 	codec_init();
         vu_table_init();
+
 	cid = codec_get_by_name("DVI-8K-MONO");
         assert(cid);
         cf  = codec_get_format(cid);
-        channel_set_coder(sp, PT_VANILLA);
-        sp->last_depart_ts              = 1;
         sp->encodings[0]		= codec_get_payload(cid);           /* user chosen encoding for primary */
-	sp->num_encodings		= 1;                                /* Number of encodings in packet */
+	sp->num_encodings		= 1;                                /* Number of encodings applied */
         sp->next_encoding               = -1;                               /* Coding to change to */
+
+        channel_get_coder_details(channel_get_null_coder(), &ccd);
+        channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
         sp->device_clock                = new_time(sp->clock, cf->format.sample_rate);
         assert(!(GLOBAL_CLOCK_FREQ%cf->format.sample_rate));                        /* just in case someone adds weird freq codecs */
-        sp->collator                    = collator_create();
 	sp->mode         		= AUDIO_TOOL;	
         sp->input_mode                  = AUDIO_NO_DEVICE;
         sp->output_mode                 = AUDIO_NO_DEVICE;
@@ -129,6 +132,7 @@ init_session(session_struct *sp)
 	sp->max_playout			= 1000;
 	sp->wait_on_startup		= FALSE;
         sp->next_selected_device        = -1;
+        sp->last_depart_ts              = 1;
 
         strcpy(sp->title, "<Untitled Session>");
         
@@ -157,9 +161,9 @@ end_session(session_struct *sp)
                 xfree(sp->device_clock);
                 sp->device_clock = NULL;
         }
-        collator_destroy(sp->collator);
         pckt_queue_destroy(&sp->rtp_pckt_queue);
         pckt_queue_destroy(&sp->rtcp_pckt_queue);
+        channel_encoder_destroy(&sp->channel_coder);
 }
 
 static void 

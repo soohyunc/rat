@@ -45,13 +45,15 @@
 #define PCKT_QUEUE_RTCP_LEN 32
 
 struct s_pckt_queue;
+struct s_rtcp_dbentry;
 
 typedef struct {
-	u_int8  *pckt_ptr;
-	int32    len;
-	u_int32  arrival_timestamp;
-        u_int32  extlen;
-        u_int32  playout;
+	u_int8                 *pckt_ptr;
+	int32                   len;
+	u_int32                 arrival_timestamp;
+        u_int32                 extlen;
+        u_int32                 playout;
+        struct  s_rtcp_dbentry *sender;
 } pckt_queue_element;
 
 pckt_queue_element*  pckt_queue_element_create (void);

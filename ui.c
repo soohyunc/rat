@@ -45,8 +45,8 @@
 #include "memory.h"
 #include "version.h"
 #include "codec_types.h"
-#include "codec.h"
 #include "codec_state.h"
+#include "codec.h"
 #include "session.h"
 #include "crypt.h"
 #include "rtcp_pckt.h"
@@ -58,7 +58,8 @@
 #include "auddev.h"
 #include "mbus.h"
 #include "mbus_engine.h"
-#include "channel.h"
+#include "channel_types.h"
+#include "new_channel.h"
 #include "mix.h"
 #include "transmit.h"
 #include "ui.h"
@@ -293,10 +294,10 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
         /* args size is for source.packet.loss, tool.rat.audio.buffered size always less */
 	args = (char *) xmalloc(strlen(their_cname) + strlen(my_cname) + 11);
         
-        sprintf(args, "%s %ld", their_cname, playout_buffer_duration_ms(sp->playout_buf_list, e));
+        sprintf(args, "%s %ld", their_cname, receive_buffer_duration_ms(sp->receive_buf_list, e));
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.audio.buffered", args, FALSE);
 
-        sprintf(args, "%s %ld", their_cname, playout_buffer_delay_ms(sp->playout_buf_list, e));
+        sprintf(args, "%s %ld", their_cname, receive_buffer_delay_ms(sp->receive_buf_list, e));
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.audio.delay", args, FALSE);
 
 	sprintf(args, "%s %s %8ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);
@@ -665,7 +666,7 @@ ui_update(session_struct *sp)
                 assert(strlen(args) < 4);
 	}
 
-        sprintf(args, "%3d", collator_get_units(sp->collator));
+        sprintf(args, "%3d", channel_encoder_get_units_per_packet(sp->channel_coder));
         assert(strlen(args) < 4);
 	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.rate", args, TRUE);
 

@@ -44,6 +44,7 @@
 #include "memory.h"
 #include "util.h"
 #include "playout.h"
+#include "timers.h"       /* For ts_gt */
 
 /* Playout buffer types ******************************************************/
 
@@ -105,16 +106,6 @@ playout_buffer_destroy (struct s_playout_buffer **ppb)
         *ppb = NULL;
 
         return TRUE;
-}
-
-/* ts_gt(a,b) returns (a > b) ? TRUE : FALSE */
-#define HALF_CYCLE 0x7fffffff
-
-static int
-ts_gt(u_int32 a, u_int32 b)
-{
-        u_int32 diff = a - b;
-        return (diff < HALF_CYCLE && diff != 0);
 }
 
 /* Iterator functions ********************************************************/

@@ -6,18 +6,24 @@ CFLAGS         = __WFLAGS__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_
 INCLUDE        = __INCLUDE__
 CC             = __CC__
 
+AUDIO_OBJS = __AUDIO__ auddev.o auddev_null.o audio_fmt.o 
 
+CODEC_OBJS = codec.o codec_state.o codec_adpcm.o codec_gsm.o \
+             codec_l16.o codec_g711.o codec_lpc.o codec_types.o \
+             codec_vdvi.o codec_wbs.o cx_dvi.o cx_gsm.o cx_lpc.o \
+             cx_vdvi.o cx_wbs.o
 
-OBJS = __AUDIO__ \
-       auddev.o auddev_null.o audio.o audio_fmt.o \
-       channel.o codec.o codec_state.o codec_adpcm.o codec_gsm.o \
-       codec_l16.o codec_g711.o codec_lpc.o codec_vdvi.o codec_wbs.o \
-       cx_dvi.o cx_gsm.o cx_lpc.o cx_vdvi.o cx_wbs.o \
-       convert.o crypt.o cushion.o interfaces.o main.o mbus_engine.o \
-       mbus_ui.o mix.o net.o parameters.o pckt_queue.o \
-       receive.o render_3D.o repair.o rtcp.o rtcp_db.o rtcp_pckt.o \
-       session.o sndfile.o statistics.o tcltk.o timers.o transmit.o \
-       transcoder.o ui.o 
+CC_OBJS    = new_channel.o channel_types.o cc_vanilla.o
+
+TOY_OBJS   = convert.o crypt.o render_3D.o repair.o sndfile.o 
+
+CORE_OBJS  = audio.o cushion.o main.o mbus_engine.o \
+             mbus_ui.o mix.o net.o parameters.o pckt_queue.o \
+             playout.o receive.o rtcp.o rtcp_db.o rtcp_pckt.o session.o \
+             statistics.o tcltk.o timers.o transmit.o transcoder.o ui.o \
+             ui_audiotool.o ui_transcoder.o
+
+OBJS = $(AUDIO_OBJS) $(CODEC_OBJS) $(CC_OBJS) $(TOY_OBJS) $(CORE_OBJS)
 
 SRCS := $(OBJS:%.o=%.c)
 

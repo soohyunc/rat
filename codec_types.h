@@ -70,4 +70,17 @@ typedef struct s_coded_unit {
 	int	data_len;
 } coded_unit;
 
+#define MAX_MEDIA_UNITS  3
+/* This data structure is for storing multiple representations of
+ * coded audio for a given time interval.
+ */
+typedef struct {
+        u_int8      nrep;
+        coded_unit *rep[MAX_MEDIA_UNITS];
+} media_data;
+
+int  media_data_create    (media_data **m, int nrep);
+void media_data_destroy   (media_data **m, u_int32 md_size);
+
 #endif /* _CODEC_TYPES_H_ */
+

@@ -85,9 +85,9 @@ typedef struct session_tag {
 	struct s_time		*device_clock;
         struct s_cushion_struct *cushion;
         struct s_mix_info       *ms; 
-        struct s_collator       *collator; /* collates media units into groups for transmission */
 	u_int16		rtp_seq;
 	u_char		encodings[MAX_ENCODINGS];
+        struct s_channel_state  *channel_coder;
 	int		num_encodings;	/* number of unique encodings being used */
         int             next_encoding;  /* used for changing device format */
 	int             sending_audio;
@@ -120,14 +120,14 @@ typedef struct session_tag {
 	struct timeval	device_time;
 	audio_desc_t	audio_device;
         int             next_selected_device;       /* No to set selected device to when we want to change */
-	struct s_tx_buffer	*tb;
-	struct rtp_db_tag	*db;
-	struct s_participant_playout_buffer	*playout_buf_list;
-        int             limit_playout;
-        u_int32         min_playout;
-        u_int32         max_playout;
+	struct s_tx_buffer	            *tb;
+	struct rtp_db_tag	            *db;
+        struct s_source_list                *active_sources;
+        int                                  limit_playout;
+        u_int32                              min_playout;
+        u_int32                              max_playout;
         struct s_codec_state_store *state_store;
-        struct s_cc_state    *cc_state_list;    /* Channel coding states */
+        struct s_cc_state          *cc_state_list;  /* Channel coding states */
         int              cc_encoding;
         int              last_depart_ts;
 	struct s_speaker_table	*speakers_active;

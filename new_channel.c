@@ -1,3 +1,40 @@
+/*
+ * FILE:      new_channel.c
+ * AUTHOR(S): Orion Hodson 
+ *	
+ * $Revision$
+ * $Date$
+ * 
+ * Copyright (c) 1999 University College London
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, is permitted provided that the following conditions 
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *      This product includes software developed by the Computer Science
+ *      Department at University College London
+ * 4. Neither the name of the University nor of the Department may be used
+ *    to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
 #include "config_unix.h"
 #include "config_win32.h"
 
@@ -55,8 +92,11 @@ typedef struct {
 #include "cc_vanilla.h"
 
 static channel_coder_t table[] = {
-        {"No channel coder",
-         vanilla_encoder_create,
+        /* The vanilla coder goes first. Update channel_get_null_coder 
+         * if it moves.
+         */
+        {"No channel coder",     
+         vanilla_encoder_create, 
          vanilla_encoder_destroy,
          NULL,                   /* No parameters to set ...*/
          NULL,                   /* ... or get. */
@@ -91,13 +131,19 @@ channel_get_coder_details(int idx, cc_details *ccd)
         return FALSE;
 }
 
+int
+channel_get_null_coder(void)
+{
+        return 0;
+}
+
 /* The create, destroy, and reset functions take the same arguments and so use
  * is_encoder to determine which function in the table to call.  It's dirty
  * but it saves typing.
  */
 
 int
-channel_coder_create(cc_id_t id, channel_state_t **ppcs, int is_encoder)
+_channel_coder_create(cc_id_t id, channel_state_t **ppcs, int is_encoder)
 {
         channel_state_t *pcs;
         int (*create_state)(u_char**, u_int32 *len);
@@ -133,7 +179,7 @@ channel_coder_create(cc_id_t id, channel_state_t **ppcs, int is_encoder)
 }
 
 void
-channel_coder_destroy(channel_state_t **ppcs, int is_encoder)
+_channel_coder_destroy(channel_state_t **ppcs, int is_encoder)
 {
         channel_state_t *pcs = *ppcs;
 
@@ -160,7 +206,7 @@ channel_coder_destroy(channel_state_t **ppcs, int is_encoder)
 }
 
 int
-channel_coder_reset(channel_state_t *pcs, int is_encoder)
+_channel_coder_reset(channel_state_t *pcs, int is_encoder)
 {
         int (*reset) (u_char *state);
         
@@ -180,7 +226,10 @@ channel_coder_reset(channel_state_t *pcs, int is_encoder)
 int
 channel_encoder_set_units_per_packet(channel_state_t *cs, u_int16 units)
 {
-        /* This should not be hardcoded, it should be based on packet size [oth] */
+        /* This should not be hardcoded, it should be based on packet 
+         *size [oth] 
+         */
+        assert(cs->is_encoder);
         if (units != 0 && units <= MAX_UNITS_PER_PACKET) {
                 cs->units_per_packet = units;
                 return TRUE;
@@ -191,6 +240,7 @@ channel_encoder_set_units_per_packet(channel_state_t *cs, u_int16 units)
 u_int16 
 channel_encoder_get_units_per_packet(channel_state_t *cs)
 {
+        assert(cs->is_encoder);
         return cs->units_per_packet;
 }
 
