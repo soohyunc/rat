@@ -474,7 +474,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                 codec_id_t cid;
                                 const char *codec_name;
 
-                                codec_name = strtok(argv[i+1], "/");
+                                codec_name = (char *) strtok(argv[i+1], "/");
                                 cid = codec_get_by_name(codec_name);
                                 if (codec_id_is_valid(cid) == FALSE) {
                                         fprintf(stderr, "%s\n", codec_name);
@@ -486,7 +486,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                         sp[i]->encodings[0]= codec_get_payload(cid);
                                 }
 
-                                printf("%s: not supported in this release\n", argv[i]);
+                                printf("%s: not fully supported in this release\n", argv[i]);
 				i++;
 			}
 		}
