@@ -469,7 +469,6 @@ reset_encoder(session_struct *sp, int coding)
         UNUSED(coding);
         /* should write this soon! */
 
-        dprintf("reset encoder called and no code exists here!");
 }
 
 void
