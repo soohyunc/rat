@@ -7,9 +7,9 @@
 
 #ifndef _AUDDEV_MACOSX_H_
 #define _AUDDEV_MACOSX_H_
-#include <Carbon/Carbon.h>
-#include <CoreAudio/CoreAudio.h>
-#include <AudioUnit/AudioUnit.h>
+//#include <Carbon/Carbon.h>
+//#include <CoreAudio/CoreAudio.h>
+//#include <AudioUnit/AudioUnit.h>
 
 
 int  macosx_audio_open				(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);
@@ -49,8 +49,8 @@ void resamp					(int interp_factor_L, int decim_factor_M, int num_taps_per_phase
 // The AudioUnitRenderCallback.
 //OSStatus outputRenderer				(AudioBuffer *ioData); 
 
-OSStatus audioIOProc(AudioDeviceID inDevice, const AudioTimeStamp* inNow, const AudioBufferList* inInputData, const AudioTimeStamp* inInputTime, AudioBufferList* outOutputData, const AudioTimeStamp* inOutputTime, void* inClientData);
+//OSStatus audioIOProc(AudioDeviceID inDevice, const AudioTimeStamp* inNow, const AudioBufferList* inInputData, const AudioTimeStamp* inInputTime, AudioBufferList* outOutputData, const AudioTimeStamp* inOutputTime, void* inClientData);
 
-OSStatus outputRenderer(void *inRefCon, AudioUnitRenderActionFlags inActionFlags, const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, AudioBuffer *ioData);
+//OSStatus outputRenderer(void *inRefCon, AudioUnitRenderActionFlags inActionFlags, const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, AudioBuffer *ioData);
 
 
