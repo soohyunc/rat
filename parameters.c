@@ -225,12 +225,12 @@ vad_create(u_int16 blockdur, u_int16 freq)
 }
 
 /* Duration of limits in ms */
-#define VAD_SIG_LECT     60
+#define VAD_SIG_LECT     40
 #define VAD_SIG_CONF     60
 #define VAD_PRE_LECT     60
 #define VAD_PRE_CONF     20
-#define VAD_POST_LECT   160
-#define VAD_POST_CONF   160
+#define VAD_POST_LECT   200
+#define VAD_POST_CONF   200
 
 void
 vad_config(vad_t *v, u_int16 blockdur, u_int16 freq)

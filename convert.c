@@ -185,15 +185,18 @@ convert_format(rx_queue_element_struct *ip, int to_freq, int to_channels)
         if (converter && scale) {
                 if (to_channels == cp->channels) {
                         /* m channels to m channels */
-                        for(i=0;i<to_channels;i++) 
+                        for(i=0;i<to_channels;i++) {
                                 (*converter)(ip->native_data[ip->native_count-1]+i,
-                                             prev + i,
+                                             prev,
                                              ip->native_data[ip->native_count-2]+i,
-                                             next + i,
+                                             next,
                                              cp->unit_len,
                                              scale,
                                              to_channels,
                                              to_channels);
+                                if (prev) prev++;
+                                if (next) next++;
+                        }
                 } else if (to_channels == 1) {
                         /* XXX 2 channels to 1 - we should do channel selection here [oth] */
                         assert(cp->channels == 2);
