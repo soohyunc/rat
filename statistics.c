@@ -201,6 +201,10 @@ adapt_playout(rtp_hdr_t *hdr,
 		src->jitter = src->jitter + (((double) diff - src->jitter) / 16);
 	}
 
+	/* 
+	 * besides having the lip-sync option enabled, we also need to have
+	 * a SR received [dm]
+	 */	
 	if (sp->sync_on && src->mapping_valid) {
 		/* calculate delay in absolute (real) time [dm] */ 
 		ntptime = (src->last_ntp_sec & 0xffff) << 16 | src->last_ntp_frac >> 16;
@@ -264,7 +268,7 @@ adapt_playout(rtp_hdr_t *hdr,
                         assert(var > 0);
 			src->playout = src->delay + var;
 
-			if (sp->sync_on) {
+			if (sp->sync_on && src->mapping_valid) {
 				/* use the jitter value as calculated but convert it to a ntp_ts freq [dm] */ 
 				src->sync_playout_delay = ntp_delay + ((var << 16) / get_freq(src->clock));
                                 
@@ -292,15 +296,16 @@ adapt_playout(rtp_hdr_t *hdr,
 	}
 
 	/* Calculate the playout point in local source time for this packet. */
-        if (sp->sync_on) {
+        if (sp->sync_on && src->mapping_valid) {
 		/* 	
-		 * Use the NTP to RTP ts mapping to calculate the playout time converted to 
-		 * the clock base of the receiver
+		 * Use the NTP to RTP ts mapping to calculate the playout time 
+		 * converted to the clock base of the receiver
 		 */
 		play_time = sendtime + src->sync_playout_delay;
 		rtp_time = sp->db->map_rtp_time + (((play_time - sp->db->map_ntp_time) * get_freq(src->clock)) >> 16);
                 playout = rtp_time;
 		src->playout = playout - hdr->ts;
+printf("\t%u\t%u\t%u\t%u\t%d\n", (unsigned int)hdr->ts,  (unsigned int)sendtime, (unsigned int)real_time, (unsigned int)playout, ntp_delay);
 	}
         else {
 		playout = hdr->ts + src->playout;
@@ -317,7 +322,6 @@ adapt_playout(rtp_hdr_t *hdr,
                         src->first_pckt_flag = TRUE;
                 }
         }
-//printf("\t%u\t%u\t%u\t%u\t%d\t%u\n", (unsigned int)hdr->ts,  (unsigned int)sendtime, (unsigned int)real_time, (unsigned int)playout, ntp_delay, (unsigned int)src->playout_ceil);
 	return playout;
 }
 
@@ -433,16 +437,6 @@ statistics(session_struct    *sp,
                         goto release;
                 }
                 rtcp_update_seq(src, hdr->seq);
-
-/* We can't do this, since it means that many packets get trashed when someone */
-/* starts talking and the SR doesn't come for another five seconds...    [csp] */
-#ifdef NDEF
-		if (src->mapping_valid == FALSE) {
-			/* need to have a SR received b4 procceding [dm] */
-			debug_msg("Haven't received a SR so far...\n");
-			goto release;
-		}
-#endif
 
                 if (sp->have_device == FALSE) {
                         /* we don't have the audio device so there is no point
