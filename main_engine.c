@@ -48,6 +48,8 @@ static const char cvsid[] =
 int 	 should_exit = FALSE;
 char	*c_addr, *token, *token_e; /* These should be parameters of the session? */
 
+pid_t    ppid;
+
 #ifndef WIN32
 static void
 signal_handler(int signal)
@@ -78,6 +80,17 @@ static void parse_args(int argc, char *argv[])
 			abort();
 		}
 	}
+
+        /*
+         * Want app instance to be same across all processes that
+         * consitute this rat.  Parent pid appears after last colon.
+         * Obviously on Un*x we could use getppid...
+         */
+        i = strlen(c_addr) - 1;
+        while(i > 1 && c_addr[i - 1] != ':') {
+                i--;
+        }
+        ppid = (pid_t)atoi(&c_addr[i]);
 }
 
 static void 
@@ -128,8 +141,8 @@ int main(int argc, char *argv[])
 	settings_load_early(sp);
 
 	/* Initialise our mbus interface... once this is done we can talk to our controller */
-	sp->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 3);
-	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, (uint32_t) getpid());
+	sp->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 10);
+	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, ppid);
 	sp->mbus_engine      = mbus_init(mbus_engine_rx, mbus_error_handler, sp->mbus_engine_addr);
 
 	/* The first stage is to wait until we hear from our controller. The address of the */

@@ -25,6 +25,7 @@ static const char cvsid[] =
 char	*e_addr = NULL;
 char	 m_addr[100];
 char	*c_addr, *token, *token_e; 
+pid_t    ppid;
 
 int	 ui_active   = FALSE;
 int	 should_exit = FALSE;
@@ -48,6 +49,16 @@ static void parse_args(int argc, char *argv[])
 			abort();
 		}
 	}
+        /*
+         * Want app instance to be same across all processes that
+         * consitute this rat.  Parent pid appears after last colon.
+         * Obviously on Un*x we could use getppid...
+         */
+        i = strlen(c_addr) - 1;
+        while(i > 1 && c_addr[i - 1] != ':') {
+                i--;
+        }
+        ppid = (pid_t)atoi(&c_addr[i]);
 }
 
 #ifdef WIN32
@@ -85,7 +96,7 @@ int main(int argc, char *argv[])
 	parse_args(argc, argv);
 	tcl_init1(argc, argv);
 
-	sprintf(m_addr, "(media:audio module:ui app:rat instance:%lu)", (unsigned long) getpid());
+	sprintf(m_addr, "(media:audio module:ui app:rat instance:%lu)", (unsigned long) ppid);
 	m = mbus_init(mbus_ui_rx, mbus_error_handler, m_addr);
 
 	/* The first stage is to wait until we hear from our controller. The address of the */
