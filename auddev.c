@@ -1101,7 +1101,7 @@ audio_init_interfaces(void)
                 n = audio_if_table[i].audio_if_dev_cnt();
                 assert(n > 0);
                 for (j = 0; j < n; j++) {
-                        dev_details[k].name       = audio_if_table[i].audio_if_dev_name(j);
+                        dev_details[k].name       = xstrdup(audio_if_table[i].audio_if_dev_name(j));
                         dev_details[k].descriptor = AIF_MAKE_DESC(i, j);
                         k++;
                 }
@@ -1123,6 +1123,9 @@ audio_free_interfaces(void)
         }
 
         if (dev_details != NULL) {
+                for(i = 0; i < actual_devices; i++) {
+                        xfree((char*)dev_details[i].name);
+                }
                 xfree(dev_details);
                 dev_details = NULL;
         }
