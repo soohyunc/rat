@@ -433,7 +433,18 @@ win32_create_null_window()
 
 #endif /* WIN32 */
 
-int main(int argc, char *argv[])
+static int main_transcoder(int argc, char *argv[])
+{
+	/* This is the main function when we are the transcoder controller. The command line */
+	/* arguments are: -T -left <options for left side> -right <options for right side>.  */
+	/* where the options for each side are standard options you would give to the audio- */
+	/* tool version of rat. For example: -T -left 224.2.2.2/2222 -right -f gsm 10.0.1.4  */
+	assert(strcmp(argv[1], "-T") == 0);
+	UNUSED(argc);
+	return 0;
+}
+
+static int main_audiotool(int argc, char *argv[])
 {
         struct mbus	*m;
         char		 c_addr[60], token_ui[20], token_engine[20];
@@ -500,3 +511,16 @@ int main(int argc, char *argv[])
         debug_msg("Controller exit\n");
         return 0;
 }
+
+int main(int argc, char *argv[])
+{
+	/* We have two controllers: one for operation as a transcoder, one */
+	/* when working as a normal end-system audio tool. We choose based */
+	/* on the first command line argument supplied.                    */
+	if ((argc > 2) && (strcmp(argv[1], "-T") == 0)) {
+		return main_transcoder(argc, argv);
+	} else {
+		return main_audiotool(argc, argv);
+	}
+}
+

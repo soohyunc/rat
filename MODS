@@ -1359,7 +1359,8 @@ v4.2.6	- Compilation fixes for Win32 contributed by Marcin Michalak.
 		to rat-users@cs.ucl.ac.uk and we can add your card."
 	* Released 30 June 2000
 
-v4.2.7	- 
+v4.2.7	- Split main() in the controller into two parts: one for normal
+	  operation as an audio tool, one for operation as a transcoder.
 
 
 TODO -- They're features not bugs dammit!
