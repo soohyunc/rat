@@ -61,7 +61,7 @@
 #define FLAKEAWAY               4
 
 /*- global clock frequency -*/
-#define GLOBAL_CLOCK_FREQ 96000
+#define GLOBAL_CLOCK_FREQ 64000 /*96000*/
 
 /*- overrideable payload numbers -*/
 #define PT_L16_8K_MONO    110
