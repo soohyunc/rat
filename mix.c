@@ -145,7 +145,7 @@ mix_zero(mix_struct *ms, int offset, int len)
 void
 mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el)
 {
-        int	pos, i, len, dur, diff;
+        u_int32	playout; 
 	codec_t	*from, *to;
         const codec_format_t *cf_from, *cf_to;
 	sample	*buf;
@@ -155,19 +155,19 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	/* Receive unit at this point has a playout at the receiver frequency
 	 * and decompressed data at the codec output rate and channels.
 	from = el->comp_data[0].cp;
-	to = get_codec(sp->encodings[0]);
+	to   = get_codec(sp->encodings[0]);
         playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
 	playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
 
-	if (from->freq != to->freq || from->channels != to->channels) {
-		convert_format(el, to->freq, to->channels);
-                len = ms->channels * from->unit_len * to->freq / from->freq;
-                dur = len/ms->channels;
-		buf = el->native_data[1];
-	} else {
-		len = ms->channels * from->unit_len;
+	if (from->freq == to->freq && from->channels == to->channels) {
+		nsamples = ms->channels * from->unit_len;
                 dur = from->unit_len;
 		buf = el->native_data[0];
+		nsamples = dur * ms->channels;
+		convert_format(el, to->freq, to->channels);
+                nsamples = ms->channels * from->unit_len * to->freq / from->freq;
+                dur = nsamples / ms->channels;
+		buf = el->native_data[1];
                 }
 
 	/* If it is too late... */
@@ -211,7 +211,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	 * If we have not mixed this far (normal case)
 	 * we mast clear the buffer ahead (or copy)
 	 */
-		diff = (playout - ms->head_time)*ms->channels + len;
+	if (ts_gt(playout + dur, ms->head_time)) {
 		diff = (playout - ms->head_time)*ms->channels + nsamples;
 		assert(diff > 0);
 		assert(diff < ms->buf_len);
@@ -221,7 +221,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 		ms->head %= ms->buf_len;
 		ms->head_time += diff/ms->channels;
 	}
-	mix_add(ms, buf, pos, len);
+	mix_add(ms, buf, pos, nsamples);
 	el->mixed = TRUE;
 }
 
