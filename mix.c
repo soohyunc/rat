@@ -187,6 +187,11 @@ mix_put_audio(mixer_t     *ms,
 
         nticks          = frame->data_len / (sizeof(sample) * channels);
         frame_period    = ts_map32(rate, nticks);
+		
+		/* Map frame period to mixer time base, otherwise we can get truncation
+		 * errors in verification of mixer when sample rate conversion is active.
+		 */
+		frame_period    = ts_convert(ms->info.sample_rate, frame_period);
 
         if (pdbe->first_mix) {
                 debug_msg("New mix\n");

@@ -1190,6 +1190,8 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	- Fix fatal mix error when downsampling.  Trim length did not
 	  compensate for the sample rate, causing trim length to wrap and
 	  attempt to remove zillions of samples.
+	- Fix mixer rounding error in timestamps vs samples.  Would 
+	  periodically fail mix_verify by 1 otherwise.
 
 TODO -- They're features not bugs dammit!
 ----
