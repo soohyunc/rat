@@ -729,7 +729,7 @@ pack .r.c -side top -fill x -expand 1
 pack .r.c.gain -side top -fill x
 pack .r.c.vol  -side top -fill x
 
-pack .l -side left -fill both -expand 1
+pack .l -side top -fill both -expand 1
 pack .l.s1 -side bottom -fill x
 pack .l.s1.opts .l.s1.about .l.s1.quit -side left -fill x -expand 1
 pack .l.t.scr -side left -fill y

@@ -54,7 +54,7 @@ OBJS  += $(OBJDIR)/convert.o \
          $(OBJDIR)/gsm_short_term.o \
          $(OBJDIR)/audio.o \
          $(OBJDIR)/session.o \
-         $(OBJDIR)/tabmulaw.o \
+         $(OBJDIR)/tabulaw.o \
          $(OBJDIR)/tabalaw.o \
          $(OBJDIR)/util.o \
          $(OBJDIR)/interfaces.o \
