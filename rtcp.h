@@ -46,7 +46,7 @@
 struct session_tag;
 struct s_pckt_queue;
 
-char	*get_cname(void);
+char    *get_cname(socket_udp *s);
 u_int32  get_ssrc(void);
 
 void 	 service_rtcp(struct session_tag *sp, 

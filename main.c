@@ -69,6 +69,8 @@
 #include "mbus_ui.h"
 #include "mbus_engine.h"
 #include "crypt_random.h"
+#include "net_udp.h"
+#include "rtcp.h"
 
 int should_exit = FALSE;
 int thread_pri  = 2; /* Time Critical */
@@ -117,8 +119,11 @@ main(int argc, char *argv[])
 		init_session(sp[i]);
 	}
 	num_sessions = parse_early_options(argc, argv, sp);
-	cname        = get_cname();
-	ssrc         = get_ssrc();
+	for (i = 0; i < num_sessions; i++) {
+		network_init(sp[i]);
+	}
+	cname = get_cname(sp[0]->rtp_socket);
+	ssrc  = get_ssrc();
 
         audio_init_interfaces();
         converters_init();
@@ -164,7 +169,6 @@ main(int argc, char *argv[])
 
 	for (i = 0; i < num_sessions; i++) {
                 audio_device_details_t details;
-		network_init(sp[i]);
 		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
                 audio_get_device_details(0, &details);
 		audio_device_take(sp[i], details.descriptor);

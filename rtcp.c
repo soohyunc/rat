@@ -44,6 +44,7 @@
 #include "config_win32.h"
 #include "memory.h"
 #include "pckt_queue.h"
+#include "net_udp.h"
 #include "rtcp.h"
 #include "session.h"
 #include "rtcp_pckt.h"
@@ -85,14 +86,12 @@ service_rtcp(session_struct      *sp,
 	rtcp_update(sp, sp->rtcp_socket);
 }
 
-char *get_cname(void)
+char *get_cname(socket_udp *s)
 {
 	/* Set the CNAME. This is "user@hostname" or just "hostname" if the username cannot be found. */
 	char           		*uname;
 	char	       		*hname;
 	char			*cname;
-	struct hostent 		*hent;
-	struct in_addr  	 iaddr;
 #ifndef WIN32
 	struct passwd  		*pwent;
 #endif
@@ -112,14 +111,9 @@ char *get_cname(void)
 	}
 
 	/* Now the hostname. Must be dotted-quad IP address. */
-	hname = cname + strlen(cname);
-	if (gethostname(hname, MAXHOSTNAMELEN) != 0) {
-		perror("Cannot get hostname!");
-		return NULL;
-	}
-	hent = gethostbyname(hname);
-	memcpy(&iaddr.s_addr, hent->h_addr, sizeof(iaddr.s_addr));
-	strcpy(hname, inet_ntoa(iaddr));
+	hname = udp_host_addr(s);
+	strcpy(cname + strlen(cname), hname);
+	xfree(hname);
 	return cname;
 }
 
