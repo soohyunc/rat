@@ -790,8 +790,9 @@ InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_audiotool.tcl | ..\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c
-
+	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
+	type $(InputDir)\ui_at.tcl | ..\tcl-8.0\win\tcl2c\debug\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
+	
 # End Custom Build
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
