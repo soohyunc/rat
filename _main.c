@@ -24,6 +24,8 @@
 #define UI_NAME     "rat-"##VERSION_NUM##"-ui"
 #define ENGINE_NAME "rat-"##VERSION_NUM##"-media"
 
+pid_t		 pid_ui, pid_engine;
+
 static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid)
 {
 	struct timeval	 timeout;
@@ -100,8 +102,10 @@ static void inform_addrs(struct mbus *m, char *e_addr, char *u_addr)
 
 static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[])
 {
-	int	i;
-	char	*addr, *rx_port, *tx_port;
+	int		 i;
+	int		 ttl = 16;
+	char		*addr, *rx_port, *tx_port;
+	struct timeval	 timeout;
 
 	/* Parse those command line parameters which are intended for the media engine. */
 	for (i = 1; i < argc; i++) {
@@ -131,10 +135,31 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 	if (tx_port == NULL) {
 		tx_port = rx_port;
 	}
-	debug_msg("addr=%s rx_port=%s tx_port=%s\n", addr, rx_port, tx_port);
-	UNUSED(m);
-	UNUSED(e_addr);
+	addr    = mbus_encode_str(addr);
+	mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, atoi(rx_port), atoi(tx_port), ttl);
+	xfree(addr);
+
+	do {
+		mbus_send(m);
+		mbus_heartbeat(m, 1);
+		mbus_retransmit(m);
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 20000;
+		mbus_recv(m, NULL, &timeout);
+	} while (!mbus_sent_all(m));
+
 	UNUSED(u_addr);
+}
+
+static void mbus_err_handler(int seqnum, int reason)
+{
+	/* Something has gone wrong with the mbus transmission. At this time */
+	/* we don't try to recover, just kill off the media engine and user  */
+	/* interface processes and exit.                                     */
+	printf("FATAL ERROR: couldn't send mbus message (%d:%d)\n", seqnum, reason);
+	kill_process(pid_ui);
+	kill_process(pid_engine);
+	abort();
 }
 
 int main(int argc, char *argv[])
@@ -142,12 +167,12 @@ int main(int argc, char *argv[])
 	struct mbus	*m;
 	char		 m_addr[60];
 	char		*u_addr, *e_addr;
-	pid_t		 pid_ui, pid_engine;
         int		 seed = (gethostid() << 8) | (getpid() & 0xff);
+	struct timeval	 timeout;
 
 	srand48(seed);
 
-	m = mbus_init(mbus_control_rx, NULL);
+	m = mbus_init(mbus_control_rx, mbus_err_handler);
 	snprintf(m_addr, 60, "(media:audio module:control app:rat instance:%lu)", (u_int32) getpid());
 	mbus_addr(m, m_addr);
 
@@ -158,7 +183,12 @@ int main(int argc, char *argv[])
 	parse_options(m, e_addr, u_addr, argc, argv);
 
 	while (1) {
-		sleep(1);
+		mbus_send(m);
+		mbus_heartbeat(m, 1);
+		mbus_retransmit(m);
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 20000;
+		mbus_recv(m, NULL, &timeout);
 	}
 
 	kill_process(pid_ui);
