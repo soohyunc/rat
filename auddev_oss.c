@@ -526,6 +526,7 @@ oss_set_mode(audio_desc_t ad, int speed, int stereo)
         success = TRUE;
         
         /* We might want to set sample type here */
+	debug_msg("Testing support for %dHz %s...\n", speed, stereo?"stereo":"mono");
 
         st = stereo;
         if (ioctl(audio_fd[ad], SNDCTL_DSP_STEREO, &st) == -1 || st != stereo) {
@@ -533,9 +534,12 @@ oss_set_mode(audio_desc_t ad, int speed, int stereo)
         }
 
         sp = speed;
-        if (ioctl(audio_fd[ad], SNDCTL_DSP_SPEED, &sp) == -1 || sp != speed) {
+        if (ioctl(audio_fd[ad], SNDCTL_DSP_SPEED, &sp) == -1) {
                 success = FALSE;
         }
+	if (sp != speed) {
+		debug_msg("Sampling clock skew: %d should be %d\n", sp, speed);
+	}
         
         return success;
 }
