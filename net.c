@@ -96,7 +96,7 @@ sock_init(u_long inaddr, int port, int t_flag)
 #else
 	int		ttl = t_flag;
 #endif
-	int             tmp_fd;
+	fd_t            tmp_fd;
 	int             multi = FALSE;
 	int             reuse = 1;
 
@@ -176,7 +176,7 @@ network_init(session_struct *sp)
 }
 
 int
-net_write(int fd, u_long addr, int port, unsigned char *msg, int msglen, int type)
+net_write(fd_t fd, u_long addr, int port, unsigned char *msg, int msglen, int type)
 {
 	struct sockaddr_in  	 name;
 	int             	 ret;
@@ -205,7 +205,7 @@ net_write(int fd, u_long addr, int port, unsigned char *msg, int msglen, int typ
 }
 
 #define MAXPACKETSIZE    (1500-28)
-int net_write_iov(int fd, u_long addr, int port, struct iovec *iov, int len, int type)
+int net_write_iov(fd_t fd, u_long addr, int port, struct iovec *iov, int len, int type)
 {
 	unsigned char  wrkbuf[MAXPACKETSIZE];
 	unsigned char *cp;
@@ -225,7 +225,7 @@ int net_write_iov(int fd, u_long addr, int port, struct iovec *iov, int len, int
 
 /* This function is used for both rtp and rtcp packets */
 static pckt_queue_element_struct *
-read_net(int fd, u_int32 cur_time, int type, int *nbdecryption)
+read_net(fd_t fd, u_int32 cur_time, int type, int *nbdecryption)
 {
 	unsigned char			*data_in, *data_out, *tmp_data;
 	struct sockaddr 		 from;
@@ -281,7 +281,7 @@ read_net(int fd, u_int32 cur_time, int type, int *nbdecryption)
 
 
 static void
-read_packets_and_add_to_queue(int fd, u_int32 cur_time, pckt_queue_struct * queue, int type)
+read_packets_and_add_to_queue(fd_t fd, u_int32 cur_time, pckt_queue_struct * queue, int type)
 {
 #ifndef WIN32
 	int l, nb;
@@ -330,7 +330,7 @@ network_read(session_struct    *sp,
 	     pckt_queue_struct *rtcp_pckt_queue_ptr,
 	     u_int32       cur_time)
 {
-	int             sel_fd;
+	fd_t             sel_fd;
 	struct timeval  timeout, *tvp;
 	fd_set          rfds;
 
@@ -421,7 +421,8 @@ network_read(session_struct    *sp,
 
 void network_process_mbus(session_struct *sp[], int num_sessions, int delay)
 {
-	int             sel_fd = 0, i, rc;
+	fd_t		sel_fd = 0;
+	int             i, rc;
 	struct timeval  timeout, *tvp;
 	fd_set          rfds;
 

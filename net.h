@@ -54,8 +54,8 @@ struct session_tag;
 struct pckt_queue_tag;
 
 void	network_init(struct session_tag *session);
-int	net_write(int fd, u_long addr, int port, unsigned char *msg, int msglen, int type);
-int	net_write_iov(int fd, u_long addr, int port, struct iovec *iov, int iovlen, int type);
+int	net_write(fd_t fd, u_long addr, int port, unsigned char *msg, int msglen, int type);
+int	net_write_iov(fd_t fd, u_long addr, int port, struct iovec *iov, int iovlen, int type);
 void	network_read(struct session_tag    *sp,
                      struct pckt_queue_tag *netrx_pckt_queue_ptr,
 	             struct pckt_queue_tag *rtcp_pckt_queue_ptr,

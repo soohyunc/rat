@@ -77,6 +77,15 @@ extern int h_errno;
 #endif /* HPUX */
 #endif /* WIN32 */
 
+/* Why does Windows use a different type for file descriptors than any */
+/* other platform? They're not really trying to make porting difficult */
+/* are they?                                                     [csp] */
+#ifdef WIN32
+typedef u_int	fd_t;
+#else
+typedef int	fd_t;
+#endif
+
 #ifndef TRUE
 #define FALSE	0
 #define	TRUE	1

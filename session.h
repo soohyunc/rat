@@ -90,8 +90,8 @@ typedef struct session_tag {
 	int             rtcp_port;
         int             filter_loopback;
 	int             ttl;
-	int             rtp_fd;
-	int             rtcp_fd;
+	fd_t            rtp_fd;
+	fd_t            rtcp_fd;
         u_long          ipaddr;
 	struct s_fast_time	*clock;
 	struct s_time		*device_clock;
@@ -129,7 +129,7 @@ typedef struct session_tag {
         int             input_mode;                 /* mike/line input */
         int             output_mode;                /* speaker/line/head out */
 	struct timeval	device_time;
-	int		audio_fd;
+	fd_t		audio_fd;
 	struct s_tx_buffer	*tb;
 	struct rtp_db_tag	*db;
 	struct s_participant_playout_buffer	*playout_buf_list;
