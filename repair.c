@@ -298,8 +298,10 @@ repair(int repair, rx_queue_element_struct *ip)
 	int i;
 
 	if (virgin) {
-		gsmcp = get_codec_byname("GSM",NULL);
-		lpccp = get_codec_byname("LPC",NULL);
+		gsmcp = get_codec(codec_matching("GSM", 8000, 1));
+                lpccp = get_codec(codec_matching("LPC", 8000, 1));
+                assert(gsmcp);
+                assert(lpccp);
 		virgin = 0;
 	}
 	
@@ -325,13 +327,13 @@ repair(int repair, rx_queue_element_struct *ip)
 	
 	assert(!ip->native_count);
 
-    size  = ip->comp_data[0].cp->sample_size *
-            ip->comp_data[0].cp->channels*
-            ip->comp_data[0].cp->unit_len;
-    ip->native_size[0] = (unsigned short) size;
+        size  = ip->comp_data[0].cp->sample_size *
+                ip->comp_data[0].cp->channels*
+                ip->comp_data[0].cp->unit_len;
+        ip->native_size[0] = (unsigned short) size;
 	ip->native_data[0] = (sample*)block_alloc(size);
 	ip->native_count   = 1;
-
+        
 	switch(repair) {
 	case REPAIR_REPEAT:
 		if (pp->comp_data[0].cp && pp->comp_data[0].cp == lpccp)
@@ -350,7 +352,153 @@ repair(int repair, rx_queue_element_struct *ip)
         return;
 }
 
+#ifdef REPAIR_TEST
+#include "session.h"
 
+/* Compile with:
+% cc -DREPAIR_TEST -DSASR repair.c codec*.c gsm*.c util.c -lm
+*/
+
+void usage()
+{
+        printf("repair [-b <samples>] [-c <channels>] [-f <freq>] [-l <loss>] -p [-r <repair>] [-s <seed>] infile outfile\n");
+        exit(-1);
+}
+
+static void
+print_block(sample *s, int len, int freq)
+{
+        static int blk;
+        int i;
+        for(i = 0; i < len; i++) {
+                printf("%.6f\t %d\n", ((float)(blk*len+i))/freq, s[i]);
+        }
+        blk++;
+}
+
+int
+main(int argc, char *argv[])
+{
+        FILE *fin, *fout;
+        session_struct sp;
+        int ac, rep = REPAIR_NONE, print = FALSE;
+        int blksz = 160, freq = 8000, channels = 1;
+        double loss = 0.0;
+        rx_queue_element_struct rx_curr, rx_prev;
+
+        memset(&sp, 0, sizeof(session_struct));
+	set_dynamic_payload(&sp.dpt_list, "WBS-16K-MONO",   PT_WBS_16K_MONO);
+	set_dynamic_payload(&sp.dpt_list, "L16-8K-MONO",    PT_L16_8K_MONO);
+	set_dynamic_payload(&sp.dpt_list, "L16-8K-STEREO",  PT_L16_8K_STEREO);
+	set_dynamic_payload(&sp.dpt_list, "L16-16K-MONO",   PT_L16_16K_MONO);
+	set_dynamic_payload(&sp.dpt_list, "L16-16K-STEREO", PT_L16_16K_STEREO);
+	set_dynamic_payload(&sp.dpt_list, "L16-32K-MONO",   PT_L16_32K_MONO);
+	set_dynamic_payload(&sp.dpt_list, "L16-32K-STEREO", PT_L16_32K_STEREO);
+	set_dynamic_payload(&sp.dpt_list, "L16-48K-MONO",   PT_L16_48K_MONO);
+	set_dynamic_payload(&sp.dpt_list, "L16-48K-STEREO", PT_L16_48K_STEREO);
+        codec_init (&sp);
+        
+        ac = 1;
+        while(ac < argc && argv[ac][0]=='-') {
+                switch(argv[ac][1]) {
+                case 'b':
+                        /* block size in samples */
+                        blksz = atoi(argv[++ac]);
+                        break;
+                case 'c':
+                        channels = atoi(argv[++ac]);
+                        break;
+                case 'f':
+                        freq = atoi(argv[++ac]);
+                        break;
+                case 'l':
+                        loss = strtod(argv[++ac], NULL) / 100.0;
+                        break;
+                case 'p':
+                        print = TRUE;
+                        break;
+                case 'r':
+                        switch(argv[++ac][0]) {
+                        case 'r':
+                                rep = REPAIR_REPEAT;
+                                break;
+                        case 'p':
+                                rep = REPAIR_PATTERN_MATCH;
+                                break;
+                        default:
+                                rep = REPAIR_NONE;
+                                break;
+                        }
+                        break;
+                case 's':
+                        srand48(atoi(argv[++ac]));
+                        break;
+        
+                default:
+                        usage();
+                }
+                ac++;
+        }
+        
+        if ((argc - ac) != 2) usage();
+        
+        fin  = fopen(argv[ac++], "rb");
+        fout = fopen(argv[ac++], "wb");
+        
+        if (!fin) { 
+                fprintf(stderr, "Could not open %s\n", argv[ac-2]); 
+                exit(-1);
+        }
+
+        if (!fout) { 
+                fprintf(stderr, "Could not open %s\n", argv[ac-1]); 
+                exit(-1);
+        }
+
+        memset(&rx_curr,0,sizeof(rx_queue_element_struct));
+        memset(&rx_prev,0,sizeof(rx_queue_element_struct));
+
+        rx_curr.prev_ptr = &rx_prev;
+        rx_prev.comp_data[0].cp = get_codec(codec_matching("Linear-16",freq,channels));
+        rx_prev.native_data[0] = (sample*)block_alloc(sizeof(sample) * blksz);
+        rx_prev.native_size[0] = sizeof(sample) * blksz;
+        rx_prev.native_count   = 1;
+        fread  (rx_prev.native_data[0], sizeof(sample), blksz, fin);
+        fwrite (rx_prev.native_data[0], sizeof(sample), blksz, fout);
+
+        while (!feof(fin)) {
+                rx_curr.native_data[0]  = block_alloc(sizeof(sample) * blksz);
+                rx_curr.native_size[0]  = sizeof(sample) * blksz;
+                memset(rx_curr.native_data[0], 0, rx_curr.native_size[0]);
+                rx_curr.dummy           = 0;
+                
+                fread(rx_curr.native_data[0], 2, blksz, fin);
+                if (drand48()<loss) {
+                        if (rep == REPAIR_NONE) {
+                                memset(rx_curr.native_data[0],0,sizeof(sample) * blksz);
+                        } else {
+                                block_free(rx_curr.native_data[0], rx_curr.native_size[0]);
+                                rx_curr.native_data[0] = NULL;
+                                rx_curr.native_size[0]  = 0;
+                                repair(rep, &rx_curr);
+                        }
+                }
+                fwrite(rx_curr.native_data[0], 1, rx_curr.native_size[0], fout);
+                if (print) print_block(rx_curr.native_data[0], rx_curr.native_size[0]/sizeof(sample), freq);
+                block_free(rx_prev.native_data[0], rx_prev.native_size[0]);
+                rx_prev.native_data[0] = rx_curr.native_data[0];
+                rx_prev.native_size[0] = rx_curr.native_size[0];
+                rx_prev.dummy          = rx_curr.dummy;
+                rx_curr.native_data[0] = NULL;
+                rx_curr.native_size[0] = 0;
+                rx_curr.native_count   = 0;
+                rx_curr.dummy          = FALSE;
+        }
+
+        return 0;
+}
+
+#endif REPAIR_TEST
 
 
 
