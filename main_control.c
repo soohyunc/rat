@@ -3,7 +3,7 @@
  * PROGRAM: RAT - controller
  * AUTHOR:  Colin Perkins / Orion Hodson
  *
- * This is the main program for the RAT controller.  It starts the 
+ * This is the main program for the RAT controller.  It starts the
  * media engine and user interface, and controls them via the mbus.
  *
  * Copyright (c) 1999-2001 University College London
@@ -11,7 +11,7 @@
  */
 
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 "$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -55,14 +55,14 @@ static int snprintf(char *s, int buf_size, const char *format, ...)
         /* many really nasty attacks!                            */
         va_list	ap;
         int	rc;
-        
+
         UNUSED(buf_size);
         va_start(ap, format);
 #ifdef WIN32
         rc = _vsnprintf(s, buf_size, format, ap);
 #else
-        rc = sprintf(s, format, ap);
-#endif   
+        rc = vsprintf(s, format, ap);
+#endif
         va_end(ap);
         return rc;
 }
@@ -85,7 +85,7 @@ address_is_valid(const char *candidate)
 		xfree(m);
                 okay = FALSE;
         }
-	
+
 	/* rx_port then tx_port */
 	for (i = 0; i < 2; i++) {
 		p = strtok(NULL, "/");
@@ -98,19 +98,19 @@ address_is_valid(const char *candidate)
 		}
 	}
         xfree(addr);
-        
+
         return okay;
 }
 
-static int parse_options_early(int argc, const char **argv) 
+static int parse_options_early(int argc, const char **argv)
 {
         int i;
-        
+
         if (argc < 2) {
                 usage(NULL);
                 return FALSE;
         }
-        
+
         /* Iterate over all args and pick out anything needed before
          * launching other processes.
          */
@@ -128,13 +128,13 @@ static int parse_options_early(int argc, const char **argv)
                         usage(NULL);
                         return FALSE;
                 } else if (argv[i][1] == 't' && i + 1 < argc) {
-                        /* 
-                         * Handle ttl here because it is required before rtp 
-                         * address can be sent. 
+                        /*
+                         * Handle ttl here because it is required before rtp
+                         * address can be sent.
                          */
                         i++;
                         ttl = atoi(argv[i]);
-                        /* Hack because 128 is max ttl in rtp library 
+                        /* Hack because 128 is max ttl in rtp library
                          * previous versions are 0-255.
                          */
                         if (ttl > 127) {
@@ -148,14 +148,14 @@ static int parse_options_early(int argc, const char **argv)
 			ui_enabled = FALSE;
 		}
         }
-        
-        /* 
-         * Validate destination address.  Do it here before launching 
+
+        /*
+         * Validate destination address.  Do it here before launching
          * sub-processes and mbus.  This only checks the last argument
-	 * for being a valid address.  In the case of layering this 
+	 * for being a valid address.  In the case of layering this
 	 * will not be the only one, but we have to parse all args to
-	 * find this out. 
-         */     
+	 * find this out.
+         */
 	return address_is_valid(argv[argc-1]);
 }
 
@@ -171,7 +171,7 @@ parse_options_late(struct mbus *m, char *addr, int argc, char *argv[])
         }
         argc -= 1; /* Skip process name */
         argv += 1;
-        
+
         for (i = 0; i < argc; i++) {
                 a = cmd_args_handler(argv[i]);
                 if (a == NULL) {
@@ -185,12 +185,12 @@ parse_options_late(struct mbus *m, char *addr, int argc, char *argv[])
         return (i != argc);
 }
 
-static int 
+static int
 address_count(int argc, char *argv[])
 {
         const args_handler *a;
         int                 i;
-        
+
         for (i = 0; i < argc; i++) {
                 a = cmd_args_handler(argv[i]);
                 if (a == NULL) {
@@ -202,12 +202,12 @@ address_count(int argc, char *argv[])
 }
 
 
-static int 
+static int
 parse_addr(char *arg, char **addr, int *rx_port, int *tx_port)
 {
         char *token;
         int   port;
-	
+
 	if (address_is_valid(arg) == FALSE) {
 		*addr    = NULL;
 		*rx_port = 0;
@@ -218,12 +218,12 @@ parse_addr(char *arg, char **addr, int *rx_port, int *tx_port)
 	/* Address is definitely valid... */
 
         *addr = (char *)strtok(arg, "/");
-     
+
         *rx_port = DEFAULT_RTP_PORT;
         token = strtok(NULL, "/");
         if (token) {
                 port     = atoi(token);
-                port    &= ~1; 
+                port    &= ~1;
 		*rx_port = port;
         }
 
@@ -231,7 +231,7 @@ parse_addr(char *arg, char **addr, int *rx_port, int *tx_port)
         token = strtok(NULL, "/");
         if (token) {
                 port     = atoi(token);
-                port    &= ~1; 
+                port    &= ~1;
                 *tx_port = port;
         }
         return TRUE;
@@ -242,7 +242,7 @@ parse_addresses(struct mbus *m, char *e_addr[2], int argc, char *argv[])
 {
         char		*addr;
         int              i, naddr, rx_port, tx_port;
-         
+
         if (argc < 2) {
                 usage(NULL);
                 return FALSE;
@@ -277,7 +277,7 @@ static void mbus_err_handler(int seqnum, int reason)
         /* Something has gone wrong with the mbus transmission. At this time */
         /* we don't try to recover, just kill off the media engine and user  */
         /* interface processes and exit.                                     */
-        
+
         if (should_exit == FALSE) {
                 char msg[64];
                 sprintf(msg, "Could not send mbus message (%d:%d)\n", seqnum, reason);
@@ -343,31 +343,31 @@ win32_check_children_running(void)
 {
         HANDLE hProc[NUM_CHILD_PROCS];
         DWORD  dwResult;
-        
+
         hProc[0] = (HANDLE)pid_ui;
         hProc[1] = (HANDLE)pid_engine;
-        
+
         dwResult = WaitForMultipleObjects(NUM_CHILD_PROCS, hProc, FALSE, 0);
         if (dwResult >= WAIT_OBJECT_0 && dwResult < WAIT_OBJECT_0 + NUM_CHILD_PROCS) {
-                debug_msg("Process %lu is no longer running\n", 
+                debug_msg("Process %lu is no longer running\n",
                         (uint32_t)hProc[dwResult - WAIT_OBJECT_0]);
                 kill_process(pid_ui);
                 kill_process(pid_engine);
                 exit(-1);
                 return;
         }
-        
+
         if (dwResult >= WAIT_ABANDONED_0 && dwResult < WAIT_ABANDONED_0 + NUM_CHILD_PROCS) {
                 debug_msg("Process %lu wait abandoned\n",
                         (uint32_t)hProc[dwResult - WAIT_ABANDONED_0]);
                 return; /* Nothing to do, process quit already */
         }
-        
+
         if (dwResult == WAIT_FAILED) {
                 debug_msg("Wait failed\n");
                 return;
         }
-        
+
         assert(dwResult == WAIT_TIMEOUT);
         return;
 }
@@ -418,10 +418,10 @@ win32_create_null_window()
                 wc.lpszMenuName = NULL;
                 wc.cbClsExtra = 0;
                 wc.cbWndExtra = 0;
-                
+
                 RegisterClass( &wc );
         }
-        
+
         hWnd = CreateWindow( "RatControllerClass",
                 "RAT",
                 WS_OVERLAPPEDWINDOW|WS_HSCROLL|WS_VSCROLL,
@@ -469,7 +469,7 @@ int main(int argc, char *argv[])
 #ifdef WIN32
         win32_create_null_window(); /* Needed to listen to messages */
 #else
-        signal(SIGCHLD, sigchld_handler); 
+        signal(SIGCHLD, sigchld_handler);
         signal(SIGINT, sigint_handler);
 	signal(SIGTERM, sigint_handler);
 	signal(SIGHUP, sigint_handler);
@@ -487,15 +487,16 @@ int main(int argc, char *argv[])
         if (parse_options_early(argc, (const char**)argv) == FALSE) {
                 return FALSE;
         }
-        
+
         srand48(seed);
         snprintf(c_addr, 60, "(media:audio module:control app:rat id:%lu)", (unsigned long) getpid());
+        debug_msg("c_addr = %s\n", c_addr);
         m = mbus_init(mbus_control_rx, mbus_err_handler, c_addr);
         if (m == NULL) {
                 fatal_error("RAT v" RAT_VERSION, "Could not initialize Mbus: Is multicast enabled?");
                 return FALSE;
         }
-        
+
 	if (ui_enabled) {
 		token_u[0] = generate_token();
 		fork_process(UI_NAME, c_addr, &pid_ui, 1, token_u);
@@ -515,7 +516,7 @@ int main(int argc, char *argv[])
 		char	*peer;
 
 		if (ui_enabled) {
-			peer = mbus_rendezvous_go(m, token_u[0], (void *) m); 
+			peer = mbus_rendezvous_go(m, token_u[0], (void *) m);
 			debug_msg("User interface is %s\n", peer);
 		}
 		for (i = 0; i < num_sessions; i++) {
@@ -543,7 +544,7 @@ int main(int argc, char *argv[])
 			if (should_exit) {
 				final_iters--;
 			}
-                }        
+                }
 		if (ui_enabled) {
 			terminate(m, u_addr, &pid_ui);
 		}
@@ -551,12 +552,12 @@ int main(int argc, char *argv[])
 			terminate(m, e_addr[i], &pid_engine);
 		}
         }
-        
+
 	if (ui_enabled) {
 		kill_process(pid_ui);
 	}
         kill_process(pid_engine);
-        
+
 #ifdef WIN32
         WSACleanup();
 #endif
