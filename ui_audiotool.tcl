@@ -166,7 +166,7 @@ proc input_mute {state} {
 
 proc set_vol {new_vol} {
     global volume received
-    set volume $new_vol
+    set volume [format "%03d" $new_vol]
     if {$received(volume)} {
 	mbus_send "R" "audio.output.gain" $volume
     }
@@ -174,7 +174,7 @@ proc set_vol {new_vol} {
 
 proc set_gain {new_gain} {
     global gain received
-    set gain $new_gain
+    set gain [format "%03d" $new_gain]
     if {$received(gain)} {
 	mbus_send "R" "audio.input.gain" $gain
     }
@@ -718,7 +718,7 @@ proc mbus_recv_audio.output.powermeter {level} {
 proc mbus_recv_audio.input.gain {new_gain} {
     global received gain
     set received(gain) 1
-    set gain $new_gain
+    set gain [format "%03d" $new_gain]
 }
 
 proc mbus_recv_audio.input.ports.flush {} {
@@ -745,7 +745,7 @@ proc mbus_recv_audio.input.mute {val} {
 proc mbus_recv_audio.output.gain {new_gain} {
     global received volume
     set received(volume) 1
-    set volume $new_gain
+    set volume [format "%03d" $new_gain]
 }
 
 proc mbus_recv_audio.output.port {port} {
@@ -1601,10 +1601,16 @@ frame  .r.c.rx.au.port -bd 0
 button .r.c.rx.au.port.l0 -highlightthickness 0 -command {incr_port oport oports -1} -font $compfont -bitmap left -relief flat
 label  .r.c.rx.au.port.l1 -highlightthickness 0 -textv oport -font $compfont -width 10
 button .r.c.rx.au.port.l2 -highlightthickness 0 -command {incr_port oport oports +1} -font $compfont -bitmap right -relief flat
+label  .r.c.rx.au.port.vlabel -text "Vol"
+label  .r.c.rx.au.port.vval   -textv volume -width 3 -justify right
 pack   .r.c.rx.au.port -side top -fill x -expand 1
-pack   .r.c.rx.au.port.l0 -side left -fill y
-pack   .r.c.rx.au.port.l1 -side left -fill x -expand 1 
+
 pack   .r.c.rx.au.port.l2 -side left -fill y
+pack   .r.c.rx.au.port.l1 -side left -fill x -expand 0
+pack  .r.c.rx.au.port.l0 -side left -fill y
+
+
+pack   .r.c.rx.au.port.vval .r.c.rx.au.port.vlabel -side right
 
 frame  .r.c.rx.au.pow -relief sunk -bd 2
 bargraphCreate .r.c.rx.au.pow.bar
@@ -1629,10 +1635,13 @@ frame  .r.c.tx.au.port -bd 0
 button .r.c.tx.au.port.l0 -highlightthickness 0 -command {incr_port iport iports -1} -font $compfont -bitmap left -relief flat
 label  .r.c.tx.au.port.l1 -highlightthickness 0 -textv iport -font $compfont -width 10
 button .r.c.tx.au.port.l2 -highlightthickness 0 -command {incr_port iport iports +1} -font $compfont -bitmap right -relief flat
+label  .r.c.tx.au.port.vlabel -text "Gain"
+label  .r.c.tx.au.port.vval   -textv gain -width 3 -justify right
 pack   .r.c.tx.au.port -side top -fill x -expand 1
-pack   .r.c.tx.au.port.l0 -side left -fill y
-pack   .r.c.tx.au.port.l1 -side left -fill x -expand 1 
 pack   .r.c.tx.au.port.l2 -side left -fill y
+pack   .r.c.tx.au.port.l1 -side left -fill x -expand 0 
+pack   .r.c.tx.au.port.l0 -side left -fill y
+pack   .r.c.tx.au.port.vval .r.c.tx.au.port.vlabel -side right
 
 frame  .r.c.tx.au.pow -relief sunk -bd 2
 bargraphCreate .r.c.tx.au.pow.bar
