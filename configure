@@ -54,7 +54,7 @@ esac
 
 echo "Configuring RAT v$VERSION for $OSTYPE"
 
-GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -Werror"
+GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
 
 case $OSTYPE in
   SunOS_4 ) CC="gcc"
