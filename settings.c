@@ -257,8 +257,8 @@ static void load_init(void)
                 key = key + 1;               /* skip asterisk */
                 value = (char *) strtok(NULL, "\n");
                 assert(value != NULL);
-                while (*value != '\0' && isspace((int) *value)) {
-                        value++;             /* skip leading whitespace */
+                while (*value != '\0' && *value == ' ') {
+                        value++;             /* skip leading spaces */
                 }
                 settings_table_add(key, value);
         }
