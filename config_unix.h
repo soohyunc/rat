@@ -23,7 +23,6 @@
 #include "config.h"
 
 #include <limits.h>
-#include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -57,6 +56,14 @@
 
 #ifdef HAVE_SYS_SOCK_IO_H
 #include <sys/sockio.h>
+#endif
+
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
 #endif
 
 #include <sys/types.h>
