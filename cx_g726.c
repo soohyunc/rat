@@ -37,6 +37,7 @@
 
 #define _PRIVATE_G726_
 #include "cx_g726.h"
+#include "math.h"
 
 static short power2[15] = {1, 2, 4, 8, 0x10, 0x20, 0x40, 0x80,
 			0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000};
@@ -295,7 +296,7 @@ update(
 
 	mag = dq & 0x7FFF;		/* prediction difference magnitude */
 	/* TRANS */
-	ylint = state_ptr->yl >> 15;	/* exponent part of yl */
+	ylint = (short)(state_ptr->yl >> 15);	/* exponent part of yl */
 	ylfrac = (state_ptr->yl >> 10) & 0x1F;	/* fractional part of yl */
 	thr1 = (32 + ylfrac) << ylint;		/* threshold */
 	thr2 = (ylint > 9) ? 31 << 10 : thr1;	/* limit thr2 to 31 << 10 */
@@ -427,7 +428,7 @@ update(
 		exp = quan(mag, power2, 15);
 		state_ptr->sr[0] =  (exp << 6) + ((mag << 6) >> exp) - 0x400;
 	} else
-		state_ptr->sr[0] = 0xFC20;
+		state_ptr->sr[0] = (short)0xFC20;
 
 	/* DELAY A */
 	state_ptr->pk[1] = state_ptr->pk[0];

@@ -306,7 +306,8 @@ void
 codec_init()
 {
         const codec_format_t *cf;
-        u_int32 i, j;
+        u_int32 i;
+        u_int16 j;
 
         if (total_fmts_supported == 0) {
                 for(i = 0; i < NUM_CODEC_INTERFACES; i++) {

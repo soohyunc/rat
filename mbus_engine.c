@@ -845,7 +845,7 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_struct *sp)
                 }
 
                 cid = codec_get_by_name(codec_long_name);
-                if (cid && codec_map_payload(cid, new_pt)) {
+                if (cid && codec_map_payload(cid, (u_char)new_pt)) {
                         ui_update_codec(sp, cid);
                         debug_msg("map %s %d succeeded.\n", codec_long_name, new_pt);
                 } else {

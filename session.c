@@ -206,7 +206,7 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                         i++;
                 } else if ((strcmp(argv[i], "-drop") == 0) && (argc > i+1)) {
                         double drop;
-                        drop = (float)atof(argv[++i]);
+                        drop = atof(argv[++i]);
                         if (drop > 1.0) {
                                 drop = drop/100.0;
                         }
@@ -237,6 +237,7 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                                         printf("\n");
                                 }
                         }
+                        exit(0);
                 } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
                         /* Dynamic payload type mapping. Format: "-pt pt/codec/clock/channels" */
                         /* pt/codec must be specified. clock and channels are optional.        */

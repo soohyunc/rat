@@ -108,7 +108,7 @@ typedef struct session_tag {
         int             ui_on;
 	char		*ui_addr;
         converter_id_t  converter;
-        float           drop;             /* Flakeaway drop percentage [0,1] */
+        double          drop;             /* Flakeaway drop percentage [0,1] */
 	struct s_snd_file *in_file;
 	struct s_snd_file *out_file;
         int             input_gain;                 /* mike gain */
