@@ -303,6 +303,12 @@ repair(int repair, rx_queue_element_struct *ip)
         sample                  *bufs[2];
 	int consec_lost;
 
+        assert((unsigned)repair < REPAIR_NUM_SCHEMES);
+        if (schemes[repair].action == NULL) {
+                /* Nothing to do - this must be repair scheme "none" */
+                return;
+        }
+
 	pp = ip->prev_ptr;
         np = ip->next_ptr;
 
@@ -367,7 +373,6 @@ repair(int repair, rx_queue_element_struct *ip)
         bufs[0] = pp->native_data[0];
         bufs[1] = ip->native_data[0];
 
-        assert((unsigned)repair < REPAIR_NUM_SCHEMES);
         schemes[repair].action(bufs, fmt, 2, 1, consec_lost);
 }
 

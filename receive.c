@@ -723,7 +723,9 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
                         if (!up->comp_count &&
                             up->prev_ptr != NULL && up->next_ptr != NULL &&
                             up->prev_ptr->native_count) {
+                                xmemchk();
                                 repair(sp->repair, up);
+                                xmemchk();
                         }
 #ifdef DEBUG_PLAYOUT
                         if (up->prev_ptr) {
