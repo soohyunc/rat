@@ -90,7 +90,7 @@ case $OSTYPE in
 	    INCLUDE="-I/usr/X11R6/include -I/cs/research/mice/starship/common/linux/include"
 	    LDLIBS="-L/cs/research/mice/starship/common/linux/lib -ltk8.0 -ltcl8.0 -L/usr/X11R6/lib -lX11 -lm -ldl"
 	    AUDIO="auddev_oss.o"
-	    DEBUG="-g"
+	    DEBUG="-g -fbounds-checking"
 	    CHAR="-fsigned-char"
 	    OPTIMIZE="-O4"
 	    PROFILE="-pg"
