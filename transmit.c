@@ -303,8 +303,10 @@ tx_read_audio(tx_buffer *tb)
                 assert(pb_iterator_count(tb->audio_buffer) == 3);
         } else {
                 int this_read = 0;
-                /* We're not sending, but have access to the audio device. Read the audio anyway. */
-                /* to get exact timing values, and then throw the data we've just read away...    */
+                /* We're not sending, but have access to the audio device. 
+                 * Read the audio anyway to get exact values, and then 
+                 * throw the data we've just read away...    
+                 */
                 do {
                         this_read = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 4) / sp->tb->channels;
                         read_dur += this_read;
@@ -558,10 +560,10 @@ tx_send(tx_buffer *tb)
                 /* Set up fields for RTP header */
                 cu = cd->elem[0];
                 pt = channel_coder_get_payload(sp->channel_coder, cu->pt);
-                time_32 = ts_seq32_out(&tb->up_seq, tb->sample_rate, tb->sp->cur_ts);
+                time_32 = ts_seq32_out(&tb->up_seq, tb->sample_rate, time_ts);
                 if (time_32 - sp->last_depart_ts != units * tb->unit_dur) {
                         marker = 1;
-                        debug_msg("new talkspurt\n");
+                        debug_msg("new talkspurt %d %d != %d\n", time_32, sp->last_depart_ts, units * tb->unit_dur);
                 } else {
                         marker = 0;
                 }   

@@ -551,7 +551,6 @@ parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[]
                 }
 		addr    = mbus_encode_str(addr);
 		mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
-		fprintf(stderr, "rtp.addr %s %d %d %d\n", addr, rx_port, tx_port, ttl);
 		xfree(addr);
         }
 
