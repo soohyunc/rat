@@ -56,7 +56,8 @@
 #include <string.h>
 
 #ifdef WIN32
-#include <winsock.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #else /* WIN32 */
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -208,7 +209,6 @@ int   memcmp(const void *s1, const void *s2, size_t n);
 #define DIFF_BYTE_ORDER	1
 
 #include <time.h>		/* For clock_t */
-#include <winsock.h>
 
 #define inline
 #define __inline     

@@ -4,13 +4,13 @@
  */
 
 #ifdef WIN32
+#include "config.h"
 #include <windows.h>
 #include <mmsystem.h>
 #include <mmreg.h>
 #include <msacm.h>
 #include <stdio.h>
 
-#include "config.h"
 #include "codec_acm.h"
 #include "util.h"
 

@@ -66,7 +66,7 @@
 
 #ifdef WIN32
 
-#include <winsock.h>
+#include "config.h"
 #include <mmsystem.h>
 #include <mmreg.h>
 #include <stdlib.h>
@@ -77,7 +77,6 @@
 #include "rat_types.h"
 #include "audio.h"
 #include "util.h"
-#include "config.h"
 
 #define rat_to_device(x)	((x) * 255 / MAX_AMP)
 #define device_to_rat(x)	((x) * MAX_AMP / 255)

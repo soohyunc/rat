@@ -42,7 +42,6 @@
  */
 
 #include <ctype.h>
-#include <netdb.h>
 #include "config.h"
 #include "version.h"
 #include "session.h"
