@@ -63,12 +63,33 @@ struct _socket_udp {
 /* Support functions...                                                      */
 /*****************************************************************************/
 
+
 static void
 socket_error(char *msg)
 {
 #ifdef WIN32
-	int e = WSAGetLastError();
-	printf("ERROR: %s (%d)\n", msg, e);
+#define WSERR(x) {#x,x}
+        struct wse {
+                char  errname[20];
+                int errno;
+        };
+        struct wse ws_errs[] = {
+                WSERR(WSANOTINITIALISED), WSERR(WSAENETDOWN),     WSERR(WSAEACCES),
+                WSERR(WSAEINVAL),         WSERR(WSAEINTR),        WSERR(WSAEINPROGRESS),
+                WSERR(WSAEFAULT),         WSERR(WSAENETRESET),    WSERR(WSAENOBUFS),
+                WSERR(WSAENOTCONN),       WSERR(WSAENOTSOCK),     WSERR(WSAEOPNOTSUPP),
+                WSERR(WSAESHUTDOWN),      WSERR(WSAEWOULDBLOCK),  WSERR(WSAEMSGSIZE),
+                WSERR(WSAEHOSTUNREACH),   WSERR(WSAECONNABORTED), WSERR(WSAECONNRESET),
+                WSERR(WSAEADDRNOTAVAIL),  WSERR(WSAEAFNOSUPPORT), WSERR(WSAEDESTADDRREQ),
+                WSERR(WSAENETUNREACH),    WSERR(WSAETIMEDOUT),    WSERR(0)
+        };
+	
+        int i, e = WSAGetLastError();
+	i = 0;
+        while(ws_errs[i].errno && ws_errs[i].errno != e) {
+               i++;
+        }
+        printf("ERROR: %s, (%d - %s)\n", msg, e, ws_errs[i].errname);
 #else
 	perror(msg);
 #endif
@@ -177,6 +198,7 @@ static socket_udp *udp_init4(char *addr, u_int16 port, int ttl)
 			abort();
 		}
 	}
+        debug_msg("Inited socket %d port %d\n", s->fd, port);
 	return s;
 }
 
@@ -196,7 +218,7 @@ static int udp_send4(socket_udp *s, char *buffer, int buflen)
 	if ((ret = sendto(s->fd, buffer, buflen, 0, (struct sockaddr *) &s_in, sizeof(s_in))) < 0) {
 		socket_error("udp_send4");
 	}
-	return ret;
+        return ret;
 }
 
 /*****************************************************************************/
