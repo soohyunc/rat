@@ -111,7 +111,7 @@ dump_frame(coded_unit *cu, int offset)
 }
 
 #define TEST_FRAME_LEN 160
-#define TEST_FRAMES    2
+#define TEST_FRAMES    8
 
 static int
 test_converter(int idx, converter_fmt_t *cf)
@@ -139,7 +139,9 @@ test_converter(int idx, converter_fmt_t *cf)
         src = (sample*)xmalloc(TEST_FRAME_LEN * TEST_FRAMES * cf->from_channels * sizeof(sample));
         for(i = 0; i < TEST_FRAME_LEN * TEST_FRAMES; i++) {
                 for(j = 0; j < cf->from_channels; j++) {
-                        src[i * cf->from_channels + j] = 16384 * sin(4 * M_PI * i / TEST_FRAME_LEN);
+                        src[i * cf->from_channels + j] = 16384 * 
+                                sin(64 *1000 * M_PI * i / (cf->from_freq * TEST_FRAME_LEN)) * 
+                                cos(16 *M_PI * i * 1000 / (TEST_FRAME_LEN * cf->from_freq));
                 }
         }
 

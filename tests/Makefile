@@ -22,6 +22,9 @@ UTIL_OBJS = ../timers.o ../playout.o ../ts.o
 
 RDNCY_OBJS = ../cc_rdncy.o ../channel_types.o test_rdncy.o
 
+test_convert: $(CODEC_OBJS) test_convert.o
+	$(CC) $(DEBUG)  -o $@ $(CODEC_OBJS) $(LIBS) test_convert.o
+
 test_rdncy: $(RDNCY_OBJS) $(CODEC_OBJS) $(UTIL_OBJS)
 	$(CC) $(DEBUG) -o $@ $(RDNCY_OBJS) $(CODEC_OBJS) $(UTIL_OBJS) $(LIBS)
 
@@ -40,9 +43,6 @@ test_codecs: $(CODEC_OBJS) test_codecs.o
 
 test_ts: $(UTIL_OBJS) test_ts.o
 	$(CC) $(DEBUG)  -o $@ $(UTIL_OBJS) $(LIBS) test_ts.o
-
-test_convert: $(CODEC_OBJS) test_convert.o
-	$(CC) $(DEBUG)  -o $@ $(CODEC_OBJS) $(LIBS) test_convert.o
 
 .c.o:
 	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
