@@ -503,9 +503,8 @@ void settings_load_late(session_t *sp)
         xfree(field);
 
 	/* This is evil [csp] */
-	field = (char *)malloc(9);
-	sprintf(field, " rattest");
-	field[0]=3;
+	field = xstrdup(" rattest");
+	field[0] = 3;
 	rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PRIV,  field, strlen(field));
         xfree(field);
 
