@@ -105,11 +105,6 @@ char *get_cname(socket_udp *s)
 
 u_int32 get_ssrc(void)
 {
-#ifdef WIN32
-	srand48((unsigned int)GetTickCount());
-        return (lrand48()<<16)|(GetTickCount() & 0xffff);
-#else
         return lrand48();
-#endif
 }
 
