@@ -131,7 +131,7 @@ tonegen_play(tonegen_t *pt, ts_t start, ts_t end)
         src.data      = (u_char*)block_alloc(src.data_len);
 
         buf = (sample*)src.data;
-        phase = start.ticks;
+        phase = pt->write_end.ticks;
         if (mi->channels == 1) {
                 for(i = 0; i < samples; i++) {
                         double t = pt->toneamp * sin(2 * M_PI * (phase + i) * pt->tonefreq / mi->sample_rate);

@@ -193,8 +193,6 @@ mix_put_audio(mixer_t     *ms,
         ts_t            frame_period, playout_end, delta;
         ts_t            orig_head_time;
 
-        int zero_start = -1, zero_len = -1;
-
         mix_verify(ms);
         hits++;
         codec_get_native_info(frame->id, &rate, &channels);
@@ -221,9 +219,9 @@ mix_put_audio(mixer_t     *ms,
         nticks          = frame->data_len / (sizeof(sample) * channels);
         frame_period    = ts_map32(rate, nticks);
 
-	/* Map frame period to mixer time base, otherwise we can get truncation
-	 * errors in verification of mixer when sample rate conversion is active.
-	 */
+	/* Map frame period to mixer time base, otherwise we can get
+         * truncation errors in verification of mixer when sample rate
+         * conversion is active.  */
 	frame_period    = ts_convert(ms->info.sample_rate, frame_period);
 	
         if (pdbe->first_mix) {
@@ -236,10 +234,6 @@ mix_put_audio(mixer_t     *ms,
 
         samples  = (sample*)frame->data;
         nsamples = frame->data_len / sizeof(sample);
-/*
-        debug_msg("ssrc 0x%08x head %d tail %d put %d samples %d\n", pdbe->ssrc, ms->head_time.ticks, ms->tail_time.ticks, playout.ticks, nsamples);
-*/
-        mix_verify(ms);
 
         /* Check for overlap in decoded frames */
         if (!ts_eq(pdbe->next_mix, playout)) {
@@ -331,9 +325,10 @@ mix_get_audio(mixer_t *ms, int request, sample **bufp)
                  * now so zero the rest of the buffer and move the head.
                  */
                 silence = amount - ms->dist;
+#ifdef DEBUG_MIX
                 debug_msg("Insufficient audio: %d < %d\n", ms->dist, amount);
+#endif /* DEBUG_MIX */
                 if (ms->head + silence > ms->buf_len) {
-                        debug_msg("Insufficient audio: zeroing end of mix buffer %d %d\n", ms->buf_len - ms->head, silence + ms->head - ms->buf_len);
                         audio_zero(ms->mix_buffer + ms->head, ms->buf_len - ms->head, DEV_S16);
                         audio_zero(ms->mix_buffer, silence + ms->head - ms->buf_len, DEV_S16);
                 } else {

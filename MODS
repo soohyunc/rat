@@ -1220,6 +1220,7 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 
 4.2.0   - Fix mixer writing to new head position so it mixes multiple streams
           again!
+	- Fix phase skips of tone generator.
 
 TODO -- They're features not bugs dammit!
 ----

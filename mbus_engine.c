@@ -646,7 +646,6 @@ static void rx_audio_file_play_pause(char *srce, char *args, session_t *sp)
         mbus_parse_done(mp);
 }
 
-
 static void rx_audio_file_play_live(char *srce, char *args, session_t *sp)
 {
         /* This is a request to see if file we are playing is still valid */
@@ -728,7 +727,6 @@ static void rx_audio_file_rec_live(char *srce, char *args, session_t *sp)
         /* This is a request to see if file we are recording is still valid */
         UNUSED(args);
 	UNUSED(srce);
-        debug_msg("%d\n", sp->out_file ? 1 : 0);
         ui_send_audio_file_alive(sp, sp->mbus_ui_addr, "record", (sp->out_file) ? 1 : 0);
 }
 
