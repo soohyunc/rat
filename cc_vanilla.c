@@ -125,20 +125,21 @@ vanilla_encoder_encode (u_char      *state,
         struct      s_pb_iterator *pi;
         media_data *m;
         ve_state   *ve = (ve_state*)state;
-        int n = 0;
 
         assert(upp != 0 && upp <= MAX_UNITS_PER_PACKET);
 
-        pb_iterator_create(in, &pi);
-        assert(pi != NULL);
+        pb_verify(in);
+        pb_verify(out);
 
-        while(pb_iterator_advance(pi)) {
+        pb_iterator_create(in, &pi);
+        pb_iterator_advance(pi); /* Move to first element */
+
+        while(pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout)) {
                 /* Remove element from playout buffer - it belongs to
                  * the vanilla encoder now.
                  */
-                pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout);
                 assert(m != NULL);
-                n++;
+
                 if (ve->nelem == 0) {
                         /* If it's the first unit make a note of it's
                          *  playout */
@@ -152,9 +153,10 @@ vanilla_encoder_encode (u_char      *state,
                         }
                 } else {
                         /* Check for early send required:      
-                         * (a) if this unit has no media respresentations.
+                         * (a) if this unit has no media respresentations 
+                         *     e.g. end of talkspurt.
                          * (b) codec type of incoming unit is different 
-                         * from what is on queue.
+                         *     from what is on queue.
                          */
                         if (m->nrep == 0) {
                                 vanilla_encoder_output(ve, out);
@@ -177,6 +179,9 @@ vanilla_encoder_encode (u_char      *state,
         }
 
         pb_iterator_destroy(in, &pi);
+
+        pb_verify(in);
+        pb_verify(out);
 
         return TRUE;
 }

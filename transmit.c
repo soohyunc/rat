@@ -259,6 +259,7 @@ tx_read_audio(tx_buffer *tb)
 
         sp = tb->sp;
         if (tb->sending_audio) {
+                int filled_unit;
                 assert(pb_iterator_count(tb->audio_buffer) == 3);
                 freq = get_freq(tb->clock);
                 do {
@@ -276,7 +277,8 @@ tx_read_audio(tx_buffer *tb)
                                                 u->data + u->dur_used * tb->channels,
                                                 (u_int16)((tb->unit_dur - u->dur_used) * tb->channels));
                         }
-                        
+
+                        filled_unit = FALSE;
                         u->dur_used += this_read;
                         if (u->dur_used == tb->unit_dur) {
                                 read_dur += tb->unit_dur;
@@ -285,8 +287,9 @@ tx_read_audio(tx_buffer *tb)
                                 tx_unit_create(tb, &u, tb->unit_dur * tb->channels);
                                 pb_add(tb->audio_buffer, (u_char*)u, ulen, u_ts);
                                 pb_iterator_advance(tb->reading);
+                                filled_unit = TRUE;
                         } 
-                } while (u->dur_used == tb->unit_dur);
+                } while (filled_unit == TRUE);
                 assert(pb_iterator_count(tb->audio_buffer) == 3);
         } else {
                 /* We're not sending, but have access to the audio device. Read the audio anyway. */
@@ -451,11 +454,13 @@ tx_send(tx_buffer *tb)
                 return;
         } 
 
+#ifndef NDEBUG
         {
                 struct s_pb *buf;
                 buf = pb_iterator_get_playout_buffer(tb->transmit);
                 assert(pb_iterator_count(buf) == 3);
         }
+#endif /* NDEBUG */
 
         pb_iterator_get_at(tb->silence,  (u_char**)&u, &u_len, &u_sil_ts);
         pb_iterator_get_at(tb->transmit, (u_char**)&u, &u_len, &u_ts);
@@ -522,23 +527,17 @@ tx_send(tx_buffer *tb)
         channel_encoder_encode(sp->channel_coder, tb->media_buffer, tb->channel_buffer);
 
         pb_iterator_create(tb->channel_buffer, &cpos);
-        while(pb_iterator_advance(cpos)) {
-                if (pb_iterator_detach_at(cpos, 
-                                          (u_char**)&cd, 
-                                          &cd_len, 
-                                          &time_ts) == FALSE){
-                        debug_msg("Failed to detach\n");
-                }
+        pb_iterator_advance(cpos);
+        while(pb_iterator_detach_at(cpos, (u_char**)&cd, &cd_len, &time_ts)) {
                 cu = cd->elem[0];
                 rtp_header.type = 2;
                 rtp_header.seq  = (u_int16)htons(sp->rtp_seq++);
                 rtp_header.p    = rtp_header.x = 0;
                 rtp_header.ssrc = htonl(rtcp_myssrc(sp));
                 rtp_header.pt   = channel_coder_get_payload(sp->channel_coder, cu->pt);
-
                 time_32 = ts_seq32_out(&tb->up_seq, freq, time_ts);
                 rtp_header.ts   = htonl(time_32);
-                
+
                 if (time_32 - sp->last_depart_ts != units * tb->unit_dur) {
                         rtp_header.m = 1;
                         debug_msg("new talkspurt\n");
