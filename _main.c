@@ -21,7 +21,6 @@
 #include "version.h"
 #include "mbus_control.h"
 
-int done_waiting = FALSE;
 int should_exit  = FALSE;
 int thread_pri   = 2; /* Time Critical */
 
@@ -50,14 +49,11 @@ static pid_t fork_process(struct mbus *m, char *proc_name, char *ctrl_name)
 		_exit(1);	
 	}
 
-	/* This is the controller - we have to wait for the child to say hello */
-	/* to us, before we continue.  The variable done_waiting is updated by */
-	/* the mbus_cmd_handler function, when we get mbus.go(condition) for a */
-	/* condition we are waiting for.                                       */
+	/* This is the parent: we have to wait for the child to say hello before continuing. */
 	token_e = mbus_encode_str(token);
 	mbus_control_wait_init(token);
 	while (!mbus_control_wait_done()) {
-		debug_msg("Waiting for token \"%s\" for sub-process\n", token);
+		debug_msg("Waiting for token \"%s\" from sub-process\n", token);
 		timeout.tv_sec  = 1;
 		timeout.tv_usec = 0;
 		mbus_qmsgf(m, "()", FALSE, "mbus.waiting", "%s", token_e);
