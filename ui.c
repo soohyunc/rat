@@ -60,7 +60,7 @@
 #include "mix.h"
 #include "transmit.h"
 #include "ui.h"
-#include "rat_time.h"
+#include "timers.h"
 
 static char *mbus_name_engine = NULL;
 static char *mbus_name_ui     = NULL;

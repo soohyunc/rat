@@ -49,7 +49,7 @@
 #include "interfaces.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
-#include "rat_time.h"
+#include "timers.h"
 
 void 
 service_rtcp(session_struct    *sp,

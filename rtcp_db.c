@@ -59,7 +59,7 @@
 #include "session.h"
 #include "util.h"
 #include "ui.h"
-#include "rat_time.h"
+#include "timers.h"
 #include "receive.h"
 
 #define MAX_DROPOUT	3000

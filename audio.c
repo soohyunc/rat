@@ -56,7 +56,7 @@
 #include "codec.h"
 #include "channel.h"
 #include "cushion.h"
-#include "rat_time.h"
+#include "timers.h"
 #include "receive.h"
 
 /* Zero buf used for writing zero chunks during cushion adaption */

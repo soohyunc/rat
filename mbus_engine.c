@@ -57,7 +57,7 @@
 #include "repair.h"
 #include "crypt.h"
 #include "session.h"
-#include "rat_time.h"
+#include "timers.h"
 
 extern int should_exit;
 

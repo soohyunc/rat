@@ -5,7 +5,7 @@
 CFLAGS         = __WFLAGS__ __INCLUDE__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_FLAG__ __DEFS__ -D__OSTYPE__ -DSASR -DFAST -DUSE_FLOAT_MUL
 CC             = __CC__
 
-OBJS = time.o codec.o convert.o repair.o codec_lpc.o codec_adpcm.o codec_wbs.o codec_g711.o codec_gsm.o   \
+OBJS = timers.o codec.o convert.o repair.o codec_lpc.o codec_adpcm.o codec_wbs.o codec_g711.o codec_gsm.o \
        channel.o cc_red.o cc_intl.o rtcp_db.o rtcp_pckt.o qfDES.o receive.o transmit.o audio.o cushion.o  \
        session.o util.o interfaces.o statistics.o mix.o parameters.o ui_audiotool.o ui_transcoder.o       \
        tcltk.o rtcp.o net.o ui.o transcoder.o crypt.o crypt_random.o md5.o mbus.o mbus_ui.o mbus_engine.o \

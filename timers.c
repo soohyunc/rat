@@ -44,7 +44,7 @@
 #include "config_win32.h"
 #include "assert.h"
 #include "rat_types.h"
-#include "rat_time.h"
+#include "timers.h"
 #include "util.h"
 
 #define HALF_TS_CYCLE	0x80000000

@@ -54,8 +54,6 @@
 #ifndef _rat_statistics_h_
 #define _rat_statistics_h_
 
-#include "rat_time.h"
-
 struct session_tag;
 struct pckt_queue_tag;
 struct rx_queue_tag;

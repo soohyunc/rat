@@ -61,7 +61,7 @@
 #include "util.h"
 #include "net.h"
 #include "transmit.h"
-#include "rat_time.h"
+#include "timers.h"
 
 #define SECS_BETWEEN_1900_1970 2208988800u
 #define RTP_SSRC_EXPIRE        70u

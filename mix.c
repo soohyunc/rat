@@ -49,7 +49,7 @@
 #include "util.h"
 #include "audio.h"
 #include "receive.h"
-#include "rat_time.h"
+#include "timers.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "convert.h"

@@ -46,7 +46,7 @@
 #include "receive.h"
 #include "interfaces.h"
 #include "util.h"
-#include "rat_time.h"
+#include "timers.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "repair.h"

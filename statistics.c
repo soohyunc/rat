@@ -46,9 +46,9 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
-#include "statistics.h"
 #include "session.h"
 #include "receive.h"
+#include "timers.h"
 #include "interfaces.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
@@ -59,6 +59,7 @@
 #include "channel.h"
 #include "ui.h"
 #include "mbus.h"
+#include "statistics.h"
 
 static rtcp_dbentry *
 update_database(session_struct *sp, u_int32 ssrc)

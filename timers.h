@@ -40,8 +40,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _rat_time_h_
-#define _rat_time_h_
+#ifndef _TIMERS_H
+#define _TIMERS_H
 
 #include "rat_types.h"
 
