@@ -60,7 +60,11 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
         debug_msg("Forked %s\n", proc_name);
 #else
 #ifdef DEBUG_FORK
-        debug_msg("%s -ctrl '%s' -token %s\n", proc_name, ctrl_addr, token);
+	if (num_tokens == 1) {
+        	debug_msg("%s -ctrl '%s' -token %s\n", proc_name, ctrl_addr, token[0]);
+	} else {
+        	debug_msg("%s -T -ctrl '%s' -token %s -token %s\n", proc_name, ctrl_addr, token[0], token[1]);
+	}
         UNUSED(pid);
 #else
         *pid = fork();
