@@ -169,7 +169,6 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
 
 	/* Discard packet if output is muted... no point wasting time decoding it... */
         if ((sp->playing_audio == FALSE) || (e->mute)) {
-                debug_msg("Packet discarded since output muted\n");
                 xfree(p);
                 return;
         }
@@ -188,14 +187,11 @@ process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
         pdb_entry_t  *e;
         uint32_t fract_lost, my_ssrc;
 
-        debug_msg("rr from 0x%lx on 0x%lx\n", ssrc, r->ssrc);
-
         /* Calculate rtt estimate */
         my_ssrc =  rtp_my_ssrc(sp->rtp_session[0]);
         if (pdb_item_get(sp->pdb, r->ssrc, &e) == FALSE) {
                 /* Maybe deleted or not heard from yet */
-                debug_msg("Receiver report on unknown participant (0x%lx)\n",
-                          r->ssrc);
+                debug_msg("Receiver report on unknown participant (0x%lx)\n", r->ssrc);
                 return;
         }
 
@@ -302,7 +298,6 @@ process_create(session_t *sp, uint32_t ssrc)
 static void
 process_delete(session_t *sp, uint32_t ssrc)
 {
-        debug_msg("got delete 0x%08lx\n", ssrc);
         if (ssrc != rtp_my_ssrc(sp->rtp_session[0]) &&
             sp->mbus_engine != NULL) {
                 struct s_source *s;
