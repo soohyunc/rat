@@ -450,7 +450,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 	ppb_t			*buf, **bufp;
 	u_int32			cur_time, cs, cu, chunks_mixed;
 
-        cu = cu = 0;
+        cs = cu = 0;
         
 	while (receive_queue->queue_empty == FALSE) {
 		up       = get_unit_off_rx_queue(receive_queue);
