@@ -1025,6 +1025,7 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Various fixes for potential buffer overflows
 	- Update copyright notices to welcome in the new millennium
 	- Fix mbus address of the media engine (had a spurious space in instance:pid)
+	- Remove lip-sync command line option and toggle button in the user interface.
 
 
 

@@ -199,21 +199,6 @@ static void rx_tool_rat_lecture(char *srce, char *args, session_t *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_tool_rat_sync(char *srce, char *args, session_t *sp)
-{
-	int i;
-
-	UNUSED(srce);
-
-	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, &i)) {
-		sp->sync_on = i;
-	} else {
-		debug_msg("mbus: usage \"tool.rat.sync <boolean>\"\n");
-	}
-	mbus_parse_done(sp->mbus_engine);
-}
-
 static void rx_tool_rat_agc(char *srce, char *args, session_t *sp)
 {
 	int i;
@@ -1224,8 +1209,10 @@ static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 {
 	/* Ignore "hello" messages... */
 	UNUSED(args);
-	UNUSED(srce);
 	UNUSED(sp);
+	if (strstr(srce, "media:video") != NULL) {
+		debug_msg("Found video tool\n");
+	}
 }
 
 static const mbus_cmd_tuple engine_cmds[] = {
@@ -1239,7 +1226,6 @@ static const mbus_cmd_tuple engine_cmds[] = {
         { "tool.rat.agc",                          rx_tool_rat_agc },
         { "tool.rat.loopback",                     rx_tool_rat_audio_loopback },
         { "tool.rat.echo.suppress",                rx_tool_rat_echo_suppress },
-        { "tool.rat.sync",                         rx_tool_rat_sync },
         { "tool.rat.rate",                         rx_tool_rat_rate },
         { "tool.rat.powermeter",                   rx_tool_rat_powermeter },
         { "tool.rat.converter",                    rx_tool_rat_converter },

@@ -240,7 +240,6 @@ proc mbus_recv {cmnd args} {
 		tool.rat.repairs.add		{eval mbus_recv_tool.rat.repairs.add $args}
 		tool.rat.powermeter		{eval mbus_recv_tool.rat.powermeter $args}
 		tool.rat.agc  			{eval mbus_recv_tool.rat.agc $args}
-		tool.rat.sync  			{eval mbus_recv_tool.rat.sync $args}
 		tool.rat.format.in              {eval mbus_recv_tool.rat.format.in $args}
 		tool.rat.codec  		{eval mbus_recv_tool.rat.codec $args}
 		tool.rat.codec.details          {eval mbus_recv_tool.rat.codec.details $args}
@@ -630,11 +629,6 @@ proc mbus_recv_tool.rat.powermeter {arg} {
 proc mbus_recv_tool.rat.agc {arg} {
   global agc_var
   set agc_var $arg
-}
-
-proc mbus_recv_tool.rat.sync {arg} {
-  global sync_var
-  set sync_var $arg
 }
 
 proc mbus_recv_security.encryption.key {new_key} {
@@ -2057,13 +2051,12 @@ label $i.a.f.f.l -anchor w -justify left -text "The following features may be\nd
 pack $i.a -side top -fill both -expand 1 
 pack $i.a.f -fill x -side left -expand 1
 checkbutton $i.a.f.f.power   -text "Powermeters active"       -variable meter_var
-checkbutton $i.a.f.f.video   -text "Video synchronization"    -variable sync_var
 checkbutton $i.a.f.f.balloon -text "Balloon help"             -variable help_on
 checkbutton $i.a.f.f.matrix  -text "Reception quality matrix" -variable matrix_on -command chart_show
 checkbutton $i.a.f.f.plist   -text "Participant list"         -variable plist_on  -command toggle_plist
 checkbutton $i.a.f.f.fwin    -text "File Control Window"      -variable files_on  -command file_show
 pack $i.a.f.f $i.a.f.f.l
-pack $i.a.f.f.power $i.a.f.f.video $i.a.f.f.balloon $i.a.f.f.matrix $i.a.f.f.plist $i.a.f.f.fwin -side top -anchor w 
+pack $i.a.f.f.power $i.a.f.f.balloon $i.a.f.f.matrix $i.a.f.f.plist $i.a.f.f.fwin -side top -anchor w 
 
 proc set_pane {p base desc} {
     upvar 1 $p pane
@@ -2245,7 +2238,7 @@ proc sync_engine_to_ui {} {
     global prenc upp channel_var secenc layerenc red_off int_gap int_units
     global silence_var agc_var audio_loop_var echo_var
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
-    global meter_var sync_var gain volume iport oport 
+    global meter_var gain volume iport oport 
     global in_mute_var out_mute_var ichannels freq key key_var
     global audio_device received
 
@@ -2298,7 +2291,6 @@ proc sync_engine_to_ui {} {
 
     #Interface
     mbus_send "R" "tool.rat.powermeter"   $meter_var
-    mbus_send "R" "tool.rat.sync"         $sync_var
 
     #device 
     mbus_send "R" "audio.device"        [mbus_encode_str "$audio_device"]
@@ -2864,8 +2856,6 @@ add_help .prefs.pane.security.a.f.f.e "Due to government export restrictions\nhe
 set i .prefs.pane.interface
 add_help $i.a.f.f.power "Disable display of audio powermeters. This\nis only\
 		 	 useful if you have a slow machine"
-add_help $i.a.f.f.video	"Enable lip-synchronisation, if\nyou\
-			 have a compatible video tool"
 add_help $i.a.f.f.balloon "If you can see this, balloon help\nis enabled. If not, it isn't."
 add_help $i.a.f.f.matrix  "Displays a chart showing the reception\nquality reported by all participants"
 add_help $i.a.f.f.plist   "Hides the list of participants"

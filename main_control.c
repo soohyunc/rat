@@ -247,15 +247,6 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 			tmp = mbus_encode_str(argv[i+1]);
 			mbus_qmsgf(m, e_addr, TRUE, "security.encryption.key", tmp);
 			xfree(tmp);
-		} else if ((strcmp(argv[i], "-sync") == 0) && (argc > i+1)) {
-			if (strcmp(argv[i+1], "on") == 0) {
-				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.sync", "1");
-			} else if (strcmp(argv[i+1], "off") == 0) {
-				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.sync", "0");
-			} else {
-				usage("Usage: -sync on|off\n");
-                                return FALSE;
-			}
 		} else if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
 			if (strcmp(argv[i+1], "on") == 0) {
 				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.agc", "1");
