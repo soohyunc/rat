@@ -569,6 +569,7 @@ rx_redundancy(char *srce, char *args, session_struct *sp)
             mbus_parse_int(mbus_chan, &offset)) {
                 if (offset<=0) offset = 0;;
                 pcp    = get_codec(sp->encodings[0]);
+                debug_msg(codec);
 		rcp    = get_codec(codec_matching(mbus_decode_str(codec), pcp->freq, pcp->channels));
                 assert(rcp != NULL);
                 /* Check redundancy makes sense... */
@@ -632,6 +633,7 @@ rx_primary(char *srce, char *args, session_struct *sp)
                 } else {
                         /* just register we want to make a change */
                         sp->next_encoding = pt;
+                        audio_device_reconfigure(sp);
                 }
         }
 }

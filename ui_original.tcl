@@ -1379,6 +1379,8 @@ proc load_settings {} {
     load_setting attr audioFrequency         freq          "8-kHz"
     load_setting attr audioChannels          channels      "Mono"
     load_setting attr audioPrimary           prenc         "GSM"
+    global prenc channels freq
+    mbus_send "R"    "primary"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
     load_setting attr audioUnits             upp           "2"
     load_setting attr audioChannelCoding     channel_var   "None"
     load_setting attr audioRedundancy        secenc        "GSM"
@@ -1387,7 +1389,7 @@ proc load_settings {} {
     load_setting attr audioInterleavingUnits int_units     "4"
     load_setting attr audioSilence           silence_var   "1"
     load_setting attr audioAGC               agc_var       "0"
-    validate_red_codecs
+#   validate_red_codecs
 
     # reception
     load_setting attr audioRepair       repair_var    "Packet Repetition"
@@ -1414,7 +1416,6 @@ proc load_settings {} {
     # want to start with mic open then they add following attributes
     load_setting attr audioOutputMute   out_mute_var "0"
     load_setting attr audioInputMute    in_mute_var  "1"
-
 }
 
 proc check_rtcp_name {} {
