@@ -274,6 +274,7 @@ pca_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 
         if ((nbytes = write(audio_fd, buf, write_bytes)) != write_bytes) {
 		if (errno == EWOULDBLOCK) {	/* XXX */
+                        perror("pca_audio_write");
 			return 0;
 		}
 		if (errno != EINTR) {
@@ -424,4 +425,12 @@ pca_audio_wait_for(audio_desc_t ad, int delay_ms)
         } else {
                 usleep(delay_ms * 1000);
         }
+}
+
+int
+pca_audio_supports(audio_desc_t ad, audio_format *fmt)
+{
+        UNUSED(ad);
+        if (fmt->channels == 1 && fmt->sample_rate == 8000) return TRUE;
+        return FALSE;
 }

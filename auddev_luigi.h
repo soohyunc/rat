@@ -64,6 +64,7 @@ int  luigi_audio_get_iport  (audio_desc_t ad);
 int  luigi_audio_next_iport (audio_desc_t ad);
 int  luigi_audio_is_ready  (audio_desc_t ad);
 void luigi_audio_wait_for  (audio_desc_t ad, int delay_ms);
+int  luigi_audio_supports  (audio_desc_t ad, audio_format *f);
 
 /* Functions to get names of devices */
 void  luigi_audio_query_devices(void);

@@ -607,6 +607,7 @@ ui_sampling_modes(session_struct *sp)
         
         for(rate = 8000; rate <=48000; rate += 8000) {
                 support = 0;
+                if (rate == 20000 || rate == 24000 || rate == 40000) continue;
                 for(channels = 1; channels <= 2; channels++) {
                         if (audio_device_supports(sp->audio_device, rate, channels)) support += channels;
                 }

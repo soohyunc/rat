@@ -91,7 +91,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 
                 LUIGI_AUDIO_IOCTL(audio_fd, AIOGCAP, &soundcaps);
                 LUIGI_AUDIO_IOCTL(audio_fd,SNDCTL_DSP_RESET,0);
-                
+
                 switch (soundcaps.formats & (AFMT_FULLDUPLEX | AFMT_WEIRD)) {
                 case AFMT_FULLDUPLEX:
                         /*
@@ -465,6 +465,25 @@ int
 luigi_audio_is_ready(audio_desc_t ad)
 {
         return luigi_audio_select(ad, 0);
+}
+
+int 
+luigi_audio_supports(audio_desc_t ad, audio_format *fmt)
+{
+        snd_capabilities s;
+
+        UNUSED(ad);
+
+        if (luigi_error) debug_msg("Device error!");
+        luigi_error = 0;
+        LUIGI_AUDIO_IOCTL(audio_fd, AIOGCAP, &s);
+        if (!luigi_error) {
+                if ((unsigned)fmt->sample_rate < s.rate_min || (unsigned)fmt->sample_rate > s.rate_max) return FALSE;
+                if (fmt->channels == 1) return TRUE;                    /* Always supports mono */
+                assert(fmt->channels == 2);
+                if (s.formats & AFMT_STEREO) return TRUE;
+        }
+        return FALSE;
 }
 
 void

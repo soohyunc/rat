@@ -277,7 +277,7 @@ audio_format_buffer_convert(audio_format *src,
         se        = src_buf + src_bytes;
 
         assert(out_bytes <= dst_bytes);
-
+        xmemchk();
         if (src->channels == dst->channels || src->encoding == dst->encoding) {
                 /* Only 1 buffer needed */
                 if (src->channels != dst->channels) {
@@ -285,6 +285,7 @@ audio_format_buffer_convert(audio_format *src,
                 } else {
                         convert_buffer_sample_type (src, src_buf, src_bytes, dst, dst_buf, dst_bytes); 
                 }
+                xmemchk();
                 return out_bytes;
         } else {
                 /* Additional buffer needed - do everything in steps */
@@ -293,9 +294,11 @@ audio_format_buffer_convert(audio_format *src,
                 while (src_bytes > 0) {
                         src_adv = min(80, src_bytes);
                         ret = convert_buffer_channels(src, src_buf, src_adv, dst, ibuf, 160);
+                        xmemchk();
                         src_bytes -= src_adv;
                         src_buf   += src_adv;
                         ret = convert_buffer_sample_type(src, ibuf, ret, dst, dst_buf, dst_bytes);
+                        xmemchk();
                         dst_bytes -= ret;
                         dst_buf   += ret;
                 }
@@ -318,7 +321,50 @@ audio_format_change_encoding(audio_format *cur, deve_e new_enc)
         
         cur->bytes_per_block = cur->bytes_per_block * bits_per_sample / cur->bits_per_sample;
         cur->bits_per_sample = bits_per_sample;
-        
+        cur->encoding        = new_enc;
 /* If this is zero something has gone wrong! */
         return cur->bytes_per_block; 
 }
+
+static const char *
+deve_get_name(deve_e encoding)
+{
+        switch(encoding) {
+        case DEV_PCMU: return "8-bit mu-law";
+        case DEV_S16:  return "16-bit signed linear";
+        case DEV_S8:   return "8-bit signed linear";
+        }
+        return NULL;
+}
+
+static const char *
+audio_channels_name(int channels)
+{
+        switch(channels) {
+        case 1: return "mono";
+        case 2: return "stereo";
+        default: assert(0); 
+        }                
+        return NULL;
+}
+
+int
+audio_format_name(audio_format *cur, char *buf, int buf_len)
+{
+        assert(cur != NULL);
+        assert(buf != NULL);
+        assert(buf_len > 0);
+
+        buf[0] = '\0';
+        if (buf_len >= 38) {
+                /* 38 = strlen("16-bit signed linear, 48kHz, stereo") + 1; */
+                sprintf(buf, "%s, %dkHz, %s",
+                        deve_get_name(cur->encoding),
+                        cur->sample_rate/1000,
+                        audio_channels_name(cur->channels));
+                return TRUE;
+        }
+
+        return FALSE;
+}
+
