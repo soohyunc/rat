@@ -1343,3 +1343,7 @@ add_help .b.a.rp      	"Enter your phone number for transmission\nto other parti
 add_help .b.a.rl      	"Enter your location for transmission\nto other participants"
 add_help .b.d         	"Click to remove the options window"
 
+add_help .chart		"This chart displays the reception quality reported\nby all session\
+			 participants. Looking along a row\ngives the quality that participant\
+			 received from all\nother participants in the session: green is\
+			 good\nquality, orange medium quality, and red poor quality\naudio."
