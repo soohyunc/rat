@@ -1308,6 +1308,7 @@ v4.2.4	- Further updates to OSS (i.e. Linux) audio support
 		- Add -T option to media engine to enable transcoder operation.
 		  This will need a custom user interface and controller.
 		- Remove the IS_TRANSCODER defines.
+	- Update installation instructions
 
 
 

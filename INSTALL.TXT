@@ -10,19 +10,23 @@ its icon and follow the instructions.
 The Unix versions are distributed as tar archives compressed with gzip. The
 archive contains documentation files and binaries which can be installed as
 follows:
-	tar zxvf rat-4.1.2-Solaris.tar.gz
-	install -m 755 rat-4.1.2       /usr/local/bin
-	install -m 755 rat-4.1.2-ui    /usr/local/bin
-	install -m 755 rat-4.1.2-media /usr/local/bin
-replacing "4.1.2-Solaris" with the version number and platform of your choice.
+	tar zxvf rat-4.2.3-solaris2.7.tar.gz
+	cd rat-4.2.3
+	./rat-4.2.3-installer
+at this point you will be asked to read the license agreement. If you accept
+the license terms, a second tar/gzip archive will be generated. You should
+then install this using:
+	tar zxvf rat-4.2.3-solaris2.7.tar.gz
+	install -m 755 rat-4.2.3       /usr/local/bin
+	install -m 755 rat-4.2.3-ui    /usr/local/bin
+	install -m 755 rat-4.2.3-media /usr/local/bin
+replacing "4.2.3-Solaris" with the version number and platform of your choice.
 Note:
-  1) The front-end binary ("rat-4.1.2" in this example) can be renamed if
+  1) The front-end binary ("rat-4.2.3" in this example) can be renamed if
   desired. The application will not work if the other binaries are renamed.
   2) All three binaries must be installed in a directory in your search path.
-
-The Linux version may be distributed as a RedHat ".rpm" file. You may install
-this using "rpm -Uvh rat-4.1.2.rpm", replacing 4.1.2 with the current version
-number.
+If you have the sdr program, you should also install the supplied sdr plugin 
+according to the instructions for sdr.
 
 
 Compiling from source code
