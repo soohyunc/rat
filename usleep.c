@@ -1,0 +1,45 @@
+/*
+ * FILE:    usleep.c
+ * PROGRAM: RAT
+ * AUTHORS: Colin Perkins 
+ * 
+ * Some platforms, notably Win32 and Irix 5.3 don't have a usleep
+ * system call. This file provides a workaround.
+ *
+ * $Revision$
+ * $Date$
+ * 
+ * Copyright (c) 1999 University College London
+ * All rights reserved.
+ *
+ */
+
+#include "config_unix.h"
+#include "config_win32.h"
+
+#ifdef WIN32
+int usleep(unsigned int usec)
+{
+        DWORD dur = usec/1000;
+        if (dur != 0) {
+		Sleep(dur);
+	}
+        return 0;
+}
+#endif
+
+#ifdef IRIX
+int usleep(unsigned int usec)
+{
+	struct timespec sleeptime,t2;
+
+	sleeptime.tv_sec  = usec/1000000;
+	sleeptime.tv_nsec = (usec%1000000)*1000;
+
+	while(nanosleep(&sleeptime,&t2)){ /* if interrupted, sleep again*/
+		sleeptime.tv_sec  = t2.tv_sec;
+		sleeptime.tv_nsec = t2.tv_nsec;
+	}
+}
+#endif
+

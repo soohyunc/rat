@@ -169,6 +169,7 @@ int	toupper(int c);
 #define NEED_INET_PTON
 #include <bstring.h>     /* Needed for FDZERO on IRIX only */
 #include <audio.h>
+#include "usleep.h"
 int gethostname(char *name, int namelen);
 #endif
 

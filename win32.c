@@ -452,14 +452,6 @@ RegGetValue(HKEY* key, char *subkey, char *value, char *dst, int dlen)
         return TRUE;
 }
 
-int 
-usleep(unsigned int usec)
-{
-        DWORD dur = usec/1000;
-        if (dur) Sleep(dur);
-        return 0;
-}
-
 #define MAX_VERSION_STRING_LEN 64
 const char*
 w32_make_version_info(char *szRatVer) 

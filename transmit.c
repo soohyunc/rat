@@ -551,7 +551,11 @@ tx_send(tx_buffer *tb)
                 ovec[0].iov_base = (caddr_t)&rtp_header;
                 ovec[0].iov_len  = 12 + rtp_header.cc*4;
                 for(i = 0; i < cd->nelem; i++) {
-                        ovec[i+1].iov_base = cd->elem[i]->data;
+			/* The cast below is needed for Irix 5.3, but isn't  */
+			/* necessary for other platforms. Doesn't seem to be */
+			/* a problem though, so we'll try it. [csp, problem  */
+			/* reported by David Balazic]                        */
+                        ovec[i+1].iov_base = (char *) cd->elem[i]->data;
                         ovec[i+1].iov_len  = cd->elem[i]->data_len;
                 }
 
