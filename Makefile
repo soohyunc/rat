@@ -12,7 +12,7 @@ DEFS = -DDEBUG -DDEBUG_MEM -DDEBUG_MBUS
 
 DEFS += -D$(OSTYPE) -D$(OSTYPE)_$(OSMVER) -D$(USER)
 CC     = gcc
-CFLAGS = -Wall $(INCS) $(DEFS) -O -g -fsigned-char -pipe
+CFLAGS = -Wall -Werror $(INCS) $(DEFS) -O -g -fsigned-char -pipe
 LDFLAGS=
 LDLIBS=  $(LDLIBS) -lm
 RANLIB = ranlib
