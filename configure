@@ -1204,7 +1204,7 @@ OSTYPE=$host_os
 
 
 # Check for various headers                                                 
-for ac_hdr in stdint.h inttypes.h stropts.h sys/filio.h malloc.h
+for ac_hdr in stdint.h inttypes.h stropts.h sys/filio.h malloc.h bstring.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
@@ -3114,7 +3114,7 @@ rm -f conftest*
 fi
 if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
   echo "$ac_t""yes" 1>&6
-  TCL_INC=-I${inc}
+  TCL_INC=-I${TCL_INC}
 	 break
 else
   echo "$ac_t""no" 1>&6
@@ -3122,7 +3122,7 @@ TCL_INC=no
 fi
 
 
-if test $TCL_INC = no 
+if test "$TCL_INC" = no 
 then
 	echo "Could not find tcl.h.  One of the following halted progress:"
 	echo "   (a) Tcl is not installed."
@@ -3234,10 +3234,10 @@ fi
 FOUND_TK_INC=0
 for i in $TK_INC/generic $TK_INC/include/tk8.0 $TK_INC/include $TK_INC
 do
-	echo $ac_n "checking $i/tk.h""... $ac_c" 1>&6
-echo "configure:3239: checking $i/tk.h" >&5
+	echo $ac_n "checking for $i/tk.h""... $ac_c" 1>&6
+echo "configure:3239: checking for $i/tk.h" >&5
 	if test -r $i/tk.h ; then
-		TK_INC=$i
+		TK_INC=-I$i
 		FOUND_TK_INC=1
 		echo "$ac_t""yes" 1>&6
 		break
@@ -3327,7 +3327,7 @@ if test "$ac_cv_search_Tk_Init" != "no"; then
 else :
   
 fi
-TK_LIB="$L{TK_LIB} $LIBS"
+TK_LIB="-L${TK_LIB} $LIBS"
 LIBS=$SAVED_LIBS
 
 if test $FOUND_TK_LIB = no
@@ -3389,7 +3389,7 @@ fi
 if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
   echo "$ac_t""yes" 1>&6
   
-		COMMON_INC=$h
+		COMMON_INC="-I${h}"
 		FOUND_COMMON_H=yes
 		break
 	
@@ -3449,7 +3449,10 @@ LIBS="$ac_save_LIBS"
 fi
 if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
   echo "$ac_t""yes" 1>&6
-  COMMON_LIB="-L${COMMON_LIB} -lcommon"
+  
+		EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_LIB}/libcommon.a"
+		COMMON_LIB="-L${COMMON_LIB} -lcommon"
+	
 else
   echo "$ac_t""no" 1>&6
 
@@ -3460,6 +3463,7 @@ else
 		exit
 	
 fi
+
 
 
 
@@ -3699,6 +3703,7 @@ s%@TK_INC@%$TK_INC%g
 s%@TK_LIB@%$TK_LIB%g
 s%@COMMON_INC@%$COMMON_INC%g
 s%@COMMON_LIB@%$COMMON_LIB%g
+s%@EXTERNAL_DEP@%$EXTERNAL_DEP%g
 
 CEOF
 EOF

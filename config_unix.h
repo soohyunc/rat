@@ -15,8 +15,12 @@
 #ifndef _CONFIG_UNIX_H
 #define _CONFIG_UNIX_H
 
-/* This is horrible */
-#include "../common/config.h"
+/* A lot of includes here that should all probably be in files where they   */
+/* are used.  If anyone ever has the time to reverse the includes into      */
+/* the files where they are actually used, there would be a couple of pints */
+/* in it.                                                                   */
+
+#include "config.h"
 
 #include <limits.h>
 #include <sys/types.h>
@@ -27,16 +31,33 @@
 #include <signal.h>
 #include <ctype.h>
 
-#ifndef __FreeBSD__
-#include <malloc.h>
-#endif
 #include <stdio.h>
 #include <stdarg.h>
 #include <memory.h>
 #include <errno.h>
 #include <math.h>
-#include <stdlib.h>   /* abs() */
+#include <stdlib.h>  
 #include <string.h>
+
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
+
+#ifdef HAVE_BSTRING_H
+#include <bstring.h>
+#endif
+
+#ifdef HAVE_STROPTS_H
+#include <stropts.h>
+#endif
+
+#ifdef HAVE_SYS_FILIO_H
+#include <sys/filio.h>  
+#endif 
+
+#ifdef HAVE_SYS_SOCK_IO_H
+#include <sys/sockio.h>
+#endif
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -50,10 +71,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 extern int h_errno;
-#if !defined(HPUX) && !defined(Linux) && !defined(__FreeBSD__)
-#include <stropts.h>
-#include <sys/filio.h>  
-#endif /* HPUX */
+
 #include <net/if.h>
 
 typedef unsigned char	byte;
@@ -83,14 +101,6 @@ typedef int	fd_t;
 #include <sys/audioio.h>
 #endif
 
-#ifdef FreeBSD
-#include <unistd.h>
-#include <stdlib.h>
-#define DIFF_BYTE_ORDER  1
-#include <machine/pcaudioio.h>
-#include <machine/soundcard.h>
-#endif /* FreeBSD */
-
 #ifdef Solaris
 #define NEED_INET_ATON
 #define NEED_INET_PTON
@@ -99,7 +109,7 @@ typedef int	fd_t;
 #include <sys/audioio.h>
 #include <multimedia/audio_encode.h>
 #include <multimedia/audio_hdr.h>
-#include <sys/sockio.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -157,21 +167,8 @@ int	toupper(int c);
 
 #ifdef IRIX
 #define NEED_INET_PTON
-#include <bstring.h>     /* Needed for FDZERO on IRIX only */
 #include <audio.h>
 #include "usleep.h"
-#endif
-
-#ifdef HPUX
-#define NEED_INET_PTON
-#include <unistd.h>
-#include <sys/audio.h>
-#define AUDIO_SPEAKER    AUDIO_OUT_SPEAKER
-#define AUDIO_HEADPHONE  AUDIO_OUT_HEADPHONE
-#define AUDIO_LINE_OUT   AUDIO_OUT_LINE
-#define AUDIO_MICROPHONE AUDIO_IN_MIKE
-#define AUDIO_LINE_IN    AUDIO_IN_LINE
-int gethostname(char *hostname, size_t size);
 #endif
 
 #ifdef Linux

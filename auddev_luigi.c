@@ -17,6 +17,9 @@
 #include "memory.h"
 #include "debug.h"
 
+#include <machine/pcaudioio.h>
+#include <machine/soundcard.h>
+
 #define LUIGI_SPEAKER    0x101
 #define LUIGI_MICROPHONE 0x201
 #define LUIGI_LINE_IN    0x202

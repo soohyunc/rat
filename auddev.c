@@ -1,4 +1,4 @@
-/*
+M/*
  * FILE:     auddev.c
  * PROGRAM:  RAT
  * AUTHOR:   Orion Hodson 
@@ -18,6 +18,15 @@
 #include "audio_types.h"
 #include "audio_fmt.h"
 #include "auddev.h"
+
+#include "auddev_null.h"
+#include "auddev_luigi.h"
+#include "auddev_osprey.h"
+#include "auddev_oss.h"
+#include "auddev_pca.h"
+#include "auddev_sgi.h"
+#include "auddev_sparc.h"
+#include "auddev_win32.h"
 
 typedef struct {
         int  (*audio_if_init)(void);                 /* Test and initialize audio interface (OPTIONAL)    */
@@ -64,7 +73,6 @@ typedef struct {
 
 audio_if_t audio_if_table[] = {
 #ifdef HAVE_SGI_AUDIO
-#include "auddev_sgi.h"
         {
                 NULL, 
                 NULL, 
@@ -97,7 +105,6 @@ audio_if_t audio_if_table[] = {
         },
 #endif /* SGI_AUDIO */
 #ifdef HAVE_SPARC_AUDIO
-#include "auddev_sparc.h"
         {
                 NULL,
                 NULL,
@@ -130,7 +137,6 @@ audio_if_t audio_if_table[] = {
         },
 #endif /* HAVE_SPARC_AUDIO */
 #ifdef HAVE_OSPREY_AUDIO
-#include "auddev_osprey.h"
         {
                 osprey_audio_init, 
                 NULL, 
@@ -163,7 +169,6 @@ audio_if_t audio_if_table[] = {
         },
 #endif /* HAVE_OSPREY_AUDIO */
 #ifdef HAVE_OSS_AUDIO
-#include "auddev_oss.h"
         {
                 oss_audio_query_devices, 
                 NULL,
@@ -196,9 +201,7 @@ audio_if_t audio_if_table[] = {
         },
 
 #endif /* HAVE_OSS_AUDIO */
-
-#if defined(WIN32)
-#include "auddev_win32.h"
+#ifdef WIN32
         {
                 w32sdk_audio_init,
                 NULL, 
@@ -231,8 +234,7 @@ audio_if_t audio_if_table[] = {
         },
 #endif /* WIN32 */
 
-#ifdef (HAVE_LUIGI_AUDIO)
-#include "auddev_luigi.h"
+#ifdef HAVE_LUIGI_AUDIO
         {
                 luigi_audio_query_devices,
                 NULL,
@@ -267,7 +269,6 @@ audio_if_t audio_if_table[] = {
 #endif /* HAVE_LUIGI_AUDIO */
 
 #ifdef HAVE_PCA_AUDIO
-#include "auddev_pca.h"
         {
                 pca_audio_init,
                 NULL, 
@@ -299,7 +300,6 @@ audio_if_t audio_if_table[] = {
                 pca_audio_supports
         },
 #endif /* HAVE_PCA_AUDIO */
-#include "auddev_null.h"
         {
                 /* This is the null audio device - it should always go last so that
                  * audio_get_null_device works.  The idea being when we can't get hold

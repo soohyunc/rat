@@ -27,6 +27,7 @@ TK_LIB     = @TK_LIB@
 X_LIB      = @X_PRE_LIBS@ @X_LIBS@ -lX11 -lXext @X_EXTRA_LIBS@   
 COMMON_LIB = @COMMON_LIB@
 EXTRA_OBJ  = @EXTRA_OBJ@
+EXTERNAL_DEP = @EXTERNAL_DEP@
 
 # Nothing below here set by configure #########################################
 
@@ -73,13 +74,13 @@ libuclsndfile.a: $(SNDFILE_OBJS)
 	$(AR) r $@ $(SNDFILE_OBJS)
 	$(RANLIB) $@
 
-$(RATVER)-media: $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engine.o ../common/libcommon.a
+$(RATVER)-media: $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engine.o $(EXTERNAL_DEP)
 	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engine.o $(COMMON_LIB) $(LDLIBS) $(AU_LIB) -o $(RATVER)-media
 
-$(RATVER)-ui: $(TCL_OBJS) $(UI_OBJS)
+$(RATVER)-ui: $(TCL_OBJS) $(UI_OBJS) $(EXTERNAL_DEP)
 	$(CC) $(CFLAGS) $(TCL_OBJS) $(UI_OBJS) $(COMMON_LIB) $(X_LIB)  $(TCL_LIB) $(TK_LIB) $(LIBS) -o $(RATVER)-ui 
 
-$(RATVER): $(CTRL_OBJS)
+$(RATVER): $(CTRL_OBJS) $(EXTERNAL_DEP)
 	$(CC) $(CFLAGS) $(CTRL_OBJS) $(COMMON_LIB) $(LDLIBS) -o $(RATVER)
 
 .c.o:
@@ -116,12 +117,12 @@ rat-$(VERSION).spec: rat.spec
 clean:
 	-rm -f $(CTRL_OBJS) $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(UI_OBJS) $(TCL_OBJS) main_engine.o 
 	-rm -f $(MEDIALIBS)
-	-rm -f tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile Makefile.sed 
+	-rm -f tcl_libs.c ui_audiotool.c ui_transcoder.c version.h
 	-rm -f tcl2c/tcl2c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec
 	-rm -f $(RATVER)-media $(RATVER)-ui $(RATVER)
 
 distclean: clean
-	-rm -f config.cache config.log config.status config.h
+	-rm -f config.cache config.log config.status config.h Makefile
 
 etags:
 	etags ../common/*.[ch] *.[ch]
