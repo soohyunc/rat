@@ -225,10 +225,6 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
                             config_channel_coder(sp[s], pt, argv[i+2]);
                             i += 2;
                         }
-                        if ((strcmp(argv[i], "-silence_params") == 0) && (argc > i+1)) {
-				set_silence_params(argv[i + 1]);
-                                i++;
-                        }
                         if ((strcmp(argv[i], "-repair") == 0) && (argc > i+1)) {
                                 if (strncmp(argv[i+1], "none", 4)==0) {
                                         sp[s]->repair = REPAIR_NONE;
