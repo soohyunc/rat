@@ -495,8 +495,6 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing) {
 
         (*trailing) = max_off/cp->unit_len + n;
 
-        dprintf("trailing %d\n", *trailing);
-
         return (n);
 
 fail:
