@@ -644,7 +644,6 @@ char *mbus_decode_str(char *s)
 		s[j] = s[i];
 	}
 	s[j] = '\0';
-	printf("[%s] %d %d %d\n", s, i, j, l);
 	return s;
 }
 
