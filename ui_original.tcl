@@ -652,21 +652,21 @@ proc update_stats {cname} {
 	}
 
 	if {[winfo exists [window_stats $cname]]} {
-		[window_stats $cname].m configure -text " Name:                    $NAME($cname)\n\
-	                                	Email:                   $EMAIL($cname)\n\
-				        	Phone:                   $PHONE($cname)\n\
-				        	Location:                $LOC($cname)\n\
-				        	Tool:                    $TOOL($cname)\n\
-				        	CNAME:                   $CNAME($cname)\n\
-				        	Audio Encoding:          $ENCODING($cname)\n\
-				        	Audio Length:            $DURATION($cname)\n\
-				        	Packets Received:        $PCKTS_RECV($cname)\n\
-				        	Packets Lost:            $PCKTS_LOST($cname)\n\
-				        	Packets Misordered:      $PCKTS_MISO($cname)\n\
-				        	Units Dropped (jitter):  $JITTER_DROP($cname)\n\
-				        	Network Timing Jitter:   $JITTER($cname)\n\
-				        	Instantaneous Loss Rate: $loss_to_me\n\
-						Loss from me:            $loss_from_me"
+		[window_stats $cname].m configure -text " Name:                        $NAME($cname)\n\
+	                                	          Email:                       $EMAIL($cname)\n\
+				        	          Phone:                       $PHONE($cname)\n\
+				        	          Location:                    $LOC($cname)\n\
+				        	          Tool:                        $TOOL($cname)\n\
+				        	          CNAME:                       $CNAME($cname)\n\
+				        	          Audio Encoding:              $ENCODING($cname)\n\
+				        	          Packet duration:             $DURATION($cname)ms\n\
+				        	          Total packets received:      $PCKTS_RECV($cname)\n\
+				        	          Total packets lost:          $PCKTS_LOST($cname)\n\
+				        	          Total packets misordered:    $PCKTS_MISO($cname)\n\
+				        	          Current packet loss to me:   $loss_to_me\n\
+						          Current packet loss from me: $loss_from_me\n\
+				        	          Units dropped due to jitter: $JITTER_DROP($cname)\n\
+				        	          Network timing jitter:       $JITTER($cname)\n"
 	}
 }
 
