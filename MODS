@@ -1329,7 +1329,7 @@ v4.2.4	- Further updates to OSS (i.e. Linux) audio support
   	  Peter Parnes.
 	* Released 16 May 2000
 
-v4.2.5	- 
+v4.2.5	- Fix assert failure in auddev_trans.c, contributed by Jakub Segen
 
 
 TODO -- They're features not bugs dammit!

@@ -464,18 +464,17 @@ trans_audio_select(audio_desc_t ad, int delay_ms)
 	
 	read_size =  time_diff_to_bytes(&(bufdev[ad].start_time), &now, bufdev[ad].ifmt) - bufdev[ad].last_bytes;
 	needed = bufdev[ad].ifmt.bytes_per_block - bufdev[ad].leftover_bytes - read_size;
-        assert(needed >= 0);
-        dur = needed * 1000 * 8 / (bufdev[ad].ifmt.sample_rate * bufdev[ad].ifmt.bits_per_sample * bufdev[ad].ifmt.channels);
-        dur = min(dur, delay_ms);
-        usleep(dur * 1000);
+	if(needed > 0) {
+	  dur = needed*8000/(bufdev[ad].ifmt.sample_rate * bufdev[ad].ifmt.bits_per_sample * bufdev[ad].ifmt.channels);
+	  dur = min(dur, delay_ms);
+	  usleep(dur * 1000);
+	}
 }
 
 void
 trans_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
-        if (trans_audio_is_ready(ad) == FALSE) {
-                trans_audio_select(ad, delay_ms);
-        }
+        trans_audio_select(ad, delay_ms);
 }
 
 int
