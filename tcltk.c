@@ -123,6 +123,11 @@ mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 #include "xbm/line_out.xbm"
 #include "xbm/line_in.xbm"
 #include "xbm/rat_small.xbm"
+#include "xbm/disk.xbm"
+#include "xbm/play.xbm"
+#include "xbm/rec.xbm"
+#include "xbm/pause.xbm"
+#include "xbm/stop.xbm"
 
 int
 tcl_process_event(void)
@@ -175,9 +180,9 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tcl_CreateCommand(interp, "mbus_qmsg",	     mbus_qmsg_cmd,   (ClientData) sp, NULL);
 	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, (ClientData) sp, NULL);
 #ifdef WIN32
-    Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);
-    Tcl_CreateCommand(interp, "puts",        WinPutsCmd,     (ClientData)sp, NULL);
-    Tcl_CreateCommand(interp, "getusername", WinGetUserName, (ClientData)sp, NULL);
+        Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);
+        Tcl_CreateCommand(interp, "puts",        WinPutsCmd,     (ClientData)sp, NULL);
+        Tcl_CreateCommand(interp, "getusername", WinGetUserName, (ClientData)sp, NULL);
 	Tcl_CreateCommand(interp, "registry",    WinReg,         (ClientData)sp, NULL);
 #else
 	Tcl_SetVar(interp, "win32", "0", TCL_GLOBAL_ONLY);
@@ -189,6 +194,11 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tk_DefineBitmap(interp, Tk_GetUid("line_out"), line_out_bits, line_out_width, line_out_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("line_in"), line_in_bits, line_in_width, line_in_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("rat_small"), rat_small_bits, rat_small_width, rat_small_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("disk"), disk_bits, disk_width, disk_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("play"), play_bits, play_width, play_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("rec"),  rec_bits,  rec_width,  rec_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("pause"), pause_bits, pause_width, pause_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("stop"),  stop_bits,  stop_width,  stop_height);
 
 	if (sp->mode == AUDIO_TOOL) {
 		if (Tcl_EvalObj(interp, Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool))) != TCL_OK) {

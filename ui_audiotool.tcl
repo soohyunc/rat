@@ -217,6 +217,7 @@ proc mbus_recv_load.settings {} {
     check_rtcp_name
     sync_engine_to_ui
     chart_show
+    file_show
     toggle_plist
 }
 
@@ -859,6 +860,11 @@ bargraphCreate .r.c.gain.b2
 scale .r.c.gain.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10 -variable gain
 label .r.c.gain.ml -text "Transmission is muted" -relief sunken
 
+#button .r.c.gain.file -bitmap disk
+#button .r.c.gain.rec -bitmap rec
+#pack   .r.c.gain.file -side right  
+#pack   .r.c.gain.rec -side right  
+
 pack .r.c.gain.l2 -side left -fill y
 pack .r.c.gain.t2 -side left -fill y
 pack .r.c.gain.ml -side top  -fill both -expand 1
@@ -1163,16 +1169,17 @@ checkbutton $i.a.f.f.video   -text "Video synchronization"    -variable sync_var
 checkbutton $i.a.f.f.balloon -text "Balloon help"             -variable help_on
 checkbutton $i.a.f.f.matrix  -text "Reception quality matrix" -variable matrix_on -command chart_show
 checkbutton $i.a.f.f.plist   -text "Participant list"         -variable plist_on  -command toggle_plist
+checkbutton $i.a.f.f.fwin    -text "File Control Window"      -variable files_on  -command file_show
 pack $i.a.f.f $i.a.f.f.l
-pack $i.a.f.f.power $i.a.f.f.video $i.a.f.f.balloon $i.a.f.f.matrix $i.a.f.f.plist -side top -anchor w 
+pack $i.a.f.f.power $i.a.f.f.video $i.a.f.f.balloon $i.a.f.f.matrix $i.a.f.f.plist $i.a.f.f.fwin -side top -anchor w 
 
-proc set_pane {p base name} {
+proc set_pane {p base desc} {
     upvar 1 $p pane
     set tpane [string tolower [lindex [split $pane] 0]]
     pack forget $base.$tpane
-    set tpane [string tolower [lindex [split $name] 0]]
+    set tpane [string tolower [lindex [split $desc] 0]]
     pack $base.$tpane -fill both -expand 1 -padx 2 -pady 2
-    set pane $name
+    set pane $desc
 }
 
 proc validate_red_codecs {} {
@@ -1493,6 +1500,7 @@ proc save_settings {} {
     save_setting $f audioHelpOn      help_on
     save_setting $f audioMatrixOn    matrix_on
     save_setting $f audioPlistOn     plist_on
+    save_setting $f audioFilesOn     files_on
 
     # device 
     save_setting $f  audioOutputGain   volume
@@ -1599,6 +1607,8 @@ proc load_settings {} {
     load_setting attr audioHelpOn       help_on       "1"
     load_setting attr audioMatrixOn     matrix_on     "0"
     load_setting attr audioPlistOn      plist_on      "1"
+    load_setting attr audioFilesOn      files_on      "0"
+
     # device config
     load_setting attr audioOutputGain   volume       "50"
     load_setting attr audioInputGain    gain         "50"
@@ -1799,6 +1809,81 @@ chart_enlarge 1
 
 #
 # End of RTCP RR chart routines
+#
+
+#
+# File Control Window 
+#
+
+toplevel .file
+
+frame .file.play
+frame .file.rec
+pack  .file.play -side left
+pack  .file.rec  -side right
+
+label .file.play.l -text "Playback"
+pack  .file.play.l -side top -fill x
+label .file.rec.l -text "Record"
+pack  .file.rec.l -side top -fill x
+
+wm withdraw .file
+wm title    .file "RAT File Control"
+
+foreach action { play rec } {
+    frame  .file.$action.buttons
+    pack   .file.$action.buttons
+    button .file.$action.buttons.disk -bitmap disk -command "fileDialog $action"
+    pack   .file.$action.buttons.disk -side left
+    foreach cmd "$action pause stop" {
+	button .file.$action.buttons.$cmd -bitmap $cmd -state disabled
+	pack   .file.$action.buttons.$cmd -side left
+    }
+}
+
+proc fileDialog {cmdbox} {
+    global win32 tcl_platform
+    
+    if {$win32} {
+	set defaultExtension wav
+    } else {
+	set defaultExtension au
+    }
+    
+    switch -glob $tcl_platform(os) {
+	SunOS    { if [file exists /usr/demo/SOUND/sounds] { set defaultLocation /usr/demo/SOUND/sounds}}
+	Windows* { if [file exists C:/Windows/Media] { set defaultLocation C:/Windows/Media}}
+	default  { set defaultLocation . }
+    }
+    
+    set types {
+	{"NeXT/Sun Audio files"	"au"}
+	{"Microsoft RIFF files"	"wav"}
+	{"All files"		"*"}
+    }
+    
+    set foo "foo"    
+    if {![string compare $cmdbox "play"]} {
+	catch {  asFileBox .playfilebox  -command puts  -extensions $types } foo
+	puts "$foo"
+    } else {
+	catch {  asFileBox .recfilebox  -command puts  -extensions $types -force_extension 1 } foo
+	puts "$foo"
+    }
+}
+
+proc file_show {} {
+    global files_on
+    
+    if {$files_on} {
+ 	wm deiconify .file
+    } else {
+ 	wm withdraw .file
+    }
+}
+
+#
+# End of File Window routines
 #
 
 bind . <t> {mbus_send "R" "toggle.input.port" ""} 

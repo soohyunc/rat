@@ -919,7 +919,6 @@ main(int argc, char*argv[])
                 while(ssrc && sdst) {
                         samples_read = snd_read_audio(&ssrc, buf, 80);
                         snd_write_audio(&sdst, buf, (u_int16)samples_read);
-                        debug_msg("%d\n", samples_read);
                         memset(buf,0,sizeof(sample)*80);
                 }
                 if (sdst) {
