@@ -18,9 +18,9 @@
 /* Outgoing packet buffering for jitter */
 
 struct pkt {
-    u_int32_t depart_ts;
-    u_int32_t rtp_ts;
-    u_int8_t  pt;
+    uint32_t depart_ts;
+    uint32_t rtp_ts;
+    uint8_t  pt;
     void     *data;
     int32_t   data_len;
     struct pkt *next;
@@ -34,8 +34,8 @@ pkt_queue_init() {
 }
 
 static void 
-pkt_queue_add(u_int32_t rtp_ts, 
-	      u_int8_t  pt, 
+pkt_queue_add(uint32_t rtp_ts, 
+	      uint8_t  pt, 
 	      void *data, int32_t data_len) {
 
     struct pkt *p, **c, *sentinel;
@@ -56,7 +56,7 @@ pkt_queue_add(u_int32_t rtp_ts,
 }
 
 static void
-pkt_queue_send(struct rtp *session, u_int32_t now) {
+pkt_queue_send(struct rtp *session, uint32_t now) {
     struct pkt *sentinel, **c, *n;
 
     sentinel = &pkt_queue;
@@ -348,7 +348,7 @@ Packets every %ld us\n",
                         }
 			timeout = jitter_ms * cf->format.sample_rate / 1000;
 			pkt_queue_add(ts + timeout, pt, u, ulen);
-			timeout = (u_int32_t)(timeout * drand48());
+			timeout = (uint32_t)(timeout * drand48());
 			pkt_queue_send(session, ts + timeout);
                         avail_us -= packet_us;
                 }
