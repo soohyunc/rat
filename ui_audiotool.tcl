@@ -2098,7 +2098,7 @@ proc save_settings {} {
     save_setting $f audioFilesOn     files_on
 
     # device 
-	save_setting $f  audioDevice       audio_device
+    save_setting $f  audioDevice       audio_device
     save_setting $f  audioOutputGain   volume
     save_setting $f  audioInputGain    gain
     save_setting $f  audioOutputPort   output_port
@@ -2218,8 +2218,8 @@ proc load_settings {} {
     # device config
     load_setting attr audioOutputGain   volume       "50"
     load_setting attr audioInputGain    gain         "50"
-    load_setting attr audioOutputPort   output_port  "speaker"
-    load_setting attr audioInputPort    input_port   "microphone"
+    load_setting attr audioOutputPort   output_port  "Speaker"
+    load_setting attr audioInputPort    input_port   "Microphone"
     # we don't save the following but we can set them so if people
     # want to start with mic open then they add following attributes
     load_setting attr audioOutputMute   out_mute_var "0"
@@ -2239,7 +2239,16 @@ proc load_settings {} {
     load_setting attr audioInterleavingGap   int_gap       "4"
     load_setting attr audioInterleavingUnits int_units     "4"
     #device
-    load_setting attr audioDevice            audio_device  "Unknown"
+    global audio_device
+    load_setting attr audioDevice            audio_device  "UNKNOWN"
+
+    if {[string compare $audio_device "UNKNOWN"] == 0} {
+    	# The audioDevice was not stored in the configuration file...
+	# We should try to change it to the first device listed in the
+	# menu, which will trigger the media engine to either use this
+	# or fall back to a safe default.... 
+	.prefs.pane.audio.dd.device.mdev.menu invoke 0
+    }
 
     global prenc ichannels freq
     mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"
