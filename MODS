@@ -1422,4 +1422,5 @@ TODO -- They're features not bugs dammit!
 - Problems with the configure script on Irix 6.2. Works for Orion, but not
   for me. Must be something in the environment, or a software version issue
   but I don't know what...
+- Excessive end-to-end delay on Windows? Gerry Wolfson.
 
