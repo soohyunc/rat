@@ -152,7 +152,7 @@ render_3D_init(session_struct *sp)
 
         sampling_rate = audio_get_freq(sp->audio_device);
 
-        azimuth = 20;
+        azimuth = 0;
         length = DEFAULT_RESPONSE_LENGTH;
         default_filter_name = "HRTF";
         default_filter_num  = render_3D_filter_get_by_name(default_filter_name);
@@ -211,7 +211,7 @@ render_3D_set_parameters(struct s_render_3D_dbentry *p_3D_data, int sampling_rat
         /* derive interaural time difference from azimuth */
         aux= azimuth * 0.017453203;                                /* conversion into radians */
         d_time = 2.72727 * sin((double) azimuth);
-        p_3D_data->delay = (int) (sampling_rate * d_time / 1000);
+        p_3D_data->delay = abs((int) (sampling_rate * d_time / 1000));
 
         /* derive interaural intensity difference from azimuth */
         d_intensity = 1.0 - (0.3 * sin((double) azimuth));
@@ -319,10 +319,17 @@ render_3D(rx_queue_element_struct *el, int no_channels)
                 memmove(p_3D_data->contra_buf+p_3D_data->delay, p_3D_data->contra_buf, ((n_samples/2)-p_3D_data->delay)*sizeof(sample));
                 memcpy(p_3D_data->contra_buf, p_3D_data->excess_buf, p_3D_data->delay*sizeof(sample));
                 memcpy(p_3D_data->excess_buf, p_3D_data->tmp_buf, p_3D_data->delay*sizeof(sample));
-                /* Merge ipsi- and contralateral buffers into out_buf. */
-                for (i=0; i<n_samples/2; i++) {
-                        proc_buf[2*i]   = p_3D_data->ipsi_buf[i];
-                        proc_buf[2*i+1] = p_3D_data->contra_buf[i];
+                /* Merge ipsi- and contralateral buffers into proc_buf. */
+                if (p_3D_data->azimuth > 0) {
+                        for (i=0; i<n_samples/2; i++) {
+                                proc_buf[2*i]   = p_3D_data->ipsi_buf[i];
+                                proc_buf[2*i+1] = p_3D_data->contra_buf[i];
+                        }
+                } else {
+                        for (i=0; i<n_samples/2; i++) {
+                                proc_buf[2*i+1] = p_3D_data->contra_buf[i];
+                                proc_buf[2*i]   = p_3D_data->ipsi_buf[i];
+                        }
                 }
         }
 
