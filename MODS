@@ -920,6 +920,7 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	  are parsed in a backwards incompatible manner now, to make the code
 	  cleaner. 
 	- Tuples for mbus command switches in mbus_{control,engine,ui}.
+	* 2 November 1999
 
 
 TODO -- They're features not bugs dammit!
