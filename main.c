@@ -115,16 +115,18 @@ main(int argc, char *argv[])
 	}
 	sprintf(mbus_video_addr, "(media:video module:engine)");
 
-	ui_controller_init(sp[0], ssrc, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
+/**** Up to here is in _main.c *****/
 
         audio_device_get_safe_config(&sp[0]->new_config);
-        audio_device_reconfigure(sp[0]);				/* UI */
+        audio_device_reconfigure(sp[0]);
         assert(audio_device_is_open(sp[0]->audio_device));
 	sp[0]->db = rtcp_init(sp[0]->device_clock, cname, ssrc, 0);
         rtcp_clock_change(sp[0]);
 	network_process_mbus(sp[0]);
 
 	settings_load(sp[0]);
+
+	ui_controller_init(sp[0], ssrc, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
         ui_initial_settings(sp[0]);
 
 	session_parse_late_options(argc, argv, sp);	/* Things which can override the settings we just loaded... */
