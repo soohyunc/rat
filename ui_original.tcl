@@ -63,6 +63,7 @@ set fw 			.l.t.list.f
 set cancel_info_timer 	0
 set num_ssrc		0
 set DEBUG		0
+set help_on 		1
 
 # Commands to send message over the conference bus...
 proc toggle_play {} {
@@ -727,7 +728,7 @@ checkbutton .b.f2.l.meter -anchor w -highlightthickness 0 -relief flat -text "Po
 checkbutton .b.f2.l.lec   -anchor w -highlightthickness 0 -relief flat -text "Lecture Mode"           -variable lecture_var -command {lecture    $lecture_var}
 checkbutton .b.f2.r.agc   -anchor w -highlightthickness 0 -relief flat -text "Automatic Gain Control" -variable agc_var     -command {agc        $agc_var}
 checkbutton .b.f2.r.syn   -anchor w -highlightthickness 0 -relief flat -text "Video Synchronisation"  -variable sync_var    -command {sync       $sync_var} -state disabled
-checkbutton .b.f2.r.help  -anchor w -highlightthickness 0 -relief flat -text "Balloon Help"           -variable help_on     -state active
+checkbutton .b.f2.r.help  -anchor w -highlightthickness 0 -relief flat -text "Balloon Help"           -variable help_on     -command {savename} -state active
 
 pack .b.f2.l.sil   -side top -fill x -expand 1
 pack .b.f2.l.meter -side top -fill x -expand 1
@@ -948,7 +949,7 @@ wm resizable .about 0 0
 toplevel .copyright
 wm withdraw .copyright
 message   .copyright.m -text {
- Robust-Audio Tool (RAT)
+ obust-Audio Tool (RAT)
  
  Copyright (C) 1995-1998 University College London
  All rights reserved.
@@ -1018,18 +1019,20 @@ if {[glob ~] == "/"} {
 
 
 proc savename {} {
-    global rtpfname rtcp_name rtcp_email rtcp_phone rtcp_loc V win32
+    global rtpfname rtcp_name rtcp_email rtcp_phone rtcp_loc V win32 help_on
     if {$win32} {
 	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpName"  "$rtcp_name"
-	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpEmail"  "$rtcp_email"
-	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpPhone"  "$rtcp_phone"
-	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpLoc"  "$rtcp_loc"
+	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpEmail" "$rtcp_email"
+	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpPhone" "$rtcp_phone"
+	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpLoc"   "$rtcp_loc"
+	putregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*helpOn"   "$help_on"
     } else {
 	set f [open $rtpfname w]
 	if {$rtcp_name  != ""} {puts $f "*rtpName:  $rtcp_name"}
 	if {$rtcp_email != ""} {puts $f "*rtpEmail: $rtcp_email"}
 	if {$rtcp_phone != ""} {puts $f "*rtpPhone: $rtcp_phone"}
 	if {$rtcp_loc   != ""} {puts $f "*rtpLoc:   $rtcp_loc"}
+	if {$help_on    != ""} {puts $f "*helpOn:   $help_on"}
 	close $f
     }
 }
@@ -1038,16 +1041,18 @@ set rtcp_name  [option get . rtpName  rat]
 set rtcp_email [option get . rtpEmail rat]
 set rtcp_phone [option get . rtpPhone rat]
 set rtcp_loc   [option get . rtpLoc   rat]
+set help_on    [option get . helpOn   rat]
 
 if {$win32 == 0} {
-    if {$rtcp_name == "" && [file readable $rtpfname] == 1} {
+    if {[file readable $rtpfname] == 1} {
 	set f [open $rtpfname]
 	while {[eof $f] == 0} {
 	    gets $f line
-	    if {[string compare "*rtpName:"  [lindex $line 0]] == 0} {set rtcp_name  [lrange $line 1 end]}
-	    if {[string compare "*rtpEmail:" [lindex $line 0]] == 0} {set rtcp_email [lrange $line 1 end]}
-	    if {[string compare "*rtpPhone:" [lindex $line 0]] == 0} {set rtcp_phone [lrange $line 1 end]}
-	    if {[string compare "*rtpLoc:"   [lindex $line 0]] == 0} {set rtcp_loc   [lrange $line 1 end]}
+	    if {$rtcp_name  == "" && [string compare "*rtpName:"  [lindex $line 0]] == 0} {set rtcp_name  [lrange $line 1 end]}
+	    if {$rtcp_email == "" && [string compare "*rtpEmail:" [lindex $line 0]] == 0} {set rtcp_email [lrange $line 1 end]}
+	    if {$rtcp_phone == "" && [string compare "*rtpPhone:" [lindex $line 0]] == 0} {set rtcp_phone [lrange $line 1 end]}
+	    if {$rtcp_loc   == "" && [string compare "*rtpLoc:"   [lindex $line 0]] == 0} {set rtcp_loc   [lrange $line 1 end]}
+	    if {$help_on    == "" && [string compare "*helpOn:"   [lindex $line 0]] == 0} {set help_on    [lrange $line 1 end]}
 	}
 	close $f
     }
@@ -1057,6 +1062,7 @@ if {$win32 == 0} {
 	catch {set rtcp_email [getregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpEmail"] } 
 	catch {set rtcp_phone [getregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpPhone"] } 
 	catch {set rtcp_loc   [getregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*rtpLoc"  ] } 
+	catch {set help_on    [getregistry "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*helpOn"  ] } 
     }
 }
 
@@ -1237,8 +1243,8 @@ proc show_help {window} {
 }
 
 proc hide_help {window} {
-	global help_id
-	after cancel $help_id
+	global help_id help_on
+	catch "after cancel $help_id"
 	wm withdraw .help
 }
 
@@ -1249,7 +1255,6 @@ proc add_help {window text} {
 	bind $window <Leave> "+hide_help $window"
 }
 
-set help_on 1
 toplevel .help       -bg lavender
 label    .help.text  -bg lavender -justify left
 pack .help.text -side top -anchor w -fill x
