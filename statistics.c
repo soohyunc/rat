@@ -51,6 +51,7 @@
 #include "rtcp_db.h"
 #include "util.h"
 #include "audio.h"
+#include "cushion.h"
 #include "speaker_table.h"
 #include "codec.h"
 #include "channel.h"
@@ -159,7 +160,9 @@ split_block(u_int32 playout_pt,
 
 static u_int32
 adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
-	      session_struct *sp, cushion_struct *cushion, u_int32 cur_time)
+	      session_struct *sp, 
+              struct s_cushion_struct *cushion, 
+              u_int32 cur_time)
 {
 	u_int32	playout, var;
 	int	delay, diff;
@@ -205,7 +208,7 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
                                 dprintf("Clipping %d to %d\n",var,maxv);
                                 var = maxv;
                         }
-			var += cushion->cushion_size * get_freq(src->clock) / get_freq(sp->device_clock);
+			var += cushion_get_size(cushion) * get_freq(src->clock) / get_freq(sp->device_clock);
 			if (src->clock!=sp->device_clock) {
 				var += cp->unit_len;
 			}
@@ -293,7 +296,7 @@ void
 statistics(session_struct    *sp,
 	   pckt_queue_struct *netrx_pckt_queue,
 	   rx_queue_struct   *unitsrx_queue_ptr,
-	   cushion_struct    *cushion,
+	   struct s_cushion_struct    *cushion,
 	   u_int32       cur_time)
 {
 	/*

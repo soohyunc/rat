@@ -295,8 +295,8 @@ read_device(session_struct *sp)
 	}
 
 	cp = get_codec(sp->encodings[0]);	
-	time_advance(sp->clock, cp->freq, read_len/cp->channels);
-	return (read_len);
+	time_advance(sp->clock, cp->freq, read_len / cp->channels);
+	return (read_len / cp->channels);
 }
 
 int
