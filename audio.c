@@ -192,7 +192,7 @@ audio_device_read(session_struct *sp, sample *buf, int samples)
 int
 audio_device_write(session_struct *sp, sample *buf, int dur)
 {
-        codec_t *cp = get_codec(sp->encodings[0]);
+        codec_t *cp = get_codec_by_pt(sp->encodings[0]);
 
 	if (sp->have_device)
 		if (sp->mode == TRANSCODER) {
@@ -214,7 +214,7 @@ audio_device_take(session_struct *sp)
                 return (TRUE);
         }
 
-	cp = get_codec(sp->encodings[0]);
+	cp = get_codec_by_pt(sp->encodings[0]);
 	format.encoding        = DEV_L16;
 	format.sample_rate     = cp->freq;
         format.bits_per_sample = 16;

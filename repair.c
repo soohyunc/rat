@@ -298,8 +298,8 @@ repair(int repair, rx_queue_element_struct *ip)
 	int i;
 
 	if (virgin) {
-		gsmcp = get_codec(codec_matching("GSM", 8000, 1));
-                lpccp = get_codec(codec_matching("LPC", 8000, 1));
+		gsmcp = get_codec_by_pt(codec_matching("GSM", 8000, 1));
+                lpccp = get_codec_by_pt(codec_matching("LPC", 8000, 1));
                 assert(gsmcp);
                 assert(lpccp);
 		virgin = 0;
@@ -459,7 +459,7 @@ main(int argc, char *argv[])
         memset(&rx_prev,0,sizeof(rx_queue_element_struct));
 
         rx_curr.prev_ptr = &rx_prev;
-        rx_prev.comp_data[0].cp = get_codec(codec_matching("Linear-16",freq,channels));
+        rx_prev.comp_data[0].cp = get_codec_by_pt(codec_matching("Linear-16",freq,channels));
         rx_prev.native_data[0] = (sample*)block_alloc(sizeof(sample) * blksz);
         rx_prev.native_size[0] = sizeof(sample) * blksz;
         rx_prev.native_count   = 1;

@@ -408,8 +408,8 @@ find_participant_queue(ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, 
 	p->next = *list;
 	*list = p;
 
-        cp_dev = get_codec(dev_pt);
-        cp_src = get_codec(src_pt);
+        cp_dev = get_codec_by_pt(dev_pt);
+        cp_src = get_codec_by_pt(src_pt);
         assert(cp_dev);
         assert(cp_src);
         if (!codec_compatible(cp_dev,cp_src)) {

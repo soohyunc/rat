@@ -176,8 +176,8 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
 
                 if (r->nlayers>0) {
                         codec_t *cp0, *cp1;
-                        cp0 = get_codec(r->coding[0]);
-                        cp1 = get_codec(r->coding[r->nlayers]);
+                        cp0 = get_codec_by_pt(r->coding[0]);
+                        cp1 = get_codec_by_pt(r->coding[r->nlayers]);
                         assert(cp0 != NULL); assert(cp1 != NULL);
                         assert(codec_compatible(cp0,cp1));
                 }
@@ -204,7 +204,7 @@ red_qconfig(session_struct    *sp,
 
         len = 0;
         for(i=0;i<r->nlayers;i++) {
-                cp = get_codec(r->coding[i]);
+                cp = get_codec_by_pt(r->coding[i]);
                 sprintf(fragbuf,"%s/%d/", cp->name, r->offset[i]);
                 fraglen = strlen(fragbuf);
                 
@@ -228,7 +228,7 @@ red_pack_hdr(char *h, char more, char pt, short offset, short len)
         assert(((~0 <<  7) & pt)     == 0);
         assert(((~0 << 14) & offset) == 0);
         assert(((~0 << 10) & len)    == 0);
-        assert(get_codec(pt));
+        assert(get_codec_by_pt(pt));
         if (more) {
                 u_int32 *hdr = (u_int32*)h;
                 (*hdr)       = 0;
@@ -327,7 +327,7 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
         avail = red_available(r);
         assert(avail <= r->nlayers);
 
-        cp = get_codec(r->coding[0]);
+        cp = get_codec_by_pt(r->coding[0]);
 
         if (avail != r->nlayers) {
                 /* Not enough redundancy available, so advertise max offset 
@@ -430,7 +430,7 @@ red_decode(session_struct *sp, rx_queue_element_struct *u, red_dec_state *r)
 
         do {
                 red_hdr = ntohl(*((u_int32*)cu->iov[hdr_idx].iov_base));
-                cp      = get_codec(RED_PT(red_hdr));
+                cp      = get_codec_by_pt(RED_PT(red_hdr));
                 len     = RED_LEN(red_hdr);
                 if (cp != NULL && len != 0) {
                         off = RED_OFF(red_hdr);
@@ -450,7 +450,7 @@ red_decode(session_struct *sp, rx_queue_element_struct *u, red_dec_state *r)
                 hdr_idx++;
         } while (cu->iov[hdr_idx].iov_len != 1);
 
-        cp = get_codec(*((char*)cu->iov[hdr_idx].iov_base)&0x7f);
+        cp = get_codec_by_pt(*((char*)cu->iov[hdr_idx].iov_base)&0x7f);
         assert(cp);
         len = 0;
         i = data_idx;
@@ -475,7 +475,7 @@ red_decode(session_struct *sp, rx_queue_element_struct *u, red_dec_state *r)
                 len = 11;
                 r->n = hdr_idx + 1;
                 for(i = 0; i < r->n; i++) {
-                        cp = get_codec(r->encs[r->n - 1 - i]);
+                        cp = get_codec_by_pt(r->encs[r->n - 1 - i]);
                         if (cp) {
                                 sprintf(fmt+len, "%s,",cp->name);
                                 len += strlen(cp->name) + 1;
@@ -495,10 +495,10 @@ red_bps(session_struct *sp, red_coder_t *r)
         codec_t *cp;
         b = 0;
         upp = collator_get_units(sp->collator);
-        cp  = get_codec(r->coding[0]);
+        cp  = get_codec_by_pt(r->coding[0]);
         ups = cp->freq / cp->unit_len;
         for(i=0;i<r->nlayers;i++) {
-                cp = get_codec(r->coding[i]);
+                cp = get_codec_by_pt(r->coding[i]);
                 b += cp->max_unit_sz * upp + cp->sent_state_sz + 4;
         }
         b += 1 + (r->nlayers-1)*4 + 12; /* headers */
@@ -528,7 +528,7 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
                 cu->iov[hdr_idx++].iov_len = 4;
                 todo -= 4;
                 blk  += 4;
-                cp      = get_codec(RED_PT(red_hdr));
+                cp      = get_codec_by_pt(RED_PT(red_hdr));
                 max_off = max(max_off, RED_OFF(red_hdr));
                 tlen    = RED_LEN(red_hdr);
                 /* we do not discard packet if we cannot decode redundant data */
@@ -546,7 +546,7 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
                 debug_msg("hdr ovr\n");
                 goto fail;
         }
-        cp = get_codec((*blk)&0x7f);
+        cp = get_codec_by_pt((*blk)&0x7f);
                 /* we do discard data if cannot do primary */
         if (!cp) {
                 debug_msg("primary?");

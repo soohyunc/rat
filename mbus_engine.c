@@ -592,10 +592,10 @@ rx_redundancy(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_str(mbus_chan, &codec) && 
             mbus_parse_int(mbus_chan, &offset)) {
                 if (offset<=0) offset = 0;;
-                pcp = get_codec(sp->encodings[0]);
+                pcp = get_codec_by_pt(sp->encodings[0]);
 		rpt = codec_matching(mbus_decode_str(codec), pcp->freq, pcp->channels);
 		if (rpt != -1) {
-			rcp = get_codec(rpt);
+			rcp = get_codec_by_pt(rpt);
 		} else {
 			/* Specified secondary codec doesn't exist. Make it the same */
 			/* as the primary, and hope that's a sensible choice.        */
@@ -653,8 +653,8 @@ rx_primary(char *srce, char *args, session_struct *sp)
         freq = atoi(sfreq) * 1000;
 
         if (-1 != (pt = codec_matching(short_name, freq, channels))) {
-                next_cp = get_codec(pt);
-                cp      = get_codec(sp->encodings[0]);
+                next_cp = get_codec_by_pt(pt);
+                cp      = get_codec_by_pt(sp->encodings[0]);
                 assert(next_cp != NULL);
                 assert(cp      != NULL);
                 if (codec_compatible(next_cp, cp)) {

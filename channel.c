@@ -128,7 +128,7 @@ vanilla_bitrate(session_struct *sp, cc_state_t *cs)
 
         UNUSED(cs);
 
-        cp = get_codec(sp->encodings[0]);
+        cp = get_codec_by_pt(sp->encodings[0]);
         pps = cp->freq / cp->unit_len;
         upp = collator_get_units(sp->collator);
         return (8*pps*(cp->max_unit_sz * upp + cp->sent_state_sz + 12)/upp);
@@ -137,7 +137,7 @@ vanilla_bitrate(session_struct *sp, cc_state_t *cs)
 static int
 vanilla_valsplit(char *blk, unsigned int blen, cc_unit *u, int *trailing, int *inter_pkt_gap) 
 {
-        codec_t *cp = get_codec(u->pt);
+        codec_t *cp = get_codec_by_pt(u->pt);
         int n = 0;
 
         UNUSED(blk);
@@ -187,7 +187,7 @@ vanilla_decode(session_struct *sp, rx_queue_element_struct *u, cc_state_t *ccs)
         
         if (!u->ccu_cnt) return;
 
-        cp = get_codec(u->ccu[0]->pt);
+        cp = get_codec_by_pt(u->ccu[0]->pt);
         assert(cp);
         iov  = u->ccu[0]->iov;
         iovc = u->ccu[0]->iovc;
@@ -409,7 +409,7 @@ get_channel_coder(int pt)
                         return &cc_list[i];
                 i++;
         }
-        if ((c=get_codec(pt))) /* hack for vanilla */
+        if ((c=get_codec_by_pt(pt))) /* hack for vanilla */
                 return &cc_list[0];
     
         return NULL;
@@ -735,7 +735,7 @@ int
 add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
 {
         int i,j;
-        codec_t * cp = get_codec(pt);
+        codec_t * cp = get_codec_by_pt(pt);
 
         assert(u != NULL);
         assert(u->comp_count < MAX_ENCODINGS-1);

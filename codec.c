@@ -421,7 +421,7 @@ codec_init(session_struct *sp)
 }
 
 codec_t *
-get_codec(int pt)
+get_codec_by_pt(int pt)
 {
         /* This code just went inefficient as G.723.1 has different
          * codings for same payload type.  We used to have a big table
@@ -487,7 +487,7 @@ get_codec_state(session_struct *sp, state_t **lp, int pt, enum co_e ed)
 	if (stp == 0) {
 		stp = (state_t *)xmalloc(sizeof(state_t));
 		memset(stp, 0, sizeof(state_t));
-		cp = get_codec(pt);
+		cp = get_codec_by_pt(pt);
 		stp->id = pt;
 
 		switch(ed) {
@@ -520,7 +520,7 @@ clear_state_list(state_t **list, enum co_e ed)
         while(*list != NULL) {
                 stp = *list;
                 *list = (*list)->next;
-                cp = get_codec(stp->id);
+                cp = get_codec_by_pt(stp->id);
                 switch(ed) {
                 case ENCODE:
                         if (cp->enc_free) {
@@ -557,7 +557,7 @@ encoder(session_struct *sp, sample *data, int coding, coded_unit *c)
 	codec_t	*cp;
 	state_t *stp;
 
-	cp = get_codec(coding);
+	cp = get_codec_by_pt(coding);
 	c->cp = cp;
 	stp = get_codec_state(sp, &sp->state_list, cp->pt, ENCODE);
 

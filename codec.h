@@ -103,7 +103,7 @@ typedef struct s_codec {
         free_f  dec_free;
 } codec_t;
 
-struct s_codec *get_codec(int pt);
+struct s_codec *get_codec_by_pt(int pt);
 struct s_codec *get_codec_by_name(char *name, struct session_tag *sp);
 struct s_codec *get_codec_by_index(u_int32 idx);
 u_int32         get_codec_count(void);

@@ -196,7 +196,7 @@ adapt_playout(rtp_hdr_t *hdr,
 		src->delay           = delay;
 		src->last_ts         = hdr->ts - 1;
 		hdr->m               = TRUE;
-                cp = get_codec(src->enc);
+                cp = get_codec_by_pt(src->enc);
                 if (cp) {
                         src->jitter  = 3 * 20 * cp->freq / 1000;
                 } else {
@@ -234,7 +234,7 @@ adapt_playout(rtp_hdr_t *hdr,
 	}
 
 	if (ts_gt(hdr->ts, src->last_ts)) {
-		cp = get_codec(src->enc);
+		cp = get_codec_by_pt(src->enc);
 		/* IF (a) TS start 
                    OR (b) we've thrown 4 consecutive packets away 
                    OR (c) ts have jumped by 8 packets worth 
@@ -470,9 +470,9 @@ statistics(session_struct    *sp,
                 data_ptr =  (unsigned char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + extlen;
                 len      = e_ptr->len - 4 * (3 + hdr->cc) - extlen;
         
-                if (!(pcp = get_codec(hdr->pt))) {
+                if (!(pcp = get_codec_by_pt(hdr->pt))) {
                         /* this is either a channel coded block or we can't decode it */
-                        if (!(pcp = get_codec(get_wrapped_payload(hdr->pt, (char *) data_ptr, len)))) {
+                        if (!(pcp = get_codec_by_pt(get_wrapped_payload(hdr->pt, (char *) data_ptr, len)))) {
                                 debug_msg("Cannot decode data.\n");
                                 goto release;
                         }

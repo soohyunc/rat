@@ -417,7 +417,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 			}
                         if ((strcmp(argv[i], "-redundancy") == 0) && (argc > i+1)) {
 				/* Takes "-redundancy  redundant_codec/offset" */
-				codec_t	*pcp = get_codec(sp[s]->encodings[0]);
+				codec_t	*pcp = get_codec_by_pt(sp[s]->encodings[0]);
                             	int      pt  = get_cc_pt(sp[s], "redundancy");
 				char     cfg[80];
 
@@ -444,7 +444,7 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 					sp[s]->num_encodings = 1;
 					channel_set_coder(sp[s], get_cc_pt(sp[s], "vanilla"));
 					debug_msg("Configure codec %d\n", sp[s]->encodings[0]);
-				} else if (((pt = codec_matching(pu, 8000, 1)) != -1) && ((cp = get_codec(pt)) != NULL)) {
+				} else if (((pt = codec_matching(pu, 8000, 1)) != -1) && ((cp = get_codec_by_pt(pt)) != NULL)) {
                                         change_freq(sp[s]->device_clock, cp->freq);
                                         sp[s]->encodings[0]  = cp->pt;
 					sp[s]->num_encodings = 1;
@@ -465,11 +465,11 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 						printf("Unknown codec\n");
 						usage();
 					}
-					if (((pri_pt = codec_matching(pri_name, 8000, 1)) == -1) || ((pri_cp = get_codec(pri_pt)) == NULL)) {
+					if (((pri_pt = codec_matching(pri_name, 8000, 1)) == -1) || ((pri_cp = get_codec_by_pt(pri_pt)) == NULL)) {
 						printf("Unknown primary codec\n");
 						usage();
 					}
-					if (((sec_pt = codec_matching(sec_name, 8000, 1)) == -1) || ((sec_cp = get_codec(sec_pt)) == NULL)) {
+					if (((sec_pt = codec_matching(sec_name, 8000, 1)) == -1) || ((sec_cp = get_codec_by_pt(sec_pt)) == NULL)) {
 						printf("Unknown redundant codec\n");
 						usage();
 					}

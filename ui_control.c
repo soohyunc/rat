@@ -406,7 +406,7 @@ ui_update_frequency(session_struct *sp)
 	codec_t *pcp;
 	char	 args[7], *mbes;
 
-	pcp = get_codec(sp->encodings[0]);
+	pcp = get_codec_by_pt(sp->encodings[0]);
 	sprintf(args, "%d-kHz", pcp->freq/1000);
         assert(strlen(args) < 7);
         mbes = mbus_encode_str(args);
@@ -420,7 +420,7 @@ ui_update_channels(session_struct *sp)
 	codec_t *pcp;
 	char	*mbes;
         
-	pcp = get_codec(sp->encodings[0]);
+	pcp = get_codec_by_pt(sp->encodings[0]);
         switch(pcp->channels) {
         case 1:
                 mbes = mbus_encode_str("Mono");
@@ -442,7 +442,7 @@ ui_update_primary(session_struct *sp)
 	codec_t *pcp;
         char *mbes;
 
-	pcp = get_codec(sp->encodings[0]);
+	pcp = get_codec_by_pt(sp->encodings[0]);
 	mbes = mbus_encode_str(pcp->short_name);
         mbus_engine_tx(TRUE, mbus_name_ui, "primary", mbes, FALSE);
         xfree(mbes);
@@ -479,7 +479,7 @@ ui_update_redundancy(session_struct *sp)
                 ioff  = atoi(offset);
         } else {
                 codec_t *pcp;
-                pcp   = get_codec(sp->encodings[0]);
+                pcp   = get_codec_by_pt(sp->encodings[0]);
                 codec_name = pcp->short_name;
                 ioff  = 1;
         } 
@@ -725,7 +725,7 @@ ui_get_codecs(int pt, char *buf, int loose)
         char *bp = buf;
         
         cnt = get_codec_count();
-        sel = get_codec(pt);
+        sel = get_codec_by_pt(pt);
         
         for (nc = i = 0; i< cnt ; i++) {
                 codec[nc] = get_codec_by_index(i);

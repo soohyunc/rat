@@ -265,7 +265,7 @@ intl_bps(session_struct        *sp,
         UNUSED(sp);
     
         upp = s->il->n1;
-        cp  = get_codec(s->src_pt);
+        cp  = get_codec_by_pt(s->src_pt);
         ups = cp->freq / cp->unit_len;
         us  = cp->sent_state_sz + cp->max_unit_sz;
         return (8 * (upp*us + 4 + 12) * ups/upp);
@@ -370,7 +370,7 @@ intl_compat_chk(session_struct *sp,
                 s->il     = il_create(GET_N2(hdr),GET_N1(hdr));
                 s->src_pt = (u_char)GET_PT(hdr);
                 s->upl    = GET_UPL(hdr);
-                cp = get_codec(s->src_pt);
+                cp = get_codec_by_pt(s->src_pt);
                 if (cp) {
                         sprintf(fmt, "INTERLEAVED(%s,%dx%d)", cp->name, s->il->n2, s->il->n1);
                         rtcp_set_encoder_format(sp, u->dbe_source[0], fmt);
@@ -407,7 +407,7 @@ intl_decode(session_struct *sp,
                 memset(u->ccu[0]->iov,0,sizeof(struct iovec));
         }
         
-        if ((cp = get_codec(s->src_pt)) == FALSE) return;
+        if ((cp = get_codec_by_pt(s->src_pt)) == FALSE) return;
 
         if (u->ccu_cnt) {
                 s->last_ts = u->src_ts;
@@ -443,7 +443,7 @@ intl_decode(session_struct *sp,
                                 debug_msg("splitting %d blocks\n", ccu->iovc);
                                 for(j = 0, len = 0; j < ccu->iovc; j++) len += ccu->iov[j].iov_len;
                                 su = get_rx_unit(i * s->upl, u->cc_pt, u);
-                                cp = get_codec(s->src_pt);
+                                cp = get_codec_by_pt(s->src_pt);
                                 fragment_spread(cp, len, ccu->iov, ccu->iovc, su);
 #ifdef DEBUG
                                 for(j = 0; j < ccu->iovc;j++) assert(ccu->iov[j].iov_base == NULL && ccu->iov[j].iov_len == 0);
@@ -480,7 +480,7 @@ intl_decode(session_struct *sp,
                                 codec_t *cp;
                                 for(j = 0, len = 0; j < ccu->iovc; j++) len += ccu->iov[j].iov_len;
                                 su = get_rx_unit(i * s->upl, u->cc_pt, u);
-                                cp = get_codec(s->src_pt);
+                                cp = get_codec_by_pt(s->src_pt);
                                 fragment_spread(cp, len, ccu->iov, ccu->iovc, su);
 #ifdef DEBUG
                                 for(j = 0; j < ccu->iovc;j++) assert(ccu->iov[j].iov_base == NULL && ccu->iov[j].iov_len == 0);
@@ -517,7 +517,7 @@ intl_valsplit(char         *blk,
         cu->iov[0].iov_len  = 4;
         cu->iovc            = 1;
 
-        cp = get_codec(GET_PT(hdr));
+        cp = get_codec_by_pt(GET_PT(hdr));
         if (!cp) {
                 debug_msg("Codec (pt = %d) not recognized.\n", GET_PT(hdr));
                 (*trailing) = 0;
@@ -555,7 +555,7 @@ intl_wrapped_pt(char          *blk,
         int pt;
         UNUSED(blen);
         pt = GET_PT(ntohl(*((u_int32*)blk)));
-        cp = get_codec(pt);
+        cp = get_codec_by_pt(pt);
         assert(cp);
         return pt;
 }
