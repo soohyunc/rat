@@ -1356,4 +1356,5 @@ TODO -- They're features not bugs dammit!
 - packets with a header extension are silently thrown away. 
 - If you click talk while Rat is initializing you get a Tk error window
   when it has finished initialisation. 
+- Add ability to change RTP sessions whilst rat is running.
 
