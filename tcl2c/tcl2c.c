@@ -46,9 +46,27 @@ main(int argc, char **argv)
     printf("char %s[] = \"\\\n", argv[1]);
     while ((c = getchar()) != EOF) {
             if (newline == TRUE && (isspace(c) || c == '#')) {
+                    char define[7];
+                    int cnt = 0;
+                    define [6] = 0;
                     if (c == '#') {
                             do {
                                     c = getchar();
+                                    /* This is a nasty hack for lines that look like comments but are X bitmap dimensions really.
+                                     * X bitmaps have dimensions #defined.
+                                     */
+                                    if (!isspace(c)) {
+                                            if (cnt < 6) {
+                                                    define[cnt] = c;
+                                                    cnt++;
+                                            } else {
+                                                    if (!strcmp(define,"define")) {
+                                                            printf("#define %c",c);
+                                                            newline = FALSE;
+                                                            break;
+                                                    }
+                                            }
+                                    }
                             } while(c != EOF && c != '\n');
                     }
             } else {
