@@ -198,6 +198,7 @@ new_intl_coder(session_struct *sp)
 void
 free_intl_coder(intl_coder_t *t)
 {
+        intl_reset(t);
         if (t->il) {
                 free_il(t->il);
         }
