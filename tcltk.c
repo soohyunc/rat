@@ -218,3 +218,8 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	return TRUE;
 }
 
+void 
+tcl_exit()
+{
+        xfree(engine_addr);
+}

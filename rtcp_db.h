@@ -174,6 +174,7 @@ typedef struct rtp_db_tag {
 
 u_int32 		 rtcp_myssrc(struct session_tag *sp);
 void 			 rtcp_init(struct session_tag *sp, char *cname, u_int32 ssrc, u_int32 cur_time);
+void                     rtcp_db_exit(struct session_tag *sp);
 int 			 rtcp_update_seq(rtcp_dbentry *s, u_int16 seq);
 struct s_rtcp_dbentry   *rtcp_get_dbentry(struct session_tag *sp, u_int32 ssrc);
 struct s_rtcp_dbentry   *rtcp_new_dbentry(struct session_tag *sp, u_int32 ssrc, u_int32 addr, u_int32 cur_time);

@@ -52,6 +52,7 @@
 #include "channel.h"
 #include "parameters.h"
 #include "audio.h"
+#include "util.h"
 
 static void 
 usage(void)
@@ -150,6 +151,10 @@ end_session(session_struct *sp)
 {
         codec_free_dynamic_payloads(&sp->dpt_list);
         free_fast_time(sp->clock);
+        if (sp->device_clock) {
+                xfree(sp->device_clock);
+                sp->device_clock = NULL;
+        }
         collator_destroy(sp->collator);
 }
 

@@ -261,11 +261,19 @@ main(int argc, char *argv[])
 
 	}
 	network_process_mbus(sp, num_sessions, 1000);
+        
+        if (sp[0]->ui_on) {
+                tcl_exit();
+        }
 
         for(i = 0; i<2; i++) {
                 end_session(sp[i]);
                 xfree(sp[i]);
         }
+
+        xfree(cname);
+
+
 
 	xmemdmp();
 	return 0;

@@ -395,7 +395,7 @@ rtcp_init(session_struct *sp, char *cname, u_int32 ssrc, u_int32 cur_time)
 	memset(sp->db, 0, sizeof(rtp_db));
 
 	sp->db->members		= 1;
-	sp->db->rtcp_bw		= 417.5; /* 5% of 8350 bytes/sec (8khz, pcmu) session bandwidth */
+	sp->db->rtcp_bw		= 417; /* 5% of 8350 bytes/sec (8khz, pcmu) session bandwidth */
 	sp->db->initial_rtcp	= TRUE;
 	sp->db->report_interval = rtcp_interval(sp->db->members, sp->db->senders, sp->db->rtcp_bw, sp->db->sending, 
 					        128, &(sp->db->avg_size), sp->db->initial_rtcp, get_freq(sp->device_clock));
@@ -427,4 +427,9 @@ rtcp_clock_change(session_struct *sp)
                 sp->db->last_rpt = get_time(sp->device_clock);
 }
 
-
+void
+rtcp_db_exit(session_struct *sp)
+{
+        xfree(sp->db);
+        sp->db = NULL;
+}
