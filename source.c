@@ -42,7 +42,7 @@
 
 #define SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER  8 
 #define SKEW_OFFENSES_BEFORE_EXPANDING_BUFFER    3
-#define SKEW_ADAPT_THRESHOLD       1500
+#define SKEW_ADAPT_THRESHOLD       1000
 #define SOURCE_YOUNG_AGE             20
 #define SOURCE_AUDIO_HISTORY_MS    1000
 
@@ -59,6 +59,7 @@ typedef struct s_source {
         ts_t                        last_played;
         ts_t                        last_repair;
         u_int16                     consec_lost;
+        u_int32                     mean_energy;
         ts_sequencer                seq;
         struct s_rtcp_dbentry      *dbe;
         struct s_channel_state     *channel_state;
@@ -417,8 +418,16 @@ source_add_packet (source *src,
         return TRUE;
 }
 
-#define SOURCE_COMPARE_WINDOW_SIZE 5
-#define MATCH_THRESHOLD 3000
+/* recommend_drop_dur does quick pattern match with audio that is
+ * about to be played i.e. first few samples to determine how much
+ * audio can be dropped with causing glitch.
+ */
+
+#define SOURCE_COMPARE_WINDOW_SIZE 8
+/* Match threshold is mean abs diff. lower score gives less noise, but less
+ * adaption..., might be better if threshold adapted with how much extra
+ * data we have buffered... */
+#define MATCH_THRESHOLD 70
 
 static ts_t
 recommend_drop_dur(media_data *md) 
@@ -456,7 +465,8 @@ recommend_drop_dur(media_data *md)
                 j++;
         }
 
-        if (lowest_score < MATCH_THRESHOLD) {
+        if (lowest_score/SOURCE_COMPARE_WINDOW_SIZE < MATCH_THRESHOLD) {
+                debug_msg("match score %d, drop dur %d\n", lowest_score/SOURCE_COMPARE_WINDOW_SIZE, lowest_begin);
                 return ts_map32(rate, lowest_begin);
         } else {
                 return ts_map32(8000, 0);
@@ -471,8 +481,7 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         /* We are dropping drop_dur samples and want signal to be
          * continuous.  So we blend samples that would have been
          * played if they weren't dropped with where signal continues
-         * after the drop.
-         */
+         * after the drop.  */
         u_int32 drop_samples;
         u_int16 rate, channels;
         int32 tmp, a, b, i, merge_len;
@@ -598,11 +607,12 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 if (codec_get_native_info(md->rep[i]->id, &rate, &channels)) {
                         samples = md->rep[i]->data_len / (channels * sizeof(sample));
                         e = avg_audio_energy((sample*)md->rep[i]->data, samples * channels, channels);
+                        src->mean_energy = (15 * src->mean_energy + e)/16;
                         break;
                 }
         }
 
-        if (i == md->nrep || e > SKEW_ADAPT_THRESHOLD) {
+        if (i == md->nrep) {
                 /* don't adapt if unit has not been decoded (error) or
                  *  signal has too much energy 
                  */
@@ -616,7 +626,8 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
          */
 
         if (src->skew == SOURCE_SKEW_FAST &&
-            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER) {
+            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER && 
+                2*e <=  src->mean_energy) {
                 /* source is fast so we need to bring units forward.
                  * Should only move forward at most a single unit
                  * otherwise we might discard something we have not
