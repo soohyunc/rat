@@ -15,6 +15,27 @@
  * ALSA audio device. 
  */
 
+/*
+ * Notes on mixers.
+ *
+ * Depending on the type of mixer on the soundcard, there are
+ * different actions that need to be taken to enable and disable
+ * capture and to set input levels.
+ *
+ * AC97 based mixers tap the signal before the per-input volume
+ * controls. The input level is controlled by the "Input Gain" group.
+ * This group must be unmuted and controlled by the igain_set routine.
+ * Input selection is still done on a per-input basis.
+ *
+ * AK4531 based mixers (SB PCI128) tap the signal after the per-input
+ * volume controls. Therefore the input level is controlled by the
+ * group corresponding to the currently selected input.
+ *
+ * For both mixer types, audio loopback is enabled by turning off
+ * mute on the appropriate input channel.
+ *
+ */
+
 #include "config_unix.h"
 #include "config_win32.h"
 #include "audio_types.h"
@@ -22,6 +43,7 @@
 #include "memory.h"
 #include "debug.h"
 #include <sys/asoundlib.h>
+#include <stdarg.h>
 
 #define PB SND_PCM_CHANNEL_PLAYBACK
 #define CAP SND_PCM_CHANNEL_CAPTURE
@@ -50,80 +72,57 @@ static RatCardInfo ratCards[MAX_RAT_CARDS];
 static int nRatCards = 0;
 
 /*
- * This is the ALSA port name string map..
+ * Each mixer type is defined by a mapping from RAT port
+ * id to the set of gids for the different functions on that
+ * port (input source selection, set of ports to deselect when
+ * this port selected, group to adjust volume with)
  */
 
-static char *alsa_ports[] = {
-    SND_MIXER_IN_SYNTHESIZER,
-    SND_MIXER_IN_PCM,
-    SND_MIXER_IN_DAC,
-    SND_MIXER_IN_FM,
-    SND_MIXER_IN_DSP,
-    SND_MIXER_IN_LINE,
-    SND_MIXER_IN_MIC,
-    SND_MIXER_IN_CD,
-    SND_MIXER_IN_VIDEO,
-    SND_MIXER_IN_RADIO,
-    SND_MIXER_IN_PHONE,
-    SND_MIXER_IN_MONO,
-    SND_MIXER_IN_SPEAKER,
-    SND_MIXER_IN_AUX,
-    SND_MIXER_IN_CENTER,
-    SND_MIXER_IN_WOOFER,
-    SND_MIXER_IN_SURROUND,
-    SND_MIXER_OUT_MASTER,
-    SND_MIXER_OUT_MASTER_MONO,
-    SND_MIXER_OUT_MASTER_DIGITAL,
-    SND_MIXER_OUT_HEADPHONE,
-    SND_MIXER_OUT_PHONE,
-    SND_MIXER_OUT_CENTER,
-    SND_MIXER_OUT_WOOFER,
-    SND_MIXER_OUT_SURROUND,
-    SND_MIXER_OUT_DSP,
+struct MixerInPortInfo
+{
+    snd_mixer_gid_t captureGID;
+    snd_mixer_gid_t *noncaptureGID; /* GIDs to deselect when we select this input */
+    int noncaptureGIDCount;
+    snd_mixer_gid_t loopbackGID; /* GID to unmute to turn on loopback */
+    
+    snd_mixer_gid_t inputGainGID;
 };
-#define ALSA_INPORT_INDEX_SYNTHESIZER 0
-#define ALSA_INPORT_INDEX_PCM 1
-#define ALSA_INPORT_INDEX_DAC 2
-#define ALSA_INPORT_INDEX_FM 3
-#define ALSA_INPORT_INDEX_DSP 4
-#define ALSA_INPORT_INDEX_LINE 5
-#define ALSA_INPORT_INDEX_MIC 6
-#define ALSA_INPORT_INDEX_CD 7
-#define ALSA_INPORT_INDEX_VIDEO 8
-#define ALSA_INPORT_INDEX_RADIO 9
-#define ALSA_INPORT_INDEX_PHONE 10
-#define ALSA_INPORT_INDEX_MONO 11
-#define ALSA_INPORT_INDEX_SPEAKER 12
-#define ALSA_INPORT_INDEX_AUX 13
-#define ALSA_INPORT_INDEX_CENTER 14
-#define ALSA_INPORT_INDEX_WOOFER 15
-#define ALSA_INPORT_INDEX_SURROUND 16
-#define ALSA_OUTPORT_INDEX_MASTER 17
-#define ALSA_OUTPORT_INDEX_MASTER_MONO 18
-#define ALSA_OUTPORT_INDEX_MASTER_DIGITAL 19
-#define ALSA_OUTPORT_INDEX_HEADPHONE 20
-#define ALSA_OUTPORT_INDEX_PHONE 21
-#define ALSA_OUTPORT_INDEX_CENTER 22
-#define ALSA_OUTPORT_INDEX_WOOFER 23
-#define ALSA_OUTPORT_INDEX_SURROUND 24
-#define ALSA_OUTPORT_INDEX_DSP 25
-#define NUM_ALSA_PORTS (sizeof(alsa_ports) / sizeof(alsa_ports[0]))
 
-static snd_mixer_gid_t alsa_gids[NUM_ALSA_PORTS];
+struct MixerOutPortInfo
+{
+    snd_mixer_gid_t enableGID;
+    snd_mixer_gid_t *disableGID; /* GIDs to deselect when we select this input */
+    int disableGIDCount;
+    snd_mixer_gid_t outputGainGID;
+};
+
+enum MixerInPortIndex
+{
+    ALSA_MIC,
+    ALSA_LINE_IN,
+    ALSA_CD,
+};
+
+enum MixerOutPortIndex
+{
+    ALSA_SPEAKER,
+    ALSA_HEADPHONE,
+    ALSA_LINE_OUT
+};
 
 /*
  * Mappings for ports. This table maps from ALSA port index to Rat port identifiers,
  * and is what rat wants back from the get_details funcs.
  */
 static audio_port_details_t in_ports[] = {
-    { ALSA_INPORT_INDEX_MIC, AUDIO_PORT_MICROPHONE },
-    { ALSA_INPORT_INDEX_LINE, AUDIO_PORT_LINE_IN },
-    { ALSA_INPORT_INDEX_CD, AUDIO_PORT_CD, }
+    { ALSA_MIC, AUDIO_PORT_MICROPHONE },
+    { ALSA_LINE_IN, AUDIO_PORT_LINE_IN },
+    { ALSA_CD, AUDIO_PORT_CD, }
 };
 #define ALSA_NUM_INPORTS (sizeof(in_ports) / sizeof(in_ports[0]))
 
 static audio_port_details_t out_ports[] = {
-    { ALSA_INPORT_INDEX_PCM, AUDIO_PORT_SPEAKER },
+    { ALSA_SPEAKER, AUDIO_PORT_SPEAKER },
 };
 #define ALSA_NUM_OUTPORTS (sizeof(out_ports) / sizeof(out_ports[0]))
 
@@ -138,7 +137,395 @@ static snd_mixer_t *CurMixer = 0;
 static audio_port_t CurInPort;
 static audio_port_t CurOutPort;
 static int CurLoopbackGain = 0;
-/*static int CurBufSize = 0;*/
+static int CurCaptureMode;
+static int CurPlaybackMode;
+static audio_format CurCaptureFormat;
+static audio_format CurPlaybackFormat;
+
+struct MixerOutPortInfo OutPorts[ALSA_NUM_OUTPORTS];
+struct MixerInPortInfo InPorts[ALSA_NUM_INPORTS];
+
+static snd_mixer_gid_t *makeGIDList(int n, ...)
+{
+    va_list va;
+    snd_mixer_gid_t *list, *elt;
+    int i;
+    
+    list = (snd_mixer_gid_t *) malloc(sizeof(snd_mixer_gid_t) * n);
+
+    va_start(va, n);
+    for (i = 0; i < n; i++)
+    {
+	elt = va_arg(va, snd_mixer_gid_t *);
+	list[i] = *elt;
+    }
+    va_end(va);
+    return list;
+}
+
+static void getGID(char *name, snd_mixer_gid_t *gid)
+{
+    memset(gid, 0, sizeof(*gid));
+    strcpy(gid->name, name);
+}
+
+static void setupMixerAC97()
+{
+    snd_mixer_gid_t inputGain, pcm, line, mic, cd;
+    struct MixerInPortInfo *in;
+    struct MixerOutPortInfo *out;
+
+    getGID(SND_MIXER_GRP_IGAIN, &inputGain);
+    getGID(SND_MIXER_IN_PCM, &pcm);
+    getGID(SND_MIXER_IN_LINE, &line);
+    getGID(SND_MIXER_IN_MIC, &mic);
+    getGID(SND_MIXER_IN_CD, &cd);
+
+    /* Mic bindings */
+    
+    in = &(InPorts[ALSA_MIC]);
+    in->captureGID = mic;
+    in->noncaptureGID = makeGIDList(2, &line, &cd);
+    in->noncaptureGIDCount = 2;
+    in->loopbackGID = mic;
+    in->inputGainGID = inputGain;
+
+    /* Line */
+
+    in = &(InPorts[ALSA_LINE_IN]);
+    in->captureGID = line;
+    in->noncaptureGID = makeGIDList(2, &mic, &cd);
+    in->noncaptureGIDCount = 2;
+    in->loopbackGID = line;
+    in->inputGainGID = inputGain;
+
+    /* CD */
+	   
+    in = &(InPorts[ALSA_CD]);
+    in->captureGID = cd;
+    in->noncaptureGID = makeGIDList(2, &line, &cd);
+    in->noncaptureGIDCount = 2;
+    in->loopbackGID = cd;
+    in->inputGainGID = inputGain;
+
+    /* Output */
+
+    out = &(OutPorts[ALSA_SPEAKER]);
+
+    out->enableGID = pcm;
+    out->disableGID = 0;
+    out->disableGIDCount = 0;
+    out->outputGainGID = pcm;
+}
+
+static void setupMixerAK4531()
+{
+    snd_mixer_gid_t inputGain, pcm, line, mic, cd;
+    struct MixerInPortInfo *in;
+    struct MixerOutPortInfo *out;
+
+    getGID(SND_MIXER_GRP_IGAIN, &inputGain);
+    getGID(SND_MIXER_IN_PCM, &pcm);
+    getGID(SND_MIXER_IN_LINE, &line);
+    getGID(SND_MIXER_IN_MIC, &mic);
+    getGID(SND_MIXER_IN_CD, &cd);
+
+    /* Mic bindings */
+    
+    in = &(InPorts[ALSA_MIC]);
+    in->captureGID = mic;
+    in->noncaptureGID = makeGIDList(2, &line, &cd);
+    in->noncaptureGIDCount = 2;
+    in->loopbackGID = mic;
+    in->inputGainGID = mic;
+
+    /* Line */
+
+    in = &(InPorts[ALSA_LINE_IN]);
+    in->captureGID = line;
+    in->noncaptureGID = makeGIDList(2, &mic, &cd);
+    in->noncaptureGIDCount = 2;
+    in->loopbackGID = line;
+    in->inputGainGID = line;
+
+    /* CD */
+	   
+    in = &(InPorts[ALSA_CD]);
+    in->captureGID = cd;
+    in->noncaptureGID = makeGIDList(2, &line, &cd);
+    in->noncaptureGIDCount = 2;
+    in->loopbackGID = cd;
+    in->inputGainGID = cd;
+
+    /* Output */
+
+    out = &(OutPorts[ALSA_SPEAKER]);
+
+    out->enableGID = pcm;
+    out->disableGID = 0;
+    out->disableGIDCount = 0;
+    out->outputGainGID = pcm;
+}
+
+
+/*
+ * Input buffer handling
+ */
+
+struct InputBuffer_t
+{
+    int (*readAudioFunc)(char *buf, int bufsize);
+    int (*audioReadyFunc)();
+    void (*audioWaitForFunc)(int delay_ms);
+
+    char *buffer;
+    char *currentBufferLocation;
+    int nBytesLeft;
+    int bufferSize;
+};
+
+static int streamAudioReady(void);
+static void streamAudioWaitFor(int delay_ms);
+static int streamReadAudio(char *buf, int bufsize);
+
+static int directAudioReady(void);
+static void directAudioWaitFor(int delay_ms);
+static int directReadAudio(char *buf, int bufsize);
+
+static int bufferedAudioReady(void);
+static void bufferedAudioWaitFor(int delay_ms);
+static int bufferedReadAudio(char *buf, int bufsize);
+
+static struct InputBuffer_t InputBuffer = {
+    directReadAudio, directAudioReady, directAudioWaitFor, 0, 0, 0, 0
+};
+
+/*
+ * See if we have to do our own buffering. If the blocksize
+ * that's returned by the device is what we asked for, 
+ * (PCI128) we don't need to buffer. Otherwise (SBLive,
+ * THinkpad 570) we need to buffer. Allocate a buffer
+ * of the device blocksize.
+ */
+static void setupInputBuffer(int ratSize, int deviceSize)
+{
+    if (CurCaptureMode == SND_PCM_MODE_STREAM)
+    {
+	debug_msg("Using streaming audio reads (size=%d)\n", deviceSize);
+	InputBuffer.readAudioFunc = streamReadAudio;
+	InputBuffer.audioReadyFunc = streamAudioReady;
+	InputBuffer.audioWaitForFunc = streamAudioWaitFor;
+    }
+    else if (ratSize == deviceSize)
+    {
+	debug_msg("Using direct audio reads (size=%d)\n", deviceSize);
+	InputBuffer.readAudioFunc = directReadAudio;
+	InputBuffer.audioReadyFunc = directAudioReady;
+	InputBuffer.audioWaitForFunc = directAudioWaitFor;
+    }
+    else
+    {
+	debug_msg("Using buffered audio reads (size=%d)\n", deviceSize);
+	InputBuffer.readAudioFunc = bufferedReadAudio;
+	InputBuffer.audioReadyFunc = bufferedAudioReady;
+	InputBuffer.audioWaitForFunc = bufferedAudioWaitFor;
+	
+	if (InputBuffer.buffer != 0)
+	{
+	    if (InputBuffer.bufferSize != deviceSize)
+	    {
+		free(InputBuffer.buffer);
+		InputBuffer.buffer = 0;
+	    }
+	}
+
+	if (InputBuffer.buffer == 0)
+	{
+	    InputBuffer.buffer = (char *) malloc(deviceSize);
+	    InputBuffer.bufferSize = deviceSize;
+	}
+	InputBuffer.currentBufferLocation = InputBuffer.buffer;
+	InputBuffer.nBytesLeft = 0;
+    }
+}
+
+
+/* Device routines */
+
+/* Read audio */
+
+static int deviceReadAudio(char *buf, int bufsize)
+{
+    int read_bytes;
+    
+    if ((read_bytes = snd_pcm_read(CurHandle, buf, bufsize)) < 0)
+    {
+/*	debug_msg("read(%x %d) failed: %s\n",buf, buf_bytes, snd_strerror(read_bytes));*/
+	read_bytes = 0;
+    }
+    else
+    {
+	/* debug_msg("read %d of %d\n", read_bytes, bufsize); */
+    }
+    return read_bytes;
+}
+
+static void 
+deviceAudioWaitFor(int delay_ms)
+{
+    fd_set rfds;
+    int n;
+    int cap_fd;
+    struct timeval tv;
+
+    cap_fd = snd_pcm_file_descriptor(CurHandle, SND_PCM_CHANNEL_CAPTURE);
+
+    FD_ZERO(&rfds);
+    FD_SET(cap_fd, &rfds); 
+
+    tv.tv_sec = delay_ms / 1000;
+    tv.tv_usec = 1000 * (delay_ms % 1000);
+    
+    n = select(cap_fd + 1, &rfds, 0, 0, &tv);
+}
+
+static int deviceAudioReady()
+{
+    fd_set rfds;
+    int n;
+    int cap_fd;
+    struct timeval tv;
+
+    cap_fd = snd_pcm_file_descriptor(CurHandle, SND_PCM_CHANNEL_CAPTURE);
+
+    FD_ZERO(&rfds);
+    FD_SET(cap_fd, &rfds);
+
+    tv.tv_sec = 0;
+    tv.tv_usec = 10;
+    
+    n = select(cap_fd + 1, &rfds, 0, 0, &tv);
+    if (n > 0)
+    {
+	/*	debug_msg("Audio ready\n");*/
+    }
+    else if (n < 0)
+    {
+	debug_msg("select error: %s\n", strerror(errno));
+    }
+    else
+    {
+//	 debug_msg("no audio ready on %d\n", cap_fd); 
+    }
+
+    return n > 0;
+}
+
+/* Generic routines */
+
+/*
+ * Stream-mode reads
+ */
+
+static int streamAudioReady(void)
+{
+    snd_pcm_channel_status_t status;
+    int rc;
+
+    memset(&status, 0, sizeof(status));
+    status.channel = SND_PCM_CHANNEL_CAPTURE;
+
+    if ((rc = snd_pcm_channel_status(CurHandle, &status)) != 0)
+    {
+	debug_msg("streamAudioReady: status check failed: %s\n",
+		  snd_strerror(rc));
+	return 0;
+    }
+
+    return status.count >= CurCaptureFormat.bytes_per_block;
+}
+
+static void streamAudioWaitFor(int delay_ms)
+{
+    if (!streamAudioReady())
+    {
+	usleep(delay_ms * 1000 / 2);
+    }
+}
+
+static int streamReadAudio(char *buf, int bufsize)
+{
+    int n;
+    n = deviceReadAudio(buf, bufsize);
+//    debug_msg("streamReadAudio: read %d returns %d\n", bufsize, n);
+    return n;
+}
+
+
+
+/*
+ * Block-mode reads, where device blocksize matches the
+ * desired audio blocksize
+ */
+
+static int directAudioReady()
+{
+    return deviceAudioReady();
+}
+
+static void directAudioWaitFor(int delay_ms)
+{
+    return deviceAudioWaitFor(delay_ms);
+}
+
+static int directReadAudio(char *buf, int bufsize)
+{
+    return deviceReadAudio(buf,  bufsize);
+}
+
+/*
+ * Block-mode reads, where device size doesn't
+ * match the desired audio blocksize.
+ */
+
+static int bufferedAudioReady()
+{
+    if (InputBuffer.nBytesLeft > 0)
+	return 1;
+    else
+	return deviceAudioReady();
+}
+
+static void bufferedAudioWaitFor(int delay_ms)
+{
+    if (InputBuffer.nBytesLeft == 0)
+	return deviceAudioWaitFor(delay_ms);
+}
+
+static int bufferedReadAudio(char *buf, int bufsize)
+{
+    int nRead;
+    if (InputBuffer.nBytesLeft == 0)
+    {
+	int nDev;
+	nDev = deviceReadAudio(InputBuffer.buffer, InputBuffer.bufferSize);
+	InputBuffer.currentBufferLocation = InputBuffer.buffer;
+	InputBuffer.nBytesLeft = nDev;
+	
+    }
+
+    if (InputBuffer.nBytesLeft > 0)
+    {
+	nRead = (bufsize > InputBuffer.nBytesLeft) ? InputBuffer.nBytesLeft : bufsize;
+	memcpy(buf, InputBuffer.currentBufferLocation, nRead);
+	InputBuffer.currentBufferLocation += nRead;
+	InputBuffer.nBytesLeft -= nRead;
+    }
+    else
+	nRead = 0;
+    
+    return nRead;
+}
 
 /*
  * Utility funcs
@@ -389,36 +776,18 @@ static void dump_mixer_group(snd_mixer_group_t *g)
     }
 */
 }
-    
+
 static int channelSetParams(snd_pcm_t *handle,
-			   int channel,
-			   audio_format *format)
+			    int channel,
+			    int mode,
+			    audio_format *format)
 {
     snd_pcm_channel_params_t p;
     int rc;
 
-    /*
-     * At some point this code should check to make
-     * sure the format is valid for the hardware.
-     * But for now we'll assume it is, and just
-     * live with the error later.
-     */
-#if 0
-    {
-	snd_pcm_channel_info_t cinfo;
-	memset(&cinfo, 0, sizeof(cinfo));
-	cinfo.channel = channel;
-	
-	if (snd_pcm_channel_info(handle, &cinfo) != 0)
-	    debug_msg("snd_pcm_info failed\n");
-	else
-	    dump_channel_info(&cinfo);
-    }
-#endif
-
     memset(&p, 0, sizeof(p));
     p.channel = channel;
-    p.mode = SND_PCM_MODE_BLOCK;
+    p.mode = mode;
     p.format.interleave = 1;
     p.format.format = mapFormat(format->encoding);
     p.format.rate = format->sample_rate;
@@ -435,15 +804,26 @@ static int channelSetParams(snd_pcm_t *handle,
 	p.stop_mode = SND_PCM_STOP_STOP;
     }
 
-    p.buf.block.frag_size = format->bytes_per_block;
-    p.buf.block.frags_min = 1;
-    p.buf.block.frags_max = -1;
+    if (mode == SND_PCM_MODE_BLOCK)
+    {
+	p.buf.block.frag_size = format->bytes_per_block;
+	p.buf.block.frags_min = 1;
+	p.buf.block.frags_max = -1;
+    }
+    else
+    {
+	p.buf.stream.queue_size = 1024 * 512;
+	p.buf.stream.fill = SND_PCM_FILL_NONE;
+	p.buf.stream.max_fill = 1024;
+    }
 
     if ((rc = snd_pcm_channel_params(handle, &p)) != 0)
     {
-	debug_msg("params playback failed: %s\n", snd_strerror(rc));
+	debug_msg("set params for channel %d mode %d failed: %s\n",
+		  channel, mode, snd_strerror(rc));
 	return rc;
     }
+
     return 0;
 }
 
@@ -462,13 +842,14 @@ static int channelPrepare(snd_pcm_t *handle, int channel)
 }
 
 static int channelSetup(snd_pcm_t *handle, int channel,
+			int mode,
 			int *bufferSize)
 {
     int rc;
     struct snd_pcm_channel_setup setup;
 
     memset(&setup, 0, sizeof(setup));
-    setup.mode = SND_PCM_MODE_BLOCK;
+    setup.mode = mode;
     setup.channel = channel;
 
     if ((rc = snd_pcm_channel_setup(handle, &setup)) != 0)
@@ -478,17 +859,33 @@ static int channelSetup(snd_pcm_t *handle, int channel,
 	return rc;
     }
 
-    *bufferSize = setup.buf.block.frag_size;
+    if (mode == SND_PCM_MODE_BLOCK)
+    {
+	*bufferSize = setup.buf.block.frag_size;
+    }
+    else
+    {
+	*bufferSize = setup.buf.stream.queue_size;
+    }
     return 0;
 }
 
+static int channelGo(snd_pcm_t *handle, int channel)
+{
+    int rc;
+    
+    if ((rc = snd_pcm_channel_go(handle, channel)) < 0)
+    {
+	debug_msg("channel_go on channel %d failed: %s\n",
+		  channel, snd_strerror(rc));
+    }
+    return rc;
+}
 
 static void setupMixer()
 {
     snd_mixer_info_t minfo;
-    snd_mixer_group_t group;
-    snd_mixer_groups_t groups;
-    int rc;
+    unsigned int i;
 
     debug_msg("Mixer open: card=%d device=%d\n", CurCard->cardNumber, CurCard->mixerDevice);
 	      
@@ -507,86 +904,47 @@ static void setupMixer()
 		  minfo.type, minfo.attrib, minfo.id, minfo.name, minfo.elements, minfo.groups);
     }
 
-    memset(&groups, 0, sizeof(groups));
-    if ((rc = snd_mixer_groups(CurMixer, &groups)) != 0)
+    if (strcmp(minfo.id, "AK4531") == 0)
     {
-	debug_msg("groups failed: %s\n", snd_strerror(rc));
+	setupMixerAK4531();
+    }
+    else if (strcmp(minfo.id, "AC97") == 0)
+    {
+	setupMixerAC97();
     }
     else
     {
-	int i;
+	debug_msg("Unknown mixer id %s, using AC97\n", minfo.id);
+	setupMixerAC97();
+    }
 
-	debug_msg("Have %d groups (size=%d over=%d)\n", groups.groups, groups.groups_size, groups.groups_over);
+    for (i = 0; i < ALSA_NUM_INPORTS; i++)
+    {
+	struct MixerInPortInfo *in = &(InPorts[i]);
+	char buf[1024];
 
-	groups.groups_size = groups.groups_over;
-	groups.pgroups = (snd_mixer_gid_t *) malloc(sizeof(snd_mixer_gid_t) * groups.groups_over);
-
-	groups.groups_over = 0;
-	groups.groups =0;
-	snd_mixer_groups(CurMixer, &groups);
-	debug_msg("Have %d groups (size=%d over=%d)\n", groups.groups, groups.groups_size, groups.groups_over);
-
-	/*
-	 * Scan the groups list. Sort out capture and output groups.
-	 */
-	
-	
-	for (i = 0; i < groups.groups_size; i++)
+	buf[0] = 0;
+	if (in->noncaptureGID != 0)
 	{
-	    char capstr[200];
-	    unsigned int pidx;
-
-	    memset(&group, 0, sizeof(group));
-	    group.gid = groups.pgroups[i];
-
-	    debug_msg("Group %d: name=%s\n", i, group.gid.name);
-
-	    /*
-	     * See which port this group corresponds to
-	     */
-	    for (pidx = 0; pidx < NUM_ALSA_PORTS; pidx++)
+	    int j;
+	    for (j = 0; j < in->noncaptureGIDCount; j++)
 	    {
-		if (strcmp(alsa_ports[pidx], group.gid.name) == 0)
-		{
-		    debug_msg("Found port pidx=%d\n", pidx);
-		    alsa_gids[pidx] = group.gid;
-		}
-	    }
-	    
-	    if ((rc = snd_mixer_group_read(CurMixer, &group)) != 0)
-	    {
-		debug_msg("group_read failed: %s\n", snd_strerror(rc));
-	    }
-	    else
-	    {
-		capstr[0] = 0;
-		if (group.caps & SND_MIXER_GRPCAP_VOLUME) {
-		    strcat(capstr, "VOLUME ");
-		}
-		if (group.caps & SND_MIXER_GRPCAP_JOINTLY_VOLUME) {
-		    strcat(capstr, "JOINTLY_VOLUME ");
-		}
-		if (group.caps & SND_MIXER_GRPCAP_MUTE) {
-		    strcat(capstr, "MUTE ");
-		}
-		if (group.caps & SND_MIXER_GRPCAP_JOINTLY_MUTE) {
-		    strcat(capstr, "JOINTLY_MUTE ");
-		}
-		if (group.caps & SND_MIXER_GRPCAP_CAPTURE) {
-		    strcat(capstr, "CAPTURE ");
-		}
-		if (group.caps & SND_MIXER_GRPCAP_JOINTLY_CAPTURE) {
-		    strcat(capstr, "JOINTLY_CAPTURE ");
-		}
-		if (group.caps & SND_MIXER_GRPCAP_EXCL_CAPTURE) {
-		    strcat(capstr, "EXCL_CAPTURE ");
-		}
-		debug_msg("caps: %s\n", capstr);
-		dump_mixer_group(&group);
+		strcat(buf, in->noncaptureGID[j].name);
+		strcat(buf, " ");
 	    }
 	}
+
+	debug_msg("Inport info for %d\n", i);
+	debug_msg("   capture=%s\n", in->captureGID.name);
+	debug_msg("   noncapture=%s\n", buf);
+	debug_msg("   loopback=%s\n", in->loopbackGID.name);
+	debug_msg("   inputGain=%s\n", in->inputGainGID.name);
     }
 }
+
+/*
+ * ALSA mixer callback functions
+ */
 
 static void mixer_rebuild(void *private)
 {
@@ -623,6 +981,7 @@ int
 alsa_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
 {
     int playbackBufferSize, captureBufferSize;
+    int rc;
     
     debug_msg("Audio open ad=%d\n", ad);
     debug_msg("Input format:\n");
@@ -656,6 +1015,14 @@ alsa_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
     else
 	debug_msg("No mixer for device\n");
 
+#define CLEANUP \
+	    if (CurHandle != 0) \
+	        snd_pcm_close(CurHandle);	\
+	    if (CurMixer != 0) \
+		snd_mixer_close(CurMixer);	\
+	    CurHandle = 0;	\
+	    CurMixer = 0;	\
+	    return FALSE;	
 #define TRY_SETUP(func, args)		\
     {	\
 	int rc;	\
@@ -664,37 +1031,81 @@ alsa_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
 	{	\
 	    _dprintf("%d:%s:%d Card setup failed with %s\n",	\
 		     getpid(), __FILE__, __LINE__, snd_strerror(rc));	\
-	    if (CurHandle != 0) \
-	        snd_pcm_close(CurHandle);	\
-	    if (CurMixer != 0) \
-		snd_mixer_close(CurMixer);	\
-	    CurHandle = 0;	\
-	    CurMixer = 0;	\
-	    return FALSE;	\
+	    CLEANUP; \
 	}	\
     }
 
+    /*
+     * Set up the adapter.
+     * We'd prefer to use streaming mode where possible. If that doesn't
+     * work, go ahead and set up for block mode.
+     */
+
     /* Set up the playback side */
 
-    TRY_SETUP(channelSetParams, (CurHandle, SND_PCM_CHANNEL_PLAYBACK, outfmt));
+    CurPlaybackMode = SND_PCM_MODE_STREAM;
+
+    if ((rc = channelSetParams(CurHandle, SND_PCM_CHANNEL_PLAYBACK,
+			       CurPlaybackMode, outfmt)) != 0)
+    {
+	debug_msg("Setup for playback stream mode failed, trying block mode\n");
+
+	CurPlaybackMode = SND_PCM_MODE_BLOCK;
+	if ((rc = channelSetParams(CurHandle, SND_PCM_CHANNEL_PLAYBACK,
+				   CurPlaybackMode, outfmt)) != 0)
+	{
+	    debug_msg("Setup for playback block mode failing, playback setup fails\n");
+	    CLEANUP;
+	}
+    }
+
     TRY_SETUP(channelPrepare, (CurHandle, SND_PCM_CHANNEL_PLAYBACK));
     TRY_SETUP(channelSetup, (CurHandle, SND_PCM_CHANNEL_PLAYBACK,
-			     &playbackBufferSize));
+			     CurPlaybackMode, &playbackBufferSize));
        
 
     /* And the capture side */
     
-    TRY_SETUP(channelSetParams, (CurHandle, SND_PCM_CHANNEL_CAPTURE, infmt));
+    CurCaptureMode = SND_PCM_MODE_STREAM;
+
+    if ((rc = channelSetParams(CurHandle, SND_PCM_CHANNEL_CAPTURE,
+			       CurCaptureMode, outfmt)) != 0)
+    {
+	debug_msg("Setup for capture stream mode failed, trying block mode\n");
+
+	CurCaptureMode = SND_PCM_MODE_BLOCK;
+	if ((rc = channelSetParams(CurHandle, SND_PCM_CHANNEL_CAPTURE,
+				   CurCaptureMode, outfmt)) != 0)
+	{
+	    debug_msg("Setup for capture block mode failing, capture setup fails\n");
+	    CLEANUP;
+	}
+    }
+
     TRY_SETUP(channelPrepare, (CurHandle, SND_PCM_CHANNEL_CAPTURE));
     TRY_SETUP(channelSetup, (CurHandle, SND_PCM_CHANNEL_CAPTURE,
-			     &captureBufferSize));
-       
+			     CurCaptureMode, &captureBufferSize));
+
+    setupInputBuffer(infmt->bytes_per_block, captureBufferSize);
 
     debug_msg("Card open succeeded playback buffer=%d record buffer=%d\n",
 	      playbackBufferSize, captureBufferSize);
 
-    CurInPort = ALSA_INPORT_INDEX_MIC;
-    CurOutPort = ALSA_OUTPORT_INDEX_MASTER;
+    CurInPort = ALSA_MIC;
+    CurOutPort = ALSA_SPEAKER;
+
+    /* Kick off capture & playback */
+    channelGo(CurHandle, SND_PCM_CHANNEL_PLAYBACK);
+    channelGo(CurHandle, SND_PCM_CHANNEL_CAPTURE);
+
+    debug_msg("Audio open ad=%d\n", ad);
+    debug_msg("Input format:\n");
+    dump_audio_format(infmt);
+    debug_msg("Output format:\n");
+    dump_audio_format(outfmt);
+
+    CurCaptureFormat = *infmt;
+    CurPlaybackFormat = *outfmt;
 
     return TRUE;
 }
@@ -775,7 +1186,7 @@ static int get_group_gain(snd_mixer_gid_t *gid)
 	debug_msg("mixer read failed: %s\n", snd_strerror(rc));
 	return 0;
     }
-    dump_mixer_group(&group);
+/*    dump_mixer_group(&group);*/
     level = (int) 100.0 * ((double) (group.volume.names.front_left - group.min) / (double) (group.max - group.min));
 
 #ifdef DEBUG_MIXER
@@ -839,7 +1250,7 @@ alsa_audio_set_igain(audio_desc_t ad, int gain)
 #endif
     UNUSED(ad);
 
-    set_group_gain(&(alsa_gids[CurInPort]), gain);
+    set_group_gain(&(InPorts[CurInPort].inputGainGID), gain);
     
     return;
 }
@@ -851,7 +1262,7 @@ int
 alsa_audio_get_igain(audio_desc_t ad)
 {
     UNUSED(ad);
-    return get_group_gain(&(alsa_gids[CurInPort]));
+    return get_group_gain(&(InPorts[CurInPort].inputGainGID));
 }
 
 int
@@ -869,7 +1280,7 @@ void
 alsa_audio_set_ogain(audio_desc_t ad, int vol)
 {
     UNUSED(ad);
-    set_group_gain(&(alsa_gids[CurOutPort]), vol);
+    set_group_gain(&(OutPorts[CurOutPort].outputGainGID), vol);
     return;
 }
 
@@ -880,7 +1291,7 @@ int
 alsa_audio_get_ogain(audio_desc_t ad)
 {
     UNUSED(ad);
-    return get_group_gain(&(alsa_gids[CurOutPort]));
+    return get_group_gain(&(OutPorts[CurOutPort].outputGainGID));
 }
 
 /*
@@ -889,48 +1300,8 @@ alsa_audio_get_ogain(audio_desc_t ad)
 int
 alsa_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
-    int read_bytes;
-    static int nerrs = 30;
-
-#if 0
-//    int nbufs = buf_bytes / CurBufSize;
-    int nbufs = 1;
-
-    if (nbufs * CurBufSize > buf_bytes)
-    {
-	debug_msg("Not enoughs pace in read, nbufs=%d cur=%d bytes=%d\n",
-		  nbufs, CurBufSize, buf_bytes);
-	abort();
-    }
-#endif
-    
     UNUSED(ad);
-
-    /*    checkStatus(CAP); */
-    if ((read_bytes = snd_pcm_read(CurHandle, buf, buf_bytes)) < 0)
-    {
-	if (nerrs-- > 0)
-	{
-	    checkStatus(CAP);
-
-	    debug_msg("read(%x %d) failed: %s\n",buf, buf_bytes, snd_strerror(read_bytes));
-	}
-	read_bytes = 0;
-    }
-    else
-    {
-#if 0
-	static FILE *fp = 0;
-	if (fp == 0)
-	{
-	    fp = fopen("/tmp/out", "w");
-	}
-	fprintf(fp, "%d %d\n", read_bytes, buf_bytes);
-#endif
-/*      	debug_msg("read %d of %d\n", read_bytes, buf_bytes);*/
-    }
-
-    return read_bytes;
+    return InputBuffer.readAudioFunc(buf, buf_bytes);
 }
 
 /*
@@ -1033,53 +1404,18 @@ alsa_audio_block(audio_desc_t ad)
 }
 
 /*
- * Set output port.
- */
-void
-alsa_audio_oport_set(audio_desc_t ad, audio_port_t port)
-{
-    debug_msg("oport_set %d %d %s\n", ad, port, alsa_ports[port]);
-    CurOutPort = port;
-    return;
-}
-
-/*
- * Get output port.
- */
-
-audio_port_t
-alsa_audio_oport_get(audio_desc_t ad)
-{
-    debug_msg("oport_get %d\n", ad);
-    return CurOutPort;
-}
-
-int
-alsa_audio_oport_count(audio_desc_t ad)
-{
-	int n = ALSA_NUM_OUTPORTS;
-	debug_msg("get oport count %d returning %d\n", ad, n);
-	return n;
-}
-
-const audio_port_details_t*
-alsa_audio_oport_details(audio_desc_t ad, int idx)
-{
-	debug_msg("oport details ad=%d idx=%d\n", ad, idx);
-        return &out_ports[idx];
-}
-/*
  * Set mute on this input port.
  */
-static void enable_mute(int port, int enabled)
+static void enable_mute(snd_mixer_gid_t *gid, int enabled)
 {
     int rc;
     snd_mixer_group_t group;
 
     updateMixer();
-    
-    memset(&group, 0, sizeof(group));
-    group.gid = alsa_gids[port];
+
+    debug_msg("mute %s: %s\n", enabled ? "enable" : "disable", gid->name);
+
+    group.gid = *gid;
 
     if ((rc = snd_mixer_group_read(CurMixer, &group)) != 0)
     {
@@ -1102,10 +1438,10 @@ static void enable_mute(int port, int enabled)
     else
 	group.mute = 0;
 
-    /**/
+    /*
     debug_msg("set group.mute to %d for port %d %s\n",
     group.mute, port, alsa_ports[port]);
-    /**/
+    */
 
     if ((rc = snd_mixer_group_write(CurMixer, &group)) != 0)
     {
@@ -1120,15 +1456,17 @@ static void enable_mute(int port, int enabled)
 /*
  * Set capture on this input port.
  */
-static void enable_capture(int port, int enabled)
+static void enable_capture(snd_mixer_gid_t *gid, int enabled)
 {
     int rc;
     snd_mixer_group_t group;
 
     updateMixer();
+
+    debug_msg("capture %s: %s\n", enabled ? "enable" : "disable", gid->name);
     
     memset(&group, 0, sizeof(group));
-    group.gid = alsa_gids[port];
+    group.gid = *gid;
 
     if ((rc = snd_mixer_group_read(CurMixer, &group)) != 0)
     {
@@ -1167,6 +1505,59 @@ static void enable_capture(int port, int enabled)
 
 
 /*
+ * Set output port.
+ */
+void
+alsa_audio_oport_set(audio_desc_t ad, audio_port_t port)
+{
+    int i;
+    struct MixerOutPortInfo *out;
+    UNUSED(ad);
+
+//    debug_msg("oport_set %d %d %s\n", ad, port, alsa_ports[port]);
+
+    CurOutPort = port;
+
+    out = &(OutPorts[CurOutPort]);
+
+    /*
+     * Mute outputs for the other ports
+     */
+    for (i = 0; i < out->disableGIDCount; i++)
+    {
+	enable_mute(&(out->disableGID[i]), 1);
+    }
+    enable_mute(&out->enableGID, 0);
+    return;
+}
+
+/*
+ * Get output port.
+ */
+
+audio_port_t
+alsa_audio_oport_get(audio_desc_t ad)
+{
+    debug_msg("oport_get %d\n", ad);
+    return CurOutPort;
+}
+
+int
+alsa_audio_oport_count(audio_desc_t ad)
+{
+	int n = ALSA_NUM_OUTPORTS;
+	debug_msg("get oport count %d returning %d\n", ad, n);
+	return n;
+}
+
+const audio_port_details_t*
+alsa_audio_oport_details(audio_desc_t ad, int idx)
+{
+	debug_msg("oport details ad=%d idx=%d\n", ad, idx);
+        return &out_ports[idx];
+}
+
+/*
  * set the loopback gain on the currently selected port to match CurLoopbackGain
  * This might properly turn off loopback on the other devices.
  */
@@ -1175,7 +1566,7 @@ static void setLoopbackGain()
     int mute;
 
     mute = (CurLoopbackGain == 0);
-    enable_mute(CurInPort, mute);
+    enable_mute(&(InPorts[CurInPort].loopbackGID), mute);
 }
 
 /*
@@ -1184,17 +1575,24 @@ static void setLoopbackGain()
 void
 alsa_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
-    unsigned int i;
+    int i;
+    struct MixerInPortInfo *in;
 
     UNUSED(ad);
-/*    debug_msg("iport_set %d %d %s\n", ad, port, alsa_ports[port]);*/
+    debug_msg("iport_set %d %d %s\n", ad, port, in_ports[port].name);
 
-    for (i = 0; i < ALSA_NUM_INPORTS; i++)
-    {
-      enable_capture(in_ports[i].port, 0);
-    }
     CurInPort = port;
-    enable_capture(CurInPort, 1);
+    in = &(InPorts[CurInPort]);
+
+    /*
+     * Turn off capture & mute input for the other ports
+     */
+    for (i = 0; i < in->noncaptureGIDCount; i++)
+    {
+	enable_capture(&(in->noncaptureGID[i]), 0);
+	enable_mute(&(in->noncaptureGID[i]), 1);
+    }
+    enable_capture(&in->captureGID, 1);
 
     /*
      * Also set the loopback status for this. It's a global state in
@@ -1212,7 +1610,7 @@ audio_port_t
 alsa_audio_iport_get(audio_desc_t ad)
 {
     UNUSED(ad);
-/*    debug_msg("iport_get %d\n", ad);*/
+    debug_msg("iport_get %d returns %d\n", ad, CurInPort);
     return CurInPort;
 }
 
@@ -1229,7 +1627,7 @@ const audio_port_details_t*
 alsa_audio_iport_details(audio_desc_t ad, int idx)
 {
     UNUSED(ad);
-/*	debug_msg("iport details ad=%d idx=%d\n", ad, idx);*/
+	debug_msg("iport details ad=%d idx=%d\n", ad, idx);
         return &in_ports[idx];
 }
 
@@ -1254,79 +1652,17 @@ alsa_audio_loopback(audio_desc_t ad, int gain)
 int
 alsa_audio_is_ready(audio_desc_t ad)
 {
-    fd_set wfds, rfds;
-    int n;
-    int cap_fd, play_fd;
-    struct timeval tv;
-
     UNUSED(ad);
-    
-    cap_fd = snd_pcm_file_descriptor(CurHandle, SND_PCM_CHANNEL_CAPTURE);
-    play_fd = snd_pcm_file_descriptor(CurHandle, SND_PCM_CHANNEL_PLAYBACK);
-
-    FD_ZERO(&rfds);
-    FD_ZERO(&wfds);
-
-/*    FD_SET(play_fd, &wfds); */
-    FD_SET(cap_fd, &rfds);
-
-    tv.tv_sec = 0;
-    tv.tv_usec = 10;
-    
-    n = select(20,
-	       &rfds, &wfds, 0, &tv);
-    if (n > 0)
-    {
-	/*	debug_msg("Audio ready\n");*/
-    }
-    else if (n < 0)
-    {
-	debug_msg("select error: %s\n", strerror(errno));
-    }
-    else
-    {
-//	 debug_msg("no audio ready on %d\n", cap_fd); 
-    }
-
-    /* checkStatus(CAP); */
-/*    return 1;*/
-    return n > 0;
+    return InputBuffer.audioReadyFunc();
 }
 
-static void 
-alsa_audio_select(audio_desc_t ad, int delay_ms)
-{
-    fd_set rfds;
-    int n;
-    int cap_fd;
-    struct timeval tv;
-
-    UNUSED(ad);
-    
-    cap_fd = snd_pcm_file_descriptor(CurHandle, SND_PCM_CHANNEL_CAPTURE);
-/*    play_fd = snd_pcm_file_descriptor(CurHandle, SND_PCM_CHANNEL_PLAYBACK);*/
-
-    FD_ZERO(&rfds);
-/*    FD_ZERO(&wfds);*/
-
-/*    FD_SET(play_fd, &wfds); */
-    FD_SET(cap_fd, &rfds); 
-
-    tv.tv_sec = delay_ms / 1000;
-    tv.tv_usec = 1000 * (delay_ms % 1000);
-    
-/*    n = select((cap_fd > play_fd ? cap_fd : play_fd) + 1,
-      &rfds, &wfds, 0, &tv); */
-    n = select(cap_fd + 1, 
-	       &rfds, 0, 0, &tv);
-}
 
 void
 alsa_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
-    if (alsa_audio_is_ready(ad) == FALSE) {
-	alsa_audio_select(ad, delay_ms);
-    }
+    UNUSED(ad);
+
+    InputBuffer.audioWaitForFunc(delay_ms);
 }
 
 const char *
@@ -1434,5 +1770,13 @@ alsa_audio_supports(audio_desc_t ad, audio_format *fmt)
                 return TRUE;
         }
         return FALSE;
+}
+
+
+void ImNotUsedHereJustFaking(void);
+
+void ImNotUsedHereJustFaking(void)
+{
+    dump_mixer_group(0);
 }
 
