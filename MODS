@@ -1194,6 +1194,12 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  attempt to remove zillions of samples.
 	- Fix mixer rounding error in timestamps vs samples.  Would 
 	  periodically fail mix_verify by 1 otherwise.
+	- Add installer for the Unix ports. This displays the copyright notice, 
+	  and gets confirmation from the user that they accept the conditions,
+	  before extracting the .tar.gz file. Use "make installer" to build and
+	  then distribute the rat-4.1.8-installer binary only.
+
+
 
 TODO -- They're features not bugs dammit!
 ----

@@ -66,7 +66,7 @@ UI_OBJS      = tcltk.o mbus_ui.o main_ui.o
 
 CTRL_OBJS    = main_control.o mbus_control.o codec_compat.o
 
-TCL_OBJS     = ui_audiotool.o ui_transcoder.o
+TCL_OBJS     = ui_audiotool.o ui_transcoder.o 
 
 TCL_SRCS     = $(TCL_OBJS:%.o=%.c)
 
@@ -75,7 +75,9 @@ ALL_OBJS     = $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) \
 
 ALL_SRCS     = $(ALL_OBJS:%.o=%.c)
 
-all: version.h sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec $(RATVER) $(RATVER)-ui $(RATVER)-media
+INSTALL_OBJS = ui_installer.o installer.o binaries.o
+
+all: version.h sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec $(RATVER) $(RATVER)-ui $(RATVER)-media 
 
 libuclaudio.a: $(AUDIO_OBJS)
 	$(AR) r $@ $(AUDIO_OBJS)
@@ -109,6 +111,9 @@ ui_transcoder.c: ui_transcoder.tcl tcl2c/tcl2c
 ui_audiotool.c: ui_audiotool.tcl tcl2c/tcl2c
 	cat asfilebox.tcl ui_audiotool.tcl | tcl2c/tcl2c ui_audiotool > ui_audiotool.c
 
+ui_installer.c: ui_installer.tcl tcl2c/tcl2c
+	cat ui_installer.tcl | tcl2c/tcl2c ui_installer > ui_installer.c
+
 tcl2c/tcl2c: tcl2c/tcl2c.c
 	$(CC) -o tcl2c/tcl2c tcl2c/tcl2c.c
 
@@ -131,8 +136,9 @@ rat-$(VERSION).spec: rat.spec
 clean:
 	-rm -f $(CTRL_OBJS) $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(UI_OBJS) $(TCL_OBJS) main_engine.o 
 	-rm -f $(MEDIALIBS)
-	-rm -f tcl_libs.c ui_audiotool.c ui_transcoder.c version.h
+	-rm -f tcl_libs.c ui_audiotool.c ui_transcoder.c ui_installer.c version.h
 	-rm -f tcl2c/tcl2c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec
+	-rm -f bin2c bin2c.o binaries.c $(INSTALL_OBJS)
 	-rm -f $(RATVER)-media $(RATVER)-ui $(RATVER)
 
 distclean: clean
@@ -146,6 +152,15 @@ install: all
 	./install-sh -m 444 -c man/man1/rat.1  $(mandir)/man1/rat.1
 	./install-sh -m 444 -c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(prefix)/etc/sdr/plugins
 
+installer: $(INSTALL_OBJS)
+	$(CC) $(CFLAGS) $(INSTALL_OBJS) $(X_LIB)  $(TCL_LIB) $(TK_LIB) $(LIBS) -o $(RATVER)-installer
+
+binaries.c: $(RATVER)-$(OSTYPE).tar.gz bin2c
+	./bin2c $(RATVER)-$(OSTYPE).tar.gz > binaries.c
+
+bin2c: bin2c.o
+	$(CC) bin2c.o -o bin2c
+
 etags:
 	etags ../common/*.[ch] *.[ch]
 
@@ -155,9 +170,12 @@ ctags:
 release:
 	cvs tag release-`cat VERSION | sed "s/\./-/g"`
 
-tgz: $(RATVER) $(RATVER)-ui $(RATVER)-media
+$(RATVER)-$(OSTYPE).tar.gz: $(RATVER) $(RATVER)-ui $(RATVER)-media
 	tar cf $(RATVER)-$(OSTYPE).tar README.* MODS COPYRIGHT INSTALL.TXT VERSION $(RATVER) $(RATVER)-ui $(RATVER)-media sdr2.plugin.S02.audio.rtp.-.rat-$(VERSION)
+	rm -f $(RATVER)-$(OSTYPE).tar.gz
 	gzip -9 $(RATVER)-$(OSTYPE).tar
+
+tgz: $(RATVER)-$(OSTYPE).tar.gz
 
 rpm: tgz
 	@${ECHO} "Building $(RATVER).rpm -- this almost certainly needs to run as root on RedHat Linux"
