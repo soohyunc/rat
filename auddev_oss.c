@@ -577,11 +577,13 @@ oss_set_mode(audio_desc_t ad, int speed, int stereo)
 
         st = stereo;
         if (ioctl(audio_fd[ad], SNDCTL_DSP_STEREO, &st) == -1 || st != stereo) {
+		debug_msg("...disabled (%d channels not supported)\n", stereo);
 		return FALSE;
         }
 
         sp = speed;
         if (ioctl(audio_fd[ad], SNDCTL_DSP_SPEED, &sp) == -1) {
+		debug_msg("...disabled (%dHz sampling not supported)\n", speed);
 		return FALSE;
         }
 	if (sp != speed) {
@@ -592,6 +594,7 @@ oss_set_mode(audio_desc_t ad, int speed, int stereo)
 		return FALSE;
 	}
         
+	debug_msg("...enabled\n");
         return TRUE;
 }
 
@@ -632,6 +635,7 @@ oss_audio_query_devices(void)
 	int	 	fd;
 	mixer_info	info;
 
+	debug_msg("Query audio devices...\n");
 	ndev = 0;
 	fd = open("/dev/mixer", O_RDWR);
 	if (fd > 0) {
