@@ -371,7 +371,7 @@ static codec_format_t cs[] = {
          PAYLOAD(8), STATE_SIZE(0), FRAME_SIZE(160), /* 20 ms */
          {DEV_S16, 8000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"A-law", "PCMA-8K-Stereo",
-         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
          CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 20 ms */
          {DEV_S16, 8000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 /* 16kHz */
@@ -380,7 +380,7 @@ static codec_format_t cs[] = {
          CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 10 ms */
          {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"A-law", "PCMA-16K-Stereo",
-         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
          CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 10 ms */
          {DEV_S16, 16000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 /* 32kHz */
@@ -389,7 +389,7 @@ static codec_format_t cs[] = {
          CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 5 ms */
          {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"A-law", "PCMA-32K-Stereo",
-         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
          CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 5 ms */
          {DEV_S16, 32000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 /* 48kHz */
@@ -398,7 +398,7 @@ static codec_format_t cs[] = {
          CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 3.333... ms */
          {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"A-law", "PCMA-48K-Stereo",
-         "ITU G.711 Mu-law codec.  Sun Microsystems public implementation.",
+         "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
          CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 3.333... ms */
          {DEV_S16, 48000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 };
