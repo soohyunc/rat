@@ -72,15 +72,14 @@ static int  nLoopGain = 100;
  *
  * no thanks to the person who wrote the microsoft documentation 
  * (circular and information starved) for the mixer, or the folks 
- * who conceived the api in the first place.
- *
+ * who conceived the api in the first place. 
  */
 
-#define IsMixSrc(x) ((x)>=MIXERLINE_COMPONENTTYPE_SRC_FIRST && \
-(x)<=MIXERLINE_COMPONENTTYPE_SRC_LAST)
-
-#define IsMixDst(x) ((x)>=MIXERLINE_COMPONENTTYPE_DST_FIRST && \
-(x)<=MIXERLINE_COMPONENTTYPE_DST_LAST)
+typedef struct {
+        UINT uWavIn;
+        UINT uWavOut;
+        UINT uMixer;
+} matchingAudioComponents;
 
 #define MIX_ERR_LEN 32
 #define MIX_MAX_CTLS 8
@@ -120,6 +119,69 @@ mixGetErrorText(MMRESULT mmr)
         return "Undefined Error";
 #endif /* NDEBUG */
         return "Mixer Error.";
+}
+
+/* Number of WaveIn devices does not always equal number of waveOut devices,
+ * and number of mixers may correspond to neither.  But we need a way of tieing
+ * together an appropriate combination.  Some cards are half-duplex in hardware,
+ * some have multiple mixers per wave interface for legacy reasons.
+ */
+static int 
+GetMatchingAudioComponents(UINT uWavIn, matchingAudioComponents *pmac)
+{
+        UINT i, n, woMixer;
+        MMRESULT mmr;
+        
+        assert(pmac != NULL);
+        pmac->uWavIn = uWavIn;
+
+        mmr = mixerGetID((HMIXEROBJ)uWavIn, &pmac->uMixer, MIXER_OBJECTF_WAVEIN);
+        if (mmr != MMSYSERR_NOERROR) {
+                debug_msg("mixerGetID: %s\n", mixGetErrorText(mmr));
+                return FALSE;
+        }
+        n = waveOutGetNumDevs();
+        for(i = 0; i < n; i++) {
+                mmr = mixerGetID((HMIXEROBJ)i, &woMixer, MIXER_OBJECTF_WAVEOUT);
+                if (mmr == MMSYSERR_NOERROR &&
+                    woMixer == pmac->uMixer) {
+                        pmac->uWavOut = i;
+                        return TRUE;
+                }
+        }
+        return FALSE;
+}
+
+static UINT 
+CountMatchingComponents()
+{
+        matchingAudioComponents mac;
+        UINT i, n, m;
+        
+        n = waveInGetNumDevs();
+        m = 0;
+        for(i = 0; i < n; i++) {
+                if (GetMatchingAudioComponents(i, &mac)) {
+                        m++;
+                }
+        }
+        return m;
+}
+
+static UINT
+GetMatchingComponent(UINT idx, matchingAudioComponents *pmac)
+{
+        UINT i, m, n;
+        
+        n = waveInGetNumDevs();
+        m = 0;
+        for(i = 0; i < n; i++) {
+                if (GetMatchingAudioComponents(i, pmac)) {
+                        if (m == idx) return TRUE;
+                        m++;
+                }
+        }
+        return FALSE;
 }
 
 static const char *
@@ -198,16 +260,88 @@ mixerDumpLineInfo(HMIXEROBJ hMix, DWORD dwLineID)
 
 }
 
+/* mixerEnableInputLine - enables the lineNo'th input line.  The mute controls for
+ * input lines on the toplevel control (Rec, or whatever driver happens to call it).
+ * It usually has a single control a MUX/Mixer that has "multiple items", one mute for
+ * each input line.  Depending on the control type it may be legal to have multiple input
+ * lines enabled, or just one.  So mixerEnableInputLine disables all lines other than
+ * one selected.
+ */
+
 static int
-mixerEnableLine(HMIXEROBJ hMix, DWORD dwLineID, DWORD state)
+mixerEnableInputLine(HMIXEROBJ hMix, DWORD lineNo)
+{
+        MIXERCONTROLDETAILS_BOOLEAN *mcdbState;
+        MIXERCONTROLDETAILS mcd;
+        MIXERLINECONTROLS mlc;
+        MIXERCONTROL mc;
+        MIXERLINE ml;
+        MMRESULT  mmr;
+        UINT      i;
+
+        ml.cbStruct = sizeof(ml);
+        ml.dwDestination = MIXER_DESTINATION_INPUT;
+
+        mmr = mixerGetLineInfo(hMix, &ml, MIXER_GETLINEINFOF_DESTINATION|MIXER_OBJECTF_HMIXER);
+        if (mmr != MMSYSERR_NOERROR) {
+                debug_msg("mixerGetLineInfo: %s\n", mixGetErrorText(mmr));
+        }
+
+        /* Get Mixer/MUX control information (need control id to set and get control details) */
+        mlc.cbStruct      = sizeof(mlc);
+        mlc.dwLineID      = ml.dwLineID;
+        mlc.pamxctrl      = &mc;
+        mlc.cbmxctrl      = sizeof(mc);
+        
+        mlc.dwControlType = MIXERCONTROL_CONTROLTYPE_MUX; /* Single Select */
+        mmr = mixerGetLineControls(hMix, &mlc, MIXER_GETLINECONTROLSF_ONEBYTYPE|MIXER_OBJECTF_HMIXER);
+        if (mmr != MMSYSERR_NOERROR) {
+                mlc.dwControlType = MIXERCONTROL_CONTROLTYPE_MIXER; /* Multiple Select */
+                mmr = mixerGetLineControls(hMix, &mlc, MIXER_GETLINECONTROLSF_ONEBYTYPE|MIXER_OBJECTF_HMIXER);
+                if (mmr != MMSYSERR_NOERROR) {
+                        debug_msg("mixerGetLineControls: %s\n", mixGetErrorText(mmr));
+                        return FALSE;
+                }
+        }
+
+        /* Now get control itself */
+        mcd.cbStruct    = sizeof(mcd);
+        mcd.dwControlID = mc.dwControlID;
+        mcd.cChannels   = 1;
+        mcd.cMultipleItems = mc.cMultipleItems;
+        mcdbState = (MIXERCONTROLDETAILS_BOOLEAN*)xmalloc(sizeof(MIXERCONTROLDETAILS_BOOLEAN)*mc.cMultipleItems);        
+        mcd.paDetails = mcdbState;
+        mcd.cbDetails = sizeof(MIXERCONTROLDETAILS_BOOLEAN);
+
+        mmr = mixerGetControlDetails(hMix, &mcd, MIXER_GETCONTROLDETAILSF_VALUE|MIXER_OBJECTF_MIXER);
+        if (mmr != MMSYSERR_NOERROR) {
+                debug_msg("mixerGetControlDetails: %s\n", mixGetErrorText(mmr));
+                return FALSE;
+        }
+        
+        for(i = 0; i < mcd.cMultipleItems; i++) {
+                if (i == lineNo) {
+                        mcdbState[i].fValue = TRUE;
+                } else {
+                        mcdbState[i].fValue = FALSE;
+                }
+        }
+        mmr = mixerSetControlDetails(hMix, &mcd, MIXER_OBJECTF_MIXER);
+        if (mmr != MMSYSERR_NOERROR) {
+                debug_msg("mixerSetControlDetails: %s\n", mixGetErrorText(mmr));
+                return FALSE;
+        }
+        return TRUE;
+}
+
+static int
+mixerEnableOutputLine(HMIXEROBJ hMix, DWORD dwLineID, int state)
 {
         MIXERCONTROLDETAILS_BOOLEAN mcdbState;
         MIXERCONTROLDETAILS mcd;
         MIXERLINECONTROLS mlc;
         MIXERCONTROL      mc;
         MMRESULT          mmr;
-
-        mixerDumpLineInfo(hMix, dwLineID);
 
         mlc.cbStruct      = sizeof(mlc);
         mlc.pamxctrl      = &mc;
@@ -272,16 +406,16 @@ mixerSetLineGain(HMIXEROBJ hMix, DWORD dwLineID, int gain)
         }
 
         mcd.cbStruct       = sizeof(mcd);
-        mcd.dwControlID    = mlc.dwControlID;
+        mcd.dwControlID    = mc.dwControlID;
         mcd.cChannels      = 1;
-        mcd.cMultipleItems = 0;
+        mcd.cMultipleItems = mc.cMultipleItems;
         mcd.cbDetails      = sizeof(MIXERCONTROLDETAILS_UNSIGNED);
         mcd.paDetails      = &mcduGain;
         mcduGain.dwValue   = ((mc.Bounds.dwMaximum - mc.Bounds.dwMinimum) * gain)/MIX_MAX_GAIN;
 
         mmr = mixerSetControlDetails((HMIXEROBJ)hMix, &mcd, MIXER_OBJECTF_HMIXER);
         if (mmr != MMSYSERR_NOERROR) {
-                debug_msg("Could not set gain for line 0x%08x\n", dwLineID);
+                debug_msg("Could not set gain for line 0x%08x: %s\n", dwLineID, mixGetErrorText(mmr));
                 return FALSE;
         }
         return TRUE;
@@ -310,9 +444,9 @@ mixerGetLineGain(HMIXEROBJ hMix, DWORD dwLineID)
         }
 
         mcd.cbStruct       = sizeof(mcd);
-        mcd.dwControlID    = mlc.dwControlID;
+        mcd.dwControlID    = mc.dwControlID;
         mcd.cChannels      = 1;
-        mcd.cMultipleItems = 0;
+        mcd.cMultipleItems = mc.cMultipleItems;
         mcd.cbDetails      = sizeof(MIXERCONTROLDETAILS_UNSIGNED);
         mcd.paDetails      = &mcduGain;
 
@@ -348,6 +482,8 @@ mixQueryControls(HMIXEROBJ hMix, DWORD dwDst, audio_port_details_t** ppapd)
                 return 0;
         }
 
+        mixerDumpLineInfo((HMIXEROBJ)hMix, mlt.dwLineID);
+
         for(i = 0; i < mlt.cConnections; i++) {
                 memcpy(&mlc, &mlt, sizeof(mlc));
                 mlc.dwSource = i;
@@ -365,14 +501,14 @@ mixQueryControls(HMIXEROBJ hMix, DWORD dwDst, audio_port_details_t** ppapd)
 }
 
 static int 
-mixSetup(UINT uWavDevIdx)
+mixSetup(UINT uMixer)
 {
 	MIXERCAPS mc;
         MMRESULT  res;
 
 	if (hMixer)  {mixerClose(hMixer);  hMixer  = 0;}
 	
-        res = mixerOpen(&hMixer, uWavDevIdx, (unsigned long)NULL, (unsigned long)NULL, MIXER_OBJECTF_WAVEIN);
+        res = mixerOpen(&hMixer, uMixer, (unsigned long)NULL, (unsigned long)NULL, MIXER_OBJECTF_MIXER);
         if (res != MMSYSERR_NOERROR) {
                 debug_msg("mixerOpen failed: %s\n", mixGetErrorText(res));
                 return FALSE;
@@ -724,7 +860,8 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
 {
 	static int virgin;
 	WAVEFORMATEX owfx, wfx;
-	
+        matchingAudioComponents mac;
+        
 	if (audio_dev_open) {
 		debug_msg("Device not closed! Fix immediately");
 		w32sdk_audio_close(ad);
@@ -734,7 +871,12 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
         if (fmt->encoding != DEV_S16) {
                 return FALSE; /* Only support L16 for time being */
         }
-        if (mixSetup((UINT)ad) == FALSE) {
+        
+        if (GetMatchingComponent(ad, &mac) == FALSE) {
+                debug_msg("Matching components failed\n");
+        }
+        
+        if (mixSetup(mac.uMixer) == FALSE) {
                 return FALSE; /* Could not secure mixer */
         }
 	
@@ -753,14 +895,14 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
 	blksz  = fmt->bytes_per_block;
 	nblks  = wfx.nAvgBytesPerSec / blksz;
 	
-	if (w32sdk_audio_open_in((UINT)ad, &wfx) == FALSE){
+	if (w32sdk_audio_open_in((UINT)mac.uWavIn, &wfx) == FALSE){
 		debug_msg("Open input failed\n");
 		return FALSE;
 	}
 	
 	assert(memcmp(&owfx, &wfx, sizeof(WAVEFORMATEX)) == 0);
 	
-	if (w32sdk_audio_open_out((UINT)ad, &wfx) == FALSE) {
+	if (w32sdk_audio_open_out((UINT)mac.uWavOut, &wfx) == FALSE) {
 		debug_msg("Open output failed\n");
 		w32sdk_audio_close_in();
 		return FALSE;
@@ -948,11 +1090,10 @@ w32sdk_audio_iport_set(audio_desc_t ad, audio_port_t port)
 
         for(i = 0; i < n_input_ports; i++) {
                 if (input_ports[i].port == port) {
-                        /* Disable old line and save gain */
-                        mixerEnableLine((HMIXEROBJ)hMixer, input_ports[iport].port, 0);
+                        /* save gain */
                         gain = mixerGetLineGain((HMIXEROBJ)hMixer, input_ports[iport].port);
                         /* Select new line and restore saved gain */
-                        mixerEnableLine((HMIXEROBJ)hMixer, input_ports[i].port, 1);
+                        mixerEnableInputLine((HMIXEROBJ)hMixer, i);
                         mixerSetLineGain((HMIXEROBJ)hMixer, input_ports[i].port, gain);
                         iport = i;
                         return;
@@ -1020,7 +1161,6 @@ w32sdk_audio_wait_for(audio_desc_t ad, int delay_ms)
 	} 
 }
 
-
 /* Probing support */
 
 static audio_format af_sup[W32SDK_MAX_DEVICES][10];
@@ -1039,7 +1179,7 @@ w32sdk_probe_format(UINT uId, int rate, int channels)
 	wfx.nBlockAlign     = wfx.wBitsPerSample / 8 * wfx.nChannels;
 	wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
 	
-	if (waveOutOpen(NULL, (UINT)shWaveIn, &wfx, (UINT)NULL, (UINT)NULL, WAVE_FORMAT_QUERY)) {
+	if (waveInOpen(NULL, (UINT)shWaveIn, &wfx, (UINT)NULL, (UINT)NULL, WAVE_FORMAT_QUERY)) {
 		debug_msg("%d %d supported\n", rate, channels);
 		return TRUE;
 	}
@@ -1051,15 +1191,18 @@ w32sdk_probe_format(UINT uId, int rate, int channels)
 int 
 w32sdk_probe_formats(audio_desc_t ad, UINT uInID, UINT uOutID) 
 {
+        matchingAudioComponents mac;
 	int rate, channels;
 	
 	UNUSED(uInID);
 	UNUSED(uOutID);
 	
+        GetMatchingComponent(ad, &mac);
+
 	for (rate = 8000; rate <= 48000; rate+=8000) {
 		if (rate == 24000 || rate == 40000) continue;
 		for(channels = 1; channels <= 2; channels++) {
-			if (w32sdk_probe_format((UINT)ad, rate, channels)) {
+			if (w32sdk_probe_format(mac.uWavIn, rate, channels)) {
 				af_sup[ad][n_af_sup[ad]].sample_rate = rate;
 				af_sup[ad][n_af_sup[ad]].channels    = channels;
 				n_af_sup[ad]++;
@@ -1067,7 +1210,7 @@ w32sdk_probe_formats(audio_desc_t ad, UINT uInID, UINT uOutID)
 		}
 	}
 	return (n_af_sup[ad] ? TRUE : FALSE); /* Managed to find at least 1 we support */
-										  /* We have this test since if we cannot get device now (because in use elsewhere)
+	/* We have this test since if we cannot get device now (because in use elsewhere)
 	* we will want to test it later */
 }
 
@@ -1084,55 +1227,25 @@ w32sdk_audio_supports(audio_desc_t ad, audio_format *paf)
 	return FALSE;
 }
 
-
-#define W32SDK_MAX_NAME_LEN 32
-#define W32SDK_MAX_DEVS      8
-
-static char szDevNames[W32SDK_MAX_DEVS][W32SDK_MAX_NAME_LEN];
-static int  nDevs;
-
-int
-w32sdk_audio_query_devices(void)
-{
-	WAVEINCAPS wic;
-	int nWaveInDevs, nWaveOutDevs;
-	int i;
-	
-	nWaveInDevs  = waveInGetNumDevs();
-	nWaveOutDevs = waveOutGetNumDevs();
-	
-	if (nWaveInDevs != nWaveOutDevs) {
-		debug_msg("Number of input devices (%d) does not correspond to number of output devices (%d)\n",
-			nWaveInDevs, nWaveOutDevs);
-			/* This is fatal for all code as we assume a 1-to-1 correspondence 
-			* between wave input devices, wave output devices, and mixers.
-			* We don't abort just in case things work.  Look out for some really
-			* strange bug reports.
-		        */
-	}
-	
-	nDevs = min(nWaveInDevs, nWaveInDevs);
-	nDevs = min(nDevs, W32SDK_MAX_DEVS);
-	
-	for(i = 0; i < nDevs; i++) {
-		waveInGetDevCaps((UINT)i, &wic, sizeof(WAVEINCAPS));
-		strncpy(szDevNames[i], wic.szPname, W32SDK_MAX_NAME_LEN);
-	}
-	return TRUE;
-}
-
 int
 w32sdk_get_device_count()
 {
-	return nDevs;
+	return CountMatchingComponents();
 }
+
+static char tmpname[MAXPNAMELEN];
 
 char *
 w32sdk_get_device_name(int idx)
 {
-	if (idx >= 0 && idx < nDevs) {
-		return szDevNames[idx];
-	}
+        matchingAudioComponents mac;
+        MIXERCAPS mc;
+
+        if (GetMatchingComponent(idx, &mac)) {
+	        mixerGetDevCaps(mac.uMixer, &mc, sizeof(mc));
+                strcpy(tmpname, mc.szPname);
+                return tmpname;
+        }
 	return NULL;
 }
 #endif /* WIN32 */
