@@ -598,18 +598,11 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                                         if (up->comp_count) {
                                                 debug_msg("Not decoded ?\n");
                                         } else {
-                                                rx_queue_element_struct *srch;
                                                 assert(up->comp_data[0].data == NULL);
                                                 assert(up->ccu_cnt == 0);
                                                 debug_msg("No data for block, buf len %ld, cushion size %ld\n", 
                                                           playout_buffer_duration(buf, buf->src), 
                                                           cs);
-                                                srch = up;
-                                                while(srch != NULL) {
-                                                        printf("%ld %d\n", srch->playoutpt, srch->comp_count);
-                                                        srch = srch->next_ptr;
-                                                }
-                                                printf("\n");
                                         }
                                 }
                         }
