@@ -132,12 +132,19 @@ sock_init(u_long inaddr, int port, int t_flag)
 
 	if ((tmp_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror("socket");
-		exit(-1);
+		exit(1);
 	}
 
 	if (setsockopt(tmp_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) < 0) {
 		perror("setsockopt SO_REUSEADDR");
+		exit(1);
 	}
+#ifdef SO_REUSEPORT
+	if (setsockopt(tmp_fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) < 0) {
+		perror("setsockopt SO_REUSEPORT");
+		return -1;
+	}
+#endif
 
 	sinme.sin_family = AF_INET;
 	sinme.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -151,11 +158,12 @@ sock_init(u_long inaddr, int port, int t_flag)
 		char            loop = 1;
 		struct ip_mreq  imr;
 
-		memcpy((char *) &imr.imr_multiaddr.s_addr, (char *) &inaddr, sizeof(inaddr));
+		imr.imr_multiaddr.s_addr = inaddr;
 		imr.imr_interface.s_addr = htonl(INADDR_ANY);
 
-		if (setsockopt(tmp_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) == -1)
+		if (setsockopt(tmp_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) == -1) {
 			fprintf(stderr, "IP multicast join failed!\n");
+		}
 
 		setsockopt(tmp_fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop));
 

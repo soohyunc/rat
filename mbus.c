@@ -224,37 +224,43 @@ static int mbus_socket_init(void)
 	int                fd    = -1;
 
 	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		perror("socket");
+		perror("mbus: socket");
 		return -1;
 	}
 
 	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) < 0) {
-		perror("setsockopt SO_REUSEADDR");
+		perror("mbus: setsockopt SO_REUSEADDR");
 		return -1;
 	}
+#ifdef SO_REUSEPORT
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) < 0) {
+		perror("mbus: setsockopt SO_REUSEPORT");
+		return -1;
+	}
+#endif
 
 	sinme.sin_family      = AF_INET;
 	sinme.sin_addr.s_addr = htonl(INADDR_ANY);
 	sinme.sin_port        = htons(MBUS_PORT);
 	if (bind(fd, (struct sockaddr *) & sinme, sizeof(sinme)) < 0) {
-		perror("bind");
+		perror("mbus: bind");
 		return -1;
 	}
 
 	imr.imr_multiaddr.s_addr = htonl(MBUS_ADDR);
 	imr.imr_interface.s_addr = htonl(INADDR_ANY);
 	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) < 0) {
-		perror("setsockopt IP_ADD_MEMBERSHIP");
+		perror("mbus: setsockopt IP_ADD_MEMBERSHIP");
 		return -1;
 	}
 
 	if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop)) < 0) {
-		perror("setsockopt IP_MULTICAST_LOOP");
+		perror("mbus: setsockopt IP_MULTICAST_LOOP");
 		return -1;
 	}
 
 	if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
-		perror("setsockopt IP_MULTICAST_TTL");
+		perror("mbus: setsockopt IP_MULTICAST_TTL");
 		return -1;
 	}
 	return fd;
