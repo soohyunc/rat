@@ -489,6 +489,7 @@ redundancy_encoder_get_parameters(u_char *state, char *buf, u_int32 blen)
         }
         
         *buf = '\0';
+	flen = 0;
 
         for(i = 0, used = 0; i < r->n_layers; i++) {
                 cf = codec_get_format(r->layer[i].cid);
@@ -818,6 +819,7 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
         assert(cf != NULL);
 
         ts_mo = ts_map32(cf->format.sample_rate, RED_HDR32_GET_OFF(hdr32));
+	blen = 0;
 
         while (hdr32 & 0x80000000) {
                 boff  = RED_HDR32_GET_OFF(hdr32);
