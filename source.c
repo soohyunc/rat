@@ -703,7 +703,6 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         src->pdbe->cont_toged++;
                         src->pdbe->jit_toged++;
                 } 
-                xfree(p);
 
                 /* Update persistent database fields.                        */
                 if (e->last_seq > p->seq) {
@@ -713,6 +712,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 e->last_ts  = p->ts;
                 e->last_arr = sp->cur_ts;
                 src->packets_done++;
+                xfree(p);
         }
 }
 
