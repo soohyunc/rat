@@ -119,6 +119,7 @@ sd_destroy(sd_t *s)
 
 #define SD_RES 8
 
+/* Returns 1 if silence detected, 0 otherwise */
 int
 sd(sd_t *s, uint16_t energy)
 {
@@ -162,6 +163,8 @@ sd(sd_t *s, uint16_t energy)
         }
         s->eval_cnt ++;
 
+        debug_msg("%d %d\n", energy, s->thresh);
+
         return (energy < s->thresh);
 }
 
@@ -199,14 +202,14 @@ manual_sd_destroy(manual_sd_t *m)
         xfree(m);
 }
 
+/* Returns 1 if silence detected, 0 otherwise */
 int
 manual_sd(manual_sd_t *m, uint16_t energy, uint16_t max)
 {
-        m->sltmean += (energy - m->sltmean) / m->alpha;
-        if (max - m->sltmean < m->thresh) {
-                return 1;
-        }
-        return 0;
+        double delta;
+        m->sltmean += (energy - m->sltmean) * m->alpha;
+        delta = max - m->sltmean - m->thresh;
+        return delta < 0;
 }
 
 void
@@ -258,7 +261,6 @@ sd_name(int silence_detector)
 int
 sd_name_to_type(const char *name)
 {
-        debug_msg("Name: %s\n", name);
         switch(tolower(name[0])) {
         case 'a':
                 return SILENCE_DETECTION_AUTO;

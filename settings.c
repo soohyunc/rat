@@ -385,9 +385,9 @@ void settings_load_early(session_t *sp)
                 }
         }
 
-	silence = setting_load_str("audioSilence", "Auto");
+	silence = setting_load_str("audioSilence", "Automatic");
         sp->silence_detection = sd_name_to_type(silence);
-        sp->manual_sd_thresh  = setting_load_int("audioSilenceManualThresh", 50);
+        sp->manual_sd_thresh  = setting_load_int("audioSilenceManualThresh", 100);
 	sp->limit_playout     = setting_load_int("audioLimitPlayout", 0);
 	sp->min_playout       = setting_load_int("audioMinPlayout", 0);
 	sp->max_playout       = setting_load_int("audioMaxPlayout", 2000);

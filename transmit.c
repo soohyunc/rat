@@ -392,6 +392,7 @@ tx_process_audio(tx_buffer *tb)
                         u->silence = FALSE;
                         u->send    = TRUE;
                 }
+                debug_msg("Silence detection %d\n", tb->sp->silence_detection);
                 pb_iterator_advance(tb->silence);
                 pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
         }

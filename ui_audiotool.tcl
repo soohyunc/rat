@@ -791,19 +791,20 @@ proc mbus_recv_tool.rat.lecture.mode {mode} {
 proc mbus_recv_audio.suppress.silence {mode} {
     global silence_var
 
-    if {$mode == 0} {
-	set silence_var Off
-    } else {
-	set silence_var Automatic
-    }
+#    if {$mode == 0} {
+#	set silence_var "Off"
+#    } else {
+#	set silence_var "Automatic"
+#    }
+#    puts "audio.suppress.silence silence_var $silence_var"
 }
 
 proc mbus_recv_tool.rat.silence {mode} {
     global silence_var
     switch -regexp $mode {
-	[Oo].* { set silence_var Off }
-	[Aa].* { set silence_var Automatic }
-	[Mm].* { set silence_var Manual }
+	^[Oo].* { set silence_var Off }
+	^[Aa].* { set silence_var Automatic }
+	^[Mm].* { set silence_var Manual }
     }
 }
 
@@ -1957,12 +1958,12 @@ frame $i.dd.cks.f.f.other
 
 frame $i.dd.cks.f.f.silence.upper
 label $i.dd.cks.f.f.silence.upper.title    -text "Silence Suppression:"
-radiobutton $i.dd.cks.f.f.silence.upper.r0 -text "Off"       -value "Off" -variable silence_var 
-radiobutton $i.dd.cks.f.f.silence.upper.r1 -text "Automatic" -value "Automatic" -variable silence_var
-radiobutton $i.dd.cks.f.f.silence.upper.r2 -text "Manual"    -value "Manual" -variable silence_var
+radiobutton $i.dd.cks.f.f.silence.upper.r0 -text "Off"       -value "Off" -variable silence_var       -command send_silence_params
+radiobutton $i.dd.cks.f.f.silence.upper.r1 -text "Automatic" -value "Automatic" -variable silence_var -command send_silence_params
+radiobutton $i.dd.cks.f.f.silence.upper.r2 -text "Manual"    -value "Manual" -variable silence_var    -command send_silence_params
 
 frame $i.dd.cks.f.f.silence.lower 
-scale $i.dd.cks.f.f.silence.lower.s -from 1 -to 500 -orient h -showvalue 0 -variable manual_silence_thresh
+scale $i.dd.cks.f.f.silence.lower.s -from 1 -to 500 -orient h -showvalue 0 -variable manual_silence_thresh -command send_silence_params
 label $i.dd.cks.f.f.silence.lower.ind -textvar manual_silence_thresh -width 5
 label $i.dd.cks.f.f.silence.lower.title -text "Manual Silence Threshold:"
 pack $i.dd.cks.f.f.silence.lower.title  -side top
@@ -2342,7 +2343,7 @@ proc sync_engine_to_ui {} {
     # make audio engine concur with ui
     global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note
     global prenc upp channel_var secenc layerenc red_off int_gap int_units
-    global silence_var agc_var audio_loop_var echo_var manual_silence_thresh
+    global agc_var audio_loop_var echo_var
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
     global meter_var gain volume iport oport 
     global in_mute_var out_mute_var ichannels freq key key_var
@@ -2374,8 +2375,6 @@ proc sync_engine_to_ui {} {
     	*           {error "unknown channel coding scheme $channel_var"}
     }
 
-    mbus_send "R" "tool.rat.silence"           [mbus_encode_str $silence_var]
-    mbus_send "R" "tool.rat.silence.threshold" $manual_silence_thresh
     mbus_send "R" "tool.rat.agc"               $agc_var
     mbus_send "R" "tool.rat.loopback.gain"     $audio_loop_var
     mbus_send "R" "tool.rat.echo.suppress"     $echo_var
@@ -2411,6 +2410,17 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "audio.output.port"   [mbus_encode_str $oport]
     mbus_send "R" "audio.input.mute"    $in_mute_var
     mbus_send "R" "audio.output.mute"   $out_mute_var
+
+    send_silence_params
+}
+
+proc send_silence_params {args} {
+# These get special treatment and are sent as soon as they are changed
+# because if user is setting a threshold they need to tell how it works
+# immediately
+    global silence_var manual_silence_thresh
+    mbus_send "R" "tool.rat.silence"           [mbus_encode_str $silence_var]
+    mbus_send "R" "tool.rat.silence.threshold" $manual_silence_thresh
 }
 
 #

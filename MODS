@@ -1181,6 +1181,7 @@ v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	  time if desired rather than blocks of at least the duration of the 
 	  hold buffer.
 	- Add manual silence detection algorithm.
+	- Add UI and settings for silence detection algorithm alternatives.
 
 TODO -- They're features not bugs dammit!
 ----

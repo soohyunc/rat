@@ -101,7 +101,9 @@ static void rx_tool_rat_silence(char *srce, char *args, session_t *sp)
 
 	mp = mbus_parse_init(args);
 	if (mbus_parse_str(mp, &detector)) {
+                mbus_decode_str(detector);
 		sp->silence_detection = sd_name_to_type(detector);
+                debug_msg("detector:%s index %d (%s)\n", detector, sp->silence_detection, srce);
 	} else {
 		debug_msg("mbus: usage \"tool.rat.silence <Auto|Manual|Off>\"\n");
 	}
@@ -119,6 +121,7 @@ static void rx_tool_rat_silence_thresh(char *srce, char *args, session_t *sp)
 	if (mbus_parse_int(mp, &i)) {
 		sp->manual_sd_thresh = i;
                 manual_sd_set_thresh(sp->manual_sd, i);
+                debug_msg("Setting threshold: %d\n", i);
 	} else {
 		debug_msg("mbus: usage \"tool.rat.silence.threshold <int>\"\n");
 	}
@@ -859,15 +862,7 @@ static void rx_rtp_query(char *srce, char *args, session_t *sp)
                                 ui_send_rtp_inactive(sp, srce, ssrc);
                         }
                 } else {
-                        if (tx_is_sending(sp->tb)) {
-                                ui_send_rtp_active(sp, 
-                                                   sp->mbus_ui_addr, 
-                                                   rtp_my_ssrc(sp->rtp_session[0]));
-                        } else {
-                                ui_send_rtp_inactive(sp, 
-                                                     sp->mbus_ui_addr, 
-                                                     rtp_my_ssrc(sp->rtp_session[0]));
-                        }
+                        tx_update_ui(sp->tb);
                 }
 	} while (pdb_get_next_id(sp->pdb, ssrc, &ssrc));
 	ui_send_rtp_addr(sp, srce);

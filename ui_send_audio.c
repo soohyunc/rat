@@ -255,6 +255,7 @@ ui_send_audio_device(session_t *sp, char *addr)
 void
 ui_send_audio_suppress_silence(session_t *sp, char *addr)
 {
+        const char *name;
         char thresh[6];
 	if (sp->ui_on == FALSE) {
                 return;
@@ -268,7 +269,8 @@ ui_send_audio_suppress_silence(session_t *sp, char *addr)
         }
         
         /* This is for the ui */
-        mbus_qmsg(sp->mbus_engine, addr, "tool.rat.silence", mbus_encode_str(sd_name(sp->silence_detection)), TRUE);
+        name = sd_name(sp->silence_detection);
+        mbus_qmsg(sp->mbus_engine, addr, "tool.rat.silence", mbus_encode_str(name), TRUE);
         sprintf(thresh, "%d", sp->manual_sd_thresh);
         mbus_qmsg(sp->mbus_engine, addr, "tool.rat.silence.threshold", thresh, TRUE);
 }
