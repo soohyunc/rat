@@ -108,10 +108,13 @@ int gettimeofday(struct timeval *p, struct timezone *z)
 {
     TIME_ZONE_INFORMATION tz;
     GetTimeZoneInformation(&tz);
+	if (p) {
+		extern void TclpGetTime(Tcl_Time*);
+		Tcl_Time t;
 
-    if (p) {
-        p->tv_sec = time(NULL);
-	p->tv_usec = 0;
+		TclpGetTime(&t);
+		p->tv_sec = t.sec;
+		p->tv_usec = t.usec;
     }
     if (z) {
 	z->tz_minuteswest = tz.Bias ;
