@@ -210,18 +210,18 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
                                 el->native_data[el->native_count]=(sample*)block_alloc(el->native_size[el->native_count]);
                         }
                         el->native_count++;
+
                         xmemchk();
-#ifdef NDEF
-                        finger_exercise(el);
-#endif
                         externalise(el);
                         xmemchk();
+
 #ifdef NDEF
                         if (ms->channels == 2) {
                                 render_3D(el);
                                 xmemchk
                         }
 #endif
+
                 }
                 block_check((char*)el->native_data[el->native_count - 1]);
                 block_check((char*)el->native_data[el->native_count - 2]);

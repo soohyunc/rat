@@ -1,5 +1,7 @@
 #include <math.h>
 
+#define RESPONSE_LENGTH 6
+
 void finger_exercise(short *signal, short *answer, int signal_length);
 struct s_render_3D_dbentry;
 struct s_render_3D_dbentry *render_3D_init(void);

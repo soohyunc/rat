@@ -62,8 +62,8 @@ typedef struct s_render_3D_dbentry {
         short    azimuth;        /* lateral angle */
         short    i_time_d;       /* interaural time difference (ITD); derived from 'azimuth' */
         float    i_intensity_d;  /* interaural intensity difference (IID); derived from 'azimuth' */
-        double   filter[6];     /* filter used for convolution */
-        double   overlap[6];    /* overlap buffer due to filter operation on the mono signal */
+        double   filter[RESPONSE_LENGTH];     /* filter used for convolution */
+        double   overlap[RESPONSE_LENGTH];    /* overlap buffer due to filter operation on the mono signal */
         sample   delay[32];      /* delay buffer due to ITD in the contra-lateral channel */
 } render_3D_dbentry;
 
@@ -74,7 +74,7 @@ render_3D_init()
         int               i;
         render_3D_dbentry *render_3D_data;
 
-        render_3D_data = xmalloc(sizeof(render_3D_dbentry));
+        render_3D_data = (render_3D_dbentry *) xmalloc(sizeof(render_3D_dbentry));
 
         render_3D_data->azimuth = 0;
         render_3D_data->i_time_d = 0;
@@ -83,11 +83,12 @@ render_3D_init()
         memset(render_3D_data->overlap, 0, sizeof render_3D_data->overlap);
         memset(render_3D_data->delay, 0, sizeof render_3D_data->delay);
 
-        for (i=0; i<6; i++) {
+        for (i=0; i<RESPONSE_LENGTH; i++) {
                 render_3D_data->filter[i] = 0.4;
         }
+	render_3D_data->filter[RESPONSE_LENGTH] = 1.0;
 
-        for (i=0; i<6; i++) {
+        for (i=0; i<RESPONSE_LENGTH; i++) {
                 fprintf(stdout, "\t%f\n", render_3D_data->filter[i]);
         }
 
@@ -103,7 +104,7 @@ render_3D_free(render_3D_dbentry **data)
 }
 
 void
-finger_exercise(short *signal, short *answer, int signal_length)
+finger_exercise(sample *signal, sample *answer, int signal_length)
 {
         int     i;
 
@@ -117,7 +118,7 @@ finger_exercise(short *signal, short *answer, int signal_length)
 void
 externalise(rx_queue_element_struct *el)
 {
-        int     samples;
+        int     n_samples;
         sample  *raw_buf, *proc_buf;
         struct s_render_3D_dbentry  *part_3D_data;
 
@@ -127,11 +128,14 @@ externalise(rx_queue_element_struct *el)
 
         assert(el->native_size[el->native_count - 1] == el->native_size[el->native_count - 2]);
 
-        samples = (int)el->native_size[el->native_count-1] / BYTES_PER_SAMPLE;
+        n_samples = (int)el->native_size[el->native_count-1] / BYTES_PER_SAMPLE;
+	memset(proc_buf, 0, n_samples * sizeof(sample));
 
-        finger_exercise(raw_buf, proc_buf, samples);
+#ifdef NDEF
+        finger_exercise(raw_buf, proc_buf, n_samples);
+#endif
 
-        convolve(raw_buf, proc_buf, part_3D_data->overlap, part_3D_data->filter, 64, samples);
+        convolve(raw_buf, proc_buf, part_3D_data->overlap, part_3D_data->filter, RESPONSE_LENGTH, n_samples);
 }
 
 /*=============================================================================================
@@ -145,7 +149,7 @@ externalise(rx_queue_element_struct *el)
               signal_length    number of values in 'signal'
 =============================================================================================*/
 void
-convolve(short *signal, short *answer, double *overlap, double *response, int response_length, int signal_length)
+convolve(sample *signal, sample *answer, double *overlap, double *response, int response_length, int signal_length)
 {
         short   *signal_rptr, *answer_rptr;       /* running pointers within signal and answer vector */
         int     i, j;                             /* loop counters */
@@ -170,45 +174,44 @@ convolve(short *signal, short *answer, double *overlap, double *response, int re
                 /* Clamping */
                 if (current > 32767.0) current = 32767.0;
                 if (current < -32768.0) current = -32768.0;
+#ifdef NDEF
                 current *= *response_rptr;
+#endif
                 /* cast back into int and store 'current' in answer vector. */
                 *answer_rptr++ = ceil(current-0.5);
         }
 }
 
 #ifdef NDEF
+/* expects a mono buffer (raw_buf) and processes into stereo buffer (proc_buf).
+   n_samples is number of samples in mono_buffer.
+   ipsi_buf:  buffer for channel closer to the sound source.
+   contra_buf: buffer for channel further away from the sound source.
+   tmp_buf: temporary buffer for storing samples before they go into excess_buf.
+   excess_buf: storage of samples that couldn't be played out due to the delay in the
+               contra-lateral channel. Go first next time 'round. */
 void
-render_3D(rx_queue_element_struct *el)
+lateralise(sample *raw_buf, sample *proc_buf, int n_samples)
 {
-        out_buf = el->native_data[el->native_count - 1];
+        size_t   n_bytes;    /* number of bytes in unspliced (mono!) buffer */
 
-        if (lat) {
-                if ((!flt) && (!wbs)) memcpy(out_buf, in_buf, n_bytes);
-                /* splice into two channels: ipsilateral and contralateral. */
-                memcpy(ss->ipsi_buf, out_buf, n_bytes);
-                memcpy(ss->contra_buf, out_buf, n_bytes);
-                /* apply IID to contralateral buffer. */
-                for (i=0; i<SAMPLES_PER_WBS_UNIT; i++) ss->contra_buf[i] *= ss->attenuation;
-                /* apply ITD to contralateral buffer: delay mechanisam. */
-                memcpy(ss->tmp_buf, ss->contra_buf+(SAMPLES_PER_WBS_UNIT-1)-ss->delay, ss->delay*sizeof(sample));
-                memmove(ss->contra_buf+ss->delay, ss->contra_buf, (SAMPLES_PER_WBS_UNIT-ss->delay)*sizeof(sample));
-                memcpy(ss->contra_buf, ss->excess_buf, ss->delay*sizeof(sample));
-                memcpy(ss->excess_buf, ss->tmp_buf, ss->delay*sizeof(sample));
-                /* Funnel ipsi- and contralateral buffers into out_buf. */
-                for (i=0; i<SAMPLES_PER_WBS_UNIT; i++) {
-                        out_buf[2*i]   = ss->ipsi_buf[i];
-                        out_buf[2*i+1] = ss->contra_buf[i];
-                }
-        }
+        /* 'n_samples' is number of samples in _stereo_ buffer */
+        n_bytes = sizeof(sample) * n_samples / 2;
 
-        if (!lat) {
-                if ((!flt) && (!wbs)) memcpy(out_buf, in_buf, n_bytes);
-                memcpy(ss->ipsi_buf, out_buf, n_bytes);
-                memcpy(ss->contra_buf, out_buf, n_bytes);
-                for (i=0; i<SAMPLES_PER_WBS_UNIT; i++) {
-                        out_buf[2*i]   = ss->ipsi_buf[i];
-                        out_buf[2*i+1] = ss->contra_buf[i];
-                }
+        /* splice into two channels: ipsilateral and contralateral. */
+        memcpy(ss->ipsi_buf, out_buf, n_bytes);
+        memcpy(ss->contra_buf, out_buf, n_bytes);
+        /* apply IID to contralateral buffer. */
+        for (i=0; i<n_samples; i++) ss->contra_buf[i] *= ss->attenuation;
+        /* apply ITD to contralateral buffer: delay mechanisam. */
+        memcpy(ss->tmp_buf, ss->contra_buf+(n_samples-1)-ss->delay, ss->delay*sizeof(sample));
+        memmove(ss->contra_buf+ss->delay, ss->contra_buf, (n_samples-ss->delay)*sizeof(sample));
+        memcpy(ss->contra_buf, ss->excess_buf, ss->delay*sizeof(sample));
+        memcpy(ss->excess_buf, ss->tmp_buf, ss->delay*sizeof(sample));
+        /* Funnel ipsi- and contralateral buffers into out_buf. */
+        for (i=0; i<n_samples; i++) {
+                out_buf[2*i]   = ss->ipsi_buf[i];
+                out_buf[2*i+1] = ss->contra_buf[i];
         }
 }
 #endif
