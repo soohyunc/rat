@@ -39,11 +39,11 @@
  */
 
 typedef struct s_tx_unit {
-        sample  *data;             /* pointer to raw data in read_buf */
+        sample   *data;             /* pointer to raw data in read_buf */
         uint32_t  dur_used;         /* number of time intervals filled */
         uint16_t  energy;
-        u_char   silence;          /* First pass */
-        u_char   send;             /* Silence second pass */
+        u_char    silence;          /* First pass */
+        u_char    send;             /* Silence second pass */
 } tx_unit;
 
 typedef struct s_tx_buffer {

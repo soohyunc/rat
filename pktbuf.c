@@ -19,9 +19,9 @@
 
 struct s_pktbuf {
         rtp_packet **buf;    /* Pointer to rtp packets                      */
-        uint16_t      insert; /* Next insertion point (FIFO circular buffer) */
-        uint16_t      buflen; /* Max number of packets                       */
-        uint16_t      used;   /* Actual number of packets buffered           */
+        uint16_t     insert; /* Next insertion point (FIFO circular buffer) */
+        uint16_t     buflen; /* Max number of packets                       */
+        uint16_t     used;   /* Actual number of packets buffered           */
 };
 
 int
@@ -149,3 +149,4 @@ pktbuf_get_count(pktbuf_t *pb)
 {
         return pb->used;
 }
+

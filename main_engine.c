@@ -176,6 +176,7 @@ int main(int argc, char *argv[])
         }
 
 	session_validate(sp);
+	xmemchk();
 	xdoneinit();
 
 	while (!should_exit) {
@@ -316,6 +317,8 @@ int main(int argc, char *argv[])
 
 		/* Debugging sanity check of the session... */
 		session_validate(sp);
+		/* ...and check that nothing has trashed memory too badly! */
+		xmemchk();
         }
 
 	settings_save(sp);
@@ -324,6 +327,12 @@ int main(int argc, char *argv[])
 	if (sp->out_file != NULL) snd_write_close(&sp->out_file);
 	audio_device_release(sp, sp->audio_device);
         pdb_destroy(&sp->pdb);
+
+	for (j = 0; j < sp->rtp_session_count; j++) {
+		rtp_send_bye(sp->rtp_session[j]);
+		rtp_done(sp->rtp_session[j]);
+		rtp_callback_exit(sp->rtp_session[j]);
+	}
 
 	/* Inform other processes that we're about to quit... */
 	mbus_qmsgf(sp->mbus_engine, "()", FALSE, "mbus.bye", "");
@@ -338,16 +347,13 @@ int main(int argc, char *argv[])
 	} while (!mbus_sent_all(sp->mbus_engine));
 	mbus_exit(sp->mbus_engine);
 
-	for (j = 0; j < sp->rtp_session_count; j++) {
-		rtp_send_bye(sp->rtp_session[j]);
-		rtp_done(sp->rtp_session[j]);
-		rtp_callback_exit(sp->rtp_session[j]);
-	}
-
 	session_validate(sp);
 	session_exit(sp);
         converters_free();
         audio_free_interfaces();
+	xfree(c_addr);
+	xfree(token);
+	xfree(token_e);
 	xmemdmp();
 	return 0;
 }

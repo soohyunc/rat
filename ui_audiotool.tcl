@@ -774,7 +774,6 @@ proc mbus_recv_rtp.ssrc {ssrc} {
 	set my_ssrc $ssrc
 	init_source $ssrc
 	ssrc_update $ssrc
-	puts "done rtp.ssrc"
 }
 
 proc mbus_recv_rtp.source.exists {ssrc} {

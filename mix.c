@@ -31,29 +31,32 @@
 #include "parameters.h"
 #include "ui.h"
 
+#define MIX_MAGIC 0x81654620
+
 typedef struct s_mix_info {
-	int	buf_len;        /* Length of circular buffer */
-	int	head, tail;     /* Index to head and tail of buffer */
-	ts_t	head_time;      /* Time of latest sample in buffer.
-				 * In fact pad_time has to be taken into
-				 * account to get the actual value. */
-	ts_t	tail_time;	/* Current time */
-	int	dist;		/* Distance between head and tail.
-				 * We must make sure that this is kept
-				 * equal to value of the device cushion
-				 * unless there is no audio to mix. */
-	sample	*mix_buffer;	/* The buffer containing mixed audio data. */
-        int      channels;      /* number of channels being mixed. */
-        int      rate;          /* Sampling frequency */
+	int		buf_len;        /* Length of circular buffer               */
+	int		head, tail;     /* Index to head and tail of buffer        */
+	ts_t		head_time;      /* Time of latest sample in buffer.        */
+					/* In fact pad_time has to be taken into   */
+					/* account to get the actual value.        */
+	ts_t		tail_time;	/* Current time                            */
+	int		dist;		/* Distance between head and tail.         */
+					/* We must make sure that this is kept     */ 
+					/* equal to value of the device cushion    */
+					/* unless there is no audio to mix.        */
+	sample		*mix_buffer;	/* The buffer containing mixed audio data. */
+        int     	 channels;      /* number of channels being mixed.         */
+        int     	 rate;          /* Sampling frequency                      */
+	uint32_t	 magic;
 } mix_struct;
 
 typedef void (*mix_f)(sample *buf, sample *incoming, int len);
 static mix_f audio_mix_fn;
 
-#ifdef DEBUG
 static void
 mix_verify(mix_struct *ms) 
 {
+#ifdef DEBUG
         ts_t delta;
         int  dist;
 
@@ -71,10 +74,9 @@ mix_verify(mix_struct *ms)
         if (ts_eq(ms->head_time, ms->tail_time)) {
                 assert(ms->head == ms->tail);
         }
+#endif 
+	assert(ms->magic == MIX_MAGIC);
 }
-#else
-#define mix_verify(x) 
-#endif /* DEBUG */
 
 /*
  * Initialise the circular buffer that is used in mixing.
@@ -94,6 +96,7 @@ mix_create(mix_struct **ppms,
 	pms = (mix_struct *) xmalloc(sizeof(mix_struct));
         if (pms) {
                 memset(pms, 0 , sizeof(mix_struct));
+		pms->magic       = MIX_MAGIC;
                 pms->channels    = sample_channels;
                 pms->rate        = sample_rate;
                 pms->buf_len     = buffer_length * pms->channels;
@@ -302,6 +305,7 @@ mix_get_audio(mix_struct *ms, int request, sample **bufp)
         ts_t    delta;
 
         xmemchk();
+	mix_verify(ms);
         amount = request;
 	assert(amount < ms->buf_len);
 	if (amount > ms->dist) {
@@ -399,6 +403,7 @@ mix_get_new_cushion(mix_struct *ms,
 {
 	int	diff, elapsed_time;
 
+	mix_verify(ms);
 #ifdef DEBUG_MIX
 	debug_msg("Getting new cushion %d old %d\n", new_cushion_size, last_cushion_size);
 #endif
@@ -470,13 +475,16 @@ mix_update_ui(session_t *sp, mix_struct *ms)
 int
 mix_active(mix_struct *ms)
 {
+	mix_verify(ms);
         return !ts_eq(ms->head_time, ms->tail_time);
 }
 
 int
 mix_compatible(mix_struct *ms, int rate, int channels)
 {
+	mix_verify(ms);
         assert(rate > 10);
         assert(channels >=0 && channels < 3);
         return (ms->rate == rate) && (ms->channels == channels);
 }
+

@@ -21,7 +21,7 @@
 
 typedef struct s_channel_state {
         uint16_t coder;              /* Index of coder in coder table      */
-        u_char *state;              /* Pointer to state relevant to coder */
+        u_char  *state;              /* Pointer to state relevant to coder */
         uint32_t state_len;          /* The size of that state             */
         uint8_t  units_per_packet:7; /* The number of units per packet     */
         uint8_t  is_encoder:1;       /* For debugging                      */

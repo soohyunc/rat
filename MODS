@@ -1040,6 +1040,10 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Accept -crypt as a synonym for -K
 	- Add encrkey field to the session struct
 	- Fix encryption key handling at startup
+	- Fix saving of audioChannelParameters setting
+	- Fix use of mbus structure after freeing it
+	- Fix freeing of memory on shutdown
+	- Add assorted debugging code
 
 
 TODO -- They're features not bugs dammit!

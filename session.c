@@ -134,7 +134,7 @@ session_init(session_t *sp)
 	sp->mbus_engine			= NULL;
 	sp->mbus_ui_addr		= NULL;
 	sp->mbus_ui			= NULL;
-	sp->mbus_video_addr		= strdup("(media:video module:engine)");
+	sp->mbus_video_addr		= xstrdup("(media:video module:engine)");
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
         sp->last_depart_ts              = 1;
@@ -161,6 +161,9 @@ session_exit(session_t *sp)
         }
         channel_encoder_destroy(&sp->channel_coder);
         source_list_destroy(&sp->active_sources);
+	xfree(sp->mbus_engine_addr);
+	xfree(sp->mbus_video_addr);
+	xfree(sp->mbus_ui_addr);
 	xfree(sp);
 }
 

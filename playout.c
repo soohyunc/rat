@@ -25,7 +25,7 @@ typedef struct s_pb_node {
         struct s_pb_node* next;
         ts_t              playout;    /* playout  timestamp */
         u_char           *data;
-        uint32_t           data_len;
+        uint32_t          data_len;
 } pb_node_t;
 
 typedef struct s_pb_iterator {
@@ -206,7 +206,7 @@ pb_is_empty(pb_t *pb)
 uint32_t
 pb_node_count(pb_t *pb)
 {
-#ifndef NDEBUG
+#ifdef DEBUG
         pb_node_t *stop, *curr;
         uint32_t cnt = 0;
         stop = pb->psentinel;
@@ -216,7 +216,7 @@ pb_node_count(pb_t *pb)
                 curr = curr->prev;
         }
         assert(pb->n_nodes == cnt);
-#endif /* NDEBUG */
+#endif 
         return pb->n_nodes;
 }
 

@@ -689,7 +689,6 @@ void settings_save(session_t *sp)
 	} else {
                 setting_save_str("audioChannelCoding", ccd->name);
         }
-        setting_save_str("AudioChannelParameters", cc_param);
 	setting_save_str("audioRepair",            repair->name);
 	setting_save_str("audioAutoConvert",       converter->name);
 	setting_save_int("audioLimitPlayout",      sp->limit_playout);
