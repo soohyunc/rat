@@ -259,7 +259,10 @@ process_sdes(session_t *sp, uint32_t ssrc, rtcp_sdes_item *d)
 {
         pdb_entry_t *e;
 
-	assert(pdb_item_get(sp->pdb, ssrc, &e) == TRUE);
+	if (pdb_item_get(sp->pdb, ssrc, &e) == FALSE) {
+	    debug_msg("process_sdes: unknown source (0x%08x).\n", ssrc);
+	    return;
+	}
 
         if (sp->mbus_engine == NULL) {
                 /* Nowhere to send updates to, so ignore them.               */
