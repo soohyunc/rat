@@ -4,16 +4,16 @@
 # Note: On many systems (eg: HP-UX 9.x and FreeBSD) this REQUIRES GNU make
 #
 
-DEFS = -DDEBUG
+DEFS = -DNDEBUG
 # -DDEBUG_MIX -DDEBUG_PLAYOUT -DDEBUG_CUSHION
 # -DDEBUG -DDEBUG_MEM -DDEBUG_CONFBUS
 # -DNDEBUG -DTEST -DGSM -DDEBUG_REPAIR
 # -DDEBUG_RTP -DREPEAT -DLOG_PARTICIPANTS
 
-DEBUG=-g -ggdb -fbounds-checking
+DEBUG=#-g -ggdb #-fbounds-checking
 # -g -ggdb
 
-OPTS= #-O4
+OPTS= -O2
 #-O -O2 -O3 -O4 
 
 PROFILE=

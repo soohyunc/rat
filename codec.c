@@ -40,6 +40,7 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
 #include "codec.h"
 #include "gsm.h"
 #include "codec_adpcm.h"

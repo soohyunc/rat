@@ -298,7 +298,7 @@ audio_next_iport(int audio_fd)
 }
 
 void
-audio_switch_out(int audio_fd, cushion_struct *ap)
+audio_switch_out(int audio_fd, struct s_cushion_struct *ap)
 {
 	/* Full duplex device: do nothing! */
 }

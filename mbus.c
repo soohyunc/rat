@@ -38,6 +38,7 @@
 #ifndef   WIN32
 #include <strings.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
@@ -338,7 +339,9 @@ static int mbus_socket_init(unsigned short channel)
 	int                reuse =  1;
 	char               loop  =  1;
 	int                fd    = -1;
+#ifndef SunOS_4
 	int		   rbuf  = 65535;
+#endif
 
 	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror("mbus: socket");
@@ -355,10 +358,12 @@ static int mbus_socket_init(unsigned short channel)
 		return -1;
 	}
 #endif
+#ifndef SunOS_4
 	if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char *) &rbuf, sizeof(rbuf)) < 0) {
 		perror("mbus: setsockopt SO_RCVBUF");
 		return -1;
 	}
+#endif
 
 	sinme.sin_family      = AF_INET;
 	sinme.sin_addr.s_addr = htonl(INADDR_ANY);

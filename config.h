@@ -122,8 +122,10 @@ int gethostname(char *name, int namelen);
 #define OSNAME "SunOS"
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 7
+#include <ctype.h>
 #include <sun/audioio.h>
 #include <multimedia/ulaw2linear.h>
+#include <string.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -155,6 +157,10 @@ int	close(int fd);
 int	ioctl(int fd, int request, caddr_t arg);
 int 	sscanf(char *s, char *format, ...);
 time_t	time(time_t *tloc);
+int	strcasecmp(char *s1, char *s2);
+long	strtol(char *str, char **ptr, int base);
+int	toupper(int c);
+#define	memmove(dst, src, len)	bcopy((char *) src, (char *) dst, len)
 #endif
 
 #ifdef IRIX
