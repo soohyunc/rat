@@ -181,7 +181,7 @@ rx_audio_3d_user_settings_req(char *srce, char *args, session_t *sp)
         mbus_parse_done(mp);
 }
 
-static void rx_tool_rat_lecture(char *srce, char *args, session_t *sp)
+static void rx_tool_rat_lecture_mode(char *srce, char *args, session_t *sp)
 {
 	int 		  	 i;
 	struct mbus_parser	*mp;
@@ -192,7 +192,7 @@ static void rx_tool_rat_lecture(char *srce, char *args, session_t *sp)
 	if (mbus_parse_int(mp, &i)) {
 		sp->lecture = i;
 	} else {
-		debug_msg("mbus: usage \"tool.rat.lecture <boolean>\"\n");
+		debug_msg("mbus: usage \"tool.rat.lecture.mode <boolean>\"\n");
 	}
 	mbus_parse_done(mp);
 }
@@ -213,7 +213,23 @@ static void rx_tool_rat_agc(char *srce, char *args, session_t *sp)
 	mbus_parse_done(mp);
 }
 
-static void rx_tool_rat_audio_loopback(char *srce, char *args, session_t *sp)
+static void rx_tool_rat_filter_loopback(char *srce, char *args, session_t *sp)
+{
+	int 		  	 i;
+	struct mbus_parser	*mp;
+
+	UNUSED(srce);
+
+	mp = mbus_parse_init(args);
+	if (mbus_parse_int(mp, &i)) {
+		sp->filter_loopback = i;
+	} else {
+		debug_msg("mbus: usage \"tool.rat.filter.loopback <boolean>\"\n");
+	}
+	mbus_parse_done(mp);
+}
+
+static void rx_tool_rat_loopback_gain(char *srce, char *args, session_t *sp)
 {
 	int 		  	 i;
 	struct mbus_parser	*mp;
@@ -230,7 +246,7 @@ static void rx_tool_rat_audio_loopback(char *srce, char *args, session_t *sp)
 			sp->loopback_gain = 0;
                 }
 	} else {
-		debug_msg("mbus: usage \"tool.rat.audio.loopback <boolean>\"\n");
+		debug_msg("mbus: usage \"tool.rat.loopback.gain <boolean>\"\n");
 	}
 	mbus_parse_done(mp);
 }
@@ -270,6 +286,7 @@ static void rx_tool_rat_rate(char *srce, char *args, session_t *sp)
 	if (mbus_parse_int(mp, &i)) {
                 assert(sp->channel_coder != NULL);
                 channel_encoder_set_units_per_packet(sp->channel_coder, (uint16_t)i);
+		ui_send_rate(sp, sp->mbus_ui_addr);
 	} else {
 		debug_msg("mbus: usage \"tool.rat.rate <integer>\"\n");
 	}
@@ -1051,6 +1068,12 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_t *sp)
         mbus_parse_done(mp);
 }
 
+static void rx_tool_rat_converters_request(char *srce, char *args, session_t *sp)
+{
+	UNUSED(args);
+        ui_send_converter_list(sp, srce);
+}
+
 static void rx_tool_rat_converter(char *srce, char *args, session_t *sp)
 {
         const converter_details_t *d = NULL;
@@ -1276,7 +1299,7 @@ static void rx_tool_rat_settings(char *srce, char *args, session_t *sp)
 	ui_send_powermeter        (sp, srce);
 	ui_send_playout_bounds    (sp, srce);
 	ui_send_agc               (sp, srce);
-	ui_send_audio_loopback    (sp, srce);
+	ui_send_loopback_gain     (sp, srce);
 	ui_send_echo_suppression  (sp, srce);
 	ui_send_encryption_key    (sp, srce);
 	ui_send_device_config     (sp, srce);
@@ -1354,15 +1377,16 @@ static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 static const mbus_cmd_tuple engine_cmds[] = {
         { "session.title",                         rx_session_title },
         { "tool.rat.silence",                      rx_tool_rat_silence },
-        { "tool.rat.lecture",                      rx_tool_rat_lecture },
+        { "tool.rat.lecture.mode",                 rx_tool_rat_lecture_mode },
         { "audio.3d.enabled",                      rx_audio_3d_enable },
         { "audio.3d.user.settings",                rx_audio_3d_user_settings },
         { "audio.3d.user.settings.request",        rx_audio_3d_user_settings_req },
         { "tool.rat.agc",                          rx_tool_rat_agc },
-        { "tool.rat.loopback",                     rx_tool_rat_audio_loopback },
+        { "tool.rat.loopback.gain",                rx_tool_rat_loopback_gain },
         { "tool.rat.echo.suppress",                rx_tool_rat_echo_suppress },
         { "tool.rat.rate",                         rx_tool_rat_rate },
         { "tool.rat.powermeter",                   rx_tool_rat_powermeter },
+        { "tool.rat.converters.request",           rx_tool_rat_converters_request },
         { "tool.rat.converter",                    rx_tool_rat_converter },
         { "tool.rat.settings",                     rx_tool_rat_settings },
         { "tool.rat.codec",                        rx_tool_rat_codec },
@@ -1371,6 +1395,7 @@ static const mbus_cmd_tuple engine_cmds[] = {
         { "tool.rat.playout.max",                  rx_tool_rat_playout_max },
         { "tool.rat.payload.set",                  rx_tool_rat_payload_set },
 	{ "tool.rat.ui.detach.request",            rx_tool_rat_ui_detach_request },
+	{ "tool.rat.filter.loopback",              rx_tool_rat_filter_loopback }, 
         { "audio.input.mute",                      rx_audio_input_mute },
         { "audio.input.gain",                      rx_audio_input_gain },
         { "audio.input.port",                      rx_audio_input_port },

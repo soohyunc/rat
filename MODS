@@ -1093,7 +1093,9 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Fix shutdown sequence.
 	- Patch G711 A-law, Sun's reference implementation had a few glitches 
 	  and you only notice when speaking with real h/w implementations.
-	- Update README.mbus
+	- Update README.mbus, giving documentation of how to remote control
+	  RAT using the message bus interface, and how to replace the user
+	  interface by one of your own choosing.
 	- Fix two step sample format conversion assertion failure.
 	- Fix device sample conversion layer freeing already freed pointer
 	  when swapping between devices with and without layer.
@@ -1113,6 +1115,8 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Update SDR plugin
 	- Transfer string associative array code out of settings.c into new 
 	  common library files asarray.[ch].
+	- Fix -allowloopback option
+
 
 TODO -- They're features not bugs dammit!
 ----

@@ -254,15 +254,8 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 
 	/* Parse late command line parameters... */
 	for (i = 1; i < argc; i++) {
-                if ((strcmp(argv[i], "-allowloopback") == 0) && (argc > i+1)) {
-			if (strcmp(argv[i+1], "on") == 0) {
-				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.audio.loopback", "1");
-			} else if (strcmp(argv[i+1], "off") == 0) {
-				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.audio.loopback", "0");
-			} else {
-				usage("Usage: -allowloopback on|off\n");
-                                return FALSE;
-			}
+                if ((strcmp(argv[i], "-allowloopback") == 0) || (strcmp(argv[i], "-allow_loopback") == 0)) {
+			mbus_qmsgf(m, e_addr, TRUE, "tool.rat.filter.loopback", "0");
                 } else if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
 			tmp = mbus_encode_str(argv[i+1]);
 			mbus_qmsgf(m, e_addr, TRUE, "session.title", tmp);

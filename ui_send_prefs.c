@@ -158,7 +158,6 @@ ui_send_codec_list(session_t *sp, char *addr)
 	if (!sp->ui_on) return;
 
         nCodecs = codec_get_number_of_codecs();
-
         for(iCodec = 0; iCodec < nCodecs; iCodec++) {
                 cid = codec_get_codec_number(iCodec);
                 if (cid) ui_send_codec_details(sp, addr, cid);
@@ -238,7 +237,7 @@ ui_send_agc(session_t *sp, char *addr)
 }
 
 void
-ui_send_audio_loopback(session_t *sp, char *addr)
+ui_send_loopback_gain(session_t *sp, char *addr)
 {
 	if (!sp->ui_on) return;
         ui_update_boolean(sp, addr, "tool.rat.loopback", sp->loopback_gain);
@@ -294,6 +293,7 @@ ui_send_device_config(session_t *sp, char *addr)
 void
 ui_send_rate(session_t *sp, char *addr)
 {
+	if (!sp->ui_on) return;
 	mbus_qmsgf(sp->mbus_engine, addr, TRUE, "tool.rat.rate", "%3d", channel_encoder_get_units_per_packet(sp->channel_coder));
 }
 

@@ -31,7 +31,7 @@ static void ui_info_update_sdes(session_t *sp, char *addr, char *item, const cha
 
 	if (!sp->ui_on) return;
         if (val == NULL) {
-                val = "Unknown";
+                val = "";
         }
         arg = mbus_encode_str(val);
 	mbus_qmsgf(sp->mbus_engine, addr, FALSE, item, "\"%08lx\" %s", ssrc, arg);

@@ -261,7 +261,7 @@ proc mbus_recv {cmnd args} {
 		tool.rat.playout.min            {eval mbus_recv_tool.rat.playout.min   $args}
 		tool.rat.playout.max            {eval mbus_recv_tool.rat.playout.max   $args}
 		tool.rat.echo.suppress          {eval mbus_recv_tool.rat.echo.suppress $args}
-		tool.rat.loopback               {eval mbus_recv_tool.rat.loopback      $args}
+		tool.rat.loopback.gain          {eval mbus_recv_tool.rat.loopback.gain      $args}
 		tool.rat.bps.in                 {eval mbus_recv_tool.rat.bps.in        $args}
 		tool.rat.bps.out                {eval mbus_recv_tool.rat.bps.out       $args}
 		audio.suppress.silence  	{eval mbus_recv_audio.suppress.silence $args}
@@ -1078,7 +1078,7 @@ proc mbus_recv_tool.rat.echo.suppress {e} {
     set echo_var $e
 }
 
-proc mbus_recv_tool.rat.loopback {l} {
+proc mbus_recv_tool.rat.loopback.gain {l} {
     global audio_loop_var
     set audio_loop_var $l
 }
@@ -2292,7 +2292,7 @@ proc sync_engine_to_ui {} {
 
     mbus_send "R" "tool.rat.silence"       $silence_var
     mbus_send "R" "tool.rat.agc"           $agc_var
-    mbus_send "R" "tool.rat.loopback"      $audio_loop_var
+    mbus_send "R" "tool.rat.loopback.gain" $audio_loop_var
     mbus_send "R" "tool.rat.echo.suppress" $echo_var
 
     #Reception Options
@@ -2300,7 +2300,7 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "tool.rat.playout.limit" $limit_var
     mbus_send "R" "tool.rat.playout.min"   $min_var
     mbus_send "R" "tool.rat.playout.max"   $max_var
-    mbus_send "R" "tool.rat.lecture"       $lecture_var
+    mbus_send "R" "tool.rat.lecture.mode"  $lecture_var
     mbus_send "R" "audio.3d.enabled"    $3d_audio_var
     mbus_send "R" "tool.rat.converter"     [mbus_encode_str $convert_var]
 

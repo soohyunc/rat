@@ -18,7 +18,7 @@ void ui_send_sampling_mode_list(session_t *sp, char *addr);
 void ui_send_powermeter        (session_t *sp, char *addr);
 void ui_send_playout_bounds    (session_t *sp, char *addr);
 void ui_send_agc               (session_t *sp, char *addr);
-void ui_send_audio_loopback    (session_t *sp, char *addr);
+void ui_send_loopback_gain     (session_t *sp, char *addr);
 void ui_send_echo_suppression  (session_t *sp, char *addr);
 void ui_send_lecture_mode      (session_t *sp, char *addr);
 void ui_send_encryption_key    (session_t *sp, char *addr);
