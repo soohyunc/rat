@@ -248,7 +248,6 @@ int
 luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 {
 	int done, r, queued;
-        static int cnt;
 
         UNUSED(ad); assert(audio_fd > 0);
 
@@ -260,10 +259,6 @@ luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
         /* Trial and error - SHORT_BUFFER_SIZE is 4 frames of 20 ms 16bit  */
         /* audio samples.  This almost certainly has horrible consequences */
         /* for the cushion and it's idea of reality.                       */
-
-        if (cnt++ < 100) {
-                debug_msg("write %d\n", write_bytes);
-        }
 
 #define SHORT_BUFFER_SIZE (4 * 320)
         if (queued > SHORT_BUFFER_SIZE) {
