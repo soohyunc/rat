@@ -591,6 +591,11 @@ proc bargraphSetHeight {bgraph height} {
 	set oh $height
 }
 
+proc toggle {varname} {
+    upvar 1 $varname local
+    set local [expr !$local]
+}
+
 proc toggle_plist {} {
 	global plist_on
 	if {$plist_on} {
@@ -713,11 +718,11 @@ bind .l.t.list <Configure> {fix_scrollbar}
 
 # Device output controls
 set out_mute_var 0
-button .r.c.vol.t1 -highlightthickness 0 -padx 2 -pady 0 -text mute -command "output_mute [expr !$out_mute_var]"
+button .r.c.vol.t1 -highlightthickness 0 -padx 2 -pady 0 -text mute -command {toggle out_mute_var; output_mute $out_mute_var}
 set output_port "speaker"
 button .r.c.vol.l1 -highlightthickness 0 -padx 2 -pady 0 -command toggle_output_port -bitmap "speaker"
 bargraphCreate .r.c.vol.b1
-scale .r.c.vol.s1 -highlightthickness 0 -font $verysmallfont -from 99 -to 0 -command set_vol -orient horizontal -relief raised -showvalue false -width 10
+scale .r.c.vol.s1 -highlightthickness 0 -font $verysmallfont -from 0 -to 99 -command set_vol -orient horizontal -relief raised -showvalue false -width 10
 
 pack .r.c.vol.l1 -side left -fill y
 pack .r.c.vol.t1 -side left -fill y
@@ -726,11 +731,11 @@ pack .r.c.vol.s1 -side top  -fill x -expand 1
 
 # Device input controls
 set in_mute_var 1
-button .r.c.gain.t2 -highlightthickness 0 -padx 2 -pady 0 -text mute -relief sunken -command "input_mute [expr !$in_mute_var]"
+button .r.c.gain.t2 -highlightthickness 0 -padx 2 -pady 0 -text mute -relief sunken -command {toggle in_mute_var; input_mute $in_mute_var}
 set input_port "microphone"
 button .r.c.gain.l2 -highlightthickness 0 -padx 2 -pady 0 -command toggle_input_port -bitmap "microphone_mute"
 bargraphCreate .r.c.gain.b2
-scale .r.c.gain.s2 -highlightthickness 0 -font $verysmallfont -from 99 -to 0 -command set_gain -orient horizontal -relief raised -showvalue false -width 10
+scale .r.c.gain.s2 -highlightthickness 0 -font $verysmallfont -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10
 
 pack .r.c.gain.l2 -side left -fill y
 pack .r.c.gain.t2 -side left -fill y
