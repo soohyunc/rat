@@ -1508,6 +1508,8 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 
 4.2.13	-
 
+
+
 TODO -- They're features not bugs dammit!
 ----
 
@@ -1593,6 +1595,10 @@ TODO -- They're features not bugs dammit!
 - Crash in convert_sinc.c:
 	convert_sinc.c:134: failed assertion
 	convert_sinc.c:122: failed assertion
-	rat-4.2.8-media: util.c:87: _block_alloc: Assertion `size > 0' failed.
-	reported by Greg Herlein.
- 
+	rat-4.2.8-media: util.c:87: _block_alloc: Assertion `size > 0' failed.  
+  reported by Greg Herlein.
+- Another crash in convert_sinc.c:
+	convert_sinc.c:1107: sinc_upsample_stereo: Assertion `out == dst + dst_len' failed.
+  reported by <thavaqos@yahoo.com>
+- Crash when playing .wav files? <thavaqos@yahoo.com> 
+
