@@ -55,6 +55,7 @@
 #include "rtcp_db.h"
 #include "convert.h"
 #include "codec.h"
+#include "debug.h"
 #include "parameters.h"
 #include "ui.h"
 #include "render_3D.h"
