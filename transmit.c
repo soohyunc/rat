@@ -199,7 +199,7 @@ tx_start(tx_buffer *tb)
         assert(pb_iterator_count(tb->audio_buffer) == 3);
 
         /* Add one unit to media buffer to kick off audio reading */
-        unit_start = ts_map32(get_freq(tb->clock), rand());
+        unit_start = tb->sp->cur_ts;
         tx_unit_create(tb, &tu_new, tb->unit_dur * tb->channels);
         assert(ts_valid(unit_start));
         pb_add(tb->audio_buffer, 

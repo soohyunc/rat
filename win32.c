@@ -344,7 +344,8 @@ WinGetUserName(ClientData clientData, Tcl_Interp *interp, int argc, char **argv)
 double
 drand48(void)
 {
-	return ((double)rand() / 2147483648.0);
+        unsigned int x = (rand() << 16) | rand();
+	return ((double)x / (double)0xffffffff);
 }
 
 static HKEY
