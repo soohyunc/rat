@@ -603,7 +603,7 @@ session_parse_late_options_common(int argc, char *argv[], session_t *sp[], int s
                                 }
                                 
                                 upp = channel_encoder_get_units_per_packet(sp[s]->channel_coder);
-                                num_channel_coders = channel_get_coder_count();
+                                num_channel_coders = (u_int16)channel_get_coder_count();
                                 for(idx = 0; idx < num_channel_coders; idx++) {
                                         ccd = channel_get_coder_details(idx);
                                         /* Redundant channel coder is the only that begins with an 'r' */

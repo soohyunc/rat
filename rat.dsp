@@ -178,6 +178,10 @@ SOURCE=.\audio_util.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\bitstream.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\cc_layered.c
 # End Source File
 # Begin Source File
@@ -263,10 +267,6 @@ SOURCE=.\convert_util.c
 # Begin Source File
 
 SOURCE=.\converter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\crypt.c
 # End Source File
 # Begin Source File
 
@@ -357,15 +357,15 @@ SOURCE=.\parameters.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\pckt_queue.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\pdb.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\playout.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\playout_calc.c
 # End Source File
 # Begin Source File
 
@@ -377,15 +377,7 @@ SOURCE=.\repair.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\rtcp.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\rtcp_db.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\rtcp_pckt.c
+SOURCE=.\rtp_callback.c
 # End Source File
 # Begin Source File
 
@@ -414,10 +406,6 @@ SOURCE=.\sndfile_wav.c
 # Begin Source File
 
 SOURCE=.\source.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\statistics.c
 # End Source File
 # Begin Source File
 
@@ -514,6 +502,10 @@ SOURCE=.\audio_types.h
 # Begin Source File
 
 SOURCE=.\audio_util.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bitstream.h
 # End Source File
 # Begin Source File
 
@@ -697,6 +689,10 @@ SOURCE=.\playout.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\playout_calc.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\render_3D.h
 # End Source File
 # Begin Source File
@@ -714,6 +710,10 @@ SOURCE=.\rtcp_db.h
 # Begin Source File
 
 SOURCE=.\rtcp_pckt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\rtp_callback.h
 # End Source File
 # Begin Source File
 

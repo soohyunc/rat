@@ -593,7 +593,7 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
                 a   = (merge_len - i) * old_start[i] / merge_len;
                 b   = i * new_start[i]/ merge_len;
                 tmp =  (sample)(a + b);
-                new_start[i] = tmp;
+                new_start[i] = (short)tmp;
         }
 }
 

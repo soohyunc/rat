@@ -154,9 +154,9 @@ settings_table_destroy(void)
 /* SETTINGS CODE *************************************************************/
 
 #ifdef WIN32
-static void open_registry(LPCTSTR *subKey)
+static void open_registry(LPCTSTR subKey)
 {
-        HKEY			key    = HKEY_CURRENT_USER;
+    HKEY			key    = HKEY_CURRENT_USER;
 	DWORD			disp;
 	char			buffer[SETTINGS_BUF_SIZE];
 	LONG			status;
@@ -448,7 +448,7 @@ void settings_load_early(session_t *sp)
         name       = setting_load_str("audioRepair", "Pattern-Match");
         n          = (int)repair_get_count();
         for(i = 0; i < n; i++) {
-                r = repair_get_details(i);
+                r = repair_get_details((u_int16)i);
                 if (strcasecmp(r->name, name) == 0) {
                         sp->repair = r->id;
                         break;
@@ -604,7 +604,7 @@ void settings_save(session_t *sp)
         channel_encoder_get_parameters(sp->channel_coder, cc_param, cc_len);
         ccd = channel_get_coder_identity(sp->channel_coder);
 
-        n = converter_get_count();
+        n = (u_int16)converter_get_count();
         for (j = 0; j < n; j++) {
                 converter = converter_get_details(j);
                 if (sp->converter == converter->id) {

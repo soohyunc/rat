@@ -732,7 +732,7 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 	mbus_parse_int(sp->mbus_engine, &ttl);
 	mbus_parse_done(sp->mbus_engine);
 
-	sp->rtp_session[0] = rtp_init(addr, rx_port, tx_port, ttl, 64000, rtp_callback);
+	sp->rtp_session[0] = rtp_init(addr, (u_int16)rx_port, (u_int16)tx_port, ttl, 64000, rtp_callback);
 	sp->rtp_session_count++;
 	rtp_callback_init(sp->rtp_session[0], sp);
 }
