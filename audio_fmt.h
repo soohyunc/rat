@@ -58,7 +58,7 @@ int           audio_format_buffer_convert (audio_format *src,
                                            int           dst_bytes);
 int           audio_format_change_encoding (audio_format *cur, 
                                             deve_e        new_enc);
-
 int           audio_format_name(audio_format *cur, char *buf, int buf_len);
 
-#endif _AUDIO_FMT_H_
+#endif /* _AUDIO_FMT_H_ */
+

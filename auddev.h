@@ -85,4 +85,6 @@ void    audio_wait_for      (audio_desc_t ad, int granularity_ms);
 const audio_format* audio_get_ifmt (audio_desc_t ad);
 const audio_format* audio_get_ofmt (audio_desc_t ad);
 
+#define AUDIO_INTERFACE_NAME_LEN 64
+
 #endif /* _AUDDEV_H_ */

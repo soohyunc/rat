@@ -43,7 +43,7 @@
 #ifndef _AUDDEV_SGI_H_
 #define _AUDDEV_SGI_H_
 
-int  sgi_audio_open       (audio_desc_t ad, audio_format* format);
+int  sgi_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format* ofmt);
 void sgi_audio_close      (audio_desc_t ad);
 void sgi_audio_drain      (audio_desc_t ad);
 int  sgi_audio_duplex     (audio_desc_t ad);
@@ -52,8 +52,8 @@ int  sgi_audio_get_gain   (audio_desc_t ad);
 void sgi_audio_set_volume (audio_desc_t ad, int vol);
 int  sgi_audio_get_volume (audio_desc_t ad);
 void sgi_audio_loopback   (audio_desc_t ad, int gain);
-int  sgi_audio_read       (audio_desc_t ad, sample *buf, int samples);
-int  sgi_audio_write      (audio_desc_t ad, sample *buf, int samples);
+int  sgi_audio_read       (audio_desc_t ad, u_char *buf, int buf_bytes);
+int  sgi_audio_write      (audio_desc_t ad, u_char *buf, int buf_bytes);
 void sgi_audio_non_block  (audio_desc_t ad);
 void sgi_audio_block      (audio_desc_t ad);
 void sgi_audio_set_oport  (audio_desc_t ad, int port);

@@ -53,6 +53,7 @@
 #include "audio_types.h"
 #include "audio_fmt.h"
 #include "auddev_oss.h"
+#include "util.h"
 
 int	iport     = AUDIO_MICROPHONE;
 int	bytes_per_block;
@@ -60,12 +61,22 @@ int	bytes_per_block;
 /* Magic to get device names from OSS */
 
 #define OSS_MAX_DEVICES 3
-#define OSS_MAX_NAME_LEN 32
+#define OSS_MAX_NAME_LEN 64
+
 static int ndev;
 char   dev_name[OSS_MAX_DEVICES][OSS_MAX_NAME_LEN];
 
 static char the_dev[] = "/dev/audioX";
 static int audio_fd[OSS_MAX_DEVICES];
+
+
+#define OSS_MAX_SUPPORTED_FORMATS 8
+/* == 8k,16k,32,48k * mono, stereo */
+static u_char       have_probed[OSS_MAX_DEVICES];
+static audio_format af_sup[OSS_MAX_DEVICES][OSS_MAX_SUPPORTED_FORMATS];
+static int          n_af_sup[OSS_MAX_DEVICES];
+
+static oss_probe_formats(audio_desc_t);
 
 audio_format format;
 
@@ -82,7 +93,6 @@ deve2oss(deve_e encoding)
         }
         abort();
 }
-
 
 /* Try to open the audio device.              */
 /* Return TRUE if successful FALSE otherwise. */
@@ -124,8 +134,14 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                                 debug_msg("Using mu-law\n");
                         }
 		}
+
+                if (!have_probed[ad]) {
+                        oss_probe_formats(ad);
+                        have_probed[ad] = TRUE;
+                }
+
                 /* 20 ms blocksize - only modulates read sizes */
-                bytes_per_block = 20 * (ifmt->sample_rate / 8000) * (ifmt->bits_per_sample / 8);
+                bytes_per_block = 20 * (ifmt->sample_rate / 1000) * (ifmt->bits_per_sample / 8);
                 /* Round to the nearest legal frag size (next power of two lower...) */
                 frag |= (int) (log(bytes_per_block)/log(2));
                 debug_msg("frag=%x bytes_per_block=%d\n", frag, bytes_per_block);
@@ -153,15 +169,13 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_VOLUME), &volume);
 		ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_RECLEV), &volume);
 		/* Select microphone input. We can't select output source...  */
-		oss_audio_set_iport(audio_fd[ad], iport);
+		oss_audio_set_iport(ad, iport);
 		/* Turn off loopback from input to output... This only works  */
 		/* on a few cards, but shouldn't cause problems on the others */
 		ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
 		/* Device driver bug: we must read some data before the ioctl */
 		/* to tell us how much data is waiting works....              */
 		read(audio_fd[ad], buffer, 128);	
-		/* Okay, now we're done...                                    */
-                UNUSED(ad);
 		return audio_fd[ad];
 	} else {
 		oss_audio_close(ad);
@@ -185,9 +199,10 @@ oss_audio_drain(audio_desc_t ad)
 {
         u_char buf[160];
 
+        assert(ad < OSS_MAX_DEVICES);
         assert(audio_fd[ad] > 0);
 
-        while(oss_audio_read(audio_fd[ad], buf, 160) == 160);
+        while(oss_audio_read(ad, buf, 160) == 160);
 }
 
 int
@@ -202,8 +217,10 @@ oss_audio_duplex(audio_desc_t ad)
 void
 oss_audio_set_gain(audio_desc_t ad, int gain)
 {
+
 	int volume = bat_to_device(gain) << 8 | bat_to_device(gain);
 
+        assert(ad < OSS_MAX_DEVICES);
         assert(audio_fd[ad] > 0);
 
 	switch (iport) {
@@ -232,7 +249,7 @@ oss_audio_get_gain(audio_desc_t ad)
 {
 	int volume;
 
-        UNUSED(ad); assert(audio_fd[ad] > 0);
+        UNUSED(ad); assert(audio_fd[ad] > 0); assert(ad < OSS_MAX_DEVICES);
 
 	switch (iport) {
 	case AUDIO_MICROPHONE : 
@@ -310,6 +327,7 @@ oss_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
                 perror("audio_read");
 			return 0;
         }
+
         return read_len;
 }
 
@@ -409,9 +427,9 @@ oss_audio_set_iport(audio_desc_t ad, int port)
 				debug_msg("WARNING: Unable to select recording source!\n");
 				return;
 			}
-			gain = oss_audio_get_gain(audio_fd[ad]);
+			gain = oss_audio_get_gain(ad);
 			iport = port;
-			oss_audio_set_gain(audio_fd[ad], gain);
+			oss_audio_set_gain(ad, gain);
 		} else {
 			debug_msg("Audio device doesn't support recording from microphone\n");
 		}
@@ -423,9 +441,9 @@ oss_audio_set_iport(audio_desc_t ad, int port)
 				debug_msg("WARNING: Unable to select recording source!\n");
 				return;
 			}
-			gain = oss_audio_get_gain(audio_fd[ad]);
+			gain = oss_audio_get_gain(ad);
 			iport = port;
-			oss_audio_set_gain(audio_fd[ad], gain);
+			oss_audio_set_gain(ad, gain);
 		} else {
 			debug_msg("Audio device doesn't support recording from line-input\n");
 		}
@@ -437,9 +455,9 @@ oss_audio_set_iport(audio_desc_t ad, int port)
 				debug_msg("WARNING: Unable to select recording source!\n");
 				return;
 			}
-			gain = oss_audio_get_gain(audio_fd[ad]);
+			gain = oss_audio_get_gain(ad);
 			iport = port;
-			oss_audio_set_gain(audio_fd[ad], gain);
+			oss_audio_set_gain(ad, gain);
 		} else {
 			debug_msg("Audio device doesn't support recording from CD\n");
 		}
@@ -465,13 +483,13 @@ oss_audio_next_iport(audio_desc_t ad)
 
         switch (iport) {
 	case AUDIO_MICROPHONE : 
-		oss_audio_set_iport(audio_fd[ad], AUDIO_LINE_IN);
+		oss_audio_set_iport(ad, AUDIO_LINE_IN);
 		break;
 	case AUDIO_LINE_IN : 
-		oss_audio_set_iport(audio_fd[ad], AUDIO_CD);
+		oss_audio_set_iport(ad, AUDIO_CD);
 		break;
 	case AUDIO_CD : 
-		oss_audio_set_iport(audio_fd[ad], AUDIO_MICROPHONE);
+		oss_audio_set_iport(ad, AUDIO_MICROPHONE);
 		break;
 	default : 
 		debug_msg("Unknown audio source!\n");
@@ -511,6 +529,57 @@ oss_audio_is_ready(audio_desc_t ad)
         return oss_audio_select(ad, 0);
 }
 
+static int
+oss_set_mode(audio_desc_t ad, int speed, int stereo)
+{
+        int sp, st, success;
+        
+        ioctl(audio_fd[ad], SNDCTL_DSP_RESET, 0);
+        success = TRUE;
+        
+        /* We might want to set sample type here */
+
+        st = stereo;
+        if (ioctl(audio_fd[ad], SNDCTL_DSP_STEREO, &st) == -1 || st != stereo) {
+                success = FALSE;
+        }
+
+        sp = speed;
+        if (ioctl(audio_fd[ad], SNDCTL_DSP_SPEED, &sp) == -1 || sp != speed) {
+                success = FALSE;
+        }
+        
+        return success;
+}
+
+static int
+oss_probe_formats(audio_desc_t ad)
+{
+        int speed, stereo;
+        for (speed = 8000; speed <= 48000; speed += 8000) {
+                if (speed == 24000 || speed == 40000) continue;
+                for (stereo = 0; stereo < 2; stereo++) {
+                        if (!oss_set_mode(ad, speed, stereo)) continue; /* Failed */
+                        af_sup[ad][n_af_sup[ad]].sample_rate = speed;
+                        af_sup[ad][n_af_sup[ad]].channels    = stereo + 1;
+                        n_af_sup[ad]++;
+                }
+        }
+        return TRUE;
+}
+
+int
+oss_audio_supports(audio_desc_t ad, audio_format *fmt)
+{
+        int i;
+
+        for(i = 0; i < n_af_sup[ad]; i++) {
+                if (af_sup[ad][i].channels    == fmt->channels &&
+                    af_sup[ad][i].sample_rate == fmt->sample_rate) return TRUE;
+        }
+        return FALSE;
+}
+
 void
 oss_audio_query_devices()
 {
@@ -535,7 +604,8 @@ oss_audio_query_devices()
                         if (found_devices) {
                                 if ((name_start = strstr(buf, ":")) && ndev < OSS_MAX_DEVICES) {
                                         name_start += 2; /* pass colon plus space */
-                                        strcpy(dev_name[ndev], name_start);
+                                        strncpy(dev_name[ndev], name_start, OSS_MAX_NAME_LEN);
+                                        purge_chars(dev_name[ndev],"\n");
                                         ndev++;
                                         debug_msg("OSS device found (%s)\n", name_start);
                                 } else {

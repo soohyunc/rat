@@ -605,7 +605,7 @@ static void rx_audio_file_rec_live(char *srce, char *args, session_struct *sp)
 static void 
 rx_audio_device(char *srce, char *args, session_struct *sp)
 {
-        char	*s, dev_name[32];
+        char	*s, dev_name[64];
         int next_device = 0;
 
 	UNUSED(srce);
@@ -620,7 +620,7 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
                         n = audio_get_number_of_interfaces();
                         for(i = 0; i < n; i++) {
                                 /* Brackets are a problem so purge them */
-                                strncpy(dev_name, audio_get_interface_name(i), 31);
+                                strncpy(dev_name, audio_get_interface_name(i), 64);
                                 purge_chars(dev_name, "[]()");
                                 if (!strcmp(s, dev_name)) {
                                         next_device = i;

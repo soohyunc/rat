@@ -60,13 +60,15 @@
 static int      audio_fd = -1;
 static ALport	rp = NULL, wp = NULL;	/* Read and write ports */
 static int	iport = AUDIO_MICROPHONE;
-static audio_format format;
+static int      bytes_per_block;
+
 /*
  * Try to open the audio device.
  * Return TRUE if successfull FALSE otherwise.
  */
+
 int
-sgi_audio_open(audio_desc_t ad, audio_format* fmt)
+sgi_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 {
 	ALconfig	c;
 	long		cmd[8];
@@ -75,14 +77,14 @@ sgi_audio_open(audio_desc_t ad, audio_format* fmt)
                 sgi_audio_close(ad);
         }
 
-        memcpy(&format, fmt, sizeof(audio_format));
+        if (ifmt->encoding != DEV_S16) return FALSE;
 
 	if ((c = ALnewconfig()) == NULL) {
 		fprintf(stderr, "ALnewconfig error\n");
 		exit(1);
 	}
 
-        switch(fmt->channels) {
+        switch(ifmt->channels) {
         case 1:
                 ALsetchannels(c, AL_MONO); break;
         case 2:
@@ -108,11 +110,11 @@ sgi_audio_open(audio_desc_t ad, audio_format* fmt)
         }
 
 	cmd[0] = AL_OUTPUT_RATE;
-	cmd[1] = format.sample_rate;
+	cmd[1] = ofmt->sample_rate;
 	cmd[2] = AL_INPUT_SOURCE;
 	cmd[3] = AL_INPUT_MIC;
 	cmd[4] = AL_INPUT_RATE;
-	cmd[5] = format.sample_rate;
+	cmd[5] = ifmt->sample_rate;
 	cmd[6] = AL_MONITOR_CTL;
 	cmd[7] = AL_MONITOR_OFF;
 
@@ -124,9 +126,10 @@ sgi_audio_open(audio_desc_t ad, audio_format* fmt)
 	/* Get the file descriptor to use in select */
 	audio_fd = ALgetfd(rp);
 
-	if (ALsetfillpoint(rp, format.bytes_per_block) < 0) {
-                debug_msg("ALsetfillpoint failed (%d samples)\n", format.bytes_per_block);
+	if (ALsetfillpoint(rp, ifmt->bytes_per_block) < 0) {
+                debug_msg("ALsetfillpoint failed (%d samples)\n", ifmt->bytes_per_block);
         }
+        bytes_per_block = ifmt->bytes_per_block;
         
 	/* We probably should free the config here... */
         
@@ -147,7 +150,7 @@ sgi_audio_close(audio_desc_t ad)
 void
 sgi_audio_drain(audio_desc_t ad)
 {
-	sample	buf[QSIZE];
+	u_char buf[QSIZE];
 
         UNUSED(ad); assert(audio_fd > 0);
 
@@ -211,19 +214,21 @@ sgi_audio_get_volume(audio_desc_t ad)
 static int non_block = 1;	/* Initialise to non blocking */
 
 int
-sgi_audio_read(audio_desc_t ad, sample *buf, int samples)
+sgi_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
 	long   		len;
 
         UNUSED(ad); assert(audio_fd > 0);
         
 	if (non_block) {
-		if ((len = ALgetfilled(rp)) < format.bytes_per_block)
+		if ((len = ALgetfilled(rp)) < bytes_per_block )
 			return (0);
-                len = min(format.bytes_per_block, samples);
+                len = min(len, buf_bytes);
 	} else {
-		len = (long)samples;
+		len = (long)buf_bytes;
         }
+
+        len /= BYTES_PER_SAMPLE; /* We only open device in 16 bit mode */
 
 	if (len > QSIZE) {
 		fprintf(stderr, "audio_read: too big!\n");
@@ -232,22 +237,25 @@ sgi_audio_read(audio_desc_t ad, sample *buf, int samples)
 
 	ALreadsamps(rp, buf, len);
 
-	return ((int)len);
+	return ((int)len * BYTES_PER_SAMPLE);
 }
 
 int
-sgi_audio_write(audio_desc_t ad, sample *buf, int samples)
+sgi_audio_write(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
+        long samples;
         UNUSED(ad); assert(audio_fd > 0);
 
+        samples = buf_bytes / BYTES_PER_SAMPLE;
 	if (samples > QSIZE) {
 		fprintf(stderr, "audio_write: too big!\n");
 		samples = QSIZE;
 	}
 
 	/* Will block */
-	ALwritesamps(wp, buf, (long)samples);
-	return (samples);
+
+	ALwritesamps(wp, buf, samples);
+	return buf_bytes;
 }
 
 /* Set ops on audio device to be non-blocking */
@@ -375,40 +383,12 @@ sgi_audio_duplex(audio_desc_t ad)
         return 1;
 }
 
-int
-sgi_audio_get_channels(audio_desc_t ad)
-{
-        UNUSED(ad); assert(audio_fd > 0);
- 	return ALgetchannels(ALgetconfig(rp));
-}
-
-int
-sgi_audio_get_bytes_per_block(audio_desc_t ad)
-{
-        UNUSED(ad); assert(audio_fd > 0);
-        return format.bytes_per_block; /* Could use ALgetfillpoint */
-}
-
-int
-sgi_audio_get_freq(audio_desc_t ad)
-{
-        long pvbuf[2];
-        UNUSED(ad); assert(audio_fd > 0);
-        
-        pvbuf[0] = AL_INPUT_RATE;
-
-        if (ALqueryparams(AL_DEFAULT_DEVICE, pvbuf, 2) == -1) {
-                debug_msg("Could not get freq");
-        }
-        return (int)pvbuf[1];
-}
-
 int  
 sgi_audio_is_ready(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
         
-        if (ALgetfilled(rp) >= format.bytes_per_block) {
+        if (ALgetfilled(rp) >= ALgetfillpoint(rp)) {
                 return TRUE;
         } else {
                 return FALSE;

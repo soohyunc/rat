@@ -49,8 +49,6 @@
 #include "audio_fmt.h"
 #include "auddev.h"
 
-#define AUDIO_INTERFACE_NAME_LEN 32
-
 typedef struct {
         char name[AUDIO_INTERFACE_NAME_LEN];
 
@@ -777,9 +775,9 @@ audio_init_interfaces()
                         oss_audio_next_iport,
                         oss_audio_is_ready,
                         oss_audio_wait_for,
-                        NULL
+                        oss_audio_supports
                 };
-                strcpy(aif_oss.name, oss_get_device_name(i));
+                strncpy(aif_oss.name, oss_get_device_name(i), AUDIO_INTERFACE_NAME_LEN - 1);
                 audio_add_interface(&aif_oss);
         }
 

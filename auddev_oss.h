@@ -64,6 +64,7 @@ int  oss_audio_get_iport  (audio_desc_t ad);
 int  oss_audio_next_iport (audio_desc_t ad);
 int  oss_audio_is_ready  (audio_desc_t ad);
 void oss_audio_wait_for  (audio_desc_t ad, int delay_ms);
+int  oss_audio_supports  (audio_desc_t ad, audio_format *fmt);
 
 /* Functions to get names of oss devices */
 void oss_audio_query_devices (void);       /* This fn works out what we have           */
