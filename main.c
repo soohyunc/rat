@@ -140,32 +140,37 @@ main(int argc, char *argv[])
         audio_set_interface(0);
         converters_init();
 
-	/* windows getpid returns an unsigned long... */
-	sprintf(mbus_engine_addr, "(audio engine rat %lu)", (u_int32) getpid());
-	sprintf(mbus_ui_addr,	  "(audio     ui rat %lu)", (u_int32) getpid());
+	if (sp[0]->mode == AUDIO_TOOL) {
+		sprintf(mbus_engine_addr, "(audio engine rat %lu)", (u_int32) getpid());
+		sp[0]->mbus_engine_base = mbus_init(0, mbus_engine_rx, NULL); 
+		mbus_addr(sp[0]->mbus_engine_base, mbus_engine_addr);
+		if (sp[0]->mbus_channel == 0) {
+			sp[0]->mbus_engine_conf = sp[0]->mbus_engine_base;
+		} else {
+			sp[0]->mbus_engine_conf = mbus_init((short)sp[0]->mbus_channel, mbus_engine_rx, NULL); 
+			mbus_addr(sp[0]->mbus_engine_conf, mbus_engine_addr);
+		}
 
-	sprintf(mbus_video_addr,  "(video engine   *  *)");
-	
-	sp[0]->mbus_engine_base = mbus_init(0, mbus_engine_rx, NULL); 
-	mbus_addr(sp[0]->mbus_engine_base, mbus_engine_addr);
-	if (sp[0]->mbus_channel == 0) {
-		sp[0]->mbus_engine_conf = sp[0]->mbus_engine_base;
+		if (sp[0]->ui_on) {
+			sprintf(mbus_ui_addr, "(audio ui rat %lu)", (u_int32) getpid());
+			sp[0]->mbus_ui_base = mbus_init(0, mbus_ui_rx, NULL);
+			mbus_addr(sp[0]->mbus_ui_base, mbus_ui_addr);
+			if (sp[0]->mbus_channel == 0) {
+				sp[0]->mbus_ui_conf = sp[0]->mbus_ui_base;
+			} else {
+				sp[0]->mbus_ui_conf = mbus_init((short)sp[0]->mbus_channel, mbus_ui_rx, NULL);
+				mbus_addr(sp[0]->mbus_ui_conf, mbus_ui_addr);
+			}
+			tcl_init(sp[0], argc, argv, mbus_engine_addr);
+		} else {
+			strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
+		}
 	} else {
-		sp[0]->mbus_engine_conf = mbus_init((short)sp[0]->mbus_channel, mbus_engine_rx, NULL); 
-		mbus_addr(sp[0]->mbus_engine_conf, mbus_engine_addr);
+		/* We're a transcoder... set up a separate mbus instance */
+		/* for each side, to make them separately controllable.  */
+		abort();
 	}
-
-        if (!sp[0]->ui_on) strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
-
-	sp[0]->mbus_ui_base = mbus_init(0, mbus_ui_rx, NULL);
-	mbus_addr(sp[0]->mbus_ui_base, mbus_ui_addr);
-	if (sp[0]->mbus_channel == 0) {
-		sp[0]->mbus_ui_conf = sp[0]->mbus_ui_base;
-	} else {
-		sp[0]->mbus_ui_conf = mbus_init((short)sp[0]->mbus_channel, mbus_ui_rx, NULL);
-		mbus_addr(sp[0]->mbus_ui_conf, mbus_ui_addr);
-	}
-	if (sp[0]->ui_on) tcl_init(sp[0], argc, argv, mbus_engine_addr);
+	sprintf(mbus_video_addr, "(video engine * *)");
 
 	ui_controller_init(sp[0], cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 	do {
@@ -212,15 +217,13 @@ main(int argc, char *argv[])
 			} else {
 				elapsed_time = read_write_audio(sp[i], sp[i], sp[i]->ms);
 			}
-			cur_time = get_time(sp[i]->device_clock);
+			cur_time  = get_time(sp[i]->device_clock);
 			real_time = ntp_time32();
 
 			read_and_enqueue(sp[i]->rtp_socket , cur_time,     netrx_queue_p[i], PACKET_RTP);
 			read_and_enqueue(sp[i]->rtcp_socket, cur_time, rtcp_pckt_queue_p[i], PACKET_RTCP);
 
-			if (sp[i]->sending_audio) {
-				tx_process_audio(sp[i]);
-			}
+			tx_process_audio(sp[i]);
 
 			if (!sp[i]->playing_audio) {
 				receive_unit_audit(rx_unit_queue_p[i]);
@@ -260,20 +263,20 @@ main(int argc, char *argv[])
 			if (sp[i]->audio_device) ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
                 	if (sp[i]->ui_on) {
 				tcl_process_events(sp[i]);
-				mbus_send(sp[0]->mbus_ui_base); mbus_retransmit(sp[0]->mbus_ui_base);
-				mbus_send(sp[0]->mbus_ui_conf); mbus_retransmit(sp[0]->mbus_ui_conf);
+				mbus_send(sp[i]->mbus_ui_base); mbus_retransmit(sp[i]->mbus_ui_base);
+				mbus_send(sp[i]->mbus_ui_conf); mbus_retransmit(sp[i]->mbus_ui_conf);
                 	}
-			mbus_retransmit(sp[0]->mbus_engine_base);
-			mbus_retransmit(sp[0]->mbus_engine_conf);
-			mbus_send(sp[0]->mbus_engine_base); 
-			mbus_send(sp[0]->mbus_engine_conf); 
-			mbus_recv(sp[0]->mbus_engine_base, (void *) sp[0]);
-			mbus_recv(sp[0]->mbus_ui_base    , (void *) sp[0]);
-			if (sp[0]->mbus_channel != 0) {
-				mbus_recv(sp[0]->mbus_engine_conf, (void *) sp[0]);
-				mbus_recv(sp[0]->mbus_ui_conf    , (void *) sp[0]);
+			mbus_retransmit(sp[i]->mbus_engine_base);
+			mbus_retransmit(sp[i]->mbus_engine_conf);
+			mbus_send(sp[i]->mbus_engine_base); 
+			mbus_send(sp[i]->mbus_engine_conf); 
+			mbus_recv(sp[i]->mbus_engine_base, (void *) sp[i]);
+			mbus_recv(sp[i]->mbus_ui_base    , (void *) sp[i]);
+			if (sp[i]->mbus_channel != 0) {
+				mbus_recv(sp[i]->mbus_engine_conf, (void *) sp[i]);
+				mbus_recv(sp[i]->mbus_ui_conf    , (void *) sp[i]);
 			}
-			heartbeat(sp[0], real_time, 10);
+			heartbeat(sp[i], real_time, 10);
 
                         /* wait for mbus messages - closing audio device
                          * can timeout unprocessed messages as some drivers

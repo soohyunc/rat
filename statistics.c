@@ -489,8 +489,8 @@ statistics(session_struct    *sp,
                     (pcp != NULL && pcp->decode == NULL)) {
                         /* We don't recognise this payload, or we don't have a decoder for it. */
                         assert(pcp->decode);
-                                debug_msg("Cannot decode data (pt %d).\n",hdr->pt);
-                                goto release;
+			debug_msg("Cannot decode data (pt %d).\n",hdr->pt);
+			goto release;
                 }
         
                 if ((src->enc == -1) || (src->enc != pcp->pt))
@@ -500,7 +500,7 @@ statistics(session_struct    *sp,
                         /* we should tell update more about coded format */
                         src->enc = pcp->pt;
                         debug_msg("src enc %d pcp enc %d\n", src->enc, pcp->pt);
-                        update_req   = TRUE;
+                        update_req = TRUE;
                 }
                 playout = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
 
@@ -519,10 +519,8 @@ statistics(session_struct    *sp,
                 debug_msg("Processed lots of packets(%d).\n", pkt_cnt);
         }
 
-#ifdef DEBUG
         if (netrx_pckt_queue->queue_empty == FALSE) {
                 debug_msg("Stopped processing packets because audio ready\n");
         }
-#endif
 }
 

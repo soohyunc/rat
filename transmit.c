@@ -359,59 +359,59 @@ tx_read_audio(session_struct *sp)
 int
 tx_process_audio(session_struct *sp)
 {
-        tx_unit *u, *u_mark;
-        int to_send;
+        tx_unit 	*u, *u_mark;
+        int 		 to_send;
+        tx_buffer 	*tb = sp->tb;
 
-        tx_buffer *tb = sp->tb;
+	if (sp->sending_audio) {
+		if (tb->silence_ptr == NULL) {
+			tb->silence_ptr = tb->head_ptr;
+		}
 
-        if (tb->silence_ptr == NULL) {
-                tb->silence_ptr = tb->head_ptr;
-        }
+		for(u = tb->silence_ptr; u != tb->last_ptr; u = u->next) {
+			audio_unbias(sp->bc, u->data, u->dur_used * tb->channels);
+			u->energy = avg_audio_energy(u->data, u->dur_used * tb->channels, tb->channels);
+			u->send   = FALSE;
+			
+			/* we do silence detection and voice activity detection
+			 * all the time.  agc depends on them and they are all 
+			 * cheap.
+			 */
+			u->silence = sd(tb->sd_info, (u_int16)u->energy);
+			to_send    = vad_to_get(tb->vad, (u_char)u->silence, (u_char)((sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF));           
+			agc_update(tb->agc, (u_int16)u->energy, vad_talkspurt_no(tb->vad));
 
-        for(u = tb->silence_ptr; u != tb->last_ptr; u = u->next) {
-                audio_unbias(sp->bc, u->data, u->dur_used * tb->channels);
-                u->energy = avg_audio_energy(u->data, u->dur_used * tb->channels, tb->channels);
-                u->send   = FALSE;
-                
-                /* we do silence detection and voice activity detection
-                 * all the time.  agc depends on them and they are all 
-                 * cheap.
-                 */
-                u->silence = sd(tb->sd_info, (u_int16)u->energy);
-                to_send    = vad_to_get(tb->vad, (u_char)u->silence, (u_char)((sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF));           
-                agc_update(tb->agc, (u_int16)u->energy, vad_talkspurt_no(tb->vad));
+			if (sp->detect_silence) {
+				u_mark = u;
+				while(u_mark != NULL && to_send > 0) {
+					u_mark->send = TRUE;
+					u_mark = u_mark->prev;
+					to_send --;
+				}
+			} else {
+				u->silence = FALSE;
+				u->send    = TRUE;
+			}
+		}
+		tb->silence_ptr = u;
 
-                if (sp->detect_silence) {
-                        u_mark = u;
-                        while(u_mark != NULL && to_send > 0) {
-                                u_mark->send = TRUE;
-                                u_mark = u_mark->prev;
-                                to_send --;
-                        }
-                } else {
-                        u->silence = FALSE;
-                        u->send    = TRUE;
-                }
-        }
-        tb->silence_ptr = u;
+		if (sp->agc_on == TRUE && 
+		    agc_apply_changes(tb->agc) == TRUE) {
+			ui_update_input_gain(sp);
+		}
 
-        if (sp->agc_on == TRUE && 
-            agc_apply_changes(tb->agc) == TRUE) {
-                ui_update_input_gain(sp);
-        }
-
-        if (tb->tx_ptr != NULL) {
-                tx_buffer_trim(tb);
-        }
-
+		if (tb->tx_ptr != NULL) {
+			tx_buffer_trim(tb);
+		}
+	}
         return TRUE;
 }
 
 void
 tx_send(session_struct *sp)
 {
-        int                units, i, n, ready, send, num_encodings;
-        tx_unit               *u;
+        int             units, i, n, ready, send, num_encodings;
+        tx_unit        *u;
         rtp_hdr_t       rtp_header;
         cc_unit        *out;
         cc_unit        *collated[MAX_ENCODINGS];
