@@ -53,6 +53,7 @@ audio_format_get_common(audio_format* ifmt,
         switch(comfmt->encoding) {
         case DEV_PCMU: comfmt->bits_per_sample = 8;  break;
         case DEV_S16:  comfmt->bits_per_sample = 16; break;
+        case DEV_PCMA:
         case DEV_U8:
         case DEV_S8:   return FALSE; /* not supported currently */
         }
@@ -148,6 +149,16 @@ convert_buffer_channels(audio_format *src,
                                 tmp /= 2;
                                 *d++ = s2u(tmp);
                         }
+                } else if (src->encoding == DEV_PCMA) {
+                        u_char *s = src_buf;
+                        u_char *d = dst_buf;
+                        int tmp;
+                        while(s < se) {
+                                tmp  = a2s(*s); s++;
+                                tmp += a2s(*s); s++;
+                                tmp /= 2;
+                                *d++ = s2a(tmp);
+                        }
                 } else if (src->encoding == DEV_S8) {
                         u_char *s = src_buf;
                         u_char *d = dst_buf;
@@ -214,6 +225,12 @@ convert_buffer_sample_type(audio_format *src, u_char *src_buf, int src_bytes,
                                 src16++; dst8++;
                         }
                         break;
+                case DEV_PCMA:
+                        while((u_char*)src16 < se) {
+                                *dst8 = s2a(*src16);
+                                src16++; dst8++;
+                        }
+                        break;
                 case DEV_S8:
                         while((u_char*)src16 < se) {
                                 *dst8 = *src16 >> 8;
@@ -256,7 +273,53 @@ convert_buffer_sample_type(audio_format *src, u_char *src_buf, int src_bytes,
                                 src8++; dst8++;
                         }
                         break;
+                case DEV_PCMA:
+                        dst8 = dst_buf;
+                        while(src8 < se) {
+                                tmp16 = u2s(*src8);
+                                *dst8 = s2a(tmp16);
+                                src8++; dst8++;
+                        }
+                break;
                 case DEV_PCMU:
+                        break; /* Nothing to do! */
+                }
+                break;
+        case DEV_PCMA:
+                src8 = src_buf;
+                switch (dst->encoding) {
+                case DEV_S16:
+                        dst16 = (sample*)dst_buf;
+                        while(src8 < se) {
+                                *dst16 = a2s(*src8);
+                                src8++; dst16++;
+                        }
+                        break;
+                case DEV_S8:
+                        dst8 = dst_buf;
+                        while(src8 < se) {
+                                tmp16 = a2s(*src8);
+                                *dst8 = (u_char)(tmp16 >> 8);
+                                src8++; dst8++;
+                        }
+                break;
+                case DEV_U8:
+                        dst8 = dst_buf;
+                        while(src8 < se) {
+                                tmp16 = a2s(*src8);
+                                *dst8 = (u_char)((tmp16 >> 8) + 128);
+                                src8++; dst8++;
+                        }
+                        break;
+                case DEV_PCMU:
+                        dst8 = dst_buf;
+                        while(src8 < se) {
+                                tmp16 = a2s(*src8);
+                                *dst8 = s2u(tmp16);
+                                src8++; dst8++;
+                        }
+                break;
+                case DEV_PCMA:
                         break; /* Nothing to do! */
                 }
                 break;
@@ -275,6 +338,14 @@ convert_buffer_sample_type(audio_format *src, u_char *src_buf, int src_bytes,
                         while(src8 < se) {
                                 tmp16 = *src8 << 8;
                                 *dst8 = s2u(tmp16);
+                                src8++; dst8++;
+                        }
+                        break;
+                case DEV_PCMA:
+                        dst8 = dst_buf;
+                        while(src8 < se) {
+                                tmp16 = *src8 << 8;
+                                *dst8 = s2a(tmp16);
                                 src8++; dst8++;
                         }
                         break;
@@ -311,6 +382,13 @@ convert_buffer_sample_type(audio_format *src, u_char *src_buf, int src_bytes,
                         while(src8 < se) {
                                 tmp16 = (sample)((*src8 - 128) << 8);
                                 *dst8 = s2u(tmp16);
+                                src8++; dst8++;
+                        }
+                case DEV_PCMA:
+                        dst8 = dst_buf;
+                        while(src8 < se) {
+                                tmp16 = (sample)((*src8 - 128) << 8);
+                                *dst8 = s2a(tmp16);
                                 src8++; dst8++;
                         }
                 case DEV_U8:
@@ -378,10 +456,15 @@ audio_format_change_encoding(audio_format *cur, deve_e new_enc)
         int bits_per_sample = 0;
 
         switch (new_enc) {
-        case DEV_S16:  bits_per_sample = 16; break;
+        case DEV_S16:  
+                bits_per_sample = 16; 
+                break;
         case DEV_S8:
         case DEV_U8:
-        case DEV_PCMU: bits_per_sample = 8;  break;
+        case DEV_PCMU:
+        case DEV_PCMA:
+                bits_per_sample = 8;  
+                break;
         }
         
         cur->bytes_per_block = cur->bytes_per_block * bits_per_sample / cur->bits_per_sample;
@@ -396,6 +479,7 @@ deve_get_name(deve_e encoding)
 {
         switch(encoding) {
         case DEV_PCMU: return "8-bit mu-law";
+        case DEV_PCMA: return "8-bit a-law";
         case DEV_S16:  return "16-bit signed linear";
         case DEV_S8:   return "8-bit signed linear";
         case DEV_U8:   return "8-bit unsigned linear";

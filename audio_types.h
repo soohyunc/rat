@@ -20,6 +20,7 @@
 
 typedef enum {
 	DEV_PCMU, /* mu-law (8 bits) */
+        DEV_PCMA, /*  a-law (8 bits) */
 	DEV_S8,   /* signed 8 bits   */
         DEV_U8,   /* unsigned 8 bits */
 	DEV_S16   /* signed 16 bits  */

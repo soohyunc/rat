@@ -110,6 +110,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 
                 switch(ifmt->encoding) {
                 case DEV_PCMU: pa.rec_format |= AFMT_MU_LAW; break;
+                case DEV_PCMA: pa.rec_format |= AFMT_A_LAW;  break;
                 case DEV_S8:   pa.rec_format |= AFMT_S8;     break;
                 case DEV_S16:  pa.rec_format |= AFMT_S16_LE; break;
                 case DEV_U8:   pa.rec_format |= AFMT_U8;     break;
@@ -117,6 +118,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 
                 switch(ofmt->encoding) {
                 case DEV_PCMU: pa.play_format |= AFMT_MU_LAW; break;
+                case DEV_PCMA: pa.play_format |= AFMT_A_LAW;  break;
                 case DEV_S8:   pa.play_format |= AFMT_S8;     break;
                 case DEV_S16:  pa.play_format |= AFMT_S16_LE; break;
                 case DEV_U8:   pa.play_format |= AFMT_U8;     break;
