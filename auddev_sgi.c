@@ -115,7 +115,7 @@ void
 audio_drain(int audio_fd)
 {
 	sample	buf[QSIZE];
-	audio_read(audio_fd, buf, QSIZE);
+	while(audio_read(audio_fd, buf, QSIZE) == QSIZE);
 }
 
 /* Gain and volume values are in the range 0 - MAX_AMP */

@@ -905,6 +905,7 @@ audio_close(int audio_fd)
 void
 audio_drain(int audio_fd)
 {
+        sample buf[160];
 	switch(audio_device){
 	case DEV_VOXWARE:
 		vox_audio_drain(audio_fd);
@@ -915,6 +916,9 @@ audio_drain(int audio_fd)
 	default:
 		break;
 	}
+        
+        while(audio_read(audio_fd, buf, 160) == 160);
+
 	return;
 }
 

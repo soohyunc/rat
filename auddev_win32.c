@@ -892,7 +892,11 @@ audio_duplex(int audio_fd)
 void
 audio_drain(int audio_fd)
 {
-        UNUSED(audio_fd);
+        sample *buf;
+        int samples = blksz / sizeof(sample);
+        buf = (sample*)xmalloc(blksz);
+        while(audio_read(audio_fd, buf, samples) == samples);
+        xfree(buf);
 }
 
 void

@@ -203,11 +203,11 @@ tx_start(session_struct *sp)
         }
 
         tb->head_ptr = tb->last_ptr = tx_unit_get(tb);
-
         sp->sending_audio = TRUE;
-        sp->auto_lecture = 1;                /* Turn off */
+        sp->auto_lecture = 1;       /* Turn off auto lecture */
         sd_reset(tb->sd_info);
         agc_reset(tb->agc);
+        audio_drain(sp->audio_fd);  /* Clear any audio that may have accumulated */
 }
 
 void
