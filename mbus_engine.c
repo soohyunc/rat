@@ -618,8 +618,9 @@ static void rx_audio_file_play_open(char *srce, char *args, session_t *sp)
 	}
 	mbus_parse_done(mp);
 
-        if (sp->in_file) ui_send_audio_file_play_ready(sp, sp->mbus_ui_addr, file);
-
+        if (sp->in_file) {
+                ui_send_audio_file_play_ready(sp, sp->mbus_ui_addr, file);
+        }
 }
 
 static void rx_audio_file_play_pause(char *srce, char *args, session_t *sp)

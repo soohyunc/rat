@@ -80,7 +80,7 @@ typedef struct s_session {
         int                 	 echo_tx_active; 		/* Mute state when suppressing */
 	int                 	 auto_lecture;     		/* Used for dummy lecture mode */
  	int                 	 receive_audit_required;
-	int                 	 silence_detection;
+	int                 	 silence_detection;             /* Which silence detection scheme is active off / auto / manual */
         struct s_sd*             auto_sd;
         struct s_manual_sd*      manual_sd;
         uint16_t                 manual_sd_thresh;
@@ -90,10 +90,11 @@ typedef struct s_session {
 	int		    	 sync_on;
 	int		    	 agc_on;
         int                 	 ui_on;				/* If we have a user interface... */
-	struct s_sndfile   	*in_file;
-	struct s_sndfile   	*out_file;
-        struct s_voxlet         *local_file_player;
-        struct s_tonegen        *tone_generator;
+	struct s_sndfile   	*in_file;                       /* File being transmitted over network */
+        struct s_converter      *in_file_converter;             /* Input file may be at wrong rate and needs converting */
+	struct s_sndfile   	*out_file;                      /* File being recorded from network */
+        struct s_voxlet         *local_file_player;             /* File that we are playing to ourselves (local playback) */
+        struct s_tonegen        *tone_generator;                /* Tone generator for local audio test */
 	audio_desc_t	    	 audio_device;
 	struct s_tx_buffer 	*tb;
         struct s_pdb       	*pdb; 				/* persistent participant information database.  */

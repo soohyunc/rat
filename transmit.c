@@ -27,6 +27,7 @@ static const char cvsid[] =
 #include "audio.h"
 #include "audio_util.h"
 #include "sndfile.h"
+#include "converter.h"
 #include "parameters.h"
 #include "pdb.h"
 #include "ui_send_rtp.h"
@@ -85,6 +86,7 @@ typedef struct s_tx_buffer {
 } tx_buffer;
 
 static sample dummy_buf[DEVICE_REC_BUF];
+static void tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *u);
 
 static int
 tx_unit_create(tx_buffer *tb, tx_unit  **ptu, int n_samples)
@@ -287,18 +289,16 @@ tx_read_audio(tx_buffer *tb)
                                                u->data + u->dur_used * tb->channels,
                                                (tb->unit_dur - u->dur_used) * tb->channels) / tb->channels;
                         assert(this_read <= tb->unit_dur - u->dur_used);
-                        if (sp->in_file) {
-                                snd_read_audio(&sp->in_file, 
-                                                u->data + u->dur_used * tb->channels,
-                                                (uint16_t)(this_read * tb->channels));
-                        }
 
                         filled_unit = FALSE;
                         u->dur_used += this_read;
                         if (u->dur_used == tb->unit_dur) {
                                 read_dur += tb->unit_dur;
+                                if (sp->in_file) {
+                                        tx_read_sndfile(sp, freq, tb->channels, u);
+                                }
                                 time_advance(sp->clock, freq, tb->unit_dur);
-                                u_ts = ts_add(u_ts, ts_map32(get_freq(tb->clock), tb->unit_dur));
+                                u_ts = ts_add(u_ts, ts_map32(freq, tb->unit_dur));
                                 tx_unit_create(tb, &u, tb->unit_dur * tb->channels);
                                 pb_add(tb->audio_buffer, (u_char*)u, ulen, u_ts);
                                 pb_iterator_advance(tb->reading);
@@ -702,5 +702,96 @@ tx_get_bps(tx_buffer *tb)
                 tb->bps_bytes_sent  = 0;
                 tb->bps_last_update = tb->sp->cur_ts;
                 return bps;
+        }
+}
+
+
+static void 
+tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *u)
+{
+        sndfile_fmt_t sfmt;
+        int samples_read;
+        
+        snd_get_format(sp->in_file, &sfmt);
+        if (sfmt.channels != tx_channels || sfmt.sample_rate != tx_freq) {
+                converter_fmt_t target;
+                const converter_fmt_t *actual;
+                coded_unit in, out;
+
+                target.src_channels = sfmt.channels;
+                target.src_freq     = sfmt.sample_rate;
+                target.dst_channels = tx_channels;
+                target.dst_freq     = tx_freq;
+
+                /* Check if existing converter exists and whether valid */
+                if (sp->in_file_converter != NULL) {
+                        actual = converter_get_format(sp->in_file_converter);
+                        if (memcmp(actual, &target, sizeof(converter_fmt_t)) != 0) {
+                                converter_destroy(&sp->in_file_converter);
+                        }
+                }
+                /* Create relevent converter if necessary */
+                if (sp->in_file_converter == NULL) {
+                        const converter_details_t *details = NULL;
+                        uint32_t i, n;
+                        /* We iterate through available converters
+                         * since they have different capabilities,
+                         * specifically MS-ACM does m*8:n*11025 and
+                         * the RAT ones don't at time of writing.
+                         */
+                        n = converter_get_count();
+                        for(i = 0; i < n; i++) {
+                                details = converter_get_details(i);
+                                if (converter_create(details->id, &target, &sp->in_file_converter)) {
+                                        debug_msg("Created converter %s for sound file conversion\n", details->name);
+                                        break;
+                                }
+                        }
+                        if (i == n) {
+                                debug_msg("Could not create suitable converter for sound file\n");
+                                snd_read_close(&sp->in_file);
+                                return;
+                        }
+                }
+
+                /* Prepare block to read audio into */
+                in.id        = codec_get_native_coding(target.src_freq, target.src_channels);
+                in.state     = NULL;
+                in.state_len = 0;
+                in.data_len  = 2 * sizeof(sample) * 
+                        (uint16_t)(u->dur_used * target.src_freq * target.src_channels / 
+                                   (target.dst_freq * target.dst_channels));
+                in.data      = (u_char*)block_alloc(in.data_len);
+
+                /* Get the sound from file */
+                samples_read = snd_read_audio(&sp->in_file,
+                                              (sample*)in.data,
+                                              in.data_len / sizeof(sample));
+
+                if (samples_read == 0) {
+                        /* File is paused */
+                        codec_clear_coded_unit(&in);
+                        return;
+                }
+
+                /* Prepare output block */
+                memset(&out, 0, sizeof(out));
+                converter_process(sp->in_file_converter,
+                                  &in,
+                                  &out);
+                debug_msg("file samples in %d converted samples  %d target samples %d\n", 
+                          in.data_len  / sizeof(sample), 
+                          out.data_len / sizeof(sample), 
+                          u->dur_used * tx_channels);
+                memcpy(u->data,
+                       out.data,
+                       min(u->dur_used * tx_channels, out.data_len / sizeof(sample)));
+                /* Tidy up */
+                codec_clear_coded_unit(&in);
+                codec_clear_coded_unit(&out);
+        } else {
+                snd_read_audio(&sp->in_file,
+                               u->data,
+                               u->dur_used * tx_channels);
         }
 }

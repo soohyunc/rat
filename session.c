@@ -163,6 +163,9 @@ session_exit(session_t *sp)
         if (sp->local_file_player) {
                 voxlet_destroy(&sp->local_file_player);
         }
+        if (sp->in_file_converter) {
+                converter_destroy(&sp->in_file_converter);
+        }
         channel_encoder_destroy(&sp->channel_coder);
         source_list_destroy(&sp->active_sources);
 	xfree(sp->mbus_engine_addr);

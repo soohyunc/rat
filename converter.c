@@ -22,11 +22,14 @@ static const char cvsid[] =
 #include "convert_util.h"
 #include "debug.h"
 
+#define MAGIC 0xface0ff0
+
 typedef struct s_converter {
         int                     idx;
         struct s_converter_fmt *cfmt;
         u_char                 *state;
-        uint32_t                 state_len;
+        uint32_t                state_len;
+        uint32_t                magic;
 } converter_t;
 
 typedef int  (*cv_startup)     (void);  /* converter specific one time initialization */
@@ -148,7 +151,10 @@ converter_create(const converter_id_t   cid,
                 converter_destroy(&c);
                 return FALSE;
         }
+
+        c->magic = MAGIC; /* debugging */
         *cvtr = c;
+        
         xmemchk();
         return TRUE;
 }
@@ -158,7 +164,11 @@ converter_destroy(converter_t **cvtr)
 {
         converter_t *c = *cvtr;
 
-        if (c == NULL) return;
+        if (c == NULL) {
+                return;
+        }
+
+        assert(c->magic == MAGIC);
 
         if (converter_tbl[c->idx].freef && c->state != NULL) {
                 converter_tbl[c->idx].freef(&c->state, &c->state_len);
@@ -222,6 +232,7 @@ converter_process (converter_t *c, coded_unit *in, coded_unit *out)
         converter_fmt_t *cf;
         uint32_t          n_in, n_out;
 
+        assert(c->magic == MAGIC);
 #ifdef DEBUG
         {
                 uint16_t sample_rate, channels;
@@ -263,7 +274,7 @@ converter_process (converter_t *c, coded_unit *in, coded_unit *out)
                 debug_msg("No conversion necessary\n");
                 memcpy(out->data, in->data, out->data_len);
         }
-
+        assert(c->magic == MAGIC);
         xmemchk();
         return TRUE;
 }
@@ -272,6 +283,7 @@ const converter_fmt_t*
 converter_get_format (converter_t *c)
 {
         assert(c != NULL);
+        assert(c->magic == MAGIC);
         return c->cfmt;
 }
 
