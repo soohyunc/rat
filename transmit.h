@@ -62,8 +62,8 @@ void  tx_stop        (struct s_tx_buffer  *tb);
 int   tx_is_sending  (struct s_tx_buffer  *tb);
 
 int   tx_read_audio    (struct s_tx_buffer *tb);
-int   tx_process_audio (struct session_tag *sp);
-void  tx_send          (struct session_tag *sp);
+int   tx_process_audio (struct s_tx_buffer *tb);
+void  tx_send          (struct s_tx_buffer *tb);
 void  tx_update_ui     (struct session_tag *sp);
 void  tx_igain_update  (struct session_tag *sp);
 
