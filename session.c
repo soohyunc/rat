@@ -53,8 +53,6 @@
 #include "parameters.h"
 #include "audio.h"
 
-extern char ui_original[];
-
 static void 
 usage(void)
 {
@@ -126,7 +124,6 @@ init_session(session_struct *sp)
         sp->have_device                 = 0;
 	sp->rtp_seq			= lrand48() & 0xffff;
 	sp->speakers_active 		= NULL;
-	sp->ui_script			= ui_original;
 	sp->mbus_channel		= 0;
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;

@@ -50,9 +50,8 @@
 #include <tcl.h>
 #include <tk.h>
 
-extern char		init_ui_script[];
-extern char		init_ui_small_script[];
-extern char		TCL_LIBS[];
+extern char 	ui_original[];
+extern char	TCL_LIBS[];
 
 /* Should probably have these functions inline here, rather than in win32.c??? [csp] */
 #ifdef WIN32		
@@ -77,9 +76,7 @@ tcl_send(char *command)
 	}
 
 	if (Tcl_Eval(interp, command) != TCL_OK) {
-#ifdef DEBUG
-		printf("TCL error: %s\n", Tcl_GetVar(interp, "errorInfo", 0));
-#endif
+		dprintf("TCL error: %s\n", Tcl_GetVar(interp, "errorInfo", 0));
 	}
 }
 
@@ -130,6 +127,25 @@ mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 #include "xbm/line_out.xbm"
 #include "xbm/line_in.xbm"
 #include "xbm/rat_small.xbm"
+
+int
+tcl_process_event(void)
+{
+	return Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS);
+}
+
+void
+tcl_process_events(void)
+{
+	int i;
+	for (i=0; i<16 && tcl_process_event(); i++) ;
+}
+
+int
+tcl_active(void)
+{
+	return (Tk_GetNumMainWindows() > 0);
+}
 
 int
 tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
@@ -183,31 +199,12 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tk_DefineBitmap(interp, Tk_GetUid("line_in"), line_in_bits, line_in_width, line_in_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("rat_small"), rat_small_bits, rat_small_width, rat_small_height);
 
-	tcl_send(sp->ui_script);
-	while (Tcl_DoOneEvent(TCL_ALL_EVENTS | TCL_DONT_WAIT)) {
+	tcl_send(ui_original);
+	while (tcl_process_event()) {
 		/* Processing Tcl events, to allow the UI to initialize... */
 	};
 
 	Tcl_ResetResult(interp);
 	return TRUE;
-}
-
-int
-tcl_process_event(void)
-{
-	return Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS);
-}
-
-void
-tcl_process_events(void)
-{
-	int i;
-	for (i=0; i<16 && tcl_process_event(); i++) ;
-}
-
-int
-tcl_active(void)
-{
-	return (Tk_GetNumMainWindows() > 0);
 }
 

@@ -142,7 +142,6 @@ typedef struct session_tag {
 	int		last_zero;		/* audio.c */
 	long		loop_delay;
 	long		loop_estimate;
-        char            *ui_script;
 	int		 mbus_channel;
 } session_struct;
 
