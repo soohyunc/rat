@@ -67,7 +67,7 @@ typedef struct s_source {
         struct s_converter         *converter;
         skew_t skew;
         ts_t   skew_adjust;
-        int8   skew_offenses;
+        int32  skew_offenses;
 } source;
 
 /* A linked list is used for sources and this is fine since we mostly
@@ -487,7 +487,7 @@ source_check_buffering(source *src, ts_t now)
  * returns TRUE if adaption happened and false otherwise.
  */
 
-#define SKEW_ADAPT_THRESHOLD  1000
+#define SKEW_ADAPT_THRESHOLD  500
 
 static int
 source_skew_adapt(source *src, media_data *md)
@@ -521,10 +521,11 @@ source_skew_adapt(source *src, media_data *md)
         if (src->skew == SOURCE_SKEW_FAST && 
             e < SKEW_ADAPT_THRESHOLD      &&
             abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_ADAPT) {
-                /* source is fast so we need to bring units forward.  Should
-                 * only move forward a single unit otherwise we might discard
-                 * something we have not classified.  */
-                adjustment = ts_map32(rate, samples / channels);
+                /* source is fast so we need to bring units forward.
+                 * Should only move forward at most a single unit
+                 * otherwise we might discard something we have not
+                 * classified.  */
+                adjustment = ts_map32(rate, samples / (channels * 4));
 
                 pb_shift_forward(src->media,   adjustment);
                 pb_shift_forward(src->channel, adjustment);
@@ -627,9 +628,9 @@ source_repair(source *src,
                                    &prev_ts);
                 if (ts_eq(prev_ts, fill_ts) == FALSE) {
                         debug_msg("Looks like playout point was recalculated and triggered repair\n");
+                        return;
                 }
                 
-                assert(ts_eq(prev_ts, fill_ts));
 #endif
         } else {
                 /* This should only ever fail at when source changes
