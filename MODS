@@ -1312,9 +1312,9 @@ v4.2.4	- Further updates to OSS (i.e. Linux) audio support
 	- Fix buffer overflow when reading from "No audio device". This was
 	  the cause of the
 		"playout.c:86: pb_validate:Assertion 'pb->magic==0x83838383' 
-	  error reported by Christa Wenger, Marcos Bedinelli and Fang Yuan
-	  on Linux.
-
+	  error reported by Christa Wenger, Marcos Bedinelli and Fang Yuan.
+	- Remove spurious calls to tx_process_audio() and tx_send() from
+	  the main loop.
 
 
 
@@ -1404,9 +1404,4 @@ TODO -- They're features not bugs dammit!
   transcoder individually.
 - Crashes on WinNT if another version of Tcl/Tk is installed on the machine?
   Reported by Didier Lamballais <Didier.Lamballais@irisa.fr>.
-- Why do we do...
-	if (tx_is_sending(sp[i]->tb)) {
-		tx_process_audio(sp[i]->tb);
-		tx_send(sp[i]->tb);
-	}
-  ...twice in the main loop?
+

@@ -234,11 +234,6 @@ int main(int argc, char *argv[])
 			mbus_retransmit(sp[i]->mbus_engine);
 			mbus_send(sp[i]->mbus_engine); 
 
-			if (tx_is_sending(sp[i]->tb)) {
-				tx_process_audio(sp[i]->tb);
-				tx_send(sp[i]->tb);
-			}
-
 			/* Process and mix active sources */
 			if (sp[i]->playing_audio) {
 				struct s_source *s;
