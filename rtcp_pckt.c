@@ -61,7 +61,7 @@
 #include "rat_time.h"
 
 #define SECS_BETWEEN_1900_1970 2208988800u
-#define RTP_SSRC_EXPIRE 	70*8000
+#define RTP_SSRC_EXPIRE        70u
 
 /*
  * Sets the ntp 64 bit values, one 32 bit quantity at a time.
@@ -381,6 +381,7 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 	rtcp_dbentry   *sptr 	= sp->db->ssrc_db;
 	rtcp_dbentry   *sptmp	= NULL;
 	u_int32		now 	= get_time(sp->device_clock);
+        u_int32         expiry  = get_freq(sp->device_clock) * RTP_SSRC_EXPIRE;
 	u_short         packlen = 0;
 	u_short		offset	= 0;
 
@@ -393,7 +394,7 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 	}
 	while (sptr) {
 		sptmp = sptr->next;	/* We may free things below */
-		if (now - sptr->last_active > RTP_SSRC_EXPIRE) {
+		if (now - sptr->last_active > expiry) {
 			rtcp_delete_dbentry(sp, sptr->ssrc);
 		} else {
 			if (sptr->is_sender) {
