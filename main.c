@@ -181,9 +181,7 @@ main(int argc, char *argv[])
 			}
 			cur_time = get_time(sp[i]->device_clock);
 			ntp_time = ntp_time32();
-                        cur_ts   = ts_seq32_in(&sp[i]->decode_sequencer,
-                                               get_freq(sp[i]->device_clock),
-                                               cur_time);
+                        cur_ts   = ts_seq32_in(&sp[i]->decode_sequencer, get_freq(sp[i]->device_clock), cur_time);
 
 			timeout.tv_sec  = 0;
 			timeout.tv_usec = 0;
@@ -201,16 +199,12 @@ main(int argc, char *argv[])
 			}
 
 			tx_process_audio(sp[i]->tb);
-
                         if (tx_is_sending(sp[i]->tb)) {
                                 tx_send(sp[i]->tb);
                         }
 
                         /* Process incoming packets */
-                        statistics_process(sp[i], 
-                                           sp[i]->rtp_pckt_queue, 
-                                           sp[i]->cushion, 
-                                           ntp_time);
+                        statistics_process(sp[i], sp[i]->rtp_pckt_queue, sp[i]->cushion, ntp_time);
 
                         /* Process and mix active sources */
 			if (sp[i]->playing_audio) {
@@ -218,12 +212,10 @@ main(int argc, char *argv[])
                                 int sidx, scnt;
                                 ts_t cush_ts;
                                 
-                                cush_ts = ts_map32(get_freq(sp[i]->device_clock), 
-                                                   cushion_get_size(sp[i]->cushion));
+                                cush_ts = ts_map32(get_freq(sp[i]->device_clock), cushion_get_size(sp[i]->cushion));
                                 cush_ts = ts_add(cur_ts, cush_ts);
                                 scnt = (int)source_list_source_count(sp[i]->active_sources);
                                 for(sidx = 0; sidx < scnt; sidx++) {
-
                                         s = source_list_get_source_no(sp[i]->active_sources, sidx);
                                         source_process(s, sp[i]->ms, sp[i]->render_3d, sp[i]->repair, cush_ts);
                                         source_audit(s);
@@ -307,24 +299,19 @@ main(int argc, char *argv[])
                 mbus_exit(sp[0]->mbus_engine);
                 if (sp[0]->ui_on) {
                         mbus_exit(sp[0]->mbus_ui);
+                	tcl_exit();
                 }
         }
-
         
-        if (sp[0]->ui_on) {
-                tcl_exit();
-        }
-
-        for(i = 0; i<2; i++) {
+        for(i = 0; i < num_sessions; i++) {
                 end_session(sp[i]);
                 xfree(sp[i]);
         }
 
-        xfree(cname);
-
         converters_free();
         audio_free_interfaces();
 
+        xfree(cname);
 	xmemdmp();
 	return 0;
 }
