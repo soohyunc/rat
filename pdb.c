@@ -138,12 +138,13 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, uint16_t freq, uint32_t id)
         item->last_ui_update  = zero_ts;
 
         /* Initial jitter estimate (30ms)                                    */
-        item->jitter          = ts_map32(8000, 240);
-        item->transit         = zero_ts;
-        item->last_transit    = zero_ts;
-        item->avg_transit     = zero_ts;
-        item->playout         = zero_ts;
-        item->last_arr        = zero_ts;
+        item->jitter            = ts_map32(8000, 240);
+        item->transit           = zero_ts;
+        item->last_transit      = zero_ts;
+        item->last_last_transit = zero_ts;
+        item->avg_transit       = zero_ts;
+        item->playout           = zero_ts;
+        item->last_arr          = zero_ts;
 
         /* Packet stats initialization                                       */
         item->received        = 0;
