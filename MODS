@@ -1528,6 +1528,12 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 	  for build instructions and comments.
 	- Add support for non-AC97 mixers on FreeBSD's newpcm.
 	- Add support for new device names under FreeBSD-5 (audio<m>.<n>)
+	- OSS/Linux audio driver now uses /dev/dsp rather than /dev/audio,
+	  since some drivers don't support /dev/audio.
+	- Cleanup OSS/Linux audio driver code
+
+
+
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1547,7 +1553,7 @@ TODO -- They're features not bugs dammit!
 	  G722, and "CD Quality" audio: it may do, but you can't access them.
 	- SGI O2's don't have autosensing audio interface selection like 
 	  Indy's.
-	- Linux/OSS driver is buggy
+	- OSS/Linux driver is buggy
 		- Thierry still has problems with the NM256 card and device pairing
 		- Some cards are not detected correctly
 - Update the 3d audio rendering code
