@@ -197,14 +197,19 @@ audio_device_write(session_struct *sp, sample *buf, int dur)
 {
         codec_t *cp = get_codec_by_pt(sp->encodings[0]);
 
-	if (sp->have_device)
+	if (sp->have_device) {
+                u_int16 channels = audio_get_channels();
+                if (sp->out_file) {
+                        snd_write_audio(&sp->out_file, buf, dur * channels);
+                }
 		if (sp->mode == TRANSCODER) {
 			return transcoder_write(sp->audio_fd, buf, dur*cp->channels);
 		} else {
-			return audio_write(sp->audio_fd, buf, dur * audio_get_channels());
+			return audio_write(sp->audio_fd, buf, dur * channels);
 		}
-	else
+        } else {
 		return (dur * cp->channels);
+        }
 }
 
 int
@@ -407,9 +412,6 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                                     (read_dur - cushion_size), 
                                     &bufp);
                 audio_device_write(spo, bufp, new_cushion);
-                if (spo->out_file) {
-                        snd_write_audio(&spo->out_file, bufp, (u_int16)new_cushion);
-                }
                 debug_msg("catch up! read_dur(%d) > cushion_size(%d)\n",
                         read_dur,
                         cushion_size);
@@ -436,18 +438,12 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                         debug_msg("Decreasing cushion\n");
                 }
                 audio_device_write(spo, bufp, read_dur);
-                if (spo->out_file) {
-                        snd_write_audio(&spo->out_file, bufp, BYTES_PER_SAMPLE);
-                }
                 /*
                  * If diff is greater than zero then we must increase the
                  * cushion so increase the amount of trailing silence.
                  */
                 if (diff > 0) {
                         audio_device_write(spo, audio_zero_buf, cushion_step);
-                        if (spo->out_file) {
-                                snd_write_audio(&spo->out_file, audio_zero_buf, (u_int16)cushion_step);
-                        }
                         cushion_step_up(c);
                         debug_msg("Increasing cushion.\n");
                 }

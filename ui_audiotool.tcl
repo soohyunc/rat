@@ -591,7 +591,7 @@ proc mbus_recv_audio.file.record.ready {name} {
 proc mbus_recv_audio.file.record.alive {alive} {
 	global rec_file
 	if {$alive} {
-		after 200 file_play_live
+		after 200 file_rec_live
 	} else {
 		set rec_file(state) end
 		file_enable_record                                          
@@ -1936,27 +1936,26 @@ proc file_rec_live {} {
 proc file_open_play {path} {
     global play_file
 
-
-	mbus_send "R" "audio.file.play.open" [mbus_encode_str $path]
-	mbus_send "R" "audio.file.play.pause" 1
-	set play_file(state) paused
-	set play_file(name) $path
-
-	# Test whether file is still playing/valid
-	after 200 file_play_live
+    mbus_send "R" "audio.file.play.open" [mbus_encode_str $path]
+    mbus_send "R" "audio.file.play.pause" 1
+    set play_file(state) paused
+    set play_file(name) $path
+    
+    # Test whether file is still playing/valid
+    after 200 file_play_live
 }
 
 proc file_open_rec {path} {
-	global rec_file
+    global rec_file
 
     mbus_send "R" "audio.file.record.open" [mbus_encode_str $path]
     mbus_send "R" "audio.file.record.pause" 1
 
-	set rec_file(state) paused
-	set rec_file(name)  $path
+    set rec_file(state) paused
+    set rec_file(name)  $path
 
-	# Test whether file is still recording/valid
-	after 200 file_rec_live
+    # Test whether file is still recording/valid
+    after 200 file_rec_live
 }
 
 proc file_enable_play { } {

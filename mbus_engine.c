@@ -981,7 +981,7 @@ const char *rx_cmnd[] = {
         "audio.file.play.pause",
         "audio.file.play.stop",
         "audio.file.play.live",
-	"audio.file.record.open"
+	"audio.file.record.open",
         "audio.file.record.pause",
 	"audio.file.record.stop",
         "audio.file.record.live",
@@ -1048,7 +1048,7 @@ void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 		if (strcmp(rx_cmnd[i], cmnd) == 0) {
                         rx_func[i](srce, args, (session_struct *) data);
 			return;
-		}
+		} 
 	}
 	debug_msg("Unknown mbus command: %s %s\n", cmnd, args);
 }
