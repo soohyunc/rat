@@ -6,14 +6,18 @@
 #include "debug.h"
 
 static void
-buffer_fill(sample *s, int s_bytes, int freq, int channels)
+buffer_fill(sample *s, int s_bytes, int channels, int freq)
 {
-        int i, j, samples = s_bytes / (channels * sizeof(sample));
+        int i, j, samples = s_bytes / sizeof(sample);
 
         xmemchk();
-        for(i = 0; i < samples; i++) {
-                for(j = 0; j<channels; j++)
-                        s[i+j] = (sample)(16384.0 * sin(2 * M_PI * (float)i/(float)freq)) + ((short)random()%16);
+        assert(channels == 1 || channels == 2);
+        assert(samples > 30);
+        for(i = 0; i < samples; i+=channels) {
+                for(j = 0; j<channels; j++) {
+                        s[i+j] = (sample)
+                                (16384.0 * sin(2 * M_PI * (float)i/(float)freq));
+                }
         }
         xmemchk();
 }
@@ -22,23 +26,24 @@ static double
 snr(sample *src, sample *replica, int s_bytes)
 {
         int i, n_samples = s_bytes / sizeof(sample);
-        float tot = 0.0, d;
-        for (i = 0; i < n_samples; i++) {
-                d = fabs(src[i] - replica[i]);
-                if (d >= 1.0) {
-                        tot += d;
-                }
+        double st = 0.0, nt = 0.0;
+        
+        for(i = 0; i < n_samples; i++) {
+                st += fabs((double)src[i]);
+                nt += fabs((double)src[i] - (double)replica[i]);
         }
-        tot = tot / (float)n_samples;
-        if (tot >= 1.0) {
-                return 20.0*log(tot);
-        } else {
-                return -1.0;
-        }
+
+        if (nt == 0) return -100000000.0;
+
+        return -20 * (log10(st / nt));
 }
 
 /* This function encodes and decodes frames of audio
  * containing tones and produces SNR estimate.
+ *
+ * For codecs that are not pitch synchronous this does not
+ * make a lot of sense with first finding max correlation score
+ * between buffers and then realigning.
  */  
 
 static void

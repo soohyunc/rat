@@ -305,13 +305,21 @@ static void codec_map_exit(void);
 void
 codec_init()
 {
-        u_int32 i;
+        const codec_format_t *cf;
+        u_int32 i, j;
 
         if (total_fmts_supported == 0) {
                 for(i = 0; i < NUM_CODEC_INTERFACES; i++) {
                         if (codec_table[i].cx_init) codec_table[i].cx_init();
                         num_fmts_supported[i] = codec_table[i].cx_get_formats_count();
                         total_fmts_supported += num_fmts_supported[i];
+                        for(j = 0; j < num_fmts_supported[i]; j++) {
+                                cf = codec_table[i].cx_get_format(j);
+                                /* Most compilers should spot this check anyway */
+                                assert(strlen(cf->short_name) < CODEC_SHORT_NAME_LEN);
+                                assert(strlen(cf->long_name) < CODEC_LONG_NAME_LEN);
+                                assert(strlen(cf->description) < CODEC_DESCRIPTION_LEN);
+                        }
                 }
                 codec_map_init();
         } else {

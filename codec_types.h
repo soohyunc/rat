@@ -52,10 +52,14 @@ typedef struct {
         codec_id_t id;
 } codec_state;
 
+#define CODEC_SHORT_NAME_LEN   12
+#define CODEC_LONG_NAME_LEN    20
+#define CODEC_DESCRIPTION_LEN 128
+
 typedef struct s_codec_format {
-        char         short_name[10];
-        char         long_name[32];
-        char         description[128];
+        char         short_name[CODEC_SHORT_NAME_LEN];
+        char         long_name[CODEC_LONG_NAME_LEN];
+        char         description[CODEC_DESCRIPTION_LEN];
         u_char       default_pt;
         u_int16      mean_per_packet_state_size;
         u_int16      mean_coded_frame_size;

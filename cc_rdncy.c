@@ -62,8 +62,6 @@
 #define RED_PRIMARY 1
 #define RED_EXTRA   2
 
-
-
 #define RED_HDR32_INIT(x)      (x)  = 0x80000000
 #define RED_HDR32_SET_PT(x,y)  (x) |= ((y)<<24)
 #define RED_HDR32_SET_OFF(x,y) (x) |= ((y)<<10)
@@ -421,6 +419,120 @@ redundancy_encoder_encode (u_char      *state,
         }
         pb_iterator_destroy(in, &pi);
 
+        return TRUE;
+}
+
+/* Redundancy {get,set} parameters expects strings like:
+ *            dvi-8k-mono/0/lpc-8k-mono/2
+ * where number is the offset in number of units.
+ */ 
+
+int
+redundancy_encoder_set_parameters(u_char *state, char *cmd)
+{
+        red_enc_state *n;
+        u_int32 nl, uo;
+        codec_id_t  cid;
+        char *s;
+
+        assert(state != NULL);
+        assert(cmd   != NULL);
+
+        /* Create a temporary encoder, try to set it's params */
+        redundancy_encoder_create((u_char**)&n, &nl);
+        assert(n != NULL);
+
+        s = strtok(cmd, "/");
+        cid = codec_get_by_name(s);
+        if (!codec_id_is_valid(cid)) {
+                debug_msg("codec not recognized\n");
+                goto done;
+        }
+
+        s = strtok(NULL, "/");
+        uo = atoi(s);
+
+        if (uo > 20) {
+                debug_msg("offset too big\n");
+                goto done;
+        }
+        
+        n->layer[0].cid       = cid;
+        n->layer[0].units_off = uo;
+        n->n_layers           = 1;
+
+        while (n->n_layers < RED_MAX_LAYERS) {
+                s = strtok(NULL, "/");
+                if (s == NULL) break;
+                cid = codec_get_by_name(s);
+                if (!codec_id_is_valid(cid)) {
+                        debug_msg("codec not recognized\n");
+                        goto done;
+                }
+
+                s = strtok(NULL, "/");
+                if (s == NULL) {
+                        debug_msg("Incomplete layer info\n");
+                        goto done;
+                }
+                uo = atoi(s);
+                if (uo > 20) {
+                        debug_msg("offset too big\n");
+                        goto done;
+                }
+        
+                n->layer[n->n_layers].cid       = cid;
+                n->layer[n->n_layers].units_off = uo;
+                n->n_layers ++;
+        }
+
+        assert(n->n_layers > 1);
+        memcpy(state, n, sizeof(red_enc_state));
+        redundancy_encoder_destroy((u_char**)&n, nl);
+        return TRUE;
+done:
+        redundancy_encoder_destroy((u_char**)&n, nl);
+        return FALSE;
+}
+
+int 
+redundancy_encoder_get_parameters(u_char *state, char *buf, u_int32 blen)
+{
+        const codec_format_t *cf;
+        red_enc_state *r;
+        u_int32 i, used, flen;
+
+        char frag[CODEC_LONG_NAME_LEN+5]; /* XXX/nn/\0 + 1*/
+
+        assert(blen > 0);
+        assert(buf != NULL);
+
+        r = (red_enc_state*)state;
+        if (r->n_layers < 2) {
+                debug_msg("Redundancy encoder has not had parameters set!\n");
+                return FALSE;
+        }
+        
+        *buf = '\0';
+
+        for(i = 0, used = 0; i < r->n_layers; i++) {
+                cf = codec_get_format(r->layer[i].cid);
+                assert(cf != NULL);
+                sprintf(frag,
+                        "%s/%ld/",
+                        cf->long_name,
+                        r->layer[i].units_off);
+                flen += strlen(frag);
+                if (used+flen > blen) {
+                        debug_msg("buffer overflow would have occured.\n");
+                        *buf = '\0';
+                        return FALSE;
+                }
+                strcat(buf + used, frag);
+                used += flen;
+        }
+        buf[used - 1] = '\0';
+        debug_msg("red parameters: %s\n", buf);
         return TRUE;
 }
 
