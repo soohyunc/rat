@@ -143,7 +143,7 @@ sun_read_audio(FILE *pf, char* state, sample *buf, int samples)
 }
 
 static int
-sun_write_hdr(FILE *fp, char **state, int freq, int channels)
+sun_write_hdr(FILE *fp, char **state, sndfile_fmt_e encoding, int freq, int channels)
 {
         sun_audio_filehdr *saf;
 
@@ -152,7 +152,9 @@ sun_write_hdr(FILE *fp, char **state, int freq, int channels)
                 debug_msg("failed to allocate sun audio file header\n");
                 return FALSE;
         }
-                
+
+        UNUSED(encoding);
+        
         *state = (char*)saf;
         saf->magic     = SUN_AUDIO_FILE_MAGIC;
         saf->hdr_size  = sizeof(sun_audio_filehdr);
@@ -170,8 +172,6 @@ sun_write_hdr(FILE *fp, char **state, int freq, int channels)
                 *state = NULL;
                 return FALSE;
         }
-
-
 }
 
 static int
@@ -488,7 +488,7 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
 }
 
 static int
-riff_write_hdr(FILE *fp, char **state, int freq, int channels)
+riff_write_hdr(FILE *fp, char **state, sndfile_fmt_e encoding, int freq, int channels)
 {
         riff_state *rs;
         int         hdr_len;
@@ -498,6 +498,8 @@ riff_write_hdr(FILE *fp, char **state, int freq, int channels)
                 return FALSE;
         }
         *state = (char*)rs;
+
+        UNUSED(encoding); /* Ignore encoding for the time being */
 
         rs->cbUsed = 0;
         rs->wf.wFormatTag       = MS_AUDIO_FILE_ENCODING_PCM;
@@ -634,7 +636,7 @@ riff_get_rate(char *state)
 
 typedef int (*pf_open_hdr)    (FILE *, char **state);
 typedef int (*pf_read_audio)  (FILE *, char * state, sample *buf, int samples);
-typedef int (*pf_write_hdr)   (FILE *, char **state, int freq,    int channels);
+typedef int (*pf_write_hdr)   (FILE *, char **state, sndfile_fmt_e, int freq, int channels);
 typedef int (*pf_write_audio) (FILE *, char * state, sample *buf, int samples);
 typedef int (*pf_write_end)   (FILE *, char *state);
 typedef int (*pf_free_state)  (char **state);
@@ -786,7 +788,7 @@ snd_get_extension(char *path)
 }
 
 int
-snd_write_open (snd_file_t **sf, char *path, u_int16 freq, u_int16 channels)
+snd_write_open (snd_file_t **sf, char *path, sndfile_fmt_e encoding, u_int16 freq, u_int16 channels)
 {
         snd_file_t *s;
         FILE       *fp;
@@ -823,7 +825,7 @@ snd_write_open (snd_file_t **sf, char *path, u_int16 freq, u_int16 channels)
                 if (!strcasecmp(extension, snd_handlers[i].extension)) {
                         s->sfh    = snd_handlers + i;
                         s->action = SND_ACTION_RECORDING;
-                        s->sfh->write_hdr(fp, &s->state, freq, channels);
+                        s->sfh->write_hdr(fp, &s->state, encoding, freq, channels);
                         *sf = s;
                         return TRUE;
                 }

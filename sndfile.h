@@ -34,6 +34,12 @@ extern "C" {
 
 struct s_snd_file;
 
+typedef enum { 
+        SNDFILE_FMT_PCMU,
+        SNDFILE_FMT_PCMA,
+        SNDFILE_FMT_L16
+} sndfile_fmt_e;
+
 int  snd_read_open (struct s_snd_file **sf, 
                     char    *path);
 
@@ -44,9 +50,10 @@ int  snd_read_audio (struct s_snd_file **sf,
                      u_int16 buf_len);
 
 int  snd_write_open (struct s_snd_file **sf,
-                     char *path,
-                     u_int16  freq,
-                     u_int16  channels);
+                     char         *path,
+                     sndfile_fmt_e fmt,
+                     u_int16       freq,
+                     u_int16       channels);
 
 int  snd_write_close (struct s_snd_file **sf);
 
