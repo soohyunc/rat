@@ -7,6 +7,8 @@ the files auddev_*.[ch].  RAT implements a fairly basic device abstraction
 that should make it straightforward to add new devices.
 
 The following interfaces are currently supported:
+	auddev_alsa.[ch]	Advanced Linux Sound Architecture.
+	auddev_atm.[ch]		ATM A-law driver (reads and writes raw AAL1)
 	auddev_luigi.[ch]	PCM Sound Driver for FreeBSD (Luigi's Driver)
 	auddev_osprey.[ch]	SunVideo Plus Audio Device (Buggy driver!)
 	auddev_oss.[ch]		Linux and FreeBSD Open Sound System
@@ -45,7 +47,7 @@ Audio Interface Functions
 =========================
 
 WARNING: THIS DOCUMENT IS CORRECT AT THE TIME OF WRITING ONLY.
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 int platform_audio_init(void);
 
 Arguments: None.
