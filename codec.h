@@ -68,9 +68,9 @@ struct s_codec_state;
 
 typedef struct s_coded_unit {
 	struct s_codec *cp;
-	char	*state;
+	u_char	*state;
 	int	state_len;
-	char	*data;
+	u_char	*data;
 	int	data_len;
 } coded_unit;
 

@@ -263,7 +263,7 @@ _block_alloc(unsigned int size, const char *filen, int line)
 		p += 8;
                 blocks_alloced++;
 	}
-	c = (int *)((char *)p - 8);
+	c = (unsigned int *)((char *)p - 8);
 	if (size > *c) {
 		fprintf(stderr, "block_alloc: block is too small %d %d!\n", size, *c);
 	}

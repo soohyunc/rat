@@ -64,6 +64,6 @@ u_int32 cushion_get_step           (struct s_cushion_struct *c);
 u_int32 cushion_use_estimate       (struct s_cushion_struct *c);
 int32   cushion_diff_estimate_size (struct s_cushion_struct *c);
 
-#endif __CUSHION_H__
+#endif 
 
 

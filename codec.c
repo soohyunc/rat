@@ -516,7 +516,7 @@ void
 clear_decoder_states(state_t **list)
 {
         clear_state_list(list, DECODE);
-};
+}
 
 
 void 

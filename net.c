@@ -179,9 +179,9 @@ sock_init(u_long inaddr, int port, int t_flag)
 int
 net_write(int fd, u_long addr, int port, unsigned char *msg, int msglen, int type)
 {
-	struct sockaddr_in name;
-	int             ret;
-	char*		encrypted_msg = NULL;
+	struct sockaddr_in  	 name;
+	int             	 ret;
+	unsigned char		*encrypted_msg = NULL;
 
 	if (Null_Key()==0) {
 	  switch (type) {
@@ -228,10 +228,10 @@ int net_write_iov(int fd, u_long addr, int port, struct iovec *iov, int len, int
 static pckt_queue_element_struct *
 read_net(int fd, u_int32 cur_time, int type, int *nbdecryption)
 {
-	char           *data_in, *data_out, *tmp_data;
-	struct sockaddr from;
-	int             fromlen, read_len;
-	pckt_queue_element_struct *pckt;
+	unsigned char			*data_in, *data_out, *tmp_data;
+	struct sockaddr 		 from;
+	int             		 fromlen, read_len;
+	pckt_queue_element_struct 	*pckt;
 
 	/*
 	 * Would be better to have a parameter telling us whether this is an

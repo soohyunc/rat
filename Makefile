@@ -10,10 +10,10 @@ DEFS = -DNDEBUG
 # -DNDEBUG -DTEST -DGSM -DDEBUG_REPAIR
 # -DDEBUG_RTP -DREPEAT -DLOG_PARTICIPANTS
 
-DEBUG=#-g -ggdb #-fbounds-checking
+DEBUG=-g -fbounds-checking
 # -g -ggdb
 
-OPTS= -O2
+OPTS= 
 #-O -O2 -O3 -O4 
 
 PROFILE=

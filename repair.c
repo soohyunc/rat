@@ -231,7 +231,7 @@ repeat_lpc(rx_queue_element_struct *pp, rx_queue_element_struct *ip)
         if (ip->comp_count == 0) {
 		/* XXX */
 		ip->comp_count = 1;
-                ip->comp_data[0].data = (char*)xmalloc(LPCTXSIZE);
+                ip->comp_data[0].data = (unsigned char*)xmalloc(LPCTXSIZE);
 	}
 	ip->comp_data[0].data_len = LPCTXSIZE;
 	memcpy(ip->comp_data[0].data, pp->comp_data[0].data, LPCTXSIZE);
@@ -254,7 +254,7 @@ repeat_gsm(rx_queue_element_struct *pp, rx_queue_element_struct *ip)
 	assert(pp->comp_data != NULL);
 	
 	if (ip->comp_count == 0) {
-		ip->comp_data[0].data = (char*)xmalloc(33);
+		ip->comp_data[0].data = (unsigned char*)xmalloc(33);
 		ip->comp_data[0].data_len = 33;
 		ip->comp_count = 1;
 	}

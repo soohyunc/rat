@@ -52,7 +52,7 @@ typedef struct pckt_queue_element_tag {
 	u_int32                        addr;
 	int                            len;
 	u_int32                        arrival_timestamp;
-	char                          *pckt_ptr;
+	u_int8                          *pckt_ptr;
 } pckt_queue_element_struct;
 
 typedef struct pckt_queue_tag {

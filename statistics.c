@@ -394,12 +394,12 @@ statistics(session_struct    *sp,
                         goto release;
                 }
 
-                data_ptr =  (char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + extlen;
+                data_ptr =  (unsigned char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + extlen;
                 len      = e_ptr->len - 4 * (3 + hdr->cc) - extlen;
         
                 if (!(pcp = get_codec(hdr->pt))) {
                         /* this is either a channel coded block or we can't decode it */
-                        if (!(pcp = get_codec(get_wrapped_payload(hdr->pt, data_ptr, len)))) {
+                        if (!(pcp = get_codec(get_wrapped_payload(hdr->pt, (char *) data_ptr, len)))) {
                                 dprintf("Cannot decode data.\n");
                                 goto release;
                         }
@@ -422,7 +422,7 @@ statistics(session_struct    *sp,
                 }
                 
                 playout_pt = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, cur_time);
-                src->units_per_packet = split_block(playout_pt, pcp, data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
+                src->units_per_packet = split_block(playout_pt, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
                 
                 if (!src->units_per_packet) {
                         goto release;

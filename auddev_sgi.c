@@ -315,5 +315,11 @@ audio_duplex(int audio_fd)
   return 1;
 }
 
-#endif /* IRIX */
+int
+audio_get_channels(void)
+{
+ 	return ALgetchannels(ALgetconfig(rp));
+}
+
+#endif
 
