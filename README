@@ -24,7 +24,7 @@ Look at configure to see the various build options.
 Building RAT (WINDOWS)
 ~~~~~~~~~~~~~~~~~~~~~~
 
-1. Edit the file rat.dsw and change all path references
+1. Edit the file rat.dsp and change all path references
    of tcl and tk to your local installations.
 
 2. Open rat.dsw from the developer studio.
