@@ -582,20 +582,19 @@ oss_audio_supports(audio_desc_t ad, audio_format *fmt)
 int
 oss_audio_query_devices(void)
 {
-        FILE *f;
-        char buf[OSS_MAX_NAME_LEN], *name_start;
-        int  found_devices = FALSE;
-        
-        char devices_tag[] = "Audio devices:";
-        int len = strlen(devices_tag);
+        FILE 	*f;
+        char 	 buf[OSS_MAX_NAME_LEN];
+	char	*name_start;
+        int  	 found_devices = FALSE;
+        char 	 devices_tag[] = "Audio devices:";
+        int 	 len           = strlen(devices_tag);
+
+	ndev = 0;
 
         f = fopen("/dev/sndstat", "r");
-        
-	ndev = 0;
         if (f) {
                 while(!feof(f)) {
                         fgets(buf, OSS_MAX_NAME_LEN, f);
-
                         if (!strncmp(buf, devices_tag, len)) {
                                 found_devices = TRUE;
                                 debug_msg("Found devices entry\n");

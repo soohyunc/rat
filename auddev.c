@@ -396,14 +396,14 @@ audio_get_device_count()
 int
 audio_get_device_details(int idx, audio_device_details_t *add)
 {
-        int iface, devs;
-        const char *name;
+        int 		 iface = 0;
+	int 		 devs  = 0;
+        const char 	*name  = NULL;
 
         assert(idx < actual_devices && idx >= 0);
         assert(add != NULL);
 
         /* Find interface device number idx belongs to */
-        iface = 0;
         while((devs = audio_if_table[iface].audio_if_dev_cnt()) && idx >= devs) {
                 iface++;
                 idx -= devs;
@@ -415,10 +415,7 @@ audio_get_device_details(int idx, audio_device_details_t *add)
         assert(audio_if_table[iface].audio_if_dev_name != NULL);
         name = audio_if_table[iface].audio_if_dev_name(idx);
         assert(name != NULL);
-        strncpy(add->name, 
-                name,
-                AUDIO_DEVICE_NAME_LENGTH);
-
+        strncpy(add->name, name, AUDIO_DEVICE_NAME_LENGTH);
         return TRUE;
 }
 
@@ -1059,9 +1056,10 @@ audio_get_samples_written(audio_desc_t ad)
 }
 
 int
-audio_init_interfaces()
+audio_init_interfaces(void)
 {
-        u_int32 i;
+        u_int32 i, j;
+	int	c;
 
         actual_devices = 0;
 
@@ -1070,7 +1068,17 @@ audio_init_interfaces()
                         audio_if_table[i].audio_if_init(); 
                 }
                 assert(audio_if_table[i].audio_if_dev_cnt);
-                actual_devices += audio_if_table[i].audio_if_dev_cnt();
+		c = audio_if_table[i].audio_if_dev_cnt();
+		if (c == 0) {
+			/* audio_if_table[i] has no devices (eg: a linux box where */
+			/* the kernel has been compiled without sound support). We */
+			/* must remove this interface from the system...     [csp] */
+			debug_msg("Removing interface %d\n", i);
+			for (j = i + 1; j < NUM_AUDIO_INTERFACES; j++) {
+				memcpy(&(audio_if_table[j-1]), &(audio_if_table[j]), sizeof(audio_if_t));
+			}
+		}
+                actual_devices += c;
         }
 
         return TRUE;

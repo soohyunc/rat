@@ -175,9 +175,7 @@ main(int argc, char *argv[])
 	}
 
         ui_initial_settings(sp[0]);
-
         rtcp_clock_change(sp[0]);
-
 	network_process_mbus(sp[0]);
 
 	parse_late_options(argc, argv, sp);
