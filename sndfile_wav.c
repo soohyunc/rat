@@ -351,7 +351,6 @@ riff_write_audio(FILE *fp, char *state, sample *buf, int samples)
                 } else {
                         outbuf  = (u_char*)buf;
                 }
-
                 break;
         case MS_AUDIO_FILE_ENCODING_ALAW:
                 outbuf = (u_char*)block_alloc(samples);

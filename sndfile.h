@@ -46,6 +46,7 @@ int  snd_read_audio (struct s_sndfile **sf,
 
 int  snd_write_open (struct s_sndfile **sf,
                      char         *path,
+                     char         *default_extension, /* "au", or "wav", fallback if not specified */
                      const sndfile_fmt_t *fmt);
 
 int  snd_write_close (struct s_sndfile **sf);

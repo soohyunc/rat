@@ -120,7 +120,7 @@ snd_read_open (sndfile_t **sndfile, char *path)
                 }
                 rewind(fp);
         }
-        
+
         xfree(s);
         
         return FALSE;
@@ -179,7 +179,7 @@ snd_get_extension(char *path)
 }
 
 int
-snd_write_open (sndfile_t **sf, char *path, const sndfile_fmt_t *fmt)
+snd_write_open (sndfile_t **sf, char *path, char *default_extension, const sndfile_fmt_t *fmt)
 {
         sndfile_t *s;
         FILE       *fp;
@@ -198,8 +198,8 @@ snd_write_open (sndfile_t **sf, char *path, const sndfile_fmt_t *fmt)
 
         extension = snd_get_extension(path);
         if (extension == NULL) {
-                debug_msg("No extension in file name (%s)\n", path);
-                return FALSE;
+                debug_msg("No extension in file name (%s),using default %s\n", path, default_extension);
+                extension = default_extension;
         }
 
 #ifdef WIN32
@@ -286,3 +286,4 @@ snd_resume(sndfile_t *sf)
         sf->action = sf->action & ~SND_ACTION_PAUSED;
         return TRUE;
 }
+

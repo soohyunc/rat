@@ -514,10 +514,15 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_struct *sp)
                 sf_fmt.encoding = SNDFILE_ENCODING_L16;
                 sf_fmt.sample_rate = (u_int16)get_freq(sp->device_clock);
                 sf_fmt.channels = (u_int16)ofmt->channels;
-
-                if (snd_write_open(&sp->out_file, file, &sf_fmt)) {
+#ifdef WIN32
+                if (snd_write_open(&sp->out_file, file, "wav", &sf_fmt)) {
                         debug_msg("Hooray opened %s\n",file);
                 }
+#else
+                if (snd_write_open(&sp->out_file, file, "au", &sf_fmt)) {
+                        debug_msg("Hooray opened %s\n",file);
+                }
+#endif /* WIN32 */
 	} else {
 		debug_msg("mbus: usage \"audio.file.record.open <filename>\"\n");
 	}

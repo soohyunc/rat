@@ -228,7 +228,7 @@ sun_write_audio(FILE *fp, char *state, sample *buf, int samples)
 
         /* outbuf only equals buf if no sample type conversion was done */
         if (outbuf != (u_char*)buf) {
-                xfree(outbuf);
+                block_free(outbuf, bytes_per_sample * samples);
         }
 
         return TRUE;
