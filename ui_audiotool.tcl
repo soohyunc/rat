@@ -2330,7 +2330,11 @@ proc load_settings {} {
     load_setting attr audioInterleavingUnits int_units     "4"
     #device
     global audio_device
-    load_setting attr audioDevice            audio_device  "UNKNOWN"
+    load_setting attr audioDevice            audio_device  "No Audio Device"
+
+    if {$audio_device == "No Audio Device"} {
+	set audio_device "first"
+    }
 
     global prenc ichannels freq
     mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"

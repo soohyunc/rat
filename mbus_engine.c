@@ -566,10 +566,18 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
                 if (s) {
                         audio_device_details_t details;
                         audio_desc_t           first_dev_desc = 0;
-                        int i, n;
+                        int i, n, stop_at_first_device = FALSE;
                         dev_name[0] = 0;
                         first_dev_name[0] = 0;
                         n = audio_get_device_count();
+
+                        if (!strncasecmp("first", s, 5)) {
+                                /* The ui may send first if the saved device is the null audio
+                                 * device so it starts up trying to play something.
+                                 */
+                                stop_at_first_device = TRUE;
+                        }
+
                         for(i = 0; i < n; i++) {
                                 /* Brackets are a problem so purge them */
                                 if (!audio_get_device_details(i, &details)) continue;
@@ -580,7 +588,7 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
                                         first_dev_desc = details.descriptor;
                                 }
 
-                                if (!strcmp(s, dev_name)) {
+                                if (!strcmp(s, dev_name) | stop_at_first_device) {
                                         break;
                                 }
                         }
