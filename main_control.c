@@ -178,7 +178,11 @@ address_is_valid(const char *candidate)
 
         addr = strtok(addr, "/");
         if (udp_addr_valid(addr) == FALSE) {
-                usage("Invalid address\n");
+                char *msg = "Invalid address: %s";
+		char *m   = xmalloc(strlen(candidate) + strlen(msg));
+		sprintf(m, msg, candidate);
+		usage(m);
+		xfree(m);
                 okay = FALSE;
         }
 	
@@ -436,7 +440,7 @@ static args_handler late_args[] = {
         { "-repair",         cmd_repair,       1 },
         { "-f",              cmd_primary,      1 },
         { "-r",              cmd_redundancy,   1 },
-        { "-ttl",            NULL,             1 }, /* handled in parse early args */
+        { "-t",            NULL,             1 }, /* handled in parse early args */
 };
 
 static uint32_t late_args_cnt = sizeof(late_args)/sizeof(late_args[0]);
