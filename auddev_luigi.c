@@ -193,6 +193,13 @@ luigi_audio_close(audio_desc_t ad)
                 debug_msg("Device already closed!\n");
                 return;
         }
+        if (input_format != NULL) {
+                audio_format_free(&input_format);
+        }
+        if (output_format != NULL) {
+                audio_format_free(&output_format);
+        }
+
 	luigi_audio_drain(audio_fd);
 	close(audio_fd);
         audio_fd = -1;
