@@ -5,7 +5,7 @@ dnl Process this file with GNU autoconf to generate a configure script.
 
 AC_INIT(converter.c)
 
-AC_CANONICAL_HOST
+AC_CANONICAL_SYSTEM
 
 AC_PROG_CC
 AC_PROG_CPP
@@ -26,7 +26,57 @@ AC_CHECK_TYPE(int16_t, short)
 AC_CHECK_TYPE(int32_t, long)
 AC_CHECK_TYPE(int64_t, long long)
 
-# Audio device tests.
+# Audio device selection,  derived from host type.  Could be smart and
+# probe what's there...
+AUDIOINC=
+AUDIOLIB=
+AUDIOOBJ=
+
+case "$target" in
+*solaris*)
+	SUNAUDIOHOME="/usr/demo/SOUND"
+	O1KHOME="/opt/SUNWo1kp"
+	AC_ARG_WITH(sun-audio,    [  --with-sun-audio=DIR    specify Sun audio support home], SUNAUDIOHOME=$withval)
+	AUDIOINC="$AUDIOINC -I$SUNAUDIOHOME/include"
+	AUDIOLIB="$AUDIOLIB -L$SUNAUDIOHOME/lib -lsound"
+	AUDIOOBJ="$AUDIOOBJ auddev_sparc.o" 
+	AC_DEFINE(HAVE_SPARC_AUDIO)
+	AC_ARG_WITH(osprey-audio, [  --with-osprey=DIR       specify Osprey (Sunvideo Plus PCI) support home], O1KHOME=$withval)
+	AC_CHECK_HEADER($O1KHOME/include/oti_audio_device.h,
+		[AUDIOINC="$AUDIOINC -I$O1KHOME/include"
+		 AUDIOOBJ="$AUDIOOBJ auddev_osprey.o"
+		 AC_DEFINE(HAVE_OSPREY_AUDIO)])
+	;;
+*linux*)
+	AUDIOOBJ="$AUDIOOBJ auddev_oss.o"
+	AC_DEFINE(HAVE_OSS_AUDIO)
+	;;
+*freebsd*)
+	# PC Speaker device on FreeBSD
+	AC_CHECK_HEADERS(machine/pcaudioio.h)
+	# Luigi's driver
+	AUDIOOBJ="$AUDIOOBJ auddev_luigi.o"
+	AC_DEFINE(HAVE_LUIGI_AUDIO)
+	;;
+*netbsd*)
+	AUDIOOBJ="$AUDIOBJ auddev_netbsd.o"
+	AC_DEFINE(HAVE_NETBSD_AUDIO)
+	;;
+*irix*)
+	AUDIOLIB="$AUDIOLIB -laudio"
+	AUDIOOBJ="$AUDIOOBJ auddev_sgi.o"
+	AC_DEFINE(HAVE_SGI_AUDIO)
+	;;
+*hpux*)
+	AUDIOLIB="$AUDIOLIB -lAlib"
+	AUDIOOBJ="$AUDIOOBJ auddev_hpux_raw.o"
+	AC_DEFINE(HAVE_HP_AUDIO)
+	;;
+esac
+
+AC_SUBST(AUDIOOBJ)
+AC_SUBST(AUDIOINC)
+AC_SUBST(AUDIOLIB)
 
 AC_CONFIG_HEADER(config.h)
 

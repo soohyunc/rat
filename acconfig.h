@@ -45,9 +45,16 @@
 #undef HPUX
 
 /* Audio device relate */
+#undef HAVE_SPARC_AUDIO
+#undef HAVE_SGI_AUDIO
 #undef HAVE_PCA_AUDIO
 #undef HAVE_LUIGI_AUDIO
 #undef HAVE_OSS_AUDIO
+#undef HAVE_HP_AUDIO
+#undef HAVE_NETBSD_AUDIO
+#undef HAVE_OSPREY_AUDIO
+/* FreeBSD Speaker device */
+#undef HAVE_MACHINE_PCAUDIOIO_H
 
 @BOTTOM@
 

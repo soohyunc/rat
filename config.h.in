@@ -22,9 +22,19 @@
 #undef uint8_t
 
 /* Audio device relate */
+#undef HAVE_SPARC_AUDIO
+#undef HAVE_SGI_AUDIO
 #undef HAVE_PCA_AUDIO
 #undef HAVE_LUIGI_AUDIO
 #undef HAVE_OSS_AUDIO
+#undef HAVE_HP_AUDIO
+#undef HAVE_NETBSD_AUDIO
+#undef HAVE_OSPREY_AUDIO
+/* FreeBSD Speaker device */
+#undef HAVE_MACHINE_PCAUDIOIO_H
+
+/* Define if you have the <machine/pcaudioio.h> header file.  */
+#undef HAVE_MACHINE_PCAUDIOIO_H
 
 #ifndef WORDS_BIGENDIAN
 #define WORDS_SMALLENDIAN
