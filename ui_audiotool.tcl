@@ -44,7 +44,8 @@ set fw			.l.t.list.f
 
 proc init_source {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE num_cname 
-	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED BUFFER_SIZE
+	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER \
+		LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED BUFFER_SIZE PLAYOUT_DELAY
 
 	if {[array names INDEX $cname] != [list $cname]} {
 		# This is a source we've not seen before...
@@ -58,6 +59,7 @@ proc init_source {cname} {
 		set        CODEC($cname) unknown
 		set     DURATION($cname) ""
                 set  BUFFER_SIZE($cname) 0
+                set PLAYOUT_DELAY($cname) 0
 		set   PCKTS_RECV($cname) 0
 		set   PCKTS_LOST($cname) 0
 		set   PCKTS_MISO($cname) 0
@@ -183,6 +185,7 @@ proc mbus_recv {cmnd args} {
 		tool.rat.disable.audio.ctls  	{eval mbus_recv_tool.rat.disable.audio.ctls $args}
 		tool.rat.enable.audio.ctls  	{eval mbus_recv_tool.rat.enable.audio.ctls $args}
 		tool.rat.audio.buffered  	{eval mbus_recv_tool.rat.audio.buffered $args}
+		tool.rat.audio.delay    	{eval mbus_recv_tool.rat.audio.delay $args}
 		tool.rat.3d.enabled  		{eval mbus_recv_tool.rat.3d.enabled $args}
 		tool.rat.3d.azimuth.min         {eval mbus_recv_tool.rat.3d.azimuth.min $args}
 		tool.rat.3d.azimuth.max         {eval mbus_recv_tool.rat.3d.azimuth.max $args}
@@ -594,6 +597,13 @@ proc mbus_recv_tool.rat.audio.buffered {cname buffered} {
 # we don't update cname as source.packet.duration always follows 
 }
 
+proc mbus_recv_tool.rat.audio.delay {cname len} {
+        global PLAYOUT_DELAY
+        init_source $cname
+        set PLAYOUT_DELAY($cname) $len 
+# we don't update cname as source.packet.duration always follows 
+}
+
 proc mbus_recv_tool.rat.3d.enabled {mode} {
 	global 3d_audio_var
 	set 3d_audio_var $mode
@@ -668,23 +678,25 @@ proc mbus_recv_rtp.source.inactive {cname} {
 }
 
 proc mbus_recv_rtp.source.remove {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER BUFFER_SIZE
-	global LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED num_cname loss_to_me_timer loss_from_me_timer
+    global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO \
+	    PCKTS_DUP JITTER BUFFER_SIZE PLAYOUT_DELAY LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED \
+	    num_cname loss_to_me_timer loss_from_me_timer
 
-	# Disable updating of loss diamonds. This has to be done before we destroy the
-	# window representing the participant, else the background update may try to 
-	# access a window which has been destroyed...
-	catch {after cancel $loss_to_me_timer($cname)}
-	catch {after cancel $loss_from_me_timer($cname)}
+    # Disable updating of loss diamonds. This has to be done before we destroy the
+    # window representing the participant, else the background update may try to 
+    # access a window which has been destroyed...
+    catch {after cancel $loss_to_me_timer($cname)}
+    catch {after cancel $loss_from_me_timer($cname)}
+    
+    catch [destroy [window_plist $cname]]
+    
+    unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname) NOTE($cname)
+    unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname) PCKTS_DUP($cname)
+    unset JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname) JIT_TOGED($cname) BUFFER_SIZE($cname)
+    unset PLAYOUT_DELAY($cname)
 
-	catch [destroy [window_plist $cname]]
-
-	unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname) NOTE($cname)
-	unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname) PCKTS_DUP($cname)
-	unset JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname) JIT_TOGED($cname) BUFFER_SIZE($cname)
-
-	incr num_cname -1
-	chart_redraw $num_cname
+    incr num_cname -1
+    chart_redraw $num_cname
 }
 
 proc mbus_recv_rtp.source.mute {cname val} {
@@ -946,19 +958,20 @@ proc toggle_stats {cname} {
 	stats_add_field $win.df.personal.7 "CNAME: "    CNAME($cname)
 
 	frame $win.df.reception
-	global CODEC DURATION BUFFER_SIZE PCKTS_RECV PCKTS_LOST PCKTS_MISO \
+	global CODEC DURATION BUFFER_SIZE PLAYOUT_DELAY PCKTS_RECV PCKTS_LOST PCKTS_MISO \
 	       PCKTS_DUP LOSS_FROM_ME LOSS_TO_ME JITTER JIT_TOGED
 	stats_add_field $win.df.reception.1 "Audio encoding: "         CODEC($cname)
 	stats_add_field $win.df.reception.2 "Packet duration (ms): "   DURATION($cname)
-	stats_add_field $win.df.reception.3 "Buffer length (ms): "     BUFFER_SIZE($cname)
-	stats_add_field $win.df.reception.4 "Arrival jitter (ms): "    JITTER($cname)
-	stats_add_field $win.df.reception.5 "Loss from me (%): "       LOSS_FROM_ME($cname)
-	stats_add_field $win.df.reception.6 "Loss to me (%): "         LOSS_TO_ME($cname)
-	stats_add_field $win.df.reception.7 "Packets received: "       PCKTS_RECV($cname)
-	stats_add_field $win.df.reception.8 "Packets lost: "           PCKTS_LOST($cname)
-	stats_add_field $win.df.reception.9 "Packets misordered: "     PCKTS_MISO($cname)
-	stats_add_field $win.df.reception.a "Packets duplicated: "     PCKTS_DUP($cname)
-	stats_add_field $win.df.reception.b "Units dropped (jitter): " JIT_TOGED($cname)
+	stats_add_field $win.df.reception.3 "Playout delay (ms): "     PLAYOUT_DELAY($cname)
+	stats_add_field $win.df.reception.4 "Buffer length (ms): "     BUFFER_SIZE($cname)
+	stats_add_field $win.df.reception.5 "Arrival jitter (ms): "    JITTER($cname)
+	stats_add_field $win.df.reception.6 "Loss from me (%): "       LOSS_FROM_ME($cname)
+	stats_add_field $win.df.reception.7 "Loss to me (%): "         LOSS_TO_ME($cname)
+	stats_add_field $win.df.reception.8 "Packets received: "       PCKTS_RECV($cname)
+	stats_add_field $win.df.reception.9 "Packets lost: "           PCKTS_LOST($cname)
+	stats_add_field $win.df.reception.a "Packets misordered: "     PCKTS_MISO($cname)
+	stats_add_field $win.df.reception.b "Packets duplicated: "     PCKTS_DUP($cname)
+	stats_add_field $win.df.reception.c "Units dropped (jitter): " JIT_TOGED($cname)
 
 # 3D settings
 	# Trigger engine to send details for this participant

@@ -462,20 +462,6 @@ playout_buffer_exists (ppb_t *list, rtcp_dbentry *src)
         return FALSE;
 }
 
-int32
-playout_buffer_duration (ppb_t *list, rtcp_dbentry *src)
-{
-        ppb_t *p;
-
-        p = list;
-        while(p != NULL) {
-                if (p->src == src && p->last_got) {
-                        return (p->tail_ptr->playoutpt - p->last_got->playoutpt) * 1000 / get_freq(p->src->clock);
-                }
-                p = p->next;
-        }
-        return 0;
-}
 
 void
 playout_buffers_destroy(session_struct *sp, ppb_t **list)
@@ -487,17 +473,27 @@ playout_buffers_destroy(session_struct *sp, ppb_t **list)
 }
 
 static ppb_t *
-find_participant_queue(session_struct *sp, ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, struct s_pcm_converter *pc)
+playout_buffer_find(ppb_t *list, rtcp_dbentry *src)
+{
+	ppb_t *p;
+	for (p = list; p; p = p->next) {
+		if (p->src == src)
+			return (p);
+        }
+        return NULL;
+}
+
+static ppb_t *
+playout_buffer_find_or_create(session_struct *sp, ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, struct s_pcm_converter *pc)
 {
 	ppb_t *p;
         codec_id_t id_dev, id_src;
         const codec_format_t *cf_dev, *cf_src;
 
-	for (p = *list; p; p = p->next) {
-		if (p->src == src)
-			return (p);
-	}
-
+        if ((p = playout_buffer_find(*list, src)) != NULL) {
+                return p;
+        }
+            
         /* Echo suppression */
         if (*list == NULL && sp->echo_suppress) {
                 /* We are going to create a playout buffer so mute mike */
@@ -539,6 +535,28 @@ find_participant_queue(session_struct *sp, ppb_t **list, rtcp_dbentry *src, int 
         }
 
 	return (p);
+}
+
+u_int32
+playout_buffer_duration (ppb_t *list, rtcp_dbentry *src)
+{
+        ppb_t *p;
+
+        if ((p = playout_buffer_find(list, src)) != NULL && p->last_got != NULL) {
+                return (p->tail_ptr->playoutpt - p->last_got->playoutpt) * 1000 / get_freq(p->src->clock);
+        }
+        return 0;
+}
+
+u_int32
+playout_buffer_delay(ppb_t *list, rtcp_dbentry *src)
+{
+        ppb_t *p;
+        
+        if ((p = playout_buffer_find(list, src)) != NULL) {
+                return (src->playout - src->delay_in_playout_calc) * 1000 / get_freq(p->src->clock);
+        }
+        return 0;
 }
 
 void
@@ -586,7 +604,7 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
         
 	while (receive_queue->queue_empty == FALSE) {
 		up       = get_unit_off_rx_queue(receive_queue);
-		buf      = find_participant_queue(sp, buf_list, up->dbe_source[0], sp->encodings[0], up->dbe_source[0]->enc, sp->converter);
+		buf      = playout_buffer_find_or_create(sp, buf_list, up->dbe_source[0], sp->encodings[0], up->dbe_source[0]->enc, sp->converter);
 		cur_time = get_time(buf->src->clock);
 
 #ifdef DEBUG_PLAYOUT

@@ -295,6 +295,9 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
         sprintf(args, "%s %ld", their_cname, playout_buffer_duration(sp->playout_buf_list, e));
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.audio.buffered", args, FALSE);
 
+        sprintf(args, "%s %ld", their_cname, playout_buffer_delay(sp->playout_buf_list, e));
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.audio.delay", args, FALSE);
+
 	sprintf(args, "%s %s %8ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);
 	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
 
