@@ -52,6 +52,7 @@
 #include "audio.h"
 #include "mbus.h"
 #include "ui.h"
+#include "channel.h"
 /* The tcl/tk includes have to go after config.h, else we get warnings on
  * solaris 2.5.1, due to buggy system header files included by config.h [csp]
  */
@@ -296,29 +297,53 @@ ui_output_level(int level, session_struct *sp)
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "powermeter_output", args, FALSE);
 	ol = level;
 }
+
+static int
+codec_bw_cmp(const void *a, const void *b)
+{
+        int bwa, bwb;
+        bwa = (*((codec_t**)a))->max_unit_sz;
+        bwb = (*((codec_t**)b))->max_unit_sz;
+        if (bwa<bwb) {
+                return 1;
+        } else if (bwa>bwb) {
+                return -1;
+        } 
+        return 0;
+}
  
 static void 
 ui_codecs(session_struct *sp)
 {
 	char	 arg[1000], *a;
-	codec_t	*codec;
-	int 	 i;
+	codec_t	*codec[10],*sel;
+	int 	 i, nc;
 
 	a = &arg[0];
-	for (i=0; i<MAX_CODEC; i++) {
-		codec = get_codec(i);
-		if (codec != NULL) {
-			sprintf(a, " %s", codec->name);
-			a += strlen(codec->name) + 1;
+        sel = get_codec(sp->encodings[0]);
+        
+	for (nc=i=0; i<MAX_CODEC; i++) {
+		codec[nc] = get_codec(i);
+		if (codec[nc] != NULL && codec_compatible(sel,codec[nc])) {
+                        nc++;
+                        assert(nc<10); 
 		}
 	}
+
+        /* sort by bw as this makes handling of acceptable redundant codecs easier in ui */
+        qsort(codec,nc,sizeof(codec_t*),codec_bw_cmp);
+        for(i=0;i<nc;i++) {
+                sprintf(a, " %s", codec[i]->name);
+                a += strlen(codec[i]->name) + 1;
+        }
+
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "codec_supported", arg, TRUE);
 }
 
 static void
-ui_repair(int mode, session_struct *sp)
+ui_repair(session_struct *sp)
 {
-        switch(mode) {
+        switch(sp->repair) {
         case REPAIR_NONE:
 		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "repair", "None", FALSE);
                 break;
@@ -331,15 +356,15 @@ ui_repair(int mode, session_struct *sp)
         }
 }
 
-/*
- * This updates the look of the user interface when we get control
- * of the audio device. It is called only once...
- */
 void
 ui_update(session_struct *sp)
 {
 	static   int done=0;
 	codec_t	*cp;
+
+        /* we want to dump ALL settings here to ui */
+        /* Device settings */
+
 
 	/*XXX solaris seems to give a different volume back to what we   */
 	/*    actually set.  So don't even ask if it's not the first time*/
@@ -365,6 +390,7 @@ ui_update(session_struct *sp)
 		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_mute", "1", TRUE);
 	}
 
+        /* Transmission Options */
 	if (sp->mode != TRANSCODER) {
 		/* If we're using a real audio device, check if it's half duplex... */
 		if (audio_duplex(sp->audio_fd) == FALSE) {
@@ -372,18 +398,17 @@ ui_update(session_struct *sp)
 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "half_duplex", "", TRUE);
 		}
 	}
-
+        
 	cp = get_codec(sp->encodings[0]);
 	sprintf(args, "%s", mbus_encode_str(cp->name));
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "primary", args, TRUE);
-	if (sp->num_encodings > 1) {
-		cp = get_codec(sp->encodings[1]);
-		sprintf(args, "%s", mbus_encode_str(cp->name));
-	} else {
-		sprintf(args, "\"NONE\"");
-	}
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "redundancy", args, TRUE);
+        sprintf(args, "%d", get_units_per_packet(sp));
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "rate", args, TRUE);
+
+        ui_repair(sp);
+
 	done=1;
+
 }
 
 void
@@ -552,9 +577,6 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "init", "", TRUE);
 	sprintf(args, "%s", ecname); 					mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "my_cname",       args, TRUE);
 	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "address",        args, TRUE);
-        sprintf(args, "%d", sp->detect_silence); 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "detect_silence", args, TRUE);
-	sprintf(args, "%d", sp->agc_on); 				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "agc",            args, TRUE);
-	sprintf(args, "%d", sp->sync_on); 				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "sync",           args, TRUE);
 	sprintf(args, "%s %s", ecname, mbus_encode_str(RAT_VERSION));	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_tool",    args, TRUE);
 #ifndef NDEBUG
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "debug", "", TRUE);
@@ -562,8 +584,7 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 	xfree(ecname);
 
 	ui_codecs(sp);
-	ui_repair(sp->repair, sp);
-	update_lecture_mode(sp);
+        mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "load_settings", "", TRUE);
 
 	Tcl_ResetResult(interp);
 	return TRUE;
@@ -576,4 +597,14 @@ update_lecture_mode(session_struct *sp)
 	sprintf(args, "%d", sp->lecture);
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "lecture_mode", args, TRUE);
 }
+
+
+
+
+
+
+
+
+
+
 
