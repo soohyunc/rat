@@ -144,7 +144,12 @@ mix_zero(mix_struct *ms, int offset, int len)
         xmemchk();
 }
 
-void
+
+/* mix_process mixes a single audio frame into mix buffer.  It returns
+ * TRUE if incoming audio frame is compatible with mix, FALSE
+ * otherwise.  */
+
+int
 mix_process(mix_struct          *ms,
             rtcp_dbentry        *dbe,
             coded_unit          *frame,
@@ -158,6 +163,19 @@ mix_process(mix_struct          *ms,
 	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
 
         codec_get_native_info(frame->id, &rate, &channels);
+
+        if (rate != ms->rate || channels != ms->channels) {
+                /* This should only occur if source changes sample rate
+                 * mid-stream and before buffering runs dry in end host.
+                 * This should be a very rare event.
+                 */
+                debug_msg("Unit (%d, %d) not compitible with mix (%d, %d).\n",
+                          rate,
+                          channels,
+                          ms->rate,
+                          ms->channels);
+                return FALSE;
+        }
 
         assert(rate     == (u_int32)ms->rate);
         assert(channels == (u_int32)ms->channels);
@@ -243,7 +261,7 @@ mix_process(mix_struct          *ms,
         } 
         dbe->last_mixed = playout;
 
-        return;
+        return TRUE;
 }
 
 /*

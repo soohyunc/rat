@@ -455,10 +455,10 @@ source_repair(source *src,
                          (u_char*)fill_md,
                          sizeof(media_data),
                          fill_ts);
-        assert(success);
-        src->consec_lost ++;
-        src->last_repair = fill_ts;
-        pb_iterator_advance(src->media_pos);
+        if (success) {
+                src->consec_lost ++;
+                src->last_repair = fill_ts;
+                pb_iterator_advance(src->media_pos);
 
 #ifndef NDEBUG
         /* Reusing prev_* - bad style */
@@ -468,6 +468,15 @@ source_repair(source *src,
                            &prev_ts);
         assert(ts_eq(prev_ts, fill_ts));
 #endif
+        } else {
+                /* This should only ever fail at when source changes
+                 * sample rate in less time than playout buffer
+                 * timeout.  This should be a very very rare event...  
+                 */
+                debug_msg("Repair add data failed.\n");
+                media_data_destroy(&fill_md, sizeof(media_data));
+                src->consec_lost = 0;
+        }
 }
 
 int
@@ -581,7 +590,18 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         md->nrep++;
                 }
 
-                mix_process(ms, src->dbe, md->rep[md->nrep - 1], playout);
+                if (mix_process(ms, src->dbe, md->rep[md->nrep - 1], playout) == FALSE) {
+                        /* Sources sampling rate changed mid-flow?,
+                         * dump data, make source look irrelevant, it
+                         * should get destroyed and the recreated with
+                         * proper decode path when new data arrives.
+                         * Not graceful..  A better way would be just
+                         * to flush media then invoke source_reconfigure 
+                         * if this is ever really an issue.
+                         */
+                        pb_flush(src->media);
+                        pb_flush(src->channel);
+                }
 
                 src->last_played = playout;
         }

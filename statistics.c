@@ -426,6 +426,7 @@ statistics_channel_extract(session_struct *sp,
         }
 
         if (dbe->enc != codec_pt) {
+                debug_msg("Format changed\n");
                 change_freq(dbe->clock, cf->format.sample_rate);
                 dbe->enc             = codec_pt;
                 dbe->inter_pkt_gap   = dbe->units_per_packet * (u_int16)codec_get_samples_per_frame(id);

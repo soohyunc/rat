@@ -58,7 +58,7 @@ int  mix_create  (struct s_mix_info **ms,
 
 void mix_destroy (struct s_mix_info **ms);
 
-void mix_process(struct s_mix_info     *ms,
+int  mix_process(struct s_mix_info     *ms,
                   struct s_rtcp_dbentry *dbe,
                   coded_unit            *raw_frame,
                   ts_t                   now);
