@@ -230,7 +230,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
         struct s_pb_iterator *pbm;
         channel_data         *cd_coded[RED_MAX_LAYERS], *cd_out;
         u_int32               offset ;
-        int                   i, j, layers, success,  used = 0;
+        int                   i, j, layers, success = 0,  used = 0;
 
         pbm = re->media_pos;
         pb_iterator_ffwd(pbm);

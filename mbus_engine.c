@@ -282,7 +282,7 @@ static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
 
 static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
 {
-        const audio_port_details_t *apd;
+        const audio_port_details_t *apd = NULL;
 	char	*s;
         int      i, n, found;
 	UNUSED(srce);
@@ -345,7 +345,7 @@ static void rx_audio_output_gain(char *srce, char *args, session_struct *sp)
 
 static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
 {
-        const audio_port_details_t *apd;
+        const audio_port_details_t *apd = NULL;
 	char *s;
         int   i, n, found;
 
@@ -555,7 +555,7 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
                 purge_chars(s, "[]()");
                 if (s) {
                         audio_device_details_t details;
-                        audio_desc_t           first_dev_desc;
+                        audio_desc_t           first_dev_desc = 0;
                         int i, n;
                         dev_name[0] = 0;
                         first_dev_name[0] = 0;

@@ -65,7 +65,10 @@ typedef struct s_source {
         struct s_converter         *converter;
         skew_t skew;
         ts_t   skew_adjust;
+        int8   skew_offenses;
 } source;
+
+#define SKEW_OFFENSES_BEFORE_ADAPT 3
 
 /* A linked list is used for sources and this is fine since we mostly
  * expect 1 or 2 sources to be simultaneously active and so efficiency
@@ -180,7 +183,7 @@ source_create(source_list    *plist,
         psrc->channel_state  = NULL;        
 
         psrc->skew           = SOURCE_SKEW_NONE;
-
+        psrc->skew_offenses  = 0;
         /* Allocate channel and media buffers */
         success = pb_create(&psrc->channel, (playoutfreeproc)channel_data_destroy);
         if (!success) {
@@ -438,15 +441,17 @@ source_check_buffering(source *src, ts_t now)
         playout_dur = ts_sub(src->dbe->playout, src->dbe->delay_in_playout_calc);
         playout_ms  = ts_to_ms(playout_dur);
 
-        if (buf_ms >= 3 * playout_ms / 2) {
+        if (buf_ms >= 2 * playout_ms) {
                 /* buffer is longer than anticipated, src clock is faster */
                 src->skew = SOURCE_SKEW_FAST;
                 src->skew_adjust = ts_map32(8000, (buf_ms - playout_ms) * 8);
+                src->skew_offenses++;
                 debug_msg("have %d want %d\n", buf_ms, playout_ms);
         } else if (buf_ms <= 2 * playout_ms / 3) {
                 /* buffer is running dry so src clock is slower */
                 src->skew = SOURCE_SKEW_SLOW;
                 src->skew_adjust = ts_map32(8000, (playout_ms - buf_ms) * 8);
+                src->skew_offenses--;
                 debug_msg("have %d want %d\n", buf_ms, playout_ms);
         } else {
                 src->skew = SOURCE_SKEW_NONE;
@@ -469,7 +474,7 @@ source_check_buffering(source *src, ts_t now)
 static int
 source_skew_adapt(source *src, media_data *md)
 {
-        u_int32 i, e, samples;
+        u_int32 i, e = 0, samples = 0;
         u_int16 rate, channels;
         ts_t adjustment;
 
@@ -495,7 +500,9 @@ source_skew_adapt(source *src, media_data *md)
          * valid if no repair has taken place.
          */
 
-        if (src->skew == SOURCE_SKEW_FAST && e < SKEW_ADAPT_THRESHOLD) {
+        if (src->skew == SOURCE_SKEW_FAST && 
+            e < SKEW_ADAPT_THRESHOLD      &&
+            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_ADAPT) {
                 /* source is fast so we need to bring units forward.  Should
                  * only move forward a single unit otherwise we might discard
                  * something we have not classified.  */

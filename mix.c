@@ -216,7 +216,6 @@ mix_process(mix_struct          *ms,
 
         new_head_time = ts_add(playout, ts_map32(ms->rate, nsamples / ms->channels));
         if (ts_eq(ms->head_time, ms->tail_time)) {
-                debug_msg("Head == tail\n");
                 mix_verify(ms);
                 ms->head_time = ms->tail_time = playout;
                 assert(ms->head == ms->tail);

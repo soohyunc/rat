@@ -197,7 +197,7 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 void
 ui_update_input_port(session_struct *sp)
 {
-        const audio_port_details_t 	*apd;
+        const audio_port_details_t 	*apd = NULL;
         audio_port_t 			 port;
         char        			*mbes; 
         int          			 i, n, found;
@@ -234,7 +234,7 @@ ui_update_input_port(session_struct *sp)
 void
 ui_update_output_port(session_struct *sp)
 {
-        const audio_port_details_t 	*apd;
+        const audio_port_details_t 	*apd = NULL;
         audio_port_t 			 port;
         char        			*mbes; 
         int          			 i, n, found;

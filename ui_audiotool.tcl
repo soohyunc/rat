@@ -896,8 +896,6 @@ proc mbus_recv_audio.file.play.alive {alive} {
     
     global play_file
 
-    puts "$alive"
-
     if {$alive} {
 	after 200 file_play_live
     } else {
