@@ -908,17 +908,54 @@ audio_add_interface(audio_if_t *aif_new)
         return FALSE;
 }
 
-#include "auddev_sparc.h"
-#include "auddev_oss.h"
-#include "auddev_win32.h"
 #include "auddev_luigi.h"
-#include "auddev_pca.h"
+#include "auddev_oss.h"
 #include "auddev_oti.h"
+#include "auddev_pca.h"
+#include "auddev_sparc.h"
+#include "auddev_sgi.h"
+#include "auddev_win32.h"
 
 int
 audio_init_interfaces()
 {
         int i, n;
+
+#ifdef IRIX
+        {
+                audio_if_t aif_sgi = {
+                        "SGI Audio Device",
+                        NULL, 
+                        NULL, 
+                        sgi_audio_open,
+                        sgi_audio_close,
+                        sgi_audio_drain,
+                        sgi_audio_duplex,
+                        sgi_audio_read,
+                        sgi_audio_write,
+                        sgi_audio_non_block,
+                        sgi_audio_block,
+                        sgi_audio_set_gain,
+                        sgi_audio_get_gain,
+                        sgi_audio_set_volume,
+                        sgi_audio_get_volume,
+                        sgi_audio_loopback,
+                        sgi_audio_set_oport,
+                        sgi_audio_get_oport,
+                        sgi_audio_next_oport,
+                        sgi_audio_set_iport,
+                        sgi_audio_get_iport,
+                        sgi_audio_next_iport,
+                        sgi_audio_get_blocksize,
+                        sgi_audio_get_channels,
+                        sgi_audio_get_freq,
+                        sgi_audio_is_ready,
+                        sgi_audio_wait_for,
+                };
+                audio_add_interface(&aif_sgi);
+        }
+#endif /* IRIX */
+
 #ifdef Solaris
         {
                 audio_if_t aif_sparc = {

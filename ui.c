@@ -565,7 +565,6 @@ ui_device(session_struct *sp)
                 mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.device", mbes, TRUE);
                 xfree(mbes);
         }
-
 }
 
 void

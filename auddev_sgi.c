@@ -1,7 +1,7 @@
 /*
- * FILE:    sgi.c
+ * FILE:    auddev_sgi.c
  * PROGRAM: RAT
- * AUTHOR:  Isidor Kouvelas + Colin Perkins
+ * AUTHORS:  Isidor Kouvelas + Colin Perkins + Orion Hodson
  *
  * $Revision$
  * $Date$
@@ -40,48 +40,72 @@
  * SUCH DAMAGE.
  */
 
+#include <assert.h>
+
 #include "config_unix.h"
 #include "config_win32.h"
-#include "audio.h"
+#include "auddev_sgi.h"
+#include "debug.h"
 
 #if defined(IRIX)
 
-#define READ_UNIT	80
 #define QSIZE		16000		/* Two seconds for now... */
 #define AVG_SIZE	20000
 #define SAMSIG		7500.0
 #define BASEOFF         0x0a7f
 
-#define bat_to_device(x)	((x) * 255 / MAX_AMP)
-#define device_to_bat(x)	((x) * MAX_AMP / 255)
+#define RAT_TO_SGI_DEVICE(x)	((x) * 255 / MAX_AMP)
+#define SGI_DEVICE_TO_RAT(x)	((x) * MAX_AMP / 255)
 
-static ALport	rp, wp;		/* Read and write ports */
+static int      audio_fd = -1;
+static ALport	rp = NULL, wp = NULL;	/* Read and write ports */
 static int	iport = AUDIO_MICROPHONE;
-
+static audio_format format;
 /*
  * Try to open the audio device.
  * Return TRUE if successfull FALSE otherwise.
  */
 int
-audio_open(audio_format format)
+sgi_audio_open(audio_desc_t ad, audio_format* fmt)
 {
-	int 		audio_fd = -1;
 	ALconfig	c;
 	long		cmd[8];
+
+        if (audio_fd != -1) {
+                sgi_audio_close(ad);
+        }
+
+        memcpy(&format, fmt, sizeof(audio_format));
 
 	if ((c = ALnewconfig()) == NULL) {
 		fprintf(stderr, "ALnewconfig error\n");
 		exit(1);
 	}
 
-	ALsetchannels(c, AL_MONO);
+        switch(fmt->num_channels) {
+        case 1:
+                ALsetchannels(c, AL_MONO); break;
+        case 2:
+                ALsetchannels(c, AL_STEREO); break;
+        default:
+                sgi_audio_close(ad);
+        }
+
 	ALsetwidth(c, AL_SAMPLE_16);
 	ALsetqueuesize(c, QSIZE);
 	ALsetsampfmt(c, AL_SAMPFMT_TWOSCOMP);
-	if ((wp = ALopenport("RAT write", "w", c)) == NULL)
+
+	if ((wp = ALopenport("RAT write", "w", c)) == NULL) {
 		fprintf(stderr, "ALopenport (write) error\n");
-	if ((rp = ALopenport("RAT read", "r", c)) == NULL)
+                sgi_audio_close(ad);
+                return FALSE;
+        }
+
+	if ((rp = ALopenport("RAT read", "r", c)) == NULL) {
 		fprintf(stderr, "ALopenport (read) error\n");
+                sgi_audio_close(ad);
+                return FALSE;
+        }
 
 	cmd[0] = AL_OUTPUT_RATE;
 	cmd[1] = format.sample_rate;
@@ -91,106 +115,114 @@ audio_open(audio_format format)
 	cmd[5] = format.sample_rate;
 	cmd[6] = AL_MONITOR_CTL;
 	cmd[7] = AL_MONITOR_OFF;
-	if (ALsetparams(AL_DEFAULT_DEVICE, cmd, 8L) == -1)
+
+	if (ALsetparams(AL_DEFAULT_DEVICE, cmd, 8L) == -1) {
 		fprintf(stderr, "audio_open/ALsetparams error\n");
+                sgi_audio_close(ad);
+        }
 
 	/* Get the file descriptor to use in select */
 	audio_fd = ALgetfd(rp);
 
-	ALsetfillpoint(rp, READ_UNIT);
-
+	if (ALsetfillpoint(rp, format.blocksize) < 0) {
+                debug_msg("ALsetfillpoint failed (%d samples)\n", format.blocksize);
+        }
+        
 	/* We probably should free the config here... */
-
-	return audio_fd;
+        
+	return TRUE;
 }
 
 /* Close the audio device */
 void
-audio_close(int audio_fd)
+sgi_audio_close(audio_desc_t ad)
 {
+        UNUSED(ad);
 	ALcloseport(rp);
 	ALcloseport(wp);
+        audio_fd = -1;
 }
 
 /* Flush input buffer */
 void
-audio_drain(int audio_fd)
+sgi_audio_drain(audio_desc_t ad)
 {
 	sample	buf[QSIZE];
-	while(audio_read(audio_fd, buf, QSIZE) == QSIZE);
+
+        UNUSED(ad); assert(audio_fd > 0);
+
+	while(sgi_audio_read(audio_fd, buf, QSIZE) == QSIZE);
 }
 
 /* Gain and volume values are in the range 0 - MAX_AMP */
 
 void
-audio_set_gain(int audio_fd, int gain)
+sgi_audio_set_gain(audio_desc_t ad, int gain)
 {
 	long	cmd[4];
 
-	if (audio_fd == 0)
-		return;
+        UNUSED(ad); assert(audio_fd > 0);
 
 	cmd[0] = AL_LEFT_INPUT_ATTEN;
-	cmd[1] = 255 - bat_to_device(gain);
+	cmd[1] = 255 - RAT_TO_SGI_DEVICE(gain);
 	cmd[2] = AL_RIGHT_INPUT_ATTEN;
 	cmd[3] = cmd[1];
 	ALsetparams(AL_DEFAULT_DEVICE, cmd, 4L);
 }
 
 int
-audio_get_gain(int audio_fd)
+sgi_audio_get_gain(audio_desc_t ad)
 {
 	long	cmd[2];
 
-	if (audio_fd == 0)
-		return 50;
+        UNUSED(ad); assert(audio_fd > 0);
 
 	cmd[0] = AL_LEFT_INPUT_ATTEN;
 	ALgetparams(AL_DEFAULT_DEVICE, cmd, 2L);
-	return (255 - device_to_bat(cmd[1]));
+	return (255 - SGI_DEVICE_TO_RAT(cmd[1]));
 }
 
 void
-audio_set_volume(int audio_fd, int vol)
+sgi_audio_set_volume(audio_desc_t ad, int vol)
 {
 	long	cmd[4];
 
-	if (audio_fd == 0)
-		return;
+        UNUSED(ad); assert(audio_fd > 0);
 
 	cmd[0] = AL_LEFT_SPEAKER_GAIN;
-	cmd[1] = bat_to_device(vol);
+	cmd[1] = RAT_TO_SGI_DEVICE(vol);
 	cmd[2] = AL_RIGHT_SPEAKER_GAIN;
 	cmd[3] = cmd[1];
 	ALsetparams(AL_DEFAULT_DEVICE, cmd, 4L);
 }
 
 int
-audio_get_volume(int audio_fd)
+sgi_audio_get_volume(audio_desc_t ad)
 {
 	long	cmd[2];
 
-	if (audio_fd == 0)
-		return 50;
+        UNUSED(ad); assert(audio_fd > 0);
 
 	cmd[0] = AL_LEFT_SPEAKER_GAIN;
 	ALgetparams(AL_DEFAULT_DEVICE, cmd, 2L);
-	return (device_to_bat(cmd[1]));
+	return (SGI_DEVICE_TO_RAT(cmd[1]));
 }
 
 static int non_block = 1;	/* Initialise to non blocking */
 
 int
-audio_read(int audio_fd, sample *buf, int samples)
+sgi_audio_read(audio_desc_t ad, sample *buf, int samples)
 {
 	long   		len;
+
+        UNUSED(ad); assert(audio_fd > 0);
         
 	if (non_block) {
 		if ((len = ALgetfilled(rp)) <= 0)
 			return (0);
-		len -= len % READ_UNIT;
+		len -= len % format.blocksize;
 		if (len <= 0)
-			len = READ_UNIT;
+			len = format.blocksize;
 		if (len > samples)
 			len = samples;
 	} else
@@ -207,8 +239,10 @@ audio_read(int audio_fd, sample *buf, int samples)
 }
 
 int
-audio_write(int audio_fd, sample *buf, int samples)
+sgi_audio_write(audio_desc_t ad, sample *buf, int samples)
 {
+        UNUSED(ad); assert(audio_fd > 0);
+
 	if (samples > QSIZE) {
 		fprintf(stderr, "audio_write: too big!\n");
 		samples = QSIZE;
@@ -221,100 +255,182 @@ audio_write(int audio_fd, sample *buf, int samples)
 
 /* Set ops on audio device to be non-blocking */
 void
-audio_non_block(int audio_fd)
+sgi_audio_non_block(audio_desc_t ad)
 {
+        UNUSED(ad); assert(audio_fd > 0);
+
 	non_block = 1;
 }
 
 /* Set ops on audio device to block */
 void
-audio_block(int audio_fd)
+sgi_audio_block(audio_desc_t ad)
 {
+        UNUSED(ad); assert(audio_fd > 0);
+
 	non_block = 0;
 }
 
 void
-audio_set_oport(int audio_fd, int port)
+sgi_audio_set_oport(audio_desc_t ad, int port)
 {
-	/* Not possible? */
+        UNUSED(ad); assert(audio_fd > 0);
 }
 
 int
-audio_get_oport(int audio_fd)
+sgi_audio_get_oport(audio_desc_t ad)
 {
+        UNUSED(ad); assert(audio_fd > 0);
+
 	return (AUDIO_SPEAKER);
 }
 
 int
-audio_next_oport(int audio_fd)
+sgi_audio_next_oport(audio_desc_t ad)
 {
+        UNUSED(ad); assert(audio_fd > 0);
+
 	return (AUDIO_SPEAKER);
 }
 
 void
-audio_set_iport(int audio_fd, int port)
+sgi_audio_set_iport(audio_desc_t ad, int port)
 {
 	long pvbuf[2];
 
-	if (audio_fd > 0) {
-		switch(port) {
-		case AUDIO_MICROPHONE : pvbuf[0] = AL_INPUT_SOURCE;
-					pvbuf[1] = AL_INPUT_MIC;
-					ALsetparams(AL_DEFAULT_DEVICE, pvbuf, 2);
-					iport = AUDIO_MICROPHONE;
-					break;
-		case AUDIO_LINE_IN    : pvbuf[0] = AL_INPUT_SOURCE;
-					pvbuf[1] = AL_INPUT_LINE;
-					ALsetparams(AL_DEFAULT_DEVICE, pvbuf, 2);
-					iport = AUDIO_LINE_IN;
-					break;
-		default	              :	printf("Illegal input port!\n");
-					abort();
-		}
-	}
+        UNUSED(ad); assert(audio_fd > 0);
+
+        switch(port) {
+        case AUDIO_MICROPHONE: 
+                pvbuf[0] = AL_INPUT_SOURCE;
+                pvbuf[1] = AL_INPUT_MIC;
+                ALsetparams(AL_DEFAULT_DEVICE, pvbuf, 2);
+                iport = AUDIO_MICROPHONE;
+                break;
+        case AUDIO_LINE_IN: 
+                pvbuf[0] = AL_INPUT_SOURCE;
+                pvbuf[1] = AL_INPUT_LINE;
+                ALsetparams(AL_DEFAULT_DEVICE, pvbuf, 2);
+                iport = AUDIO_LINE_IN;
+                break;
+        default:
+                printf("Illegal input port!\n");
+                abort();
+        }
 }
 
 int
-audio_get_iport(int audio_fd)
+sgi_audio_get_iport(audio_desc_t ad)
 {
+        UNUSED(ad); assert(audio_fd > 0);
+
 	return iport;
 }
 
 int
-audio_next_iport(int audio_fd)
+sgi_audio_next_iport(audio_desc_t ad)
 {
-  switch (iport) {
-    case AUDIO_MICROPHONE : audio_set_iport(audio_fd, AUDIO_LINE_IN);
-                            break;
-    case AUDIO_LINE_IN    : audio_set_iport(audio_fd, AUDIO_MICROPHONE);
-                            break;
-    default               : printf("Unknown audio source!\n");
-  }
-  return iport;
+        UNUSED(ad); assert(audio_fd > 0);
+
+        switch (iport) {
+        case AUDIO_MICROPHONE:
+                sgi_audio_set_iport(ad, AUDIO_LINE_IN);
+                break;
+        case AUDIO_LINE_IN:
+                sgi_audio_set_iport(ad, AUDIO_MICROPHONE);
+                break;
+        default:
+                printf("Unknown audio source!\n");
+        }
+        return iport;
 }
 
-void
-audio_switch_out(int audio_fd, struct s_cushion_struct *ap)
+void sgi_audio_loopback(audio_desc_t ad, int gain)
 {
-	/* Full duplex device: do nothing! */
-}
-   
-void
-audio_switch_in(int audio_fd)
-{
-	/* Full duplex device: do nothing! */
+        long pvbuf[4];
+        int  pvcnt;
+
+        UNUSED(ad); assert(audio_fd > 0);
+
+        pvcnt = 2;
+        pvbuf[0] = AL_MONITOR_CTL;
+        pvbuf[1] = AL_MONITOR_OFF;
+
+        if (gain) {
+                pvcnt = 6;
+                pvbuf[1] = AL_MONITOR_ON;
+                pvbuf[2] = AL_LEFT_MONITOR_ATTEN;
+                pvbuf[3] = 255 - RAT_TO_SGI_DEVICE(gain);
+                pvbuf[4] = AL_RIGHT_MONITOR_ATTEN;
+                pvbuf[5] = pvbuf[3];
+        }
+        
+        if (ALsetparams(AL_DEFAULT_DEVICE, pvbuf, pvcnt) != 0) {
+                debug_msg("loopback failed\n");
+        }
 }
 
 int
-audio_duplex(int audio_fd)
+sgi_audio_duplex(audio_desc_t ad)
 {
-  return 1;
+        UNUSED(ad); assert(audio_fd > 0);
+        return 1;
 }
 
 int
-audio_get_channels(void)
+sgi_audio_get_channels(audio_desc_t ad)
 {
+        UNUSED(ad); assert(audio_fd > 0);
  	return ALgetchannels(ALgetconfig(rp));
+}
+
+int
+sgi_audio_get_blocksize(audio_desc_t ad)
+{
+        UNUSED(ad); assert(audio_fd > 0);
+        return format.blocksize; /* Could use ALgetfillpoint */
+}
+
+int
+sgi_audio_get_freq(audio_desc_t ad)
+{
+        long pvbuf[2];
+        UNUSED(ad); assert(audio_fd > 0);
+        
+        pvbuf[0] = AL_INPUT_RATE;
+
+        if (ALqueryparams(AL_DEFAULT_DEVICE, pvbuf, 2) == -1) {
+                debug_msg("Could not get freq");
+        }
+        return (int)pvbuf[1];
+}
+
+int  
+sgi_audio_is_ready(audio_desc_t ad)
+{
+        UNUSED(ad); assert(audio_fd > 0);
+        
+        if (ALgetfilled(rp) >= format.blocksize) {
+                return TRUE;
+        } else {
+                return FALSE;
+        }
+}
+
+void 
+sgi_audio_wait_for(audio_desc_t ad, int delay_ms)
+{
+        struct timeval tv;
+        fd_set rfds;
+        UNUSED(ad); assert(audio_fd > 0);
+
+        tv.tv_sec  = 0;
+        tv.tv_usec = delay_ms * 1000;
+
+        FD_ZERO(&rfds);
+        FD_SET(audio_fd, &rfds);
+        
+        select(audio_fd + 1, &rfds, NULL, NULL, &tv);
 }
 
 #endif

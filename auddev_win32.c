@@ -822,7 +822,7 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt)
         blksz  = fmt->blocksize * smplsz;
 	nblks  = format.nAvgBytesPerSec / blksz;
 	
-        if (w32sdk_audio_open_in() == FALSE)   return -1;
+        if (w32sdk_audio_open_in() == FALSE)   return FALSE;
         
         if ((duplex = w32sdk_audio_open_out()) == FALSE) {
                 w32sdk_audio_close_in();

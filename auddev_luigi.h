@@ -73,4 +73,4 @@ void  luigi_audio_query_devices(void);
 int   luigi_get_device_count(void);
 char *luigi_get_device_name(int idx);
 
-#endif _AUDDEV_LUIGI_H_
+#endif /* _AUDDEV_LUIGI_H_ */
