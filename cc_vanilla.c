@@ -230,6 +230,7 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, ts_t play
         }
 
         data_len = codec_peek_frame_size(id, p, end - p);
+        m->rep[0]->id = id;
         m->rep[0]->data_len = data_len;
         m->rep[0]->data     = (u_char*)block_alloc(data_len);
         memcpy(m->rep[0]->data, p, data_len);
@@ -242,7 +243,7 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, ts_t play
         while(p < end) {
                 playout = ts_add(playout, playout_step);
                 media_data_create(&m, 1);
-
+                m->rep[0]->id = id;
                 assert(m->nrep == 1);
 
                 data_len            = codec_peek_frame_size(id, p, end - p);

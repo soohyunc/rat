@@ -339,7 +339,7 @@ source_remove(source_list *plist, source *psrc)
          * there is no source decode path.
          */
         psrc->dbe->first_pckt_flag = TRUE;
-
+        
         block_free(psrc, sizeof(source));
 }
               
@@ -414,8 +414,6 @@ source_process(source *src, int repair_type, ts_t now)
         u_int32     md_len, src_freq;
         ts_t        playout, curr, step, cutoff;
         int         i, success;
-
-
 
         /* Split channel coder units up into media units */
         channel_decoder_decode(src->channel_state,
@@ -498,6 +496,8 @@ source_process(source *src, int repair_type, ts_t now)
                                 /* if there is a native coding this
                                  * unit has already been decoded and
                                  * this would be bug */
+                                assert(md->rep[i] != NULL);
+                                assert(codec_id_is_valid(md->rep[i]->id));
                                 assert(codec_is_native_coding(md->rep[i]->id) == FALSE);
                         }
 #endif /* DEBUG */

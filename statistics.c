@@ -322,7 +322,7 @@ adapt_playout(rtp_hdr_t               *hdr,
 	}
 
         if (ts_gt(arr_ts, playout)) {
-                debug_msg("Will be discarded.\n");
+                debug_msg("Will be discarded %u %u.\n", arr_ts.ticks, playout.ticks);
         }
 
         if (src->cont_toged > 12) {
