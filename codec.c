@@ -59,6 +59,8 @@ typedef struct s_codec_state {
 	char	*s;	/* State */
 } state_t;
 
+
+
 static void
 l16_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 {
@@ -98,8 +100,9 @@ ulaw_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 
         UNUSED(s);
 
-	for (i = 0; i < cp->unit_len; i++)
-		*p++ = lintomulaw[(unsigned short)*data++];
+	for (i = 0; i < cp->unit_len; i++, p++, data++) {
+                *p = s2u(*data);
+        }
 }
 
 static void
@@ -110,9 +113,8 @@ ulaw_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 
         UNUSED(s);
 
-	for(i = 0; i < cp->unit_len; i++) {
-		*data++ = u2s(*sc);
-		sc++;
+	for(i = 0; i < cp->unit_len; i++, sc++, data++) {
+		*data = u2s(*sc);
 	}
 }
 
@@ -124,8 +126,9 @@ alaw_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 
         UNUSED(s);
 
-	for (i = 0; i < cp->unit_len; i++,data++)
-		*p++ = s2a(*data);
+	for (i = 0; i < cp->unit_len; i++, p++, data++) {
+		*p = s2a(*data);
+        }
 }
 
 static void
@@ -136,8 +139,8 @@ alaw_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 
         UNUSED(s);
 
-	for(i = 0; i < cp->unit_len; i++, sc++) {
-		*data++ = a2s(*sc);
+	for(i = 0; i < cp->unit_len; i++, sc++, data++) {
+		*data = a2s(*sc);
 	}
 }
 
@@ -445,11 +448,12 @@ get_codec_state(session_struct *sp, state_t **lp, int pt, enum co_e ed)
 	return (stp);
 }
 
-void
+void 
 encoder(session_struct *sp, sample *data, int coding, coded_unit *c)
 {
 	codec_t	*cp;
 	state_t *stp;
+
 
 	cp = get_codec(coding);
 	c->cp = cp;
@@ -459,6 +463,7 @@ encoder(session_struct *sp, sample *data, int coding, coded_unit *c)
 	c->state_len = cp->sent_state_sz;
 	c->data = block_alloc(cp->max_unit_sz);
 	c->data_len = cp->max_unit_sz;
+
 	cp->encode(data, c, stp, cp);
 }
 
