@@ -85,9 +85,11 @@ new_rx_unit(void)
 	return (u);
 }
 
-static void
+static int
 add_unit_to_interval(rx_queue_element_struct *ip, rx_queue_element_struct *ru)
 {
+        int success = TRUE;
+
 	ip->talk_spurt_start |= ru->talk_spurt_start;
         /* XXX we should detect duplicates here [oth] 
          * if we have reached limit of number of ccu's or we have two or 
@@ -103,8 +105,10 @@ add_unit_to_interval(rx_queue_element_struct *ip, rx_queue_element_struct *ru)
                 }
         } else {
                 debug_msg("duplicate\n");        ip->dbe_source[0]->duplicates++;
+                success = FALSE;
         } 
 	free_rx_unit(&ru);
+        return success;
 }
 
 static rx_queue_element_struct *
@@ -234,7 +238,11 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 	rx_queue_element_struct	*ip;
 
 	if ((ip = add_or_get_interval(buf, ru)) != ru) {
-		add_unit_to_interval(ip, ru);
+                int success = add_unit_to_interval(ip, ru);
+                if (!success) {
+                        debug_msg("Failed to add unit\n");
+                        return NULL;
+                }
 	}
 
         assert(ip != NULL);
@@ -562,6 +570,11 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
 		} else {
 			up->dbe_source[0]->cont_toged = 0;
 		}
+                
+                if (ts_gt(mix_get_tail_time(ms), up->playoutpt)) {
+                        /* This is of no interest to mixer as it outside range */
+                        debug_msg("Way late.\n");
+                }
 
 		up = playout_buffer_add(buf, up);
 		/*
@@ -615,10 +628,10 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
                         memcpy(&last_foo, &foo, sizeof(struct timeval));
                 }
 #endif /* DEBUG_PLAYOUT_BROKEN */
-                if ((buf->tail_ptr->playoutpt - cur_time) < 5*cs/4) {
+                if ((buf->tail_ptr->playoutpt - cur_time) < 3*cs/4) {
                         debug_msg("Less audio buffered (%ld) than cushion safety (%ld)!\n", 
                                   buf->tail_ptr->playoutpt - cur_time,
-                                  5 * cs / 4);
+                                  3 * cs / 4);
                         buf->src->playout_danger = TRUE;
                 }
 
