@@ -79,7 +79,7 @@ audio_open_rw(char rw)
 	blocksize = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
 	/* Round to the nearest legal frag size (next power of two lower...) */
 	frag |= (int) (log(blocksize)/log(2));
-	dprintf("frag=%x blocksize=%d\n", frag, blocksize);
+	debug_msg("frag=%x blocksize=%d\n", frag, blocksize);
 
 	switch (rw) {
 	case O_RDONLY: 
@@ -212,7 +212,7 @@ audio_duplex(int audio_fd)
 
 	is_duplex = info & DSP_CAP_DUPLEX;
 	done_test = TRUE;
-	dprintf("%s duplex audio\n", is_duplex?"Full":"Half");
+	debug_msg("%s duplex audio\n", is_duplex?"Full":"Half");
 	return is_duplex;
 }
 
@@ -387,7 +387,7 @@ audio_non_block(int audio_fd)
 		return;
 	}
 	if (ioctl(audio_fd, FIONBIO, (char *)&on) < 0) {
-		dprintf("Failed to set non-blocking mode on audio device!\n");
+		debug_msg("Failed to set non-blocking mode on audio device!\n");
 	}
 }
 
@@ -401,7 +401,7 @@ audio_block(int audio_fd)
 		return;
 	}
 	if (ioctl(audio_fd, FIONBIO, (char *)&on) < 0) {
-		dprintf("Failed to set blocking mode on audio device!\n");
+		debug_msg("Failed to set blocking mode on audio device!\n");
 	}
 }
 
@@ -438,7 +438,7 @@ audio_set_iport(int audio_fd, int port)
 	int gain;
 
 	if (ioctl(audio_fd, MIXER_READ(SOUND_MIXER_RECMASK), &recmask) == -1) {
-		dprintf("WARNING: Unable to read recording mask!\n");
+		debug_msg("WARNING: Unable to read recording mask!\n");
 		return;
 	}
 	switch (port) {
@@ -446,46 +446,46 @@ audio_set_iport(int audio_fd, int port)
 		if (recmask & SOUND_MASK_MIC) {
 			recsrc = SOUND_MASK_MIC;
 			if ((ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & SOUND_MASK_MIC)) {
-				dprintf("WARNING: Unable to select recording source!\n");
+				debug_msg("WARNING: Unable to select recording source!\n");
 				return;
 			}
 			gain = audio_get_gain(audio_fd);
 			iport = port;
 			audio_set_gain(audio_fd, gain);
 		} else {
-			dprintf("Audio device doesn't support recording from microphone\n");
+			debug_msg("Audio device doesn't support recording from microphone\n");
 		}
 		break;
 	case AUDIO_LINE_IN : 
 		if (recmask & SOUND_MASK_LINE) {
 			recsrc = SOUND_MASK_LINE;
 			if ((ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & SOUND_MASK_LINE)){
-				dprintf("WARNING: Unable to select recording source!\n");
+				debug_msg("WARNING: Unable to select recording source!\n");
 				return;
 			}
 			gain = audio_get_gain(audio_fd);
 			iport = port;
 			audio_set_gain(audio_fd, gain);
 		} else {
-			dprintf("Audio device doesn't support recording from line-input\n");
+			debug_msg("Audio device doesn't support recording from line-input\n");
 		}
 		break;
 	case AUDIO_CD:
 		if (recmask & SOUND_MASK_CD) {
 			recsrc = SOUND_MASK_CD;
 			if ((ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & SOUND_MASK_LINE)){
-				dprintf("WARNING: Unable to select recording source!\n");
+				debug_msg("WARNING: Unable to select recording source!\n");
 				return;
 			}
 			gain = audio_get_gain(audio_fd);
 			iport = port;
 			audio_set_gain(audio_fd, gain);
 		} else {
-			dprintf("Audio device doesn't support recording from CD\n");
+			debug_msg("Audio device doesn't support recording from CD\n");
 		}
 		break;
 	default : 
-		dprintf("audio_set_port: unknown port!\n");
+		debug_msg("audio_set_port: unknown port!\n");
 		abort();
 	};
 	return;
@@ -512,7 +512,7 @@ audio_next_iport(int audio_fd)
 		audio_set_iport(audio_fd, AUDIO_MICROPHONE);
 		break;
 	default : 
-		dprintf("Unknown audio source!\n");
+		debug_msg("Unknown audio source!\n");
 	}
 	return iport;
 }

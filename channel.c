@@ -392,7 +392,7 @@ get_cc_state(session_struct *sp, cc_state_t **lp, int pt, enum cc_e ed)
                         break;
     
         if (stp == 0) {
-                dprintf("creating list %d\n", pt);
+                debug_msg("creating list %d\n", pt);
                 stp = (cc_state_t *)xmalloc(sizeof(cc_state_t));
                 memset(stp, 0, sizeof(cc_state_t));
                 cp = get_channel_coder(pt);
@@ -644,10 +644,10 @@ get_rx_unit(int n, int cc_pt, rx_queue_element_struct *u)
                 }
 #ifdef DEBUG
                 if (n>0) {
-                        if (u->next_ptr == NULL)                                dprintf("Nothing follows\n");
-                        else if (u->next_ptr->src_ts-u->src_ts != u->unit_size) dprintf("ts jump\n");
-                        else if (u->next_ptr->unit_size != u->unit_size)        dprintf("fmt change\n");
-                        else if (u->next_ptr->talk_spurt_start)                 dprintf("New Talkspurt\n");
+                        if (u->next_ptr == NULL)                                debug_msg("Nothing follows\n");
+                        else if (u->next_ptr->src_ts-u->src_ts != u->unit_size) debug_msg("ts jump\n");
+                        else if (u->next_ptr->unit_size != u->unit_size)        debug_msg("fmt change\n");
+                        else if (u->next_ptr->talk_spurt_start)                 debug_msg("New Talkspurt\n");
                 }
 #endif
         } else if (n < 0) {
@@ -661,7 +661,7 @@ get_rx_unit(int n, int cc_pt, rx_queue_element_struct *u)
                         n++;
                 }
         }
-        if (n) dprintf("unit %d not found\n", n);
+        if (n) debug_msg("unit %d not found\n", n);
         return n ? NULL : u;
 }
 
@@ -732,7 +732,7 @@ channel_set_coder(session_struct *sp, int pt)
         } else {
                 sp->num_encodings = 1;
         }
-        dprintf("%s\n", cc->name);
+        debug_msg("%s\n", cc->name);
 }
 
 typedef struct s_collator {
@@ -841,7 +841,7 @@ fragment_sizes(codec_t *cp, int blk_len, struct iovec *store, int *iovc, int sto
         }
 
 #ifdef    DEBUG
-        if (blk_len != 0) dprintf("Fragmentation failed.\n");
+        if (blk_len != 0) debug_msg("Fragmentation failed.\n");
 #endif /* DEBUG */
         
         return (blk_len == 0 ? n : -1);
@@ -867,7 +867,7 @@ fragment_spread(codec_t *cp, int len, struct iovec *iov, int iovc, rx_queue_elem
                         }
                         if (len) u = get_rx_unit(1, cc_pt, u);
                 } else {
-                        dprintf("Unit missing\n");
+                        debug_msg("Unit missing\n");
                         if (done != 0 || (done == 0 && cp->sent_state_sz == 0)) {
                                 len -= iov[done].iov_len;
                                 done += 1;

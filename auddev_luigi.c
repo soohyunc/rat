@@ -184,7 +184,7 @@ void
 audio_drain(int audio_fd)
 {
 	UNUSED(audio_fd);
-	dprintf("WARNING: audio_drain not yet implemented!\n");
+	debug_msg("WARNING: audio_drain not yet implemented!\n");
 }
 
 int

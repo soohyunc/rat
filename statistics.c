@@ -113,7 +113,7 @@ split_block(u_int32 playout_pt,
         units = validate_and_split(hdr->pt, data_ptr, len, ccu, &trailing, &src->inter_pkt_gap);
         block_trash_chk();
         if (units <=0) {
-	    	dprintf("Validate and split failed!\n");
+	    	debug_msg("Validate and split failed!\n");
             	block_free(ccu,sizeof(cc_unit));
 		return 0;
 	}
@@ -210,13 +210,13 @@ adapt_playout(rtp_hdr_t *hdr,
                     src->playout_danger) {
 #ifdef DEBUG
                         if (hdr->m) {
-                                dprintf("New talkspurt\n");
+                                debug_msg("New talkspurt\n");
                         } else if (src->cont_toged > 4) {
-                                dprintf("Cont_toged > 4\n");
+                                debug_msg("Cont_toged > 4\n");
                         } else if (src->playout_danger) {
-                                dprintf("playout danger\n");
+                                debug_msg("playout danger\n");
                         } else {
-                                dprintf("Time stamp jump %ld %ld\n", hdr->ts, src->last_ts);
+                                debug_msg("Time stamp jump %ld %ld\n", hdr->ts, src->last_ts);
                         }
 #endif
 			var = (u_int32) src->jitter * 3;
@@ -268,7 +268,7 @@ adapt_playout(rtp_hdr_t *hdr,
         if (src->cont_toged > 12) {
                 /* something has gone wrong if this assertion fails*/
                 if (playout < get_time(src->clock)) {
-                        dprintf("playout before now.\n");
+                        debug_msg("playout before now.\n");
                         src->first_pckt_flag = TRUE;
                 }
         }
@@ -285,13 +285,13 @@ rtp_header_validation(rtp_hdr_t *hdr, int *len, int *extlen)
 
 	/* We only accept RTPv2 packets... */
 	if (hdr->type != 2) {
-		dprintf("rtp_header_validation: version != 2\n");
+		debug_msg("rtp_header_validation: version != 2\n");
 		return FALSE;
 	}
 
 	/* Check for valid audio payload types... */
 	if (((hdr->pt > 23) && (hdr->pt < 96)) || (hdr->pt > 127)) {
-		dprintf("rtp_header_validation: payload-type out of audio range\n");
+		debug_msg("rtp_header_validation: payload-type out of audio range\n");
 		return FALSE;
 	}
 
@@ -300,7 +300,7 @@ rtp_header_validation(rtp_hdr_t *hdr, int *len, int *extlen)
 	if (hdr->p) {
                 int pad = *((unsigned char *)hdr + *len - 1);
                 if (pad < 1) {
-                        dprintf("rtp_header_validation: padding but 0 len\n");
+                        debug_msg("rtp_header_validation: padding but 0 len\n");
                         return FALSE;
                 }
                 *len -= pad;
@@ -318,7 +318,7 @@ rtp_header_validation(rtp_hdr_t *hdr, int *len, int *extlen)
 static void
 receiver_change_format(rtcp_dbentry *dbe, codec_t *cp)
 {
-        dprintf("Changing Format.\n");
+        debug_msg("Changing Format.\n");
 	dbe->first_pckt_flag = TRUE;
 	change_freq(dbe->clock, cp->freq);
 }
@@ -362,7 +362,7 @@ statistics(session_struct    *sp,
                 hdr = (rtp_hdr_t *) (e_ptr->pckt_ptr);
         
                 if (rtp_header_validation(hdr, &e_ptr->len, &extlen) == FALSE) {
-                        dprintf("RTP Packet failed header validation!\n");
+                        debug_msg("RTP Packet failed header validation!\n");
                         /* XXX log as bad packet */
                         goto release;
                 }
@@ -381,7 +381,7 @@ statistics(session_struct    *sp,
                 /* Get database entry of participant that sent this packet */
                 src = update_database(sp, hdr->ssrc, cur_time);
                 if (src == NULL) {
-                        dprintf("Packet from unknown participant\n");
+                        debug_msg("Packet from unknown participant\n");
                         /* Discard packets from unknown participant */
                         goto release;
                 }
@@ -400,14 +400,14 @@ statistics(session_struct    *sp,
                 if (!(pcp = get_codec(hdr->pt))) {
                         /* this is either a channel coded block or we can't decode it */
                         if (!(pcp = get_codec(get_wrapped_payload(hdr->pt, (char *) data_ptr, len)))) {
-                                dprintf("Cannot decode data.\n");
+                                debug_msg("Cannot decode data.\n");
                                 goto release;
                         }
                 }
         
                 compat = codec_compatible(pcp, get_codec(sp->encodings[0]));
                 if (!compat && !sp->auto_convert) {
-                        dprintf("Format conversion not enabled (%s received).\n", pcp->name);
+                        debug_msg("Format conversion not enabled (%s received).\n", pcp->name);
                         goto release;
                 }
                 
@@ -417,7 +417,7 @@ statistics(session_struct    *sp,
                 if (src->encs[0] != pcp->pt) {
                         /* we should tell update more about coded format */
                         src->encs[0] = pcp->pt;
-                        dprintf("src enc %d pcp enc %d\n", src->encs[0], pcp->pt);
+                        debug_msg("src enc %d pcp enc %d\n", src->encs[0], pcp->pt);
                         update_req   = TRUE;
                 }
                 

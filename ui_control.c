@@ -351,7 +351,7 @@ ui_update_interleaving(session_struct *sp)
                 units  = strtok(NULL,"/");
                 sep    = strtok(NULL,"/");
         } else {
-                dprintf("Could not find interleaving channel coder!\n");
+                debug_msg("Could not find interleaving channel coder!\n");
         }
         
         if (units != NULL && sep != NULL) {
@@ -392,7 +392,7 @@ ui_update_channels(session_struct *sp)
                 sprintf(args, "%s", mbus_encode_str("Stereo"));
                 break;
         default:
-                dprintf("UI not ready for %d channels\n", pcp->channels);
+                debug_msg("UI not ready for %d channels\n", pcp->channels);
                 return;
         }
 	mbus_engine_tx(TRUE, mbus_name_ui, "channels", args, FALSE);
@@ -429,7 +429,7 @@ ui_update_redundancy(session_struct *sp)
                 }
                 offset = strtok(NULL,"/");
         } else {
-                dprintf("Could not find redundant channel coder!\n");
+                debug_msg("Could not find redundant channel coder!\n");
         } 
 
         if (codec_name != NULL && offset != NULL) {
@@ -468,7 +468,7 @@ ui_update_channel(session_struct *sp)
                 sprintf(args, mbus_encode_str("Interleaving"));
                 break;
         default:
-                dprintf("Channel coding failed mapping.\n");
+                debug_msg("Channel coding failed mapping.\n");
                 return;
         }
         mbus_engine_tx(TRUE, mbus_name_ui, "channel.code", args, TRUE);

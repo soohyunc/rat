@@ -338,7 +338,7 @@ vad_talkspurt_no(vad_t *v)
 void
 vad_dump(vad_t *v)
 {
-        dprintf("vad tick %05d state %d sig %d post %d\n",
+        debug_msg("vad tick %05d state %d sig %d post %d\n",
                 v->tick,
                 v->state,
                 v->sig_cnt,

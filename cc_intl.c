@@ -215,7 +215,7 @@ intl_reset(intl_coder_t *s)
 		s->last_ts   = 0;
 		s->last.iovc = 0;
 		
-        dprintf("intl_reset\n");
+        debug_msg("intl_reset\n");
 }
 
 /* expects string of form "codec/n1/n2" */
@@ -354,7 +354,7 @@ intl_compat_chk(u_int32        hdr,
             GET_N2(hdr) != s->il->n1 ||
             GET_PT(hdr) != s->src_pt || 
             GET_UPL(hdr) != s->upl) {
-                dprintf("Header incompatible - adjusting parameters.\n");
+                debug_msg("Header incompatible - adjusting parameters.\n");
                 intl_reset(s);
                 il_free(s->il);
                 /* unscrambler of an (n1,n2) interleaver is an (n2,n1) interleaver */
@@ -398,11 +398,11 @@ intl_decode(rx_queue_element_struct *u,
                 s->last_ts = u->src_ts;
                 /* check phase */
                 if (s->il->idx / s->il->n2 != (int32)GET_PHASE(hdr)) {
-                        dprintf("Out of phase %d %d\n",s->il->idx / s->il->n2,(int32)GET_PHASE(hdr));
+                        debug_msg("Out of phase %d %d\n",s->il->idx / s->il->n2,(int32)GET_PHASE(hdr));
                         while(s->il->idx / s->il->n2 != (int32)GET_PHASE(hdr)) {
                                 ccu = (cc_unit*)il_exchange(s->il, (char*)NULL);
                                 if (ccu) {
-                                        dprintf("Freeing good data\n");
+                                        debug_msg("Freeing good data\n");
                                         clear_cc_unit(ccu,0);
                                         block_free(ccu, sizeof(cc_unit));
                                 }
@@ -425,7 +425,7 @@ intl_decode(rx_queue_element_struct *u,
                         ccu = (cc_unit*) il_exchange(s->il, (char*)ccu);
                         if (ccu) {
                                 codec_t *cp;
-                                dprintf("splitting %d blocks\n", ccu->iovc);
+                                debug_msg("splitting %d blocks\n", ccu->iovc);
                                 for(j = 0, len = 0; j < ccu->iovc; j++) len += ccu->iov[j].iov_len;
                                 su = get_rx_unit(i * s->upl, u->cc_pt, u);
                                 cp = get_codec(s->src_pt);
@@ -435,7 +435,7 @@ intl_decode(rx_queue_element_struct *u,
 #endif
                                 block_free(ccu, sizeof(cc_unit));
                         } else {
-                                dprintf("nothing out\n");
+                                debug_msg("nothing out\n");
                         }
                 }
                 assert(mask == 0);
@@ -449,7 +449,7 @@ intl_decode(rx_queue_element_struct *u,
                         intl_reset(s); 
                         return;
                 } else if ((u->src_ts - s->last_ts)/cp->unit_len != (s->il->n2 * s->upl)) {
-                        dprintf("Nothing doing %d %d \n",(u->src_ts - s->last_ts)/cp->unit_len,s->il->n2 * s->upl);
+                        debug_msg("Nothing doing %d %d \n",(u->src_ts - s->last_ts)/cp->unit_len,s->il->n2 * s->upl);
                         return;
                 }
                 /* ... You can't always get what you want, x2
@@ -458,7 +458,7 @@ intl_decode(rx_queue_element_struct *u,
                  *
                  * (c) Jagger/Richards 196x
                  */ 
-                dprintf("adding dummies %d\n", s->il->n2);
+                debug_msg("adding dummies %d\n", s->il->n2);
                 for(i=0;i<s->il->n2;i++) {
                         ccu = (cc_unit*) il_exchange(s->il, (char*)NULL);
                         if (ccu) {
@@ -504,7 +504,7 @@ intl_valsplit(char         *blk,
 
         cp = get_codec(GET_PT(hdr));
         if (!cp) {
-                dprintf("Codec (pt = %d) not recognized.\n", GET_PT(hdr));
+                debug_msg("Codec (pt = %d) not recognized.\n", GET_PT(hdr));
                 (*trailing) = 0;
                 return 0;
         }
@@ -521,7 +521,7 @@ intl_valsplit(char         *blk,
         for(i = 0, len = 0; i < cu->iovc; i++) len += cu->iov[i].iov_len;
 
         if (len != blen) {
-                dprintf("sizes don't tally %d %d\n", len, blen);
+                debug_msg("sizes don't tally %d %d\n", len, blen);
                 (*trailing) = 0;
                 return 0;
         }

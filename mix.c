@@ -175,7 +175,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 
         playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
 #ifdef DEBUG_PLAYOUT
-        dprintf("mixing %ld\n", el->playoutpt);
+        debug_msg("mixing %ld\n", el->playoutpt);
 #endif 
 
 	if (from->freq == to->freq && from->channels == to->channels) {

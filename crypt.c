@@ -255,7 +255,7 @@ int Decrypt_Ctrl( const u_char* in, u_char* out, int* len)
 		 * despite numerous people pointing out to Steve McCanne that
 		 * it's JUST PLAIN WRONG! Try to sort out the mess...
 		 */
-		dprintf("Decrypted RTCP packet has bogus padding bit. Assuming vat bug, and trying workaround...\n");
+		debug_msg("Decrypted RTCP packet has bogus padding bit. Assuming vat bug, and trying workaround...\n");
 		rtcp_p->common.p = 0;
 		do {
 			current_p = rtcp_p;

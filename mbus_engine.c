@@ -532,7 +532,7 @@ rx_interleaving(char *srce, char *args, session_struct *sp)
             mbus_parse_int(mbus_chan, &separation)) {
                 cc_pt        = get_cc_pt(sp,"INTERLEAVER");
                 sprintf(config, "%d/%d", units, separation);
-                dprintf("config %s\n", config);
+                debug_msg("config %s\n", config);
                 config_channel_coder(sp, cc_pt, config);
         } else {
                 printf("mbus: usage \"interleaving <codec> <separation in units>\"\n");
@@ -574,7 +574,7 @@ rx_redundancy(char *srce, char *args, session_struct *sp)
                 /* Check redundancy makes sense... */
                 rcp    = validate_redundant_codec(pcp,rcp);
                 sprintf(config,"%s/0/%s/%d", pcp->name, rcp->name, offset);
-                dprintf("config %s\n", config);
+                debug_msg("config %s\n", config);
                 cc_pt = get_cc_pt(sp,"REDUNDANCY");
                 config_channel_coder(sp, cc_pt, config);
         } else {
@@ -875,7 +875,7 @@ void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 			return;
 		}
 	}
-	dprintf("Unknown mbus command: %s %s\n", cmnd, args);
+	debug_msg("Unknown mbus command: %s %s\n", cmnd, args);
 }
 
 void mbus_engine_tx(int channel, char *dest, char *cmnd, char *args, int reliable)

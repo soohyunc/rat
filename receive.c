@@ -88,7 +88,7 @@ add_unit_to_interval(rx_queue_element_struct *ip, rx_queue_element_struct *ru)
                 ru->ccu[ru->ccu_cnt] = NULL;
             }
 	} else {
-                dprintf("Incompatible channel coding pt.\n");
+                debug_msg("Incompatible channel coding pt.\n");
         }
 	free_rx_unit(&ru);
 }
@@ -137,7 +137,7 @@ fillin_playout_buffer(ppb_t *buf,
 
 #ifdef DEBUG_PLAYOUT
         if (playout_step > 4*from->unit_size) {
-                dprintf("playout_step is large %d.\n",
+                debug_msg("playout_step is large %d.\n",
                         playout_step);
         }
 #endif
@@ -170,7 +170,7 @@ fillin_playout_buffer(ppb_t *buf,
 
         assert(units_made>0);
 #ifdef DEBUG_PLAYOUT
-        dprintf("Allocated %d new units with separation %d\n",
+        debug_msg("Allocated %d new units with separation %d\n",
                 units_made,
                 playout_step);
 #endif /* DEBUG_PLAYOUT */
@@ -189,13 +189,13 @@ verify_playout_buffer(ppb_t* buf)
                 if (ts_gt(el->src_ts, el->next_ptr->src_ts)) {
                         src_diff = ts_abs_diff( el->next_ptr->src_ts, 
                                                 el->src_ts );
-                        dprintf( "src_ts jump %08u.\n", 
+                        debug_msg( "src_ts jump %08u.\n", 
                                  src_diff );
                 }
                 if (ts_gt(el->playoutpt, el->next_ptr->playoutpt)) {
                         playout_diff = ts_abs_diff( el->next_ptr->playoutpt,
                                                     el->playoutpt );
-                        dprintf( "out of order playout units by %08u.\n",
+                        debug_msg( "out of order playout units by %08u.\n",
                                  playout_diff );
                 }
                 el = el->next_ptr;
@@ -203,7 +203,7 @@ verify_playout_buffer(ppb_t* buf)
         }
         
         if (buf_len>50) {
-                dprintf( "rx buf_len = %d units.  Excessive?\n", 
+                debug_msg( "rx buf_len = %d units.  Excessive?\n", 
                          buf_len + 1 );
                 /* 
                  * plus one is because loop requires 2 rx units 
@@ -211,7 +211,7 @@ verify_playout_buffer(ppb_t* buf)
                  */
         }
         if (buf->len != buf_len + 1) {
-                dprintf("Buffer length estimate is wrong (%d %d)!\n",
+                debug_msg("Buffer length estimate is wrong (%d %d)!\n",
                         buf->len,
                         buf_len + 1);
         }
@@ -254,7 +254,7 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
               ip->prev_ptr && 
               ts_gt(ip->prev_ptr->playoutpt, ip->playoutpt)) {
 #ifdef DEBUG_PLAYOUT
-                dprintf("Shifting unit from %ld to %ld\n",
+                debug_msg("Shifting unit from %ld to %ld\n",
                         ip->prev_ptr->playoutpt,
                         ip->playoutpt);
 #endif
@@ -479,7 +479,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		    && ts_gt(up->playoutpt, cur_time)){
                         channel_decode(up);
 			decode_unit(up);
-                        dprintf("Mixing late audio\n");
+                        debug_msg("Mixing late audio\n");
 			if (up->native_count) {
 				mix_do_one_chunk(sp, ms, up);
 				if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
@@ -501,7 +501,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                         static struct timeval last_foo;
                         struct timeval foo;
                         gettimeofday(&foo, NULL);
-                        dprintf("%08ld: playout range: %ld - %ld\n\tbuffer playout range %ld - %ld\n\tbuffer ts range %ld - %ld\n",
+                        debug_msg("%08ld: playout range: %ld - %ld\n\tbuffer playout range %ld - %ld\n\tbuffer ts range %ld - %ld\n",
                                 (foo.tv_sec  - last_foo.tv_sec) * 1000 +
                                 (foo.tv_usec - last_foo.tv_usec)/1000, 
                                 cur_time, 
@@ -525,7 +525,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                             u_int32 src_diff = ts_abs_diff(up->prev_ptr->src_ts,up->src_ts);
                             if (src_diff!= up->unit_size) 
                             {
-                                    dprintf("src_ts jump %08d\n",src_diff);
+                                    debug_msg("src_ts jump %08d\n",src_diff);
                             }
                     }
 #endif /* DEBUG_PLAYOUT */
@@ -547,7 +547,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                          * we always want 1 cushion's worth available.
                          */
                         buf->src->playout_danger = TRUE;
-                        dprintf("buf->len %d vs mixed %d safety %d ideal len %d\n", buf->len, chunks_mixed, PLAYOUT_SAFETY, cs/cu);
+                        debug_msg("buf->len %d vs mixed %d safety %d ideal len %d\n", buf->len, chunks_mixed, PLAYOUT_SAFETY, cs/cu);
                 
                 }
 	}

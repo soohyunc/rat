@@ -110,7 +110,7 @@ cushion_create(cushion_t **c, int blockdur)
         /* error cleanups... */
         bail_histogram: xfree(nc->read_history);
         bail_history:   xfree(nc); 
-        bail_cushion:   dprintf("Cushion allocation failed.\n");
+        bail_cushion:   debug_msg("Cushion allocation failed.\n");
                         return FALSE;
 }
 
@@ -137,7 +137,7 @@ cushion_update(cushion_t *c, u_int32 read_dur, int mode)
                 c->histogram[ c->read_history[c->last_in] ]++;
         } else {
                 c->histogram[ c->read_history[c->histbins - 1] ]++;
-                dprintf("WE ARE NOT KEEPING UP IN REAL-TIME\n");
+                debug_msg("WE ARE NOT KEEPING UP IN REAL-TIME\n");
         }
 	c->last_in++;
 	if (c->last_in == HISTORY_SIZE) {
@@ -182,12 +182,12 @@ cushion_size_check(cushion_t *c)
         if (c->cushion_size < MIN_CUSHION) {
                 c->cushion_size = MIN_CUSHION;
 #ifdef DEBUG_CUSHION
-                dprintf("cushion boosted.");
+                debug_msg("cushion boosted.");
 #endif
         } else if (c->cushion_size > MAX_CUSHION) {
                 c->cushion_size = MAX_CUSHION;
 #ifdef DEBUG_CUSHION
-                dprintf("cushion clipped.\n");
+                debug_msg("cushion clipped.\n");
 #endif
         }
 }
@@ -204,7 +204,7 @@ cushion_set_size(cushion_t *c, u_int32 new_size)
         c->cushion_size = new_size;
         cushion_size_check(c);
 #ifdef DEBUG_CUSHION
-        dprintf("cushion size %ld\n", new_size);
+        debug_msg("cushion size %ld\n", new_size);
 #endif
         return c->cushion_size;
 }
@@ -238,7 +238,7 @@ cushion_use_estimate(cushion_t *c)
                 - (c->cushion_estimate % c->cushion_step);
         cushion_size_check(c);
 #ifdef DEBUG_CUSHION
-        dprintf("cushion using size %ld\n", c->cushion_size);
+        debug_msg("cushion using size %ld\n", c->cushion_size);
 #endif
         return c->cushion_size;
 }

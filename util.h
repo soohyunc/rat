@@ -52,7 +52,7 @@
 #define block_alloc(x)	_block_alloc(x,__FILE__,__LINE__)
 #define block_free(x,y) _block_free(x,y,__LINE__)
 #define xstrdup(x)	_xstrdup(x,__FILE__,__LINE__)
-#define dprintf		_dprintf("%s:%d ", __FILE__, __LINE__), _dprintf
+#define debug_msg	_dprintf("%s:%d ", __FILE__, __LINE__), _dprintf
 
 void 	 xdoneinit(void);
 void	 xmemchk(void);

@@ -115,22 +115,22 @@ rtcp_check_rtcp_pkt(u_int8 *packet, int len)
 
 	/* All RTCP packets must be compound packets (RFC1889, section 6.1) */
 	if (((ntohs(pkt->common.length) + 1) * 4) == len) {
-		dprintf("Bogus RTCP packet: not a compound packet\n");
+		debug_msg("Bogus RTCP packet: not a compound packet\n");
 		return FALSE;
 	}
 
 	/* Check the RTCP version, payload type and padding of the first in  */
 	/* the compund RTCP packet...                                        */
 	if (pkt->common.type != 2) {
-		dprintf("Bogus RTCP packet: version number != 2 in the first sub-packet\n");
+		debug_msg("Bogus RTCP packet: version number != 2 in the first sub-packet\n");
 		return FALSE;
 	}
 	if (pkt->common.p != 0) {
-		dprintf("Bogus RTCP packet: padding bit is set, and this is the first packet in the compound\n");
+		debug_msg("Bogus RTCP packet: padding bit is set, and this is the first packet in the compound\n");
 		return FALSE;
 	}
 	if ((pkt->common.pt != RTCP_SR) && (pkt->common.pt != RTCP_RR)) {
-		dprintf("Bogus RTCP packet: compund packet does not start with SR or RR\n");
+		debug_msg("Bogus RTCP packet: compund packet does not start with SR or RR\n");
 		return FALSE;
 	}
 
@@ -139,11 +139,11 @@ rtcp_check_rtcp_pkt(u_int8 *packet, int len)
 	/* the last packet.                                                      */
 	do {
 		if (r->common.type != 2) {
-			dprintf("Bogus RTCP packet: version number != 2\n");
+			debug_msg("Bogus RTCP packet: version number != 2\n");
 			return FALSE;
 		}
 		if (last == 1) {
-			dprintf("Bogus RTCP packet: padding bit was set before the last packet in the compound\n");
+			debug_msg("Bogus RTCP packet: padding bit was set before the last packet in the compound\n");
 			return FALSE;
 		}
 		if (r->common.p == 1) last = 1;
@@ -154,7 +154,7 @@ rtcp_check_rtcp_pkt(u_int8 *packet, int len)
 	/* Check that the length of the packets matches the length of the UDP */
 	/* packet in which they were received...                              */
 	if ((r != end) || (l != len))  {
-		dprintf("Bogus RTCP packet: length of RTCP packet does not match length of UDP packet\n");
+		debug_msg("Bogus RTCP packet: length of RTCP packet does not match length of UDP packet\n");
 		return FALSE;
 	}
 
@@ -184,7 +184,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 	while (len > 0) {
 		len -= ntohs(pkt->common.length) + 1;
 		if (len < 0 || pkt->common.length == 0) {
-			dprintf("Ignoring RTCP packet with weird format...\n");
+			debug_msg("Ignoring RTCP packet with weird format...\n");
 			return;
 		}
 		switch (pkt->common.pt) {
@@ -296,7 +296,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 					case RTCP_SDES_CNAME:
 						if (dbe->sentry->cname) {
 							if (strncmp(dbe->sentry->cname, sdes->data, lenstr) != 0) {
-								dprintf("CNAME change %d : [%s] --> [%s]\n", lenstr, dbe->sentry->cname, sdes->data);
+								debug_msg("CNAME change %d : [%s] --> [%s]\n", lenstr, dbe->sentry->cname, sdes->data);
 							}
 							break;
 						}
@@ -373,10 +373,10 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
                                                 ui_info_update_tool(dbe);
 						break;
 					case RTCP_SDES_NOTE:
-						dprintf("SDES NOTE support not yet implemented\n");
+						debug_msg("SDES NOTE support not yet implemented\n");
 						break;
 					default:
-						dprintf("SDES packet type %d ignored\n", sdes->type);
+						debug_msg("SDES packet type %d ignored\n", sdes->type);
 						break;
 					}
 					sdes = (rtcp_sdes_item_t *) ((u_int8 *) sdes + sdes->length);
@@ -406,7 +406,7 @@ rtcp_add_sdes_item(u_int8 *buf, int type, char *val)
 	int             namelen;
 
 	if (val == NULL) {
-		dprintf("Cannot format SDES item. type=%d val=%xp\n", type, val);
+		debug_msg("Cannot format SDES item. type=%d val=%xp\n", type, val);
 		return 0;
 	}
 	shdr->type = type;

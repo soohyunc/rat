@@ -298,11 +298,11 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 #endif
 
 	if (dbptr == NULL) {
-		dprintf("Freeing database entry for SSRC %lx when the database is empty! Huh?\n", ssrc);
+		debug_msg("Freeing database entry for SSRC %lx when the database is empty! Huh?\n", ssrc);
 		return;
 	}
 
-	dprintf("Removing RTCP database entry for SSRC 0x%lx\n", ssrc);
+	debug_msg("Removing RTCP database entry for SSRC 0x%lx\n", ssrc);
 	if (dbptr->ssrc == ssrc) {
 		sp->db->ssrc_db = dbptr->next;
 		check_active_leave(sp, dbptr);
@@ -358,7 +358,7 @@ rtcp_set_attribute(session_struct *sp, int type, char *val)
 		ui_info_update_name(sp->db->my_dbe);
 		break;
 	default :
-		dprintf("Unknown SDES attribute type! (This should never happen)\n");
+		debug_msg("Unknown SDES attribute type! (This should never happen)\n");
 		break;
 	}
 	return 0;

@@ -113,7 +113,7 @@ red_flush(red_coder_t *r)
                 red_clear_row(r, i);
         }
         r->head = r->tail = r->len = 0;
-        dprintf("flushed\n");
+        debug_msg("flushed\n");
 }
 
 red_coder_t *
@@ -210,7 +210,7 @@ red_qconfig(session_struct    *sp,
                         sprintf(buf + len, "%s", fragbuf);
                         len += fraglen;
                 } else {
-                        dprintf("Buffer too small!");
+                        debug_msg("Buffer too small!");
                         break;
                 }
         }
@@ -472,7 +472,7 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
                 tlen    = RED_LEN(red_hdr);
                 /* we do not discard packet if we cannot decode redundant data */
                 if (cp && fragment_sizes(cp, tlen, cu->iov, &cu->iovc, CC_UNITS) < 0) {
-                        dprintf("frg sz");
+                        debug_msg("frg sz");
                         goto fail;
                 }
                 todo -= tlen;
@@ -482,13 +482,13 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
         }
         
         if (hdr_idx >= MAX_RED_LAYERS || todo <= 0) {
-                dprintf("hdr ovr\n");
+                debug_msg("hdr ovr\n");
                 goto fail;
         }
         cp = get_codec((*blk)&0x7f);
                 /* we do discard data if cannot do primary */
         if (!cp) {
-                dprintf("primary?");
+                debug_msg("primary?");
                 goto fail;
         }
 
@@ -496,7 +496,7 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
         todo -= 1;
 
         if (hdr_idx >= MAX_RED_LAYERS || todo <= 0) {
-                dprintf("hdr ovr\n");
+                debug_msg("hdr ovr\n");
                 goto fail;
         }
         
@@ -518,7 +518,7 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
 
 fail:
         for(hdr_idx=0; hdr_idx<cu->iovc; hdr_idx++) {
-                dprintf("%d -> %03d bytes\n", 
+                debug_msg("%d -> %03d bytes\n", 
                         hdr_idx,
                         cu->iov[hdr_idx].iov_len);
         }
@@ -550,12 +550,12 @@ red_fix_encodings(session_struct *sp, red_coder_t *r)
         
         sp->encodings[0]  = r->coding[0];
         sp->num_encodings = 1;
-        dprintf("added %d\n", r->coding[0]);
+        debug_msg("added %d\n", r->coding[0]);
         for(i = 1; i < r->nlayers; i++) {
                 for(j = 0; j<sp->num_encodings && sp->encodings[j] != r->coding[i]; j++);
                 if (j == sp->num_encodings) {
                         sp->encodings[sp->num_encodings] = r->coding[i];
-                        dprintf("added %d\n", r->coding[i]);
+                        debug_msg("added %d\n", r->coding[i]);
                         sp->num_encodings++;
                 }
                 assert(r->coding[i]<127);

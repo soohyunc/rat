@@ -231,7 +231,7 @@ static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seq
 	 * list. That's not necessarily a problem, could just be a duplicate
 	 * ACK for a retransmission... We ignore it for now...
 	 */
-	dprintf("Got an ACK for something not in our ACK list...\n");
+	debug_msg("Got an ACK for something not in our ACK list...\n");
 }
 
 int mbus_waiting_acks(struct mbus *m)
@@ -240,7 +240,7 @@ int mbus_waiting_acks(struct mbus *m)
 	 * messages we sent out.
 	 */
 	mbus_ack_list_check(m);
-	if (m->ack_list != NULL) dprintf("Waiting for ACKs on mbus 0x%p...\n", m);
+	if (m->ack_list != NULL) debug_msg("Waiting for ACKs on mbus 0x%p...\n", m);
 	return (m->ack_list != NULL);
 }
 
@@ -303,9 +303,9 @@ void mbus_retransmit(struct mbus *m)
 		/* diff is time in milliseconds that the message has been awaiting an ACK */
 		diff = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - ((curr->time.tv_sec * 1000) + (curr->time.tv_usec / 1000));
 		if (diff > 1000) {
-			dprintf("Reliable mbus message failed!\n");
-			dprintf("   mbus/1.0 %d R (%s) %s ()\n", curr->seqn, curr->srce, curr->dest);
-			dprintf("   %s (%s)\n", curr->cmnd, curr->args);
+			debug_msg("Reliable mbus message failed!\n");
+			debug_msg("   mbus/1.0 %d R (%s) %s ()\n", curr->seqn, curr->srce, curr->dest);
+			debug_msg("   %s (%s)\n", curr->cmnd, curr->args);
 			if (m->err_handler == NULL) {
 				abort();
 			}
@@ -425,7 +425,7 @@ struct mbus *mbus_init(unsigned short channel,
 	ifc.ifc_buf = (char *)ifbuf;
 	ifc.ifc_len = sizeof(ifbuf);
 	if (ioctl(m->fd, SIOCGIFCONF, (char *) &ifc) < 0) {
-		dprintf("Can't find interface configuration...\n");
+		debug_msg("Can't find interface configuration...\n");
 		return m;
 	}
 
@@ -706,7 +706,7 @@ void mbus_recv(struct mbus *m, void *data)
 			}
 		}
 		if (!match_addr) {
-			dprintf("Packet source address does not match local host address!\n");
+			debug_msg("Packet source address does not match local host address!\n");
 				return;
 		}
 	}
@@ -715,32 +715,32 @@ void mbus_recv(struct mbus *m, void *data)
 	/* Parse the header */
 	if (!mbus_parse_sym(m, &ver) || (strcmp(ver, "mbus/1.0") != 0)) {
 		mbus_parse_done(m);
-                dprintf("Parser failed version: %s\n",ver);
+                debug_msg("Parser failed version: %s\n",ver);
 		return;
 	}
 	if (!mbus_parse_int(m, &seq)) {
 		mbus_parse_done(m);
-                dprintf("Parser failed seq: %s\n", seq);
+                debug_msg("Parser failed seq: %s\n", seq);
 		return;
 	}
 	if (!mbus_parse_sym(m, &r)) {
 		mbus_parse_done(m);
-                dprintf("Parser failed reliable: %s\n", seq);
+                debug_msg("Parser failed reliable: %s\n", seq);
 		return;
 	}
 	if (!mbus_parse_lst(m, &src)) {
 		mbus_parse_done(m);
-                dprintf("Parser failed seq: %s\n", src);
+                debug_msg("Parser failed seq: %s\n", src);
 		return;
 	}
 	if (!mbus_parse_lst(m, &dst)) {
 		mbus_parse_done(m);
-                dprintf("Parser failed dst: %s\n", dst);
+                debug_msg("Parser failed dst: %s\n", dst);
 		return;
 	}
 	if (!mbus_parse_lst(m, &ack)) {
 		mbus_parse_done(m);
-                dprintf("Parser failed ack: %s\n", ack);
+                debug_msg("Parser failed ack: %s\n", ack);
 		return;
 	}
 	/* Check if the message was addressed to us... */
@@ -759,7 +759,7 @@ void mbus_recv(struct mbus *m, void *data)
 			/* ...and process the commands contained in the message */
 			while (mbus_parse_sym(m, &cmd)) {
 				if (mbus_parse_lst(m, &param) == FALSE) {
-					dprintf("Unable to parse mbus command paramaters...\n");
+					debug_msg("Unable to parse mbus command paramaters...\n");
 					break;
 				}
 				m->cmd_handler(src, cmd, param, data);

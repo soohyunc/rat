@@ -135,7 +135,7 @@ set_converter(int mode)
                 us = &upsample_linear;
                 break;
         default:
-                dprintf("Converter not implemented!\n");
+                debug_msg("Converter not implemented!\n");
         }
 }
 

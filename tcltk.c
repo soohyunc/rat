@@ -74,7 +74,7 @@ tcl_send(char *command)
 	}
 
 	if (Tcl_Eval(interp, command) != TCL_OK) {
-		dprintf("TCL error: %s\n", Tcl_GetVar(interp, "errorInfo", 0));
+		debug_msg("TCL error: %s\n", Tcl_GetVar(interp, "errorInfo", 0));
 	}
 }
 

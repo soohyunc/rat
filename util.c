@@ -316,7 +316,7 @@ _block_free(void *p, int size, int line)
         n = 0;
         while(bp) {
                 if (bp == (block*)p) {
-                        dprintf("already freed line %d\n", *((int *)p+1));
+                        debug_msg("already freed line %d\n", *((int *)p+1));
                         assert(0);
                 }
                 bp = bp->next;

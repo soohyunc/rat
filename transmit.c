@@ -458,7 +458,7 @@ tx_send(session_struct *sp, speaker_table *sa)
                         rtp_header.pt   = out->pt;
                         if (ready & CC_NEW_TS) {
                                 rtp_header.m = 1;
-                                dprintf("new talkspurt\n");
+                                debug_msg("new talkspurt\n");
                         } else {
                                 rtp_header.m = 0;
                         }   

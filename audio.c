@@ -345,7 +345,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 		}
 		spi->last_zero  = TRUE;
 		spi->loop_delay = 1000;
-                dprintf("read 0 bytes\n");
+                debug_msg("read 0 bytes\n");
 		return (0);
 	} else {
 		if (read_dur > 160 && spi->loop_estimate > 5000) {
@@ -397,7 +397,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                 if (spo->out_file) {
                         fwrite(bufp, BYTES_PER_SAMPLE, new_cushion, spo->out_file);
                 }
-                dprintf("catch up! read_dur(%d) > cushion_size(%d)\n",
+                debug_msg("catch up! read_dur(%d) > cushion_size(%d)\n",
                         read_dur,
                         cushion_size);
                 cushion_size = new_cushion;
@@ -420,7 +420,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                         /* Only decrease cushion if not playing anything out */
                         read_dur -= cushion_step;
                         cushion_step_down(c);
-                        dprintf("Decreasing cushion\n");
+                        debug_msg("Decreasing cushion\n");
                 }
                 audio_device_write(spo, bufp, read_dur);
                 if (spo->out_file) {
@@ -436,7 +436,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                                 fwrite(audio_zero_buf, BYTES_PER_SAMPLE, cushion_step, spo->out_file);
                         }
                         cushion_step_up(c);
-                        dprintf("Increasing cushion.\n");
+                        debug_msg("Increasing cushion.\n");
                 }
         }
         return (read_dur);

@@ -75,7 +75,7 @@ int thread_pri;
 static void
 signal_handler(int signal)
 {
-  dprintf("Caught signal %d\n", signal);
+  debug_msg("Caught signal %d\n", signal);
   should_exit = TRUE;
 }
 #endif
@@ -207,7 +207,7 @@ main(int argc, char *argv[])
 					gettimeofday(&time, NULL);
 					if (time.tv_sec - sp[i]->auto_lecture > 120) {
 						sp[i]->auto_lecture = 0;
-						dprintf("Dummy lecture mode\n");
+						debug_msg("Dummy lecture mode\n");
 					}
 				}
 				alc = 0;
