@@ -199,8 +199,10 @@ _channel_coder_create(cc_id_t id, channel_state_t **ppcs, int is_encoder)
 
         if (is_encoder) {
                 create_state = table[pcs->coder].enc_create_state;
+		debug_msg("Created encoder: \"%s\"\n", table[pcs->coder].details.name);
         } else {
                 create_state = table[pcs->coder].dec_create_state;
+		debug_msg("Created decoder: \"%s\"\n", table[pcs->coder].details.name);
         }
 
         if (create_state) {
@@ -369,10 +371,12 @@ channel_coder_get_by_payload(uint8_t payload)
 
         for(i = 0; i < CC_NUM_CODERS; i++) {
                 if (table[i].pt == payload) {
+			debug_msg("Found channel coder for payload type %d \"%s\"\n", payload, table[i].details.name);
                         return CC_IDX_TO_ID(i);
                 }
         }
         /* Return vanilla if not found */
+	debug_msg("No channel coder for payload type %d\n", payload);
         return CC_IDX_TO_ID(0);        
 }
 

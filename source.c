@@ -665,7 +665,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         /* Something has changed or is uninitialized...      */
                         const codec_format_t *cf;
                         const audio_format   *dev_fmt;
-                        codec_id_t           cid;
+                        codec_id_t            cid;
                         uint32_t              samples_per_frame;
 
                         cid = codec_get_by_payload(codec_pt);
@@ -676,11 +676,15 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         e->enc              = codec_pt;
                         e->units_per_packet = units_per_packet;
                         e->channel_coder_id = ccid;        
+			if (src->channel_state != NULL) {
+				channel_decoder_destroy(&(src->channel_state));
+                		pb_flush(src->channel);
+			}
+			channel_decoder_create(e->channel_coder_id, &(src->channel_state));
                         samples_per_frame   = codec_get_samples_per_frame(cid);
                         debug_msg("Samples per frame %d rate %d\n", samples_per_frame, cf->format.sample_rate);
                         e->inter_pkt_gap    = e->units_per_packet * (uint16_t)samples_per_frame;
                         e->frame_dur        = ts_map32(cf->format.sample_rate, samples_per_frame);
-                        debug_msg("Encoding change\n");
                         /* Get string describing encoding.                   */
                         channel_describe_data(ccid, codec_pt, 
                                               p->data, p->data_len, 
@@ -688,6 +692,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         if (sp->mbus_engine) {
                                 ui_update_stats(sp, e->ssrc);
                         }
+                        debug_msg("Encoding changed to %s\n", e->enc_fmt);
                         /* Configure converter */
                         dev_fmt = audio_get_ofmt(sp->audio_device);
                         source_reconfigure(src, 
@@ -696,7 +701,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                                            (uint16_t)dev_fmt->sample_rate,
                                            (uint16_t)dev_fmt->channels);
                         adjust_playout = TRUE;
-                }
+		}
                 
                 /* Check for talkspurt start indicated by change in          */
                 /* relationship between timestamps and sequence numbers.     */
@@ -704,8 +709,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 delta_ts  = p->ts  - e->last_ts;
 
                 if (delta_seq * e->inter_pkt_gap != delta_ts) {
-                        debug_msg("Seq no / timestamp realign (%lu * %lu != %lu)\n", 
-                                  delta_seq, e->inter_pkt_gap, delta_ts);
+                        debug_msg("Seq no / timestamp realign (%lu * %lu != %lu)\n", delta_seq, e->inter_pkt_gap, delta_ts);
                         adjust_playout = TRUE;
                 }
 
