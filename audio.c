@@ -480,7 +480,7 @@ audio_wait_for(session_struct *sp)
          * dwPeriod is usually around 20ms (8kHz), but mmtask often doesn't give
          * us audio that often, more like every 40ms.
          */
-        while (!audio_is_ready()) {
+        while (!audio_is_ready(sp->audio_fd)) {
                 Sleep(dwPeriod);
         }
 

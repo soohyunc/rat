@@ -45,7 +45,7 @@
 #include "config_win32.h"
 #include "codec_acm.h"
 #include "codec.h"
-#include "util.h"
+#include "memory.h"
 
 static HACMDRIVER hadActive;
 

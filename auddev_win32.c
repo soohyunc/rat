@@ -69,7 +69,8 @@
 #include "config_win32.h"
 #include "assert.h"
 #include "audio.h"
-#include "util.h"
+#include "debug.h"
+#include "memory.h"
 
 #define rat_to_device(x)	((x) * 255 / MAX_AMP)
 #define device_to_rat(x)	((x) * MAX_AMP / 255)

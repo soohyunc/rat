@@ -229,6 +229,14 @@ SOURCE=.\cushion.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\debug.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\debug.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\gsm.h
 # End Source File
 # Begin Source File
@@ -286,6 +294,14 @@ SOURCE=.\md5.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\memory.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\memory.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\mix.c
 # End Source File
 # Begin Source File
@@ -299,6 +315,14 @@ SOURCE=.\net.c
 # Begin Source File
 
 SOURCE=.\net.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\net_udp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\net_udp.h
 # End Source File
 # Begin Source File
 
