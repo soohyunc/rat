@@ -1104,8 +1104,6 @@ Copyright (C) 1991-1993 Regents of the University of California
 Copyright (C) 1992 Stichting Mathematisch Centrum, Amsterdam
 Copyright (C) 1991-1992 RSA Data Security, Inc
 Copyright (C) 1992 Jutta Degener and Carsten Bormann, TU Berlin
-Copyright (C) 1993-1994 AT&T Bell Laboratories
-Copyright (C) 1994 Henning Schulzrinne
 Copyright (C) 1994 Paul Stewart
 Copyright (C) 1996 Regents of the University of California
 
