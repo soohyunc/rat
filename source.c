@@ -1050,9 +1050,9 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         /* We are dropping drop_dur samples and want signal to be            */
         /* continuous.  So we blend samples that would have been played if   */
         /* they weren't dropped with where signal continues after the drop.  */
-        uint32_t drop_samples;
+        uint32_t drop_samples, samples;
         uint16_t rate, channels;
-        int32_t tmp, a, b, i, merge_len;
+        int32_t i;
         sample *new_start, *old_start;
 
         for (i = md->nrep - 1; i >= 0; i--) {
@@ -1069,14 +1069,10 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         /* new_start is what will be played by mixer */
         new_start = (sample*)md->rep[i]->data + drop_samples;
         old_start = (sample*)md->rep[i]->data;
+        samples   = md->rep[i]->data_len / sizeof(sample);
         
-        merge_len = SOURCE_MERGE_LEN_SAMPLES * channels;
-        for (i = 0; i < merge_len; i++) {
-                a   = (merge_len - i) * old_start[i];
-                b   = i * new_start[i];
-                tmp = (a + b) / merge_len;
-                new_start[i] = (sample)tmp;
-        }
+        audio_blend(old_start, new_start, new_start, SOURCE_MERGE_LEN_SAMPLES, channels);
+        xmemchk();
 }
 
 /* Source conceal_inserted_samples blends end of omd with overlap in imd    */
@@ -1087,7 +1083,8 @@ static void
 conceal_inserted_samples(media_data *omd, media_data *imd, ts_t insert_dur)
 {
         uint16_t rate, channels;
-        int32_t tmp, a, b, i, merge_len;
+        uint32_t dst_samples, src_samples, skip;
+        int32_t  i;
         sample *dst, *src;
         
         assert(omd != NULL);
@@ -1098,28 +1095,29 @@ conceal_inserted_samples(media_data *omd, media_data *imd, ts_t insert_dur)
                         break;
                 }
         }
+
         assert(i >= 0);
-        merge_len = SOURCE_MERGE_LEN_SAMPLES * channels;
-        a         = omd->rep[i]->data_len / sizeof(sample) * channels - merge_len;
-        dst       = (sample*)omd->rep[i]->data + a;
+        dst_samples = omd->rep[i]->data_len / sizeof(sample);
+        dst         = (sample*)omd->rep[i]->data + dst_samples - SOURCE_MERGE_LEN_SAMPLES * channels;
         
         for (i = imd->nrep - 1; i >= 0; i--) {
                 if (codec_get_native_info(imd->rep[i]->id, &rate, &channels)) {
                         break;
                 }
         }
+
         assert(i >= 0);
-        b   = insert_dur.ticks * channels;
-        src = (sample*)imd->rep[i]->data + b;
-
-        for(i = 0; i < merge_len; i++) {
-                a = (merge_len - i) * dst[i];
-                b = i * src[i];
-                tmp = (a + b) / merge_len;
-                dst[i] = (sample)tmp;
+        src_samples = imd->rep[i]->data_len / sizeof(sample);
+        skip        = insert_dur.ticks * channels;
+        if (skip > src_samples - SOURCE_MERGE_LEN_SAMPLES * channels) {
+                debug_msg("Clipping insert length\n");
+                skip = src_samples - SOURCE_MERGE_LEN_SAMPLES * channels;
         }
+        src = (sample*)imd->rep[i]->data + skip;
 
-        UNUSED(tmp);
+        xmemchk();
+        audio_blend(src, dst, dst, SOURCE_MERGE_LEN_SAMPLES, channels);
+        xmemchk();
 }
 
 /* source_check_buffering is supposed to check amount of audio buffered      */
@@ -1259,12 +1257,14 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 }
 
                 conceal_dropped_samples(md, adjustment); 
-
+                xmemchk();
+                
                 return SOURCE_SKEW_FAST;
         } else if (src->skew == SOURCE_SKEW_SLOW) {
                 media_data *fmd;
                 ts_t        insert_playout;
 
+                xmemchk();
                 if (recommend_skew_adjust_dur(md, FALSE, &adjustment) == FALSE) {
                         debug_msg("bad match\n");
 			source_validate(src);
@@ -1279,9 +1279,11 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 /* Insert a unit: buffer looks like current frame -> gap of adjustment -> next frame */
                 media_data_dup(&fmd, md);
                 insert_playout = ts_add(playout, adjustment);
-
+                xmemchk();
                 if (pb_add(src->media, (u_char*)fmd, sizeof(media_data), insert_playout) == TRUE) {
+                        xmemchk();
                         conceal_inserted_samples(md, fmd, adjustment);
+                        xmemchk();
                 } else {
                         debug_msg("Buffer push back: insert failed\n");
                         media_data_destroy(&fmd, sizeof(media_data));
@@ -1296,6 +1298,8 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 src->samples_added -= adjustment.ticks;
 
                 debug_msg("Playout buffer shift back %d samples.\n", adjustment.ticks);
+                xmemchk();
+
                 src->skew = SOURCE_SKEW_NONE;
 		source_validate(src);
                 return SOURCE_SKEW_SLOW;
@@ -1396,6 +1400,7 @@ source_process(session_t 	 *sp,
                 channel_decoder_decode(src->channel_state, src->channel, src->media, end_ts);
         }
 
+        xmemchk();
         while (ts_gt(end_ts, src->next_played) && pb_iterator_advance(src->media_pos)) {
 		pb_iterator_get_at(src->media_pos, (u_char**)&md, &md_len, &playout);
 		/* At this point, md is the media data at the current playout point */
@@ -1514,7 +1519,6 @@ source_process(session_t 	 *sp,
                                 assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
                                 assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
                         }
-
                         if (src->pdbe->gain != 1.0 && codec_is_native_coding(md->rep[md->nrep - 1]->id)) {
                                 audio_scale_buffer((sample*)md->rep[md->nrep - 1]->data,
                                                    md->rep[md->nrep - 1]->data_len / sizeof(sample),
@@ -1539,6 +1543,7 @@ source_process(session_t 	 *sp,
                 step = ts_map32(sample_rate, md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample)));
                 src->next_played = ts_add(playout, step);
                 src->samples_played += md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample));
+                xmemchk();
 
                 if (mix_put_audio(ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
                         /* Sources sampling rate changed mid-flow? dump data */
