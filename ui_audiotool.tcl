@@ -94,28 +94,24 @@ proc window_stats {cname} {
 proc output_mute {state} {
     mbus_send "R" "audio.output.mute" "$state"
     if {$state} {
-	.r.c.vol.t1 configure -relief sunken
-	pack forget .r.c.vol.b1 .r.c.vol.s1
-	pack .r.c.vol.ml -side top -fill both -expand 1
+		pack forget .r.c.vol.b1 .r.c.vol.s1
+		pack .r.c.vol.ml -side top -fill both -expand 1
     } else {
-	.r.c.vol.t1 configure -relief raised
-	pack forget .r.c.vol.ml
-	pack .r.c.vol.b1 -side top  -fill x -expand 1
-	pack .r.c.vol.s1 -side top  -fill x -expand 1
+		pack forget .r.c.vol.ml
+		pack .r.c.vol.b1 -side top  -fill x -expand 1
+		pack .r.c.vol.s1 -side top  -fill x -expand 1
     }
 }
 
 proc input_mute {state} {
     mbus_send "R" "audio.input.mute" "$state"
     if {$state} {
-	.r.c.gain.t2 configure -relief sunken
-	pack forget .r.c.gain.b2 .r.c.gain.s2
-	pack .r.c.gain.ml -side top -fill both -expand 1
+		pack forget .r.c.gain.b2 .r.c.gain.s2
+		pack .r.c.gain.ml -side top -fill both -expand 1
     } else {
-	.r.c.gain.t2 configure -relief raised
-	pack forget .r.c.gain.ml
-	pack .r.c.gain.b2 -side top  -fill x -expand 1
-	pack .r.c.gain.s2 -side top  -fill x -expand 1
+		pack forget .r.c.gain.ml
+		pack .r.c.gain.b2 -side top  -fill x -expand 1
+		pack .r.c.gain.s2 -side top  -fill x -expand 1
     }
 }
 
@@ -612,14 +608,12 @@ proc mbus_recv_audio.input.mute {val} {
     global in_mute_var
     set in_mute_var $val
     if {$val} {
-	.r.c.gain.t2 configure -relief sunken
-	pack forget .r.c.gain.b2 .r.c.gain.s2
-	pack .r.c.gain.ml -side top -fill both -expand 1
+		pack forget .r.c.gain.b2 .r.c.gain.s2
+		pack .r.c.gain.ml -side top -fill both -expand 1
     } else {
-	.r.c.gain.t2 configure -relief raised
-	pack forget .r.c.gain.ml
-	pack .r.c.gain.b2 -side top  -fill x -expand 1
-	pack .r.c.gain.s2 -side top  -fill x -expand 1
+		pack forget .r.c.gain.ml
+		pack .r.c.gain.b2 -side top  -fill x -expand 1
+		pack .r.c.gain.s2 -side top  -fill x -expand 1
     }
 }
 
@@ -653,11 +647,6 @@ proc mbus_recv_audio.output.ports.add {port} {
 proc mbus_recv_audio.output.mute {val} {
     global out_mute_var
     set out_mute_var $val
-    if {$val} {
-	.r.c.vol.t1 configure -relief sunken
-    } else {
-	.r.c.vol.t1 configure -relief raised
-    }
 }
 
 proc mbus_recv_session.title {title} {
@@ -1222,7 +1211,8 @@ proc 3d_delete_parameters {cname} {
 
 proc bitmap_input_port {port} {
     set port [string tolower $port]
-    switch -glob $port {
+    return ""
+	switch -glob $port {
 	mic* {return "microphone"}
 	lin* {return "line_in"}
 	cd*  {return "cd"}
@@ -1232,7 +1222,8 @@ proc bitmap_input_port {port} {
 
 proc bitmap_output_port {port} {
     set port [string tolower $port]
-    switch -glob $port {
+    return ""
+	switch -glob $port {
 	speak* {return "speaker"}
 	lin*   {return "line_out"}
 	head*  {return "headphone"}
@@ -1316,44 +1307,43 @@ bind .l.t.list <Configure> {fix_scrollbar}
 
 # Device output controls
 set out_mute_var 0
-button .r.c.vol.t1 -highlightthickness 0 -pady 0 -padx 0 -text mute -command {toggle out_mute_var; output_mute $out_mute_var}
-button .r.c.vol.l1 -pady 0 -padx 0 -highlightthickness 0 -command toggle_output_port
+checkbutton .r.c.vol.t1 -highlightthickness 0 -pady 0 -padx 0 -text "Receive" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $smallfont -width 7 -relief raised
+button .r.c.vol.l1 -pady 0 -padx 0 -highlightthickness 0 -command toggle_output_port -font $smallfont -width 8
 bargraphCreate .r.c.vol.b1
 scale .r.c.vol.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -relief raised -showvalue false -width 10 -variable volume
-label .r.c.vol.ml -text "Reception is muted" -relief sunken
+label .r.c.vol.ml -text "Reception is muted" -relief sunken -font $smallfont
 
-pack .r.c.vol.l1 -side left -fill y
 pack .r.c.vol.t1 -side left -fill y
-pack .r.c.vol.b1 -side top  -fill x -expand 1
-pack .r.c.vol.s1 -side top  -fill x -expand 1
+pack .r.c.vol.l1 -side left -fill y
+pack .r.c.vol.b1 -side top  -fill both -expand 1
+pack .r.c.vol.s1 -side top  -fill y -expand 1
 
 # Device input controls
 set in_mute_var 1
-button .r.c.gain.t2 -highlightthickness 0 -pady 0 -padx 0 -text mute -command {toggle in_mute_var; input_mute $in_mute_var}
-
-button .r.c.gain.l2 -highlightthickness 0 -command toggle_input_port 
+checkbutton .r.c.gain.t2 -highlightthickness 0 -pady 0 -padx 0 -text "Transmit" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $smallfont -width 7 -relief raised
+button .r.c.gain.l2 -pady 0 -padx 0 -highlightthickness 0 -command toggle_input_port -font $smallfont -width 8
 bargraphCreate .r.c.gain.b2
-scale .r.c.gain.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10 -variable gain
-label .r.c.gain.ml -text "Transmission is muted" -relief sunken
+scale .r.c.gain.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10 -variable gain -font $smallfont
+label .r.c.gain.ml -text "Transmission is muted" -relief sunken -font $smallfont
 
-pack .r.c.gain.l2 -side left -fill y
 pack .r.c.gain.t2 -side left -fill y
+pack .r.c.gain.l2 -side left -fill y
 pack .r.c.gain.ml -side top  -fill both -expand 1
 
 proc mbus_recv_tool.rat.disable.audio.ctls {} {
-	.r.c.vol.t1 configure -state disabled
+#	.r.c.vol.t1 configure -state disabled
 	.r.c.vol.l1 configure -state disabled
 	.r.c.vol.s1 configure -state disabled
-	.r.c.gain.t2 configure -state disabled
+#	.r.c.gain.t2 configure -state disabled
 	.r.c.gain.l2 configure -state disabled
 	.r.c.gain.s2 configure -state disabled
 }
 
 proc mbus_recv_tool.rat.enable.audio.ctls {} {
-	.r.c.vol.t1 configure -state normal
+#	.r.c.vol.t1 configure -state normal
 	.r.c.vol.l1 configure -state normal
 	.r.c.vol.s1 configure -state normal
-	.r.c.gain.t2 configure -state normal
+#	.r.c.gain.t2 configure -state normal
 	.r.c.gain.l2 configure -state normal
 	.r.c.gain.s2 configure -state normal
 }
