@@ -121,8 +121,10 @@ cushion_update(cushion_t *c, uint32_t read_dur, int mode)
         /* remove entry we are about to overwrite from histogram */
         if (c->read_history[c->last_in] < c->histbins) {
                 c->histogram[ c->read_history[c->last_in] ]--;
+		assert(c->histogram[ c->read_history[c->last_in] ] <= HISTORY_SIZE);
         } else {
                 c->histogram[ c->read_history[c->histbins - 1] ]--;
+		assert(c->histogram[ c->read_history[c->histbins - 1] ] <= HISTORY_SIZE);
         }
 
         /* slot in new entry and update histogram */

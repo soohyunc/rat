@@ -24,7 +24,7 @@ static const char cvsid[] =
 #define PLAYOUT_JITTER_SCALE 3
 
 static ts_t
-playout_variable_component(session_t *sp, pdb_entry_t *e)
+playout_constraints_component(session_t *sp, pdb_entry_t *e)
 /*****************************************************************************/
 /* playout_variable component works out the variable components that RAT has */
 /* in it's playout calculation.  It works returns the maximum of:            */
@@ -37,14 +37,15 @@ playout_variable_component(session_t *sp, pdb_entry_t *e)
         var32 = e->inter_pkt_gap / 2;
 
         cushion = cushion_get_size(sp->cushion);
-        if (var32 < cushion) {
-                var32 = cushion;
-        }
+	/* Cushion is measured in samples at device clock rate,
+         * convert to source clock rate */
+	cushion = cushion * e->sample_rate / ts_get_freq(sp->cur_ts);
+	var32   = max(cushion, var32);
         
         if (sp->limit_playout) {
                 uint32_t minv, maxv;
-                minv = sp->min_playout * e->sample_rate / 1000;
-                maxv = sp->max_playout * e->sample_rate / 1000;
+                minv  = sp->min_playout * e->sample_rate / 1000;
+                maxv  = sp->max_playout * e->sample_rate / 1000;
                 var32 = max(minv, var32);
                 var32 = min(maxv, var32);
         }
@@ -78,7 +79,7 @@ playout_calc(session_t *sp, uint32_t ssrc, ts_t transit, int new_spurt)
         if (new_spurt == TRUE) {
                 ts_t hvar, jvar; /* Host and jitter components       */
                 debug_msg("New talkspurt\n");
-                hvar = playout_variable_component(sp, e);
+                hvar = playout_constraints_component(sp, e);
                 jvar = ts_mul(e->jitter, PLAYOUT_JITTER_SCALE);
                 if (ts_gt(hvar, jvar)) {
                         e->playout = hvar;
