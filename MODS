@@ -1203,7 +1203,8 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  does not exist on host.
 	* Released 20 March 2000.
 
-4.1.9	
+4.1.9	- fix configure script handling of X_CFLAGS during broken header tests
+	  reported by Atanu.
 
 TODO -- They're features not bugs dammit!
 ----

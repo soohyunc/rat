@@ -3420,7 +3420,7 @@ echo "$ac_t""$x11_cv_broken_headers" 1>&6;
 #			 's/^\(extern\) \([[A-Za-z0-9]]*($\)/\1 int \2/' 
 #------------------------------------------------------------------------------
 if test $x11_cv_broken_headers = yes -a $GCC = "yes" ; then
-	SAVED_X_CFLAGS=X_CFLAGS
+	SAVED_X_CFLAGS=$X_CFLAGS
 	X_CFLAGS=`echo $X_CFLAGS | sed 's%-I%-istdinc%'`
 	echo $ac_n "checking whether -istdinc fixes X11 headers""... $ac_c" 1>&6
 echo "configure:3427: checking whether -istdinc fixes X11 headers" >&5
