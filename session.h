@@ -107,6 +107,7 @@ typedef struct session_tag {
         int             last_tx_service_productive;     /* channel coder can output after talksprt ends */
 	int		repair;				/* Packet repair */
 	int		lecture;			/* UI lecture mode */
+	int		externalise_audio;
 	int		auto_lecture;			/* Used for dummy lecture mode */
 	int             transmit_audit_required;
 	int             receive_audit_required;

@@ -144,6 +144,21 @@ static void rx_silence(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(mbus_chan);
 }
 
+static void rx_externalise(char *srce, char *args, session_struct *sp)
+{
+	int i;
+
+	UNUSED(srce);
+
+	mbus_parse_init(mbus_chan, args);
+	if (mbus_parse_int(mbus_chan, &i)) {
+		sp->externalise_audio = i;
+	} else {
+		printf("mbus: usage \"externalise <boolean>\"\n");
+	}
+	mbus_parse_done(mbus_chan);
+}
+
 static void rx_lecture(char *srce, char *args, session_struct *sp)
 {
 	int i;
@@ -817,6 +832,7 @@ const char *rx_cmnd[] = {
 	"powermeter",
 	"silence",
 	"lecture",
+	"externalise",
 	"agc",
 	"sync",
 	"rate",
@@ -861,6 +877,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_powermeter,
 	rx_silence,
 	rx_lecture,
+	rx_externalise,
 	rx_agc,
 	rx_sync,
 	rx_rate,

@@ -330,6 +330,11 @@ proc mbus_recv_session.address {addr port ttl} {
     set session_address "Address: $addr Port: $port TTL: $ttl"
 }
 
+proc mbus_recv_externalise {mode} {
+	global 3d_audio_var
+	set 3d_audio_var $mode
+}
+
 proc mbus_recv_lecture.mode {mode} {
 	global lecture_var
 	set lecture_var $mode
@@ -1052,11 +1057,13 @@ pack $i.o.f.fl.l1 $i.o.f.fl.scmin $i.o.f.fr.l2 $i.o.f.fr.scmax -side top -fill x
 
 frame $i.c.f 
 frame $i.c.f.f 
-checkbutton $i.c.f.f.lec -text "Lecture Mode" -variable lecture_var
+checkbutton $i.c.f.f.lec -text "Lecture Mode"          -variable lecture_var
+checkbutton $i.c.f.f.ext -text "Sound Externalisation" -variable 3d_audio_var
 
 pack $i.c.f -fill x -side left -expand 1
 pack $i.c.f.f 
 pack $i.c.f.f.lec -side top  -anchor w
+pack $i.c.f.f.ext -side top  -anchor w
 
 # Security Pane ###############################################################
 set i .prefs.pane.security
@@ -1294,7 +1301,7 @@ proc sync_engine_to_ui {} {
     global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc 
     global prenc upp channel_var secenc red_off int_gap int_units
     global silence_var agc_var 
-    global repair_var limit_var min_var max_var lecture_var convert_var  
+    global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
     global meter_var sync_var gain volume input_port output_port 
     global in_mute_var out_mute_var channels freq key key_var
 
@@ -1323,6 +1330,7 @@ proc sync_engine_to_ui {} {
     mbus_qmsg "playout.min"   $min_var
     mbus_qmsg "playout.max"   $max_var
     mbus_qmsg "lecture"      $lecture_var
+    mbus_qmsg "externalise"      $3d_audio_var
     mbus_qmsg "converter"    [mbus_encode_str $convert_var]
 
     #Security
@@ -1402,6 +1410,7 @@ proc save_settings {} {
     save_setting $f audioMinPlayout       min_var
     save_setting $f audioMaxPlayout       max_var
     save_setting $f audioLecture          lecture_var
+    save_setting $f audioExternalise      3d_audio_var
     save_setting $f audioAutoConvert      convert_var
     #security
    
@@ -1485,6 +1494,7 @@ proc load_settings {} {
     load_setting attr audioMinPlayout   min_var       "0"
     load_setting attr audioMaxPlayout   max_var       "2000"
     load_setting attr audioLecture      lecture_var   "0"
+    load_setting attr audioExternalise  3d_audio_var   "0"
     load_setting attr audioAutoConvert  convert_var   "None"
     #security
    
