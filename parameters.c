@@ -104,21 +104,27 @@ lin2db(u_int16 energy, double peak)
  *
  *    This assumes that person is not talking as they adjust the
  *    volume, or click on start talking button.  This can be false
- *    when the source is music, or the speaker is a project leader :-)
- * 
+ *    when the source is music, or the speaker is a politician, 
+ *    project leader, 
+ *    
  */
+
+/* snapshot in ms to adjust silence threshold */
+#define SD_PAROLE_PERIOD 100
+#define SD_LOWER_COUNT  3
+#define SD_RAISE_COUNT  5
 
 typedef struct s_sd {
         u_int32 parole;
         int32 tot, tot_sq;
         u_int32 thresh;
+        u_int32 lt_cnt;
+        u_int32 lt_max;
+        u_int32 gt_cnt;
+        u_int32 gt_min;
+        u_int32 peak;
         u_int32 cnt;
-        u_int32 sil_cnt;
-        u_int32 last_step;
 } sd_t;
-
-/* snapshot in ms to adjust silence threshold */
-#define SD_PAROLE_PERIOD 200
 
 sd_t *
 sd_init(u_int16 blk_dur, u_int16 freq)
@@ -135,9 +141,11 @@ sd_reset(sd_t *s)
         s->cnt         = 0;
         s->tot         = 0;
         s->tot_sq      = 0;
-        s->sil_cnt     = 0;
-        s->last_step   = 0;
-        s->thresh = 0xffff;
+        s->lt_cnt      = 0;
+        s->lt_max      = 0;
+        s->gt_cnt      = 0;
+        s->gt_min      = 0xffff;
+        s->thresh      = 0xffff;
 }
 
 void
@@ -152,10 +160,6 @@ sd(sd_t *s, u_int16 energy)
         s->tot    += energy;
         s->tot_sq += (energy * energy);
 
-        if (energy<s->thresh) {
-                s->sil_cnt++;
-        }
-
         if (s->cnt == s->parole) {
                 u_int32 m,stdd,trial_thresh;
 
@@ -164,22 +168,33 @@ sd(sd_t *s, u_int16 energy)
 
                 trial_thresh = (m + 3 * stdd);
 
-                if ((trial_thresh < s->thresh) && 
-                    (s->thresh - trial_thresh > s->thresh / 4) &&
-                    (s->sil_cnt == s->parole )) {
-                        s->last_step = (s->thresh - trial_thresh) * (s->thresh - trial_thresh) / s->thresh;
-                        assert(s->last_step < 0xffff);
-                        s->thresh -= s->last_step;
-                        dprintf("Threshold down to %d\n", s->thresh);
-                } else if (((u_int32)m > s->thresh) && 
-                            ((u_int32)m < s->thresh + s->last_step)) {
-                        /* go back up and let things settle again */
-                        s->thresh    += s->last_step;
-                        dprintf("Threshold up to %d\n", s->thresh);
-                }
+                if (trial_thresh < s->thresh) {
+                        if (s->thresh / trial_thresh > 1) {
+                                s->lt_max = max(s->lt_max, trial_thresh);
+                                if (s->lt_cnt++ == SD_LOWER_COUNT) {
+                                        s->thresh   = s->lt_max;
+                                        s->lt_cnt = 0;
+                                        s->lt_max = 0;
+                                        dprintf("Threshold down to %d\n", s->thresh);
+                                }
+                        }
+                        s->gt_min = 0xffff;
+                        s->gt_cnt = 0;
+                } else {
+                        s->gt_min = min(s->gt_min, trial_thresh);
+                        if (s->gt_min / s->thresh == 1) {
+                                if (s->gt_cnt++ == SD_RAISE_COUNT) {
+                                        s->thresh = (s->thresh + s->gt_min) / 2;
+                                        s->gt_min = 0xffff;
+                                        s->gt_cnt = 0;
+                                }
+                        } 
+                        s->lt_cnt = 0;
+                        s->lt_max = 0;
+                        dprintf("Threshold up to %d\n", s->thresh); 
+                } 
                 s->tot = s->tot_sq = 0;
                 s->cnt = 0;
-                s->sil_cnt = 0;
         }
         s->cnt++;
         return (energy < s->thresh);
