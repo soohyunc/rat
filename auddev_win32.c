@@ -72,6 +72,8 @@
 #include "debug.h"
 #include "memory.h"
 #include "auddev_win32.h"
+#include "audio_types.h"
+#include "audio_fmt.h"
 
 #define rat_to_device(x)	((x) * 255 / MAX_AMP)
 #define device_to_rat(x)	((x) * MAX_AMP / 255)
@@ -527,53 +529,55 @@ w32sdk_audio_close_out()
 #define WRITE_ERROR_STILL_PLAYING 33
 
 int
-w32sdk_audio_write(audio_desc_t ad, sample *cp, int remain)
+w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
 {
-	int		error, len, ret;
+	int		error, len, done;
 
         UNUSED(ad);
 
-	if (shWaveOut == 0)
-		return (remain);
+	assert(shWaveOut != 0);
 
-	ret = remain;
-	if (write_hdrs_used > 4*nblks/5) {
+        if (write_hdrs_used > 4*nblks/5) {
 		debug_msg("Running out of write buffers %d left\n", write_hdrs_used);
 	}
-
-	for (; remain > 0; remain -= len) {
+        done = 0;
+        while (buf_bytes > 0) {
 		if (write_curr->dwFlags & WHDR_DONE) {
 			/* Have overdone it! */
-			debug_msg("w32sdk_audio_write, reached end of buffer (%06d bytes remain)\n", remain);
-			return (ret - remain);
+			debug_msg("w32sdk_audio_write, reached end of buffer (%06d bytes remain)\n", buf_bytes);
+			return (done);
 		}
 
-		len = remain > blksz/smplsz ? blksz/smplsz : remain;
+		len = (buf_bytes > blksz) ? blksz: buf_bytes;
 
-		memcpy(write_curr->lpData, cp, len * smplsz);
-		cp += len;
+		memcpy(write_curr->lpData, buf, len);
+		buf += len;
 
 		error = waveOutWrite(shWaveOut, write_curr, sizeof(WAVEHDR));
 		
 		if (error == WRITE_ERROR_STILL_PLAYING) { /* We've filled device buffer ? */
 				debug_msg("Win32Audio - device filled. Discarding %d bytes.\n",
-						ret - remain);
+						buf_bytes);
 					/* we return as if we wrote everything out
 					 * to give buffer a little breathing room
 					 */
-				return ret;
+				return done;
 		} else if (error) {
 			waveOutGetErrorText(error, errorText, sizeof(errorText));
 			debug_msg("Win32Audio: waveOutWrite (%d): %s\n", error,	errorText);
-			return (ret - remain);
+			return (buf_bytes);
 		}
 
 		write_curr++;
 		write_hdrs_used++;
-		if (write_curr >= write_hdrs + nblks)
+                if (write_curr >= write_hdrs + nblks) {
 			write_curr = write_hdrs;
+                }
+                
+                done       += blksz;
+                buf_bytes -= blksz;
 	}
-	return (ret);
+	return (done);
 }
 
 /* AUDIO INPUT RELATED FN's *********************************/
@@ -610,7 +614,8 @@ waveInProc(HWAVEIN hwi,
         default:
               ;  /* nothing to do currently */
         }
-	return;
+
+        return;
 }
 
 static WAVEHDR	*read_hdrs, *read_curr;
@@ -699,7 +704,7 @@ w32sdk_audio_close_in()
 }
 
 int
-w32sdk_audio_read(audio_desc_t ad, sample *buf, int samples)
+w32sdk_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
         static int virgin = 0;
         int len = 0;
@@ -711,41 +716,22 @@ w32sdk_audio_read(audio_desc_t ad, sample *buf, int samples)
                 virgin++;
         }
 
-        if (shWaveIn == 0) {
-        /* officially we dont support half-duplex anymore but just in case */
-                assert(shWaveOut);
-		for (len = 0; write_tail->dwFlags & WHDR_DONE;) {
-			if (len + write_tail->dwBufferLength / smplsz > (unsigned)samples)
-				break;
-			else
-				len += write_tail->dwBufferLength / smplsz;
+        while (write_tail->dwFlags & WHDR_DONE) {
+                write_tail->dwFlags &= ~WHDR_DONE;
+                write_tail++;
+                write_hdrs_used--;
+                if (write_tail >= write_hdrs + nblks)
+                        write_tail = write_hdrs;
+       }
 
-			write_tail->dwFlags &=~ WHDR_DONE;
-			write_tail++;
-			write_hdrs_used--;
-			if (write_tail >= write_hdrs + nblks)
-				write_tail = write_hdrs;
-		}
+       assert(buf_bytes >= blksz);
+       buf_bytes -= buf_bytes % blksz;
 
-		if (write_curr == write_tail && len + blksz/smplsz <= samples)
-			len += blksz/smplsz;
-
-		return (len);
-	} else if (duplex) {
-                while (write_tail->dwFlags & WHDR_DONE) {
-			write_tail->dwFlags &= ~WHDR_DONE;
-			write_tail++;
-			write_hdrs_used--;
-			if (write_tail >= write_hdrs + nblks)
-				write_tail = write_hdrs;
-		}
-	}
-
-        if (audio_ready) {
-	        while ((read_curr->dwFlags & WHDR_DONE) && len < samples) {
+       if (audio_ready) {
+	        while ((read_curr->dwFlags & WHDR_DONE) && len < buf_bytes) {
 		        memcpy(buf, read_curr->lpData, blksz);
-		        buf += blksz/smplsz;
-		        len += blksz/smplsz;
+		        buf += blksz;
+		        len += blksz;
 		        read_curr->dwFlags &= ~WHDR_DONE;
 		        error = waveInAddBuffer(shWaveIn, read_curr, sizeof(WAVEHDR));
 		        if (error) {
@@ -762,7 +748,7 @@ w32sdk_audio_read(audio_desc_t ad, sample *buf, int samples)
                         int i,used;
                         for(i=0,used=0;i<nblks;i++) 
                                 if (read_hdrs[i].dwFlags & WHDR_DONE) used++;
-                        debug_msg("RB small %d of %d, samples %d len %d, ready %d\n", used, nblks, samples, len, audio_ready);
+                        debug_msg("RB small %d of %d len %d, ready %d\n", used, nblks, len, audio_ready);
                 }
 #endif
 	}
@@ -770,31 +756,10 @@ w32sdk_audio_read(audio_desc_t ad, sample *buf, int samples)
 	return (len);
 }
 
-int 
-w32sdk_audio_get_channels(audio_desc_t ad)
-{
-        UNUSED(ad);
-	return format.nChannels;
-}
-
-int
-w32sdk_audio_get_freq(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return format.nSamplesPerSec;
-}
-
-int
-w32sdk_audio_get_bytes_per_block(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return blksz;
-}
-
 static int audio_dev_open = 0;
 
 int
-w32sdk_audio_open(audio_desc_t ad, audio_format *fmt)
+w32sdk_audio_open(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
 {
         static int virgin;
         WAVEFORMATEX tfmt;
@@ -803,6 +768,9 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt)
                 debug_msg("Device not closed! Fix immediately");
                 w32sdk_audio_close(ad);
         }
+
+        assert(audio_format_match(fmt, ofmt));
+        if (fmt->encoding != DEV_S16) return FALSE; /* Only support L16 for time being */
 
         uWavIn = uWavOut = (UINT)ad;
         mixSetup();
@@ -879,11 +847,19 @@ w32sdk_audio_duplex(audio_desc_t ad)
 void
 w32sdk_audio_drain(audio_desc_t ad)
 {
-        sample *buf;
-        int samples = blksz / sizeof(sample);
-        buf = (sample*)xmalloc(blksz);
-        while(w32sdk_audio_read(ad, buf, samples) == samples);
-        xfree(buf);
+        while(read_curr->dwFlags & WHDR_DONE) {
+                read_curr->dwFlags &= ~WHDR_DONE;
+		error = waveInAddBuffer(shWaveIn, read_curr, sizeof(WAVEHDR));
+                if (error) {
+                        waveInGetErrorText(error, errorText, sizeof(errorText));
+                        debug_msg("waveInAddBuffer: (%d) %s\n", error, errorText);
+                        exit(1);
+                }
+                read_curr++;
+                if (read_curr == read_hdrs + nblks) read_curr = read_hdrs;
+                if (audio_ready > 0) audio_ready--;     
+        }
+        assert(audio_ready == 0);
 }
 
 void
@@ -1070,6 +1046,7 @@ w32sdk_audio_wait_for(audio_desc_t ad, int delay_ms)
          * block for half specified delay as the process of blocking seems to incur noticeable
          * delay.  If anyone has more time this is worth looking into.
          */
+
         if (!w32sdk_audio_is_ready(ad)) {
                 Sleep(dwPeriod);
         }

@@ -43,7 +43,7 @@
 #ifndef _AUDDEV_W32SDK_H_
 #define _AUDDEV_W32SDK_H_
 
-int  w32sdk_audio_open       (audio_desc_t ad, audio_format* format);
+int  w32sdk_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);
 void w32sdk_audio_close      (audio_desc_t ad);
 void w32sdk_audio_drain      (audio_desc_t ad);
 int  w32sdk_audio_duplex     (audio_desc_t ad);
@@ -52,8 +52,8 @@ int  w32sdk_audio_get_gain   (audio_desc_t ad);
 void w32sdk_audio_set_volume (audio_desc_t ad, int vol);
 int  w32sdk_audio_get_volume (audio_desc_t ad);
 void w32sdk_audio_loopback   (audio_desc_t ad, int gain);
-int  w32sdk_audio_read       (audio_desc_t ad, sample *buf, int samples);
-int  w32sdk_audio_write      (audio_desc_t ad, sample *buf, int samples);
+int  w32sdk_audio_read       (audio_desc_t ad, u_char *buf, int buf_bytes);
+int  w32sdk_audio_write      (audio_desc_t ad, u_char *buf, int buf_bytes);
 void w32sdk_audio_non_block  (audio_desc_t ad);
 void w32sdk_audio_block      (audio_desc_t ad);
 void w32sdk_audio_set_oport  (audio_desc_t ad, int port);

@@ -149,7 +149,7 @@ typedef struct s_render_3D_dbentry {
         u_char   filter_number;                       /* Index number of original filter */
         short    azimuth;                             /* lateral angle of sound source */
         short    delay;                               /* based on interaural time difference (ITD); derived from 'azimuth' */
-        float    attenuation;                         /* based on interaural intensity difference (IID); derived from 'azimuth' */
+        double   attenuation;                         /* based on interaural intensity difference (IID); derived from 'azimuth' */
         sample   ipsi_buf[MAX_PACKET_SAMPLES];        /* buffer for ipsi-lateral channel before merging into stereo buffer */
         sample   contra_buf[MAX_PACKET_SAMPLES];      /* buffer for contra-lateral channel before merging into stereo buffer */
         sample   tmp_buf[64];                         /* temporary storage for swapping samples */
