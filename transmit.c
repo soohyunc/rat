@@ -50,8 +50,7 @@ typedef struct s_tx_unit {
 } tx_unit;
 
 typedef struct s_tx_buffer {
-        struct s_session   *sp;
-        struct s_sd          *sd_info;
+        struct s_session     *sp;
         struct s_vad         *vad;
         struct s_agc         *agc;
         struct s_time        *clock;
@@ -133,16 +132,18 @@ tx_create(tx_buffer     **ntb,
         if (tb) {
                 memset(tb, 0, sizeof(tx_buffer));
                 debug_msg("Unit duration %d channels %d\n", unit_dur, channels);
-                tb->sp      = sp;
-                tb->clock   = clock;
-                freq        = (uint16_t)get_freq(clock);
-                tb->bc      = bias_ctl_create(channels, freq);
-                tb->sd_info = sd_init    (unit_dur, freq);
-                tb->vad     = vad_create (unit_dur, freq);
-                tb->agc     = agc_create(sp);
-                tb->unit_dur = unit_dur;
-                tb->channels = channels;
+                tb->sp          = sp;
+                tb->clock       = clock;
+                freq            = (uint16_t)get_freq(clock);
+                tb->bc          = bias_ctl_create(channels, freq);
+                tb->vad         = vad_create(unit_dur, freq);
+                tb->agc         = agc_create(sp);
+                tb->unit_dur    = unit_dur;
+                tb->channels    = channels;
                 tb->mean_read_dur = unit_dur;
+
+                sp->auto_sd   = sd_init(unit_dur, freq);
+                sp->manual_sd = manual_sd_init(unit_dur, freq, sp->manual_sd_thresh);
                 
                 pb_create(&tb->audio_buffer, (playoutfreeproc)tx_unit_destroy);
                 pb_create(&tb->media_buffer, (playoutfreeproc)media_data_destroy);
@@ -164,7 +165,8 @@ tx_destroy(tx_buffer **ptb)
         assert(tb != NULL);
 
         bias_ctl_destroy(tb->bc);
-        sd_destroy(tb->sd_info);
+        sd_destroy(tb->sp->auto_sd);
+        manual_sd_destroy(tb->sp->manual_sd);
         vad_destroy(tb->vad);
         agc_destroy(tb->agc);
 
@@ -196,7 +198,7 @@ tx_start(tx_buffer *tb)
         tb->sp->auto_lecture = 1;       
 
         /* Reset signal classification and auto-scaling */
-        sd_reset(tb->sd_info);
+        sd_reset(tb->sp->auto_sd);
         vad_reset(tb->vad);
         agc_reset(tb->agc);
 
@@ -220,7 +222,7 @@ tx_start(tx_buffer *tb)
 
         assert(tb->state_store == NULL);
         codec_state_store_create(&tb->state_store, ENCODER);
-        if (tb->sp->detect_silence == FALSE) {
+        if (tb->sp->silence_detection != SILENCE_DETECTION_OFF) {
                 ui_send_rtp_active(tb->sp, tb->sp->mbus_ui_addr, rtp_my_ssrc(tb->sp->rtp_session[0]));
         }
 
@@ -257,7 +259,6 @@ tx_stop(tx_buffer *tb)
 
         tb->bps_bytes_sent = 0;
 }
-
 
 int
 tx_read_audio(tx_buffer *tb)
@@ -354,19 +355,28 @@ tx_process_audio(tx_buffer *tb)
         pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
         while (pb_iterators_equal(tb->silence, tb->reading) == FALSE) {
                 bias_remove(tb->bc, u->data, u->dur_used * tb->channels);
-                u->energy = avg_audio_energy(u->data, u->dur_used * tb->channels, tb->channels);
+                u->energy = audio_avg_energy(u->data, u->dur_used * tb->channels, tb->channels);
                 u->send   = FALSE;
                 
                 /* Silence classification on this block */
-                u->silence = sd(tb->sd_info, (uint16_t)u->energy);
-
+                switch(tb->sp->silence_detection) {
+                case SILENCE_DETECTION_AUTO:
+                        u->silence = sd(tb->sp->auto_sd, (uint16_t)u->energy);
+                        break;
+                case SILENCE_DETECTION_MANUAL:
+                        u->silence = manual_sd(tb->sp->manual_sd, 
+                                               (uint16_t)u->energy, 
+                                               audio_abs_max(u->data, u->dur_used * tb->channels));
+                        break;
+                }
+                                               
                 /* Pass decision to voice activity detector (damps transients, etc) */
-                to_send    = vad_to_get(tb->vad, 
-                                        (u_char)u->silence, 
-                                        (u_char)((sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF));           
+                to_send = vad_to_get(tb->vad, 
+                                     (u_char)u->silence, 
+                                     (u_char)((sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF));           
                 agc_update(tb->agc, (uint16_t)u->energy, vad_talkspurt_no(tb->vad));
                 
-                if (sp->detect_silence) {
+                if (sp->silence_detection != SILENCE_DETECTION_OFF) {
                         if (to_send != 0) {
                                 pb_iterator_dup(&marker, tb->silence);
                                 while(u != NULL && to_send != 0) {
@@ -627,7 +637,7 @@ tx_update_ui(tx_buffer *tb)
                         return;
                 }
                 if (pb_iterator_get_at(prev, (u_char**)&u, &u_len, &u_ts) &&
-                    (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE)) {
+                    (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->silence_detection == SILENCE_DETECTION_OFF)) {
                         ui_send_audio_input_powermeter(sp, sp->mbus_ui_addr, lin2vu(u->energy, 100, VU_INPUT));
                 } else {
                         ui_send_audio_input_powermeter(sp, sp->mbus_ui_addr, 0);
@@ -637,7 +647,7 @@ tx_update_ui(tx_buffer *tb)
         }
 	/* This next routine is really inefficient - we only need do ui_info_activate() */
 	/* when the state changes, else we flood the mbus with redundant messages.      */
-        if (sp->detect_silence && vad_in_talkspurt(sp->tb->vad) == TRUE) {
+        if (sp->silence_detection != SILENCE_DETECTION_OFF && vad_in_talkspurt(sp->tb->vad) == TRUE) {
 		if (!sp->ui_activated) {
 			sp->ui_activated = TRUE;
 			ui_send_rtp_active(sp, sp->mbus_ui_addr, rtp_my_ssrc(sp->rtp_session[0]));
@@ -660,7 +670,7 @@ tx_update_ui(tx_buffer *tb)
 void
 tx_igain_update(tx_buffer *tb)
 {
-        sd_reset(tb->sd_info);
+        sd_reset(tb->sp->auto_sd);
         agc_reset(tb->agc);
 }
 

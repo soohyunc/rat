@@ -252,6 +252,8 @@ proc mbus_recv {cmnd args} {
 		tool.rat.audio.skew     	{eval mbus_recv_tool.rat.audio.skew $args}
 		tool.rat.spike.events    	{eval mbus_recv_tool.rat.spike.events $args}
 		tool.rat.spike.toged     	{eval mbus_recv_tool.rat.spike.toged $args}
+		tool.rat.silence                {eval mbus_recv_tool.rat.silence $args}
+		tool.rat.silence.threshold      {eval mbus_recv_tool.rat.silence.threshold $args}
 		audio.3d.enabled  		{eval mbus_recv_audio.3d.enabled $args}
 		audio.3d.azimuth.min            {eval mbus_recv_audio.3d.azimuth.min $args}
 		audio.3d.azimuth.max            {eval mbus_recv_audio.3d.azimuth.max $args}
@@ -785,9 +787,29 @@ proc mbus_recv_tool.rat.lecture.mode {mode} {
 	set lecture_var $mode
 }
 
+
 proc mbus_recv_audio.suppress.silence {mode} {
-	global silence_var
-	set silence_var $mode
+    global silence_var
+
+    if {$mode == 0} {
+	set silence_var Off
+    } else {
+	set silence_var Automatic
+    }
+}
+
+proc mbus_recv_tool.rat.silence {mode} {
+    global silence_var
+    switch -regexp $mode {
+	[Oo].* { set silence_var Off }
+	[Aa].* { set silence_var Automatic }
+	[Mm].* { set silence_var Manual }
+    }
+}
+
+proc mbus_recv_tool.rat.silence.threshold {thresh} {
+    global manual_silence_thresh
+    set manual_silence_thresh $thresh
 }
 
 proc mbus_recv_rtp.ssrc {ssrc} {
@@ -1930,14 +1952,38 @@ frame $i.dd.cks
 pack $i.dd.cks -fill both -expand 1 
 frame $i.dd.cks.f 
 frame $i.dd.cks.f.f
-checkbutton $i.dd.cks.f.f.silence  -text "Silence Suppression"    -variable silence_var 
-checkbutton $i.dd.cks.f.f.agc      -text "Automatic Gain Control" -variable agc_var 
-checkbutton $i.dd.cks.f.f.loop     -text "Audio Loopback"         -variable audio_loop_var
-checkbutton $i.dd.cks.f.f.suppress -text "Echo Suppression"       -variable echo_var
-checkbutton $i.dd.cks.f.f.tone     -text "Tone Test"              -variable tonegen        -command send_tone_cmd
+frame $i.dd.cks.f.f.silence 
+frame $i.dd.cks.f.f.other
+
+frame $i.dd.cks.f.f.silence.upper
+label $i.dd.cks.f.f.silence.upper.title    -text "Silence Suppression:"
+radiobutton $i.dd.cks.f.f.silence.upper.r0 -text "Off"       -value "Off" -variable silence_var 
+radiobutton $i.dd.cks.f.f.silence.upper.r1 -text "Automatic" -value "Automatic" -variable silence_var
+radiobutton $i.dd.cks.f.f.silence.upper.r2 -text "Manual"    -value "Manual" -variable silence_var
+
+frame $i.dd.cks.f.f.silence.lower 
+scale $i.dd.cks.f.f.silence.lower.s -from 1 -to 500 -orient h -showvalue 0 -variable manual_silence_thresh
+label $i.dd.cks.f.f.silence.lower.ind -textvar manual_silence_thresh -width 5
+label $i.dd.cks.f.f.silence.lower.title -text "Manual Silence Threshold:"
+pack $i.dd.cks.f.f.silence.lower.title  -side top
+pack $i.dd.cks.f.f.silence.lower.s $i.dd.cks.f.f.silence.lower.ind -side left
+
+pack $i.dd.cks.f.f.silence.upper.title -side top -fill x
+pack $i.dd.cks.f.f.silence.upper.r0 $i.dd.cks.f.f.silence.upper.r1 $i.dd.cks.f.f.silence.upper.r2 -side left
+
+label $i.dd.cks.f.f.other.title -text "Additional Audio Options:"
+checkbutton $i.dd.cks.f.f.other.agc      -text "Automatic Gain Control" -variable agc_var 
+checkbutton $i.dd.cks.f.f.other.loop     -text "Audio Loopback"         -variable audio_loop_var
+checkbutton $i.dd.cks.f.f.other.suppress -text "Echo Suppression"       -variable echo_var
+checkbutton $i.dd.cks.f.f.other.tone     -text "Tone Test"              -variable tonegen        -command send_tone_cmd
 pack $i.dd.cks.f -fill x -side top -expand 1
 pack $i.dd.cks.f.f
-pack $i.dd.cks.f.f.silence $i.dd.cks.f.f.agc $i.dd.cks.f.f.loop $i.dd.cks.f.f.suppress $i.dd.cks.f.f.tone -side top -anchor w
+pack $i.dd.cks.f.f.silence -side left
+pack $i.dd.cks.f.f.silence.upper -side top -anchor n
+pack $i.dd.cks.f.f.silence.lower -side bottom -anchor n
+pack $i.dd.cks.f.f.other   -side right -anchor n
+pack $i.dd.cks.f.f.other.title -side top
+pack $i.dd.cks.f.f.other.agc $i.dd.cks.f.f.other.loop $i.dd.cks.f.f.other.suppress $i.dd.cks.f.f.other.tone -side top -anchor w
 
 # Codecs pane #################################################################
 set i .prefs.pane.codecs
@@ -2296,7 +2342,7 @@ proc sync_engine_to_ui {} {
     # make audio engine concur with ui
     global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note
     global prenc upp channel_var secenc layerenc red_off int_gap int_units
-    global silence_var agc_var audio_loop_var echo_var
+    global silence_var agc_var audio_loop_var echo_var manual_silence_thresh
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
     global meter_var gain volume iport oport 
     global in_mute_var out_mute_var ichannels freq key key_var
@@ -2328,10 +2374,11 @@ proc sync_engine_to_ui {} {
     	*           {error "unknown channel coding scheme $channel_var"}
     }
 
-    mbus_send "R" "tool.rat.silence"       $silence_var
-    mbus_send "R" "tool.rat.agc"           $agc_var
-    mbus_send "R" "tool.rat.loopback.gain" $audio_loop_var
-    mbus_send "R" "tool.rat.echo.suppress" $echo_var
+    mbus_send "R" "tool.rat.silence"           [mbus_encode_str $silence_var]
+    mbus_send "R" "tool.rat.silence.threshold" $manual_silence_thresh
+    mbus_send "R" "tool.rat.agc"               $agc_var
+    mbus_send "R" "tool.rat.loopback.gain"     $audio_loop_var
+    mbus_send "R" "tool.rat.echo.suppress"     $echo_var
 
     #Reception Options
     mbus_send "R" "audio.channel.repair"   [mbus_encode_str $repair_var]
@@ -2852,13 +2899,22 @@ add_help $i.dd.sampling.freq.mb \
                         "Sets the sampling rate of the audio device.\nThis changes the available codecs." "sampling_freq.au"
 add_help $i.dd.sampling.ch_in.mb \
                         "Changes between mono and stereo audio input." "mono_stereo.au"
-add_help $i.dd.cks.f.f.silence\
-			 "Prevents silence from being transmitted when the speaker is silent\n\
-                          and the input is unmuted." "suppress_silence.au"
-add_help $i.dd.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound you send." "agc.au"
-add_help $i.dd.cks.f.f.loop "Enables hardware for loopback of audio input." "audio_loopback.au"
-add_help $i.dd.cks.f.f.suppress \
+
+add_help $i.dd.cks.f.f.silence.upper.r0\
+			 "All audio is transmitted when the input is unmuted." "suppress_silence_off.au"
+add_help $i.dd.cks.f.f.silence.upper.r1\
+			 "Only audio above an automatically determined threshold\nis transmitted when the input is unmuted." "suppress_silence_auto.au"
+add_help $i.dd.cks.f.f.silence.upper.r2\
+			 "Only audio above a manually set threshold is\ntransmitted when the input is unmuted." "suppress_silence_manual.au"
+add_help $i.dd.cks.f.f.silence.lower.s\
+			 "Sets the manual threshold silence detection threshold." "suppress_silence_manual_thresh.au"	
+
+add_help $i.dd.cks.f.f.other.agc	 "Enables automatic control of the volume\nof the sound you send." "agc.au"
+add_help $i.dd.cks.f.f.other.loop "Enables hardware for loopback of audio input." "audio_loopback.au"
+add_help $i.dd.cks.f.f.other.suppress \
                          "Mutes microphone when playing audio." "echo_suppression.au"
+add_help $i.dd.cks.f.f.other.tone \
+                         "Plays a local test tone (not transmitted)." "test_tone.au"
 
 # transmission help
 set i .prefs.pane.transmission

@@ -22,7 +22,6 @@ static const char cvsid[] =
 #include "session.h"
 #include "parameters.h"
 
-
 #define SD_MAX_CHANNELS  5
 #define Q3_MAX 4096
 #define L16TOQ3(x) ((x)>>3)
@@ -118,18 +117,6 @@ sd_destroy(sd_t *s)
         xfree(s);
 }
 
-sd_t*
-sd_dup(sd_t *s)
-{
-        sd_t *d;
-        d = (sd_t*) xmalloc (sizeof(sd_t));
-        if (d) {
-                memcpy(d,s,sizeof(d));
-                return d;
-        }
-        return NULL;
-}
-
 #define SD_RES 8
 
 int
@@ -178,6 +165,58 @@ sd(sd_t *s, uint16_t energy)
         return (energy < s->thresh);
 }
 
+/* Manual silence detector */
+
+typedef struct s_manual_sd {
+        double   sltmean;
+        uint16_t thresh;
+        double   alpha; /* EWA constant */
+} manual_sd_t;
+
+manual_sd_t*
+manual_sd_init(uint16_t blk_dur, uint16_t freq, uint16_t thresh)
+{
+        manual_sd_t *m;
+        uint16_t     blocks_per_sec;
+        
+        m = (manual_sd_t*)xmalloc(sizeof(manual_sd_t));
+        if (m != NULL) {
+                m->sltmean = 0;
+                m->thresh  = thresh;
+                /* Calculate time constant should = 1/8 when blocks_per_sec
+                 * is 50 (a la VAT silence detection algorithm).
+                 */
+                blocks_per_sec = freq / blk_dur;
+                m->alpha = pow(1.0 / 8.0, blocks_per_sec / 50.0);
+        }
+
+        return m;
+}
+
+void
+manual_sd_destroy(manual_sd_t *m)
+{
+        xfree(m);
+}
+
+int
+manual_sd(manual_sd_t *m, uint16_t energy, uint16_t max)
+{
+        m->sltmean += (energy - m->sltmean) / m->alpha;
+        if (max - m->sltmean < m->thresh) {
+                return 1;
+        }
+        return 0;
+}
+
+void
+manual_sd_set_thresh(manual_sd_t *m, uint16_t thresh)
+{
+        m->thresh = thresh;
+}
+
+/* Voice activity detection */
+
 typedef struct {
         u_char sig;
         u_char pre;
@@ -202,6 +241,31 @@ vad_create(uint16_t blockdur, uint16_t freq)
         memset(v,0,sizeof(vad_t));
         vad_config(v, blockdur, freq);
         return v;
+}
+
+const char*
+sd_name(int silence_detector)
+{
+        switch(silence_detector) {
+        case SILENCE_DETECTION_AUTO:
+                return "Automatic";
+        case SILENCE_DETECTION_MANUAL:
+                return "Manual";
+        }
+        return "Off";
+}
+
+int
+sd_name_to_type(const char *name)
+{
+        debug_msg("Name: %s\n", name);
+        switch(tolower(name[0])) {
+        case 'a':
+                return SILENCE_DETECTION_AUTO;
+        case 'm':
+                return SILENCE_DETECTION_MANUAL;
+        }
+        return SILENCE_DETECTION_OFF;
 }
 
 /* Duration of limits in ms */

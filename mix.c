@@ -460,7 +460,7 @@ mix_get_energy(mixer_t *ms, uint16_t samples)
                 bp = ms->mix_buffer + ms->tail - samples;
         }
 
-        return avg_audio_energy(bp, samples, 1);
+        return audio_avg_energy(bp, samples, 1);
 }
 
 int

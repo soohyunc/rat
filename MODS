@@ -1176,9 +1176,11 @@ v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	  in situ.  Fixes a memory corruption bug.
 	- Add null handler for RX_APP to rtp_callback, circumvents abort call.
 	- Add linear8 to sndfile import and export functions.
-	- Add handling to sinc_converter for conversion chunks that are smaller than
-	  hold buffer size.  We can now convert a sample at a time if desired rather 
-	  than blocks of at least the duration of the hold buffer.
+	- Add handling to sinc_converter for conversion chunks that are 
+	  smaller than hold buffer size.  We can now convert a sample at a 
+	  time if desired rather than blocks of at least the duration of the 
+	  hold buffer.
+	- Add manual silence detection algorithm.
 
 TODO -- They're features not bugs dammit!
 ----

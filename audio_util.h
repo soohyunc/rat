@@ -23,6 +23,13 @@ void    audio_mix_mmx(sample *dst, sample *in, int len);
 
 void    audio_scale_buffer(sample *buf, int len, double scale); 
 
+/* Energy calculation */
+uint16_t audio_avg_energy (sample *buf, uint32_t dur, uint32_t channels);
+
+sample   audio_abs_max(sample *buf, uint32_t samples);
+
+void     audio_blend(sample *from, sample *to, sample *dst, int samples, int channels);
+
 /* Biasing operations */
 
 struct s_bias_ctl;
@@ -33,10 +40,5 @@ struct s_bias_ctl*
 void    bias_ctl_destroy(struct s_bias_ctl *bc);
 
 void    bias_remove (struct s_bias_ctl *bc, sample *buf, int len);
-
-/* Energy calculation */
-uint16_t avg_audio_energy (sample *buf, uint32_t dur, uint32_t channels);
-
-void     audio_blend(sample *from, sample *to, sample *dst, int samples, int channels);
 
 #endif /* __AUDIO_UTIL_H__ */

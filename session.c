@@ -123,7 +123,7 @@ session_init(session_t *sp)
 	sp->lecture			= FALSE;
 	sp->auto_lecture		= 0;
  	sp->receive_audit_required	= FALSE;
-	sp->detect_silence		= TRUE;
+	sp->silence_detection		= SILENCE_DETECTION_OFF;
 	sp->sync_on			= FALSE;
 	sp->agc_on			= FALSE;
         sp->ui_on                       = FALSE;

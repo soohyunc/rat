@@ -40,6 +40,7 @@ static const char cvsid[] =
 #include "util.h"
 #include "codec_types.h"
 #include "channel_types.h"
+#include "parameters.h"
 #include "rtp.h"
 #include "rtp_callback.h"
 #include "ui_send_rtp.h"
@@ -93,6 +94,22 @@ static void rx_tool_rat_powermeter(char *srce, char *args, session_t *sp)
 
 static void rx_tool_rat_silence(char *srce, char *args, session_t *sp)
 {
+        char *detector;
+	struct mbus_parser	*mp;
+
+	UNUSED(srce);
+
+	mp = mbus_parse_init(args);
+	if (mbus_parse_str(mp, &detector)) {
+		sp->silence_detection = sd_name_to_type(detector);
+	} else {
+		debug_msg("mbus: usage \"tool.rat.silence <Auto|Manual|Off>\"\n");
+	}
+	mbus_parse_done(mp);
+}
+
+static void rx_tool_rat_silence_thresh(char *srce, char *args, session_t *sp)
+{
 	int 			 i;
 	struct mbus_parser	*mp;
 
@@ -100,9 +117,10 @@ static void rx_tool_rat_silence(char *srce, char *args, session_t *sp)
 
 	mp = mbus_parse_init(args);
 	if (mbus_parse_int(mp, &i)) {
-		sp->detect_silence = i;
+		sp->manual_sd_thresh = i;
+                manual_sd_set_thresh(sp->manual_sd, i);
 	} else {
-		debug_msg("mbus: usage \"tool.rat.silence <boolean>\"\n");
+		debug_msg("mbus: usage \"tool.rat.silence.threshold <int>\"\n");
 	}
 	mbus_parse_done(mp);
 }
@@ -1479,6 +1497,7 @@ static const mbus_cmd_tuple engine_cmds[] = {
 	{ "tool.rat.voxlet.play",                  rx_tool_rat_voxlet_play },
         { "session.title",                         rx_session_title },
         { "tool.rat.silence",                      rx_tool_rat_silence },
+        { "tool.rat.silence.threshold",            rx_tool_rat_silence_thresh },
         { "tool.rat.lecture.mode",                 rx_tool_rat_lecture_mode },
         { "audio.3d.enabled",                      rx_audio_3d_enable },
         { "audio.3d.user.settings",                rx_audio_3d_user_settings },

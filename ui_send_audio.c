@@ -25,6 +25,7 @@ static const char cvsid[] =
 #include "transmit.h"
 #include "codec.h"
 #include "channel.h"
+#include "parameters.h"
 #include "repair.h"
 #include "render_3D.h"
 #include "pdb.h"
@@ -254,12 +255,22 @@ ui_send_audio_device(session_t *sp, char *addr)
 void
 ui_send_audio_suppress_silence(session_t *sp, char *addr)
 {
-	if (!sp->ui_on) return;
-        if (sp->detect_silence) {
+        char thresh[6];
+	if (sp->ui_on == FALSE) {
+                return;
+        }
+
+        /* This is just for other applications to hear */
+        if (sp->silence_detection != SILENCE_DETECTION_OFF) {
                 mbus_qmsg(sp->mbus_engine, addr, "audio.suppress.silence", "1", TRUE);
         } else {
                 mbus_qmsg(sp->mbus_engine, addr, "audio.suppress.silence", "0", TRUE);
         }
+        
+        /* This is for the ui */
+        mbus_qmsg(sp->mbus_engine, addr, "tool.rat.silence", mbus_encode_str(sd_name(sp->silence_detection)), TRUE);
+        sprintf(thresh, "%d", sp->manual_sd_thresh);
+        mbus_qmsg(sp->mbus_engine, addr, "tool.rat.silence.threshold", thresh, TRUE);
 }
 
 void

@@ -208,7 +208,7 @@ START_L1:
 
 #define ENERGY_CALC_STEP	         1
 uint16_t 
-avg_audio_energy(sample *buf, uint32_t samples, uint32_t channels)
+audio_avg_energy(sample *buf, uint32_t samples, uint32_t channels)
 {
         register uint32_t e1, e2;
         register sample *buf_end = buf + samples;
@@ -237,6 +237,21 @@ avg_audio_energy(sample *buf, uint32_t samples, uint32_t channels)
          * no. of sampling points = samples/ENERGY_CALC_STEP;
          */
         return (uint16_t)(e1*ENERGY_CALC_STEP/samples);
+}
+
+sample
+audio_abs_max(sample *buf, uint32_t samples)
+{
+        uint32_t i;
+        sample   max;
+
+        max = 0;
+        for(i = 0; i < samples; i++) {
+                if (abs(buf[i]) > max) {
+                        max = abs(buf[i]);
+                }
+        }
+        return max;
 }
 
 void

@@ -1186,7 +1186,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
         for(i = 0; i < md->nrep; i++) {
                 if (codec_get_native_info(md->rep[i]->id, &rate, &channels)) {
                         samples = md->rep[i]->data_len / (channels * sizeof(sample));
-                        e = avg_audio_energy((sample*)md->rep[i]->data, samples * channels, channels);
+                        e = audio_avg_energy((sample*)md->rep[i]->data, samples * channels, channels);
                         src->mean_energy = (15 * src->mean_energy + e)/16;
                         frame_dur = ts_map32(rate, samples);
                         break;

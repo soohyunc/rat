@@ -34,6 +34,10 @@
 #define TRANSCODER              2
 #define FLAKEAWAY               4
 
+#define SILENCE_DETECTION_OFF    0
+#define SILENCE_DETECTION_AUTO   1
+#define SILENCE_DETECTION_MANUAL 2
+
 /*- global clock frequency -*/
 #define GLOBAL_CLOCK_FREQ 96000
 
@@ -76,7 +80,10 @@ typedef struct s_session {
         int                 	 echo_tx_active; 		/* Mute state when suppressing */
 	int                 	 auto_lecture;     		/* Used for dummy lecture mode */
  	int                 	 receive_audit_required;
-	int                 	 detect_silence;
+	int                 	 silence_detection;
+        struct s_sd*             auto_sd;
+        struct s_manual_sd*      manual_sd;
+        uint16_t                 manual_sd_thresh;
 	int                 	 meter;       			/* if powermeters are on */
         uint32_t             	 meter_period; 
 	int		    	 ui_activated;			/* If our ssrc is highlighted in the ui */

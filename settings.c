@@ -31,6 +31,7 @@ static const char cvsid[] =
 #include "converter.h"
 #include "rtp.h"
 #include "util.h"
+#include "parameters.h"
 
 #include "asarray.h"
 
@@ -266,7 +267,7 @@ setting_load_int(const char *name, int default_value)
 
 void settings_load_early(session_t *sp)
 {
-	char				*name, *param, *primary_codec, *port;
+	char				*name, *param, *primary_codec, *port, *silence;
 	int				 freq, chan, mute;
         uint32_t                         i, n, success;
 	const cc_details_t              *ccd;
@@ -383,17 +384,19 @@ void settings_load_early(session_t *sp)
                         break;
                 }
         }
-        
-	sp->limit_playout  = setting_load_int("audioLimitPlayout", 0);
-	sp->min_playout    = setting_load_int("audioMinPlayout", 0);
-	sp->max_playout    = setting_load_int("audioMaxPlayout", 2000);
-	sp->lecture        = setting_load_int("audioLecture", 0);
-	sp->detect_silence = setting_load_int("audioSilence", 1);
-	sp->agc_on         = setting_load_int("audioAGC", 0);
-	sp->loopback_gain  = setting_load_int("audioLoopback", 0);
+
+	silence = setting_load_str("audioSilence", "Auto");
+        sp->silence_detection = sd_name_to_type(silence);
+        sp->manual_sd_thresh  = setting_load_int("audioSilenceManualThresh", 50);
+	sp->limit_playout     = setting_load_int("audioLimitPlayout", 0);
+	sp->min_playout       = setting_load_int("audioMinPlayout", 0);
+	sp->max_playout       = setting_load_int("audioMaxPlayout", 2000);
+	sp->lecture           = setting_load_int("audioLecture", 0);
+	sp->agc_on            = setting_load_int("audioAGC", 0);
+	sp->loopback_gain     = setting_load_int("audioLoopback", 0);
         audio_loopback(sp->audio_device, sp->loopback_gain);
-	sp->echo_suppress  = setting_load_int("audioEchoSuppress", 0);
-	sp->meter          = setting_load_int("audioPowermeters", 1);
+	sp->echo_suppress     = setting_load_int("audioEchoSuppress", 0);
+	sp->meter             = setting_load_int("audioPowermeters", 1);
 /* Ignore saved render_3d setting.  Break initial device config stuff.  V.fiddly to fix. */
 /*	sp->render_3d      = setting_load_int("audio3dRendering", 0);                    */
 
@@ -777,7 +780,6 @@ void settings_save(session_t *sp)
 	setting_save_int("audioMaxPlayout",        sp->max_playout);
 	setting_save_int("audioLecture",           sp->lecture);
 	setting_save_int("audio3dRendering",       sp->render_3d);
-	setting_save_int("audioSilence",           sp->detect_silence);
 	setting_save_int("audioAGC",               sp->agc_on);
 	setting_save_int("audioLoopback",          sp->loopback_gain); 
 	setting_save_int("audioEchoSuppress",      sp->echo_suppress);
@@ -786,6 +788,10 @@ void settings_save(session_t *sp)
 	setting_save_str("audioOutputPort",        oapd->name);
 	setting_save_str("audioInputPort",         iapd->name); 
 	setting_save_int("audioPowermeters",       sp->meter);
+
+	setting_save_str("audioSilence",  sd_name(sp->silence_detection));
+        setting_save_int("audioSilenceManualThresh", sp->manual_sd_thresh);
+
 	/* We do not save audioOutputMute and audioInputMute by default, but should */
 	/* recognize them when reloading.                                           */
 	save_done_rat();
