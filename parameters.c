@@ -131,14 +131,20 @@ int lin2vu(u_int16 energy, int range, int io_dir)
 #define SD_RAISE_COUNT  10
 
 typedef struct s_sd {
-        u_int32 parole;
+        u_int32 parole_period;
         int32 tot, tot_sq;
-        u_int32 thresh;
-        u_int32 lt_cnt;
-        u_int32 lt_max;
-        u_int32 gt_cnt;
-        u_int32 gt_min;
+        u_int32 history;
+        int32 thresh;
+        int32 m;
+        double mds;
+        double ltmds;
+        u_int32 lt_cnt;  /* Number intervals less than threshold        */
+        u_int32 lt_max;  /* Maximum energy of those less than threshold */
+        u_int32 gt_cnt;  /* Number intervals more than threshold        */
+        u_int32 gt_min;  /* Minimum energy of those less than threshold */
         u_int32 peak;
+        u_int32 eval_period;
+        u_int32 eval_cnt;
         u_int32 cnt;
 } sd_t;
 
@@ -146,7 +152,8 @@ sd_t *
 sd_init(u_int16 blk_dur, u_int16 freq)
 {
 	sd_t *s = (sd_t *)xmalloc(sizeof(sd_t));
-        s->parole = SD_PAROLE_PERIOD * freq / (blk_dur*1000) + 1;
+        s->parole_period = SD_PAROLE_PERIOD * freq / (blk_dur*1000) + 1;
+        s->eval_period   = s->parole_period;
         sd_reset(s);
 	return (s);
 }
@@ -154,14 +161,11 @@ sd_init(u_int16 blk_dur, u_int16 freq)
 void
 sd_reset(sd_t *s)
 {
-        s->cnt         = 0;
-        s->tot         = 0;
-        s->tot_sq      = 0;
-        s->lt_cnt      = 0;
-        s->lt_max      = 0;
-        s->gt_cnt      = 0;
-        s->gt_min      = 0xffff;
-        s->thresh      = 0;
+        u_int32 tmp = s->parole_period;
+        memset(s, 0, sizeof(sd_t));
+        s->parole_period = tmp;
+        s->eval_period   = 4 * tmp;
+        s->gt_min = 0xffff;
 }
 
 void
@@ -175,48 +179,43 @@ sd_destroy(sd_t *s)
 int
 sd(sd_t *s, u_int16 energy)
 {
-        s->tot    += energy;
-        s->tot_sq += (energy * energy);
+        energy = vu_tbl[L16TOQ3(energy)];
 
-        if (s->cnt == s->parole) {
-                u_int32 m,stdd,trial_thresh;
-                double d;
-                m    = s->tot / s->cnt;
-                d = sqrt(abs(m * m - s->tot_sq / s->cnt));
-                stdd = (unsigned long) d;
-
-                trial_thresh = m + 3 * stdd;
-                if (trial_thresh < s->thresh) {
-                        if ((s->thresh - trial_thresh) > trial_thresh) {
-                                s->lt_max = max(s->lt_max, trial_thresh);
-                                if (s->lt_cnt++ == SD_LOWER_COUNT) {
-                                        s->thresh = s->lt_max;
-                                        s->lt_cnt = 0;
-                                        s->lt_max = 0;
-                                }
-                        }
-                        s->gt_min = 0xffff;
-                        s->gt_cnt = 0;
-                } else if (trial_thresh > s->thresh) {
-                        s->gt_min = min(s->gt_min, trial_thresh);
-                        if (s->gt_cnt++ == SD_RAISE_COUNT) {
-                                s->thresh = (3 * s->thresh + s->gt_min) / 4;
-                                s->gt_min = 0xffff;
-                                s->gt_cnt = 0;
-                        } 
-                        s->lt_cnt = 0;
-                        s->lt_max = 0;
-                } else {
-                        s->gt_cnt = 0;
-                        s->gt_min = 0xffff;
-                        s->lt_cnt = 0;
-                        s->lt_max = 0;
-                }
-                s->tot = s->tot_sq = 0;
-                s->cnt = 0;
+        if (s->cnt < s->parole_period) {
+                s->thresh = max(s->thresh, energy);
+                s->cnt++;
+                return (energy < s->thresh);
         }
 
-        s->cnt++;
+        if (energy > s->thresh) {
+                s->gt_min = min(s->gt_min, energy);
+                s->gt_cnt++;
+        } else if (energy < s->thresh) {
+                s->lt_max = max(s->lt_max, energy);
+                s->lt_cnt++;
+        }
+
+        if (s->eval_cnt == s->eval_period) {
+                if (s->lt_cnt == s->eval_period) {
+                        /* Every block had lower energy */
+                        s->thresh = (s->thresh + s->lt_max) / 2 + 1;
+                } else if (s->gt_cnt == s->eval_period) {
+                        /* Every block had greater energy */
+                        s->thresh++;
+                } else if (s->lt_cnt > s->gt_cnt) {
+                        /* We are skimming threshold ? */
+                        s->thresh++;
+                }
+                s->eval_cnt = 0;
+                s->lt_max = 0;
+                s->lt_cnt = 0;
+                s->gt_min = 0xffff;
+                s->gt_cnt = 0;
+        }
+        s->eval_cnt ++;
+
+        debug_msg("Energy %d Thresh %d\n", energy, s->thresh);
+
         return (energy < s->thresh);
 }
 
