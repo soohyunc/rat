@@ -488,7 +488,7 @@ w32_make_version_info(char *szRatVer)
                 break;
         default:
                 /* No idea what this could be :-)*/
-                sprintf(szVer, "%s Windows (Unknown)", szRatVer);
+                sprintf(szVer, "%s Windows (Unknown... beta tester, huh?)", szRatVer);
         }
 
         return szVer;

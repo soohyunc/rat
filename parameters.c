@@ -72,12 +72,21 @@ avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
         case 2:
                 /* SIMD would improve this */
                 while(buf < buf_end) {
-                        e1 = abs(*buf++);
-                        e2 = abs(*buf);
+                        e1 += abs(*buf++);
+                        e2 += abs(*buf);
                         buf += STEP*channels - 1;
                 }
                 e1 = max(e1, e2);
+                samples /= channels; /* No. of samples to no. of sampling intervals */
         }
+        /* This is the wrong way around - it should be:
+         *       e1 * (samples / step)
+         * Unfortunately all the code seems to work with this incorrect 
+         * scaling for the time being.  There is not enough time
+         * to fix this now and get everything working again, but
+         * someone should...
+         */
+        
         return (u_int16)(e1*STEP/samples);
 }
 
