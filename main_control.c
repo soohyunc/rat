@@ -90,8 +90,8 @@ static int snprintf(char *s, int buf_size, const char *format, ...)
 #endif   
         va_end(ap);
         return rc;
-#endif
 }
+#endif
 
 static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid, char *token)
 {
@@ -334,7 +334,7 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
                         } else {
                                 usage("Usage: -r <codec>/<offset>");
                         }
-                        xfree((char*)codec);
+			xfree((void *)codec);
                 } else if ((strcmp(argv[i], "-l") == 0) && (argc > i+1)) { 
                         /* Set channel coding to layered */
                 } else if ((strcmp(argv[i], "-i") == 0) && (argc > i+1)) {

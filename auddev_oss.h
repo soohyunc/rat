@@ -45,6 +45,6 @@ int  oss_audio_supports  (audio_desc_t ad, audio_format *fmt);
 /* Functions to get names of oss devices */
 int         oss_audio_query_devices (void);             /* This fn works out what we have           */
 int         oss_get_device_count    (void);             /* Then this one tells us the number of 'em */
-const char *oss_get_device_name     (audio_desc_t idx); /* Then this one tells us the name          */
+char       *oss_get_device_name     (audio_desc_t idx); /* Then this one tells us the name          */
 
 #endif /* _AUDDEV_OSS_H_ */

@@ -12,7 +12,7 @@
 #ifndef _AUDDEV_ATM_H_
 #define _AUDDEV_ATM_H_
 int  atm_audio_device_count (void);
-const char *
+char *
      atm_audio_device_name(audio_desc_t ad);
 int  atm_audio_supports(audio_desc_t ad, audio_format *fmt);
 

@@ -117,7 +117,7 @@ static char *settings_file_name(uint32_t type)
 }
 
 static FILE *
-settings_file_open(uint32_t type, char *mode)
+settings_file_open(uint32_t type, const char *mode)
 {
         FILE *sfile;
         char *filen;
@@ -193,7 +193,7 @@ static void load_done(void)
 }
 
 static int 
-setting_load(char *key, char **value)
+setting_load(const char *key, char **value)
 {
 #ifndef WIN32
         return asarray_lookup(aa, key, value);
@@ -201,7 +201,7 @@ setting_load(char *key, char **value)
 }
 
 static char *
-setting_load_str(char *name, char *default_value)
+setting_load_str(const char *name, char *default_value)
 {
 #ifndef WIN32
         char *value;
@@ -237,7 +237,7 @@ setting_load_str(char *name, char *default_value)
 }
 
 static int 
-setting_load_int(char *name, int default_value)
+setting_load_int(const char *name, int default_value)
 {
 #ifndef WIN32
         char *value;
@@ -626,7 +626,7 @@ setting_save_str(const char *name, const char *val)
         if (val == NULL) {
                 val = "";
         }
-        asarray_add(aa, (char*)name, (char*)val);
+        asarray_add(aa, name, val);
 #else
         int status;
         char buffer[SETTINGS_BUF_SIZE];

@@ -12,7 +12,7 @@
 #ifndef _AUDDEV_SPARC_H_
 #define _AUDDEV_SPARC_H_
 int  sparc_audio_device_count (void);
-const char *
+char *
      sparc_audio_device_name(audio_desc_t ad);
 int  sparc_audio_supports(audio_desc_t ad, audio_format *fmt);
 

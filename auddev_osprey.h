@@ -15,7 +15,7 @@
 int osprey_audio_init(void);
 
 int  osprey_audio_device_count(void);
-const char*  
+char*  
      osprey_audio_device_name(audio_desc_t ad);
 
 int  osprey_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);

@@ -576,7 +576,7 @@ osprey_audio_device_count()
         return present;
 }
 
-const char*
+char*
 osprey_audio_device_name(audio_desc_t ad)
 {
         UNUSED(ad);

@@ -13,7 +13,7 @@
 #define _AUDDEV_SGI_H_
 
 int  sgi_audio_device_count(void);
-const char*  
+char*  
      sgi_audio_device_name(audio_desc_t);
 
 int  sgi_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format* ofmt);

@@ -14,7 +14,7 @@
 
 int pca_audio_init        (void);
 int pca_audio_device_count(void);
-const char*
+char*
     pca_audio_device_name (audio_desc_t ad);
 int  pca_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format* ofmt);
 void pca_audio_close      (audio_desc_t ad);

@@ -47,6 +47,6 @@ int  luigi_audio_supports  (audio_desc_t ad, audio_format *f);
 /* Functions to get names of devices */
 int         luigi_audio_query_devices (void);
 int         luigi_get_device_count    (void);
-const char *luigi_get_device_name     (audio_desc_t ad);
+char       *luigi_get_device_name     (audio_desc_t ad);
 
 #endif /* _AUDDEV_LUIGI_H_ */

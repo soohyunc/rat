@@ -41,7 +41,7 @@ typedef int audio_desc_t;   /* Unique handle for identifying audio devices */
 
 typedef struct {
         audio_desc_t descriptor;
-        const char  *name;
+        char  *name;
 } audio_device_details_t;
 
 typedef uint32_t audio_port_t;

@@ -535,7 +535,7 @@ luigi_get_device_count()
         return ndev;
 }
 
-const char *
+char *
 luigi_get_device_name(audio_desc_t idx)
 {
         if (idx >=0 && idx < ndev) {

@@ -1665,7 +1665,7 @@ alsa_audio_wait_for(audio_desc_t ad, int delay_ms)
     InputBuffer.audioWaitForFunc(delay_ms);
 }
 
-const char *
+char *
 alsa_get_device_name(audio_desc_t idx)
 {
         debug_msg("get name for card %d\n", idx);

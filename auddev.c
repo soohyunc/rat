@@ -34,7 +34,7 @@ typedef struct {
         int  (*audio_if_init)(void);                 /* Test and initialize audio interface (OPTIONAL)    */
         int  (*audio_if_free)(void);                 /* Free audio interface (OPTIONAL)                   */
         int  (*audio_if_dev_cnt)(void);              /* Device count for interface (REQUIRED)             */
-        const char* 
+        char* 
              (*audio_if_dev_name)(int);              /* Device name query (REQUIRED)                      */
 
         int  (*audio_if_open)(int, audio_format *ifmt, audio_format *ofmt); /* Open device with formats   */
@@ -1166,7 +1166,7 @@ audio_free_interfaces(void)
 
         if (dev_details != NULL) {
                 for(i = 0; i < actual_devices; i++) {
-                        xfree((char*)dev_details[i].name);
+                        xfree(dev_details[i].name);
                 }
                 xfree(dev_details);
                 dev_details = NULL;

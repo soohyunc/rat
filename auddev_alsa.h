@@ -47,6 +47,6 @@ int  alsa_audio_supports  (audio_desc_t ad, audio_format *fmt);
 /* Functions to get names of alsa devices */
 int         alsa_audio_init (void);             /* This fn works out what we have           */
 int         alsa_get_device_count    (void);             /* Then this one tells us the number of 'em */
-const char *alsa_get_device_name     (audio_desc_t idx); /* Then this one tells us the name          */
+char       *alsa_get_device_name     (audio_desc_t idx); /* Then this one tells us the name          */
 
 #endif /* _AUDDEV_ALSA_H_ */

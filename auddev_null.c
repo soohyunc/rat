@@ -374,7 +374,7 @@ null_audio_device_count()
         return 1;
 }
 
-const char*
+char*
 null_audio_device_name(audio_desc_t ad)
 {
         UNUSED(ad);
