@@ -361,9 +361,14 @@ proc cb_recv_ssrc {ssrc cmd args} {
 
 
 proc ssrc_update {ssrc} {
-	global CNAME NAME EMAIL LOC PHONE TOOL 
+	global CNAME NAME EMAIL LOC PHONE TOOL INDEX
 	global ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME
 	global fw iht iwd my_ssrc mylosstimers his_or_her_losstimers
+
+	if {[array names INDEX $ssrc] != $ssrc} {
+		# This ssrc doesn't exist...
+		return
+	}
 
 	set cw 		$fw.c$ssrc
 
