@@ -803,6 +803,12 @@ static void rx_rtp_query(char *srce, char *args, session_t *sp)
 	ui_send_rtp_title(sp, srce);
 }
 
+static void rx_rtp_addr_query(char *srce, char *args, session_t *sp)
+{
+	UNUSED(args);
+	ui_send_rtp_addr(sp, srce);
+}
+
 static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 {
 	/* rtp.addr ("224.1.2.3" 1234 1234 16) */
@@ -1416,6 +1422,7 @@ static const mbus_cmd_tuple engine_cmds[] = {
         { "audio.query",                           rx_audio_query },
         { "security.encryption.key",               rx_security_encryption_key },
         { "rtp.query",                             rx_rtp_query },
+        { "rtp.addr.query",                        rx_rtp_addr_query },
         { "rtp.addr",                              rx_rtp_addr },
         { "rtp.source.name",                       rx_rtp_source_name },
         { "rtp.source.email",                      rx_rtp_source_email },

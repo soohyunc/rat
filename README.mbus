@@ -126,6 +126,10 @@ rtp.addr (addr rx_port tx_port ttl)
 	of the response to rtp.query() to inform the recipient of the
 	addresses used for the session.
 
+rtp.addr.query ()
+
+	Request the media engine to send an rtp.addr() message.
+
 rtp.ssrc (my_ssrc)
 
 	Inform the recipient of the SSRC the sender is using in the

@@ -1133,6 +1133,7 @@ v4.1.6  - Fix Windows port
 v4.1.7	- Update ALSA detection in configure script
 	- Fix display of names when SDES NAME is not known (fallback to
 	  CNAME or SSRC in that order).
+	- Add support for the rtp.addr.query() mbus message to media engine.
 
 
 TODO -- They're features not bugs dammit!
@@ -1200,7 +1201,6 @@ TODO -- They're features not bugs dammit!
   like we do with the converters and repairers.
 - Add support for rtp.source.mute (ALL 0|1), which is much more efficient
   than iterating all sources over the mbus.
-- Add rtp.addr.query() message support to media engine.
 - Make rtp.addr() with an rx_port of 0, when sent to the media engine, mean
   that the media engine should get the kernel to select a receive RTP port.
 
