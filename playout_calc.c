@@ -33,10 +33,11 @@ playout_variable_component(session_t *sp, pdb_entry_t *e)
 
         freq  = get_freq(e->clock);
         var32 = e->inter_pkt_gap;
-        
+
         cushion = cushion_get_size(sp->cushion);
         if (var32 < cushion) {
                 var32 = 3 * cushion / 2;
+
         }
         
         if (sp->limit_playout) {
@@ -71,6 +72,7 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t src_ts, int new_spurt)
         transit = ts_sub(sp->cur_ts, src_ts);
 
         if (new_spurt == TRUE) {
+                debug_msg("New talkspurt\n");
                 /* Get RAT specific variable playout component                */
                 var = playout_variable_component(sp, e);
                 /* Use the larger of jitter and variable playout component.   */
@@ -79,6 +81,7 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t src_ts, int new_spurt)
                 } else {
                         e->playout = e->jitter;
                 }
+                debug_msg("Playout offset (%08lu)\n", e->playout.ticks);
                 e->transit = transit;
                 e->playout = ts_add(transit, e->playout);
         } else {

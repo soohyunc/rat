@@ -181,10 +181,9 @@ source_create(source_list    *plist,
 
         psrc->pdbe->first_mix = 1; /* Used to note we have not mixed anything
                                     * for this decode path yet */
-        psrc->channel_state  = NULL;        
-
-        psrc->skew           = SOURCE_SKEW_NONE;
-        psrc->skew_offenses  = 0;
+        psrc->channel_state   = NULL;        
+        psrc->skew            = SOURCE_SKEW_NONE;
+        psrc->skew_offenses   = 0;
         /* Allocate channel and media buffers */
         success = pb_create(&psrc->channel, (playoutfreeproc)channel_data_destroy);
         if (!success) {
@@ -368,7 +367,6 @@ source_add_packet (source *src,
 
         assert(src != NULL);
         assert(pckt != NULL);
-        assert(data_start != 0);
 
         /* If last_played is valid then enough audio is buffer
          * for the playout check to be sensible
@@ -410,7 +408,9 @@ source_add_packet (source *src,
                 while(pb_iterator_advance(pi)) {
                         pb_iterator_get_at(pi, (u_char**)&cd, &clen, &lplayout);
                        /* if lplayout==playout there is already channel_data for this playout point */
-                        if(!ts_eq(playout, lplayout)) continue;
+                        if(!ts_eq(playout, lplayout)) {
+                                continue;
+                        }
                         pb_iterator_detach_at(pi, (u_char**)&cd, &clen, &lplayout);
                         assert(cd->nelem >= 1);
 

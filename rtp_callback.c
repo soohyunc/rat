@@ -24,6 +24,7 @@
 #include "pdb.h"
 #include "source.h"
 #include "playout_calc.h"
+#include "util.h"
 #include "ui.h"
 
 /* We need to be able to resolve the rtp session to a rat session in */
@@ -36,13 +37,12 @@ typedef struct s_rtp_assoc {
         struct s_rtp_assoc *next;
         struct s_rtp_assoc *prev;
         struct rtp         *rtps;
-        struct s_session *rats;
+        struct s_session   *rats;
 } rtp_assoc_t;
 
 /* Sentinel for linked list that is used as small associative array */
 static rtp_assoc_t rtp_as;
 static int rtp_as_inited;
-
 
 void 
 rtp_callback_init(struct rtp *rtps, struct s_session *rats)
@@ -216,8 +216,18 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                 adjust_playout = TRUE;
         }
 
-        src_ts = ts_seq32_in(source_get_sequencer(s), get_freq(e->clock), p->ts);
+        /* Calculate the playout point for this packet */
+        src_ts  = ts_seq32_in(source_get_sequencer(s), get_freq(e->clock), p->ts);
         playout = playout_calc(sp, ssrc, src_ts, adjust_playout);
+        /* Add it to the source for processing later   */
+        {
+                u_char *u = block_alloc(p->data_len);
+                memcpy(u, p->data, p->data_len);
+                if (source_add_packet(s, u, p->data_len, 0, p->pt, playout) == FALSE) {
+                        block_free(u, p->data_len);
+                }
+        }
+        /* Update persistent database fields           */
         e->last_seq = p->seq;
         e->last_ts  = p->ts;
         e->last_arr = sp->cur_ts;

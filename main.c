@@ -198,16 +198,15 @@ main(int argc, char *argv[])
 			scnt = (int)source_list_source_count(sp[0]->active_sources);
 			for(sidx = 0; sidx < scnt; sidx++) {
 				s = source_list_get_source_no(sp[0]->active_sources, sidx);
-/***************************************************************************** 
+
                                 if (source_relevant(s, sp[0]->cur_ts)) {
-  
-
+/*
 					source_check_buffering(s, sp[0]->cur_ts);
-
+                                        */
 					source_process(s, sp[0]->ms, sp[0]->render_3d, sp[0]->repair, cush_ts);
 					source_audit(s);
 				} else {
-					* Remove source as stopped *
+					/* Remove source as stopped */
                                         u_int32 ssrc;
                                         ssrc = source_get_ssrc(s);
 					ui_info_deactivate(sp[0], ssrc);
@@ -215,7 +214,6 @@ main(int argc, char *argv[])
 					sidx--;
 					scnt--;
 				}
-*****************************************************************************/
 			}
 		}
 
