@@ -33,6 +33,7 @@ converter_change_channels (sample *src,
 {
         int di, si;
         int t;
+
         assert(src_channels == 1 || src_channels == 2);
         assert(dst_channels == 1 || dst_channels == 2);
         assert(dst_channels != src_channels);
@@ -53,7 +54,8 @@ converter_change_channels (sample *src,
                 do {
                         dst[di--] = src[si];
                         dst[di--] = src[si--];
-                } while (si != 0);
+                } while (si >= 0);
+                assert(di == si);
                 break;
         case 2:
                 si = 0;
@@ -64,6 +66,7 @@ converter_change_channels (sample *src,
                         t /= 2;
                         dst[di++] = t;
                 } while (si != src_len);
+                assert(di == dst_len);
                 break;
         }
         UNUSED(dst_channels);
