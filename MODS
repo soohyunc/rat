@@ -1543,11 +1543,7 @@ v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
 v4.2.14	- Add "-noui" option to start the media engine without user interface
 	- Fix CSRC handling (Patch from ivo.sedlacek@anfdata.cz)
 	- Fix uninitialized field in SDES PRIV handling (Robert Olson)
-
-
-
-
-
+	- Fix G726-24 and G726-40 out by one in codewords unpacked.
 
 TODO -- They're features not bugs dammit!
 ----
