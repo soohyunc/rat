@@ -153,15 +153,22 @@ mix_process(mix_struct          *ms,
             coded_unit          *frame,
             ts_t                 playout)
 {
+        static int hits;
         sample  *samples;
-        u_int32  nticks, nsamples, pos;
+
+        u_int32  nticks, nsamples, pos, original_head;
         u_int16  channels, rate;
-        ts_t     frame_period, expected_playout, delta, new_head_time;
+        ts_t     frame_period, expected_playout, delta, pot_head_time;
+        ts_t     orig_head_time;
+
+        int zero_start = -1, zero_len = -1;
 
         mix_verify(ms);
-
+        hits++;
         codec_get_native_info(frame->id, &rate, &channels);
 
+        orig_head_time = ms->head_time;
+        original_head  = ms->head;
         if (rate != ms->rate || channels != ms->channels) {
                 /* This should only occur if source changes sample rate
                  * mid-stream and before buffering runs dry in end host.
@@ -191,41 +198,37 @@ mix_process(mix_struct          *ms,
 
         samples  = (sample*)frame->data;
         nsamples = frame->data_len / sizeof(sample);
-                
+
+        mix_verify(ms);
+
+        /* Potential time for head */
+        pot_head_time = ts_add(playout, 
+                               ts_map32(ms->rate, nsamples / ms->channels));
+
         /* Check for overlap in decoded frames */
         expected_playout = ts_add(pdbe->last_mixed, frame_period);
-
         if (!ts_eq(expected_playout, playout)) {
                 if (ts_gt(expected_playout, playout)) {
                         delta = ts_sub(expected_playout, playout);
-#ifdef DEBUG_MIX
                         debug_msg("Overlapping units\n");
-#endif /* DEBUG_MIX */
                         if (ts_gt(frame_period, delta)) {
                                 u_int32  trim = delta.ticks * ms->channels;
                                 samples  += trim;
                                 nsamples -= trim;
-#ifdef DEBUG_MIX
                                 debug_msg("Trimmed %d samples\n", trim);
-#endif /* DEBUG_MIX */
                         } else {
-#ifdef DEBUG_MIX
                                 debug_msg("Skipped unit\n");
-#endif /* DEBUG_MIX */
                         }
                 } else {
                         if (expected_playout.ticks - playout.ticks != 0) {
-#ifdef DEBUG_MIX
-                                debug_msg("Gap between units %d %d\n", expected_playout.ticks, playout.ticks);
-#endif /* DEBUG_MIX */
+                                debug_msg("Gap between units %d %d\n", 
+                                          expected_playout.ticks, 
+                                          playout.ticks);
                         }
                 }
         }
 
-        mix_verify(ms);
-        /* Zero ahead if necessary */
-
-        new_head_time = ts_add(playout, ts_map32(ms->rate, nsamples / ms->channels));
+        /* If mixer has been out of use, fire it up */
         if (ts_eq(ms->head_time, ms->tail_time)) {
                 mix_verify(ms);
                 ms->head_time = ms->tail_time = playout;
@@ -235,31 +238,30 @@ mix_process(mix_struct          *ms,
                 mix_verify(ms);
         }
 
-        if (ts_gt(new_head_time, ms->head_time))  {
+        /* Zero ahead if new potential head time is greater than existing */
+        if (ts_gt(pot_head_time, ms->head_time))  {
                 int zeros;
-                delta = ts_sub(new_head_time, ms->head_time);
+                delta = ts_sub(pot_head_time, ms->head_time);
                 zeros = delta.ticks * ms->channels * ms->rate / ts_get_freq(delta);
-                if (zeros > (ms->buf_len - ms->dist)) {
-                        debug_msg("Wanted to write too many zeros (%d into buffer of size %d)\n", zeros, ms->buf_len);
-                        zeros = ms->buf_len - ms->dist - 1; /* Don't overwrite buffer */
-                }
                 mix_verify(ms);
                 mix_zero(ms, ms->head, zeros);
+                zero_start = ms->head;
+                zero_len   = zeros;
                 ms->dist += zeros;
                 ms->head += zeros;
                 ms->head %= ms->buf_len;
-                ms->head_time = ts_add(ms->head_time, delta);
+                ms->head_time = pot_head_time;
                 mix_verify(ms);
         }
 
         assert(!ts_gt(playout, ms->head_time));
 
         /* Work out where to write the data */
-        delta = ts_sub(ms->head_time, playout);
-        pos   = (ms->head - delta.ticks*ms->channels) % ms->buf_len;
-        if (pos > 0x7fffffff) {
+        pos = ms->head - nsamples;
+        if ((u_int32)ms->head < nsamples) {
+                /* Head has just wrapped.  Want to start from before */
+                /* the wrap...                                       */
                 pos += ms->buf_len;
-                assert(pos < (u_int32)ms->buf_len);
         }
         
         if (pos + nsamples > (u_int32)ms->buf_len) { 
@@ -390,8 +392,11 @@ mix_get_audio(mix_struct *ms, int request, sample **bufp)
  *
  */
 void
-mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
-			int dry_time, sample **bufp)
+mix_get_new_cushion(mix_struct *ms, 
+                    int last_cushion_size, 
+                    int new_cushion_size, 
+                    int dry_time, 
+                    sample **bufp)
 {
 	int	diff, elapsed_time;
 

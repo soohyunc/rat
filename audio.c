@@ -394,7 +394,10 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
         cushion_size = cushion_get_size(c);
         ofmt         = audio_get_ofmt(spi->audio_device);
 
-	if ( cushion_size < read_dur ) {
+	if (cushion_size < read_dur) {
+                debug_msg("catch up! read_dur(%d) > cushion_size(%d)\n",
+                        read_dur,
+                        cushion_size);
 		/* Use a step for the cushion to keep things nicely rounded  */
                 /* in the mixing. Round it up.                               */
                 new_cushion = cushion_use_estimate(c);
@@ -408,9 +411,6 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
                                     (read_dur - cushion_size), 
                                     &bufp);
                 audio_device_write(spo, bufp, new_cushion);
-                debug_msg("catch up! read_dur(%d) > cushion_size(%d)\n",
-                        read_dur,
-                        cushion_size);
                 /* We've blocked for this long for whatever reason           */
                 spi->over_read += read_dur - cushion_size;
                 cushion_size    = new_cushion;

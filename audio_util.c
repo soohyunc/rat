@@ -141,17 +141,16 @@ audio_zero(sample *buf, int len, deve_e type)
 void
 audio_mix(sample *dst, sample *src, int len)
 {
-	int tmp;
-        sample *src_e;
+	int i, tmp;
 
-        src_e = src + len;
-        while (src != src_e) {
-                tmp = *dst + *src++;
-                if (tmp > 32767)
+        for(i = 0; i < len; i++) {
+                tmp = dst[i] + src[i];
+                if (tmp > 32767) {
                         tmp = 32767;
-                else if (tmp < -32768)
+                } else if (tmp < -32768) {
                         tmp = -32768;
-                *dst++ = tmp;
+                }
+                dst[i] = tmp;
         }
 }
 
