@@ -88,40 +88,47 @@ static mix_f audio_mix_fn;
  * We allocate space three times the requested one so that we
  * dont have to copy everything when we hit the boundaries..
  */
-mix_struct *
-mix_create(session_struct * sp, int buffer_length)
+int
+mix_create(mix_struct **ppms, int sample_rate, int sample_channels, int buffer_length)
 {
-	mix_struct	     *ms;
-        codec_id_t            cid;
-        const codec_format_t *cf;
+	mix_struct *pms;
 
-        cid = codec_get_by_payload((u_char)sp->encodings[0]);
-        assert(cid);
-        cf = codec_get_format(cid);
-	ms = (mix_struct *) xmalloc(sizeof(mix_struct));
-	memset(ms, 0 , sizeof(mix_struct));
-        ms->channels    = cf->format.channels;
-        ms->rate        = cf->format.sample_rate;
-        ms->buf_len     = buffer_length * ms->channels;
-	ms->mix_bur  = (sample *)xmalloc(3 * ms->buf_len * BYTES_PER_SAMPLE);
-	audio_zero(ms->mix_buffer, 3 * buffer_length , DEV_S16);
-	ms->mix_buffer += ms->buf_len;
-        ms->head_time = ms->tail_time = ts_map32(ms->rate, 0);
+	pms = (mix_struct *) xmalloc(sizeof(mix_struct));
+        if (pms) {
+                memset(pms, 0 , sizeof(mix_struct));
+                pms->channels    = sample_channels;
+                pms->rate        = sample_rate;
+                pms->buf_len     = buffer_length * pms->channels;
+                pms->mix_buffer  = (sample *)xmalloc(3 * pms->buf_len * BYTES_PER_SAMPLE);
+                audio_zero(pms->mix_buffer, 3 * buffer_length , DEV_S16);
+                pms->mix_buffer += pms->buf_len;
+                pms->head_time = pms->tail_time = ts_map32(pms->rate, 0);
+                *ppms = pms;
 
-        audio_mix_fn = audio_mix;
+
+                audio_mix_fn = audio_mix;
 #ifdef WIN32
-        if (mmx_present()) {
-                audio_mix_fn = audio_mix_mmx;
-        }
+                if (mmx_present()) {
+                        audio_mix_fn = audio_mix_mmx;
+                }
 #endif /* WIN32 */
-	return (ms);
+                return TRUE;
+        }
+	return FALSE;
 }
 
 void
-mix_destroy(mix_struct *ms)
+mix_destroy(mix_struct **ppms)
 {
-        xfree(ms->mix_buffer - ms->buf_len);
-        xfree(ms);
+        mix_struct *pms;
+        
+        assert(ppms);
+        pms = *ppms;
+        assert(pms);
+
+        xfree(pms->mix_buffer - pms->buf_len); /* yuk! ouch! splat! */
+        xfree(pms);
+        *ppms = NULL;
 }
 
 static void
@@ -215,7 +222,6 @@ mix_process(mix_struct          *ms,
         delta = ts_sub(ms->head_time, playout);
         pos   = (ms->head - delta.ticks*ms->channels) % ms->buf_len;
         if (pos > 0x7fffffff) {
-                debug_msg("mix wrap\n");
                 pos += ms->buf_len;
                 assert(pos < (u_int32)ms->buf_len);
         }

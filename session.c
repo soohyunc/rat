@@ -97,8 +97,6 @@ init_session(session_struct *sp)
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
         assert(!(GLOBAL_CLOCK_FREQ%cf->format.sample_rate));                        /* just in case someone adds weird freq codecs */
 	sp->mode         		= AUDIO_TOOL;	
-        sp->input_mode                  = AUDIO_NO_DEVICE;
-        sp->output_mode                 = AUDIO_NO_DEVICE;
 	sp->rtp_port			= 5004;		/* default: draft-ietf-avt-profile-new-00 */
 	sp->rtcp_port			= 5005;		/* default: draft-ietf-avt-profile-new-00 */
         sp->rtp_pckt_queue              = pckt_queue_create(PCKT_QUEUE_RTP_LEN);

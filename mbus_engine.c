@@ -77,7 +77,6 @@ static void rx_tool_rat_toggle_input_port(char *srce, char *args, session_struct
 	}
 
 	audio_next_iport(sp->audio_device);
-	sp->input_mode = audio_get_iport(sp->audio_device);
 	ui_update_input_port(sp);
 }
 
@@ -91,7 +90,6 @@ static void rx_tool_rat_toggle_output_port(char *srce, char *args, session_struc
 	}
 
 	audio_next_oport(sp->audio_device);
-	sp->output_mode = audio_get_oport(sp->audio_device);
 	ui_update_output_port(sp);
 }
 #endif
@@ -356,7 +354,6 @@ static void rx_audio_input_port(char *srce, char *args, session_struct *sp)
 			debug_msg("unknown input port %s\n", s);
 			abort();
 		}
-		sp->input_mode = audio_get_iport(sp->audio_device);
 		ui_update_input_port(sp);
 	} else {
 		debug_msg("mbus: usage \"audio.input.port <port>\"\n");
@@ -418,7 +415,6 @@ static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
 		printf("mbus: usage \"audio.output.port <port>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine);
-        sp->output_mode = audio_get_oport(sp->audio_device);
 	ui_update_output_port(sp);
 }
 

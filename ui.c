@@ -351,7 +351,7 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 void
 ui_update_input_port(session_struct *sp)
 {
-	switch (sp->input_mode) {
+	switch (audio_get_iport(sp->audio_device)) {
 	case AUDIO_MICROPHONE:
 		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.input.port", "\"microphone\"", TRUE);
 		break;
@@ -375,7 +375,7 @@ ui_update_input_port(session_struct *sp)
 void
 ui_update_output_port(session_struct *sp)
 {
-	switch (sp->output_mode) {
+	switch (audio_get_oport(sp->audio_device)) {
 	case AUDIO_SPEAKER:
 		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.port", "speaker", TRUE);
 		break;

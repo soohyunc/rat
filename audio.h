@@ -46,8 +46,6 @@
 #include "audio_types.h"
 #include "auddev.h"
 
-#define AUDIO_NO_DEVICE -1
-
 /* Structures used in function declarations below */
 struct s_cushion_struct;
 struct session_tag;

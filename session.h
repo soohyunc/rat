@@ -113,8 +113,6 @@ typedef struct session_tag {
 	struct s_snd_file *out_file;
         int             input_gain;                 /* mike gain */
         int             output_gain;                /* speaker volume */
-        int             input_mode;                 /* mike/line input */
-        int             output_mode;                /* speaker/line/head out */
 	audio_desc_t	audio_device;
 	struct s_tx_buffer	            *tb;
 	struct rtp_db_tag	            *db;

@@ -51,17 +51,28 @@ struct session_tag;
 struct s_source;
 struct s_rtcp_dbentry;
 
-struct s_mix_info *mix_create  (struct session_tag *sp, int buffer_length);
-void               mix_destroy (struct s_mix_info *ms);
+int  mix_create  (struct s_mix_info **ms, 
+                   int sample_rate, 
+                   int channels, 
+                   int buffer_length);
 
-void    mix_process(struct s_mix_info     *ms,
-                    struct s_rtcp_dbentry *dbe,
-                    coded_unit            *raw_frame,
-                    ts_t                   now);
+void mix_destroy (struct s_mix_info **ms);
 
-int	mix_get_audio       (struct s_mix_info *ms, int amount, sample **bufp);
-void	mix_get_new_cushion (struct s_mix_info *ms, int last_cushion_size, int new_cushion_size, int dry_time, sample **bufp);
-void	mix_update_ui       (struct session_tag *sp, struct s_mix_info *ms);
-int     mix_active          (struct s_mix_info *ms);
+void mix_process(struct s_mix_info     *ms,
+                  struct s_rtcp_dbentry *dbe,
+                  coded_unit            *raw_frame,
+                  ts_t                   now);
+
+int  mix_get_audio       (struct s_mix_info *ms, int amount, sample **bufp);
+
+void mix_get_new_cushion (struct s_mix_info *ms, 
+                          int last_cushion_size, 
+                          int new_cushion_size, 
+                          int dry_time, 
+                          sample **bufp);
+
+void mix_update_ui       (struct session_tag *sp, struct s_mix_info *ms);
+
+int  mix_active          (struct s_mix_info *ms);
 
 #endif /* _mix_h_ */

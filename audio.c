@@ -87,11 +87,8 @@ audio_device_release(session_struct *sp, audio_desc_t the_dev)
         free_time(sp->device_clock);
         sp->device_clock = NULL;
 
-        cushion_destroy(sp->cushion);
-        sp->cushion = NULL;
-
-        mix_destroy(sp->ms);
-        sp->ms = NULL;
+        cushion_destroy(&sp->cushion);
+        mix_destroy(&sp->ms);
 
         tx_stop(sp->tb);
         tx_destroy(&sp->tb);
@@ -204,10 +201,10 @@ audio_device_attempt_config(session_struct *sp, audio_config *config)
                 /* Initialize read and write components */
                 sp->device_clock = new_time(sp->clock, inf->sample_rate);
                 sp->meter_period = inf->sample_rate / 15;
-                sp->ms           = mix_create(sp, 32640);
                 unit_len         = inf->bytes_per_block * 8 / (inf->bits_per_sample*inf->channels); 
                 tx_create(&sp->tb, sp, sp->device_clock, (u_int16)unit_len, (u_int16)inf->channels);
                 cushion_create(&sp->cushion, unit_len);
+                mix_create(&sp->ms, ouf->sample_rate, ouf->channels, 32640);
 
                 if (zero_buf == NULL) {
                         zero_buf = (sample*)xmalloc(unit_len * sizeof(sample));

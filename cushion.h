@@ -50,7 +50,7 @@
 struct s_cushion_struct;
 
 int     cushion_create             (struct s_cushion_struct **c, int block_dur);
-void    cushion_destroy            (struct s_cushion_struct *c);
+void    cushion_destroy            (struct s_cushion_struct **c);
 
 void    cushion_update             (struct s_cushion_struct *c, u_int32 read_dur, int cushion_mode);
 

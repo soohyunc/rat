@@ -118,11 +118,16 @@ cushion_create(cushion_t **c, int blockdur)
 }
 
 void
-cushion_destroy(cushion_t *c)
+cushion_destroy(cushion_t **ppc)
 {
-        xfree(c->read_history);
-        xfree(c->histogram);
-        xfree(c);
+        cushion_t *pc;
+        assert(ppc);
+        pc = *ppc;
+        assert(pc);
+        xfree(pc->read_history);
+        xfree(pc->histogram);
+        xfree(pc);
+        *ppc = NULL;
 }
 
 void
