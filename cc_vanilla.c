@@ -39,8 +39,23 @@ void
 vanilla_encoder_destroy(u_char **state, int len)
 {
         assert(len == sizeof(ve_state));
+        vanilla_encoder_reset(*state);
         xfree(*state);
         *state = NULL;
+}
+
+int
+vanilla_encoder_reset(u_char *state)
+{
+        ve_state *ve = (ve_state*)state;
+        u_int32   i;
+
+        for(i = 0; i < ve->nelem; i++) {
+                media_data_destroy(&ve->elem[i]);
+        }
+        ve->nelem = 0;
+        
+        return TRUE;
 }
 
 static void
