@@ -282,6 +282,7 @@ source_process(source *src, u_int32 render_3d, u_int32 now)
         coded_unit  *cu;
         codec_state *cs;
         u_int32     playout, md_len, curr_frame;
+        int         i;
 
         /* Split channel coder units up into media units */
         channel_decoder_decode(src->channel_state,
@@ -311,22 +312,47 @@ source_process(source *src, u_int32 render_3d, u_int32 now)
 
                 playout_buffer_remove(src->media, (u_char**)&md, &md_len, &playout);
 
-                /* Decode frame */
-                assert(cu != NULL);
-                cu = (coded_unit*)block_alloc(sizeof(coded_unit));
+                if (codec_is_native_coding(md->rep[0]->id) == FALSE) {
+                        /* There is data to be decoded.  There may not be
+                         * when we have used repair.
+                         */
 
-                cs = codec_state_get(src->codec_states, md->rep[0]->id);
-                codec_decode_into_coded_unit(md->rep[0], cu);
-                md->rep[md->nrep] = cu;
-                md->nrep++;
-
-                if (render_3d) {
-                        /* 3d rendering necessary */
+#ifdef DEBUG
+                        for(i = 0; i < md->nrep; i++) {
+                                /* if there is a native coding this
+                                 * unit has already been decoded and
+                                 * this would be bug */
+                                assert(codec_is_native_coding(md->rep[i]->id) == FALSE);
+                        }
+#endif /* DEBUG */
+                        cu = (coded_unit*)block_alloc(sizeof(coded_unit));
+                        /* Decode frame */
+                        assert(cu != NULL);
+                        memset(cu, 0, sizeof(coded_unit));
+                        cs = codec_state_store_get(src->codec_states, md->rep[0]->id);
+                        codec_decoder_decode(cs, md->rep[0], cu);
+                        md->rep[md->nrep] = cu;
+                        md->nrep++;
                 }
 
-                if (conversion_necessary) {
-                        /* convert frame */
+                if (src->dbe->render_3D_data) {
+                        /* 3d rendering necessary */
+                        coded_unit *decoded, *render;
+                        decoded = md->rep[md->nrep - 1];
+                        assert(codec_is_native_coding(decoded->id));
+                        
+                        render = (coded_unit*)block_alloc(sizeof(coded_unit));
+                        memset(render, 0, sizeof(coded_unit));
+                        
+                        render_3D(src->dbe->render_3D_data,decoded,render);
+                        xmemchk();
+                        md->rep[md->nrep] = render;
+                        md->nrep++;
+                }
 
+                if () {
+                        /* convert frame */
+                        
                 }
 
                 /* write to mixer */

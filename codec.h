@@ -72,17 +72,15 @@ u_int32               codec_get_samples_per_frame (codec_id_t id);
 int  codec_encoder_create  (codec_id_t id, codec_state **cs);
 void codec_encoder_destroy (codec_state **cs);
 int  codec_encode          (codec_state* cs, 
-                            sample*      in_buf, 
-                            u_int16      in_bytes, 
-                            coded_unit*  cu);
+                            coded_unit*  in_native,
+                            coded_unit*  out);
 
 /* Codec decoder functions */
 int  codec_decoder_create  (codec_id_t id, codec_state **cs);
 void codec_decoder_destroy (codec_state **cs);
 int  codec_decode          (codec_state* cs, 
-                            coded_unit*  cu,
-                            sample*      out_buf, 
-                            u_int16      out_bytes);
+                            coded_unit*  in,
+                            coded_unit*  out_native);
 
 /* Repair related */
 int  codec_decoder_can_repair (codec_id_t id);

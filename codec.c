@@ -474,24 +474,30 @@ codec_encoder_destroy(codec_state **cs)
 
 int
 codec_encode(codec_state *cs,
-             sample      *in_buf,
-             u_int16      in_bytes,
+             coded_unit  *in_native,
              coded_unit  *cu)
 {
         u_int16    ifs, fmt;
         int        success;
 
-        assert(cs);
-        assert(in_buf);
-        assert(cu);
-        UNUSED(in_bytes);
+        assert(cs        != NULL);
+        assert(in_native != NULL);
+        assert(cu        != NULL);
 
+        assert(codec_is_native_coding(in_native->id));
+        assert (in_native->state == NULL);
+#ifdef DEBUG
+        {
+                const codec_format_t *cf = codec_get_format(cs->id);
+                assert (cf->format.bytes_per_block == in_native->data_len);
+        }
+#endif
         cu->id = cs->id;
         ifs = CODEC_GET_IFS_INDEX(cu->id);
         fmt = CODEC_GET_FMT_INDEX(cu->id);
 
         xmemchk();
-        success = codec_table[ifs].cx_encode(fmt, cs->state, in_buf, cu);
+        success = codec_table[ifs].cx_encode(fmt, cs->state, (sample*)in_native->data, cu);
         xmemchk();
 
         return success;
@@ -551,27 +557,38 @@ codec_decoder_destroy(codec_state **cs)
 
 int
 codec_decode(codec_state *cs,
-             coded_unit  *cu,
-             sample      *out_buf,
-             u_int16      out_bytes)
+             coded_unit  *in,
+             coded_unit  *out)
 {
-        codec_id_t id;
-        u_int16    ifs, fmt;
-        int        success;
+        const codec_format_t *cf;
+        codec_id_t           id;
+        u_int16              ifs, fmt, rate, channels;
+        int                  success;
 
-        assert(cs);
-        assert(out_buf);
-        assert(cu);
+        assert(cs  != NULL);
+        assert(out != NULL);
+        assert(in  != NULL);
         
-        UNUSED(out_bytes);
-
         id = cs->id;
-        assert(cu->id == cs->id);
+        assert(in->id == cs->id);
+        assert(codec_is_native_coding(in->id) == FALSE);
+
         ifs = CODEC_GET_IFS_INDEX(id);
         fmt = CODEC_GET_FMT_INDEX(id);
 
+        /* Setup outgoing data block */
+        cf = codec_get_format(id);
+        assert(out->state == NULL);
+        assert(out->data  == NULL);
+        rate     = (u_int16)cf->format.sample_rate;
+        channels = (u_int16)cf->format.channels;
+        out->id       = codec_get_native_coding(rate, channels);
+        out->data_len = cf->format.bytes_per_block;
+        out->data     = (u_char*)block_alloc(out->data_len);
+
+        /* Decode */
         xmemchk();
-        success =  codec_table[ifs].cx_decode(fmt, cs->state, cu, out_buf);
+        success =  codec_table[ifs].cx_decode(fmt, cs->state, in, (sample*)out->data);
         xmemchk();
 
         return success;
