@@ -231,9 +231,9 @@ int tbl_sz_dn[] = {8, 12, 16, 20, 24};
 #define SF2IDX(x) ((x)-2)
 #define IDX2SF(x) ((x)+2)
 
-struct s_srf_filter_state;
+typedef void (*srf_cf)(int offset, int channels, sample* src_buf, int src_len, sample* dst_buf, int dst_len, struct s_srf_filter_state *sf);
 
-typedef void (*srf_cf)(int offset, int channels, sample* src_buf, int src_len, sample* dst_buf, struct s_srf_filter_state *sf);
+struct s_srf_filter_state;
 
 typedef struct s_srf_filter_state {
         short   scale;
@@ -293,42 +293,118 @@ srf_tbl_free (void)
 }
 
 static void
-srf_downsample(int offset, int channels, sample *src, int src_len, sample *dst, srf_filter_state_t *sf)
+srf_downsample(int offset, int channels, sample *src, int src_len, sample *dst, int dst_len, srf_filter_state_t *sf)
 {
         sample *src_c, *src_l, *src_r, *src_e;
         int *h_c, *h, *h_e;
-        int win_sz, result, i;
+        int win_sz, result;
         int src_step;
 
-	/* added these two to make it compile :-) [csp] */
-	UNUSED(src);
-	UNUSED(src_len);
+        if (sf->last == NULL) {
+                sf->last_sz = dst_len * IDX2SF(sf->tbl_idx) - src_len;
+                assert(sf->last_sz > 0);
+                sf->last    = (sample*)xmalloc(sizeof(sample) * sf->last_sz);
+                memset(sf->last, 0, sizeof(sample) * sf->last_sz);
+        }
 
         win_sz = 2 * tbl_sz_dn[sf->tbl_idx] - 1;
         h_c = srf_tbl_dn[sf->tbl_idx];
         h_e = srf_tbl_dn[sf->tbl_idx] + tbl_sz_dn[sf->tbl_idx];
         
-        src_c    = sf->last + offset + (tbl_sz_dn[sf->tbl_idx] * channels)/2;
-        src_e    = sf->last + win_sz * channels;     
+        src_c    = sf->last + offset + (win_sz * channels)/2;
+        src_e    = sf->last + sf->last_sz + offset;     
         src_step = channels * IDX2SF(sf->tbl_idx);
 
         assert(win_sz * channels == sf->last_sz);
         dst   += offset;
 
         /* Stage 1: RHS of filter overlaps with last and current block */
+        while(src_c < src_e) {
+                result = 0;
+                h      = h_c;
+                src_l  = src_c;
+                while(h != h_e) {
+                       result += (*h)*(*src_l);
+                       src_l  -= channels;
+                       h ++;
+                }
+                src_r = src_c + channels;
+                h     = h_c + 1;
+                while(src_r < src_e) {
+                       result += (*h)*(*src_r);
+                       src_r  += channels;
+                       h ++; 
+                }
+                src_r = src + offset;
+                while(h<h_e) {
+                       result += (*h)*(*src_r);
+                       src_r  += channels;
+                       h ++; 
+                }
+                result /= SRF_SCALE;
+                *dst = (sample)result;
+                dst   += channels;
+                src_c += IDX2SF(sf->tbl_idx) * channels;
+        }
 
         /* Stage 2: LHS of filter overlaps last and current */
-
+        src_c = src + offset;
+        src_e = src_c + (win_sz * channels)/2;
+        
+        while(src_c < src_e) {
+                result = 0;
+                h     = h_c;
+                src_r = src_c;
+                while(h_c != h_e) {
+                      result += (*h) * (*src_r);
+                      src_r  += channels;
+                      h++;
+                }
+                src_l = src_c - channels;
+                h     = h_c + 1;
+                while(src_l > src_e) {
+                      result += (*h) * (*src_l);
+                      src_l  -= channels;
+                      h++;
+                }
+                src_l = sf->last + sf->last_sz - channels + offset;
+                while(h != h_e) {
+                      result += (*h) * (*src_l);
+                      src_l  -= channels;
+                      h++;
+                }
+                result /= SRF_SCALE;
+                *dst = (sample)result;
+                dst   += channels;
+                src_c += IDX2SF(sf->tbl_idx) * channels;
+        }
+        
         /* Stage 3: Filter completely within last block */
-        UNUSED(result);
-        UNUSED(src_l);
-        UNUSED(h);
-        UNUSED(src_r);
-        UNUSED(i);
+        src_e = src + src_len - win_sz / 2;
+        while(src_c < src_e) {
+                h = h_c;
+                result = (*h) * (*src_c);
+                h++;
+                src_l = src_c + channels;
+                src_r = src_c - channels;
+                while(h != h_e) {
+                        result += (*h) * ((*src_l) + (*src_r));
+                        src_r += channels;
+                        src_l -= channels;
+                        h++;
+                }
+                *dst   = (sample)(result/SRF_SCALE);
+                dst   += channels;
+                src_c += IDX2SF(sf->tbl_idx) * channels;
+        }
+        /* we should test whether we zero last dst sample to avoid overlap
+         * in mixer 
+         */
+
 }
 
 static void
-srf_upsample(int offset, int channels, sample *src, int src_len, sample *dst, srf_filter_state_t *sf)
+srf_upsample(int offset, int channels, sample *src, int src_len, sample *dst, int dst_len, srf_filter_state_t *sf)
 {
         sample *src_c, *src_l = NULL, *src_r = NULL, *src_e = NULL;
         int win_sz, result, i;
@@ -494,8 +570,8 @@ void srf_init_filter(srf_filter_state_t *sf, int src_freq, int dst_freq, int cha
                 sf->tbl_idx   = (SF2IDX(src_freq/dst_freq));
                 sf->tbl       = srf_tbl_dn[sf->tbl_idx];
                 sf->convert_f = srf_downsample;
-                sf->last_sz   = (2 * tbl_sz_dn[sf->tbl_idx] - 1) * channels;
-                sf->last      = (sample *) xmalloc (sf->last_sz * sizeof(sample));
+                sf->last_sz   = 0;
+                sf->last      = NULL;
                 sf->phase     = 0;
                 sf->dst_freq  = dst_freq;
         } else {
@@ -505,10 +581,11 @@ void srf_init_filter(srf_filter_state_t *sf, int src_freq, int dst_freq, int cha
                 sf->convert_f = srf_upsample;
                 sf->last_sz   = (2 * tbl_sz_up[sf->tbl_idx] - 1) * channels;
                 sf->last      = (sample *) xmalloc (sf->last_sz * sizeof(sample));
+                memset(sf->last, 0, sizeof(sample) * sf->last_sz);
                 sf->phase     = 0;
                 sf->dst_freq  = dst_freq;
         }
-        memset(sf->last, 0, sizeof(sample) * sf->last_sz);
+        
 }
 
 /* This code is written so that if we do non-integer rate conversion 
@@ -581,7 +658,7 @@ srf_convert (converter_t  *c, sample* src_buf, int src_len, sample *dst_buf, int
                 int i;
                 if (s->steps == 1) {
                         for (i = 0; i < channels; i++)  {
-                                s->fs[0].convert_f(i, channels, src_buf, src_len, dst_buf, s->fs);
+                                s->fs[0].convert_f(i, channels, src_buf, src_len, dst_buf, dst_len, s->fs);
                         }
                 } else {
                         assert(s->steps == 2);
@@ -590,10 +667,10 @@ srf_convert (converter_t  *c, sample* src_buf, int src_len, sample *dst_buf, int
                                 s->tmp_buf = (sample*)xmalloc(sizeof(sample) * s->tmp_sz);
                         }
                         for(i = 0; i < channels; i++) {
-                                s->fs[0].convert_f(i, channels, src_buf, src_len, s->tmp_buf, s->fs);
+                                s->fs[0].convert_f(i, channels, src_buf, src_len, s->tmp_buf, s->tmp_sz/sizeof(sample), s->fs);
                         }
                         for(i = 0; i < channels; i++) {
-                                s->fs[1].convert_f(i, channels, s->tmp_buf, s->tmp_sz, dst_buf, s->fs);
+                                s->fs[1].convert_f(i, channels, s->tmp_buf, s->tmp_sz, dst_buf, dst_len, s->fs);
                         }
                 }
         }
@@ -642,7 +719,6 @@ linear_free (converter_t *c)
 {
         UNUSED(c);
 }
-
 
 typedef int  (*pcm_startup)     (void);  /* converter specific one time initialization */
 typedef void (*pcm_cleanup)     (void);  /* converter specific one time cleanup */
@@ -755,7 +831,7 @@ converter_format (converter_t *c, rx_queue_element_struct *ip)
         assert(ip->native_count);
         
         cf = c->conv_fmt;
-        ip->native_size[ip->native_count] = ip->native_size[ip->native_count - 1] * cf->to_channels * cf->to_freq / (cf->from_channels * cf->from_freq);
+        ip->native_size[ip->native_count] = cf->to_channels * (int)ceil((double)ip->native_size[ip->native_count - 1] * (double)cf->to_freq / (double)cf->from_freq) / cf->from_channels;
         ip->native_data[ip->native_count] = (sample*)block_alloc(ip->native_size[ip->native_count]);
         c->pcm_conv->cf_convert(c,
                                 ip->native_data[ip->native_count - 1], 
@@ -763,7 +839,6 @@ converter_format (converter_t *c, rx_queue_element_struct *ip)
                                 ip->native_data[ip->native_count], 
                                 ip->native_size[ip->native_count] / sizeof(sample));
         ip->native_count++;
-
         return TRUE;
 }
 
