@@ -67,6 +67,9 @@ int playout_buffer_advance (struct s_playout_buffer *pb, u_char** data, u_int32 
 int playout_buffer_get     (struct s_playout_buffer *pb, u_char** data, u_int32 *datalen, u_int32 *playout);
 int playout_buffer_rewind  (struct s_playout_buffer *pb, u_char** data, u_int32 *datalen, u_int32 *playout);
 
+/* Removes data from playout point and puts it in *data */
+int playout_buffer_remove  (struct s_playout_buffer *pb, u_char** data, u_int32 *datalen, u_int32 *playout); 
+
 /* Trims data more than history_len before playout point    */
 int playout_buffer_audit    (struct s_playout_buffer *pb);
 

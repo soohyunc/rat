@@ -39,7 +39,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include "config_unix.h"
 #include "debug.h"
 #include "memory.h"
@@ -157,6 +156,32 @@ playout_buffer_add (playout_buffer *pb, u_char *data, u_int32 data_len, u_int32 
         } 
         debug_msg("Insufficient memory\n");
         return FALSE;
+}
+
+int 
+playout_buffer_remove (playout_buffer *pb, u_char **data, u_int32 *data_len, u_int32 *playout)
+{
+        pb_node_t *curr = pb->pp;
+        if (curr == &pb->sentinel) {
+                debug_msg("Attempting to detach non-exist playout point.\n");
+                return FALSE;
+        } 
+
+        /* Export data */
+        *data     = curr->data;
+        *data_len = curr->data_len;
+        *playout  = curr->playout;
+        
+        /* Remove this link */
+        curr->next->prev = curr->prev;
+        curr->prev->next = curr->next;
+        
+        /* Shift playout point to previous position */
+        pb->pp = curr->prev;
+        
+        /* Free node */
+        block_free(curr, sizeof(pb_node_t));
+        return TRUE;
 }
 
 int
@@ -314,6 +339,29 @@ int main()
                 debug_msg("%u\n", playout);
         }
 
+        debug_msg("Detaching exercise \n");
+        playout_buffer_rewind(p, &data, &data_len, &playout);
+        playout_buffer_remove(p, &data, &data_len, &playout);
+        debug_msg("Detached playout %d\n", playout);
+        
+        while(playout_buffer_rewind(p, &data, &data_len, &playout)); 
+
+        debug_msg("Forward order\n");
+        playout = 0;
+        playout_buffer_get(p, &data, &data_len, &playout);
+        debug_msg("%u\n", playout);
+        
+        while(playout_buffer_advance(p, &data, &data_len, &playout)) {
+                debug_msg("%u\n", playout);
+        }
+
+        debug_msg("Backward order\n");
+        playout_buffer_get(p, &data, &data_len, &playout);
+        debug_msg("%u\n", playout);
+        while(playout_buffer_rewind(p, &data, &data_len, &playout)) {
+                debug_msg("%u\n", playout);
+        }
+        
         playout_buffer_destroy(&p);
 }
 
