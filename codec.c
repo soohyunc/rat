@@ -357,7 +357,7 @@ static codec_t codec_list[] = {
          0, 33, 
          gsm_init, gsm_encoding, gsm_free, 
          gsm_init, gsm_decoding, gsm_free, NULL},
-#ifdef WIN32
+#ifdef WIN32_ACM
         {"G723.1-8K-MONO", "G723.1(6.3kb/s)", 10, 4, 8000, 2, 1, 240, 
          0, 24, 
          acm_enc_init, acm_encode, acm_enc_free, 
@@ -537,7 +537,7 @@ codec_init(session_struct *sp)
                         cd[idx].pt = pt;
 		}
 	}
-#ifdef WIN32
+#ifdef WIN32_ACM
         acmStartup();
 #endif
         codec_g711_init();
@@ -546,8 +546,8 @@ codec_init(session_struct *sp)
 void codec_end(session_struct *sp)
 {
         codec_free_dynamic_payloads(&sp->dpt_list);
-#ifdef WIN32
-        acmShutdown();
+#ifdef WIN32_ACM
+        acmShutdown(); 
 #endif
 }
 

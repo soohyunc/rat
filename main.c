@@ -172,7 +172,7 @@ main(int argc, char *argv[])
 		heartbeat(ntp_time32(), 1);
 	} while (sp[0]->wait_on_startup);
 
-        	ui_sampling_modes(sp[0]);
+        ui_sampling_modes(sp[0]);
 	ui_codecs(sp[0]->encodings[0]);
 
 	for (i = 0; i < num_sessions; i++) {
