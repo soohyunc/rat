@@ -41,12 +41,6 @@ struct s_source* source_create             (struct s_source_list  *list,
                                             uint32_t               ssrc,
 					    pdb_t		  *pdb);
 
-void             source_reconfigure        (struct s_source* src,
-                                            converter_id_t   current_id,
-		                            int              render_3d,
-                                            uint16_t         out_rate,
-                                            uint16_t         out_channels);
-
 void             source_remove             (struct s_source_list *list,
                                             struct s_source      *src);
 

@@ -1394,6 +1394,10 @@ v4.2.7	- Split main() in the controller into two parts: one for normal
 	  settings.  See comments in auddev_luigi.c for an explanation.
 	- Change ts_t to timestamp_t.  ts_t is a system defined type
 	  on Solaris8.
+	- Cleanup and document the receiver source processing (starting 
+	  with the source_process() function and friends).
+
+
 
 TODO -- They're features not bugs dammit!
 ----
