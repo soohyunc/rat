@@ -73,7 +73,7 @@ proc init_source {cname} {
 }
 
 proc window_plist {cname} {
-    global fw
+    	global fw
 	regsub -all {@|\.} $cname {-} foo
 	return $fw.source-$foo
 }
@@ -393,7 +393,7 @@ proc mbus_recv_source.packet.loss {dest srce loss} {
 	init_source $dest
 	catch {after cancel $losstimers($srce,$dest)}
 	chart_set $srce $dest $loss
-	set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
+	set losstimers($srce,$dest) [after 7500 "chart_set $srce $dest 101"]
 	if {[string compare $dest $my_cname] == 0} {
 		set LOSS_TO_ME($srce) $loss
 	}
@@ -418,27 +418,35 @@ proc mbus_recv_source.reception {cname packets_recv packets_lost packets_miso pa
 
 proc mbus_recv_source.active.now {cname} {
 	catch [[window_plist $cname] configure -background white]
-#	cname_update $cname
+	cname_update $cname
 }
 
 proc mbus_recv_source.active.recent {cname} {
 	catch [[window_plist $cname] configure -background gray95]
-#	cname_update $cname
+	cname_update $cname
 }
 
 proc mbus_recv_source.inactive {cname} {
 	catch [[window_plist $cname] configure -background gray85]
-#	cname_update $cname
+	cname_update $cname
 }
 
 proc mbus_recv_source.remove {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER 
-	global LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED num_cname 
+	global LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED num_cname mylosstimers his_or_her_losstimers
+
+	# Disable updating of loss diamonds. This has to be done before we destroy the
+	# window representing the participant, else the background update may try to 
+	# access a window which has been destroyed...
+	catch {after cancel $mylosstimers($cname)}
+	catch {after cancel $his_or_her_losstimers($cname)}
 
 	catch [destroy [window_plist $cname]]
+
 	unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname)
 	unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname) PCKTS_DUP($cname)
 	unset JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname) JIT_TOGED($cname)
+
 	incr num_cname -1
 	chart_redraw $num_cname
 }
@@ -457,13 +465,14 @@ proc mbus_recv_quit {} {
 }
 
 proc cname_update {cname} {
+	# This procedure updates the on-screen representation of
+	# a participant. 
 	global CNAME NAME EMAIL LOC PHONE TOOL INDEX 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP LOSS_TO_ME LOSS_FROM_ME
 	global fw iht iwd my_cname mylosstimers his_or_her_losstimers
 
 	if {[array names INDEX $cname] != $cname} {
-		puts stdout "$cname doesn't exist (this should never happen)"
-		return
+		error "Can't update $cname, source doesn't exist."
 	}
 
 	set cw [window_plist $cname]
@@ -488,8 +497,7 @@ proc cname_update {cname} {
 		bind $cw <Control-Button-1> "toggle_mute $cw $cname"
 	}
 
-	# Add this participant to the list. We no longer sort the list, since it
-	# used stupid amounts of processor power...
+	# Add this participant to the list...
 	if {[info exists my_cname] && ([string compare $cname $my_cname] == 0) && ([pack slaves $fw] != "")} {
 		pack $cw -before [lindex [pack slaves $fw] 0] -fill x
 	}
@@ -508,9 +516,7 @@ proc cname_update {cname} {
 		catch [[window_plist $cname] itemconfigure m -fill grey50]
 	}
 	catch {after cancel $mylosstimers($cname)}
-	if {$LOSS_TO_ME($cname) <= 100} {
-		set mylosstimers($cname) [after 10000 "set LOSS_TO_ME($cname) 101; cname_update $cname"]
-	}
+	set mylosstimers($cname) [after 7500 "set LOSS_TO_ME($cname) 101; cname_update $cname"]
 
 	if {$LOSS_FROM_ME($cname) < 5} {
 		catch [[window_plist $cname] itemconfigure h -fill green]
@@ -522,9 +528,7 @@ proc cname_update {cname} {
 		catch [[window_plist $cname] itemconfigure h -fill grey]
 	}
 	catch {after cancel $his_or_her_losstimers($cname)}
-	if {$LOSS_FROM_ME($cname)<=100} {
-		set his_or_her_losstimers($cname) [after 10000 "set LOSS_FROM_ME($cname) 101; cname_update $cname"]
-	}
+	set his_or_her_losstimers($cname) [after 7500 "set LOSS_FROM_ME($cname) 101; cname_update $cname"]
 }
 
 #power meters
@@ -611,19 +615,16 @@ proc update_stats {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME JIT_TOGED
 
-	if {$LOSS_TO_ME($cname) == 101} {
-		set loss_to_me "unknown"
-	} else {
-		set loss_to_me "$LOSS_TO_ME($cname)%"
-	}
-
-	if {$LOSS_FROM_ME($cname) == 101} {
-		set loss_from_me "unknown"
-	} else {
-		set loss_from_me "$LOSS_FROM_ME($cname)%"
-	}
+	set loss_to_me   "unknown"
+	set loss_from_me "unknown"
 
 	if {[winfo exists [window_stats $cname]]} {
+		if {$LOSS_TO_ME($cname) == 101} {
+			set loss_to_me "$LOSS_TO_ME($cname)%"
+		}
+		if {$LOSS_FROM_ME($cname) == 101} {
+			set loss_from_me "$LOSS_FROM_ME($cname)%"
+		}
 		[window_stats $cname].m configure -text " Name:                        $NAME($cname)\n\
 	                                	          Email:                       $EMAIL($cname)\n\
 				        	          Phone:                       $PHONE($cname)\n\
@@ -1061,9 +1062,9 @@ frame .about.m.f
 label .about.m.f.l -text "Category:"
 menubutton .about.m.f.mb -menu .about.m.f.mb.menu -indicatoron 1 -textvariable about_pane -relief raised -width 10
 menu .about.m.f.mb.menu -tearoff 0
-.about.m.f.mb.menu add command -label "Copyright" -command {set_pane about_pane .about.rim.d "Copyright" }
 .about.m.f.mb.menu add command -label "Credits"   -command {set_pane about_pane .about.rim.d "Credits"   }
 .about.m.f.mb.menu add command -label "Feedback"  -command {set_pane about_pane .about.rim.d "Feedback"  }
+.about.m.f.mb.menu add command -label "Copyright" -command {set_pane about_pane .about.rim.d "Copyright" }
 
 pack .about.m.f 
 pack .about.m.f.l .about.m.f.mb -side left
@@ -1119,7 +1120,7 @@ wm withdraw  .about
 wm title     .about "About RAT"
 wm resizable .about 0 0
 set about_pane Copyright
-set_pane about_pane .about.rim.d "Copyright" 
+set_pane about_pane .about.rim.d "Credits" 
 constrain_window .about "XANDXFITNESSXFORXAXPARTICULARXPURPOSEXAREXDISCLAIMED.XINXNOXEVENTX" 0 20 28 
 
 .about.rim.d.copyright.f.f.blurb insert end {
