@@ -199,7 +199,7 @@ proc incr_port {varname listname delta} {
     upvar $varname  port
     upvar $listname ports
     set len [llength $ports]
-# lsearch returns -1 if not found, index otherwise
+    # lsearch returns -1 if not found, index otherwise
     set idx [lsearch -exact $ports $port] 
     
     if {$idx != -1} {
@@ -437,20 +437,18 @@ proc codecs_matching {freq channels blocksize} {
 }
 
 proc mbus_recv_tool.rat.codecs.flush {args} {
-	global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc codec_caps codec_layers
-	set codecs {}
-	catch {
-		unset codec_pt
-		unset codec_nick_name
-		unset codec_channels
-		unset codec_rate
-		unset codec_block_size
-		unset codec_state_size
-		unset codec_data_size
-		unset codec_desc
-		unset codec_caps
-		unset codec_layers
+    global codecs 
+    
+    set codecs {}
+    
+    set cvars [list codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc codec_caps codec_layers ]
+    foreach c $cvars {
+	global $c
+	upvar 0 $c v
+	if {[info exists v]} {
+	    unset v
 	}
+    }
 }
 
 proc mbus_recv_tool.rat.codecs.add {args} {
