@@ -118,7 +118,7 @@ typedef struct session_tag {
 	int		agc_on;
         int             ui_on;
 	char		*ui_addr;
-        int             auto_convert;               /* channel + rate conversion enabled ? */
+        struct s_pcm_converter *converter;
         float           drop;                       /* Flakeaway drop percentage [0,1] */
 	FILE		*in_file;
 	FILE		*out_file;

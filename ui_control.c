@@ -50,6 +50,7 @@
 #include "util.h"
 #include "repair.h"
 #include "codec.h"
+#include "convert.h"
 #include "audio.h"
 #include "mbus.h"
 #include "mbus_engine.h"
@@ -560,6 +561,7 @@ ui_update(session_struct *sp)
 	ui_update_output_port(sp);
 	ui_update_input_port(sp);
         ui_codecs(sp->encodings[0]);
+        ui_converters();
         ui_update_frequency(sp);
         ui_update_channels(sp);
 	ui_update_primary(sp);
@@ -744,6 +746,17 @@ ui_codecs(int pt)
         mbes = mbus_encode_str(args);
         mbus_engine_tx(TRUE, mbus_name_ui, "redundancy.supported", mbes, TRUE);
         xfree(mbes);
+}
+
+void 
+ui_converters()
+{
+        char buf[255], *mbes;
+        if (converter_get_names(buf, 255)) {
+                mbes = mbus_encode_str(buf);
+                mbus_engine_tx(TRUE, mbus_name_ui, "converter.supported", mbes, TRUE);
+                xfree(mbes);
+        }
 }
 
 void

@@ -50,6 +50,7 @@
 #include "audio.h"
 #include "codec.h"
 #include "channel.h"
+#include "convert.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "repair.h"
@@ -722,18 +723,19 @@ static void rx_playout_max(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_auto_convert(char *srce, char *args, session_struct *sp)
+static void rx_converter(char *srce, char *args, session_struct *sp)
 {
-	int	 i;
-
+        char *name;
+        
 	UNUSED(srce);
 
 	mbus_parse_init(mbus_chan, args);
-	if (mbus_parse_int(mbus_chan, &i)) {
-                assert(i==0||i==1);
-		sp->auto_convert = i;
+	if (mbus_parse_str(mbus_chan, &name)) {
+                mbus_decode_str(name);
+                sp->converter = converter_get_byname(name);
+                assert(sp->converter);
 	} else {
-		printf("mbus: usage \"auto_convert <boolean>\"\n");
+		printf("mbus: usage \"converter <name>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
@@ -832,7 +834,7 @@ const char *rx_cmnd[] = {
         "playout.limit",
         "playout.min",
         "playout.max",
-        "auto.convert",
+        "converter",
         "channel.code",
         "settings",
 	"quit",
@@ -876,7 +878,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_playout_limit,
         rx_playout_min,
         rx_playout_max,
-        rx_auto_convert,
+        rx_converter,
         rx_channel_code,
         rx_settings,
 	rx_quit,

@@ -367,7 +367,7 @@ destroy_playout_buffers(ppb_t **list)
 }
 
 static ppb_t *
-find_participant_queue(ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt)
+find_participant_queue(ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt, struct s_pcm_converter *pc)
 {
 	ppb_t *p;
         codec_t *cp_dev, *cp_src;
@@ -392,7 +392,8 @@ find_participant_queue(ppb_t **list, rtcp_dbentry *src, int dev_pt, int src_pt)
         if (!codec_compatible(cp_dev,cp_src)) {
                 if (src->converter) converter_destroy(&src->converter);
                 assert(src->converter == NULL);
-                src->converter = converter_create(cp_src->channels, 
+                src->converter = converter_create(pc, 
+                                                  cp_src->channels, 
                                                   cp_src->freq,
                                                   cp_dev->channels,
                                                   cp_dev->freq);
@@ -480,7 +481,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
         
 	while (receive_queue->queue_empty == FALSE) {
 		up       = get_unit_off_rx_queue(receive_queue);
-		buf      = find_participant_queue(buf_list, up->dbe_source[0], sp->encodings[0], up->dbe_source[0]->enc);
+		buf      = find_participant_queue(buf_list, up->dbe_source[0], sp->encodings[0], up->dbe_source[0]->enc, sp->converter);
 		cur_time = get_time(buf->src->clock);
 
 		/* This is to compensate for clock drift.

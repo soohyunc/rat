@@ -195,10 +195,22 @@ proc mbus_recv_redundancy.supported {arg} {
 
     set codecs [split $arg]
     foreach c $codecs {
-	.prefs.pane.transmission.cc.red.fc.m.menu add command -label $c -command "set secenc $c"
+	.prefs.pane.transmission.cc.red.fc.m.menu add command -label $c -command "set secenc \"$c\""
     }
 
     set secenc [lindex $codecs 0]
+}
+
+proc mbus_recv_converter.supported {arg} {
+    global convert_var
+    
+    .prefs.pane.reception.r.ms.menu delete 0 last
+    
+    set converters [split $arg "/"]
+    foreach c $converters {
+	.prefs.pane.reception.r.ms.menu add command -label $c -command "set convert_var \"$c\""
+	puts "$c"
+    }
 }
 
 proc mbus_recv_agc {arg} {
@@ -986,8 +998,13 @@ pack $i.o -side top -fill both  -pady 1
 pack $i.c -side top -fill both  -pady 1 -expand 1
 label $i.r.l -text "Repair Scheme:"
 tk_optionCmdMenu $i.r.m repair_var {None} {Packet Repetition} {Pattern Matching}
-$i.r.m configure -width 20 -bd 1
-pack $i.r.l $i.r.m -side top 
+
+label $i.r.ls -text "Sample Rate Conversion"
+tk_optionCmdMenu $i.r.ms convert_var {None}
+
+$i.r.m  configure -width 20 -bd 1
+$i.r.ms configure -width 20 -bd 1
+pack $i.r.l $i.r.m $i.r.ls $i.r.ms -side top 
 
 frame $i.o.f
 checkbutton $i.o.f.cb -text "Limit Playout Delay" -variable limit_var
@@ -1005,11 +1022,10 @@ pack $i.o.f.fl.l1 $i.o.f.fl.scmin $i.o.f.fr.l2 $i.o.f.fr.scmax -side top -fill x
 frame $i.c.f 
 frame $i.c.f.f 
 checkbutton $i.c.f.f.lec -text "Lecture Mode" -variable lecture_var
-checkbutton $i.c.f.f.fmt -text "Sample Rate and Channel Conversion" -variable convert_var
 
 pack $i.c.f -fill x -side left -expand 1
 pack $i.c.f.f 
-pack $i.c.f.f.fmt $i.c.f.f.lec -side top  -anchor w
+pack $i.c.f.f.lec -side top  -anchor w
 
 # Security Pane ###############################################################
 set i .prefs.pane.security
@@ -1276,7 +1292,7 @@ proc sync_engine_to_ui {} {
     mbus_qmsg "playout.min"   $min_var
     mbus_qmsg "playout.max"   $max_var
     mbus_qmsg "lecture"      $lecture_var
-    mbus_qmsg "auto.convert" $convert_var
+    mbus_qmsg "converter"    [mbus_encode_str $convert_var]
 
     #Security
     if {$key_var==1 && [string length $key]!=0} {
@@ -1428,7 +1444,7 @@ proc load_settings {} {
 
     # personal
     load_setting attr rtpName  rtcp_name     "unknown"
-	load_setting attr rtpEmail rtcp_email    "unknown"
+    load_setting attr rtpEmail rtcp_email    "unknown"
     load_setting attr rtpPhone rtcp_phone    ""
     load_setting attr rtpLoc   rtcp_loc      ""
 
@@ -1438,7 +1454,7 @@ proc load_settings {} {
     load_setting attr audioMinPlayout   min_var       "0"
     load_setting attr audioMaxPlayout   max_var       "2000"
     load_setting attr audioLecture      lecture_var   "0"
-    load_setting attr audioAutoConvert  convert_var   "0"
+    load_setting attr audioAutoConvert  convert_var   "None"
     #security
    
     # ui bits
@@ -1770,13 +1786,13 @@ add_help $i.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound 
 set i .prefs.pane.reception
 add_help $i.r.m 	"Sets the type of repair applied when packets are\nlost. The schemes\
 			 are listed in order of increasing\ncomplexity and quality of repair."
+add_help $i.r.ms        "Sets the maximum playout delay that will be\napplied to incoming\
+			 audio streams."
 add_help $i.o.f.cb      "Enforce playout delay limits set below.\nThis is not usually desirable."
 add_help $i.o.f.fl.scmin   "Sets the minimum playout delay that will be\napplied to incoming\
 			 audio streams."
 add_help $i.o.f.fr.scmax   "Sets the maximum playout delay that will be\napplied to incoming\
 			 audio streams."
-add_help $i.c.f.f.fmt   "Enables the automatic format conversion (sampling\nrate and channels)\
-			 of audio streams."
 add_help $i.c.f.f.lec  	"If enabled, extra delay is added at both sender and receiver.\nThis allows\
                          the receiver to better cope with host scheduling\nproblems, and the sender\
 			 to perform better silence suppression.\nAs the name suggests, this option\

@@ -397,7 +397,7 @@ statistics(session_struct    *sp,
 
 	rtp_hdr_t	*hdr;
 	u_char		*data_ptr;
-	int		len,extlen,compat;
+	int		len,extlen;
 	rtcp_dbentry	*src;
 	u_int32		playout_pt;
 	pckt_queue_element_struct *e_ptr;
@@ -455,12 +455,6 @@ statistics(session_struct    *sp,
                         }
                 }
         
-                compat = codec_compatible(pcp, get_codec(sp->encodings[0]));
-                if (!compat && !sp->auto_convert) {
-                        debug_msg("Format conversion not enabled (%s received).\n", pcp->name);
-                        goto release;
-                }
-                
                 if ((src->enc == -1) || (src->enc != pcp->pt))
                         receiver_change_format(src, pcp);
                 
