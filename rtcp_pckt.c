@@ -546,7 +546,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			}
 			break;
 		case RTCP_RR:
-			ssrc = ntohl(pkt->r.sr.ssrc);
+			ssrc = ntohl(pkt->r.rr.ssrc);
 			if (ssrc == sp->db->myssrc && sp->filter_loopback) {
 				/* Loopback packet, discard it... */
 				return;
