@@ -1591,6 +1591,7 @@ v4.2.19 - Fix off-by-one error when removing half duplex audio devices in
 	- Fix handling of EAGAIN in auddev_oss.c (James MacLean)
 	* Released 21 June 2001
 
+v4.2.20	- 
 
 
 
