@@ -12,7 +12,7 @@
 #ifndef __SNDFILE_TYPES_H__
 #define __SNDFILE_TYPES_H__
 
-typedef enum { 
+typedef enum {
         SNDFILE_ENCODING_PCMU,
         SNDFILE_ENCODING_PCMA,
         SNDFILE_ENCODING_L16,

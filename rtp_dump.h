@@ -4,12 +4,12 @@
  *
  * $Revision$
  * $Date$
- * 
+ *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, is permitted provided that the following conditions 
+ * modification, is permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.

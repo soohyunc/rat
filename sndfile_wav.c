@@ -8,7 +8,7 @@
  */
 
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -22,7 +22,7 @@ static const char cvsid[] =
 #include "sndfile_types.h"
 #include "sndfile_wav.h"
 
-/* Microsoft WAV file handling (severly restricted subset) 
+/* Microsoft WAV file handling (severly restricted subset)
  * Spec. was a text file called RIFF-format
  * Mirrored lots of places, try http://ftpsearch.ntnu.no/
  *
@@ -30,7 +30,7 @@ static const char cvsid[] =
  * to save code.  This implementation only passes first block
  * of data if it is waveform audio, strictly we should decode
  * all blocks we understand and just ignore those we don't.
- * It's not that hard to do properly - just want to get 
+ * It's not that hard to do properly - just want to get
  * something up and running for the time being.
  */
 
@@ -120,7 +120,7 @@ riff_proceed_to_chunk(FILE *fp, char *id)
         uint32_t ckId;
 
         ckId = MAKEFOURCC(id[0],id[1],id[2],id[3]);
-        
+
         while(fread(&rc, sizeof(rc), 1, fp)) {
                 riff_fix_chunk_hdr(&rc);
                 if (rc.ckId == ckId) {
@@ -128,7 +128,7 @@ riff_proceed_to_chunk(FILE *fp, char *id)
                 }
                 fseek(fp, rc.ckSize, SEEK_CUR);
         }
-        
+
         return 0;
 }
 
@@ -145,7 +145,7 @@ riff_read_hdr(FILE *fp, char **state, sndfile_fmt_t *fmt)
                 debug_msg("Could read RIFF header");
                 return FALSE;
         }
-        riff_fix_chunk_hdr(&rch.rc);  
+        riff_fix_chunk_hdr(&rch.rc);
         debug_msg("Header chunk size (%d)\n", rch.rc.ckSize);
 
         if (MAKEFOURCC('R','I','F','F') != rch.rc.ckId ||
@@ -173,7 +173,7 @@ riff_read_hdr(FILE *fp, char **state, sndfile_fmt_t *fmt)
                 debug_msg("Wave format too big (%d).\n", chunk_size);
                 return FALSE;
         }
-        
+
         wave_fix_hdr(&wf);
 
         switch(wf.wFormatTag) {
@@ -204,13 +204,13 @@ riff_read_hdr(FILE *fp, char **state, sndfile_fmt_t *fmt)
                   wf.dwAvgBytesPerSec,
                   wf.wBlockAlign,
                   wf.wBitsPerSample);
-        
+
         chunk_size = riff_proceed_to_chunk(fp, "data");
         if (!chunk_size) {
                 debug_msg("No data ?\n");
                 return FALSE;
         }
-        
+
         rs = (riff_state*)xmalloc(sizeof(riff_state));
         if (rs) {
                 rs->cbRemain = chunk_size;
@@ -245,7 +245,7 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
         default:
                 return 0;
         }
-        
+
         if (rs->cbRemain <= 0) {
 		debug_msg("Nothing remaining...\n");
 		return 0;
@@ -295,7 +295,7 @@ riff_read_audio(FILE *pf, char* state, sample *buf, int samples)
                 break;
         }
 
-	return samples_read; 
+	return samples_read;
 }
 
 int
@@ -334,12 +334,12 @@ riff_write_hdr(FILE *fp, char **state, const sndfile_fmt_t *fmt)
         rs->wf.dwSamplesPerSec  = fmt->sample_rate;
         rs->wf.dwAvgBytesPerSec = fmt->sample_rate * fmt->channels * rs->wf.wBitsPerSample / 8;
         rs->wf.wBlockAlign      = (uint16_t)(fmt->channels * rs->wf.wBitsPerSample / 8);
-       
+
         hdr_len = sizeof(riff_chunk_hdr) /* RIFF header */
                 + 2 * sizeof(riff_chunk) /* Sub-block ("data") */
                 + PCM_FORMAT_SIZE;   /* Wave format description (PCM ONLY) */
-        
-        /* Roll forward leaving space for header. We don't write it here because 
+
+        /* Roll forward leaving space for header. We don't write it here because
          * we need to know the amount of audio written before we can write header.
          */
         if (fseek(fp, hdr_len, SEEK_SET)) {
@@ -361,12 +361,12 @@ riff_write_audio(FILE *fp, char *state, sample *buf, int samples)
         case MS_AUDIO_FILE_ENCODING_PCM:
                 bytes_per_sample = sizeof(sample);
                 if (rs->wf.wBitsPerSample == 16) {
-                        if (ntohs(1) == 1) { 
+                        if (ntohs(1) == 1) {
                                 sample *l16buf;
                                 l16buf = (sample*)block_alloc(samples * sizeof(sample));
-                                
+
                                 /* If we are on a big endian machine fix samples before
-                                 * writing them out.  
+                                 * writing them out.
                                  */
                                 for(i = 0; i < samples; i++) {
                                         l16buf[i] = (uint16_t)btols((uint16_t)buf[i]);
@@ -451,7 +451,7 @@ riff_write_end(FILE *fp, char *state)
         } else {
                 fwrite(&rs->wf, PCM_FORMAT_SIZE, 1, fp);
         }
-        
+
         /* Write data header */
         data.ckId   = MAKEFOURCC('d','a','t','a');
         data.ckSize = rs->cbUsed;
@@ -465,7 +465,7 @@ int
 riff_free_state(char **state)
 {
         riff_state *rs;
-        
+
         if (state && *state) {
                 rs = (riff_state*)*state;
                 debug_msg("Used (%d) Remain (%d)\n", rs->cbUsed, rs->cbRemain);
@@ -475,7 +475,7 @@ riff_free_state(char **state)
         return TRUE;
 }
 
-int 
+int
 riff_get_format(char *state, sndfile_fmt_t *fmt)
 {
         wave_format *wf = (wave_format*)state;

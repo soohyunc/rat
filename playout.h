@@ -20,13 +20,13 @@ struct  s_pb_iterator;
 typedef void (*playoutfreeproc)(u_char** memblk, uint32_t blksize);
 
 /* All functions return TRUE on success, and FALSE on failure */
-int pb_create  (struct s_pb     **pb, 
+int pb_create  (struct s_pb     **pb,
                 playoutfreeproc   callback);
 
 int pb_destroy (struct s_pb **pb);
 
-int pb_add    (struct s_pb *pb, 
-               u_char*      data, 
+int pb_add    (struct s_pb *pb,
+               u_char*      data,
                uint32_t      datalen,
                timestamp_t         playout);
 
@@ -46,9 +46,9 @@ void pb_shift_units_back_after(struct s_pb *pb, timestamp_t ref_time, timestamp_
 uint16_t pb_iterator_count(struct s_pb *pb);
 
 /*
- * These following three functions return data stored in the playout buffer.  
- * The playout buffer has a playout point iterator.  playout_buffer_get 
- * returns the data at that point, advance steps to the next unit and 
+ * These following three functions return data stored in the playout buffer.
+ * The playout buffer has a playout point iterator.  playout_buffer_get
+ * returns the data at that point, advance steps to the next unit and
  * returns that, and rewind steps to the previous unit
  * and returns that.
  */
@@ -56,7 +56,7 @@ uint16_t pb_iterator_count(struct s_pb *pb);
 int
 pb_iterator_create (struct s_pb           *pb,
                  struct s_pb_iterator **pbi);
-  
+
 void
 pb_iterator_destroy (struct s_pb           *pb,
                      struct s_pb_iterator **pbi);
@@ -68,13 +68,13 @@ pb_iterator_dup (struct s_pb_iterator **pbi_dst,
 int
 pb_iterator_get_at (struct s_pb_iterator *pbi,
                     u_char              **data,
-                    uint32_t              *datalen, 
+                    uint32_t              *datalen,
                     timestamp_t                 *playout);
 
 int
 pb_iterator_detach_at (struct s_pb_iterator *pbi,
                        u_char              **data,
-                       uint32_t              *datalen, 
+                       uint32_t              *datalen,
                        timestamp_t                 *playout);
 
 /* Single step movements */
@@ -93,7 +93,7 @@ int
 pb_iterator_rwd  (struct s_pb_iterator *pbi);
 
 /* Trims data more than history_len before iterator */
-int 
+int
 pb_iterator_audit (struct s_pb_iterator *pi,
                    timestamp_t                  history_len);
 
@@ -103,8 +103,8 @@ pb_iterators_equal(struct s_pb_iterator *pi1,
                    struct s_pb_iterator *pi2);
 
 /* Returns whether playout buffer has data to be played out */
-int 
-pb_relevant (struct s_pb *pb, 
+int
+pb_relevant (struct s_pb *pb,
              timestamp_t         now);
 
 struct s_pb*

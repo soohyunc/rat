@@ -5,9 +5,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -26,35 +26,35 @@ static const char cvsid[] =
  */
 
 static codec_format_t cs[] = {
-        {"Linear-8", "L8-8K-Mono",  
-         "Linear 8 uncompressed audio.", 
+        {"Linear-8", "L8-8K-Mono",
+         "Linear 8 uncompressed audio.",
          CODEC_PAYLOAD_DYNAMIC, 0, 160, {DEV_S16,  8000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 20  ms */
-        {"Linear-8", "L8-8K-Stereo",  
-         "Linear 8 uncompressed audio.", 
+        {"Linear-8", "L8-8K-Stereo",
+         "Linear 8 uncompressed audio.",
          CODEC_PAYLOAD_DYNAMIC, 0, 320, {DEV_S16,  8000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}}, /* 20  ms */
-        {"Linear-8", "L8-16K-Mono",  
-         "Linear 8 uncompressed audio.", 
+        {"Linear-8", "L8-16K-Mono",
+         "Linear 8 uncompressed audio.",
          CODEC_PAYLOAD_DYNAMIC, 0, 160, {DEV_S16,  16000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 10 ms */
-        {"Linear-8", "L8-16K-Stereo",  
-         "Linear 8 uncompressed audio.", 
+        {"Linear-8", "L8-16K-Stereo",
+         "Linear 8 uncompressed audio.",
          CODEC_PAYLOAD_DYNAMIC, 0, 320, {DEV_S16,  16000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}}, /* 10 ms */
-        {"Linear-8", "L8-32K-Mono",  
-         "Linear 8 uncompressed audio.", 
+        {"Linear-8", "L8-32K-Mono",
+         "Linear 8 uncompressed audio.",
          CODEC_PAYLOAD_DYNAMIC, 0, 160, {DEV_S16,  32000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 5 ms */
-        {"Linear-8", "L8-32K-Stereo",  
-         "Linear 8 uncompressed audio.", 
+        {"Linear-8", "L8-32K-Stereo",
+         "Linear 8 uncompressed audio.",
          CODEC_PAYLOAD_DYNAMIC, 0, 320, {DEV_S16,  32000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}}, /* 5 ms */
-        {"Linear-8", "L8-44K-Mono",  
-         "Linear 8 uncompressed audio.", 
+        {"Linear-8", "L8-44K-Mono",
+         "Linear 8 uncompressed audio.",
          CODEC_PAYLOAD_DYNAMIC, 0, 160, {DEV_S16,  44100, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 3.6 ms */
-        {"Linear-8", "L8-44K-Stereo",  
-         "Linear 8 uncompressed audio.", 
+        {"Linear-8", "L8-44K-Stereo",
+         "Linear 8 uncompressed audio.",
          CODEC_PAYLOAD_DYNAMIC, 0, 320, {DEV_S16,  44100, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}}, /* 3.6 ms */
-        {"Linear-8", "L8-48K-Mono",  
-         "Linear 8 uncompressed audio.", 
+        {"Linear-8", "L8-48K-Mono",
+         "Linear 8 uncompressed audio.",
          CODEC_PAYLOAD_DYNAMIC, 0, 160, {DEV_S16,  48000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 3.3 ms */
-        {"Linear-8", "L8-48K-Stereo",  
-         "Linear 8 uncompressed audio.", 
+        {"Linear-8", "L8-48K-Stereo",
+         "Linear 8 uncompressed audio.",
          CODEC_PAYLOAD_DYNAMIC, 0, 320, {DEV_S16,  48000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}} /* 3.3 ms */
 };
 

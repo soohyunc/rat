@@ -5,9 +5,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -29,13 +29,13 @@ static const char cvsid[] =
 #include "codec_gsm.h"
 #include "codec_lpc.h"
 #include "codec_vdvi.h"
-#ifndef REMOVE_WBS_CODEC	
+#ifndef REMOVE_WBS_CODEC
 #include "codec_wbs.h"
 #endif
 #include "codec_g728.h"
 
-/* Codec class initialization - hey didn't c++ happen somewhere along the 
- * timeline ;-) 
+/* Codec class initialization - hey didn't c++ happen somewhere along the
+ * timeline ;-)
  */
 
 /* One time codec {con,de}struction */
@@ -49,14 +49,14 @@ typedef const codec_format_t* (*cx_get_format_f)        (uint16_t);
 /* Codec Encoding functions */
 typedef int     (*cx_encoder_create_f)    (uint16_t idx, u_char **state);
 typedef void    (*cx_encoder_destroy_f)   (uint16_t idx, u_char **state);
-typedef int     (*cx_encode_f)            (uint16_t idx, u_char *state, 
+typedef int     (*cx_encode_f)            (uint16_t idx, u_char *state,
                                            sample *in, coded_unit *out);
 typedef int     (*cx_can_encode_f)        (uint16_t idx);
 
 /* Codec Decoding functions */
 typedef int     (*cx_decoder_create_f)    (uint16_t idx, u_char **state);
 typedef void    (*cx_decoder_destroy_f)   (uint16_t idx, u_char **state);
-typedef int     (*cx_decode_f)            (uint16_t idx, u_char *state, 
+typedef int     (*cx_decode_f)            (uint16_t idx, u_char *state,
                                            coded_unit *in, sample *out);
 typedef int     (*cx_can_decode_f)        (uint16_t idx);
 
@@ -64,7 +64,7 @@ typedef int     (*cx_can_decode_f)        (uint16_t idx);
 typedef int     (*cx_peek_size_f)         (uint16_t idx, u_char *data, int data_len);
 
 /* For codec domain repair schemes */
-typedef int     (*cx_repair_f)            (uint16_t idx, 
+typedef int     (*cx_repair_f)            (uint16_t idx,
                                            u_char *state,
                                            uint16_t consec_missing,
                                            coded_unit *prev,
@@ -99,12 +99,12 @@ typedef struct s_codec_fns {
 
 static codec_fns_t codec_table[] = {
 	{
-                NULL, 
+                NULL,
                 NULL,
                 l16_get_formats_count,
                 l16_get_format,
                 NULL, /* No encoder setup / tear down */
-                NULL, 
+                NULL,
                 l16_encode,
                 NULL,
                 NULL,
@@ -118,12 +118,12 @@ static codec_fns_t codec_table[] = {
                 NULL
         },
         {
-                NULL, 
+                NULL,
                 NULL,
                 l8_get_formats_count,
                 l8_get_format,
                 NULL, /* No encoder setup / tear down */
-                NULL, 
+                NULL,
                 l8_encode,
                 NULL,
                 NULL,
@@ -311,7 +311,7 @@ static uint16_t total_fmts_supported;
  * Second byte is index in codec_table above plus 1.
  * Third and fourth bytes hold index for encoding format
  * used by codec.
- */ 
+ */
 
 #define CODEC_GET_IFS_INDEX(id)     (uint16_t)(((id  & 0x00ff0000) >> 16) - 1)
 #define CODEC_GET_FMT_INDEX(id)     (uint16_t)((id & 0x0000ffff) - 1)
@@ -332,8 +332,8 @@ codec_id_is_valid(codec_id_t id)
                 debug_msg("Coding is invalid because it is a native coding\n");
                 return FALSE;
         }
-        
-        if (!CODEC_VALID_PAD(id) || 
+
+        if (!CODEC_VALID_PAD(id) ||
             !CODEC_VALID_IFS(id) ||
             !CODEC_VALID_FMT(id)) {
                 debug_msg("Codec id (0x%08x) invalid (pad %x, ifs %x, fmt %x)",
@@ -348,7 +348,7 @@ codec_id_is_valid(codec_id_t id)
         if (ifs >= NUM_CODEC_INTERFACES) {
                 /* Table index too large */
                 debug_msg("Codec index outside table\n");
-                return FALSE; 
+                return FALSE;
         }
 
         if (fmt >= num_fmts_supported[ifs]) {
@@ -386,7 +386,7 @@ codec_init()
         } else {
                 debug_msg("codec_init already called - ignoring.\n");
         }
-}        
+}
 
 void
 codec_exit()
@@ -415,14 +415,14 @@ codec_get_codec_number(uint32_t n)
         codec_id_t id;
         uint32_t    ifs;
         assert(n < total_fmts_supported);
-        
+
         for(ifs = 0; n >= num_fmts_supported[ifs]; ifs++) {
                 n = n - num_fmts_supported[ifs];
         }
 
         id = CODEC_MAKE_ID(ifs, n);
 
-        assert(codec_id_is_valid(id));        
+        assert(codec_id_is_valid(id));
 
         return id;
 }
@@ -446,7 +446,7 @@ codec_can_encode(codec_id_t id)
 
         ifs = CODEC_GET_IFS_INDEX(id);
 
-        assert(codec_id_is_valid(id));                
+        assert(codec_id_is_valid(id));
         assert(ifs < NUM_CODEC_INTERFACES);
 
         if (codec_table[ifs].cx_can_encode) {
@@ -459,7 +459,7 @@ codec_can_encode(codec_id_t id)
                         return FALSE; /* only m * 8k at the moment */
                 }
         }
-        
+
         return TRUE;
 }
 
@@ -470,7 +470,7 @@ codec_can_decode(codec_id_t id)
 
         ifs = CODEC_GET_IFS_INDEX(id);
 
-        assert(codec_id_is_valid(id));        
+        assert(codec_id_is_valid(id));
         assert(ifs < NUM_CODEC_INTERFACES);
 
         if (codec_table[ifs].cx_can_decode) {
@@ -483,7 +483,7 @@ codec_can_decode(codec_id_t id)
                         return FALSE; /* Only m * 8k at moment */
                 }
         }
-        
+
         return TRUE;
 }
 
@@ -492,14 +492,14 @@ codec_audio_formats_compatible(codec_id_t id1, codec_id_t id2)
 {
         const codec_format_t *cf1, *cf2;
         int match;
-        
+
         assert(codec_id_is_valid(id1));
         assert(codec_id_is_valid(id2));
-        
+
         cf1 = codec_get_format(id1);
         cf2 = codec_get_format(id2);
 
-        match = !memcmp(&cf1->format, &cf2->format, sizeof(audio_format)); 
+        match = !memcmp(&cf1->format, &cf2->format, sizeof(audio_format));
 
         return match;
 }
@@ -512,7 +512,7 @@ codec_get_samples_per_frame(codec_id_t id)
 
         assert(codec_id_is_valid(id));
         cf = codec_get_format(id);
-        spf = cf->format.bytes_per_block * 8 / 
+        spf = cf->format.bytes_per_block * 8 /
                 (cf->format.channels * cf->format.bits_per_sample);
 
         return spf;
@@ -536,7 +536,7 @@ codec_encoder_create(codec_id_t id, codec_state **cs)
                 if (codec_table[ifs].cx_encoder_create) {
                         /* Must also have a destructor */
                         assert(codec_table[ifs].cx_encoder_destroy != NULL);
-                        codec_table[ifs].cx_encoder_create(fmt, 
+                        codec_table[ifs].cx_encoder_create(fmt,
                                                            &(*cs)->state);
                 }
                 return TRUE;
@@ -559,7 +559,7 @@ codec_encoder_destroy(codec_state **cs)
                 fmt = CODEC_GET_FMT_INDEX(id);
                 if (codec_table[ifs].cx_encoder_destroy) {
                         /* Must also have a destructor */
-                        codec_table[ifs].cx_encoder_destroy(fmt, 
+                        codec_table[ifs].cx_encoder_destroy(fmt,
                                                                &(*cs)->state);
                 }
                 block_free(*cs, sizeof(codec_state));
@@ -619,7 +619,7 @@ codec_decoder_create(codec_id_t id, codec_state **cs)
                 if (codec_table[ifs].cx_decoder_create) {
                         /* Must also have a destructor */
                         assert(codec_table[ifs].cx_decoder_destroy != NULL);
-                        codec_table[ifs].cx_decoder_create(fmt, 
+                        codec_table[ifs].cx_decoder_create(fmt,
                                                                &(*cs)->state);
                 }
                 return TRUE;
@@ -642,7 +642,7 @@ codec_decoder_destroy(codec_state **cs)
                 fmt = CODEC_GET_FMT_INDEX(id);
                 if (codec_table[ifs].cx_decoder_destroy) {
                         /* Must also have a destructor */
-                        codec_table[ifs].cx_decoder_destroy(fmt, 
+                        codec_table[ifs].cx_decoder_destroy(fmt,
                                                                &(*cs)->state);
                 }
                 block_free(*cs, sizeof(codec_state));
@@ -666,7 +666,7 @@ codec_decode(codec_state *cs,
         assert(cs  != NULL);
         assert(out != NULL);
         assert(in  != NULL);
-        
+
         id = cs->id;
         assert(in->id == cs->id);
         assert(codec_is_native_coding(in->id) == FALSE);
@@ -693,7 +693,7 @@ codec_decode(codec_state *cs,
 }
 
 int
-codec_decoder_can_repair (codec_id_t id) 
+codec_decoder_can_repair (codec_id_t id)
 {
         uint16_t ifs;
         assert(codec_id_is_valid(id));
@@ -706,10 +706,10 @@ codec_decoder_can_repair (codec_id_t id)
 }
 
 int
-codec_decoder_repair(codec_id_t id, codec_state *cs, 
-                     uint16_t consec_missing, 
-                     coded_unit *prev, 
-                     coded_unit *miss, 
+codec_decoder_repair(codec_id_t id, codec_state *cs,
+                     uint16_t consec_missing,
+                     coded_unit *prev,
+                     coded_unit *miss,
                      coded_unit *next)
 {
         uint16_t    ifs, fmt;
@@ -727,13 +727,13 @@ codec_decoder_repair(codec_id_t id, codec_state *cs,
         miss->id = prev->id;
 
         assert(codec_table[ifs].cx_repair != NULL);
-        return codec_table[ifs].cx_repair(fmt, 
-                                          cs->state, 
+        return codec_table[ifs].cx_repair(fmt,
+                                          cs->state,
                                           consec_missing,
                                           prev, miss, next);
 }
 
-uint32_t 
+uint32_t
 codec_peek_frame_size(codec_id_t id, u_char *data, uint16_t blk_len)
 {
         uint16_t    ifs, fmt;
@@ -741,7 +741,7 @@ codec_peek_frame_size(codec_id_t id, u_char *data, uint16_t blk_len)
         assert(codec_id_is_valid(id));
 
         ifs = CODEC_GET_IFS_INDEX(id);
-        fmt = CODEC_GET_FMT_INDEX(id);        
+        fmt = CODEC_GET_FMT_INDEX(id);
 
         if (codec_table[ifs].cx_peek_size) {
                 return codec_table[ifs].cx_peek_size(fmt, data, (int)blk_len);
@@ -777,8 +777,8 @@ payload_is_valid(u_char pt)
         return FALSE;
 }
 
-/* RTP Mapping interface - 
- * 2 maps one from payload to codec id and the other from codec id to 
+/* RTP Mapping interface -
+ * 2 maps one from payload to codec id and the other from codec id to
  * to payload.
  */
 
@@ -850,10 +850,10 @@ codec_get_payload(codec_id_t id)
         return CODEC_PAYLOAD_DYNAMIC;
 }
 
-int 
+int
 codec_unmap_payload(codec_id_t id, u_char pt)
 {
-        if (payload_is_valid(pt) && 
+        if (payload_is_valid(pt) &&
             codec_id_is_valid(id) &&
             payload_map[pt] == id) {
                 payload_map[pt] = 0;
@@ -872,7 +872,7 @@ codec_get_by_payload (u_char pt)
                 if (payload_map[pt] == 0) {
                         debug_msg("No codec for payload %d\n", pt);
                 }
-#endif       
+#endif
                 return payload_map[pt];
         } else {
                 debug_msg("codec_get_by_payload - invalid payload (%d)\n", pt);
@@ -881,12 +881,12 @@ codec_get_by_payload (u_char pt)
 }
 
 /* For compatibility only */
-codec_id_t 
+codec_id_t
 codec_get_first_mapped_with(uint32_t sample_rate, uint16_t channels)
 {
         const codec_format_t *cf;
         int pt;
-        
+
         for(pt = 0; pt < NUM_PAYLOADS; pt++) {
                 if (payload_map[pt]) {
                         cf = codec_get_format(payload_map[pt]);
@@ -902,7 +902,7 @@ codec_get_first_mapped_with(uint32_t sample_rate, uint16_t channels)
 }
 
 
-codec_id_t 
+codec_id_t
 codec_get_by_name(const char *name)
 {
         const codec_format_t *cf;
@@ -925,18 +925,18 @@ codec_id_t
 codec_get_matching(const char *short_name, uint32_t freq, uint16_t channels)
 {
         /* This has been changed to try really hard to find a matching codec.
-         * The reason is that it's now called as part of the command-line      
-         * parsing, and so has to cope with user entered codec names. Also, it 
-         * should recognise the names sdr gives the codecs, for compatibility 
-         * with rat-v3.0.                                                [csp] 
+         * The reason is that it's now called as part of the command-line
+         * parsing, and so has to cope with user entered codec names. Also, it
+         * should recognise the names sdr gives the codecs, for compatibility
+         * with rat-v3.0.                                                [csp]
          */
 
         /* This is not quite as inefficient as it looks, since stage 1 will
-         * almost always find a match.                                     
+         * almost always find a match.
          */
 
         const codec_format_t  *cf = NULL;
-        codec_id_t             cid = 0; 
+        codec_id_t             cid = 0;
         uint32_t                i, codecs;
         char                  *long_name;
 
@@ -945,8 +945,8 @@ codec_get_matching(const char *short_name, uint32_t freq, uint16_t channels)
         for(i = 0; i < codecs; i++) {
                 cid = codec_get_codec_number(i);
                 cf  = codec_get_format(cid);
-                if (cf->format.sample_rate == freq  && 
-                    cf->format.channels == channels && 
+                if (cf->format.sample_rate == freq  &&
+                    cf->format.channels == channels &&
                     !strcasecmp(short_name, cf->short_name)) {
                         return cid;
                 }
@@ -958,24 +958,24 @@ codec_get_matching(const char *short_name, uint32_t freq, uint16_t channels)
         for(i = 0; i < codecs; i++) {
                 cid = codec_get_codec_number(i);
                 cf  = codec_get_format(cid);
-                if (cf->format.sample_rate == freq  && 
-                    cf->format.channels == channels && 
+                if (cf->format.sample_rate == freq  &&
+                    cf->format.channels == channels &&
                     !strcasecmp(long_name, cf->long_name)) {
                         xfree(long_name);
                         return cid;
                 }
         }
 
-        /* Stage 3: Nasty hack... PCM->PCMU for compatibility with sdr 
-         * and old rat versions 
+        /* Stage 3: Nasty hack... PCM->PCMU for compatibility with sdr
+         * and old rat versions
          */
         if (strncasecmp(short_name, "pcm", 3) == 0) {
                 sprintf(long_name, "PCMU-%dK-%s", freq/1000, channels==1?"MONO":"STEREO");
                 for(i = 0; i < codecs; i++) {
                         cid = codec_get_codec_number(i);
                         cf  = codec_get_format(cid);
-                        if (cf->format.sample_rate == freq  && 
-                            cf->format.channels == channels && 
+                        if (cf->format.sample_rate == freq  &&
+                            cf->format.channels == channels &&
                             !strcasecmp(long_name, cf->long_name)) {
                                 xfree(long_name);
                                 return cid;
@@ -1001,7 +1001,7 @@ static uint16_t max_channels = 2;
  * paths cleaner since we don't have two data types for coded and raw
  * units.  */
 
-codec_id_t 
+codec_id_t
 codec_get_native_coding(uint32_t sample_rate, uint16_t channels)
 {
         codec_id_t cid;
@@ -1030,9 +1030,9 @@ codec_is_native_coding(codec_id_t cid)
                 CODEC_GET_FMT_INDEX(cid) < num_sampling_rates * max_channels);
 }
 
-int 
-codec_get_native_info(codec_id_t cid, 
-                      uint32_t   *p_rate, 
+int
+codec_get_native_info(codec_id_t cid,
+                      uint32_t   *p_rate,
                       uint16_t   *p_channels)
 {
         uint32_t i, c, index;
@@ -1062,7 +1062,7 @@ codec_can_layer(codec_id_t id)
 
         ifs = CODEC_GET_IFS_INDEX(id);
 
-        assert(codec_id_is_valid(id));                
+        assert(codec_id_is_valid(id));
         assert(ifs < NUM_CODEC_INTERFACES);
 
         if (codec_table[ifs].cx_can_layer) {
@@ -1076,9 +1076,9 @@ int
 codec_get_layer(codec_id_t id, coded_unit *cu_whole, uint8_t layer, uint16_t *markers, coded_unit *cu_layer)
 {
         uint16_t ifs, fmt;
-		
+
         ifs = CODEC_GET_IFS_INDEX(id);
-        fmt = CODEC_GET_FMT_INDEX(id);        
+        fmt = CODEC_GET_FMT_INDEX(id);
 
         if (codec_table[ifs].cx_get_layer) {
                 return codec_table[ifs].cx_get_layer(fmt, cu_whole, layer, markers, cu_layer);
@@ -1090,10 +1090,10 @@ int
 codec_combine_layer (codec_id_t id, coded_unit *cu_layer, coded_unit *cu_whole, uint8_t nelem, uint16_t *markers)
 {
         uint16_t ifs, fmt;
-		
+
         ifs = CODEC_GET_IFS_INDEX(id);
-        fmt = CODEC_GET_FMT_INDEX(id);        
-		
+        fmt = CODEC_GET_FMT_INDEX(id);
+
         assert(codec_table[ifs].cx_combine_layer);
         return codec_table[ifs].cx_combine_layer(fmt, cu_layer, cu_whole, nelem, markers);
 }

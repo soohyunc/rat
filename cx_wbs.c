@@ -6,14 +6,14 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  *
- * The WB-ADPCM algorithm was developed by British Telecommunications 
- * plc.  Permission has been granted to use it for non-commercial    
- * research and development projects.  BT retain the intellectual   
- * property rights to this algorithm.                              
+ * The WB-ADPCM algorithm was developed by British Telecommunications
+ * plc.  Permission has been granted to use it for non-commercial
+ * research and development projects.  BT retain the intellectual
+ * property rights to this algorithm.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -23,56 +23,56 @@ static const char cvsid[] =
 #include "cx_wbs.h"
 
 int aStepsizes[]={
-	1,	1,	1,	1,	1,	1,	
-	1,	1,	1,	1,	1,	1,	
-	1,	1,	2,	2,	2,	2,	
-	2,	2,	2,	2,	2,	3,	
-	3,	3,	3,	3,	4,	4,	
-	4,	4,	4,	5,	5,	5,	
-	6,	6,	6,	6,	7,	7,	
-	8,	8,	8,	9,	9,	10,	
-	10,	11,	12,	12,	13,	14,	
-	14,	15,	16,	17,	18,	18,	
-	19,	20,	21,	23,	24,	25,	
-	26,	28,	29,	31,	32,	34,	
-	36,	38,	40,	42,	44,	46,	
-	48,	51,	53,	56,	59,	62,	
-	65,	69,	72,	76,	80,	84,	
-	88,	93,	98,	103,	108,	113,	
-	119,	125,	132,	139,	146,	153,	
-	161,	169,	178,	187,	197,	207,	
-	217,	229,	240,	253,	265,	279,	
-	293,	308,	324,	341,	358,	377,	
-	396,	416,	437,	460,	483,	508,	
-	534,	561,	590,	620,	652,	685,	
-	720,	757,	796,	837,	880,	925,	
+	1,	1,	1,	1,	1,	1,
+	1,	1,	1,	1,	1,	1,
+	1,	1,	2,	2,	2,	2,
+	2,	2,	2,	2,	2,	3,
+	3,	3,	3,	3,	4,	4,
+	4,	4,	4,	5,	5,	5,
+	6,	6,	6,	6,	7,	7,
+	8,	8,	8,	9,	9,	10,
+	10,	11,	12,	12,	13,	14,
+	14,	15,	16,	17,	18,	18,
+	19,	20,	21,	23,	24,	25,
+	26,	28,	29,	31,	32,	34,
+	36,	38,	40,	42,	44,	46,
+	48,	51,	53,	56,	59,	62,
+	65,	69,	72,	76,	80,	84,
+	88,	93,	98,	103,	108,	113,
+	119,	125,	132,	139,	146,	153,
+	161,	169,	178,	187,	197,	207,
+	217,	229,	240,	253,	265,	279,
+	293,	308,	324,	341,	358,	377,
+	396,	416,	437,	460,	483,	508,
+	534,	561,	590,	620,	652,	685,
+	720,	757,	796,	837,	880,	925,
 	972,	1021
 };
 
 int aInvStepsizes[]={
-	1024,	974,	926,	881,	838,	798,	
-	759,	722,	687,	653,	622,	591,	
-	562,	535,	509,	484,	461,	438,	
-	417,	397,	377,	359,	341,	325,	
-	309,	294,	280,	266,	253,	241,	
-	229,	218,	207,	197,	188,	178,	
-	170,	161,	154,	146,	139,	132,	
-	126,	120,	114,	108,	103,	98,	
-	93,	89,	84,	80,	76,	72,	
-	69,	65,	62,	59,	56,	54,	
-	51,	48,	46,	44,	42,	40,	
-	38,	36,	34,	32,	31,	29,	
-	28,	26,	25,	24,	23,	22,	
-	20,	19,	18,	18,	17,	16,	
-	15,	14,	14,	13,	12,	12,	
-	11,	10,	10,	9,	9,	8,	
-	8,	8,	7,	7,	7,	6,	
-	6,	6,	5,	5,	5,	4,	
-	4,	4,	4,	4,	3,	3,	
-	3,	3,	3,	3,	2,	2,	
-	2,	2,	2,	2,	2,	2,	
-	1,	1,	1,	1,	1,	1,	
-	1,	1,	1,	1,	1,	1,	
+	1024,	974,	926,	881,	838,	798,
+	759,	722,	687,	653,	622,	591,
+	562,	535,	509,	484,	461,	438,
+	417,	397,	377,	359,	341,	325,
+	309,	294,	280,	266,	253,	241,
+	229,	218,	207,	197,	188,	178,
+	170,	161,	154,	146,	139,	132,
+	126,	120,	114,	108,	103,	98,
+	93,	89,	84,	80,	76,	72,
+	69,	65,	62,	59,	56,	54,
+	51,	48,	46,	44,	42,	40,
+	38,	36,	34,	32,	31,	29,
+	28,	26,	25,	24,	23,	22,
+	20,	19,	18,	18,	17,	16,
+	15,	14,	14,	13,	12,	12,
+	11,	10,	10,	9,	9,	8,
+	8,	8,	7,	7,	7,	6,
+	6,	6,	5,	5,	5,	4,
+	4,	4,	4,	4,	3,	3,
+	3,	3,	3,	3,	2,	2,
+	2,	2,	2,	2,	2,	2,
+	1,	1,	1,	1,	1,	1,
+	1,	1,	1,	1,	1,	1,
 	1,	1
 };
 
@@ -565,7 +565,7 @@ LowDec(unsigned char *cw, sample *data, int_32 state[], sample *ns_state)
 #if LO_DEC_DBG
 	    fprintf(DebDataRaw, "%d;", lbCWTrain);
 #endif
-	
+
 	/* Phase 3 */
 	lbCWTrain *= Stepsize;
 #if LO_DEC_DBG
@@ -808,7 +808,7 @@ HighDec(unsigned char *cw, sample *data, int_32 state[])
 #if HI_DEC_DBG
 	    fprintf(DebDataRaw, "%d;", lbCWTrain);
 #endif
-	
+
 	/* Phase 3 */
 	lbCWTrain *= Stepsize;
 #if HI_DEC_DBG
@@ -940,7 +940,7 @@ QMF(sample *OrgData, subband_struct *SubBandData, double *LowBandIntState, doubl
 	  fprintf(stderr, "%6hd\t", SubBandData->Low[i]);
 	  fprintf(stderr, "%6hd\n", SubBandData->High[i]);
 #endif
-	  
+
 #if QMF_SP_DBG
 	  fprintf(DebDataRaw, "%6hd\t", SubBandData->Low[i]);
 	  fprintf(DebDataRaw, "%6hd\n", SubBandData->High[i]);
@@ -1028,7 +1028,7 @@ deQMF(subband_struct *SubBandData, sample *decomp_data, double *LowBandIntState,
      return EXIT_SUCCESS;
 }
 
-void 
+void
 wbs_state_init(wbs_state_struct *state, double qmf_lo[], double qmf_hi[], sample *ns)
 {
      int i;

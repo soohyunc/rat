@@ -3,9 +3,9 @@
  * Universitaet Berlin.  See the accompanying file "COPYRIGHT" for
  * details.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -90,7 +90,7 @@ longword gsm_L_sub(longword a, longword b)
 	}
 	else if (b <= 0) return a - b;
 	else {
-		/* a<0, b>0 */  
+		/* a<0, b>0 */
 
 		ulongword A = (ulongword)-(a + 1) + b;
 		return A >= MAX_LONGWORD ? MIN_LONGWORD : -(longword)A - 1;
@@ -122,7 +122,7 @@ word gsm_norm(longword a )
  * variable L_var1 for positive values on the interval
  *
  * with minimum of
- * minimum of 1073741824  (01000000000000000000000000000000) and 
+ * minimum of 1073741824  (01000000000000000000000000000000) and
  * maximum of 2147483647  (01111111111111111111111111111111)
  *
  * and for negative values on the interval with
@@ -142,7 +142,7 @@ word gsm_norm(longword a )
 		a = ~a;
 	}
 
-	return    a & 0xffff0000 
+	return    a & 0xffff0000
 		? ( a & 0xff000000
 		  ?  -1 + bitoff[ 0xFF & (a >> 24) ]
 		  :   7 + bitoff[ 0xFF & (a >> 16) ] )
@@ -207,7 +207,7 @@ word gsm_asr(word a, int n)
 #	endif
 }
 
-/* 
+/*
  *  (From p. 46, end of section 4.2.5)
  *
  *  NOTE: The following lines gives [sic] one correct implementation
@@ -288,7 +288,7 @@ word gsm_QLB[4] = {  3277,    11469,	21299,	   32767	};
 word gsm_H[11] = {-134, -374, 0, 2054, 5741, 8192, 5741, 2054, 0, -374, -134 };
 
 
-/*   Table 4.5 	 Normalized inverse mantissa used to compute xM/xmax 
+/*   Table 4.5 	 Normalized inverse mantissa used to compute xM/xmax
  */
 /* i		 	0        1    2      3      4      5     6      7   */
 word gsm_NRFAC[8] = { 29128, 26215, 23832, 21846, 20165, 18725, 17476, 16384 };
@@ -312,7 +312,7 @@ word gsm_FAC[8]	= { 18431, 20479, 22527, 24575, 26623, 28671, 30719, 32767 };
  *	Where S is the sign bit, v a valid bit, and * a "don't care" bit.
  * 	The original signal is called sop[..]
  *
- *      out:   0.1................... 12 
+ *      out:   0.1................... 12
  *	     S.S.v.v.v.v.v.v.v.v.v.v.v.v.0.0
  */
 
@@ -349,7 +349,7 @@ void Gsm_Preprocess(
 
 
 	/*  4.2.2   Offset compensation
-	 * 
+	 *
 	 *  This part implements a high-pass filter and requires extended
 	 *  arithmetic precision for the recursive part of this filter.
 	 *  The input of this procedure is the array so[0...159] and the
@@ -449,7 +449,7 @@ static void Autocorrelation(
 			float_s[k] = (float)	\
 				(s[k] = GSM_MULT_R(s[k], 16384 >> (n-1)));\
 		break;
-# else 
+# else
 #   define SCALE(n)	\
 	case n: for (k = 0; k <= 159; k++) \
 			s[k] = GSM_MULT_R( s[k], 16384 >> (n-1) );\
@@ -513,13 +513,13 @@ static void Autocorrelation(
 		STEP(5); STEP(6); STEP(7); STEP(8);
 	}
 
-	for (k = 9; k--; L_ACF[k] <<= 1) ; 
+	for (k = 9; k--; L_ACF[k] <<= 1) ;
 
 	}
 	/*   Rescaling of the array s[0..159]
 	 */
 	if (scalauto > 0) {
-		assert(scalauto <= 4); 
+		assert(scalauto <= 4);
 		for (k = 160; k--; *s++ <<= scalauto) ;
 	}
 }
@@ -605,7 +605,7 @@ static void Reflection_coefficients(
 		assert(*r >= 0);
 		if (P[1] > 0) *r = -*r;		/* r[n] = sub(0, r[n]) */
 		assert (*r != MIN_WORD);
-		if (n == 8) return; 
+		if (n == 8) return;
 
 		/*  Schur recursion
 		 */
@@ -674,7 +674,7 @@ static void Quantization_and_coding(
 
 	/*  This procedure needs four tables; the following equations
 	 *  give the optimum scaling for the constants:
-	 *  
+	 *
 	 *  A[0..7] = integer( real_A[0..7] * 1024 )
 	 *  B[0..7] = integer( real_B[0..7] *  512 )
 	 *  MAC[0..7] = maximum of the LARc[0..7]
@@ -779,7 +779,7 @@ static void Decoding_of_the_coded_Log_Area_Ratios(
 }
 
 /* 4.2.9 */
-/* Computation of the quantized reflection coefficients 
+/* Computation of the quantized reflection coefficients
  */
 
 /* 4.2.9.1  Interpolation of the LARpp[1..8] to get the LARp[1..8]
@@ -1439,7 +1439,7 @@ static void Cut_Calculation_of_the_LTP_parameters(
 	else scal = 6 - temp;
 
 	assert(scal >= 0);
-	ltp_cut = (longword)SASR(dmax, scal) * st->ltp_cut / 100; 
+	ltp_cut = (longword)SASR(dmax, scal) * st->ltp_cut / 100;
 
 
 	/*  Initialization of a working array wt
@@ -1471,7 +1471,7 @@ static void Cut_Calculation_of_the_LTP_parameters(
 		register float	a = lp[-8], b = lp[-7], c = lp[-6],
 				d = lp[-5], e = lp[-4], f = lp[-3],
 				g = lp[-2], h = lp[-1];
-		register float  E; 
+		register float  E;
 		register float  S0 = 0, S1 = 0, S2 = 0, S3 = 0, S4 = 0,
 				S5 = 0, S6 = 0, S7 = 0, S8 = 0;
 
@@ -1637,7 +1637,7 @@ static void Calculation_of_the_LTP_parameters(
 		register float	a = lp[-8], b = lp[-7], c = lp[-6],
 				d = lp[-5], e = lp[-4], f = lp[-3],
 				g = lp[-2], h = lp[-1];
-		register float  E; 
+		register float  E;
 		register float  S0 = 0, S1 = 0, S2 = 0, S3 = 0, S4 = 0,
 				S5 = 0, S6 = 0, S7 = 0, S8 = 0;
 
@@ -1850,7 +1850,7 @@ static void Fast_Calculation_of_the_LTP_parameters(
 		register float	a = lp[-8], b = lp[-7], c = lp[-6],
 				d = lp[-5], e = lp[-4], f = lp[-3],
 				g = lp[-2], h = lp[-1];
-		register float  E; 
+		register float  E;
 		register float  S0 = 0, S1 = 0, S2 = 0, S3 = 0, S4 = 0,
 				S5 = 0, S6 = 0, S7 = 0, S8 = 0;
 
@@ -1967,7 +1967,7 @@ static void Long_term_analysis_filtering(
 	case 0:	STEP(  3277 ); break;
 	case 1:	STEP( 11469 ); break;
 	case 2: STEP( 21299 ); break;
-	case 3: STEP( 32767 ); break; 
+	case 3: STEP( 32767 ); break;
 	}
 }
 
@@ -1989,7 +1989,7 @@ void Gsm_Long_Term_Predictor(
 	assert( dpp); assert( Nc ); assert( bc );
 
 #if defined(FAST) && defined(USE_FLOAT_MUL)
-	if (S->fast) 
+	if (S->fast)
 #if   defined (LTP_CUT)
 		if (S->ltp_cut)
 			Cut_Fast_Calculation_of_the_LTP_parameters(S,
@@ -1997,7 +1997,7 @@ void Gsm_Long_Term_Predictor(
 		else
 #endif /* LTP_CUT */
 			Fast_Calculation_of_the_LTP_parameters(d, dp, bc, Nc );
-	else 
+	else
 #endif /* FAST & USE_FLOAT_MUL */
 #ifdef LTP_CUT
 		if (S->ltp_cut)
@@ -2037,7 +2037,7 @@ void Gsm_Long_Term_Synthesis_Filtering(
 	 */
 	brp = gsm_QLB[ bcr ];
 
-	/*  Computation of the reconstructed short term residual 
+	/*  Computation of the reconstructed short term residual
 	 *  signal drp[0..39]
 	 */
 	assert(brp != MIN_WORD);
@@ -2068,7 +2068,7 @@ static void Weighting_filter(
  *  The coefficients of the weighting filter are stored in a table
  *  (see table 4.4).  The following scaling is used:
  *
- *	H[0..10] = integer( real_H[ 0..10] * 8192 ); 
+ *	H[0..10] = integer( real_H[ 0..10] * 8192 );
  */
 {
 	/* word			wt[ 50 ]; */
@@ -2089,7 +2089,7 @@ static void Weighting_filter(
 	e -= 5;
 
 	/*  Compute the signal x[0..39]
-	 */ 
+	 */
 	for (k = 0; k <= 39; k++) {
 
 		L_result = 8192 >> 1;
@@ -2104,7 +2104,7 @@ static void Weighting_filter(
 #define	STEP( i, H )	(e[ k + i ] * (longword)H)
 
 		/*  Every one of these multiplications is done twice --
-		 *  but I don't see an elegant way to optimize this. 
+		 *  but I don't see an elegant way to optimize this.
 		 *  Do you?
 		 */
 
@@ -2122,16 +2122,16 @@ static void Weighting_filter(
 		L_result += STEP(	10, 	-134 ) ;
 #else
 		L_result +=
-		  STEP(	0, 	-134 ) 
-		+ STEP(	1, 	-374 ) 
+		  STEP(	0, 	-134 )
+		+ STEP(	1, 	-374 )
 	     /* + STEP(	2, 	0    )  */
-		+ STEP(	3, 	2054 ) 
-		+ STEP(	4, 	5741 ) 
-		+ STEP(	5, 	8192 ) 
-		+ STEP(	6, 	5741 ) 
-		+ STEP(	7, 	2054 ) 
+		+ STEP(	3, 	2054 )
+		+ STEP(	4, 	5741 )
+		+ STEP(	5, 	8192 )
+		+ STEP(	6, 	5741 )
+		+ STEP(	7, 	2054 )
 	     /* + STEP(	8, 	0    )  */
-		+ STEP(	9, 	-374 ) 
+		+ STEP(	9, 	-374 )
 		+ STEP(10, 	-134 )
 		;
 #endif
@@ -2155,7 +2155,7 @@ static void Weighting_filter(
 /* 4.2.14 */
 
 static void RPE_grid_selection(
-	word		* x,		/* [0..39]		IN  */ 
+	word		* x,		/* [0..39]		IN  */
 	word		* xM,		/* [0..12]		OUT */
 	word		* Mc_out	/*			OUT */
 )
@@ -2188,7 +2188,7 @@ static void RPE_grid_selection(
 	 *		L_temp   = GSM_L_MULT( temp1, temp1 );
 	 *		L_result = GSM_L_ADD( L_temp, L_result );
 	 *	}
-	 * 
+	 *
 	 *	if (L_result > EM) {
 	 *		Mc = m;
 	 *		EM = L_result;
@@ -2350,7 +2350,7 @@ static void APCM_quantization(
 	 *  can be calculated by using the exponent and the mantissa part of
 	 *  xmaxc (logarithmic table).
 	 *  So, this method avoids any division and uses only a scaling
-	 *  of the RPE samples by a function of the exponent.  A direct 
+	 *  of the RPE samples by a function of the exponent.  A direct
 	 *  multiplication by the inverse of the mantissa (NRFAC[0..7]
 	 *  found in table 4.5) gives the 3 bit coded version xMc[0..12]
 	 *  of the RPE samples.
@@ -2361,7 +2361,7 @@ static void APCM_quantization(
 	 */
 
 	assert( exp <= 4096 && exp >= -4096);
-	assert( mant >= 0 && mant <= 7 ); 
+	assert( mant >= 0 && mant <= 7 );
 
 	temp1 = 6 - exp;		/* normalization by the exponent */
 	temp2 = gsm_NRFAC[ mant ];  	/* inverse mantissa 		 */
@@ -2391,7 +2391,7 @@ static void APCM_inverse_quantization(
 	word		mant,
 	word		exp,
 	register word	* xMp)	/* [0..12]			OUT 	*/
-/* 
+/*
  *  This part is for decoding the RPE sequence of coded xMc[0..12]
  *  samples to obtain the xMp[0..12] array.  Table 4.6 is used to get
  *  the mantissa of xmaxc (FAC[0..7]).
@@ -2400,7 +2400,7 @@ static void APCM_inverse_quantization(
 	int	i;
 	word	temp, temp1, temp2, temp3;
 
-	assert( mant >= 0 && mant <= 7 ); 
+	assert( mant >= 0 && mant <= 7 );
 
 	temp1 = gsm_FAC[ mant ];	/* see 4.2-15 for mant */
 	temp2 = gsm_sub( 6, exp );	/* see 4.2-15 for exp  */
@@ -2468,7 +2468,7 @@ void Gsm_Update_of_reconstructed_short_time_residual_signal(
 {
 	int 		k;
 
-	for (k = 0; k <= 79; k++) 
+	for (k = 0; k <= 79; k++)
 		dp[ -120 + k ] = dp[ -80 + k ];
 
 	for (k = 0; k <= 39; k++)
@@ -2513,8 +2513,8 @@ void Gsm_RPE_Decoding(
 }
 
 
-/* 
- *  4.2 FIXED POINT IMPLEMENTATION OF THE RPE-LTP CODER 
+/*
+ *  4.2 FIXED POINT IMPLEMENTATION OF THE RPE-LTP CODER
  */
 
 void Gsm_Coder(
@@ -2525,7 +2525,7 @@ void Gsm_Coder(
  * The RPE-LTD coder works on a frame by frame basis.  The length of
  * the frame is equal to 160 samples.  Some computations are done
  * once per frame to produce at the output of the coder the
- * LARc[1..8] parameters which are the coded LAR coefficients and 
+ * LARc[1..8] parameters which are the coded LAR coefficients and
  * also to realize the inverse filtering operation for the entire
  * frame (160 samples of signal d[0..159]).  These parts produce at
  * the output of the coder:
@@ -2568,7 +2568,7 @@ void Gsm_Coder(
 					 Nc++,
 					 bc++);
 
-		Gsm_RPE_Encoding	( 
+		Gsm_RPE_Encoding	(
 					e + 5,	/* e	  ][0..39][ IN/OUT */
 					  xmaxc++, Mc++, xMc );
 		/*
@@ -2813,7 +2813,7 @@ void Gsm_Decoder(
 	word		 * Mcr,		/* [0..3] 		IN 	*/
 	word		 * xmaxcr,	/* [0..3]		IN 	*/
 	word		 * xMcr,		/* [0..13*4]		IN	*/
- 
+
 	word		 * s		/* [0..159]		OUT 	*/
 )
 {

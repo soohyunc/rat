@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -21,8 +21,8 @@ static const char cvsid[] =
 #ifdef TEST_VDVI
 #define NUM_TESTS 100000
 
-static  u_char src[80], pad1[4], 
-        dst[80], pad2[4], 
+static  u_char src[80], pad1[4],
+        dst[80], pad2[4],
         coded[160], pad3[4], safe[80];
 
 void
@@ -63,7 +63,7 @@ int main()
 
                 check_padding();
                 out_len   = vdvi_decode(coded, 160, dst, 160);
-                
+
                 assert(!memcmp(src,safe,80));
                 assert(!memcmp(dst,safe,80)); /* dst matches sources */
 
@@ -84,7 +84,7 @@ int main()
 }
 #endif /* TEST_DVI */
 
-/* VDVI translations as defined in draft-ietf-avt-profile-new-00.txt 
+/* VDVI translations as defined in draft-ietf-avt-profile-new-00.txt
 
 DVI4  VDVI        VDVI  VDVI
 c/w   c/w         hex   rel. bits
@@ -151,7 +151,7 @@ vdvi_decode(bitstream_t *bs, unsigned char *dvi_buf, unsigned int dvi_samples)
 {
         u_char cw, cb;
         unsigned int i, j, bytes_used;
-        
+
         /* This code is ripe for optimization ... */
         assert(dvi_samples == VDVI_SAMPLES_PER_FRAME);
 

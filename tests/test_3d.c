@@ -31,12 +31,12 @@ test_render(struct s_render_3D_dbentry *r, int rate)
                 for(filter = 0; filter < render_3D_filter_get_count(); filter++) {
                         for(lindex = 0; lindex < render_3D_filter_get_lengths_count(); lindex++) {
                                 length = render_3D_filter_get_length(lindex);
-                                
+
                                 printf("%d %d % 5d ",
                                        n_channels,
                                        length,
                                        rate);
-                                printf("%s(%d)\t",   
+                                printf("%s(%d)\t",
                                        render_3D_filter_get_name(filter),
                                        filter);
                                 for(azimuth  = render_3D_filter_get_lower_azimuth();
@@ -49,7 +49,7 @@ test_render(struct s_render_3D_dbentry *r, int rate)
                                         printf(".");
                                 }
 
-                                printf("\n");         
+                                printf("\n");
                         }
                 }
         }
@@ -61,7 +61,7 @@ int main()
 {
         unsigned int i;
         struct s_render_3D_dbentry *rdata;
-        
+
         for(i = 0; i < sizeof(rates)/sizeof(int); i++) {
                 rdata = render_3D_init(rates[i]);
                 test_render(rdata, rates[i]);

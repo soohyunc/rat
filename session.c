@@ -1,14 +1,14 @@
 /*
- * FILE:    session.c 
+ * FILE:    session.c
  * PROGRAM: RAT
  * AUTHORS: Vicky Hardman + Isidor Kouvelas + Colin Perkins + Orion Hodson
  *
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -41,7 +41,7 @@ static const char cvsid[] =
 /* sanity_check_payloads checks for overlapping payload maps between
  * channel coders and codecs.  Necessary because I don't trust myself
  * to not overlap payloads, and other people should not have to worry
- * about it either. [oth] 
+ * about it either. [oth]
  */
 
 static int
@@ -109,7 +109,7 @@ session_init(session_t *sp, int index, int mode)
         sp->converter                   = conv->id;
 	sp->other_session		= NULL;				/* Completed in main_engine.c if we're a transoder */
 	sp->id				= index;
-	sp->mode         		= mode;	
+	sp->mode         		= mode;
         sp->rtp_session_count           = 0;
 	for (i = 0; i < MAX_LAYERS; i++) {
 		sp->rx_rtp_port[i] = sp->tx_rtp_port[i] = sp->rx_rtcp_port[i] = sp->tx_rtcp_port[i] = PORT_UNINIT;

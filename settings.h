@@ -1,7 +1,7 @@
 /*
  * FILE:    settings.h
  * PROGRAM: RAT
- * AUTHORS: Colin Perkins 
+ * AUTHORS: Colin Perkins
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.

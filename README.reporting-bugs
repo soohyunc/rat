@@ -1,4 +1,4 @@
-How to Report Bugs Effectively 
+How to Report Bugs Effectively
 Simon Tatham
 
 Introduction
@@ -326,7 +326,7 @@ precise.
 Be specific.
       If you can do the same thing two different ways, state which one
       you used. "I selected Load" might mean "I clicked on Load" or "I
-      pressed Alt-L". Say which you did. Sometimes it matters.  
+      pressed Alt-L". Say which you did. Sometimes it matters.
 
 Be verbose.
       Give more information rather than less. If you say too much, the
@@ -335,7 +335,7 @@ Be verbose.
       was a single sentence. Every time I asked for more information,
       the reporter would reply with another single sentence. It took me
       several weeks to get a useful amount of information, because it
-      turned up one short sentence at a time.  
+      turned up one short sentence at a time.
 
 Be careful of pronouns.
       Don't use words like "it", or references like "the window", when
@@ -346,7 +346,7 @@ Be careful of pronouns.
       Instead, you could say "I started FooApp, which put up a warning
       window. I tried to close the warning window, and FooApp crashed."
       This is longer and more repetitive, but also clearer and easier
-      to understand.  
+      to understand.
 
 Read what you wrote.
       Read the report back to yourself, and see if you think it's
@@ -359,27 +359,27 @@ Summary
  - The first aim of a bug report is to let the programmer see the failure
    with his own eyes. If you can't be with him to make it fail in front of
    him, give him detailed instructions so that he can make it fail for
-   himself.  
+   himself.
 
  - In case the first aim doesn't succeed, and the programmer can't see it
    failing himself, the second aim of a bug report is to describe what went
    wrong.  Describe everything in detail. State what you saw, and also
    state what you expected to see. Write down the error messages,
-   especially if they have numbers in them.  
+   especially if they have numbers in them.
 
  - When your computer does something unexpected, freeze. Do nothing until
-   you're calm, and don't do anything that you think might be dangerous.  
+   you're calm, and don't do anything that you think might be dangerous.
 
  - By all means, try to diagnose the fault yourself if you think you can,
-   but if you do, you should still report the symptoms as well.  
+   but if you do, you should still report the symptoms as well.
 
  - Be ready to provide extra information if the programmer needs it. If he
    didn't need it, he wouldn't be asking for it. He isn't being
    deliberately awkward. Have version numbers at your fingertips, because
-   they will probably be needed.  
+   they will probably be needed.
 
  - Write clearly. Say what you mean, and make sure it can't be
-   misinterpreted.  
+   misinterpreted.
 
  - Above all, be precise. Programmers like precision.
 

@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -43,14 +43,14 @@ static const char cvsid[] =
 
 static int32_t *upfilter[SINC_MAX_CHANGE], *downfilter[SINC_MAX_CHANGE];
 
-int 
+int
 sinc_startup (void)
 {
         double dv, ham;
         int m, k, c, w;
 
         /* Setup filters, because we are truncating sinc fn use
-         * Hamming window to smooth artefacts.  
+         * Hamming window to smooth artefacts.
          */
         for (m = SINC_MIN_CHANGE; m < SINC_MAX_CHANGE; m++) {
                 w = 2 * m * SINC_CYCLES + 1;
@@ -85,18 +85,18 @@ sinc_shutdown (void)
 
 struct s_filter_state;
 
-static void sinc_upsample_mono   (struct s_filter_state *s, 
-                                  sample *src, int src_len, 
+static void sinc_upsample_mono   (struct s_filter_state *s,
+                                  sample *src, int src_len,
                                   sample *dst, int dst_len);
-static void sinc_upsample_stereo (struct s_filter_state *s, 
-                                  sample *src, int src_len, 
+static void sinc_upsample_stereo (struct s_filter_state *s,
+                                  sample *src, int src_len,
                                   sample *dst, int dst_len);
 
-static void sinc_downsample_mono   (struct s_filter_state *s, 
-                                    sample *src, int src_len, 
+static void sinc_downsample_mono   (struct s_filter_state *s,
+                                    sample *src, int src_len,
                                     sample *dst, int dst_len);
-static void sinc_downsample_stereo (struct s_filter_state *s, 
-                                    sample *src, int src_len, 
+static void sinc_downsample_stereo (struct s_filter_state *s,
+                                    sample *src, int src_len,
                                     sample *dst, int dst_len);
 
 typedef void (*sinc_cf)(struct s_filter_state *s, sample *src, int src_len, sample *dst, int dst_len);
@@ -131,7 +131,7 @@ sinc_init_filter(filter_state_t *fs, const converter_fmt_t *cfmt)
                 case 1:   fs->fn = sinc_upsample_mono;   break;
                 case 2:   fs->fn = sinc_upsample_stereo; break;
                 default:  abort();
-                }                        
+                }
         } else if (cfmt->src_freq > cfmt->dst_freq) {
                 assert(cfmt->src_freq / cfmt->dst_freq < SINC_MAX_CHANGE);
                 fs->scale  = cfmt->src_freq/cfmt->dst_freq;
@@ -143,7 +143,7 @@ sinc_init_filter(filter_state_t *fs, const converter_fmt_t *cfmt)
                 case 1:   fs->fn = sinc_downsample_mono;   break;
                 case 2:   fs->fn = sinc_downsample_stereo; break;
                 default:  abort();
-                }                        
+                }
         }
         memset(fs->hold_buf, 0, fs->hold_bytes);
 }
@@ -154,7 +154,7 @@ sinc_free_filter(filter_state_t *fs)
         block_free(fs->hold_buf, fs->hold_bytes);
 }
 
-int 
+int
 sinc_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 {
 	converter_fmt_t	sfmt, ufmt;
@@ -164,7 +164,7 @@ sinc_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 	if (((cfmt->src_freq % 8000) == 0 && (cfmt->dst_freq % 8000)) ||
 	    ((cfmt->src_freq % 11025) == 0 && (cfmt->dst_freq % 11025))) {
 		/* 11025 - 8000 not supported */
-		debug_msg("convert_sinc: %d -> %d not supported\n", 
+		debug_msg("convert_sinc: %d -> %d not supported\n",
 			  cfmt->src_freq, cfmt->dst_freq);
 		return FALSE;
 	}
@@ -173,7 +173,7 @@ sinc_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 
         s        = (sinc_state_t*) xmalloc(sizeof(sinc_state_t));
         memset(s, 0, sizeof(sinc_state_t));
-        s->steps = conversion_steps(cfmt->src_freq, cfmt->dst_freq);        
+        s->steps = conversion_steps(cfmt->src_freq, cfmt->dst_freq);
 
 	sfmt = *cfmt;
 
@@ -183,7 +183,7 @@ sinc_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 		 * either side of rate conversion - see sinc_convert() */
 		if (sfmt.src_channels == 2 && sfmt.dst_channels == 1) {
 			sfmt.src_channels = 1; /* Stereo->Mono, R1->R2 */
-		} 
+		}
 	}
 
         switch(s->steps) {
@@ -204,7 +204,7 @@ sinc_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
         return TRUE;
 }
 
-void 
+void
 sinc_destroy (u_char **state, uint32_t *state_len)
 {
         int i;
@@ -212,7 +212,7 @@ sinc_destroy (u_char **state, uint32_t *state_len)
         sinc_state_t *s = (sinc_state_t*)*state;
 
         assert(*state_len == sizeof(sinc_state_t));
-        
+
         for(i = 0; i < s->steps; i++) {
                 sinc_free_filter(&s->fs[i]);
         }
@@ -222,9 +222,9 @@ sinc_destroy (u_char **state, uint32_t *state_len)
 }
 
 void
-sinc_convert (const converter_fmt_t *cfmt, 
-              u_char *state, 
-              sample* src_buf, int src_len, 
+sinc_convert (const converter_fmt_t *cfmt,
+              u_char *state,
+              sample* src_buf, int src_len,
               sample *dst_buf, int dst_len)
 {
         sinc_state_t *s;
@@ -240,7 +240,7 @@ sinc_convert (const converter_fmt_t *cfmt,
                 /* stereo->mono then sample rate change */
                 if (s->steps) {
                         /* inplace conversion needed */
-                        converter_change_channels(src_buf, src_len, 2, src_buf, src_len / 2, 1); 
+                        converter_change_channels(src_buf, src_len, 2, src_buf, src_len / 2, 1);
                         src_len /= 2;
                 } else {
                         /* this is only conversion */
@@ -251,7 +251,7 @@ sinc_convert (const converter_fmt_t *cfmt,
         } else if (cfmt->src_channels == 1 && cfmt->dst_channels == 2) {
                 dst_len /= 2;
         }
-        
+
         switch(s->steps) {
         case 1:
                 assert(s->fs[0].fn);
@@ -268,7 +268,7 @@ sinc_convert (const converter_fmt_t *cfmt,
                 s->fs[1].fn(&s->fs[1], tmp_buf, tmp_len, dst_buf, dst_len);
                 block_free(tmp_buf, tmp_len * sizeof(sample));
         }
-        
+
         if (cfmt->src_channels == 1 && cfmt->dst_channels == 2) {
                 /* sample rate change before mono-> stereo */
                 if (s->steps) {
@@ -301,9 +301,9 @@ sinc_convert (const converter_fmt_t *cfmt,
 /* LIGHT or HEAVY */
 #ifdef LIGHT
 
-static void 
-sinc_upsample_mono (struct s_filter_state *fs, 
-                    sample *src, int src_len, 
+static void
+sinc_upsample_mono (struct s_filter_state *fs,
+                    sample *src, int src_len,
                     sample *dst, int dst_len)
 {
         sample *work_buf, *out;
@@ -314,17 +314,17 @@ sinc_upsample_mono (struct s_filter_state *fs,
         hold_bytes = fs->taps / fs->scale * sizeof(sample);
         work_len   = src_len + hold_bytes / sizeof(sample);
         work_buf   = (sample*)block_alloc(sizeof(sample)*work_len);
-        
+
         /* Get samples into work_buf */
         memcpy(work_buf, fs->hold_buf, hold_bytes);
-        memcpy(work_buf + hold_bytes / sizeof(sample), 
-               src, 
+        memcpy(work_buf + hold_bytes / sizeof(sample),
+               src,
                src_len * sizeof(sample));
-        
+
         /* Save last samples in src into hold_buf for next time */
         if (src_len >= (int)(hold_bytes / sizeof(sample))) {
-                memcpy(fs->hold_buf, 
-                       src + src_len - hold_bytes / sizeof(sample), 
+                memcpy(fs->hold_buf,
+                       src + src_len - hold_bytes / sizeof(sample),
                        hold_bytes);
         } else {
                 /* incoming chunk was shorter than hold buffer */
@@ -403,7 +403,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -415,7 +415,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                          *out++ = (short)tmp;
 
                         si_start++;
@@ -432,7 +432,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -444,7 +444,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -456,7 +456,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -468,7 +468,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -480,7 +480,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si_start++;
@@ -497,7 +497,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -509,7 +509,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -521,7 +521,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -533,7 +533,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si_start++;
@@ -550,7 +550,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -562,7 +562,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -574,7 +574,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si_start++;
@@ -591,7 +591,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si  = si_start;
@@ -603,7 +603,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                 si  += 1;
                         }
                         tmp /= SINC_SCALE;
-                        clip16(tmp);                        
+                        clip16(tmp);
                         *out++ = (short)tmp;
 
                         si_start++;
@@ -622,7 +622,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                                         si  += 1;
                                 }
                                 tmp /= SINC_SCALE;
-                                clip16(tmp);                        
+                                clip16(tmp);
                                 *out++ = (short)tmp;
                                 hi_start--;
                         }
@@ -642,9 +642,9 @@ sinc_upsample_mono (struct s_filter_state *fs,
 /* HEAVY and LIGHT should produce same result, at time of writing they do!   */
 /* HEAVY is clumsy expand buffer method, LIGHT uses 1 less buffer and copies */
 
-static void 
-sinc_upsample_mono (struct s_filter_state *fs, 
-                    sample *src, int src_len, 
+static void
+sinc_upsample_mono (struct s_filter_state *fs,
+                    sample *src, int src_len,
                     sample *dst, int dst_len)
 {
         sample *work_buf, *out;
@@ -657,17 +657,17 @@ sinc_upsample_mono (struct s_filter_state *fs,
         hold_bytes = fs->taps / fs->scale * sizeof(sample);
         work_len   = src_len + hold_bytes / sizeof(sample);
         work_buf   = (sample*)block_alloc(sizeof(sample)*work_len);
-        
+
         /* Get samples into work_buf */
         memcpy(work_buf, fs->hold_buf, hold_bytes);
-        memcpy(work_buf + hold_bytes / sizeof(sample), 
-               src, 
+        memcpy(work_buf + hold_bytes / sizeof(sample),
+               src,
                src_len * sizeof(sample));
 
         /* Save last samples in src into hold_buf for next time */
         if (src_len >= (int)(hold_bytes / sizeof(sample))) {
-                memcpy(fs->hold_buf, 
-                       src + src_len - hold_bytes / sizeof(sample), 
+                memcpy(fs->hold_buf,
+                       src + src_len - hold_bytes / sizeof(sample),
                        hold_bytes);
         } else {
                 /* incoming chunk was shorter than hold buffer */
@@ -711,9 +711,9 @@ sinc_upsample_mono (struct s_filter_state *fs,
 
 #endif /* HEAVY */
 
-static void 
-sinc_upsample_stereo (struct s_filter_state *fs, 
-                    sample *src, int src_len, 
+static void
+sinc_upsample_stereo (struct s_filter_state *fs,
+                    sample *src, int src_len,
                     sample *dst, int dst_len)
 {
         sample *work_buf, *out;
@@ -724,17 +724,17 @@ sinc_upsample_stereo (struct s_filter_state *fs,
         hold_bytes = fs->taps / fs->scale * sizeof(sample) * 2;
         work_len   = src_len + hold_bytes / sizeof(sample);
         work_buf   = (sample*)block_alloc(sizeof(sample)*work_len);
-        
+
         /* Get samples into work_buf */
         memcpy(work_buf, fs->hold_buf, hold_bytes);
-        memcpy(work_buf + hold_bytes / sizeof(sample), 
-               src, 
+        memcpy(work_buf + hold_bytes / sizeof(sample),
+               src,
                src_len * sizeof(sample));
 
         /* Save last samples in src into hold_buf for next time */
         if (src_len >= (int)(hold_bytes / sizeof(sample))) {
-                memcpy(fs->hold_buf, 
-                       src + src_len - hold_bytes / sizeof(sample), 
+                memcpy(fs->hold_buf,
+                       src + src_len - hold_bytes / sizeof(sample),
                        hold_bytes);
         } else {
                 /* incoming chunk was shorter than hold buffer */
@@ -760,15 +760,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 5;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -776,15 +776,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 4;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -792,15 +792,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 3;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -808,15 +808,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 2;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -824,15 +824,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 1;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -840,15 +840,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 0;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -861,15 +861,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 4;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -877,15 +877,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 3;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -893,15 +893,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 2;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -909,15 +909,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 1;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -925,15 +925,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 0;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -946,15 +946,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 3;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -962,15 +962,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 2;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -978,15 +978,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 1;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -994,15 +994,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 0;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -1015,15 +1015,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 2;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -1031,15 +1031,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 1;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -1047,15 +1047,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 0;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -1068,15 +1068,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 1;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
 
@@ -1084,15 +1084,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                         tmp[0] = tmp[1] = 0;
                         hi  = 0;
                         while (hi < hi_end) {
-                                tmp[0] += work_buf[si] * h[hi]; 
+                                tmp[0] += work_buf[si] * h[hi];
                                 tmp[1] += work_buf[si + 1] * h[hi];
                                 hi  += fs->scale;
                                 si  += 2;
                         }
-                        tmp[0] /= SINC_SCALE; 
+                        tmp[0] /= SINC_SCALE;
                         tmp[1] /= SINC_SCALE;
-                        clip16(tmp[0]); 
-                        clip16(tmp[1]);                        
+                        clip16(tmp[0]);
+                        clip16(tmp[1]);
                         *out++ = (short)tmp[0];
                         *out++ = (short)tmp[1];
                         si_start += 2;
@@ -1106,15 +1106,15 @@ sinc_upsample_stereo (struct s_filter_state *fs,
                                 si  = si_start;
                                 hi  = hi_start;
                                 while (hi < hi_end) {
-                                        tmp[0] += work_buf[si] * h[hi]; 
+                                        tmp[0] += work_buf[si] * h[hi];
                                         tmp[1] += work_buf[si + 1] * h[hi];
                                         hi  += fs->scale;
                                         si  += 2;
                                 }
-                                tmp[0] /= SINC_SCALE; 
+                                tmp[0] /= SINC_SCALE;
                                 tmp[1] /= SINC_SCALE;
-                                clip16(tmp[0]); 
-                                clip16(tmp[1]);              
+                                clip16(tmp[0]);
+                                clip16(tmp[1]);
                                 *out++ = (short)tmp[0];
                                 *out++ = (short)tmp[1];
                                 hi_start--;
@@ -1147,8 +1147,8 @@ sinc_downsample_mono(struct s_filter_state *fs,
 
         /* Save last samples in src into hold_buf for next time */
         if (src_len >= (int)(fs->hold_bytes / sizeof(sample))) {
-                memcpy(fs->hold_buf, 
-                       src + src_len - fs->hold_bytes / sizeof(sample), 
+                memcpy(fs->hold_buf,
+                       src + src_len - fs->hold_bytes / sizeof(sample),
                        fs->hold_bytes);
         } else {
                 /* incoming chunk was shorter than hold buffer */
@@ -1208,8 +1208,8 @@ sinc_downsample_stereo(struct s_filter_state *fs,
 
         /* Save last samples in src into hold_buf for next time */
         if (src_len >= (int)(fs->hold_bytes / sizeof(sample))) {
-                memcpy(fs->hold_buf, 
-                       src + src_len - fs->hold_bytes / sizeof(sample), 
+                memcpy(fs->hold_buf,
+                       src + src_len - fs->hold_bytes / sizeof(sample),
                        fs->hold_bytes);
         } else {
                 /* incoming chunk was shorter than hold buffer */

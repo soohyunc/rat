@@ -5,9 +5,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -27,21 +27,21 @@ static const char cvsid[] =
 #define CODEC_PAYLOAD_NO(x) x
 
 static codec_format_t cs[] = {
-        {"VDVI", "VDVI-8K-Mono",  
-         "Variable Rate IMA ADPCM codec.", 
-         CODEC_PAYLOAD_NO(77), 4, 80, 
+        {"VDVI", "VDVI-8K-Mono",
+         "Variable Rate IMA ADPCM codec.",
+         CODEC_PAYLOAD_NO(77), 4, 80,
          {DEV_S16,  8000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 20  ms */
-        {"VDVI", "VDVI-16K-Mono",  
-         "Variable Rate IMA ADPCM codec.", 
-         CODEC_PAYLOAD_NO(78), 4, 80, 
+        {"VDVI", "VDVI-16K-Mono",
+         "Variable Rate IMA ADPCM codec.",
+         CODEC_PAYLOAD_NO(78), 4, 80,
          {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 10  ms */
-        {"VDVI", "VDVI-32K-Mono",  
-         "Variable Rate IMA ADPCM codec.", 
-         CODEC_PAYLOAD_NO(79), 4, 80, 
+        {"VDVI", "VDVI-32K-Mono",
+         "Variable Rate IMA ADPCM codec.",
+         CODEC_PAYLOAD_NO(79), 4, 80,
          {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 5   ms */
-        {"VDVI", "VDVI-48K-Mono",  
-         "Variable Rate IMA ADPCM codec.", 
-         CODEC_PAYLOAD_NO(80), 4, 80, 
+        {"VDVI", "VDVI-48K-Mono",
+         "Variable Rate IMA ADPCM codec.",
+         CODEC_PAYLOAD_NO(80), 4, 80,
          {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}}  /* 3.3 ms */
 };
 
@@ -65,7 +65,7 @@ typedef struct {
         bitstream_t        *bs;
 } vdvi_state_t;
 
-int 
+int
 vdvi_state_create(uint16_t idx, u_char **s)
 {
         vdvi_state_t *v;
@@ -124,7 +124,7 @@ vdvi_encoder(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
         UNUSED(idx);
 
         v = (vdvi_state_t*)encoder_state;
-        
+
         /* Transfer state and fix ordering */
         c->state     = (u_char*)block_alloc(sizeof(struct adpcm_state));
         c->state_len = sizeof(struct adpcm_state);
@@ -132,9 +132,9 @@ vdvi_encoder(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 
         /* Fix coded state for byte ordering */
 	((struct adpcm_state*)c->state)->valprev = htons(((struct adpcm_state*)c->state)->valprev);
-        
+
         samples = cs[idx].format.bytes_per_block * 8 / cs[idx].format.bits_per_sample;
-        
+
         assert(samples == 160);
 
         adpcm_coder(inbuf, dvi_buf, samples, v->as);
@@ -142,7 +142,7 @@ vdvi_encoder(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
         bs_attach(v->bs, vdvi_buf, sizeof(vdvi_buf)/sizeof(vdvi_buf[0]));
         memset(vdvi_buf, 0, sizeof(vdvi_buf)/sizeof(vdvi_buf[0]));
         len = vdvi_encode(dvi_buf, 160, v->bs);
-        c->data     = (u_char*)block_alloc(len); 
+        c->data     = (u_char*)block_alloc(len);
         c->data_len = len;
         memcpy(c->data, vdvi_buf, len);
 
@@ -152,7 +152,7 @@ vdvi_encoder(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 int
 vdvi_decoder(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
 {
-        int samples, len; 
+        int samples, len;
         u_char dvi_buf[80];
         vdvi_state_t *v;
 

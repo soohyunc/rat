@@ -3,9 +3,9 @@ namespace eval help {
 	set help_on 0
 
 	proc show {window} {
-		variable help_text 
-		global help_on 
-		variable help_id 
+		variable help_text
+		global help_on
+		variable help_id
 		variable help_clip
 		if {$help_on} {
 			.help.text  configure -text $help_text($window)
@@ -20,7 +20,7 @@ namespace eval help {
 			    set xpos [expr [winfo rootx    $window] + [winfo width $window] + 4]
 			    set ypos [expr [winfo pointery $window] + 10]
 			}
-			
+
 			wm geometry  .help +$xpos+$ypos
 			set help_id [after 100 wm deiconify .help]
 			raise .help $window
@@ -31,17 +31,17 @@ namespace eval help {
 	}
 
 	proc hide {window} {
-		variable help_id 
+		variable help_id
 		global help_on
-		if {[info exists help_id]} { 
+		if {[info exists help_id]} {
 			after cancel $help_id
 		}
 		wm withdraw .help
 	}
 
 	proc add {window text clip} {
-		variable help_text 
-		variable help_clip 
+		variable help_text
+		variable help_clip
 		set help_text($window)  $text
 		set help_clip($window)  $clip
 		bind $window <Enter>    "+help::show $window"

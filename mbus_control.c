@@ -1,14 +1,14 @@
 /*
  * FILE:    mbus_control.c
  * PROGRAM: RAT - controller
- * AUTHOR:  Colin Perkins 
+ * AUTHOR:  Colin Perkins
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -133,7 +133,7 @@ void mbus_control_rx(char *srce, char *cmnd, char *args, void *data)
 		if (strcmp(control_cmds[i].rxname, cmnd) == 0) {
                         control_cmds[i].rxproc(srce, args, data);
 			return;
-		} 
+		}
 	}
 	debug_msg("Unknown mbus command: %s (%s)\n", cmnd, args);
 }

@@ -19,7 +19,7 @@
 int repair(repair_id_t                 r,
            int                         consec_lost,
            struct s_codec_state_store *states,
-           media_data                  *prev, 
+           media_data                  *prev,
            coded_unit                  *missing);
 
 

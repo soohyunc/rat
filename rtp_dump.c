@@ -4,12 +4,12 @@
  *
  * $Revision$
  * $Date$
- * 
+ *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, is permitted provided that the following conditions 
+ * modification, is permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
@@ -47,10 +47,10 @@
 
 void rtpdump_header(FILE *logger, char *type, rtp_event *e)
 {
-	fprintf(logger, "%s %lu.%06lu 0x%08lx ", 
-	        type, 
-	        (unsigned long) e->ts->tv_sec + SECS_BETWEEN_1900_1970, 
-	        (unsigned long) e->ts->tv_usec, 
+	fprintf(logger, "%s %lu.%06lu 0x%08lx ",
+	        type,
+	        (unsigned long) e->ts->tv_sec + SECS_BETWEEN_1900_1970,
+	        (unsigned long) e->ts->tv_usec,
 	        (unsigned long) e->ssrc);
 }
 
@@ -70,7 +70,7 @@ void rtpdump_callback(FILE *logger, rtp_event *e)
 	switch (e->type) {
 		case RX_RTP:
 			rtpdump_header(logger, "rtp       ", e);
-			fprintf(logger, "-v %d -p %d -x %d -cc %d -m %d -pt %d -seq %u -ts %u -payload_len %d\n", 
+			fprintf(logger, "-v %d -p %d -x %d -cc %d -m %d -pt %d -seq %u -ts %u -payload_len %d\n",
 			        p->v, p->p, p->x, p->cc, p->m, p->pt, p->seq, (unsigned) p->ts, p->data_len);
 			break;
 		case RX_RTCP_START:
@@ -83,23 +83,23 @@ void rtpdump_callback(FILE *logger, rtp_event *e)
 			break;
 		case RX_SR:
 			rtpdump_header(logger, "sr        ", e);
-			fprintf(logger, "-ntp_ts %lu.%lu -rtp_ts %lu -pckts_sent %u -bytes_sent %u\n", 
-			        (unsigned long) ntohl(sr->ntp_sec), 
-				(unsigned long) ntohl(sr->ntp_frac), 
-				(unsigned long) ntohl(sr->rtp_ts), 
-				(unsigned)      ntohl(sr->sender_pcount), 
+			fprintf(logger, "-ntp_ts %lu.%lu -rtp_ts %lu -pckts_sent %u -bytes_sent %u\n",
+			        (unsigned long) ntohl(sr->ntp_sec),
+				(unsigned long) ntohl(sr->ntp_frac),
+				(unsigned long) ntohl(sr->rtp_ts),
+				(unsigned)      ntohl(sr->sender_pcount),
 				(unsigned)      ntohl(sr->sender_bcount));
 			break;
 		case RX_RR:
 			rtpdump_header(logger, "rr        ", e);
 			fprintf(logger, "-ssrc 0x%08lx -fract_lost %f -total_lost %u -seq_cycles %u -seq %u -jitter %u -lsr %u -dlsr %u\n",
-			        (unsigned long) rr->ssrc, 
-				rr->fract_lost / 256.0, 
-				rr->total_lost, 
-				(unsigned) ((rr->last_seq & 0xffff0000) >> 16), 
-				(unsigned) (rr->last_seq & 0xffff), 
-				(unsigned) rr->jitter, 
-				(unsigned) rr->lsr, 
+			        (unsigned long) rr->ssrc,
+				rr->fract_lost / 256.0,
+				rr->total_lost,
+				(unsigned) ((rr->last_seq & 0xffff0000) >> 16),
+				(unsigned) (rr->last_seq & 0xffff),
+				(unsigned) rr->jitter,
+				(unsigned) rr->lsr,
 				(unsigned) rr->dlsr);
 			break;
 		case RX_RR_EMPTY:
@@ -157,11 +157,11 @@ void rtpdump_callback(FILE *logger, rtp_event *e)
 			break;
 	        case RX_APP:
 			rtpdump_header(logger, "app       ", e);
-			fprintf(logger, "-name \"%c%c%c%c\" -subtype %d -data_len %d\n", 
-			       app->name[0], 
-			       app->name[1], 
-			       app->name[2], 
-			       app->name[3], 
+			fprintf(logger, "-name \"%c%c%c%c\" -subtype %d -data_len %d\n",
+			       app->name[0],
+			       app->name[1],
+			       app->name[2],
+			       app->name[3],
 			       app->subtype,
 			       app->length);
 			break;

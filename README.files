@@ -16,7 +16,7 @@ statements and means that modules can be added trivially so long as
 they implement the functions required in the table of the component
 type.  The table is hidden from the application to prevent direct
 access, reduce the risk of memory corruption and to keep the code
-clean.  
+clean.
 
 Access to the table is via a simple query mechanism that typically
 returns information about the components of that type.  As a simple
@@ -30,7 +30,7 @@ example here is how to print out all of the available codecs:
 		codec_id_t            cid;
 		u_int32 i, n;
 
-		/* Call one time initialization function */	
+		/* Call one time initialization function */
 		codec_init();
 
 		n = codec_get_codec_count();
@@ -40,7 +40,7 @@ example here is how to print out all of the available codecs:
 
 			/* Get details of codec by handle */
 			cf  = codec_get_format(cid);
-			
+
 			/* Print the details */
 			printf("%3u s\n", i, cf->long_name);
 		}
@@ -49,11 +49,11 @@ example here is how to print out all of the available codecs:
 	}
 
 A cursory look at the files and you'll see there are many codec_*.[ch]
-files and cx_*.[ch] files.  What are all these files?  
+files and cx_*.[ch] files.  What are all these files?
 
 codec.[ch] implement the codec table and the interface to the table.
 
-codec_*.[ch] are contain functions that appear in the table.  
+codec_*.[ch] are contain functions that appear in the table.
 
 cx_*.[ch] are the codec functions.  These are kept separate from the
           interfacing functions in codec_*.[ch] to keep the code clean.
@@ -80,7 +80,7 @@ auddev_oss.[ch]		Open Sound System.
 auddev_pca.[ch]		FreeBSD PC audio device.
 auddev_sgi.[ch]		SGI audio.
 auddev_sparc.[ch]	Sun audio.
-auddev_win32.[ch]	Win32 sdk audio device and 
+auddev_win32.[ch]	Win32 sdk audio device and
 
 /* Channel coder table interface files */
 channel.[ch]
@@ -164,9 +164,9 @@ cushion.[ch]		Audio device cushion computation.
 main.c			main.
 main_engine.c		main for audio engine (not used yet).
 main_ui.c		main for user interface (not used yet).
-mbus_control.[ch]	Message bus utility functions.		
+mbus_control.[ch]	Message bus utility functions.
 mbus_engine.[ch]	Audio engine message bus command processor.
-mbus_ui.[ch]		User interface message bus command processor.	
+mbus_ui.[ch]		User interface message bus command processor.
 mix.[ch]		Audio mixer.
 net.[ch]		Network interface files.
 parameters.[ch]         Audio energy, silence detection, automatic gain

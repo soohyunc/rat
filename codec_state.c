@@ -6,9 +6,9 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -31,7 +31,7 @@ typedef struct s_codec_state_store {
         codec_mode    mode;
 } codec_state_store_t;
 
-int 
+int
 codec_state_store_create(codec_state_store_t **s, codec_mode m)
 {
         codec_state_store_t *css;
@@ -76,7 +76,7 @@ codec_state_store_get(codec_state_store_t *css, codec_id_t id)
 {
         codec_state *s;
         int i;
-        
+
         for(i = 0; i < css->used; i++) {
                 if (css->buffer[i]->id == id) {
                         return css->buffer[i];
@@ -92,7 +92,7 @@ codec_state_store_get(codec_state_store_t *css, codec_id_t id)
                 codec_decoder_create(id, &s);
                 break;
         }
-        
+
         if (css->used == css->allocated) {
                 codec_state_store_expand(css);
                 debug_msg("Expanding storage for participant states.\n");
@@ -108,7 +108,7 @@ void
 codec_state_store_destroy(codec_state_store_t **css)
 {
         int i;
-        
+
         switch((*css)->mode) {
         case ENCODER:
                 for(i = 0; i < (*css)->used; i++) {
@@ -131,7 +131,7 @@ codec_state_store_remove (codec_state_store_t *css,
                           codec_id_t           id)
 {
         int new_idx, old_idx;
-        
+
         for(new_idx = old_idx = 0; old_idx < css->used; old_idx++) {
                 if (css->buffer[old_idx]->id == id) {
                         switch(css->mode) {

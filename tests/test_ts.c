@@ -9,7 +9,7 @@ u_int32 f[] = {8000, 11025, 16000, 22050, 24000, 32000, 40000, 44100, 48000, 900
 
 #define NUM_F (sizeof(f)/sizeof(u_int32))
 
-static int 
+static int
 test1()
 {
         ts_t a, b, c, dac;
@@ -22,15 +22,15 @@ test1()
                         fb = f[random() % NUM_F];
                         ta = (u_int32)random();
                         tb = (u_int32)random();
-                        
+
                         a = ts_map32(fa,ta);
                         b = ts_map32(fb,tb);
                         c = ts_sub(a, b);
-                        
+
                         assert(ts_valid(a));
                         assert(ts_valid(b));
                         assert(ts_valid(c));
-                        
+
                         dac = ts_sub(a,c);
                         assert(ts_eq(dac,b));
                 }
@@ -74,7 +74,7 @@ test2()
 }
 
 
-int 
+int
 main()
 {
         test2();

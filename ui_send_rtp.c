@@ -1,16 +1,16 @@
 /*
  * FILE:    ui_send_rtp.c
  * PROGRAM: RAT
- * AUTHOR:  Colin Perkins 
- * 	
+ * AUTHOR:  Colin Perkins
+ *
  * Routines which send RTP related mbus commands to the user interface.
  *
  * Copyright (c) 2000-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -100,7 +100,7 @@ void ui_send_rtp_priv(session_t *sp, char *addr, uint32_t ssrc)
 	ui_info_update_sdes(sp, addr, "rtp.source.priv", priv, ssrc);
 }
 
-void 
+void
 ui_send_rtp_gain(session_t *sp, char *addr, uint32_t ssrc)
 {
         pdb_entry_t *pdbe;
@@ -150,7 +150,7 @@ ui_send_rtp_packet_loss(session_t *sp, char *addr, uint32_t srce, uint32_t dest,
 }
 
 void
-ui_send_rtp_rtt(session_t *sp, char *addr, uint32_t ssrc, double rtt_sec) 
+ui_send_rtp_rtt(session_t *sp, char *addr, uint32_t ssrc, double rtt_sec)
 {
 	if (!sp->ui_on) return;
         mbus_qmsgf(sp->mbus_engine, addr, FALSE, "rtp.source.rtt", "\"%08lx\" %6ld", ssrc, (uint32_t) (1000 * rtt_sec));
@@ -167,16 +167,16 @@ void
 ui_send_rtp_addr(session_t *sp, char *addr)
 {
 	char *rtp_addr = mbus_encode_str(rtp_get_addr(sp->rtp_session[0]));
-        mbus_qmsgf(sp->mbus_engine, addr, TRUE, "rtp.addr", "%s %5d %5d %3d", 
-		   rtp_addr, 
-		   rtp_get_rx_port(sp->rtp_session[0]), 
-		   rtp_get_tx_port(sp->rtp_session[0]), 
+        mbus_qmsgf(sp->mbus_engine, addr, TRUE, "rtp.addr", "%s %5d %5d %3d",
+		   rtp_addr,
+		   rtp_get_rx_port(sp->rtp_session[0]),
+		   rtp_get_tx_port(sp->rtp_session[0]),
 		   rtp_get_ttl(sp->rtp_session[0]));
         xfree(rtp_addr);
 }
 
 void
-ui_send_rtp_title(session_t *sp, char *addr) 
+ui_send_rtp_title(session_t *sp, char *addr)
 {
 	char	*title;
 

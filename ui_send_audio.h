@@ -1,14 +1,14 @@
 /*
  * FILE:    ui_send_audio.h
  * PROGRAM: RAT
- * AUTHOR:  Colin Perkins 
- * 	
+ * AUTHOR:  Colin Perkins
+ *
  * Routines which send audio related mbus commands to the user interface.
  *
  * Copyright (c) 2000-2001 University College London
  * All rights reserved.
  */
- 
+
 void ui_send_audio_input_port       (session_t *sp, char *addr);
 void ui_send_audio_input_port_list  (session_t *sp, char *addr);
 void ui_send_audio_input_mute       (session_t *sp, char *addr);

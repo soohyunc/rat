@@ -2,23 +2,23 @@
 
 # Asynchronous file box -the default one is modal and no good for real time applications.
 #
-# Usage: asFileBox .widget 
+# Usage: asFileBox .widget
 #
-# Options: -command <command> 
+# Options: -command <command>
 #          -defaultextension <extension>
 #          -directory  <startdir>
-#          -extensions <extension list> 
+#          -extensions <extension list>
 #          -force_extension <bool>       - append extension to name if not entered
 #          -type    <button label>       - Open/Save
-#          -title <title> 
-# E.g. 
+#          -title <title>
+# E.g.
 # set extensions {{"NeXT/Sun Audio Files" "au"} {"Scriptics TCL Files" "tcl"} {"Microsoft RIFF files" "wav"} {"All Files" "*"}}
-# asFileBox .zzz -command puts -extensions $extensions -defaultextension au 
+# asFileBox .zzz -command puts -extensions $extensions -defaultextension au
 
 proc asParseArgs {dstArray commands options} {
     upvar $dstArray out
     upvar $options opts
-    
+
     # Keep note of default values
     foreach i $commands {
 	set field [lindex $i 0]
@@ -43,7 +43,7 @@ proc asRootName {path} {
 proc asUpdir {path} {
     set l [split [string trimright $path /] /]
     set end [expr [llength $l] - 1]
-    
+
     if {$end <= 0} {
 	return $path
     }
@@ -56,17 +56,17 @@ proc asUpdir {path} {
 
 proc asSelectFile {w value} {
     global as_cwd
-    
+
     $w.main.entries.e delete 0 end
 
     if [file isfile $as_cwd($w)/$value] {
 	$w.main.entries.e insert 0 $value
-    } 
+    }
 }
 
 proc asOpenFile {w value} {
     global as_cwd as_ok as_file
-    
+
     set value [string trimright $value /]
     set value [string trim $value \[\]]
     if {$value == ".."} {
@@ -109,7 +109,7 @@ proc asCommand {w} {
     if {$as_file($w) != ""} {
 	if $as_fix_name($w) {
 	    asFixName $w
-	} 
+	}
 	$as_cmd($w) $as_cwd($w)/$as_file($w)
     }
 
@@ -144,7 +144,7 @@ proc asFilter {w} {
     }
 
     set ext $as_ext($w)
-    
+
     # Split into files and directories
     foreach f $allfiles {
 	#This stops windows getting excited about paths beginning ~
@@ -159,7 +159,7 @@ proc asFilter {w} {
 		}
 	    }
 	}
-    }	
+    }
     if [info exists drives] {
 	foreach f $drives {
 	    $as_list($w) insert end "\[[string trimright $f /]\]"
@@ -169,12 +169,12 @@ proc asFilter {w} {
     if [info exists dirs] {
 	foreach f $dirs {
 	    $as_list($w) insert end "[file tail $f]/"
-	} 
+	}
     }
     if [info exists files] {
 	foreach f $files {
 	    $as_list($w) insert end $f
-	} 
+	}
     }
 }
 
@@ -184,7 +184,7 @@ proc asFileBox {w args} {
 
     # Process options
     set commands {
-	{"-command"          "puts"} 
+	{"-command"          "puts"}
 	{"-defaultextension" ""}
 	{"-directory"        "."}
 	{"-extensions"       ""}
@@ -223,13 +223,13 @@ proc asFileBox {w args} {
     frame $w.main.lbf
     scrollbar $w.main.lbf.scroll -command "$w.main.lbf.list yview"
     set as_list($w) [listbox $w.main.lbf.list -yscroll "$w.main.lbf.scroll set" -bg white]
-    pack $w.main.lbf -side top -expand 1 -fill both 
+    pack $w.main.lbf -side top -expand 1 -fill both
     pack $w.main.lbf.scroll -side right -fill y
     pack $w.main.lbf.list -side left -expand 1 -fill both
 
     # Create Frame for Labels
     frame $w.main.labels
-    pack  $w.main.labels -side left 
+    pack  $w.main.labels -side left
     label $w.main.labels.filename -text "File name:"
     label $w.main.labels.types -text "File type:"
     pack  $w.main.labels.filename $w.main.labels.types -side top -fill x -ipady 4
@@ -240,14 +240,14 @@ proc asFileBox {w args} {
     menubutton $w.main.entries.mb -menu $w.main.entries.mb.menu  -indicatoron 1 -relief raised -width 20 -justify left
     menu $w.main.entries.mb.menu -tearoff 0
     pack $w.main.entries -side left -fill x -expand 1 -ipady 8 -ipadx 8 -padx 8
-    pack $w.main.entries.e $w.main.entries.mb -side top -fill x -expand 1 
+    pack $w.main.entries.e $w.main.entries.mb -side top -fill x -expand 1
 
     # Pack buttons
     frame $w.main.cmdf
     set as_ok($w) [button $w.main.cmdf.ok -text $base(-type) -command "asCommand $w"]
     button $w.main.cmdf.cancel -text "Cancel" -command "destroy $w"
-    pack $w.main.cmdf -side right -fill both -expand 0 
-    pack $w.main.cmdf.ok     -side top    -expand 1 -fill x 
+    pack $w.main.cmdf -side right -fill both -expand 0
+    pack $w.main.cmdf.ok     -side top    -expand 1 -fill x
     pack $w.main.cmdf.cancel -side bottom -expand 1 -fill x
 
     # Fill in extensions
@@ -266,13 +266,13 @@ proc asFileBox {w args} {
     }
 
     # Set up global storage for variables
-    set as_cwd($w) [pwd] 
+    set as_cwd($w) [pwd]
     if {$base(-directory) != "."} {
 	set as_cwd($w) $base(-directory)
     }
 
     set as_ext($w) $base(-defaultextension)
-    
+
 	# Add listbox bindings
     bind $w.main.lbf.list <1> {
 		%W activate @%x,%y
@@ -283,12 +283,12 @@ proc asFileBox {w args} {
 		%W activate @%x,%y
 		asOpenFile [asRootName %W] [%W get active]
     }
-	
+
 	bind $w.main.lbf.list <KeyPress-Return> {
-	
+
 		asOpenFile [asRootName %W] [%W get active]
     }
-    
+
 	bind $w <Up> {
 		set sel [%W.main.lbf.list curselection]
 		if {$sel != {}} {
@@ -301,7 +301,7 @@ proc asFileBox {w args} {
 			}
 		}
     }
- 
+
 	bind $w <Down> {
 		set sel [%W.main.lbf.list curselection]
 		if {$sel != {}} {
@@ -315,7 +315,7 @@ proc asFileBox {w args} {
 		}
     }
 
-    asFilter $w 
+    asFilter $w
 }
 
 

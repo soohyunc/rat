@@ -1,16 +1,16 @@
 /*
  * FILE:    ui_send_prefs.c
  * PROGRAM: RAT
- * AUTHOR:  Colin Perkins 
- * 	
+ * AUTHOR:  Colin Perkins
+ *
  * Routines which send our preferences and other misc state to the user interface.
  *
  * Copyright (c) 2000-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -29,7 +29,7 @@ static const char cvsid[] =
 #include "audio_fmt.h"
 #include "ui_send_prefs.h"
 
-void 
+void
 ui_send_converter_list(session_t *sp, char *addr)
 {
         const converter_details_t *details;
@@ -78,7 +78,7 @@ ui_send_repair_scheme_list(session_t *sp, char *addr)
         char *mbes;
         uint16_t i, n;
 	if (!sp->ui_on) return;
-        
+
         n = repair_get_count();
         mbus_qmsg(sp->mbus_engine, addr, "tool.rat.repairs.flush", "", TRUE);
 
@@ -98,7 +98,7 @@ ui_send_codec_details(session_t *sp, char *addr, codec_id_t cid)
         char 			 pay[4];
         u_char 			 pt;
         const codec_format_t	*cf;
-        
+
 	if (!sp->ui_on) return;
         cf  = codec_get_format(cid);
         assert(cf != NULL);
@@ -129,7 +129,7 @@ ui_send_codec_details(session_t *sp, char *addr, codec_id_t cid)
 	descr_e      = mbus_encode_str(cf->description);
         layers       = codec_can_layer(cid);
 
-        mbus_qmsgf(sp->mbus_engine, addr, TRUE, 
+        mbus_qmsgf(sp->mbus_engine, addr, TRUE,
                    "tool.rat.codecs.add",
                    "%s %s %s %d %d %d %d %d %s %s %d",
                    pay_e,
@@ -177,7 +177,7 @@ ui_send_sampling_mode_list(session_t *sp, char *addr)
         char    modes[255]="";
         char    tmp[22];
         uint16_t channels, support, zap, i;
-        
+
 	if (!sp->ui_on) return;
 
 	for(i =  0; i < NUM_RATES; i++) {
@@ -188,7 +188,7 @@ ui_send_sampling_mode_list(session_t *sp, char *addr)
 			}
                 }
                 switch(support) {
-                case 3: sprintf(tmp, "%d-kHz,Mono,Stereo ", sample_rates[i]/1000); break; 
+                case 3: sprintf(tmp, "%d-kHz,Mono,Stereo ", sample_rates[i]/1000); break;
                 case 2: sprintf(tmp, "%d-kHz,Stereo ", sample_rates[i]/1000);      break;
                 case 1: sprintf(tmp, "%d-kHz,Mono ", sample_rates[i]/1000);        break;
                 case 0: continue;
@@ -208,7 +208,7 @@ ui_send_sampling_mode_list(session_t *sp, char *addr)
 	xfree(mbes);
 }
 
-static void 
+static void
 ui_update_boolean(session_t *sp, char *addr, const char *field, int boolval)
 {
         if (boolval) {

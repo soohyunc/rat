@@ -22,8 +22,8 @@ int  bs_create     (bitstream_t **b);
 
 int  bs_destroy    (bitstream_t **b);
 
-int  bs_attach     (bitstream_t *b, 
-                    u_char *buf, 
+int  bs_attach     (bitstream_t *b,
+                    u_char *buf,
                     int blen);
 
 int  bs_put        (bitstream_t *b,

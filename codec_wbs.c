@@ -5,9 +5,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -22,10 +22,10 @@ static const char cvsid[] =
 #include "cx_wbs.h"
 
 static codec_format_t cs[] = {
-        {"WBS", "WBS-16K-Mono",  
-         "Wide band speech coder. Implemented by Markus Iken, University College London.", 
+        {"WBS", "WBS-16K-Mono",
+         "Wide band speech coder. Implemented by Markus Iken, University College London.",
          /* NB payload 109 for backward compatibility */
-         109, WBS_STATE_SIZE, WBS_UNIT_SIZE, 
+         109, WBS_STATE_SIZE, WBS_UNIT_SIZE,
          {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}
         }
 };
@@ -53,7 +53,7 @@ typedef struct s_wbs_state {
         short                   ns;             /* Noise shaping state */
 } wbs_t;
 
-int 
+int
 wbs_state_create(uint16_t idx, u_char **s)
 {
         wbs_t *st;
@@ -64,9 +64,9 @@ wbs_state_create(uint16_t idx, u_char **s)
                 st = (wbs_t*)xmalloc(sz);
                 if (st) {
                         memset(st, 0, sz);
-                        wbs_state_init(&st->state, 
-                                       st->qmf_lo, 
-                                       st->qmf_hi, 
+                        wbs_state_init(&st->state,
+                                       st->qmf_lo,
+                                       st->qmf_hi,
                                        &st->ns);
                         *s = (u_char*)st;
                         return sz;
@@ -96,7 +96,7 @@ wbs_encoder(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
         assert(inbuf);
         assert(idx < WBS_NUM_FORMATS);
         UNUSED(idx);
-        
+
         /* Transfer state and fix ordering */
         c->state     = (u_char*)block_alloc(WBS_STATE_SIZE);
         c->state_len = WBS_STATE_SIZE;
@@ -163,28 +163,28 @@ int wbs_get_layer (uint16_t idx, coded_unit *in, uint8_t layer, uint16_t *marker
                 debug_msg("Too many layers: WBS only supports %d\n", WBS_NUM_LAYERS);
                 return 0;
         }
-  
+
         /* don't care about state */
 	out->state = NULL;
 	out->state_len = 0;
-        
+
         tmp_out = (coded_unit*)block_alloc(sizeof(coded_unit));
         tmp_out->data      = (u_char*)block_alloc(in->data_len);
         tmp_out->data_len  = in->data_len;
-       
+
         for (i=0; i<WBS_UNIT_SIZE; i++) {
                 tmp1 = tmp2 = tmp3 = tmp4 = *(in->data+i);
                 base[i] = (u_char)(((tmp1 & 0x1e) >> 1) | ((tmp2 & 0xc0) >> 2));
                 enh[i] = (u_char)(((tmp3 & 0x20) << 2) | ((tmp4 & 0x01) << 6));
         }
-        
+
         /* Need to shift everything about so that it    *
         * fits nicely into bytes. At present enh layer *
         * occupies 2 bits and base layer 6 bits. So 4  *
         * units will fit into 4 bytes (1 enh, 3 base). *
         * There must, of course be an easier way to do *
         * this.                                        */
-        
+
         j = 0;
 
         for (i=0; i<WBS_UNIT_SIZE; i+=4) {
@@ -246,12 +246,12 @@ int wbs_combine_layer (uint16_t idx, coded_unit *in, coded_unit *out, uint8_t ne
         int i, j, k, marker;
         u_char cont_layer[WBS_UNIT_SIZE];
         u_char tmp1, tmp2, tmp3, tmp4;
-        
+
         assert(in);
         UNUSED(idx);
 		UNUSED(nelem);
         UNUSED(markers);
-        
+
        /* By the time we get here we assume that the  *
         * data is in one contiguous block again, and  *
         * that markers indicates where the layers are *
@@ -265,7 +265,7 @@ int wbs_combine_layer (uint16_t idx, coded_unit *in, coded_unit *out, uint8_t ne
         out->data      = (u_char*)block_alloc(in->data_len);
 
         marker = 3*WBS_UNIT_SIZE/4; /* ie 60 for base, 20 for enh */
-        
+
         j = k = 0;
 
         for (i=0; i<WBS_UNIT_SIZE; i+=4) {
@@ -275,7 +275,7 @@ int wbs_combine_layer (uint16_t idx, coded_unit *in, coded_unit *out, uint8_t ne
                 tmp4 = *(in->data + k + marker);
 
                 cont_layer[i] = (u_char)((tmp1 & 0x3f) | ((tmp4 & 0x03) << 6));
-        
+
                 tmp1 = *(in->data + j);
                 tmp4 = *(in->data + k + marker);
 
@@ -294,13 +294,13 @@ int wbs_combine_layer (uint16_t idx, coded_unit *in, coded_unit *out, uint8_t ne
 
                 j+=3;
                 k++;
-        }        
-                                        
+        }
+
         for (i=0; i<WBS_UNIT_SIZE; i++) {
                 tmp1 = tmp2 = tmp3 = tmp4 = cont_layer[i];
                 *(out->data + i) = (u_char)(((tmp1 & 0x80) >> 2) | ((tmp2 & 0x40) >> 6) | ((tmp3 & 0x30) << 2) | ((tmp4 & 0x0f) << 1));
         }
-        
+
         if (in->state_len > 0) {
                 assert(in->state_len == WBS_STATE_SIZE);
                 out->state_len = WBS_STATE_SIZE;

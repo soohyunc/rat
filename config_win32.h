@@ -125,7 +125,7 @@ struct timezone {
 typedef DWORD pid_t;
 typedef DWORD uid_t;
 typedef DWORD gid_t;
-    
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -166,5 +166,5 @@ void ShowMessage(int level, char *msg);
 
 #define M_PI		3.14159265358979323846
 
-#endif 
+#endif
 #endif

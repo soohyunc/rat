@@ -6,9 +6,9 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -28,7 +28,7 @@ static const char cvsid[] =
 
 static HACMDRIVER hDrv;
 
-static BOOL CALLBACK 
+static BOOL CALLBACK
 getPCMConverter (HACMDRIVERID hadid, DWORD dwInstance, DWORD fdwSupport)
 {
         if (fdwSupport & ACMDRIVERDETAILS_SUPPORTF_CONVERTER) {
@@ -42,7 +42,7 @@ getPCMConverter (HACMDRIVERID hadid, DWORD dwInstance, DWORD fdwSupport)
         return TRUE;
 }
 
-int 
+int
 acm_cv_startup (void)
 {
      acmDriverEnum(getPCMConverter, 0L, 0L);
@@ -50,7 +50,7 @@ acm_cv_startup (void)
      return FALSE;                /* Failed initialization, entry disabled in table */
 }
 
-void 
+void
 acm_cv_shutdown (void)
 {
         if (hDrv) acmDriverClose(hDrv, 0);
@@ -86,7 +86,7 @@ acm_cv_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 
         *state     = (u_char *)lpa;
         *state_len = sizeof(HACMSTREAM);
- 
+
         return TRUE;
 }
 
@@ -97,17 +97,17 @@ acm_cv_convert (const converter_fmt_t *cfmt, u_char *state, sample *src_buf, int
         LPHACMSTREAM    lphs;
 
         UNUSED(cfmt);
-        
+
         memset(&ash, 0, sizeof(ash));
         ash.cbStruct        = sizeof(ash);
         ash.pbSrc           = (LPBYTE)src_buf;
         ash.cbSrcLength     = src_len * sizeof(sample);
         ash.pbDst           = (LPBYTE)dst_buf;
         ash.cbDstLength     = dst_len * sizeof(sample);
-        
+
         lphs = (LPHACMSTREAM)state;
 
-        if (acmStreamPrepareHeader(*lphs, &ash, 0) || 
+        if (acmStreamPrepareHeader(*lphs, &ash, 0) ||
             acmStreamConvert(*lphs, &ash, ACM_STREAMCONVERTF_BLOCKALIGN)) {
                 memset(dst_buf, 0, dst_len * sizeof(sample));
         }

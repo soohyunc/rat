@@ -1,7 +1,7 @@
 /*
  * FILE:      cc_layered.h
- * AUTHOR(S): Orion Hodson + Tristan Henderson 
- *	
+ * AUTHOR(S): Orion Hodson + Tristan Henderson
+ *
  *
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
@@ -43,6 +43,6 @@ int layered_decoder_describe (uint8_t   pkt_pt,
                               uint32_t  len,
                               char    *out,
                               uint32_t  out_len);
- 
+
 #endif /* __CC_layered_H__ */
 

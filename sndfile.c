@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -54,9 +54,9 @@ typedef struct s_file_handler {
 /* Sound file handlers */
 
 static sndfile_handler_t snd_handlers[] = {
-        {"NeXT/Sun", 
-         "au", 
-         sun_read_hdr, 
+        {"NeXT/Sun",
+         "au",
+         sun_read_hdr,
          sun_read_audio,
          sun_write_hdr,
          sun_write_audio,
@@ -102,8 +102,8 @@ typedef struct s_sndfile {
         uint32_t action; /* Playing, recording, paused */
 } sndfile_t;
 
-int  
-snd_read_open (sndfile_t **sndfile, char *path, sndfile_fmt_t *fmt) 
+int
+snd_read_open (sndfile_t **sndfile, char *path, sndfile_fmt_t *fmt)
 {
         sndfile_t *s;
         FILE       *fp;
@@ -122,12 +122,12 @@ snd_read_open (sndfile_t **sndfile, char *path, sndfile_fmt_t *fmt)
                 debug_msg("Could not open %s\n",path);
                 return FALSE;
         }
-        
+
         s     = (sndfile_t*)xmalloc(sizeof(sndfile_t));
         if (!s) return FALSE;
-        
+
         s->fp = fp;
-        
+
         for(i = 0; i < NUM_SND_HANDLERS; i++) {
                 if (snd_handlers[i].open_hdr(fp,&s->state, fmt)) {
                         s->sfh    = snd_handlers + i;
@@ -139,11 +139,11 @@ snd_read_open (sndfile_t **sndfile, char *path, sndfile_fmt_t *fmt)
         }
 
         xfree(s);
-        
+
         return FALSE;
 }
 
-int  
+int
 snd_read_close(sndfile_t **sf)
 {
         sndfile_handler_t *sfh = (*sf)->sfh;
@@ -172,7 +172,7 @@ snd_read_audio(sndfile_t **sf, sample *buf, uint16_t samples)
 	}
 
         sfh = (*sf)->sfh;
-        
+
         samples_read = sfh->read_audio((*sf)->fp, (*sf)->state, buf, samples);
 
         if (samples_read != samples) {
@@ -230,12 +230,12 @@ snd_write_open (sndfile_t **sf, char *path, char *default_extension, const sndfi
                 debug_msg("Could not open %s\n",path);
                 return FALSE;
         }
-        
+
         s     = (sndfile_t*)xmalloc(sizeof(sndfile_t));
         if (!s) return FALSE;
 
         s->fp = fp;
-        
+
         for(i = 0; i < NUM_SND_HANDLERS; i++) {
                 if (!strcasecmp(extension, snd_handlers[i].extension)) {
                         s->sfh    = snd_handlers + i;
@@ -245,30 +245,30 @@ snd_write_open (sndfile_t **sf, char *path, char *default_extension, const sndfi
                         return TRUE;
                 }
         }
-        
+
         xfree(s);
-        
+
         return FALSE;
 }
 
-int  
+int
 snd_write_close(sndfile_t **pps)
 {
         sndfile_t *ps = *pps;
 
         if (ps->sfh->write_end) ps->sfh->write_end(ps->fp, ps->state);
-        
+
         ps->sfh->free_state(&ps->state);
-        
+
         fclose(ps->fp);
-        
+
         xfree(ps);
         *pps = NULL;
-        
+
         return TRUE;
 }
 
-int  
+int
 snd_write_audio(sndfile_t **pps, sample *buf, uint16_t buf_len)
 {
         sndfile_t *ps = *pps;
@@ -284,23 +284,23 @@ snd_write_audio(sndfile_t **pps, sample *buf, uint16_t buf_len)
         success = ps->sfh->write_audio(ps->fp, ps->state, buf, buf_len);
         if (!success) {
                 debug_msg("Closing file\n");
-                snd_write_close(pps);        
+                snd_write_close(pps);
                 return FALSE;
         }
 
         return TRUE;
 }
 
-int 
+int
 snd_get_format(sndfile_t *sf, sndfile_fmt_t *fmt)
 {
         return sf->sfh->get_format(sf->state, fmt);
-} 
+}
 
 int
 snd_valid_format(sndfile_fmt_t *fmt)
 {
-        if (fmt->channels != 1 && 
+        if (fmt->channels != 1 &&
             fmt->channels != 2) {
                 debug_msg("Invalid channels %d\n", fmt->channels);
                 return FALSE;
@@ -326,7 +326,7 @@ snd_valid_format(sndfile_fmt_t *fmt)
         return TRUE;
 }
 
-int 
+int
 snd_pause(sndfile_t  *sf)
 {
         sf->action = sf->action | SND_ACTION_PAUSED;

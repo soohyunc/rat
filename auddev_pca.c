@@ -1,15 +1,15 @@
 /*
  * FILE:    auddev_pca.c
  * PROGRAM: RAT
- * AUTHOR:  Jim Lowe (james@cs.uwm.edu) 
+ * AUTHOR:  Jim Lowe (james@cs.uwm.edu)
  * MODS: Orion Hodson
  *
  * Copyright (c) 1996-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -117,7 +117,7 @@ pca_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 
                 return TRUE;
 	} else {
-		/* 
+		/*
 		 * Because we opened the device with O_NDELAY, the wait
 		 * flag was not updaed so update it manually.
 		 */
@@ -182,7 +182,7 @@ int
 pca_audio_duplex(audio_desc_t ad)
 {
         UNUSED(ad);
-        /* LIE! LIE! LIE! LIE! 
+        /* LIE! LIE! LIE! LIE!
          * But we really only support full duplex devices
          */
         return TRUE;
@@ -197,7 +197,7 @@ pca_audio_set_ogain(audio_desc_t ad, int vol)
         UNUSED(ad);
         AUDIO_INITINFO(&dev_info);
         dev_info.play.gain = pca_bat_to_device(vol);
-        if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) 
+        if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
                 perror("pca_audio_set_ogain");
 
 	return;
@@ -283,8 +283,8 @@ pca_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 			perror("pca_audio_write");
 			return (write_bytes - nbytes);
 		}
-	} 
-    
+	}
+
 	return write_bytes;
 }
 
@@ -300,7 +300,7 @@ pca_audio_non_block(audio_desc_t ad)
 
 	if (ioctl(audio_fd, FIONBIO, (char *)&on) < 0)
 		perror("pca_audio_non_block");
- 
+
 	return;
 }
 
@@ -414,7 +414,7 @@ pca_audio_iport_details(audio_desc_t ad, int idx)
 /*
  * Enable hardware loopback
  */
-void 
+void
 pca_audio_loopback(audio_desc_t ad, int gain)
 {
         UNUSED(ad);

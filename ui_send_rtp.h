@@ -1,14 +1,14 @@
 /*
  * FILE:    ui_send_rtp.h
  * PROGRAM: RAT
- * AUTHOR:  Colin Perkins 
- * 	
+ * AUTHOR:  Colin Perkins
+ *
  * Routines which send RTP related mbus commands to the user interface.
  *
  * Copyright (c) 2000-2001 University College London
  * All rights reserved.
  */
- 
+
 void ui_send_rtp_name       (session_t *sp, char *addr, uint32_t ssrc);
 void ui_send_rtp_cname      (session_t *sp, char *addr, uint32_t ssrc);
 void ui_send_rtp_email      (session_t *sp, char *addr, uint32_t ssrc);

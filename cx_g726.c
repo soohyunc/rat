@@ -23,9 +23,9 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -35,9 +35,9 @@ static const char cvsid[] =
  * Common routines for G.726_32 and G.726 conversions.
  */
 
-/* 
+/*
  * Small tweaks made to fix compiler warnings i.e. prototypes and
- * unused variables 
+ * unused variables
  */
 
 #define _PRIVATE_G726_

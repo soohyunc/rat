@@ -23,7 +23,7 @@ int   tx_create      (struct s_tx_buffer **tb,
                       struct s_session    *sp,
 		      uint32_t             sample_rate,
                       uint16_t             channels,
-                      uint16_t             unit_size); 
+                      uint16_t             unit_size);
 
 void  tx_destroy     (struct s_tx_buffer **tb);
 void  tx_start       (struct s_tx_buffer  *tb);

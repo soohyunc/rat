@@ -1,8 +1,8 @@
 namespace eval chart {
 	proc create {} {
 		toplevel  .chart
-		canvas    .chart.c  -xscrollcommand {.chart.sb set} -yscrollcommand {.chart.sr set} 
-		frame     .chart.c.f 
+		canvas    .chart.c  -xscrollcommand {.chart.sb set} -yscrollcommand {.chart.sr set}
+		frame     .chart.c.f
 		scrollbar .chart.sr -orient vertical   -command {.chart.c yview}
 		scrollbar .chart.sb -orient horizontal -command {.chart.c xview}
 
@@ -27,9 +27,9 @@ namespace eval chart {
 
 	# Private - do not use outside this namespace
 	proc popup_show {window} {
-		variable chart_popup_src 
-		variable chart_popup_dst 
-		variable chart_popup_id 
+		variable chart_popup_src
+		variable chart_popup_dst
+		variable chart_popup_id
 		global   NAME
 		.chart_popup.text  configure -text "From: $NAME($chart_popup_src($window))\nTo: $NAME($chart_popup_dst($window))"
 		# Beware! Don't put the popup under the cursor! Else we get window enter
@@ -51,8 +51,8 @@ namespace eval chart {
 
 	# Private - do not use outside this namespace
 	proc popup_hide {window} {
-		variable chart_popup_id 
-		if {[info exists chart_popup_id]} { 
+		variable chart_popup_id
+		if {[info exists chart_popup_id]} {
 			after cancel $chart_popup_id
 		}
 		wm withdraw .chart_popup
@@ -60,8 +60,8 @@ namespace eval chart {
 
 	# Private - do not use outside this namespace
 	proc popup_add {window src dst} {
-		variable chart_popup_src 
-		variable chart_popup_dst 
+		variable chart_popup_src
+		variable chart_popup_dst
 		set chart_popup_src($window) $src
 		set chart_popup_dst($window) $dst
 		bind $window <Enter>    "+chart::popup_show $window"

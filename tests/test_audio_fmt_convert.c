@@ -20,9 +20,9 @@ static void*
 magic_alloc(size_t size)
 {
         uint32_t *m, *s;
-        void *blk; 
+        void *blk;
         uint8_t  *t;
-        
+
         s = (uint32_t*)malloc(size * 3 * sizeof(uint32_t));
         *s = size;
         m  = s + 1;
@@ -87,13 +87,13 @@ test_sample_conversion(audio_format *fmtin, audio_format *fmtout)
         } else {
                 success = TRUE;
         }
-        
+
         magic_free(bufin);
         magic_free(bufout);
         return success;
 }
 
-static int 
+static int
 test_sample_conversions(void)
 {
         const deve_e encodings[] = {
@@ -119,7 +119,7 @@ test_sample_conversions(void)
                         audio_format_name(&fmtin, fmtname, sizeof(fmtname));
                         printf("\n\tFrom: %s to:", fmtname);
                         for(msout = 1; msout <= 2; msout++) {
-                                
+
                                 for(eout = 0; eout < num_encodings; eout++) {
                                         fmtout.encoding        = encodings[eout];
                                         fmtout.sample_rate     = 8000;
@@ -133,7 +133,7 @@ test_sample_conversions(void)
                                                 printf("....failed.");
                                         }
                                         printf("....passed");
-                                }       
+                                }
                         }
                 }
         }

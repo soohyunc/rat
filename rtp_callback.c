@@ -6,9 +6,9 @@
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -48,7 +48,7 @@ typedef struct s_rtp_assoc {
 static rtp_assoc_t rtp_as;
 static int rtp_as_inited;
 
-void 
+void
 rtp_callback_init(struct rtp *rtps, struct s_session *rats)
 {
         rtp_assoc_t *cur, *sentinel;
@@ -82,11 +82,11 @@ rtp_callback_init(struct rtp *rtps, struct s_session *rats)
         cur->prev->next = cur;
 }
 
-void 
+void
 rtp_callback_exit(struct rtp *rtps)
 {
         rtp_assoc_t *cur, *sentinel;
-        
+
         sentinel = &rtp_as;
         cur = sentinel->next;
         while(cur != sentinel) {
@@ -109,7 +109,7 @@ get_session(struct rtp *rtps)
         if (!rtp_as_inited) {
                 return NULL;
         }
-        
+
         sentinel = &rtp_as;
         cur = sentinel->next;
         while(cur != sentinel) {
@@ -117,14 +117,14 @@ get_session(struct rtp *rtps)
                         return cur->rats;
                 }
                 cur = cur->next;
-        }        
+        }
         return NULL;
 }
 
 /* Callback utility functions                                                */
 
 /* rtp_rtt_calc return rtt estimate in seconds */
-static double 
+static double
 rtp_rtt_calc(uint32_t arr, uint32_t dep, uint32_t dlsr)
 {
         uint32_t delta;
@@ -134,7 +134,7 @@ rtp_rtt_calc(uint32_t arr, uint32_t dep, uint32_t dlsr)
         if (delta >= dlsr) {
                 delta -= dlsr;
         } else {
-                /* Clock skew bigger than transit delay  
+                /* Clock skew bigger than transit delay
                  * or garbage dlsr value ?*/
                 debug_msg("delta_ntp (%d) > dlsr (%d)\n", delta, dlsr);
                 delta = 0;
@@ -161,7 +161,7 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
                 return;
         }
         e->received++;
-        
+
         s = source_get_by_ssrc(sp->active_sources, ssrc);
         if (s == NULL) {
                 s = source_create(sp->active_sources, ssrc, sp->pdb);
@@ -209,7 +209,7 @@ process_rr(session_t *sp, rtp_event *rtp_e)
                 double rtt;
                 ntp64_time(&ntp_sec, &ntp_frac);
                 ntp32 = ntp64_to_ntp32(ntp_sec, ntp_frac);
-                    
+
                 rtt = rtp_rtt_calc(ntp32, r->lsr, r->dlsr);
                 /*
                  * Filter out blatantly wrong rtt values.  Some tools might not
@@ -231,7 +231,7 @@ process_rr(session_t *sp, rtp_event *rtp_e)
                 }
         }
 	fract_lost = (r->fract_lost * 100) >> 8;
-            
+
         /* Update loss stats */
         if (sp->mbus_engine != NULL) {
                 ui_send_rtp_packet_loss(sp, sp->mbus_ui_addr, ssrc, r->ssrc, fract_lost);
@@ -243,7 +243,7 @@ process_rr(session_t *sp, rtp_event *rtp_e)
 		fprintf(sp->logger, "%f\n", e->avg_rtt);
 	}
 }
-        
+
 static void
 process_rr_timeout(session_t *sp, uint32_t ssrc, rtcp_rr *r)
 {
@@ -328,12 +328,12 @@ process_delete(session_t *sp, rtp_event *e)
         }
 }
 
-void 
+void
 rtp_callback_proc(struct rtp *s, rtp_event *e)
 {
         struct s_session *sp;
 	int		  i;
-        
+
 	assert(s != NULL);
 	assert(e != NULL);
 

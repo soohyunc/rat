@@ -6,7 +6,7 @@
 #undef NEED_USLEEP
 #undef NEED_SNPRINTF
 
-/* 
+/*
  * Missing declarations
  */
 #undef GETTOD_NOT_DECLARED

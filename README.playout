@@ -23,7 +23,7 @@ removed for some re-engineering and I have not had time to add it
 back.  It should work with parity and Reed-Solomon also.
 
 >Wouldn't the additional buffering need to be in the playout buffer of
->the main codec? 
+>the main codec?
 
 Right, there are two playout buffers, one for the channel coded data
 and one for the media data.  The channel coder can output media units
@@ -42,20 +42,20 @@ channel unit.
 
 The playout delay calculation has some caveats, but it is basically 3
 * jitter as calculated at the arrival time of the first packet in the
-talkspurt.  
+talkspurt.
 
 Caveats are:
         1) with first packet received we have no jitter information so take
 	   minimum of 3 * frame_duration and 3 * 20ms.
-        2) if user has set bounds on the minimum and maximum playout delay, 
+        2) if user has set bounds on the minimum and maximum playout delay,
 	   constrain playout to sit inside these bounds.
         3) if lip synchronization is in use, use playout negotiated with
 	   video tool  (always >= jitter based playout calculation).
         4) playout time of incoming audio overlaps with audio currently
 	   being played - push back.
         5) playout delay is less than cushion, use cushion - cushion is
-	   estimate of how much audio is in device buffer to protect 
+	   estimate of how much audio is in device buffer to protect
 	   against process losing cycles in scheduler.
 
 >>There is no option to vary the amount of internal buffering for
->>redundancy, but obviously it would be trivial to do.  
+>>redundancy, but obviously it would be trivial to do.

@@ -18,13 +18,13 @@ struct s_acm_state;
 void acmStartup(void);
 void acmShutdown(void);
 
-struct s_acm_state* 
+struct s_acm_state*
 acmEncoderCreate(struct s_codec *cp);
 
 void
 acmEncode(struct s_acm_state *s, sample *src, struct s_coded_unit *dst);
 
-void 
+void
 acmEncoderDestroy(struct s_acm_state *s);
 
 #endif /* WIN32 */

@@ -11,7 +11,7 @@ proc mbus_recv {cmd args} {
   }
 }
 
-# The transcoder UI comprises three frames: 
+# The transcoder UI comprises three frames:
 #	.l is the "left" side of the transcoder
 #	.r is the "right" side of the transcoder
 #	.c is for common controls

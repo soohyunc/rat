@@ -13,8 +13,8 @@ The following interfaces are currently supported:
 	auddev_osprey.[ch]	SunVideo Plus Audio Device (Buggy driver!)
 	auddev_oss.[ch]		Linux and FreeBSD Open Sound System
 	auddev_pca.[ch]		FreeBSD Speaker Device (/dev/pcaudio)
-	auddev_sgi.[ch]		SGI Audio Device 
-	auddev_sparc.[ch]	Sun Audio Device 
+	auddev_sgi.[ch]		SGI Audio Device
+	auddev_sparc.[ch]	Sun Audio Device
 	auddev_win32.[ch]	Win32 SDK Audio Device(s)
 
 The following interfaces are suffering bit-rot but could easily be
@@ -76,10 +76,10 @@ Arguments: A unique desciptor and the requested audio formats. Both defined in
            conversion to what the application requested.  No changes should be
            made to any other fields in the input or output formats.
 Returns:   TRUE if device opened with requested format.  FALSE otherwise.
-Note:      It is intend the audio interface code keeps it own audio file 
+Note:      It is intend the audio interface code keeps it own audio file
            descriptors within the scope of its file.  The descriptor ad
            corresponds to the index of the interface selected in the table
-           of interfaces.  
+           of interfaces.
 --------------------------------------------------------------------------------
 void platform_audio_close(audio_desc_t ad);
 
@@ -89,7 +89,7 @@ Returns:   Nothing.
 --------------------------------------------------------------------------------
 void platform_audio_drain(audio_desc_t ad);
 
-Arguments: Descriptor to be drained.  Both input and output devices should be 
+Arguments: Descriptor to be drained.  Both input and output devices should be
            drained if possible.
 Returns:   Nothing.
 
@@ -147,7 +147,7 @@ Returns:   Number of bytes successfully written.
 void platform_audio_non_block(audio_desc_t ad);
 
 Arguments: Descriptor.
-Returns:   Set device to non-blocking.  
+Returns:   Set device to non-blocking.
 
 --------------------------------------------------------------------------------
 void platform_audio_block(audio_desc_t ad);

@@ -1,14 +1,14 @@
 /*
  * FILE:    installer.c
  * PROGRAM: RAT
- * AUTHORS: Colin Perkins 
+ * AUTHORS: Colin Perkins
  *
  * Copyright (c) 2000-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 	cmd_line_args = Tcl_Merge(argc - 1, argv + 1);
 	Tcl_SetVar(interp, "argv", cmd_line_args, TCL_GLOBAL_ONLY);
 #ifndef WIN32
-	ckfree(cmd_line_args); 
+	ckfree(cmd_line_args);
 #endif
 	sprintf(buffer, "%d", argc - 1);
 	Tcl_SetVar(interp, "argc", buffer, TCL_GLOBAL_ONLY);

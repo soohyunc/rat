@@ -20,7 +20,7 @@ static const char cvsid[] = "$Id";
 #include "cmd_parser.h"
 #include "version.h"
 
-void 
+void
 usage(char *szOffending)
 {
 #ifdef WIN32
@@ -47,7 +47,7 @@ usage(char *szOffending)
 #endif
 }
 
-static int 
+static int
 cmd_logstats(struct mbus *m, char *addr, int argc, char *argv[])
 {
         assert(argc == 0);
@@ -57,7 +57,7 @@ cmd_logstats(struct mbus *m, char *addr, int argc, char *argv[])
         return TRUE;
 }
 
-static int 
+static int
 cmd_layers(struct mbus *m, char *addr, int argc, char *argv[])
 {
         int layers;
@@ -71,7 +71,7 @@ cmd_layers(struct mbus *m, char *addr, int argc, char *argv[])
         return FALSE;
 }
 
-static int 
+static int
 cmd_allowloop(struct mbus *m, char *addr, int argc, char *argv[])
 {
         assert(argc == 0);
@@ -81,7 +81,7 @@ cmd_allowloop(struct mbus *m, char *addr, int argc, char *argv[])
         return TRUE;
 }
 
-static int 
+static int
 cmd_session_name(struct mbus *m, char *addr, int argc, char *argv[])
 {
         char *enc_name;
@@ -157,7 +157,7 @@ cmd_silence(struct mbus *m, char *addr, int argc, char *argv[])
         } else if (strcmp(argv[0], "off") == 0) {
                 mbus_qmsgf(m, addr, TRUE, "tool.rat.silence", "0");
                 return TRUE;
-        } 
+        }
         UNUSED(argc);
         usage("Usage: -silence on|off\n");
         return FALSE;
@@ -181,11 +181,11 @@ cmd_primary(struct mbus *m, char *addr, int argc, char *argv[])
         /* Set primary codec: "-f codec". You cannot set the   */
         /* redundant codec with this option, use "-r" instead. */
         char *firstname, *realname, *name, *freq, *chan;
-        
+
         assert(argc == 1);
         /* Break at trailing / in case user attempting old syntax */
         firstname = (char*)strtok(argv[0], "/");
-        
+
         /* The codec should be of the form "pcmu-8k-mono".     */
         realname = xstrdup(codec_get_compatible_name(firstname));
         name     = (char*)strtok(realname, "-");

@@ -27,7 +27,7 @@ snr(sample *src, sample *replica, int s_bytes)
 {
         int i, n_samples = s_bytes / sizeof(sample);
         double st = 0.0, nt = 0.0;
-        
+
         for(i = 0; i < n_samples; i++) {
                 st += fabs((double)src[i]);
                 nt += fabs((double)src[i] - (double)replica[i]);
@@ -44,7 +44,7 @@ snr(sample *src, sample *replica, int s_bytes)
  * For codecs that are not pitch synchronous this does not
  * make a lot of sense with first finding max correlation score
  * between buffers and then realigning.
- */  
+ */
 
 static void
 test_codec(codec_id_t cid, const codec_format_t *cf)
@@ -57,7 +57,7 @@ test_codec(codec_id_t cid, const codec_format_t *cf)
         success = codec_encoder_create(cid, &enc);
         assert(success == 1);
         success = codec_decoder_create(cid, &dec);
-        assert(success == 1);        
+        assert(success == 1);
 
         /* First make buffer of raw audio */
         input.id    = codec_get_native_coding(cf->format.sample_rate,
@@ -68,8 +68,8 @@ test_codec(codec_id_t cid, const codec_format_t *cf)
         input.data_len  = cf->format.bytes_per_block;
 
         for(fill_freq = 1000; fill_freq < 3500; fill_freq += 500) {
-                buffer_fill((sample*)input.data, 
-                            input.data_len, 
+                buffer_fill((sample*)input.data,
+                            input.data_len,
                             cf->format.channels,
                             fill_freq);
 
@@ -79,7 +79,7 @@ test_codec(codec_id_t cid, const codec_format_t *cf)
                 assert(codec_peek_frame_size(coded.id,
                                              coded.data,
                                              1000) == coded.data_len);
-                
+
                 memset(&output, 0, sizeof(coded_unit));
                 codec_decode(dec, &coded, &output);
 
@@ -87,7 +87,7 @@ test_codec(codec_id_t cid, const codec_format_t *cf)
                 assert(input.data_len == output.data_len);
 
                 /* Do snr thing */
-                printf("%d\t", 
+                printf("%d\t",
                        fill_freq);
                 sig_err = snr((sample*)input.data, (sample*)output.data, input.data_len);
                 printf("%d\n", (int)(sig_err));
@@ -118,8 +118,8 @@ int main()
                 cf = codec_get_format(cid);
                 printf("Codec 0x%x: ",
                        (unsigned)cid);
-                printf("%s (%s).\n", 
-                       cf->long_name, 
+                printf("%s (%s).\n",
+                       cf->long_name,
                        cf->short_name);
 
                 printf("%s\nDefault pt (%u)\n",

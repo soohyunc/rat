@@ -20,8 +20,8 @@ namespace eval bargraph {
 
 	proc setHeight {bgraph height} {
 		variable prevHeight
-		variable totalHeight 
-		variable litColors 
+		variable totalHeight
+		variable litColors
 		variable unlitColors
 
 		if {$prevHeight($bgraph) > $height} {
@@ -37,7 +37,7 @@ namespace eval bargraph {
 	}
 
 	proc disable {bgraph} {
-		variable totalHeight 
+		variable totalHeight
 
 		if {![winfo exists $bgraph]} {
 			error "Bar graph $bgraph does not exist"
@@ -48,7 +48,7 @@ namespace eval bargraph {
 	}
 
 	proc enable {bgraph} {
-		variable totalHeight 
+		variable totalHeight
 		variable unlitColors
 		variable litColors
 		variable prevHeight

@@ -72,7 +72,7 @@ unsigned char _u2a[128] = {			/* u- to A-law conversions */
 	64,	65,	66,	67,	68,	69,	70,	71,
 	72,	73,	74,	75,	76,	77,	78,	79,
 /* corrected:
-	81,	82,	83,	84,	85,	86,	87,	88, 
+	81,	82,	83,	84,	85,	86,	87,	88,
    should be: */
 	80,	82,	83,	84,	85,	86,	87,	88,
 	89,	90,	91,	92,	93,	94,	95,	96,
@@ -108,7 +108,7 @@ static short search(
    short size)
 {
    short i;
-   
+
    for (i = 0; i < size; i++) {
       if (val <= *table++)
 	 return (i);
@@ -141,7 +141,7 @@ linear2alaw(short pcm_val)	/* 2's complement (16-bit range) */
    short	 mask;
    short	 seg;
    unsigned char aval;
-   
+
    pcm_val = pcm_val >> 3;
 
    if (pcm_val >= 0) {
@@ -150,12 +150,12 @@ linear2alaw(short pcm_val)	/* 2's complement (16-bit range) */
       mask = 0x55;		/* sign bit = 0 */
       pcm_val = -pcm_val - 1;
    }
-   
+
    /* Convert the scaled magnitude to segment number. */
    seg = search(pcm_val, seg_aend, 8);
-   
+
    /* Combine the sign, segment, and quantization bits. */
-   
+
    if (seg >= 8)		/* out of range, return maximum value. */
       return (unsigned char) (0x7F ^ mask);
    else {
@@ -178,9 +178,9 @@ alaw2linear(
 {
    short t;
    short seg;
-   
+
    a_val ^= 0x55;
-   
+
    t = (a_val & QUANT_MASK) << 4;
    seg = ((unsigned)a_val & SEG_MASK) >> SEG_SHIFT;
    switch (seg) {
@@ -236,7 +236,7 @@ linear2ulaw(
    short         mask;
    short	 seg;
    unsigned char uval;
-   
+
    /* Get the sign and the magnitude of the value. */
    pcm_val = pcm_val >> 2;
    if (pcm_val < 0) {
@@ -247,10 +247,10 @@ linear2ulaw(
    }
    if ( pcm_val > CLIP ) pcm_val = CLIP;		/* clip the magnitude */
    pcm_val += (BIAS >> 2);
-   
+
    /* Convert the scaled magnitude to segment number. */
    seg = search(pcm_val, seg_uend, 8);
-   
+
    /*
    * Combine the sign, segment, quantization bits;
    * and complement the code word.
@@ -261,7 +261,7 @@ linear2ulaw(
       uval = (unsigned char) (seg << 4) | ((pcm_val >> (seg + 1)) & 0xF);
       return (uval ^ mask);
    }
-   
+
 }
 
 
@@ -279,17 +279,17 @@ ulaw2linear(
    unsigned char	u_val)
 {
    short t;
-   
+
    /* Complement to obtain normal u-law value. */
    u_val = ~u_val;
-   
+
    /*
     * Extract and bias the quantization bits. Then
     * shift up by the segment number and subtract out the bias.
     */
    t = ((u_val & QUANT_MASK) << 3) + BIAS;
    t <<= ((unsigned)u_val & SEG_MASK) >> SEG_SHIFT;
-   
+
    return ((u_val & SIGN_BIT) ? (BIAS - t) : (t - BIAS));
 }
 
@@ -336,23 +336,23 @@ short         mulawtolin[256];
 unsigned char lintomulaw[65536];
 
 short         alawtolin[256];
-unsigned char lintoalaw[8192]; 
+unsigned char lintoalaw[8192];
 
-void 
+void
 g711_init()
 {
         int32_t i;
-        
+
         for(i = 0; i < 256; i++)
                 mulawtolin[i] = ulaw2linear((unsigned char)i);
 
-        for(i = -32767; i < 32768; i++) 
+        for(i = -32767; i < 32768; i++)
                 lintomulaw[(unsigned short)i] = linear2ulaw((sample)i);
 
-        for(i = 0; i < 256; i++) 
+        for(i = 0; i < 256; i++)
                 alawtolin[i] = alaw2linear((unsigned char)i);
 
-        for(i = -32767; i < 32768; i+= 8) 
+        for(i = -32767; i < 32768; i+= 8)
                 lintoalaw[(unsigned short)i>>3] = linear2alaw((sample)i);
 
 }
@@ -389,7 +389,7 @@ static codec_format_t cs[] = {
          "ITU G.711 µ-law codec.  Sun Microsystems public implementation.",
          PAYLOAD(87), STATE_SIZE(0), FRAME_SIZE(320), /* 5 ms */
          {DEV_S16, 32000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
-/* 48kHz */                
+/* 48kHz */
         {"µ-law", "PCMU-48K-Mono",
          "ITU G.711 µ-law codec.  Sun Microsystems public implementation.",
          PAYLOAD(88), STATE_SIZE(0), FRAME_SIZE(160), /* 3.333... ms */
@@ -463,7 +463,7 @@ g711_encode (uint16_t idx, u_char *state, sample *in, coded_unit *out)
 
         /* No difference between A-law and U-law sizes */
         len = cs[idx].mean_coded_frame_size;
-        
+
         out->state     = NULL;
         out->state_len = 0;
         out->data      = (u_char*)block_alloc(len);
@@ -482,7 +482,7 @@ g711_encode (uint16_t idx, u_char *state, sample *in, coded_unit *out)
                         p++; in++;
                 }
         }
-        
+
         return len;
 }
 

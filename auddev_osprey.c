@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -34,13 +34,13 @@ static int present         = 0;
 
 static void osprey_audio_service(void);
 
-static void 
+static void
 osprey_poll_handler(int signo)
 {
         signal(signo, osprey_poll_handler);
 
         debug_msg("signal %d (0x%x)\n", signo, signo);
-        
+
         osprey_audio_service();
 }
 
@@ -95,7 +95,7 @@ int (*oti_audio_init) (char*, char*);
  * above function pointers
  */
 
-int 
+int
 osprey_audio_init()
 {
         int success;
@@ -182,7 +182,7 @@ static void af2apri(audio_format *fmt, audio_prinfo_t *ap)
         case DEV_PCMU: ap->encoding = AUDIO_ENCODING_ULAW;   assert(ap->precision == 8);  break;
         case DEV_S8:   ap->encoding = AUDIO_ENCODING_LINEAR; assert(ap->precision == 8);  break;
         case DEV_S16:  ap->encoding = AUDIO_ENCODING_LINEAR; assert(ap->precision == 16); break;
-        default: debug_msg("Format not recognized\n"); assert(0); 
+        default: debug_msg("Format not recognized\n"); assert(0);
         }
 }
 
@@ -219,7 +219,7 @@ osprey_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 fprintf(stderr,"could not open audio ctl device\n");
                 osprey_audio_close(ad);
                 return FALSE;
-        }   
+        }
 #ifndef OSPREY_USE_SIGNALS
         if (oti_ioctl(audioctl_fd, I_SETSIG, (void*)(S_MSG)) < 0){
                 perror("I_SETSIG ioctl(audioctl_fd)");
@@ -254,8 +254,8 @@ osprey_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                                 return FALSE;
                         }
                 }
-        }       
-        
+        }
+
         return TRUE;
 }
 
@@ -282,7 +282,7 @@ void
 osprey_audio_drain(audio_desc_t ad)
 {
 /*        audio_info_t tmpinfo;
-        oti_audio_drain(audio_fd, FALSE);  
+        oti_audio_drain(audio_fd, FALSE);
         oti_audio_pause(audio_fd);
         AUDIO_INITINFO(&tmpinfo);
         oti_audio_getinfo(audio_fd, &tmpinfo);
@@ -293,7 +293,7 @@ osprey_audio_drain(audio_desc_t ad)
         tmpinfo.play.samples   = 0;
         tmpinfo.play.error     = 0;
 
-        oti_audio_setinfo(audio_fd, &tmpinfo); 
+        oti_audio_setinfo(audio_fd, &tmpinfo);
 
         oti_audio_resume(audio_fd); */
 
@@ -323,7 +323,7 @@ osprey_audio_get_igain(audio_desc_t ad)
         double igain;
 
         UNUSED(ad); assert(audio_fd > 0);
-        
+
         oti_audio_get_play_gain(audio_fd, &igain);
 
 	return (OTI_DEVICE_TO_RAT(igain));
@@ -335,7 +335,7 @@ osprey_audio_set_ogain(audio_desc_t ad, int vol)
         double ogain;
 
         UNUSED(ad); assert(audio_fd > 0);
-        
+
         ogain = OTI_RAT_TO_DEVICE(vol);
         oti_audio_set_record_gain(audio_fd, &ogain);
 }
@@ -346,7 +346,7 @@ osprey_audio_get_ogain(audio_desc_t ad)
         double ogain;
 
         UNUSED(ad); assert(audio_fd > 0);
-	
+
         oti_audio_get_record_gain(audio_fd, &ogain);
 
 	return (OTI_DEVICE_TO_RAT(ogain));
@@ -380,9 +380,9 @@ osprey_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
         len = oti_read(audio_fd, (char *)buf, len * BYTES_PER_SAMPLE);
 
         if (len < 0) {
-                debug_msg("read failed\n", len); 
+                debug_msg("read failed\n", len);
                 return 0;
-        } 
+        }
 
         return max(0,len);
 }
@@ -441,7 +441,7 @@ audio_port_t
 osprey_audio_oport_get(audio_desc_t ad)
 {
         unsigned int port;
- 
+
         UNUSED(ad); assert(audio_fd > 0);
 
         oti_audio_get_record_port(audio_fd, &port);
@@ -479,7 +479,7 @@ osprey_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
         UNUSED(ad); assert(audio_fd > 0);
 
-        oti_audio_set_record_port(audio_fd, (unsigned int*)&port); 
+        oti_audio_set_record_port(audio_fd, (unsigned int*)&port);
 }
 
 audio_port_t
@@ -489,7 +489,7 @@ osprey_audio_iport_get(audio_desc_t ad)
 
         UNUSED(ad); assert(audio_fd > 0);
 
-        oti_audio_get_record_port(audio_fd, &port); 
+        oti_audio_get_record_port(audio_fd, &port);
 	return (audio_port_t)port;
 }
 
@@ -517,7 +517,7 @@ osprey_audio_duplex(audio_desc_t ad)
         return 1;
 }
 
-int 
+int
 osprey_audio_is_ready(audio_desc_t ad)
 {
         int len;
@@ -548,17 +548,17 @@ osprey_audio_wait_for(audio_desc_t ad, int delay_ms)
 #endif /* OSPREY_USE_SIGNALS */
 
         len = osprey_audio_is_ready(ad);
-        
+
         if (len != 0) {
                 return;
         }
 
         tv.tv_sec = 0;
         tv.tv_usec = delay_ms * 1000;
-        select(0, NULL, NULL, NULL, &tv); 
+        select(0, NULL, NULL, NULL, &tv);
 }
 
-static void 
+static void
 osprey_audio_service()
 {
         static int inservice = FALSE;

@@ -126,10 +126,10 @@ extern void Gsm_Preprocess (
 
 extern void Gsm_Encoding (
 		struct gsm_state * S,
-		word	* e,	
-		word	* ep,	
+		word	* e,
+		word	* ep,
 		word	* xmaxc,
-		word	* Mc,	
+		word	* Mc,
 		word	* xMc);
 
 extern void Gsm_Short_Term_Analysis_Filter (
@@ -234,7 +234,7 @@ typedef gsm_byte 		gsm_frame[33];		/* 33 * 8 bits	 */
 #define	GSM_OPT_LTP_CUT	3
 
 extern gsm  gsm_create 	(void);
-extern void gsm_destroy (gsm);	
+extern void gsm_destroy (gsm);
 extern int  gsm_print   (FILE *, gsm, gsm_byte  *);
 extern int  gsm_option  (gsm, int, int *);
 extern void gsm_encode  (gsm, gsm_signal *, gsm_byte  *);

@@ -7,9 +7,9 @@
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -46,10 +46,10 @@ struct s_voxlet {
 
 static const uint32_t VOXLET_SSRC_ID = 0xffff0000; /* 1 in 4 billion */
 
-int  
-voxlet_create  (voxlet_t          **ppv, 
-                struct s_mixer     *ms, 
-                struct s_pdb       *pdb, 
+int
+voxlet_create  (voxlet_t          **ppv,
+                struct s_mixer     *ms,
+                struct s_pdb       *pdb,
                 const char         *sndfile)
 {
         const  mixer_info_t *mi;
@@ -84,7 +84,7 @@ voxlet_create  (voxlet_t          **ppv,
                 snd_read_close(&sound);
                 return FALSE;
         }
-        
+
         pv  = (voxlet_t*)xmalloc(sizeof(voxlet_t));
         if (pv == NULL) {
                 debug_msg("Could not allocate voxlet\n");
@@ -101,7 +101,7 @@ voxlet_create  (voxlet_t          **ppv,
         pv->converter = NULL;
         pv->played    = 0;
         pv->magic     = VOXLET_MAGIC;
-        
+
         mi = mix_query(ms);
         if (sfmt.sample_rate != mi->sample_rate ||
             sfmt.channels    != mi->channels) {
@@ -136,7 +136,7 @@ voxlet_create  (voxlet_t          **ppv,
         return TRUE;
 }
 
-void 
+void
 voxlet_destroy(voxlet_t **ppv)
 {
         voxlet_t   *pv;
@@ -158,7 +158,7 @@ voxlet_destroy(voxlet_t **ppv)
         *ppv = NULL;
 }
 
-int 
+int
 voxlet_play(voxlet_t *pv, timestamp_t start, timestamp_t end)
 {
         timestamp_t          duration, safety;
@@ -195,8 +195,8 @@ voxlet_play(voxlet_t *pv, timestamp_t start, timestamp_t end)
         /* Convert duration to sampling rate of file */
         duration = ts_convert(sfmt.sample_rate, duration);
         duration.ticks = duration.ticks + (320 - duration.ticks % 320);
-        samples  = duration.ticks * sfmt.channels; 
-        safety = ts_map32(8000, 320); 
+        samples  = duration.ticks * sfmt.channels;
+        safety = ts_map32(8000, 320);
 
         /* Initialize src for reading chunk of sound file */
         src.id        = codec_get_native_coding((uint32_t)sfmt.sample_rate, (uint16_t)sfmt.channels);
@@ -213,7 +213,7 @@ voxlet_play(voxlet_t *pv, timestamp_t start, timestamp_t end)
         if (pv->converter) {
                 /* Prepare destination */
                 memset(&dst, 0, sizeof(dst));
-                
+
                 /* Convert buffer */
                 if (converter_process(pv->converter, &src, &dst) == FALSE) {
                         debug_msg("Conversion failed\n");

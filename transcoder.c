@@ -8,9 +8,9 @@
  * Copyright (C) 1996-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -73,7 +73,7 @@ transcoder_read(int id, sample *buf, int buf_size)
   assert(head[id] <= CHANNEL_SIZE);
   assert(tail[id] <= CHANNEL_SIZE);
   assert(head[id] <= tail[id]);
-  
+
   if (first_time[id] == 0) {
     gettimeofday(&last_time[id], NULL);
     first_time[id] = 1;

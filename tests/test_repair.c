@@ -13,10 +13,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-/* 
+/*
  * test_repair: this test takes an audio file, codes it, and simulates
  * loss on the coded audio, and writes a file of what would be decoded
- * when error concealment is applied.  
+ * when error concealment is applied.
  */
 
 /* drop code - want to have additive drop so if we run test with 5%
@@ -30,7 +30,7 @@
 static unsigned char drop_priv[DROP_ARRAY_SIZE];
 static int units_per_packet = 1;
 
-static void 
+static void
 init_drop(int seed, double d)
 {
   int ndrop     = (int)(d * sizeof(drop_priv));
@@ -45,7 +45,7 @@ init_drop(int seed, double d)
     /* Keep picking numbers until we get one in range and
      * that has not already been picked.
      */
-          while( (r = (mrand48() & 0x7fffffff)) > rand_ceil && 
+          while( (r = (mrand48() & 0x7fffffff)) > rand_ceil &&
                  drop_priv[r % DROP_ARRAY_SIZE]);
           drop_priv[r % DROP_ARRAY_SIZE] = 1;
   }
@@ -57,7 +57,7 @@ do_drop()
 {
   static long int idx;
   int d;
-  
+
   d   = drop_priv[idx / units_per_packet];
   idx = (idx + 1) % DROP_ARRAY_SIZE;
 
@@ -68,7 +68,7 @@ do_drop()
 
 static int
 read_and_encode(coded_unit        *out,
-                codec_state       *encoder, 
+                codec_state       *encoder,
                 struct s_sndfile  *sf_in)
 {
         const codec_format_t *cf;
@@ -87,7 +87,7 @@ read_and_encode(coded_unit        *out,
 
         cf = codec_get_format(encoder->id);
         assert(cf != NULL);
-        dummy.id = codec_get_native_coding((uint16_t)cf->format.sample_rate, 
+        dummy.id = codec_get_native_coding((uint16_t)cf->format.sample_rate,
                                             (uint16_t)cf->format.channels);
         dummy.state     = NULL;
         dummy.state_len = 0;
@@ -120,7 +120,7 @@ decode_and_write(struct s_sndfile           *sf_out,
                         break;
                 }
         }
-                
+
         if (i == md->nrep) {
                 /* no decoded audio available for frame */
                 cu = (coded_unit*)block_alloc(sizeof(coded_unit));
@@ -132,23 +132,23 @@ decode_and_write(struct s_sndfile           *sf_out,
                 md->rep[md->nrep] = cu;
                 md->nrep++;
         }
-        
+
         assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
         assert(sf_out != NULL);
 
-        snd_write_audio(&sf_out, 
-                        (sample*)md->rep[md->nrep - 1]->data,        
-                        md->rep[md->nrep - 1]->data_len / sizeof(sample));        
-     
-}       
+        snd_write_audio(&sf_out,
+                        (sample*)md->rep[md->nrep - 1]->data,
+                        md->rep[md->nrep - 1]->data_len / sizeof(sample));
+
+}
 
 static void
-test_repair(struct s_sndfile *sf_out, 
+test_repair(struct s_sndfile *sf_out,
             codec_id_t        cid,
             repair_id_t       repair_type,
             struct s_sndfile *sf_in)
 {
-        codec_state                *encoder;        
+        codec_state                *encoder;
         struct s_codec_state_store *decoder_states;
         media_data                 *md_prev, *md_cur;
         coded_unit                 *cu;
@@ -188,7 +188,7 @@ test_repair(struct s_sndfile *sf_out,
                         total_lost++;
                         media_data_destroy(&md_cur, sizeof(media_data));
                         media_data_create(&md_cur, 0);
-                        
+
                         cu = (coded_unit*)block_alloc(sizeof(coded_unit));
                         assert(cu != NULL);
                         memset(cu, 0, sizeof(coded_unit));
@@ -202,7 +202,7 @@ test_repair(struct s_sndfile *sf_out,
                                        md_prev,
                                        cu);
                         } else {
-                                
+
                                 /* Create a silent unit */
                                 cu->id = codec_get_native_coding((uint16_t)cf->format.sample_rate,
                                                                  (uint16_t)cf->format.channels);
@@ -212,16 +212,16 @@ test_repair(struct s_sndfile *sf_out,
                                 cu->data_len  = cf->format.bytes_per_block;
                                 memset(cu->data, 0, cu->data_len);
                         }
-                        
+
                         /* Add repaired audio to frame */
                         md_cur->rep[md_cur->nrep] = cu;
                         md_cur->nrep++;
-                        
+
                         consec_lost++;
                 } else {
                         consec_lost = 0;
                 }
-                
+
                 decode_and_write(sf_out, decoder_states, md_cur);
 
                 media_data_destroy(&md_prev, sizeof(media_data));
@@ -231,10 +231,10 @@ test_repair(struct s_sndfile *sf_out,
         }
 
         printf("# Dropped %d frames out of %d (%f loss %%)\n", total_lost, total_done, 100.0 * total_lost / (double)total_done);
-        
+
         media_data_destroy(&md_cur, sizeof(media_data));
         media_data_destroy(&md_prev, sizeof(media_data));
-        
+
         codec_encoder_destroy(&encoder);
         codec_state_store_destroy(&decoder_states);
 }
@@ -250,12 +250,12 @@ where options are:
 \t-s <seed> to set seed of rng (default 0)
 \t-u <units> set audio frames per packet (default 1 == 20ms)\n");
         exit(-1);
-} 
+}
 
 static void
 list_repairs(void)
 {
-        /* Repair interface is not consistent with other interfaces. 
+        /* Repair interface is not consistent with other interfaces.
          * Does not have get_format get_details type fn, just get_name
          * (grumble, grumble, time, grumble) */
 
@@ -276,7 +276,7 @@ file_and_codec_compatible(const sndfile_fmt_t *sff, codec_id_t cid)
 {
         const codec_format_t *cf;
         cf = codec_get_format(cid);
-        
+
         if (cf == NULL) {
                 return FALSE;
         }
@@ -284,7 +284,7 @@ file_and_codec_compatible(const sndfile_fmt_t *sff, codec_id_t cid)
         if (sff->sample_rate == (uint32_t)cf->format.sample_rate &&
             sff->channels    == (uint32_t)cf->format.channels) {
                 return TRUE;
-        } 
+        }
 
         return FALSE;
 }
@@ -326,7 +326,7 @@ resolve_repair(char *reqname, repair_id_t *rid, const char **actualname)
         exit(-1);
 }
 
-int 
+int
 main(int argc, char *argv[])
 {
         const char *codec_name, *repair_name;
@@ -350,7 +350,7 @@ main(int argc, char *argv[])
                                 list_codecs();
                                 break;
                         case 'r':
-                                list_repairs(); 
+                                list_repairs();
                                 break;
                         default:
                                 usage();
@@ -359,7 +359,7 @@ main(int argc, char *argv[])
                 } else {
                         if (argc - ac < 1) {
                                 usage();
-                        } 
+                        }
                         switch(argv[ac][1]) {
                         case 's':
                                 seed = atoi(argv[++ac]);
@@ -386,7 +386,7 @@ main(int argc, char *argv[])
                 }
                 ac++;
         }
-        
+
         if (did_query == TRUE) {
                 /* Not sensible to be running query and executing test */
                 exit(-1);
@@ -435,7 +435,7 @@ seed, drop, codec_name, units_per_packet, repair_name, csra, argv[argc - 2], arg
         test_repair(sf_out, cid, rid, sf_in);
 
         /* snd_read_close(&sf_in) not needed because files gets closed
-         * at eof automatically. 
+         * at eof automatically.
          */
         snd_write_close(&sf_out);
 

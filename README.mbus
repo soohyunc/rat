@@ -35,13 +35,13 @@ The media engine and user interface expect to be started in a particular
 manner. That is, they are given command line options as follows:
 	rat-... -token <token> -control <control>
 where <token> is an opaque string, and <control> is the mbus address of the
-controller. After they have been started, they wait for an 
+controller. After they have been started, they wait for an
 	mbus.waiting(token)
 message from the controller. The token in this message is that given to
 those processes on the command line. On reception of this, they respond
-with 
+with
 	mbus.go(token)
-and start periodically sending 
+and start periodically sending
 	mbus.waiting(token)
 to the controller. The controller will then send any early configuration
 commands (see below) to those processed, followed by
@@ -117,7 +117,7 @@ mbus.go (condition)
 rtp.query ()
 
 	Sent to the media engine to request an update of the current state
-	of the RTP session. 
+	of the RTP session.
 
 rtp.addr (addr rx_port tx_port ttl)
 
@@ -243,7 +243,7 @@ audio.device (device)
 
 	Supported audio hardware.
 
-audio.file.play.open   
+audio.file.play.open
 audio.file.play.pause
 audio.file.play.stop
 audio.file.play.live
@@ -265,7 +265,7 @@ audio.suppress.silence (boolean)
 
 	Enable/disable silence suppression in the transmitter.
 
-audio.3d.filter.types 
+audio.3d.filter.types
 audio.3d.filter.lengths
 audio.3d.azimuth.min
 audio.3d.azimuth.max
@@ -294,7 +294,7 @@ tool.rat.settings ()
 tool.rat.ui.detach.request ()
 
 	Request that the media engine stops sending messages to the user
-	interface. 
+	interface.
 
 tool.rat.ui.detach ()
 
@@ -354,8 +354,8 @@ tool.rat.converters.add (...)
 
 tool.rat.converter (...)
 
-	Sent to the media engine to select a particular converter. 
-	The converter name used is one of those previously sent in 
+	Sent to the media engine to select a particular converter.
+	The converter name used is one of those previously sent in
 	a tool.rat.converters.add() message.
 
 tool.rat.repairs.request()

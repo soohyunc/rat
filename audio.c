@@ -1,7 +1,7 @@
 /*
  * FILE:     audio.c
  * PROGRAM:  RAT
- * AUTHOR:   Orion Hodson 
+ * AUTHOR:   Orion Hodson
  *
  * Based on necessity and earlier code by Isidor Kouvelas, Colin
  * Perkins, and Orion Hodson.  The existence of this code is pretty
@@ -10,9 +10,9 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -99,7 +99,7 @@ typedef struct s_audio_config {
         int          render_3d;
 } audio_config;
 
-static int 
+static int
 ac_create(audio_config **ppac)
 {
         audio_config *pac = (audio_config*)xmalloc(sizeof(audio_config));
@@ -166,13 +166,13 @@ audio_device_attempt_config(session_t *sp, audio_config *config)
 
         incf = codec_get_format(config->primary);
         assert(incf);
-        
+
         inf = audio_format_dup(&incf->format);
         ouf = audio_format_dup(&incf->format);
 
         if (inf->channels != 2 && config->render_3d) {
                 /* If 3d rendering is enabled we need stereo output
-                 * format. 
+                 * format.
                  */
                 ouf->channels = 2;
         }
@@ -189,7 +189,7 @@ audio_device_attempt_config(session_t *sp, audio_config *config)
 
                 /* Initialize read and write components */
                 sp->meter_period = inf->sample_rate / 15;
-                unit_len         = inf->bytes_per_block * 8 / (inf->bits_per_sample*inf->channels); 
+                unit_len         = inf->bytes_per_block * 8 / (inf->bits_per_sample*inf->channels);
                 tx_create(&sp->tb, sp, (uint32_t)inf->sample_rate, (uint16_t)inf->channels, (uint16_t)unit_len);
                 cushion_create(&sp->cushion, (uint32_t)inf->sample_rate);
 		sp->cur_ts = ts_convert(inf->sample_rate, sp->cur_ts);
@@ -314,7 +314,7 @@ audio_device_reconfigure(session_t *sp)
                 sp->encodings[0]  = codec_get_payload(curr_config->primary);
 
                 /* If using redundancy check it is still relevent */
-                if (sp->num_encodings > 1 && 
+                if (sp->num_encodings > 1 &&
                     !codec_audio_formats_compatible(curr_config->primary, codec_get_by_payload(sp->encodings[1]))) {
                         const cc_details_t *ccd;
                         channel_encoder_destroy(&sp->channel_coder);
@@ -345,7 +345,7 @@ audio_device_get_safe_config(audio_config **ppac)
                 pac->device  = audio_get_null_device();
                 pac->primary = codec_get_by_name("PCMU-8K-Mono");
                 pac->render_3d = FALSE;
-                assert(pac->primary); 
+                assert(pac->primary);
                 return TRUE;
         }
         return FALSE;
@@ -368,12 +368,12 @@ audio_device_write(session_t *sp, sample *buf, int dur)
         len =  audio_write(sp->audio_device, buf, dur * ofmt->channels);
 
         xmemchk();
-        
+
         return len;
 }
 
 /* This function needs to be modified to return some indication of how well
- * or not we are doing.                                                    
+ * or not we are doing.
  */
 int
 audio_rw_process(session_t *spi, session_t *spo,  struct s_mixer *ms)
@@ -401,7 +401,7 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mixer *ms)
         xmemchk();
 
 	/* read_dur now reflects the amount of real time it took us to get
-	 * through the last cycle of processing. 
+	 * through the last cycle of processing.
          */
 
 	if (spo->lecture == TRUE && spo->auto_lecture == 0) {
@@ -433,10 +433,10 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mixer *ms)
 
                 /* The mix routine also needs to know for how long the       */
                 /* output went dry so that it can adjust the time.           */
-                mix_new_cushion(ms, 
-                                cushion_size, 
-                                new_cushion, 
-                                (read_dur - cushion_size), 
+                mix_new_cushion(ms,
+                                cushion_size,
+                                new_cushion,
+                                (read_dur - cushion_size),
                                 &bufp);
                 audio_device_write(spo, bufp, new_cushion);
                 /* We've blocked for this long for whatever reason           */
@@ -451,12 +451,12 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mixer *ms)
                         if (abs(diff) < cushion_step) {
                                 diff = 0;
                         }
-                } 
-                
+                }
+
                 /* If diff is less than zero then we must decrease the */
                 /* cushion so loose some of the trailing silence.      */
-                if (diff < 0 && 
-                    mix_active(ms) == FALSE && 
+                if (diff < 0 &&
+                    mix_active(ms) == FALSE &&
                     source_list_source_count(spi->active_sources) == 0) {
                         /* Only decrease cushion if not playing anything out */
                         uint32_t old_cushion;

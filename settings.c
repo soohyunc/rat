@@ -1,14 +1,14 @@
 /*
  * FILE:    settings.c
  * PROGRAM: RAT
- * AUTHORS: Colin Perkins 
+ * AUTHORS: Colin Perkins
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -71,7 +71,7 @@ static void close_registry(void)
 {
 	LONG status;
 	char buffer[SETTINGS_BUF_SIZE];
-	
+
 	status = RegCloseKey(cfgKey);
 	if (status != ERROR_SUCCESS) {
 		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
@@ -99,7 +99,7 @@ static void init_part_two(void)
 static char *settings_file_name(uint32_t type)
 {
         const char  *fmt[] = {"%s/.RTPdefaults", "%s/.RATdefaults", "%s/.RATtmp"};
-        struct passwd	*p;	
+        struct passwd	*p;
         char *filen;
 
         if (type < sizeof(fmt)/sizeof(fmt[0])) {
@@ -157,7 +157,7 @@ static void load_init(void)
                                         debug_msg("Garbage ignored: %s\n", buffer);
                                         continue;
                                 }
-                                key   = (char *) strtok(buffer, ":"); 
+                                key   = (char *) strtok(buffer, ":");
                                 if (key == NULL) {
                                         continue;
                                 }
@@ -169,7 +169,7 @@ static void load_init(void)
                                 while (*value != '\0' && isascii((int)*value) && isspace((int)*value)) {
                                         /* skip leading spaces, and stop skipping if
                                          * not ascii*/
-                                        value++;             
+                                        value++;
                                 }
                                 asarray_add(aa, key, value);
                         }
@@ -191,7 +191,7 @@ static void load_done(void)
 #endif
 }
 
-static int 
+static int
 setting_load(const char *key, char **value)
 {
 #ifndef WIN32
@@ -222,7 +222,7 @@ setting_load_str(const char *name, char *default_value)
                 FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
                 debug_msg("Unable to load setting: %s\n", buffer);
                 return default_value;
-        }	
+        }
         /* now that we know size we can allocate memory and call RegQueryValueEx again */
         value = (char*)xmalloc(val_len * sizeof(char));
         status = RegQueryValueEx(cfgKey, name, NULL, &ValueType, value, &val_len);
@@ -230,12 +230,12 @@ setting_load_str(const char *name, char *default_value)
                 FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
                 debug_msg("Unable to load setting %s: %s\n", name, buffer);
                 return default_value;
-        }	
+        }
         return value;
 #endif
 }
 
-static int 
+static int
 setting_load_int(const char *name, int default_value)
 {
 #ifndef WIN32
@@ -258,7 +258,7 @@ setting_load_int(const char *name, int default_value)
                 FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
                 debug_msg("Unable to load setting %s: %s\n", name, buffer);
                 return default_value;
-        }	
+        }
         return value;
 #endif
 }
@@ -328,7 +328,7 @@ void settings_load_early(session_t *sp)
                 }
         }
         audio_set_oport(sp->audio_device, apd->port);
-        
+
         port = setting_load_str("audioInputPort", "Microphone");
         n    = audio_get_iport_count(sp->audio_device);
         for(i = 0; i < n; i++) {
@@ -441,9 +441,9 @@ settings_username(char *n, uint32_t nlen)
                 if (p->pw_gecos != NULL) {
                         strncpy(n, p->pw_gecos, nlen);
                         /* Gecos can contain all sorts of crud, break
-                         * at first sign of it 
+                         * at first sign of it
                          */
-                        strtok(n, ",.;:()"); 
+                        strtok(n, ",.;:()");
                         return TRUE;
                 } else if (p->pw_name != NULL) {
                         strncpy(n, p->pw_name, nlen);
@@ -452,7 +452,7 @@ settings_username(char *n, uint32_t nlen)
         }
         debug_msg("Could not get passwd entry\n");
         return FALSE;
-#endif        
+#endif
 }
 
 void settings_load_late(session_t *sp)
@@ -474,7 +474,7 @@ void settings_load_late(session_t *sp)
         if (settings_username(username, sizeof(username) - 1) == FALSE) {
                 sprintf(username, "Unknown");
         }
-        
+
 	field = setting_load_str("rtpName", username);
         if (rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME) == NULL) {
                 debug_msg("username %s %s\n", field, username);
@@ -514,7 +514,7 @@ void settings_load_late(session_t *sp)
 	load_done();
 }
 
-static void 
+static void
 save_init_rtp(void)
 {
 #ifndef WIN32
@@ -544,7 +544,7 @@ cr_terminate(char *s, int slen)
         for (i = 0; i < slen; i++) {
                 if (s[i] == '\0' || s[i] == '\n') break;
         }
-        
+
         if (s[i] == '\n') {
                 return;
         } else if (i + 1 >= slen) {
@@ -552,11 +552,11 @@ cr_terminate(char *s, int slen)
         }
 
         s[i] = '\n';
-        s[i + 1] = '\0'; 
+        s[i + 1] = '\0';
 }
 #endif /* WIN32 */
 
-static void save_done(uint32_t type) 
+static void save_done(uint32_t type)
 {
 #ifndef WIN32
         /* settings table has entries we want to write.  Settings file
@@ -615,7 +615,7 @@ static void save_done(uint32_t type)
                         if (fgets(linebuf, sizeof(linebuf)/sizeof(linebuf[0]), n)) {
                                 char *x;
                                 x = linebuf;
-                                /* Don't use fprintf because user 
+                                /* Don't use fprintf because user
                                  * may have format modifiers in values (ugh)
                                  */
                                 while (*x != '\0') {
@@ -664,10 +664,10 @@ static void save_done_rat(void)
 #endif
 }
 
-static void 
+static void
 setting_save_str(const char *name, const char *val)
 {
-        
+
 #ifndef WIN32
         if (val == NULL) {
                 val = "";
@@ -686,7 +686,7 @@ setting_save_str(const char *name, const char *val)
                 FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
                 debug_msg("Unable to save setting %s: %s\n", name, buffer);
                 abort();
-        }	
+        }
 #endif
 }
 
@@ -706,7 +706,7 @@ static void setting_save_int(const char *name, const long val)
                 FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, buffer, SETTINGS_BUF_SIZE, NULL);
                 debug_msg("Unable to save setting %s: %s\n", name, buffer);
                 abort();
-        }	
+        }
 #endif
 }
 
@@ -722,7 +722,7 @@ void settings_save(session_t *sp)
 	const audio_device_details_t    *add       = NULL;
         const cc_details_t 		*ccd       = NULL;
 	codec_id_t	 		 pri_id;
-   
+
 	int				 cc_len;
 	char				*cc_param;
 	int		 		 i;
@@ -743,7 +743,7 @@ void settings_save(session_t *sp)
 			break;
                 }
         }
-        
+
         n = repair_get_count();
         for (j = 0; j < n; j++) {
                 repair = repair_get_details(j);
@@ -784,13 +784,13 @@ void settings_save(session_t *sp)
         setting_save_str("rtpLoc",   rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC));
         setting_save_str("rtpNote",  rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NOTE));
         save_done_rtp();
-        
+
         save_init_rat();
         setting_save_str("audioTool", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_TOOL));
 	setting_save_str("audioDevice",     add->name);
 	setting_save_int("audioFrequency",  af->sample_rate);
-	setting_save_int("audioChannelsIn", af->channels); 
-	
+	setting_save_int("audioChannelsIn", af->channels);
+
 	/* If we save a dynamically mapped codec we crash when we reload on startup */
 	if (pri_cf->default_pt != CODEC_PAYLOAD_DYNAMIC) {
                 setting_save_str("audioPrimary", pri_cf->short_name);
@@ -813,12 +813,12 @@ void settings_save(session_t *sp)
 	setting_save_int("audioLecture",           sp->lecture);
 	setting_save_int("audio3dRendering",       sp->render_3d);
 	setting_save_int("audioAGC",               sp->agc_on);
-	setting_save_int("audioLoopback",          sp->loopback_gain); 
+	setting_save_int("audioLoopback",          sp->loopback_gain);
 	setting_save_int("audioEchoSuppress",      sp->echo_suppress);
 	setting_save_int("audioOutputGain",        audio_get_ogain(sp->audio_device));
 	setting_save_int("audioInputGain",         audio_get_igain(sp->audio_device));
 	setting_save_str("audioOutputPort",        oapd->name);
-	setting_save_str("audioInputPort",         iapd->name); 
+	setting_save_str("audioInputPort",         iapd->name);
 	setting_save_int("audioPowermeters",       sp->meter);
 
 	setting_save_str("audioSilence",  sd_name(sp->silence_detection));

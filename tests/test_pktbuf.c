@@ -8,7 +8,7 @@
 
 static int 		buf_est;
 
-static void 
+static void
 add_thing(pktbuf_t *pb, rtp_packet *pp) {
 	pktbuf_enqueue(pb, pp);
 	if (buf_est < PKTBUF_SIZE) {

@@ -17,8 +17,8 @@ void sinc_shutdown (void);
 
 int  sinc_create  (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len);
 void sinc_destroy (u_char **state, uint32_t *state_len);
-void sinc_convert (const converter_fmt_t *cfmt, u_char *state, 
-                   sample *src_buf, int src_len, 
+void sinc_convert (const converter_fmt_t *cfmt, u_char *state,
+                   sample *src_buf, int src_len,
                    sample *dst_buf, int dst_len);
 
 #endif /* __CONVERT_SINC_H__ */

@@ -1,16 +1,16 @@
 /*
  * FILE:    ui_send_stats.c
  * PROGRAM: RAT
- * AUTHOR:  Colin Perkins 
- * 	
+ * AUTHOR:  Colin Perkins
+ *
  * Routines which send stats updates to the user interface.
  *
  * Copyright (c) 2000-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -91,14 +91,14 @@ ui_send_stats(session_t *sp, char *addr, uint32_t ssrc)
         }
 
         ui_send_rtp_packet_loss(sp, addr, my_ssrc, pdbe->ssrc, fract_lost);
-	mbus_qmsgf(sp->mbus_engine, addr, FALSE, "rtp.source.reception", "\"%08lx\" %6ld %6ld %6ld %6ld %6ld %6d", 
+	mbus_qmsgf(sp->mbus_engine, addr, FALSE, "rtp.source.reception", "\"%08lx\" %6ld %6ld %6ld %6ld %6ld %6d",
 		  pdbe->ssrc, pdbe->received, total_lost, pdbe->misordered, pdbe->duplicates, timestamp_to_ms(pdbe->jitter), pdbe->jit_toged);
-	mbus_qmsgf(sp->mbus_engine, addr, FALSE, "rtp.source.packet.duration", "\"%08lx\" %3d", 
+	mbus_qmsgf(sp->mbus_engine, addr, FALSE, "rtp.source.packet.duration", "\"%08lx\" %3d",
 	           pdbe->ssrc, pdbe->inter_pkt_gap * 1000 / pdbe->sample_rate);
 }
 
 void
-ui_send_periodic_updates(session_t *sp, char *addr, int elapsed_time) 
+ui_send_periodic_updates(session_t *sp, char *addr, int elapsed_time)
 {
         static uint32_t power_time = 0;
         static uint32_t bps_time   = 0;
@@ -111,17 +111,17 @@ ui_send_periodic_updates(session_t *sp, char *addr, int elapsed_time)
 		double inbps = 0.0, outbps = 0.0;
 		uint32_t scnt, sidx;
 		struct s_source *s;
-		
+
 		if (!sp->ui_on) return;
 		scnt = source_list_source_count(sp->active_sources);
 		for(sidx = 0; sidx < scnt; sidx++) {
 			s = source_list_get_source_no(sp->active_sources, sidx);
 			inbps += source_get_bps(s);
 		}
-		mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.bps.in", "%.0f", inbps);        
+		mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.bps.in", "%.0f", inbps);
 
 		outbps = tx_get_bps(sp->tb);
-		mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.bps.out", "%.0f", outbps);        
+		mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.bps.out", "%.0f", outbps);
                 bps_time = 0;
         }
 

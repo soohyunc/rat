@@ -24,7 +24,7 @@
 #include "render_3D.h"
 
 typedef struct s_pdb pdb_t;
- 
+
 typedef struct {
         uint32_t        ssrc;                        /* Unique Id */
         u_char          first_mix:1;
@@ -87,8 +87,8 @@ int pdb_get_next_id  (pdb_t *p, uint32_t cur_id, uint32_t *next_id);
 
 int     pdb_item_get     (pdb_t *p, uint32_t id, pdb_entry_t **item);
 
-int     pdb_item_create  (pdb_t *p, 
-                          uint16_t freq, 
+int     pdb_item_create  (pdb_t *p,
+                          uint16_t freq,
                           uint32_t id);
 
 int     pdb_item_destroy (pdb_t *p, uint32_t id);

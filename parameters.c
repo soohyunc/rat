@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -40,7 +40,7 @@ vu_table_init()
         }
 }
 
-int 
+int
 lin2vu(uint16_t energy, int range, int io_dir)
 {
         static double v[2];
@@ -52,19 +52,19 @@ lin2vu(uint16_t energy, int range, int io_dir)
 
         if (gain > v[io_dir]) {
                 v[io_dir] += 0.80 * (gain - v[io_dir]);
-        } 
+        }
 
         return (int)(v[io_dir] * range);
-} 
+}
 
-/* The silence detection algorithm is: 
+/* The silence detection algorithm is:
  *
  *    Everytime someone adjusts volume, or starts talking, use
  *    a short parole period to calculate reasonable threshold.
  *
  *    This assumes that person is not talking as they adjust the
  *    volume, or click on start talking button.  This can be false
- *    when the source is music, or the speaker is a politician, 
+ *    when the source is music, or the speaker is a politician,
  *    project leader, etc...
  */
 
@@ -178,7 +178,7 @@ manual_sd_init(uint16_t blk_dur, uint16_t freq, uint16_t thresh)
 {
         manual_sd_t *m;
         uint16_t     blocks_per_sec;
-        
+
         m = (manual_sd_t*)xmalloc(sizeof(manual_sd_t));
         if (m != NULL) {
                 m->sltmean = 0;
@@ -285,11 +285,11 @@ vad_config(vad_t *v, uint16_t blockdur, uint16_t freq)
 
         time_ms = (blockdur * 1000) / freq;
 
-        v->limit[VAD_MODE_LECT].sig  = (u_char)(VAD_SIG_LECT  / time_ms); 
+        v->limit[VAD_MODE_LECT].sig  = (u_char)(VAD_SIG_LECT  / time_ms);
         v->limit[VAD_MODE_LECT].pre  = (u_char)(VAD_PRE_LECT  / time_ms);
         v->limit[VAD_MODE_LECT].post = (u_char)(VAD_POST_LECT / time_ms);
 
-        v->limit[VAD_MODE_CONF].sig  = (u_char)(VAD_SIG_CONF  / time_ms); 
+        v->limit[VAD_MODE_CONF].sig  = (u_char)(VAD_SIG_CONF  / time_ms);
         v->limit[VAD_MODE_CONF].pre  = (u_char)(VAD_PRE_CONF  / time_ms);
         v->limit[VAD_MODE_CONF].post = (u_char)(VAD_POST_CONF / time_ms);
 }
@@ -418,7 +418,7 @@ agc_destroy(agc_t *a)
         xfree(a);
 }
 
-void 
+void
 agc_reset(agc_t *a)
 {
         a->peak    = 0;
@@ -427,13 +427,13 @@ agc_reset(agc_t *a)
         a->change  = FALSE;
 }
 
-/* This limit stops agc oscillating around close values, which cause 
+/* This limit stops agc oscillating around close values, which cause
  * silence suppression recallibration to occur too often [oth].
  */
 
 #define AGC_GAIN_SIG 5
 
-static void 
+static void
 agc_consider(agc_t *a)
 {
         int32_t gain;
@@ -469,7 +469,7 @@ agc_update(agc_t *a, uint16_t energy, uint32_t spurtno)
         }
 }
 
-u_char 
+u_char
 agc_apply_changes(agc_t *a)
 {
         if (a->change == TRUE) {

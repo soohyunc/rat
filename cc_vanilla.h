@@ -1,7 +1,7 @@
 /*
  * FILE:      cc_vanilla.h
- * AUTHOR(S): Orion Hodson 
- *	
+ * AUTHOR(S): Orion Hodson
+ *
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
@@ -34,6 +34,6 @@ int vanilla_decoder_describe (uint8_t   pkt_pt,
                               uint32_t  len,
                               char    *out,
                               uint32_t  out_len);
- 
+
 #endif /* __CC_VANILLA_H__ */
 

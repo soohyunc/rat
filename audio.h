@@ -30,7 +30,7 @@ int     audio_rw_process (struct s_session *spi, struct s_session *spo, struct s
 
 /* audio_device_take_initial takes safe config of null audio device.  All
  * further devices used in rat accessed through audio_device_reconfigure.
- * It is a nasty hack, but seemingly necessary in this kludge layer that 
+ * It is a nasty hack, but seemingly necessary in this kludge layer that
  * should not exist.
  */
 
@@ -45,7 +45,7 @@ int	audio_device_release     (struct s_session *sp, audio_desc_t ad);
  * messages, then do device reconfig.
  */
 
-void    audio_device_register_change_device(struct s_session *sp, 
+void    audio_device_register_change_device(struct s_session *sp,
                                             audio_desc_t ad);
 
 void    audio_device_register_change_primary(struct s_session *sp,

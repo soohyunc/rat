@@ -1,14 +1,14 @@
 /*
  * FILE:      codec_types.c
- * AUTHOR(S): Orion Hodson 
- *	
+ * AUTHOR(S): Orion Hodson
+ *
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 #include "config_unix.h"
@@ -18,7 +18,7 @@ static const char cvsid[] =
 #include "util.h"
 #include "debug.h"
 
-int  
+int
 media_data_create(media_data **ppmd, int nrep)
 {
         media_data *pmd;
@@ -26,7 +26,7 @@ media_data_create(media_data **ppmd, int nrep)
 
         *ppmd = NULL;
         pmd   = (media_data*)block_alloc(sizeof(media_data));
-        
+
         if (pmd) {
                 memset(pmd, 0, sizeof(media_data));
                 for(i = 0; i < nrep; i++) {
@@ -45,13 +45,13 @@ media_data_create(media_data **ppmd, int nrep)
         return FALSE;
 }
 
-void 
+void
 media_data_destroy(media_data **ppmd, uint32_t md_size)
 {
         media_data *pmd;
         coded_unit *pcu;
         int         i;
-        
+
         pmd = *ppmd;
 
         assert(pmd != NULL);
@@ -88,7 +88,7 @@ media_data_destroy(media_data **ppmd, uint32_t md_size)
 
 /* media_data_dup duplicate a media data unit.  Copies data from src to a    */
 /* new unit dst.  Returns TRUE on success.                                   */
-int 
+int
 media_data_dup(media_data **dst, media_data *src)
 {
         media_data *m;
@@ -153,7 +153,7 @@ coded_unit_layer_split(coded_unit *in, coded_unit *out, uint8_t layer, uint8_t *
         for(i=layer_markers[layer-1];i<layer_markers[layer];i++) {
                 out->data[i-layer_markers[layer-1]] = in->data[i];
         }
-        
+
         if (in->state_len != 0) {
                 out->state     = (u_char*)block_alloc(in->state_len);
                 out->state_len = in->state_len;

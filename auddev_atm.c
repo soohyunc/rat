@@ -20,12 +20,12 @@
  * changed atm_audio_read to read as many frames as available.
  *
  * Copyright (c) 2000 Nortel Networks
- *           (c) 1995-2001 University College London 
- * All rights reserved.  
+ *           (c) 1995-2001 University College London
+ * All rights reserved.
  */
 
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -129,7 +129,7 @@ atm_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format* ofmt)
                 debug_msg("ATM output format not supported\n");
                 return FALSE;
         }
-        
+
 	fread(&atm_socket, sizeof(atm_socket), 1, f);
 	fclose(f);
 
@@ -148,14 +148,14 @@ atm_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format* ofmt)
 		audio_fd = atm_socket;
 		dev_info.atmhdr = (gfc << ATM_HDR_GFC_SHIFT) | (vpi << ATM_HDR_VPI_SHIFT) |
                         (vci << ATM_HDR_VCI_SHIFT) |       (type << ATM_HDR_PTI_SHIFT) | clp;
-                
+
 		dev_info.txresidue_bytes    = 0;
 		dev_info.rxresidue_bytes    = 0;
 		dev_info.rxresidue          = dev_info.rxresidue_buf;
 		dev_info.seqno              = 0;
 		memset(dev_info.txresidue, 0, sizeof(dev_info.txresidue));
 		memset(dev_info.rxresidue, 0, sizeof(dev_info.txresidue));
-                
+
 		dev_info.monitor_gain       = 0;
 		dev_info.output_muted       = 0; /* 0==not muted */
 		dev_info.play.port          = AUDIO_LINE_OUT;
@@ -280,7 +280,7 @@ atm_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 
         /* Read as much audio as is available */
         len = 0;
-        while ((ioctl(audio_fd, FIONREAD, &avail) >= 0) && 
+        while ((ioctl(audio_fd, FIONREAD, &avail) >= 0) &&
                (buf_bytes - done) >= (ADA_CELL_SZ - ADA_CELL_HEADER_SZ)) {
                 len = read(audio_fd, cellbuf, sizeof(cellbuf));
                 if (len <= 0) {
@@ -292,9 +292,9 @@ atm_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 		/*                debug_msg("read frame %d\n", (int)cellbuf[4]); */
 		assert(dev_info.rxresidue_buf + dev_info.rxresidue_bytes == dev_info.rxresidue);
         }
-        
+
         if (errno != 0) {
-                debug_msg("atm audio read error (%d): len %d avail %d done %d of %d bytes\n", 
+                debug_msg("atm audio read error (%d): len %d avail %d done %d of %d bytes\n",
                           errno, len, avail, done, buf_bytes);
                 /* avail =  0 ioctl failed          */
                 /* len   = -1 read failed           */
@@ -309,8 +309,8 @@ atm_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
                 over = buf_bytes - done;
 		assert(dev_info.rxresidue == dev_info.rxresidue_buf);
 		assert(dev_info.rxresidue_bytes == 0);
-		memcpy(dev_info.rxresidue, 
-                       cellbuf + sizeof(cellbuf) - over, 
+		memcpy(dev_info.rxresidue,
+                       cellbuf + sizeof(cellbuf) - over,
                        sizeof(cellbuf) - over);
                 dev_info.rxresidue_bytes += over;
 		assert(dev_info.rxresidue_bytes <= ADA_CELL_SZ - ADA_CELL_HEADER_SZ);
@@ -344,14 +344,14 @@ atm_audio_write(audio_desc_t ad, u_char *buf, int buf_bytes)
         done = 0;
 	debug_msg("atm_audio_write; got %d bytes b[0] = %d\n", buf_bytes, (int)buf[0]);
 
-	/* if we have anything left from before put it in the output cell 
-	 * first and then fill the cell from the buffer, fixing pointers and 
+	/* if we have anything left from before put it in the output cell
+	 * first and then fill the cell from the buffer, fixing pointers and
 	 * counts
 	 */
 
 	assert(dev_info.txresidue_bytes >= 0);
 	assert((uint32_t)dev_info.txresidue_bytes <= sizeof(dev_info.txresidue));
-	if (dev_info.txresidue_bytes > 0 && 
+	if (dev_info.txresidue_bytes > 0 &&
             (buf_bytes + dev_info.txresidue_bytes) > (ADA_CELL_SZ - ADA_CELL_HEADER_SZ)) {
 		int rem = ADA_CELL_SZ - ADA_CELL_HEADER_SZ - dev_info.txresidue_bytes;
                 /* Fill in header */
@@ -485,7 +485,7 @@ atm_audio_iport_set(audio_desc_t ad, audio_port_t port)
         if (port != AUDIO_LINE_IN ) {
                 port = AUDIO_LINE_IN;
         }
-        
+
         dev_info.record.port = port;
 }
 

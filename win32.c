@@ -7,9 +7,9 @@
  *
  * Additional contributions Orion Hodson (UCL) 1996-98.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -27,14 +27,14 @@ uname(struct utsname *ub)
 {
         SYSTEM_INFO   sysinfo;
         OSVERSIONINFO osinfo;
-        
+
         GetSystemInfo(&sysinfo);
         osinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
         GetVersionEx(&osinfo);
-        
+
         strcpy(ub->sysname, "Windows");
         strcpy(ub->nodename, "Unknown"); /* could use gethostbyname */
-        
+
         /* ub->release and ub->machine*/
         if (osinfo.dwPlatformId == VER_PLATFORM_WIN32_NT) {
                 sprintf(ub->release, "NT %d.%d", osinfo.dwMajorVersion, osinfo.dwMinorVersion);
@@ -56,8 +56,8 @@ uname(struct utsname *ub)
                         break;
                 }
         } else if (osinfo.dwPlatformId == VER_PLATFORM_WIN32s) {
-                strcpy(ub->release, "3.1"); 
-                strcpy(ub->machine, "i386"); 
+                strcpy(ub->release, "3.1");
+                strcpy(ub->machine, "i386");
         } else if (osinfo.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS) {
                 if (osinfo.dwMinorVersion == 0) {
                         strcpy(ub->release, "95");
@@ -65,14 +65,14 @@ uname(struct utsname *ub)
                         strcpy(ub->release, "98");
                 }
                 switch(sysinfo.dwProcessorType) {
-                case PROCESSOR_INTEL_386:     
-                        strcpy(ub->machine, "i386"); 
+                case PROCESSOR_INTEL_386:
+                        strcpy(ub->machine, "i386");
                         break;
-                case PROCESSOR_INTEL_486:     
-                        strcpy(ub->machine, "i486"); 
-                        break;  
-                case PROCESSOR_INTEL_PENTIUM: 
-                        strcpy(ub->machine, "i586"); 
+                case PROCESSOR_INTEL_486:
+                        strcpy(ub->machine, "i486");
+                        break;
+                case PROCESSOR_INTEL_PENTIUM:
+                        strcpy(ub->machine, "i586");
                         break;
                 }
         } else {
@@ -88,15 +88,15 @@ uname(struct utsname *ub)
 
         /* ub->version */
         sprintf(ub->version, "%lu", osinfo.dwBuildNumber);
-                                                
+
         return TRUE;
 }
 
 uid_t
-getuid(void) 
-{ 
+getuid(void)
+{
     return 0;
-    
+
 }
 
 gid_t
@@ -113,7 +113,7 @@ gethostid(void)
 
     if ((gethostname(hostname, WSADESCRIPTION_LEN) == 0) &&
         (he = gethostbyname(hostname)) != NULL) {
-            return *((unsigned long*)he->h_addr_list[0]);        
+            return *((unsigned long*)he->h_addr_list[0]);
     }
 
     /*XXX*/
@@ -142,7 +142,7 @@ int
 printf(const char *fmt, ...)
 {
 	int retval;
-	
+
 	va_list ap;
 	va_start(ap, fmt);
 	retval = _vsnprintf(szTemp, 256, fmt, ap);
@@ -175,7 +175,7 @@ perror(const char *msg)
     DWORD cMsgLen;
     CHAR *msgBuf;
     DWORD dwError = GetLastError();
-    
+
     cMsgLen = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM |
 			    FORMAT_MESSAGE_ALLOCATE_BUFFER | 40, NULL,
 			    dwError,
@@ -224,7 +224,7 @@ WinMain(
     debug_msg("WSAStartup OK: %sz\nStatus:%s\n", WSAdata.szDescription, WSAdata.szSystemStatus);
 
     hAppInstance     = hInstance;
-    hAppPrevInstance = hPrevInstance; 
+    hAppPrevInstance = hPrevInstance;
 
     SetMessageQueue(64);
 
@@ -244,7 +244,7 @@ WinMain(
 	    __progname = p;
 	}
     }
-    
+
     r = main(__argc, (const char**)__argv);
 
     WSACleanup();

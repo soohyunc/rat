@@ -1,19 +1,19 @@
 /*
  * FILE:    auddev_null.c
  * PROGRAM: RAT
- * AUTHOR:  Orion Hodson 
+ * AUTHOR:  Orion Hodson
  *
  * Copyright (c) 1996-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
 /*
- * NULL audio device. 
+ * NULL audio device.
  */
 
 #include "config_unix.h"
@@ -36,7 +36,7 @@ static int read_virgin = 1;
 static int igain = 50, ogain = 50;
 
 #ifdef WIN32
-HANDLE   hAudioWakeUp;   /* Event that gets blocked for in null_audio_wait_for on Win32 */ 
+HANDLE   hAudioWakeUp;   /* Event that gets blocked for in null_audio_wait_for on Win32 */
 #endif
 
 int
@@ -307,7 +307,7 @@ null_audio_iport_details(audio_desc_t ad, int idx)
 /*
  * Enable hardware loopback
  */
-void 
+void
 null_audio_loopback(audio_desc_t ad, int gain)
 {
         UNUSED(ad);
@@ -336,7 +336,7 @@ null_audio_is_ready(audio_desc_t ad)
         return FALSE;
 }
 
-static void 
+static void
 null_audio_select(audio_desc_t ad, int delay_ms)
 {
         int needed, dur;
@@ -380,7 +380,7 @@ int
 null_audio_supports(audio_desc_t ad, audio_format *fmt)
 {
         UNUSED(ad);
-        if ((!(fmt->sample_rate % 8000) || !(fmt->sample_rate % 11025)) && 
+        if ((!(fmt->sample_rate % 8000) || !(fmt->sample_rate % 11025)) &&
             (fmt->channels == 1 || fmt->channels == 2)) {
                 return TRUE;
         }

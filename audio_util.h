@@ -21,7 +21,7 @@ BOOL    mmx_present();
 void    audio_mix_mmx(sample *dst, sample *in, int len);
 #endif
 
-void    audio_scale_buffer(sample *buf, int len, double scale); 
+void    audio_scale_buffer(sample *buf, int len, double scale);
 
 /* Energy calculation */
 uint16_t audio_avg_energy (sample *buf, uint32_t dur, uint32_t channels);

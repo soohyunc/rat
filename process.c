@@ -23,7 +23,7 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
         char			 args[1024];
         LPSTARTUPINFO		 startup_info;
         LPPROCESS_INFORMATION	 proc_info;
-        
+
         startup_info = (LPSTARTUPINFO) xmalloc(sizeof(STARTUPINFO));
         startup_info->cb              = sizeof(STARTUPINFO);
         startup_info->lpReserved      = 0;
@@ -43,15 +43,15 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
         startup_info->hStdInput       = 0;
         startup_info->hStdOutput      = 0;
         startup_info->hStdError       = 0;
-        
+
         proc_info = (LPPROCESS_INFORMATION) xmalloc(sizeof(PROCESS_INFORMATION));
-        
+
 	if (num_tokens == 1) {
 		sprintf(args, "%s -ctrl \"%s\" -token %s", proc_name, ctrl_addr, token[0]);
 	} else {
 		sprintf(args, "%s -T -ctrl \"%s\" -token %s -token %s", proc_name, ctrl_addr, token[0], token[1]);
 	}
-        
+
         if (!CreateProcess(NULL, args, NULL, NULL, TRUE, 0, NULL, NULL, startup_info, proc_info)) {
                 perror("Couldn't create process");
                 abort();
@@ -104,7 +104,7 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
                 /* Note: this MUST NOT be exit() or abort(), since they affect the standard */
                 /* IO channels in the parent process (fork duplicates file descriptors, but */
                 /* they still point to the same underlying file).                           */
-                _exit(1);	
+                _exit(1);
         }
 #endif
 #endif

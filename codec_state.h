@@ -21,11 +21,11 @@ struct s_codec_state_store;
 
 int    codec_state_store_create  (struct s_codec_state_store **css, codec_mode m);
 void   codec_state_store_destroy (struct s_codec_state_store **css);
-codec_state *    
-       codec_state_store_get     (struct s_codec_state_store *, 
+codec_state *
+       codec_state_store_get     (struct s_codec_state_store *,
                                   codec_id_t id);
 
-void   codec_state_store_remove  (struct s_codec_state_store *cs, 
+void   codec_state_store_remove  (struct s_codec_state_store *cs,
                                   codec_id_t id);
 
 #endif /* __CODEC_STATE_H__ */

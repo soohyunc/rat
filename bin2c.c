@@ -2,7 +2,7 @@
  * FILE:    bin2c.c
  * PROGRAM: bin2c
  * AUTHOR:  Colin Perkins
- * 
+ *
  * Copyright (c) 2000-2001 University College London
  * All rights reserved.
  */

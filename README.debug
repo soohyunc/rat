@@ -26,7 +26,7 @@ When debugging is enabled the macro DEBUG is defined and certain
 portions of code that perform checking become enabled.  In addition,
 the macro debug_msg is defined.  This operates in a similar manner to
 printf, on UNIX it logs messages on stderr and on Windows it generates
-debug messages that debugger applications can snoop.  
+debug messages that debugger applications can snoop.
 
 The message format is:
 	<process id>:<source file>:<code line><message>.
@@ -152,7 +152,7 @@ debugging child processes that we commonly use:
 
 2) Place -DDEBUG_FORK (UNIX only) in the Makefile and rebuild
    main_control.o.  This permits the developer to start the child
-   processes manually and start one or both from inside a debugger.  
+   processes manually and start one or both from inside a debugger.
    When the controller is run it provides command line arguments to
    that the sub-processes should be launched with.
 
@@ -176,7 +176,7 @@ Reading
 -------
 
 - Code Complete: A Practical Handbook of Software Construction
-  Steve McConnell, Microsoft Press; ISBN: 1556154844 
+  Steve McConnell, Microsoft Press; ISBN: 1556154844
 
 - The Practice of Programming, Brian W. Kernighan, Rob Pike
   Addison Wesley Publishing Company; ISBN: 020161586X
@@ -185,7 +185,7 @@ Reading
   Addison-Wesley Pub Co; ISBN: 0201657880
   Also More Programming Pearls: Confessions of a Coder (out of print).
 
-- Writing Solid Code: Microsoft's Techniques for Developing 
+- Writing Solid Code: Microsoft's Techniques for Developing
   Bug-Free C Programs, Steve Maguire, Microsoft Press; ISBN: 1556155514
 
 - C Programming Language, Brian Kernighan, Dennis Ritchie.

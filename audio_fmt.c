@@ -6,9 +6,9 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -21,8 +21,8 @@ static const char cvsid[] =
 #include "codec_g711.h"
 
 int
-audio_format_get_common(audio_format* ifmt, 
-                        audio_format *ofmt, 
+audio_format_get_common(audio_format* ifmt,
+                        audio_format *ofmt,
                         audio_format *comfmt)
 {
         int isamples, osamples;
@@ -36,7 +36,7 @@ audio_format_get_common(audio_format* ifmt,
             (ofmt->channels != 1 && ofmt->channels != 2)) {
                 return FALSE;
         }
-        
+
         if ((ifmt->encoding != DEV_PCMU && ifmt->encoding != DEV_S16) ||
             (ofmt->encoding != DEV_PCMU && ofmt->encoding != DEV_S16)) {
                 return FALSE;
@@ -61,9 +61,9 @@ audio_format_get_common(audio_format* ifmt,
 
         isamples = ifmt->bytes_per_block * 8 / (ifmt->channels * ifmt->bits_per_sample);
         osamples = ofmt->bytes_per_block * 8 / (ofmt->channels * ofmt->bits_per_sample);
-        
+
         comfmt->bytes_per_block = min(isamples, osamples) * comfmt->channels * comfmt->bits_per_sample / 8;
-        
+
         return TRUE;
 }
 
@@ -89,11 +89,11 @@ audio_format_free(audio_format **bye)
 }
 
 static int
-convert_buffer_channels(audio_format *src, 
-                        u_char       *src_buf, 
-                        int           src_bytes, 
-                        audio_format *dst, 
-                        u_char       *dst_buf, 
+convert_buffer_channels(audio_format *src,
+                        u_char       *src_buf,
+                        int           src_bytes,
+                        audio_format *dst,
+                        u_char       *dst_buf,
                         int           dst_bytes)
 {
         u_char *se;
@@ -401,10 +401,10 @@ convert_buffer_sample_type(audio_format *src, u_char *src_buf, int src_bytes,
 }
 
 int /* Returns number of bytes put in converted buffer */
-audio_format_buffer_convert(audio_format *src, 
-                            u_char *src_buf, 
-                            int src_bytes, 
-                            audio_format *dst, 
+audio_format_buffer_convert(audio_format *src,
+                            u_char *src_buf,
+                            int src_bytes,
+                            audio_format *dst,
                             u_char *dst_buf,
                             int dst_bytes)
 {
@@ -419,17 +419,17 @@ audio_format_buffer_convert(audio_format *src,
         if (src->channels == dst->channels || src->encoding == dst->encoding) {
                 /* Only 1 buffer needed */
                 if (src->channels != dst->channels) {
-                        convert_buffer_channels    (src, src_buf, src_bytes, dst, dst_buf, dst_bytes); 
+                        convert_buffer_channels    (src, src_buf, src_bytes, dst, dst_buf, dst_bytes);
                 } else {
-                        convert_buffer_sample_type (src, src_buf, src_bytes, dst, dst_buf, dst_bytes); 
+                        convert_buffer_sample_type (src, src_buf, src_bytes, dst, dst_buf, dst_bytes);
                 }
                 xmemchk();
         } else {
                 /* Additional buffer needed since we have to change
-                 * channels and sample type- do everything in steps 
+                 * channels and sample type- do everything in steps
                  */
 #define AF_TMP_BUF_SZ   160
-#define AF_TMP_BUF_SMPLS 80                
+#define AF_TMP_BUF_SMPLS 80
                 u_char ibuf[AF_TMP_BUF_SZ];
                 int    done = 0, src_adv, ret;
                 while (src_bytes > 0) {
@@ -457,22 +457,22 @@ audio_format_change_encoding(audio_format *cur, deve_e new_enc)
         int bits_per_sample = 0;
 
         switch (new_enc) {
-        case DEV_S16:  
-                bits_per_sample = 16; 
+        case DEV_S16:
+                bits_per_sample = 16;
                 break;
         case DEV_S8:
         case DEV_U8:
         case DEV_PCMU:
         case DEV_PCMA:
-                bits_per_sample = 8;  
+                bits_per_sample = 8;
                 break;
         }
-        
+
         cur->bytes_per_block = cur->bytes_per_block * bits_per_sample / cur->bits_per_sample;
         cur->bits_per_sample = bits_per_sample;
         cur->encoding        = new_enc;
 /* If this is zero something has gone wrong! */
-        return cur->bytes_per_block; 
+        return cur->bytes_per_block;
 }
 
 static const char *
@@ -494,8 +494,8 @@ audio_channels_name(int channels)
         switch(channels) {
         case 1: return "Mono";
         case 2: return "Stereo";
-        default: assert(0); 
-        }                
+        default: assert(0);
+        }
         return NULL;
 }
 

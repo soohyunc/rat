@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -147,7 +147,7 @@ static void rx_audio_3d_enable(char *srce, char *args, session_t *sp)
 	mbus_parse_done(mp);
 }
 
-static void 
+static void
 rx_audio_3d_user_settings(char *srce, char *args, session_t *sp)
 {
         pdb_entry_t             *p;
@@ -175,10 +175,10 @@ rx_audio_3d_user_settings(char *srce, char *args, session_t *sp)
                         if (p->render_3D_data == NULL) {
                                 p->render_3D_data = render_3D_init(freq);
                         }
-                        render_3D_set_parameters(p->render_3D_data, 
-                                                 freq, 
-                                                 azimuth, 
-                                                 filter_type, 
+                        render_3D_set_parameters(p->render_3D_data,
+                                                 freq,
+                                                 azimuth,
+                                                 filter_type,
                                                  filter_length);
                 } else {
 			debug_msg("Unknown source 0x%08lx\n", ssrc);
@@ -287,8 +287,8 @@ static void rx_tool_rat_echo_suppress(char *srce, char *args, session_t *sp)
 	mp = mbus_parse_init(args);
 	if (mbus_parse_int(mp, &i)) {
 		sp->echo_suppress = i;
-                if (sp->echo_suppress     == FALSE && 
-                    sp->echo_tx_active    == TRUE  && 
+                if (sp->echo_suppress     == FALSE &&
+                    sp->echo_tx_active    == TRUE  &&
                     tx_is_sending(sp->tb) == FALSE) {
                         /* Suppressor has just been disabled,  transmitter  */
                         /* is in suppressed state and would otherwise be    */
@@ -354,13 +354,13 @@ static void rx_audio_input_gain(char *srce, char *args, session_t *sp)
 	struct mbus_parser	*mp;
 
 	UNUSED(srce);
- 
+
 	mp = mbus_parse_init(args);
-	if (mbus_parse_int(mp, &i) && 
+	if (mbus_parse_int(mp, &i) &&
             (i >= 0 && i <= 100)) {
                 audio_set_igain(sp->audio_device, i);
                 tx_igain_update(sp->tb);
-	} else { 
+	} else {
 		debug_msg("mbus: usage \"audio.input.gain <integer>\"\n");
 	}
 	mbus_parse_done(mp);
@@ -411,7 +411,7 @@ static void rx_audio_output_mute(char *srce, char *args, session_t *sp)
 
 	mp = mbus_parse_init(args);
 	if (mbus_parse_int(mp, &i)) {
-        	sp->playing_audio = !i; 
+        	sp->playing_audio = !i;
 		ui_send_audio_output_port(sp, sp->mbus_ui_addr);
                 n = (int)source_list_source_count(sp->active_sources);
                 for (i = 0; i < n; i++) {
@@ -458,7 +458,7 @@ static void rx_audio_output_port(char *srce, char *args, session_t *sp)
 	if (mbus_parse_str(mp, &s)) {
 		s = mbus_decode_str(s);
                 n     = audio_get_oport_count(sp->audio_device);
-                found = FALSE;                
+                found = FALSE;
 
                 for(i = 0; i < n; i++) {
                         apd = audio_get_oport_details(sp->audio_device, i);
@@ -692,7 +692,7 @@ static void rx_audio_file_play_pause(char *srce, char *args, session_t *sp)
                         }
                 }
         } else {
-                debug_msg("mbus: usage \"audio.file.play.pause <bool>\"\n");        
+                debug_msg("mbus: usage \"audio.file.play.pause <bool>\"\n");
         }
         mbus_parse_done(mp);
 }
@@ -746,7 +746,7 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_t *sp)
 		debug_msg("mbus: usage \"audio.file.record.open <filename>\"\n");
 	}
 	mbus_parse_done(mp);
-        
+
         if (sp->out_file) ui_send_audio_file_record_ready(sp, sp->mbus_ui_addr, file);
 }
 
@@ -768,7 +768,7 @@ static void rx_audio_file_rec_pause(char *srce, char *args, session_t *sp)
                         }
                 }
         } else {
-                debug_msg("mbus: usage \"audio.file.record.pause <bool>\"\n");        
+                debug_msg("mbus: usage \"audio.file.record.pause <bool>\"\n");
         }
         mbus_parse_done(mp);
 }
@@ -781,7 +781,7 @@ static void rx_audio_file_rec_live(char *srce, char *args, session_t *sp)
         ui_send_audio_file_alive(sp, sp->mbus_ui_addr, "record", (sp->out_file) ? 1 : 0);
 }
 
-static void 
+static void
 rx_audio_device(char *srce, char *args, session_t *sp)
 {
         char	*s, dev_name[64], first_dev_name[64];
@@ -836,7 +836,7 @@ rx_audio_device(char *srce, char *args, session_t *sp)
 	mbus_parse_done(mp);
 }
 
-static void 
+static void
 rx_audio_query(char *srce, char *args, session_t *sp)
 {
 	/* The audio.query() command solicits information about the audio device. */
@@ -853,7 +853,7 @@ static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, uint8_t ty
 	UNUSED(srce);
 
 	mp = mbus_parse_init(args);
-	if (mbus_parse_str(mp, &ss) && 
+	if (mbus_parse_str(mp, &ss) &&
             mbus_parse_str(mp, &arg)) {
                 uint32_t my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
 		ss = mbus_decode_str(ss);
@@ -895,7 +895,7 @@ static void rx_rtp_query(char *srce, char *args, session_t *sp)
 	ui_send_rtp_ssrc(sp, srce);
 	pdb_get_first_id(sp->pdb, &ssrc);
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
-        
+
 	do {
 		ui_send_rtp_cname(sp, srce, ssrc);
 		ui_send_rtp_name(sp, srce, ssrc);
@@ -1065,7 +1065,7 @@ string_to_freq(const char *str) {
 	return freq;
 }
 
-static void 
+static void
 rx_tool_rat_codec(char *srce, char *args, session_t *sp)
 {
 	char	*short_name, *sfreq, *schan;
@@ -1189,7 +1189,7 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_t *sp)
                         mbus_parse_done(mp);
                         return;
                 }
-                
+
                 /* Don't allow payloads to be mapped to channel_coder payloads - it doesn't seem to work */
                 if (channel_coder_exist_payload((uint8_t)new_pt)) {
                         debug_msg("Channel coder payload specified\n");
@@ -1262,7 +1262,7 @@ static void rx_tool_rat_converter(char *srce, char *args, session_t *sp)
         ui_send_converter(sp, sp->mbus_ui_addr);
 }
 
-/* set_red_parameters translates what mbus_receives into command 
+/* set_red_parameters translates what mbus_receives into command
  * redundancy encoder understands.
  */
 
@@ -1287,7 +1287,7 @@ set_red_parameters(session_t *sp, char *sec_enc, int offset)
         clen = 2 * (CODEC_LONG_NAME_LEN + 4);
         cmd  = (char*)xmalloc(clen);
         sprintf(cmd, "%s/%d/%s/%d", pcf->long_name, 0, rcf->long_name, offset);
- 
+
         xmemchk();
         if (channel_encoder_set_parameters(sp->channel_coder, cmd) == 0) {
                 debug_msg("Red command failed: %s\n", cmd);
@@ -1326,7 +1326,7 @@ set_layered_parameters(session_t *sp, char *sec_enc, char *schan, char *sfreq, i
                 debug_msg("Can't find layered codec (%s) - need to change primary codec\n", sec_enc);
         }
         if (pri_id!=lay_id) {
-                /* This can happen if you change codec and select layering    * 
+                /* This can happen if you change codec and select layering    *
                  * before pushing apply, so change the primary encoding here. */
                 codec_id_t cid;
                 if (lay_id && codec_get_payload(lay_id) != 255) {
@@ -1339,20 +1339,20 @@ set_layered_parameters(session_t *sp, char *sec_enc, char *schan, char *sfreq, i
                                 audio_device_register_change_primary(sp, lay_id);
                         }
                 }
-        }                    
+        }
         lcf = codec_get_format(lay_id);
-        
+
         if(layerenc<=MAX_LAYERS) {
 	        if(layerenc > sp->rtp_session_count) {
 	                debug_msg("%d is too many layers - ports not inited - forcing %d layers\n", layerenc, sp->rtp_session_count);
 			layerenc = sp->rtp_session_count;
 		}
 	}
-        
+
         clen = CODEC_LONG_NAME_LEN + 4;
         cmd  = (char*)xmalloc(clen);
         sprintf(cmd, "%s/%d", lcf->long_name, layerenc);
- 
+
         xmemchk();
         if (channel_encoder_set_parameters(sp->channel_coder, cmd) == 0) {
                 debug_msg("Layered command failed: %s\n", cmd);
@@ -1597,7 +1597,7 @@ static const mbus_cmd_tuple engine_cmds[] = {
         { "tool.rat.playout.max",                  rx_tool_rat_playout_max },
         { "tool.rat.payload.set",                  rx_tool_rat_payload_set },
 	{ "tool.rat.ui.detach.request",            rx_tool_rat_ui_detach_request },
-	{ "tool.rat.filter.loopback",              rx_tool_rat_filter_loopback }, 
+	{ "tool.rat.filter.loopback",              rx_tool_rat_filter_loopback },
 	{ "tool.rat.layers",                       rx_tool_rat_layers },
         { "audio.input.mute",                      rx_audio_input_mute },
         { "audio.input.gain",                      rx_audio_input_gain },
@@ -1645,7 +1645,7 @@ void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 		if (strcmp(engine_cmds[i].rxname, cmnd) == 0) {
                         engine_cmds[i].rxproc(srce, args, (session_t *) data);
 			return;
-		} 
+		}
 	}
 	debug_msg("Unknown mbus command: %s (%s)\n", cmnd, args);
 #ifndef NDEBUG

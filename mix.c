@@ -1,15 +1,15 @@
 /*
  * FILE:        mix.c
  * PROGRAM:     RAT
- * AUTHOR:      Isidor Kouvelas 
- * MODIFIED BY: Orion Hodson + Colin Perkins 
+ * AUTHOR:      Isidor Kouvelas
+ * MODIFIED BY: Orion Hodson + Colin Perkins
  *
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
         "$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -38,7 +38,7 @@ struct s_mixer {
         timestamp_t         head_time, tail_time; /* Time rep of head and tail                */
         int          dist;                 /* Distance between head and tail. (for debug)  */
         sample      *mix_buffer;           /* The buffer containing mixed audio data. */
-        mixer_info_t info;      
+        mixer_info_t info;
         uint32_t     magic;                /* Debug check value                       */
 };
 
@@ -46,7 +46,7 @@ typedef void (*mix_f)(sample *buf, sample *incoming, int len);
 static mix_f audio_mix_fn;
 
 static void
-mix_verify(const mixer_t *ms) 
+mix_verify(const mixer_t *ms)
 {
 #ifdef DEBUG
         timestamp_t delta;
@@ -66,7 +66,7 @@ mix_verify(const mixer_t *ms)
         if (ts_eq(ms->head_time, ms->tail_time)) {
                 assert(ms->head == ms->tail);
         }
-#endif 
+#endif
         assert(ms->magic == MIX_MAGIC);
 }
 
@@ -78,7 +78,7 @@ mix_verify(const mixer_t *ms)
  * dont have to copy everything when we hit the boundaries..
  */
 int
-mix_create(mixer_t            **ppms, 
+mix_create(mixer_t            **ppms,
            const mixer_info_t  *pmi,
 	   timestamp_t                 now)
 {
@@ -118,7 +118,7 @@ mix_destroy(mixer_t **ppms)
         pms = *ppms;
         assert(pms);
         mix_verify(pms);
-	debug_msg("Mixer destroyed.  Head %d %dkHz Tail %d %dkHz\n", 
+	debug_msg("Mixer destroyed.  Head %d %dkHz Tail %d %dkHz\n",
 		  pms->head_time.ticks, ts_get_freq(pms->head_time),
 		  pms->tail_time.ticks, ts_get_freq(pms->tail_time));
         xfree(pms->mix_buffer - pms->buf_len); /* yuk! ouch! splat! */
@@ -144,19 +144,19 @@ mix_advance_head(mixer_t *ms, timestamp_t new_head_time)
 {
 	timestamp_t	delta;
 	int	zeros;
-	
+
 	mix_verify(ms);
 	assert(ts_gt(new_head_time, ms->head_time));
-	
+
 	delta = ts_sub(new_head_time, ms->head_time);
 	zeros = delta.ticks * ms->info.channels * ms->info.sample_rate / ts_get_freq(delta);
-	
+
 	mix_zero(ms, ms->head, zeros);
 	ms->dist	+= zeros;
 	ms->head	+= zeros;
 	ms->head	%= ms->buf_len;
 	ms->head_time	 = new_head_time;
-	
+
 	mix_verify(ms);
 }
 
@@ -198,7 +198,7 @@ mix_put_audio(mixer_t     *ms,
 
         assert(rate     == (uint32_t)ms->info.sample_rate);
         assert(channels == (uint32_t)ms->info.channels);
-	
+
         playout         = ts_convert(ms->info.sample_rate, playout);
         nticks          = frame->data_len / (sizeof(sample) * channels);
         frame_period    = ts_map32(rate, nticks);
@@ -207,7 +207,7 @@ mix_put_audio(mixer_t     *ms,
          * truncation errors in verification of mixer when sample rate
          * conversion is active.  */
 	frame_period    = ts_convert(ms->info.sample_rate, frame_period);
-	
+
         if (pdbe->first_mix) {
                 debug_msg("New mix\n");
                 pdbe->next_mix = playout;
@@ -217,14 +217,14 @@ mix_put_audio(mixer_t     *ms,
         mix_verify(ms);
 
 	if (ts_gt(ms->tail_time, playout)) {
-		debug_msg("playout before tail (%d %dkHz < %d %dkHz)\n", 
+		debug_msg("playout before tail (%d %dkHz < %d %dkHz)\n",
 			  playout.ticks, ts_get_freq(playout),
 			  ms->tail_time.ticks, ts_get_freq(ms->tail_time));
 	}
 
         samples  = (sample*)frame->data;
         nsamples = frame->data_len / sizeof(sample);
-        
+
 	/* Advance head if necessary */
         playout_end = ts_add(playout, ts_map32(ms->info.sample_rate, nsamples / ms->info.channels));
 	if (ts_gt(playout_end, ms->head_time)) {
@@ -258,8 +258,8 @@ mix_put_audio(mixer_t     *ms,
 				return TRUE; /* Nothing to do but no fmt change */
 			}
                 } else {
-			debug_msg("Gap between units %d %d ssrc 0x%08x\n", 
-				pdbe->next_mix.ticks, 
+			debug_msg("Gap between units %d %d ssrc 0x%08x\n",
+				pdbe->next_mix.ticks,
 				playout.ticks,
 				pdbe->ssrc);
                 }
@@ -269,19 +269,19 @@ mix_put_audio(mixer_t     *ms,
         delta = ts_sub(ms->head_time, playout);
         pos = ms->head - delta.ticks * ms->info.channels;
         pos = (pos + ms->buf_len) % ms->buf_len; /* Handle wraps */
-	
-        if (pos + nsamples > (uint32_t)ms->buf_len) { 
-                audio_mix_fn(ms->mix_buffer + pos, 
-                             samples, 
-                             ms->buf_len - pos); 
-                audio_mix_fn(ms->mix_buffer, 
-                             samples + (ms->buf_len - pos), 
-                             pos + nsamples - ms->buf_len); 
-        } else { 
-                audio_mix_fn(ms->mix_buffer + pos, 
-                             samples, 
-                             nsamples); 
-        } 
+
+        if (pos + nsamples > (uint32_t)ms->buf_len) {
+                audio_mix_fn(ms->mix_buffer + pos,
+                             samples,
+                             ms->buf_len - pos);
+                audio_mix_fn(ms->mix_buffer,
+                             samples + (ms->buf_len - pos),
+                             pos + nsamples - ms->buf_len);
+        } else {
+                audio_mix_fn(ms->mix_buffer + pos,
+                             samples,
+                             nsamples);
+        }
         xmemchk();
         pdbe->next_mix = playout_end;
 
@@ -289,7 +289,7 @@ mix_put_audio(mixer_t     *ms,
 }
 
 /*
- * The mix_get_audio function returns a pointer to "request" samples of mixed 
+ * The mix_get_audio function returns a pointer to "request" samples of mixed
  * audio data, suitable for playout (ie: you can do audio_device_write() with
  * the returned data).
  *
@@ -365,7 +365,7 @@ mix_get_audio(mixer_t *ms, int request, sample **bufp)
         *bufp = ms->mix_buffer + ms->tail;
         delta = ts_map32(ms->info.sample_rate, amount/ms->info.channels);
         ms->tail_time = ts_add(ms->tail_time, delta);
-                               
+
         ms->tail      += amount;
         ms->tail      %= ms->buf_len;
         ms->dist      -= amount;
@@ -379,10 +379,10 @@ mix_get_audio(mixer_t *ms, int request, sample **bufp)
  * adjustment to keep in sync with the receive buffer etc...
  */
 void
-mix_new_cushion(mixer_t *ms, 
-                int      last_cushion_size, 
-                int      new_cushion_size, 
-                int      dry_time, 
+mix_new_cushion(mixer_t *ms,
+                int      last_cushion_size,
+                int      new_cushion_size,
+                int      dry_time,
                 sample **bufp)
 {
         int diff, elapsed_time;

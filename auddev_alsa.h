@@ -1,4 +1,4 @@
-/*   
+/*
  * FILE:     auddev_alsa.h
  * PROGRAM:  RAT
  * AUTHOR:   Orion Hodson

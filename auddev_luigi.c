@@ -4,9 +4,9 @@
  * Copyright (c) 1996-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -49,14 +49,14 @@ static int luigi_error;
 static audio_format *input_format, *output_format, *tmp_format;
 static snd_capabilities soundcaps[LUIGI_MAX_AUDIO_DEVICES];
 
-int 
+int
 luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
         int             reclb = 0;
-        
+
         char            thedev[64];
-        
-        assert(ad >= 0 && ad < ndev); 
+
+        assert(ad >= 0 && ad < ndev);
 	sprintf(thedev, "/dev/audio%d", dev_ids[ad]);
 
         debug_msg("Opening %s\n", thedev);
@@ -87,13 +87,13 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		}
 
 		if (soundcaps[ad].formats & AFMT_WEIRD) {
-                        /* this is a sb16/32/64... 
-                         * you can change either ifmt or ofmt to U8 
+                        /* this is a sb16/32/64...
+                         * you can change either ifmt or ofmt to U8
                          * NOTE: No other format supported in driver at this time!
                          * to work around broken hardware here.  By default
                          * we use the 16bit channel for output and 8bit
                          * for input since most people probably want to
-                         * listen to the radio. 
+                         * listen to the radio.
                          */
                         debug_msg("Weird Hardware\n");
 
@@ -139,7 +139,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 LUIGI_AUDIO_IOCTL(audio_fd, AIOGSIZE, &sz);
                 debug_msg("rec size %d, play size %d bytes\n",
                           sz.rec_size, sz.play_size);
-                
+
                 /* Set global gain/volume to maximum values. This may
                  * fail on some cards, but shouldn't cause any harm
                  * when it does..... */
@@ -178,8 +178,8 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 read(audio_fd, thedev, 64);
                 return TRUE;
         } else {
-		fprintf(stderr, 
-			"Could not open device: %s (half-duplex?)\n", 
+		fprintf(stderr,
+			"Could not open device: %s (half-duplex?)\n",
 			names[ad]);
 		perror("luigi_audio_open");
                 luigi_audio_close(ad);
@@ -214,7 +214,7 @@ luigi_audio_drain(audio_desc_t ad)
 {
         u_char buf[4];
         int pre, post;
-        
+
         assert(audio_fd > 0);
 
         LUIGI_AUDIO_IOCTL(audio_fd, FIONREAD, &pre);
@@ -271,7 +271,7 @@ luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
                  * Driver occasionally packs in reading.  Seems to be
                  * no way to reset cleanly whilst running, even
                  * closing device, waiting a few 100ms and re-opening
-                 * seems to fail.  
+                 * seems to fail.
                  */
                 perror("Error writing device.");
                 return (write_bytes - done);
@@ -296,11 +296,11 @@ void
 luigi_audio_block(audio_desc_t ad)
 {
   	int             frag = 0;
-        
+
         UNUSED(ad); assert(audio_fd > 0);
-        
+
         LUIGI_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_NONBLOCK, &frag);
-} 
+}
 
 /* Gain and volume values are in the range 0 - MAX_AMP */
 void
@@ -484,7 +484,7 @@ luigi_audio_wait_for(audio_desc_t ad, int delay_ms)
         }
 }
 
-int 
+int
 luigi_audio_is_ready(audio_desc_t ad)
 {
         int avail;
@@ -496,7 +496,7 @@ luigi_audio_is_ready(audio_desc_t ad)
         return (avail >= sz.rec_size);
 }
 
-int 
+int
 luigi_audio_supports(audio_desc_t ad, audio_format *fmt)
 {
         snd_capabilities s;

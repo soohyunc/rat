@@ -6,9 +6,9 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -57,8 +57,8 @@ static HACMDRIVERID hDrvID[ACM_MAX_DYNAMIC];
 static HACMDRIVER   hDrv[ACM_MAX_DYNAMIC];
 static int nDrvOpen;
 
-static int 
-acmAcceptableRate(int rate) 
+static int
+acmAcceptableRate(int rate)
 {
         /* If you want to add multiples of 11025 this code should not break here */
         static const int smplRates[] = {8000, 16000, 32000, 48000};
@@ -74,32 +74,32 @@ acmFrameMetrics(HACMSTREAM has, WORD wBitsPerSample, DWORD dwSamplesPerSec, DWOR
 {
         DWORD dwSrcSize = wBitsPerSample/8, dwDstSize = 0;
         MMRESULT mmr = 0;
-        
+
         assert(has != NULL);
 
         while(dwDstSize == 0 && (mmr == 0 || mmr == ACMERR_NOTPOSSIBLE)) {
                 dwSrcSize += wBitsPerSample/8;
                 mmr = acmStreamSize(has, dwSrcSize, &dwDstSize, ACM_STREAMSIZEF_SOURCE);
         }
-        
+
         (*piFrameSize) = dwDstSize;
-        
+
         /* some codecs return frame size irrespective of source block size (groan!) */
         (*piSamplesPerFrame) = dwSamplesPerSec * dwDstSize / dwBytesPerSec;
 }
 
 static ACMDRIVERDETAILS add;
 
-BOOL CALLBACK 
+BOOL CALLBACK
 acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance, DWORD fdwSupport)
 {
         MMRESULT mmr;
         WAVEFORMATEX wfxDst, wfxPCM;
         HACMSTREAM has = 0;
-   
+
         int iIOAvail = 0, i;
         int iType, iSamplesPerFrame = 0, iFrameSize = 0, iFixedHdrSize = 0;
-        
+
         if (/* pafd->pwfx->wFormatTag == WAVE_FORMAT_PCM || */
             !acmAcceptableRate(pafd->pwfx->nSamplesPerSec)) {
                 return TRUE;
@@ -107,19 +107,19 @@ acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance,
 
         /* Copy this because ACM calls can trash it */
         memcpy(&wfxDst, pafd->pwfx, sizeof(WAVEFORMATEX));
-        
+
         /* We use a crude guess at whether format of pafd->pwfx is PCM,
-        * only interested in 16-bit (rat's native format) PCM to other 
+        * only interested in 16-bit (rat's native format) PCM to other
         * format (and vice-versa) here.
         */
-              
+
         /* This is a dumb test but frame based codecs are inconsistent in their bits per sample reported */
         if ((wfxDst.wBitsPerSample & 0x07)||(wfxDst.nBlockAlign == wfxDst.nChannels * wfxDst.wBitsPerSample/8)) {
                 iType = CODEC_ACM_SAMPLE;
         } else   {
                 iType = CODEC_ACM_FRAME;
-        } 
-        
+        }
+
         wfxPCM.wFormatTag      = WAVE_FORMAT_PCM;
         wfxPCM.nChannels       = wfxDst.nChannels;
         wfxPCM.nSamplesPerSec  = wfxDst.nSamplesPerSec;
@@ -127,9 +127,9 @@ acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance,
         wfxPCM.nBlockAlign     = wfxPCM.nChannels * wfxPCM.wBitsPerSample / 8;
         wfxPCM.nAvgBytesPerSec = wfxPCM.nBlockAlign * wfxPCM.nSamplesPerSec;
         wfxPCM.cbSize          = 0;
-        
+
         mmr = acmStreamOpen(&has, hadActive, &wfxPCM, &wfxDst, NULL, 0L, 0L, 0L);
-        
+
         /* We usually fail because we cannot convert format in real-time, e.g.
         * MPEG Layer III on this machine above 16kHz.  These don't appear
         * to be related to machine type (?).
@@ -139,31 +139,31 @@ acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance,
                 switch(iType) {
                 case CODEC_ACM_FRAME:
                         /* In nearly all cases Frame size is the same as alignment, but do not assume this */
-                        acmFrameMetrics(has, 
+                        acmFrameMetrics(has,
                                 wfxPCM.wBitsPerSample,
                                 wfxPCM.nSamplesPerSec,
-                                pafd->pwfx->nAvgBytesPerSec, 
-                                &iSamplesPerFrame, 
+                                pafd->pwfx->nAvgBytesPerSec,
+                                &iSamplesPerFrame,
                                 &iFrameSize);
                         break;
                 case CODEC_ACM_SAMPLE:
-                        
+
                         break;
                 }
-                acmStreamClose(has,0); 
+                acmStreamClose(has,0);
                 /* There is no corresponding close as we are only querying this fmt */
                 mmr = acmStreamOpen(&has, hadActive, &wfxDst, &wfxPCM, NULL, 0L, 0L, ACM_STREAMOPENF_QUERY);
-                
+
                 if (0 == mmr) {
                         iIOAvail |= CODEC_ACM_OUTPUT;
-                } 
-        } 
-        
+                }
+        }
+
         if (iIOAvail != (CODEC_ACM_OUTPUT|CODEC_ACM_INPUT)) {
                 /* In theory we might be interested in codecs we can decode only. */
                 return TRUE;
         }
-        
+
         for(i = 0; i < ACM_MAX_DYNAMIC; i++) {
                 if (!strcmp(known_codecs[i].szShortName, add.szShortName) &&
                         known_codecs[i].nSamplesPerSec == wfxPCM.nSamplesPerSec &&
@@ -176,9 +176,9 @@ acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance,
                         printf("Added %s\n", known_codecs[i].szShortName);
                 }
         }
-        
-        printf("\t\t%4.4lXH %4.4lXH, %s (%d Bps, Rate %d, align %d bytes, %d bits per sample, %d channels, cbsize %d)\n", pafd->dwFormatTag, pafd->dwFormatIndex, pafd->szFormat, pafd->pwfx->nAvgBytesPerSec, pafd->pwfx->nSamplesPerSec, pafd->pwfx->nBlockAlign, pafd->pwfx->wBitsPerSample, pafd->pwfx->nChannels, pafd->pwfx->cbSize); 
-        
+
+        printf("\t\t%4.4lXH %4.4lXH, %s (%d Bps, Rate %d, align %d bytes, %d bits per sample, %d channels, cbsize %d)\n", pafd->dwFormatTag, pafd->dwFormatIndex, pafd->szFormat, pafd->pwfx->nAvgBytesPerSec, pafd->pwfx->nSamplesPerSec, pafd->pwfx->nBlockAlign, pafd->pwfx->wBitsPerSample, pafd->pwfx->nChannels, pafd->pwfx->cbSize);
+
         switch(iType) {
         case CODEC_ACM_SAMPLE:
                 printf("\t\t\tSample Based: ");
@@ -187,25 +187,25 @@ acmFormatEnumProc(HACMDRIVERID hadid, LPACMFORMATDETAILS pafd, DWORD dwInstance,
                 printf("\t\t\tFrame  Based: ");
                 break;
         }
-        printf("\t\t\tInput(%d) Output(%d) Samples per Frame(%d), Frame Size(%d)\n", 
+        printf("\t\t\tInput(%d) Output(%d) Samples per Frame(%d), Frame Size(%d)\n",
                 (iIOAvail&CODEC_ACM_INPUT) ? 1: 0,
                 (iIOAvail&CODEC_ACM_OUTPUT) ? 1: 0,
                 iSamplesPerFrame,
                 iFrameSize);
-                
+
         return TRUE;
 }
 
 static void
 acmCodecCaps(HACMDRIVERID hadid)
 {
-        
+
         DWORD            dwSize;
         WAVEFORMATEX    *pwf;
         ACMFORMATDETAILS afd;
-        
+
         add.cbStruct = sizeof(ACMDRIVERDETAILS);
-        if (acmDriverDetails(hadid, &add, 0)) return; 
+        if (acmDriverDetails(hadid, &add, 0)) return;
         printf("   Short name: %s\n", add.szShortName);
         printf("   Long name:  %s\n", add.szLongName);
         printf("   Copyright:  %s\n", add.szCopyright);
@@ -213,9 +213,9 @@ acmCodecCaps(HACMDRIVERID hadid)
         printf("   Features:   %s\n", add.szFeatures);
         printf("   Supports %u formats\n", add.cFormatTags);
         printf("   Supports %u filter formats\n", add.cFilterTags);
-        
+
         if (acmDriverOpen(&hadActive, hadid, 0)) return;
-        if (!acmMetrics((HACMOBJ)hadActive, ACM_METRIC_MAX_SIZE_FORMAT, &dwSize)){ 
+        if (!acmMetrics((HACMOBJ)hadActive, ACM_METRIC_MAX_SIZE_FORMAT, &dwSize)){
                 pwf = (WAVEFORMATEX*)xmalloc(dwSize);
                 memset(pwf, 0, dwSize);
                 pwf->cbSize     = LOWORD(dwSize) - sizeof(WAVEFORMATEX);
@@ -226,20 +226,20 @@ acmCodecCaps(HACMDRIVERID hadid)
                 afd.cbwfx = dwSize;
                 afd.dwFormatTag = WAVE_FORMAT_UNKNOWN;
                 printf("\tInput Formats (suggested):\n");
-                acmFormatEnum(hadActive, &afd, acmFormatEnumProc, 
+                acmFormatEnum(hadActive, &afd, acmFormatEnumProc,
                         ACM_FORMATENUMF_INPUT, 0);
                 xfree(pwf);
         }
         acmDriverClose(hadActive,0);
 }
 
-BOOL CALLBACK 
+BOOL CALLBACK
 acmDriverEnumProc(HACMDRIVERID hadid, DWORD dwInstance, DWORD fdwSupport)
 {
         if (fdwSupport & ACMDRIVERDETAILS_SUPPORTF_CODEC) {
                 acmCodecCaps(hadid);
         }
-        
+
         return TRUE;
 }
 
@@ -256,20 +256,20 @@ acmGetDriverByID(HACMDRIVERID hid)
 static int
 acmSecureDriver(HACMDRIVERID hid)
 {
-        if (acmGetDriverByID(hid) || 
+        if (acmGetDriverByID(hid) ||
             acmDriverOpen(&hDrv[nDrvOpen], hid, 0) == 0) {
                 hDrvID[nDrvOpen] = hid;
                 nDrvOpen++;
                 return TRUE;
         }
-        
+
         printf("Failed to open driver.\n");
-        
+
         return FALSE;
 }
 
 static void
-acmCodecsInit(void) 
+acmCodecsInit(void)
 {
         codec_t *cp;
         int i;
@@ -292,12 +292,12 @@ void
 acmStartup()
 {
         DWORD dwCodecs = 0, dwDrivers = 0;
-        
+
         acmMetrics(NULL, ACM_METRIC_COUNT_CODECS, &dwCodecs);
         acmMetrics(NULL, ACM_METRIC_COUNT_DRIVERS, &dwDrivers);
         printf("There are %d ACM codecs in %d drivers\n", dwCodecs, dwDrivers);
         acmDriverEnum(acmDriverEnumProc, 0L, 0L);
-        acmCodecsInit();        
+        acmCodecsInit();
 }
 
 void
@@ -337,7 +337,7 @@ typedef struct s_acm_state {
        acm_codec_t *acp;
 } acm_state_t;
 
-acm_state_t * 
+acm_state_t *
 acmEncoderCreate(codec_t *cp)
 {
         acm_codec_t *acp;
@@ -349,8 +349,8 @@ acmEncoderCreate(codec_t *cp)
         assert(cp);
         acp = acmMatchingCodec(cp);
         if (!acp) return NULL;
-        
-        s = (acm_state_t*)xmalloc(sizeof(acm_state_t));        
+
+        s = (acm_state_t*)xmalloc(sizeof(acm_state_t));
         s->acms = NULL;
         /* Need to allocate WAVEFORMATEX with additional cbSize bytes for codec state */
         s->pwfx = (WAVEFORMATEX*)xmalloc(sizeof(WAVEFORMATEX) + acp->wfx.cbSize);
@@ -366,13 +366,13 @@ acmEncoderCreate(codec_t *cp)
 
         phad = acmGetDriverByID(acp->had);
         assert(phad);
-        
+
         if ((mmr = acmStreamOpen(&s->acms, *phad, &wfxRaw, s->pwfx, NULL, 0L, 0L, 0L))) {
                 printf("acmStreamOpen failed (%d)\n",mmr);
-                xfree(s); 
+                xfree(s);
                 return NULL;
         }
-        
+
         s->cp  = cp;
         s->acp = acp;
 
@@ -391,8 +391,8 @@ acmEncode(struct s_acm_state *s, sample *src, struct s_coded_unit *dst)
         assert(s->acms);
 
         memset(&ash, 0, sizeof(ACMSTREAMHEADER));
-        
-        ash.cbStruct = sizeof(ACMSTREAMHEADER);    
+
+        ash.cbStruct = sizeof(ACMSTREAMHEADER);
         ash.pbSrc           = (u_char*) src;
         ash.cbSrcLength     = s->cp->unit_len * s->cp->sample_size;
 
@@ -410,7 +410,7 @@ acmEncode(struct s_acm_state *s, sample *src, struct s_coded_unit *dst)
         if (mmr = acmStreamConvert(s->acms, &ash, 0)) {
                 printf("acmStreamConvert failed (%d)\n", mmr);
                 switch(mmr) {
-                case ACMERR_BUSY: 
+                case ACMERR_BUSY:
                 case ACMERR_UNPREPARED:
                 case MMSYSERR_NOTSUPPORTED:
                 case MMSYSERR_INVALFLAG:
@@ -421,11 +421,11 @@ acmEncode(struct s_acm_state *s, sample *src, struct s_coded_unit *dst)
                 }
                 return;
         }
-        
+
         acmStreamUnprepareHeader(s->acms, &ash, 0);
 }
 
-void 
+void
 acmEncoderDestroy(struct s_acm_state *s)
 {
         acmStreamClose(s->acms,0UL);

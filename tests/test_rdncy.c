@@ -11,7 +11,7 @@
 #include "assert.h"
 #include "debug.h"
 
-int 
+int
 main()
 {
         u_char  *s;

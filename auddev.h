@@ -3,8 +3,8 @@
  * PROGRAM: RAT
  * AUTHOR:  Orion Hodson
  *
- * Note: Original audio interface by Isidor Kouvelas, Colin Perkins, 
- * and OH.  OH has gone through and modularised this code so that RAT 
+ * Note: Original audio interface by Isidor Kouvelas, Colin Perkins,
+ * and OH.  OH has gone through and modularised this code so that RAT
  * can detect and use multiple audio devices.
  *
  * Copyright (c) 1995-2001 University College London

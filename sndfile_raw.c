@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -69,7 +69,7 @@ raw_read_audio(FILE *pf, char* state, sample *buf, int samples)
                 unit_sz = 0;
                 abort();
         }
-        
+
         samples_read = fread(buf, unit_sz, samples, pf);
 
         switch(rs->fmt.encoding) {
@@ -78,7 +78,7 @@ raw_read_audio(FILE *pf, char* state, sample *buf, int samples)
                 bp  = buf + samples_read - 1;
                 for(i = 0; i < samples_read; i++) {
                         *bp-- = a2s(*law--);
-                        
+
                 }
                 break;
         case SNDFILE_ENCODING_PCMU:
@@ -118,7 +118,7 @@ raw_write_hdr(FILE *fp, char **state, const sndfile_fmt_t *fmt)
                 return FALSE;
         }
 
-        memcpy(&rs->fmt, fmt, sizeof(sndfile_fmt_t));        
+        memcpy(&rs->fmt, fmt, sizeof(sndfile_fmt_t));
         *state = (char*)rs;
 
         /* Nothing to write to file */
@@ -205,7 +205,7 @@ raw_get_format(char *state, sndfile_fmt_t *fmt)
         if (fmt == NULL || rs == NULL) {
                 return FALSE;
         }
-       
+
         memcpy(fmt, &rs->fmt, sizeof(sndfile_fmt_t));
 
         return TRUE;

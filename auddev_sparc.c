@@ -7,9 +7,9 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -35,7 +35,7 @@ static const char cvsid[] =
 
 static audio_info_t	dev_info;
 
-static int audio_fd = -1; 
+static int audio_fd = -1;
 
 #define bat_to_device(x)	((x) * AUDIO_MAX_GAIN / MAX_AMP)
 #define device_to_bat(x)	((x) * MAX_AMP / AUDIO_MAX_GAIN)
@@ -53,11 +53,11 @@ static void af2apri(audio_format *fmt, audio_prinfo_t *ap)
         case DEV_PCMU: ap->encoding = AUDIO_ENCODING_ULAW;   assert(ap->precision == 8);  break;
         case DEV_S8:   ap->encoding = AUDIO_ENCODING_LINEAR; assert(ap->precision == 8);  break;
         case DEV_S16:  ap->encoding = AUDIO_ENCODING_LINEAR; assert(ap->precision == 16); break;
-        default: debug_msg("Format not recognized\n"); assert(0); 
+        default: debug_msg("Format not recognized\n"); assert(0);
         }
 }
 
-int 
+int
 sparc_audio_device_count()
 {
         return 1;
@@ -74,7 +74,7 @@ int
 sparc_audio_supports(audio_desc_t ad, audio_format *fmt)
 {
         UNUSED(ad);
-        if ((!(fmt->sample_rate % 8000) || !(fmt->sample_rate % 11025)) && 
+        if ((!(fmt->sample_rate % 8000) || !(fmt->sample_rate % 11025)) &&
             (fmt->channels == 1 || fmt->channels == 2)) {
                 return TRUE;
         }
@@ -138,7 +138,7 @@ sparc_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format* ofmt)
                  * the device before reading commences then the device
                  * reads in blocks of 500ms irrespective of the
                  * blocksize set.  After a minute or so it flips into the
-                 * correct mode, but obviously this is too late to be 
+                 * correct mode, but obviously this is too late to be
                  * useful for most apps. grrr.
                  */
 
@@ -262,7 +262,7 @@ sparc_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 
         if ((len = read(audio_fd, (char *)buf, buf_bytes)) < 0) {
                 len = 0;
-        } 
+        }
 
         return len;
 }
@@ -387,7 +387,7 @@ sparc_audio_iport_set(audio_desc_t ad, audio_port_t port)
 	dev_info.record.port = port;
 	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) {
 		perror("Setting port");
-                /* If no CD-rom present then setting port fails silently... 
+                /* If no CD-rom present then setting port fails silently...
                  * not actually tested this code on a machine with a CD-rom
                  * since some kind folks stole it from g11... Fallbacks...
                  */
@@ -460,7 +460,7 @@ sparc_audio_select(audio_desc_t ad, int delay_us)
 
         s2.tv_usec -= s1.tv_usec;
         s2.tv_sec  -= s1.tv_sec;
-        
+
         if (s2.tv_usec < 0) {
                 s2.tv_usec += 1000000;
                 s2.tv_sec  -= 1;
@@ -478,7 +478,7 @@ sparc_audio_wait_for(audio_desc_t ad, int delay_ms)
         sparc_audio_select(ad, delay_ms * 1000);
 }
 
-int 
+int
 sparc_audio_is_ready(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);

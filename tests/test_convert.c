@@ -2,7 +2,7 @@
 /* test_convert [-list] -c <n> -ifmt <fmt1> -ofmt <fmt2> */
 /* Where :
    -list  lists converters.
-   -c <n> selects converter n 
+   -c <n> selects converter n
    and <fmt> has form rate=8000,channels=1
  */
 
@@ -42,7 +42,7 @@ usage()
         exit(-1);
 }
 
-static char* 
+static char*
 get_token(char *name, char *src, int src_len)
 {
         char *cur;
@@ -145,8 +145,8 @@ test_converter(int idx, converter_fmt_t *cf)
         src = (sample*)xmalloc(TEST_FRAME_LEN * TEST_FRAMES * cf->src_channels * sizeof(sample));
         for(i = 0; i < TEST_FRAME_LEN * TEST_FRAMES; i++) {
                 for(j = 0; j < cf->src_channels; j++) {
-                        src[i * cf->src_channels + j] = 16384 * 
-                                sin(64 *1000 * M_PI * i / (cf->src_freq * TEST_FRAME_LEN)) * 
+                        src[i * cf->src_channels + j] = 16384 *
+                                sin(64 *1000 * M_PI * i / (cf->src_freq * TEST_FRAME_LEN)) *
                                 cos(16 *M_PI * i * 1000 / (TEST_FRAME_LEN * cf->src_freq));
                 }
         }
@@ -170,7 +170,7 @@ test_converter(int idx, converter_fmt_t *cf)
         return TRUE;
 }
 
-int 
+int
 main(int argc, char *argv[])
 {
         int i;
@@ -181,7 +181,7 @@ main(int argc, char *argv[])
         if (argc == 1) {
                 usage();
         }
-        
+
         i = 1;
         while(i < argc) {
                 switch(argv[i][1]) {
@@ -202,7 +202,7 @@ main(int argc, char *argv[])
                         }
                         i+=2;
                         break;
-                case 'o':      
+                case 'o':
                         if (parse_fmt(argv[i+1], &cf.dst_channels, &cf.dst_freq) == FALSE) {
                                 usage();
                         }

@@ -18,7 +18,7 @@
 void codec_init (void);
 void codec_exit (void);
 
-/* Use these two functions to finder number of available codecs 
+/* Use these two functions to finder number of available codecs
  * and to get an codec id of the num'th codec.
  */
 uint32_t    codec_get_number_of_codecs (void);
@@ -33,10 +33,10 @@ int codec_id_is_valid(codec_id_t id);
  */
 
 const codec_format_t* codec_get_format        (codec_id_t id);
-int                   codec_can_encode_from   (codec_id_t id, 
+int                   codec_can_encode_from   (codec_id_t id,
                                                const audio_format *qfmt);
 int                   codec_can_encode        (codec_id_t id);
-int                   codec_can_decode_to     (codec_id_t id, 
+int                   codec_can_decode_to     (codec_id_t id,
                                                const audio_format *qfmt);
 int                   codec_can_decode        (codec_id_t id);
 int                   codec_audio_formats_compatible(codec_id_t id1,
@@ -48,25 +48,25 @@ uint32_t               codec_get_samples_per_frame (codec_id_t id);
 /* Codec encoder functions */
 int  codec_encoder_create  (codec_id_t id, codec_state **cs);
 void codec_encoder_destroy (codec_state **cs);
-int  codec_encode          (codec_state* cs, 
+int  codec_encode          (codec_state* cs,
                             coded_unit*  in_native,
                             coded_unit*  out);
 
 /* Codec decoder functions */
 int  codec_decoder_create  (codec_id_t id, codec_state **cs);
 void codec_decoder_destroy (codec_state **cs);
-int  codec_decode          (codec_state* cs, 
+int  codec_decode          (codec_state* cs,
                             coded_unit*  in,
                             coded_unit*  out_native);
 
 /* Repair related */
 
 int  codec_decoder_can_repair (codec_id_t id);
-int  codec_decoder_repair     (codec_id_t id, 
+int  codec_decoder_repair     (codec_id_t id,
                                codec_state *cs,
                                uint16_t consec_missing,
-                               coded_unit *prev, 
-                               coded_unit *miss, 
+                               coded_unit *prev,
+                               coded_unit *miss,
                                coded_unit *next);
 
 /* Peek function for variable frame size codecs */
@@ -92,8 +92,8 @@ codec_id_t codec_get_native_coding (uint32_t sample_rate, uint16_t channels);
 
 int        codec_is_native_coding  (codec_id_t id);
 
-int        codec_get_native_info   (codec_id_t cid, 
-                                    uint32_t *sample_rate, 
+int        codec_get_native_info   (codec_id_t cid,
+                                    uint32_t *sample_rate,
                                     uint16_t *channels);
 /* For layered codecs */
 uint8_t     codec_can_layer         (codec_id_t id);

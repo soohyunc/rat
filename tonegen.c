@@ -6,9 +6,9 @@
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -45,10 +45,10 @@ struct s_tonegen {
 
 static const uint32_t TONEGEN_SSRC_ID = 0xefff0fff; /* 1 in 4 billion */
 
-int  
-tonegen_create  (tonegen_t          **ppt, 
-                 struct s_mixer     *ms, 
-                 struct s_pdb       *pdb, 
+int
+tonegen_create  (tonegen_t          **ppt,
+                 struct s_mixer     *ms,
+                 struct s_pdb       *pdb,
                  uint16_t            tonefreq,
                  uint16_t            toneamp)
 {
@@ -60,7 +60,7 @@ tonegen_create  (tonegen_t          **ppt,
                 debug_msg("tonegen could not create spoof participant\n");
                 return FALSE;
         }
-        
+
         pt  = (tonegen_t*)xmalloc(sizeof(tonegen_t));
         if (pt == NULL) {
                 debug_msg("Could not allocate tonegen\n");
@@ -79,7 +79,7 @@ tonegen_create  (tonegen_t          **ppt,
         return TRUE;
 }
 
-void 
+void
 tonegen_destroy(tonegen_t **ppt)
 {
         tonegen_t *pt;
@@ -93,13 +93,13 @@ tonegen_destroy(tonegen_t **ppt)
         *ppt = NULL;
 }
 
-int 
+int
 tonegen_play(tonegen_t *pt, timestamp_t start, timestamp_t end)
 {
         timestamp_t                delta, duration;
         uint32_t            samples, phase, i;
         coded_unit          src;
-        const mixer_info_t *mi; 
+        const mixer_info_t *mi;
         sample             *buf;
 
         assert(ts_gt(start, end) == FALSE);
@@ -120,7 +120,7 @@ tonegen_play(tonegen_t *pt, timestamp_t start, timestamp_t end)
         mi = mix_query(pt->ms);
 
         duration       = ts_convert(mi->sample_rate, duration);
-        samples        = duration.ticks * mi->channels; 
+        samples        = duration.ticks * mi->channels;
 
         /* Initialize src for reading chunk of sound file */
         src.id        = codec_get_native_coding(mi->sample_rate, mi->channels);

@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -23,7 +23,7 @@ static const char cvsid[] =
 #include "debug.h"
 
 /* Extrusion *************************************************************
- * This is the cheap and nasty, for upsampling we drag out samples and 
+ * This is the cheap and nasty, for upsampling we drag out samples and
  * downsamping we just subsample and suffer aliasing effects (v. dumb).
  */
 
@@ -52,7 +52,7 @@ extra_upsample(int offset, int channels, sample *src, int src_len, sample *dst, 
         debug_msg("loop %d choice (%d, %d)\n", loop, dst_len/dstep, src_len/channels);
 #endif
         dstep /= channels;
-        
+
         switch(dstep) {
         case 6:
                 while (loop--) {
@@ -72,7 +72,7 @@ extra_upsample(int offset, int channels, sample *src, int src_len, sample *dst, 
                         *dp = *sp; dp += channels;
                         *dp = *sp; dp += channels;
                         *dp = *sp; dp += channels;
-                        sp += channels;                
+                        sp += channels;
                 }
                 break;
         case 4:
@@ -81,7 +81,7 @@ extra_upsample(int offset, int channels, sample *src, int src_len, sample *dst, 
                         *dp = *sp; dp += channels;
                         *dp = *sp; dp += channels;
                         *dp = *sp; dp += channels;
-                        sp += channels;                
+                        sp += channels;
                 }
                 break;
         case 3:
@@ -89,7 +89,7 @@ extra_upsample(int offset, int channels, sample *src, int src_len, sample *dst, 
                         *dp = *sp; dp += channels;
                         *dp = *sp; dp += channels;
                         *dp = *sp; dp += channels;
-                        sp += channels;                
+                        sp += channels;
                 }
                 break;
         case 2:
@@ -127,7 +127,7 @@ extra_downsample(int offset, int channels, sample *src, int src_len, sample *dst
         }
 }
 
-static void 
+static void
 extra_init_state(extra_state_t *e, int src_freq, int dst_freq)
 {
         if (src_freq > dst_freq) {
@@ -135,13 +135,13 @@ extra_init_state(extra_state_t *e, int src_freq, int dst_freq)
                 e->scale     = src_freq / dst_freq;
         } else if (src_freq < dst_freq) {
                 e->convert_f = extra_upsample;
-                e->scale     = dst_freq / src_freq; 
+                e->scale     = dst_freq / src_freq;
         }
         e->tmp_buf = NULL;
         e->tmp_len = 0;
 }
 
-int 
+int
 extra_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 {
         extra_state_t *e;
@@ -165,13 +165,13 @@ extra_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
         case 2:
                 denom = g;
                 extra_init_state(e, cfmt->src_freq, denom);
-                extra_init_state(e + 1, denom, cfmt->dst_freq);                
+                extra_init_state(e + 1, denom, cfmt->dst_freq);
                 break;
         }
 
         *state     = (u_char*)e;
         *state_len = steps * sizeof(extra_state_t);
-         
+
         return TRUE;
 }
 
@@ -188,7 +188,7 @@ extra_convert (const converter_fmt_t  *cfmt, u_char *state, sample* src_buf, int
                 /* stereo->mono then sample rate change */
                 if (e->steps) {
                         /* inplace conversion needed */
-                        converter_change_channels(src_buf, src_len, 2, src_buf, src_len / 2, 1); 
+                        converter_change_channels(src_buf, src_len, 2, src_buf, src_len / 2, 1);
                         src_len /= 2;
                 } else {
                         /* this is only conversion */
@@ -198,7 +198,7 @@ extra_convert (const converter_fmt_t  *cfmt, u_char *state, sample* src_buf, int
         } else if (cfmt->src_channels == 1 && cfmt->dst_channels == 2) {
                 dst_len /= 2;
         }
-        
+
         switch(e->steps) {
         case 1:
                 assert(e[0].convert_f);
@@ -221,7 +221,7 @@ extra_convert (const converter_fmt_t  *cfmt, u_char *state, sample* src_buf, int
                         e[1].convert_f(i, channels, e->tmp_buf, e->tmp_len, dst_buf, dst_len);
                 break;
         }
-        
+
         if (cfmt->src_channels == 1 && cfmt->dst_channels == 2) {
                 /* sample rate change before mono-> stereo */
                 if (e->steps) {

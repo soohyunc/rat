@@ -6,9 +6,9 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -120,9 +120,9 @@ sgi_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
                 debug_msg("ALsetfillpoint failed (%d samples)\n", ifmt->bytes_per_block);
         }
         bytes_per_block = ifmt->bytes_per_block;
-        
+
 	/* We probably should free the config here... */
-        
+
 	return TRUE;
 }
 
@@ -209,7 +209,7 @@ sgi_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 	long   		len;
 
         UNUSED(ad); assert(audio_fd > 0);
-        
+
 	if (non_block) {
 		if ((len = ALgetfilled(rp)) < bytes_per_block )
 			return (0);
@@ -283,7 +283,7 @@ static audio_port_details_t in_ports[] = {
 void
 sgi_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
-        UNUSED(ad); 
+        UNUSED(ad);
         assert(audio_fd > 0);
         assert(port == SGI_OPORT_SPEAKER);
         UNUSED(port);
@@ -292,14 +292,14 @@ sgi_audio_oport_set(audio_desc_t ad, audio_port_t port)
 audio_port_t
 sgi_audio_oport_get(audio_desc_t ad)
 {
-        UNUSED(ad); 
+        UNUSED(ad);
         assert(audio_fd > 0);
 
 	return (SGI_OPORT_SPEAKER);
 }
 
-int 
-sgi_audio_oport_count(audio_desc_t ad) 
+int
+sgi_audio_oport_count(audio_desc_t ad)
 {
         UNUSED(ad);
         return (int)SGI_NUM_OPORTS;
@@ -321,12 +321,12 @@ sgi_audio_iport_set(audio_desc_t ad, audio_port_t port)
         UNUSED(ad); assert(audio_fd > 0);
 
         switch(port) {
-        case SGI_IPORT_LINE_IN: 
+        case SGI_IPORT_LINE_IN:
                 pvbuf[0] = AL_INPUT_SOURCE;
                 pvbuf[1] = AL_INPUT_LINE;
                 ALsetparams(AL_DEFAULT_DEVICE, pvbuf, 2);
                 break;
-        case SGI_IPORT_MICROPHONE: 
+        case SGI_IPORT_MICROPHONE:
         default:
                 pvbuf[0] = AL_INPUT_SOURCE;
                 pvbuf[1] = AL_INPUT_MIC;
@@ -360,7 +360,7 @@ sgi_audio_iport_details(audio_desc_t ad, int idx)
         return &in_ports[idx];
 }
 
-void 
+void
 sgi_audio_loopback(audio_desc_t ad, int gain)
 {
         long pvbuf[4];
@@ -380,7 +380,7 @@ sgi_audio_loopback(audio_desc_t ad, int gain)
                 pvbuf[4] = AL_RIGHT_MONITOR_ATTEN;
                 pvbuf[5] = pvbuf[3];
         }
-        
+
         if (ALsetparams(AL_DEFAULT_DEVICE, pvbuf, pvcnt) != 0) {
                 debug_msg("loopback failed\n");
         }
@@ -393,11 +393,11 @@ sgi_audio_duplex(audio_desc_t ad)
         return 1;
 }
 
-int  
+int
 sgi_audio_is_ready(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
-        
+
         if (ALgetfilled(rp) >= ALgetfillpoint(rp)) {
                 return TRUE;
         } else {
@@ -405,7 +405,7 @@ sgi_audio_is_ready(audio_desc_t ad)
         }
 }
 
-void 
+void
 sgi_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
         struct timeval tv;
@@ -417,7 +417,7 @@ sgi_audio_wait_for(audio_desc_t ad, int delay_ms)
 
         FD_ZERO(&rfds);
         FD_SET(audio_fd, &rfds);
-        
+
         select(audio_fd + 1, &rfds, NULL, NULL, &tv);
 }
 

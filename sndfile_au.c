@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -45,7 +45,7 @@ typedef struct {
 #define	SUN_AUDIO_FILE_ENCODING_LINEAR_16	(3u)	/* 16-bit linear PCM */
 #define SUN_AUDIO_FILE_ENCODING_ALAW	       (27u) 	/* A-law PCM         */
 
-static void 
+static void
 sun_ntoh_hdr(sun_audio_filehdr *saf)
 {
         uint32_t *pi;
@@ -67,28 +67,28 @@ sun_read_hdr(FILE *pf, char **state, sndfile_fmt_t *fmt)
                 debug_msg("Could not read header\n");
                 return FALSE;
         }
-        
+
         /* Fix byte ordering */
         sun_ntoh_hdr(&afh);
-        
+
         /* Test if supported */
         if ((afh.magic == SUN_AUDIO_FILE_MAGIC) &&
             (afh.encoding == SUN_AUDIO_FILE_ENCODING_ULAW ||
-             afh.encoding == SUN_AUDIO_FILE_ENCODING_LINEAR_16 ||     
-             afh.encoding == SUN_AUDIO_FILE_ENCODING_LINEAR_8 ||     
+             afh.encoding == SUN_AUDIO_FILE_ENCODING_LINEAR_16 ||
+             afh.encoding == SUN_AUDIO_FILE_ENCODING_LINEAR_8 ||
              afh.encoding == SUN_AUDIO_FILE_ENCODING_ALAW)) {
                 /* File ok copy header */
                 sun_audio_filehdr *pafh = (sun_audio_filehdr *)xmalloc(sizeof(sun_audio_filehdr));
                 memcpy(pafh,&afh, sizeof(sun_audio_filehdr));
-                
+
                 /* For .au's state is just file header */
                 *state = (char*)pafh;
-                
+
                 /* Roll past header */
                 fseek(pf, afh.hdr_size, SEEK_SET);
 
                 sun_get_format(*state, fmt);
-                
+
                 return TRUE;
         }
         return FALSE;
@@ -116,7 +116,7 @@ sun_read_audio(FILE *pf, char* state, sample *buf, int samples)
         default:
                 return 0;
         }
-        
+
         samples_read = fread(buf, unit_sz, samples, pf);
 
         switch(afh->encoding) {
@@ -125,7 +125,7 @@ sun_read_audio(FILE *pf, char* state, sample *buf, int samples)
                 bp  = buf + samples_read - 1;
                 for(i = 0; i < samples_read; i++) {
                         *bp-- = a2s(*law--);
-                        
+
                 }
                 break;
         case SUN_AUDIO_FILE_ENCODING_ULAW:
@@ -162,7 +162,7 @@ sun_write_hdr(FILE *fp, char **state, const sndfile_fmt_t *fmt)
                 debug_msg("failed to allocate sun audio file header\n");
                 return FALSE;
         }
-        
+
         *state = (char*)saf;
         saf->magic       = SUN_AUDIO_FILE_MAGIC;
         saf->hdr_size    = sizeof(sun_audio_filehdr);
@@ -221,7 +221,7 @@ sun_write_audio(FILE *fp, char *state, sample *buf, int samples)
                 } else {
                         outbuf = (u_char*)buf;
                 }
-                
+
                 break;
         case SUN_AUDIO_FILE_ENCODING_LINEAR_8:
                 outbuf = (u_char*)block_alloc(samples);
@@ -274,12 +274,12 @@ sun_get_format(char *state, sndfile_fmt_t *fmt)
         if (fmt == NULL || saf == NULL) {
                 return FALSE;
         }
-        
+
         switch (saf->encoding) {
-        case SUN_AUDIO_FILE_ENCODING_LINEAR_16: 
-                fmt->encoding = SNDFILE_ENCODING_L16; 
+        case SUN_AUDIO_FILE_ENCODING_LINEAR_16:
+                fmt->encoding = SNDFILE_ENCODING_L16;
                 break;
-        case SUN_AUDIO_FILE_ENCODING_ULAW:       
+        case SUN_AUDIO_FILE_ENCODING_ULAW:
                 fmt->encoding = SNDFILE_ENCODING_PCMU;
                 break;
         case SUN_AUDIO_FILE_ENCODING_ALAW:

@@ -1,7 +1,7 @@
 /*
  * FILE:      channel_types.h
- * AUTHOR(S): Orion Hodson 
- *	
+ * AUTHOR(S): Orion Hodson
+ *
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
@@ -40,10 +40,10 @@ typedef struct {
         channel_unit *elem[MAX_CHANNEL_UNITS];
 } channel_data;
 
-int  channel_data_create  (channel_data **cd, 
+int  channel_data_create  (channel_data **cd,
                            int            nelem);
 
-void channel_data_destroy (channel_data **cd, 
+void channel_data_destroy (channel_data **cd,
                            uint32_t        cdsize);
 
 uint32_t channel_data_bytes(channel_data *cd);

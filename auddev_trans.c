@@ -13,7 +13,7 @@
 
 
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -114,7 +114,7 @@ trans_audio_init()
         af.channels        = 1;
         af.encoding        = DEV_S16;
         af.sample_rate     = 8000;
-        
+
         for(i = 0; i < MAXBUFDEVS; i++) {
                 bufdev[i].audio_fd = -1;
                 if (trans_audio_open_dev(i, &af, &af)) {
@@ -136,7 +136,7 @@ trans_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
 /*
  * Shutdown.
  */
- 
+
 void
 trans_audio_close(audio_desc_t ad)
 {
@@ -248,10 +248,10 @@ trans_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
         }
         gettimeofday(&(bufdev[ad].curr_time), NULL);
 
-	current_bytes = time_diff_to_bytes(&(bufdev[ad].start_time), &(bufdev[ad].curr_time), bufdev[ad].ifmt ); 
+	current_bytes = time_diff_to_bytes(&(bufdev[ad].start_time), &(bufdev[ad].curr_time), bufdev[ad].ifmt );
 	read_size = current_bytes - bufdev[ad].last_bytes;
-	
-        if (read_size + bufdev[ad].leftover_bytes < bufdev[ad].ifmt.bytes_per_block)  return 0; 
+
+        if (read_size + bufdev[ad].leftover_bytes < bufdev[ad].ifmt.bytes_per_block)  return 0;
 	bufdev[ad].last_bytes = current_bytes;
 
 	if (buf_bytes > read_size + bufdev[ad].leftover_bytes) {
@@ -262,7 +262,7 @@ trans_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 	  read_size   = buf_bytes;
         }
         assert(bufdev[ad].leftover_bytes >= 0);
-		
+
         copy_size = bufdev[ad].avail_bytes;     /* The amount of data available in this module... */
         if (copy_size >= read_size) {
                 copy_size = read_size;
@@ -427,7 +427,7 @@ trans_audio_iport_details(audio_desc_t ad, int idx)
 /*
  * Enable hardware loopback
  */
-void 
+void
 trans_audio_loopback(audio_desc_t ad, int gain)
 {
         UNUSED(ad);
@@ -443,17 +443,17 @@ int
 trans_audio_is_ready(audio_desc_t ad)
 {
         struct timeval now;
-	int read_size; 
+	int read_size;
 
         ad = mapAudioDescToDeviceID(ad);
         gettimeofday(&now,NULL);
-	
+
 	read_size = time_diff_to_bytes(&(bufdev[ad].start_time), &now, bufdev[ad].ifmt) - bufdev[ad].last_bytes;
 	if (read_size + bufdev[ad].leftover_bytes < bufdev[ad].ifmt.bytes_per_block) return FALSE;
 	else return TRUE;
 }
 
-static void 
+static void
 trans_audio_select(audio_desc_t ad, int delay_ms)
 {
         struct timeval now;
@@ -461,7 +461,7 @@ trans_audio_select(audio_desc_t ad, int delay_ms)
 
         ad = mapAudioDescToDeviceID(ad);
 	gettimeofday(&now,NULL);
-	
+
 	read_size =  time_diff_to_bytes(&(bufdev[ad].start_time), &now, bufdev[ad].ifmt) - bufdev[ad].last_bytes;
 	needed = bufdev[ad].ifmt.bytes_per_block - bufdev[ad].leftover_bytes - read_size;
 	if(needed > 0) {
@@ -499,7 +499,7 @@ int
 trans_audio_supports(audio_desc_t ad, audio_format *fmt)
 {
         UNUSED(ad);
-        if ((!(fmt->sample_rate % 8000) || !(fmt->sample_rate % 11025)) && 
+        if ((!(fmt->sample_rate % 8000) || !(fmt->sample_rate % 11025)) &&
             (fmt->channels == 1 || fmt->channels == 2)) {
                 return TRUE;
         }

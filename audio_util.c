@@ -1,14 +1,14 @@
 /*
  * FILE:     audio_util.c
  * PROGRAM:  RAT
- * AUTHOR:   Orion Hodson / Isidor Kouvelas / Colin Perkins 
+ * AUTHOR:   Orion Hodson / Isidor Kouvelas / Colin Perkins
  *
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -83,12 +83,12 @@ void
 bias_remove(bias_ctl *bc, sample *buf, int len)
 {
         if (bc->step == 1) {
-                remove_lta(bc, buf, len, 1); 
+                remove_lta(bc, buf, len, 1);
         } else {
                 remove_lta(bc  , buf  , len / 2, 2);
                 remove_lta(bc+1, buf+1, len / 2, 2);
         }
-} 
+}
 
 /* Audio processing utility functions */
 
@@ -134,7 +134,7 @@ audio_mix(sample *dst, sample *src, int len)
 #ifdef WIN32
 
 /* mmx_present is (C) Intel 1998 */
-BOOL 
+BOOL
 mmx_present(void)
 {
 
@@ -194,14 +194,14 @@ audio_mix_mmx(sample *dst, sample *src, int len)
 			mov eax, dst
 			mov ebx, src
 			jmp START
-LOOP_L1:        
+LOOP_L1:
 			add    esi, 8
 START:
 			movq   mm0, [eax + esi]
 			paddsw mm0, [ebx + esi]
 			movq  [eax + esi], mm0
 			cmp    esi, endq
-			jb     LOOP_L1 
+			jb     LOOP_L1
 			emms
 		}
 		endq += 8;
@@ -223,7 +223,7 @@ START:
 #endif /* WIN32 */
 
 #define ENERGY_CALC_STEP	         1
-uint16_t 
+uint16_t
 audio_avg_energy(sample *buf, uint32_t samples, uint32_t channels)
 {
         register uint32_t e1, e2;
@@ -284,7 +284,7 @@ audio_blend(sample *from, sample *to, sample *out, int samples, int channels)
 {
         int i;
         int32_t tmp, sf, m;
-        
+
         m = samples / channels;
         for (i = 0; i < samples; i++) {
                 sf   = i / channels;

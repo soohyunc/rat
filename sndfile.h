@@ -21,7 +21,7 @@ extern "C" {
  * The decision about which format is used depends on the extension of
  * the file name.
  *
- * The functions snd_{read,write}_open take a pointer to a pointer 
+ * The functions snd_{read,write}_open take a pointer to a pointer
  * of type struct s_sndfile.  This makes allocation/access more
  * restrictive, but safer.
  *
@@ -33,13 +33,13 @@ extern "C" {
 #include "sndfile_types.h"
 struct s_sndfile;
 
-int  snd_read_open (struct s_sndfile **sf, 
+int  snd_read_open (struct s_sndfile **sf,
                     char              *path,
                     sndfile_fmt_t     *fmt);  /* fmt only used for conversion to l16 if file type is raw, maybe NULL */
 
 int  snd_read_close (struct s_sndfile **sf);
 
-int  snd_read_audio (struct s_sndfile **sf, 
+int  snd_read_audio (struct s_sndfile **sf,
                      sample *buf,           /* buffer                        */
                      uint16_t buf_len);     /* sampling_intervals * channels */
 
@@ -50,8 +50,8 @@ int  snd_write_open (struct s_sndfile **sf,
 
 int  snd_write_close (struct s_sndfile **sf);
 
-int  snd_write_audio (struct s_sndfile **sf, 
-                      sample *buf, 
+int  snd_write_audio (struct s_sndfile **sf,
+                      sample *buf,
                       uint16_t buf_len);
 
 int  snd_pause (struct s_sndfile *sf);

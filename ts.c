@@ -5,9 +5,9 @@
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -34,9 +34,9 @@ typedef struct {
  * media playout concerns.
  *
  * NB. The tickers must be frequency ordered - comparison code depends
- * on it!  
+ * on it!
  */
- 
+
 ticker tickers[] = {
         {   8000, 0x002d6900 },
         {  11025, 0x003e94b4 },
@@ -79,7 +79,7 @@ ts_map32(uint32_t freq, uint32_t ticks32)
 static timestamp_t
 ts_rebase(uint32_t new_idx, timestamp_t t)
 {
-        /* Use 64 bit quantity as temporary since 
+        /* Use 64 bit quantity as temporary since
          * we are multiplying a 25 bit quantity by a
          * 16 bit one.  Only have to do this as
          * frequencies are not all multiples of each
@@ -108,7 +108,7 @@ int
 ts_gt(timestamp_t t1, timestamp_t t2)
 {
         uint32_t half_range, x1, x2;
-        
+
         assert(ts_valid(t1));
         assert(ts_valid(t2));
 
@@ -119,7 +119,7 @@ ts_gt(timestamp_t t1, timestamp_t t2)
                 t1 = ts_rebase((unsigned)t2.idx, t1);
         }
 
-        half_range = tickers[t1.idx].wrap >> 1;        
+        half_range = tickers[t1.idx].wrap >> 1;
 
         x1 = t1.ticks;
         x2 = t2.ticks;
@@ -151,9 +151,9 @@ timestamp_t
 ts_add(timestamp_t t1, timestamp_t t2)
 {
         uint32_t ticks;
-        assert(ts_valid(t1));        
+        assert(ts_valid(t1));
         assert(ts_valid(t2));
-        
+
         /* Make sure both timestamps have same (higher) timebase */
         if (t1.idx > t2.idx) {
                 t2 = ts_rebase(t1.idx, t2);
@@ -174,7 +174,7 @@ ts_sub(timestamp_t t1, timestamp_t t2)
         timestamp_t out;
         uint32_t ticks;
 
-        assert(ts_valid(t1));        
+        assert(ts_valid(t1));
         assert(ts_valid(t2));
 
         /* Make sure both timestamps have same (higher) timebase */
@@ -188,7 +188,7 @@ ts_sub(timestamp_t t1, timestamp_t t2)
 
         if (t1.ticks < t2.ticks) {
                 /* Handle wrap */
-                ticks = t1.ticks + tickers[t1.idx].wrap - t2.ticks; 
+                ticks = t1.ticks + tickers[t1.idx].wrap - t2.ticks;
         } else {
                 ticks = t1.ticks - t2.ticks;
         }
@@ -228,12 +228,12 @@ ts_div(timestamp_t t, uint32_t x)
         return t;
 }
 
-timestamp_t 
+timestamp_t
 ts_convert(uint32_t new_freq, timestamp_t ts)
 {
         uint32_t i;
         timestamp_t out;
-        
+
         out.check = 0;
 
         for(i = 0; i < TS_NUM_TICKERS; i++) {
@@ -270,10 +270,10 @@ timestamp_to_us(timestamp_t t1)
         return (uint32_t)r;
 }
 
-int 
+int
 ts_valid(timestamp_t t1)
 {
-        return ((unsigned)t1.idx < TS_NUM_TICKERS && 
+        return ((unsigned)t1.idx < TS_NUM_TICKERS &&
                 (t1.check == TS_CHECK_BITS) &&
                 (unsigned)t1.ticks < tickers[t1.idx].wrap);
 }
@@ -294,7 +294,7 @@ ts_get_freq(timestamp_t t1)
 
 #define TS_WRAP_32 0x7fffffff
 
-static 
+static
 int ts32_gt(uint32_t a, uint32_t b)
 {
         uint32_t diff;
@@ -306,7 +306,7 @@ timestamp_t
 ts_seq32_in(ts_sequencer *s, uint32_t freq, uint32_t curr_32)
 {
         uint32_t delta_32;
-        timestamp_t    delta_ts; 
+        timestamp_t    delta_ts;
 
         /* Inited or freq changed check */
         if (s->freq != freq || !ts_valid(s->last_ts)) {
@@ -319,7 +319,7 @@ ts_seq32_in(ts_sequencer *s, uint32_t freq, uint32_t curr_32)
         /* Find difference in 32 bit timestamps, scale to timestamp_t size
          * and add to last returned timestamp.
          */
-        
+
         if (ts32_gt(curr_32, s->last_32)) {
                 delta_32   = curr_32 - s->last_32;
                 delta_ts   = ts_map32(freq, delta_32);
@@ -329,7 +329,7 @@ ts_seq32_in(ts_sequencer *s, uint32_t freq, uint32_t curr_32)
                 delta_ts   = ts_map32(freq, delta_32);
                 s->last_ts = ts_sub(s->last_ts, delta_ts);
         }
-        
+
         s->last_32 = curr_32;
         return s->last_ts;
 }
@@ -338,7 +338,7 @@ uint32_t
 ts_seq32_out(ts_sequencer *s, uint32_t freq, timestamp_t curr_ts)
 {
         uint32_t delta_32;
-        timestamp_t    delta_ts; 
+        timestamp_t    delta_ts;
 
         /* Inited or freq change check */
         if (s->freq != freq || !ts_valid(s->last_ts)) {

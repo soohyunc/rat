@@ -1,14 +1,14 @@
 /*
  * FILE:      channel_types.c
- * AUTHOR(S): Orion Hodson 
- *	
+ * AUTHOR(S): Orion Hodson
+ *
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 #include "config_unix.h"
@@ -19,7 +19,7 @@ static const char cvsid[] =
 #include "util.h"
 #include "debug.h"
 
-int 
+int
 channel_data_create(channel_data **ppcd, int nelem)
 {
         channel_data *pcd;
@@ -83,7 +83,7 @@ uint32_t
 channel_data_bytes(channel_data *cd)
 {
         uint32_t len, i;
-        
+
         len = 0;
         for(i = 0; i < cd->nelem; i++) {
                 len += cd->elem[i]->data_len;

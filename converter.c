@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -35,8 +35,8 @@ typedef struct s_converter {
 typedef int  (*cv_startup)     (void);  /* converter specific one time initialization */
 typedef void (*cv_shutdown)    (void);  /* converter specific one time cleanup */
 typedef int  (*cv_conv_init_f) (const converter_fmt_t *c, u_char **state, uint32_t *state_len);
-typedef void (*cv_conv_do_f)   (const converter_fmt_t *c, u_char *state, 
-                                sample* src_buf, int src_len, 
+typedef void (*cv_conv_do_f)   (const converter_fmt_t *c, u_char *state,
+                                sample* src_buf, int src_len,
                                 sample *dst_buf, int dst_len);
 typedef void (*cv_conv_free_f) (u_char **state, uint32_t *state_len);
 
@@ -65,12 +65,12 @@ pcm_converter_t converter_tbl[] = {
 #ifdef WIN32
         {
                 {0, "Microsoft Converter"},
-                FALSE, 
-                acm_cv_startup, 
-                acm_cv_shutdown, 
-                acm_cv_create, 
-                acm_cv_convert,  
-                acm_cv_destroy 
+                FALSE,
+                acm_cv_startup,
+                acm_cv_shutdown,
+                acm_cv_create,
+                acm_cv_convert,
+                acm_cv_destroy
         },
 #endif
         {
@@ -84,7 +84,7 @@ pcm_converter_t converter_tbl[] = {
         },
         {
                 {2, "Intermediate Quality"},
-                TRUE,  
+                TRUE,
                 NULL,
                 NULL,
                 linear_create,
@@ -108,14 +108,14 @@ pcm_converter_t converter_tbl[] = {
 #define CONVERTER_ID_TO_IDX(x) (((x)>>2) - 17)
 #define IDX_TO_CONVERTER_ID(x) ((x+17) << 2)
 
-int 
-converter_create(const converter_id_t   cid, 
+int
+converter_create(const converter_id_t   cid,
                  const converter_fmt_t *cfmt,
                  converter_t          **cvtr)
 {
         converter_t *c  = NULL;
         uint32_t      tbl_idx;
-        
+
         tbl_idx = CONVERTER_ID_TO_IDX(cid);
 
         if (tbl_idx >= NUM_CONVERTERS) {
@@ -127,7 +127,7 @@ converter_create(const converter_id_t   cid,
                 debug_msg("No format specified\n");
                 return FALSE;
         }
-        
+
         c  = (converter_t*)xmalloc(sizeof(converter_t));
         if (c == NULL) {
                 debug_msg("Could not allocate converter\n");
@@ -139,14 +139,14 @@ converter_create(const converter_id_t   cid,
         /* Copy format */
         c->cfmt = (converter_fmt_t*)xmalloc(sizeof(converter_fmt_t));
         if (c->cfmt == NULL) {
-                converter_destroy(&c); 
+                converter_destroy(&c);
                 return FALSE;
         }
         memcpy(c->cfmt, cfmt, sizeof(converter_fmt_t));
         c->idx = tbl_idx;
 
         /* Initialize */
-        if ((converter_tbl[tbl_idx].initf) && 
+        if ((converter_tbl[tbl_idx].initf) &&
             (converter_tbl[tbl_idx].initf(cfmt, &c->state, &c->state_len) == FALSE)) {
 		xfree(c->cfmt);
 		xfree(c);
@@ -156,12 +156,12 @@ converter_create(const converter_id_t   cid,
 
         c->magic = MAGIC; /* debugging */
         *cvtr = c;
-        
+
         xmemchk();
         return TRUE;
 }
 
-void 
+void
 converter_destroy(converter_t **cvtr)
 {
         converter_t *c = *cvtr;
@@ -180,11 +180,11 @@ converter_destroy(converter_t **cvtr)
                 xfree(c->cfmt);
         }
 
-        xfree(c); 
+        xfree(c);
         (*cvtr) = NULL;
 }
 
-void         
+void
 converters_init()
 {
         uint32_t i = 0;
@@ -219,7 +219,7 @@ converter_get_details(uint32_t idx)
         return NULL;
 }
 
-uint32_t 
+uint32_t
 converter_get_count()
 {
         return NUM_CONVERTERS;
@@ -257,7 +257,7 @@ converter_process (converter_t *c, coded_unit *in, coded_unit *out)
 
         n_in  = ticks_in  * cf->src_channels;
         n_out = ticks_out * cf->dst_channels;
-	
+
         assert(converter_format_valid(cf));
         assert(out->state     == NULL);
         assert(out->state_len == 0);
@@ -272,9 +272,9 @@ converter_process (converter_t *c, coded_unit *in, coded_unit *out)
             (c->cfmt->src_channels != c->cfmt->dst_channels)) {
                 converter_tbl[c->idx].convertf(c->cfmt,
                                                c->state,
-                                               (sample*)in->data, 
+                                               (sample*)in->data,
                                                n_in,
-                                               (sample*)out->data, 
+                                               (sample*)out->data,
                                                n_out);
         } else {
                 /* No conversion is actually necessary */

@@ -1,7 +1,7 @@
 /*
  * FILE:      channel.h
- * AUTHOR(S): Orion Hodson 
- *	
+ * AUTHOR(S): Orion Hodson
+ *
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
@@ -35,7 +35,7 @@ const cc_details_t* channel_get_coder_identity(struct s_channel_state *cs);
 
 int       _channel_coder_create      (cc_id_t id, struct s_channel_state **cs, int is_encoder);
 void      _channel_coder_destroy     (struct s_channel_state **cs, int is_encoder);
-int       _channel_coder_reset       (struct s_channel_state *cs,  int is_encoder);   
+int       _channel_coder_reset       (struct s_channel_state *cs,  int is_encoder);
 
 /* Encoder specifics *********************************************************/
 
@@ -49,8 +49,8 @@ uint16_t   channel_encoder_get_units_per_packet (struct s_channel_state *cs);
 int       channel_encoder_set_parameters (struct s_channel_state *cs, char *cmd);
 int       channel_encoder_get_parameters (struct s_channel_state *cs, char *cmd, int cmd_len);
 
-int       channel_encoder_encode (struct s_channel_state  *cs, 
-                                  struct s_pb *media_buffer, 
+int       channel_encoder_encode (struct s_channel_state  *cs,
+                                  struct s_pb *media_buffer,
                                   struct s_pb *channel_buffer);
 
 /* Decoder specifics *********************************************************/
@@ -58,16 +58,16 @@ int       channel_encoder_encode (struct s_channel_state  *cs,
 #define   channel_decoder_destroy(cs)     _channel_coder_destroy (cs, FALSE)
 #define   channel_decoder_reset(cs)       _channel_coder_reset   (cs, FALSE)
 
-int       channel_decoder_decode (struct s_channel_state  *cs, 
+int       channel_decoder_decode (struct s_channel_state  *cs,
                                   struct s_pb *channel_buffer,
-                                  struct s_pb *media_buffer, 
+                                  struct s_pb *media_buffer,
                                   timestamp_t                     now);
 
-int       channel_decoder_matches (cc_id_t                 cid, 
+int       channel_decoder_matches (cc_id_t                 cid,
                                    struct s_channel_state *cs);
 
-int       channel_get_compatible_codec (uint8_t  pt, 
-                                        u_char *data, 
+int       channel_get_compatible_codec (uint8_t  pt,
+                                        u_char *data,
                                         uint32_t data_len);
 
 int       channel_verify_and_stat (cc_id_t  cid,
@@ -83,11 +83,11 @@ int       channel_describe_data   (cc_id_t cid,
                                    uint32_t data_len,
                                    char   *outstr,
                                    uint32_t out_len);
-                                   
+
 
 /* Payload mapping functions */
 cc_id_t   channel_coder_get_by_payload (uint8_t pt);
-uint8_t    channel_coder_get_payload    (struct s_channel_state* st, uint8_t media_pt);   
+uint8_t    channel_coder_get_payload    (struct s_channel_state* st, uint8_t media_pt);
 int       channel_coder_exist_payload  (uint8_t pt);
 
 /* Layered coding functions */

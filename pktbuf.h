@@ -1,6 +1,6 @@
 /*
  * FILE:      pktbuf.h
- * AUTHOR(S): Orion Hodson 
+ * AUTHOR(S): Orion Hodson
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
@@ -25,14 +25,14 @@
 
 typedef struct s_pktbuf pktbuf_t;
 
-int     pktbuf_create    (pktbuf_t **ppb, 
+int     pktbuf_create    (pktbuf_t **ppb,
                           uint16_t    maxpackets);
 
 void    pktbuf_destroy   (pktbuf_t **ppb);
 
-int     pktbuf_enqueue   (pktbuf_t *pb, 
+int     pktbuf_enqueue   (pktbuf_t *pb,
                           rtp_packet *p);
-int     pktbuf_dequeue   (pktbuf_t *pb, 
+int     pktbuf_dequeue   (pktbuf_t *pb,
                           rtp_packet **p);
 
 /* Peak at last packet sent by source.  May have bursting at start of       */

@@ -5,9 +5,9 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -30,8 +30,8 @@ void network_process_mbus(session_t *sp)
 	do {
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 0;
-		rc  = mbus_recv(sp->mbus_engine, (void *) sp, &timeout); 
-		mbus_send(sp->mbus_engine); 
+		rc  = mbus_recv(sp->mbus_engine, (void *) sp, &timeout);
+		mbus_send(sp->mbus_engine);
 		mbus_heartbeat(sp->mbus_engine, 1);
 		mbus_retransmit(sp->mbus_engine);
 		if (rc) {
@@ -42,7 +42,7 @@ void network_process_mbus(session_t *sp)
 	} while (c < 3);
 }
 
-uint32_t 
+uint32_t
 ntp_time32(void)
 {
         struct timeval  tv;

@@ -2,13 +2,13 @@
  * FILE:    tcltk.c
  * PROGRAM: RAT
  * AUTHOR:  Isidor Kouvelas + Colin Perkins + Orion Hodson
- * 	
+ *
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -29,7 +29,7 @@ static const char cvsid[] =
 extern char 	ui_audiotool[];
 extern char	ui_transcoder[];
 
-#ifdef WIN32		
+#ifdef WIN32
 int
 WinPutsCmd(ClientData clientData, Tcl_Interp *interp, int argc, char **argv)
 {
@@ -105,7 +105,7 @@ WinGetUserName(ClientData clientData, Tcl_Interp *interp, int argc, char **argv)
 {
     char user[256];
     int size = sizeof(user);
-    
+
     if (!GetUserName(user, &size)) {
 	Tcl_AppendResult(interp, "GetUserName failed", NULL);
 	return TCL_ERROR;
@@ -131,7 +131,7 @@ regroot(root)
 	return (HKEY)-1;
 }
 
-int 
+int
 WinReg(ClientData clientdata, Tcl_Interp *interp, int argc, char **argv)
 {
 	static char szBuf[255], szOutBuf[255];
@@ -144,7 +144,7 @@ WinReg(ClientData clientdata, Tcl_Interp *interp, int argc, char **argv)
                 Tcl_AppendResult(interp, "wrong number of args\n", szBuf, NULL);
                 return TCL_ERROR;
         }
-	
+
         strncpy(szBuf, argv[2], 255);
         szValueName = argv[3];
         szRegRoot   = szBuf;
@@ -154,12 +154,12 @@ WinReg(ClientData clientdata, Tcl_Interp *interp, int argc, char **argv)
                 Tcl_AppendResult(interp, "registry path is wrongly written\n", szBuf, NULL);
                 return TCL_ERROR;
         }
-        
+
         *szRegPath = '\x0';
         szRegPath++;
 
         hKey = regroot(szRegRoot);
-        
+
         if (hKey == (HKEY)-1) {
                 Tcl_AppendResult(interp, "root not found %s", szRegRoot, NULL);
                 return TCL_ERROR;
@@ -175,9 +175,9 @@ WinReg(ClientData clientdata, Tcl_Interp *interp, int argc, char **argv)
                 if (ERROR_SUCCESS != RegQueryValueEx(hKeyResult, szValueName, 0, &dwType, szOutBuf, &cbOutBuf)) {
                         RegCloseKey(hKeyResult);
                         Tcl_AppendResult(interp, "Could not set value", szValueName, NULL);
-                        return TCL_ERROR;       
+                        return TCL_ERROR;
                 }
-                Tcl_SetResult(interp, szOutBuf, TCL_STATIC);	
+                Tcl_SetResult(interp, szOutBuf, TCL_STATIC);
         } else if (argc == 5 && !strcmp(argv[1], "set")) {
                 if (ERROR_SUCCESS != RegSetValueEx(hKeyResult, szValueName, 0, REG_SZ, argv[4], strlen(argv[4]))) {
                         RegCloseKey(hKeyResult);
@@ -192,13 +192,13 @@ WinReg(ClientData clientdata, Tcl_Interp *interp, int argc, char **argv)
 int
 RegGetValue(HKEY* key, char *subkey, char *value, char *dst, int dlen)
 {
-        HKEY lkey;      
+        HKEY lkey;
         LONG r;
         LONG len;
         DWORD type;
- 
+
         r = RegOpenKeyEx(*key, subkey, 0, KEY_READ, &lkey);
- 
+
         if (ERROR_SUCCESS == r) {
                 r = RegQueryValueEx(lkey, value, 0, &type, NULL, &len);
                 if (ERROR_SUCCESS == r && len <= dlen && type == REG_SZ) {
@@ -272,7 +272,7 @@ mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 #include "xbm/balloon.xbm"
 #include "xbm/reception.xbm"
 
-int 
+int
 tcl_init1(int argc, char **argv)
 {
 	char		*cmd_line_args, buffer[10];
@@ -283,7 +283,7 @@ tcl_init1(int argc, char **argv)
 	cmd_line_args = Tcl_Merge(argc - 1, argv + 1);
 	Tcl_SetVar(interp, "argv", cmd_line_args, TCL_GLOBAL_ONLY);
 #ifndef WIN32
-	ckfree(cmd_line_args); 
+	ckfree(cmd_line_args);
 #endif
 	sprintf(buffer, "%d", argc - 1);
 	Tcl_SetVar(interp, "argc", buffer, TCL_GLOBAL_ONLY);
@@ -333,7 +333,7 @@ tcl_init1(int argc, char **argv)
 	return TRUE;
 }
 
-int 
+int
 tcl_init2(struct mbus *mbus_ui, char *mbus_engine_addr)
 {
 	engine_addr   = xstrdup(mbus_engine_addr);
@@ -352,7 +352,7 @@ tcl_init2(struct mbus *mbus_ui, char *mbus_engine_addr)
 	return TRUE;
 }
 
-void 
+void
 tcl_exit()
 {
         xfree(engine_addr);

@@ -7,7 +7,7 @@
  * Copyright (c) 1996-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
 static const char cvsid[] = "$Id$";
 #endif
@@ -119,7 +119,7 @@ static char *ac97_devices[] = {
 	"OSS: AudioPCI 97 (CS4297A)",
 	0
 };
- 
+
 
 static int
 deve2oss(deve_e encoding)
@@ -233,7 +233,7 @@ oss_test_mode(int fd, int speed, int stereo)
 		debug_msg("  disabled (clock skew >5%: %dHz vs %dHz)\n", sp, speed);
 		return FALSE;
 	}
-        
+
         return TRUE;
 }
 
@@ -305,7 +305,7 @@ oss_probe_audio_device(int i, struct oss_device *device)
 
 		if (ioctl(fd, MIXER_READ(SOUND_MIXER_RECLEV), &level) >= 0) {
 		    debug_msg("Can use reclev. \n");
-		
+
 		    if (version >= 0x030903) {
 			debug_msg("Enabling latemodel opensound\n");
 			device->is_latemodel_opensound = 1;
@@ -342,7 +342,7 @@ oss_test_device_pair(int rdev, int wdev)
 		debug_msg("cannot read audio from %s %s\n", devices[rdev].audio_rdev, strerror(errno));
 		return FALSE;
 	}
-	
+
 
 	devices[wdev].audio_wfd = open(devices[wdev].audio_wdev, O_WRONLY | O_NDELAY);
 	if (devices[wdev].audio_wfd == 0) {
@@ -460,10 +460,10 @@ oss_audio_init(void)
 					  i, device.name);
 				device.is_ac97 = 1;
 			}
-			
+
 			devices[num_devices++] = device;
 			debug_msg("found \"%s\" as %s,%s\n", device.name, device.audio_rdev, device.mixer_rdev);
-			/* 
+			/*
 			 * Hack. If it's an Ensoniq AudioPCI, skip the halfduplex
 			 * device.
 			 */
@@ -500,7 +500,7 @@ oss_configure_device(int fd, audio_format *ifmt, audio_format *ofmt)
 		}
 	}
 
-	stereo = ifmt->channels - 1; 
+	stereo = ifmt->channels - 1;
 	assert(stereo == 0 || stereo == 1);
 	if ((ioctl(fd, SNDCTL_DSP_STEREO, &stereo) == -1) || (stereo != (ifmt->channels - 1))) {
 		debug_msg("device doesn't support %d channels!\n", ifmt->channels);
@@ -600,7 +600,7 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 			debug_msg("invalid duplex mode - this can never happen\n");
 			abort();
 	}
-	
+
 	/* Set 20 ms blocksize - this only modulates read sizes, and hence only has to be done on audio_rfd */
 	bytes_per_block = 20 * (ifmt->sample_rate / 1000) * (ifmt->bits_per_sample / 8);
 	/* Round to the nearest legal frag size (next power of two lower...) */
@@ -619,7 +619,7 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 	}
 
 	/* Set global gain/volume to maximum values. This may fail on */
-	/* some cards, but shouldn't cause any harm when it does..... */ 
+	/* some cards, but shouldn't cause any harm when it does..... */
 
 #if 0
 	ioctl(devices[ad].mixer_rfd, MIXER_WRITE(SOUND_MIXER_RECLEV), &volume);
@@ -629,7 +629,7 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 	oss_audio_iport_set(ad, iport);
 	/* Device driver bug: we must read some data before the ioctl */
 	/* to tell us how much data is waiting works....              */
-	read(devices[ad].audio_rfd, buffer, 128);	
+	read(devices[ad].audio_rfd, buffer, 128);
 
 	return TRUE;
 }
@@ -683,7 +683,7 @@ oss_audio_set_igain(audio_desc_t ad, int gain)
         assert(devices[ad].audio_rfd > 0);
 
 	switch (iport) {
-		case AUDIO_MICROPHONE : 
+		case AUDIO_MICROPHONE :
 			if (devices[ad].is_ac97) {
 				which_port = SOUND_MIXER_IGAIN;
 			} else if (devices[ad].is_latemodel_opensound) {
@@ -698,7 +698,7 @@ oss_audio_set_igain(audio_desc_t ad, int gain)
 			alsa_mute_mic(ad);
 #endif
 			break;
-		case AUDIO_LINE_IN : 
+		case AUDIO_LINE_IN :
 			/* From Stuart Levy <slevy@ncsa.uiuc.edu>:                           */
 			/* Finally, one completely untested (but plausible) change           */
 			/* that may help some people quite a bit.                            */
@@ -859,7 +859,7 @@ oss_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
         int 		read_len, available;
 	audio_buf_info	info;
 
-        assert(devices[ad].audio_rfd > 0);        
+        assert(devices[ad].audio_rfd > 0);
 
         /* Figure out how many bytes we can read before blocking... */
         ioctl(devices[ad].audio_rfd, SNDCTL_DSP_GETISPACE, &info);
@@ -881,7 +881,7 @@ oss_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
         char  		*p;
 
         assert(devices[ad].audio_wfd > 0);
-        
+
         p   = (char *) buf;
         len = write_bytes;
 	errno = 0;
@@ -951,7 +951,7 @@ oss_audio_oport_get(audio_desc_t ad)
 	return out_ports[0].port;
 }
 
-int 
+int
 oss_audio_oport_count(audio_desc_t ad)
 {
         UNUSED(ad);
@@ -978,17 +978,17 @@ oss_audio_iport_set(audio_desc_t ad, audio_port_t port)
         UNUSED(ad); assert(devices[ad].mixer_rfd > 0);
 
         switch (port) {
-		case AUDIO_MICROPHONE: 
+		case AUDIO_MICROPHONE:
 			debug_msg("Trying to select microphone input...\n");
-			recsrc = SOUND_MASK_MIC;  
+			recsrc = SOUND_MASK_MIC;
 			break;
-		case AUDIO_LINE_IN:    
+		case AUDIO_LINE_IN:
 			debug_msg("Trying to select line input...\n");
-			recsrc = SOUND_MASK_LINE; 
+			recsrc = SOUND_MASK_LINE;
 			break;
-		case AUDIO_CD:         
+		case AUDIO_CD:
 			debug_msg("Trying to select CD input...\n");
-			recsrc = SOUND_MASK_CD;   
+			recsrc = SOUND_MASK_CD;
 			break;
 		default:
 			debug_msg("Port not recognized\n");
@@ -1042,7 +1042,7 @@ oss_audio_select(audio_desc_t ad, int delay_us)
         struct timeval tv;
 
         assert(devices[ad].audio_rfd > 0);
-        
+
         tv.tv_sec = 0;
         tv.tv_usec = delay_us;
 
@@ -1060,7 +1060,7 @@ oss_audio_wait_for(audio_desc_t ad, int delay_ms)
         oss_audio_select(ad, delay_ms * 1000);
 }
 
-int 
+int
 oss_audio_is_ready(audio_desc_t ad)
 {
         return oss_audio_select(ad, 0);
@@ -1072,7 +1072,7 @@ oss_audio_supports(audio_desc_t ad, audio_format *fmt)
         int i;
 
         for(i = 0; i < devices[ad].num_supported_formats; i++) {
-                if (devices[ad].supported_formats[i].channels    == fmt->channels 
+                if (devices[ad].supported_formats[i].channels    == fmt->channels
 		&&  devices[ad].supported_formats[i].sample_rate == fmt->sample_rate) {
 			return TRUE;
 		}

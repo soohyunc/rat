@@ -1,7 +1,7 @@
 /*
  * FILE:      source.h
- * AUTHOR(S): Orion Hodson 
- *	
+ * AUTHOR(S): Orion Hodson
+ *
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
@@ -37,14 +37,14 @@ struct s_source* source_list_get_source_no (struct s_source_list *plist,
 struct s_source* source_get_by_ssrc (struct s_source_list  *list,
                                      uint32_t               ssrc);
 
-struct s_source* source_create             (struct s_source_list  *list, 
+struct s_source* source_create             (struct s_source_list  *list,
                                             uint32_t               ssrc,
 					    pdb_t		  *pdb);
 
 void             source_remove             (struct s_source_list *list,
                                             struct s_source      *src);
 
-int              source_add_packet         (struct s_source *src, 
+int              source_add_packet         (struct s_source *src,
                                             rtp_packet      *p);
 
 int              source_check_buffering    (struct s_source   *src);

@@ -5,9 +5,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -22,22 +22,22 @@ static const char cvsid[] =
 #include "cx_dvi.h"
 
 static codec_format_t cs[] = {
-        {"DVI", "DVI-8K-Mono",  
-         "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.", 
+        {"DVI", "DVI-8K-Mono",
+         "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
          5,                     4, 80, {DEV_S16,  8000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 20  ms */
-        {"DVI", "DVI-11K-Mono", 
+        {"DVI", "DVI-11K-Mono",
          "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
          16,                    4, 80, {DEV_S16, 11025, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 14  ms */
-        {"DVI", "DVI-16K-Mono", 
+        {"DVI", "DVI-16K-Mono",
          "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
          6,                     4, 80, {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 10  ms */
-        {"DVI", "DVI-22K-Mono", 
+        {"DVI", "DVI-22K-Mono",
          "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
          17,                    4, 80, {DEV_S16, 22050, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 7  ms */
-        {"DVI", "DVI-32K-Mono", 
+        {"DVI", "DVI-32K-Mono",
          "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
          81, 4, 80, {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 5   ms */
-        {"DVI", "DVI-48K-Mono", 
+        {"DVI", "DVI-48K-Mono",
          "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
          82, 4, 80, {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}}  /* 3.3 ms */
 };
@@ -57,7 +57,7 @@ dvi_get_format(uint16_t idx)
         return &cs[idx];
 }
 
-int 
+int
 dvi_state_create(uint16_t idx, u_char **s)
 {
         struct adpcm_state *as;
@@ -93,7 +93,7 @@ dvi_encode(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
         assert(inbuf);
         assert(idx < DVI_NUM_FORMATS);
         UNUSED(idx);
-        
+
         /* Transfer state and fix ordering */
         c->state     = (u_char*)block_alloc(sizeof(struct adpcm_state));
         c->state_len = sizeof(struct adpcm_state);
@@ -101,7 +101,7 @@ dvi_encode(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 
         /* Fix coded state for byte ordering */
 	((struct adpcm_state*)c->state)->valprev = htons(((struct adpcm_state*)c->state)->valprev);
-        
+
         samples = cs[idx].format.bytes_per_block * 8 / cs[idx].format.bits_per_sample;
         c->data     = (u_char*)block_alloc(samples / sizeof(sample)); /* 4 bits per sample */
         c->data_len = samples / sizeof(sample);
@@ -113,7 +113,7 @@ dvi_encode(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 int
 dvi_decode(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
 {
-        int samples; 
+        int samples;
         assert(decoder_state);
         assert(c);
         assert(data);

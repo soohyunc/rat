@@ -1,14 +1,14 @@
 /*
  * FILE:     auddev.c
  * PROGRAM:  RAT
- * AUTHOR:   Orion Hodson 
+ * AUTHOR:   Orion Hodson
  *
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -37,7 +37,7 @@ typedef struct {
         int  (*audio_if_init)(void);                 /* Test and initialize audio interface (OPTIONAL)    */
         int  (*audio_if_free)(void);                 /* Free audio interface (OPTIONAL)                   */
         int  (*audio_if_dev_cnt)(void);              /* Device count for interface (REQUIRED)             */
-        char* 
+        char*
              (*audio_if_dev_name)(int);              /* Device name query (REQUIRED)                      */
 
         int  (*audio_if_open)(int, audio_format *ifmt, audio_format *ofmt); /* Open device with formats   */
@@ -78,8 +78,8 @@ typedef struct {
 audio_if_t audio_if_table[] = {
 #ifdef HAVE_SGI_AUDIO
         {
-                NULL, 
-                NULL, 
+                NULL,
+                NULL,
                 sgi_audio_device_count,
                 sgi_audio_device_name,
                 sgi_audio_open,
@@ -142,8 +142,8 @@ audio_if_t audio_if_table[] = {
 #endif /* HAVE_SPARC_AUDIO */
 #ifdef HAVE_OSPREY_AUDIO
         {
-                osprey_audio_init, 
-                NULL, 
+                osprey_audio_init,
+                NULL,
                 osprey_audio_device_count,
                 osprey_audio_device_name,
                 osprey_audio_open,
@@ -174,7 +174,7 @@ audio_if_t audio_if_table[] = {
 #endif /* HAVE_OSPREY_AUDIO */
 #ifdef HAVE_ALSA_AUDIO
         {
-                alsa_audio_init, 
+                alsa_audio_init,
                 NULL,
                 alsa_get_device_count,
                 alsa_get_device_name,
@@ -206,7 +206,7 @@ audio_if_t audio_if_table[] = {
 #endif /* HAVE_ALSA_AUDIO */
 #ifdef HAVE_OSS_AUDIO
         {
-                oss_audio_init, 
+                oss_audio_init,
                 NULL,
                 oss_get_device_count,
                 oss_get_device_name,
@@ -238,7 +238,7 @@ audio_if_t audio_if_table[] = {
 #endif /* HAVE_OSS_AUDIO */
 #ifdef HAVE_IXJ_AUDIO
         {
-                ixj_audio_init, 
+                ixj_audio_init,
                 NULL,
                 ixj_get_device_count,
                 ixj_get_device_name,
@@ -271,7 +271,7 @@ audio_if_t audio_if_table[] = {
 #ifdef WIN32
         {
                 w32sdk_audio_init,
-                w32sdk_audio_free, 
+                w32sdk_audio_free,
                 w32sdk_get_device_count,
                 w32sdk_get_device_name,
                 w32sdk_audio_open,
@@ -367,7 +367,7 @@ audio_if_t audio_if_table[] = {
 #ifdef HAVE_PCA_AUDIO
         {
                 pca_audio_init,
-                NULL, 
+                NULL,
                 pca_audio_device_count,
                 pca_audio_device_name,
                 pca_audio_open,
@@ -398,7 +398,7 @@ audio_if_t audio_if_table[] = {
 #endif /* HAVE_PCA_AUDIO */
 	{
                 trans_audio_init,
-                NULL, 
+                NULL,
                 trans_audio_device_count,
                 trans_audio_device_name,
                 trans_audio_open,
@@ -432,7 +432,7 @@ audio_if_t audio_if_table[] = {
                  * of a real device we fake one.  Prevents lots of problems elsewhere.
                  */
                 NULL,
-                NULL, 
+                NULL,
                 null_audio_device_count,
                 null_audio_device_name,
                 null_audio_open,
@@ -477,7 +477,7 @@ static audio_device_details_t *dev_details;
 #define AUDDEV_REQ_IFMT      0
 #define AUDDEV_REQ_OFMT      1
 
-/* These are actual device formats that are transparently converted 
+/* These are actual device formats that are transparently converted
  * into the required ones during reads and writes.  */
 #define AUDDEV_ACT_IFMT      2
 #define AUDDEV_ACT_OFMT      3
@@ -504,7 +504,7 @@ static uint32_t samples_read[MAX_ACTIVE_DEVICES], samples_written[MAX_ACTIVE_DEV
 
 /*****************************************************************************
  *
- * Code for working out how many devices are, what they are called, and what 
+ * Code for working out how many devices are, what they are called, and what
  * descriptor should be used to access them.
  *
  *****************************************************************************/
@@ -547,7 +547,7 @@ static int
 get_active_device_index(audio_desc_t ad)
 {
         int i;
-        
+
         for (i = 0; i < active_devices; i++) {
                 if (active_device_desc[i] == ad) {
                         return i;
@@ -604,10 +604,10 @@ audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
         fmts[dev_idx][AUDDEV_ACT_OFMT] = audio_format_dup(&format);
 
         /* Formats can get changed in audio_if_open, but only sample
-         * type, not the number of channels or freq 
+         * type, not the number of channels or freq
          */
-        success = audio_if_table[iface].audio_if_open(device, 
-                                                          fmts[dev_idx][AUDDEV_ACT_IFMT], 
+        success = audio_if_table[iface].audio_if_open(device,
+                                                          fmts[dev_idx][AUDDEV_ACT_IFMT],
                                                           fmts[dev_idx][AUDDEV_ACT_OFMT]);
 
         if (success) {
@@ -631,8 +631,8 @@ audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                         audio_close(ad);
                         return FALSE;
                 }
-                
-                /* If we are going to need conversion between requested and 
+
+                /* If we are going to need conversion between requested and
                  * actual device formats store requested formats */
                 if (!audio_format_match(ifmt, fmts[dev_idx][AUDDEV_ACT_IFMT])) {
                         fmts[dev_idx][AUDDEV_REQ_IFMT] = audio_format_dup(ifmt);
@@ -692,7 +692,7 @@ audio_close(audio_desc_t ad)
         for(i = 0; i < active_devices; i++) {
                 if (active_device_desc[i] == ad) {
                         for(k = 0; k < AUDDEV_NUM_FORMATS; k++) {
-                                if (fmts[i][k] != NULL) audio_format_free(&fmts[i][k]);                                
+                                if (fmts[i][k] != NULL) audio_format_free(&fmts[i][k]);
                         }
                         if (convert_buf[i]) {
                                 xfree(convert_buf[i]);
@@ -755,10 +755,10 @@ audio_drain(audio_desc_t ad)
 
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
-        
+
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
-        
+
         audio_if_table[iface].audio_if_drain(device);
 }
 
@@ -785,7 +785,7 @@ audio_read(audio_desc_t ad, sample *buf, int samples)
         int device, iface;
         int idx = get_active_device_index(ad);
 
-        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));        
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
         assert(idx >= 0 && idx < active_devices);
         assert(buf != NULL);
 
@@ -823,13 +823,13 @@ audio_write(audio_desc_t ad, sample *buf, int len)
         int write_len ,sample_size;
         int iface, device;
         int idx = get_active_device_index(ad);
-        
+
         assert(idx >= 0 && idx < active_devices);
         assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
 
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
-        
+
         xmemchk();
 
         if (fmts[idx][AUDDEV_REQ_OFMT] == NULL) {
@@ -880,7 +880,7 @@ audio_block(audio_desc_t ad)
 
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
-        
+
         audio_if_table[iface].audio_if_block(device);
 }
 
@@ -951,7 +951,7 @@ audio_get_ogain(audio_desc_t ad)
 
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
-        
+
         volume = audio_if_table[iface].audio_if_get_ogain(device);
         assert(volume >= 0);
         assert(volume <= MAX_AMP);
@@ -988,7 +988,7 @@ audio_set_oport(audio_desc_t ad, audio_port_t port)
 
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
-        
+
         audio_if_table[iface].audio_if_set_oport(device, port);
 }
 
@@ -1030,7 +1030,7 @@ audio_get_oport_count(audio_desc_t ad)
 
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
-        
+
         return audio_if_table[iface].audio_if_get_oport_count(device);
 }
 
@@ -1086,7 +1086,7 @@ audio_get_iport_count(audio_desc_t ad)
 
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
-        
+
         return audio_if_table[iface].audio_if_get_iport_count(device);
 }
 
@@ -1160,13 +1160,13 @@ audio_get_device_time(audio_desc_t ad)
         assert(dev >= 0 && dev < active_devices);
 
         if (fmts[dev][AUDDEV_REQ_IFMT]) {
-                fmt = fmts[dev][AUDDEV_REQ_IFMT]; 
+                fmt = fmts[dev][AUDDEV_REQ_IFMT];
         } else {
-                fmt = fmts[dev][AUDDEV_ACT_IFMT]; 
+                fmt = fmts[dev][AUDDEV_ACT_IFMT];
         }
-        
+
         samples_per_block = fmt->bytes_per_block * 8 / (fmt->channels * fmt->bits_per_sample);
-        
+
         return (samples_read[dev]/samples_per_block) * samples_per_block;
 }
 
@@ -1203,7 +1203,7 @@ audio_init_interfaces(void)
         actual_interfaces = INITIAL_AUDIO_INTERFACES;
         for(i = 0; i < INITIAL_AUDIO_INTERFACES; i++) {
                 if (audio_if_table[i].audio_if_init) {
-                        audio_if_table[i].audio_if_init(); 
+                        audio_if_table[i].audio_if_init();
                 }
                 assert(audio_if_table[i].audio_if_dev_cnt);
 		devs[i] = audio_if_table[i].audio_if_dev_cnt();
@@ -1252,7 +1252,7 @@ audio_free_interfaces(void)
 		debug_msg("%p\n", audio_if_table[i].audio_if_free);
                 if (audio_if_table[i].audio_if_free) {
 			debug_msg("Freeing audio interface %d\n", i);
-                        audio_if_table[i].audio_if_free(); 
+                        audio_if_table[i].audio_if_free();
                 }
         }
 

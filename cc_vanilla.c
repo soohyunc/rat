@@ -1,14 +1,14 @@
 /*
  * FILE:      cc_vanilla.c
- * AUTHOR(S): Orion Hodson 
- *	
+ * AUTHOR(S): Orion Hodson
+ *
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 #include "config_unix.h"
@@ -66,7 +66,7 @@ vanilla_encoder_reset(u_char *state)
                 media_data_destroy(&ve->elem[i], sizeof(media_data));
         }
         ve->nelem = 0;
-        
+
         return TRUE;
 }
 
@@ -80,7 +80,7 @@ vanilla_encoder_output(ve_state *ve, struct s_pb *out)
 
         /* We have state for first unit and data for all others */
         channel_data_create(&cd, ve->nelem + 1);
-        
+
         /* Fill in payload */
         cd->elem[0]->pt           = codec_get_payload(ve->codec_id);
 
@@ -108,9 +108,9 @@ vanilla_encoder_output(ve_state *ve, struct s_pb *out)
 
         assert(used <= cd->nelem);
 
-        pb_add(out, 
-               (u_char*)cd, 
-               sizeof(channel_data), 
+        pb_add(out,
+               (u_char*)cd,
+               sizeof(channel_data),
                ve->playout);
 }
 
@@ -151,10 +151,10 @@ vanilla_encoder_encode (u_char      *state,
                                 continue;
                         }
                 } else {
-                        /* Check for early send required:      
-                         * (a) if this unit has no media respresentations 
+                        /* Check for early send required:
+                         * (a) if this unit has no media respresentations
                          *     e.g. end of talkspurt.
-                         * (b) codec type of incoming unit is different 
+                         * (b) codec type of incoming unit is different
                          *     from what is on queue.
                          */
                         if (m->nrep == 0) {
@@ -164,14 +164,14 @@ vanilla_encoder_encode (u_char      *state,
                         } else if (m->rep[0]->id != ve->codec_id) {
                                 vanilla_encoder_output(ve, out);
                         }
-                } 
+                }
 
                 assert(m_len == sizeof(media_data));
 
-                ve->codec_id = m->rep[0]->id;                
+                ve->codec_id = m->rep[0]->id;
                 ve->elem[ve->nelem] = m;
                 ve->nelem++;
-                
+
                 if (ve->nelem >= (uint32_t)upp) {
                         vanilla_encoder_output(ve, out);
                 }
@@ -227,8 +227,8 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, timestamp_t playout)
 
 int
 vanilla_decoder_decode(u_char      *state,
-                       struct s_pb *in, 
-                       struct s_pb *out, 
+                       struct s_pb *in,
+                       struct s_pb *out,
                        timestamp_t         now)
 {
         struct s_pb_iterator *pi;
@@ -243,7 +243,7 @@ vanilla_decoder_decode(u_char      *state,
 
         pb_iterator_create(in, &pi);
         assert(pi != NULL);
-        
+
         while(pb_iterator_get_at(pi, &c_get, &clen, &playout)) {
                 c = (channel_data*)c_get;
                 assert(c != NULL);
@@ -256,7 +256,7 @@ vanilla_decoder_decode(u_char      *state,
                 pb_iterator_detach_at(pi, &c_get, &clen, &playout);
                 c = (channel_data*)c_get;
                 assert(c != NULL);
-                
+
                 assert(c->nelem == 1);
                 cu = c->elem[0];
                 vanilla_decoder_output(cu, out, playout);
@@ -314,7 +314,7 @@ fail:
         return FALSE;
 }
 
-int 
+int
 vanilla_decoder_describe (uint8_t   pkt_pt,
                           u_char  *data,
                           uint32_t  data_len,

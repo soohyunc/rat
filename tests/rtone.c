@@ -41,8 +41,8 @@ pkt_queue_init() {
 	pkt_queue.next = &pkt_queue;
 }
 
-static void 
-pkt_queue_add(uint32_t rtp_ts, 
+static void
+pkt_queue_add(uint32_t rtp_ts,
 	      uint8_t  pt, int marker,
 	      void *data, int32_t data_len) {
 
@@ -68,7 +68,7 @@ static void
 pkt_queue_send(struct rtp *session, uint32_t now) {
 	struct pkt *sentinel, **c, *n;
 	struct timeval tv;
-    
+
 	sentinel = &pkt_queue;
 	c = &sentinel->next;
 	while (*c != sentinel && (*c)->rtp_ts <= now) {
@@ -89,8 +89,8 @@ static double speed = 1.0;
 
 /* gettime returns a timeval which is relative to first call */
 /* and scaled by clock rate.                                 */
-static 
-void gettime(struct timeval *tv) 
+static
+void gettime(struct timeval *tv)
 {
 	static struct timeval s;
 	double sec, usec, m;
@@ -141,7 +141,7 @@ tv_bound (struct timeval *t) {
 	}
 }
 
-static void 
+static void
 tv_diff(struct timeval *delta, struct timeval *a, struct timeval *b)
 {
 	assert(a->tv_sec >= b->tv_sec);
@@ -154,7 +154,7 @@ tv_diff(struct timeval *delta, struct timeval *a, struct timeval *b)
 	assert(delta->tv_sec >= 0);
 }
 
-static void 
+static void
 usage()
 {
 	fprintf(stderr, "\
@@ -173,26 +173,26 @@ where:
 	exit(-1);
 }
 
-static 
+static
 void list_codecs()
 {
 	const codec_format_t *cf;
 	codec_id_t cid;
 	uint32_t i, n;
-	
+
 	fprintf(stderr, "Available Codecs:\n");
-	
+
 	n   = codec_get_number_of_codecs();
 	for(i = 0; i < n; i++) {
 		cid = codec_get_codec_number(i);
 		cf  = codec_get_format(cid);
 		fprintf(stderr, "\t%s\n", cf->long_name);
 	}
-}	
+}
 
-static void 
+static void
 tone_gen	(sample *buffer, int samples, int tone_gain, int tone_rate, int sample_rate, int channels)
-{	
+{
 	static int t = 0;
 	int i;
 	if (channels == 1) {
@@ -221,7 +221,7 @@ rtp_callback(struct rtp *session, rtp_event *e)
 	return;
 }
 
-int 
+int
 main(int argc, char* argv[])
 {
 	const codec_format_t *cf;
@@ -252,8 +252,8 @@ main(int argc, char* argv[])
 		case 'c':
 			cid = codec_get_by_name(argv[++ac]);
 			if (codec_id_is_valid(cid) == FALSE) {
-				fprintf(stderr, 
-					"Codec %s is not one of:\n", 
+				fprintf(stderr,
+					"Codec %s is not one of:\n",
 					argv[ac]);
 				list_codecs();
 				exit(-1);
@@ -326,7 +326,7 @@ main(int argc, char* argv[])
 	printf("Codec: %s %d units per packet
 Tone freq: %d gain: %d (%f dBov)
 Packets every %ld us\n",
-	       cf->long_name, upp, 
+	       cf->long_name, upp,
 	       freq, gain, -20 * log(32767.0/(double)gain),
 	       packet_us);
 	printf("Speed %.2f real-time.\n", speed);
@@ -352,7 +352,7 @@ Packets every %ld us\n",
 			wakeup.tv_usec += lrand48() % 10000000;
 			wakeup.tv_sec += (wakeup.tv_usec / 1000000);
 			wakeup.tv_usec %= 1000000;
-		}	
+		}
 		if (sleeping) {
 			if (now.tv_sec > wakeup.tv_sec ||
 			    ((now.tv_sec == wakeup.tv_sec) && (now.tv_usec > wakeup.tv_usec))) {
@@ -367,8 +367,8 @@ Packets every %ld us\n",
 		while(avail_us > packet_us) {
 			ulen = 0;
 			for(i = 0; i < upp; i++) {
-				tone_gen((sample*)in->data, in->data_len / (sizeof(sample) * cf->format.channels), 
-					 gain, freq, 
+				tone_gen((sample*)in->data, in->data_len / (sizeof(sample) * cf->format.channels),
+					 gain, freq,
 					 cf->format.sample_rate, cf->format.channels);
 				if (sf) {
 					snd_read_audio(&sf, (sample*)in->data, in->data_len / (sizeof(sample) * cf->format.channels));

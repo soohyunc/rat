@@ -5,9 +5,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -22,7 +22,7 @@ static const char cvsid[] =
 #include "cx_lpc.h"
 
 static codec_format_t cs[] = {
-        {"LPC", "LPC-8K-Mono", 
+        {"LPC", "LPC-8K-Mono",
          "Pitch excited linear prediction codec (C) R. Zuckerman. Contributed by R. Frederick.",
          7, 0, LPCTXSIZE,
          {DEV_S16, 8000, 16, 1, 160 * BYTES_PER_SAMPLE}}
@@ -64,7 +64,7 @@ lpc_encoder_state_destroy(uint16_t idx, u_char **state)
 {
         assert(idx < LPC_NUM_FORMATS);
         UNUSED(idx);
-        
+
         xfree(*state);
         *state = (u_char*)NULL;
 }
@@ -84,7 +84,7 @@ lpc_decoder_state_destroy(uint16_t idx, u_char **state)
 {
         assert(idx < LPC_NUM_FORMATS);
         UNUSED(idx);
-        
+
         xfree(*state);
         *state = (u_char*)NULL;
 }
@@ -103,8 +103,8 @@ lpc_encoder  (uint16_t idx, u_char *state, sample *in, coded_unit *out)
         out->data      = (u_char*)block_alloc(LPCTXSIZE);
         out->data_len  = LPCTXSIZE;
 
-        lpc_analyze((const short*)in, 
-                    (lpc_encstate_t*)state, 
+        lpc_analyze((const short*)in,
+                    (lpc_encstate_t*)state,
                     (lpc_txstate_t*)out->data);
         return out->data_len;
 }
@@ -118,13 +118,13 @@ lpc_decoder (uint16_t idx, u_char *state, coded_unit *in, sample *out)
         assert(out);
 
         UNUSED(idx);
-        lpc_synthesize((short*)out,  
-                       (lpc_txstate_t*)in->data, 
+        lpc_synthesize((short*)out,
+                       (lpc_txstate_t*)in->data,
                        (lpc_intstate_t*)state);
         return cs[idx].format.bytes_per_block / BYTES_PER_SAMPLE;
 }
 
-int  
+int
 lpc_repair (uint16_t idx, u_char *state, uint16_t consec_lost,
             coded_unit *prev, coded_unit *missing, coded_unit *next)
 {
@@ -137,14 +137,14 @@ lpc_repair (uint16_t idx, u_char *state, uint16_t consec_lost,
                 debug_msg("lpc_repair: missing unit had data!\n");
                 block_free(missing->data, missing->data_len);
         }
-        
+
         missing->data     = (u_char*)block_alloc(LPCTXSIZE);
         missing->data_len = LPCTXSIZE;
-        
+
         assert(prev->data);
         assert(prev->data_len == LPCTXSIZE);
-        memcpy(missing->data, prev->data, LPCTXSIZE);       
-        
+        memcpy(missing->data, prev->data, LPCTXSIZE);
+
         lps = (lpc_txstate_t*)missing->data;
         lps->gain = (u_char)((float)lps->gain * 0.8f);
 

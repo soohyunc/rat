@@ -5,9 +5,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -22,19 +22,19 @@ static const char cvsid[] =
 #include "cx_gsm.h"
 
 static codec_format_t cs[] = {
-        {"GSM", "GSM-8K-Mono", 
+        {"GSM", "GSM-8K-Mono",
          "Full rate GSM speech codec. (c) 1992 J. Degener and C. Bormann, Technische Universitaet Berlin.",
          3, 0, GSM_FRAMESIZE,
          {DEV_S16, 8000, 16, 1, 160 * BYTES_PER_SAMPLE}},
-        {"GSM", "GSM-16K-Mono", 
+        {"GSM", "GSM-16K-Mono",
          "Full rate GSM speech codec. (c) 1992 J. Degener and C. Bormann, Technische Universitaet Berlin.",
          118, 0, GSM_FRAMESIZE,
          {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}},
-        {"GSM", "GSM-32K-Mono", 
+        {"GSM", "GSM-32K-Mono",
          "Full rate GSM speech codec. (c) 1992 J. Degener and C. Bormann, Technische Universitaet Berlin.",
          119, 0, GSM_FRAMESIZE,
          {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}},
-        {"GSM", "GSM-48K-Mono", 
+        {"GSM", "GSM-48K-Mono",
          "Full rate GSM speech codec. (c) 1992 J. Degener and C. Bormann, Technische Universitaet Berlin.",
          123, 0, GSM_FRAMESIZE,
          {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}}
@@ -69,7 +69,7 @@ gsm_state_destroy(uint16_t idx, u_char **state)
 {
         assert(idx < GSM_NUM_FORMATS);
         UNUSED(idx);
-        
+
         gsm_destroy((gsm)*state);
         *state = (u_char*)NULL;
 }
@@ -105,7 +105,7 @@ gsm_decoder (uint16_t idx, u_char *state, coded_unit *in, sample *out)
         return cs[idx].format.bytes_per_block / BYTES_PER_SAMPLE;
 }
 
-int  
+int
 gsm_repair (uint16_t idx, u_char *state, uint16_t consec_lost,
             coded_unit *prev, coded_unit *missing, coded_unit *next)
 {
@@ -121,7 +121,7 @@ gsm_repair (uint16_t idx, u_char *state, uint16_t consec_lost,
                 debug_msg("lpc_repair: missing unit had data!\n");
                 block_free(missing->data, missing->data_len);
         }
-        
+
         missing->data     = (u_char*)block_alloc(GSM_FRAMESIZE);
         missing->data_len = GSM_FRAMESIZE;
 
@@ -133,9 +133,9 @@ gsm_repair (uint16_t idx, u_char *state, uint16_t consec_lost,
 		for(i=6;i<28;i+=7) {
 			xmaxc  = (rep[i] & 0x1f) << 1;
 			xmaxc |= (rep[i+1] >> 7) & 0x01;
-			if (xmaxc > 4) { 
+			if (xmaxc > 4) {
 				xmaxc -= 4;
-			} else { 
+			} else {
 				xmaxc = 0;
 			}
 			rep[i]   = (rep[i] & 0xe0) | (xmaxc >> 1);
@@ -146,6 +146,6 @@ gsm_repair (uint16_t idx, u_char *state, uint16_t consec_lost,
         UNUSED(idx);
         UNUSED(state);
         UNUSED(next);
-        
+
         return TRUE;
 }

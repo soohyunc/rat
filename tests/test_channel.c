@@ -15,9 +15,9 @@
 typedef void (*freeproc)(u_char **, u_int32);
 
 static void
-do_test(codec_state *src_coder, 
+do_test(codec_state *src_coder,
         struct s_channel_state *src_channel,
-        codec_state *dst_coder, 
+        codec_state *dst_coder,
         struct s_channel_state *dst_channel)
 {
         struct s_playout_buffer *src_media, *src_cout, *dst_cin, *dst_media;
@@ -26,7 +26,7 @@ do_test(codec_state *src_coder,
         const codec_format_t *cf;
         sample      buf[160];
         int         now;
-        
+
         playout_buffer_create (&src_media, (freeproc) media_data_destroy,   1);
         playout_buffer_create (&src_cout,  (freeproc) channel_data_destroy, 1);
         playout_buffer_create (&dst_media, (freeproc) media_data_destroy,   1);
@@ -34,7 +34,7 @@ do_test(codec_state *src_coder,
 
         /* Set up input unit (must be native) */
         cf = codec_get_format(src_coder->id);
-        cu_in.id = codec_get_native_coding(cf->format.sample_rate, 
+        cu_in.id = codec_get_native_coding(cf->format.sample_rate,
                                            cf->format.channels);
         cu_in.state     = NULL;
         cu_in.state_len = NULL;
@@ -68,7 +68,7 @@ do_test(codec_state *src_coder,
         UNUSED(dst_channel);
 }
 
-int 
+int
 main()
 {
         codec_id_t   id;
@@ -93,7 +93,7 @@ main()
 
         channel_encoder_create(ccd.descriptor, &pscc);
         channel_decoder_create(ccd.descriptor, &prcc);
-        
+
         do_test(pscs, pscc, prcs, prcc);
 
         channel_encoder_destroy(&pscc);

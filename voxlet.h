@@ -11,11 +11,11 @@
 
 typedef struct s_voxlet voxlet_t;
 
-int  voxlet_create  (voxlet_t          **ppv, 
-                     struct s_mixer     *mixer, 
-                     struct s_pdb       *pdb, 
+int  voxlet_create  (voxlet_t          **ppv,
+                     struct s_mixer     *mixer,
+                     struct s_pdb       *pdb,
                      const char         *sndfile);
-int  voxlet_play    (voxlet_t           *ppv, 
-                     timestamp_t                start, 
+int  voxlet_play    (voxlet_t           *ppv,
+                     timestamp_t                start,
                      timestamp_t                end);
 void voxlet_destroy (voxlet_t          **ppv);

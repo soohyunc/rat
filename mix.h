@@ -26,11 +26,11 @@ typedef struct {
 struct s_source;
 struct s_rtcp_dbentry;
 
-int  mix_create    (mixer_t            **ms, 
+int  mix_create    (mixer_t            **ms,
                     const mixer_info_t  *mi,
 		    timestamp_t                 now);
 
-const mixer_info_t* 
+const mixer_info_t*
      mix_query     (const mixer_t      *ms);
 
 void mix_destroy   (mixer_t           **ms);
@@ -40,14 +40,14 @@ int  mix_put_audio (mixer_t            *ms,
                     coded_unit         *raw_frame,
                     timestamp_t                now);
 
-int  mix_get_audio (mixer_t            *ms, 
-                    int                 amount, 
+int  mix_get_audio (mixer_t            *ms,
+                    int                 amount,
                     sample            **bufp);
 
-void mix_new_cushion (mixer_t           *ms, 
-                      int                last_cushion_size, 
-                      int                new_cushion_size, 
-                      int                dry_time, 
+void mix_new_cushion (mixer_t           *ms,
+                      int                last_cushion_size,
+                      int                new_cushion_size,
+                      int                dry_time,
                       sample           **bufp);
 
 uint16_t mix_get_energy (mixer_t           *ms,

@@ -6,9 +6,9 @@
  * Copyright (c) 1996-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 "$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -76,15 +76,15 @@ static void newpcm_mixer_restore(int fd);
 static void newpcm_mixer_init(int fd);
 static void newpcm_audio_loopback_config(int gain);
 
-int 
+int
 newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
 	audio_buf_info	abi;
 	const char	*thedev;
 	char		kick_off[64]; /* initial read buffer */
 	int		frag;
- 
-	assert(ad >= 0 && ad < ndev); 
+
+	assert(ad >= 0 && ad < ndev);
 	thedev = names[ad];
 
 	debug_msg("Opening \"%s\" device index %d\n", thedev, ad);
@@ -135,11 +135,11 @@ newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 
 		/* Check rate is supported (driver does not and
 		 * appears to mis-report actual rate) */
-		if ((IN_RANGE((uint32_t)ofmt->sample_rate, 
-			      soundcaps[ad].rate_min, 
-			      soundcaps[ad].rate_max) == 0) || 
-		    (IN_RANGE((uint32_t)ifmt->sample_rate, 
-			      soundcaps[ad].rate_min, 
+		if ((IN_RANGE((uint32_t)ofmt->sample_rate,
+			      soundcaps[ad].rate_min,
+			      soundcaps[ad].rate_max) == 0) ||
+		    (IN_RANGE((uint32_t)ifmt->sample_rate,
+			      soundcaps[ad].rate_min,
 			      soundcaps[ad].rate_max) == 0)) {
 			debug_msg("(%d or %d) out of range %ld -- %ld Hz\n",
 				  ofmt->sample_rate,
@@ -168,14 +168,14 @@ newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		while((1 << frag) < ifmt->bytes_per_block)
 			frag ++;
 		frag --; /* Round down to nearest less than blocksize */
-		
+
 		/* fragsz [31:16] = number of frags (just lots, okay :-) */
 		frag |= 0x00ff0000;
 
 		NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SETFRAGMENT, &frag);
 		NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_GETOSPACE, &abi);
 		debug_msg("fragments %d fragstotal %d fragsize %d bytes %d\n",
-			  abi.fragments, abi.fragstotal, 
+			  abi.fragments, abi.fragstotal,
 			  abi.fragsize, abi.bytes);
 
 		/* sz is global and used throughout fn's */
@@ -217,8 +217,8 @@ newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		read(audio_fd, kick_off, sizeof(kick_off)/sizeof(kick_off[0]));
 		return TRUE;
 	} else {
-		fprintf(stderr, 
-			"Could not open device: \"%s\" (half-duplex?)\n", 
+		fprintf(stderr,
+			"Could not open device: \"%s\" (half-duplex?)\n",
 			names[ad]);
 		perror("newpcm_audio_open");
 		newpcm_audio_close(ad);
@@ -231,7 +231,7 @@ void
 newpcm_audio_close(audio_desc_t ad)
 {
 	UNUSED(ad);
-	
+
 	if (audio_fd < 0) {
 		debug_msg("Device already closed!\n");
 		return;
@@ -258,7 +258,7 @@ newpcm_audio_drain(audio_desc_t ad)
 {
 	u_char buf[4];
 	int pre, post;
-	 
+
 	assert(audio_fd > 0);
 
 	NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &pre);
@@ -306,8 +306,8 @@ newpcm_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 
 	done = 0;
 	while (done < write_bytes) {
-		wrote = write(audio_fd, 
-			      buf + done, 
+		wrote = write(audio_fd,
+			      buf + done,
 			      min(sz.play_size, write_bytes - done));
 		if (wrote == -1) break;
 		done += wrote;
@@ -331,17 +331,17 @@ void
 newpcm_audio_block(audio_desc_t ad)
 {
   	int	      frag = 0;
-	 
+
 	UNUSED(ad); assert(audio_fd > 0);
-	 
+
 	NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_NONBLOCK, &frag);
-} 
+}
 
 
 static int recmask, playmask;
 
 static void
-newpcm_mixer_init(int fd) 
+newpcm_mixer_init(int fd)
 {
 	int devmask;
 
@@ -367,7 +367,7 @@ newpcm_mixer_init(int fd)
 }
 
 static int
-newpcm_count_ports(int mask) 
+newpcm_count_ports(int mask)
 {
 	int n = 0, m = mask;
 
@@ -403,7 +403,7 @@ newpcm_audio_set_ogain(audio_desc_t ad, int vol)
 	int volume, lgport, op;
 
 	MIXER_CHECK0(mixer_fd);
-		
+
 	UNUSED(ad);
 	vol = RAT_TO_DEVICE(vol);
 	volume = vol << 8 | vol;
@@ -422,7 +422,7 @@ newpcm_audio_get_ogain(audio_desc_t ad)
 {
 	int volume, lgport, op;
 
-	UNUSED(ad); 
+	UNUSED(ad);
 	MIXER_CHECK1(mixer_fd, 0);
 
 	lgport = -1;
@@ -436,9 +436,9 @@ newpcm_audio_get_ogain(audio_desc_t ad)
 	volume = DEVICE_TO_RAT(volume & 0xff);
 	if (volume > 100 || volume < 0) {
 		debug_msg("gain out of bounds (%08x %d--%d)" \
-			  "mixer entry not implemented?", volume, 0, 100);  
+			  "mixer entry not implemented?", volume, 0, 100);
 		volume = 100;
-	} 
+	}
 
 	return volume;
 }
@@ -492,14 +492,14 @@ newpcm_audio_set_igain(audio_desc_t ad, int gain)
 	int volume = RAT_TO_DEVICE(gain);
 	volume |= (volume << 8);
 
-	UNUSED(ad); 
+	UNUSED(ad);
 	MIXER_CHECK0(mixer_fd);
 
 	newpcm_audio_loopback_config(gain);
 	/* Try AC97 */
 	NEWPCM_AUDIO_IOCTL(mixer_fd, SOUND_MIXER_WRITE_RECLEV, &volume);
 
-	if (newpcm_error != 0 && iport != 0) { 
+	if (newpcm_error != 0 && iport != 0) {
 		/* Fallback to non-ac97 */
 		int idx = 1;
 		while ((1 << idx) != iport)
@@ -525,12 +525,12 @@ newpcm_audio_get_igain(audio_desc_t ad)
 			idx++;
 		NEWPCM_AUDIO_IOCTL(mixer_fd, MIXER_READ(idx), &volume);
 	}
-	volume = DEVICE_TO_RAT(volume & 0xff); 
+	volume = DEVICE_TO_RAT(volume & 0xff);
 	if (volume > 100 || volume < 0) {
 		debug_msg("gain out of bounds (%d %d--%d)" \
-			  "mixer entry not implemented?", volume, 0, 100);  
+			  "mixer entry not implemented?", volume, 0, 100);
 		volume = 100;
-	} 
+	}
 	return volume;
 }
 
@@ -597,7 +597,7 @@ newpcm_audio_loopback(audio_desc_t ad, int gain)
 }
 
 static void
-newpcm_audio_loopback_config(int gain) 
+newpcm_audio_loopback_config(int gain)
 {
 	int lgport, vol;
 
@@ -623,14 +623,14 @@ newpcm_audio_wait_for(audio_desc_t ad, int delay_ms)
 
 	timeout.tv_sec	= 0;
 	timeout.tv_usec	= 1000 * delay_ms;
-	
+
 	FD_ZERO(&fds);
 	FD_SET(audio_fd, &fds);
 	select(audio_fd + 1, &fds, 0, 0, &timeout);
 	UNUSED(ad);
 }
 
-int 
+int
 newpcm_audio_is_ready(audio_desc_t ad)
 {
 	int avail;
@@ -642,7 +642,7 @@ newpcm_audio_is_ready(audio_desc_t ad)
 	return (avail >= sz.rec_size);
 }
 
-int 
+int
 newpcm_audio_supports(audio_desc_t ad, audio_format *fmt)
 {
 	snd_capabilities s;
@@ -652,10 +652,10 @@ newpcm_audio_supports(audio_desc_t ad, audio_format *fmt)
 	NEWPCM_AUDIO_IOCTL(audio_fd, AIOGCAP, &s);
 	if (!newpcm_error) {
 		if ((unsigned)fmt->sample_rate < s.rate_min || (unsigned)fmt->sample_rate > s.rate_max) return FALSE;
-		if (fmt->channels == 1) 
+		if (fmt->channels == 1)
 			return TRUE;	/* Always supports mono */
 		assert(fmt->channels == 2);
-		if (s.formats & AFMT_STEREO) 
+		if (s.formats & AFMT_STEREO)
 			return TRUE;
 	}
 	return FALSE;
@@ -671,7 +671,7 @@ newpcm_is_driver() {
 	if (f == NULL) return FALSE;
 
 	while(!feof(f)) {
-		p = fgets(buf, 128, f);		
+		p = fgets(buf, 128, f);
 		if (p && strstr(buf, "newpcm")) {
 			newpcm = TRUE;
 			break;
@@ -706,12 +706,12 @@ newpcm_audio_query_devices()
 
 		if (strncmp(de->d_name, "audio", 5) != 0) continue;
 
-		sprintf(names[ndev], "/dev/%s", de->d_name); 
+		sprintf(names[ndev], "/dev/%s", de->d_name);
 		tfd = open(names[ndev], O_RDWR);
 		if (tfd < 0) {
-		/* If device is busy it's an audio device, otherwise 
-		   it's (probably) an invalid device description */	
-			if (errno != EBUSY) 
+		/* If device is busy it's an audio device, otherwise
+		   it's (probably) an invalid device description */
+			if (errno != EBUSY)
 				continue;
 		} else {
 			close(tfd);
@@ -736,7 +736,7 @@ newpcm_get_device_name(audio_desc_t idx)
 		static char dummy[NEWPCM_MAX_AUDIO_NAME_LEN];
 		strcpy(dummy, names[idx]);
 		return dummy;
-	}	
+	}
 	return NULL;
 }
 
@@ -748,7 +748,7 @@ newpcm_mixer_device(const char* audiodev)
 	const char* p = audiodev;
 	int devno = 0;
 
-	/* 
+	/*
 	 * Audio device looks like "/dev/fooN" or "dev/foo/N.n"
 	 * and we want "N"
 	 */
@@ -769,7 +769,7 @@ newpcm_mixer_open(const char* audiodev)
 	int m;
 
 #define END_OF_DEV_MIXER 10
-	sprintf(mixer_name + END_OF_DEV_MIXER, 
+	sprintf(mixer_name + END_OF_DEV_MIXER,
 		"%d", newpcm_mixer_device(audiodev));
 
 	m = open(mixer_name, O_RDWR);
@@ -790,7 +790,7 @@ static void
 newpcm_mixer_save(int fd)
 {
 	int devmask, i;
-	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_RECSRC, &saved_rec_mask); 
+	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_RECSRC, &saved_rec_mask);
 	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_DEVMASK, &devmask);
 	for (i = 0; i < SOUND_MIXER_NRDEVICES; i++) {
 		if ((1 << i) & devmask) {
@@ -806,7 +806,7 @@ newpcm_mixer_restore(int fd)
 {
 	int devmask, i;
 
-	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_WRITE_RECSRC, &saved_rec_mask); 
+	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_WRITE_RECSRC, &saved_rec_mask);
 	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_DEVMASK, &devmask);
 	for (i = 0; i < SOUND_MIXER_NRDEVICES; i++) {
 		if ((1 << i) & devmask) {

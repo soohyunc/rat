@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -24,7 +24,7 @@ typedef struct s_bitstream {
         unsigned int   len;    /* length of bitstream in bytes */
 } bs;
 
-int  
+int
 bs_create(bitstream_t **ppb)
 {
         bs *pb;
@@ -37,16 +37,16 @@ bs_create(bitstream_t **ppb)
         return FALSE;
 }
 
-int  
+int
 bs_destroy(bitstream_t **ppb)
 {
         xfree(*ppb);
         return TRUE;
 }
 
-int  
-bs_attach(bitstream_t *b, 
-          u_char *buf, 
+int
+bs_attach(bitstream_t *b,
+          u_char *buf,
           int blen)
 {
         b->buf    = b->pos = buf;
@@ -55,13 +55,13 @@ bs_attach(bitstream_t *b,
         return TRUE;
 }
 
-int  
+int
 bs_put(bitstream_t *b,
        u_char       bits,
        uint8_t       nbits)
 {
         assert(nbits != 0 && nbits <= 8);
-        
+
         if (b->remain == 0) {
                 b->pos++;
                 b->remain = 8;
@@ -77,12 +77,12 @@ bs_put(bitstream_t *b,
                 (*b->pos) |= bits << (b->remain - nbits);
                 b->remain -= nbits;
         }
-        
+
         assert((unsigned int)(b->pos - b->buf) <= b->len);
         return TRUE;
 }
 
-u_char  
+u_char
 bs_get(bitstream_t *b,
        uint8_t  nbits)
 {
@@ -112,7 +112,7 @@ bs_get(bitstream_t *b,
         return out;
 }
 
-int  
+int
 bs_bytes_used(bitstream_t *b)
 {
         unsigned int used = (unsigned int)(b->pos - b->buf);

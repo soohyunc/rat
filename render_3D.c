@@ -7,9 +7,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -32,11 +32,11 @@ static const char cvsid[] =
 /* A guess...*/
 #define SAMPLE_BUFFER_SAMPLES 2048
 
-void convolve(sample  *signal, 
-              sample  *answer, 
-              double *overlap, 
-              double *response, 
-              int response_length, 
+void convolve(sample  *signal,
+              sample  *answer,
+              double *overlap,
+              double *response,
+              int response_length,
               int signal_length);
 
 typedef struct s_3d_filter {
@@ -45,17 +45,17 @@ typedef struct s_3d_filter {
 } three_d_filter_t;
 
 static three_d_filter_t base_filters[] = {
-        {"Identity", 
+        {"Identity",
          { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }
         },
-        {"HRTF", 
+        {"HRTF",
          { 0.063113, -0.107530, 0.315168, 0.015218, -0.300535, 1.000000, 0.359786, -0.601145, -0.676947,
            -0.167251, 0.203305, 0.261645, 0.059649, 0.026661, -0.011648, -0.335958, -0.276208, 0.037719,
            0.154546, 0.141399, -0.000902, -0.031835, -0.098318, -0.058072, -0.033449, 0.030325, 0.041670,
            -0.001182, -0.019692, -0.031318, -0.028427, -0.003031 }
         },
-        {"Echo", 
+        {"Echo",
          { 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
            0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
            0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -88,7 +88,7 @@ render_3D_filter_get_by_name(char *name)
         return IDENTITY_FILTER;
 }
 
-/* At the present time there is only 1 possible filter length.  At a 
+/* At the present time there is only 1 possible filter length.  At a
  * later date it may be desirable to have shorter filter lengths to
  * reduce processing load and a suitable length selection algorithm.
  */
@@ -142,7 +142,7 @@ render_3D_idx2azimuth(int idx)
         int delta, r, tick;
 
         delta = render_3D_filter_get_upper_azimuth() / 2;
-        
+
         idx  = idx % UNIQUE_ANGLES;
         tick = UNIQUE_ANGLES - 1;
         r    = 0;
@@ -326,7 +326,7 @@ render_3D(render_3D_dbentry *p_3D_data, coded_unit *in, coded_unit *out)
         /* Filtering operation needs mono buffer,
          * output is always stereo
          */
-        
+
         assert(n_channels == 1 || n_channels == 2);
 
         switch(n_channels) {
@@ -363,13 +363,13 @@ render_3D(render_3D_dbentry *p_3D_data, coded_unit *in, coded_unit *out)
         mono_filtered = (sample*)block_alloc(mono_buf_len * sizeof(sample));
 
         /* EXTERNALISATION */
-        convolve(mono_raw, 
-                 mono_filtered, 
-                 p_3D_data->overlap_buf, 
-                 p_3D_data->filter, 
-                 p_3D_data->response_length, 
+        convolve(mono_raw,
+                 mono_filtered,
+                 p_3D_data->overlap_buf,
+                 p_3D_data->filter,
+                 p_3D_data->response_length,
                  mono_buf_len);
-        
+
         /* LATERALISATION */
 
         /* mono_filtered is input, and el->native_data[el->native_count-1] is the output (stereo). */
@@ -377,11 +377,11 @@ render_3D(render_3D_dbentry *p_3D_data, coded_unit *in, coded_unit *out)
         n_bytes = mono_buf_len * sizeof(sample);
 
         /* splice into two channels: ipsilateral and contralateral. */
-        memcpy(p_3D_data->ipsi_buf, 
-               mono_filtered, 
+        memcpy(p_3D_data->ipsi_buf,
+               mono_filtered,
                n_bytes);
-        memcpy(p_3D_data->contra_buf, 
-               mono_filtered, 
+        memcpy(p_3D_data->contra_buf,
+               mono_filtered,
                n_bytes);
 
         /* apply IID to contralateral buffer. */
@@ -395,21 +395,21 @@ render_3D(render_3D_dbentry *p_3D_data, coded_unit *in, coded_unit *out)
                           p_3D_data->delay,
                           mono_buf_len);
                 p_3D_data->delay = mono_buf_len - 1;
-        } 
+        }
 
-        memcpy(p_3D_data->tmp_buf, 
-               p_3D_data->contra_buf + mono_buf_len - p_3D_data->delay, 
+        memcpy(p_3D_data->tmp_buf,
+               p_3D_data->contra_buf + mono_buf_len - p_3D_data->delay,
                p_3D_data->delay*sizeof(sample));
-        memmove(p_3D_data->contra_buf + p_3D_data->delay, 
-                p_3D_data->contra_buf, 
+        memmove(p_3D_data->contra_buf + p_3D_data->delay,
+                p_3D_data->contra_buf,
                 (mono_buf_len - p_3D_data->delay) * sizeof(sample));
-        memcpy(p_3D_data->contra_buf, 
-               p_3D_data->excess_buf, 
+        memcpy(p_3D_data->contra_buf,
+               p_3D_data->excess_buf,
                p_3D_data->delay * sizeof(sample));
-        memcpy(p_3D_data->excess_buf, 
-               p_3D_data->tmp_buf, 
+        memcpy(p_3D_data->excess_buf,
+               p_3D_data->tmp_buf,
                p_3D_data->delay * sizeof(sample));
-        
+
         /* Merge ipsi- and contralateral buffers into proc_buf. */
         if (p_3D_data->azimuth > 0) {
                 for (i=0; i<mono_buf_len; i++) {

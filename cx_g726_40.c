@@ -23,9 +23,9 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 

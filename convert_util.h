@@ -12,11 +12,11 @@
 #ifndef __CONVERT_UTIL__
 #define __CONVERT_UTIL_
 
-void converter_change_channels (sample *src, 
-                                int src_len, 
-                                int src_channels, 
-                                sample *dst, 
-                                int dst_len, 
+void converter_change_channels (sample *src,
+                                int src_len,
+                                int src_channels,
+                                sample *dst,
+                                int dst_len,
                                 int dst_channels);
 int  gcd(int a, int b);
 int  conversion_steps(int f1, int f2);

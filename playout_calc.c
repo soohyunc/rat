@@ -6,9 +6,9 @@
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -41,7 +41,7 @@ playout_constraints_component(session_t *sp, pdb_entry_t *e)
          * convert to source clock rate */
 	cushion = cushion * e->sample_rate / ts_get_freq(sp->cur_ts);
 	var32   = max(cushion, var32);
-        
+
         if (sp->limit_playout) {
                 uint32_t minv, maxv;
                 minv  = sp->min_playout * e->sample_rate / 1000;
@@ -51,10 +51,10 @@ playout_constraints_component(session_t *sp, pdb_entry_t *e)
         }
 
         return ts_map32(e->sample_rate, var32);
-} 
+}
 
 
-timestamp_t 
+timestamp_t
 playout_calc(session_t *sp, uint32_t ssrc, timestamp_t transit, int new_spurt)
 /*****************************************************************************/
 /* The primary purpose of this function is to calculate the playout point    */
@@ -93,7 +93,7 @@ playout_calc(session_t *sp, uint32_t ssrc, timestamp_t transit, int new_spurt)
                 /* Update jitter estimate using                             */
                 /*                  jitter = (7/8)jitter + (1/8) new_jitter */
                 e->jitter = ts_mul(e->jitter, 7);
-                e->jitter = ts_add(e->jitter, delta_transit);     
+                e->jitter = ts_add(e->jitter, delta_transit);
                 e->jitter = ts_div(e->jitter, 8);
 
         }

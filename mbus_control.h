@@ -1,7 +1,7 @@
 /*
  * FILE:    mbus_control.h
  * PROGRAM: RAT - controller
- * AUTHOR:  Colin Perkins 
+ * AUTHOR:  Colin Perkins
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.

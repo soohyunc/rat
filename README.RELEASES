@@ -9,9 +9,9 @@ TESTING
 
 [ ] Mixes multiple streams (preferably reflected from somewhere on the end
     of a distant/hostile link).  In g11 there is 3 CD set from Hitch
-    Hikers Guide to the Galaxy that can be used for this purpose.  
+    Hikers Guide to the Galaxy that can be used for this purpose.
 
-[ ] Should be able to leave running for order of hours (decoding and 
+[ ] Should be able to leave running for order of hours (decoding and
     transmitting) across hostile link.
 
 [ ] *All* new features tested.  Preferably in a test module and in
@@ -26,7 +26,7 @@ TESTING
 RELEASING
 =========
 
-[ ] All binaries build and run before writing release note. 
+[ ] All binaries build and run before writing release note.
 
 [ ] MODS file has release note added before source code tarball is made.
 

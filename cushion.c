@@ -7,9 +7,9 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -35,7 +35,7 @@ static const char cvsid[] =
 #define CUSHION_MIN_MS	 40
 #define CUSHION_STEP_MS  10
 
-/* Initial cushion value is high, but should guarantee no interruptions and 
+/* Initial cushion value is high, but should guarantee no interruptions and
  * will come down during silent periods anyway
  */
 #define CUSHION_START_MS (2 * CUSHION_MIN_MS)
@@ -54,7 +54,7 @@ typedef struct s_cushion_struct {
         uint32_t         histbins;      /* Number of bins in histogram */
 } cushion_t;
 
-int 
+int
 cushion_create(cushion_t **c, uint32_t sample_rate)
 {
         int i;
@@ -116,8 +116,8 @@ cushion_destroy(cushion_t **ppc)
 void
 cushion_update(cushion_t *c, uint32_t read_dur, int mode)
 {
-        uint32_t idx, cnt, cover_idx, cover_cnt; 
-        uint32_t lower, upper; 
+        uint32_t idx, cnt, cover_idx, cover_cnt;
+        uint32_t lower, upper;
 
         /* remove entry we are about to overwrite from histogram */
         if (c->read_history[c->last_in] < c->histbins) {
@@ -152,7 +152,7 @@ cushion_update(cushion_t *c, uint32_t read_dur, int mode)
                 cnt += c->histogram[idx];
                 idx++;
         }
-        
+
         if (mode == CUSHION_MODE_LECTURE) {
                 lower = (cover_idx + 10);
                 upper = (idx       + 10);
@@ -178,7 +178,7 @@ cushion_size_check(cushion_t *c)
         c->cushion_size = min(c->cushion_size, c->cushion_max);
 }
 
-uint32_t 
+uint32_t
 cushion_get_size(cushion_t *c)
 {
         return c->cushion_size;
@@ -206,10 +206,10 @@ cushion_get_step(cushion_t *c)
         return c->cushion_step;
 }
 
-uint32_t 
+uint32_t
 cushion_use_estimate(cushion_t *c)
 {
-        c->cushion_size = c->cushion_estimate + c->cushion_step 
+        c->cushion_size = c->cushion_estimate + c->cushion_step
                 - (c->cushion_estimate % c->cushion_step);
         cushion_size_check(c);
 #ifdef DEBUG_CUSHION
@@ -218,7 +218,7 @@ cushion_use_estimate(cushion_t *c)
         return c->cushion_size;
 }
 
-int32_t 
+int32_t
 cushion_diff_estimate_size(cushion_t *c)
 {
         return (c->cushion_estimate - c->cushion_size);

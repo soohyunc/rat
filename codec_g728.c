@@ -5,9 +5,9 @@
  * Copyright (c) 2000-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -36,18 +36,18 @@ static const char cvsid[] =
 /* Capability advertising */
 
 static codec_format_t cs[] = {
-        {	
-		"G728", "G728-8K-Mono",  
-		"ITU G.728 LD-CELP codec.", 
-		CODEC_PAYLOAD_NO(15), 
-		0, 
-		G728_RTPFRAME_SIZE, 
+        {
+		"G728", "G728-8K-Mono",
+		"ITU G.728 LD-CELP codec.",
+		CODEC_PAYLOAD_NO(15),
+		0,
+		G728_RTPFRAME_SIZE,
 		{
-			DEV_S16,  8000, 16, 1, 
-			G728_SAMPLES_PER_RTPFRAME * 
+			DEV_S16,  8000, 16, 1,
+			G728_SAMPLES_PER_RTPFRAME *
 			BYTES_PER_SAMPLE
 		}
-	}	
+	}
 };
 
 #define G728_NUM_FORMATS sizeof(cs)/sizeof(codec_format_t)
@@ -68,7 +68,7 @@ g728_get_format(uint16_t idx)
 /* ------------------------------------------------------------------------- */
 /* Encoder specifics */
 
-int 
+int
 g728_encoder_create(uint16_t idx, u_char **s)
 {
         assert(idx < G728_NUM_FORMATS);
@@ -119,7 +119,7 @@ g728_encoder_do(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *
 /* ------------------------------------------------------------------------- */
 /* Decoder specifics */
 
-int 
+int
 g728_decoder_create(uint16_t idx, u_char **s)
 {
         assert(idx < G728_NUM_FORMATS);
@@ -142,7 +142,7 @@ g728_decoder_do(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *dst)
 	bitstream_t	*bs;
 	int16_t		cw;
         int 		i;
-	
+
         assert(decoder_state == NULL);
         assert(c != NULL);
         assert(dst != NULL);
@@ -155,7 +155,7 @@ g728_decoder_do(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *dst)
 	for(i = 0; i < G728_SAMPLES_PER_RTPFRAME / G728_SAMPLES_PER_FRAME; i++) {
 		cw = (bs_get(bs, 2) << 8) | bs_get(bs, 8);
 		g728_decode(dst + i * G728_SAMPLES_PER_FRAME, G728_SAMPLES_PER_FRAME, &cw);
-	}	
+	}
 	bs_destroy(&bs);
 
 	return c->data_len;

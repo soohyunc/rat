@@ -26,19 +26,19 @@ struct s_render_3D_dbentry*
       render_3D_init (int sampling_rate);
 
 void  render_3D_free (struct s_render_3D_dbentry **data);
-void  render_3D      (struct s_render_3D_dbentry *data, 
-                      coded_unit *in_native, 
+void  render_3D      (struct s_render_3D_dbentry *data,
+                      coded_unit *in_native,
                       coded_unit *out_native);
 
-void render_3D_set_parameters (struct s_render_3D_dbentry *p_3D_data, 
-                               int sampling_rate, 
-                               int azimuth, 
-                               int filter_number, 
+void render_3D_set_parameters (struct s_render_3D_dbentry *p_3D_data,
+                               int sampling_rate,
+                               int azimuth,
+                               int filter_number,
                                int length);
 
-void render_3D_get_parameters (struct s_render_3D_dbentry *p_3D_data, 
-                               int *azimuth, 
-                               int *filter_type, 
+void render_3D_get_parameters (struct s_render_3D_dbentry *p_3D_data,
+                               int *azimuth,
+                               int *filter_type,
                                int *filter_length);
 
 #endif /* __RENDER_3D_H__ */

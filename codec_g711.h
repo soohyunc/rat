@@ -16,7 +16,7 @@ extern short    mulawtolin[256];
 extern unsigned char lintomulaw[65536];
 
 extern short    alawtolin[256];
-extern unsigned char lintoalaw[8192]; 
+extern unsigned char lintoalaw[8192];
 
 #define s2u(x)	lintomulaw[((unsigned short)(x))]
 #define u2s(x)	mulawtolin[((unsigned char)(x))]
@@ -29,13 +29,13 @@ void g711_init(void);
 
 uint16_t                      g711_get_formats_count (void);
 const struct s_codec_format* g711_get_format (uint16_t idx);
-int                          g711_encode     (uint16_t idx, 
-                                              u_char *state, 
-                                              sample  *in, 
+int                          g711_encode     (uint16_t idx,
+                                              u_char *state,
+                                              sample  *in,
                                               struct s_coded_unit *out);
-int                          g711_decode     (uint16_t idx, 
-                                              u_char *state, 
-                                              struct s_coded_unit *in, 
+int                          g711_decode     (uint16_t idx,
+                                              u_char *state,
+                                              struct s_coded_unit *in,
                                               sample     *out);
 
 #endif

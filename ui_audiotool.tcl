@@ -93,13 +93,13 @@ proc tvar {name element op} {
 # trace variable gain w tvar
 
 proc init_source {ssrc} {
-	global CNAME NAME EMAIL LOC PHONE TOOL NOTE PRIV SSRC num_ssrc 
+	global CNAME NAME EMAIL LOC PHONE TOOL NOTE PRIV SSRC num_ssrc
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP \
                JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED BUFFER_SIZE \
 	       PLAYOUT_DELAY GAIN MUTE SKEW SPIKE_EVENTS SPIKE_TOGED RTT
 
 	# This is a debugging test -- old versions of the mbus used the
-	# cname to identify participants, whilst the newer version uses 
+	# cname to identify participants, whilst the newer version uses
 	# the ssrc.  This check detects if old style commands are being
 	# used and raises an error if so.
 	if [regexp {.*@[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} "$ssrc"] {

@@ -5,9 +5,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -28,72 +28,72 @@ static const char cvsid[] =
 
 static codec_format_t cs[] = {
         /* G726-40 **********************************************/
-        {"G726-40", "G726-40-8K-Mono",  
-         "ITU G.726-40 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(107), 0, 100, 
+        {"G726-40", "G726-40-8K-Mono",
+         "ITU G.726-40 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(107), 0, 100,
          {DEV_S16,  8000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}}, /* 20  ms */
-        {"G726-40", "G726-40-16K-Mono",  
-         "ITU G.726-40 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(108), 0, 100, 
+        {"G726-40", "G726-40-16K-Mono",
+         "ITU G.726-40 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(108), 0, 100,
          {DEV_S16, 16000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}}, /* 10  ms */
-        {"G726-40", "G726-40-32K-Mono",  
-         "ITU G.726-40 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(110), 0, 100, 
+        {"G726-40", "G726-40-32K-Mono",
+         "ITU G.726-40 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(110), 0, 100,
          {DEV_S16, 32000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}},  /* 5  ms */
-        {"G726-40", "G726-40-48K-Mono",  
-         "ITU G.726-40 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(120), 0, 100, 
+        {"G726-40", "G726-40-48K-Mono",
+         "ITU G.726-40 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(120), 0, 100,
          {DEV_S16, 48000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}},  /* 3.3 ms */
         /* G726-32 ***********************************************/
-        {"G726-32", "G726-32-8K-Mono",  
-         "ITU G.726-32 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(2),   0, 80, 
+        {"G726-32", "G726-32-8K-Mono",
+         "ITU G.726-32 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(2),   0, 80,
          {DEV_S16,  8000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}}, /* 20  ms */
-        {"G726-32", "G726-32-16K-Mono",  
-         "ITU G.726-32 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(104), 0, 80, 
+        {"G726-32", "G726-32-16K-Mono",
+         "ITU G.726-32 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(104), 0, 80,
          {DEV_S16, 16000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}}, /* 10  ms */
-        {"G726-32", "G726-32-32K-Mono",  
-         "ITU G.726-32 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(105), 0, 80, 
+        {"G726-32", "G726-32-32K-Mono",
+         "ITU G.726-32 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(105), 0, 80,
          {DEV_S16, 32000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}},  /* 5  ms */
-        {"G726-32", "G726-32-48K-Mono",  
-         "ITU G.726-32 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(106), 0, 80, 
+        {"G726-32", "G726-32-48K-Mono",
+         "ITU G.726-32 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(106), 0, 80,
          {DEV_S16, 48000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}},  /* 3.3 ms */
         /* Entries 0-3 G726-24 ***********************************************/
-        {"G726-24", "G726-24-8K-Mono",  
-         "ITU G.726-24 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(100), 0, 60, 
+        {"G726-24", "G726-24-8K-Mono",
+         "ITU G.726-24 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(100), 0, 60,
          {DEV_S16,  8000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}}, /* 20  ms */
-        {"G726-24", "G726-24-16K-Mono",  
-         "ITU G.726-24 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(101), 0, 60, 
+        {"G726-24", "G726-24-16K-Mono",
+         "ITU G.726-24 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(101), 0, 60,
          {DEV_S16, 16000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}}, /* 10  ms */
-        {"G726-24", "G726-24-32K-Mono",  
-         "ITU G.726-24 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(102), 0, 60, 
+        {"G726-24", "G726-24-32K-Mono",
+         "ITU G.726-24 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(102), 0, 60,
          {DEV_S16, 32000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}},  /* 5  ms */
-        {"G726-24", "G726-24-48K-Mono",  
-         "ITU G.726-24 ADPCM codec. Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(103), 0, 60, 
+        {"G726-24", "G726-24-48K-Mono",
+         "ITU G.726-24 ADPCM codec. Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(103), 0, 60,
          {DEV_S16, 48000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}},  /* 3.3 ms */
         /* G726-16 ***********************************************/
-        {"G726-16", "G726-16-8K-Mono",  
-         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(96), 0, 40, 
+        {"G726-16", "G726-16-8K-Mono",
+         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(96), 0, 40,
          {DEV_S16,  8000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}}, /* 20  ms */
-        {"G726-16", "G726-16-16K-Mono",  
-         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(97), 0, 40, 
+        {"G726-16", "G726-16-16K-Mono",
+         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(97), 0, 40,
          {DEV_S16, 16000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}}, /* 10  ms */
-        {"G726-16", "G726-16-32K-Mono",  
-         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(98), 0, 40, 
+        {"G726-16", "G726-16-32K-Mono",
+         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(98), 0, 40,
          {DEV_S16, 32000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}},  /* 5  ms */
-        {"G726-16", "G726-16-48K-Mono",  
-         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.", 
-         CODEC_PAYLOAD_NO(99), 0, 40, 
+        {"G726-16", "G726-16-48K-Mono",
+         "ITU G.726-16 ADPCM codec. Marc Randolph modified Sun Microsystems public implementation.",
+         CODEC_PAYLOAD_NO(99), 0, 40,
          {DEV_S16, 48000, 16, 1, G726_SAMPLES_PER_FRAME * BYTES_PER_SAMPLE}},  /* 3.3 ms */
 };
 
@@ -124,7 +124,7 @@ g726_get_format(uint16_t idx)
         return &cs[idx];
 }
 
-int 
+int
 g726_state_create(uint16_t idx, u_char **s)
 {
         g726_t *g;
@@ -187,7 +187,7 @@ g726_pack(u_char *buf, u_char *cw, u_char num_cw, int bps)
 }
 
 static int
-g726_unpack(u_char *cw, u_char *buf, u_char num_cw, int bps) 
+g726_unpack(u_char *cw, u_char *buf, u_char num_cw, int bps)
 {
 	int i = 0, bits = 0, x = 0;
 	u_char mask = 0;
@@ -290,8 +290,8 @@ g726_decode(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *dst)
 {
 	u_char cw[8], *in;
         int i;
-	
-        g726_t *g; 
+
+        g726_t *g;
 
         /* paranoia! */
         assert(decoder_state != NULL);
@@ -315,8 +315,8 @@ g726_decode(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *dst)
 			dst[i + 1] = (sample)g726_16_decoder(cw[1], AUDIO_ENCODING_LINEAR, g->gs);
 			dst[i + 2] = (sample)g726_16_decoder(cw[2], AUDIO_ENCODING_LINEAR, g->gs);
 			dst[i + 3] = (sample)g726_16_decoder(cw[3], AUDIO_ENCODING_LINEAR, g->gs);
-                }	
-                break;	
+                }
+                break;
         case G726_24:
                 for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 8) {
 			in += g726_unpack(cw, in, 8, 3);

@@ -52,7 +52,7 @@
 #include <memory.h>
 #include <errno.h>
 #include <math.h>
-#include <stdlib.h>  
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef HAVE_MALLOC_H
@@ -68,8 +68,8 @@
 #endif
 
 #ifdef HAVE_SYS_FILIO_H
-#include <sys/filio.h>  
-#endif 
+#include <sys/filio.h>
+#endif
 
 #ifdef HAVE_SYS_SOCK_IO_H
 #include <sys/sockio.h>

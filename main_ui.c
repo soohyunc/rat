@@ -1,14 +1,14 @@
 /*
  * FILE:    main_ui.c
  * PROGRAM: RAT
- * AUTHORS: Colin Perkins 
+ * AUTHORS: Colin Perkins
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -29,7 +29,7 @@ static const char cvsid[] =
 char*       e_addr = NULL; /* Engine address */
 char*       c_addr = NULL; /* Controller address */
 char        m_addr[100];
-char*       c_addr, *token, *token_e; 
+char*       c_addr, *token, *token_e;
 pid_t       ppid;
 
 int ui_active   = FALSE;
@@ -75,7 +75,7 @@ extern int       TkWinXInit(HINSTANCE);
 extern void      TkWinXCleanup(HINSTANCE);
 #endif
 
-static void 
+static void
 mbus_error_handler(int seqnum, int reason)
 {
         debug_msg("mbus message failed (%d:%d)\n", seqnum, reason);
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
                 if (mbus_addr_valid(m, c_addr) == FALSE) {
                         should_exit = TRUE;
                         debug_msg("Controller address is no longer valid.  Assuming it exited.\n");
-                } 
+                }
 	}
 
         if (mbus_addr_valid(m, e_addr)) {
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
                         timeout.tv_usec = 20000;
                         mbus_recv(m, NULL, &timeout);
                 } while (!mbus_sent_all(m) && mbus_shutdown_error == FALSE);
-                
+
                 debug_msg("Waiting for mbus.quit() from controller...\n");
                 while (got_quit == FALSE && mbus_shutdown_error == FALSE) {
                         mbus_heartbeat(m, 1);

@@ -1,9 +1,9 @@
 /*
  * These are for the RAT project:
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -13,10 +13,10 @@ Netherlands.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the names of Stichting Mathematisch
 Centrum or CWI not be used in advertising or publicity pertaining to
 distribution of the software without specific, written prior permission.
@@ -64,7 +64,7 @@ static int stepsizeTable[89] = {
     5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899,
     15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
 };
-    
+
 void
 adpcm_coder(
     const short *inp,
@@ -86,7 +86,7 @@ adpcm_coder(
     index = state->index;
 
     step = stepsizeTable[index];
-    
+
     outputbuffer = 0;		/* Is this sensible? gcc was complaining about uninit'd vars otherwise [csp] */
     bufferstep   = 1;
 
@@ -121,7 +121,7 @@ adpcm_coder(
 	    }
 	    delta = tmp;
 	}
-	  
+
 	/* Step 3 - Update previous value */
 	if ( sign )
 	  valprev -= vpdiff;
@@ -136,7 +136,7 @@ adpcm_coder(
 
 	/* Step 5 - Assemble value, update index and step values */
 	delta |= sign;
-	
+
 	index += indexTable[delta];
 	if ( index < 0 ) index = 0;
 	if ( index > 88 ) index = 88;
@@ -185,9 +185,9 @@ adpcm_decoder(
 
     inputbuffer = 0;
     bufferstep  = 0;
-    
+
     for ( ; len > 0 ; len-- ) {
-	
+
 	/* Step 1 - get the delta value and compute next index */
 	if ( bufferstep ) {
 	    delta = inputbuffer & 0xf;

@@ -17,7 +17,7 @@ pack .m.s      -anchor w -side left -expand 0 -fill y
 pack .m.t      -anchor w -side left -expand 1 -fill both
 pack .m        -expand 1 -fill both
 pack .b.reject -side left -expand 1 -fill x
-pack .b.accept -side left -expand 1 -fill x 
+pack .b.accept -side left -expand 1 -fill x
 pack .b        -fill x
 
 .m.t insert end \
@@ -25,7 +25,7 @@ pack .b        -fill x
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
-modification, is permitted provided that the following conditions 
+modification, is permitted provided that the following conditions
 are met:
 
 1. Redistributions of source code must retain the above copyright

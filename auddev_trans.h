@@ -1,7 +1,7 @@
 /*
  * FILE: auddev_trans.h
  * PROGRAM: RAT
- * AUTHOR: Michael Wallbaum <wallbaum@informatik.rwth-aachen.de>     
+ * AUTHOR: Michael Wallbaum <wallbaum@informatik.rwth-aachen.de>
  *
  * Transcoder audio device.
  *
@@ -17,7 +17,7 @@ extern "C" {
 
 int  trans_audio_init(void);
 int  trans_audio_device_count(void);
-char*  
+char*
      trans_audio_device_name(audio_desc_t ad);
 int  trans_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);
 void trans_audio_close      (audio_desc_t ad);

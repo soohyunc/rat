@@ -5,9 +5,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -110,7 +110,7 @@ void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 		if (strcmp(ui_cmds[i].rxname, cmnd) == 0) {
                         ui_cmds[i].rxproc(srce, args);
 			return;
-		} 
+		}
 	}
 	/* ...and some are in Tcl... */
 	if (ui_active) {

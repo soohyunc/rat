@@ -1,15 +1,15 @@
 /*
  * FILE:    auddev_ixj.c - QuickNet audio device driver
  * PROGRAM: RAT
- * AUTHOR:  James MacLean 
+ * AUTHOR:  James MacLean
  * MODS:    Orion Hodson + Robert Olson + Colin Perkins
  *
  * Copyright (c) 1996-2001 University College London
  * All rights reserved.
  *
- * NOTE : Environement variable IXJ_AEC sets Echo Cancellation 
+ * NOTE : Environement variable IXJ_AEC sets Echo Cancellation
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
 static const char cvsid[] = "$Id$";
 #endif
@@ -122,12 +122,12 @@ ixj_test_mode(int fd, int speed, int stereo)
 		return FALSE;
         }
 
-// QuickNet only handles 8k 
+// QuickNet only handles 8k
         if (speed != 8000) {
 		debug_msg("  disabled (%dHz sampling not supported)\n", speed);
 		return FALSE;
         }
-        
+
         return TRUE;
 }
 
@@ -283,7 +283,7 @@ ixj_configure_device(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		debug_msg("AEC turned off\n");
 	}
 
-	stereo = ifmt->channels - 1; 
+	stereo = ifmt->channels - 1;
 	assert(stereo == 0 || stereo == 1);
 	if (stereo) {
 		debug_msg("device doesn't support %d channels!\n", ifmt->channels);
@@ -336,7 +336,7 @@ ixj_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 			debug_msg("invalid duplex mode - this can never happen\n");
 			abort();
 	}
-	
+
 // Maybe PhoneJack can be altered to adhere to this? I have not persued it :(
 	/* Set 30 ms blocksize - this only modulates read sizes, and hence only has to be done on audio_fd */
 	// bytes_per_block = 30 * (ifmt->sample_rate / 1000) * (ifmt->bits_per_sample / 8);
@@ -463,7 +463,7 @@ ixj_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 	static char mybuf[AUDIO_READ_BUFFER];
 	static int offset=0;
 
-        assert(devices[ad].audio_fd > 0);        
+        assert(devices[ad].audio_fd > 0);
 
         /* Figure out how many bytes we can read before blocking... */
 	if(offset > read_bytes) {
@@ -517,7 +517,7 @@ ixj_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 //		debug_msg("Writing lie of %d bytes\n", write_bytes);
 		return write_bytes;
 	}
-        
+
 //	debug_msg("Writing %d bytes to %d, offset=%d\n", write_bytes, devices[ad].audio_fd, offset);
         while (1) {
 		errno=0;
@@ -593,7 +593,7 @@ ixj_audio_oport_get(audio_desc_t ad)
 	return out_ports[0].port;
 }
 
-int 
+int
 ixj_audio_oport_count(audio_desc_t ad)
 {
         UNUSED(ad);
@@ -619,13 +619,13 @@ ixj_audio_iport_set(audio_desc_t ad, audio_port_t port)
         UNUSED(ad); assert(devices[ad].audio_fd > 0);
 
         switch (port) {
-		case AUDIO_MICROPHONE: 
+		case AUDIO_MICROPHONE:
 			debug_msg("Trying to select microphone input...\n");
-			recsrc = PORT_SPEAKER;  
+			recsrc = PORT_SPEAKER;
 			break;
-		case AUDIO_PHONE: 
+		case AUDIO_PHONE:
 			debug_msg("Trying to select handset input...\n");
-			recsrc = PORT_POTS;  
+			recsrc = PORT_POTS;
 			break;
 		default:
 			debug_msg("Port not recognized\n");
@@ -673,7 +673,7 @@ ixj_audio_select(audio_desc_t ad, int delay_us)
         struct timeval tv;
 
         assert(devices[ad].audio_fd > 0);
-        
+
         tv.tv_sec = 0;
         tv.tv_usec = delay_us;
 
@@ -691,7 +691,7 @@ ixj_audio_wait_for(audio_desc_t ad, int delay_ms)
         ixj_audio_select(ad, delay_ms * 1000);
 }
 
-int 
+int
 ixj_audio_is_ready(audio_desc_t ad)
 {
         return ixj_audio_select(ad, 0);
@@ -703,7 +703,7 @@ ixj_audio_supports(audio_desc_t ad, audio_format *fmt)
         int i;
 
         for(i = 0; i < devices[ad].num_supported_formats; i++) {
-                if (devices[ad].supported_formats[i].channels    == fmt->channels 
+                if (devices[ad].supported_formats[i].channels    == fmt->channels
 		&&  devices[ad].supported_formats[i].sample_rate == fmt->sample_rate) {
 			return TRUE;
 		}

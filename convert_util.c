@@ -6,9 +6,9 @@
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -19,16 +19,16 @@ static const char cvsid[] =
 #include "convert_util.h"
 #include "debug.h"
 
-/* Mono-Stereo Conversion ***************************************************/ 
+/* Mono-Stereo Conversion ***************************************************/
 /* Note src_len is length block in number of samples                        */
 /* i.e nChannels * nSamplingIntervals                                       */
 
 void
-converter_change_channels (sample *src, 
-                           int src_len, 
-                           int src_channels, 
-                           sample *dst, 
-                           int dst_len, 
+converter_change_channels (sample *src,
+                           int src_len,
+                           int src_channels,
+                           sample *dst,
+                           int dst_len,
                            int dst_channels)
 {
         int di, si;
@@ -43,7 +43,7 @@ converter_change_channels (sample *src,
                 return;
         }
 
-        /* Differing directions of conversions means we can do in place        
+        /* Differing directions of conversions means we can do in place
          * conversion if necessary.
          */
 
@@ -80,7 +80,7 @@ gcd (int a, int b)
 }
 
 int
-conversion_steps(int f1, int f2) 
+conversion_steps(int f1, int f2)
 {
         int minf, maxf, r;
 

@@ -1,14 +1,14 @@
 /*
  * FILE:      channel.c
- * AUTHOR(S): Orion Hodson 
- *	
+ * AUTHOR(S): Orion Hodson
+ *
  *
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 #include "config_unix.h"
@@ -35,25 +35,25 @@ typedef struct {
         uint8_t  layers;
         int     (*enc_create_state)   (u_char                **state,
                                        uint32_t                *len);
-        void    (*enc_destroy_state)  (u_char                **state, 
+        void    (*enc_destroy_state)  (u_char                **state,
                                        uint32_t                 len);
-        int     (*enc_set_parameters) (u_char                 *state, 
+        int     (*enc_set_parameters) (u_char                 *state,
                                        char                   *cmd);
-        int     (*enc_get_parameters) (u_char                 *state, 
-                                       char                   *cmd, 
+        int     (*enc_get_parameters) (u_char                 *state,
+                                       char                   *cmd,
                                        uint32_t                 cmd_len);
         int     (*enc_reset)          (u_char                  *state);
-        int     (*enc_encode)         (u_char                  *state, 
-                                       struct s_pb *in, 
-                                       struct s_pb *out, 
+        int     (*enc_encode)         (u_char                  *state,
+                                       struct s_pb *in,
+                                       struct s_pb *out,
                                        uint32_t                  units_per_packet);
         int     (*dec_create_state)   (u_char                 **state,
                                        uint32_t                 *len);
-        void    (*dec_destroy_state)  (u_char                 **state, 
+        void    (*dec_destroy_state)  (u_char                 **state,
                                        uint32_t                  len);
         int     (*dec_reset)          (u_char                  *state);
-        int     (*dec_decode)         (u_char                  *state, 
-                                       struct s_pb *in, 
+        int     (*dec_decode)         (u_char                  *state,
+                                       struct s_pb *in,
                                        struct s_pb *out,
                                        timestamp_t                     now);
         int     (*dec_peek)           (uint8_t                   ccpt,
@@ -85,12 +85,12 @@ static const channel_coder_t table[] = {
          */
         {
                 {
-                        CC_IDX_TO_ID(0), 
+                        CC_IDX_TO_ID(0),
                         "None"
                 },
                 CC_VANILLA_PT,
                 1,
-                vanilla_encoder_create, 
+                vanilla_encoder_create,
                 vanilla_encoder_destroy,
                 NULL,                   /* No parameters to set ...*/
                 NULL,                   /* ... or get. */
@@ -104,8 +104,8 @@ static const channel_coder_t table[] = {
                 vanilla_decoder_describe
         },
         {
-                { 
-                        CC_IDX_TO_ID(1), 
+                {
+                        CC_IDX_TO_ID(1),
                         "Redundancy"
                 },
                 CC_REDUNDANCY_PT,
@@ -127,7 +127,7 @@ static const channel_coder_t table[] = {
                 {
                         CC_IDX_TO_ID(2),
                         "Layering"
-                }, 
+                },
                 CC_LAYERED_PT,
                 LAY_MAX_LAYERS,
                 layered_encoder_create,
@@ -158,7 +158,7 @@ channel_get_coder_details(uint32_t idx)
 {
         if (idx < CC_NUM_CODERS) {
                 return &table[idx].details;
-        } 
+        }
         return NULL;
 }
 
@@ -248,15 +248,15 @@ int
 _channel_coder_reset(channel_state_t *pcs, int is_encoder)
 {
         int (*reset) (u_char *state);
-        
+
         assert(is_encoder == pcs->is_encoder);
 
         if (is_encoder) {
-                reset = table[pcs->coder].enc_reset; 
+                reset = table[pcs->coder].enc_reset;
         } else {
-                reset = table[pcs->coder].dec_reset; 
+                reset = table[pcs->coder].dec_reset;
         }
-        
+
         return (reset != NULL) ? reset(pcs->state) : TRUE;
 }
 
@@ -265,8 +265,8 @@ _channel_coder_reset(channel_state_t *pcs, int is_encoder)
 int
 channel_encoder_set_units_per_packet(channel_state_t *cs, uint16_t units)
 {
-        /* This should not be hardcoded, it should be based on packet 
-         *size [oth] 
+        /* This should not be hardcoded, it should be based on packet
+         *size [oth]
          */
         assert(cs->is_encoder);
         if (units != 0 && units <= MAX_UNITS_PER_PACKET) {
@@ -276,7 +276,7 @@ channel_encoder_set_units_per_packet(channel_state_t *cs, uint16_t units)
         return FALSE;
 }
 
-uint16_t 
+uint16_t
 channel_encoder_get_units_per_packet(channel_state_t *cs)
 {
         assert(cs->is_encoder);
@@ -305,8 +305,8 @@ channel_encoder_get_parameters(channel_state_t *cs, char *cmd, int cmd_len)
 }
 
 int
-channel_encoder_encode(channel_state_t         *cs, 
-                       struct s_pb *media_buffer, 
+channel_encoder_encode(channel_state_t         *cs,
+                       struct s_pb *media_buffer,
                        struct s_pb *channel_buffer)
 {
         assert(table[cs->coder].enc_encode != NULL);
@@ -314,8 +314,8 @@ channel_encoder_encode(channel_state_t         *cs,
 }
 
 int
-channel_decoder_decode(channel_state_t         *cs, 
-                       struct s_pb *media_buffer, 
+channel_decoder_decode(channel_state_t         *cs,
+                       struct s_pb *media_buffer,
                        struct s_pb *channel_buffer,
                        timestamp_t                     now)
 {
@@ -344,7 +344,7 @@ channel_verify_and_stat(cc_id_t  cid,
         return table[idx].dec_peek(pktpt, data, data_len, units_per_packet, codec_pt);
 }
 
-int 
+int
 channel_describe_data(cc_id_t cid,
                       uint8_t  pktpt,
                       u_char *data,
@@ -360,13 +360,13 @@ channel_describe_data(cc_id_t cid,
 
         if (table[idx].dec_describe) {
                 return (table[idx].dec_describe(pktpt, data, data_len, outstr, out_len-1));
-        } 
+        }
 
         strncpy(outstr, "Not implemented", out_len-1);
         outstr[out_len-1] = '\0'; /* Always zero terminated */
         return TRUE;
 }
-                                   
+
 cc_id_t
 channel_coder_get_by_payload(uint8_t payload)
 {
@@ -382,7 +382,7 @@ channel_coder_get_by_payload(uint8_t payload)
         }
         /* Return vanilla if not found */
 /*	debug_msg("No channel coder for payload type %d\n", payload); */
-        return CC_IDX_TO_ID(0);        
+        return CC_IDX_TO_ID(0);
 }
 
 uint8_t
@@ -405,7 +405,7 @@ channel_coder_exist_payload(uint8_t pt)
                         return TRUE;
                 }
         }
-        return FALSE;       
+        return FALSE;
 }
 
 uint8_t
@@ -415,4 +415,4 @@ channel_coder_get_layers(cc_id_t cid)
         assert(idx < CC_NUM_CODERS);
 
         return (table[idx].layers);
-} 
+}

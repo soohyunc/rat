@@ -1,16 +1,16 @@
 /*
  * FILE:    ui_send_audio.c
  * PROGRAM: RAT
- * AUTHOR:  Colin Perkins 
- * 	
+ * AUTHOR:  Colin Perkins
+ *
  * Routines which send audio related mbus commands to the user interface.
  *
  * Copyright (c) 2000-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -40,9 +40,9 @@ ui_send_audio_input_port(session_t *sp, char *addr)
 {
         const audio_port_details_t 	*apd = NULL;
         audio_port_t 			 port;
-        char        			*mbes; 
+        char        			*mbes;
         int          			 i, n, found;
-        
+
 	if (!sp->ui_on) return;
         port = audio_get_iport(sp->audio_device);
 
@@ -72,7 +72,7 @@ ui_send_audio_input_port_list(session_t *sp, char *addr)
         const audio_port_details_t *apd;
         char *mbes;
         int i, n;
-        
+
 	if (!sp->ui_on) return;
         mbus_qmsg(sp->mbus_engine, addr, "audio.input.ports.flush", "", TRUE);
 
@@ -126,9 +126,9 @@ ui_send_audio_output_port(session_t *sp, char *addr)
 {
         const audio_port_details_t 	*apd = NULL;
         audio_port_t 			 port;
-        char        			*mbes; 
+        char        			*mbes;
         int          			 i, n, found;
-        
+
 	if (!sp->ui_on) return;
         port = audio_get_oport(sp->audio_device);
 
@@ -159,7 +159,7 @@ ui_send_audio_output_port_list(session_t *sp, char *addr)
         const audio_port_details_t *apd;
         char *mbes;
         int i, n;
-        
+
 	if (!sp->ui_on) return;
         mbus_qmsg(sp->mbus_engine, addr, "audio.output.ports.flush", "", TRUE);
 
@@ -270,7 +270,7 @@ ui_send_audio_suppress_silence(session_t *sp, char *addr)
         } else {
                 mbus_qmsg(sp->mbus_engine, addr, "audio.suppress.silence", "0", TRUE);
         }
-        
+
         /* This is for the ui */
         name = sd_name(sp->silence_detection);
         mbus_qmsg(sp->mbus_engine, addr, "tool.rat.silence", mbus_encode_str(name), TRUE);
@@ -279,7 +279,7 @@ ui_send_audio_suppress_silence(session_t *sp, char *addr)
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "silence    %lu.%06lu 0x%08lx %s\n", t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec, 
+		fprintf(sp->logger, "silence    %lu.%06lu 0x%08lx %s\n", t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec,
 		        (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), name);
 	}
 }
@@ -323,7 +323,7 @@ ui_update_interleaving(session_t *sp)
         } else {
                 debug_msg("Could not find interleaving channel coder!\n");
         }
-        
+
         if (units != NULL && sep != NULL) {
                 iu   = atoi(units);
                 isep = atoi(sep);
@@ -344,14 +344,14 @@ ui_update_redundancy(session_t *sp, char *addr)
         const codec_format_t *scf;
         codec_id_t            scid;
         char *cmd, *out, *sec_enc, *sec_off, *mbes;
-        
+
         int clen;
 
         clen = 2 * (CODEC_LONG_NAME_LEN + 4) + 1;
         cmd  = (char*)xmalloc(clen);
 
         channel_encoder_get_parameters(sp->channel_coder, cmd, clen);
-        
+
         sec_enc = (char *) strtok(cmd, "/");  /* ignore primary encoding   */
         sec_enc = (char *) strtok(NULL, "/"); /* ignore primary offset     */
         sec_enc = (char *) strtok(NULL, "/"); /* get secondary encoding    */
@@ -365,14 +365,14 @@ ui_update_redundancy(session_t *sp, char *addr)
         if (!codec_id_is_valid(scid)) {
                    goto redundancy_update_end;
         }
-        
+
         scf = codec_get_format(scid);
 
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "channel    %lu.%06lu 0x%08lx redundancy %s\n", 
-		        t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec, 
+		fprintf(sp->logger, "channel    %lu.%06lu 0x%08lx redundancy %s\n",
+		        t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec,
 		        (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), scf->long_name);
 	}
 
@@ -400,14 +400,14 @@ ui_update_layering(session_t *sp, char *addr)
         const codec_format_t *lcf;
         codec_id_t            lcid;
         char *cmd, *out, *sec_enc, *layerenc, *mbes;
-        
+
         int clen;
 
         clen = 2 * (CODEC_LONG_NAME_LEN + 4) + 1;
         cmd  = (char*)xmalloc(clen);
 
         channel_encoder_get_parameters(sp->channel_coder, cmd, clen);
-        
+
         sec_enc = (char *) strtok(cmd, "/");
         layerenc = (char *) strtok(NULL, "/");
 
@@ -419,7 +419,7 @@ ui_update_layering(session_t *sp, char *addr)
         if (!codec_id_is_valid(lcid)) {
                    goto layering_update_end;
         }
-        
+
         lcf = codec_get_format(lcid);
         out = (char*)xmalloc(clen);
 
@@ -440,8 +440,8 @@ layering_update_end:
         xfree(cmd);
 }
 
-void 
-ui_send_audio_channel_coding(session_t *sp, char *addr) 
+void
+ui_send_audio_channel_coding(session_t *sp, char *addr)
 {
         const cc_details_t *ccd;
 
@@ -453,7 +453,7 @@ ui_send_audio_channel_coding(session_t *sp, char *addr)
 		if (sp->logger != NULL) {
 			struct timeval	t;
 			gettimeofday(&t, NULL);
-			fprintf(sp->logger, "channel    %lu.%06lu 0x%08lx none\n", 
+			fprintf(sp->logger, "channel    %lu.%06lu 0x%08lx none\n",
 				t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0]));
 		}
                 break;
@@ -485,8 +485,8 @@ ui_send_audio_codec(session_t *sp, char *addr)
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "codec      %lu.%06lu 0x%08lx %s\n", 
-			t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), 
+		fprintf(sp->logger, "codec      %lu.%06lu 0x%08lx %s\n",
+			t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0]),
 			pri_cf->long_name);
 	}
 }
@@ -497,7 +497,7 @@ ui_send_audio_file_play_ready(session_t *sp, char *addr, char *name)
         char *mbes;
 	if (!sp->ui_on) return;
         mbes = mbus_encode_str(name);
-        mbus_qmsg(sp->mbus_engine, addr, "audio.file.play.ready", mbes, TRUE); 
+        mbus_qmsg(sp->mbus_engine, addr, "audio.file.play.ready", mbes, TRUE);
         xfree(mbes);
 }
 
@@ -507,7 +507,7 @@ ui_send_audio_file_record_ready(session_t *sp, char *addr, char *name)
         char *mbes;
 	if (!sp->ui_on) return;
         mbes = mbus_encode_str(name);
-        mbus_qmsg(sp->mbus_engine, addr, "audio.file.record.ready", mbes, TRUE); 
+        mbus_qmsg(sp->mbus_engine, addr, "audio.file.record.ready", mbes, TRUE);
         xfree(mbes);
 }
 
@@ -515,12 +515,12 @@ void
 ui_send_audio_file_alive(session_t *sp, char *addr, char *mode, int valid)
 {
         char cmd[32], arg[2];
-        
+
 	if (!sp->ui_on) return;
         assert(!strcmp(mode, "play") || !strcmp(mode, "record"));
-        
+
         sprintf(cmd, "audio.file.%s.alive", mode);
-        sprintf(arg, "%1d", valid); 
+        sprintf(arg, "%1d", valid);
         mbus_qmsg(sp->mbus_engine, addr, cmd, arg, TRUE);
 }
 
@@ -550,7 +550,7 @@ ui_send_audio_3d_options(session_t *sp, char *addr)
                 strcat(args, tmp);
                 if (i != cnt - 1) strcat(args, ",");
         }
-        
+
         mbes = mbus_encode_str(args);
         mbus_qmsg(sp->mbus_engine, addr, "audio.3d.filter.lengths", mbes, TRUE);
         xfree(mbes);

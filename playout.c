@@ -6,9 +6,9 @@
  * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -19,7 +19,7 @@ static const char cvsid[] =
 #include "util.h"
 #include "playout.h"
 #include "ts.h"
- 
+
 /* Playout buffer types ******************************************************/
 
 typedef struct s_pb_node {
@@ -42,7 +42,7 @@ typedef struct s_pb {
         pb_node_t      	 sentinel;	/* Stores head and tail */
         pb_node_t     	*psentinel;	/* pointer to sentinel - saves address calc in link ops.  */
         /* Free proc for data added, so we don't leak when buffer destroyed and so we can audit the buffer */
-        void          	(*freeproc)(u_char **data, uint32_t len); 
+        void          	(*freeproc)(u_char **data, uint32_t len);
         /* Iterators for the buffer */
         uint16_t       	n_iterators;
         pb_iterator_t 	iterators[PB_MAX_ITERATORS];
@@ -88,7 +88,7 @@ pb_validate(pb_t *pb)
 
 /* Construction / Destruction functions **************************************/
 
-int 
+int
 pb_create(pb_t **ppb, void (*datafreeproc)(u_char **data, uint32_t data_len))
 {
         pb_t *pb;
@@ -109,7 +109,7 @@ pb_create(pb_t **ppb, void (*datafreeproc)(u_char **data, uint32_t data_len))
         return FALSE;
 }
 
-int 
+int
 pb_destroy (pb_t **ppb)
 {
         pb_t *pb = *ppb;
@@ -150,7 +150,7 @@ pb_flush (pb_t *pb)
                 block_free(curr, sizeof(pb_node_t));
                 curr = next;
         }
-        
+
         assert(stop->next  == stop);
         assert(stop->prev  == stop);
         assert(pb->n_nodes == 0);
@@ -163,11 +163,11 @@ pb_flush (pb_t *pb)
 	pb_validate(pb);
 }
 
-int 
+int
 pb_add (pb_t *pb, u_char *data, uint32_t data_len, timestamp_t playout)
 {
         pb_node_t *curr, *stop, *made;
-        
+
 	assert(data != NULL);
 	assert(data_len > 0);
 	pb_validate(pb);
@@ -190,7 +190,7 @@ pb_add (pb_t *pb, u_char *data, uint32_t data_len, timestamp_t playout)
                 made->playout  = playout;
                 made->data     = data;
                 made->data_len = data_len;
-                made->prev = curr;                
+                made->prev = curr;
                 made->next = curr->next;
                 made->next->prev = made;
                 made->prev->next = made;
@@ -198,7 +198,7 @@ pb_add (pb_t *pb, u_char *data, uint32_t data_len, timestamp_t playout)
                 pb->n_nodes++;
 		pb_validate(pb);
                 return TRUE;
-        } 
+        }
         debug_msg("Insufficient memory\n");
         return FALSE;
 }
@@ -274,7 +274,7 @@ pb_iterator_count(pb_t *pb)
 
 int
 pb_iterator_create(pb_t           *pb,
-                   pb_iterator_t **ppi) 
+                   pb_iterator_t **ppi)
 {
         pb_iterator_t *pi;
         if (pb->n_iterators == PB_MAX_ITERATORS) {
@@ -302,11 +302,11 @@ pb_iterator_destroy(pb_t           *pb,
 {
         uint16_t i, j;
         pb_iterator_t *pi;
-        
+
 	pb_validate(pb);
         pi = *ppi;
         assert(pi->buffer == pb);
-        
+
         /* Remove iterator from buffer's list of iterators and
          * compress list in one pass */
         for(j = 0, i = 0; j < pb->n_iterators; i++,j++) {
@@ -355,7 +355,7 @@ pb_iterator_get_at(pb_iterator_t *pi,
                         *data_len = pi->node->data_len;
                         *playout  = pi->node->playout;
                         return TRUE;
-                } 
+                }
         }
         /* There is data on the list */
         *data     = NULL;
@@ -383,7 +383,7 @@ pb_iterator_detach_at (pb_iterator_t *pi,
         /* Check we are not attempting to remove
          * data that another iterator is pointing to
          */
-        iterators   = &pi->buffer->iterators[0]; 
+        iterators   = &pi->buffer->iterators[0];
         n_iterators = pi->buffer->n_iterators;
         for(i = 0; i < n_iterators; i++) {
                 if (iterators[i].node == pi->node && iterators + i != pi) {
@@ -395,10 +395,10 @@ pb_iterator_detach_at (pb_iterator_t *pi,
         /* Relink list of nodes */
         curr_node = pi->node;
         next_node = curr_node->next;
-        
+
         curr_node->next->prev = curr_node->prev;
         curr_node->prev->next = curr_node->next;
-        
+
 #ifdef DEBUG
 	curr_node->next     = NULL;
 	curr_node->prev     = NULL;
@@ -521,7 +521,7 @@ pb_iterator_audit(pb_iterator_t *pi, timestamp_t history_len)
                                 assert(iterators[i].node != curr);
                         }
 #endif
-                        next = curr->next; 
+                        next = curr->next;
                         curr->next->prev = curr->prev;
                         curr->prev->next = curr->next;
                         pb->freeproc(&curr->data, curr->data_len);

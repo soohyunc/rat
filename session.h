@@ -54,7 +54,7 @@ typedef struct s_session {
         short           	 id;   				/* unique session id */
 	int			 mode; 				/* audio tool, transcoder */
         char            	*title;
-	char            	 asc_address[MAX_LAYERS][MAXHOSTNAMELEN+1];  
+	char            	 asc_address[MAX_LAYERS][MAXHOSTNAMELEN+1];
 	u_short	        	 rx_rtp_port[MAX_LAYERS];
 	u_short	        	 tx_rtp_port[MAX_LAYERS];
 	u_short	        	 rx_rtcp_port[MAX_LAYERS];
@@ -85,7 +85,7 @@ typedef struct s_session {
         struct s_manual_sd*      manual_sd;
         uint16_t                 manual_sd_thresh;
 	int                 	 meter;       			/* if powermeters are on */
-        uint32_t             	 meter_period; 
+        uint32_t             	 meter_period;
 	int		    	 ui_activated;			/* If our ssrc is highlighted in the ui */
 	int		    	 sync_on;
 	int		    	 agc_on;

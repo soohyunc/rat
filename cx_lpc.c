@@ -3,7 +3,7 @@
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  *
- * This code was originally pulled from VAT source.  Berkeley license 
+ * This code was originally pulled from VAT source.  Berkeley license
  * removed since code did not originate at Berkeley/LBL.
  *
  * Main modifications are:
@@ -12,9 +12,9 @@
  * - Array bound overrun fixes.
  * - Assorted complier warning fixes.
  */
- 
+
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
+static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -53,7 +53,7 @@ auto_correl(float *w, int n, int p, float *r)
 	for (k = 0; k <= p; k++) {
 		nk = n - k;
 		r[k] = 0.0f;
-		for (i = 0; i < nk; i++) 
+		for (i = 0; i < nk; i++)
 			r[k] += w[i] * w[i + k];
 	}
 }
@@ -169,10 +169,10 @@ lpc_init()
         int     i;
 
         for (i = 0; i < BUFLEN; i++) {
-                h[i] = (float)WSCALE * (0.54f - 0.46f * 
+                h[i] = (float)WSCALE * (0.54f - 0.46f *
                                         (float)cos(2.0f * (float)M_PI * (float)i / (BUFLEN - 1.0f)));
         }
- 
+
         wcT = 2 * (float)M_PI * FC / FS;
         r = 0.36891079f * wcT;
         v = 0.18445539f * wcT;
@@ -318,7 +318,7 @@ lpc_synthesize(short *buf, lpc_txstate_t *params, lpc_intstate_t* state)
 			state->bp[j] = b;
 		}
 		state->bp[0] = f;
-		
+
 		*buf++ = (short)((int)(f * 32768) & 0xffff);
 
 		Newper += perinc;
@@ -338,11 +338,11 @@ lpc_extend_synthesize(short *buf, int len, lpc_intstate_t* s)
 {
 	int i, j;
         register double u, f;
-        
+
 	if (s->Oldper == 0) {
 		s->pitchctr = 0;
         }
-        
+
 	for (i = 0; i < len; i++) {
 		if (s->Oldper == 0) {
 			u = drand48() * s->OldG;
