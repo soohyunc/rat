@@ -317,7 +317,6 @@ audio_read(int audio_fd, sample *buf, int samples)
 			perror("audio_read");
 			return 0;
 		}
-		printf("read %d bytes\n", len);
 		return len / BYTES_PER_SAMPLE;
 	} else {
 		/* The value returned should indicate the time (in audio samples) */
