@@ -6,6 +6,8 @@
 
 /* $Header$ */
 
+#include "config.h"
+
 #ifdef WIN32
 #include <memory.h>
 #endif

@@ -199,6 +199,8 @@ int gethostname(char *hostname, size_t size);
 #define AUDIO_CD         4
 #include <sys/stat.h>
 #include <fcntl.h>
+void *memcpy(void *dest, const void *src, size_t n);
+int   memcmp(const void *s1, const void *s2, size_t n);
 #endif /* Linux */
 
 #ifdef WIN32
