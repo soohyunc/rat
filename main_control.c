@@ -21,8 +21,13 @@
 #include "version.h"
 #include "mbus_control.h"
 
+#ifdef WIN32
+#define UI_NAME     "ratui.exe"
+#define ENGINE_NAME "ratmedia.exe"
+#else
 #define UI_NAME     "rat-"##VERSION_NUM##"-ui"
 #define ENGINE_NAME "rat-"##VERSION_NUM##"-media"
+#endif
 
 pid_t	 pid_ui, pid_engine;
 int	 should_exit;
@@ -46,15 +51,47 @@ static int snprintf(char *s, int buf_size, const char *format, ...)
 
 static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid)
 {
-	struct timeval	 timeout;
-	char		*token = xmalloc(100);
-	char		*token_e;
-	char		*peer_addr;
+	struct timeval		 timeout;
+	char			*token = xmalloc(100);
+	char			*token_e;
+	char			*peer_addr;
+#ifdef WIN32
+	char			 args[1024];
+	LPSTARTUPINFO		 startup_info;
+	LPPROCESS_INFORMATION	 proc_info;
+#endif
 
 	sprintf(token, "rat-controller-waiting-%ld", lrand48());
 
 #ifdef WIN32
-	/* Hmmm.... */
+	startup_info = (LPSTARTUPINFO) xmalloc(sizeof(STARTUPINFO));
+	startup_info->cb              = 0;
+	startup_info->lpReserved      = 0;
+	startup_info->lpDesktop       = 0;
+	startup_info->lpTitle         = 0;
+	startup_info->dwX             = 0;
+	startup_info->dwY             = 0;
+	startup_info->dwXSize         = 0;
+	startup_info->dwYSize         = 0;
+	startup_info->dwXCountChars   = 0;
+	startup_info->dwYCountChars   = 0;
+	startup_info->dwFillAttribute = 0;
+	startup_info->dwFlags         = 0;
+	startup_info->wShowWindow     = 0;
+	startup_info->cbReserved2     = 0;
+	startup_info->lpReserved2     = 0;
+	startup_info->hStdInput       = 0;
+	startup_info->hStdOutput      = 0;
+	startup_info->hStdError       = 0;
+
+	proc_info = (LPPROCESS_INFORMATION) xmalloc(sizeof(PROCESS_INFORMATION));
+
+	sprintf(args, "%s -ctrl %s %s", proc_name, ctrl_addr, token);
+
+	if (!CreateProcess(NULL, args, NULL, NULL, 0, 0, NULL, NULL, startup_info, proc_info)) {
+		perror("Couldn't create process");
+		abort();
+	}
 #else
 #ifdef DEBUG_FORK
 	debug_msg("%s -ctrl %s -token %s\n", proc_name, ctrl_addr, token);
