@@ -63,7 +63,7 @@ typedef struct {
                              * channel data begins relative to data(packet)
                              * since this saves an allocation, copy, and free.
                              */
-        u_int16 data_len;
+        u_int32 data_len;   /* This is the length for processing purposes */
 } channel_unit;
 
 typedef struct {

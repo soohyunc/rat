@@ -121,9 +121,9 @@ read_and_enqueue(socket_udp *s, ts_t cur_ts, struct s_pckt_queue *queue, int typ
         
         assert(type == PACKET_RTP || type == PACKET_RTCP);
 	data_in  = block_alloc(PACKET_LENGTH);
-	data_out = block_alloc(PACKET_LENGTH);
 	read_len = udp_recv(s, (char *) data_in, PACKET_LENGTH);
 	if (read_len > 0) {
+                data_out = block_alloc(PACKET_LENGTH);
 		if (Null_Key()) {
 			tmp_data      = data_out;
 			data_out      = data_in;
@@ -136,17 +136,17 @@ read_and_enqueue(socket_udp *s, ts_t cur_ts, struct s_pckt_queue *queue, int typ
 						  break;
 			}
 		}
+                /* We should avoid this memcpy */
 		pckt = pckt_queue_element_create();
 		pckt->len               = read_len;
-		pckt->pckt_ptr          = data_out;
+		pckt->pckt_ptr          = (u_char*)block_alloc(read_len);
+                memcpy(pckt->pckt_ptr, data_out, read_len);
 		pckt->arrival = cur_ts;
 		pckt_enqueue(queue, pckt);
-		block_free(data_in, PACKET_LENGTH);
-	} else {
-		block_free(data_in, PACKET_LENGTH);
 		block_free(data_out, PACKET_LENGTH);
-		return;
-	}
+	} 
+        block_free(data_in, PACKET_LENGTH);
+        return;
 }
 
 void network_process_mbus(session_struct *sp)

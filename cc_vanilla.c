@@ -112,13 +112,13 @@ vanilla_encoder_output(ve_state *ve, struct s_playout_buffer *out)
         }
 
         assert(size != 0);
-        debug_msg("Block size %d\n", size);
         
         /* Allocate block and get ready */
         channel_data_create(&cd, 1);
-        cd->elem[0]->pt       = codec_get_payload(ve->codec_id);
-        cd->elem[0]->data     = (u_char*)block_alloc(size);
-        cd->elem[0]->data_len = size;
+        cd->elem[0]->pt           = codec_get_payload(ve->codec_id);
+        cd->elem[0]->data         = (u_char*)block_alloc(size);
+        cd->elem[0]->data_start   = 0;
+        cd->elem[0]->data_len     = size;
 
         /* Copy data out of coded units and into continguous blocks */
         buffer = cd->elem[0]->data;
@@ -142,7 +142,6 @@ vanilla_encoder_output(ve_state *ve, struct s_playout_buffer *out)
                            (u_char*)cd, 
                            sizeof(channel_data), 
                            ve->playout);
-        debug_msg("added %u\n", ve->playout.ticks);
 }
 
 int

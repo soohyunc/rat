@@ -350,7 +350,7 @@ int
 source_add_packet (source *src, 
                    u_char *pckt, 
                    u_int32 pckt_len, 
-                   u_char *data_start,
+                   u_int32 data_start,
                    u_int8  payload,
                    ts_t    playout)
 {
@@ -375,11 +375,11 @@ source_add_packet (source *src,
                 return FALSE;
         }
         
-        cu             = cd->elem[0];
-        cu->data       = pckt;
-        cu->data_len   = pckt_len;
-        cu->data_start = (u_int32)(data_start - pckt);
-        cu->pt         = payload;
+        cu               = cd->elem[0];
+        cu->data         = pckt;
+        cu->data_start   = data_start;
+        cu->data_len     = pckt_len;
+        cu->pt           = payload;
 
         /* Check we have state to decode this */
         cid = channel_coder_get_by_payload(cu->pt);

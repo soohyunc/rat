@@ -544,7 +544,7 @@ statistics(session_struct          *sp,
                 if (source_add_packet(src, 
                                       pckt->pckt_ptr, 
                                       pckt->len, 
-                                      data_ptr, 
+                                      data_ptr - pckt->pckt_ptr, 
                                       hdr->pt, 
                                       pckt->playout) == TRUE) {
                         /* Source is now repsonsible for packet so
