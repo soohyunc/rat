@@ -240,11 +240,10 @@ static void func_repair(char *srce, char *args, session_struct *sp)
 	char	*s;
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_str(sp->mbus_engine, &s)) {
-		s = mbus_decode_str(s);
-		if (strcmp(s,              "None") == 0) sp->repair = REPAIR_NONE;
-		if (strcmp(s, "Packet Repetition") == 0) sp->repair = REPAIR_REPEAT;
-        	if (strcmp(s,  "Pattern Matching") == 0) sp->repair = REPAIR_PATTERN_MATCH;
+	if (mbus_parse_sym(sp->mbus_engine, &s)) {
+		if (strcmp(s,             "None") == 0) sp->repair = REPAIR_NONE;
+		if (strcmp(s, "PacketRepetition") == 0) sp->repair = REPAIR_REPEAT;
+        	if (strcmp(s,  "PatternMatching") == 0) sp->repair = REPAIR_PATTERN_MATCH;
 	} else {
 		printf("mbus: usage \"repair None|Repetition\"\n");
 	}

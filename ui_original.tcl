@@ -710,7 +710,7 @@ frame .b.f.loc.rep -relief sunken
 pack  .b.f.loc.rep -side left  -fill x -expand 1
 label .b.f.loc.rep.l -highlightthickness 0 -justify left -text "Loss Repair"
 pack  .b.f.loc.rep.l -side top -expand 1 -anchor w
-dropdown .b.f.loc.rep.dl repair_var repair None "Packet Repetition" "Pattern Matching"
+dropdown .b.f.loc.rep.dl repair_var repair None "PacketRepetition" "PatternMatching"
 pack  .b.f.loc.rep.dl -side left -fill x -expand 1
 
 # Misc controls
