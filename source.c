@@ -682,11 +682,14 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 e->last_transit = transit;
 
                 if (adjust_playout) {
-                       debug_msg("last  % 5d avg % 5d\n", transit.ticks, e->avg_transit.ticks);
+/*
+                        debug_msg("last  % 5d avg % 5d\n", transit.ticks, e->avg_transit.ticks);
                         if (ts_gt(now, playout)) {
                                 ts_t shortfall;
+                                */
                                 /* Unit would have been discarded.  Jitter has    */
                                 /* affected our first packets transit time.       */
+/*
                                 shortfall       = ts_sub(now, playout);
                                 playout         = ts_add(playout, shortfall);
                                 e->transit      = ts_add(e->transit, shortfall);
@@ -694,6 +697,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                                 e->avg_transit  = e->transit;
                                 debug_msg("Push back %d samples\n", shortfall.ticks);
                         }
+*/
                         src->talkstart = playout; /* Note start of new talkspurt  */
                         src->post_talkstart_units = 0;
                 } else {
@@ -1118,8 +1122,7 @@ source_process(session_t *sp,
                 /* (d) don't have a hold on.                                 */
 
                 if (ts_gt(playout, src->next_played) &&
-                    (ts_gt(src->talkstart, src->next_played) == FALSE || src->post_talkstart_units < 100) &&
-                    ts_eq(playout, src->talkstart) == FALSE &&
+                    ((ts_gt(src->next_played, src->talkstart) && ts_gt(playout, src->talkstart)) || src->post_talkstart_units > 100) &&
                     hold_repair == 0) {
                         /* If repair was successful media_pos is moved,      */
                         /* so get data at media_pos again.                   */
