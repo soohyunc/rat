@@ -867,20 +867,6 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
         ts_t        playout, step, cutoff;
         int         i, success, hold_repair = 0;
 
-        static repair_id_t repair_none = 0;
-        if (!repair_none) {
-                const repair_details_t *r;
-                u_int16 j, n;
-                n = repair_get_count();
-                for(j = 0; j < n; j++) {
-                        r = repair_get_details(j);
-                        if (strcasecmp("none", r->name)) {
-                                repair_none = r->id;
-                                break;
-                        }
-                }
-        }
-
         /* Note: hold_repair is used to stop repair occuring.
          * Occasionally, there is a race condition when the playout
          * point is recalculated causing overlap, and when playout
@@ -921,7 +907,6 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
 
                 if (ts_valid(src->last_played) && 
                     ts_gt(playout, ts_add(src->last_played, step)) &&
-                    repair_type != repair_none      &&
                     ts_gt(src->last_played, cutoff) &&
                     hold_repair == 0) {
                         /* If repair was successful media_pos is moved,
