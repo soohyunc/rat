@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
         pdb_item_create(sp->pdb, sp->clock, (u_int16)get_freq(sp->device_clock), rtp_my_ssrc(sp->rtp_session[0])); 
 	settings_load_late(sp);
 
-	ui_controller_init(sp, sp->mbus_engine_addr, sp->mbus_ui_addr, sp->mbus_video_addr);
+	ui_controller_init(sp);
         ui_initial_settings(sp);
 	ui_update(sp);
 	network_process_mbus(sp);

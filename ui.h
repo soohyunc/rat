@@ -61,9 +61,10 @@ void ui_update_playback_file (struct s_session *s, char *name);
 void ui_update_record_file   (struct s_session *s, char *name);
 void ui_update_file_live     (struct s_session *s, char *mode, int valid);
 void ui_update_codec         (struct s_session *s, codec_id_t cid);
-void ui_controller_init      (struct s_session *s, char *name_engine, char *name_ui, char *name_video);
 void ui_initial_settings     (struct s_session *s);
 void ui_final_settings       (struct s_session *s);
 void ui_quit                 (struct s_session *s);
+
+void ui_controller_init      (struct s_session *s);
 
 #endif
