@@ -66,9 +66,10 @@ pckt_queue_create(int len)
 
         assert(p != NULL);
         memset(p, 0, sizeof(pckt_queue));
-
+        
         p->buf  = (pckt_queue_element **)xmalloc(len * sizeof(pckt_queue_element*));
-        p->buf_len = len;
+        p->buf_len  = len;
+        p->buf_head = p->buf_tail = p->buf_used = 0;
         assert(p->buf != NULL);
 
 	for (i=0; i<len; i++) {
