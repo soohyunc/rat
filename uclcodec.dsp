@@ -167,6 +167,19 @@ SOURCE=.\codec_l16.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\codec_l8.c
+
+!IF  "$(CFG)" == "uclcodec - Win32 Release"
+
+# ADD CPP /D "SASR"
+
+!ELSEIF  "$(CFG)" == "uclcodec - Win32 Debug"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
 SOURCE=.\codec_lpc.c
 
 !IF  "$(CFG)" == "uclcodec - Win32 Release"
@@ -473,6 +486,10 @@ SOURCE=.\codec_gsm.h
 # Begin Source File
 
 SOURCE=.\codec_l16.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_l8.h
 # End Source File
 # Begin Source File
 
