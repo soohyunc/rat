@@ -322,6 +322,10 @@ oss_probe_audio_device(int i, struct oss_device *device)
 static int
 oss_test_device_pair(int rdev, int wdev)
 {
+
+	char buf[1024];
+	int n;
+
 	/* Attempt to open rdev read-only and wdev write-only, both half- */
 	/* duplex, simultaneously. Return TRUE if we succeed.             */
 	devices[rdev].audio_rfd = open(devices[rdev].audio_rdev, O_RDONLY | O_NDELAY);
@@ -329,6 +333,14 @@ oss_test_device_pair(int rdev, int wdev)
 		debug_msg("unable to open %s %s\n", devices[rdev].audio_rdev, strerror(errno));
 		return FALSE;
 	}
+
+	n = read(devices[rdev].audio_rfd, buf, sizeof(buf));
+	debug_msg("read in test_device_pair returns %d\n", n);
+	if (n < 0) {
+		debug_msg("cannot read audio from %s %s\n", devices[rdev].audio_rdev, strerror(errno));
+		return FALSE;
+	}
+	
 
 	devices[wdev].audio_wfd = open(devices[wdev].audio_wdev, O_WRONLY | O_NDELAY);
 	if (devices[wdev].audio_wfd == 0) {
@@ -379,6 +391,7 @@ oss_pair_devices(void)
 				}
 				xmemchk();
 				num_devices--;
+				i--;
 			} else {
 				debug_msg("Cannot pair %s and %s\n", devices[i].audio_rdev, devices[i+1].audio_wdev);
 			}
@@ -400,8 +413,8 @@ oss_remove_half_duplex_devices(void)
 			for (j = i + 1; j < num_devices; j++) {
 				devices[j-1] = devices[j];
 			}
-			i--;
 			num_devices--;
+			i--;
 		}
 	}
 }
