@@ -376,7 +376,7 @@ source_add_packet (source *src,
                 debug_msg("Packet late (%u > %u)- discarding\n", 
                           src->last_played.ticks,
                           playout.ticks);
-                /* Up src->dbe jitter toged */
+                /* XXX should not happen as we check before adding */
                 return FALSE;
         }
 

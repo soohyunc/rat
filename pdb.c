@@ -144,6 +144,8 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16 freq, u_int32 id)
         item->received        = 0;
         item->duplicates      = 0;
         item->misordered      = 0;
+        item->jit_toged       = 0;
+        item->cont_toged      = 0;
 
         /*********************************************************************/
 

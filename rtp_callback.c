@@ -219,26 +219,44 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                 adjust_playout = TRUE;
         }
 
+        /* Check for continuous number of packets being discarded.  This   */
+        /* happens when jitter or transit estimate is no longer consistent */
+        /* with the real world.                                            */
+        if (e->cont_toged == 4) {
+                debug_msg("Adjusting playout: cont_toged (%d)\n", 
+                        e->cont_toged);
+                adjust_playout = TRUE;
+                e->cont_toged  = 0;
+        }
 
         /* Calculate the playout point for this packet */
         src_ts  = ts_seq32_in(source_get_sequencer(s), get_freq(e->clock), p->ts);
         playout = playout_calc(sp, ssrc, src_ts, adjust_playout);
 
-        if ((adjust_playout && sp->over_read == 0) ||
-            (adjust_playout == 0)) {
-                /* There is some magic here...if we are recalculating the playout point */
-                /* and it looks like the application has blocked (over_read > 0) for a  */
-                /* while then our guess at the transit delay for packets that arrived   */
-                /* whilst the app was blocked will be wrong, usually causing playout    */
-                /* delay to be the blocking period.  This is not something we want so   */
-                /* discard packets that arrived during blocked period.                  */
-                u_char *u = block_alloc(p->data_len);
+        if (ts_gt(sp->cur_ts, playout)) {
+                /* The playout point for this packet has already gone */
+                /* so it get's discarded.                             */
+                e->jit_toged ++;
+                e->cont_toged ++;
+        } else if ((adjust_playout && sp->over_read == 0) ||
+                   (adjust_playout == 0)) {
+                /* There is some magic here...if we are recalculating the   */
+                /* playout point and it looks like the application has      */
+                /* blocked (over_read > 0) for a  while then our guess at   */
+                /* the transit delay for packets that arrived whilst the    */
+                /* app was blocked will be wrong, usually causing playout   */
+                /* delay to be the blocking period.  This is not something  */
+                /* we want so  discard packets that arrived during blocked  */
+                /* period.  */
+                u_int32 ulen = p->data_len;
+                u_char *u    = block_alloc(ulen);
                 memcpy(u, p->data, p->data_len);
-                if (source_add_packet(s, u, p->data_len, 0, (u_char)p->pt, playout) == FALSE) {
-                        block_free(u, p->data_len);
+                if (source_add_packet(s, u, ulen, 0, (u_char)p->pt, playout) == FALSE) {
+                        block_free(u, ulen);
                 }
+                e->cont_toged = 0;
         }
-        /* Update persistent database fields           */
+        /* Update persistent database fields. */
         if (e->last_seq > p->seq) {
                 e->misordered++;
         }
@@ -333,7 +351,8 @@ rtp_callback(struct rtp *s, rtp_event *e)
 
         sp = get_session(s);
         if (sp == NULL) {
-                /* Should only happen when SOURCE_CREATED is generated in rtp_init */
+                /* Should only happen when SOURCE_CREATED is generated in */
+                /* rtp_init.                                              */
                 debug_msg("Could not find session (0x%08x)\n", (u_int32)s);
                 return;
         }

@@ -211,7 +211,7 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
         ui_update_loss(sp, my_ssrc, pdbe->ssrc, fract_lost);
         ui_update_reception(sp, pdbe->ssrc, pdbe->received, 0, 
                             pdbe->misordered, pdbe->duplicates, 
-                            ts_to_ms(pdbe->jitter), 0);
+                            ts_to_ms(pdbe->jitter), pdbe->jit_toged);
         ui_update_duration(sp, pdbe->ssrc, pdbe->inter_pkt_gap * 1000 / get_freq(pdbe->clock));
 }
 

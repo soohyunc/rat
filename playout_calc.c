@@ -22,12 +22,12 @@
 
 static ts_t
 playout_variable_component(session_t *sp, pdb_entry_t *e)
-/******************************************************************************/
-/* playout_variable component works out the variable components that RAT has  */
-/* in it's playout calculation.  It works returns the maximum of:             */
-/* the interpacket gap, the cushion size, and the user requested limits on    */
-/* the playout point.                                                         */
-/******************************************************************************/
+/*****************************************************************************/
+/* playout_variable component works out the variable components that RAT has */
+/* in it's playout calculation.  It works returns the maximum of:            */
+/* the interpacket gap, the cushion size, and the user requested limits on   */
+/* the playout point.                                                        */
+/*****************************************************************************/
 {
         u_int32 var32, freq, cushion;
 
@@ -53,12 +53,12 @@ playout_variable_component(session_t *sp, pdb_entry_t *e)
 
 ts_t 
 playout_calc(session_t *sp, u_int32 ssrc, ts_t src_ts, int new_spurt)
-/******************************************************************************/
-/* The primary purpose of this function is to calculate the playout point for */
-/* new talkspurts (new_spurt).  It also maintains the jitter and transit time */
-/* estimates from the source to us.  The value returned is the local playout  */
-/* time.                                                                      */
-/******************************************************************************/
+/*****************************************************************************/
+/* The primary purpose of this function is to calculate the playout point    */
+/* for new talkspurts (new_spurt).  It also maintains the jitter and transit */
+/* time estimates from the source to us.  The value returned is the local    */
+/* playout time.                                                             */
+/*****************************************************************************/
 {
         pdb_entry_t *e;
         ts_t         transit, var;
@@ -66,15 +66,15 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t src_ts, int new_spurt)
         pdb_item_get(sp->pdb, ssrc, &e);
         assert(e != NULL);
 
-        /* Transit delay is the difference between our local clock and the    */
-        /* packet timestamp (src_ts).                                         */
+        /* Transit delay is the difference between our local clock and the   */
+        /* packet timestamp (src_ts).                                        */
         transit = ts_sub(sp->cur_ts, src_ts);
 
         if (new_spurt == TRUE) {
                 debug_msg("New talkspurt\n");
-                /* Get RAT specific variable playout component                */
+                /* Get RAT specific variable playout component               */
                 var = playout_variable_component(sp, e);
-                /* Use the larger of jitter and variable playout component.   */
+                /* Use the larger of jitter and variable playout component.  */
                 if (ts_gt(var, e->jitter)) {
                         e->playout = var;
                 } else {
