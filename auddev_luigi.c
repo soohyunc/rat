@@ -1,5 +1,7 @@
 /*
- * FILE:    auddev_luigi.c - Sound interface for Luigi Rizzo's FreeBSD driver
+ * FILE: auddev_luigi.c - Sound interface for Luigi Rizzo's FreeBSD driver
+ *
+ * Modified to support newpcm (July 2000).
  *
  * Copyright (c) 1996-2000 University College London
  * All rights reserved.
@@ -49,6 +51,24 @@ static int luigi_error;
 static audio_format *input_format, *output_format, *tmp_format;
 static snd_capabilities soundcaps[LUIGI_MAX_AUDIO_DEVICES];
 
+/* There are some differences between the FreeBSD 4x newpcm driver 
+ * and Luigi's pcm driver:
+ *
+ * 1) Mixer loopback writes are handled differently (not supported 
+ *    on newpcm yet - new mixer infrastructure looks to be WIP)
+ *
+ * 2) newpcm does not set AFMT_FULLDUPLEX when device caps are queried.
+ *    Luigi's driver does.  Luigi's driver also opens half-duplex devices
+ *    when open() use O_RDWR.  So with Luigi's driver we have to check
+ *    AFMT_FULLDUPLEX, with newpcm we assume if device opens O_RDWR it 
+ *    is full duplex.
+ *
+ * The variable is_newpcm indicates applications understanding of which
+ * driver it is talking to.
+ */
+
+static int is_newpcm; 
+
 int 
 luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
@@ -79,12 +99,17 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		/* XXX why do we reset here ??? [oh] */
                 LUIGI_AUDIO_IOCTL(audio_fd,SNDCTL_DSP_RESET,0);
 
-		/* We used to check AFMT_FULLDUPLEX in soundcaps.  Since
-		 * the newpcm FreeBSD-4.0 audio driver this is no longer
-		 * a useful flag to check.  If device opens O_RDWR assume
-		 * full duplex.  May not be a sufficient check.
-		 */
+		/* Check card is full duplex - need for Luigi driver only */
+		if (is_newpcm == FALSE && 
+		    (soundcaps[ad].formats & AFMT_FULLDUPLEX) == 0) {
+			     fprintf(stderr, "Sorry driver does support full duplex for this soundcard\n");
+			     luigi_audio_close(ad);
+			     return FALSE;
+		}
 
+		/* From newpcm source code it looks like AFMT_WEIRD is handled
+		 * by driver interface, but Luigi's driver needs this.
+		 */
 		if (soundcaps[ad].formats & AFMT_WEIRD) {
                         /* this is a sb16/32/64... 
                          * you can change either ifmt or ofmt to U8 
@@ -529,10 +554,19 @@ luigi_audio_query_devices()
                         if (p && n == 2) {
                                 debug_msg("dev (%d) name (%s)\n", dev_ids[ndev], names[ndev]);
                                 ndev++;
-                        }
+                        } else if (strstr(buf, "newpcm")) {
+				/* This is a clunky check for the
+				 * newpcm driver.
+				 */
+				is_newpcm = TRUE;
+			}
                 }
                 fclose(f);
         }
+
+	debug_msg("Audio driver is %s\n", 
+		  (is_newpcm) ? "newpcm" : "luigi");
+
         return (ndev);
 }
 

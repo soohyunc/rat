@@ -1384,15 +1384,14 @@ v4.2.7	- Split main() in the controller into two parts: one for normal
 	- Fix reading of .wav files 
 		- The last unit of audio data was not being sent, which also 
 		  contributed to Paxton Smith's problem.
-	- Fix bias removal for stereo signals
-	- Fix bias removal (you can't do >> with signed values and get a sensible answer)
-	- Fix arithmetic overflow problems in the bias removal code
-	- Remove spurious code in auddev_null.c which caused the NULL audio
+	- Fix bias removal for stereo signals.
+	- Fix bias removal maintenance ( >> != / ).
+	- Fix arithmetic overflow problems in the bias removal code.
+	- Remove debugging code in auddev_null.c which caused the NULL audio
 	  device to (incorrectly) generate non-silent a-law audio.
-	- Remove full duplex capability check in FreeBSD driver interface.
-	  Since newpcm in 4.0 that bit does not get set when querying device
-	  caps.  We now assume that if the device opens with O_RDWR it is
-	  full duplex (as I recall this was no guarantee with luigi pcm).
+	- Detect whether FreeBSD driver is newpcm or luigi.  There are
+	  differences in detecting full duplex caps and handling mixer 
+	  settings.  See comments in auddev_luigi.c for an explanation.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1401,8 +1400,7 @@ TODO -- They're features not bugs dammit!
 	- FreeBSD driver bug on SoundBlaster 16 has small write buffers 
 	  and stops working full duplex mode after a time.  Hard to fix because
 	  of cushion.
-	- Crashes on FreeBSD 4.0 (reported by Lars Eggert and Joe Love)
-		- Due to bugs in FreeBSD
+	- Loopback support is broken on FreeBSD newpcm driver.
 	- Broken auddev_pca with adding of audio interface conversion code.
 	  FreeBSD 3.1 pca audio does not seem to work anymore.
 	- SunVideoPlus interface code does not work properly.  The driver Sun
