@@ -183,7 +183,8 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 		switch (pkt->common.pt) {
 		case RTCP_SR:
 			ssrc = ntohl(pkt->r.sr.ssrc);
-			if (ssrc == sp->db->myssrc&&!sp->no_filter_loopback) {
+			if (ssrc == sp->db->myssrc && 
+                            sp->filter_loopback) {
 				/* Loopback packet, discard it... */
 				return;
 			}

@@ -89,7 +89,7 @@ typedef struct session_tag {
 	u_long          our_address;			/* our unicast address */
 	int             rtp_port;
 	int             rtcp_port;
-        int             no_filter_loopback;
+        int             filter_loopback;
 	int             ttl;
 	int             rtp_fd;
 	int             rtcp_fd;

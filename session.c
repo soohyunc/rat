@@ -93,6 +93,7 @@ init_session(session_struct *sp)
 	sp->ttl				= 16;
 	sp->rtp_fd			= -1;
 	sp->rtcp_fd			= -1;
+        sp->filter_loopback             = TRUE;
 	sp->sending_audio		= FALSE;
 	sp->playing_audio		= TRUE;
 	sp->lecture			= FALSE;
@@ -153,7 +154,7 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 	for (i = 1; i < argc; i++) {
 		for (s = 0; s < sp_size; s++) {
                         if ((strcmp(argv[i], "-allowloopback")) == 0) {
-                                sp[s]->no_filter_loopback = 1;
+                                sp[s]->filter_loopback = FALSE;
                         }
 			if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
 				argv[i] = "-crypt";
