@@ -32,6 +32,8 @@
 
 /* Minor modifications Orion Hodson <O.Hodson@cs.ucl.ac.uk> */
 
+#include "codec_g711.h"
+
 #define	SIGN_BIT	(0x80)		/* Sign bit for a A-law byte. */
 #define	QUANT_MASK	(0xf)		/* Quantization field mask. */
 #define	NSEGS		(8)		/* Number of A-law segments. */
@@ -265,6 +267,7 @@ ulaw2linear(
 	return ((u_val & SIGN_BIT) ? (BIAS - t) : (t - BIAS));
 }
 
+#ifdef INTER_LAW_CONVERSION
 /* A-law to u-law conversion */
 static unsigned char
 alaw2ulaw(
@@ -284,6 +287,8 @@ ulaw2alaw(
 	return ((uval & 0x80) ? (0xD5 ^ (_u2a[0xFF ^ uval] - 1)) :
 	    (0x55 ^ (_u2a[0x7F ^ uval] - 1)));
 }
+
+#endif /* INTER_LAW_CONVERSION */
 
 short         mulawtolin[256];
 unsigned char lintomulaw[65536];
