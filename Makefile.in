@@ -143,7 +143,7 @@ rat-$(VERSION).spec: rat.spec
 
 rat: VERSION Makefile
 	@${ECHO} "Generating rat shell script"
-	@${ECHO} "#/bin/sh" > $@
+	@${ECHO} "#!/bin/sh" > $@
 	@${ECHO} "# Generated automatically from RAT Makefile.  Edit there." >> $@
 	@${ECHO} 'PATH=$${PATH}:.' >> $@
 	@${ECHO} "exec rat-$(VERSION)" '$$*' >> $@
