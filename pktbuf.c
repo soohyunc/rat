@@ -131,6 +131,6 @@ pktbuf_peak_last(pktbuf_t   *pb,
 uint16_t 
 pktbuf_get_count(pktbuf_t *pb)
 {
-        return pb_node_count(pb->rtp_buffer);
+        return (uint16_t)pb_node_count(pb->rtp_buffer);
 }
 

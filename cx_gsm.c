@@ -802,8 +802,8 @@ static void Coefficients_0_12(
 	register int 	i;
 
 	for (i = 1; i <= 8; i++, LARp++, LARpp_j_1++, LARpp_j++) {
-		*LARp = (word) GSM_ADD( SASR( *LARpp_j_1, 2 ), SASR( *LARpp_j, 2 ));
-		*LARp = (word) GSM_ADD( *LARp,  SASR( *LARpp_j_1, 1));
+		*LARp = (word) GSM_ADD( (word)SASR( *LARpp_j_1, 2 ), (word)SASR( *LARpp_j, 2 ));
+		*LARp = (word) GSM_ADD( *LARp,  (word)SASR( *LARpp_j_1, 1));
 	}
 }
 
@@ -814,7 +814,7 @@ static void Coefficients_13_26(
 {
 	register int i;
 	for (i = 1; i <= 8; i++, LARpp_j_1++, LARpp_j++, LARp++) {
-		*LARp = (word) GSM_ADD( SASR( *LARpp_j_1, 1), SASR( *LARpp_j, 1 ));
+		*LARp = (word) GSM_ADD( (word)SASR( *LARpp_j_1, 1), (word)SASR( *LARpp_j, 1 ));
 	}
 }
 
@@ -826,8 +826,8 @@ static void Coefficients_27_39(
 	register int i;
 
 	for (i = 1; i <= 8; i++, LARpp_j_1++, LARpp_j++, LARp++) {
-		*LARp = (word) GSM_ADD( SASR( *LARpp_j_1, 2 ), SASR( *LARpp_j, 2 ));
-		*LARp = (word) GSM_ADD( *LARp, SASR( *LARpp_j, 1 ));
+		*LARp = (word) GSM_ADD( (word)SASR( *LARpp_j_1, 2 ), (word)SASR( *LARpp_j, 2 ));
+		*LARp = (word) GSM_ADD( *LARp, (word)SASR( *LARpp_j, 1 ));
 	}
 }
 
@@ -870,12 +870,12 @@ static void LARp_to_rp(
 			temp = *LARp == MIN_WORD ? MAX_WORD : -(*LARp);
 			*LARp = - ((temp < 11059) ? temp << 1
 				: ((temp < 20070) ? temp + 11059
-				:  (word) GSM_ADD( temp >> 2, 26112 )));
+				:  (word) GSM_ADD( (word)(temp >> 2), 26112 )));
 		} else {
 			temp  = *LARp;
 			*LARp =    (temp < 11059) ? temp << 1
 				: ((temp < 20070) ? temp + 11059
-				:  (word) GSM_ADD( temp >> 2, 26112 ));
+				:  (word) GSM_ADD( (word)(temp >> 2), 26112 ));
 		}
 	}
 }
