@@ -356,7 +356,7 @@ void settings_load(session_struct *sp)
 {
 	audio_device_details_t	 ad;
 	char			*ad_name, *primary_codec, *cc_name, *port;
-	int			 i, freq, chan;
+	int			 i, freq, chan, gain;
 	cc_details		 ccd;
         const audio_port_details_t 	*apd;
 
@@ -381,9 +381,7 @@ void settings_load(session_struct *sp)
 	primary_codec = setting_load_str("audioPrimary", "GSM");
 
         audio_device_register_change_primary(sp, codec_get_matching(primary_codec, (u_int16)freq, (u_int16)chan));
-        if (sp->new_config != NULL) {
-		audio_device_reconfigure(sp);
-	}
+        audio_device_reconfigure(sp);
 
         port = setting_load_str("audioOutputPort", "Headphone");
         for(i = 0; i < audio_get_oport_count(sp->audio_device); i++) {
@@ -403,8 +401,12 @@ void settings_load(session_struct *sp)
         }
         audio_set_iport(sp->audio_device, apd->port);
 
-        audio_set_ogain(sp->audio_device, setting_load_int("audioOutputGain", 75));
-        audio_set_igain(sp->audio_device, setting_load_int("audioInputGain",  75));
+        gain = setting_load_int("audioOutputGain", 75);
+        audio_set_ogain(sp->audio_device, gain);
+
+        gain = setting_load_int("audioInputGain",  75);
+        audio_set_igain(sp->audio_device, gain);
+
         tx_igain_update(sp->tb);
 
 	cc_name = setting_load_str("audioChannelCoding", "None");

@@ -499,6 +499,7 @@ audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 
         if (success) {
                 /* Add device to list of those active */
+                debug_msg("Opened device: %s\n", audio_if_table[iface].audio_if_dev_name(device));
                 active_device_desc[dev_idx] = ad;
                 active_devices ++;
 

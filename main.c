@@ -122,6 +122,7 @@ main(int argc, char *argv[])
         assert(audio_device_is_open(sp[0]->audio_device));
 	sp[0]->db = rtcp_init(sp[0]->device_clock, cname, ssrc, 0);
         rtcp_clock_change(sp[0]);
+	network_process_mbus(sp[0]);
 
 	settings_load(sp[0]);
         ui_initial_settings(sp[0]);
