@@ -249,7 +249,8 @@ int main(int argc, char *argv[])
 
 	/* Load saved settings, and create the participant database... */
 	/* FIXME: probably needs updating for the transcoder so we can */
-	/* have different saved settings for each domain.              */
+	/*        have different saved settings for each domain.       */
+	/* FIXME: this gets the wrong device name for the transcoder.  */
 	for (i = 0; i < num_sessions; i++) {
 		settings_load_early(sp[i]);
 		if (pdb_create(&sp[i]->pdb) == FALSE) {
@@ -303,7 +304,7 @@ int main(int argc, char *argv[])
 			if (sp[i]->playing_audio) {
 				struct s_source *s;
 				int 		 sidx;
-				timestamp_t 		 cush_ts;
+				timestamp_t 	 cush_ts;
 
 				session_validate(sp[i]);
 				cush_ts = ts_map32(ts_get_freq(sp[i]->cur_ts), cushion_get_size(sp[i]->cushion));
