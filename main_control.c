@@ -214,10 +214,6 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
                 tx_port = rx_port;
         }
 
-	addr    = mbus_encode_str(addr);
-	mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
-	xfree(addr);
-
 	/* Parse command line parameters... */
 	for (i = 1; i < argc; i++) {
                 if ((strcmp(argv[i], "-allowloopback") == 0) && (argc > i+1)) {
@@ -311,6 +307,10 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 			/* Set channel coding to interleaved */
                 }
         }
+
+	addr    = mbus_encode_str(addr);
+	mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, rx_port, tx_port, ttl);
+	xfree(addr);
 
 	/* Synchronize with the sub-processes... */
 	do {

@@ -1254,8 +1254,8 @@ source_repair(source     *src,
         return TRUE;
 }
 
-int
-source_process(session_t *sp,
+void
+source_process(session_t 	 *sp,
                source            *src, 
                struct s_mix_info *ms, 
                int                render_3d, 
@@ -1267,8 +1267,8 @@ source_process(session_t *sp,
         coded_unit  *cu;
         codec_state *cs;
         uint32_t     md_len;
-        ts_t        playout, step;
-        int         i, success, hold_repair = 0;
+        ts_t         playout, step;
+        int          i, success, hold_repair = 0;
         uint16_t     sample_rate, channels;
 
         /* Note: hold_repair is used to stop repair occuring.
@@ -1276,39 +1276,33 @@ source_process(session_t *sp,
          * point is recalculated causing overlap, and when playout
          * buffer shift occurs in middle of a loss.
          */
-        
+
         source_process_packets(sp, src, start_ts);
 
         /* Split channel coder units up into media units */
         if (pb_node_count(src->channel)) {
-                channel_decoder_decode(src->channel_state,
-                                       src->channel,
-                                       src->media,
-                                       end_ts);
+                channel_decoder_decode(src->channel_state, src->channel, src->media, end_ts);
         }
 
-        while (ts_gt(end_ts, src->next_played) && 
-               pb_iterator_advance(src->media_pos)) {
-                pb_iterator_get_at(src->media_pos, 
-                                   (u_char**)&md, 
-                                   &md_len, 
-                                   &playout);
-                assert(md != NULL);
-                assert(md_len == sizeof(media_data));
-                
-                /* Conditions for repair:                                    */
-                /* (a) playout point of unit is further away than expected.  */
-                /* (b) playout does not correspond to new talkspurt (don't   */
-                /* fill between end of last talkspurt and start of next).    */
-                /* NB Use post_talkstart_units as talkspurts maybe longer    */
-                /* than timestamp wrap period and want to repair even if     */
-                /* timestamps wrap.                                          */
-                /* (c) not start of a talkspurt.                             */
-                /* (d) don't have a hold on.                                 */
+        while (ts_gt(end_ts, src->next_played) && pb_iterator_advance(src->media_pos)) {
+		pb_iterator_get_at(src->media_pos, (u_char**)&md, &md_len, &playout);
 
+		/* At this point, md is the media data at the current playout point */
+                assert(md     != NULL);
+                assert(md_len == sizeof(media_data));
+
+                /* Conditions for repair:                                     */
+                /* (a) playout point of unit is further away than expected.   */
+                /* (b) playout does not correspond to new talkspurt (don't    */
+                /*     fill between end of last talkspurt and start of next). */
+                /*     NB Use post_talkstart_units as talkspurts maybe longer */
+                /*     than timestamp wrap period and want to repair even if  */
+                /*     timestamps wrap.                                       */
+                /* (c) not start of a talkspurt.                              */
+                /* (d) don't have a hold on.                                  */
                 if (ts_gt(playout, src->next_played) &&
                     ((ts_gt(src->next_played, src->talkstart) && ts_gt(playout, src->talkstart)) || src->post_talkstart_units > 100) &&
-                    hold_repair == 0) {
+                    (hold_repair == 0)) {
                         /* If repair was successful media_pos is moved,      */
                         /* so get data at media_pos again.                   */
                         if (source_repair(src, repair_type, src->next_played) == TRUE) {
@@ -1317,10 +1311,7 @@ source_process(session_t *sp,
                                           playout.ticks, 
                                           src->next_played.ticks, 
                                           src->talkstart.ticks);
-                                success = pb_iterator_get_at(src->media_pos, 
-                                                             (u_char**)&md, 
-                                                             &md_len, 
-                                                             &playout);
+                                success = pb_iterator_get_at(src->media_pos, (u_char**)&md, &md_len, &playout);
                                 assert(success);
                                 assert(ts_eq(playout, src->next_played));
                         } else {
@@ -1342,6 +1333,9 @@ source_process(session_t *sp,
                         break;
                 }
 
+                assert(md != NULL);
+                assert(md_len == sizeof(media_data));
+		assert(md->nrep < MAX_MEDIA_UNITS);
                 for(i = 0; i < md->nrep; i++) {
                         if (codec_is_native_coding(md->rep[i]->id)) {
                                 break;
@@ -1349,20 +1343,19 @@ source_process(session_t *sp,
                 }
 
                 if (i == md->nrep) {
-                        /* We need to decode this unit, may not have to
-                         * when repair has been used.
-                         */
+			/* If we've got to here, we have no native coding for this unit */
+                        /* We need to decode this unit, may not have to when repair has */
+			/* been used.                                                   */
 #ifdef DEBUG
                         for(i = 0; i < md->nrep; i++) {
-                                /* if there is a native coding this
-                                 * unit has already been decoded and
-                                 * this would be bug */
+                                /* If there is a native coding this unit has already */
+				/* been decoded and this would be a bug */
                                 assert(md->rep[i] != NULL);
                                 assert(codec_id_is_valid(md->rep[i]->id));
                                 assert(codec_is_native_coding(md->rep[i]->id) == FALSE);
                         }
-#endif /* DEBUG */
-                        cu = (coded_unit*)block_alloc(sizeof(coded_unit));
+#endif
+                        cu = (coded_unit*) block_alloc(sizeof(coded_unit));
                         /* Decode frame */
                         assert(cu != NULL);
                         memset(cu, 0, sizeof(coded_unit));
@@ -1371,12 +1364,20 @@ source_process(session_t *sp,
                         assert(md->rep[md->nrep] == NULL);
                         md->rep[md->nrep] = cu;
                         md->nrep++;
+		}
+		assert(md->nrep < MAX_MEDIA_UNITS);
+                for(i = 0; i < md->nrep; i++) {
+                        if (codec_is_native_coding(md->rep[i]->id)) {
+                                break;
+                        }
                 }
+		assert(i != md->nrep); /* Else we don't have a native coding yet, which would make no sense... */
+		assert(codec_is_native_coding(md->rep[i]->id));
 
                 if (render_3d && src->pdbe->render_3D_data) {
                         /* 3d rendering necessary */
                         coded_unit *decoded, *render;
-                        decoded = md->rep[md->nrep - 1];
+                        decoded = md->rep[i];
                         assert(codec_is_native_coding(decoded->id));
                         
                         render = (coded_unit*)block_alloc(sizeof(coded_unit));
@@ -1387,49 +1388,46 @@ source_process(session_t *sp,
                         md->rep[md->nrep] = render;
                         md->nrep++;
                 }
+		assert(md->nrep < MAX_MEDIA_UNITS);
 
                 if (src->converter) {
                         /* convert frame */
                         coded_unit *decoded, *render;
-                        decoded = md->rep[md->nrep - 1];
+                        decoded = md->rep[i];
                         assert(codec_is_native_coding(decoded->id));
 
-                        render = (coded_unit*)block_alloc(sizeof(coded_unit));
+                        render = (coded_unit*) block_alloc(sizeof(coded_unit));
                         memset(render, 0, sizeof(coded_unit));
-                        converter_process(src->converter,
-                                          decoded,
-                                          render);
+                        converter_process(src->converter, decoded, render);
                         assert(md->rep[md->nrep] == NULL);
                         md->rep[md->nrep] = render;
                         md->nrep++;
                 }
+		assert(md->nrep < MAX_MEDIA_UNITS);
 
-                if (src->skew != SOURCE_SKEW_NONE && 
-                    source_skew_adapt(src, md, playout) != SOURCE_SKEW_NONE) {
+                if (src->skew != SOURCE_SKEW_NONE && source_skew_adapt(src, md, playout) != SOURCE_SKEW_NONE) {
                         /* We have skew and we have adjusted playout buffer  */
                         /* timestamps, so re-get unit to get correct         */
                         /* timestamp info.                                   */
-                        pb_iterator_get_at(src->media_pos, 
-                                           (u_char**)&md, 
-                                           &md_len, 
-                                           &playout);
+                        pb_iterator_get_at(src->media_pos, (u_char**)&md, &md_len, &playout);
                         assert(md != NULL);
                         assert(md_len == sizeof(media_data));
                 }
 
-                if (src->pdbe->gain != 1.0 && codec_is_native_coding(md->rep[md->nrep - 1]->id)) {
-                        audio_scale_buffer((sample*)md->rep[md->nrep - 1]->data,
-                                           md->rep[md->nrep - 1]->data_len / sizeof(sample),
+                if (src->pdbe->gain != 1.0 && codec_is_native_coding(md->rep[i]->id)) {
+                        audio_scale_buffer((sample*)md->rep[i]->data,
+                                           md->rep[i]->data_len / sizeof(sample),
                                            src->pdbe->gain);
                 }
 
-                assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
-                codec_get_native_info(md->rep[md->nrep - 1]->id, &sample_rate, &channels);
-                step = ts_map32(sample_rate, md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample)));
-                src->next_played = ts_add(playout, step);
-                src->samples_played += md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample));
+                assert(codec_is_native_coding(md->rep[i]->id));
 
-                if (mix_process(ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
+                codec_get_native_info(md->rep[i]->id, &sample_rate, &channels);
+                step = ts_map32(sample_rate, md->rep[i]->data_len / (channels * sizeof(sample)));
+                src->next_played = ts_add(playout, step);
+                src->samples_played += md->rep[i]->data_len / (channels * sizeof(sample));
+
+                if (mix_process(ms, src->pdbe, md->rep[i], playout) == FALSE) {
                         /* Sources sampling rate changed mid-flow? dump data */
                         /* make source look irrelevant, it should get        */
                         /* destroyed and the recreated with proper decode    */
@@ -1441,12 +1439,8 @@ source_process(session_t *sp,
                         pb_flush(src->channel);
                 }
         }
-
         source_update_bps(src, start_ts);
-
-        UNUSED(i); /* Except for debugging */
-        
-        return TRUE;
+        return;
 }
 
 int

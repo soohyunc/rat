@@ -56,7 +56,7 @@ int              source_add_packet         (struct s_source *src,
 
 int              source_check_buffering    (struct s_source   *src);
 
-int              source_process            (struct s_session  *sp,
+void             source_process            (struct s_session  *sp,
                                             struct s_source   *src,
                                             struct s_mix_info *ms,
                                             int                render_3d,

@@ -1005,6 +1005,9 @@ v4.1.2  - Added echo suppression back, it fell out of code base at some point.
 v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Update RPM spec file
 	- Update installation instructions
+	- Fix "-t" option, to set the TTL. The v4.1.2 release would always
+	  send with TTL=15, making it useless for wide area.
+	- Fix assertion failures in source.c
 
 
 TODO -- They're features not bugs dammit!
