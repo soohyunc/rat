@@ -57,8 +57,8 @@ static void rx_mbus_waiting(char *srce, char *args)
 
 	mp = mbus_parse_init(args);
 	if (mbus_parse_str(mp, &s)) {
-		if (strcmp("rat-ui-requested", mbus_decode_str(s)) == 0 &&
-                    e_addr == NULL) {
+		if (strcmp("rat-ui-requested", mbus_decode_str(s)) == 0 && e_addr == NULL) {
+			/* FIXME: This assumes id:12345 is the last element in the mbus address */
                         char *c_id, *e_id;
                         /* srce is a candidate engine address */
                         c_id = strstr(c_addr, "id:");
