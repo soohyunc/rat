@@ -32,15 +32,15 @@ CORE_OBJS  = ts.o playout.o statistics.o source.o \
 
 MEDIALIBS = libuclaudio.a libuclcodec.a libuclsndfile.a
 
-OBJS = $(CC_OBJS) $(TOY_OBJS) $(CORE_OBJS)
+OBJS = $(CC_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS)
 
 SRCS := $(OBJS:%.o=%.c)
 
 TCL_OBJS = ui_audiotool.o ui_transcoder.o
 TCL_SRCS := $(TCL_OBJS:%.o=%.c)
 
-rat-__VERSION__: $(OBJS) $(TCL_OBJS) $(MEDIALIBS) ../common/libcommon.a 
-	$(CC) $(OBJS) libuclaudio.a libuclcodec.a libuclsndfile.a $(TCL_OBJS) $(CFLAGS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat-__VERSION__
+rat-__VERSION__: $(OBJS) $(TCL_OBJS) ../common/libcommon.a 
+	$(CC) $(OBJS) $(TCL_OBJS) $(CFLAGS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat-__VERSION__
 
 libuclaudio.a: $(AUDIO_OBJS)
 	$(AR) r $@ $(AUDIO_OBJS)
