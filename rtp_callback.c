@@ -29,6 +29,7 @@ static const char cvsid[] =
 #include "util.h"
 #include "ui_send_rtp.h"
 #include "rtp_callback.h"
+#include "rtp_dump.h"
 
 /* We need to be able to resolve the rtp session to a rat session in */
 /* order to get persistent participant information, etc.  We use a   */
@@ -185,10 +186,12 @@ process_rtp_data(session_t *sp, uint32_t ssrc, rtp_packet *p)
 }
 
 static void
-process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
+process_rr(session_t *sp, rtp_event *rtp_e)
 {
-        pdb_entry_t  *e;
-        uint32_t fract_lost, my_ssrc;
+        pdb_entry_t  	*e;
+        uint32_t 	 fract_lost, my_ssrc;
+	uint32_t	 ssrc = rtp_e->ssrc;
+	rtcp_rr		*r = (rtcp_rr *) rtp_e->data;
 
         /* Calculate rtt estimate */
         my_ssrc =  rtp_my_ssrc(sp->rtp_session[0]);
@@ -236,14 +239,8 @@ process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
 
 	/* Do we have to log anything? */
 	if ((r->ssrc == my_ssrc) && (sp->logger != NULL)) {
-		struct timeval t;
-		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "%ld.%06ld ", t.tv_sec, t.tv_usec);
-		fprintf(sp->logger, "rr 0x%08lx ", (unsigned long) r->ssrc);
-		fprintf(sp->logger, "loss %d ", fract_lost);
-		fprintf(sp->logger, "jitter %f ", r->jitter / 8000.0);
-		fprintf(sp->logger, "rtt %f ", e->avg_rtt);
-		fprintf(sp->logger, "\n");
+		rtpdump_header(sp->logger, "rtt       ", rtp_e);
+		fprintf(sp->logger, "%f\n", e->avg_rtt);
 	}
 }
         
@@ -312,36 +309,20 @@ process_create(session_t *sp, uint32_t ssrc)
 }
 
 static void
-process_bye(session_t *sp, uint32_t ssrc)
+process_delete(session_t *sp, rtp_event *e)
 {
-	if (sp->logger != NULL) {
-		struct timeval	t;
-		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "%ld.%06ld bye 0x%08lx\n", t.tv_sec, t.tv_usec, (unsigned long) ssrc);
-	}
-}
-
-static void
-process_delete(session_t *sp, uint32_t ssrc)
-{
-        if (ssrc != rtp_my_ssrc(sp->rtp_session[0]) &&
-            sp->mbus_engine != NULL) {
+        if (e->ssrc != rtp_my_ssrc(sp->rtp_session[0]) && sp->mbus_engine != NULL) {
                 struct s_source *s;
-                pdb_entry_t     *e;
-                if ((s = source_get_by_ssrc(sp->active_sources, ssrc)) != NULL) {
+                pdb_entry_t     *pdbe;
+                if ((s = source_get_by_ssrc(sp->active_sources, e->ssrc)) != NULL) {
                         source_remove(sp->active_sources, s);
                 }
-                if (pdb_item_get(sp->pdb, ssrc, &e)) {
-                        pdb_item_destroy(sp->pdb, ssrc);
+                if (pdb_item_get(sp->pdb, e->ssrc, &pdbe)) {
+                        pdb_item_destroy(sp->pdb, e->ssrc);
                         /* Will not be in ui if not in pdb */
-                        ui_send_rtp_remove(sp, sp->mbus_ui_addr, ssrc);
+                        ui_send_rtp_remove(sp, sp->mbus_ui_addr, e->ssrc);
                 }
         }
-	if (sp->logger != NULL) {
-		struct timeval	t;
-		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "%ld.%06ld source_deleted 0x%08lx\n", t.tv_sec, t.tv_usec, (unsigned long) ssrc);
-	}
 }
 
 void 
@@ -360,6 +341,10 @@ rtp_callback(struct rtp *s, rtp_event *e)
                 return;
         }
 
+	if (sp->logger != NULL) {
+		rtpdump_callback(sp->logger, e);
+	}
+
 	switch (e->type) {
 	case RX_RTP:
                 process_rtp_data(sp, e->ssrc, (rtp_packet*)e->data);
@@ -371,7 +356,7 @@ rtp_callback(struct rtp *s, rtp_event *e)
 	case RX_SR:
 		break;
 	case RX_RR:
-                process_rr(sp, e->ssrc, (rtcp_rr*)e->data);
+                process_rr(sp, e);
 		break;
 	case RX_RR_EMPTY:
 		break;
@@ -382,10 +367,8 @@ rtp_callback(struct rtp *s, rtp_event *e)
                 debug_msg("Received and ignored application specific report from %08x\n", e->ssrc);
                 break;
 	case RX_BYE:
-		process_bye(sp, e->ssrc);
-		break;
 	case SOURCE_DELETED:
-                process_delete(sp, e->ssrc);
+                process_delete(sp, e);
 		break;
 	case SOURCE_CREATED:
 		process_create(sp, e->ssrc);

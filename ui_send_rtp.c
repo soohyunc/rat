@@ -40,14 +40,7 @@ static void ui_info_update_sdes(session_t *sp, char *addr, char *item, const cha
 
 void ui_send_rtp_cname(session_t *sp, char *addr, uint32_t ssrc)
 {
-	const char	*cname = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_CNAME);
-
-	if (sp->logger != NULL) {
-		struct timeval	t;
-		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "%ld.%06ld cname \"%s\"\n", t.tv_sec, t.tv_usec, cname);
-	}
-	ui_info_update_sdes(sp, addr, "rtp.source.cname", cname, ssrc);
+	ui_info_update_sdes(sp, addr, "rtp.source.cname", rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_CNAME), ssrc);
 }
 
 void ui_send_rtp_name(session_t *sp, char *addr, uint32_t ssrc)

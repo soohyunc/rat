@@ -47,6 +47,8 @@ static const char cvsid[] =
 #include "ui_send_prefs.h"
 #include "version.h"
 
+#define SECS_BETWEEN_1900_1970 2208988800u
+
 extern int 	 should_exit;
 extern FILE 	*stats_file;
 
@@ -603,10 +605,8 @@ static void rx_tool_rat_logstats(char *srce, char *args, session_t *sp)
 			cname = rtp_get_sdes(sp->rtp_session[0], rtp_my_ssrc(sp->rtp_session[0]), RTCP_SDES_CNAME);
 
 			sp->logger = fopen(fname, "w");
-			fprintf(sp->logger, "%ld.%06ld start ", t.tv_sec, t.tv_usec);
-			fprintf(sp->logger, "%s ", RAT_VERSION);
-			fprintf(sp->logger, "0x%08lx ", (unsigned long) rtp_my_ssrc(sp->rtp_session[0]));
-			fprintf(sp->logger, "\"%s\"\n", cname);
+			fprintf(sp->logger, "tool_start %lu.%06lu ", t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec);
+			fprintf(sp->logger, "0x%08lx\n", (unsigned long) rtp_my_ssrc(sp->rtp_session[0]));
 		} else {
 			fclose(sp->logger);
 		}

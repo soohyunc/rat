@@ -59,7 +59,7 @@ MEDIA_OBJS   = ts.o playout.o net.o source.o session.o \
                main_engine.o mbus_engine.o audio.o cushion.o mix.o \
                parameters.o transmit.o playout_calc.o \
                ui_send_rtp.o ui_send_audio.o ui_send_prefs.o ui_send_stats.o \
-	       transcoder.o rtp_callback.o settings.o \
+	       transcoder.o rtp_dump.o rtp_callback.o settings.o \
                pdb.o pktbuf.o tonegen.o voxlet.o fatal_error.o $(EXTRA_OBJ)
 
 UI_OBJS      = tcltk.o mbus_ui.o main_ui.o fatal_error.o

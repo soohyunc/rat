@@ -29,8 +29,11 @@ static const char cvsid[] =
 #include "repair.h"
 #include "render_3D.h"
 #include "pdb.h"
+#include "rtp.h"
 #include "util.h"
 #include "ui_send_audio.h"
+
+#define SECS_BETWEEN_1900_1970 2208988800u
 
 void
 ui_send_audio_input_port(session_t *sp, char *addr)
@@ -276,7 +279,8 @@ ui_send_audio_suppress_silence(session_t *sp, char *addr)
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "%ld.%06ld silence_suppression %s\n", t.tv_sec, t.tv_usec, name);
+		fprintf(sp->logger, "silence    %lu.%06lu 0x%08lx %s\n", t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec, 
+		        (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), name);
 	}
 }
 
@@ -367,7 +371,9 @@ ui_update_redundancy(session_t *sp, char *addr)
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "%ld.%06ld channel_coding redundancy %s\n", t.tv_sec, t.tv_usec, scf->long_name);
+		fprintf(sp->logger, "channel    %lu.%06lu 0x%08lx redundancy %s\n", 
+		        t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec, 
+		        (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), scf->long_name);
 	}
 
         out = (char*)xmalloc(clen);
@@ -447,7 +453,8 @@ ui_send_audio_channel_coding(session_t *sp, char *addr)
 		if (sp->logger != NULL) {
 			struct timeval	t;
 			gettimeofday(&t, NULL);
-			fprintf(sp->logger, "%ld.%06ld channel_coding none\n", t.tv_sec, t.tv_usec);
+			fprintf(sp->logger, "channel    %lu.%06lu 0x%08lx none\n", 
+				t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0]));
 		}
                 break;
         case 'r':
@@ -478,7 +485,9 @@ ui_send_audio_codec(session_t *sp, char *addr)
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "%ld.%06ld codec %s\n", t.tv_sec, t.tv_usec, pri_cf->long_name);
+		fprintf(sp->logger, "codec      %lu.%06lu 0x%08lx %s\n", 
+			t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), 
+			pri_cf->long_name);
 	}
 }
 
