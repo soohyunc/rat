@@ -14,6 +14,8 @@
 #include "mbus_ui.h"
 #include "tcltk.h"
 
+/*************************************************************************************************/
+
 static char *wait_token = NULL;
 static int   wait_done  = FALSE;
 
@@ -51,8 +53,55 @@ void mbus_ui_wait_handler(char *srce, char *cmnd, char *args, void *data)
 	}
 }
 
+/*************************************************************************************************/
+
 extern char 	*e_addr;
 extern int	 ui_active;
+
+static void rx_tool_rat_addr_engine(char *srce, char *args, struct mbus *m)
+{
+	char	*addr;
+
+	UNUSED(srce);
+
+	mbus_parse_init(m, args);
+	if (mbus_parse_str(m, &addr)) {
+		e_addr = xstrdup(mbus_decode_str(addr));
+	} else {
+		debug_msg("mbus: usage \"tool.rat.addr.engine <addr>\"\n");
+	}
+	mbus_parse_done(m);
+}
+
+static void rx_mbus_hello(char *srce, char *args, struct mbus *m)
+{
+	UNUSED(srce);
+	UNUSED(args);
+	UNUSED(m);
+}
+
+static void rx_mbus_waiting(char *srce, char *args, struct mbus *m)
+{
+	UNUSED(srce);
+	UNUSED(args);
+	UNUSED(m);
+}
+
+/* Note: These next two arrays MUST be in the same order! */
+
+const char *rx_cmnd[] = {
+	"tool.rat.addr.engine",
+	"mbus.hello",
+	"mbus.waiting",
+	""
+};
+
+static void (*rx_func[])(char *srce, char *args, struct mbus *m) = {
+	rx_tool_rat_addr_engine,
+	rx_mbus_hello,
+	rx_mbus_waiting,
+        NULL
+};
 
 void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 {
@@ -60,30 +109,24 @@ void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 	unsigned int 	 i;
 	struct mbus	*m = (struct mbus *) data;
 
-	UNUSED(srce);
-
-	if (strcmp(cmnd, "tool.rat.addr.engine") == 0) {
-		char	*addr;
-
-		mbus_parse_init(m, args);
-		if (mbus_parse_str(m, &addr)) {
-			e_addr = xstrdup(mbus_decode_str(addr));
-		} else {
-			debug_msg("mbus: usage \"tool.rat.addr.ui <addr>\"\n");
+	/* Some commands are handled in C for now... */
+	for (i=0; strlen(rx_cmnd[i]) != 0; i++) {
+		if (strcmp(rx_cmnd[i], cmnd) == 0) {
+                        rx_func[i](srce, args, m);
+			return;
+		} 
+	}
+	/* ...and some are in Tcl... */
+	if (ui_active) {
+		/* Pass it to the Tcl code to deal with... */
+		sprintf(command, "mbus_recv %s %s", cmnd, args);
+		for (i = 0; i < (unsigned)strlen(command); i++) {
+			if (command[i] == '[') command[i] = '(';
+			if (command[i] == ']') command[i] = ')';
 		}
-		mbus_parse_done(m);
+		tcl_send(command);
 	} else {
-		if (ui_active) {
-			/* Pass it to the Tcl code to deal with... */
-			sprintf(command, "mbus_recv %s %s", cmnd, args);
-			for (i = 0; i < (unsigned)strlen(command); i++) {
-				if (command[i] == '[') command[i] = '(';
-				if (command[i] == ']') command[i] = ')';
-			}
-			tcl_send(command);
-		} else {
-			debug_msg("Got early mbus command %s (%s)\n", cmnd, args);
-		}
+		debug_msg("Got early mbus command %s (%s)\n", cmnd, args);
 	}
 }
 
