@@ -27,6 +27,7 @@
 #include "version.h"
 #include "net_udp.h"
 #include "net.h"
+#include "pdb.h"
 #include "source.h"
 #include "ts.h"
 #include "converter.h"

@@ -15,7 +15,7 @@
 
 #include "ts.h"
 #include "playout.h"
-
+#include "pdb.h"
 #include "channel.h"
 #include "channel_types.h"
 #include "codec_types.h"
@@ -62,8 +62,7 @@ typedef struct s_source {
         u_int16                     consec_lost;
         u_int32                     mean_energy;
         ts_sequencer                seq;
-        struct s_rtcp_dbentry      *dbe;  /* rtcp database entry (being faded 
-                                           * out) */
+        struct s_rtcp_dbentry      *dbe;  /* rtcp database entry (being faded out) */
         pitem_t                    *pdbe; /* persistent database entry */
         struct s_channel_state     *channel_state;
         struct s_codec_state_store *codec_states;
@@ -71,9 +70,9 @@ typedef struct s_source {
         struct s_pb                *media;
         struct s_pb_iterator       *media_pos;
         struct s_converter         *converter;
-        skew_t skew;
-        ts_t   skew_adjust;
-        int32  skew_offenses;
+        skew_t 			    skew;
+        ts_t   			    skew_adjust;
+        int32  			    skew_offenses;
 } source;
 
 /* A linked list is used for sources and this is fine since we mostly
@@ -162,6 +161,7 @@ source_get_by_rtcp_dbentry(source_list *plist, struct s_rtcp_dbentry *dbe)
 source*
 source_create(source_list    *plist, 
               rtcp_dbentry   *dbe,
+	      pdb_t	     *pdb,
               converter_id_t  conv_id,
               int             render_3D_enabled,
               u_int16         out_rate,
@@ -179,6 +179,7 @@ source_create(source_list    *plist,
         if (psrc == NULL) return NULL;
 
         memset(psrc, 0, sizeof(source));
+	pdb_item_get(pdb, dbe->ssrc, &(psrc->pdbe));
         psrc->dbe            = dbe;
         psrc->dbe->first_mix = 1; /* Used to note we have not mixed anything
                                    * for this decode path yet */

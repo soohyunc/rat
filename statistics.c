@@ -492,7 +492,6 @@ statistics_process(session_struct          *sp,
                         debug_msg("Packet to muted participant discarded\n");
                         goto release;
                 }
-
                 rtcp_update_seq(sender, hdr->seq);
 
                 if (hdr->cc) {
@@ -522,10 +521,11 @@ statistics_process(session_struct          *sp,
 			ui_info_activate(sp, pckt->sender);
                         src = source_create(sp->active_sources, 
                                             pckt->sender,
+					    sp->pdb,
                                             sp->converter,
                                             sp->render_3d,
                                             (u_int16)afout->sample_rate,
-                                            (u_int16)afout->channels);
+                                            (u_int16)afout->channels); 
                         assert(src != NULL);
                 }
 
