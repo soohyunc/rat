@@ -538,7 +538,7 @@ playout_buffer_find_or_create(session_struct *sp, ppb_t **list, rtcp_dbentry *sr
 }
 
 u_int32
-playout_buffer_duration (ppb_t *list, rtcp_dbentry *src)
+playout_buffer_duration_ms (ppb_t *list, rtcp_dbentry *src)
 {
         ppb_t *p;
 
@@ -570,14 +570,14 @@ playout_buffer_duration (ppb_t *list, rtcp_dbentry *src)
 }
 
 u_int32
-playout_buffer_delay(ppb_t *list, rtcp_dbentry *src)
+playout_buffer_delay_ms(ppb_t *list, rtcp_dbentry *src)
 {
         ppb_t *p;
-        
+        u_int32 delay;
         if ((p = playout_buffer_find(list, src)) != NULL) {
-                return (src->playout - src->delay_in_playout_calc) * 1000 / get_freq(p->src->clock);
+                delay = (src->playout - src->delay_in_playout_calc - src->skew_adjust) * 1000 / get_freq(p->src->clock);
         }
-        return 0;
+        return delay;
 }
 
 void
@@ -708,12 +708,6 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
                         memcpy(&last_foo, &foo, sizeof(struct timeval));
                 }
 #endif /* DEBUG_PLAYOUT_BROKEN */
-                if ((buf->tail_ptr->playoutpt - cur_time) < 3*cs/4) {
-                        debug_msg("Less audio buffered (%ld) than cushion safety (%ld)!\n", 
-                                  buf->tail_ptr->playoutpt - cur_time,
-                                  3 * cs / 4);
-                        buf->src->playout_danger = TRUE;
-                }
 
 #ifdef DEBUG_PLAYOUT
                                 verify_playout_buffer(buf);
@@ -747,7 +741,7 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
                                         } else {
                                                 assert(up->comp_data[0].data == NULL);
                                                 debug_msg("No data for block, buf len %ld, cushion size %ld\n", 
-                                                          playout_buffer_duration(buf, buf->src), 
+                                                          playout_buffer_duration_ms(buf, buf->src), 
                                                           cs);
                                         }
                                 }

@@ -85,7 +85,6 @@ typedef struct s_rtcp_dbentry {
 	u_int32         duplicates;
 	u_int32         jit_TOGed;		/* TOGed = Thrown on the Ground */
 	u_char		cont_toged;		/* Toged in a row */
-        u_char          playout_danger;         /* not enough audio in playout buffer */
         int             inter_pkt_gap;          /* expected time between pkt arrivals */
         struct s_cc_state       *cc_state_list;
 	struct s_codec_state_store *state_store;
@@ -102,8 +101,9 @@ typedef struct s_rtcp_dbentry {
         u_char          video_playout_received; /* video playout is relevent */
 	int		sync_playout_delay;	/* same interpretation as delay, used when sync is on [dm] */
 	u_int32         playout;		/* Playout delay for this talkspurt */
-	int             delay;			/* Current delay for this participant (varies per packet) */
-        int             delay_in_playout_calc;  /* Delay used for last playout point calculation */
+	u_int32         delay;			/* Current delay for this participant (varies per packet) */
+        u_int32         delay_in_playout_calc;  /* Delay used for last playout point calculation */
+        int32           skew_adjust;
 	u_int32         last_ts;		/* Last packet timestamp */
 	u_int16         last_seq;		/* Last packet sequence number */
 	u_char          first_pckt_flag;

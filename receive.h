@@ -94,9 +94,9 @@ void  playout_buffers_process(struct session_tag *sp,
 		              struct s_mix_info *ms);
 void  playout_buffers_destroy(struct session_tag *sp,
                               struct s_participant_playout_buffer **buf_list);
-u_int32 playout_buffer_duration(struct s_participant_playout_buffer *buf_list, 
+u_int32 playout_buffer_duration_ms(struct s_participant_playout_buffer *buf_list, 
                               struct s_rtcp_dbentry *src);
-u_int32 playout_buffer_delay (struct s_participant_playout_buffer *buf_list, 
+u_int32 playout_buffer_delay_ms (struct s_participant_playout_buffer *buf_list, 
                               struct s_rtcp_dbentry *src);
 void  decode_unit(rx_queue_element_struct *ru);
 

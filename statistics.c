@@ -45,6 +45,8 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
+#include "codec_types.h"
+#include "codec.h"
 #include "debug.h"
 #include "memory.h"
 #include "util.h"
@@ -248,13 +250,13 @@ adapt_playout(rtp_hdr_t *hdr,
 		if ((hdr->m) || 
                     src->cont_toged || 
                     ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * src->inter_pkt_gap * 8 + 1)) ||
-                    playout_buffer_duration(sp->playout_buf_list, src) == 0) {
+                    playout_buffer_duration_ms(sp->playout_buf_list, src) == 0) {
 #ifdef DEBUG
                         if (hdr->m) {
                                 debug_msg("New talkspurt\n");
                         } else if (src->cont_toged) {
                                 debug_msg("Cont_toged\n");
-                        } else if (playout_buffer_duration(sp->playout_buf_list, src) == 0) {
+                        } else if (playout_buffer_duration_ms(sp->playout_buf_list, src) == 0) {
                                 debug_msg("playout buffer empty\n");
                         } else {
                                 debug_msg("Time stamp jump %ld %ld\n", hdr->ts, src->last_ts);
@@ -269,11 +271,8 @@ adapt_playout(rtp_hdr_t *hdr,
                                 var = src->inter_pkt_gap;
                         }
 
-                        if (src->playout_danger) {
-                                var = max(var, 2 * cushion_get_size(cushion));
-                        } else {
-                                var = max(var, 3 * cushion_get_size(cushion) / 2);
-                        }
+                        var = max(var, 3 * cushion_get_size(cushion) / 2);
+
                         debug_msg("Cushion %d\n", cushion_get_size(cushion));
                         minv = sp->min_playout * get_freq(src->clock) / 1000;
                         maxv = sp->max_playout * get_freq(src->clock) / 1000; 
@@ -292,7 +291,7 @@ adapt_playout(rtp_hdr_t *hdr,
 
                         src->delay_in_playout_calc = src->delay;
                         
-                        if (playout_buffer_duration(sp->playout_buf_list , src) != 0) {
+                        if (playout_buffer_duration_ms(sp->playout_buf_list , src) != 0) {
                                 /* If playout buffer is not empty
                                  * or, difference in time stamps is less than 1 sec,
                                  * we don't want playout point to be before that of existing data.
@@ -322,42 +321,43 @@ adapt_playout(rtp_hdr_t *hdr,
                                         src->sync_playout_delay = src->video_playout;
                                 }
 			}
-		} else {
-                        /* check whether to increase or decrease amount of audio buffered */
-                        u_int32 cs, step, bufdur;
-                        int     src_freq;
+                        src->skew_adjust = 0;
+                } else {
+                        /* No reason to adapt playout unless too little or too much audio buffered in comparison to
+                         * to amount of audio in a packet. */
+                        codec_id_t id;
+                        u_int32 buffered, audio_per_pckt, adjust, samples_per_frame, cs;
+                        static u_int32 last_adjust;
 
-                        cs       = cushion_get_size(cushion);
-                        step     = cushion_get_step(cushion);
-                        src_freq = get_freq(src->clock);
-                        bufdur   = playout_buffer_duration(sp->playout_buf_list , src) * src_freq / 1000;
-                     
-                        if (src->playout_danger) {
-                                /* For the time being if the buffer is going dry we make
-                                 * one large adjustment.  We should stagger this change
-                                 * across multiple packets.  Unfortunately there is no
-                                 * mechanism in the mixer to cover short adjustments for
-                                 * the time being.
-                                 */
-                                if (cs > bufdur) {
-                                        debug_msg("Playout danger %u samples short - corrected\n", cs - bufdur);
-                                        src->playout += cs - bufdur + 2 * step;
+                        id = codec_get_by_payload(src->enc);
+                        if (id) {
+                                samples_per_frame = codec_get_samples_per_frame(id);
+                        } else {
+                                samples_per_frame = 160;
+                        }
+
+                        audio_per_pckt    = src->units_per_packet * samples_per_frame;
+
+                        buffered = playout_buffer_duration_ms(sp->playout_buf_list, src) * 8;
+                        cs = cushion_get_size(cushion);
+                        if (ts_gt(get_time(sp->device_clock), last_adjust + 4000)) {
+                                if (buffered < cs + audio_per_pckt) {
+                                        adjust            = samples_per_frame * src->units_per_packet;
+                                        src->playout     += adjust;
+                                        src->skew_adjust += adjust;
+                                        debug_msg("*** shifted %d +samples, previous time %08u\n", adjust, get_time(sp->device_clock) - last_adjust);
+                                        last_adjust = get_time(sp->device_clock);
+                                } else if (buffered > cs + 3 * audio_per_pckt) {
+                                        adjust            = samples_per_frame / 2;
+                                        src->playout     -= samples_per_frame;
+                                        src->skew_adjust -= adjust;
+                                        debug_msg("*** shifted %d -samples, previous time %08u\n", adjust, get_time(sp->device_clock) - last_adjust);
+                                        last_adjust = get_time(sp->device_clock);
                                 }
-                                src->playout_danger = FALSE;
-                        } /*else {
-                                int offset = src->playout - src->delay_in_playout_calc;
-                                if (bufdur > cs && (bufdur - cs) > (unsigned)offset + 2u * step) {
-                                        debug_msg("offset %d bufdur %d\n", offset, bufdur);
-                                         * We are probably here because delay changed, or src clock
-                                         * is quicker than ours. Shift by 2 ms only and hope it is not
-                                         * noticeable.
-                                         *
-                                        src->playout -= 2 * src_freq / 1000;
-                                } 
-                        } */
-                } 
+                                
+                        }
+                }
         }
-
         src->last_ts        = hdr->ts;
         src->last_seq       = hdr->seq;
 
