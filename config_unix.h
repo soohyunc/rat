@@ -110,6 +110,12 @@ typedef int	fd_t;
 #define max(a, b)	(((a) > (b))? (a): (b))
 #define min(a, b)	(((a) < (b))? (a): (b))
 
+#ifdef __NetBSD__
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/audioio.h>
+#endif
+
 #ifdef FreeBSD
 #include <unistd.h>
 #include <stdlib.h>
@@ -215,7 +221,6 @@ int gethostname(char *hostname, size_t size);
 #endif
 
 #ifdef Linux
-#define NEED_INET_PTON
 #define DIFF_BYTE_ORDER  1
 #define AUDIO_SPEAKER    0
 #define AUDIO_HEADPHONE  1
