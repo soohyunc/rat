@@ -60,11 +60,11 @@ MEDIA_OBJS   = ts.o playout.o net.o source.o session.o \
                parameters.o transmit.o playout_calc.o \
                ui_send_rtp.o ui_send_audio.o ui_send_prefs.o ui_send_stats.o \
 	       transcoder.o rtp_callback.o settings.o \
-               pdb.o pktbuf.o tonegen.o voxlet.o $(EXTRA_OBJ)
+               pdb.o pktbuf.o tonegen.o voxlet.o fatal_error.o $(EXTRA_OBJ)
 
-UI_OBJS      = tcltk.o mbus_ui.o main_ui.o
+UI_OBJS      = tcltk.o mbus_ui.o main_ui.o fatal_error.o
 
-CTRL_OBJS    = main_control.o mbus_control.o codec_compat.o
+CTRL_OBJS    = main_control.o mbus_control.o codec_compat.o fatal_error.o
 
 TCL_OBJS     = ui_audiotool.o ui_transcoder.o 
 

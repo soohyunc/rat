@@ -36,8 +36,6 @@ static const char cvsid[] =
 #include "source.h"
 #include "mix.h"
 #include "sndfile.h"
-#include "mbus.h"
-#include "mbus_parser.h"
 #include "mbus_ui.h"
 #include "mbus_engine.h"
 #include "crypt_random.h"
@@ -47,11 +45,17 @@ static const char cvsid[] =
 #include "rtp_callback.h"
 #include "tonegen.h"
 #include "voxlet.h"
+#include "fatal_error.h"
 
-int 	 should_exit = FALSE, mbus_shutdown_error = FALSE;
-char	*c_addr, *token, *token_e; /* These should be parameters of the session? */
+#include "mbus_parser.h"
+#include "mbus.h"
+#include "util.h"
 
-pid_t    ppid;
+const char* appname;
+char*       c_addr, *token, *token_e; /* Could be in the session struct */
+int         should_exit = FALSE, mbus_shutdown_error = FALSE;
+
+pid_t ppid;
 
 #ifndef WIN32
 static void
@@ -101,6 +105,9 @@ mbus_error_handler(int seqnum, int reason)
 {
         debug_msg("mbus message failed (%d:%d)\n", seqnum, reason);
         if (should_exit == FALSE) {
+                char msg[64];
+                sprintf(msg, "MBUS message failed (%d:%d)\n", seqnum, reason);
+                fatal_error(appname, msg);
                 abort();
         } 
 	mbus_shutdown_error = TRUE;
@@ -117,6 +124,8 @@ int main(int argc, char *argv[])
 	struct timeval   time;
 	struct timeval	 timeout;
         uint8_t		 j;
+
+        appname = get_appname(argv[0]);
 
 #ifdef WIN32
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
@@ -146,6 +155,10 @@ int main(int argc, char *argv[])
 	sp->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 10);
 	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, (unsigned long) ppid);
 	sp->mbus_engine      = mbus_init(mbus_engine_rx, mbus_error_handler, sp->mbus_engine_addr);
+        if (sp->mbus_engine == NULL) {
+                fatal_error(appname, "Could not initialize MBUS:\nIs multicast enabled?");
+                return FALSE;
+        }
 
 	/* Next, we signal to the controller that we are ready to go. It should be sending  */
 	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */

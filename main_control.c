@@ -22,24 +22,28 @@ static const char cvsid[] =
 #include "mbus_control.h"
 #include "crypt_random.h"
 #include "codec_compat.h"
+#include "fatal_error.h"
 
 #include "mbus.h"
 #include "mbus_parser.h"
 #include "net_udp.h"
+#include "util.h"
 
 #ifdef WIN32
-#define UI_NAME     "ratui.exe"
-#define ENGINE_NAME "ratmedia.exe"
+#define UI_NAME      "ratui.exe"
+#define ENGINE_NAME  "ratmedia.exe"
+#define CONTROL_NAME "rat.exe"
 #else
-#define UI_NAME     "rat-"##RAT_VERSION##"-ui"
-#define ENGINE_NAME "rat-"##RAT_VERSION##"-media"
+#define UI_NAME      "rat-"##RAT_VERSION##"-ui"
+#define ENGINE_NAME  "rat-"##RAT_VERSION##"-media"
 #endif
 
 #define DEFAULT_RTP_PORT 5004
 
-char	*u_addr, *e_addr;
-pid_t	 pid_ui, pid_engine;
-int	 should_exit;
+const char *appname;
+char       *u_addr, *e_addr;
+pid_t       pid_ui, pid_engine;
+int         should_exit;
 
 static int ttl = 15;
 
@@ -69,17 +73,6 @@ usage(char *szOffending)
 	}
 #endif
 }
-
-static void
-fatal_error(const char *msg)
-{
-#ifdef WIN32
-        MessageBox(NULL, msg, "RAT Fatal Error", MB_ICONERROR | MB_OK);
-#else
-        fprintf(stderr, "%s\n", msg);
-#endif
-}
-
 
 #ifdef NEED_SNPRINTF
 static int snprintf(char *s, int buf_size, const char *format, ...)
@@ -592,9 +585,9 @@ static void mbus_err_handler(int seqnum, int reason)
         /* interface processes and exit.                                     */
         
         if (should_exit == FALSE) {
-                char errmsg[64];
-                sprintf(errmsg, "Could not send mbus message (%d:%d)\n", seqnum, reason);
-                fatal_error(errmsg);
+                char msg[64];
+                sprintf(msg, "Could not send mbus message (%d:%d)\n", seqnum, reason);
+                fatal_error(appname, msg);
                 kill_process(pid_ui);
                 kill_process(pid_engine);
                 abort();
@@ -757,6 +750,8 @@ int main(int argc, char *argv[])
         char		 c_addr[60], token_ui[20], token_engine[20];
         int		 seed = (gethostid() << 8) | (getpid() & 0xff), final_iters;
         struct timeval	 timeout;
+
+        appname = get_appname(argv[0]);
         
 #ifdef WIN32
         win32_create_null_window(); /* Needed to listen to messages */
@@ -773,7 +768,7 @@ int main(int argc, char *argv[])
         snprintf(c_addr, 60, "(media:audio module:control app:rat id:%lu)", (unsigned long) getpid());
         m = mbus_init(mbus_control_rx, mbus_err_handler, c_addr);
         if (m == NULL) {
-                fatal_error("MBUS could not be initialized:\nIs multicast enabled?");
+                fatal_error(appname, "MBUS could not be initialized:\nIs multicast enabled?");
                 return FALSE;
         }
         

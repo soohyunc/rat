@@ -12,26 +12,30 @@ static const char cvsid[] =
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
+#include "tcl.h"
+#include "tk.h"
+
 #include "config_unix.h"
 #include "config_win32.h"
 #include "debug.h"
+#include "fatal_error.h"
 #include "mbus.h"
-#include "mbus_parser.h"
 #include "mbus_ui.h"
-#include "tcl.h"
-#include "tk.h"
+#include "mbus_parser.h"
 #include "tcltk.h"
+#include "util.h"
 
-char	*e_addr = NULL; /* Engine address */
-char	*c_addr = NULL; /* Controller address */
-char	 m_addr[100];
-char	*c_addr, *token, *token_e; 
-pid_t    ppid;
+const char* appname;      /* Application name */
+char*       e_addr = NULL; /* Engine address */
+char*       c_addr = NULL; /* Controller address */
+char        m_addr[100];
+char*       c_addr, *token, *token_e; 
+pid_t       ppid;
 
-int	 ui_active   = FALSE;
-int	 should_exit = FALSE;
-int	 got_detach  = FALSE;
-int	 got_quit    = FALSE;
+int ui_active   = FALSE;
+int should_exit = FALSE;
+int got_detach  = FALSE;
+int got_quit    = FALSE;
 static int mbus_shutdown_error = FALSE;
 
 static void parse_args(int argc, char *argv[])
@@ -89,6 +93,8 @@ int main(int argc, char *argv[])
 	struct mbus	*m;
 	struct timeval	 timeout;
 
+        appname = get_appname(argv[0]);
+
 #ifdef WIN32
         HANDLE     hWakeUpEvent;
         TkWinXInit(hAppInstance);
@@ -103,6 +109,10 @@ int main(int argc, char *argv[])
 
 	sprintf(m_addr, "(media:audio module:ui app:rat id:%lu)", (unsigned long) ppid);
 	m = mbus_init(mbus_ui_rx, mbus_error_handler, m_addr);
+        if (m == NULL) {
+                fatal_error(appname, "Could not initialize MBUS:\nIs multicast enabled?");
+                return FALSE;
+        }
 
 	/* Next, we signal to the controller that we are ready to go. It should be sending  */
 	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */
