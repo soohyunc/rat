@@ -44,6 +44,7 @@
 #include "mbus_ui.h"
 #include "mbus.h"
 #include "ui.h"
+#include "net_udp.h"
 #include "net.h"
 #include "util.h"
 #include "transmit.h"

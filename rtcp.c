@@ -83,7 +83,7 @@ service_rtcp(session_struct    *sp,
 		}
 		free_pckt_queue_element(&pckt);
 	}
-	rtcp_update(sp, sp->rtcp_fd, sp->net_maddress, (u_int16)sp->rtcp_port);
+	rtcp_update(sp, sp->rtcp_socket);
 }
 
 char *get_cname(void)

@@ -99,12 +99,11 @@ init_session(session_struct *sp)
 	sp->mode         		= AUDIO_TOOL;	
         sp->input_mode                  = AUDIO_NO_DEVICE;
         sp->output_mode                 = AUDIO_NO_DEVICE;
-	sp->net_maddress		= 0;		/* Same as above, can be used in a sendto */
 	sp->rtp_port			= 5004;		/* default: draft-ietf-avt-profile-new-00 */
 	sp->rtcp_port			= 5005;		/* default: draft-ietf-avt-profile-new-00 */
 	sp->ttl				= 16;
-	sp->rtp_fd			= -1;
-	sp->rtcp_fd			= -1;
+	sp->rtp_socket			= NULL;
+	sp->rtcp_socket			= NULL;
         sp->filter_loopback             = TRUE;
 	sp->sending_audio		= FALSE;
 	sp->playing_audio		= TRUE;

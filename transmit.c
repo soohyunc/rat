@@ -489,7 +489,7 @@ tx_send(session_struct *sp)
                         sp->last_tx_service_productive = 1;
                                 
                         if (sp->drop == 0.0 || drand48() >= sp->drop) {
-                                net_write_iov(sp->rtp_fd, sp->net_maddress, sp->rtp_port, ovec, ovec_elem, PACKET_RTP);
+                                net_write_iov(sp->rtp_socket, ovec, ovec_elem, PACKET_RTP);
                         }
                 }
                 

@@ -43,6 +43,8 @@
 #ifndef _session_h_
 #define _session_h_
 
+#include "net_udp.h"
+
 #define MAX_ENCODINGS	7
 #define MAX_NATIVE      4
 
@@ -82,13 +84,12 @@ typedef struct session_tag {
         char            title[SESSION_TITLE_LEN+1];
 	char            asc_address[MAXHOSTNAMELEN+1];  /* their ascii name if unicast */
 	char            maddress[16];
-	u_long          net_maddress;			/* Same as above, can be used in a sendto */
 	u_short		rtp_port;
 	u_short		rtcp_port;
         int             filter_loopback;
 	int             ttl;
-	fd_t            rtp_fd;
-	fd_t            rtcp_fd;
+	socket_udp      *rtp_socket;
+	socket_udp      *rtcp_socket;
         u_long          ipaddr;
 	struct s_fast_time	*clock;
 	struct s_time		*device_clock;

@@ -40,6 +40,7 @@
 #include "config_win32.h"
 #include "assert.h"
 #include "util.h"
+#include "net_udp.h"
 #include "net.h"
 #include "mbus.h"
 

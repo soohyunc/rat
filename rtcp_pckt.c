@@ -53,12 +53,13 @@
 #include "config_win32.h"
 #include "assert.h"
 #include "version.h"
+#include "net_udp.h"
+#include "net.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "session.h"
 #include "ui.h"
 #include "util.h"
-#include "net.h"
 #include "transmit.h"
 #include "timers.h"
 
@@ -432,7 +433,7 @@ rtcp_forward(rtcp_t *pckt, session_struct *sp1, session_struct *sp2)
 	memcpy(ptr, pckt, (ntohs(pckt->common.length)+1)*4);
 	ptr += (ntohs(pckt->common.length)+1)*4;
 	packlen = ptr - (u_int8 *) packet;
-	net_write(sp1->rtcp_fd, sp1->net_maddress, sp1->rtcp_port, (u_int8 *)packet, packlen, PACKET_RTCP);
+	net_write(sp1->rtcp_socket, (u_int8 *)packet, packlen, PACKET_RTCP);
 	sp2->db->last_rpt = now;
 }
 
@@ -761,7 +762,7 @@ u_int32 rtcp_interval(int 	 members,
 }
 
 void 
-rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int16 port)
+rtcp_exit(session_struct *sp1, session_struct *sp2, socket_udp *s)
 {
 	u_int8           packet[MAX_PACKLEN];
 	u_int8          *ptr = packet;
@@ -775,7 +776,7 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int1
 		/* Send an RTCP BYE packet... */
 		ptr = rtcp_packet_fmt_srrr(sp1, ptr);
 		ptr = rtcp_packet_fmt_bye(ptr, sp1->db->myssrc, sp1->mode == TRANSCODER? sp2->db->ssrc_db: (rtcp_dbentry *) NULL);
-		net_write(fd, addr, port, packet, ptr - packet, PACKET_RTCP);
+		net_write(s, packet, ptr - packet, PACKET_RTCP);
 	}
 
 	rtcp_free_dbentry(sp1->db->my_dbe);
@@ -800,7 +801,7 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int1
  *
  */
 void 
-rtcp_update(session_struct *sp, int fd, u_int32 addr, u_int16 port)
+rtcp_update(session_struct *sp, socket_udp *s)
 {
 	u_int8  	packet[MAX_PACKLEN];
 	u_int8         *ptr 	= packet;
@@ -812,7 +813,7 @@ rtcp_update(session_struct *sp, int fd, u_int32 addr, u_int16 port)
 		ptr = rtcp_packet_fmt_srrr(sp, ptr);
 		ptr = rtcp_packet_fmt_bye(ptr, sp->db->old_ssrc, sp->mode==TRANSCODER?sp->db->ssrc_db:(rtcp_dbentry *)NULL);
 		packlen = ptr - (u_int8 *) packet;
-		net_write(fd, addr, port, (u_int8 *) packet, packlen, PACKET_RTCP);
+		net_write(s, (char *) packet, packlen, PACKET_RTCP);
 		sp->db->last_rpt = now;
 		sp->db->old_ssrc = 0;
 	}
@@ -822,7 +823,7 @@ rtcp_update(session_struct *sp, int fd, u_int32 addr, u_int16 port)
 		ptr = rtcp_packet_fmt_srrr(sp, ptr);
 		ptr = rtcp_packet_fmt_sdes(sp, ptr);
 		packlen = ptr - packet;
-		net_write(fd, addr, port, packet, packlen, PACKET_RTCP);
+		net_write(s, packet, packlen, PACKET_RTCP);
 
 		/* Calculate the interval until we're due to send another RTCP packet... */
 		sp->db->report_interval = rtcp_interval(sp->db->members, sp->db->senders, sp->db->rtcp_bw, sp->db->sending, 
