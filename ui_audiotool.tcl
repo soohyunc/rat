@@ -2239,15 +2239,16 @@ proc sync_engine_to_ui {} {
 #
 
 toplevel  .chart
-canvas    .chart.c  -background white  -xscrollcommand {.chart.sb set} -yscrollcommand {.chart.sr set} 
+canvas    .chart.c  -xscrollcommand {.chart.sb set} -yscrollcommand {.chart.sr set} 
 frame     .chart.c.f 
 scrollbar .chart.sr -orient vertical   -command {.chart.c yview}
 scrollbar .chart.sb -orient horizontal -command {.chart.c xview}
 
-pack .chart.sb -side bottom -fill x -expand 0 -anchor s
-pack .chart.sr -side right  -fill y -expand 0 -anchor e
-pack .chart.c  -side left   -fill x -expand 1 -anchor n
-pack .chart.c.f
+pack .chart.sb -side bottom -fill x    -expand 0 -anchor s
+pack .chart.sr -side right  -fill y    -expand 0 -anchor e
+pack .chart.c  -side left   -fill both -expand 1 -anchor n
+
+.chart.c create window 0 0 -anchor nw -window .chart.c.f
 
 proc mtrace {src dst} {
 	#puts "mtrace $src $dst"
@@ -2269,7 +2270,8 @@ proc chart_add {ssrc} {
 			pack   .chart.c.f.$ssrc.f.$s -expand 0 -side left
 		}
 	}
-	.chart.c configure -scrollregion "0 0 [.chart.c.f cget -width] 100"
+	update
+	.chart.c configure -scrollregion "0.0 0.0 [winfo width .chart.c.f] [winfo height .chart.c.f]"
 }
 
 proc chart_remove {ssrc} {
@@ -2278,6 +2280,8 @@ proc chart_remove {ssrc} {
 		regsub {.chart.c.f.(.*)} $s {\1} s
 		destroy .chart.c.f.$s.f.$ssrc
 	}
+	update
+	.chart.c configure -scrollregion "0.0 0.0 [winfo width .chart.c.f] [winfo height .chart.c.f]"
 }
 
 proc chart_label {ssrc label} {
@@ -2317,7 +2321,6 @@ wm protocol .chart WM_DELETE_WINDOW    {set matrix_on 0; chart_show}
 
 set matrix_on 1
 chart_show
-
 
 #
 # End of RTCP RR chart routines
