@@ -74,6 +74,13 @@ void mbus_engine_wait_handler(char *srce, char *cmnd, char *args, void *data)
 	}
 }
 
+static void rx_tool_rat_addr_ui(char *srce, char *args, session_struct *sp)
+{
+	UNUSED(srce);
+	UNUSED(args);
+	UNUSED(sp);
+}
+
 static void rx_tool_rat_powermeter(char *srce, char *args, session_struct *sp)
 {
 	int i;
@@ -675,6 +682,13 @@ static void rx_rtp_source_sdes(char *srce, char *args, session_struct *sp, int t
 	mbus_parse_done(sp->mbus_engine);
 }
 
+static void rx_rtp_addr(char *srce, char *args, session_struct *sp)
+{
+	UNUSED(srce);
+	UNUSED(args);
+	UNUSED(sp);
+}
+
 static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
 {
 	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_NAME);
@@ -1161,6 +1175,7 @@ static void rx_mbus_hello(char *srce, char *args, session_struct *sp)
 /* Note: These next two arrays MUST be in the same order! */
 
 const char *rx_cmnd[] = {
+	"tool.rat.addr.ui",
 	"tool.rat.silence",
 	"tool.rat.lecture",
 	"tool.rat.3d.enabled",
@@ -1197,6 +1212,7 @@ const char *rx_cmnd[] = {
         "audio.file.record.live",
         "audio.device",
         "security.encryption.key",             
+	"rtp.addr",
         "rtp.source.name",
 	"rtp.source.email",
 	"rtp.source.phone",       
@@ -1212,6 +1228,7 @@ const char *rx_cmnd[] = {
 };
 
 static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
+	rx_tool_rat_addr_ui,
 	rx_tool_rat_silence,
 	rx_tool_rat_lecture,
 	rx_tool_rat_3d_enable,
@@ -1248,6 +1265,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_audio_file_rec_live,
 	rx_audio_device,
         rx_security_encryption_key,
+	rx_rtp_addr,
 	rx_rtp_source_name,
 	rx_rtp_source_email,
 	rx_rtp_source_phone,            
