@@ -28,9 +28,7 @@
 #include "parameters.h"
 #include "pdb.h"
 #include "ui.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
-#include "net.h"
+#include "rtp.h"
 #include "timers.h"
 #include "transmit.h"
 #include "util.h"
@@ -439,8 +437,6 @@ tx_send(tx_buffer *tb)
         session_t *sp;
 
         tx_unit        *u;
-        rtp_hdr_t       rtp_header;
-        struct iovec    *ovec;
         ts_t            u_ts, u_sil_ts, delta;
         ts_t            time_ts;
         u_int32         time_32, cd_len, freq;
@@ -471,7 +467,6 @@ tx_send(tx_buffer *tb)
         delta = ts_sub(u_sil_ts, u_ts);
         n = delta.ticks / tb->unit_dur;
 
-        rtp_header.cc = 0;
         sp = tb->sp;
         units = channel_encoder_get_units_per_packet(sp->channel_coder);
         freq  = get_freq(tb->clock);
@@ -530,49 +525,45 @@ tx_send(tx_buffer *tb)
         pb_iterator_create(tb->channel_buffer, &cpos);
         pb_iterator_advance(cpos);
         while(pb_iterator_detach_at(cpos, (u_char**)&cd, &cd_len, &time_ts)) {
-                cu = cd->elem[0];
-                rtp_header.type = 2;
-                rtp_header.seq  = (u_int16)htons(sp->rtp_seq++);
-                rtp_header.p    = rtp_header.x = 0;
-                rtp_header.ssrc = htonl(rtcp_myssrc(sp));
-                rtp_header.pt   = channel_coder_get_payload(sp->channel_coder, cu->pt);
-                time_32 = ts_seq32_out(&tb->up_seq, freq, time_ts);
-                rtp_header.ts   = htonl(time_32);
+                u_int32 csrc[16];
+                char *data, pt;
+                int   data_len, done;
+                int  marker;
 
+                /* Set up fields for RTP header */
+                cu = cd->elem[0];
+                pt = channel_coder_get_payload(sp->channel_coder, cu->pt);
+                time_32 = ts_seq32_out(&tb->up_seq, freq, time_ts);
                 if (time_32 - sp->last_depart_ts != units * tb->unit_dur) {
-                        rtp_header.m = 1;
+                        marker = 1;
                         debug_msg("new talkspurt\n");
                 } else {
-                        rtp_header.m = 0;
+                        marker = 0;
                 }   
                 
                 /* layer loop starts here */
-                for(j=0; j<(u_int32)sp->layers; j++) {
-                        
-                        u_len = sizeof(struct iovec) * (cd->nelem/sp->layers + 1);
-                        ovec = (struct iovec *)block_alloc(u_len);
-                        
-                        ovec[0].iov_base = (caddr_t)&rtp_header;
-                        ovec[0].iov_len  = 12 + rtp_header.cc*4;
-                        for(i = j, k = 1; i < cd->nelem; i+=sp->layers) {
-                                /* The cast below is needed for Irix 5.3, but isn't  */
-                                /* necessary for other platforms. Doesn't seem to be */
-                                /* a problem though, so we'll try it. [csp, problem  */
-                                /* reported by David Balazic]                        */
-                                ovec[k].iov_base = (char *) cd->elem[i]->data;
-                                ovec[k].iov_len  = cd->elem[i]->data_len;
+                for(j = 0; j < (u_int32)sp->layers; j++) {
+                        data_len = 0;
+                        /* determine data length for packet.  This is a   */  
+                        /* little over complicated because of layering... */
+                        for(i = j; i < cd->nelem; i += sp->layers) {
+                                data_len += (int) cd->elem[i]->data_len;
                                 k++;
                         }
-                        
-                        net_write_iov(sp->rtp_socket[j], ovec, cd->nelem/sp->layers + 1, PACKET_RTP);
-                        block_free(ovec, u_len);
+
+                        /* Copy all out going data into one block (no scatter) */
+                        data = (char*)block_alloc(data_len);
+                        done = 0;
+                        for(i = j; i < cd->nelem; i += sp->layers) {
+                                memcpy(data + done, cd->elem[i]->data, cd->elem[i]->data_len);
+                                done += cd->elem[i]->data_len;
+                        }
+                        rtp_send_data(sp->rtp_session[j], time_32, pt, marker, 0, csrc, data, data_len, NULL, 0);
+                        block_free(data, data_len);
                 }
                 /* layer loop ends here */
                 
                 sp->last_depart_ts  = time_32;
-                sp->db->pkt_count  += 1;
-                sp->db->byte_count += channel_data_bytes(cd);
-                sp->db->sending     = TRUE;
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
         pb_iterator_destroy(tb->channel_buffer, &cpos);
@@ -629,7 +620,7 @@ tx_update_ui(tx_buffer *tb)
         if ((vad_in_talkspurt(sp->tb->vad) == TRUE) || (sp->detect_silence == FALSE)) {
 		if (!sp->ui_activated) {
 			sp->ui_activated = TRUE;
-			ui_info_activate(sp, sp->db->my_dbe);
+			ui_info_activate(sp, rtp_my_ssrc(sp->rtp_session[0]));
 		}
 		if (sp->lecture) {
 			sp->lecture = FALSE;
@@ -638,12 +629,12 @@ tx_update_ui(tx_buffer *tb)
         } else {
 		if (sp->ui_activated) {
 			sp->ui_activated = FALSE;
-			ui_info_deactivate(sp, sp->db->my_dbe);
+			ui_info_deactivate(sp, rtp_my_ssrc(sp->rtp_session[0]));
         	}
 	}
 
         if (tb->sending_audio == FALSE) {
-                ui_info_deactivate(sp, sp->db->my_dbe);
+                ui_info_deactivate(sp, rtp_my_ssrc(sp->rtp_session[0]));
         }
 }
 

@@ -68,14 +68,13 @@ rtp_queue_drain(rtp_queue_t *r)
 
         while(r->buf[r->head] != NULL) {
                 p = r->buf[r->head];
-                xfree(p->data);
                 xfree(p);
                 r->buf[r->head] = NULL;
                 r->used--;
                 r->head = (r->head + 1) % r->len;
         }
-        assert(r->head == r->tail);
         assert(r->used == 0);
+        r->head = r->tail = 0;
 }
 
 int 
@@ -83,14 +82,16 @@ rtp_enqueue(rtp_queue_t *r, rtp_packet *p)
 {
         int overflow = 0;
         if (r->used == r->len) {
-                xfree(r->buf[r->head]->data);
+                assert(((r->tail + 1) % r->len) == r->head);
                 xfree(r->buf[r->head]);
                 r->buf[r->head] = NULL;
                 r->head = (r->head + 1) % r->len;
                 r->used--;
                 overflow = 1;
         }
-        r->tail = (r->tail + 1) % r->len;
+        if (r->used != 0) {
+                r->tail = (r->tail + 1) % r->len;
+        }
         assert(r->buf[r->tail] == NULL);
         r->buf[r->tail] = p;
         r->used++;

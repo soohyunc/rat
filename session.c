@@ -23,15 +23,12 @@
 #include "codec.h"
 #include "channel_types.h"
 #include "channel.h"
-#include "pckt_queue.h"
+#include "rtp_queue.h"
 #include "converter.h"
 #include "parameters.h"
 #include "audio.h"
 #include "pdb.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
 #include "ui.h"
-#include "crypt.h"
 #include "source.h"
 #include "channel_types.h"
 #include "channel.h"
@@ -130,18 +127,17 @@ session_init(session_t *sp)
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); 	/* this is the global clock */
         assert(!(GLOBAL_CLOCK_FREQ%cf->format.sample_rate));                	/* just in case someone adds weird freq codecs */
 	sp->mode         		= AUDIO_TOOL;	
-	for (i=0; i<MAX_LAYERS; i++) {
+        sp->rtp_session_count           = 0;
+	for (i = 0; i < MAX_LAYERS; i++) {
 		sp->rx_rtp_port[i] = sp->tx_rtp_port[i] = PORT_UNINIT;
-                sp->rtp_socket[i] = NULL;
+                sp->rtp_session[i] = NULL;
 	}
-	sp->rx_rtp_port[0]		= 5004;					/* default: draft-ietf-avt-profile-new-00 */
-	sp->tx_rtp_port[0]		= 5004;					/* default: draft-ietf-avt-profile-new-00 */
-	sp->rx_rtcp_port		= 5005;					/* default: draft-ietf-avt-profile-new-00 */
-	sp->tx_rtcp_port		= 5005;					/* default: draft-ietf-avt-profile-new-00 */
-        sp->rtp_pckt_queue              = pckt_queue_create(PCKT_QUEUE_RTP_LEN);
-        sp->rtcp_pckt_queue             = pckt_queue_create(PCKT_QUEUE_RTCP_LEN);
+	sp->rx_rtp_port[0] = 5004; /* Default ports per:             */
+	sp->tx_rtp_port[0] = 5004; /* draft-ietf-avt-profile-new-00  */
+        sp->rx_rtcp_port   = 5005;
+        sp->tx_rtcp_port   = 5005;
+        rtp_queue_create(&sp->rtp_pckt_queue, PCKT_QUEUE_RTP_LEN);
 	sp->ttl				= 16;
-	sp->rtcp_socket			= NULL;
         sp->filter_loopback             = TRUE;
 	sp->playing_audio		= TRUE;
 	sp->lecture			= FALSE;
@@ -184,8 +180,7 @@ session_exit(session_t *sp)
                 xfree(sp->device_clock);
                 sp->device_clock = NULL;
         }
-        pckt_queue_destroy(&sp->rtp_pckt_queue);
-        pckt_queue_destroy(&sp->rtcp_pckt_queue);
+        rtp_queue_destroy(&sp->rtp_pckt_queue);
         channel_encoder_destroy(&sp->channel_coder);
         source_list_destroy(&sp->active_sources);
 }
@@ -254,9 +249,9 @@ session_parse_early_options_common(int argc, char *argv[], session_t *sp[], int 
                         }
                         exit(0);
                 } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
-                        /* Dynamic payload type mapping. Format: "-pt pt/codec/clock/channels" */
-                        /* pt/codec must be specified. clock and channels are optional.        */
-                        /* At present we only support "-pt .../redundancy"                     */
+  /* Dynamic payload type mapping. Format: "-pt pt/codec/clock/channels" */
+  /* pt/codec must be specified. clock and channels are optional.        */
+  /* At present we only support "-pt .../redundancy"                     */
                         int 		 pt  = atoi((char *) strtok(argv[i + 1], "/"));
                         char 		*t   = (char *) strtok(NULL, "/");
                         codec_id_t 	 cid = codec_get_by_name(t);
@@ -505,8 +500,11 @@ session_parse_late_options_common(int argc, char *argv[], session_t *sp[], int s
 				argv[i] = "-crypt";
 			}
 			if ((strcmp(argv[i], "-crypt") == 0) && (argc > i+1)) {
-				Set_Key(argv[i+1]);
-				ui_update_key(sp[s], argv[i+1]);
+                                int z = 0;
+                                for(z = 0; z < sp[s]->rtp_session_count; z++) {
+                                        rtp_set_encryption_key(sp[s]->rtp_session[z], argv[i+1]);
+                                }
+                                ui_update_key(sp[s], argv[i+1]);
 				i++;
 			}
                         if (strcmp(argv[i], "-sync") == 0) {

@@ -21,11 +21,8 @@
 #include "codec_state.h"
 #include "codec.h"
 #include "session.h"
-#include "crypt.h"
 #include "channel_types.h"
 #include "channel.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
 #include "repair.h"
 #include "converter.h"
 #include "audio.h"
@@ -46,46 +43,57 @@ static char *mbus_name_engine = NULL;
 static char *mbus_name_ui     = NULL;
 static char *mbus_name_video  = NULL;
 
-static void ui_info_update_sdes(session_t *sp, char *item, char *val, u_int32 ssrc)
+static void ui_info_update_sdes(session_t *sp, char *item, const char *val, u_int32 ssrc)
 {
-	char *arg   = mbus_encode_str(val);
+	char *arg;
+        if (val == NULL) {
+                val = "Unknown";
+        }
+        arg = mbus_encode_str(val);
 	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, item, "\"%08lx\" %s", ssrc, arg);
 	xfree(arg);
 }
 
-void ui_info_update_cname(session_t *sp, rtcp_dbentry *e)
+void ui_info_update_cname(session_t *sp, u_int32 ssrc)
 {
-	ui_info_update_sdes(sp, "rtp.source.cname", e->sentry->cname, e->sentry->ssrc);
+        const char *cname = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_CNAME);
+	ui_info_update_sdes(sp, "rtp.source.cname", cname, ssrc);
 }
 
-void ui_info_update_name(session_t *sp, rtcp_dbentry *e)
+void ui_info_update_name(session_t *sp, u_int32 ssrc)
 {
-	ui_info_update_sdes(sp, "rtp.source.name", e->sentry->name, e->sentry->ssrc);
+        const char *name = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_NAME);
+	ui_info_update_sdes(sp, "rtp.source.name", name, ssrc);
 }
 
-void ui_info_update_email(session_t *sp, rtcp_dbentry *e)
+void ui_info_update_email(session_t *sp, u_int32 ssrc)
 {
-	ui_info_update_sdes(sp, "rtp.source.email", e->sentry->email, e->sentry->ssrc);
+        const char *email = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_EMAIL);
+	ui_info_update_sdes(sp, "rtp.source.email", email, ssrc);
 }
 
-void ui_info_update_phone(session_t *sp, rtcp_dbentry *e)
+void ui_info_update_phone(session_t *sp, u_int32 ssrc)
 {
-	ui_info_update_sdes(sp, "rtp.source.phone", e->sentry->phone, e->sentry->ssrc);
+        const char *phone = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_PHONE);
+	ui_info_update_sdes(sp, "rtp.source.phone", phone, ssrc);
 }
 
-void ui_info_update_loc(session_t *sp, rtcp_dbentry *e)
+void ui_info_update_loc(session_t *sp, u_int32 ssrc)
 {
-	ui_info_update_sdes(sp, "rtp.source.loc", e->sentry->loc, e->sentry->ssrc);
+        const char *loc = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_LOC);
+	ui_info_update_sdes(sp, "rtp.source.loc", loc, ssrc);
 }
 
-void ui_info_update_tool(session_t *sp, rtcp_dbentry *e)
+void ui_info_update_tool(session_t *sp, u_int32 ssrc)
 {
-	ui_info_update_sdes(sp, "rtp.source.tool", e->sentry->tool, e->sentry->ssrc);
+        const char *tool = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_TOOL);
+	ui_info_update_sdes(sp, "rtp.source.tool", tool, ssrc);
 }
 
-void ui_info_update_note(session_t *sp, rtcp_dbentry *e)
+void ui_info_update_note(session_t *sp, u_int32 ssrc)
 {
-	ui_info_update_sdes(sp, "rtp.source.note", e->sentry->note, e->sentry->ssrc);
+        const char *note = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_NOTE);
+	ui_info_update_sdes(sp, "rtp.source.note", note, ssrc);
 }
 
 void 
@@ -101,28 +109,33 @@ ui_info_mute(session_t *sp, pdb_entry_t *pdbe)
 }
 
 void
-ui_info_remove(session_t *sp, rtcp_dbentry *e)
+ui_info_remove(session_t *sp, u_int32 ssrc)
 {
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.remove", "\"%08lx\"", e->sentry->ssrc);
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.remove", "\"%08lx\"", ssrc);
 }
 
 void
-ui_info_activate(session_t *sp, rtcp_dbentry *e)
+ui_info_activate(session_t *sp, u_int32 ssrc)
 {
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.active", "\"%08lx\"", e->sentry->ssrc);
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.active", "\"%08lx\"", ssrc);
 }
 
 void
-ui_info_deactivate(session_t *sp, rtcp_dbentry *e)
+ui_info_deactivate(session_t *sp, u_int32 ssrc)
 {
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.inactive", "\"%08lx\"", e->sentry->ssrc);
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.inactive", "\"%08lx\"", ssrc);
 }
 
 void
-ui_info_3d_settings(session_t *sp, rtcp_dbentry *e, pdb_entry_t *p)
+ui_info_3d_settings(session_t *sp, u_int32 ssrc)
 {
         char *filter_name;
         int   azimuth, filter_type, filter_length;
+        pdb_entry_t *p;
+
+        if (pdb_item_get(sp->pdb, ssrc, &p) == FALSE) {
+                return;
+        }
 
         if (p->render_3D_data == NULL) {
                 p->render_3D_data = render_3D_init(get_freq(sp->device_clock));
@@ -130,17 +143,17 @@ ui_info_3d_settings(session_t *sp, rtcp_dbentry *e, pdb_entry_t *p)
 
         render_3D_get_parameters(p->render_3D_data, &azimuth, &filter_type, &filter_length);
         filter_name = mbus_encode_str(render_3D_filter_get_name(filter_type));
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "tool.rat.3d.user.settings", "\"%08lx\" %s %d %d", 
-		  e->sentry->ssrc, filter_name, filter_length, azimuth);
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "tool.rat.3d.user.settings", "\"%08lx\" %s %d %d", ssrc, filter_name, filter_length, azimuth);
         xfree(filter_name);
 }
 
 void
 ui_update_stats(session_t *sp, pdb_entry_t *pdbe)
 {
+        const rtcp_rr           *rr;
+        u_int32                  fract_lost, my_ssrc;
 	char			*args, *mbes;
         struct s_source      	*src;
-        rtcp_dbentry            *e;
         u_int32               	 buffered, delay;
 
         if (pdbe->enc_fmt) {
@@ -172,10 +185,15 @@ ui_update_stats(session_t *sp, pdb_entry_t *pdbe)
                 mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", pdbe->ssrc, delay);
         }
 
-        e = rtcp_get_dbentry(sp->db, pdbe->ssrc);
+        my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
+        rr = rtp_get_rr(sp->rtp_session[0], pdbe->ssrc, my_ssrc);
+        if (rr != NULL) {
+                fract_lost = (rr->fract_lost * 100) >> 8;
+        } else {
+                fract_lost = 0;
+        }
 
-	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "rtp.source.packet.loss", "\"%08lx\" \"%08lx\" %8ld", 
-		  sp->db->my_dbe->sentry->ssrc, pdbe->ssrc, (e->lost_frac * 100) >> 8);
+	mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "rtp.source.packet.loss", "\"%08lx\" \"%08lx\" %8ld", my_ssrc, pdbe->ssrc, fract_lost);
 }
 
 void
@@ -691,8 +709,8 @@ ui_update_duration(session_t *sp, u_int32 ssrc, int duration)
 void 
 ui_update_video_playout(session_t *sp, u_int32 ssrc, int playout)
 {
-	rtcp_dbentry	*dbe = rtcp_get_dbentry(sp->db, ssrc);
-	char 		*arg = mbus_encode_str(dbe->sentry->cname);
+        const char *cname = rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_CNAME);
+	char *arg = mbus_encode_str(cname);
 	mbus_qmsgf(sp->mbus_engine, mbus_name_video, FALSE, "rtp.source.cname",   "\"%08lx\" %s",   ssrc, arg);
 	mbus_qmsgf(sp->mbus_engine, mbus_name_video, FALSE, "rtp.source.playout", "\"%08lx\" %12d", ssrc, playout);
 	xfree(arg);
@@ -886,7 +904,7 @@ ui_controller_init(session_t *sp, char *name_engine, char *name_ui, char *name_v
 	mbus_name_ui     = name_ui;
 	mbus_name_video  = name_video;
 
-	sprintf(my_ssrc, "\"%08lx\"", sp->db->myssrc);
+	sprintf(my_ssrc, "\"%08lx\"", rtp_my_ssrc(sp->rtp_session[0]));
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.ssrc", my_ssrc, TRUE);
 }
 
@@ -983,22 +1001,23 @@ ui_update_options(session_t *sp)
 void
 ui_initial_settings(session_t *sp)
 {
+        u_int32 my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
         /* One off setting transfers / initialization */
-        ui_sampling_modes(sp); 				network_process_mbus(sp);
-        ui_converters(sp); 				network_process_mbus(sp);
-        ui_repair_schemes(sp); 				network_process_mbus(sp);
-        ui_codecs(sp); 					network_process_mbus(sp);
-        ui_3d_options(sp); 				network_process_mbus(sp);
-	ui_info_update_cname(sp, sp->db->my_dbe); 	network_process_mbus(sp);
-	ui_info_update_name(sp,  sp->db->my_dbe); 	network_process_mbus(sp);
-	ui_info_update_email(sp, sp->db->my_dbe); 	network_process_mbus(sp);
-	ui_info_update_phone(sp, sp->db->my_dbe); 	network_process_mbus(sp);
-	ui_info_update_loc(sp,   sp->db->my_dbe); 	network_process_mbus(sp);
-	ui_info_update_tool(sp,  sp->db->my_dbe); 	network_process_mbus(sp);
-        ui_title(sp); 					network_process_mbus(sp);
-	ui_update_options(sp); 				network_process_mbus(sp);
+        ui_sampling_modes(sp); 			network_process_mbus(sp);
+        ui_converters(sp); 			network_process_mbus(sp);
+        ui_repair_schemes(sp); 			network_process_mbus(sp);
+        ui_codecs(sp); 				network_process_mbus(sp);
+        ui_3d_options(sp); 	 		network_process_mbus(sp);
+	ui_info_update_cname(sp, my_ssrc); 	network_process_mbus(sp);
+	ui_info_update_name(sp,  my_ssrc); 	network_process_mbus(sp);
+	ui_info_update_email(sp, my_ssrc); 	network_process_mbus(sp);
+	ui_info_update_phone(sp, my_ssrc); 	network_process_mbus(sp);
+	ui_info_update_loc(sp,   my_ssrc); 	network_process_mbus(sp);
+	ui_info_update_tool(sp,  my_ssrc); 	network_process_mbus(sp);
+        ui_title(sp); 				network_process_mbus(sp);
+	ui_update_options(sp); 			network_process_mbus(sp);
 #ifdef NDEF /* This is done by load_settings() now... */
-	ui_load_settings(sp); 				network_process_mbus(sp);
+	ui_load_settings(sp); 			network_process_mbus(sp);
 #endif
 }
 

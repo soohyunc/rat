@@ -28,23 +28,10 @@
 #include "ts.h"
 #include "channel_types.h"
 #include "pdb.h"
-/* XXX These are for backwards compat whilst migrating out old RTP code */
-#include "net_udp.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
-/* XXX end */
 #include "source.h"
-
 #include "debug.h"
 #include "util.h"
-/* And we include all of the below just so we can get at
- * the render_3d_data field of the rtcp_dbentry for the source!
- */
 #include "net_udp.h"
-#include "rtcp.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
-#include "pdb.h"
 #include "mix.h"
 
 #define SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER  8 

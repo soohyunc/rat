@@ -11,6 +11,8 @@
  *
  */
 
+struct s_pckt_queue; /* pckt_queue is being removed */
+
 #include "config_unix.h"
 #include "config_win32.h"
 #include "debug.h"
@@ -26,13 +28,10 @@
 #include "tcltk.h"
 #include "pdb.h"
 #include "ui.h"
-#include "pckt_queue.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
-#include "rtcp.h"
-#include "net.h"
+#include "rtp_queue.h"
+#include "rtp.h"
+#include "rtp_callback.h"
 #include "timers.h"
-#include "statistics.h"
 #include "parameters.h"
 #include "transmit.h"
 #include "source.h"
@@ -43,7 +42,7 @@
 #include "mbus_engine.h"
 #include "crypt_random.h"
 #include "net_udp.h"
-#include "rtcp.h"
+#include "net.h"
 #include "settings.h"
 
 int should_exit = FALSE;
@@ -72,13 +71,11 @@ int
 main(int argc, char *argv[])
 {
 	u_int32			 cur_time, ntp_time;
-	int            		 i, elapsed_time, alc = 0, seed;
-	char			*cname;
+	int            		 i, j, elapsed_time, alc = 0, seed;
 	session_t 		*sp[2];
 	struct timeval  	 time;
 	struct timeval      	 timeout;
 	char			 mbus_engine_addr[100], mbus_ui_addr[100], mbus_video_addr[100];
-        u_int8                   j;
 
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
@@ -97,7 +94,6 @@ main(int argc, char *argv[])
 
         audio_init_interfaces();
         converters_init();
-        statistics_init();
 
 	sprintf(mbus_engine_addr, "(media:audio module:engine app:rat instance:%lu)", (u_int32) getpid());
 	sp[0]->mbus_engine = mbus_init(mbus_engine_rx, NULL);
@@ -117,20 +113,25 @@ main(int argc, char *argv[])
         audio_device_reconfigure(sp[0]);
         assert(audio_device_is_open(sp[0]->audio_device));
 
-	network_init(sp[0]);
-	cname = get_cname(sp[0]->rtp_socket[0]);
-	sp[0]->db = rtcp_init(sp[0]->device_clock, cname, 0);
-        rtcp_clock_change(sp[0]);
-
+	network_process_mbus(sp[0]);
+	settings_load_early(sp[0]);
+        for (i = 0; i < sp[0]->layers; i++) {
+                sp[0]->rtp_session[i] = rtp_init(sp[0]->asc_address[i], 
+                                                 sp[0]->tx_rtp_port[i], 
+                                                 sp[0]->ttl, 
+                                                 5, /* Initial rtcp b/w guess */
+                                                 rtp_callback);
+                sp[0]->rtp_session_count++;
+                rtp_callback_init(sp[0]->rtp_session[i], sp[0]);
+        }
         if (pdb_create(&sp[0]->pdb) == FALSE) {
                 debug_msg("Failed to create persistent database\n");
                 abort();
         }
-        pdb_item_create(sp[0]->pdb, sp[0]->clock, get_freq(sp[0]->device_clock), sp[0]->db->myssrc); 
-
-	network_process_mbus(sp[0]);
-
-	settings_load_early(sp[0]);
+        pdb_item_create(sp[0]->pdb, 
+                        sp[0]->clock, 
+                        get_freq(sp[0]->device_clock), 
+                        rtp_my_ssrc(sp[0]->rtp_session[0])); 
 	settings_load_late(sp[0]);
 
 /**** Up to here is in main_engine.c *****/
@@ -159,16 +160,6 @@ main(int argc, char *argv[])
                	tx_start(sp[0]->tb);
         }
 
-        /* dump buffered packets - it usually takes at least 1 second
-         * to this far, all packets read thus far should be ignored.  
-         * This stops lots of "skew" adaption at the start because the
-         * playout buffer is too long.
-         */
-        for(j = 0; j < sp[0]->layers; j++) {
-                read_and_discard(sp[0]->rtp_socket[j]);
-        }
-	read_and_discard(sp[0]->rtcp_socket);
-
         i = tcl_process_all_events();
         debug_msg("process %d events at startup %d\n", i);
 	
@@ -178,38 +169,24 @@ main(int argc, char *argv[])
 		elapsed_time = audio_rw_process(sp[0], sp[0], sp[0]->ms);
 		cur_time = get_time(sp[0]->device_clock);
 		ntp_time = ntp_time32();
-		sp[0]->cur_ts   = ts_seq32_in(&sp[0]->decode_sequencer, get_freq(sp[0]->device_clock), cur_time);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 0;
-
-                udp_fd_zero();
-                for(j = 0; j < sp[0]->layers; j++) {
-                        udp_fd_set(sp[0]->rtp_socket[j]);
-                }
-                udp_fd_set(sp[0]->rtcp_socket);
-                        
-                while (udp_select(&timeout) > 0) {
-                        for(j = 0; j < sp[0]->layers; j++) {
-                                if (udp_fd_isset(sp[0]->rtp_socket[j])) {
-                                        read_and_enqueue(sp[0]->rtp_socket[j], sp[0]->cur_ts, sp[0]->rtp_pckt_queue, PACKET_RTP);
-                                }
-                        }
-                        if (udp_fd_isset(sp[0]->rtcp_socket)) {
-                                read_and_enqueue(sp[0]->rtcp_socket, sp[0]->cur_ts, sp[0]->rtcp_pckt_queue, PACKET_RTCP);
-                        }
-                }
-                        
+		sp[0]->cur_ts   = ts_seq32_in(&sp[0]->decode_sequencer, 
+                                              get_freq(sp[0]->device_clock), 
+                                              cur_time);
                 tx_process_audio(sp[0]->tb);
                 if (tx_is_sending(sp[0]->tb)) {
                         tx_send(sp[0]->tb);
                 }
 
-                        /* Need to either:                               *
-                         * (i) join layers together by this stage        *
-                         * (ii) modify statistics_process to join layers */
-                        
+                /* Process RTP/RTCP packet  */
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 0;
+                for (j = 0; j < sp[0]->rtp_session_count; j++) {
+                        rtp_recv(sp[0]->rtp_session[j], &timeout, cur_time);
+                        rtp_send_ctrl(sp[0]->rtp_session[j], cur_time);
+                        rtp_update(sp[0]->rtp_session[j]);
+                }
+
 		/* Process incoming packets */
-		statistics_process(sp[0], sp[0]->rtp_pckt_queue, sp[0]->cushion, ntp_time, sp[0]->cur_ts);
 
 		/* Process and mix active sources */
 		if (sp[0]->playing_audio) {
@@ -228,19 +205,15 @@ main(int argc, char *argv[])
 					source_audit(s);
 				} else {
 					/* Remove source as stopped */
-                                        rtcp_dbentry *dbe;
                                         u_int32 ssrc;
                                         ssrc = source_get_ssrc(s);
-                                        dbe  = rtcp_get_dbentry(sp[0]->db, ssrc);
-					ui_info_deactivate(sp[0], dbe);
+					ui_info_deactivate(sp[0], ssrc);
 					source_remove(sp[0]->active_sources, s);
 					sidx--;
 					scnt--;
 				}
 			}
 		}
-
-		service_rtcp(sp[0], NULL, sp[0]->rtcp_pckt_queue, cur_time, ntp_time);
 
 		if (alc >= 50) {
 			if (!sp[0]->lecture && tx_is_sending(sp[0]->tb) && sp[0]->auto_lecture != 0) {
@@ -295,7 +268,6 @@ main(int argc, char *argv[])
 
 	settings_save(sp[0]);
 	tx_stop(sp[0]->tb);
-	rtcp_exit(sp[0], NULL, sp[0]->rtcp_socket);
         pdb_destroy(&sp[0]->pdb);
 	if (sp[0]->in_file  != NULL) snd_read_close (&sp[0]->in_file);
 	if (sp[0]->out_file != NULL) snd_write_close(&sp[0]->out_file);
@@ -308,9 +280,11 @@ main(int argc, char *argv[])
 		tcl_exit();
 	}
 
-        network_exit(sp[0]);
-
         for(i = 0; i < 2; i++) {
+                for (j = 0; j < sp[i]->rtp_session_count; j++) {
+                        rtp_done(sp[i]->rtp_session[j]);
+                        rtp_callback_exit(sp[i]->rtp_session[j]);
+                }
                 session_exit(sp[i]);
                 xfree(sp[i]);
         }
@@ -318,7 +292,6 @@ main(int argc, char *argv[])
         converters_free();
         audio_free_interfaces();
 
-        xfree(cname);
 	xmemdmp();
 	return 0;
 }

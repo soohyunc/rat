@@ -14,6 +14,7 @@
 #include "mbus_engine.h"
 #include "mbus.h"
 #include "net_udp.h"
+#include "session.h"
 #include "net.h"
 #include "transmit.h"
 #include "codec_types.h"
@@ -22,21 +23,17 @@
 #include "session.h"
 #include "channel.h"
 #include "converter.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
 #include "repair.h"
 #include "render_3D.h"
-#include "crypt.h"
 #include "session.h"
 #include "pdb.h"
 #include "source.h"
 #include "sndfile.h"
 #include "timers.h"
 #include "util.h"
-#include "rtcp.h"
-#include "rtcp_db.h"
 #include "codec_types.h"
 #include "channel_types.h"
+#include "rtp.h"
 #include "ui.h"
 
 extern int should_exit;
@@ -186,9 +183,7 @@ static void
 rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_t *sp)
 {
 	char		*ss;
-        pdb_entry_t         *p;
-        rtcp_dbentry 	*e = NULL;
-        u_int32         ssrc;
+        u_int32          ssrc;
 
 	UNUSED(srce);
 
@@ -196,11 +191,7 @@ rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_t *sp)
 	if (mbus_parse_str(sp->mbus_engine, &ss)) {
 		ss   = mbus_decode_str(ss);
                 ssrc = strtoul(ss, 0, 16);
-                e = rtcp_get_dbentry(sp->db, ssrc);
-                pdb_item_get(sp->pdb, ssrc, &p);
-		if (e != NULL && p != NULL && p->render_3D_data != NULL) {
-			ui_info_3d_settings(sp, e, p);
-		}
+                ui_info_3d_settings(sp, ssrc);
         }
         mbus_parse_done(sp->mbus_engine);
 }
@@ -381,7 +372,6 @@ static void rx_audio_input_port(char *srce, char *args, session_t *sp)
 static void rx_audio_output_mute(char *srce, char *args, session_t *sp)
 {
         struct s_source *s;
-        rtcp_dbentry    *dbe;
 	int i, n;
 
 	UNUSED(srce);
@@ -393,8 +383,7 @@ static void rx_audio_output_mute(char *srce, char *args, session_t *sp)
                 n = (int)source_list_source_count(sp->active_sources);
                 for (i = 0; i < n; i++) {
                         s = source_list_get_source_no(sp->active_sources, i);
-                        dbe = rtcp_get_dbentry(sp->db, source_get_ssrc(s));
-                        ui_info_deactivate(sp, dbe);
+                        ui_info_deactivate(sp, source_get_ssrc(s));
                         source_remove(sp->active_sources, s);
                         /* revise source no's since we removed a source */
                         i--;
@@ -478,6 +467,7 @@ static void rx_audio_channel_repair(char *srce, char *args, session_t *sp)
 
 static void rx_security_encryption_key(char *srce, char *args, session_t *sp)
 {
+        int      i;
 	char	*key;
 
 	UNUSED(sp);
@@ -485,7 +475,10 @@ static void rx_security_encryption_key(char *srce, char *args, session_t *sp)
 
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &key)) {
-		Set_Key(mbus_decode_str(key));
+                key = mbus_decode_str(key);
+                for(i = 0; i < sp->rtp_session_count; i++) {
+                        rtp_set_encryption_key(sp->rtp_session[i], key);
+                }
 	} else {
 		debug_msg("mbus: usage \"security.encryption.key <key>\"\n");
 	}
@@ -687,17 +680,25 @@ rx_audio_device(char *srce, char *args, session_t *sp)
 
 static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, int type)
 {
-	char	*arg, *ssrc;
-
+	char	*arg, *ss;
+        u_int32 ssrc;
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_str(sp->mbus_engine, &ssrc) && mbus_parse_str(sp->mbus_engine, &arg)) {
-		ssrc = mbus_decode_str(ssrc);
-		if (strtoul(ssrc, 0, 16) == sp->db->myssrc) {
-			rtcp_set_attribute(sp, type,  mbus_decode_str(arg));
+	if (mbus_parse_str(sp->mbus_engine, &ss) && 
+            mbus_parse_str(sp->mbus_engine, &arg)) {
+		ss = mbus_decode_str(ss);
+                ssrc = strtoul(ss, 0, 16);
+		if (ssrc == rtp_my_ssrc(sp->rtp_session[0])) {
+                        char *value;
+                        int i, vlen;
+                        value = mbus_decode_str(arg);
+                        vlen  = strlen(value);
+                        for (i = 0; i < sp->rtp_session_count; i++) {
+                                rtp_set_sdes(sp->rtp_session[i], ssrc, type, value, vlen);
+                        }
 		} else {
-			debug_msg("mbus: ssrc %s (%08lx) != %08lx\n", ssrc, strtoul(ssrc, 0, 16), sp->db->myssrc);
+			debug_msg("mbus: ssrc %s (%08lx) != %08lx\n", ss, strtoul(ss, 0, 16), rtp_my_ssrc(sp->rtp_session[0]));
 		}
 	} else {
 		debug_msg("mbus: usage \"rtp_source_<sdes_item> <ssrc> <name>\"\n");
@@ -708,15 +709,10 @@ static void rx_rtp_source_sdes(char *srce, char *args, session_t *sp, int type)
 static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 {
 	/* rtp.addr ("224.1.2.3" 1234 1234 16) */
-	char	*addr, *cname;
-	int	 rx_port, tx_port, ttl, i;
+	char	*addr;
+	int	 rx_port, tx_port, ttl;
 
 	UNUSED(srce);
-
-	if (sp->rtcp_socket != NULL) {
-		debug_msg("RTP code is already initialised, cannot re-initialise it!\n");
-		abort();
-	}
 
 	mbus_parse_init(sp->mbus_engine, args);
 	mbus_parse_str(sp->mbus_engine, &addr); addr = mbus_decode_str(addr);
@@ -724,7 +720,7 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 	mbus_parse_int(sp->mbus_engine, &tx_port);
 	mbus_parse_int(sp->mbus_engine, &ttl);
 	mbus_parse_done(sp->mbus_engine);
-
+/*
 	for (i = 0; i < sp->layers; i++) {
 		sp->rtp_socket[i] = udp_init(addr, rx_port, tx_port, ttl);
 	}
@@ -734,7 +730,10 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 	sp->db = rtcp_init(sp->device_clock, cname, 0);
 	xfree(cname);
         rtcp_clock_change(sp);
+        */
+        debug_msg("rx_rtp_addr received and is currently disabled.\n");
 }
+
 
 static void rx_rtp_source_name(char *srce, char *args, session_t *sp)
 {

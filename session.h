@@ -17,6 +17,7 @@
 #include "net_udp.h"
 #include "ts.h"
 #include "converter.h"
+#include "rtp_queue.h"
 
 /* This will have to be raised in the future */
 #define MAX_LAYERS      2
@@ -54,10 +55,10 @@ typedef struct s_session {
 	u_short		         tx_rtp_port[MAX_LAYERS];
 	u_short		         rx_rtcp_port;
 	u_short		         tx_rtcp_port;
-	socket_udp              *rtp_socket[MAX_LAYERS];
-	socket_udp              *rtcp_socket;
-        struct s_pckt_queue     *rtp_pckt_queue;
-        struct s_pckt_queue     *rtcp_pckt_queue;
+        struct                   rtp *rtp_session[MAX_LAYERS];
+        int                      rtp_session_count;
+	u_int8		         layers; /* number of layers == rtp_session_count */
+        rtp_queue_t             *rtp_pckt_queue;
 	int    ttl;
         int    filter_loopback;
 	struct s_fast_time	*clock;
@@ -107,7 +108,6 @@ typedef struct s_session {
 	char		*mbus_video_addr;
         ts_t             cur_ts; /* current device time as timestamp */
 	int		 loopback_gain;
-	u_int8		 layers; /* number of layers */
 } session_t;
 
 void session_init(session_t *sp);

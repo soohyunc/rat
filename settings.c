@@ -18,8 +18,6 @@
 #include "channel.h"
 #include "net_udp.h"
 #include "timers.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
 #include "session.h"
 #include "repair.h"
 #include "transmit.h"
@@ -29,6 +27,7 @@
 #include "auddev.h"
 #include "version.h"
 #include "settings.h"
+#include "rtp.h"
 
 typedef struct s_hash_tuple {
         u_int32 hash;
@@ -442,12 +441,20 @@ void settings_load_early(session_t *sp)
 
 void settings_load_late(session_t *sp)
 {
+        u_int32 my_ssrc;
+        char   *field;
 	load_init();		/* Initial settings come from the common prefs file... */
-	sp->db->my_dbe->sentry->name  = xstrdup(setting_load_str("rtpName", "Unknown"));/* We don't use rtcp_set_attribute() */ 
-	sp->db->my_dbe->sentry->email = xstrdup(setting_load_str("rtpEmail", ""));      /* here, since that updates the UI   */
-	sp->db->my_dbe->sentry->phone = xstrdup(setting_load_str("rtpPhone", ""));      /* and we don't want to do that yet. */
-	sp->db->my_dbe->sentry->loc   = xstrdup(setting_load_str("rtpLoc", ""));
-        sp->db->my_dbe->sentry->tool  = xstrdup(RAT_VERSION);
+
+        my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
+	field = xstrdup(setting_load_str("rtpName", "Unknown"));/* We don't use rtcp_set_attribute() */ 
+        rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME,  field, strlen(field));
+	field = xstrdup(setting_load_str("rtpEmail", ""));      /* here, since that updates the UI   */
+        rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_EMAIL, field, strlen(field));
+	field = xstrdup(setting_load_str("rtpPhone", ""));      /* and we don't want to do that yet. */
+        rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PHONE, field, strlen(field));
+	field = xstrdup(setting_load_str("rtpLoc", ""));
+        rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC,   field, strlen(field));
+        field = xstrdup(RAT_VERSION);
         init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 	load_done();
 }
@@ -489,6 +496,10 @@ static void save_done(void)
 static void 
 setting_save_str(const char *name, const char *val)
 {
+        if (val == NULL) {
+                val = "";
+        }
+
 #ifndef WIN32
 	fprintf(settings_file, "*%s: %s\n", name, val);
 #else
@@ -533,6 +544,7 @@ void settings_save(session_t *sp)
 	audio_device_details_t		 ad;
         const audio_format 		*af;
         const audio_port_details_t 	*iapd, *oapd;
+        u_int32                          my_ssrc;
 
 	pri_id   = codec_get_by_payload(sp->encodings[0]);
         pri_cf   = codec_get_format(pri_id);
@@ -571,12 +583,14 @@ void settings_save(session_t *sp)
         }
 
 	save_init();
-	setting_save_str("rtpName",                sp->db->my_dbe->sentry->name);
-	setting_save_str("rtpEmail",               sp->db->my_dbe->sentry->email);
-	setting_save_str("rtpPhone",               sp->db->my_dbe->sentry->phone);
-	setting_save_str("rtpLoc",                 sp->db->my_dbe->sentry->loc);
+        my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
+        setting_save_str("rtpName",  rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NAME));
+        setting_save_str("rtpEmail", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_EMAIL));
+        setting_save_str("rtpPhone", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_PHONE));
+        setting_save_str("rtpLoc",   rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_LOC));
+
         init_part_two();
-        setting_save_str("audioTool",              sp->db->my_dbe->sentry->tool);
+        setting_save_str("audioTool", rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_TOOL));
 	setting_save_str("audioDevice",            ad.name);
 	setting_save_int("audioFrequency",         af->sample_rate);
 	setting_save_int("audioChannelsIn",        af->channels); 

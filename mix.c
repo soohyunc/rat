@@ -26,8 +26,6 @@
 #include "pdb.h"
 #include "source.h"
 #include "mix.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
 #include "playout.h"
 #include "debug.h"
 #include "parameters.h"
