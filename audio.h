@@ -61,7 +61,7 @@ typedef struct s_audio_format {
   int    sample_rate; 		/* Should be one of 8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000 */
   int    bits_per_sample;	/* Should be 8 or 16 */
   int    num_channels;  	/* Should be 1 or 2  */
-  int	 blocksize;
+  int    blocksize;             /* size of unit we will read/write in */
 } audio_format;
 
 #define BYTES_PER_SAMPLE sizeof(sample)
@@ -109,6 +109,7 @@ int	audio_next_iport(int audio_fd);
 int	audio_duplex(int audio_fd);
 int	audio_blocksize(void);
 int	audio_get_channels(void);
+int     audio_get_freq(void);
 
 /* Stuff in audio.c */
 void	mix_init(void);

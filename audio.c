@@ -155,7 +155,7 @@ audio_device_read(session_struct *sp, sample *buf, int samples)
 		if (sp->mode == TRANSCODER) {
 			return (transcoder_read(sp->audio_fd, buf, samples));
 		} else {
-			return (audio_read(sp->audio_fd, buf, samples));
+                        return (audio_read(sp->audio_fd, buf, samples));
 		}
 	else {
 		gettimeofday(&curr_time, NULL);
@@ -170,16 +170,22 @@ audio_device_read(session_struct *sp, sample *buf, int samples)
 }
 
 int
-audio_device_write(session_struct *sp, sample *buf, int samples)
+audio_device_write(session_struct *sp, sample *buf, int dur)
 {
+        codec_t *cp = get_codec(sp->encodings[0]);
+
 	if (sp->have_device)
 		if (sp->mode == TRANSCODER) {
-			return (transcoder_write(sp->audio_fd, buf, samples));
+			return (transcoder_write(sp->audio_fd, 
+                                                 buf, 
+                                                 dur*cp->channels));
 		} else {
-			return (audio_write(sp->audio_fd, buf, samples));
+			return (audio_write(sp->audio_fd, 
+                                            buf, 
+                                            dur * audio_get_channels()));
 		}
 	else
-		return (samples);
+		return (dur * cp->channels);
 }
 
 int
@@ -266,13 +272,15 @@ audio_device_give(session_struct *sp)
 void
 read_write_init(session_struct *sp)
 {
+        codec_t *cp;
         if ((sp->audio_fd != -1) && (sp->mode != TRANSCODER)) {
                 audio_non_block(sp->audio_fd);
         }
 	sp->loop_delay = sp->loop_estimate = 20000;
 
+        cp = get_codec(sp->encodings[0]);
 	/* 160 = 20ms @ 8000KHz and 1 channel */
-	sp->rb = read_device_init(sp, 160);
+	sp->rb = read_device_init(sp, cp->unit_len * cp->channels);
 }
 
 
@@ -299,7 +307,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 {
         u_int32 cushion_size, read_dur;
         struct s_cushion_struct *c;
-	int	trailing_silence, new_cushion, cushion_step, diff;
+	int	trailing_silence, new_cushion, cushion_step, diff, channels;
 	sample	*bufp;
 
         c = spi->cushion;
@@ -343,9 +351,9 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 	 * another silence gap...
 	 */
         cushion_size = cushion_get_size(c);
+        channels = audio_get_channels();
 
 	if ( cushion_size < read_dur ) {
-                int channels = audio_get_channels();
 		/* Use a step for the cushion to keep things nicely rounded   */
 		/* in the mixing. Round it up.                                */
                 new_cushion = cushion_use_estimate(c);
@@ -365,7 +373,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                         cushion_size);
 		cushion_size = new_cushion;
 	} else {
-		trailing_silence = mix_get_audio(ms, read_dur * audio_get_channels(), &bufp);
+		trailing_silence = mix_get_audio(ms, read_dur * channels, &bufp);
                 cushion_step = cushion_get_step(c);
                 diff  = 0;
 

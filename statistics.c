@@ -213,7 +213,13 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 				var += cp->unit_len;
 			}
 			src->playout = src->delay + var;
-                        dprintf("new playout calculated %d\n", var);
+
+                        dprintf("new playout calculated %d m(%d) toged(%d) jmp (%d)\n", 
+                                var,
+                                hdr->m,
+                                src->cont_toged,
+                                hdr->seq - src->last_seq);
+
 			if (sp->sync_on) {
 				/* Communicate our playout delay to the video tool... */
 				real_playout = (convert_time(hdr->ts + src->playout - cur_time, src->clock, sp->device_clock) * 1000)/get_freq(sp->device_clock);

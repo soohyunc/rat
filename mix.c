@@ -155,8 +155,10 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	 * and decompressed data at the codec output rate and channels.
 	from = el->comp_data[0].cp;
 	to   = get_codec(sp->encodings[0]);
+        
+
         playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
-	playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
+        dprintf("mixing %ld\n", el->playoutpt);
 
 	if (from->freq == to->freq && from->channels == to->channels) {
 		nsamples = ms->channels * from->unit_len;
@@ -372,7 +374,7 @@ mix_update_ui(session_struct *sp, mix_struct *ms)
 		bp = ms->mix_buffer + ms->buf_len - POWER_METER_SAMPLES * ms->channels;
 	} else {
 		bp = ms->mix_buffer + ms->tail - POWER_METER_SAMPLES;
-	ui_output_level(lin2db(avg_audio_energy(bp, POWER_METER_SAMPLES), 100.0), sp);
+	ui_output_level(lin2db(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100.0), sp);
 	ui_output_level(sp, lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
 }
 }

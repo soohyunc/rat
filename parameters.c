@@ -56,18 +56,40 @@ typedef struct s_sd {
 } sd_t;
 
 #define STEP	16
+#define SD_MAX_CHANNELS 5
 
 u_int16 
-avg_audio_energy(sample *buf, int samples)
+avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
 {
-        int e=0,i=0;
+        u_int32 e[SD_MAX_CHANNELS];
+        register u_int32 i=0,j=0, step;
 
-        while(i<samples) {
-                e   += abs(*buf);
-                buf += STEP;
-                i   += STEP;
+        memset(e, 0, sizeof(u_int32) * SD_MAX_CHANNELS);
+        assert (channels > 0);
+
+        switch (channels) {
+        case '1':
+                while(i<samples) {
+                        (*e) += abs(*buf);
+                        buf  += STEP;
+                        i    += STEP;
+                }
+                return ((u_int16)((*e)*STEP/samples));
+        default:
+                /* SIMD would improve this */
+                step = STEP - channels + 1;
+                while(i<samples) {
+                        for(j=0;j<channels;j++) {
+                                *(e+j) = *buf++;
+                        }
+                        buf += j;
+                        i++;
+                }
+                for(j=1;j<channels;j++) {
+                        e[0] = max(e[0], e[j]);
+                }
+                return (u_int16)((*e)*STEP/samples);
         }
-        return ((u_int16)(e*STEP/samples));
 }
 
 /* ad hoc values - aesthetically better than 0.1, 0.01, 0.001, and so on */

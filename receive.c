@@ -58,7 +58,7 @@ typedef struct s_participant_playout_buffer {
 	struct s_rtcp_dbentry *src;
 	rx_queue_element_struct *head_ptr;
 	rx_queue_element_struct *tail_ptr;
-	rx_queue_element_struct *last_to_get;
+	rx_queue_element_struct *last_got;
 } ppb_t;
 
 rx_queue_element_struct *
@@ -198,13 +198,13 @@ verify_playout_buffer(ppb_t* buf)
 
         el = buf->head_ptr;
         while( el && el->next_ptr ) {
+
                 if (ts_gt(el->src_ts, el->next_ptr->src_ts)) {
                         src_diff = ts_abs_diff( el->next_ptr->src_ts, 
                                                 el->src_ts );
                         dprintf( "src_ts jump %08u.\n", 
                                  src_diff );
                 }
-
                 if (ts_gt(el->playoutpt, el->next_ptr->playoutpt)) {
                         playout_diff = ts_abs_diff( el->next_ptr->playoutpt,
                                                     el->playoutpt );
@@ -238,6 +238,7 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 
         smooth_playout_buffer(ip->prev_ptr,ip);
         smooth_playout_buffer(ip,ip->next_ptr); 
+
 #ifdef DEBUG
         verify_playout_buffer(buf);
 #endif /* DEBUG */
@@ -250,13 +251,13 @@ playout_buffer_get(ppb_t *buf, u_int32 from, u_int32 to)
 {
 	rx_queue_element_struct *ip;
 
-	if (buf->last_to_get == NULL) {
+	if (buf->last_got == NULL) {
 		ip = buf->head_ptr;
 	} else {
-		ip = buf->last_to_get->next_ptr;
+		ip = buf->last_got->next_ptr;
 	}
 	while (ip && ts_gt(from, ip->playoutpt)) {
-		buf->last_to_get = ip;
+		buf->last_got = ip;
 		ip = ip->next_ptr;
 	}
 
@@ -264,7 +265,7 @@ playout_buffer_get(ppb_t *buf, u_int32 from, u_int32 to)
 		if (ts_gt(ip->playoutpt, to))
 			return (NULL);
 
-		buf->last_to_get = ip;
+		buf->last_got = ip;
                 channel_decode(ip);
 		decode_unit(ip);
 	}
@@ -287,8 +288,8 @@ clear_old_participant_history(ppb_t *buf)
 		ip = buf->head_ptr;
 		buf->head_ptr = ip->next_ptr;
 
-		if (buf->last_to_get == ip) {
-			buf->last_to_get = NULL;
+		if (buf->last_got == ip) {
+			buf->last_got = NULL;
 		}
 
 		free_rx_unit(&ip);
@@ -413,6 +414,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		up       = get_unit_off_rx_queue(receive_queue);
 		buf      = find_participant_queue(buf_list, up->dbe_source[0]);
 		cur_time = get_time(buf->src->clock);
+
 		/* This is to compensate for clock drift.
 		 * Same check should be made in case it is too early.
 		 */
@@ -426,8 +428,8 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		/*
 		 * If we have already worked past this point then mix it!
 		 */
-		if (up && buf->last_to_get && up->mixed == FALSE
-		    && ts_gt(buf->last_to_get->playoutpt, up->playoutpt)
+		if (up && buf->last_got && up->mixed == FALSE
+		    && ts_gt(buf->last_got->playoutpt, up->playoutpt)
 		    && ts_gt(up->playoutpt, cur_time)){
                         channel_decode(up);
 			decode_unit(up);
@@ -445,6 +447,23 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 	for (buf = *buf_list; buf; buf = buf->next) {
 		cur_time = get_time(buf->src->clock);
 		cs = cushion_get_size(sp->cushion);
+                {
+                        static struct timeval last_foo;
+                        struct timeval foo;
+                        gettimeofday(&foo, NULL);
+                        dprintf("%08ld: playout range: %ld - %ld\n\tbuffer playout range %ld - %ld\n\tbuffer ts range %ld - %ld\n" , 
+                                (foo.tv_sec  - last_foo.tv_sec) * 1000 +
+                                (foo.tv_usec - last_foo.tv_usec)/1000, 
+                                cur_time, 
+                                cur_time + cs,
+                                buf->head_ptr->playoutpt,
+                                buf->tail_ptr->playoutpt,
+                                buf->head_ptr->src_ts,
+                                buf->tail_ptr->src_ts
+                                );
+                        memcpy(&last_foo, &foo, sizeof(struct timeval));
+                }
+
 		while ((up = playout_buffer_get(buf, cur_time, cur_time + cs))) {
                     if (!up->comp_count  && sp->repair != REPAIR_NONE 
                         && up->prev_ptr != NULL && up->next_ptr != NULL

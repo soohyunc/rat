@@ -446,4 +446,10 @@ audio_get_channels()
         return dev_info.play.channels;
 }
 
+int
+audio_get_freq()
+{
+        return dev_info.play.sample_rate;
+}
+
 #endif /* SunOS */

@@ -2,6 +2,7 @@
  * FILE:    transmit.c
  * PROGRAM: RAT
  * AUTHOR:  Isidor Kouvelas
+ * STEREO MODS: Orion Hodson
  * 
  * $Revision$
  * $Date$
@@ -80,9 +81,9 @@ typedef struct s_minibuf {
 
 	sample	buf[MAX_BUF_LEN];
 	int	len;		/* In samples */
-	int	head;		/* Where we have read up to */
+	int	head_time;	/* Where we have read up to */
 
-	int	unit_size;	/* In samples (*= channels) */
+	int	unit_size;	/* In samples */
 	u_int32	start_time;	/* timestamp */
 } minibuf;
 
@@ -136,25 +137,26 @@ static void
 add_new_buf(read_buffer *rb, int unit_size)
 {
 	minibuf *mbp;
-	int	dist, remain;
-
+	int	dist, remain, channels;
+        
 	mbp = (minibuf *)block_alloc(sizeof(minibuf));
 	mbp->len = MAX_BUF_LEN - (MAX_BUF_LEN % unit_size);
-	mbp->head = 0;
+	mbp->head_time = 0;
 
 	if (rb->lbuf) {
 		assert(rb->last_ptr->buf == rb->lbuf);
-		dist = rb->last_ptr->time - rb->lbuf->start_time + rb->lbuf->unit_size;
-		remain = rb->lbuf->head - dist;
+                channels = audio_get_channels();
+		dist = rb->last_ptr->time - rb->lbuf->start_time + rb->lbuf->unit_size / channels;
+		remain = rb->lbuf->head_time - dist;
 		mbp->start_time = rb->lbuf->start_time + dist;
 
 		if (remain > 0 && rb->lbuf->unit_size == unit_size) {
-			memcpy(mbp->buf, rb->lbuf->buf + dist, remain);
-			mbp->head = remain;
+			memcpy(mbp->buf, rb->lbuf->buf + dist * channels, remain * channels);
+			mbp->head_time = remain;
 		} else {
 			mbp->start_time += remain;
 		}
-		rb->lbuf->head = dist;
+		rb->lbuf->head_time = dist;
 	}
 
 	mbp->unit_size = unit_size;
@@ -179,7 +181,7 @@ init_rb(read_buffer *rb, int unit_size)
 	rb->last_ptr->buf = rb->lbuf;
 	rb->last_ptr->time = rb->lbuf->start_time;
 	rb->last_ptr->data = rb->lbuf->buf;
-	rb->lbuf->head = rb->lbuf->unit_size;
+	rb->lbuf->head_time = rb->lbuf->unit_size / audio_get_channels();
 	/* XXX should memset the buffer to silence! */
 }
 
@@ -261,22 +263,23 @@ read_device_init(session_struct *sp, int unit_size)
 int
 read_device(session_struct *sp)
 {
-	unsigned int	read_len;
+	unsigned int	read_len, channels;
 	read_buffer	*rb;
 	static sample	dummy_buf[DEVICE_REC_BUF];
-	codec_t		*cp;
 
 	rb = sp->rb;
+        channels = audio_get_channels();
+
 	if (sp->sending_audio == FALSE) {
 		read_len = audio_device_read(sp, dummy_buf, DEVICE_REC_BUF);
 	} else {
-		if (rb->lbuf->len - rb->lbuf->head < DEVICE_REC_BUF)
+		if (rb->lbuf->len - rb->lbuf->head_time * channels < DEVICE_REC_BUF)
 			add_new_buf(rb, rb->lbuf->unit_size);
 
-		read_len = audio_device_read(sp, rb->lbuf->buf + rb->lbuf->head, DEVICE_REC_BUF);
-		if (read_len > 0 && sp->bc)
-			audio_unbias(&sp->bc, rb->lbuf->buf + rb->lbuf->head, read_len);
-
+		read_len = audio_device_read(sp, rb->lbuf->buf + rb->lbuf->head_time * channels, DEVICE_REC_BUF);
+		if (read_len > 0 && sp->bc) {
+			audio_unbias(&sp->bc, rb->lbuf->buf + rb->lbuf->head_time * channels, read_len);
+                }
 		if ((sp->mode == FLAKEAWAY) && (sp->flake_go > 0)) {
 			sp->flake_go -= read_len;
 			if (sp->flake_go < 0)
@@ -284,26 +287,25 @@ read_device(session_struct *sp)
 		}
         
 		if ((sp->in_file) && sp->flake_go == 0) {
-			if (fread(rb->lbuf->buf + rb->lbuf->head, BYTES_PER_SAMPLE, read_len, sp->in_file) < read_len) {
+			if (fread(rb->lbuf->buf + rb->lbuf->head_time * channels, BYTES_PER_SAMPLE, read_len, sp->in_file) < read_len) {
 				fclose(sp->in_file);
 				sp->in_file = NULL;
 			}
-			sp->flake_os += read_len;
+			sp->flake_os += read_len / channels;
 		}
 
-		rb->lbuf->head += read_len;
+		rb->lbuf->head_time += read_len / channels;
 	}
 
-	cp = get_codec(sp->encodings[0]);	
-	time_advance(sp->clock, cp->freq, read_len / cp->channels);
-	return (read_len / cp->channels);
+	time_advance(sp->clock, audio_get_freq(), read_len / channels);
+	return (read_len / channels);
 }
 
 int
 process_read_audio(session_struct *sp)
 {
 	tx_unit		*u;
-	int		last_ind, dist;
+	int		last_ind, dist, channels;
 	read_buffer	*rb = sp->rb;
 	minibuf		*mbp;
 
@@ -311,29 +313,37 @@ process_read_audio(session_struct *sp)
 		return FALSE;
 	}
 
+        channels = audio_get_channels();
 	if (rb->last_ptr->buf != rb->lbuf) {
 		last_ind = 0;
 	} else {
-		last_ind = rb->last_ptr->time - rb->lbuf->start_time + rb->lbuf->unit_size;
+		last_ind = rb->last_ptr->time - rb->lbuf->start_time + rb->lbuf->unit_size / channels;
 	}
 
-	dist = rb->lbuf->head - last_ind;
+	dist = (rb->lbuf->head_time - last_ind) * channels; 
 
 	if (dist < rb->lbuf->unit_size)
 		return (FALSE);
 
 	/* If there is a complete unit... */
 	while (dist >= rb->lbuf->unit_size) {
+                assert(last_ind >= 0);
+                assert(dist > 0);
+                assert(rb->lbuf->unit_size == 320);
+
 		u = (tx_unit*)block_alloc(sizeof(tx_unit));
 		memset(u, 0, sizeof(tx_unit));
 		u->prev = rb->last_ptr;
 		rb->last_ptr->next = u;
 		u->buf = rb->lbuf;
-		u->data = rb->lbuf->buf + last_ind;
+		u->data = rb->lbuf->buf + last_ind * channels;
 		u->time = rb->lbuf->start_time + last_ind;
 
+                assert(u->data < rb->lbuf->buf + rb->lbuf->len);
+                assert(u->data + rb->lbuf->unit_size <= rb->lbuf->buf + rb->lbuf->len);
+
 		/* Do first pass of silence supression */
-		u->energy = avg_audio_energy(u->data, rb->lbuf->unit_size);
+		u->energy = avg_audio_energy(u->data, rb->lbuf->unit_size / channels, channels);
 		if (sp->detect_silence) {
 			u->silence = sd(rb->sd_info, u->energy);
 		} else {
@@ -344,7 +354,8 @@ process_read_audio(session_struct *sp)
 
 		rb->last_ptr = u;
 		dist -= rb->lbuf->unit_size;
-		last_ind += rb->lbuf->unit_size;
+		last_ind += rb->lbuf->unit_size / channels;
+                assert(last_ind > 0);
 	}
 
 	/* Clear old history */

@@ -46,7 +46,7 @@
 
 struct s_sd;
 
-u_int16	avg_audio_energy(sample *buf, int samples);
+u_int16	avg_audio_energy(sample *buf, u_int32 dur, u_int32 channels);
 int     lin2db(u_int16 avg_energy, double peak);
 struct  s_sd *sd_init(void);
 void	set_silence_params(char *s);
