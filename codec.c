@@ -611,7 +611,7 @@ codec_matching(char *short_name, int freq, int channels)
 {
         int pt;
         for(pt = 0; pt < MAX_CODEC; pt++) {
-                if (cd[pt].name && cd[pt].freq == freq && cd[pt].channels == channels && !strcmp(cd[pt].short_name, short_name) ) {
+                if (cd[pt].name && cd[pt].freq == freq && cd[pt].channels == channels && !strcmp(short_name, cd[pt].short_name)) {
                         return pt;
                 }
         }

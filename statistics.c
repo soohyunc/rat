@@ -269,6 +269,7 @@ adapt_playout(rtp_hdr_t *hdr,
                 /* something has gone wrong if this assertion fails*/
                 if (playout < get_time(src->clock)) {
                         dprintf("playout before now.\n");
+                        src->first_pckt_flag = TRUE;
                 }
         }
 

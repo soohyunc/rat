@@ -373,7 +373,7 @@ ui_update_frequency(session_struct *sp)
 	char	 args[7];
 
 	pcp = get_codec(sp->encodings[0]);
-	sprintf(args, "%2d-kHz", pcp->freq/1000);
+	sprintf(args, "%d-kHz", pcp->freq/1000);
 	mbus_engine_tx(TRUE, mbus_name_ui, "frequency", mbus_encode_str(args), FALSE);
 }
 
@@ -381,7 +381,7 @@ void
 ui_update_channels(session_struct *sp)
 {
 	codec_t *pcp;
-	char	 args[7];
+	char	 args[9];
         
 	pcp = get_codec(sp->encodings[0]);
         switch(pcp->channels) {
