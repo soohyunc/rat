@@ -36,6 +36,7 @@ typedef struct {
 	struct s_time  *clock;
 	u_int16		units_per_packet;
         u_int16         inter_pkt_gap;               /* expected time between pkt arrivals */
+        ts_t            frame_dur;
         u_char          enc;
         char*           enc_fmt;
         int             enc_fmt_len;

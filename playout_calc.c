@@ -20,6 +20,8 @@
 #include "pdb.h"
 #include "playout_calc.h"
 
+#define PLAYOUT_JITTER_SCALE 2
+
 static ts_t
 playout_variable_component(session_t *sp, pdb_entry_t *e)
 /*****************************************************************************/
@@ -61,22 +63,20 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t transit, int new_spurt)
 /*****************************************************************************/
 {
         pdb_entry_t *e;
-        ts_t         var;
 
         pdb_item_get(sp->pdb, ssrc, &e);
         assert(e != NULL);
 
         if (new_spurt == TRUE) {
+                ts_t         hvar, jvar; /* Host and jitter components       */
                 debug_msg("New talkspurt\n");
-                /* Get RAT specific variable playout component               */
-                var = playout_variable_component(sp, e);
-                /* Use the larger of jitter and variable playout component.  */
-                if (ts_gt(var, e->jitter)) {
-                        e->playout = var;
+                hvar = playout_variable_component(sp, e);
+                jvar = ts_mul(e->jitter, PLAYOUT_JITTER_SCALE);
+                if (ts_gt(hvar, jvar)) {
+                        e->playout = hvar;
                 } else {
-                        e->playout = e->jitter;
+                        e->playout = jvar;
                 }
-                debug_msg("Playout offset (%08lu)\n", e->playout.ticks);
                 e->transit     = transit;
                 e->avg_transit = transit;
         } else {

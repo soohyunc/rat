@@ -577,8 +577,9 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                     src->packets_done == 0) {
                         /* Something has changed or is uninitialized...      */
                         const codec_format_t *cf;
-                        const audio_format *dev_fmt;
-                        codec_id_t cid;
+                        const audio_format   *dev_fmt;
+                        codec_id_t           cid;
+                        u_int32              samples_per_frame;
 
                         cid = codec_get_by_payload(codec_pt);
                         cf  = codec_get_format(cid);
@@ -588,8 +589,11 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         e->enc              = codec_pt;
                         e->units_per_packet = units_per_packet;
                         e->channel_coder_id = ccid;        
-                        e->inter_pkt_gap    = e->units_per_packet * 
-                                (u_int16)codec_get_samples_per_frame(cid);
+                        samples_per_frame   = codec_get_samples_per_frame(cid);
+                        debug_msg("Samples per frame %d rate %d\n", samples_per_frame, cf->format.sample_rate);
+                        e->inter_pkt_gap    = e->units_per_packet * (u_int16)samples_per_frame;
+                        e->frame_dur        = ts_map32(cf->format.sample_rate, samples_per_frame);
+
                         debug_msg("Encoding change\n");
                         /* Get string describing encoding.                   */
                         channel_describe_data(ccid, codec_pt, 
@@ -618,10 +622,16 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         adjust_playout = TRUE;
                 }
 
+                if (ts_gt(e->jitter, e->playout)) {
+                        /* Network conditions have changed drastically.      */
+                        /* We are in the wrong ball park change immediately. */
+                        adjust_playout = TRUE;
+                }
+
                 /* Check for continuous number of packets being discarded.   */
                 /* This happens when jitter or transit estimate is no longer */
                 /* consistent with the real world.                           */
-                if (e->cont_toged == NO_CONT_TOGED_FOR_PLAYOUT_RECALC) {
+                if (e->cont_toged >= NO_CONT_TOGED_FOR_PLAYOUT_RECALC) {
                         adjust_playout = TRUE;
                         e->cont_toged  = 0;
                 } else if (e->cont_toged != 0) {
@@ -649,6 +659,12 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 }
 
                 playout = playout_calc(sp, e->ssrc, transit, adjust_playout);
+                if (p->m && ts_gt(playout, e->frame_dur)) {
+                        /* Packets are likely to be compressed at talkspurt start */
+                        /* because of VAD going back and grabbing frames.         */
+                        playout = ts_sub(playout, e->frame_dur);
+                        debug_msg("New ts shift XXX\n");
+                }
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
 
@@ -661,6 +677,8 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         debug_msg("Packet late (%u > %u)- discarding\n", 
                                   src->last_played.ticks,
                                   playout.ticks);
+                        src->pdbe->cont_toged++;
+                        src->pdbe->jit_toged++;
                         xfree(p);
                         continue;
                 }
@@ -839,8 +857,6 @@ source_check_buffering(source *src)
                 /* in the playout buffer because it hasn't arrived yet.      */
                 return FALSE;
         }
-
-        return FALSE;
 
         actual  = source_get_audio_buffered(src);
         desired = source_get_playout_delay(src);
