@@ -812,7 +812,8 @@ audio_set_ogain(audio_desc_t ad, int volume)
 {
         int iface, device;
 
-        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+        assert(AIF_VALID_INTERFACE(ad));
+	assert(AIF_VALID_DEVICE_NO(ad));
         assert(audio_device_is_open(ad));
 
         iface  = AIF_GET_INTERFACE(ad);
