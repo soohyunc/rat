@@ -19,7 +19,7 @@ static const char cvsid[] =
 #include "debug.h"
 
 #include <machine/pcaudioio.h>
-#include <machine/soundcard.h>
+#include <sys/soundcard.h>
 
 #define LUIGI_SPEAKER    0x101
 #define LUIGI_MICROPHONE 0x201

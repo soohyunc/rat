@@ -20,7 +20,7 @@ static const char cvsid[] =
 #include "memory.h"
 #include "debug.h"
 
-#include <machine/soundcard.h>
+#include <sys/soundcard.h>
 #include <sys/types.h>
 
 #include <dirent.h>

@@ -1619,7 +1619,9 @@ v4.2.22	- Fix compilation on Debian/SPARC (David Martinez/Petter Reinholdsten)
 	* 23 July 2002
 
 v4.2.23	- Fix memory leak with duplicates (Winston Dang)
-
+	- Change include header on FreeBSD as machine/soundcard.h no longer
+	  exists in -CURRENT, but sys/soundcard.h exists in -STABLE and
+	  -CURRENT (Kris Kennaway).
 
 TODO -- They're features not bugs dammit!
 ----
