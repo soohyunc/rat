@@ -1,0 +1,13 @@
+INCS   = -I/cs/research/mice/starship/common/solaris/include \
+         -I/usr/demo/SOUND/include -I/usr/openwin/include 
+
+LDLIBS = -R/usr/openwin/lib \
+         -L/cs/research/mice/starship/common/solaris/lib \
+         -ltk4.2 -ltcl7.6 \
+         -L/usr/openwin/lib -lXext -lX11 \
+         -L/usr/demo/SOUND/lib -laudio \
+         -lsocket -ldl -lnsl -lm
+
+OBJS = $(OBJDIR)/auddev_sparc.o
+
+CRYPTFLAGS = -DSIGRET=void

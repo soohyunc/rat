@@ -1,0 +1,38 @@
+receive.c:	cur_time = get_time(buf->src->clock);
+receive.c:	cutoff = cur_time - get_freq(buf->src->clock) * HISTORY_LEN / 1000;
+receive.c:		cur_time = get_time(buf->src->clock);
+receive.c:		cur_time = get_time(buf->src->clock);
+receive.c:		cs = cushion->cushion_size * get_freq(buf->src->clock) / get_freq(sp->device_clock);
+statistics.c:	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
+statistics.c:	if (src->first_pckt_flag == TRUE) {
+statistics.c:		src->first_pckt_flag = FALSE;
+statistics.c:		src->delay           = delay;
+statistics.c:		src->jitter          = 80;
+statistics.c:		src->last_ts         = hdr->ts - 1;
+statistics.c:		diff       = abs(delay - src->delay);
+statistics.c:		src->delay = delay;
+statistics.c:		src->jitter = src->jitter + (((double) diff - src->jitter) / 16);
+statistics.c:		src->last_diff = diff;
+statistics.c:	if (ts_gt(hdr->ts, src->last_ts)) {
+statistics.c:		cp = get_codec(src->encs[0]);
+statistics.c:		if ((hdr->m) || src->cont_toged > 4 || (ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * cp->unit_len * 8 + 1)))) {
+statistics.c:			var = (u_int32) src->jitter * 3;
+statistics.c:			var += cushion->cushion_size * get_freq(src->clock) / get_freq(sp->device_clock);
+statistics.c:			if (src->clock!=sp->device_clock) 
+statistics.c:			if (src->encoding == sp->redundancy_pt)
+statistics.c:				var += cp->unit_len * src->units_per_packet;
+statistics.c:			src->playout = src->delay + var;
+statistics.c:			src->encoding = hdr->pt;
+statistics.c:		src->last_ts  = hdr->ts;
+statistics.c:		src->last_seq = hdr->seq;
+statistics.c:	playout = hdr->ts + src->playout;
+statistics.c:	if (src->encs[0] == -1 || !codec_compatible(pcp, get_codec(src->encs[0])))
+statistics.c:	if (src->encs[0] != pri_pt) {
+statistics.c:		src->encs[0] = pri_pt;
+statistics.c:			if (src->encs[blocks] != RED_PT(red_hdr)) {
+statistics.c:				src->encs[blocks] = RED_PT(red_hdr);
+statistics.c:			scp = get_codec(src->encs[blocks]);
+statistics.c:					split_block(playout_pt - RED_OFF(red_hdr), src->encs[blocks], data_ptr, block_len, src, unitsrx_queue_ptr, FALSE, hdr, sp, cur_time);
+statistics.c:	if (src->encs[blocks] != -1) {
+statistics.c:		src->encs[blocks] = -1;
+statistics.c:	src->units_per_packet = split_block(playout_pt, src->encs[0], data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);

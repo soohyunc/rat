@@ -1,0 +1,5 @@
+INCS   = -I/usr/X11R6/include -I/cs/research/mice/starship/common/linux/include
+LDLIBS = -L/cs/research/mice/starship/common/linux/lib -ltk4.2 -ltcl7.6 -L/usr/X11R6/lib -lX11 -lm 
+LDFLAGS= -static
+
+OBJS = $(OBJDIR)/auddev_oss.o

@@ -1,0 +1,11 @@
+INCS   = -I/cs/research/mice/starship/common/sun4/include \
+         -I/usr/ucl/X11/include -I/usr/demo/SOUND
+
+LDLIBS = /cs/research/mice/starship/common/sun4/lib/libtk42.a \
+	 /cs/research/mice/starship/common/sun4/lib/libtcl76.a \
+         -L/usr/openwin/lib -lXext -lX11 \
+         -L/usr/demo/SOUND -laudio \
+         -lm
+
+CRYPTFLAGS = -mv8 -D__svr4__ -DSIGRET=void
+

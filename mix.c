@@ -1,0 +1,353 @@
+/*
+ * FILE: mix.c
+ * PROGRAM: RAT/Mixer
+ * AUTHOR: Isidor Kouvelas + Colin Perkins
+ *
+ * $Revision$
+ * $Date$
+ *
+ * Copyright (c) 1995,1996 University College London
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, is permitted, for non-commercial use only, provided
+ * that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *      This product includes software developed by the Computer Science
+ *      Department at University College London
+ * 4. Neither the name of the University nor of the Department may be used
+ *    to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ * Use of this software for commercial purposes is explicitly forbidden
+ * unless prior written permission is obtained from the authors.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
+#include "mix.h"
+#include "session.h"
+#include "util.h"
+#include "audio.h"
+#include "receive.h"
+#include "rat_time.h"
+#include "rtcp_pckt.h"
+#include "rtcp_db.h"
+#include "convert.h"
+#include "codec.h"
+#include "parameters.h"
+#include "ui.h"
+
+typedef struct s_mix_info {
+	int	buf_len;        /* Length of circular buffer */
+	int	head, tail;     /* Index to head and tail of buffer */
+	u_int32	head_time;      /* Time of latest sample in buffer.
+				 * In fact pad_time has to be taken into
+				 * account to get the actual value. */
+	u_int32	tail_time;	/* Current time */
+	int	dist;		/* Distance between head and tail.
+				 * We must make sure that this is kept
+				 * equal to value of the device cushion
+				 * unless there is no audio to mix. */
+	sample	*mix_buffer;	/* The buffer containing mixed audio data */
+} mix_struct;
+
+#define ROUND_UP(x, y)  (x) % (y) > 0 ? (x) - (x) % (y) : (x)
+
+/*
+ * Initialise the circular buffer that is used in mixing.
+ * The buffer length should be as big as the largest possible
+ * device coushion used (and maybe some more).
+ * We allocate space three time the requested one so that we
+ * dont have to copy everything when we hit the boundaries..
+ */
+mix_struct *
+init_mix(session_struct *sp, int buffer_length)
+{
+	mix_struct	*ms;
+
+	ms = (mix_struct *) xmalloc(sizeof(mix_struct));
+	memset(ms, 0 , sizeof(mix_struct));
+	ms->buf_len = buffer_length;
+	ms->mix_buffer = (sample *)xmalloc(3 * buffer_length * BYTES_PER_SAMPLE);
+	audio_zero(ms->mix_buffer, 3 * buffer_length, DEV_L16);
+	ms->mix_buffer += buffer_length;
+	return (ms);
+}
+
+static void
+mix_audio(sample *v0, sample *v1, int len)
+{
+	int	tmp;
+
+	for (; len > 0; len--) {
+		tmp = *v0 + *v1++;
+		if (tmp > 32767)
+			tmp = 32767;
+		else if (tmp < -32768)
+			tmp = -32768;
+		*v0++ = tmp;
+	}
+}
+
+static void
+mix_add(mix_struct *ms, sample *buf, int offset, int len)
+{
+	if (offset + len > ms->buf_len) {
+		mix_audio(ms->mix_buffer + offset, buf, ms->buf_len - offset);
+		mix_audio(ms->mix_buffer, buf, offset + len - ms->buf_len);
+	} else {
+		mix_audio(ms->mix_buffer + offset, buf, len);
+	}
+}
+
+static void
+mix_zero(mix_struct *ms, int offset, int len)
+{
+	if (offset + len > ms->buf_len) {
+		audio_zero(ms->mix_buffer + offset, ms->buf_len - offset, DEV_L16);
+		audio_zero(ms->mix_buffer, offset + len-ms->buf_len, DEV_L16);
+	} else {
+		audio_zero(ms->mix_buffer + offset, len, DEV_L16);
+	}
+}
+
+/*
+ * This function assumes that packets come in order without missing or
+ * duplicates! Starts of talkspurts should allways be signaled.
+ */
+
+void
+mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el)
+        u_int32	playout, diff;
+        int	pos, i, len;
+	codec_t	*from, *to;
+        const codec_format_t *cf_from, *cf_to;
+	sample	*buf;
+
+	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+
+	/* Receive unit at this point has a playout at the receiver frequency
+	 * and decompressed data at the codec output rate and channels.
+	from = el->comp_data[0].cp;
+	to = get_codec(sp->encodings[0]);
+	playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
+	if (from->freq != to->freq || from->channels != to->channels) {
+		len = convert_format(el, to->freq, to->channels);
+		buf = el->native_data[1];
+	} else {
+		len = from->unit_len * from->channels;
+		buf = el->native_data[0];
+                }
+
+	/* If it is too late... */
+
+#ifdef DEBUG
+	    	printf("Unit arrived late in mix %ld - %ld = %ld\n", ms->tail_time, playout, ms->tail_time - playout);
+	    	debug_msg("Unit arrived late in mix %ld - %ld = %ld (dist = %d)\n", ms->tail_time, playout, ms->tail_time - playout, ms->dist);
+#endif
+	    	return;
+	}
+#ifdef DEBUG
+	/* This should never really happen but you can't be too careful :-)
+	 * It can happen when switching unit size... */
+	if (ts_gt(el->dbe_source[0]->last_mixed_playout + len, playout))
+		printf("New unit overlaps with previous by %ld samples\n", el->dbe_source[0]->last_mixed_playout + len - playout);
+#endif
+        }
+#ifdef GAP_DEBUG
+	if (ts_gt(playout, el->dbe_source[0]->last_mixed_playout + len))
+		printf("Gap between units %ld samples\n", playout - el->dbe_source[0]->last_mixed_playout - len);
+		debug_msg("Gap between units %ld samples\n", playout - el->dbe_source[0]->last_mixed_playout - dur);
+#endif
+
+		if (el->dbe_source[i] != NULL)
+		if (el->dbe_source[i] != NULL) {
+		}
+	}
+	if (el->dbe_source[0]->mute)
+	if (el->dbe_source[0]->mute) {
+	}
+
+	pos = (playout - ms->head_time + ms->head) % ms->buf_len;
+	pos = ((playout - ms->head_time)*ms->channels + ms->head) % ms->buf_len;
+	assert(pos >= 0);
+
+	/* Should clear buffer before advancing...
+	 * Or better only mix if something there otherwise copy...
+	 */
+
+	/*
+	 * If we have not mixed this far (normal case)
+	 * we mast clear the buffer ahead (or copy)
+	if (ts_gt(playout + len, ms->head_time)) {
+		diff = playout + len - ms->head_time;
+		assert(diff > 0);
+		assert(diff < ms->buf_len);
+		mix_zero(ms, ms->head, diff);
+		ms->dist += diff;
+		ms->head += diff;
+		ms->head_time += diff;
+		ms->head_time += diff/ms->channels;
+	}
+	mix_add(ms, buf, pos, len);
+	el->mixed = TRUE;
+}
+
+ *
+ * This function was modified so that it returns the amount of
+ * silence at the end of the buffer returned so that the cushion
+ * Note: amount is number of samples to get and not sampling intervals!
+
+mix_get_audio(mix_struct *ms, int amount, sample **bufp)
+mix_get_audio(mix_struct *ms, int amount, sample **bufp)
+{
+	int	silence;
+        xmemchk();
+	assert(amount < ms->buf_len);
+	if (amount > ms->dist) {
+		/*
+ 		 * If we dont have enough to give one of two things
+		 * must have happened.
+		 * a) There was silence :-)
+		 * b) There wasn't enough time to decode the stuff...
+		 * In either case we will have to return silence for
+		 * now so zero the rest of the buffer and move the head.
+		 */
+		silence = amount - ms->dist;
+#ifdef DEBUG
+			printf("Insufficient audio: zeroing end of mix buffer %d %d\n", ms->buf_len - ms->head, silence + ms->head - ms->buf_len);
+			fprintf(stderr,"Insufficient audio: zeroing end of mix buffer %d %d\n", ms->buf_len - ms->head, silence + ms->head - ms->buf_len);
+			audio_zero(ms->mix_buffer + ms->head, ms->buf_len - ms->head, DEV_L16);
+			audio_zero(ms->mix_buffer, silence + ms->head - ms->buf_len, DEV_L16);
+			audio_zero(ms->mix_buffer, silence + ms->head - ms->buf_len, DEV_S16);
+			audio_zero(ms->mix_buffer + ms->head, silence, DEV_L16);
+			audio_zero(ms->mix_buffer + ms->head, silence, DEV_S16);
+                xmemchk();
+		ms->head      += silence;
+		ms->head_time += silence;
+		ms->dist      = amount;
+		ms->dist       = amount;
+		assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+	} else {
+		silence = 0;
+	}
+
+	if (ms->tail + amount > ms->buf_len) {
+		/*
+		 * We have run into the end of the buffer so we will
+		 * have to copy stuff before we return it.
+		 * The space after the 'end' of the buffer is used
+		 * for this purpose as the space before is used to
+		 * hold silence that is returned in case the cushion
+		 * grows too much.
+		 * Of course we could use both here (depending on which
+		 * direction involves less copying) and copy actual
+		 * voice data in the case a cushion grows into it.
+		 * The problem is that in that case we are probably in
+		 * trouble and want to avoid doing too much...
+		 *
+		 * Also if the device is working in similar boundaries
+		 * to our chunk sizes and we are a bit careful about the
+		 * possible cushion sizes this case can be avoided.
+                xmemchk();
+#ifdef DEBUG
+		printf("Copying start of mix len: %d\n", ms->tail + amount - ms->buf_len);
+		fprintf(stderr,"Copying start of mix len: %d\n", ms->tail + amount - ms->buf_len);
+#endif
+	}
+	ms->tail_time += amount;
+	ms->tail_time += amount/ms->channels;
+	ms->tail      += amount;
+	ms->tail      %= ms->buf_len;
+	ms->dist      -= amount;
+	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+
+	return silence;
+}
+
+/*
+ * We need the amount of time we went dry so that we can make a time
+ *
+ */
+void
+mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
+			int dry_time, sample **bufp)
+{
+	int	diff, elapsed_time;
+#ifdef DEBUG
+	printf("Getting new cushion %d old %d\n", new_cushion_size, last_cushion_size);
+	fprintf(stderr, "Getting new cushion %d old %d\n", new_cushion_size, last_cushion_size);
+#endif
+	elapsed_time = last_cushion_size + dry_time;
+	diff = abs(new_cushion_size - elapsed_time);
+
+	if (new_cushion_size > elapsed_time) {
+	if (new_cushion_size > elapsed_time) {
+		/*
+		 * New cushion is larger so move tail back to get
+		 * the right amount and end up at the correct time.
+		 * The effect of moving the tail is that some old
+		 * audio and/or silence will be replayed. We do not
+		 * care to much as we are right after an underflow.
+		 */
+		ms->tail -= diff;
+		if (ms->tail < 0) {
+			ms->tail += ms->buf_len;
+		}
+		ms->dist += diff;
+		ms->tail_time -= diff;
+		ms->tail_time -= diff/ms->channels;
+	} else if (new_cushion_size < elapsed_time) {
+	} else if (new_cushion_size < elapsed_time) {
+		/*
+		 * New cushion is smaller so we have to throw away
+		 * some audio.
+		 */
+		ms->tail += diff;
+		ms->tail_time += diff;
+		ms->tail_time += diff/ms->channels;
+		if (diff > ms->dist) {
+			ms->head = ms->tail;
+			ms->head_time = ms->tail_time;
+			ms->dist = 0;
+		} else {
+			ms->dist -= diff;
+		}
+		assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+	mix_get_audio(ms, new_cushion_size, bufp);
+	mix_get_audio(ms, new_cushion_size * ms->channels, bufp);
+}
+
+
+#define POWER_METER_SAMPLES 160
+
+mix_update_ui(mix_struct *ms, session_struct *sp)
+mix_update_ui(session_struct *sp, mix_struct *ms)
+{
+	int	energy;
+	sample	*bp;
+
+		bp = ms->mix_buffer + ms->buf_len - POWER_METER_SAMPLES;
+		bp = ms->mix_buffer + ms->buf_len - POWER_METER_SAMPLES * ms->channels;
+	} else {
+		bp = ms->mix_buffer + ms->tail - POWER_METER_SAMPLES;
+	energy = audio_energy(bp, POWER_METER_SAMPLES);
+	ui_output_level(log10((double)1.0 + (double)energy / (double)127) * 67, sp);
+	ui_output_level(sp, lin2vu(avg_audio_energy(bp, POWER_METER_SAMPLES, 1), 100, VU_OUTPUT));
+}

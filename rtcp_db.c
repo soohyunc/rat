@@ -1,0 +1,389 @@
+/*
+ * Filename: rtcp_db.c
+ * Author:   Colin Perkins
+ * Purpose:  RTCP database routines
+ *
+ * $Revision$
+ * $Date$
+ *
+ * Copyright (c) 1995,1996,1997 University College London
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, is permitted, for non-commercial use only, provided
+ * that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *      This product includes software developed by the Computer Science
+ *      Department at University College London
+ * 4. Neither the name of the University nor of the Department may be used
+ *    to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ * Use of this software for commercial purposes is explicitly forbidden
+ * unless prior written permission is obtained from the authors.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ * Modified from code with the following copyright:
+ *
+ * Copyright (c) 1994 Paul Stewart All rights reserved.
+ * 
+ * Permission is hereby granted, without written agreement and without license
+ * or royalty fees, to use, copy, modify, and distribute this software and
+ * its documentation for any purpose, provided that the above copyright
+ * notice appears in all copies of this software.
+ */
+
+#include "version.h"
+#include "rat_types.h"
+#include "rtcp_pckt.h"
+#include "rtcp_db.h"
+#include "session.h"
+#include "util.h"
+#include "speaker_table.h"
+#include "ui.h"
+#include "rat_time.h"
+
+#define MAX_DROPOUT	3000
+#define MAX_MISORDER	100
+#define MIN_SEQUENTIAL	2
+
+static void 
+init_seq(rtcp_dbentry *s, u_int16 seq)
+{
+	s->firstseqno     = seq;
+	s->lastseqno      = seq;
+	s->bad_seq        = RTP_SEQ_MOD + 1;
+	s->cycles         = 0;
+	s->pckts_recv     = 0;
+	s->received_prior = 0;
+	s->expected_prior = 0;
+}
+
+int 
+rtcp_update_seq(rtcp_dbentry *s, u_int16 seq)
+{
+	u_int16         udelta = seq - s->lastseqno;
+
+	if (s->pckts_recv == 0) {
+		s->probation = 0;
+		init_seq(s, seq);
+	}
+
+	/*
+	 * Source is not valid until MIN_SEQUENTIAL packets with sequential
+	 * sequence numbers have been received.
+	 */
+	if (s->probation) {
+		/* packet is in sequence */
+		if (seq == s->lastseqno + 1) {
+			s->probation--;
+			s->lastseqno = seq;
+			if (s->probation == 0) {
+				init_seq(s, seq);
+				s->pckts_recv++;
+				return 1;
+			}
+		} else {
+			s->probation = MIN_SEQUENTIAL - 1;
+			s->lastseqno = seq;
+		}
+		return 0;
+	} else if (udelta < MAX_DROPOUT) {
+		/* in order, with permissible gap */
+		if (seq < s->lastseqno) {
+			/*
+			 * Sequence number wrapped - count another 64K cycle.
+			 */
+			s->cycles += RTP_SEQ_MOD;
+		}
+		s->lastseqno = seq;
+	} else if (udelta <= RTP_SEQ_MOD - MAX_MISORDER) {
+		/* the sequence number made a very large jump */
+		if (seq == s->bad_seq) {
+			/*
+			 * Two sequential packets -- assume that the other
+			 * side restarted without telling us so just re-sync
+			 * (i.e., pretend this was the first packet).
+			 */
+			init_seq(s, seq);
+		} else {
+			s->bad_seq = (seq + 1) & (RTP_SEQ_MOD - 1);
+			return 0;
+		}
+	} else {
+		/* duplicate or reordered packet */
+	}
+	s->pckts_recv++;
+	return 1;
+}
+
+/*
+ * Gets a pointer to an SSRC database entry given an SSRC number Arguments:
+ * ssrc: SSRC number Returns: The database entry.
+ */
+rtcp_dbentry   *
+rtcp_get_dbentry(session_struct *sp, u_int32 ssrc)
+{
+	rtcp_dbentry   *dptr = sp->db->ssrc_db;
+
+	while (dptr) {
+		if (dptr->ssrc == ssrc) {
+			return (dptr);
+		}
+		dptr = dptr->next;
+	}
+
+	/*
+	 * To avoid seeing two participants when looping back we should have
+	 * a check here for our ssrc and addr and return sp->db->my_dbe
+	 */
+	return NULL;
+}
+
+/*
+ * Get my SSRC
+ */
+u_int32 
+rtcp_myssrc(session_struct *sp)
+{
+	return sp->db->myssrc;
+}
+
+/*
+ * Allocates, initializes and adds a new database entry. Modified by
+ * V.J.Hardman 28/03/95 - extra stats added
+ */
+static rtcp_dbentry *
+rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 addr, u_int32 cur_time)
+{
+	rtcp_dbentry   *newdb;
+
+#ifdef LOG_PARTICIPANTS
+	printf("JOIN: ssrc=%lx addr=%lx time=%ld\n", ssrc, addr, cur_time);
+#endif
+
+	newdb = (rtcp_dbentry *)xmalloc(sizeof(rtcp_dbentry));
+	memset(newdb, 0, sizeof(rtcp_dbentry));
+	newdb->ssrc 			= ssrc;
+	newdb->sentry 			= (ssrc_entry *) xmalloc(sizeof(ssrc_entry));
+	memset(newdb->sentry, 0, sizeof(ssrc_entry));
+	newdb->sentry->ssrc 		= ssrc;
+	newdb->sentry->addr 		= addr;
+	newdb->firstseqno 		= 1;	/* So that "expected packets" starts out 0 */
+	newdb->last_active 		= cur_time;
+	newdb->encoding			= -1;	/* Used in playout calc */
+	newdb->encs[0] 			= -1;
+	newdb->first_pckt_flag 		= TRUE;
+	newdb->info_index 		= -1;		/* Indicate it is not entered in UI o list yet IK */
+
+	return (newdb);
+}
+
+rtcp_dbentry   *
+rtcp_new_dbentry(session_struct *sp, u_int32 ssrc, u_int32 addr, u_int32 cur_time)
+{
+	rtcp_dbentry   *newdb;
+	rtcp_dbentry   *dbptr;
+
+	newdb = rtcp_new_dbentry_noqueue(ssrc, addr, cur_time);
+	newdb->clock = new_time(sp->clock, get_freq(sp->device_clock));
+	if (!sp->db->ssrc_db) {
+		sp->db->ssrc_db = newdb;
+	} else {
+		dbptr = sp->db->ssrc_db;
+		while (dbptr->next) {
+			dbptr = dbptr->next;
+		}
+		dbptr->next = newdb;
+	}
+	sp->db->members++;
+	return newdb;
+}
+
+/*
+ * Convenience routine for getting or creating a database entry if it does
+ * not exist yet.
+ */
+rtcp_dbentry   *
+rtcp_getornew_dbentry(session_struct *sp, u_int32 ssrc, u_int32 addr, u_int32 cur_time)
+{
+	rtcp_dbentry   *dbe;
+	dbe = rtcp_get_dbentry(sp, ssrc);
+	if (!dbe) {
+		dbe = rtcp_new_dbentry(sp, ssrc, addr, cur_time);
+#ifdef NDEF		/* We don't have ui_info_update anymore! [csp]*/
+		ui_info_update(dbe);	/* HACK */
+#endif
+	}
+	return dbe;
+}
+
+/*
+ * Removes memory associated with an SSRC database item.
+ */
+static void 
+rtcp_free_dbentry(rtcp_dbentry *dbptr)
+{
+	ssrc_entry     *sse;
+
+	if (dbptr->clock)
+		free_time(dbptr->clock);
+
+	if (dbptr && (sse = dbptr->sentry)) {
+		if (sse->cname) xfree(sse->cname);
+		if (sse->name)  xfree(sse->name);
+		if (sse->email) xfree(sse->email);
+		if (sse->phone) xfree(sse->phone);
+		if (sse->loc)   xfree(sse->loc);
+		if (sse->txt)   xfree(sse->txt);
+		if (sse->tool)  xfree(sse->tool);
+		xfree(sse);
+	}
+	xfree(dbptr);	/* IK 5/7/97. Not done before?! */
+}
+
+/*
+ * Removes a database item from the linked list, and calls rtcp_free_dbentry
+ * on it.
+ */
+void 
+rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
+{
+	rtcp_dbentry   *dbptr = sp->db->ssrc_db;
+	rtcp_dbentry   *tmp;
+
+#ifdef LOG_PARTICIPANTS
+	printf("BYE: ssrc=%lx time=%ld\n", ssrc, cur_time);
+#endif
+
+	if (!sp->db->ssrc_db)
+		return;
+	if (dbptr->ssrc == ssrc) {
+		sp->db->ssrc_db = dbptr->next;
+		check_active_leave(sp, dbptr);
+		if (sp->ui_on) {
+			ui_info_remove(dbptr, sp);
+		}
+		rtcp_free_dbentry(dbptr);
+		return;
+	}
+	while (dbptr->next != NULL) {
+		if (dbptr->next->ssrc == ssrc) {
+			tmp = dbptr->next;
+			dbptr->next = dbptr->next->next;
+			/* Remove it from the participants list IK */
+			check_active_leave(sp, tmp);
+			if (sp->ui_on) {
+				ui_info_remove(tmp, sp);
+			}
+			rtcp_free_dbentry(tmp);
+			sp->db->members--;
+			return;
+		}
+		dbptr = dbptr->next;
+	}
+}
+
+/*
+ * Set a database attribute
+ */
+int 
+rtcp_set_attribute(session_struct *sp, int type, char *val)
+{
+	if (type < 2 || type > RTP_NUM_SDES || !val || !*val) {
+		return -1;
+	}
+
+	if (type == RTCP_SDES_LOC && sp->db->my_dbe != NULL) {
+		if (sp->db->my_dbe->sentry->loc) xfree(sp->db->my_dbe->sentry->loc);
+		sp->db->my_dbe->sentry->loc = xstrdup(val);
+		ui_info_update_loc(sp->db->my_dbe, sp);
+	}
+
+	if (type == RTCP_SDES_PHONE && sp->db->my_dbe != NULL) {
+		if (sp->db->my_dbe->sentry->phone) xfree(sp->db->my_dbe->sentry->phone);
+		sp->db->my_dbe->sentry->phone = xstrdup(val);
+		ui_info_update_phone(sp->db->my_dbe, sp);
+	}
+
+	if (type == RTCP_SDES_EMAIL && sp->db->my_dbe != NULL) {
+		if (sp->db->my_dbe->sentry->email) xfree(sp->db->my_dbe->sentry->email);
+		sp->db->my_dbe->sentry->email = xstrdup(val);
+		ui_info_update_email(sp->db->my_dbe, sp);
+	}
+
+	if (type == RTCP_SDES_NAME && sp->db->my_dbe != NULL) {
+		if (sp->db->my_dbe->sentry->name) xfree(sp->db->my_dbe->sentry->name);
+		sp->db->my_dbe->sentry->name = xstrdup(val);
+		ui_info_update_name(sp->db->my_dbe, sp);
+	}
+
+	type--;
+	if (sp->db->sdes[type]) {
+		xfree(sp->db->sdes[type]);
+	}
+	sp->db->sdes[type] = xmalloc(strlen(val) + 1);
+	strcpy(sp->db->sdes[type], val);
+	return 1;
+}
+
+/*
+ * Initializes the RTP database. (sp->db) Arguments:
+ * decoder: Function pointer to the routine this program uses cname: Initial
+ * canonical name. Modified by V.J.Hardman No decode arguments needed etc.
+ * want to remove them Added more stats counters
+ *
+ * Most of this work is done in init_session() now, we just have to set up the
+ * dynamic stuff here. [csp]
+ */
+void 
+rtcp_init(session_struct *sp, char *cname, u_int32 ssrc, u_int32 cur_time)
+{
+	int	i;
+
+	sp->db = (rtp_db*)xmalloc(sizeof(rtp_db));
+	memset(sp->db, 0, sizeof(rtp_db));
+
+	sp->db->members		= 1;
+	sp->db->rtcp_bw		= 417.5; /* 5% of 8350 bytes/sec (8khz, pcmu) session bandwidth */
+	sp->db->initial_rtcp	= TRUE;
+	sp->db->report_interval = rtcp_interval(sp->db->members, sp->db->senders, sp->db->rtcp_bw, sp->db->sending, 
+					        128, &(sp->db->avg_size), sp->db->initial_rtcp);
+	for (i = 0; i < RTP_NUM_SDES; i++) {
+		sp->db->sdes[i] = NULL;
+	}
+
+	sp->db->myssrc = ssrc;
+	sp->db->sdes[RTCP_SDES_CNAME - 1] = xstrdup(cname);
+
+	/* Put us in UI location 0 */
+	sp->db->my_dbe                = rtcp_new_dbentry_noqueue(sp->db->myssrc, 0, cur_time);
+	sp->db->my_dbe->sentry->cname = xstrdup(cname);
+
+	if (sp->db->sdes[RTCP_SDES_NAME - 1]) {
+		sp->db->my_dbe->sentry->name = xstrdup(sp->db->sdes[RTCP_SDES_NAME - 1]);
+	}
+	sp->db->my_dbe->info_index = 0;
+
+	sp->db->last_rpt     = get_time(sp->device_clock);
+	sp->db->initial_rtcp = TRUE;
+	sp->db->sending      = FALSE;
+	sp->db->senders      = 0;
+}
+

@@ -1,0 +1,29 @@
+This is yet another implementation of DES in software, for those of us that
+don't have access to DES hardware. The library is fairly (but not quite)
+complete, as are the two progs, qf-des and qf-key. However, debugging and
+testing is still proceeding ...
+
+Quickie Roadmap
+---------------
+
+qf-des: Do DES on files (qf-des.c)
+qf-key: Generate keys and IVs (qf-key.c)
+
+libqfDES.a: library of DES stuff
+
+qfDES.h: Interface file for libqfDES.a
+qfDES.c: The DES function
+
+qfDES-print.c: For generating some of the DES macros and S-Box/P transforms
+
+qfDES-key.c: Key and IV generation
+
+qfDES-memory.c: Fiddling around with memory
+
+Disclaimer
+----------
+This version of the qfDES is for me only, so if you have it and are not me,
+then I take no responsibility for what happens when you use it!
+
+TTFN,
+--/Saleem

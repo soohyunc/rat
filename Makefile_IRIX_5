@@ -1,0 +1,9 @@
+INCS       = -I/usr/ucl/X11/include \
+	     -I/cs/research/mice/starship/common/irix/include
+LDLIBS     = -L/cs/research/mice/starship/common/irix/lib -ltk4.2 -ltcl7.6 \
+             -L/usr/lib/X11 -lXext -lX11 \
+             -laudio -lm
+
+CRYPTFLAGS =-D__svr4__ -DSIGRET=void
+
+OBJS = $(OBJDIR)/auddev_sgi.o
