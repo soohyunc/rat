@@ -112,7 +112,6 @@ init_session(session_struct *sp)
 	sp->sync_on			= FALSE;
 	sp->agc_on			= FALSE;
         sp->ui_on                       = TRUE;
-	sp->ui_response			= 15;
 	sp->loop_delay			= -1;		/* Real initialisation is in init_audio.c */
 	sp->loop_estimate		= -1;		/* Real initialisation is in init_audio.c */
 	sp->last_zero              	= FALSE;
