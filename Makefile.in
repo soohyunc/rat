@@ -52,3 +52,7 @@ ctags:
 release:
 	cvs tag release-`cat VERSION | sed "s/\./-/g"`
 
+tgz:
+	tar cvf rat-__OSTYPE__.tar README.* MODS COPYRIGHT rat
+	gzip -9v rat-__OSTYPE__.tar
+
