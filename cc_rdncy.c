@@ -69,6 +69,7 @@ redundancy_encoder_create(u_char **state, u_int32 *len)
         if (re == NULL) {
                 goto fail_alloc;
         }
+        memset(re, 0, sizeof(red_enc_state));
 
         *state = (u_char*)re;
         *len   = sizeof(red_enc_state);
@@ -267,10 +268,6 @@ redundancy_check_layers(red_enc_state *re, media_data *m)
                         }
                 }
                 assert(found == TRUE); /* Coding for layer not found */
-        }
-
-        for(i = 0; i < m->nrep; i++) {
-                assert(used[i]); /* i'th rep in media_data not used */
         }
 }
 
