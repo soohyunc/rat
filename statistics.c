@@ -188,6 +188,7 @@ adapt_playout(rtp_hdr_t *hdr,
 		src->delay           = delay;
 		src->jitter          = 80;
 		src->last_ts         = hdr->ts - 1;
+                src->playout_ceil    = 0;
 		hdr->m               = TRUE;
 	} else {
 		diff       = abs(delay - src->delay);
@@ -249,13 +250,13 @@ adapt_playout(rtp_hdr_t *hdr,
 				 * base of that participant.
 				 */
 				if (src->video_playout_received == TRUE && 
-                                    src->video_playout > src->playout) {
+                                    src->video_playout > (signed)src->playout) {
 					src->playout = src->video_playout;
 				}
 			}
 		} else {
 			/* Do not set encoding on TS start packets as they do not show if redundancy is used...   */
-			src->encoding = hdr->pt;
+                        /*	src->encoding = hdr->pt; */
 		}
 		src->last_ts        = hdr->ts;
 		src->last_seq       = hdr->seq;
@@ -264,6 +265,9 @@ adapt_playout(rtp_hdr_t *hdr,
 
 	/* Calculate the playout point in local source time for this packet. */
 	playout = hdr->ts + src->playout;
+        if (src->playout - src->delay > src->playout_ceil) {
+                src->playout_ceil = src->playout - src->delay;
+        }
 
         if (src->cont_toged > 12) {
                 /* something has gone wrong if this assertion fails*/

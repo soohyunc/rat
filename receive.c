@@ -61,7 +61,13 @@ typedef struct s_participant_playout_buffer {
 	rx_queue_element_struct *last_got;
         u_int32 len;
         u_int32 age;
+        u_int32 hist; /* bitmap of additions and removals */
 } ppb_t;
+
+/* this is still trial and error */
+#define PB_GROW(x)     (x)->hist<<=1; (x)->len++
+#define PB_SHRINK(x)   (x)->hist = (((x)->hist << 1)|1); (x)->len--
+#define PB_DRAINING(x) (((x->hist)&0x0f) == 0x0f)
 
 rx_queue_element_struct *
 new_rx_unit(void)
@@ -115,7 +121,7 @@ add_or_get_interval(ppb_t *buf, rx_queue_element_struct *ru)
 			(*ipp)->prev_ptr = ru;
 		}
 		*ipp = ru;
-                buf->len ++;
+                PB_GROW(buf);
 	}
 	return (*ipp);
 }
@@ -145,9 +151,8 @@ fillin_playout_buffer(ppb_t *buf,
         last = from;
         while(last->src_ts + last->unit_size != to->src_ts &&
               units_made < MAX_FILLIN_UNITS) {
-
                 curr = new_rx_unit();
-                buf->len ++;
+                PB_GROW(buf);
                 buf->age ++;
                 curr->src_ts    = last->src_ts    + last->unit_size;
                 curr->playoutpt = last->playoutpt + playout_step;
@@ -201,21 +206,12 @@ verify_playout_buffer(ppb_t* buf)
                 el = el->next_ptr;
                 buf_len++;
         }
-        
-        if (buf_len>50) {
-                debug_msg( "rx buf_len = %d units.  Excessive?\n", 
-                         buf_len + 1 );
-                /* 
-                 * plus one is because loop requires 2 rx units 
-                 * to be present... 
-                 */
-        }
+
         if (buf->len != buf_len + 1) {
                 debug_msg("Buffer length estimate is wrong (%d %d)!\n",
                         buf->len,
                         buf_len + 1);
         }
-
 }
 #endif /* DEBUG_PLAYOUT */
 
@@ -315,7 +311,7 @@ clear_old_participant_history(ppb_t *buf)
 			buf->last_got = NULL;
 		}
 		free_rx_unit(&ip);
-                buf->len --;
+                PB_SHRINK(buf);
 	}
 
 	if (buf->head_ptr) {
@@ -494,7 +490,6 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
         cu = cushion_get_step(sp->cushion);
 
 	for (buf = *buf_list; buf; buf = buf->next) {
-                chunks_mixed = 0;
 		cur_time = get_time(buf->src->clock);
 #ifdef DEBUG_PLAYOUT_BROKEN
                 {
@@ -514,6 +509,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                         memcpy(&last_foo, &foo, sizeof(struct timeval));
                 }
 #endif /* DEBUG_PLAYOUT_BROKEN */
+                chunks_mixed = 0;
 		while ((up = playout_buffer_get(buf, cur_time, cur_time + cs))) {
                     if (!up->comp_count  && sp->repair != REPAIR_NONE 
                         && up->prev_ptr != NULL && up->next_ptr != NULL
@@ -532,26 +528,24 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                     
                     if (up->native_count && up->mixed == FALSE) {
                         mix_do_one_chunk(sp, ms, up);
-                        chunks_mixed++;
                         if (!sp->have_device && (audio_device_take(sp) == FALSE)) {
 				/* Request device using the mbus... */
                         }
                         up->mixed = TRUE;
+                        chunks_mixed++;
                     }
 		}
-
 		clear_old_participant_history(buf);
 
-                if ((buf->age > cs/cu) && buf->len < cs/cu + PLAYOUT_SAFETY + chunks_mixed) {
-                        /* If the sender's clock is slower than ours, playout buffer may run dry...
-                         * we always want 1 cushion's worth available.
-                         */
+                if (buf->len > 2 * buf->src->playout_ceil/cu) {
+                        debug_msg("source clock is fast relative\n");
                         buf->src->playout_danger = TRUE;
-                        debug_msg("buf->len %d vs mixed %d safety %d ideal len %d\n", buf->len, chunks_mixed, PLAYOUT_SAFETY, cs/cu);
-                
+                } else if (buf->len < buf->src->playout_ceil / (2 * cu)&& 
+                           !PB_DRAINING(buf)) {
+                        debug_msg("source clock is relatively slow len %d concern len %d\n", buf->len, buf->src->playout_ceil/(2*cu));
+                        buf->src->playout_danger = TRUE;
                 }
 	}
-
 	for (bufp = buf_list; *bufp;) {
 		if ((*bufp)->head_ptr == NULL) {
 			buf = *bufp;
