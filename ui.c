@@ -55,6 +55,7 @@
 #include "codec.h"
 #include "convert.h"
 #include "audio.h"
+#include "audio_fmt.h"
 #include "mbus.h"
 #include "mbus_engine.h"
 #include "channel.h"
@@ -428,6 +429,31 @@ ui_update_channels(session_struct *sp)
 }       
 
 void
+ui_update_device_config(session_struct *sp)
+{
+        char          fmt_buf[64], *mbes;
+        const audio_format *af;
+
+        af = audio_get_ifmt(sp->audio_device);
+        if (af && audio_format_name(af, fmt_buf, 64)) {
+                mbes = mbus_encode_str(fmt_buf);
+                mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.format.in", mbes, TRUE);
+                xfree(mbes);
+        } else {
+                debug_msg("Could not get ifmt\n");
+        }
+        
+        af = audio_get_ofmt(sp->audio_device);
+        if (af && audio_format_name(af, fmt_buf, 64)) {
+                mbes = mbus_encode_str(fmt_buf);
+                mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.format.out", mbes, TRUE);
+                xfree(mbes);
+        } else {
+                debug_msg("Could not get ofmt\n");
+        }
+}
+
+void
 ui_update_primary(session_struct *sp)
 {
 	codec_t *pcp;
@@ -665,6 +691,7 @@ ui_update(session_struct *sp)
         ui_sampling_modes(sp);
         ui_update_frequency(sp);
         ui_update_channels(sp);
+        ui_update_device_config(sp);
 	ui_update_primary(sp);
         ui_update_channel(sp);
         ui_repair(sp);

@@ -31,6 +31,7 @@ option add *highlightThickness 0
 option add *Button*padX        4          
 option add *Button*padY        0          
 option add *font               $infofont
+option add *Menu*tearOff       0
 
 set V(class) "Mbone Applications"
 set V(app)   "rat"
@@ -176,6 +177,8 @@ proc mbus_recv {cmnd args} {
 		tool.rat.sync  			{eval mbus_recv_tool.rat.sync $args}
 		tool.rat.frequency  		{eval mbus_recv_tool.rat.frequency $args}
 		tool.rat.channels  		{eval mbus_recv_tool.rat.channels $args}
+		tool.rat.format.in              {eval mbus_recv_tool.rat.format.in $args}
+		tool.rat.format.out              {eval mbus_recv_tool.rat.format.out $args}
 		tool.rat.codec  		{eval mbus_recv_tool.rat.codec $args}
 		tool.rat.rate  			{eval mbus_recv_tool.rat.rate $args}
 		tool.rat.lecture.mode  		{eval mbus_recv_tool.rat.lecture.mode $args}
@@ -253,22 +256,25 @@ proc mbus_recv_tool.rat.load.settings {} {
 proc update_channels_displayed {} {
     global freq channel_support
 
-    set m .prefs.pane.audio.dd.sampling.mchannels.menu
-    $m delete 0 last
+    set m1 .prefs.pane.audio.dd.sampling.ch_in.mb.m 
+    $m1 delete 0 last
+    set m2 .prefs.pane.audio.dd.sampling.ch_out.mb.m 
+    $m2 delete 0 last
     
     set s [lsearch -glob $channel_support *$freq*]
     
     foreach i [lrange [split [lindex $channel_support $s] ","] 1 2] {
-	$m add command -label "$i" -command "set channels $i; change_sampling"
+	 $m1 add command -label "$i" -command "set ichannels $i; change_sampling"
+	 $m2 add command -label "$i" -command "set ochannels $i; change_sampling"
     }
 }
 
 proc change_sampling { } {
-    global freq channels
+    global freq ichannels
 
     update_channels_displayed
 
-    mbus_send "R" "tool.rat.sampling" "[mbus_encode_str $freq] [mbus_encode_str $channels]"
+    mbus_send "R" "tool.rat.sampling" "[mbus_encode_str $freq] [mbus_encode_str $ichannels]"
 }
 
 proc mbus_recv_tool.rat.sampling.supported {arg} {
@@ -282,7 +288,7 @@ proc mbus_recv_tool.rat.sampling.supported {arg} {
     set freqs [list]
     set channel_support [list]
 
-    .prefs.pane.audio.dd.sampling.mfreq.menu delete 0 last
+    .prefs.pane.audio.dd.sampling.freq.mb.m delete 0 last
 
     set mode [split $arg]
     foreach m $mode {
@@ -290,7 +296,7 @@ proc mbus_recv_tool.rat.sampling.supported {arg} {
 	set support [split $m ","]
 	set f [lindex $support 0]
 	lappend freqs $f
-	.prefs.pane.audio.dd.sampling.mfreq.menu add command -label $f -command "set freq $f; change_sampling"
+	.prefs.pane.audio.dd.sampling.freq.mb.m add command -label $f -command "set freq $f; change_sampling"
     }
     set freq [lindex $freqs 0]
     update_channels_displayed
@@ -383,14 +389,22 @@ proc mbus_recv_security.encryption.key {new_key} {
 	set key     $new_key
 }
 
+proc mbus_recv_tool.rat.format.in {arg} {
+    puts "ifmt $arg"
+}
+
+proc mbus_recv_tool.rat.format.out {arg} {
+    puts "ofmt $arg"
+}
+
 proc mbus_recv_tool.rat.frequency {arg} {
   global freq
   set freq $arg
 }
 
 proc mbus_recv_tool.rat.channels {arg} {
-  global channels
-  set channels $arg
+  global ichannels
+  set ichannels $arg
 }
 
 proc mbus_recv_tool.rat.codec {arg} {
@@ -1359,19 +1373,30 @@ menu $i.dd.device.mdev.menu -tearoff 0
 frame $i.dd.sampling  
 pack  $i.dd.sampling 
 
-label $i.dd.sampling.l -text "Sampling:"
-pack  $i.dd.sampling.l -side top -fill x
+frame $i.dd.sampling.freq
+frame $i.dd.sampling.ch_in
+frame $i.dd.sampling.ch_out
+pack $i.dd.sampling.freq $i.dd.sampling.ch_in $i.dd.sampling.ch_out -side left -fill x
 
-menubutton $i.dd.sampling.mfreq -menu $i.dd.sampling.mfreq.menu -indicatoron 1 \
-                                -textvariable freq -relief raised -width 6
-pack $i.dd.sampling.mfreq -side left
-menu $i.dd.sampling.mfreq.menu -tearoff 0
+label $i.dd.sampling.freq.l   -text "Sample Rate:   "
+label $i.dd.sampling.ch_in.l  -text "Input Channels:"
+label $i.dd.sampling.ch_out.l -text "Output Channels:"
+pack $i.dd.sampling.freq.l $i.dd.sampling.ch_in.l $i.dd.sampling.ch_out.l -fill x
 
-menubutton $i.dd.sampling.mchannels -menu $i.dd.sampling.mchannels.menu -indicatoron 1 \
-                                    -textvariable channels -relief raised -width 7
-pack $i.dd.sampling.mchannels -side left
-menu $i.dd.sampling.mchannels.menu -tearoff 0
-set channels Mono
+menubutton $i.dd.sampling.freq.mb -menu $i.dd.sampling.freq.mb.m -indicatoron 1 \
+                                  -textvariable freq -relief raised 
+pack $i.dd.sampling.freq.mb -side left -fill x -expand 1
+menu $i.dd.sampling.freq.mb.m 
+
+menubutton $i.dd.sampling.ch_in.mb -menu $i.dd.sampling.ch_in.mb.m -indicatoron 1 \
+                                  -textvariable ichannels -relief raised 
+pack $i.dd.sampling.ch_in.mb -side left -fill x -expand 1
+menu $i.dd.sampling.ch_in.mb.m 
+
+menubutton $i.dd.sampling.ch_out.mb -menu $i.dd.sampling.ch_out.mb.m -indicatoron 1 \
+                                  -textvariable ochannels -relief raised 
+pack $i.dd.sampling.ch_out.mb -side left -fill x -expand 1
+menu $i.dd.sampling.ch_out.mb.m 
 
 frame $i.cks -relief sunken
 pack $i.cks -fill both -expand 1 -anchor w -pady 1
@@ -1622,7 +1647,7 @@ proc sync_engine_to_ui {} {
     global silence_var agc_var audio_loop_var echo_var
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
     global meter_var sync_var gain volume input_port output_port 
-    global in_mute_var out_mute_var channels freq key key_var
+    global in_mute_var out_mute_var ichannels freq key key_var
     global audio_device
 
     set my_cname_enc [mbus_encode_str $my_cname]
@@ -1633,7 +1658,7 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "rtp.source.loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
     
     #transmission details
-    mbus_send "R" "tool.rat.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
+    mbus_send "R" "tool.rat.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"
     mbus_send "R" "tool.rat.rate"         $upp
 
     switch $channel_var {
@@ -1721,7 +1746,7 @@ proc save_settings {} {
 
     # transmission
     save_setting $f audioFrequency         freq
-    save_setting $f audioChannels          channels
+    save_setting $f audioChannels          ichannels
     save_setting $f audioPrimary           prenc
     save_setting $f audioUnits             upp
     save_setting $f audioChannelCoding     channel_var
@@ -1875,7 +1900,7 @@ proc load_settings {} {
     load_setting attr audioLoopback          audio_loop_var "0"
     load_setting attr audioEchoSuppress      echo_var      "0"
     load_setting attr audioFrequency         freq          "8-kHz"
-    load_setting attr audioChannels          channels      "Mono"
+    load_setting attr audioChannels          ichannels      "Mono"
     load_setting attr audioPrimary           prenc         "GSM"
     load_setting attr audioUnits             upp           "2"
     load_setting attr audioChannelCoding     channel_var   "none"
@@ -1886,8 +1911,8 @@ proc load_settings {} {
 	#device
 	load_setting attr audioDevice            audio_device  "Unknown"
 	
-	global prenc channels freq
-	mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
+	global prenc ichannels freq
+	mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"
 	
 	global      in_mute_var   out_mute_var
 	input_mute  $in_mute_var
@@ -2367,10 +2392,12 @@ add_help $i.loc      	"Enter your location for transmission\nto other participan
 #audio help
 set i .prefs.pane.audio
 add_help $i.dd.device.mdev "Selects preferred audio device."
-add_help $i.dd.sampling.mfreq \
+add_help $i.dd.sampling.freq.mb \
                         "Sets the sampling rate of the audio device.\nThis changes the available codecs."
-add_help $i.dd.sampling.mchannels \
-                        "Changes between mono and stereo sampling."
+add_help $i.dd.sampling.ch_in.mb \
+                        "Changes between mono and stereo audio input."
+add_help $i.dd.sampling.ch_out.mb \
+                        "Changes between mono and stereo audio output."
 add_help $i.cks.f.f.silence\
 			 "Prevents silence from being transmitted when the speaker is silent\n\
                           and the input is unmuted."

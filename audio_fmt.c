@@ -340,15 +340,15 @@ static const char *
 audio_channels_name(int channels)
 {
         switch(channels) {
-        case 1: return "mono";
-        case 2: return "stereo";
+        case 1: return "Mono";
+        case 2: return "Stereo";
         default: assert(0); 
         }                
         return NULL;
 }
 
 int
-audio_format_name(audio_format *cur, char *buf, int buf_len)
+audio_format_name(const audio_format *cur, char *buf, int buf_len)
 {
         assert(cur != NULL);
         assert(buf != NULL);
@@ -356,8 +356,8 @@ audio_format_name(audio_format *cur, char *buf, int buf_len)
 
         buf[0] = '\0';
         if (buf_len >= 38) {
-                /* 38 = strlen("16-bit signed linear, 48kHz, stereo") + 1; */
-                sprintf(buf, "%s, %dkHz, %s",
+                /* 38 = strlen("16-bit signed linear, 48-kHz, stereo") + 1; */
+                sprintf(buf, "%s, %d-kHz, %s",
                         deve_get_name(cur->encoding),
                         cur->sample_rate/1000,
                         audio_channels_name(cur->channels));
