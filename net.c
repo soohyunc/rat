@@ -29,6 +29,8 @@ void network_process_mbus(session_t *sp)
 		timeout.tv_usec = 0;
 		rc  = mbus_recv(sp->mbus_engine, (void *) sp, &timeout); 
 		mbus_send(sp->mbus_engine); 
+		mbus_heartbeat(sp->mbus_engine, 1);
+		mbus_retransmit(sp->mbus_engine);
 		if (rc) {
 			c = 0;
 		} else {

@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
 		mbus_send(sp->mbus_engine); 
 		mbus_recv(sp->mbus_engine, (void *) sp, &timeout);
 		mbus_retransmit(sp->mbus_engine);
-		mbus_heartbeat(sp->mbus_engine, 10);
+		mbus_heartbeat(sp->mbus_engine, 1);
 
                 /* Process audio */
 		elapsed_time = audio_rw_process(sp, sp, sp->ms);
