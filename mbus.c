@@ -39,9 +39,9 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
-#include "util.h"
+#include "debug.h"
+#include "memory.h"
 #include "net_udp.h"
-#include "net.h"
 #include "mbus.h"
 
 #define MBUS_BUF_SIZE	1500

@@ -1,12 +1,12 @@
 /*
- * FILE:    util.h
+ * FILE:    debug.h
  * PROGRAM: RAT
- * AUTHOR:  Isidor Kouvelas + Colin Perkins + Orion Hodson
- *
+ * AUTHOR:  Isidor Kouvelas + Colin Perkins + Mark Handley + Orion Hodson
+ * 
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995,1996,1997 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,16 +40,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _UTIL_H
-#define _UTIL_H
+#ifndef _RAT_DEBUG_H
+#define _RAT_DEBUG_H
 
-#define block_alloc(x)	_block_alloc(x,__FILE__,__LINE__)
-#define block_free(x,y) _block_free(x,y,__LINE__)
+#define UNUSED(x)	(x=x)
 
-void	*_block_alloc(unsigned size, const char *filen, int line);
-void	 _block_free(void *p, int size, int line);
-void	 block_release_all(void);
-void     block_trash_check(void);
-void     block_check(char *p);
+#define debug_msg	_dprintf("%s:%d ", __FILE__, __LINE__), _dprintf
+void	 _dprintf(const char *format, ...);
 
-#endif 
+#endif

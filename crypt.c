@@ -1,14 +1,13 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
+#include "debug.h"
 #include "net_udp.h"
 #include "crypt.h"
-#include "crypt_global.h"
 #include "md5.h"
 #include "qfDES.h"
 #include "rtcp_pckt.h"
 #include "crypt_random.h"
-#include "util.h"
 
 /* Global variables accessible inside this module only */
 static u_int  empty_key = TRUE;

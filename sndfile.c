@@ -40,12 +40,11 @@
  * SUCH DAMAGE.
  */
 
-#include <assert.h>
-#include <stdio.h>
-
 #include "config_unix.h"
 #include "config_win32.h"
-#include "util.h"
+#include "assert.h"
+#include "debug.h"
+#include "memory.h"
 #include "codec_g711.h"
 #include "sndfile.h"
 

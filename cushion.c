@@ -44,9 +44,10 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
+#include "debug.h"
+#include "memory.h"
 #include "cushion.h"
 #include "audio.h"
-#include "util.h"
 
 /*
  * SAFETY is how safe we want to be with the device going dry. If we want to

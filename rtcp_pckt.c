@@ -52,6 +52,8 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
+#include "debug.h"
+#include "memory.h"
 #include "version.h"
 #include "net_udp.h"
 #include "net.h"
@@ -59,7 +61,6 @@
 #include "rtcp_db.h"
 #include "session.h"
 #include "ui.h"
-#include "util.h"
 #include "transmit.h"
 #include "timers.h"
 

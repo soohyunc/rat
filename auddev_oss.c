@@ -47,8 +47,9 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
+#include "debug.h"
+#include "memory.h"
 #include "audio.h"
-#include "util.h"
 
 int	can_read  = FALSE;
 int	can_write = FALSE;

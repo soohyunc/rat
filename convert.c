@@ -43,9 +43,10 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
+#include "memory.h"
+#include "util.h"
 #include "receive.h"
 #include "convert.h"
-#include "util.h"
 
 typedef struct s_converter_fmt{
         u_int16 from_channels;

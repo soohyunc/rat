@@ -40,11 +40,12 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
+#include "debug.h"
+#include "memory.h"
 #include "version.h"
 #include "session.h"
 #include "mbus.h"
 #include "mbus_ui.h"
-#include "util.h"
 #include "tcltk.h"
 
 extern char 	ui_audiotool[];

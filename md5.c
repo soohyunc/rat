@@ -27,7 +27,6 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
-#include "crypt_global.h"
 #include "md5.h"
 
 /*
@@ -74,32 +73,32 @@ static unsigned char PADDING[64] = {
  * separate from addition to prevent recomputation.
  */
 #define FF(a, b, c, d, x, s, ac) { \
- (a) += F ((b), (c), (d)) + (x) + (UINT4)(ac); \
+ (a) += F ((b), (c), (d)) + (x) + (u_int32)(ac); \
  (a) = ROTATE_LEFT ((a), (s)); \
  (a) += (b); \
   }
 #define GG(a, b, c, d, x, s, ac) { \
- (a) += G ((b), (c), (d)) + (x) + (UINT4)(ac); \
+ (a) += G ((b), (c), (d)) + (x) + (u_int32)(ac); \
  (a) = ROTATE_LEFT ((a), (s)); \
  (a) += (b); \
   }
 #define HH(a, b, c, d, x, s, ac) { \
- (a) += H ((b), (c), (d)) + (x) + (UINT4)(ac); \
+ (a) += H ((b), (c), (d)) + (x) + (u_int32)(ac); \
  (a) = ROTATE_LEFT ((a), (s)); \
  (a) += (b); \
   }
 #define II(a, b, c, d, x, s, ac) { \
- (a) += I ((b), (c), (d)) + (x) + (UINT4)(ac); \
+ (a) += I ((b), (c), (d)) + (x) + (u_int32)(ac); \
  (a) = ROTATE_LEFT ((a), (s)); \
  (a) += (b); \
   }
 
 /*
- * Encodes input (UINT4) into output (unsigned char). Assumes len is a
+ * Encodes input (u_int32) into output (unsigned char). Assumes len is a
  * multiple of 4.
  */
 static void 
-Encode(unsigned char *output, UINT4 * input, unsigned int len)
+Encode(unsigned char *output, u_int32 * input, unsigned int len)
 {
 	unsigned int    i, j;
 
@@ -112,26 +111,26 @@ Encode(unsigned char *output, UINT4 * input, unsigned int len)
 }
 
 /*
- * Decodes input (unsigned char) into output (UINT4). Assumes len is a
+ * Decodes input (unsigned char) into output (u_int32). Assumes len is a
  * multiple of 4.
  */
 static void 
-Decode(UINT4 * output, unsigned char *input, unsigned int len)
+Decode(u_int32 * output, unsigned char *input, unsigned int len)
 {
 	unsigned int    i, j;
 
 	for (i = 0, j = 0; j < len; i++, j += 4)
-		output[i] = ((UINT4) input[j]) | (((UINT4) input[j + 1]) << 8) |
-			(((UINT4) input[j + 2]) << 16) | (((UINT4) input[j + 3]) << 24);
+		output[i] = ((u_int32) input[j]) | (((u_int32) input[j + 1]) << 8) |
+			(((u_int32) input[j + 2]) << 16) | (((u_int32) input[j + 3]) << 24);
 }
 
 /*
  * MD5 basic transformation. Transforms state based on block.
  */
 static void 
-MD5Transform(UINT4 state[4], unsigned char block[64])
+MD5Transform(u_int32 state[4], unsigned char block[64])
 {
-	UINT4           a = state[0], b = state[1], c = state[2], d = state[3],
+	u_int32           a = state[0], b = state[1], c = state[2], d = state[3],
 	                x[16];
 
 	Decode(x, block, 64);
@@ -216,7 +215,7 @@ MD5Transform(UINT4 state[4], unsigned char block[64])
 	/*
 	 * Zeroize sensitive information.
 	 */
-	memset((POINTER) x, 0, sizeof(x));
+	memset((unsigned char *) x, 0, sizeof(x));
 }
 
 /*
@@ -246,16 +245,16 @@ MD5Update(MD5_CTX * context, unsigned char *input, unsigned int inputLen)
 	index = (unsigned int) ((context->count[0] >> 3) & 0x3F);
 
 	/* Update number of bits */
-	if ((context->count[0] += ((UINT4) inputLen << 3))
-	    < ((UINT4) inputLen << 3))
+	if ((context->count[0] += ((u_int32) inputLen << 3))
+	    < ((u_int32) inputLen << 3))
 		context->count[1]++;
-	context->count[1] += ((UINT4) inputLen >> 29);
+	context->count[1] += ((u_int32) inputLen >> 29);
 
 	partLen = 64 - index;
 
 	/* Transform as many times as possible.  */
 	if (inputLen >= partLen) {
-		memcpy((POINTER) & context->buffer[index], (POINTER) input, partLen);
+		memcpy((unsigned char *) & context->buffer[index], (unsigned char *) input, partLen);
 		MD5Transform(context->state, context->buffer);
 
 		for (i = partLen; i + 63 < inputLen; i += 64)
@@ -266,7 +265,7 @@ MD5Update(MD5_CTX * context, unsigned char *input, unsigned int inputLen)
 		i = 0;
 
 	/* Buffer remaining input */
-	memcpy((POINTER) & context->buffer[index], (POINTER) & input[i], inputLen - i);
+	memcpy((unsigned char *) & context->buffer[index], (unsigned char *) & input[i], inputLen - i);
 }
 
 /*
@@ -297,6 +296,6 @@ MD5Final(unsigned char digest[16], MD5_CTX * context)
 	/*
 	 * Zeroize sensitive information.
 	 */
-	memset((POINTER) context, 0, sizeof(*context));
+	memset((unsigned char *) context, 0, sizeof(*context));
 }
 

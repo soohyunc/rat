@@ -1,12 +1,12 @@
 /*
- * FILE:    util.h
+ * FILE:    memory.h
  * PROGRAM: RAT
  * AUTHOR:  Isidor Kouvelas + Colin Perkins + Orion Hodson
  *
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,16 +40,19 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _UTIL_H
-#define _UTIL_H
+#ifndef _RAT_MEMORY_H
+#define _RAT_MEMORY_H
 
-#define block_alloc(x)	_block_alloc(x,__FILE__,__LINE__)
-#define block_free(x,y) _block_free(x,y,__LINE__)
+#define xmalloc(x)	_xmalloc(x,__FILE__,__LINE__)
+#define xstrdup(x)	_xstrdup(x,__FILE__,__LINE__)
 
+void 	 xdoneinit(void);
+void	 xmemchk(void);
+void     xmemdmp(void);
+void	 xfree(void *x);
+void	*_xmalloc(unsigned size,const char *filen,int line);
+char	*_xstrdup(const char *s1, const char *filen, int line);
 void	*_block_alloc(unsigned size, const char *filen, int line);
 void	 _block_free(void *p, int size, int line);
-void	 block_release_all(void);
-void     block_trash_check(void);
-void     block_check(char *p);
 
 #endif 

@@ -42,13 +42,15 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
+#include "debug.h"
+#include "memory.h"
+#include "util.h"
 #include "session.h"
 #include "codec.h"
 #include "channel.h"
 #include "receive.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
-#include "util.h"
 #include "cc_red.h"
 
 #define MAX_RED_LAYERS  4

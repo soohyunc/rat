@@ -39,10 +39,10 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
+#include "debug.h"
 #include "mbus.h"
 #include "mbus_ui.h"
 #include "tcltk.h"
-#include "util.h"
 
 void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 {
