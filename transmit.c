@@ -512,7 +512,6 @@ tx_send(tx_buffer *tb)
         assert(pb_iterator_count(tb->audio_buffer) == 3);
 
         if (pb_iterators_equal(tb->silence, tb->transmit)) {
-                debug_msg("Nothing to send\n");
                 return;
         } 
 
