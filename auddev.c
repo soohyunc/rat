@@ -108,6 +108,9 @@ static int num_active_interfaces = 0;
 /* This is the index of the next audio interface that audio_open */
 static int sel_if = 0;
 
+/* Counters for samples read/written */
+static u_int32 samples_read[AUDIO_MAX_INTERFACES], samples_written[AUDIO_MAX_INTERFACES];
+
 /* We map indexes outside range for file descriptors so people don't attempt
  * to circumvent audio interface.  If something is missing it should be added
  * to the interfaces...
@@ -250,6 +253,9 @@ audio_open(audio_format *ifmt, audio_format *ofmt)
                         convert_buf[sel_if] = (sample*)xmalloc(DEVICE_REC_BUF); /* is this in samples or bytes ? */
                 }
 
+                samples_read[sel_if]    = 0;
+                samples_written[sel_if] = 0;
+
                 r = AIF_IDX_TO_MAGIC(sel_if);
                 num_active_interfaces++;
                 return r;
@@ -357,6 +363,7 @@ audio_read(audio_desc_t ad, sample *buf, int samples)
                  */
                 sample_size = fmts[ad][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
                 read_len    = aif->audio_if_read(ad, (u_char*)buf, samples * sample_size);
+                samples_read[ad] += read_len / (sample_size * fmts[ad][AUDDEV_ACT_IFMT]->channels);
         } else {
                 assert(fmts[ad][AUDDEV_ACT_IFMT] != NULL);
                 sample_size = fmts[ad][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
@@ -368,7 +375,9 @@ audio_read(audio_desc_t ad, sample *buf, int samples)
                                                           (u_char*) buf,
                                                           DEVICE_REC_BUF);
                 sample_size = fmts[ad][AUDDEV_REQ_IFMT]->bits_per_sample / 8;
+                samples_read[ad] += read_len / (sample_size * fmts[ad][AUDDEV_REQ_IFMT]->channels);
         }
+
         xmemchk();
         return read_len / sample_size;
 }
@@ -391,6 +400,7 @@ audio_write(audio_desc_t ad, sample *buf, int len)
                  */
                 sample_size = fmts[ad][AUDDEV_ACT_OFMT]->bits_per_sample / 8;
                 write_len = aif->audio_if_write(ad, (u_char*)buf, len * sample_size);
+                samples_written[ad] += write_len / (sample_size * fmts[ad][AUDDEV_ACT_OFMT]->channels);
         } else {
                 write_len = audio_format_buffer_convert(fmts[ad][AUDDEV_REQ_OFMT],
                                                         (u_char*)buf,
@@ -400,6 +410,7 @@ audio_write(audio_desc_t ad, sample *buf, int len)
                                                         DEVICE_REC_BUF);
                 aif->audio_if_write(ad, (u_char*)convert_buf[ad], write_len);
                 sample_size = fmts[ad][AUDDEV_ACT_OFMT]->bits_per_sample / 8;
+                samples_written[ad] += write_len / (sample_size * fmts[ad][AUDDEV_REQ_OFMT]->channels);
         }
 
         xmemchk();
@@ -629,6 +640,39 @@ audio_add_interface(audio_if_t *aif_new)
                 return TRUE;
         }
         return FALSE;
+}
+
+u_int32
+audio_get_device_time(audio_desc_t ad)
+{
+        audio_format *fmt;
+        u_int32       samples_per_block;
+
+        ad = AIF_MAGIC_TO_IDX(ad);
+
+        if (fmts[ad][AUDDEV_REQ_IFMT]) {
+                fmt = fmts[ad][AUDDEV_REQ_IFMT]; 
+        } else {
+                fmt = fmts[ad][AUDDEV_ACT_IFMT]; 
+        }
+        
+        samples_per_block = fmt->bytes_per_block * 8 / (fmt->channels * fmt->bits_per_sample);
+
+        return (samples_read[ad]/samples_per_block) * samples_per_block;
+}
+
+u_int32
+audio_get_samples_read(audio_desc_t ad)
+{
+       ad = AIF_MAGIC_TO_IDX(ad);
+       return samples_read[ad];
+}
+
+u_int32
+audio_get_samples_written(audio_desc_t ad)
+{
+       ad = AIF_MAGIC_TO_IDX(ad);
+       return samples_written[ad];
 }
 
 #include "auddev_luigi.h"

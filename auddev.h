@@ -85,6 +85,16 @@ void    audio_wait_for      (audio_desc_t ad, int granularity_ms);
 const audio_format* audio_get_ifmt (audio_desc_t ad);
 const audio_format* audio_get_ofmt (audio_desc_t ad);
 
+/* audio_get_samples_{read,written} return the actual number of
+ * sample instances that have been read/written.  audio_get_device_time
+ * returns the number of samples read rounded down to the nearest
+ * number of whole sample blocks.
+ */
+
+u_int32 audio_get_device_time     (audio_desc_t ad);
+u_int32 audio_get_samples_written (audio_desc_t ad);
+u_int32 audio_get_samples_read    (audio_desc_t ad);
+
 #define AUDIO_INTERFACE_NAME_LEN 64
 
 #endif /* _AUDDEV_H_ */
