@@ -34,6 +34,9 @@ RTCP used are specified in RFC 1889.
 .SH OPTIONS
 The following options are supported:
 .TP
+.BI -agc " 1|0"
+Enable automatic gain control (AGC).
+.TP
 .BI -allowloopback
 Causes rtp packets to be loopbacked during multicast
 sessions.
@@ -101,7 +104,7 @@ appropriate:
 .fi
 .RE
 .TP
-.BI -silence " on|off"
+.BI -silence " 1|0"
 Turns silence suppression on or off.
 .TP
 .B -version
