@@ -154,9 +154,6 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 
 	for (i = 1; i < argc; i++) {
 		for (s = 0; s < sp_size; s++) {
-                        if ((strcmp(argv[i], "-sync")) == 0) {
-                                sp[s]->sync_on = TRUE;
-                        }
                         if ((strcmp(argv[i], "-allowloopback")) == 0) {
                                 sp[s]->no_filter_loopback = 1;
                         }
@@ -172,6 +169,14 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 				sp[s]->mbus_channel = atoi(argv[i + 1]);
 				i++;
 			}
+                        if ((strcmp(argv[i], "-sync")) == 0) {
+				if (sp[s]->mbus_channel != 0) {
+                                	sp[s]->sync_on = TRUE;
+				} else {
+					printf("Lip-sync can only be used if an mbus channel is specified.\n");
+					usage();
+				}
+                        }
 			if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
 				sp[s]->ttl = atoi(argv[i + 1]);
 				if (sp[s]->ttl > 255) {
