@@ -183,13 +183,27 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
                 dur = nsamples / ms->channels;
                 }
 	}
-        /* 3d rendering hook here */
+	if (sp->externalise_audio) {
+	if (sp->render_3d) {
 
-        /* you can tell if mixer is stereo using ms->channels */
+	        /* you can tell if mixer is stereo using ms->channels */
+	        if (ms->channels == 2) {
 
-        /* take rx_queue_element_struct el, add extra native_data buffer, render audio, fill in size
-         * of buffer into el->native_size[ el->native_count ], increment el->native_count
-         */ 
+		        fprintf(stdout, "\tnumber of channels: %d\n", ms->channels);
+
+	                /* - take rx_queue_element_struct el
+                         * - add extra native_data buffer
+                         * - render audio
+                         * - fill in size of buffer into el->native_size[ el->native_count ]
+                         * - increment el->native_count
+		         */
+
+		         if (el->native_count < MAX_NATIVE) {
+                                 el->native_data[el->native_count] = block_alloc(el->native_size[el->native_count]);
+			 }
+
+		}
+	}
         }
 
         buf = el->native_data[el->native_count - 1];
