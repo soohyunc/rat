@@ -71,7 +71,7 @@ main(int argc, char *argv[])
 #endif
 
 	gettimeofday(&time, NULL);
-        seed = time.tv_usec * getpid();
+        seed = (gethostid() << 8) | (getpid() & 0xff);
 	srand48(seed);
 	lbl_srandom(seed);
 
