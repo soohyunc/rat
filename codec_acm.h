@@ -40,9 +40,10 @@
  * SUCH DAMAGE.
  */
 
-#if defined(WIN32) && !defined(_CODEC_ACM_H_
+#if  !defined(_CODEC_ACM_H_)
 #define _CODEC_ACM_H_
 
+#ifdef WIN32
 struct s_acm_state;
 
 void acmStartup(void);
@@ -57,4 +58,6 @@ acmEncode(struct s_acm_state *s, sample *src, struct s_coded_unit *dst);
 void 
 acmEncoderDestroy(struct s_acm_state *s);
 
-#endif
+#endif /* WIN32 */
+
+#endif /* _CODEC_ACM_H_ */
