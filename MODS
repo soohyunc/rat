@@ -1247,6 +1247,7 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  (problem reported by Didier Lambllais).
 	- Add -N,-E,-P,-L for sdes item setting from command-line (name, email,
 	  phone, location).
+	- Fix -f codec communication from controller to engine.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1302,5 +1303,5 @@ TODO -- They're features not bugs dammit!
   that the media engine should get the kernel to select a receive RTP port.
 - Rework media engine initialization, so we can query it before sending
   rtp.addr()
-- The -f command line option is broken.
+- The -f command line option is broken (message arrives during rendez_vous).
 

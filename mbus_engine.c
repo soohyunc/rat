@@ -1034,6 +1034,8 @@ rx_tool_rat_codec(char *srce, char *args, session_t *sp)
         }
 
         freq = atoi(sfreq) * 1000;
+        assert(channels != 0);
+        assert(freq     != 0);
         next_cid = codec_get_matching(short_name, (uint16_t)freq, (uint16_t)channels);
 
         if (next_cid && codec_get_payload(next_cid) != 255) {

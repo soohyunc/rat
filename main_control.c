@@ -398,11 +398,11 @@ cmd_primary(struct mbus *m, char *addr, int argc, char *argv[])
         freq     = (char*)strtok(NULL, "-");
         chan     = (char*)strtok(NULL, "");
         if (freq != NULL && chan != NULL) {
-                debug_msg("codec: %s %s %s\n", name, freq, chan);
+                debug_msg("codec: %s %s %s\n", name, chan, freq);
                 name    = mbus_encode_str(name);
                 freq    = mbus_encode_str(freq);
                 chan    = mbus_encode_str(chan);
-                mbus_qmsgf(m, addr, TRUE, "tool.rat.codec", "%s %s %s", name, freq, chan);
+                mbus_qmsgf(m, addr, TRUE, "tool.rat.codec", "%s %s %s", name, chan, freq);
                 xfree(name);
                 xfree(freq);
                 xfree(chan);
