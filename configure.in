@@ -225,7 +225,7 @@ AC_CHECK_LIB(tk8.0,
 			exit
 		],
 		-L${TCL_LIB} -L${TK_LIB} -l$TCL_LIB_NAME -L$ac_x_libraries -lm -lXext -lX11)],
-	-L${TCL_LIB} -L${TK_LIB} -l$TCL_LIB_NAME $ac_x_libraries -lm -lXext -lX11)
+	-L${TCL_LIB} -L${TK_LIB} -l$TCL_LIB_NAME -L$ac_x_libraries -lm -lXext -lX11)
 
 # XXX Add check for common ##################################################
 
