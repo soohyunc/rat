@@ -983,6 +983,10 @@ proc mbus_recv_rtp.source.remove {ssrc} {
     if { [info exists HEARD_LOSS_FROM_ME($ssrc)] } {
 	unset HEARD_LOSS_FROM_ME($ssrc)
     } 
+    set stats_win [window_stats $ssrc]
+    if { [winfo exists $stats_win] } {
+	destroy $stats_win
+    }
 }
 
 proc mbus_recv_rtp.source.mute {ssrc val} {
