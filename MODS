@@ -1596,6 +1596,7 @@ v4.2.20	- Fix forgotton malloc in auddev_oss.c mixer allocation (patch from
 	- Fix configure script to detect PhoneJack audio devices
 	- Add PHONE type to audio_types.h
 	- Fix misquoted mbus message in ui_send_rtp.c (Eric Gerlach)
+	* 24 September 2001
 
 
 
