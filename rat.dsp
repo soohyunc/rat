@@ -80,7 +80,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 winmm.lib Ws2_32.lib msacm32.lib tcl80vc.lib tk80vc.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wship6.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"c:\src\rat32\rat" /libpath:"c:\Program Files\Tcl\lib" /libpath:".\win32"
+# ADD LINK32 winmm.lib Ws2_32.lib msacm32.lib tcl80vc.lib tk80vc.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"c:\src\rat32\rat" /libpath:"c:\Program Files\Tcl\lib" /libpath:".\win32"
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6"
 
@@ -126,6 +126,14 @@ SOURCE=.\assert.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\auddev.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\auddev.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\auddev_win32.c
 # End Source File
 # Begin Source File
@@ -135,6 +143,10 @@ SOURCE=.\audio.c
 # Begin Source File
 
 SOURCE=.\audio.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\audio_types.h
 # End Source File
 # Begin Source File
 
