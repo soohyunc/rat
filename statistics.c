@@ -498,6 +498,11 @@ statistics_process(session_struct          *sp,
                         debug_msg("Packet from unknown participant discarded\n");
                         goto release;
                 }
+                if (sender->mute) {
+                        debug_msg("Packet to muted participant discarded\n");
+                        goto release;
+                }
+
                 rtcp_update_seq(sender, hdr->seq);
 
                 if (hdr->cc) {
