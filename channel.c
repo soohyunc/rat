@@ -119,7 +119,23 @@ static channel_coder_t table[] = {
          vanilla_decoder_decode,
          vanilla_decoder_peek,
          vanilla_decoder_describe
-        }
+        },
+#ifdef DEBUG_REDUNDANCY
+        {"Redundancy",
+         redundancy_encoder_create,
+         redundancy_encoder_destroy,
+         redundancy_encoder_set_parameters,
+         redundancy_encoder_get_parameters,
+         redundancy_encoder_reset,
+         redundancy_encoder_encode,
+         NULL,
+         NULL,
+         NULL,
+         redundancy_decoder_decode,
+         redundancy_decoder_peek,
+         redundancy_decoder_describe
+        },
+#endif
 };
 
 #define CC_IDX_TO_ID(x) (((x)+1) | 0x0e00)
