@@ -129,9 +129,9 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
                 }
         }
 	/* Parse the list of addresses/ports at the end of the command line... */
-	addr    = strtok(argv[argc-1], "/");
-	rx_port = strtok(NULL, "/");
-	tx_port = strtok(NULL, "/");
+	addr    = (char *) strtok(argv[argc-1], "/");
+	rx_port = (char *) strtok(NULL, "/");
+	tx_port = (char *) strtok(NULL, "/");
 	if (tx_port == NULL) {
 		tx_port = rx_port;
 	}
