@@ -31,6 +31,10 @@ CTRL_OBJS    = _main.o mbus_control.o
 TCL_OBJS     = ui_audiotool.o ui_transcoder.o
 TCL_SRCS     = $(TCL_OBJS:%.o=%.c)
 
+ALL_OBJS     = $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) $(TOY_OBJS)\
+	       $(CORE_OBJS) $(UI_OBJS) $(CTRL_OBJS)
+ALL_SRCS     = $(ALL_OBJS:%.o=%.c)
+
 $(RATVER): $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) $(TCL_OBJS) tcltk.o mbus_ui.o main.o ../common/libcommon.a
 	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) $(TCL_OBJS) tcltk.o mbus_ui.o main.o ../common/libcommon.a __LDLIBS__ __CHECK_LIB__ -o $(RATVER)
 
@@ -92,3 +96,6 @@ tgz: $(RATVER)
 	tar cvf $(RATVER)-__OSTYPE__.tar README.* MODS COPYRIGHT INSTALL.TXT VERSION $(RATVER)
 	gzip -9v $(RATVER)-__OSTYPE__.tar
 
+depend:
+	makedepend $(INCLUDE) $(ALL_SRCS)
+# DO NOT DELETE THIS LINE
