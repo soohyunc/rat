@@ -338,9 +338,7 @@ tx_process_audio(session_struct *sp)
         }
 
         for(u = tb->silence_ptr; u != tb->last_ptr; u = u->next) {
-                /* Audio unbias not modified for stereo yet! */
                 audio_unbias(sp->bc, u->data, u->dur_used * tb->channels);
-
                 u->energy = avg_audio_energy(u->data, u->dur_used * tb->channels, tb->channels);
                 u->send   = FALSE;
                 
