@@ -400,6 +400,7 @@ oss_remove_half_duplex_devices(void)
 			for (j = i + 1; j < num_devices; j++) {
 				devices[j-1] = devices[j];
 			}
+			i--;
 			num_devices--;
 		}
 	}
