@@ -304,6 +304,7 @@ tx_read_audio(tx_buffer *tb)
                         this_read = audio_read(sp->audio_device, 
                                                u->data + u->dur_used * tb->channels,
                                                (tb->unit_dur - u->dur_used) * tb->channels) / tb->channels;
+
                         if (sp->in_file) {
                                 snd_read_audio(&sp->in_file, 
                                                 u->data + u->dur_used * tb->channels,
@@ -457,7 +458,7 @@ tx_send(tx_buffer *tb)
                 /* Nothing to do */
                 debug_msg("Nothing to do\n");
                 return;
-        }
+        } 
 
         pb_iterator_get_at(tb->silence,  (u_char**)&u, &u_len, &u_sil_ts);
         pb_iterator_get_at(tb->transmit, (u_char**)&u, &u_len, &u_ts);

@@ -440,33 +440,11 @@ luigi_audio_next_iport(audio_desc_t ad)
 	return (iport);
 }
 
-static int
-luigi_audio_select(audio_desc_t ad, int delay_us)
-{
-        fd_set rfds;
-        struct timeval tv;
-        
-        UNUSED(ad); assert(audio_fd > 0);
-
-        tv.tv_sec = 0;
-        tv.tv_usec = delay_us;
-
-        FD_ZERO(&rfds);
-        FD_SET(audio_fd, &rfds);
-
-        select(audio_fd+1, &rfds, NULL, NULL, &tv);
-
-        return FD_ISSET(audio_fd, &rfds);
-}
-
 void
 luigi_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
         if (!luigi_audio_is_ready(ad)) {
-                struct timeval s;
-                s.tv_sec = 0;
-                s.tv_usec = delay_ms * 1000;
-                select(0, NULL, NULL, NULL, &s);
+                usleep((unsigned int)delay_ms * 1000);
         }
 }
 
@@ -480,8 +458,6 @@ luigi_audio_is_ready(audio_desc_t ad)
         LUIGI_AUDIO_IOCTL(audio_fd, FIONREAD, &avail);
 
         return (avail >= sz.rec_size);
-
-        return luigi_audio_select(ad, 0);
 }
 
 int 

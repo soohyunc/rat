@@ -54,11 +54,6 @@ typedef struct s_converter {
         int                     data_len;
 } converter_t;
 
-/* Index to converter_id_t mapping macros */
-
-#define CONVERTER_ID_TO_IDX(x) ((x+17) << 2)
-#define IDX_TO_CONVERTER_ID(x) (((x)>>2) - 17)
-
 /* Mono-Stereo Conversion ****************************************************/ 
 /* Note src_len is length block in number of samples i.e
  *                                              nChannels * nSamplingIntervals 
@@ -1245,6 +1240,10 @@ pcm_converter_t converter_tbl[] = {
 
 #define NUM_CONVERTERS sizeof(converter_tbl)/sizeof(pcm_converter_t)
 #define CONVERTER_NONE (NUM_CONVERTERS - 1)
+
+/* Index to converter_id_t mapping macros */
+#define CONVERTER_ID_TO_IDX(x) (((x)>>2) - 17)
+#define IDX_TO_CONVERTER_ID(x) ((x+17) << 2)
 
 converter_t *
 converter_create(converter_id_t   cid, 
