@@ -61,7 +61,6 @@
 #include "cushion.h"
 #include "codec.h"
 #include "ui.h"
-#include "mbus.h"
 #include "statistics.h"
 
 static rtcp_dbentry *
@@ -99,12 +98,13 @@ update_database(session_struct *sp, u_int32 ssrc)
 /* Returns new playout timestamp */
 
 static ts_t 
-adapt_playout(rtp_hdr_t *hdr, 
-              u_int32   arr_time, 
-              rtcp_dbentry *src,
-	      session_struct *sp, 
+adapt_playout(rtp_hdr_t               *hdr, 
+              ts_t                     arr_ts,
+              ts_t                     src_ts,
+              rtcp_dbentry            *src,
+	      session_struct          *sp, 
               struct s_cushion_struct *cushion, 
-	      u_int32 real_time)
+	      u_int32                  real_time)
 {
 	u_int32	var;
         u_int32 minv, maxv; 
@@ -123,9 +123,7 @@ adapt_playout(rtp_hdr_t *hdr,
         /* This is kind of disgusting ... the device clock is a 64-bit 96kHz clock */
         /* First map it to a 32-bit timestamp of the source */
     
-        src_freq = get_freq(src->clock);
-	arr_time = get_time(src->clock);
-        delay_ts = ts_map32(src_freq, arr_time - hdr->ts);
+        delay_ts = ts_sub(arr_ts, src_ts);
 
 	if (src->first_pckt_flag == TRUE) {
 		src->first_pckt_flag = FALSE;
@@ -314,7 +312,7 @@ adapt_playout(rtp_hdr_t *hdr,
 		playout = ts_add(ts_map32(src_freq, hdr->ts), src->playout);
 	}
 
-        if (ts_gt(ts_map32(src_freq,arr_time), playout)) {
+        if (ts_gt(arr_ts, playout)) {
                 debug_msg("Will be discarded.\n");
         }
 
@@ -435,6 +433,9 @@ statistics(session_struct          *sp,
          * 
          */
 
+        static ts_sequencer arr_seq;
+        ts_t                arr_ts, src_ts;
+
 	rtp_hdr_t	   *hdr;
 	u_char		   *data_ptr;
 	int		    len;
@@ -444,7 +445,6 @@ statistics(session_struct          *sp,
 	pckt_queue_element *pckt;
         struct s_source *src;
         int pkt_cnt = 0;
-
 
         af = audio_get_ofmt(sp->audio_device);
 
@@ -504,8 +504,7 @@ statistics(session_struct          *sp,
                 }
 
                 pckt->sender  = sender;
-                pckt->playout = adapt_playout(hdr, pckt->arrival_timestamp, sender, sp, cushion, real_time);
-                
+
                 if ((src = source_get(sp->active_sources, pckt->sender)) == NULL) {
                         src = source_create(sp->active_sources, 
                                             pckt->sender,
@@ -514,6 +513,24 @@ statistics(session_struct          *sp,
                                             af->channels);
                         assert(src != NULL);
                 }
+
+                /* Convert arrival time in ts_t type */
+                arr_ts = ts_seq32_in(&arr_seq,
+                                     af->sample_rate,
+                                     pckt->arrival_timestamp);
+
+                /* Convert originator timestamp in ts_t */
+                src_ts = ts_seq32_in(source_get_sequencer(src), 
+                                     get_freq(sender->clock), 
+                                     hdr->ts);
+
+                pckt->playout = adapt_playout(hdr, 
+                                              arr_ts,
+                                              src_ts,
+                                              sender, 
+                                              sp, 
+                                              cushion, 
+                                              real_time);
 
                 if (source_add_packet(src, 
                                       pckt->pckt_ptr, 

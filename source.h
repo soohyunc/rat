@@ -40,6 +40,7 @@
 #define __SOURCE_H__
 
 #include "convert.h"
+#include "ts.h"
 
 struct s_source;
 struct s_source_list;
@@ -83,6 +84,8 @@ int              source_add_packet (struct s_source *src,
 int              source_process        (struct s_source *src,
                                         int              repair,
                                         ts_t             now);
+
+ts_sequencer*    source_get_sequencer  (struct s_source *src);
 
 u_int32          source_buffer_length_ms (struct s_source *src);
 

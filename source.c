@@ -51,7 +51,7 @@
 #include "render_3D.h"
 #include "repair.h"
 #include "timers.h"
-
+#include "ts.h"
 #include "source.h"
 
 #include "debug.h"
@@ -74,6 +74,7 @@ typedef struct s_source {
         struct s_source            *prev;
         u_int32                     age;
         ts_t                        last_played;
+        ts_sequencer                seq;
         struct s_rtcp_dbentry      *dbe;
         struct s_channel_state     *channel_state;
         struct s_codec_state_store *codec_states;
@@ -463,4 +464,10 @@ source_process(source *src, int repair_type, ts_t now)
         UNUSED(i); /* Except for debugging */
         
         return TRUE;
+}
+
+ts_sequencer*
+source_get_sequencer(source *src)
+{
+        return &src->seq;
 }

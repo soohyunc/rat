@@ -53,7 +53,6 @@
 #include "channel_types.h"
 #include "new_channel.h"
 #include "pckt_queue.h"
-#include "receive.h"
 #include "convert.h"
 #include "parameters.h"
 #include "audio.h"
@@ -227,6 +226,7 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int sp_
                 		/* Dynamic payload type mapping. Format: "-pt pt/codec/clock/channels" */
 				/* pt/codec must be specified. clock and channels are optional.        */
 				/* At present we only support "-pt .../redundancy"                     */
+                                codec_id_t cid;
                                 char *t;
                                 int pt;
 				pt = atoi(strtok(argv[i + 1], "/"));
@@ -235,9 +235,12 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int sp_
 					usage();
 				}
                                 t = strtok(NULL, "/");
-                                if (!set_cc_pt(t,pt)) {
-                                    printf("Hmmm.... Don't understand that -pt option\n");
-                                    usage();
+                                cid = codec_get_byname(t);
+                                if (cid) {
+                                        codec_map_payload(cid, pt);
+                                        if (codec_get_payload(cid) != pt) 
+                                } else {
+                                        printf("Codec %s not recognized, check name.\n", t);
                                 }
                                 i++;
 			}

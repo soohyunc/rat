@@ -116,13 +116,9 @@ mix_destroy(mix_struct *ms)
 static void
 mix_audio(sample *dst, sample *src, int len)
 {
-	int tmp, slen;
-        /* do a quick survey to see if this actually needs mixing */
+	int tmp;
 
-        slen = max(4,len);
-        while(--slen>0) {
-                if (dst[slen] != 0) break;
-        }
+        /* do a quick survey to see if this actually needs mixing */
 
         if (slen==0) {
                 memcpy(dst, src, len * sizeof(sample));

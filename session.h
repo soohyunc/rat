@@ -44,6 +44,8 @@
 #define _session_h_
 
 #include "net_udp.h"
+#include "ts.h"
+#include "convert.h"
 
 #define MAX_ENCODINGS	7
 #define MAX_NATIVE      4

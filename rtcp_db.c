@@ -55,6 +55,8 @@
 #include "memory.h"
 #include "version.h"
 #include "net_udp.h"
+#include "ts.h"
+#include "convert.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "session.h"
@@ -64,8 +66,8 @@
 #include "codec_types.h"
 #include "codec.h"
 #include "codec_state.h"
-#include "receive.h"
 #include "render_3D.h"
+#include "source.h"
 
 #define MAX_DROPOUT	3000
 #define MAX_MISORDER	100
@@ -317,7 +319,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
  	 * condition in service_receiver... (see comment in that function) [csp] 
  	 */
 	rtcp_dbentry   *dbptr = sp->db->ssrc_db;
-	rtcp_dbentry   *tmp;
+	rtcp_dbentry   *next;
 
 #ifdef LOG_PARTICIPANTS
 	printf("BYE: ssrc=%lx time=%ld\n", ssrc, cur_time);
@@ -329,24 +331,20 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 	}
 
 	debug_msg("Removing RTCP database entry for SSRC 0x%lx\n", ssrc);
-	if (dbptr->ssrc == ssrc) {
-		sp->db->ssrc_db = dbptr->next;
-		receive_buffer_remove(sp, &(sp->receive_buf_list), dbptr);
-		ui_info_remove(sp, dbptr);
-		rtcp_free_dbentry(dbptr);
-		return;
-	}
-	while (dbptr->next != NULL) {
-		if (dbptr->next->ssrc == ssrc) {
-			tmp = dbptr->next;
-			dbptr->next = dbptr->next->next;
-			receive_buffer_remove(sp, &(sp->receive_buf_list), dbptr);
-			rtcp_free_dbentry(tmp);
+
+        while(dbptr != NULL) {
+                next = dbptr->next;
+                if (dbptr->ssrc == ssrc) {
+                        struct s_source *s;
+                        s = source_get(sp->active_sources, dbptr);
+                        if (s) source_remove(sp->active_sources, s);
+                        ui_info_remove(sp, dbptr);
+                        rtcp_free_dbentry(dbptr);
 			sp->db->members--;
-			return;
-		}
-		dbptr = dbptr->next;
-	}
+                        return;
+                }
+                dbptr = next;
+        }
 }
 
 void

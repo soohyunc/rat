@@ -43,6 +43,9 @@
 #ifndef _REPAIR_H_
 #define _REPAIR_H_
 
+#include "codec_types.h"
+#include "codec_state.h"
+
 int repair(int                          repair,
            int                          consec_lost,
            struct s_codec_state_store *states,

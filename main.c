@@ -47,7 +47,6 @@
 #include "codec_types.h"
 #include "codec.h"
 #include "session.h"
-#include "receive.h"
 #include "audio.h"
 #include "auddev.h"
 #include "cushion.h"
@@ -103,9 +102,6 @@ main(int argc, char *argv[])
 	struct timeval      	 timeout;
 	char			 mbus_engine_addr[30], mbus_ui_addr[30], mbus_video_addr[30];
         
-        NEW_QUEUE(rx_queue_struct, rx_unit_queue);
-        INIT_QUEUE(rx_queue_struct, rx_unit_queue);
-
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
 #endif
@@ -124,7 +120,6 @@ main(int argc, char *argv[])
 
         audio_init_interfaces();
         converters_init();
-        statistics_init();
 
 	if (sp[0]->mode == AUDIO_TOOL) {
 		sprintf(mbus_engine_addr, "(audio engine rat %lu)", (u_int32) getpid());
@@ -310,7 +305,6 @@ main(int argc, char *argv[])
 
         converters_free();
         audio_free_interfaces();
-        statistics_free();
 
 	xmemdmp();
 	return 0;

@@ -59,9 +59,6 @@ struct pckt_queue_tag;
 struct rx_queue_tag;
 struct s_cushion_struct;
 
-void statistics_init (void);
-void statistics_free (void);
-
 void statistics(struct session_tag *session_pointer, 
 		struct s_pckt_queue *rtp_pckt_queue,
 		struct s_cushion_struct *cushion,

@@ -56,6 +56,9 @@
 #include "version.h"
 #include "net_udp.h"
 #include "net.h"
+#include "source.h"
+#include "ts.h"
+#include "convert.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "session.h"
@@ -65,7 +68,6 @@
 #include "session.h"
 #include "codec_types.h"
 #include "codec.h"
-#include "receive.h"
 
 #define SECS_BETWEEN_1900_1970 2208988800u
 #define RTP_SSRC_EXPIRE        70u
@@ -359,6 +361,7 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
         if ((dbe->ui_last_update - get_time(dbe->clock)) >= (unsigned)get_freq(sp->device_clock)) {
                 double jit;
                 codec_id_t id;
+                struct s_source *s;
                 id = codec_get_by_payload(dbe->enc);
                 if (id) {
                         const codec_format_t *cf = codec_get_format(id);
@@ -371,7 +374,8 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
                 ui_update_reception(sp, dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->duplicates, (u_int32)jit, dbe->jit_TOGed);
                 ui_update_stats(sp, dbe);
                 dbe->ui_last_update = get_time(dbe->clock);
-                if (receive_buffer_exists(sp->receive_buf_list, dbe)) {
+                s = source_get(sp->active_sources, dbe);
+                if (s != NULL) {
                         ui_info_activate(sp, dbe);
                 } else {
                         ui_info_deactivate(sp, dbe);
