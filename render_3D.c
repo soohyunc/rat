@@ -211,7 +211,9 @@ render_3D(rx_queue_element_struct *el, int no_channels)
                 memcpy(p_3D_data->ipsi_buf, mono_filtered, n_bytes);
                 memcpy(p_3D_data->contra_buf, mono_filtered, n_bytes);
                 /* apply IID to contralateral buffer. */
-                for (i=0; i<(n_samples/2); i++) p_3D_data->contra_buf[i] *= p_3D_data->attenuation;
+                for (i=0; i<(n_samples/2); i++) {
+                        p_3D_data->contra_buf[i] = (short)((double)p_3D_data->contra_buf[i]*p_3D_data->attenuation);
+                }
                 /* apply ITD to contralateral buffer: delay mechanisam. */
                 memcpy(p_3D_data->tmp_buf, p_3D_data->contra_buf+(n_samples-1)-p_3D_data->delay, p_3D_data->delay*sizeof(sample));
                 memmove(p_3D_data->contra_buf+p_3D_data->delay, p_3D_data->contra_buf, (n_samples-p_3D_data->delay)*sizeof(sample));
@@ -247,7 +249,7 @@ render_3D(rx_queue_element_struct *el, int no_channels)
 void
 convolve(sample *signal, sample *answer, double *overlap, double *response, int response_length, int signal_length)
 {
-        short   *signal_rptr, *answer_rptr;       /* running pointers within signal and answer vector */
+        sample  *signal_rptr, *answer_rptr;       /* running pointers within signal and answer vector */
         int     i, j;                             /* loop counters */
         double  *response_rptr;                   /* running pointer within response vector */
         double  *overlap_rptr_1, *overlap_rptr_2; /* running pointer within the overlap buffer */
@@ -271,7 +273,7 @@ convolve(sample *signal, sample *answer, double *overlap, double *response, int 
                 if (current > 32767.0) current = 32767.0;
                 if (current < -32768.0) current = -32768.0;
                 /* store 'current' in answer vector. */
-                *answer_rptr++ = ceil(current-0.5);
+                *answer_rptr++ = (short)(ceil(current-0.5));
         }
 }
 
