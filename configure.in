@@ -204,6 +204,22 @@ then
         fi
 fi
 
+# TCL/TK ####################################################################
+# have to use pwd because srcdir is helpfully chosen to be . and check header
+# fails with it.
+RAT_PARENT=`pwd`/.. 
+TK_INC_DIR=${RAT_PARENT}/tk-8.0/generic
+TK_LIB_DIR=${RAT_PARENT}/tk-8.0/unix
+AC_ARG_WITH(osprey-audio, [  --with-osprey=DIR       specify Osprey (Sunvideo Plus PCI) support home], O1KHOME=$withval)
+AC_ARG_WITH(tk,           
+	[  --with-tk=DIR           specify location of tk installation],
+	[ TK_INC_DIR=$withval/include
+	  TK_LIB_DIR=$withval/lib])
+AC_CHECK_HEADER(${TK_INC_DIR}/tk.h)  
+# print warning if this fails
+# Check library too.
+# duplicate for tcl and common
+
 AC_CONFIG_HEADER(config.h)
 
 AC_OUTPUT(Makefile)
