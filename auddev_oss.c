@@ -5,7 +5,7 @@
  *
  * From revision 1.25 of auddev_linux.c
  *
- * $Revisio: 1.1.1.1 $
+ * $Revision$
  * $Date$
  *
  * Copyright (c) 1996,1997 University College London
@@ -69,9 +69,10 @@ audio_open_rw(char rw)
 	int stereo   = format.num_channels - 1;		/* 0=mono, 1=stereo            */
 	int speed    = format.sample_rate;
 	int volume   = (100<<8)|100;
+	int frag     = 0x7fff0007; 			/* unlimited number of 128 byte fragments */
 	int reclb    = 0;
 	int audio_fd = -1;
-	char buffer[2];					/* sigh. */
+	char buffer[128];					/* sigh. */
 
 	switch (rw) {
 	case O_RDONLY: 
@@ -91,7 +92,7 @@ audio_open_rw(char rw)
 		abort();
 	}
 
-	audio_fd = open("/dev/audio", rw | O_NONBLOCK);
+	audio_fd = open("/dev/audio", rw);
 	if (audio_fd > 0) {
 		/* Note: The order in which the device is set up is important! Don't */
 		/*       reorder this code unless you really know what you're doing! */
@@ -99,6 +100,10 @@ audio_open_rw(char rw)
 			printf("ERROR: Cannot enable full-duplex mode!\n");
 			printf("       RAT should automatically select half-duplex operation\n");
 			printf("       in this case, so this error should never happen......\n");
+			exit(1);
+		}
+		if ((ioctl(audio_fd, SNDCTL_DSP_SETFRAGMENT, &frag) == -1)) {
+			printf("ERROR: Cannot set the fragement size\n");
 			exit(1);
 		}
 		if ((ioctl(audio_fd, SNDCTL_DSP_SETFMT, &mode) == -1) || (mode != AFMT_S16_LE)) { 
@@ -124,7 +129,7 @@ audio_open_rw(char rw)
 		ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
 		/* Device driver bug: we must read some data before the ioctl */
 		/* to tell us how much data is waiting works....              */
-		read(audio_fd, buffer, 2 * format.num_channels);	
+		read(audio_fd, buffer, 128);	
 		/* Okay, now we're done...                                    */
 		return audio_fd;
 	} else {
@@ -301,25 +306,25 @@ int
 audio_read(int audio_fd, sample *buf, int samples)
 {
 	if (can_read) {
-		int            len, read_len, caps;
+		int            len, read_len;
 		audio_buf_info info;
 
 		/* Figure out how many bytes we can read before blocking... */
-		if (ioctl(audio_fd, SNDCTL_DSP_GETCAPS, &caps) < 0) {
-			printf("Cannot read audio device capabilities...\n");
-			abort();
-		}
-		/* Figure out how much we can read... */
 		ioctl(audio_fd, SNDCTL_DSP_GETISPACE, &info);
 		if (info.bytes > (samples * BYTES_PER_SAMPLE)) {
 			read_len = (samples * BYTES_PER_SAMPLE);
 		} else {
 			read_len = info.bytes;
+			printf("info.fragments  = %d\n", info.fragments);
+			printf("info.fragstotal = %d\n", info.fragstotal);
+			printf("info.fragsize   = %d\n", info.fragsize);
+			printf("info.bytes      = %d\n", info.bytes);
 		}
 		if ((len = read(audio_fd, (char *)buf, read_len)) < 0) {
 			perror("audio_read");
 			return 0;
 		}
+		printf("read %d bytes\n", len);
 		return len / BYTES_PER_SAMPLE;
 	} else {
 		/* The value returned should indicate the time (in audio samples) */
