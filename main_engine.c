@@ -140,26 +140,11 @@ int main(int argc, char *argv[])
         audio_device_reconfigure(sp);
         sp->cur_ts = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), 0);
         assert(audio_device_is_open(sp->audio_device));
-	settings_load_early(sp);
 
 	/* Initialise our mbus interface... once this is done we can talk to our controller */
 	sp->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 10);
 	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, (unsigned long) ppid);
 	sp->mbus_engine      = mbus_init(mbus_engine_rx, mbus_error_handler, sp->mbus_engine_addr);
-
-	/* The first stage is to wait until we hear from our controller. The address of the */
-	/* controller is passed to us via a command line parameter, and we just wait until  */
-	/* we get an mbus.hello() from that address.                                        */
-	debug_msg("Waiting to validate address %s\n", c_addr);
-	while (!mbus_addr_valid(sp->mbus_engine, c_addr)) {
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 250000;
-		mbus_recv(sp->mbus_engine, NULL, &timeout);
-		mbus_send(sp->mbus_engine);
-		mbus_heartbeat(sp->mbus_engine, 1);
-		mbus_retransmit(sp->mbus_engine);
-	}
-	debug_msg("Address %s is valid\n", c_addr);
 
 	/* Next, we signal to the controller that we are ready to go. It should be sending  */
 	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */
@@ -175,6 +160,7 @@ int main(int argc, char *argv[])
 	debug_msg("...got it\n");
 	assert(sp->rtp_session[0] != NULL);
 
+	settings_load_early(sp);
         if (pdb_create(&sp->pdb) == FALSE) {
                 debug_msg("Failed to create persistent database\n");
                 abort();

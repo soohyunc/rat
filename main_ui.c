@@ -99,20 +99,6 @@ int main(int argc, char *argv[])
 	sprintf(m_addr, "(media:audio module:ui app:rat instance:%lu)", (unsigned long) ppid);
 	m = mbus_init(mbus_ui_rx, mbus_error_handler, m_addr);
 
-	/* The first stage is to wait until we hear from our controller. The address of the */
-	/* controller is passed to us via a command line parameter, and we just wait until  */
-	/* we get an mbus.hello() from that address.                                        */
-	debug_msg("Waiting to validate address %s\n", c_addr);
-	while (!mbus_addr_valid(m, c_addr)) {
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 250000;
-		mbus_recv(m, NULL, &timeout);
-		mbus_send(m);
-		mbus_heartbeat(m, 1);
-		mbus_retransmit(m);
-	}
-	debug_msg("Address %s is valid\n", c_addr);
-
 	/* Next, we signal to the controller that we are ready to go. It should be sending  */
 	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */
 	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */

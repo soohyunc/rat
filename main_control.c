@@ -442,9 +442,9 @@ int main(int argc, char *argv[])
 	e_addr = fork_process(m, ENGINE_NAME, c_addr, &pid_engine, token_engine);
 
         if (parse_options(m, e_addr, u_addr, argc, argv) == TRUE) {
-                mbus_rendezvous_go(m, token_ui,     (void *) m); 
                 mbus_rendezvous_go(m, token_engine, (void *) m);
-                
+                mbus_rendezvous_go(m, token_ui,     (void *) m); 
+
                 should_exit = FALSE;
                 while (!should_exit) {
                         mbus_send(m);
