@@ -159,7 +159,7 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
                 sprintf(args, "\"%08lx\" %s", e->sentry->ssrc, mbes);
                 xfree(mbes);
         } else {
-                args = (char *) xmalloc(17);
+                args = (char *) xmalloc(19);
                 sprintf(args, "\"%08lx\" unknown", e->sentry->ssrc);
         }
 
