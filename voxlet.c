@@ -117,7 +117,7 @@ voxlet_create  (voxlet_t          **ppv,
                 if (converter_create(cd->id, &cf, &pv->converter) == FALSE) {
                         debug_msg("Could not create converter\n");
                         voxlet_destroy(&pv);
-                        return NULL;
+                        return FALSE;
                 }
         }
 
