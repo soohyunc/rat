@@ -22,13 +22,13 @@ AC_SUBST(VERSION)
 # in earlier versions of rat (and, despite what rms thinks, I don't like my
 # system being identified as "linux-gnu". [csp]
 case "$host_os" in
-	*linux*   ) OSTYPE=Linux    ;;
-	*solaris* ) OSTYPE=Solaris  ;;
+ 	*linux*   ) OSTYPE=Linux    ;;
+ 	*solaris* ) OSTYPE=Solaris  ;;
 	*freebsd* ) OSTYPE=FreeBSD  ;;
 	*irix*    ) OSTYPE=Irix     ;;
 	*         ) OSTYPE=$host_os ;;
 esac
-AC_SUBST(OSTYPE)
+dnl AC_SUBST(OSTYPE)
 
 dnl The following two macros cause autoconf to complain.
 AC_C_BIGENDIAN

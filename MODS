@@ -1075,6 +1075,8 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Fix participant muting (reported by Bob Olson).
 	- Correct size of pb->buf allocation in pktbuf.c.
 	- Fix slow memory leak in pktbuf (didn't free pb->buf).
+	- Remove all traces of operating specific defines.  Configure no longer
+	  subsitutes operating system.
 
 TODO -- They're features not bugs dammit!
 ----

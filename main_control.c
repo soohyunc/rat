@@ -41,10 +41,6 @@ char	*u_addr, *e_addr;
 pid_t	 pid_ui, pid_engine;
 int	 should_exit;
 
-#ifdef FreeBSD
-int kill(pid_t pid, int sig);
-#endif
-
 static void 
 usage(char *szOffending)
 {

@@ -37,17 +37,6 @@
  */
 #undef NDEBUG
 
-/*
- * #defines for operating system.
- * THESE WANT TO GO AWAY!
- * Any checks for a specific OS should be replaced by a check for
- * a feature that OS supports or doesn't support.
- */
-#undef SunOS
-#undef Solaris
-#undef Linux
-#undef HPUX
-
 /* Audio device relate */
 #undef HAVE_SPARC_AUDIO
 #undef HAVE_SGI_AUDIO
