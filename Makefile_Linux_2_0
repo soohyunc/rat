@@ -1,5 +1,4 @@
 INCS   = -I/usr/X11R6/include 
 LDLIBS = -ltk4.2 -ltcl7.6 -L/usr/X11R6/lib -lX11 -lm -ldl
-LDFLAGS= 
 
 OBJS = auddev_oss.o
