@@ -185,7 +185,7 @@ static void rendezvous_with_controller(session_t *sp[2])
 		done = TRUE;
 		for (i = 0; i < num_sessions; i++) {
 			timeout.tv_sec  = 0;
-			timeout.tv_usec = 20000;
+			timeout.tv_usec = 100000;
 			mbus_qmsgf(sp[i]->mbus_engine, c_addr, FALSE, "mbus.waiting", "%s", token_e[i]);
 			mbus_send(sp[i]->mbus_engine); 
 			mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
