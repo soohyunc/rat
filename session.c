@@ -380,6 +380,38 @@ parse_early_options(int argc, char *argv[], session_struct *sp[])
 }
 
 /************************************************************************************************************/
+/* This function is a bit of a nasty hack, it does everything
+ * the other code avoids, ie explicitly name codecs. Not sure this
+ * should go here but...
+ */
+
+static const char*
+rat3codec_to_rat4codec(const char *name)
+{
+        int i, n;
+
+        const char* name_mappings[] = { "pcm",  "PCMU-8K-Mono",
+                                        "pcmu", "PCMU-8K-Mono",
+                                        "ulaw", "PCMU-8K-Mono",
+                                        "pcma", "PCMA-8K-Mono",
+                                        "alaw", "PCMA-8K-Mono",
+                                        "dvi",  "DVI-8K-Mono",
+                                        "gsm",  "GSM-8K-Mono",
+                                        "lpc",  "LPC-8K-Mono",
+                                        "l16",  "L16-8K-Mono"
+        };
+        n = sizeof(name_mappings)/sizeof(name_mappings[0]);
+
+        for(i = 0; i < n; i++) {
+                if (strncasecmp(name, name_mappings[i], 4) == 0) {
+                        return name_mappings[i];
+                }
+        }                        
+
+        return NULL;
+}
+
+/************************************************************************************************************/
 
 static void 
 parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
@@ -439,6 +471,21 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                 i++;
                         }
 			if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
+                                codec_id_t cid;
+                                const char *codec_name;
+
+                                codec_name = strtok(argv[i+1], "/");
+                                cid = codec_get_by_name(codec_name);
+                                if (codec_id_is_valid(cid) == FALSE) {
+                                        fprintf(stderr, "%s\n", codec_name);
+                                        codec_name = rat3codec_to_rat4codec(codec_name);
+                                        cid = codec_get_by_name(codec_name);
+                                        fprintf(stderr, "%s\n", codec_name);
+                                }
+                                if (cid) {
+                                        sp[i]->encodings[0]= codec_get_payload(cid);
+                                }
+
                                 printf("%s: not supported in this release\n", argv[i]);
 				i++;
 			}
