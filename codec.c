@@ -68,7 +68,7 @@ l16_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
 	d = (sample *)c->data;
 	/* As this codec can deal with variable unit sizes
 	 * let the table dictate what we do. */
-  	for (i=0; i < cp->unit_len; i++) {
+  	for (i=0; i < cp->unit_len*cp->channels; i++) {
 		*d++ = htons(*data);
 		data++;
 	}
@@ -79,7 +79,7 @@ l16_decode(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 {
 	int	i;
 	sample	*p = (sample *)c->data;
-	for (i = 0; i < cp->unit_len; i++) {
+	for (i = 0; i < cp->unit_len*cp->channels; i++) {
 		*data++ = ntohs(*p);
 		p++;
 	}
