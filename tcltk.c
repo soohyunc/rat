@@ -86,28 +86,6 @@ mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 #include "xbm/pause.xbm"
 #include "xbm/stop.xbm"
 
-int
-tcl_process_event(void)
-{
-	return Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS);
-}
-
-int
-tcl_process_all_events()
-{
-        int i = 0;
-        while (tcl_process_event()) {
-                i++;
-        }
-        return i;
-}
-
-int
-tcl_active(void)
-{
-	return (Tk_GetNumMainWindows() > 0);
-}
-
 int 
 tcl_init1(int argc, char **argv)
 {
@@ -158,7 +136,9 @@ tcl_init1(int argc, char **argv)
 	Tk_DefineBitmap(interp, Tk_GetUid("rec"),  rec_bits,  rec_width,  rec_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("pause"), pause_bits, pause_width, pause_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("stop"),  stop_bits,  stop_width,  stop_height);
-	tcl_process_all_events();
+        while (Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS)) {
+		/* Process Tcl/Tk events */
+	}
 	return TRUE;
 }
 
@@ -176,7 +156,9 @@ tcl_init2(struct mbus *mbus_ui, char *mbus_engine_addr)
 		fprintf(stderr, "ui_audiotool error: %s\n", Tcl_GetStringResult(interp));
 	}
 
-	tcl_process_all_events();
+        while (Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS)) {
+		/* Process Tcl/Tk events */
+	}
 	Tcl_ResetResult(interp);
 	return TRUE;
 }

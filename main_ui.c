@@ -16,13 +16,16 @@
 #include "debug.h"
 #include "mbus.h"
 #include "mbus_ui.h"
+#include "tcl.h"
+#include "tk.h"
 #include "tcltk.h"
 
 char	*e_addr = NULL;
 char	 m_addr[100];
 char	*c_addr, *token, *token_e; 
 
-int	 ui_active = FALSE;
+int	 ui_active   = FALSE;
+int	 should_exit = FALSE;
 
 static void parse_args(int argc, char *argv[])
 {
@@ -104,14 +107,31 @@ int main(int argc, char *argv[])
 
 	ui_active = TRUE;
 	tcl_init2(m, e_addr);
-	while (1) {
+	while (!should_exit) {
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 10000;
 		mbus_recv(m, NULL, &timeout);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
 		mbus_retransmit(m);
-		tcl_process_all_events();
+		while (Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS)) {
+			/* Process Tcl/Tk events... */
+		}
+		if (Tk_GetNumMainWindows() == 0) {
+			should_exit = TRUE;
+		}
 	}
+
+	/* Close things down nicely... */
+	mbus_qmsgf(m, c_addr, TRUE, "mbus.quit", "");
+	do {
+		mbus_send(m);
+		mbus_heartbeat(m, 1);
+		mbus_retransmit(m);
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 20000;
+		mbus_recv(m, NULL, &timeout);
+	} while (!mbus_sent_all(m));
+	return 0;
 }
 

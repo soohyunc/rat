@@ -57,6 +57,7 @@ void mbus_ui_wait_handler(char *srce, char *cmnd, char *args, void *data)
 
 extern char 	*e_addr;
 extern int	 ui_active;
+extern int	 should_exit;
 
 static void rx_tool_rat_addr_engine(char *srce, char *args, struct mbus *m)
 {
@@ -87,12 +88,21 @@ static void rx_mbus_waiting(char *srce, char *args, struct mbus *m)
 	UNUSED(m);
 }
 
+static void rx_mbus_quit(char *srce, char *args, struct mbus *m)
+{
+	UNUSED(args);
+	UNUSED(m);
+	should_exit = TRUE;
+	debug_msg("Got mbus.quit() from %s\n", srce);
+}
+
 /* Note: These next two arrays MUST be in the same order! */
 
 const char *rx_cmnd[] = {
 	"tool.rat.addr.engine",
 	"mbus.hello",
 	"mbus.waiting",
+	"mbus.quit",
 	""
 };
 
@@ -100,6 +110,7 @@ static void (*rx_func[])(char *srce, char *args, struct mbus *m) = {
 	rx_tool_rat_addr_engine,
 	rx_mbus_hello,
 	rx_mbus_waiting,
+	rx_mbus_quit,
         NULL
 };
 
