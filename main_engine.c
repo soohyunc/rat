@@ -122,6 +122,63 @@ mbus_error_handler(int seqnum, int reason)
         /* Ignore error we're closing down anyway */
 }
 
+static void rendezvous_with_controller(session_t *sp[2])
+{
+	int		i;
+	struct timeval	timeout;
+
+	/* Signal to the controller that we are ready to go. It should be sending us an     */
+	/* mbus.waiting(foo) where "foo" is the same as the "-token" argument we were       */
+	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
+	/* FIXME: Needs updating for transcoder... */
+	debug_msg("Waiting for mbus.waiting(%s) from controller...\n", token);
+	sp[0]->mbus_waiting       = TRUE;
+	sp[0]->mbus_waiting_token = token;
+	do {
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 20000;
+		mbus_send(sp[0]->mbus_engine); 
+		mbus_recv(sp[0]->mbus_engine, (void *) sp[0], &timeout);
+		mbus_heartbeat(sp[0]->mbus_engine, 1);
+		mbus_retransmit(sp[0]->mbus_engine);
+	} while (sp[0]->mbus_waiting);
+	debug_msg("...got it\n");
+
+	mbus_qmsgf(sp[0]->mbus_engine, c_addr, TRUE, "mbus.go", "%s", token_e);
+	do {
+		mbus_heartbeat(sp[0]->mbus_engine, 1);
+		mbus_retransmit(sp[0]->mbus_engine);
+		mbus_send(sp[0]->mbus_engine);
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 100000;
+		mbus_recv(sp[0]->mbus_engine, (void *) sp[0], &timeout);
+	} while (!mbus_sent_all(sp[0]->mbus_engine));
+
+	/* At this point we know the mbus address of our controller, and have conducted */
+	/* a successful rendezvous with it. It will now send us configuration commands. */
+	/* FIXME: Needs updating for transcoder... */
+	sp[0]->mbus_go       = TRUE;
+	sp[0]->mbus_go_token = token;
+	debug_msg("Waiting for mbus.go(%s) from controller...\n", token);
+	do {
+		char 		*token_e = mbus_encode_str(token);
+		struct timeval	 timeout;
+
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 20000;
+		mbus_qmsgf(sp[0]->mbus_engine, c_addr, FALSE, "mbus.waiting", "%s", token_e);
+		mbus_send(sp[0]->mbus_engine); 
+		mbus_recv(sp[0]->mbus_engine, (void *) sp[0], &timeout);
+		mbus_heartbeat(sp[0]->mbus_engine, 1);
+		mbus_retransmit(sp[0]->mbus_engine);
+	} while (sp[0]->mbus_go);
+	debug_msg("...got it\n");
+
+	for (i = 0; i < num_sessions; i++) {
+		assert(sp[i]->rtp_session[0] != NULL);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	uint32_t	 rtp_time = 0;
@@ -170,21 +227,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* Next, we signal to the controller that we are ready to go. It should be sending  */
-	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */
-	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
-	/* FIXME: Needs updating for transcoder... */
-	debug_msg("Waiting for mbus.waiting(%s) from controller...\n", token);
-	mbus_rendezvous_go(sp[0]->mbus_engine, token, (void *) sp[0]);
-	debug_msg("...got it\n");
-
-	/* At this point we know the mbus address of our controller, and have conducted */
-	/* a successful rendezvous with it. It will now send us configuration commands. */
-	/* FIXME: Needs updating for transcoder... */
-	debug_msg("Waiting for mbus.go(%s) from controller...\n", token);
-	mbus_rendezvous_waiting(sp[0]->mbus_engine, c_addr, token, (void *) sp[0]);
-	debug_msg("...got it\n");
-	assert(sp[0]->rtp_session[0] != NULL);
+	rendezvous_with_controller(sp);
 
 	/* Load saved settings, and create the participant database... */
 	/* FIXME: probably needs updating for the transcoder so we can */

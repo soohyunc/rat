@@ -1330,6 +1330,11 @@ v4.2.4	- Further updates to OSS (i.e. Linux) audio support
 	* Released 16 May 2000
 
 v4.2.5	- Fix assert failure in auddev_trans.c, contributed by Jakub Segen
+	- Fix audio device pairing with the OSS driver, in those cases where
+	  there is only a single mixer channel. Reported by Thierry Turletti.
+	- Rewrite code to rendezvous with the controller in the media engine,
+	  to support future transcoder operation.
+
 
 
 TODO -- They're features not bugs dammit!
@@ -1340,6 +1345,8 @@ TODO -- They're features not bugs dammit!
 	- FreeBSD driver bug on SoundBlaster 16 has small write buffers 
 	  and stops working full duplex mode after a time.  Hard to fix because
 	  of cushion.
+	- Crashes on FreeBSD 4.0 (reported by Lars Eggert and Joe Love)
+		- Due to bugs in FreeBSD
 	- Broken auddev_pca with adding of audio interface conversion code.
 	  FreeBSD 3.1 pca audio does not seem to work anymore.
 	- SunVideoPlus interface code does not work properly.  The driver Sun
@@ -1351,10 +1358,12 @@ TODO -- They're features not bugs dammit!
 	  G722, and "CD Quality" audio: it may do, but you can't access them.
 	- SGI O2's don't have autosensing audio interface selection like 
 	  Indy's.
-- 3d renderer should decimate when using sampling rates other than
-  that for which it was originally designed for.
-- 3d renderer could use finite precision maths for better performance 
-  (eliminate type conversions).
+	- Thierry still has problems with the NM256 card and device pairing
+- Update the 3d audio rendering code
+	- should decimate when using sampling rates other than that for which 
+	  it was originally designed for.
+	- could use finite precision maths for better performance (eliminate 
+	  type conversions).
 - sndfile routines should use conversion functions in audio_fmt.c, not their own.
 - Channel coders need intelligent bail out fn's for when units overflow 
   (rare, but real problem).
@@ -1363,6 +1372,12 @@ TODO -- They're features not bugs dammit!
   not sure if this is a feature of Tk or the window manager, but there's 
   little we can do about it.
 - Reimplement transcoder.
+	- Merge transcoder fixes from Jakub Segen
+	- Convertors need to be moved into the session struct, rather than being 
+	  statically allocated.
+	- settings load/save code needs to be updated for the transcoder. We should 
+	  save settings into a different set of files, and save each side of the 
+	  transcoder individually.
 - Add support for conversion between m*8000 and n*11025
 - Sample based codecs should accept frame lengths of 0-200ms, not just 
   multiples of frame lengths in tables.  Should add codec_is_sample_based 
@@ -1397,10 +1412,6 @@ TODO -- They're features not bugs dammit!
   Reported by Peter Parnes.
 - Add ability to change RTP sessions whilst rat is running. Requested by
   lots of people (Robert Olson, Joerg Ott, etc).
-- Crashes on FreeBSD 4.0
-	- instrument the auddev_luigi code, to give more info in case that
-	  is the culprit (I think that FreeBSD 4.0 updated the drivers?)
-	- Reported by Lars Eggert and Joe Love.
 - option to allow operation on odd-numbered RTP ports
 	- should be a "-not-really-standards-compliant" option, which also 
 	  turns off things like the requirement to receive for RTCP packets 
@@ -1409,9 +1420,6 @@ TODO -- They're features not bugs dammit!
 - When weak RTP validation is enabled, spurious sources can be
   added to the database (from the CSRC area of a packet?). Reported
   by Xiaotao Wu <xiaotaow@cs.columbia.edu>
-- settings load/save code needs to be updated for the transcoder. We should 
-  save settings into a different set of files, and save each side of the 
-  transcoder individually.
 - Crashes on WinNT if another version of Tcl/Tk is installed on the machine?
   Reported by Didier Lamballais <Didier.Lamballais@irisa.fr>.
 - Occasional crashes due to "too many blocks allocated" with many allocations

@@ -143,6 +143,10 @@ session_init(session_t *sp)
 	sp->ui_activated		= FALSE;
 	sp->encrkey			= NULL;
 	sp->logger                      = NULL;
+	sp->mbus_waiting		= FALSE;
+	sp->mbus_waiting_token		= NULL;
+	sp->mbus_go 			= FALSE;
+	sp->mbus_go_token		= NULL;
 	sp->magic			= 0xcafebabe;				/* Magic number for debugging */
 
         source_list_create(&sp->active_sources);

@@ -1470,22 +1470,41 @@ static void rx_mbus_bye(char *srce, char *args, session_t *sp)
 
 static void rx_mbus_waiting(char *srce, char *args, session_t *sp)
 {
+	char	 		*s, *sd;
+	struct mbus_parser	*mp;
+
 	UNUSED(srce);
-	UNUSED(args);
-	UNUSED(sp);
+
+	mp = mbus_parse_init(args);
+	if (mbus_parse_str(mp, &s)) {
+		sd = mbus_decode_str(s);
+		if (strcmp(sd, sp->mbus_waiting_token) == 0) {
+			sp->mbus_waiting = FALSE;
+		} else {
+			debug_msg("Got mbus.waiting(%s)\n", sd);
+		}
+	} else {
+		debug_msg("mbus: usage \"mbus.waiting(token)\"\n");
+	}
+	mbus_parse_done(mp);
 }
 
 static void rx_mbus_go(char *srce, char *args, session_t *sp)
 {
-	char	 		*s;
+	char	 		*s, *sd;
 	struct mbus_parser	*mp;
 
 	mp = mbus_parse_init(args);
 	if (mbus_parse_str(mp, &s)) {
-		if (strcmp(mbus_decode_str(s), "rat-ui-requested") == 0) {
+		sd = mbus_decode_str(s);
+		if (strcmp(sd, "rat-ui-requested") == 0) {
 			/* We now have a user interface... :-) */
 			sp->ui_on = TRUE;
 			sp->mbus_ui_addr = xstrdup(srce);
+		} else if (strcmp(sd, sp->mbus_go_token) == 0) {
+			sp->mbus_go = FALSE;
+		} else {
+			debug_msg("Got mbus.go(%s)\n", sd);
 		}
 	} else {
 		debug_msg("mbus: usage \"mbus.go(token)\"\n");

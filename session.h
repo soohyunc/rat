@@ -110,6 +110,10 @@ typedef struct s_session {
 	int		    	 loopback_gain;
 	char			*encrkey;
 	FILE			*logger;
+	int			 mbus_waiting;
+	char			*mbus_waiting_token;
+	int			 mbus_go;
+	char			*mbus_go_token;
 	uint32_t		 magic;				/* Magic number for debugging purposes */
 } session_t;
 
