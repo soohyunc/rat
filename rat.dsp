@@ -4,7 +4,7 @@
 
 # TARGTYPE "Win32 (x86) Application" 0x0101
 
-CFG=rat - Win32 Debug
+CFG=rat - Win32 Debug IPv6
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
@@ -13,12 +13,13 @@ CFG=rat - Win32 Debug
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "rat.mak" CFG="rat - Win32 Debug"
+!MESSAGE NMAKE /f "rat.mak" CFG="rat - Win32 Debug IPv6"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
 !MESSAGE "rat - Win32 Release" (based on "Win32 (x86) Application")
 !MESSAGE "rat - Win32 Debug" (based on "Win32 (x86) Application")
+!MESSAGE "rat - Win32 Debug IPv6" (based on "Win32 (x86) Application")
 !MESSAGE 
 
 # Begin Project
@@ -69,7 +70,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "c:\Program Files\Tcl\include" /I "c:\Program Files\Tcl\include\xlib" /I "c:\DDK\inc" /I "c:\src\msripv6\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "c:\Program Files\Tcl\include" /I "c:\Program Files\Tcl\include\xlib" /I "c:\DDK\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /FR /YX /FD /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x809 /d "_DEBUG"
@@ -79,6 +80,33 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 winmm.lib Ws2_32.lib msacm32.lib tcl80vc.lib tk80vc.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wship6.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"c:\src\rat32\rat" /libpath:"c:\Program Files\Tcl\lib" /libpath:".\win32"
+
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6"
+
+# PROP BASE Use_MFC 0
+# PROP BASE Use_Debug_Libraries 1
+# PROP BASE Output_Dir "rat___Win32_Debug_IPv6"
+# PROP BASE Intermediate_Dir "rat___Win32_Debug_IPv6"
+# PROP BASE Ignore_Export_Lib 0
+# PROP BASE Target_Dir ""
+# PROP Use_MFC 0
+# PROP Use_Debug_Libraries 1
+# PROP Output_Dir "rat___Win32_Debug_IPv6"
+# PROP Intermediate_Dir "rat___Win32_Debug_IPv6"
+# PROP Ignore_Export_Lib 0
+# PROP Target_Dir ""
+# ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /I "c:\Program Files\Tcl\include" /I "c:\Program Files\Tcl\include\xlib" /I "c:\DDK\inc" /I "c:\src\msripv6\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "c:\Program Files\Tcl\include" /I "c:\Program Files\Tcl\include\xlib" /I "c:\DDK\inc" /I "c:\src\msripv6\inc" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "WIN32" /D "_DEBUG" /D "HAVE_IPv6" /FR /YX /FD /c
+# ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
+# ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
+# ADD BASE RSC /l 0x809 /d "_DEBUG"
+# ADD RSC /l 0x809 /d "_DEBUG"
+BSC32=bscmake.exe
+# ADD BASE BSC32 /nologo
+# ADD BSC32 /nologo
+LINK32=link.exe
+# ADD BASE LINK32 winmm.lib Ws2_32.lib msacm32.lib tcl80vc.lib tk80vc.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wship6.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"c:\src\rat32\rat" /libpath:"c:\Program Files\Tcl\lib" /libpath:".\win32" /libpath:"c:\src\msripv6\wship6\obj\i386\free"
 # ADD LINK32 winmm.lib Ws2_32.lib msacm32.lib tcl80vc.lib tk80vc.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wship6.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"c:\src\rat32\rat" /libpath:"c:\Program Files\Tcl\lib" /libpath:".\win32" /libpath:"c:\src\msripv6\wship6\obj\i386\free"
 
 !ENDIF 
@@ -87,6 +115,7 @@ LINK32=link.exe
 
 # Name "rat - Win32 Release"
 # Name "rat - Win32 Debug"
+# Name "rat - Win32 Debug IPv6"
 # Begin Source File
 
 SOURCE=.\asfilebox.tcl
@@ -267,6 +296,11 @@ SOURCE=.\mbus_engine.c
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
 
+# ADD CPP /W3
+
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6"
+
+# ADD BASE CPP /W3
 # ADD CPP /W3
 
 !ENDIF 
@@ -476,6 +510,19 @@ InputPath=.\ui_audiotool.tcl
 	
 # End Custom Build
 
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6"
+
+USERDEP__UI_AU="$(InputDir)\asfilebox.tcl"	
+# Begin Custom Build - Building audiotool ui
+InputDir=.
+InputPath=.\ui_audiotool.tcl
+
+"$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
+	type $(InputDir)\ui_at.tcl | tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
+	
+# End Custom Build
+
 !ENDIF 
 
 # End Source File
@@ -499,6 +546,17 @@ InputPath=.\ui_transcoder.tcl
 # End Custom Build
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
+
+# Begin Custom Build - Building transcoder ui
+InputDir=.
+InputPath=.\ui_transcoder.tcl
+
+"$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	type $(InputDir)\ui_transcoder.tcl | tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6"
 
 # Begin Custom Build - Building transcoder ui
 InputDir=.
@@ -542,6 +600,23 @@ InputPath=.\Version
 # End Custom Build
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
+
+USERDEP__VERSI="win32\echo.txt"	"win32\set.txt"	"win32\null.txt"	
+# Begin Custom Build - Generating "version.h".
+InputPath=.\Version
+
+"version.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy win32\set.txt + VERSION win32\vergen.bat 
+	copy win32\vergen.bat + win32\null.txt win32\vergen.bat 
+	copy win32\vergen.bat + win32\echo.txt win32\vergen.bat 
+	win32\vergen.bat 
+	move win32\version.h version.h 
+	erase win32\version.h 
+	erase win32\vergen.bat 
+	
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug IPv6"
 
 USERDEP__VERSI="win32\echo.txt"	"win32\set.txt"	"win32\null.txt"	
 # Begin Custom Build - Generating "version.h".
