@@ -1199,6 +1199,8 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  before extracting the .tar.gz file. Use "make installer" to build and
 	  then distribute the rat-4.1.8-installer binary only.
 	- Add transit estimate reset when device format changes at either end.
+	- Add settings to default to first device when device in settings file
+	  does not exist on host.
 
 TODO -- They're features not bugs dammit!
 ----

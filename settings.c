@@ -269,7 +269,7 @@ void settings_load_early(session_t *sp)
 {
 	char				*name, *param, *primary_codec, *port, *silence;
 	int				 freq, chan, mute;
-        uint32_t                         i, n, success;
+        uint32_t                         i, n, success, device_exists;
 	const cc_details_t              *ccd;
 	const audio_device_details_t    *add = NULL;
         const audio_port_details_t 	*apd = NULL;
@@ -281,20 +281,26 @@ void settings_load_early(session_t *sp)
         init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 
 	name = setting_load_str("audioDevice", "No Audio Device");
-        add = audio_get_device_details(0); /* Fallback first device */
-        /* User may not have audio device entry in the         */
-        /* settings file, or have "No Audio Device" there.  In */
-        /* either case try to use first available device, if   */
-        /* it's in use we'll fallback to dummy device anyway.  */
-        if (strcmp(name, "No Audio Device")) {
-                n = (int)audio_get_device_count();
-                for(i = 0; i < n; i++) {
-                        add = audio_get_device_details(i);
-                        if (strcmp(add->name, name) == 0) {
-                                break;
-                        }
-                }
+        /* User may not have a (valid) audio device entry in the */
+        /* settings file, or have "No Audio Device" there.  In   */
+        /* either case try to use first available device, if     */
+        /* it's in use we'll fallback to dummy device anyway.    */
+
+	device_exists = FALSE;
+	n = (int)audio_get_device_count();
+	for(i = 0; i < n; i++) {
+		add = audio_get_device_details(i);
+		if (strcmp(add->name, name) == 0) {
+			device_exists = TRUE;
+			break;
+		}
+	}
+
+        if (strcmp(name, "No Audio Device") == 0 || 
+	    device_exists == FALSE) {
+		add = audio_get_device_details(0);
         }
+
         audio_device_register_change_device(sp, add->descriptor);
 
 	freq = setting_load_int("audioFrequency", 8000);
