@@ -247,9 +247,16 @@ layered_encoder_output(lay_state *le, struct s_pb *out)
                         memcpy(cd->elem[used]->data, lu->data, lu->data_len);
                         used++;
                         if(i==0) cd_len[j] = (u_int16)lu->data_len;
-                        block_free(lu->data, lu->data_len);
-                        lu->data     = 0;
-                        lu->data_len = 0;
+                        if(lu->state_len) {
+			  block_free(lu->state, lu->state_len);
+			  lu->state = NULL;
+			  lu->state_len = 0;
+			}
+			if(lu->data_len) {
+			  block_free(lu->data, lu->data_len);
+			  lu->data     = NULL;
+			  lu->data_len = 0;
+			}
                 }
 		block_free(le->elem[i]->rep[0]->data, le->elem[i]->rep[0]->data_len);
                 le->elem[i]->rep[0]->data = NULL;
@@ -363,7 +370,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, ts_t playout)
 
         if(in->nelem > LAY_MAX_LAYERS) {
                 debug_msg("Too many layers to reorganise\n");
-                return FALSE;
+		goto done;
         }
 
 
@@ -386,7 +393,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, ts_t playout)
         }
         else {
                 debug_msg("Invalid layered header\n");
-                return FALSE;
+		goto done;
         }
         
         for(i=1; i<in->nelem; i++) {
@@ -396,7 +403,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, ts_t playout)
                 if(hdr32 & LAY_HDR32_PAT) {
                         if(hdrpt != (u_int8)(LAY_HDR32_GET_PT(hdr32))) {
                                 debug_msg("layered headers do not match!\n");
-                                return FALSE;
+                                goto done;
                         }
                         mrk[i] = (u_int16)(LAY_HDR32_GET_MRK(hdr32));
                         len[i] = (u_int16)(LAY_HDR32_GET_LEN(hdr32));
@@ -404,7 +411,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, ts_t playout)
                 }
                 else {
                         debug_msg("Invalid layered header\n");
-                        return FALSE;
+                        goto done;
                 }
         }
         end  = in->elem[in->nelem-1]->data + in->elem[in->nelem-1]->data_len;
@@ -503,6 +510,7 @@ layered_decoder_reorganise(channel_data *in, struct s_pb *out, ts_t playout)
         assert(p[in->nelem - 1] == end);
 
         block_free(cu, sizeof(coded_unit));
+	channel_data_destroy(&in, sizeof(channel_data));
         xmemchk();
         return TRUE;
 
@@ -520,6 +528,9 @@ fail:
         }
         assert(cu->data_len == 0);
         block_free(cu, sizeof(coded_unit));
+done:
+	media_data_destroy(&m, sizeof(media_data));
+	channel_data_destroy(&in, sizeof(channel_data));
         xmemchk();
         return FALSE;
 }
