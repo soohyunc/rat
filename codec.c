@@ -621,7 +621,10 @@ codec_decoder_repair(codec_id_t id, codec_state *cs,
         ifs = CODEC_GET_IFS_INDEX(id);
         fmt = CODEC_GET_FMT_INDEX(id);
 
-        assert(miss->id == id);
+        if (miss->id != id) {
+                debug_msg("Wrong previous unit supplied for repair.  Probably a transition in stream.\n");
+                return FALSE;
+        }
         miss->id = prev->id;
 
         assert(codec_table[ifs].cx_repair != NULL);

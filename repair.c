@@ -276,7 +276,8 @@ repair(int                         repair,
          * that first 
          */
         if (codec_is_native_coding(prev->rep[0]->id) == FALSE && 
-            codec_decoder_can_repair(prev->rep[0]->id)) {
+            codec_decoder_can_repair(prev->rep[0]->id) &&
+            prev->rep[0]->id == missing->id) {
                 codec_state *st;
 
                 st = codec_state_store_get(states, prev->rep[0]->id);
