@@ -1427,6 +1427,7 @@ v4.2.9	- Fix spurious assertions in source.c -- I think (hope?) this will fix th
 	  means that you'll have to "make clean" after updating.
 	- Modularize user interface: bargraph and chart
 	- Fix labelling of transcoder input/output ports
+	* Released 8 September 2000
 
 
 
