@@ -713,7 +713,6 @@ ui_update(session_struct *sp)
 	ui_update_output_port(sp);
 	ui_update_input_port(sp);
         ui_update_3d_enabled(sp);
-        ui_codecs(sp, sp->encodings[0]);
         ui_devices(sp);
         ui_device(sp);
         ui_sampling_modes(sp);
@@ -846,97 +845,6 @@ ui_update_key(session_struct *sp, char *key)
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "security.encryption.key", key, TRUE);
 }
 
-static int
-codec_bw_cmp(const void *a, const void *b)
-{
-        codec_id_t *id_a, *id_b;
-        const codec_format_t *cf_a, *cf_b;
-
-        id_a = (codec_id_t*)a;
-        id_b = (codec_id_t*)b;
-        cf_a = codec_get_format(*id_a);
-        cf_b = codec_get_format(*id_b);
-        
-        if (cf_a->mean_coded_frame_size < cf_b->mean_coded_frame_size) {
-                return 1;
-        } else if (cf_a->mean_coded_frame_size > cf_b->mean_coded_frame_size) {
-                return -1;
-        } 
-        return 0;
-}
-
-/* This code is particularly wasteful - what we want to do now is have
- * the codecs passed to the ui with all their associated settings and
- * have the ui worry about compatibility and sorting of codecs */
-
-static char *
-ui_get_codecs(int pt, char *buf, unsigned int buf_len, int loose) 
-{
-	codec_id_t cid[100], sel_id;
-        const codec_format_t *cf_sel = NULL, *cf_cur = NULL;
-	u_int32	 i, nc, codec_cnt, req_buf_len = 0;
-        char *bp = buf;
-        
-        codec_cnt = codec_get_number_of_codecs();
-        sel_id    = codec_get_by_payload((u_char)pt);
-        
-        nc = 0;
-        for (i = 0; i < codec_cnt && nc < 100; i++) {
-                cid[nc]  = codec_get_codec_number(i);
-                if (!cid[nc]                   || 
-                    !codec_can_encode(cid[nc]) ||
-                    !payload_is_valid(codec_get_payload(cid[nc]))) {
-                        continue;
-                }
-
-                if (loose == TRUE) {
-                        cf_sel = codec_get_format(sel_id);
-                        cf_cur = codec_get_format(cid[nc]);
-                        /* Picking out primary codecs, i.e. not bothered 
-                         * about sample size and block sizes matching.
-                         */
-                        assert(cf_sel);
-                        assert(cf_cur);
-                        if (cf_sel->format.channels == cf_cur->format.channels &&
-                            cf_sel->format.sample_rate == cf_cur->format.sample_rate) {
-                                req_buf_len += strlen(cf_cur->short_name);
-                                nc++;
-                        }
-                        assert(nc<100); 
-                } else if (codec_audio_formats_compatible(sel_id, cid[nc])) {
-                        /* Picking out redundant codecs where we are 
-                         * fussed about sample and block size matching.
-                         */
-                        cf_cur = codec_get_format(cid[nc]);
-                        assert(cf_cur);
-                        req_buf_len += strlen(cf_cur->short_name);
-                        nc++;
-                        assert(nc<100);
-                }
-        }
-
-        req_buf_len += nc + 1; /* number of spaces in output fmt + zero end */
-
-        if (req_buf_len > buf_len) {
-                debug_msg("Insufficient buffer space\n");
-        }
-
-        /* sort by bw as this makes handling of acceptable redundant codecs easier in ui */
-        qsort(cid,nc,sizeof(codec_id_t),codec_bw_cmp);
-        for(i=0;i<nc && strlen(buf) < buf_len;i++) {
-                cf_cur = codec_get_format(cid[i]);
-                sprintf(bp, "%s ", cf_cur->short_name);
-                bp += strlen(cf_cur->short_name) + 1;
-        }
-
-        if (i != nc) {
-                debug_msg("Ran out of buffer space.\n");
-        }
-        
-        if (bp != buf) *(bp-1) = 0;
-        return buf;
-}
-
 static void
 ui_mod_codecs(session_struct *sp)
 {
@@ -984,21 +892,6 @@ ui_mod_codecs(session_struct *sp)
                 mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.codec.details", entry, TRUE);
                 xfree(mbes[2]); xfree(mbes[1]); xfree(mbes[0]);
         }
-}
-
-void 
-ui_codecs(session_struct *sp, int pt)
-{
-	char	args[256], *mbes;	/* Hope that's big enough... :-) */
-
-        ui_get_codecs(pt, args, 256, TRUE);
-        mbes = mbus_encode_str(args);
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.codec.supported", mbes, TRUE);
-        xfree(mbes);
-        ui_get_codecs(pt, args, 256, FALSE);
-        mbes = mbus_encode_str(args);
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.redundancy.supported", mbes, TRUE);
-        xfree(mbes);
 }
 
 void
@@ -1161,7 +1054,6 @@ ui_initial_settings(session_struct *sp)
         ui_sampling_modes(sp);
         ui_converters(sp);
         ui_repair_schemes(sp);
-	ui_codecs(sp, sp->encodings[0]);
         ui_mod_codecs(sp);
         ui_3d_options(sp);
 	ui_info_update_cname(sp, sp->db->my_dbe);

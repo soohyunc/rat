@@ -141,38 +141,6 @@ static codec_fns_t codec_table[] = {
         {
                 NULL,
                 NULL,
-                gsm_get_formats_count,
-                gsm_get_format,
-                gsm_state_create,
-                gsm_state_destroy,
-                gsm_encoder,
-                NULL,
-                gsm_state_create,
-                gsm_state_destroy,
-                gsm_decoder,
-                NULL,
-                NULL,
-                gsm_repair
-        },
-        {
-                lpc_setup,
-                NULL,
-                lpc_get_formats_count,
-                lpc_get_format,
-                lpc_encoder_state_create,
-                lpc_encoder_state_destroy,
-                lpc_encoder,
-                NULL,
-                lpc_decoder_state_create,
-                lpc_decoder_state_destroy,
-                lpc_decoder,
-                NULL,
-                NULL,
-                lpc_repair
-        },
-        {
-                NULL,
-                NULL,
                 dvi_get_formats_count,
                 dvi_get_format,
                 dvi_state_create,
@@ -217,6 +185,38 @@ static codec_fns_t codec_table[] = {
                 NULL,
                 NULL,
                 NULL
+        },
+        {
+                NULL,
+                NULL,
+                gsm_get_formats_count,
+                gsm_get_format,
+                gsm_state_create,
+                gsm_state_destroy,
+                gsm_encoder,
+                NULL,
+                gsm_state_create,
+                gsm_state_destroy,
+                gsm_decoder,
+                NULL,
+                NULL,
+                gsm_repair
+        },
+        {
+                lpc_setup,
+                NULL,
+                lpc_get_formats_count,
+                lpc_get_format,
+                lpc_encoder_state_create,
+                lpc_encoder_state_destroy,
+                lpc_encoder,
+                NULL,
+                lpc_decoder_state_create,
+                lpc_decoder_state_destroy,
+                lpc_decoder,
+                NULL,
+                NULL,
+                lpc_repair
         }
 };
 

@@ -172,8 +172,6 @@ proc mbus_recv {cmnd args} {
 		mbus.quit  			{eval mbus_recv_mbus.quit $args}
 		tool.rat.load.settings 		{eval mbus_recv_tool.rat.load.settings $args}
 		tool.rat.sampling.supported 	{eval mbus_recv_tool.rat.sampling.supported $args}
-		tool.rat.codec.supported  	{eval mbus_recv_tool.rat.codec.supported $args}
-		tool.rat.redundancy.supported  	{eval mbus_recv_tool.rat.redundancy.supported $args}
 		tool.rat.converter.supported	{eval mbus_recv_tool.rat.converter.supported $args}
 		tool.rat.repair.supported	{eval mbus_recv_tool.rat.repair.supported $args}
 		tool.rat.agc  			{eval mbus_recv_tool.rat.agc $args}
@@ -255,6 +253,26 @@ proc mbus_recv_tool.rat.load.settings {} {
     toggle_plist
 }
 
+proc change_freq {new_freq} {
+    global freq
+
+    if {$freq != $new_freq} {
+	set freq $new_freq
+	update_channels_displayed
+	update_codecs_displayed
+	reset_encodings
+    }
+}
+
+proc change_channels {new_channels} {
+    global ichannels
+    if {$ichannels != $new_channels} {
+	set ichannels $new_channels
+	update_codecs_displayed
+	reset_encodings
+    }
+}
+
 proc update_channels_displayed {} {
     global freq channel_support
 
@@ -263,18 +281,8 @@ proc update_channels_displayed {} {
     set s [lsearch -glob $channel_support *$freq*]
     
     foreach i [lrange [split [lindex $channel_support $s] ","] 1 2] {
-	 $m1 add command -label "$i" -command "set ichannels $i; change_sampling"
+	 $m1 add command -label "$i" -command "change_channels $i"
     }
-}
-
-proc change_sampling { } {
-    global freq ichannels
-
-    update_channels_displayed
-
-    mbus_send "R" "tool.rat.sampling" "[mbus_encode_str $freq] [mbus_encode_str $ichannels]"
-
-    puts "[codecs_loosely_matching $freq $ichannels]"
 }
 
 proc mbus_recv_tool.rat.sampling.supported {arg} {
@@ -296,7 +304,7 @@ proc mbus_recv_tool.rat.sampling.supported {arg} {
 	set support [split $m ","]
 	set f [lindex $support 0]
 	lappend freqs $f
-	.prefs.pane.audio.dd.sampling.freq.mb.m add command -label $f -command "set freq $f; change_sampling"
+	.prefs.pane.audio.dd.sampling.freq.mb.m add command -label $f -command "change_freq $f"
     }
     set freq [lindex $freqs 0]
     update_channels_displayed
@@ -308,32 +316,54 @@ set codecs "none"
 set codec_nick_name(none)  "none"
 set codec_channels(none)   0 
 set codec_rate(none)       0
-set codec_pt(none)         1234
+set codec_pt(none)         -
 set codec_state_size(none) 0
 set codec_data_size(none)  0
 set codec_block_size(none) 0 
 set codec_desc(none)       0
+
+set prencs  {}
+set secencs {}
+
+proc codec_get_name {nickname freq channels} {
+    global codecs codec_nick_name codec_rate codec_channels
+
+    foreach {c} $codecs {
+	if {$codec_nick_name($c)    == $nickname && \
+		$codec_rate($c)     == $freq && \
+		$codec_channels($c) == $channels} {
+	    return $c
+	} 
+    }
+}
 
 proc codecs_loosely_matching {freq channels} {
     global codecs codec_nick_name codec_channels codec_rate codec_pt codec_state_size codec_data_size codec_block_size codec_desc
     
     set x {}
 
-    if {[string match $channels Mono]} {
-	set channels 1
-    } else {
-	set channels 2
-    }
-
-    set freq [string trimright $freq -kHz]
-    set freq [expr $freq * 1000]
-
     foreach {c} $codecs {
-	if {$codec_channels($c) == $channels && $codec_rate($c) == $freq} {
+	if {$codec_channels($c) == $channels && \
+	$codec_rate($c) == $freq && \
+	$codec_pt($c) != "-" } {
 	    lappend x $c
 	}
     }
 
+    return $x
+}
+
+proc codecs_matching {freq channels blocksize} {
+    global codec_block_size
+    set codecs [codecs_loosely_matching $freq $channels]
+
+    set x {}
+
+    foreach {c} $codecs {
+	if {$codec_block_size($c) == $blocksize} {
+	    lappend x $c
+	}
+    }
     return $x
 }
 
@@ -363,34 +393,83 @@ proc mbus_recv_tool.rat.codec.details {args} {
     }
 }
 
-###############################################################################
-
-proc mbus_recv_tool.rat.codec.supported {arg} {
+proc update_primary_list {arg} {
     # We now have a list of codecs which this RAT supports...
-    global prenc
+    global prenc prencs
 
     .prefs.pane.transmission.dd.pri.m.menu delete 0 last
+    set prencs {}
 
     set codecs [split $arg]
     foreach c $codecs {
-	.prefs.pane.transmission.dd.pri.m.menu    add command -label $c -command "set prenc $c; validate_red_codecs"
+	.prefs.pane.transmission.dd.pri.m.menu    add command -label $c -command "set prenc $c; update_codecs_displayed"
+	lappend prencs $c
     }    
-
-    set prenc [lindex $codecs 0]
 }
 
-proc mbus_recv_tool.rat.redundancy.supported {arg} {
-    global secenc
+proc update_redundancy_list {arg} {
+    global secenc secencs
 
     .prefs.pane.transmission.cc.red.fc.m.menu delete 0 last
+    set secencs {}
 
     set codecs [split $arg]
     foreach c $codecs {
 	.prefs.pane.transmission.cc.red.fc.m.menu add command -label $c -command "set secenc \"$c\""
+	lappend secencs $c
+    }
+}
+
+proc reset_encodings {} {
+    global prenc prencs secenc secencs
+    set prenc  [lindex $prencs 0]
+    set secenc [lindex $secencs 0]
+}
+
+proc update_codecs_displayed { } {
+    global freq ichannels codec_nick_name prenc codec_block_size
+
+    if {[string match $ichannels Mono]} {
+	set sample_channels 1
+    } else {
+	set sample_channels 2
     }
 
-    set secenc [lindex $codecs 0]
+    set sample_rate [string trimright $freq -kHz]
+    set sample_rate [expr $sample_rate * 1000]
+
+    set long_names [codecs_loosely_matching $sample_rate $sample_channels]
+    set friendly_names {}
+    foreach {n} $long_names {
+	lappend friendly_names $codec_nick_name($n)
+    }
+
+    update_primary_list $friendly_names
+
+    set long_name [codec_get_name $prenc $sample_rate $sample_channels]
+
+    set long_names [codecs_matching $sample_rate $sample_channels $codec_block_size($long_name)]
+
+    set friendly_names {}
+    set found 0
+    foreach {n} $long_names {
+	if {$codec_nick_name($n) == $prenc} {
+	    set found 1
+	}
+	if {$found} {
+	    lappend friendly_names $codec_nick_name($n)
+	}
+    }
+
+    update_redundancy_list $friendly_names
 }
+
+proc change_sampling { } {
+    update_channels_displayed
+    update_codecs_displayed
+}
+
+###############################################################################
 
 proc mbus_recv_tool.rat.converter.supported {arg} {
     global convert_var
@@ -1511,27 +1590,6 @@ proc set_pane {p base desc} {
     set pane $desc
 }
 
-proc validate_red_codecs {} {
-    # logic assumes codecs are sorted by b/w in menus
-    global prenc secenc
-
-    set pri [.prefs.pane.transmission.dd.pri.m.menu index $prenc]
-    if { [catch {set sec [.prefs.pane.transmission.cc.red.fc.m.menu index $secenc]}] } {
-	set secenc $prienc
-    }
-
-    if {$sec <= $pri} {
-	for {set i 0} {$i < $pri} {incr i} {
-	    .prefs.pane.transmission.cc.red.fc.m.menu entryconfigure $i -state disabled
-	}
-	set secenc $prenc
-    } else {
-	for {set i $pri} {$i < $sec} {incr i} {
-	    .prefs.pane.transmission.cc.red.fc.m.menu entryconfigure $i -state normal
-	}
-    }
-}
-
 # Initialise "About..." toplevel window
 toplevel   .about
 frame      .about.rim -relief sunken
@@ -1971,6 +2029,8 @@ proc load_settings {} {
 
     global prenc ichannels freq
     mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"
+
+    update_codecs_displayed
 	
     global      in_mute_var   out_mute_var
     input_mute  $in_mute_var

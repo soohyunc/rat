@@ -761,40 +761,6 @@ rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
         }
 }
 
-static void 
-rx_tool_rat_sampling(char *srce, char *args, session_struct *sp)
-{
-        int channels=1, freq=8000;
-        char *sfreq, *schan;
-        codec_id_t id;
-
-        UNUSED(srce);
-        UNUSED(sp);
-
-        freq = channels = 0;
-        mbus_parse_init(sp->mbus_engine, args);
-        if (mbus_parse_str(sp->mbus_engine, &sfreq) && 
-            mbus_parse_str(sp->mbus_engine, &schan)) {
-                mbus_decode_str(sfreq);
-                mbus_decode_str(schan);
-                if (strcasecmp(schan, "mono") == 0) {
-                        channels = 1;
-                } else if (strcasecmp(schan, "stereo") == 0) {
-                        channels = 2;
-                } 
-                freq = atoi(sfreq) * 1000;
-        }
-
-        id = codec_get_first_mapped_with((u_int16)freq, (u_int16)channels);
-        if (id) {
-                ui_codecs(sp, codec_get_payload(id));
-        } else {
-                printf("mbus: usage \"tool.rat.sampling <freq> <channels>\"\n");
-        }
-        
-        mbus_parse_done(sp->mbus_engine);
-}
-
 static void rx_tool_rat_playout_limit(char *srce, char *args, session_struct *sp)
 {
         int i;
@@ -928,7 +894,6 @@ const char *rx_cmnd[] = {
         "tool.rat.converter",
         "tool.rat.settings",
 	"tool.rat.codec",
-        "tool.rat.sampling",
         "tool.rat.playout.limit",
         "tool.rat.playout.min",            
         "tool.rat.playout.max",            
@@ -978,7 +943,6 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_tool_rat_converter,
         rx_tool_rat_settings,
 	rx_tool_rat_codec,
-        rx_tool_rat_sampling,
         rx_tool_rat_playout_limit,
         rx_tool_rat_playout_min,
         rx_tool_rat_playout_max,                
