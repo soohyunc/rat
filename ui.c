@@ -863,6 +863,33 @@ ui_load_settings(session_struct *sp)
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.load.settings", "", TRUE);
 }
 
+/* ui_final_settings: so we here we load things that get broken
+ * because we open null audio device first, and it has limited no of
+ * input and output ports.  
+ */
+
+void
+ui_final_settings(session_struct *sp)
+{
+        int i, n;
+        char *mbes;
+        const char *settings[] = {
+                "audio.input.mute",
+                "audio.input.gain",
+                "audio.input.port",
+                "audio.output.mute",
+                "audio.output.gain",
+                "audio.output.port"
+        };
+        
+        n = sizeof(settings)/sizeof(settings[0]);
+        for(i = 0; i < n; i++) {
+                mbes = mbus_encode_str(settings[i]);
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.load.setting", mbes, TRUE);
+                xfree(mbes);
+        }
+}
+
 static void
 ui_3d_options(session_struct *sp)
 {

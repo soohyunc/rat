@@ -169,6 +169,7 @@ proc mbus_recv {cmnd args} {
 		mbus.hello			{eval mbus_recv_mbus.hello $args}
 		mbus.quit  			{eval mbus_recv_mbus.quit $args}
 		tool.rat.load.settings 		{eval mbus_recv_tool.rat.load.settings $args}
+		tool.rat.load.setting           {eval mbus_recv_tool.rat.load.setting $args}
 		tool.rat.sampling.supported 	{eval mbus_recv_tool.rat.sampling.supported $args}
 		tool.rat.converter  		{eval mbus_recv_tool.rat.converter $args}
 		tool.rat.converters.flush 	{eval mbus_recv_tool.rat.converters.flush $args}
@@ -259,6 +260,24 @@ proc mbus_recv_tool.rat.load.settings {} {
     chart_show
     file_show
     toggle_plist
+}
+
+proc mbus_recv_tool.rat.load.setting {sname} {
+    global attr
+# Note when settings get loaded the get set in attr and not updated.  So we
+# use this as a cache for desired values.  This is necessary as when the
+# settings first get loaded we have null audio device and can't set 
+# anything on it meaningfully - i.e. it only has 1 port for input and 1 for output.
+#
+    switch $sname {
+	audio.input.mute  { mbus_send "R" $sname $attr(audioInputMute) }
+	audio.input.gain  { mbus_send "R" $sname $attr(audioInputGain) }
+	audio.input.port  { mbus_send "R" $sname [mbus_encode_str $attr(audioInputPort)] }
+	audio.output.mute { mbus_send "R" $sname $attr(audioOutputMute) }
+	audio.output.gain { mbus_send "R" $sname $attr(audioOutputGain) }
+	audio.output.port { mbus_send "R" $sname [mbus_encode_str $attr(audioOutputPort)] }
+	default           { puts "setting requested has no handler"}
+    }
 }
 
 proc change_freq {new_freq} {
@@ -2205,25 +2224,25 @@ proc load_setting {attrname field var default} {
 	set fail 0
 	# who has the tcl manual? is the only way to pass arrays thru upvar...
 	if {$win32} {
-		if {[string first "rtp" "$field"] == -1} {
-			catch { 
-				set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app) *$field]" 
-				set tmp [string trim $tmp \"]
-				set nerr 0
-			} fail
-		} else {
-			catch { 
-				set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\common  *$field]" 
-				set tmp [string trim $tmp \"]
-				set nerr 0
-			} fail
-		}
-		if {$fail != 0} {
-			puts "Failed to get $field\n";
-			set tmp ""
-		} else {
-			puts "$field $var $tmp"
-		}
+	    if {[string first "rtp" "$field"] == -1} {
+		catch { 
+		    set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app) *$field]" 
+		    set tmp [string trim $tmp \"]
+		    set nerr 0
+		} fail
+	    } else {
+		    catch { 
+			set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\common  *$field]" 
+			set tmp [string trim $tmp \"]
+			set nerr 0
+		    } fail
+	    }
+	    if {$fail != 0} {
+		puts "Failed to get $field\n";
+		set tmp ""
+	    } else {
+		puts "$field $var $tmp"
+	    }
 	} else {
 		set tmp [option get . $field rat]
 		if {$tmp == ""} {
@@ -2238,6 +2257,7 @@ proc load_setting {attrname field var default} {
 		set tmp $default
 	}
 	set $var $tmp
+	set attr($field) $tmp
 }
 
 proc tool_version {tool} {
@@ -2252,20 +2272,20 @@ proc tool_version {tool} {
 }
 
 proc load_settings {} {
-    global rtpfname win32 my_ssrc TOOL
+    global rtpfname win32 my_ssrc TOOL attr
 
     set attr(zero) ""
     if {$win32 == 0} {
-		if {[file readable $rtpfname]} {
-			set f [open $rtpfname]
-			while {[eof $f] == 0} {
-				gets $f line
-				set field [string trim [lindex $line 0] "*:"]
-				set value [lrange $line 1 end]
-				set attr($field) "$value"
-			}	
-			close $f
-		}
+	if {[file readable $rtpfname]} {
+	    set f [open $rtpfname]
+	    while {[eof $f] == 0} {
+		gets $f line
+		set field [string trim [lindex $line 0] "*:"]
+		set value [lrange $line 1 end]
+		set attr($field) "$value"
+	    }	
+	    close $f
+	}
     }
 
     # personal
@@ -2273,7 +2293,7 @@ proc load_settings {} {
     load_setting attr rtpEmail  rtcp_email    "unknown"
     load_setting attr rtpPhone  rtcp_phone    ""
     load_setting attr rtpLoc    rtcp_loc      ""
-    load_setting attr audioTool audio_tool         ""
+    load_setting attr audioTool audio_tool    ""
 
     # If the version of the saved settings is different 
     # from those the current version use defaults.
@@ -2293,7 +2313,7 @@ proc load_settings {} {
     load_setting attr audioMinPlayout   min_var       "0"
     load_setting attr audioMaxPlayout   max_var       "2000"
     load_setting attr audioLecture      lecture_var   "0"
-    load_setting attr audio3dRendering  3d_audio_var   "0"
+    load_setting attr audio3dRendering  3d_audio_var  "0"
     load_setting attr audioAutoConvert  convert_var   "first"
     #security
    

@@ -135,6 +135,15 @@ main(int argc, char *argv[])
 		ui_update(sp[i]);
 	}
 	network_process_mbus(sp[0]);
+        
+        if (sp[0]->new_config != NULL) {
+                network_process_mbus(sp[0]);
+                audio_device_reconfigure(sp[0]);
+                network_process_mbus(sp[0]);
+        }
+
+        ui_final_settings(sp[0]);
+	network_process_mbus(sp[0]);
 
         if (tx_is_sending(sp[0]->tb) && (sp[0]->mode != AUDIO_TOOL)) {
 		for (i=0; i<num_sessions; i++) {
