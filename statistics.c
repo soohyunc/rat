@@ -59,7 +59,7 @@
 #include "mbus.h"
 
 static rtcp_dbentry *
-update_database(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
+update_database(session_struct *sp, u_int32 ssrc)
 {
 	rtcp_dbentry   *dbe_source;
 
@@ -77,7 +77,8 @@ update_database(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
 		/*                                                                     [csp]  */
 		return NULL;
 	}
-	dbe_source->last_active = cur_time;
+
+	dbe_source->last_active = get_time(sp->device_clock);
 	dbe_source->is_sender   = 1;
 
 	sp->db->pckts_received++;
@@ -94,8 +95,7 @@ split_block(u_int32 playout_pt,
             rx_queue_struct *unitsrx_queue_ptr,
             int talks, 
             rtp_hdr_t *hdr, 
-            session_struct *sp, 
-            u_int32 cur_time)
+            session_struct *sp)
 {
 	int	units, i, j, k, trailing; 
 	rx_queue_element_struct	*p;
@@ -137,7 +137,7 @@ split_block(u_int32 playout_pt,
                 p->comp_count       = 0;
                 p->cc_pt            = ccu->cc->pt;
 		for (j = 0, k = 1; j < hdr->cc; j++) {
-			p->dbe_source[k] = update_database(sp, ntohl(hdr->csrc[j]), cur_time);
+			p->dbe_source[k] = update_database(sp, ntohl(hdr->csrc[j]));
 			if (p->dbe_source[k] != NULL) {
 				mark_active_sender(p->dbe_source[k], sp);
 				k++;
@@ -163,7 +163,7 @@ split_block(u_int32 playout_pt,
 
 static u_int32
 adapt_playout(rtp_hdr_t *hdr, 
-              int arrival_ts, 
+              u_int32 arrival_ts, 
               rtcp_dbentry *src,
 	      session_struct *sp, 
               struct s_cushion_struct *cushion, 
@@ -283,8 +283,12 @@ adapt_playout(rtp_hdr_t *hdr,
                                  * or, difference in time stamps is less than 1 sec,
                                  * we don't want playout point to be before that of existing data.
                                  */
+                                debug_msg("delay (%lu) var (%lu) playout (%lu)\n", 
+                                          src->delay, var, src->playout
+                                        );
                                 src->playout = max((unsigned)src->playout, src->delay + var);
                         } else {
+                                debug_msg("delay (%lu) var (%lu)\n", src->delay, var);
                                 src->playout = src->delay + var;
                         }
 
@@ -399,7 +403,6 @@ statistics(session_struct    *sp,
 	   pckt_queue_struct *netrx_pckt_queue,
 	   rx_queue_struct   *unitsrx_queue_ptr,
 	   struct s_cushion_struct    *cushion,
-	   u_int32       cur_time,
 	   u_int32	 real_time)
 {
 	/*
@@ -452,7 +455,7 @@ statistics(session_struct    *sp,
                 }
         
                 /* Get database entry of participant that sent this packet */
-                src = update_database(sp, hdr->ssrc, cur_time);
+                src = update_database(sp, hdr->ssrc);
                 if (src == NULL) {
                         debug_msg("Packet from unknown participant discarded\n");
                         goto release;
@@ -487,7 +490,8 @@ statistics(session_struct    *sp,
                 playout = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
 
                 block_trash_check();
-                src->units_per_packet = split_block(playout, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
+
+                src->units_per_packet = split_block(playout, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp);
                 block_trash_check();
 
                 if (update_req && (src->units_per_packet != 0)) {
