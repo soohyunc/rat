@@ -35,6 +35,16 @@ typedef struct s_audio_format {
 } audio_format;
 
 typedef int16_t sample;       	/* Sample representation 16 bit signed 			*/
+
+/* Macro's reserved for future work, ie internal 16bit and 32bit samples */
+typedef sample16_t int16_t;
+typedef sample32_t int32_t;
+#define SAMPLE_MIN(type) (~0 << (8 * sizeof(type) - 1))
+#define SAMPLE_MAX(type) (~SAMPLE_MIN(type))
+#define SAMPLE_BOUND(value, type) \
+		(value > SAMPLE_MAX(type)) ? SAMPLE_MAX(type) : \
+		((value < SAMPLE_MIN(type)) ? SAMPLE_MIN(type) : value)
+
 typedef int audio_desc_t;   	/* Unique handle for identifying audio devices 		*/
 
 #define AUDIO_DEVICE_NAME_LENGTH 63
