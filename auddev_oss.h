@@ -43,7 +43,7 @@
 #ifndef _AUDDEV_OSS_H_
 #define _AUDDEV_OSS_H_
 
-int  oss_audio_open       (audio_desc_t ad, audio_format* format);
+int  oss_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);
 void oss_audio_close      (audio_desc_t ad);
 void oss_audio_drain      (audio_desc_t ad);
 int  oss_audio_duplex     (audio_desc_t ad);
@@ -52,8 +52,8 @@ int  oss_audio_get_gain   (audio_desc_t ad);
 void oss_audio_set_volume (audio_desc_t ad, int vol);
 int  oss_audio_get_volume (audio_desc_t ad);
 void oss_audio_loopback   (audio_desc_t ad, int gain);
-int  oss_audio_read       (audio_desc_t ad, sample *buf, int samples);
-int  oss_audio_write      (audio_desc_t ad, sample *buf, int samples);
+int  oss_audio_read       (audio_desc_t ad, u_char *buf, int buf_bytes);
+int  oss_audio_write      (audio_desc_t ad, u_char *buf, int buf_bytes);
 void oss_audio_non_block  (audio_desc_t ad);
 void oss_audio_block      (audio_desc_t ad);
 void oss_audio_set_oport  (audio_desc_t ad, int port);
