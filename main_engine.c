@@ -24,6 +24,7 @@
 #include "cushion.h"
 #include "converter.h"
 #include "tcltk.h"
+#include "pdb.h"
 #include "ui.h"
 #include "pckt_queue.h"
 #include "rtcp_pckt.h"
