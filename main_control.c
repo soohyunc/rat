@@ -175,7 +175,7 @@ static int parse_options_early(int argc, const char **argv)
         }
 
         /* DOS and UNIX style command flags for usage and version */        
-        for (i = 0; i < argc; i++) {
+        for (i = 1; i < argc; i++) {
                 if ((argv[i][0] == '-' || argv[i][0] == '/') &&
                     (argv[i][1] == 'v' || argv[i][1] == 'V')) {
                         printf("%s\n", RAT_VERSION);
