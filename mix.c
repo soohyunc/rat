@@ -117,21 +117,17 @@ mix_destroy(mix_struct *ms)
 static void
 mix_audio(sample *dst, sample *src, int len)
 {
-	int tmp, i;
-        
-        /* On gcc on i386 using array offset is quicker than shifting
-         * pointers, ie *dst = *dst + *src; dst++;src++; 
-         * On risc boxes this is not always so.  we probably don't care
-         * at the moment, but it is ripe for optimization and SIMD.
-         */
+	int tmp;
+        sample *src_e;
 
-        for (i = 0 ; i < len; i++) {
-                tmp = dst[i] + src[i];
+        src_e = src + len;
+        while (src != src_e) {
+                tmp = *dst + *src++;
                 if (tmp > 32767)
                         tmp = 32767;
                 else if (tmp < -32768)
                         tmp = -32768;
-                dst[i] = tmp;
+                *dst++ = tmp;
         }
 }
 

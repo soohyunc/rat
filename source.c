@@ -415,6 +415,8 @@ source_process(source *src, int repair_type, ts_t now)
         ts_t        playout, curr, step, cutoff;
         int         i, success;
 
+
+
         /* Split channel coder units up into media units */
         channel_decoder_decode(src->channel_state,
                                src->channel,
@@ -431,7 +433,7 @@ source_process(source *src, int repair_type, ts_t now)
                 assert(md != NULL);
                 assert(md_len == sizeof(media_data));
 
-                cutoff = ts_add(src->last_played, 
+                cutoff = ts_sub(now, 
                                 ts_map32(src_freq, HISTORY));
                 if (src->age != 0 && 
                     ts_eq(playout, ts_add(src->last_played, step)) &&
@@ -453,6 +455,7 @@ source_process(source *src, int repair_type, ts_t now)
                         curr = ts_add(playout, step);
 
                         while(ts_gt(curr, playout)) {
+                                debug_msg("repairing\n");
                                 media_data_create(&md_filler, 1);
                                 repair(repair_type,
                                        lost,

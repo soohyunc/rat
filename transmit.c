@@ -319,13 +319,13 @@ tx_destroy(session_struct *sp)
                 u = u_next;
         }
 
-        xfree(tb);
-        sp->tb = NULL;
-
         codec_state_store_destroy(&sp->state_store);
         channel_encoder_reset(sp->channel_coder);
         playout_buffer_destroy(&tb->media_buf);
         playout_buffer_destroy(&tb->channel_buf);
+
+        xfree(tb);
+        sp->tb = NULL;
 }
 
 int

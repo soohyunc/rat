@@ -230,71 +230,60 @@ audio_device_take(session_struct *sp, audio_desc_t device)
 
         failures = 0;
 
-	if (sp->mode == TRANSCODER) {
-                /* The semantics of this needs to change since sp->audio_device is the handle of
-                 * the current audio device. 
-                 *
-                 * Something like: 
+        success  = audio_open(device, &format, &format);
+        
+        if (!success) {
+                /* Maybe we cannot support this format. Try minimal
+                 * case - ulaw 8k.
                  */
-		if (!transcoder_open()) {
-                        return FALSE;
-                }
-	} else {
-                success  = audio_open(device, &format, &format);
+                audio_format fallback;
+                
+                failures ++;
+                id = codec_get_by_name("PCMU-8K-MONO");
+                assert(id); /* in case someone changes codec name */
+                
+                sp->encodings[0] = codec_get_payload(id);
+                cf = codec_get_format(id);
+                memcpy(&fallback, &cf->format, sizeof(audio_format));
+                
+                success = audio_open(device, &fallback, &fallback);
                 
                 if (!success) {
-                        /* Maybe we cannot support this format. Try minimal
-                         * case - ulaw 8k.
-                         */
-                        audio_format fallback;
-
-                        failures ++;
-                        id = codec_get_by_name("PCMU-8K-MONO");
-                        assert(id); /* in case someone changes codec name */
-
-                        sp->encodings[0] = codec_get_payload(id);
-                        cf = codec_get_format(id);
-                        memcpy(&fallback, &cf->format, sizeof(audio_format));
-                        
-                        success = audio_open(device, &fallback, &fallback);
-                        
-                        if (!success) {
-                                /* Make format consistent just in case. */
-                                memcpy(&format, &fallback, sizeof(audio_format));
-                                debug_msg("Could use requested format, but could use mulaw 8k\n");
-                                failures++;
-                        }
+                        /* Make format consistent just in case. */
+                        memcpy(&format, &fallback, sizeof(audio_format));
+                        debug_msg("Could use requested format, but could use mulaw 8k\n");
+                        failures++;
                 }
-                
-                if (!success) {
-                        /* Both original request and fallback request to
-                         * device have failed.  This probably means device is in use.
-                         * So now use null device with original format requested.
-                         */
-                        failures ++;
-                        device  = audio_get_null_device();
-                        success = audio_open(device, &format, &format);
-                        debug_msg("Using null audio device\n");
-                        assert(success);
-                }
-
-		audio_drain(device);
+        }
+        
+        if (!success) {
+                /* Both original request and fallback request to
+                 * device have failed.  This probably means device is in use.
+                 * So now use null device with original format requested.
+                 */
+                failures ++;
+                device  = audio_get_null_device();
+                success = audio_open(device, &format, &format);
+                debug_msg("Using null audio device\n");
+                assert(success);
+        }
+        
+        audio_drain(device);
 	
-		if (sp->input_mode!=AUDIO_NO_DEVICE) {
-			audio_set_iport(device, sp->input_mode);
-			audio_set_gain(device, sp->input_gain);
-		} else {
-			sp->input_mode=audio_get_iport(device);
-			sp->input_gain=audio_get_gain(device);
-		}
-		if (sp->output_mode!=AUDIO_NO_DEVICE) {
-			audio_set_oport(device, sp->output_mode);
-			audio_set_volume(device, sp->output_gain);
-		} else {
-			sp->output_mode=audio_get_oport(device);
-			sp->output_gain=audio_get_volume(device);
-		}
-	}
+        if (sp->input_mode!=AUDIO_NO_DEVICE) {
+                audio_set_iport(device, sp->input_mode);
+                audio_set_gain(device, sp->input_gain);
+        } else {
+                sp->input_mode=audio_get_iport(device);
+                sp->input_gain=audio_get_gain(device);
+        }
+        if (sp->output_mode!=AUDIO_NO_DEVICE) {
+                audio_set_oport(device, sp->output_mode);
+                audio_set_volume(device, sp->output_gain);
+        } else {
+                sp->output_mode=audio_get_oport(device);
+                sp->output_gain=audio_get_volume(device);
+        }
         
         if (audio_zero_buf == NULL) {
                 audio_zero_buf = (sample*) xmalloc (format.bytes_per_block * sizeof(sample));
@@ -348,7 +337,6 @@ audio_device_give(session_struct *sp)
         mix_destroy(sp->ms);
         tx_destroy(sp);
         source_list_clear(sp->active_sources);
-        audio_device_take(sp, audio_get_null_device());
 }
 
 void
