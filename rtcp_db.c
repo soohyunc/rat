@@ -173,8 +173,8 @@ rtcp_get_dbentry_by_cname(session_struct *sp, char *cname)
 	rtcp_dbentry   *dptr = sp->db->ssrc_db;
 
 	while (dptr) {
-		if (!strcmp(dptr->sentry->cname, cname)) {
-			return (dptr);
+		if ((dptr->sentry->cname != NULL) && (strcmp(dptr->sentry->cname, cname) == 0)) {
+			return dptr;
 		}
 		dptr = dptr->next;
 	}
