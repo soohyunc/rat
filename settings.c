@@ -141,6 +141,7 @@ found_it:
 
 void load_settings(session_struct *sp)
 {
+#ifndef WIN32
 	load_init();
 	/* We don't use rtcp_set_attribute() here, since that updates the UI and we */
 	/* don't want to do that yet...                                             */
@@ -177,6 +178,7 @@ void load_settings(session_struct *sp)
 	load_int_setting("audioOutputMute", 1);
 	load_int_setting("audioInputMute", 1);
 	load_done();
+#endif
 }
 
 static void save_init(void)
