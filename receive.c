@@ -524,7 +524,7 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
 	 * participant who is sending). Don't say I didn't warn you! [csp]
 	 */
 	rx_queue_element_struct	*up;
-	ppb_t			*buf;
+	ppb_t			*buf, *buf_next;
 	u_int32			cur_time, cs, cu;
         
         cs = cu = 0;
@@ -579,8 +579,12 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
         	cs = cushion_get_size(sp->cushion);
         	cu = cushion_get_step(sp->cushion);
 	}
-
-	for (buf = *buf_list; buf; buf = buf->next) {
+        
+        buf_next = NULL;
+	for (buf = *buf_list; buf; buf = buf_next) {
+                buf_next = buf->next; /* because buf maybe freed by clear_old_participant history
+                                       * and we should not dereference through freed memory.
+                                       */
 		cur_time = get_time(buf->src->clock);
 #ifdef DEBUG_PLAYOUT_BROKEN
                 {
@@ -606,7 +610,7 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
                                   5 * cs / 4);
                         buf->src->playout_danger = TRUE;
                 }
-
+                
 		while ((up = playout_buffer_get(sp, buf, cur_time, cur_time + cs))) {
                         if (!up->comp_count  && sp->repair != REPAIR_NONE 
                             && up->prev_ptr != NULL && up->next_ptr != NULL
