@@ -1207,6 +1207,9 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  reported by Atanu.
 	- remove variable component (e->playout) from spike threshold in source 
 	  processing, believe this is part of the bad spike messages (160>nnnnn).
+        - change Win32 audio driver to unprepare->prepare->add headers after
+          each read.  Some NT audio drivers are picky about this.  2 / 2 W2K
+          drivers tested are.
 
 TODO -- They're features not bugs dammit!
 ----

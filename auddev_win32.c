@@ -173,9 +173,9 @@ mixerDumpLineInfo(HMIXEROBJ hMix, DWORD dwLineID)
         xfree(pmc);
 }
 
-/* CODE FOR SAVING CONTROL STATES WHEN CLAIMING DEVICE, SO WE CAN RESTORE THE 
- * CONFIG WHEN WE RELEASE THE DEVICE.  CAN BE VERY DISCONCERTING FOR USERS 
- * OTHERWISE *************************/
+/* Code for saving control states when claiming device, so we can restore the 
+ * config when we release the device.  Lots of request for this 
+ */
 
 int
 mcd_elem_add_control(mcd_elem_t **pplist, MIXERCONTROLDETAILS *pmcd)
@@ -338,8 +338,8 @@ mixSaveControls(UINT uMix, mcd_elem_t **pplist)
  * volume control is on a line for the the input port.  To match the input 
  * select and the volume control we use the name of the line the volume
  * control is assigned to, and this ties in with the names on the MUX.  This
- * seems to be the only sensible way to correlate the two and IT ISN'T IN
- * THE MSDN LIBRARY documentation.  I wasted a fair amount of time, trying
+ * seems to be the only sensible way to correlate the two and it isn't in
+ * the msdn library documentation.  I wasted a fair amount of time, trying
  * to match the name of the volume control and names in the MUX list, and
  * got this to work for all but one card.
  */
@@ -1001,12 +1001,22 @@ static WAVEHDR  *whReadList;           /* List of wave headers that have been re
                                        /* given to the application.                            */ 
 static int       nBytesUsedAtReadHead; /* Number of bytes that have already been read at head  */
 static HANDLE    hAudioReady;          /* Audio Ready Event */
+static int       dwSystemReadHdrs;     /* Number WAVEHDR's currently available to OS for reading (for debugging) */
 
 int
 w32sdk_audio_is_ready(audio_desc_t ad)
 {
         UNUSED(ad);
         return (whReadList != NULL);
+}
+
+static void verify_buffers()
+{
+	int i, in_system = 0;
+	for (i = 0; i < nblks; i++) {
+		in_system += whReadHdrs[i].dwUser;
+	}
+	assert(in_system == (int)dwSystemReadHdrs);
 }
 
 static void CALLBACK
@@ -1022,7 +1032,6 @@ waveInProc(HWAVEIN hwi,
         case WIM_DATA:
                 whRead = (WAVEHDR*)dwParam1;
                 whRead->dwFlags &= ~WHDR_DONE;
-                whRead->dwUser   = whRead - whReadHdrs; /* For debugging - offset in whReadhdrs */
                 whRead->lpNext   = NULL;                /* Will be tail of whReadList */
 		whInsert = &whReadList;
                 while(*whInsert != NULL) {
@@ -1030,6 +1039,9 @@ waveInProc(HWAVEIN hwi,
                 }
                 *whInsert = whRead;
                 SetEvent(hAudioReady);
+                whRead->dwUser   = 0;                   /* Out of system */
+		dwSystemReadHdrs--;
+		verify_buffers();
                 break;
         default:
                 ;  /* nothing to do currently */
@@ -1041,19 +1053,24 @@ waveInProc(HWAVEIN hwi,
         return;
 }
 
-
 static int
 w32sdk_audio_open_in(UINT uId, WAVEFORMATEX *pwfx)
 {
         MMRESULT mmr;
         int      i;
         
-        if (shWaveIn) return (TRUE);
+        if (shWaveIn) {
+		return (TRUE);
+	}
         
-        if (lpReadData != NULL) xfree(lpReadData);
+        if (lpReadData != NULL) {
+		xfree(lpReadData);
+	}
         lpReadData = (u_char*)xmalloc(nblks * blksz);
         
-        if (whReadHdrs != NULL) xfree(whReadHdrs);
+        if (whReadHdrs != NULL) {
+		xfree(whReadHdrs);
+	}
         whReadHdrs = (WAVEHDR*)xmalloc(sizeof(WAVEHDR)*nblks); 
         
         mmr = waveInOpen(&shWaveIn, 
@@ -1062,7 +1079,8 @@ w32sdk_audio_open_in(UINT uId, WAVEFORMATEX *pwfx)
                          (DWORD)waveInProc,
                          0,
                          CALLBACK_FUNCTION);
-        if (mmr != MMSYSERR_NOERROR) {
+        
+	if (mmr != MMSYSERR_NOERROR) {
                 waveInGetErrorText(mmr, errorText, sizeof(errorText));
                 debug_msg("waveInOpen: (%d) %s\n", mmr, errorText);
                 return (FALSE);
@@ -1077,6 +1095,8 @@ w32sdk_audio_open_in(UINT uId, WAVEFORMATEX *pwfx)
                 assert(mmr == MMSYSERR_NOERROR);               
                 mmr = waveInAddBuffer(shWaveIn, &whReadHdrs[i], sizeof(WAVEHDR));
                 assert(mmr == MMSYSERR_NOERROR);
+		whReadHdrs[i].dwUser = 1;
+		dwSystemReadHdrs++;
         }
 
         whReadList           = NULL;
@@ -1089,7 +1109,10 @@ w32sdk_audio_open_in(UINT uId, WAVEFORMATEX *pwfx)
                 exit(1);
         }
         hAudioReady = CreateEvent(NULL, TRUE, FALSE, "RAT Audio Ready");
-        return (TRUE);
+        
+	verify_buffers();
+
+	return (TRUE);
 }
 
 static void
@@ -1103,17 +1126,31 @@ w32sdk_audio_close_in()
         waveInStop(shWaveIn);
         waveInReset(shWaveIn);
         
+	verify_buffers();
+
         for (i = 0; i < nblks; i++) {
                 if (whReadHdrs[i].dwFlags & WHDR_PREPARED) {
+			verify_buffers();
                         waveInUnprepareHeader(shWaveIn, &whReadHdrs[i], sizeof(WAVEHDR));
+			if (whReadHdrs[i].dwUser) {
+				dwSystemReadHdrs--;
+				whReadHdrs[i].dwUser = 0;
+			}
+			verify_buffers();
                 }
         }
-        
+        verify_buffers();
+
         whReadList = NULL;
 
-        waveInClose(shWaveIn);           shWaveIn = 0;
-        xfree(whReadHdrs);               whReadHdrs = NULL;
-        xfree(lpReadData);               lpReadData  = NULL;
+        waveInClose(shWaveIn);           
+	shWaveIn = 0;
+        
+	xfree(whReadHdrs);               
+	whReadHdrs = NULL;
+        
+	xfree(lpReadData);               
+	lpReadData  = NULL;
         
         xmemchk();
 }
@@ -1131,11 +1168,15 @@ w32sdk_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
         /* blksz.  I.e. can reduce process usage by using larger blocks at      */
         /* device whilst the app operates on smaller blocks.                    */
 
+	verify_buffers();
+
         while(whReadList != NULL && done < buf_bytes) {
                 this_read = min(blksz - nBytesUsedAtReadHead, buf_bytes - done);
-                memcpy(buf + done, 
-                       whReadList->lpData + nBytesUsedAtReadHead, 
-                       this_read);
+                if (buf) {
+			memcpy(buf + done, 
+				whReadList->lpData + nBytesUsedAtReadHead,
+				this_read);
+		}
                 done                 += this_read;
                 nBytesUsedAtReadHead += this_read;
                 if (nBytesUsedAtReadHead == blksz) {
@@ -1143,52 +1184,58 @@ w32sdk_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
                         whNext = whReadList->lpNext;
 			mmr = waveInUnprepareHeader(shWaveIn, whReadList, sizeof(WAVEHDR));
 			assert(mmr == MMSYSERR_NOERROR);
+			/* For W2K/NT it is necessary to zero _all_ these values */
+			whReadList->lpNext          = NULL; 
+			whReadList->dwBytesRecorded = 0; 
+			whReadList->dwFlags         = 0;
 			mmr = waveInPrepareHeader(shWaveIn, whReadList, sizeof(WAVEHDR));
 			assert(mmr == MMSYSERR_NOERROR);
-                        mmr = waveInAddBuffer(shWaveIn, whReadList, sizeof(WAVEHDR)); 
+			mmr = waveInAddBuffer(shWaveIn, whReadList, sizeof(WAVEHDR)); 
                         assert(mmr == MMSYSERR_NOERROR);
                         nBytesUsedAtReadHead = 0;
-                        whReadList = whNext;
+			whReadList->dwUser   = 1;
+			dwSystemReadHdrs++;
+			whReadList = whNext;
                 }
         }
-
-        UNUSED(ad);
+	mmr = waveInStart(shWaveIn);
+	assert(mmr == MMSYSERR_NOERROR);
+        
+	verify_buffers();
+	
         assert(done <= buf_bytes);
+	UNUSED(ad);
         return done;
 }
 
 void
 w32sdk_audio_drain(audio_desc_t ad)
 {
-        WAVEHDR *whNext;
-        MMRESULT mmr;
-        
-        mmr = waveInStop(shWaveIn);
-        assert(mmr == MMSYSERR_NOERROR);
-        
-        while(whReadList != NULL) {
-                /* Careful updating list incase waveInAddBuffer corrupts header */
-                whNext = whReadList->lpNext;
-                mmr = waveInAddBuffer(shWaveIn, whReadList, sizeof(WAVEHDR));
-                assert(mmr == MMSYSERR_NOERROR);
-                whReadList = whNext;
-        }
-        
-        mmr = waveInStart(shWaveIn);
-        assert(mmr == MMSYSERR_NOERROR);
-        UNUSED(ad);
+	return;
+	waveInStop(shWaveIn);
+	verify_buffers();
+        w32sdk_audio_read(ad, NULL, 10000000);
+	verify_buffers();
+	waveInStart(shWaveIn);
 }
 
 void
 w32sdk_audio_wait_for(audio_desc_t ad, int delay_ms)
 {        
         if (whReadList == NULL) {
-                WaitForSingleObject(hAudioReady, INFINITE);
+                DWORD dwRes;
+		dwRes = WaitForSingleObject(hAudioReady, delay_ms);
+		switch(dwRes) {
+		case WAIT_TIMEOUT:
+			debug_msg("No audio (%d %d)\n", delay_ms, dwSystemReadHdrs);
+			break;
+		case WAIT_FAILED:
+			debug_msg("Wait failed (error %u)\n", GetLastError());
+			break;
+		}
                 ResetEvent(hAudioReady);
-                /* Sleep(delay_ms); */
         }
         UNUSED(ad);
-        UNUSED(delay_ms);
 }
 
 static int audio_dev_open = 0;
@@ -1365,14 +1412,15 @@ w32sdk_audio_get_ogain(audio_desc_t ad)
         
         UNUSED(ad);
         
-        if (shWaveOut == 0)
-                return (play_vol);
+        if (shWaveOut == 0) {
+                return play_vol;
+	}
         
         error = waveOutGetVolume(shWaveOut, &vol);
         if (error) {
                 waveOutGetErrorText(error, errorText, sizeof(errorText));
                 debug_msg("Win32Audio: waveOutGetVolume Error: %s\n", errorText);
-                return (0);
+                return 0;
         } else {
                 return (device_to_rat(vol));
         }
