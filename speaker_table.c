@@ -52,7 +52,6 @@
 
 #define GRAY_DELAY	60 /* ms */
 #define REMOVE_DELAY	3000 /* ms */
-/*#define LAST_ACTIVE	last_mixed_playout*/
 #define LAST_ACTIVE	last_active
 
 #define OFF	0
@@ -78,19 +77,25 @@ void mark_active_sender(rtcp_dbentry *src, session_struct *sp)
 	}
 	if (st == NULL) {
 		st = (speaker_table *)block_alloc(sizeof(speaker_table));
-		st->next = sp->speakers_active;
-		st->dbe = src;
+		st->next  = sp->speakers_active;
+		st->dbe   = src;
 		st->state = OFF;
+		st->count = 0;
 		sp->speakers_active = st;
 		if (sp->ui_on) {
 			ui_info_activate(st->dbe);
 		}
+		return;
 	}
-	if (st->state != WHITE) {
+	/* This threshold should probably be tuneable... */
+	if (st->count > 25) {
 		if (sp->ui_on) {
 			ui_info_activate(st->dbe);
 		}
 		st->state = WHITE;
+		st->count = 0;
+	} else {
+		st->count++;
 	}
 }
 

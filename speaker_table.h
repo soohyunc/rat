@@ -47,6 +47,7 @@ typedef struct s_speaker_table {
 	struct s_speaker_table 	*next;
 	struct s_rtcp_dbentry	*dbe;
 	int			state;
+	int			count;
 } speaker_table;
 
 struct rx_element_tag;
