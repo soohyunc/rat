@@ -18,12 +18,14 @@ static const char cvsid[] =
 #include "config_unix.h"
 #include "config_win32.h"
 #include "debug.h"
-#include "mbus.h"
-#include "mbus_parser.h"
 #include "version.h"
 #include "mbus_control.h"
 #include "crypt_random.h"
 #include "codec_compat.h"
+
+#include "mbus.h"
+#include "mbus_parser.h"
+#include "net_udp.h"
 
 #ifdef WIN32
 #define UI_NAME     "ratui.exe"
@@ -193,6 +195,7 @@ static void inform_addrs(struct mbus *m, char *e_addr, char *u_addr)
 static int parse_options_early(int argc, const char **argv) 
 {
         int i;
+        char *addr;
 
         if (argc < 2) {
                 usage(NULL);
@@ -211,6 +214,19 @@ static int parse_options_early(int argc, const char **argv)
                         return FALSE;
                 }
         }
+
+        /* 
+         * Validate destination address.  Do it here before launching 
+         * sub-processes and mbus.
+         */
+
+        addr = xstrdup(argv[argc-1]);
+        addr = strtok(addr, "/");
+        if (udp_addr_valid(addr) == FALSE) {
+                usage("Invalid address\n");
+                return FALSE;
+        }
+        xfree(addr);
 
         return TRUE;
 }
