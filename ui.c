@@ -48,7 +48,7 @@ static char *mbus_name_video  = NULL;
 static void ui_info_update_sdes(session_struct *sp, char *item, char *val, u_int32 ssrc)
 {
 	char *arg   = mbus_encode_str(val);
-        char *args = (char*)xmalloc(strlen(arg) + 11);
+        char *args = (char*)xmalloc(strlen(arg) + 12);
 	sprintf(args, "\"%08lx\" %s", ssrc, arg);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, item, args, TRUE);
 	xfree(arg);
@@ -155,7 +155,7 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 
         if (e->enc_fmt) {
 		mbes = mbus_encode_str(e->enc_fmt);
-                args = (char *) xmalloc(strlen(mbes) + 11);
+                args = (char *) xmalloc(strlen(mbes) + 12);
                 sprintf(args, "\"%08lx\" %s", e->sentry->ssrc, mbes);
                 xfree(mbes);
         } else {
@@ -171,7 +171,7 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
          * tool.rat.audio.buffered size always less 
          */
 
-	args = (char *) xmalloc(27);
+	args = (char *) xmalloc(31);
 
         src = source_get_by_rtcp_dbentry(sp->active_sources, e);
         if (src) {
@@ -389,10 +389,10 @@ ui_update_redundancy(session_struct *sp)
 
         channel_encoder_get_parameters(sp->channel_coder, cmd, clen);
         
-        sec_enc = strtok(cmd, "/");  /* ignore primary encoding   */
-        sec_enc = strtok(NULL, "/"); /* ignore primary offset     */
-        sec_enc = strtok(NULL, "/"); /* get secondary encoding    */
-        sec_off = strtok(NULL, "/"); /* get secondary offset      */
+        sec_enc = (char *) strtok(cmd, "/");  /* ignore primary encoding   */
+        sec_enc = (char *) strtok(NULL, "/"); /* ignore primary offset     */
+        sec_enc = (char *) strtok(NULL, "/"); /* get secondary encoding    */
+        sec_off = (char *) strtok(NULL, "/"); /* get secondary offset      */
 
         if (sec_enc == NULL || sec_off == NULL) {
                 goto redundancy_update_end;

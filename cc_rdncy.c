@@ -418,14 +418,14 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
         redundancy_encoder_create((u_char**)&n, &nl);
         assert(n != NULL);
 
-        s = strtok(cmd, "/");
+        s = (char *) strtok(cmd, "/");
         cid = codec_get_by_name(s);
         if (!codec_id_is_valid(cid)) {
                 debug_msg("codec not recognized\n");
                 goto done;
         }
 
-        s = strtok(NULL, "/");
+        s = (char *) strtok(NULL, "/");
         po = atoi(s);
 
         if (po > 20) {
@@ -438,7 +438,7 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
         n->n_layers           = 1;
 
         while (n->n_layers < RED_MAX_LAYERS) {
-                s = strtok(NULL, "/");
+                s = (char *) strtok(NULL, "/");
                 if (s == NULL) break;
                 cid = codec_get_by_name(s);
                 if (!codec_id_is_valid(cid)) {
@@ -446,7 +446,7 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
                         goto done;
                 }
 
-                s = strtok(NULL, "/");
+                s = (char *) strtok(NULL, "/");
                 if (s == NULL) {
                         debug_msg("Incomplete layer info\n");
                         goto done;

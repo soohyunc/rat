@@ -145,7 +145,7 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                 if ((strcmp(argv[i], "-ui") == 0) && (argc > i+1)) {
                         for(s = 0; s < num_sessions; s++) {
                                 sp[s]->ui_on   = FALSE;
-                                sp[s]->ui_addr = strdup(argv[i+1]);
+                                sp[s]->ui_addr = (char *) strdup(argv[i+1]);
                         }
                 } else if (strcmp(argv[i], "-allowloopback") == 0 || strcmp(argv[i], "-allow_loopback") == 0) {
                         for(s = 0; s < num_sessions; s++) {
@@ -216,12 +216,12 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                         codec_id_t cid;
                         char *t;
                         int pt;
-                        pt = atoi(strtok(argv[i + 1], "/"));
+                        pt = atoi((char *) strtok(argv[i + 1], "/"));
                         if ((pt > 127) || (pt < 96)) {
                                 printf("Dynamic payload types must be in the range 96-127.\n");
                                 usage();
                         }
-                        t = strtok(NULL, "/");
+                        t = (char *) strtok(NULL, "/");
                         cid = codec_get_by_name(t);
                         if (cid) {
                                 codec_map_payload(cid, (u_char)pt);
@@ -248,9 +248,9 @@ parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
 	/* Parse command-line options specific to the audio tool */
 	char *p;
 
-	p = strtok(argv[argc - 1], "/");
+	p = (char *) strtok(argv[argc - 1], "/");
 	strcpy(sp->asc_address, p);
-	if ((p = strtok(NULL, "/")) != NULL) {
+	if ((p = (char *) strtok(NULL, "/")) != NULL) {
 		sp->rtp_port = atoi(p);
 		sp->rtp_port &= ~1;
 		sp->rtcp_port = sp->rtp_port + 1;
@@ -270,10 +270,10 @@ parse_early_options_transcoder(int argc, char *argv[], session_struct *sp[])
 
 	for (i = 0; i < 2; i++) {
 		/* addr */
-		p = strtok(argv[argc-i-1], "/");
+		p = (char *) strtok(argv[argc-i-1], "/");
 		strcpy(sp[i]->asc_address, p);
 		/* port */
-		if ((p = strtok(NULL, "/")) != NULL) {
+		if ((p = (char *) strtok(NULL, "/")) != NULL) {
 			sp[i]->rtp_port  = atoi(p);
 			sp[i]->rtp_port &= ~1;
 			sp[i]->rtcp_port = sp[i]->rtp_port + 1;
@@ -281,14 +281,14 @@ parse_early_options_transcoder(int argc, char *argv[], session_struct *sp[])
 			continue;
 		}
 		/* ttl */
-		if ((p = strtok(NULL, "/")) != NULL) {
+		if ((p = (char *) strtok(NULL, "/")) != NULL) {
 			sp[i]->ttl = atoi(p);
 		} else {
 			continue;
 		}
 		/* encoding */
 		j = 0;
-		while ((p = strtok(NULL, "/")) != NULL) {
+		while ((p = (char *) strtok(NULL, "/")) != NULL) {
 			codec_id_t cid;
 			char *pu;
 			for (pu = p; *pu; pu++)
