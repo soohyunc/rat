@@ -1527,4 +1527,10 @@ TODO -- They're features not bugs dammit!
   for me. Must be something in the environment, or a software version issue
   but I don't know what...
 - Excessive end-to-end delay on Windows? Gerry Wolfson.
- 
+- Crash when selecting repeat+ (Lingfen Sun)
+- Crash in convert_sinc.c:
+	convert_sinc.c:134: failed assertion
+	convert_sinc.c:122: failed assertion
+	rat-4.2.8-media: util.c:87: _block_alloc: Assertion `size > 0' failed.  
+  reported by Greg Herlein.
+
