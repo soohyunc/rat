@@ -265,6 +265,8 @@ parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
 
 		sp->tx_rtp_port  = sp->rx_rtp_port;
 		sp->tx_rtcp_port = sp->rx_rtcp_port;
+	} else {
+		usage();
 	}
 	if (atoi(p) > 0xfffe) {
 #ifdef WIN32
