@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
 		
 		/* Choke CPU usage */
 		if (!audio_is_ready(sp->audio_device)) {
-			audio_wait_for(sp->audio_device, 30);
+			audio_wait_for(sp->audio_device, 50);
 		}
 
                 /* Check controller is still alive */

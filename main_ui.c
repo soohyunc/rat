@@ -151,10 +151,10 @@ int main(int argc, char *argv[])
 		/* Throttle CPU usage */
 #ifdef WIN32
                 /* Just timeout waiting for event that never happens */
-                WaitForSingleObject(hWakeUpEvent, 10);
+                WaitForSingleObject(hWakeUpEvent, 30);
 #else
 		timeout.tv_sec  = 0;
-		timeout.tv_usec = 10000;
+		timeout.tv_usec = 30000;
                 select(0, NULL, NULL, NULL, &timeout);
 #endif
                 /* If controller has died call it a day.  Need this for Win32
