@@ -629,10 +629,6 @@ source_process_packets(session_t *sp, source *src, ts_t now)
         e = src->pdbe;
         while(pktbuf_dequeue(src->pktbuf, &p)) {
                 adjust_playout = FALSE;
-                if (p->m) {
-                        adjust_playout = TRUE;
-                        debug_msg("New Talkspurt: %lu\n", p->ts);
-                }
                 
                 ccid = channel_coder_get_by_payload((u_char)p->pt);
                 if (channel_verify_and_stat(ccid, (u_char)p->pt, 
@@ -688,14 +684,18 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         adjust_playout = TRUE;
 		}
                 
-                /* Check for talkspurt start indicated by change in          */
-                /* relationship between timestamps and sequence numbers.     */
+		/* Check for talkspurt start: indicated either by the marker bit,  */
+		/* or by a change in the relationship between timestamps and       */
+		/* sequence numbers.                                               */
                 delta_seq = p->seq - e->last_seq;
                 delta_ts  = p->ts  - e->last_ts;
-
                 if (delta_seq * e->inter_pkt_gap != delta_ts) {
                         debug_msg("Seq no / timestamp realign (%lu * %lu != %lu)\n", delta_seq, e->inter_pkt_gap, delta_ts);
                         adjust_playout = TRUE;
+                }
+                if (p->m) {
+                        adjust_playout = TRUE;
+                        debug_msg("New Talkspurt: %lu\n", p->ts);
                 }
 
                 src_ts = ts_seq32_in(&e->seq, get_freq(e->clock), p->ts);
@@ -710,21 +710,24 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         spt           = ts_add(spt, spike_jump);
                         delta_transit = ts_sub(transit, e->last_transit);
                         if (ts_gt(delta_transit, spt)) {
+				/* Transit delay increased suddenly - this is a "spike" */
                                 debug_msg("Spike\n");
                                 src->playout_mode = PLAYOUT_MODE_SPIKE;
                                 src->spike_var    = zero_ts;
                                 e->spike_events++;
-                        } else if (src->playout_mode == PLAYOUT_MODE_SPIKE) {
-                                ts_t delta_var;
-                                src->spike_var = ts_div(src->spike_var, 2);
-                                delta_var = ts_add(ts_abs_diff(transit, e->last_transit),
-                                                   ts_abs_diff(transit, e->last_last_transit));
-                                delta_var = ts_div(delta_var, 8);
-                                src->spike_var = ts_add(src->spike_var, delta_var);
-                                if (ts_gt(spike_end, src->spike_var)) {
-                                        debug_msg("Normal mode.\n");
-                                        src->playout_mode = PLAYOUT_MODE_NORMAL;
-                                }
+                        } else {
+				if (src->playout_mode == PLAYOUT_MODE_SPIKE) {
+					ts_t delta_var;
+					src->spike_var = ts_div(src->spike_var, 2);
+					delta_var = ts_add(ts_abs_diff(transit, e->last_transit),
+							   ts_abs_diff(transit, e->last_last_transit));
+					delta_var = ts_div(delta_var, 8);
+					src->spike_var = ts_add(src->spike_var, delta_var);
+					if (ts_gt(spike_end, src->spike_var)) {
+						debug_msg("Normal mode.\n");
+						src->playout_mode = PLAYOUT_MODE_NORMAL;
+					}
+				}
                         }
                 } else {
                         src->playout_mode = PLAYOUT_MODE_NORMAL;
@@ -742,7 +745,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         e->avg_transit = transit; 
                 }
                 
-                if (adjust_playout && (ts_gt(ts_sub(now, e->last_arr), transit_reset) || e->received < 20)) {
+                if (adjust_playout && (ts_gt(ts_sub(now, e->last_arr), transit_reset) || (e->received < 20))) {
                         /* Source has been quiet for a long time.  Discard   */
                         /* old average transit estimate.                     */
                         e->avg_transit = transit;
@@ -826,6 +829,12 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 e->last_arr     = now;
                 e->last_last_transit = e->last_transit;
                 e->last_transit      = transit;
+		/* This would be a good place to log a histogram of loss     */
+		/* lengths, right? llhist[p->seq - e->last_seq]++ after a    */
+		/* check that this is not the first packet in a talkspurt.   */
+		/* We could then feed it back to the sender in our reception */
+		/* reports, where it could be used to adapt the redundancy   */
+		/* offset, for example. [csp]                                */
 
 #ifdef SOURCE_LOG_PLAYOUT
                 source_playout_log(src, p->ts, now);
@@ -1231,10 +1240,10 @@ source_process(session_t *sp,
                         /* If repair was successful media_pos is moved,      */
                         /* so get data at media_pos again.                   */
                         if (source_repair(src, repair_type, src->next_played) == TRUE) {
-/*
+#ifdef NDEF
                                 debug_msg("Repair % 2d got % 6d exp % 6d talks % 6d\n", 
                                           src->consec_lost, playout.ticks, src->next_played.ticks, src->talkstart.ticks);
-                                          */
+#endif
                                 success = pb_iterator_get_at(src->media_pos, 
                                                              (u_char**)&md, 
                                                              &md_len, 

@@ -965,6 +965,28 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 	- Packet spikes now accounted for in packet processing.  Transit 
 	  average and playout not updated during spike period.
 	- Playout panel now displays spike info also.
+	- Mbus updates from Markus Germeier, which fix compatibility with
+	  the Uni Bremen implementation:
+		- mbus.bye() signals an entity when it leaves. (mbus.quit commands
+		  an entity to leave)
+		- Generate and work with 64 bit DES keys. Generate parity bits for key.
+		  Check if key in configuration file sets parity bits correctly.
+		- mbus_heartbeat(m, 1) should send an mbus.hello() every second and
+		  not every two seconds
+		- HMAC-MD5 should read HMAC-MD5-96
+		- Honor the MBUS environment variable for the MBUS configuration file
+		- The TZI Mbus implementations generate spaces in configuration file,
+		  which mislead the UCL Mbus to dump core. Allow Spaces in .mbus
+		- Address must be unique
+		- Delete failed reliable messages if err_handler is present
+	- Fix uninitialized use of session->last_update in RTP code
+	- Fix assertion failures in RTP library when sending RTCP packets
+	- Recognize, but ignore, profile specific extensions to RTCP SR/RR packets
+	- Update RTCP reporting interval calculation
+	- Implement reverse reconsideration of RTCP reporting interval
+	- Implement encryption in the RTP code
+	- Fix redundancy decoder
+
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1015,3 +1037,4 @@ TODO -- They're features not bugs dammit!
 - Should use the empty RRs coming back from receivers who are not seeing
   traffic, and display this in the loss matrix.
 - Layering is broken (hasn't been updated for multiple processes, etc)
+
