@@ -411,7 +411,7 @@ render_3D(render_3D_dbentry *p_3D_data, coded_unit *in, coded_unit *out)
                         proc_buf[2*i]   = p_3D_data->ipsi_buf[i];
                         proc_buf[2*i+1] = p_3D_data->contra_buf[i];
                 }
-        } else if (p_3D_data->azimuth < 0) {
+        } else if (p_3D_data->azimuth <= 0) {
                 for (i=0; i<mono_buf_len; i++) {
                         proc_buf[2*i]   = p_3D_data->contra_buf[i];
                         proc_buf[2*i+1] = p_3D_data->ipsi_buf[i];
