@@ -913,9 +913,7 @@ proc mbus_recv_tool.rat.spike.toged {ssrc toged} {
 proc mbus_recv_rtp.source.rtt {ssrc rtt} {
     global RTT
     init_source $ssrc
-    if {$rtt != 0} {
-	set RTT($ssrc) $rtt
-    }
+    set RTT($ssrc) $rtt
 }
 
 proc mbus_recv_audio.3d.enabled {mode} {

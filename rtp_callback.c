@@ -124,19 +124,21 @@ get_session(struct rtp *rtps)
 
 /* rtp_rtt_calc return rtt estimate in seconds */
 static double 
-rtp_rtt_calc(uint32_t arr, uint32_t dep, uint32_t delay)
+rtp_rtt_calc(uint32_t arr, uint32_t dep, uint32_t dlsr)
 {
         uint32_t delta;
 
         /* rtt = arr - dep - delay */
-        delta = ntp32_sub(arr,   dep);
-        delta = ntp32_sub(delta, delay);
-        /*
-         * 16 high order bits are seconds 
-         * 16 low order bits are 1/65536 of sec
-         */
-        return  (double)((delta >> 16) & 0xffff) +
-                (double)(delta & 0xffff) / 65536.0;
+        delta = ntp32_sub(arr, dep);
+        if (delta >= dlsr) {
+                delta -= dlsr;
+        } else {
+                /* Clock skew bigger than transit delay  
+                 * or garbage dlsr value ?*/
+                debug_msg("delta_ntp (%d) > dlsr (%d)\n", delta, dlsr);
+                delta = 0;
+        }
+        return delta / 65536.0;
 }
 
 static void
@@ -208,17 +210,18 @@ process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
                 rtt = rtp_rtt_calc(ntp32, r->lsr, r->dlsr);
                 /*
                  * Filter out blatantly wrong rtt values.  Some tools might not
-                 * implement dlsr and lsr (broken) or forget to do byte-swapping (grr)
+                 * implement dlsr and lsr (broken) or forget to do byte-swapping
                  */
                 if (rtt < 100.0) {
                         e->last_rtt = rtt;
+                        debug_msg("rtt %f\n", rtt);
                 } else {
-                        debug_msg("Junk rtt (%f secs) - receiver rtp misimplementation?\n", rtt);
+                        debug_msg("Junk rtt (%f secs) ntp32 0x%08x lsr 0x%08x dlsr 0x%08x ?\n", rtt, ntp32, r->lsr, r->dlsr);
                 }
                 if (e->avg_rtt == 0.0) {
                         e->avg_rtt = e->last_rtt;
                 } else {
-                            e->avg_rtt += (e->last_rtt - e->avg_rtt) / 8.0;
+                        e->avg_rtt += (e->last_rtt - e->avg_rtt) / 8.0;
                 }
                 if (sp->mbus_engine != NULL) {
                         ui_send_rtp_rtt(sp, sp->mbus_ui_addr, ssrc, e->avg_rtt);
