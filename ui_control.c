@@ -515,8 +515,12 @@ ui_update_loss(char *srce, char *dest, int loss)
 void
 ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, double jitter)
 {
-	char	*cname_e = mbus_encode_str(cname);
-	char	*args    = (char *) xmalloc(29 + strlen(cname_e));
+	char	*cname_e, *args;
+
+	if (cname == NULL) return;
+
+	cname_e = mbus_encode_str(cname);
+	args    = (char *) xmalloc(29 + strlen(cname_e));
 
 	sprintf(args, "%s %6ld %6ld %6ld %6f", cname_e, recv, lost, misordered, jitter);
 	mbus_engine_tx_queue(TRUE, "source.reception", args);
@@ -526,8 +530,12 @@ ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered,
 void
 ui_update_duration(char *cname, int duration)
 {
-	char	*cname_e = mbus_encode_str(cname);
-	char	*args    = (char *) xmalloc(5 + strlen(cname_e));
+	char	*cname_e, *args;
+
+	if (cname == NULL) return;
+
+	cname_e = mbus_encode_str(cname);
+	args    = (char *) xmalloc(5 + strlen(cname_e));
 
 	sprintf(args, "%s %3d", cname_e, duration);
 	mbus_engine_tx_queue(TRUE, "source.packet.duration", args);
@@ -537,8 +545,12 @@ ui_update_duration(char *cname, int duration)
 void 
 update_video_playout(char *cname, int playout)
 {
-	char	*cname_e = mbus_encode_str(cname);
-	char	*args    = (char *) xmalloc(5 + strlen(cname_e));
+	char	*cname_e, *args;
+
+	if (cname == NULL) return;
+
+	cname_e = mbus_encode_str(cname);
+	args    = (char *) xmalloc(5 + strlen(cname_e));
 
 	sprintf(args, "%s %6d", cname, playout);
 	mbus_engine_tx(TRUE, mbus_name_video, "source_playout", args, FALSE);
