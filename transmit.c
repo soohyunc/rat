@@ -135,7 +135,8 @@ tx_create(tx_buffer **ntb,
                 tb->sp          = sp;
 		tb->sample_rate = sample_rate;
                 tb->channels    = channels;
-                tb->unit_dur    = tb->mean_read_dur = unit_dur;
+                tb->unit_dur    = unit_dur;
+		tb->mean_read_dur = unit_dur;
                 tb->bc          = bias_ctl_create(channels, sample_rate);
                 tb->vad         = vad_create(unit_dur, sample_rate);
                 tb->agc         = agc_create(sp);

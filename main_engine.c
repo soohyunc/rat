@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
                 debug_msg("Failed to create persistent database\n");
                 abort();
         }
-        pdb_item_create(sp->pdb, ts_get_freq(sp->cur_ts), rtp_my_ssrc(sp->rtp_session[0])); 
+        pdb_item_create(sp->pdb, (uint16_t)ts_get_freq(sp->cur_ts), rtp_my_ssrc(sp->rtp_session[0])); 
 	settings_load_late(sp);
 
 	session_validate(sp);
