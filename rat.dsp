@@ -353,6 +353,10 @@ SOURCE=.\session.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\settings.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\sndfile.c
 # End Source File
 # Begin Source File
@@ -670,6 +674,10 @@ SOURCE=.\rtcp_pckt.h
 # Begin Source File
 
 SOURCE=.\session.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\settings.h
 # End Source File
 # Begin Source File
 

@@ -86,6 +86,7 @@ wbs_encoder(u_int16 idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 {
         subband_struct SubBandData;
         wbs_t *wsp;
+        u_int8 i;
 
         assert(encoder_state);
         assert(inbuf);
@@ -100,6 +101,9 @@ wbs_encoder(u_int16 idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 
         wsp = (wbs_t*)encoder_state;
         memcpy(c->state, &wsp->state, WBS_STATE_SIZE);
+        for(i=0; i<WBS_STATE_SIZE/4; i++) {
+                *((u_int32 *)c->state + i) = htonl(*((u_int32 *)c->state+i));
+        }
         QMF(inbuf, &SubBandData, wsp->qmf_lo, wsp->qmf_hi);
         LowEnc(SubBandData.Low, c->data, wsp->state.low, &wsp->ns);
         HighEnc(SubBandData.High, c->data, wsp->state.hi);
@@ -112,6 +116,7 @@ wbs_decoder(u_int16 idx, u_char *decoder_state, coded_unit *c, sample *data)
 {
         subband_struct SubBandData;
         wbs_t   *wsp = (wbs_t *)decoder_state;
+        u_int8 i;
 
         assert(decoder_state);
         assert(c);
@@ -120,6 +125,9 @@ wbs_decoder(u_int16 idx, u_char *decoder_state, coded_unit *c, sample *data)
 
         if (c->state_len > 0) {
                 assert(c->state_len == WBS_STATE_SIZE);
+                for(i=0; i<WBS_STATE_SIZE/4; i++) {
+                        *((u_int32 *)c->state + i) = ntohl(*((u_int32 *)c->state+i));
+                }
                 memcpy(&wsp->state, c->state, WBS_STATE_SIZE);
         }
 
