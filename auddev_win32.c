@@ -24,8 +24,9 @@
 #include "util.h"
 #include "mmsystem.h"
 
-#define rat_to_device(x)	((x) * 255 / MAX_AMP)
-#define device_to_rat(x)	((x) * MAX_AMP / 255)
+#define MAX_DEVICE_GAIN 0xffff
+#define rat_to_device(x)	(((x) * MAX_DEVICE_GAIN / MAX_AMP) << 16 | ((x) * MAX_DEVICE_GAIN / MAX_AMP))
+#define device_to_rat(x)	((x & 0xffff) * MAX_AMP / MAX_DEVICE_GAIN)
 
 #define W32SDK_MAX_DEVICES 5
 static  int have_probed[W32SDK_MAX_DEVICES];
@@ -1292,13 +1293,7 @@ w32sdk_audio_set_ogain(audio_desc_t ad, int level)
         if (shWaveOut == 0)
                 return;
         
-        level = rat_to_device(level);
-        if (level >= 255)
-                level = (short)-1;
-        else
-                level <<= 8;
-        vol = level | (level << 16);
-        
+        vol = rat_to_device(level);
         error = waveOutSetVolume(shWaveOut, vol);
         if (error) {
                 waveOutGetErrorText(error, errorText, sizeof(errorText));
@@ -1321,8 +1316,9 @@ w32sdk_audio_get_ogain(audio_desc_t ad)
                 waveOutGetErrorText(error, errorText, sizeof(errorText));
                 debug_msg("Win32Audio: waveOutGetVolume Error: %s\n", errorText);
                 return (0);
-        } else
-                return (device_to_rat(vol & 0xff));
+        } else {
+                return (device_to_rat(vol));
+        }
 }
 
 void
