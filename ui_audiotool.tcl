@@ -1091,8 +1091,9 @@ proc ssrc_update {ssrc} {
 #power meters
 
 # Colors
-set bargraphLitColors [list   #008800 #008800 #008800 #008800 #008800 #008800 #008800 #008800 #008800 #008800 #008800 #339f00 #66b600 #99cd00 #cce400 #ffff00 #ffcc00 #ff9900 #ff6600 #ff3300]
-set bargraphUnlitColors [list #004400 #004400 #004400 #004400 #004400 #004400 #004400 #004400 #004400 #004400 #004400 #194f00 #335b00 #4c6600 #667200 #7f7f00 #7f6600 #7f4c00 #7f3300 #7f1900]
+set bargraphLitColors [list #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #2ccf00 #58d200 #84d500 #b0d800 #dddd00 #ddb000 #dd8300 #dd5600 #dd2900]
+
+set bargraphUnlitColors [list #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #166700 #2c6900 #426a00 #586c00 #6e6e00 #6e5800 #6e4100 #6e2b00 #6e1400]
 set bargraphTotalHeight [llength $bargraphLitColors]
 
 proc bargraphCreate {bgraph} {
@@ -1100,7 +1101,7 @@ proc bargraphCreate {bgraph} {
 
 	frame $bgraph -relief sunk -bg black
 	for {set i 0} {$i < $bargraphTotalHeight} {incr i} {
-		frame $bgraph.inner$i -bg "[lindex $bargraphUnlitColors $i]" -width 2 -height 8
+		frame $bgraph.inner$i -bg "[lindex $bargraphUnlitColors $i]" -width 4 -height 8
 		pack $bgraph.inner$i -side left -fill both -expand true -padx 1 -pady 1
 	}
 	set oh$bgraph 0

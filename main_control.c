@@ -32,6 +32,10 @@
 pid_t	 pid_ui, pid_engine;
 int	 should_exit;
 
+#ifdef FreeBSD
+int kill(pid_t pid, int sig);
+#endif
+
 #ifdef NEED_SNPRINTF
 static int snprintf(char *s, int buf_size, const char *format, ...)
 {
