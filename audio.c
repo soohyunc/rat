@@ -358,9 +358,6 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
 
         c = spi->cushion;
 
-        spi->over_read -= 2 * cushion_get_step(c);
-        if (spi->over_read < 0) spi->over_read = 0;
-
 	if ((read_dur = tx_read_audio(spi->tb)) <= 0) {
 		return 0;
 	} else {
@@ -412,7 +409,6 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
                                     &bufp);
                 audio_device_write(spo, bufp, new_cushion);
                 /* We've blocked for this long for whatever reason           */
-                spi->over_read += read_dur - cushion_size;
                 cushion_size    = new_cushion;
         } else {
                 trailing_silence = mix_get_audio(ms, read_dur * ofmt->channels, &bufp);

@@ -247,25 +247,10 @@ luigi_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 int
 luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 {
-	int done, r, queued;
+	int done;
 
         UNUSED(ad); assert(audio_fd > 0);
 
-        /* Borrowed from Amancio's MODS to VAT - check how much audio we */
-        /* can write and make sure we are not about to write too much... */
-        /* only place this has appeared to be a problem is sb16.         */
-        r      = ioctl(audio_fd, AIONWRITE, &queued);
-        queued = soundcaps[ad].bufsize - queued;
-        /* Trial and error - SHORT_BUFFER_SIZE is 4 frames of 20 ms 16bit  */
-        /* audio samples.  This almost certainly has horrible consequences */
-        /* for the cushion and it's idea of reality.                       */
-
-#define SHORT_BUFFER_SIZE (4 * 320)
-        if (queued > SHORT_BUFFER_SIZE) {
-                debug_msg("Driver interface dropped samples (queued %d).\n", queued);
-                write_bytes -= 8;
-        }
-        
         done = write(audio_fd, (void*)buf, write_bytes);
         if (done != write_bytes && errno != EINTR) {
                 /* Only ever seen this with soundblaster cards.
