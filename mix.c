@@ -156,8 +156,8 @@ mix_put_audio(mixer_t     *ms,
         static int hits;
         sample  *samples;
 
-        uint32_t  nticks, nsamples, pos, original_head;
-        uint16_t  channels, rate;
+        uint32_t nticks, nsamples, pos, original_head;
+        uint16_t channels, rate;
         ts_t     frame_period, expected_playout, delta, pot_head_time;
         ts_t     orig_head_time;
 

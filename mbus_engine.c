@@ -34,6 +34,7 @@ static const char cvsid[] =
 #include "pdb.h"
 #include "source.h"
 #include "sndfile.h"
+#include "voxlet.h"
 #include "timers.h"
 #include "util.h"
 #include "codec_types.h"
@@ -524,7 +525,7 @@ static void rx_audio_file_play_stop(char *srce, char *args, session_t *sp)
 	}
 }
 
-static void rx_tool_rat_local_file_play(char *srce, char *args, session_t *sp)
+static void rx_tool_rat_local_file_player_play(char *srce, char *args, session_t *sp)
 {
 	char	*file;
 	struct mbus_parser	*mp;
@@ -535,9 +536,13 @@ static void rx_tool_rat_local_file_play(char *srce, char *args, session_t *sp)
 	mp = mbus_parse_init(args);
 	if (mbus_parse_str(mp, &file)) {
                 mbus_decode_str(file);
-                if (sp->local_file) snd_read_close(&sp->local_file);
-                if (snd_read_open(&sp->local_file, file, NULL)) {
-                        debug_msg("Hooray opened %s\n",file);
+                if (sp->local_file_player) {
+                        voxlet_destroy(&sp->local_file_player);
+                }
+                if (voxlet_create(&sp->local_file_player, sp->ms, sp->clock, sp->pdb, file)) {
+                        debug_msg("Opened: %s\n", file);
+                } else {
+                        debug_msg("Failed to open: %s\n", file);
                 }
 	} else {
 		debug_msg("mbus: usage \"tool.rat.local.file.play <filename>\"\n");
@@ -1411,7 +1416,7 @@ static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 }
 
 static const mbus_cmd_tuple engine_cmds[] = {
-	{ "tool.rat.local.file.play",              rx_tool_rat_local_file_play },
+	{ "tool.rat.local.file.play",              rx_tool_rat_local_file_player_play },
         { "session.title",                         rx_session_title },
         { "tool.rat.silence",                      rx_tool_rat_silence },
         { "tool.rat.lecture.mode",                 rx_tool_rat_lecture_mode },

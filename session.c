@@ -32,6 +32,7 @@ static const char cvsid[] =
 #include "source.h"
 #include "channel_types.h"
 #include "channel.h"
+#include "voxlet.h"
 
 #define PCKT_QUEUE_RTP_LEN  24
 #define PCKT_QUEUE_RTCP_LEN 12
@@ -129,7 +130,7 @@ session_init(session_t *sp)
 	sp->meter			= TRUE;					/* Powermeter operation */
 	sp->in_file 			= NULL;
 	sp->out_file  			= NULL;
-	sp->local_file			= NULL;
+	sp->local_file_player		= NULL;
 	sp->mbus_engine_addr		= NULL;
 	sp->mbus_engine			= NULL;
 	sp->mbus_ui_addr		= NULL;
@@ -158,6 +159,9 @@ session_exit(session_t *sp)
         if (sp->device_clock) {
                 xfree(sp->device_clock);
                 sp->device_clock = NULL;
+        }
+        if (sp->local_file_player) {
+                voxlet_destroy(&sp->local_file_player);
         }
         channel_encoder_destroy(&sp->channel_coder);
         source_list_destroy(&sp->active_sources);

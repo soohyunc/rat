@@ -8,7 +8,8 @@ catch {
 # Full terms and conditions of the copyright appear below.
 #
 
-set CLIPDIR /usr/demo/SOUND/sounds
+# This is a temporary variable for audio balloon help testing/development.
+set CLIPDIR "/usr/demo/SOUND/sounds"
 
 #wm withdraw .
 
@@ -2756,7 +2757,9 @@ proc show_help {window} {
 		wm geometry  .help +$xpos+$ypos
 		set help_id [after 100 wm deiconify .help]
 		raise .help $window
-		mbus_send "R" "tool.rat.local.file.play" "\"$help_clip($window)\""
+		if {[info exists help_clip($window)]} {
+		    mbus_send "R" "tool.rat.local.file.play" "\"$help_clip($window)\""
+		}
 	}
 }
 
@@ -2784,9 +2787,9 @@ wm transient        .help .
 wm withdraw         .help
 wm overrideredirect .help true
 
-add_help .r.c.tx.au.pow.sli 	"This slider controls the volume\nof the sound you send." ""
-add_help .r.c.tx.au.port.l0 	"Click to change input device." ""
-add_help .r.c.tx.au.port.l2 	"Click to change input device." ""
+add_help .r.c.tx.au.pow.sli 	"This slider controls the volume\nof the sound you send." "chirp.au"
+add_help .r.c.tx.au.port.l0 	"Click to change input device." "cowbell.au"
+add_help .r.c.tx.au.port.l2 	"Click to change input device." "scuttle.au"
 add_help .r.c.tx.net.on 	"If this button is pushed in, you are are transmitting, and\nmay be\
 	heard by other participants. Holding down the\nright mouse button in\
 	any RAT window will temporarily\ntoggle the state of this button,\

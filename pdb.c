@@ -141,6 +141,7 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, uint16_t freq, uint32_t id)
 	item->clock           = new_time(clock, freq);
         zero_ts               = ts_map32(8000, 0);
         item->last_ui_update  = zero_ts;
+        item->first_mix       = TRUE;
 
         /* Initial jitter estimate (30ms)                                    */
         item->jitter            = ts_map32(8000, 240);

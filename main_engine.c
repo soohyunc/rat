@@ -46,6 +46,7 @@ static const char cvsid[] =
 #include "settings.h"
 #include "rtp.h"
 #include "rtp_callback.h"
+#include "voxlet.h"
 
 int 	 should_exit = FALSE;
 char	*c_addr, *token, *token_e; /* These should be parameters of the session? */
@@ -251,7 +252,18 @@ int main(int argc, char *argv[])
 					scnt--;
 				}
 			}
-		}
+                        /* Play local file if playing */
+                        if (sp->local_file_player) {
+                                if (voxlet_play(sp->local_file_player, sp->cur_ts, cush_ts) == FALSE) {
+                                        voxlet_destroy(&sp->local_file_player);
+                                }
+                        }
+                } else {
+                        /* Destroy localfile player if not playing audio */
+                        if (sp->local_file_player) {
+                                voxlet_destroy(&sp->local_file_player);
+                        }
+                }
 
                 /* Echo Suppression - cut off transmitter when receiving     */
                 /* audio, enable when stop receiving.                        */
@@ -306,6 +318,9 @@ int main(int argc, char *argv[])
 				/* data will drive the correct new path.              */
 				source_list_clear(sp->active_sources);
 				ui_send_audio_update(sp, sp->mbus_ui_addr);
+                                if (sp->local_file_player) {
+                                        voxlet_destroy(&sp->local_file_player);
+                                }
 			}
 		}
 		

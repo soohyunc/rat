@@ -355,11 +355,6 @@ audio_device_write(session_t *sp, sample *buf, int dur)
                 snd_write_audio(&sp->out_file, buf, (uint16_t)(dur * ofmt->channels));
         }
 
-	/* FIXME */
-	if (sp->local_file) {
-		snd_read_audio(&sp->local_file, buf, dur);
-	}
-
         len =  audio_write(sp->audio_device, buf, dur * ofmt->channels);
 
         xmemchk();
@@ -429,10 +424,10 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mixer *ms)
                 /* The mix routine also needs to know for how long the       */
                 /* output went dry so that it can adjust the time.           */
                 mix_new_cushion(ms, 
-                                    cushion_size, 
-                                    new_cushion, 
-                                    (read_dur - cushion_size), 
-                                    &bufp);
+                                cushion_size, 
+                                new_cushion, 
+                                (read_dur - cushion_size), 
+                                &bufp);
                 audio_device_write(spo, bufp, new_cushion);
                 /* We've blocked for this long for whatever reason           */
                 cushion_size    = new_cushion;
