@@ -107,6 +107,9 @@ struct mbus {
 
 static int mbus_addr_match(char *a, char *b)
 {
+	assert(a != NULL);
+	assert(b != NULL);
+
 	while ((*a != '\0') && (*b != '\0')) {
 		while (isspace(*a)) a++;
 		while (isspace(*b)) b++;

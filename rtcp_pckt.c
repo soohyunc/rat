@@ -372,6 +372,9 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						dbe->sentry->tool[lenstr] = '\0';
                                                 ui_info_update_tool(dbe);
 						break;
+					case RTCP_SDES_NOTE:
+						dprintf("SDES NOTE support not yet implemented\n");
+						break;
 					default:
 						dprintf("SDES packet type %d ignored\n", sdes->type);
 						break;
@@ -722,14 +725,14 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 void 
 rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int16 port)
 {
-	u_int32          packet[MAX_PACKLEN / 4];
-	u_int8          *ptr = (u_int8 *) packet;
+	u_int8           packet[MAX_PACKLEN];
+	u_int8          *ptr = packet;
 	rtcp_dbentry	*src;
 
 	/* Send an RTCP BYE packet... */
 	ptr = rtcp_packet_fmt_srrr(sp1, ptr);
 	ptr = rtcp_packet_fmt_bye(ptr, sp1->db->myssrc, sp1->mode == TRANSCODER? sp2->db->ssrc_db: NULL);
-	net_write(fd, addr, port, (u_int8 *) packet, ptr - (u_int8 *) packet, PACKET_RTCP);
+	net_write(fd, addr, port, packet, ptr - packet, PACKET_RTCP);
 
 	rtcp_free_dbentry(sp1->db->my_dbe);
 	while ((src = sp1->db->ssrc_db) != NULL) {
