@@ -33,31 +33,6 @@ static const char cvsid[] = "$Id$";
 #include "auddev_netbsd.h"
 #endif
 
-#ifdef HAVE_ALSA_AUDIO
-#undef UNUSED
-#include <sys/asoundlib.h>
-#include "auddev_alsa.h"
-#undef UNUSED
-#define UNUSED(x) (x=x)
-
-static void
-alsa_mute_mic(audio_desc_t ad)
-{
-	snd_mixer_gid_t mic;
-	snd_mixer_group_t group;
-	snd_mixer_t *CurMixer = 0;
-
-	snd_mixer_open(&CurMixer, ad, 0);	/* assume mixer 0 */
-	memset(&mic, 0, sizeof(mic));
-	strcpy(mic.name, SND_MIXER_IN_MIC);
-	memset(&group, 0, sizeof(group));
-	group.gid = mic;
-	snd_mixer_group_read(CurMixer, &group);
-	group.mute = SND_MIXER_CHN_MASK_STEREO;
-	snd_mixer_group_write(CurMixer, &group);
-	snd_mixer_close(CurMixer);
-}
-#endif	/* HAVE_ALSA_AUDIO */
 
 enum { AUDIO_SPEAKER, AUDIO_HEADPHONE, AUDIO_LINE_OUT, AUDIO_MICROPHONE, AUDIO_LINE_IN, AUDIO_CD};
 
@@ -716,9 +691,6 @@ oss_audio_set_igain(audio_desc_t ad, int gain)
 			if (ioctl(devices[ad].mixer_rfd, MIXER_WRITE(which_port), &volume) == -1) {
 				perror("Setting gain");
 			}
-#ifdef HAVE_ALSA_AUDIO
-			alsa_mute_mic(ad);
-#endif
 			break;
 		case AUDIO_LINE_IN :
 			/* From Stuart Levy <slevy@ncsa.uiuc.edu>:                           */
@@ -869,9 +841,6 @@ oss_audio_loopback(audio_desc_t ad, int gain)
 
         gain = gain << 8 | gain;
         if (ioctl(devices[ad].mixer_rfd, MIXER_WRITE(SOUND_MIXER_IMIX), &gain) == -1) {
-#if defined(DEBUG) && !defined(HAVE_ALSA_AUDIO)
-                perror("audio loopback");
-#endif
         }
 }
 
@@ -1107,11 +1076,6 @@ oss_audio_supports(audio_desc_t ad, audio_format *fmt)
 int
 oss_get_device_count()
 {
-#ifdef HAVE_ALSA_AUDIO
-	if (alsa_get_device_count() > 0) {
-		return 0;
-	}
-#endif
 	return num_devices;
 }
 
