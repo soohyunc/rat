@@ -283,15 +283,17 @@ set_dynamic_payload(dpt **dpt_list, char *name, int pt)
 		p->name = strsave(name);
 		p->next = *dpt_list;
 		*dpt_list = p;
+#ifdef DEBUG
                 printf("added %s\n",name);
+#endif
 	} else {
 #ifdef DEBUG
-		if (p->pt != pt)
-			fprintf(stderr, "Reassigning dynamic pt for encoding \"%s\". Old: %d New: %d\n", name, p->pt, pt);
+		if (p->pt != pt) {
+			printf("Reassigning dynamic payload type for encoding \"%s\". Old: %d New: %d\n", name, p->pt, pt);
+		}
 #endif
 	}
 	p->pt = pt;
-
 }
 
 int
@@ -304,9 +306,9 @@ get_dynamic_payload(dpt **dpt_list, char *name)
 			return (p->pt);
 	}
 #ifdef DEBUG
-	fprintf(stderr, "get_dynamic_payload: payload_type for \"%s\" not specified.\n", name);
+	printf("get_dynamic_payload: payload_type for \"%s\" not specified.\n", name);
 #endif
-	return (DYNAMIC);
+	return DYNAMIC;
 }
 
 void
@@ -316,8 +318,9 @@ codec_init(session_struct *sp)
 	codec_t	*cp;
 	int	pt;
 
-	if (inited)
+	if (inited) {
 		return;
+	}
 	inited = 1;
 
 	memset(&cd, 0, MAX_CODEC * sizeof(codec_t));
@@ -326,9 +329,9 @@ codec_init(session_struct *sp)
 		if (cp->pt == DYNAMIC) {
 			if ((pt = get_dynamic_payload(&sp->dpt_list, cp->name)) == DYNAMIC)
 				continue;
-		} else
+		} else {
 			pt = cp->pt;
-
+		}
 		memcpy(&cd[pt], cp, sizeof(codec_t));
 		cd[pt].pt = pt;
 	}
@@ -338,10 +341,11 @@ codec_t *
 get_codec(int pt)
 {
 	assert(pt >= 0 && pt < MAX_CODEC);
-	if (cd[pt].name != 0)
-		return (&cd[pt]);
-	else
-		return (NULL);
+	if (cd[pt].name != 0) {
+		return &cd[pt];
+	} else {
+		return NULL;
+	}
 }
 
 codec_t *
@@ -355,9 +359,9 @@ get_codec_byname(char *name, session_struct *sp)
                 return (&cd[i]);
 	}
 #ifdef DEBUG
-	fprintf(stderr, "get_codec_byname: codec \"%s\" not found.\n", name);
+	printf("get_codec_byname: codec \"%s\" not found.\n", name);
 #endif
-	return (NULL);
+	return NULL;
 }
 
 enum co_e {
@@ -399,7 +403,7 @@ get_codec_state(state_t **lp, int pt, enum co_e ed)
 		*lp = sp;
 	}
 
-	return (sp);
+	return sp;
 }
 
 void
@@ -447,20 +451,21 @@ decode_unit(rx_queue_element_struct *u)
 void
 clear_coded_unit(coded_unit *u)
 {
-	if (u->cp->sent_state_sz > 0)
+	if (u->cp->sent_state_sz > 0) {
 		block_free(u->state, u->state_len + u->data_len);
-	else
+	} else {
 		block_free(u->data, u->data_len);
+	}
 	memset(u, 0, sizeof(coded_unit));
 }
 
 int
 codec_compatible(codec_t *c1, codec_t *c2)
 {
-	return (c1->freq == c2->freq
+	return c1->freq == c2->freq
 		&& c1->channels == c2->channels
 		&& c1->unit_len == c2->unit_len
-		&& c1->sample_size == c2->sample_size);
+		&& c1->sample_size == c2->sample_size;
 }
 
 
