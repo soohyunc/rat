@@ -1091,7 +1091,8 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	- Add SIGCHLD to main_control to shutdown process tree when child 
 	  processes die in a timely manner.
 	- Fix shutdown sequence.
-
+	- Patch G711 A-law, Sun's code was wrong and you only notice when 
+	  speaking with real h/w implementations.
 
 TODO -- They're features not bugs dammit!
 ----
