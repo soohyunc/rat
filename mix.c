@@ -243,13 +243,15 @@ mix_put_audio(mixer_t     *ms,
 				 * samples that need to be written and correct playout
 				 * so they are written to the correct place.
 				 */
+
 				delta     = ts_convert(ms->info.sample_rate, delta);
 				trim      = delta.ticks * ms->info.channels;
+				debug_msg("Mixer trimmed %d samples (Expected playout %d got %d) ssrc (0x%08x)\n",
+					  trim, pdbe->next_mix.ticks, playout.ticks, pdbe->ssrc);
                                 samples  += trim;
 				playout   = ts_add(playout, delta);
                                 assert(nsamples > trim);
 				nsamples -= trim;
-				debug_msg("Mixer trimmed %d samples (Expected playout %d got %d) ssrc (0x%08x)\n", trim, pdbe->next_mix.ticks, playout.ticks, pdbe->ssrc);
                         } else {
                                 debug_msg("Skipped unit\n");
 				return FALSE;
