@@ -132,7 +132,83 @@ proc toggle_output_port {} {
   mbus_send "R" "toggle.output.port" ""
 }
 
-proc mbus_recv_alive {} {
+proc mbus_heartbeat {} {
+}
+
+#############################################################################################################
+# Reception of Mbus messages...
+
+proc mbus_recv {cmnd args} {
+	# This is not the most efficient way of doing this, since we could call mbus_recv_... 
+	# directly from the C code. It does, however, make it explicit which Mbus commands we
+	# understand.
+	switch $cmnd {
+		mbus.waiting			{eval mbus_recv_mbus.waiting $args}
+		mbus.go				{eval mbus_recv_mbus.go $args}
+		mbus.hello			{eval mbus_recv_mbus.hello $args}
+		load.settings  			{eval mbus_recv_load.settings $args}
+		frequencies.supported  		{eval mbus_recv_frequencies.supported $args}
+		audio.codec.supported  		{eval mbus_recv_audio.codec.supported $args}
+		audio.redundancy.supported  	{eval mbus_recv_audio.redundancy.supported $args}
+		converter.supported  		{eval mbus_recv_converter.supported $args}
+		agc  				{eval mbus_recv_agc $args}
+		sync  				{eval mbus_recv_sync $args}
+		update_key  			{eval mbus_recv_ $args}
+		frequency  			{eval mbus_recv_frequency $args}
+		channels  			{eval mbus_recv_channels $args}
+		audio.codec  			{eval mbus_recv_audio.codec $args}
+		rate  				{eval mbus_recv_rate $args}
+		redundancy  			{eval mbus_recv_redundancy $args}
+		interleaving  			{eval mbus_recv_interleaving $args}
+		audio.channel.coding  		{eval mbus_recv_audio.channel.coding $args}
+		repair  			{eval mbus_recv_repair $args}
+		audio.powermeter.input  	{eval mbus_recv_audio.powermeter.input $args}
+		audio.powermeter.output  	{eval mbus_recv_audio.powermeter.output $args}
+		audio.input.gain  		{eval mbus_recv_audio.input.gain $args}
+		audio.input.port  		{eval mbus_recv_audio.input.port $args}
+		audio.input.mute  		{eval mbus_recv_audio.input.mute $args}
+		audio.output.gain  		{eval mbus_recv_audio.output.gain $args}
+		audio.output.port  		{eval mbus_recv_audio.output.port $args}
+		audio.output.mute  		{eval mbus_recv_audio.output.mute $args}
+		session.title  			{eval mbus_recv_session.title $args}
+		session.address  		{eval mbus_recv_session.address $args}
+		externalise  			{eval mbus_recv_externalise $args}
+		lecture.mode  			{eval mbus_recv_lecture.mode $args}
+		detect.silence  		{eval mbus_recv_detect.silence $args}
+		rtp.cname  			{eval mbus_recv_rtp.cname $args}
+		rtp.source.exists  		{eval mbus_recv_rtp.source.exists $args}
+		rtp.source.name  		{eval mbus_recv_rtp.source.name $args}
+		rtp.source.email  		{eval mbus_recv_rtp.source.email $args}
+		rtp.source.phone  		{eval mbus_recv_rtp.source.phone $args}
+		rtp.source.loc  		{eval mbus_recv_rtp.source.loc $args}
+		rtp.source.tool  		{eval mbus_recv_rtp.source.tool $args}
+		rtp.source.note  		{eval mbus_recv_rtp.source.note $args}
+		rtp.source.codec  		{eval mbus_recv_rtp.source.codec $args}
+		rtp.source.packet.duration  	{eval mbus_recv_rtp.source.packet.duration $args}
+		rtp.source.audio.buffered  	{eval mbus_recv_rtp.source.audio.buffered $args}
+		rtp.source.packet.loss  	{eval mbus_recv_rtp.source.packet.loss $args}
+		rtp.source.reception  		{eval mbus_recv_rtp.source.reception $args}
+		rtp.source.active  		{eval mbus_recv_rtp.source.active $args}
+		rtp.source.inactive  		{eval mbus_recv_rtp.source.inactive $args}
+		rtp.source.remove  		{eval mbus_recv_rtp.source.remove $args}
+		rtp.source.mute  		{eval mbus_recv_rtp.source.mute $args}
+		quit  				{eval mbus_recv_quit $args}
+		disable.audio.ctls  		{eval mbus_recv_disable.audio.ctls $args}
+		enable.audio.ctls  		{eval mbus_recv_enable.audio.ctls $args}
+		default				{error "### Unknown Mbus command $cmnd"}
+	}
+}
+
+proc mbus_recv_mbus.waiting {condition} {
+	if {$condition == "rat.ui.init"} {
+		mbus_send "U" "mbus.go" [mbus_encode_str rat.ui.init]
+	}
+}
+
+proc mbus_recv_mbus.go {condition} {
+}
+
+proc mbus_recv_mbus.hello {} {
 	# Ignore...
 }
 
@@ -341,7 +417,7 @@ proc mbus_recv_detect.silence {mode} {
 	set silence_var $mode
 }
 
-proc mbus_recv_my.cname {cname} {
+proc mbus_recv_rtp.cname {cname} {
 	global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc num_cname
 
 	set my_cname $cname
@@ -487,6 +563,8 @@ proc mbus_recv_quit {} {
 	save_settings 
 	destroy .
 }
+
+#############################################################################################################
 
 proc set_loss_to_me {cname loss} {
 	global prev_loss_to_me loss_to_me_timer
