@@ -676,7 +676,7 @@ label .l.f.addr  -font $smallfont -textvariable session_address
 
 frame  .l.s1 -bd 0
 button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options"   -command {wm deiconify .prefs}
-button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"     -command {wm deiconify .about}
+button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"     -command {jiggle_credits; wm deiconify .about}
 button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"      -command do_quit
 
 frame .r.c
@@ -1058,11 +1058,11 @@ frame     .about.rim.d.credits.f.f
 pack      .about.rim.d.credits.f -fill both -expand 1
 pack      .about.rim.d.credits.f.f -side left -fill x -expand 1
 label     .about.rim.d.credits.f.f.1                  -text "The Robust-Audio Tool was developed in the Department\nof Computer Science, University College London.\n\nProject Supervision:"
-label     .about.rim.d.credits.f.f.2 -foreground blue -text "Angela Sasse  Vicky Hardman\n"
-label     .about.rim.d.credits.f.f.3                  -text "Core Development Team:"
-label     .about.rim.d.credits.f.f.4 -foreground blue -text "Isidor Kouvelas  Colin Perkins  Orion Hodson\n"
-label     .about.rim.d.credits.f.f.5                  -text "Additional Contributions:"
-label     .about.rim.d.credits.f.f.6 -foreground blue -text "Darren Harris  Anna Watson  Mark Handley \nJon Crowcroft  Anna Bouch  Marcus Iken\nKris Hasler"
+label     .about.rim.d.credits.f.f.2 -foreground blue -text Wise
+label     .about.rim.d.credits.f.f.3                  -text "\nCore Development Team:"
+label     .about.rim.d.credits.f.f.4 -foreground blue -text Foolish
+label     .about.rim.d.credits.f.f.5                  -text "\nAdditional Contributions:"
+label     .about.rim.d.credits.f.f.6 -foreground blue -text Patient
 for {set i 1} {$i<=6} {incr i} {
     pack  .about.rim.d.credits.f.f.$i -side top -fill x
 }
@@ -1149,6 +1149,30 @@ at Lawrence Berkeley Laboratory.
 
 Encryption features of this software use the RSA Data
 Security, Inc. MD5 Message-Digest Algorithm.
+}
+
+proc shuffle_rats {args} {
+    set r ""
+    set end [llength $args]
+    set l 0 
+    while { $l < $end } {
+	set toget [expr abs([clock clicks]) % [llength $args]]
+	set r [format "%s%s  " $r [lindex $args $toget]]
+	set args [lreplace $args $toget $toget]
+	lappend used $toget
+	if {$l >0 && [expr ($l + 1) % 3] == 0} {
+	    set r "$r\n"
+	}
+	incr l
+    }
+    return $r
+}
+
+proc jiggle_credits {} {
+# Software really developed by the Socialist Department of Computer Science
+    .about.rim.d.credits.f.f.2 configure -text [shuffle_rats "Angela Sasse" "Vicky Hardman"]
+    .about.rim.d.credits.f.f.4 configure -text [shuffle_rats "Colin Perkins" "Isidor Kouvelas" "Orion Hodson"]
+    .about.rim.d.credits.f.f.6 configure -text [shuffle_rats "Darren Harris"  "Anna Watson" "Mark Handley" "Jon Crowcroft" "Anna Bouch" "Marcus Iken" "Kris Hasler"]
 }
 
 proc sync_ui_to_engine {} {
