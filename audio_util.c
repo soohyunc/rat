@@ -239,3 +239,12 @@ avg_audio_energy(sample *buf, uint32_t samples, uint32_t channels)
          */
         return (uint16_t)(e1*ENERGY_CALC_STEP/samples);
 }
+
+void
+audio_scale_buffer(sample *buf, int len, double scale)
+{
+        int i;
+        for(i = 0; i < len; i++) {
+                buf[i] = (sample)((double)buf[i] * scale);
+        }
+}
