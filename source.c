@@ -4,7 +4,6 @@
  *
  * Layering support added by Tristan Henderson.
  *	
- *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
  */
@@ -974,7 +973,7 @@ find_local_match(sample *buffer, uint16_t wstart, uint16_t wlen, uint16_t sstart
         for (i = sstart; i < send; i += channels) {
                 score = 0;
                 for(j = 0; j < wlen; j += channels) {
-                        score += abs(buffer[wstart + j] - buffer[i + j]);
+                        score += abs((int32_t)buffer[wstart + j] - (int32_t)buffer[i + j]);
                 }
                 if (score <= score_min) {
                         score_min = score;
@@ -1012,31 +1011,33 @@ recommend_skew_adjust_dur(media_data *md, int drop, ts_t *adjust)
         buffer  = (sample*)md->rep[i]->data;
         samples = md->rep[i]->data_len / (sizeof(sample) * channels);
         if (drop) {
-                /* match with first samples of frame */
-                /* start just past search window and finish at end of frame */
-                matchlen = find_local_match((sample*)md->rep[i]->data, 
-                                            0, 
-                                            (uint16_t)(SOURCE_COMPARE_WINDOW_SIZE * channels),
-                                            (uint16_t)(SOURCE_COMPARE_WINDOW_SIZE * channels),
-                                            (uint16_t)((samples - SOURCE_COMPARE_WINDOW_SIZE) * channels),
+                /* match with first samples of frame start just past
+                 * search window and finish at end of frame 
+                 */
+                matchlen = find_local_match((sample*)md->rep[i]->data,                                     /* buffer            */
+                                            0,                                                             /* window start      */
+                                            (uint16_t)(SOURCE_COMPARE_WINDOW_SIZE * channels),             /* window len        */
+                                            (uint16_t)(SOURCE_COMPARE_WINDOW_SIZE * channels),             /* search area start */
+                                            (uint16_t)((samples - SOURCE_COMPARE_WINDOW_SIZE) * channels), /* search area len   */
                                             channels);
                 if (matchlen == -1) {
                         return FALSE;
                 }
         } else {
-                /* match with last samples of frame.  Start at the start of   */
-                /* frame and finish just before search window.                */
+                /* match with last samples of frame.  Start at the
+                 * start of frame and finish just before search window.
+                 */
                 matchlen = find_local_match((sample*)md->rep[i]->data,                                         /* buffer */
                                             (uint16_t)((samples - SOURCE_COMPARE_WINDOW_SIZE) * channels),     /* wstart */
                                             (uint16_t)(SOURCE_COMPARE_WINDOW_SIZE * channels),                 /* wlen   */
                                             0,                                                                 /* sstart */
                                             (uint16_t)((samples - 2 * SOURCE_COMPARE_WINDOW_SIZE) * channels), /* slen   */
                                             channels);
-                /* Want to measure from where frames will overlap.            */
+                /* Want to measure from where frames will overlap. */
                 if (matchlen == -1) {
                         return FALSE;
                 }
-                matchlen = samples - matchlen - SOURCE_COMPARE_WINDOW_SIZE;
+                matchlen += SOURCE_COMPARE_WINDOW_SIZE;
         }
         assert(matchlen >= 0);
         assert(matchlen <= samples);
@@ -1050,10 +1051,10 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         /* We are dropping drop_dur samples and want signal to be            */
         /* continuous.  So we blend samples that would have been played if   */
         /* they weren't dropped with where signal continues after the drop.  */
-        uint32_t drop_samples, samples;
+        uint32_t drop_samples;
         uint16_t rate, channels;
         int32_t i;
-        sample *new_start, *old_start;
+        sample *new_start, *buf;
 
         for (i = md->nrep - 1; i >= 0; i--) {
                 if (codec_get_native_info(md->rep[i]->id, &rate, &channels)) {
@@ -1062,16 +1063,13 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         }
 
         assert(i != -1);
-        
+
+        buf          = (sample*)md->rep[i]->data;
         drop_dur     = ts_convert(rate, drop_dur);
         drop_samples = channels * drop_dur.ticks;
+        new_start    = buf + drop_samples;
         
-        /* new_start is what will be played by mixer */
-        new_start = (sample*)md->rep[i]->data + drop_samples;
-        old_start = (sample*)md->rep[i]->data;
-        samples   = md->rep[i]->data_len / sizeof(sample);
-        
-        audio_blend(old_start, new_start, new_start, SOURCE_MERGE_LEN_SAMPLES, channels);
+        audio_blend(buf, new_start, new_start, SOURCE_MERGE_LEN_SAMPLES, channels);
         xmemchk();
 }
 
@@ -1095,28 +1093,29 @@ conceal_inserted_samples(media_data *omd, media_data *imd, ts_t insert_dur)
                         break;
                 }
         }
-
         assert(i >= 0);
-        dst_samples = omd->rep[i]->data_len / sizeof(sample);
-        dst         = (sample*)omd->rep[i]->data + dst_samples - SOURCE_MERGE_LEN_SAMPLES * channels;
-        
+
         for (i = imd->nrep - 1; i >= 0; i--) {
                 if (codec_get_native_info(imd->rep[i]->id, &rate, &channels)) {
                         break;
                 }
         }
-
         assert(i >= 0);
+
+        dst_samples = omd->rep[i]->data_len / sizeof(sample);
+        dst         = ((sample*)omd->rep[i]->data) + dst_samples - SOURCE_MERGE_LEN_SAMPLES * channels;
+
+
         src_samples = imd->rep[i]->data_len / sizeof(sample);
-        skip        = insert_dur.ticks * channels;
+        skip        = insert_dur.ticks * channels - SOURCE_MERGE_LEN_SAMPLES;
         if (skip > src_samples - SOURCE_MERGE_LEN_SAMPLES * channels) {
                 debug_msg("Clipping insert length\n");
                 skip = src_samples - SOURCE_MERGE_LEN_SAMPLES * channels;
         }
-        src = (sample*)imd->rep[i]->data + skip;
+        src = ((sample*)imd->rep[i]->data) + skip;
 
         xmemchk();
-        audio_blend(src, dst, dst, SOURCE_MERGE_LEN_SAMPLES, channels);
+        audio_blend(dst, src, dst, channels * SOURCE_MERGE_LEN_SAMPLES, channels);
         xmemchk();
 }
 

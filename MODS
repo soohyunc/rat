@@ -1186,11 +1186,11 @@ v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	- Add support for m*11025 native encoding types.  Although RAT does
 	  not support these sampling rates, one of the sample rate converters
 	  supports conversion from m*11025 to n*8000.
+	- Fix noise during sample insertion from skew adaptation.
 
 TODO -- They're features not bugs dammit!
 ----
 
-- Skew adjustment is temporarily noisy.
 - Assorted audio driver problems:
 	- FreeBSD driver bug on SoundBlaster 16 has small write buffers 
 	  and stops working full duplex mode after a time.  Hard to fix because
