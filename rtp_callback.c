@@ -166,10 +166,6 @@ process_sr(session_t *sp, uint32_t ssrc, rtcp_sr *s)
                 debug_msg("Sender report discarded: unknown source (0x%08x).\n", ssrc);
                 return;
         }
-	
-	e->sr_offset_valid = TRUE;
-	e->sr_offset_sec   = s->ntp_sec - s->rtp_ts;
-	e->sr_offset_frac  = s->ntp_frac;
 }
 
 static void

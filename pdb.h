@@ -65,11 +65,6 @@ typedef struct {
         uint32_t        misordered;
         uint32_t        jit_toged;                   /* Packets discarded because late ("Thrown on ground") */
 
-	/* Sender report info */
-	int		sr_offset_valid:1;
-	uint32_t	sr_offset_sec;		     /* Add this to an RTP timestamp to get the corresponding NTP time */
-	uint32_t	sr_offset_frac;
-	
 	uint32_t	magic;	/* For debugging */
 } pdb_entry_t;
 
