@@ -54,6 +54,7 @@
 #include "audio.h"
 #include "util.h"
 #include "ui_control.h"
+#include "crypt.h"
 
 static void 
 usage(void)
@@ -347,8 +348,12 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 
 	for (i = 1; i < argc; i++) {
 		for (s = 0; s < sp_size; s++) {
-			if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
+			if (strcmp(argv[i], "-K") == 0) {
 				argv[i] = "-crypt";
+			}
+			if ((strcmp(argv[i], "-crypt") == 0) && (argc > i+1)) {
+				Set_Key(argv[i+1]);
+				ui_update_key(argv[i+1]);
 				i++;
 			}
                         if (strcmp(argv[i], "-sync") == 0) {

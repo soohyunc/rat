@@ -697,6 +697,12 @@ ui_update_sync(int sync)
 	}
 }
 
+void
+ui_update_key(char *key)
+{
+	mbus_engine_tx_queue(TRUE, "update_key", key);
+}
+
 static int
 codec_bw_cmp(const void *a, const void *b)
 {

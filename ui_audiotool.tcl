@@ -221,6 +221,12 @@ proc mbus_recv_sync {arg} {
   set sync_var $arg
 }
 
+proc mbus_recv_update_key {new_key} {
+	global key_var key
+	set key_var 1
+	set key     $new_key
+}
+
 proc mbus_recv_frequency {arg} {
   global freq
   set freq $arg
@@ -816,15 +822,6 @@ if {$win32 == 0} {
 wm resizable . 0 1
 if ([info exists geometry]) {
         wm geometry . $geometry
-}
-
-set cryptpos [lsearch $argv "-crypt"]
-if {$cryptpos == -1} then {
-  set key_var 0
-} else {
-  set key     [lindex $argv [expr $cryptpos + 1]]
-  set key_var 1
-  mbus_send "R" "update.key" [mbus_encode_str $key]
 }
 
 proc constrain_window {win maxstr xpad ylines ypad} {
