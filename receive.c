@@ -572,7 +572,7 @@ playout_buffers_process(session_struct *sp, rx_queue_struct *receive_queue, ppb_
 		    && ts_gt(buf->last_got->playoutpt, up->playoutpt) 
 		    && ts_gt(up->playoutpt, cur_time)) {
                         debug_msg("Mixing late audio\n");
-                        assert(validate_cc_unit(up->ccu[0]));
+                        if (up->ccu[0]) assert(validate_cc_unit(up->ccu[0]));
 #ifdef DEBUG_PLAYOUT
                         verify_playout_buffer(buf);
 #endif

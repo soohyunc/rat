@@ -167,7 +167,7 @@ cushion_update(cushion_t *c, u_int32 read_dur, int mode)
                 lower = (cover_idx + 10) * c->cushion_step;
                 upper = (idx       + 10) * c->cushion_step;
         } else {
-                lower = (cover_idx) * c->cushion_step;
+                lower = (cover_idx + 2) * c->cushion_step;
                 upper = idx * c->cushion_step;
         }
 
