@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
         ui_final_settings(sp);
 	network_process_mbus(sp);
 #endif
-
+        rtp_recv_flush(sp->rtp_session[0]);
         audio_drain(sp->audio_device);
         if (tx_is_sending(sp->tb)) {
                	tx_start(sp->tb);
@@ -192,6 +192,24 @@ int main(int argc, char *argv[])
 	xdoneinit();
 
 	while (!should_exit) {
+                /* Process RTP/RTCP packets */
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 0;
+                for (j = 0; j < sp->rtp_session_count; j++) {
+                        while(rtp_recv(sp->rtp_session[j], &timeout, cur_time));
+                        rtp_send_ctrl(sp->rtp_session[j], cur_time);
+                        rtp_update(sp->rtp_session[j]);
+                }
+
+                /* Process mbus */
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 0;
+		mbus_send(sp->mbus_engine); 
+		mbus_recv(sp->mbus_engine, (void *) sp, &timeout);
+		mbus_retransmit(sp->mbus_engine);
+		mbus_heartbeat(sp->mbus_engine, 10);
+
+                /* Process audio */
 		elapsed_time = audio_rw_process(sp, sp, sp->ms);
 		cur_time = get_time(sp->device_clock);
 		ntp_time = ntp_time32();
@@ -200,17 +218,6 @@ int main(int argc, char *argv[])
                 if (tx_is_sending(sp->tb)) {
                         tx_send(sp->tb);
                 }
-
-                /* Process RTP/RTCP packet  */
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 0;
-                for (j = 0; j < sp->rtp_session_count; j++) {
-                        rtp_recv(sp->rtp_session[j], &timeout, cur_time);
-                        rtp_send_ctrl(sp->rtp_session[j], cur_time);
-                        rtp_update(sp->rtp_session[j]);
-                }
-
-		/* Process incoming packets */
 
 		/* Process and mix active sources */
 		if (sp->playing_audio) {
@@ -258,14 +265,9 @@ int main(int argc, char *argv[])
 		} else {
 			alc++;
 		}
-		if (sp->audio_device) ui_update_powermeters(sp, sp->ms, elapsed_time);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 0;
-		mbus_send(sp->mbus_engine); 
-		mbus_recv(sp->mbus_engine, (void *) sp, &timeout);
-		mbus_retransmit(sp->mbus_engine);
-		mbus_heartbeat(sp->mbus_engine, 10);
-
+		if (sp->audio_device) {
+                        ui_update_powermeters(sp, sp->ms, elapsed_time);
+                }
 		if (sp->new_config != NULL) {
 			/* wait for mbus messages - closing audio device
 			 * can timeout unprocessed messages as some drivers

@@ -69,12 +69,11 @@ static int tcl_process_events(session_t *sp)
 int
 main(int argc, char *argv[])
 {
-	u_int32			 cur_time, ntp_time, dev_time = 0;
+	u_int32			 cur_time;
 	int            		 i, j, elapsed_time, alc = 0, seed;
 	session_t 		*sp[2];
-	struct timeval  	 time, start, now;
+	struct timeval  	 time;
 	struct timeval      	 timeout;
-        int32                    delta_real;
 	char			 mbus_engine_addr[100], mbus_ui_addr[100], mbus_video_addr[100];
 
 #ifndef WIN32
@@ -118,7 +117,7 @@ main(int argc, char *argv[])
         for (i = 0; i < sp[0]->layers; i++) {
                 sp[0]->rtp_session[i] = rtp_init(sp[0]->asc_address[i], 
                                                  sp[0]->tx_rtp_port[i], 
-                                                 sp[0]->rx_rtp_port[i],
+                                                 sp[0]->rx_rtp_port[i], 
                                                  sp[0]->ttl, 
                                                  64000,
                                                  rtp_callback);
@@ -157,46 +156,55 @@ main(int argc, char *argv[])
 #endif
 	network_process_mbus(sp[0]);
 
-        i = tcl_process_all_events();
-        debug_msg("process %d events at startup %d\n", i);
+        tcl_process_all_events();
 
         /* Tcl processing can take arbitrary time and so audio accumulates */
         /* and gives a distorted view of time and where to start sending   */
         /* from.  Drain device and start transmitter if active.            */
+        rtp_recv_flush(sp[0]->rtp_session[0]);
         audio_drain(sp[0]->audio_device);
         if (tx_is_sending(sp[0]->tb)) {
                	tx_start(sp[0]->tb);
         }
 
+        /* Initialize current time with device time */
+        cur_time      = get_time(sp[0]->device_clock);
+        sp[0]->cur_ts = ts_seq32_in(&sp[0]->decode_sequencer, get_freq(sp[0]->device_clock), cur_time);
+
 	xdoneinit();
-        gettimeofday(&start, NULL);
 	while (!should_exit) {
-		elapsed_time = audio_rw_process(sp[0], sp[0], sp[0]->ms);
-		cur_time = get_time(sp[0]->device_clock);
-		ntp_time = ntp_time32();
-		sp[0]->cur_ts   = ts_seq32_in(&sp[0]->decode_sequencer, 
-                                              get_freq(sp[0]->device_clock), 
-                                              cur_time);
-                dev_time += elapsed_time;
-                gettimeofday(&now, NULL);
-                delta_real = (now.tv_sec - start.tv_sec) * 1000 + (now.tv_usec - start.tv_usec) / 1000;
-/*                debug_msg("dev %05d real %05d, read %d\n", dev_time/8, delta_real, elapsed_time); */
-                tx_process_audio(sp[0]->tb);
-
-                if (tx_is_sending(sp[0]->tb)) {
-                        tx_send(sp[0]->tb);
-                }
-
-                /* Process RTP/RTCP packet  */
+                /* Process RTP/RTCP packets  */
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 0;
                 for (j = 0; j < sp[0]->rtp_session_count; j++) {
-                        rtp_recv(sp[0]->rtp_session[j], &timeout, cur_time);
+                        while(rtp_recv(sp[0]->rtp_session[j], &timeout, cur_time));
                         rtp_send_ctrl(sp[0]->rtp_session[j], cur_time);
                         rtp_update(sp[0]->rtp_session[j]);
                 }
 
-		/* Process incoming packets */
+                /* Process UI events */
+		if (sp[0]->ui_on) {
+			timeout.tv_sec  = 0;
+			timeout.tv_usec = 0;
+			tcl_process_events(sp[0]);
+			mbus_send(sp[0]->mbus_ui); 
+			mbus_recv(sp[0]->mbus_ui, (void *) sp[0], &timeout);
+			mbus_retransmit(sp[0]->mbus_ui);
+			mbus_heartbeat(sp[0]->mbus_ui, 10);
+		}
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 0;
+
+                /* Process mbus */
+		mbus_send(sp[0]->mbus_engine); 
+		mbus_recv(sp[0]->mbus_engine, (void *) sp[0], &timeout);
+		mbus_retransmit(sp[0]->mbus_engine);
+		mbus_heartbeat(sp[0]->mbus_engine, 10);
+
+                tx_process_audio(sp[0]->tb);
+                if (tx_is_sending(sp[0]->tb)) {
+                        tx_send(sp[0]->tb);
+                }
 
 		/* Process and mix active sources */
 		if (sp[0]->playing_audio) {
@@ -211,6 +219,7 @@ main(int argc, char *argv[])
                                 if (source_relevant(s, sp[0]->cur_ts)) {
                                         pdb_entry_t *e;
                                         ts_t         two_secs, delta;
+                                        source_check_buffering(s, sp[0]->cur_ts);
 					source_process(s, sp[0]->ms, sp[0]->render_3d, sp[0]->repair, cush_ts);
 					source_audit(s);
                                         /* Check for UI update necessary, updating once per 2 secs */
@@ -232,6 +241,15 @@ main(int argc, char *argv[])
 			}
 		}
 
+		/* Choke CPU usage */
+		if (!audio_is_ready(sp[0]->audio_device)) {
+			audio_wait_for(sp[0]->audio_device, 10);
+		}
+
+		elapsed_time  = audio_rw_process(sp[0], sp[0], sp[0]->ms);
+		cur_time      = get_time(sp[0]->device_clock);
+		sp[0]->cur_ts = ts_seq32_in(&sp[0]->decode_sequencer, get_freq(sp[0]->device_clock), cur_time);
+
 		if (alc >= 50) {
 			if (!sp[0]->lecture && tx_is_sending(sp[0]->tb) && sp[0]->auto_lecture != 0) {
 				gettimeofday(&time, NULL);
@@ -244,24 +262,9 @@ main(int argc, char *argv[])
 		} else {
 			alc++;
 		}
-		if (sp[0]->audio_device) ui_update_powermeters(sp[0], sp[0]->ms, elapsed_time);
-		if (sp[0]->ui_on) {
-			timeout.tv_sec  = 0;
-			timeout.tv_usec = 0;
-			tcl_process_events(sp[0]);
-			mbus_send(sp[0]->mbus_ui); 
-			mbus_recv(sp[0]->mbus_ui, (void *) sp[0], &timeout);
-			mbus_retransmit(sp[0]->mbus_ui);
-			mbus_heartbeat(sp[0]->mbus_ui, 10);
-		}
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 0;
-
-		mbus_send(sp[0]->mbus_engine); 
-		mbus_recv(sp[0]->mbus_engine, (void *) sp[0], &timeout);
-		mbus_retransmit(sp[0]->mbus_engine);
-		mbus_heartbeat(sp[0]->mbus_engine, 10);
-
+		if (sp[0]->audio_device) {
+                        ui_update_powermeters(sp[0], sp[0]->ms, elapsed_time);
+                }
 		if (sp[0]->new_config != NULL) {
 			/* wait for mbus messages - closing audio device
 			 * can timeout unprocessed messages as some drivers
@@ -278,10 +281,6 @@ main(int argc, char *argv[])
 			}
 		}
 		
-		/* Choke CPU usage */
-		if (!audio_is_ready(sp[0]->audio_device)) {
-			audio_wait_for(sp[0]->audio_device, 10);
-		}
         }
 
 	settings_save(sp[0]);
