@@ -994,7 +994,7 @@ wm resizable .about 0 0
 toplevel .copyright
 wm withdraw .copyright
 message   .copyright.m -text {
- obust-Audio Tool (RAT)
+ Robust-Audio Tool (RAT)
  
  Copyright (C) 1995-1998 University College London
  All rights reserved.
