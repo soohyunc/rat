@@ -103,7 +103,7 @@ ui_info_update_name(rtcp_dbentry *e, session_struct *sp)
 	char *arg   = xstrdup(mbus_encode_str(e->sentry->name));
 
 	sprintf(args, "%s %s", cname, arg);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_name", args, FALSE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_name", args, TRUE);
 	xfree(cname);
 	xfree(arg);
 }
@@ -112,7 +112,7 @@ void
 ui_info_update_cname(rtcp_dbentry *e, session_struct *sp)
 {
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_exists", args, FALSE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_exists", args, TRUE);
 }
 
 void
@@ -122,7 +122,7 @@ ui_info_update_email(rtcp_dbentry *e, session_struct *sp)
 	char *arg   = xstrdup(mbus_encode_str(e->sentry->email));
 
 	sprintf(args, "%s %s", cname, arg);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_email", args, FALSE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_email", args, TRUE);
 	xfree(cname);
 	xfree(arg);
 }
@@ -134,7 +134,7 @@ ui_info_update_phone(rtcp_dbentry *e, session_struct *sp)
 	char *arg   = xstrdup(mbus_encode_str(e->sentry->phone));
 
 	sprintf(args, "%s %s", cname, arg);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_phone", args, FALSE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_phone", args, TRUE);
 	xfree(cname);
 	xfree(arg);
 }
@@ -146,7 +146,7 @@ ui_info_update_loc(rtcp_dbentry *e, session_struct *sp)
 	char *arg   = xstrdup(mbus_encode_str(e->sentry->loc));
 
 	sprintf(args, "%s %s", cname, arg);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_loc", args, FALSE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_loc", args, TRUE);
 	xfree(cname);
 	xfree(arg);
 }
@@ -158,7 +158,7 @@ ui_info_update_tool(rtcp_dbentry *e, session_struct *sp)
 	char *arg   = xstrdup(mbus_encode_str(e->sentry->tool));
 
 	sprintf(args, "%s %s", cname, arg);
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_tool", args, FALSE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_tool", args, TRUE);
 	xfree(cname);
 	xfree(arg);
 }
@@ -167,7 +167,7 @@ void
 ui_info_remove(rtcp_dbentry *e, session_struct *sp)
 {
 	sprintf(args, "%s", mbus_encode_str(e->sentry->cname));
-	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_remove", args, FALSE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_remove", args, TRUE);
 }
 
 void
