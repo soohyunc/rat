@@ -20,12 +20,13 @@ if {[string compare [info commands registry] "registry"] == 0} {
     option add *Entry.background 		gray70
 }
 
-set statsfont     [font actual {helvetica 10}]
-set compfont      [font actual {arial 9 bold}]
-set titlefont     [font actual {helvetica 10}]
-set infofont      [font actual {helvetica 10}]
-set smallfont     [font actual {helvetica  8}]
-set verysmallfont [font actual {helvetica  8}]
+set statsfont     [font actual {arial 10}]
+set compfont      [font actual {arial  9 bold }]
+set titlefont     [font actual {arial 10 bold}]
+set infofont      [font actual {arial  9}]
+set smallfont     [font actual {arial  9}]
+set verysmallfont [font actual {arial  8}]
+set lcdback       "#c0d0b0"
 
 set speaker_highlight white
 
@@ -1142,15 +1143,19 @@ proc ssrc_update {ssrc} {
 #power meters
 
 # Colors
-set bargraphLitColors [list #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #2ccf00 #58d200 #84d500 #b0d800 #dddd00 #ddb000 #dd8300 #dd5600 #dd2900]
 
-set bargraphUnlitColors [list #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #166700 #2c6900 #426a00 #586c00 #6e6e00 #6e5800 #6e4100 #6e2b00 #6e1400]
+set bargraphLitColors   [list]
+set bargraphUnlitColors [list]
+for {set i 0} {$i < 15} {incr i} {
+    lappend bargraphLitColors    black
+    lappend bargraphUnlitColors  $lcdback
+}
 set bargraphTotalHeight [llength $bargraphLitColors]
 
 proc bargraphCreate {bgraph} {
-	global oh$bgraph bargraphTotalHeight bargraphUnlitColors
+	global oh$bgraph bargraphTotalHeight bargraphUnlitColors lcdback
 
-	frame $bgraph -relief sunk -bg black
+	frame $bgraph -relief sunk -bg $lcdback
 	for {set i 0} {$i < $bargraphTotalHeight} {incr i} {
 		frame $bgraph.inner$i -bg "[lindex $bargraphUnlitColors $i]" -width 4 -height 8
 		pack $bgraph.inner$i -side left -fill both -expand true -padx 1 -pady 1
@@ -1175,7 +1180,8 @@ proc bargraphSetHeight {bgraph height} {
 }
 
 proc bargraphState {bgraph state} {
-    upvar #0 oh$bgraph oh 
+    upvar #0 oh$bgraph oh
+    global lcdback
     if {[winfo exists $bgraph]} {
 	global bargraphTotalHeight bargraphUnlitColors
 	if {$state} {
@@ -1184,7 +1190,7 @@ proc bargraphState {bgraph state} {
 	    }
 	} else {
 	    for { set i 0 } { $i < $bargraphTotalHeight} {incr i} {
-		$bgraph.inner$i config -bg black
+		$bgraph.inner$i config -bg $lcdback
 	    }
 	}
     }
@@ -1437,9 +1443,9 @@ canvas .l.t.list -highlightthickness 0 -bd 0 -relief sunk -width $iwd -height 16
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 
-frame .l.f -relief flat -bd 0
-label .l.f.title -bd 0 -textvariable session_title
-label .l.f.addr  -bd 0 -textvariable session_address
+frame .t -relief sunk -bd 1 -bg $lcdback
+label .t.title -bd 0 -textvariable session_title -font $titlefont -bg $lcdback
+label .t.addr  -bd 0 -textvariable session_address -font $compfont -bg $lcdback
 
 frame  .st -bd 0
 label  .st.tool -textvariable tool_name 
@@ -1455,14 +1461,15 @@ pack .st -side bottom -fill x
 pack .st.tool -side left -anchor w
 pack .st.quit .st.about .st.opts -side right -anchor w -padx 2 -pady 2
 
+pack .t -side top -fill x -padx 2
+pack .t.title .t.addr -side top -pady 2
+
 pack .r -side top -fill x 
 pack .r.c -side top -fill x -expand 1
 pack .r.c.vol  -side left
 pack .r.c.gain -side right -fill x
 
 pack .l -side top -fill both -expand 1
-pack .l.f -side bottom -fill x -padx 2 -pady 2
-pack .l.f.title .l.f.addr -side top -pady 2 -anchor w
 pack .l.t  -side top -fill both -expand 1 -padx 2
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
@@ -1473,9 +1480,9 @@ set out_mute_var 0
 frame .r.c.vol.but
 frame .r.c.vol.gra
 
-checkbutton .r.c.vol.but.t1 -highlightthickness 0 -text "Listen" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $compfont -width 6 -anchor w -padx 4
+checkbutton .r.c.vol.but.t1 -highlightthickness 0 -text "Listen" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $compfont -width 5 -anchor w -padx 4 -bg $lcdback -selectcolor black -relief sunk 
 button .r.c.vol.but.l0 -highlightthickness 0 -command {incr_port oport oports -1} -font $compfont -bitmap left
-label  .r.c.vol.but.l1 -highlightthickness 0 -textv oport -font $compfont -width 10
+label  .r.c.vol.but.l1 -highlightthickness 0 -textv oport -font $compfont -width 10 -relief sunk -bg $lcdback
 button .r.c.vol.but.l2 -highlightthickness 0 -command {incr_port oport oports +1} -font $compfont -bitmap right
 bargraphCreate .r.c.vol.gra.b1
 scale .r.c.vol.gra.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -showvalue false -width 8 -variable volume -resolution 4
@@ -1492,9 +1499,9 @@ pack .r.c.vol.gra.s1 -side bottom  -fill x -anchor s
 set in_mute_var 1
 
 frame .r.c.gain.but
-checkbutton .r.c.gain.but.t2 -highlightthickness 0 -text "Talk" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $compfont -width 6 -anchor w -padx 4
+checkbutton .r.c.gain.but.t2 -highlightthickness 0 -text "Talk" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $compfont -width 5 -anchor w -padx 4 -bg $lcdback -selectcolor black -relief sunk 
 button .r.c.gain.but.l0 -highlightthickness 0 -command {incr_port iport iports -1} -font $compfont -bitmap left
-label  .r.c.gain.but.l1 -highlightthickness 0 -textv iport -font $compfont -width 10
+label  .r.c.gain.but.l1 -highlightthickness 0 -textv iport -font $compfont -width 10 -relief sunk -bg $lcdback
 button .r.c.gain.but.l2 -highlightthickness 0 -command {incr_port iport iports +1} -font $compfont -bitmap right
 
 frame .r.c.gain.gra
@@ -2699,7 +2706,7 @@ add_help .r.c.vol.but.l1  	"Click to change output device."
 add_help .r.c.vol.but.t1  	"If pushed in, reception is muted."
 add_help .r.c.vol.gra.b1  	"Indicates the loudness of the\nsound you are hearing."
 
-add_help .l.f		"Name of the session, and the IP address, port\n&\
+add_help .t		"Name of the session, and the IP address, port\n&\
 		 	 TTL used to transmit the audio data."
 add_help .l.t		"The participants in this session with you at the top.\nClick on a name\
                          with the left mouse button to display\ninformation on that participant,\
