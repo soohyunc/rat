@@ -2,7 +2,7 @@
 # Makefile for the RAT project. This probably requires GNU make.
 #
 
-CFLAGS  = __WFLAGS__ __INCLUDE__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __DEFS__ -D__OSTYPE__ -DSASR -DFAST -DUSE_FLOAT_MUL
+CFLAGS  = __WFLAGS__ __INCLUDE__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_FLAG__ __DEFS__ -D__OSTYPE__ -DSASR -DFAST -DUSE_FLOAT_MUL 
 CC      = __CC__
 
 OBJS = convert.o time.o codec.o repair.o receive.o transmit.o codec_lpc.o codec_adpcm.o codec_wbs.o   \
@@ -14,7 +14,7 @@ OBJS = convert.o time.o codec.o repair.o receive.o transmit.o codec_lpc.o codec_
        mbus_engine.o main.o __AUDIO__
 
 rat: $(OBJS)
-	$(CC) $(OBJS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ -o rat
+	$(CC) $(OBJS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat
 
 %.o: %.c session.h
 	$(CC) $(CFLAGS) -c $*.c

@@ -54,7 +54,7 @@ esac
 
 echo "Configuring RAT v$VERSION for $OSTYPE"
 
-GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Wcast-align -Wmissing-declarations -Werror"
+GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -Werror"
 
 case $OSTYPE in
   SunOS_4 ) CC="gcc"
@@ -70,9 +70,9 @@ case $OSTYPE in
   SunOS_5 ) CC="gcc -pipe"
             WFLAGS=$GCCWFLAGS
 	    INCLUDE="-I/cs/research/mice/starship/common/solaris/include -I/usr/demo/SOUND/include -I/usr/openwin/include"
-	    LDLIBS="-L/cs/research/mice/starship/common/solaris/lib -ltk8.0 -ltcl8.0 -L/usr/openwin/lib -lXext -lX11 -L/usr/demo/SOUND/lib -laudio -lsocket -ldl -lnsl -lm -lcheck"
+	    LDLIBS="-L/cs/research/mice/starship/common/solaris/lib -ltk8.0 -ltcl8.0 -L/usr/openwin/lib -lXext -lX11 -L/usr/demo/SOUND/lib -laudio -lsocket -ldl -lnsl -lm"
 	    AUDIO="auddev_sparc.o"
-	    DEBUG="-g -fbounds-checking"
+	    DEBUG="-g"
 	    CHAR="-fsigned-char"
 	    OPTIMIZE="-O4"
 	    PROFILE="-pg"
@@ -124,6 +124,8 @@ DEBUG2=""
 OPTIMIZE2=""
 PROFILE2=""
 DEFS=""
+CHECK_FLAG=""
+CHECK_LIB=""
 while test $# -gt 0
 do
 	if [ $1 = "-debug" ]; then
@@ -137,6 +139,10 @@ do
 	elif [ $1 = "-profile" ]; then
 		PROFILE2=$PROFILE
 		echo "Enabled profile option"
+	elif [ $1 = "-bounds" ]; then
+		CHECK_FLAG=-fbounds-checking
+		CHECK_LIB=-lcheck
+		echo "Enabled bounds checking option"
 	else 
 		DEFS="$DEFS $1"
 		echo "Added $1 compile flag"
@@ -160,6 +166,8 @@ cat Makefile.in \
 | sed "s@__OPTIMIZE__@$OPTIMIZE2@" \
 | sed "s@__PROFILE__@$PROFILE2@" \
 | sed "s@__DEFS__@$DEFS@" \
+| sed "s@__CHECK_FLAG__@$CHECK_FLAG@" \
+| sed "s@__CHECK_LIB__@$CHECK_LIB@" \
 >> Makefile
 
 # Create version.h
