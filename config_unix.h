@@ -15,6 +15,9 @@
 #ifndef _CONFIG_UNIX_H
 #define _CONFIG_UNIX_H
 
+/* This is horrible */
+#include "../common/config.h"
+
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -181,13 +184,6 @@ int   memcmp(const void *s1, const void *s2, size_t n);
 #endif /* Linux */
 
 #endif 
-
-/* XXX Temporary hack */
-#ifdef DIFF_BYTE_ORDER
-#define WORDS_SMALLENDIAN
-#else
-#define WORDS_BIGENDIAN
-#endif
 
 #include "audio_types.h"
 
