@@ -58,7 +58,7 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
         }
         *pid = (pid_t) proc_info->hProcess;	/* Sigh, hope a HANDLE fits into 32 bits... */
         debug_msg("Forked %s\n", proc_name);
-#else
+#else /* ...we're on unix */
 	char *path, *path_env;
 
 #ifdef DEBUG_FORK
@@ -69,15 +69,27 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
 	}
         UNUSED(pid);
 #else
-	/* Add . to path */
-	/* Under certain circumstances, PATH may be NULL */
-	if ((path = getenv("PATH")) != NULL) {
-		path_env = (char*)xmalloc(strlen(path) + 8);
-		sprintf(path_env, "PATH=.:%s", path);
+	if ((getuid() != 0) && (geteuid() != 0)) {
+		/* Ensure that the current directory is in the PATH. This is a security */
+		/* problem, but reduces the number of support calls we get...           */
+		path = getenv("PATH");
+		if (path == NULL) {
+			path_env = (char *) xmalloc(8);
+			sprintf(path_env, "PATH=.");
+		} else {
+			path_env = (char *) xmalloc(strlen(path) + 8);
+			sprintf(path_env, "PATH=%s:.", path);
+		}
+		debug_msg("%s\n", path_env);
 		putenv(path_env);
-		xfree(path_env);
+		/* NOTE: we MUST NOT free the memory allocated to path_env. In some    */
+		/* cases the string passed to putenv() becomes part of the environment */
+		/* and hence freeing the memory removes PATH from the environment.     */
+	} else {
+		debug_msg("Running as root? PATH unmodified\n");
 	}
 
+	/* Fork off the sub-process... */
         *pid = fork();
         if (*pid == -1) {
                 perror("Cannot fork");

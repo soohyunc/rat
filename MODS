@@ -1559,6 +1559,7 @@ v4.2.15	- Fix common include path for use with standard Tcl/Tk (Pekka Savola)
 	  startup in some cases (patch from Pekka Savola).
 	* Released 13 April 2001
 
+v4.2.16	- Fix PATH handling
 
 
 
