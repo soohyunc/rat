@@ -492,7 +492,7 @@ source_add_packet (source *src,
                 debug_msg("Cannot decode payload %d\n", cu->pt);
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
-
+        src->age++;
 done:   
         if (pb_add(src->channel, (u_char*)cd, sizeof(channel_data), playout) == FALSE) {
                 src->pdbe->duplicates++;
@@ -879,9 +879,6 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, repair_id_t re
                                        src->channel,
                                        src->media,
                                        now);
-        } else {
-                /* Only age source if we did some processing */
-                src->age++;
         }
 
         src_freq = get_freq(src->pdbe->clock);
