@@ -456,7 +456,6 @@ source_remove(source_list *plist, source *psrc)
         block_free(psrc, sizeof(source));
 
         assert(source_get_by_ssrc(plist, psrc->pdbe->ssrc) == NULL);
-	source_validate(psrc);
 }
               
 /* Source Processing Routines ************************************************/
