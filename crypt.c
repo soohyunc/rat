@@ -260,6 +260,10 @@ int Decrypt_Ctrl( const u_char* in, u_char* out, int* len)
 		do {
 			current_p = rtcp_p;
 			rtcp_p    = (rtcp_t *) ((u_int32 *) rtcp_p + ntohs(rtcp_p->common.length) + 1);
+			if (current_p->common.pt == RTCP_SDES) {
+				/* Sigh. Yet another vat bug... the length field in SDES packets is wrong, if encrypted */
+				current_p->common.length = htons(ntohs(current_p->common.length)+1);
+			}
 		} while (rtcp_p < (rtcp_t *) (out + *len) && rtcp_p->common.type == 2);
 		pad = out[*len - 1];
 		if (pad > 7 || pad == 0) {

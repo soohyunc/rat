@@ -497,9 +497,14 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 void
 ui_update_loss(char *srce, char *dest, int loss)
 {
-	char	*srce_e = xstrdup(mbus_encode_str(srce));
-	char	*dest_e = xstrdup(mbus_encode_str(dest));
+	char	*srce_e, *dest_e;
 
+	if ((srce == NULL) || (dest == NULL)) {
+		return;
+	}
+
+ 	srce_e = xstrdup(mbus_encode_str(srce));
+	dest_e = xstrdup(mbus_encode_str(dest));
 	sprintf(args, "%s %s %d", srce_e, dest_e, loss);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.packet.loss", args, FALSE);
 
