@@ -1065,6 +1065,8 @@ v4.1.5	- Add support for ALSA audio drivers on Linux, contributed by
 	  launching sub-processes.
 	- Fix controller only quits upon hearing byes from one of it's 
 	  children.
+	- Add playout buffer debugging/validation code
+
 
 TODO -- They're features not bugs dammit!
 ----

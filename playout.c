@@ -1,6 +1,7 @@
 /*
- * FILE:    playout.c
- * AUTHORS: Orion Hodson
+ * FILE:     playout.c
+ * AUTHORS:  Orion Hodson
+ * MODIFIED: Colin Perkins
  *
  * Copyright (c) 1999-2000 University College London
  * All rights reserved.
@@ -27,6 +28,7 @@ typedef struct s_pb_node {
         ts_t              playout;    /* playout  timestamp */
         u_char           *data;
         uint32_t          data_len;
+	uint32_t	  magic;
 } pb_node_t;
 
 typedef struct s_pb_iterator {
@@ -37,21 +39,52 @@ typedef struct s_pb_iterator {
 #define PB_MAX_ITERATORS 5
 
 typedef struct s_pb {
-        pb_node_t      sentinel;         /* Stores head and tail */
-        pb_node_t     *psentinel;        /* pointer to sentinel - saves 
-                                          * address calc in link ops.
-                                          */
-        /* Free proc for data added, so we don't leak when buffer destroyed 
-         * and so we can audit the buffer
-         */
-        void          (*freeproc)(u_char **data, uint32_t len); 
-        
+        pb_node_t      	 sentinel;	/* Stores head and tail */
+        pb_node_t     	*psentinel;	/* pointer to sentinel - saves address calc in link ops.  */
+        /* Free proc for data added, so we don't leak when buffer destroyed and so we can audit the buffer */
+        void          	(*freeproc)(u_char **data, uint32_t len); 
         /* Iterators for the buffer */
-        uint16_t       n_iterators;
-        pb_iterator_t iterators[PB_MAX_ITERATORS];
+        uint16_t       	n_iterators;
+        pb_iterator_t 	iterators[PB_MAX_ITERATORS];
         /* Debugging info */
-        uint32_t       n_nodes;
+        uint32_t        n_nodes;
+	uint32_t	magic;
 } pb_t;
+
+/* Validation/debugging functions * ******************************************/
+
+#define PB_MAGIC	0x83838383
+#define PB_NODE_MAGIC	0x12341234
+
+static void
+pb_validate(pb_t *pb)
+{
+#ifdef DEBUG
+        pb_node_t	*stop, *curr;
+        uint32_t	 cnt = 0;
+
+        stop = pb->psentinel;
+        curr = pb->psentinel->prev;
+        while (curr != stop) {
+		assert(curr->magic == PB_NODE_MAGIC);
+		assert(curr->data  != NULL);
+		assert(curr->data_len > 0);
+		assert(curr->next->prev == curr);
+		assert(curr->prev->next == curr);
+		if (curr->next != stop) assert(ts_gt(curr->next->playout, curr->playout));
+		if (curr->prev != stop) assert(ts_gt(curr->playout, curr->prev->playout));
+                curr = curr->prev;
+                cnt++;
+        }
+        assert(pb->n_nodes == cnt);
+
+	assert(pb->n_iterators < PB_MAX_ITERATORS);
+	for (cnt = 0; cnt < pb->n_iterators; cnt ++) {
+		assert(pb->iterators[cnt].buffer == pb);
+	}
+#endif
+	assert(pb->magic == PB_MAGIC);
+}
 
 /* Construction / Destruction functions **************************************/
 
@@ -63,12 +96,14 @@ pb_create(pb_t **ppb, void (*datafreeproc)(u_char **data, uint32_t data_len))
         assert(datafreeproc  != NULL);
 
         pb = (pb_t*)xmalloc(sizeof(pb_t));
-        if (pb) {
+        if (pb != NULL) {
                 memset(pb, 0, sizeof(pb_t));
                 *ppb = pb;
                 pb->sentinel.next = pb->sentinel.prev = &pb->sentinel;
                 pb->psentinel     = &pb->sentinel;
                 pb->freeproc      = datafreeproc;
+		pb->magic         = PB_MAGIC;
+		pb_validate(pb);
                 return TRUE;
         }
         return FALSE;
@@ -78,11 +113,13 @@ int
 pb_destroy (pb_t **ppb)
 {
         pb_t *pb = *ppb;
+	pb_validate(pb);
         pb_flush(pb);
 
 #ifdef DEBUG
         if (pb->n_iterators != 0) {
                 debug_msg("Iterators dangling from buffer.  Release first.\n");
+		abort();
         }
 #endif
 
@@ -99,6 +136,7 @@ pb_flush (pb_t *pb)
         pb_node_t *curr, *next, *stop;
         uint16_t i, n_iterators;
 
+	pb_validate(pb);
         stop  = pb->psentinel;
         curr  = stop->next; /* next = head */
 
@@ -122,6 +160,7 @@ pb_flush (pb_t *pb)
         for(i = 0; i < n_iterators; i++) {
                 pb->iterators[i].node = stop;
         }
+	pb_validate(pb);
 }
 
 int 
@@ -129,8 +168,11 @@ pb_add (pb_t *pb, u_char *data, uint32_t data_len, ts_t playout)
 {
         pb_node_t *curr, *stop, *made;
         
+	assert(data != NULL);
+	assert(data_len > 0);
+	pb_validate(pb);
+
         /* Assuming that addition will be at the end of list (or near it) */
-        
         stop = pb->psentinel;
         curr = stop->prev;    /* list tail */
         while (curr != stop && ts_gt(curr->playout, playout)) {
@@ -152,7 +194,9 @@ pb_add (pb_t *pb, u_char *data, uint32_t data_len, ts_t playout)
                 made->next = curr->next;
                 made->next->prev = made;
                 made->prev->next = made;
+		made->magic      = PB_NODE_MAGIC;
                 pb->n_nodes++;
+		pb_validate(pb);
                 return TRUE;
         } 
         debug_msg("Insufficient memory\n");
@@ -163,6 +207,8 @@ void
 pb_shift_back(pb_t *pb, ts_t delta)
 {
         pb_node_t *stop, *curr;
+
+	pb_validate(pb);
         stop = pb->psentinel;
         curr = pb->psentinel->next;
 
@@ -170,12 +216,15 @@ pb_shift_back(pb_t *pb, ts_t delta)
                 curr->playout = ts_add(curr->playout, delta);
                 curr = curr->next;
         }
+	pb_validate(pb);
 }
 
 void
 pb_shift_forward(pb_t *pb, ts_t delta)
 {
         pb_node_t *stop, *curr;
+
+	pb_validate(pb);
         stop = pb->psentinel;
         curr = pb->psentinel->next;
 
@@ -183,6 +232,7 @@ pb_shift_forward(pb_t *pb, ts_t delta)
                 curr->playout = ts_sub(curr->playout, delta);
                 curr = curr->next;
         }
+	pb_validate(pb);
 }
 
 void
@@ -190,34 +240,27 @@ pb_shift_units_back_after(pb_t *pb, ts_t ref_ts, ts_t delta)
 {
         pb_node_t *stop, *curr;
 
+	pb_validate(pb);
         stop = pb->psentinel;
         curr = pb->psentinel->prev;
         while(curr != stop && ts_gt(curr->playout, ref_ts)) {
                 curr->playout = ts_add(curr->playout, delta);
                 curr = curr->prev;
         }
+	pb_validate(pb);
 }
 
 int
 pb_is_empty(pb_t *pb)
 {
+	pb_validate(pb);
         return (pb->psentinel->next == pb->psentinel);
 }
 
 uint32_t
 pb_node_count(pb_t *pb)
 {
-#ifdef DEBUG
-        pb_node_t *stop, *curr;
-        uint32_t cnt = 0;
-        stop = pb->psentinel;
-        curr = pb->psentinel->prev;
-        while (curr != stop) {
-                cnt++;
-                curr = curr->prev;
-        }
-        assert(pb->n_nodes == cnt);
-#endif 
+	pb_validate(pb);
         return pb->n_nodes;
 }
 
@@ -236,10 +279,10 @@ pb_iterator_create(pb_t           *pb,
         pb_iterator_t *pi;
         if (pb->n_iterators == PB_MAX_ITERATORS) {
                 debug_msg("Too many iterators\n");
-                assert(0);
                 *ppi = NULL;
                 return FALSE;
         }
+	pb_validate(pb);
 
         /* Link the playout buffer to the iterator */
         pi = &pb->iterators[pb->n_iterators];
@@ -249,6 +292,7 @@ pb_iterator_create(pb_t           *pb,
         pi->buffer = pb;
         *ppi = pi;
 
+	pb_validate(pi->buffer);
         return TRUE;
 }
 
@@ -259,6 +303,7 @@ pb_iterator_destroy(pb_t           *pb,
         uint16_t i, j;
         pb_iterator_t *pi;
         
+	pb_validate(pb);
         pi = *ppi;
         assert(pi->buffer == pb);
         
@@ -280,6 +325,7 @@ int
 pb_iterator_dup(pb_iterator_t **pb_dst,
                 pb_iterator_t  *pb_src)
 {
+	pb_validate(pb_src->buffer);
         if (pb_iterator_create(pb_src->buffer, pb_dst)) {
                 (*pb_dst)->node = pb_src->node;
                 return TRUE;
@@ -294,16 +340,15 @@ pb_iterator_get_at(pb_iterator_t *pi,
                    ts_t          *playout)
 {
         pb_node_t *sentinel = pi->buffer->psentinel;
-       /* This can be rewritten in fewer lines, but the obvious way is
-          not as efficient. */
+       /* This can be rewritten in fewer lines, but the obvious way is not as efficient. */
+	pb_validate(pi->buffer);
         if (pi->node != sentinel) {
                 *data     = pi->node->data;
                 *data_len = pi->node->data_len;
                 *playout  = pi->node->playout;
                 return TRUE;
         } else {
-                /* We are at the start of the list so maybe we haven't
-                   tried reading before */
+                /* We are at the start of the list so maybe we haven't tried reading before */
                 pi->node = sentinel->next;
                 if (pi->node != sentinel) {
                         *data     = pi->node->data;
@@ -322,13 +367,14 @@ pb_iterator_get_at(pb_iterator_t *pi,
 int
 pb_iterator_detach_at (pb_iterator_t *pi,
                        u_char       **data,
-                       uint32_t       *data_len,
+                       uint32_t      *data_len,
                        ts_t          *playout)
 {
         pb_iterator_t  *iterators;
         pb_node_t      *curr_node, *next_node;
         uint16_t         i, n_iterators;
 
+	pb_validate(pi->buffer);
         if (pb_iterator_get_at(pi, data, data_len, playout) == FALSE) {
                 /* There is no data to get */
                 return FALSE;
@@ -357,6 +403,7 @@ pb_iterator_detach_at (pb_iterator_t *pi,
         block_free(curr_node, sizeof(pb_node_t));
         pi->node = next_node;
         pi->buffer->n_nodes--;
+	pb_validate(pi->buffer);
         return TRUE;
 }
 
@@ -365,6 +412,7 @@ pb_iterator_advance(pb_iterator_t *pi)
 {
         pb_node_t *sentinel = pi->buffer->psentinel;
 
+	pb_validate(pi->buffer);
         if (pi->node->next != sentinel) {
                 pi->node = pi->node->next;
                 return TRUE;
@@ -377,6 +425,7 @@ pb_iterator_retreat(pb_iterator_t *pi)
 {
         pb_node_t *sentinel = pi->buffer->psentinel;
 
+	pb_validate(pi->buffer);
         if (pi->node->prev != sentinel) {
                 pi->node = pi->node->prev;
                 return TRUE;
@@ -389,6 +438,7 @@ pb_iterator_ffwd(pb_iterator_t *pi)
 {
         pb_node_t *sentinel = pi->buffer->psentinel;
 
+	pb_validate(pi->buffer);
         /* Sentinel prev is tail of buffer */
         if (sentinel->prev != sentinel) {
                 pi->node = sentinel->prev;
@@ -402,6 +452,7 @@ pb_iterator_rwd(pb_iterator_t *pi)
 {
         pb_node_t *sentinel = pi->buffer->psentinel;
 
+	pb_validate(pi->buffer);
         if (sentinel->next != sentinel) {
                 pi->node = sentinel->next;
                 return TRUE;
@@ -417,6 +468,8 @@ pb_iterators_equal(pb_iterator_t *pi1,
         assert(pi1 != NULL);
         assert(pi2 != NULL);
 
+	pb_validate(pi1->buffer);
+	pb_validate(pi2->buffer);
         /* Move nodes off of sentinel if necessary and possible */
         if (pi1->node == pi1->buffer->psentinel) {
                 pi1->node = pi1->buffer->psentinel->next; /* yuk */
@@ -446,6 +499,8 @@ pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
         pb_iterator_t *iterators = pi->buffer->iterators;
         n_iterators = pi->buffer->n_iterators;
 #endif
+
+	pb_validate(pi->buffer);
 
         pb   = pi->buffer;
         stop = pi->node;
@@ -493,7 +548,7 @@ pb_relevant (struct s_pb *pb, ts_t now)
 int
 pb_get_start_ts(pb_t *pb, ts_t *ts)
 {
-        assert(pb);
+        pb_validate(pb);
         assert(ts);
 
         if (pb->sentinel.next != pb->psentinel) {
@@ -506,7 +561,7 @@ pb_get_start_ts(pb_t *pb, ts_t *ts)
 int
 pb_get_end_ts(pb_t *pb, ts_t *ts)
 {
-        assert(pb);
+        pb_validate(pb);
         assert(ts);
 
         if (pb->sentinel.prev != pb->psentinel) {
@@ -519,7 +574,7 @@ pb_get_end_ts(pb_t *pb, ts_t *ts)
 int
 pb_iterator_get_ts(pb_iterator_t *pbi, ts_t *ts)
 {
-        assert(pbi);
+        pb_validate(pbi->buffer);
         assert(ts);
         if (pbi->node != pbi->buffer->psentinel) {
                 *ts = pbi->node->playout;
