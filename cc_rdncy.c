@@ -139,7 +139,7 @@ add_hdr(channel_unit *chu, int hdr_type, codec_id_t cid, u_int32 uo, u_int32 len
         assert(chu->data == NULL);
 
         pt = codec_get_payload(cid);
-        assert(payload_is_valid(cid));
+        assert(payload_is_valid(pt));
 
         so = codec_get_samples_per_frame(cid) * uo;
 
@@ -520,8 +520,8 @@ redundancy_decoder_peek(u_int8   pkt_pt,
         const codec_format_t *cf;
         codec_id_t            cid;
         u_char               *p, *data;
-        u_int32              hdr32, dlen, blen, units;
-        
+        u_int32               hdr32, dlen, blen;
+        u_int16               units;        
         assert(buf != NULL);
         assert(upp != NULL);
         assert(pt  != NULL);
@@ -562,7 +562,7 @@ redundancy_decoder_peek(u_int8   pkt_pt,
 
         units = 0;        
         while (dlen != 0) {
-                blen = codec_peek_frame_size(cid, p, dlen);
+                blen = codec_peek_frame_size(cid, p, (u_int16)dlen);
                 assert(blen != 0);
                 data += blen;
                 dlen -= blen;
@@ -754,7 +754,7 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
                         cu->state_len = 0;
                 }
 
-                cu->data_len = codec_peek_frame_size(cid, p, (u_int32)(pe - p));
+                cu->data_len = (u_int16)codec_peek_frame_size(cid, p, (u_int16)(pe - p));
                 cu->data     = block_alloc(cu->data_len);
                 memcpy(cu->data, p, cu->data_len);
                 p += cu->data_len;
