@@ -393,7 +393,16 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                 }
                         }
                         if ((strcmp(argv[i], "-interleave") == 0) && (argc > i+1)) {
-				abort(); /* This needs fixing.... */
+				/* expects string of form "codec/units/separation" */
+				int pt = get_cc_pt(sp[s], "interleaver");
+				if (pt != -1) {
+					debug_msg("Configure interleaver %d %s\n", pt, argv[i+1]);
+					config_channel_coder(sp[s], pt, argv[i+1]);
+					ui_update_interleaving(sp[s]);
+				} else {
+					printf("Can't determine interleaver payload type\n");
+					abort();
+				}
                             	i++;
 			}
                         if ((strcmp(argv[i], "-redundancy") == 0) && (argc > i+1)) {
