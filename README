@@ -6,7 +6,10 @@ is available from http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/
 
 See the file INSTALL.TXT for installation and compilation instructions.
 
-Send comments, suggestions and bug-reports to rat-trap@cs.ucl.ac.uk
+Send comments, suggestions and bug-reports to <rat-trap@cs.ucl.ac.uk>. A
+mailing list for general discussion on related issues is now available,
+send mail to <rat-users-request@cs.ucl.ac.uk> to subscribe. All users of
+rat are encouraged to join this list.
 
 RAT is a network audio tool that allows users to particpate in audio
 conferences over the internet. These can be between two participants
