@@ -45,19 +45,6 @@
 
 #include "rat_types.h"
 
-#define MAX_CUSHION	4000
-#define MIN_CUSHION	320
-
-typedef struct s_cushion_struct {
-	int             cushion_estimate;
-	int             cushion_size;
-	int             cushion_step;
-	sample          audio_zero_buf[MAX_CUSHION];
-	int		*read_history;	/* Circular buffer of read lengths */
-	int		hi;		/* History index */
-	int		*histogram;	/* Histogram of read lengths */
-} cushion_struct;
-
 /* This version of the code can only work with a constant device      */
 /* encoding. To use different encodings the parameters below have     */
 /* to be changed and the program recompiled.                          */
@@ -127,9 +114,9 @@ void	mix2_l16(int16 *v0, int16 *v1, size_t len);
 void	mix2_l8(int8 *v0, int8 *v1, size_t len);
 int	is_audio_zero(sample *buf, int len, deve_e type);
 void	audio_zero(sample *buf, int len, deve_e type);
-int     read_write_audio(struct session_tag *spi, struct session_tag *spo, struct s_cushion_struct *cushion, struct s_mix_info *ms);
-void	read_write_init(struct s_cushion_struct *cushion, struct session_tag *session_pointer);
-void	audio_init(struct session_tag *sp, struct s_cushion_struct *cushion);
+int     read_write_audio(struct session_tag *spi, struct session_tag *spo, struct s_mix_info *ms);
+void	read_write_init(struct session_tag *session_pointer);
+void	audio_init(struct session_tag *sp);
 int	audio_device_read(struct session_tag *sp, sample *buf, int len);
 int	audio_device_write(struct session_tag *sp, sample *buf, int samples);
 int	audio_device_take(struct session_tag *sp);
@@ -144,7 +131,10 @@ extern unsigned char lintomulaw[65536];
 extern short         alawtolin[256];
 extern unsigned char lintoalaw[8192]; 
 
-#define s2u(x)	lintomulaw[((unsigned short)(x)) & 0xffff]
+/* These table look ups are 3 times quicker than the nice
+ * sun dynamic calculation code on an ultra so this stays... 
+ */
+#define s2u(x)	lintomulaw[((unsigned short)(x))]
 #define u2s(x)	mulawtolin[x]
 #define s2a(x)  lintoalaw[((unsigned short)(x))>>3]
 #define a2s(x)  alawtolin[((unsigned char)x)]

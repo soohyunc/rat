@@ -2,7 +2,7 @@
  * FILE:     audio.c
  * PROGRAM:  RAT
  * AUTHOR:   Isidor Kouvelas
- * MODIFIED: V.J.Hardman + Colin Perkins
+ * MODIFIED: V.J.Hardman + Colin Perkins + Orion Hodson
  *
  * Created parmaters.c by removing all silence detcetion etc.
  *
@@ -52,6 +52,10 @@
 #include "transmit.h"
 #include "mix.h"
 #include "codec.h"
+#include "cushion.h"
+
+/* Zero buf used for writing zero chunks during cushion adaption */
+static sample* audio_zero_buf;
 
 /*
  * Check if buffer is filled with zero samples...
@@ -253,9 +257,8 @@ audio_device_give(session_struct *sp)
 }
 
 void
-read_write_init(cushion_struct *cushion, session_struct *sp)
+read_write_init(session_struct *sp)
 {
-	audio_zero(cushion->audio_zero_buf, MAX_CUSHION, DEV_L16);
         if ((sp->audio_fd != -1) && (sp->mode != TRANSCODER)) {
                 audio_non_block(sp->audio_fd);
         }
@@ -265,38 +268,19 @@ read_write_init(cushion_struct *cushion, session_struct *sp)
 	sp->rb = read_device_init(sp, 160);
 }
 
-/*
- * SAFETY is how safe we want to be with the device going dry. If we want to
- * cover for larger future jumps in workstation delay then SAFETY should be
- * larger. Sensible values are between 0.9 and 1
- */
-#define SAFETY		0.96
-#ifdef SunOS_4
-#define CUSHION_STEP	160
-#else
-#define CUSHION_STEP	80
-#endif
-#define HISTOGRAM_SIZE	(DEVICE_REC_BUF / CUSHION_STEP)
-#define HISTORY_SIZE	500
-#define COVER		((float)HISTORY_SIZE * SAFETY)
 
 void 
-audio_init(session_struct *sp, cushion_struct *c)
+audio_init(session_struct *sp)
 {
-	int i, *ip;
+        u_int32 step_size;
 
-	c->cushion_size     = 0;
-	c->cushion_estimate = 160;
-	c->cushion_step = CUSHION_STEP;
-	c->read_history = (int *)xmalloc(HISTORY_SIZE * sizeof(int));
-	for (i = 0, ip = c->read_history; i < HISTORY_SIZE; i++, ip++)
-		*ip = 4;
-	c->histogram = (int *)xmalloc(HISTOGRAM_SIZE * sizeof(int));
-	memset(c->histogram, 0, HISTOGRAM_SIZE * sizeof(int));
-	c->histogram[4] = HISTORY_SIZE;
-	c->hi = 0;
-        sp->input_mode = AUDIO_NO_DEVICE;
+        sp->input_mode  = AUDIO_NO_DEVICE;
         sp->output_mode = AUDIO_NO_DEVICE;
+
+        cushion_new(&sp->cushion);
+        step_size       = cushion_get_step(sp->cushion);
+        audio_zero_buf  = (sample*) xmalloc ( sizeof(sample) * step_size );
+	audio_zero( audio_zero_buf, step_size, DEV_L16 );
 
 	sp->bc = (bias_ctl*)xmalloc(sizeof(bias_ctl));
 	memset(sp->bc, 0 , sizeof(bias_ctl));
@@ -306,18 +290,20 @@ audio_init(session_struct *sp, cushion_struct *c)
  * or not we are doing.                                                    
  */
 int
-read_write_audio(session_struct *spi, session_struct *spo, cushion_struct *c, struct s_mix_info *ms)
+read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *ms)
 {
-	int	read_len, trailing_silence, new_cushion, diff, sh, sl, ih, il;
-	int	cel, ceh, i;
+        u_int32 cushion_size, read_dur;
+        struct s_cushion_struct *c;
+	int	trailing_silence, new_cushion, cushion_step, diff;
 	sample	*bufp;
 
+        c = spi->cushion;
 	/*
 	 * The loop_delay stuff is meant to help in determining the pause
 	 * length in the select in net.c for platforms where we cannot
 	 * block on read availability of the audio device.
 	 */
-	if ((read_len = read_device(spi)) <= 0) {
+	if ((read_dur = read_device(spi)) <= 0) {
 		if (spi->last_zero == FALSE) {
 			spi->loop_estimate += 500;
 		}
@@ -325,7 +311,7 @@ read_write_audio(session_struct *spi, session_struct *spo, cushion_struct *c, st
 		spi->loop_delay = 1000;
 		return (0);
 	} else {
-		if (read_len > 160 && spi->loop_estimate > 5000) {
+		if (read_dur > 160 && spi->loop_estimate > 5000) {
 			spi->loop_estimate -= 250;
 		}
 		spi->last_zero  = FALSE;
@@ -333,45 +319,14 @@ read_write_audio(session_struct *spi, session_struct *spo, cushion_struct *c, st
 		assert(spi->loop_delay >= 0);
 	}
 
-	/* read_len now reflects the amount of real time it took us to get
+	/* read_dur now reflects the amount of real time it took us to get
 	 * through the last cycle of processing. */
 
-	/* Calculate a new value for the desired cushion on every cycle. */
-	c->histogram[c->read_history[c->hi]]--;
-	i = read_len / c->cushion_step;
-	c->read_history[c->hi] = i;
-	c->histogram[i]++;
-	c->hi++;
-	if (c->hi == HISTORY_SIZE)
-		c->hi = 0;
-	sl = sh = il = ih = 0;
-	while (ih < HISTOGRAM_SIZE && sh < HISTORY_SIZE) {
-		sh += c->histogram[ih];
-		if (sl < COVER) {
-			sl += c->histogram[ih];
-			il = ih;
-		}
-		ih++;
-	}
-
-	/* cel ignores outliers but adds 10:3 to the cushion
-	 * ceh doesn't ignore outliers and sets the cushion directly
-	 * with no unusual events, ceh < cel and delay is lower */
 	if (spo->lecture == TRUE && spo->auto_lecture == 0) {
-		cel = (il + 10) * c->cushion_step;
-		ceh = (ih + 10) * c->cushion_step;
+                cushion_update(c, read_dur, CUSHION_MODE_LECTURE);
 	} else {
-		cel = (il + 3) * c->cushion_step;
-		ceh = ih * c->cushion_step;
+                cushion_update(c, read_dur, CUSHION_MODE_CONFERENCE);
 	}
-
-	c->cushion_estimate = min(cel, ceh);
-	if (c->cushion_estimate < 2 * c->cushion_step)
-		c->cushion_estimate = 2 * c->cushion_step;
-
-        /* Ignore first read from the device after startup */
-	if (c->cushion_size == 0)
-		c->cushion_estimate = c->cushion_step;
 
 	/* Following code will try to achieve new cushion size without
 	 * messing up the audio...
@@ -382,54 +337,65 @@ read_write_audio(session_struct *spi, session_struct *spo, cushion_struct *c, st
 	 * cushion. If the silence was at the end we would be creating
 	 * another silence gap...
 	 */
-	if (read_len > c->cushion_size) {
+        cushion_size = cushion_get_size(c);
+	if ( cushion_size < read_dur ) {
 		/* Use a step for the cushion to keep things nicely rounded   */
 		/* in the mixing. Round it up.                                */
-		new_cushion = c->cushion_estimate + c->cushion_step - c->cushion_estimate % c->cushion_step;
+                new_cushion = cushion_use_estimate(c);
 		/* The mix routine also needs to know for how long the output */
 		/* went dry so that it can adjust the time.                   */
-		mix_get_new_cushion(ms, c->cushion_size, new_cushion, read_len - c->cushion_size, &bufp);
+		mix_get_new_cushion(ms, 
+                                    cushion_size, 
+                                    new_cushion, 
+                                    read_dur - cushion_size, 
+                                    &bufp);
 		audio_device_write(spo, bufp, new_cushion);
 		if ((spo->out_file) && (spo->flake_go == 0)) {
 			fwrite(bufp, BYTES_PER_SAMPLE, new_cushion, spo->out_file);
 		}
-		c->cushion_size = new_cushion;
+                dprintf("catch up! read_dur(%d) > cushion_size(%d)\n",
+                        read_dur,
+                        cushion_size);
+		cushion_size = new_cushion;
 	} else {
-		trailing_silence = mix_get_audio(ms, read_len, &bufp);
-		if (trailing_silence > c->cushion_step) {
+		trailing_silence = mix_get_audio(ms, read_dur, &bufp);
+                cushion_step = cushion_get_step(c);
+                diff  = 0;
+
+		if (trailing_silence > cushion_step) {
 			/* Check whether we need to adjust the cushion */
-			diff = c->cushion_estimate - c->cushion_size;
-			if (abs(diff) < c->cushion_step) {
+			diff = cushion_diff_estimate_size(c);
+			if (abs(diff) < cushion_step) {
 				diff = 0;
 			}
-		} else {
-			diff = 0;
-		}
+		} 
 
 		/* If diff is less than zero then we must decrease the */
 		/* cushion so loose some of the trailing silence.      */
 		if (diff < 0) {
-			read_len        -= c->cushion_step;
-			c->cushion_size -= c->cushion_step;
+			read_dur -= cushion_step;
+			cushion_step_down(c);
+                        dprintf("Decreasing cushion\n");
 		}
-		audio_device_write(spo, bufp, read_len);
+		audio_device_write(spo, bufp, read_dur);
 		if (spo->out_file && (spo->flake_go == 0)) {
-			fwrite(bufp, BYTES_PER_SAMPLE, read_len, spo->out_file);
-                        spo->flake_os-=read_len;
+			fwrite(bufp, BYTES_PER_SAMPLE, read_dur, spo->out_file);
+                        spo->flake_os-=read_dur;
 		}
 		/*
 		 * If diff is greater than zero then we must increase the
 		 * cushion so increase the amount of trailing silence.
 		 */
 		if (diff > 0) {
-			audio_device_write(spo, c->audio_zero_buf, c->cushion_step);
+			audio_device_write(spo, audio_zero_buf, cushion_step);
 			if ((spo->out_file) && (spo->flake_go == 0)){
-				fwrite(c->audio_zero_buf, BYTES_PER_SAMPLE, c->cushion_step, spo->out_file);
-                                spo->flake_os -= c->cushion_step;
+				fwrite(audio_zero_buf, BYTES_PER_SAMPLE, cushion_step, spo->out_file);
+                                spo->flake_os -= cushion_step;
 			}
-			c->cushion_size += c->cushion_step;
+			cushion_step_up(c);
+                        dprintf("Increasing cushion.\n");
 		}
 	}
-	return (read_len);
+	return (read_dur);
 }
 

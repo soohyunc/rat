@@ -86,11 +86,12 @@ struct s_participant_playout_buffer;
 rx_queue_element_struct*
 new_rx_unit(void);
 
-void playout_buffer_remove(struct s_participant_playout_buffer **playout_buf_list, struct s_rtcp_dbentry *src);
-void service_receiver(struct s_cushion_struct *cushion, struct session_tag *sp,
-		 struct rx_queue_tag *receive_queue,
-		 struct s_participant_playout_buffer **buf_list,
-		 struct s_mix_info *ms);
-void clear_old_history(struct s_participant_playout_buffer **buf);
+void playout_buffer_remove (struct s_participant_playout_buffer **playout_buf_list, 
+                            struct s_rtcp_dbentry *src);
+void service_receiver      (struct session_tag *sp,
+		            struct rx_queue_tag *receive_queue,
+		            struct s_participant_playout_buffer **buf_list,
+		            struct s_mix_info *ms);
+void clear_old_history     (struct s_participant_playout_buffer **buf);
 
 #endif /* _RECEIVE_H_ */

@@ -4,7 +4,7 @@
 # Note: On many systems (eg: HP-UX 9.x and FreeBSD) this REQUIRES GNU make
 #
 
-DEFS = -DDEBUG -DDEBUG_MEM 
+DEFS = -DDEBUG -DDEBUG_MIX
 # -DDEBUG_MIX
 # -DDEBUG -DDEBUG_MEM -DDEBUG_CONFBUS
 # -DNDEBUG -DTEST -DGSM -DDEBUG_REPAIR
@@ -14,8 +14,8 @@ DEFS += -D$(OSTYPE) -D$(OSTYPE)_$(OSMVER)
 # If your code doesn't compile with all these -W... flags, fix the code don't remove the warnings!
 CFLAGS = -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror $(INCS) $(DEFS) -g -fsigned-char -pipe
 CC     = gcc
-LDFLAGS=
-LDLIBS=  $(LDLIBS) -lm
+LDFLAGS= 
+LDLIBS=  $(LDLIBS) -lm 
 RANLIB = ranlib
 
 # Not sure these are correct for anything other than a sparc??? [csp]
@@ -54,6 +54,7 @@ OBJS  += $(OBJDIR)/convert.o \
          $(OBJDIR)/gsm_lpc.o \
          $(OBJDIR)/gsm_short_term.o \
          $(OBJDIR)/audio.o \
+	 $(OBJDIR)/cushion.o \
          $(OBJDIR)/session.o \
          $(OBJDIR)/tabulaw.o \
          $(OBJDIR)/tabalaw.o \

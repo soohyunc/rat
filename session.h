@@ -96,6 +96,7 @@ typedef struct session_tag {
         u_long          ipaddr;
 	struct s_fast_time	*clock;
 	struct s_time		*device_clock;
+        struct s_cushion_struct *cushion;
 	int		rtp_seq;
 	int		encodings[MAX_ENCODINGS];
 	int		num_encodings;			/* 1 - MAX_ENC */

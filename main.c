@@ -107,7 +107,6 @@ main(int argc, char *argv[])
 	char	       		*hname;
 	char			 cname[MAXHOSTNAMELEN + 10];
 	session_struct 		*sp[2];
-	cushion_struct	 	 cushion[2];
 	int             	 transmit_active_flag = FALSE;
 	int             	 receive_active_flag  = FALSE;
 	struct s_mix_info 	*ms[2];
@@ -201,14 +200,14 @@ main(int argc, char *argv[])
 
 	 /* Now initialise everything else... */
 	for (i = 0; i < num_sessions; i++) {
-		audio_init(sp[i], &cushion[i]);
+		audio_init(sp[i]);
 		network_init(sp[i]);
 		if (audio_device_take(sp[i]) == FALSE) {
 			if (sp[i]->ui_on) {
 				ui_show_audio_busy(sp[i]);
 			}
 		}
-                read_write_init(&cushion[i], sp[i]);
+                read_write_init(sp[i]);
 		ms[i] = init_mix(sp[i], 32640);
 	}
 	agc_table_init();
@@ -239,9 +238,9 @@ main(int argc, char *argv[])
 	for (;;) {
 		for (i = 0; i < num_sessions; i++) {
 			if (sp[i]->mode == TRANSCODER) {
-				elapsed_time = read_write_audio(sp[i], sp[1-i], &cushion[i], ms[i]);
+				elapsed_time = read_write_audio(sp[i], sp[1-i], ms[i]);
 			} else {
-				elapsed_time = read_write_audio(sp[i], sp[i], &cushion[i], ms[i]);
+				elapsed_time = read_write_audio(sp[i], sp[i], ms[i]);
 			}
 			cur_time = get_time(sp[i]->device_clock);
 			network_read(sp[i], netrx_queue_ptr[i], rtcp_pckt_queue_ptr[i], cur_time);
@@ -275,12 +274,19 @@ main(int argc, char *argv[])
 			 * and update RTP reception statistics. Packets are moved to
 			 * rx_unit_queue. [csp[i]] */
 			while (netrx_queue_ptr[i]->queue_empty_flag == FALSE) {
-				statistics(sp[i], netrx_queue_ptr[i], rx_unit_queue_ptr[i], &cushion[i], cur_time);
+				statistics(sp[i], 
+                                           netrx_queue_ptr[i], 
+                                           rx_unit_queue_ptr[i], 
+                                           sp[i]->cushion, 
+                                           cur_time);
 			}
 		
 			if (receive_active_flag == TRUE) {
-				audio_switch_out(sp[i]->audio_fd, &cushion[i]);
-				service_receiver(&cushion[i], sp[i], rx_unit_queue_ptr[i], &sp[i]->playout_buf_list, ms[i]);
+				audio_switch_out(sp[i]->audio_fd, sp[i]->cushion);
+				service_receiver(sp[i], 
+                                                 rx_unit_queue_ptr[i], 
+                                                 &sp[i]->playout_buf_list, 
+                                                 ms[i]);
 				if (transmit_active_flag && (sp[i]->voice_switching == NET_MUTES_MIKE)) {
 					sp[i]->transmit_audit_required = TRUE;
 				}

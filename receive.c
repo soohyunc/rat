@@ -50,6 +50,7 @@
 #include "repair.h"
 #include "mix.h"
 #include "audio.h"
+#include "cushion.h"
 #include "transmit.h"
 
 typedef struct s_participant_playout_buffer {
@@ -129,7 +130,12 @@ fillin_playout_buffer(rx_queue_element_struct *from,
 
         playout_step = ts_abs_diff(from->playoutpt, to->playoutpt) * 
                 from->unit_size / ts_abs_diff(from->src_ts, to->src_ts);
-
+#ifdef DEBUG
+        if (playout_step > 4*from->unit_size) {
+                dprintf("playout_step is large %d.\n",
+                        playout_step);
+        }
+#endif
         last = from;
 
         while(last->src_ts + last->unit_size != to->src_ts &&
@@ -157,6 +163,8 @@ fillin_playout_buffer(rx_queue_element_struct *from,
         }
 
         assert(units_made>0);
+        dprintf("Allocated %d new units\n",units_made);
+
         return units_made;
 }
 
@@ -167,8 +175,12 @@ smooth_playout_buffer(rx_queue_element_struct *from,
         if (from && to) {
                 assert(ts_gt(to->src_ts, from->src_ts));
                 if (ts_gt(from->playoutpt,to->playoutpt)) {
-                        dprintf("adjusting playout point\n");
+                        u_int32 old_playoutpt = from->playoutpt;
                         to->playoutpt = from->playoutpt + from->unit_size/16;
+                        dprintf("adjusting playout point from %d to %d\n", 
+                                to->playoutpt, 
+                                old_playoutpt);
+                        assert(to->playoutpt < 5*old_playoutpt);
                 }
                 if (ts_abs_diff(from->src_ts, to->src_ts) > from->unit_size &&
                     to->talk_spurt_start == FALSE) {
@@ -182,7 +194,7 @@ static void
 verify_playout_buffer(ppb_t* buf)
 {
         rx_queue_element_struct *el;
-        u_int32 src_diff, playout_diff;
+        u_int32 src_diff, playout_diff, buf_len = 0;
 
         el = buf->head_ptr;
         while( el && el->next_ptr ) {
@@ -190,7 +202,7 @@ verify_playout_buffer(ppb_t* buf)
                         src_diff = ts_abs_diff( el->next_ptr->src_ts, 
                                                 el->src_ts );
                         dprintf( "src_ts jump %08u.\n", 
-                                 src_diff);
+                                 src_diff );
                 }
 
                 if (ts_gt(el->playoutpt, el->next_ptr->playoutpt)) {
@@ -200,7 +212,18 @@ verify_playout_buffer(ppb_t* buf)
                                  playout_diff );
                 }
                 el = el->next_ptr;
+                buf_len++;
         }
+        
+        if (buf_len>50) {
+                dprintf( "rx buf_len = %d units.  Excessive?\n", 
+                         buf_len + 1 );
+                /* 
+                 * plus one is because loop requires 2 rx units 
+                 * to be present... 
+                 */
+        }
+
 }
 #endif /* DEBUG */
 
@@ -367,7 +390,7 @@ playout_buffer_remove(ppb_t **list, rtcp_dbentry *src)
 }
 
 void 
-service_receiver(cushion_struct *cushion, session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf_list, struct s_mix_info *ms)
+service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf_list, struct s_mix_info *ms)
 {
 	/* There is a nasty race condition in this function, which people
 	 * should be aware of: when a participant leaves a session (either
@@ -421,7 +444,8 @@ service_receiver(cushion_struct *cushion, session_struct *sp, rx_queue_struct *r
 
 	for (buf = *buf_list; buf; buf = buf->next) {
 		cur_time = get_time(buf->src->clock);
-		cs = cushion->cushion_size * get_freq(buf->src->clock) / get_freq(sp->device_clock);
+                /* Check this line [oth] */
+		cs = cushion_get_size(sp->cushion) * get_freq(buf->src->clock) / get_freq(sp->device_clock);
 		while ((up = playout_buffer_get(buf, cur_time, cur_time + cs))) {
                     if (!up->comp_count  && sp->repair != REPAIR_NONE 
                         && up->prev_ptr != NULL && up->next_ptr != NULL
