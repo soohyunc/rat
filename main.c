@@ -274,9 +274,12 @@ main(int argc, char *argv[])
 	audio_device_release(sp[0], sp[0]->audio_device);
 	network_process_mbus(sp[0]);
 
+
 	mbus_exit(sp[0]->mbus_engine);
+        sp[0]->mbus_engine = NULL;
 	if (sp[0]->ui_on) {
 		mbus_exit(sp[0]->mbus_ui);
+                sp[0]->mbus_ui = NULL;
 		tcl_exit();
 	}
 
@@ -285,6 +288,7 @@ main(int argc, char *argv[])
                         rtp_done(sp[i]->rtp_session[j]);
                         rtp_callback_exit(sp[i]->rtp_session[j]);
                 }
+
                 session_exit(sp[i]);
                 xfree(sp[i]);
         }

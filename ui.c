@@ -97,15 +97,21 @@ void ui_info_update_note(session_t *sp, u_int32 ssrc)
 }
 
 void 
-ui_info_gain(session_t *sp, pdb_entry_t *pdbe)
+ui_info_gain(session_t *sp, u_int32 ssrc)
 {
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.gain", "\"%08lx\" %.2f", pdbe->ssrc, pdbe->gain);
+        pdb_entry_t *pdbe;
+        if (pdb_item_get(sp->pdb, ssrc, &pdbe)) {
+                mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.gain", "\"%08lx\" %.2f", pdbe->ssrc, pdbe->gain);
+        }
 }
 
 void
-ui_info_mute(session_t *sp, pdb_entry_t *pdbe)
+ui_info_mute(session_t *sp, u_int32 ssrc)
 {
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.mute", "\"%08lx\" %d", pdbe->ssrc, pdbe->mute);
+        pdb_entry_t *pdbe;
+        if (pdb_item_get(sp->pdb, ssrc, &pdbe)) {
+                mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.mute", "\"%08lx\" %d", pdbe->ssrc, pdbe->mute);
+        }
 }
 
 void
@@ -148,13 +154,19 @@ ui_info_3d_settings(session_t *sp, u_int32 ssrc)
 }
 
 void
-ui_update_stats(session_t *sp, pdb_entry_t *pdbe)
+ui_update_stats(session_t *sp, u_int32 ssrc)
 {
         const rtcp_rr           *rr;
         u_int32                  fract_lost, my_ssrc;
 	char			*args, *mbes;
         struct s_source      	*src;
         u_int32               	 buffered, delay;
+        pdb_entry_t             *pdbe;
+
+        if (pdb_item_get(sp->pdb, ssrc, &pdbe) == FALSE) {
+                debug_msg("ui_update_stats: pdb entry does not exist (0x%08x)\n", ssrc);
+                return;
+        }
 
         if (pdbe->enc_fmt) {
 		mbes = mbus_encode_str(pdbe->enc_fmt);

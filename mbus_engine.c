@@ -768,7 +768,7 @@ static void rx_rtp_source_mute(char *srce, char *args, session_t *sp)
 		ssrc = mbus_decode_str(ssrc);
                 if (pdb_item_get(sp->pdb, strtoul(ssrc, 0, 16), &pdbe)) {
                         pdbe->mute = i;
-                        ui_info_mute(sp, pdbe);
+                        ui_info_mute(sp, pdbe->ssrc);
                 } else {
 			debug_msg("Unknown source 0x%08lx\n", ssrc);
 		}
