@@ -346,7 +346,7 @@ vad_dump(vad_t *v)
                 );
 }
 
-#define AGC_HISTORY_LEN  5
+#define AGC_HISTORY_LEN      3
 #define AGC_PEAK_LOWER    5000
 #define AGC_PEAK_UPPER   14000
 
