@@ -60,7 +60,6 @@ typedef struct session_tag {
         struct s_pckt_queue     *rtcp_pckt_queue;
 	int    ttl;
         int    filter_loopback;
-        u_long ipaddr;
 	struct s_fast_time	*clock;
 	struct s_time		*device_clock;
         struct s_cushion_struct *cushion;

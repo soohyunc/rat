@@ -103,9 +103,6 @@ sanity_check_payloads(void)
 void
 init_session(session_struct *sp)
 {
-	struct hostent *addr;
-	u_long                netaddr;
-	char                  hostname[MAXHOSTNAMELEN + 1];
 	codec_id_t            cid;
         const codec_format_t *cf;
         cc_details            ccd;
@@ -168,18 +165,6 @@ init_session(session_struct *sp)
         source_list_create(&sp->active_sources);
 
         strcpy(sp->title, "Untitled Session");
-        
-	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {
-		perror("Cannot get hostname");
-		abort();
-	}
-	if ((addr = gethostbyname(hostname)) == NULL) {
-		perror("Cannot get host address");
-		abort();
-	}
-	memcpy(&netaddr, addr->h_addr, 4);
-	sp->ipaddr = ntohl(netaddr);
-
 	strcpy(sp->asc_address[0], "127.0.0.3");	/* Yeuch! This value should never be used! */
 }
 
