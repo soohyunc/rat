@@ -45,7 +45,7 @@
 #include "util.h"
 #include "playout.h"
 #include "ts.h"
-
+ 
 /* Playout buffer types ******************************************************/
 
 typedef struct s_pb_node {
@@ -100,14 +100,16 @@ pb_create(pb_t **ppb, void (*datafreeproc)(u_char **data, u_int32 data_len))
 int 
 pb_destroy (pb_t **ppb)
 {
-        int i;
         pb_t *pb = *ppb;
         pb_flush(pb);
 
-        for(i = 0; i < pb->n_iterators; i++) {
-                xfree(pb->iterators[i]);
+#ifdef DEBUG
+        if (pb->n_iterators != 0) {
+                debug_msg("Iterators dangling from buffer.  Release first.\n");
         }
+#endif
 
+        assert(pb->n_iterators == 0);
         xfree(pb);
         *ppb = NULL;
 
@@ -313,7 +315,7 @@ pb_iterator_detach_at (pb_iterator_t *pi,
 }
 
 int
-pb_iterator_forward(pb_iterator_t *pi)
+pb_iterator_advance(pb_iterator_t *pi)
 {
         pb_node_t *sentinel = &pi->buffer->sentinel;
 
@@ -325,7 +327,7 @@ pb_iterator_forward(pb_iterator_t *pi)
 }
 
 int
-pb_iterator_rewind(pb_iterator_t *pi)
+pb_iterator_retreat(pb_iterator_t *pi)
 {
         pb_node_t *sentinel = &pi->buffer->sentinel;
 
@@ -335,6 +337,32 @@ pb_iterator_rewind(pb_iterator_t *pi)
         }
         return FALSE;
 }
+
+int
+pb_iterator_ffwd(pb_iterator_t *pi)
+{
+        pb_node_t *sentinel = &pi->buffer->sentinel;
+
+        /* Sentinel prev is tail of buffer */
+        if (sentinel->prev != sentinel) {
+                pi->node = sentinel->prev;
+                return TRUE;
+        }
+        return FALSE;
+}
+
+int
+pb_iterator_rwd(pb_iterator_t *pi)
+{
+        pb_node_t *sentinel = &pi->buffer->sentinel;
+
+        if (sentinel->next != sentinel) {
+                pi->node = sentinel->next;
+                return TRUE;
+        }
+        return FALSE;
+}
+
 
 int
 pb_iterators_equal(pb_iterator_t *pi1,

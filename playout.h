@@ -74,7 +74,7 @@ void pb_flush (struct s_pb *pb);
 int
 pb_iterator_new (struct s_pb           *pb,
                  struct s_pb_iterator **pbi);
-
+  
 void
 pb_iterator_destroy (struct s_pb           *pb,
                      struct s_pb_iterator **pbi);
@@ -95,11 +95,20 @@ pb_iterator_detach_at (struct s_pb_iterator *pbi,
                        u_int32              *datalen, 
                        ts_t                 *playout);
 
+/* Single step movements */
 int
-pb_iterator_forward   (struct s_pb_iterator *pbi);
+pb_iterator_advance (struct s_pb_iterator *pbi);
 
 int
-pb_iterator_rewind    (struct s_pb_iterator *pbi);
+pb_iterator_retreat (struct s_pb_iterator *pbi);
+
+/* Shift to head / tail */
+
+int
+pb_iterator_ffwd (struct s_pb_iterator *pbi);
+
+int
+pb_iterator_rwd  (struct s_pb_iterator *pbi);
 
 /* Trims data more than history_len before iterator */
 int 
