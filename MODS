@@ -1232,13 +1232,13 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  minimum allowed cushion.
 	- Remove second audio_rw_process in engine main loop.  Process only
 	  blocks for audio nowadays.
-	* Release 5 April 2000.
+	* Released 5 April 2000.
 
 4.2.1   - Fix handling of 8bit PCM .WAV files (unsigned 8bit, not signed).
         - Fix shuffle participants not to print newline if last entry.
 	- Fix parsing of -t flag, was mis-coded as -ttl in layering command
 	  line parsing changes in 4.2.0.
-	* Release 6 April 2000.
+	* Released 6 April 2000.
 
 4.2.2   - Catch mbus initialization failure and warn user in ui, control, 
 	  and engine.
@@ -1275,6 +1275,7 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	- Document configure options which may be needed to build on Irix 
 	  in INSTALL.TXT
 	- Fix RTP SR timestamps and RTP jitter calculation
+	* Released 17 April 2000.
 
 
 
