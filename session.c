@@ -185,20 +185,16 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                         u_int32     n_codecs, idx;
                         u_char      pt;
                         n_codecs = codec_get_number_of_codecs();
-                        printf("# <name> <rate> <channels> [<payload>]\n");
+                        printf("# <name> <rate> <channels> <payload>\n");
                         for(idx = 0; idx < n_codecs; idx++) {
                                 cid = codec_get_codec_number(idx);
                                 cf  = codec_get_format(cid);
-                                printf("%s\t\t%5d %d", 
+                                pt = codec_get_payload(cid);
+                                printf("%-32s %5d %d %3d\n", 
                                        cf->long_name,
                                        cf->format.sample_rate,
-                                       cf->format.channels);
-                                pt = codec_get_payload(cid);
-                                if (pt<=127) {
-                                        printf(" %3u\n", pt);
-                                } else {
-                                        printf("\n");
-                                }
+                                       cf->format.channels,
+                                       pt);
                         }
                         exit(0);
                 } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {

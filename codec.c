@@ -685,8 +685,8 @@ codec_clear_coded_unit(coded_unit *u)
 int
 payload_is_valid(u_char pt)
 {
-        /* Per rfc1890.txt */
-        if (pt < 29 || (pt>=96 && pt <=127)) return TRUE;
+        /* Per rfc1890.txt (actually 72-95 is unassigned, but we use it anyway */
+        if (pt < 29 || (pt>=72 && pt <=127)) return TRUE;
         return FALSE;
 }
 
@@ -739,8 +739,13 @@ codec_map_payload(codec_id_t id, u_char pt)
                 codec_map[CODEC_GET_IFS_INDEX(id)][CODEC_GET_FMT_INDEX(id)] = pt;
                 return TRUE;
         }
-
-        debug_msg("Failed to map payload\n");
+#ifdef DEBUG
+        {
+                const codec_format_t *cf;
+                cf = codec_get_format(id);
+                debug_msg("Failed to map payload for %s\n", cf->long_name);
+        }
+#endif /* DEBUG */
         return FALSE;
 }
 

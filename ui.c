@@ -713,6 +713,7 @@ ui_update_codec(session_struct *sp, codec_id_t cid)
                    cf->mean_coded_frame_size,
                    descr_e,
                    caps);
+        debug_msg("codec %s\n", cf->long_name);
 	xfree(caps);
 	xfree(pay_e);
 	xfree(long_name_e);

@@ -336,34 +336,34 @@ static codec_format_t cs[] = {
          {DEV_S16, 8000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"µ-law", "PCMU-8K-Stereo",
          "ITU G.711 µ-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 20 ms */
+         PAYLOAD(83), STATE_SIZE(0), FRAME_SIZE(320), /* 20 ms */
          {DEV_S16, 8000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 /* 16kHz */
         {"µ-law", "PCMU-16K-Mono",
          "ITU G.711 µ-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 10 ms */
+         PAYLOAD(84), STATE_SIZE(0), FRAME_SIZE(160), /* 10 ms */
          {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"µ-law", "PCMU-16K-Stereo",
          "ITU G.711 µ-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 10 ms */
+         PAYLOAD(85), STATE_SIZE(0), FRAME_SIZE(320), /* 10 ms */
          {DEV_S16, 16000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 /* 32kHz */
         {"µ-law", "PCMU-32K-Mono",
          "ITU G.711 µ-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 5 ms */
+         PAYLOAD(86), STATE_SIZE(0), FRAME_SIZE(160), /* 5 ms */
          {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"µ-law", "PCMU-32K-Stereo",
          "ITU G.711 µ-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 5 ms */
+         PAYLOAD(87), STATE_SIZE(0), FRAME_SIZE(320), /* 5 ms */
          {DEV_S16, 32000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 /* 48kHz */                
         {"µ-law", "PCMU-48K-Mono",
          "ITU G.711 µ-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 3.333... ms */
+         PAYLOAD(88), STATE_SIZE(0), FRAME_SIZE(160), /* 3.333... ms */
          {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"µ-law", "PCMU-48K-Stereo",
          "ITU G.711 µ-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 3.333... ms */
+         PAYLOAD(89), STATE_SIZE(0), FRAME_SIZE(320), /* 3.333... ms */
          {DEV_S16, 48000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 /* 8kHz */
         {"A-law", "PCMA-8K-Mono",
@@ -372,12 +372,12 @@ static codec_format_t cs[] = {
          {DEV_S16, 8000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"A-law", "PCMA-8K-Stereo",
          "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 20 ms */
+         PAYLOAD(90), STATE_SIZE(0), FRAME_SIZE(320), /* 20 ms */
          {DEV_S16, 8000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 /* 16kHz */
         {"A-law", "PCMA-16K-Mono",
          "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 10 ms */
+         PAYLOAD(91), STATE_SIZE(0), FRAME_SIZE(160), /* 10 ms */
          {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"A-law", "PCMA-16K-Stereo",
          "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
@@ -386,20 +386,20 @@ static codec_format_t cs[] = {
 /* 32kHz */
         {"A-law", "PCMA-32K-Mono",
          "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 5 ms */
+         PAYLOAD(92), STATE_SIZE(0), FRAME_SIZE(160), /* 5 ms */
          {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"A-law", "PCMA-32K-Stereo",
          "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 5 ms */
+         PAYLOAD(93), STATE_SIZE(0), FRAME_SIZE(320), /* 5 ms */
          {DEV_S16, 32000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 /* 48kHz */
         {"A-law", "PCMA-48K-Mono",
          "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(160), /* 3.333... ms */
+         PAYLOAD(94), STATE_SIZE(0), FRAME_SIZE(160), /* 3.333... ms */
          {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"A-law", "PCMA-48K-Stereo",
          "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 3.333... ms */
+         PAYLOAD(95), STATE_SIZE(0), FRAME_SIZE(320), /* 3.333... ms */
          {DEV_S16, 48000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 };
 

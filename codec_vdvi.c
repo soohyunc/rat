@@ -18,22 +18,24 @@
 #include "cx_dvi.h"
 #include "cx_vdvi.h"
 
+#define CODEC_PAYLOAD_NO(x) x
+
 static codec_format_t cs[] = {
         {"VDVI", "VDVI-8K-Mono",  
          "Variable Rate IMA ADPCM codec.", 
-         CODEC_PAYLOAD_DYNAMIC, 4, 80, 
+         CODEC_PAYLOAD_NO(77), 4, 80, 
          {DEV_S16,  8000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 20  ms */
         {"VDVI", "VDVI-16K-Mono",  
          "Variable Rate IMA ADPCM codec.", 
-         CODEC_PAYLOAD_DYNAMIC, 4, 80, 
+         CODEC_PAYLOAD_NO(78), 4, 80, 
          {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 10  ms */
         {"VDVI", "VDVI-32K-Mono",  
          "Variable Rate IMA ADPCM codec.", 
-         CODEC_PAYLOAD_DYNAMIC, 4, 80, 
+         CODEC_PAYLOAD_NO(79), 4, 80, 
          {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 5   ms */
         {"VDVI", "VDVI-48K-Mono",  
          "Variable Rate IMA ADPCM codec.", 
-         CODEC_PAYLOAD_DYNAMIC, 4, 80, 
+         CODEC_PAYLOAD_NO(80), 4, 80, 
          {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}}  /* 3.3 ms */
 };
 

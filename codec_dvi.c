@@ -32,10 +32,10 @@ static codec_format_t cs[] = {
          17,                    4, 80, {DEV_S16, 22050, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 7  ms */
         {"DVI", "DVI-32K-Mono", 
          "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
-         CODEC_PAYLOAD_DYNAMIC, 4, 80, {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 5   ms */
+         81, 4, 80, {DEV_S16, 32000, 16, 1, 160 * BYTES_PER_SAMPLE}}, /* 5   ms */
         {"DVI", "DVI-48K-Mono", 
          "IMA ADPCM codec. (c) 1992 Stichting Mathematisch Centrum, Amsterdam, Netherlands.",
-         CODEC_PAYLOAD_DYNAMIC, 4, 80, {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}}  /* 3.3 ms */
+         82, 4, 80, {DEV_S16, 48000, 16, 1, 160 * BYTES_PER_SAMPLE}}  /* 3.3 ms */
 };
 
 #define DVI_NUM_FORMATS sizeof(cs)/sizeof(codec_format_t)
