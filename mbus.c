@@ -153,6 +153,8 @@ static void mbus_ack_list_check(struct mbus *m)
 	}
 	assert(i == m->ack_list_size);
 	assert(m->ack_list_size >= 0);
+#else 
+	UNUSED(m);
 #endif
 }
 
