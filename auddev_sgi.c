@@ -40,6 +40,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config_unix.h"
+#include "config_win32.h"
 #include "audio.h"
 
 #if defined(IRIX)

@@ -814,7 +814,7 @@ rtcp_update(session_struct *sp, socket_udp *s)
 		ptr = rtcp_packet_fmt_srrr(sp, ptr);
 		ptr = rtcp_packet_fmt_bye(ptr, sp->db->old_ssrc, sp->mode==TRANSCODER?sp->db->ssrc_db:(rtcp_dbentry *)NULL);
 		packlen = ptr - (u_int8 *) packet;
-		net_write(s, (char *) packet, packlen, PACKET_RTCP);
+		net_write(s, (unsigned char *) packet, packlen, PACKET_RTCP);
 		sp->db->last_rpt = now;
 		sp->db->old_ssrc = 0;
 	}

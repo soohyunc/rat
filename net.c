@@ -83,7 +83,7 @@ net_write(socket_udp *s, unsigned char *msg, int msglen, int type)
 				   break;
 		}
 	}
-	return udp_send(s, encrypted_msg, msglen);
+	return udp_send(s, (char *) encrypted_msg, msglen);
 }
 
 #define MAXPACKETSIZE    (1500-28)
@@ -123,7 +123,7 @@ read_and_enqueue(socket_udp *s, u_int32 cur_time, pckt_queue_struct *queue, int 
 	while (1) {
 		data_in  = block_alloc(PACKET_LENGTH);
 		data_out = block_alloc(PACKET_LENGTH);
-		read_len = udp_recv(s, data_in, PACKET_LENGTH);
+		read_len = udp_recv(s, (char *) data_in, PACKET_LENGTH);
 		if (read_len > 0) {
 			if (Null_Key()) {
 				tmp_data      = data_out;
