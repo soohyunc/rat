@@ -182,6 +182,11 @@ sd(sd_t *s, u_int16 energy)
         energy = vu_tbl[L16TOQ3(energy)];
 
         if (s->cnt < s->parole_period) {
+                if (energy > s->thresh) {
+                        s->thresh = energy + (energy - s->thresh) / 2;
+                } else {
+                        s->thresh = (energy + s->thresh)/2 + 1;
+                }
                 s->thresh = max(s->thresh, energy);
                 s->cnt++;
                 return (energy < s->thresh);
@@ -213,8 +218,6 @@ sd(sd_t *s, u_int16 energy)
                 s->gt_cnt = 0;
         }
         s->eval_cnt ++;
-
-        debug_msg("Energy %d Thresh %d\n", energy, s->thresh);
 
         return (energy < s->thresh);
 }
