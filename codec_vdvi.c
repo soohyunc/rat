@@ -43,14 +43,14 @@ static codec_format_t cs[] = {
 
 #define VDVI_NUM_FORMATS sizeof(cs)/sizeof(codec_format_t)
 
-u_int16_t
+uint16_t
 vdvi_get_formats_count()
 {
-        return (u_int16_t)VDVI_NUM_FORMATS;
+        return (uint16_t)VDVI_NUM_FORMATS;
 }
 
 const codec_format_t *
-vdvi_get_format(u_int16_t idx)
+vdvi_get_format(uint16_t idx)
 {
         assert(idx < VDVI_NUM_FORMATS);
         return &cs[idx];
@@ -62,7 +62,7 @@ typedef struct {
 } vdvi_state_t;
 
 int 
-vdvi_state_create(u_int16_t idx, u_char **s)
+vdvi_state_create(uint16_t idx, u_char **s)
 {
         vdvi_state_t *v;
 
@@ -89,7 +89,7 @@ vdvi_state_create(u_int16_t idx, u_char **s)
 }
 
 void
-vdvi_state_destroy(u_int16_t idx, u_char **s)
+vdvi_state_destroy(uint16_t idx, u_char **s)
 {
         vdvi_state_t *v;
 
@@ -106,7 +106,7 @@ vdvi_state_destroy(u_int16_t idx, u_char **s)
  */
 
 int
-vdvi_encoder(u_int16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
+vdvi_encoder(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 {
         int samples, len;
 
@@ -146,7 +146,7 @@ vdvi_encoder(u_int16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 }
 
 int
-vdvi_decoder(u_int16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
+vdvi_decoder(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
 {
         int samples, len; 
         u_char dvi_buf[80];
@@ -175,7 +175,7 @@ vdvi_decoder(u_int16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
 }
 
 int
-vdvi_peek_frame_size(u_int16_t idx, u_char *data, int data_len)
+vdvi_peek_frame_size(uint16_t idx, u_char *data, int data_len)
 {
         bitstream_t *bs;
         u_char       dvi_buf[80];

@@ -25,7 +25,7 @@ typedef struct s_pb_node {
         struct s_pb_node* next;
         ts_t              playout;    /* playout  timestamp */
         u_char           *data;
-        u_int32_t           data_len;
+        uint32_t           data_len;
 } pb_node_t;
 
 typedef struct s_pb_iterator {
@@ -43,19 +43,19 @@ typedef struct s_pb {
         /* Free proc for data added, so we don't leak when buffer destroyed 
          * and so we can audit the buffer
          */
-        void          (*freeproc)(u_char **data, u_int32_t len); 
+        void          (*freeproc)(u_char **data, uint32_t len); 
         
         /* Iterators for the buffer */
-        u_int16_t       n_iterators;
+        uint16_t       n_iterators;
         pb_iterator_t iterators[PB_MAX_ITERATORS];
         /* Debugging info */
-        u_int32_t       n_nodes;
+        uint32_t       n_nodes;
 } pb_t;
 
 /* Construction / Destruction functions **************************************/
 
 int 
-pb_create(pb_t **ppb, void (*datafreeproc)(u_char **data, u_int32_t data_len))
+pb_create(pb_t **ppb, void (*datafreeproc)(u_char **data, uint32_t data_len))
 {
         pb_t *pb;
 
@@ -96,7 +96,7 @@ void
 pb_flush (pb_t *pb)
 {
         pb_node_t *curr, *next, *stop;
-        u_int16_t i, n_iterators;
+        uint16_t i, n_iterators;
 
         stop  = pb->psentinel;
         curr  = stop->next; /* next = head */
@@ -124,7 +124,7 @@ pb_flush (pb_t *pb)
 }
 
 int 
-pb_add (pb_t *pb, u_char *data, u_int32_t data_len, ts_t playout)
+pb_add (pb_t *pb, u_char *data, uint32_t data_len, ts_t playout)
 {
         pb_node_t *curr, *stop, *made;
         
@@ -203,12 +203,12 @@ pb_is_empty(pb_t *pb)
         return (pb->psentinel->next == pb->psentinel);
 }
 
-u_int32_t
+uint32_t
 pb_node_count(pb_t *pb)
 {
 #ifndef NDEBUG
         pb_node_t *stop, *curr;
-        u_int32_t cnt = 0;
+        uint32_t cnt = 0;
         stop = pb->psentinel;
         curr = pb->psentinel->prev;
         while (curr != stop) {
@@ -220,7 +220,7 @@ pb_node_count(pb_t *pb)
         return pb->n_nodes;
 }
 
-u_int16_t
+uint16_t
 pb_iterator_count(pb_t *pb)
 {
         return pb->n_iterators;
@@ -255,7 +255,7 @@ void
 pb_iterator_destroy(pb_t           *pb,
                     pb_iterator_t **ppi)
 {
-        u_int16_t i, j;
+        uint16_t i, j;
         pb_iterator_t *pi;
         
         pi = *ppi;
@@ -289,7 +289,7 @@ pb_iterator_dup(pb_iterator_t **pb_dst,
 int
 pb_iterator_get_at(pb_iterator_t *pi,
                    u_char       **data,
-                   u_int32_t       *data_len,
+                   uint32_t       *data_len,
                    ts_t          *playout)
 {
         pb_node_t *sentinel = pi->buffer->psentinel;
@@ -321,12 +321,12 @@ pb_iterator_get_at(pb_iterator_t *pi,
 int
 pb_iterator_detach_at (pb_iterator_t *pi,
                        u_char       **data,
-                       u_int32_t       *data_len,
+                       uint32_t       *data_len,
                        ts_t          *playout)
 {
         pb_iterator_t  *iterators;
         pb_node_t      *curr_node, *next_node;
-        u_int16_t         i, n_iterators;
+        uint16_t         i, n_iterators;
 
         if (pb_iterator_get_at(pi, data, data_len, playout) == FALSE) {
                 /* There is no data to get */
@@ -441,7 +441,7 @@ pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
         /* If we are debugging we check we are not deleting
          * nodes pointed to by other iterators since this *BAD*
          */
-        u_int16_t        i, n_iterators;
+        uint16_t        i, n_iterators;
         pb_iterator_t *iterators = pi->buffer->iterators;
         n_iterators = pi->buffer->n_iterators;
 #endif

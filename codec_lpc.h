@@ -10,20 +10,20 @@
 #ifndef _CODEC_LPC_H_
 #define _CODEC_LPC_H_
 
-u_int16_t                      lpc_get_formats_count (void);
-const struct s_codec_format* lpc_get_format(u_int16_t idx);
+uint16_t                      lpc_get_formats_count (void);
+const struct s_codec_format* lpc_get_format(uint16_t idx);
 
 void lpc_setup(void);
 
-int  lpc_encoder_state_create  (u_int16_t idx, u_char **state);
-void lpc_encoder_state_destroy (u_int16_t idx, u_char **state);
-int  lpc_encoder (u_int16_t idx, u_char *state, sample *in, coded_unit *out);
+int  lpc_encoder_state_create  (uint16_t idx, u_char **state);
+void lpc_encoder_state_destroy (uint16_t idx, u_char **state);
+int  lpc_encoder (uint16_t idx, u_char *state, sample *in, coded_unit *out);
 
-int  lpc_decoder_state_create  (u_int16_t idx, u_char **state);
-void lpc_decoder_state_destroy (u_int16_t idx, u_char **state);
-int  lpc_decoder               (u_int16_t idx, u_char *state, coded_unit *in, sample *out);
+int  lpc_decoder_state_create  (uint16_t idx, u_char **state);
+void lpc_decoder_state_destroy (uint16_t idx, u_char **state);
+int  lpc_decoder               (uint16_t idx, u_char *state, coded_unit *in, sample *out);
 
-int  lpc_repair  (u_int16_t idx, u_char *state, u_int16_t consec_lost,
+int  lpc_repair  (uint16_t idx, u_char *state, uint16_t consec_lost,
                   coded_unit *prev, coded_unit *missing, coded_unit *next);
 
 #endif /* _CODEC_LPC_H_ */

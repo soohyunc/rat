@@ -32,14 +32,14 @@
 #include "util.h"
 
 typedef struct s_hash_tuple {
-        u_int32_t hash;
+        uint32_t hash;
         char *key;
         char *value;
         struct s_hash_tuple *next;
 } hash_tuple;
 
 typedef struct s_hash_chain {
-        u_int32_t nelem;
+        uint32_t nelem;
         hash_tuple *head;
 } hash_chain;
 
@@ -58,15 +58,15 @@ static FILE       *settings_file;  /* static file pointer used during save */
 
 /* SETTINGS HASH CODE ********************************************************/
 
-static u_int32_t 
+static uint32_t 
 setting_hash(char *key)
 {
 #ifndef WIN32
-        u_int32_t hash = 0;
+        uint32_t hash = 0;
 
         while(*key != '\0') {
                 hash = hash * 31;
-                hash += ((u_int32_t)*key) + 1;
+                hash += ((uint32_t)*key) + 1;
                 key++;
         }
 
@@ -102,7 +102,7 @@ settings_table_lookup(char *key, char **value)
 {
 #ifndef WIN32
         hash_tuple *t;
-        u_int32_t     hash;
+        uint32_t     hash;
 
         hash = setting_hash(key);
 
@@ -203,7 +203,7 @@ static void init_part_two(void)
 #define SETTINGS_FILE_RAT 1
 
 static FILE *
-settings_file_open(u_int32_t type, char *mode)
+settings_file_open(uint32_t type, char *mode)
 {
         char *fmt[] = {"%s/.RTPdefaults", "%s/.RATdefaults"};        
 	char *filen;
@@ -239,7 +239,7 @@ static void load_init(void)
         FILE            *sfile;
         char            *buffer;
         char            *key, *value;
-        u_int32_t          i;
+        uint32_t          i;
         settings_table_create();
 
 	/* The getpwuid() stuff is to determine the users home directory, into which we */
@@ -365,7 +365,7 @@ void settings_load_early(session_t *sp)
 {
 	char				*name, *primary_codec, *port;
 	int				 freq, chan;
-        u_int32_t                          i, n;
+        uint32_t                          i, n;
 	const cc_details_t              *ccd;
 	const audio_device_details_t    *add = NULL;
         const audio_port_details_t 	*apd = NULL;
@@ -390,10 +390,10 @@ void settings_load_early(session_t *sp)
 	chan = setting_load_int("audioChannelsIn", 1);
 	primary_codec = setting_load_str("audioPrimary", "GSM");
 
-        cid  = codec_get_matching(primary_codec, (u_int16_t)freq, (u_int16_t)chan);
+        cid  = codec_get_matching(primary_codec, (uint16_t)freq, (uint16_t)chan);
         if (codec_id_is_valid(cid) == FALSE) {
                 /* Codec name is garbage...should only happen on upgrades */
-                cid = codec_get_matching("GSM", (u_int16_t)freq, (u_int16_t)chan);
+                cid = codec_get_matching("GSM", (uint16_t)freq, (uint16_t)chan);
         }
 
         audio_device_register_change_primary(sp, cid);
@@ -440,7 +440,7 @@ void settings_load_early(session_t *sp)
         setting_load_int("audioOutputMute", 1);
 
 	channel_encoder_set_parameters(sp->channel_coder, setting_load_str("audioChannelParameters", "None"));
-	channel_encoder_set_units_per_packet(sp->channel_coder, (u_int16_t) setting_load_int("audioUnits", 1));
+	channel_encoder_set_units_per_packet(sp->channel_coder, (uint16_t) setting_load_int("audioUnits", 1));
 
         /* Set default repair to be first available */
         r          = repair_get_details(0);
@@ -448,7 +448,7 @@ void settings_load_early(session_t *sp)
         name       = setting_load_str("audioRepair", "Pattern-Match");
         n          = (int)repair_get_count();
         for(i = 0; i < n; i++) {
-                r = repair_get_details((u_int16_t)i);
+                r = repair_get_details((uint16_t)i);
                 if (strcasecmp(r->name, name) == 0) {
                         sp->repair = r->id;
                         break;
@@ -487,7 +487,7 @@ void settings_load_early(session_t *sp)
 
 void settings_load_late(session_t *sp)
 {
-        u_int32_t my_ssrc;
+        uint32_t my_ssrc;
         char   *field;
 	load_init();		/* Initial settings come from the common prefs file... */
 
@@ -599,8 +599,8 @@ void settings_save(session_t *sp)
 	int				 cc_len;
 	char				*cc_param;
 	int		 		 i;
-        u_int16_t                          j,n;
-        u_int32_t                          my_ssrc;
+        uint16_t                          j,n;
+        uint32_t                          my_ssrc;
 
 	pri_id   = codec_get_by_payload(sp->encodings[0]);
         pri_cf   = codec_get_format(pri_id);
@@ -609,7 +609,7 @@ void settings_save(session_t *sp)
         channel_encoder_get_parameters(sp->channel_coder, cc_param, cc_len);
         ccd = channel_get_coder_identity(sp->channel_coder);
 
-        n = (u_int16_t)converter_get_count();
+        n = (uint16_t)converter_get_count();
         for (j = 0; j < n; j++) {
                 converter = converter_get_details(j);
                 if (sp->converter == converter->id) {

@@ -406,21 +406,21 @@ static codec_format_t cs[] = {
 #define G711_NUM_FORMATS (sizeof(cs) / sizeof (codec_format_t))
 #define G711_IS_MULAW(idx)  (idx < (G711_NUM_FORMATS / 2))
 
-u_int16_t
+uint16_t
 g711_get_formats_count()
 {
-        return (u_int16_t) G711_NUM_FORMATS;
+        return (uint16_t) G711_NUM_FORMATS;
 }
 
 const codec_format_t*
-g711_get_format(u_int16_t idx)
+g711_get_format(uint16_t idx)
 {
         assert(idx < G711_NUM_FORMATS);
         return &cs[idx];
 }
 
 int
-g711_encode (u_int16_t idx, u_char *state, sample *in, coded_unit *out)
+g711_encode (uint16_t idx, u_char *state, sample *in, coded_unit *out)
 {
         int len;
         u_char *p, *pe;
@@ -454,7 +454,7 @@ g711_encode (u_int16_t idx, u_char *state, sample *in, coded_unit *out)
 }
 
 int
-g711_decode(u_int16_t idx, u_char *state, coded_unit *in, sample *out)
+g711_decode(uint16_t idx, u_char *state, coded_unit *in, sample *out)
 {
         int len;
         u_char *p, *pe;

@@ -29,13 +29,13 @@ struct s_coded_unit;
 
 void g711_init(void);
 
-u_int16_t                      g711_get_formats_count (void);
-const struct s_codec_format* g711_get_format (u_int16_t idx);
-int                          g711_encode     (u_int16_t idx, 
+uint16_t                      g711_get_formats_count (void);
+const struct s_codec_format* g711_get_format (uint16_t idx);
+int                          g711_encode     (uint16_t idx, 
                                               u_char *state, 
                                               sample  *in, 
                                               struct s_coded_unit *out);
-int                          g711_decode     (u_int16_t idx, 
+int                          g711_decode     (uint16_t idx, 
                                               u_char *state, 
                                               struct s_coded_unit *in, 
                                               sample     *out);

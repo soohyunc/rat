@@ -13,8 +13,8 @@
 #ifndef __CONVERT_EXTRA_H__
 #define __CONVERT_EXTRA_H__
 
-int  extra_create  (const converter_fmt_t *cfmt, u_char **state, u_int32_t *state_len);
-void extra_destroy (u_char **state, u_int32_t *state_len);
+int  extra_create  (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len);
+void extra_destroy (u_char **state, uint32_t *state_len);
 void extra_convert (const converter_fmt_t *cfmt, u_char *state, 
                     sample *src_buf, int src_len, 
                     sample *dst_buf, int dst_len);

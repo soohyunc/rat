@@ -45,7 +45,7 @@
 static int
 sanity_check_payloads(void)
 {
-        u_int32_t i, j, n_codecs, n_channels;
+        uint32_t i, j, n_codecs, n_channels;
         codec_id_t cid;
         const codec_format_t *cf  = NULL;
         const cc_details_t   *ccd = NULL;
@@ -85,7 +85,7 @@ session_init(session_t *sp)
         const codec_format_t      *cf   = NULL;
         const converter_details_t *conv = NULL;
         const cc_details_t        *ccd  = NULL;
-        u_int8_t                     i;
+        uint8_t                     i;
 
 	memset(sp, 0, sizeof(session_t));
 

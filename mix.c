@@ -156,8 +156,8 @@ mix_process(mix_struct          *ms,
         static int hits;
         sample  *samples;
 
-        u_int32_t  nticks, nsamples, pos, original_head;
-        u_int16_t  channels, rate;
+        uint32_t  nticks, nsamples, pos, original_head;
+        uint16_t  channels, rate;
         ts_t     frame_period, expected_playout, delta, pot_head_time;
         ts_t     orig_head_time;
 
@@ -182,8 +182,8 @@ mix_process(mix_struct          *ms,
                 return FALSE;
         }
 
-        assert(rate     == (u_int32_t)ms->rate);
-        assert(channels == (u_int32_t)ms->channels);
+        assert(rate     == (uint32_t)ms->rate);
+        assert(channels == (uint32_t)ms->channels);
 
         nticks          = frame->data_len / (sizeof(sample) * channels);
         frame_period    = ts_map32(rate, nticks);
@@ -211,7 +211,7 @@ mix_process(mix_struct          *ms,
                 if (ts_gt(expected_playout, playout)) {
                         delta = ts_sub(expected_playout, playout);
                         if (ts_gt(frame_period, delta)) {
-                                u_int32_t  trim = delta.ticks * ms->channels;
+                                uint32_t  trim = delta.ticks * ms->channels;
                                 samples  += trim;
                                 nsamples -= trim;
                                 debug_msg("Mixer trimmed %d samples (%d)\n", trim, playout.ticks);
@@ -257,13 +257,13 @@ mix_process(mix_struct          *ms,
 
         /* Work out where to write the data */
         pos = ms->head - nsamples;
-        if ((u_int32_t)ms->head < nsamples) {
+        if ((uint32_t)ms->head < nsamples) {
                 /* Head has just wrapped.  Want to start from before */
                 /* the wrap...                                       */
                 pos += ms->buf_len;
         }
         
-        if (pos + nsamples > (u_int32_t)ms->buf_len) { 
+        if (pos + nsamples > (uint32_t)ms->buf_len) { 
                 audio_mix_fn(ms->mix_buffer + pos, 
                              samples, 
                              ms->buf_len - pos); 
@@ -364,9 +364,9 @@ mix_get_audio(mix_struct *ms, int request, sample **bufp)
 
 #ifdef DEBUG_MIX
 /*
-        debug_msg("Head %u (%d), tail %u (%d)\n", (u_int32_t) ms->head, 
+        debug_msg("Head %u (%d), tail %u (%d)\n", (uint32_t) ms->head, 
                   ms->head_time.ticks, 
-                  (u_int32_t)ms->tail,
+                  (uint32_t)ms->tail,
                   ms->tail_time.ticks);
                   */
 #endif /* DEBUG_MIX */

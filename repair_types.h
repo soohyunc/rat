@@ -14,7 +14,7 @@
 #ifndef __REPAIR_TYPES__
 #define __REPAIR_TYPES__
 
-typedef u_int32_t repair_id_t;
+typedef uint32_t repair_id_t;
 
 typedef struct {
         const char  *name;

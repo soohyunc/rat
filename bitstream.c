@@ -19,8 +19,8 @@
 typedef struct s_bitstream {
         u_char *buf;    /* head of bitstream            */
         u_char *pos;    /* current byte in bitstream    */
-        u_int   remain; /* bits remaining               */
-        u_int   len;    /* length of bitstream in bytes */
+        uint   remain; /* bits remaining               */
+        uint   len;    /* length of bitstream in bytes */
 } bs;
 
 int  
@@ -57,7 +57,7 @@ bs_attach(bitstream_t *b,
 int  
 bs_put(bitstream_t *b,
        u_char       bits,
-       u_int8_t       nbits)
+       uint8_t       nbits)
 {
         assert(nbits != 0 && nbits <= 8);
         
@@ -67,7 +67,7 @@ bs_put(bitstream_t *b,
         }
 
         if (nbits > b->remain) {
-                u_int over = nbits - b->remain;
+                uint over = nbits - b->remain;
                 (*b->pos) |= (bits >> over);
                 b->pos++;
                 b->remain = 8 - over;
@@ -77,13 +77,13 @@ bs_put(bitstream_t *b,
                 b->remain -= nbits;
         }
         
-        assert((u_int)(b->pos - b->buf) <= b->len);
+        assert((uint)(b->pos - b->buf) <= b->len);
         return TRUE;
 }
 
 u_char  
 bs_get(bitstream_t *b,
-       u_int8_t  nbits)
+       uint8_t  nbits)
 {
         u_char out;
 
@@ -107,14 +107,14 @@ bs_get(bitstream_t *b,
                 b->remain -= nbits;
         }
 
-        assert((u_int)(b->pos - b->buf) <= b->len);
+        assert((uint)(b->pos - b->buf) <= b->len);
         return out;
 }
 
 int  
 bs_bytes_used(bitstream_t *b)
 {
-        u_int used = (u_int)(b->pos - b->buf);
+        uint used = (uint)(b->pos - b->buf);
         if (b->remain != 8) {
                 used++;
         }

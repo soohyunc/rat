@@ -320,7 +320,7 @@ int
 null_audio_is_ready(audio_desc_t ad)
 {
         struct timeval now;
-        u_int32_t diff;
+        uint32_t diff;
 
         UNUSED(ad);
 

@@ -106,20 +106,20 @@ _________________________________
   15   11111111    ff    8
 */
 
-static u_int dmap[16]   = { 0x00, 0x02, 0x0c, 0x1c,
+static uint dmap[16]   = { 0x00, 0x02, 0x0c, 0x1c,
                             0x3c, 0x7c, 0xfc, 0xfe,
                             0x02, 0x03, 0x0d, 0x1d,
                             0x3d, 0x7d, 0xfd, 0xff
 };
 
-static u_int8_t dmap_bits[16] = {   2,    3,    4,    5,
+static uint8_t dmap_bits[16] = {   2,    3,    4,    5,
                                   6,    7,    8,    8,
                                   2,    3,    4,    5,
                                   6,    7,    8,    8
 };
 
 int
-vdvi_encode(u_char *dvi_buf, u_int dvi_samples, bitstream_t *bs)
+vdvi_encode(u_char *dvi_buf, uint dvi_samples, bitstream_t *bs)
 {
         register u_char s1, s2;
         u_char *dvi_end, *dp, t;
@@ -146,10 +146,10 @@ vdvi_encode(u_char *dvi_buf, u_int dvi_samples, bitstream_t *bs)
 }
 
 int /* Returns number of bytes in in_bytes used to generate dvi_samples */
-vdvi_decode(bitstream_t *bs, unsigned char *dvi_buf, u_int dvi_samples)
+vdvi_decode(bitstream_t *bs, unsigned char *dvi_buf, uint dvi_samples)
 {
         u_char cw, cb;
-        u_int i, j, bytes_used;
+        uint i, j, bytes_used;
         
         /* This code is ripe for optimization ... */
         assert(dvi_samples == VDVI_SAMPLES_PER_FRAME);

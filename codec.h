@@ -20,8 +20,8 @@ void codec_exit (void);
 /* Use these two functions to finder number of available codecs 
  * and to get an codec id of the num'th codec.
  */
-u_int32_t    codec_get_number_of_codecs (void);
-codec_id_t codec_get_codec_number     (u_int32_t num);
+uint32_t    codec_get_number_of_codecs (void);
+codec_id_t codec_get_codec_number     (uint32_t num);
 
 /* Use this function to check if codec id is valid / corrupted */
 
@@ -42,7 +42,7 @@ int                   codec_audio_formats_compatible(codec_id_t id1,
                                                      codec_id_t id2);
 
 /* This is easily calculable but crops up everywhere */
-u_int32_t               codec_get_samples_per_frame (codec_id_t id);
+uint32_t               codec_get_samples_per_frame (codec_id_t id);
 
 /* Codec encoder functions */
 int  codec_encoder_create  (codec_id_t id, codec_state **cs);
@@ -63,13 +63,13 @@ int  codec_decode          (codec_state* cs,
 int  codec_decoder_can_repair (codec_id_t id);
 int  codec_decoder_repair     (codec_id_t id, 
                                codec_state *cs,
-                               u_int16_t consec_missing,
+                               uint16_t consec_missing,
                                coded_unit *prev, 
                                coded_unit *miss, 
                                coded_unit *next);
 
 /* Peek function for variable frame size codecs */
-u_int32_t codec_peek_frame_size(codec_id_t id, u_char *data, u_int16_t blk_len);
+uint32_t codec_peek_frame_size(codec_id_t id, u_char *data, uint16_t blk_len);
 
 int     codec_clear_coded_unit(coded_unit *u);
 
@@ -81,31 +81,31 @@ u_char     codec_get_payload    (codec_id_t id);
 codec_id_t codec_get_by_payload (u_char pt);
 
 /* For compatibility only */
-codec_id_t codec_get_first_mapped_with(u_int16_t sample_rate, u_int16_t channels);
+codec_id_t codec_get_first_mapped_with(uint16_t sample_rate, uint16_t channels);
 
 /* Name to codec mappings */
 codec_id_t codec_get_by_name      (const char *name);
-codec_id_t codec_get_matching     (const char *short_name, u_int16_t sample_rate, u_int16_t channels);
+codec_id_t codec_get_matching     (const char *short_name, uint16_t sample_rate, uint16_t channels);
 
-codec_id_t codec_get_native_coding (u_int16_t sample_rate, u_int16_t channels);
+codec_id_t codec_get_native_coding (uint16_t sample_rate, uint16_t channels);
 
 int        codec_is_native_coding  (codec_id_t id);
 
 int        codec_get_native_info   (codec_id_t cid, 
-                                    u_int16_t *sample_rate, 
-                                    u_int16_t *channels);
+                                    uint16_t *sample_rate, 
+                                    uint16_t *channels);
 /* For layered codecs */
-u_int8_t     codec_can_layer         (codec_id_t id);
+uint8_t     codec_can_layer         (codec_id_t id);
 int        codec_get_layer         (codec_id_t id,
                                     coded_unit *cu_whole,
-                                    u_int8_t layer,
-                                    u_int16_t *markers,
+                                    uint8_t layer,
+                                    uint16_t *markers,
                                     coded_unit *cu_layer);
 int        codec_combine_layer     (codec_id_t id,
                                     coded_unit *cu_layer,
                                     coded_unit *whole,
-                                    u_int8_t nelem,
-                                    u_int16_t *markers);
+                                    uint8_t nelem,
+                                    uint16_t *markers);
 
 
 #endif /* _CODEC_H_ */

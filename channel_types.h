@@ -14,7 +14,7 @@
 
 /* Channel coder description information */
 
-typedef u_int32_t cc_id_t;
+typedef uint32_t cc_id_t;
 
 #define CC_NAME_LENGTH 32
 
@@ -31,13 +31,13 @@ typedef struct {
 #define MAX_UNITS_PER_PACKET 8
 
 typedef struct {
-        u_int8_t  pt;
+        uint8_t  pt;
         u_char *data;
-        u_int32_t data_len;   /* This is the length for processing purposes */
+        uint32_t data_len;   /* This is the length for processing purposes */
 } channel_unit;
 
 typedef struct {
-        u_int8_t        nelem;
+        uint8_t        nelem;
         channel_unit *elem[MAX_CHANNEL_UNITS];
 } channel_data;
 
@@ -45,8 +45,8 @@ int  channel_data_create  (channel_data **cd,
                            int            nelem);
 
 void channel_data_destroy (channel_data **cd, 
-                           u_int32_t        cdsize);
+                           uint32_t        cdsize);
 
-u_int32_t channel_data_bytes(channel_data *cd);
+uint32_t channel_data_bytes(channel_data *cd);
 
 #endif /* __CHANNEL_TYPES_H__ */

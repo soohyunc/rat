@@ -101,11 +101,11 @@ typedef void (*sinc_cf)(struct s_filter_state *s, sample *src, int src_len, samp
 
 typedef struct s_filter_state {
         int32_t  *filter;
-        u_int16_t taps;
+        uint16_t taps;
         sample *hold_buf;     /* used to hold samples from previous round. */
-        u_int16_t hold_bytes;
+        uint16_t hold_bytes;
         sinc_cf fn;           /* function to be used */
-        u_int16_t scale;        /* ratio of sampling rates */
+        uint16_t scale;        /* ratio of sampling rates */
 } filter_state_t;
 
 typedef struct {
@@ -151,7 +151,7 @@ sinc_free_filter(filter_state_t *fs)
 }
 
 int 
-sinc_create (const converter_fmt_t *cfmt, u_char **state, u_int32_t *state_len)
+sinc_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 {
         sinc_state_t *s;
         int denom, steps, g;
@@ -184,7 +184,7 @@ sinc_create (const converter_fmt_t *cfmt, u_char **state, u_int32_t *state_len)
 }
 
 void 
-sinc_destroy (u_char **state, u_int32_t *state_len)
+sinc_destroy (u_char **state, uint32_t *state_len)
 {
         int i;
 

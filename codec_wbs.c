@@ -29,14 +29,14 @@ static codec_format_t cs[] = {
 #define WBS_NUM_FORMATS sizeof(cs)/sizeof(codec_format_t)
 #define WBS_NUM_LAYERS 2
 
-u_int16_t
+uint16_t
 wbs_get_formats_count()
 {
-        return (u_int16_t)WBS_NUM_FORMATS;
+        return (uint16_t)WBS_NUM_FORMATS;
 }
 
 const codec_format_t *
-wbs_get_format(u_int16_t idx)
+wbs_get_format(uint16_t idx)
 {
         assert(idx < WBS_NUM_FORMATS);
         return &cs[idx];
@@ -50,7 +50,7 @@ typedef struct s_wbs_state {
 } wbs_t;
 
 int 
-wbs_state_create(u_int16_t idx, u_char **s)
+wbs_state_create(uint16_t idx, u_char **s)
 {
         wbs_t *st;
         int    sz;
@@ -73,7 +73,7 @@ wbs_state_create(u_int16_t idx, u_char **s)
 }
 
 void
-wbs_state_destroy(u_int16_t idx, u_char **s)
+wbs_state_destroy(uint16_t idx, u_char **s)
 {
         UNUSED(idx);
         assert(idx < WBS_NUM_FORMATS);
@@ -82,11 +82,11 @@ wbs_state_destroy(u_int16_t idx, u_char **s)
 }
 
 int
-wbs_encoder(u_int16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
+wbs_encoder(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 {
         subband_struct SubBandData;
         wbs_t *wsp;
-        u_int8_t i;
+        uint8_t i;
 
         assert(encoder_state);
         assert(inbuf);
@@ -102,7 +102,7 @@ wbs_encoder(u_int16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
         wsp = (wbs_t*)encoder_state;
         memcpy(c->state, &wsp->state, WBS_STATE_SIZE);
         for(i=0; i<WBS_STATE_SIZE/4; i++) {
-                *((u_int32_t *)c->state + i) = htonl(*((u_int32_t *)c->state+i));
+                *((uint32_t *)c->state + i) = htonl(*((uint32_t *)c->state+i));
         }
         QMF(inbuf, &SubBandData, wsp->qmf_lo, wsp->qmf_hi);
         LowEnc(SubBandData.Low, c->data, wsp->state.low, &wsp->ns);
@@ -112,11 +112,11 @@ wbs_encoder(u_int16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
 }
 
 int
-wbs_decoder(u_int16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
+wbs_decoder(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
 {
         subband_struct SubBandData;
         wbs_t   *wsp = (wbs_t *)decoder_state;
-        u_int8_t i;
+        uint8_t i;
 
         assert(decoder_state);
         assert(c);
@@ -126,7 +126,7 @@ wbs_decoder(u_int16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
         if (c->state_len > 0) {
                 assert(c->state_len == WBS_STATE_SIZE);
                 for(i=0; i<WBS_STATE_SIZE/4; i++) {
-                        *((u_int32_t *)c->state + i) = ntohl(*((u_int32_t *)c->state+i));
+                        *((uint32_t *)c->state + i) = ntohl(*((uint32_t *)c->state+i));
                 }
                 memcpy(&wsp->state, c->state, WBS_STATE_SIZE);
         }
@@ -137,13 +137,13 @@ wbs_decoder(u_int16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
         return 160; /* Only does this size */
 }
 
-u_int8_t
+uint8_t
 wbs_max_layers(void)
 {
-        return (u_int8_t)WBS_NUM_LAYERS;
+        return (uint8_t)WBS_NUM_LAYERS;
 }
 
-int wbs_get_layer (u_int16_t idx, coded_unit *in, u_int8_t layer, u_int16_t *markers, coded_unit *out)
+int wbs_get_layer (uint16_t idx, coded_unit *in, uint8_t layer, uint16_t *markers, coded_unit *out)
 {
         int i, j;
         u_char base[WBS_UNIT_SIZE];
@@ -235,7 +235,7 @@ int wbs_get_layer (u_int16_t idx, coded_unit *in, u_int8_t layer, u_int16_t *mar
         return out->data_len;
 }
 
-int wbs_combine_layer (u_int16_t idx, coded_unit *in, coded_unit *out, u_int8_t nelem, u_int16_t *markers)
+int wbs_combine_layer (uint16_t idx, coded_unit *in, coded_unit *out, uint8_t nelem, uint16_t *markers)
 {
         int i, j, k, marker;
         u_char cont_layer[WBS_UNIT_SIZE];

@@ -56,21 +56,21 @@ static codec_format_t cs[] = {
 
 #define L16_NUM_FORMATS sizeof(cs)/sizeof(codec_format_t)
 
-u_int16_t
+uint16_t
 l16_get_formats_count()
 {
-        return (u_int16_t)L16_NUM_FORMATS;
+        return (uint16_t)L16_NUM_FORMATS;
 }
 
 const codec_format_t *
-l16_get_format(u_int16_t idx)
+l16_get_format(uint16_t idx)
 {
         assert(idx < L16_NUM_FORMATS);
         return &cs[idx];
 }
 
 int
-l16_encode(u_int16_t idx, u_char *state, sample *in, coded_unit *out)
+l16_encode(uint16_t idx, u_char *state, sample *in, coded_unit *out)
 {
         int samples;
         sample *d, *de;
@@ -95,7 +95,7 @@ l16_encode(u_int16_t idx, u_char *state, sample *in, coded_unit *out)
 }
 
 int
-l16_decode(u_int16_t idx, u_char *state, coded_unit *in, sample *out)
+l16_decode(uint16_t idx, u_char *state, coded_unit *in, sample *out)
 {
         int samples;
         sample *s = NULL, *se = NULL;

@@ -39,11 +39,11 @@ void network_process_mbus(session_t *sp)
 	} while (c < 3);
 }
 
-u_int32_t 
+uint32_t 
 ntp_time32(void)
 {
         struct timeval  tv;
-        u_int32_t sec, usec, frac;
+        uint32_t sec, usec, frac;
 
         gettimeofday(&tv, 0);
         sec  = tv.tv_sec + SECS_BETWEEN_1900_1970;

@@ -31,7 +31,7 @@ playout_variable_component(session_t *sp, pdb_entry_t *e)
 /* the playout point.                                                        */
 /*****************************************************************************/
 {
-        u_int32_t var32, freq, cushion;
+        uint32_t var32, freq, cushion;
 
         freq  = get_freq(e->clock);
         var32 = e->inter_pkt_gap / 2;
@@ -42,7 +42,7 @@ playout_variable_component(session_t *sp, pdb_entry_t *e)
         }
         
         if (sp->limit_playout) {
-                u_int32_t minv, maxv;
+                uint32_t minv, maxv;
                 minv = sp->min_playout * freq / 1000;
                 maxv = sp->max_playout * freq / 1000;
                 var32 = max(minv, var32);
@@ -54,7 +54,7 @@ playout_variable_component(session_t *sp, pdb_entry_t *e)
 
 
 ts_t 
-playout_calc(session_t *sp, u_int32_t ssrc, ts_t transit, int new_spurt)
+playout_calc(session_t *sp, uint32_t ssrc, ts_t transit, int new_spurt)
 /*****************************************************************************/
 /* The primary purpose of this function is to calculate the playout point    */
 /* for new talkspurts (new_spurt).  It also maintains the jitter and transit */

@@ -28,12 +28,12 @@ typedef struct {
         /* Encoder state is just buffering of media data to compose a packet */
         codec_id_t  codec_id;
         ts_t        playout;
-        u_int32_t     nelem;
+        uint32_t     nelem;
         media_data *elem[MAX_UNITS_PER_PACKET];
 } ve_state;
 
 int
-vanilla_encoder_create(u_char **state, u_int32_t *len)
+vanilla_encoder_create(u_char **state, uint32_t *len)
 {
         ve_state *ve = (ve_state*)xmalloc(sizeof(ve_state));
 
@@ -48,7 +48,7 @@ vanilla_encoder_create(u_char **state, u_int32_t *len)
 }
 
 void
-vanilla_encoder_destroy(u_char **state, u_int32_t len)
+vanilla_encoder_destroy(u_char **state, uint32_t len)
 {
         assert(len == sizeof(ve_state));
         vanilla_encoder_reset(*state);
@@ -60,7 +60,7 @@ int
 vanilla_encoder_reset(u_char *state)
 {
         ve_state *ve = (ve_state*)state;
-        u_int32_t   i;
+        uint32_t   i;
 
         for(i = 0; i < ve->nelem; i++) {
                 media_data_destroy(&ve->elem[i], sizeof(media_data));
@@ -75,7 +75,7 @@ vanilla_encoder_reset(u_char *state)
 static void
 vanilla_encoder_output(ve_state *ve, struct s_pb *out)
 {
-        u_int32_t i, used;
+        uint32_t i, used;
         channel_data *cd;
 
         /* We have state for first unit and data for all others */
@@ -118,9 +118,9 @@ int
 vanilla_encoder_encode (u_char      *state,
                         struct s_pb *in,
                         struct s_pb *out,
-                        u_int32_t      upp)
+                        uint32_t      upp)
 {
-        u_int32_t     m_len;
+        uint32_t     m_len;
         ts_t        playout;
         struct      s_pb_iterator *pi;
         media_data *m;
@@ -170,7 +170,7 @@ vanilla_encoder_encode (u_char      *state,
                 ve->elem[ve->nelem] = m;
                 ve->nelem++;
                 
-                if (ve->nelem >= (u_int32_t)upp) {
+                if (ve->nelem >= (uint32_t)upp) {
                         vanilla_encoder_output(ve, out);
                 }
         }
@@ -186,7 +186,7 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
 {
         const codec_format_t *cf;
         codec_id_t            id;
-        u_int32_t               data_len;
+        uint32_t               data_len;
         u_char               *p, *end;
         media_data           *m;
         ts_t                  playout_step;
@@ -208,9 +208,9 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
                 p += cf->mean_per_packet_state_size;
         }
 
-        data_len = codec_peek_frame_size(id, p, (u_int16_t)(end - p));
+        data_len = codec_peek_frame_size(id, p, (uint16_t)(end - p));
         m->rep[0]->id = id;
-        m->rep[0]->data_len = (u_int16_t)data_len;
+        m->rep[0]->data_len = (uint16_t)data_len;
         m->rep[0]->data     = (u_char*)block_alloc(data_len);
         memcpy(m->rep[0]->data, p, data_len);
         p += data_len;
@@ -228,9 +228,9 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
                 m->rep[0]->id = id;
                 assert(m->nrep == 1);
 
-                data_len            = codec_peek_frame_size(id, p, (u_int16_t)(end - p));
+                data_len            = codec_peek_frame_size(id, p, (uint16_t)(end - p));
                 m->rep[0]->data     = (u_char*)block_alloc(data_len);
-                m->rep[0]->data_len = (u_int16_t)data_len;
+                m->rep[0]->data_len = (uint16_t)data_len;
 
                 memcpy(m->rep[0]->data, p, data_len);
                 p += data_len;
@@ -250,7 +250,7 @@ vanilla_decoder_decode(u_char      *state,
         struct s_pb_iterator *pi;
         channel_unit *cu;
         channel_data *c;
-        u_int32_t       clen;
+        uint32_t       clen;
         ts_t          playout;
 
         assert(state == NULL); /* No decoder state needed */
@@ -281,11 +281,11 @@ vanilla_decoder_decode(u_char      *state,
 }
 
 int
-vanilla_decoder_peek(u_int8_t   pkt_pt,
+vanilla_decoder_peek(uint8_t   pkt_pt,
                      u_char  *buf,
-                     u_int32_t  len,
-                     u_int16_t  *upp,
-                     u_int8_t   *pt)
+                     uint32_t  len,
+                     uint16_t  *upp,
+                     uint8_t   *pt)
 {
         codec_id_t cid;
 
@@ -296,7 +296,7 @@ vanilla_decoder_peek(u_int8_t   pkt_pt,
         cid = codec_get_by_payload(pkt_pt);
         if (cid) {
                 const codec_format_t *cf;
-                u_int32_t               unit, done, step;
+                uint32_t               unit, done, step;
                 /* Vanilla coding does nothing but group
                  * units.
                  */
@@ -304,7 +304,7 @@ vanilla_decoder_peek(u_int8_t   pkt_pt,
                 unit = 0;
                 done = cf->mean_per_packet_state_size;
                 while(done < len) {
-                        step = codec_peek_frame_size(cid, buf+done, (u_int16_t)(len - done));
+                        step = codec_peek_frame_size(cid, buf+done, (uint16_t)(len - done));
                         if (step == 0) {
                                 debug_msg("Zero data len for audio unit ?\n");
                                 goto fail;
@@ -316,7 +316,7 @@ vanilla_decoder_peek(u_int8_t   pkt_pt,
                 assert(done <= len);
 
                 if (done != len) goto fail;
-                *upp = (u_int16_t)unit;
+                *upp = (uint16_t)unit;
                 *pt  = pkt_pt;
                 return TRUE;
         }
@@ -327,11 +327,11 @@ fail:
 }
 
 int 
-vanilla_decoder_describe (u_int8_t   pkt_pt,
+vanilla_decoder_describe (uint8_t   pkt_pt,
                           u_char  *data,
-                          u_int32_t  data_len,
+                          uint32_t  data_len,
                           char    *out,
-                          u_int32_t  out_len)
+                          uint32_t  out_len)
 {
 	codec_id_t            pri_id;
         const codec_format_t *pri_cf;

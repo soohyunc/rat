@@ -93,12 +93,12 @@ mbus_error_handler(int seqnum, int reason)
 
 int main(int argc, char *argv[])
 {
-	u_int32_t		 cur_time = 0, ntp_time = 0;
+	uint32_t		 cur_time = 0, ntp_time = 0;
 	int            	 seed, elapsed_time, alc = 0, scnt = 0;
 	session_t 	*sp;
 	struct timeval   time;
 	struct timeval	 timeout;
-        u_int8_t		 j;
+        uint8_t		 j;
 
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 	/* Initialise our mbus interface... once this is done we can talk to our controller */
 	sp->mbus_engine = mbus_init(mbus_engine_rx, mbus_error_handler);
 	sp->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 3);
-	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, (u_int32_t) getpid());
+	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, (uint32_t) getpid());
 	mbus_addr(sp->mbus_engine, sp->mbus_engine_addr);
 
 	/* The first stage is to wait until we hear from our controller. The address of the */
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
                 debug_msg("Failed to create persistent database\n");
                 abort();
         }
-        pdb_item_create(sp->pdb, sp->clock, (u_int16_t)get_freq(sp->device_clock), rtp_my_ssrc(sp->rtp_session[0])); 
+        pdb_item_create(sp->pdb, sp->clock, (uint16_t)get_freq(sp->device_clock), rtp_my_ssrc(sp->rtp_session[0])); 
 	settings_load_late(sp);
 
 	ui_controller_init(sp);
@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
                                         }
 				} else {
 					/* Remove source as stopped */
-                                        u_int32_t ssrc;
+                                        uint32_t ssrc;
                                         ssrc = source_get_ssrc(s);
 					ui_info_deactivate(sp, ssrc);
 					source_remove(sp->active_sources, s);

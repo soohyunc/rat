@@ -20,50 +20,50 @@
 #include "debug.h"
 
 typedef struct s_channel_state {
-        u_int16_t coder;              /* Index of coder in coder table      */
+        uint16_t coder;              /* Index of coder in coder table      */
         u_char *state;              /* Pointer to state relevant to coder */
-        u_int32_t state_len;          /* The size of that state             */
-        u_int8_t  units_per_packet:7; /* The number of units per packet     */
-        u_int8_t  is_encoder:1;       /* For debugging                      */
+        uint32_t state_len;          /* The size of that state             */
+        uint8_t  units_per_packet:7; /* The number of units per packet     */
+        uint8_t  is_encoder:1;       /* For debugging                      */
 } channel_state_t;
 
 typedef struct {
         cc_details_t details;
-        u_int8_t  pt;
-        u_int8_t  layers;
+        uint8_t  pt;
+        uint8_t  layers;
         int     (*enc_create_state)   (u_char                **state,
-                                       u_int32_t                *len);
+                                       uint32_t                *len);
         void    (*enc_destroy_state)  (u_char                **state, 
-                                       u_int32_t                 len);
+                                       uint32_t                 len);
         int     (*enc_set_parameters) (u_char                 *state, 
                                        char                   *cmd);
         int     (*enc_get_parameters) (u_char                 *state, 
                                        char                   *cmd, 
-                                       u_int32_t                 cmd_len);
+                                       uint32_t                 cmd_len);
         int     (*enc_reset)          (u_char                  *state);
         int     (*enc_encode)         (u_char                  *state, 
                                        struct s_pb *in, 
                                        struct s_pb *out, 
-                                       u_int32_t                  units_per_packet);
+                                       uint32_t                  units_per_packet);
         int     (*dec_create_state)   (u_char                 **state,
-                                       u_int32_t                 *len);
+                                       uint32_t                 *len);
         void    (*dec_destroy_state)  (u_char                 **state, 
-                                       u_int32_t                  len);
+                                       uint32_t                  len);
         int     (*dec_reset)          (u_char                  *state);
         int     (*dec_decode)         (u_char                  *state, 
                                        struct s_pb *in, 
                                        struct s_pb *out,
                                        ts_t                     now);
-        int     (*dec_peek)           (u_int8_t                   ccpt,
+        int     (*dec_peek)           (uint8_t                   ccpt,
                                        u_char                  *data,
-                                       u_int32_t                  len,
-                                       u_int16_t                 *upp,
-                                       u_int8_t                  *pt);
-        int     (*dec_describe)       (u_int8_t  pktpt,
+                                       uint32_t                  len,
+                                       uint16_t                 *upp,
+                                       uint8_t                  *pt);
+        int     (*dec_describe)       (uint8_t  pktpt,
                                        u_char *data,
-                                       u_int32_t data_len,
+                                       uint32_t data_len,
                                        char   *outstr,
-                                       u_int32_t out_len);
+                                       uint32_t out_len);
 } channel_coder_t;
 
 #include "cc_vanilla.h"
@@ -145,14 +145,14 @@ static const channel_coder_t table[] = {
 
 #define CC_NUM_CODERS (sizeof(table)/sizeof(table[0]))
 
-u_int32_t
+uint32_t
 channel_get_coder_count()
 {
         return (int)CC_NUM_CODERS;
 }
 
 const cc_details_t*
-channel_get_coder_details(u_int32_t idx)
+channel_get_coder_details(uint32_t idx)
 {
         if (idx < CC_NUM_CODERS) {
                 return &table[idx].details;
@@ -182,7 +182,7 @@ int
 _channel_coder_create(cc_id_t id, channel_state_t **ppcs, int is_encoder)
 {
         channel_state_t *pcs;
-        int (*create_state)(u_char**, u_int32_t *len);
+        int (*create_state)(u_char**, uint32_t *len);
 
         pcs = (channel_state_t*)xmalloc(sizeof(channel_state_t));
         if (pcs == NULL) {
@@ -191,7 +191,7 @@ _channel_coder_create(cc_id_t id, channel_state_t **ppcs, int is_encoder)
 
         *ppcs = pcs;
 
-        pcs->coder = (u_int16_t)CC_ID_TO_IDX(id);
+        pcs->coder = (uint16_t)CC_ID_TO_IDX(id);
         assert(pcs->coder < CC_NUM_CODERS);
 
         pcs->units_per_packet = 2;
@@ -218,7 +218,7 @@ _channel_coder_destroy(channel_state_t **ppcs, int is_encoder)
 {
         channel_state_t *pcs = *ppcs;
 
-        void (*destroy_state)(u_char**, u_int32_t);
+        void (*destroy_state)(u_char**, uint32_t);
 
         assert(is_encoder == pcs->is_encoder);
 
@@ -259,7 +259,7 @@ _channel_coder_reset(channel_state_t *pcs, int is_encoder)
 /* Encoder specifics */
 
 int
-channel_encoder_set_units_per_packet(channel_state_t *cs, u_int16_t units)
+channel_encoder_set_units_per_packet(channel_state_t *cs, uint16_t units)
 {
         /* This should not be hardcoded, it should be based on packet 
          *size [oth] 
@@ -272,7 +272,7 @@ channel_encoder_set_units_per_packet(channel_state_t *cs, u_int16_t units)
         return FALSE;
 }
 
-u_int16_t 
+uint16_t 
 channel_encoder_get_units_per_packet(channel_state_t *cs)
 {
         assert(cs->is_encoder);
@@ -320,32 +320,32 @@ int
 channel_decoder_matches(cc_id_t          id,
                         channel_state_t *cs)
 {
-        u_int32_t coder = CC_ID_TO_IDX(id);
+        uint32_t coder = CC_ID_TO_IDX(id);
         return (coder == cs->coder);
 }
 
 int
 channel_verify_and_stat(cc_id_t  cid,
-                        u_int8_t   pktpt,
+                        uint8_t   pktpt,
                         u_char  *data,
-                        u_int32_t  data_len,
-                        u_int16_t *units_per_packet,
+                        uint32_t  data_len,
+                        uint16_t *units_per_packet,
                         u_char  *codec_pt)
 {
-        u_int32_t idx = CC_ID_TO_IDX(cid);
+        uint32_t idx = CC_ID_TO_IDX(cid);
         assert(idx < CC_NUM_CODERS);
         return table[idx].dec_peek(pktpt, data, data_len, units_per_packet, codec_pt);
 }
 
 int 
 channel_describe_data(cc_id_t cid,
-                      u_int8_t  pktpt,
+                      uint8_t  pktpt,
                       u_char *data,
-                      u_int32_t data_len,
+                      uint32_t data_len,
                       char *outstr,
-                      u_int32_t out_len)
+                      uint32_t out_len)
 {
-        u_int32_t idx = CC_ID_TO_IDX(cid);
+        uint32_t idx = CC_ID_TO_IDX(cid);
         assert(idx < CC_NUM_CODERS);
 
         assert(outstr  != NULL);
@@ -361,9 +361,9 @@ channel_describe_data(cc_id_t cid,
 }
                                    
 cc_id_t
-channel_coder_get_by_payload(u_int8_t payload)
+channel_coder_get_by_payload(uint8_t payload)
 {
-        u_int32_t i;
+        uint32_t i;
 
         assert((payload & 0x80) == 0);
 
@@ -376,8 +376,8 @@ channel_coder_get_by_payload(u_int8_t payload)
         return CC_IDX_TO_ID(0);        
 }
 
-u_int8_t
-channel_coder_get_payload(channel_state_t *st, u_int8_t media_pt)
+uint8_t
+channel_coder_get_payload(channel_state_t *st, uint8_t media_pt)
 {
         assert(st->coder <= CC_NUM_CODERS);
 
@@ -388,9 +388,9 @@ channel_coder_get_payload(channel_state_t *st, u_int8_t media_pt)
 }
 
 int
-channel_coder_exist_payload(u_int8_t pt)
+channel_coder_exist_payload(uint8_t pt)
 {
-        u_int32_t i;
+        uint32_t i;
         for(i = 0; i < CC_NUM_CODERS; i++) {
                 if (table[i].pt == pt) {
                         return TRUE;
@@ -399,10 +399,10 @@ channel_coder_exist_payload(u_int8_t pt)
         return FALSE;       
 }
 
-u_int8_t
+uint8_t
 channel_coder_get_layers(cc_id_t cid)
 {
-        u_int32_t idx = CC_ID_TO_IDX(cid);
+        uint32_t idx = CC_ID_TO_IDX(cid);
         assert(idx < CC_NUM_CODERS);
 
         return (table[idx].layers);

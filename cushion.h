@@ -23,16 +23,16 @@ struct s_cushion_struct;
 int     cushion_create             (struct s_cushion_struct **c, int block_dur);
 void    cushion_destroy            (struct s_cushion_struct **c);
 
-void    cushion_update             (struct s_cushion_struct *c, u_int32_t read_dur, int cushion_mode);
+void    cushion_update             (struct s_cushion_struct *c, uint32_t read_dur, int cushion_mode);
 
-u_int32_t cushion_get_size           (struct s_cushion_struct *c);
-u_int32_t cushion_set_size           (struct s_cushion_struct *c, u_int32_t new_size);
+uint32_t cushion_get_size           (struct s_cushion_struct *c);
+uint32_t cushion_set_size           (struct s_cushion_struct *c, uint32_t new_size);
 
-u_int32_t cushion_step_up            (struct s_cushion_struct *c);
-u_int32_t cushion_step_down          (struct s_cushion_struct *c);
-u_int32_t cushion_get_step           (struct s_cushion_struct *c);
+uint32_t cushion_step_up            (struct s_cushion_struct *c);
+uint32_t cushion_step_down          (struct s_cushion_struct *c);
+uint32_t cushion_get_step           (struct s_cushion_struct *c);
 
-u_int32_t cushion_use_estimate       (struct s_cushion_struct *c);
+uint32_t cushion_use_estimate       (struct s_cushion_struct *c);
 int32_t   cushion_diff_estimate_size (struct s_cushion_struct *c);
 
 #endif 

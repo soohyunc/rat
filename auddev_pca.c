@@ -431,7 +431,7 @@ int
 pca_audio_is_ready(audio_desc_t ad)
 {
         struct timeval now;
-        u_int32_t read_bytes;
+        uint32_t read_bytes;
 
         UNUSED(ad);
 

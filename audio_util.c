@@ -241,10 +241,10 @@ START_L1:
 #endif /* WIN32 */
 
 #define ENERGY_CALC_STEP	         1
-u_int16_t 
-avg_audio_energy(sample *buf, u_int32_t samples, u_int32_t channels)
+uint16_t 
+avg_audio_energy(sample *buf, uint32_t samples, uint32_t channels)
 {
-        register u_int32_t e1, e2;
+        register uint32_t e1, e2;
         register sample *buf_end = buf + samples;
 
         assert (channels > 0);
@@ -270,7 +270,7 @@ avg_audio_energy(sample *buf, u_int32_t samples, u_int32_t channels)
         /* Return mean sampled energy:
          * no. of sampling points = samples/ENERGY_CALC_STEP;
          */
-        return (u_int16_t)(e1*ENERGY_CALC_STEP/samples);
+        return (uint16_t)(e1*ENERGY_CALC_STEP/samples);
 }
 
 /* not going to simd this one */

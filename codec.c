@@ -35,39 +35,39 @@ typedef void    (*cx_init_f) (void);
 typedef void    (*cx_exit_f) (void);
 
 /* Codec Probing functions */
-typedef u_int16_t               (*cx_get_formats_count_f) (void);
-typedef const codec_format_t* (*cx_get_format_f)        (u_int16_t);
+typedef uint16_t               (*cx_get_formats_count_f) (void);
+typedef const codec_format_t* (*cx_get_format_f)        (uint16_t);
 
 /* Codec Encoding functions */
-typedef int     (*cx_encoder_create_f)    (u_int16_t idx, u_char **state);
-typedef void    (*cx_encoder_destroy_f)   (u_int16_t idx, u_char **state);
-typedef int     (*cx_encode_f)            (u_int16_t idx, u_char *state, 
+typedef int     (*cx_encoder_create_f)    (uint16_t idx, u_char **state);
+typedef void    (*cx_encoder_destroy_f)   (uint16_t idx, u_char **state);
+typedef int     (*cx_encode_f)            (uint16_t idx, u_char *state, 
                                            sample *in, coded_unit *out);
-typedef int     (*cx_can_encode_f)        (u_int16_t idx);
+typedef int     (*cx_can_encode_f)        (uint16_t idx);
 
 /* Codec Decoding functions */
-typedef int     (*cx_decoder_create_f)    (u_int16_t idx, u_char **state);
-typedef void    (*cx_decoder_destroy_f)   (u_int16_t idx, u_char **state);
-typedef int     (*cx_decode_f)            (u_int16_t idx, u_char *state, 
+typedef int     (*cx_decoder_create_f)    (uint16_t idx, u_char **state);
+typedef void    (*cx_decoder_destroy_f)   (uint16_t idx, u_char **state);
+typedef int     (*cx_decode_f)            (uint16_t idx, u_char *state, 
                                            coded_unit *in, sample *out);
-typedef int     (*cx_can_decode_f)        (u_int16_t idx);
+typedef int     (*cx_can_decode_f)        (uint16_t idx);
 
 /* For determining frame sizes of variable bit rate codecs */
-typedef int     (*cx_peek_size_f)         (u_int16_t idx, u_char *data, int data_len);
+typedef int     (*cx_peek_size_f)         (uint16_t idx, u_char *data, int data_len);
 
 /* For codec domain repair schemes */
-typedef int     (*cx_repair_f)            (u_int16_t idx, 
+typedef int     (*cx_repair_f)            (uint16_t idx, 
                                            u_char *state,
-                                           u_int16_t consec_missing,
+                                           uint16_t consec_missing,
                                            coded_unit *prev,
                                            coded_unit *missing,
                                            coded_unit *next);
 
 /* For layered codecs */
-typedef u_int8_t		(*cx_can_layer_f)	  (void);
-typedef int             (*cx_get_layer_f)         (u_int16_t idx, coded_unit *cu_whole, u_int8_t layer,
-                                                   u_int16_t *markers, coded_unit *cu_layer);
-typedef int             (*cx_combine_layer_f)     (u_int16_t idx, coded_unit *cu_layer, coded_unit *cu_whole, u_int8_t nelem, u_int16_t *markers);
+typedef uint8_t		(*cx_can_layer_f)	  (void);
+typedef int             (*cx_get_layer_f)         (uint16_t idx, coded_unit *cu_whole, uint8_t layer,
+                                                   uint16_t *markers, coded_unit *cu_layer);
+typedef int             (*cx_combine_layer_f)     (uint16_t idx, coded_unit *cu_layer, coded_unit *cu_whole, uint8_t nelem, uint16_t *markers);
 
 typedef struct s_codec_fns {
         cx_init_f               cx_init;
@@ -249,8 +249,8 @@ static codec_fns_t codec_table[] = {
 
 /* These are used to save multiple function calls in
  * codec_get_codec_number function. */
-static u_int16_t num_fmts_supported[NUM_CODEC_INTERFACES];
-static u_int16_t total_fmts_supported;
+static uint16_t num_fmts_supported[NUM_CODEC_INTERFACES];
+static uint16_t total_fmts_supported;
 
 /* Codec identifier is 32 bits long. It's like an MS handle.
  * First byte is always zero.
@@ -259,8 +259,8 @@ static u_int16_t total_fmts_supported;
  * used by codec.
  */ 
 
-#define CODEC_GET_IFS_INDEX(id)     (u_int16_t)(((id  & 0x00ff0000) >> 16) - 1)
-#define CODEC_GET_FMT_INDEX(id)     (u_int16_t)((id & 0x0000ffff) - 1)
+#define CODEC_GET_IFS_INDEX(id)     (uint16_t)(((id  & 0x00ff0000) >> 16) - 1)
+#define CODEC_GET_FMT_INDEX(id)     (uint16_t)((id & 0x0000ffff) - 1)
 #define CODEC_MAKE_ID(ifs,fmt)      (((ifs) + 1) << 16)|((fmt+1)&0xffff)
 
 #define CODEC_VALID_PAD(id)          (!(id & 0xff000000))
@@ -270,7 +270,7 @@ static u_int16_t total_fmts_supported;
 int
 codec_id_is_valid(codec_id_t id)
 {
-        u_int32_t ifs, fmt;
+        uint32_t ifs, fmt;
 
         if (codec_is_native_coding(id)) {
                 /* Native codings should be tested with
@@ -312,8 +312,8 @@ void
 codec_init()
 {
         const codec_format_t *cf;
-        u_int32_t i;
-        u_int16_t j;
+        uint32_t i;
+        uint16_t j;
 
         if (total_fmts_supported == 0) {
                 for(i = 0; i < NUM_CODEC_INTERFACES; i++) {
@@ -337,7 +337,7 @@ codec_init()
 void
 codec_exit()
 {
-        u_int32_t i;
+        uint32_t i;
         if (total_fmts_supported != 0) {
                 for(i = 0; i < NUM_CODEC_INTERFACES; i++) {
                         if (codec_table[i].cx_exit) codec_table[i].cx_exit();
@@ -349,17 +349,17 @@ codec_exit()
         }
 }
 
-u_int32_t
+uint32_t
 codec_get_number_of_codecs()
 {
         return total_fmts_supported;
 }
 
 codec_id_t
-codec_get_codec_number(u_int32_t n)
+codec_get_codec_number(uint32_t n)
 {
         codec_id_t id;
-        u_int32_t    ifs;
+        uint32_t    ifs;
         assert(n < total_fmts_supported);
         
         for(ifs = 0; n >= num_fmts_supported[ifs]; ifs++) {
@@ -376,7 +376,7 @@ codec_get_codec_number(u_int32_t n)
 const codec_format_t*
 codec_get_format(codec_id_t id)
 {
-        u_int16_t ifs, fmt;
+        uint16_t ifs, fmt;
 
         assert(codec_id_is_valid(id));
 
@@ -388,7 +388,7 @@ codec_get_format(codec_id_t id)
 int
 codec_can_encode(codec_id_t id)
 {
-        u_int16_t ifs;
+        uint16_t ifs;
 
         ifs = CODEC_GET_IFS_INDEX(id);
 
@@ -412,7 +412,7 @@ codec_can_encode(codec_id_t id)
 int
 codec_can_decode(codec_id_t id)
 {
-        u_int32_t ifs;
+        uint32_t ifs;
 
         ifs = CODEC_GET_IFS_INDEX(id);
 
@@ -450,11 +450,11 @@ codec_audio_formats_compatible(codec_id_t id1, codec_id_t id2)
         return match;
 }
 
-u_int32_t
+uint32_t
 codec_get_samples_per_frame(codec_id_t id)
 {
         const codec_format_t *cf;
-        u_int32_t spf;
+        uint32_t spf;
 
         assert(codec_id_is_valid(id));
         cf = codec_get_format(id);
@@ -469,7 +469,7 @@ int
 codec_encoder_create(codec_id_t id, codec_state **cs)
 {
         if (codec_id_is_valid(id)) {
-                u_int16_t ifs, fmt;
+                uint16_t ifs, fmt;
                 *cs = (codec_state*)block_alloc(sizeof(codec_state));
                 if (!cs) {
                         *cs = NULL;
@@ -500,7 +500,7 @@ codec_encoder_destroy(codec_state **cs)
         assert(*cs != NULL);
         id = (*cs)->id;
         if (codec_id_is_valid(id)) {
-                u_int16_t ifs, fmt;
+                uint16_t ifs, fmt;
                 ifs = CODEC_GET_IFS_INDEX(id);
                 fmt = CODEC_GET_FMT_INDEX(id);
                 if (codec_table[ifs].cx_encoder_destroy) {
@@ -521,7 +521,7 @@ codec_encode(codec_state *cs,
              coded_unit  *in_native,
              coded_unit  *cu)
 {
-        u_int16_t    ifs, fmt;
+        uint16_t    ifs, fmt;
         int        success;
 
         assert(cs        != NULL);
@@ -552,7 +552,7 @@ int
 codec_decoder_create(codec_id_t id, codec_state **cs)
 {
         if (codec_id_is_valid(id)) {
-                u_int16_t ifs, fmt;
+                uint16_t ifs, fmt;
                 *cs = (codec_state*)block_alloc(sizeof(codec_state));
                 if (!cs) {
                         *cs = NULL;
@@ -583,7 +583,7 @@ codec_decoder_destroy(codec_state **cs)
         assert(*cs != NULL);
         id = (*cs)->id;
         if (codec_id_is_valid(id)) {
-                u_int16_t ifs, fmt;
+                uint16_t ifs, fmt;
                 ifs = CODEC_GET_IFS_INDEX(id);
                 fmt = CODEC_GET_FMT_INDEX(id);
                 if (codec_table[ifs].cx_decoder_destroy) {
@@ -606,7 +606,7 @@ codec_decode(codec_state *cs,
 {
         const codec_format_t *cf;
         codec_id_t           id;
-        u_int16_t              ifs, fmt, rate, channels;
+        uint16_t              ifs, fmt, rate, channels;
         int                  success;
 
         assert(cs  != NULL);
@@ -624,8 +624,8 @@ codec_decode(codec_state *cs,
         cf = codec_get_format(id);
         assert(out->state == NULL);
         assert(out->data  == NULL);
-        rate     = (u_int16_t)cf->format.sample_rate;
-        channels = (u_int16_t)cf->format.channels;
+        rate     = (uint16_t)cf->format.sample_rate;
+        channels = (uint16_t)cf->format.channels;
         out->id       = codec_get_native_coding(rate, channels);
         out->data_len = cf->format.bytes_per_block;
         out->data     = (u_char*)block_alloc(out->data_len);
@@ -641,7 +641,7 @@ codec_decode(codec_state *cs,
 int
 codec_decoder_can_repair (codec_id_t id) 
 {
-        u_int16_t ifs;
+        uint16_t ifs;
         assert(codec_id_is_valid(id));
         ifs = CODEC_GET_IFS_INDEX(id);
         if (codec_table[ifs].cx_repair) {
@@ -653,12 +653,12 @@ codec_decoder_can_repair (codec_id_t id)
 
 int
 codec_decoder_repair(codec_id_t id, codec_state *cs, 
-                     u_int16_t consec_missing, 
+                     uint16_t consec_missing, 
                      coded_unit *prev, 
                      coded_unit *miss, 
                      coded_unit *next)
 {
-        u_int16_t    ifs, fmt;
+        uint16_t    ifs, fmt;
 
         assert(codec_id_is_valid(id));
         assert(id == cs->id);
@@ -679,10 +679,10 @@ codec_decoder_repair(codec_id_t id, codec_state *cs,
                                           prev, miss, next);
 }
 
-u_int32_t 
-codec_peek_frame_size(codec_id_t id, u_char *data, u_int16_t blk_len)
+uint32_t 
+codec_peek_frame_size(codec_id_t id, u_char *data, uint16_t blk_len)
 {
-        u_int16_t    ifs, fmt;
+        uint16_t    ifs, fmt;
 
         assert(codec_id_is_valid(id));
 
@@ -735,7 +735,7 @@ static u_char    *codec_map[NUM_CODEC_INTERFACES];
 static void
 codec_map_init()
 {
-        u_int16_t i,j;
+        uint16_t i,j;
         const codec_format_t *fmt;
 
         memset(payload_map, 0, NUM_PAYLOADS * sizeof(codec_id_t));
@@ -755,7 +755,7 @@ codec_map_init()
 static void
 codec_map_exit()
 {
-        u_int32_t i;
+        uint32_t i;
         for(i = 0; i < NUM_CODEC_INTERFACES; i++) {
                 xfree(codec_map[i]);
         }
@@ -828,7 +828,7 @@ codec_get_by_payload (u_char pt)
 
 /* For compatibility only */
 codec_id_t 
-codec_get_first_mapped_with(u_int16_t sample_rate, u_int16_t channels)
+codec_get_first_mapped_with(uint16_t sample_rate, uint16_t channels)
 {
         const codec_format_t *cf;
         int pt;
@@ -852,7 +852,7 @@ codec_id_t
 codec_get_by_name(const char *name)
 {
         const codec_format_t *cf;
-        u_int16_t ifs, fmt;
+        uint16_t ifs, fmt;
 
         for(ifs = 0; ifs < NUM_CODEC_INTERFACES; ifs++) {
                 for(fmt = 0; fmt < num_fmts_supported[ifs]; fmt++) {
@@ -868,7 +868,7 @@ codec_get_by_name(const char *name)
 
 
 codec_id_t
-codec_get_matching(const char *short_name, u_int16_t freq, u_int16_t channels)
+codec_get_matching(const char *short_name, uint16_t freq, uint16_t channels)
 {
         /* This has been changed to try really hard to find a matching codec.
          * The reason is that it's now called as part of the command-line      
@@ -883,7 +883,7 @@ codec_get_matching(const char *short_name, u_int16_t freq, u_int16_t channels)
 
         const codec_format_t  *cf = NULL;
         codec_id_t             cid = 0; 
-        u_int32_t                i, codecs;
+        uint32_t                i, codecs;
         char                  *long_name;
 
         /* Stage 1: Try the designated short names... */
@@ -939,7 +939,7 @@ codec_get_matching(const char *short_name, u_int16_t freq, u_int16_t channels)
  */
 
 codec_id_t 
-codec_get_native_coding(u_int16_t sample_rate, u_int16_t channels)
+codec_get_native_coding(uint16_t sample_rate, uint16_t channels)
 {
         codec_id_t cid;
 
@@ -965,14 +965,14 @@ codec_is_native_coding(codec_id_t cid)
 
 int 
 codec_get_native_info(codec_id_t cid, 
-                      u_int16_t   *p_rate, 
-                      u_int16_t   *p_channels)
+                      uint16_t   *p_rate, 
+                      uint16_t   *p_channels)
 {
         if (codec_is_native_coding(cid)) {
-                u_int32_t f = CODEC_GET_FMT_INDEX(cid);
-                *p_rate   = (u_int16_t)(f - (f&0x01)+2) * 4000;
+                uint32_t f = CODEC_GET_FMT_INDEX(cid);
+                *p_rate   = (uint16_t)(f - (f&0x01)+2) * 4000;
                 assert(*p_rate % 8000 == 0 && *p_rate <= 48000);
-                *p_channels = (u_int16_t)(f&0x01) + 1;
+                *p_channels = (uint16_t)(f&0x01) + 1;
                 assert(*p_channels == 1 || *p_channels == 2);
                 return TRUE;
         }
@@ -980,10 +980,10 @@ codec_get_native_info(codec_id_t cid,
 }
 
 /* Layered codecs ***********************************************************/
-u_int8_t
+uint8_t
 codec_can_layer(codec_id_t id)
 {
-        u_int16_t ifs;
+        uint16_t ifs;
 
         ifs = CODEC_GET_IFS_INDEX(id);
 
@@ -998,9 +998,9 @@ codec_can_layer(codec_id_t id)
 }
 
 int
-codec_get_layer(codec_id_t id, coded_unit *cu_whole, u_int8_t layer, u_int16_t *markers, coded_unit *cu_layer)
+codec_get_layer(codec_id_t id, coded_unit *cu_whole, uint8_t layer, uint16_t *markers, coded_unit *cu_layer)
 {
-        u_int16_t ifs, fmt;
+        uint16_t ifs, fmt;
 		
         ifs = CODEC_GET_IFS_INDEX(id);
         fmt = CODEC_GET_FMT_INDEX(id);        
@@ -1012,9 +1012,9 @@ codec_get_layer(codec_id_t id, coded_unit *cu_whole, u_int8_t layer, u_int16_t *
 }
 
 int
-codec_combine_layer (codec_id_t id, coded_unit *cu_layer, coded_unit *cu_whole, u_int8_t nelem, u_int16_t *markers)
+codec_combine_layer (codec_id_t id, coded_unit *cu_layer, coded_unit *cu_whole, uint8_t nelem, uint16_t *markers)
 {
-        u_int16_t ifs, fmt;
+        uint16_t ifs, fmt;
 		
         ifs = CODEC_GET_IFS_INDEX(id);
         fmt = CODEC_GET_FMT_INDEX(id);        

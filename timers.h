@@ -22,10 +22,10 @@ void                free_fast_time(struct s_fast_time *ft);
 struct s_time      *new_time(struct s_fast_time *ft, int freq);
 void	            free_time(struct s_time *tp);
 
-u_int32_t  convert_time(u_int32_t ts, struct s_time *from, struct s_time *to);
-void     time_advance(struct s_fast_time *ft, int freq, u_int32_t time);
+uint32_t  convert_time(uint32_t ts, struct s_time *from, struct s_time *to);
+void     time_advance(struct s_fast_time *ft, int freq, uint32_t time);
 void     change_freq(struct s_time *tp, int freq);
 int      get_freq(struct s_time *tp);
-u_int32_t  get_time(struct s_time *tp);
+uint32_t  get_time(struct s_time *tp);
 
 #endif /* _rat_time_h_ */

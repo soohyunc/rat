@@ -10,8 +10,8 @@ typedef enum {
 
 typedef struct {
         sndfile_encoding_e encoding;
-        u_int32_t sample_rate;
-        u_int32_t channels;
+        uint32_t sample_rate;
+        uint32_t channels;
 } sndfile_fmt_t;
 
 #endif /* __SNDFILE_TYPES_H__ */

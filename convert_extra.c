@@ -140,7 +140,7 @@ extra_init_state(extra_state_t *e, int src_freq, int dst_freq)
 }
 
 int 
-extra_create (const converter_fmt_t *cfmt, u_char **state, u_int32_t *state_len)
+extra_create (const converter_fmt_t *cfmt, u_char **state, uint32_t *state_len)
 {
         extra_state_t *e;
         int denom, steps, g;
@@ -243,7 +243,7 @@ extra_state_free(extra_state_t *e)
 }
 
 void
-extra_destroy (u_char **state, u_int32_t *state_len)
+extra_destroy (u_char **state, uint32_t *state_len)
 {
         int i;
 

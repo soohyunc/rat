@@ -15,8 +15,8 @@
 #include "ts.h"
 
 typedef struct {
-        u_int32_t freq;
-        u_int32_t wrap;
+        uint32_t freq;
+        uint32_t wrap;
 } ticker;
 
 /* Each timebase has a range corresponding to 0..N seconds.  Depending
@@ -53,9 +53,9 @@ ticker tickers[] = {
 #define TS_CHECK_BITS 0x07
 
 ts_t
-ts_map32(u_int32_t freq, u_int32_t ticks32)
+ts_map32(uint32_t freq, uint32_t ticks32)
 {
-        u_int32_t i;
+        uint32_t i;
         ts_t out;
 
         /* Make invalid timestamp */
@@ -74,7 +74,7 @@ ts_map32(u_int32_t freq, u_int32_t ticks32)
 }
 
 static ts_t
-ts_rebase(u_int32_t new_idx, ts_t t)
+ts_rebase(uint32_t new_idx, ts_t t)
 {
         /* Use 64 bit quantity as temporary since 
          * we are multiplying a 25 bit quantity by a
@@ -92,10 +92,10 @@ ts_rebase(u_int32_t new_idx, ts_t t)
         new_ticks /= tickers[t.idx].freq;
 
         /* Bound tick range */
-        new_ticks %= (u_int32_t)tickers[new_idx].wrap;
+        new_ticks %= (uint32_t)tickers[new_idx].wrap;
 
         /* Update ts fields */
-        t.ticks   = (u_int32_t)new_ticks;
+        t.ticks   = (uint32_t)new_ticks;
         t.idx     = new_idx;
 
         return t;
@@ -104,7 +104,7 @@ ts_rebase(u_int32_t new_idx, ts_t t)
 int
 ts_gt(ts_t t1, ts_t t2)
 {
-        u_int32_t half_range, x1, x2;
+        uint32_t half_range, x1, x2;
         
         assert(ts_valid(t1));
         assert(ts_valid(t2));
@@ -147,7 +147,7 @@ ts_eq(ts_t t1, ts_t t2)
 ts_t
 ts_add(ts_t t1, ts_t t2)
 {
-        u_int32_t ticks;
+        uint32_t ticks;
         assert(ts_valid(t1));        
         assert(ts_valid(t2));
         
@@ -169,7 +169,7 @@ ts_t
 ts_sub(ts_t t1, ts_t t2)
 {
         ts_t out;
-        u_int32_t ticks;
+        uint32_t ticks;
 
         assert(ts_valid(t1));        
         assert(ts_valid(t2));
@@ -210,7 +210,7 @@ ts_abs_diff(ts_t t1, ts_t t2)
 }
 
 ts_t
-ts_mul(ts_t t, u_int32_t x)
+ts_mul(ts_t t, uint32_t x)
 {
         assert(ts_valid(t));
         t.ticks = t.ticks * x;
@@ -218,7 +218,7 @@ ts_mul(ts_t t, u_int32_t x)
 }
 
 ts_t
-ts_div(ts_t t, u_int32_t x)
+ts_div(ts_t t, uint32_t x)
 {
         assert(ts_valid(t));
         t.ticks = t.ticks / x;
@@ -226,9 +226,9 @@ ts_div(ts_t t, u_int32_t x)
 }
 
 ts_t 
-ts_convert(u_int32_t new_freq, ts_t ts)
+ts_convert(uint32_t new_freq, ts_t ts)
 {
-        u_int32_t i;
+        uint32_t i;
         ts_t out;
         
         out.check = 0;
@@ -245,24 +245,24 @@ ts_convert(u_int32_t new_freq, ts_t ts)
         return out;
 }
 
-u_int32_t
+uint32_t
 ts_to_ms(ts_t t1)
 {
-        u_int32_t r;
+        uint32_t r;
         assert(ts_valid(t1));
         r = t1.ticks / (ts_get_freq(t1) / 1000);
         return r;
 }
 
-u_int32_t
+uint32_t
 ts_to_us(ts_t t1)
 {
         double  r;
-        u_int32_t f;
+        uint32_t f;
         assert(ts_valid(t1));
         f = ts_get_freq(t1);
         r = t1.ticks * 1000000.0/(double)f;
-        return (u_int32_t)r;
+        return (uint32_t)r;
 }
 
 int 
@@ -273,7 +273,7 @@ ts_valid(ts_t t1)
                 (unsigned)t1.ticks < tickers[t1.idx].wrap);
 }
 
-u_int32_t
+uint32_t
 ts_get_freq(ts_t t1)
 {
         assert(ts_valid(t1));
@@ -290,17 +290,17 @@ ts_get_freq(ts_t t1)
 #define TS_WRAP_32 0x7fffffff
 
 static 
-int ts32_gt(u_int32_t a, u_int32_t b)
+int ts32_gt(uint32_t a, uint32_t b)
 {
-        u_int32_t diff;
+        uint32_t diff;
         diff = a - b;
         return (diff < TS_WRAP_32 && diff != 0);
 }
 
 ts_t
-ts_seq32_in(ts_sequencer *s, u_int32_t freq, u_int32_t curr_32)
+ts_seq32_in(ts_sequencer *s, uint32_t freq, uint32_t curr_32)
 {
-        u_int32_t delta_32;
+        uint32_t delta_32;
         ts_t    delta_ts; 
 
         /* Inited or freq changed check */
@@ -329,10 +329,10 @@ ts_seq32_in(ts_sequencer *s, u_int32_t freq, u_int32_t curr_32)
         return s->last_ts;
 }
 
-u_int32_t
-ts_seq32_out(ts_sequencer *s, u_int32_t freq, ts_t curr_ts)
+uint32_t
+ts_seq32_out(ts_sequencer *s, uint32_t freq, ts_t curr_ts)
 {
-        u_int32_t delta_32;
+        uint32_t delta_32;
         ts_t    delta_ts; 
 
         /* Inited or freq change check */

@@ -58,7 +58,7 @@ typedef struct s_session {
 	int             ttl;
         struct rtp     *rtp_session[MAX_LAYERS];
         int             rtp_session_count;
-	u_int8_t          layers; /* number of layers == rtp_session_count */
+	uint8_t          layers; /* number of layers == rtp_session_count */
         int             filter_loopback;
 	struct s_fast_time	*clock;
 	struct s_time		*device_clock;
@@ -79,7 +79,7 @@ typedef struct s_session {
  	int                 receive_audit_required;
 	int                 detect_silence;
 	int                 meter;       /* if powermeters are on */
-        u_int32_t             meter_period; 
+        uint32_t             meter_period; 
 	int		    ui_activated;
 	int		    sync_on;
 	int		    agc_on;
@@ -94,9 +94,9 @@ typedef struct s_session {
         struct s_source_list *active_sources;
         ts_sequencer        decode_sequencer;
         int                 limit_playout;
-        u_int32_t             min_playout;
-        u_int32_t             max_playout;
-        u_int32_t             last_depart_ts;
+        uint32_t             min_playout;
+        uint32_t             max_playout;
+        uint32_t             last_depart_ts;
 	char		   *mbus_engine_addr;
 	struct mbus	   *mbus_engine;
 	char		   *mbus_ui_addr;

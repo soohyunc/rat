@@ -40,20 +40,20 @@
 /* All cushion measurements are in sampling intervals, not samples ! [oth] */
 
 typedef struct s_cushion_struct {
-	u_int32_t         cushion_estimate;
-	u_int32_t         cushion_size;
-	u_int32_t         cushion_step;
-	u_int32_t        *read_history;	/* Circular buffer of read lengths */
+	uint32_t         cushion_estimate;
+	uint32_t         cushion_size;
+	uint32_t         cushion_step;
+	uint32_t        *read_history;	/* Circular buffer of read lengths */
 	int             last_in;	/* Index of last added value */
 	int            *histogram;	/* Histogram of read lengths */
-        u_int32_t         histbins;      /* Number of bins in histogram */
+        uint32_t         histbins;      /* Number of bins in histogram */
 } cushion_t;
 
 int 
 cushion_create(cushion_t **c, int blockdur)
 {
         int i;
-        u_int32_t *ip;
+        uint32_t *ip;
         cushion_t *nc;
 
         nc = (cushion_t*) xmalloc (sizeof(cushion_t));
@@ -65,7 +65,7 @@ cushion_create(cushion_t **c, int blockdur)
         nc->cushion_size     = 2 * blockdur;
 	nc->cushion_estimate = blockdur;
 	nc->cushion_step     = blockdur / 2;
-	nc->read_history     = (u_int32_t *) xmalloc (HISTORY_SIZE * sizeof(u_int32_t));
+	nc->read_history     = (uint32_t *) xmalloc (HISTORY_SIZE * sizeof(uint32_t));
         if (nc->read_history == NULL) goto bail_history;
 
 	for (i = 0, ip = nc->read_history; i < HISTORY_SIZE; i++, ip++)
@@ -102,10 +102,10 @@ cushion_destroy(cushion_t **ppc)
 }
 
 void
-cushion_update(cushion_t *c, u_int32_t read_dur, int mode)
+cushion_update(cushion_t *c, uint32_t read_dur, int mode)
 {
-        u_int32_t idx, cnt, cover_idx, cover_cnt; 
-        u_int32_t lower, upper; 
+        uint32_t idx, cnt, cover_idx, cover_cnt; 
+        uint32_t lower, upper; 
 
         /* remove entry we are about to overwrite from histogram */
         
@@ -176,14 +176,14 @@ cushion_size_check(cushion_t *c)
         }
 }
 
-u_int32_t 
+uint32_t 
 cushion_get_size(cushion_t *c)
 {
         return c->cushion_size;
 }
 
-u_int32_t
-cushion_set_size(cushion_t *c, u_int32_t new_size)
+uint32_t
+cushion_set_size(cushion_t *c, uint32_t new_size)
 {
         c->cushion_size = new_size;
         cushion_size_check(c);
@@ -193,7 +193,7 @@ cushion_set_size(cushion_t *c, u_int32_t new_size)
         return c->cushion_size;
 }
 
-u_int32_t
+uint32_t
 cushion_step_up(cushion_t *c)
 {
         c->cushion_size += c->cushion_step;
@@ -201,7 +201,7 @@ cushion_step_up(cushion_t *c)
         return c->cushion_size;
 }
 
-u_int32_t
+uint32_t
 cushion_step_down(cushion_t *c)
 {
         c->cushion_size -= c->cushion_step;
@@ -209,13 +209,13 @@ cushion_step_down(cushion_t *c)
         return c->cushion_size;
 }
 
-u_int32_t
+uint32_t
 cushion_get_step(cushion_t *c)
 {
         return c->cushion_step;
 }
 
-u_int32_t 
+uint32_t 
 cushion_use_estimate(cushion_t *c)
 {
         c->cushion_size = c->cushion_estimate + c->cushion_step 

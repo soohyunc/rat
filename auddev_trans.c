@@ -35,13 +35,13 @@ typedef struct _bufdevInfo {
 } bufdevInfo;
 
 static bufdevInfo bufdev[MAXBUFDEVS];
-static u_int32_t devIdMap[MAXBUFDEVS];
+static uint32_t devIdMap[MAXBUFDEVS];
 
 static char *bufdevName[2] = {"Transcoder Port 1", "Transcoder Port 2"};
 
 #define CHANNEL_SIZE    8192
 
-static u_int32_t mapAudioDescToDeviceID(audio_desc_t ad);
+static uint32_t mapAudioDescToDeviceID(audio_desc_t ad);
 
 static int
 trans_audio_open_dev (audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
@@ -76,7 +76,7 @@ trans_audio_open_dev (audio_desc_t ad, audio_format *infmt, audio_format *outfmt
         return TRUE;
 }
 
-static u_int32_t
+static uint32_t
 mapAudioDescToDeviceID(audio_desc_t ad)
 {
         return devIdMap[ad];
@@ -410,7 +410,7 @@ int
 trans_audio_is_ready(audio_desc_t ad)
 {
         struct timeval now;
-        u_int32_t diff;
+        uint32_t diff;
 
         ad = mapAudioDescToDeviceID(ad);
         gettimeofday(&now,NULL);

@@ -17,13 +17,13 @@
 struct s_coded_unit;
 
 typedef struct s_converter_fmt {
-        u_int16_t from_channels;
-        u_int16_t src_freq;
-        u_int16_t to_channels;
-        u_int16_t dst_freq;
+        uint16_t from_channels;
+        uint16_t src_freq;
+        uint16_t to_channels;
+        uint16_t dst_freq;
 } converter_fmt_t;
 
-typedef u_int32_t converter_id_t;
+typedef uint32_t converter_id_t;
 
 typedef struct {
         converter_id_t id;

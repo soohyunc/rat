@@ -45,7 +45,7 @@ channel_data_create(channel_data **ppcd, int nelem)
 }
 
 void
-channel_data_destroy(channel_data **ppcd, u_int32_t cd_size)
+channel_data_destroy(channel_data **ppcd, uint32_t cd_size)
 {
         channel_data *pcd;
         channel_unit *pcu;
@@ -77,10 +77,10 @@ channel_data_destroy(channel_data **ppcd, u_int32_t cd_size)
         *ppcd = NULL;
 }
 
-u_int32_t
+uint32_t
 channel_data_bytes(channel_data *cd)
 {
-        u_int32_t len, i;
+        uint32_t len, i;
         
         len = 0;
         for(i = 0; i < cd->nelem; i++) {
