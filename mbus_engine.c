@@ -854,6 +854,13 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_struct *sp)
                         mbus_parse_done(sp->mbus_engine);
                         return;
                 }
+                
+                /* Don't allow payloads to be mapped to channel_coder payloads - it doesn't seem to work */
+                if (channel_coder_exist_payload(new_pt)) {
+                        debug_msg("Channel coder payload specified\n");
+                        mbus_parse_done(sp->mbus_engine);
+                        return;
+                }
 
                 for(i = 0; i < sp->num_encodings; i++) {
                         if (new_pt == sp->encodings[i]) {

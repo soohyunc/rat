@@ -382,6 +382,18 @@ channel_coder_get_payload(channel_state_t *st, u_int8 media_pt)
         return table[st->coder].pt;
 }
 
+int
+channel_coder_exist_payload(u_int8 pt)
+{
+        u_int32 i;
+        for(i = 0; i < CC_NUM_CODERS; i++) {
+                if (table[i].pt == pt) {
+                        return TRUE;
+                }
+        }
+        return FALSE;       
+}
+
 u_int8
 channel_coder_get_layers(cc_id_t cid)
 {

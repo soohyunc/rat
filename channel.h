@@ -89,6 +89,7 @@ int       channel_describe_data   (cc_id_t cid,
 /* Payload mapping functions */
 cc_id_t   channel_coder_get_by_payload (u_int8 pt);
 u_int8    channel_coder_get_payload    (struct s_channel_state* st, u_int8 media_pt);   
+int       channel_coder_exist_payload  (u_int8 pt);
 
 /* Layered coding functions */
 u_int8    channel_coder_get_layers     (cc_id_t cid);
