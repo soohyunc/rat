@@ -1155,7 +1155,6 @@ proc toggle_stats {ssrc} {
 	stats_add_field $win.df.reception.1 "Audio encoding: "         CODEC($ssrc)
 	stats_add_field $win.df.reception.2 "Packet duration (ms): "   DURATION($ssrc)
 	stats_add_field $win.df.reception.3 "Playout delay (ms): "     PLAYOUT_DELAY($ssrc)
-	stats_add_field $win.df.reception.4 "Buffer length (ms): "     BUFFER_SIZE($ssrc)
 	stats_add_field $win.df.reception.5 "Arrival jitter (ms): "    JITTER($ssrc)
 	stats_add_field $win.df.reception.6 "Loss from me (%): "       LOSS_FROM_ME($ssrc)
 	stats_add_field $win.df.reception.7 "Loss to me (%): "         LOSS_TO_ME($ssrc)
