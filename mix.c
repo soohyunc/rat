@@ -50,7 +50,31 @@ typedef struct s_mix_info {
 typedef void (*mix_f)(sample *buf, sample *incoming, int len);
 static mix_f audio_mix_fn;
 
-#define ROUND_UP(x, y)  (x) % (y) > 0 ? (x) - (x) % (y) : (x)
+#ifdef DEBUG
+static void
+mix_verify(mix_struct *ms) 
+{
+        ts_t delta;
+        int  dist;
+
+	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+
+        assert(!ts_gt(ms->tail_time, ms->head_time));
+
+        assert(ms->dist <= ms->buf_len);
+
+        delta = ts_sub(ms->head_time, ms->tail_time);
+
+        dist = delta.ticks * ms->channels * ms->rate / ts_get_freq(delta);
+        assert(ms->dist == dist);
+
+        if (ts_eq(ms->head_time, ms->tail_time)) {
+                assert(ms->head == ms->tail);
+        }
+}
+#else
+#define mix_verify(x) 
+#endif /* DEBUG */
 
 /*
  * Initialise the circular buffer that is used in mixing.
@@ -82,6 +106,7 @@ mix_create(mix_struct **ppms, int sample_rate, int sample_channels, int buffer_l
                         audio_mix_fn = audio_mix_mmx;
                 }
 #endif /* WIN32 */
+                mix_verify(pms);
                 return TRUE;
         }
 	return FALSE;
@@ -91,11 +116,11 @@ void
 mix_destroy(mix_struct **ppms)
 {
         mix_struct *pms;
-        
+
         assert(ppms);
         pms = *ppms;
         assert(pms);
-
+        mix_verify(pms);
         xfree(pms->mix_buffer - pms->buf_len); /* yuk! ouch! splat! */
         xfree(pms);
         *ppms = NULL;
@@ -130,7 +155,7 @@ mix_process(mix_struct          *ms,
         u_int16  channels, rate;
         ts_t     frame_period, expected_playout, delta, new_head_time;
 
-	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+        mix_verify(ms);
 
         codec_get_native_info(frame->id, &rate, &channels);
 
@@ -159,7 +184,8 @@ mix_process(mix_struct          *ms,
                 dbe->first_mix  = 0;
         }
 
-        assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);                                          
+        mix_verify(ms);
+
         samples  = (sample*)frame->data;
         nsamples = frame->data_len / sizeof(sample);
                 
@@ -185,26 +211,32 @@ mix_process(mix_struct          *ms,
                 }
         }
 
+        mix_verify(ms);
         /* Zero ahead if necessary */
 
         new_head_time = ts_add(playout, ts_map32(ms->rate, nsamples / ms->channels));
         if (ts_eq(ms->head_time, ms->tail_time)) {
-                debug_msg("Head > tail\n");
+                debug_msg("Head == tail\n");
+                mix_verify(ms);
                 ms->head_time = ms->tail_time = playout;
+                assert(ms->head == ms->tail);
                 ms->head = ms->tail;
                 ms->dist = 0;
+                mix_verify(ms);
         }
 
         if (ts_gt(new_head_time, ms->head_time))  {
                 int zeros;
                 delta = ts_sub(new_head_time, ms->head_time);
-                zeros = delta.ticks * ms->channels;
+                zeros = delta.ticks * ms->channels * ms->rate / ts_get_freq(delta);
+                assert(zeros < ms->buf_len);
+                mix_verify(ms);
                 mix_zero(ms, ms->head, zeros);
                 ms->dist += zeros;
                 ms->head += zeros;
                 ms->head %= ms->buf_len;
                 ms->head_time = ts_add(ms->head_time, delta);
-                assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);                                          
+                mix_verify(ms);
         }
 
         assert(!ts_gt(playout, ms->head_time));
@@ -238,7 +270,7 @@ mix_process(mix_struct          *ms,
 }
 
 /*
- * The mix_get_audio function returns a pointer to "amount" samples of mixed 
+ * The mix_get_audio function returns a pointer to "request" samples of mixed 
  * audio data, suitable for playout (ie: you can do audio_device_write() with
  * the returned data).
  *
@@ -246,15 +278,17 @@ mix_process(mix_struct          *ms,
  * silence at the end of the buffer returned so that the cushion
  * adjustment functions can use it to decrease the cushion.
  *
- * Note: amount is number of samples to get and not sampling intervals!
+ * Note: "request" is number of samples to get and not sampling intervals!
  */
 
 int
-mix_get_audio(mix_struct *ms, int amount, sample **bufp)
+mix_get_audio(mix_struct *ms, int request, sample **bufp)
 {
-	int	silence;
+	int	silence, amount;
+        ts_t    delta;
 
         xmemchk();
+        amount = request;
 	assert(amount < ms->buf_len);
 	if (amount > ms->dist) {
 		/*
@@ -276,12 +310,13 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
 			audio_zero(ms->mix_buffer + ms->head, silence, DEV_S16);
 		}
                 xmemchk();
+                mix_verify(ms);
 		ms->head      += silence;
 		ms->head      %= ms->buf_len;
 		ms->head_time  = ts_add(ms->head_time,
                                         ts_map32(ms->rate, silence/ms->channels));
 		ms->dist       = amount;
-		assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+                mix_verify(ms);
 	} else {
 		silence = 0;
 	}
@@ -309,15 +344,27 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
                 xmemchk();
 #ifdef DEBUG_MIX
 		fprintf(stderr,"Copying start of mix len: %d\n", ms->tail + amount - ms->buf_len);
-#endif
+
+#endif /* DEBUG_MIX */
 	}
+
+#ifdef DEBUG_MIX
+        debug_msg("Head %u (%d), tail %u (%d)\n", (u_int32) ms->head, 
+                  ms->head_time.ticks, 
+                  (u_int32)ms->tail,
+                  ms->tail_time.ticks);
+#endif /* DEBUG_MIX */
+
+        mix_verify(ms);
+
 	*bufp = ms->mix_buffer + ms->tail;
-	ms->tail_time = ts_add(ms->tail_time, 
-                               ts_map32(ms->rate, amount/ms->channels));
+        delta = ts_map32(ms->rate, amount/ms->channels);
+	ms->tail_time = ts_add(ms->tail_time, delta);
+                               
 	ms->tail      += amount;
 	ms->tail      %= ms->buf_len;
 	ms->dist      -= amount;
-	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+        mix_verify(ms);
 
 	return silence;
 }
@@ -355,10 +402,10 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 			ms->tail += ms->buf_len;
 		}
 		ms->dist += diff;
-		assert(ms->dist <= ms->buf_len);
+
 		ms->tail_time = ts_sub(ms->tail_time,
                                        ts_map32(ms->rate, diff/ms->channels));
-		assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+                mix_verify(ms);
 	} else if (new_cushion_size < elapsed_time) {
 		/*
 		 * New cushion is smaller so we have to throw away
@@ -375,9 +422,11 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 		} else {
 			ms->dist -= diff;
 		}
-		assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
+                mix_verify(ms);
 	}
+        mix_verify(ms);
 	mix_get_audio(ms, new_cushion_size * ms->channels, bufp);
+        mix_verify(ms);
 }
 
 #define POWER_METER_SAMPLES 160
