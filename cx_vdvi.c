@@ -47,7 +47,7 @@
 #include "stdio.h"
 
 #ifdef TEST_VDVI
-#define NUM_TESTS 10000
+#define NUM_TESTS 100000
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,99 +105,95 @@ int main()
                 for(i = 0; i< 80; i++) {
                         assert(src[i] == dst[i]);
                 }
+                if (0 == (n % 1000)) {
+                        printf(".");
+                        fflush(stdout);
+                }
         }
-        printf("Tested %d frames\n", n);
+        printf("\nTested %d frames\n", n);
         return 1;
 }
 #endif TEST_DVI
 
-/*
-typedef unsigned int  u_int;
-typedef unsigned char u_char;
-*/
 /* Bitstream structure to make life a little easier */
 
 typedef struct {
-        u_char *buf;
-        u_char *pos;
-        u_int   bits_remain;
-        u_int   len;
+        u_char *buf;    /* head of bitstream            */
+        u_char *pos;    /* current byte in bitstream    */
+        u_int   remain; /* bits remaining               */
+        u_int   len;    /* length of bitstream in bytes */
 } bs;
 
 __inline static void
-bs_init(bs *b, char *buf, int bytes)
+bs_init(bs *b, char *buf, int blen)
 {
-        b->buf = b->pos = buf;
-        b->len = bytes;
-        b->bits_remain = 8;
+        b->buf    = b->pos = buf;
+        b->remain = 8;
+        b->len    = blen;
 }
 
 __inline static void
-bs_put(bs* b, u_char in, u_int n_in)
+bs_put(bs* b, u_char bits, u_int nbits)
 {
-        register u_int   br, t;
-        u_char *p;
-
-        p  = b->pos;
-        br = b->bits_remain;
+        assert(nbits != 0 && nbits <= 8);
         
-        assert(n_in <= 8);
-
-        if (br == 0) {
-                br = 8;
-                p++;
-                *p = 0;
+        if (b->remain == 0) {
+                b->pos++;
+                b->remain = 8;
         }
-        
-        if (n_in > br) {
-                t = n_in - br;
-                *p |= in >> t;
-                p++;
-                br = 8 - t;
-                *p = in << br;
+
+        if (nbits > b->remain) {
+                u_int over = nbits - b->remain;
+                (*b->pos) |= (bits >> over);
+                b->pos++;
+                b->remain = 8 - over;
+                (*b->pos)  = (bits << b->remain);
         } else {
-                *p |= in << ( br - n_in);
-                br -= n_in;
+                (*b->pos) |= bits << (b->remain - nbits);
+                b->remain -= nbits;
         }
-
-        b->pos = p;
-        b->bits_remain = br;
-        assert(((u_char)(b->pos - b->buf) < b->len) ||
-                ((u_char)(b->pos - b->buf) == b->len && b->bits_remain == 8));
+        
+        assert((u_int)(b->pos - b->buf) <= b->len);
 }
 
 __inline static u_char
-bs_get(bs *b, u_int bits)
+bs_get(bs *b, u_int nbits)
 {
-        register char *p;
-        register u_int br;
+        u_char out;
 
-        u_char mask,out;
-        
-        p  = b->pos;
-        br = b->bits_remain;
-
-        if (bits >= br) {
-                mask = 0xff >> (8 - br);
-                bits -= br;
-                out = (*p & mask) << bits;
-                p++;
-                br = 8 - bits;
-                mask = 0xff << br;
-                out |= (*p & mask) >> br;
-        } else {
-                br -= bits;
-                mask = (0xff >> (8 - bits));
-                mask <<=  br;
-                out  = (*p & mask) >> br;
+        if (b->remain == 0) {
+                b->pos++;
+                b->remain = 8;
         }
-        b->pos = p;
-        b->bits_remain = br;
-        assert(((u_char)(b->pos - b->buf) < b->len) ||
-                ((u_char)(b->pos - b->buf) == b->len && b->bits_remain == 8));
+
+        if (nbits > b->remain) {
+                /* Get high bits */
+                out = *b->pos;
+                out <<= (8 - b->remain);
+                out >>= (8 - nbits);
+                b->pos++;
+                b->remain += 8 - nbits;
+                out |= (*b->pos) >> b->remain;
+        } else {
+                out = *b->pos;
+                out <<= (8 - b->remain);
+                out >>= (8 - nbits);
+                b->remain -= nbits;
+        }
+
+        assert((u_int)(b->pos - b->buf) <= b->len);
         return out;
 }
 
+static u_int 
+bs_used(bs *b)
+{
+        u_int used = (u_int)(b->pos - b->buf);
+        if (b->remain != 8) {
+                used++;
+        }
+        return used;
+}
 
 /* VDVI translations as defined in draft-ietf-avt-profile-new-00.txt 
 
@@ -261,8 +257,7 @@ vdvi_encode(u_char *dvi_buf, int dvi_samples, u_char *out, int out_bytes)
                 dp ++;
         }
         /* Return number of bytes used */
-        bytes_used  = (dst.pos - dst.buf);
-        bytes_used += (dst.bits_remain != 8) ? 1 : 0;
+        bytes_used  = bs_used(&dst);
         assert(bytes_used <= out_bytes);
         return bytes_used;
 }
@@ -317,8 +312,7 @@ vdvi_decode(unsigned char *in, int in_bytes, unsigned char *dvi_buf, int dvi_sam
 
         }
 
-        bytes_used  = (bin.pos - bin.buf);
-        bytes_used += (bin.bits_remain != 8) ? 1 : 0;
+        bytes_used = bs_used(&bin);
 
         assert(bytes_used <= in_bytes);
         return bytes_used;

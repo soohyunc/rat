@@ -108,7 +108,7 @@ vanilla_encoder_output(ve_state *ve, struct s_pb *out)
         size += ve->elem[0]->rep[0]->data_len;
 
         for(i = 1; i < ve->nelem; i++) {
-                size += ve->elem[0]->rep[0]->data_len;
+                size += ve->elem[i]->rep[0]->data_len;
         }
 
         assert(size != 0);
@@ -332,7 +332,7 @@ vanilla_decoder_peek(u_int8   pkt_pt,
                 unit = 0;
                 done = cf->mean_per_packet_state_size;
                 while(done < len) {
-                        step = codec_peek_frame_size(cid, buf+done, (u_int16)done);
+                        step = codec_peek_frame_size(cid, buf+done, (u_int16)(len - done));
                         if (step == 0) {
                                 debug_msg("Zero data len for audio unit ?\n");
                                 goto fail;
