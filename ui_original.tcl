@@ -247,32 +247,32 @@ proc mbus_recv_input_gain {gain} {
 	.r.c.gain.s2 set $gain
 }
 
-proc mbus_recv_input_device {device} {
+proc mbus_recv_input_port {device} {
 	.r.c.gain.l2 configure -bitmap $device
 }
 
-proc mbus_recv_input_mute {} {
-	.r.c.gain.t2 configure -relief sunken
-}
-
-proc mbus_recv_input_unmute {} {
-	.r.c.gain.t2 configure -relief raised
+proc mbus_recv_input_mute {val} {
+	if {$val} {
+		.r.c.gain.t2 configure -relief sunken
+	} else {
+		.r.c.gain.t2 configure -relief raised
+	}
 }
 
 proc mbus_recv_output_gain {gain} {
 	.r.c.vol.s1 set $gain
 }
 
-proc mbus_recv_output_device {device} {
+proc mbus_recv_output_port {device} {
 	.r.c.vol.l1 configure -bitmap $device
 }
 
-proc mbus_recv_output_mute {} {
-	.r.c.vol.t1 configure -relief sunken
-}
-
-proc mbus_recv_output_unmute {} {
-	.r.c.vol.t1 configure -relief raised
+proc mbus_recv_output_mute {val} {
+	if {$val} {
+		.r.c.vol.t1 configure -relief sunken
+	} else {
+		.r.c.vol.t1 configure -relief raised
+	}
 }
 
 proc mbus_recv_half_duplex {} {
@@ -470,12 +470,12 @@ proc mbus_recv_source_remove {cname} {
 	chart_redraw $num_cname
 }
 
-proc mbus_recv_source_mute {cname} {
-	[window_plist $cname] create line [expr $iht + 2] [expr $iht / 2] 500 [expr $iht / 2] -tags a -width 2.0 -fill gray95
-}
-
-proc mbus_recv_source_unmute {cname} {
-	catch [[window_plist $cname] delete a]
+proc mbus_recv_source_mute {cname val} {
+	if {$val} {
+		[window_plist $cname] create line [expr $iht + 2] [expr $iht / 2] 500 [expr $iht / 2] -tags a -width 2.0 -fill gray95
+	} else {
+		catch [[window_plist $cname] delete a]
+	}
 }
 
 proc cname_update {cname} {
@@ -609,9 +609,9 @@ proc dropdown {w varName command args} {
 proc toggle_mute {cw cname} {
 	global iht
 	if {[$cw gettags a] == ""} {
-		mbus_send "R" "source_mute" "[mbus_encode_str $cname]"
+		mbus_send "R" "source_mute" "[mbus_encode_str $cname] 1"
 	} else {
-		mbus_send "R" "source_unmute" "[mbus_encode_str $cname]"
+		mbus_send "R" "source_mute" "[mbus_encode_str $cname] 0"
 	}
 }
 
@@ -733,7 +733,7 @@ pack .r.c.vol.s1 -side right -fill y
 
 # Device input controls
 button .r.c.gain.t2 -highlightthickness 0 -padx 0 -pady 0 -text mute -command toggle_send -relief sunken
-button .r.c.gain.l2 -highlightthickness 0 -padx 0 -pady 0 -command toggle_input_port -bitmap "mic_mute"
+button .r.c.gain.l2 -highlightthickness 0 -padx 0 -pady 0 -command toggle_input_port -bitmap "microphone_mute"
 bargraphCreate .r.c.gain.b2
 scale .r.c.gain.s2 -highlightthickness 0 -font $verysmallfont -from 99 -to 0 -command set_gain -orient vertical -relief raised 
 

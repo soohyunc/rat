@@ -226,22 +226,22 @@ ui_update_input_port(session_struct *sp)
 {
 	switch (sp->input_mode) {
 	case AUDIO_MICROPHONE:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_device", "mic", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_port", "microphone", FALSE);
 		break;
 	case AUDIO_LINE_IN:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_device", "line_in", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_port", "line_in", FALSE);
 		break;
 	case AUDIO_CD:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_device", "cd", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_port", "cd", FALSE);
 		break;
 	default:
 		fprintf(stderr, "Invalid input port!\n");
 		return ;
 	}
 	if (sp->sending_audio) {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_unmute", "", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_mute", "0", FALSE);
 	} else {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_mute", "", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input_mute", "1", FALSE);
 	}
 }
 
@@ -250,22 +250,22 @@ ui_update_output_port(session_struct *sp)
 {
 	switch (sp->output_mode) {
 	case AUDIO_SPEAKER:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_device", "speaker", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_port", "speaker", FALSE);
 		break;
 	case AUDIO_HEADPHONE:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_device", "head", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_port", "headphone", FALSE);
 		break;
 	case AUDIO_LINE_OUT:
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_device", "line_out", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_port", "line_out", FALSE);
 		break;
 	default:
 		fprintf(stderr, "Invalid output port!\n");
 		return;
 	}
 	if (sp->playing_audio) {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_unmute", "", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_mute", "0", FALSE);
 	} else {
-		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_mute", "", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output_mute", "1", FALSE);
 	}
 }
 
@@ -512,14 +512,14 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 	Tcl_SetVar(interp, "win32", "0", TCL_GLOBAL_ONLY);
 #endif
 	Tk_DefineBitmap(interp, Tk_GetUid("ucl"), ucl_bits, ucl_width, ucl_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("mic"), mic_bits, mic_width, mic_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("mic_mute"), mic_mute_bits, mic_mute_width, mic_mute_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("microphone"), mic_bits, mic_width, mic_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("microphone_mute"), mic_mute_bits, mic_mute_width, mic_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("cd"), cd_bits, cd_width, cd_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("cd_mute"), cd_mute_bits, cd_mute_width, cd_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("speaker"), speaker_bits, speaker_width, speaker_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("speaker_mute"), speaker_mute_bits, speaker_mute_width, speaker_mute_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("head"), head_bits, head_width, head_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("head_mute"), head_mute_bits, head_mute_width, head_mute_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("headphone"), head_bits, head_width, head_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("headphone_mute"), head_mute_bits, head_mute_width, head_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("line_out"), line_out_bits, line_out_width, line_out_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("line_out_mute"), line_out_mute_bits, line_out_mute_width, line_out_mute_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("line_in"), line_in_bits, line_in_width, line_in_height);

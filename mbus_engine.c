@@ -53,9 +53,13 @@
 #include "session.h"
 #include "rat_time.h"
 
+/*****************************************************************************/
+/* All the func_toggle_* functions are obsolete and should be removed! [csp] */
+/*****************************************************************************/
 
 static void func_toggle_send(char *srce, char *args, session_struct *sp)
 {
+	dprintf("toggle_send is obsolete! Use input_mute\n");
 	if ((strlen(args) != 1) || (args[0] != ' ')) {
 		printf("mbus: toggle_send does not require parameters\n");
 		return;
@@ -71,6 +75,7 @@ static void func_toggle_send(char *srce, char *args, session_struct *sp)
 
 static void func_toggle_play(char *srce, char *args, session_struct *sp)
 {
+	dprintf("toggle_play is obsolete! Use output_mute\n");
 	if ((strlen(args) != 1) || (args[0] != ' ')) {
 		printf("mbus: toggle_play does not require parameters\n");
 		return;
@@ -84,6 +89,34 @@ static void func_toggle_play(char *srce, char *args, session_struct *sp)
         sp->receive_audit_required = TRUE;
 	ui_update_output_port(sp);
 }
+
+static void func_toggle_input_port(char *srce, char *args, session_struct *sp)
+{
+	dprintf("toggle_input_port is obsolete: use input_port instead!\n");
+	if ((strlen(args) != 1) || (args[0] != ' ')) {
+		printf("mbus: toggle_input_port does not require parameters\n");
+		return;
+	}
+
+	audio_next_iport(sp->audio_fd);
+	sp->input_mode = audio_get_iport(sp->audio_fd);
+	ui_update_input_port(sp);
+}
+
+static void func_toggle_output_port(char *srce, char *args, session_struct *sp)
+{
+	dprintf("toggle_output_port is obsolete: use output_port instead!\n");
+	if ((strlen(args) != 1) || (args[0] != ' ')) {
+		printf("mbus: toggle_output_port does not require parameters\n");
+		return;
+	}
+
+	audio_next_oport(sp->audio_fd);
+	sp->output_mode = audio_get_oport(sp->audio_fd);
+	ui_update_output_port(sp);
+}
+
+/*****************************************************************************/
 
 static void func_get_audio(char *srce, char *args, session_struct *sp)
 {
@@ -100,30 +133,6 @@ static void func_get_audio(char *srce, char *args, session_struct *sp)
 	if (audio_device_take(sp) == FALSE) {
 		/* Request device using the mbus... */
 	}
-}
-
-static void func_toggle_input_port(char *srce, char *args, session_struct *sp)
-{
-	if ((strlen(args) != 1) || (args[0] != ' ')) {
-		printf("mbus: toggle_input_port does not require parameters\n");
-		return;
-	}
-
-	audio_next_iport(sp->audio_fd);
-	sp->input_mode = audio_get_iport(sp->audio_fd);
-	ui_update_input_port(sp);
-}
-
-static void func_toggle_output_port(char *srce, char *args, session_struct *sp)
-{
-	if ((strlen(args) != 1) || (args[0] != ' ')) {
-		printf("mbus: toggle_output_port does not require parameters\n");
-		return;
-	}
-
-	audio_next_oport(sp->audio_fd);
-	sp->output_mode = audio_get_oport(sp->audio_fd);
-	ui_update_output_port(sp);
 }
 
 static void func_powermeter(char *srce, char *args, session_struct *sp)
@@ -208,6 +217,24 @@ static void func_rate(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
+static void func_input_mute(char *srce, char *args, session_struct *sp)
+{
+	int i;
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
+		if (i) {
+			stop_sending(sp);
+		} else {
+			start_sending(sp);
+		}
+		ui_update_input_port(sp);
+	} else {
+		printf("mbus: usage \"input_mute <boolean>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+}
+
 static void func_input_gain(char *srce, char *args, session_struct *sp)
 {
 	int   i;
@@ -218,6 +245,43 @@ static void func_input_gain(char *srce, char *args, session_struct *sp)
 		audio_set_gain(sp->audio_fd, sp->input_gain);
 	} else {
 		printf("mbus: usage \"input_gain <integer>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+}
+
+static void func_input_port(char *srce, char *args, session_struct *sp)
+{
+	char	*s;
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &s)) {
+		s = mbus_decode_str(s);
+		if (strcmp(s, "microphone") == 0) {
+			audio_set_iport(sp->audio_fd, AUDIO_MICROPHONE);
+		}
+		if (strcmp(s, "cd") == 0) {
+			audio_set_iport(sp->audio_fd, AUDIO_CD);
+		}
+		if (strcmp(s, "line_in") == 0) {
+			audio_set_iport(sp->audio_fd, AUDIO_LINE_IN);
+		}
+	} else {
+		printf("mbus: usage \"input_port <port>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+	ui_update_input_port(sp);
+}
+
+static void func_output_mute(char *srce, char *args, session_struct *sp)
+{
+	int i;
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
+        	sp->playing_audio = i;
+		ui_update_output_port(sp);
+	} else {
+		printf("mbus: usage \"output_mute <boolean>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine);
 }
@@ -234,6 +298,29 @@ static void func_output_gain(char *srce, char *args, session_struct *sp)
 		printf("mbus: usage \"output_gain <integer>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine);
+}
+
+static void func_output_port(char *srce, char *args, session_struct *sp)
+{
+	char	*s;
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_str(sp->mbus_engine, &s)) {
+		s = mbus_decode_str(s);
+		if (strcmp(s, "speaker") == 0) {
+			audio_set_oport(sp->audio_fd, AUDIO_SPEAKER);
+		}
+		if (strcmp(s, "headphone") == 0) {
+			audio_set_oport(sp->audio_fd, AUDIO_HEADPHONE);
+		}
+		if (strcmp(s, "line_out") == 0) {
+			audio_set_oport(sp->audio_fd, AUDIO_LINE_OUT);
+		}
+	} else {
+		printf("mbus: usage \"output_port <port>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+	ui_update_output_port(sp);
 }
 
 static void func_output_mode(char *srce, char *args, session_struct *sp)
@@ -394,38 +481,21 @@ static void func_source_mute(char *srce, char *args, session_struct *sp)
 {
 	rtcp_dbentry	*e;
 	char		*cname;
+	int		 i;
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_str(sp->mbus_engine, &cname)) {
+	if (mbus_parse_str(sp->mbus_engine, &cname) && mbus_parse_int(sp->mbus_engine, &i)) {
 		for (e = sp->db->ssrc_db; e != NULL; e = e->next) {
 			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) {	
-				e->mute = TRUE;
+				e->mute = i;
 			}
 		}
 	} else {
-		printf("mbus: usage \"source_mute <cname>\"\n");
+		printf("mbus: usage \"source_mute <cname> <bool>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine);
 }
 
-
-static void func_source_unmute(char *srce, char *args, session_struct *sp)
-{
-	rtcp_dbentry	*e;
-	char		*cname;
-
-	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_str(sp->mbus_engine, &cname)) {
-		for (e = sp->db->ssrc_db; e != NULL; e = e->next) {
-			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) {
-				e->mute = FALSE;
-			}
-		}
-	} else {
-		printf("mbus: usage \"source_unmute <cname>\"\n");
-	}
-	mbus_parse_done(sp->mbus_engine);
-}
 
 static void func_source_playout(char *srce, char *args, session_struct *sp)
 {
@@ -546,8 +616,12 @@ char *mbus_cmnd[] = {
 	"agc",
 	"sync",
 	"rate",
+	"input_mute",
 	"input_gain",
+	"input_port",
+	"output_mute",
 	"output_gain",
+	"output_port",
 	"output_mode",
 	"repair",
 	"update_key",
@@ -560,7 +634,6 @@ char *mbus_cmnd[] = {
 	"source_phone",
 	"source_loc",
 	"source_mute",
-	"source_unmute",
 	"source_playout",
 	"redundancy",
 	"primary",
@@ -580,8 +653,12 @@ void (*mbus_func[])(char *srce, char *args, session_struct *sp) = {
 	func_agc,
 	func_sync,
 	func_rate,
+	func_input_mute,
 	func_input_gain,
+	func_input_port,
+	func_output_mute,
 	func_output_gain,
+	func_output_port,
 	func_output_mode,
 	func_repair,
 	func_update_key,
@@ -594,7 +671,6 @@ void (*mbus_func[])(char *srce, char *args, session_struct *sp) = {
 	func_source_phone,
 	func_source_loc,
 	func_source_mute,
-	func_source_unmute,
 	func_source_playout,
 	func_redundancy,
 	func_primary,
