@@ -597,3 +597,8 @@ ui_load_settings(void)
 	mbus_engine_tx(TRUE, mbus_name_ui, "load.settings", "", TRUE);
 }
 
+void ui_quit(void)
+{
+	mbus_engine_tx(TRUE, mbus_name_ui, "quit", "", TRUE);
+}
+

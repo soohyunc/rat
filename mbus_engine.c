@@ -55,6 +55,8 @@
 #include "session.h"
 #include "rat_time.h"
 
+extern int should_exit;
+
 static struct mbus *mbus_base = NULL;
 static struct mbus *mbus_chan = NULL;
 
@@ -681,6 +683,15 @@ static void rx_settings(char *srce, char *args, session_struct *sp)
         ui_update(sp);
 }
 
+static void rx_quit(char *srce, char *args, session_struct *sp)
+{
+	UNUSED(args);
+	UNUSED(srce);
+	UNUSED(sp);
+	ui_quit();
+        should_exit = TRUE;
+}
+
 const char *rx_cmnd[] = {
 	"get_audio",
 	"toggle.input.port",
@@ -717,6 +728,7 @@ const char *rx_cmnd[] = {
         "auto.convert",
         "channel.code",
         "settings",
+	"quit",
 	""
 };
 
@@ -755,7 +767,8 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_max_playout,
         rx_auto_convert,
         rx_channel_code,
-        rx_settings
+        rx_settings,
+	rx_quit
 };
 
 void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
@@ -816,12 +829,6 @@ struct mbus *mbus_engine(int channel)
 		return mbus_chan;
 	}
 }
-
-int  mbus_engine_waiting(void)
-{
-	return mbus_waiting_acks(mbus_base) || mbus_waiting_acks(mbus_chan);
-}
-
 
 void mbus_engine_retransmit(void)
 {

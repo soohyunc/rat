@@ -45,7 +45,6 @@ void         mbus_ui_tx_queue(int channel, char *cmnd, char *args);
 void         mbus_ui_init(char *name_engine, int channel);
 int          mbus_ui_fd(int channel);
 struct mbus *mbus_ui(int channel);
-int          mbus_ui_waiting(void);
 void         mbus_ui_retransmit(void);
 
 #endif

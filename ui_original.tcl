@@ -410,6 +410,11 @@ proc mbus_recv_source.mute {cname val} {
 	}
 }
 
+proc mbus_recv_quit {} {
+	save_settings 
+	destroy .
+}
+
 proc cname_update {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL INDEX 
 	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER LOSS_TO_ME LOSS_FROM_ME
@@ -621,6 +626,12 @@ proc toggle_stats {cname} {
 	}
 }
 
+proc do_quit {} {
+	save_settings 
+	destroy .
+	mbus_send "R" "quit" ""
+}
+
 # Initialise RAT MAIN window
 frame .r 
 frame .l 
@@ -632,7 +643,7 @@ frame .l.t.list.f -highlightthickness 0 -bd 0
 frame  .l.s1 -bd 0
 button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options"   -command {wm deiconify .prefs}
 button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"     -command {wm deiconify .about}
-button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"      -command {save_settings; destroy .}
+button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"      -command do_quit
 
 frame .r.c
 frame .r.c.vol  
@@ -698,7 +709,7 @@ proc mbus_recv_enable.audio.ctls {} {
 
 bind all <ButtonPress-3>   "toggle_send"
 bind all <ButtonRelease-3> "toggle_send"
-bind all <q> {destroy .}
+bind all <q>               "do_quit"
 
 wm iconbitmap . rat_small
 wm resizable . 0 1

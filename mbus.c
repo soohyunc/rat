@@ -173,6 +173,8 @@ static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, const c
 	m->ack_list = curr;
 	m->ack_list_size++;
 	mbus_ack_list_check(m);
+	assert(m->ack_list != NULL);
+	assert(m->ack_list_size > 0);
 }
 
 static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seqnum)
@@ -223,8 +225,14 @@ int mbus_waiting_acks(struct mbus *m)
 	 * messages we sent out.
 	 */
 	mbus_ack_list_check(m);
-	if (m->ack_list != NULL) dprintf("Waiting for ACKs on mbus 0x%p...\n", m);
-	return (m->ack_list != NULL);
+	if (m->ack_list != NULL) {
+		dprintf("Waiting for ACKs on mbus 0x%p...\n", m);
+		return TRUE;
+	} else {
+		assert(m->ack_list == NULL);
+		assert(m->ack_list_size == 0);
+		return FALSE;
+	}
 }
 
 static void mbus_send_ack(struct mbus *m, char *dest, int seqnum)

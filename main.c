@@ -80,17 +80,6 @@ signal_handler(int signal)
 }
 #endif
 
-static int waiting_on_mbus(int num_sessions) 
-{
-	int i;
-
-	for (i=0; i<num_sessions; i++) {
-		if (mbus_engine_waiting()) return TRUE;
-		if (mbus_ui_waiting()) return TRUE;
-	}
-	return FALSE;
-}
-
 int
 main(int argc, char *argv[])
 {
@@ -178,7 +167,7 @@ main(int argc, char *argv[])
 	
 	xdoneinit();
 
-	while (TRUE) {
+	while (!should_exit) {
 		for (i = 0; i < num_sessions; i++) {
 			if (sp[i]->mode == TRANSCODER) {
 				elapsed_time = read_write_audio(sp[i], sp[1-i], ms[i]);
@@ -198,20 +187,15 @@ main(int argc, char *argv[])
                                 service_transmitter(sp[i], sp[1-i]->speakers_active);
                         }
 
-			/* Impose RTP formatting on the packets in the netrx_queue and update RTP */
-			/* reception statistics. Packets are moved to rx_unit_queue.        [csp] */
 			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time);
-
 			service_receiver(sp[i], rx_unit_queue_p[i], &sp[i]->playout_buf_list, ms[i]);
 
-			/* Do funky RTCP stuff... */
 			if (sp[i]->mode == TRANSCODER) {
 				service_rtcp(sp[i], sp[1-i], rtcp_pckt_queue_p[i], cur_time);
 			} else {
 				service_rtcp(sp[i],    NULL, rtcp_pckt_queue_p[i], cur_time);
 			}
 
-			/* Schedule any outstanding retransmissions of mbus messages... */
 			mbus_engine_retransmit();
 			mbus_ui_retransmit();
 
@@ -231,34 +215,24 @@ main(int argc, char *argv[])
 
                 	if (sp[i]->ui_on) {
 				ui_update_powermeters(sp[i], ms[i], elapsed_time);
-				if (tcl_active()) {
-					tcl_process_events();
-				} else {
-					should_exit = TRUE;
-				}
+				tcl_process_events();
                 	} 
 
 			if ((sp[i]->mode == FLAKEAWAY) && (sp[i]->flake_go == 0) && (sp[i]->flake_os < 0)) {
                                 should_exit = TRUE;
                         }
-
-			/* Exit? */
-			if (should_exit && !waiting_on_mbus(num_sessions)) {
-				if (tcl_active()) {
-					tcl_send("destroy .");
-				}
-				for (i=0; i<num_sessions; i++) {
-                                	if (sp[i]->in_file  != NULL) fclose(sp[i]->in_file);
-                                	if (sp[i]->out_file != NULL) fclose(sp[i]->out_file);
-                                	rtcp_exit(sp[i], sp[1-i], sp[i]->rtcp_fd, sp[i]->net_maddress, sp[i]->rtcp_port);
-					if (sp[i]->mode != TRANSCODER) {
-                                		audio_close(sp[i]->audio_fd);
-					}
-				}
-                                xmemdmp();
-                                return 0;
-                        }
 		}
         }
+	for (i=0; i<num_sessions; i++) {
+		rtcp_exit(sp[i], sp[1-i], sp[i]->rtcp_fd, sp[i]->net_maddress, sp[i]->rtcp_port);
+		if (sp[i]->in_file  != NULL) fclose(sp[i]->in_file);
+		if (sp[i]->out_file != NULL) fclose(sp[i]->out_file);
+		if (sp[i]->mode != TRANSCODER) {
+			audio_close(sp[i]->audio_fd);
+		}
+	}
+	network_process_mbus(sp, num_sessions, 1000);
+	xmemdmp();
+	return 0;
 }
 
