@@ -681,6 +681,7 @@ ui_update_codec(session_struct *sp, codec_id_t cid)
         can_dec = codec_can_decode(cid);
 
         assert(can_enc || can_dec);
+        caps = NULL;
         if (can_enc && can_dec) {
                 caps = mbus_encode_str("Encode and decode");
         } else if (can_enc) {
