@@ -60,9 +60,25 @@
 #define TRANSCODER              2
 #define FLAKEAWAY               4
 
+/*- global clock frequency -*/
+#define GLOBAL_CLOCK_FREQ 96000
+
+/*- overrideable payload numbers -*/
+#define PT_L16_8K_MONO    110
+#define PT_L16_8K_STEREO  111
+#define PT_L16_16K_MONO   112
+#define PT_L16_16K_STEREO 113
+#define PT_L16_32K_MONO   114
+#define PT_L16_32K_STEREO 115
+#define PT_L16_48K_MONO   116
+#define PT_L16_48K_STEREO 117
+#define PT_REDUNDANCY     121
+#define PT_WBS            122
+
 extern int thread_pri;
 
 typedef struct session_tag {
+        short           id;                             /* idx of this session_tag - nasty hack - we know session_structs allocated as an array of 2 */
 	int		mode;                           /* audio tool, transcoder, flakeaway */
 	char            asc_address[MAXHOSTNAMELEN+1];  /* their ascii name if unicast */
 	char            maddress[16];
@@ -70,6 +86,7 @@ typedef struct session_tag {
 	u_long          our_address;			/* our unicast address */
 	int             rtp_port;
 	int             rtcp_port;
+        int             no_filter_loopback;
 	int             ttl;
 	int             rtp_fd;
 	int             rtcp_fd;
