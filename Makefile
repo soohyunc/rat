@@ -62,8 +62,6 @@ OBJS  += $(OBJDIR)/convert.o \
          $(OBJDIR)/mix.o \
          $(OBJDIR)/parameters.o \
          $(OBJDIR)/ui_original.o \
-	 $(OBJDIR)/ui_anna.o \
-	 $(OBJDIR)/ui_relate.o \
          $(OBJDIR)/tcl_libs.o \
          $(OBJDIR)/rtcp.o \
          $(OBJDIR)/speaker_table.o \
@@ -110,14 +108,6 @@ $(OBJDIR)/ui_original.o: $(SRCDIR)/ui_original.tcl $(BINDIR)/tcl2c-$(OSTYPE)-$(O
 	cat $(SRCDIR)/ui_original.tcl | $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) ui_original > $(OBJDIR)/ui_original.c
 	$(CC) $(CFLAGS) -c $(OBJDIR)/ui_original.c -o $(OBJDIR)/ui_original.o
 
-$(OBJDIR)/ui_anna.o: $(SRCDIR)/ui_anna.tcl $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
-	cat $(SRCDIR)/ui_anna.tcl | $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) ui_anna > $(OBJDIR)/ui_anna.c
-	$(CC) $(CFLAGS) -c $(OBJDIR)/ui_anna.c -o $(OBJDIR)/ui_anna.o
-
-$(OBJDIR)/ui_relate.o: ui_relate.tcl $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
-	cat $(SRCDIR)/ui_relate.tcl | $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) ui_relate > $(OBJDIR)/ui_relate.c
-	$(CC) $(CFLAGS) -c $(OBJDIR)/ui_relate.c -o $(OBJDIR)/ui_relate.o
-
 $(OBJDIR)/tcl_libs.o: $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
 	cat tcl/*.tcl tk/*.tcl | $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) TCL_LIBS > $(OBJDIR)/tcl_libs.c
 	$(CC) $(CFLAGS) -c $(OBJDIR)/tcl_libs.c -o $(OBJDIR)/tcl_libs.o
@@ -125,9 +115,7 @@ $(OBJDIR)/tcl_libs.o: $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
 clean:
 	-rm -f $(OBJDIR)/*.o
 	-rm -f $(OBJDIR)/tcl_libs.c
-	-rm -f $(OBJDIR)/ui_anna.c
 	-rm -f $(OBJDIR)/ui_original.c
-	-rm -f $(OBJDIR)/ui_relate.c
 	-rm -f $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
 	-rm -f $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
 
