@@ -68,7 +68,7 @@ struct mbus_ack {
 };
 
 struct mbus {
-	fd_t		 fd;
+	socket_udp	*s;
 	unsigned short	 channel;
 	int		 num_addr;
 	char		*addr[MBUS_MAX_ADDR];
@@ -83,7 +83,6 @@ struct mbus {
 	char		*qmsg_cmnd[MBUS_MAX_QLEN];
 	char		*qmsg_args[MBUS_MAX_QLEN];
 	u_int32	 	 interfaces[MBUS_MAX_IF];
-	int		 num_interfaces;
 };
 
 static int mbus_addr_match(char *a, char *b)
@@ -246,9 +245,7 @@ static void mbus_send_ack(struct mbus *m, char *dest, int seqnum)
 	saddr.sin_port   = htons((short)(MBUS_PORT+m->channel));
 	sprintf(buffer, "mbus/1.0 %d U (%s) (%s) (%d)\n", ++m->seqnum, m->addr[0], dest, seqnum);
         assert(strlen(buffer) < 96);
-        if ((sendto(m->fd, buffer, strlen(buffer), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
-		perror("mbus_send: sendto");
-	}
+	udp_send(m->s, buffer, strlen(buffer));
 }
 
 static void resend(struct mbus *m, struct mbus_ack *curr) 
@@ -276,14 +273,9 @@ static void resend(struct mbus *m, struct mbus_ack *curr)
         sprintf(bp, "%s (%s)\n", curr->cmnd, curr->args);
 	bp += strlen(curr->cmnd) + strlen(curr->args) + 4;
         assert(strlen(b) < MBUS_BUF_SIZE);
-	if ((sendto(m->fd, b, strlen(b), 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
-		perror("mbus_send: sendto");
-	}
-
+	udp_send(m->s, b, strlen(b));
 	curr->rtcnt++;
-	
         xfree(b);
-        
 }
 
 void mbus_retransmit(struct mbus *m)
@@ -331,85 +323,16 @@ void mbus_retransmit(struct mbus *m)
         
 }
 
-static fd_t mbus_socket_init(unsigned short channel)
-{
-	struct sockaddr_in sinme;
-	struct ip_mreq     imr;
-	char               ttl   =  0;
-	int                reuse =  1;
-	char               loop  =  1;
-	fd_t               fd    = -1;
-#if defined(IRIX) || defined(HPUX) || defined(FreeBSD) || defined(Linux) || defined(Solaris)
-	int		   rbuf  = 65535;
-#endif
-
-	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		perror("mbus: socket");
-		return -1;
-	}
-
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) < 0) {
-		perror("mbus: setsockopt SO_REUSEADDR");
-		return -1;
-	}
-#ifdef SO_REUSEPORT
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) < 0) {
-		perror("mbus: setsockopt SO_REUSEPORT");
-		return -1;
-	}
-#endif
-#if defined(IRIX) || defined(HPUX) || defined(FreeBSD) || defined(Linux) || defined(Solaris)
-	if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char *) &rbuf, sizeof(rbuf)) < 0) {
-		perror("mbus: setsockopt SO_RCVBUF");
-		return -1;
-	}
-#endif
-
-	sinme.sin_family      = AF_INET;
-	sinme.sin_addr.s_addr = htonl(INADDR_ANY);
-	sinme.sin_port        = htons((short)(MBUS_PORT+channel));
-	if (bind(fd, (struct sockaddr *) & sinme, sizeof(sinme)) < 0) {
-		perror("mbus: bind");
-		return -1;
-	}
-
-	imr.imr_multiaddr.s_addr = MBUS_ADDR;
-	imr.imr_interface.s_addr = INADDR_ANY;
-	
-	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) < 0) {
-		perror("mbus: setsockopt IP_ADD_MEMBERSHIP");
-		return -1;
-	}
-#ifndef WIN32
-	if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop)) < 0) {
-		perror("mbus: setsockopt IP_MULTICAST_LOOP");
-		return -1;
-	}
-
-	if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
-		perror("mbus: setsockopt IP_MULTICAST_TTL");
-		return -1;
-	}
-#endif
-
-	return fd;
-}
-
 struct mbus *mbus_init(unsigned short channel, 
                        void  (*cmd_handler)(char *src, char *cmd, char *arg, void *dat), 
 		       void  (*err_handler)(int seqnum))
 {
 	struct mbus	*m;
 	int		 i;
-#if !defined(WIN32) && !defined(FreeBSD)
-	struct ifreq	 ifbuf[32];
-	struct ifreq	*ifp;
-	struct ifconf	 ifc;
-#endif
+
 	m = (struct mbus *) xmalloc(sizeof(struct mbus));
-	m->fd           = mbus_socket_init(channel);
-	assert(m->fd != -1);
-	m->channel	    = channel;
+	m->s		= udp_init("224.255.222.239", 47000 + channel, 0);
+	m->channel	= channel;
 	m->seqnum       = 0;
 	m->ack_list     = NULL;
 	m->ack_list_size= 0;
@@ -422,24 +345,6 @@ struct mbus *mbus_init(unsigned short channel,
 	for (i = 0; i < MBUS_MAX_PD;   i++) m->parse_buffer[i] = NULL;
 	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_cmnd[i]    = NULL;
 	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_args[i]    = NULL;
-
-	/* Determine the network interfaces on this host... */
-#if !defined(WIN32) && !defined(FreeBSD)
-	ifc.ifc_buf = (char *)ifbuf;
-	ifc.ifc_len = sizeof(ifbuf);
-	if (ioctl(m->fd, SIOCGIFCONF, (char *) &ifc) < 0) {
-		debug_msg("Can't find interface configuration...\n");
-		return m;
-	}
-
-	ifp = ifc.ifc_req;
-	m->num_interfaces = 0;
-	while (ifp < (struct ifreq *) ((char *) ifbuf + ifc.ifc_len)) {
-		m->interfaces[m->num_interfaces++] = ((struct sockaddr_in *) &((ifp++)->ifr_addr))->sin_addr.s_addr;
-	}
-#else
-	m->num_interfaces = 0;
-#endif
 	return m;
 }
 
@@ -452,27 +357,6 @@ void mbus_addr(struct mbus *m, char *addr)
 	}
 	mbus_parse_done(m);
 }
-
-fd_t mbus_fd(struct mbus *m)
-{
-	return m->fd;
-}
-
-#ifdef NDEF
-void mbus_qmsg(struct mbus *m, const char *cmnd, const char *args)
-{
-	/* Queue a message for sending. The next call to mbus_send() sends this message
-	 * piggybacked in that packet. The destination address and reliability for the
-	 * messages queued in this way is specified by the call to mbus_send().
-	 */
-	assert(cmnd != NULL);
-	assert(args != NULL);
-	assert((m->qmsg_size < MBUS_MAX_QLEN-1) && (m->qmsg_size >= 0));
-	m->qmsg_cmnd[m->qmsg_size] = xstrdup(cmnd);
-	m->qmsg_args[m->qmsg_size] = xstrdup(args);
-	m->qmsg_size++;
-}
-#endif
 
 void mbus_send(struct mbus *m)
 {
@@ -518,9 +402,7 @@ void mbus_qmsg(struct mbus *m, char *dest, const char *cmnd, const char *args, i
 
 	assert((int) strlen(buffer) == (bufp - buffer));
 
-	if ((sendto(m->fd, buffer, bufp - buffer, 0, (struct sockaddr *) &saddr, sizeof(saddr))) < 0) {
-		debug_msg("mbus_send: sendto\n");
-	}
+	udp_send(m->s, buffer, bufp - buffer);
 
 	xfree(buffer);
 }
@@ -683,38 +565,16 @@ char *mbus_encode_str(const char *s)
 	return buf;
 }
 
-void mbus_recv(struct mbus *m, void *data)
+int mbus_recv(struct mbus *m, void *data)
 {
 	char			*ver, *src, *dst, *ack, *r, *cmd, *param;
 	char			 buffer[MBUS_BUF_SIZE];
 	int			 buffer_len, seq, i, a;
-	struct sockaddr_in	 from;
-	int			 fromlen = sizeof(from);
-	int			 p;
-	int			 match_addr = FALSE;
 
 	memset(buffer, 0, MBUS_BUF_SIZE);
-	if ((buffer_len = recvfrom(m->fd, buffer, MBUS_BUF_SIZE, 0, (struct sockaddr *) &from, &fromlen)) <= 0) {
-		return;
-	}
-
-	/* Security: check that the source address of the packet we just
-	 * received belongs to the localhost, else someone can multicast
-	 * mbus commands with ttl 127 and cause chaos. Does this prevent
-	 * people faking the source address and attacking a single host
-	 * though? Probably, because of the rpf check in the mrouters...
-	 */
-
-	if (m->num_interfaces > 0) {
-		for (p = 0; p < m->num_interfaces; p++) {
-			if (m->interfaces[p] == from.sin_addr.s_addr) {
-				match_addr = TRUE;
-			}
-		}
-		if (!match_addr) {
-			debug_msg("Packet source address does not match local host address!\n");
-				return;
-		}
+	buffer_len = udp_recv(m->s, buffer, MBUS_BUF_SIZE);
+	if (buffer_len <= 0) {
+		return FALSE;
 	}
 
 	mbus_parse_init(m, buffer);
@@ -722,32 +582,32 @@ void mbus_recv(struct mbus *m, void *data)
 	if (!mbus_parse_sym(m, &ver) || (strcmp(ver, "mbus/1.0") != 0)) {
 		mbus_parse_done(m);
                 debug_msg("Parser failed version: %s\n",ver);
-		return;
+		return FALSE;
 	}
 	if (!mbus_parse_int(m, &seq)) {
 		mbus_parse_done(m);
                 debug_msg("Parser failed seq: %s\n", seq);
-		return;
+		return FALSE;
 	}
 	if (!mbus_parse_sym(m, &r)) {
 		mbus_parse_done(m);
                 debug_msg("Parser failed reliable: %s\n", seq);
-		return;
+		return FALSE;
 	}
 	if (!mbus_parse_lst(m, &src)) {
 		mbus_parse_done(m);
                 debug_msg("Parser failed seq: %s\n", src);
-		return;
+		return FALSE;
 	}
 	if (!mbus_parse_lst(m, &dst)) {
 		mbus_parse_done(m);
                 debug_msg("Parser failed dst: %s\n", dst);
-		return;
+		return FALSE;
 	}
 	if (!mbus_parse_lst(m, &ack)) {
 		mbus_parse_done(m);
                 debug_msg("Parser failed ack: %s\n", ack);
-		return;
+		return FALSE;
 	}
 	/* Check if the message was addressed to us... */
 	for (i = 0; i < m->num_addr; i++) {
@@ -775,5 +635,6 @@ void mbus_recv(struct mbus *m, void *data)
 		}
 	}
 	mbus_parse_done(m);
+	return TRUE;
 }
 

@@ -58,7 +58,7 @@ void	network_read(struct session_tag    *sp,
                      struct pckt_queue_tag *netrx_pckt_queue_ptr,
 	             struct pckt_queue_tag *rtcp_pckt_queue_ptr,
 	             u_int32            cur_time);
-void    network_process_mbus(struct session_tag *sp[], int num_sessions, int delay);
+void    network_process_mbus(struct session_tag *sp);
 
 #endif /* _RAT_NET_H_ */
 

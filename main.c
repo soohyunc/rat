@@ -166,7 +166,7 @@ main(int argc, char *argv[])
 
 	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 	do {
-		network_process_mbus(sp, num_sessions, 1000);
+		network_process_mbus(sp[0]);
 		heartbeat(ntp_time32(), 1);
 	} while (sp[0]->wait_on_startup);
 
@@ -185,13 +185,13 @@ main(int argc, char *argv[])
 	ui_load_settings();
         rtcp_clock_change(sp[0]);
 
-	network_process_mbus(sp, num_sessions, 500);
+	network_process_mbus(sp[0]);
 
 	parse_late_options(argc, argv, sp);
 	for (i = 0; i < num_sessions; i++) {
 		ui_update(sp[i]);
 	}
-	network_process_mbus(sp, num_sessions, 100);
+	network_process_mbus(sp[0]);
 
         if (!sp[0]->sending_audio && (sp[0]->mode != AUDIO_TOOL)) {
 		for (i=0; i<num_sessions; i++) {
@@ -267,7 +267,7 @@ main(int argc, char *argv[])
                          * pause to drain before closing.
                          */
                         if (sp[i]->next_encoding != -1) {
-                                network_process_mbus(sp, num_sessions, 100);
+                                network_process_mbus(sp[i]);
                                 audio_device_reconfigure(sp[i]);
                         }
                         
@@ -286,9 +286,8 @@ main(int argc, char *argv[])
 		if (sp[i]->in_file  != NULL) snd_read_close (&sp[i]->in_file);
 		if (sp[i]->out_file != NULL) snd_write_close(&sp[i]->out_file);
                 audio_device_give(sp[i]);
-
+		network_process_mbus(sp[i]);
 	}
-	network_process_mbus(sp, num_sessions, 1000);
         
         if (sp[0]->ui_on) {
                 tcl_exit();

@@ -172,121 +172,29 @@ network_read(session_struct    *sp,
 	     pckt_queue_struct *rtcp_pckt_queue_ptr,
 	     u_int32       cur_time)
 {
-	fd_t             sel_fd;
-	struct timeval  timeout, *tvp;
-	fd_set          rfds;
-
 	read_and_enqueue(sp->rtp_socket, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
 	read_and_enqueue(sp->rtcp_socket, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
 
-	sel_fd = mbus_engine_fd(0);
-     	if (sp->ui_on) {
-		sel_fd = max(sel_fd, mbus_ui_fd(0));
-	}
+	mbus_recv(mbus_engine(FALSE), (void *) sp);
+	mbus_recv(mbus_ui(FALSE), (void *) sp);
 	if (sp->mbus_channel != 0) {
-		sel_fd = max(sel_fd, mbus_engine_fd(TRUE));
-     		if (sp->ui_on) {
-			sel_fd = max(sel_fd, mbus_ui_fd(TRUE));
-		}
+		mbus_recv(mbus_engine(TRUE), (void *) sp);
+		mbus_recv(mbus_ui(TRUE), (void *) sp);
 	}
-	sel_fd++;
-        
-        FD_ZERO(&rfds);
-        FD_SET(mbus_engine_fd(0), &rfds);
-        if (sp->ui_on) {
-                FD_SET(mbus_ui_fd(0),     &rfds);
-        }
-        if (sp->mbus_channel != 0) {
-                FD_SET(mbus_engine_fd(TRUE), &rfds);
-                if (sp->ui_on) {
-                        FD_SET(mbus_ui_fd(TRUE),     &rfds);
-                }
-        }
-        
-        timeout.tv_sec  = 0;
-        timeout.tv_usec = sp->loop_delay;
-        tvp = &timeout;
-        
-        if (select(sel_fd, &rfds, (fd_set *) 0, (fd_set *) 0, tvp) > 0) {
-                if (FD_ISSET(mbus_engine_fd(FALSE), &rfds)) {
-                        mbus_recv(mbus_engine(FALSE), (void *) sp);
-                }
-                if (sp->ui_on && FD_ISSET(mbus_ui_fd(FALSE), &rfds)) {
-                        mbus_recv(mbus_ui(FALSE), (void *) sp);
-                }
-                if (sp->mbus_channel != 0) {
-                        if (FD_ISSET(mbus_engine_fd(TRUE), &rfds)) {
-                                mbus_recv(mbus_engine(TRUE), (void *) sp);
-                        }
-                        if (sp->ui_on && FD_ISSET(mbus_ui_fd(TRUE), &rfds)) {
-                                mbus_recv(mbus_ui(TRUE), (void *) sp);
-                        }
-                }
-        }       
 }
 
-void network_process_mbus(session_struct *sp[], int num_sessions, int delay)
+void network_process_mbus(session_struct *sp)
 {
-	fd_t		sel_fd = 0;
-	int             i, rc;
-	struct timeval  timeout, *tvp;
-	fd_set          rfds;
+	/* Process outstanding Mbus messages. */
+	int	rc;
 
-	for (i=0; i<num_sessions; i++) {
-		sel_fd = mbus_engine_fd(0);
-		if (sp[i]->ui_on) {
-			sel_fd = max(sel_fd, mbus_ui_fd(0));
+	do {
+		rc  = mbus_recv(mbus_engine(0), (void *) sp); mbus_send(mbus_engine(0));
+		rc |= mbus_recv(    mbus_ui(0), (void *) sp); mbus_send(mbus_ui(0));
+		if (sp->mbus_channel != 0) {
+			rc |= mbus_recv(mbus_engine(TRUE), (void *) sp); mbus_send(mbus_engine(TRUE));
+			rc |= mbus_recv(    mbus_ui(TRUE), (void *) sp); mbus_send(mbus_ui(TRUE));
 		}
-		if (sp[i]->mbus_channel != 0) {
-			sel_fd = max(sel_fd, mbus_engine_fd(TRUE));
-     			if (sp[i]->ui_on) {
-				sel_fd = max(sel_fd, mbus_ui_fd(TRUE));
-			}
-		}
-		sel_fd++;
-	}
-
-	for (;;) {
-		FD_ZERO(&rfds);
-		for (i=0; i<num_sessions; i++) {	
-                	FD_SET(mbus_engine_fd(0), &rfds);
-     			if (sp[i]->ui_on) {
-				FD_SET(mbus_ui_fd(0),     &rfds);
-			}
-			if (sp[i]->mbus_channel != 0) {
-                		FD_SET(mbus_engine_fd(TRUE), &rfds);
-     				if (sp[i]->ui_on) {
-     					FD_SET(mbus_ui_fd(TRUE),     &rfds);
-				}
-			}
-		}
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = delay;
-		tvp = &timeout;
-		rc = select(sel_fd, &rfds, (fd_set *) 0, (fd_set *) 0, tvp);
-		if (rc > 0) {
-			for (i=0; i<num_sessions; i++) {
-                        	if (FD_ISSET(mbus_engine_fd(0), &rfds)) {
-     					mbus_recv(mbus_engine(0), (void *) sp[i]);
-     				}
-     				if (sp[i]->ui_on && FD_ISSET(mbus_ui_fd(0), &rfds)) {
-     					mbus_recv(mbus_ui(0), (void *) sp[i]);
-     				}
-				if (sp[i]->mbus_channel != 0) {
-                        		if (FD_ISSET(mbus_engine_fd(TRUE), &rfds)) {
-     						mbus_recv(mbus_engine(TRUE), (void *) sp[i]);
-     					}
-     					if (sp[i]->ui_on && FD_ISSET(mbus_ui_fd(TRUE), &rfds)) {
-     						mbus_recv(mbus_ui(TRUE), (void *) sp[i]);
-     					}
-				}
-                	}
-		} else if (rc == 0) {
-			return;
-		} else {
-			debug_msg("Waiting for Mbus to settle");
-			abort();
-		}
-	}
+	} while (rc);
 }
 

@@ -1080,15 +1080,6 @@ void mbus_engine_init(char *name_engine, int channel)
 	}
 }
 
-fd_t mbus_engine_fd(int channel)
-{
-	if (channel == 0) {
-		return mbus_fd(mbus_base);
-	} else {
-		return mbus_fd(mbus_chan);
-	}
-}
-
 struct mbus *mbus_engine(int channel)
 {
 	if (channel == 0) {

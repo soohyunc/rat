@@ -88,15 +88,6 @@ void mbus_ui_init(char *name_ui, int channel)
 	}
 }
 
-fd_t mbus_ui_fd(int channel)
-{
-	if (channel == 0) {
-		return mbus_fd(mbus_base);
-	} else {
-		return mbus_fd(mbus_chan);
-	}
-}
-
 struct mbus *mbus_ui(int channel)
 {
 	if (channel == 0) {
