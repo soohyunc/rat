@@ -231,6 +231,8 @@ int tbl_sz_dn[] = {8, 12, 16, 20, 24};
 #define SF2IDX(x) ((x)-2)
 #define IDX2SF(x) ((x)+2)
 
+struct s_srf_filter_state;
+
 typedef void (*srf_cf)(int offset, int channels, sample* src_buf, int src_len, sample* dst_buf, struct s_srf_filter_state *sf);
 
 typedef struct s_srf_filter_state {
@@ -297,6 +299,10 @@ srf_downsample(int offset, int channels, sample *src, int src_len, sample *dst, 
         int *h_c, *h, *h_e;
         int win_sz, result, i;
         int src_step;
+
+	/* added these two to make it compile :-) [csp] */
+	UNUSED(src);
+	UNUSED(src_len);
 
         win_sz = 2 * tbl_sz_dn[sf->tbl_idx] - 1;
         h_c = srf_tbl_dn[sf->tbl_idx];
