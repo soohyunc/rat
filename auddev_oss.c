@@ -39,7 +39,6 @@ alsa_mute_mic(audio_desc_t ad)
 	snd_mixer_gid_t mic;
 	snd_mixer_group_t group;
 	snd_mixer_t *CurMixer = 0;
-	
 
 	snd_mixer_open(&CurMixer, ad, 0);	/* assume mixer 0 */
 	memset(&mic, 0, sizeof(mic));
@@ -72,6 +71,8 @@ static audio_port_details_t out_ports[] = {
 
 int	iport     = AUDIO_MICROPHONE;
 
+char *oss_mixer_channels[] = SOUND_DEVICE_LABELS;
+
 #define OSS_MAX_DEVICES   		 4	/* Magic constant based on the OSS source */
 #define OSS_MAX_NAME_LEN 		64	/* Magic constant based on the OSS source */
 #define OSS_MAX_SUPPORTED_FORMATS 	14 	/* == 8k,11k,16k,22k,32k,44.1k,48k * mono, stereo */
@@ -90,16 +91,15 @@ struct oss_device {
 	int		 audio_wfd;
 	int		 mixer_rfd;
 	int		 mixer_wfd;
-	int		 duplex;
+	int		 duplex;	/* TRUE if the device supports full duplex */
 	audio_format	 supported_formats[OSS_MAX_SUPPORTED_FORMATS];
 	int		 num_supported_formats;
+	int		 dev_mask;	/* Supported mixer channels     */
+	int		 rec_mask;	/* Supported recording channels */
 };
 
 static struct oss_device	devices[OSS_MAX_DEVICES];
 static int			num_devices;
-
-#define bat_to_device(x)  ((x) * 100 / MAX_AMP)
-#define device_to_bat(x)  ((x) * MAX_AMP / 100)
 
 static int
 deve2oss(deve_e encoding)
@@ -125,7 +125,7 @@ oss_probe_mixer_device(int i, struct oss_device *device)
 	/* which have a broken /dev.                                       */
 	mixer_info	info;
 	struct stat	s;
-	int		channels, valid_mixer = FALSE;
+	int		valid_mixer = FALSE;
 	int		fd;
 
 	sprintf(device->mixer_rdev, "/dev/mixer%d", i);
@@ -137,7 +137,12 @@ oss_probe_mixer_device(int i, struct oss_device *device)
 		}
 	}
 	if (fd < 0) {
+		/* We can't find a working mixer device - this is not  */
+		/* necessarily a problem, some soundcards don't have a */
+		/* corresponding mixer device.                         */
 		debug_msg("cannot open %s - %s\n", device->mixer_rdev, strerror(errno));
+		memset(device->mixer_rdev, 0, 16);
+		memset(device->mixer_wdev, 0, 16);
 		return FALSE;
 	}
 	strncpy(device->mixer_wdev, device->mixer_rdev, 16);
@@ -153,10 +158,14 @@ oss_probe_mixer_device(int i, struct oss_device *device)
 		valid_mixer = TRUE;
 	}
 
-	if (ioctl(fd, SOUND_MIXER_READ_RECMASK, &channels) != 0) {
-		debug_msg("cannot query mixer channels\n");
-	} else {
-		debug_msg("mixer channels %08x\n", channels);
+	if (ioctl(fd, SOUND_MIXER_READ_DEVMASK, &device->dev_mask) != 0) {
+		debug_msg("cannot query mixer dev mask %s\n", strerror(errno));
+		device->dev_mask = 0;
+	}
+
+	if (ioctl(fd, SOUND_MIXER_READ_RECMASK, &device->rec_mask) != 0) {
+		debug_msg("cannot query mixer rec mask %s\n", strerror(errno));
+		device->rec_mask = 0;
 	}
 
 	device->mixer_rfd = -1;
@@ -246,6 +255,29 @@ oss_probe_audio_device(int i, struct oss_device *device)
 	return TRUE;
 }
 
+static int
+oss_test_device_pair(int rdev, int wdev)
+{
+	/* Attempt to open rdev read-only and wdev write-only, both half- */
+	/* duplex, simultaneously. Return TRUE if we succeed.             */
+	devices[rdev].audio_rfd = open(devices[rdev].audio_rdev, O_RDONLY | O_NDELAY);
+	if (devices[rdev].audio_rfd == 0) {
+		debug_msg("unable to open %s %s\n", devices[rdev].audio_rdev, strerror(errno));
+		return FALSE;
+	}
+
+	devices[wdev].audio_wfd = open(devices[wdev].audio_wdev, O_WRONLY | O_NDELAY);
+	if (devices[wdev].audio_wfd == 0) {
+		debug_msg("unable to open %s %s\n", devices[wdev].audio_wdev, strerror(errno));
+		close(devices[rdev].audio_rfd); devices[rdev].audio_rfd = 0;
+		return FALSE;
+	}
+
+	close(devices[rdev].audio_rfd); devices[rdev].audio_rfd = 0;
+	close(devices[wdev].audio_wfd); devices[wdev].audio_wfd = 0;
+	return TRUE;
+}
+
 static void
 oss_pair_devices(void)
 {
@@ -253,7 +285,31 @@ oss_pair_devices(void)
 	/* of half-duplex audio devices into a single full duplex device    */
 	/* entry (with one device providing half-duplex recording, and the  */
 	/* other providing half-duplex playback).                           */
-	debug_msg("device pairing not yet implemented\n");
+	int	i, j;
+
+	if (num_devices < 2) {
+		return;
+	}
+
+	for (i = 0; i < num_devices - 1; i++) {
+		if ((devices[i].duplex == OSS_DUPLEX_HALF) && (devices[i+1].duplex == OSS_DUPLEX_HALF)) {
+			if (oss_test_device_pair(i, i+1)) {
+				debug_msg("Combining %s and %s\n", devices[i].audio_rdev, devices[i+1].audio_wdev);
+				memcpy(devices[i].audio_wdev, devices[i+1].audio_wdev, 16);
+				memcpy(devices[i].mixer_wdev, devices[i+1].mixer_wdev, 16);
+				devices[i].duplex   = OSS_DUPLEX_PAIR;
+				/* We may have to do something smarter here... */
+				devices[i].rec_mask = devices[i+1].rec_mask;
+				for (j = i+1; j < num_devices - 1; j++) {
+					devices[j] = devices[j+1];
+				}
+				xfree(devices[i+1].name);
+				num_devices--;
+			} else {
+				debug_msg("Cannot pair %s and %s\n", devices[i].audio_rdev, devices[i+1].audio_wdev);
+			}
+		}
+	}
 }
 
 static void
@@ -280,14 +336,15 @@ oss_audio_init(void)
 {
 	/* One time initialization of the OSS audio driver. We probe the    */
 	/* available devices, to setup the devices[] array and num_devices. */
-	int			i, valid_device;
+	/* Note that it is entirely legal to have an audio device without a */
+	/* corresponding mixer device.                                      */
+	int			i;
 	struct oss_device	device;
 
 	num_devices = 0;
 	for (i = 0; i < OSS_MAX_DEVICES; i++) {
-		valid_device  = oss_probe_mixer_device(i, &device);
-		valid_device &= oss_probe_audio_device(i, &device);
-		if (valid_device) {
+		oss_probe_mixer_device(i, &device);
+		if (oss_probe_audio_device(i, &device)) {
 			devices[num_devices++] = device;
 			debug_msg("found \"%s\" as %s,%s\n", device.name, device.audio_rdev, device.mixer_rdev);
 		}
@@ -490,7 +547,7 @@ void
 oss_audio_set_igain(audio_desc_t ad, int gain)
 {
 
-	int volume = bat_to_device(gain) << 8 | bat_to_device(gain);
+	int volume = (gain << 8) | gain;
 
         assert(ad < OSS_MAX_DEVICES);
         assert(devices[ad].audio_rfd > 0);
@@ -566,7 +623,7 @@ oss_audio_get_igain(audio_desc_t ad)
 		printf("ERROR: Unknown iport in audio_set_igain!\n");
 		abort();
 	}
-	return device_to_bat(volume & 0xff);
+	return volume & 0xff;
 }
 
 void
@@ -613,7 +670,7 @@ oss_audio_get_ogain(audio_desc_t ad)
 	  && ioctl(devices[ad].mixer_wfd, MIXER_READ(SOUND_MIXER_OGAIN), &volume) == -1) {
 		perror("Getting volume");
 	}
-	return device_to_bat(volume & 0x000000ff); /* Extract left channel volume */
+	return volume & 0x000000ff; /* Extract left channel volume */
 }
 
 void
