@@ -239,26 +239,9 @@ adapt_playout(rtp_hdr_t               *hdr,
 
                         src->delay_in_playout_calc = src->delay;
                         
-                        if (src->first_pckt_flag != TRUE &&
-                            source_get_by_rtcp_dbentry(sp->active_sources, src) != 0) {
-                                /* If playout buffer is not empty
-                                 * or, difference in time stamps is less than 1 sec,
-                                 * we don't want playout point to be before that of existing data.
-                                 */
-                                ts_t new_playout;
-                                new_playout = ts_add(src->delay, 
-                                                     ts_map32(src_freq, var));
-                                debug_msg("Buf exists (%u) (%u)\n", 
-                                          src->playout.ticks, 
-                                          new_playout.ticks);
-                                if (ts_gt(new_playout, src->playout)) {
-                                        src->playout = new_playout;
-                                }
-                        } else {
-                                debug_msg("delay (%lu) var (%lu)\n", src->delay.ticks, var);
-                                src->playout = ts_add(src->delay, ts_map32(src_freq, var));
-                                debug_msg("src playout %lu\n", src->playout.ticks);
-                        }
+			debug_msg("delay (%lu) var (%lu)\n", src->delay.ticks, var);
+			src->playout = ts_add(src->delay, ts_map32(src_freq, var));
+			debug_msg("src playout %lu\n", src->playout.ticks);
 
 			if (sp->sync_on && src->mapping_valid) {
 				/* use the jitter value as calculated
