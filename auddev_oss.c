@@ -65,7 +65,7 @@ int	bytes_per_block;
 static int ndev;
 char   dev_name[OSS_MAX_DEVICES][OSS_MAX_NAME_LEN];
 
-static char the_dev[] = "/dev/audioX";
+static char the_dev[] = "/dev/dspX";
 static int audio_fd[OSS_MAX_DEVICES];
 
 
@@ -109,7 +109,7 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 return FALSE;
         }
 
-        sprintf(the_dev, "/dev/audio%d", ad);
+        sprintf(the_dev, "/dev/dsp%d", ad);
 
 	audio_fd[ad] = open(the_dev, O_RDWR | O_NDELAY);
 	if (audio_fd[ad] > 0) {
