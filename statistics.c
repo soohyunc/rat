@@ -180,13 +180,8 @@ adapt_playout(rtp_hdr_t *hdr,
 	u_int32	rtp_time;
         u_int32 end_time;
         char    jumped = FALSE;
-
-#ifdef WIN32
-	__int64 since_last_sr;
-#else
-	long long since_last_sr;
-#endif
-        
+        int64 since_last_sr;
+    
 	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
 	delay = arrival_ts - hdr->ts;
 
@@ -305,6 +300,9 @@ adapt_playout(rtp_hdr_t *hdr,
                         /*	src->encoding = hdr->pt; */
 		}
                 if (src->inter_pkt_gap && (signed)((hdr->ts - src->last_ts)/src->inter_pkt_gap) != (hdr->seq - src->last_seq)) {
+                        debug_msg("Jumped: timestamp diff (%d) seq no diff (%d)\n", 
+                                  (hdr->ts - src->last_ts)/src->inter_pkt_gap, 
+                                  hdr->seq-src->last_seq);
                         jumped = TRUE;
                 }
 
@@ -343,7 +341,7 @@ adapt_playout(rtp_hdr_t *hdr,
                  * 
                  * this makes a huge improvement on jittery links.
                  */
-                debug_msg("jumped\n");
+                debug_msg("jumped %ld\n", shift);
                 if (jumped == FALSE && shift < 8000) {
                         playout += shift + src->inter_pkt_gap;
                 }
@@ -470,12 +468,13 @@ statistics(session_struct    *sp,
                 data_ptr =  (unsigned char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + extlen;
                 len      = e_ptr->len - 4 * (3 + hdr->cc) - extlen;
         
-                if (!(pcp = get_codec_by_pt(hdr->pt))) {
-                        /* this is either a channel coded block or we can't decode it */
-                        if (!(pcp = get_codec_by_pt(get_wrapped_payload(hdr->pt, (char *) data_ptr, len)))) {
-                                debug_msg("Cannot decode data.\n");
+                if ( ((pcp = get_codec_by_pt(hdr->pt)) == NULL &&
+                    (pcp = get_codec_by_pt(get_wrapped_payload(hdr->pt, (char*) data_ptr, len))) == NULL) || 
+                    (pcp != NULL && pcp->decode == NULL)) {
+                        /* We don't recognise this payload, or we don't have a decoder for it. */
+                        assert(pcp->decode);
+                                debug_msg("Cannot decode data (pt %d).\n",hdr->pt);
                                 goto release;
-                        }
                 }
         
                 if ((src->enc == -1) || (src->enc != pcp->pt))

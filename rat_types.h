@@ -16,6 +16,12 @@ typedef char	int8;
 typedef short	int16;
 typedef long	int32;
 
+#ifdef WIN32
+typedef __int64   int64;
+#else
+typedef long long int64;
+#endif
+
 typedef short  sample;
 
 #endif /* _rat_types_h_ */
