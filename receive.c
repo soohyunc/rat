@@ -86,21 +86,24 @@ add_unit_to_interval(rx_queue_element_struct *ip, rx_queue_element_struct *ru)
          * if we have reached limit of number of ccu's or we have two or 
          * more with identical headers then we know we've had a duplicate.
          */
-
-        if ((ru->cc_pt == ip->cc_pt) &&
-            (ip->mixed == FALSE)     &&
-            (ip->ccu_cnt == 0 || ip->ccu_cnt < ip->ccu[ip->ccu_cnt - 1]->cc->max_cc_per_interval)) {
-                while(ru->ccu_cnt>0 && 
-                      ip->ccu_cnt < ru->ccu[ru->ccu_cnt-1]->cc->max_cc_per_interval) {
-                        ip->ccu[ip->ccu_cnt++] = ru->ccu[--ru->ccu_cnt];
-                        ru->ccu[ru->ccu_cnt] = NULL;
+        if (ip->mixed == FALSE) {
+                if ((ru->cc_pt == ip->cc_pt) &&
+                    (ip->ccu_cnt == 0 || ip->ccu_cnt < ip->ccu[ip->ccu_cnt - 1]->cc->max_cc_per_interval)) {
+                        while(ru->ccu_cnt>0 && 
+                              ip->ccu_cnt < ru->ccu[ru->ccu_cnt-1]->cc->max_cc_per_interval) {
+                                ip->ccu[ip->ccu_cnt++] = ru->ccu[--ru->ccu_cnt];
+                                ru->ccu[ru->ccu_cnt] = NULL;
+                        }
+                } else {
+                        debug_msg("rejected - compat (%d %d), mixed (%d), ccu_cnt %d",
+                                  ru->cc_pt, 
+                                  ip->cc_pt,
+                                  ip->mixed,
+                                  ip->ccu_cnt);
                 }
         } else {
-                debug_msg("rejected - compat (%d %d), mixed (%d), ccu_cnt %d",
-                          ru->cc_pt, 
-                          ip->cc_pt,
-                          ip->mixed,
-                          ip->ccu_cnt);
+                ip->dbe_source[0]->duplicates++;
+                debug_msg("duplicate\n");
         }
 	free_rx_unit(&ru);
 }
