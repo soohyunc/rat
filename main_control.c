@@ -21,6 +21,7 @@
 #include "version.h"
 #include "mbus_control.h"
 #include "crypt_random.h"
+#include "codec_compat.h"
 
 #ifdef WIN32
 #define UI_NAME     "ratui.exe"
@@ -232,17 +233,20 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
                 } else if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
                         ttl = atoi(argv[i+1]);
                         if (ttl < 0 || ttl > 255) {
-                                usage("Usage -t 0-255.\n");
+                                usage("Usage: -t 0-255.\n");
                                 return FALSE;
                         }
                         i++;
                 } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
 			/* Dynamic payload type mapping. Format: "-pt pt/codec" */
 			/* Codec is of the form "pcmu-8k-mono"                  */
-			int	 pt    = atoi((char*)strtok(argv[i+1], "/"));
-			char	*codec = (char*)strtok(NULL, "/");
-
-			mbus_qmsgf(m, e_addr, TRUE, "tool.rat.payload.set", "\"%s\" %d", codec, pt);
+			int         pt    = atoi((char*)strtok(argv[i+1], "/"));
+			const char *codec = codec_get_compatible_name((const char*)strtok(NULL, "/"));
+                        if (codec != NULL) {
+                                mbus_qmsgf(m, e_addr, TRUE, "tool.rat.payload.set", "\"%s\" %d", codec, pt);
+                        } else {
+                                usage("Usage: -pt <pt>/<codec>");
+                        }
 		} else if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
 			tmp = mbus_encode_str(argv[i+1]);
 			mbus_qmsgf(m, e_addr, TRUE, "security.encryption.key", tmp);
@@ -272,26 +276,37 @@ static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, c
 		} else if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
 			/* Set primary codec: "-f codec". You cannot set the   */
 			/* redundant codec with this option, use "-r" instead. */
+
+                        /* Strip trailing / in case user attempting old syntax */
+                        char *firstname = (char*)strtok(argv[i+1], "/");
+
 			/* The codec should be of the form "pcmu-8k-mono".     */
-			char *name = (char*)strtok(argv[i+1], "-");
+                        char *realname  = xstrdup(codec_get_compatible_name(firstname));
+			char *name = (char*)strtok(realname, "-");
 			char *freq = (char*)strtok(NULL, "-");
 			char *chan = (char*)strtok(NULL, "");
-
-			name = mbus_encode_str(name);
-			freq = mbus_encode_str(freq);
-			chan = mbus_encode_str(chan);
-			mbus_qmsgf(m, e_addr, TRUE, "tool.rat.codec", "%s %s %s", name, chan, freq);
-			xfree(name);
-			xfree(freq);
-			xfree(chan);
+                        if (freq != NULL && chan != NULL) {
+                                debug_msg("codec: %s %s %s\n", name, freq, chan);
+                                name = mbus_encode_str(name);
+                                freq = mbus_encode_str(freq);
+                                chan = mbus_encode_str(chan);
+                                mbus_qmsgf(m, e_addr, TRUE, "tool.rat.codec", "%s %s %s", name, chan, freq);
+                                xfree(name);
+                                xfree(freq);
+                                xfree(chan);
+                        }
+                        xfree(realname);
 		} else if ((strcmp(argv[i], "-r") == 0) && (argc > i+1)) {
 			/* Set channel coding to redundancy: "-r codec/offset" */
-			char *codec  = (char*)strtok(argv[i+1], "/");
+			const char *codec  = codec_get_compatible_name((const char*)strtok(argv[i+1], "/"));
 			int   offset = atoi((char*)strtok(NULL, ""));
-
-			codec  = mbus_encode_str(codec);
-			mbus_qmsgf(m, e_addr, TRUE, "audio.channel.coding", "\"redundancy\" %s %d", codec, offset);
-			xfree(codec);
+                        if (offset != 0) {
+                                codec  = mbus_encode_str(codec);
+                                mbus_qmsgf(m, e_addr, TRUE, "audio.channel.coding", "\"redundancy\" %s %d", codec, offset);
+                        } else {
+                                usage("Usage: -r <codec>/<offset>");
+                        }
+			xfree((char*)codec);
                 } else if ((strcmp(argv[i], "-l") == 0) && (argc > i+1)) { 
 			/* Set channel coding to layered */
 		} else if ((strcmp(argv[i], "-i") == 0) && (argc > i+1)) {

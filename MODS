@@ -1024,14 +1024,18 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	  with media_data duplication in playout buffer shift code.
 	- Various fixes for potential buffer overflows
 	- Update copyright notices to welcome in the new millennium
-	- Fix mbus address of the media engine (had a spurious space in instance:pid)
-	- Remove lip-sync command line option and toggle button in the user interface.
-	- Automatically enable/disable lip-sync when we detect a video tool via our 
-	  mbus interface.
-	- Rewrite the lip-sync code to send our playout delay to the video tool. We 
-	  send "rtp.source.playout(ssrc delay-in-ms)", which might be sufficient.
-
-
+	- Fix mbus address of the media engine (had a spurious space in 
+	  instance:pid)
+	- Remove lip-sync command line option and toggle button in the user 
+	  interface.
+	- Automatically enable/disable lip-sync when we detect a video tool 
+	  via our mbus interface.
+	- Rewrite the lip-sync code to send our playout delay to the video 
+	  tool. We send "rtp.source.playout(ssrc delay-in-ms)", which might be
+	  sufficient.
+	- Added back backwards compatible name mappings for command line 
+	  parsing.
+	- Robustified command line parsing of codecs.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1044,7 +1048,9 @@ TODO -- They're features not bugs dammit!
 	  FreeBSD 3.1 pca audio does not seem to work anymore.
 	- SunVideoPlus interface code does not work (have tried nearly all
 	  options but current driver is v. unstable). Has only worked in 8k 
-	  mono.  New driver is coming soon...
+	  mono.  Blame MMAC, the driver they released to Sun was really buggy,
+	  they have a better version now, but expect you to pay for the 
+	  developer kit (bloody cheek all things considering).
 	- SGI O2's don't have autosensing audio interface selection like 
 	  Indy's.
 	- Need to allow manual input and output switching.
@@ -1069,11 +1075,8 @@ TODO -- They're features not bugs dammit!
 - When silence suppression is off, then no mbus lip-sync messages are exchanged
   between rat & vic since this is done on a per-talkspurt basis by rat.  We 
   may use a timer to send such messages every so often. 
-- Streaming option -S from command line to stream files, raw and sample based
-  files would be good.
 - Reimplement transcoder.
 - Add support for conversion between m*8000 and n*11025
-	- n*11025 sampling isn't well supported in general
 - Better code documentation.
 - Sample based codecs should accept frame lengths of 0-200ms, not just 
   multiples of frame lengths in tables.  Should add codec_is_sample_based 
