@@ -55,7 +55,7 @@ static void newpcm_audio_loopback_config(int gain);
 int 
 newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
-        int32_t         fragment;
+        int32_t         blocksize;
         char            thedev[64];
         
         assert(ad >= 0 && ad < ndev); 
@@ -142,10 +142,9 @@ newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 debug_msg("rec size %d, play size %d bytes\n",
                           sz.rec_size, sz.play_size);
 
-		/* Fragment :  8msb = #frags, 16lsbs = log2 fragsize */
-		fragment = 0x08000007;
-		NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SETFRAGMENT, &fragment);
-                
+		blocksize = 4096;
+		NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SETBLKSIZE, &blocksize);
+               
                 if (newpcm_error != 0) {
                         /* Failed somewhere in initialization - reset error and exit*/
                         newpcm_audio_close(ad);
@@ -398,7 +397,13 @@ newpcm_audio_get_ogain(audio_desc_t ad)
 
 	NEWPCM_AUDIO_IOCTL(audio_fd, MIXER_READ(lgport), &volume);
 
-	return DEVICE_TO_RAT(volume & 0xff); /* Extract left channel volume */
+	if (volume > 100 || volume < 100) {
+		debug_msg("gain out of bounds (%d %d--%d)" \
+			  "mixer entry not implemented?", volume, 0, 100);  
+		volume = 100;
+	} 
+
+	return DEVICE_TO_RAT(volume); /* Extract left channel volume */
 }
 
 void
@@ -455,7 +460,12 @@ newpcm_audio_get_igain(audio_desc_t ad)
 
         UNUSED(ad); assert(audio_fd > 0);
 	NEWPCM_AUDIO_IOCTL(audio_fd, SOUND_MIXER_READ_RECLEV, &volume);
-	return (DEVICE_TO_RAT(volume & 0xff));
+	if (volume > 100 || volume < 100) {
+		debug_msg("gain out of bounds (%d %d--%d)" \
+			  "mixer entry not implemented?", volume, 0, 100);  
+		volume = 100;
+	} 
+	return (DEVICE_TO_RAT(volume));
 }
 
 void
