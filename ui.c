@@ -111,7 +111,7 @@ ui_info_activate(session_struct *sp, rtcp_dbentry *e)
 {
         char arg[11];
         sprintf(arg, "\"%08lx\"", e->sentry->ssrc);
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.active", arg, FALSE);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.active", arg, TRUE);
 }
 
 void
@@ -119,7 +119,7 @@ ui_info_deactivate(session_struct *sp, rtcp_dbentry *e)
 {
         char arg[11];
         sprintf(arg, "\"%08lx\"", e->sentry->ssrc);
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.inactive", arg, FALSE);
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.inactive", arg, TRUE);
 }
 
 void

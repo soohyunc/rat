@@ -221,6 +221,8 @@ source_create(source_list    *plist,
                            out_rate, 
                            out_channels);
 
+        debug_msg("Created source decode path\n");
+
         return psrc;
 
         /* Failure fall throughs */

@@ -832,24 +832,16 @@ proc mbus_recv_rtp.source.reception {ssrc packets_recv packets_lost packets_miso
 }
 
 proc mbus_recv_rtp.source.active {ssrc} {
-    init_source $ssrc 
-    ssrc_update $ssrc
-    global speaker_highlight
-    catch [[window_plist $ssrc] configure -background $speaker_highlight]
+	global speaker_highlight
+	init_source $ssrc 
+	ssrc_update $ssrc
+	[window_plist $ssrc] configure -background $speaker_highlight
 }
 
 proc mbus_recv_rtp.source.inactive {ssrc} {
-    init_source $ssrc 
-    ssrc_update $ssrc
-    global speaker_highlight
-    catch {
-	set w [window_plist $ssrc]
-	if { [$w cget -bg] == $speaker_highlight } {
-	    $w configure -bg grey90
-	    after 60 "catch {$w configure -background grey88}"
-	    after 120 "catch {$w configure -background [.l.t.list cget -bg]}"
-	}
-    }
+	init_source $ssrc 
+	ssrc_update $ssrc
+	[window_plist $ssrc] configure -background [.l.t.list cget -bg]
 }
 
 proc mbus_recv_rtp.source.remove {ssrc} {
