@@ -2,6 +2,7 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "net_udp.h"
+#include "util.h"
 
 #define IPv4	4
 #define IPv6	6
@@ -130,9 +131,9 @@ static int udp_recv4(socket_udp *s, char *buffer, int buflen)
 	FD_ZERO(&rfd);
 	FD_SET(s->fd, &rfd);
 	if (select(s->fd + 1, &rfd, NULL, NULL, &t) > 0) {
-		 len = recvfrom(s->fd, buffer, buflen, 0, 0, 0);
-		 if (len > 0) {
-		 	return len;
+		len = recvfrom(s->fd, buffer, buflen, 0, 0, 0);
+		if (len > 0) {
+			return len;
 		}
 		socket_error("recvfrom");
 	}

@@ -70,17 +70,18 @@ int
 net_write(socket_udp *s, unsigned char *msg, int msglen, int type)
 {
 	unsigned char	*encrypted_msg = NULL;
-	if (Null_Key()==0) {
+
+	assert(type == PACKET_RTP || type == PACKET_RTCP);
+
+	if (Null_Key()) {
+		encrypted_msg = msg;
+	} else {
 		switch (type) {
 		case PACKET_RTP  : encrypted_msg=Encrypt(msg, &msglen);
 				   break;
 		case PACKET_RTCP : encrypted_msg=Encrypt_Ctrl(msg, &msglen);
 				   break;
-		default          : printf("oops. net_write type is broken!\n");
-				   abort();
 		}
-	} else {
-		encrypted_msg = msg;
 	}
 	return udp_send(s, encrypted_msg, msglen);
 }
@@ -124,70 +125,44 @@ network_init(session_struct *sp)
 	sp->rtcp_socket = udp_init(sp->asc_address, sp->rtcp_port, sp->ttl);
 }
 
-/* This function is used for both rtp and rtcp packets */
-static pckt_queue_element_struct *
-read_net(socket_udp *s, u_int32 cur_time, int type, int *nbdecryption)
+static void
+read_and_enqueue(socket_udp *s, u_int32 cur_time, pckt_queue_struct *queue, int type)
 {
 	unsigned char			*data_in, *data_out, *tmp_data;
 	int             		 read_len;
 	pckt_queue_element_struct 	*pckt;
 
-	/*
-	 * Would be better to have a parameter telling us whether this is an
-	 * rtp or rtcp packet to allocate right amount of space. Of course
-	 * this way we can use the same packet pool later on.
-	 *
-	 * We've got the parameter now, but I can't be bothered to fix the code :-) [csp]
-	 */
-
-	data_in  = block_alloc(PACKET_LENGTH);
-	data_out = block_alloc(PACKET_LENGTH);
-
-	if ((read_len = udp_recv(s, data_in, PACKET_LENGTH)) > 0) {
-		if (Null_Key()==0) {
-			switch (type) {
-			case PACKET_RTP:
-				*nbdecryption = Decrypt(data_in, data_out, &read_len);
-				break;
-			case PACKET_RTCP:
-				*nbdecryption = Decrypt_Ctrl(data_in, data_out, &read_len);
-				break;
-			default:
-				printf("oops. read_net type is broken!\n");
-				abort();
+	assert(type == PACKET_RTP || type == PACKET_RTCP);
+	while (1) {
+		data_in  = block_alloc(PACKET_LENGTH);
+		data_out = block_alloc(PACKET_LENGTH);
+		read_len = udp_recv(s, data_in, PACKET_LENGTH);
+		if (read_len > 0) {
+			if (Null_Key()) {
+				tmp_data      = data_out;
+				data_out      = data_in;
+				data_in       = tmp_data;
+			} else {
+				switch (type) {
+					case PACKET_RTP:  Decrypt(data_in, data_out, &read_len);
+							  break;
+					case PACKET_RTCP: Decrypt_Ctrl(data_in, data_out, &read_len);
+							  break;
+				}
 			}
+			pckt = (pckt_queue_element_struct *) block_alloc(sizeof(pckt_queue_element_struct));
+			pckt->len               = read_len;
+			pckt->pckt_ptr          = data_out;
+			pckt->next_pckt_ptr     = NULL;
+			pckt->prev_pckt_ptr     = NULL;
+			pckt->arrival_timestamp = cur_time;
+			put_on_pckt_queue(pckt, queue);
+			block_free(data_in, PACKET_LENGTH);
 		} else {
-			tmp_data      = data_out;
-			data_out      = data_in;
-			data_in       = tmp_data;
-			*nbdecryption = 0;
+			block_free(data_in, PACKET_LENGTH);
+			block_free(data_out, PACKET_LENGTH);
+			return;
 		}
-		pckt = (pckt_queue_element_struct *) block_alloc(sizeof(pckt_queue_element_struct));
-		pckt->len               = read_len;
-		pckt->pckt_ptr          = data_out;
-		pckt->next_pckt_ptr     = NULL;
-		pckt->prev_pckt_ptr     = NULL;
-		pckt->arrival_timestamp = cur_time;
-		block_free(data_in, PACKET_LENGTH);
-		return pckt;
-	} else {
-		block_free(data_in, PACKET_LENGTH);
-		block_free(data_out, PACKET_LENGTH);
-		return NULL;
-	}
-}
-
-
-static void
-read_packets_and_add_to_queue(socket_udp *s, u_int32 cur_time, pckt_queue_struct * queue, int type)
-{
-	/* Simplified version :-) This should probably keep trying a couple of times  */
-	/* in case there are multiple outstanding packets (the old version did) [csp] */
-	int nbdecryption;
-	pckt_queue_element_struct *pckt;
-
-	if ((pckt = read_net(s, cur_time, type, &nbdecryption)) != NULL) {
-		put_on_pckt_queue(pckt, queue);
 	}
 }
 
@@ -201,8 +176,8 @@ network_read(session_struct    *sp,
 	struct timeval  timeout, *tvp;
 	fd_set          rfds;
 
-	read_packets_and_add_to_queue(sp->rtp_socket, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
-	read_packets_and_add_to_queue(sp->rtcp_socket, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
+	read_and_enqueue(sp->rtp_socket, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
+	read_and_enqueue(sp->rtcp_socket, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
 
 	sel_fd = mbus_engine_fd(0);
      	if (sp->ui_on) {
