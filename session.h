@@ -96,7 +96,7 @@ typedef struct session_tag {
 	struct s_fast_time	*clock;
 	struct s_time		*device_clock;
         struct s_cushion_struct *cushion;
-        struct s_mix_info       *ms;
+        struct s_mix_info       *ms; 
 	int		rtp_seq;
 	int		encodings[MAX_ENCODINGS];
 	int		num_encodings;			/* 1 - MAX_ENC */
@@ -129,6 +129,7 @@ typedef struct session_tag {
 	struct s_tx_buffer	*tb;
 	struct rtp_db_tag	*db;
 	struct s_participant_playout_buffer	*playout_buf_list;
+        int             limit_playout;
         u_int32         min_playout;
         u_int32         max_playout;
 	struct s_dpt	*dpt_list;		/* Dynamic payload types */

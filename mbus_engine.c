@@ -669,7 +669,21 @@ rx_sampling(char *srce, char *args, session_struct *sp)
         mbus_parse_done(mbus_chan);
 }
 
-static void rx_min_playout(char *srce, char *args, session_struct *sp)
+static void rx_playout_limit(char *srce, char *args, session_struct *sp)
+{
+        int i;
+
+        UNUSED(srce);
+        mbus_parse_init(mbus_chan, args);
+        if (mbus_parse_int(mbus_chan, &i) && (1 == i || 0 == i)) {
+                sp->limit_playout = i;
+        } else {
+		printf("mbus: usage \"playout.limit <bool>\"\n");
+	}
+	mbus_parse_done(mbus_chan);
+}
+
+static void rx_playout_min(char *srce, char *args, session_struct *sp)
 {
 	int	 i;
 
@@ -679,12 +693,12 @@ static void rx_min_playout(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(mbus_chan, &i)) {
 		sp->min_playout = i;
 	} else {
-		printf("mbus: usage \"min_playout <integer>\"\n");
+		printf("mbus: usage \"playout.min <integer>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_max_playout(char *srce, char *args, session_struct *sp)
+static void rx_playout_max(char *srce, char *args, session_struct *sp)
 {
 	int	 i;
 
@@ -694,7 +708,7 @@ static void rx_max_playout(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(mbus_chan, &i)) {
 		sp->max_playout = i;
 	} else {
-		printf("mbus: usage \"max_playout <integer>\"\n");
+		printf("mbus: usage \"playout.max <integer>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
@@ -791,8 +805,9 @@ const char *rx_cmnd[] = {
 	"redundancy",
 	"primary",
         "sampling",
-        "min.playout",
-        "max.playout",
+        "playout.limit",
+        "playout.min",
+        "playout.max",
         "auto.convert",
         "channel.code",
         "settings",
@@ -832,8 +847,9 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_redundancy,
 	rx_primary,
         rx_sampling,
-        rx_min_playout,
-        rx_max_playout,
+        rx_playout_limit,
+        rx_playout_min,
+        rx_playout_max,
         rx_auto_convert,
         rx_channel_code,
         rx_settings,

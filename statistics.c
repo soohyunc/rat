@@ -205,13 +205,11 @@ adapt_playout(rtp_hdr_t *hdr,
                         maxv = sp->max_playout * get_freq(src->clock) / 1000; 
 
                         assert(maxv > minv);
-                        if (var<minv) {
-                                dprintf("Extending %d to %d\n",var,minv);
-                                var = minv;
-                        } else if (maxv<var) {
-                                dprintf("Clipping %d to %d\n",var,maxv);
-                                var = maxv;
+                        if (sp->limit_playout) {
+                                var = max(minv, var);
+                                var = min(maxv, var);
                         }
+
 			var += cushion_get_size(cushion);
 			if (src->clock!=sp->device_clock) {
 				var += cp->unit_len;

@@ -89,7 +89,7 @@ $(BINDIR)/rat-$(OSTYPE)-$(OSVERS): $(OBJS) $(GSMOBJS) $(RATOBJS)
 	rm -f $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
 	$(CC) $(RATOBJS) $(OBJS) $(GSMOBJS) $(LDLIBS) $(LDFLAGS) -o $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.c
+$(OBJDIR)/%.o: $(SRCDIR)/%.c session.h
 	$(CC) $(CFLAGS) $(GSMFLAGS) -c $*.c -o $(OBJDIR)/$*.o
 
 $(OBJDIR)/init_session.o: 	version.h

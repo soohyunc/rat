@@ -384,25 +384,36 @@ agc_reset(agc_t *a)
         a->change  = FALSE;
 }
 
+/* This limit stops agc oscillating around close values, which cause 
+ * silence suppression recallibration to occur too often [oth].
+ */
+
+#define AGC_GAIN_SIG 5
+
 static void 
 agc_consider(agc_t *a)
 {
-        u_int32 gain;
+        int32 gain;
 
+        a->change = FALSE;
         if (a->peak > AGC_PEAK_UPPER) {
                 gain        = audio_get_gain(a->sp->audio_fd);
                 a->new_gain = min(gain * AGC_PEAK_UPPER / a->peak, 99);
-                a->change   = TRUE;
+                if ((gain - a->new_gain) > AGC_GAIN_SIG) {
+                        a->change   = TRUE;
 #ifdef DEBUG_AGC
-                dprintf("gain shift %d -> %d", gain, a->new_gain);
+                        dprintf("gain shift %d -> %d\n", gain, a->new_gain);
 #endif
+                }
         } else if (a->peak < AGC_PEAK_LOWER) {
                 gain        = audio_get_gain(a->sp->audio_fd);
                 a->new_gain = min(gain * AGC_PEAK_LOWER / a->peak, 99);
-                a->change   = TRUE;
+                if ((a->new_gain - gain) > AGC_GAIN_SIG) {
+                        a->change   = TRUE;
 #ifdef DEBUG_AGC
-                dprintf("gain shift %d -> %d", gain, a->new_gain);
+                        dprintf("gain shift %d -> %d\n", gain, a->new_gain);
 #endif
+                }
         }
 }
 

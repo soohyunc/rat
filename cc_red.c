@@ -139,7 +139,7 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
                 cp = get_codec_byname(s,sp);
                 if (!cp) {
                         fprintf(stderr, "%s:%d codec not recognized.\n", __FILE__, __LINE__);
-                        exit(-1);
+                        assert(0);
                 }
                 r->coding[r->nlayers] = cp->pt;
                 s = strtok(NULL,"/");
@@ -147,13 +147,13 @@ red_config(session_struct *sp, red_coder_t *r, char *cmd)
 
                 if (r->offset[r->nlayers]<0 || r->offset[r->nlayers]>MAX_RED_OFFSET) {
                         fprintf(stderr, "%s:%d offset of < 0 or > MAX_RED_OFFSET.\n", __FILE__, __LINE__);
-                        exit(-1);
+                        assert(0);
                 }
 
                 for(i=0;i<r->nlayers;i++) {
                         if (r->offset[i]==r->offset[r->nlayers]) {
                                 fprintf(stderr, "%s:%d multiple encodings at offset %d", __FILE__, __LINE__, r->offset[i]);
-                                exit(-1);
+                                assert(0);
                         }
                 }
                 r->nlayers++;

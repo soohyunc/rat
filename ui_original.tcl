@@ -7,6 +7,12 @@
 # Full terms and conditions of the copyright appear below.
 #
 
+set statsfont     -*-courier-medium-r-*-*-12-*-*-*-*-*-iso8859-1
+set titlefont     -*-helvetica-medium-r-normal--14-*-p-*-iso8859-1
+set infofont      -*-helvetica-medium-r-normal--12-*-p-*-iso8859-1
+set smallfont     -*-helvetica-medium-r-normal--10-*-p-*-iso8859-1
+set verysmallfont -*-courier-medium-o-normal--8-*-m-*-iso8859-1
+
 option add *Entry.background 		gray70 		widgetDefault
 option add *Entry.relief                sunken          widgetDefault
 option add *Menu*selectColor 		forestgreen 	widgetDefault
@@ -16,12 +22,7 @@ option add *borderWidth 		1
 option add *highlightThickness		0
 option add *padx			0
 option add *pady			0
-
-set statsfont     -*-courier-medium-r-*-*-12-*-*-*-*-*-iso8859-1
-set titlefont     -*-helvetica-medium-r-normal--14-*-p-*-iso8859-1
-set infofont      -*-helvetica-medium-r-normal--12-*-p-*-iso8859-1
-set smallfont     -*-helvetica-medium-r-normal--10-*-p-*-iso8859-1
-set verysmallfont -*-courier-medium-o-normal--8-*-m-*-iso8859-1
+option add *font                        $infofont
 
 set V(class) "Mbone Applications"
 set V(app)   "rat"
@@ -935,13 +936,18 @@ tk_optionMenu $i.r.m repair_var "None" "Packet Repetition" "Pattern Matching"
 $i.r.m configure -width 20 -bd 1
 pack $i.r.l $i.r.m -side top 
 
-frame $i.o.f 
-label $i.o.f.l1 -text "Minimum Playout Delay (ms)" 
-scale       $i.o.f.scmin -orient horizontal -from 0 -to 1000    -variable min_var
-label $i.o.f.l2 -text "Maximum Playout Delay (ms)"            
-scale       $i.o.f.scmax -orient horizontal -from 1000 -to 2000 -variable max_var
-pack $i.o.f 
-pack $i.o.f.l1 $i.o.f.scmin $i.o.f.l2 $i.o.f.scmax -side top -fill x -expand 1
+frame $i.o.f
+checkbutton $i.o.f.cb -text "Limit Playout Delay" -variable limit_var
+frame $i.o.f.fl
+label $i.o.f.fl.l1 -text "Minimum Delay (ms)" 
+scale $i.o.f.fl.scmin -orient horizontal -from 0 -to 1000    -variable min_var -font $smallfont
+frame $i.o.f.fr 
+label $i.o.f.fr.l2 -text "Maximum Delay (ms)"            
+scale $i.o.f.fr.scmax -orient horizontal -from 1000 -to 2000 -variable max_var -font $smallfont
+pack $i.o.f
+pack $i.o.f.cb -side top -fill x
+pack $i.o.f.fl $i.o.f.fr -side left
+pack $i.o.f.fl.l1 $i.o.f.fl.scmin $i.o.f.fr.l2 $i.o.f.fr.scmax -side top -fill x -expand 1
 
 frame $i.c.f 
 frame $i.c.f.f 
@@ -1155,9 +1161,9 @@ proc sync_engine_to_ui {} {
     # make audio engine concur with ui
     global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc 
     global prenc upp channel_var secenc red_off int_gap silence_var agc_var 
-    global repair_var min_var max_var lecture_var convert_var key key_var 
+    global repair_var limit_var min_var max_var lecture_var convert_var  
     global meter_var sync_var gain volume input_port output_port 
-    global in_mute_var out_mute_var channels freq
+    global in_mute_var out_mute_var channels freq key key_var
 
     set my_cname_enc [mbus_encode_str $my_cname]
     #rtcp details
@@ -1177,8 +1183,9 @@ proc sync_engine_to_ui {} {
 
     #Reception Options
     mbus_qmsg "repair"       [mbus_encode_str $repair_var]
-    mbus_qmsg "min.playout"  $min_var
-    mbus_qmsg "max.playout"  $max_var
+    mbus_qmsg "playout.limit" $limit_var
+    mbus_qmsg "playout.min"   $min_var
+    mbus_qmsg "playout.max"   $max_var
     mbus_qmsg "lecture"      $lecture_var
     mbus_qmsg "auto.convert" $convert_var
 
@@ -1246,11 +1253,12 @@ proc save_settings {} {
     save_setting $f audioSilence          silence_var
     save_setting $f audioAGC              agc_var
     # reception
-    save_setting $f audioRepair      repair_var
-    save_setting $f audioMinPlayout  min_var
-    save_setting $f audioMaxPlayout  max_var
-    save_setting $f audioLecture     lecture_var
-    save_setting $f audioAutoConvert convert_var
+    save_setting $f audioRepair           repair_var
+    save_setting $f audioLimitPlayout     limit_var
+    save_setting $f audioMinPlayout       min_var
+    save_setting $f audioMaxPlayout       max_var
+    save_setting $f audioLecture          lecture_var
+    save_setting $f audioAutoConvert      convert_var
     #security
    
     # ui bits
@@ -1333,8 +1341,9 @@ proc load_settings {} {
 
     # reception
     load_setting attr audioRepair       repair_var    "Packet Repetition"
+    load_setting attr audioLimitPlayout limit_var     "0"
     load_setting attr audioMinPlayout   min_var       "0"
-    load_setting attr audioMaxPlayout   max_var       "1"
+    load_setting attr audioMaxPlayout   max_var       "2000"
     load_setting attr audioLecture      lecture_var   "0"
     load_setting attr audioAutoConvert  convert_var   "1"
     #security
@@ -1647,9 +1656,10 @@ add_help $i.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound 
 set i .prefs.pane.reception
 add_help $i.r.m 	"Sets the type of repair applied when packets are\nlost. The schemes\
 			 are listed in order of increasing\ncomplexity."
-add_help $i.o.f.scmin   "Sets the minimum playout delay that will be\napplied to incoming\
+add_help $i.o.f.cb      "Enforce playout delay limits set below.\nThis is not usually desirable."
+add_help $i.o.f.fl.scmin   "Sets the minimum playout delay that will be\napplied to incoming\
 			 audio streams."
-add_help $i.o.f.scmax   "Sets the maximum playout delay that will be\napplied to incoming\
+add_help $i.o.f.fr.scmax   "Sets the maximum playout delay that will be\napplied to incoming\
 			 audio streams."
 add_help $i.c.f.f.fmt   "Enables the automatic format conversion (sampling\nrate and channels)\
 			 of audio streams."
