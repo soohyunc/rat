@@ -1,5 +1,7 @@
 /*
- * FILE: auddev_luigi.c - Sound interface for Luigi Rizzo's FreeBSD driver
+ * FILE: auddev_newpcm.c - Sound interface for newpcm FreeBSD driver.
+ *
+ * Modified to support newpcm (July 2000).
  *
  * Copyright (c) 1996-2000 University College London
  * All rights reserved.
@@ -14,19 +16,14 @@ static const char cvsid[] =
 #include "config_win32.h"
 #include "audio_types.h"
 #include "audio_fmt.h"
-#include "auddev_luigi.h"
+#include "auddev_newpcm.h"
 #include "memory.h"
 #include "debug.h"
 
-#include <machine/pcaudioio.h>
 #include <machine/soundcard.h>
 
-#define LUIGI_SPEAKER    0x101
-#define LUIGI_MICROPHONE 0x201
-#define LUIGI_LINE_IN    0x202
-#define LUIGI_CD         0x203
-
-static int iport = LUIGI_MICROPHONE;
+static char *port_names[] = SOUND_DEVICE_LABELS;
+static int  iport, oport, loop;
 static snd_chan_param pa;
 static struct snd_size sz;
 static int audio_fd = -1;
@@ -34,26 +31,30 @@ static int audio_fd = -1;
 #define RAT_TO_DEVICE(x) ((x) * 100 / MAX_AMP)
 #define DEVICE_TO_RAT(x) ((x) * MAX_AMP / 100)
 
-#define LUIGI_AUDIO_IOCTL(fd, cmd, val) if (ioctl((fd), (cmd), (val)) < 0) { \
-                                            debug_msg("Failed %s\n",#cmd); \
-                                            luigi_error = __LINE__; \
+#define NEWPCM_AUDIO_IOCTL(fd, cmd, val) if (ioctl((fd), (cmd), (val)) < 0) { \
+                                            debug_msg("Failed %s - line %d\n",#cmd, __LINE__); \
+                                            newpcm_error = __LINE__; \
                                                }
 
-#define LUIGI_MAX_AUDIO_NAME_LEN 32
-#define LUIGI_MAX_AUDIO_DEVICES  3
+#define NEWPCM_MAX_AUDIO_NAME_LEN 32
+#define NEWPCM_MAX_AUDIO_DEVICES  3
 
-static int dev_ids[LUIGI_MAX_AUDIO_DEVICES];
-static char names[LUIGI_MAX_AUDIO_DEVICES][LUIGI_MAX_AUDIO_NAME_LEN];
+static int dev_ids[NEWPCM_MAX_AUDIO_DEVICES];
+static char names[NEWPCM_MAX_AUDIO_DEVICES][NEWPCM_MAX_AUDIO_NAME_LEN];
 static int ndev = 0;
-static int luigi_error;
+static int newpcm_error;
 static audio_format *input_format, *output_format, *tmp_format;
-static snd_capabilities soundcaps[LUIGI_MAX_AUDIO_DEVICES];
+static snd_capabilities soundcaps[NEWPCM_MAX_AUDIO_DEVICES];
+
+static void newpcm_mixer_save(int fd);
+static void newpcm_mixer_restore(int fd);
+static void newpcm_mixer_init(int fd);
+static void newpcm_audio_loopback_config(int gain);
 
 int 
-luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
+newpcm_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
-        int             reclb = 0;
-        
+        int32_t         fragment;
         char            thedev[64];
         
         assert(ad >= 0 && ad < ndev); 
@@ -64,9 +65,11 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
         audio_fd = open(thedev, O_RDWR);
         if (audio_fd >= 0) {
                 /* Ignore any earlier errors */
-                luigi_error = 0;
+                newpcm_error = 0;
 
-                LUIGI_AUDIO_IOCTL(audio_fd, AIOGCAP, &soundcaps[ad]);
+		newpcm_mixer_save(audio_fd);
+
+                NEWPCM_AUDIO_IOCTL(audio_fd, AIOGCAP, &soundcaps[ad]);
 		debug_msg("soundcaps[%d].rate_min = %d\n", ad, soundcaps[ad].rate_min);
 		debug_msg("soundcaps[%d].rate_max = %d\n", ad, soundcaps[ad].rate_max);
 		debug_msg("soundcaps[%d].formats  = 0x%08lx\n", ad, soundcaps[ad].formats);
@@ -76,37 +79,13 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		debug_msg("soundcaps[%d].left     = 0x%04lx\n", ad, soundcaps[ad].left);
 		debug_msg("soundcaps[%d].right    = 0x%04lx\n", ad, soundcaps[ad].right);
 
-		/* XXX why do we reset here ??? [oh] */
-                LUIGI_AUDIO_IOCTL(audio_fd,SNDCTL_DSP_RESET,0);
-
-		/* Check card is full duplex - need for Luigi driver only */
-		if ((soundcaps[ad].formats & AFMT_FULLDUPLEX) == 0) {
-			     fprintf(stderr, "Sorry driver does support full duplex for this soundcard\n");
-			     luigi_audio_close(ad);
-			     return FALSE;
-		}
-
-		if (soundcaps[ad].formats & AFMT_WEIRD) {
-                        /* this is a sb16/32/64... 
-                         * you can change either ifmt or ofmt to U8 
-                         * NOTE: No other format supported in driver at this time!
-                         * to work around broken hardware here.  By default
-                         * we use the 16bit channel for output and 8bit
-                         * for input since most people probably want to
-                         * listen to the radio. 
-                         */
-                        debug_msg("Weird Hardware\n");
-
-                        audio_format_change_encoding(ifmt, DEV_U8);
-		}
-
                 /* Setup input and output format settings */
                 assert(ofmt->channels == ifmt->channels);
                 memset(&pa, 0, sizeof(pa));
                 if (ifmt->channels == 2) {
                         if (!soundcaps[ad].formats & AFMT_STEREO) {
                                 fprintf(stderr,"Driver does not support stereo for this soundcard\n");
-                                luigi_audio_close(ad);
+                                newpcm_audio_close(ad);
                                 return FALSE;
                         }
                         pa.rec_format  = AFMT_STEREO;
@@ -130,27 +109,24 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 }
                 pa.play_rate = ofmt->sample_rate;
                 pa.rec_rate = ifmt->sample_rate;
-                LUIGI_AUDIO_IOCTL(audio_fd, AIOSFMT, &pa);
+                NEWPCM_AUDIO_IOCTL(audio_fd, AIOSFMT, &pa);
 
                 sz.play_size = ofmt->bytes_per_block;
                 sz.rec_size  = ifmt->bytes_per_block;
-                LUIGI_AUDIO_IOCTL(audio_fd, AIOSSIZE, &sz);
+                NEWPCM_AUDIO_IOCTL(audio_fd, AIOSSIZE, &sz);
 
-                LUIGI_AUDIO_IOCTL(audio_fd, AIOGSIZE, &sz);
+                NEWPCM_AUDIO_IOCTL(audio_fd, AIOGSIZE, &sz);
                 debug_msg("rec size %d, play size %d bytes\n",
                           sz.rec_size, sz.play_size);
+
+		/* Fragment :  8msb = #frags, 16lsbs = log2 fragsize */
+		fragment = 0x08000007;
+		NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SETFRAGMENT, &fragment);
                 
-                /* Set global gain/volume to maximum values. This may
-                 * fail on some cards, but shouldn't cause any harm
-                 * when it does..... */
-
-                /* Select microphone input. We can't select output source...  */
-                luigi_audio_iport_set(audio_fd, iport);
-
-                if (luigi_error != 0) {
+                if (newpcm_error != 0) {
                         /* Failed somewhere in initialization - reset error and exit*/
-                        luigi_audio_close(ad);
-                        luigi_error = 0;
+                        newpcm_audio_close(ad);
+                        newpcm_error = 0;
                         return FALSE;
                 }
 
@@ -170,10 +146,11 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 }
                 output_format = tmp_format;
 
+		newpcm_mixer_init(audio_fd);
                 /* Turn off loopback from input to output... not fatal so
                  * after error check.
                  */
-                LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &reclb);
+		newpcm_audio_loopback(ad, 0);
 
                 read(audio_fd, thedev, 64);
                 return TRUE;
@@ -181,17 +158,18 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 		fprintf(stderr, 
 			"Could not open device: %s (half-duplex?)\n", 
 			names[ad]);
-		perror("luigi_audio_open");
-                luigi_audio_close(ad);
+		perror("newpcm_audio_open");
+                newpcm_audio_close(ad);
                 return FALSE;
         }
 }
 
 /* Close the audio device */
 void
-luigi_audio_close(audio_desc_t ad)
+newpcm_audio_close(audio_desc_t ad)
 {
         UNUSED(ad);
+	
 	if (audio_fd < 0) {
                 debug_msg("Device already closed!\n");
                 return;
@@ -202,25 +180,25 @@ luigi_audio_close(audio_desc_t ad)
         if (output_format != NULL) {
                 audio_format_free(&output_format);
         }
-
-	luigi_audio_drain(audio_fd);
+	newpcm_mixer_restore(audio_fd);
+	newpcm_audio_drain(audio_fd);
 	close(audio_fd);
         audio_fd = -1;
 }
 
 /* Flush input buffer */
 void
-luigi_audio_drain(audio_desc_t ad)
+newpcm_audio_drain(audio_desc_t ad)
 {
         u_char buf[4];
         int pre, post;
         
         assert(audio_fd > 0);
 
-        LUIGI_AUDIO_IOCTL(audio_fd, FIONREAD, &pre);
-        LUIGI_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_RESET, 0);
-        LUIGI_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SYNC, 0);
-        LUIGI_AUDIO_IOCTL(audio_fd, FIONREAD, &post);
+        NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &pre);
+        NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_RESET, 0);
+        NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SYNC, 0);
+        NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &post);
         debug_msg("audio drain: %d -> %d\n", pre, post);
         read(audio_fd, buf, sizeof(buf));
 
@@ -228,7 +206,7 @@ luigi_audio_drain(audio_desc_t ad)
 }
 
 int
-luigi_audio_duplex(audio_desc_t ad)
+newpcm_audio_duplex(audio_desc_t ad)
 {
         /* We only ever open device full duplex! */
         UNUSED(ad);
@@ -236,7 +214,7 @@ luigi_audio_duplex(audio_desc_t ad)
 }
 
 int
-luigi_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
+newpcm_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 {
         int done, this_read;
         int len;
@@ -244,7 +222,7 @@ luigi_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 
         UNUSED(ad); assert(audio_fd > 0);
 
-        LUIGI_AUDIO_IOCTL(audio_fd, FIONREAD, &len);
+        NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &len);
 
         len = min(len, read_bytes);
 
@@ -259,9 +237,9 @@ luigi_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 }
 
 int
-luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
+newpcm_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 {
-	int done;
+	int            done;
 
         UNUSED(ad); assert(audio_fd > 0);
 
@@ -274,6 +252,7 @@ luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
                  * seems to fail.  
                  */
                 perror("Error writing device.");
+		fprintf(stderr, "Please email this message to rat-trap@cs.ucl.ac.uk with output of:\n\t uname -a\n\t cat /dev/sndstat\n");
                 return (write_bytes - done);
         }
 
@@ -282,231 +261,281 @@ luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 
 /* Set ops on audio device to be non-blocking */
 void
-luigi_audio_non_block(audio_desc_t ad)
+newpcm_audio_non_block(audio_desc_t ad)
 {
 	int             frag = 1;
 
 	UNUSED(ad); assert(audio_fd != -1);
 
-        LUIGI_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_NONBLOCK, &frag);
+        NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_NONBLOCK, &frag);
 }
 
 /* Set ops on audio device to be blocking */
 void
-luigi_audio_block(audio_desc_t ad)
+newpcm_audio_block(audio_desc_t ad)
 {
   	int             frag = 0;
         
         UNUSED(ad); assert(audio_fd > 0);
         
-        LUIGI_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_NONBLOCK, &frag);
+        NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_NONBLOCK, &frag);
 } 
+
+
+static int recmask, playmask;
+
+static void
+newpcm_mixer_init(int fd) 
+{
+	int devmask;
+
+	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_RECMASK, &recmask);
+
+	if (recmask & SOUND_MASK_MIC) {
+		iport = SOUND_MASK_MIC;
+	} else {
+		iport = 1;
+		while ((iport & recmask) == 0) {
+			iport <<= 1;
+		}
+	}
+
+	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_DEVMASK, &devmask);
+	playmask = devmask & ~recmask & ~SOUND_MASK_RECLEV;
+	debug_msg("devmask 0x%08x recmask 0x%08x playmask 0x%08x\n",
+		  devmask,
+		  recmask,
+		  playmask);
+}
+
+static int
+newpcm_count_ports(int mask) 
+{
+	int n = 0, m = mask;
+
+	while (m > 0) {
+		n += (m & 0x01);
+		m >>= 1;
+	}
+
+	return n;
+}
+
+static int
+newpcm_get_nth_port_mask(int mask, int n)
+{
+	static int lgmask;
+
+	lgmask = -1;
+	do {
+		lgmask ++;
+		if ((1 << lgmask) & mask) {
+			n--;
+		}
+	} while (n >= 0);
+
+	assert((1 << lgmask) & mask);
+	return lgmask;
+}
 
 /* Gain and volume values are in the range 0 - MAX_AMP */
 void
-luigi_audio_set_ogain(audio_desc_t ad, int vol)
+newpcm_audio_set_ogain(audio_desc_t ad, int vol)
 {
-	int volume;
+	int volume, lgport, op;
 
         UNUSED(ad); assert(audio_fd > 0);
 
 	volume = vol << 8 | vol;
-	LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_PCM), &volume);
+
+	lgport = -1;
+	op = oport;
+	while (op > 0) {
+		op >>= 1;
+		lgport ++;
+	}
+
+	NEWPCM_AUDIO_IOCTL(audio_fd, MIXER_WRITE(lgport), &volume);
 }
 
 int
-luigi_audio_get_ogain(audio_desc_t ad)
+newpcm_audio_get_ogain(audio_desc_t ad)
 {
-	int volume;
+	int volume, lgport, op;
 
         UNUSED(ad); assert(audio_fd > 0);
 
-	LUIGI_AUDIO_IOCTL(audio_fd, MIXER_READ(SOUND_MIXER_PCM), &volume);
+	lgport = -1;
+	op     = oport;
+	while (op > 0) {
+		op >>= 1;
+		lgport ++;
+	}
+
+	NEWPCM_AUDIO_IOCTL(audio_fd, MIXER_READ(lgport), &volume);
 
 	return DEVICE_TO_RAT(volume & 0xff); /* Extract left channel volume */
 }
 
 void
-luigi_audio_loopback(audio_desc_t ad, int gain)
+newpcm_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
-        UNUSED(ad); assert(audio_fd > 0);
-
-        gain = gain << 8 | gain;
-
-        LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_IMIX), &gain);
-}
-
-void
-luigi_audio_oport_set(audio_desc_t ad, audio_port_t port)
-{
-	UNUSED(ad); assert(audio_fd > 0);
-        UNUSED(port);
+	UNUSED(ad);
+	oport = port;
 	return;
 }
 
 audio_port_t
-luigi_audio_oport_get(audio_desc_t ad)
+newpcm_audio_oport_get(audio_desc_t ad)
 {
-	UNUSED(ad); assert(audio_fd > 0);
-	return LUIGI_SPEAKER;
+	UNUSED(ad);
+	return oport;
 }
 
 int
-luigi_audio_oport_count(audio_desc_t ad)
+newpcm_audio_oport_count(audio_desc_t ad)
 {
         UNUSED(ad);
-        return 1;
+	return newpcm_count_ports(playmask);
 }
 
-static const audio_port_details_t out_ports[] = {{ LUIGI_SPEAKER, AUDIO_PORT_SPEAKER }};
-
 const audio_port_details_t*
-luigi_audio_oport_details(audio_desc_t ad, int idx)
+newpcm_audio_oport_details(audio_desc_t ad, int idx)
 {
-        UNUSED(ad);
-        UNUSED(idx);
-        return out_ports;
+	static audio_port_details_t ap;
+	int lgmask;
+
+	UNUSED(ad);
+
+	lgmask = newpcm_get_nth_port_mask(playmask, idx);
+	ap.port = 1 << lgmask;
+	sprintf(ap.name, "%s", port_names[lgmask]);
+
+        return &ap;
 }
 
 void
-luigi_audio_set_igain(audio_desc_t ad, int gain)
+newpcm_audio_set_igain(audio_desc_t ad, int gain)
 {
 	int volume = RAT_TO_DEVICE(gain) << 8 | RAT_TO_DEVICE(gain);
 
         UNUSED(ad); assert(audio_fd > 0);
-
-	switch (iport) {
-	case LUIGI_MICROPHONE:
-                LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_MIC), &volume);
-	case LUIGI_LINE_IN:
-                LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_LINE), &volume);
-		break;
-	case LUIGI_CD:
-                LUIGI_AUDIO_IOCTL(audio_fd, MIXER_WRITE(SOUND_MIXER_CD), &volume);
-		break;
-	}
-	return;
+	newpcm_audio_loopback_config(gain);
+	NEWPCM_AUDIO_IOCTL(audio_fd, SOUND_MIXER_WRITE_RECLEV, &volume);
 }
 
 int
-luigi_audio_get_igain(audio_desc_t ad)
+newpcm_audio_get_igain(audio_desc_t ad)
 {
 	int volume;
 
         UNUSED(ad); assert(audio_fd > 0);
-
-	switch (iport) {
-	case LUIGI_MICROPHONE:
-		LUIGI_AUDIO_IOCTL(audio_fd, MIXER_READ(SOUND_MIXER_MIC), &volume);
-		break;
-	case LUIGI_LINE_IN:
-		LUIGI_AUDIO_IOCTL(audio_fd, MIXER_READ(SOUND_MIXER_LINE), &volume);
-		break;
-	case LUIGI_CD:
-		LUIGI_AUDIO_IOCTL(audio_fd, MIXER_READ(SOUND_MIXER_CD), &volume);
-		break;
-	default:
-		debug_msg("ERROR: Unknown iport in audio_set_igain!\n");
-	}
+	NEWPCM_AUDIO_IOCTL(audio_fd, SOUND_MIXER_READ_RECLEV, &volume);
 	return (DEVICE_TO_RAT(volume & 0xff));
 }
 
-static audio_port_details_t in_ports[] = {
-        { LUIGI_MICROPHONE, AUDIO_PORT_MICROPHONE},
-        { LUIGI_LINE_IN,    AUDIO_PORT_LINE_IN},
-        { LUIGI_CD,         AUDIO_PORT_CD}
-};
-
-#define NUM_IN_PORTS (sizeof(in_ports)/sizeof(in_ports[0]))
-
 void
-luigi_audio_iport_set(audio_desc_t ad, audio_port_t port)
+newpcm_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
-	int recmask, gain, src;
+	/* Check port is in record mask */
+	int gain;
 
-        UNUSED(ad); assert(audio_fd > 0);
+	debug_msg("port 0x%08x recmask 0x%08x\n", port, recmask);
 
-	if (ioctl(audio_fd, MIXER_READ(SOUND_MIXER_RECMASK), &recmask) == -1) {
-		perror("Unable to read recording mask");
+	assert((port & recmask) != 0);
+
+	if (ioctl(audio_fd, SOUND_MIXER_WRITE_RECSRC, &port) < 0) {
+		perror("Unable to write record mask\n");
 		return;
 	}
-
-	switch (port) {
-	case LUIGI_MICROPHONE:
-		src = SOUND_MASK_MIC;
-		break;
-	case LUIGI_LINE_IN:
-		src = SOUND_MASK_LINE;
-		break;
-	case LUIGI_CD:
-		src = SOUND_MASK_CD;
-		break;
-	}
-
-	gain = luigi_audio_get_igain(ad);
-	luigi_audio_set_igain(ad, 0);
-
-	if ((ioctl(audio_fd, MIXER_WRITE(SOUND_MIXER_RECSRC), &src) < 0)) {
-		return;
-	}
-
 	iport = port;
-	luigi_audio_set_igain(ad, gain);
+	gain = newpcm_audio_get_igain(ad);
+	newpcm_audio_loopback_config(gain);
+	UNUSED(ad);
 }
 
 audio_port_t
-luigi_audio_iport_get(audio_desc_t ad)
+newpcm_audio_iport_get(audio_desc_t ad)
 {
 	UNUSED(ad); assert(audio_fd > 0);
 	return iport;
 }
 
 int
-luigi_audio_iport_count(audio_desc_t ad)
+newpcm_audio_iport_count(audio_desc_t ad)
 {
-        UNUSED(ad);
-        return NUM_IN_PORTS;
+	UNUSED(ad);
+	return newpcm_count_ports(recmask);
 }
 
 const audio_port_details_t *
-luigi_audio_iport_details(audio_desc_t ad, int idx)
+newpcm_audio_iport_details(audio_desc_t ad, int idx)
 {
-        UNUSED(ad);
-        assert(idx < (int)NUM_IN_PORTS && idx >= 0);
-        return in_ports + idx;
+	static audio_port_details_t ap;
+	int lgmask;
+
+	UNUSED(ad);
+
+	lgmask = newpcm_get_nth_port_mask(recmask, idx);
+	ap.port = 1 << lgmask;
+	sprintf(ap.name, "%s", port_names[lgmask]);
+
+        return &ap;
 }
 
 void
-luigi_audio_wait_for(audio_desc_t ad, int delay_ms)
+newpcm_audio_loopback(audio_desc_t ad, int gain)
 {
-        if (!luigi_audio_is_ready(ad)) {
+        UNUSED(ad); assert(audio_fd > 0);
+        loop = gain;
+}
+
+static void
+newpcm_audio_loopback_config(int gain) 
+{
+	int lgport, vol;
+
+	/* Find current input port id */
+	lgport = newpcm_get_nth_port_mask(iport, 0);
+
+	if (loop) {
+		vol = RAT_TO_DEVICE(gain) << 8 | RAT_TO_DEVICE(gain);
+	} else {
+		vol = 0;
+	}
+
+	NEWPCM_AUDIO_IOCTL(audio_fd, MIXER_WRITE(lgport), &vol);
+}
+
+void
+newpcm_audio_wait_for(audio_desc_t ad, int delay_ms)
+{
+        if (!newpcm_audio_is_ready(ad)) {
                 usleep((unsigned int)delay_ms * 1000);
         }
 }
 
 int 
-luigi_audio_is_ready(audio_desc_t ad)
+newpcm_audio_is_ready(audio_desc_t ad)
 {
         int avail;
 
         UNUSED(ad);
 
-        LUIGI_AUDIO_IOCTL(audio_fd, FIONREAD, &avail);
+        NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &avail);
 
         return (avail >= sz.rec_size);
 }
 
 int 
-luigi_audio_supports(audio_desc_t ad, audio_format *fmt)
+newpcm_audio_supports(audio_desc_t ad, audio_format *fmt)
 {
         snd_capabilities s;
 
         UNUSED(ad);
 
-        if (luigi_error) debug_msg("Device error!");
-        luigi_error = 0;
-        LUIGI_AUDIO_IOCTL(audio_fd, AIOGCAP, &s);
-        if (!luigi_error) {
+        NEWPCM_AUDIO_IOCTL(audio_fd, AIOGCAP, &s);
+        if (!newpcm_error) {
                 if ((unsigned)fmt->sample_rate < s.rate_min || (unsigned)fmt->sample_rate > s.rate_max) return FALSE;
                 if (fmt->channels == 1) return TRUE;                    /* Always supports mono */
                 assert(fmt->channels == 2);
@@ -516,45 +545,78 @@ luigi_audio_supports(audio_desc_t ad, audio_format *fmt)
 }
 
 int
-luigi_audio_query_devices()
+newpcm_audio_query_devices()
 {
         FILE *f;
         char buf[128], *p;
-        int n;
+        int n, newpcm = FALSE;
 
         f = fopen("/dev/sndstat", "r");
         if (f) {
-                while (!feof(f) && ndev < LUIGI_MAX_AUDIO_DEVICES) {
+                while (!feof(f) && ndev < NEWPCM_MAX_AUDIO_DEVICES) {
                         p = fgets(buf, 128, f);
                         n = sscanf(buf, "pcm%d: <%[A-z0-9 ]>", dev_ids + ndev, names[ndev]);
                         if (p && n == 2) {
                                 debug_msg("dev (%d) name (%s)\n", dev_ids[ndev], names[ndev]);
                                 ndev++;
                         } else if (strstr(buf, "newpcm")) {
-				/* This is a clunky check for the
-				 * newpcm driver.  Don't use luigi in this case
-				 */
-				ndev = 0;
-				break;
-			}
+				newpcm = TRUE;
+			} 
                 }
                 fclose(f);
         }
+
+	if (newpcm == FALSE) {
+		ndev = 0; /* Should be using Luigi's interface */
+	}
 
         return (ndev);
 }
 
 int
-luigi_get_device_count()
+newpcm_get_device_count()
 {
         return ndev;
 }
 
 char *
-luigi_get_device_name(audio_desc_t idx)
+newpcm_get_device_name(audio_desc_t idx)
 {
         if (idx >=0 && idx < ndev) {
                 return names[idx];
         }
         return NULL;
+}
+
+/* Functions to save and restore recording source and mixer levels */
+
+static int saved_rec_mask, saved_gain_values[SOUND_MIXER_NRDEVICES];
+
+static void
+newpcm_mixer_save(int fd)
+{
+	int devmask, i;
+	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_RECSRC, &saved_rec_mask); 
+	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_DEVMASK, &devmask);
+	for (i = 0; i < SOUND_MIXER_NRDEVICES; i++) {
+		if ((1 << i) & devmask) {
+			NEWPCM_AUDIO_IOCTL(fd, MIXER_READ(i), &saved_gain_values[i]);
+		} else {
+			saved_gain_values[i] = 0;
+		}
+	}
+}
+
+static void
+newpcm_mixer_restore(int fd)
+{
+	int devmask, i;
+	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_WRITE_RECSRC, &saved_rec_mask); 
+
+	NEWPCM_AUDIO_IOCTL(fd, SOUND_MIXER_READ_DEVMASK, &devmask);
+	for (i = 0; i < SOUND_MIXER_NRDEVICES; i++) {
+		if ((1 << i) & devmask) {
+			NEWPCM_AUDIO_IOCTL(fd, MIXER_WRITE(i), &saved_gain_values[i]);
+		}
+	}
 }

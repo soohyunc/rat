@@ -68,12 +68,15 @@
 #undef HAVE_SGI_AUDIO
 #undef HAVE_PCA_AUDIO
 #undef HAVE_LUIGI_AUDIO
+#undef HAVE_NEWPCM_AUDIO
 #undef HAVE_OSS_AUDIO
 #undef HAVE_HP_AUDIO
 #undef HAVE_NETBSD_AUDIO
 #undef HAVE_OSPREY_AUDIO
 #undef HAVE_MACHINE_PCAUDIOIO_H
 #undef HAVE_ALSA_AUDIO
+
+#undef HAVE_IPv6
 
 /* GSM related */
 #undef SASR

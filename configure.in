@@ -195,9 +195,12 @@ case "$target" in
 		AU_OBJ="$AU_OBJ auddev_pca.o"
 		AC_DEFINE(HAVE_PCA_AUDIO)
 	fi
-	# Luigi's driver
-	AU_OBJ="$AU_OBJ auddev_luigi.o"
-	AC_DEFINE(HAVE_LUIGI_AUDIO)
+	# Note luigi and newpcm have compatible soundcard.h files but
+	# mixer behaves differently under both systems.  During runtime
+	# only one of these modules will be used.
+	AU_OBJ="$AU_OBJ auddev_luigi.o auddev_newpcm.o"
+	AC_DEFINE(HAVE_LUIGI_AUDIO) 
+  	AC_DEFINE(HAVE_NEWPCM_AUDIO) 
 	;;
 *netbsd*)
 	AU_OBJ="$AUDIOBJ auddev_netbsd.o"

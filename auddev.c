@@ -22,6 +22,7 @@ static const char cvsid[] =
 #include "auddev.h"
 #include "auddev_null.h"
 #include "auddev_luigi.h"
+#include "auddev_newpcm.h"
 #include "auddev_osprey.h"
 #include "auddev_oss.h"
 #include "auddev_alsa.h"
@@ -298,6 +299,38 @@ audio_if_t audio_if_table[] = {
                 luigi_audio_supports
         },
 #endif /* HAVE_LUIGI_AUDIO */
+#ifdef HAVE_NEWPCM_AUDIO
+        {
+                newpcm_audio_query_devices,
+                NULL,
+                newpcm_get_device_count,
+                newpcm_get_device_name,
+                newpcm_audio_open,
+                newpcm_audio_close,
+                newpcm_audio_drain,
+                newpcm_audio_duplex,
+                newpcm_audio_read,
+                newpcm_audio_write,
+                newpcm_audio_non_block,
+                newpcm_audio_block,
+                newpcm_audio_set_igain,
+                newpcm_audio_get_igain,
+                newpcm_audio_set_ogain,
+                newpcm_audio_get_ogain,
+                newpcm_audio_loopback,
+                newpcm_audio_oport_set,
+                newpcm_audio_oport_get,
+                newpcm_audio_oport_details,
+                newpcm_audio_oport_count,
+                newpcm_audio_iport_set,
+                newpcm_audio_iport_get,
+                newpcm_audio_iport_details,
+                newpcm_audio_iport_count,
+                newpcm_audio_is_ready,
+                newpcm_audio_wait_for,
+                newpcm_audio_supports
+        },
+#endif /* HAVE_NEWPCM_AUDIO */
 #ifdef HAVE_PCA_AUDIO
         {
                 pca_audio_init,

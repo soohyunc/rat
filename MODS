@@ -1429,18 +1429,23 @@ v4.2.9	- Fix spurious assertions in source.c -- I think (hope?) this will fix th
 	- Fix labelling of transcoder input/output ports
 	* Released 8 September 2000
 
+v4.2.10 - Added auddev_newpcm.[ch] with newpcm style mixer control.  Includes
+	  support for loopback and preservation of mixer settings so mixer is
+	  returned to original state upon exit. [oh]
 
-
-
+	  Note: both driver interfaces (luigi, newpcm) are pulled in
+	  by configure and this is possible whilst luigi pcm and
+	  newpcm maintain the same function call interface.  This may
+	  break in future.  Both are necessary because mixer operation
+	  is not consistent between the two interfaces.
 
 TODO -- They're features not bugs dammit!
 ----
 
 - Assorted audio driver problems:
-	- FreeBSD driver bug on SoundBlaster 16 has small write buffers 
+	- Luigi pcm driver bug on SoundBlaster 16 has small write buffers 
 	  and stops working full duplex mode after a time.  Hard to fix because
 	  of cushion.
-	- Loopback support is broken on FreeBSD newpcm driver.
 	- Broken auddev_pca with adding of audio interface conversion code.
 	  FreeBSD 3.1 pca audio does not seem to work anymore.
 	- SunVideoPlus interface code does not work properly.  The driver Sun
