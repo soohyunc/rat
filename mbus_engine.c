@@ -38,6 +38,7 @@
  */
 
 #include <stdio.h>
+#include "rat_types.h"
 #include "mbus_engine.h"
 #include "mbus.h"
 #include "ui_update.h"

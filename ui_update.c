@@ -505,3 +505,38 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 	}
 }
 
+void
+ui_update_loss(session_struct *sp, char *srce, char *dest, int loss)
+{
+	char	*srce_e = xstrdup(mbus_encode_str(srce));
+	char	*dest_e = xstrdup(mbus_encode_str(dest));
+
+	sprintf(args, "%s %s %d", srce_e, dest_e, loss);
+	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source.packet.loss", args, FALSE);
+
+	xfree(srce_e);
+	xfree(dest_e);
+}
+
+void
+ui_update_reception(session_struct *sp, char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, double jitter)
+{
+	char	*cname_e = mbus_encode_str(cname);
+	char	*args    = (char *) xmalloc(29 + strlen(cname_e));
+
+	sprintf(args, "%s %6ld %6ld %6ld %6f", cname_e, recv, lost, misordered, jitter);
+	mbus_qmsg(sp->mbus_engine_chan, "source.reception", args);
+	xfree(args);
+}
+
+void
+ui_update_duration(session_struct *sp, char *cname, int duration)
+{
+	char	*cname_e = mbus_encode_str(cname);
+	char	*args    = (char *) xmalloc(5 + strlen(cname_e));
+
+	sprintf(args, "%s %3d", cname_e, duration);
+	mbus_qmsg(sp->mbus_engine_chan, "source.packet.duration", args);
+	xfree(args);
+}
+

@@ -71,5 +71,8 @@ void	ui_update_powermeters(struct session_tag *sp, struct s_mix_info *ms, int el
 void	update_stats(struct s_rtcp_dbentry *e, struct session_tag *sp);
 void	update_lecture_mode(struct session_tag *session_pointer);
 void	ui_update(struct session_tag *session_pointer);
+void	ui_update_loss(struct session_tag *sp, char *srce, char *dest, int loss);
+void	ui_update_reception(struct session_tag *sp, char *cname, u_int32 recv, u_int32 lost, u_int32 misordered, double jitter);
+void	ui_update_duration(struct session_tag *sp, char *cname, int duration);
 
 #endif
