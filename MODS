@@ -1092,4 +1092,7 @@ TODO -- They're features not bugs dammit!
   out. Suspect we're hitting the limitations of the old playout algorithm,
   rather than a specific bug, and the correct solution is to get everyone
   to update to rat-4.x
+- Can't playout encrypted GSM data - I suspect it's a padding issue, since
+  GSM frames are not a multiple of 8 bytes. Playing out DVI works fine, and
+  those don't need padding.
 
