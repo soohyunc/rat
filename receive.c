@@ -498,7 +498,7 @@ find_participant_queue(session_struct *sp, ppb_t **list, rtcp_dbentry *src, int 
 
         if (sp->externalise_audio) {
                 if (src->render_3D_data) render_3D_free(&src->render_3D_data);
-                src->render_3D_data = render_3D_init();
+                src->render_3D_data = render_3D_init(sp);
         }
 
 	return (p);

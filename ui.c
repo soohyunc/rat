@@ -954,7 +954,7 @@ ui_3d_options(session_struct *sp)
                   "tool.rat.3d.filter.types", mbes, TRUE);
         xfree(mbes);
 
-        sprintf(args,"32,64,96,128");
+        sprintf(args,"8,16,32,64");
         mbes = mbus_encode_str(args);
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, 
                   "tool.rat.3d.filter.lengths", 
@@ -990,7 +990,3 @@ ui_quit(session_struct *sp)
 {
 	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "mbus.quit", "", TRUE);
 }
-
-
-
-
