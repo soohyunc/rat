@@ -124,7 +124,7 @@ main(int argc, char *argv[])
         rtcp_clock_change(sp[0]);
 
 	load_settings(sp[0]);
-        ui_initial_settings(sp[0]);		/* Load settings... */
+        ui_initial_settings(sp[0]);
 
 	parse_late_options(argc, argv, sp);	/* Things which can override the settings we just loaded... */
 	ui_update(sp[0]);			/* ...and push those to the UI */
@@ -136,7 +136,9 @@ main(int argc, char *argv[])
                 network_process_mbus(sp[0]);
         }
 
+#ifdef NDEF
         ui_final_settings(sp[0]);
+#endif
 	network_process_mbus(sp[0]);
 
         if (tx_is_sending(sp[0]->tb)) {

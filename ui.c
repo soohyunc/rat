@@ -915,11 +915,13 @@ ui_title(session_struct *sp)
         xfree(addr);
 }
 
+#ifdef NDEF
 static void
 ui_load_settings(session_struct *sp)
 {
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.load.settings", "", TRUE);
 }
+#endif
 
 /* ui_final_settings: so we here we load things that get broken
  * because we open null audio device first, and it has limited no of
@@ -992,9 +994,15 @@ ui_initial_settings(session_struct *sp)
         ui_codecs(sp); 					network_process_mbus(sp);
         ui_3d_options(sp); 				network_process_mbus(sp);
 	ui_info_update_cname(sp, sp->db->my_dbe); 	network_process_mbus(sp);
-	ui_info_update_tool(sp, sp->db->my_dbe); 	network_process_mbus(sp);
+	ui_info_update_name(sp,  sp->db->my_dbe); 	network_process_mbus(sp);
+	ui_info_update_email(sp, sp->db->my_dbe); 	network_process_mbus(sp);
+	ui_info_update_phone(sp, sp->db->my_dbe); 	network_process_mbus(sp);
+	ui_info_update_loc(sp,   sp->db->my_dbe); 	network_process_mbus(sp);
+	ui_info_update_tool(sp,  sp->db->my_dbe); 	network_process_mbus(sp);
         ui_title(sp); 					network_process_mbus(sp);
+#ifdef NDEF /* This is done by load_settings() now... */
 	ui_load_settings(sp); 				network_process_mbus(sp);
+#endif
 }
 
 void 

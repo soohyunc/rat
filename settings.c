@@ -24,6 +24,7 @@
 #include "timers.h"
 #include "codec_types.h"
 #include "codec.h"
+#include "audio.h"
 #include "auddev.h"
 #include "version.h"
 #include "settings.h"
@@ -77,6 +78,9 @@ static void load_setting(char **n, char **v)
 		while ((**v == ' ') && (*v < (buffer + 100))) {
 			(*v)++;
 		}
+	} else {
+		*n = "\0";
+		*v = "\0";
 	}
 }
 #endif
@@ -99,7 +103,7 @@ static char *load_str_setting(char *name, char *default_value)
 		}
 	}
 	/* The setting we're looking for isn't in the preferences file... */
-	return NULL;
+	return xstrdup(default_value);
 found_it:
 	if (v == NULL) {
 		return xstrdup(default_value);
@@ -128,7 +132,7 @@ static int load_int_setting(char *name, int default_value)
 		}
 	}
 	/* The setting we're looking for isn't in the preferences file... */
-	return NULL;
+	return default_value;
 found_it:
 	if (v == NULL) {
 		return default_value;
@@ -141,42 +145,71 @@ found_it:
 
 void load_settings(session_struct *sp)
 {
+<<<<<<< settings.c
+	audio_device_details_t	 ad;
+	char			*ad_name, *primary_codec, *primary_long, *cc_name;
+	int			 i, freq, chan;
+	cc_details		 ccd;
+
+=======
 #ifndef WIN32
+>>>>>>> 1.5
 	load_init();
-	/* We don't use rtcp_set_attribute() here, since that updates the UI and we */
-	/* don't want to do that yet...                                             */
-	sp->db->my_dbe->sentry->name  = load_str_setting("rtpName", "Unknown");
-	sp->db->my_dbe->sentry->email = load_str_setting("rtpEmail", "");
-	sp->db->my_dbe->sentry->phone = load_str_setting("rtpPhone", "");
+	sp->db->my_dbe->sentry->name  = load_str_setting("rtpName", "Unknown");		/* We don't use rtcp_set_attribute() */ 
+	sp->db->my_dbe->sentry->email = load_str_setting("rtpEmail", "");		/* here, since that updates the UI   */
+	sp->db->my_dbe->sentry->phone = load_str_setting("rtpPhone", "");		/* and we don't want to do that yet. */
 	sp->db->my_dbe->sentry->loc   = load_str_setting("rtpLoc", "");
 	sp->db->my_dbe->sentry->tool  = load_str_setting("audioTool", RAT_VERSION);
 
-	load_str_setting("audioPrimary", "GSM");
-	load_int_setting("audioUnits", 2);
-	load_str_setting("audioChannelCoding", "None");
-	load_str_setting("audioChannelParameters", "None");
-	load_str_setting("audioRepair", "Pattern-Match");
-	load_str_setting("audioAutoConvert", "High Quality");
+	ad_name = load_str_setting("audioDevice", "No Audio Device");
+        for(i = 0; i < audio_get_device_count(); i++) {
+                if (audio_get_device_details(i, &ad) && (strcmp(ad.name, ad_name) == 0)) {
+			audio_device_register_change_device(sp, ad.descriptor);
+                        break;
+                }
+        }
+	xfree(ad_name);
+
+	freq = load_int_setting("audioFrequency", 8000);
+	chan = load_int_setting("audioChannelsIn", 1);
+	primary_codec = load_str_setting("audioPrimary", "GSM");
+	primary_long  = (char *) xmalloc(strlen(primary_codec) + 10);
+	sprintf(primary_long, "%s/%4d/%1d", primary_codec, freq, chan);
+	audio_device_register_change_primary(sp, codec_get_by_name(primary_long));
+	xfree(primary_codec);
+	xfree(primary_long);
+
+	cc_name = load_str_setting("audioChannelCoding", "None");
+	for (i = 0; i < channel_get_coder_count(); i++ ) {
+		channel_get_coder_details(i, &ccd);
+		if (strcmp(ccd.name, cc_name) == 0) {
+        		channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+			break;
+		}
+	}
+	xfree(cc_name);
+	channel_encoder_set_parameters(sp->channel_coder, load_str_setting("audioChannelParameters", "None"));
+	channel_encoder_set_units_per_packet(sp->channel_coder, (u_int16) load_int_setting("audioUnits", 2));
+
+		load_str_setting("audioRepair", "Pattern-Match");
+		load_str_setting("audioAutoConvert", "High Quality");
 	sp->limit_playout  = load_int_setting("audioLimitPlayout", 0);
 	sp->min_playout    = load_int_setting("audioMinPlayout", 0);
 	sp->max_playout    = load_int_setting("audioMaxPlayout", 2000);
 	sp->lecture        = load_int_setting("audioLecture", 0);
 	sp->render_3d      = load_int_setting("audio3dRendering", 0);
-	load_str_setting("audioDevice", "No Audio Device");
-	load_int_setting("audioFrequency", 8000);
-	load_int_setting("audioChannelsIn", 1);
 	sp->detect_silence = load_int_setting("audioSilence", 1);
 	sp->agc_on         = load_int_setting("audioAGC", 0);
 	sp->loopback_gain  = load_int_setting("audioLoopback", 0);
 	sp->echo_suppress  = load_int_setting("audioEchoSuppress", 0);
-	load_int_setting("audioOutputGain", 75);
-	load_int_setting("audioInputGain", 75);
-	load_str_setting("audioOutputPort", "Headphone");
-	load_str_setting("audioInputPort", "Microphone");
+		load_int_setting("audioOutputGain", 75);
+		load_int_setting("audioInputGain", 75);
+		load_str_setting("audioOutputPort", "Headphone");
+		load_str_setting("audioInputPort", "Microphone");
 	sp->meter          = load_int_setting("audioPowermeters", 1);
 	sp->sync_on        = load_int_setting("audioLipSync", 0);
-	load_int_setting("audioOutputMute", 1);
-	load_int_setting("audioInputMute", 1);
+		load_int_setting("audioOutputMute", 1);
+		load_int_setting("audioInputMute", 1);
 	load_done();
 #endif
 }
@@ -280,6 +313,9 @@ void save_settings(session_struct *sp)
 	save_str_setting("rtpPhone",               sp->db->my_dbe->sentry->phone);
 	save_str_setting("rtpLoc",                 sp->db->my_dbe->sentry->loc);
 	save_str_setting("audioTool",              sp->db->my_dbe->sentry->tool);
+	save_str_setting("audioDevice",            ad.name);
+	save_int_setting("audioFrequency",         af->sample_rate);
+	save_int_setting("audioChannelsIn",        af->channels); 
 	save_str_setting("audioPrimary",           pri_cf->short_name);
 	save_int_setting("audioUnits",             channel_encoder_get_units_per_packet(sp->channel_coder)); 
 	save_str_setting("audioChannelCoding",     cd.name);
@@ -291,9 +327,6 @@ void save_settings(session_struct *sp)
 	save_int_setting("audioMaxPlayout",        sp->max_playout);
 	save_int_setting("audioLecture",           sp->lecture);
 	save_int_setting("audio3dRendering",       sp->render_3d);
-	save_str_setting("audioDevice",            ad.name);
-	save_int_setting("audioFrequency",         af->sample_rate);
-	save_int_setting("audioChannelsIn",        af->channels); 
 	save_int_setting("audioSilence",           sp->detect_silence);
 	save_int_setting("audioAGC",               sp->agc_on);
 	save_int_setting("audioLoopback",          sp->loopback_gain); 
