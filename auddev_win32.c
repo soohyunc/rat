@@ -52,6 +52,7 @@
 #include "auddev_win32.h"
 #include "audio_types.h"
 #include "audio_fmt.h"
+#include "mmsystem.h"
 
 #define rat_to_device(x)	((x) * 255 / MAX_AMP)
 #define device_to_rat(x)	((x) * MAX_AMP / 255)
@@ -121,6 +122,82 @@ mixGetErrorText(MMRESULT mmr)
         return "Mixer Error.";
 }
 
+static const char *
+mixGetControlType(DWORD dwCtlType)
+{
+        switch(dwCtlType) {
+        case MIXERCONTROL_CONTROLTYPE_CUSTOM:        return "Custom";         
+        case MIXERCONTROL_CONTROLTYPE_BOOLEANMETER:  return "Boolean Meter";
+        case MIXERCONTROL_CONTROLTYPE_SIGNEDMETER:   return "Signed Meter";
+        case MIXERCONTROL_CONTROLTYPE_PEAKMETER:     return "PeakMeter";
+        case MIXERCONTROL_CONTROLTYPE_UNSIGNEDMETER: return "Unsigned Meter";
+        case MIXERCONTROL_CONTROLTYPE_BOOLEAN:       return "Boolean";
+        case MIXERCONTROL_CONTROLTYPE_ONOFF:         return "OnOff";
+        case MIXERCONTROL_CONTROLTYPE_MUTE:          return "Mute";
+        case MIXERCONTROL_CONTROLTYPE_MONO:          return "Mono";
+        case MIXERCONTROL_CONTROLTYPE_LOUDNESS:      return "Loudness";
+        case MIXERCONTROL_CONTROLTYPE_STEREOENH:     return "Stereo Enhanced";
+        case MIXERCONTROL_CONTROLTYPE_BUTTON:        return "Button";
+        case MIXERCONTROL_CONTROLTYPE_DECIBELS:      return "Decibels";
+        case MIXERCONTROL_CONTROLTYPE_SIGNED:        return "Signed";
+        case MIXERCONTROL_CONTROLTYPE_UNSIGNED:      return "Unsigned";
+        case MIXERCONTROL_CONTROLTYPE_PERCENT:       return "Percent";
+        case MIXERCONTROL_CONTROLTYPE_SLIDER:        return "Slider";
+        case MIXERCONTROL_CONTROLTYPE_PAN:           return "Pan";
+        case MIXERCONTROL_CONTROLTYPE_QSOUNDPAN:     return "Q Sound Pan";
+        case MIXERCONTROL_CONTROLTYPE_FADER:         return "Fader";
+        case MIXERCONTROL_CONTROLTYPE_VOLUME:        return "Volume";
+        case MIXERCONTROL_CONTROLTYPE_BASS:          return "Bass";
+        case MIXERCONTROL_CONTROLTYPE_TREBLE:        return "Treble";
+        case MIXERCONTROL_CONTROLTYPE_EQUALIZER:     return "Equalizer";
+        case MIXERCONTROL_CONTROLTYPE_SINGLESELECT:  return "Single Select";
+        case MIXERCONTROL_CONTROLTYPE_MUX:           return "Mux";
+        case MIXERCONTROL_CONTROLTYPE_MULTIPLESELECT:return "Multiple Select";
+        case MIXERCONTROL_CONTROLTYPE_MIXER:         return "Mixer";
+        case MIXERCONTROL_CONTROLTYPE_MICROTIME:     return "Micro Time";
+        case MIXERCONTROL_CONTROLTYPE_MILLITIME:     return "Milli Time";
+        }
+        return "Unknown";
+}
+
+static void
+mixerDumpLineInfo(HMIXEROBJ hMix, DWORD dwLineID)
+{
+        MIXERLINECONTROLS mlc;
+        LPMIXERCONTROL    pmc;
+        MIXERLINE ml;
+        MMRESULT  mmr;
+        UINT      i;
+
+        /* Determine number of controls */
+        ml.cbStruct = sizeof(ml);
+        ml.dwLineID = dwLineID;
+
+        mmr = mixerGetLineInfo((HMIXEROBJ)hMix, &ml, MIXER_GETLINEINFOF_LINEID | MIXER_OBJECTF_HMIXER);
+        if (mmr != MMSYSERR_NOERROR) {
+                debug_msg(mixGetErrorText(mmr));
+                return;
+        }
+
+        pmc = (LPMIXERCONTROL)xmalloc(sizeof(MIXERCONTROL)*ml.cControls);
+        mlc.cbStruct  = sizeof(MIXERLINECONTROLS);
+        mlc.cbmxctrl  = sizeof(MIXERCONTROL);
+        mlc.pamxctrl  = pmc;
+        mlc.cControls = ml.cControls;
+        mlc.dwLineID  = dwLineID;
+
+        mmr = mixerGetLineControls((HMIXEROBJ)hMix, &mlc, MIXER_GETLINECONTROLSF_ALL | MIXER_OBJECTF_HMIXER);
+        if (mmr != MMSYSERR_NOERROR) {
+                debug_msg(mixGetErrorText(mmr));
+                return;
+        }
+
+        for(i = 0; i < ml.cControls; i++) {
+                debug_msg("- %u %s\t\t %s\n", i, pmc[i].szName, mixGetControlType(pmc[i].dwControlType));
+        }
+
+}
+
 static int
 mixerEnableLine(HMIXEROBJ hMix, DWORD dwLineID, DWORD state)
 {
@@ -130,6 +207,8 @@ mixerEnableLine(HMIXEROBJ hMix, DWORD dwLineID, DWORD state)
         MIXERCONTROL      mc;
         MMRESULT          mmr;
 
+        mixerDumpLineInfo(hMix, dwLineID);
+
         mlc.cbStruct      = sizeof(mlc);
         mlc.pamxctrl      = &mc;
         mlc.cbmxctrl      = sizeof(MIXERCONTROL);
@@ -138,10 +217,16 @@ mixerEnableLine(HMIXEROBJ hMix, DWORD dwLineID, DWORD state)
         
         mmr = mixerGetLineControls(hMix, &mlc, MIXER_GETLINECONTROLSF_ONEBYTYPE | MIXER_OBJECTF_HMIXER);
         if (mmr != MMSYSERR_NOERROR) {
+                mlc.cbStruct      = sizeof(mlc);
+                mlc.pamxctrl      = &mc;
+                mlc.cbmxctrl      = sizeof(MIXERCONTROL);
+                mlc.dwLineID      = dwLineID;
                 mlc.dwControlType = MIXERCONTROL_CONTROLTYPE_ONOFF;
                 mmr = mixerGetLineControls(hMix, &mlc, MIXER_GETLINECONTROLSF_ONEBYTYPE | MIXER_OBJECTF_HMIXER);
                 if (mmr != MMSYSERR_NOERROR) {
-                        debug_msg("Could not get mute control for line 0x%08x\n", dwLineID);
+                        debug_msg("Could not get mute control for line 0x%08x: %s\n", 
+                                dwLineID,
+                                mixGetErrorText(mmr));
                         return FALSE;
                 }
         }
@@ -180,7 +265,9 @@ mixerSetLineGain(HMIXEROBJ hMix, DWORD dwLineID, int gain)
         
         mmr = mixerGetLineControls(hMix, &mlc, MIXER_GETLINECONTROLSF_ONEBYTYPE | MIXER_OBJECTF_HMIXER);
         if (mmr != MMSYSERR_NOERROR) {
-                debug_msg("Could not volume control for line 0x%08x\n", dwLineID);
+                debug_msg("Could not volume control for line 0x%08x: %s\n", 
+                        dwLineID,
+                        mixGetErrorText(mmr));
                 return FALSE;        
         }
 
@@ -828,7 +915,6 @@ w32sdk_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
 	UNUSED(ad);
 	UNUSED(port);
-        assert(port == WIN32_SPEAKER);
 }
 
 /* Return selected output port */
@@ -1000,7 +1086,7 @@ w32sdk_audio_supports(audio_desc_t ad, audio_format *paf)
 
 
 #define W32SDK_MAX_NAME_LEN 32
-#define W32SDK_MAX_DEVS      3
+#define W32SDK_MAX_DEVS      8
 
 static char szDevNames[W32SDK_MAX_DEVS][W32SDK_MAX_NAME_LEN];
 static int  nDevs;
@@ -1012,7 +1098,7 @@ w32sdk_audio_query_devices(void)
 	int nWaveInDevs, nWaveOutDevs;
 	int i;
 	
-	nWaveInDevs = waveInGetNumDevs();
+	nWaveInDevs  = waveInGetNumDevs();
 	nWaveOutDevs = waveOutGetNumDevs();
 	
 	if (nWaveInDevs != nWaveOutDevs) {
@@ -1022,7 +1108,7 @@ w32sdk_audio_query_devices(void)
 			* between wave input devices, wave output devices, and mixers.
 			* We don't abort just in case things work.  Look out for some really
 			* strange bug reports.
-		*/
+		        */
 	}
 	
 	nDevs = min(nWaveInDevs, nWaveInDevs);
