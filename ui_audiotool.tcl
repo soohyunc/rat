@@ -1889,7 +1889,7 @@ pack      .about.rim.d.credits.f -fill both -expand 1
 pack      .about.rim.d.credits.f.f -side left -fill x -expand 1
 label     .about.rim.d.credits.f.f.1                  -text "The Robust-Audio Tool was developed in the Department of\nComputer Science, University College London.\n\nProject Supervision:"
 label     .about.rim.d.credits.f.f.2 -foreground blue -text Good
-label     .about.rim.d.credits.f.f.3                  -text "\nCore Development Team:"
+label     .about.rim.d.credits.f.f.3                  -text "\nDevelopment Team:"
 label     .about.rim.d.credits.f.f.4 -foreground blue -text Bad
 label     .about.rim.d.credits.f.f.5                  -text "Additional Contributions:"
 label     .about.rim.d.credits.f.f.6 -foreground blue -text Ugly
@@ -1919,7 +1919,7 @@ wm title     .about "About RAT"
 wm resizable .about 0 0
 set about_pane Copyright
 set_pane about_pane .about.rim.d "Credits" 
-constrain_window .about $infofont 70 25 
+constrain_window .about $infofont 64 25 
 
 .about.rim.d.copyright.f.f.blurb insert end {
 Copyright (C) 1995-1999 University College London
@@ -2007,8 +2007,8 @@ proc shuffle_rats {args} {
 proc jiggle_credits {} {
 # Software really developed by the Socialist Department of Computer Science
     .about.rim.d.credits.f.f.2 configure -text [shuffle_rats "Angela Sasse" "Vicky Hardman"]
-    .about.rim.d.credits.f.f.4 configure -text [shuffle_rats "Colin Perkins" "Isidor Kouvelas" "Orion Hodson"]
-    .about.rim.d.credits.f.f.6 configure -text [shuffle_rats "Darren Harris"  "Anna Watson" "Mark Handley" "Jon Crowcroft" "Anna Bouch" "Marcus Iken" "Kris Hasler"]
+    .about.rim.d.credits.f.f.4 configure -text [shuffle_rats "Colin Perkins" "Orion Hodson"]
+    .about.rim.d.credits.f.f.6 configure -text [shuffle_rats "Isidor Kouvelas" "Darren Harris" "Anna Watson" "Mark Handley" "Jon Crowcroft" "Marcus Iken" "Kris Hasler"]
 }
 
 proc sync_ui_to_engine {} {
@@ -2210,7 +2210,7 @@ proc tool_version {tool} {
 		# Unknown tool version, so put out something which won't
 		# match with the current version string to force a reset
 		# of the saved parameters.
-	    	puts "*X*X*X tool failed regexp match: $tool"
+	    	puts "*X*X*X tool failed regexp match: \"$tool\""
 		return "RAT v0.0.0"
 	}
 	regsub {(RAT v[0-9]+\.[0-9]+\.[0-9]+) [a-zA-Z]+} $tool {\1} v
