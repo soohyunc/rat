@@ -413,7 +413,7 @@ void settings_load_early(session_t *sp)
 /* Ignore saved render_3d setting.  Break initial device config stuff.  V.fiddly to fix. */
 /*	sp->render_3d      = setting_load_int("audio3dRendering", 0);                    */
 
-        mute = setting_load_int("audioInputMute", 1);
+        mute = setting_load_int("audioInputMute", sp->mode==TRANSCODER?0:1);
         if (mute && tx_is_sending(sp->tb)) {
                 tx_stop(sp->tb);
         } else if (mute == 0 && tx_is_sending(sp->tb) == 0) {
