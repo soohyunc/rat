@@ -1,4 +1,3 @@
-
 CC = gcc
 DEBUG=-g
 INCLUDE = -I.. -I../../common
@@ -30,6 +29,12 @@ PKTBUF_OBJS = ../pktbuf.o test_pktbuf.o ../ts.o ../playout.o
 
 RTONE_OBJS = ./rtone.o
 
+test_sndfile: $(CODEC_OBJS) $(SNDFILE_OBJS) test_sndfile.o
+	$(CC) $(DEBUG)  -o $@ $(SNDFILE_OBJS) $(CODEC_OBJS) $(LIBS) test_sndfile.o
+
+test_convert: $(CODEC_OBJS) test_convert.o
+	$(CC) $(DEBUG)  -o $@ $(CODEC_OBJS) $(LIBS) test_convert.o
+
 rtone: $(RTONE_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS)
 	$(CC) $(DEBUG) -o $@ $(RTONE_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(LIBS)
 
@@ -38,9 +43,6 @@ test_pktbuf: $(PKTBUF_OBJS)
 
 test_repair: $(CODEC_OBJS) $(REPAIR_OBJS) $(SNDFILE_OBJS) test_repair.o 
 	$(CC) $(DEBUG)  -o $@ $(CODEC_OBJS) $(REPAIR_OBJS) $(SNDFILE_OBJS) $(LIBS) test_repair.o
-
-test_convert: $(CODEC_OBJS) test_convert.o
-	$(CC) $(DEBUG)  -o $@ $(CODEC_OBJS) $(LIBS) test_convert.o
 
 test_rdncy: $(RDNCY_OBJS) $(CODEC_OBJS) $(UTIL_OBJS)
 	$(CC) $(DEBUG) -o $@ $(RDNCY_OBJS) $(CODEC_OBJS) $(UTIL_OBJS) $(LIBS)

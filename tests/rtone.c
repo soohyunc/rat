@@ -14,7 +14,8 @@
 #define UNUSED(x) x = x
 #endif
 
-/* This program is a big kludge that acts as an RTP audio source. It will:
+/* This program is a BIG KLUDGE that acts as an RTP audio source. It will:
+ *
  * - encode a tone or audio file (-f) and transmit it.
  * - add jitter to departure times (-j <jitter_ms>).
  * - modulate transmission with pseudo-voice modulation (-b).
@@ -166,6 +167,7 @@ where:
 \t-j <jitter> set jitter in ms.
 \t-l lists available codecs.
 \t-s sets the speed relative to real time (>1.0 == faster).
+\t-S set rtp SSRC.
 \t-t sets ttl.
 \t-u sets units per packet.\n");
 	exit(-1);
@@ -226,13 +228,13 @@ main(int argc, char* argv[])
 	codec_id_t cid;
 	struct timeval last, now, delta, pause, wakeup;
 	struct s_sndfile *sf = NULL;
-	int      ac, gain = 5000, freq = 400, ttl = 4, upp = 2, i, ulen, done, file_mode = 0, bursty = 0, sleeping = 0, m = 1;
+	int      ac, gain = 5000, freq = 400, ttl = 8, upp = 2, i, ulen, done, file_mode = 0, bursty = 0, sleeping = 0, m = 1;
 	int      duration = -1, duration_step = 0;
 	long int packet_us, avail_us, jitter_ms = 0;
 	codec_state *cs;
 	coded_unit  *in;
 	coded_unit  *out;
-	uint32_t      ts, timeout;
+	uint32_t      ts, timeout, my_ssrc, set_ssrc = 0;
 	char *u, *addr = NULL, *port = NULL, pt;
 	struct rtp *session;
 	ac = 1;
@@ -283,6 +285,10 @@ main(int argc, char* argv[])
 		case 's':
 			speed = atof(argv[++ac]);
 			break;
+		case 'S':
+			my_ssrc = strtoul(argv[++ac], NULL, 10);
+			set_ssrc = 1;
+			break;
 		case 't':
 			ttl = atoi(argv[++ac]);
 			break;
@@ -308,7 +314,10 @@ main(int argc, char* argv[])
 		fprintf(stderr, "Failed with -t %d %s/%s\n", ttl, addr, port);
 		exit(-1);
 	}
-
+	if (set_ssrc) {
+		rtp_set_my_ssrc(session, my_ssrc);
+		printf("Setting my_ssrc 0x%08x\n", my_ssrc);
+	}
 	cf = codec_get_format(cid);
 	pt = codec_get_payload(cid);
 	packet_us = 1000000 * upp * cf->format.bytes_per_block / (cf->format.channels * cf->format.sample_rate * (cf->format.bits_per_sample / 8));
