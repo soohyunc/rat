@@ -768,10 +768,16 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int1
 	u_int8          *ptr = packet;
 	rtcp_dbentry	*src;
 
-	/* Send an RTCP BYE packet... */
-	ptr = rtcp_packet_fmt_srrr(sp1, ptr);
-	ptr = rtcp_packet_fmt_bye(ptr, sp1->db->myssrc, sp1->mode == TRANSCODER? sp2->db->ssrc_db: (rtcp_dbentry *) NULL);
-	net_write(fd, addr, port, packet, ptr - packet, PACKET_RTCP);
+	/* We should do RTCP BYE reconsideration here... instead we take */
+	/* the easy way out and only send BYE packets if there are less  */
+	/* than 50 members in the group. This is ugly, but DOES conform  */
+	/* to draft-ietf-avt-rtp-new-01.txt (section 6.3.7)        [csp] */
+	if (sp1->db->members < 50) {
+		/* Send an RTCP BYE packet... */
+		ptr = rtcp_packet_fmt_srrr(sp1, ptr);
+		ptr = rtcp_packet_fmt_bye(ptr, sp1->db->myssrc, sp1->mode == TRANSCODER? sp2->db->ssrc_db: (rtcp_dbentry *) NULL);
+		net_write(fd, addr, port, packet, ptr - packet, PACKET_RTCP);
+	}
 
 	rtcp_free_dbentry(sp1->db->my_dbe);
 	while ((src = sp1->db->ssrc_db) != NULL) {
