@@ -63,7 +63,7 @@ proc init_source {ssrc} {
 	if {[array names INDEX $ssrc] != [list $ssrc]} {
 		# This is a source we've not seen before...
 		set         CNAME($ssrc) ""
-		set          NAME($ssrc) "$ssrc"
+		set          NAME($ssrc) $ssrc
 		set         EMAIL($ssrc) ""
 		set         PHONE($ssrc) ""
 		set           LOC($ssrc) ""
