@@ -750,7 +750,7 @@ proc mbus_recv_audio.output.mute {val} {
 
 proc mbus_recv_session.title {title} {
     global session_title
-    set session_title $title
+    set session_title \"$title\"
     wm title . "RAT: $title"
 }
 
@@ -1660,8 +1660,6 @@ frame  .prefs.buttons
 pack   .prefs.buttons       -side bottom -fill x 
 button .prefs.buttons.bye   -text "Cancel" -command {sync_ui_to_engine; wm withdraw .prefs}
 button .prefs.buttons.apply -text "Apply" -command {wm withdraw .prefs; sync_engine_to_ui}
-#button .prefs.buttons.save  -text "Save & Apply" -command {save_settings; wm withdraw .prefs; sync_engine_to_ui}
-#pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side right -padx 2 -pady 2
 pack   .prefs.buttons.bye .prefs.buttons.apply -side right -padx 2 -pady 2
 
 wm protocol .prefs WM_DELETE_WINDOW {sync_ui_to_engine; wm withdraw .prefs}
@@ -2468,14 +2466,14 @@ set rec_file(state) end
 catch {
     toplevel .file
     wm protocol .file WM_DELETE_WINDOW {set files_on 0; file_show}
-    frame .file.play -relief ridge
-    frame .file.rec  -relief ridge
+    frame .file.play -relief groove -bd 2
+    frame .file.rec  -relief groove -bd 2
     pack  .file.play -side top -pady 2 -padx 2 -fill x -expand 1
     pack  .file.rec  -side top -pady 2 -padx 2 -fill x -expand 1
     
     label .file.play.l -text "Playback"
     pack  .file.play.l -side top -fill x
-    label .file.rec.l -text "Record"
+    label .file.rec.l -text "Record"   
     pack  .file.rec.l -side top -fill x
 
     button .file.dismiss -text Dismiss -command "set files_on 0; file_show"
@@ -2495,7 +2493,7 @@ catch {
 	    pack   .file.$action.buttons.$cmd -side left -padx 2 -pady 2 -anchor n -fill x
 	}
 
-	label  .file.$action.buttons.status -text "No file selected." -relief sunk -width 16 -anchor w
+	label  .file.$action.buttons.status -text "No file selected." -width 16 -anchor w
 	pack   .file.$action.buttons.status -side bottom -fill both -expand 1 -padx 2 -pady 2
     }
 } fwinerr
