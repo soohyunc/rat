@@ -76,7 +76,6 @@ mix_create(mix_struct **ppms, int sample_rate, int sample_channels, int buffer_l
                 pms->head_time = pms->tail_time = ts_map32(pms->rate, 0);
                 *ppms = pms;
 
-
                 audio_mix_fn = audio_mix;
 #ifdef WIN32
                 if (mmx_present()) {
@@ -192,6 +191,8 @@ mix_process(mix_struct          *ms,
         new_head_time = ts_add(playout, ts_map32(ms->rate, nsamples / ms->channels));
         if (ts_eq(ms->head_time, ms->tail_time)) {
                 ms->head_time = ms->tail_time = playout;
+                assert(ms->head == ms->tail);
+                ms->dist = 0;
         }
 
         if (ts_gt(new_head_time, ms->head_time))  {
@@ -203,8 +204,9 @@ mix_process(mix_struct          *ms,
                 ms->head += zeros;
                 ms->head %= ms->buf_len;
                 ms->head_time = ts_add(ms->head_time, delta);
+                assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);                                          
         }
-        assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);                                          
+
         assert(!ts_gt(playout, ms->head_time));
 
         /* Work out where to write the data */
