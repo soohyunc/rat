@@ -57,4 +57,6 @@ char   *_xstrdup(char *s1, char *filen, int line);
 char  *_block_alloc(unsigned size, char *filen, int line);
 void  block_free(void *p, int size);
 void  block_release_all(void);
+void  dprintf(const char *format, ...);
+
 #endif /* _UTIL_H_ */

@@ -40,6 +40,7 @@
  * SUCH DAMAGE.
  */
 
+#include <stdarg.h>
 #include "config.h"
 #include "util.h"
 
@@ -289,3 +290,15 @@ block_release_all(void)
         }
     }
 }
+
+void dprintf(const char *format, ...)
+{
+#ifdef DEBUG
+        va_list ap;
+ 
+        va_start(ap, format);
+        vprintf(format, ap);
+        va_end(ap);
+#endif
+}
+
