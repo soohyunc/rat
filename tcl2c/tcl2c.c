@@ -23,6 +23,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifndef TRUE 
 #define TRUE  1
@@ -31,6 +32,7 @@
 
 #ifndef WIN32
 
+int
 main(int argc, char **argv)
 {
     int c, newline = TRUE;;
@@ -70,10 +72,12 @@ main(int argc, char **argv)
     printf("\";\n");
     exit(0);
     /*NOTREACHED*/
+    return 0;
 }
 
 #else /* WIN32 */
 
+int
 main(int argc, char **argv)
 {
     int c, n;
@@ -89,8 +93,7 @@ main(int argc, char **argv)
 	printf("%u,%c", c, ((++n & 0xf) == 0) ? '\n' : ' ');
 
     printf("};\n");
-    exit(0);
-    /*NOTREACHED*/
+    return 0;  
 }
 
 #endif /* WIN32 */
