@@ -36,7 +36,6 @@ PACKLIST.EXE Ver=3.00.060
 Version=2.01
 DevTool=for Visual C++ 4.1
 Platform=Win32
-DisksBuilt=1
 DisksDir=rat\120MB\
 TabsVisit=1111111111111111100011
 LangNum=451
@@ -46,7 +45,7 @@ LangDir=LANG\ENG\
 AppName=Robust-Audio Tool
 AppExe=
 AppExeFile=
-Version=4.1.3
+Version=4.1.4
 Company=University College London
 Title=Robust-Audio Tool
 TitleType=1
@@ -73,20 +72,24 @@ Component1GroupList=1
 
 [Groups]
 Groups=1
-Group1Size=4137090
+Group1Size=2134016
 Group1Files=3
 Group1Name=Program Files
 Group1Dir=<INSTALLDIR>
 Group1Update=0
-Group1File1=C:\src\rat\Debug\ratmedia.exe
-Group1File2=C:\src\rat\Debug\rat.exe
-Group1File3=C:\src\rat\Debug\ratui.exe
+Group1File1=C:\src\rat\Release\rat.exe
+Group1File2=C:\src\rat\Release\ratmedia.exe
+Group1File3=C:\src\rat\Release\ratui.exe
 
 [Sequence]
-DestinationLocationDir=<ProgramFilesDir>\UCL\Mbone
+DestinationLocationDir=<ProgramFilesDir>\Mbone
 SelectProgramFolderName=rat
 WelcomeMessage=1
 WelcomeMessageFile=
+LicenseAgreement=1
+LicenseAgreementFile=C:\src\rat\COPYRIGHT
+ReadMeFileBrowser=1
+ReadMeFileBrowserFile=C:\src\rat\MODS
 DestinationLocation=1
 ProgressBar=1
 SetupComplete=1
@@ -145,7 +148,7 @@ Value3=
 IniFiles=3
 
 [Autoexec]
-PathDir=<ProgramFilesDir>\UCL\Mbone
+PathDir=<ProgramFilesDir>\Mbone
 ShareLocks=
 ShareFiles=
 Command=
