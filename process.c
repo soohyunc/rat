@@ -71,11 +71,13 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
 	/* Add . to path */
 	char *path, *path_env;
 
-	path = getenv("PATH");
-	path_env = (char*)xmalloc(strlen(path) + 8);
-	sprintf(path_env, "PATH=.:%s", path);
-	putenv(path_env);
-	xfree(path_env);
+       /* Under certain circumstances, PATH may be NULL */
+       if (path = getenv("PATH")) {
+               path_env = (char*)xmalloc(strlen(path) + 8);
+               sprintf(path_env, "PATH=.:%s", path);
+               putenv(path_env);
+               xfree(path_env);
+       }
 
         *pid = fork();
         if (*pid == -1) {
