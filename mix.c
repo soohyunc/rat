@@ -227,6 +227,10 @@ mix_put_audio(mixer_t     *ms,
 	/* Advance head if necessary */
         playout_end = ts_add(playout, ts_map32(ms->info.sample_rate, nsamples / ms->info.channels));
 	if (ts_gt(playout_end, ms->head_time)) {
+		uint32_t playout_delta = ts_to_ms(ts_sub(playout_end, ms->head_time));
+		if (playout_delta > 1000) {
+		 	debug_msg("WARNING: Large playout buffer advancement (%dms)\n", playout_delta);
+		}
 		mix_advance_head(ms, playout_end);
 	}
 
