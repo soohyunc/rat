@@ -143,14 +143,19 @@ int read_and_discard(socket_udp *s)
 void network_process_mbus(session_struct *sp)
 {
 	/* Process outstanding Mbus messages. */
-	int	rc, c;
+	int		rc, c;
+	struct timeval	timeout;
 
 	c = 0;
 	do {
 		mbus_send(sp->mbus_ui); 
-		rc  = mbus_recv(sp->mbus_engine, (void *) sp); 
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 0;
+		rc  = mbus_recv(sp->mbus_engine, (void *) sp, &timeout); 
 		mbus_send(sp->mbus_engine); 
-                rc |= mbus_recv(sp->mbus_ui, (void *) sp); 
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 0;
+                rc |= mbus_recv(sp->mbus_ui, (void *) sp, &timeout); 
 		if (rc) {
 			c = 0;
 		} else {

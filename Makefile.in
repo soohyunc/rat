@@ -70,10 +70,12 @@ ui_audiotool.c: ui_audiotool.tcl tcl2c/tcl2c
 	cat asfilebox.tcl ui_audiotool.tcl | tcl2c/tcl2c ui_audiotool > ui_audiotool.c
 
 clean:
-	-rm -f $(CTRL_OBJS) $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(UI_OBJS) $(TCL_OBJS) 
+	-rm -f $(CTRL_OBJS) $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(UI_OBJS) $(TCL_OBJS) main_engine.o main.o
 	-rm -f $(MEDIALIBS)
 	-rm -f tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile Makefile.sed 
-	-rm -f tcl2c/tcl2c $(RATVER) sdr2.plugin.S02.audio.rtp.\*.$(RATVER)
+	-rm -f tcl2c/tcl2c sdr2.plugin.S02.audio.rtp.\*.$(RATVER)
+	-rm -f $(RATVER) 
+	-rm -f $(RATVER)-media $(RATVER)-ui $(RATVER)-new
 
 etags:
 	etags ../common/*.[ch] *.[ch]

@@ -57,16 +57,6 @@ signal_handler(int signal)
 }
 #endif
 
-static int tcl_process_events(session_struct *sp)
-{
-	int i = 0;
-
-        while (!audio_is_ready(sp->audio_device) && tcl_process_event() && i < 16) {
-                i++;
-        }
-        return i;
-}
-
 int
 main(int argc, char *argv[])
 {
@@ -102,30 +92,15 @@ main(int argc, char *argv[])
         converters_init();
         statistics_init();
 
-	if (sp[0]->mode == AUDIO_TOOL) {
-		sprintf(mbus_engine_addr, "(media:audio module:engine app:rat instance:%lu)", (u_int32) getpid());
-		sp[0]->mbus_engine = mbus_init(mbus_engine_rx, NULL);
-		mbus_addr(sp[0]->mbus_engine, mbus_engine_addr);
-
-		if (sp[0]->ui_on) {
-			sprintf(mbus_ui_addr, "(media:audio module:ui app:rat instance:%lu)", (u_int32) getpid());
-			sp[0]->mbus_ui = mbus_init(mbus_ui_rx, NULL);
-			mbus_addr(sp[0]->mbus_ui, mbus_ui_addr);
-			tcl_init(sp[0]->mbus_ui, argc, argv, mbus_engine_addr);
-		} else {
-			strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
-		}
-	} else {
-		/* We're a transcoder... set up a separate mbus instance */
-		/* for each side, to make them separately controllable.  */
-		abort();
-	}
-	sprintf(mbus_video_addr, "(media:video module:engine)");
+	sprintf(mbus_video_addr,  "(media:video module:engine)");
+	sprintf(mbus_ui_addr,     "(media:audio module:ui app:rat instance:%lu)", (u_int32) getpid());
+	sprintf(mbus_engine_addr, "(media:audio module:engine app:rat instance:%lu)", (u_int32) getpid());
+	sp[0]->mbus_engine = mbus_init(mbus_engine_rx, NULL);
+	mbus_addr(sp[0]->mbus_engine, mbus_engine_addr);
 
 	do {
 		usleep(20000);
 		mbus_heartbeat(sp[0]->mbus_engine, 1);
-		mbus_heartbeat(sp[0]->mbus_ui, 1);
 		network_process_mbus(sp[0]);
 	} while (sp[0]->wait_on_startup);
 	ui_controller_init(sp[0], ssrc, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
@@ -169,16 +144,10 @@ main(int argc, char *argv[])
          */
         
         for(i = 0; i < num_sessions; i++) {
-                int dropped;
-                dropped = read_and_discard(sp[i]->rtp_socket);
-                debug_msg("Session %d dumped %d rtp packets\n", i, dropped);
-                dropped = read_and_discard(sp[i]->rtcp_socket);
-                debug_msg("Session %d dumped %d rtcp packets\n", i, dropped);
+                read_and_discard(sp[i]->rtp_socket);
+                read_and_discard(sp[i]->rtcp_socket);
         }
 
-        i = tcl_process_all_events();
-        debug_msg("process %d events at startup %d\n", i);
-	
 	xdoneinit();
 
 	while (!should_exit) {
@@ -258,16 +227,13 @@ main(int argc, char *argv[])
 			} else {
 				alc++;
 			}
-			if (sp[i]->audio_device) ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
-                	if (sp[i]->ui_on) {
-				tcl_process_events(sp[i]);
-				mbus_send(sp[i]->mbus_ui); 
-				mbus_recv(sp[i]->mbus_ui, (void *) sp[i]);
-				mbus_retransmit(sp[i]->mbus_ui);
-				mbus_heartbeat(sp[i]->mbus_ui, 10);
-                	}
+			if (sp[i]->audio_device) {
+				ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
+			}
+			timeout.tv_sec  = 0;
+			timeout.tv_usec = 0;
 			mbus_send(sp[i]->mbus_engine); 
-			mbus_recv(sp[i]->mbus_engine, (void *) sp[i]);
+			mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
 			mbus_retransmit(sp[i]->mbus_engine);
 			mbus_heartbeat(sp[i]->mbus_engine, 10);
 
@@ -305,10 +271,6 @@ main(int argc, char *argv[])
 
         if (sp[0]->mode == AUDIO_TOOL) {
                 mbus_exit(sp[0]->mbus_engine);
-                if (sp[0]->ui_on) {
-                        mbus_exit(sp[0]->mbus_ui);
-                	tcl_exit();
-                }
         }
         
         for(i = 0; i < 2; i++) {

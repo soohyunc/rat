@@ -259,14 +259,18 @@ main(int argc, char *argv[])
 			}
 			if (sp[i]->audio_device) ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
                 	if (sp[i]->ui_on) {
+				timeout.tv_sec  = 0;
+				timeout.tv_usec = 0;
 				tcl_process_events(sp[i]);
 				mbus_send(sp[i]->mbus_ui); 
-				mbus_recv(sp[i]->mbus_ui, (void *) sp[i]);
+				mbus_recv(sp[i]->mbus_ui, (void *) sp[i], &timeout);
 				mbus_retransmit(sp[i]->mbus_ui);
 				mbus_heartbeat(sp[i]->mbus_ui, 10);
                 	}
+			timeout.tv_sec  = 0;
+			timeout.tv_usec = 0;
 			mbus_send(sp[i]->mbus_engine); 
-			mbus_recv(sp[i]->mbus_engine, (void *) sp[i]);
+			mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
 			mbus_retransmit(sp[i]->mbus_engine);
 			mbus_heartbeat(sp[i]->mbus_engine, 10);
 
