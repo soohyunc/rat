@@ -52,11 +52,11 @@ typedef struct s_red_layer {
 } red_layer;
 
 typedef struct {
-        red_layer            layer[RED_MAX_LAYERS];
+        red_layer             layer[RED_MAX_LAYERS];
         uint32_t              n_layers;
         struct s_pb          *media_buffer;
         struct s_pb_iterator *media_pos;
-        uint32_t               units_ready;
+        uint32_t              units_ready;
         ts_t                  history; /* How much audio history is needed for coding */
         ts_t                  last_in; /* timestamp of last media unit accepted */
 } red_enc_state;
@@ -677,17 +677,38 @@ redundancy_decoder_describe (uint8_t   pkt_pt,
         return TRUE;        
 }
 
-static void
+static int
 place_unit(media_data *md, coded_unit *cu)
 {
+        int16_t i;
 #ifdef DEBUG_REDUNDANCY
         const codec_format_t *cf;
         cf = codec_get_format(cu->id);
         debug_msg("%d %s\n", md->nrep, cf->long_name);
 #endif /* DEBUG_REDUNDANCY */
         assert(md->nrep < MAX_MEDIA_UNITS);
+        
+        for (i = 0; i < md->nrep; i++) {
+                if (md->rep[i]->id == cu->id) {
+                        debug_msg("Redundancy decoder - coded_unit type already present\n");
+                        return FALSE;
+                }
+        }
+        
+        if (md->nrep > 0 && codec_is_native_coding(md->rep[md->nrep - 1]->id)) {
+                /* Buffer shifts can mean redundancy is received after primary decoded.  */
+                /* Just discard. i.e. pkt 1 (t1 t0) pkt2 (t2 t1), if pkt2 arrives after  */
+                /* pkt1 decoded we don't want to append redundant t1 data as it confuses */
+                /* decoder.                                                              */
+                /* XXX Should check for packet re-ordering i.e. pkt2 arrives and is      */
+                /* decoded before pkt 1 then should use pkt 1's data as this will be     */
+                /* higher quality under normal circumstances.                            */
+                return FALSE;
+        }
+
         md->rep[md->nrep] = cu;
         md->nrep++;
+        return TRUE;
 }
 
 static media_data *
@@ -779,8 +800,16 @@ red_split_unit(u_char  ppt,        /* Primary payload type */
                 p += cu->data_len;
                 md = red_media_data_create_or_get(out, playout);
                 if (md->nrep == MAX_MEDIA_UNITS) continue;
-                place_unit(md, cu);
-                playout = ts_add(playout, step);
+                if (place_unit(md, cu) == TRUE) {
+                        playout = ts_add(playout, step);
+                } else {                
+                        /* unit could not be placed - destroy */
+                        if (cu->state_len) {
+                                block_free(cu->state, cu->state_len);
+                        }
+                        block_free(cu->data, cu->data_len);
+                        block_free(cu, sizeof(coded_unit));
+                }
         }
 }
 
@@ -839,6 +868,7 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
                 ts_blk_off = ts_map32(cf->format.sample_rate, boff);
                 this_playout = ts_add(playout, ts_max_off);
                 this_playout = ts_sub(this_playout, ts_blk_off);
+                debug_msg("redundant playout %d\n", this_playout.ticks);
                 hp += 4; /* hdr */
                 red_split_unit(ppt, bpt, dp, blen, this_playout, out);
                 xmemchk();
@@ -847,6 +877,7 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
         }
         
         this_playout = ts_add(playout, ts_max_off);
+        debug_msg("primary playout %d\n", this_playout.ticks);
         hp += 1;
         blen = (uint32_t) (de - dp);
         red_split_unit(ppt, ppt, dp, blen, this_playout, out);

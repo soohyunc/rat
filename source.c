@@ -1311,7 +1311,6 @@ source_process(session_t 	 *sp,
 
         while (ts_gt(end_ts, src->next_played) && pb_iterator_advance(src->media_pos)) {
 		pb_iterator_get_at(src->media_pos, (u_char**)&md, &md_len, &playout);
-
 		/* At this point, md is the media data at the current playout point */
                 assert(md     != NULL);
                 assert(md_len == sizeof(media_data));
@@ -1360,7 +1359,7 @@ source_process(session_t 	 *sp,
 
                 assert(md != NULL);
                 assert(md_len == sizeof(media_data));
-		assert(md->nrep < MAX_MEDIA_UNITS);
+		assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
 
                 if (codec_is_native_coding(md->rep[md->nrep - 1]->id) == FALSE) {
 			/* If we've got to here, we have no native coding for this unit */
@@ -1371,8 +1370,8 @@ source_process(session_t 	 *sp,
                                 /* If there is a native coding this unit has already */
 				/* been decoded and this would be a bug */
                                 assert(md->rep[i] != NULL);
-                                assert(codec_id_is_valid(md->rep[i]->id));
                                 assert(codec_is_native_coding(md->rep[i]->id) == FALSE);
+                                assert(codec_id_is_valid(md->rep[i]->id));
                         }
 #endif
                         cu = (coded_unit*) block_alloc(sizeof(coded_unit));
