@@ -8,8 +8,6 @@ catch {
 # Full terms and conditions of the copyright appear below.
 #
 
-wm withdraw .
-
 if {[string compare [info commands registry] "registry"] == 0} {
 	set win32 1
 } else {
