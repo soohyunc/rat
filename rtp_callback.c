@@ -229,7 +229,7 @@ process_sdes(session_t *sp, u_int32 ssrc, rtcp_sdes_item *d)
 {
         pdb_entry_t *e;
 
-	assert(pdb_item_get(sp->pdb, ssrc, &a) == TRUE);
+	assert(pdb_item_get(sp->pdb, ssrc, &e) == TRUE);
 
         if (sp->mbus_engine == NULL) {
                 /* Nowhere to send updates to, so ignore them.               */
