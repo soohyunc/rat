@@ -62,11 +62,19 @@ int  osprey_audio_read       (audio_desc_t ad, u_char *buf, int in_bytes);
 int  osprey_audio_write      (audio_desc_t ad, u_char *buf, int out_bytes);
 void osprey_audio_non_block  (audio_desc_t ad);
 void osprey_audio_block      (audio_desc_t ad);
-void osprey_audio_set_oport  (audio_desc_t ad, int port);
-int  osprey_audio_get_oport  (audio_desc_t ad);
-int  osprey_audio_next_oport (audio_desc_t ad);
-void osprey_audio_set_iport  (audio_desc_t ad, int port);
-int  osprey_audio_get_iport  (audio_desc_t ad);
+
+void          osprey_audio_oport_set   (audio_desc_t ad, audio_port_t port);
+audio_port_t  osprey_audio_oport_get   (audio_desc_t ad);
+int           osprey_audio_oport_count (audio_desc_t ad);
+const audio_port_details_t*
+              osprey_audio_oport_details (audio_desc_t ad, int idx);
+
+void          osprey_audio_iport_set     (audio_desc_t ad, audio_port_t port);
+audio_port_t  osprey_audio_iport_get     (audio_desc_t ad);
+int           osprey_audio_iport_count   (audio_desc_t ad);
+const audio_port_details_t*
+              osprey_audio_iport_details (audio_desc_t ad, int idx);
+
 int  osprey_audio_next_iport (audio_desc_t ad);
 int  osprey_audio_is_ready  (audio_desc_t ad);
 void osprey_audio_wait_for  (audio_desc_t ad, int delay_ms);

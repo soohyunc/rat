@@ -157,8 +157,8 @@ audio_if_t audio_if_table[] = {
                 sparc_audio_oport_count,
                 sparc_audio_iport_set,
                 sparc_audio_iport_get,
-                sparc_audio_details_iport,
-                sparc_audio_count_iport,
+                sparc_audio_iport_details,
+                sparc_audio_iport_count,
                 sparc_audio_is_ready,
                 sparc_audio_wait_for,
                 NULL

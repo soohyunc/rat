@@ -447,15 +447,23 @@ osprey_audio_block(audio_desc_t ad)
         debug_msg("audio_block: device always non-blocking\n");
 }
 
+static const audio_port_details_t out_ports[] = {
+        { AUDIO_SPEAKER,   AUDIO_PORT_SPEAKER},
+        { AUDIO_HEADPHONE, AUDIO_PORT_HEADPHONE},
+        { AUDIO_LINE_OUT,  AUDIO_PORT_LINE_OUT }
+};
+
+#define NUM_OUT_PORTS (sizeof(out_ports)/sizeof(out_ports[0]))
+
 void
-osprey_audio_set_oport(audio_desc_t ad, int port)
+osprey_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
         UNUSED(ad); assert(audio_fd > 0);
         oti_audio_set_record_port(audio_fd, (unsigned int*)&port);
 }
 
-int
-osprey_audio_get_oport(audio_desc_t ad)
+audio_port_t
+osprey_audio_oport_get(audio_desc_t ad)
 {
         unsigned int port;
  
@@ -463,79 +471,68 @@ osprey_audio_get_oport(audio_desc_t ad)
 
         oti_audio_get_record_port(audio_fd, &port);
 
-        return (int)port;
+        return (audio_port_t)port;
 }
 
 int
-osprey_audio_next_oport(audio_desc_t ad)
+osprey_audio_oport_count(audio_desc_t ad)
 {
-	int	port, max_port;
-
-        UNUSED(ad); assert(audio_fd > 0);
-
-	AUDIO_INITINFO(&dev_info);
-        if (oti_audio_getinfo(audio_fd, &dev_info) < 0)
-                perror("Getting port");
-	
-	port = dev_info.play.port;
-	port <<= 1;
-
-        /* oti reports upto 6 playback ports - only 3 are enumerated:
-         * AUDIO_MICROPHONE, AUDIO_LINE_IN, AUDIO_CD 
-         */
-        max_port = min(dev_info.play.avail_ports, 3);
-
-        if (port >= (1 << max_port))
-                port = 1;
-
-        oti_audio_set_play_port(audio_fd, (unsigned int *)&port);
-
-	return (port);
+        UNUSED(ad);
+        return (int)NUM_OUT_PORTS;
 }
 
+const audio_port_details_t*
+osprey_audio_oport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        if (idx >= 0 && idx < (int)NUM_OUT_PORTS) {
+                return &out_ports[idx];
+        }
+        return NULL;
+}
+
+static const audio_port_details_t in_ports[] = {
+        { AUDIO_MICROPHONE, AUDIO_PORT_MICROPHONE},
+        { AUDIO_LINE_IN,    AUDIO_PORT_LINE_IN},
+        { AUDIO_CD,         AUDIO_PORT_CD}
+};
+
+#define NUM_IN_PORTS (sizeof(out_ports)/sizeof(out_ports[0]))
+
 void
-osprey_audio_set_iport(audio_desc_t ad, int port)
+osprey_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
         UNUSED(ad); assert(audio_fd > 0);
 
         oti_audio_set_record_port(audio_fd, (unsigned int*)&port); 
 }
 
-int
-osprey_audio_get_iport(audio_desc_t ad)
+audio_port_t
+osprey_audio_iport_get(audio_desc_t ad)
 {
-        int port;
+        unsigned int port;
 
         UNUSED(ad); assert(audio_fd > 0);
 
-        oti_audio_get_record_port(audio_fd, (unsigned int*)&port); 
-	return port;
+        oti_audio_get_record_port(audio_fd, &port); 
+	return (audio_port_t)port;
 }
 
 int
-osprey_audio_next_iport(audio_desc_t ad)
+osprey_audio_iport_count(audio_desc_t ad)
 {
-	int	port, max_port;
+        UNUSED(ad);
+        return (int)NUM_IN_PORTS;
+}
 
-        UNUSED(ad); assert(audio_fd > 0);
-	
-	AUDIO_INITINFO(&dev_info);
-	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
-		perror("Getting port");
-
-	port = dev_info.record.port;
-	port <<= 1;
-        
-        /* Port should be one of AUDIO_MICROPHONE, AUDIO_LINE_IN, AUDIO_CD (==AUDIO_INTERNAL_CD_IN) */
-
-        max_port = min(dev_info.play.avail_ports, 3);
-
-        if (port >= (1 << max_port))
-                port = 1;
-
-        oti_audio_set_record_port(audio_fd, (unsigned int *)&port);
-
-	return (port);
+const audio_port_details_t*
+osprey_audio_iport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        if (idx >= 0 && idx < (int)NUM_IN_PORTS) {
+                return &in_ports[idx];
+        }
+        return NULL;
 }
 
 int

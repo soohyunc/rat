@@ -59,12 +59,19 @@ int  sparc_audio_read       (audio_desc_t ad, u_char *buf, int in_bytes);
 int  sparc_audio_write      (audio_desc_t ad, u_char *buf, int out_bytes);
 void sparc_audio_non_block  (audio_desc_t ad);
 void sparc_audio_block      (audio_desc_t ad);
-void sparc_audio_set_oport  (audio_desc_t ad, int port);
-int  sparc_audio_get_oport  (audio_desc_t ad);
-int  sparc_audio_next_oport (audio_desc_t ad);
-void sparc_audio_set_iport  (audio_desc_t ad, int port);
-int  sparc_audio_get_iport  (audio_desc_t ad);
-int  sparc_audio_next_iport (audio_desc_t ad);
+
+void          sparc_audio_oport_set   (audio_desc_t ad, audio_port_t port);
+audio_port_t  sparc_audio_oport_get   (audio_desc_t ad);
+int           sparc_audio_oport_count (audio_desc_t ad);
+const audio_port_details_t*
+              sparc_audio_oport_details (audio_desc_t ad, int idx);
+
+void          sparc_audio_iport_set   (audio_desc_t ad, audio_port_t port);
+audio_port_t  sparc_audio_iport_get   (audio_desc_t ad);
+int           sparc_audio_iport_count (audio_desc_t ad);
+const audio_port_details_t*
+              sparc_audio_iport_details (audio_desc_t ad, int idx);
+
 int  sparc_audio_is_ready  (audio_desc_t ad);
 void sparc_audio_wait_for  (audio_desc_t ad, int delay_ms);
 #endif /* _AUDDEV_SPARC_H_ */

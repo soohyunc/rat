@@ -310,20 +310,33 @@ sparc_audio_block(audio_desc_t ad)
 		fprintf(stderr, "Failed to set blocking mode on audio device!\n");
 }
 
+static const audio_port_details_t out_ports[] = {
+        { AUDIO_SPEAKER,   AUDIO_PORT_SPEAKER},
+        { AUDIO_HEADPHONE, AUDIO_PORT_HEADPHONE},
+        { AUDIO_LINE_OUT,  AUDIO_PORT_LINE_OUT }
+};
+
+#define NUM_OUT_PORTS (sizeof(out_ports)/sizeof(out_ports[0]))
+
 void
-sparc_audio_set_oport(audio_desc_t ad, int port)
+sparc_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
         UNUSED(ad); assert(audio_fd > 0);
 
 	AUDIO_INITINFO(&dev_info);
-	/* AUDIO_SPEAKER or AUDIO_HEADPHONE */
-	dev_info.play.port = port;
-	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
-		perror("Setting port");
+
+        if (port != AUDIO_SPEAKER && port != AUDIO_HEADPHONE && port != AUDIO_LINE_OUT) {
+                debug_msg("Port not recognized\n");
+                port = AUDIO_SPEAKER;
+        }
+        dev_info.play.port = port;
+        if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) {
+                perror("Setting port");
+        }
 }
 
-int
-sparc_audio_get_oport(audio_desc_t ad)
+audio_port_t
+sparc_audio_oport_get(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
 
@@ -334,38 +347,38 @@ sparc_audio_get_oport(audio_desc_t ad)
 }
 
 int
-sparc_audio_next_oport(audio_desc_t ad)
+sparc_audio_oport_count(audio_desc_t ad)
 {
-	int	port;
-
-        UNUSED(ad); assert(audio_fd > 0);
-
-	AUDIO_INITINFO(&dev_info);
-	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
-		perror("Getting port");
-	
-	port = dev_info.play.port;
-	port <<= 1;
-
-	/* It is either wrong on some machines or i got something wrong! */
-	if (dev_info.play.avail_ports < 3)
-		dev_info.play.avail_ports = 3;
-
-	if ((port & dev_info.play.avail_ports) == 0)
-		port = 1;
-
-	AUDIO_INITINFO(&dev_info);
-	dev_info.play.port = port;
-	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
-		perror("Setting port");
-
-	return (port);
+        UNUSED(ad);
+        return (int)NUM_OUT_PORTS;
 }
 
+const audio_port_details_t*
+sparc_audio_oport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        if (idx >= 0 && idx < (int)NUM_OUT_PORTS) {
+                return &out_ports[idx];
+        }
+        return NULL;
+}
+
+static const audio_port_details_t in_ports[] = {
+        { AUDIO_MICROPHONE, AUDIO_PORT_MICROPHONE},
+        { AUDIO_LINE_IN,    AUDIO_PORT_LINE_IN},
+        { AUDIO_CD,         AUDIO_PORT_CD}
+};
+
+#define NUM_IN_PORTS (sizeof(out_ports)/sizeof(out_ports[0]))
+
 void
-sparc_audio_set_iport(audio_desc_t ad, int port)
+sparc_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
         UNUSED(ad); assert(audio_fd > 0);
+
+        if (port != AUDIO_MICROPHONE && port != AUDIO_LINE_IN && port != AUDIO_CD) {
+                port = AUDIO_MICROPHONE;
+        }
 
 	AUDIO_INITINFO(&dev_info);
 	dev_info.record.port = port;
@@ -373,8 +386,8 @@ sparc_audio_set_iport(audio_desc_t ad, int port)
 		perror("Setting port");
 }
 
-int
-sparc_audio_get_iport(audio_desc_t ad)
+audio_port_t
+sparc_audio_iport_get(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
 
@@ -385,32 +398,20 @@ sparc_audio_get_iport(audio_desc_t ad)
 }
 
 int
-sparc_audio_next_iport(audio_desc_t ad)
+sparc_audio_iport_count(audio_desc_t ad)
 {
-	int	port;
+        UNUSED(ad);
+        return (int)NUM_IN_PORTS;
+}
 
-        UNUSED(ad); assert(audio_fd > 0);
-
-	AUDIO_INITINFO(&dev_info);
-	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
-		perror("Getting port");
-
-	port = dev_info.record.port;
-	port <<= 1;
-
-	if (dev_info.record.avail_ports > 3)
-		dev_info.record.avail_ports = 3;
-
-	/* Hack to fix Sparc 5 SOLARIS bug */
-	if ((port & dev_info.record.avail_ports) == 0)
-		port = 1;
-
-	AUDIO_INITINFO(&dev_info);
-	dev_info.record.port = port;
-	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
-		perror("Setting port");
-
-	return (port);
+const audio_port_details_t*
+sparc_audio_iport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        if (idx >= 0 && idx < (int)NUM_IN_PORTS) {
+                return &in_ports[idx];
+        }
+        return NULL;
 }
 
 int

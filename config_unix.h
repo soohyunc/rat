@@ -52,8 +52,6 @@
 #include <signal.h>
 #include <ctype.h>
 
-#include "audio_types.h"
-
 #ifndef __FreeBSD__
 #include <malloc.h>
 #endif
@@ -230,4 +228,7 @@ int   memcmp(const void *s1, const void *s2, size_t n);
 #endif /* Linux */
 
 #endif 
+
+#include "audio_types.h"
+
 #endif
