@@ -58,22 +58,39 @@ int playout_buffer_add     (struct s_playout_buffer *pb,
                             u_int32                  playout);
 
 /*
- * These three functions return data stored in the playout buffer.  The playout buffer
- * has a playout point iterator.  playout_buffer_get returns the data at that point, 
- * advance steps to the next unit and returns that, and rewind steps to the previous unit
+ * These following three functions return data stored in the playout buffer.  
+ * The playout buffer has a playout point iterator.  playout_buffer_get 
+ * returns the data at that point, advance steps to the next unit and 
+ * returns that, and rewind steps to the previous unit
  * and returns that.
  */
-int playout_buffer_advance (struct s_playout_buffer *pb, u_char** data, u_int32 *datalen, u_int32 *playout);
-int playout_buffer_get     (struct s_playout_buffer *pb, u_char** data, u_int32 *datalen, u_int32 *playout);
-int playout_buffer_rewind  (struct s_playout_buffer *pb, u_char** data, u_int32 *datalen, u_int32 *playout);
+
+int playout_buffer_advance (struct s_playout_buffer *pb, 
+                            u_char                 **data, 
+                            u_int32                 *datalen, 
+                            u_int32                 *playout);
+
+int playout_buffer_get     (struct s_playout_buffer *pb, 
+                            u_char                 **data, 
+                            u_int32                 *datalen, 
+                            u_int32                 *playout);
+
+int playout_buffer_rewind  (struct s_playout_buffer *pb, 
+                            u_char                 **data, 
+                            u_int32                 *datalen, 
+                            u_int32                 *playout);
 
 /* Removes data from playout point and puts it in *data */
-int playout_buffer_remove  (struct s_playout_buffer *pb, u_char** data, u_int32 *datalen, u_int32 *playout); 
+int playout_buffer_remove  (struct s_playout_buffer *pb, 
+                            u_char                 **data, 
+                            u_int32                 *datalen, 
+                            u_int32                 *playout); 
 
 /* Trims data more than history_len before playout point    */
 int playout_buffer_audit    (struct s_playout_buffer *pb);
 
 /* Returns whether playout buffer has data to be played out */
-int playout_buffer_relevent (struct s_playout_buffer *pb, u_int32 now);
+int playout_buffer_relevent (struct s_playout_buffer *pb, 
+                             u_int32                  now);
 
 #endif /* __UCLMM_PLAYOUT_BUFFER_H__ */

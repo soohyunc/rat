@@ -9,6 +9,7 @@
 
 #include "memory.h"
 #include "util.h"
+#include "debug.h"
 
 #include "timers.h"
 
@@ -21,7 +22,7 @@ typedef struct {
 } ve_state;
 
 int
-vanilla_encoder_create(u_char **state, int *len)
+vanilla_encoder_create(u_char **state, u_int32 *len)
 {
         ve_state *ve = (ve_state*)xmalloc(sizeof(ve_state));
 
@@ -36,7 +37,7 @@ vanilla_encoder_create(u_char **state, int *len)
 }
 
 void
-vanilla_encoder_destroy(u_char **state, int len)
+vanilla_encoder_destroy(u_char **state, u_int32 len)
 {
         assert(len == sizeof(ve_state));
         vanilla_encoder_reset(*state);
@@ -51,7 +52,7 @@ vanilla_encoder_reset(u_char *state)
         u_int32   i;
 
         for(i = 0; i < ve->nelem; i++) {
-                media_data_destroy(&ve->elem[i]);
+                media_data_destroy(&ve->elem[i], sizeof(media_data));
         }
         ve->nelem = 0;
         
@@ -69,9 +70,12 @@ vanilla_encoder_output(ve_state *ve, struct s_playout_buffer *out)
         size  = ve->elem[0]->rep[0]->state_len;        
         size += ve->elem[0]->rep[0]->data_len;
 
-        for(i = 0; i < ve->nelem; i++) {
+        for(i = 1; i < ve->nelem; i++) {
                 size += ve->elem[0]->rep[0]->data_len;
         }
+
+        assert(size != 0);
+        debug_msg("Block size %d\n", size);
         
         /* Allocate block and get ready */
         channel_data_create(&cd, 1);
@@ -88,25 +92,32 @@ vanilla_encoder_output(ve_state *ve, struct s_playout_buffer *out)
                         memcpy(buffer, ve->elem[0]->rep[0]->state, ve->elem[0]->rep[0]->state_len);
                         buffer += ve->elem[0]->rep[0]->state_len;
                 }
-                memcpy(buffer, ve->elem[i]->rep[0]->data, ve->elem[i]->rep[0]->data_len);
+                memcpy(buffer, 
+                       ve->elem[i]->rep[0]->data, 
+                       ve->elem[i]->rep[0]->data_len);
                 buffer += ve->elem[i]->rep[0]->data_len;
 
-                media_data_destroy(&ve->elem[i]);
+                media_data_destroy(&ve->elem[i], sizeof(media_data));
         }
         ve->nelem = 0;
 
-        playout_buffer_add(out, (u_char*)cd, sizeof(channel_data), ve->playout);
+        playout_buffer_add(out, 
+                           (u_char*)cd, 
+                           sizeof(channel_data), 
+                           ve->playout);
 }
 
 int
 vanilla_encoder_encode (u_char                  *state,
                         struct s_playout_buffer *in,
                         struct s_playout_buffer *out,
-                        int                      upp)
+                        u_int32                  upp)
 {
         u_int32     playout, m_len;
         media_data *m;
         ve_state   *ve = (ve_state*)state;
+
+        assert(upp != 0 && upp <= MAX_UNITS_PER_PACKET);
 
         while(playout_buffer_get(in, (u_char**)&m, &m_len, &playout)) {
                 /* Remove element from playout buffer - it belongs to
@@ -121,17 +132,18 @@ vanilla_encoder_encode (u_char                  *state,
                                 /* We have no data ready to go and no data
                                  * came off on incoming queue.
                                  */
-                                media_data_destroy(&m);
+                                media_data_destroy(&m, sizeof(media_data));
                                 continue;
                         }
                 } else {
                         /* Check for early send required:      
                          * (a) if this unit has no media respresentations.
-                         * (b) codec type of incoming unit is different from what is on queue.
+                         * (b) codec type of incoming unit is different 
+                         * from what is on queue.
                          */
                         if (m->nrep == 0) {
                                 vanilla_encoder_output(ve, out);
-                                media_data_destroy(&m);
+                                media_data_destroy(&m, sizeof(media_data));
                                 continue;
                         } else if (m->rep[0]->id != ve->codec_id) {
                                 vanilla_encoder_output(ve, out);
@@ -143,11 +155,10 @@ vanilla_encoder_encode (u_char                  *state,
                 ve->codec_id = m->rep[0]->id;                
                 ve->elem[ve->nelem] = m;
                 ve->nelem++;
-
+                
                 if (ve->nelem >= (u_int32)upp) {
                         vanilla_encoder_output(ve, out);
                 }
-                media_data_destroy(&m);
         }
         return TRUE;
 }
@@ -224,7 +235,7 @@ vanilla_decoder_decode(u_char *state,
                 assert(c->nelem == 1);
                 cu = c->elem[0];
                 vanilla_decoder_output(cu, out, playout);
-                channel_data_destroy(&c);
+                channel_data_destroy(&c, sizeof(channel_data));
         }
         return TRUE;
 }

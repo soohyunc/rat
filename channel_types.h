@@ -16,17 +16,11 @@ typedef struct {
  * of media_units and puts channel_units on the output playout buffer
  */
 
-#define MAX_MEDIA_UNITS      3
 #define MAX_CHANNEL_UNITS    3
 #define MAX_UNITS_PER_PACKET 8
 
 typedef struct {
-        u_int8      nrep;
-        coded_unit *rep[MAX_MEDIA_UNITS];
-} media_data;
-
-typedef struct {
-        u_int   pt;
+        u_int8  pt;
         u_char *data;
         u_int16 data_len;
 } channel_unit;
@@ -36,10 +30,22 @@ typedef struct {
         channel_unit *elem[MAX_CHANNEL_UNITS];
 } channel_data;
 
-int  channel_data_create  (channel_data **cd, int nelem);
-void channel_data_destroy (channel_data **cd);
+int  channel_data_create  (channel_data **cd, 
+                           int            nelem);
+
+void channel_data_destroy (channel_data **cd, 
+                           u_int32        cdsize);
+
+/* --- CUT HERE --- and paste in codec_types.c */
+
+#define MAX_MEDIA_UNITS  3
+
+typedef struct {
+        u_int8      nrep;
+        coded_unit *rep[MAX_MEDIA_UNITS];
+} media_data;
 
 int  media_data_create    (media_data **m, int nrep);
-void media_data_destroy   (media_data **m);
+void media_data_destroy   (media_data **m, u_int32 md_size);
 
 #endif /* __CHANNEL_TYPES_H__ */
