@@ -22,7 +22,7 @@
 #include "audio.h"
 #include "auddev.h"
 #include "cushion.h"
-#include "convert.h"
+#include "converter.h"
 #include "tcltk.h"
 #include "ui.h"
 #include "pckt_queue.h"

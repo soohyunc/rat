@@ -24,7 +24,7 @@
 #include "channel_types.h"
 #include "channel.h"
 #include "pckt_queue.h"
-#include "convert.h"
+#include "converter.h"
 #include "parameters.h"
 #include "audio.h"
 #include "ui.h"

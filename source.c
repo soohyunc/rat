@@ -21,7 +21,7 @@
 #include "codec_types.h"
 #include "codec.h"
 #include "codec_state.h"
-#include "convert.h"
+#include "converter.h"
 #include "parameters.h"
 #include "render_3D.h"
 #include "repair.h"
@@ -312,7 +312,7 @@ source_reconfigure(source        *src,
                 c.from_channels = src_channels;
                 c.to_freq       = out_rate;
                 c.to_channels   = out_channels;
-                src->converter  = converter_create(conv_id, &c);
+                converter_create(conv_id, &c, &src->converter);
         }
 }
 
@@ -516,7 +516,6 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
                 new_start[i] = (sample)tmp;
         }
         debug_msg("dropped %d samples\n", drop_samples);
-        xmemchk();
 }
 
 /* source_check_buffering is supposed to check amount of audio buffered
@@ -708,6 +707,8 @@ source_repair(source *src,
         ts_t        fill_ts,  prev_ts;
         u_int32     success,  prev_len;
 
+        debug_msg("Step %d\n", step.ticks);
+
         /* Check for need to reset of consec_lost count */
 
         if (ts_valid(src->last_repair) == FALSE || 
@@ -736,6 +737,12 @@ source_repair(source *src,
                prev_md,
                fill_md->rep[0]);
         fill_ts = ts_add(src->last_played, step);
+
+        debug_msg("lp %d (%d) fl %d (%d) delta %d (%d)\n", 
+                  src->last_played.ticks,  ts_get_freq(src->last_played),
+                  fill_ts.ticks,           ts_get_freq(fill_ts),
+                  step.ticks,              ts_get_freq(step));
+
         success = pb_add(src->media, 
                          (u_char*)fill_md,
                          sizeof(media_data),
@@ -811,8 +818,10 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                  */
                 cutoff = ts_sub(now, ts_map32(src_freq, SOURCE_AUDIO_HISTORY_MS));
 
+                assert((ts_valid(src->last_played) == FALSE) || ts_eq(playout, src->last_played) == FALSE);
+
                 if (ts_valid(src->last_played) && 
-                    ts_eq(playout, ts_add(src->last_played, step)) == FALSE &&
+                    ts_gt(playout, ts_add(src->last_played, step)) &&
                     repair_type != REPAIR_TYPE_NONE &&
                     ts_gt(src->last_played, cutoff) &&
                     hold_repair == 0) {
@@ -863,7 +872,6 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         memset(cu, 0, sizeof(coded_unit));
                         cs = codec_state_store_get(src->codec_states, md->rep[0]->id);
                         codec_decode(cs, md->rep[0], cu);
-                        xmemchk();
                         md->rep[md->nrep] = cu;
                         md->nrep++;
                 }
@@ -878,7 +886,6 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         memset(render, 0, sizeof(coded_unit));
                         
                         render_3D(src->dbe->render_3D_data,decoded,render);
-                        xmemchk();
                         md->rep[md->nrep] = render;
                         md->nrep++;
                 }
@@ -894,7 +901,6 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         converter_process(src->converter,
                                           decoded,
                                           render);
-                        xmemchk();
                         md->rep[md->nrep] = render;
                         md->nrep++;
                 }

@@ -27,7 +27,7 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "repair.h"
-#include "convert.h"
+#include "converter.h"
 #include "audio.h"
 #include "audio_fmt.h"
 #include "auddev.h"

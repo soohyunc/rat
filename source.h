@@ -13,7 +13,7 @@
 #ifndef __SOURCE_H__
 #define __SOURCE_H__
 
-#include "convert.h"
+#include "converter.h"
 #include "ts.h"
 
 struct s_source;

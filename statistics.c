@@ -15,7 +15,7 @@
 #include "config_win32.h"
 #include "codec_types.h"
 #include "channel.h"
-#include "convert.h"
+#include "converter.h"
 #include "codec.h"
 #include "debug.h"
 #include "memory.h"

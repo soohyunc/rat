@@ -294,7 +294,7 @@ repair(int                         repair,
          * Start at the back since further codings are appended to the
          * list.
          */
-        for(src = prev->nrep - 1; src >= 0 ; src--) {
+        for(src = 0; src < prev->nrep; src++) {
                 if (codec_is_native_coding(prev->rep[src]->id)) {
                         const audio_format *pfmts[2];
                         audio_format        fmt;
@@ -316,6 +316,8 @@ repair(int                         repair,
                         fmt.bits_per_sample = 16;
                         fmt.channels        = channels;
                         fmt.bytes_per_block = p->data_len;
+
+                        debug_msg("rate %d channels %d\n", rate, channels);
 
                         /* Pointer tweaking to get data in format repair function
                          * expects.

@@ -16,7 +16,7 @@
 
 #include "net_udp.h"
 #include "ts.h"
-#include "convert.h"
+#include "converter.h"
 
 #define MAX_ENCODINGS	7
 #define MAX_NATIVE      4
