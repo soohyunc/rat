@@ -664,10 +664,10 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         pktbuf_peak_last(src->pktbuf, &p);
                         assert(p != NULL);
                         last_ts = ts_seq32_in(&src->seq, get_freq(e->clock), p->ts);
-                        transit = ts_sub(sp->cur_ts, last_ts);
+                        transit = ts_sub(now, last_ts);
                         debug_msg("Used transit of last packet\n");
                 } else {
-                        transit = ts_sub(sp->cur_ts, src_ts);
+                        transit = ts_sub(now, src_ts);
                 }
 
                 playout = playout_calc(sp, e->ssrc, transit, adjust_playout);
@@ -679,7 +679,6 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 }
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
-                e->last_transit = transit;
 
                 if (adjust_playout) {
 /*
@@ -738,7 +737,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 }
                 e->last_seq = p->seq;
                 e->last_ts  = p->ts;
-                e->last_arr = sp->cur_ts;
+                e->last_arr = now;
 
                 src->packets_done++;
                 xfree(p);

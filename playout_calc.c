@@ -96,6 +96,7 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t transit, int new_spurt)
                         e->avg_transit = ts_sub(e->avg_transit, ts_div(delta_transit,16));
                 }
         }
+        e->last_transit = transit;
 
         return e->playout;
 }
