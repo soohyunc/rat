@@ -79,7 +79,6 @@ audio_open_rw(char rw)
 	fragsize = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
 	/* Round to the nearest legal frag size (next power of two lower...) */
 	frag |= (int) (log(fragsize)/log(2));
-	printf("frag=%d\n", (int) (log(fragsize)/log(2)));
 
 	switch (rw) {
 	case O_RDONLY: 

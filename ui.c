@@ -468,6 +468,7 @@ int
 ui_init(session_struct *sp, char *cname, int argc, char **argv)
 {
 	char		*cmd_line_args, buffer[10];
+	char		*ecname;
 
 	Tcl_FindExecutable(argv[0]);
 	interp = Tcl_CreateInterp();
@@ -527,19 +528,20 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 	Tk_DefineBitmap(interp, Tk_GetUid("rat_med"),   rat_med_bits, rat_med_width, rat_med_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("rat2"), rat2_bits, rat2_width, rat2_height);
 
-	sprintf(args, "set ratversion {%s}", RAT_VERSION);
-	ui_send(args);
 	ui_send(sp->ui_script);
 
+	ecname = xstrdup(mbus_encode_str(cname));
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "init", "", TRUE);
-	sprintf(args, "%s", cname); 					mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "my_cname",       args, TRUE);
+	sprintf(args, "%s", ecname); 					mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "my_cname",       args, TRUE);
 	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "address",        args, TRUE);
         sprintf(args, "%d", sp->detect_silence); 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "detect_silence", args, TRUE);
 	sprintf(args, "%d", sp->agc_on); 				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "agc",            args, TRUE);
 	sprintf(args, "%d", sp->sync_on); 				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "sync",           args, TRUE);
+	sprintf(args, "%s %s", ecname, mbus_encode_str(RAT_VERSION));	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_tool",    args, TRUE);
 #ifndef NDEBUG
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "debug", "", TRUE);
 #endif
+	xfree(ecname);
 
 	ui_repair(sp->repair, sp);
 	update_lecture_mode(sp);

@@ -47,6 +47,9 @@ option add *Menu*selectColor 		forestgreen 	widgetDefault
 option add *Radiobutton*selectColor 	forestgreen 	widgetDefault
 option add *Checkbutton*selectColor 	forestgreen 	widgetDefault
 option add *borderWidth 		1 
+option add *highlightthickness		0
+option add *padx			0
+option add *padx			0
 
 set statsfont     -*-courier-medium-r-*-*-12-*-*-*-*-*-iso8859-1
 set titlefont     -*-helvetica-medium-r-normal--14-*-p-*-iso8859-1
@@ -349,9 +352,12 @@ proc mbus_recv_source_loc {cname loc} {
 }
 
 proc mbus_recv_source_tool {cname tool} {
-	global TOOL
+	global TOOL my_cname
 	init_source $cname
 	set TOOL($cname) $tool
+	if {[string compare $cname $my_cname] == 0} {
+		.r.b.v configure -text $tool
+	}
 	cname_update $cname
 }
 
@@ -758,7 +764,7 @@ proc mbus_recv_enable_audio_ctls {} {
 
 frame .r.b -relief raised 
 pack .r.b -side bottom -fill x
-label .r.b.v -highlightthickness 0 -bd 0 -font $smallfont -text $ratversion
+label .r.b.v -highlightthickness 0 -bd 0 -font $smallfont -text "RAT"
 pack .r.b.v -side bottom -fill x
 label .r.b.ucl -highlightthickness 0 -bd 0 -bitmap "ucl"
 pack .r.b.ucl -side bottom -fill x
@@ -1029,117 +1035,97 @@ pack .b.d -side bottom -fill x
 wm title .b "RAT controls"
 wm resizable .b 0 0
 
-# Initialise ABOUT toplevel window
-toplevel .about
-wm withdraw .about
-frame .about.a
-label .about.a.b -highlightthickness 0 -bitmap rat_med
-message .about.a.m -text {
-RAT Development Team:
-    Angela Sasse
-    Vicky Hardman
-    Isidor Kouvelas
-    Colin Perkins
-    Orion Hodson
-    Darren Harris
-    Anna Watson 
-    Mark Handley
-    Jon Crowcroft
-    Anna Bouch
-}
-message .about.b -width 1000 -text {
-The Robust-Audio Tool has been written in the Department of Computer
-Science, University College London, UK. The work was supported by projects: 
+# Initialise "About..." toplevel window
+toplevel  .about
+frame     .about.t
+label     .about.t.logo  -highlightthickness 0 -bitmap rat_med 
+text      .about.t.blurb -height 14 -width 64 -background white -yscrollcommand ".about.t.scroll set"
+scrollbar .about.t.scroll -command ".about.t.blurb yview"
+button    .about.dismiss -text Dismiss -command "wm withdraw .about" -highlightthickness 0 -padx 0 -pady 0
 
-   - Multimedia Integrated Conferencing for Europe (MICE)
-   - Multimedia European Research in Conferencing Integration (MERCI)
-   - Remote Language Teaching for SuperJANET (ReLaTe)
-   - Robust Audio Tool (RAT)
+pack .about.t.logo .about.t.blurb .about.t.scroll -side right -fill y
+pack .about.t .about.dismiss -side top -fill x
 
-Further information is available on the world-wide-web, please access URL:
-http://www-mice.cs.ucl.ac.uk/mice/rat/
-
-Please send comments/suggestions/bug-reports to <rat-trap@cs.ucl.ac.uk>
-}
-button .about.c -highlightthickness 0 -padx 0 -pady 0 -text Copyright -command {wm deiconify .copyright}
-button .about.d -highlightthickness 0 -padx 0 -pady 0 -text Dismiss   -command {wm withdraw  .about}
-pack .about.a .about.b .about.c .about.d -side top -fill x
-pack .about.a.b -side left -fill y
-pack .about.a.m -side right -fill both -expand 1
-wm title .about "About RAT"
+wm withdraw  .about
+wm title     .about "About RAT"
 wm resizable .about 0 0
  
-toplevel .copyright
-wm withdraw .copyright
-message   .copyright.m -text {
- Robust-Audio Tool (RAT)
- 
- Copyright (C) 1995-1998 University College London
- All rights reserved.
- 
- Redistribution and use in source and binary forms, with or without
- modification, is permitted, for non-commercial use only, provided 
- that the following conditions are met:
- 1. Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
- 2. Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
- 3. All advertising materials mentioning features or use of this software
-    must display the following acknowledgement:
-      This product includes software developed by the Computer Science
-      Department at University College London
- 4. Neither the name of the University nor of the Department may be used
-    to endorse or promote products derived from this software without
-    specific prior written permission.
- Use of this software for commercial purposes is explicitly forbidden
- unless prior written permission is obtained from the authors. 
- 
- THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
- ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
- FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- SUCH DAMAGE.
- 
- Modifications for HP-UX by Terje Vernly <terjeve@usit.uio.no> and 
- Geir Harald Hansen <g.h.hansen@usit.uio.no>.
+.about.t.blurb insert end {
+The Robust-Audio Tool was developed in the Department of
+Computer Science, University College London by Angela Sasse,
+Vicky Hardman, Isidor Kouvelas, Colin Perkins, Orion Hodson,
+Darren Harris, Anna Watson, Mark Handley, Jon Crowcroft,
+Anna Bouch, and Marcus Iken.
 
- This software is derived, in part, from publically available source code
- with the following copyright:
- 
- Copyright (c) 1991 University of Southern California
- Copyright (c) 1993,1994 AT&T Bell Laboratories
- Copyright (c) 1991-1993,1996 Regents of the University of California
- Copyright (c) 1992 Stichting Mathematisch Centrum, Amsterdam
- Copyright (c) 1991,1992 RSA Data Security, Inc
- Copyright (c) 1992 Jutta Degener and Carsten Bormann, Technische Universitaet Berlin
- Copyright (c) 1994 Henning Schulzrinne
- Copyright (c) 1994 Paul Stewart
- 
- This product includes software developed by the Computer Systems
- Engineering Group and by the Network Research Group at Lawrence 
- Berkeley Laboratory.
- 
- Encryption features of this software use the RSA Data Security, Inc. 
- MD5 Message-Digest Algorithm.
-} 
-button .copyright.d -highlightthickness 0 -padx 0 -pady 0 -text Dismiss   -command {wm withdraw  .copyright}
-pack   .copyright.m .copyright.d -side top -fill x -expand 1
-wm title     .copyright "RAT Copyright"
-wm resizable .copyright 0 0
+Further information is available on the world-wide web at
+	http://www-mice.cs.ucl.ac.uk/mice/rat/ 
+Comments, suggestions, and bug-reports should be sent to
+	rat-trap@cs.ucl.ac.uk
+
+Copyright (C) 1995-1998 University College London
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or
+without modification, is permitted, for non-commercial use
+only, provided that the following conditions are met:
+1. Redistributions of source code must retain the above
+   copyright notice, this list of conditions and the
+   following disclaimer.
+2. Redistributions in binary form must reproduce the above
+   copyright notice, this list of conditions and the
+   following disclaimer in the documentation and/or other
+   materials provided with the distribution.
+3. All advertising materials mentioning features or use of
+   this software must display the following acknowledgement:
+     "This product includes software developed by the
+     Computer Science Department at University College
+     London."
+4. Neither the name of the University nor of the Department
+   may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+Use of this software for commercial purposes is explicitly
+forbidden unless prior written permission is obtained from
+the authors. 
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING,
+BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+OF SUCH DAMAGE.
+
+This software is derived, in part, from publically available
+source code with the following copyright:
+
+Copyright (C) 1991-1993 Regents of the University of California
+Copyright (C) 1992 Stichting Mathematisch Centrum, Amsterdam
+Copyright (C) 1991-1992 RSA Data Security, Inc
+Copyright (C) 1992 Jutta Degener and Carsten Bormann, TU Berlin
+Copyright (C) 1993-1994 AT&T Bell Laboratories
+Copyright (C) 1994 Henning Schulzrinne
+Copyright (C) 1994 Paul Stewart
+Copyright (C) 1996 Regents of the University of California
+
+This product includes software developed by the Computer
+Systems Engineering Group and by the Network Research Group
+at Lawrence Berkeley Laboratory.
+
+Encryption features of this software use the RSA Data
+Security, Inc. MD5 Message-Digest Algorithm.
+}
 
 if {[glob ~] == "/"} {
 	set rtpfname /.RTPdefaults
 } else {
 	set rtpfname ~/.RTPdefaults
 }
-
 
 proc savename {} {
     global rtpfname rtcp_name rtcp_email rtcp_phone rtcp_loc V win32 help_on
@@ -1444,7 +1430,8 @@ add_help .b.f2.l.lec  	"If enabled, extra delay is added at both sender and rece
 			 to perform better silence suppression.\nAs the name suggests, this option\
 			 is intended for scenarios such\nas transmitting a lecture, where interactivity\
 			 is less important\nthan quality."
-add_help .b.f2.r.syn  	"Not yet implemented"
+add_help .b.f2.r.syn  	"Enables lip-synchronisation between audio\nand video. This requires additional\
+                         support\nin the video tool."
 add_help .b.f2.r.agc  	"Enables automatic control of the volume\nof the sound you send"
 add_help .b.f2.r.help	"Enable/Disable balloon help"
 add_help .b.crypt     	"Enter secret key here to encrypt your audio.\nListeners must enter\
@@ -1464,3 +1451,4 @@ add_help .chart		"This chart displays the reception quality reported\nby all ses
 			 participants. Looking along a row\ngives the quality that participant\
 			 received from all\nother participants in the session: green is\
 			 good\nquality, orange medium quality, and red poor quality\naudio."
+

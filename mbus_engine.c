@@ -398,9 +398,10 @@ static void func_source_mute(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &cname)) {
 		for (e = sp->db->ssrc_db; e != NULL; e = e->next) {
-			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) break;
+			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) {	
+				e->mute = TRUE;
+			}
 		}
-		e->mute = TRUE;
 	} else {
 		printf("mbus: usage \"source_mute <cname>\"\n");
 	}
@@ -416,9 +417,10 @@ static void func_source_unmute(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine, args);
 	if (mbus_parse_str(sp->mbus_engine, &cname)) {
 		for (e = sp->db->ssrc_db; e != NULL; e = e->next) {
-			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) break;
+			if (strcmp(e->sentry->cname, mbus_decode_str(cname)) == 0) {
+				e->mute = FALSE;
+			}
 		}
-		e->mute = FALSE;
 	} else {
 		printf("mbus: usage \"source_unmute <cname>\"\n");
 	}
