@@ -1,4 +1,3 @@
-
 Robust-Audio Tool (RAT)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -24,8 +23,9 @@ Look at configure to see the various build options.
 Building RAT (WINDOWS)
 ~~~~~~~~~~~~~~~~~~~~~~
 
-1. Edit the file rat.dsp and change all path references
-   of tcl and tk to your local installations.
+1. If you have a non-standard tcl/tk installation (i.e. not in
+   Program Files/Tcl), edit the file rat.dsw and change all path
+   references of tcl and tk to your local installations.
 
 2. Open rat.dsw from the developer studio.
 
@@ -34,6 +34,8 @@ Building RAT (WINDOWS)
 
 4. Next, you build rat, click Build->Build rat.exe.  
 
+If you are installing against the sources of Tcl/Tk and not the binary
+distribution you may have to add tclreg80.lib to your library settings.
 
 Feedback
 ~~~~~~~~
