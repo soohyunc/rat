@@ -1240,6 +1240,8 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  line parsing changes in 4.2.0.
 	* Release 6 April 2000.
 
+4.2.2   - Catch mbus initialization failure and warn user.
+
 TODO -- They're features not bugs dammit!
 ----
 

@@ -70,6 +70,17 @@ usage(char *szOffending)
 #endif
 }
 
+static void
+fatal_error(const char *msg)
+{
+#ifdef WIN32
+        MessageBox(NULL, msg, "RAT Fatal Error", MB_ICONERROR | MB_OK);
+#else
+        fprintf(stderr, "%s\n", msg);
+#endif
+}
+
+
 #ifdef NEED_SNPRINTF
 static int snprintf(char *s, int buf_size, const char *format, ...)
 {
@@ -579,8 +590,11 @@ static void mbus_err_handler(int seqnum, int reason)
         /* Something has gone wrong with the mbus transmission. At this time */
         /* we don't try to recover, just kill off the media engine and user  */
         /* interface processes and exit.                                     */
-        printf("FATAL ERROR: couldn't send mbus message (%d:%d)\n", seqnum, reason);
+        
         if (should_exit == FALSE) {
+                char errmsg[64];
+                sprintf(errmsg, "Could not send mbus message (%d:%d)\n", seqnum, reason);
+                fatal_error(errmsg);
                 kill_process(pid_ui);
                 kill_process(pid_engine);
                 abort();
@@ -675,7 +689,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
 {
         switch(msg) {
         case WM_DESTROY:
-                should_exit =TRUE;
+                should_exit = TRUE;
                 break;
         }
         return DefWindowProc(hWnd, msg, wParam, lParam);
@@ -758,6 +772,10 @@ int main(int argc, char *argv[])
         srand48(seed);
         snprintf(c_addr, 60, "(media:audio module:control app:rat id:%lu)", (unsigned long) getpid());
         m = mbus_init(mbus_control_rx, mbus_err_handler, c_addr);
+        if (m == NULL) {
+                fatal_error("MBUS could not be initialized:\nIs multicast enabled?");
+                return FALSE;
+        }
         
         sprintf(token_ui,     "rat-token-%08lx", lrand48());
         sprintf(token_engine, "rat-token-%08lx", lrand48());
