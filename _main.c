@@ -30,17 +30,20 @@ int thread_pri   = 2; /* Time Critical */
 
 static pid_t fork_process(struct mbus *m, char *proc_name, char *ctrl_name)
 {
-	pid_t		pid;
-	struct timeval	timeout;
+	pid_t		 pid;
+	struct timeval	 timeout;
+	char		*token = xmalloc(100);
+
+	sprintf(token, "rat-controller-waiting-%ld", lrand48());
 
 	pid = fork();
 	if (pid == -1) {
 		perror("Cannot fork");
 		abort();
 	} else if (pid == 0) {
-		execl(proc_name, proc_name, "-ctrl", ctrl_name, "-token", "foo");
+		execl(proc_name, proc_name, "-ctrl", ctrl_name, "-token", token);
 		perror("Cannot execute subprocess");
-		exit(1);
+		abort();
 	}
 	/* This is the controller - we have to wait for the child to say hello */
 	/* to us, before we continue.  The variable done_waiting is updated by */
@@ -51,10 +54,11 @@ static pid_t fork_process(struct mbus *m, char *proc_name, char *ctrl_name)
 		timeout.tv_sec  = 1;
 		timeout.tv_usec = 0;
 		mbus_recv(m, NULL, &timeout);
-		mbus_qmsgf(m, "()", FALSE, "mbus.waiting", "%s", "child");
+		mbus_qmsgf(m, "()", FALSE, "mbus.waiting", "%s", token);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
 	}	
+	xfree(token);
 	return pid;
 }
 
@@ -68,6 +72,9 @@ int main(int argc, char *argv[])
 	struct mbus	*m;
 	char		 m_addr[60];
 	pid_t		 pid_ui, pid_engine;
+        int		 seed = (gethostid() << 8) | (getpid() & 0xff);
+
+	srand48(seed);
 
 	UNUSED(argc);
 	UNUSED(argv);

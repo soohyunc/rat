@@ -16,6 +16,9 @@
 #include "debug.h"
 #include "mbus_control.h"
 
+extern int done_waiting;
+extern int should_exit;
+
 static void rx_mbus_quit(char *srce, char *args, void *data)
 {
 	debug_msg("%s %s %p\n", srce, args, data);
