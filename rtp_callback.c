@@ -221,7 +221,7 @@ process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
                 if (e->avg_rtt == 0.0) {
                         e->avg_rtt = e->last_rtt;
                 } else {
-                        e->avg_rtt += (e->last_rtt - e->avg_rtt) / 8.0;
+                        e->avg_rtt += (e->last_rtt - e->avg_rtt) / 2.0;
                 }
                 if (sp->mbus_engine != NULL) {
                         ui_send_rtp_rtt(sp, sp->mbus_ui_addr, ssrc, e->avg_rtt);
@@ -311,8 +311,9 @@ process_delete(session_t *sp, uint32_t ssrc)
                 }
                 if (pdb_item_get(sp->pdb, ssrc, &e)) {
                         pdb_item_destroy(sp->pdb, ssrc);
+                        /* Will not be in ui if not in pdb */
+                        ui_send_rtp_remove(sp, sp->mbus_ui_addr, ssrc);
                 }
-                ui_send_rtp_remove(sp, sp->mbus_ui_addr, ssrc);
         }
 }
 

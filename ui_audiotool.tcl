@@ -991,37 +991,42 @@ proc mbus_recv_rtp.source.inactive {ssrc} {
 }
 
 proc mbus_recv_rtp.source.remove {ssrc} {
-    global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV    \
-	   PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER BUFFER_SIZE PLAYOUT_DELAY  \
-	   LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED num_ssrc loss_to_me_timer \
-	   loss_from_me_timer GAIN MUTE HEARD_LOSS_TO_ME HEARD_LOSS_FROM_ME  \
-	   SKEW SPIKE_EVENTS SPIKE_TOGED RTT
+    global loss_to_me_timer loss_from_me_timer num_ssrc
+    set did_remove 0
 
     # Disable updating of loss diamonds. This has to be done before we destroy the
     # window representing the participant, else the background update may try to 
     # access a window which has been destroyed...
+
     catch {after cancel $loss_to_me_timer($ssrc)}
     catch {after cancel $loss_from_me_timer($ssrc)}
-    
-    chart_remove $ssrc
+
+    set pvars [list CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV    \
+	    PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER BUFFER_SIZE PLAYOUT_DELAY  \
+	    LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED loss_to_me_timer \
+	    loss_from_me_timer GAIN MUTE HEARD_LOSS_TO_ME HEARD_LOSS_FROM_ME  \
+	    SKEW SPIKE_EVENTS SPIKE_TOGED RTT]
+
+    # safely delete array entries
+    foreach i $pvars {
+	global $i
+	upvar 0 $i v
+	if {[info exists v($ssrc)]} {
+	    unset v($ssrc)
+	    set did_remove 1
+	} 
+    }
 
     catch [destroy [window_plist $ssrc]]
-    if { [info exists CNAME($ssrc)] } {
-	unset CNAME($ssrc) NAME($ssrc) EMAIL($ssrc) PHONE($ssrc) LOC($ssrc) TOOL($ssrc) NOTE($ssrc)
-	unset CODEC($ssrc) DURATION($ssrc) PCKTS_RECV($ssrc) PCKTS_LOST($ssrc) PCKTS_MISO($ssrc) PCKTS_DUP($ssrc)
-	unset JITTER($ssrc) LOSS_TO_ME($ssrc) LOSS_FROM_ME($ssrc) INDEX($ssrc) JIT_TOGED($ssrc) BUFFER_SIZE($ssrc)
-	unset PLAYOUT_DELAY($ssrc) GAIN($ssrc) MUTE($ssrc) SKEW($ssrc) SPIKE_EVENTS($ssrc) SPIKE_TOGED($ssrc) RTT($ssrc)
-	incr num_ssrc -1
-    }
-    if { [info exists HEARD_LOSS_TO_ME($ssrc)] } {
-	unset HEARD_LOSS_TO_ME($ssrc)
-    } 
-    if { [info exists HEARD_LOSS_FROM_ME($ssrc)] } {
-	unset HEARD_LOSS_FROM_ME($ssrc)
-    } 
+    chart_remove $ssrc
+
     set stats_win [window_stats $ssrc]
     if { [winfo exists $stats_win] } {
 	destroy $stats_win
+    }
+
+    if {$did_remove} {
+	incr num_ssrc -1
     }
 }
 
