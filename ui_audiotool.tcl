@@ -296,8 +296,13 @@ proc mbus_recv_input.mute {val} {
     set in_mute_var $val
     if {$val} {
 	.r.c.gain.t2 configure -relief sunken
+	pack forget .r.c.gain.b2 .r.c.gain.s2
+	pack .r.c.gain.ml -side top -fill both -expand 1
     } else {
 	.r.c.gain.t2 configure -relief raised
+	pack forget .r.c.gain.ml
+	pack .r.c.gain.b2 -side top  -fill x -expand 1
+	pack .r.c.gain.s2 -side top  -fill x -expand 1
     }
 }
 
