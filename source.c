@@ -67,6 +67,7 @@ typedef struct s_source {
         ts_t                        next_played; /* anticipated next unit    */
         ts_t                        last_repair;
         ts_t                        talkstart;  /* start of latest talkspurt */
+        u_int32                     post_talkstart_units;
         u_int16                     consec_lost;
         u_int32                     mean_energy;
         ts_sequencer                seq;
@@ -568,7 +569,6 @@ source_process_packets(session_t *sp, source *src, ts_t now)
         e = src->pdbe;
         while(pktbuf_dequeue(src->pktbuf, &p)) {
                 adjust_playout = FALSE;
-
                 if (p->m) {
                         adjust_playout = TRUE;
                         debug_msg("New Talkspurt: %lu\n", p->ts);
@@ -682,19 +682,28 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 e->last_transit = transit;
 
                 if (adjust_playout) {
+                       debug_msg("last  % 5d avg % 5d\n", transit.ticks, e->avg_transit.ticks);
+                        if (ts_gt(now, playout)) {
+                                ts_t shortfall;
+                                /* Unit would have been discarded.  Jitter has    */
+                                /* affected our first packets transit time.       */
+                                shortfall       = ts_sub(now, playout);
+                                playout         = ts_add(playout, shortfall);
+                                e->transit      = ts_add(e->transit, shortfall);
+                                e->last_transit = e->transit;
+                                e->avg_transit  = e->transit;
+                                debug_msg("Push back %d samples\n", shortfall.ticks);
+                        }
                         src->talkstart = playout; /* Note start of new talkspurt  */
+                        src->post_talkstart_units = 0;
+                } else {
+                        src->post_talkstart_units++;
                 }
 
                 if (src->packets_done == 0) {
                         /* This is first packet so expect next played to have its */
                         /* playout.                                               */
                         src->next_played = playout;
-                } else if (ts_gt(src->next_played, playout)) {
-                        debug_msg("Packet late (compared to next_played)\n");
-                        src->pdbe->cont_toged++;
-                        src->pdbe->jit_toged++;
-                        xfree(p);
-                        continue;
                 }
 
                 if (!ts_gt(now, playout)) {
@@ -763,7 +772,6 @@ source_update_bps(source *src, ts_t now)
                 }
                 src->byte_count = 0;
                 src->byte_count_start = now;
-                debug_msg("bps %f\n", src->bps);
         }
 }
 
@@ -868,7 +876,7 @@ source_check_buffering(source *src)
 {
         ts_t actual, desired, diff;
 
-        if (src->age < SOURCE_YOUNG_AGE) {
+        if (src->post_talkstart_units < 20) {
                 /* If the source is new(ish) then not enough audio will be   */
                 /* in the playout buffer because it hasn't arrived yet.      */
                 return FALSE;
@@ -1103,15 +1111,20 @@ source_process(session_t *sp,
                 /* (a) playout point of unit is further away than expected.  */
                 /* (b) playout does not correspond to new talkspurt (don't   */
                 /* fill between end of last talkspurt and start of next).    */
-                /* (c) don't have a hold on.                                 */
+                /* NB Use post_talkstart_units as talkspurts maybe longer    */
+                /* than timestamp wrap period and want to repair even if     */
+                /* timestamps wrap.                                          */
+                /* (c) not start of a talkspurt.                             */
+                /* (d) don't have a hold on.                                 */
 
                 if (ts_gt(playout, src->next_played) &&
-                    ts_eq(playout, src->talkstart) == FALSE &&
+                    (ts_eq(playout, src->talkstart) == FALSE || src->post_talkstart_units < 100) &&
                     hold_repair == 0) {
                         /* If repair was successful media_pos is moved,      */
                         /* so get data at media_pos again.                   */
                         if (source_repair(src, repair_type, src->next_played) == TRUE) {
-                                debug_msg("Repair %d\n", src->consec_lost);
+                                debug_msg("Repair % 2d got % 6d exp % 6d talks % 6d\n", 
+                                          src->consec_lost, playout.ticks, src->next_played.ticks, src->talkstart.ticks);
                                 success = pb_iterator_get_at(src->media_pos, 
                                                              (u_char**)&md, 
                                                              &md_len, 
