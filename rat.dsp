@@ -690,6 +690,10 @@ InputPath=.\ui_transcoder.tcl
 # End Group
 # Begin Source File
 
+SOURCE="..\tk-8.0\win\tk.res"
+# End Source File
+# Begin Source File
+
 SOURCE=.\Version
 
 !IF  "$(CFG)" == "rat - Win32 Release"

@@ -640,10 +640,19 @@ w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
 	UNUSED(ad);
 	
 	assert(shWaveOut != 0);
-	
+
+	while (write_tail->dwFlags & WHDR_DONE) {
+		write_tail->dwFlags &= ~WHDR_DONE;
+		write_hdrs_used--;
+		write_tail++;
+		if (write_tail >= write_hdrs + nblks)
+			write_tail = write_hdrs;
+	}
+
 	if (write_hdrs_used > 4*nblks/5) {
 		debug_msg("Running out of write buffers %d left\n", write_hdrs_used);
 	}
+
 	done = 0;
 	while (buf_bytes > 0) {
 		if (write_curr->dwFlags & WHDR_DONE) {
@@ -813,19 +822,11 @@ w32sdk_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 	static int virgin = 0;
 	int len = 0;
 	
-	UNUSED(ad);
+	UNUSED(ad); 
 	
 	if (!virgin) {
 		debug_msg("ready %d\n", audio_ready);
 		virgin++;
-	}
-	
-	while (write_tail->dwFlags & WHDR_DONE) {
-		write_tail->dwFlags &= ~WHDR_DONE;
-		write_tail++;
-		write_hdrs_used--;
-		if (write_tail >= write_hdrs + nblks)
-			write_tail = write_hdrs;
 	}
 	
 	assert(buf_bytes >= blksz);
