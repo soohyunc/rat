@@ -144,11 +144,15 @@ SOURCE=.\audio_fmt.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\audio_fmt.h
+SOURCE=.\audio_util.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\cc_vanilla.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\channel.c
 # End Source File
 # Begin Source File
 
@@ -165,6 +169,10 @@ SOURCE=.\codec_dvi.c
 # Begin Source File
 
 SOURCE=.\codec_g711.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_g726.c
 # End Source File
 # Begin Source File
 
@@ -209,6 +217,22 @@ SOURCE=.\cushion.c
 # Begin Source File
 
 SOURCE=.\cx_dvi.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_g726.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_g726_24.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_g726_32.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cx_g726_40.c
 # End Source File
 # Begin Source File
 
@@ -262,10 +286,6 @@ SOURCE=.\net.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\channel.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\parameters.c
 # End Source File
 # Begin Source File
@@ -279,6 +299,10 @@ SOURCE=.\playout.c
 # Begin Source File
 
 SOURCE=.\render_3D.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\repair.c
 # End Source File
 # Begin Source File
 
@@ -366,11 +390,23 @@ SOURCE=.\audio.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\audio_fmt.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\audio_types.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\audio_util.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\cc_vanilla.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\channel.h
 # End Source File
 # Begin Source File
 
@@ -387,6 +423,10 @@ SOURCE=.\codec_dvi.h
 # Begin Source File
 
 SOURCE=.\codec_g711.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_g726.h
 # End Source File
 # Begin Source File
 
@@ -446,6 +486,10 @@ SOURCE=.\cx_dvi.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\cx_g726.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\cx_gsm.h
 # End Source File
 # Begin Source File
@@ -482,10 +526,6 @@ SOURCE=.\net.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\channel.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\parameters.h
 # End Source File
 # Begin Source File
@@ -499,10 +539,6 @@ SOURCE=.\playout.h
 # Begin Source File
 
 SOURCE=.\render_3D.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\repair.c
 # End Source File
 # Begin Source File
 

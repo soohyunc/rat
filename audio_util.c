@@ -186,7 +186,7 @@ audio_mix(sample *dst, sample *src, int len)
 #ifdef WIN32
 
 /* mmx_present is (C) Intel 1998 */
-static BOOL 
+BOOL 
 mmx_present(void)
 {
 
