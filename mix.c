@@ -130,7 +130,7 @@ mix_destroy(mix_struct **ppms)
 static void
 mix_zero(mix_struct *ms, int offset, int len)
 {
-        assert(len < ms->buf_len);
+        assert(len <= ms->buf_len);
 	if (offset + len > ms->buf_len) {
 		audio_zero(ms->mix_buffer + offset, ms->buf_len - offset, DEV_S16);
 		audio_zero(ms->mix_buffer, offset + len-ms->buf_len, DEV_S16);
