@@ -433,14 +433,14 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                         change_freq(sp[s]->device_clock, cp->freq);
                                         sp[s]->encodings[0]  = cp->pt;
 					sp[s]->num_encodings = 1;
+					channel_set_coder(sp[s], get_cc_pt(sp[s], "vanilla"));
 					debug_msg("Configure codec %d\n", sp[s]->encodings[0]);
-					ui_update_primary(sp[s]);
 				} else if (((pt = codec_matching(pu, 8000, 1)) != -1) && ((cp = get_codec(pt)) != NULL)) {
                                         change_freq(sp[s]->device_clock, cp->freq);
                                         sp[s]->encodings[0]  = cp->pt;
 					sp[s]->num_encodings = 1;
+					channel_set_coder(sp[s], get_cc_pt(sp[s], "vanilla"));
 					debug_msg("Configure codec %d\n", sp[s]->encodings[0]);
-					ui_update_primary(sp[s]);
                                 } else {
 					/* This is not a valid codec name. One last chance: it might be a */
 					/* combined codec and redundancy specifier such as "dvi+lpc" used */
@@ -472,10 +472,10 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
 					red_pt = get_cc_pt(sp[s], "redundancy");
 					config_channel_coder(sp[s], red_pt, cfg);
 					channel_set_coder(sp[s], red_pt);
-					ui_update_primary(sp[s]);
-					ui_update_redundancy(sp[s]);
-					ui_update_channel(sp[s]);
                                 }
+				ui_update_primary(sp[s]);
+				ui_update_redundancy(sp[s]);
+				ui_update_channel(sp[s]);
 				i++;
 			}
 		}
