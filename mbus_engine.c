@@ -732,7 +732,6 @@ static void rx_rtp_source_gain(char *srce, char *args, session_struct *sp)
 		ssrc = mbus_decode_str(ssrc);
                 e = rtcp_get_dbentry(sp, strtoul(ssrc, 0, 16));
 		if (e != NULL) {
-                        debug_msg("Recied gain %f\n", g);
                         e->gain = g;
                 } else {
 			debug_msg("Unknown source 0x%08lx\n", ssrc);

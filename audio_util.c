@@ -280,7 +280,6 @@ void
 audio_scale_buffer(sample *buf, int len, double scale)
 {
         int i;
-        debug_msg("scaling %f\n", scale);
         for(i = 0; i < len; i++) {
                 buf[i] = (sample)((double)buf[i] * scale);
         }
