@@ -61,7 +61,7 @@ static void rx_mbus_quit(char *srce, char *args, void *data)
 
 static void rx_mbus_bye(char *srce, char *args, void *data)
 {
-        pid_t pid_msgsrc;
+        pid_t pid_msgsrc, pid_cur;
         char *lc;
         int   i;
 
@@ -74,7 +74,8 @@ static void rx_mbus_bye(char *srce, char *args, void *data)
         assert(lc != NULL);
         /* Skip past colon, next char should okay for atoi */
         pid_msgsrc = atoi(lc + 1);
-        if (pid_msgsrc == getpid() ||
+        pid_cur    = (pid_t)getpid();
+        if (pid_msgsrc == pid_cur ||
             pid_msgsrc == pid_ui   ||
             pid_msgsrc == pid_engine) {
                 /* We mark ourselves as ready to exit. The main() will */

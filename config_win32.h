@@ -106,13 +106,13 @@ struct msghdr {
 
 #define MAXHOSTNAMELEN	256
 
-#define _SYS_NMLN	9
+#define SYS_NMLN	32
 struct utsname {
-	char sysname[_SYS_NMLN];
-	char nodename[_SYS_NMLN];
-	char release[_SYS_NMLN];
-	char version[_SYS_NMLN];
-	char machine[_SYS_NMLN];
+	char sysname[SYS_NMLN];
+	char nodename[SYS_NMLN];
+	char release[SYS_NMLN];
+	char version[SYS_NMLN];
+	char machine[SYS_NMLN];
 };
 
 struct timezone {

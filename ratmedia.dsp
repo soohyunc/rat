@@ -277,7 +277,19 @@ SOURCE=.\ts.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ui.c
+SOURCE=.\ui_send_audio.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ui_send_prefs.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ui_send_rtp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ui_send_stats.c
 # End Source File
 # Begin Source File
 
@@ -442,6 +454,22 @@ SOURCE=.\ts.h
 # Begin Source File
 
 SOURCE=.\ui.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ui_send_audio.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ui_send_prefs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ui_send_rtp.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ui_send_stats.h
 # End Source File
 # Begin Source File
 

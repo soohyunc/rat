@@ -29,57 +29,71 @@ static char rcsid[] =
 int
 uname(struct utsname *ub)
 {
-    char *ptr;
-    DWORD version;
-    SYSTEM_INFO sysinfo;
-    char hostname[MAXGETHOSTSTRUCT];
-    
-    version = GetVersion();
-    GetSystemInfo(&sysinfo);
-    
-    switch (sysinfo.wProcessorArchitecture) {
-    case PROCESSOR_ARCHITECTURE_INTEL:
-	(void)strncpy(ub->machine, "ix86", _SYS_NMLN);
-	break;
-    case PROCESSOR_ARCHITECTURE_MIPS :
-	(void)strncpy(ub->machine, "mips", _SYS_NMLN);
-	break;
-    case PROCESSOR_ARCHITECTURE_ALPHA:
-	(void)strncpy(ub->machine, "alpha", _SYS_NMLN);
-	break;
-    case PROCESSOR_ARCHITECTURE_PPC:
-	(void)strncpy(ub->machine, "ppc", _SYS_NMLN);
-	break;
-    default:
-	(void)strncpy(ub->machine, "unknown", _SYS_NMLN);
-	break;
-    }
-    
-    if (version < 0x80000000) {
-	(void)strncpy(ub->version, "NT", _SYS_NMLN);
-    }
-    else if (LOBYTE(LOWORD(version))<4) {
-	(void)strncpy(ub->version, "Win32s", _SYS_NMLN);
-    }
-    else				/* Win95 */ {
-	(void)strncpy(ub->version, "Win95", _SYS_NMLN);
-    }
-    (void)sprintf(ub->release, "%u.%u",
-		  (DWORD)(LOBYTE(LOWORD(version))),
-		  (DWORD)(HIBYTE(LOWORD(version))));
-    (void)strncpy(ub->sysname, "Windows", _SYS_NMLN);
-    if (gethostname(hostname, sizeof(hostname)) == 0) {
-        ptr = strchr(hostname, '.');
-            if (ptr)
-	    *ptr = '\0';
-    }
-    else {
-	perror("uname: gethostname failed");
-	strncpy(hostname, "FAILURE", _SYS_NMLN);
-    }
-    strncpy(ub->nodename, hostname, sizeof(ub->nodename));
-    ub->nodename[_SYS_NMLN - 1] = '\0';
-    return 0;
+        SYSTEM_INFO   sysinfo;
+        OSVERSIONINFO osinfo;
+        
+        GetSystemInfo(&sysinfo);
+        osinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+        GetVersionEx(&osinfo);
+        
+        strcpy(ub->sysname, "Win");
+        strcpy(ub->nodename, "Unknown"); /* could use gethostbyname */
+        
+        /* ub->release and ub->machine*/
+        if (osinfo.dwPlatformId == VER_PLATFORM_WIN32_NT) {
+                sprintf(ub->release, "NT %d.%d", osinfo.dwMajorVersion, osinfo.dwMinorVersion);
+                switch (sysinfo.wProcessorArchitecture) {
+                case PROCESSOR_ARCHITECTURE_INTEL:
+                        sprintf(ub->machine, "i%d86", sysinfo.wProcessorLevel);
+                        break;
+                case PROCESSOR_ARCHITECTURE_MIPS :
+                        (void)strncpy(ub->machine, "mips", SYS_NMLN);
+                        break;
+                case PROCESSOR_ARCHITECTURE_ALPHA:
+                        sprintf(ub->machine, "alpha-%d", sysinfo.wProcessorLevel);
+                        break;
+                case PROCESSOR_ARCHITECTURE_PPC:
+                        (void)strncpy(ub->machine, "ppc", SYS_NMLN);
+                        break;
+                default:
+                        (void)strncpy(ub->machine, "unknown", SYS_NMLN);
+                        break;
+                }
+        } else if (osinfo.dwPlatformId == VER_PLATFORM_WIN32s) {
+                strcpy(ub->release, "3.1"); 
+                strcpy(ub->machine, "i386"); 
+        } else if (osinfo.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS) {
+                if (osinfo.dwMinorVersion == 0) {
+                        strcpy(ub->release, "95");
+                } else {
+                        strcpy(ub->release, "98");
+                }
+                switch(sysinfo.dwProcessorType) {
+                case PROCESSOR_INTEL_386:     
+                        strcpy(ub->machine, "i386"); 
+                        break;
+                case PROCESSOR_INTEL_486:     
+                        strcpy(ub->machine, "i486"); 
+                        break;  
+                case PROCESSOR_INTEL_PENTIUM: 
+                        strcpy(ub->machine, "i586"); 
+                        break;
+                }
+        } else {
+                sprintf(ub->release, "Unknown %d.%d", osinfo.dwMajorVersion, osinfo.dwMinorVersion);
+                sprintf(ub->machine, "Unknown");
+        }
+
+        /* Append service pack info onto end of release */
+        if (osinfo.szCSDVersion != NULL) {
+                DWORD avail = SYS_NMLN - strlen(ub->release);
+                strncat(ub->release, osinfo.szCSDVersion, avail);
+        }
+
+        /* ub->version */
+        sprintf(ub->version, "%lu", osinfo.dwBuildNumber);
+                                                
+        return TRUE;
 }
 
 uid_t
