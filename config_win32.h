@@ -48,7 +48,7 @@
 #include <time.h>
 
 typedef int		ttl_t;
-typedef uint		fd_t;
+typedef unsigned	fd_t;
 typedef unsigned char	byte;
 
 /*
@@ -61,7 +61,7 @@ typedef u_long		uint32_t;
 typedef char		int8_t;
 typedef short		int16_t;
 typedef long		int32_t;
-typedef __int64		int64;
+typedef __int64		int64_t;
 typedef unsigned long	in_addr_t;
 
 #ifndef TRUE
@@ -70,8 +70,6 @@ typedef unsigned long	in_addr_t;
 #endif /* TRUE */
 
 #define USERNAMELEN	8
-
-#define DIFF_BYTE_ORDER	1
 #define WORDS_SMALLENDIAN 1
 
 #define NEED_INET_ATON

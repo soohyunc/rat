@@ -19,8 +19,8 @@
 typedef struct s_bitstream {
         u_char *buf;    /* head of bitstream            */
         u_char *pos;    /* current byte in bitstream    */
-        uint   remain; /* bits remaining               */
-        uint   len;    /* length of bitstream in bytes */
+        unsigned int   remain; /* bits remaining               */
+        unsigned int   len;    /* length of bitstream in bytes */
 } bs;
 
 int  
@@ -67,7 +67,7 @@ bs_put(bitstream_t *b,
         }
 
         if (nbits > b->remain) {
-                uint over = nbits - b->remain;
+                unsigned int over = nbits - b->remain;
                 (*b->pos) |= (bits >> over);
                 b->pos++;
                 b->remain = 8 - over;
@@ -77,7 +77,7 @@ bs_put(bitstream_t *b,
                 b->remain -= nbits;
         }
         
-        assert((uint)(b->pos - b->buf) <= b->len);
+        assert((unsigned int)(b->pos - b->buf) <= b->len);
         return TRUE;
 }
 
@@ -107,14 +107,14 @@ bs_get(bitstream_t *b,
                 b->remain -= nbits;
         }
 
-        assert((uint)(b->pos - b->buf) <= b->len);
+        assert((unsigned int)(b->pos - b->buf) <= b->len);
         return out;
 }
 
 int  
 bs_bytes_used(bitstream_t *b)
 {
-        uint used = (uint)(b->pos - b->buf);
+        unsigned int used = (unsigned int)(b->pos - b->buf);
         if (b->remain != 8) {
                 used++;
         }

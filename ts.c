@@ -12,6 +12,7 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
+#include "crypt_random.h"
 #include "ts.h"
 
 typedef struct {
