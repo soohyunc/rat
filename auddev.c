@@ -61,17 +61,10 @@ typedef struct {
         int  (*audio_if_format_supported)(int, audio_format *);
 } audio_if_t;
 
-#include "auddev_luigi.h"
-#include "auddev_null.h"
-#include "auddev_osprey.h"
-#include "auddev_oss.h"
-#include "auddev_pca.h"
-#include "auddev_sparc.h"
-#include "auddev_sgi.h"
-#include "auddev_win32.h"
 
 audio_if_t audio_if_table[] = {
-#ifdef IRIX
+#ifdef HAVE_SGI_AUDIO
+#include "auddev_sgi.h"
         {
                 NULL, 
                 NULL, 
@@ -102,8 +95,9 @@ audio_if_t audio_if_table[] = {
                 sgi_audio_wait_for,
                 NULL
         },
-#endif /* IRIX */
-#ifdef Solaris
+#endif /* SGI_AUDIO */
+#ifdef HAVE_SPARC_AUDIO
+#include "auddev_sparc.h"
         {
                 NULL,
                 NULL,
@@ -134,8 +128,9 @@ audio_if_t audio_if_table[] = {
                 sparc_audio_wait_for,
                 sparc_audio_supports
         },
-#endif /* Solaris */
-#ifdef HAVE_OSPREY
+#endif /* HAVE_SPARC_AUDIO */
+#ifdef HAVE_OSPREY_AUDIO
+#include "auddev_osprey.h"
         {
                 osprey_audio_init, 
                 NULL, 
@@ -166,8 +161,9 @@ audio_if_t audio_if_table[] = {
                 osprey_audio_wait_for,
                 NULL
         },
-#endif /* HAVE_OSPREY */
-#if defined(Linux)||defined(OSS)
+#endif /* HAVE_OSPREY_AUDIO */
+#ifdef HAVE_OSS_AUDIO
+#include "auddev_oss.h"
         {
                 oss_audio_query_devices, 
                 NULL,
@@ -199,9 +195,10 @@ audio_if_t audio_if_table[] = {
                 oss_audio_supports
         },
 
-#endif /* Linux / OSS */
+#endif /* HAVE_OSS_AUDIO */
 
 #if defined(WIN32)
+#include "auddev_win32.h"
         {
                 w32sdk_audio_init,
                 NULL, 
@@ -234,7 +231,8 @@ audio_if_t audio_if_table[] = {
         },
 #endif /* WIN32 */
 
-#if defined(FreeBSD)
+#ifdef (HAVE_LUIGI_AUDIO)
+#include "auddev_luigi.h"
         {
                 luigi_audio_query_devices,
                 NULL,
@@ -266,9 +264,10 @@ audio_if_t audio_if_table[] = {
                 luigi_audio_supports
         },
 
-#endif /* FreeBSD */
+#endif /* HAVE_LUIGI_AUDIO */
 
-#if defined(HAVE_PCA)
+#ifdef HAVE_PCA_AUDIO
+#include "auddev_pca.h"
         {
                 pca_audio_init,
                 NULL, 
@@ -299,7 +298,8 @@ audio_if_t audio_if_table[] = {
                 pca_audio_wait_for,
                 pca_audio_supports
         },
-#endif /* HAVE_PCA */
+#endif /* HAVE_PCA_AUDIO */
+#include "auddev_null.h"
         {
                 /* This is the null audio device - it should always go last so that
                  * audio_get_null_device works.  The idea being when we can't get hold

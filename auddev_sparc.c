@@ -34,9 +34,7 @@ static void af2apri(audio_format *fmt, audio_prinfo_t *ap)
         ap->sample_rate = fmt->sample_rate;
         ap->channels    = fmt->channels;
         ap->precision   = fmt->bits_per_sample;
-#ifdef Solaris
 	ap->buffer_size   = 160 * fmt->channels * (fmt->sample_rate / 8000) * (fmt->bits_per_sample / 8);
-#endif /* Solaris */
 
         switch(fmt->encoding) {
         case DEV_PCMU: ap->encoding = AUDIO_ENCODING_ULAW;   assert(ap->precision == 8);  break;

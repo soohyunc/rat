@@ -11,8 +11,6 @@
  *
  */
 
-#ifdef HAVE_OSPREY
-
 #include <sys/audioio.h>
 
 #include <multimedia/audio_hdr.h>
@@ -583,5 +581,3 @@ osprey_audio_device_name(audio_desc_t ad)
         UNUSED(ad);
         return "Osprey Audio Device";
 }
-
-#endif /* HAVE_OSPREY */

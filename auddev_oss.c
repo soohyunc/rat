@@ -12,8 +12,6 @@
  *
  */
 
-#if defined(OSS)||defined(Linux)
-
 #include "config_unix.h"
 #include "config_win32.h"
 #include "debug.h"
@@ -621,5 +619,3 @@ oss_get_device_name(audio_desc_t idx)
         debug_msg("Invalid index\n");
         return NULL;
 }
-
-#endif

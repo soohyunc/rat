@@ -19,6 +19,12 @@ AC_TYPE_SIZE_T
 AC_CHECK_HEADERS(stdint.h inttypes.h stropts.h sys/filio.h malloc.h)
 AC_CHECK_HEADERS(sys/sockio.h)
 
+AC_MSG_CHECKING(kill in signal.h)
+AC_EGREP_CPP(kill, [#include <signal.h>],
+	AC_MSG_RESULT(yes),
+	AC_MSG_RESULT(no)
+)
+
 # Check for libraries                                                       
 AC_SEARCH_LIBS(socket, socket)
 AC_SEARCH_LIBS(inet_addr, nsl)
@@ -170,9 +176,10 @@ AC_ARG_WITH(tcl,
 	[ TCL_INC=$withval/include
 	  TCL_LIB=$withval/lib])
 
-AC_CHECK_HEADER(${TCL_INC}/tcl.h,,
+AC_CHECK_HEADER(${TCL_INC}/tcl.h,
+	TCL_INC=-I${TCL_INC}/tcl8.0,
 	[AC_CHECK_HEADER(${TCL_INC}/tcl8.0/tcl.h,
-		TCL_INC=${TCL_INC}/tcl8.0,
+		TCL_INC=-I${TCL_INC}/tcl8.0,
 		[ 
 			echo "Could not find tcl.h.  One of the following halted progress:"
 			echo "   (a) Tcl is not installed."
@@ -210,10 +217,11 @@ AC_ARG_WITH(tk,
 # a file with specified header, but does not include X and tcl headers.
 # Could use AC_TRY_CPP with $ac_x_include/Xlib.h, etc... for time being just
 # check for existence...autoconf generates a warning here.
-AC_CHECK_FILE($TK_INC/tk.h,,
+AC_CHECK_FILE($TK_INC/tk.h,
+	TK_INC=-I${TK_INC}/tk8.0,
 	[
 		AC_CHECK_FILE($TK_INC/tk8.0/tk.h,
-		TK_INC=${TK_INC}/tk8.0,
+		TK_INC=-I${TK_INC}/tk8.0,
 		[ 
 			echo "Could not find tk.h.  One of the following halted progress:"
 			echo "   (a) Tk is not installed."
@@ -254,9 +262,10 @@ AC_ARG_WITH(common,
 	[ COMMON_INC=$withval
 	  COMMON_LIB=$withval])
 
-AC_CHECK_HEADER(${COMMON_INC}/mbus.h,,
+AC_CHECK_HEADER(${COMMON_INC}/mbus.h,
+	COMMON_INC=-I$COMMON_INC,
 	[AC_CHECK_HEADER(${COMMON_INC}/include/mbus.h,
-		[COMMON_INC=${COMMON_INC}/include
+		[COMMON_INC=-I${COMMON_INC}/include
 		 COMMON_LIB=${COMMON_LIB}/lib],
 		[
 			echo "Could not find mbus.h from UCL's common library.  Maybe:"

@@ -9,8 +9,6 @@
  *
  */
 
-#ifdef FreeBSD
-
 #include "config_unix.h"
 #include "config_win32.h"
 #include "audio_types.h"
@@ -539,5 +537,3 @@ luigi_get_device_name(audio_desc_t idx)
         }
         return NULL;
 }
-
-#endif /* FreeBSD */

@@ -16,8 +16,6 @@
 #include "auddev_sgi.h"
 #include "debug.h"
 
-#if defined(IRIX)
-
 #define QSIZE		16000		/* Two seconds for now... */
 #define AVG_SIZE	20000
 #define SAMSIG		7500.0
@@ -413,6 +411,4 @@ sgi_audio_wait_for(audio_desc_t ad, int delay_ms)
         
         select(audio_fd + 1, &rfds, NULL, NULL, &tv);
 }
-
-#endif
 

@@ -2,15 +2,15 @@
 # Makefile for the RAT project. This requires GNU make on many systems.
 #
 
-CFLAGS  = @WFLAGS@ @DEBUG@ @CHAR@ @PROFILE@ @OPTIMIZE@ @CHECK_FLAG@ @DEFS@ -D@OSTYPE@ -DSASR -DFAST -DUSE_FLOAT_MUL
-INCLUDE = @INCLUDE@
+CFLAGS  = @WFLAGS@ @DEBUG@ @CHAR@ @PROFILE@ @OPTIMIZE@ @CHECK_FLAG@ @DEFS@ -D@OSTYPE@ -DSASR -DFAST -DUSE_FLOAT_MUL @X_CFLAGS@
+INCLUDE = @INCLUDE@ @AU_INC@ @TCL_INC@ @TK_INC@ @COMMON_INC@
 CC      = @CC@
 AR      = @AR@
 RANLIB  = @RANLIB@
 RATVER  = rat-@VERSION@
 ECHO   ?= echo
 
-AUDIO_OBJS   = @AUDIO@ auddev.o auddev_null.o audio_fmt.o audio_util.o auddev_trans.o
+AUDIO_OBJS   = @AU_OBJ@ auddev.o auddev_null.o audio_fmt.o audio_util.o auddev_trans.o
 CODEC_OBJS   = codec.o codec_state.o codec_dvi.o codec_gsm.o \
                codec_l16.o codec_g711.o codec_g726.o codec_lpc.o \
                codec_types.o codec_vdvi.o codec_wbs.o cx_dvi.o \
@@ -27,8 +27,8 @@ TOY_OBJS     = render_3D.o repair.o
 CORE_OBJS    = ts.o playout.o net.o source.o session.o \
                mbus_engine.o audio.o cushion.o mix.o \
                parameters.o timers.o transmit.o playout_calc.o \
-               transcoder.o ui.o rtp_callback.o usleep.o settings.o \
-               pdb.o pktbuf.o
+               transcoder.o ui.o rtp_callback.o settings.o \
+               pdb.o pktbuf.o @EXTRA_OBJ@
 
 UI_OBJS      = tcltk.o mbus_ui.o main_ui.o
 CTRL_OBJS    = main_control.o mbus_control.o
@@ -54,13 +54,13 @@ libuclsndfile.a: $(SNDFILE_OBJS)
 	$(RANLIB) $@
 
 $(RATVER)-media: $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engine.o ../common/libcommon.a
-	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engine.o ../common/libcommon.a @LDLIBS@ @CHECK_LIB@ -o $(RATVER)-media
+	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engine.o @COMMON_LIB@ @LDLIBS@ @CHECK_LIB@ -o $(RATVER)-media
 
-$(RATVER)-ui: $(TCL_OBJS) $(UI_OBJS) ../common/libcommon.a
-	$(CC) $(CFLAGS) $(TCL_OBJS) $(UI_OBJS) ../common/libcommon.a @LDLIBS@ @CHECK_LIB@ -o $(RATVER)-ui 
+$(RATVER)-ui: $(TCL_OBJS) $(UI_OBJS)
+	$(CC) $(CFLAGS) $(TCL_OBJS) $(UI_OBJS) @COMMON_LIB@ @LDLIBS@ @TCL_LIB@ @TK_LIB@ @CHECK_LIB@ -o $(RATVER)-ui 
 
-$(RATVER): $(CTRL_OBJS) ../common/libcommon.a
-	$(CC) $(CFLAGS) $(CTRL_OBJS) ../common/libcommon.a @LDLIBS@ @CHECK_LIB@ -o $(RATVER)
+$(RATVER): $(CTRL_OBJS)
+	$(CC) $(CFLAGS) $(CTRL_OBJS) @COMMON_LIB@ @LDLIBS@ @CHECK_LIB@ -o $(RATVER)
 
 .c.o:
 	$(CC) $(INCLUDE) $(CFLAGS) -c $<
