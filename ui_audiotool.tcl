@@ -8,7 +8,7 @@ catch {
 # Full terms and conditions of the copyright appear below.
 #
 
-wm withdraw .
+#wm withdraw .
 
 if {[string compare [info commands registry] "registry"] == 0} {
 	set win32 1
@@ -766,29 +766,41 @@ proc mbus_recv_rtp.source.cname {ssrc cname} {
 }
 
 proc mbus_recv_rtp.source.name {ssrc name} {
-	global NAME
+	global NAME rtcp_name my_ssrc
 	init_source $ssrc
 	set NAME($ssrc) $name
 	chart_label $ssrc
 	ssrc_update $ssrc
+	if {[string compare $ssrc $my_ssrc] == 0} {
+		set rtcp_name $name
+	}
 }
 
 proc mbus_recv_rtp.source.email {ssrc email} {
-	global EMAIL
+	global EMAIL rtcp_email my_ssrc
 	init_source $ssrc
 	set EMAIL($ssrc) $email
+	if {[string compare $ssrc $my_ssrc] == 0} {
+		set rtcp_email $email
+	}
 }
 
 proc mbus_recv_rtp.source.phone {ssrc phone} {
-	global PHONE
+	global PHONE rtcp_phone my_ssrc
 	init_source $ssrc
 	set PHONE($ssrc) $phone
+	if {[string compare $ssrc $my_ssrc] == 0} {
+		set rtcp_phone $phone
+	}
 }
 
 proc mbus_recv_rtp.source.loc {ssrc loc} {
-	global LOC
+	global LOC rtcp_loc my_ssrc
 	init_source $ssrc
 	set LOC($ssrc) $loc
+	if {[string compare $ssrc $my_ssrc] == 0} {
+		set rtcp_loc $loc
+	}
 }
 
 proc mbus_recv_rtp.source.tool {ssrc tool} {
