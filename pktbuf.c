@@ -14,25 +14,18 @@
 #include "config_win32.h"
 #include "debug.h"
 #include "memory.h"
-#include "ts.h"
+#include "rtp.h"
 #include "pktbuf.h"
 
-typedef struct {
-        ts_t    timestamp;
-        u_char  payload;
-        u_char *data;
-        u_int32 datalen;
-} pkt_t;
-
 struct s_pktbuf {
-        u_int32  insert; /* Last insertion point (FIFO circular buffer) */
-        u_int16  buflen; /* max number of packets                       */
-        u_int16  used;   /* actual number of packets buffered           */
-        pkt_t   *buf;    /* The packets                                 */
+        rtp_packet **buf;    /* Pointer to rtp packets                      */
+        u_int16      insert; /* Next insertion point (FIFO circular buffer) */
+        u_int16      buflen; /* Max number of packets                       */
+        u_int16      used;   /* Actual number of packets buffered           */
 };
 
 int
-pktbuf_create(struct s_pktbuf **ppb, u_int32 size)
+pktbuf_create(struct s_pktbuf **ppb, u_int16 size)
 {
         struct s_pktbuf *pb;
         u_int32          i;
@@ -42,18 +35,20 @@ pktbuf_create(struct s_pktbuf **ppb, u_int32 size)
                 return FALSE;
         }
         
-        pb->buf = (pkt_t*)xmalloc(sizeof(pkt_t) * size);
+        pb->buf = (rtp_packet**)xmalloc(sizeof(rtp_packet) * size);
         if (pb->buf == NULL) {
                 xfree(pb);
                 return FALSE;
         }
-        
-        pb->buflen = (u_int16)size;
+
+        for(i = 0; i < size; i++) {
+                pb->buf[i] = NULL;
+        }
+
+        pb->buflen = size;
         pb->used   = 0;
         pb->insert = 0;
-        for(i = 0; i < size; i++) {
-                pb->buf[i].data = NULL;
-        }
+
         *ppb = pb;
         return TRUE;
 }
@@ -66,8 +61,8 @@ pktbuf_destroy(struct s_pktbuf **ppb)
 
         pb = *ppb;
         for(i = 0; i < pb->buflen; i++) {
-                if (pb->buf[i].data) {
-                        xfree(pb->buf[i].data);
+                if (pb->buf[i]) {
+                        xfree(pb->buf[i]);
                 }
         }
         xfree(pb);
@@ -75,59 +70,82 @@ pktbuf_destroy(struct s_pktbuf **ppb)
 }
 
 int 
-pktbuf_enqueue(struct s_pktbuf *pb, ts_t timestamp, u_char payload, u_char *data, u_int32 datalen)
+pktbuf_enqueue(struct s_pktbuf *pb, rtp_packet *p)
 {
-        assert(data != NULL);
-        assert(datalen > 0);
+        assert(p != NULL);
+
+        if (pb->buf[pb->insert] != NULL) {
+                /* A packet already sits in this space */
+                xfree(pb->buf[pb->insert]);
+                debug_msg("Buffer overflow.  Process was blocked or network burst.\n");
+        } else {
+                pb->used++;
+                assert(pb->used <= pb->buflen);
+        }
+
+        pb->buf[pb->insert] = p;
 
         pb->insert++;
         if (pb->insert == pb->buflen) {
                 pb->insert = 0;
         }
 
-        if (pb->buf[pb->insert].data != NULL) {
-                /* A packet already sits in this space */
-                xfree(pb->buf[pb->insert].data);
-                debug_msg("Buffer overflow.  Process was blocked?\n");
-        } else {
-                pb->used++;
-                assert(pb->used <= pb->buflen);
-        }
-
-        pb->buf[pb->insert].timestamp = timestamp;
-        pb->buf[pb->insert].payload   = payload;
-        pb->buf[pb->insert].data      = data;
-        pb->buf[pb->insert].datalen   = datalen;
-
         return TRUE;
 }
 
 int 
-pktbuf_dequeue(struct s_pktbuf *pb, ts_t *timestamp, u_char *payload, u_char **data, u_int32 *datalen)
+pktbuf_dequeue(struct s_pktbuf *pb, rtp_packet **pp)
 {
-        u_int32 idx = pb->insert;
+        u_int32 idx = (pb->insert + pb->buflen - pb->used) % pb->buflen;
 
-        /* Not vaguely efficient since no tail info is maintained, but */
-        /* not a big deal on the scale of things.                      */
-        do {
-                idx = (idx + 1) % pb->buflen;
-                if (pb->buf[idx].data) {
-                        *timestamp           = pb->buf[idx].timestamp;
-                        *payload             = pb->buf[idx].payload;
-                        *data                = pb->buf[idx].data;
-                        *datalen             = pb->buf[idx].datalen;
-                        pb->buf[idx].data    = NULL;                        
-                        pb->buf[idx].datalen = 0;
-                        pb->used--;
-                        assert(pb->used <= pb->buflen);
-                        return TRUE;
-                }
-        } while (idx != pb->insert);
-
+        *pp = pb->buf[idx];
+        if (*pp) {
+                pb->buf[idx] = NULL;
+                pb->used--;
+                return TRUE;
+        }
         return FALSE;
 }
 
-u_int16 pktbuf_get_count(pktbuf_t *pb)
+static int 
+timestamp_greater(u_int32 t1, u_int32 t2)
+{
+        u_int32 delta = t1 - t2;
+        
+        if (delta < 0x7fffffff && delta != 0) {
+                return TRUE;
+        }
+        return FALSE;
+}
+
+int
+pktbuf_peak_last(pktbuf_t   *pb,
+                 rtp_packet **pp)
+{
+        u_int32     idx, max_idx;
+
+        max_idx = idx = (pb->insert + pb->buflen - pb->used) % pb->buflen;
+        if (pb->buf[idx] == NULL) {
+                assert(pb->used == 0);
+                *pp = NULL;
+                return FALSE;
+        }
+
+        idx = (idx + 1) % pb->buflen;
+        while (pb->buf[idx] != NULL) {
+                if (timestamp_greater(pb->buf[idx]->ts, 
+                                      pb->buf[max_idx]->ts)) {
+                        max_idx = idx;
+                }
+                idx = (idx + 1) % pb->buflen;
+        }
+        
+        *pp = pb->buf[max_idx];
+        return TRUE;
+}
+
+u_int16 
+pktbuf_get_count(pktbuf_t *pb)
 {
         return pb->used;
 }

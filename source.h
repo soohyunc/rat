@@ -15,12 +15,14 @@
 
 #include "converter.h"
 #include "ts.h"
+#include "rtp.h"
 
 struct s_source;
 struct s_source_list;
 struct s_rtcp_dbentry;
 struct s_mix_info;
 struct s_pb;
+struct s_session;
 
 int              source_list_create  (struct s_source_list **pplist);
 
@@ -38,11 +40,7 @@ struct s_source* source_get_by_ssrc (struct s_source_list  *list,
 
 struct s_source* source_create             (struct s_source_list  *list, 
                                             u_int32                ssrc,
-					    pdb_t		  *pdb,
-                                            converter_id_t current_id,
-                                            int render_3D_enabled,
-                                            u_int16 out_rate,
-                                            u_int16 out_channels);
+					    pdb_t		  *pdb);
 
 void             source_reconfigure        (struct s_source* src,
                                             converter_id_t   current_id,
@@ -54,15 +52,13 @@ void             source_remove             (struct s_source_list *list,
                                             struct s_source      *src);
 
 int              source_add_packet         (struct s_source *src, 
-                                            u_char          *pckt, 
-                                            u_int32          pckt_len,
-                                            u_int8           payload,
-                                            ts_t             playout);
+                                            rtp_packet      *p);
 
 int              source_check_buffering    (struct s_source   *src,
                                             ts_t               now);
 
-int              source_process            (struct s_source   *src,
+int              source_process            (struct s_session  *sp,
+                                            struct s_source   *src,
                                             struct s_mix_info *ms,
                                             int                render_3d,
                                             repair_id_t        repair,

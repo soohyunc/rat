@@ -45,8 +45,6 @@ typedef struct s_rtp_assoc {
 static rtp_assoc_t rtp_as;
 static int rtp_as_inited;
 
-#define NO_CONT_TOGED_FOR_PLAYOUT_RECALC 4
-
 void 
 rtp_callback_init(struct rtp *rtps, struct s_session *rats)
 {
@@ -125,18 +123,6 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
 {
         struct s_source *s;
         pdb_entry_t     *e;
-        cc_id_t          ccid;
-        u_int16          units_per_packet;
-        u_char           codec_pt;
-        ts_t             playout, src_ts;
-        int              adjust_playout;
-        u_int32          delta_seq, delta_ts;
-
-        adjust_playout = p->m;
-
-        if (p->m) {
-                debug_msg("New talkspurt\n");
-        }
 
         if (sp->filter_loopback && ssrc == rtp_my_ssrc(sp->rtp_session[0])) {
                 /* This packet is from us and we are filtering our own       */
@@ -165,83 +151,14 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                 return;
         }
 
-        ccid = channel_coder_get_by_payload((u_char)p->pt);
-        if (channel_verify_and_stat(ccid, (u_char)p->pt, p->data, p->data_len, &units_per_packet, &codec_pt) == FALSE) {
-                debug_msg("Packet discarded: packet failed channel verification.\n");
-                xfree(p);
-                return;
-        }
-
-        if (e->channel_coder_id != ccid ||
-            e->enc              != codec_pt || 
-            e->units_per_packet != units_per_packet) {
-                /* Something has changed or is uninitialized... */
-                const codec_format_t *cf;
-                codec_id_t cid;
-                cid = codec_get_by_payload(codec_pt);
-                cf  = codec_get_format(cid);
-                /* Fix clock                                    */
-                change_freq(e->clock, cf->format.sample_rate);
-                /* Fix details                                  */
-                e->enc              = codec_pt;
-                e->units_per_packet = units_per_packet;
-                e->channel_coder_id = ccid;        
-                e->inter_pkt_gap    = e->units_per_packet * (u_int16)codec_get_samples_per_frame(cid);
-                adjust_playout      = TRUE;
-                debug_msg("Encoding change\n");
-                /* Get string describing encoding               */
-                channel_describe_data(ccid, codec_pt, p->data, p->data_len, e->enc_fmt, e->enc_fmt_len);
-                if (sp->mbus_engine) {
-                        ui_update_stats(sp, ssrc);
-                }
-        }
-
         s = source_get_by_ssrc(sp->active_sources, ssrc);
         if (s == NULL) {
-                const audio_format *dev_fmt;
-                dev_fmt = audio_get_ofmt(sp->audio_device);
-                s = source_create(sp->active_sources, ssrc, sp->pdb, 
-                                  sp->converter, sp->render_3d, 
-                                  (u_int16)dev_fmt->sample_rate,
-                                  (u_int16)dev_fmt->channels);
+                s = source_create(sp->active_sources, ssrc, sp->pdb);
                 ui_info_activate(sp, ssrc);
-                adjust_playout = TRUE;
                 debug_msg("Source created\n");
         }
-        
-        /* Check for talkspurt start indicated by change in relationship */
-        /* between timestamps and sequence numbers                       */
-        delta_seq = p->seq - e->last_seq;
-        delta_ts  = p->ts  - e->last_ts;
-        if (delta_seq * e->inter_pkt_gap != delta_ts) {
-                debug_msg("Seq no / timestamp realign (%lu * %lu != %lu)\n", 
-                          delta_seq,
-                          e->inter_pkt_gap,
-                          delta_ts);
-                adjust_playout = TRUE;
-        }
 
-        /* Check for continuous number of packets being discarded.  This   */
-        /* happens when jitter or transit estimate is no longer consistent */
-        /* with the real world.                                            */
-        if (e->cont_toged == NO_CONT_TOGED_FOR_PLAYOUT_RECALC) {
-                adjust_playout = TRUE;
-                e->cont_toged  = 0;
-        }
-
-        /* Calculate the playout point for this packet */
-        src_ts  = ts_seq32_in(source_get_sequencer(s), get_freq(e->clock), p->ts);
-        playout = playout_calc(sp, ssrc, src_ts, adjust_playout);
-
-        source_add_packet(s, (u_char*)p, RTP_MAX_PACKET_LEN, (u_char)p->pt, playout);
-
-        /* Update persistent database fields. */
-        if (e->last_seq > p->seq) {
-                e->misordered++;
-        }
-        e->last_seq = p->seq;
-        e->last_ts  = p->ts;
-        e->last_arr = sp->cur_ts;
+        source_add_packet(s, p);
 }
 
 static void

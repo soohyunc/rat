@@ -929,6 +929,7 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	- Add signal handler to main_control.
 	- Add back default port 5004.
 	- Fix luigi_audio_drain to reset, sync, and trigger reading.
+	- Moved packet reception handling from rtp_callback to source_add_packet.
 
 TODO -- They're features not bugs dammit!
 ----

@@ -20,24 +20,28 @@
 /* the number of enqueued packets exceeds the maxpackets selected when */
 /* the buffer was created.                                             */
 
+#include "rtp.h"
+
 #ifndef __PKTBUF_H__
 #define __PKTBUF_H__
 
 typedef struct s_pktbuf pktbuf_t;
 
 int     pktbuf_create    (pktbuf_t **ppb, 
-                          u_int32    maxpackets);
+                          u_int16    maxpackets);
+
 void    pktbuf_destroy   (pktbuf_t **ppb);
+
 int     pktbuf_enqueue   (pktbuf_t *pb, 
-                          ts_t      timestamp, 
-                          u_char    payload, 
-                          u_char   *data, 
-                          u_int32   datalen);
+                          rtp_packet *p);
 int     pktbuf_dequeue   (pktbuf_t *pb, 
-                          ts_t     *timestamp, 
-                          u_char   *payload, 
-                          u_char  **data, 
-                          u_int32 *datalen);
+                          rtp_packet **p);
+
+/* Peak at last packet sent by source.  May have bursting at start of       */
+/* talkspurt because of pre-hang, or process may have blocked.  Useful      */
+/* to check when determining offset between source time and local time.     */
+int     pktbuf_peak_last (pktbuf_t *pb,
+                          rtp_packet **p);
 u_int16 pktbuf_get_count (pktbuf_t *pb);
 
 #endif /* __PKTBUF_H__ */
