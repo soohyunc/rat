@@ -82,8 +82,6 @@ typedef struct session_tag {
         double          drop;             /* Flakeaway drop percentage [0,1] */
 	struct s_snd_file *in_file;
 	struct s_snd_file *out_file;
-        int             input_gain;                 /* mike gain */
-        int             output_gain;                /* speaker volume */
 	audio_desc_t	audio_device;
 	struct s_tx_buffer	            *tb;
 	struct rtp_db_tag	            *db;

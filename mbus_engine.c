@@ -294,13 +294,13 @@ static void rx_audio_input_gain(char *srce, char *args, session_struct *sp)
 	int   i;
 
 	UNUSED(srce);
-
+ 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, &i)) {
-		sp->input_gain = i;
-                audio_set_igain(sp->audio_device, sp->input_gain);
+	if (mbus_parse_int(sp->mbus_engine, &i) && 
+            (i >= 0 && i <= 100)) {
+                audio_set_igain(sp->audio_device, i);
                 tx_igain_update(sp->tb);
-	} else {
+	} else { 
 		printf("mbus: usage \"audio.input.gain <integer>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine);
@@ -360,9 +360,9 @@ static void rx_audio_output_gain(char *srce, char *args, session_struct *sp)
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, &i)) {
-		sp->output_gain = i;
-		audio_set_ogain(sp->audio_device, sp->output_gain);
+	if (mbus_parse_int(sp->mbus_engine, &i) &&
+            (i >= 0 && i <= 100)) {
+		audio_set_ogain(sp->audio_device, i);
 	} else {
 		printf("mbus: usage \"audio.output.gain <integer>\"\n");
 	}

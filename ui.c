@@ -356,6 +356,7 @@ ui_update_input_port(session_struct *sp)
 	} else {
 		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.input.mute", "1", TRUE);
 	}
+        ui_update_input_gain(sp);
 }
 
 void
@@ -393,6 +394,7 @@ ui_update_output_port(session_struct *sp)
 	} else {
 		mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.mute", "1", TRUE);
 	}
+        ui_update_output_gain(sp);
 }
 
 void
@@ -741,12 +743,7 @@ ui_update(session_struct *sp)
                 ui_update_input_gain(sp);
                 ui_update_output_gain(sp);
 		done=1;
-	} else {
-	        sprintf(args, "%3d", sp->output_gain); mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.gain", args, TRUE);
-                assert(strlen(args) < 4);
-		sprintf(args, "%3d", sp->input_gain ); mbus_qmsg(sp->mbus_engine, mbus_name_ui,  "audio.input.gain", args, TRUE);
-                assert(strlen(args) < 4);
-	}
+	} 
 
         sprintf(args, "%3d", channel_encoder_get_units_per_packet(sp->channel_coder));
         assert(strlen(args) < 4);
