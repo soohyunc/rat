@@ -617,11 +617,42 @@ codec_first_with(int freq, int channels)
 int
 codec_matching(char *short_name, int freq, int channels)
 {
-        int pt;
+	/* This has been changed to try really hard to find a matching codec.  */
+	/* The reason is that it's now called as part of the command-line      */
+	/* parsing, and so has to cope with user entered codec names. Also, it */
+	/* should recognise the names sdr gives the codecs, for compatibility  */
+	/* with rat-v3.0.                                                [csp] */
+	/* This is not quite as inefficient as it looks, since stage 1 will    */
+	/* almost always find a match.                                         */
+        int 	 pt;
+	char	*long_name;
+
+	/* Stage 1: Try the designated short names... */
         for(pt = 0; pt < MAX_CODEC; pt++) {
-                if (cd[pt].name && cd[pt].freq == freq && cd[pt].channels == channels && !strcmp(short_name, cd[pt].short_name)) {
+                if (cd[pt].freq == freq && cd[pt].channels == channels && !strcasecmp(short_name, cd[pt].short_name)) {
+			assert(cd[pt].name != NULL);
                         return pt;
                 }
         }
+
+	/* Stage 2: Try to generate a matching name... */
+	long_name = (char *) xmalloc(strlen(short_name) + 12);
+	sprintf(long_name, "%s-%dK-%s", short_name, freq/1000, channels==1?"MONO":"STEREO");
+        for(pt = 0; pt < MAX_CODEC; pt++) {
+                if (cd[pt].freq == freq && cd[pt].channels == channels && !strcasecmp(long_name, cd[pt].name)) {
+                        return pt;
+                }
+        }
+
+	/* Stage 3: Nasty hack... PCM->PCMU for compatibility with sdr and old rat versions */
+	if (strcasecmp(short_name, "pcm") == 0) {
+		sprintf(long_name, "PCMU-%dK-%s", freq/1000, channels==1?"MONO":"STEREO");
+		for(pt = 0; pt < MAX_CODEC; pt++) {
+			if (cd[pt].freq == freq && cd[pt].channels == channels && !strcasecmp(long_name, cd[pt].name)) {
+				return pt;
+			}
+		}
+	}
+
         return -1;
 }

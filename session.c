@@ -334,7 +334,8 @@ parse_early_options(int argc, char *argv[], session_struct *sp[])
 
 /************************************************************************************************************/
 
-static void parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
+static void 
+parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 {
 	/* Parse command-line options common to all the modes of operation.     */
 	/* Variables: i scans through the options, s scans through the sessions */
@@ -411,6 +412,10 @@ static void parse_late_options_common(int argc, char *argv[], session_struct *sp
 				}
                                 pu = argv[i+1];
                                 if ((cp = get_codec_byname(pu,sp[s])) != NULL) {
+                                        change_freq(sp[s]->device_clock, cp->freq);
+                                        sp[s]->encodings[0]  = cp->pt;
+					sp[s]->num_encodings = 1;
+				} else if ((cp = get_codec(codec_matching(pu, 8000, 1))) != NULL) {
                                         change_freq(sp[s]->device_clock, cp->freq);
                                         sp[s]->encodings[0]  = cp->pt;
 					sp[s]->num_encodings = 1;
