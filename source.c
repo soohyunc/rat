@@ -648,13 +648,6 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         transit = ts_sub(sp->cur_ts, src_ts);
                 }
 
-                if (adjust_playout && src->packets_done && 
-                    ts_gt(ts_mul(src->pdbe->jitter, 3), ts_abs_diff(transit, src->pdbe->avg_transit))) {
-                        /* Use avg transit as it's close */
-                        transit = src->pdbe->avg_transit;
-                        debug_msg("transit %d  transit_avg %d\n", transit.ticks, src->pdbe->avg_transit.ticks);
-                }
-
                 playout = playout_calc(sp, e->ssrc, transit, adjust_playout);
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
@@ -847,6 +840,8 @@ source_check_buffering(source *src)
                 return FALSE;
         }
 
+        return FALSE;
+
         actual  = source_get_audio_buffered(src);
         desired = source_get_playout_delay(src);
         diff    = ts_abs_diff(actual, desired);
@@ -922,9 +917,10 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 debug_msg("dropping %d / %d samples\n", adjustment.ticks, src->skew_adjust.ticks);
                 pb_shift_forward(src->media,   adjustment);
                 pb_shift_forward(src->channel, adjustment);
-                src->pdbe->transit      = ts_sub(src->pdbe->transit,      adjustment);
-                src->pdbe->last_transit = ts_sub(src->pdbe->last_transit, adjustment);
-                src->pdbe->avg_transit  = ts_sub(src->pdbe->avg_transit,  adjustment);
+
+                src->pdbe->transit      = ts_sub(src->pdbe->transit, adjustment);
+                /* avg_transit and last_transit are fine.  Difference in     */
+                /* avg_transit and transit triggered this adjustment.        */
 
                 if (ts_valid(src->last_repair)) {
                         src->last_repair = ts_sub(src->last_repair, adjustment);
@@ -951,9 +947,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 }
                 pb_shift_units_back_after(src->media,   playout, adjustment);
                 pb_shift_units_back_after(src->channel, playout, adjustment);
-                src->pdbe->transit      = ts_add(src->pdbe->transit,      adjustment);
-                src->pdbe->last_transit = ts_add(src->pdbe->last_transit, adjustment);
-                src->pdbe->avg_transit  = ts_add(src->pdbe->avg_transit,  adjustment);
+                src->pdbe->transit = ts_add(src->pdbe->transit, adjustment);
 
                 if (ts_gt(adjustment, src->skew_adjust)) {
                         src->skew_adjust = zero_ts;
