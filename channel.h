@@ -84,7 +84,7 @@ typedef int  (*cc_valsplit_f)(char *blk,
                               int *trailing);
 typedef int  (*cc_get_pt_f)(char *blk,
                             unsigned int blen);
-typedef void (*cc_dec_init_f)(struct s_cc_state *ccs);
+typedef void (*cc_dec_init_f)(struct session_tag *sp, struct s_cc_state *ccs);
 typedef void (*cc_decode_f)(struct rx_element_tag *sp,
                             struct s_cc_state *ccs);
 

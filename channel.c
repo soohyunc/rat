@@ -282,9 +282,9 @@ intl_init(session_struct *sp, cc_state_t *cs)
 } 
 
 static void 
-intl_dec_init(cc_state_t *cs) 
+intl_dec_init(session_struct *sp, cc_state_t *cs) 
 {
-    cs->s = (char*)new_intl_coder();
+    cs->s = (char*)new_intl_coder(sp);
 } 
 
 static int
@@ -420,7 +420,7 @@ get_cc_state(session_struct *sp, cc_state_t **lp, int pt, enum cc_e ed)
             break;
         case DECODE:
             if (cp->dec_init)
-                cp->dec_init(stp);
+                cp->dec_init(sp,stp);
             break;
         default:
             fprintf(stderr, "get_cc_state: unknown op\n");
