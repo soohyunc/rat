@@ -274,6 +274,7 @@ int
 tcl_init1(int argc, char **argv)
 {
 	char		*cmd_line_args, buffer[10];
+	Tcl_Obj 	*audiotool_obj;
 
 	Tcl_FindExecutable(argv[0]);
 	interp        = Tcl_CreateInterp();
@@ -316,10 +317,15 @@ tcl_init1(int argc, char **argv)
 	Tk_DefineBitmap(interp, Tk_GetUid("stop"),  stop_bits,  stop_width,  stop_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("left"),  left_bits,  left_width, left_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("right"), right_bits, right_width,  right_height);
-	Tcl_Eval(interp, "wm withdraw .");
+
+	audiotool_obj = Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool));
+	if (Tcl_EvalObj(interp, audiotool_obj) != TCL_OK) {
+		fprintf(stderr, "ui_audiotool error: %s\n", Tcl_GetStringResult(interp));
+	}
         while (Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS)) {
 		/* Process Tcl/Tk events */
 	}
+
 	return TRUE;
 }
 
@@ -327,16 +333,11 @@ int
 tcl_init2(struct mbus *mbus_ui, char *mbus_engine_addr)
 {
 	struct timeval	 timeout;
-	Tcl_Obj 	*audiotool_obj;
 	engine_addr   = xstrdup(mbus_engine_addr);
 
 	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) mbus_ui, NULL);
 	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, NULL, NULL);
-
-	audiotool_obj = Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool));
-	if (Tcl_EvalObj(interp, audiotool_obj) != TCL_OK) {
-		fprintf(stderr, "ui_audiotool error: %s\n", Tcl_GetStringResult(interp));
-	}
+	Tcl_Eval(interp, "wm deiconify .");
 
 	/* Process Tcl/Tk events */
         while (Tcl_DoOneEvent(TCL_DONT_WAIT | TCL_ALL_EVENTS)) {

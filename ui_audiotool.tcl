@@ -8,7 +8,7 @@ catch {
 # Full terms and conditions of the copyright appear below.
 #
 
-#wm withdraw .
+wm withdraw .
 
 if {[string compare [info commands registry] "registry"] == 0} {
     set win32 1
@@ -2892,5 +2892,4 @@ if { $script_error != "" } {
     exit -1
 }
 
-wm deiconify .
 
