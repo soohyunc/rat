@@ -202,7 +202,6 @@ ui_update_stats(rtcp_dbentry *e, session_struct *sp)
 	assert(sp->db->my_dbe->sentry->cname != NULL);
 
 	if (e->sentry->cname == NULL) {
-                debug_msg("sentry->cname null\n");
 		return;
 	}
 

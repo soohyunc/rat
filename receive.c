@@ -489,8 +489,6 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		if (up && buf->last_got && up->mixed == FALSE
 		    && ts_gt(buf->last_got->playoutpt, up->playoutpt)
 		    && ts_gt(up->playoutpt, cur_time)){
-                        assert(up->prev_ptr == NULL);
-                        assert(up->next_ptr == NULL);
                         channel_decode(sp, up);
 			decode_unit(up);
                         debug_msg("Mixing late audio\n");
