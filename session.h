@@ -104,7 +104,7 @@ typedef struct session_tag {
         int             last_tx_service_productive;     /* channel coder can output after talksprt ends */
 	int		repair;				/* Packet repair */
 	int		lecture;			/* UI lecture mode */
-	int		externalise_audio;
+	int		render_3d;
         int             echo_suppress;
         int             echo_was_sending;               /* Used to store mute state when suppressing */
 	int		auto_lecture;			/* Used for dummy lecture mode */

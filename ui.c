@@ -63,6 +63,7 @@
 #include "transmit.h"
 #include "ui.h"
 #include "timers.h"
+#include "render_3D.h"
 
 static char *mbus_name_engine = NULL;
 static char *mbus_name_ui     = NULL;
@@ -531,6 +532,16 @@ ui_update_output_gain(session_struct *sp)
 }
 
 static void
+ui_update_3d_enabled(session_struct *sp)
+{
+        char args[2];
+        sprintf(args, "%d", (sp->render_3d ? 1 : 0));
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.3d.enabled", args, TRUE);
+}
+
+
+
+static void
 ui_devices(session_struct *sp)
 {
         int i,nDev;
@@ -626,6 +637,7 @@ ui_update(session_struct *sp)
 
 	ui_update_output_port(sp);
 	ui_update_input_port(sp);
+        ui_update_3d_enabled(sp);
         ui_codecs(sp, sp->encodings[0]);
         ui_devices(sp);
         ui_device(sp);
@@ -945,27 +957,41 @@ ui_load_settings(session_struct *sp)
 static void
 ui_3d_options(session_struct *sp)
 {
-        char args[256];
+        char args[256], tmp[5];
         char *mbes;
+        int i, cnt;
 
-        sprintf(args,"none,lateralization,externalization");
+        args[0] = '\0';
+        cnt = render_3D_filter_get_count();
+        for(i = 0; i < cnt; i++) {
+                strcat(args, render_3D_filter_get_name(i));
+                if (i != cnt - 1) strcat(args, ",");
+        }
+
         mbes = mbus_encode_str(args);
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, 
                   "tool.rat.3d.filter.types", mbes, TRUE);
         xfree(mbes);
 
-        sprintf(args,"8,16,32,64");
+        args[0] = '\0';
+        cnt = render_3D_filter_get_lengths_count();
+        for(i = 0; i < cnt; i++) {
+                sprintf(tmp, "%d", render_3D_filter_get_length(i));
+                strcat(args, tmp);
+                if (i != cnt - 1) strcat(args, ",");
+        }
+        
         mbes = mbus_encode_str(args);
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, 
                   "tool.rat.3d.filter.lengths", 
                   mbes, TRUE);
         xfree(mbes);
 
-        sprintf(args, "%d", -90);
+        sprintf(args, "%d", render_3D_filter_get_lower_azimuth());
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, 
                   "tool.rat.3d.azimuth.min", args, TRUE);
 
-        sprintf(args, "%d", 90);
+        sprintf(args, "%d", render_3D_filter_get_upper_azimuth());
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, 
                   "tool.rat.3d.azimuth.max", args, TRUE);
 }

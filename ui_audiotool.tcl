@@ -159,7 +159,7 @@ proc mbus_recv {cmnd args} {
 		tool.rat.channels  		{eval mbus_recv_tool.rat.channels $args}
 		tool.rat.codec  		{eval mbus_recv_tool.rat.codec $args}
 		tool.rat.rate  			{eval mbus_recv_tool.rat.rate $args}
-		tool.rat.externalise  		{eval mbus_recv_tool.rat.externalise $args}
+		tool.rat.3d.enabled  		{eval mbus_recv_tool.rat.3d.enabled $args}
 		tool.rat.lecture.mode  		{eval mbus_recv_tool.rat.lecture.mode $args}
 		tool.rat.disable.audio.ctls  	{eval mbus_recv_tool.rat.disable.audio.ctls $args}
 		tool.rat.enable.audio.ctls  	{eval mbus_recv_tool.rat.enable.audio.ctls $args}
@@ -471,7 +471,7 @@ proc mbus_recv_session.address {addr port ttl} {
     set session_address "Address: $addr Port: $port TTL: $ttl"
 }
 
-proc mbus_recv_tool.rat.externalise {mode} {
+proc mbus_recv_tool.rat.3d.enabled {mode} {
 	global 3d_audio_var
 	set 3d_audio_var $mode
 }
@@ -577,6 +577,7 @@ proc mbus_recv_tool.rat.3d.filter.types {args} {
 
 proc mbus_recv_tool.rat.3d.filter.lengths {args} {
     global 3d_filter_lengths
+    puts "$args"
     set 3d_filter_lengths [split $args ","]
 }
 
@@ -914,8 +915,8 @@ proc toggle_stats {cname} {
 
 # 3D settings
 	frame $win.df.3d -relief sunk
-	label $win.df.3d.advice -text "These options allow the rendering of the\nparticipant to be altered when sound\nexternalization is enabled."
-	checkbutton $win.df.3d.ext -text "Sound Externalization" -variable 3d_audio_var
+	label $win.df.3d.advice -text "These options allow the rendering of the\nparticipant to be altered when 3D\nrendering is enabled."
+	checkbutton $win.df.3d.ext -text "3D Audio Rendering" -variable 3d_audio_var
 	pack $win.df.3d.advice 
 	pack $win.df.3d.ext 
 
@@ -957,13 +958,13 @@ proc toggle_stats {cname} {
 	pack $win.df.3d.opts.filters -side left -expand 1 -anchor n
 	pack $win.df.3d.opts.lengths -side left -expand 1 -anchor n
 	
-	global 3d_azimuth
+	global 3d_azimuth azimuth
 	scale $win.df.3d.azimuth -from $3d_azimuth(min) -to $3d_azimuth(max) \
-		-orient horizontal -label "Azimuth" 
-	pack $win.df.3d.azimuth -fill x -expand 1 
+		-orient horizontal -label "Azimuth" -variable azimuth($cname)
+	pack  $win.df.3d.azimuth -fill x -expand 1 
 
-	button $win.df.3d.apply -text "Apply"
-	pack $win.df.3d.apply -side left -fill x -expand 1 -anchor s
+	button $win.df.3d.apply -text "Apply" -command "3d_send_parameters $cname"
+	pack   $win.df.3d.apply -side left -fill x -expand 1 -anchor s
 
 # Window Magic 
 	button $win.d -highlightthickness 0 -padx 0 -pady 0 -text "Dismiss" -command "destroy $win" 
@@ -973,6 +974,12 @@ proc toggle_stats {cname} {
 	constrain_window $win 0 250 20 0
     }
 }
+
+proc 3d_send_parameters {cname} {
+    global azimuth filter_type filter_length
+    mbus_send "R" "tool.rat.3d.user.settings" "[mbus_encode_str $cname] [mbus_encode_str $filter_type($cname)] $filter_length($cname) $azimuth($cname)"
+}
+
 
 proc do_quit {} {
 	catch {
@@ -1272,8 +1279,8 @@ pack $i.o.f.fl.l1 $i.o.f.fl.scmin $i.o.f.fr.l2 $i.o.f.fr.scmax -side top -fill x
 
 frame $i.c.f 
 frame $i.c.f.f 
-checkbutton $i.c.f.f.lec -text "Lecture Mode"          -variable lecture_var
-checkbutton $i.c.f.f.ext -text "Sound Externalisation" -variable 3d_audio_var
+checkbutton $i.c.f.f.lec -text "Lecture Mode"       -variable lecture_var
+checkbutton $i.c.f.f.ext -text "3D Audio Rendering" -variable 3d_audio_var
 
 pack $i.c.f -fill x -side left -expand 1
 pack $i.c.f.f 
@@ -1594,7 +1601,7 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "tool.rat.playout.min"   $min_var
     mbus_send "R" "tool.rat.playout.max"   $max_var
     mbus_send "R" "tool.rat.lecture"       $lecture_var
-    mbus_send "R" "tool.rat.externalise"   $3d_audio_var
+    mbus_send "R" "tool.rat.3d.enabled"   $3d_audio_var
     mbus_send "R" "tool.rat.converter"     [mbus_encode_str $convert_var]
 
     #Security
@@ -1679,7 +1686,7 @@ proc save_settings {} {
     save_setting $f audioMinPlayout       min_var
     save_setting $f audioMaxPlayout       max_var
     save_setting $f audioLecture          lecture_var
-    save_setting $f audioExternalise      3d_audio_var
+    save_setting $f audio3dRendering      3d_audio_var
     save_setting $f audioAutoConvert      convert_var
     #security
    
@@ -1788,7 +1795,7 @@ proc load_settings {} {
     load_setting attr audioMinPlayout   min_var       "0"
     load_setting attr audioMaxPlayout   max_var       "2000"
     load_setting attr audioLecture      lecture_var   "0"
-    load_setting attr audioExternalise  3d_audio_var   "0"
+    load_setting attr audio3dRendering  3d_audio_var   "0"
     load_setting attr audioAutoConvert  convert_var   "None"
     #security
    

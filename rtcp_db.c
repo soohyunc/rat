@@ -62,6 +62,7 @@
 #include "ui.h"
 #include "timers.h"
 #include "receive.h"
+#include "render_3D.h"
 
 #define MAX_DROPOUT	3000
 #define MAX_MISORDER	100
@@ -166,6 +167,22 @@ rtcp_get_dbentry(session_struct *sp, u_int32 ssrc)
 	return NULL;
 }
 
+rtcp_dbentry *
+rtcp_get_dbentry_by_cname(session_struct *sp, char *cname)
+{
+	/* This needs to be optimised! [csp] */
+	rtcp_dbentry   *dptr = sp->db->ssrc_db;
+
+	while (dptr) {
+		if (!strcmp(dptr->sentry->cname, cname)) {
+			return (dptr);
+		}
+		dptr = dptr->next;
+	}
+
+	return NULL;
+}
+
 /*
  * Get my SSRC
  */
@@ -249,6 +266,9 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 	if (dbptr->clock) {
 		free_time(dbptr->clock);
 	}
+        if (dbptr->render_3D_data) {
+                render_3D_free(&dbptr->render_3D_data);
+        }
         if (dbptr->state_list) {
                 clear_decoder_states(&dbptr->state_list);
         }

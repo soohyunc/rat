@@ -496,8 +496,7 @@ find_participant_queue(session_struct *sp, ppb_t **list, rtcp_dbentry *src, int 
                                                   cp_dev->freq);
         } 
 
-        if (sp->externalise_audio) {
-                if (src->render_3D_data) render_3D_free(&src->render_3D_data);
+        if (sp->render_3d && src->render_3D_data == NULL) {
                 src->render_3D_data = render_3D_init(sp);
         }
 
@@ -511,7 +510,6 @@ playout_buffer_remove(session_struct *sp, ppb_t **list, rtcp_dbentry *src)
 	ppb_t *curr, *tmp;
 
         if (src->converter)      converter_destroy(&src->converter);
-        if (src->render_3D_data) render_3D_free(&src->render_3D_data);
 	assert(list != NULL);
 
         curr = *list;

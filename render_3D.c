@@ -45,6 +45,7 @@
 #include "assert.h"
 #include "memory.h"
 #include "util.h"
+#include "debug.h"
 #include "mix.h"
 #include "session.h"
 #include "audio.h"
@@ -58,13 +59,19 @@
 #include "ui.h"
 #include "render_3D.h"
 
-#define NUM_FILTERS 3
+#define MAX_RESPONSE_LENGTH 32
+#define MIN_RESPONSE_LENGTH 8
+#define DEFAULT_RESPONSE_LENGTH 32
+#define LOWER_AZIMUTH -90
+#define UPPER_AZIMUTH  90
+#define IDENTITY_FILTER 0
 
-static char * filter_names[NUM_FILTERS] = {"Identity",
-                                           "HRTF",
-                                           "Echo"};
 
-#define ANZAHL_FILTER (sizeof(filter_names) / sizeof(filter_names[0])
+static char * filter_names[] = {"Identity",
+                                "HRTF",
+                                "Echo"};
+
+#define NUM_FILTERS (sizeof(filter_names) / sizeof(filter_names[0]))
 
 typedef struct s_render_3D_dbentry {
         short    azimuth;                             /* lateral angle of sound source */
@@ -80,7 +87,6 @@ typedef struct s_render_3D_dbentry {
         int      response_length;
 } render_3D_dbentry;
 
-
 int
 render_3D_filter_get_count()
 {
@@ -90,7 +96,7 @@ render_3D_filter_get_count()
 char *
 render_3D_filter_get_name(int id)
 {
-        if (id >= 0 && id < NUM_FILTERS) return filter_names[id];
+        if (id >= 0 && id < (signed)NUM_FILTERS) return filter_names[id];
         return filter_names[IDENTITY_FILTER];
 }
 
@@ -98,10 +104,40 @@ int
 render_3D_filter_get_by_name(char *name)
 {
         int i;
-        for(i = 0; i < NUM_FILTERS; i++) {
+        for(i = 0; i < (signed)NUM_FILTERS; i++) {
                 if (!strcasecmp(name, filter_names[i])) return i;
         }
         return IDENTITY_FILTER;
+}
+
+/* At the present time there is only 1 possible filter length.  At a 
+ * later date it may be desirable to have shorter filter lengths to
+ * reduce processing load and a suitable length selection algorithm.
+ */
+
+int
+render_3D_filter_get_lengths_count()
+{
+        return 1;
+}
+
+int
+render_3D_filter_get_length(int idx)
+{
+        UNUSED(idx);
+        return DEFAULT_RESPONSE_LENGTH;
+}
+
+int
+render_3D_filter_get_lower_azimuth()
+{
+        return LOWER_AZIMUTH;
+}
+
+int
+render_3D_filter_get_upper_azimuth()
+{
+        return UPPER_AZIMUTH;
 }
 
 render_3D_dbentry *
@@ -124,7 +160,7 @@ render_3D_init(session_struct *sp)
         render_3D_data = (render_3D_dbentry *) xmalloc(sizeof(render_3D_dbentry));
         memset(render_3D_data, 0, sizeof(render_3D_dbentry));
 
-        render_3D_set_parameters(sampling_rate, render_3D_data, azimuth, default_filter_num, length);
+        render_3D_set_parameters(render_3D_data, sampling_rate, azimuth, default_filter_num, length);
 
         fprintf(stdout, "\tdelay:\t%d\n", render_3D_data->delay);
         fprintf(stdout, "\tattenuation:\t%f\n", render_3D_data->attenuation);
@@ -144,7 +180,7 @@ render_3D_free(render_3D_dbentry **data)
 }
 
 void
-render_3D_set_parameters(int sampling_rate, struct s_render_3D_dbentry *p_3D_data, int azimuth, int filter_number, int length)
+render_3D_set_parameters(struct s_render_3D_dbentry *p_3D_data, int sampling_rate, int azimuth, int filter_number, int length)
 {
         int i;
         double aux;
@@ -209,17 +245,6 @@ render_3D_set_parameters(int sampling_rate, struct s_render_3D_dbentry *p_3D_dat
 
 #ifdef NDEF
 int
-render_3D_get_lower_azimuth()
-{
-        return -90;
-}
-
-int
-render_3D_get_upper_azimuth()
-{
-        return 90;
-}
-
 int
 render_3D_get_lower_filter_length()
 {

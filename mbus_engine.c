@@ -56,6 +56,7 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "repair.h"
+#include "render_3D.h"
 #include "crypt.h"
 #include "session.h"
 #include "sndfile.h"
@@ -143,7 +144,7 @@ static void rx_tool_rat_silence(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine_conf);
 }
 
-static void rx_tool_rat_externalise(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_3d_enable(char *srce, char *args, session_struct *sp)
 {
 	int i;
 
@@ -151,10 +152,43 @@ static void rx_tool_rat_externalise(char *srce, char *args, session_struct *sp)
 
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
-		sp->externalise_audio = i;
+		sp->render_3d = (i ? 1 : 0);
 	} else {
-		printf("mbus: usage \"tool.rat.externalise <boolean>\"\n");
+		printf("mbus: usage \"tool.rat.3d.enabled <boolean>\"\n");
 	}
+	mbus_parse_done(sp->mbus_engine_conf);
+}
+
+static void rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct *sp)
+{
+        struct s_rtcp_dbentry *e;
+        char *cname, *filter_name;
+        int filter_type, filter_length, azimuth, freq;
+
+        UNUSED(srce);
+
+        mbus_parse_init(sp->mbus_engine_conf, args);
+	if (mbus_parse_str(sp->mbus_engine_conf, &cname) &&
+            mbus_parse_str(sp->mbus_engine_conf, &filter_name) &&
+            mbus_parse_int(sp->mbus_engine_conf, &filter_length) &&
+            mbus_parse_int(sp->mbus_engine_conf, &azimuth)) {
+
+                mbus_decode_str(cname);
+                mbus_decode_str(filter_name);
+
+                e = rtcp_get_dbentry_by_cname(sp, cname);
+                if (e) {
+                        filter_type = render_3D_filter_get_by_name(filter_name);
+                        freq        = get_freq(sp->device_clock);
+                        if (e->render_3D_data == NULL) {
+                                e->render_3D_data = render_3D_init(sp);
+                        }
+                        render_3D_set_parameters(e->render_3D_data, freq, azimuth, filter_type, filter_length);
+                        debug_msg("cname: %s filter: %s length: %d azimuth: %d", cname, filter_name, filter_length, azimuth);
+                }
+        } else {
+                printf("mbus: usage \"tool.rat.3d.user.settings <cname> <filter name> <filter len> <azimuth>\"\n");
+        }
 	mbus_parse_done(sp->mbus_engine_conf);
 }
 
@@ -652,12 +686,11 @@ static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_str(sp->mbus_engine_conf, &cname) && mbus_parse_int(sp->mbus_engine_conf, &i)) {
 		mbus_decode_str(cname);
-		for (e = sp->db->ssrc_db; e != NULL; e = e->next) {
-			if (strcmp(e->sentry->cname, cname) == 0) {	
-				e->mute = i;
-				ui_info_mute(sp, e);
-			}
-		}
+                e = rtcp_get_dbentry_by_cname(sp, cname);
+                if (e) {
+                        e->mute = i;
+                        ui_info_mute(sp, e);
+                }
 	} else {
 		printf("mbus: usage \"rtp_source_mute <cname> <bool>\"\n");
 	}
@@ -952,7 +985,8 @@ const char *rx_cmnd[] = {
 	"tool.rat.toggle.output.port",
 	"tool.rat.silence",
 	"tool.rat.lecture",
-	"tool.rat.externalise",
+	"tool.rat.3d.enabled",
+        "tool.rat.3d.user.settings",
 	"tool.rat.agc",
         "tool.rat.loopback",
         "tool.rat.echo.suppress",
@@ -1003,7 +1037,8 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_tool_rat_toggle_output_port,
 	rx_tool_rat_silence,
 	rx_tool_rat_lecture,
-	rx_tool_rat_externalise,
+	rx_tool_rat_3d_enable,
+        rx_tool_rat_3d_user_settings,
 	rx_tool_rat_agc,
         rx_tool_rat_audio_loopback,
         rx_tool_rat_echo_suppress,

@@ -194,7 +194,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
                         return;
                 }
 	}
-	if (sp->externalise_audio) {
+
 	if (sp->render_3d) {
 	        /* 3d rendering hook here */
                 render_3D(el, ms->channels);
