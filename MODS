@@ -1012,6 +1012,7 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Remove core files & directories on "make distclean"
 	- Add check audio in adjusted playout point packets can be played out
 	  and correct if would be dropped.
+	- Add failure return option for pattern matches used in skew detection.
 
 TODO -- They're features not bugs dammit!
 ----

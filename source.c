@@ -900,7 +900,7 @@ source_get_bps(source *src)
         return src->bps;
 }
 
-static uint16_t
+static int16_t
 find_local_match(sample *buffer, uint16_t wstart, uint16_t wlen, uint16_t sstart, uint16_t send, uint16_t channels)
 {
         uint16_t i,j, i_min = sstart;
@@ -920,17 +920,17 @@ find_local_match(sample *buffer, uint16_t wstart, uint16_t wlen, uint16_t sstart
         if (score_min / wlen < MATCH_THRESHOLD) {
                 return i_min;
         }
-        return 0;
+        return -1;
 }
 
 /* recommend_skew_adjust_dur examines a frame to determine how much audio    */
 /* to insert or drop.   Argument drop is boolean to indicate whether         */
 /* dropping samples (TRUE) or inserting (FALSE).                             */
 
-static ts_t
-recommend_skew_adjust_dur(media_data *md, int drop) 
+static int32_t
+recommend_skew_adjust_dur(media_data *md, int drop, ts_t *adjust) 
 {
-        uint16_t matchlen;
+        int16_t matchlen;
         uint16_t rate, channels, samples;
         sample *buffer;
         int16_t i;
@@ -955,20 +955,27 @@ recommend_skew_adjust_dur(media_data *md, int drop)
                                             SOURCE_COMPARE_WINDOW_SIZE * channels,
                                             (samples - SOURCE_COMPARE_WINDOW_SIZE) * channels,
                                             channels);
+                if (matchlen == -1) {
+                        return FALSE;
+                }
         } else {
                 /* match with last samples of frame.  Start at the start of   */
                 /* frame and finish just before search window.                */
                 matchlen = find_local_match((sample*)md->rep[i]->data,                             /* buffer */
                                             (samples - SOURCE_COMPARE_WINDOW_SIZE) * channels,     /* wstart */
                                             SOURCE_COMPARE_WINDOW_SIZE * channels,                 /* wlen   */
-                                            0,                                           /* sstart */
+                                            0,                                                     /* sstart */
                                             (samples - 2 * SOURCE_COMPARE_WINDOW_SIZE) * channels, /* slen   */
                                             channels);
                 /* Want to measure from where frames will overlap.            */
+                if (matchlen == -1) {
+                        return FALSE;
+                }
                 matchlen = samples - matchlen - SOURCE_COMPARE_WINDOW_SIZE;
         }
 
-        return ts_map32(rate, matchlen);
+        *adjust = ts_map32(rate, matchlen);
+        return TRUE;
 }
 
 static void
@@ -989,14 +996,14 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
         }
 
         assert(i != -1);
-
+        
         drop_dur     = ts_convert(rate, drop_dur);
         drop_samples = channels * drop_dur.ticks;
         
         /* new_start is what will be played by mixer */
         new_start = (sample*)md->rep[i]->data + drop_samples;
         old_start = (sample*)md->rep[i]->data;
-
+        
         merge_len = SOURCE_MERGE_LEN_SAMPLES * channels;
         for (i = 0; i < merge_len; i++) {
                 a   = (merge_len - i) * old_start[i];
@@ -1016,10 +1023,10 @@ conceal_inserted_samples(media_data *omd, media_data *imd, ts_t insert_dur)
         uint16_t rate, channels;
         int32_t tmp, a, b, i, merge_len;
         sample *dst, *src;
-
+        
         assert(omd != NULL);
         assert(imd != NULL);
-
+        
         for (i = omd->nrep - 1; i >= 0; i--) {
                 if (codec_get_native_info(omd->rep[i]->id, &rate, &channels)) {
                         break;
@@ -1029,7 +1036,7 @@ conceal_inserted_samples(media_data *omd, media_data *imd, ts_t insert_dur)
         merge_len = SOURCE_MERGE_LEN_SAMPLES * channels;
         a         = omd->rep[i]->data_len / sizeof(sample) * channels - merge_len;
         dst       = (sample*)omd->rep[i]->data + a;
-
+        
         for (i = imd->nrep - 1; i >= 0; i--) {
                 if (codec_get_native_info(imd->rep[i]->id, &rate, &channels)) {
                         break;
@@ -1102,7 +1109,7 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
         uint32_t i = 0, e = 0, samples = 0;
         uint16_t rate, channels;
         ts_t adjustment, frame_dur;
-
+        
         assert(src);
         assert(md);
         assert(src->skew != SOURCE_SKEW_NONE);
@@ -1133,9 +1140,13 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                  * Should only move forward at most a single unit
                  * otherwise we might discard something we have not
                  * classified.  */
-
+                
                 if (ts_gt(skew_limit, src->skew_adjust)) {
-                        adjustment = recommend_skew_adjust_dur(md, TRUE); 
+                        if (recommend_skew_adjust_dur(md, TRUE, &adjustment) == FALSE) {
+                                /* No suitable adjustment found, and         */
+                                /* adjustment is not urgent so bail here...  */ 
+                                return src->skew;
+                        }
                 } else {
                         /* Things are really skewed.  We're more than        */
                         /* skew_limit off of where we ought to be.  Just     */
@@ -1180,11 +1191,11 @@ source_skew_adapt(source *src, media_data *md, ts_t playout)
                 media_data *fmd;
                 ts_t        insert_playout;
 
-                adjustment = recommend_skew_adjust_dur(md, FALSE);
-                if (adjustment.ticks == 152) {
+                if (recommend_skew_adjust_dur(md, FALSE, &adjustment) == FALSE) {
                         debug_msg("bad match\n");
                         return src->skew;
                 }
+
                 debug_msg("Insert %d samples\n", adjustment.ticks);
                 pb_shift_units_back_after(src->media,   playout, adjustment);
                 pb_shift_units_back_after(src->channel, playout, adjustment);
