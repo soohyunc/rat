@@ -24,8 +24,10 @@ static const char cvsid[] =
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/audioio.h>
+#ifdef NDEF	/* Only needed on pre-solaris 2.6 machines <frederic.vecoven@sun.com> */
 #include <multimedia/audio_encode.h>
 #include <multimedia/audio_hdr.h>
+#endif
 
 #ifndef AUDIO_CD
 #define AUDIO_CD 4
@@ -85,6 +87,7 @@ int
 sparc_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format* ofmt)
 {
 	audio_info_t	tmp_info;
+	char            audiodev[256], *str;
 
         if (audio_fd != -1) {
                 debug_msg("Device already open!");
@@ -92,7 +95,12 @@ sparc_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format* ofmt)
                 return FALSE;
         }
 
-	audio_fd = open("/dev/audio", O_RDWR | O_NDELAY);
+	if ((str = getenv("AUDIODEV")) != NULL) {
+		strncpy(audiodev, str, 252);	/* 252 to allow for the strcat later... */
+	} else {
+		strcpy(audiodev, "/dev/audio");
+	}
+	audio_fd = open(audiodev, O_RDWR | O_NDELAY);
 
 	if (audio_fd > 0) {
 		AUDIO_INITINFO(&dev_info);
@@ -141,7 +149,8 @@ sparc_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format* ofmt)
 		/* Because we opened the device with O_NDELAY
 		 * the waiting flag was not updated so update
 		 * it manually using the audioctl device...  */
-		audio_fd = open("/dev/audioctl", O_RDWR);
+		strcat(audiodev, "ctl");
+		audio_fd = open(audiodev, O_RDWR);
 		AUDIO_INITINFO(&dev_info);
 		dev_info.play.waiting = 1;
 		if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) {

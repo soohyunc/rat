@@ -1622,6 +1622,10 @@ v4.2.23	- Fix memory leak with duplicates (Winston Dang)
 	- Change include header on FreeBSD as machine/soundcard.h no longer
 	  exists in -CURRENT, but sys/soundcard.h exists in -STABLE and
 	  -CURRENT (Kris Kennaway).
+	- Update solaris driver to support the AUDIODEV environment
+	  variable, needed for SunRay systems (Frederic Vecoven)
+	- Remove unneeded includes from auddev_sparc (Frederic Vecoven)
+
 
 TODO -- They're features not bugs dammit!
 ----
