@@ -906,7 +906,20 @@ w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
         }
         
         if (write_hdrs_used > 4*nblks/5) {
+                /* Not sure I trust write_hdrs_used as a measure */
+                WAVEHDR *who;
+                int i, cnt;
+                who = write_hdrs;
+                i = cnt = 0;
+                while (i < nblks) {
+                        if (!(who->dwFlags & WHDR_DONE)) {
+                                cnt++;
+                        }
+                        i++;
+                }
+                debug_msg("Counted %d used\n", cnt);
                 debug_msg("Running out of write buffers %d used\n", write_hdrs_used);
+                /* probably want assert(cnt == write_hdrs_used) here */
         }
         
         done = 0;
