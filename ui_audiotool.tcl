@@ -2396,7 +2396,6 @@ wm title    .chart "Reception quality matrix"
 wm geometry .chart 320x200
 wm protocol .chart WM_DELETE_WINDOW    {set matrix_on 0; chart_show}
 
-set matrix_on 1
 chart_show
 
 #
