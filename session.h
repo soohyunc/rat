@@ -69,9 +69,9 @@
 #define PT_L16_32K_STEREO 115
 #define PT_L16_48K_MONO   116
 #define PT_L16_48K_STEREO 117
-#define PT_REDUNDANCY     121
-#define PT_INTERLEAVED    108
+
 #define PT_VANILLA         -1
+#define PT_INTERLEAVED    108
 #define PT_REDUNDANCY     121		/* This has to be 121 for compatibility with RAT-3.0 */
 
 #define SESSION_TITLE_LEN 40
@@ -144,6 +144,7 @@ typedef struct session_tag {
 	long		 loop_delay;
 	long		 loop_estimate;
 	int		 mbus_channel;
+	int		 wait_on_startup;
 } session_struct;
 
 void init_session(session_struct *sp);

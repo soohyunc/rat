@@ -157,7 +157,9 @@ main(int argc, char *argv[])
 	ui_load_settings();
         rtcp_clock_change(sp[0]);
 
-	network_process_mbus(sp, num_sessions, 1000);
+	do {
+		network_process_mbus(sp, num_sessions, 1000);
+	} while (sp[0]->wait_on_startup);
         
         if (!sp[0]->sending_audio && (sp[0]->mode != AUDIO_TOOL)) {
 		for (i=0; i<num_sessions; i++) {

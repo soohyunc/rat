@@ -773,6 +773,13 @@ static void rx_quit(char *srce, char *args, session_struct *sp)
         should_exit = TRUE;
 }
 
+static void rx_init(char *srce, char *args, session_struct *sp)
+{
+	UNUSED(args);
+	UNUSED(srce);
+	sp->wait_on_startup = FALSE;
+}
+
 const char *rx_cmnd[] = {
 	"get_audio",
 	"toggle.input.port",
@@ -812,6 +819,7 @@ const char *rx_cmnd[] = {
         "channel.code",
         "settings",
 	"quit",
+	"init",
 	""
 };
 
@@ -853,7 +861,8 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_auto_convert,
         rx_channel_code,
         rx_settings,
-	rx_quit
+	rx_quit,
+	rx_init
 };
 
 void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)

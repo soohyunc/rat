@@ -128,6 +128,7 @@ init_session(session_struct *sp)
 	sp->mbus_channel		= 0;
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
+	sp->wait_on_startup		= FALSE;
         strcpy(sp->title, "<Untitled Session>");
         
 	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {
@@ -175,7 +176,11 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 				sp[s]->mbus_channel = atoi(argv[i + 1]);
 				i++;
 			}
-                        if ((strcmp(argv[i], "-sync")) == 0) {
+			if (strcmp(argv[i], "-wait") == 0) {
+				sp[s]->wait_on_startup = TRUE;
+				i++;
+			}
+                        if (strcmp(argv[i], "-sync") == 0) {
 				if (sp[s]->mbus_channel != 0) {
                                 	sp[s]->sync_on = TRUE;
 				} else {
