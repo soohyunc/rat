@@ -119,6 +119,7 @@ init_session(session_struct *sp)
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
         sp->last_depart_ts              = 1;
+	sp->loopback_gain		= 0;
 	sp->layers                      = 1;
 
         source_list_create(&sp->active_sources);

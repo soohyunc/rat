@@ -43,6 +43,7 @@
 #include "crypt_random.h"
 #include "net_udp.h"
 #include "rtcp.h"
+#include "settings.h"
 
 int should_exit = FALSE;
 int thread_pri  = 2; /* Time Critical */
@@ -270,6 +271,7 @@ main(int argc, char *argv[])
 		}
         }
 
+	save_settings(sp[0]);
 	tx_stop(sp[0]->tb);
 	rtcp_exit(sp[0], NULL, sp[0]->rtcp_socket);
 	if (sp[0]->in_file  != NULL) snd_read_close (&sp[0]->in_file);

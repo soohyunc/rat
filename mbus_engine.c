@@ -232,8 +232,10 @@ static void rx_tool_rat_audio_loopback(char *srce, char *args, session_struct *s
 	if (mbus_parse_int(sp->mbus_engine, &i)) {
                 if (i) {
                         audio_loopback(sp->audio_device, 100);
+			sp->loopback_gain = 100;
                 } else {
                         audio_loopback(sp->audio_device, 0);
+			sp->loopback_gain = 0;
                 }
 	} else {
 		debug_msg("mbus: usage \"tool.rat.audio.loopback <boolean>\"\n");

@@ -96,12 +96,12 @@ typedef struct session_tag {
         int                                  limit_playout;
         u_int32                              min_playout;
         u_int32                              max_playout;
-        int              cc_encoding;
         u_int32          last_depart_ts;
 	struct s_speaker_table	*speakers_active;
 	struct mbus	*mbus_engine;
 	struct mbus	*mbus_ui;
         ts_t             cur_ts; /* current device time as timestamp */
+	int		 loopback_gain;
 	u_int8		 layers; /* number of layers */
 } session_struct;
 

@@ -343,7 +343,7 @@ layered_encoder_encode (u_char      *state,
  * layers in its channel_units, and combines the channel_units into   *
  * one channel_unit, with zeros if a layer was not received.          */
 
-int
+static int
 layered_decoder_reorganise(channel_data *in, struct s_pb *out, ts_t playout)
 {
         const codec_format_t *cf;
@@ -660,6 +660,8 @@ layered_decoder_describe (u_int8   pkt_pt,
         u_int8 blen, hdrpt, mrk, totlen;
 	codec_id_t            pri_id;
         const codec_format_t *pri_cf;
+
+	UNUSED(pkt_pt);
 
         hdr32 = ntohl(*(u_int32*)data);
         if(hdr32 & LAY_HDR32_PAT) {
