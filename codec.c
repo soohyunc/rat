@@ -21,6 +21,7 @@ static const char cvsid[] =
 #include "audio_types.h"
 #include "codec_types.h"
 #include "codec.h"
+#include "codec_l8.h"
 #include "codec_l16.h"
 #include "codec_g711.h"
 #include "codec_g726.h"
@@ -94,7 +95,7 @@ typedef struct s_codec_fns {
 } codec_fns_t;
 
 static codec_fns_t codec_table[] = {
-        {
+	{
                 NULL, 
                 NULL,
                 l16_get_formats_count,
@@ -106,6 +107,25 @@ static codec_fns_t codec_table[] = {
                 NULL,
                 NULL, /* No decoder setup / tear down */
                 l16_decode,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL
+        },
+        {
+                NULL, 
+                NULL,
+                l8_get_formats_count,
+                l8_get_format,
+                NULL, /* No encoder setup / tear down */
+                NULL, 
+                l8_encode,
+                NULL,
+                NULL,
+                NULL, /* No decoder setup / tear down */
+                l8_decode,
                 NULL,
                 NULL,
                 NULL,
