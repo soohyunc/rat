@@ -33,22 +33,23 @@ static int units_per_packet = 1;
 static void 
 init_drop(int seed, double d)
 {
-  int ndrop     = (int)(d * DROP_ARRAY_SIZE);
+  int ndrop     = (int)(d * sizeof(drop_priv));
+  int dropped;
   unsigned int rand_ceil = RANDOM_END - (RANDOM_END % DROP_ARRAY_SIZE);
   unsigned int r;
 
-  memset(drop_priv, 0, DROP_ARRAY_SIZE);
+  memset(drop_priv, 0, sizeof(drop_priv));
   srand48(seed);
 
-  while (ndrop != 0) {
+  for (dropped = 0; dropped < ndrop; dropped ++) {
     /* Keep picking numbers until we get one in range and
      * that has not already been picked.
      */
-      while( (r = (mrand48() & 0x7fffffff)) > rand_ceil && 
-	     drop_priv[r % DROP_ARRAY_SIZE]);
-      drop_priv[r % DROP_ARRAY_SIZE] = 1;
-      ndrop --;
+          while( (r = (mrand48() & 0x7fffffff)) > rand_ceil && 
+                 drop_priv[r % DROP_ARRAY_SIZE]);
+          drop_priv[r % DROP_ARRAY_SIZE] = 1;
   }
+  printf("# dropping %d of %d frames\n", ndrop, DROP_ARRAY_SIZE);
 }
 
 static int
@@ -197,7 +198,7 @@ test_repair(struct s_sndfile *sf_out,
                                        md_prev,
                                        cu);
                         } else {
-
+                                
                                 /* Create a silent unit */
                                 cu->id = codec_get_native_coding((uint16_t)cf->format.sample_rate,
                                                                  (uint16_t)cf->format.channels);
@@ -207,16 +208,16 @@ test_repair(struct s_sndfile *sf_out,
                                 cu->data_len  = cf->format.bytes_per_block;
                                 memset(cu->data, 0, cu->data_len);
                         }
-
+                        
                         /* Add repaired audio to frame */
                         md_cur->rep[md_cur->nrep] = cu;
                         md_cur->nrep++;
-
+                        
                         consec_lost++;
                 } else {
                         consec_lost = 0;
                 }
-
+                
                 decode_and_write(sf_out, decoder_states, md_cur);
 
                 media_data_destroy(&md_prev, sizeof(media_data));
@@ -224,10 +225,10 @@ test_repair(struct s_sndfile *sf_out,
                 md_cur  = NULL;
                 media_data_create(&md_cur, 1);
         }
-
+        
         media_data_destroy(&md_cur, sizeof(media_data));
         media_data_destroy(&md_prev, sizeof(media_data));
-
+        
         codec_encoder_destroy(&encoder);
         codec_state_store_destroy(&decoder_states);
 }

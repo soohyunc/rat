@@ -113,6 +113,33 @@ repetition(sample             **audio_buf,
         return TRUE;
 }
 
+/* Repetition plus - reverse mix last samples from previous frame with current to
+ * avoid discontinuity at the frame borders.
+ */
+#define REVERSE_SAMPLES 12
+static int
+repetition_plus(sample             **audio_buf, 
+                const audio_format **audio_fmt, 
+                int                  nbufs,
+                int                  missing,
+                int                  consec_lost)
+{
+        sample  r[REVERSE_SAMPLES];
+        uint32_t i, n, samples_per_block, success;
+
+        n = sizeof(r)/sizeof(r[0]);
+        samples_per_block = audio_fmt[missing - 1]->bytes_per_block /  
+                (audio_fmt[missing - 1]->bits_per_sample / 8);
+
+        success = repetition(audio_buf, audio_fmt, nbufs, missing, consec_lost);
+
+        if (success && samples_per_block >= n) {
+                audio_blend(r, audio_buf[missing], audio_buf[missing], n, audio_fmt[missing - 1]->channels);
+        }
+        
+        return success;
+}
+
 static int
 repair_none(sample             **audio_buf, 
             const audio_format **audio_fmt, 
@@ -296,15 +323,22 @@ single_side_pattern_match(sample **audio_buf, const audio_format **audio_fmt, in
 static repair_scheme schemes[] = {
         {
                 {"Pattern-Match", IDX_TO_REPAIR_ID(0)}, 
-                single_side_pattern_match},
+                single_side_pattern_match
+        },
         {
-                {"Repeat",        IDX_TO_REPAIR_ID(1)},
-                repetition},
+                {"Repeat+",       IDX_TO_REPAIR_ID(1)}, 
+                repetition_plus
+        },
         {
-                {"Noise",         IDX_TO_REPAIR_ID(2)},
-                noise_substitution},
+                {"Repeat",        IDX_TO_REPAIR_ID(2)},
+                repetition
+        },
         {
-                {"None",          IDX_TO_REPAIR_ID(3)},
+                {"Noise",         IDX_TO_REPAIR_ID(3)},
+                noise_substitution
+        },
+        {
+                {"None",          IDX_TO_REPAIR_ID(4)},
                 repair_none
         } 
 };

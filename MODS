@@ -1159,7 +1159,9 @@ v4.1.7	- Update ALSA detection in configure script
 v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	  command line but doesn't send to all of them)
 	- Slay zombies when children die
-
+	- Add repeat+ repair type.  It does standard repeat and then reverse
+	  blends samples from the end of the previous frame with the start
+	  of this frame.  Perhaps reduces some glitching.
 
 TODO -- They're features not bugs dammit!
 ----

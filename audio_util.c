@@ -248,3 +248,18 @@ audio_scale_buffer(sample *buf, int len, double scale)
                 buf[i] = (sample)((double)buf[i] * scale);
         }
 }
+
+void
+audio_blend(sample *from, sample *to, sample *out, int samples, int channels)
+{
+        int i;
+        int32_t tmp, sf, m;
+        
+        m = samples / channels;
+        for (i = 0; i < samples; i++) {
+                sf   = i / channels;
+                tmp  = from[i] * (m - sf) + to[i] * sf;
+                tmp /= m;
+                out[i] = (sample)tmp;
+        }
+}
