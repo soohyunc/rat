@@ -118,7 +118,7 @@ mbus_error_handler(int seqnum, int reason)
 
 int main(int argc, char *argv[])
 {
-	uint32_t	 ntp_time = 0;
+	uint32_t	 rtp_time = 0;
 	int            	 seed, elapsed_time, alc = 0, scnt = 0;
 	session_t 	*sp;
 	struct timeval   time;
@@ -192,7 +192,6 @@ int main(int argc, char *argv[])
 
                 /* Process audio */
 		elapsed_time = audio_rw_process(sp, sp, sp->ms);
-		ntp_time     = ntp_time32();
 
                 if (tx_is_sending(sp->tb)) {
                         tx_process_audio(sp->tb);
@@ -203,8 +202,10 @@ int main(int argc, char *argv[])
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 0;
                 for (j = 0; j < sp->rtp_session_count; j++) {
-                        while(rtp_recv(sp->rtp_session[j], &timeout, ntp_time));
-                        rtp_send_ctrl(sp->rtp_session[j], ntp_time, NULL);
+			/* FIXME: The should take an RTP format timestamp! */
+			rtp_time = tx_get_rtp_time(sp);
+                        while(rtp_recv(sp->rtp_session[j], &timeout, rtp_time));
+                        rtp_send_ctrl(sp->rtp_session[j], rtp_time, NULL);
                         rtp_update(sp->rtp_session[j]);
                 }
 
@@ -330,7 +331,7 @@ int main(int argc, char *argv[])
 				timeout.tv_sec  = 0;
 				timeout.tv_usec = 0;
 				for (j = 0; j < sp->rtp_session_count; j++) {
-					while(rtp_recv(sp->rtp_session[j], &timeout, ntp_time));
+					while(rtp_recv(sp->rtp_session[j], &timeout, rtp_time));
 				}
 				sp->playing_audio = saved_playing_audio;
 				/* Device reconfigured so decode paths of all sources */

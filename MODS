@@ -1274,6 +1274,8 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	- Fix library ordering in makefile (reported by Stuart Levy)
 	- Document configure options which may be needed to build on Irix 
 	  in INSTALL.TXT
+	- Fix RTP SR timestamps and RTP jitter calculation
+
 
 
 TODO -- They're features not bugs dammit!

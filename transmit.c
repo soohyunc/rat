@@ -790,3 +790,10 @@ tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *
                                (uint16_t)(u->dur_used * tx_channels));
         }
 }
+
+uint32_t
+tx_get_rtp_time(session_t *sp)
+{
+	return ts_seq32_out(&sp->tb->up_seq, sp->tb->sample_rate, sp->cur_ts);
+}
+
