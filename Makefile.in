@@ -138,7 +138,7 @@ clean:
 	-rm -f $(MEDIALIBS)
 	-rm -f tcl_libs.c ui_audiotool.c ui_transcoder.c ui_installer.c version.h
 	-rm -f tcl2c/tcl2c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec
-	-rm -f bin2c bin2c.o binaries.c $(INSTALL_OBJS)
+	-rm -f bin2c bin2c.o binaries.c $(INSTALL_OBJS) $(RATVER)-installer
 	-rm -f $(RATVER)-media $(RATVER)-ui $(RATVER)
 
 distclean: clean
@@ -152,7 +152,15 @@ install: all
 	./install-sh -m 444 -c man/man1/rat.1  $(mandir)/man1/rat.1
 	./install-sh -m 444 -c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(prefix)/etc/sdr/plugins
 
-installer: $(INSTALL_OBJS)
+installer: $(RATVER)-installer
+	mkdir release
+	mkdir release/$(RATVER)
+	cp $(RATVER)-installer README.* MODS COPYRIGHT INSTALL.TXT VERSION release/$(RATVER)
+	cd release && tar cvf $(RATVER)-$(OSTYPE).tar $(RATVER) && gzip -9 $(RATVER)-$(OSTYPE).tar
+	mv release/$(RATVER)-$(OSTYPE).tar.gz .
+	rm -rf release
+
+$(RATVER)-installer: $(INSTALL_OBJS)
 	$(CC) $(CFLAGS) $(INSTALL_OBJS)  $(TCL_LIB) $(TK_LIB) $(X_LIB) $(LIBS) -o $(RATVER)-installer
 
 binaries.c: $(RATVER)-$(OSTYPE).tar.gz bin2c
