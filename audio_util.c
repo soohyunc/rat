@@ -68,7 +68,6 @@ remove_lta(bias_ctl *bc, sample *buf, int len, int step)
                 }
                 bc->lta -= (bc->lta - m / samples) >> 3;
         }
-        debug_msg("bias %d\n", bc->lta);
 }
 
 void
