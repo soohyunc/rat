@@ -698,7 +698,13 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         break;
                 }
 
-                if (codec_is_native_coding(md->rep[0]->id) == FALSE) {
+                for(i = 0; i < md->nrep; i++) {
+                        if (codec_is_native_coding(md->rep[i]->id)) {
+                                break;
+                        }
+                }
+
+                if (i == md->nrep) {
                         /* There is data to be decoded.  There may not be
                          * when we have used repair.
                          */
