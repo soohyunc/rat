@@ -768,6 +768,10 @@ proc mbus_recv_enable.audio.ctls {} {
 bind all <ButtonPress-3>   {toggle in_mute_var; input_mute $in_mute_var}
 bind all <ButtonRelease-3> {toggle in_mute_var; input_mute $in_mute_var}
 bind all <q>               "do_quit"
+
+# Override default tk behaviour
+wm protocol . WM_DELETE_WINDOW do_quit
+
 if {$win32 == 0} {
 	wm iconbitmap . rat_small
 }
@@ -1368,17 +1372,19 @@ proc save_settings {} {
 proc load_setting {attrname field var default} {
     global V win32 $var
     upvar 1 $attrname attr 
-
+	set fail 0
     # who has the tcl manual? is the only way to pass arrays thru upvar...
-
-    if {$win32} {
+	if {$win32} {
 		if {[string first "rtp" "$field"] == -1} {
-			catch {set tmp [registry get "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field"]} fail
+			set fail [ catch { set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app) *$field]" } msg ]
 		} else {
-			catch {set tmp [registry get "HKEY_CURRENT_USER\\Software\\$V(class)\\common" "*$field"]} fail
+			set fail [ catch { set tmp "[registry get HKEY_CURRENT_USER\\Software\\$V(class)\\common  *$field]" } msg ]
 		}
-		if {$fail != 0} {
+		if {$fail} {
+			puts "Failed to get $field reason $msg";
 			set tmp ""
+		} else {
+			puts "$field $var $tmp"
 		}
     } else {
 		set tmp [option get . $field rat]
@@ -1392,6 +1398,7 @@ proc load_setting {attrname field var default} {
     if {$tmp == ""} {
 	# either not in rtp defaults, or registry...
         set tmp $default
+		puts "$attrname $tmp"
     }
     set $var $tmp
 }
@@ -1415,7 +1422,7 @@ proc load_settings {} {
 
     # personal
     load_setting attr rtpName  rtcp_name     "unknown"
-    load_setting attr rtpEmail rtcp_email    "unknown"
+	load_setting attr rtpEmail rtcp_email    "unknown"
     load_setting attr rtpPhone rtcp_phone    ""
     load_setting attr rtpLoc   rtcp_loc      ""
 
@@ -1425,12 +1432,12 @@ proc load_settings {} {
     load_setting attr audioMinPlayout   min_var       "0"
     load_setting attr audioMaxPlayout   max_var       "2000"
     load_setting attr audioLecture      lecture_var   "0"
-    load_setting attr audioAutoConvert  convert_var   "1"
+    load_setting attr audioAutoConvert  convert_var   "0"
     #security
    
     # ui bits
     load_setting attr audioPowermeters  meter_var     "1"
-    load_setting attr audioLipSync      sync_var      "1"
+    load_setting attr audioLipSync      sync_var      "0"
     load_setting attr audioHelpOn       help_on       "1"
     load_setting attr audioMatrixOn     matrix_on     "0"
     load_setting attr audioPlistOn      plist_on      "1"
@@ -1444,21 +1451,23 @@ proc load_settings {} {
     # want to start with mic open then they add following attributes
     load_setting attr audioOutputMute   out_mute_var "0"
     load_setting attr audioInputMute    in_mute_var  "1"
-
     # transmission
     load_setting attr audioSilence           silence_var   "1"
     load_setting attr audioAGC               agc_var       "0"
     load_setting attr audioFrequency         freq          "8-kHz"
     load_setting attr audioChannels          channels      "Mono"
     load_setting attr audioPrimary           prenc         "GSM"
-    global prenc channels freq
-    mbus_send "R"    "primary"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
     load_setting attr audioUnits             upp           "2"
     load_setting attr audioChannelCoding     channel_var   "None"
     load_setting attr audioRedundancy        secenc        "GSM"
     load_setting attr audioRedundancyOffset  red_off       "1"
     load_setting attr audioInterleavingGap   int_gap       "4"
     load_setting attr audioInterleavingUnits int_units     "4"
+	global prenc channels freq
+	mbus_send "R" "primary" "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
+	global      in_mute_var   out_mute_var
+	input_mute  $in_mute_var
+	output_mute $out_mute_var
 }
 
 proc check_rtcp_name {} {

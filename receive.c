@@ -374,9 +374,9 @@ find_participant_queue(ppb_t **list, rtcp_dbentry *src)
 		if (p->src == src)
 			return (p);
 	}
-#ifdef DEBUG
-	printf("allocating new receive buffer (ssrc=%lx)\n", src->ssrc);
-#endif
+
+	debug_msg("allocating new receive buffer (ssrc=%lx)\n", src->ssrc);
+
 	p = (ppb_t*)block_alloc(sizeof(ppb_t));
 	memset(p, 0, sizeof(ppb_t));
 	p->src = src;

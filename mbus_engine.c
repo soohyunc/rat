@@ -881,7 +881,7 @@ void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 
 	for (i=0; strlen(rx_cmnd[i]) != 0; i++) {
 		if (strcmp(rx_cmnd[i], cmnd) == 0) {
-			rx_func[i](srce, args, (session_struct *) data);
+                        rx_func[i](srce, args, (session_struct *) data);
 			return;
 		}
 	}
@@ -912,7 +912,7 @@ void mbus_engine_init(char *name_engine, int channel)
 	if (channel == 0) {
 		mbus_chan = mbus_base;
 	} else {
-		mbus_chan = mbus_init(channel, mbus_engine_rx, NULL); mbus_addr(mbus_chan, name_engine);
+		mbus_chan = mbus_init((short)channel, mbus_engine_rx, NULL); mbus_addr(mbus_chan, name_engine);
 	}
 }
 

@@ -126,6 +126,11 @@ char *get_cname(void)
 
 u_int32 get_ssrc(void)
 {
-	return lrand48();
+#ifdef WIN32
+	srand48((unsigned int)GetTickCount());
+        return (lrand48()<<16)|(GetTickCount() & 0xffff);
+#else
+        return lrand48();
+#endif
 }
 
