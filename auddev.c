@@ -404,7 +404,7 @@ audio_get_device_details(int idx, audio_device_details_t *add)
 
         /* Find interface device number idx belongs to */
         iface = 0;
-        while((devs = audio_if_table[iface].audio_if_dev_cnt()) && idx > devs) {
+        while((devs = audio_if_table[iface].audio_if_dev_cnt()) && idx >= devs) {
                 iface++;
                 idx -= devs;
         }
