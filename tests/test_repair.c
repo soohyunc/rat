@@ -18,6 +18,49 @@
  * when error concealment is applied.  
  */
 
+/* drop code - want to have additive drop so if we run test with 5%
+ * and 10% and the same seed, the loss pattern of the 10% is the 5% plus
+ * another 5%.
+ */
+
+#define DROP_ARRAY_SIZE 192000
+#define RANDOM_END 0x7fffffff
+
+static unsigned char drop_priv[DROP_ARRAY_SIZE];
+
+static void 
+init_drop(int seed, double d)
+{
+  int ndrop     = (int)(d * DROP_ARRAY_SIZE);
+  int rand_ceil = RANDOM_END - (RANDOM_END % DROP_ARRAY_SIZE);
+  int r;
+
+  memset(drop_priv, 0, DROP_ARRAY_SIZE);
+  srandom(seed);
+
+  while (ndrop != 0) {
+    /* Keep picking numbers until we get one in range and
+     * that has not already been picked.
+     */
+      while( (r = random()) > rand_ceil && 
+	     drop_priv[r % DROP_ARRAY_SIZE]);
+      drop_priv[r % DROP_ARRAY_SIZE] = 1;
+      ndrop --;
+  }
+}
+
+static int
+do_drop()
+{
+  static long int idx;
+  int d;
+  
+  d   = drop_priv[idx];
+  idx = (idx + 1) % DROP_ARRAY_SIZE;
+
+  return d;
+}
+
 #define READ_BUF_SIZE 2560
 
 static int
@@ -98,7 +141,6 @@ decode_and_write(struct s_sndfile           *sf_out,
 
 static void
 test_repair(struct s_sndfile *sf_out, 
-            double            drop,
             codec_id_t        cid,
             int               repair_type,
             struct s_sndfile *sf_in)
@@ -131,7 +173,7 @@ test_repair(struct s_sndfile *sf_out,
         media_data_create(&md_cur, 1);
 
         while(read_and_encode(md_cur->rep[0], encoder, sf_in)) {
-                if (drand48() < drop) {
+                if (do_drop()) {
                         media_data_destroy(&md_cur, sizeof(media_data));
                         media_data_create(&md_cur, 0);
                         
@@ -354,10 +396,10 @@ main(int argc, char *argv[])
 #\tdestination file %s\n",
 seed, drop, codec_name, repair_name, csra, argv[argc - 2], argv[argc - 1]);
 
-        srand48(seed);
-        repair_set_codec_specific_allowed(csra);
+	repair_set_codec_specific_allowed(csra);
 
-        test_repair(sf_out, drop, cid, repair_type, sf_in);
+	init_drop(seed, drop);
+        test_repair(sf_out, cid, repair_type, sf_in);
 
         /* snd_read_close(&sf_in) not needed because files gets closed
          * at eof automatically. 
