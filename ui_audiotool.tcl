@@ -11,16 +11,17 @@ catch {
 #wm withdraw .
 
 if {[string compare [info commands registry] "registry"] == 0} {
-	set win32 1
+    set win32 1
 } else {
-	set win32 0
-	option add *Menu*selectColor 		forestgreen
-	option add *Radiobutton*selectColor 	forestgreen
-	option add *Checkbutton*selectColor 	forestgreen
-	option add *Entry.background 		gray70
+    set win32 0
+    option add *Menu*selectColor 		forestgreen
+    option add *Radiobutton*selectColor 	forestgreen
+    option add *Checkbutton*selectColor 	forestgreen
+    option add *Entry.background 		gray70
 }
 
 set statsfont     [font actual {helvetica 10}]
+set compfont      [font actual {arial 9 bold}]
 set titlefont     [font actual {helvetica 10}]
 set infofont      [font actual {helvetica 10}]
 set smallfont     [font actual {helvetica  8}]
@@ -44,8 +45,8 @@ set iwd 		250
 set cancel_info_timer 	0
 set num_ssrc		0
 set fw			.l.t.list.f
-set input_ports         [list]
-set output_ports        [list]
+set iports             [list]
+set oports             [list]
 
 # Sliders use scale widget and this invokes it's -command option when
 # it is created (doh!)  We don't know what gain and volume settings
@@ -174,33 +175,42 @@ proc set_gain {new_gain} {
     }
 }
 
-proc toggle_input_port {} {
-    global input_port input_ports
+proc toggle_iport {} {
+    global iport iports
 
-    set len [llength $input_ports]
+    set len [llength $iports]
 # lsearch returns -1 if not found, index otherwise
-    set idx [lsearch -exact $input_ports $input_port] 
+    set idx [lsearch -exact $iports $iport] 
 
     if {$idx != -1} {
 	incr idx
 	set idx [expr $idx % $len]
-	set port [lindex $input_ports $idx]
+	set port [lindex $iports $idx]
 	mbus_send "R" "audio.input.port" [mbus_encode_str $port]
     }
 }
 
-proc toggle_output_port {} {
-    global output_port output_ports
-
-    set len [llength $output_ports]
+proc incr_port {varname listname delta} {
+    upvar $varname  port
+    upvar $listname ports
+    set len [llength $ports]
 # lsearch returns -1 if not found, index otherwise
-    set idx [lsearch -exact $output_ports $output_port] 
+    set idx [lsearch -exact $ports $port] 
     
     if {$idx != -1} {
-	incr idx
-	set idx [expr $idx % $len]
-	set port [lindex $output_ports $idx]
-	mbus_send "R" "audio.output.port" [mbus_encode_str $port]
+	incr idx $delta
+	if {$idx < 0} {
+	    set idx [expr $len - 1]
+	} elseif {$idx >= $len} {
+	    set idx 0
+	}
+	set port [lindex $ports $idx]
+# yuechh!
+	if {$varname == "iport"} {
+	    mbus_send "R" "audio.input.port" [mbus_encode_str $port]
+	} else {
+	    mbus_send "R" "audio.output.port" [mbus_encode_str $port]
+	}
     }
 }
 
@@ -690,24 +700,18 @@ proc mbus_recv_audio.input.gain {gain} {
 }
 
 proc mbus_recv_audio.input.ports.flush {} {
-    global input_ports 
-    set input_ports [list]
+    global iports 
+    set iports [list]
 }
 
 proc mbus_recv_audio.input.ports.add {port} {
-    global input_ports
-    lappend input_ports "$port"
+    global iports
+    lappend iports "$port"
 }
 
-proc mbus_recv_audio.input.port {device} {
-    set err ""
-    catch {
-	configure_input_port $device
-	set tmp ""
-    } err
-	if {$err != ""} {
-	    puts "error: $err"
-	}
+proc mbus_recv_audio.input.port {port} {
+    global iport
+    set    iport $port
 }
 
 proc mbus_recv_audio.input.mute {val} {
@@ -722,26 +726,19 @@ proc mbus_recv_audio.output.gain {gain} {
     .r.c.vol.gra.s1 set $gain
 }
 
-proc mbus_recv_audio.output.port {device} {
-	global output_port
-    set err ""
-    catch {
-	configure_output_port $device
-	set a ""
-    } err
-	if {$err != ""} {
-	    puts "Output port error: $err"
-	}
+proc mbus_recv_audio.output.port {port} {
+    global oport
+    set oport $port
 }
 
 proc mbus_recv_audio.output.ports.flush {} {
-    global output_ports
-    set output_ports [list]
+    global oports
+    set oports [list]
 }
 
 proc mbus_recv_audio.output.ports.add {port} {
-    global output_ports
-    lappend output_ports "$port"
+    global oports
+    lappend oports "$port"
 }
 
 proc mbus_recv_audio.output.mute {val} {
@@ -1422,53 +1419,6 @@ proc 3d_delete_parameters {ssrc} {
     }
 }
 
-proc bitmap_input_port {port} {
-    set port [string tolower $port]
-    return ""
-	switch -glob $port {
-	mic* {return "microphone"}
-	lin* {return "line_in"}
-	cd*  {return "cd"}
-	default {return ""}
-    }
-}
-
-proc bitmap_output_port {port} {
-    set port [string tolower $port]
-    return ""
-	switch -glob $port {
-	speak* {return "speaker"}
-	lin*   {return "line_out"}
-	head*  {return "headphone"}
-	default {return ""}
-    }
-}
-
-proc configure_input_port {port} {
-    global input_port
-    set bitmap [bitmap_input_port $port]
-    if {$bitmap != ""} {
-	.r.c.gain.but.l2 configure -bitmap $bitmap
-    } else {
-	.r.c.gain.but.l2 configure -bitmap ""
-	.r.c.gain.but.l2 configure -text $port
-    }
-    set input_port $port
-}
-
-proc configure_output_port {port} {
-    global output_port
-    set bitmap [bitmap_output_port $port]
-
-    if {$bitmap != ""} {
-	.r.c.vol.but.l1 configure -bitmap $bitmap
-    } else {
-	.r.c.vol.but.l1 configure -bitmap ""
-	.r.c.vol.but.l1 configure -text $port
-    }
-    set output_port $port
-}
-
 proc do_quit {} {
 	catch {
 		profile off pdat
@@ -1507,8 +1457,8 @@ pack .st.quit .st.about .st.opts -side right -anchor w -padx 2 -pady 2
 
 pack .r -side top -fill x 
 pack .r.c -side top -fill x -expand 1
-pack .r.c.vol  -side top -fill x
-pack .r.c.gain -side top -fill x
+pack .r.c.vol  -side left
+pack .r.c.gain -side right -fill x
 
 pack .l -side top -fill both -expand 1
 pack .l.f -side bottom -fill x -padx 2 -pady 2
@@ -1523,35 +1473,40 @@ set out_mute_var 0
 frame .r.c.vol.but
 frame .r.c.vol.gra
 
-checkbutton .r.c.vol.but.t1 -highlightthickness 0 -text "Receive" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $infofont -width 8 -anchor w -relief raised
-button .r.c.vol.but.l1 -highlightthickness 0 -command toggle_output_port -font $infofont -width 10
+checkbutton .r.c.vol.but.t1 -highlightthickness 0 -text "Listen" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $compfont -width 6 -anchor w -padx 4
+button .r.c.vol.but.l0 -highlightthickness 0 -command {incr_port oport oports -1} -font $compfont -bitmap left
+label  .r.c.vol.but.l1 -highlightthickness 0 -textv oport -font $compfont -width 10
+button .r.c.vol.but.l2 -highlightthickness 0 -command {incr_port oport oports +1} -font $compfont -bitmap right
 bargraphCreate .r.c.vol.gra.b1
-scale .r.c.vol.gra.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -showvalue false -width 8 -variable volume
+scale .r.c.vol.gra.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -showvalue false -width 8 -variable volume -resolution 4
 
-pack .r.c.vol.but -side left -fill both 
+pack .r.c.vol.but -side top -fill both -expand 1
 pack .r.c.vol.but.t1 -side left -fill y
-pack .r.c.vol.but.l1 -side left -fill y
+pack .r.c.vol.but.l0 .r.c.vol.but.l1 .r.c.vol.but.l2 -side left -fill y
 
-pack .r.c.vol.gra -side left -fill both -expand 1
-pack .r.c.vol.gra.b1 -side top  -fill both -expand 1 -padx 1 -pady 1
+pack .r.c.vol.gra -side bottom -fill x
+pack .r.c.vol.gra.b1 -side top  -fill both -padx 1 -pady 1
 pack .r.c.vol.gra.s1 -side bottom  -fill x -anchor s
 
 # Device input controls
 set in_mute_var 1
 
 frame .r.c.gain.but
-checkbutton .r.c.gain.but.t2 -highlightthickness 0 -text "Transmit" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $infofont -width 8 -anchor w -relief raised
-button .r.c.gain.but.l2 -highlightthickness 0 -command toggle_input_port -font $infofont -width 10
+checkbutton .r.c.gain.but.t2 -highlightthickness 0 -text "Talk" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $compfont -width 6 -anchor w -padx 4
+button .r.c.gain.but.l0 -highlightthickness 0 -command {incr_port iport iports -1} -font $compfont -bitmap left
+label  .r.c.gain.but.l1 -highlightthickness 0 -textv iport -font $compfont -width 10
+button .r.c.gain.but.l2 -highlightthickness 0 -command {incr_port iport iports +1} -font $compfont -bitmap right
 
 frame .r.c.gain.gra
 bargraphCreate .r.c.gain.gra.b2
 scale .r.c.gain.gra.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -showvalue false -width 8 -variable gain -font $smallfont
 
-pack .r.c.gain.but    -side left 
+pack .r.c.gain.but    -side top -fill both -expand 1 
 pack .r.c.gain.but.t2 -side left -fill y
-pack .r.c.gain.but.l2 -side left -fill y
 
-pack .r.c.gain.gra -side left -fill both -expand 1
+pack .r.c.gain.but.l0 .r.c.gain.but.l1 .r.c.gain.but.l2 -side left -fill y
+
+pack .r.c.gain.gra -side bottom -fill x
 pack .r.c.gain.gra.b2 -side top  -fill both -expand 1 -padx 1 -pady 1
 pack .r.c.gain.gra.s2 -side top  -fill x -anchor s
 
@@ -2235,7 +2190,7 @@ proc sync_engine_to_ui {} {
     global prenc upp channel_var secenc layerenc red_off int_gap int_units
     global silence_var agc_var audio_loop_var echo_var
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
-    global meter_var sync_var gain volume input_port output_port 
+    global meter_var sync_var gain volume iport oport 
     global in_mute_var out_mute_var ichannels freq key key_var
     global audio_device
 
@@ -2286,8 +2241,8 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "audio.device"        [mbus_encode_str "$audio_device"]
     mbus_send "R" "audio.input.gain"    $gain
     mbus_send "R" "audio.output.gain"   $volume
-    mbus_send "R" "audio.input.port"    [mbus_encode_str $input_port]
-    mbus_send "R" "audio.output.port"   [mbus_encode_str $output_port]
+    mbus_send "R" "audio.input.port"    [mbus_encode_str $iport]
+    mbus_send "R" "audio.output.port"   [mbus_encode_str $oport]
     mbus_send "R" "audio.input.mute"    $in_mute_var
     mbus_send "R" "audio.output.mute"   $out_mute_var
 }
