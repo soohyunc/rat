@@ -133,7 +133,7 @@ static void inform_addrs(struct mbus *m, char *e_addr, char *u_addr)
 static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[])
 {
 	int		 i;
-	int		 ttl = 63;
+	int		 ttl = 15;
 	char		*addr, *rx_port, *tx_port;
 	struct timeval	 timeout;
 
@@ -141,21 +141,27 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 	for (i = 1; i < argc; i++) {
                 if ((strcmp(argv[i], "-ui") == 0) && (argc > i+1)) {
                 } else if  (strcmp(argv[i], "-allowloopback") == 0) {
-                } else if ((strcmp(argv[i], "-C")             == 0) && (argc > i+1)) {
-                } else if ((strcmp(argv[i], "-t")             == 0) && (argc > i+1)) {
-                } else if ((strcmp(argv[i], "-p")             == 0) && (argc > i+1)) {
-                } else if  (strcmp(argv[i], "-seed")          == 0) {
-                } else if  (strcmp(argv[i], "-codecs")        == 0) {
-                } else if ((strcmp(argv[i], "-pt")            == 0) && (argc > i+1)) {
-                } else if ((strcmp(argv[i], "-l")             == 0) && (argc > i+1)) { 
-		} else if ((strcmp(argv[i], "-crypt")         == 0) && (argc > i+1)) {
-		} else if  (strcmp(argv[i], "-sync")          == 0) {
-		} else if ((strcmp(argv[i], "-agc")           == 0) && (argc > i+1)) {
-		} else if ((strcmp(argv[i], "-silence")       == 0) && (argc > i+1)) {
-		} else if ((strcmp(argv[i], "-repair")        == 0) && (argc > i+1)) {
-		} else if ((strcmp(argv[i], "-interleave")    == 0) && (argc > i+1)) {
-		} else if ((strcmp(argv[i], "-redundancy")    == 0) && (argc > i+1)) {
-		} else if ((strcmp(argv[i], "-f")             == 0) && (argc > i+1)) {
+                } else if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
+                } else if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
+                        ttl = atoi(argv[i+1]);
+                        if (ttl > 255) {
+                                fprintf(stderr, "TTL must be in the range 0 to 255.\n");
+				ttl = 255;
+                        }
+                        i++;
+                } else if ((strcmp(argv[i], "-p") == 0) && (argc > i+1)) {
+                } else if  (strcmp(argv[i], "-seed") == 0) {
+                } else if  (strcmp(argv[i], "-codecs") == 0) {
+                } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
+                } else if ((strcmp(argv[i], "-l") == 0) && (argc > i+1)) { 
+		} else if ((strcmp(argv[i], "-crypt") == 0) && (argc > i+1)) {
+		} else if  (strcmp(argv[i], "-sync") == 0) {
+		} else if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
+		} else if ((strcmp(argv[i], "-silence") == 0) && (argc > i+1)) {
+		} else if ((strcmp(argv[i], "-repair") == 0) && (argc > i+1)) {
+		} else if ((strcmp(argv[i], "-interleave") == 0) && (argc > i+1)) {
+		} else if ((strcmp(argv[i], "-redundancy") == 0) && (argc > i+1)) {
+		} else if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
                 }
         }
 	/* Parse the list of addresses/ports at the end of the command line... */
