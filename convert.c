@@ -1197,7 +1197,7 @@ typedef struct s_pcm_converter{
 pcm_converter_t converter_tbl[] = {
 #ifdef WIN32
         {CONVERT_PLATFORM, 
-         "MS Converter", 
+         "Microsoft Converter", 
          FALSE, 
          acm_conv_load, 
          acm_conv_unload, 
