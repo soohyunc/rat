@@ -336,7 +336,6 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
                         if (prev) {
                                 prev->next = next;
                         }
-			assert(!rtcp_dbentry_valid(sp, dbptr));
 			/* Free the dbentry... */
                         rtcp_free_dbentry(dbptr);
 			sp->db->members--;
