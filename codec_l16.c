@@ -134,7 +134,7 @@ l16_decode(u_int16 idx, u_char *state, coded_unit *in, sample *out)
 
         samples = in->data_len / BYTES_PER_SAMPLE;
         s = (sample*)in->data;
-        se = se + samples;
+        se = s + samples;
         while(s != se) {
                 *out = ntohs(*s);
                 out++; s++;
