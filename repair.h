@@ -43,11 +43,11 @@
 #ifndef _REPAIR_H_
 #define _REPAIR_H_
 
-int repair2(int                          repair,
-            int                          consec_lost,
-            struct s_codec_states_store *states,
-            media_data                  *prev, 
-            coded_unit                  *missing);
+int repair(int                          repair,
+           int                          consec_lost,
+           struct s_codec_state_store *states,
+           media_data                  *prev, 
+           coded_unit                  *missing);
 
 
 u_int16         repair_get_count   (void);

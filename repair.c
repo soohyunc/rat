@@ -246,6 +246,9 @@ static repair_scheme schemes[] = {
 #define REPAIR_NUM_SCHEMES sizeof(schemes)/sizeof(repair_scheme)
 #define REPAIR_NONE        0
 
+#include "codec_types.h"
+#include "codec_state.h"
+#include "codec.h"
 #include "repair.h"
 
 const char *
@@ -273,18 +276,14 @@ repair_get_count()
 
 /* RAT droppings - everything below here depends on RAT code base */
 
-#include "codec_types.h"
-#include "codec_state.h"
-#include "codec.h"
 
 int
-repair2(int                          repair, 
-        int                          consec,
-        struct s_codec_states_store *states,
-        media_data                  *prev, 
-        coded_unit                  *missing)
+repair(int                         repair, 
+       int                         consec_lost,
+       struct s_codec_state_store *states,
+       media_data                 *prev, 
+       coded_unit                 *missing)
 {
-        audio_format fmt;
         int          src, success;
         assert((unsigned)repair < REPAIR_NUM_SCHEMES);
 
@@ -304,8 +303,9 @@ repair2(int                          repair,
                 codec_state *st;
 
                 st = codec_state_store_get(states, prev->rep[0]->id);
-                success = codec_decoder_repair(prev->rep[0].id, 
-                                               st, 
+                success = codec_decoder_repair(prev->rep[0]->id, 
+                                               st,
+                                               consec_lost,
                                                prev->rep[0],
                                                missing,
                                                NULL);
@@ -318,125 +318,40 @@ repair2(int                          repair,
          */
         for(src = prev->nrep - 1; src >= 0 ; src--) {
                 if (codec_is_native_coding(prev->rep[src]->id)) {
-                        u_int16 rate, u_int16 channels;
-                        coded_unit *p = prev->rep[src];
+                        const audio_format *pfmts[2];
+                        audio_format        fmt;
+                        coded_unit  *p;
+                        u_int16      rate, channels;
+                        sample      *bufs[2];
+
+                        p = prev->rep[src];
 
                         /* set up missing block */
-                        missing->id       = p;
+                        missing->id       = p->id;
                         missing->data     = (u_char*)block_alloc(p->data_len);
                         missing->data_len = p->data_len;
 
                         /* set up format */
-                        codec_get_native_info(cu, &rate, &channels);
+                        codec_get_native_info(p->id, &rate, &channels);
                         fmt.encoding        = DEV_S16;
                         fmt.sample_rate     = (int)rate;
                         fmt.bits_per_sample = 16;
                         fmt.channels        = channels;
                         fmt.bytes_per_block = p->data_len;
 
+                        /* Pointer tweaking to get data in format repair function
+                         * expects.
+                         */
+                        pfmts[0] = &fmt;
+                        pfmts[1] = &fmt;
 
+                        bufs[0] = (sample*) p->data;
+                        bufs[1] = (sample*) missing->data;
+
+                        schemes[repair].action(bufs, pfmts, 2, 1, consec_lost);
+                        return TRUE;
                 }
         }
         return FALSE;
-}
-
-#include "session.h"
-#include "channel.h"
-#include "receive.h"
-#include "rtcp_pckt.h"
-#include "rtcp_db.h"
-
-/* Consecutive dummies behind */
-static int
-count_dummies_back(rx_queue_element_struct *up)
-{
-        int n = 0;
-	while (up->prev_ptr && up->dummy==1) {
-		up = up->prev_ptr;
-		n++;
-	}
-        return n;
-}
-
-void
-repair(int repair, rx_queue_element_struct *ip)
-{
-	rx_queue_element_struct *pp, *np;
-        const codec_format_t    *cf;
-        const audio_format      *fmt[2];
-        sample                  *bufs[2];
-	int consec_lost;
-
-        assert((unsigned)repair < REPAIR_NUM_SCHEMES);
-        if (schemes[repair].action == NULL) {
-                /* Nothing to do - this must be repair scheme "none" */
-                return;
-        }
-
-	pp = ip->prev_ptr;
-        np = ip->next_ptr;
-
-	if (!pp) {
-		debug_msg("repair - no previous unit\n");
-		return;
-	}
-	ip->dummy = TRUE;
-        
-	if (!pp->native_count) {
-                /* XXX should never happen */
-                debug_msg("repair - previous block not yet decoded - error!\n");
-                decode_unit(pp); 
-        }
-
-	if (pp->comp_data[0].id) {
-		ip->comp_data[0].id = pp->comp_data[0].id;
-	} else {
-		fprintf(stderr, "Could not repair as no codec pointer for previous interval\n");
-		return;
-	}
-        
-        consec_lost = count_dummies_back(pp);
-
-	if (codec_decoder_can_repair(pp->comp_data[0].id)) {
-                /* Codec can do own repair */
-                int success      = FALSE;
-                codec_state *st  = codec_state_store_get(
-                        ip->dbe_source[0]->state_store, 
-                        ip->comp_data[0].id);
-                assert(st);
-                if (np) {
-                        success = codec_decoder_repair(pp->comp_data[0].id, 
-                                                       st,
-                                                       (u_int16)consec_lost,
-                                                       &pp->comp_data[0], 
-                                                       &ip->comp_data[0], 
-                                                       &np->comp_data[0]);
-                } else {
-                        success = codec_decoder_repair(pp->comp_data[0].id, 
-                                                       st,
-                                                       (u_int16)consec_lost,
-                                                       &pp->comp_data[0], 
-                                                       &ip->comp_data[0], 
-                                                       NULL);
-                }
-                if (success) {
-                        ip->comp_count++;
-                        decode_unit(ip);
-                        return;
-                }
-        } 
-	
-	assert(!ip->native_count);
-
-        cf = codec_get_format(pp->comp_data[0].id);
-        fmt[0] = fmt[1] = &cf->format;
-
-        ip->native_size[0] = fmt[0]->bytes_per_block;
-	ip->native_data[0] = (sample*)block_alloc(fmt[0]->bytes_per_block);
-	ip->native_count   = 1;
-        bufs[0] = pp->native_data[0];
-        bufs[1] = ip->native_data[0];
-
-        schemes[repair].action(bufs, fmt, 2, 1, consec_lost);
 }
 
