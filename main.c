@@ -103,7 +103,6 @@ main(int argc, char *argv[])
                        T *Q##_p[2];
 
 	NEW_QUEUE(pckt_queue_struct, netrx_queue)
-	NEW_QUEUE(rx_queue_struct,   rx_queue)
 	NEW_QUEUE(pckt_queue_struct, rtcp_pckt_queue)
 	NEW_QUEUE(rx_queue_struct,   rx_unit_queue)
 
@@ -117,7 +116,6 @@ main(int argc, char *argv[])
                         Q##_p[1]->tail_ptr    = NULL;
 
 	INIT_QUEUE(pckt_queue_struct, netrx_queue)
-	INIT_QUEUE(rx_queue_struct,   rx_queue)
 	INIT_QUEUE(pckt_queue_struct, rtcp_pckt_queue)
 	INIT_QUEUE(rx_queue_struct,   rx_unit_queue)
 
