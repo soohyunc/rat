@@ -47,6 +47,10 @@
 #define IPv4	4
 #define IPv6	6
 
+#ifndef INADDR_NONE
+#define INADDR_NONE 0xffffffff
+#endif
+
 struct _socket_udp {
 	int	 	 mode;	/* IPv4 or IPv6 */
 	char		*addr;
@@ -62,7 +66,6 @@ struct _socket_udp {
 /*****************************************************************************/
 /* Support functions...                                                      */
 /*****************************************************************************/
-
 
 static void
 socket_error(char *msg)
@@ -100,7 +103,7 @@ socket_error(char *msg)
 static int inet_aton(const char *name, struct in_addr *addr)
 {
 	addr->s_addr = inet_addr(name);
-	return addr->s_addr == (in_addr_t) -1;
+	return addr->s_addr == (in_addr_t) INADDR_ANY;
 }
 #endif
 
@@ -167,7 +170,7 @@ static socket_udp *udp_init4(char *addr, u_int16 port, int ttl)
 	if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) != 0) {
 		socket_error("setsockopt SO_REUSEPORT");
 		abort();
-	}
+        }
 #endif
 	s_in.sin_family      = AF_INET;
 	s_in.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -180,7 +183,7 @@ static socket_udp *udp_init4(char *addr, u_int16 port, int ttl)
 		char            loop = 1;
 		struct ip_mreq  imr;
 
-		imr.imr_multiaddr        = s->addr4;
+		imr.imr_multiaddr.s_addr = htonl(s->addr4.s_addr);
 		imr.imr_interface.s_addr = htonl(INADDR_ANY);
 
 		if (setsockopt(s->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
@@ -212,9 +215,9 @@ static int udp_send4(socket_udp *s, char *buffer, int buflen)
 	assert(buffer != NULL);
 	assert(buflen > 0);
 
-	s_in.sin_family = AF_INET;
-	s_in.sin_addr   = s->addr4;
-	s_in.sin_port   = htons(s->port);
+	s_in.sin_family      = AF_INET;
+        s_in.sin_addr.s_addr = htonl(s->addr4.s_addr);
+	s_in.sin_port        = htons(s->port);
 	if ((ret = sendto(s->fd, buffer, buflen, 0, (struct sockaddr *) &s_in, sizeof(s_in))) < 0) {
 		socket_error("udp_send4");
 	}
