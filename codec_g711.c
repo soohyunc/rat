@@ -381,7 +381,7 @@ static codec_format_t cs[] = {
          {DEV_S16, 16000, 16, 1, 160 * BYTES_PER_SAMPLE}},
         {"A-law", "PCMA-16K-Stereo",
          "ITU G.711 A-law codec.  Sun Microsystems public implementation.",
-         CODEC_PAYLOAD_DYNAMIC, STATE_SIZE(0), FRAME_SIZE(320), /* 10 ms */
+         PAYLOAD(76), STATE_SIZE(0), FRAME_SIZE(320), /* 10 ms */
          {DEV_S16, 16000, 16, 2, 2 * 160 * BYTES_PER_SAMPLE}},
 /* 32kHz */
         {"A-law", "PCMA-32K-Mono",
