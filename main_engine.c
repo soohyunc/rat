@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
 	/* Initialize the session structure, and all session specific data */
 	for (i = 0; i < num_sessions; i++) {
 		sp[i] = (session_t *) xmalloc(sizeof(session_t));
-		session_init(sp[i]);
+		session_init(sp[i], i, (num_sessions == 1)?AUDIO_TOOL:TRANSCODER);
 		audio_device_get_safe_config(&sp[i]->new_config);
 		audio_device_reconfigure(sp[i]);
 		assert(audio_device_is_open(sp[i]->audio_device));

@@ -81,7 +81,7 @@ sanity_check_payloads(void)
 }
 
 void
-session_init(session_t *sp)
+session_init(session_t *sp, int index, int mode)
 {
 	codec_id_t                 cid;
         const codec_format_t      *cf   = NULL;
@@ -107,7 +107,8 @@ session_init(session_t *sp)
 
         conv                            = converter_get_details(0);
         sp->converter                   = conv->id;
-	sp->mode         		= AUDIO_TOOL;	
+	sp->id				= index;
+	sp->mode         		= mode;	
         sp->rtp_session_count           = 0;
 	for (i = 0; i < MAX_LAYERS; i++) {
 		sp->rx_rtp_port[i] = sp->tx_rtp_port[i] = sp->rx_rtcp_port[i] = sp->tx_rtcp_port[i] = PORT_UNINIT;
