@@ -989,7 +989,7 @@ audio_init_interfaces()
                 };
                 audio_add_interface(&aif_sparc);
         }
-#endif Solaris
+#endif /* Solaris */
 
 #ifdef HAVE_OSPREY
         {

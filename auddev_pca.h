@@ -70,4 +70,4 @@ int  pca_audio_get_freq  (audio_desc_t ad);
 int  pca_audio_is_ready  (audio_desc_t ad);
 void pca_audio_wait_for  (audio_desc_t ad, int delay_ms);
 
-#endif _AUDDEV_PCA_H_
+#endif /* _AUDDEV_PCA_H_ */

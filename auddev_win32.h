@@ -73,4 +73,4 @@ void  w32sdk_audio_query_devices (void);       /* This fn works out what we have
 int   w32sdk_get_device_count    (void);       /* Then this one tells us the number of 'em */
 char *w32sdk_get_device_name     (int idx);    /* Then this one tells us the name          */
 
-#endif _AUDDEV_W32SDK_H_
+#endif /* _AUDDEV_W32SDK_H_ */

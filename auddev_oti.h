@@ -70,4 +70,4 @@ int  osprey_audio_get_freq  (audio_desc_t ad);
 int  osprey_audio_is_ready  (audio_desc_t ad);
 void osprey_audio_wait_for  (audio_desc_t ad, int delay_ms);
 
-#endif _AUDDEV_OTI_H_
+#endif /* _AUDDEV_OTI_H_ */
