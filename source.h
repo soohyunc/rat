@@ -19,7 +19,7 @@
 struct s_source;
 struct s_source_list;
 struct s_rtcp_dbentry;
-struct s_mix_info;
+struct s_mixer;
 struct s_pb;
 struct s_session;
 
@@ -32,20 +32,20 @@ void             source_list_clear   (struct s_source_list *plist);
 uint32_t         source_list_source_count(struct s_source_list *plist);
 
 struct s_source* source_list_get_source_no (struct s_source_list *plist,
-                                            uint32_t               src_no);
+                                            uint32_t              src_no);
 
 struct s_source* source_get_by_ssrc (struct s_source_list  *list,
-                                     uint32_t                ssrc);
+                                     uint32_t               ssrc);
 
 struct s_source* source_create             (struct s_source_list  *list, 
-                                            uint32_t                ssrc,
+                                            uint32_t               ssrc,
 					    pdb_t		  *pdb);
 
 void             source_reconfigure        (struct s_source* src,
                                             converter_id_t   current_id,
                                             int              render_3D_enabled,
-                                            uint16_t          out_rate,
-                                            uint16_t          out_channels);
+                                            uint16_t         out_rate,
+                                            uint16_t         out_channels);
 
 void             source_remove             (struct s_source_list *list,
                                             struct s_source      *src);
@@ -57,7 +57,7 @@ int              source_check_buffering    (struct s_source   *src);
 
 void             source_process            (struct s_session  *sp,
                                             struct s_source   *src,
-                                            struct s_mix_info *ms,
+                                            struct s_mixer    *ms,
                                             int                render_3d,
                                             repair_id_t        repair,
                                             ts_t               start_ts,

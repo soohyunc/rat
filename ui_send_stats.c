@@ -26,6 +26,9 @@ static const char cvsid[] =
 #include "mbus_parser.h"
 #include "ui_send_rtp.h"
 #include "ui_send_stats.h"
+#include "ui_send_audio.h"
+
+#include "parameters.h"
 
 void
 ui_send_stats(session_t *sp, char *addr, uint32_t ssrc)
@@ -125,7 +128,11 @@ ui_send_periodic_updates(session_t *sp, char *addr, int elapsed_time)
         power_time += elapsed_time;
         if (power_time > sp->meter_period) {
 		if (sp->meter && (sp->ms != NULL)) {
-			mix_update_ui(sp, sp->ms);
+                        uint16_t me = 0;
+                        if (sp->playing_audio) {
+                                me = mix_get_energy(sp->ms, 160);
+                        }
+                        ui_send_audio_output_powermeter(sp, sp->mbus_ui_addr, lin2vu(me, 100, VU_OUTPUT));
 		}
 		if (tx_is_sending(sp->tb)) {
 			tx_update_ui(sp->tb);

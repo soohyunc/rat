@@ -168,6 +168,7 @@ audio_device_attempt_config(session_t *sp, audio_config *config)
 
         success = audio_open(config->device, inf, ouf);
         if (success) {
+                mixer_info_t  mi;
                 uint16_t unit_len;
                 assert(sp->device_clock == NULL);
                 assert(sp->ms           == NULL);
@@ -182,7 +183,10 @@ audio_device_attempt_config(session_t *sp, audio_config *config)
                 unit_len         = inf->bytes_per_block * 8 / (inf->bits_per_sample*inf->channels); 
                 tx_create(&sp->tb, sp, sp->device_clock, (uint16_t)unit_len, (uint16_t)inf->channels);
                 cushion_create(&sp->cushion, unit_len);
-                mix_create(&sp->ms, ouf->sample_rate, ouf->channels, 32640);
+                mi.sample_rate   = ouf->sample_rate;
+                mi.channels      = ouf->channels;
+                mi.buffer_length = 32640;
+                mix_create(&sp->ms, &mi);
 
                 if (zero_buf == NULL) {
                         zero_buf = (sample*)xmalloc(unit_len * sizeof(sample));
@@ -367,7 +371,7 @@ audio_device_write(session_t *sp, sample *buf, int dur)
  * or not we are doing.                                                    
  */
 int
-audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
+audio_rw_process(session_t *spi, session_t *spo,  struct s_mixer *ms)
 {
         uint32_t cushion_size, read_dur;
         struct s_cushion_struct *c;
@@ -424,7 +428,7 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
 
                 /* The mix routine also needs to know for how long the       */
                 /* output went dry so that it can adjust the time.           */
-                mix_get_new_cushion(ms, 
+                mix_new_cushion(ms, 
                                     cushion_size, 
                                     new_cushion, 
                                     (read_dur - cushion_size), 

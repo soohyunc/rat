@@ -1363,7 +1363,7 @@ source_repair(source     *src,
 void
 source_process(session_t 	 *sp,
                source            *src, 
-               struct s_mix_info *ms, 
+               struct s_mixer    *ms, 
                int                render_3d, 
                repair_id_t        repair_type, 
                ts_t               start_ts,    /* Real-world time           */
@@ -1540,7 +1540,7 @@ source_process(session_t 	 *sp,
                 src->next_played = ts_add(playout, step);
                 src->samples_played += md->rep[md->nrep - 1]->data_len / (channels * sizeof(sample));
 
-                if (mix_process(ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
+                if (mix_put_audio(ms, src->pdbe, md->rep[md->nrep - 1], playout) == FALSE) {
                         /* Sources sampling rate changed mid-flow? dump data */
                         /* make source look irrelevant, it should get        */
                         /* destroyed and the recreated with proper decode    */

@@ -15,36 +15,43 @@
 #include "codec_types.h"
 #include "ts.h"
 
-struct s_mix_info;
-struct s_session;
+typedef struct s_mixer mixer_t;
+
+typedef struct {
+        uint16_t sample_rate;
+        uint16_t channels;
+        uint32_t buffer_length;
+} mixer_info_t;
+
 struct s_source;
 struct s_rtcp_dbentry;
 
-int  mix_create  (struct s_mix_info **ms, 
-                   int sample_rate, 
-                   int channels, 
-                   int buffer_length);
+int  mix_create    (mixer_t            **ms, 
+                    const mixer_info_t  *mi);
 
-void mix_destroy (struct s_mix_info **ms);
+const mixer_info_t* 
+     mix_query     (const mixer_t      *ms);
 
-int  mix_process(struct s_mix_info     *ms,
-                 pdb_entry_t           *pdbe,
-                 coded_unit            *raw_frame,
-                 ts_t                   now);
+void mix_destroy   (mixer_t           **ms);
 
-int  mix_get_audio       (struct s_mix_info *ms, int amount, sample **bufp);
+int  mix_put_audio (mixer_t            *ms,
+                    pdb_entry_t        *pdbe,
+                    coded_unit         *raw_frame,
+                    ts_t                now);
 
-void mix_get_new_cushion (struct s_mix_info *ms, 
-                          int last_cushion_size, 
-                          int new_cushion_size, 
-                          int dry_time, 
-                          sample **bufp);
+int  mix_get_audio (mixer_t            *ms, 
+                    int                 amount, 
+                    sample            **bufp);
 
-void mix_update_ui       (struct s_session *sp, struct s_mix_info *ms);
+void mix_new_cushion (mixer_t           *ms, 
+                      int                last_cushion_size, 
+                      int                new_cushion_size, 
+                      int                dry_time, 
+                      sample           **bufp);
 
-int  mix_active          (struct s_mix_info *ms);
+uint16_t mix_get_energy (mixer_t           *ms,
+                         uint16_t           samples);
 
-int
-     mix_compatible(struct s_mix_info *ms, int sample_rate, int sample_channels);
+int  mix_active      (mixer_t           *ms);
 
 #endif /* _mix_h_ */

@@ -62,8 +62,8 @@ typedef struct s_session {
 	struct s_fast_time	*clock;
 	struct s_time		*device_clock;
         struct s_cushion_struct *cushion;
-        struct s_mix_info       *ms; 
         struct s_audio_config   *new_config;
+        struct s_mixer          *ms;
 	u_char		         encodings[MAX_ENCODINGS];
 	int                      num_encodings; 		/* no of unique encs in used */
         struct s_channel_state  *channel_coder;

@@ -19,14 +19,14 @@
 /* Structures used in function declarations below */
 struct s_cushion_struct;
 struct s_session;
-struct s_mix_info;
+struct s_mixer;
 
 /* Structure used for reconfiguration processing */
 
 struct s_audio_config;
 
 /* General audio processing functions */
-int     audio_rw_process (struct s_session *spi, struct s_session *spo, struct s_mix_info *ms);
+int     audio_rw_process (struct s_session *spi, struct s_session *spo, struct s_mixer *ms);
 
 /* audio_device_take_initial takes safe config of null audio device.  All
  * further devices used in rat accessed through audio_device_reconfigure.
