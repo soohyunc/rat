@@ -37,8 +37,8 @@ typedef struct s_audio_format {
 typedef int16_t sample;       	/* Sample representation 16 bit signed 			*/
 
 /* Macro's reserved for future work, ie internal 16bit and 32bit samples */
-typedef sample16_t int16_t;
-typedef sample32_t int32_t;
+typedef int16_t sample16_t;
+typedef int32_t sample32_t;
 #define SAMPLE_MIN(type) (~0 << (8 * sizeof(type) - 1))
 #define SAMPLE_MAX(type) (~SAMPLE_MIN(type))
 #define SAMPLE_BOUND(value, type) \
