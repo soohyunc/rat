@@ -49,7 +49,7 @@ case $OSTYPE in
                            ;;
   HP-UX                  ) OSTYPE=HPUX
                            ;;
-  Linux | IRIX | FreeBSD ) 
+  Linux | IRIX | FreeBSD | NetBSD ) 
                            ;;
   *                      ) echo "$OSTYPE"
                            echo "Not supported."
@@ -121,6 +121,17 @@ case $OSTYPE in
 	    INCLUDE="-I/usr/include/X11"
 	    LDLIBS="-L/usr/lib/X11R5 -lXext -lX11 -lAlib -lm -ldld"
 	    AUDIO="auddev_hpux_raw.o"
+	    DEBUG="-g"
+	    CHAR="-fsigned-char"
+	    OPTIMIZE="-O4"
+	    PROFILE="-pg"
+            ;;
+  NetBSD )  CC="gcc"
+            WFLAGS=$GCCWFLAGS
+	    INCLUDE="-I/usr/X11R6/include -I/usr/local/include"
+	    LDLIBS="-L/usr/X11R6/lib -lXext -lX11 -lm"
+	    TCL_LIBS="../tk-8.0/unix/libtk80.a ../tcl-8.0/unix/libtcl80.a"
+	    AUDIO="auddev_netbsd.o"
 	    DEBUG="-g"
 	    CHAR="-fsigned-char"
 	    OPTIMIZE="-O4"
