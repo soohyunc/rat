@@ -48,7 +48,11 @@ struct _socket_udp {
 	int	 mode;	/* IPv4 or IPv6 */
 	char	*addr;
 	u_int16	 port;
-	u_int8	 ttl;
+#ifdef WIN32
+	int	 ttl;
+#else
+	char	 tll;
+#endif
 	u_int32	 addr4;
 	fd_t	 fd;
 };
@@ -119,6 +123,7 @@ static socket_udp *udp_init4(char *addr, int port, int ttl)
 			socket_error("setsockopt IP_ADD_MEMBERSHIP");
 			abort();
 		}
+#ifndef WIN32
 		if (setsockopt(s->fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop)) != 0) {
 			socket_error("setsockopt IP_MULTICAST_LOOP");
 			abort();
@@ -127,6 +132,12 @@ static socket_udp *udp_init4(char *addr, int port, int ttl)
 			socket_error("setsockopt IP_MULTICAST_TTL");
 			abort();
 		}
+#else
+		if (setsockopt(s->fd, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &s->ttl, sizeof(s->ttl)) != 0) {
+			socket_error("setsockopt IP_MULTICAST_TTL");
+			abort();
+		}
+#endif
 	}
 	return s;
 }

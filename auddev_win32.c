@@ -270,7 +270,7 @@ mixSetIPort(MixCtls *mcMix)
         MIXERCONTROLDETAILS mcd;
         int i,j,r;
         
-        assert(mcMix);
+        assert(mcMix != NULL);
         
         curMixIn = (mcMix - mcMixIn);
 
