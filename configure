@@ -88,7 +88,7 @@ case $OSTYPE in
   Linux   ) CC="gcc"
             WFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
 	    INCLUDE="-I/usr/X11R6/include -I/cs/research/mice/starship/common/linux/include"
-	    LDLIBS="-L/cs/research/mice/starship/common/linux/lib -ltk8.0 -ltcl8.0 -L/usr/X11R6/lib -lX11 -lm -ldl"
+	    LDLIBS="-L/cs/research/mice/starship/common/linux/lib -ltk8.0 -ltcl8.0 -L/usr/X11R6/lib -lX11 -lm -ldl -lcheck"
 	    AUDIO="auddev_oss.o"
 	    DEBUG="-g -fbounds-checking"
 	    CHAR="-fsigned-char"
