@@ -899,6 +899,7 @@ ui_update_converter(session_t *sp)
                         return;
                 }
         }
+        debug_msg("Converter not found: %d\n", sp->converter);
 }
 
 static void
@@ -929,14 +930,14 @@ ui_update_repair(session_t *sp)
         n = repair_get_count();
         for (i = 0; i < n; i++) {
                 r = repair_get_details(i);
-                if (sp->repair == i) {
+                if (sp->repair == r->id) {
                         mbes = mbus_encode_str(r->name);
                         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.repair", mbes, TRUE);
                         xfree(mbes);
                         return;
                 }
         }
-        debug_msg("Repair not found\n");
+        debug_msg("Repair not found: %d\n", sp->repair);
 }
 
 void

@@ -610,7 +610,7 @@ rx_audio_device(char *srce, char *args, session_t *sp)
 		s = mbus_decode_str(s);
                 purge_chars(s, "[]()");
                 if (s) {
-                        const audio_device_details_t *add;
+                        const audio_device_details_t *add = NULL;
                         audio_desc_t           first_dev_desc = 0;
                         u_int32 i, n, stop_at_first_device = FALSE;
                         dev_name[0] = 0;
@@ -938,7 +938,7 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_t *sp)
 
 static void rx_tool_rat_converter(char *srce, char *args, session_t *sp)
 {
-        const converter_details_t *d;
+        const converter_details_t *d = NULL;
         u_int32             i, n;
         char               *name;
 
