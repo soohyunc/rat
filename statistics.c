@@ -298,10 +298,6 @@ adapt_playout(rtp_hdr_t               *hdr,
 		playout = ts_add(src_ts, src->playout);
 	}
 
-        if (ts_gt(arr_ts, playout)) {
-                debug_msg("Will be discarded %u %u.\n", arr_ts.ticks, playout.ticks);
-        }
-
         if (src->cont_toged > 12) {
                 /* something has gone wrong if this assertion fails*/
                 if (!ts_gt(playout, ts_map32(src_freq, get_time(src->clock)))) {
