@@ -578,9 +578,12 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 		dbe->lost_frac = (losti << 8) / expi;
 	}
 
-	ui_update_duration(dbe->sentry->cname, dbe->units_per_packet * 20);
-	ui_update_loss(sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->lost_frac * 100) >> 8);
-	ui_update_reception(dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->jitter, dbe->jit_TOGed);
+        if ((dbe->ui_last_update - get_time(dbe->clock)) >= (unsigned)get_freq(sp->device_clock)) {
+                ui_update_duration(dbe->sentry->cname, dbe->units_per_packet * 20);
+                ui_update_loss(sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->lost_frac * 100) >> 8);
+                ui_update_reception(dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->jitter, dbe->jit_TOGed);
+                dbe->ui_last_update = get_time(dbe->clock);
+        }
 
 	rptr->ssrc     = htonl(dbe->ssrc);
 	rptr->loss     = htonl(dbe->lost_frac << 24 | (dbe->lost_tot & 0xffffff));

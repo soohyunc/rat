@@ -87,8 +87,8 @@ int
 lin2db(u_int16 energy, double peak)
 {
         float quasi_db;
-
-        quasi_db = ( -DB_BIAS_LOG + (float)log10(DB_BIAS+(float)energy/65535.0f) ) / -DB_BIAS_LOG;
+        energy = (energy / 8) * 8; 
+        quasi_db = ( -DB_BIAS_LOG + (float)log10(DB_BIAS+(float)energy/65535.0f)) / -DB_BIAS_LOG;
         return (int) (peak * quasi_db);
 }
 

@@ -328,7 +328,8 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
         cp = get_codec(r->coding[0]);
 
         if (avail != r->nlayers) {
-                /* Not enough redundancy available, so advertise max offset to help receivers*/
+                /* Not enough redundancy available, so advertise max offset 
+                 * to help receivers*/
                 r->last.iov[0].iov_base = (caddr_t)block_alloc(sizeof(u_int32));
                 r->last.iov[0].iov_len  = sizeof(u_int32);
                 red_pack_hdr((char*)r->last.iov[0].iov_base, 

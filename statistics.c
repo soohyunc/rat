@@ -109,8 +109,9 @@ split_block(u_int32 playout_pt,
 
         ccu = (cc_unit*)block_alloc(sizeof(cc_unit));
         memset(ccu,0,sizeof(cc_unit));
+        block_trash_chk();
         units = validate_and_split(hdr->pt, data_ptr, len, ccu, &trailing, &src->inter_pkt_gap);
-
+        block_trash_chk();
         if (units <=0) {
 	    	dprintf("Validate and split failed!\n");
             	block_free(ccu,sizeof(cc_unit));
@@ -118,11 +119,15 @@ split_block(u_int32 playout_pt,
 	}
 
         for(i=0;i<ccu->iovc;i++) {
+                block_trash_chk();
                 ccu->iov[i].iov_base = (caddr_t)block_alloc(ccu->iov[i].iov_len);
+                block_trash_chk();
                 memcpy(ccu->iov[i].iov_base, 
                        data_ptr,
                        ccu->iov[i].iov_len);
+                block_trash_chk();
                 data_ptr += ccu->iov[i].iov_len;
+                block_trash_chk();
         }
 
         for(i=0;i<trailing;i++) {
@@ -409,6 +414,7 @@ statistics(session_struct    *sp,
                 if (src->encs[0] != pcp->pt) {
                         /* we should tell update more about coded format */
                         src->encs[0] = pcp->pt;
+                        dprintf("src enc %d pcp enc %d\n", src->encs[0], pcp->pt);
                         update_req   = TRUE;
                 }
                 

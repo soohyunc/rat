@@ -412,17 +412,17 @@ proc mbus_recv_source.reception {cname packets_recv packets_lost packets_miso ji
 
 proc mbus_recv_source.active.now {cname} {
 	catch [[window_plist $cname] configure -background white]
-	cname_update $cname
+#	cname_update $cname
 }
 
 proc mbus_recv_source.active.recent {cname} {
 	catch [[window_plist $cname] configure -background gray90]
-	cname_update $cname
+#	cname_update $cname
 }
 
 proc mbus_recv_source.inactive {cname} {
 	catch [[window_plist $cname] configure -background gray80]
-	cname_update $cname
+#	cname_update $cname
 }
 
 proc mbus_recv_source.remove {cname} {

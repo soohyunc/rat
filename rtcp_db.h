@@ -96,7 +96,7 @@ typedef struct s_rtcp_dbentry {
 	int             encoding;		/* Used to mark red in playout calculation */
 	int		units_per_packet;
 	int		encs[10];		/* Different encodings in packet */
-
+        u_int32         ui_last_update;            
 	/* Variables for playout time calculation */
 	int		video_playout;		/* Playout delay in the video tool -- for lip-sync [csp] */
         u_char          video_playout_received; /* video playout is relevent */

@@ -200,6 +200,7 @@ void
 intl_reset(intl_coder_t *s)
 {
         cc_unit *u;
+
         while(!il_empty(s->il)) {
                 u = (cc_unit*)il_exchange(s->il,NULL);
                 if (u) {
@@ -271,12 +272,15 @@ intl_bps(session_struct        *sp,
 __inline static void
 intl_pack_hdr(intl_coder_t *s, u_int32* hdr, int units_per_leaf)
 {
+        int st_phase;
         (*hdr)  = PUT_PT    (s->src_pt);
         (*hdr) |= PUT_UPL   (units_per_leaf);
         (*hdr) |= PUT_N1    (s->il->n1);
         (*hdr) |= PUT_N2    (s->il->n2);
-        (*hdr) |= PUT_PHASE (s->il->idx / s->il->n1);
-        (*hdr) |= PUT_MASK  (s->mask);
+        /* want to pack phase at time we first started packing */
+        st_phase = (((s->il->idx / s->il->n1) + s->il->n2 - 1) % s->il->n2);
+        (*hdr) |= PUT_PHASE (st_phase);
+        (*hdr) |= PUT_MASK  (s->mask & 0xff);
         (*hdr)  = htonl     ((*hdr));
 }
 
@@ -347,10 +351,15 @@ intl_compat_chk(u_int32        hdr,
                 intl_coder_t  *s)
 {
         if (GET_N1(hdr) != s->il->n2 ||
-            GET_N2(hdr) != s->il->n1) {
+            GET_N2(hdr) != s->il->n1 ||
+            GET_PT(hdr) != s->src_pt || 
+            GET_UPL(hdr) != s->upl) {
+                dprintf("Header incompatible - adjusting parameters.\n");
                 intl_reset(s);
                 il_free(s->il);
                 /* unscrambler of an (n1,n2) interleaver is an (n2,n1) interleaver */
+                assert(GET_N1(hdr));
+                assert(GET_N2(hdr));
                 s->il     = il_create(GET_N2(hdr),GET_N1(hdr));
                 s->src_pt = (u_char)GET_PT(hdr);
                 s->upl    = GET_UPL(hdr);
@@ -365,26 +374,50 @@ intl_decode(rx_queue_element_struct *u,
         u_int32     hdr;
         codec_t    *cp;
         cc_unit    *ccu;
-        int i, j, len, mask, idx, iovc;
+        int32 i, j, len, mask, idx, iovc;
 
-        if ((cp = get_codec(s->src_pt)) == FALSE) return;
+        hdr = 0; /* gcc needs this when optimizing ? */
+
+        /* REMEMBER s->il->n1 is what is s->il->n2 in encoder 
+         * and vice versa.
+         */
 
         if (u->ccu_cnt) {
+                block_trash_chk();
                 hdr = ntohl(*(u_int32*)u->ccu[0]->iov[0].iov_base);
                 intl_compat_chk(hdr,s);
                 /* free interleaver header */
                 block_free(u->ccu[0]->iov[0].iov_base,
                            u->ccu[0]->iov[0].iov_len);
                 memset(u->ccu[0]->iov,0,sizeof(struct iovec));
+        }
+        
+        if ((cp = get_codec(s->src_pt)) == FALSE) return;
+
+        if (u->ccu_cnt) {
+                s->last_ts = u->src_ts;
+                /* check phase */
+                if (s->il->idx / s->il->n2 != (int32)GET_PHASE(hdr)) {
+                        dprintf("Out of phase %d %d\n",s->il->idx / s->il->n2,(int32)GET_PHASE(hdr));
+                        while(s->il->idx / s->il->n2 != (int32)GET_PHASE(hdr)) {
+                                ccu = (cc_unit*)il_exchange(s->il, (char*)NULL);
+                                if (ccu) {
+                                        dprintf("Freeing good data\n");
+                                        clear_cc_unit(ccu,0);
+                                        block_free(ccu, sizeof(cc_unit));
+                                }
+                        }
+                }
+
                 mask = GET_MASK(hdr) << (32 - GET_N1(hdr));
-                for(i = 0, idx = 1; i < s->il->n1; i++, mask<<=1) {
+                for(i = 0, idx = 1; i < s->il->n2; i++, mask<<=1) {
                         ccu = NULL;
+                        iovc    = (cp->sent_state_sz ? 1 : 0) + s->upl;
                         if (mask & 0x80000000) {
                                 ccu     = (cc_unit*)block_alloc(sizeof(cc_unit));
                                 ccu->pt = s->src_pt;
-                                iovc    = (cp->sent_state_sz ? 1 : 0) + s->upl * cp->max_unit_sz;
-                                memcpy(ccu->iov, u->ccu[0]->iov+idx, iovc * sizeof (struct iovec));
-                                memset(u->ccu[0]->iov+idx,        0, iovc * sizeof (struct iovec));
+                                memcpy(ccu->iov, u->ccu[0]->iov+idx, iovc * sizeof (struct iovec)); 
+                                memset(u->ccu[0]->iov+idx, 0, iovc * sizeof(struct iovec));
                                 ccu->iovc = iovc;
                                 idx      += iovc;
                         }
@@ -392,18 +425,31 @@ intl_decode(rx_queue_element_struct *u,
                         ccu = (cc_unit*) il_exchange(s->il, (char*)ccu);
                         if (ccu) {
                                 codec_t *cp;
+                                dprintf("splitting %d blocks\n", ccu->iovc);
                                 for(j = 0, len = 0; j < ccu->iovc; j++) len += ccu->iov[j].iov_len;
                                 su = get_rx_unit(i * s->upl, u->cc_pt, u);
                                 cp = get_codec(s->src_pt);
                                 fragment_spread(cp, len, ccu->iov, ccu->iovc, su);
+#ifdef DEBUG
+                                for(j = 0; j < ccu->iovc;j++) assert(ccu->iov[j].iov_base == NULL && ccu->iov[j].iov_len == 0);
+#endif
                                 block_free(ccu, sizeof(cc_unit));
+                        } else {
+                                dprintf("nothing out\n");
                         }
                 }
+                assert(mask == 0);
+                assert(i == s->il->n2);
+                block_free(u->ccu[0],sizeof(cc_unit));
+                u->ccu[0] = u->ccu[1];
+                u->ccu_cnt--;
+                assert(u->ccu_cnt >= 0);
         } else {
                 if (il_empty(s->il) && s->cnt) {
                         intl_reset(s); 
                         return;
-                } else if ((u->src_ts - s->last_ts)/cp->unit_len != (s->il->n1 * s->upl)) {
+                } else if ((u->src_ts - s->last_ts)/cp->unit_len != (s->il->n2 * s->upl)) {
+                        dprintf("Nothing doing %d %d \n",(u->src_ts - s->last_ts)/cp->unit_len,s->il->n2 * s->upl);
                         return;
                 }
                 /* ... You can't always get what you want, x2
@@ -412,24 +458,22 @@ intl_decode(rx_queue_element_struct *u,
                  *
                  * (c) Jagger/Richards 196x
                  */ 
-                for(i=0;i<s->il->n1;i++) {
-                        ccu = (cc_unit*) il_exchange(s->il, NULL);
+                dprintf("adding dummies %d\n", s->il->n2);
+                for(i=0;i<s->il->n2;i++) {
+                        ccu = (cc_unit*) il_exchange(s->il, (char*)NULL);
                         if (ccu) {
                                 codec_t *cp;
                                 for(j = 0, len = 0; j < ccu->iovc; j++) len += ccu->iov[j].iov_len;
                                 su = get_rx_unit(i * s->upl, u->cc_pt, u);
                                 cp = get_codec(s->src_pt);
                                 fragment_spread(cp, len, ccu->iov, ccu->iovc, su);
+#ifdef DEBUG
+                                for(j = 0; j < ccu->iovc;j++) assert(ccu->iov[j].iov_base == NULL && ccu->iov[j].iov_len == 0);
+#endif
                                 block_free(ccu, sizeof(cc_unit));
                         }
                 }
         }
-#ifdef DEBUG        
-        for(i=0;i<CC_UNITS&&u->ccu_cnt;i++) {
-                assert(u->ccu[0]->iov[i].iov_len==0);
-                assert(u->ccu[0]->iov[i].iov_base==0);
-        }
-#endif
 }
 
 /* 
@@ -456,7 +500,7 @@ intl_valsplit(char         *blk,
         assert(cu->iovc == 0);
         cu->iov[0].iov_base = (caddr_t)blk;
         cu->iov[0].iov_len  = 4;
-        blen               -= 4;
+        cu->iovc            = 1;
 
         cp = get_codec(GET_PT(hdr));
         if (!cp) {
@@ -477,7 +521,7 @@ intl_valsplit(char         *blk,
         for(i = 0, len = 0; i < cu->iovc; i++) len += cu->iov[i].iov_len;
 
         if (len != blen) {
-                dprintf("sizes don't tally\n");
+                dprintf("sizes don't tally %d %d\n", len, blen);
                 (*trailing) = 0;
                 return 0;
         }
@@ -492,9 +536,13 @@ int
 intl_wrapped_pt(char          *blk,
                 unsigned int   blen)
 {
+        codec_t *cp;
+        int pt;
         UNUSED(blen);
-
-        return (GET_PT(ntohl(*((u_int32*)blk))));
+        pt = GET_PT(ntohl(*((u_int32*)blk)));
+        cp = get_codec(pt);
+        assert(cp);
+        return pt;
 }
 
 

@@ -58,6 +58,7 @@
 #include "transmit.h"
 #include "speaker_table.h"
 #include "ui_control.h"
+#include "rat_time.h"
 
 static char args[1000];
 
@@ -526,14 +527,13 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 {
 	static u_int32 power_time = 0;
 
-	if (power_time == 0) {
+	if (power_time > sp->meter_period) {
 		if (sp->meter) {
 			mix_update_ui(ms);
 		}
 		clear_active_senders(sp);
-	}
-	if (power_time > 400) {
-		if (sp->sending_audio) {
+
+                if (sp->sending_audio) {
 			tx_update_ui(sp);
 		}
 		power_time = 0;

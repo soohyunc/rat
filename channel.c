@@ -711,8 +711,8 @@ add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
         u->comp_data[i].data     = iov[j].iov_base;
         u->comp_data[i].data_len = iov[j++].iov_len;
         u->comp_data[i].cp       = cp;
-        assert(u->comp_data[i].data_len == cp->max_unit_sz);
 
+        assert(u->comp_data[i].data_len == cp->max_unit_sz);
         memset(iov,0,j*sizeof(struct iovec));
 
         return (u->comp_count++);
@@ -853,13 +853,12 @@ fragment_spread(codec_t *cp, int len, struct iovec *iov, int iovc, rx_queue_elem
         int done = 0, cc_pt;
         assert(cp);
 
-
         while(len > 0 && done < iovc) {
                 if (u) {
                         cc_pt = u->cc_pt;
                         if (done != 0 || (done == 0 && cp->sent_state_sz == 0)) {
                                 len -= iov[done].iov_len;
-                                add_comp_data(u, cp->pt, iov+done, 1);
+                                add_comp_data(u, cp->pt, iov + done, 1);
                                 done += 1;
                         } else {
                                 len -= iov[done].iov_len + iov[done+1].iov_len;

@@ -482,6 +482,7 @@ tx_send(session_struct *sp, speaker_table *sa)
 void
 tx_update_ui(session_struct *sp)
 {
+        static int self_active;
         if (sp->meter && sp->tb->silence_ptr && sp->tb->silence_ptr->prev) {
                 if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
                         ui_input_level(lin2db(sp->tb->silence_ptr->prev->energy, 100.0));
@@ -491,11 +492,18 @@ tx_update_ui(session_struct *sp)
         }
 
         if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
-                ui_info_activate(sp->db->my_dbe);
+                if (self_active == FALSE) {
+                        ui_info_activate(sp->db->my_dbe);
+                        self_active = TRUE;
+                }
                 sp->lecture = FALSE;
                 update_lecture_mode(sp);
+
         } else {
-                ui_info_deactivate(sp->db->my_dbe);
+                if (self_active == TRUE) {
+                        ui_info_deactivate(sp->db->my_dbe);
+                        self_active = FALSE;
+                }
         }
 }
 

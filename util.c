@@ -237,6 +237,7 @@ typedef struct s_block {
 #define MAX_INDEX             SIZE_TO_INDEX(MAX_SIZE)
  
 static block  *blocks[MAX_INDEX];
+static int     blocks_alloced;
  
 void *
 _block_alloc(unsigned int size, const char *filen, int line)
@@ -247,7 +248,7 @@ _block_alloc(unsigned int size, const char *filen, int line)
 
 	assert(size > 0);
 	assert(size < MAX_SIZE);
- 
+
 	i = SIZE_TO_INDEX(size);
  
 	if (blocks[i] != NULL) {
@@ -260,24 +261,45 @@ _block_alloc(unsigned int size, const char *filen, int line)
 		p = _xmalloc(INDEX_TO_SIZE(i) + 8,filen,line);
 		*((int *)p) = INDEX_TO_SIZE(i);
 		p += 8;
+                blocks_alloced++;
 	}
- 
 	c = (int *)((char *)p - 8);
 	if (size > *c) {
 		fprintf(stderr, "block_alloc: block is too small %d %d!\n", size, *c);
 	}
 	c++;
 	*c = size;
- 
 	assert(p != NULL);
 	return (void*)p;
 }
+
+void
+block_trash_chk()
+{
+#ifdef DEBUG_MEM
+        int i,n;
+        block *b;
+        for(i = 0; i<MAX_INDEX;i++) {
+                b = blocks[i];
+                n = 0;
+                while(b) {
+                        b = b->next;
+                        assert(n++ < blocks_alloced);
+                }
+        }
+#endif
+}
  
 void
-block_free(void *p, int size)
+_block_free(void *p, int size, int line)
 {
 	int     i, *c;
- 
+#ifdef DEBUG
+        block *bp;
+        int    n;
+#endif
+        UNUSED(line);
+
 	c = (int *)((char *)p - 8);
 	if (size > *c) {
 		fprintf(stderr, "block_free: block was too small! %d %d\n", size, *c);
@@ -289,8 +311,24 @@ block_free(void *p, int size)
 	}
  
 	i = SIZE_TO_INDEX(size);
+#ifdef DEBUG
+        bp = blocks[i];
+        n = 0;
+        while(bp) {
+                if (bp == (block*)p) {
+                        dprintf("already freed line %d\n", *((int *)p+1));
+                        assert(0);
+                }
+                bp = bp->next;
+                n++;
+        }
+        if (i >= 4) {
+                *((int*)p+1) = line;
+        }
+#endif
 	((block *)p)->next = blocks[i];
 	blocks[i] = (block *)p;
+        block_trash_chk();
 }
 
 void

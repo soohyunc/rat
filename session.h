@@ -112,6 +112,7 @@ typedef struct session_tag {
 	int             receive_audit_required;
 	int		detect_silence;
 	int             meter;                      /* if powermeters are on */
+        u_int32         meter_period; 
 	struct s_bias_ctl *bc;
 	int		sync_on;
 	int		agc_on;

@@ -47,8 +47,10 @@
 
 #define strsave(s)	strcpy(xmalloc(strlen(s) + 1), s)
 
+
 #define xmalloc(x)	_xmalloc(x,__FILE__,__LINE__)
 #define block_alloc(x)	_block_alloc(x,__FILE__,__LINE__)
+#define block_free(x,y) _block_free(x,y,__LINE__)
 #define xstrdup(x)	_xstrdup(x,__FILE__,__LINE__)
 #define dprintf		_dprintf("%s:%d ", __FILE__, __LINE__), _dprintf
 
@@ -59,8 +61,9 @@ void	 xfree(void *x);
 void	*_xmalloc(unsigned size,const char *filen,int line);
 char	*_xstrdup(const char *s1, const char *filen, int line);
 void	*_block_alloc(unsigned size, const char *filen, int line);
-void	 block_free(void *p, int size);
+void	 _block_free(void *p, int size, int line);
 void	 block_release_all(void);
+void     block_trash_chk(void);
 void	 _dprintf(const char *format, ...);
 
 #endif /* _UTIL_H_ */
