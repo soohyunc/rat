@@ -1067,7 +1067,6 @@ static void rx_tool_rat_converter(char *srce, char *args, session_t *sp)
         ui_send_converter(sp, sp->mbus_ui_addr);
 }
 
-
 /* set_red_parameters translates what mbus_receives into command 
  * redundancy encoder understands.
  */
@@ -1315,6 +1314,21 @@ static void rx_mbus_go(char *srce, char *args, session_t *sp)
 	mbus_parse_done(mp);
 }
 
+static void rx_tool_rat_ui_detach_request(char *srce, char *args, session_t *sp)
+{
+	UNUSED(args);
+	if (sp->ui_on == FALSE) {
+		debug_msg("UI not enabled, cannot detach\n");
+		return;
+	}
+	if (strcmp(sp->mbus_ui_addr, srce) != 0) {
+		debug_msg("Cannot detach UI, addresses differ\n");
+		return;
+	}
+	mbus_qmsgf(sp->mbus_engine, srce, TRUE, "tool.rat.ui.detach", "");
+	sp->ui_on = FALSE;
+}
+
 static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 {
 	UNUSED(args);
@@ -1342,6 +1356,7 @@ static const mbus_cmd_tuple engine_cmds[] = {
         { "tool.rat.playout.min",                  rx_tool_rat_playout_min },
         { "tool.rat.playout.max",                  rx_tool_rat_playout_max },
         { "tool.rat.payload.set",                  rx_tool_rat_payload_set },
+	{ "tool.rat.ui.detach.request",            rx_tool_rat_ui_detach_request },
         { "audio.input.mute",                      rx_audio_input_mute },
         { "audio.input.gain",                      rx_audio_input_gain },
         { "audio.input.port",                      rx_audio_input_port },

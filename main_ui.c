@@ -29,6 +29,7 @@ pid_t    ppid;
 
 int	 ui_active   = FALSE;
 int	 should_exit = FALSE;
+int	 got_detach  = FALSE;
 
 static void parse_args(int argc, char *argv[])
 {
@@ -154,6 +155,18 @@ int main(int argc, char *argv[])
 	}
 
 	/* Close things down nicely... */
+	mbus_qmsgf(m, e_addr, TRUE, "tool.rat.ui.detach.request", "");
+	debug_msg("Waiting for tool.rat.ui.detach() from media engine...\n");
+	while (!got_detach) {
+		mbus_heartbeat(m, 1);
+		mbus_retransmit(m);
+		mbus_send(m);
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 10000;
+		mbus_recv(m, (void *) m, &timeout);
+	}
+	debug_msg("...got it\n");
+
 	mbus_qmsgf(m, "()", FALSE, "mbus.bye", "");
 	do {
 		mbus_send(m);

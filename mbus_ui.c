@@ -22,6 +22,7 @@ static const char cvsid[] =
 extern char 	*e_addr;
 extern int	 ui_active;
 extern int	 should_exit;
+extern int	 got_detach;
 
 /* Mbus command reception function type */
 typedef void (*mbus_rx_proc)(char *srce, char *args);
@@ -31,6 +32,14 @@ typedef struct {
         const char   *rxname;
         mbus_rx_proc  rxproc;
 } mbus_cmd_tuple;
+
+static void rx_tool_rat_ui_detach(char *srce, char *args)
+{
+	UNUSED(srce);
+	UNUSED(args);
+	assert(should_exit == TRUE);
+	got_detach = TRUE;
+}
 
 static void rx_mbus_hello(char *srce, char *args)
 {
@@ -70,6 +79,7 @@ static void rx_mbus_bye(char *srce, char *args)
 }
 
 static const mbus_cmd_tuple ui_cmds[] = {
+	{ "tool.rat.ui.detach",		rx_tool_rat_ui_detach },
         { "mbus.hello",			rx_mbus_hello },
         { "mbus.waiting",		rx_mbus_waiting },
         { "mbus.quit",			rx_mbus_quit },
