@@ -159,6 +159,8 @@ mix_process(mix_struct          *ms,
                 dbe->first_mix  = 0;
         }
 
+        debug_msg("head %d tail %d\n", ms->head, ms->tail);        
+        assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);                                          
         samples  = (sample*)frame->data;
         nsamples = frame->data_len / sizeof(sample);
                 
@@ -189,7 +191,7 @@ mix_process(mix_struct          *ms,
         new_head_time = ts_add(playout, ts_map32(ms->rate, nsamples / ms->channels));
         if (ts_eq(ms->head_time, ms->tail_time)) {
                 ms->head_time = ms->tail_time = playout;
-                assert(ms->head == ms->tail);
+                ms->head = ms->tail;
                 ms->dist = 0;
         }
 
