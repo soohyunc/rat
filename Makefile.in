@@ -5,7 +5,7 @@
 CFLAGS         = __WFLAGS__ __INCLUDE__ __DEBUG__ __CHAR__ __PROFILE__ __OPTIMIZE__ __CHECK_FLAG__ __DEFS__ -D__OSTYPE__ -DSASR -DFAST -DUSE_FLOAT_MUL __TCLX__
 CC             = __CC__
 
-OBJS = time.o codec.o convert.o repair.o codec_lpc.o codec_adpcm.o codec_wbs.o codec_g711.c  \
+OBJS = time.o codec.o convert.o repair.o codec_lpc.o codec_adpcm.o codec_wbs.o codec_g711.o  \
        channel.o cc_red.o cc_intl.o rtcp_db.o rtcp_pckt.o qfDES.o gsm_add.o gsm_create.o gsm_encode.o \
        gsm_preprocess.o gsm_table.o gsm_code.o gsm_decode.o gsm_long_term.o gsm_rpe.o gsm_destroy.o   \
        gsm_lpc.o gsm_short_term.o receive.o transmit.o audio.o cushion.o session.o util.o interfaces.o \
