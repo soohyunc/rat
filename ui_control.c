@@ -465,7 +465,7 @@ ui_update_redundancy(session_struct *sp)
                         codec_name  = strtok(NULL,"/");
                         /* redundant coder returns long name convert to short*/
                         if (codec_name) {
-                                cp         = get_codec_by_name(codec_name, sp);
+                                cp         = get_codec_by_name(codec_name);
                                 assert(cp);
                                 codec_name = cp->short_name;
                         }

@@ -43,6 +43,7 @@
 #include "config.h"
 #include "codec.h"
 #include "gsm.h"
+#include "codec_acm.h"
 #include "codec_adpcm.h"
 #include "codec_g711.h"
 #include "codec_lpc.h"
@@ -55,9 +56,6 @@
 #include "rtcp_db.h"
 #include "transmit.h"
 
-#ifdef WIN32
-#include "codec_acm.h"
-#endif
 
 typedef struct s_codec_state {
 	struct s_codec_state *next;
@@ -297,6 +295,41 @@ gsm_decoding(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 	gsm_decode((gsm)s->s, (gsm_byte*)c->data, (gsm_signal*)data);
 }
 
+#ifdef WIN32
+static void
+acm_enc_init(session_struct *sp, state_t *s, codec_t *cp)
+{
+        UNUSED(sp);
+        s->s = (char*)acmEncoderCreate(cp);
+        if (!s->s) disable_codec(cp);
+}
+
+static void
+acm_encode(sample *data, coded_unit *c, state_t *s, codec_t *cp)
+{
+        UNUSED(cp);
+        acmEncode((struct s_acm_state*)s->s, data, c); 
+}
+
+static void
+acm_enc_free(state_t *s)
+{
+        acmEncoderDestroy((struct s_acm_state*)s->s);
+}
+
+#endif /* WIN32 */
+
+static u_int32
+g723_frame_size(char *blk)
+{       
+        switch(blk[0] & 0x03) {
+        case 0:  return 24;
+        case 1:  return 20;
+        case 2:  return  4;
+        default: return  0; /* 3 - Reserved */
+        }
+}
+
 #define DYNAMIC		-1
 
 /* Quality Ratings are add hoc and only used to choose between which format 
@@ -324,14 +357,25 @@ static codec_t codec_list[] = {
          0, 33, 
          gsm_init, gsm_encoding, gsm_free, 
          gsm_init, gsm_decoding, gsm_free, NULL},
+#ifdef WIN32
+        {"G723.1-8K-MONO", "G723.1(6.3kb/s)", 10, 4, 8000, 2, 1, 240, 
+         0, 24, 
+         acm_enc_init, acm_encode, acm_enc_free, 
+         NULL, NULL, NULL, g723_frame_size},
+        {"G723.1-8K-MONO", "G723.1(5.3kb/s)", 9, 4, 8000, 2, 1, 240, 
+         0, 20, 
+         acm_enc_init, acm_encode, acm_enc_free, 
+         NULL, NULL, NULL, g723_frame_size},
+#else
         {"G723.1-8K-MONO", "G723.1(6.3kb/s)", 10, 4, 8000, 2, 1, 240, 
          0, 24, 
          NULL, NULL, NULL, 
-         NULL, NULL, NULL, NULL},
+         NULL, NULL, NULL, g723_frame_size},
         {"G723.1-8K-MONO", "G723.1(5.3kb/s)", 9, 4, 8000, 2, 1, 240, 
          0, 20, 
          NULL, NULL, NULL, 
-         NULL, NULL, NULL, NULL},
+         NULL, NULL, NULL, g723_frame_size},
+#endif
         {"G728-8K-MONO", "G728(16kb/s)",11, 15, 8000, 2, 1, 160,
          0, 40,
          NULL, NULL, NULL,
@@ -494,9 +538,17 @@ codec_init(session_struct *sp)
 		}
 	}
 #ifdef WIN32
-        acmInit();
+        acmStartup();
 #endif
         codec_g711_init();
+}
+
+void codec_end(session_struct *sp)
+{
+        codec_free_dynamic_payloads(&sp->dpt_list);
+#ifdef WIN32
+        acmShutdown();
+#endif
 }
 
 codec_t *
@@ -525,11 +577,9 @@ get_codec_by_index(u_int32 idx)
 }
 
 codec_t *
-get_codec_by_name(char *name, session_struct *sp)
+get_codec_by_name(char *name)
 {
 	u_int32 i;
-
-        UNUSED(sp);
 
 	for (i = 0; i < codecs; i++) {
             if (cd[i].name && strcasecmp(name, cd[i].name) == 0)
@@ -768,4 +818,16 @@ codec_matching(char *short_name, int freq, int channels)
 
 	debug_msg("Unable to find codec \"%s\" at rate %d channels %d\n", short_name, freq, channels);
         return -1;
+}
+
+void
+disable_codec(codec_t *cp)
+{
+        debug_msg("Disabling codec %s\n", cp->name);
+        cp->enc_init = NULL;
+        cp->encode   = NULL;
+        cp->enc_free = NULL;
+        cp->dec_init = NULL;
+        cp->decode   = NULL;
+        cp->dec_free = NULL;
 }

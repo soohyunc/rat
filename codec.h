@@ -105,7 +105,7 @@ typedef struct s_codec {
 } codec_t;
 
 struct s_codec *get_codec_by_pt(int pt);
-struct s_codec *get_codec_by_name(char *name, struct session_tag *sp);
+struct s_codec *get_codec_by_name(char *name);
 struct s_codec *get_codec_by_index(u_int32 idx);
 u_int32         get_codec_count(void);
 
@@ -113,6 +113,7 @@ void	set_dynamic_payload(struct s_dpt **listp, char *name, int pt);
 int	get_dynamic_payload(struct s_dpt **listp, char *name);
 void    codec_free_dynamic_payloads(struct s_dpt **dpt_list);
 void	codec_init(struct session_tag *sp);
+void    codec_end (struct session_tag *sp);
 void	encoder(struct session_tag *sp, sample *data, int coding, coded_unit *c);
 void    reset_encoder(struct session_tag *sp, int coding);
 void	decode_unit(struct rx_element_tag *u);
@@ -124,4 +125,6 @@ int	codec_compatible(struct s_codec *c1, struct s_codec *c2);
 int     codec_loosely_compatible(struct s_codec *c1, struct s_codec *c2);
 int     codec_first_with(int freq, int channels);
 int     codec_matching(char *shortname, int freq, int channels);
+void    disable_codec(struct s_codec *cp);
+
 #endif /* _RAT_CODEC_H_ */

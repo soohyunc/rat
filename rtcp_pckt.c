@@ -491,7 +491,7 @@ rtcp_packet_fmt_sdes(session_struct *sp, u_int8 * ptr)
 			}
 		}
 	}
-	hdr->length = htons(len / 4);
+	hdr->length = htons((u_int16)(len / 4));
 	for (i = len; i < ((int)(len / 4) + 1) * 4; i++) {
 		ptr[i] = 0;
 	}
@@ -614,7 +614,7 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 
 	rptr->ssrc     = htonl(dbe->ssrc);
 	rptr->loss     = htonl(dbe->lost_frac << 24 | (dbe->lost_tot & 0xffffff));
-	rptr->last_seq = htons(dbe->cycles + dbe->lastseqno);
+	rptr->last_seq = htons((u_int16)(dbe->cycles + dbe->lastseqno));
 	rptr->jitter   = htonl((u_long) dbe->jitter);
 
 	rptr->lsr      = htonl(dbe->last_sr);
@@ -725,7 +725,7 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 				ptr = rtcp_packet_fmt_addrr(sp, ptr, sptr);
 				hdr->count++;
 				packlen = ptr - packet;
-				hdr->length = htons((packlen - offset) / 4 - 1);
+				hdr->length = htons((u_int16)((packlen - offset) / 4 - 1));
 				if (packlen + 84 > MAX_PACKLEN) {
 					/* Too many sources sent data, and the result doesn't fit into a */
 					/* single SR/RR packet. We just ignore the excess here. Oh well. */
@@ -736,7 +736,7 @@ rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 		sptr = sptmp;
 	}
 	packlen = ptr - (u_int8 *) packet;
-	hdr->length = htons((packlen - offset) / 4 - 1);
+	hdr->length = htons((u_int16)((packlen - offset) / 4 - 1));
 	return ptr;
 }
 
