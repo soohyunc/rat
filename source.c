@@ -220,7 +220,7 @@ time_constants_init()
         skew_thresh    = ts_map32(8000, 320);
         skew_limit     = ts_map32(8000, 4000);
         transit_reset  = ts_map32(8000, 80000);
-        spike_jump     = ts_map32(8000, 800); 
+        spike_jump     = ts_map32(8000, 1600); 
         spike_end      = ts_map32(8000, 64);
         time_constants_inited = TRUE;
 }
@@ -508,7 +508,7 @@ source_process_packet (source  *src,
                 while(pb_iterator_advance(pi)) {
                         pb_iterator_get_at(pi, (u_char**)&cd, &clen, &lplayout);
                        /* if lplayout==playout there is already channel_data for this playout point */
-                        if(!ts_eq(playout, lplayout)) {
+                        if (!ts_eq(playout, lplayout)) {
                                 continue;
                         }
                         pb_iterator_detach_at(pi, (u_char**)&cd, &clen, &lplayout);
@@ -516,7 +516,7 @@ source_process_packet (source  *src,
 
                        /* if this channel_data is full, this new packet must *
                         * be a duplicate, so we don't need to check          */
-                        if(cd->nelem >= clayers) {
+                        if (cd->nelem >= clayers) {
                                 debug_msg("source_process_packet failed - duplicate layer\n");
                                 src->pdbe->duplicates++;
                                 pb_iterator_destroy(src->channel, &pi);
@@ -531,7 +531,7 @@ source_process_packet (source  *src,
                         dup = 0;
 
                        /* compare existing channel_units to this one */
-                        for(i=0; i<cd->nelem; i++) {
+                        for (i=0; i<cd->nelem; i++) {
                                 if(cu->data_len!=cd->elem[i]->data_len) break;
                                 /* This memcmp arbitrarily only checks
                                  * 20 bytes, otherwise it takes too
@@ -543,7 +543,7 @@ source_process_packet (source  *src,
 
                        /* duplicate, so stick the channel_data back on *
                         * the playout buffer and swiftly depart        */
-                        if(dup) {
+                        if (dup) {
                                 debug_msg("source_process_packet failed - duplicate layer\n");
                                 src->pdbe->duplicates++;
                                 /* destroy temporary channel_unit */
@@ -676,8 +676,11 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         discarded++;
                         xfree(p);
                 }
-                debug_msg("Discarded %d surplus packets\n", discarded);
-
+#ifdef DEBUG
+                if (discarded > 0) {
+                        debug_msg("Discarded %d surplus packets\n", discarded);
+                }
+#endif /* DEBUG */
         }
 
         while(pktbuf_dequeue(src->pktbuf, &p)) {
