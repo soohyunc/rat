@@ -18,26 +18,11 @@ static const char cvsid[] =
 #include "audio_util.h"
 #include "debug.h"
 
-#define C0 +0.46363718
-#define C1 -0.92724705
-#define C2 +0.46363718
-#define D1 -1.9059465
-#define D2 +0.9114024
-
-#define IC0 +475
-#define IC1 -950
-#define IC2 +475
-#define ID1 -1952
-#define ID2 +933
-
 typedef struct s_bias_ctl {
-        /* for 8k pre-filtering */
-        sample y1, y2;
-        sample x1, x2;
-        /* for rest */
-        sample lta;
-        u_char step;
-        int    freq;
+        sample  lta;
+        u_char  step;
+        int     freq;
+        uint8_t age;
 } bias_ctl;
 
 bias_ctl *
@@ -57,66 +42,43 @@ bias_ctl_destroy(bias_ctl *bc)
 }
 
 static void
-prefilter(bias_ctl *pf, sample *buf, register int len, int step)
+remove_lta(bias_ctl *bc, sample *buf, int len, int step)
 {
-        register int y0, y1, y2;
-        register int x0, x1, x2;
-
-        y1 = pf->y1;
-        y2 = pf->y2;
-        x1 = pf->x1;
-        x2 = pf->x2;
-        
-        while(len-- != 0) {
-                x0 = *buf;
-                y0 = (IC0 * x0 + IC1 * x1 + IC2 * x2 - ID1 * y1 - ID2 * y2) >> 10;
-                *buf = y0 << 1;
-                buf += step;                
-                y2 = y1; y1 = y0;
-                x2 = x1; x1 = x0;
-        }
-
-        pf->y1 = y1;
-        pf->y2 = y2;
-        pf->x1 = x1;
-        pf->x2 = x2;
-}
-
-static void
-remove_lta(bias_ctl *bc, sample *buf, register int len, int step)
-{
-        int  m, samples;
+        int  i , m, samples;
         m = 0;
-        samples = len;
 
-        while (len-- > 0) {
-                m += *buf;
-                *buf -= bc->lta;
-                buf += step;
+        samples = len / step;
+
+        if (bc->age == 0) {
+                /* On first pass do expensive task of calculating and
+                 * removing bias in two steps.
+                 */
+                for (i = 0; i < len ; i += step) {
+                        m += buf[i];
+                }
+                bc->lta = m / samples;
+                bc->age++;
+                for (i = 0; i < len; i++) {
+                        buf[i] -= bc->lta;
+                }
+        } else {
+                for (i = 0; i < len; i++) {
+                        m      += buf[i];
+                        buf[i] -= bc->lta;
+                }
+                bc->lta -= (bc->lta - m / samples) >> 3;
         }
-
-        bc->lta -= (bc->lta - m / samples) >> 3;
+        debug_msg("bias %d\n", bc->lta);
 }
 
 void
 bias_remove(bias_ctl *bc, sample *buf, int len)
 {
-        if (bc->freq == 8000) {
-                if (bc->step == 1) {
-                        prefilter(bc, buf, len, 1);
-                } else {
-                        len /= bc->step;
-                        prefilter(bc  , buf  , len, 2);
-                        prefilter(bc+1, buf+1, len, 2);
-                }
+        if (bc->step == 1) {
+                remove_lta(bc, buf, len, 1); 
         } else {
-
-                if (bc->step == 1) {
-                        remove_lta(bc, buf, len, 1); 
-                } else {
-                        remove_lta(bc  , buf  , len / 2, 2);
-                        remove_lta(bc+1, buf+1, len / 2, 2);
-                }
+                remove_lta(bc  , buf  , len / 2, 2);
+                remove_lta(bc+1, buf+1, len / 2, 2);
         }
 } 
 
@@ -276,15 +238,4 @@ avg_audio_energy(sample *buf, uint32_t samples, uint32_t channels)
          * no. of sampling points = samples/ENERGY_CALC_STEP;
          */
         return (uint16_t)(e1*ENERGY_CALC_STEP/samples);
-}
-
-/* not going to simd this one */
-
-void
-audio_scale_buffer(sample *buf, int len, double scale)
-{
-        int i;
-        for(i = 0; i < len; i++) {
-                buf[i] = (sample)((double)buf[i] * scale);
-        }
 }
