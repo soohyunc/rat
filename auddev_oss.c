@@ -4,8 +4,6 @@
  * AUTHOR:  Colin Perkins
  * MODS:    Orion Hodson
  *
- * From revision 1.25 of auddev_linux.c
- *
  * $Revision$
  * $Date$
  *
