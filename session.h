@@ -93,7 +93,7 @@ typedef struct s_session {
 	struct s_tx_buffer *tb;
         struct s_pdb       *pdb; /* persistent participant */
                                  /* information database.  */
-        struct s_source_lis *active_sources;
+        struct s_source_list *active_sources;
         ts_sequencer        decode_sequencer;
         int                 limit_playout;
         u_int32             min_playout;
