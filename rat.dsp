@@ -754,7 +754,7 @@ InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_audiotool.tcl | tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c
+	type $(InputDir)\ui_audiotool.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c
 
 # End Custom Build
 
@@ -767,7 +767,7 @@ InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
-	type $(InputDir)\ui_at.tcl | tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
+	type $(InputDir)\ui_at.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
 	
 # End Custom Build
 
@@ -780,7 +780,7 @@ InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
-	type $(InputDir)\ui_at.tcl | tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
+	type $(InputDir)\ui_at.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
 	
 # End Custom Build
 
@@ -798,7 +798,7 @@ InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
+	type $(InputDir)\ui_transcoder.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
@@ -809,7 +809,7 @@ InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
+	type $(InputDir)\ui_transcoder.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
@@ -820,7 +820,7 @@ InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
+	type $(InputDir)\ui_transcoder.tcl | \src\tcl-8.0\win\tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
