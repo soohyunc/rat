@@ -315,7 +315,7 @@ mix_get_audio(mix_struct *ms, int request, sample **bufp)
 		silence = amount - ms->dist;
 		if (ms->head + silence > ms->buf_len) {
 #ifdef DEBUG_MIX
-			fprintf(stderr,"Insufficient audio: zeroing end of mix buffer %d %d\n", ms->buf_len - ms->head, silence + ms->head - ms->buf_len);
+			debug_msg("Insufficient audio: zeroing end of mix buffer %d %d\n", ms->buf_len - ms->head, silence + ms->head - ms->buf_len);
 #endif
 			audio_zero(ms->mix_buffer + ms->head, ms->buf_len - ms->head, DEV_S16);
 			audio_zero(ms->mix_buffer, silence + ms->head - ms->buf_len, DEV_S16);
@@ -356,16 +356,18 @@ mix_get_audio(mix_struct *ms, int request, sample **bufp)
 		memcpy(ms->mix_buffer + ms->buf_len, ms->mix_buffer, BYTES_PER_SAMPLE*(ms->tail + amount - ms->buf_len));
                 xmemchk();
 #ifdef DEBUG_MIX
-		fprintf(stderr,"Copying start of mix len: %d\n", ms->tail + amount - ms->buf_len);
+		debug_msg("Copying start of mix len: %d\n", ms->tail + amount - ms->buf_len);
 
 #endif /* DEBUG_MIX */
 	}
 
 #ifdef DEBUG_MIX
+/*
         debug_msg("Head %u (%d), tail %u (%d)\n", (u_int32) ms->head, 
                   ms->head_time.ticks, 
                   (u_int32)ms->tail,
                   ms->tail_time.ticks);
+                  */
 #endif /* DEBUG_MIX */
 
         mix_verify(ms);
@@ -394,13 +396,13 @@ mix_get_new_cushion(mix_struct *ms, int last_cushion_size, int new_cushion_size,
 	int	diff, elapsed_time;
 
 #ifdef DEBUG_MIX
-	fprintf(stderr, "Getting new cushion %d old %d\n", new_cushion_size, last_cushion_size);
+	debug_msg("Getting new cushion %d old %d\n", new_cushion_size, last_cushion_size);
 #endif
 
 	elapsed_time = (last_cushion_size + dry_time);
 	diff = abs(new_cushion_size - elapsed_time) * ms->channels;
 #ifdef DEBUG_MIX
-        fprintf(stderr,"new cushion size %d\n",new_cushion_size);
+        debug_msg("new cushion size %d\n",new_cushion_size);
 #endif
 	if (new_cushion_size > elapsed_time) {
 		/*
