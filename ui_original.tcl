@@ -484,14 +484,10 @@ proc cname_update {cname} {
 
 	# Add this participant to the list. We no longer sort the list, since it
 	# used stupid amounts of processor power...
-	if {[info exists my_cname] && ([string compare $cname $my_cname] == 0)} {
-		# Pack ourself first in the list...
-		if {[pack slaves $fw] != ""} {
-			pack $cw -before [lindex [pack slaves $fw] 0]
-		}
-	} else {
-		pack $cw -fill x
+	if {[info exists my_cname] && ([string compare $cname $my_cname] == 0) && ([pack slaves $fw] != "")} {
+		pack $cw -before [lindex [pack slaves $fw] 0] -fill x
 	}
+	pack $cw -fill x
 
 	fix_scrollbar
 	update_stats $cname
