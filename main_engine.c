@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, (unsigned long) ppid);
 	sp->mbus_engine      = mbus_init(mbus_engine_rx, mbus_error_handler, sp->mbus_engine_addr);
         if (sp->mbus_engine == NULL) {
-                fatal_error(appname, "Could not initialize MBUS:\nIs multicast enabled?");
+                fatal_error(appname, "Could not initialize Mbus: Is multicast enabled?");
                 return FALSE;
         }
 

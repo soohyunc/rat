@@ -821,7 +821,7 @@ int main(int argc, char *argv[])
         snprintf(c_addr, 60, "(media:audio module:control app:rat id:%lu)", (unsigned long) getpid());
         m = mbus_init(mbus_control_rx, mbus_err_handler, c_addr);
         if (m == NULL) {
-                fatal_error(appname, "MBUS could not be initialized:\nIs multicast enabled?");
+                fatal_error(appname, "Could not initialize Mbus: Is multicast enabled?");
                 return FALSE;
         }
         

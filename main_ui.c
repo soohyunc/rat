@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 	sprintf(m_addr, "(media:audio module:ui app:rat id:%lu)", (unsigned long) ppid);
 	m = mbus_init(mbus_ui_rx, mbus_error_handler, m_addr);
         if (m == NULL) {
-                fatal_error(appname, "Could not initialize MBUS:\nIs multicast enabled?");
+                fatal_error(appname, "Could not initialize Mbus: Is multicast enabled?");
                 return FALSE;
         }
 
