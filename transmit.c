@@ -345,6 +345,8 @@ tx_read_audio(session_struct *sp)
                           read_dur,
                           sp->tb->mean_read_dur);
                 transmit_audit(sp->tb);
+                /* Make tx buffer ready for next read */
+                sp->tb->head_ptr = sp->tb->last_ptr = tx_unit_get(sp->tb);
         } else if (read_dur > 0) {
                 sp->tb->mean_read_dur += ((double)read_dur - sp->tb->mean_read_dur) / 8.0;
         }
