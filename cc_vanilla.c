@@ -282,6 +282,7 @@ vanilla_decoder_decode(u_char      *state,
         ts_t          playout;
 
         assert(state == NULL); /* No decoder state needed */
+        UNUSED(state);
 
         pb_iterator_create(in, &pi);
         assert(pi != NULL);

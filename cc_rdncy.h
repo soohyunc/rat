@@ -57,10 +57,6 @@ int  redundancy_encoder_get_parameters(u_char *state, char *buf, u_int32 blen);
 
 /* Decoder functions *********************************************************/
 
-int  redundancy_decoder_create  (u_char **state, u_int32 *len);
-
-int  redundancy_decoder_destroy (u_char **state, u_int32 len);
-
 int  redundancy_decoder_decode  (u_char                  *state,
                                  struct s_pb *in,
                                  struct s_pb *out,
