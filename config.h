@@ -107,8 +107,14 @@ extern int h_errno;
 #include <fcntl.h>
 #include <sys/audioio.h>
 #include <multimedia/audio_encode.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 int gettimeofday(struct timeval *tp, void * );
 int gethostname(char *name, int namelen);
+#ifdef __cplusplus
+}
+#endif
 #endif
 
 #ifdef SunOS_4

@@ -152,20 +152,20 @@ cushion_update(cushion_t *c, u_int32 read_dur, int mode)
         }
 }
 
-inline static void
+ static void
 cushion_size_check(cushion_t *c)
 {
         assert( c->cushion_size > MIN_CUSHION );
         assert( c->cushion_size < MAX_CUSHION );
 }
 
-inline u_int32 
+ u_int32 
 cushion_get_size(cushion_t *c)
 {
         return c->cushion_size;
 }
 
-inline u_int32
+ u_int32
 cushion_set_size(cushion_t *c, u_int32 new_size)
 {
         c->cushion_size = new_size;
@@ -173,7 +173,7 @@ cushion_set_size(cushion_t *c, u_int32 new_size)
         return c->cushion_size;
 }
 
-inline u_int32
+u_int32
 cushion_step_up(cushion_t *c)
 {
         c->cushion_size += c->cushion_step;
@@ -181,7 +181,7 @@ cushion_step_up(cushion_t *c)
         return c->cushion_size;
 }
 
-inline u_int32
+ u_int32
 cushion_step_down(cushion_t *c)
 {
         c->cushion_size -= c->cushion_step;
@@ -189,13 +189,13 @@ cushion_step_down(cushion_t *c)
         return c->cushion_size;
 }
 
-inline u_int32
+ u_int32
 cushion_get_step(cushion_t *c)
 {
         return c->cushion_step;
 }
 
-inline u_int32 
+ u_int32 
 cushion_use_estimate(cushion_t *c)
 {
         c->cushion_size = c->cushion_estimate + c->cushion_step 
@@ -204,7 +204,7 @@ cushion_use_estimate(cushion_t *c)
         return c->cushion_size;
 }
 
-inline int32 
+ int32 
 cushion_diff_estimate_size(cushion_t *c)
 {
         return (c->cushion_estimate - c->cushion_size);

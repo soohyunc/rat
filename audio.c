@@ -43,6 +43,7 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
 #include "rat_types.h"
 #include "audio.h"
 #include "util.h"
