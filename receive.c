@@ -82,19 +82,25 @@ static void
 add_unit_to_interval(rx_queue_element_struct *ip, rx_queue_element_struct *ru)
 {
 	ip->talk_spurt_start |= ru->talk_spurt_start;
+        /* XXX we should detect duplicates here [oth] 
+         * if we have reached limit of number of ccu's or we have two or 
+         * more with identical headers then we know we've had a duplicate.
+         */
 
-        if (ru->cc_pt == ip->cc_pt) {
-            /* XXX we should detect duplicates here [oth] 
-             * if we have reached limit of number of ccu's or we have two or more with
-             * identical headers then we know we've had a duplicate
-             */
-            while(ru->ccu_cnt>0 && 
-                  ip->ccu_cnt < ru->ccu[--ru->ccu_cnt]->cc->max_cc_per_interval) {
-                ip->ccu[ip->ccu_cnt++] = ru->ccu[ru->ccu_cnt];
-                ru->ccu[ru->ccu_cnt] = NULL;
-            }
-	} else {
-                debug_msg("Incompatible channel coding pt.\n");
+        if ((ru->cc_pt == ip->cc_pt) &&
+            (ip->mixed == FALSE)     &&
+            (ip->ccu_cnt == 0 || ip->ccu_cnt < ip->ccu[ip->ccu_cnt - 1]->cc->max_cc_per_interval)) {
+                while(ru->ccu_cnt>0 && 
+                      ip->ccu_cnt < ru->ccu[ru->ccu_cnt-1]->cc->max_cc_per_interval) {
+                        ip->ccu[ip->ccu_cnt++] = ru->ccu[--ru->ccu_cnt];
+                        ru->ccu[ru->ccu_cnt] = NULL;
+                }
+        } else {
+                debug_msg("rejected - compat (%d %d), mixed (%d), ccu_cnt %d",
+                          ru->cc_pt, 
+                          ip->cc_pt,
+                          ip->mixed,
+                          ip->ccu_cnt);
         }
 	free_rx_unit(&ru);
 }
@@ -221,7 +227,14 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 	rx_queue_element_struct	*ip;
 
 	if ((ip = add_or_get_interval(buf, ru)) != ru) {
+                assert(ip->prev_ptr == NULL || (u_int32)ip->prev_ptr > 0x0000ffffu);
+                assert(ip->next_ptr == NULL || (u_int32)ip->next_ptr > 0x0000ffffu);
+                assert(ru->prev_ptr == NULL || (u_int32)ru->prev_ptr > 0x0000ffffu);
+                assert(ru->next_ptr == NULL || (u_int32)ru->next_ptr > 0x0000ffffu);
+
 		add_unit_to_interval(ip, ru);
+                assert(ip->prev_ptr == NULL || (u_int32)ip->prev_ptr > 0x0000ffffu);
+                assert(ip->next_ptr == NULL || (u_int32)ip->next_ptr > 0x0000ffffu);
 	}
 
         assert(ip != NULL);
@@ -467,14 +480,26 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		} else {
 			up->dbe_source[0]->cont_toged = 0;
 		}
+#ifdef DEBUG_PLAYOUT
+                verify_playout_buffer(buf);
+#endif
+                assert(up->prev_ptr == NULL || (u_int32)up->prev_ptr > 0x0000ffffu);
+                assert(up->next_ptr == NULL || (u_int32)up->next_ptr > 0x0000ffffu);
 
 		up = playout_buffer_add(buf, up);
+                assert(up->prev_ptr == NULL || (u_int32)up->prev_ptr > 0x0000ffffu);
+                assert(up->next_ptr == NULL || (u_int32)up->next_ptr > 0x0000ffffu);
+#ifdef DEBUG_PLAYOUT
+                verify_playout_buffer(buf);
+#endif
 		/*
 		 * If we have already worked past this point then mix it!
 		 */
 		if (up && buf->last_got && up->mixed == FALSE
 		    && ts_gt(buf->last_got->playoutpt, up->playoutpt)
 		    && ts_gt(up->playoutpt, cur_time)){
+                        assert(up->prev_ptr == NULL || (u_int32)up->prev_ptr > 0x0000ffffu);
+                        assert(up->next_ptr == NULL || (u_int32)up->next_ptr > 0x0000ffffu);
                         channel_decode(sp, up);
 			decode_unit(up);
                         debug_msg("Mixing late audio\n");
@@ -524,7 +549,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                     if (up->prev_ptr) 
                     {
                             u_int32 src_diff = ts_abs_diff(up->prev_ptr->src_ts,up->src_ts);
-                            if (src_diff!= up->unit_size) 
+                            if (src_diff != up->unit_size) 
                             {
                                     debug_msg("src_ts jump %08d\n",src_diff);
                             }
@@ -552,8 +577,8 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                         debug_msg("source clock is relatively slow len %d concern len %d\n", buf->len, buf->src->playout_ceil/(2*cu));
                         buf->src->playout_danger = TRUE;
                 }
-
 	}
+
 	for (bufp = buf_list; *bufp;) {
 		if ((*bufp)->head_ptr == NULL) {
 			buf = *bufp;
