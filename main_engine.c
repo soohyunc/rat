@@ -83,25 +83,50 @@ static void parse_args(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	struct mbus	*m;
+	int            	 num_sessions, i, seed;
+	u_int32		 ssrc;
+	char		*cname;
+	session_struct 	*sp[2];
+	struct timeval   time;
 	struct timeval	 timeout;
+
+	gettimeofday(&time, NULL);
+        seed = (gethostid() << 8) | (getpid() & 0xff);
+	srand48(seed);
+	lbl_srandom(seed);
+
+	for (i = 0; i < 2;i++) {
+		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
+		init_session(sp[i]);
+	}
+	num_sessions = 1;
+	for (i = 0; i < num_sessions; i++) {
+		network_init(sp[i]);
+	}
+	cname = get_cname(sp[0]->rtp_socket);
+	ssrc  = get_ssrc();
+
+        audio_init_interfaces();
+        converters_init();
+        statistics_init();
 
 	parse_args(argc, argv);
 
-	m = mbus_init(mbus_engine_rx, NULL);
+	/* Initialise our mbus interface... once this is done we can talk to our controller */
+	sp[0]->mbus_engine = mbus_init(mbus_engine_rx, NULL);
 	sprintf(m_addr, "(media:audio module:engine app:rat instance:%lu)", (u_int32) getpid());
-	mbus_addr(m, m_addr);
+	mbus_addr(sp[0]->mbus_engine, m_addr);
 
 	/* The first stage is to wait until we hear from our controller. The address of the */
 	/* controller is passed to us via a command line parameter, and we just wait until  */
 	/* we get an mbus.hello() from that address.                                        */
-	while (!mbus_addr_valid(m, c_addr)) {
+	while (!mbus_addr_valid(sp[0]->mbus_engine, c_addr)) {
 		debug_msg("Waiting to validate address %s\n", c_addr);
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 500000;
-		mbus_recv(m, NULL, &timeout);
-		mbus_send(m);
-		mbus_heartbeat(m, 1);
+		mbus_recv(sp[0]->mbus_engine, NULL, &timeout);
+		mbus_send(sp[0]->mbus_engine);
+		mbus_heartbeat(sp[0]->mbus_engine, 1);
 	}
 	debug_msg("Address %s is valid\n", c_addr);
 
@@ -109,30 +134,32 @@ int main(int argc, char *argv[])
 	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */
 	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
 	mbus_engine_wait_handler_init(token);
-	mbus_cmd_handler(m, mbus_engine_wait_handler);
+	mbus_cmd_handler(sp[0]->mbus_engine, mbus_engine_wait_handler);
 	while (!mbus_engine_wait_handler_done()) {
 		debug_msg("Waiting for token \"%s\" from controller\n", token);
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 500000;
-		mbus_recv(m, m, &timeout);
-		mbus_send(m);
-		mbus_heartbeat(m, 1);
+		mbus_recv(sp[0]->mbus_engine, sp[0]->mbus_engine, &timeout);
+		mbus_send(sp[0]->mbus_engine);
+		mbus_heartbeat(sp[0]->mbus_engine, 1);
 	}
-	mbus_cmd_handler(m, mbus_engine_rx);
-	mbus_qmsgf(m, c_addr, TRUE, "mbus.go", "%s", token_e);
-	mbus_send(m);
+	mbus_cmd_handler(sp[0]->mbus_engine, mbus_engine_rx);
+	mbus_qmsgf(sp[0]->mbus_engine, c_addr, TRUE, "mbus.go", "%s", token_e);
+	mbus_send(sp[0]->mbus_engine);
 
-	/* ...and sit waiting for it to send us commands... */
-	while (1) {
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 50000;
-		mbus_recv(m, NULL, &timeout);
-		mbus_send(m);
-		mbus_heartbeat(m, 1);
-	}
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
 #endif
+
+	/* ...and sit waiting for it to send us commands... */
+	while (!should_exit) {
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 50000;
+		mbus_recv(sp[0]->mbus_engine, NULL, &timeout);
+		mbus_send(sp[0]->mbus_engine);
+		mbus_heartbeat(sp[0]->mbus_engine, 1);
+	}
+	return 0;
 }
 
 

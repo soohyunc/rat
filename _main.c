@@ -21,9 +21,6 @@
 #include "version.h"
 #include "mbus_control.h"
 
-int should_exit  = FALSE;
-int thread_pri   = 2; /* Time Critical */
-
 #define UI_NAME     "rat-"##VERSION_NUM##"-ui"
 #define ENGINE_NAME "rat-"##VERSION_NUM##"-media"
 
@@ -91,7 +88,7 @@ int main(int argc, char *argv[])
 	pid_ui     = fork_process(m, UI_NAME,     m_addr);
 	pid_engine = fork_process(m, ENGINE_NAME, m_addr);
 
-	while (!should_exit) {
+	while (1) {
 		sleep(1);
 	}
 
