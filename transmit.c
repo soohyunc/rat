@@ -470,7 +470,7 @@ tx_send(tx_buffer *tb)
         uint32_t         	 u_len, units, i, j, k, n, send, encoding;
         int 			 success;
 	char			*extn;
-	int			 extn_len;
+	uint16_t		 extn_len, extn_type;
         
         assert(pb_iterator_count(tb->audio_buffer) == 3);
 
@@ -575,10 +575,12 @@ tx_send(tx_buffer *tb)
 #ifdef DEBUG_HEADER_EXTN
 			extn = (char *) xmalloc(5);
 			sprintf(extn, "test");
-			extn_len  = 5;
+			extn_len  = 1;	/* 32 bit words of extn data */
+			extn_type = 1;
 #else
 			extn      = NULL;
 			extn_len  = 0;
+			extn_type = 0;
 #endif
                         data_len = 0;
                         /* determine data length for packet.  This is a   */  
@@ -595,7 +597,7 @@ tx_send(tx_buffer *tb)
                                 memcpy(data + done, cd->elem[i]->data, cd->elem[i]->data_len);
                                 done += cd->elem[i]->data_len;
                         }
-                        rtp_send_data(sp->rtp_session[j], time_32, pt, marker, 0, csrc, data, data_len, extn, extn_len);
+                        rtp_send_data(sp->rtp_session[j], time_32, pt, marker, 0, csrc, data, data_len, extn, extn_len, extn_type);
                         block_free(data, data_len);
                         tb->bps_bytes_sent += data_len;
 			if (extn != NULL) {
