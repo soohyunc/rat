@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
 		mbus_retransmit(m);
-		tcl_process_all_events();
+		tcl_process_event();
 	}
 }
 

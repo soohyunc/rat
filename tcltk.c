@@ -111,15 +111,15 @@ tcl_active(void)
 int
 tcl_init(struct mbus *mbus_ui, int argc, char **argv, char *mbus_engine_addr)
 {
-	char	*cmd_line_args, buffer[10];
-	Tcl_Obj *audiotool_obj;
+	char		*cmd_line_args, buffer[10];
+	Tcl_Obj 	*audiotool_obj;
+	struct timeval	 timeout;
 
 	Tcl_FindExecutable(argv[0]);
 	interp        = Tcl_CreateInterp();
-	engine_addr   = xstrdup(mbus_engine_addr);
 	cmd_line_args = Tcl_Merge(argc - 1, argv + 1);
 	Tcl_SetVar(interp, "argv", cmd_line_args, TCL_GLOBAL_ONLY);
-
+	engine_addr   = xstrdup(mbus_engine_addr);
 #ifndef WIN32
 	ckfree(cmd_line_args); 
 #endif
@@ -172,6 +172,12 @@ tcl_init(struct mbus *mbus_ui, int argc, char **argv, char *mbus_engine_addr)
 
 	while (tcl_process_event()) {
 		/* Processing Tcl events, to allow the UI to initialize... */
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 250000;
+		mbus_recv(mbus_ui, NULL, &timeout);
+		mbus_send(mbus_ui);
+		mbus_heartbeat(mbus_ui, 1);
+		mbus_retransmit(mbus_ui);
 	};
 
 	Tcl_ResetResult(interp);

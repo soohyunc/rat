@@ -893,6 +893,8 @@ v4.1.0  - Fixed slow memory leak reported by Emmanuel Duros.  Vanilla
 	* 5 October 1999
 
 v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum <wallbaum@informatik.rwth-aachen.de>
+	- Now send RTP BYE packets on exit
+
 
 TODO -- They're features not bugs dammit!
 ----
@@ -949,4 +951,6 @@ TODO -- They're features not bugs dammit!
 - The new loading of settings isn't quite complete yet - some variables 
   need to be activated in the user interface (they are loaded fine; it's
   just not made evident to the user) 
-
+- Mbus heartbeat messages for the user interface aren't sent whilst the
+  Tcl/Tk code is initialising, which means that it can timeout on slow
+  machines.

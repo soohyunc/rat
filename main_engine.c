@@ -315,6 +315,7 @@ int main(int argc, char *argv[])
         sp->mbus_engine = NULL;
 
 	for (j = 0; j < sp->rtp_session_count; j++) {
+		rtp_send_bye(sp->rtp_session[j]);
 		rtp_done(sp->rtp_session[j]);
 		rtp_callback_exit(sp->rtp_session[j]);
 	}
