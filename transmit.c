@@ -710,7 +710,7 @@ static void
 tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *u)
 {
         sndfile_fmt_t sfmt;
-        int samples_read;
+        int samples_read, dst_samples;
         
         snd_get_format(sp->in_file, &sfmt);
         if (sfmt.channels != tx_channels || sfmt.sample_rate != tx_freq) {
@@ -754,13 +754,16 @@ tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *
                         }
                 }
 
+                dst_samples = u->dur_used * tx_channels;
+
                 /* Prepare block to read audio into */
                 in.id        = codec_get_native_coding(target.src_freq, target.src_channels);
                 in.state     = NULL;
                 in.state_len = 0;
-                in.data_len  = 2 * sizeof(sample) * 
-                        (uint16_t)(u->dur_used * target.src_freq * target.src_channels / 
-                                   (target.dst_freq * target.dst_channels));
+                in.data_len  = sizeof(sample) * dst_samples * 
+                        (target.src_freq * target.src_channels) /
+                        (target.dst_freq * target.dst_channels);
+                        
                 in.data      = (u_char*)block_alloc(in.data_len);
 
                 /* Get the sound from file */
@@ -779,13 +782,10 @@ tx_read_sndfile(session_t *sp, uint16_t tx_freq, uint16_t tx_channels, tx_unit *
                 converter_process(sp->in_file_converter,
                                   &in,
                                   &out);
-                debug_msg("file samples in %d converted samples  %d target samples %d\n", 
-                          in.data_len  / sizeof(sample), 
-                          out.data_len / sizeof(sample), 
-                          u->dur_used * tx_channels);
+                assert((uint32_t)dst_samples == out.data_len / sizeof(sample));
                 memcpy(u->data,
                        out.data,
-                       min(u->dur_used * tx_channels, out.data_len / sizeof(sample)));
+                       dst_samples);
                 /* Tidy up */
                 codec_clear_coded_unit(&in);
                 codec_clear_coded_unit(&out);
