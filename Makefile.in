@@ -75,13 +75,13 @@ libuclsndfile.a: $(SNDFILE_OBJS)
 	$(RANLIB) $@
 
 $(RATVER)-media: $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engine.o $(EXTERNAL_DEP)
-	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engine.o $(COMMON_LIB) $(LDLIBS) $(AU_LIB) -o $(RATVER)-media
+	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engine.o $(COMMON_LIB) $(AU_LIB) $(LIBS) -o $(RATVER)-media
 
 $(RATVER)-ui: $(TCL_OBJS) $(UI_OBJS) $(EXTERNAL_DEP)
 	$(CC) $(CFLAGS) $(TCL_OBJS) $(UI_OBJS) $(COMMON_LIB) $(X_LIB)  $(TCL_LIB) $(TK_LIB) $(LIBS) -o $(RATVER)-ui 
 
 $(RATVER): $(CTRL_OBJS) $(EXTERNAL_DEP)
-	$(CC) $(CFLAGS) $(CTRL_OBJS) $(COMMON_LIB) $(LDLIBS) -o $(RATVER)
+	$(CC) $(CFLAGS) $(CTRL_OBJS) $(COMMON_LIB) $(LIBS) -o $(RATVER)
 
 .c.o:
 	$(CC) $(INCLUDE) $(CFLAGS) -c $<
