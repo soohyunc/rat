@@ -1022,7 +1022,7 @@ waveInProc(HWAVEIN hwi,
         case WIM_DATA:
                 whRead = (WAVEHDR*)dwParam1;       
 		/* Insert block at the available list */
-                whRead->lpNext   = NULL;                /* Will be tail of whReadList */
+                whRead->lpNext   = NULL;  
 		whInsert = &whReadList;
                 while(*whInsert != NULL) {
                         whInsert = &((*whInsert)->lpNext);
@@ -1150,7 +1150,7 @@ w32sdk_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 			       whCur->lpData + dwBytesUsedAtReadHead,
 			       this_read);
 		}
-                done                 += this_read;
+                done                  += this_read;
                 dwBytesUsedAtReadHead += this_read;
                 if (dwBytesUsedAtReadHead == whCur->dwBytesRecorded) {
                         whReadList = whReadList->lpNext;
@@ -1182,6 +1182,34 @@ w32sdk_audio_drain(audio_desc_t ad)
 	waveInStart(shWaveIn);
 }
 
+static void dumpReadHdrStats()
+{
+	WAVEHDR *whp;
+	int i, done, inqueue, prepared, ready;
+	
+	done = inqueue = prepared = 0;
+	for(i = 0; i < nblks; i++) {
+		if (whReadHdrs[i].dwFlags & WHDR_DONE) {
+			done++;
+		}
+		if (whReadHdrs[i].dwFlags & WHDR_INQUEUE) {
+			inqueue++;
+		}
+		if (whReadHdrs[i].dwFlags & WHDR_PREPARED) {
+			prepared++;
+		}
+	}
+
+	ready = 0;
+	whp = whReadList;
+	while (whp != NULL) {
+		ready++;
+		whp = whp->lpNext;
+	}
+	debug_msg("done %d inqueue %d prepared %d ready %d\n",
+		done, inqueue, prepared, ready);
+}
+
 void
 w32sdk_audio_wait_for(audio_desc_t ad, int delay_ms)
 {        
@@ -1191,6 +1219,7 @@ w32sdk_audio_wait_for(audio_desc_t ad, int delay_ms)
 		switch(dwRes) {
 		case WAIT_TIMEOUT:
 			debug_msg("No audio (%d ms wait timeout)\n", delay_ms);
+			dumpReadHdrStats();
 			break;
 		case WAIT_FAILED:
 			debug_msg("Wait failed (error %u)\n", GetLastError());
