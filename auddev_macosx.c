@@ -68,6 +68,198 @@ static int add = 0;
 // used for testing
 //static int k=0;
 
+// Iowegian's dspGuru resampling function.
+static void 
+resamp(int interp_factor_L, int decim_factor_M, int num_taps_per_phase,
+       int *p_current_phase, const double *const p_H,
+       double *const p_Z, int num_inp, const double *p_inp,
+       double *p_out, int *p_num_out)
+{
+	//debug_msg("macosx resamp\n");
+    int tap, num_out, num_new_samples, phase_num = *p_current_phase;
+    const double *p_coeff;
+    double sum;
+
+    num_out = 0;
+    while (num_inp > 0) {
+
+        /* figure out how many new samples to shift into Z delay line */
+        num_new_samples = 0;
+        while (phase_num >= interp_factor_L) {
+            /* decrease phase number by interpolation factor L */
+            phase_num -= interp_factor_L;
+            num_new_samples++;
+            if (--num_inp == 0) {
+                break;
+            }
+        }
+
+        if (num_new_samples >= num_taps_per_phase) {
+            /* the new samples are bigger than the size of Z:
+            fill the entire Z with the tail of new inputs */
+            p_inp += (num_new_samples - num_taps_per_phase);
+            num_new_samples = num_taps_per_phase;
+        }
+
+        /* copy new samples into Z */
+
+        /* shift Z delay line up to make room for next samples */
+        for (tap = num_taps_per_phase - 1; tap >= num_new_samples; tap--) {
+            p_Z[tap] = p_Z[tap - num_new_samples];
+        }
+
+        /* copy next samples from input buffer to bottom of Z */
+        for (tap = num_new_samples - 1; tap >= 0; tap--) {
+            p_Z[tap] = *p_inp++;
+        }
+
+        /* calculate outputs */
+        while (phase_num < interp_factor_L) {
+            /* point to the current polyphase filter */
+            p_coeff = p_H + phase_num;
+
+            /* calculate FIR sum */
+            sum = 0.0;
+            for (tap = 0; tap < num_taps_per_phase; tap++) {
+                sum += *p_coeff * p_Z[tap];
+                p_coeff += interp_factor_L;   /* point to next coefficient */
+            }
+            *p_out++ = sum;     /* store sum and point to next output */
+            num_out++;
+
+            /* decrease phase number by decimation factor M */
+            phase_num += decim_factor_M;
+        }
+    }
+
+    /* pass back to caller phase number (for next call) and number of
+        outputs */
+    *p_current_phase = phase_num;
+    *p_num_out = num_out;
+}
+static OSStatus 
+audioIOProc(AudioDeviceID inDevice, const AudioTimeStamp* inNow, 
+            const AudioBufferList* inInputData, const AudioTimeStamp* inInputTime, 
+	    AudioBufferList* outOutputData, const AudioTimeStamp* inOutputTime, 
+	    void* inClientData)
+{
+    //If input is provided, copy it into the read buffer.
+    if (inInputData != NULL && inInputData->mNumberBuffers > 0) {
+        // Get the input data.
+        Float32* ip = (Float32*)inInputData->mBuffers[0].mData;
+	int providedFrames = inInputData->mBuffers[0].mDataByteSize / devices[add].inputStreamBasicDescription_.mBytesPerFrame;
+	//debug_msg("providedFrames  -%d\n",providedFrames );
+	//debug_msg("inInputData->mBuffers[0].mDataByteSize-%d\n",inInputData->mBuffers[0].mDataByteSize);
+	//printf("read mSampleRate: %f\n",devices[add].inputStreamBasicDescription_.mSampleRate);
+
+	//struct device * dev = (struct device *) inClientData;
+	//debug_msg("dev->inputStreamBasicDescription_.mBytesPerFrame-%d\n", devices[add].inputStreamBasicDescription_.mBytesPerFrame);
+        // Convert the audio to mono.
+        double* monoInput = malloc(sizeof(double)*providedFrames);
+	int sample;
+        for (sample = 0; sample < providedFrames; sample++)
+	 {
+        	monoInput[sample] = *ip;
+           	ip += inInputData->mBuffers[0].mNumberChannels;
+        };
+        // Resample the raw data.
+        double* monoOutput = malloc(sizeof(double)*providedFrames);
+        int numOutput = 0;
+        int factorL = 80, factorM = 441;
+        resamp(factorL, factorM, DECIM441_LENGTH / factorL, &(currentPhase_), decim441, zLine_, providedFrames, monoInput, monoOutput, &numOutput);
+        // Convert the output to mulaw and store it in the read buffer.
+        for (sample = 0; sample < numOutput; sample++) {
+         //   if (muteInput_) {
+          //      readBuffer_[inputWriteIndex_++] = lintomulaw[0];
+                //readBuffer_[inputWriteIndex_++] = 0;
+           // } else {
+			//debug_msg("audioIOProc1\n");
+			// Apply the audio gain.
+			monoOutput[sample] *= devices[add].inputGain_;
+			// Clip the audio data.
+            		if (monoOutput[sample] > 1.0) monoOutput[sample] = 1.0;
+            		else if (monoOutput[sample] < -1.0) monoOutput[sample] = -1.0;
+			// Convert to signed 16-bit.
+			// poslem 1 kHz ton
+			//monoOutput[sample] = kilo[k++];
+			//if (k == 8) k = 0;
+
+			//SInt16 si = (monoOutput[sample] >= 0) ? (SInt16)(monoOutput[sample] * 32767.0) : (SInt16)(monoOutput[sample] * 32768.0);
+			SInt16 si = 32767*monoOutput[sample];
+
+			//printf("%d\n", si);
+			// Convert to 8-bit mulaw and store in the read buffer.
+			//readBuffer_[inputWriteIndex_++] = lintomulaw[si & 0xFFFF];
+			//readBuffer_[inputWriteIndex_++] = si;
+			//rb = readBuffer_ + inputWriteIndex_;
+			
+			memcpy(readBuffer_ + inputWriteIndex_, &si, 2);
+			inputWriteIndex_ += 2;
+	   // }
+	    		if (inputWriteIndex_ == readBufferSize_) inputWriteIndex_ = 0;
+	    //availableInput_++;
+	    		availableInput_ += 2;
+	}
+	//printf("inputWriteIndex_: %d\n", inputWriteIndex_);
+	// Clean up.
+	free(monoInput); monoInput = NULL;
+	free(monoOutput); monoOutput = NULL;
+     };
+
+	// Return success.*/
+    return noErr;
+};
+
+static OSStatus 
+outputRenderer(void *inRefCon, AudioUnitRenderActionFlags inActionFlags, const AudioTimeStamp *inTimeStamp, 
+               UInt32 inBusNumber, AudioBuffer *ioData) 
+{
+	//debug_msg("macosx outputRenderer\n");
+	int i;
+	SInt16* ip = (SInt16*)ioData->mData;
+
+	int requestedFrames = ioData->mDataByteSize / devices[add].mashStreamBasicDescription_.mBytesPerFrame;
+       	//int requestedFrames = ioData->mDataByteSize / 2;
+	int zeroIndex = outputReadIndex_ - 1;
+
+	//printf("req frames: %d\tDataByteSize %d\ndev: %d\n",requestedFrames, ioData->mDataByteSize, devices[add].mashStreamBasicDescription_.mBytesPerFrame);
+	//printf("outputRender:\n");
+	for (i = 0; i < requestedFrames; i++)
+	{
+		// Copy the requested amount of data into the output buffer.
+		//if (muteOutput_)
+		//{	
+			//ip[i] = 0;
+			//outputReadIndex_++;
+		//}
+		//else
+		//{
+			//*ip++ = 10000;
+			ip[i] = writeBuffer_[outputReadIndex_];
+			//memcpy(ip + i, writeBuffer_ + outputReadIndex_, 2);
+			outputReadIndex_++;
+
+			//printf("%d\n", ip[i]);
+			//printf("outputReadIndex: %d\n",outputReadIndex_);
+			//printf("%d",*(ip + i));
+		//};
+	//	 Zero out the previous frames to avoid replaying the contents of the ring buffer.
+		 writeBuffer_[zeroIndex--] = 0;
+	//	 Wrap around the indices if necessary.
+		if (zeroIndex == -1) zeroIndex = writeBufferSize_ - 1;
+		if (outputReadIndex_ == writeBufferSize_) outputReadIndex_ = 0;
+	};
+	//printf("write data: \n");
+	//for (i = 0; i < blksize_; i++)
+	//printf("\n");	
+
+
+    // Return success.
+    return noErr;
+};
+
+
+
 
 int macosx_audio_init(void)/* Test and initialize audio interface */
 {
@@ -580,195 +772,4 @@ char *macosx_audio_device_name(audio_desc_t idx)	/* Then this one tells us the n
     name = "Default Sound Device";
     return name;
 };
-
-OSStatus 
-outputRenderer(void *inRefCon, AudioUnitRenderActionFlags inActionFlags, const AudioTimeStamp *inTimeStamp, 
-               UInt32 inBusNumber, AudioBuffer *ioData) 
-{
-	//debug_msg("macosx outputRenderer\n");
-	int i;
-	SInt16* ip = (SInt16*)ioData->mData;
-
-	int requestedFrames = ioData->mDataByteSize / devices[add].mashStreamBasicDescription_.mBytesPerFrame;
-       	//int requestedFrames = ioData->mDataByteSize / 2;
-	int zeroIndex = outputReadIndex_ - 1;
-
-	//printf("req frames: %d\tDataByteSize %d\ndev: %d\n",requestedFrames, ioData->mDataByteSize, devices[add].mashStreamBasicDescription_.mBytesPerFrame);
-	//printf("outputRender:\n");
-	for (i = 0; i < requestedFrames; i++)
-	{
-		// Copy the requested amount of data into the output buffer.
-		//if (muteOutput_)
-		//{	
-			//ip[i] = 0;
-			//outputReadIndex_++;
-		//}
-		//else
-		//{
-			//*ip++ = 10000;
-			ip[i] = writeBuffer_[outputReadIndex_];
-			//memcpy(ip + i, writeBuffer_ + outputReadIndex_, 2);
-			outputReadIndex_++;
-
-			//printf("%d\n", ip[i]);
-			//printf("outputReadIndex: %d\n",outputReadIndex_);
-			//printf("%d",*(ip + i));
-		//};
-	//	 Zero out the previous frames to avoid replaying the contents of the ring buffer.
-		 writeBuffer_[zeroIndex--] = 0;
-	//	 Wrap around the indices if necessary.
-		if (zeroIndex == -1) zeroIndex = writeBufferSize_ - 1;
-		if (outputReadIndex_ == writeBufferSize_) outputReadIndex_ = 0;
-	};
-	//printf("write data: \n");
-	//for (i = 0; i < blksize_; i++)
-	//printf("\n");	
-
-
-    // Return success.
-    return noErr;
-};
-
-OSStatus 
-audioIOProc(AudioDeviceID inDevice, const AudioTimeStamp* inNow, 
-            const AudioBufferList* inInputData, const AudioTimeStamp* inInputTime, 
-	    AudioBufferList* outOutputData, const AudioTimeStamp* inOutputTime, 
-	    void* inClientData)
-{
-    //If input is provided, copy it into the read buffer.
-    if (inInputData != NULL && inInputData->mNumberBuffers > 0) {
-        // Get the input data.
-        Float32* ip = (Float32*)inInputData->mBuffers[0].mData;
-	int providedFrames = inInputData->mBuffers[0].mDataByteSize / devices[add].inputStreamBasicDescription_.mBytesPerFrame;
-	//debug_msg("providedFrames  -%d\n",providedFrames );
-	//debug_msg("inInputData->mBuffers[0].mDataByteSize-%d\n",inInputData->mBuffers[0].mDataByteSize);
-	//printf("read mSampleRate: %f\n",devices[add].inputStreamBasicDescription_.mSampleRate);
-
-	//struct device * dev = (struct device *) inClientData;
-	//debug_msg("dev->inputStreamBasicDescription_.mBytesPerFrame-%d\n", devices[add].inputStreamBasicDescription_.mBytesPerFrame);
-        // Convert the audio to mono.
-        double* monoInput = malloc(sizeof(double)*providedFrames);
-	int sample;
-        for (sample = 0; sample < providedFrames; sample++)
-	 {
-        	monoInput[sample] = *ip;
-           	ip += inInputData->mBuffers[0].mNumberChannels;
-        };
-        // Resample the raw data.
-        double* monoOutput = malloc(sizeof(double)*providedFrames);
-        int numOutput = 0;
-        int factorL = 80, factorM = 441;
-        resamp(factorL, factorM, DECIM441_LENGTH / factorL, &(currentPhase_), decim441, zLine_, providedFrames, monoInput, monoOutput, &numOutput);
-        // Convert the output to mulaw and store it in the read buffer.
-        for (sample = 0; sample < numOutput; sample++) {
-         //   if (muteInput_) {
-          //      readBuffer_[inputWriteIndex_++] = lintomulaw[0];
-                //readBuffer_[inputWriteIndex_++] = 0;
-           // } else {
-			//debug_msg("audioIOProc1\n");
-			// Apply the audio gain.
-			monoOutput[sample] *= devices[add].inputGain_;
-			// Clip the audio data.
-            		if (monoOutput[sample] > 1.0) monoOutput[sample] = 1.0;
-            		else if (monoOutput[sample] < -1.0) monoOutput[sample] = -1.0;
-			// Convert to signed 16-bit.
-			// poslem 1 kHz ton
-			//monoOutput[sample] = kilo[k++];
-			//if (k == 8) k = 0;
-
-			//SInt16 si = (monoOutput[sample] >= 0) ? (SInt16)(monoOutput[sample] * 32767.0) : (SInt16)(monoOutput[sample] * 32768.0);
-			SInt16 si = 32767*monoOutput[sample];
-
-			//printf("%d\n", si);
-			// Convert to 8-bit mulaw and store in the read buffer.
-			//readBuffer_[inputWriteIndex_++] = lintomulaw[si & 0xFFFF];
-			//readBuffer_[inputWriteIndex_++] = si;
-			//rb = readBuffer_ + inputWriteIndex_;
-			
-			memcpy(readBuffer_ + inputWriteIndex_, &si, 2);
-			inputWriteIndex_ += 2;
-	   // }
-	    		if (inputWriteIndex_ == readBufferSize_) inputWriteIndex_ = 0;
-	    //availableInput_++;
-	    		availableInput_ += 2;
-	}
-	//printf("inputWriteIndex_: %d\n", inputWriteIndex_);
-	// Clean up.
-	free(monoInput); monoInput = NULL;
-	free(monoOutput); monoOutput = NULL;
-     };
-
-	// Return success.*/
-    return noErr;
-};
-
-
-// Iowegian's dspGuru resampling function.
-void resamp(int interp_factor_L, int decim_factor_M, int num_taps_per_phase,
-            int *p_current_phase, const double *const p_H,
-            double *const p_Z, int num_inp, const double *p_inp,
-            double *p_out, int *p_num_out)
-{
-	//debug_msg("macosx resamp\n");
-    int tap, num_out, num_new_samples, phase_num = *p_current_phase;
-    const double *p_coeff;
-    double sum;
-
-    num_out = 0;
-    while (num_inp > 0) {
-
-        /* figure out how many new samples to shift into Z delay line */
-        num_new_samples = 0;
-        while (phase_num >= interp_factor_L) {
-            /* decrease phase number by interpolation factor L */
-            phase_num -= interp_factor_L;
-            num_new_samples++;
-            if (--num_inp == 0) {
-                break;
-            }
-        }
-
-        if (num_new_samples >= num_taps_per_phase) {
-            /* the new samples are bigger than the size of Z:
-            fill the entire Z with the tail of new inputs */
-            p_inp += (num_new_samples - num_taps_per_phase);
-            num_new_samples = num_taps_per_phase;
-        }
-
-        /* copy new samples into Z */
-
-        /* shift Z delay line up to make room for next samples */
-        for (tap = num_taps_per_phase - 1; tap >= num_new_samples; tap--) {
-            p_Z[tap] = p_Z[tap - num_new_samples];
-        }
-
-        /* copy next samples from input buffer to bottom of Z */
-        for (tap = num_new_samples - 1; tap >= 0; tap--) {
-            p_Z[tap] = *p_inp++;
-        }
-
-        /* calculate outputs */
-        while (phase_num < interp_factor_L) {
-            /* point to the current polyphase filter */
-            p_coeff = p_H + phase_num;
-
-            /* calculate FIR sum */
-            sum = 0.0;
-            for (tap = 0; tap < num_taps_per_phase; tap++) {
-                sum += *p_coeff * p_Z[tap];
-                p_coeff += interp_factor_L;   /* point to next coefficient */
-            }
-            *p_out++ = sum;     /* store sum and point to next output */
-            num_out++;
-
-            /* decrease phase number by decimation factor M */
-            phase_num += decim_factor_M;
-        }
-    }
-
-    /* pass back to caller phase number (for next call) and number of
-        outputs */
-    *p_current_phase = phase_num;
-    *p_num_out = num_out;
-}
 

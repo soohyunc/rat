@@ -7,10 +7,6 @@
 
 #ifndef _AUDDEV_MACOSX_H_
 #define _AUDDEV_MACOSX_H_
-//#include <Carbon/Carbon.h>
-//#include <CoreAudio/CoreAudio.h>
-//#include <AudioUnit/AudioUnit.h>
-
 
 int  macosx_audio_open				(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);
 void macosx_audio_close				(audio_desc_t ad);
@@ -41,16 +37,6 @@ int  macosx_audio_supports			(audio_desc_t ad, audio_format *fmt);
 int	 macosx_audio_init			(void);
 int	 macosx_audio_device_count		(void);
 char *macosx_audio_device_name			(audio_desc_t idx);
+
 #endif /* _AUDDEV_MACOSX_H_ */
-
-void resamp					(int interp_factor_L, int decim_factor_M, int num_taps_per_phase,int *p_current_phase, const double *const p_H, double *const p_Z,int num_inp, const double *p_inp, double *p_out, int *p_num_out);
-
-//OSStatus audioIOProc				(AudioBufferList* inInputData); 
-// The AudioUnitRenderCallback.
-//OSStatus outputRenderer				(AudioBuffer *ioData); 
-
-//OSStatus audioIOProc(AudioDeviceID inDevice, const AudioTimeStamp* inNow, const AudioBufferList* inInputData, const AudioTimeStamp* inInputTime, AudioBufferList* outOutputData, const AudioTimeStamp* inOutputTime, void* inClientData);
-
-//OSStatus outputRenderer(void *inRefCon, AudioUnitRenderActionFlags inActionFlags, const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, AudioBuffer *ioData);
-
 
