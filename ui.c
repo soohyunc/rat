@@ -536,6 +536,7 @@ ui_init(session_struct *sp, char *cname, int argc, char **argv)
 	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "address",        args, TRUE);
         sprintf(args, "%d", sp->detect_silence); 			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "detect_silence", args, TRUE);
 	sprintf(args, "%d", sp->agc_on); 				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "agc",            args, TRUE);
+	sprintf(args, "%d", sp->sync_on); 				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "sync",           args, TRUE);
 #ifndef NDEBUG
 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "debug", "", TRUE);
 #endif

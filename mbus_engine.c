@@ -166,6 +166,19 @@ static void func_lecture(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
+static void func_sync(char *srce, char *args, session_struct *sp)
+{
+	int i;
+
+	mbus_parse_init(sp->mbus_engine, args);
+	if (mbus_parse_int(sp->mbus_engine, &i)) {
+		sp->sync_on = i;
+	} else {
+		printf("mbus: usage \"agc <boolean>\"\n");
+	}
+	mbus_parse_done(sp->mbus_engine);
+}
+
 static void func_agc(char *srce, char *args, session_struct *sp)
 {
 	int i;
@@ -528,6 +541,7 @@ char *mbus_cmnd[] = {
 	"silence",
 	"lecture",
 	"agc",
+	"sync",
 	"rate",
 	"input_gain",
 	"output_gain",
@@ -561,6 +575,7 @@ void (*mbus_func[])(char *srce, char *args, session_struct *sp) = {
 	func_silence,
 	func_lecture,
 	func_agc,
+	func_sync,
 	func_rate,
 	func_input_gain,
 	func_output_gain,

@@ -149,6 +149,10 @@ proc lecture {l} {
   mbus_send "R" "lecture" "$l"
 }
 
+proc sync {s} {
+  mbus_send "R" "sync" "$s"
+}
+
 proc agc {a} {
   mbus_send "R" "agc" "$a"
 }
@@ -206,6 +210,11 @@ proc mbus_recv_codec_supported {codecs} {
 proc mbus_recv_agc {args} {
   global agc_var
   set agc_var $args
+}
+
+proc mbus_recv_sync {args} {
+  global sync_var
+  set sync_var $args
 }
 
 proc mbus_recv_primary {args} {
@@ -487,8 +496,9 @@ proc cname_update {cname} {
 		$cw create polygon $l $h $h $l $h $f -outline black -fill grey50 -tag m
 		$cw create polygon $f $h $h $l $h $f -outline black -fill grey50 -tag h
 
-		bind $cw <Button-1> "toggle_stats $cname"
-		bind $cw <Button-2> "toggle_mute $cw $cname"
+		bind $cw <Button-1>         "toggle_stats $cname"
+		bind $cw <Button-2>         "toggle_mute $cw $cname"
+		bind $cw <Control-Button-1> "toggle_mute $cw $cname"
 	}
 
 	# XXX This is not very efficient
@@ -593,9 +603,9 @@ proc dropdown {w varName command args} {
 proc toggle_mute {cw cname} {
 	global iht
 	if {[$cw gettags a] == ""} {
-		mbus_send "R" "source_mute" [mbus_encode_str $cname]
+		mbus_send "R" "source_mute" "[mbus_encode_str $cname]"
 	} else {
-		mbus_send "R" "source_unmute" [mbus_encode_str $cname]
+		mbus_send "R" "source_unmute" "[mbus_encode_str $cname]"
 	}
 }
 
@@ -840,7 +850,7 @@ checkbutton .b.f2.l.sil   -anchor w -highlightthickness 0 -relief flat -text "Su
 checkbutton .b.f2.l.meter -anchor w -highlightthickness 0 -relief flat -text "Powermeters"            -variable meter_var   -command {powermeter $meter_var}
 checkbutton .b.f2.l.lec   -anchor w -highlightthickness 0 -relief flat -text "Lecture Mode"           -variable lecture_var -command {lecture    $lecture_var}
 checkbutton .b.f2.r.agc   -anchor w -highlightthickness 0 -relief flat -text "Automatic Gain Control" -variable agc_var     -command {agc        $agc_var}
-checkbutton .b.f2.r.syn   -anchor w -highlightthickness 0 -relief flat -text "Video Synchronisation"  -variable sync_var    -command {sync       $sync_var} -state disabled
+checkbutton .b.f2.r.syn   -anchor w -highlightthickness 0 -relief flat -text "Video Synchronisation"  -variable sync_var    -command {sync       $sync_var}
 checkbutton .b.f2.r.help  -anchor w -highlightthickness 0 -relief flat -text "Balloon Help"           -variable help_on     -command {savename} -state active
 
 pack .b.f2.l.sil   -side top -fill x -expand 1
