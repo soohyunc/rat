@@ -153,9 +153,9 @@ settings_table_destroy(void)
 
 /* SETTINGS CODE *************************************************************/
 
+#ifdef WIN32
 static void open_registry(void)
 {
-#ifdef WIN32
         HKEY			key    = HKEY_CURRENT_USER;
 	LPCTSTR			subKey = "Software\\Mbone Applications\\common";
 	DWORD			disp;
@@ -173,12 +173,10 @@ static void open_registry(void)
 	} else {
 		debug_msg("Opened existing registry entry...\n");
 	}
-#endif
 }
 
 static void close_registry(void)
 {
-#ifdef WIN32
 	LONG status;
 	char buffer[SETTINGS_BUF_SIZE];
 	
@@ -189,8 +187,8 @@ static void close_registry(void)
 		abort();
 	}
 	debug_msg("Closed registry entry...\n");
-#endif
 }
+#endif
 
 static void init_part_two(void)
 {
