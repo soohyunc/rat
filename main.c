@@ -69,11 +69,12 @@ static int tcl_process_events(session_t *sp)
 int
 main(int argc, char *argv[])
 {
-	u_int32			 cur_time, ntp_time;
+	u_int32			 cur_time, ntp_time, dev_time = 0;
 	int            		 i, j, elapsed_time, alc = 0, seed;
 	session_t 		*sp[2];
-	struct timeval  	 time;
+	struct timeval  	 time, start, now;
 	struct timeval      	 timeout;
+        int32                    delta_real;
 	char			 mbus_engine_addr[100], mbus_ui_addr[100], mbus_video_addr[100];
 
 #ifndef WIN32
@@ -167,6 +168,7 @@ main(int argc, char *argv[])
         }
 
 	xdoneinit();
+        gettimeofday(&start, NULL);
 	while (!should_exit) {
 		elapsed_time = audio_rw_process(sp[0], sp[0], sp[0]->ms);
 		cur_time = get_time(sp[0]->device_clock);
@@ -174,7 +176,12 @@ main(int argc, char *argv[])
 		sp[0]->cur_ts   = ts_seq32_in(&sp[0]->decode_sequencer, 
                                               get_freq(sp[0]->device_clock), 
                                               cur_time);
+                dev_time += elapsed_time;
+                gettimeofday(&now, NULL);
+                delta_real = (now.tv_sec - start.tv_sec) * 1000 + (now.tv_usec - start.tv_usec) / 1000;
+/*                debug_msg("dev %05d real %05d, read %d\n", dev_time/8, delta_real, elapsed_time); */
                 tx_process_audio(sp[0]->tb);
+
                 if (tx_is_sending(sp[0]->tb)) {
                         tx_send(sp[0]->tb);
                 }
@@ -204,7 +211,6 @@ main(int argc, char *argv[])
                                         pdb_entry_t *e;
                                         ts_t         two_secs, delta;
 					source_process(s, sp[0]->ms, sp[0]->render_3d, sp[0]->repair, cush_ts);
-					source_check_buffering(s, sp[0]->cur_ts);
 					source_audit(s);
                                         /* Check for UI update necessary, updating once per 2 secs */
                                         pdb_item_get(sp[0]->pdb, source_get_ssrc(s), &e);
@@ -249,6 +255,7 @@ main(int argc, char *argv[])
 		}
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 0;
+
 		mbus_send(sp[0]->mbus_engine); 
 		mbus_recv(sp[0]->mbus_engine, (void *) sp[0], &timeout);
 		mbus_retransmit(sp[0]->mbus_engine);

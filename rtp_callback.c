@@ -254,6 +254,7 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                 if (source_add_packet(s, u, ulen, 0, (u_char)p->pt, playout) == FALSE) {
                         block_free(u, ulen);
                 }
+                source_check_buffering(s, sp->cur_ts);
                 e->cont_toged = 0;
         }
         /* Update persistent database fields. */

@@ -226,7 +226,6 @@ int main(int argc, char *argv[])
                                         pdb_entry_t *e;
                                         ts_t         two_secs, delta;
 					source_process(s, sp->ms, sp->render_3d, sp->repair, cush_ts);
-					source_check_buffering(s, sp->cur_ts);
 					source_audit(s);
                                         /* Check for UI update necessary, updating once per 2 secs */
                                         pdb_item_get(sp->pdb, source_get_ssrc(s), &e);
