@@ -106,12 +106,11 @@ split_block(u_int32 playout_pt,
          * remove channel coding when we are ready to decode and play 
          * samples. 
          */
-
         ccu = (cc_unit*)block_alloc(sizeof(cc_unit));
         memset(ccu,0,sizeof(cc_unit));
-        block_trash_chk();
+        block_trash_check();
         units = validate_and_split(hdr->pt, data_ptr, len, ccu, &trailing, &src->inter_pkt_gap);
-        block_trash_chk();
+        block_trash_check();
         if (units <=0) {
 	    	debug_msg("Validate and split failed!\n");
             	block_free(ccu,sizeof(cc_unit));
@@ -125,6 +124,7 @@ split_block(u_int32 playout_pt,
                        ccu->iov[i].iov_len);
                 data_ptr += ccu->iov[i].iov_len;
         }
+        xmemchk();
 
         for(i=0;i<trailing;i++) {
 		p = new_rx_unit();
@@ -288,7 +288,6 @@ adapt_playout(rtp_hdr_t *hdr,
                                 src->playout = src->delay + var;
                         }
 
-
 			if (sp->sync_on && src->mapping_valid) {
 				/* use the jitter value as calculated but convert it to a ntp_ts freq [dm] */ 
 				src->sync_playout_delay = ntp_delay + ((var << 16) / get_freq(src->clock));
@@ -430,12 +429,14 @@ statistics(session_struct    *sp,
 
 	/* Process incoming packets */
         while(netrx_pckt_queue->queue_empty == FALSE) {
+                block_trash_check();
                 e_ptr = get_pckt_off_queue(netrx_pckt_queue);
                 /* Impose RTP formating on it... */
                 hdr = (rtp_hdr_t *) (e_ptr->pckt_ptr);
         
                 if (rtp_header_validation(hdr, &e_ptr->len, &extlen) == FALSE) {
                         debug_msg("RTP Packet failed header validation!\n");
+                        block_trash_check();
                         goto release;
                 }
         
@@ -446,6 +447,7 @@ statistics(session_struct    *sp,
         
                 if ((hdr->ssrc == sp->db->myssrc) && sp->filter_loopback) {
                         /* Discard loopback packets...unless we have asked for them ;-) */
+                        block_trash_check();
                         goto release;
                 }
         
@@ -461,7 +463,6 @@ statistics(session_struct    *sp,
                         /* we don't have the audio device so there is no point processing data any further. */
                         goto release;
                 }
-
                 data_ptr =  (unsigned char *)e_ptr->pckt_ptr + 4 * (3 + hdr->cc) + extlen;
                 len      = e_ptr->len - 4 * (3 + hdr->cc) - extlen;
         
@@ -483,16 +484,18 @@ statistics(session_struct    *sp,
                         debug_msg("src enc %d pcp enc %d\n", src->enc, pcp->pt);
                         update_req   = TRUE;
                 }
-                
                 playout = adapt_playout(hdr, e_ptr->arrival_timestamp, src, sp, cushion, real_time);
 
+                block_trash_check();
                 src->units_per_packet = split_block(playout, pcp, (char *) data_ptr, len, src, unitsrx_queue_ptr, hdr->m, hdr, sp, cur_time);
-                
+                block_trash_check();
+
                 if (update_req && (src->units_per_packet != 0)) {
                 	ui_update_stats(src, sp);
                 }
                 pkt_cnt++;
         release:
+                block_trash_check();
                 free_pckt_queue_element(&e_ptr);
         }
         if (pkt_cnt > 5) {

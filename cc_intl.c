@@ -398,7 +398,6 @@ intl_decode(session_struct *sp,
          */
 
         if (u->ccu_cnt) {
-                block_trash_chk();
                 hdr = ntohl(*(u_int32*)u->ccu[0]->iov[0].iov_base);
                 intl_compat_chk(sp, u, hdr, s);
                 /* free interleaver header */
@@ -440,7 +439,6 @@ intl_decode(session_struct *sp,
                         ccu = (cc_unit*) il_exchange(s->il, (char*)ccu);
                         if (ccu) {
                                 codec_t *cp;
-                                debug_msg("splitting %d blocks\n", ccu->iovc);
                                 for(j = 0, len = 0; j < ccu->iovc; j++) len += ccu->iov[j].iov_len;
                                 su = get_rx_unit(i * s->upl, u->cc_pt, u);
                                 cp = get_codec_by_pt(s->src_pt);
@@ -467,12 +465,6 @@ intl_decode(session_struct *sp,
                         debug_msg("Nothing doing %d %d \n",(u->src_ts - s->last_ts)/cp->unit_len,s->il->n2 * s->upl);
                         return;
                 }
-                /* ... You can't always get what you want, x2
-                 * but if you try sometimes you just might find
-                 * you get what you neeed ...
-                 *
-                 * (c) Jagger/Richards 196x
-                 */ 
                 debug_msg("adding dummies %d\n", s->il->n2);
                 for(i=0;i<s->il->n2;i++) {
                         ccu = (cc_unit*) il_exchange(s->il, (char*)NULL);

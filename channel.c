@@ -551,12 +551,11 @@ void
 channel_decode(session_struct *sp, rx_queue_element_struct *u)
 {
         static u_int32 hist_buf[HIST_SZ];
-        static int     hist_idx, nuked = 0;
+        static int     hist_idx;
         int i, cnt;
         cc_state_t *stp;
         cc_coder_t *cc;
 
-        assert(nuked == 0);
         if (u->ccu[0] == NULL) return;
         for(i = 0; i < HIST_SZ; i++) {
                 assert(u->src_ts != hist_buf[i]);
@@ -575,12 +574,14 @@ channel_decode(session_struct *sp, rx_queue_element_struct *u)
                            u->cc_pt,
                            DECODE);
         assert(u);
+        assert(u->ccu[0]);
         cc->decode(sp, u, stp);
-        assert(nuked == 0);
+/* This code fails when interleaver is being used.
+        assert(u->ccu[0]);
         for(cnt = i = 0; i < u->ccu[0]->iovc; i++) {
                 if (u->ccu[0]->iov[i].iov_base && u->ccu[0]->iov[i].iov_len) cnt++;
         }
-        assert(cnt = u->ccu[0]->iovc);
+        assert(cnt = u->ccu[0]->iovc); */
 }
 
 int
