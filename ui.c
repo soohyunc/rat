@@ -522,22 +522,18 @@ static void
 ui_devices(session_struct *sp)
 {
         audio_device_details_t ad;
+        char *mbes;
         int i,nDev;
 
-        char buf[255] = "", *mbes;
+        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.devices.flush", "", TRUE);
         
         nDev = audio_get_device_count();
         for(i = 0; i < nDev; i++) {
                 if (!audio_get_device_details(i, &ad)) continue;
-                strcat(buf, ad.name);
-                strcat(buf, ",");
+                mbes = mbus_encode_str(ad.name);
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.devices.add", mbes, TRUE);
+                xfree(mbes);
         }
-        i = strlen(buf);
-        if (i != 0) buf[i-1] = '\0';
-
-        mbes = mbus_encode_str(buf);
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.devices", mbes, TRUE);
-        xfree(mbes);
 }
 
 static void

@@ -196,6 +196,9 @@ proc mbus_recv {cmnd args} {
 		audio.suppress.silence  	{eval mbus_recv_audio.suppress.silence $args}
 		audio.channel.coding  		{eval mbus_recv_audio.channel.coding $args}
 		audio.channel.repair 		{eval mbus_recv_audio.channel.repair $args}
+		audio.devices.flush             {eval mbus_recv_audio_devices_flush $args}
+		audio.devices.add               {eval mbus_recv_audio_devices_add $args}
+		audio.device                    {eval mbus_recv_audio_device $args}
 		audio.input.gain  		{eval mbus_recv_audio.input.gain $args}
 		audio.input.port  		{eval mbus_recv_audio.input.port $args}
 		audio.input.ports.add           {eval mbus_recv_audio.input.ports.add $args}
@@ -212,8 +215,6 @@ proc mbus_recv {cmnd args} {
 		audio.file.play.alive   	{eval mbus_recv_audio.file.play.alive $args}
 		audio.file.record.ready 	{eval mbus_recv_audio.file.record.ready $args}
 		audio.file.record.alive 	{eval mbus_recv_audio.file.record.alive $args}
-		audio.devices                   {eval mbus_recv_audio_devices $args}
-		audio.device                    {eval mbus_recv_audio_device $args}
 		session.title  			{eval mbus_recv_session.title $args}
 		session.address  		{eval mbus_recv_session.address $args}
 		rtp.ssrc  			{eval mbus_recv_rtp.ssrc $args}
@@ -498,27 +499,25 @@ proc mbus_recv_tool.rat.repair {arg} {
     set repair_var $arg
 }
 
-proc mbus_recv_audio_devices {arg} {
-	global audio_device
-	
-	set m .prefs.pane.audio.dd.device.mdev
-	set max_len 0
-	
-	$m.menu delete 0 last
-	set devices [split $arg ","]
-	foreach d $devices {
-		$m.menu add command -label "$d" -command "set audio_device \"$d\""
-		set len [string length "$d"]
-		if [expr $len > $max_len] {
-			set max_len $len
-		}
-	}
-	$m configure -width $max_len
+proc mbus_recv_audio_devices_flush {} {
+    .prefs.pane.audio.dd.device.mdev.menu delete 0 last
+}
+
+proc mbus_recv_audio_devices_add {arg} {
+    global audio_device
+
+    .prefs.pane.audio.dd.device.mdev.menu add command -label "$arg" -command "set audio_device \"$arg\""
+
+    set len [string length "$arg"]
+    set curr [.prefs.pane.audio.dd.device.mdev cget -width]
+
+    if {$len > $curr} {
+	.prefs.pane.audio.dd.device.mdev configure -width $len
+    }
 }
 
 proc mbus_recv_audio_device {arg} {
 	global audio_device
-
 	set audio_device $arg
 }
 
@@ -1636,13 +1635,13 @@ label $i.dd.title -height 2 -width 40 -text "This panel allows for the selection
 pack $i.dd.title -fill x
 
 frame $i.dd.device
-pack $i.dd.device -side top -fill x
+pack $i.dd.device -side top
 
 label $i.dd.device.l -text "Audio Device:"
 pack  $i.dd.device.l -side top -fill x
 menubutton $i.dd.device.mdev -menu $i.dd.device.mdev.menu -indicatoron 1 \
-                                -textvariable audio_device -relief raised -width 32
-pack $i.dd.device.mdev 
+                                -textvariable audio_device -relief raised -width 5
+pack $i.dd.device.mdev -fill x -expand 1
 menu $i.dd.device.mdev.menu -tearoff 0
 
 frame $i.dd.sampling  
@@ -2296,14 +2295,6 @@ proc load_settings {} {
     #device
     global audio_device
     load_setting attr audioDevice            audio_device  "UNKNOWN"
-
-    if {[string compare $audio_device "UNKNOWN"] == 0} {
-    	# The audioDevice was not stored in the configuration file...
-	# We should try to change it to the first device listed in the
-	# menu, which will trigger the media engine to either use this
-	# or fall back to a safe default.... 
-	.prefs.pane.audio.dd.device.mdev.menu invoke 0
-    }
 
     global prenc ichannels freq
     mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"

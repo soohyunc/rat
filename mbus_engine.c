@@ -543,7 +543,7 @@ static void rx_audio_file_rec_live(char *srce, char *args, session_struct *sp)
 static void 
 rx_audio_device(char *srce, char *args, session_struct *sp)
 {
-        char	*s, dev_name[64];
+        char	*s, dev_name[64], first_dev_name[64];
 
 	UNUSED(srce);
 
@@ -553,17 +553,31 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
                 purge_chars(s, "[]()");
                 if (s) {
                         audio_device_details_t details;
+                        audio_desc_t           first_dev_desc;
                         int i, n;
+                        dev_name[0] = 0;
+                        first_dev_name[0] = 0;
                         n = audio_get_device_count();
                         for(i = 0; i < n; i++) {
                                 /* Brackets are a problem so purge them */
                                 if (!audio_get_device_details(i, &details)) continue;
                                 strncpy(dev_name, details.name, AUDIO_DEVICE_NAME_LENGTH);
                                 purge_chars(dev_name, "[]()");
+                                if (first_dev_name[0] == 0) {
+                                        strncpy(first_dev_name, dev_name, AUDIO_DEVICE_NAME_LENGTH);
+                                        first_dev_desc = details.descriptor;
+                                }
+
                                 if (!strcmp(s, dev_name)) {
-                                        audio_device_register_change_device(sp, details.descriptor);
                                         break;
                                 }
+                        }
+                        if (i < n) {
+                                /* Found device looking for */
+                                audio_device_register_change_device(sp, details.descriptor);
+                        } else if (first_dev_name[0]) {
+                                /* Have a fall back */
+                                audio_device_register_change_device(sp, first_dev_desc);
                         }
                 }
 	} else {
