@@ -291,9 +291,13 @@ tx_read_audio(tx_buffer *tb)
                 } while (filled_unit == TRUE);
                 assert(pb_iterator_count(tb->audio_buffer) == 3);
         } else {
+                int this_read = 0;
                 /* We're not sending, but have access to the audio device. Read the audio anyway. */
                 /* to get exact timing values, and then throw the data we've just read away...    */
-                read_dur = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 4) / sp->tb->channels;
+                do {
+                        this_read = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 4) / sp->tb->channels;
+                        read_dur += this_read;
+                } while (this_read > 0);
                 time_advance(sp->clock, get_freq(sp->tb->clock), read_dur);
         }
 
