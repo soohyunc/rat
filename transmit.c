@@ -85,9 +85,9 @@ typedef struct s_tx_buffer {
         struct s_pb          *media_buffer; 
         struct s_pb          *channel_buffer; 
         struct s_pb          *audio_buffer; /* Audio buffer and it's iterators */
-        struct s_pb_iterator *reading;  /* Current read point iterator     */
-        struct s_pb_iterator *silence;  /* Silence classification iterator */
-        struct s_pb_iterator *transmit; /* Transmission point iterator     */
+        struct s_pb_iterator *reading;      /* Current read point iterator     */
+        struct s_pb_iterator *silence;      /* Silence classification iterator */
+        struct s_pb_iterator *transmit;     /* Transmission point iterator     */
         struct s_codec_state_store *state_store;    /* Encoder states        */
         u_int32        sending_audio:1;
         u_int16 channels;
@@ -154,30 +154,21 @@ tx_create(tx_buffer     **ntb,
         tb = (tx_buffer*)xmalloc(sizeof(tx_buffer));
         if (tb) {
                 memset(tb, 0, sizeof(tx_buffer));
-                debug_msg("Unit duration %d channels %d\n", 
-                          unit_dur, 
-                          channels);
+                debug_msg("Unit duration %d channels %d\n", unit_dur, channels);
                 tb->sp      = sp;
                 tb->clock   = clock;
                 freq        = (u_int16)get_freq(clock);
                 tb->bc      = bias_ctl_create(channels, freq);
-                tb->sd_info = sd_init    (unit_dur, 
-                                          freq);
-                tb->vad     = vad_create (unit_dur, 
-                                          freq);
+                tb->sd_info = sd_init    (unit_dur, freq);
+                tb->vad     = vad_create (unit_dur, freq);
                 tb->agc     = agc_create(sp);
                 tb->unit_dur = unit_dur;
                 tb->channels = channels;
                 tb->mean_read_dur = unit_dur;
                 
-                pb_create(&tb->audio_buffer,
-                          (playoutfreeproc)tx_unit_destroy);
-
-                pb_create(&tb->media_buffer,
-                          (playoutfreeproc)media_data_destroy);
-
-                pb_create(&tb->channel_buffer,
-                          (playoutfreeproc)channel_data_destroy);
+                pb_create(&tb->audio_buffer, (playoutfreeproc)tx_unit_destroy);
+                pb_create(&tb->media_buffer, (playoutfreeproc)media_data_destroy);
+                pb_create(&tb->channel_buffer, (playoutfreeproc)channel_data_destroy);
 
                 *ntb = tb;
                 return TRUE;
@@ -234,6 +225,7 @@ tx_start(tx_buffer *tb)
         pb_iterator_create(tb->audio_buffer, &tb->transmit);
         pb_iterator_create(tb->audio_buffer, &tb->silence);
         pb_iterator_create(tb->audio_buffer, &tb->reading);
+        assert(pb_iterator_count(tb->audio_buffer) == 3);
 
         /* Add one unit to media buffer to kick off audio reading */
         unit_start = ts_map32(get_freq(tb->clock), rand());
@@ -269,9 +261,11 @@ tx_stop(tx_buffer *tb)
         tx_update_ui(tb);
         
         /* Detach iterators      */
+        assert(pb_iterator_count(tb->audio_buffer) == 3);
         pb_iterator_destroy(tb->audio_buffer, &tb->transmit);
         pb_iterator_destroy(tb->audio_buffer, &tb->silence);
         pb_iterator_destroy(tb->audio_buffer, &tb->reading);
+        assert(pb_iterator_count(tb->audio_buffer) == 0);
 
         /* Drain playout buffers */
         pb_flush(tb->audio_buffer);
@@ -294,6 +288,7 @@ tx_read_audio(tx_buffer *tb)
 
         sp = tb->sp;
         if (tb->sending_audio) {
+                assert(pb_iterator_count(tb->audio_buffer) == 3);
                 freq = get_freq(tb->clock);
                 do {
                         if (pb_iterator_get_at(tb->reading, (u_char**)&u, &ulen, &u_ts) == FALSE) {
@@ -321,6 +316,7 @@ tx_read_audio(tx_buffer *tb)
                                 pb_iterator_advance(tb->reading);
                         } 
                 } while (u->dur_used == tb->unit_dur);
+                assert(pb_iterator_count(tb->audio_buffer) == 3);
         } else {
                 /* We're not sending, but have access to the audio device. Read the audio anyway. */
                 /* to get exact timing values, and then throw the data we've just read away...    */
@@ -360,6 +356,7 @@ tx_process_audio(tx_buffer *tb)
                 /* Do signal classification up until read point, that
                  * is not a complete audio frame so cannot be done 
                  */
+                assert(pb_iterator_count(tb->audio_buffer) == 3);
                 pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
                 while (pb_iterators_equal(tb->silence, tb->reading) == FALSE) {
 			bias_remove(tb->bc, u->data, u->dur_used * tb->channels);
@@ -386,6 +383,7 @@ tx_process_audio(tx_buffer *tb)
                                         }
                                         pb_iterator_destroy(tb->audio_buffer, &marker);
                                 }
+                                assert(pb_iterator_count(tb->audio_buffer) == 3);
 			} else {
 				u->silence = FALSE;
 				u->send    = TRUE;
@@ -399,6 +397,7 @@ tx_process_audio(tx_buffer *tb)
 			ui_update_input_gain(sp);
 		}
 	}
+
         return TRUE;
 }
 
@@ -453,12 +452,20 @@ tx_send(tx_buffer *tb)
         u_int32         time_32, cd_len, freq;
         u_int32         u_len, units, i, n, send, encoding;
         int success;
+        
+        assert(pb_iterator_count(tb->audio_buffer) == 3);
 
         if (pb_iterators_equal(tb->silence, tb->transmit)) {
                 /* Nothing to do */
                 debug_msg("Nothing to do\n");
                 return;
         } 
+
+        {
+                struct s_pb *buf;
+                buf = pb_iterator_get_playout_buffer(tb->transmit);
+                assert(pb_iterator_count(buf) == 3);
+        }
 
         pb_iterator_get_at(tb->silence,  (u_char**)&u, &u_len, &u_sil_ts);
         pb_iterator_get_at(tb->transmit, (u_char**)&u, &u_len, &u_ts);
@@ -573,6 +580,14 @@ tx_send(tx_buffer *tb)
          * in the act of transmission with pbi_detach_at call.
          */
         u_ts = ts_map32(get_freq(tb->clock), 2 * units * tb->unit_dur);
+
+        {
+                struct s_pb *buf;
+                buf = pb_iterator_get_playout_buffer(tb->transmit);
+                assert(pb_iterator_count(buf) == 3);
+        }
+
+        assert(pb_iterator_count(tb->audio_buffer) == 3);        
         n = pb_iterator_audit(tb->transmit, u_ts);
 }
 
@@ -591,10 +606,13 @@ tx_update_ui(tx_buffer *tb)
                 /* Silence point should be upto read point here so use last
                  * completely read unit.
                  */
-
+                assert(pb_iterator_count(tb->audio_buffer) == 3);
                 pb_iterator_dup(&prev, tb->silence);
                 pb_iterator_retreat(prev);
-                if (pb_iterators_equal(tb->silence, prev)) return;
+                if (pb_iterators_equal(tb->silence, prev)) {
+                        pb_iterator_destroy(tb->audio_buffer, &prev);
+                        return;
+                }
                 if (pb_iterator_get_at(prev, (u_char**)&u, &u_len, &u_ts) &&
                     (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE)) {
                         ui_input_level(sp, lin2vu(u->energy, 100, VU_INPUT));
@@ -602,6 +620,7 @@ tx_update_ui(tx_buffer *tb)
                         if (active == TRUE) ui_input_level(sp, 0);
                 }
                 pb_iterator_destroy(tb->audio_buffer, &prev);
+                assert(pb_iterator_count(tb->audio_buffer) == 3);
         }
         if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
                 if (active == FALSE) {

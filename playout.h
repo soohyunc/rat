@@ -63,6 +63,8 @@ int pb_add    (struct s_pb *pb,
 
 void pb_flush (struct s_pb *pb);
 
+u_int16 pb_iterator_count(struct s_pb *pb);
+
 /*
  * These following three functions return data stored in the playout buffer.  
  * The playout buffer has a playout point iterator.  playout_buffer_get 
@@ -124,6 +126,9 @@ pb_iterators_equal(struct s_pb_iterator *pi1,
 int 
 pb_relevant (struct s_pb *pb, 
              ts_t         now);
+
+struct s_pb*
+pb_iterator_get_playout_buffer(struct s_pb_iterator*);
 
 /* Return the times of interest for playout buffer in ts, returns
  * TRUE or FALSE depending on whether request successful

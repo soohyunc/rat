@@ -187,6 +187,12 @@ pb_add (pb_t *pb, u_char *data, u_int32 data_len, ts_t playout)
         return FALSE;
 }
 
+u_int16
+pb_iterator_count(struct s_pb *pb)
+{
+        return pb->n_iterators;
+}
+
 /* Iterator functions ********************************************************/
 
 int
@@ -208,6 +214,7 @@ pb_iterator_create(pb_t           *pb,
         pi->node   = &pb->sentinel;
         pi->buffer = pb;
         *ppi = pi;
+
         return TRUE;
 }
 
@@ -239,8 +246,7 @@ int
 pb_iterator_dup(pb_iterator_t **pb_dst,
                 pb_iterator_t  *pb_src)
 {
-        if (pb_iterator_create(pb_src->buffer,
-                            pb_dst)) {
+        if (pb_iterator_create(pb_src->buffer, pb_dst)) {
                 (*pb_dst)->node = pb_src->node;
                 return TRUE;
         }
@@ -413,9 +419,9 @@ pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
         if (pi->node != pb->psentinel) {
                 curr = pb->psentinel->next; /* head */;
                 cutoff = ts_sub(pi->node->playout, history_len);
-                while(curr != stop) {
-#ifndef NDEBUG
+                while(ts_gt(cutoff, curr->playout)) {
                         /* About to erase a block an iterator is using! */
+#ifndef NDEBUG
                         for(i = 0; i < n_iterators; i++) {
                                 assert(iterators[i].node != curr);
                         }
@@ -430,6 +436,7 @@ pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
                         removed ++;
                 }
         }
+        
         return removed;
 }
 
@@ -485,4 +492,10 @@ pb_iterator_get_ts(pb_iterator_t *pbi, ts_t *ts)
                 return TRUE;
         }
         return FALSE;
+}
+
+struct s_pb*
+pb_iterator_get_playout_buffer(pb_iterator_t *pbi)
+{
+        return pbi->buffer;
 }
