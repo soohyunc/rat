@@ -78,11 +78,11 @@ int              source_add_packet (struct s_source *src,
                                     u_int32          pckt_len,
                                     u_char          *data_start,
                                     u_int8           payload,
-                                    u_int32          playout);
+                                    ts_t             playout);
 
 int              source_process        (struct s_source *src,
                                         int              repair,
-                                        u_int32          now);
+                                        ts_t             now);
 
 u_int32          source_buffer_length_ms (struct s_source *src);
 

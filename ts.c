@@ -81,7 +81,7 @@ ticker tickers[] = {
 
 #define TS_CHECK_BITS 0x07
 
-ts_t
+__inline ts_t
 ts_map32(u_int32 freq, u_int32 ticks32)
 {
         u_int32 i;
@@ -102,7 +102,7 @@ ts_map32(u_int32 freq, u_int32 ticks32)
         return out;
 }
 
-static ts_t
+__inline static ts_t
 ts_rebase(u_int32 new_idx, ts_t t)
 {
         /* Use 64 bit quantity as temporary since 
@@ -130,7 +130,7 @@ ts_rebase(u_int32 new_idx, ts_t t)
         return t;
 }
 
-int
+__inline int
 ts_gt(ts_t t1, ts_t t2)
 {
         u_int32 half_range, x1, x2;
@@ -157,7 +157,7 @@ ts_gt(ts_t t1, ts_t t2)
         }
 }
 
-int
+__inline int
 ts_eq(ts_t t1, ts_t t2)
 {
         assert(ts_valid(t1));
@@ -173,7 +173,7 @@ ts_eq(ts_t t1, ts_t t2)
         return (t2.ticks == t1.ticks);
 }
 
-ts_t
+__inline ts_t
 ts_add(ts_t t1, ts_t t2)
 {
         u_int32 ticks;
@@ -194,7 +194,7 @@ ts_add(ts_t t1, ts_t t2)
         return t1;
 }
 
-ts_t
+__inline ts_t
 ts_sub(ts_t t1, ts_t t2)
 {
         ts_t out;
@@ -228,7 +228,7 @@ ts_sub(ts_t t1, ts_t t2)
         return out;
 }
 
-ts_t
+__inline ts_t
 ts_abs_diff(ts_t t1, ts_t t2)
 {
         if (ts_gt(t1, t2)) {
@@ -238,7 +238,7 @@ ts_abs_diff(ts_t t1, ts_t t2)
         }
 }
 
-ts_t 
+__inline ts_t 
 ts_convert(u_int32 new_freq, ts_t ts)
 {
         u_int32 i;
@@ -258,7 +258,7 @@ ts_convert(u_int32 new_freq, ts_t ts)
         return out;
 }
 
-int 
+__inline int 
 ts_valid(ts_t t1)
 {
         return ((unsigned)t1.idx < TS_NUM_TICKERS && 
@@ -266,10 +266,96 @@ ts_valid(ts_t t1)
                 (unsigned)t1.ticks < tickers[t1.idx].wrap);
 }
 
-u_int32
+__inline u_int32
 ts_get_freq(ts_t t1)
 {
         assert(ts_valid(t1));
         return tickers[t1.idx].freq;
 }
+
+/* ts_map32_in and ts_map32_out are used to map between 32bit clock
+ * and timestamp type which is modulo M.  Because the boundaries of
+ * the timestamping wraps do not coincide, we cache last translated
+ * value and add relative difference to other timestamp.  The application
+ * does not then have to deal with discontinuities in timestamps.
+ */
+
+#define TS_WRAP_32 0x7fffffff
+
+static __inline
+int ts32_gt(u_int32 a, u_int32 b)
+{
+        u_int32 diff;
+        diff = a - b;
+        return (diff < TS_WRAP_32 && diff != 0);
+}
+
+ts_t
+ts_seq32_in(ts_sequencer *s, u_int32 freq, u_int32 curr_32)
+{
+        u_int32 delta_32;
+        ts_t    delta_ts; 
+
+        /* Inited or freq changed check */
+        if (s->freq != freq || !ts_valid(s->last_ts)) {
+                s->last_ts = ts_map32(freq, 0);
+                s->last_32 = curr_32;
+                s->freq    = freq;
+                return s->last_ts;
+        }
+
+        /* Find difference in 32 bit timestamps, scale to ts_t size
+         * and add to last returned timestamp.
+         */
+        
+        if (ts32_gt(curr_32, s->last_32)) {
+                delta_32   = curr_32 - s->last_32;
+                delta_ts   = ts_map32(freq, delta_32);
+                s->last_ts = ts_add(s->last_ts, delta_ts);
+        } else {
+                delta_32   = s->last_32 - curr_32;
+                delta_ts   = ts_map32(freq, delta_32);
+                s->last_ts = ts_sub(s->last_ts, delta_ts);
+        }
+        
+        s->last_32 = curr_32;
+        return s->last_ts;
+}
+
+u_int32
+ts_seq32_out(ts_sequencer *s, u_int32 freq, ts_t curr_ts)
+{
+        u_int32 delta_32;
+        ts_t    delta_ts; 
+
+        /* Inited or freq change check */
+        if (s->freq != freq || !ts_valid(s->last_ts)) {
+                s->last_ts = curr_ts;
+                s->last_32 = 0;
+                s->freq    = freq;
+                return s->last_32;
+        }
+
+        if (ts_gt(curr_ts, s->last_ts)) {
+                delta_ts   = ts_sub(curr_ts, s->last_ts);
+                delta_32   = delta_ts.ticks * ts_get_freq(delta_ts) / freq;
+                s->last_32 = s->last_32 + delta_32;
+        } else {
+                delta_ts   = ts_sub(s->last_ts, curr_ts);
+                delta_32   = delta_ts.ticks * ts_get_freq(delta_ts) / freq;
+                s->last_32 = s->last_32 - delta_32;
+        }
+
+        s->last_ts = curr_ts;
+        return s->last_32;
+}
+
+
+
+
+
+
+
+
+
 

@@ -38,6 +38,7 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
+#include "ts.h"
 #include "pckt_queue.h"
 #include "util.h"
 #include "audio.h"

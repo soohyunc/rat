@@ -368,27 +368,6 @@ rtp_header_validation(rtp_hdr_t *hdr, int32 *len, int *extlen)
 	return (TRUE);
 }
 
-/* Statistics _init and _end allocate good_pckt_queue which is used
- * as a temporary queue in rtp packet processing.
- */
-
-static struct s_pckt_queue *good_pckt_queue;
-
-void 
-statistics_init()
-{
-        if (good_pckt_queue != NULL) {
-                statistics_free();
-        }
-        good_pckt_queue = pckt_queue_create(PCKT_QUEUE_RTP_LEN);
-}
-
-void
-statistics_free()
-{
-        pckt_queue_destroy(&good_pckt_queue);
-}
-
 static int
 statistics_channel_extract(rtcp_dbentry *dbe,
                            u_int8        pt,
@@ -454,33 +433,24 @@ statistics(session_struct          *sp,
 	 * to later modules - put a dummy unit(s) on the queue for the receive
 	 * buffer
          * 
-         * Added split between netrx_pckt_queue and good_pckt_queue.
-         * Basically, packets on the netrx_pckt_queue are validated
-         * and have their playout calculated before being placed on
-         * good_pckt_queue.  If all of the packets on the
-         * good_pckt_queue will fail playout because calculation is
-         * wrong (probably because delay estimate or jitter has
-         * suddenly changed) then we up their playout so that they get
-         * played out, rather than wait for cont_toged count to go up.
-         * This is only really necessary when processing packets at
-         * rates other than 8kHz.  
          */
 
-	rtp_hdr_t	*hdr;
-	u_char		*data_ptr;
-	int		 len;
-	rtcp_dbentry	*sender = NULL;
-	u_int32		 now, now_device, late_adjust;
+	rtp_hdr_t	   *hdr;
+	u_char		   *data_ptr;
+	int		    len;
+	rtcp_dbentry	   *sender = NULL;
+        const audio_format* af;
+
 	pckt_queue_element *pckt;
         struct s_source *src;
-        int pkt_cnt = 0, late_cnt;
+        int pkt_cnt = 0;
 
-        now_device  = get_time(sp->device_clock);
-        late_adjust = 0;
-        late_cnt    = 0;
+
+        af = audio_get_ofmt(sp->audio_device);
 
 	/* Process incoming packets */
         while( (pckt = pckt_dequeue(rtp_pckt_queue)) != NULL ) {
+                pkt_cnt++;
                 block_trash_check();
                 /* Impose RTP formating on it... */
                 hdr = (rtp_hdr_t *) (pckt->pckt_ptr);
@@ -535,42 +505,8 @@ statistics(session_struct          *sp,
 
                 pckt->sender  = sender;
                 pckt->playout = adapt_playout(hdr, pckt->arrival_timestamp, sender, sp, cushion, real_time);
-
-                /* Is this packet going to be played out late */
-                now = convert_time(now_device, sp->device_clock, sender->clock);
-                if (ts_gt(now, pckt->playout)) {
-                        late_cnt ++;
-                        late_adjust = max(late_adjust, ts_abs_diff(now, pckt->playout));
-                }
                 
-                pckt_enqueue(good_pckt_queue, pckt);
-
-                pkt_cnt++;
-                continue;
-        release:
-                block_trash_check();
-                pckt_queue_element_free(&pckt);
-        }
-
-        if (late_cnt) {
-                /* Would we through away all the data packets in the queue ? */
-                debug_msg("Late %d / %d\n", late_cnt, pkt_cnt);
-                if (late_cnt * sender->units_per_packet > 4 || sender->units_per_packet == 0) {
-                        /* this would fail the cont_toged test */
-                        debug_msg("Would fail cont_toged test so adapting (%u samples)\n", late_adjust);
-                        sender->playout += late_adjust;
-                } else {
-                        late_adjust  = 0;
-                } 
-                late_adjust = 0;
-        }
-
-        while( (pckt = pckt_dequeue(good_pckt_queue)) != NULL) {
-                block_trash_check();
-
                 if ((src = source_get(sp->active_sources, pckt->sender)) == NULL) {
-                        const audio_format* af;
-                        af = audio_get_ofmt(sp->audio_device);
                         src = source_create(sp->active_sources, 
                                             pckt->sender,
                                             sp->converter,
@@ -579,21 +515,18 @@ statistics(session_struct          *sp,
                         assert(src != NULL);
                 }
 
-                hdr      = (rtp_hdr_t*)pckt->pckt_ptr;
-                data_ptr = (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
-                len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
-
                 if (source_add_packet(src, 
                                       pckt->pckt_ptr, 
                                       pckt->len, 
                                       data_ptr, 
                                       hdr->pt, 
-                                      pckt->playout + late_adjust) == TRUE) {
-                        /* Source is now repsonsible for packet so empty pointers */
+                                      pckt->playout) == TRUE) {
+                        /* Source is now repsonsible for packet so
+                         * empty pointers */
                         pckt->pckt_ptr = NULL;
                         pckt->len      = 0;
                 }
-
+        release:
                 block_trash_check();
                 pckt_queue_element_free(&pckt);
         }

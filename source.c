@@ -39,6 +39,7 @@
 #include "config_unix.h"
 #include "config_win32.h"
 
+#include "ts.h"
 #include "playout.h"
 
 #include "new_channel.h"
@@ -66,13 +67,13 @@
 
 #define HISTORY 1000
 
-void mix_add_audio(struct s_rtcp_dbentry*,coded_unit *,u_int32);
+void mix_add_audio(struct s_rtcp_dbentry*, coded_unit *, ts_t);
 
 typedef struct s_source {
         struct s_source            *next;
         struct s_source            *prev;
         u_int32                     age;
-        u_int32                     last_played;
+        ts_t                        last_played;
         struct s_rtcp_dbentry      *dbe;
         struct s_channel_state     *channel_state;
         struct s_codec_state_store *codec_states;
@@ -187,7 +188,7 @@ source_create(source_list    *plist,
         /* Allocate channel and media buffers */
         success = playout_buffer_create(&psrc->channel,
                                         (playoutfreeproc)channel_data_destroy,
-                                        0);
+                                        ts_map32(8000,0));
 
         if (!success) {
                 debug_msg("Failed to allocate channel buffer\n");
@@ -200,7 +201,7 @@ source_create(source_list    *plist,
          */
         success = playout_buffer_create(&psrc->media,
                                         (playoutfreeproc)media_data_destroy,
-                                        HISTORY);
+                                        ts_map32(8000,HISTORY));
         if (!success) {
                 debug_msg("Failed to allocate media buffer\n");
                 playout_buffer_destroy(&psrc->channel);
@@ -259,7 +260,7 @@ source_add_packet (source *src,
                    u_int32 pckt_len, 
                    u_char *data_start,
                    u_int8  payload,
-                   u_int32 playout)
+                   ts_t    playout)
 {
         channel_data *cd;
         channel_unit *cu;
@@ -272,8 +273,8 @@ source_add_packet (source *src,
         if (src->age != 0 &&
             ts_gt(src->last_played, playout)) {
                 debug_msg("Packet late (%u > %u)- discarding\n", 
-                          src->last_played,
-                          playout);
+                          src->last_played.ticks,
+                          playout.ticks);
                 /* Up src->dbe jitter toged */
                 return FALSE;
         }
@@ -313,12 +314,13 @@ source_add_packet (source *src,
 }
 
 int
-source_process(source *src, int repair_type, u_int32 now)
+source_process(source *src, int repair_type, ts_t now)
 {
         media_data  *md;
         coded_unit  *cu;
         codec_state *cs;
-        u_int32     playout, md_len, step;
+        u_int32     md_len, src_freq;
+        ts_t        playout, step, cutoff;
         int         i, success;
 
         /* Split channel coder units up into media units */
@@ -327,7 +329,8 @@ source_process(source *src, int repair_type, u_int32 now)
                                src->media,
                                now);
 
-        step = src->dbe->inter_pkt_gap / src->dbe->units_per_packet;
+        src_freq = get_freq(src->dbe->clock);
+        step = ts_map32(src_freq,src->dbe->inter_pkt_gap / src->dbe->units_per_packet);
 
         while(playout_buffer_get(src->media, 
                                  (u_char**)&md, 
@@ -336,11 +339,13 @@ source_process(source *src, int repair_type, u_int32 now)
                 assert(md != NULL);
                 assert(md_len == sizeof(media_data));
 
+                cutoff = ts_add(src->last_played, 
+                                ts_map32(src_freq, HISTORY));
                 if (src->age != 0 && 
-                    playout != src->last_played + step &&
-                    ts_gt(src->last_played + HISTORY, playout)) {
+                    ts_eq(playout, ts_add(src->last_played, step)) &&
+                    ts_gt(cutoff, playout)) {
                         media_data* md_filler;
-                        u_int32     curr = playout;
+                        ts_t        curr = playout;
                         int         lost = 0;
 
                         /* Rewind to last_played */
@@ -352,7 +357,7 @@ source_process(source *src, int repair_type, u_int32 now)
                                 assert(md != NULL);
                         }
 
-                        curr = playout + step;
+                        curr = ts_add(playout, step);
 
                         while(ts_gt(curr, playout)) {
                                 media_data_create(&md_filler, 1);
@@ -366,7 +371,7 @@ source_process(source *src, int repair_type, u_int32 now)
                                                              sizeof(media_data),
                                                              curr);
                                 assert(success);
-                                curr += step;
+                                curr = ts_add(curr, step);
                                 md = md_filler;
                         }
 

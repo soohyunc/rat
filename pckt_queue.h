@@ -52,7 +52,7 @@ typedef struct {
 	int32                   len;
 	u_int32                 arrival_timestamp;
         u_int32                 extlen;
-        u_int32                 playout;
+        ts_t                    playout;
         struct  s_rtcp_dbentry *sender;
 } pckt_queue_element;
 

@@ -12,7 +12,7 @@ CODEC_OBJS = ../codec.o ../codec_state.o ../codec_adpcm.o ../codec_gsm.o \
 
 CHANNEL_OBJS = ../cc_vanilla.o ../new_channel.o ../channel_types.o
 
-UTIL_OBJS = ../timers.o ../playout.o
+UTIL_OBJS = ../timers.o ../playout.o ../ts.o
 
 3D_OBJS = test_3d.o ../render_3D.o
 
@@ -28,6 +28,9 @@ test_channel: $(CODEC_OBJS) $(CHANNEL_OBJS) $(UTIL_OBJS) test_channel.o
 
 test_codecs: $(CODEC_OBJS) test_codecs.o
 	$(CC) $(DEBUG)  -o $@ $(CODEC_OBJS) $(LIBS) test_codecs.o
+
+test_ts: $(UTIL_OBJS) test_ts.o
+	$(CC) $(DEBUG)  -o $@ $(UTIL_OBJS) $(LIBS) test_ts.o
 
 .c.o:
 	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
