@@ -113,9 +113,10 @@ repetition(sample             **audio_buf,
         return TRUE;
 }
 
-/* Repetition plus - reverse mix last samples from previous frame with current to
- * avoid discontinuity at the frame borders.
+/* Repetition plus - reverse mix last samples from previous frame with
+ * current to avoid discontinuity at the frame borders.  
  */
+
 #define REVERSE_SAMPLES 12
 static int
 repetition_plus(sample             **audio_buf, 
@@ -125,7 +126,7 @@ repetition_plus(sample             **audio_buf,
                 int                  consec_lost)
 {
         sample  r[REVERSE_SAMPLES];
-        uint32_t n, samples_per_block, success;
+        uint32_t i,n, samples_per_block, success;
 
         n = sizeof(r)/sizeof(r[0]);
         samples_per_block = audio_fmt[missing - 1]->bytes_per_block /  
@@ -134,6 +135,11 @@ repetition_plus(sample             **audio_buf,
         success = repetition(audio_buf, audio_fmt, nbufs, missing, consec_lost);
 
         if (success && samples_per_block >= n) {
+		/* Copy and reverse end of previous block. */
+		for(i = 1; i <= n; i++) {
+			r[i] = audio_buf[missing - 1][samples_per_block - i];
+		}
+		/* Fade out reversed copy segment of previous block. */
                 audio_blend(r, audio_buf[missing], audio_buf[missing], n, audio_fmt[missing - 1]->channels);
         }
         
@@ -446,6 +452,7 @@ repair(repair_id_t                 r,
                 bufs[1] = (sample*) missing->data;
                 
                 schemes[r].action(bufs, pfmts, 2, 1, consec_lost);
+		bufs[1][0] = 32767;
                 return TRUE;
         } else {
                 debug_msg("No native audio in previous unit to use for repair\n");
