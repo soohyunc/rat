@@ -58,7 +58,7 @@ typedef struct {
         struct s_pb_iterator *media_pos;
         u_int32               units_ready;
         ts_t                  history; /* How much audio history is needed for coding */
-        ts_t                  last_in;
+        ts_t                  last_in; /* timestamp of last media unit accepted */
 } red_enc_state;
 
 int
@@ -189,9 +189,6 @@ make_pdu(struct s_pb_iterator *pbi,
                 success = pb_iterator_get_at(p, (u_char**)&md, &md_len, &playout);
                 assert(success); /* We could rewind this far so must be able to get something! */
 
-#ifdef DEBUG_REDUNDANCY
-                debug_msg("playout %d\n", playout.ticks);
-#endif /* DEBUG_REDUNDANCY */
                 /* Find first compatible coding */
                 for(j = 0; j < md->nrep && md->rep[j]->id != cid; j++);
                 if (j == md->nrep) {
@@ -344,44 +341,53 @@ redundancy_encoder_encode (u_char      *state,
         assert(upp != 0 && upp <= MAX_UNITS_PER_PACKET);
 
         pb_iterator_create(in, &pi);
-        assert(pi != NULL);
 
-        while(pb_iterator_advance(pi)) {
+        assert(pi != NULL);
+        pb_iterator_advance(pi);
+        while(pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout)) {
                 /* Remove element from playout buffer - it belongs to
                  * the redundancy encoder now.  */
-                pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout);
-                debug_msg("claimed %d\n", playout.ticks);
+#ifdef DEBUG_REDUNDANCY
+                debug_msg("claimed %d, prev %d\n", playout.ticks, re->last_in.ticks);
+#endif /* DEBUG_REDUNDANCY */
                 assert(m != NULL);
+
+                if (re->units_ready == 0) {
+                        re->last_in = playout;
+                        re->last_in.ticks--;
+                }
+
+                assert(ts_gt(playout, re->last_in));
+                re->last_in = playout;
 
                 if (m->nrep > 0) {
                         pb_add(re->media_buffer, 
                                (u_char*)m,
                                m_len,
                                playout);
+                        re->units_ready++;
                 } else {
                         /* Incoming unit has no data so transmission is
                          * not happening.
                          */
+#ifdef DEBUG_REDUNDANCY
+                        debug_msg("No incoming data\n");
+#endif /* DEBUG_REDUNDANCY */
                         media_data_destroy(&m, sizeof(media_data));
                         pb_flush(re->media_buffer);
                         re->units_ready = 0;
                         continue;
                 }
 
-                if (re->units_ready == 0) {
-                        re->last_in = playout;
-                        re->last_in.ticks--;
-                }
-                assert(ts_gt(playout, re->last_in));
-
-                re->units_ready++;
-
-                if ((re->units_ready % upp) == 0) {
+                if (re->units_ready && (re->units_ready % upp) == 0) {
                         channel_data *cd;
                         int s;
                         cd = redundancy_encoder_output(re, upp);
                         assert(cd != NULL);
                         s  = pb_add(out, (u_char*)cd, sizeof(channel_data), playout);
+#ifdef DEBUG_REDUNDANCY 
+                        debug_msg("Ready %d, Added %d\n", re->units_ready, playout.ticks);
+#endif /* DEBUG_REDUNDANCY */
                         assert(s);
                 }
         }
