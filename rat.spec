@@ -1,12 +1,16 @@
-Summary: UCL Robust-Audio Tool
-Name: rat
-Version: VERSION
-Release: 1
-Source: http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/VERSION/rat-VERSION.tar.gz
+%define name rat
+%define version 4.2.23
+%define release ipv6
+
+Name: %{name}
+Summary: UCL Robust Audio Tool
+Version: %{version}
+Release: %{release}
+Group: Applications/Internet
 Copyright: Copyright (c) 1995-2000 University College London
-Group: X11/Applications/Networking
-Packager: Colin Perkins <c.perkins@cs.ucl.ac.uk>
-Summary: RAT - unicast and multicast voice-over-IP application
+URL: http://www-mice.cs.ucl.ac.uk/multimedia/software/%{name}/
+Source: http://www-mice.cs.ucl.ac.uk/multimedia/software/%{name}/releases/%{version}/%{name}-%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{name}-root
 
 %description
 RAT is the premier open source voice-over-IP
@@ -39,49 +43,50 @@ with the Session Directory (SDR), or a similar application.
 See http://www-mice.cs.ucl.ac.uk/multimedia/software/rat
 
 %prep
-
-%setup
+%setup -q
 
 %build
-
-cd rat
-cd ../tcl-8.0/unix
-./configure
+cd tcl-8.0/unix
+%configure
 make
 cd ../../tk-8.0/unix
-./configure
+%configure
 make
 cd ../../common
-./configure
+%configure --enable-ipv6
 make
 cd ../rat
-./configure
+%configure --sysconfdir=/etc --mandir=%{_mandir} --enable-ipv6
 make
-cd ..
 
 %install
+rm -rf $RPM_BUILD_ROOT
+mkdir -p $RPM_BUILD_ROOT{%{_prefix}{/bin,/sbin,/lib},%{_mandir}/man1}
+mkdir -p $RPM_BUILD_ROOT%{_prefix}/local/etc/sdr/plugins
+cd rat
+%makeinstall prefix=$RPM_BUILD_ROOT%{_prefix}/local
+cd $RPM_BUILD_ROOT%{_bindir}
+ln -sf %{name}-%{version} %{name}
 
-install -m 755 rat/rat-VERSION 		/usr/bin/rat-VERSION
-install -m 755 rat/rat-VERSION-media 	/usr/bin/rat-VERSION-media
-install -m 755 rat/rat-VERSION-ui 	/usr/bin/rat-VERSION-ui
+%clean
+rm -rf $RPM_BUILD_ROOT
 
-install -m 755 -d /usr/doc/rat-VERSION
-install -m 644 rat/README    		/usr/doc/rat-VERSION/README
-install -m 644 rat/README.devices	/usr/doc/rat-VERSION/README.devices
-install -m 644 rat/README.files		/usr/doc/rat-VERSION/README.files
-install -m 644 rat/README.gsm		/usr/doc/rat-VERSION/README.gsm
-install -m 644 rat/README.mbus		/usr/doc/rat-VERSION/README.mbus
-install -m 644 rat/README.playout	/usr/doc/rat-VERSION/README.playout
-install -m 644 rat/README.timestamps	/usr/doc/rat-VERSION/README.timestamps
-
-install -m 644 rat/man/man1/rat.1	/usr/man/man1/rat.1
 
 %files 
-/usr/bin/rat-VERSION
-/usr/bin/rat-VERSION-media
-/usr/bin/rat-VERSION-ui
-/usr/man/man1/rat.1
+%defattr(-,root,root)
+%doc %{name}/README %{name}/README.devices %{name}/README.files
+%doc %{name}/README.gsm %{name}/README.mbus %{name}/README.playout
+%doc %{name}/README.timestamps %{name}/COPYRIGHT
+/usr/local/etc/sdr/plugins/*
+%{_prefix}/bin/*
+%{_mandir}/*/*
 
-%doc rat/README rat/README.devices rat/README.files rat/README.gsm rat/README.mbus
-%doc rat/README.playout rat/README.timestamps rat/COPYRIGHT
+%changelog
+* Mon Mar 24 2003 Kristian Hasler <k.hasler@cs.ucl.ac.uk>
+- ipv6 build is default
+- RAT SDR plugin is installed in /usr/local/etc/sdr/plugins
+- now uses makefile to install files
+
+* Tue Jan 04 2000 Colin Perkins <c.perkins@cs.ucl.ac.uk>
+- initial build
 
