@@ -1097,6 +1097,6 @@ void mbus_engine_retransmit(void)
 
 int mbus_engine_waiting(void) 
 {
-        return mbus_waiting_acks(mbus_base) | mbus_waiting_acks(mbus_chan);
+        return mbus_waiting_ack(mbus_base) | mbus_waiting_ack(mbus_chan);
 }
 

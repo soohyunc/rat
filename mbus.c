@@ -50,19 +50,16 @@
 #define MBUS_MAX_QLEN	50		/* Number of messages we can queue with mbus_qmsg() */
 #define MBUS_MAX_IF	16
 
-struct mbus_ack {
-	struct mbus_ack	*next;
-	struct mbus_ack	*prev;
-	char		*srce;
+struct mbus_msg {
+	struct mbus_msg	*next;
+	struct timeval	time;
 	char		*dest;
-	char		*cmnd;
-	char		*args;
-	int		 seqn;
-	struct timeval	 time;	/* Used to determine when to request retransmissions, etc... */
+	int		 reliable;
+	int		 seqnum;
 	int		 rtcnt;
-	int		 qmsg_size;
-	char		*qmsg_cmnd[MBUS_MAX_QLEN];
-	char		*qmsg_args[MBUS_MAX_QLEN];
+	int		 num_cmds;
+	char		*cmd_list[MBUS_MAX_QLEN];
+	char		*arg_list[MBUS_MAX_QLEN];
 };
 
 struct mbus {
@@ -73,14 +70,10 @@ struct mbus {
 	char		*parse_buffer[MBUS_MAX_PD];
 	int		 parse_depth;
 	int		 seqnum;
-	struct mbus_ack	*ack_list;
-	int		 ack_list_size;
 	void (*cmd_handler)(char *src, char *cmd, char *arg, void *dat);
 	void (*err_handler)(int seqnum);
-	int		 qmsg_size;
-	char		*qmsg_cmnd[MBUS_MAX_QLEN];
-	char		*qmsg_args[MBUS_MAX_QLEN];
-	u_int32	 	 interfaces[MBUS_MAX_IF];
+	struct mbus_msg	*cmd_queue;
+	struct mbus_msg	*waiting_ack;
 };
 
 static int mbus_addr_match(char *a, char *b)
@@ -89,21 +82,21 @@ static int mbus_addr_match(char *a, char *b)
 	assert(b != NULL);
 
 	while ((*a != '\0') && (*b != '\0')) {
-		while (isspace((u_char)*a)) a++;
-		while (isspace((u_char)*b)) b++;
+		while (isspace((unsigned char)*a)) a++;
+		while (isspace((unsigned char)*b)) b++;
 		if (*a == '*') {
 			a++;
-			if ((*a != '\0') && !isspace((u_char)*a)) {
+			if ((*a != '\0') && !isspace((unsigned char)*a)) {
 				return FALSE;
 			}
-			while(!isspace((u_char)*b) && (*b != '\0')) b++;
+			while(!isspace((unsigned char)*b) && (*b != '\0')) b++;
 		}
 		if (*b == '*') {
 			b++;
-			if ((*b != '\0') && !isspace((u_char)*b)) {
+			if ((*b != '\0') && !isspace((unsigned char)*b)) {
 				return FALSE;
 			}
-			while(!isspace((u_char)*a) && (*a != '\0')) a++;
+			while(!isspace((unsigned char)*a) && (*a != '\0')) a++;
 		}
 		if (*a != *b) {
 			return FALSE;
@@ -114,199 +107,69 @@ static int mbus_addr_match(char *a, char *b)
 	return TRUE;
 }
 
-static void mbus_ack_list_check(struct mbus *m) 
+static void resend(struct mbus *m, struct mbus_msg *curr) 
 {
-#ifndef NDEBUG
-	struct mbus_ack *curr = m->ack_list;
-	int		 i    = 0, j;
+	char	 buffer[MBUS_BUF_SIZE];
+	char	*bufp = buffer;
+	int	 i;
 
-	assert(((m->ack_list == NULL) && (m->ack_list_size == 0)) || ((m->ack_list != NULL) && (m->ack_list_size > 0)));
-	while (curr != NULL) {
-		if (curr->prev != NULL) assert(curr->prev->next == curr);
-		if (curr->next != NULL) assert(curr->next->prev == curr);
-		if (curr->prev == NULL) assert(curr == m->ack_list);
-                assert(curr->qmsg_size < MBUS_MAX_QLEN);
-                for(j = 0; j < curr->qmsg_size; j++) {
-                        assert(curr->qmsg_cmnd[j] != NULL);
-                        assert(curr->qmsg_args[j] != NULL);
-                }
-		curr = curr->next;
-		i++;
+	/* Don't need to check for buffer overflows: this was done in mbus_send() when */
+	/* this message was first transmitted. If it was okay then, it's okay now.     */
+	memset(buffer, 0, MBUS_BUF_SIZE);
+	sprintf(bufp, "mbus/1.0 %6d %c (%s) %s ()\n", curr->seqnum, curr->reliable?'R':'U', m->addr[0], curr->dest);
+	bufp += strlen(m->addr[0]) + strlen(curr->dest) + 25;
+	for (i = 0; i < curr->num_cmds; i++) {
+		sprintf(bufp, "%s (%s)\n", curr->cmd_list[i], curr->arg_list[i]);
+		bufp += strlen(curr->cmd_list[i]) + strlen(curr->arg_list[i]) + 4;
 	}
-	assert(i == m->ack_list_size);
-	assert(m->ack_list_size >= 0);
-#else 
-	UNUSED(m);
-#endif
-}
-
-static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, const char *cmnd, const char *args, int seqnum)
-{
-	struct mbus_ack	*curr = (struct mbus_ack *) xmalloc(sizeof(struct mbus_ack));
-	int		 i;
-
-	assert(srce != NULL);
-	assert(dest != NULL);
-	assert(cmnd != NULL);
-	assert(args != NULL);
-
-	mbus_ack_list_check(m);
-
-	mbus_parse_init(m, xstrdup(dest));
-	mbus_parse_lst(m, &(curr->dest));
-	mbus_parse_done(m);
-
-	curr->next = m->ack_list;
-	curr->prev = NULL;
-	curr->srce = xstrdup(srce);
-	curr->cmnd = xstrdup(cmnd);
-	curr->args = xstrdup(args);
-	curr->seqn = seqnum;
-	curr->rtcnt= 0;
-	gettimeofday(&(curr->time), NULL);
-	curr->qmsg_size = m->qmsg_size;
-	for (i = 0; i < m->qmsg_size; i++) {
-		curr->qmsg_cmnd[i] = xstrdup(m->qmsg_cmnd[i]);
-		curr->qmsg_args[i] = xstrdup(m->qmsg_args[i]);
-	}
-
-	if (m->ack_list != NULL) {
-		m->ack_list->prev = curr;
-	}
-	m->ack_list = curr;
-	m->ack_list_size++;
-	mbus_ack_list_check(m);
-}
-
-static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seqnum)
-{
-	/* This would be much more efficient if it scanned from last to first, since     */
-	/* we're most likely to receive ACKs in LIFO order, and this assumes FIFO...     */
-	/* We hope that the number of outstanding ACKs is small, so this doesn't matter. */
-	struct mbus_ack	*curr = m->ack_list;
-	int		 i;
-
-	mbus_ack_list_check(m);
-	while (curr != NULL) {
-		if (mbus_addr_match(curr->srce, dest) && mbus_addr_match(curr->dest, srce) && (curr->seqn == seqnum)) {
-			assert(m->ack_list_size > 0);
-			m->ack_list_size--;
-			xfree(curr->srce);
-			xfree(curr->dest);
-			xfree(curr->cmnd);
-			xfree(curr->args);
-			for (i=0; i < curr->qmsg_size; i++) {
-				xfree(curr->qmsg_cmnd[i]);
-				xfree(curr->qmsg_args[i]);
-			}
-			if (curr->next != NULL) curr->next->prev = curr->prev;
-			if (curr->prev != NULL) curr->prev->next = curr->next;
-			if (m->ack_list == curr) {
-				assert(curr->prev == NULL);
-				if (curr->next != NULL) assert(curr->next->prev == NULL);
-				m->ack_list = curr->next;
-			}
-			xfree(curr);
-			mbus_ack_list_check(m);
-			return;
-		}
-		curr = curr->next;
-	}
-	mbus_ack_list_check(m);
-	/* If we get here, it's an ACK for something that's not in the ACK
-	 * list. That's not necessarily a problem, could just be a duplicate
-	 * ACK for a retransmission... We ignore it for now...
-	 */
-#ifdef DEBUG_MBUS
-        debug_msg("Got an ACK for something not in our ACK list...\n");
-#endif
-}
-
-static void mbus_send_ack(struct mbus *m, char *dest, int seqnum)
-{
-	char			buffer[96];
-
-	sprintf(buffer, "mbus/1.0 %d U (%s) (%s) (%d)\n", ++m->seqnum, m->addr[0], dest, seqnum);
-	udp_send(m->s, buffer, strlen(buffer));
-}
-
-static void resend(struct mbus *m, struct mbus_ack *curr) 
-{
-	char			*b, *bp;
-	int			 i;
-        
-	b  = (char *) xmalloc(MBUS_BUF_SIZE);
-	bp = b;
-	sprintf(bp, "mbus/1.0 %6d R (%s) (%s) ()\n", curr->seqn, curr->srce, curr->dest);
-	bp += strlen(curr->srce) + strlen(curr->dest) + 28;
-	for (i = 0; i < curr->qmsg_size; i++) {
-		sprintf(bp, "%s (%s)\n", curr->qmsg_cmnd[i], curr->qmsg_args[i]);
-		bp += strlen(curr->qmsg_cmnd[i]) + strlen(curr->qmsg_args[i]) + 4;
-		xfree(curr->qmsg_cmnd[i]); curr->qmsg_cmnd[i] = NULL;
-		xfree(curr->qmsg_args[i]); curr->qmsg_args[i] = NULL;
-	}
-        curr->qmsg_size = 0;
-        
-        sprintf(bp, "%s (%s)\n", curr->cmnd, curr->args);
-	bp += strlen(curr->cmnd) + strlen(curr->args) + 4;
-	udp_send(m->s, b, strlen(b));
+	debug_msg("### resending %d\n", curr->seqnum);
+	udp_send(m->s, buffer, bufp - buffer);
 	curr->rtcnt++;
-        xfree(b);
-}
-
-int mbus_waiting_acks(struct mbus *m)
-{
-	/* Returns TRUE if we are waiting for ACKs for any reliable
-	 * messages we sent out.
-	 */
-	mbus_ack_list_check(m);
-	if (m->ack_list != NULL) debug_msg("Waiting for ACKs on mbus 0x%p...\n", m);
-	return (m->ack_list != NULL);
 }
 
 void mbus_retransmit(struct mbus *m)
 {
-	struct mbus_ack	 	*curr = m->ack_list;
-	struct timeval	 	 time;
-	long		 	 diff;
+	struct mbus_msg	*curr = m->waiting_ack;
+	struct timeval	time;
+	long		diff;
 
-	mbus_ack_list_check(m);
+	if (!mbus_waiting_ack(m)) {
+		return;
+	}
 
 	gettimeofday(&time, NULL);
 
-        while (curr != NULL) {
-		/* diff is time in milliseconds that the message has been awaiting an ACK */
-		diff = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - ((curr->time.tv_sec * 1000) + (curr->time.tv_usec / 1000));
-                if (diff > 10000) {
-			debug_msg("Reliable mbus message failed!\n");
-			debug_msg("   mbus/1.0 %d R (%s) %s ()\n", curr->seqn, curr->srce, curr->dest);
-			debug_msg("   %s (%s)\n", curr->cmnd, curr->args);
-                        debug_msg("   waited (%d ms)\n", diff);
-			if (m->err_handler == NULL) {
-				abort();
-			}
-			m->err_handler(curr->seqn);
-			return;
-		} 
-		/* Note: We only send one retransmission each time, to avoid
-		 * overflowing the receiver with a burst of requests...
-		 */
-		if ((diff > 750) && (curr->rtcnt == 2)) {
-			resend(m, curr);
-			return;
-		} 
-		if ((diff > 500) && (curr->rtcnt == 1)) {
-			resend(m, curr);
-			return;
-		} 
-		if ((diff > 250) && (curr->rtcnt == 0)) {
-			resend(m, curr);
-			return;
+	/* diff is time in milliseconds that the message has been awaiting an ACK */
+	diff = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - ((curr->time.tv_sec * 1000) + (curr->time.tv_usec / 1000));
+	if (diff > 1000) {
+		debug_msg("Reliable mbus message failed!\n");
+		if (m->err_handler == NULL) {
+			abort();
 		}
-		curr = curr->next;
+		m->err_handler(curr->seqnum);
+		return;
+	} 
+	/* Note: We only send one retransmission each time, to avoid
+	 * overflowing the receiver with a burst of requests...
+	 */
+	if ((diff > 750) && (curr->rtcnt == 2)) {
+		resend(m, curr);
+		return;
+	} 
+	if ((diff > 500) && (curr->rtcnt == 1)) {
+		resend(m, curr);
+		return;
+	} 
+	if ((diff > 250) && (curr->rtcnt == 0)) {
+		resend(m, curr);
+		return;
 	}
+	curr = curr->next;
+}
 
-        
+int mbus_waiting_ack(struct mbus *m)
+{
+	return m->waiting_ack != NULL;
 }
 
 struct mbus *mbus_init(unsigned short channel, 
@@ -320,17 +183,14 @@ struct mbus *mbus_init(unsigned short channel,
 	m->s		= udp_init("224.255.222.239", 47000 + channel, 0);
 	m->channel	= channel;
 	m->seqnum       = 0;
-	m->ack_list     = NULL;
-	m->ack_list_size= 0;
 	m->cmd_handler  = cmd_handler;
 	m->err_handler	= err_handler;
 	m->num_addr     = 0;
 	m->parse_depth  = 0;
-	m->qmsg_size    = 0;
+	m->cmd_queue	= NULL;
+	m->waiting_ack	= NULL;
 	for (i = 0; i < MBUS_MAX_ADDR; i++) m->addr[i]         = NULL;
 	for (i = 0; i < MBUS_MAX_PD;   i++) m->parse_buffer[i] = NULL;
-	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_cmnd[i]    = NULL;
-	for (i = 0; i < MBUS_MAX_QLEN; i++) m->qmsg_args[i]    = NULL;
 	return m;
 }
 
@@ -346,46 +206,80 @@ void mbus_addr(struct mbus *m, char *addr)
 
 void mbus_send(struct mbus *m)
 {
-	UNUSED(m);
+	/* Send one, or more, messages previosly queued with mbus_qmsg(). */
+	/* Messages for the same destination are batched together. Stops  */
+	/* when a reliable message is sent, until the ACK is received.    */
+	char		 buffer[MBUS_BUF_SIZE];
+	char		*bufp = buffer;
+	struct mbus_msg	*curr = m->cmd_queue;
+	int		 i;
+
+	if (m->waiting_ack != NULL) {
+		debug_msg("Still waiting an ACK, not sending this time...\n");
+		return;
+	}
+
+	while (curr != NULL) {
+		/* FIXME: This code is broken since it doesn't check for overflow of buffer */
+		memset(buffer, 0, MBUS_BUF_SIZE);
+		sprintf(bufp, "mbus/1.0 %6d %c (%s) %s ()\n", curr->seqnum, curr->reliable?'R':'U', m->addr[0], curr->dest);
+		bufp += strlen(m->addr[0]) + strlen(curr->dest) + 25;
+		for (i = 0; i < curr->num_cmds; i++) {
+			sprintf(bufp, "%s (%s)\n", curr->cmd_list[i], curr->arg_list[i]);
+			bufp += strlen(curr->cmd_list[i]) + strlen(curr->arg_list[i]) + 4;
+		}
+		debug_msg("%s", buffer);
+		udp_send(m->s, buffer, bufp - buffer);
+		m->cmd_queue = curr->next;
+		if (curr->reliable) {
+			gettimeofday(&(curr->time), NULL);
+			m->waiting_ack = curr;
+			return;
+		} else {
+			while (curr->num_cmds > 0) {
+				curr->num_cmds--;
+				xfree(curr->cmd_list[curr->num_cmds]);
+				xfree(curr->arg_list[curr->num_cmds]);
+			}
+			xfree(curr->dest);
+			xfree(curr);
+		}
+		curr = m->cmd_queue;
+	}
 }
 
 void mbus_qmsg(struct mbus *m, char *dest, const char *cmnd, const char *args, int reliable)
 {
-	char			*buffer, *bufp;
-	int			 i;
+	/* Queue up a message for sending. The message is not */
+	/* actually sent until mbus_send() is called.         */
+	struct mbus_msg	*curr = m->cmd_queue;
+	struct mbus_msg	*prev = NULL;
 
-	assert(dest != NULL);
-	assert(cmnd != NULL);
-	assert(args != NULL);
-	assert(strlen(cmnd) != 0);
-
-	m->seqnum++;
-
-	if (reliable) {
-		mbus_ack_list_insert(m, m->addr[0], dest, cmnd, args, m->seqnum);
+	while (curr != NULL) {
+		if (mbus_addr_match(curr->dest, dest) && (curr->num_cmds < MBUS_MAX_QLEN)) {
+			curr->num_cmds++;
+			curr->reliable |= reliable;
+			curr->cmd_list[curr->num_cmds-1] = xstrdup(cmnd);
+			curr->arg_list[curr->num_cmds-1] = xstrdup(args);
+			return;
+		}
+		prev = curr;
+		curr = curr->next;
 	}
-
-	buffer           = (char *) xmalloc(MBUS_BUF_SIZE);
-	bufp		 = buffer;
-
-	sprintf(bufp, "mbus/1.0 %6d %c (%s) %s ()\n", m->seqnum, reliable?'R':'U', m->addr[0], dest);
-	bufp += strlen(m->addr[0]) + strlen(dest) + 25;
-	for (i = 0; i < m->qmsg_size; i++) {
-		sprintf(bufp, "%s (%s)\n", m->qmsg_cmnd[i], m->qmsg_args[i]);
-		bufp += strlen(m->qmsg_cmnd[i]) + strlen(m->qmsg_args[i]) + 4;
-		xfree(m->qmsg_cmnd[i]); m->qmsg_cmnd[i] = NULL;
-		xfree(m->qmsg_args[i]); m->qmsg_args[i] = NULL;
+	curr = (struct mbus_msg *) xmalloc(sizeof(struct mbus_msg));
+	curr->next        = NULL;
+	curr->dest        = xstrdup(dest);
+	curr->rtcnt       = 0;
+	curr->seqnum      = m->seqnum++;
+	curr->reliable    = reliable;
+	curr->num_cmds    = 1;
+	curr->cmd_list[0] = xstrdup(cmnd);
+	curr->arg_list[0] = xstrdup(args);
+	if (prev == NULL) {
+		m->cmd_queue = curr;
+	} else {
+		prev->next = curr;
 	}
-	m->qmsg_size -= i;
-	assert(m->qmsg_size == 0);
-	sprintf(bufp, "%s (%s)\n", cmnd, args);
-	bufp += strlen(cmnd) + strlen(args) + 4;
-
-	assert((int) strlen(buffer) == (bufp - buffer));
-
-	udp_send(m->s, buffer, bufp - buffer);
-
-	xfree(buffer);
 }
 
 void mbus_parse_init(struct mbus *m, char *str)
@@ -406,7 +300,7 @@ int mbus_parse_lst(struct mbus *m, char **l)
 	int inlst = FALSE;
 
 	*l = m->parse_buffer[m->parse_depth];
-        while (isspace((u_char)*m->parse_buffer[m->parse_depth])) {
+        while (isspace((unsigned char)*m->parse_buffer[m->parse_depth])) {
                 m->parse_buffer[m->parse_depth]++;
         }
 	if (*m->parse_buffer[m->parse_depth] != '(') {
@@ -436,7 +330,7 @@ int mbus_parse_lst(struct mbus *m, char **l)
 
 int mbus_parse_str(struct mbus *m, char **s)
 {
-        while (isspace((u_char)*m->parse_buffer[m->parse_depth])) {
+        while (isspace((unsigned char)*m->parse_buffer[m->parse_depth])) {
                 m->parse_buffer[m->parse_depth]++;
         }
 	if (*m->parse_buffer[m->parse_depth] != '"') {
@@ -457,14 +351,14 @@ int mbus_parse_str(struct mbus *m, char **s)
 
 static int mbus_parse_sym(struct mbus *m, char **s)
 {
-        while (isspace((u_char)*m->parse_buffer[m->parse_depth])) {
+        while (isspace((unsigned char)*m->parse_buffer[m->parse_depth])) {
                 m->parse_buffer[m->parse_depth]++;
         }
-	if (!isalpha((u_char)*m->parse_buffer[m->parse_depth])) {
+	if (!isalpha((unsigned char)*m->parse_buffer[m->parse_depth])) {
 		return FALSE;
 	}
 	*s = m->parse_buffer[m->parse_depth]++;
-	while (!isspace((u_char)*m->parse_buffer[m->parse_depth]) && (*m->parse_buffer[m->parse_depth] != '\0')) {
+	while (!isspace((unsigned char)*m->parse_buffer[m->parse_depth]) && (*m->parse_buffer[m->parse_depth] != '\0')) {
 		m->parse_buffer[m->parse_depth]++;
 	}
 	*m->parse_buffer[m->parse_depth] = '\0';
@@ -480,7 +374,7 @@ int mbus_parse_int(struct mbus *m, int *i)
 	if (p == m->parse_buffer[m->parse_depth]) {
 		return FALSE;
 	}
-	if (!isspace((u_char)*p) && (*p != '\0')) {
+	if (!isspace((unsigned char)*p) && (*p != '\0')) {
 		return FALSE;
 	}
 	m->parse_buffer[m->parse_depth] = p;
@@ -495,7 +389,7 @@ int mbus_parse_flt(struct mbus *m, double *d)
 	if (p == m->parse_buffer[m->parse_depth]) {
 		return FALSE;
 	}
-	if (!isspace((u_char)*p) && (*p != '\0')) {
+	if (!isspace((unsigned char)*p) && (*p != '\0')) {
 		return FALSE;
 	}
 	m->parse_buffer[m->parse_depth] = p;
@@ -548,9 +442,10 @@ char *mbus_encode_str(const char *s)
 
 int mbus_recv(struct mbus *m, void *data)
 {
-	char			*ver, *src, *dst, *ack, *r, *cmd, *param;
-	char			 buffer[MBUS_BUF_SIZE];
-	int			 buffer_len, seq, i, a, rx;
+	char	*ver, *src, *dst, *ack, *r, *cmd, *param;
+	char	 buffer[MBUS_BUF_SIZE];
+	int	 buffer_len, seq, i, a, rx;
+	char	 ackbuf[96];
 
 	rx = FALSE;
 	while (1) {
@@ -600,12 +495,22 @@ int mbus_recv(struct mbus *m, void *data)
 				/* ...if so, process any ACKs received... */
 				mbus_parse_init(m, ack);
 				while (mbus_parse_int(m, &a)) {
-					mbus_ack_list_remove(m, src, dst, a);
+					if (mbus_waiting_ack(m) && (m->waiting_ack->seqnum == a)) {
+						while (m->waiting_ack->num_cmds > 0) {
+							m->waiting_ack->num_cmds--;
+							xfree(m->waiting_ack->cmd_list[m->waiting_ack->num_cmds]);
+							xfree(m->waiting_ack->arg_list[m->waiting_ack->num_cmds]);
+						}
+						xfree(m->waiting_ack->dest);
+						xfree(m->waiting_ack);
+						m->waiting_ack = NULL;
+					}
 				}
 				mbus_parse_done(m);
 				/* ...if an ACK was requested, send one... */
 				if (strcmp(r, "R") == 0) {
-					mbus_send_ack(m, src, seq);
+					sprintf(ackbuf, "mbus/1.0 %d U (%s) (%s) (%d)\n", ++m->seqnum, m->addr[0], src, seq);
+					udp_send(m->s, ackbuf, strlen(ackbuf));
 				}
 				/* ...and process the commands contained in the message */
 				while (mbus_parse_sym(m, &cmd)) {
