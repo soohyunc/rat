@@ -48,10 +48,10 @@ static void Decoding_of_the_coded_Log_Area_Ratios(
 
 #undef	STEP
 #define	STEP( B, MIC, INVA )	\
-		temp1    = GSM_ADD( *LARc++, MIC ) << 10;	\
-		temp1    = GSM_SUB( temp1, B << 1 );		\
-		temp1    = GSM_MULT_R( INVA, temp1 );		\
-		*LARpp++ = GSM_ADD( temp1, temp1 );
+		temp1    = (word) GSM_ADD( *LARc++, MIC ) << 10;	\
+		temp1    = (word) GSM_SUB( temp1, B << 1 );		\
+		temp1    = (word) GSM_MULT_R( INVA, temp1 );		\
+		*LARpp++ = (word) GSM_ADD( temp1, temp1 );
 
 	STEP(      0,  -32,  13107 );
 	STEP(      0,  -32,  13107 );
@@ -93,8 +93,8 @@ static void Coefficients_0_12(
 	register longword ltmp;
 
 	for (i = 1; i <= 8; i++, LARp++, LARpp_j_1++, LARpp_j++) {
-		*LARp = GSM_ADD( SASR( *LARpp_j_1, 2 ), SASR( *LARpp_j, 2 ));
-		*LARp = GSM_ADD( *LARp,  SASR( *LARpp_j_1, 1));
+		*LARp = (word) GSM_ADD( SASR( *LARpp_j_1, 2 ), SASR( *LARpp_j, 2 ));
+		*LARp = (word) GSM_ADD( *LARp,  SASR( *LARpp_j_1, 1));
 	}
 }
 
@@ -106,7 +106,7 @@ static void Coefficients_13_26(
 	register int i;
 	register longword ltmp;
 	for (i = 1; i <= 8; i++, LARpp_j_1++, LARpp_j++, LARp++) {
-		*LARp = GSM_ADD( SASR( *LARpp_j_1, 1), SASR( *LARpp_j, 1 ));
+		*LARp = (word) GSM_ADD( SASR( *LARpp_j_1, 1), SASR( *LARpp_j, 1 ));
 	}
 }
 
@@ -119,8 +119,8 @@ static void Coefficients_27_39(
 	register longword ltmp;
 
 	for (i = 1; i <= 8; i++, LARpp_j_1++, LARpp_j++, LARp++) {
-		*LARp = GSM_ADD( SASR( *LARpp_j_1, 2 ), SASR( *LARpp_j, 2 ));
-		*LARp = GSM_ADD( *LARp, SASR( *LARpp_j, 1 ));
+		*LARp = (word) GSM_ADD( SASR( *LARpp_j_1, 2 ), SASR( *LARpp_j, 2 ));
+		*LARp = (word) GSM_ADD( *LARp, SASR( *LARpp_j, 1 ));
 	}
 }
 
@@ -164,12 +164,12 @@ static void LARp_to_rp(
 			temp = *LARp == MIN_WORD ? MAX_WORD : -(*LARp);
 			*LARp = - ((temp < 11059) ? temp << 1
 				: ((temp < 20070) ? temp + 11059
-				:  GSM_ADD( temp >> 2, 26112 )));
+				:  (word) GSM_ADD( temp >> 2, 26112 )));
 		} else {
 			temp  = *LARp;
 			*LARp =    (temp < 11059) ? temp << 1
 				: ((temp < 20070) ? temp + 11059
-				:  GSM_ADD( temp >> 2, 26112 ));
+				:  (word) GSM_ADD( temp >> 2, 26112 ));
 		}
 	}
 }
@@ -209,10 +209,10 @@ static void Short_term_analysis_filtering(
 			u[i]  = sav;
 
 			zzz   = GSM_MULT_R(rpi, di);
-			sav   = GSM_ADD(   ui,  zzz);
+			sav   = (word) GSM_ADD(   ui,  zzz);
 
 			zzz   = GSM_MULT_R(rpi, ui);
-			di    = GSM_ADD(   di,  zzz );
+			di    = (word) GSM_ADD(   di,  zzz );
 		}
 
 		*s = di;
@@ -284,7 +284,7 @@ static void Short_term_synthesis_filtering(
 				: 0x0FFFF & (( (longword)tmp1 * (longword)tmp2
 					     + 16384) >> 15)) ;
 
-			sri  = GSM_SUB( sri, tmp2 );
+			sri  = (word) GSM_SUB( sri, tmp2 );
 
 			/* v[i+1] = GSM_ADD( v[i], gsm_mult_r( rrp[i], sri ) );
 			 */
@@ -293,7 +293,7 @@ static void Short_term_synthesis_filtering(
 				: 0x0FFFF & (( (longword)tmp1 * (longword)sri
 					     + 16384) >> 15)) ;
 
-			v[i+1] = GSM_ADD( v[i], tmp1);
+			v[i+1] = (word) GSM_ADD( v[i], tmp1);
 		}
 		*sr++ = v[0] = sri;
 	}

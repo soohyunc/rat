@@ -20,19 +20,22 @@
 word gsm_add(word a, word b)
 {
 	longword sum = (longword)a + (longword)b;
-	return saturate(sum);
+	return (word) saturate(sum);
 }
 
 word gsm_sub(word a, word b)
 {
 	longword diff = (longword)a - (longword)b;
-	return saturate(diff);
+	return (word) saturate(diff);
 }
 
 word gsm_mult(word a, word b)
 {
-	if (a == MIN_WORD && b == MIN_WORD) return MAX_WORD;
-	else return SASR( (longword)a * (longword)b, 15 );
+	if (a == MIN_WORD && b == MIN_WORD) {
+		return MAX_WORD;
+	} else {
+		return (word) SASR( (longword)a * (longword)b, 15 );
+	}
 }
 
 word gsm_mult_r(word a, word b)
@@ -157,9 +160,15 @@ longword gsm_L_asl(longword a, int n)
 
 word gsm_asl(word a, int n)
 {
-	if (n >= 16) return 0;
-	if (n <= -16) return - (longword) (a < 0);
-	if (n < 0) return gsm_asr(a, -n);
+	if (n >= 16) {
+		return 0;
+	}
+	if (n <= -16) {
+		return - (word) (a < 0);
+	}
+	if (n < 0) {
+		return gsm_asr(a, -n);
+	}
 	return a << n;
 }
 
@@ -179,9 +188,15 @@ longword gsm_L_asr(longword a, int n)
 
 word gsm_asr(word a, int n)
 {
-	if (n >= 16) return - (longword) (a < 0);
-	if (n <= -16) return 0;
-	if (n < 0) return a << -n;
+	if (n >= 16) {
+		return - (word) (a < 0);
+	}
+	if (n <= -16) {
+		return 0;
+	}
+	if (n < 0) {
+		return a << -n;
+	}
 
 #	ifdef	SASR
 		return a >> n;

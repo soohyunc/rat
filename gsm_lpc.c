@@ -195,7 +195,9 @@ static void Reflection_coefficients(
 	assert(temp >= 0 && temp < 32);
 
 	/* ? overflow ? */
-	for (i = 0; i <= 8; i++) ACF[i] = SASR( L_ACF[i] << temp, 16 );
+	for (i = 0; i <= 8; i++) {
+		ACF[i] = (word) SASR( L_ACF[i] << temp, 16 );
+	}
 
 	/*   Initialize array P[..] and K[..] for the recursion.
 	 */
@@ -224,14 +226,14 @@ static void Reflection_coefficients(
 		/*  Schur recursion
 		 */
 		temp = GSM_MULT_R( P[1], *r );
-		P[0] = GSM_ADD( P[0], temp );
+		P[0] = (word) GSM_ADD( P[0], temp );
 
 		for (m = 1; m <= 8 - n; m++) {
 			temp     = GSM_MULT_R( K[ m   ],    *r );
-			P[m]     = GSM_ADD(    P[ m+1 ],  temp );
+			P[m]     = (word) GSM_ADD(    P[ m+1 ],  temp );
 
 			temp     = GSM_MULT_R( P[ m+1 ],    *r );
-			K[m]     = GSM_ADD(    K[ m   ],  temp );
+			K[m]     = (word) GSM_ADD(    K[ m   ],  temp );
 		}
 	}
 }
@@ -298,10 +300,10 @@ static void Quantization_and_coding(
 
 #	undef STEP
 #	define	STEP( A, B, MAC, MIC )		\
-		temp = GSM_MULT( A,   *LAR );	\
-		temp = GSM_ADD(  temp,   B );	\
-		temp = GSM_ADD(  temp, 256 );	\
-		temp = SASR(     temp,   9 );	\
+		temp = (word) GSM_MULT( A,   *LAR );	\
+		temp = (word) GSM_ADD(  temp,   B );	\
+		temp = (word) GSM_ADD(  temp, 256 );	\
+		temp = (word) SASR(     temp,   9 );	\
 		*LAR  =  temp>MAC ? MAC - MIC : (temp<MIC ? 0 : temp - MIC); \
 		LAR++;
 

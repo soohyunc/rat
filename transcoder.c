@@ -105,7 +105,7 @@ transcoder_read(int id, sample *buf, int buf_size)
     first_time[id] = 1;
   }
   gettimeofday(&curr_time[id], NULL);
-  read_size = (((curr_time[id].tv_sec - last_time[id].tv_sec) * 1e6) + (curr_time[id].tv_usec - last_time[id].tv_usec)) / 125;
+  read_size = (((curr_time[id].tv_sec - last_time[id].tv_sec) * 1000000) + (curr_time[id].tv_usec - last_time[id].tv_usec)) / 125;
   if (read_size > buf_size) read_size = buf_size;
   for (i=0; i<read_size; i++) {
     buf[i] = L16_AUDIO_ZERO;

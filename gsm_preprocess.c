@@ -85,8 +85,8 @@ void Gsm_Preprocess(
 		/*   Execution of a 31 bv 16 bits multiplication
 		 */
 
-		msp = SASR( L_z2, 15 );
-		lsp = L_z2-((longword)msp<<15); /* gsm_L_sub(L_z2,(msp<<15)); */
+		msp = (word) SASR( L_z2, 15 );
+		lsp = (word) (L_z2-((longword)msp<<15)); /* gsm_L_sub(L_z2,(msp<<15)); */
 
 		L_s2  += GSM_MULT_R( lsp, 32735 );
 		L_temp = (longword)msp * 32735; /* GSM_L_MULT(msp,32735) >> 1;*/
@@ -100,8 +100,8 @@ void Gsm_Preprocess(
 	 */
 
 		msp   = GSM_MULT_R( mp, -28180 );
-		mp    = SASR( L_temp, 15 );
-		*so++ = GSM_ADD( mp, msp );
+		mp    = (word) SASR( L_temp, 15 );
+		*so++ = (word) GSM_ADD( mp, msp );
 	}
 
 	S->z1   = z1;

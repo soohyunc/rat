@@ -225,7 +225,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				rr = (rtcp_user_rr *) xmalloc(sizeof(rtcp_user_rr));
 				rr->next          = dbe->rr;
 				rr->ssrc          = ntohl(pkt->r.sr.rr[i].ssrc);
-				rr->fraction_lost = ntohl(pkt->r.sr.rr[i].loss) >> 24;
+				rr->fraction_lost = (u_int8) (ntohl(pkt->r.sr.rr[i].loss) >> 24);
 				rr->pckts_lost    = ntohl(pkt->r.sr.rr[i].loss) & 0x00ffffff;
 				rr->ext_seq_num   = ntohl(pkt->r.sr.rr[i].last_seq);
 				rr->jitter        = ntohl(pkt->r.sr.rr[i].jitter);
@@ -261,7 +261,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				rr = (rtcp_user_rr *) xmalloc(sizeof(rtcp_user_rr));
 				rr->next          = dbe->rr;
 				rr->ssrc          = ntohl(pkt->r.rr.rr[i].ssrc);
-				rr->fraction_lost = ntohl(pkt->r.rr.rr[i].loss) >> 24;
+				rr->fraction_lost = (u_int8) (ntohl(pkt->r.rr.rr[i].loss) >> 24);
 				rr->pckts_lost    = ntohl(pkt->r.rr.rr[i].loss) & 0x00ffffff;
 				rr->ext_seq_num   = ntohl(pkt->r.rr.rr[i].last_seq);
 				rr->jitter        = ntohl(pkt->r.rr.rr[i].jitter);

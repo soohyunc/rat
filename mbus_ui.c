@@ -88,7 +88,7 @@ void mbus_ui_init(char *name_ui, int channel)
 	if (channel == 0) {
 		mbus_chan = mbus_base;
 	} else {
-		mbus_chan = mbus_init(channel, mbus_ui_rx, NULL); mbus_addr(mbus_chan, name_ui);
+		mbus_chan = mbus_init((unsigned short) channel, mbus_ui_rx, NULL); mbus_addr(mbus_chan, name_ui);
 	}
 }
 

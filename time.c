@@ -146,10 +146,10 @@ ts_diff(u_int32 t1, u_int32 t2)
                 return +(t1 - t2);
         } else if ((t1 < t2) && d21 < HALF_TS_CYCLE) {
                 /* t2 ahead of t1 */
-                return  -(t2 - t1);
+                return  - (int32) (t2 - t1);
         } else if ((t1 > t2) && d12 > HALF_TS_CYCLE) {
                 /* t2 ahead of t1 */
-                return -(t2 + ~t1);
+                return - (int32) (t2 + ~t1);
         } else if ((t1 < t2) && d21 > HALF_TS_CYCLE) {
                 /* t1 ahead of t2 */
                 return +(t1 + ~t2);

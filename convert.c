@@ -1313,7 +1313,7 @@ converter_format (converter_t *c, rx_queue_element_struct *ip)
         assert(ip->native_count);
         
         cf = c->conv_fmt;
-        ip->native_size[ip->native_count] = cf->to_channels * ceil((double)ip->native_size[ip->native_count - 1] * (double)cf->to_freq / (double)cf->from_freq) / cf->from_channels;
+        ip->native_size[ip->native_count] = cf->to_channels * (u_int16) ceil((double)ip->native_size[ip->native_count - 1] * (double)cf->to_freq / (double)cf->from_freq) / cf->from_channels;
         ip->native_data[ip->native_count] = (sample*)block_alloc(ip->native_size[ip->native_count]);
         c->pcm_conv->cf_convert(c,
                                 ip->native_data[ip->native_count - 1], 

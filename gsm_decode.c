@@ -23,7 +23,7 @@ static void Postprocessing(struct gsm_state *S, register word *s)
 
 	for (k = 160; k--; s++) {
 		tmp = GSM_MULT_R( msr, 28180 );
-		msr = GSM_ADD(*s, tmp);  	   /* Deemphasis 	     */
+		msr = (word) GSM_ADD(*s, tmp);  	   /* Deemphasis 	     */
 		*s  = GSM_ADD(msr, msr) & 0xFFF8;  /* Truncation & Upscaling */
 	}
 	S->msr = msr;

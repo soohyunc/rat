@@ -103,8 +103,8 @@ static void Weighting_filter(
 		 */
 
 		L_result = SASR( L_result, 13 );
-		x[k] =  (  L_result < MIN_WORD ? MIN_WORD
-			: (L_result > MAX_WORD ? MAX_WORD : L_result ));
+		x[k] =  (word) (  L_result < MIN_WORD ? MIN_WORD
+			       : (L_result > MAX_WORD ? MAX_WORD : L_result ));
 	}
 }
 
@@ -294,7 +294,7 @@ static void APCM_quantization(
 	temp = exp + 5;
 
 	assert(temp <= 11 && temp >= 0);
-	xmaxc = gsm_add( SASR(xmax, temp), exp << 3 );
+	xmaxc = gsm_add((word) SASR(xmax, temp), (word) 3 );
 
 	/*   Quantizing and coding of the xM[0..12] RPE sequence
 	 *   to get the xMc[0..12]
@@ -327,7 +327,7 @@ static void APCM_quantization(
 		assert(temp1 >= 0 && temp1 < 16);
 
 		temp = xM[i] << temp1;
-		temp = GSM_MULT( temp, temp2 );
+		temp = (word) GSM_MULT( temp, temp2 );
 		temp = SASR(temp, 12);
 		xMc[i] = temp + 4;		/* see note below */
 	}
@@ -373,7 +373,7 @@ static void APCM_inverse_quantization(
 
 		temp <<= 12;				/* 16 bit signed  */
 		temp = GSM_MULT_R( temp1, temp );
-		temp = GSM_ADD( temp, temp3 );
+		temp = (word) GSM_ADD( temp, temp3 );
 		*xMp++ = gsm_asr( temp, temp2 );
 	}
 }
