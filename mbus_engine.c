@@ -807,8 +807,9 @@ static void rx_tool_rat_playout_max(char *srce, char *args, session_struct *sp)
 
 static void rx_tool_rat_payload_set(char *srce, char *args, session_struct *sp)
 {
+        codec_id_t cid, cid_replacing;
         char *codec_long_name;
-        int   new_pt;
+        int   i, new_pt;
 
         UNUSED(srce);
 
@@ -817,20 +818,39 @@ static void rx_tool_rat_payload_set(char *srce, char *args, session_struct *sp)
         if (mbus_parse_str(sp->mbus_engine, &codec_long_name) &&
             mbus_parse_int(sp->mbus_engine, &new_pt)) {
                 mbus_decode_str(codec_long_name);
-                if (payload_is_valid(new_pt) &&
-                    new_pt >= 0 && new_pt <= 255 &&
-                    codec_get_by_payload((u_char)new_pt) == 0) {
-                        codec_id_t cid;
-                        codec_get_by_name(codec_long_name);
-                        if (codec_map_payload(cid, new_pt)) {
-                                ui_update_codec(sp, cid);
-                                debug_msg("map %s $d succeeded.\n", codec_long_name, new_pt);
-                        } else {
-                                debug_msg("map %s %d failed.\n", codec_long_name, new_pt);
+
+                if (payload_is_valid((u_char)new_pt) == FALSE ||
+                    new_pt < 0 || new_pt > 255) {
+                        debug_msg("Invalid payload specified\n");
+                        mbus_parse_done(sp->mbus_engine);
+                        return;
+                }
+
+                for(i = 0; i < sp->num_encodings; i++) {
+                        if (new_pt == sp->encodings[i]) {
+                                debug_msg("Doh! Attempting to remap encoding %d codec.\n", i);
+                                mbus_parse_done(sp->mbus_engine);
+                                return;
                         }
                 }
-                                                      
-                printf("%s %d\n", codec_long_name, new_pt);
+
+                cid_replacing = codec_get_by_payload((u_char)new_pt);
+                if (cid_replacing) {
+                        const codec_format_t *cf;
+                        cf = codec_get_format(cid_replacing);
+                        assert(cf);
+                        debug_msg("Codec map replacing %s\n", cf->long_name);
+                        codec_unmap_payload(cid_replacing, (u_char)new_pt);
+                        ui_update_codec(sp, cid_replacing);
+                }
+
+                cid = codec_get_by_name(codec_long_name);
+                if (cid && codec_map_payload(cid, new_pt)) {
+                        ui_update_codec(sp, cid);
+                        debug_msg("map %s %d succeeded.\n", codec_long_name, new_pt);
+                } else {
+                        debug_msg("map %s %d failed.\n", codec_long_name, new_pt);
+                }
         }
         mbus_parse_done(sp->mbus_engine);
 }

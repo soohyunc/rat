@@ -351,7 +351,6 @@ proc codecs_matching {freq channels blocksize} {
     set x {}
 
     foreach {c} $codecs {
-	puts "c"
 	if {$codec_block_size($c) == $blocksize} {
 	    lappend x $c
 	}
@@ -435,8 +434,6 @@ proc update_codecs_displayed { } {
     foreach {n} $long_names {
 	lappend friendly_names $codec_nick_name($n)
     }
-
-    puts "names: $friendly_names"
 
     update_primary_list $friendly_names
 
@@ -1337,7 +1334,7 @@ menubutton .prefs.m.f.m -menu .prefs.m.f.m.menu -indicatoron 1 -textvariable pre
 pack .prefs.m.f.m -side top 
 menu .prefs.m.f.m.menu -tearoff 0
 .prefs.m.f.m.menu add command -label "Personal"     -command {set_pane prefs_pane .prefs.pane "Personal"}
-.prefs.m.f.m.menu add command -label "Transmission" -command {set_pane prefs_pane .prefs.pane "Transmission"}
+.prefs.m.f.m.menu add command -label "Transmission" -command {set_pane prefs_pane .prefs.pane "Transmission"; update_codecs_displayed}
 .prefs.m.f.m.menu add command -label "Reception"    -command {set_pane prefs_pane .prefs.pane "Reception"}
 .prefs.m.f.m.menu add command -label "Audio"        -command {set_pane prefs_pane .prefs.pane "Audio"}
 .prefs.m.f.m.menu add command -label "Codecs"        -command {set_pane prefs_pane .prefs.pane "Codecs"; codecs_panel_fill}
@@ -1612,6 +1609,9 @@ bind $i.of.codecs.lb <1> {
     codecs_panel_select [%W index @%x,%y]
 }
 
+bind $i.of.codecs.lb <ButtonRelease-1> {
+    codecs_panel_select [%W index @%x,%y]
+}
 proc codecs_panel_fill {} {
     global codecs
 
@@ -1659,8 +1659,9 @@ proc map_codec {} {
     }
 
     set codec [lindex $codecs $idx]
-    puts "ui:$codec $pt"
+
     mbus_send "R" "tool.rat.payload.set" "[mbus_encode_str $codec] $pt"
+    after 1000 codecs_panel_select $idx
 }
 
 # Security Pane ###############################################################
@@ -2146,8 +2147,6 @@ proc load_settings {} {
     global prenc ichannels freq
     mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"
 
-#   update_codecs_displayed
-	
     global      in_mute_var   out_mute_var
     input_mute  $in_mute_var
     output_mute $out_mute_var
