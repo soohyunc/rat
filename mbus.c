@@ -79,6 +79,7 @@ struct mbus {
 	int		 parse_depth;
 	int		 seqnum;
 	struct mbus_ack	*ack_list;
+	int		 ack_list_size;
 	void (*cmd_handler)(char *src, char *cmd, char *arg, void *dat);
 	void (*err_handler)(int seqnum);
 };
@@ -111,6 +112,23 @@ static int mbus_addr_match(char *a, char *b)
 	return TRUE;
 }
 
+static void mbus_ack_list_check(struct mbus *m) 
+{
+	struct mbus_ack *curr = m->ack_list;
+	int		 i    = 0;
+
+	assert(((m->ack_list == NULL) && (m->ack_list_size == 0)) || ((m->ack_list != NULL) && (m->ack_list_size > 0)));
+	while (curr != NULL) {
+		if (curr->prev != NULL) assert(curr->prev->next == curr);
+		if (curr->next != NULL) assert(curr->next->prev == curr);
+		if (curr->prev == NULL) assert(curr == m->ack_list);
+		curr = curr->next;
+		i++;
+	}
+	assert(i == m->ack_list_size);
+	assert(m->ack_list_size >= 0);
+}
+
 static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, const char *cmnd, const char *args, int seqnum)
 {
 	struct mbus_ack	*curr = (struct mbus_ack *) xmalloc(sizeof(struct mbus_ack));
@@ -119,6 +137,8 @@ static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, const c
 	assert(dest != NULL);
 	assert(cmnd != NULL);
 	assert(args != NULL);
+
+	mbus_ack_list_check(m);
 
 	mbus_parse_init(m, xstrdup(dest));
 	mbus_parse_lst(m, &(curr->dest));
@@ -136,6 +156,8 @@ static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, const c
 		m->ack_list->prev = curr;
 	}
 	m->ack_list = curr;
+	m->ack_list_size++;
+	mbus_ack_list_check(m);
 }
 
 static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seqnum)
@@ -145,8 +167,12 @@ static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seq
 	/* We hope that the number of outstanding ACKs is small, so this doesn't matter. */
 	struct mbus_ack	*curr = m->ack_list;
 
+	mbus_ack_list_check(m);
 	while (curr != NULL) {
 		if (mbus_addr_match(curr->srce, dest) && mbus_addr_match(curr->dest, srce) && (curr->seqn == seqnum)) {
+			dprintf("Got an ACK!\n");
+			assert(m->ack_list_size > 0);
+			m->ack_list_size--;
 			xfree(curr->srce);
 			xfree(curr->dest);
 			xfree(curr->cmnd);
@@ -159,15 +185,27 @@ static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seq
 				m->ack_list = curr->next;
 			}
 			xfree(curr);
+			mbus_ack_list_check(m);
 			return;
 		}
 		curr = curr->next;
 	}
+	mbus_ack_list_check(m);
 	/* If we get here, it's an ACK for something that's not in the ACK
 	 * list. That's not necessarily a problem, could just be a duplicate
 	 * ACK for a retransmission... We ignore it for now...
 	 */
 	dprintf("Got an ACK for something not in our ACK list...\n");
+}
+
+int mbus_waiting_acks(struct mbus *m)
+{
+	/* Returns TRUE if we are waiting for ACKs for any reliable
+	 * messages we sent out.
+	 */
+	mbus_ack_list_check(m);
+	if (m->ack_list != NULL) dprintf("Waiting for ACKs on mbus 0x%p...\n", m);
+	return (m->ack_list != NULL);
 }
 
 static void mbus_send_ack(struct mbus *m, char *dest, int seqnum)
@@ -193,26 +231,24 @@ void mbus_retransmit(struct mbus *m)
 	char			*b;
 	struct sockaddr_in	 saddr;
 	u_long			 addr = MBUS_ADDR;
-	int			 wait;
+
+	mbus_ack_list_check(m);
 
 	gettimeofday(&time, NULL);
 
 	while (curr != NULL) {
-		/* wait is the delay before we send a retransmission request... */
-		wait = 8000 + (lrand48() % 4000);
 		/* diff is time in milliseconds that the message has been awaiting an ACK */
 		diff = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - ((curr->time.tv_sec * 1000) + (curr->time.tv_usec / 1000));
-		if (diff > wait) {
-			dprintf("Reliable mbus message failed! (wait=%ld)\n", diff);
-			dprintf(">>>\n");
-			dprintf("   mbus/1.0 %d R (%s) %s ()\n   %s (%s)\n", curr->seqn, curr->srce, curr->dest, curr->cmnd, curr->args);
-			dprintf("<<<\n");
+		if (diff > 1000) {
+			dprintf("Reliable mbus message failed!\n");
+			dprintf("   mbus/1.0 %d R (%s) %s ()\n", curr->seqn, curr->srce, curr->dest);
+			dprintf("   %s (%s)\n", curr->cmnd, curr->args);
 			if (m->err_handler == NULL) {
 				abort();
 			}
 			m->err_handler(curr->seqn);
 		}
-		if (diff > 2000) {
+		if (diff > 250) {
 			memcpy((char *) &saddr.sin_addr.s_addr, (char *) &addr, sizeof(addr));
 			saddr.sin_family = AF_INET;
 			saddr.sin_port   = htons(MBUS_PORT+m->channel);
@@ -222,6 +258,8 @@ void mbus_retransmit(struct mbus *m)
 				perror("mbus_send: sendto");
 			}
 			xfree(b);
+			/* We don't want to cause a burst of packets, so only send one retransmission request each time... */
+			return;
 		}
 		curr = curr->next;
 	}
@@ -235,6 +273,7 @@ static int mbus_socket_init(unsigned short channel)
 	int                reuse =  1;
 	char               loop  =  1;
 	int                fd    = -1;
+	int		   rbuf  = 65535;
 
 	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror("mbus: socket");
@@ -251,6 +290,10 @@ static int mbus_socket_init(unsigned short channel)
 		return -1;
 	}
 #endif
+	if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char *) &rbuf, sizeof(rbuf)) < 0) {
+		perror("mbus: setsockopt SO_RCVBUF");
+		return -1;
+	}
 
 	sinme.sin_family      = AF_INET;
 	sinme.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -292,6 +335,7 @@ struct mbus *mbus_init(unsigned short channel,
 	m->channel	= channel;
 	m->seqnum       = 0;
 	m->ack_list     = NULL;
+	m->ack_list_size= 0;
 	m->cmd_handler  = cmd_handler;
 	m->err_handler	= err_handler;
 	m->num_addr     = 0;

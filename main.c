@@ -85,6 +85,19 @@ signal_handler(int signal)
 }
 #endif
 
+static int waiting_on_mbus(session_struct *sp[2], int num_sessions) 
+{
+	int i;
+
+	for (i=0; i<num_sessions; i++) {
+		if (mbus_waiting_acks(sp[i]->mbus_engine_base)) return TRUE;
+		if (mbus_waiting_acks(sp[i]->mbus_engine_chan)) return TRUE;
+		if (mbus_waiting_acks(sp[i]->mbus_ui_base))     return TRUE;
+		if (mbus_waiting_acks(sp[i]->mbus_ui_chan))     return TRUE;
+	}
+	return FALSE;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -342,7 +355,7 @@ main(int argc, char *argv[])
                         }
 
 			/* Exit? */
-			if (should_exit) {
+			if (should_exit && !waiting_on_mbus(sp, num_sessions)) {
 				if (Tk_GetNumMainWindows() > 0) {
 					Tcl_Eval(interp, "destroy .");
 				}
