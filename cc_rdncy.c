@@ -237,7 +237,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
         pbm = re->media_pos;
         pb_iterator_ffwd(pbm);
 
-        /*** Stage 1: Packing coded audio units ************************************/
+        /*** Stage 1: Packing coded audio units ******************************/
 
         /* Rewind iterator to start of first pdu */ 
         for(i = 1; (u_int32)i < upp; i++) {
@@ -253,12 +253,13 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
                         offset++;
                 }
                 if (success == FALSE) {
-                        /* Stop immediately if we cannot move back since layers are
-                         * ordered by offset.
+                        /* Stop immediately if we cannot move back since 
+                         * layers are ordered by offset.
                          */
                         break;
                 }
-                channel_data_create(&cd_coded[i], upp + 1); /* upp lots of data + 1 state */
+                /* need upp data elements + 1 for state */
+                channel_data_create(&cd_coded[i], upp + 1); 
                 success = make_pdu(pbm, upp, re->layer[i].cid, cd_coded[i]);
                 /* make_pdu may fail because coding not available */
                 if (success == FALSE) {
@@ -273,7 +274,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
         /* Create channel_data unit that will get output */
         channel_data_create(&cd_out, layers * (upp + 1) + re->n_layers);
 
-        /*** Stage 2: Packing redundancy headers ***********************************/
+        /*** Stage 2: Packing redundancy headers *****************************/
         used = 0;
         if ((u_int32)layers != re->n_layers) {
                 /* Add max offset if we didn't make all units */
@@ -302,7 +303,7 @@ redundancy_encoder_output(red_enc_state *re, u_int32 upp)
                 0);
         used++;
 
-        /*** Stage 3: Transfering coded units into output unit *********************/
+        /*** Stage 3: Transfering coded units into output unit ***************/
 
         for(i = layers - 1; i >= 0; i--) {
                 j = 0;
