@@ -583,6 +583,8 @@ add_comp_data(rx_queue_element_struct *u, int pt, struct iovec *iov, int iovc)
 {
     int i,j;
     codec_t * cp = get_codec(pt);
+
+    assert(u != NULL);
     assert(u->comp_count < MAX_ENCODINGS-1);
 
     /* Sort adds compressed data to rx element. */
