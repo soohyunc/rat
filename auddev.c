@@ -1014,7 +1014,7 @@ audio_device_supports(audio_desc_t ad, u_int16 rate, u_int16 channels)
         iface  = AIF_GET_INTERFACE(ad);
         device = AIF_GET_DEVICE_NO(ad);
 
-        if (rate % 8000 || channels > 2) {
+        if (((rate % 8000) && (rate % 11025)) || channels > 2) {
                 debug_msg("Invalid combo %d Hz %d channels\n", rate, channels);
                 return FALSE;
         }
