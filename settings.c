@@ -257,7 +257,7 @@ static void load_init(void)
                 key = key + 1;               /* skip asterisk */
                 value = (char *) strtok(NULL, "\n");
                 assert(value != NULL);
-                while (*value != '\0' && isascii(*value) && isspace(*value)) {
+                while (*value != '\0' && isascii((int)*value) && isspace((int)*value)) {
                         /* skip leading spaces, and stop skipping if
                          * not ascii*/
                         value++;             
