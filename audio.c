@@ -157,8 +157,8 @@ audio_unbias(bias_ctl *bc, sample *buf, int len)
                 if (bc->step == 1) {
                         remove_lta(bc, buf, len, 1); 
                 } else {
-                        remove_lta(bc  , buf  , len, 2);
-                        remove_lta(bc+1, buf+1, len, 2);
+                        remove_lta(bc  , buf  , len / 2, 2);
+                        remove_lta(bc+1, buf+1, len / 2, 2);
                 }
         }
 } 
