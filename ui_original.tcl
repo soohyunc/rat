@@ -717,9 +717,9 @@ bind .l.t.list <Configure> {fix_scrollbar}
 
 # Device output controls
 set out_mute_var 0
-button .r.c.vol.t1 -highlightthickness 0 -padx 2 -pady 0 -text mute -command {toggle out_mute_var; output_mute $out_mute_var}
+button .r.c.vol.t1 -highlightthickness 0 -pady 0 -text mute -command {toggle out_mute_var; output_mute $out_mute_var}
 set output_port "speaker"
-button .r.c.vol.l1 -highlightthickness 0 -padx 2 -pady 0 -command toggle_output_port -bitmap "speaker"
+button .r.c.vol.l1 -highlightthickness 0 -command toggle_output_port
 bargraphCreate .r.c.vol.b1
 scale .r.c.vol.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -relief raised -showvalue false -width 10
 label .r.c.vol.ml -text "Reception is muted" -relief sunken
@@ -731,9 +731,9 @@ pack .r.c.vol.s1 -side top  -fill x -expand 1
 
 # Device input controls
 set in_mute_var 1
-button .r.c.gain.t2 -highlightthickness 0 -padx 2 -pady 0 -text mute -relief sunken -command {toggle in_mute_var; input_mute $in_mute_var}
+button .r.c.gain.t2 -highlightthickness 0 -pady 0 -text mute -command {toggle in_mute_var; input_mute $in_mute_var}
 set input_port "microphone"
-button .r.c.gain.l2 -highlightthickness 0 -padx 2 -pady 0 -command toggle_input_port -bitmap "microphone_mute"
+button .r.c.gain.l2 -highlightthickness 0 -command toggle_input_port 
 bargraphCreate .r.c.gain.b2
 scale .r.c.gain.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10
 label .r.c.gain.ml -text "Transmission is muted" -relief sunken
