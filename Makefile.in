@@ -49,6 +49,9 @@ tcl_libs.o: tcl2c
 clean:
 	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile tcl2c rat 
 
-tags:
+etags:
 	etags *.[ch]
+
+ctags:
+	ctags *.[ch]
 
