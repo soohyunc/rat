@@ -936,11 +936,11 @@ proc mbus_recv_rtp.source.packet.loss {dest srce loss} {
 	init_source $srce
 	init_source $dest
 	chart_set $srce $dest $loss
-	if {[string compare $dest $my_ssrc] == 0} {
+	if {[info exists my_ssrc] && [string compare $dest $my_ssrc] == 0} {
 		set LOSS_TO_ME($srce) $loss
     		set HEARD_LOSS_TO_ME($srce) 1
 	}
-	if {[string compare $srce $my_ssrc] == 0} {
+	if {[info exists my_ssrc] && [string compare $srce $my_ssrc] == 0} {
 		set LOSS_FROM_ME($dest) $loss
 		set HEARD_LOSS_FROM_ME($dest) 1
 	}
@@ -1176,10 +1176,10 @@ proc ssrc_update {ssrc} {
 		fix_scrollbar
 	}
 
-	if {[info exists HEARD_LOSS_TO_ME($ssrc)] && $HEARD_LOSS_TO_ME($ssrc) && $ssrc != $my_ssrc} {
+	if {[info exists HEARD_LOSS_TO_ME($ssrc)] && $HEARD_LOSS_TO_ME($ssrc) && [info exists my_ssrc] && ($ssrc != $my_ssrc)} {
 	    set_loss_to_me $ssrc $LOSS_TO_ME($ssrc)
 	}
-	if {[info exists HEARD_LOSS_FROM_ME($ssrc)] && $HEARD_LOSS_FROM_ME($ssrc) && $ssrc != $my_ssrc} {
+	if {[info exists HEARD_LOSS_FROM_ME($ssrc)] && $HEARD_LOSS_FROM_ME($ssrc) && [info exists my_ssrc] && ($ssrc != $my_ssrc)} {
 	    set_loss_from_me $ssrc $LOSS_FROM_ME($ssrc)
 	}
 }
