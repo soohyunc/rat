@@ -120,13 +120,13 @@ osprey_audio_init()
                 if (ldpath == NULL) {
                         return FALSE;
                 }
-                locenv = strtok(ldpath, ":");
+                locenv = (char*)strtok(ldpath, ":");
                 do {
                         path[0] = 0;
                         strncat(path, locenv, 255);
                         strncat(path, otipath, 255);
                         dlh = dlopen(path, RTLD_NOW);
-                        locenv = strtok(NULL, ":");
+                        locenv = (char*) strtok(NULL, ":");
                 } while (!dlh && locenv);
                 if (!dlh) {
                         return FALSE; /* Could not get it */
