@@ -172,11 +172,9 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 	mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, atoi(rx_port), atoi(tx_port), ttl);
 	xfree(addr);
 
-	/* Parse those command line parameters which are intended for the media engine. */
+	/* Parse command line parameters... */
 	for (i = 1; i < argc; i++) {
-		debug_msg("argv[%d]=%s\n", i, argv[i]);
-                if ((strcmp(argv[i], "-ui") == 0) && (argc > i+1)) {
-                } else if  (strcmp(argv[i], "-allowloopback") == 0) {
+                if  (strcmp(argv[i], "-allowloopback") == 0) {
                 } else if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
 			tmp = mbus_encode_str(argv[i+1]);
 			mbus_qmsgf(m, e_addr, TRUE, "session.title", tmp);
@@ -188,15 +186,8 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 				ttl = 255;
                         }
                         i++;
-                } else if ((strcmp(argv[i], "-p") == 0) && (argc > i+1)) {
-                } else if  (strcmp(argv[i], "-seed") == 0) {
-                } else if  (strcmp(argv[i], "-codecs") == 0) {
                 } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
 		} else if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
-			tmp = mbus_encode_str(argv[i+1]);
-			mbus_qmsgf(m, e_addr, TRUE, "security.encryption.key", tmp);
-			xfree(tmp);
-		} else if ((strcmp(argv[i], "-crypt") == 0) && (argc > i+1)) {
 			tmp = mbus_encode_str(argv[i+1]);
 			mbus_qmsgf(m, e_addr, TRUE, "security.encryption.key", tmp);
 			xfree(tmp);
@@ -221,6 +212,12 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 			xfree(chan);
 		} else if ((strcmp(argv[i], "-r") == 0) && (argc > i+1)) {
 			/* Set channel coding to redundancy: "-r codec/offset" */
+			char *codec  = strtok(argv[i+1], "/");
+			int   offset = atoi(strtok(NULL, ""));
+
+			codec  = mbus_encode_str(codec);
+			mbus_qmsgf(m, e_addr, TRUE, "audio.channel.coding", "\"redundancy\" %s %d", codec, offset);
+			xfree(codec);
                 } else if ((strcmp(argv[i], "-l") == 0) && (argc > i+1)) { 
 			/* Set channel coding to layered */
 		} else if ((strcmp(argv[i], "-i") == 0) && (argc > i+1)) {

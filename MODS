@@ -916,7 +916,9 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	  reliable.
 	  	- use mbus_rendezvous_waiting() and mbus_rendezvous_go()
 		- do a real handshake between controller and the subprocesses
-	- Fix parsing of many command line options.
+	- Fix parsing of many command line options. NOTE: many of the options
+	  are parsed in a backwards incompatible manner now, to make the code
+	  cleaner. 
 
 
 
