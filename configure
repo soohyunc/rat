@@ -205,6 +205,7 @@ s@__PROFILE__@$PROFILE2@
 s@__DEFS__@$DEFS@
 s@__CHECK_FLAG__@$CHECK_FLAG@
 s@__CHECK_LIB__@$CHECK_LIB@
+s@__VERSION__@$VERSION@
 EOF
 
 sed -f Makefile.sed Makefile.in >> Makefile

@@ -32,8 +32,8 @@ SRCS := $(OBJS:%.o=%.c)
 TCL_OBJS = ui_audiotool.o ui_transcoder.o
 TCL_SRCS := $(TCL_OBJS:%.o=%.c)
 
-rat: $(OBJS) $(TCL_OBJS) ../common/libcommon.a 
-	$(CC) $(OBJS) $(TCL_OBJS) $(CFLAGS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat
+rat-__VERSION__: $(OBJS) $(TCL_OBJS) ../common/libcommon.a 
+	$(CC) $(OBJS) $(TCL_OBJS) $(CFLAGS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat-__VERSION__
 
 .c.o:
 	$(CC) $(INCLUDE) $(CFLAGS) -c $<
@@ -50,7 +50,7 @@ ui_audiotool.c: ui_audiotool.tcl tcl2c/tcl2c
 	cat asfilebox.tcl ui_audiotool.tcl | tcl2c/tcl2c ui_audiotool > ui_audiotool.c
 
 clean:
-	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile Makefile.sed tcl2c/tcl2c rat 
+	-rm -f $(OBJS) tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile Makefile.sed tcl2c/tcl2c rat-__VERSION__
 
 etags:
 	etags *.[ch] ../common/*.[ch]
@@ -61,9 +61,9 @@ ctags:
 release:
 	cvs tag release-`cat VERSION | sed "s/\./-/g"`
 
-tgz: rat
-	tar cvf rat-`cat VERSION`-__OSTYPE__.tar README.* MODS COPYRIGHT rat
-	gzip -9v rat-`cat VERSION`-__OSTYPE__.tar
+tgz: rat-__VERSION__
+	tar cvf rat-__VERSION__-__OSTYPE__.tar README.* MODS COPYRIGHT rat-__VERSION__
+	gzip -9v rat-__VERSION__-__OSTYPE__.tar
 
 depend: $(SRCS)
 	makedepend $(INCLUDE) $(SRCS)
