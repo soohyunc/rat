@@ -27,9 +27,7 @@
 static int iport = LUIGI_MICROPHONE;
 static snd_chan_param pa;
 static struct snd_size sz;
-
 static int audio_fd = -1;
-
 
 #define RAT_TO_DEVICE(x) ((x) * 100 / MAX_AMP)
 #define DEVICE_TO_RAT(x) ((x) * MAX_AMP / 100)
@@ -47,6 +45,7 @@ static char names[LUIGI_MAX_AUDIO_DEVICES][LUIGI_MAX_AUDIO_NAME_LEN];
 static int ndev = 0;
 static int luigi_error;
 static audio_format *input_format, *output_format, *tmp_format;
+static snd_capabilities soundcaps[LUIGI_MAX_AUDIO_DEVICES];
 
 int 
 luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
@@ -61,14 +60,15 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 
         audio_fd = open(thedev, O_RDWR);
         if (audio_fd >= 0) {
-                snd_capabilities soundcaps;
                 /* Ignore any earlier errors */
                 luigi_error = 0;
 
-                LUIGI_AUDIO_IOCTL(audio_fd, AIOGCAP, &soundcaps);
+                LUIGI_AUDIO_IOCTL(audio_fd, AIOGCAP, &soundcaps[ad]);
+                debug_msg("DMA size %d\n", soundcaps[ad].bufsize);
+
                 LUIGI_AUDIO_IOCTL(audio_fd,SNDCTL_DSP_RESET,0);
 
-                switch (soundcaps.formats & (AFMT_FULLDUPLEX | AFMT_WEIRD)) {
+                switch (soundcaps[ad].formats & (AFMT_FULLDUPLEX | AFMT_WEIRD)) {
                 case AFMT_FULLDUPLEX:
                         /*
                          * this entry for cards with decent full duplex.
@@ -94,11 +94,9 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                 }
                 
                 assert(ofmt->channels == ifmt->channels);
-
                 memset(&pa, 0, sizeof(pa));
-                
                 if (ifmt->channels == 2) {
-                        if (!soundcaps.formats & AFMT_STEREO) {
+                        if (!soundcaps[ad].formats & AFMT_STEREO) {
                                 fprintf(stderr,"Driver does not support stereo for this soundcard\n");
                                 luigi_audio_close(ad);
                                 return FALSE;
@@ -106,7 +104,6 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
                         pa.rec_format  = AFMT_STEREO;
                         pa.play_format = AFMT_STEREO;
                 }
-                
 
                 switch(ifmt->encoding) {
                 case DEV_PCMU: pa.rec_format |= AFMT_MU_LAW; break;
@@ -250,10 +247,30 @@ luigi_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 int
 luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 {
-	int done;
+	int done, r, queued;
+        static int cnt;
 
         UNUSED(ad); assert(audio_fd > 0);
 
+        /* Borrowed from Amancio's MODS to VAT - check how much audio we */
+        /* can write and make sure we are not about to write too much... */
+        /* only place this has appeared to be a problem is sb16.         */
+        r      = ioctl(audio_fd, AIONWRITE, &queued);
+        queued = soundcaps[ad].bufsize - queued;
+        /* Trial and error - SHORT_BUFFER_SIZE is 4 frames of 20 ms 16bit  */
+        /* audio samples.  This almost certainly has horrible consequences */
+        /* for the cushion and it's idea of reality.                       */
+
+        if (cnt++ < 100) {
+                debug_msg("write %d\n", write_bytes);
+        }
+
+#define SHORT_BUFFER_SIZE (4 * 320)
+        if (queued > SHORT_BUFFER_SIZE) {
+                debug_msg("Driver interface dropped samples (queued %d).\n", queued);
+                write_bytes -= 8;
+        }
+        
         done = write(audio_fd, (void*)buf, write_bytes);
         if (done != write_bytes && errno != EINTR) {
                 /* Only ever seen this with soundblaster cards.
