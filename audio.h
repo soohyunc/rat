@@ -44,6 +44,7 @@
 #define _RAT_AUDIO_H_
 
 #include "audio_types.h"
+#include "codec_types.h"
 #include "auddev.h"
 
 /* Structures used in function declarations below */
