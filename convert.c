@@ -80,28 +80,29 @@ converter_change_channels (sample *src,
         assert(dst_channels == 1 || dst_channels == 2);
         assert(dst_channels != src_channels);
         assert(src_len/src_channels == dst_len/dst_channels);
-        
-        /* nb we run backwards through bufs so inplace conversion
-         * works if necessary.
+
+        /* Differing directions of conversions means we can do in place        
+         * conversion if necessary.
          */
 
         switch(src_channels) {
         case 1:
-                s = src + src_len - 1; 
-                d = dst + dst_len - 1;
+                s = &src[src_len - 1]; /* clumsy syntax so not to break bounds-checker in debug */
+                d = &dst[dst_len - 1];
                 for(i = 0; i < src_len; i++) {
                         *d-- = *s;
                         *d-- = *s--;
                 }
                 break;
         case 2:
-                s = src + src_len - 1;
-                d = dst + dst_len - 1;
+                s = src;
+                d = dst;
+                src_len /= 2;
                 for(i = 0; i < src_len; i++) {
-                        t    = *s--;
-                        t   += *s--;
+                        t    = *s++;
+                        t   += *s++;
                         t   /= 2;
-                        *d-- = t;
+                        *d++ = t;
                 }
                 break;
         }
@@ -112,6 +113,19 @@ gcd (int a, int b)
 {
         if (b) return gcd(b, a%b);
         return a;
+}
+
+static int
+conversion_steps(int f1, int f2) 
+{
+        if (f1 == f2) return 0;
+
+        if (gcd(f1,f2) == 8000) {
+                /* Integer conversion */
+                return 1;
+        } 
+        /* Non-integer conversion */
+        return 2;
 }
 
 #ifdef WIN32
@@ -211,7 +225,7 @@ acm_conv_free(converter_t *c)
 #endif /* WIN32 */
 
 /* FILTERED SAMPLE RATE CONVERSION CODE *************************************/
-
+#ifdef SRF_GOOD
 #define SRF_FILTW_SCALE  6 
 #define SRF_NTABLES      5
 #define SRF_SCALE        256
@@ -221,11 +235,17 @@ int **srf_tbl_up;
 int **srf_tbl_dn;
 
 /* If you want better quality make tbl sizes bigger (costs more),
- * stick to multiples of these sizes otherwise converter becomes
- * a noise generator.
+ * stick to multiples of these sizes otherwise converter may 
+ * becomes a noise generator.
+ *
+ * Currently missing normalization factors so this is noisy.
+ * Actually need to make h stretch from h[-n] to h[n] and make
+ * each h accomodate normalization factor for group it's used in.
+ * For now we use mirror image of h[0] to h[n] which does not work
+ * so well.  
  */
 
-int tbl_sz_up[] = {8, 12, 16, 20, 24};
+int tbl_sz_up[] = {15, 23, 31, 39, 47};
 int tbl_sz_dn[] = {8, 12, 16, 20, 24};
 
 #define SF2IDX(x) ((x)-2)
@@ -240,7 +260,6 @@ typedef void (*srf_cf)(int     offset,
                        sample* dst_buf, 
                        int     dst_len, 
                        struct s_srf_filter_state *sf);
-
 
 typedef struct s_srf_filter_state {
         short   scale;
@@ -260,26 +279,55 @@ typedef struct s_srf_state {
         int                 tmp_sz;
 } srf_state_t;
 
+static double
+srf_norm_up(int scale, int offset, int full_width)
+{
+        double num, denom, t1, t2;
+        int i, j;
+        num = denom = 0.0;
+        for(i = 0;  i < full_width/2; i += scale) {
+                t1 = M_PI * (double)(i + offset) / (double)scale;
+                t2 = M_PI * (double)(offset - i - scale) / (double)scale;
+                denom += pow(sin(t1)/t1,2) + pow(sin(t2)/t2,2);
+        }
+        for(i = 0;  i < 10 * full_width/2; i += scale) {
+                t1 = M_PI * (double)(i + offset) / (double)scale;
+                t2 = M_PI * (double)(offset - i - scale) / (double)scale;
+                num += pow(sin(t1)/t1,2) + pow(sin(t2)/t2,2);
+        }
+        printf("%d %e %e %e\n", i, sqrt(denom), sqrt(num), sqrt(num/denom));
+
+        return sqrt(num/denom);
+}
+
 static int 
 srf_tbl_init(void)
 {
-        int i,j;
+        int i,j,center;
         double f;
+
+        double norm[6];
+        norm [0] = 1.0;
+
         srf_tbl_up = (int**)xmalloc(sizeof(int*)*SRF_NTABLES);
         srf_tbl_dn = (int**)xmalloc(sizeof(int*)*SRF_NTABLES);
 
         for(i = 0; i < SRF_NTABLES; i++) {
                 srf_tbl_up[i] = (int*)xmalloc(sizeof(int)*tbl_sz_up[i]);
                 srf_tbl_dn[i] = (int*)xmalloc(sizeof(int)*tbl_sz_dn[i]);
-                srf_tbl_up[i][0] = SRF_SCALE;
+
+                center = tbl_sz_up[i]/2;
+                srf_tbl_up[i][center] = SRF_SCALE;
+                for(j = 1; j < IDX2SF(i); j++) norm[j] = srf_norm_up(IDX2SF(i), j, tbl_sz_up[i]);
                 for(j = 1; j < tbl_sz_up[i]; j++) {
                         f = M_PI * (double)j / (double)IDX2SF(i);
-                        srf_tbl_up[i][j] = (int)((double)SRF_SCALE * sin(f)/ f);
+                        srf_tbl_up[i][center+j] = (int)((double)SRF_SCALE * sin(f)/ f);
+                        srf_tbl_up[i][center-j] = (int)((double)SRF_SCALE * sin(f)/ f);
                 }
+
                 srf_tbl_dn[i][0] = (int)((double)SRF_SCALE * (1.0 / (double)(i+2))); 
                 for(j = 1; j < tbl_sz_dn[i]; j++) {
                         f = M_PI * (double)j / (double)IDX2SF(i);
-                        srf_tbl_up[i][j] = (int)((double)SRF_SCALE * sin(f)/ f);
                         srf_tbl_dn[i][j] = IDX2SF(i) * ((int)((double)SRF_SCALE * sin(f)/ f));
                 }
         }
@@ -466,7 +514,7 @@ srf_upsample(int offset, int channels, sample *src, int src_len, sample *dst, in
                         src_r  += channels;
                         h_r    += sf->scale;
                 }
-
+                
                 *dst = (short)(result/SRF_SCALE);
                 dst += channels;
                 sf->phase++;
@@ -475,7 +523,9 @@ srf_upsample(int offset, int channels, sample *src, int src_len, sample *dst, in
                         src_c+= channels;
                 }
         }
-
+        dst -= channels;
+        *dst = -32767;
+        dst += channels;
         /* Stage Two: Left hand side of window overlaps with last buffer and current,
          *            right hand side of window completely within current.
          */
@@ -532,6 +582,7 @@ srf_upsample(int offset, int channels, sample *src, int src_len, sample *dst, in
                 if (sf->phase == 0) {
                         *dst = *src_c;
                         dst += channels;
+                        sf->phase++;
                 }
                 src_l = src_c;
                 src_r = src_c + channels;
@@ -549,7 +600,7 @@ srf_upsample(int offset, int channels, sample *src, int src_len, sample *dst, in
                 dst += channels;
                 sf->phase++;
                 if (sf->phase == sf->scale) {
-                        sf->phase = 1;
+                        sf->phase = 0;
                         src_c += channels;
                 }
         }
@@ -620,12 +671,6 @@ srf_init (converter_t *c)
         assert(c->conv_fmt->from_freq % 8000 == 0);
         assert(c->conv_fmt->to_freq   % 8000 == 0);
         
-        if (c->conv_fmt->to_freq == c->conv_fmt->from_freq) {
-                c->data     = NULL;
-                c->data_len = 0;
-                return TRUE;
-        }
-
         src_freq     = c->conv_fmt->from_freq;
         src_channels = c->conv_fmt->from_channels; 
         dst_freq     = c->conv_fmt->to_freq;
@@ -638,11 +683,13 @@ srf_init (converter_t *c)
                 s->fs    = (srf_filter_state_t*)xmalloc(sizeof(srf_filter_state_t));
                 s->steps = 1;
                 srf_init_filter(s->fs,    src_freq, dst_freq, src_channels);
-        } else {
+        } else if (denom != 0) {
                 s->fs    = (srf_filter_state_t*)xmalloc(sizeof(srf_filter_state_t) * 2);
                 s->steps = 2;
                 srf_init_filter(s->fs,    src_freq, denom,    src_channels);
                 srf_init_filter(s->fs+ 1, denom,    dst_freq, dst_channels);
+        } else {
+                s->steps = 0;
         }
 
         return TRUE;
@@ -652,6 +699,8 @@ static void
 srf_convert (converter_t  *c, sample* src_buf, int src_len, sample *dst_buf, int dst_len)
 {
         int channels = c->conv_fmt->from_channels;
+        srf_state_t *s = (srf_state_t*)c->data;
+        int i;
         
         if (c->conv_fmt->from_channels == 2 && c->conv_fmt->to_channels == 1) {
                 /* stereo->mono then sample rate change */
@@ -660,28 +709,27 @@ srf_convert (converter_t  *c, sample* src_buf, int src_len, sample *dst_buf, int
                 channels = 1;
         }
 
-        if (c->data) {
-                srf_state_t *s = (srf_state_t*)c->data;
-                int i;
-                if (s->steps == 1) {
-                        for (i = 0; i < channels; i++)  {
+        switch (s->steps) {
+        case 1:
+                for (i = 0; i < channels; i++)  {
                                 s->fs[0].convert_f(i, channels, src_buf, src_len, dst_buf, dst_len, s->fs);
-                        }
-                } else {
-                        assert(s->steps == 2);
-                        if (s->tmp_buf == NULL) {
-                                s->tmp_sz  = src_len * c->conv_fmt->from_freq / s->fs->dst_freq;
-                                s->tmp_buf = (sample*)xmalloc(sizeof(sample) * s->tmp_sz);
-                        }
-                        for(i = 0; i < channels; i++) {
-                                s->fs[0].convert_f(i, channels, src_buf, src_len, s->tmp_buf, s->tmp_sz/sizeof(sample), s->fs);
-                        }
-                        for(i = 0; i < channels; i++) {
-                                s->fs[1].convert_f(i, channels, s->tmp_buf, s->tmp_sz, dst_buf, dst_len, s->fs);
-                        }
                 }
+                break;
+        case 2:
+                assert(s->steps == 2);
+                if (s->tmp_buf == NULL) {
+                        s->tmp_sz  = src_len * c->conv_fmt->from_freq / s->fs->dst_freq;
+                        s->tmp_buf = (sample*)xmalloc(sizeof(sample) * s->tmp_sz);
+                }
+                for(i = 0; i < channels; i++) {
+                        s->fs[0].convert_f(i, channels, src_buf, src_len, s->tmp_buf, s->tmp_sz/sizeof(sample), s->fs);
+                }
+                for(i = 0; i < channels; i++) {
+                        s->fs[1].convert_f(i, channels, s->tmp_buf, s->tmp_sz, dst_buf, dst_len, s->fs);
+                }
+                break;
         }
-
+        
         if (c->conv_fmt->from_channels == 2 && c->conv_fmt->to_channels == 1) {
                 /* sample rate change before mono-> stereo */
                 converter_change_channels(dst_buf, dst_len, 1, dst_buf, dst_len * 2, 2);
@@ -693,40 +741,248 @@ srf_free (converter_t *c)
 {
         int i;
         srf_state_t *s = (srf_state_t*)c->data;
-        assert(c->data_len == sizeof(srf_state_t));
+
         for(i = 0; i < s->steps; i++)  {
                 if (s->fs[i].last) xfree(s->fs[i].last);
         }
+
         xfree(s->fs);
         if (s->tmp_buf) xfree(s->tmp_buf);
-        xfree(s);
-        c->data     = NULL;
-        c->data_len = 0;
 }
+#endif /* SRF_GOOD */
 
 /* Linear Interpolation Conversion *******************************************/
+
+struct s_li_state;
+
+typedef void (*inter_cf)(int offset, int channels, sample *src, int src_len, sample *dst, int dst_len, struct s_li_state *s);
+
+typedef struct s_li_state {
+        int      steps;
+        int      scale;
+        sample  *tmp_buf;
+        int      tmp_len;
+        sample  *last;
+        int      last_len;
+        inter_cf convert_f;
+} li_state_t;
+
+static void 
+linear_upsample(int offset, int channels, 
+                sample *src, int src_len, 
+                sample *dst, int dst_len, 
+                li_state_t *l)
+{
+        register int r, loop;
+        register short *sp, *dp;
+        short *last = l->last + offset;
+
+        sp = src + offset;
+        dp = dst + offset;
+        
+        loop = min(src_len/channels, dst_len/(channels*l->scale));
+
+        switch (l->scale) {
+        case 6:
+                while(loop--) {
+                        register int il, ic;
+                        il = *last; ic = *sp;
+                        r = 5 * il + 1 * ic; r /= 6; *dp = (sample)r; dp += channels;
+                        r = 4 * il + 2 * ic; r /= 6; *dp = (sample)r; dp += channels;
+                        r = 3 * il + 3 * ic; r /= 6; *dp = (sample)r; dp += channels;
+                        r = 2 * il + 4 * ic; r /= 6; *dp = (sample)r; dp += channels;
+                        r = 1 * il + 5 * ic; r /= 6; *dp = (sample)r; dp += channels;
+                        *dp = (sample)ic; dp += channels;
+                        last = sp;
+                        sp += channels;
+                }
+                break;
+        case 5:
+                while(loop--) {
+                        register int il, ic;
+                        il = *last; ic = *sp;
+                        r = 4 * il + 1 * ic; r /= 5; *dp = (sample)r; dp += channels;
+                        r = 3 * il + 2 * ic; r /= 5; *dp = (sample)r; dp += channels;
+                        r = 2 * il + 3 * ic; r /= 5; *dp = (sample)r; dp += channels;
+                        r = 1 * il + 4 * ic; r /= 5; *dp = (sample)r; dp += channels;
+                        *dp = (sample)ic; dp += channels;
+                        last = sp;
+                        sp  += channels;
+                }
+                break;
+        case 4:
+                while(loop--) {
+                        register int il, ic;
+                        il = *last; ic = *sp;
+                        r = 3 * il + 1 * ic; r /= 4; *dp = (sample)r; dp += channels;
+                        r = 2 * il + 2 * ic; r /= 4; *dp = (sample)r; dp += channels;
+                        r = 1 * il + 3 * ic; r /= 4; *dp = (sample)r; dp += channels;
+                        *dp = (sample)ic; dp += channels;
+                        last = sp;
+                        sp  += channels;
+                }
+                break;
+        case 3:
+                while(loop--) {
+                        register int il, ic;
+                        il = *last; ic = *sp;
+                        r = 2 * il + 1 * ic; r /= 3; *dp = (sample)r; dp += channels;
+                        r = 1 * il + 2 * ic; r /= 3; *dp = (sample)r; dp += channels;
+                        *dp = (sample)ic; dp += channels;
+                        last = sp;
+                        sp  += channels;
+                }
+                break;
+        case 2:
+                while(loop--) {
+                        register int il, ic;
+                        il = *last; ic = *sp;
+                        r = il + ic; r /= 2; *dp = (sample)r; dp += channels;
+                        *dp = (sample)ic; dp += channels;
+                        last = sp;
+                        sp  += channels;
+                }
+                break;
+        default:
+                assert(0); /* Should never get here */
+        }
+        l->last[offset] = src[src_len - channels + offset];
+}
+
+static void
+linear_downsample(int offset, int channels, 
+                  sample *src, int src_len, 
+                  sample *dst, int dst_len, 
+                  li_state_t *l)
+{
+        register int loop, r, c, lim;
+        register short *sp, *dp;
+
+        loop = min(src_len / (channels * l->scale), dst_len / channels);
+        sp = src + offset;
+        dp = dst + offset;
+        lim = l->scale - 1;
+        while(loop--) {
+                r  = (int)*sp; sp+=channels;
+                c  = lim;
+                while(c--) {
+                        r += (int)*sp; sp+=channels;
+                } 
+                r /= l->scale;
+                *dp = (short)r;
+                dp+= channels;
+        }
+}
+
+static void
+linear_init_state(li_state_t *l, int channels, int src_freq, int dst_freq)
+{
+        if (src_freq > dst_freq) {
+                l->scale = src_freq / dst_freq;
+                l->last_len = 0;
+                l->convert_f = linear_downsample;
+        } else if (src_freq < dst_freq) {
+                l->scale = dst_freq / src_freq;
+                l->last_len = channels;
+                l->convert_f = linear_upsample;
+                l->last = (sample*)xmalloc(sizeof(sample) * l->last_len);
+                memset(l->last,0,sizeof(sample)*channels);
+        }
+}
 
 static int 
 linear_init (converter_t *c)
 {
-        UNUSED(c);
+        li_state_t *l;
+        int denom;
+        
+        l = (li_state_t*)c->data;
+        l->steps = conversion_steps(c->conv_fmt->from_freq, c->conv_fmt->to_freq);
+        switch(l->steps) {
+        case 1:
+                linear_init_state(l, c->conv_fmt->from_channels, c->conv_fmt->from_freq, c->conv_fmt->to_freq);
+                break;
+        case 2:
+                denom = gcd(c->conv_fmt->from_freq, c->conv_fmt->to_freq);
+                linear_init_state(l, c->conv_fmt->from_channels,     c->conv_fmt->from_freq, denom);
+                linear_init_state(l + 1, c->conv_fmt->from_channels, denom, c->conv_fmt->to_freq);                
+                break;
+        }
+
         return TRUE;
 }
 
 static void
-linear_convert (converter_t  *c, sample* src_buf, int src_len, sample *dst_buf, int dst_len)
+linear_convert (converter_t *c, sample* src_buf, int src_len, sample *dst_buf, int dst_len)
 {
-        UNUSED(c);
-        UNUSED(src_buf);
-        UNUSED(src_len);
-        UNUSED(dst_buf);
-        UNUSED(dst_len);
+        li_state_t *l;
+        int         channels, i;
+
+        channels = c->conv_fmt->from_channels;
+
+        l = (li_state_t*)c->data;
+
+        if (c->conv_fmt->from_channels == 2 && c->conv_fmt->to_channels == 1) {
+                /* stereo->mono then sample rate change */
+                if (l->steps) {
+                        /* inplace conversion needed */
+                        converter_change_channels(src_buf, src_len, 2, src_buf, src_len / 2, 1); 
+                        src_len /= 2;
+                } else {
+                        /* this is only conversion */
+                        converter_change_channels(src_buf, src_len, 2, dst_buf, dst_len, 1);
+                        return;
+                }
+                channels = 1;
+        } else if (c->conv_fmt->from_channels == 1 && c->conv_fmt->to_channels == 2) {
+                dst_len /= 2;
+        }
+        
+        switch(l->steps) {
+        case 1:
+                assert(l[0].convert_f);
+                for(i = 0; i < channels; i++) {
+                        l[0].convert_f(i, channels, src_buf, src_len, dst_buf, dst_len, l);
+                }
+                break;
+        case 2:
+                /* first step is always downsampling for moment */
+                if (l->tmp_buf == NULL) {
+                        l->tmp_len  = src_len / l->scale;
+                        l->tmp_buf = (sample*)xmalloc(sizeof(sample) * l->tmp_len);
+                }
+                assert(l[0].convert_f);
+                assert(l[1].convert_f);
+
+                for(i = 0; i < channels; i++)
+                        l[0].convert_f(i, channels, src_buf, src_len, l->tmp_buf, l->tmp_len, l);
+                for(i = 0; i < channels; i++)
+                        l[1].convert_f(i, channels, l->tmp_buf, l->tmp_len, dst_buf, dst_len, l + 1);
+                break;
+        }
+        
+        if (c->conv_fmt->from_channels == 1 && c->conv_fmt->to_channels == 2) {
+                /* sample rate change before mono-> stereo */
+                if (l->steps) {
+                        /* in place needed */
+                        converter_change_channels(dst_buf, dst_len, 1, dst_buf, dst_len * 2, 2);
+                } else {
+                        /* this is our only conversion here */
+                        converter_change_channels(src_buf, src_len, 1, dst_buf, dst_len * 2, 2);
+                }
+        }
 }
 
 static void 
 linear_free (converter_t *c)
 {
-        UNUSED(c);
+        int i;
+        li_state_t *l = (li_state_t*)c->data;
+        
+        for(i = 0; i < l->steps; i++) {
+                if (l[i].last)    xfree(l[i].last);
+                if (l[i].tmp_buf) xfree(l[i].tmp_buf);
+        }
 }
 
 /* Extrusion *************************************************************
@@ -734,72 +990,176 @@ linear_free (converter_t *c)
  * downsamping we just subsample and suffer aliasing effects (v. dumb).
  */
 
+typedef void (*extra_cf)(int offset, int channels, sample *src, int src_len, sample *dst, int dst_len);
+
+typedef struct {
+        short scale;
+        int   steps;
+        sample *tmp_buf;
+        short   tmp_len;
+        extra_cf convert_f;
+} extra_state_t;
+
+static void
+extra_upsample(int offset, int channels, sample *src, int src_len, sample *dst, int dst_len)
+{
+        register short *sp, *dp;
+        register int dstep, loop;
+
+        sp = src + offset;
+        dp = dst + offset;
+        dstep = channels * dst_len / src_len;
+
+        loop = min(dst_len / dstep, src_len / channels);
+        debug_msg("loop %d choice (%d, %d)\n", loop, dst_len/dstep, src_len/channels);
+        dstep /= channels;
+        while(loop--) {
+                switch(dstep) {                   /* Duff's Device */
+                case 6: *dp = *sp; dp+=channels;
+                case 5: *dp = *sp; dp+=channels;
+                case 4: *dp = *sp; dp+=channels;
+                case 3: *dp = *sp; dp+=channels;
+                case 2: *dp = *sp; dp+=channels;
+                case 1: *dp = *sp; dp+=channels;
+                }
+                sp += channels;
+        }
+}
+
+static void
+extra_downsample(int offset, int channels, sample *src, int src_len, sample *dst, int dst_len)
+{
+        register short *sp, *dp;
+        register int src_step, loop;
+
+        src_step = channels * src_len / dst_len;
+        sp = src + offset;
+        dp = dst + offset;
+
+        loop = min(src_len / src_step, dst_len / channels);
+
+        while(loop--) {
+                *dp = *sp;
+                dp += channels;
+                sp += src_step;
+        }
+}
+
+static void 
+extra_init_state(extra_state_t *e, int src_freq, int dst_freq)
+{
+        if (src_freq > dst_freq) {
+                e->convert_f = extra_downsample;
+                e->scale     = src_freq / dst_freq;
+        } else if (src_freq < dst_freq) {
+                e->convert_f = extra_upsample;
+                e->scale     = dst_freq / src_freq; 
+        }
+        e->tmp_buf = NULL;
+        e->tmp_len = 0;
+}
+
 static int 
 extra_init (converter_t *c)
 {
-        UNUSED(c);
+        extra_state_t *e;
+        int denom;
+
+        e = (extra_state_t*) c->data;
+        
+        e->steps = conversion_steps(c->conv_fmt->from_freq, c->conv_fmt->to_freq);
+
+        switch(e->steps) {
+        case 1:
+                extra_init_state(e, c->conv_fmt->from_freq, c->conv_fmt->to_freq);
+                break;
+        case 2:
+                denom = gcd(c->conv_fmt->from_freq, c->conv_fmt->to_freq);
+                extra_init_state(e, c->conv_fmt->from_freq, denom);
+                extra_init_state(e + 1, denom, c->conv_fmt->to_freq);                
+                break;
+        }
+         
         return TRUE;
 }
 
 static void
 extra_convert (converter_t  *c, sample* src_buf, int src_len, sample *dst_buf, int dst_len)
 {
-        register short *sp, *se, *dp, *de;
+        extra_state_t *e;
         int i, channels;
 
-        UNUSED(dst_len);
-
         channels = c->conv_fmt->from_channels;
+        e = (extra_state_t*)c->data;
+
         if (c->conv_fmt->from_channels == 2 && c->conv_fmt->to_channels == 1) {
                 /* stereo->mono then sample rate change */
-                converter_change_channels(src_buf, src_len, 2, src_buf, src_len / 2, 1); 
-                src_len /= 2;
+                if (e->steps) {
+                        /* inplace conversion needed */
+                        converter_change_channels(src_buf, src_len, 2, src_buf, src_len / 2, 1); 
+                        src_len /= 2;
+                } else {
+                        /* this is only conversion */
+                        converter_change_channels(src_buf, src_len, 2, dst_buf, dst_len, 1);
+                }
                 channels = 1;
-        }
-
-        if (c->conv_fmt->from_freq < c->conv_fmt->to_freq) {
-                register int dstep;
-                dstep = channels * c->conv_fmt->to_freq / c->conv_fmt->from_freq;
-                se = src_buf + src_len;
-                for(i = 0; i < channels; i++) {
-                        sp = src_buf + i;
-                        dp = dst_buf + i;
-                        while(sp < se) {
-                                de = dp + dstep;
-                                while(dp < de) {
-                                        *dp = *sp;
-                                        dp += channels;
-                                }
-                                sp += channels;
-                        }
-                }
-        } else if (c->conv_fmt->from_freq > c->conv_fmt->to_freq) {
-                register int src_step;
-                src_step = channels * c->conv_fmt->from_freq / c->conv_fmt->to_freq;
-                se = src_buf + src_len;
-                for (i = 0; i < channels; i++) {
-                        sp = src_buf + i;
-                        dp = dst_buf + i;
-                        while(sp < se) {
-                                *dp = *sp;
-                                dp += channels;
-                                sp += src_step;
-                        }
-                }
+        } else if (c->conv_fmt->from_channels == 1 && c->conv_fmt->to_channels == 2) {
+                dst_len /= 2;
         }
         
-        if (c->conv_fmt->from_channels == 2 && c->conv_fmt->to_channels == 1) {
-                /* stereo->mono then sample rate change */
-                converter_change_channels(src_buf, src_len, 2, src_buf, src_len / 2, 1); 
-                src_len /= 2;
-                channels = 1;
+        switch(e->steps) {
+        case 1:
+                assert(e[0].convert_f);
+                for(i = 0; i < channels; i++) {
+                        e[0].convert_f(i, channels, src_buf, src_len, dst_buf, dst_len);
+                }
+                break;
+        case 2:
+                /* first step is always downsampling for moment */
+                if (e->tmp_buf == NULL) {
+                        e->tmp_len  = src_len / e->scale;
+                        e->tmp_buf = (sample*)xmalloc(sizeof(sample) * e->tmp_len);
+                }
+                assert(e[0].convert_f);
+                assert(e[1].convert_f);
+
+                for(i = 0; i < channels; i++)
+                        e[0].convert_f(i, channels, src_buf, src_len, e->tmp_buf, e->tmp_len);
+                for(i = 0; i < channels; i++)
+                        e[1].convert_f(i, channels, e->tmp_buf, e->tmp_len, dst_buf, dst_len);
+                break;
+        }
+        
+        if (c->conv_fmt->from_channels == 1 && c->conv_fmt->to_channels == 2) {
+                /* sample rate change before mono-> stereo */
+                if (e->steps) {
+                        /* in place needed */
+                        converter_change_channels(dst_buf, dst_len, 1, dst_buf, dst_len * 2, 2);
+                } else {
+                        /* this is our only conversion here */
+                        converter_change_channels(src_buf, src_len, 1, dst_buf, dst_len * 2, 2);
+                }
+        }
+}
+
+static void
+extra_state_free(extra_state_t *e)
+{
+        if (e->tmp_buf) {
+                xfree(e->tmp_buf);
+                e->tmp_len = 0;
         }
 }
 
 static void 
 extra_free (converter_t *c)
 {
-        UNUSED(c);
+        int i;
+        extra_state_t *e;
+
+        e = (extra_state_t*)c->data;
+        for(i = 0; i < e->steps; i++) 
+                extra_state_free(e + i);
 }
 
 typedef int  (*pcm_startup)     (void);  /* converter specific one time initialization */
@@ -844,6 +1204,7 @@ pcm_converter_t converter_tbl[] = {
          acm_conv_free, 
          sizeof(HACMSTREAM)},
 #endif
+#ifdef SRF_GOOD
         {CONVERT_SRF, 
          "High Quality",
          TRUE,
@@ -852,7 +1213,8 @@ pcm_converter_t converter_tbl[] = {
          srf_init,
          srf_convert,
          srf_free,
-         sizeof(srf_state_t)},
+         2 * sizeof(srf_state_t)},
+#endif /* SRF_GOOD */
         {CONVERT_LINEAR,
          "Intermediate Quality",
          TRUE,  
@@ -861,7 +1223,7 @@ pcm_converter_t converter_tbl[] = {
          linear_init,
          linear_convert,
          linear_free,
-         0},
+         2 * sizeof(li_state_t)},
         {CONVERT_EXTRA,
          "Low Quality",
          TRUE,
@@ -870,7 +1232,7 @@ pcm_converter_t converter_tbl[] = {
          extra_init,
          extra_convert,
          extra_free,
-         0},
+         2 * sizeof(extra_state_t)},
         {CONVERT_NONE,
          "None",
          TRUE,
@@ -1022,3 +1384,125 @@ converter_get_names(char *buf, int buf_len)
 
         return TRUE;
 }
+
+#ifdef DEBUG_CONVERT
+
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
+#define SRC_LEN 160
+
+/* a.out <converter idx> <input rate> <input channels> <output rate> <output channels> */
+static pcm_converter_t *
+converter_get_by_idx(int idx)
+{
+        char buf[255], *pb;
+        converter_get_names(buf, 255);
+        pb = strtok(buf, "/");
+        while(idx > 0) {
+                pb = strtok(NULL, "/");
+                idx--;
+        }
+        assert(pb);
+        return converter_get_byname(pb);
+}
+
+static void 
+fill_data(sample *buf, int buf_len, int channels) 
+{
+        register int i, j, r;
+        for(i = 0; i < buf_len; i ++) {
+                r = (32767.0 * sin(2* M_PI * i / SRC_LEN));
+                for(j = 0; j < channels; j++) {
+                        *buf++ = r;
+                }
+        }
+}
+
+void 
+display_data(sample *buf, int buf_len, int channels) 
+{
+        int i;
+
+        switch(channels) {
+        case 1:
+                for(i = 0; i < buf_len; i++) {
+                        printf("% 3d % 5d             \n", i, buf[i]);
+                }
+                break;
+        case 2:
+                buf_len /= channels;
+                for(i = 0; i < buf_len; i++) {
+                        printf("% 3d % 5d % 5d\n", i, buf[2*i], buf[2*i + 1]);
+                }
+                break;
+        }
+        printf("\n");
+}
+
+void 
+display_time_diff(struct timeval *t1, struct timeval *t2)
+{
+        float diff = (t2->tv_sec  - t1->tv_sec)*1.0 + (t2->tv_usec - t1->tv_usec)*1e-6;
+        printf("Took %f seconds\n", diff);
+}
+
+
+int 
+main(int argc, char **argv)
+{
+        rx_queue_element_struct *rx = NULL;
+        pcm_converter_t *pc = NULL;
+        converter_t     *c = NULL;
+        struct rusage r1, r2;
+
+        int idx, in_rate, in_channels, out_rate, out_channels;
+
+        assert(argc == 6);
+        idx          = atoi(argv[1]);
+        in_rate      = atoi(argv[2]);
+        in_channels  = atoi(argv[3]);
+        out_rate     = atoi(argv[4]);
+        out_channels = atoi(argv[5]);
+        assert(in_rate  % 8000 == 0);
+        assert(out_rate % 8000 == 0);
+        assert(in_channels  == 1 || in_channels  == 2);
+        assert(out_channels == 1 || out_channels == 2);
+
+        converters_init();
+
+        pc = converter_get_by_idx(idx);
+        
+        assert(pc);
+        printf("# Converter %s\n", pc->name);
+        c = converter_create(pc, in_channels, in_rate, out_channels, out_rate);
+
+        rx = (rx_queue_element_struct*)xmalloc(sizeof(rx_queue_element_struct));
+        memset(rx,0,sizeof(rx_queue_element_struct));
+
+        rx->native_data[0] = (sample*)block_alloc(sizeof(sample) * in_channels * SRC_LEN);
+        rx->native_size[0] = in_channels * SRC_LEN * sizeof(sample);
+        rx->native_count   = 1;
+        fill_data(rx->native_data[0], SRC_LEN,in_channels);
+        getrusage(RUSAGE_SELF,&r1);
+        converter_format(c, rx);
+        getrusage(RUSAGE_SELF,&r2);
+        printf("#");display_time_diff(&r1.ru_utime, &r2.ru_utime);
+
+        display_data(rx->native_data[0], rx->native_size[0] / sizeof(sample), in_channels);
+        display_data(rx->native_data[1], rx->native_size[1] / sizeof(sample), out_channels);
+        
+        block_free(rx->native_data[0], rx->native_size[0]);
+        block_free(rx->native_data[1], rx->native_size[1]);
+        xfree(rx);
+
+        converter_destroy(&c);
+        converters_free();
+
+        return 1;
+}
+
+#endif /* DEBUG_CONVERT */
+
+
