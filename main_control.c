@@ -392,10 +392,22 @@ static void terminate(struct mbus *m, char *addr, pid_t *pid)
 	*pid = 0;
 }
 
+
+/* Signal Handlers */
 #ifndef WIN32
 static void
-signal_handler(int signal)
+sigchld_handler(int signal)
 {
+        UNUSED(signal);
+        /* Child has terminated or stopped.  Try to shutdown nicely... */
+        debug_msg("Caught signal SIGCHLD: %d\n", signal);
+        should_exit = TRUE;
+}
+
+static void
+sigint_handler(int signal)
+{
+        UNUSED(signal);
         debug_msg("Caught signal %d\n", signal);
 	kill_process(pid_ui);
 	kill_process(pid_engine);
@@ -411,7 +423,8 @@ int main(int argc, char *argv[])
 	struct timeval	 timeout;
 
 #ifndef WIN32
- 	signal(SIGINT, signal_handler); 
+ 	signal(SIGINT, sigint_handler); 
+ 	signal(SIGCHLD, sigchld_handler); 
 #endif
 
         if (parse_options_early(argc, (const char**)argv) == FALSE) {

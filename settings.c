@@ -497,7 +497,9 @@ void settings_load_early(session_t *sp)
 void settings_load_late(session_t *sp)
 {
         uint32_t my_ssrc;
-        char   *field;
+        struct   utsname u;
+        char     hostfmt[] = RAT_VERSION " %s %s(%s)";
+        char    *field;
 	load_init();		/* Initial settings come from the common prefs file... */
 
         /*
@@ -526,12 +528,15 @@ void settings_load_late(session_t *sp)
         if (rtp_get_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NOTE) == NULL) {
                 rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_NOTE,   field, strlen(field));
         }
-#ifdef WIN32
-	field = (char *) w32_make_version_info(RAT_VERSION);
-#else
-	field = RAT_VERSION;
-#endif
+
+        field = (char*)xmalloc(3 * SYS_NMLN + sizeof(hostfmt));
+        uname(&u);
+        sprintf(field, hostfmt, u.sysname, u.release, u.machine);
+        debug_msg(field);
 	rtp_set_sdes(sp->rtp_session[0], my_ssrc, RTCP_SDES_TOOL,  field, strlen(field));
+
+        xfree(field);
+
         init_part_two();	/* Switch to pulling settings from the RAT specific prefs file... */
 	load_done();
 }

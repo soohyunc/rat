@@ -75,6 +75,7 @@
 #include <sys/param.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/utsname.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 
