@@ -399,6 +399,7 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
                 /* in the mixing. Round it up.                               */
                 new_cushion = cushion_use_estimate(c);
                 assert(new_cushion >= 0 && new_cushion < 100000);
+
                 /* The mix routine also needs to know for how long the       */
                 /* output went dry so that it can adjust the time.           */
                 mix_get_new_cushion(ms, 
@@ -431,20 +432,15 @@ audio_rw_process(session_t *spi, session_t *spo,  struct s_mix_info *ms)
                     mix_active(ms) == FALSE && 
                     source_list_source_count(spi->active_sources) == 0) {
                         /* Only decrease cushion if not playing anything out */
-#ifdef DEBUG
                         u_int32 old_cushion;
                         old_cushion = cushion_get_size(c);
-#endif
                         if (read_dur > (unsigned)cushion_step) {
-                                read_dur -= cushion_step;
                                 cushion_step_down(c);
+                                if (cushion_get_size(c) != old_cushion) {
+                                        debug_msg("Decreasing cushion\n");
+                                        read_dur -= cushion_step;
+                                }
                         }
-#ifdef DEBUG
-                        if (cushion_get_size(c) != old_cushion) {
-                                debug_msg("Decreasing cushion\n");
-                        }
-#endif
-                        
                 }
                 assert(read_dur < 0x7fffffff);
                 audio_device_write(spo, bufp, read_dur);
