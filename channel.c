@@ -321,7 +321,7 @@ channel_describe_data(cc_id_t cid,
                           u_int8  pktpt,
                           u_char *data,
                           u_int32 data_len,
-                          u_char *outstr,
+                          char *outstr,
                           u_int32 out_len)
 {
         u_int32 idx = CC_ID_TO_IDX(cid);
@@ -331,7 +331,7 @@ channel_describe_data(cc_id_t cid,
         assert(out_len != 0);
 
         if (table[idx].dec_describe) {
-                return table[idx].dec_describe(pktpt, data, data_len, outstr, out_len-1);
+                return (table[idx].dec_describe(pktpt, data, data_len, outstr, out_len-1));
         } 
 
         strncpy(outstr, "Not implemented", out_len-1);

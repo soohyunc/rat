@@ -51,7 +51,7 @@ vdvi_encode(unsigned char *dvi_buf, int dvi_samples, unsigned char * out, int ou
 int /* Returns number of bytes in in_bytes used to generate dvi_samples */
 vdvi_decode(unsigned char *in, int in_bytes, unsigned char *buf, int dvi_samples);
 
-#endif  _VDVI_H_
+#endif /* _VDVI_H_ */
 
 
 

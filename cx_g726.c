@@ -38,6 +38,7 @@
 #define _PRIVATE_G726_
 #include "cx_g726.h"
 #include "math.h"
+#include "stdlib.h" /* abs */
 
 static short power2[15] = {1, 2, 4, 8, 0x10, 0x20, 0x40, 0x80,
 			0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000};

@@ -106,7 +106,7 @@ int       channel_describe_data   (cc_id_t cid,
                                    u_int8  pktpt,
                                    u_char *data,
                                    u_int32 data_len,
-                                   u_char *outstr,
+                                   char   *outstr,
                                    u_int32 out_len);
                                    
 

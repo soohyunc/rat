@@ -300,22 +300,24 @@ static audio_port_details_t out_ports[] = {
 static audio_port_details_t in_ports[] = {
         { SGI_IPORT_MICROPHONE, AUDIO_PORT_MICROPHONE },
         { SGI_IPORT_LINE_IN,    AUDIO_PORT_LINE_IN }
-}
+};
 
 #define SGI_NUM_IPORTS (sizeof(in_ports)/sizeof(in_ports[0]))
 
 void
 sgi_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
-        UNUSED(ad); assert(audio_fd > 0);
+        UNUSED(ad); 
+        assert(audio_fd > 0);
         assert(port == SGI_OPORT_SPEAKER);
-        unused(port);
+        UNUSED(port);
 }
 
 audio_port_t
 sgi_audio_oport_get(audio_desc_t ad)
 {
-        UNUSED(ad); assert(audio_fd > 0);
+        UNUSED(ad); 
+        assert(audio_fd > 0);
 
 	return (SGI_OPORT_SPEAKER);
 }
@@ -327,8 +329,8 @@ sgi_audio_oport_count(audio_desc_t ad)
         return (int)SGI_NUM_OPORTS;
 }
 
-const 
-audio_port_details_t(audio_desc_t ad, int idx)
+const audio_port_details_t*
+sgi_audio_oport_details(audio_desc_t ad, int idx)
 {
         UNUSED(ad);
         assert(idx < SGI_NUM_OPORTS && idx >= 0);
@@ -336,7 +338,7 @@ audio_port_details_t(audio_desc_t ad, int idx)
 }
 
 void
-sgi_audio_iport_set(audio_desc_t ad, audio_desc_t port)
+sgi_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
 	long pvbuf[2];
 

@@ -113,7 +113,7 @@ int main()
         printf("\nTested %d frames\n", n);
         return 1;
 }
-#endif TEST_DVI
+#endif /* TEST_DVI */
 
 /* Bitstream structure to make life a little easier */
 
@@ -125,7 +125,7 @@ typedef struct {
 } bs;
 
 __inline static void
-bs_init(bs *b, char *buf, int blen)
+bs_init(bs *b, u_char *buf, int blen)
 {
         b->buf    = b->pos = buf;
         b->remain = 8;
@@ -371,7 +371,7 @@ int main()
         return 0;
 }
 
-#endif TEST_BS
+#endif /* TEST_BS */
 
 
 

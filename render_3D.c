@@ -452,6 +452,6 @@ render_3D(render_3D_dbentry *p_3D_data, coded_unit *in, coded_unit *out)
         }
         block_free(mono_filtered, n_bytes);
         xmemchk();
-        block_check(in->data);
-        block_check(out->data);
+        block_check((char*)in->data);
+        block_check((char*)out->data);
 }
