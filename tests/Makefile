@@ -12,7 +12,7 @@ CODEC_OBJS = ../codec.o ../codec_state.o ../codec_dvi.o ../codec_gsm.o \
              ../codec_vdvi.o ../codec_wbs.o ../cx_dvi.o ../cx_gsm.o \
              ../cx_lpc.o     ../cx_vdvi.o   ../cx_wbs.o ../codec_g726.o \
              ../cx_g726.o ../cx_g726_16.o ../cx_g726_24.o ../cx_g726_32.o \
-             ../cx_g726_40.o \
+             ../cx_g726_40.o ../codec_l8.o \
              ../converter.o ../convert_linear.o ../convert_util.o \
              ../convert_extra.o ../convert_sinc.o ../bitstream.o
 
@@ -25,6 +25,16 @@ UTIL_OBJS = ../timers.o ../playout.o ../ts.o
 3D_OBJS = test_3d.o ../render_3D.o
 
 RDNCY_OBJS = ../cc_rdncy.o ../channel_types.o test_rdncy.o
+
+PKTBUF_OBJS = ../pktbuf.o test_pktbuf.o ../ts.o ../playout.o
+
+RTONE_OBJS = ./rtone.o
+
+rtone: $(RTONE_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS)
+	$(CC) $(DEBUG) -o $@ $(RTONE_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(LIBS)
+
+test_pktbuf: $(PKTBUF_OBJS)
+	$(CC) $(DEBUG)  -o $@ $(PKTBUF_OBJS) $(LIBS) 
 
 test_repair: $(CODEC_OBJS) $(REPAIR_OBJS) $(SNDFILE_OBJS) test_repair.o 
 	$(CC) $(DEBUG)  -o $@ $(CODEC_OBJS) $(REPAIR_OBJS) $(SNDFILE_OBJS) $(LIBS) test_repair.o
