@@ -749,9 +749,8 @@ rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
         freq = atoi(sfreq) * 1000;
         next_cid = codec_get_matching(short_name, (u_int16)freq, (u_int16)channels);
 
-        if (next_cid) {
+        if (next_cid && codec_get_payload(next_cid) != 255) {
                 cid     = codec_get_by_payload ((u_char)sp->encodings[0]);
-                assert(cid);
                 if (codec_audio_formats_compatible(next_cid, cid)) {
                         sp->encodings[0] = codec_get_payload(next_cid);
                         ui_update_primary(sp);
