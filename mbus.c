@@ -141,7 +141,7 @@ void mbus_retransmit(struct mbus *m)
 
 	/* diff is time in milliseconds that the message has been awaiting an ACK */
 	diff = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - ((curr->time.tv_sec * 1000) + (curr->time.tv_usec / 1000));
-	if (diff > 1000) {
+	if (diff > 10000) {
 		debug_msg("Reliable mbus message failed!\n");
 		if (m->err_handler == NULL) {
 			abort();
