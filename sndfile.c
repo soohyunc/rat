@@ -19,6 +19,7 @@
 #include "codec_g711.h"
 #include "sndfile_types.h"
 #include "sndfile_au.h"
+#include "sndfile_raw.h"
 #include "sndfile_wav.h"
 #include "sndfile.h"
 
