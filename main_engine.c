@@ -197,8 +197,6 @@ int main(int argc, char *argv[])
 		ntp_time = ntp_time32();
 		sp->cur_ts   = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), cur_time);
 
-                debug_msg("%d %d\n", sp->cur_ts.ticks, elapsed_time);
-
                 if (tx_is_sending(sp->tb)) {
                         tx_process_audio(sp->tb);
                         tx_send(sp->tb);

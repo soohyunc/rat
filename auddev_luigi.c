@@ -57,6 +57,8 @@ luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
         assert(ad >= 0 && ad < ndev); 
 	sprintf(thedev, "/dev/audio%d", dev_ids[ad]);
 
+        debug_msg("Opening %s\n", thedev);
+
         audio_fd = open(thedev, O_RDWR);
         if (audio_fd >= 0) {
                 /* Ignore any earlier errors */
@@ -198,11 +200,19 @@ luigi_audio_close(audio_desc_t ad)
 void
 luigi_audio_drain(audio_desc_t ad)
 {
-        u_char buf[160];
+        u_char buf[4];
+        int pre, post;
         
         assert(audio_fd > 0);
+
+        LUIGI_AUDIO_IOCTL(audio_fd, FIONREAD, &pre);
+        LUIGI_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_RESET, 0);
+        LUIGI_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SYNC, 0);
+        LUIGI_AUDIO_IOCTL(audio_fd, FIONREAD, &post);
+        debug_msg("audio drain: %d -> %d\n", pre, post);
+        read(audio_fd, buf, sizeof(buf));
+
         UNUSED(ad);
-        while(luigi_audio_read(audio_fd, buf, 160) == 160);
 }
 
 int
