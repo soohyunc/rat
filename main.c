@@ -118,6 +118,7 @@ main(int argc, char *argv[])
         for (i = 0; i < sp[0]->layers; i++) {
                 sp[0]->rtp_session[i] = rtp_init(sp[0]->asc_address[i], 
                                                  sp[0]->tx_rtp_port[i], 
+                                                 sp[0]->rx_rtp_port[i],
                                                  sp[0]->ttl, 
                                                  64000,
                                                  rtp_callback);
