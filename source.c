@@ -762,7 +762,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         delta_transit = ts_sub(transit, e->last_transit);
                         if (ts_gt(delta_transit, spt)) {
 				/* Transit delay increased suddenly - this is a "spike" */
-                                debug_msg("Spike\n");
+                                debug_msg("Spike (%d > %d)\n", delta_transit.ticks, spt.ticks);
                                 src->playout_mode = PLAYOUT_MODE_SPIKE;
                                 src->spike_var    = zero_ts;
                                 e->spike_events++;
@@ -1367,7 +1367,7 @@ source_process(session_t 	 *sp,
         codec_state *cs;
         uint32_t     md_len;
         ts_t         playout, step;
-        int          i, success, hold_repair = 0;
+        int          success, hold_repair = 0;
         uint16_t     sample_rate, channels;
 
         /* Note: hold_repair is used to stop repair occuring.
@@ -1443,6 +1443,7 @@ source_process(session_t 	 *sp,
                         /* We need to decode this unit, may not have to when repair has */
 			/* been used.                                                   */
 #ifdef DEBUG
+                        int i;
                         for(i = 0; i < md->nrep; i++) {
                                 /* If there is a native coding this unit has already */
 				/* been decoded and this would be a bug */
