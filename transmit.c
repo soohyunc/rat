@@ -271,11 +271,11 @@ tx_read_audio(tx_buffer *tb)
                         this_read = audio_read(sp->audio_device, 
                                                u->data + u->dur_used * tb->channels,
                                                (tb->unit_dur - u->dur_used) * tb->channels) / tb->channels;
-
+                        assert(this_read <= tb->unit_dur - u->dur_used);
                         if (sp->in_file) {
                                 snd_read_audio(&sp->in_file, 
                                                 u->data + u->dur_used * tb->channels,
-                                                (u_int16)((tb->unit_dur - u->dur_used) * tb->channels));
+                                                (u_int16)(this_read * tb->channels));
                         }
 
                         filled_unit = FALSE;
