@@ -2,6 +2,7 @@
  * FILE:    session.c 
  * PROGRAM: RAT
  * AUTHORS: Vicky Hardman + Isidor Kouvelas + Colin Perkins
+ * MODIFIED BY: Orion Hodson
  * 
  * $Revision$
  * $Date$
@@ -67,23 +68,23 @@ init_session(session_struct *sp)
 
 	memset(sp, 0, sizeof(session_struct));
 
-	set_dynamic_payload(&sp->dpt_list, "WBS", 122);
-	set_dynamic_payload(&sp->dpt_list, "L16-8K-MONO",    123);
-	set_dynamic_payload(&sp->dpt_list, "L16-8K-STEREO",  124);
-	set_dynamic_payload(&sp->dpt_list, "L16-16K-MONO",   125);
-	set_dynamic_payload(&sp->dpt_list, "L16-16K-STEREO", 126);
-	set_dynamic_payload(&sp->dpt_list, "L16-32K-MONO",   127);
-	set_dynamic_payload(&sp->dpt_list, "L16-32K-STEREO", 128);
-	set_dynamic_payload(&sp->dpt_list, "L16-48K-MONO",   129);
-	set_dynamic_payload(&sp->dpt_list, "L16-48K-STEREO", 130);
-	init_converter();
+	set_dynamic_payload(&sp->dpt_list, "WBS", PT_WBS);
+	set_dynamic_payload(&sp->dpt_list, "L16-8K-MONO",    PT_L16_8K_MONO);
+	set_dynamic_payload(&sp->dpt_list, "L16-8K-STEREO",  PT_L16_8K_STEREO);
+	set_dynamic_payload(&sp->dpt_list, "L16-16K-MONO",   PT_L16_16K_MONO);
+	set_dynamic_payload(&sp->dpt_list, "L16-16K-STEREO", PT_L16_16K_STEREO);
+	set_dynamic_payload(&sp->dpt_list, "L16-32K-MONO",   PT_L16_32K_MONO);
+	set_dynamic_payload(&sp->dpt_list, "L16-32K-STEREO", PT_L16_32K_STEREO);
+	set_dynamic_payload(&sp->dpt_list, "L16-48K-MONO",   PT_L16_48K_MONO);
+	set_dynamic_payload(&sp->dpt_list, "L16-48K-STEREO", PT_L16_48K_STEREO);
+
 	codec_init(sp);
 	cp = get_codec_byname("DVI",sp);
         sp->encodings[0]		= cp->pt;	/* user chosen encoding for primary */
 	sp->num_encodings		= 1;		/* Number of encodings in packet */
-	sp->clock			= new_fast_time(64000);
+	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
 	sp->device_clock		= new_time(sp->clock, cp->freq);
-
+        assert(!(GLOBAL_CLOCK_FREQ%cp->freq));                        /* just in case someone adds weird freq codecs */
 	sp->mode         		= AUDIO_TOOL;	
 	sp->net_maddress		= 0;		/* Same as above, can be used in a sendto */
 	sp->our_address			= 0;		/* our unicast address */
@@ -98,8 +99,8 @@ init_session(session_struct *sp)
 	sp->auto_lecture		= 0;
 	sp->transmit_audit_required	= FALSE;
 	sp->receive_audit_required	= FALSE;
-	sp->voice_switching		= FULL_DUPLEX;	/* NETMUTESMIKE etc. */
-	sp->redundancy_pt		= 121;	/* XXX obsolete */
+	sp->voice_switching		= FULL_DUPLEX;	 /* NETMUTESMIKE etc. */
+	sp->redundancy_pt		= PT_REDUNDANCY; /* XXX obsolete */
 	sp->detect_silence		= TRUE;
 	sp->agc_on			= FALSE;
         sp->ui_on                       = TRUE;
@@ -153,6 +154,9 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 
 	for (i = 1; i < argc; i++) {
 		for (s = 0; s < sp_size; s++) {
+                        if ((strcmp(argv[i], "-allowloopback")) == 0) {
+                                sp[s]->no_filter_loopback = 1;
+                        }
 			if ((strcmp(argv[i], "-K") == 0) && (argc > i+1)) {
 				argv[i] = "-crypt";
 				i++;
