@@ -182,8 +182,10 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
                 delay    = 0;
         }
 
-        sprintf(args, "\"%08lx\" %ld", e->sentry->ssrc, buffered);
-        mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.audio.buffered", args, FALSE);
+        if (src == NULL || delay != 0) {
+                sprintf(args, "\"%08lx\" %ld", e->sentry->ssrc, buffered);
+                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.audio.buffered", args, FALSE);
+        }
         
         sprintf(args, "\"%08lx\" %ld", e->sentry->ssrc, delay);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.audio.delay", args, FALSE);

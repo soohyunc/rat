@@ -142,8 +142,6 @@ main(int argc, char *argv[])
 	
 	xdoneinit();
 
-        tcl_process_all_events(sp[0]);
-
 	while (!should_exit) {
 		for (i = 0; i < num_sessions; i++) {
 			if (sp[i]->mode == TRANSCODER) {
