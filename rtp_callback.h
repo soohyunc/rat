@@ -1,7 +1,7 @@
 /*
  * FILE:    rtp_callback.h
  * PROGRAM: RAT
- * AUTHOR:  Colin Perkins 
+ * AUTHOR:  Colin Perkins / Orion Hodson
  * 
  * $Revision$
  * $Date$
@@ -11,5 +11,8 @@
  *
  */
 
-void rtp_callback(struct rtp *s, rtp_event *e);
+struct session_tag;
 
+void rtp_callback_init (struct rtp *s, struct session_tag *sp);
+void rtp_callback      (struct rtp *s, rtp_event *e);
+void rtp_callback_exit (struct rtp *s);
