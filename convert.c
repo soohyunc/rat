@@ -84,7 +84,7 @@ static int
 acm_conv_load(void)
 {
      acmDriverEnum(getPCMConverter, 0L, 0L);
-     if (HACMDRIVER) return TRUE;
+     if (hDrv) return TRUE;
      return FALSE;                /* Failed initialization, entry disabled in table */
 }
 
@@ -141,6 +141,7 @@ acm_conv_do(converter_t *c, sample *src_buf, int src_len, sample *dst_buf, int d
             acmStreamConvert(*lphs, &ash, ACM_STREAMCONVERTF_BLOCKALIGN)) {
                 memset(dst_buf, 0, dst_len * sizeof(sample));
         }
+        xmemchk();
         return;
 }
 
@@ -232,9 +233,11 @@ converter_create(int from_channels, int from_freq, int to_channels, int to_freq)
         if (pc->id == CONVERT_NONE) return NULL;
         
         c  = (converter_t*)xmalloc(sizeof(converter_t));
+
         if (c == NULL) {
                 return NULL;
         }
+        memset(c, 0, sizeof(converter_t));
 
         cf = (converter_fmt_t*)xmalloc(sizeof(converter_fmt_t));
         if (cf == NULL) {
@@ -269,9 +272,8 @@ converter_create(int from_channels, int from_freq, int to_channels, int to_freq)
 void 
 converter_destroy(converter_t **c)
 {
-        assert(*c);
+        if (*c == NULL) return;
         if ((*c)->pcm_conv->cf_free) (*c)->pcm_conv->cf_free(*c);
-        if ((*c)->pcm_conv)          xfree((*c)->pcm_conv);
         if ((*c)->conv_fmt)          xfree((*c)->conv_fmt);
         if ((*c)->data != NULL)      xfree((*c)->data);
         xfree(*c); (*c) = NULL;
@@ -289,14 +291,14 @@ converter_format (converter_t *c, rx_queue_element_struct *ip)
         assert(ip->native_count);
         
         cf = c->conv_fmt;
-        ip->native_size[ip->native_count] = ip->native_size[ip->native_count - 1] * cf->to_channels * cf->to_freq / (cf->from_channels * cf->from_freq);
-        ip->native_data[ip->native_count] = (sample*)xmalloc(sizeof(sample) * ip->native_size[ip->native_count]);
-        ip->native_count++;
+        ip->native_size[ip->native_count] = sizeof(sample) * ip->native_size[ip->native_count - 1] * cf->to_channels * cf->to_freq / (cf->from_channels * cf->from_freq);
+        ip->native_data[ip->native_count] = (sample*)block_alloc(ip->native_size[ip->native_count]);
         c->pcm_conv->cf_convert(c,
                                 ip->native_data[ip->native_count - 1], 
-                                ip->native_size[ip->native_count - 1],
+                                ip->native_size[ip->native_count - 1] / sizeof(sample),
                                 ip->native_data[ip->native_count], 
-                                ip->native_size[ip->native_count]);
+                                ip->native_size[ip->native_count] / sizeof(sample));
+        ip->native_count++;
         return TRUE;
 }
 

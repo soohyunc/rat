@@ -761,7 +761,7 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, int fd, u_int32 addr, u_int1
 		}
 	}
         rtcp_db_exit(sp1);
-        rtcp_db_exit(sp2);
+        if (sp2 && sp2->db) rtcp_db_exit(sp2);
 }
 
 /*

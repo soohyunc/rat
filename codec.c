@@ -54,6 +54,10 @@
 #include "rtcp_db.h"
 #include "transmit.h"
 
+#ifdef WIN32
+#include "codec_acm.h"
+#endif
+
 typedef struct s_codec_state {
 	struct s_codec_state *next;
 	int	id;	/* Codec payload type */
@@ -407,6 +411,9 @@ codec_init(session_struct *sp)
 		memcpy(&cd[pt], cp, sizeof(codec_t));
 		cd[pt].pt = pt;
 	}
+#ifdef WIN32
+        acmInit();
+#endif
 }
 
 codec_t *
