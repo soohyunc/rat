@@ -79,6 +79,7 @@ redundancy_encoder_create(u_char **state, u_int32 *len)
         }
 
         if (pb_iterator_create(re->media_buffer, &re->media_pos) == FALSE) {
+                debug_msg("failed to create iterator\n");
                 goto fail_pb_iterator;
         }
 
@@ -405,10 +406,11 @@ redundancy_encoder_encode (u_char      *state,
 int
 redundancy_encoder_set_parameters(u_char *state, char *cmd)
 {
-        red_enc_state *n;
+        red_enc_state *n, *cur;
         u_int32 nl, po;
         codec_id_t  cid;
         char *s;
+        int success = FALSE;
 
         assert(state != NULL);
         assert(cmd   != NULL);
@@ -461,13 +463,17 @@ redundancy_encoder_set_parameters(u_char *state, char *cmd)
                 n->n_layers ++;
         }
 
-        assert(n->n_layers > 1);
-        memcpy(state, n, sizeof(red_enc_state));
-        redundancy_encoder_destroy((u_char**)&n, nl);
-        return TRUE;
+
+        redundancy_encoder_reset(state);
+        /* Take bits from temporary encoder state we want */
+        cur = (red_enc_state*)state;
+        memcpy(cur->layer, n->layer, sizeof(red_layer)*RED_MAX_LAYERS);
+        cur->n_layers = n->n_layers;
+        success = TRUE;
+
 done:
         redundancy_encoder_destroy((u_char**)&n, nl);
-        return FALSE;
+        return success;
 }
 
 int 
