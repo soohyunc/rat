@@ -65,8 +65,6 @@ void	ui_output_level(struct session_tag *s, int level);
 void    ui_update_input_gain(struct session_tag *sp);
 void    ui_update_output_gain(struct session_tag *sp);
 void 	ui_update_input_port(struct session_tag *sp);
-void    ui_update_frequency(struct session_tag *sp);
-void    ui_update_channels(struct session_tag *sp);
 void    ui_update_device_config(struct session_tag *sp);
 void 	ui_update_output_port(struct session_tag *sp);
 void	ui_update_primary(struct session_tag *sp);

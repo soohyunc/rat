@@ -356,8 +356,8 @@ audio_format_name(const audio_format *cur, char *buf, int buf_len)
 
         buf[0] = '\0';
         if (buf_len >= 38) {
-                /* 38 = strlen("16-bit signed linear, 48-kHz, stereo") + 1; */
-                sprintf(buf, "%s, %d-kHz, %s",
+                /* 38 = strlen("16-bit signed linear,48-kHz,stereo") + 1; */
+                sprintf(buf, "%s,%d-kHz,%s",
                         deve_get_name(cur->encoding),
                         cur->sample_rate/1000,
                         audio_channels_name(cur->channels));

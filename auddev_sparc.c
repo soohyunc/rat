@@ -421,7 +421,7 @@ void
 sparc_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
         UNUSED(ad); assert(audio_fd > 0);
-        sparc_audio_select(ad, delay_ms * 1000);
+        while(!sparc_audio_select(ad, delay_ms * 1000));
 }
 
 int 

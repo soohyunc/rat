@@ -175,8 +175,6 @@ proc mbus_recv {cmnd args} {
 		tool.rat.repair.supported	{eval mbus_recv_tool.rat.repair.supported $args}
 		tool.rat.agc  			{eval mbus_recv_tool.rat.agc $args}
 		tool.rat.sync  			{eval mbus_recv_tool.rat.sync $args}
-		tool.rat.frequency  		{eval mbus_recv_tool.rat.frequency $args}
-		tool.rat.channels  		{eval mbus_recv_tool.rat.channels $args}
 		tool.rat.format.in              {eval mbus_recv_tool.rat.format.in $args}
 		tool.rat.format.out              {eval mbus_recv_tool.rat.format.out $args}
 		tool.rat.codec  		{eval mbus_recv_tool.rat.codec $args}
@@ -390,21 +388,22 @@ proc mbus_recv_security.encryption.key {new_key} {
 }
 
 proc mbus_recv_tool.rat.format.in {arg} {
-    puts "ifmt $arg"
+    global freq ichannels
+#expect arg to be <sample_type>,<sample rate>,<mono/stereo>
+    set e [split $arg ","]
+    
+    set freq      [lindex $e 1]
+    set ichannels [lindex $e 2]
+    puts "tool.rat.format.in \"$freq\" \"$ichannels\""
 }
 
 proc mbus_recv_tool.rat.format.out {arg} {
-    puts "ofmt $arg"
-}
-
-proc mbus_recv_tool.rat.frequency {arg} {
-  global freq
-  set freq $arg
-}
-
-proc mbus_recv_tool.rat.channels {arg} {
-  global ichannels
-  set ichannels $arg
+    global freq ochannels
+    set e [split $arg ","]
+    
+    set freq      [lindex $e 1]
+    set ochannels [lindex $e 2]
+    puts "tool.rat.format.out \"$freq\" \"$ochannels\""
 }
 
 proc mbus_recv_tool.rat.codec {arg} {
@@ -1679,7 +1678,7 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "tool.rat.playout.min"   $min_var
     mbus_send "R" "tool.rat.playout.max"   $max_var
     mbus_send "R" "tool.rat.lecture"       $lecture_var
-    mbus_send "R" "tool.rat.3d.enabled"   $3d_audio_var
+    mbus_send "R" "tool.rat.3d.enabled"    $3d_audio_var
     mbus_send "R" "tool.rat.converter"     [mbus_encode_str $convert_var]
 
     #Security
@@ -1746,7 +1745,8 @@ proc save_settings {} {
 
     # transmission
     save_setting $f audioFrequency         freq
-    save_setting $f audioChannels          ichannels
+    save_setting $f audioChannelsIn        ichannels
+    save_setting $f audioChannelsOut       ochannels
     save_setting $f audioPrimary           prenc
     save_setting $f audioUnits             upp
     save_setting $f audioChannelCoding     channel_var
@@ -1900,7 +1900,8 @@ proc load_settings {} {
     load_setting attr audioLoopback          audio_loop_var "0"
     load_setting attr audioEchoSuppress      echo_var      "0"
     load_setting attr audioFrequency         freq          "8-kHz"
-    load_setting attr audioChannels          ichannels      "Mono"
+    load_setting attr audioChannelsIn        ichannels     "Mono"
+    load_setting attr audioChannelsOut       ochannels     "Mono"
     load_setting attr audioPrimary           prenc         "GSM"
     load_setting attr audioUnits             upp           "2"
     load_setting attr audioChannelCoding     channel_var   "none"
@@ -1908,15 +1909,15 @@ proc load_settings {} {
     load_setting attr audioRedundancyOffset  red_off       "1"
     load_setting attr audioInterleavingGap   int_gap       "4"
     load_setting attr audioInterleavingUnits int_units     "4"
-	#device
-	load_setting attr audioDevice            audio_device  "Unknown"
+    #device
+    load_setting attr audioDevice            audio_device  "Unknown"
+
+    global prenc ichannels freq
+    mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"
 	
-	global prenc ichannels freq
-	mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"
-	
-	global      in_mute_var   out_mute_var
-	input_mute  $in_mute_var
-	output_mute $out_mute_var
+    global      in_mute_var   out_mute_var
+    input_mute  $in_mute_var
+    output_mute $out_mute_var
 }
 
 proc check_rtcp_name {} {

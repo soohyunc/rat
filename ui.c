@@ -393,42 +393,6 @@ ui_repair(session_struct *sp)
 }
 
 void
-ui_update_frequency(session_struct *sp)
-{
-	codec_t *pcp;
-	char	 args[7], *mbes;
-
-	pcp = get_codec_by_pt(sp->encodings[0]);
-	sprintf(args, "%d-kHz", pcp->freq/1000);
-        assert(strlen(args) < 7);
-        mbes = mbus_encode_str(args);
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.frequency", mbes, FALSE);
-        xfree(mbes);
-}
-
-void
-ui_update_channels(session_struct *sp)
-{
-	codec_t *pcp;
-	char	*mbes;
-        
-	pcp = get_codec_by_pt(sp->encodings[0]);
-        switch(pcp->channels) {
-        case 1:
-                mbes = mbus_encode_str("Mono");
-                break;
-        case 2:
-                mbes = mbus_encode_str("Stereo");
-                break;
-        default:
-                debug_msg("UI not ready for %d channels\n", pcp->channels);
-                return;
-        }
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.channels", mbes, FALSE);
-        xfree(mbes);
-}       
-
-void
 ui_update_device_config(session_struct *sp)
 {
         char          fmt_buf[64], *mbes;
@@ -689,8 +653,6 @@ ui_update(session_struct *sp)
         ui_devices(sp);
         ui_device(sp);
         ui_sampling_modes(sp);
-        ui_update_frequency(sp);
-        ui_update_channels(sp);
         ui_update_device_config(sp);
 	ui_update_primary(sp);
         ui_update_channel(sp);
