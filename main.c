@@ -243,6 +243,7 @@ main(int argc, char *argv[])
 
                                         s = source_list_get_source_no(sp[i]->active_sources, sidx);
                                         source_process(s, sp[i]->ms, sp[i]->repair, cush_ts);
+                                        source_audit(s);
                                         if (!source_relevant(s, cush_ts)) {
                                                 /* Remove source as stopped */
                                                 source_remove(sp[i]->active_sources, s);
