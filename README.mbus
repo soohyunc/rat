@@ -148,16 +148,16 @@ rtp.source.note  (ssrc note)
 	packets - in which case the ssrc used must be that from the
 	rtp.ssrc() message.
 
-rtp.source.mute (cname mute)
+rtp.source.mute (ssrc mute)
 
 	The specified source should be muted (if mute == 1) or unmuted (if
-	mute == 0).
+	mute == 0). The ssrc can be "ALL" to mute/unmute all sources.
 
-rtp.source.codec (cname codec)
+rtp.source.codec (ssrc codec)
 
 	Convey codec being used by this source.
 
-rtp.source.packet.duration (cname duration)
+rtp.source.packet.duration (ssrc duration)
 
 	Convey the duration of audio packets received from this source.
 
@@ -165,21 +165,21 @@ rtp.source.packet.loss (dest srce loss)
 
 	Convey the percentage packet loss between two participants.
 
-rtp.source.reception (cname packets_recv packets_lost packets_mis o packets_dup jitter jit_tog)
+rtp.source.reception (ssrc packets_recv packets_lost packets_mis o packets_dup jitter jit_tog)
 
 	Convey RTCP reception report statistics.
 
-rtp.source.active   (cname)
-rtp.source.inactive (cname)
+rtp.source.active   (ssrc)
+rtp.source.inactive (ssrc)
 
 	Indicate that the specified source is active/inactive now.
 
-rtp.source.exists (cname)
+rtp.source.exists (ssrc)
 
 	Indicate to the receiver that the participant with the specified
 	is present in the session.
 
-rtp.source.remove (cname)
+rtp.source.remove (ssrc)
 
 	The specified source should be remove from the list of
 	participants.
@@ -187,7 +187,7 @@ rtp.source.remove (cname)
 rtp.source.gain (ssrc gain)
 rtp.source.rtt (ssrc rtt)
 
-rtp.source.playout (cname playout-delay)
+rtp.source.playout (ssrc playout-delay)
 
 	Convey playout delay being used for this source.
 
