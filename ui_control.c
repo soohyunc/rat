@@ -485,7 +485,7 @@ static void
 ui_update_channel(session_struct *sp) 
 {
         cc_coder_t *ccp;
-        char       *mbes;
+        char       *mbes = NULL;
 
         ccp = get_channel_coder(sp->cc_encoding);
         assert(ccp != NULL);
@@ -505,7 +505,7 @@ ui_update_channel(session_struct *sp)
         }
 
         mbus_engine_tx(TRUE, mbus_name_ui, "channel.code", mbes, TRUE);
-        xfree(mbes);
+        if (mbes) xfree(mbes);
 }
 
 void
@@ -619,7 +619,6 @@ ui_update_loss(char *srce, char *dest, int loss)
 	args   = (char *) xmalloc(strlen(srce_e) + strlen(dest_e) + 6);
 	sprintf(args, "%s %s %3d", srce_e, dest_e, loss);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.packet.loss", args, FALSE);
-
 	xfree(args);
 	xfree(srce_e);
 	xfree(dest_e);
@@ -655,6 +654,7 @@ ui_update_duration(char *cname, int duration)
 	sprintf(args, "%s %3d", cname_e, duration);
 	mbus_engine_tx_queue(TRUE, "source.packet.duration", args);
 	xfree(args);
+        xfree(cname_e);
 }
 
 void 
@@ -670,6 +670,7 @@ ui_update_video_playout(char *cname, int playout)
 	sprintf(args, "%s %12d", cname_e, playout);
 	mbus_engine_tx(TRUE, mbus_name_video, "source_playout", args, FALSE);
 	xfree(args);
+        xfree(cname_e);
 }
 
 static int
