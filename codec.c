@@ -939,28 +939,37 @@ codec_get_matching(const char *short_name, uint16_t freq, uint16_t channels)
         return 0;
 }
 
-/* These three functions are a hack so we can have
- * encode and decode functions take coded_units as
- * input and output.  This makes paths cleaner
- * since we don't have two data types for coded and
- * raw units.
- */
+
+/* These constants are what are supported as native codings */
+
+static uint16_t sampling_rates[] = {8000, 11025, 16000, 22050, 32000, 44100, 48000};
+static uint16_t num_sampling_rates = sizeof(sampling_rates)/sizeof(sampling_rates[0]);
+static uint16_t max_channels = 2;
+
+/* The following three functions are a hack so we can have encode and
+ * decode functions take coded_units as input and output.  This makes
+ * paths cleaner since we don't have two data types for coded and raw
+ * units.  */
 
 codec_id_t 
 codec_get_native_coding(uint16_t sample_rate, uint16_t channels)
 {
         codec_id_t cid;
+        uint32_t i, index;
 
-        assert((sample_rate % 8000) == 0 && sample_rate <= 48000);
-        assert(channels == 1 || channels == 2);
-
-        channels    = channels - 1;
-        sample_rate = sample_rate / 4000 - 2;
+        for (i = 0; i < num_sampling_rates; i++) {
+                if (sampling_rates[i] == sample_rate) {
+                        break;
+                }
+        }
+        assert(i != num_sampling_rates);
+        assert(channels <= max_channels);
+        index = i * max_channels + (channels - 1);
         /* There is no codec corresponding to this but make it
          * have right form we set it interfaces to the number
          * of interfaces, i.e. one more than is legal.
          */
-        cid = CODEC_MAKE_ID(NUM_CODEC_INTERFACES, (sample_rate + channels));
+        cid = CODEC_MAKE_ID(NUM_CODEC_INTERFACES, index);
         return cid;
 }
 
@@ -968,7 +977,7 @@ int
 codec_is_native_coding(codec_id_t cid)
 {
         return (CODEC_GET_IFS_INDEX(cid) == NUM_CODEC_INTERFACES &&
-                CODEC_GET_FMT_INDEX(cid) < 12);
+                CODEC_GET_FMT_INDEX(cid) < num_sampling_rates * max_channels);
 }
 
 int 
@@ -976,12 +985,20 @@ codec_get_native_info(codec_id_t cid,
                       uint16_t   *p_rate, 
                       uint16_t   *p_channels)
 {
+        u_int32_t i, c, index;
+
         if (codec_is_native_coding(cid)) {
-                uint32_t f = CODEC_GET_FMT_INDEX(cid);
-                *p_rate   = (uint16_t)(f - (f&0x01)+2) * 4000;
-                assert(*p_rate % 8000 == 0 && *p_rate <= 48000);
-                *p_channels = (uint16_t)(f&0x01) + 1;
-                assert(*p_channels == 1 || *p_channels == 2);
+                index = CODEC_GET_FMT_INDEX(cid);
+                /* Calculate and verify index in table of acceptable rates */
+                i = index / max_channels;
+                if (p_rate != NULL) {
+                        *p_rate = sampling_rates[i];
+                }
+                /* Calculate and verify number of channels */
+                c = (index % max_channels) + 1;
+                if (p_channels != NULL) {
+                        *p_channels = c;
+                }
                 return TRUE;
         }
         return FALSE;

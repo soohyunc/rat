@@ -1172,8 +1172,8 @@ v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	  process.
 	- Add checks for sibling and parent process in ui and engine so proc's
 	  don't wait for messages that are never going to come.
-	- Change skew correction code to use audio_blend rather than repeat procedure
-	  in situ.  Fixes a memory corruption bug.
+	- Change skew correction code to use audio_blend rather than repeat 
+	  procedure in situ.  Fixes a memory corruption bug.
 	- Add null handler for RX_APP to rtp_callback, circumvents abort call.
 	- Add linear8 to sndfile import and export functions.
 	- Add handling to sinc_converter for conversion chunks that are 
@@ -1183,6 +1183,9 @@ v4.1.8	- Partially fix layered codec (recognises multiple addresses on
 	- Add manual silence detection algorithm.
 	- Add UI and settings for silence detection algorithm alternatives.
 	- Add sample rate and channel converter to sound file importer.
+	- Add support for m*11025 native encoding types.  Although RAT does
+	  not support these sampling rates, one of the sample rate converters
+	  supports conversion from m*11025 to n*8000.
 
 TODO -- They're features not bugs dammit!
 ----
