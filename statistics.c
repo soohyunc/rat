@@ -175,8 +175,13 @@ adapt_playout(rtp_hdr_t *hdr,
 	int	delay, diff;
 	codec_t	*cp;
 	u_int32	ntptime, sendtime, play_time;
-        int     ntp_delay, since_last_sr;
+        int     ntp_delay;
 	u_int32	rtp_time;
+#ifdef WIN32
+	__int64 since_last_sr;
+#else
+	long long since_last_sr;
+#endif
         
 	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
 	delay = arrival_ts - hdr->ts;
@@ -201,14 +206,17 @@ adapt_playout(rtp_hdr_t *hdr,
 		ntptime = (src->last_ntp_sec & 0xffff) << 16 | src->last_ntp_frac >> 16;
 		if (hdr->ts > src->last_rtp_ts) {
 			since_last_sr = hdr->ts - src->last_rtp_ts;	
-			sendtime = ntptime + (since_last_sr << 16) / get_freq(src->clock);
+			since_last_sr = (since_last_sr << 16) / get_freq(src->clock);
+			sendtime = ntptime + since_last_sr; //(since_last_sr << 16) / get_freq(src->clock);
 		}
 		else {
 			since_last_sr = src->last_rtp_ts - hdr->ts;
-			sendtime = ntptime + (since_last_sr << 16) / get_freq(src->clock);
+			since_last_sr = (since_last_sr << 16) / get_freq(src->clock);
+			sendtime = ntptime + since_last_sr; //(since_last_sr << 16) / get_freq(src->clock);
 		}
 
 		ntp_delay = real_time - sendtime; 
+
 		if (src->first_pckt_flag == TRUE) { 
 			src->sync_playout_delay = ntp_delay;
 		}
@@ -267,7 +275,7 @@ adapt_playout(rtp_hdr_t *hdr,
                                  * adjust to match it...  src->video_playout is
                                  * the delay of the video in real time 
 				*/
-				printf("ad=%d\tvd=%d\n", src->sync_playout_delay, src->video_playout);
+				debug_msg("ad=%d\tvd=%d\n", src->sync_playout_delay, src->video_playout);
                                 if (src->video_playout_received == TRUE &&
                                     src->video_playout > src->sync_playout_delay) {
                                         src->sync_playout_delay = src->video_playout;
@@ -309,7 +317,7 @@ adapt_playout(rtp_hdr_t *hdr,
                         src->first_pckt_flag = TRUE;
                 }
         }
-printf("\t%u\t%u\t%u\t%u\t%d\t%u\n", (unsigned int)hdr->ts,  (unsigned int)sendtime, (unsigned int)real_time, (unsigned int)playout, ntp_delay, (unsigned int)src->playout_ceil);
+//printf("\t%u\t%u\t%u\t%u\t%d\t%u\n", (unsigned int)hdr->ts,  (unsigned int)sendtime, (unsigned int)real_time, (unsigned int)playout, ntp_delay, (unsigned int)src->playout_ceil);
 	return playout;
 }
 
@@ -425,6 +433,12 @@ statistics(session_struct    *sp,
                         goto release;
                 }
                 rtcp_update_seq(src, hdr->seq);
+
+		if (src->mapping_valid == FALSE) {
+			/* need to have a SR received b4 procceding [dm] */
+			debug_msg("Haven't received a SR so far...\n");
+			goto release;
+		}
 
                 if (sp->have_device == FALSE) {
                         /* we don't have the audio device so there is no point
