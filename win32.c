@@ -191,7 +191,7 @@ printf(const char *fmt, ...)
 	
 	va_list ap;
 	va_start(ap, fmt);
-	retval = vsnprintf(szTemp, 256, fmt, ap);
+	retval = _vsnprintf(szTemp, 256, fmt, ap);
 	OutputDebugString(szTemp);
 	va_end(ap);
 
@@ -206,7 +206,7 @@ fprintf(FILE *f, const char *fmt, ...)
 
 	va_start(ap, fmt);
 	if (f == stderr) {
-		retval = vsnprintf(szTemp, 256, fmt, ap);
+		retval = _vsnprintf(szTemp, 256, fmt, ap);
 		OutputDebugString(szTemp);
 	} else {
 		retval = vfprintf(f, fmt, ap);
