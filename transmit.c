@@ -329,7 +329,6 @@ process_read_audio(session_struct *sp)
 	while (dist >= rb->lbuf->unit_size) {
                 assert(last_ind >= 0);
                 assert(dist > 0);
-                assert(rb->lbuf->unit_size == 320);
 
 		u = (tx_unit*)block_alloc(sizeof(tx_unit));
 		memset(u, 0, sizeof(tx_unit));
@@ -355,7 +354,6 @@ process_read_audio(session_struct *sp)
 		rb->last_ptr = u;
 		dist -= rb->lbuf->unit_size;
 		last_ind += rb->lbuf->unit_size / channels;
-                assert(last_ind > 0);
 	}
 
 	/* Clear old history */
