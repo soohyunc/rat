@@ -657,7 +657,7 @@ static void func_auto_convert(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine_chan, args);
 	if (mbus_parse_int(sp->mbus_engine_chan, &i)) {
                 assert(i==0||i==1);
-		sp->min_playout = i;
+		sp->auto_convert = i;
 	} else {
 		printf("mbus: usage \"auto_convert <boolean>\"\n");
 	}

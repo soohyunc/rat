@@ -238,8 +238,10 @@ proc mbus_recv_powermeter_output {level} {
 	bargraphSetHeight .r.c.vol.b1  [expr ($level * $bargraphHeight) / 100]
 }
 
-proc mbus_recv_input_gain {gain} {
-	.r.c.gain.s2 set $gain
+proc mbus_recv_input_gain {new_gain} {
+    global gain
+    set gain $new_gain
+    .r.c.gain.s2 set $gain
 }
 
 proc mbus_recv_input_port {device} {
