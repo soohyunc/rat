@@ -90,7 +90,7 @@ void ui_info_update_note(session_struct *sp, rtcp_dbentry *e)
 void
 ui_info_mute(session_struct *sp, rtcp_dbentry *e)
 {
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.mute", "\"%08lx\"", e->sentry->ssrc);
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.source.mute", "\"%08lx\" %d", e->sentry->ssrc, e->mute);
 }
 
 void
