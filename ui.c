@@ -614,6 +614,8 @@ ui_input_ports(session_struct *sp)
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.input.ports.flush", "", TRUE);
 
         n = audio_get_iport_count(sp->audio_device);
+        assert(n >= 1);
+
         for(i = 0; i < n; i++) {
                 apd = audio_get_iport_details(sp->audio_device, i);
                 mbes = mbus_encode_str(apd->name);
@@ -632,6 +634,8 @@ ui_output_ports(session_struct *sp)
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "audio.output.ports.flush", "", TRUE);
 
         n = audio_get_oport_count(sp->audio_device);
+        assert(n >= 1);
+
         for(i = 0; i < n; i++) {
                 apd = audio_get_oport_details(sp->audio_device, i);
                 mbes = mbus_encode_str(apd->name);
@@ -667,10 +671,11 @@ ui_device(session_struct *sp)
 {
         audio_device_details_t ad;
         char                  *mbes, *cur_dev;
-        int                    i;
+        int                    i, n;
 
         cur_dev = NULL;
 
+        n = audio_get_device_count();
         for(i = 0; i < audio_get_device_count(); i++) {
                 if (audio_get_device_details(i, &ad) && sp->audio_device == ad.descriptor) {
                         cur_dev = ad.name;
@@ -751,6 +756,8 @@ ui_update(session_struct *sp)
         ui_device(sp);
         ui_update_input_gain(sp);
         ui_update_output_gain(sp);
+        ui_input_ports(sp);
+        ui_output_ports(sp);
 	ui_update_output_port(sp);
 	ui_update_input_port(sp);
         ui_update_3d_enabled(sp);

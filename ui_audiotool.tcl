@@ -25,6 +25,7 @@ set titlefont     [font actual {helvetica 10}]
 set infofont      [font actual {helvetica 10}]
 set smallfont     [font actual {helvetica  8}]
 set verysmallfont [font actual {helvetica  8}]
+set speaker_highlight white
 
 option add *Entry.relief       sunken 
 option add *borderWidth        1
@@ -44,7 +45,6 @@ set num_cname		0
 set fw			.l.t.list.f
 set input_ports         [list]
 set output_ports        [list]
-
 
 proc init_source {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE num_cname 
@@ -119,12 +119,13 @@ proc toggle_input_port {} {
     set len [llength $input_ports]
 # lsearch returns -1 if not found, index otherwise
     set idx [lsearch -exact $input_ports $input_port] 
-    
-    incr idx
-    set idx [expr $idx % $len]
-    set port [lindex $input_ports $idx]
 
-    mbus_send "R" "audio.input.port" [mbus_encode_str $port]
+    if {$idx != -1} {
+	incr idx
+	set idx [expr $idx % $len]
+	set port [lindex $input_ports $idx]
+	mbus_send "R" "audio.input.port" [mbus_encode_str $port]
+    }
 }
 
 proc toggle_output_port {} {
@@ -134,11 +135,12 @@ proc toggle_output_port {} {
 # lsearch returns -1 if not found, index otherwise
     set idx [lsearch -exact $output_ports $output_port] 
     
-    incr idx
-    set idx [expr $idx % $len]
-    set port [lindex $output_ports $idx]
-
-    mbus_send "R" "audio.output.port" [mbus_encode_str $port]
+    if {$idx != -1} {
+	incr idx
+	set idx [expr $idx % $len]
+	set port [lindex $output_ports $idx]
+	mbus_send "R" "audio.output.port" [mbus_encode_str $port]
+    }
 }
 
 proc mbus_heartbeat {} {
@@ -796,14 +798,21 @@ proc mbus_recv_rtp.source.reception {cname packets_recv packets_lost packets_mis
 }
 
 proc mbus_recv_rtp.source.active {cname} {
-    catch [[window_plist $cname] configure -background white]
+    global speaker_highlight
+    catch [[window_plist $cname] configure -background $speaker_highlight]
     cname_update $cname
 }
 
 proc mbus_recv_rtp.source.inactive {cname} {
-    catch [[window_plist $cname] configure -background grey90]
-    after 60 "catch {[window_plist $cname] configure -background grey88}"
-    after 120 "catch {[window_plist $cname] configure -background [.l.t.list cget -background]}"
+    global speaker_highlight
+    catch {
+	set w [window_plist $cname]
+	if { [$w cget -bg] == $speaker_highlight } {
+	    $w configure -bg grey90
+	    after 60 "catch {$w configure -background grey88}"
+	    after 120 "catch {$w configure -background [.l.t.list cget -bg]}"
+	}
+    }
     cname_update $cname
 }
 

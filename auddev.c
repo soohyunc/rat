@@ -336,11 +336,11 @@ audio_if_t audio_if_table[] = {
         }
 };
 
-#define NUM_AUDIO_INTERFACES (sizeof(audio_if_table)/sizeof(audio_if_t))
+#define INITIAL_AUDIO_INTERFACES (sizeof(audio_if_table)/sizeof(audio_if_t))
 
 /* Active interfaces is a table of entries pointing to entries in
  * audio interfaces table.  Audio open returns index to these */
-static audio_desc_t active_device_desc[NUM_AUDIO_INTERFACES];
+static audio_desc_t active_device_desc[INITIAL_AUDIO_INTERFACES];
 static int active_devices;
 static int actual_devices;
 
@@ -420,7 +420,7 @@ audio_get_null_device()
         audio_desc_t ad;
 
         /* Null audio device is only device on the last interface*/
-        ad = AIF_MAKE_DESC((NUM_AUDIO_INTERFACES - 1), 0);
+        ad = AIF_MAKE_DESC(actual_devices - 1, 0);
 
         return ad;
 }
@@ -1074,11 +1074,11 @@ audio_get_samples_written(audio_desc_t ad)
 int
 audio_init_interfaces(void)
 {
-        u_int32 i, j, n, devs[NUM_AUDIO_INTERFACES];
+        u_int32 i, j, n, devs[INITIAL_AUDIO_INTERFACES];
 
         actual_devices = 0;
 
-        for(i = 0; i < NUM_AUDIO_INTERFACES; i++) {
+        for(i = 0; i < INITIAL_AUDIO_INTERFACES; i++) {
                 if (audio_if_table[i].audio_if_init) {
                         audio_if_table[i].audio_if_init(); 
                 }
@@ -1091,8 +1091,8 @@ audio_init_interfaces(void)
          * This could be inside init loop above, but makes it
          * hard to read and does not save anything worthwhile.
          */
-        for(i = j = 0; i < NUM_AUDIO_INTERFACES; i++) {
-                n = NUM_AUDIO_INTERFACES - i - 1;
+        for(i = j = 0; i < INITIAL_AUDIO_INTERFACES; i++) {
+                n = INITIAL_AUDIO_INTERFACES - i - 1;
                 if (devs[i] == 0 && n != 0) {
                         memmove(audio_if_table + j, audio_if_table + j + 1, n * sizeof(audio_if_t));
                 } else {
@@ -1108,7 +1108,7 @@ audio_free_interfaces(void)
 {
         u_int32 i;
 
-        for(i = 0; i < NUM_AUDIO_INTERFACES; i++) {
+        for(i = 0; i < INITIAL_AUDIO_INTERFACES; i++) {
                 if (audio_if_table[i].audio_if_free) {
                         audio_if_table[i].audio_if_free(); 
                 }
