@@ -512,8 +512,6 @@ tx_update_ui(session_struct *sp)
                         if (active == TRUE) ui_input_level(sp, 0);
                 }
         }
-        debug_msg("In talkspurt (%d) Detecting Silence (%d)\n",
-                  vad_in_talkspurt(sp->tb->vad), sp->detect_silence);
         if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
                 if (active == FALSE) {
                         ui_info_activate(sp, sp->db->my_dbe);
