@@ -342,7 +342,7 @@ audio_if_t audio_if_table[] = {
  * audio interfaces table.  Audio open returns index to these */
 static audio_desc_t active_device_desc[INITIAL_AUDIO_INTERFACES];
 static int active_devices;
-static int actual_devices;
+static int actual_devices, actual_interfaces;
 
 #define MAX_ACTIVE_DEVICES   2
 
@@ -420,7 +420,7 @@ audio_get_null_device()
         audio_desc_t ad;
 
         /* Null audio device is only device on the last interface*/
-        ad = AIF_MAKE_DESC(actual_devices - 1, 0);
+        ad = AIF_MAKE_DESC(actual_interfaces - 1, 0);
 
         return ad;
 }
@@ -1077,7 +1077,7 @@ audio_init_interfaces(void)
         u_int32 i, j, n, devs[INITIAL_AUDIO_INTERFACES];
 
         actual_devices = 0;
-
+        actual_interfaces = INITIAL_AUDIO_INTERFACES;
         for(i = 0; i < INITIAL_AUDIO_INTERFACES; i++) {
                 if (audio_if_table[i].audio_if_init) {
                         audio_if_table[i].audio_if_init(); 
@@ -1095,6 +1095,7 @@ audio_init_interfaces(void)
                 n = INITIAL_AUDIO_INTERFACES - i - 1;
                 if (devs[i] == 0 && n != 0) {
                         memmove(audio_if_table + j, audio_if_table + j + 1, n * sizeof(audio_if_t));
+                        actual_interfaces --;
                 } else {
                         j++;
                 }
