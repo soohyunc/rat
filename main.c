@@ -211,7 +211,6 @@ main(int argc, char *argv[])
                                         two_secs = ts_map32(8000, 16000);
                                         if (ts_gt(delta, two_secs)) {
                                                 ui_update_stats(sp[0], e->ssrc);
-                                                e->last_ui_update = sp[0]->cur_ts;
                                         }
 				} else {
 					/* Remove source as stopped */

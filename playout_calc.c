@@ -32,12 +32,11 @@ playout_variable_component(session_t *sp, pdb_entry_t *e)
         u_int32 var32, freq, cushion;
 
         freq  = get_freq(e->clock);
-        var32 = e->inter_pkt_gap;
+        var32 = e->inter_pkt_gap / 2;
 
         cushion = cushion_get_size(sp->cushion);
         if (var32 < cushion) {
-                var32 = 3 * cushion / 2;
-
+                var32 = cushion;
         }
         
         if (sp->limit_playout) {

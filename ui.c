@@ -164,10 +164,13 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
         u_int32               	 buffered, delay;
         pdb_entry_t             *pdbe;
 
+        debug_msg("ui_update_stats (0x%08x)\n", ssrc);
+
         if (pdb_item_get(sp->pdb, ssrc, &pdbe) == FALSE) {
                 debug_msg("ui_update_stats: pdb entry does not exist (0x%08x)\n", ssrc);
                 return;
         }
+        pdbe->last_ui_update = sp->cur_ts;
 
         if (pdbe->enc_fmt) {
 		mbes = mbus_encode_str(pdbe->enc_fmt);
@@ -185,17 +188,19 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
 
         src = source_get_by_ssrc(sp->active_sources, pdbe->ssrc);
         if (src) {
-                buffered = ts_to_ms(source_get_audio_buffered (src));
-                delay    = ts_to_ms(source_get_playout_delay  (src, sp->cur_ts));
+                buffered = ts_to_ms(source_get_audio_buffered(src, sp->cur_ts));
+                delay    = ts_to_ms(source_get_playout_delay(src));
         } else {
-                buffered = 255;
-                delay    = 255;
+                buffered = 0;
+                delay    = 0;
         }
+
+        debug_msg("buffer (%05d) calced (%05d)\n", buffered, delay);
 
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.buffered", "\"%08lx\" %ld", pdbe->ssrc, buffered);
         
         if (src == NULL || delay != 0) {
-                mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", pdbe->ssrc, delay);
+                mbus_qmsgf(sp->mbus_engine, mbus_name_ui, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", pdbe->ssrc, buffered);
         }
 
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);

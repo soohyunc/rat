@@ -609,7 +609,7 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
 int
 source_check_buffering(source *src, ts_t now)
 {
-        ts_t    playout_dur, buf_end;
+        ts_t    buf_end;
         u_int32 buf_ms, playout_ms;
 
         if (ts_eq(src->pdbe->last_arr, now) == FALSE) { 
@@ -633,10 +633,8 @@ source_check_buffering(source *src, ts_t now)
                 return FALSE;
         }
 
-        buf_ms = ts_to_ms(source_get_playout_delay(src, now));
-
-        playout_dur = ts_sub(src->pdbe->playout, src->pdbe->transit);
-        playout_ms  = ts_to_ms(playout_dur);
+        buf_ms      = ts_to_ms(source_get_audio_buffered(src, now));
+        playout_ms  = ts_to_ms(source_get_playout_delay(src));
 
         if (buf_ms > playout_ms) {
                 /* buffer is longer than anticipated, src clock is faster */
@@ -888,6 +886,9 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                                        src->channel,
                                        src->media,
                                        now);
+        } else {
+                /* Only age source if we did some processing */
+                src->age++;
         }
 
         src_freq = get_freq(src->pdbe->clock);
@@ -1032,8 +1033,6 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                 src->last_played = playout;
         }
 
-        src->age++;
-
         UNUSED(i); /* Except for debugging */
         
         return TRUE;
@@ -1059,40 +1058,38 @@ source_get_sequencer(source *src)
 }
 
 ts_t
-source_get_audio_buffered (source *src)
+source_get_audio_buffered (source *src, ts_t now)
 {
-        ts_t start, end;
+        ts_t last, extra;
 
-        /* Total audio buffered is start of media buffer
-         * to end of channel buffer.
-         */
+        /* If we have a channel unit in the channel buffer the amount of audio */
+        /* we have buffered is the difference between now and the channel unit */
+        /* end plus the length of the unit.                                    */
+        if (pb_get_end_ts(src->channel, &last)) {
 
-        if (pb_get_start_ts(src->media, &start) &&
-            pb_get_end_ts(src->channel, &end)) {
-                assert(ts_gt(end, start));
-                return ts_sub(end, start);
+                int freq = get_freq(src->pdbe->clock);
+                extra    = ts_map32(freq, src->pdbe->inter_pkt_gap);
+                last     = ts_add(last, extra);
+                return ts_sub(last, now);
+        }
+        /* Else if we have an end time for a media unit then the very last audio */
+        /* we have is the media unit time plus it's length less now.             */
+        if (pb_get_end_ts(src->media, &last)) {
+                int freq = get_freq(src->pdbe->clock);
+                extra    = ts_map32(freq, src->pdbe->inter_pkt_gap / src->pdbe->units_per_packet);
+                last     = ts_add(last, extra);
+                if (ts_gt(last, now)) {
+                        return ts_sub(last, now);
+                }
         }
 
         return ts_map32(8000,0);
 }
 
 ts_t
-source_get_playout_delay (source *src, ts_t now)
+source_get_playout_delay (source *src)
 {
-        ts_t end;
-
-        /* Note at start of a source_process this will use the end of
-         * the channel coder buffer, but after source process it often
-         * uses end of media since all in channel buffer has been
-         * processed.  */
-
-        if ((pb_get_end_ts(src->channel, &end) || pb_get_end_ts(src->media, &end)) &&
-            ts_gt(end, now)) {
-                ts_t delta = ts_sub(end, now);
-                return delta;
-        }
-
-        return ts_map32(8000,0);
+        return ts_sub(src->pdbe->playout, src->pdbe->transit);
 }
 
 int
@@ -1107,7 +1104,7 @@ source_relevant(source *src, ts_t now)
 
         keep_source_time = ts_map32(8000, 2000); /* 1 quarter of a second */
 
-        if (!ts_eq(source_get_playout_delay(src, now), ts_map32(8000, 0)) ||
+        if (!ts_eq(source_get_audio_buffered(src, now), ts_map32(8000, 0)) ||
                 ts_gt(ts_add(src->pdbe->last_arr, keep_source_time), now)) {
                 return TRUE;
         }

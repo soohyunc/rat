@@ -76,10 +76,10 @@ int              source_audit              (struct s_source *src);
 
 ts_sequencer*    source_get_sequencer      (struct s_source *src);
 
-ts_t             source_get_audio_buffered (struct s_source *src);
-
-ts_t             source_get_playout_delay  (struct s_source *src, 
+ts_t             source_get_audio_buffered (struct s_source *src,
                                             ts_t             now);
+
+ts_t             source_get_playout_delay  (struct s_source *src);
 
 struct s_pb*
                  source_get_decoded_buffer (struct s_source *src);

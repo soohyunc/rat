@@ -219,17 +219,14 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
                 adjust_playout = TRUE;
         }
 
-        if (sp->over_read > 0 && adjust_playout) {
-                debug_msg("App blocked packet discarded (%d)\n", sp->over_read);
-                xfree(p);
-                return;
-        }
 
         /* Calculate the playout point for this packet */
         src_ts  = ts_seq32_in(source_get_sequencer(s), get_freq(e->clock), p->ts);
         playout = playout_calc(sp, ssrc, src_ts, adjust_playout);
-        /* Add it to the source for processing later   */
-        {
+
+        if ((adjust_playout && sp->over_read == 0) ||
+            (adjust_playout == 0)) {
+                /* Add it to the source for processing later   */
                 u_char *u = block_alloc(p->data_len);
                 memcpy(u, p->data, p->data_len);
                 if (source_add_packet(s, u, p->data_len, 0, p->pt, playout) == FALSE) {
