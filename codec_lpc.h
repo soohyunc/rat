@@ -65,7 +65,6 @@ typedef struct {
 typedef struct {
 	double Oldper, OldG, Oldk[LPC_FILTORDER + 1], bp[LPC_FILTORDER + 1];
 	int pitchctr;
-	u_int32 last_timestamp;
 } lpc_intstate_t;
 
 void lpc_init(lpc_intstate_t* state);

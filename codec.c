@@ -411,15 +411,12 @@ decode_unit(rx_queue_element_struct *u)
 	/* XXX dummy packets are not denoted explicitly, dummies have non-zero
 	 * native_counts and zero comp_counts when dummy data is calculated  */ 
 
-	if (u->native_count == 0) 
+	if (u->native_count == 0) {
 		u->native_data[u->native_count] = (sample*)xmalloc(cp->channels * cp->unit_len * cp->sample_size);
-	else /* XXX dummy - decode buffer size should be right*/
-		u->native_count--;
-
-	assert(u->native_count==0);
+		u->native_count++;
+	}
 	assert(cp->decode!=NULL);
-	cp->decode(&u->comp_data[0], u->native_data[u->native_count], sp, cp);
-	u->native_count++;
+	cp->decode(&u->comp_data[0], u->native_data[u->native_count-1], sp, cp);
 }
 
 void

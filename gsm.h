@@ -41,7 +41,6 @@ struct gsm_state {
 	word		msr;		/* decoder.c,	Postprocessing	*/
 	char		verbose;	/* only used if !NDEBUG		*/
 	char		fast;		/* only used if FAST		*/
-        int             lrep_time;      /* for 06.11 repair             */
 };
 
 

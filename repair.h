@@ -43,9 +43,10 @@
 #ifndef _REPAIR_H_
 #define _REPAIR_H_
 
-#define REPAIR_NONE        0
-#define REPAIR_REPEAT      1
-#define REPAIR_WAVEFORM_PM 2
+#define REPAIR_NONE          0
+#define REPAIR_REPEAT        1
+#define REPAIR_PATTERN_MATCH 2
+#define REPAIR_PITCH_REPEAT  3
 
 struct rx_element_tag;
 

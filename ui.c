@@ -474,7 +474,7 @@ ui_init(session_struct *sp, int argc, char **argv)
 	Tcl_SetVar(interp, "argv", args, TCL_GLOBAL_ONLY);
 
 #ifndef WIN32
-	ckfree(args);
+	ckfree(args); 
 #endif
 	sprintf(buffer, "%d", argc - 1);
 	Tcl_SetVar(interp, "argc", buffer, TCL_GLOBAL_ONLY);

@@ -1,7 +1,7 @@
 /*
  * FILE:    repair.c
  * PROGRAM: RAT
- * AUTHOR:  Orion Hodson + Isidor Kouvelas
+ * AUTHOR:  Orion Hodson
  *
  * $Revision$
  * $Date$
@@ -50,29 +50,11 @@
 #include "gsm.h"
 #include "codec_lpc.h"
 
-/* Fades by 0.2 in 160 linear steps */
-#define FADE_SIZE          0.2
-#define FADE_STEP          0.00125
-
-#define NO_FADE            0
-#define FADE_TO_LEFT       1
-#define FADE_TO_RIGHT      2
-
-#define UNBOUND            0
-#define BOUND              1
-
-#define FORWARD           +1
-#define BACKWARD          -1
-
-typedef struct s_rep_seg {
-        short start;
-        short end;
-} rep_seg;
-
-/*
- * When we arrive here we know that participant has an audio sample from
- * previous interval and a dummy for this interval.
- */
+/* fade duration in ms */
+#define FADE_DURATION   320.0
+#define ALPHA             0.9
+#define MATCH_LEN         5    
+#define MAX_BUF_LEN       1024
 
 char *
 get_repair_name(int id)
@@ -82,111 +64,181 @@ get_repair_name(int id)
                 return "NONE";
         case REPAIR_REPEAT:
                 return "REPEAT";
-        case REPAIR_WAVEFORM_PM:
-                return "PM";
+        case REPAIR_PATTERN_MATCH:
+                return "PATTERN-MATCH";
+	case REPAIR_PITCH_REPEAT:
+		return "PITCH_REPETITION";
         default:
                 return "UNKNOWN";
         }
 }
-
-#ifdef ucacoxh
 
 /* Consecutive dummies behind */
 static int
 count_dummies_back(rx_queue_element_struct *up)
 {
         int n = 0;
-
-	while (up->prev_ptr) {
+	while (up->prev_ptr && up->dummy==1) {
 		up = up->prev_ptr;
-		if (up->comp_count != 0)
-			break;
 		n++;
 	}
-        return (n);
+        return n;
 }
 
 /* Consecutive dummies ahead */
+#ifdef NDEF
 static int
 count_dummies_ahead(rx_queue_element_struct *up)
 {
         int n = 0; 
 
-        while (up->next_ptr) {
+        while (up->next_ptr && up->dummy) {
 		up = up->next_ptr;
-		if (up->comp_count != 0)
-			break;
 		n++;
 	}
-	return (n);
+	return n;
 }
+#endif
+
+/* assumes buffer consists of interleaved samples for each channel
+ * and that pointers passed are to first of interleaved samples in block i.e.
+ *  C1S1 C2S1 C1S2 C2S2 C1S3 C2S3 where C = channel, S = sample 
+ * (we always pass pointers to C1S1).
+ */ 
 
 static void
-repeat(rx_queue_element_struct *srcp, rx_queue_element_struct *up)
+repeat_block(short *src_buf, int rep_len, rx_queue_element_struct *ip, int channel)
 {
-/*	int	i, len;
-	float	sf;
-	sample	*s, *d;
-	
-	if (up->decomp_data == NULL)
-		up->decomp_data = (sample*)block_alloc(up->unit_size * BYTES_PER_SAMPLE);
+	register float sf,fps; 
+	register int step = ip->comp_data[0].cp->channels;
+	register short *src,*dst;
+	int cd;
+	int i=0, j=0;
 
-	len = min(up->unit_size, srcp->unit_size);
+	dst = ip->native_data[0]+channel;
 
-	sf = 1.0 - FADE_SIZE * count_dummies_back(ip, up);
-	d = up->decomp_data;
-	s = srcp->decomp_data;
-	for(i = 0; i < len; i++) {
-		*d++ = (short)((float)*s++ * sf);
-		sf -= FADE_STEP;
+	if (ip && ip->prev_ptr->dummy) {
+		cd = count_dummies_back(ip->prev_ptr);
+		fps = 1000.0/(FADE_DURATION * (float)ip->comp_data[0].cp->freq);
+		sf = 1.0 - fps * cd * ip->comp_data[0].cp->unit_len;
+		if (sf<=0.0) 
+			sf = fps = 0.0;
+		while(i<ip->comp_data[0].cp->unit_len) {
+			j = 0;
+			src = src_buf+channel;
+			while(j++<rep_len && i++<ip->comp_data[0].cp->unit_len) {
+				*dst = (short)(sf*(float)(*src));
+				dst += step;
+				src += step;
+				sf -= fps;
+			}
+		}
+	} else {
+		while(i<ip->comp_data[0].cp->unit_len) {
+			j = 0;
+			src = src_buf+channel;
+			while(j++<rep_len && i++<ip->comp_data[0].cp->unit_len) {
+				*dst = *src;
+				dst += step;
+				src += step;
+			}
+		}
 	}
-	*/
-        return;
 }
 
 static void
-repeat_lpc(rx_queue_element_struct *pp, rx_queue_element_struct *up)
+pm_repair(rx_queue_element_struct *pp, rx_queue_element_struct *ip, int channel)
+{
+	static short x[MAX_BUF_LEN],*xp,*xp1;
+	short *src = pp->native_data[0] + channel;
+	int len = pp->comp_data[0].cp->unit_len, step = pp->comp_data[0].cp->channels;
+	int norm = 0;
+	register int   i,j;
+	register short prev;
+
+	unsigned int sc=0,score=0xffffffff, pos=-1;
+
+	/* ewa for cheap (though distorted lpf) */
+	xp = x;
+	prev = *xp = *src;
+	i = 0;
+	while(i++<len) {
+		*xp = ALPHA * prev + (1-ALPHA) * (*src);
+		prev = *xp++;
+		src += step;
+	}
+
+	i = len-2*MATCH_LEN;
+	while(i>0) {
+		sc = 0;
+		j = 0;
+		xp  = x+i;
+		xp1 = x+len-MATCH_LEN; 
+		while(j++<MATCH_LEN)
+			sc += abs(*xp++ - *xp1++);
+		if (sc<score) {
+			score = sc;
+			pos   =  i;
+		}
+	}
+	norm=0;
+	xp = x + len-MATCH_LEN;
+	for(i=0;i<MATCH_LEN;i++)
+		norm+=abs(*xp++);
+
+#ifdef DEBUG_REPAIR
+	fprintf(stderr,"match score %.4f\n", (1.0 - (float)sc/(float)norm));
+#endif
+	repeat_block(pp->native_data[0]+step*pos, len - pos, ip, channel);
+}
+
+static void
+pr_repair(rx_queue_element_struct *pp, rx_queue_element_struct *ip, int channel)
+{
+
+}
+
+static void
+repeat_lpc(rx_queue_element_struct *pp, rx_queue_element_struct *ip)
 {
 	lpc_txstate_t	*lp=NULL;
 
 	assert(pp->comp_data != NULL);
-        if (up->comp_count == 0) {
+        if (ip->comp_count == 0) {
 		/* XXX */
-		up->comp_count = 1;
-                up->comp_data[0].data = (char*)xmalloc(LPCTXSIZE);
+		ip->comp_count = 1;
+                ip->comp_data[0].data = (char*)xmalloc(LPCTXSIZE);
 	}
-	up->comp_data[0].data_len = LPCTXSIZE;
-	memcpy(up->comp_data[0].data, pp->comp_data[0].data, LPCTXSIZE);
-	up->comp_data[0].cp = pp->comp_data[0].cp;
+	ip->comp_data[0].data_len = LPCTXSIZE;
+	memcpy(ip->comp_data[0].data, pp->comp_data[0].data, LPCTXSIZE);
+	ip->comp_data[0].cp = pp->comp_data[0].cp;
+	lp = (lpc_txstate_t*)ip->comp_data[0].data;
+	if (ip->dummy) 
+		lp->gain = (short)((float)lp->gain * 0.8);
 
-	lp = (lpc_txstate_t*)up->comp_data[0].data;
-	lp->gain = (short)((float)lp->gain * 0.8);
-	decode_unit(up);
+	decode_unit(ip);
 }
 
 static void
-repeat_gsm(rx_queue_element_struct *pp, rx_queue_element_struct *up, gsm s)
+repeat_gsm(rx_queue_element_struct *pp, rx_queue_element_struct *ip)
 {
 	/* GSM 06.11 repair mechanism */
-/*	int		i;
-	gsm_byte	*rep;
-	char		xmaxc;
+	int		i;
+	gsm_byte	*rep = NULL;
+ 	char		xmaxc;
     
 	assert(pp->comp_data != NULL);
 	
-	if (up->comp_count == 0) {
-		up->comp_data[0] = (sample*)block_alloc(33);
-		up->comp_count = 1;
+	if (ip->comp_count == 0) {
+		ip->comp_data[0].data = (char*)xmalloc(33);
+		ip->comp_data[0].data_len = 33;
+		ip->comp_count = 1;
 	}
 
-	up->comp_dataformat[0].scheme = GSM;
-	rep = (gsm_byte*)up->comp_data[0];
-	memcpy(rep, pp->comp_data[0], 33);
-#ifdef DEBUG
-	printf("last %d cur %d - ", (int)s->lrep_time, 
-	       (int)up->interval->interval_start);
-#endif
-	if (up->interval->interval_start - s->lrep_time <= 160) {
+	rep = (gsm_byte*)ip->comp_data[0].data;
+	memcpy(rep, pp->comp_data[0].data, 33);
+
+	if (pp->dummy) {
 		for(i=6;i<28;i+=7) {
 			xmaxc  = (rep[i] & 0x1f) << 1;
 			xmaxc |= (rep[i+1] >> 7) & 0x01;
@@ -198,24 +250,25 @@ repeat_gsm(rx_queue_element_struct *pp, rx_queue_element_struct *up, gsm s)
 			rep[i]   = (rep[i] & 0xe0) | (xmaxc >> 1);
 			rep[i+1] = (rep[i+1] & 0x7f) | ((xmaxc & 0x01) << 7);
 		}
-#ifdef DEBUG
+#ifdef DEBUG_REPAIR
 		printf("fade\n");
 #endif
 	}
-#ifdef DEBUG
+#ifdef DEBUG_REPAIR
 	else printf("replica\n");
 #endif
-	s->lrep_time = up->interval->interval_start;
-	decode_unit(up);
-	*/
+	decode_unit(ip);
+
 	return;
 }
 
 void
-repair(int repair, rx_queue_element_struct *up)
+repair(int repair, rx_queue_element_struct *ip)
 {
 	static codec_t *gsmcp, *lpccp;
 	static virgin = 1;
+
+	rx_queue_element_struct *pp;
 	int i;
 
 	if (virgin) {
@@ -223,42 +276,54 @@ repair(int repair, rx_queue_element_struct *up)
 		lpccp = get_codec_byname("LPC",NULL);
 		virgin = 0;
 	}
-
-	rx_queue_element_struct *pp;
-
-	pp = up->prev_ptr;
-	if (!pp) return;
-	if (!pp->native_count) decode_unit(pp);
 	
+	pp = ip->prev_ptr;
+	if (!pp) {
+		return;
+#ifdef DEBUG_REPAIR
+		fprintf(stderr,"repair: no previous unit\n");
+#endif
+	}
+	ip->dummy = 1;
+
+	if (pp->comp_data[0].cp) {
+		ip->comp_data[0].cp = pp->comp_data[0].cp;
+	} else {
+#ifdef DEBUG_REPAIR
+		fprintf(stderr, "Could not repair as no codec pointer for previous interval\n");
+#endif
+		return;
+	}
+	
+	if (!pp->native_count) decode_unit(pp); /* XXX should never happen */
+	
+	assert(!ip->native_count);
+	ip->native_data[0] = (sample*)xmalloc(ip->comp_data[0].cp->sample_size*
+					      ip->comp_data[0].cp->channels*
+					      ip->comp_data[0].cp->unit_len);
+	ip->native_count   = 1;
+
 	switch(repair) {
 	case REPAIR_REPEAT:
-		switch (pp->comp_format[0].cp) {
-		case lpccp:
-			repeat_lpc(pp, up);
-			break;
-		case gsmcp: 
-			repeat_gsm(pp, up, up->dbe_source[0]->rx_gsm_state);
-			break;
-		default:
-			for(i=0;i<pp->comp_format[0].cp->channels;i++)
-				repeat(pp,ip,i);
-			break;
-		}
+		if (pp->comp_data[0].cp && pp->comp_data[0].cp == lpccp)
+			repeat_lpc(pp, ip);
+		else if (pp->comp_data[0].cp && pp->comp_data[0].cp == gsmcp) 
+			repeat_gsm(pp, ip);
+		else 
+			for(i=0;i<pp->comp_data[0].cp->channels;i++)
+				repeat_block(pp->native_data[0],pp->comp_data[0].cp->unit_len,ip,i);
 		break;
-	case REPAIR_WAVEFORM_PM:
-		for(i=0;i<pp->comp_format[0].cp->channels;i++)
-			waveform_repair(pp,ip,i);
+	case REPAIR_PATTERN_MATCH:
+		for(i=0;i<pp->comp_data[0].cp->channels;i++)
+			pm_repair(pp,ip,i);
+		break;
+	case REPAIR_PITCH_REPEAT:
+		for(i=0;i<pp->comp_data[0].cp->channels;i++)
+			pr_repair(pp,ip,i);
 		break;
         } 
         return;
 }
-#else
-void 
-repair(int repair, struct rx_element_tag *up)
-{
-	return;
-}
-#endif
 
 
 

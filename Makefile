@@ -4,11 +4,11 @@
 # Note: On many systems (eg: HP-UX 9.x and FreeBSD) this REQUIRES GNU make
 #
 
-DEFS = -DDEBUG -DDEBUG_MEM -DDEBUG_CONFBUS
-# -DDEBUG -DDEBUG_MEM -DDEBUG_CONFBUS
+DEFS = -DDEBUG -DDEBUG_MEM -DDEBUG_REPAIR
+# -DDEBUG -DDEBUG_MEM -DDEBUG_CONFBUS 
 # -DNDEBUG -DTEST -DGSM -DDEBUG_MIX
 # -DDEBUG_RTP -DREPEAT -DLOG_PARTICIPANTS
-
+# -DDEBUG_REPAIR
 DEFS += -D$(OSTYPE) -D$(OSTYPE)_$(OSMVER) -D$(USER)
 CC     = gcc
 CFLAGS = -Wall $(INCS) $(DEFS) -g -O -fsigned-char
@@ -150,5 +150,3 @@ tar:
 
 depend:
 	makedepend $(DEFS) $(INCS) -f Makefile_$(OSTYPE)_$(OSMVER) $(SRCDIR)/*.[ch]
-
-
