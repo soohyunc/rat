@@ -1,7 +1,11 @@
 /*
- * FILE:    audio.h
+ * FILE:    auddev.h
  * PROGRAM: RAT
- * AUTHOR:  Isidor Kouvelas / Orion Hodson / Colin Perkins
+ * AUTHOR:  Orion Hodson
+ *
+ * Note: Original audio interface by Isidor Kouvelas, Colin Perkins, 
+ * and OH.  OH has gone through and modularised this code so that RAT 
+ * can detect and use multiple audio devices.
  *
  * $Revision$
  * $Date$
@@ -40,38 +44,44 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _RAT_AUDIO_H_
-#define _RAT_AUDIO_H_
+#ifndef _AUDDEV_H_
+#define _AUDDEV_H_
 
 #include "audio_types.h"
-#include "auddev.h"
 
-#define BD_THRESHOLD    16
-#define BD_CONSECUTIVE  54
+/* Audio interface fn's for dealing with multiple devices/device interfaces */
+int     audio_init_interfaces(void);
+int     audio_free_interfaces(void);
+int     audio_get_number_of_interfaces(void);
+char*   audio_get_interface_name(int idx);
+void    audio_set_interface(int idx);
+int     audio_get_interface(void);
+int     audio_device_supports    (audio_desc_t ad, u_int16 rate, u_int16 channels);
 
-#define AUDIO_NO_DEVICE -1
+/* Audio functions implemented by device interfaces */
+audio_desc_t	audio_open  (audio_format *format);
+void	audio_close         (audio_desc_t ad);
+void	audio_drain         (audio_desc_t ad);
+void	audio_set_gain      (audio_desc_t ad, int gain);
+int     audio_duplex        (audio_desc_t ad);
+int	audio_get_gain      (audio_desc_t ad);
+void	audio_set_volume    (audio_desc_t ad, int vol);
+int	audio_get_volume    (audio_desc_t ad);
+void    audio_loopback      (audio_desc_t ad, int gain);
+int	audio_read          (audio_desc_t ad, sample *buf, int samples);
+int	audio_write         (audio_desc_t ad, sample *buf, int samples);
+void	audio_non_block     (audio_desc_t ad);
+void	audio_block         (audio_desc_t ad);
+void	audio_set_oport     (audio_desc_t ad, int port);
+int	audio_get_oport     (audio_desc_t ad);
+int	audio_next_oport    (audio_desc_t ad);
+void	audio_set_iport     (audio_desc_t ad, int port);
+int	audio_get_iport     (audio_desc_t ad);
+int	audio_next_iport    (audio_desc_t ad);
+int	audio_get_blocksize (audio_desc_t ad);
+int	audio_get_channels  (audio_desc_t ad);
+int     audio_get_freq      (audio_desc_t ad);
+int     audio_is_ready      (audio_desc_t ad);
+void    audio_wait_for      (audio_desc_t ad, int granularity_ms);
 
-/* Structures used in function declarations below */
-struct s_cushion_struct;
-struct session_tag;
-struct s_bias_ctl;
-struct s_mix_info;
-
-/* General audio processing functions */
-void	mix_init     (void);
-void	mix2_pcmu    (u_int8 *v0, u_int8 *v1, size_t len);
-void	mix2_l16     (int16 *v0, int16 *v1, size_t len);
-void	mix2_l8      (int8 *v0, int8 *v1, size_t len);
-void	audio_zero   (sample *buf, int len, deve_e type);
-void    audio_unbias (struct s_bias_ctl *bc, sample *buf, int len);
-
-int     read_write_audio (struct session_tag *spi, struct session_tag *spo, struct s_mix_info *ms);
-void    read_write_init  (struct session_tag *session_pointer);
-
-int     audio_device_read        (struct session_tag *sp, sample *buf, int len);
-int     audio_device_write       (struct session_tag *sp, sample *buf, int samples);
-int     audio_device_take        (struct session_tag *sp);
-void	audio_device_give        (struct session_tag *sp);
-void    audio_device_reconfigure (struct session_tag *sp);
-
-#endif /* _RAT_AUDIO_H_ */
+#endif /* _AUDDEV_H_ */
