@@ -7,6 +7,7 @@
 #include "repair.h"
 #include "sndfile_types.h"
 #include "sndfile.h"
+#include "util.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,6 +18,146 @@
  * when error concealment is applied.  
  */
 
+#define READ_BUF_SIZE 2560
+
+static int
+read_and_encode(coded_unit        *out,
+                codec_state       *encoder, 
+                struct s_sndfile  *sf_in)
+{
+        const codec_format_t *cf;
+        sample *buf;
+        u_int16 req_samples, act_samples;
+        coded_unit           *dummy;
+
+        req_samples = codec_get_samples_per_frame(encoder->id);
+        buf         = (sample*)block_alloc(sizeof(sample) * req_samples);
+
+        act_samples = (u_int16)snd_read_audio(&sf_in, buf, req_samples);
+
+        if (req_samples != act_samples) {
+                memset(buf + act_samples, 0, sizeof(short) * (req_samples - act_samples));
+        }
+
+        cf = codec_get_format(encoder->id);
+        dummy->id = codec_get_native_coding((u_int16)cf->format.sample_rate, 
+                                            (u_int16)cf->format.channels);
+        dummy->state     = NULL;
+        dummy->state_len = 0;
+        dummy->data      = (u_char*)buf;
+        dummy->data_len  = req_samples * sizeof(short);
+
+        assert(out != NULL);
+
+        if (codec_encode(encoder, dummy, out) == FALSE) {
+                abort();
+        }
+
+        return (sf_in != NULL);
+}
+
+static void
+decode_and_write(struct s_sndfile           *sf_out,
+                 struct s_codec_state_store *decoder_states,
+                 media_data                 *md)
+{
+        codec_state *decoder;
+        coded_unit  *cu;
+        int          i;
+
+        assert(md->nrep > 0);
+        for(i = 0; i < md->nrep; i++) {
+                if (codec_is_native_coding(md->rep[i]->id)) {
+                        break;
+                }
+        }
+                
+        if (i == md->nrep) {
+                /* no decoded audio available for frame */
+                cu = (coded_unit*)block_alloc(sizeof(coded_unit));
+                assert(cu != NULL);
+                memset(cu, 0, sizeof(coded_unit));
+                decoder = codec_state_store_get(decoder_states, md->rep[0]->id);
+                codec_decode(decoder, md->rep[0], cu);
+                assert(md->rep[md->nrep] == NULL);
+                md->rep[md->nrep] = cu;
+                md->nrep++;
+        }
+        
+        assert(codec_is_native_coding(md->rep[md->nrep - 1]->id));
+        assert(sf_out != NULL);
+
+        snd_write_audio(&sf_out, 
+                        (sample*)md->rep[md->nrep - 1]->data,        
+                        md->rep[md->nrep - 1]->data_len / sizeof(sample));        
+       
+}       
+
+static void
+test_repair(struct s_sndfile *sf_out, 
+            double            drop,
+            codec_id_t        cid,
+            int               repair_type,
+            struct s_sndfile *sf_in)
+{
+        codec_state                *encoder;        
+        struct s_codec_state_store *decoder_states;
+        media_data                 *md_prev, *md_cur;
+        coded_unit                 *cu;
+        int                         consec_lost = 0;
+
+        codec_encoder_create(cid, &encoder);
+        codec_state_store_create(&decoder_states, DECODER);
+
+        /* Read and write one unit to kick off with */
+        media_data_create(&md_cur, 1);
+        read_and_encode(md_cur->rep[0], encoder, sf_in);
+        decode_and_write(sf_out, decoder_states, md_cur);
+
+        /* Initialize next reading cycle */
+        md_prev = md_cur;
+        md_cur  = NULL;
+        media_data_create(&md_cur, 1);
+
+        while(read_and_encode(md_cur->rep[0], encoder, sf_in)) {
+                if (drand48() < drop) {
+                        media_data_destroy(&md_cur, sizeof(media_data));
+                        media_data_create(&md_cur, 0);
+                        
+                        cu = (coded_unit*)block_alloc(sizeof(coded_unit));
+                        assert(cu != NULL);
+                        memset(cu, 0, sizeof(coded_unit));
+
+                        /* Loss happens - invoke repair */
+                        repair(repair_type,
+                               consec_lost,
+                               decoder_states,
+                               md_prev,
+                               cu);
+
+                        /* Add repaired audio to frame */
+                        md_cur->rep[md_cur->nrep] = cu;
+                        md_cur->nrep++;
+
+                        consec_lost++;
+                } else {
+                        consec_lost = 0;
+                }
+
+                decode_and_write(sf_out, decoder_states, md_cur);
+
+                media_data_destroy(&md_prev, sizeof(media_data));
+                md_prev = md_cur;
+                md_cur  = NULL;
+                media_data_create(&md_cur, 1);
+        }
+
+        media_data_destroy(&md_cur, sizeof(media_data));
+        media_data_destroy(&md_prev, sizeof(media_data));
+
+        codec_encoder_destroy(&encoder);
+        codec_state_store_destroy(&decoder_states);
+}
 
 static void
 usage(void)
@@ -78,6 +219,8 @@ list_codecs(void)
 
         return;
 }
+
+
 
 int 
 main(int argc, char *argv[])
@@ -181,7 +324,13 @@ main(int argc, char *argv[])
 #\tdestination file %s\n",
 seed, drop, codec_name, repair_name, argv[argc - 2], argv[argc - 1]);
 
-        snd_read_close(&sf_in);
+        srand48(seed);
+
+        test_repair(sf_out, drop, cid, repair_type, sf_in);
+
+        /* snd_read_close(&sf_in) not needed because files gets closed
+         * at eof automatically. 
+         */
         snd_write_close(&sf_in);
 
         codec_exit();
