@@ -1881,11 +1881,11 @@ proc file_show {} {
 }
 
 proc file_open_play {path} {
-    mbus_send "R" "audio.file.play.open" "$path"
+    mbus_send "R" "audio.file.play.open" [mbus_encode_str $path]
 }
 
 proc file_open_rec {path} {
-    mbus_send "R" "audio.file.record.open" "$path"
+    mbus_send "R" "audio.file.record.open" [mbus_encode_str $path]
 }
 
 #

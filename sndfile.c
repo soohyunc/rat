@@ -786,17 +786,38 @@ snd_read_audio(snd_file_t **sf, sample *buf, u_int16 samples)
         return samples_read;
 }
 
+static char *
+snd_get_extension(char *path)
+{
+        if (path) {
+                char *ext = path + strlen(path) - 1;
+                while(ext > path) {
+                        if (*ext == '.') return ext + 1;
+                        ext--;
+                }
+        }
+        return NULL;
+}
+
 int
-snd_write_open (snd_file_t **sf, char *path, char *extension, u_int16 freq, u_int16 channels)
+snd_write_open (snd_file_t **sf, char *path, u_int16 freq, u_int16 channels)
 {
         snd_file_t *s;
         FILE       *fp;
         int         i;
+        char *extension;
 
         if (*sf) {
                 debug_msg("File not closed before opening\n");
                 snd_write_close(sf);
         }
+
+        extension = snd_get_extension(path);
+        if (extension == NULL) {
+                debug_msg("No extension in file name (%s)\n", path);
+                return FALSE;
+        }
+
 #ifdef WIN32
         fp = fopen(path, "wb");
 #else
@@ -886,20 +907,10 @@ snd_resume(snd_file_t *sf)
         return TRUE;
 }
 
+
+
 #ifdef TEST_RIFF
 
-char 
-*get_extension(char *path)
-{
-        if (path) {
-                char *ext = path + strlen(path) - 1;
-                while(ext > path) {
-                        if (*ext == '.') return ext + 1;
-                        ext--;
-                }
-        }
-        return NULL;
-}
 
 int 
 main(int argc, char*argv[])
@@ -913,7 +924,7 @@ main(int argc, char*argv[])
                 codec_g711_init();
                 snd_read_open(&ssrc, argv[1]);
                 if (ssrc) {
-                        snd_write_open(&sdst, argv[2], get_extension(argv[2]), snd_get_rate(ssrc), snd_get_channels(ssrc));
+                        snd_write_open(&sdst, argv[2], snd_get_extension(argv[2]), snd_get_rate(ssrc), snd_get_channels(ssrc));
                 }
                 while(ssrc && sdst) {
                         samples_read = snd_read_audio(&ssrc, buf, 80);

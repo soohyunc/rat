@@ -120,8 +120,8 @@ typedef struct session_tag {
 	char		*ui_addr;
         struct s_pcm_converter *converter;
         float           drop;                       /* Flakeaway drop percentage [0,1] */
-	FILE		*in_file;
-	FILE		*out_file;
+	struct s_snd_file *in_file;
+	struct s_snd_file *out_file;
 	int		have_device;
         int             input_gain;                 /* mike gain */
         int             output_gain;                /* speaker volume */

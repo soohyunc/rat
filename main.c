@@ -282,8 +282,8 @@ main(int argc, char *argv[])
 	for (i=0; i<num_sessions; i++) {
                 tx_stop(sp[i]);
 		rtcp_exit(sp[i], sp[1-i], sp[i]->rtcp_fd, sp[i]->net_maddress, (u_int16)sp[i]->rtcp_port);
-		if (sp[i]->in_file  != NULL) fclose(sp[i]->in_file);
-		if (sp[i]->out_file != NULL) fclose(sp[i]->out_file);
+		if (sp[i]->in_file  != NULL) snd_read_close (&sp[i]->in_file);
+		if (sp[i]->out_file != NULL) snd_write_close(sp[i]->out_file);
                 audio_device_give(sp[i]);
 
 	}

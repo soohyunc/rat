@@ -60,7 +60,6 @@ int  snd_read_audio (struct s_snd_file **sf,
 
 int  snd_write_open (struct s_snd_file **sf,
                      char *path,
-                     char *extension,
                      u_int16  freq,
                      u_int16  channels);
 

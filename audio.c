@@ -406,7 +406,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                                     &bufp);
                 audio_device_write(spo, bufp, new_cushion);
                 if (spo->out_file) {
-                        fwrite(bufp, BYTES_PER_SAMPLE, new_cushion, spo->out_file);
+                        snd_write_audio(&spo->out_file, bufp, new_cushion);
                 }
                 debug_msg("catch up! read_dur(%d) > cushion_size(%d)\n",
                         read_dur,
@@ -435,7 +435,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                 }
                 audio_device_write(spo, bufp, read_dur);
                 if (spo->out_file) {
-                        fwrite(bufp, BYTES_PER_SAMPLE, read_dur, spo->out_file);
+                        snd_write_audio(&spo->out_file, bufp, BYTES_PER_SAMPLE);
                 }
                 /*
                  * If diff is greater than zero then we must increase the
@@ -444,7 +444,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                 if (diff > 0) {
                         audio_device_write(spo, audio_zero_buf, cushion_step);
                         if (spo->out_file) {
-                                fwrite(audio_zero_buf, BYTES_PER_SAMPLE, cushion_step, spo->out_file);
+                                snd_write_audio(&spo->out_file, audio_zero_buf, cushion_step);
                         }
                         cushion_step_up(c);
                         debug_msg("Increasing cushion.\n");

@@ -57,6 +57,7 @@
 #include "repair.h"
 #include "crypt.h"
 #include "session.h"
+#include "sndfile.h"
 #include "timers.h"
 
 extern int should_exit;
@@ -428,9 +429,8 @@ static void rx_play_stop(char *srce, char *args, session_struct *sp)
 		return;
 	}
 	if (sp->in_file != NULL) {
-		fclose(sp->in_file);
+		snd_read_close(&sp->in_file);
 	}
-	sp->in_file = NULL;
 }
 
 static void rx_audio_file_play_open(char *srce, char *args, session_struct *sp)
@@ -442,7 +442,11 @@ static void rx_audio_file_play_open(char *srce, char *args, session_struct *sp)
 
 	mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_str(mbus_chan, &file)) {
-                debug_msg(file);
+                mbus_decode_str(file);
+                if (sp->in_file) snd_read_close(&sp->in_file);
+                if (snd_read_open(&sp->in_file, file)) {
+                        debug_msg("Hooray opened %s\n",file);
+                }
 	} else {
 		printf("mbus: usage \"audio.file.play.open <filename>\"\n");
 	}
@@ -458,9 +462,8 @@ static void rx_rec_stop(char *srce, char *args, session_struct *sp)
 		return;
 	}
 	if (sp->out_file != NULL) {
-		fclose(sp->out_file);
+		snd_write_close(&sp->out_file);
 	}
-	sp->out_file = NULL;
 }
 
 static void rx_audio_file_rec_open(char *srce, char *args, session_struct *sp)
@@ -468,11 +471,14 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_struct *sp)
 	char	*file;
 
 	UNUSED(srce);
-        UNUSED(sp);
 
 	mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_str(mbus_chan, &file)) {
-                debug_msg(file);
+                mbus_decode_str(file);
+                if (sp->out_file) snd_write_close(&sp->out_file);
+                if (snd_write_open(&sp->out_file, file, get_freq(sp->device_clock), audio_get_channels())) {
+                        debug_msg("Hooray opened %s\n",file);
+                }
 	} else {
 		printf("mbus: usage \"audio.file.record.open <filename>\"\n");
 	}
