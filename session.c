@@ -58,6 +58,48 @@ http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/FAQ.html\
 	exit(1);
 }
 
+
+/* sanity_check_payloads checks for overlapping payload maps between
+ * channel coders and codecs.  Necessary because I don't trust myself
+ * to not overlap payloads, and other people should not have to worry
+ * about it either. [oth] 
+ */
+
+static int
+sanity_check_payloads(void)
+{
+        u_int32 i, j, n_codecs, n_channels;
+        codec_id_t cid;
+        const codec_format_t *cf;
+        cc_id_t    ccid;
+        cc_details ccd;
+        u_char pt;
+
+        n_codecs = codec_get_number_of_codecs();
+        n_channels = channel_get_coder_count();
+        for(i = 0; i < n_codecs; i++) {
+                cid = codec_get_codec_number(i);
+                cf  = codec_get_format(cid);
+                pt  = codec_get_payload(cid);
+                if (pt != CODEC_PAYLOAD_DYNAMIC) {
+                        ccid = channel_coder_get_by_payload(pt);
+                        for(j = 0; j < n_channels; j++) {
+                                if ((int)j == channel_get_null_coder()) {
+                                        continue;
+                                }
+                                channel_get_coder_details(j, &ccd);
+                                if (ccd.descriptor == ccid) {
+                                        debug_msg("clash with %s %s payload (%d)\n", cf->long_name, ccd.name, pt);
+                                        return FALSE;
+                                }
+                        }
+                } else {
+                        /* codec is not mapped into codec space so ignore */
+                }
+        }
+        return TRUE;
+}
+
 void
 init_session(session_struct *sp)
 {
@@ -72,6 +114,7 @@ init_session(session_struct *sp)
 	memset(sp, 0, sizeof(session_struct));
 
 	codec_init();
+        sanity_check_payloads();
         vu_table_init();
 
 	cid = codec_get_by_name("DVI-8K-Mono");
