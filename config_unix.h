@@ -194,6 +194,13 @@ int   memcmp(const void *s1, const void *s2, size_t n);
 
 #endif 
 
+/* XXX Temporary hack */
+#ifdef DIFF_BYTE_ORDER
+#define WORDS_SMALLENDIAN
+#else
+#define WORDS_BIGENDIAN
+#endif
+
 #include "audio_types.h"
 
 #endif

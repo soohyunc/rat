@@ -72,6 +72,8 @@ typedef unsigned long	in_addr_t;
 #define USERNAMELEN	8
 
 #define DIFF_BYTE_ORDER	1
+#define WORDS_SMALLENDIAN 1
+
 #define NEED_INET_ATON
 
 #include <time.h>		/* For clock_t */
