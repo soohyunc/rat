@@ -781,7 +781,6 @@ rtcp_exit(session_struct *sp1, session_struct *sp2, socket_udp *s)
 		net_write(s, packet, ptr - packet, PACKET_RTCP);
 	}
 
-	rtcp_free_dbentry(sp1->db->my_dbe);
 	while ((src = sp1->db->ssrc_db) != NULL) {
 		rtcp_delete_dbentry(sp1, src->ssrc);
 	}

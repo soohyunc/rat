@@ -255,7 +255,6 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
         if (dbptr->cc_state_list) {
                 clear_cc_decoder_states(&dbptr->cc_state_list);
         }
-        
 	if (dbptr->sentry != NULL) {
 		if (dbptr->sentry->cname) xfree(dbptr->sentry->cname);
 		if (dbptr->sentry->name)  xfree(dbptr->sentry->name);
@@ -266,10 +265,12 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 		if (dbptr->sentry->tool)  xfree(dbptr->sentry->tool);
 		if (dbptr->sentry->note)  xfree(dbptr->sentry->note);
 		xfree(dbptr->sentry);
+                dbptr->sentry = NULL;
 	}
-
-        if (dbptr->enc_fmt != NULL) xfree(dbptr->enc_fmt);
-
+        if (dbptr->enc_fmt != NULL) {
+                xfree(dbptr->enc_fmt);
+                dbptr->enc_fmt = NULL;
+        }
 	if (dbptr->rr != NULL) {
 		rtcp_user_rr	*rr, *tmp_rr;
 		rr = dbptr->rr;
@@ -328,6 +329,7 @@ rtcp_set_encoder_format(session_struct *sp, rtcp_dbentry *e, char *enc_fmt)
 {
         if (e->enc_fmt) {
                 xfree(e->enc_fmt);
+                e->enc_fmt = NULL;
         }
         e->enc_fmt = xstrdup(enc_fmt);
         ui_update_stats(sp, e);
