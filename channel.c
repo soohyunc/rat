@@ -546,11 +546,29 @@ channel_encode(session_struct *sp,
         return r;
 }
 
+#define HIST_SZ 10
 void 
 channel_decode(session_struct *sp, rx_queue_element_struct *u)
 {
+        static u_int32 hist_buf[HIST_SZ];
+        static int     hist_idx, nuked = 0;
+        int i, cnt;
         cc_state_t *stp;
         cc_coder_t *cc;
+
+        assert(nuked == 0);
+        if (u->ccu[0] == NULL) return;
+        for(i = 0; i < HIST_SZ; i++) {
+                assert(u->src_ts != hist_buf[i]);
+        }
+        hist_idx = (hist_idx + 1) % HIST_SZ;
+        hist_buf[hist_idx] = u->src_ts;
+
+        for(cnt = i = 0; i < u->ccu[0]->iovc; i++) {
+                if (u->ccu[0]->iov[i].iov_base && u->ccu[0]->iov[i].iov_len) cnt++;
+        }
+        assert(cnt == u->ccu[0]->iovc);
+
         cc  = get_channel_coder(u->cc_pt);
         stp = get_cc_state(NULL, 
                            &u->dbe_source[0]->cc_state_list, 
@@ -558,6 +576,11 @@ channel_decode(session_struct *sp, rx_queue_element_struct *u)
                            DECODE);
         assert(u);
         cc->decode(sp, u, stp);
+        assert(nuked == 0);
+        for(cnt = i = 0; i < u->ccu[0]->iovc; i++) {
+                if (u->ccu[0]->iov[i].iov_base && u->ccu[0]->iov[i].iov_len) cnt++;
+        }
+        assert(cnt = u->ccu[0]->iovc);
 }
 
 int

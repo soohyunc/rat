@@ -45,7 +45,7 @@ set fw			.l.t.list.f
 
 proc init_source {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE num_cname 
-	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED
+	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED BUFFER_SIZE
 
 	if {[array names INDEX $cname] != [list $cname]} {
 		# This is a source we've not seen before...
@@ -58,6 +58,7 @@ proc init_source {cname} {
 		set	    NOTE($cname) ""
 		set        CODEC($cname) unknown
 		set     DURATION($cname) ""
+                set  BUFFER_SIZE($cname) 0
 		set   PCKTS_RECV($cname) 0
 		set   PCKTS_LOST($cname) 0
 		set   PCKTS_MISO($cname) 0
@@ -411,6 +412,13 @@ proc mbus_recv_source.packet.duration {cname packet_duration} {
 	cname_update $cname
 }
 
+proc mbus_recv_source.audio.buffered {cname buffered} {
+        global BUFFER_SIZE
+        init_source $cname
+        set BUFFER_SIZE($cname) $buffered 
+# we don't update cname as source.packet.duration always follows 
+}
+
 proc mbus_recv_source.packet.loss {dest srce loss} {
 	global losstimers my_cname LOSS_FROM_ME LOSS_TO_ME
 	init_source $srce
@@ -456,7 +464,7 @@ proc mbus_recv_source.inactive {cname} {
 }
 
 proc mbus_recv_source.remove {cname} {
-	global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER 
+	global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER BUFFER_SIZE
 	global LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED num_cname mylosstimers his_or_her_losstimers
 
 	# Disable updating of loss diamonds. This has to be done before we destroy the
@@ -469,7 +477,7 @@ proc mbus_recv_source.remove {cname} {
 
 	unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname) NOTE($cname)
 	unset CODEC($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname) PCKTS_DUP($cname)
-	unset JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname) JIT_TOGED($cname)
+	unset JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname) JIT_TOGED($cname) BUFFER_SIZE($CNAME)
 
 	incr num_cname -1
 	chart_redraw $num_cname
@@ -645,7 +653,7 @@ proc info_timer {} {
 
 proc update_stats {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL NOTE
-	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME JIT_TOGED
+	global CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER LOSS_TO_ME LOSS_FROM_ME JIT_TOGED BUFFER_SIZE
 
 	set loss_to_me   "unknown"
 	set loss_from_me "unknown"
@@ -666,6 +674,7 @@ proc update_stats {cname} {
 				        	          CNAME:                       $CNAME($cname)\n\
 				        	          Audio Encoding:              $CODEC($cname)\n\
 				        	          Packet duration:             $DURATION($cname)ms\n\
+							  Buffered Audio:              $BUFFER_SIZE($cname)ms\n\
 				        	          Total packets received:      $PCKTS_RECV($cname)\n\
 				        	          Total packets lost:          $PCKTS_LOST($cname)\n\
 				        	          Total packets misordered:    $PCKTS_MISO($cname)\n\

@@ -188,7 +188,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
                 dur = nsamples / ms->channels;
 		buf = el->native_data[1];
                 }
-
+        if (el->playoutpt != playout) debug_msg("playout_pt %ld playout %ld\n", el->playoutpt, playout);
 	/* If it is too late... */
 
 	if (ts_gt(ms->tail_time, playout)) {

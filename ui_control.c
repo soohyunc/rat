@@ -257,9 +257,16 @@ ui_update_stats(rtcp_dbentry *e, session_struct *sp)
         mbus_engine_tx(TRUE, mbus_name_ui, "source.codec", args, FALSE);
         xfree(args);
 
+        /* args size is for source.packet.loss, source.audio.buffered size always less */
 	args = (char *) xmalloc(strlen(their_cname) + strlen(my_cname) + 11);
+        
+        sprintf(args, "%s %ld", their_cname, playout_buffer_duration(sp->playout_buf_list, e));
+        mbus_engine_tx(TRUE, mbus_name_ui, "source.audio.buffered", args, FALSE);
+        
+
 	sprintf(args, "%s %s %8ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.packet.loss", args, FALSE);
+
 	xfree(my_cname);
 	xfree(their_cname);
 	xfree(args);

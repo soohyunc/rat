@@ -340,6 +340,38 @@ clear_old_history(ppb_t **buf)
 	}
 }
 
+int 
+playout_buffer_endtime (ppb_t *list, rtcp_dbentry *src, u_int32 *end_time)
+{
+        ppb_t *p;
+
+        p = list;
+        while(p != NULL) {
+                if (p->src == src) {
+                        *end_time = p->tail_ptr->playoutpt;
+                        return TRUE;
+                }
+                p = p->next;
+        }
+        *end_time = 0;
+        return FALSE;
+}
+
+int32
+playout_buffer_duration (ppb_t *list, rtcp_dbentry *src)
+{
+        ppb_t *p;
+
+        p = list;
+        while(p != NULL) {
+                if (p->src == src) {
+                        return (p->tail_ptr->playoutpt - p->head_ptr->playoutpt) * 1000 / get_freq(p->src->clock);;
+                }
+                p = p->next;
+        }
+        return 0;
+}
+
 void
 destroy_playout_buffers(ppb_t **list)
 {
@@ -467,21 +499,23 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 	rx_queue_element_struct	*up;
 	ppb_t			*buf, **bufp;
 	u_int32			cur_time, cs, cu;
-
+        
         cs = cu = 0;
         
 	while (receive_queue->queue_empty == FALSE) {
 		up       = get_unit_off_rx_queue(receive_queue);
 		buf      = find_participant_queue(buf_list, up->dbe_source[0], sp->encodings[0], up->dbe_source[0]->enc, sp->converter);
 		cur_time = get_time(buf->src->clock);
-
+                
 		/* This is to compensate for clock drift.
 		 * Same check should be made in case it is too early.
 		 */
-
+                
 		if (ts_gt(cur_time, up->playoutpt)) {
 			up->dbe_source[0]->jit_TOGed++;
 			up->dbe_source[0]->cont_toged++;
+                        debug_msg("cont_toged %d\n",
+                                  up->dbe_source[0]->cont_toged); 
 		} else {
 			up->dbe_source[0]->cont_toged = 0;
 		}
@@ -495,7 +529,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 		/*
 		 * If we have already worked past this point then mix it!
 		 */
-
+                
 		if (up && buf->last_got && up->mixed == FALSE
 		    && ts_gt(buf->last_got->playoutpt, up->playoutpt) 
 		    && ts_gt(up->playoutpt, cur_time)){
@@ -507,7 +541,7 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
 			}
 		}
 	}
-
+        
 	/* If sp->cushion is NULL, it probably means we don't have access to the audio device... */
 	if (sp->cushion != NULL) {
         	cs = cushion_get_size(sp->cushion);
@@ -522,37 +556,45 @@ service_receiver(session_struct *sp, rx_queue_struct *receive_queue, ppb_t **buf
                         struct timeval foo;
                         gettimeofday(&foo, NULL);
                         debug_msg("%08ld: playout range: %ld - %ld\n\tbuffer playout range %ld - %ld\n\tbuffer ts range %ld - %ld\n",
-                                (foo.tv_sec  - last_foo.tv_sec) * 1000 +
-                                (foo.tv_usec - last_foo.tv_usec)/1000, 
-                                cur_time, 
-                                cur_time + cs,
-                                buf->head_ptr->playoutpt,
-                                buf->tail_ptr->playoutpt,
-                                buf->head_ptr->src_ts,
-                                buf->tail_ptr->src_ts
+                                  (foo.tv_sec  - last_foo.tv_sec) * 1000 +
+                                  (foo.tv_usec - last_foo.tv_usec)/1000, 
+                                  cur_time, 
+                                  cur_time + cs,
+                                  buf->head_ptr->playoutpt,
+                                  buf->tail_ptr->playoutpt,
+                                  buf->head_ptr->src_ts,
+                                  buf->tail_ptr->src_ts
                                 );
                         memcpy(&last_foo, &foo, sizeof(struct timeval));
                 }
 #endif /* DEBUG_PLAYOUT_BROKEN */
 		while ((up = playout_buffer_get(sp, buf, cur_time, cur_time + cs))) {
-                    if (!up->comp_count  && sp->repair != REPAIR_NONE 
-                        && up->prev_ptr != NULL && up->next_ptr != NULL
-                        && up->prev_ptr->native_count) 
+                        if (!up->comp_count  && sp->repair != REPAIR_NONE 
+                            && up->prev_ptr != NULL && up->next_ptr != NULL
+                            && up->prev_ptr->native_count) 
                         repair(sp->repair, up);
 #ifdef DEBUG_PLAYOUT
-                    if (up->prev_ptr) {
-                            u_int32 src_diff = ts_abs_diff(up->prev_ptr->src_ts,up->src_ts);
+                        if (up->prev_ptr) {
+                                u_int32 src_diff = ts_abs_diff(up->prev_ptr->src_ts,up->src_ts);
                             if (src_diff != up->unit_size) {
                                     debug_msg("src_ts jump %08d\n",src_diff);
                             }
-                    }
+                        }
 #endif /* DEBUG_PLAYOUT */
-                    
-                    	if (up->native_count && up->mixed == FALSE) {
-                        	mix_do_one_chunk(sp, ms, up);
-                    	} else { 
-		    		debug_msg("already mixed\n"); 
-			}
+                        
+                        if (up->native_count && up->mixed == FALSE) {
+                            mix_do_one_chunk(sp, ms, up);
+                        } else { 
+                                if (up->native_count) {
+                                        debug_msg("already mixed\n"); 
+                                } else {
+                                        if (up->comp_count) {
+                                                debug_msg("Not decoded ?\n");
+                                        } else {
+                                                debug_msg("No data for block\n");
+                                        }
+                                }
+                        }
 		}
 		clear_old_participant_history(buf);
 

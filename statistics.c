@@ -178,6 +178,9 @@ adapt_playout(rtp_hdr_t *hdr,
 	u_int32	sendtime = 0;
         int     ntp_delay = 0;
 	u_int32	rtp_time;
+        u_int32 end_time;
+        char    jumped = FALSE;
+
 #ifdef WIN32
 	__int64 since_last_sr;
 #else
@@ -288,6 +291,10 @@ adapt_playout(rtp_hdr_t *hdr,
 			/* Do not set encoding on TS start packets as they do not show if redundancy is used...   */
                         /*	src->encoding = hdr->pt; */
 		}
+                if (src->inter_pkt_gap && (signed)((hdr->ts - src->last_ts)/src->inter_pkt_gap) != (hdr->seq - src->last_seq)) {
+                        jumped = TRUE;
+                }
+
 		src->last_ts        = hdr->ts;
 		src->last_seq       = hdr->seq;
                 src->playout_danger = FALSE;
@@ -303,8 +310,7 @@ adapt_playout(rtp_hdr_t *hdr,
 		rtp_time = sp->db->map_rtp_time + (((play_time - sp->db->map_ntp_time) * get_freq(src->clock)) >> 16);
                 playout = rtp_time;
 		src->playout = playout - hdr->ts;
-	}
-        else {
+	} else {
 		playout = hdr->ts + src->playout;
 	}
 
@@ -319,6 +325,20 @@ adapt_playout(rtp_hdr_t *hdr,
                         src->first_pckt_flag = TRUE;
                 }
         }
+
+        if (playout_buffer_endtime(sp->playout_buf_list, src, &end_time) && playout < end_time) {
+                u_int32 shift = end_time - playout;
+                /* jumped tells us that the timestamps jumped relative to sequence numbers,
+                 * i.e. this is a new talkspurt.  In this case do nothing.  Otherwise
+                 * tailor playout so not to clip end of what we are already playing out.
+                 * 
+                 * this makes a huge improvement on jittery links.
+                 */
+                if (jumped == FALSE && shift < 8000) {
+                        playout += shift + src->inter_pkt_gap;
+                }
+        }
+        
 	return playout;
 }
 
