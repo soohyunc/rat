@@ -401,7 +401,7 @@ proc mbus_recv_source.packet.loss {dest srce loss} {
 	init_source $dest
 	catch {after cancel $losstimers($srce,$dest)}
 	chart_set $srce $dest $loss
-	set losstimers($srce,$dest) [after 7500 chart_set "$srce" "$dest" 101]
+	set losstimers($srce,$dest) [after 7500 chart_set \"$srce\" \"$dest\" 101]
 	if {[string compare $dest $my_cname] == 0} {
 		set LOSS_TO_ME($srce) $loss
 	}
@@ -472,6 +472,30 @@ proc mbus_recv_quit {} {
 	destroy .
 }
 
+proc set_loss_to_me {cname loss} {
+	if {$loss < 5} {
+		catch [[window_plist $cname] itemconfigure m -fill green]
+	} elseif {$loss < 10} {
+		catch [[window_plist $cname] itemconfigure m -fill orange]
+	} elseif {$loss <= 100} {
+		catch [[window_plist $cname] itemconfigure m -fill red]
+	} else {
+		catch [[window_plist $cname] itemconfigure m -fill grey50]
+	}
+}
+
+proc set_loss_from_me {cname loss} {
+	if {$loss < 5} {
+		catch [[window_plist $cname] itemconfigure h -fill green]
+	} elseif {$loss < 10} {
+		catch [[window_plist $cname] itemconfigure h -fill orange]
+	} elseif {$loss <= 100} {
+		catch [[window_plist $cname] itemconfigure h -fill red]
+	} else {
+		catch [[window_plist $cname] itemconfigure h -fill grey]
+	}
+}
+
 proc cname_update {cname} {
 	# This procedure updates the on-screen representation of
 	# a participant. 
@@ -514,29 +538,13 @@ proc cname_update {cname} {
 	fix_scrollbar
 	update_stats $cname
 
-	if {$LOSS_TO_ME($cname) < 5} {
-		catch [[window_plist $cname] itemconfigure m -fill green]
-	} elseif {$LOSS_TO_ME($cname) < 10} {
-		catch [[window_plist $cname] itemconfigure m -fill orange]
-	} elseif {$LOSS_TO_ME($cname) <= 100} {
-		catch [[window_plist $cname] itemconfigure m -fill red]
-	} else {
-		catch [[window_plist $cname] itemconfigure m -fill grey50]
-	}
+	set_loss_to_me $cname $LOSS_TO_ME($cname)
 	catch {after cancel $mylosstimers($cname)}
-	set mylosstimers($cname) [after 7500 "set LOSS_TO_ME($cname) 101; cname_update $cname"]
+	set mylosstimers($cname) [after 7500 set_loss_to_me \"$cname\" 101]
 
-	if {$LOSS_FROM_ME($cname) < 5} {
-		catch [[window_plist $cname] itemconfigure h -fill green]
-	} elseif {$LOSS_FROM_ME($cname) < 10} {
-		catch [[window_plist $cname] itemconfigure h -fill orange]
-	} elseif {$LOSS_FROM_ME($cname) <= 100} {
-		catch [[window_plist $cname] itemconfigure h -fill red]
-	} else {
-		catch [[window_plist $cname] itemconfigure h -fill grey]
-	}
+	set_loss_from_me $cname $LOSS_FROM_ME($cname)
 	catch {after cancel $his_or_her_losstimers($cname)}
-	set his_or_her_losstimers($cname) [after 7500 "set LOSS_FROM_ME($cname) 101; cname_update $cname"]
+	set his_or_her_losstimers($cname) [after 7500 set_loss_from_me \"$cname\" 101]
 }
 
 #power meters
