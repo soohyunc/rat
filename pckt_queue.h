@@ -44,6 +44,8 @@
 #define PCKT_QUEUE_RTP_LEN  64
 #define PCKT_QUEUE_RTCP_LEN 32
 
+#include "ts.h"
+
 struct s_pckt_queue;
 struct s_rtcp_dbentry;
 

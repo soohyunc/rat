@@ -40,6 +40,9 @@
  * SUCH DAMAGE.
  */
 
+#ifndef __CODEC_STATE_H__
+#define __CODEC_STATE_H__
+
 typedef enum {
         ENCODER,
         DECODER
@@ -56,3 +59,4 @@ codec_state *
 void   codec_state_store_remove  (struct s_codec_state_store *cs, 
                                   codec_id_t id);
 
+#endif /* __CODEC_STATE_H__ */

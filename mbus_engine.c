@@ -52,7 +52,6 @@
 #include "codec.h"
 #include "session.h"
 #include "new_channel.h"
-#include "receive.h"
 #include "convert.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
@@ -60,6 +59,7 @@
 #include "render_3D.h"
 #include "crypt.h"
 #include "session.h"
+#include "source.h"
 #include "sndfile.h"
 #include "timers.h"
 #include "util.h"
@@ -275,7 +275,7 @@ static void rx_tool_rat_echo_suppress(char *srce, char *args, session_struct *sp
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
 		sp->echo_suppress = i;
                 if (sp->echo_suppress) {
-                        receive_buffers_destroy(sp, &sp->receive_buf_list);
+                        source_list_clear(sp->active_sources);
                 }
 	} else {
 		printf("mbus: usage \"tool.rat.echo.suppress <boolean>\"\n");
@@ -861,88 +861,34 @@ static void rx_tool_rat_playout_max(char *srce, char *args, session_struct *sp)
 
 static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
 {
-        char *name;
-        
+        converter_details_t d;
+        u_int32             i, n;
+        char               *name;
+
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_str(sp->mbus_engine_conf, &name)) {
                 mbus_decode_str(name);
-                sp->converter = converter_get_byname(name);
-                assert(sp->converter);
+                n = converter_get_count();
+                for(i = 0; i < n; i++) {
+                        converter_get_details(i, &d);
+                        if (0 == strcasecmp(d.name,name)) {
+                                sp->converter = d.id;
+                                break;
+                        }
+                }
 	} else {
 		printf("mbus: usage \"tool.rat.converter <name>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
 }
 
-static codec_id_t
-validate_redundant_codec(codec_id_t primary, codec_id_t redundant) 
-{
-        assert(primary);
-        
-        if ((redundant) ||                       /* passed junk */
-            (!codec_audio_formats_compatible(primary, redundant))) {
-                return primary;
-        }
-        return redundant;
-}
-
 static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
 {
-        char	*channel, *codec;
-        int 	 units, separation, cc_pt, offset;
-        char 	 config[80];
-	codec_id_t rcid, cid;
-        const codec_format_t *pcf, *rcf;
-
 	UNUSED(srce);
 
         mbus_parse_init(sp->mbus_engine_conf, args);
-	if (mbus_parse_str(sp->mbus_engine_conf, &channel)) {
-                channel = mbus_decode_str(channel);
-		if (strcmp(channel, "none") == 0) {
-                        channel_set_coder(sp, get_cc_pt(sp, "VANILLA"));
-                } else if (strcmp(channel, "redundant") == 0) {
-                        channel_set_coder(sp, get_cc_pt(sp, "REDUNDANCY"));
-			if (mbus_parse_str(sp->mbus_engine_conf, &codec) && mbus_parse_int(sp->mbus_engine_conf, &offset)) {
-				if (offset<=0) offset = 0;;
-				cid  = codec_get_by_payload((u_char)sp->encodings[0]);
-                                pcf = codec_get_format(cid);
-				rcid = codec_get_matching(mbus_decode_str(codec), 
-                                                          (u_int16)pcf->format.sample_rate, 
-                                                          (u_int16)pcf->format.channels);
-				if (!rcid) {
-					/* Specified secondary codec doesn't exist. Make it the same */
-					/* as the primary, and hope that's a sensible choice.        */
-					rcid = cid;
-				}
-				/* Check redundancy makes sense... */
-				rcid = validate_redundant_codec(cid,rcid);
-                                rcf = codec_get_format(rcid);
-				sprintf(config,"%s/0/%s/%d", pcf->long_name, rcf->long_name, offset);
-				debug_msg("Configuring redundancy %s\n", config);
-				cc_pt = get_cc_pt(sp,"REDUNDANCY");
-				config_channel_coder(sp, cc_pt, config);
-			} else {
-				printf("mbus: usage \"audio.channel.coding \"redundant\" <codec> <offset in units>\"\n");
-			}                
-                } else if (strcmp(channel, "interleaved") == 0) {
-			cc_pt = get_cc_pt(sp,"INTERLEAVER");
-                        channel_set_coder(sp, cc_pt);
-			if (mbus_parse_int(sp->mbus_engine_conf, &units) && mbus_parse_int(sp->mbus_engine_conf, &separation)) {
-				sprintf(config, "%d/%d", units, separation);
-				config_channel_coder(sp, cc_pt, config);
-			} else {
-				printf("mbus: usage \"audio.channel.coding \"interleaved\" <units> <separation>\"\n");
-			}
-                } else {
-			debug_msg("scheme %s not recognized\n", channel);
-			abort();
-                }
-        } else {
-                printf("mbus: usage \"audio.channel.coding <scheme>\"\n");
-        }
         mbus_parse_done(sp->mbus_engine_conf);
 	ui_update_channel(sp);
 }

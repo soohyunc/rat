@@ -107,15 +107,20 @@ source_list_create(source_list **pplist)
 }
 
 void
+source_list_clear(source_list *plist)
+{
+       assert(plist != NULL);
+        
+       while(plist->sentinel.next != &plist->sentinel) {
+               source_remove(plist, plist->sentinel.next);
+       }
+}
+
+void
 source_list_destroy(source_list **pplist)
 {
         source_list *plist = *pplist;
-        assert(plist != NULL);
-        
-        while(plist->sentinel.next != &plist->sentinel) {
-                source_remove(plist, plist->sentinel.next);
-        }
-
+        source_list_clear(plist);
         assert(plist->nsrcs == 0);
         xfree(plist);
         *pplist = NULL;
@@ -321,7 +326,7 @@ source_process(source *src, int repair_type, ts_t now)
         coded_unit  *cu;
         codec_state *cs;
         u_int32     md_len, src_freq;
-        ts_t        playout, step, cutoff;
+        ts_t        playout, curr, step, cutoff;
         int         i, success;
 
         /* Split channel coder units up into media units */
@@ -346,8 +351,9 @@ source_process(source *src, int repair_type, ts_t now)
                     ts_eq(playout, ts_add(src->last_played, step)) &&
                     ts_gt(cutoff, playout)) {
                         media_data* md_filler;
-                        ts_t        curr = playout;
                         int         lost = 0;
+
+                        curr = playout;
 
                         /* Rewind to last_played */
                         while(ts_gt(playout, src->last_played)) {

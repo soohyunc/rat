@@ -235,10 +235,12 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int sp_
 					usage();
 				}
                                 t = strtok(NULL, "/");
-                                cid = codec_get_byname(t);
+                                cid = codec_get_by_name(t);
                                 if (cid) {
                                         codec_map_payload(cid, pt);
-                                        if (codec_get_payload(cid) != pt) 
+                                        if (codec_get_payload(cid) != pt) {
+                                                printf("Payload %d either in use or invalid.\n", pt);
+                                        }
                                 } else {
                                         printf("Codec %s not recognized, check name.\n", t);
                                 }
@@ -402,91 +404,18 @@ parse_late_options_common(int argc, char *argv[], session_struct *sp[], int sp_s
                                 sp[s]->repair = repair_get_by_name(argv[i+1]);
                         }
                         if ((strcmp(argv[i], "-interleave") == 0) && (argc > i+1)) {
-				/* expects string of form "codec/units/separation" */
-				int pt = get_cc_pt(sp[s], "interleaver");
-				if (pt != -1) {
-					debug_msg("Configure interleaver %d %s\n", pt, argv[i+1]);
-					config_channel_coder(sp[s], pt, argv[i+1]);
-					channel_set_coder(sp[s], pt);
-					ui_update_channel(sp[s]);
-				} else {
-					printf("Can't determine interleaver payload type\n");
-					abort();
-				}
+                                printf("%s: not supported in this release\n", 
+                                       argv[i]);
                             	i++;
 			}
                         if ((strcmp(argv[i], "-redundancy") == 0) && (argc > i+1)) {
-				/* Takes "-redundancy  redundant_codec/offset" */
-				codec_id_t pcid = codec_get_by_payload(sp[s]->encodings[0]);
-                                const codec_format_t *cf = codec_get_format(pcid);
-                            	int      pt  = get_cc_pt(sp[s], "redundancy");
-				char     cfg[80];
-
-				sprintf(cfg, "%s/0/%s", cf->long_name, argv[i+1]);
-				debug_msg("Configure redundancy %s\n", cfg);
-                            	config_channel_coder(sp[s], pt, cfg);
-				channel_set_coder(sp[s], pt);
-				ui_update_primary(sp[s]);
-				ui_update_channel(sp[s]);
-                            	i++;
+                                printf("%s: not supported in this release\n", 
+                                       argv[i]);
+                                i++;
                         }
 			if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
-				codec_id_t cid;
-				char    *pu;
-                                for (pu = argv[i+1]; *pu; pu++) {
-                                        *pu = toupper(*pu);
-				}
-                                pu = argv[i+1];
-                                if ((cid = codec_get_by_name(pu)) != 0) {
-                                        const codec_format_t *cf = codec_get_format(cid);
-                                        change_freq(sp[s]->device_clock, cf->format.sample_rate);
-                                        sp[s]->encodings[0]  = codec_get_payload(cid);
-					sp[s]->num_encodings = 1;
-					channel_set_coder(sp[s], get_cc_pt(sp[s], "vanilla"));
-					debug_msg("Configure codec %d\n", sp[s]->encodings[0]);
-				} else if ((cid = codec_get_matching(pu, 8000, 1)) != 0) {
-                                        const codec_format_t *cf = codec_get_format(cid);
-                                        change_freq(sp[s]->device_clock, cf->format.sample_rate);
-                                        sp[s]->encodings[0]  = codec_get_payload(cid);
-					sp[s]->num_encodings = 1;
-					channel_set_coder(sp[s], get_cc_pt(sp[s], "vanilla"));
-					debug_msg("Configure codec %d\n", sp[s]->encodings[0]);
-                                } else {
-					/* This is not a valid codec name. One last chance: it might be a */
-					/* combined codec and redundancy specifier such as "dvi+lpc" used */
-					/* by sdr. Try to parse it that way, just in case...        [csp] */
-					char *pri_name = strtok(argv[i+1], "/");
-					char *sec_name = strtok(NULL, "/");
-					codec_id_t pri_cid, sec_cid;
-                                        const codec_format_t *pri_cf, *sec_cf;
-					char     cfg[80];
-					int	red_pt;
-
-					if (pri_name == NULL || sec_name == NULL) {
-						printf("Unknown codec\n");
-						usage();
-					}
-					if ((pri_cid = codec_get_matching(pri_name, 8000, 1)) == 0) {
-						printf("Unknown primary codec\n");
-						usage();
-					}
-					if ((sec_cid = codec_get_matching(sec_name, 8000, 1)) == 0) {
-						printf("Unknown redundant codec\n");
-						usage();
-					}
-                                        pri_cf = codec_get_format(pri_cid);
-                                        sec_cf = codec_get_format(sec_cid);
-                                        change_freq(sp[s]->device_clock, pri_cf->format.sample_rate);
-                                        sp[s]->encodings[0]  = codec_get_payload(pri_cid);
-					sp[s]->num_encodings = 1;
-					sprintf(cfg, "%s/0/%s/1", pri_cf->long_name,sec_cf->long_name);
-					debug_msg("Configuring codec+redundancy: %s+%s\n", pri_name, sec_name);
-					red_pt = get_cc_pt(sp[s], "redundancy");
-					config_channel_coder(sp[s], red_pt, cfg);
-					channel_set_coder(sp[s], red_pt);
-                                }
-				ui_update_primary(sp[s]);
-				ui_update_channel(sp[s]);
+                                printf("%s: not supported in this release\n", 
+                                       argv[i]);
 				i++;
 			}
 		}

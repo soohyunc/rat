@@ -50,6 +50,8 @@ int              source_list_create  (struct s_source_list **pplist);
 
 void             source_list_destroy (struct s_source_list **pplist);
 
+void             source_list_clear   (struct s_source_list *plist);
+
 /* Methods for extracting dbe entry participants that are active */
 u_int32          source_list_source_count(struct s_source_list *plist);
 
