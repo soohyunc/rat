@@ -774,6 +774,7 @@ proc mbus_recv_rtp.ssrc {ssrc} {
 	set my_ssrc $ssrc
 	init_source $ssrc
 	ssrc_update $ssrc
+#        puts "Got my_ssrc $ssrc"
 }
 
 proc mbus_recv_rtp.source.exists {ssrc} {
@@ -794,7 +795,7 @@ proc mbus_recv_rtp.source.cname {ssrc cname} {
 }
 
 proc mbus_recv_rtp.source.name {ssrc name} {
-	global NAME my_ssrc
+	global NAME
 	init_source $ssrc
 	set NAME($ssrc) $name
 	chart_label $ssrc $name
@@ -802,7 +803,7 @@ proc mbus_recv_rtp.source.name {ssrc name} {
 }
 
 proc mbus_recv_rtp.source.email {ssrc email} {
-	global EMAIL my_ssrc
+	global EMAIL 
 	init_source $ssrc
 	set EMAIL($ssrc) $email
 }
@@ -814,7 +815,7 @@ proc mbus_recv_rtp.source.phone {ssrc phone} {
 }
 
 proc mbus_recv_rtp.source.loc {ssrc loc} {
-	global LOC my_ssrc
+	global LOC
 	init_source $ssrc
 	set LOC($ssrc) $loc
 }
@@ -823,7 +824,7 @@ proc mbus_recv_rtp.source.tool {ssrc tool} {
 	global TOOL my_ssrc tool_name
 	init_source $ssrc
 	set TOOL($ssrc) $tool
-	if {[info exists mm_ssrc] && [string compare $ssrc $my_ssrc] == 0} {
+	if {[info exists my_ssrc] && [string compare $ssrc $my_ssrc] == 0} {
 	    global tool_name
 	    # tool name looks like RAT x.x.x platform ....
 	    # lose the platform stuff
@@ -1705,12 +1706,13 @@ pack $i.a.f.f.ents.name $i.a.f.f.ents.email $i.a.f.f.ents.phone $i.a.f.f.ents.lo
 proc update_user_panel {} {
     global my_ssrc NAME EMAIL PHONE LOC NOTE
     global rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note
-    set rtcp_name  $NAME($my_ssrc)
-    set rtcp_email $EMAIL($my_ssrc)
-    set rtcp_phone $PHONE($my_ssrc)
-    set rtcp_loc   $LOC($my_ssrc)
-    set rtcp_note  $NOTE($my_ssrc)
-
+    if {[info exists my_ssrc]} {
+        set rtcp_name  $NAME($my_ssrc)
+        set rtcp_email $EMAIL($my_ssrc)
+        set rtcp_phone $PHONE($my_ssrc)
+        set rtcp_loc   $LOC($my_ssrc)
+        set rtcp_note  $NOTE($my_ssrc)
+    }
 }
 
 # Transmission Pane ###########################################################
