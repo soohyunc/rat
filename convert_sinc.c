@@ -286,7 +286,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
         int32   t;
         int32  *h, *hc, *he, half_width;
 
-        work_len = src_len + fs->taps - 1;
+        work_len = src_len + fs->taps;
         work_buf = (sample*)block_alloc(sizeof(sample)*work_len);
         
         assert(fs->hold_bytes == fs->taps * sizeof (sample));
@@ -310,7 +310,9 @@ sinc_upsample_mono (struct s_filter_state *fs,
                 hc = h;
                 t  = 0;
                 sc = ss;
-                while (hc < he) {
+                /* Cast otherwise bounds checker complains about comparison */
+                /* when hc > he.                                            */
+                while ((u_int32)hc < (u_int32)he) { 
                         t += (*hc) * (*sc);
                         hc += fs->scale;
                         sc++;
@@ -333,7 +335,7 @@ sinc_upsample_mono (struct s_filter_state *fs,
                         hc = h;
                         t = 0;
                         sc = ss;
-                        while (hc < he) {
+                        while ((u_int32)hc < (u_int32)he) {
                                 t  += (*hc) * (*sc);
                                 hc += fs->scale;
                                 sc++;
