@@ -121,8 +121,6 @@ typedef struct session_tag {
 	int 		lbl_cb_channel_socket;
 	int 		lbl_cb_channel;
 	int		lbl_cb_priority;
-	int		loopback_rtp;
-        int             filter_loopback;
         int             flake_go;                   /* counter used to avoid dropping at start */
         int             flake_os;                   /* number outstanding */
         char            *ui_script;

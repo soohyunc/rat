@@ -92,7 +92,6 @@ init_session(session_struct *sp)
 	sp->ttl				= 16;
 	sp->rtp_fd			= -1;
 	sp->rtcp_fd			= -1;
-        sp->filter_loopback             = FALSE;
 	sp->sending_audio		= FALSE;
 	sp->playing_audio		= TRUE;
 	sp->lecture			= FALSE;
@@ -124,7 +123,6 @@ init_session(session_struct *sp)
 	sp->lbl_cb_channel_socket	= -1;
 	sp->lbl_cb_channel		= -1;
         sp->lbl_cb_priority             = 100;
-	sp->loopback_rtp		= FALSE;
 	sp->ui_script			= ui_original;
 	sp->cb_myaddr			= cb_addr_init("audio", "engine", "*", "rat", "1");
 	sp->cb_uiaddr			= cb_addr_init("audio",     "ui", "*", "rat", "1");
@@ -254,9 +252,6 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 				}
 
 				i++;
-			}
-			if (strcmp(argv[i], "-loopback_rtp") == 0) {
-				sp[s]->loopback_rtp = TRUE;
 			}
 		}
 	}
