@@ -43,6 +43,7 @@
 
 #include "assert.h"
 #include "audio.h"
+#include "codec_g711.h"
 #include "cushion.h"
 #include "util.h"
 

@@ -118,28 +118,12 @@ void	mix2_l16(int16 *v0, int16 *v1, size_t len);
 void	mix2_l8(int8 *v0, int8 *v1, size_t len);
 void	audio_zero(sample *buf, int len, deve_e type);
 int     read_write_audio(struct session_tag *spi, struct session_tag *spo, struct s_mix_info *ms);
-void	read_write_init(struct session_tag *session_pointer);
-int	    audio_device_read(struct session_tag *sp, sample *buf, int len);
-int	    audio_device_write(struct session_tag *sp, sample *buf, int samples);
-int	    audio_device_take(struct session_tag *sp);
+void    read_write_init(struct session_tag *session_pointer);
+int     audio_device_read(struct session_tag *sp, sample *buf, int len);
+int     audio_device_write(struct session_tag *sp, sample *buf, int samples);
+int     audio_device_take(struct session_tag *sp);
 void	audio_device_give(struct session_tag *sp);
 void    audio_device_reconfigure(struct session_tag *sp);
 void    audio_unbias(struct s_bias_ctl *bc, sample *buf, int len);
-void	pcmu_linear_init(void);
-
-/* Use the IRIX definition in all cases..... [csp] */
-extern short mulawtolin[256];
-extern unsigned char lintomulaw[65536];
-
-extern short         alawtolin[256];
-extern unsigned char lintoalaw[8192]; 
-
-/* These table look ups are 3 times quicker than the nice
- * sun dynamic calculation code on an ultra so this stays... 
- */
-#define s2u(x)	lintomulaw[((unsigned short)(x))]
-#define u2s(x)	mulawtolin[x]
-#define s2a(x)  lintoalaw[((unsigned short)(x))>>3]
-#define a2s(x)  alawtolin[((unsigned char)x)]
 
 #endif /* _RAT_AUDIO_H_ */

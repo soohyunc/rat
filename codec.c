@@ -44,6 +44,7 @@
 #include "codec.h"
 #include "gsm.h"
 #include "codec_adpcm.h"
+#include "codec_g711.h"
 #include "codec_lpc.h"
 #include "codec_wbs.h"
 #include "audio.h"
@@ -414,6 +415,7 @@ codec_init(session_struct *sp)
 #ifdef WIN32
         acmInit();
 #endif
+        codec_g711_init();
 }
 
 codec_t *
