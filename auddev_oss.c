@@ -13,7 +13,7 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, is permitted, for non-commercial use only, provided
+ * modification, is permitted,` for non-commercial use only, provided
  * that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
@@ -68,7 +68,7 @@ static int ndev;
 char   dev_name[OSS_MAX_DEVICES][OSS_MAX_NAME_LEN];
 
 static char the_dev[] = "/dev/audioX";
-static int audio_fd;
+static int audio_fd = -1;
 
 audio_format format;
 
@@ -162,6 +162,8 @@ oss_audio_open_rw(audio_desc_t ad, char rw)
 int
 oss_audio_open(audio_desc_t ad, audio_format *fmt)
 {
+        int mode;
+
         UNUSED(ad); 
 
         memcpy(&format, fmt, sizeof(audio_format));
@@ -174,10 +176,14 @@ oss_audio_open(audio_desc_t ad, audio_format *fmt)
         sprintf(the_dev, "/dev/audio%d", ad);
 
 	if (oss_audio_duplex(-1)) {
-		return oss_audio_open_rw(ad, O_RDWR);
-	} else {
-		return oss_audio_open_rw(ad, O_WRONLY);
+                mode = O_RDWR;
+        } else {
+                perror("Half duplex cards not supported\n");
+                exit(-1);
+                mode = O_WRONLY;
 	}
+        audio_fd = oss_audio_open_rw(ad, mode);
+        return (audio_fd > 0) ? TRUE : FALSE;
 }
 
 /* Close the audio device */
