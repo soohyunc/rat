@@ -849,9 +849,26 @@ static void rx_tool_rat_converter(char *srce, char *args, session_struct *sp)
 
 static void rx_audio_channel_coding(char *srce, char *args, session_struct *sp)
 {
+        cc_details   ccd;
+        char        *coding;
+        int          i, n;
+
 	UNUSED(srce);
 
         mbus_parse_init(sp->mbus_engine, args);
+        if (mbus_parse_str(sp->mbus_engine, &coding)) {
+                mbus_decode_str(coding);
+                
+                n = channel_get_coder_count();
+                for(i = 0; i < n; i++) {
+                        channel_get_coder_details(i, &ccd);
+                        if (strncasecmp(ccd.name, coding, 3) == 0) {
+                                channel_encoder_destroy(&sp->channel_coder);
+                                channel_encoder_create(ccd.descriptor, &sp->channel_coder);
+                                break;
+                        }
+                }
+        }
         mbus_parse_done(sp->mbus_engine);
 	ui_update_channel(sp);
 }

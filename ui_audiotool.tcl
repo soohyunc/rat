@@ -601,7 +601,6 @@ proc mbus_recv_audio.input.ports.flush {} {
 proc mbus_recv_audio.input.ports.add {port} {
     global input_ports
     lappend input_ports "$port"
-    puts "Input ports $input_ports"
 }
 
 proc mbus_recv_audio.input.port {device} {
@@ -645,7 +644,6 @@ proc mbus_recv_audio.output.ports.flush {} {
 proc mbus_recv_audio.output.ports.add {port} {
     global output_ports
     lappend output_ports "$port"
-    puts "Output ports $output_ports"
 }
 
 proc mbus_recv_audio.output.mute {val} {

@@ -76,7 +76,7 @@ static const channel_coder_t table[] = {
         /* The vanilla coder goes first. Update channel_get_null_coder
          * and channel_coder_get_by_payload if it moves.
          */
-        {"No channel coder",     
+        {"None",     
          CC_VANILLA_PT,
          vanilla_encoder_create, 
          vanilla_encoder_destroy,
