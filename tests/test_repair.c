@@ -152,7 +152,7 @@ test_repair(struct s_sndfile *sf_out,
         struct s_codec_state_store *decoder_states;
         media_data                 *md_prev, *md_cur;
         coded_unit                 *cu;
-        int                         consec_lost = 0;
+        int32_t                     consec_lost = 0, total_lost, total_done;
         const codec_format_t       *cf;
         uint16_t                    i;
         repair_id_t                 repair_none;
@@ -180,8 +180,12 @@ test_repair(struct s_sndfile *sf_out,
         md_cur  = NULL;
         media_data_create(&md_cur, 1);
 
+        total_lost = total_done = 0;
+
         while(read_and_encode(md_cur->rep[0], encoder, sf_in)) {
+                total_done++;
                 if (do_drop()) {
+                        total_lost++;
                         media_data_destroy(&md_cur, sizeof(media_data));
                         media_data_create(&md_cur, 0);
                         
@@ -225,6 +229,8 @@ test_repair(struct s_sndfile *sf_out,
                 md_cur  = NULL;
                 media_data_create(&md_cur, 1);
         }
+
+        printf("# Dropped %d frames out of %d (%f loss %%)\n", total_lost, total_done, 100.0 * total_lost / (double)total_done);
         
         media_data_destroy(&md_cur, sizeof(media_data));
         media_data_destroy(&md_prev, sizeof(media_data));
