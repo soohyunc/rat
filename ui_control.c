@@ -692,7 +692,8 @@ ui_get_codecs(int pt, char *buf, int loose)
 {
 	codec_t	*codec[10],*sel;
 	int 	 i, nc;
-        
+        char *bp = buf;
+
         sel = get_codec(pt);
         
         for (nc=i=0; i<MAX_CODEC; i++) {
@@ -717,10 +718,10 @@ ui_get_codecs(int pt, char *buf, int loose)
         /* sort by bw as this makes handling of acceptable redundant codecs easier in ui */
         qsort(codec,nc,sizeof(codec_t*),codec_bw_cmp);
         for(i=0;i<nc;i++) {
-                sprintf(buf, " %s", codec[i]->short_name);
-                buf += strlen(codec[i]->short_name) + 1;
+                sprintf(bp, "%s ", codec[i]->short_name);
+                bp += strlen(codec[i]->short_name) + 1;
         }
-
+        if (bp != buf) *(bp-1) = 0;
         return buf;
 }
 
