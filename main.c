@@ -219,7 +219,7 @@ main(int argc, char *argv[])
 
 			tx_process_audio(sp[i]->tb);
 
-                        if (tx_is_sending(sp[i]->tb) || sp[i]->last_tx_service_productive) {
+                        if (tx_is_sending(sp[i]->tb)) {
                                 tx_send(sp[i]->tb);
                         }
 
@@ -239,7 +239,6 @@ main(int argc, char *argv[])
                                                    cushion_get_size(sp[i]->cushion));
                                 cush_ts = ts_add(cur_ts, cush_ts);
                                 scnt = (int)source_list_source_count(sp[i]->active_sources);
-                                debug_msg("%d active sources\n", scnt);
                                 for(sidx = 0; sidx < scnt; sidx++) {
 
                                         s = source_list_get_source_no(sp[i]->active_sources, sidx);

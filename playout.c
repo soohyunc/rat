@@ -64,7 +64,6 @@ typedef struct s_pb_iterator {
 #define PB_MAX_ITERATORS 5
 
 typedef struct s_pb {
-
         pb_node_t      sentinel;         /* Stores head and tail */
         pb_node_t     *psentinel;        /* pointer to sentinel - saves 
                                           * address calc in link ops.
@@ -77,6 +76,8 @@ typedef struct s_pb {
         /* Iterators for the buffer */
         u_int16       n_iterators;
         pb_iterator_t iterators[PB_MAX_ITERATORS];
+        /* Debugging info */
+        u_int32       n_nodes;
 } pb_t;
 
 /* Construction / Destruction functions **************************************/
@@ -133,13 +134,15 @@ pb_flush (pb_t *pb)
                 curr->next->prev = curr->prev;
                 curr->prev->next = curr->next;
                 pb->freeproc(&curr->data, curr->data_len);
+                pb->n_nodes--;
                 assert(curr->data == NULL);
                 block_free(curr, sizeof(pb_node_t));
                 curr = next;
         }
         
-        assert(stop->next == stop);
-        assert(stop->prev == stop);
+        assert(stop->next  == stop);
+        assert(stop->prev  == stop);
+        assert(pb->n_nodes == 0);
 
         /* Reset all iterators */
         n_iterators = pb->n_iterators;
@@ -177,6 +180,7 @@ pb_add (pb_t *pb, u_char *data, u_int32 data_len, ts_t playout)
                 made->next = curr->next;
                 made->next->prev = made;
                 made->prev->next = made;
+                pb->n_nodes++;
                 return TRUE;
         } 
         debug_msg("Insufficient memory\n");
@@ -187,7 +191,7 @@ pb_add (pb_t *pb, u_char *data, u_int32 data_len, ts_t playout)
 
 int
 pb_iterator_create(pb_t           *pb,
-                pb_iterator_t **ppi) 
+                   pb_iterator_t **ppi) 
 {
         pb_iterator_t *pi;
         if (pb->n_iterators == PB_MAX_ITERATORS) {
@@ -287,7 +291,6 @@ pb_iterator_detach_at (pb_iterator_t *pi,
 
         if (pb_iterator_get_at(pi, data, data_len, playout) == FALSE) {
                 /* There is no data to get */
-                debug_msg("pb_iterator_detach_at - no data!!!!\n");
                 return FALSE;
         }
 
@@ -313,6 +316,7 @@ pb_iterator_detach_at (pb_iterator_t *pi,
         
         block_free(curr_node, sizeof(pb_node_t));
         pi->node = next_node;
+        pi->buffer->n_nodes--;
         return TRUE;
 }
 
@@ -370,6 +374,17 @@ int
 pb_iterators_equal(pb_iterator_t *pi1,
                    pb_iterator_t *pi2)
 {
+        assert(pi1 != NULL);
+        assert(pi2 != NULL);
+
+        /* Move nodes off of sentinel if necessary and possible */
+        if (pi1->node == pi1->buffer->psentinel) {
+                pi1->node = pi1->buffer->psentinel->next; /* yuk */
+        }
+        if (pi2->node == pi2->buffer->psentinel) {
+                pi2->node = pi2->buffer->psentinel->next; /* yuk */
+        }
+
         return (pi1->node == pi2->node);
 }
 
@@ -379,6 +394,7 @@ int
 pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
 {
         ts_t cutoff;
+        int  removed;
         pb_node_t *stop, *curr, *next;
         pb_t      *pb;
 
@@ -392,28 +408,29 @@ pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
 #endif
 
         pb   = pi->buffer;
-        stop = pb->psentinel;
-        if (pi->node != stop) {
-                curr = pi->node;
+        stop = pi->node;
+        removed = 0;
+        if (pi->node != pb->psentinel) {
+                curr = pb->psentinel->next; /* head */;
                 cutoff = ts_sub(pi->node->playout, history_len);
-                while(curr != stop && ts_gt(cutoff, curr->playout)) {
+                while(curr != stop) {
 #ifndef NDEBUG
                         /* About to erase a block an iterator is using! */
                         for(i = 0; i < n_iterators; i++) {
                                 assert(iterators[i].node != curr);
                         }
 #endif
-
-                        next = curr->next;
+                        next = curr->next; 
                         curr->next->prev = curr->prev;
                         curr->prev->next = curr->next;
                         pb->freeproc(&curr->data, curr->data_len);
+                        pb->n_nodes--;
                         block_free(curr, sizeof(pb_node_t));
                         curr = next;
+                        removed ++;
                 }
         }
-                
-        return TRUE;
+        return removed;
 }
 
 int

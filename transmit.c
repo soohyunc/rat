@@ -121,6 +121,7 @@ tx_unit_create(tx_buffer *tb, tx_unit  **ptu, int n_samples)
                         tb->last_sample = 0;
                 }
                 tu->data = tb->samples + tb->last_sample;
+                tu->energy = 555;
                 tb->last_sample += n_samples;
                 return TRUE;
         }
@@ -436,7 +437,6 @@ tx_send(tx_buffer *tb)
         channel_unit            *cu;
 
         session_struct *sp;
-        
 
         tx_unit        *u;
         rtp_hdr_t       rtp_header;
@@ -453,23 +453,16 @@ tx_send(tx_buffer *tb)
                 return;
         }
 
-        sp = tb->sp;
-
-        /* Silence pointer time should always be ahead of transmitted
-         * time since we can't make a decision to send without having
-         * done silence determination first.  
-         */
         pb_iterator_get_at(tb->silence,  (u_char**)&u, &u_len, &u_sil_ts);
         pb_iterator_get_at(tb->transmit, (u_char**)&u, &u_len, &u_ts);
 
         assert(ts_gt(u_sil_ts, u_ts));
+
         delta = ts_sub(u_sil_ts, u_ts);
         n = delta.ticks / tb->unit_dur;
 
-        debug_msg("n = %d\n", n);
-
         rtp_header.cc = 0;
-        sp->last_tx_service_productive = 0;    
+        sp = tb->sp;
         units = channel_encoder_get_units_per_packet(sp->channel_coder);
         freq  = get_freq(tb->clock);
         
@@ -563,7 +556,6 @@ tx_send(tx_buffer *tb)
                 sp->db->pkt_count  += 1;
                 sp->db->byte_count += cu->data_len;
                 sp->db->sending     = TRUE;
-                sp->last_tx_service_productive = 1;
                 channel_data_destroy(&cd, sizeof(channel_data));
         }
         pb_iterator_destroy(tb->channel_buffer, &cpos);
@@ -574,7 +566,7 @@ tx_send(tx_buffer *tb)
          * in the act of transmission with pbi_detach_at call.
          */
         u_ts = ts_map32(get_freq(tb->clock), 2 * units * tb->unit_dur);
-        pb_iterator_audit(tb->silence, u_ts);
+        n = pb_iterator_audit(tb->transmit, u_ts);
 }
 
 void
@@ -595,8 +587,8 @@ tx_update_ui(tx_buffer *tb)
 
                 pb_iterator_dup(&prev, tb->silence);
                 pb_iterator_retreat(prev);
-
-                if (pb_iterator_get_at(prev, (u_char**)u, &u_len, &u_ts) &&
+                assert(!pb_iterators_equal(tb->silence, prev));
+                if (pb_iterator_get_at(prev, (u_char**)&u, &u_len, &u_ts) &&
                     (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE)) {
                         ui_input_level(sp, lin2vu(u->energy, 100, VU_INPUT));
                 } else {

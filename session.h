@@ -93,7 +93,6 @@ typedef struct session_tag {
         int             next_encoding;  /* used for changing device format */
         struct s_channel_state  *channel_coder;
 	int             playing_audio;
-        int             last_tx_service_productive;     /* channel coder can output after talksprt ends */
 	int		repair;				/* Packet repair */
 	int		lecture;			/* UI lecture mode */
 	int		render_3d;
