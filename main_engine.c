@@ -99,9 +99,6 @@ int main(int argc, char *argv[])
 	struct timeval	 timeout;
         uint8_t		 j;
 
-
-	Sleep(10000);
-
 #ifdef WIN32
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 #else
