@@ -32,8 +32,8 @@ static const char cvsid[] =
 /* A guess...*/
 #define SAMPLE_BUFFER_SAMPLES 2048
 
-void convolve(short  *signal, 
-              short  *answer, 
+void convolve(sample  *signal, 
+              sample  *answer, 
               double *overlap, 
               double *response, 
               int response_length, 
