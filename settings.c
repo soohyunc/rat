@@ -332,7 +332,7 @@ setting_load_int(char *name, int default_value)
 void settings_load(session_struct *sp)
 {
 	audio_device_details_t	 ad;
-	char			*ad_name, *primary_codec, *primary_long, *cc_name;
+	char			*ad_name, *primary_codec, *cc_name;
 	int			 i, freq, chan;
 	cc_details		 ccd;
 
@@ -355,13 +355,11 @@ void settings_load(session_struct *sp)
 	chan = setting_load_int("audioChannelsIn", 1);
 
 	primary_codec = setting_load_str("audioPrimary", "GSM");
-	primary_long  = (char *) xmalloc(strlen(primary_codec) + 10);
-	sprintf(primary_long, "%s/%4d/%1d", primary_codec, freq, chan);
-	audio_device_register_change_primary(sp, codec_get_by_name(primary_long));
+	audio_device_register_change_primary(sp, codec_get_matching(primary_codec, freq, chan));
         if (sp->new_config != NULL) {
+                debug_msg("Settings change primary!\n");
 		audio_device_reconfigure(sp);
 	}
-        xfree(primary_long);
 
         audio_set_ogain(sp->audio_device, setting_load_int("audioOutputGain", 75));
         audio_set_igain(sp->audio_device, setting_load_int("audioInputGain",  75));
