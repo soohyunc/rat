@@ -182,7 +182,7 @@ sd(sd_t *s, u_int16 energy)
                 u_int32 m,stdd,trial_thresh;
 
                 m    = s->tot / s->cnt;
-                stdd = sqrt(abs(m * m - s->tot_sq / s->cnt));
+                stdd = (unsigned long)(sqrt(abs(m * m - s->tot_sq / s->cnt)));
 
                 trial_thresh = m + 3 * stdd;
                 if (trial_thresh < s->thresh) {

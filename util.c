@@ -317,7 +317,7 @@ block_trash_check()
         for (i = 0; i<nblks_out; i++) {
                 c = (int*)blk_out[i].iov_base;
                 c++;
-                assert((unsigned int)*c == blk_out[i].iov_len);
+                assert((unsigned int)*c == (unsigned int)blk_out[i].iov_len);
         }
 #endif  /* DEBUG_MEM */
 }
