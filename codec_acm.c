@@ -3,6 +3,7 @@
  * University College London, 1998.
  */
 
+#ifdef WIN32
 #include <windows.h>
 #include <mmsystem.h>
 #include <mmreg.h>
@@ -218,3 +219,5 @@ acmInit()
         phCodecID = (HACMDRIVERID*)xmalloc(sizeof(HACMDRIVER)*dwCodecs);
         acmDriverEnum(acmDriverEnumProc, 0L, 0L);
 }
+
+#endif WIN32
