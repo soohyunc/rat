@@ -28,9 +28,61 @@
 #include "version.h"
 #include "settings.h"
 
+#ifndef WIN32
+FILE	*settings_file;
+#endif
+
+static void save_init(void)
+{
+#ifdef WIN32
+	/* Do something complicated with the registry... */
+#else
+	struct passwd	*p;	
+	char		*filen;
+
+	/* The getpwuid() stuff is to determine the users home directory, into which we */
+	/* write the settings file. The struct returned by getpwuid() is statically     */
+	/* allocated, so it's not necessary to free it afterwards.                      */
+	p = getpwuid(getuid());
+	if (p == NULL) {
+		perror("Unable to get passwd entry");
+		abort();
+	}
+	filen = (char *) xmalloc(strlen(p->pw_dir) + 6);
+	sprintf(filen, "%s/.RTPdefaults", p->pw_dir);
+	settings_file = fopen(filen, "w");
+#endif
+}
+
+static void save_done(void)
+{
+#ifdef WIN32
+	/* Do something complicated with the registry... */
+#else
+	fclose(settings_file);
+#endif
+}
+
+static void save_str_setting(const char *name, const char *val)
+{
+#ifdef WIN32
+	/* Do something complicated with the registry... */
+#else
+	fprintf(settings_file, "*%s: %s\n", name, val);
+#endif
+}
+
+static void save_int_setting(const char *name, const long val)
+{
+#ifdef WIN32
+	/* Do something complicated with the registry... */
+#else
+	fprintf(settings_file, "*%s: %ld\n", name, val);
+#endif
+}
+
 void save_settings(session_struct *sp)
 {
-	FILE				*outf = stdout;
 	codec_id_t	 		 pri_id;
         const codec_format_t 		*pri_cf;
         cc_details 			 cd;
@@ -78,42 +130,36 @@ void save_settings(session_struct *sp)
                 }
         }
 
-	fprintf(outf, "*rtpName:                %s\n",  sp->db->my_dbe->sentry->name);
-	fprintf(outf, "*rtpEmail:               %s\n",  sp->db->my_dbe->sentry->email);
-	fprintf(outf, "*rtpPhone:               %s\n",  sp->db->my_dbe->sentry->phone);
-	fprintf(outf, "*rtpLoc:                 %s\n",  sp->db->my_dbe->sentry->loc);
-	fprintf(outf, "*audioTool:              %s\n",  sp->db->my_dbe->sentry->tool);
-
-	fprintf(outf, "*audioPrimary:           %s\n",  pri_cf->short_name);
-	fprintf(outf, "*audioUnits:             %d\n",  channel_encoder_get_units_per_packet(sp->channel_coder)); 
-	fprintf(outf, "*audioChannelCoding:     %s\n",  cd.name);
-	fprintf(outf, "*audioChannelParameters: %s\n",  cc_param);
-
-	fprintf(outf, "*audioRepair:            %s\n",  repair_get_name(sp->repair));
-	fprintf(outf, "*audioAutoConvert:       %s\n",  converter.name);
-	fprintf(outf, "*audioLimitPlayout:      %d\n",  sp->limit_playout);
-	fprintf(outf, "*audioMinPlayout:        %ld\n", sp->min_playout);
-	fprintf(outf, "*audioMaxPlayout:        %ld\n", sp->max_playout);
-	fprintf(outf, "*audioLecture:           %d\n",  sp->lecture);
-	fprintf(outf, "*audio3dRendering:       %d\n",  sp->render_3d);
-
-	fprintf(outf, "*audioDevice:            %s\n",  ad.name);
-	fprintf(outf, "*audioFrequency:         %d\n",  af->sample_rate);
-	fprintf(outf, "*audioChannelsIn:        %d\n",  af->channels); 
-	fprintf(outf, "*audioSilence:           %d\n",  sp->detect_silence);
-	fprintf(outf, "*audioAGC:               %d\n",  sp->agc_on);
-	fprintf(outf, "*audioLoopback:          %d\n",  sp->loopback_gain); 
-	fprintf(outf, "*audioEchoSuppress:      %d\n",  sp->echo_suppress);
-	fprintf(outf, "*audioOutputGain:        %d\n",  audio_get_ogain(sp->audio_device));
-	fprintf(outf, "*audioInputGain:         %d\n",  audio_get_igain(sp->audio_device));
-	fprintf(outf, "*audioOutputPort:        %s\n",  oapd->name);
-	fprintf(outf, "*audioInputPort:         %s\n",  iapd->name); 
-
-	fprintf(outf, "*audioPowermeters:       %d\n",  sp->meter);
-	fprintf(outf, "*audioLipSync:           %d\n",  sp->sync_on);
-/*	fprintf(outf, "*audioHelpOn:            %s\n",  ); */
-/*	fprintf(outf, "*audioMatrixOn:          %s\n",  ); */
-/*	fprintf(outf, "*audioPlistOn:           %s\n",  ); */
-/*	fprintf(outf, "*audioFilesOn:           %s\n",  ); */
+	save_init();
+	save_str_setting("rtpName",                sp->db->my_dbe->sentry->name);
+	save_str_setting("rtpEmail",               sp->db->my_dbe->sentry->email);
+	save_str_setting("rtpPhone",               sp->db->my_dbe->sentry->phone);
+	save_str_setting("rtpLoc",                 sp->db->my_dbe->sentry->loc);
+	save_str_setting("audioTool",              sp->db->my_dbe->sentry->tool);
+	save_str_setting("audioPrimary",           pri_cf->short_name);
+	save_int_setting("audioUnits",             channel_encoder_get_units_per_packet(sp->channel_coder)); 
+	save_str_setting("audioChannelCoding",     cd.name);
+	save_str_setting("audioChannelParameters", cc_param);
+	save_str_setting("audioRepair",            repair_get_name(sp->repair));
+	save_str_setting("audioAutoConvert",       converter.name);
+	save_int_setting("audioLimitPlayout",      sp->limit_playout);
+	save_int_setting("audioMinPlayout",        sp->min_playout);
+	save_int_setting("audioMaxPlayout",        sp->max_playout);
+	save_int_setting("audioLecture",           sp->lecture);
+	save_int_setting("audio3dRendering",       sp->render_3d);
+	save_str_setting("audioDevice",            ad.name);
+	save_int_setting("audioFrequency",         af->sample_rate);
+	save_int_setting("audioChannelsIn",        af->channels); 
+	save_int_setting("audioSilence",           sp->detect_silence);
+	save_int_setting("audioAGC",               sp->agc_on);
+	save_int_setting("audioLoopback",          sp->loopback_gain); 
+	save_int_setting("audioEchoSuppress",      sp->echo_suppress);
+	save_int_setting("audioOutputGain",        audio_get_ogain(sp->audio_device));
+	save_int_setting("audioInputGain",         audio_get_igain(sp->audio_device));
+	save_str_setting("audioOutputPort",        oapd->name);
+	save_str_setting("audioInputPort",         iapd->name); 
+	save_int_setting("audioPowermeters",       sp->meter);
+	save_int_setting("audioLipSync",           sp->sync_on);
+	save_done();
 }
 
