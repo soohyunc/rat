@@ -1,0 +1,31 @@
+/* config.h.in.  Generated automatically from configure.in by autoheader.  */
+
+/* Define to empty if the keyword does not work.  */
+#undef const
+
+/* Define to `unsigned' if <sys/types.h> doesn't define.  */
+#undef size_t
+
+/* Define if you have the ANSI C header files.  */
+#undef STDC_HEADERS
+
+/*
+ * If you don't have these types in <inttypes.h>, #define these to be
+ * the types you do have.
+ */
+#undef int16_t
+#undef int32_t
+#undef int64_t
+#undef int8_t
+#undef uint16_t
+#undef uint32_t
+#undef uint8_t
+
+/* Audio device relate */
+#undef HAVE_PCA_AUDIO
+#undef HAVE_LUIGI_AUDIO
+#undef HAVE_OSS_AUDIO
+
+#ifndef WORDS_BIGENDIAN
+#define WORDS_SMALLENDIAN
+#endif

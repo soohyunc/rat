@@ -99,6 +99,9 @@ clean:
 	-rm -f tcl2c/tcl2c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec
 	-rm -f $(RATVER)-media $(RATVER)-ui $(RATVER)
 
+distclean: clean
+	-rm -f config.cache config.log config.status config.h
+
 etags:
 	etags ../common/*.[ch] *.[ch]
 

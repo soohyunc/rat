@@ -1,0 +1,33 @@
+dnl UCL RAT configure script.
+dnl $Header$
+dnl
+dnl Process this file with GNU autoconf to generate a configure script.
+
+AC_INIT(converter.c)
+
+AC_CANONICAL_HOST
+
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_RANLIB
+
+AC_HEADER_STDC
+AC_C_CONST
+AC_TYPE_SIZE_T
+
+# Check for standard size types.  The defaults are only valid on some
+# systems so we hope that <inttypes.h> exists when they're wrong.
+
+AC_CHECK_TYPE(uint8_t, unsigned char)
+AC_CHECK_TYPE(uint16_t, unsigned short)
+AC_CHECK_TYPE(uint32_t, unsigned long)
+AC_CHECK_TYPE(int8_t, signed char)
+AC_CHECK_TYPE(int16_t, short)
+AC_CHECK_TYPE(int32_t, long)
+AC_CHECK_TYPE(int64_t, long long)
+
+# Audio device tests.
+
+AC_CONFIG_HEADER(config.h)
+
+AC_OUTPUT(Makefile)
