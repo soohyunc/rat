@@ -163,42 +163,51 @@ int main(int argc, char *argv[])
                  */
                 if (mbus_addr_valid(m, c_addr) == FALSE) {
                         should_exit = TRUE;
+                        debug_msg("Controller address is no longer valid.  Assuming it exited.\n");
                 } 
 	}
 
-	/* Close things down nicely... Tell the media engine we wish to detach... */
-	mbus_qmsgf(m, e_addr, TRUE, "tool.rat.ui.detach.request", "");
-	debug_msg("Waiting for tool.rat.ui.detach() from media engine...\n");
-	while (!got_detach) {
-		mbus_heartbeat(m, 1);
-		mbus_retransmit(m);
-		mbus_send(m);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 10000;
-		mbus_recv(m, (void *) m, &timeout);
-	}
-	debug_msg("...got it\n");
-
-	/* Tell the controller it's time to quit... */
-	mbus_qmsgf(m, c_addr, TRUE, "mbus.quit", "");
-	do {
-		mbus_send(m);
-		mbus_retransmit(m);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 20000;
-		mbus_recv(m, NULL, &timeout);
-	} while (!mbus_sent_all(m));
-
-	debug_msg("Waiting for mbus.quit() from controller...\n");
-	while (!got_quit) {
-		mbus_heartbeat(m, 1);
-		mbus_retransmit(m);
-		mbus_send(m);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 10000;
-		mbus_recv(m, (void *) m, &timeout);
+        if (mbus_addr_valid(m, e_addr)) {
+                /* Close things down nicely... Tell the media engine we wish to detach... */
+                mbus_qmsgf(m, e_addr, TRUE, "tool.rat.ui.detach.request", "");
+                debug_msg("Waiting for tool.rat.ui.detach() from media engine...\n");
+                while (!got_detach  && mbus_addr_valid(m, e_addr)) {
+                        mbus_heartbeat(m, 1);
+                        mbus_retransmit(m);
+                        mbus_send(m);
+                        timeout.tv_sec  = 0;
+                        timeout.tv_usec = 10000;
+                        mbus_recv(m, (void *) m, &timeout);
+                }
+                debug_msg("...got it\n");
+        } else {
+                debug_msg("Engine looks like it has exited already.\n");
         }
-	debug_msg("...got it\n");
+
+        if (mbus_addr_valid(m, c_addr)) {
+                /* Tell the controller it's time to quit... */
+                mbus_qmsgf(m, c_addr, TRUE, "mbus.quit", "");
+                do {
+                        mbus_send(m);
+                        mbus_retransmit(m);
+                        timeout.tv_sec  = 0;
+                        timeout.tv_usec = 20000;
+                        mbus_recv(m, NULL, &timeout);
+                } while (!mbus_sent_all(m));
+                
+                debug_msg("Waiting for mbus.quit() from controller...\n");
+                while (!got_quit) {
+                        mbus_heartbeat(m, 1);
+                        mbus_retransmit(m);
+                        mbus_send(m);
+                        timeout.tv_sec  = 0;
+                        timeout.tv_usec = 10000;
+                        mbus_recv(m, (void *) m, &timeout);
+                }
+                debug_msg("...got it\n");
+        } else {
+                debug_msg("Controller appears to have exited already.\n");
+        }
 
 	mbus_qmsgf(m, "()", FALSE, "mbus.bye", "");
 	do {

@@ -337,6 +337,7 @@ int main(int argc, char *argv[])
                 /* Check controller is still alive */
                 if (mbus_addr_valid(sp->mbus_engine, c_addr) == FALSE) {
                         should_exit = TRUE;
+                        debug_msg("Controller address is no longer valid.  Assuming it exited\n");
                 }
 
 		/* Debugging sanity check of the session... */
