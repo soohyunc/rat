@@ -72,8 +72,7 @@ OBJS  += $(OBJDIR)/convert.o \
          $(OBJDIR)/rtcp.o \
          $(OBJDIR)/speaker_table.o \
          $(OBJDIR)/net.o \
-         $(OBJDIR)/ui.o \
-         $(OBJDIR)/ui_update.o \
+         $(OBJDIR)/ui_control.o \
          $(OBJDIR)/transcoder.o \
          $(OBJDIR)/agc.o \
 	 $(OBJDIR)/crypt.o \

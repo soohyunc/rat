@@ -55,7 +55,7 @@
 #include "speaker_table.h"
 #include "codec.h"
 #include "channel.h"
-#include "ui_update.h"
+#include "ui_control.h"
 #include "mbus.h"
 
 static rtcp_dbentry *
@@ -171,7 +171,6 @@ adapt_playout(rtp_hdr_t *hdr,
 
 	int	delay, diff;
 	codec_t	*cp;
-	char	pargs[1500];
 	int	real_playout;
         
 	arrival_ts = convert_time(arrival_ts, sp->device_clock, src->clock);
@@ -224,9 +223,7 @@ adapt_playout(rtp_hdr_t *hdr,
 			if (sp->sync_on) {
 				/* Communicate our playout delay to the video tool... */
 				real_playout = (convert_time(hdr->ts + src->playout - cur_time, src->clock, sp->device_clock) * 1000)/get_freq(sp->device_clock);
-				sprintf(pargs, "%s %d", src->sentry->cname, real_playout);
-				dprintf("source_playout (%s)\n", pargs);
-				mbus_send(sp->mbus_engine_chan, sp->mbus_video_addr, "source_playout", pargs, FALSE);
+				update_video_playout(src->sentry->cname, real_playout);
 
 				/* If the video tool is slower than us, then
 				 * adjust to match it...  src->video_playout is

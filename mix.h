@@ -53,6 +53,6 @@ struct s_mix_info *init_mix(struct session_tag *sp, int buffer_length);
 void	mix_do_one_chunk(struct session_tag *sp, struct s_mix_info *ms, struct rx_element_tag *el);
 int	mix_get_audio(struct s_mix_info *ms, int amount, sample **bufp);
 void	mix_get_new_cushion(struct s_mix_info *ms, int last_cushion_size, int new_cushion_size, int dry_time, sample **bufp);
-void	mix_update_ui(struct s_mix_info *ms, struct session_tag *sp);
+void	mix_update_ui(struct s_mix_info *ms);
 
 #endif /* _mix_h_ */

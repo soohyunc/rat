@@ -56,7 +56,7 @@
 #include "session.h"
 #include "util.h"
 #include "speaker_table.h"
-#include "ui_update.h"
+#include "ui_control.h"
 #include "rat_time.h"
 #include "receive.h"
 
@@ -297,7 +297,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 		sp->db->ssrc_db = dbptr->next;
 		check_active_leave(sp, dbptr);
 		if (sp->ui_on) {
-			ui_info_remove(dbptr, sp);
+			ui_info_remove(dbptr);
 		}
 		playout_buffer_remove(&(sp->playout_buf_list), dbptr);
 		rtcp_free_dbentry(dbptr);
@@ -310,7 +310,7 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 			/* Remove it from the participants list IK */
 			check_active_leave(sp, tmp);
 			if (sp->ui_on) {
-				ui_info_remove(tmp, sp);
+				ui_info_remove(tmp);
 			}
 			playout_buffer_remove(&(sp->playout_buf_list), dbptr);
 			rtcp_free_dbentry(tmp);
@@ -334,22 +334,22 @@ rtcp_set_attribute(session_struct *sp, int type, char *val)
 	case RTCP_SDES_LOC :
 		if (sp->db->my_dbe->sentry->loc) xfree(sp->db->my_dbe->sentry->loc);
 		sp->db->my_dbe->sentry->loc = xstrdup(val);
-		ui_info_update_loc(sp->db->my_dbe, sp);
+		ui_info_update_loc(sp->db->my_dbe);
 		break;
 	case RTCP_SDES_PHONE :
 		if (sp->db->my_dbe->sentry->phone) xfree(sp->db->my_dbe->sentry->phone);
 		sp->db->my_dbe->sentry->phone = xstrdup(val);
-		ui_info_update_phone(sp->db->my_dbe, sp);
+		ui_info_update_phone(sp->db->my_dbe);
 		break;
 	case RTCP_SDES_EMAIL :
 		if (sp->db->my_dbe->sentry->email) xfree(sp->db->my_dbe->sentry->email);
 		sp->db->my_dbe->sentry->email = xstrdup(val);
-		ui_info_update_email(sp->db->my_dbe, sp);
+		ui_info_update_email(sp->db->my_dbe);
 		break;
 	case RTCP_SDES_NAME :
 		if (sp->db->my_dbe->sentry->name) xfree(sp->db->my_dbe->sentry->name);
 		sp->db->my_dbe->sentry->name = xstrdup(val);
-		ui_info_update_name(sp->db->my_dbe, sp);
+		ui_info_update_name(sp->db->my_dbe);
 		break;
 	default :
 		dprintf("Unknown SDES attribute type! (This should never happen)\n");
@@ -383,6 +383,7 @@ rtcp_init(session_struct *sp, char *cname, u_int32 ssrc, u_int32 cur_time)
 
 	sp->db->my_dbe                = rtcp_new_dbentry_noqueue(sp->db->myssrc, 0, cur_time);
 	sp->db->my_dbe->sentry->cname = xstrdup(cname);
+	sp->db->my_dbe->sentry->tool  = xstrdup(RAT_VERSION);
 	sp->db->my_dbe->info_index = 0;
 
 	sp->db->last_rpt     = get_time(sp->device_clock);

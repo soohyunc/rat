@@ -50,7 +50,6 @@
 #include "codec.h"
 #include "convert.h"
 #include "channel.h"
-#include "ui.h"
 #include "parameters.h"
 
 extern char ui_original[];
@@ -128,12 +127,6 @@ init_session(session_struct *sp)
 	sp->rtp_seq			= rand()&0xffff;/* Let's hope srand() has been called, and that rand() is really random [csp] */
 	sp->speakers_active 		= NULL;
 	sp->ui_script			= ui_original;
-	sp->mbus_engine_base		= NULL;
-	sp->mbus_engine_chan		= NULL;
-	sp->mbus_ui_base		= NULL;
-	sp->mbus_ui_chan		= NULL;
-	sp->mbus_engine_addr		= NULL;
-	sp->mbus_ui_addr		= NULL;
 	sp->mbus_channel		= 0;
 
 	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {

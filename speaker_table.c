@@ -46,7 +46,7 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "util.h"
-#include "ui_update.h"
+#include "ui_control.h"
 #include "rat_time.h"
 #include "transmit.h"
 
@@ -83,12 +83,12 @@ void mark_active_sender(rtcp_dbentry *src, session_struct *sp)
 		st->state = OFF;
 		sp->speakers_active = st;
 		if (sp->ui_on) {
-			ui_info_activate(st->dbe, sp);
+			ui_info_activate(st->dbe);
 		}
 	}
 	if (st->state != WHITE) {
 		if (sp->ui_on) {
-			ui_info_activate(st->dbe, sp);
+			ui_info_activate(st->dbe);
 		}
 		st->state = WHITE;
 	}
@@ -109,7 +109,7 @@ void clear_active_senders(session_struct *sp)
 		}
 		if (ts_gt(cur_time, (*stp)->dbe->LAST_ACTIVE + get_freq(sp->device_clock) * GRAY_DELAY / 1000) && (*stp)->state != GRAY) {
 			if (sp->ui_on) {
-				ui_info_gray((*stp)->dbe, sp);
+				ui_info_gray((*stp)->dbe);
 			}
 			(*stp)->state = GRAY;
 		}
@@ -118,7 +118,7 @@ void clear_active_senders(session_struct *sp)
 		st = *stp;
 		*stp = st->next;
 		if (sp->ui_on) {
-			ui_info_deactivate(st->dbe, sp);
+			ui_info_deactivate(st->dbe);
 		}
 		block_free(st, sizeof(speaker_table));
 	}
@@ -136,7 +136,7 @@ void check_active_leave(session_struct *sp, rtcp_dbentry *e)
 		st = *stp;
 		*stp = st->next;
 		if (sp->ui_on) {
-			ui_info_deactivate(st->dbe, sp);
+			ui_info_deactivate(st->dbe);
 		}
 		block_free(st, sizeof(speaker_table));
 	}

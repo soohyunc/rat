@@ -39,6 +39,13 @@
 #ifndef _MBUS_ENGINE_H
 #define _MBUS_ENGINE_H
 
-void mbus_handler_engine(char *srce, char *cmnd, char *args, void *data);
+void         mbus_engine_rx(char *srce, char *cmnd, char *args, void *data);
+void         mbus_engine_tx(int channel, char *dest, char *cmnd, char *args, int reliable);
+void         mbus_engine_tx_queue(int channel, char *cmnd, char *args);
+void         mbus_engine_init(char *name_engine, int channel);
+int          mbus_engine_fd(int channel);
+struct mbus *mbus_engine(int channel);
+int          mbus_engine_waiting(void);
+void         mbus_engine_retransmit(void);
 
 #endif

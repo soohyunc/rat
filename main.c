@@ -52,7 +52,7 @@
 #include "audio.h"
 #include "convert.h"
 #include "tcltk.h"
-#include "ui_update.h"
+#include "ui_control.h"
 #include "interfaces.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
@@ -80,15 +80,13 @@ signal_handler(int signal)
 }
 #endif
 
-static int waiting_on_mbus(session_struct *sp[2], int num_sessions) 
+static int waiting_on_mbus(int num_sessions) 
 {
 	int i;
 
 	for (i=0; i<num_sessions; i++) {
-		if (mbus_waiting_acks(sp[i]->mbus_engine_base)) return TRUE;
-		if (mbus_waiting_acks(sp[i]->mbus_engine_chan)) return TRUE;
-		if (mbus_waiting_acks(sp[i]->mbus_ui_base))     return TRUE;
-		if (mbus_waiting_acks(sp[i]->mbus_ui_chan))     return TRUE;
+		if (mbus_engine_waiting()) return TRUE;
+		if (mbus_ui_waiting()) return TRUE;
 	}
 	return FALSE;
 }
@@ -104,6 +102,7 @@ main(int argc, char *argv[])
 	int             	 rx_active = FALSE;
 	struct s_mix_info 	*ms[2];
 	struct timeval  	 time;
+	char			*mbus_engine_addr, *mbus_ui_addr, *mbus_video_addr;
 
 #define NEW_QUEUE(T,Q) T  Q[2]; \
                        T *Q##_p[2];
@@ -138,29 +137,20 @@ main(int argc, char *argv[])
 	num_sessions = parse_options(argc, argv, sp);
 
 	for (i = 0; i < num_sessions; i++) {
-		sp[i]->mbus_engine_addr = (char *) xmalloc(30); sprintf(sp[i]->mbus_engine_addr, "(audio engine rat %d)", (int) getpid());
-		sp[i]->mbus_ui_addr     = (char *) xmalloc(30); sprintf(sp[i]->mbus_ui_addr,     "(audio     ui rat %d)", (int) getpid());
-		sp[i]->mbus_video_addr  = (char *) xmalloc(30); sprintf(sp[i]->mbus_video_addr,  "(video engine   *  *)");
-
-		sp[i]->mbus_engine_base = mbus_init(0, mbus_handler_engine, NULL); mbus_addr(sp[i]->mbus_engine_base, sp[i]->mbus_engine_addr);
-		sp[i]->mbus_ui_base     = mbus_init(0, mbus_handler_ui,     NULL); mbus_addr(sp[i]->mbus_ui_base    , sp[i]->mbus_ui_addr);
-
-		if (sp[i]->mbus_channel == 0) {
-			dprintf("No mbus channel specified, using the base for all messages...\n");
-			sp[i]->mbus_engine_chan = sp[i]->mbus_engine_base;
-			sp[i]->mbus_ui_chan     = sp[i]->mbus_ui_base;
-		} else {
-			dprintf("Using mbus channel %d\n", sp[i]->mbus_channel);
-			sp[i]->mbus_engine_chan = mbus_init(sp[i]->mbus_channel, mbus_handler_engine, NULL); mbus_addr(sp[i]->mbus_engine_chan, sp[i]->mbus_engine_addr);
-			sp[i]->mbus_ui_chan     = mbus_init(sp[i]->mbus_channel, mbus_handler_ui,     NULL); mbus_addr(sp[i]->mbus_ui_chan    , sp[i]->mbus_ui_addr);
-		}
+		mbus_engine_addr = (char *) xmalloc(30); sprintf(mbus_engine_addr, "(audio engine rat %d)", (int) getpid());
+		mbus_ui_addr     = (char *) xmalloc(30); sprintf(mbus_ui_addr,     "(audio     ui rat %d)", (int) getpid());
+		mbus_video_addr  = (char *) xmalloc(30); sprintf(mbus_video_addr,  "(video engine   *  *)");
+	
+		mbus_engine_init(mbus_engine_addr, sp[i]->mbus_channel);
+		mbus_ui_init(mbus_ui_addr, sp[i]->mbus_channel);
 	}
 
         if (sp[0]->ui_on) {
-		tcl_init(sp[0], cname, argc, argv);
+		tcl_init(sp[0], argc, argv, mbus_engine_addr);
         }
+	network_process_mbus(sp, num_sessions, 20);
+	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 
-	 /* Now initialise everything else... */
 	for (i = 0; i < num_sessions; i++) {
 		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
 		audio_init(sp[i]);
@@ -174,11 +164,11 @@ main(int argc, char *argv[])
 	agc_table_init();
         set_converter(CONVERT_LINEAR);
 
-	/* Show the interface before starting processing */
-	while (tcl_process_event()) {
-		network_process_mbus(sp, num_sessions, 20);
-	}
+	ui_info_update_cname(sp[0]->db->my_dbe);
+	ui_info_update_tool(sp[0]->db->my_dbe);
+	ui_codecs(sp[0]);
         ui_update(sp[0]);
+	ui_load_settings();
 	network_process_mbus(sp, num_sessions, 1000);
 
         if (!sp[0]->sending_audio && (sp[0]->mode != AUDIO_TOOL)) {
@@ -249,12 +239,8 @@ main(int argc, char *argv[])
 			}
 
 			/* Schedule any outstanding retransmissions of mbus messages... */
-			mbus_retransmit(sp[i]->mbus_engine_base);
-			mbus_retransmit(sp[i]->mbus_ui_base);
-			if (sp[i]->mbus_channel != 0) {
-				mbus_retransmit(sp[i]->mbus_engine_chan);
-				mbus_retransmit(sp[i]->mbus_ui_chan);
-			}
+			mbus_engine_retransmit();
+			mbus_ui_retransmit();
 
 			/* Maintain last_sent dummy lecture var */
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {
@@ -284,7 +270,7 @@ main(int argc, char *argv[])
                         }
 
 			/* Exit? */
-			if (should_exit && !waiting_on_mbus(sp, num_sessions)) {
+			if (should_exit && !waiting_on_mbus(num_sessions)) {
 				if (tcl_active()) {
 					tcl_send("destroy .");
 				}

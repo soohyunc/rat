@@ -39,6 +39,13 @@
 #ifndef _MBUS_UI_H
 #define _MBUS_UI_H
 
-void mbus_handler_ui(char *srce, char *cmnd, char *args, void *data);
+void         mbus_ui_rx(char *srce, char *cmnd, char *args, void *data);
+void         mbus_ui_tx(int channel, char *dest, char *cmnd, char *args, int reliable);
+void         mbus_ui_tx_queue(int channel, char *cmnd, char *args);
+void         mbus_ui_init(char *name_engine, int channel);
+int          mbus_ui_fd(int channel);
+struct mbus *mbus_ui(int channel);
+int          mbus_ui_waiting(void);
+void         mbus_ui_retransmit(void);
 
 #endif

@@ -47,7 +47,7 @@
 #include "session.h"
 #include "audio.h"
 #include "parameters.h"
-#include "ui_update.h"
+#include "ui_control.h"
 #include "util.h"
 #include "agc.h"
 #include "rtcp_pckt.h"
@@ -233,8 +233,8 @@ stop_sending(session_struct *sp)
 	sp->transmit_audit_required = TRUE;
 	sp->rb->talkspurt = FALSE;
         reset_channel_encoder(sp,sp->cc_encoding);
-	ui_input_level(0, sp);
-	ui_info_deactivate(sp->db->my_dbe, sp);
+	ui_input_level(0);
+	ui_info_deactivate(sp->db->my_dbe);
 }
 
 /*
@@ -555,14 +555,14 @@ void
 transmitter_update_ui(session_struct *sp)
 {
 	if (sp->meter && sp->rb->silence_ptr && sp->rb->silence_ptr->prev)
-		ui_input_level(lin2db(sp->rb->silence_ptr->prev->energy, 100.0), sp);
+		ui_input_level(lin2db(sp->rb->silence_ptr->prev->energy, 100.0));
 
 	if (sp->rb->talkspurt) {
-		ui_info_activate(sp->db->my_dbe, sp);
+		ui_info_activate(sp->db->my_dbe);
 		sp->lecture = FALSE;
 		update_lecture_mode(sp);
 	} else
-		ui_info_deactivate(sp->db->my_dbe, sp);
+		ui_info_deactivate(sp->db->my_dbe);
 }
 
 

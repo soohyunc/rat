@@ -41,8 +41,8 @@
 #include "version.h"
 #include "session.h"
 #include "mbus.h"
+#include "mbus_ui.h"
 #include "util.h"
-#include "ui.h"
 #include "tcltk.h"
 /* The tcl/tk includes have to go after config.h, else we get warnings on
  * solaris 2.5.1, due to buggy system header files included by config.h [csp]
@@ -54,8 +54,6 @@ extern char		init_ui_script[];
 extern char		init_ui_small_script[];
 extern char		TCL_LIBS[];
 
-static char args[1000];
-
 /* Should probably have these functions inline here, rather than in win32.c??? [csp] */
 #ifdef WIN32		
 int WinPutRegistry(ClientData, Tcl_Interp*, int ac, char** av);
@@ -65,6 +63,7 @@ int WinGetUserName(ClientData, Tcl_Interp*, int ac, char** av);
 #endif
 
 Tcl_Interp *interp;	/* Interpreter for application. */
+char       *engine_addr;
 
 void
 tcl_send(char *command)
@@ -87,28 +86,28 @@ tcl_send(char *command)
 static int
 mbus_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 {
-	session_struct *sp = (session_struct *) ttp;
+	UNUSED(ttp);
 
 	if (argc != 4) {
 		i->result = "mbus_send <reliable> <cmnd> <args>";
 		return TCL_ERROR;
 	}
 
-	mbus_send(sp->mbus_ui_chan, sp->mbus_engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
+	mbus_ui_tx(TRUE, engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
 	return TCL_OK;
 }
 
 static int
 mbus_qmsg_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 {
-	session_struct *sp = (session_struct *) ttp;
+	UNUSED(ttp);
 
 	if (argc != 3) {
 		i->result = "mbus_qmsg <cmnd> <args>";
 		return TCL_ERROR;
 	}
 
-	mbus_qmsg(sp->mbus_ui_chan, argv[1], argv[2]);
+	mbus_ui_tx_queue(TRUE, argv[1], argv[2]);
 	return TCL_OK;
 }
 
@@ -136,14 +135,13 @@ mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 #include "xbm/rat2.xbm"
 
 int
-tcl_init(session_struct *sp, char *cname, int argc, char **argv)
+tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 {
 	char		*cmd_line_args, buffer[10];
-	char		*ecname;
 
 	Tcl_FindExecutable(argv[0]);
-	interp = Tcl_CreateInterp();
-
+	interp        = Tcl_CreateInterp();
+	engine_addr   = xstrdup(mbus_engine_addr);
 	cmd_line_args = Tcl_Merge(argc - 1, argv + 1);
 	Tcl_SetVar(interp, "argv", cmd_line_args, TCL_GLOBAL_ONLY);
 
@@ -195,15 +193,6 @@ tcl_init(session_struct *sp, char *cname, int argc, char **argv)
 	while (Tcl_DoOneEvent(TCL_ALL_EVENTS | TCL_DONT_WAIT)) {
 		/* Processing Tcl events, to allow the UI to initialize... */
 	};
-
-	ecname = xstrdup(mbus_encode_str(cname));
-	sprintf(args, "%s", ecname); 					mbus_qmsg(sp->mbus_engine_chan, "my.cname",    args);
-	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); mbus_qmsg(sp->mbus_engine_chan, "address",     args);
-	sprintf(args, "%s %s", ecname, mbus_encode_str(RAT_VERSION));	mbus_qmsg(sp->mbus_engine_chan, "source.tool", args);
-	xfree(ecname);
-
-	ui_codecs(sp);
-	mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "load.settings", "", TRUE);
 
 	Tcl_ResetResult(interp);
 	return TRUE;

@@ -54,12 +54,11 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "session.h"
-#include "ui_update.h"
+#include "ui_control.h"
 #include "util.h"
 #include "net.h"
 #include "transmit.h"
 #include "rat_time.h"
-#include "mbus.h"
 
 /*
  * Sets the ntp 64 bit values, one 32 bit quantity at a time.
@@ -213,7 +212,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				dbe->rr    = rr;
 				other_source = rtcp_get_dbentry(sp, rr->ssrc);
 				if ((dbe->sentry->cname != NULL) && (other_source != NULL)) {
-					ui_update_loss(sp, dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
+					ui_update_loss(dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
 				} else {
 					dprintf("Unknown source found when parsing RTCP SR\n");
 				}
@@ -248,7 +247,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				dbe->rr = rr;
 				other_source =  rtcp_get_dbentry(sp, rr->ssrc);
 				if ((dbe->sentry->cname != NULL) && (other_source != NULL)) {
-					ui_update_loss(sp, dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
+					ui_update_loss(dbe->sentry->cname, other_source->sentry->cname, (int) ((rr->fraction_lost / 2.56)+0.5));
 				} else {
 					dprintf("Unknown source found when parsing RTCP RR\n");
 				}
@@ -259,7 +258,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				/* Need to store stats in ssrc's db not r.rr.ssrc's */
 				dbe->loss_from_me = (ntohl(pkt->r.rr.rr[0].loss) >> 24) & 0xff;
 				dbe->last_rr_for_me = cur_time;
-				ui_update_loss(sp, sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->loss_from_me*100)>>8);
+				ui_update_loss(sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->loss_from_me*100)>>8);
 			}
 			break;
 		case RTCP_BYE:
@@ -298,7 +297,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 							sp->db->byte_count = 0;
 						}
                                                 if (sp->ui_on) {
-                                                        ui_info_update_cname(dbe, sp);
+                                                        ui_info_update_cname(dbe);
                                                 }
 						break;
 					case RTCP_SDES_NAME:
@@ -312,7 +311,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						memcpy(dbe->sentry->name, sdes->data, lenstr);
 						dbe->sentry->name[lenstr] = '\0';
                                                 if (sp->ui_on) {
-                                                        ui_info_update_name(dbe, sp);
+                                                        ui_info_update_name(dbe);
                                                 }
 						break;
 					case RTCP_SDES_EMAIL:
@@ -326,7 +325,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						memcpy(dbe->sentry->email, sdes->data, lenstr);
 						dbe->sentry->email[lenstr] = '\0';
                                                 if (sp->ui_on) {
-                                                        ui_info_update_email(dbe, sp);
+                                                        ui_info_update_email(dbe);
                                                 }
 						break;
 					case RTCP_SDES_PHONE:
@@ -340,7 +339,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						memcpy(dbe->sentry->phone, sdes->data, lenstr);
 						dbe->sentry->phone[lenstr] = '\0';
                                                 if (sp->ui_on) {
-                                                        ui_info_update_phone(dbe, sp);
+                                                        ui_info_update_phone(dbe);
                                                 }
 						break;
 					case RTCP_SDES_LOC:
@@ -354,7 +353,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						memcpy(dbe->sentry->loc, sdes->data, lenstr);
 						dbe->sentry->loc[lenstr] = '\0';
                                                 if (sp->ui_on) {
-                                                        ui_info_update_loc(dbe, sp);
+                                                        ui_info_update_loc(dbe);
                                                  }
 						break;
 					case RTCP_SDES_TOOL:
@@ -368,7 +367,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 						memcpy(dbe->sentry->tool, sdes->data, lenstr);
 						dbe->sentry->tool[lenstr] = '\0';
                                                 if (sp->ui_on) {
-                                                        ui_info_update_tool(dbe, sp);
+                                                        ui_info_update_tool(dbe);
                                                 }
 						break;
 					default:
@@ -593,9 +592,9 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 		dbe->lost_frac = (losti << 8) / expi;
 	}
 
-	ui_update_duration(sp, dbe->sentry->cname, dbe->units_per_packet * 20);
-	ui_update_loss(sp, sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->lost_frac * 100) >> 8);
-	ui_update_reception(sp, dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->jitter);
+	ui_update_duration(dbe->sentry->cname, dbe->units_per_packet * 20);
+	ui_update_loss(sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->lost_frac * 100) >> 8);
+	ui_update_reception(dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->jitter);
 
 	rptr->ssrc     = htonl(dbe->ssrc);
 	rptr->loss     = htonl(dbe->lost_frac << 24 | (dbe->lost_tot & 0xffffff));
