@@ -56,39 +56,57 @@ typedef struct s_pb_node {
         u_int32           data_len;
 } pb_node_t;
 
-typedef struct s_playout_buffer {
-        pb_node_t   sentinel;                              /* Stores head and tail     */
-        pb_node_t  *pp;                                    /* Playout point            */
-        void      (*freeproc)(u_char **data, u_int32 len); /* free proc for data added */
-        ts_t        history_len;        /* Amount of data before playout point to keep */
-} playout_buffer;
+typedef struct s_pb_iterator {
+        struct s_pb *buffer;
+        pb_node_t   *node;
+} pb_iterator_t;
+
+#define PB_MAX_ITERATORS 5
+
+typedef struct s_pb {
+        /* Stores head and tail     */
+        pb_node_t      sentinel;        
+      
+        /* Free proc for data added, so we don't leak when buffer destroyed 
+         * and so we can audit the buffer
+         */
+        void          (*freeproc)(u_char **data, u_int32 len); 
+        
+        /* Iterators for the buffer */
+        u_int16        n_iterators;
+        pb_iterator_t *iterators[PB_MAX_ITERATORS];
+} pb_t;
 
 /* Construction / Destruction functions **************************************/
 
 int 
-playout_buffer_create(playout_buffer **ppb, void (*datafreeproc)(u_char **data, u_int32 data_len), ts_t history_len)
+pb_create(pb_t **ppb, void (*datafreeproc)(u_char **data, u_int32 data_len))
 {
-        playout_buffer *pb;
+        pb_t *pb;
 
         assert(datafreeproc  != NULL);
 
-        pb = (playout_buffer*)xmalloc(sizeof(playout_buffer));
+        pb = (pb_t*)xmalloc(sizeof(pb_t));
         if (pb) {
+                memset(pb, 0, sizeof(pb_t));
                 *ppb = pb;
                 pb->sentinel.next = pb->sentinel.prev = &pb->sentinel;
-                pb->pp            = &pb->sentinel;
                 pb->freeproc      = datafreeproc;
-                pb->history_len   = history_len;
                 return TRUE;
         }
         return FALSE;
 }
 
 int 
-playout_buffer_destroy (playout_buffer **ppb)
+pb_destroy (pb_t **ppb)
 {
-        playout_buffer *pb = *ppb;
-        playout_buffer_flush(pb);
+        int i;
+        pb_t *pb = *ppb;
+        pb_flush(pb);
+
+        for(i = 0; i < pb->n_iterators; i++) {
+                xfree(pb->iterators[i]);
+        }
 
         xfree(pb);
         *ppb = NULL;
@@ -97,9 +115,10 @@ playout_buffer_destroy (playout_buffer **ppb)
 }
 
 void
-playout_buffer_flush (playout_buffer *pb)
+pb_flush (pb_t *pb)
 {
         pb_node_t *curr, *next, *stop;
+        u_int16 i, n_iterators;
 
         stop  = &pb->sentinel;
         curr  =  pb->sentinel.next;
@@ -111,12 +130,16 @@ playout_buffer_flush (playout_buffer *pb)
                 block_free(curr, sizeof(pb_node_t));
                 curr = next;
         }
+
+        /* Reset all iterators */
+        n_iterators = pb->n_iterators;
+        for(i = 0; i < n_iterators; i++) {
+                pb->iterators[i]->node = stop;
+        }
 }
 
-/* Iterator functions ********************************************************/
-
 int 
-playout_buffer_add (playout_buffer *pb, u_char *data, u_int32 data_len, ts_t playout)
+pb_add (pb_t *pb, u_char *data, u_int32 data_len, ts_t playout)
 {
         pb_node_t *curr, *stop, *made;
         
@@ -129,16 +152,9 @@ playout_buffer_add (playout_buffer *pb, u_char *data, u_int32 data_len, ts_t pla
         }
 
         /* Check if unit already exists */
-        if (curr != stop && ts_eq(curr->playout, playout)) {
-                debug_msg("playout_buffer_add failed: Unit (%u) already exists\n", playout);
+        if (ts_eq(curr->playout, playout)) {
+                debug_msg("Add failed - unit already exists");
                 return FALSE;
-        }
-
-        /* Check if we are inserting before playout point */
-        if (pb->pp != stop && ts_gt(pb->pp->playout, playout)) {
-                debug_msg("Warning: unit (%u) before playout point (%u).\n", 
-                          playout.ticks, 
-                          pb->pp->playout.ticks);
         }
 
         made = (pb_node_t*)block_alloc(sizeof(pb_node_t));
@@ -156,51 +172,95 @@ playout_buffer_add (playout_buffer *pb, u_char *data, u_int32 data_len, ts_t pla
         return FALSE;
 }
 
-int 
-playout_buffer_remove (playout_buffer *pb, u_char **data, u_int32 *data_len, ts_t *playout)
+/* Iterator functions ********************************************************/
+
+int
+pb_iterator_new(pb_t           *pb,
+                pb_iterator_t **ppi) 
 {
-        pb_node_t *curr = pb->pp;
-
-        if (curr == &pb->sentinel) {
-                debug_msg("Attempting to detach non-exist playout point.\n");
+        pb_iterator_t *pi;
+        if (pb->n_iterators == PB_MAX_ITERATORS) {
+                debug_msg("Too many iterators\n");
+                *ppi = NULL;
                 return FALSE;
-        } 
+        }
 
-        /* Export data */
-        *data     = curr->data;
-        *data_len = curr->data_len;
-        *playout  = curr->playout;
+        /* Add iterator to list in playout buffer */
+        pi = (pb_iterator_t*)xmalloc(sizeof(pb_iterator_t));
+
+        if (pi) {
+                /* Link the playout buffer to the iterator */
+                pi->buffer = pb;
+                pi->node = &pb->sentinel;
+                *ppi = pi;
+                pb->iterators[pb->n_iterators] = pi;
+                pb->n_iterators++;
+                return TRUE;
+        }
+        debug_msg("Insufficient memory\n");
+        return FALSE;
+}
+
+void
+pb_iterator_destroy(pb_t           *pb,
+                    pb_iterator_t **ppi)
+{
+        u_int16 i, j;
+        pb_iterator_t *pi;
         
-        /* Remove this link */
-        curr->next->prev = curr->prev;
-        curr->prev->next = curr->next;
+        pi = *ppi;
+        assert(pi->buffer == pb);
         
-        /* Shift playout point to previous position */
-        pb->pp = curr->prev;
-        
-        /* Free node */
-        block_free(curr, sizeof(pb_node_t));
-        return TRUE;
+        /* Remove iterator from buffer's list of iterators and
+         * compress list in one pass */
+        for(j = 0, i = 0; j < pb->n_iterators; i++,j++) {
+                if (pb->iterators[i] == pi) {
+                        j++;
+                }
+                pb->iterators[i] = pb->iterators[j];
+        }
+        pb->iterators[pb->n_iterators] = NULL;
+        pb->n_iterators--;
+
+        /* Free iterator and go */
+        xfree(pi);
+        *ppi = NULL;
 }
 
 int
-playout_buffer_get (playout_buffer *pb, u_char **data, u_int32 *data_len, ts_t *playout)
+pb_iterator_dup(pb_iterator_t **pb_dst,
+                pb_iterator_t  *pb_src)
 {
-        pb_node_t* sentinel = &pb->sentinel;
-        
-        /* This can be rewritten in fewer lines, but the obvious way is not as efficient. */
-        if (pb->pp != sentinel) {
-                *data     = pb->pp->data;
-                *data_len = pb->pp->data_len;
-                *playout  = pb->pp->playout;
+        if (pb_iterator_new(pb_src->buffer,
+                            pb_dst)) {
+                (*pb_dst)->node = pb_src->node;
+                return TRUE;
+        }
+        return FALSE;
+}
+
+int
+pb_iterator_get_at(pb_iterator_t *pi,
+                   u_char       **data,
+                   u_int32       *data_len,
+                   ts_t          *playout)
+{
+        pb_node_t *sentinel = &pi->buffer->sentinel;
+       /* This can be rewritten in fewer lines, but the obvious way is
+          not as efficient. */
+        if (pi->node != sentinel) {
+                *data     = pi->node->data;
+                *data_len = pi->node->data_len;
+                *playout  = pi->node->playout;
                 return TRUE;
         } else {
-                /* We are at the start of the list so maybe we haven't tried reading before */
-                pb->pp = sentinel->next;
-                if (pb->pp != sentinel) {
-                        *data     = pb->pp->data;
-                        *data_len = pb->pp->data_len;
-                        *playout  = pb->pp->playout;
+                /* We are at the start of the list so maybe we haven't
+                   tried reading before */
+                pi->node = sentinel->next;
+                if (pi->node != sentinel) {
+                        *data     = pi->node->data;
+                        *data_len = pi->node->data_len;
+                        *playout  = pi->node->playout;
                         return TRUE;
                 } 
         }
@@ -211,56 +271,109 @@ playout_buffer_get (playout_buffer *pb, u_char **data, u_int32 *data_len, ts_t *
         return FALSE;
 }
 
-int 
-playout_buffer_advance(playout_buffer *pb, u_char **data, u_int32 *data_len, ts_t *playout)
+int
+pb_iterator_detach_at (pb_iterator_t *pi,
+                       u_char       **data,
+                       u_int32       *data_len,
+                       ts_t          *playout)
 {
-        pb_node_t* sentinel = &pb->sentinel;
- 
-       if (pb->pp->next != sentinel) {
-                pb->pp    = pb->pp->next;
-                *data     = pb->pp->data;
-                *data_len = pb->pp->data_len;
-                *playout  = pb->pp->playout;
+        pb_iterator_t **iterators;
+        pb_node_t      *curr_node, *next_node;
+        u_int16         i, n_iterators;
+
+        if (pb_iterator_get_at(pi, data, data_len, playout) == FALSE) {
+                /* There is no data to get */
+                debug_msg("pb_iterator_detach_at - no data!!!!\n");
+                return FALSE;
+        }
+
+        /* Check we are not attempting to remove
+         * data that another iterator is pointing to
+         */
+        iterators   = pi->buffer->iterators; 
+        n_iterators =  pi->buffer->n_iterators;
+        for(i = 0; i < n_iterators; i++) {
+                if (iterators[i]->node == pi->node &&
+                    iterators[i] != pi) {
+                        debug_msg("Eek removing node that another iterator is using...danger!\n");
+                        iterators[i]->node = iterators[i]->node->prev;
+                }
+        }
+
+        /* Relink list of nodes */
+        curr_node = pi->node;
+        next_node = curr_node->next;
+        
+        curr_node->next->prev = curr_node->prev;
+        curr_node->prev->next = curr_node->next;
+        
+        block_free(curr_node, sizeof(pb_node_t));
+        pi->node = next_node;
+        return TRUE;
+}
+
+int
+pb_iterator_forward(pb_iterator_t *pi)
+{
+        pb_node_t *sentinel = &pi->buffer->sentinel;
+
+        if (pi->node->next != sentinel) {
+                pi->node = pi->node->next;
                 return TRUE;
         }
-       /* There is no next... */
-        *data     = NULL;
-        *data_len = 0;
-        memset(playout, 0, sizeof(ts_t));
         return FALSE;
 }
 
-int playout_buffer_rewind(playout_buffer *pb, u_char **data, u_int32 *data_len, ts_t *playout)
+int
+pb_iterator_rewind(pb_iterator_t *pi)
 {
-        pb_node_t* sentinel = &pb->sentinel;
+        pb_node_t *sentinel = &pi->buffer->sentinel;
 
-        if (pb->pp->prev != sentinel) {
-                pb->pp    = pb->pp->prev;
-                *data     = pb->pp->data;
-                *data_len = pb->pp->data_len;
-                *playout  = pb->pp->playout;
+        if (pi->node->prev != sentinel) {
+                pi->node = pi->node->prev;
                 return TRUE;
         }
-        /* There is no previous */
-        *data     = NULL;
-        *data_len = 0;
-        memset(playout, 0, sizeof(ts_t));
         return FALSE;
+}
+
+int
+pb_iterators_equal(pb_iterator_t *pi1,
+                   pb_iterator_t *pi2)
+{
+        return (pi1->node == pi2->node);
 }
 
 /* Book-keeping functions ****************************************************/
 
 int
-playout_buffer_audit(playout_buffer *pb)
+pb_iterator_audit(pb_iterator_t *pi, ts_t history_len)
 {
         ts_t cutoff;
         pb_node_t *stop, *curr, *next;
+        pb_t      *pb;
 
+#ifndef NDEBUG
+        /* If we are debugging we check we are not deleting
+         * nodes pointed to by other iterators since this *BAD*
+         */
+        u_int16         i, n_iterators;
+        pb_iterator_t **iterators = pi->buffer->iterators;
+        n_iterators = pi->buffer->n_iterators;
+#endif
+
+        pb   = pi->buffer;
         stop = &pb->sentinel;
-        if (pb->pp != stop) {
-                cutoff = ts_sub(pb->pp->playout, pb->history_len);
-                curr = stop->next; /* head */
+        if (pi->node != stop) {
+                curr = pi->node;
+                cutoff = ts_sub(pi->node->playout, history_len);
                 while(curr != stop && ts_gt(cutoff, curr->playout)) {
+#ifndef NDEBUG
+                        /* About to erase a block an iterator is using! */
+                        for(i = 0; i < n_iterators; i++) {
+                                assert(iterators[i]->node != curr);
+                        }
+#endif
+
                         next = curr->next;
                         curr->next->prev = curr->prev;
                         curr->prev->next = curr->next;
@@ -274,7 +387,7 @@ playout_buffer_audit(playout_buffer *pb)
 }
 
 int
-playout_buffer_relevant (struct s_playout_buffer *pb, ts_t now)
+pb_relevant (struct s_pb *pb, ts_t now)
 {
         pb_node_t *last;
 

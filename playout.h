@@ -45,23 +45,23 @@
 
 #include "ts.h"
 
-struct s_playout_buffer;
+struct  s_pb;
+struct  s_pb_iterator;
 
 typedef void (*playoutfreeproc)(u_char**, u_int32);
 
 /* All functions return TRUE on success, and FALSE on failure */
-int playout_buffer_create  (struct s_playout_buffer **pb, 
-                            playoutfreeproc           callback,
-                            ts_t                      history_store);
+int pb_create  (struct s_pb     **pb, 
+                playoutfreeproc   callback);
 
-int playout_buffer_destroy (struct s_playout_buffer **pb);
+int pb_destroy (struct s_pb **pb);
 
-int playout_buffer_add     (struct s_playout_buffer *pb, 
-                            u_char*                  data, 
-                            u_int32                  datalen,
-                            ts_t                     playout);
+int pb_add    (struct s_pb *pb, 
+               u_char*      data, 
+               u_int32      datalen,
+               ts_t         playout);
 
-void playout_buffer_flush (struct s_playout_buffer *pb);
+void pb_flush (struct s_pb *pb);
 
 /*
  * These following three functions return data stored in the playout buffer.  
@@ -71,36 +71,53 @@ void playout_buffer_flush (struct s_playout_buffer *pb);
  * and returns that.
  */
 
-int playout_buffer_advance (struct s_playout_buffer *pb, 
-                            u_char                 **data, 
-                            u_int32                 *datalen, 
-                            ts_t                    *playout);
+int
+pb_iterator_new (struct s_pb           *pb,
+                 struct s_pb_iterator **pbi);
 
-int playout_buffer_get     (struct s_playout_buffer *pb, 
-                            u_char                 **data, 
-                            u_int32                 *datalen, 
-                            ts_t                    *playout);
+void
+pb_iterator_destroy (struct s_pb           *pb,
+                     struct s_pb_iterator **pbi);
 
-int playout_buffer_rewind  (struct s_playout_buffer *pb, 
-                            u_char                 **data, 
-                            u_int32                 *datalen, 
-                            ts_t                    *playout);
+int
+pb_iterator_dup (struct s_pb_iterator **pbi_dst,
+                 struct s_pb_iterator *pbi_src);
 
-/* Removes data from playout point and puts it in *data */
-int playout_buffer_remove  (struct s_playout_buffer *pb, 
-                            u_char                 **data, 
-                            u_int32                 *datalen, 
-                            ts_t                    *playout); 
+int
+pb_iterator_get_at (struct s_pb_iterator *pbi,
+                    u_char              **data,
+                    u_int32              *datalen, 
+                    ts_t                 *playout);
 
-/* Trims data more than history_len before playout point    */
-int playout_buffer_audit    (struct s_playout_buffer *pb);
+int
+pb_iterator_detach_at (struct s_pb_iterator *pbi,
+                       u_char              **data,
+                       u_int32              *datalen, 
+                       ts_t                 *playout);
+
+int
+pb_iterator_forward   (struct s_pb_iterator *pbi);
+
+int
+pb_iterator_rewind    (struct s_pb_iterator *pbi);
+
+/* Trims data more than history_len before iterator */
+int 
+pb_iterator_audit (struct s_pb_iterator *pi,
+                   ts_t                  history_len);
+
+/* Return whether 2 iterators refer to same time interval */
+int
+pb_iterators_equal(struct s_pb_iterator *pi1,
+                   struct s_pb_iterator *pi2);
 
 /* Returns whether playout buffer has data to be played out */
-int playout_buffer_relevant (struct s_playout_buffer *pb, 
-                             ts_t                     now);
+int 
+pb_relevant (struct s_pb *pb, 
+             ts_t         now);
 
 /* Return the times of interest for playout buffer */
-ts_t playout_buffer_get_playout_ts (struct s_playout_buffer *pb);
-ts_t playout_buffer_get_end_ts     (struct s_playout_buffer *pb);
+ts_t pb_iterator_get_ts (struct s_pb *pb);
+ts_t pb_get_end_ts      (struct s_pb *pb);
 
 #endif /* __UCLMM_PLAYOUT_BUFFER_H__ */
