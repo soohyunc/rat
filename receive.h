@@ -78,6 +78,9 @@ struct s_mix_info;
 struct s_cushion_struct;
  struct s_participant_playout_buffer;
 
+rx_queue_element_struct*
+new_rx_unit();
+
 void
 service_receiver(struct s_cushion_struct *cushion, struct session_tag *sp,
 		 struct rx_queue_tag *receive_queue,

@@ -109,9 +109,7 @@ split_block(u_int32 playout_pt, int pt, char *data_ptr, int len,
 		memcpy(buf, data_ptr, ul);
 		data_ptr += ul;
 
-		p = (rx_queue_element_struct *)block_alloc(sizeof(rx_queue_element_struct));
-		p->next_ptr         = NULL;
-		p->prev_ptr         = NULL;
+		p = new_rx_unit();
 		p->talk_spurt_start = (i == 0 ? talks: FALSE);
 		p->talk_spurt_end   = FALSE;
 		p->unit_size        = cp->unit_len;

@@ -148,8 +148,8 @@ playout_buffer_add(ppb_t *buf, rx_queue_element_struct *ru)
 				memcpy(tp->dbe_source, ru->dbe_source, ru->dbe_source_count * sizeof(rtcp_dbentry *));
 				tp->playoutpt = ip->playoutpt - ip->unit_size;
 				tp->comp_count = 0;
+				tp->dummy = FALSE;
 				tp->unit_size = ru->unit_size;
-				tp->dummy = TRUE;    
 				assert(add_or_get_interval(buf, tp) == tp);
 				ip = tp;
 			} else
@@ -293,7 +293,7 @@ service_receiver(cushion_struct *cushion, session_struct *sp,
 		cur_time = get_time(buf->src->clock);
 		cs = cushion->cushion_size * get_freq(buf->src->clock) / get_freq(sp->device_clock);
 		while ((up = playout_buffer_get(buf, cur_time, cur_time + cs))) {
-			if (up->comp_count == 0 && sp->repair != REPAIR_NONE 
+			if (!up->comp_count  && sp->repair != REPAIR_NONE 
      			    && up->prev_ptr != NULL && up->next_ptr != NULL) 
 				repair(sp->repair, up);
 
