@@ -257,8 +257,10 @@ static void load_init(void)
                 key = key + 1;               /* skip asterisk */
                 value = (char *) strtok(NULL, "\n");
                 assert(value != NULL);
-                while (*value != '\0' && *value == ' ') {
-                        value++;             /* skip leading spaces */
+                while (*value != '\0' && isascii(*value) && isspace(*value)) {
+                        /* skip leading spaces, and stop skipping if
+                         * not ascii*/
+                        value++;             
                 }
                 settings_table_add(key, value);
         }
@@ -358,6 +360,7 @@ void settings_load(session_struct *sp)
 	int				 i, freq, chan;
 	cc_details			 ccd;
         const audio_port_details_t 	*apd;
+        codec_id_t                       cid;
 
 	load_init();
 	sp->db->my_dbe->sentry->name  = xstrdup(setting_load_str("rtpName", "Unknown"));/* We don't use rtcp_set_attribute() */ 
@@ -379,7 +382,13 @@ void settings_load(session_struct *sp)
 	chan = setting_load_int("audioChannelsIn", 1);
 	primary_codec = setting_load_str("audioPrimary", "GSM");
 
-        audio_device_register_change_primary(sp, codec_get_matching(primary_codec, (u_int16)freq, (u_int16)chan));
+        cid  = codec_get_matching(primary_codec, (u_int16)freq, (u_int16)chan);
+        if (codec_id_is_valid(cid) == FALSE) {
+                /* Codec name is garbage...should only happen on upgrades */
+                cid = codec_get_matching("GSM", (u_int16)freq, (u_int16)chan);
+        }
+
+        audio_device_register_change_primary(sp, cid);
         audio_device_reconfigure(sp);
 
         port = setting_load_str("audioOutputPort", "Headphone");
