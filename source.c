@@ -386,10 +386,13 @@ source_reconfigure(source        *src,
 	}
 	channel_decoder_create(src->pdbe->channel_coder_id, &(src->channel_state));
 	samples_per_frame   = codec_get_samples_per_frame(cid);
-	debug_msg("Samples per frame %d rate %d\n", samples_per_frame, src_cf->format.sample_rate);
-	src->pdbe->sample_rate = src_cf->format.sample_rate;
+	debug_msg("Reconfiguring source:\n");
+	debug_msg("    samples per frame = %d\n", samples_per_frame);
+	debug_msg("    frames per packet = %d\n", units_per_packet);
+	debug_msg("    audio sample rate = %d\n", src_cf->format.sample_rate);
+	src->pdbe->sample_rate   = src_cf->format.sample_rate;
 	src->pdbe->inter_pkt_gap = src->pdbe->units_per_packet * (uint16_t)samples_per_frame;
-	src->pdbe->frame_dur = ts_map32(src_cf->format.sample_rate, samples_per_frame);
+	src->pdbe->frame_dur     = ts_map32(src_cf->format.sample_rate, samples_per_frame);
 
         /* Set age to zero and flush existing media
          * so that repair mechanism does not attempt
@@ -412,15 +415,8 @@ source_reconfigure(source        *src,
                 /* Rejig 3d renderer if there, else create */
                 if (src->pdbe->render_3D_data) {
                         int azi3d, fil3d, len3d;
-                        render_3D_get_parameters(src->pdbe->render_3D_data,
-                                                 &azi3d,
-                                                 &fil3d,
-                                                 &len3d);
-                        render_3D_set_parameters(src->pdbe->render_3D_data,
-                                                 (int)src_rate,
-                                                 azi3d,
-                                                 fil3d,
-                                                 len3d);
+                        render_3D_get_parameters(src->pdbe->render_3D_data, &azi3d, &fil3d, &len3d);
+                        render_3D_set_parameters(src->pdbe->render_3D_data, (int)src_rate, azi3d, fil3d, len3d);
                 } else {
                         src->pdbe->render_3D_data = render_3D_init((int)src_rate);
                 }
@@ -789,7 +785,7 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
 
 		if (src->packets_done == 0  || ts_gt(ts_abs_diff(transit, e->transit), transit_jump)) {
 			/* Need a fresh transit estimate */
-			debug_msg("transit_reset (big transit jump %d)\n", src->packets_done != 0);
+			debug_msg("Transit estimate reset %s\n", (src->packets_done == 0)?"(first packet)":"");
 			e->transit = e->last_transit = e->last_last_transit = transit;
 			e->avg_transit = transit;
 			adjust_playout = TRUE;
@@ -858,8 +854,10 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
                         /* Source has been quiet for a long time.  Discard   */
                         /* old average transit estimate.                     */
 			debug_msg("Average transit reset (%d -> %d)\n", timestamp_to_ms(transit), timestamp_to_ms(e->avg_transit));
-			e->transit = e->last_transit = e->last_last_transit = transit;
-			e->avg_transit = transit;
+			e->transit           = transit;
+			e->last_transit      = transit;
+			e->last_last_transit = transit;
+			e->avg_transit       = transit;
                 }
 
                 /* Calculate the playout point for this packet.              */
@@ -873,9 +871,7 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
                 }
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
-/*
 		debug_msg("%d %d\n", timestamp_to_ms(playout), timestamp_to_ms(now));
-*/
 		sanity_check_playout_time(now, playout);
 
 		/* At this point we know the desired playout time for this packet, */
