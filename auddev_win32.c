@@ -212,7 +212,7 @@ mixSetIPort(MixCtls *mcMix)
                         mcd.cbDetails      = sizeof(MIXERCONTROLDETAILS_LISTTEXT);
                         ltInputs           = (MIXERCONTROLDETAILS_LISTTEXT*)xmalloc(mcMixIn->dwMultipleItems[i] * sizeof(MIXERCONTROLDETAILS_LISTTEXT));
                         mcd.paDetails      = (LPVOID)ltInputs;
-                        r = mixerGetControlDetails(hMixIn, &mcd,MIXER_GETCONTROLDETAILSF_LISTTEXT); 
+                        r = mixerGetControlDetails((HMIXEROBJ)hMixIn, &mcd,MIXER_GETCONTROLDETAILSF_LISTTEXT); 
                         if (r != MMSYSERR_NOERROR) goto done_multi1;
                         bInputs = (MIXERCONTROLDETAILS_BOOLEAN*)xmalloc(mcMixIn->dwMultipleItems[i] * sizeof(MIXERCONTROLDETAILS_BOOLEAN));
                         mcd.cbDetails = sizeof(MIXERCONTROLDETAILS_BOOLEAN);
@@ -231,7 +231,7 @@ mixSetIPort(MixCtls *mcMix)
                                         bInputs[j].fValue = 0;
                                 }
                         }
-                        r = mixerSetControlDetails(hMixIn, &mcd,MIXER_SETCONTROLDETAILSF_VALUE);
+                        r = mixerSetControlDetails((HMIXEROBJ)hMixIn, &mcd,MIXER_SETCONTROLDETAILSF_VALUE);
                         xfree(bInputs);
 done_multi1:            xfree(ltInputs);
                         return 0;            
@@ -256,7 +256,7 @@ mixGetControls(HMIXER hMix, char *szDstName, int nDst, MixCtls *mcMix, int *nMix
         for(i = 0; i < nDst; i++) { 
                 ml.dwDestination = i;
                 ml.cbStruct = sizeof(MIXERLINE);
-                res = mixerGetLineInfo(hMix, &ml, MIXER_GETLINEINFOF_DESTINATION);
+                res = mixerGetLineInfo((HMIXEROBJ)hMix, &ml, MIXER_GETLINEINFOF_DESTINATION);
                 if (res != MMSYSERR_NOERROR || strncmp(ml.szShortName, szDstName, strlen(szDstName)) != 0) continue;
                 
                 if (ml.cControls) {
@@ -272,7 +272,7 @@ mixGetControls(HMIXER hMix, char *szDstName, int nDst, MixCtls *mcMix, int *nMix
                         mlc.cControls  = ml.cControls;
                         mlc.cbmxctrl   = sizeof(MIXERCONTROL);
                         mlc.pamxctrl   = mc;
-                        res = mixerGetLineControls(hMix, &mlc, MIXER_GETLINECONTROLSF_ALL);
+                        res = mixerGetLineControls((HMIXEROBJ)hMix, &mlc, MIXER_GETLINECONTROLSF_ALL);
                         if (res == MMSYSERR_NOERROR) {
                                 src = 0;
                                 for(ctl = 0; ctl < (signed)ml.cControls && ctl < MAX_MIX_CTLS; ctl++) {
@@ -291,7 +291,7 @@ mixGetControls(HMIXER hMix, char *szDstName, int nDst, MixCtls *mcMix, int *nMix
                 
                 for (src = (*nMix)-1; src>=0 ; src--) {
                         ml.dwSource  = src - offset;
-                        res = mixerGetLineInfo(hMix, &ml, MIXER_GETLINEINFOF_SOURCE);
+                        res = mixerGetLineInfo((HMIXEROBJ)hMix, &ml, MIXER_GETLINEINFOF_SOURCE);
                         if (res != MMSYSERR_NOERROR) continue;
                         strncpy(mcMix[src].szName, ml.szShortName,20);
                         mc = (MIXERCONTROL*)xmalloc(sizeof(MIXERCONTROL) * ml.cControls);
@@ -300,7 +300,7 @@ mixGetControls(HMIXER hMix, char *szDstName, int nDst, MixCtls *mcMix, int *nMix
                         mlc.cControls  = ml.cControls;
                         mlc.cbmxctrl   = sizeof(MIXERCONTROL);
                         mlc.pamxctrl   = mc;
-                        res = mixerGetLineControls(hMix, &mlc, MIXER_GETLINECONTROLSF_ALL);
+                        res = mixerGetLineControls((HMIXEROBJ)hMix, &mlc, MIXER_GETLINECONTROLSF_ALL);
                         if (res != MMSYSERR_NOERROR) continue;
                         for(ctl = 0; ctl < (signed)ml.cControls && ctl < MAX_MIX_CTLS; ctl++) {
                                 mcMix[src].dwCtlID[ctl]         = mc[ctl].dwControlID;
@@ -848,7 +848,7 @@ audio_set_gain(int audio_fd, int level)
                         mcduDevLevel.dwValue = ((mcMixIn[curMixIn].dwUpperBound[i] - mcMixIn[curMixIn].dwLowerBound[i])/100) * level + mcMixIn[curMixIn].dwLowerBound[i];
                         fprintf(stderr, "audio_set_gain rat %d dev %d\n", level, mcduDevLevel.dwValue);
                         play_vol   = level;
-                        r = mixerSetControlDetails(hMixIn, &mcd, MIXER_OBJECTF_HMIXER);
+                        r = mixerSetControlDetails((HMIXEROBJ)hMixIn, &mcd, MIXER_OBJECTF_HMIXER);
                         switch (r) {
                                 case MMSYSERR_NOERROR:    break; 
                                 case MIXERR_INVALLINE:     fprintf(stderr, "invalid line\n"); break;
