@@ -89,7 +89,7 @@ codec_state_store_expand(codec_state_store_t *css)
         for(i = 0; i < css->allocated; i++) {
                 buffer[i] = css->buffer[i];
         }
-
+        xmemchk();
         xfree(css->buffer);
         css->buffer     = buffer;
         css->allocated += CODEC_STORE_UNIT_SIZE;

@@ -322,6 +322,10 @@ audio_device_reconfigure(session_struct *sp)
                 }
         } else {
                 debug_msg("audio device reconfigure - nothing to do.\n");
+                if (tx_is_sending(sp->tb)) {
+                        tx_stop(sp->tb);
+                        tx_start(sp->tb);
+                }
         }
 
         /* Update ui */
