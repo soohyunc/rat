@@ -162,7 +162,7 @@ _channel_coder_create(cc_id_t id, channel_state_t **ppcs, int is_encoder)
 
         *ppcs = pcs;
 
-        pcs->coder = CC_ID_TO_IDX(id);
+        pcs->coder = (u_int16)CC_ID_TO_IDX(id);
         assert(pcs->coder < CC_NUM_CODERS);
 
         pcs->units_per_packet = 2;
@@ -237,7 +237,7 @@ channel_encoder_set_units_per_packet(channel_state_t *cs, u_int16 units)
          */
         assert(cs->is_encoder);
         if (units != 0 && units <= MAX_UNITS_PER_PACKET) {
-                cs->units_per_packet = units;
+                cs->units_per_packet = (u_char)units;
                 return TRUE;
         }
         return FALSE;
@@ -291,7 +291,7 @@ int
 channel_decoder_matches(cc_id_t          id,
                         channel_state_t *cs)
 {
-        u_int16 coder = CC_ID_TO_IDX(id);
+        u_int32 coder = CC_ID_TO_IDX(id);
         return (coder == cs->coder);
 }
 
@@ -303,7 +303,7 @@ channel_verify_and_stat(cc_id_t  cid,
                         u_int16 *units_per_packet,
                         u_char  *codec_pt)
 {
-        u_int16 idx = CC_ID_TO_IDX(cid);
+        u_int32 idx = CC_ID_TO_IDX(cid);
         assert(idx < CC_NUM_CODERS);
         return table[idx].dec_peek(pktpt, data, data_len, units_per_packet, codec_pt);
 }

@@ -169,11 +169,19 @@ SOURCE=.\audio_types.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\channel.c
+SOURCE=.\cc_vanilla.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\channel.h
+SOURCE=.\cc_vanilla.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\channel_types.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\channel_types.h
 # End Source File
 # Begin Source File
 
@@ -226,6 +234,10 @@ SOURCE=.\codec_state.c
 # Begin Source File
 
 SOURCE=.\codec_state.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_types.c
 # End Source File
 # Begin Source File
 
@@ -329,14 +341,6 @@ SOURCE=.\gsm.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\interfaces.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\interfaces.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\main.c
 # End Source File
 # Begin Source File
@@ -387,6 +391,14 @@ SOURCE=.\net.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\new_channel.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\new_channel.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\parameters.c
 # End Source File
 # Begin Source File
@@ -403,15 +415,11 @@ SOURCE=.\pckt_queue.h
 # End Source File
 # Begin Source File
 
-SOURCE=".\win32\rat-tk.res"
+SOURCE=.\playout.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\receive.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\receive.h
+SOURCE=.\playout.h
 # End Source File
 # Begin Source File
 
@@ -471,6 +479,14 @@ SOURCE=.\sndfile.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\source.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\source.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\statistics.c
 # End Source File
 # Begin Source File
@@ -504,6 +520,14 @@ SOURCE=.\transmit.c
 # Begin Source File
 
 SOURCE=.\transmit.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ts.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ts.h
 # End Source File
 # Begin Source File
 

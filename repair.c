@@ -305,7 +305,7 @@ repair(int                         repair,
                 st = codec_state_store_get(states, prev->rep[0]->id);
                 success = codec_decoder_repair(prev->rep[0]->id, 
                                                st,
-                                               consec_lost,
+                                               (u_int16)consec_lost,
                                                prev->rep[0],
                                                missing,
                                                NULL);

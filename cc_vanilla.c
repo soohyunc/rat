@@ -238,9 +238,9 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
                 p += cf->mean_per_packet_state_size;
         }
 
-        data_len = codec_peek_frame_size(id, p, end - p);
+        data_len = codec_peek_frame_size(id, p, (u_int16)(end - p));
         m->rep[0]->id = id;
-        m->rep[0]->data_len = data_len;
+        m->rep[0]->data_len = (u_int16)data_len;
         m->rep[0]->data     = (u_char*)block_alloc(data_len);
         memcpy(m->rep[0]->data, p, data_len);
         p += data_len;
@@ -255,9 +255,9 @@ vanilla_decoder_output(channel_unit *cu, struct s_pb *out, ts_t playout)
                 m->rep[0]->id = id;
                 assert(m->nrep == 1);
 
-                data_len            = codec_peek_frame_size(id, p, end - p);
+                data_len            = codec_peek_frame_size(id, p, (u_int16)(end - p));
                 m->rep[0]->data     = (u_char*)block_alloc(data_len);
-                m->rep[0]->data_len = data_len;
+                m->rep[0]->data_len = (u_int16)data_len;
 
                 memcpy(m->rep[0]->data, p, data_len);
                 p += data_len;
@@ -330,7 +330,7 @@ vanilla_decoder_peek(u_int8   pkt_pt,
                 unit = 0;
                 done = cf->mean_per_packet_state_size;
                 while(done < len) {
-                        step = codec_peek_frame_size(cid, buf+done, done);
+                        step = codec_peek_frame_size(cid, buf+done, (u_int16)done);
                         if (step == 0) {
                                 debug_msg("Zero data len for audio unit ?\n");
                                 goto fail;
@@ -342,7 +342,7 @@ vanilla_decoder_peek(u_int8   pkt_pt,
                 assert(done <= len);
 
                 if (done != len) goto fail;
-                *upp = unit;
+                *upp = (u_int16)unit;
                 *pt  = pkt_pt;
                 return TRUE;
         }

@@ -239,7 +239,7 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int sp_
                                 t = strtok(NULL, "/");
                                 cid = codec_get_by_name(t);
                                 if (cid) {
-                                        codec_map_payload(cid, pt);
+                                        codec_map_payload(cid, (u_char)pt);
                                         if (codec_get_payload(cid) != pt) {
                                                 printf("Payload %d either in use or invalid.\n", pt);
                                         }

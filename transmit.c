@@ -417,12 +417,12 @@ tx_encode(struct s_codec_state_store *css,
          * codec_encode since this take a 'native' (raw) coded unit as
          * input and fills in coded with the transformed data.
          */
-        native.id        = codec_get_native_coding(cf->format.sample_rate, 
-                                                   cf->format.channels);
+        native.id        = codec_get_native_coding((u_int16)cf->format.sample_rate, 
+                                                   (u_int16)cf->format.channels);
         native.state     = NULL;
         native.state_len = 0;
         native.data      = (u_char*)buf;
-        native.data_len  = dur_used * sizeof(sample) * cf->format.channels;
+        native.data_len  = (u_int16)(dur_used * sizeof(sample) * cf->format.channels);
 
         /* Get codec state from those stored for us */
         cs = codec_state_store_get(css, id);

@@ -368,7 +368,7 @@ source_add_packet (source *src,
 
         assert(src != NULL);
         assert(pckt != NULL);
-        assert(data_start != NULL);
+        assert(data_start != 0);
 
         if (src->age != 0 &&
             ts_gt(src->last_played, playout)) {

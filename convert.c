@@ -1376,9 +1376,9 @@ converter_process (converter_t *c, coded_unit *in, coded_unit *out)
         n_out = n_in * cf->to_channels * cf->to_freq / (cf->from_channels * cf->from_freq); 
 
         assert(out->state     == NULL);
-        assert(out->state_len == NULL);
+        assert(out->state_len == 0);
         assert(out->data      == NULL);
-        assert(out->data_len  == NULL);
+        assert(out->data_len  == 0);
 
         out->id       = codec_get_native_coding(cf->to_freq, cf->to_channels);
         out->data_len = sizeof(sample) * n_out;

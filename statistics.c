@@ -414,7 +414,7 @@ statistics_channel_extract(rtcp_dbentry *dbe,
                 change_freq(dbe->clock, cf->format.sample_rate);
 
                 dbe->enc             = codec_pt;
-                dbe->inter_pkt_gap   = dbe->units_per_packet * codec_get_samples_per_frame(id);
+                dbe->inter_pkt_gap   = dbe->units_per_packet * (u_int16)codec_get_samples_per_frame(id);
                 dbe->first_pckt_flag = TRUE;
                 dbe->update_req      = TRUE;
         }
@@ -506,9 +506,9 @@ statistics(session_struct          *sp,
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
 
                 if (statistics_channel_extract(sender, 
-                                               hdr->pt, 
+                                               (u_char)hdr->pt, 
                                                data_ptr, 
-                                               len) == FALSE) {
+                                               (u_int32)len) == FALSE) {
                         debug_msg("Failed channel check\n");
                         goto release;
                 }
@@ -521,8 +521,8 @@ statistics(session_struct          *sp,
                                             pckt->sender,
                                             sp->converter,
                                             sp->render_3d,
-                                            af->sample_rate,
-                                            af->channels);
+                                            (u_int16)af->sample_rate,
+                                            (u_int16)af->channels);
                         assert(src != NULL);
                 }
 
@@ -545,7 +545,7 @@ statistics(session_struct          *sp,
                                       pckt->pckt_ptr, 
                                       pckt->len, 
                                       data_ptr - pckt->pckt_ptr, 
-                                      hdr->pt, 
+                                      (u_char)hdr->pt, 
                                       pckt->playout) == TRUE) {
                         /* Source is now repsonsible for packet so
                          * empty pointers */

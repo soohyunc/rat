@@ -292,7 +292,7 @@ static void rx_tool_rat_rate(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
                 assert(sp->channel_coder != NULL);
-                channel_encoder_set_units_per_packet(sp->channel_coder, i);
+                channel_encoder_set_units_per_packet(sp->channel_coder, (u_int16)i);
 	} else {
 		printf("mbus: usage \"tool.rat.rate <integer>\"\n");
 	}
