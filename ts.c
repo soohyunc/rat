@@ -254,6 +254,16 @@ ts_to_ms(ts_t t1)
         return r;
 }
 
+u_int32
+ts_to_us(ts_t t1)
+{
+        double  r;
+        u_int32 f;
+        assert(ts_valid(t1));
+        f = ts_get_freq(t1);
+        r = t1.ticks * 1000000.0/(double)f;
+        return (u_int32)r;
+}
 
 int 
 ts_valid(ts_t t1)

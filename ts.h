@@ -44,6 +44,9 @@ ts_t     ts_convert(u_int32 new_freq, ts_t ts);
 /* Conversion to milliseconds */
 u_int32  ts_to_ms(ts_t t1);
 
+/* Conversion to microseconds */
+u_int32  ts_to_us(ts_t t1);
+
 /* Debugging functions */
 int      ts_valid(ts_t t1);
 u_int32  ts_get_freq(ts_t t1);
