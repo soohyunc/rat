@@ -157,12 +157,13 @@ pckt_queue_element_create()
 }
 
 void
-pckt_queue_element_free(pckt_queue_element ** pe)
+pckt_queue_element_free(pckt_queue_element ** ppe)
 {
-        if ((*pe)->pckt_ptr) {
-                block_free((*pe)->pckt_ptr, PACKET_LENGTH);
+        pckt_queue_element *pe = *ppe;
+        if (pe->pckt_ptr) {
+                block_free(pe->pckt_ptr, pe->len);
         }
-        block_free(*pe, sizeof(pckt_queue_element));
-        (*pe) = NULL;
+        block_free(pe, sizeof(pckt_queue_element));
+        (*ppe) = NULL;
 }
 

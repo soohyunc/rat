@@ -233,15 +233,20 @@ main(int argc, char *argv[])
 			if (sp[i]->playing_audio) {
                                 struct s_source *s;
                                 int sidx, scnt;
-
+                                ts_t cush_ts;
+                                
+                                cush_ts = ts_map32(get_freq(sp[i]->device_clock), 
+                                                   cushion_get_size(sp[i]->cushion));
+                                cush_ts = ts_add(cur_ts, cush_ts);
                                 scnt = (int)source_list_source_count(sp[i]->active_sources);
-
+                                debug_msg("%d active sources\n", scnt);
                                 for(sidx = 0; sidx < scnt; sidx++) {
+
                                         s = source_list_get_source_no(sp[i]->active_sources, sidx);
-                                        source_process(s, sp[i]->repair, cur_ts);
-                                        mix_process(sp[i], sp[i]->ms, s, cur_ts);
-                                        if (!source_relevant(s, cur_ts)) {
-                                                /* Remove source if it has stopped sending*/
+                                        source_process(s, sp[i]->repair, cush_ts);
+                                        mix_process(sp[i], sp[i]->ms, s, cush_ts);
+                                        if (!source_relevant(s, cush_ts)) {
+                                                /* Remove source as stopped */
                                                 source_remove(sp[i]->active_sources, s);
                                                 sidx--;
                                                 scnt--;
