@@ -59,6 +59,17 @@ sparc_audio_device_name(audio_desc_t ad)
         return "Sun Audio Device";
 }
 
+int
+sparc_audio_supports(audio_desc_t ad, audio_format *fmt)
+{
+        UNUSED(ad);
+        if ((!(fmt->sample_rate % 8000) || !(fmt->sample_rate % 11025)) && 
+            (fmt->channels == 1 || fmt->channels == 2)) {
+                return TRUE;
+        }
+        return FALSE;
+}
+
 /* Try to open the audio device.                        */
 /* Returns TRUE if ok, 0 otherwise. */
 int

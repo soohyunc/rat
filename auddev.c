@@ -132,7 +132,7 @@ audio_if_t audio_if_table[] = {
                 sparc_audio_iport_count,
                 sparc_audio_is_ready,
                 sparc_audio_wait_for,
-                NULL
+                sparc_audio_supports
         },
 #endif /* Solaris */
 #ifdef HAVE_OSPREY
