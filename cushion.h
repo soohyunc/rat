@@ -24,7 +24,6 @@ void    cushion_destroy            (struct s_cushion_struct **c);
 void    cushion_update             (struct s_cushion_struct *c, uint32_t read_dur, int cushion_mode);
 
 uint32_t cushion_get_size           (struct s_cushion_struct *c);
-uint32_t cushion_set_size           (struct s_cushion_struct *c, uint32_t new_size);
 
 uint32_t cushion_step_up            (struct s_cushion_struct *c);
 uint32_t cushion_step_down          (struct s_cushion_struct *c);

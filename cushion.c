@@ -32,13 +32,13 @@ static const char cvsid[] =
 #define HISTORY_SIZE	 250
 #define MIN_COVER	 ((float)HISTORY_SIZE * SAFETY)
 #define CUSHION_MAX_MS	 500
-#define CUSHION_MIN_MS	 50
+#define CUSHION_MIN_MS	 40
 #define CUSHION_STEP_MS  10
 
 /* Initial cushion value is high, but should guarantee no interruptions and 
  * will come down during silent periods anyway
  */
-#define CUSHION_START_MS 40
+#define CUSHION_START_MS (2 * CUSHION_MIN_MS)
 
 /* All cushion measurements are in sampling intervals, not samples ! [oth] */
 
@@ -129,7 +129,7 @@ cushion_update(cushion_t *c, uint32_t read_dur, int mode)
         }
 
         /* slot in new entry and update histogram */
-	c->read_history[c->last_in] = max(read_dur, c->cushion_min) / c->cushion_step;
+	c->read_history[c->last_in] = (max(read_dur, c->cushion_min) + c->cushion_step - 1) / c->cushion_step;
         if (c->read_history[c->last_in] < c->histbins) {
                 c->histogram[ c->read_history[c->last_in] ]++;
         } else {
@@ -181,17 +181,6 @@ cushion_size_check(cushion_t *c)
 uint32_t 
 cushion_get_size(cushion_t *c)
 {
-        return c->cushion_size;
-}
-
-uint32_t
-cushion_set_size(cushion_t *c, uint32_t new_size)
-{
-        c->cushion_size = new_size;
-        cushion_size_check(c);
-#ifdef DEBUG_CUSHION
-        debug_msg("cushion size %ld\n", new_size);
-#endif
         return c->cushion_size;
 }
 
