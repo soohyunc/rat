@@ -513,6 +513,7 @@ statistics(session_struct          *sp,
                         src = source_create(sp->active_sources, 
                                             pckt->sender,
                                             sp->converter,
+                                            sp->render_3d,
                                             af->sample_rate,
                                             af->channels);
                         assert(src != NULL);

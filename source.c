@@ -174,6 +174,7 @@ source*
 source_create(source_list    *plist, 
               rtcp_dbentry   *dbe,
               converter_id_t  conv_id,
+              int             render_3D_enabled,
               u_int16         out_rate,
               u_int16         out_channels)
 {
@@ -235,9 +236,87 @@ source_create(source_list    *plist,
         plist->nsrcs++;
 
         /* Configure converter */
-        source_reconfigure(psrc, conv_id, out_rate, out_channels);
+        source_reconfigure(psrc, 
+                           conv_id, 
+                           render_3D_enabled,
+                           out_rate, 
+                           out_channels);
 
         return psrc;
+}
+
+/* All sources need to be reconfigured when anything changes in
+ * audio path.  These include change of device frequency, change of
+ * the number of channels, etc..
+ */
+
+void
+source_reconfigure(source        *src,
+                   converter_id_t conv_id,
+                   int            render_3d,
+                   u_int16        out_rate,
+                   u_int16        out_channels)
+{
+        u_int16    src_rate, src_channels;
+        codec_id_t src_cid;
+
+        assert(src->dbe != NULL);
+
+        /* Set age to zero and flush existing media
+         * so that repair mechanism does not attempt
+         * to patch across different block sizes.
+         */
+
+        src->age = 0;
+        playout_buffer_flush(src->media);
+
+        /* Get rate and channels of incoming media so we know
+         * what we have to change.
+         */
+        src_cid = codec_get_by_payload(src->dbe->enc);
+        codec_get_native_info(src_cid, 
+                              &src_rate, 
+                              &src_channels);
+
+        if (render_3d) {
+                assert(out_channels == 2);
+                /* Rejig 3d renderer if there, else create */
+                if (src->dbe->render_3D_data) {
+                        int azi3d, fil3d, len3d;
+                        render_3D_get_parameters(src->dbe->render_3D_data,
+                                                 &azi3d,
+                                                 &fil3d,
+                                                 &len3d);
+                        render_3D_set_parameters(src->dbe->render_3D_data,
+                                                 (int)src_rate,
+                                                 azi3d,
+                                                 fil3d,
+                                                 len3d);
+                } else {
+                        src->dbe->render_3D_data = render_3D_init((int)src_rate);
+                }
+                assert(src->dbe->render_3D_data);
+        } else {
+                /* Rendering is switched off so destroy info */
+                if (src->dbe->render_3D_data != NULL) {
+                        render_3D_free(&src->dbe->render_3D_data);
+                }
+        }
+
+        /* Now destroy converter if it is already there */
+        if (src->converter) {
+                converter_destroy(&src->converter);
+        }
+
+        if (src_rate != out_rate || src_channels != out_channels) {
+                converter_fmt_t c;
+
+                c.from_freq     = src_rate;
+                c.from_channels = src_channels;
+                c.to_freq       = out_rate;
+                c.to_channels   = out_channels;
+                src->converter  = converter_create(conv_id, &c);
+        }
 }
 
 void
@@ -489,4 +568,28 @@ source_get_playout_delay (source *src)
         /* To be written */
         UNUSED(src);
         return (ts_map32(8000,0));
+}
+
+int
+source_relevant(source *src, ts_t now)
+{
+        assert(src);
+        
+        if (playout_buffer_relevant(src->media, now) ||
+            playout_buffer_relevant(src->channel, now)) {
+                return TRUE;
+        }
+        return FALSE;
+}
+
+struct s_playout_buffer*
+source_get_decoded_buffer(source *src)
+{
+        return src->media;
+}
+
+struct s_rtcp_dbentry*
+source_get_rtcp_dbentry(source *src)
+{
+        return src->dbe;
 }

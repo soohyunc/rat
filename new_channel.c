@@ -306,3 +306,10 @@ channel_verify_and_stat(cc_id_t  cid,
         assert(idx < CC_NUM_CODERS);
         return table[idx].dec_peek(pktpt, data, data_len, units_per_packet, codec_pt);
 }
+
+cc_id_t
+channel_coder_get_by_payload(u_int8 payload)
+{
+        /* Only vanilla for the time being */
+        return CC_IDX_TO_ID(0);
+}

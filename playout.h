@@ -96,7 +96,7 @@ int playout_buffer_remove  (struct s_playout_buffer *pb,
 int playout_buffer_audit    (struct s_playout_buffer *pb);
 
 /* Returns whether playout buffer has data to be played out */
-int playout_buffer_relevent (struct s_playout_buffer *pb, 
+int playout_buffer_relevant (struct s_playout_buffer *pb, 
                              ts_t                     now);
 
 /* Return the times of interest for playout buffer */

@@ -64,11 +64,13 @@ struct s_source* source_get_by_rtcp_dbentry (struct s_source_list  *list,
 struct s_source* source_create             (struct s_source_list  *list, 
                                             struct s_rtcp_dbentry *dbe,
                                             converter_id_t current_id,
+                                            int render_3D_enabled,
                                             u_int16 out_rate,
                                             u_int16 out_channels);
 
 void             source_reconfigure        (struct s_source* src,
                                             converter_id_t   current_id,
+                                            int              render_3D_enabled,
                                             u_int16          out_rate,
                                             u_int16          out_channels);
 

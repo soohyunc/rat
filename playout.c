@@ -273,7 +273,7 @@ playout_buffer_audit(playout_buffer *pb)
 }
 
 int
-playout_buffer_relevent (struct s_playout_buffer *pb, ts_t now)
+playout_buffer_relevant (struct s_playout_buffer *pb, ts_t now)
 {
         pb_node_t *last;
 
