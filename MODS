@@ -1358,4 +1358,7 @@ TODO -- They're features not bugs dammit!
 - If you click talk while Rat is initializing you get a Tk error window
   when it has finished initialisation. 
 - Add ability to change RTP sessions whilst rat is running.
+- Crashes on FreeBSD 4.0
+	- instrument the auddev_luigi code, to give more info in case that
+	  is the culprit (I think that FreeBSD 4.0 updated the drivers?)
 
