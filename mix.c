@@ -142,6 +142,37 @@ mix_zero(mixer_t *ms, int offset, int len)
         xmemchk();
 }
 
+static void
+mix_advance_head(mixer_t *ms, ts_t new_head_time)
+{
+	ts_t	delta;
+	int	zeros;
+	
+	mix_verify(ms);
+	assert(ts_gt(new_head_time, ms->head_time));
+	
+	delta = ts_sub(new_head_time, ms->head_time);
+	zeros = delta.ticks * ms->info.channels * ms->info.sample_rate / ts_get_freq(delta);
+	
+	mix_zero(ms, ms->head, zeros);
+	ms->dist	+= zeros;
+	ms->head	+= zeros;
+	ms->head	%= ms->buf_len;
+	ms->head_time	 = new_head_time;
+	
+	mix_verify(ms);
+}
+
+static void
+mix_align(mixer_t *ms, ts_t new_time)
+{
+	mix_verify(ms);
+	ms->head_time = ms->tail_time = new_time;
+	assert(ms->head == ms->tail);
+	ms->head = ms->tail;
+	ms->dist = 0;
+	mix_verify(ms);
+}
 
 /* mix_put_audio mixes a single audio frame into mix buffer.  It returns
  * TRUE if incoming audio frame is compatible with mix, FALSE
@@ -153,13 +184,14 @@ mix_put_audio(mixer_t     *ms,
               coded_unit  *frame,
               ts_t         playout)
 {
-        static int hits;
-        sample  *samples;
+        static int      hits;
+        sample          *samples;
 
-        uint32_t nticks, nsamples, pos, original_head;
-        uint16_t channels, rate;
-        ts_t     frame_period, expected_playout, delta, pot_head_time;
-        ts_t     orig_head_time;
+        int32_t         pos;
+        uint32_t        nticks, nsamples, original_head;
+        uint16_t        channels, rate;
+        ts_t            frame_period, playout_end, delta;
+        ts_t            orig_head_time;
 
         int zero_start = -1, zero_len = -1;
 
@@ -185,9 +217,10 @@ mix_put_audio(mixer_t     *ms,
         assert(rate     == (uint32_t)ms->info.sample_rate);
         assert(channels == (uint32_t)ms->info.channels);
 	
+        playout         = ts_convert(ms->info.sample_rate, playout);
         nticks          = frame->data_len / (sizeof(sample) * channels);
         frame_period    = ts_map32(rate, nticks);
-	
+
 	/* Map frame period to mixer time base, otherwise we can get truncation
 	 * errors in verification of mixer when sample rate conversion is active.
 	 */
@@ -195,7 +228,7 @@ mix_put_audio(mixer_t     *ms,
 	
         if (pdbe->first_mix) {
                 debug_msg("New mix\n");
-                pdbe->last_mixed = ts_sub(playout, frame_period);
+                pdbe->next_mix = playout;
                 pdbe->first_mix  = 0;
         }
 
@@ -203,18 +236,15 @@ mix_put_audio(mixer_t     *ms,
 
         samples  = (sample*)frame->data;
         nsamples = frame->data_len / sizeof(sample);
-
+/*
+        debug_msg("ssrc 0x%08x head %d tail %d put %d samples %d\n", pdbe->ssrc, ms->head_time.ticks, ms->tail_time.ticks, playout.ticks, nsamples);
+*/
         mix_verify(ms);
 
-        /* Potential time for head */
-        pot_head_time = ts_add(playout, 
-                               ts_map32(ms->info.sample_rate, nsamples / ms->info.channels));
-
         /* Check for overlap in decoded frames */
-        expected_playout = ts_add(pdbe->last_mixed, frame_period);
-        if (!ts_eq(expected_playout, playout)) {
-                if (ts_gt(expected_playout, playout)) {
-                        delta = ts_sub(expected_playout, playout);
+        if (!ts_eq(pdbe->next_mix, playout)) {
+                if (ts_gt(pdbe->next_mix, playout)) {
+                        delta = ts_sub(pdbe->next_mix, playout);
                         if (ts_gt(frame_period, delta)) {
                                 uint32_t  trim;
 				delta = ts_convert(ms->info.sample_rate, delta);
@@ -222,73 +252,49 @@ mix_put_audio(mixer_t     *ms,
                                 samples  += trim;
                                 assert(nsamples > trim);
 				nsamples -= trim;
-				debug_msg("Mixer trimmed %d samples (%d) ssrc (0x%08x)\n", trim, playout.ticks, pdbe->ssrc);
+				debug_msg("Mixer trimmed %d samples (Expected playout %d got %d) ssrc (0x%08x)\n", trim, pdbe->next_mix.ticks, playout.ticks, pdbe->ssrc);
                         } else {
                                 debug_msg("Skipped unit\n");
-                        }
+				return FALSE;
+			}
                 } else {
-                        if (expected_playout.ticks - playout.ticks != 0) {
-                                debug_msg("Gap between units %d %d ssrc 0x%08x\n", 
-                                          expected_playout.ticks, 
-                                          playout.ticks,
-                                          pdbe->ssrc);
-                        }
+			debug_msg("Gap between units %d %d ssrc 0x%08x\n", 
+				pdbe->next_mix.ticks, 
+				playout.ticks,
+				pdbe->ssrc);
                 }
         }
 
         /* If mixer has been out of use, fire it up */
         if (ts_eq(ms->head_time, ms->tail_time)) {
-                mix_verify(ms);
-                ms->head_time = ms->tail_time = playout;
-                assert(ms->head == ms->tail);
-                ms->head = ms->tail;
-                ms->dist = 0;
-                mix_verify(ms);
-        }
-
-        /* Zero ahead if new potential head time is greater than existing */
-        if (ts_gt(pot_head_time, ms->head_time))  {
-                int zeros;
-                delta = ts_sub(pot_head_time, ms->head_time);
-                zeros = delta.ticks * ms->info.channels * ms->info.sample_rate / ts_get_freq(delta);
-                mix_verify(ms);
-                mix_zero(ms, ms->head, zeros);
-                zero_start = ms->head;
-                zero_len   = zeros;
-                ms->dist += zeros;
-                ms->head += zeros;
-                ms->head %= ms->buf_len;
-                ms->head_time = pot_head_time;
-                mix_verify(ms);
-        }
-
-        assert(!ts_gt(playout, ms->head_time));
-
-        /* Work out where to write the data */
-        pos = ms->head - nsamples;
-        if ((uint32_t)ms->head < nsamples) {
-                /* Head has just wrapped.  Want to start from before */
-                /* the wrap...                                       */
-                pos += ms->buf_len;
+                mix_align(ms, playout);
         }
         
+	/* Advance head if necessary */
+        playout_end = ts_add(playout, ts_map32(ms->info.sample_rate, nsamples / ms->info.channels));
+	if (ts_gt(playout_end, ms->head_time)) {
+		mix_advance_head(ms, playout_end);
+	}
+
+        /* Work out where to write the data (head_time > playout) */
+        delta = ts_sub(ms->head_time, playout);
+        pos = ms->head - delta.ticks * ms->info.channels;
+        pos = (pos + ms->buf_len) % ms->buf_len; /* Handle wraps */
+	
         if (pos + nsamples > (uint32_t)ms->buf_len) { 
-            xmemchk();    
-				audio_mix_fn(ms->mix_buffer + pos, 
+                audio_mix_fn(ms->mix_buffer + pos, 
                              samples, 
                              ms->buf_len - pos); 
-                xmemchk();
                 audio_mix_fn(ms->mix_buffer, 
                              samples + (ms->buf_len - pos), 
                              pos + nsamples - ms->buf_len); 
-                xmemchk();
         } else { 
                 audio_mix_fn(ms->mix_buffer + pos, 
                              samples, 
                              nsamples); 
-                xmemchk();
         } 
-        pdbe->last_mixed = playout;
+        xmemchk();
+        pdbe->next_mix = playout_end;
 
         return TRUE;
 }
@@ -325,10 +331,9 @@ mix_get_audio(mixer_t *ms, int request, sample **bufp)
                  * now so zero the rest of the buffer and move the head.
                  */
                 silence = amount - ms->dist;
+                debug_msg("Insufficient audio: %d < %d\n", ms->dist, amount);
                 if (ms->head + silence > ms->buf_len) {
-#ifdef DEBUG_MIX
                         debug_msg("Insufficient audio: zeroing end of mix buffer %d %d\n", ms->buf_len - ms->head, silence + ms->head - ms->buf_len);
-#endif
                         audio_zero(ms->mix_buffer + ms->head, ms->buf_len - ms->head, DEV_S16);
                         audio_zero(ms->mix_buffer, silence + ms->head - ms->buf_len, DEV_S16);
                 } else {
