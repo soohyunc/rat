@@ -384,7 +384,7 @@ network_read(session_struct    *sp,
 			tvp = &timeout;
 		}
 #endif
-#ifdef HPUX
+#if defined(HPUX) && !defined (HPUX_10)
 		if (select(sel_fd, (int *) &rfds, NULL, NULL, tvp) > 0) {
 #else
 		if (select(sel_fd, &rfds, (fd_set *) 0, (fd_set *) 0, tvp) > 0) {

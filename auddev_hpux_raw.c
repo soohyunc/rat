@@ -197,7 +197,11 @@ audio_read(int audio_fd, sample *buf, int samples)
 
   FD_ZERO(&rfd);
   FD_SET(audio_fd, &rfd);
+#ifdef HPUX_10
+  if (select(FD_SETSIZE, &rfd, NULL, NULL, &tout) <= 0)
+#else  
   if (select(FD_SETSIZE, (int*)&rfd, NULL, NULL, &tout) <= 0)
+#endif  	
     return 0;
 
   if ((len = read(audio_fd, buf, samples * BYTES_PER_SAMPLE)) < 0) {
