@@ -108,7 +108,5 @@ typedef struct s_session {
 
 void session_init(session_t *sp);
 void session_exit(session_t *sp);
-int  session_parse_early_options(int argc, char *argv[], session_t *sp[]);
-void session_parse_late_options(int argc, char *argv[], session_t *sp[]);
 
 #endif /* _session_h_ */
