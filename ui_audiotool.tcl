@@ -93,12 +93,12 @@ proc window_stats {cname} {
 # Commands to send message over the conference bus...
 proc output_mute {state} {
     mbus_send "R" "audio.output.mute" "$state"
-    bargraphState .r.c.vol.b1 [expr ! $state]
+    bargraphState .r.c.vol.gra.b1 [expr ! $state]
 }
 
 proc input_mute {state} {
     mbus_send "R" "audio.input.mute" "$state"
-    bargraphState .r.c.gain.b2 [expr ! $state]
+    bargraphState .r.c.gain.gra.b2 [expr ! $state]
 }
 
 proc set_vol {new_vol} {
@@ -556,18 +556,18 @@ proc mbus_recv_audio.channel.repair {arg} {
 
 proc mbus_recv_audio.input.powermeter {level} {
 	global bargraphTotalHeight
-	bargraphSetHeight .r.c.gain.b2 [expr ($level * $bargraphTotalHeight) / 100]
+	bargraphSetHeight .r.c.gain.gra.b2 [expr ($level * $bargraphTotalHeight) / 100]
 }
 
 proc mbus_recv_audio.output.powermeter {level} {
 	global bargraphTotalHeight
-	bargraphSetHeight .r.c.vol.b1  [expr ($level * $bargraphTotalHeight) / 100]
+	bargraphSetHeight .r.c.vol.gra.b1  [expr ($level * $bargraphTotalHeight) / 100]
 }
 
 proc mbus_recv_audio.input.gain {new_gain} {
     global gain
     set gain $new_gain
-    .r.c.gain.s2 set $gain
+    .r.c.gain.gra.s2 set $gain
 }
 
 proc mbus_recv_audio.input.ports.flush {} {
@@ -595,11 +595,11 @@ proc mbus_recv_audio.input.port {device} {
 proc mbus_recv_audio.input.mute {val} {
     global in_mute_var
     set in_mute_var $val
-    bargraphState .r.c.gain.b2 [expr ! $val]
+    bargraphState .r.c.gain.gra.b2 [expr ! $val]
 }
 
 proc mbus_recv_audio.output.gain {gain} {
-	.r.c.vol.s1 set $gain
+	.r.c.vol.gra.s1 set $gain
 }
 
 proc mbus_recv_audio.output.port {device} {
@@ -969,12 +969,10 @@ set bargraphRedHeight [expr $bargraphTotalHeight * 3 / 4]
 proc bargraphCreate {bgraph} {
 	global oh$bgraph bargraphTotalHeight
 
-	frame $bgraph -bg black
-	frame $bgraph.inner0 -height 6 -bg green
-	pack $bgraph.inner0 -side left -padx 0 -fill both -expand true
-	for {set i 1} {$i < $bargraphTotalHeight} {incr i} {
-		frame $bgraph.inner$i -height 8 -bg black
-		pack $bgraph.inner$i -side left -padx 0 -fill both -expand true
+	frame $bgraph -relief sunk -bg black
+	for {set i 0} {$i < $bargraphTotalHeight} {incr i} {
+		frame $bgraph.inner$i -bg black
+		pack $bgraph.inner$i -side left -fill both -expand true
 	}
 	set oh$bgraph 0
 }
@@ -1238,10 +1236,10 @@ proc configure_input_port {port} {
     global input_port
     set bitmap [bitmap_input_port $port]
     if {$bitmap != ""} {
-	.r.c.gain.l2 configure -bitmap $bitmap
+	.r.c.gain.but.l2 configure -bitmap $bitmap
     } else {
-	.r.c.gain.l2 configure -bitmap ""
-	.r.c.gain.l2 configure -text $port
+	.r.c.gain.but.l2 configure -bitmap ""
+	.r.c.gain.but.l2 configure -text $port
     }
     set input_port $port
 }
@@ -1251,10 +1249,10 @@ proc configure_output_port {port} {
     set bitmap [bitmap_output_port $port]
 
     if {$bitmap != ""} {
-	.r.c.vol.l1 configure -bitmap $bitmap
+	.r.c.vol.but.l1 configure -bitmap $bitmap
     } else {
-	.r.c.vol.l1 configure -bitmap ""
-	.r.c.vol.l1 configure -text $port
+	.r.c.vol.but.l1 configure -bitmap ""
+	.r.c.vol.but.l1 configure -text $port
     }
     set output_port $port
 }
@@ -1310,44 +1308,56 @@ bind .l.t.list <Configure> {fix_scrollbar}
 
 # Device output controls
 set out_mute_var 0
-checkbutton .r.c.vol.t1 -highlightthickness 0 -text "Receive" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $smallfont -width 8 -relief raised -padx 4 -anchor w
-button .r.c.vol.l1 -pady 0 -padx 0 -highlightthickness 0 -command toggle_output_port -font $smallfont -width 10
-bargraphCreate .r.c.vol.b1
-scale .r.c.vol.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -relief raised -showvalue false -width 10 -variable volume
+frame .r.c.vol.but
+frame .r.c.vol.gra
+checkbutton .r.c.vol.but.t1 -highlightthickness 0 -text "Receive" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $smallfont -width 8 -anchor w
+button .r.c.vol.but.l1 -highlightthickness 0 -command toggle_output_port -font $smallfont -width 10
+bargraphCreate .r.c.vol.gra.b1
+scale .r.c.vol.gra.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -showvalue false -width 10 -variable volume
 
-pack .r.c.vol.t1 -side left -fill y
-pack .r.c.vol.l1 -side left -fill y
-pack .r.c.vol.b1 -side top  -fill both -expand 1
-pack .r.c.vol.s1 -side top  -fill x -expand 1
+pack .r.c.vol.but -side left -fill both
+pack .r.c.vol.but.t1 -side top -fill both
+pack .r.c.vol.but.l1 -side top -fill both
+
+pack .r.c.vol.gra -side left -fill both -expand 1
+pack .r.c.vol.gra.b1 -side top  -fill both -expand 1 -padx 1 -pady 1
+pack .r.c.vol.gra.s1 -side bottom  -fill x -anchor s
 
 # Device input controls
 set in_mute_var 1
-checkbutton .r.c.gain.t2 -highlightthickness 0 -text "Transmit" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $smallfont -width 8 -relief raised -padx 4 -anchor w
-button .r.c.gain.l2 -pady 0 -padx 0 -highlightthickness 0 -command toggle_input_port -font $smallfont -width 10
-bargraphCreate .r.c.gain.b2
-scale .r.c.gain.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10 -variable gain -font $smallfont
 
-pack .r.c.gain.t2 -side left -fill y
-pack .r.c.gain.l2 -side left -fill y
-pack .r.c.gain.b2 -side top  -fill both -expand 1
-pack .r.c.gain.s2 -side top  -fill x -expand 1
+frame .r.c.gain.but
+checkbutton .r.c.gain.but.t2 -highlightthickness 0 -text "Transmit" -variable in_mute_var -onvalue 0 -offvalue 1 -command {input_mute $in_mute_var} -font $smallfont -width 8 -anchor w
+button .r.c.gain.but.l2 -highlightthickness 0 -command toggle_input_port -font $smallfont -width 10
+
+frame .r.c.gain.gra
+bargraphCreate .r.c.gain.gra.b2
+scale .r.c.gain.gra.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -showvalue false -width 10 -variable gain -font $smallfont
+
+pack .r.c.gain.but    -side left 
+pack .r.c.gain.but.t2 -side top -fill both
+pack .r.c.gain.but.l2 -side top -fill both
+
+pack .r.c.gain.gra -side left -fill both -expand 1
+pack .r.c.gain.gra.b2 -side top  -fill both -expand 1 -padx 1 -pady 1
+pack .r.c.gain.gra.s2 -side top  -fill x -anchor s
 
 proc mbus_recv_tool.rat.disable.audio.ctls {} {
-#	.r.c.vol.t1 configure -state disabled
-	.r.c.vol.l1 configure -state disabled
-	.r.c.vol.s1 configure -state disabled
-#	.r.c.gain.t2 configure -state disabled
-	.r.c.gain.l2 configure -state disabled
-	.r.c.gain.s2 configure -state disabled
+#	.r.c.vol.but.t1 configure -state disabled
+	.r.c.vol.but.l1 configure -state disabled
+	.r.c.vol.gra.s1 configure -state disabled
+#	.r.c.gain.but.t2 configure -state disabled
+	.r.c.gain.but.l2 configure -state disabled
+	.r.c.gain.gra.s2 configure -state disabled
 }
 
 proc mbus_recv_tool.rat.enable.audio.ctls {} {
-#	.r.c.vol.t1 configure -state normal
-	.r.c.vol.l1 configure -state normal
-	.r.c.vol.s1 configure -state normal
-#	.r.c.gain.t2 configure -state normal
-	.r.c.gain.l2 configure -state normal
-	.r.c.gain.s2 configure -state normal
+#	.r.c.vol.but.t1 configure -state normal
+	.r.c.vol.but.l1 configure -state normal
+	.r.c.vol.gra.s1 configure -state normal
+#	.r.c.gain.but.t2 configure -state normal
+	.r.c.gain.but.l2 configure -state normal
+	.r.c.gain.gra.s2 configure -state normal
 }
 bind all <ButtonPress-3>   {toggle in_mute_var; input_mute $in_mute_var}
 bind all <ButtonRelease-3> {toggle in_mute_var; input_mute $in_mute_var}
@@ -2702,19 +2712,19 @@ wm transient        .help .
 wm withdraw         .help
 wm overrideredirect .help true
 
-add_help .r.c.gain.s2 	"This slider controls the volume\nof the sound you send."
-add_help .r.c.gain.l2 	"Click to change input device."
-add_help .r.c.gain.t2 	"If this button is not pushed in, you are are transmitting,\nand may be\
+add_help .r.c.gain.gra.s2 	"This slider controls the volume\nof the sound you send."
+add_help .r.c.gain.but.l2 	"Click to change input device."
+add_help .r.c.gain.but.t2 	"If this button is not pushed in, you are are transmitting,\nand may be\
                          heard by other participants. Holding down the\nright mouse button in\
 			 any RAT window will temporarily\ntoggle the state of this button,\
 			 allowing for easy\npush-to-talk operation."
-add_help .r.c.gain.b2 	"Indicates the loudness of the\nsound you are sending. If this\nis\
+add_help .r.c.gain.gra.b2 	"Indicates the loudness of the\nsound you are sending. If this\nis\
                          moving, you may be heard by\nthe other participants."
 
-add_help .r.c.vol.s1  	"This slider controls the volume\nof the sound you hear."
-add_help .r.c.vol.l1  	"Click to change output device."
-add_help .r.c.vol.t1  	"If pushed in, reception is muted."
-add_help .r.c.vol.b1  	"Indicates the loudness of the\nsound you are hearing."
+add_help .r.c.vol.gra.s1  	"This slider controls the volume\nof the sound you hear."
+add_help .r.c.vol.but.l1  	"Click to change output device."
+add_help .r.c.vol.but.t1  	"If pushed in, reception is muted."
+add_help .r.c.vol.gra.b1  	"Indicates the loudness of the\nsound you are hearing."
 
 add_help .l.f		"Name of the session, and the IP address, port\n&\
 		 	 TTL used to transmit the audio data."
