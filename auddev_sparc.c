@@ -64,7 +64,7 @@ static void af2apri(audio_format *fmt, audio_prinfo_t *ap)
         ap->channels    = fmt->channels;
         ap->precision   = fmt->bits_per_sample;
 #ifdef Solaris
-	ap->buffer_size   = DEVICE_BUF_UNIT * (fmt->sample_rate / 8000) * (fmt->bits_per_sample / 8);
+	ap->buffer_size   = 160 * fmt->channels * (fmt->sample_rate / 8000) * (fmt->bits_per_sample / 8);
 #endif /* Solaris */
 
         switch(fmt->encoding) {
@@ -134,12 +134,22 @@ sparc_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format* ofmt)
 				return FALSE;
 			}
 		}
+
+                /* XXX driver issue - on Ultra II's if you don't drain
+                 * the device before reading commences then the device
+                 * reads in blocks of 500ms irrespective of the
+                 * blocksize set.  After a minute or so it flips into the
+                 * correct mode, but obviously this is too late to be 
+                 * useful for most apps. grrr.
+                 */
+
+                sparc_audio_drain(ad);
+
 		return audio_fd;
 	} else {
 		/* Because we opened the device with O_NDELAY
 		 * the waiting flag was not updated so update
-		 * it manually using the audioctl device...
-		 */
+		 * it manually using the audioctl device...  */
 		audio_fd = open("/dev/audioctl", O_RDWR);
 		AUDIO_INITINFO(&dev_info);
 		dev_info.play.waiting = 1;
@@ -415,17 +425,29 @@ static int
 sparc_audio_select(audio_desc_t ad, int delay_us)
 {
         fd_set rfds;
-        struct timeval tv;
+        struct timeval tv, s1, s2;
 
         UNUSED(ad); assert(audio_fd > 0);
-        
+
         tv.tv_sec = 0;
         tv.tv_usec = delay_us;
 
         FD_ZERO(&rfds);
         FD_SET(audio_fd, &rfds);
 
+        gettimeofday (&s1, 0);
         select(audio_fd+1, &rfds, NULL, NULL, &tv);
+        gettimeofday (&s2, 0);
+
+        s2.tv_usec -= s1.tv_usec;
+        s2.tv_sec  -= s1.tv_sec;
+        
+        if (s2.tv_usec < 0) {
+                s2.tv_usec += 1000000;
+                s2.tv_sec  -= 1;
+        }
+
+/*        printf("delay %d pause %ld\n", delay_us, s2.tv_usec / 1000); */
 
         return FD_ISSET(audio_fd, &rfds);
 }
