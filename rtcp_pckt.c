@@ -153,6 +153,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 	int			i, lenstr;
 	char			args[1000];
 	rtcp_user_rr		*rr;
+	char			*my_cname, *their_cname;
 
 	len /= 4;
 	while (len > 0) {
@@ -203,8 +204,12 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				dbe->rr    = rr;
 				other_source = rtcp_get_dbentry(sp, rr->ssrc);
 				if ((dbe->sentry->cname != NULL) && (other_source != NULL)) {
-					sprintf(args, "%s %s %d", mbus_encode_str(dbe->sentry->cname), mbus_encode_str(other_source->sentry->cname), (int) ((rr->fraction_lost / 2.56)+0.5));
+					my_cname    = strdup(mbus_encode_str(dbe->sentry->cname));
+					their_cname = strdup(mbus_encode_str(other_source->sentry->cname));
+					sprintf(args, "%s %s %d", my_cname, their_cname, (int) ((rr->fraction_lost / 2.56)+0.5));
 					mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_loss_from", args, FALSE);
+					free(my_cname);
+					free(their_cname);
 				}
 			}
 			break;
@@ -237,8 +242,12 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 				dbe->rr = rr;
 				other_source =  rtcp_get_dbentry(sp, rr->ssrc);
 				if ((dbe->sentry->cname != NULL) && (other_source != NULL)) {
-					sprintf(args, "%s %s %d", mbus_encode_str(dbe->sentry->cname), mbus_encode_str(other_source->sentry->cname), (int) ((rr->fraction_lost / 2.56)+0.5));
+					my_cname    = strdup(mbus_encode_str(dbe->sentry->cname));
+					their_cname = strdup(mbus_encode_str(other_source->sentry->cname));
+					sprintf(args, "%s %s %d", my_cname, their_cname, (int) ((rr->fraction_lost / 2.56)+0.5));
 					mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "source_loss_from", args, FALSE);
+					free(my_cname);
+					free(their_cname);
 				}
 			}
 
@@ -270,7 +279,8 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 					sdes->length += 2;
 					switch (sdes->type) {
 					case RTCP_SDES_CNAME:
-						if (dbe->sentry->cname) {	/* CNAME should remain constant */
+						if (dbe->sentry->cname) {
+							/* CNAME should remain constant... */
 							break;
 						}
 						dbe->sentry->cname = (char *) xmalloc(lenstr + 1);
