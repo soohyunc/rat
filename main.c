@@ -166,13 +166,13 @@ main(int argc, char *argv[])
 		strncpy(mbus_ui_addr, sp[0]->ui_addr, 30);
         }
 
+	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 	do {
 		network_process_mbus(sp, num_sessions, 1000);
 		heartbeat(ntp_time32(), 1);
 	} while (sp[0]->wait_on_startup);
 
-	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
-        ui_sampling_modes(sp[0]);
+        	ui_sampling_modes(sp[0]);
 	ui_codecs(sp[0]->encodings[0]);
 
 	for (i = 0; i < num_sessions; i++) {
