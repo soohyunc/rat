@@ -84,8 +84,8 @@ ui_info_update_name(rtcp_dbentry *e)
 
 	if (e->sentry->cname == NULL) return;
 
-	cname = xstrdup(mbus_encode_str(e->sentry->cname));
-	name  = xstrdup(mbus_encode_str(e->sentry->name));
+	cname = mbus_encode_str(e->sentry->cname);
+	name  = mbus_encode_str(e->sentry->name);
         args = (char*)xmalloc(strlen(cname) + strlen(name) + 2);
         
 	sprintf(args, "%s %s", cname, name);
@@ -109,8 +109,8 @@ ui_info_update_email(rtcp_dbentry *e)
 
 	if (e->sentry->cname == NULL) return;
 
-	cname = xstrdup(mbus_encode_str(e->sentry->cname));
-	arg   = xstrdup(mbus_encode_str(e->sentry->email));
+	cname = mbus_encode_str(e->sentry->cname);
+	arg   = mbus_encode_str(e->sentry->email);
         args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.email", args, TRUE);
@@ -126,8 +126,8 @@ ui_info_update_phone(rtcp_dbentry *e)
 
 	if (e->sentry->cname == NULL) return;
 
-	cname = xstrdup(mbus_encode_str(e->sentry->cname));
-	arg   = xstrdup(mbus_encode_str(e->sentry->phone));
+	cname = mbus_encode_str(e->sentry->cname);
+	arg   = mbus_encode_str(e->sentry->phone);
         args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.phone", args, TRUE);
@@ -143,8 +143,8 @@ ui_info_update_loc(rtcp_dbentry *e)
 
 	if (e->sentry->cname == NULL) return;
 
-	cname = xstrdup(mbus_encode_str(e->sentry->cname));
-	arg   = xstrdup(mbus_encode_str(e->sentry->loc));
+	cname = mbus_encode_str(e->sentry->cname);
+	arg   = mbus_encode_str(e->sentry->loc);
         args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.loc", args, TRUE);
@@ -156,8 +156,8 @@ ui_info_update_loc(rtcp_dbentry *e)
 void
 ui_info_update_tool(rtcp_dbentry *e)
 {
-	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
-	char *arg   = xstrdup(mbus_encode_str(e->sentry->tool));
+	char *cname = mbus_encode_str(e->sentry->cname);
+	char *arg   = mbus_encode_str(e->sentry->tool);
         char *args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.tool", args, TRUE);
@@ -169,8 +169,8 @@ ui_info_update_tool(rtcp_dbentry *e)
 void
 ui_info_update_note(rtcp_dbentry *e)
 {
-	char *cname = xstrdup(mbus_encode_str(e->sentry->cname));
-	char *arg   = xstrdup(mbus_encode_str(e->sentry->note));
+	char *cname = mbus_encode_str(e->sentry->cname);
+	char *arg   = mbus_encode_str(e->sentry->note);
         char *args = (char*)xmalloc(strlen(cname) + strlen(arg) + 2);
 	sprintf(args, "%s %s", cname, arg);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.note", args, TRUE);
@@ -581,8 +581,8 @@ ui_update_loss(char *srce, char *dest, int loss)
 		return;
 	}
 
- 	srce_e = xstrdup(mbus_encode_str(srce));
-	dest_e = xstrdup(mbus_encode_str(dest));
+ 	srce_e = mbus_encode_str(srce);
+	dest_e = mbus_encode_str(dest);
 	args   = (char *) xmalloc(strlen(srce_e) + strlen(dest_e) + 6);
 	sprintf(args, "%s %s %3d", srce_e, dest_e, loss);
 	mbus_engine_tx(TRUE, mbus_name_ui, "source.packet.loss", args, FALSE);

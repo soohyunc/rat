@@ -69,7 +69,7 @@
 #include "mbus_engine.h"
 
 int should_exit = FALSE;
-int thread_pri;
+int thread_pri  = 2;		/* Time critical */
 
 #ifndef WIN32
 static void
@@ -120,16 +120,21 @@ main(int argc, char *argv[])
 		init_session(sp[i]);
 	}
 	num_sessions = parse_options(argc, argv, sp);
-	thread_pri   = 2;	/* TIME_CRITICAL */
 	cname        = get_cname();
 	ssrc         = get_ssrc();
 
-	sprintf(mbus_engine_addr, "(audio engine rat %ld)", (int32) getpid());
-	sprintf(mbus_ui_addr,     "(audio     ui rat %ld)", (int32) getpid());
-	sprintf(mbus_video_addr,  "(video engine   *  *)");
-
-	for (i = 0; i < num_sessions; i++) {
-		mbus_engine_init(mbus_engine_addr, sp[i]->mbus_channel);
+	if (sp[0]->mode == AUDIO_TOOL) {
+		assert(num_sessions == 1);
+		sprintf(mbus_engine_addr, "(audio engine rat %ld)", (int32) getpid());
+		sprintf(mbus_ui_addr,     "(audio     ui rat %ld)", (int32) getpid());
+		sprintf(mbus_video_addr,  "(video engine   *  *)");
+		mbus_engine_init(mbus_engine_addr, sp[0]->mbus_channel);
+	} else {
+		assert(num_sessions == 2);
+		sprintf(mbus_engine_addr, "(audio transcoder rat %ld)", (int32) getpid());
+		sprintf(mbus_ui_addr,     "(audio         ui rat %ld)", (int32) getpid());
+		/* This should probably use a separate mbus_transcoder_init() function */
+		mbus_engine_init(mbus_engine_addr, sp[0]->mbus_channel);
 	}
 
         if (sp[0]->ui_on) {
@@ -168,8 +173,6 @@ main(int argc, char *argv[])
         }
 
 #ifndef WIN32
-	/* Okay, at this point we're ready to go! Set up a signal handler, to catch any nastyness, */
-	/* and send an RTCP BYE packet if we're interrupted...                               [csp] */
 	signal(SIGINT, signal_handler);
 #endif
 	

@@ -661,36 +661,27 @@ char *mbus_decode_str(char *s)
 
 char *mbus_encode_str(const char *s)
 {
-	static char	*encode_buffer = NULL;
-	static int	 encode_buflen = 0;
+	int 	 i, j;
+	int	 len = strlen(s);
+	char	*buf = (char *) xmalloc((len * 2) + 3);
 
-	int i, j;
-	int l = strlen(s);
-
-	if (encode_buflen < ((l * 2) + 3)) {
-		if (encode_buffer != NULL) {
-			xfree(encode_buffer);
-		}
-		encode_buflen = (l * 2) + 3;
-		encode_buffer = (char *) xmalloc(encode_buflen);
-	}
-	for (i = 0, j = 1; i < l; i++,j++) {
+	for (i = 0, j = 1; i < len; i++,j++) {
 		if (s[i] == ' ') {
-			encode_buffer[j] = '\\';
-			encode_buffer[j+1] = ' ';
+			buf[j] = '\\';
+			buf[j+1] = ' ';
 			j++;
 		} else if (s[i] == '\"') {
-			encode_buffer[j] = '\\';
-			encode_buffer[j+1] = '\"';
+			buf[j] = '\\';
+			buf[j+1] = '\"';
 			j++;
 		} else {
-			encode_buffer[j] = s[i];
+			buf[j] = s[i];
 		}
 	}
-	encode_buffer[0]   = '\"';
-	encode_buffer[j]   = '\"';
-	encode_buffer[j+1] = '\0';
-	return encode_buffer;
+	buf[0]   = '\"';
+	buf[j]   = '\"';
+	buf[j+1] = '\0';
+	return buf;
 }
 
 void mbus_recv(struct mbus *m, void *data)
