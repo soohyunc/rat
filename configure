@@ -5636,8 +5636,8 @@ _ACEOF
 
 	;;
 *darwin*)
+	AU_LIB="$AU_LIB -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices"
         AU_OBJ="$AU_OBJ auddev_macosx.o"
-	AU_LIB="$AU_LIB -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices "
 	cat >>confdefs.h <<\_ACEOF
 #define HAVE_MACOSX_AUDIO 1
 _ACEOF

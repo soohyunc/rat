@@ -38,6 +38,7 @@
 #undef NDEBUG
 
 /* Audio device relate */
+#undef HAVE_MACOSX_AUDIO
 #undef HAVE_SPARC_AUDIO
 #undef HAVE_SGI_AUDIO
 #undef HAVE_PCA_AUDIO
