@@ -794,14 +794,6 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         playout = e->playout;
                 }
 
-                if ((p->m || src->packets_done == 0) && ts_gt(playout, e->frame_dur)) {
-                        /* Packets are likely to be compressed at talkspurt  */
-                        /* start because of VAD going back and grabbing      */
-                        /* frames.                                           */
-                        playout = ts_sub(playout, e->frame_dur);
-                        debug_msg("New ts shift XXX\n");
-                }
-
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
 
