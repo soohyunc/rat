@@ -57,6 +57,7 @@
 #include "codec.h"
 #include "parameters.h"
 #include "ui.h"
+#include "pos_audio.h"
 
 typedef struct s_mix_info {
 	int	buf_len;        /* Length of circular buffer */
@@ -210,7 +211,8 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
                         }
                         el->native_count++;
 #ifdef NDEF
-                        localise_sound(el);
+                        finger_exercise(el);
+                        render_3D(el);
 #endif
 		}
 	}

@@ -40,6 +40,16 @@
  * SUCH DAMAGE.
  */
 
+
+typedef struct s_3D_dbentry {
+        short    azimuth;        /* lateral angle */
+        short    i_time_d;       /* interaural time difference (ITD); derived from 'azimuth' */
+        float    i_intensity_d;  /* interaural intensity difference (IID); derived from 'azimuth' */
+        sample   overlap[64]     /* overlap buffer due to filter operation on the mono signal */
+        sample   delay[32]       /* delay buffer due to ITD in the contra-lateral channel */
+} 3D_dbentry;
+
+
 /*==============================================================================
   convolve() - filters input array using FIR
               coefs (uses real time code)
@@ -53,7 +63,8 @@
               numb_coefs - number of coefficients
               N - number of values in array
 ===============================================================================*/
-void convolve(short *X, short *Y, double *M, double *C, int numb_coefs, int N)
+void
+convolve(short *X, short *Y, double *M, double *C, int numb_coefs, int N)
 { 
         short   *x, *y;         /*  ptrs to in/out arrays */
         int     i, j;           /*  loop counters */
@@ -84,7 +95,23 @@ void convolve(short *X, short *Y, double *M, double *C, int numb_coefs, int N)
 }
 
 void
-localise_sound(rx_queue_element_struct *el)
+finger_exercise(rx_queue_element_struct *el)
+{
+        int     i;
+        sample  *raw_buf, *proc_buf;
+
+        raw_buf = el->native_data[el->native_count - 2];
+        proc_buf = el->native_data[el->native_count - 1];
+
+        for (i=0; i<320; i++) {
+                *proc_buf = *raw_buf;
+                proc_buf++;
+                raw_buf++;
+        }
+}
+
+void
+render_3D(rx_queue_element_struct *el)
 {
         out_buf = el->native_data[el->native_count - 1];
 

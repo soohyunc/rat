@@ -105,7 +105,6 @@ typedef int	fd_t;
 #endif /* TRUE */
 
 #define USERNAMELEN	8
-#define NEED_INET_PTON
 
 #define max(a, b)	(((a) > (b))? (a): (b))
 #define min(a, b)	(((a) < (b))? (a): (b))
@@ -126,6 +125,7 @@ typedef int	fd_t;
 
 #ifdef Solaris
 #define NEED_INET_ATON
+#define NEED_INET_PTON
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/audioio.h>
@@ -143,6 +143,7 @@ int gethostname(char *name, int namelen);
 #endif
 
 #ifdef SunOS
+#define NEED_INET_PTON
 #define AUDIO_CD         4
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 7
@@ -188,6 +189,7 @@ int	toupper(int c);
 #endif
 
 #ifdef IRIX
+#define NEED_INET_PTON
 #include <bstring.h>     /* Needed for FDZERO on IRIX only */
 #include <audio.h>
 #define AUDIO_SPEAKER    0
@@ -200,6 +202,7 @@ int gethostname(char *name, int namelen);
 #endif
 
 #ifdef HPUX
+#define NEED_INET_PTON
 #include <unistd.h>
 #include <sys/audio.h>
 #define AUDIO_SPEAKER    AUDIO_OUT_SPEAKER
@@ -211,6 +214,7 @@ int gethostname(char *hostname, size_t size);
 #endif
 
 #ifdef Linux
+#define NEED_INET_PTON
 #define DIFF_BYTE_ORDER  1
 #define AUDIO_SPEAKER    0
 #define AUDIO_HEADPHONE  1
