@@ -429,7 +429,18 @@ tx_send(session_struct *sp)
                 tb->tx_ptr = tb->head_ptr;
         }
 
-        n = (tb->silence_ptr->time - tb->tx_ptr->time) / tb->unit_dur;
+        /* Silence pointer time should always be ahead of transmitted time
+         * since we can't make a decision to send without having done 
+         * silence determination first.
+         */
+
+        if (tb->silence_ptr->time >= tb->tx_ptr->time) {
+                n = (tb->silence_ptr->time - tb->tx_ptr->time) / tb->unit_dur;
+        } else {
+                /* Clock wrapped */
+                n = (~0 - tb->tx_ptr->time + tb->silence_ptr->time) / tb->unit_dur;
+                debug_msg("Transmitter clock wrapped %d units ready\n", n);
+        }
 
         rtp_header.cc = 0;
 
