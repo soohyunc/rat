@@ -681,6 +681,16 @@ ui_update_video_playout(char *cname, int playout)
         xfree(cname_e);
 }
 
+void	
+ui_update_sync(int sync)
+{
+	if (sync) {
+		mbus_engine_tx_queue(TRUE, "sync", "1");
+	} else {
+		mbus_engine_tx_queue(TRUE, "sync", "0");
+	}
+}
+
 static int
 codec_bw_cmp(const void *a, const void *b)
 {

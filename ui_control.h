@@ -81,6 +81,7 @@ void	ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misord
 void	ui_update_duration(char *cname, int duration);
 
 void	ui_update_video_playout(char *cname, int playout);
+void	ui_update_sync(int sync);
 
 void	ui_codecs(int pt);
 void    ui_converters(void);

@@ -167,7 +167,11 @@ static void rx_sync(char *srce, char *args, session_struct *sp)
 
 	mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_int(mbus_chan, &i)) {
-		sp->sync_on = i;
+		if (sp->mbus_channel != 0) {
+			sp->sync_on = i;
+		} else {
+			ui_update_sync(FALSE);
+		}
 	} else {
 		printf("mbus: usage \"agc <boolean>\"\n");
 	}
