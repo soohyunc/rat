@@ -207,13 +207,13 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			for (i = 0; i < pkt->common.count; i++) {
 				rr = (rtcp_user_rr *) xmalloc(sizeof(rtcp_user_rr));
 				rr->next          = dbe->rr;
-				rr->ssrc          = pkt->r.sr.rr[i].ssrc;
-				rr->fraction_lost = pkt->r.sr.rr[i].loss >> 24;
-				rr->pckts_lost    = pkt->r.sr.rr[i].loss & 0x00ffffff;
-				rr->ext_seq_num   = pkt->r.sr.rr[i].last_seq;
-				rr->jitter        = pkt->r.sr.rr[i].jitter;
-				rr->lsr           = pkt->r.sr.rr[i].lsr;
-				rr->dlsr          = pkt->r.sr.rr[i].dlsr;
+				rr->ssrc          = ntohl(pkt->r.sr.rr[i].ssrc);
+				rr->fraction_lost = ntohl(pkt->r.sr.rr[i].loss) >> 24;
+				rr->pckts_lost    = ntohl(pkt->r.sr.rr[i].loss) & 0x00ffffff;
+				rr->ext_seq_num   = ntohl(pkt->r.sr.rr[i].last_seq);
+				rr->jitter        = ntohl(pkt->r.sr.rr[i].jitter);
+				rr->lsr           = ntohl(pkt->r.sr.rr[i].lsr);
+				rr->dlsr          = ntohl(pkt->r.sr.rr[i].dlsr);
 				dbe->rr    = rr;
 				other_source = rtcp_get_dbentry(sp, rr->ssrc);
 				if ((dbe->sentry->cname != NULL) && (other_source != NULL)) {
@@ -223,6 +223,8 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 					mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_loss_from", args, FALSE);
 					free(my_cname);
 					free(their_cname);
+				} else {
+					dprintf("CNAME data invalid parsing SR\n");
 				}
 			}
 			break;
@@ -245,13 +247,13 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 			for (i = 0; i < pkt->common.count; i++) {
 				rr = (rtcp_user_rr *) xmalloc(sizeof(rtcp_user_rr));
 				rr->next          = dbe->rr;
-				rr->ssrc          = pkt->r.rr.rr[i].ssrc;
-				rr->fraction_lost = pkt->r.rr.rr[i].loss >> 24;
-				rr->pckts_lost    = pkt->r.rr.rr[i].loss & 0x00ffffff;
-				rr->ext_seq_num   = pkt->r.rr.rr[i].last_seq;
-				rr->jitter        = pkt->r.rr.rr[i].jitter;
-				rr->lsr           =  pkt->r.rr.rr[i].lsr;
-				rr->dlsr          = pkt->r.rr.rr[i].dlsr;
+				rr->ssrc          = ntohl(pkt->r.rr.rr[i].ssrc);
+				rr->fraction_lost = ntohl(pkt->r.rr.rr[i].loss) >> 24;
+				rr->pckts_lost    = ntohl(pkt->r.rr.rr[i].loss) & 0x00ffffff;
+				rr->ext_seq_num   = ntohl(pkt->r.rr.rr[i].last_seq);
+				rr->jitter        = ntohl(pkt->r.rr.rr[i].jitter);
+				rr->lsr           = ntohl(pkt->r.rr.rr[i].lsr);
+				rr->dlsr          = ntohl(pkt->r.rr.rr[i].dlsr);
 				dbe->rr = rr;
 				other_source =  rtcp_get_dbentry(sp, rr->ssrc);
 				if ((dbe->sentry->cname != NULL) && (other_source != NULL)) {
@@ -261,6 +263,8 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
 					mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "source_loss_from", args, FALSE);
 					free(my_cname);
 					free(their_cname);
+				} else {
+					dprintf("CNAME data invalid parsing RR\n");
 				}
 			}
 
@@ -383,6 +387,7 @@ rtcp_decode_rtcp_pkt(session_struct *sp, session_struct *sp2, u_int8 *packet, in
                                                 }
 						break;
 					default:
+						dprintf("Unknown SDES packet type %d\n", sdes->type);
 						break;
 					}
 					sdes = (rtcp_sdes_item_t *) ((u_int8 *) sdes + sdes->length);
