@@ -343,6 +343,10 @@ SOURCE=.\qfDES.h
 # End Source File
 # Begin Source File
 
+SOURCE=".\win32\rat-tk.res"
+# End Source File
+# Begin Source File
+
 SOURCE=.\rat_time.h
 # End Source File
 # Begin Source File
@@ -420,6 +424,7 @@ SOURCE=.\tcl_libs.c
 # Begin Source File
 
 SOURCE=.\tcl_libs.tcl
+USERDEP__TCL_L="tcl2c\tcl2c"	
 
 !IF  "$(CFG)" == "rat - Win32 Release"
 
@@ -432,23 +437,23 @@ InputPath=.\tcl_libs.tcl
 "tcl_libs.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	erase $(InputDir)\tcl_libs.tcl 
 	copy $(InputDir)\tcl\init.tcl + $(InputDir)\tcl\history.tcl +\
-             $(InputDir)\tcl\ldAout.tcl + $(InputDir)\tcl\parray.tcl +\
-             $(InputDir)\tcl\word.tcl $(InputDir)\tcl_libs.tcl 
+               $(InputDir)\tcl\ldAout.tcl + $(InputDir)\tcl\parray.tcl +\
+               $(InputDir)\tcl\word.tcl $(InputDir)\tcl_libs.tcl 
 	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\aatk.tcl +\
-             $(InputDir)\tk\bgerror.tcl + $(InputDir)\tk\button.tcl +\
-             $(InputDir)\tk\clrpick.tcl + $(InputDir)\tk\comdlg.tcl $(InputDir)\tcl_libs.tcl\
+               $(InputDir)\tk\bgerror.tcl + $(InputDir)\tk\button.tcl +\
+               $(InputDir)\tk\clrpick.tcl + $(InputDir)\tk\comdlg.tcl $(InputDir)\tcl_libs.tcl\
  
 	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\dialog.tcl +\
-             $(InputDir)\tk\entry.tcl + $(InputDir)\tk\focus.tcl +\
-             $(InputDir)\tk\listbox.tcl + $(InputDir)\tk\menu.tcl $(InputDir)\tcl_libs.tcl 
+               $(InputDir)\tk\entry.tcl + $(InputDir)\tk\focus.tcl +\
+               $(InputDir)\tk\listbox.tcl + $(InputDir)\tk\menu.tcl $(InputDir)\tcl_libs.tcl 
 	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\msgbox.tcl +\
-             $(InputDir)\tk\obsolete.tcl + $(InputDir)\tk\optMenu.tcl +\
-             $(InputDir)\tk\palette.tcl + $(InputDir)\tk\scale.tcl $(InputDir)\tcl_libs.tcl 
+               $(InputDir)\tk\obsolete.tcl + $(InputDir)\tk\optMenu.tcl +\
+               $(InputDir)\tk\palette.tcl + $(InputDir)\tk\scale.tcl $(InputDir)\tcl_libs.tcl 
 	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\scrlbar.tcl +\
-             $(InputDir)\tk\tearoff.tcl + $(InputDir)\tk\text.tcl +\
-             $(InputDir)\tk\tkfbox.tcl + $(InputDir)\tk\xmfbox.tcl $(InputDir)\tcl_libs.tcl 
-	type $(InputDir)\tcl_libs.tcl | c:\src\tcl2c\debug\tcl2c TCL_LIBS >\
-             $(InputDir)\tcl_libs.c 
+               $(InputDir)\tk\tearoff.tcl + $(InputDir)\tk\text.tcl +\
+               $(InputDir)\tk\tkfbox.tcl + $(InputDir)\tk\xmfbox.tcl $(InputDir)\tcl_libs.tcl 
+	type $(InputDir)\tcl_libs.tcl | tcl2c\tcl2c TCL_LIBS >\
+               $(InputDir)\tcl_libs.c 
 	
 # End Custom Build
 
@@ -466,10 +471,6 @@ SOURCE=.\tcltk.h
 # Begin Source File
 
 SOURCE=.\time.c
-# End Source File
-# Begin Source File
-
-SOURCE="win32\tk-rat.res"
 # End Source File
 # Begin Source File
 
@@ -504,8 +505,8 @@ InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_audiotool.tcl | c:\src\tcl2c\debug\tcl2c ui_audiotool >\
-              $(InputDir)\ui_audiotool.c
+	type $(InputDir)\ui_audiotool.tcl | tcl2c\tcl2c ui_audiotool >\
+                $(InputDir)\ui_audiotool.c
 
 # End Custom Build
 
@@ -537,8 +538,8 @@ InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | c:\src\tcl2c\debug\tcl2c ui_transcoder >\
-             $(InputDir)\ui_transcoder.c
+	type $(InputDir)\ui_transcoder.tcl | tcl2c\tcl2c ui_transcoder >\
+               $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
