@@ -729,6 +729,10 @@ SOURCE=.\sndfile_raw.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\sndfile_types.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\sndfile_wav.h
 # End Source File
 # Begin Source File
