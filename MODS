@@ -1232,6 +1232,7 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
 	  minimum allowed cushion.
 	- Remove second audio_rw_process in engine main loop.  Process only
 	  blocks for audio nowadays.
+	* Release 5 April 2000.
 
 TODO -- They're features not bugs dammit!
 ----
