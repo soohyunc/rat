@@ -356,36 +356,32 @@ static const audio_port_details_t in_ports[] = {
 void
 sparc_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
+        int old_port, cur_port;
         UNUSED(ad); assert(audio_fd > 0);
 
         if (port != AUDIO_MICROPHONE && port != AUDIO_LINE_IN && port != AUDIO_CD) {
                 port = AUDIO_MICROPHONE;
         }
 
+        old_port = sparc_audio_iport_get(ad);
+
 	AUDIO_INITINFO(&dev_info);
 	dev_info.record.port = port;
-	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
+	if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0) {
 		perror("Setting port");
+                /* If no CD-rom present then setting port fails silently... 
+                 * not actually tested this code on a machine with a CD-rom
+                 * since some kind folks stole it from g11... Fallbacks...
+                 */
+        }
 
-        /* If no CD-rom present then setting port fails silently... 
-         * not actually tested this code on a machine with a CD-rom
-         * since some kind folks stole it from g11...
-         */
-
-	AUDIO_INITINFO(&dev_info);
-	if (ioctl(audio_fd, AUDIO_GETINFO, (caddr_t)&dev_info) < 0)
-		perror("Getting port");
-
-        if (dev_info.record.port != port) {
-                unsigned int i;
-                for(i = 1; i < NUM_IN_PORTS; i++) {
-                        if (in_ports[i].port == port) {
-                                debug_msg("Could not use port %s\n", in_ports[i].name);
-                        }
-                }
-                dev_info.record.port = AUDIO_MICROPHONE;
-                if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&dev_info) < 0)
-                        perror("Setting port");
+        cur_port = sparc_audio_iport_get(ad);
+        if (cur_port == 0 && port == AUDIO_CD && old_port == AUDIO_MICROPHONE) {
+                debug_msg("CD failed trying line\n");
+                sparc_audio_iport_set(ad, AUDIO_LINE_IN);
+        } else if (cur_port == 0 && port == AUDIO_CD && old_port == AUDIO_LINE_IN) {
+                debug_msg("CD failed trying mic\n");
+                sparc_audio_iport_set(ad, AUDIO_MICROPHONE);
         }
 }
 
