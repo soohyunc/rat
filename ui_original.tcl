@@ -114,8 +114,13 @@ proc output_mute {state} {
     mbus_send "R" "output_mute" "$state"
     if {$state} {
 	.r.c.vol.t1 configure -relief sunken
+	pack forget .r.c.vol.b1 .r.c.vol.s1
+	pack .r.c.vol.ml -side top -fill x -expand 1
     } else {
 	.r.c.vol.t1 configure -relief raised
+	pack forget .r.c.vol.ml
+	pack .r.c.vol.b1 -side top  -fill x -expand 1
+	pack .r.c.vol.s1 -side top  -fill x -expand 1
     }
 }
 
@@ -123,8 +128,13 @@ proc input_mute {state} {
     mbus_send "R" "input_mute" "$state"
     if {$state} {
 	.r.c.gain.t2 configure -relief sunken
+	pack forget .r.c.gain.b2 .r.c.gain.s2
+	pack .r.c.gain.ml -side top -fill x -expand 1
     } else {
 	.r.c.gain.t2 configure -relief raised
+	pack forget .r.c.gain.ml
+	pack .r.c.gain.b2 -side top  -fill x -expand 1
+	pack .r.c.gain.s2 -side top  -fill x -expand 1
     }
 }
 
@@ -562,11 +572,11 @@ proc bargraphCreate {bgraph} {
 	global oh$bgraph bargraphHeight
 
 	frame $bgraph -bg black
-	frame $bgraph.inner0 -width 4 -height 6 -bg green
-	pack $bgraph.inner0 -side left -padx 1 -fill both -expand true
+	frame $bgraph.inner0 -width 8 -height 6 -bg green
+	pack $bgraph.inner0 -side left -padx 0 -fill both -expand true
 	for {set i 1} {$i < $bargraphHeight} {incr i} {
-		frame $bgraph.inner$i -width 4 -height 8 -bg black
-		pack $bgraph.inner$i -side left -padx 1 -fill both -expand true
+		frame $bgraph.inner$i -width 8 -height 8 -bg black
+		pack $bgraph.inner$i -side left -padx 0 -fill both -expand true
 	}
 	set oh$bgraph 0
 }
@@ -581,7 +591,7 @@ proc bargraphSetHeight {bgraph height} {
 		}
 	} else {
 		for {set i [expr $oh + 1]} {$i <= $height} {incr i} {
-			if {$i > ($bargraphHeight * 0.8)} {
+			if {$i > ($bargraphHeight * 0.75)} {
 				$bgraph.inner$i config -bg red
 			} else {
 				$bgraph.inner$i config -bg green
@@ -722,7 +732,8 @@ button .r.c.vol.t1 -highlightthickness 0 -padx 2 -pady 0 -text mute -command {to
 set output_port "speaker"
 button .r.c.vol.l1 -highlightthickness 0 -padx 2 -pady 0 -command toggle_output_port -bitmap "speaker"
 bargraphCreate .r.c.vol.b1
-scale .r.c.vol.s1 -highlightthickness 0 -font $verysmallfont -from 0 -to 99 -command set_vol -orient horizontal -relief raised -showvalue false -width 10
+scale .r.c.vol.s1 -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -relief raised -showvalue false -width 10
+label .r.c.vol.ml -text "Reception is muted" -relief sunken
 
 pack .r.c.vol.l1 -side left -fill y
 pack .r.c.vol.t1 -side left -fill y
@@ -735,12 +746,12 @@ button .r.c.gain.t2 -highlightthickness 0 -padx 2 -pady 0 -text mute -relief sun
 set input_port "microphone"
 button .r.c.gain.l2 -highlightthickness 0 -padx 2 -pady 0 -command toggle_input_port -bitmap "microphone_mute"
 bargraphCreate .r.c.gain.b2
-scale .r.c.gain.s2 -highlightthickness 0 -font $verysmallfont -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10
+scale .r.c.gain.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10
+label .r.c.gain.ml -text "Transmission is muted" -relief sunken
 
 pack .r.c.gain.l2 -side left -fill y
 pack .r.c.gain.t2 -side left -fill y
-pack .r.c.gain.b2 -side top  -fill x -expand 1
-pack .r.c.gain.s2 -side top  -fill x -expand 1
+pack .r.c.gain.ml -side top  -fill x -expand 1
 
 proc mbus_recv_disable_audio_ctls {} {
 	.r.c.vol.t1 configure -state disabled
@@ -841,15 +852,13 @@ label $i.a.f.f.lbls.name  -text "Name:"     -anchor w
 label $i.a.f.f.lbls.email -text "Email:"    -anchor w
 label $i.a.f.f.lbls.phone -text "Phone:"    -anchor w
 label $i.a.f.f.lbls.loc   -text "Location:" -anchor w
-label $i.a.f.f.lbls.note  -text "Note:"     -anchor w
-pack $i.a.f.f.lbls.name $i.a.f.f.lbls.email $i.a.f.f.lbls.phone $i.a.f.f.lbls.loc $i.a.f.f.lbls.note -fill x -anchor w -side top
+pack $i.a.f.f.lbls.name $i.a.f.f.lbls.email $i.a.f.f.lbls.phone $i.a.f.f.lbls.loc -fill x -anchor w -side top
 
 entry $i.a.f.f.ents.name  -width 28 -highlightthickness 0 -textvariable rtcp_name
 entry $i.a.f.f.ents.email -width 28 -highlightthickness 0 -textvariable rtcp_email
 entry $i.a.f.f.ents.phone -width 28 -highlightthickness 0 -textvariable rtcp_phone
 entry $i.a.f.f.ents.loc   -width 28 -highlightthickness 0 -textvariable rtcp_loc
-text $i.a.f.f.ents.note   -width 28 -highlightthickness 0 -height 2 
-pack $i.a.f.f.ents.name $i.a.f.f.ents.email $i.a.f.f.ents.phone $i.a.f.f.ents.loc $i.a.f.f.ents.note  -anchor n -expand 0 
+pack $i.a.f.f.ents.name $i.a.f.f.ents.email $i.a.f.f.ents.phone $i.a.f.f.ents.loc -anchor n -expand 0 
 
 # Transmission Pane ###########################################################
 set i .prefs.pane.transmission
@@ -1128,7 +1137,6 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "source_email" "$my_cname_enc [mbus_encode_str $rtcp_email]"
     mbus_send "R" "source_phone" "$my_cname_enc [mbus_encode_str $rtcp_phone]"
     mbus_send "R" "source_loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
-    #--- note to appear here!
     
     #transmission details
     mbus_send "R" "output_mode"  [mbus_encode_str $output_var]
@@ -1575,7 +1583,6 @@ add_help $i.name      	"Enter your name for transmission\nto other participants.
 add_help $i.email      	"Enter your email address for transmission\nto other participants."
 add_help $i.phone     	"Enter your phone number for transmission\nto other participants."
 add_help $i.loc      	"Enter your location for transmission\nto other participants."
-add_help $i.note      	"Enter any note you need to send to\nother participants."
 
 # transmission help
 set i .prefs.pane.transmission
