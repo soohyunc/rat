@@ -9,6 +9,10 @@ int  vanilla_encoder_encode  (u_char  *state,
                               struct s_playout_buffer *in,
                               struct s_playout_buffer *out,
                               int units_per_packet);
+int  vanilla_decoder_decode  (u_char  *state,
+                              struct s_playout_buffer *in,
+                              struct s_playout_buffer *out,
+                              u_int32 now);
  
 #endif /* __CC_VANILLA_H__ */
 

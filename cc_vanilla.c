@@ -2,6 +2,7 @@
 #include "config_win32.h"
 
 #include "codec_types.h"
+#include "codec.h"
 #include "channel_types.h"
 #include "playout.h"
 #include "cc_vanilla.h"
@@ -11,7 +12,7 @@
 
 typedef struct {
         /* Encoder state is just buffering of media data to compose a packet */
-        u_int8      pt;
+        codec_id_t  codec_id;
         u_int32     playout;
         u_int32     nelem;
         media_data *elem[MAX_UNITS_PER_PACKET];
@@ -25,6 +26,7 @@ vanilla_encoder_create(u_char **state, int *len)
         if (ve) {
                 *state = (u_char*)ve;
                 *len   = sizeof(ve_state);
+                memset(ve, 0, sizeof(ve_state));
                 return TRUE;
         }
 
@@ -56,7 +58,7 @@ vanilla_encoder_output(ve_state *ve, struct s_playout_buffer *out)
         
         /* Allocate block and get ready */
         channel_data_create(&cd, 1);
-        cd->elem[0]->pt       = ve->pt;
+        cd->elem[0]->pt       = codec_get_payload(ve->codec_id);
         cd->elem[0]->data     = (u_char*)block_alloc(size);
         cd->elem[0]->data_len = size;
 
@@ -79,8 +81,6 @@ vanilla_encoder_output(ve_state *ve, struct s_playout_buffer *out)
         playout_buffer_add(out, (u_char*)cd, sizeof(channel_data), ve->playout);
 }
 
-/* Payload change check ***!!!!****/
-
 int
 vanilla_encoder_encode (u_char *state,
                         struct s_playout_buffer *in,
@@ -97,26 +97,116 @@ vanilla_encoder_encode (u_char *state,
                  */
                 playout_buffer_remove(in, (u_char**)&m, &m_len, &playout);
 
-                if (ve->nelem != 0) {
-                        /* Check for early send required */
-                        /* !!!! CHECK PAYLOAD !!!! */
-                        /* if changed send.  */
-                        /* check if unit null and ve->nelem != 0 if so send */
-                }
+                if (ve->nelem == 0) {
+                        /* If it's the first unit make a note of it's playout */
+                        ve->playout = playout;
+                        if (m->nrep == 0) {
+                                /* We have no data ready to go and no data
+                                 * came off on incoming queue.
+                                 */
+                                media_data_destroy(&m);
+                                continue;
+                        }
+                } else {
+                        /* Check for early send required:      
+                         * (a) if this unit has no media respresentations.
+                         * (b) codec type of incoming unit is different from what is on queue.
+                         */
+                        if (m->nrep == 0) {
+                                vanilla_encoder_output(ve, out);
+                                media_data_destroy(&m);
+                                continue;
+                        } else if (m->rep[0]->id != ve->codec_id) {
+                                vanilla_encoder_output(ve, out);
+                        }
+                } 
 
                 assert(m_len == sizeof(media_data));
 
-                /* If it's the first unit make a note of it's playout */
-                if (ve->nelem == 0) {
-                        ve->playout = playout;
-                }
-                
+                ve->codec_id = m->rep[0]->id;                
                 ve->elem[ve->nelem] = m;
                 ve->nelem++;
 
                 if (ve->nelem >= upp) {
                         vanilla_encoder_output(ve, out);
                 }
+                media_data_destroy(&m);
         }
         return TRUE;
+}
+
+
+__inline static void
+vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, u_int32 playout)
+{
+        const codec_format_t *cf;
+        codec_id_t            id;
+        u_int32               data_len, playout_step;
+        u_char               *p, *end;
+        media_data           *m;
+        
+        id = codec_get_by_payload(cu->pt);
+        cf = codec_get_format(id);
+
+        media_data_create(&m, 1);
+        assert(m->nrep == 1);
+
+        /* Do first unit separately as that may have state */
+        p    = cu->data;
+        end  = cu->data + cu->data_len;
+
+        if (cf->mean_per_packet_state_size) {
+                memcpy(m->rep[0]->state, p, cf->mean_per_packet_state_size);
+                m->rep[0]->state_len = cf->mean_per_packet_state_size;
+                p                   += cf->mean_per_packet_state_size;
+        }
+
+        data_len = codec_peek_frame_size(id, p, end - p);
+        memcpy(m->rep[0]->data, p, data_len);
+        m->rep[0]->data_len = data_len;
+        p                  += data_len;
+        playout_buffer_add(in, (u_char *)m, sizeof(media_unit), playout);
+
+        /* Now do other units which do not have state*/
+        playout_step = codec_get_samples_per_frame(id);
+        while(p < end) {
+                playout += playout_step;
+                media_data_create(&m, 1);
+                assert(m->nrep == 1);
+                data_len = codec_peek_frame_size(id, p, end - p);
+                memcpy(m->rep[0]->data, p, data_len);
+                m->rep[0]->data_len = data_len;
+                p                  += data_len;
+                playout_buffer_add(in, (u_char *)m, sizeof(media_unit), playout);
+        }
+        assert(p == end);
+}
+
+int
+vanilla_decoder_decode(u_char *state,
+                       struct s_playout_buffer in, 
+                       struct s_playout_buffer out, 
+                       u_int32 now)
+{
+
+        channel_data         *c;
+        u_int32               playout, clen;
+
+        assert(state == NULL); /* No decoder state needed */
+                
+        while(playout_buffer_get(in, (u_char**)&c, &clen, &playout)) {
+                assert(c != NULL);
+                assert(clen == sizeof(channel_data));
+
+                if (ts_gt(playout, now)) {
+                        /* Playout point of unit is after now.  Stop already!  */
+                        break;
+                }
+                playout_buffer_remove(in, (u_char**)&c, &clen, &playout);
+                
+                assert(c->nelem == 1);
+                cu = c->elem[0];
+                vanilla_decoder_output(cu, out, playout);
+                channel_data_destroy(&c);
+        }
 }

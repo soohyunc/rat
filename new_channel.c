@@ -8,10 +8,10 @@
 #include "memory.h"
 
 typedef struct s_channel_state {
-        u_char  coder;            /* Index of coder in coder table */
-        u_char *state;
-        int     state_len;
-        u_int16 units_per_packet;
+        u_char  coder;            /* Index of coder in coder table      */
+        u_char *state;            /* Pointer to state relevent to coder */
+        int     state_len;        /* The size of that state             */
+        u_int16 units_per_packet; /* The number of units per packet     */
 } channel_state_t;
 
 typedef struct {
@@ -63,7 +63,7 @@ static channel_coder_t table[] = {
          NULL,
          NULL,
          NULL,
-         NULL}
+         vanilla_decoder_decode}
 };
 
 #define CC_ID_TO_IDX(x) ((x) + 0xff01)

@@ -36,8 +36,10 @@ typedef struct {
         channel_unit *elem[MAX_CHANNEL_UNITS];
 } channel_data;
 
-int  channel_data_create(channel_data **new_cd, int nelem);
+int  channel_data_create  (channel_data **cd, int nelem);
+int  channel_data_destroy (channel_data **cd);
 
-void media_data_destroy(media_data **m);
+int  media_data_create    (media_data **m, int nrep);
+void media_data_destroy   (media_data **m);
 
 #endif /* __CHANNEL_TYPES_H__ */
