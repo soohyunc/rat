@@ -248,11 +248,11 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
         mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.codec", args, FALSE);
         xfree(args);
 
-        /* args size is for source.packet.loss, source.audio.buffered size always less */
+        /* args size is for source.packet.loss, tool.rat.audio.buffered size always less */
 	args = (char *) xmalloc(strlen(their_cname) + strlen(my_cname) + 11);
         
         sprintf(args, "%s %ld", their_cname, playout_buffer_duration(sp->playout_buf_list, e));
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.audio.buffered", args, FALSE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.audio.buffered", args, FALSE);
 
 	sprintf(args, "%s %s %8ld", my_cname, their_cname, (e->lost_frac * 100) >> 8);
 	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
@@ -323,7 +323,7 @@ ui_input_level(session_struct *sp, int level)
 	}
 
 	sprintf(args, "%3d", level);
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.powermeter.input", args, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.input.powermeter", args, FALSE);
 	ol = level;
 }
 
@@ -339,7 +339,7 @@ ui_output_level(session_struct *sp, int level)
 	}
 
 	sprintf(args, "%3d", level);
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.powermeter.output", args, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.output.powermeter", args, FALSE);
 	ol = level;
 }
 
@@ -359,7 +359,7 @@ ui_repair(session_struct *sp)
 		repair = mbus_encode_str("Pattern Matching");
                 break;
         }
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "repair", repair, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.channel.repair", repair, FALSE);
 	xfree(repair);
 }
 
@@ -388,7 +388,7 @@ ui_update_interleaving(session_struct *sp)
         }
 
         sprintf(args,"%d %d",iu, isep);
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "interleaving", args, TRUE);        
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.interleaving", args, TRUE);        
 }
 
 void
@@ -401,7 +401,7 @@ ui_update_frequency(session_struct *sp)
 	sprintf(args, "%d-kHz", pcp->freq/1000);
         assert(strlen(args) < 7);
         mbes = mbus_encode_str(args);
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "frequency", mbes, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.frequency", mbes, FALSE);
         xfree(mbes);
 }
 
@@ -423,7 +423,7 @@ ui_update_channels(session_struct *sp)
                 debug_msg("UI not ready for %d channels\n", pcp->channels);
                 return;
         }
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "channels", mbes, FALSE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.channels", mbes, FALSE);
         xfree(mbes);
 }       
 
@@ -435,7 +435,7 @@ ui_update_primary(session_struct *sp)
 
 	pcp = get_codec_by_pt(sp->encodings[0]);
 	mbes = mbus_encode_str(pcp->short_name);
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.codec", mbes, FALSE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.codec", mbes, FALSE);
         xfree(mbes);
 }
 
@@ -480,7 +480,7 @@ ui_update_redundancy(session_struct *sp)
 	args = (char *) xmalloc(strlen(codec_name) + 4);
         sprintf(args,"%s %2d", codec_name, ioff);
         assert(strlen(args) < (strlen(codec_name) + 4));
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "redundancy", args, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.redundancy", args, TRUE);
 	xfree(codec_name);
         xfree(args);
 }
@@ -553,7 +553,7 @@ ui_update(session_struct *sp)
 
         sprintf(args, "%3d", collator_get_units(sp->collator));
         assert(strlen(args) < 4);
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "rate", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.rate", args, TRUE);
 
 	ui_update_output_port(sp);
 	ui_update_input_port(sp);
@@ -571,13 +571,13 @@ ui_update(session_struct *sp)
 void
 ui_show_audio_busy(session_struct *sp)
 {
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "disable.audio.ctls", "", TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.disable.audio.ctls", "", TRUE);
 }
 
 void
 ui_hide_audio_busy(session_struct *sp)
 {
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "enable.audio.ctls", "", TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.enable.audio.ctls", "", TRUE);
 }
 
 
@@ -587,7 +587,7 @@ ui_update_lecture_mode(session_struct *sp)
 	/* Update the UI to reflect the lecture mode setting...*/
 	char	args[2];
 	sprintf(args, "%1d", sp->lecture);
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "lecture.mode", args, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.lecture.mode", args, TRUE);
 }
 
 void
@@ -680,16 +680,16 @@ void
 ui_update_sync(session_struct *sp, int sync)
 {
 	if (sync) {
-		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "sync", "1", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.sync", "1", TRUE);
 	} else {
-		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "sync", "0", TRUE);
+		mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.sync", "0", TRUE);
 	}
 }
 
 void
 ui_update_key(session_struct *sp, char *key)
 {
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "update_key", key, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "security.encryption.key", key, TRUE);
 }
 
 static int
@@ -787,11 +787,11 @@ ui_codecs(session_struct *sp, int pt)
 
         ui_get_codecs(pt, args, 256, TRUE);
         mbes = mbus_encode_str(args);
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.codec.supported", mbes, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.codec.supported", mbes, TRUE);
         xfree(mbes);
         ui_get_codecs(pt, args, 256, FALSE);
         mbes = mbus_encode_str(args);
-        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "audio.redundancy.supported", mbes, TRUE);
+        mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.redundancy.supported", mbes, TRUE);
         xfree(mbes);
 }
 
@@ -801,7 +801,7 @@ ui_converters(session_struct *sp)
         char buf[255], *mbes;
         if (converter_get_names(buf, 255)) {
                 mbes = mbus_encode_str(buf);
-                mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "converter.supported", mbes, TRUE);
+                mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.converter.supported", mbes, TRUE);
                 xfree(mbes);
         }
 }
@@ -814,7 +814,7 @@ ui_sampling_modes(session_struct *sp)
         UNUSED(sp);
         /* this is just a quick con job for the moment */
 	freqs = mbus_encode_str("8-kHz 16-kHz 32-kHz 48-kHz");
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "frequencies.supported", freqs, TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.frequencies.supported", freqs, TRUE);
 	xfree(freqs);
 }
 
@@ -852,13 +852,13 @@ ui_title(session_struct *sp)
 void
 ui_load_settings(session_struct *sp)
 {
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "load.settings", "", TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "tool.rat.load.settings", "", TRUE);
 }
 
 void 
 ui_quit(session_struct *sp)
 {
-	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "quit", "", TRUE);
+	mbus_qmsg(sp->mbus_engine_base, mbus_name_ui, "mbus.quit", "", TRUE);
 }
 
 

@@ -63,8 +63,6 @@
 
 extern int should_exit;
 
-/*****************************************************************************/
-
 static void rx_tool_rat_toggle_input_port(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(srce);
@@ -384,7 +382,7 @@ static void rx_audio_output_port(char *srce, char *args, session_struct *sp)
 	ui_update_output_port(sp);
 }
 
-static void rx_repair(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_repair(char *srce, char *args, session_struct *sp)
 {
 	char	*s;
 
@@ -397,7 +395,7 @@ static void rx_repair(char *srce, char *args, session_struct *sp)
 		if (strcmp(s, "Packet Repetition") == 0) sp->repair = REPAIR_REPEAT;
         	if (strcmp(s,  "Pattern Matching") == 0) sp->repair = REPAIR_PATTERN_MATCH;
 	} else {
-		printf("mbus: usage \"repair None|Repetition\"\n");
+		printf("mbus: usage \"tool.rat.repair None|Repetition\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
 }
@@ -648,7 +646,7 @@ static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
 }
 
 static void
-rx_interleaving(char *srce, char *args, session_struct *sp)
+rx_tool_rat_interleaving(char *srce, char *args, session_struct *sp)
 {
         int units, separation, cc_pt;
         char config[80];
@@ -663,7 +661,7 @@ rx_interleaving(char *srce, char *args, session_struct *sp)
                 debug_msg("config %s\n", config);
                 config_channel_coder(sp, cc_pt, config);
         } else {
-                printf("mbus: usage \"interleaving <codec> <separation in units>\"\n");
+                printf("mbus: usage \"tool.rat.interleaving <codec> <separation in units>\"\n");
         }
         mbus_parse_done(sp->mbus_engine_conf);
         ui_update_interleaving(sp);
@@ -683,7 +681,7 @@ validate_redundant_codec(codec_t *primary, codec_t *redundant)
 }
 
 static void 
-rx_redundancy(char *srce, char *args, session_struct *sp)
+rx_tool_rat_redundancy(char *srce, char *args, session_struct *sp)
 {
 	char	*codec;
         int      offset, cc_pt, rpt;
@@ -713,14 +711,14 @@ rx_redundancy(char *srce, char *args, session_struct *sp)
                 cc_pt = get_cc_pt(sp,"REDUNDANCY");
                 config_channel_coder(sp, cc_pt, config);
         } else {
-                printf("mbus: usage \"redundancy <codec> <offset in units>\"\n");
+                printf("mbus: usage \"tool.rat.redundancy <codec> <offset in units>\"\n");
         }                
 	mbus_parse_done(sp->mbus_engine_conf);
         ui_update_redundancy(sp);
 }
 
 static void 
-rx_audio_codec(char *srce, char *args, session_struct *sp)
+rx_tool_rat_codec(char *srce, char *args, session_struct *sp)
 {
         static int virgin = 1;
 	char	*short_name, *sfreq, *schan;
@@ -777,7 +775,7 @@ rx_audio_codec(char *srce, char *args, session_struct *sp)
 }
 
 static void 
-rx_sampling(char *srce, char *args, session_struct *sp)
+rx_tool_rat_sampling(char *srce, char *args, session_struct *sp)
 {
         int channels, freq, pt;
         char *sfreq, *schan;
@@ -803,13 +801,13 @@ rx_sampling(char *srce, char *args, session_struct *sp)
         if (pt != -1) {
                 ui_codecs(sp, pt);
         } else {
-                printf("mbus: usage \"sampling <freq> <channels>\"\n");
+                printf("mbus: usage \"tool.rat.sampling <freq> <channels>\"\n");
         }
         
         mbus_parse_done(sp->mbus_engine_conf);
 }
 
-static void rx_playout_limit(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_playout_limit(char *srce, char *args, session_struct *sp)
 {
         int i;
 
@@ -818,12 +816,12 @@ static void rx_playout_limit(char *srce, char *args, session_struct *sp)
         if (mbus_parse_int(sp->mbus_engine_conf, &i) && (1 == i || 0 == i)) {
                 sp->limit_playout = i;
         } else {
-		printf("mbus: usage \"playout.limit <bool>\"\n");
+		printf("mbus: usage \"tool.rat.playout.limit <bool>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
 }
 
-static void rx_playout_min(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_playout_min(char *srce, char *args, session_struct *sp)
 {
 	int	 i;
 
@@ -833,12 +831,12 @@ static void rx_playout_min(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
 		sp->min_playout = i;
 	} else {
-		printf("mbus: usage \"playout.min <integer>\"\n");
+		printf("mbus: usage \"tool.rat.playout.min <integer>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
 }
 
-static void rx_playout_max(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_playout_max(char *srce, char *args, session_struct *sp)
 {
 	int	 i;
 
@@ -848,7 +846,7 @@ static void rx_playout_max(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(sp->mbus_engine_conf, &i)) {
 		sp->max_playout = i;
 	} else {
-		printf("mbus: usage \"playout.max <integer>\"\n");
+		printf("mbus: usage \"tool.rat.playout.max <integer>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine_conf);
 }
@@ -905,7 +903,7 @@ static void rx_tool_rat_settings(char *srce, char *args, session_struct *sp)
         ui_update(sp);
 }
 
-static void rx_quit(char *srce, char *args, session_struct *sp)
+static void rx_mbus_quit(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(args);
 	UNUSED(srce);
@@ -953,6 +951,14 @@ const char *rx_cmnd[] = {
 	"tool.rat.powermeter",
         "tool.rat.converter",
         "tool.rat.settings",
+	"tool.rat.repair",
+        "tool.rat.interleaving",
+	"tool.rat.redundancy",
+	"tool.rat.codec",
+        "tool.rat.sampling",
+        "tool.rat.playout.limit",
+        "tool.rat.playout.min",            
+        "tool.rat.playout.max",            
 	"audio.input.mute",
 	"audio.input.gain",
 	"audio.input.port",
@@ -968,7 +974,6 @@ const char *rx_cmnd[] = {
         "audio.file.record.pause",
 	"audio.file.record.stop",
         "audio.file.record.live",
-	"repair",
 	"security.encryption.key",             
         "rtp.source.name",
 	"rtp.source.email",
@@ -976,14 +981,7 @@ const char *rx_cmnd[] = {
 	"rtp.source.loc",
 	"rtp.source.mute",
 	"rtp.source.playout",
-        "interleaving",
-	"redundancy",
-	"audio.codec",
-        "sampling",
-        "playout.limit",
-        "playout.min",            
-        "playout.max",            
-	"quit",
+	"mbus.quit",
 	"mbus.waiting",
 	"mbus.go",
 	"mbus.hello",             
@@ -1005,6 +1003,14 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_tool_rat_powermeter,
         rx_tool_rat_converter,
         rx_tool_rat_settings,
+	rx_tool_rat_repair,
+        rx_tool_rat_interleaving,
+	rx_tool_rat_redundancy,
+	rx_tool_rat_codec,
+        rx_tool_rat_sampling,
+        rx_tool_rat_playout_limit,
+        rx_tool_rat_playout_min,
+        rx_tool_rat_playout_max,                
 	rx_audio_input_mute,
 	rx_audio_input_gain,
 	rx_audio_input_port,
@@ -1020,7 +1026,6 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_audio_file_rec_pause,
         rx_audio_file_rec_stop,
         rx_audio_file_rec_live,
-	rx_repair,
 	rx_security_encryption_key,
 	rx_rtp_source_name,
 	rx_rtp_source_email,
@@ -1028,14 +1033,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_rtp_source_loc,
 	rx_rtp_source_mute,
 	rx_rtp_source_playout,
-        rx_interleaving,
-	rx_redundancy,
-	rx_audio_codec,
-        rx_sampling,
-        rx_playout_limit,
-        rx_playout_min,
-        rx_playout_max,                
-	rx_quit,
+	rx_mbus_quit,
 	rx_mbus_waiting,
 	rx_mbus_go,
 	rx_mbus_hello,

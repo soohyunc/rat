@@ -146,41 +146,45 @@ proc mbus_recv {cmnd args} {
 		mbus.waiting			{eval mbus_recv_mbus.waiting $args}
 		mbus.go				{eval mbus_recv_mbus.go $args}
 		mbus.hello			{eval mbus_recv_mbus.hello $args}
-		load.settings  			{eval mbus_recv_load.settings $args}
-		frequencies.supported  		{eval mbus_recv_frequencies.supported $args}
-		audio.codec.supported  		{eval mbus_recv_audio.codec.supported $args}
-		audio.redundancy.supported  	{eval mbus_recv_audio.redundancy.supported $args}
-		converter.supported  		{eval mbus_recv_converter.supported $args}
-		agc  				{eval mbus_recv_agc $args}
-		sync  				{eval mbus_recv_sync $args}
-		update_key  			{eval mbus_recv_ $args}
-		frequency  			{eval mbus_recv_frequency $args}
-		channels  			{eval mbus_recv_channels $args}
-		audio.codec  			{eval mbus_recv_audio.codec $args}
-		rate  				{eval mbus_recv_rate $args}
-		redundancy  			{eval mbus_recv_redundancy $args}
-		interleaving  			{eval mbus_recv_interleaving $args}
+		mbus.quit  			{eval mbus_recv_mbus.quit $args}
+		tool.rat.load.settings 		{eval mbus_recv_tool.rat.load.settings $args}
+		tool.rat.frequencies.supported 	{eval mbus_recv_tool.rat.frequencies.supported $args}
+		tool.rat.codec.supported  	{eval mbus_recv_tool.rat.codec.supported $args}
+		tool.rat.redundancy.supported  	{eval mbus_recv_tool.rat.redundancy.supported $args}
+		tool.rat.converter.supported	{eval mbus_recv_tool.rat.converter.supported $args}
+		tool.rat.agc  			{eval mbus_recv_tool.rat.agc $args}
+		tool.rat.sync  			{eval mbus_recv_tool.rat.sync $args}
+		tool.rat.frequency  		{eval mbus_recv_tool.rat.frequency $args}
+		tool.rat.channels  		{eval mbus_recv_tool.rat.channels $args}
+		tool.rat.codec  		{eval mbus_recv_tool.rat.codec $args}
+		tool.rat.rate  			{eval mbus_recv_tool.rat.rate $args}
+		tool.rat.redundancy  		{eval mbus_recv_tool.rat.redundancy $args}
+		tool.rat.interleaving  		{eval mbus_recv_tool.rat.interleaving $args}
+		tool.rat.externalise  		{eval mbus_recv_tool.rat.externalise $args}
+		tool.rat.lecture.mode  		{eval mbus_recv_tool.rat.lecture.mode $args}
+		tool.rat.disable.audio.ctls  	{eval mbus_recv_tool.rat.disable.audio.ctls $args}
+		tool.rat.enable.audio.ctls  	{eval mbus_recv_tool.rat.enable.audio.ctls $args}
+		tool.rat.audio.buffered  	{eval mbus_recv_tool.rat.audio.buffered $args}
+		audio.suppress.silence  	{eval mbus_recv_audio.suppress.silence $args}
 		audio.channel.coding  		{eval mbus_recv_audio.channel.coding $args}
-		repair  			{eval mbus_recv_repair $args}
-		audio.powermeter.input  	{eval mbus_recv_audio.powermeter.input $args}
-		audio.powermeter.output  	{eval mbus_recv_audio.powermeter.output $args}
+		audio.channel.repair 		{eval mbus_recv_audio.channel.repair $args}
 		audio.input.gain  		{eval mbus_recv_audio.input.gain $args}
 		audio.input.port  		{eval mbus_recv_audio.input.port $args}
 		audio.input.mute  		{eval mbus_recv_audio.input.mute $args}
+		audio.input.powermeter  	{eval mbus_recv_audio.input.powermeter $args}
 		audio.output.gain  		{eval mbus_recv_audio.output.gain $args}
 		audio.output.port  		{eval mbus_recv_audio.output.port $args}
 		audio.output.mute  		{eval mbus_recv_audio.output.mute $args}
-		audio.file.play.ready   {eval mbus_recv_audio.file.play.ready   $args}
-		audio.file.play.alive   {eval mbus_recv_audio.file.play.alive $args}
-		audio.file.record.ready {eval mbus_recv_audio.file.record.ready $args}
-		audio.file.record.alive {eval mbus_recv_audio.file.record.alive $args}
+		audio.output.powermeter  	{eval mbus_recv_audio.output.powermeter $args}
+		audio.file.play.ready   	{eval mbus_recv_audio.file.play.ready   $args}
+		audio.file.play.alive   	{eval mbus_recv_audio.file.play.alive $args}
+		audio.file.record.ready 	{eval mbus_recv_audio.file.record.ready $args}
+		audio.file.record.alive 	{eval mbus_recv_audio.file.record.alive $args}
 		session.title  			{eval mbus_recv_session.title $args}
 		session.address  		{eval mbus_recv_session.address $args}
-		externalise  			{eval mbus_recv_externalise $args}
-		lecture.mode  			{eval mbus_recv_lecture.mode $args}
-		detect.silence  		{eval mbus_recv_detect.silence $args}
-		rtp.cname  				{eval mbus_recv_rtp.cname $args}
+		rtp.cname  			{eval mbus_recv_rtp.cname $args}
 		rtp.source.exists  		{eval mbus_recv_rtp.source.exists $args}
+		rtp.source.remove  		{eval mbus_recv_rtp.source.remove $args}
 		rtp.source.name  		{eval mbus_recv_rtp.source.name $args}
 		rtp.source.email  		{eval mbus_recv_rtp.source.email $args}
 		rtp.source.phone  		{eval mbus_recv_rtp.source.phone $args}
@@ -189,17 +193,13 @@ proc mbus_recv {cmnd args} {
 		rtp.source.note  		{eval mbus_recv_rtp.source.note $args}
 		rtp.source.codec  		{eval mbus_recv_rtp.source.codec $args}
 		rtp.source.packet.duration  	{eval mbus_recv_rtp.source.packet.duration $args}
-		rtp.source.audio.buffered  	{eval mbus_recv_rtp.source.audio.buffered $args}
 		rtp.source.packet.loss  	{eval mbus_recv_rtp.source.packet.loss $args}
 		rtp.source.reception  		{eval mbus_recv_rtp.source.reception $args}
 		rtp.source.active  		{eval mbus_recv_rtp.source.active $args}
 		rtp.source.inactive  		{eval mbus_recv_rtp.source.inactive $args}
-		rtp.source.remove  		{eval mbus_recv_rtp.source.remove $args}
 		rtp.source.mute  		{eval mbus_recv_rtp.source.mute $args}
-		quit  				{eval mbus_recv_quit $args}
-		disable.audio.ctls  		{eval mbus_recv_disable.audio.ctls $args}
-		enable.audio.ctls  		{eval mbus_recv_enable.audio.ctls $args}
-		default				{error "### Unknown Mbus command $cmnd"}
+		security.encryption.key 	{eval mbus_recv_security.encryption.key $args}
+		default				{error "Unknown mbus command $cmnd"}
 	}
 }
 
@@ -216,7 +216,7 @@ proc mbus_recv_mbus.hello {} {
 	# Ignore...
 }
 
-proc mbus_recv_load.settings {} {
+proc mbus_recv_tool.rat.load.settings {} {
     load_settings
     check_rtcp_name
     sync_engine_to_ui
@@ -228,10 +228,10 @@ proc mbus_recv_load.settings {} {
 proc change_sampling { } {
     global freq channels
 
-    mbus_send "R" "sampling" "[mbus_encode_str $freq] [mbus_encode_str $channels]"
+    mbus_send "R" "tool.rat.sampling" "[mbus_encode_str $freq] [mbus_encode_str $channels]"
 }
 
-proc mbus_recv_frequencies.supported {arg} {
+proc mbus_recv_tool.rat.frequencies.supported {arg} {
     global freq
 
     .prefs.pane.audio.dd.sampling.mfreq.menu delete 0 last
@@ -243,7 +243,7 @@ proc mbus_recv_frequencies.supported {arg} {
     set freq [lindex $freqs 0]
 }
 
-proc mbus_recv_audio.codec.supported {arg} {
+proc mbus_recv_tool.rat.codec.supported {arg} {
     # We now have a list of codecs which this RAT supports...
     global prenc
 
@@ -257,7 +257,7 @@ proc mbus_recv_audio.codec.supported {arg} {
     set prenc [lindex $codecs 0]
 }
 
-proc mbus_recv_audio.redundancy.supported {arg} {
+proc mbus_recv_tool.rat.redundancy.supported {arg} {
     global secenc
 
     .prefs.pane.transmission.cc.red.fc.m.menu delete 0 last
@@ -270,7 +270,7 @@ proc mbus_recv_audio.redundancy.supported {arg} {
     set secenc [lindex $codecs 0]
 }
 
-proc mbus_recv_converter.supported {arg} {
+proc mbus_recv_tool.rat.converter.supported {arg} {
     global convert_var
     
     .prefs.pane.reception.r.ms.menu delete 0 last
@@ -281,49 +281,49 @@ proc mbus_recv_converter.supported {arg} {
     }
 }
 
-proc mbus_recv_agc {arg} {
+proc mbus_recv_tool.rat.agc {arg} {
   global agc_var
   set agc_var $arg
 }
 
-proc mbus_recv_sync {arg} {
+proc mbus_recv_tool.rat.sync {arg} {
   global sync_var
   set sync_var $arg
 }
 
-proc mbus_recv_update_key {new_key} {
+proc mbus_recv_security.encryption.key {new_key} {
 	global key_var key
 	set key_var 1
 	set key     $new_key
 }
 
-proc mbus_recv_frequency {arg} {
+proc mbus_recv_tool.rat.frequency {arg} {
   global freq
   set freq $arg
 }
 
-proc mbus_recv_channels {arg} {
+proc mbus_recv_tool.rat.channels {arg} {
   global channels
   set channels $arg
 }
 
-proc mbus_recv_audio.codec {arg} {
+proc mbus_recv_tool.rat.codec {arg} {
   global prenc
   set prenc $arg
 }
 
-proc mbus_recv_rate {arg} {
+proc mbus_recv_tool.rat.rate {arg} {
     global upp
     set upp $arg
 }
 
-proc mbus_recv_redundancy {new_codec new_off} {
+proc mbus_recv_tool.rat.redundancy {new_codec new_off} {
     global secenc red_off
     set secenc  $new_codec
     set red_off $new_off
 }
 
-proc mbus_recv_interleaving {units separation} {
+proc mbus_recv_tool.rat.interleaving {units separation} {
     global int_units int_gap
     set int_units $units
     set int_gap $separation
@@ -334,17 +334,17 @@ proc mbus_recv_audio.channel.coding {channel} {
     set channel_var $channel
 }
 
-proc mbus_recv_repair {arg} {
+proc mbus_recv_audio.channel.repair {arg} {
   global repair_var
   set repair_var $arg
 }
 
-proc mbus_recv_audio.powermeter.input {level} {
+proc mbus_recv_audio.input.powermeter {level} {
 	global bargraphTotalHeight
 	bargraphSetHeight .r.c.gain.b2 [expr ($level * $bargraphTotalHeight) / 100]
 }
 
-proc mbus_recv_audio.powermeter.output {level} {
+proc mbus_recv_audio.output.powermeter {level} {
 	global bargraphTotalHeight
 	bargraphSetHeight .r.c.vol.b1  [expr ($level * $bargraphTotalHeight) / 100]
 }
@@ -407,17 +407,17 @@ proc mbus_recv_session.address {addr port ttl} {
     set session_address "Address: $addr Port: $port TTL: $ttl"
 }
 
-proc mbus_recv_externalise {mode} {
+proc mbus_recv_tool.rat.externalise {mode} {
 	global 3d_audio_var
 	set 3d_audio_var $mode
 }
 
-proc mbus_recv_lecture.mode {mode} {
+proc mbus_recv_tool.rat.lecture.mode {mode} {
 	global lecture_var
 	set lecture_var $mode
 }
 
-proc mbus_recv_detect.silence {mode} {
+proc mbus_recv_audio.suppress.silence {mode} {
 	global silence_var
 	set silence_var $mode
 }
@@ -489,7 +489,7 @@ proc mbus_recv_rtp.source.packet.duration {cname packet_duration} {
 	set DURATION($cname) $packet_duration
 }
 
-proc mbus_recv_rtp.source.audio.buffered {cname buffered} {
+proc mbus_recv_tool.rat.audio.buffered {cname buffered} {
         global BUFFER_SIZE
         init_source $cname
         set BUFFER_SIZE($cname) $buffered 
@@ -598,7 +598,7 @@ proc mbus_recv_audio.file.record.alive {alive} {
 	}
 }
 
-proc mbus_recv_quit {} {
+proc mbus_recv_mbus.quit {} {
 	save_settings 
 	destroy .
 }
@@ -835,7 +835,7 @@ proc do_quit {} {
 	}
 	save_settings 
 	destroy .
-	mbus_send "R" "quit" ""
+	mbus_send "R" "mbus.quit" ""
 }
 
 # Initialise RAT MAIN window
@@ -902,7 +902,7 @@ pack .r.c.gain.l2 -side left -fill y
 pack .r.c.gain.t2 -side left -fill y
 pack .r.c.gain.ml -side top  -fill both -expand 1
 
-proc mbus_recv_disable.audio.ctls {} {
+proc mbus_recv_tool.rat.disable.audio.ctls {} {
 	.r.c.vol.t1 configure -state disabled
 	.r.c.vol.l1 configure -state disabled
 	.r.c.vol.s1 configure -state disabled
@@ -911,7 +911,7 @@ proc mbus_recv_disable.audio.ctls {} {
 	.r.c.gain.s2 configure -state disabled
 }
 
-proc mbus_recv_enable.audio.ctls {} {
+proc mbus_recv_tool.rat.enable.audio.ctls {} {
 	.r.c.vol.t1 configure -state normal
 	.r.c.vol.l1 configure -state normal
 	.r.c.vol.s1 configure -state normal
@@ -1420,27 +1420,27 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "rtp.source.loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
     
     #transmission details
-    mbus_send "R" "audio.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
+    mbus_send "R" "tool.rat.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
     mbus_send "R" "tool.rat.rate"         $upp
-    mbus_send "R" "redundancy"   "[mbus_encode_str $secenc] $red_off"
-    mbus_send "R" "interleaving" "$int_gap $int_units"
+    mbus_send "R" "tool.rat.redundancy"   "[mbus_encode_str $secenc] $red_off"
+    mbus_send "R" "tool.rat.interleaving" "$int_gap $int_units"
 
     # channel.code announcement  MUST go after config of channel coders communicated
     mbus_send "R" "audio.channel.coding" [mbus_encode_str $channel_var]
 
-    mbus_send "R" "tool.rat.silence"      $silence_var
-    mbus_send "R" "tool.rat.agc"          $agc_var
-    mbus_send "R" "tool.rat.loopback"     $audio_loop_var
+    mbus_send "R" "tool.rat.silence"       $silence_var
+    mbus_send "R" "tool.rat.agc"           $agc_var
+    mbus_send "R" "tool.rat.loopback"      $audio_loop_var
     mbus_send "R" "tool.rat.echo.suppress" $echo_var
 
     #Reception Options
-    mbus_send "R" "repair"       [mbus_encode_str $repair_var]
-    mbus_send "R" "playout.limit" $limit_var
-    mbus_send "R" "playout.min"   $min_var
-    mbus_send "R" "playout.max"   $max_var
+    mbus_send "R" "tool.rat.repair"        [mbus_encode_str $repair_var]
+    mbus_send "R" "tool.rat.playout.limit" $limit_var
+    mbus_send "R" "tool.rat.playout.min"   $min_var
+    mbus_send "R" "tool.rat.playout.max"   $max_var
     mbus_send "R" "tool.rat.lecture"       $lecture_var
     mbus_send "R" "tool.rat.externalise"   $3d_audio_var
-    mbus_send "R" "tool.rat.converter"    [mbus_encode_str $convert_var]
+    mbus_send "R" "tool.rat.converter"     [mbus_encode_str $convert_var]
 
     #Security
     if {$key_var==1 && [string length $key]!=0} {
@@ -1667,7 +1667,7 @@ proc load_settings {} {
     load_setting attr audioInterleavingUnits int_units     "4"
 	
 	global prenc channels freq
-	mbus_send "R" "audio.codec" "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
+	mbus_send "R" "tool.rat.codec" "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
 	
 	global      in_mute_var   out_mute_var
 	input_mute  $in_mute_var
