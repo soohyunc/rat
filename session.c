@@ -89,6 +89,7 @@ init_session(session_struct *sp)
         sp->last_depart_ts              = 1;
         sp->encodings[0]		= cp->pt;	/* user chosen encoding for primary */
 	sp->num_encodings		= 1;		/* Number of encodings in packet */
+        sp->next_encoding               = -1; /* Coding to change to */
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
         sp->device_clock                = new_time(sp->clock, cp->freq);
         assert(!(GLOBAL_CLOCK_FREQ%cp->freq));                        /* just in case someone adds weird freq codecs */
@@ -129,7 +130,8 @@ init_session(session_struct *sp)
 	sp->mbus_channel		= 0;
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
-
+        strcpy(sp->title, "<Untitled>");
+        
 	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {
 		perror("Cannot get hostname!");
 		abort();
@@ -168,7 +170,7 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 				i++;
 			}
 			if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
-				argv[i] = "-name";
+                                strncpy(sp[s]->title, argv[i+1], SESSION_TITLE_LEN);
 				i++;
 			}
 			if ((strcmp(argv[i], "-mbus") == 0) && (argc > i+1)) {
@@ -393,4 +395,3 @@ parse_options(int argc, char *argv[], session_struct *sp[])
 	}
 	return num_sessions;
 }
-

@@ -74,11 +74,14 @@
 #define PT_VANILLA         -1
 #define PT_REDUNDANCY     121		/* This has to be 121 for compatibility with RAT-3.0 */
 
+#define SESSION_TITLE_LEN 40
+
 extern int thread_pri;
 
 typedef struct session_tag {
         short           id;                             /* idx of this session_tag - nasty hack - we know session_structs allocated as an array of 2 */
 	int		mode;                           /* audio tool, transcoder */
+        char            title[SESSION_TITLE_LEN+1];
 	char            asc_address[MAXHOSTNAMELEN+1];  /* their ascii name if unicast */
 	char            maddress[16];
 	u_long          net_maddress;			/* Same as above, can be used in a sendto */
@@ -97,6 +100,7 @@ typedef struct session_tag {
 	int		rtp_seq;
 	int		encodings[MAX_ENCODINGS];
 	int		num_encodings;			/* 1 - MAX_ENC */
+        int             next_encoding;
 	int             sending_audio;
 	int             playing_audio;
         int             last_tx_service_productive;     /* channel coder can output after talksprt ends */

@@ -52,6 +52,7 @@
 #include "transmit.h"
 #include "mix.h"
 #include "codec.h"
+#include "channel.h"
 #include "cushion.h"
 #include "rat_time.h"
 #include "receive.h"
@@ -60,17 +61,21 @@
 static sample* audio_zero_buf;
 
 typedef struct s_bias_ctl {
-        int   req;
-        int   bias;
-        int   ccnt;
+        u_char   req;
+        u_char   channels;
+        float    bias[2];
+        u_char   virgin;
+        int      ccnt;
 } bias_ctl;
 
 static bias_ctl *
-bias_ctl_create()
+bias_ctl_create(int channels)
 {
 	bias_ctl *bc = (bias_ctl*)xmalloc(sizeof(bias_ctl));
 	memset(bc, 0 , sizeof(bias_ctl));
         bc->req = TRUE;
+        bc->channels = channels;
+        bc->virgin   = channels;
         return bc;
 }
 
@@ -80,37 +85,55 @@ bias_ctl_destroy(bias_ctl *bc)
         xfree(bc);
 }
 
+__inline static u_int32 
+audio_unbias_channel(int32 *bias, sample *buf, int len, int channel, int channels)
+{
+        int64 sum;
+        sample *buf_end;
+
+        buf    += channel - 1;
+        buf_end = buf + len;
+
+        sum = 0;
+        while(buf != buf_end) {
+                sum  += *buf;
+                *buf = *buf - *bias;
+                buf += channels;
+        }
+        sum = (sum / len) * channels;
+        
+        return (u_int32) sum;
+}
+
 void
 audio_unbias(bias_ctl *bc, sample *buf, int len)
 {
 	int		i;
-        long		sum = 0;
-	float		s1, s2;
-
+       	int32 	        sum = 0, bias;
+        
 	if (bc->req == FALSE)
 		return;
 
-	for(i = 0; i < len; i++) {
-		sum   += buf[i];
-		buf[i] = buf[i] - bc->bias; 
-        }
-	/* Thsi could be overkill,but we use long term average
-	 * with adaptive filter coefficients.
-	 * The idea being that sum can only decrease
-	 */
-	sum = sum / len;
-	s1 = (float) abs(sum)/32767.0;
-	s2 = 1.0 - s1;
-	bc->bias = (int)(s2 * (float)(bc->bias) + s1 * (float)sum);
+        for (i = 0; i < bc->channels; i++) {
+                bias = (int) bc->bias[i];
+                sum = audio_unbias_channel(&bias, buf, len, i, bc->channels);
+                if (bc->virgin == 0) {
+                        bc->bias[i] += ((float)sum - bc->bias[i]) / 32.0;
+                        assert(abs(bc->bias[i]) < 32768.0);
+                } else {
+                        bc->virgin--;
+                        bc->bias[i] = (float)sum;
+                }
 
-	/* Auto switch off check */
-	if (abs(sum) < BD_THRESHOLD) {
-		bc->ccnt ++;
-	} else {
-		bc->ccnt = 0;
-	}
-        
-	if (bc->ccnt == BD_CONSECUTIVE && bc->bias < BD_THRESHOLD) {
+                /* Auto switch off check */
+                if (abs(sum) < BD_THRESHOLD) {
+                        bc->ccnt ++;
+                } else {
+                        bc->ccnt = 0;
+                }
+        }
+
+	if (bc->ccnt == BD_CONSECUTIVE * bc->channels) {
                 bc->req = FALSE;
 #ifdef DEBUG
 		printf("Bias correction not necessary.\n");
@@ -244,7 +267,7 @@ audio_device_take(session_struct *sp)
          * depend on what is set here
          */
         sp->device_clock = new_time(sp->clock, cp->freq);
-        sp->bc           = bias_ctl_create();
+        sp->bc           = bias_ctl_create(cp->channels);
 	sp->tb           = tx_create(sp, cp->unit_len, cp->channels);
         sp->ms           = mix_create(sp, 32640);
         cushion_create(&sp->cushion, cp->unit_len);
@@ -289,6 +312,24 @@ audio_device_give(session_struct *sp)
         free_time(sp->device_clock);
 }
 
+void
+audio_device_reconfigure(session_struct *sp)
+{
+        u_int16 oldpt    = sp->encodings[0];
+
+        audio_device_give(sp);
+        tx_stop(sp);
+        sp->encodings[0] = sp->next_encoding;
+        if (audio_device_take(sp) == FALSE) {
+                /* we failed, fallback */
+                sp->encodings[0] = oldpt;
+                audio_device_take(sp);
+        }
+        sp->cc_encoding = sp->encodings[0];
+        sp->next_encoding = -1;
+        ui_update(sp);
+}
+
 
 /* This function needs to be modified to return some indication of how well
  * or not we are doing.                                                    
@@ -313,6 +354,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 		}
 		spi->last_zero  = TRUE;
 		spi->loop_delay = 1000;
+                dprintf("read 0 bytes\n");
 		return (0);
 	} else {
 		if (read_dur > 160 && spi->loop_estimate > 5000) {
@@ -351,7 +393,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 
 	if ( cushion_size < read_dur ) {
 		/* Use a step for the cushion to keep things nicely rounded   */
- /* in the mixing. Round it up.                                */
+                /* in the mixing. Round it up.                                */
                 new_cushion = cushion_use_estimate(c);
                 /* The mix routine also needs to know for how long the output */
                 /* went dry so that it can adjust the time.                   */
@@ -368,9 +410,8 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                         read_dur,
                         cushion_size);
                 cushion_size = new_cushion;
- } else {
-                trailing_silence = mix_get_audio(ms, read_dur * channels, &bufp)
-;
+        } else {
+                trailing_silence = mix_get_audio(ms, read_dur * channels, &bufp);
                 cushion_step = cushion_get_step(c);
                 diff  = 0;
 
@@ -381,7 +422,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                                 diff = 0;
                         }
                 } 
-
+                
                 /* If diff is less than zero then we must decrease the */
                 /* cushion so loose some of the trailing silence.      */
                 if (diff < 0) {

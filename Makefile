@@ -4,7 +4,7 @@
 # Note: On many systems (eg: HP-UX 9.x and FreeBSD) this REQUIRES GNU make
 #
 
-DEFS = -DDEBUG -DDEBUG_MEM 
+DEFS = -DDEBUG -DDEBUG_AGC
 # -DDEBUG_MIX -DDEBUG_PLAYOUT -DDEBUG_CUSHION
 # -DDEBUG -DDEBUG_MEM -DDEBUG_CONFBUS
 # -DNDEBUG -DTEST -DGSM -DDEBUG_REPAIR
@@ -77,7 +77,6 @@ OBJS  += $(OBJDIR)/convert.o \
          $(OBJDIR)/net.o \
          $(OBJDIR)/ui_control.o \
          $(OBJDIR)/transcoder.o \
-         $(OBJDIR)/agc.o \
 	 $(OBJDIR)/crypt.o \
          $(OBJDIR)/crypt_random.o \
          $(OBJDIR)/md5.o \

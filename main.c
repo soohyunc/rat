@@ -59,7 +59,6 @@
 #include "rtcp_db.h"
 #include "rtcp.h"
 #include "net.h"
-#include "agc.h"
 #include "statistics.h"
 #include "parameters.h"
 #include "transmit.h"
@@ -147,14 +146,17 @@ main(int argc, char *argv[])
 		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
 		audio_device_take(sp[i]);
 	}
-	agc_table_init();
+
         set_converter(CONVERT_LINEAR);
 
 	ui_info_update_cname(sp[0]->db->my_dbe);
 	ui_info_update_tool(sp[0]->db->my_dbe);
+        ui_title(sp[0]);
 	ui_load_settings();
-	network_process_mbus(sp, num_sessions, 1000);
+        rtcp_clock_change(sp[0]);
 
+	network_process_mbus(sp, num_sessions, 1000);
+        
         if (!sp[0]->sending_audio && (sp[0]->mode != AUDIO_TOOL)) {
 		for (i=0; i<num_sessions; i++) {
                 	tx_start(sp[i]);
@@ -214,7 +216,15 @@ main(int argc, char *argv[])
                 	if (sp[i]->ui_on) {
 				ui_update_powermeters(sp[i], sp[i]->ms, elapsed_time);
 				tcl_process_events();
-                	} 
+                	}
+                        /* wait for mbus messages - closing audio device
+                         * can timeout unprocessed messages as some drivers
+                         * pause to drain before closing.
+                         */
+                        if (sp[i]->next_encoding != -1) {
+                                network_process_mbus(&sp[i], num_sessions, 100);
+                                audio_device_reconfigure(sp[i]);
+                        }
 		}
         }
 
@@ -223,6 +233,7 @@ main(int argc, char *argv[])
 		if (sp[i]->in_file  != NULL) fclose(sp[i]->in_file);
 		if (sp[i]->out_file != NULL) fclose(sp[i]->out_file);
                 audio_device_give(sp[i]);
+                rtcp_clock_change(sp[i]);
 	}
 	network_process_mbus(sp, num_sessions, 1000);
 

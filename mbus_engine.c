@@ -41,6 +41,7 @@
 #include <ctype.h>
 #include "rat_types.h"
 #include "mbus_engine.h"
+#include "mbus_ui.h"
 #include "mbus.h"
 #include "ui_control.h"
 #include "net.h"
@@ -626,22 +627,13 @@ rx_primary(char *srce, char *args, session_struct *sp)
                 assert(cp      != NULL);
                 if (codec_compatible(next_cp, cp)) {
                         sp->encodings[0] = pt;
+                        ui_update_primary(sp);
+                        ui_update_redundancy(sp);
                 } else {
-                        /* reconfigure device */
-                        u_int16 oldpt    = sp->encodings[0];
-                        audio_device_give(sp);
-                        sp->encodings[0] = pt;
-                        if (audio_device_take(sp) == FALSE) {
-                                /* we failed, fallback */
-                                sp->encodings[0] = oldpt;
-                                audio_device_take(sp);
-                        }
+                        /* just register we want to make a change */
+                        sp->next_encoding = pt;
                 }
         }
-        ui_update_frequency(sp);
-        ui_update_channels(sp);
-        ui_update_primary(sp);
-        ui_update_redundancy(sp);
 }
 
 static void 
@@ -851,7 +843,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 {
 	int i;
-        dprintf("%s %s\n", cmnd, args);
+
 	for (i=0; strlen(rx_cmnd[i]) != 0; i++) {
 		if (strcmp(rx_cmnd[i], cmnd) == 0) {
 			rx_func[i](srce, args, (session_struct *) data);
@@ -913,4 +905,7 @@ void mbus_engine_retransmit(void)
 	mbus_retransmit(mbus_chan);
 }
 
-
+int mbus_engine_waiting(void) 
+{
+        return mbus_waiting_acks(mbus_base) | mbus_waiting_acks(mbus_chan);
+}

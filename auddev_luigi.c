@@ -119,6 +119,17 @@ audio_open_rw(char rw)
 		return -1;
 	    }
 	}
+
+        if (format.num_channels == 2) {
+                if (soundcaps.formats & AFMT_STEREO) {
+                        pa.play_format |= AFMT_STEREO;
+                } else {
+                        fprintf(stderr,"no stereo support for this soundcard\n");
+                        close(audio_fd);
+                        return -1;
+                }
+        }
+
 	ioctl(audio_fd, AIOSFMT, &pa);
 	ioctl(audio_fd, AIOSSIZE, &sz);
 

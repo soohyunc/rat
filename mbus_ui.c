@@ -115,3 +115,7 @@ void mbus_ui_retransmit(void)
 	mbus_retransmit(mbus_chan);
 }
 
+int mbus_ui_waiting(void)
+{
+        return mbus_waiting_acks(mbus_base) | mbus_waiting_acks(mbus_chan);
+}

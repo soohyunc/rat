@@ -344,7 +344,6 @@ destroy_playout_buffers(ppb_t **list)
 {
         rx_queue_element_struct *r;
         ppb_t *p = *list;
-
         while(p) {
                 *list = (*list)->next;
                 r = p->head_ptr;

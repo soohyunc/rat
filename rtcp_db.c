@@ -399,3 +399,18 @@ rtcp_init(session_struct *sp, char *cname, u_int32 ssrc, u_int32 cur_time)
 	sp->db->senders      = 0;
 }
 
+void
+rtcp_clock_change(session_struct *sp)
+{
+        	sp->db->report_interval = rtcp_interval(sp->db->members, 
+                                                        sp->db->senders, 
+                                                        sp->db->rtcp_bw, 
+                                                        sp->db->sending, 
+                                                        128, 
+                                                        &(sp->db->avg_size), 
+                                                        sp->db->initial_rtcp, 
+                                                        get_freq(sp->device_clock));
+                sp->db->last_rpt = get_time(sp->device_clock);
+}
+
+

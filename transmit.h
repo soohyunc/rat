@@ -1,7 +1,7 @@
 /*
  * FILE:    transmit.h
  * PROGRAM: RAT
- * AUTHOR:  Isidor Kouvelas
+ * AUTHOR:  Isidor Kouvelas / Orion Hodson
  *
  * $Revision$
  * $Date$

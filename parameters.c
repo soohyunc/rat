@@ -42,10 +42,12 @@
 
 #include "config.h"
 #include "rat_types.h"
-#include "parameters.h"
 #include "audio.h"
 #include "util.h"
 #include "math.h"
+#include "transmit.h"
+#include "session.h"
+#include "parameters.h"
 
 #define STEP	        16
 #define SD_MAX_CHANNELS  5
@@ -53,35 +55,28 @@
 u_int16 
 avg_audio_energy(sample *buf, u_int32 samples, u_int32 channels)
 {
-        u_int32 e[SD_MAX_CHANNELS];
-        register u_int32 i=0,j=0, step;
+        register u_int32 e1, e2;
+        register sample *buf_end = buf + samples;
 
-        memset(e, 0, sizeof(u_int32) * SD_MAX_CHANNELS);
         assert (channels > 0);
-
+        e1 = e2 = 0;
         switch (channels) {
         case 1:
-                while(i<samples) {
-                        (*e) += abs(*buf);
-                        buf  += STEP;
-                        i    += STEP;
+                while(buf < buf_end) {
+                        e1  += abs(*buf);
+                        buf += STEP;
                 }
                 break;
-        default:
+        case 2:
                 /* SIMD would improve this */
-                step = STEP - channels + 1;
-                while(i<samples) {
-                        for(j=0;j<channels;j++) {
-                                *(e+j) = *buf++;
-                        }
-                        buf += j;
-                        i++;
+                while(buf < buf_end) {
+                        e1 = abs(*buf++);
+                        e2 = abs(*buf);
+                        buf += STEP - 1;
                 }
-                for(j=1;j<channels;j++) {
-                        e[0] = max(e[0], e[j]);
-                }
+                e1 = max(e1, e2);
         }
-        return (u_int16)((*e)*STEP/samples);
+        return (u_int16)(e1*STEP/samples);
 }
 
 /* ad hoc values - aesthetically better than 0.1, 0.01, 0.001, and so on */
@@ -105,14 +100,14 @@ lin2db(u_int16 energy, double peak)
  *    This assumes that person is not talking as they adjust the
  *    volume, or click on start talking button.  This can be false
  *    when the source is music, or the speaker is a politician, 
- *    project leader, 
+ *    project leader, etc...
  *    
  */
 
 /* snapshot in ms to adjust silence threshold */
 #define SD_PAROLE_PERIOD 100
 #define SD_LOWER_COUNT  3
-#define SD_RAISE_COUNT  5
+#define SD_RAISE_COUNT  10
 
 typedef struct s_sd {
         u_int32 parole;
@@ -154,6 +149,8 @@ sd_destroy(sd_t *s)
         xfree(s);
 }
 
+#define SD_RES 8
+
 int
 sd(sd_t *s, u_int16 energy)
 {
@@ -163,39 +160,40 @@ sd(sd_t *s, u_int16 energy)
         if (s->cnt == s->parole) {
                 u_int32 m,stdd,trial_thresh;
 
-                m  = s->tot / s->cnt;
+                m    = s->tot / s->cnt;
                 stdd = (sqrt(abs(m * m - s->tot_sq / s->cnt)));
 
-                trial_thresh = (m + 3 * stdd);
-
+                trial_thresh = m + 3 * stdd;
                 if (trial_thresh < s->thresh) {
-                        if (s->thresh / trial_thresh > 1) {
+                        if ((s->thresh - trial_thresh) > trial_thresh) {
                                 s->lt_max = max(s->lt_max, trial_thresh);
                                 if (s->lt_cnt++ == SD_LOWER_COUNT) {
-                                        s->thresh   = s->lt_max;
+                                        s->thresh = s->lt_max;
                                         s->lt_cnt = 0;
                                         s->lt_max = 0;
-                                        dprintf("Threshold down to %d\n", s->thresh);
                                 }
                         }
                         s->gt_min = 0xffff;
                         s->gt_cnt = 0;
-                } else {
+                } else if (trial_thresh > s->thresh) {
                         s->gt_min = min(s->gt_min, trial_thresh);
-                        if (s->gt_min / s->thresh == 1) {
-                                if (s->gt_cnt++ == SD_RAISE_COUNT) {
-                                        s->thresh = (s->thresh + s->gt_min) / 2;
-                                        s->gt_min = 0xffff;
-                                        s->gt_cnt = 0;
-                                }
+                        if (s->gt_cnt++ == SD_RAISE_COUNT) {
+                                s->thresh = (3 * s->thresh + s->gt_min) / 4;
+                                s->gt_min = 0xffff;
+                                s->gt_cnt = 0;
                         } 
                         s->lt_cnt = 0;
                         s->lt_max = 0;
-                        dprintf("Threshold up to %d\n", s->thresh); 
-                } 
+                } else {
+                        s->gt_cnt = 0;
+                        s->gt_min = 0xffff;
+                        s->lt_cnt = 0;
+                        s->lt_max = 0;
+                }
                 s->tot = s->tot_sq = 0;
                 s->cnt = 0;
         }
+
         s->cnt++;
         return (energy < s->thresh);
 }
@@ -325,10 +323,16 @@ vad_reset(vad_t* v)
         v->post_cnt = 0;
 }
 
-u_char
-vad_talkspurt(vad_t *v)
+__inline u_char
+vad_in_talkspurt(vad_t *v)
 {
         return (v->state == VAD_SPURT) ? TRUE : FALSE;
+}
+
+__inline u_int32
+vad_talkspurt_no(vad_t *v)
+{
+        return v->spurt_cnt;
 }
 
 void
@@ -342,5 +346,92 @@ vad_dump(vad_t *v)
                 );
 }
 
+#define AGC_HISTORY_LEN  5
+#define AGC_PEAK_LOWER    5000
+#define AGC_PEAK_UPPER   14000
+
+typedef struct s_agc {
+        u_int16 peak;
+        u_int16 cnt;
+        u_int32 spurtno;
+        u_char  new_gain;
+        u_char  change;
+        session_struct *sp; /* this is unpleasant to have and i wrote it! */
+} agc_t;
+
+agc_t *
+agc_create(session_struct *sp)
+{
+        agc_t *a = (agc_t*)xmalloc(sizeof(agc_t));
+        memset(a,0,sizeof(agc_t));
+        a->spurtno = 0xff;
+        a->sp      = sp;
+        return a;
+}
+
+void
+agc_destroy(agc_t *a)
+{
+        xfree(a);
+}
+
+void 
+agc_reset(agc_t *a)
+{
+        a->peak    = 0;
+        a->cnt     = 0;
+        a->new_gain = 0;
+        a->change  = FALSE;
+}
+
+static void 
+agc_consider(agc_t *a)
+{
+        u_int32 gain;
+
+        if (a->peak > AGC_PEAK_UPPER) {
+                gain        = audio_get_gain(a->sp->audio_fd);
+                a->new_gain = min(gain * AGC_PEAK_UPPER / a->peak, 99);
+                a->change   = TRUE;
+#ifdef DEBUG_AGC
+                dprintf("gain shift %d -> %d", gain, a->new_gain);
+#endif
+        } else if (a->peak < AGC_PEAK_LOWER) {
+                gain        = audio_get_gain(a->sp->audio_fd);
+                a->new_gain = min(gain * AGC_PEAK_LOWER / a->peak, 99);
+                a->change   = TRUE;
+#ifdef DEBUG_AGC
+                dprintf("gain shift %d -> %d", gain, a->new_gain);
+#endif
+        }
+}
+
+void
+agc_update(agc_t *a, u_int16 energy, u_int32 spurtno)
+{
+        a->peak = max(a->peak, energy);
+        if (a->spurtno != spurtno) {
+                a->spurtno = spurtno;
+                a->cnt++;
+                if (a->cnt == AGC_HISTORY_LEN) {
+                        agc_consider(a);
+                        a->cnt = 0;
+                        return;
+                }
+        }
+}
+
+u_char 
+agc_apply_changes(agc_t *a)
+{
+        if (a->change == TRUE) {
+                audio_set_gain(a->sp->audio_fd, a->new_gain);
+                a->sp->input_gain = a->new_gain;
+                tx_igain_update(a->sp);
+                agc_reset(a);
+                return TRUE;
+        }
+        return FALSE;
+}
 
 

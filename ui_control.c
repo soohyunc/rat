@@ -457,6 +457,19 @@ ui_update_channel(session_struct *sp)
         mbus_engine_tx(TRUE, mbus_name_ui, "channel.code", args, TRUE);
 }
 
+void
+ui_update_input_gain(session_struct *sp)
+{
+        sprintf(args, "%d", audio_get_gain(sp->audio_fd));   
+        mbus_engine_tx_queue(TRUE,  "input.gain", args);
+}
+
+void
+ui_update_output_gain(session_struct *sp)
+{
+        sprintf(args, "%d", audio_get_volume(sp->audio_fd)); 
+        mbus_engine_tx_queue(TRUE, "output.gain", args);
+}
 
 void
 ui_update(session_struct *sp)
@@ -471,8 +484,8 @@ ui_update(session_struct *sp)
 	/*XXX solaris seems to give a different volume back to what we   */
 	/*    actually set.  So don't even ask if it's not the first time*/
 	if (done==0) {
-	        sprintf(args, "%d", audio_get_volume(sp->audio_fd)); mbus_engine_tx_queue(TRUE, "output.gain", args);
-		sprintf(args, "%d", audio_get_gain(sp->audio_fd));   mbus_engine_tx_queue(TRUE,  "input.gain", args);
+                ui_update_input_gain(sp);
+                ui_update_output_gain(sp);
 		done=1;
 	} else {
 	        sprintf(args, "%d", sp->output_gain); mbus_engine_tx_queue(TRUE, "output.gain", args);
@@ -653,14 +666,12 @@ ui_get_codecs(int pt, char *buf, int loose)
 void 
 ui_codecs(int pt)
 {
-	char	 arg[1000];
-
-        ui_get_codecs(pt, arg, TRUE);
-        mbus_encode_str(arg);
-	mbus_engine_tx(TRUE, mbus_name_ui, "codec.supported", arg, TRUE);
-        ui_get_codecs(pt, arg, FALSE);
-        mbus_encode_str(arg);
-        mbus_engine_tx(TRUE, mbus_name_ui, "redundancy.supported", arg, TRUE);
+        ui_get_codecs(pt, args, TRUE);
+        mbus_encode_str(args);
+	mbus_engine_tx(TRUE, mbus_name_ui, "codec.supported", args, TRUE);
+        ui_get_codecs(pt, args, FALSE);
+        mbus_encode_str(args);
+        mbus_engine_tx(TRUE, mbus_name_ui, "redundancy.supported", args, TRUE);
 }
 
 void
@@ -689,13 +700,25 @@ ui_controller_init(char *cname, char *name_engine, char *name_ui, char *name_vid
 }
 
 void
+ui_title(session_struct *sp) 
+{
+        mbus_engine_tx(TRUE, mbus_name_ui, "session.title", mbus_encode_str(sp->title), TRUE);
+        sprintf(args, "%s %d %d", mbus_encode_str(sp->asc_address), sp->rtp_port, sp->ttl);
+        mbus_engine_tx(TRUE, mbus_name_ui, "session.address", args, TRUE);
+}
+
+void
 ui_load_settings(void)
 {
 	mbus_engine_tx(TRUE, mbus_name_ui, "load.settings", "", TRUE);
 }
 
-void ui_quit(void)
+void 
+ui_quit(void)
 {
 	mbus_engine_tx(TRUE, mbus_name_ui, "quit", "", TRUE);
 }
+
+
+
 

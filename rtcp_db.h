@@ -183,6 +183,6 @@ struct s_rtcp_dbentry   *rtcp_getornew_dbentry(struct session_tag *sp, u_int32 s
 void 			 rtcp_delete_dbentry(struct session_tag *sp, u_int32 ssrc);
 int 			 rtcp_set_attribute(struct session_tag *sp, int type, char *val);
 void			 rtcp_free_dbentry(rtcp_dbentry *dbptr);
-
+void                     rtcp_clock_change(struct session_tag *sp);
 #endif
 

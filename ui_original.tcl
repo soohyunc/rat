@@ -314,8 +314,14 @@ proc mbus_recv_output.mute {val} {
     }
 }
 
-proc mbus_recv_address {addr port ttl} {
+proc mbus_recv_session.title {title} {
+    global session_title
+    set session_title $title
+}
 
+proc mbus_recv_session.address {addr port ttl} {
+    global session_address
+    set session_address "Address: $addr Port: $port TTL: $ttl"
 }
 
 proc mbus_recv_lecture.mode {mode} {
@@ -686,6 +692,11 @@ scrollbar .l.t.scr -relief flat -highlightthickness 0 -command ".l.t.list yview"
 canvas .l.t.list -highlightthickness 0 -bd 0 -relief raised -width $iwd -height 200 -yscrollcommand ".l.t.scr set" -yscrollincrement $iht
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
+
+frame .l.f -relief raised
+label .l.f.title -bg black -fg green -textvariable session_title
+label .l.f.addr  -bg black -fg green -textvariable session_address
+
 frame  .l.s1 -bd 0
 button .l.s1.opts  -highlightthickness 0 -padx 0 -pady 0 -text "Options"   -command {wm deiconify .prefs}
 button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"     -command {wm deiconify .about}
@@ -701,6 +712,8 @@ pack .r.c.gain -side top -fill x
 pack .r.c.vol  -side top -fill x
 
 pack .l -side top -fill both -expand 1
+pack .l.f -side top -fill x
+pack .l.f.title .l.f.addr -side top -fill x
 pack .l.s1 -side bottom -fill x
 pack .l.s1.opts .l.s1.about .l.s1.quit -side left -fill x -expand 1
 pack .l.t.scr -side left -fill y

@@ -419,7 +419,7 @@ struct mbus *mbus_init(unsigned short channel,
 	while (ifp < (struct ifreq *) ((char *) ifbuf + ifc.ifc_len)) {
 		m->interfaces[m->num_interfaces++] = ((struct sockaddr_in *) &((ifp++)->ifr_addr))->sin_addr.s_addr;
 	}
-
+        m->interfaces[0] = htonl(0x7f000001);
 	return m;
 }
 

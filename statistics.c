@@ -385,7 +385,7 @@ statistics(session_struct    *sp,
         
                 compat = codec_compatible(pcp, get_codec(sp->encodings[0]));
                 if (!compat && !sp->auto_convert) {
-                        dprintf("Format conversion not enabled.\n");
+                        dprintf("Format conversion not enabled (%s received).\n", pcp->name);
                         goto release;
                 }
                 

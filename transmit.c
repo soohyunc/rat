@@ -48,7 +48,6 @@
 #include "parameters.h"
 #include "ui_control.h"
 #include "util.h"
-#include "agc.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "speaker_table.h"
@@ -70,6 +69,7 @@ typedef struct s_tx_unit {
 typedef struct s_tx_buffer {
 	struct s_sd   *sd_info;
         struct s_vad  *vad;
+        struct s_agc  *agc;
 	struct s_time *clock;
         u_int32        channels;
         u_int32        unit_dur; /* duration in sampling intervals (excludes channels) */
@@ -204,6 +204,7 @@ tx_start(session_struct *sp)
 	sp->sending_audio = TRUE;
 	sp->auto_lecture = 1;		/* Turn off */
         sd_reset(tb->sd_info);
+        agc_reset(tb->agc);
 }
 
 void
@@ -233,6 +234,7 @@ tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
 	tb->clock    = sp->device_clock;
 	tb->sd_info  = sd_init(unit_dur, get_freq(tb->clock));
         tb->vad      = vad_create(unit_dur, get_freq(tb->clock));
+        tb->agc      = agc_create(sp);
         tb->unit_dur = unit_dur;
         tb->channels = channels;
 
@@ -254,6 +256,7 @@ tx_destroy(session_struct *sp)
 
         sd_destroy(tb->sd_info);
         vad_destroy(tb->vad);
+        agc_destroy(tb->agc);
 
         u = tb->head_ptr;
         while(u) {
@@ -307,7 +310,6 @@ tx_read_audio(session_struct *sp)
                         } 
                 } while (u->dur_used == tb->unit_dur);
         }
-
         return (read_dur);
 }
 
@@ -327,16 +329,18 @@ tx_process_audio(session_struct *sp)
                 /* Audio unbias not modified for stereo yet! */
                 audio_unbias(sp->bc, u->data, u->dur_used * tb->channels);
 
-		u->energy = avg_audio_energy(u->data, u->dur_used, tb->channels);
-
+		u->energy = avg_audio_energy(u->data, u->dur_used * tb->channels, tb->channels);
                 u->send   = FALSE;
+                
+                /* we do silence detection and voice activity detection
+                 * all the time.  agc depends on them and they are all 
+                 * cheap.
+                 */
+                u->silence = sd(tb->sd_info, u->energy);
+                to_send    = vad_to_get(tb->vad, u->silence, (sp->lecture) ? VAD_MODE_LECT : VAD_MODE_CONF);           
+		agc_update(tb->agc, u->energy, vad_talkspurt_no(tb->vad));
+
 		if (sp->detect_silence) {
-			u->silence = sd(tb->sd_info, u->energy);
-                        if (sp->lecture == TRUE) {
-                                to_send = vad_to_get(tb->vad, u->silence, VAD_MODE_LECT);           
-                        } else {
-                                to_send = vad_to_get(tb->vad, u->silence, VAD_MODE_CONF);           
-                        }
                         u_mark = u;
                         while(u_mark != NULL && to_send > 0) {
                                 u_mark->send = TRUE;
@@ -347,11 +351,13 @@ tx_process_audio(session_struct *sp)
 			u->silence = FALSE;
                         u->send    = TRUE;
 		}
-
-		/* Automatic Gain Control... */
-		agc_table_update(sp, u->energy);
         }
         tb->silence_ptr = u;
+
+        if (sp->agc_on == TRUE && 
+            agc_apply_changes(tb->agc) == TRUE) {
+                ui_update_input_gain(sp);
+        }
 
         if (tb->tx_ptr != NULL) {
                 tx_buffer_trim(tb);
@@ -382,7 +388,6 @@ tx_send(session_struct *sp, speaker_table *sa)
 
         if (tb->silence_ptr == NULL) {
                 /* Don't you just hate fn's that do this! */
-                dprintf("nothing to do.\n");
                 return;
         }
 
@@ -421,7 +426,6 @@ tx_send(session_struct *sp, speaker_table *sa)
         cu.iovc            = 1;
         
         while(n > units) {
-
                 send = FALSE;
                 for (i = 0, u = tb->tx_ptr; i < units; i++, u = u->next) {
                         if (u->send) {
@@ -486,14 +490,14 @@ void
 tx_update_ui(session_struct *sp)
 {
 	if (sp->meter && sp->tb->silence_ptr && sp->tb->silence_ptr->prev) {
-                if (vad_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
+                if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
                         ui_input_level(lin2db(sp->tb->silence_ptr->prev->energy, 100.0));
                 } else {
                         ui_input_level(0);
                 }
         }
 
-	if (vad_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
+	if (vad_in_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
 		ui_info_activate(sp->db->my_dbe);
 		sp->lecture = FALSE;
 		update_lecture_mode(sp);
@@ -506,6 +510,7 @@ void
 tx_igain_update(session_struct *sp)
 {
         sd_reset(sp->tb->sd_info);
+        agc_reset(sp->tb->agc);
 }
 
 
