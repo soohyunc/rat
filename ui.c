@@ -773,12 +773,14 @@ ui_update(session_struct *sp)
         sprintf(args, "%3d", channel_encoder_get_units_per_packet(sp->channel_coder));
         assert(strlen(args) < 4);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.rate", args, TRUE);
-
+        
+        ui_devices(sp);
+        ui_device(sp);
+        ui_update_input_gain(sp);
+        ui_update_output_gain(sp);
 	ui_update_output_port(sp);
 	ui_update_input_port(sp);
         ui_update_3d_enabled(sp);
-        ui_devices(sp);
-        ui_device(sp);
         ui_sampling_modes(sp);
         ui_update_device_config(sp);
 	ui_update_primary(sp);

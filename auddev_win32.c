@@ -95,7 +95,7 @@ static mcd_elem_t *control_list;
 static int32	play_vol, rec_vol;
 static HMIXER   hMixer;
 
-static DWORD    dwMixDstRec, dwMixDstVol; 
+static DWORD    dwRecLineID, dwVolLineID; 
 
 static audio_port_details_t *input_ports, *loop_ports;
 static int                   n_input_ports, n_loop_ports;
@@ -357,7 +357,7 @@ mixSaveControls(UINT uMix, mcd_elem_t **pplist)
 * Returns TRUE if successful.
 */
 
-int mixGetInputInfo(UINT uMix, UINT *puWavIn, UINT *puMixLineWaveOut)
+int mixGetInputInfo(UINT uMix, UINT *puWavIn, DWORD *pdwLineID)
 {
         UINT i, nWavIn;
         MIXERLINE  ml;
@@ -389,7 +389,8 @@ int mixGetInputInfo(UINT uMix, UINT *puWavIn, UINT *puMixLineWaveOut)
                 mmr = mixerGetLineInfo((HMIXEROBJ)uMix, &ml, MIXER_OBJECTF_MIXER | MIXER_GETLINEINFOF_TARGETTYPE);
                 if (mmr == MMSYSERR_NOERROR) {
                         *puWavIn          = i;
-                        *puMixLineWaveOut = ml.dwDestination;
+                        *pdwLineID = ml.dwLineID;
+                        debug_msg("Input: %s(%d - %d)\n", ml.szName, ml.dwDestination, ml.dwLineID);
                         return TRUE;
                 } else {
                         debug_msg("mixerGetLineInfo (ignore this error): %s\n", mixGetErrorText(mmr));
@@ -403,7 +404,7 @@ int mixGetInputInfo(UINT uMix, UINT *puWavIn, UINT *puMixLineWaveOut)
 * successful.
 */
 int 
-mixGetOutputInfo(UINT uMix, UINT *puWavOut, UINT *puMixLineWaveOut)
+mixGetOutputInfo(UINT uMix, UINT *puWavOut, DWORD *pdwLineID)
 {
         UINT i, nWavOut;
         MIXERLINE  ml;
@@ -433,8 +434,9 @@ mixGetOutputInfo(UINT uMix, UINT *puWavOut, UINT *puMixLineWaveOut)
                 
                 mmr = mixerGetLineInfo((HMIXEROBJ)uMix, &ml, MIXER_OBJECTF_MIXER | MIXER_GETLINEINFOF_TARGETTYPE);
                 if (mmr == MMSYSERR_NOERROR) {
-                        *puWavOut          = i;
-                        *puMixLineWaveOut = ml.dwDestination;
+                        *puWavOut  = i;
+                        *pdwLineID = ml.dwLineID;
+                        debug_msg("Output: %s(%d - %d)\n", ml.szName, ml.dwDestination, ml.dwLineID);
                         return TRUE;
                 } 
         }
@@ -467,9 +469,9 @@ mixerEnableInputLine(HMIXEROBJ hMix, char *portname)
         int       score, matchScore;
         
         ml.cbStruct = sizeof(ml);
-        ml.dwDestination = dwMixDstRec;
+        ml.dwLineID = dwRecLineID;
         
-        mmr = mixerGetLineInfo(hMix, &ml, MIXER_GETLINEINFOF_DESTINATION|MIXER_OBJECTF_HMIXER);
+        mmr = mixerGetLineInfo(hMix, &ml, MIXER_GETLINEINFOF_LINEID|MIXER_OBJECTF_HMIXER);
         if (mmr != MMSYSERR_NOERROR) {
                 debug_msg("mixerGetLineInfo: %s\n", mixGetErrorText(mmr));
         }
@@ -700,20 +702,31 @@ mixerGetLineName(HMIXEROBJ hMix, DWORD dwLineID, char *szName, UINT uLen)
 
 /* MixQueryControls: Get all line names and id's, fill into ppapd, and return number of lines */
 static int
-mixQueryControls(HMIXEROBJ hMix, DWORD dwDst, audio_port_details_t** ppapd)
+mixQueryControls(HMIXEROBJ hMix, DWORD dwLineID, audio_port_details_t** ppapd)
 {
+        MIXERCAPS mc;
         MIXERLINE mlt, mlc;
         audio_port_details_t *papd;
         MMRESULT mmr;
         UINT     i;
         
-        memset(&mlt, 0, sizeof(mlt));
-        mlt.cbStruct = sizeof(mlt);
-        mlt.dwDestination = dwDst;
-        
-        mmr = mixerGetLineInfo(hMix, &mlt, MIXER_GETLINEINFOF_DESTINATION|MIXER_OBJECTF_HMIXER);
-        if (mmr != MMSYSERR_NOERROR) {
-                return 0;
+        /* Videum bug work around - Videum does not fill in number of connections if
+         * called using MIXER_GETLINEINFOF_LINEID.  This is the only driver with this problem, 
+         * but this seems to work in all cases.
+         */        
+        mixerGetDevCaps((UINT)hMix, &mc, sizeof(mc));
+        for(i = 0; i < mc.cDestinations; i++) {
+                memset(&mlt, 0, sizeof(mlt));
+                mlt.cbStruct = sizeof(mlt);
+                mlt.dwDestination = i;
+                mmr = mixerGetLineInfo(hMix, &mlt, MIXER_GETLINEINFOF_DESTINATION);
+                if (mmr != MMSYSERR_NOERROR) {
+                        debug_msg("mixerGetLineInfo: %s\n", mixGetErrorText(mmr));
+                        continue;
+                }
+                if (mlt.dwLineID == dwLineID) {
+                        break;
+                }
         }
         
         papd = (audio_port_details_t*)xmalloc(sizeof(audio_port_details_t)*mlt.cConnections);
@@ -770,7 +783,7 @@ mixSetup(UINT uMixer)
                 n_input_ports = 0;
         }
         
-        n_input_ports = mixQueryControls((HMIXEROBJ)hMixer, dwMixDstRec, &input_ports);
+        n_input_ports = mixQueryControls((HMIXEROBJ)hMixer, dwRecLineID, &input_ports);
         debug_msg("Input ports %d\n", n_input_ports);
         if (n_input_ports == 0) {
                 return FALSE;
@@ -782,7 +795,7 @@ mixSetup(UINT uMixer)
                 n_loop_ports = 0;
         }
         
-        n_loop_ports = mixQueryControls((HMIXEROBJ)hMixer, dwMixDstVol, &loop_ports);
+        n_loop_ports = mixQueryControls((HMIXEROBJ)hMixer, dwVolLineID, &loop_ports);
         debug_msg("Loop ports %d\n", n_loop_ports);
         if (n_loop_ports == 0) {
                 return 0;
@@ -1113,12 +1126,12 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
                 return FALSE; /* Only support L16 for time being */
         }
         
-        if (mixGetInputInfo(ad, &uWavIn, &dwMixDstRec) != TRUE) {
+        if (mixGetInputInfo(ad, &uWavIn, &dwRecLineID) != TRUE) {
                 debug_msg("Could not get wave in or mixer destination for mix %u\n", ad);
                 return FALSE;
         }
 
-        if (mixGetOutputInfo(ad, &uWavOut, &dwMixDstVol) != TRUE) {
+        if (mixGetOutputInfo(ad, &uWavOut, &dwVolLineID) != TRUE) {
                 debug_msg("Could not get wave out or mixer destination for mix %u\n", ad);
                 return FALSE;
         }
@@ -1350,16 +1363,17 @@ w32sdk_audio_iport_set(audio_desc_t ad, audio_port_t port)
                 if (input_ports[i].port == port) {
                         /* save gain */
                         gain = mixerGetLineGain((HMIXEROBJ)hMixer, input_ports[iport].port);
+                        debug_msg("Gain %d\n", gain);
                         if (mixerGetLineName((HMIXEROBJ)hMixer, input_ports[i].port, portname, MIXER_LONG_NAME_CHARS)) {
                                 mixerEnableInputLine((HMIXEROBJ)hMixer, portname);
                         }
                         mixerSetLineGain((HMIXEROBJ)hMixer, input_ports[i].port, gain);
                         
                         /* Do loopback */
-                        for(j = 0; j < n_loop_ports; j++) {
+                        for(j = 0; j < n_loop_ports && nLoopGain != 0; j++) {
                                 if (strcmp(loop_ports[j].name, input_ports[i].name) == 0) {
                                         mixerEnableOutputLine((HMIXEROBJ)hMixer, loop_ports[j].port, 1);
-                                        mixerSetLineGain((HMIXEROBJ)hMixer, loop_ports[j].port, nLoopGain); 
+                                        /* mixerSetLineGain((HMIXEROBJ)hMixer, loop_ports[j].port, nLoopGain); */
                                 }
                         }
                         iport = i;

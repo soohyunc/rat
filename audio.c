@@ -267,25 +267,12 @@ audio_device_reconfigure(session_struct *sp)
         }
 
         if (change_req) {
-                int iport = -1;	/* These are initialised to stop a compiler */
-		int oport = -1; /* warning... the value of -1 is never used */
-		int igain = -1;
-		int ogain = -1;
-		int saved_ports = FALSE;
-
                 /* Store current config in case it reconfig attempt fails */
                 prev_config.device    = sp->audio_device;
                 prev_config.primary   = codec_get_by_payload(sp->encodings[0]);
                 prev_config.render_3d = sp->render_3d;
 
                 if (sp->audio_device) {
-                        /* Store ports and gain settings */
-                        iport = audio_get_iport(sp->audio_device);
-                        oport = audio_get_oport(sp->audio_device);
-                        igain = audio_get_igain(sp->audio_device);
-                        ogain = audio_get_ogain(sp->audio_device);
-                        saved_ports = TRUE;
-                        /* Release audio device */
                         audio_device_release(sp, sp->audio_device);
                 }
 
@@ -311,17 +298,19 @@ audio_device_reconfigure(session_struct *sp)
                         debug_msg("Fell back to safe config\n");
                 }
 
+                if (sp->audio_device != curr_config->device) {
+                        const audio_port_details_t *papd;
+                        /* Ports will be squiffy */
+                        papd = audio_get_iport_details(curr_config->device, 0);
+                        audio_set_iport(curr_config->device, papd->port);
+                        papd = audio_get_oport_details(curr_config->device, 0);
+                        audio_set_oport(curr_config->device, papd->port);
+                }
+
                 sp->audio_device  = curr_config->device;
                 sp->encodings[0]  = codec_get_payload(curr_config->primary);
                 sp->num_encodings = 1;
                 sp->render_3d     = curr_config->render_3d;
-
-                if (saved_ports) {
-                        audio_set_iport(sp->audio_device, iport);
-                        audio_set_oport(sp->audio_device, oport);
-                        audio_set_igain(sp->audio_device, igain);
-                        audio_set_ogain(sp->audio_device, ogain);
-                }
         } else {
                 debug_msg("audio device reconfigure - nothing to do.\n");
                 if (tx_is_sending(sp->tb)) {
