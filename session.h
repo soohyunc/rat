@@ -64,7 +64,8 @@
 #define GLOBAL_CLOCK_FREQ 64000 /*96000*/
 
 /*- overrideable payload numbers -*/
-#define PT_L16_8K_MONO    110
+#define PT_WBS_16K_MONO   109
+#define PT_L16_8K_MONO    122		/* This has to be 122 for compatibility with RAT-3.0 */
 #define PT_L16_8K_STEREO  111
 #define PT_L16_16K_MONO   112
 #define PT_L16_16K_STEREO 113
@@ -72,8 +73,7 @@
 #define PT_L16_32K_STEREO 115
 #define PT_L16_48K_MONO   116
 #define PT_L16_48K_STEREO 117
-#define PT_REDUNDANCY     121
-#define PT_WBS            122
+#define PT_REDUNDANCY     121		/* This has to be 121 for compatibility with RAT-3.0 */
 
 extern int thread_pri;
 

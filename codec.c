@@ -235,15 +235,15 @@ gsm_decoding(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 #define DYNAMIC		-1
 
 static codec_t codec_list[] = {
-	{"LPC",             2,       7, 8000, 2, 1, 0, 160, LPCTXSIZE, NULL, lpc_encode, lpc_decode_init, lpc_decode},
-	{"GSM",             4,       3, 8000, 2, 1, 0, 160, 33, gsm_init, gsm_encoding, gsm_init, gsm_decoding},
-        {"a-law",           8,       8, 8000, 2, 1, 0, 160, 160, NULL, alaw_encode, NULL, alaw_decode},
-	{"mu-law",          9,       0, 8000, 2, 1, 0, 160, 160, NULL, ulaw_encode, NULL, ulaw_decode},
-	{"DVI",             7,       5, 8000, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_init, dvi_decode},
+	{"LPC-8K-MONO",     2,       7, 8000, 2, 1, 0, 160, LPCTXSIZE, NULL, lpc_encode, lpc_decode_init, lpc_decode},
+	{"GSM-8K-MONO",     4,       3, 8000, 2, 1, 0, 160, 33, gsm_init, gsm_encoding, gsm_init, gsm_decoding},
+        {"PCMA-8K-MONO",    8,       8, 8000, 2, 1, 0, 160, 160, NULL, alaw_encode, NULL, alaw_decode},
+	{"PCMU-8K-MONO",    9,       0, 8000, 2, 1, 0, 160, 160, NULL, ulaw_encode, NULL, ulaw_decode},
+	{"DVI-8K-MONO",     7,       5, 8000, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_init, dvi_decode},
 	{"DVI-11K-MONO",   10,      16,11025, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_init, dvi_decode},
 	{"DVI-16K-MONO",   11,       6,16000, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_init, dvi_decode},
 	{"DVI-22K-MONO",   12,      17,22050, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_init, dvi_decode},
-	{"WBS",            10, DYNAMIC,16000, 2, 1, WBS_STATE_SIZE, 160, WBS_UNIT_SIZE, wbs_init, wbs_encode, wbs_init, wbs_decode},
+	{"WBS-16K-MONO",   10, DYNAMIC,16000, 2, 1, WBS_STATE_SIZE, 160, WBS_UNIT_SIZE, wbs_init, wbs_encode, wbs_init, wbs_decode},
 	{"L16-8K-MONO",     9, DYNAMIC, 8000, 2, 1, 0, 160, 320, NULL, l16_encode, NULL, l16_decode},
 	{"L16-8K-STEREO",   9, DYNAMIC, 8000, 2, 2, 0, 160, 640, NULL, l16_encode, NULL, l16_decode},
 	{"L16-16K-MONO",   11, DYNAMIC,16000, 2, 1, 0, 160, 320, NULL, l16_encode, NULL, l16_decode}, 

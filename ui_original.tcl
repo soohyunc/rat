@@ -685,7 +685,7 @@ frame .b.f.pkt.pr -relief sunken
 pack  .b.f.pkt.pr -side left -fill x
 label .b.f.pkt.pr.l -highlightthickness 0 -justify left -text  "Primary Encoding"
 pack  .b.f.pkt.pr.l -side top -fill both -expand 1
-dropdown .b.f.pkt.pr.dl prenc primary WBS "16-bit linear" mu-law a-law DVI GSM LPC
+dropdown .b.f.pkt.pr.dl prenc primary WBS-16K-MONO L16-8K-MONO PCMU-8K-MONO PCMA-8K-MONO DVI-8K-MONO GSM-8K-MONO LPC-8K-MONO
 pack  .b.f.pkt.pr.dl -side left -fill x -expand 1
 
 # secondary
@@ -693,7 +693,7 @@ frame .b.f.pkt.sec -relief sunken
 pack  .b.f.pkt.sec -side left -fill x
 label .b.f.pkt.sec.l -highlightthickness 0 -justify left -text  "Redundant Encoding"
 pack  .b.f.pkt.sec.l -side top -fill both -expand 1
-dropdown .b.f.pkt.sec.dl secenc redundancy NONE mu-law a-law DVI GSM LPC
+dropdown .b.f.pkt.sec.dl secenc redundancy NONE PCMU-8K-MONO PCMA-8K-MONO DVI-8K-MONO LPC-8K-MONO
 pack  .b.f.pkt.sec.dl -side left -fill x -expand 1
 
 # Local Options

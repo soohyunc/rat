@@ -67,7 +67,7 @@ init_session(session_struct *sp)
 
 	memset(sp, 0, sizeof(session_struct));
 
-	set_dynamic_payload(&sp->dpt_list, "WBS", PT_WBS);
+	set_dynamic_payload(&sp->dpt_list, "WBS-16K-MONO",   PT_WBS_16K_MONO);
 	set_dynamic_payload(&sp->dpt_list, "L16-8K-MONO",    PT_L16_8K_MONO);
 	set_dynamic_payload(&sp->dpt_list, "L16-8K-STEREO",  PT_L16_8K_STEREO);
 	set_dynamic_payload(&sp->dpt_list, "L16-16K-MONO",   PT_L16_16K_MONO);
@@ -78,7 +78,7 @@ init_session(session_struct *sp)
 	set_dynamic_payload(&sp->dpt_list, "L16-48K-STEREO", PT_L16_48K_STEREO);
 
 	codec_init(sp);
-	cp = get_codec_byname("DVI",sp);
+	cp = get_codec_byname("DVI-8K-MONO",sp);
         sp->encodings[0]		= cp->pt;	/* user chosen encoding for primary */
 	sp->num_encodings		= 1;		/* Number of encodings in packet */
 	sp->clock			= new_fast_time(GLOBAL_CLOCK_FREQ); /* this is the global clock */
