@@ -181,13 +181,22 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	if (from->freq == to->freq && from->channels == to->channels) {
 		nsamples = ms->channels * from->unit_len;
                 dur = from->unit_len;
-		buf = el->native_data[0];
 		nsamples = dur * ms->channels;
 		converter_format(el->dbe_source[0]->converter, el);
                 nsamples = ms->channels * from->unit_len * to->freq / from->freq ;
                 dur = nsamples / ms->channels;
-		buf = el->native_data[1];
                 }
+	}
+        /* 3d rendering hook here */
+
+        /* you can tell if mixer is stereo using ms->channels */
+
+        /* take rx_queue_element_struct el, add extra native_data buffer, render audio, fill in size
+         * of buffer into el->native_size[ el->native_count ], increment el->native_count
+         */ 
+        }
+
+        buf = el->native_data[el->native_count - 1];
         if (el->playoutpt != playout) debug_msg("playout_pt %ld playout %ld\n", el->playoutpt, playout);
 	/* If it is too late... */
 

@@ -66,8 +66,8 @@ typedef struct rx_element_tag {
         coded_unit	comp_data[MAX_ENCODINGS];    /* compressed data */
         int             comp_count;
 	int             native_count;                /* Number of different types of decompressed data (only envisage 2) */
-	sample*	        native_data[MAX_NATIVE];     /* 0 used for whatever codec uses, 1 for conversion output */ 
-        u_int16         native_size[MAX_NATIVE];
+	sample*	        native_data[MAX_NATIVE];     /* 0 used for whatever codec uses, others for conversion output */ 
+        u_int16         native_size[MAX_NATIVE];     /* size of raw audio blocks */
 	int             dummy;                       /* Is a dummy unit */
 	int		mixed;
 	int             units_per_pckt;

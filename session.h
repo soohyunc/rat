@@ -46,7 +46,7 @@
 #include "rat_types.h"
 
 #define MAX_ENCODINGS	7
-#define MAX_NATIVE      2
+#define MAX_NATIVE      4
 
 #define MAX_PACKET_SAMPLES	1280
 #define PACKET_LENGTH		MAX_PACKET_SAMPLES + 100
