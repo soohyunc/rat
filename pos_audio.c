@@ -64,16 +64,16 @@ void convolve(short *X, short *Y, double *M, double *C, int numb_coefs, int N)
         x = X;
         y = Y;
         /*  Start loop for number of data values */
-        for(i = 0; i < N ;i++)
-        { /*  Make copy of pointers and start loop */
+        for(i = 0; i < N ;i++) {
+                /*  Make copy of pointers and start loop */
                 M[numb_coefs-1] = *x++;
                 c = C;
                 m1 = m2 = M;
                 o = *m1++ * *c++;
                 /*  Use convolution method for computation */
-                for(j = 1; j < numb_coefs ;j++)
-                { *m2++ = *m1;
-                o += *m1++ * *c++;
+                for(j = 1; j < numb_coefs ;j++) {
+                        *m2++ = *m1;
+                        o += *m1++ * *c++;
                 }
                 /*  Multiply by gain, convert to int and store */
                 if (o > 32767.0) o = 32767.0;

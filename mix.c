@@ -195,20 +195,20 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	if (sp->externalise_audio) {
 	if (sp->render_3d) {
 
-	        /* you can tell if mixer is stereo using ms->channels */
+	        /* check if mixer is stereo using 'ms->channels' ('1' is mono, '2' ist stereo). */
 	        if (ms->channels == 2) {
 
-		        fprintf(stdout, "\tnumber of channels: %d\n", ms->channels);
-
 	                /* - take rx_queue_element_struct el
-                         * - add extra native_data buffer
-                         * - render audio
-                         * - fill in size of buffer into el->native_size[ el->native_count ]
-                         * - increment el->native_count
+                         * - set size of buffer by filling in 'el->native_size[el->native_count]'
+                         * - add extra native_data buffer of that size
+                         * - render audio into that buffer
+                         * - increment 'el->native_count'
 		         */
                         if (el->native_count < MAX_NATIVE) {
-                                el->native_data[el->native_count] = block_alloc(el->native_size[el->native_count]);
+                                el->native_size[el->native_count] = el->native_size[el->native_count-1];
+                                el->native_data[el->native_count]=(sample*)block_alloc(el->native_size[el->native_count]);
                         }
+                        el->native_count++;
 #ifdef NDEF
                         localise_sound(el);
 #endif
