@@ -766,8 +766,8 @@ proc mbus_recv_enable.audio.ctls {} {
 	.r.c.gain.s2 configure -state normal
 }
 
-bind all <ButtonPress-3>   "toggle_send"
-bind all <ButtonRelease-3> "toggle_send"
+bind all <ButtonPress-3>   "input_mute 0"
+bind all <ButtonRelease-3> "input_mute 1"
 bind all <q>               "do_quit"
 
 wm iconbitmap . rat_small
@@ -793,7 +793,6 @@ set pane "Personal"
 toplevel .prefs
 wm title .prefs "Preferences"
 wm resizable .prefs 0 0
-wm geometry  .prefs 372x272
 wm withdraw  .prefs
 
 frame .prefs.m
@@ -813,13 +812,20 @@ menu .prefs.m.f.m.menu -tearoff 0
 
 frame  .prefs.buttons
 pack   .prefs.buttons       -side bottom -fill x 
-button .prefs.buttons.bye   -text "Cancel"                   -command {sync_ui_to_engine; wm withdraw .prefs} 
+button .prefs.buttons.bye   -text "Cancel"                   -command {sync_ui_to_engine; wm withdraw .prefs} -width 10
 button .prefs.buttons.apply -text "Apply Preferences"        -command {sync_engine_to_ui}
 button .prefs.buttons.save  -text "Save & Apply Preferences" -command {save_settings; wm withdraw .prefs}
 pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side left -fill x -expand 1
 
 frame .prefs.pane -relief sunken
 pack  .prefs.pane -side left -fill both -expand 1 -padx 4 -pady 2
+
+# setup width of prefs panel
+set fn_cur [.prefs.buttons.apply cget -font]
+set prefw [expr [font measure $fn_cur "XXXXXXXXXXXXXX48-kHzXXXStereoXXXLinear-16XXXUnitsXPerXPcktXXXXXXXXXXXXX"]]
+set prefh [expr 11 * [font metrics $fn_cur -linespace] + 8 * 16]
+wm geometry .prefs [format "%sx%s" $prefw $prefh]
+unset fn_cur prefw prefh
 
 # Personal Info Pane
 set i .prefs.pane.personal
@@ -868,33 +874,32 @@ pack $i.cc $i.cc.van $i.cc.red -fill x -anchor w -pady 1
 pack $i.cc.int -fill x -anchor w -pady 0
 pack $i.cks -fill both -expand 1 -anchor w -pady 1
 
-frame $i.dd.sampling
-pack  $i.dd.sampling -side left
+frame $i.dd.units
+frame $i.dd.pri
+frame $i.dd.sampling  
+
+pack $i.dd.units $i.dd.pri $i.dd.sampling -side right -fill x 
+
 label $i.dd.sampling.l -text "Sampling:"
 pack  $i.dd.sampling.l -side top -fill x
 
 menubutton $i.dd.sampling.mfreq -menu $i.dd.sampling.mfreq.menu -indicatoron 1 -textvariable freq -relief raised -width 6
 pack $i.dd.sampling.mfreq -side left
-# fill in frequency rates / channels
 menu $i.dd.sampling.mfreq.menu -tearoff 0
 
-menubutton $i.dd.sampling.mchannels -menu $i.dd.sampling.mchannels.menu -indicatoron 1 -textvariable channels -relief raised -width 6
+menubutton $i.dd.sampling.mchannels -menu $i.dd.sampling.mchannels.menu -indicatoron 1 -textvariable channels -relief raised -width 7
 pack $i.dd.sampling.mchannels -side left
 menu $i.dd.sampling.mchannels.menu -tearoff 0
 $i.dd.sampling.mchannels.menu add command -label "Mono"   -command "set channels Mono; change_sampling"
 $i.dd.sampling.mchannels.menu add command -label "Stereo" -command "set channels Stereo; change_sampling"
 set channels Mono
 
-frame $i.dd.pri
-pack  $i.dd.pri -side left
 label $i.dd.pri.l -text "Encoding:"
 menubutton $i.dd.pri.m -menu $i.dd.pri.m.menu -indicatoron 1 -textvariable prenc -relief raised -width 13
 pack $i.dd.pri.l $i.dd.pri.m -side top
 # fill in codecs 
 menu $i.dd.pri.m.menu -tearoff 0
 
-frame $i.dd.units
-pack $i.dd.units -side left -fill x
 label $i.dd.units.l -text "Units Per Pckt:"
 tk_optionMenu $i.dd.units.m upp 1 2 4 8
 $i.dd.units.m configure -width 13 -highlightthickness 0 -bd 1
@@ -930,10 +935,12 @@ pack $i.cc.int.fc -side right
 pack $i.cc.int.fc.l $i.cc.int.fc.m -fill x -expand 1
 
 frame $i.cks.f
-checkbutton $i.cks.f.silence -text "Silence Suppression   " -variable silence_var
-checkbutton $i.cks.f.agc     -text "Automatic Gain Control" -variable agc_var
-pack $i.cks.f -fill x -expand 1
-pack $i.cks.f.silence $i.cks.f.agc -fill x -side top
+frame $i.cks.f.f
+checkbutton $i.cks.f.f.silence -text "Silence Suppression"    -variable silence_var 
+checkbutton $i.cks.f.f.agc     -text "Automatic Gain Control" -variable agc_var 
+pack $i.cks.f -fill x -side left -expand 1
+pack $i.cks.f.f
+pack $i.cks.f.f.silence $i.cks.f.f.agc -side top -anchor w
 
 # Reception Pane ##############################################################
 set i .prefs.pane.reception
@@ -1579,6 +1586,11 @@ add_help $i.loc      	"Enter your location for transmission\nto other participan
 
 # transmission help
 set i .prefs.pane.transmission
+add_help $i.dd.sampling.mfreq \
+                        "Sets the sampling rate of the audio device.\nThis changes the available codecs."
+add_help $i.dd.sampling.mchannels \
+                        "Changes between mono and stereo sampling."
+
 add_help $i.dd.units.m	"Sets the duration of each packet sent.\nThere is a fixed per-packet\
                          overhead, so\nmaking this larger will reduce the total\noverhead.\
 			 The effects of packet loss are\nmore noticable with large packets."
@@ -1600,9 +1612,9 @@ add_help $i.cc.int.fc.m \
 add_help $i.cc.int.rb	"Enables interleaving which exchanges latency\n\
 			 for protection against burst losses.  No other\n\
 			 audio tools can decode this format (experimental)."
-add_help $i.cks.f.silence\
+add_help $i.cks.f.f.silence\
 			 "If enabled, nothing is sent when the input\nis unmuted, but silent."
-add_help $i.cks.f.agc	 "Enables automatic control of the volume\nof the sound you send."
+add_help $i.cks.f.f.agc	 "Enables automatic control of the volume\nof the sound you send."
 
 # Reception Help
 set i .prefs.pane.reception
