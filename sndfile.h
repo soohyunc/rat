@@ -24,7 +24,7 @@ extern "C" {
  * the file name.
  *
  * The functions snd_{read,write}_open take a pointer to a pointer 
- * of type struct s_snd_file.  This makes allocation/access more
+ * of type struct s_sndfile.  This makes allocation/access more
  * restrictive, but safer.
  *
  * NOTE: for snd_read_audio and snd_write_audio, buf_len is the
@@ -32,42 +32,37 @@ extern "C" {
  * the number of channels.
  */
 
-struct s_snd_file;
+#include "sndfile_types.h"
+struct s_sndfile;
 
-typedef enum { 
-        SNDFILE_FMT_PCMU,
-        SNDFILE_FMT_PCMA,
-        SNDFILE_FMT_L16
-} sndfile_fmt_e;
-
-int  snd_read_open (struct s_snd_file **sf, 
+int  snd_read_open (struct s_sndfile **sf, 
                     char    *path);
 
-int  snd_read_close (struct s_snd_file **sf);
+int  snd_read_close (struct s_sndfile **sf);
 
-int  snd_read_audio (struct s_snd_file **sf, 
+int  snd_read_audio (struct s_sndfile **sf, 
                      sample *buf, 
                      u_int16 buf_len);
 
-int  snd_write_open (struct s_snd_file **sf,
+int  snd_write_open (struct s_sndfile **sf,
                      char         *path,
                      sndfile_fmt_e fmt,
                      u_int16       freq,
                      u_int16       channels);
 
-int  snd_write_close (struct s_snd_file **sf);
+int  snd_write_close (struct s_sndfile **sf);
 
-int  snd_write_audio (struct s_snd_file **sf, 
+int  snd_write_audio (struct s_sndfile **sf, 
                       sample *buf, 
                       u_int16 buf_len);
 
-u_int16  snd_get_channels(struct s_snd_file *sf);
+u_int16  snd_get_channels(struct s_sndfile *sf);
 
-u_int16  snd_get_rate    (struct s_snd_file *sf);
+u_int16  snd_get_rate    (struct s_sndfile *sf);
 
-int  snd_pause (struct s_snd_file *sf);
+int  snd_pause (struct s_sndfile *sf);
 
-int  snd_resume (struct s_snd_file *sf);
+int  snd_resume (struct s_sndfile *sf);
 
 #ifdef __cplusplus
 }

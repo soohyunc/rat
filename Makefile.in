@@ -16,7 +16,8 @@ CODEC_OBJS = codec.o codec_state.o codec_dvi.o codec_gsm.o \
 
 CC_OBJS    = channel.o channel_types.o cc_vanilla.o cc_rdncy.o
 
-TOY_OBJS   = convert.o crypt.o render_3D.o repair.o sndfile.o 
+TOY_OBJS   = convert.o crypt.o render_3D.o repair.o \
+             sndfile.o sndfile_au.o sndfile_wav.o
 
 CORE_OBJS  = ts.o playout.o statistics.o source.o \
              rtcp.o rtcp_db.o rtcp_pckt.o session.o \

@@ -79,8 +79,8 @@ typedef struct session_tag {
         int             ui_on;
 	char		*ui_addr;
         converter_id_t  converter;
-	struct s_snd_file *in_file;
-	struct s_snd_file *out_file;
+	struct s_sndfile *in_file;
+	struct s_sndfile *out_file;
 	audio_desc_t	audio_device;
 	struct s_tx_buffer	            *tb;
 	struct rtp_db_tag	            *db;
