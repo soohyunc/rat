@@ -1,7 +1,6 @@
 INCS   = -I/usr/X11R6/include \
          -I/cs/research/mice/starship/common/FreeBSD/include
-LDLIBS = -L/usr/local/lib  -ltk8.0 -ltcl8.0 \
-         -L/usr/X11R6/lib -lXext -lX11 \
-         -L/cs/research/mice/starship/common/freebsd/lib -lm
+LDLIBS = -L/cs/research/mice/starship/common/freebsd/lib -ltk80 -ltcl80 \
+         -L/usr/X11R6/lib -lXext -lX11 -lm
 
 OBJS = $(OBJDIR)/auddev_luigi.o
