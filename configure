@@ -59,7 +59,7 @@ esac
 
 echo "Configuring RAT v$VERSION for $OSTYPE"
 
-GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
+GCCWFLAGS="-W -Wall -Wbad-function-cast -Wmissing-prototypes -Wno-implicit"
 
 case $OSTYPE in
   SunOS   ) CC="gcc"
@@ -72,7 +72,7 @@ case $OSTYPE in
 	    OPTIMIZE="-O4"
 	    PROFILE="-pg"
             ;;
-  Solaris ) CC="gcc -pipe"
+  Solaris ) CC="/opt/ucl/bin/gcc -pipe"
             WFLAGS=$GCCWFLAGS
 	    INCLUDE="-I/cs/research/mice/starship/common/solaris/include -I/usr/demo/SOUND/include -I/usr/openwin/include"
 	    LDLIBS="-L/cs/research/mice/starship/common/solaris/lib -ltk8.0 -ltcl8.0 -L/usr/openwin/lib -lXext -lX11 -L/usr/demo/SOUND/lib -laudio -lsocket -ldl -lnsl -lm"
