@@ -52,7 +52,6 @@
 #include <dlfcn.h>
 
 #include "config_unix.h"
-#include "assert.h"
 #include "debug.h"
 #include "audio_types.h"
 #include "audio_fmt.h"

@@ -67,7 +67,6 @@
 #ifdef WIN32
 
 #include "config_win32.h"
-#include "assert.h"
 #include "audio.h"
 #include "debug.h"
 #include "memory.h"

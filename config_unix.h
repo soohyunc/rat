@@ -110,6 +110,12 @@ typedef int	fd_t;
 #define max(a, b)	(((a) > (b))? (a): (b))
 #define min(a, b)	(((a) < (b))? (a): (b))
 
+#ifdef NDEBUG
+#define assert(x) if ((x) == 0) fprintf(stderr, "%s:%u: failed assertion\n", __FILE__, __LINE__)
+#else
+#include <assert.h>
+#endif
+
 #ifdef __NetBSD__
 #include <sys/stat.h>
 #include <fcntl.h>

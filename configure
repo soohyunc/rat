@@ -194,8 +194,8 @@ cat Makefile.in \
 | sed "s@__OSTYPE__@$OSTYPE@" \
 | sed "s@__CC__@$CC@" \
 | sed "s@__WFLAGS__@$WFLAGS@" \
-| sed "s@__INCLUDE__@$TCL_INCL $INCLUDE@" \
-| sed "s@__LDLIBS__@$TCL_LIBS $LDLIBS@" \
+| sed "s@__INCLUDE__@$TCL_INCL $INCLUDE -I../common@" \
+| sed "s@__LDLIBS__@$TCL_LIBS $LDLIBS ../common/libcommon.a@" \
 | sed "s@__AUDIO__@$AUDIO@" \
 | sed "s@__CHAR__@$CHAR@" \
 | sed "s@__DEBUG__@$DEBUG2@" \

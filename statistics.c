@@ -45,7 +45,6 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-#include "assert.h"
 #include "debug.h"
 #include "memory.h"
 #include "util.h"

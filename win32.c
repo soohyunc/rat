@@ -45,7 +45,6 @@ static char rcsid[] =
 #endif
 
 #include "config_win32.h"
-#include "assert.h"
 
 int
 uname(struct utsname *ub)

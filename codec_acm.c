@@ -41,7 +41,6 @@
  */
 
 #ifdef WIN32
-#include "assert.h"
 #include "config_win32.h"
 #include "codec_acm.h"
 #include "codec.h"

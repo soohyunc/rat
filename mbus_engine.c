@@ -39,7 +39,6 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-#include "assert.h"
 #include "debug.h"
 #include "mbus_engine.h"
 #include "mbus_ui.h"

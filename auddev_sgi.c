@@ -40,8 +40,6 @@
  * SUCH DAMAGE.
  */
 
-#include <assert.h>
-
 #include "config_unix.h"
 #include "config_win32.h"
 #include "auddev_sgi.h"

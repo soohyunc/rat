@@ -1,6 +1,5 @@
 #include "config_unix.h"
 #include "config_win32.h"
-#include "assert.h"
 #include "debug.h"
 #include "net_udp.h"
 #include "crypt.h"

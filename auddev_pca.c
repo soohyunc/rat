@@ -55,7 +55,6 @@
 #include "audio_fmt.h"
 #include "auddev_pca.h"
 #include "codec_g711.h"
-#include "assert.h"
 #include "memory.h"
 #include "debug.h"
 

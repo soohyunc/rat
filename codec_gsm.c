@@ -6,7 +6,6 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-#include "assert.h"
 #include "codec_gsm.h"
 
 #define	saturate(x) 	((x) < MIN_WORD ? MIN_WORD : (x) > MAX_WORD ? MAX_WORD: (x))

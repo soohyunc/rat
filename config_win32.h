@@ -115,6 +115,12 @@ typedef unsigned long	in_addr_t;
 #define srand48	srand
 #define lrand48 rand
 
+#ifdef NDEBUG
+#define assert(x) if ((x) == 0) fprintf(stderr, "%s:%u: failed assertion\n", __FILE__, __LINE__)
+#else
+#include <assert.h>
+#endif
+
 #define IN_CLASSD(i)	(((long)(i) & 0xf0000000) == 0xe0000000)
 #define IN_MULTICAST(i)	IN_CLASSD(i)
 

@@ -44,7 +44,6 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-#include "assert.h"
 #include "memory.h"
 #include "transcoder.h"
 #include "audio.h"

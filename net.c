@@ -49,7 +49,6 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-#include "assert.h"
 #include "net_udp.h"
 #include "net.h"
 #include "crypt.h"
