@@ -452,6 +452,12 @@ newpcm_audio_oport_details(audio_desc_t ad, int idx)
 	return &ap;
 }
 
+/* newpcm_audio_{get,set}_igain are used to control input gain.  There
+ * are 2 key mixer types for newpcm: those based on ac97 and those
+ * not.  AC97 mixers control input gain using RECLEV, whereas non-AC97
+ * set gain on current input port and do not (usually) have a RECLEV
+ * mixer line. */
+
 void
 newpcm_audio_set_igain(audio_desc_t ad, int gain)
 {
@@ -460,16 +466,33 @@ newpcm_audio_set_igain(audio_desc_t ad, int gain)
 
 	UNUSED(ad); assert(audio_fd > 0);
 	newpcm_audio_loopback_config(gain);
+	/* Try AC97 */
 	NEWPCM_AUDIO_IOCTL(audio_fd, SOUND_MIXER_WRITE_RECLEV, &volume);
+
+	if (newpcm_error != 0 && iport != 0) { 
+		/* Fallback to non-ac97 */
+		int idx = 1;
+		while ((1 << idx) != iport)
+			idx++;
+		NEWPCM_AUDIO_IOCTL(audio_fd, MIXER_WRITE(idx), &volume);
+	}
 }
 
 int
 newpcm_audio_get_igain(audio_desc_t ad)
 {
-	int volume;
+	int volume = 0;
 
 	UNUSED(ad); assert(audio_fd > 0);
+	/* Try AC97 */
 	NEWPCM_AUDIO_IOCTL(audio_fd, SOUND_MIXER_READ_RECLEV, &volume);
+	if (newpcm_error != 0 && iport != 0) {
+		/* Fallback to non-ac97 */
+		int idx = 1;
+		while ((1 << idx) != iport)
+			idx++;
+		NEWPCM_AUDIO_IOCTL(audio_fd, MIXER_READ(idx), &volume);
+	}
 	volume = DEVICE_TO_RAT(volume & 0xff); 
 	if (volume > 100 || volume < 0) {
 		debug_msg("gain out of bounds (%d %d--%d)" \
