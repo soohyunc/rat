@@ -1381,51 +1381,51 @@ proc sync_engine_to_ui {} {
 
     set my_cname_enc [mbus_encode_str $my_cname]
     #rtcp details
-    mbus_qmsg "rtp.source.name"  "$my_cname_enc [mbus_encode_str $rtcp_name]"
-    mbus_qmsg "rtp.source.email" "$my_cname_enc [mbus_encode_str $rtcp_email]"
-    mbus_qmsg "rtp.source.phone" "$my_cname_enc [mbus_encode_str $rtcp_phone]"
-    mbus_qmsg "rtp.source.loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
+    mbus_send "R" "rtp.source.name"  "$my_cname_enc [mbus_encode_str $rtcp_name]"
+    mbus_send "R" "rtp.source.email" "$my_cname_enc [mbus_encode_str $rtcp_email]"
+    mbus_send "R" "rtp.source.phone" "$my_cname_enc [mbus_encode_str $rtcp_phone]"
+    mbus_send "R" "rtp.source.loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
     
     #transmission details
-    mbus_qmsg "audio.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
-    mbus_qmsg "tool.rat.rate"         $upp
-    mbus_qmsg "redundancy"   "[mbus_encode_str $secenc] $red_off"
-    mbus_qmsg "interleaving" "$int_gap $int_units"
+    mbus_send "R" "audio.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
+    mbus_send "R" "tool.rat.rate"         $upp
+    mbus_send "R" "redundancy"   "[mbus_encode_str $secenc] $red_off"
+    mbus_send "R" "interleaving" "$int_gap $int_units"
 
     # channel.code announcement  MUST go after config of channel coders communicated
-    mbus_qmsg "audio.channel.coding" [mbus_encode_str $channel_var]
+    mbus_send "R" "audio.channel.coding" [mbus_encode_str $channel_var]
 
-    mbus_qmsg "tool.rat.silence"      $silence_var
-    mbus_qmsg "tool.rat.agc"          $agc_var
-    mbus_qmsg "tool.rat.loopback"     $audio_loop_var
-    mbus_qmsg "tool.rat.echo.suppress" $echo_var
+    mbus_send "R" "tool.rat.silence"      $silence_var
+    mbus_send "R" "tool.rat.agc"          $agc_var
+    mbus_send "R" "tool.rat.loopback"     $audio_loop_var
+    mbus_send "R" "tool.rat.echo.suppress" $echo_var
 
     #Reception Options
-    mbus_qmsg "repair"       [mbus_encode_str $repair_var]
-    mbus_qmsg "playout.limit" $limit_var
-    mbus_qmsg "playout.min"   $min_var
-    mbus_qmsg "playout.max"   $max_var
-    mbus_qmsg "tool.rat.lecture"       $lecture_var
-    mbus_qmsg "tool.rat.externalise"   $3d_audio_var
-    mbus_qmsg "converter"    [mbus_encode_str $convert_var]
+    mbus_send "R" "repair"       [mbus_encode_str $repair_var]
+    mbus_send "R" "playout.limit" $limit_var
+    mbus_send "R" "playout.min"   $min_var
+    mbus_send "R" "playout.max"   $max_var
+    mbus_send "R" "tool.rat.lecture"       $lecture_var
+    mbus_send "R" "tool.rat.externalise"   $3d_audio_var
+    mbus_send "R" "converter"    [mbus_encode_str $convert_var]
 
     #Security
     if {$key_var==1 && [string length $key]!=0} {
-	mbus_qmsg "update.key" [mbus_encode_str $key]
+	mbus_send "R" "update.key" [mbus_encode_str $key]
     } else {
-	mbus_qmsg "update.key" [mbus_encode_str ""]
+	mbus_send "R" "update.key" [mbus_encode_str ""]
     }
 
     #Interface
-    mbus_qmsg "tool.rat.powermeter"   $meter_var
-    mbus_qmsg "tool.rat.sync"         $sync_var
+    mbus_send "R" "tool.rat.powermeter"   $meter_var
+    mbus_send "R" "tool.rat.sync"         $sync_var
 
     #device 
-    mbus_qmsg "audio.input.gain"    $gain
-    mbus_qmsg "audio.output.gain"   $volume
-    mbus_qmsg "audio.input.port"    [mbus_encode_str $input_port]
-    mbus_qmsg "audio.output.port"   [mbus_encode_str $output_port]
-    mbus_qmsg "audio.input.mute"    $in_mute_var
+    mbus_send "R" "audio.input.gain"    $gain
+    mbus_send "R" "audio.output.gain"   $volume
+    mbus_send "R" "audio.input.port"    [mbus_encode_str $input_port]
+    mbus_send "R" "audio.output.port"   [mbus_encode_str $output_port]
+    mbus_send "R" "audio.input.mute"    $in_mute_var
     mbus_send "R" "audio.output.mute"   $out_mute_var
 }
 

@@ -91,20 +91,6 @@ mbus_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 }
 
 static int
-mbus_qmsg_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
-{
-	UNUSED(ttp);
-
-	if (argc != 3) {
-		i->result = "mbus_qmsg <cmnd> <args>";
-		return TCL_ERROR;
-	}
-
-	mbus_ui_tx_queue(TRUE, argv[1], argv[2]);
-	return TCL_OK;
-}
-
-static int
 mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 {
 	UNUSED(ttp);
@@ -177,7 +163,6 @@ tcl_init(session_struct *sp, int argc, char **argv, char *mbus_engine_addr)
 	Tk_Init(interp);
 
 	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) sp, NULL);
-	Tcl_CreateCommand(interp, "mbus_qmsg",	     mbus_qmsg_cmd,   (ClientData) sp, NULL);
 	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, (ClientData) sp, NULL);
 #ifdef WIN32
         Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);

@@ -41,7 +41,6 @@
 
 void         mbus_ui_rx(char *srce, char *cmnd, char *args, void *data);
 void         mbus_ui_tx(int channel, char *dest, char *cmnd, char *args, int reliable);
-void         mbus_ui_tx_queue(int channel, char *cmnd, char *args);
 void         mbus_ui_init(char *name_engine, int channel);
 fd_t         mbus_ui_fd(int channel);
 struct mbus *mbus_ui(int channel);

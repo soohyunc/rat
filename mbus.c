@@ -455,6 +455,7 @@ fd_t mbus_fd(struct mbus *m)
 	return m->fd;
 }
 
+#ifdef NDEF
 void mbus_qmsg(struct mbus *m, const char *cmnd, const char *args)
 {
 	/* Queue a message for sending. The next call to mbus_send() sends this message
@@ -468,8 +469,14 @@ void mbus_qmsg(struct mbus *m, const char *cmnd, const char *args)
 	m->qmsg_args[m->qmsg_size] = xstrdup(args);
 	m->qmsg_size++;
 }
+#endif
 
-int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, int reliable)
+void mbus_send(struct mbus *m)
+{
+	UNUSED(m);
+}
+
+void mbus_qmsg(struct mbus *m, char *dest, const char *cmnd, const char *args, int reliable)
 {
 	char			*buffer, *bufp;
 	struct sockaddr_in	 saddr;
@@ -513,7 +520,6 @@ int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, in
 	}
 
 	xfree(buffer);
-	return m->seqnum;
 }
 
 void mbus_parse_init(struct mbus *m, char *str)

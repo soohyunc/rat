@@ -265,22 +265,22 @@ ui_update_input_port(session_struct *sp)
 {
 	switch (sp->input_mode) {
 	case AUDIO_MICROPHONE:
-		mbus_engine_tx_queue(TRUE, "audio.input.port", "microphone");
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.port", "microphone", TRUE);
 		break;
 	case AUDIO_LINE_IN:
-		mbus_engine_tx_queue(TRUE, "audio.input.port", "line_in");
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.port", "line_in", TRUE);
 		break;	
 	case AUDIO_CD:
-		mbus_engine_tx_queue(TRUE, "audio.input.port", "cd");
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.port", "cd", TRUE);
 		break;
 	default:
 		fprintf(stderr, "Invalid input port!\n");
 		return ;
 	}
 	if (sp->sending_audio) {
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.mute", "0", FALSE);
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.mute", "0", TRUE);
 	} else {
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.mute", "1", FALSE);
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.mute", "1", TRUE);
 	}
 }
 
@@ -289,22 +289,22 @@ ui_update_output_port(session_struct *sp)
 {
 	switch (sp->output_mode) {
 	case AUDIO_SPEAKER:
-		mbus_engine_tx_queue(TRUE, "audio.output.port", "speaker");
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.port", "speaker", TRUE);
 		break;
 	case AUDIO_HEADPHONE:
-		mbus_engine_tx_queue(TRUE, "audio.output.port", "headphone");
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.port", "headphone", TRUE);
 		break;
 	case AUDIO_LINE_OUT:
-		mbus_engine_tx_queue(TRUE, "audio.output.port", "line_out");
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.port", "line_out", TRUE);
 		break;
 	default:
 		fprintf(stderr, "Invalid output port!\n");
 		return;
 	}
 	if (sp->playing_audio) {
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.mute", "0", FALSE);
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.mute", "0", TRUE);
 	} else {
-		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.mute", "1", FALSE);
+		mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.mute", "1", TRUE);
 	}
 }
 
@@ -517,7 +517,7 @@ ui_update_input_gain(session_struct *sp)
 
         sprintf(args, "%3d", audio_get_gain(sp->audio_fd)); 
         assert(strlen(args) < 4);
-        mbus_engine_tx_queue(TRUE,  "audio.input.gain", args);
+        mbus_engine_tx(TRUE, mbus_name_ui, "audio.input.gain", args, TRUE);
 }
 
 void
@@ -527,7 +527,7 @@ ui_update_output_gain(session_struct *sp)
 
         sprintf(args, "%3d", audio_get_volume(sp->audio_fd)); 
         assert(strlen(args) < 4);
-        mbus_engine_tx_queue(TRUE, "audio.output.gain", args);
+        mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.gain", args, TRUE);
 }
 
 void
@@ -543,15 +543,15 @@ ui_update(session_struct *sp)
                 ui_update_output_gain(sp);
 		done=1;
 	} else {
-	        sprintf(args, "%3d", sp->output_gain); mbus_engine_tx_queue(TRUE, "audio.output.gain", args);
+	        sprintf(args, "%3d", sp->output_gain); mbus_engine_tx(TRUE, mbus_name_ui, "audio.output.gain", args, TRUE);
                 assert(strlen(args) < 4);
-		sprintf(args, "%3d", sp->input_gain ); mbus_engine_tx_queue(TRUE,  "audio.input.gain", args);
+		sprintf(args, "%3d", sp->input_gain ); mbus_engine_tx(TRUE, mbus_name_ui,  "audio.input.gain", args, TRUE);
                 assert(strlen(args) < 4);
 	}
 
         sprintf(args, "%3d", collator_get_units(sp->collator));
         assert(strlen(args) < 4);
-	mbus_engine_tx_queue(TRUE, "rate", args);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rate", args, TRUE);
 
 	ui_update_output_port(sp);
 	ui_update_input_port(sp);
@@ -637,7 +637,7 @@ ui_update_reception(char *cname, u_int32 recv, u_int32 lost, u_int32 misordered,
 	/* I hate this function! */
 	args = (char *) xmalloc(strlen(cname_e) + 88);
 	sprintf(args, "%s %6ld %6ld %6ld %6ld %6ld %6d", cname_e, recv, lost, misordered, duplicates, jitter, jit_tog);
-	mbus_engine_tx_queue(TRUE, "rtp.source.reception", args);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.reception", args, FALSE);
 	xfree(args);
         xfree(cname_e);
 }
@@ -653,7 +653,7 @@ ui_update_duration(char *cname, int duration)
 	args    = (char *) xmalloc(5 + strlen(cname_e));
 
 	sprintf(args, "%s %3d", cname_e, duration);
-	mbus_engine_tx_queue(TRUE, "rtp.source.packet.duration", args);
+	mbus_engine_tx(TRUE, mbus_name_ui, "rtp.source.packet.duration", args, FALSE);
 	xfree(args);
         xfree(cname_e);
 }
@@ -678,16 +678,16 @@ void
 ui_update_sync(int sync)
 {
 	if (sync) {
-		mbus_engine_tx_queue(TRUE, "sync", "1");
+		mbus_engine_tx(TRUE, mbus_name_ui, "sync", "1", TRUE);
 	} else {
-		mbus_engine_tx_queue(TRUE, "sync", "0");
+		mbus_engine_tx(TRUE, mbus_name_ui, "sync", "0", TRUE);
 	}
 }
 
 void
 ui_update_key(char *key)
 {
-	mbus_engine_tx_queue(TRUE, "update_key", key);
+	mbus_engine_tx(TRUE, mbus_name_ui, "update_key", key, TRUE);
 }
 
 static int

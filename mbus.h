@@ -46,8 +46,8 @@ struct mbus *mbus_init(unsigned short channel,
 		       void  (*err_handler)(int seqnum));
 void         mbus_addr(struct mbus *m, char *addr);
 fd_t         mbus_fd(struct mbus *m);
-void         mbus_qmsg(struct mbus *m, const char *cmnd, const char *args);
-int          mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, int reliable);
+void         mbus_qmsg(struct mbus *m, char *dest, const char *cmnd, const char *args, int reliable);
+void         mbus_send(struct mbus *m);
 void         mbus_recv(struct mbus *m, void *data);
 void         mbus_parse_init(struct mbus *m, char *str);
 void         mbus_parse_done(struct mbus *m);

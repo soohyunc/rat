@@ -983,18 +983,11 @@ void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 void mbus_engine_tx(int channel, char *dest, char *cmnd, char *args, int reliable)
 {
 	if (channel == 0) {
-		mbus_send(mbus_base, dest, cmnd, args, reliable);
+		mbus_qmsg(mbus_base, dest, cmnd, args, reliable);
+		mbus_send(mbus_base);
 	} else {
-		mbus_send(mbus_chan, dest, cmnd, args, reliable);
-	}
-}
-
-void mbus_engine_tx_queue(int channel, char *cmnd, char *args)
-{
-	if (channel == 0) {
-		mbus_qmsg(mbus_base, cmnd, args);
-	} else {
-		mbus_qmsg(mbus_chan, cmnd, args);
+		mbus_qmsg(mbus_chan, dest, cmnd, args, reliable);
+		mbus_send(mbus_chan);
 	}
 }
 
