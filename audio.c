@@ -37,6 +37,8 @@ static const char cvsid[] =
 #include "source.h"
 #include "timers.h"
 #include "sndfile.h"
+#include "tonegen.h"
+#include "voxlet.h"
 
 /* Zero buf used for writing zero chunks during cushion adaption */
 static sample* zero_buf;
@@ -59,6 +61,19 @@ audio_device_release(session_t *sp, audio_desc_t the_dev)
                 debug_msg("Releasing wrong device!\n");
                 return FALSE;
         }
+
+	/* Mix is going to be destroyed - tone_generator and
+	 * voxlet have pointers to mixer in their state that
+	 * is about to expire.  Could pass mixer as argument
+	 * to their process functions...
+	 */
+	if (sp->tone_generator) {
+		tonegen_destroy(&sp->tone_generator);
+	}
+
+	if (sp->local_file_player) {
+		voxlet_destroy(&sp->local_file_player);
+	}
 
         free_time(sp->device_clock);
         sp->device_clock = NULL;

@@ -1210,6 +1210,8 @@ v4.1.8  - Partially fix layered codec (recognises multiple addresses on
         - Changes to Win32 driver to remove race condition (audio callback
           occuring as audio being taken from list of ready buffers).
         - Move participant database clean up into session_exit.
+        - Destroy local file player and tone generator when reconfiguring
+          device.
 
 TODO -- They're features not bugs dammit!
 ----

@@ -482,6 +482,7 @@ mix_active(mixer_t *ms)
 const mixer_info_t *
 mix_query(const mixer_t *ms)
 {
+	mix_verify(ms);
         if (ms == NULL) {
                 return FALSE;
         }
