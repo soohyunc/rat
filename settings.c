@@ -32,6 +32,11 @@
 FILE	*settings_file;
 #endif
 
+void load_settings(session_struct *sp)
+{
+	UNUSED(sp);
+}
+
 static void save_init(void)
 {
 #ifdef WIN32

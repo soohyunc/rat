@@ -983,7 +983,6 @@ proc mbus_recv_audio.file.record.alive {alive} {
 }
 
 proc mbus_recv_mbus.quit {} {
-	save_settings 
 	destroy .
 }
 
@@ -1361,7 +1360,6 @@ proc do_quit {} {
 		profile off pdat
 		profrep pdat cpu
 	}
-	save_settings 
 	destroy .
 	mbus_send "R" "mbus.quit" ""
 }
@@ -2184,84 +2182,8 @@ if {$win32 == 0 && [glob ~] == "/"} {
 	set rtpfname ~/.RTPdefaults
 }
 
-proc save_setting {f field var} {
-    global win32 V rtpfname
-    upvar #0 $var value
-    if {$win32 == 0} {
-		catch { puts $f "*$field: $value" }
-    } else {
-		if {[string first "rtp" "$field"] == -1} {
-			set fail [catch {registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\$V(app)" "*$field" "$value"} errmsg ]
-		} else {
-			set fail [catch {registry set "HKEY_CURRENT_USER\\Software\\$V(class)\\common" "*$field" "$value"} errmsg ]
-		}
-		if {$fail} {
-			puts "registry set failed:\n$errmsg"
-		}
-	}
-}
-
 proc save_settings {} {
-    global rtpfname win32 TOOL my_ssrc
-
-    set f 0
-    if {$win32 == 0} {
-		set fail [catch {set f [open $rtpfname w]}]
-		if {$fail} {
-			return
-		}
-    }
-
-    # personal
-    save_setting $f rtpName     rtcp_name
-    save_setting $f rtpEmail    rtcp_email
-    save_setting $f rtpPhone    rtcp_phone
-    save_setting $f rtpLoc      rtcp_loc
-    save_setting $f audioTool   TOOL($my_ssrc)
-
-    # transmission
-    save_setting $f audioFrequency         freq
-    save_setting $f audioChannelsIn        ichannels
-    save_setting $f audioPrimary           prenc
-    save_setting $f audioUnits             upp
-    save_setting $f audioChannelCoding     channel_var
-	save_setting $f audioLayers			   layerenc
-    save_setting $f audioRedundancy        secenc
-    save_setting $f audioRedundancyOffset  red_off
-    save_setting $f audioInterleavingGap   int_gap
-    save_setting $f audioInterleavingUnits int_units 
-    save_setting $f audioSilence           silence_var
-    save_setting $f audioAGC               agc_var
-    save_setting $f audioLoopback          audio_loop_var
-    save_setting $f audioEchoSuppress      echo_var
-    # reception
-    save_setting $f audioRepair           repair_var
-    save_setting $f audioLimitPlayout     limit_var
-    save_setting $f audioMinPlayout       min_var
-    save_setting $f audioMaxPlayout       max_var
-    save_setting $f audioLecture          lecture_var
-    save_setting $f audio3dRendering      3d_audio_var
-    save_setting $f audioAutoConvert      convert_var
-    #security
-   
-    # ui bits
-    save_setting $f audioPowermeters meter_var
-    save_setting $f audioLipSync     sync_var
-    save_setting $f audioHelpOn      help_on
-    save_setting $f audioMatrixOn    matrix_on
-    save_setting $f audioPlistOn     plist_on
-    save_setting $f audioFilesOn     files_on
-
-    # device 
-    save_setting $f  audioDevice       audio_device
-    save_setting $f  audioOutputGain   volume
-    save_setting $f  audioInputGain    gain
-    save_setting $f  audioOutputPort   output_port
-    save_setting $f  audioInputPort    input_port
-
-    if {$win32 == 0} {
-	    close $f
-    }
+	puts "######## should save settings!"
 }
 
 proc load_setting {attrname field var default} {
@@ -2423,8 +2345,8 @@ proc check_rtcp_name {} {
 	frame  .name.b
 	label  .name.b.res -text "Name:"
 	entry  .name.b.e -highlightthickness 0 -width 20 -relief sunken -textvariable rtcp_name
-	button .name.d -text Done -command {save_settings; sync_engine_to_ui; destroy .name}
-	bind   .name.b.e <Return> {save_settings; sync_engine_to_ui; destroy .name}
+	button .name.d -text Done -command {sync_engine_to_ui; destroy .name}
+	bind   .name.b.e <Return> {sync_engine_to_ui; destroy .name}
 	
 	pack .name.m -side top -fill x -expand 1
 	pack .name.b -side top -fill x -expand 1
