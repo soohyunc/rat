@@ -238,13 +238,15 @@ adapt_playout(rtp_hdr_t *hdr,
 		/* IF (a) TS start 
                    OR (b) we've thrown 4 consecutive packets away 
                    OR (c) ts have jumped by 8 packets worth 
-                   OR (d) playout buffer running dry.
+                   OR (d) playout buffer running dry 
+                   OR (e) a new/empty playout buffer.
                    THEN adapt playout and communicate it
                    */
 		if ((hdr->m) || 
                     src->cont_toged || 
                     ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * src->inter_pkt_gap * 8 + 1)) ||
-                    src->playout_danger) {
+                    src->playout_danger ||
+                    playout_buffer_duration(sp->playout_buf_list, src) == 0) {
 #ifdef DEBUG
                         if (hdr->m) {
                                 debug_msg("New talkspurt\n");
@@ -252,6 +254,8 @@ adapt_playout(rtp_hdr_t *hdr,
                                 debug_msg("Cont_toged\n");
                         } else if (src->playout_danger) {
                                 debug_msg("playout danger\n");
+                        } else if (playout_buffer_duration(sp->playout_buf_list, src) == 0) {
+                                debug_msg("playout buffer empty\n");
                         } else {
                                 debug_msg("Time stamp jump %ld %ld\n", hdr->ts, src->last_ts);
                         }
@@ -266,7 +270,7 @@ adapt_playout(rtp_hdr_t *hdr,
                         if (src->playout_danger) {
                                 /* This is usually a sign that src clock is 
                                  * slower than ours. */
-                                var = max(var, 3 * cushion_get_size(cushion)); ;
+                                var = max(var, 3 * cushion_get_size(cushion) / 2); ;
                                 debug_msg("Playout danger, var (%ld)\n", var);
                         } else {
                                 u_int32 cs;
@@ -324,13 +328,9 @@ adapt_playout(rtp_hdr_t *hdr,
 		}
 
                 src->playout_danger = FALSE;
-	}
-
-#ifdef NDEF
-        if (hdr->seq - src->last_seq != 1) {
-                debug_msg("seq jump last (%ld) cur (%ld)\n", src->last_seq, hdr->seq);
-        } 
-#endif
+	} else {
+                debug_msg("last %u curr %u\n", src->last_ts, hdr->ts);
+        }
 
         src->last_ts        = hdr->ts;
         src->last_seq       = hdr->seq;
@@ -450,6 +450,12 @@ statistics(session_struct    *sp,
                 if (rtp_header_validation(hdr, &e_ptr->len, &extlen) == FALSE) {
                         debug_msg("RTP Packet failed header validation!\n");
                         block_trash_check();
+                        goto release;
+                }
+
+                if (sp->playing_audio == FALSE) {
+                        /* Don't decode audio if we are not playing it! */
+                        debug_msg("Muted: Not decoding packets\n");
                         goto release;
                 }
         
