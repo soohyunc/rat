@@ -1,4 +1,3 @@
-catch {
 #
 # Copyright (c) 1995-2000 University College London
 # All rights reserved.
@@ -7,6 +6,8 @@ catch {
 # 
 # Full terms and conditions of the copyright appear below.
 #
+
+set script_error [ catch {
 
 #wm withdraw .
 
@@ -2991,18 +2992,14 @@ add_help .chart		"This chart displays the reception quality reported\n by all se
 			 participant was\n received by all other participants in the session:\n green\
 			 is good quality, orange medium quality, and\n red poor quality audio." "rqm.au"
 
-
-} script_error
-
-if { $script_error != "" } {
-    puts "Error: \"$script_error\""
-    destroy .
-    exit -1
-}
-
 proc rendezvous_with_media_engine {} {
 	mbus_send "R" "tool.rat.settings" ""
 	mbus_send "R" "audio.query" ""
 	mbus_send "R" "rtp.query" ""
 }
 
+} script_error_evalution ]
+
+if {$script_error != 0} {
+        bgerror "$script_error"
+}
