@@ -1,12 +1,8 @@
 /*
- * FILE:    confbus.h
- * PROGRAM: RAT
+ * FILE:    mbus_ui.c
  * AUTHORS: Colin Perkins
  * 
- * $Revision$
- * $Date$
- * 
- * Copyright (c) 1997 University College London
+ * Copyright (c) 1998 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,28 +36,23 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _CONFBUS_H
-#define _CONFBUS_H
+#include <stdio.h>
+#include "mbus_ui.h"
+#include "ui.h"
 
-struct session_tag;
-struct s_cb_cmnd;
+void mbus_handler_ui(char *srce, char *cmnd, char *args, void *data)
+{
+	char		 command[1500];
+	int		 i;
 
-typedef enum {
-	CB_MSG_RELIABLE, CB_MSG_UNRELIABLE, CB_MSG_ACK
-} cb_msg_type;
+	sprintf(command, "cb_recv_%s %s", cmnd, args);
 
-typedef struct {
-	int		 seq_num;
-	cb_msg_type	 msg_type;
-	struct s_cbaddr	*srce_addr;
-	struct s_cbaddr	*dest_addr;
-	struct cb_cmnd	*commands;	/* Valid if msg_type is CB_MSG_RELIABLE or CB_MSG_UNRELIABLE */
-	int		 ack;		/* Valid if msg_type is CB_MSG_ACK                           */
-} cb_mesg;
+	for (i = 0; i < strlen(command); i++) {
+		if (command[i] == '[') command[i] = '(';
+		if (command[i] == ']') command[i] = ')';
+	}
 
-void     cb_init(struct session_tag *sp);
-int      cb_send(struct session_tag *sp, struct s_cbaddr *srce, struct s_cbaddr *dest, char *mesg, int reliable);
-void     cb_send_ack(struct session_tag *sp, struct s_cbaddr *srce, struct s_cbaddr *dest, int seqnum);
-void     cb_poll(struct session_tag *sp);
+printf("mbus_handler_ui %s\n", command);
+	ui_send(command);
+}
 
-#endif

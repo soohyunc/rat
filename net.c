@@ -53,7 +53,7 @@
 #include "interfaces.h"
 #include "audio.h"
 #include "util.h"
-#include "confbus.h"
+#include "mbus.h"
 
 #ifndef INADDR_NONE
 #define INADDR_NONE     0xffffffff
@@ -322,7 +322,8 @@ network_read(session_struct    *sp,
 
 	sel_fd = sp->rtp_fd;
 	sel_fd = max(sel_fd, sp->rtcp_fd);
-	sel_fd = max(sel_fd, sp->cb_socket);
+	sel_fd = max(sel_fd, mbus_fd(sp->mbus_engine));
+	sel_fd = max(sel_fd, mbus_fd(sp->mbus_ui));
 #if !defined(WIN32)
 	if (sp->mode == AUDIO_TOOL) {
 		sel_fd = max(sel_fd, sp->audio_fd);
@@ -332,9 +333,10 @@ network_read(session_struct    *sp,
 
 	for (;;) {
 		FD_ZERO(&rfds);
-		FD_SET(sp->rtp_fd,    &rfds);
-		FD_SET(sp->rtcp_fd,   &rfds);
-		FD_SET(sp->cb_socket, &rfds);
+		FD_SET(sp->rtp_fd,               &rfds);
+		FD_SET(sp->rtcp_fd,              &rfds);
+		FD_SET(mbus_fd(sp->mbus_engine), &rfds);
+		FD_SET(mbus_fd(sp->mbus_ui),     &rfds);
 #if defined(WIN32) || defined(HPUX) || defined(Linux) || defined(FreeBSD)
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = sp->loop_delay;
@@ -362,8 +364,11 @@ network_read(session_struct    *sp,
 			if (FD_ISSET(sp->rtcp_fd, &rfds)) {
 				read_packets_and_add_to_queue(sp, sp->rtcp_fd, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
 			}
-			if (FD_ISSET(sp->cb_socket, &rfds)) {
-				cb_poll(sp);			
+			if (FD_ISSET(mbus_fd(sp->mbus_engine), &rfds)) {
+				mbus_recv(sp->mbus_engine, (void *) sp);
+			}
+			if (FD_ISSET(mbus_fd(sp->mbus_ui), &rfds)) {
+				mbus_recv(sp->mbus_ui, (void *) sp);
 			}
 		}
 #if !defined(WIN32) && !defined(HPUX) && !defined(Linux) && !defined(FreeBSD)

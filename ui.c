@@ -1,7 +1,7 @@
 /*
- * FILE: ui.c
- * PROGRAM: Rat
- * AUTHOR: Isidor Kouvelas + Colin Perkins + Orion Hodson
+ * FILE:    ui.c
+ * PROGRAM: RAT
+ * AUTHOR:  Isidor Kouvelas + Colin Perkins + Orion Hodson
  * 	
  * $Revision$
  * $Date$
@@ -52,9 +52,7 @@
 #include "repair.h"
 #include "codec.h"
 #include "audio.h"
-#include "confbus.h"
-#include "confbus_cmnd.h"
-#include "confbus_misc.h"
+#include "mbus.h"
 #include "ui.h"
 
 extern Tcl_Interp	*interp;
@@ -71,7 +69,7 @@ int WinGetUserName(ClientData, Tcl_Interp*, int ac, char** av);
 
 Tcl_Interp *interp;	/* Interpreter for application. */
 
-static char		 comm[10000];
+static char		 args[1000];
 
 void
 ui_send(char *command)
@@ -91,55 +89,6 @@ ui_send(char *command)
 	}
 }
 
-void 
-ui_recv(struct s_cbaddr *srce, cb_cmnd *mesg, session_struct *sp)
-{
-	/* This function is called by cb_poll() when a conference bus message */
-	/* is received, which should be processed by the UI. It should not be */
-	/* called directly. It calls cb_recv() in the Tcl code, to process    */
-	/* the message.                                                       */
-	/* Note: The mesg received has all "[" and "]" characters stripped,   */
-	/*       to avoid potential problems with command substitution in the */
-	/*       Tcl scripts. This is probably not the best way to do this.   */
-
-	char		 command[1500];
-	char		 tmp[50];
-	int		 i;
-	cb_param	*p = NULL;
-
-	sprintf(command, "cb_recv %s ", mesg->cmnd);
-	i = strlen(mesg->cmnd) + 9;
-	for (p = mesg->head_param; p != NULL; p = p->next) {
-		switch (p->type) {
-			case CB_INTEGER: 
-				sprintf(tmp, " %d", p->val.integer);
-				break;
-			case CB_FLOAT: 
-				sprintf(tmp, " %f", p->val.flt);
-				break;
-			case CB_SYMBOL: 
-				sprintf(tmp, " %s", p->val.sym);
-				break;
-			case CB_STRING: 
-				sprintf(tmp, " %s", p->val.str);
-				break;
-			default:
-				printf("ui_recv is broken!\n");
-				abort();
-		}
-		strncpy(command+i, tmp, strlen(tmp));
-		i += strlen(tmp);
-	}
-	command[i++] = '\0';
-
-	for (i=0; i<strlen(command); i++) {
-		if (command[i] == '[') command[i] = '(';
-		if (command[i] == ']') command[i] = ')';
-	}
-
-	ui_send(command);
-}
-
 /*
  * Update the on screen information for the given participant
  */
@@ -147,71 +96,71 @@ ui_recv(struct s_cbaddr *srce, cb_cmnd *mesg, session_struct *sp)
 void
 ui_info_update_name(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lu name %s", e->ssrc, cb_encode_str(e->sentry->name));
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "%lu name %s", e->ssrc, mbus_encode_str(e->sentry->name));
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
 }
 
 void
 ui_info_update_cname(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lu cname %s", e->ssrc, cb_encode_str(e->sentry->cname));
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "%lu cname %s", e->ssrc, mbus_encode_str(e->sentry->cname));
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
 }
 
 void
 ui_info_update_email(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lu email %s", e->ssrc, cb_encode_str(e->sentry->email));
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "%lu email %s", e->ssrc, mbus_encode_str(e->sentry->email));
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
 }
 
 void
 ui_info_update_phone(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lu phone %s", e->ssrc, cb_encode_str(e->sentry->phone));
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "%lu phone %s", e->ssrc, mbus_encode_str(e->sentry->phone));
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
 }
 
 void
 ui_info_update_loc(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lu loc %s", e->ssrc, cb_encode_str(e->sentry->loc));
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "%lu loc %s", e->ssrc, mbus_encode_str(e->sentry->loc));
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
 }
 
 void
 ui_info_update_tool(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lu tool %s", e->ssrc, cb_encode_str(e->sentry->tool));
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "%lu tool %s", e->ssrc, mbus_encode_str(e->sentry->tool));
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
 }
 
 void
 ui_info_remove(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lu remove", e->ssrc);
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "%lu remove", e->ssrc);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
 }
 
 void
 ui_info_activate(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lu active now", e->ssrc);
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "%lu active now", e->ssrc);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
 }
 
 void
 ui_info_gray(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lu active recent", e->ssrc);
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "%lu active recent", e->ssrc);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
 }
 
 void
 ui_info_deactivate(rtcp_dbentry *e, session_struct *sp)
 {
-	sprintf(comm, "ssrc %lu inactive", e->ssrc);
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "%lu inactive", e->ssrc);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
 }
 
 void
@@ -238,12 +187,10 @@ update_stats(rtcp_dbentry *e, session_struct *sp)
 		*encoding = 0;
 	}
 
-	if (sp->ui_on) {
-		sprintf(comm, "ssrc %lu encoding %s", e->ssrc, encoding);                       
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-		sprintf(comm, "ssrc %lu loss_to_me   %ld", e->ssrc, (e->lost_frac * 100) >> 8); 
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-	}
+	sprintf(args, "%lu encoding %s", e->ssrc, encoding);                       
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
+	sprintf(args, "%lu loss_to_me   %ld", e->ssrc, (e->lost_frac * 100) >> 8); 
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, FALSE);
 }
 
 void
@@ -251,22 +198,22 @@ ui_update_input_port(session_struct *sp)
 {
 	switch (sp->input_mode) {
 	case AUDIO_MICROPHONE:
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "input device mic", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input", "device mic", FALSE);
 		break;
 	case AUDIO_LINE_IN:
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "input device line_in", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input", "device line_in", FALSE);
 		break;
 	case AUDIO_CD:
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "input device cd", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input", "device cd", FALSE);
 		break;
 	default:
 		fprintf(stderr, "Invalid input port!\n");
 		return ;
 	}
 	if (sp->sending_audio) {
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "input unmute", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input", "unmute", FALSE);
 	} else {
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "input mute", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input", "mute", FALSE);
 	}
 }
 
@@ -275,22 +222,22 @@ ui_update_output_port(session_struct *sp)
 {
 	switch (sp->output_mode) {
 	case AUDIO_SPEAKER:
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "output device speaker", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output", "device speaker", FALSE);
 		break;
 	case AUDIO_HEADPHONE:
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "output device head", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output", "device head", FALSE);
 		break;
 	case AUDIO_LINE_OUT:
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "output device line_out", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output", "device line_out", FALSE);
 		break;
 	default:
 		fprintf(stderr, "Invalid output port!\n");
 		return;
 	}
 	if (sp->playing_audio) {
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "output unmute", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output", "unmute", FALSE);
 	} else {
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "output mute", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output", "mute", FALSE);
 	}
 }
 
@@ -304,8 +251,8 @@ ui_input_level(int level, session_struct *sp)
 	if (ol == level)
 		return;
 
-	sprintf(comm, "powermeter input %d", level);
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "input %d", level);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "powermeter", args, FALSE);
 	ol = level;
 }
 
@@ -317,8 +264,8 @@ ui_output_level(int level, session_struct *sp)
 	if (level > 15) level = 15;
 	if (ol == level) return;
 
-	sprintf(comm, "powermeter output %d", level);
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "output %d", level);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "powermeter", args, FALSE);
 	ol = level;
 }
  
@@ -327,10 +274,10 @@ ui_repair(int mode, session_struct *sp)
 {
         switch(mode) {
         case REPAIR_NONE:
-                cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "repair None", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "repair", "None", FALSE);
                 break;
         case REPAIR_REPEAT:
-                cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "repair Repetition", FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "repair", "Repetition", FALSE);
                 break;
         }
 }
@@ -342,91 +289,88 @@ ui_repair(int mode, session_struct *sp)
 void
 ui_update(session_struct *sp)
 {
-	char	 cmd[100];
 	static   int done=0;
 	codec_t	*cp;
 
+	/*XXX solaris seems to give a different volume back to what we   */
+	/*    actually set.  So don't even ask if it's not the first time*/
 	if (done==0) {
-	  /*XXX solaris seems to give a different volume back to what we   */
-	  /*    actually set.  So don't even ask if it's not the first time*/
-	        sprintf(cmd, "output gain %d", audio_get_volume(sp->audio_fd)); cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
-		sprintf(cmd, "input  gain %d", audio_get_gain(sp->audio_fd));   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
+	        sprintf(args, "gain %d", audio_get_volume(sp->audio_fd)); mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output", args, TRUE);
+		sprintf(args, "gain %d", audio_get_gain(sp->audio_fd));   mbus_send(sp->mbus_engine, sp->mbus_ui_addr,  "input", args, TRUE);
 	} else {
-		sprintf(cmd, "output gain %d", sp->output_gain); cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
-		sprintf(cmd, "input  gain %d", sp->input_gain);  cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
+	        sprintf(args, "gain %d", sp->output_gain); mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output", args, TRUE);
+		sprintf(args, "gain %d", sp->input_gain ); mbus_send(sp->mbus_engine, sp->mbus_ui_addr,  "input", args, TRUE);
 	}
 
 	ui_update_output_port(sp);
 	if (sp->playing_audio) {
-		sprintf(cmd, "output unmute"); cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output", "unmute", TRUE);
 	} else {
-		sprintf(cmd, "output mute"); cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "output", "mute", TRUE);
 	}
 
 	ui_update_input_port(sp);
 	if (sp->sending_audio) {
-		sprintf(cmd, "input unmute"); cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input", "unmute", TRUE);
 	} else {
-		sprintf(cmd, "input mute"); cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
+		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "input", "mute", TRUE);
 	}
 
 	if (sp->mode != TRANSCODER) {
 		/* If we're using a real audio device, check if it's half duplex... */
 		if (audio_duplex(sp->audio_fd) == FALSE) {
 			sp->voice_switching = MIKE_MUTES_NET;
-			cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "half_duplex", FALSE);
+			mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "half_duplex", "", TRUE);
 		}
 	}
 
 	cp = get_codec(sp->encodings[0]);
-	sprintf(cmd, "primary %s", cb_encode_str(cp->name));
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
+	sprintf(args, "%s", mbus_encode_str(cp->name));
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "primary", args, TRUE);
 	if (sp->num_encodings > 1) {
 		cp = get_codec(sp->encodings[1]);
-		sprintf(cmd, "redundancy %s", cb_encode_str(cp->name));
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, cmd, FALSE);
+		sprintf(args, "%s", mbus_encode_str(cp->name));
 	} else {
-		cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "redundancy \"NONE\"", FALSE);
+		sprintf(args, "\"NONE\"");
 	}
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "redundancy", args, TRUE);
 	done=1;
 }
 
 void
 ui_show_audio_busy(session_struct *sp)
 {
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "disable_audio_ctls", FALSE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "disable_audio_ctls", "", TRUE);
 }
 
 void
 ui_hide_audio_busy(session_struct *sp)
 {
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "enable_audio_ctls", FALSE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "enable_audio_ctls", "", TRUE);
 }
 
 static int
-cb_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
+mbus_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 {
 	session_struct *sp = (session_struct *) ttp;
-	int		reliable;
 
-	if (argc != 3) {
-		i->result = "cb_send <reliable> <message>";
+	if (argc != 4) {
+		i->result = "cb_send <reliable> <cmnd> <args>";
 		return TCL_ERROR;
 	}
 
-	reliable = strcmp(argv[1], "R") == 0;
-	cb_send(sp, sp->cb_uiaddr, sp->cb_myaddr, argv[2], reliable);
+	mbus_send(sp->mbus_ui, sp->mbus_engine_addr, argv[2], argv[3], strcmp(argv[1], "R") == 0);
 	return TCL_OK;
 }
 
 static int
-cb_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
+mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 {
 	if (argc != 2) {
-		i->result = "cb_encode_str <str>";
+		i->result = "mbus_encode_str <str>";
 		return TCL_ERROR;
 	}
-	i->result = cb_encode_str(argv[1]);
+	i->result = mbus_encode_str(argv[1]);
 	return TCL_OK;
 }
 
@@ -492,16 +436,16 @@ usage()
 int
 ui_init(session_struct *sp, int argc, char **argv)
 {
-	char		*args, buffer[10];
+	char		*cmd_line_args, buffer[10];
 
 	Tcl_FindExecutable(argv[0]);
 	interp = Tcl_CreateInterp();
 
-	args = Tcl_Merge(argc - 1, argv + 1);
-	Tcl_SetVar(interp, "argv", args, TCL_GLOBAL_ONLY);
+	cmd_line_args = Tcl_Merge(argc - 1, argv + 1);
+	Tcl_SetVar(interp, "argv", cmd_line_args, TCL_GLOBAL_ONLY);
 
 #ifndef WIN32
-	ckfree(args); 
+	ckfree(cmd_line_args); 
 #endif
 	sprintf(buffer, "%d", argc - 1);
 	Tcl_SetVar(interp, "argc", buffer, TCL_GLOBAL_ONLY);
@@ -524,8 +468,8 @@ ui_init(session_struct *sp, int argc, char **argv)
 		fprintf(stderr, "TCL_LIBS error: %s\n", interp->result);
 	}
 
-	Tcl_CreateCommand(interp, "cb_send",	   cb_send_cmd,	  (ClientData) sp, NULL);
-	Tcl_CreateCommand(interp, "cb_encode_str", cb_encode_cmd, (ClientData) sp, NULL);
+	Tcl_CreateCommand(interp, "mbus_send",	     mbus_send_cmd,   (ClientData) sp, NULL);
+	Tcl_CreateCommand(interp, "mbus_encode_str", mbus_encode_cmd, (ClientData) sp, NULL);
 #ifdef WIN32
 	Tcl_SetVar(interp, "win32", "1", TCL_GLOBAL_ONLY);
 	Tcl_CreateCommand(interp, "putregistry", WinPutRegistry,  (ClientData)sp, NULL);
@@ -552,18 +496,18 @@ ui_init(session_struct *sp, int argc, char **argv)
 	Tk_DefineBitmap(interp, Tk_GetUid("rat_med"),   rat_med_bits, rat_med_width, rat_med_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("rat2"), rat2_bits, rat2_width, rat2_height);
 
-	sprintf(comm, "set ratversion {%s}", RAT_VERSION);
-	ui_send(comm);
+	sprintf(args, "set ratversion {%s}", RAT_VERSION);
+	ui_send(args);
 	ui_send(sp->ui_script);
 
-	sprintf(comm, "init");								   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-	sprintf(comm, "ssrc %lu cname %s", sp->db->myssrc, sp->db->my_dbe->sentry->cname); cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-	sprintf(comm, "my_ssrc %lu", sp->db->myssrc);		  			   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-	sprintf(comm, "address %s %d %d", sp->maddress, sp->rtp_port, sp->ttl); 	   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-        sprintf(comm, "detect_silence %d", (sp->detect_silence) ? 1 : 0);              	   cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
-	sprintf(comm, "agc %d", sp->agc_on);                                               cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "init", "", TRUE);
+	sprintf(args, "%lu cname %s", sp->db->myssrc, sp->db->my_dbe->sentry->cname); 	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "ssrc", args, TRUE);
+	sprintf(args, "%lu", sp->db->myssrc); 						mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "my_ssrc", args, TRUE);
+	sprintf(args, "%s %d %d", sp->maddress, sp->rtp_port, sp->ttl); 		mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "address", args, TRUE);
+        sprintf(args, "%d", (sp->detect_silence) ? 1 : 0); 				mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "detect_silence", args, TRUE);
+	sprintf(args, "%d", sp->agc_on); 						mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "agc", args, TRUE);
 #ifndef NDEBUG
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, "debug", FALSE);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "debug", "", TRUE);
 #endif
 
 	ui_repair(sp->repair, sp);
@@ -577,7 +521,7 @@ void
 update_lecture_mode(session_struct *sp)
 {
 	/* Update the UI to reflect the lecture mode setting...*/
-	sprintf(comm, "lecture_mode %d", sp->lecture);
-	cb_send(sp, sp->cb_myaddr, sp->cb_uiaddr, comm, FALSE);
+	sprintf(args, "%d", sp->lecture);
+	mbus_send(sp->mbus_engine, sp->mbus_ui_addr, "lecture_mode", args, TRUE);
 }
 

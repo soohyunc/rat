@@ -12,7 +12,7 @@ DEFS =-DDEBUG
 
 DEFS += -D$(OSTYPE) -D$(OSTYPE)_$(OSMVER) -D$(USER)
 CC     = gcc
-CFLAGS = -Wall $(INCS) $(DEFS) -g -ggdb -fsigned-char -pipe
+CFLAGS = -Wall $(INCS) $(DEFS) -g -O -fsigned-char -pipe
 LDFLAGS=
 LDLIBS=  $(LDLIBS) -lm
 RANLIB = ranlib
@@ -69,22 +69,17 @@ OBJS  += $(OBJDIR)/convert.o \
          $(OBJDIR)/ui.o \
          $(OBJDIR)/transcoder.o \
          $(OBJDIR)/agc.o \
-	 $(OBJDIR)/confbus.o \
-	 $(OBJDIR)/confbus_ack.o \
-	 $(OBJDIR)/confbus_addr.o \
-	 $(OBJDIR)/confbus_cmnd.o \
-	 $(OBJDIR)/confbus_misc.o \
-	 $(OBJDIR)/confbus_parser.o \
-	 $(OBJDIR)/confbus_lexer.o \
+	 $(OBJDIR)/crypt.o \
+         $(OBJDIR)/crypt_random.o \
+         $(OBJDIR)/md5.o \
+	 $(OBJDIR)/mbus.o \
+	 $(OBJDIR)/mbus_ui.o \
+	 $(OBJDIR)/mbus_engine.o \
          $(OBJDIR)/main.o
 
-CRYPTOBJS=$(OBJDIR)/crypt.o \
-          $(OBJDIR)/crypt_random.o \
-          $(OBJDIR)/md5.o
-
-$(BINDIR)/rat-$(OSTYPE)-$(OSVERS): $(OBJS) $(GSMOBJS) $(CRYPTOBJS) $(RATOBJS)
+$(BINDIR)/rat-$(OSTYPE)-$(OSVERS): $(OBJS) $(GSMOBJS) $(RATOBJS)
 	rm -f $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
-	$(CC) $(RATOBJS) $(OBJS) $(GSMOBJS) $(CRYPTOBJS) $(LDLIBS) $(LDFLAGS) -o $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
+	$(CC) $(RATOBJS) $(OBJS) $(GSMOBJS) $(LDLIBS) $(LDFLAGS) -o $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) $(GSMFLAGS) $(CRYPTFLAGS) -c $*.c -o $(OBJDIR)/$*.o
@@ -106,12 +101,6 @@ $(OBJDIR)/ui.o:	      		xbm/line_in_mute.xbm
 $(OBJDIR)/ui.o:	      		xbm/rat_med.xbm
 $(OBJDIR)/ui.o:	      		xbm/rat_small.xbm
 
-$(SRCDIR)/confbus_parser.c: $(SRCDIR)/confbus_parser.y
-	bison -p cb -d -o $(SRCDIR)/confbus_parser.c $(SRCDIR)/confbus_parser.y
-
-$(SRCDIR)/confbus_lexer.c: $(SRCDIR)/confbus_lexer.l
-	flex -Pcb -s -o$(SRCDIR)/confbus_lexer.c $(SRCDIR)/confbus_lexer.l
-
 $(BINDIR)/tcl2c: $(SRCDIR)/tcl2c.c
 	$(CC) -o $(BINDIR)/tcl2c $(SRCDIR)/tcl2c.c
 
@@ -131,7 +120,6 @@ $(OBJDIR)/tcl_libs.o: $(OBJDIR)/tcl2c
 	cat tcl/*.tcl tk/*.tcl | tcl2c TCL_LIBS > $(OBJDIR)/tcl_libs.c
 	$(CC) $(CFLAGS) -c $(OBJDIR)/tcl_libs.c -o $(OBJDIR)/tcl_libs.o
 
-
 clean:
 	-rm -f $(OBJDIR)/*.o
 	-rm -f $(BINDIR)/tcl2c
@@ -139,8 +127,6 @@ clean:
 	-rm -f $(OBJDIR)/ui_anna.c
 	-rm -f $(OBJDIR)/ui_original.c
 	-rm -f $(OBJDIR)/ui_relate.c
-	-rm -f $(SRCDIR)/confbus_parser.[ch] 
-	-rm -f $(SRCDIR)/confbus_lexer.c
 	-rm -f $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
 
 tags:

@@ -1,12 +1,8 @@
 /*
- * FILE:    confbus_ack.h
- * PROGRAM: RAT
+ * FILE:    mbus_ui.h
  * AUTHORS: Colin Perkins
  * 
- * $Revision$
- * $Date$
- * 
- * Copyright (c) 1997 University College London
+ * Copyright (c) 1998 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,13 +36,9 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _CONFBUS_ACK
-#define _CONFBUS_ACK
+#ifndef _MBUS_UI_H
+#define _MBUS_UI_H
 
-struct s_cb_ack;
-
-void cb_ack_list_insert(struct s_cb_ack **al, struct s_cbaddr *srce, struct s_cbaddr *dest, char *mesg, int seqnum);
-void cb_ack_list_remove(struct s_cb_ack **al, struct s_cbaddr *srce, struct s_cbaddr *dest, int seqnum);
-void cb_ack_retransmit(struct s_cb_ack **al);
+void mbus_handler_ui(char *srce, char *cmnd, char *args, void *data);
 
 #endif

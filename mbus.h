@@ -1,12 +1,8 @@
 /*
- * FILE:    confbus_addr.h
- * PROGRAM: RAT
+ * FILE:    mbus.h
  * AUTHORS: Colin Perkins
  * 
- * $Revision$
- * $Date$
- * 
- * Copyright (c) 1997 University College London
+ * Copyright (c) 1997,1998 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,15 +36,25 @@
  * SUCH DAMAGE.
  */
 
-#ifndef CONFBUS_ADDR_H
-#define CONFBUS_ADDR_H
+#ifndef _MBUS_H
+#define _MBUS_H
 
-struct s_cbaddr;
+struct mbus;
 
-struct s_cbaddr *cb_addr_dup(struct s_cbaddr *x);
-struct s_cbaddr *cb_addr_init(char *media_type, char *module_type, char *media_handling, char *app_name, char *app_instance);
-void     	 cb_addr_free(struct s_cbaddr *addr);
-char    	*cb_addr2str(struct s_cbaddr *a);
-int 		 cb_addr_match(struct s_cbaddr *a1, struct s_cbaddr *a2);
+struct mbus *mbus_init(char *addr, void (*handler)(char *, char *, char *, void *));
+void         mbus_addr(struct mbus *m, char *addr);
+int          mbus_fd(struct mbus *m);
+int          mbus_send(struct mbus *m, char *dest, char *cmnd, char *args, int reliable);
+void         mbus_recv(struct mbus *m, void *data);
+void         mbus_parse_init(struct mbus *m, char *str);
+void         mbus_parse_done(struct mbus *m);
+int          mbus_parse_lst(struct mbus *m, char **l);
+int          mbus_parse_str(struct mbus *m, char **s);
+int          mbus_parse_sym(struct mbus *m, char **s);
+int          mbus_parse_int(struct mbus *m, int *i);
+int          mbus_parse_flt(struct mbus *m, double *d);
+char        *mbus_decode_str(char *s);
+char        *mbus_encode_str(char *s);
+void         mbus_retransmit(struct mbus *m);
 
 #endif

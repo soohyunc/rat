@@ -6,7 +6,7 @@
  * $Revision$
  * $Date$
  * 
- * Copyright (c) 1995,1996,1997 University College London
+ * Copyright (c) 1995,1996,1997,1998 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include "config.h"
 #ifndef WIN32
 #include <pwd.h>
@@ -58,7 +57,6 @@
 #include "ui.h"
 #include "mix.h"
 #include "interfaces.h"
-#include "session.h"
 #include "lbl_confbus.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
@@ -68,8 +66,9 @@
 #include "statistics.h"
 #include "parameters.h"
 #include "speaker_table.h"
-#include "confbus.h"
-#include "confbus_ack.h"
+#include "mbus.h"
+#include "mbus_ui.h"
+#include "mbus_engine.h"
 
 /* Global variable: if TRUE, rat will exit on the next iteration of the main loop [csp] */
 int should_exit = FALSE;
@@ -91,20 +90,22 @@ signal_handler(int signal)
 int
 main(int argc, char *argv[])
 {
-	u_int32		ssrc = 0, cur_time;
-	int             num_sessions, i, l, elapsed_time, power_time = 0, alc = 0;
-	char           *uname;
-	char	       *hname;
-	char		cname[MAXHOSTNAMELEN + 10];
-	session_struct *sp[2];
-	cushion_struct	cushion[2];
-	int             transmit_active_flag = FALSE;
-	int             receive_active_flag  = FALSE;
-	struct s_mix_info *ms[2];
-	struct passwd  *pwent;
-	struct hostent *hent;
-	struct in_addr  iaddr;
-	struct timeval  time;
+	u_int32			 ssrc = 0, cur_time;
+	int            		 num_sessions, i, l, elapsed_time, power_time = 0, alc = 0;
+	char           		*uname;
+	char	       		*hname;
+	char			 cname[MAXHOSTNAMELEN + 10];
+	session_struct 		*sp[2];
+	cushion_struct	 	 cushion[2];
+	int             	 transmit_active_flag = FALSE;
+	int             	 receive_active_flag  = FALSE;
+	struct s_mix_info 	*ms[2];
+	struct passwd  		*pwent;
+	struct hostent 		*hent;
+	struct in_addr  	 iaddr;
+	struct timeval  	 time;
+	struct mbus		*mbus_engine, *mbus_ui;
+	char			*mbus_engine_addr, *mbus_ui_addr;
 
 #define NEW_QUEUE(T,Q) T  Q[2]; \
                        T *Q##_ptr[2];
@@ -166,10 +167,21 @@ main(int argc, char *argv[])
 	srand48(time.tv_usec);
 	while (!(ssrc = lrand48()));	/* Making 0 a special value */
 
+	mbus_engine_addr = "(audio engine rat 0)";
+	mbus_ui_addr     = "(audio     ui rat 0)";
+	mbus_engine      = mbus_init(mbus_engine_addr, mbus_handler_engine);
+	mbus_ui          = mbus_init(mbus_ui_addr, mbus_handler_ui);
 	for (i = 0; i < num_sessions; i++) {
-		cb_init(sp[i]);
+		sp[i]->mbus_engine      = mbus_engine;
+		sp[i]->mbus_ui          = mbus_ui;
+		sp[i]->mbus_engine_addr = mbus_engine_addr;
+		sp[i]->mbus_ui_addr     = mbus_ui_addr;
+	}
+
+	for (i = 0; i < num_sessions; i++) {
 		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
 	}
+
         if (sp[0]->ui_on) {
 		ui_init(sp[0], argc, argv);
         }
@@ -292,8 +304,9 @@ main(int argc, char *argv[])
 				power_time += elapsed_time;
 			}
 
-			/* Schedule any outstanding retransmissions of confbus messages... */
-			cb_ack_retransmit(&(sp[i]->cb_ack_list));
+			/* Schedule any outstanding retransmissions of mbus messages... */
+			mbus_retransmit(sp[i]->mbus_engine);
+			mbus_retransmit(sp[i]->mbus_ui);
 
 			/* Maintain last_sent dummy lecture var */
 			if (sp[i]->mode != TRANSCODER && alc >= 50) {

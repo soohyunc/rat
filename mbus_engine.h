@@ -1,12 +1,8 @@
 /*
- * FILE:    confbus_misc.c
- * PROGRAM: RAT
+ * FILE:    mbus_engine.h
  * AUTHORS: Colin Perkins
  * 
- * $Revision$
- * $Date$
- * 
- * Copyright (c) 1997 University College London
+ * Copyright (c) 1998 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,42 +36,9 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include "assert.h"
-#include "util.h"
-#include "confbus_misc.h"
+#ifndef _MBUS_ENGINE_H
+#define _MBUS_ENGINE_H
 
-char *cb_decode_str(char *s)
-{
-	int   l = strlen(s);
-	char *r = (char *) xmalloc(l-1);
+void mbus_handler_engine(char *srce, char *cmnd, char *args, void *data);
 
-	/* Check that this an encoded string... */
-	assert(s[0]   == '\"');
-	assert(s[l-1] == '\"');
-
-	strncpy(r, s+1, l-2);
-	r[l-2] = '\0';
-	return r;
-}
-
-char *cb_encode_str(char *s)
-{
-	static char	*encode_buffer = NULL;
-	static int	 encode_buflen = 0;
-
-	int l = strlen(s);
-	if (encode_buflen < l) {
-		if (encode_buffer != NULL) {
-			xfree(encode_buffer);
-		}
-		encode_buffer = (char *) xmalloc(l+3);
-	}
-	strcpy(encode_buffer+1, s);
-	encode_buffer[0]   = '\"';
-	encode_buffer[l+1] = '\"';
-	encode_buffer[l+2] = '\0';
-	return encode_buffer;
-}
-
+#endif

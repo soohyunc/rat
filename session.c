@@ -52,7 +52,6 @@
 #include "ui.h"
 #include "lbl_confbus.h"
 #include "parameters.h"
-#include "confbus_addr.h"
 
 extern char ui_original[];
 extern char ui_anna[];
@@ -125,11 +124,10 @@ init_session(session_struct *sp)
 	sp->lbl_cb_channel		= -1;
         sp->lbl_cb_priority             = 100;
 	sp->ui_script			= ui_original;
-	sp->cb_myaddr			= cb_addr_init("audio", "engine", "*", "rat", "1");
-	sp->cb_uiaddr			= cb_addr_init("audio",     "ui", "*", "rat", "1");
-	sp->cb_socket			= -1;
-	sp->cb_seqnum			= 0;
-	sp->cb_ack_list			= NULL;
+	sp->mbus_engine			= NULL;
+	sp->mbus_ui			= NULL;
+	sp->mbus_engine_addr		= NULL;
+	sp->mbus_ui_addr		= NULL;
 
 	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {
 		perror("Cannot get hostname!");

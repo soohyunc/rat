@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1995,1996,1997 University College London
+# Copyright (c) 1995-98 University College London
 # All rights reserved.
 #
 # $Revision$
@@ -66,7 +66,7 @@ set DEBUG		0
 
 # Commands to send message over the conference bus...
 proc toggle_play {} {
-  cb_send "R" "toggle_play"
+  mbus_send "R" "toggle_play" ""
   if {[string compare [.r.c.vol.t1 cget -relief] raised] == 0} {
     .r.c.vol.t1 configure -relief sunken
   } else {
@@ -75,67 +75,67 @@ proc toggle_play {} {
 }
 
 proc toggle_send {} {
-  cb_send "R" "toggle_send"
+  mbus_send "R" "toggle_send" ""
 }
 
 proc redundancy {coding} {
-  cb_send "R" "redundancy [cb_encode_str $coding]"
+  mbus_send "R" "redundancy" "[mbus_encode_str $coding]"
 }
 
 proc primary {coding} {
-  cb_send "R" "primary [cb_encode_str $coding]"
+  mbus_send "R" "primary" "[mbus_encode_str $coding]"
 }
 
 proc set_vol {volume} {
-  cb_send "R" "output gain $volume"
+  mbus_send "R" "output" "gain $volume"
 }
 
 proc set_gain {gain} {
-  cb_send "R" "input gain $gain"
+  mbus_send "R" "input" "gain $gain"
 }
 
 proc toggle_input_port {} {
-  cb_send "R" "toggle_input_port"
+  mbus_send "R" "toggle_input_port" ""
 }
 
 proc toggle_output_port {} {
-  cb_send "R" "toggle_output_port"
+  mbus_send "R" "toggle_output_port" ""
 }
 
 proc silence {s} {
-  cb_send "R" "silence $s"
+  mbus_send "R" "silence" "$s"
 }
 
 proc lecture {l} {
-  cb_send "R" "lecture $l"
+  mbus_send "R" "lecture" "$l"
 }
 
 proc agc {a} {
-  cb_send "R" "agc $a"
+  mbus_send "R" "agc" "$a"
 }
 
 proc repair {r} {
-  cb_send "R" "repair $r"
+  mbus_send "R" "repair" "$r"
 }
 
 proc powermeter {pm} {
-  cb_send "R" "powermeter $pm"
+  mbus_send "R" "powermeter" "$pm"
 }
 
 proc rate {r} {
-  cb_send "R" "rate $r"
+  mbus_send "R" "rate" "$r"
 }
 
 proc InstallKey {key} {
-  cb_send "R" "update_key [cb_encode_str $key]"
+  mbus_send "R" "update_key" "[mbus_encode_str $key]"
 }
 
 proc play {file} {
-  cb_send "R" "play [cb_encode_str $file]"
+  mbus_send "R" "play" "[mbus_encode_str $file]"
 }
 
 proc rec {file} {
-  cb_send "R" "rec [cb_encode_str $file]"
+  mbus_send "R" "rec" "[mbus_encode_str $file]"
 }
 
 # 
@@ -214,7 +214,7 @@ proc cb_recv_output {cmd args} {
 
 proc cb_recv_half_duplex {} {
 	set output_var {Mike mutes net}
-  	cb_send "R" "output mode [cb_encode_str $o]"
+  	mbus_send "R" "output" "mode [mbus_encode_str $output_var]"
 }
 
 proc cb_recv_debug {} {
@@ -241,13 +241,13 @@ proc cb_recv_my_ssrc {ssrc} {
 	set my_ssrc $ssrc
 
 	# Now we know our SSRC, we can inform RAT of our SDES information...
-	cb_send "R" "ssrc $ssrc name  [cb_encode_str $rtcp_name]"
-	cb_send "R" "ssrc $ssrc email [cb_encode_str $rtcp_email]"
-	cb_send "R" "ssrc $ssrc phone [cb_encode_str $rtcp_phone]"
-	cb_send "R" "ssrc $ssrc loc   [cb_encode_str $rtcp_loc]"
+	mbus_send "R" "ssrc" "$ssrc name  [mbus_encode_str $rtcp_name]"
+	mbus_send "R" "ssrc" "$ssrc email [mbus_encode_str $rtcp_email]"
+	mbus_send "R" "ssrc" "$ssrc phone [mbus_encode_str $rtcp_phone]"
+	mbus_send "R" "ssrc" "$ssrc loc   [mbus_encode_str $rtcp_loc]"
 }
 
-proc cb_recv_ssrc {ssrc cmd arg} {
+proc cb_recv_ssrc {ssrc cmd args} {
 	global CNAME NAME EMAIL LOC PHONE TOOL num_ssrc fw iht losstimers my_ssrc
 	global ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX
 	if {[array names INDEX $ssrc] != $ssrc} {
@@ -273,58 +273,56 @@ proc cb_recv_ssrc {ssrc cmd arg} {
 	}
 	switch $cmd {
 		cname {
-			set CNAME($ssrc) $arg
-			if {[string compare NAME($ssrc) "unknown"] != 0} {
-				set NAME($ssrc) $arg
+			set CNAME($ssrc) [lindex $args 0]
+			if {[string compare NAME($ssrc) "unknown"] == 0} {
+				set NAME($ssrc) [lindex $args 0]
 			}
 			chart_label $ssrc
 		}
 		name            { 
-			set NAME($ssrc) $arg
+			set NAME($ssrc) [lindex $args 0]
 			chart_label $ssrc
 		}
-		email           { set EMAIL($ssrc) $arg}
-		phone           { set PHONE($ssrc) $arg}
-		loc             { set LOC($ssrc) $arg}
-		tool            { set TOOL($ssrc) $arg}
-		encoding        { set ENCODING($ssrc) $arg}
-		packet_duration { set DURATION($ssrc) $arg}
-		packets_recv    { set PCKTS_RECV($ssrc) $arg}
-		packets_lost    { set PCKTS_LOST($ssrc) $arg}
-		packets_miso    { set PCKTS_MISO($ssrc) $arg}
-		jitter_drop     { set JITTER_DROP($ssrc) $arg}
-		jitter          { set JITTER($ssrc) $arg}
+		email           { set       EMAIL($ssrc) [lindex $args 0]}
+		phone           { set       PHONE($ssrc) [lindex $args 0]}
+		loc             { set         LOC($ssrc) [lindex $args 0]}
+		tool            { set        TOOL($ssrc) [lindex $args 0]}
+		encoding        { set    ENCODING($ssrc) [lindex $args 0]}
+		packet_duration { set    DURATION($ssrc) [lindex $args 0]}
+		packets_recv    { set  PCKTS_RECV($ssrc) [lindex $args 0]}
+		packets_lost    { set  PCKTS_LOST($ssrc) [lindex $args 0]}
+		packets_miso    { set  PCKTS_MISO($ssrc) [lindex $args 0]}
+		jitter_drop     { set JITTER_DROP($ssrc) [lindex $args 0]}
+		jitter          { set      JITTER($ssrc) [lindex $args 0]}
 		loss_to_me      { 
-			set LOSS_TO_ME($ssrc) $arg 
+			set LOSS_TO_ME($ssrc) [lindex $args 0] 
 			set srce $ssrc
 			set dest $my_ssrc
-			set loss [lindex $args 1]
 			catch {after cancel $losstimers($srce,$dest)}
-			chart_set $srce $dest $loss
+			chart_set $srce $dest [lindex $args 0]
 			set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
 		}
 		loss_from_me    { 
-			set LOSS_FROM_ME($ssrc) $arg 
+			set LOSS_FROM_ME($ssrc) [lindex $args 0] 
 			set srce $my_ssrc
 			set dest $ssrc
-			set loss [lindex $args 1]
 			catch {after cancel $losstimers($srce,$dest)}
-			chart_set $srce $dest $loss
+			chart_set $srce $dest [lindex $args 0]
 			set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
 		}
 		loss_from	{ 
 			set dest $ssrc
-			set srce [lindex $args 1]
-			set loss [lindex $args 2]
+			set srce [lindex $args 0]
+			set loss [lindex $args 1]
 			catch {after cancel $losstimers($srce,$dest)}
 			chart_set $srce $dest $loss
 			set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
 		}
 		active          {
-			if {[string compare $arg "now"] == 0} {
+			if {[string compare [lindex $args 0] "now"] == 0} {
 				catch [$fw.c$ssrc configure -background white]
 			}
-			if {[string compare $arg "recent"] == 0} {
+			if {[string compare [lindex $args 0] "recent"] == 0} {
 				catch [$fw.c$ssrc configure -background gray90]
 			}
 		}
@@ -348,7 +346,7 @@ proc cb_recv_ssrc {ssrc cmd arg} {
 			catch [$fw.c$ssrc delete a]
 		}
 		default {
-			puts stdout "WARNING: ConfBus message 'ssrc $ssrc $cmd $arg' not understood"
+			puts stdout "WARNING: ConfBus message 'ssrc $ssrc $cmd $args' not understood"
 		}
 	}
 	ssrc_update $ssrc
@@ -481,9 +479,9 @@ proc dropdown {w varName command args} {
 proc toggle_mute {cw ssrc} {
 	global iht
 	if {[$cw gettags a] == ""} {
-		cb_send "R" "ssrc $ssrc mute"
+		mbus_send "R" "ssrc" "$ssrc mute"
 	} else {
-		cb_send "R" "ssrc $ssrc unmute"
+		mbus_send "R" "ssrc" "$ssrc unmute"
 	}
 }
 
@@ -572,7 +570,7 @@ button .l.s1.about -highlightthickness 0 -padx 0 -pady 0 -text "About"   -comman
 button .l.s1.quit  -highlightthickness 0 -padx 0 -pady 0 -text "Quit"    -command {destroy .}
 frame  .l.s2 -bd 0
 button .l.s2.stats -highlightthickness 0 -padx 0 -pady 0 -text "Reception Quality" -command {wm deiconify .chart}
-button .l.s2.audio -highlightthickness 0 -padx 0 -pady 0 -text "Get Audio"         -command {cb_send "R" get_audio}
+button .l.s2.audio -highlightthickness 0 -padx 0 -pady 0 -text "Get Audio"         -command {mbus_send "R" "get_audio" ""}
 
 pack .r -side right -fill y
 frame .r.c
@@ -687,7 +685,7 @@ pack  .b.f.pkt.pr.dl -side left -fill x -expand 1
 # secondary
 frame .b.f.pkt.sec -relief sunken
 pack  .b.f.pkt.sec -side left -fill x
-label .b.f.pkt.sec.l -highlightthickness 0 -justify left -text  "Secondary Encoding"
+label .b.f.pkt.sec.l -highlightthickness 0 -justify left -text  "Redundant Encoding"
 pack  .b.f.pkt.sec.l -side top -fill both -expand 1
 dropdown .b.f.pkt.sec.dl secenc redundancy NONE mu-law a-law DVI GSM LPC
 pack  .b.f.pkt.sec.dl -side left -fill x -expand 1
@@ -729,14 +727,14 @@ checkbutton .b.f2.l.meter -anchor w -highlightthickness 0 -relief flat -text "Po
 checkbutton .b.f2.l.lec   -anchor w -highlightthickness 0 -relief flat -text "Lecture Mode"           -variable lecture_var -command {lecture    $lecture_var}
 checkbutton .b.f2.r.agc   -anchor w -highlightthickness 0 -relief flat -text "Automatic Gain Control" -variable agc_var     -command {agc        $agc_var}
 checkbutton .b.f2.r.syn   -anchor w -highlightthickness 0 -relief flat -text "Video Synchronisation"  -variable sync_var    -command {sync       $sync_var} -state disabled
-checkbutton .b.f2.r.afb   -anchor w -highlightthickness 0 -relief flat -text "Acoustic Feedback"      -variable afb_var     -command {afb        $afb_var} -state disabled
+checkbutton .b.f2.r.help  -anchor w -highlightthickness 0 -relief flat -text "Balloon Help"           -variable help_on     -state active
 
 pack .b.f2.l.sil   -side top -fill x -expand 1
 pack .b.f2.l.meter -side top -fill x -expand 1
 pack .b.f2.l.lec   -side top -fill x -expand 0
 pack .b.f2.r.syn   -side top -fill x -expand 0
 pack .b.f2.r.agc   -side top -fill x -expand 1
-pack .b.f2.r.afb   -side top -fill x -expand 0
+pack .b.f2.r.help  -side top -fill x -expand 0
 
 #Session Key
 frame .b.crypt -bd 0
@@ -863,37 +861,37 @@ frame .b.a -relief sunken
 pack  .b.a -side top -fill x
 label .b.a.l -highlightthickness 0 -text "RTP Configuration"
 pack  .b.a.l -side top
-label .b.a.address -highlightthickness 0 -text "Group: Port: TTL:"
+label .b.a.address -highlightthickness 0 -text "Address: Port: TTL:"
 pack  .b.a.address -side top -fill x
 frame .b.a.rn -bd 0
 pack  .b.a.rn -side top -fill x
 entry .b.a.rn.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_name
-bind  .b.a.rn.name <Return> {cb_send "R" "ssrc $my_ssrc name [cb_encode_str $rtcp_name]"; savename}
-bind  .b.a.rn.name <Tab>    {cb_send "R" "ssrc $my_ssrc name [cb_encode_str $rtcp_name]"; savename}
+bind  .b.a.rn.name <Return> {mbus_send "R" "ssrc" "$my_ssrc name [mbus_encode_str $rtcp_name]"; savename}
+bind  .b.a.rn.name <Tab>    {mbus_send "R" "ssrc" "$my_ssrc name [mbus_encode_str $rtcp_name]"; savename}
 pack  .b.a.rn.name -side right -fill x 
 label .b.a.rn.l -highlightthickness 0 -text "Name:"
 pack  .b.a.rn.l -side left -fill x -expand 1
 frame .b.a.re -bd 0
 pack  .b.a.re -side top -fill x
 entry .b.a.re.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_email
-bind  .b.a.re.name <Return> {cb_send "R" "ssrc $my_ssrc email [cb_encode_str $rtcp_email]"; savename}
-bind  .b.a.re.name <Tab>    {cb_send "R" "ssrc $my_ssrc email [cb_encode_str $rtcp_email]"; savename}
+bind  .b.a.re.name <Return> {mbus_send "R" "ssrc" "$my_ssrc email [mbus_encode_str $rtcp_email]"; savename}
+bind  .b.a.re.name <Tab>    {mbus_send "R" "ssrc" "$my_ssrc email [mbus_encode_str $rtcp_email]"; savename}
 pack  .b.a.re.name -side right -fill x
 label .b.a.re.l -highlightthickness 0 -text "Email:"
 pack  .b.a.re.l -side left -fill x -expand 1
 frame .b.a.rp -bd 0
 pack  .b.a.rp -side top -fill x
 entry .b.a.rp.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_phone
-bind  .b.a.rp.name <Return> {cb_send "R" "ssrc $my_ssrc phone [cb_encode_str $rtcp_phone]"; savename}
-bind  .b.a.rp.name <Tab>    {cb_send "R" "ssrc $my_ssrc phone [cb_encode_str $rtcp_phone]"; savename}
+bind  .b.a.rp.name <Return> {mbus_send "R" "ssrc" "$my_ssrc phone [mbus_encode_str $rtcp_phone]"; savename}
+bind  .b.a.rp.name <Tab>    {mbus_send "R" "ssrc" "$my_ssrc phone [mbus_encode_str $rtcp_phone]"; savename}
 pack  .b.a.rp.name -side right -fill x
 label .b.a.rp.l -highlightthickness 0 -text "Phone:"
 pack  .b.a.rp.l -side left -fill x -expand 1
 frame .b.a.rl -bd 0
 pack  .b.a.rl -side top -fill x
 entry .b.a.rl.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_loc
-bind  .b.a.rl.name <Return> {cb_send "R" "ssrc $my_ssrc loc [cb_encode_str $rtcp_loc]"; savename}
-bind  .b.a.rl.name <Tab>    {cb_send "R" "ssrc $my_ssrc loc [cb_encode_str $rtcp_loc]"; savename}
+bind  .b.a.rl.name <Return> {mbus_send "R" "ssrc" "$my_ssrc loc [mbus_encode_str $rtcp_loc]"; savename}
+bind  .b.a.rl.name <Tab>    {mbus_send "R" "ssrc" "$my_ssrc loc [mbus_encode_str $rtcp_loc]"; savename}
 pack  .b.a.rl.name -side right -fill x
 label .b.a.rl.l -highlightthickness 0 -text "Location:"
 pack  .b.a.rl.l -side left -fill x -expand 1
@@ -952,7 +950,7 @@ wm withdraw .copyright
 message   .copyright.m -text {
  Robust-Audio Tool (RAT)
  
- Copyright (C) 1995,1996,1997 University College London
+ Copyright (C) 1995-1998 University College London
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
@@ -1220,5 +1218,113 @@ chart_enlarge 1
 # End of RTCP RR chart routines
 #
 
-bind . <t> {cb_send "R" "toggle_input_port"}
+bind . <t> {mbus_send "R" "toggle_input_port" ""} 
+
+proc show_help {window} {
+	global help_text help_on help_id
+	if {$help_on} {
+		.help.text  configure -text $help_text($window)
+		# Beware! Don't put the popup under the cursor! Else we get window enter
+		# for .help and leave for $window, making us hide_help which removes the
+		# help window, giving us a window enter for $window making us popup the
+		# help again.....
+		set xpos [expr [winfo rootx $window] + [winfo  width $window] + 10]
+		set ypos [expr [winfo rooty $window] + ([winfo height $window] / 2)]
+		wm geometry  .help +$xpos+$ypos
+		set help_id [after 500 wm deiconify .help]
+		raise .help $window
+	}
+}
+
+proc hide_help {window} {
+	global help_id
+	after cancel $help_id
+	wm withdraw .help
+}
+
+proc add_help {window text} {
+	global help_text 
+	set help_text($window)  $text
+	bind $window <Enter> "+show_help $window"
+	bind $window <Leave> "+hide_help $window"
+}
+
+set help_on 1
+toplevel .help       -bg lavender
+label    .help.text  -bg lavender -justify left
+pack .help.text -side top -anchor w -fill x
+wm transient        .help .
+wm withdraw         .help
+wm overrideredirect .help true
+
+add_help .r.c.gain.s2 	"This slider controls the volume\nof the sound you send"
+add_help .r.c.gain.l2 	"Click to change input device"
+add_help .r.c.gain.t2 	"If this button is not pushed in, you are are transmitting,\nand may be\
+                         heard by other participants. Holding down the\nright mouse button in\
+			 any RAT window will temporarily\ntoggle the state of this button,\
+			 allowing for easy\npush-to-talk operation."
+add_help .r.c.gain.b2 	"Indicates the loudness of the\nsound you are sending. If this\nis\
+                         moving, you may be heard by\nthe other participants."
+
+add_help .r.c.vol.s1  	"This slider controls the volume\nof the sound you hear"
+add_help .r.c.vol.l1  	"Click to change output device"
+add_help .r.c.vol.t1  	"If pushed in, output is muted"
+add_help .r.c.vol.b1  	"Indicates the loudness of the\nsound you are hearing"
+
+add_help .r.b.ucl     	"Email comments to rat-trap@cs.ucl.ac.uk"
+
+add_help .l.t		"The participants in this session with you at the top.\nClick on a name\
+                         with the left mouse button to display\ninformation on that participant,\
+			 and with the middle\nbutton to mute that participant (the right button\nwill\
+			 toggle the input mute button, as usual)."
+
+add_help .l.s1.opts   	"Brings up another window allowing\nthe control of various options"
+add_help .l.s1.about  	"Brings up another window displaying\ncopyright & author information"
+add_help .l.s1.quit   	"Press to leave the session"
+add_help .l.s2.stats  	"Brings up another window displaying\nreception quality information"
+add_help .l.s2.audio  	""
+
+add_help .b.f.pkt.len 	"Sets the duration of each packet sent.\nThere is a fixed per-packet\
+                         overhead, so\nmaking this larger will reduce the total\noverhead.\
+			 The effects of packet loss are\nmore noticable with large packets."
+add_help .b.f.pkt.pr  	"Changes the primary audio compression\nscheme. The list is arranged\
+                         with high-\nquality, high-bandwidth choices at the\ntop, and\
+			 poor-quality, lower-bandwidth\nchoices at the bottom."
+add_help .b.f.pkt.sec 	"If set to a value other than NONE a second,\nredundant, copy of each\
+                         packet is sent to\nrecover from the effects of lost packets.\nSome\
+			 audio tools (eg: vat-4.0) are not able\n to receive audio sent with\
+			 this option."
+add_help .b.f.loc.mode 	"Most audio hardware can support full-duplex\noperation, sending\
+                         and receiving at the same\ntime. For systems which are half-duplex,\
+			 the\nchoice between net-mutes-mike (receiving has\npriority) and\
+			 mike-mutes-net (sending has\npriority) must be made."
+add_help .b.f.loc.rep 	"Allows the choice of different ways of repairing\nan audio stream sent\
+                         without redundancy. These try\nto recreate a lost packet based on the\
+			 contents of\nthe surrounding packets, and produce fill-in packets\nwhich\
+			 approximate the original to varying degrees of\naccuracy and with varying\
+			 processing requirements."
+add_help .b.f2.l.sil  	"If enabled, nothing is sent when the input\nis unmuted, but silent"
+add_help .b.f2.l.meter 	"If enabled, audio powermeters are displayed in\nthe main window.\
+                         The only reason to disable\nthis is when using a slow machine which\
+			 cannot\nupdate the display fast enough."
+add_help .b.f2.l.lec  	"If enabled, extra delay is added at both sender and receiver.\nThis allows\
+                         the receiver to better cope with certain network\nproblems, and the sender\
+			 to perform better silence suppression.\nAs the name suggests, this option\
+			 is intended for scenarios such\nas transmitting a lecture, where interactivity\
+			 is less important\nthan quality."
+add_help .b.f2.r.syn  	"Not yet implemented"
+add_help .b.f2.r.agc  	"Enables automatic control of the volume\nof the sound you send"
+add_help .b.f2.r.help	"Enable/Disable balloon help"
+add_help .b.crypt     	"Enter secret key here to encrypt your audio.\nListeners must enter\
+                         the same key in order to\nreceive such transmissions."
+add_help .b.f3.p	"Enter a filename, and press start/stop to play\nthe contents of\
+                         that file into the session.\nYou will not be able to hear the\
+			 file being\nplayed, but other participants can hear it."
+add_help .b.f3.r	"Enter a filename, and press start/stop to record\nthe audio into a file."
+add_help .b.a.address 	"IP address, port and TTL\nused by this session"
+add_help .b.a.rn      	"Enter your name for transmission\nto other participants"
+add_help .b.a.re      	"Enter your email address for transmission\nto other participants"
+add_help .b.a.rp      	"Enter your phone number for transmission\nto other participants"
+add_help .b.a.rl      	"Enter your location for transmission\nto other participants"
+add_help .b.d         	"Click to remove the options window"
 

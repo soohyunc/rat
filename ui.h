@@ -46,10 +46,10 @@
 struct session_tag;
 struct s_rtcp_dbentry;
 struct s_cbaddr;
-struct cb_cmnd;
 
 void	update_lecture_mode(struct session_tag *session_pointer);
 
+void    ui_send(char *command);
 void	ui_update(struct session_tag *session_pointer);
 int	ui_init(struct session_tag *session_pointer, int argc, char **argv);
 void	usage();
@@ -74,7 +74,6 @@ void	       ui_output_level(int level, struct session_tag *sp);
 void 	  ui_update_input_port(struct session_tag *sp);
 void 	 ui_update_output_port(struct session_tag *sp);
 
-void	ui_recv(struct s_cbaddr *srce, struct cb_cmnd *mesg, struct session_tag *sp);
 void	update_stats(struct s_rtcp_dbentry *e, struct session_tag *sp);
 
 #endif /* _RAT_UI_H_ */
