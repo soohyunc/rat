@@ -190,10 +190,16 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 		/* The 8 is the number of units in a 160ms packet (nasty hack!) */
 		cp = get_codec(src->encs[0]);
 		if ((hdr->m) || src->cont_toged > 4 || (ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * cp->unit_len * 8 + 1)))) {
+                        u_int32 minv, maxv;
 			var = (u_int32) src->jitter * 3;
-			if (var > 8000) {
-				var = 8000;
-			}
+                        minv = sp->min_playout * get_freq(src->clock) / 1000;
+                        maxv = sp->max_playout * get_freq(src->clock) / 1000; 
+                        if (var<minv) {
+                                var = minv;
+                        } else if (maxv<var) {
+                                var = maxv;
+                        }
+
 			var += cushion->cushion_size * get_freq(src->clock) / get_freq(sp->device_clock);
 			if (src->clock!=sp->device_clock) {
 				var += cp->unit_len;
@@ -349,7 +355,7 @@ statistics(session_struct    *sp,
                 }
         }
 
-        compat = codec_compatible(pcp, get_codec(src->encs[0]));
+        compat = codec_compatible(pcp, get_codec(sp->encodings[0]));
         if (!compat && !sp->auto_convert) {
                 goto release;
         }
