@@ -543,7 +543,7 @@ done:
 static void
 source_process_packets(session_t *sp, source *src, ts_t now)
 {
-        ts_t    src_ts, playout;
+        ts_t    src_ts, playout, transit;
         pdb_entry_t     *e;
         rtp_packet      *p;
         cc_id_t          ccid = -1;
@@ -627,9 +627,27 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 }
 
                 /* Calculate the playout point for this packet.              */
-                src_ts = ts_seq32_in(source_get_sequencer(src), 
-                                     get_freq(e->clock), p->ts);
-                playout = playout_calc(sp, e->ssrc, src_ts, adjust_playout);
+                src_ts = ts_seq32_in(&src->seq, get_freq(e->clock), p->ts);
+
+                /* Transit delay is the difference between our local clock   */
+                /* and the packet timestamp (src_ts).  Note: we expect       */
+                /* packet clumping at talkspurt start because of VAD's       */
+                /* fetching previous X seconds of audio on signal detection  */
+                /* in order to send unvoiced audio at start.                 */
+                if (adjust_playout && pktbuf_get_count(src->pktbuf)) {
+                        rtp_packet *p;
+                        ts_t        last_ts;
+                        pktbuf_peak_last(src->pktbuf, &p);
+                        assert(p != NULL);
+                        last_ts = ts_seq32_in(&src->seq, get_freq(e->clock), p->ts);
+                        transit = ts_sub(sp->cur_ts, last_ts);
+                        debug_msg("Used transit of last packet\n");
+                } else {
+                        transit = ts_sub(sp->cur_ts, src_ts);
+                }
+
+                playout = playout_calc(sp, e->ssrc, transit, adjust_playout);
+                playout = ts_add(src_ts, playout);
 
                 /* If last_played is valid then enough audio is buffer for   */
                 /* the playout check to be sensible.                         */
@@ -807,7 +825,7 @@ conceal_dropped_samples(media_data *md, ts_t drop_dur)
 /* adjustment.                                                               */
 
 int
-source_check_buffering(source *src, ts_t now)
+source_check_buffering(source *src)
 {
         ts_t actual, desired, low;
 
@@ -817,7 +835,7 @@ source_check_buffering(source *src, ts_t now)
                 return FALSE;
         }
 
-        actual  = source_get_audio_buffered(src, now);
+        actual  = source_get_audio_buffered(src);
         desired = source_get_playout_delay(src);
         low     = ts_sub(desired, ts_div(desired, 3)); /* low = 2 / 3 desired */
 
@@ -1237,37 +1255,11 @@ source_audit(source *src)
         return FALSE;
 }
 
-ts_sequencer*
-source_get_sequencer(source *src)
-{
-        return &src->seq;
-}
-
 ts_t
-source_get_audio_buffered (source *src, ts_t now)
+source_get_audio_buffered (source *src)
 {
-        ts_t last, extra;
-
-        /* If we have a channel unit in the channel buffer the amount of     */
-        /* audio we have buffered is the difference between now and the      */
-        /* channel unit end plus the length of the unit.                     */
-        if (pb_get_end_ts(src->channel, &last)) {
-                int freq = get_freq(src->pdbe->clock);
-                extra    = ts_map32(freq, src->pdbe->inter_pkt_gap);
-                return ts_sub(last, now);
-        }
-
-        /* Else if we have an end time for a media unit then the very last   */
-        /* audio we have is the media unit time plus it's length less now.   */
-        if (pb_get_end_ts(src->media, &last)) {
-                int freq = get_freq(src->pdbe->clock);
-                extra    = ts_map32(freq, src->pdbe->inter_pkt_gap / src->pdbe->units_per_packet);
-                if (ts_gt(last, now)) {
-                        return ts_sub(last, now);
-                }
-        }
-
-        return zero_ts;
+        /* Changes in avg_transit change amount of audio buffered. */
+        return ts_sub(src->pdbe->playout, src->pdbe->avg_transit);
 }
 
 ts_t
@@ -1285,7 +1277,7 @@ source_relevant(source *src, ts_t now)
                 return TRUE;
         }
         
-        if (!ts_eq(source_get_audio_buffered(src, now), zero_ts) ||
+        if (!ts_eq(source_get_audio_buffered(src), zero_ts) ||
                 ts_gt(ts_add(src->pdbe->last_arr, keep_source_ts), now)) {
                 return TRUE;
         }

@@ -930,6 +930,9 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	- Add back default port 5004.
 	- Fix luigi_audio_drain to reset, sync, and trigger reading.
 	- Moved packet reception handling from rtp_callback to source_add_packet.
+	- Changed playout buffer length estimation to use transit times and 
+	  average transit.  Previously used observations of playout buffer lengths,
+	  but this maybe unreliable due to packet losses.
 
 TODO -- They're features not bugs dammit!
 ----

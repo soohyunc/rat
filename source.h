@@ -54,8 +54,7 @@ void             source_remove             (struct s_source_list *list,
 int              source_add_packet         (struct s_source *src, 
                                             rtp_packet      *p);
 
-int              source_check_buffering    (struct s_source   *src,
-                                            ts_t               now);
+int              source_check_buffering    (struct s_source   *src);
 
 int              source_process            (struct s_session  *sp,
                                             struct s_source   *src,
@@ -70,10 +69,7 @@ int              source_relevant           (struct s_source *src,
 
 int              source_audit              (struct s_source *src);
 
-ts_sequencer*    source_get_sequencer      (struct s_source *src);
-
-ts_t             source_get_audio_buffered (struct s_source *src,
-                                            ts_t             now);
+ts_t             source_get_audio_buffered (struct s_source *src);
 
 ts_t             source_get_playout_delay  (struct s_source *src);
 

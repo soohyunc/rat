@@ -112,6 +112,7 @@ int
 pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16 freq, u_int32 id)
 {
         pdb_entry_t *item;
+        ts_t         zero_ts;
 
         if (btree_find(p->db, id, (void**)&item)) {
                 debug_msg("Item already exists\n");
@@ -133,13 +134,15 @@ pdb_item_create(pdb_t *p, struct s_fast_time *clock, u_int16 freq, u_int32 id)
         item->gain            = 1.0;
         item->mute            = 0;
 	item->clock           = new_time(clock, freq);
-        item->last_ui_update  = ts_map32(8000, 0); /* Arbitrary choice */
+        zero_ts               = ts_map32(8000, 0);
+        item->last_ui_update  = zero_ts;
 
-        /* Initial jitter estimate (10ms = 80 ticks of 8kHz clock)           */
-        item->jitter          = ts_map32(8000, 80);
-        item->transit         = ts_map32(8000, 0);
-        item->last_transit    = ts_map32(8000, 0);
-        item->playout         = item->transit;
+        /* Initial jitter estimate (20ms = 80 ticks of 8kHz clock)           */
+        item->jitter          = ts_map32(8000, 160);
+        item->transit         = zero_ts;
+        item->last_transit    = zero_ts;
+        item->avg_transit     = zero_ts;
+        item->playout         = zero_ts;
 
         /* Packet stats initialization                                       */
         item->received        = 0;

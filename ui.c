@@ -194,7 +194,7 @@ ui_update_stats(session_t *sp, u_int32 ssrc)
 
         src = source_get_by_ssrc(sp->active_sources, pdbe->ssrc);
         if (src) {
-                buffered = ts_to_ms(source_get_audio_buffered(src, sp->cur_ts));
+                buffered = ts_to_ms(source_get_audio_buffered(src));
                 delay    = ts_to_ms(source_get_playout_delay(src));
         } else {
                 buffered = 0;

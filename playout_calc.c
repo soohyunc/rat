@@ -52,7 +52,7 @@ playout_variable_component(session_t *sp, pdb_entry_t *e)
 
 
 ts_t 
-playout_calc(session_t *sp, u_int32 ssrc, ts_t src_ts, int new_spurt)
+playout_calc(session_t *sp, u_int32 ssrc, ts_t transit, int new_spurt)
 /*****************************************************************************/
 /* The primary purpose of this function is to calculate the playout point    */
 /* for new talkspurts (new_spurt).  It also maintains the jitter and transit */
@@ -61,14 +61,10 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t src_ts, int new_spurt)
 /*****************************************************************************/
 {
         pdb_entry_t *e;
-        ts_t         transit, var;
+        ts_t         var;
 
         pdb_item_get(sp->pdb, ssrc, &e);
         assert(e != NULL);
-
-        /* Transit delay is the difference between our local clock and the   */
-        /* packet timestamp (src_ts).                                        */
-        transit = ts_sub(sp->cur_ts, src_ts);
 
         if (new_spurt == TRUE) {
                 debug_msg("New talkspurt\n");
@@ -100,10 +96,10 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t src_ts, int new_spurt)
                 } else {
                         e->avg_transit = ts_sub(e->avg_transit, ts_div(delta_transit,8));
                 }
-                debug_msg("transit using % 6d avg % 6d\n", e->transit.ticks, e->avg_transit.ticks);
+/*                debug_msg("transit using % 6d avg % 6d\n", e->transit.ticks, e->avg_transit.ticks); */
         }
 
         e->last_transit = transit;
 
-        return ts_add(src_ts, e->playout);
+        return e->playout;
 }
