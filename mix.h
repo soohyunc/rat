@@ -43,8 +43,6 @@
 #ifndef _mix_h_
 #define _mix_h_
 
-#include "rat_types.h"
-
 struct s_mix_info;
 struct rx_element_tag;
 struct session_tag;

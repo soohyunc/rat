@@ -43,8 +43,6 @@
 #ifndef _session_h_
 #define _session_h_
 
-#include "rat_types.h"
-
 #define MAX_ENCODINGS	7
 #define MAX_NATIVE      4
 

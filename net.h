@@ -48,8 +48,6 @@
 #define PACKET_RTP    1
 #define PACKET_RTCP   2
 
-#include "rat_types.h"
-
 struct session_tag;
 struct pckt_queue_tag;
 

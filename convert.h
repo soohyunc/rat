@@ -43,9 +43,6 @@
 #ifndef _convert_h_
 #define _convert_h_
 
-#include "rat_types.h"
-#include "receive.h"
-
 typedef struct s_converter {
         struct s_pcm_converter *pcm_conv;
         struct s_converter_fmt *conv_fmt;

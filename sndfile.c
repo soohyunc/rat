@@ -45,7 +45,6 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
-#include "rat_types.h"
 #include "util.h"
 #include "codec_g711.h"
 #include "sndfile.h"

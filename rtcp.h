@@ -43,8 +43,6 @@
 #ifndef _service_rtcp_h_
 #define _service_rtcp_h_
 
-#include "rat_types.h"
-
 struct session_tag;
 struct pckt_queue_tag;
 

@@ -43,8 +43,6 @@
 #ifndef _TIMERS_H
 #define _TIMERS_H
 
-#include "rat_types.h"
-
 struct s_fast_time;
 struct s_time;
 

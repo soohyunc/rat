@@ -1,8 +1,6 @@
 #ifndef _SUBBAND_H_
 #define _SUBBAND_H_
 
-#include "rat_types.h"
-
 #define LO_ENC_DBG 0 /* Low band Encoder Debug switch */
 #define LO_DEC_DBG 0 /* Low band Decoder Debug switch */
 #define HI_ENC_DBG 0 /* High band Encoder Debug switch */

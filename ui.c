@@ -51,6 +51,7 @@
 #include "rtcp_db.h"
 #include "util.h"
 #include "repair.h"
+#include "receive.h"
 #include "codec.h"
 #include "convert.h"
 #include "audio.h"

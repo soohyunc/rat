@@ -1,8 +1,7 @@
 /*
  * FILE:    session.c 
  * PROGRAM: RAT
- * AUTHORS: Vicky Hardman + Isidor Kouvelas + Colin Perkins
- * MODIFIED BY: Orion Hodson
+ * AUTHORS: Vicky Hardman + Isidor Kouvelas + Colin Perkins + Orion Hodson
  * 
  * $Revision$
  * $Date$
@@ -49,6 +48,7 @@
 #include "timers.h"
 #include "repair.h"
 #include "codec.h"
+#include "receive.h"
 #include "convert.h"
 #include "channel.h"
 #include "parameters.h"

@@ -53,7 +53,6 @@
 #include "config_win32.h"
 #include "assert.h"
 #include "version.h"
-#include "rat_types.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 #include "session.h"

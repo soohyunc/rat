@@ -45,7 +45,6 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "assert.h"
-#include "rat_types.h"
 #include "audio.h"
 #include "util.h"
 #include "session.h"

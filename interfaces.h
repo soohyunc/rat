@@ -43,8 +43,6 @@
 #ifndef _interfaces_h_
 #define _interfaces_h_
 
-#include "rat_types.h"
-
 /* Packets off the net */
 typedef struct pckt_queue_element_tag {
 	struct pckt_queue_element_tag *next_pckt_ptr;

@@ -43,8 +43,6 @@
 #ifndef _RAT_CODEC_H_
 #define _RAT_CODEC_H_
 
-#include "rat_types.h"
-
 #define MAX_CODEC        128
 
 #define DUMMY			255

@@ -43,8 +43,6 @@
 #ifndef _TRANSCODER
 #define _TRANSCODER
 
-#include "rat_types.h"
-
 struct s_audio_format;
 
 int  transcoder_open(void);

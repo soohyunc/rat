@@ -39,8 +39,6 @@
 #ifndef _codec_lpc_h_
 #define _codec_lpc_h_
 
-#include "rat_types.h"
-
 #define FRAMESIZE 160
 
 #define LPC_FILTORDER		10

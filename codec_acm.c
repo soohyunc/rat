@@ -41,9 +41,8 @@
  */
 
 #ifdef WIN32
-#include <assert.h>
+#include "assert.h"
 #include "config_win32.h"
-#include "rat_types.h"
 #include "codec_acm.h"
 #include "codec.h"
 #include "util.h"

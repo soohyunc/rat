@@ -52,8 +52,6 @@
 #ifndef _RTCP_PCKT
 #define _RTCP_PCKT
 
-#include "rat_types.h"
-
 struct session_tag;
 struct s_rtcp_dbentry;
 

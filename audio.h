@@ -43,8 +43,6 @@
 #ifndef _RAT_AUDIO_H_
 #define _RAT_AUDIO_H_
 
-#include "rat_types.h"
-
 /* This version of the code can only work with a constant device      */
 /* encoding. To use different encodings the parameters below have     */
 /* to be changed and the program recompiled.                          */
