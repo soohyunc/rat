@@ -1030,7 +1030,7 @@ static void rx_mbus_go(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(srce);
 	UNUSED(args);
-	sp->wait_on_startup = FALSE;
+	UNUSED(sp);
 }
 
 static void rx_mbus_hello(char *srce, char *args, session_struct *sp)

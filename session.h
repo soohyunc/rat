@@ -96,7 +96,6 @@ typedef struct session_tag {
 	struct s_speaker_table	*speakers_active;
 	struct mbus	*mbus_engine;
 	struct mbus	*mbus_ui;
-	int		 wait_on_startup;
         ts_t             cur_ts; /* current device time as timestamp */
 } session_struct;
 

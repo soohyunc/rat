@@ -114,7 +114,6 @@ init_session(session_struct *sp)
 	sp->mbus_ui			= NULL;
 	sp->min_playout			= 0;
 	sp->max_playout			= 1000;
-	sp->wait_on_startup		= FALSE;
         sp->last_depart_ts              = 1;
 
         source_list_create(&sp->active_sources);
@@ -177,10 +176,6 @@ parse_early_options_common(int argc, char *argv[], session_struct *sp[], int num
                                 strncpy(sp[s]->title, argv[i+1], SESSION_TITLE_LEN);
                         }
                         i++;
-                } else if (strcmp(argv[i], "-wait") == 0) {
-                        for(s = 0; s < num_sessions; s++) {
-                                sp[s]->wait_on_startup = TRUE;
-                        }
                 } else if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
                         int ttl = atoi(argv[i + 1]);
                         if (ttl > 255) {
