@@ -34,6 +34,15 @@ dnl The following two macros cause autoconf to complain.
 AC_C_BIGENDIAN
 AC_C_CHAR_UNSIGNED
 
+#------------------------------------------------------------------------------
+# GCC-specific warning flags:  Set these late since some tests won't build
+# with all these warnings enabled.
+#------------------------------------------------------------------------------
+if test "$GCC" = yes
+then
+        CFLAGS="$CFLAGS -W -Wall -Wbad-function-cast -Wmissing-prototypes -Werror"
+fi
+
 #-----------------------------------------------------------------------------
 # Check for various headers                                                 
 #-----------------------------------------------------------------------------
@@ -518,16 +527,6 @@ AC_ARG_ENABLE(debug-mem,
         fi])
 
 AC_CONFIG_HEADER(ratconf.h:config.h.in)
-
-#------------------------------------------------------------------------------
-# GCC-specific warning flags:  Set these late since some tests won't build
-# with all these warnings enabled.
-#------------------------------------------------------------------------------
-if test "$GCC" = yes
-then
-        CFLAGS="$CFLAGS -W -Wall -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -Werror"
-fi
-
 
 #------------------------------------------------------------------------------
 AC_OUTPUT(Makefile)
