@@ -90,9 +90,9 @@ static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_
 
 	proc_info = (LPPROCESS_INFORMATION) xmalloc(sizeof(PROCESS_INFORMATION));
 
-	sprintf(args, "%s -ctrl %s %s", proc_name, ctrl_addr, token);
+	sprintf(args, "%s -ctrl \"%s\" -token %s", proc_name, ctrl_addr, token);
 
-	if (!CreateProcess(NULL, args, NULL, NULL, 0, DEBUG_PROCESS, NULL, NULL, startup_info, proc_info)) {
+	if (!CreateProcess(NULL, args, NULL, NULL, TRUE, 0, NULL, NULL, startup_info, proc_info)) {
 		perror("Couldn't create process");
 		abort();
 	}
@@ -181,6 +181,7 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 
 	/* Parse those command line parameters which are intended for the media engine. */
 	for (i = 1; i < argc; i++) {
+		debug_msg("argv[%d]=%s\n", i, argv[i]);
                 if ((strcmp(argv[i], "-ui") == 0) && (argc > i+1)) {
                 } else if  (strcmp(argv[i], "-allowloopback") == 0) {
                 } else if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
