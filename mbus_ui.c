@@ -47,7 +47,7 @@ void mbus_handler_ui(char *srce, char *cmnd, char *args, void *data)
 	int		 i;
 
 	dprintf("mbus_handler_ui: %s %s\n", cmnd, args);
-	sprintf(command, "cb_recv_%s %s", cmnd, args);
+	sprintf(command, "mbus_recv_%s %s", cmnd, args);
 
 	for (i = 0; i < strlen(command); i++) {
 		if (command[i] == '[') command[i] = '(';

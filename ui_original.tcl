@@ -64,6 +64,34 @@ set num_cname		0
 set DEBUG		0
 set fw			.l.t.list.f
 
+proc init_source {cname} {
+	global CNAME NAME EMAIL LOC PHONE TOOL num_cname 
+	global ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX
+
+	if {[array names INDEX $cname] != $cname} {
+		# This is a source we've not seen before...
+		set        CNAME($cname) "$cname"
+		set         NAME($cname) "$cname"
+		set        EMAIL($cname) ""
+		set        PHONE($cname) ""
+		set          LOC($cname) ""
+		set         TOOL($cname) ""
+		set     ENCODING($cname) "unknown"
+		set     DURATION($cname) ""
+		set   PCKTS_RECV($cname) "0"
+		set   PCKTS_LOST($cname) "0"
+		set   PCKTS_MISO($cname) "0"
+		set  JITTER_DROP($cname) "0"
+		set       JITTER($cname) "0"
+		set   LOSS_TO_ME($cname) "101"
+		set LOSS_FROM_ME($cname) "101"
+		set        INDEX($cname) $num_cname
+		incr num_cname
+		chart_enlarge $num_cname 
+		chart_label   $cname
+	}
+}
+
 proc window_plist {cname} {
 	global fw
 	regsub -all {@|\.} $cname {-} foo
@@ -98,11 +126,11 @@ proc primary {coding} {
 }
 
 proc set_vol {volume} {
-  mbus_send "R" "output" "gain $volume"
+  mbus_send "R" "output_gain" $volume
 }
 
 proc set_gain {gain} {
-  mbus_send "R" "input" "gain $gain"
+  mbus_send "R" "input_gain" $gain
 }
 
 proc toggle_input_port {} {
@@ -142,22 +170,22 @@ proc InstallKey {key} {
 }
 
 proc play {file} {
-  mbus_send "R" "play" "[mbus_encode_str $file]"
+  mbus_send "R" "play_file" "[mbus_encode_str $file]"
 }
 
 proc rec {file} {
-  mbus_send "R" "rec" "[mbus_encode_str $file]"
+  mbus_send "R" "rec_file" "[mbus_encode_str $file]"
 }
 
 # 
 # The following function deal with receiving messages from the conference bus. The code
-# in ui.c will call cb_recv with the appropriate arguments when a message is received. 
+# in ui.c will call mbus_recv with the appropriate arguments when a message is received. 
 #
 
-proc cb_recv {cmd args} {
+proc mbus_recv {cmd args} {
   global DEBUG
-  if [string match [info procs [lindex cb_recv_$cmd 0]] cb_recv_$cmd] {
-    eval cb_recv_$cmd $args
+  if [string match [info procs [lindex mbus_recv_$cmd 0]] cb_recv_$cmd] {
+    eval mbus_recv_$cmd $args
   } else {
     if $DEBUG {
       puts stdout "ConfBus: ERROR unknown command $cmd"
@@ -165,235 +193,277 @@ proc cb_recv {cmd args} {
   }
 }
 
-proc cb_recv_init {} {
+proc mbus_recv_init {} {
 	# RAT has initialised itself, and we're now ready to go. 
 	# Perform any last minute initialisation...
-	mbus_send "R" "codec" "query"
+	mbus_send "R" "codec_query" ""
 }
 
-proc cb_recv_codec {cmd args} {
+proc mbus_recv_codec {cmd args} {
 	switch $cmd {
 		supported {puts stdout "This RAT supports the following codecs $args"}
 	}
 }
 
-proc cb_recv_agc {args} {
+proc mbus_recv_agc {args} {
   global agc_var
   set agc_var $args
 }
 
-proc cb_recv_primary {args} {
+proc mbus_recv_primary {args} {
   global prenc
   set prenc $args
 }
 
-proc cb_recv_redundancy {args} {
+proc mbus_recv_redundancy {args} {
   global secenc
   set secenc $args
 }
 
-proc cb_recv_repair {args} {
+proc mbus_recv_repair {args} {
   global repair_var
   set repair_var $args
 }
 
-proc cb_recv_powermeter {type level} {
-	# powermeter input  <value>
-	# powermeter output <value>
-	# powermeter <cname> <value>
-	switch $type {
-		input   {bargraphSetHeight .r.c.gain.b2 $level}
-		output  {bargraphSetHeight .r.c.vol.b1  $level}
-	 	default {}
-	}
+proc mbus_recv_powermeter_input {level} {
+	bargraphSetHeight .r.c.gain.b2 $level
 }
 
-proc cb_recv_input {cmd args} {
-	switch $cmd {
-		gain	{.r.c.gain.s2 set $args}
-		device	{.r.c.gain.l2 configure -bitmap $args}
-		mute    {.r.c.gain.t2 configure -relief sunken}
-		unmute  {.r.c.gain.t2 configure -relief raised}
-	}
+proc mbus_recv_powermeter_output {level} {
+	bargraphSetHeight .r.c.vol.b1  $level
 }
 
-proc cb_recv_output {cmd args} {
-	switch $cmd {
-		gain	{.r.c.vol.s1 set $args}
-		device	{.r.c.vol.l1 configure -bitmap $args}
-		mute    {.r.c.vol.t1 configure -relief sunken}
-		unmute  {.r.c.vol.t1 configure -relief raised}
-	}
+proc mbus_recv_input_gain {gain} {
+	.r.c.gain.s2 set $gain
 }
 
-proc cb_recv_half_duplex {} {
+proc mbus_recv_input_device {device} {
+	.r.c.gain.l2 configure -bitmap $device
+}
+
+proc mbus_recv_input_mute {} {
+	.r.c.gain.t2 configure -relief sunken
+}
+
+proc mbus_recv_input_unmute {} {
+	.r.c.gain.t2 configure -relief raised
+}
+
+proc mbus_recv_output_gain {gain} {
+	.r.c.vol.s1 set $gain
+}
+
+proc mbus_recv_output_device {device} {
+	.r.c.vol.l1 configure -bitmap $device
+}
+
+proc mbus_recv_output_mute {} {
+	.r.c.vol.t1 configure -relief sunken
+}
+
+proc mbus_recv_output_unmute {} {
+	.r.c.vol.t1 configure -relief raised
+}
+
+proc mbus_recv_half_duplex {} {
 	global output_var
 	set output_var {Mike mutes net}
-  	mbus_send "R" "output" "mode [mbus_encode_str $output_var]"
+  	mbus_send "R" "output_mode "[mbus_encode_str $output_var]"
 }
 
-proc cb_recv_debug {} {
+proc mbus_recv_debug {} {
 	global DEBUG
 	set DEBUG 1
 	.r.b.ucl configure -background salmon
 	.r.b.v   configure -background salmon
 }
 
-proc cb_recv_address {addr port ttl} {
+proc mbus_recv_address {addr port ttl} {
 	.b.a.address configure -text "Dest: $addr  Port: $port  TTL: $ttl"
 }
 
-proc cb_recv_lecture_mode {mode} {
+proc mbus_recv_lecture_mode {mode} {
 	global lecture_var
 	set lecture_var $mode
 }
 
-proc cb_recv_detect_silence {mode} {
+proc mbus_recv_detect_silence {mode} {
 	global silence_var
 	set silence_var $mode
 }
 
-proc cb_recv_my-cname {cname} {
+proc mbus_recv_my_cname {cname} {
 	global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc num_cname
-	global CNAME NAME EMAIL LOC PHONE TOOL ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX
 
 	set my_cname $cname
-	set        CNAME($cname) "$cname"
-	set         NAME($cname) "$rtcp_name"
-	set        EMAIL($cname) "$rtcp_email"
-	set        PHONE($cname) "$rtcp_phone"
-	set          LOC($cname) "$rtcp_loc"
-	set         TOOL($cname) ""
-	set     ENCODING($cname) "unknown"
-	set     DURATION($cname) ""
-	set   PCKTS_RECV($cname) "0"
-	set   PCKTS_LOST($cname) "0"
-	set   PCKTS_MISO($cname) "0"
-	set  JITTER_DROP($cname) "0"
-	set       JITTER($cname) "0"
-	set   LOSS_TO_ME($cname) "101"
-	set LOSS_FROM_ME($cname) "101"
-	set        INDEX($cname) $num_cname
-	incr num_cname
-	chart_enlarge $num_cname 
-	chart_label   $cname
+	init_source $cname
 
-	mbus_send "R" "source" "$cname name  [mbus_encode_str $rtcp_name]"
-	mbus_send "R" "source" "$cname email [mbus_encode_str $rtcp_email]"
-	mbus_send "R" "source" "$cname phone [mbus_encode_str $rtcp_phone]"
-	mbus_send "R" "source" "$cname loc   [mbus_encode_str $rtcp_loc]"
+	mbus_send "R" "source_name"  "$cname [mbus_encode_str $rtcp_name]"
+	mbus_send "R" "source_email" "$cname [mbus_encode_str $rtcp_email]"
+	mbus_send "R" "source_phone" "$cname [mbus_encode_str $rtcp_phone]"
+	mbus_send "R" "source_loc"   "$cname [mbus_encode_str $rtcp_loc]"
 
 	cname_update $cname
 }
 
-proc cb_recv_source {cname cmd args} {
-	global CNAME NAME EMAIL LOC PHONE TOOL num_cname fw iht losstimers my_cname
-	global ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX
-
-	if {[array names INDEX $cname] != $cname} {
-		# This is a source we've not seen before...
-		set        CNAME($cname) "$cname"
-		set         NAME($cname) "$cname"
-		set        EMAIL($cname) ""
-		set        PHONE($cname) ""
-		set          LOC($cname) ""
-		set         TOOL($cname) ""
-		set     ENCODING($cname) "unknown"
-		set     DURATION($cname) ""
-		set   PCKTS_RECV($cname) "0"
-		set   PCKTS_LOST($cname) "0"
-		set   PCKTS_MISO($cname) "0"
-		set  JITTER_DROP($cname) "0"
-		set       JITTER($cname) "0"
-		set   LOSS_TO_ME($cname) "101"
-		set LOSS_FROM_ME($cname) "101"
-		set        INDEX($cname) $num_cname
-		incr num_cname
-		chart_enlarge $num_cname 
-		chart_label   $cname
-	}
-	switch $cmd {
-		cname		{
-			# This one is a little strange, since the CNAME is
-			# used as the identifier, why pass it? Well, since
-			# that creates the database entry..... We don't do
-			# anything with the information here it's all done
-			# above...
-		}
-		name            { 
-			set NAME($cname) [lindex $args 0]
-			chart_label $cname
-		}
-		email           { set       EMAIL($cname) [lindex $args 0]}
-		phone           { set       PHONE($cname) [lindex $args 0]}
-		loc             { set         LOC($cname) [lindex $args 0]}
-		tool            { set        TOOL($cname) [lindex $args 0]}
-		encoding        { set    ENCODING($cname) [lindex $args 0]}
-		packet_duration { set    DURATION($cname) [lindex $args 0]}
-		packets_recv    { set  PCKTS_RECV($cname) [lindex $args 0]}
-		packets_lost    { set  PCKTS_LOST($cname) [lindex $args 0]}
-		packets_miso    { set  PCKTS_MISO($cname) [lindex $args 0]}
-		jitter_drop     { set JITTER_DROP($cname) [lindex $args 0]}
-		jitter          { set      JITTER($cname) [lindex $args 0]}
-		loss_to_me      { 
-			set LOSS_TO_ME($cname) [lindex $args 0] 
-			set srce $cname
-			set dest $my_cname
-			catch {after cancel $losstimers($srce,$dest)}
-			chart_set $srce $dest [lindex $args 0]
-			set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
-		}
-		loss_from_me    { 
-			set LOSS_FROM_ME($cname) [lindex $args 0] 
-			set srce $my_cname
-			set dest $cname
-			catch {after cancel $losstimers($srce,$dest)}
-			chart_set $srce $dest [lindex $args 0]
-			set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
-		}
-		loss_from	{ 
-			set dest $cname
-			set srce [lindex $args 0]
-			set loss [lindex $args 1]
-			catch {after cancel $losstimers($srce,$dest)}
-			chart_set $srce $dest $loss
-			set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
-		}
-		active          {
-			if {[string compare [lindex $args 0] "now"] == 0} {
-				catch [[window_plist $cname] configure -background white]
-			}
-			if {[string compare [lindex $args 0] "recent"] == 0} {
-				catch [[window_plist $cname] configure -background gray90]
-			}
-		}
-		inactive {
-			catch [[window_plist $cname] configure -background gray80]
-		}	
-		remove {
-			catch [destroy [window_plist $cname]]
-			unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname)
-			unset ENCODING($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname)
-			unset JITTER_DROP($cname) JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname)
-			incr num_cname -1
-			chart_redraw $num_cname
-			# Make sure we don't try to update things later...
-			return
-		}
-		mute {
-			[window_plist $cname] create line [expr $iht + 2] [expr $iht / 2] 500 [expr $iht / 2] -tags a -width 2.0 -fill gray95
-		}
-		unmute {
-			catch [[window_plist $cname] delete a]
-		}
-		default {
-			puts stdout "WARNING: ConfBus message 'cname $cname $cmd $args' not understood"
-		}
-	}
+proc mbus_recv_source_exists {cname} {
+	init_source $cname
 	cname_update $cname
 }
 
+proc mbus_recv_source_name {cname name} {
+	global NAME
 
+	init_source $cname
+	set NAME($cname) $name
+	chart_label $cname
+	cname_update $cname
+}
+
+proc mbus_recv_source_email {cname email} {
+	global EMAIL
+	init_source $cname
+	set EMAIL($cname) $email
+	cname_update $cname
+}
+
+proc mbus_recv_source_phone {cname phone} {
+	global PHONE
+	init_source $cname
+	set PHONE($cname) $phone
+	cname_update $cname
+}
+
+proc mbus_recv_source_loc {cname loc} {
+	global LOC
+	init_source $cname
+	set LOC($cname) $loc
+	cname_update $cname
+}
+
+proc mbus_recv_source_tool {cname tool} {
+	global TOOL
+	init_source $cname
+	set TOOL($cname) $tool
+	cname_update $cname
+}
+
+proc mbus_recv_source_encoding {cname encoding} {
+	global ENCODING
+	init_source $cname
+	set ENCODING($cname) $encoding
+	cname_update $cname
+}
+
+proc mbus_recv_source_packet_duration {cname packet_duration} {
+	global DURATION
+	init_source $cname
+	set DURATION($cname) $packet_duration
+	cname_update $cname
+}
+
+proc mbus_recv_source_packets_recv {cname packets_recv} {
+	global PCKTS_RECV
+	init_source $cname
+	set PCKTS_RECV($cname) $packets_recv
+	cname_update $cname
+}
+
+proc mbus_recv_source_packets_lost {cname packets_lost} {
+	global PCKTS_LOST
+	init_source $cname
+	set PCKTS_LOST($cname) $packets_lost
+	cname_update $cname
+}
+
+proc mbus_recv_source_packets_miso {cname packets_miso} {
+	global PCKTS_MISO
+	init_source $cname
+	set PCKTS_MISO($cname) $packets_miso
+	cname_update $cname
+}
+
+proc mbus_recv_source_jitter_drop {cname jitter_drop} {
+	global JITTER_DROP
+	init_source $cname
+	set JITTER_DROP($cname) $jitter_drop
+	cname_update $cname
+}
+
+proc mbus_recv_source_jitter {cname jitter} {
+	global JITTER
+	init_source $cname
+	set JITTER($cname) $jitter
+	cname_update $cname
+}
+
+proc mbus_recv_source_loss_to_me {cname loss} {
+	global LOSS_TO_ME my_cname losstimers
+	init_source $cname
+	set LOSS_TO_ME($cname) $loss
+	set srce $cname
+	set dest $my_cname
+	catch {after cancel $losstimers($srce,$dest)}
+	chart_set $srce $dest $loss
+	set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
+	cname_update $cname
+}
+
+proc mbus_recv_source_loss_from_me {cname loss} {
+	global LOSS_FROM_ME my_cname losstimers
+	init_source $cname
+	set LOSS_FROM_ME($cname) $loss
+	set srce $my_cname
+	set dest $cname
+	catch {after cancel $losstimers($srce,$dest)}
+	chart_set $srce $dest $loss
+	set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
+	cname_update $cname
+}
+
+proc mbus_recv_source_loss_from {dest srce loss} {
+	global losstimers
+	init_source $dest
+	catch {after cancel $losstimers($srce,$dest)}
+	chart_set $srce $dest $loss
+	set losstimers($srce,$dest) [after 30000 "chart_set $srce $dest 101"]
+	cname_update $dest
+}
+
+proc mbus_recv_source_active_now {cname} {
+	catch [[window_plist $cname] configure -background white]
+	cname_update $cname
+}
+
+proc mbus_recv_source_active_recent {cname} {
+	catch [[window_plist $cname] configure -background gray90]
+	cname_update $cname
+}
+
+proc mbus_recv_source_active_inactive {cname} {
+	catch [[window_plist $cname] configure -background gray80]
+	cname_update $cname
+}
+
+proc mbus_recv_source_remove {cname} {
+	global CNAME NAME EMAIL LOC PHONE TOOL ENCODING DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO JITTER_DROP JITTER LOSS_TO_ME LOSS_FROM_ME INDEX
+	global num_cname
+
+	catch [destroy [window_plist $cname]]
+	unset CNAME($cname) NAME($cname) EMAIL($cname) PHONE($cname) LOC($cname) TOOL($cname)
+	unset ENCODING($cname) DURATION($cname) PCKTS_RECV($cname) PCKTS_LOST($cname) PCKTS_MISO($cname)
+	unset JITTER_DROP($cname) JITTER($cname) LOSS_TO_ME($cname) LOSS_FROM_ME($cname) INDEX($cname)
+	incr num_cname -1
+	chart_redraw $num_cname
+}
+
+proc mbus_recv_source_mute {cname} {
+	[window_plist $cname] create line [expr $iht + 2] [expr $iht / 2] 500 [expr $iht / 2] -tags a -width 2.0 -fill gray95
+}
+
+proc mbus_recv_source_unmute {cname} {
+	catch [[window_plist $cname] delete a]
+}
 
 proc cname_update {cname} {
 	global CNAME NAME EMAIL LOC PHONE TOOL INDEX
@@ -427,7 +497,7 @@ proc cname_update {cname} {
 	if {[info exists my_cname] && [string compare $cname $my_cname]} {
 		foreach i [pack slaves $fw] {
 			set u [string toupper $NAME($cname)]
-			if {[string compare $u [string toupper [$i itemcget t -text]]] < 0 && [string compare $i $fw.c$my_cname] != 0} {
+			if {[string compare $u [string toupper [$i itemcget t -text]]] < 0 && [string compare $i [window_plist $my_cname]] != 0} {
 				pack $cw -before $i
 				break
 			}
@@ -525,9 +595,9 @@ proc dropdown {w varName command args} {
 proc toggle_mute {cw cname} {
 	global iht
 	if {[$cw gettags a] == ""} {
-		mbus_send "R" "source" "$cname mute"
+		mbus_send "R" "source_mute" $cname 
 	} else {
-		mbus_send "R" "source" "$cname unmute"
+		mbus_send "R" "source_unmute" $cname
 	}
 }
 
@@ -658,7 +728,7 @@ pack .r.c.gain.l2 -side top -fill x
 pack .r.c.gain.b2 -side left -fill y
 pack .r.c.gain.s2 -side right -fill y
 
-proc cb_recv_disable_audio_ctls {} {
+proc mbus_recv_disable_audio_ctls {} {
 	.r.c.vol.t1 configure -state disabled
 	.r.c.vol.l1 configure -state disabled
 	.r.c.vol.s1 configure -state disabled
@@ -668,7 +738,7 @@ proc cb_recv_disable_audio_ctls {} {
 	.l.s2.audio  configure -state normal
 }
 
-proc cb_recv_enable_audio_ctls {} {
+proc mbus_recv_enable_audio_ctls {} {
 	.r.c.vol.t1 configure -state normal
 	.r.c.vol.l1 configure -state normal
 	.r.c.vol.s1 configure -state normal
@@ -912,32 +982,32 @@ pack  .b.a.address -side top -fill x
 frame .b.a.rn -bd 0
 pack  .b.a.rn -side top -fill x
 entry .b.a.rn.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_name
-bind  .b.a.rn.name <Return> {mbus_send "R" "source" "$my_cname name [mbus_encode_str $rtcp_name]"; savename}
-bind  .b.a.rn.name <Tab>    {mbus_send "R" "source" "$my_cname name [mbus_encode_str $rtcp_name]"; savename}
+bind  .b.a.rn.name <Return> {mbus_send "R" "source_name" "$my_cname [mbus_encode_str $rtcp_name]"; savename}
+bind  .b.a.rn.name <Tab>    {mbus_send "R" "source_name" "$my_cname [mbus_encode_str $rtcp_name]"; savename}
 pack  .b.a.rn.name -side right -fill x 
 label .b.a.rn.l -highlightthickness 0 -text "Name:"
 pack  .b.a.rn.l -side left -fill x -expand 1
 frame .b.a.re -bd 0
 pack  .b.a.re -side top -fill x
 entry .b.a.re.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_email
-bind  .b.a.re.name <Return> {mbus_send "R" "source" "$my_cname email [mbus_encode_str $rtcp_email]"; savename}
-bind  .b.a.re.name <Tab>    {mbus_send "R" "source" "$my_cname email [mbus_encode_str $rtcp_email]"; savename}
+bind  .b.a.re.name <Return> {mbus_send "R" "source_email" "$my_cname [mbus_encode_str $rtcp_email]"; savename}
+bind  .b.a.re.name <Tab>    {mbus_send "R" "source_email" "$my_cname [mbus_encode_str $rtcp_email]"; savename}
 pack  .b.a.re.name -side right -fill x
 label .b.a.re.l -highlightthickness 0 -text "Email:"
 pack  .b.a.re.l -side left -fill x -expand 1
 frame .b.a.rp -bd 0
 pack  .b.a.rp -side top -fill x
 entry .b.a.rp.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_phone
-bind  .b.a.rp.name <Return> {mbus_send "R" "source" "$my_cname phone [mbus_encode_str $rtcp_phone]"; savename}
-bind  .b.a.rp.name <Tab>    {mbus_send "R" "source" "$my_cname phone [mbus_encode_str $rtcp_phone]"; savename}
+bind  .b.a.rp.name <Return> {mbus_send "R" "source_phone" "$my_cname [mbus_encode_str $rtcp_phone]"; savename}
+bind  .b.a.rp.name <Tab>    {mbus_send "R" "source_phone" "$my_cname [mbus_encode_str $rtcp_phone]"; savename}
 pack  .b.a.rp.name -side right -fill x
 label .b.a.rp.l -highlightthickness 0 -text "Phone:"
 pack  .b.a.rp.l -side left -fill x -expand 1
 frame .b.a.rl -bd 0
 pack  .b.a.rl -side top -fill x
 entry .b.a.rl.name -highlightthickness 0 -width 35 -relief sunken -textvariable rtcp_loc
-bind  .b.a.rl.name <Return> {mbus_send "R" "source" "$my_cname loc [mbus_encode_str $rtcp_loc]"; savename}
-bind  .b.a.rl.name <Tab>    {mbus_send "R" "source" "$my_cname loc [mbus_encode_str $rtcp_loc]"; savename}
+bind  .b.a.rl.name <Return> {mbus_send "R" "source_loc" "$my_cname [mbus_encode_str $rtcp_loc]"; savename}
+bind  .b.a.rl.name <Tab>    {mbus_send "R" "source_loc" "$my_cname [mbus_encode_str $rtcp_loc]"; savename}
 pack  .b.a.rl.name -side right -fill x
 label .b.a.rl.l -highlightthickness 0 -text "Location:"
 pack  .b.a.rl.l -side left -fill x -expand 1
