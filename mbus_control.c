@@ -38,6 +38,10 @@ static void rx_mbus_quit(char *srce, char *args, void *data)
 	UNUSED(srce);
 	UNUSED(args);
 	UNUSED(data);
+
+	/* We mark ourselves as ready to exit. The main() will */
+	/* cleanup and terminate all our subprocesses.         */
+	should_exit = TRUE;
 }
 
 static void rx_mbus_waiting(char *srce, char *args, void *data)

@@ -146,7 +146,6 @@ int main(int argc, char *argv[])
 
 	/* At this point we know the mbus address of our controller, and have conducted */
 	/* a successful rendezvous with it. It will now send us configuration commands. */
-	/* ### At some point during the following, we get rtp_init() and rtp_callbackinit() */
 	while (sp->rtp_session[0] == NULL) {
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 250000;
@@ -163,8 +162,6 @@ int main(int argc, char *argv[])
         }
         pdb_item_create(sp->pdb, sp->clock, (u_int16)get_freq(sp->device_clock), rtp_my_ssrc(sp->rtp_session[0])); 
 	settings_load_late(sp);
-
-/*************** new stuff *****************/
 
 	ui_controller_init(sp, sp->mbus_engine_addr, sp->mbus_ui_addr, sp->mbus_video_addr);
         ui_initial_settings(sp);
@@ -296,8 +293,24 @@ int main(int argc, char *argv[])
 	if (sp->out_file != NULL) snd_write_close(&sp->out_file);
 	audio_device_release(sp, sp->audio_device);
         pdb_destroy(&sp->pdb);
-	network_process_mbus(sp);
 
+	/* Inform our controller that we're quiting. It will deal with shutting down the UI, */
+	/* if it is necessary to do that.                                                    */
+	if (mbus_addr_valid(sp->mbus_engine, c_addr)) {
+		mbus_qmsgf(sp->mbus_engine, c_addr, TRUE, "mbus.quit", "");
+		mbus_send(sp->mbus_engine);
+		do {
+			struct timeval	 timeout;
+			mbus_send(sp->mbus_engine);
+			mbus_heartbeat(sp->mbus_engine, 1);
+			mbus_retransmit(sp->mbus_engine);
+			timeout.tv_sec  = 0;
+			timeout.tv_usec = 20000;
+			mbus_recv(sp->mbus_engine, sp, &timeout);
+		} while (!mbus_sent_all(sp->mbus_engine));
+	}
+
+	network_process_mbus(sp);
 	mbus_exit(sp->mbus_engine);
         sp->mbus_engine = NULL;
 

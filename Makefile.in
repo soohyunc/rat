@@ -23,8 +23,8 @@ MEDIALIBS    = libuclaudio.a libuclcodec.a libuclsndfile.a
 
 CHANNEL_OBJS = channel.o channel_types.o cc_vanilla.o cc_rdncy.o cc_layered.o
 TOY_OBJS     = render_3D.o repair.o 
-CORE_OBJS    = ts.o playout.o net.o source.o \
-               session.o mbus_engine.o audio.o cushion.o mix.o \
+CORE_OBJS    = ts.o playout.o net.o source.o session.o \
+               mbus_engine.o audio.o cushion.o mix.o \
                parameters.o timers.o transmit.o playout_calc.o \
                transcoder.o ui.o rtp_callback.o usleep.o settings.o \
                pdb.o
@@ -38,7 +38,7 @@ ALL_OBJS     = $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) $(TOY
 	       $(CORE_OBJS) $(UI_OBJS) $(CTRL_OBJS)
 ALL_SRCS     = $(ALL_OBJS:%.o=%.c)
 
-all: $(RATVER) $(RATVER)-new $(RATVER)-ui $(RATVER)-media
+all: $(RATVER) $(RATVER)-ui $(RATVER)-media
 
 libuclaudio.a: $(AUDIO_OBJS)
 	$(AR) r $@ $(AUDIO_OBJS)
@@ -58,11 +58,8 @@ $(RATVER)-media: $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) main_engi
 $(RATVER)-ui: $(TCL_OBJS) $(UI_OBJS) ../common/libcommon.a
 	$(CC) $(CFLAGS) $(TCL_OBJS) $(UI_OBJS) ../common/libcommon.a __LDLIBS__ __CHECK_LIB__ -o $(RATVER)-ui 
 
-$(RATVER)-new: $(CTRL_OBJS) ../common/libcommon.a
-	$(CC) $(CFLAGS) $(CTRL_OBJS) ../common/libcommon.a __LDLIBS__ __CHECK_LIB__ -o $(RATVER)-new
-
-$(RATVER): $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) $(TCL_OBJS) tcltk.o mbus_ui.o main.o ../common/libcommon.a
-	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(MEDIALIBS) $(TCL_OBJS) tcltk.o mbus_ui.o main.o ../common/libcommon.a __LDLIBS__ __CHECK_LIB__ -o $(RATVER)
+$(RATVER): $(CTRL_OBJS) ../common/libcommon.a
+	$(CC) $(CFLAGS) $(CTRL_OBJS) ../common/libcommon.a __LDLIBS__ __CHECK_LIB__ -o $(RATVER)
 
 .c.o:
 	$(CC) $(INCLUDE) $(CFLAGS) -c $<
@@ -79,12 +76,11 @@ ui_audiotool.c: ui_audiotool.tcl tcl2c/tcl2c
 	cat asfilebox.tcl ui_audiotool.tcl | tcl2c/tcl2c ui_audiotool > ui_audiotool.c
 
 clean:
-	-rm -f $(CTRL_OBJS) $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(UI_OBJS) $(TCL_OBJS) main_engine.o main.o
+	-rm -f $(CTRL_OBJS) $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) $(TOY_OBJS) $(CORE_OBJS) $(UI_OBJS) $(TCL_OBJS) main_engine.o 
 	-rm -f $(MEDIALIBS)
 	-rm -f tcl_libs.c ui_audiotool.c ui_transcoder.c version.h Makefile Makefile.sed 
 	-rm -f tcl2c/tcl2c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec
-	-rm -f $(RATVER) 
-	-rm -f $(RATVER)-media $(RATVER)-ui $(RATVER)-new
+	-rm -f $(RATVER)-media $(RATVER)-ui $(RATVER)
 
 etags:
 	etags ../common/*.[ch] *.[ch]

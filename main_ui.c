@@ -18,6 +18,7 @@
 #include "mbus_ui.h"
 #include "tcltk.h"
 
+char	*e_addr = NULL;
 char	 m_addr[100];
 char	*c_addr, *token, *token_e; 
 
@@ -48,7 +49,6 @@ int main(int argc, char *argv[])
 	struct timeval	 timeout;
 
 	parse_args(argc, argv);
-/*	tcl_init(m, argc, argv, e_addr);*/
 
 	m = mbus_init(mbus_ui_rx, NULL);
 	sprintf(m_addr, "(media:audio module:ui app:rat instance:%lu)", (u_int32) getpid());
@@ -86,10 +86,22 @@ int main(int argc, char *argv[])
 	mbus_qmsgf(m, c_addr, TRUE, "mbus.go", "%s", token_e);
 	mbus_send(m);
 
-	/* ...and sit waiting for it to send us commands... */
-	while (1) {
+	/* At this point we know the mbus address of our controller, and have conducted */
+	/* a successful rendezvous with it. It will now send us configuration commands. */
+	while (e_addr == NULL) {
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 250000;
+		mbus_recv(m, m, &timeout);
+		mbus_send(m);
+		mbus_heartbeat(m, 1);
+		mbus_retransmit(m);
+	}
+	debug_msg("Done configuration\n");
+
+	tcl_init(m, argc, argv, e_addr);
+	while (1) {
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 25000;
 		mbus_recv(m, NULL, &timeout);
 		mbus_send(m);
 		mbus_heartbeat(m, 1);

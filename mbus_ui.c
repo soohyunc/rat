@@ -51,21 +51,34 @@ void mbus_ui_wait_handler(char *srce, char *cmnd, char *args, void *data)
 	}
 }
 
+extern char *e_addr;
+
 void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 {
-	char        command[1500];
-	unsigned int i;
+	char        	 command[1500];
+	unsigned int 	 i;
+	struct mbus	*m = (struct mbus *) data;
 
 	UNUSED(srce);
-	UNUSED(data);
 
-	sprintf(command, "mbus_recv %s %s", cmnd, args);
+	if (strcmp(cmnd, "tool.rat.addr.engine") == 0) {
+		char	*addr;
 
-	for (i = 0; i < (unsigned)strlen(command); i++) {
-		if (command[i] == '[') command[i] = '(';
-		if (command[i] == ']') command[i] = ')';
+		mbus_parse_init(m, args);
+		if (mbus_parse_str(m, &addr)) {
+			e_addr = xstrdup(mbus_decode_str(addr));
+		} else {
+			debug_msg("mbus: usage \"tool.rat.addr.ui <addr>\"\n");
+		}
+		mbus_parse_done(m);
+	} else {
+		/* Pass it to the Tcl code to deal with... */
+		sprintf(command, "mbus_recv %s %s", cmnd, args);
+		for (i = 0; i < (unsigned)strlen(command); i++) {
+			if (command[i] == '[') command[i] = '(';
+			if (command[i] == ']') command[i] = ')';
+		}
+		tcl_send(command);
 	}
-
-	tcl_send(command);
 }
 

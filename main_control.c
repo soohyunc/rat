@@ -24,7 +24,8 @@
 #define UI_NAME     "rat-"##VERSION_NUM##"-ui"
 #define ENGINE_NAME "rat-"##VERSION_NUM##"-media"
 
-pid_t		 pid_ui, pid_engine;
+pid_t	 pid_ui, pid_engine;
+int	 should_exit;
 
 static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid)
 {
@@ -73,6 +74,10 @@ static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_
 
 static void kill_process(pid_t proc)
 {
+	if (proc == 0) {
+		debug_msg("Process %d already marked as dead\n", proc);
+		return;
+	}
 	kill(proc, SIGINT);
 }
 
@@ -103,7 +108,7 @@ static void inform_addrs(struct mbus *m, char *e_addr, char *u_addr)
 static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[])
 {
 	int		 i;
-	int		 ttl = 16;
+	int		 ttl = 63;
 	char		*addr, *rx_port, *tx_port;
 	struct timeval	 timeout;
 
@@ -162,6 +167,25 @@ static void mbus_err_handler(int seqnum, int reason)
 	abort();
 }
 
+static void terminate(struct mbus *m, char *addr)
+{
+	if (mbus_addr_valid(m, addr)) {
+		/* This is a valid address, ask that process to quit. */
+		mbus_qmsgf(m, addr, TRUE, "mbus.quit", "");
+		do {
+			struct timeval	 timeout;
+			mbus_send(m);
+			mbus_heartbeat(m, 1);
+			mbus_retransmit(m);
+			timeout.tv_sec  = 0;
+			timeout.tv_usec = 20000;
+			mbus_recv(m, NULL, &timeout);
+		} while (!mbus_sent_all(m));
+	} else {
+		/* That process has already terminated, do nothing. */
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	struct mbus	*m;
@@ -182,7 +206,8 @@ int main(int argc, char *argv[])
 	inform_addrs(m, e_addr, u_addr);
 	parse_options(m, e_addr, u_addr, argc, argv);
 
-	while (1) {
+	should_exit = FALSE;
+	while (!should_exit) {
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
 		mbus_retransmit(m);
@@ -190,6 +215,9 @@ int main(int argc, char *argv[])
 		timeout.tv_usec = 20000;
 		mbus_recv(m, NULL, &timeout);
 	}
+
+	terminate(m, u_addr);
+	terminate(m, e_addr);
 
 	kill_process(pid_ui);
 	kill_process(pid_engine);

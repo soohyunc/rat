@@ -221,7 +221,7 @@ proc mbus_recv {cmnd args} {
 		audio.file.record.ready 	{eval mbus_recv_audio.file.record.ready $args}
 		audio.file.record.alive 	{eval mbus_recv_audio.file.record.alive $args}
 		session.title  			{eval mbus_recv_session.title $args}
-		session.address  		{eval mbus_recv_session.address $args}
+		rtp.addr  			{eval mbus_recv_rtp.addr $args}
 		rtp.ssrc  			{eval mbus_recv_rtp.ssrc $args}
 		rtp.source.exists  		{eval mbus_recv_rtp.source.exists $args}
 		rtp.source.remove  		{eval mbus_recv_rtp.source.remove $args}
@@ -726,10 +726,10 @@ proc mbus_recv_session.title {title} {
     wm title . "RAT: $title"
 }
 
-proc mbus_recv_session.address {addr port ttl} {
+proc mbus_recv_rtp.addr {addr rx_port tx_port ttl} {
     global session_address group_addr
     set group_addr $addr
-    set session_address "Address: $addr Port: $port TTL: $ttl"
+    set session_address "Address: $addr Port: $rx_port TTL: $ttl"
 }
 
 proc mbus_recv_tool.rat.lecture.mode {mode} {
@@ -2385,7 +2385,7 @@ proc chart_set {src dst val} {
 		set txtval "$val%"
 	} else {
 		set colour white
-		set txtval ""
+		set txtval " "
 	}
 	.chart.c.f.$src.f.$dst configure -background $colour -text "$txtval"
 }

@@ -961,8 +961,9 @@ ui_title(session_t *sp)
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "session.title", title, TRUE);
         xfree(title);
 
-	addr = mbus_encode_str(sp->asc_address[0]);
-        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "session.address", "%s %5d %3d", addr, sp->rx_rtp_port[0], sp->ttl);
+	addr = mbus_encode_str(rtp_get_addr(sp->rtp_session[0]));
+        mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "rtp.addr", "%s %5d %5d %3d", 
+		addr, rtp_get_rx_port(sp->rtp_session[0]), rtp_get_tx_port(sp->rtp_session[0]), rtp_get_ttl(sp->rtp_session[0]));
         xfree(addr);
 }
 
