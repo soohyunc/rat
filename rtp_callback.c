@@ -227,12 +227,24 @@ process_rr(session_t *sp, uint32_t ssrc, rtcp_rr *r)
                         ui_send_rtp_rtt(sp, sp->mbus_ui_addr, ssrc, e->avg_rtt);
                 }
         }
+	fract_lost = (r->fract_lost * 100) >> 8;
             
         /* Update loss stats */
         if (sp->mbus_engine != NULL) {
-                fract_lost = (r->fract_lost * 100) >> 8;
                 ui_send_rtp_packet_loss(sp, sp->mbus_ui_addr, ssrc, r->ssrc, fract_lost);
         }
+
+	/* Do we have to log anything? */
+	if ((r->ssrc == my_ssrc) && (sp->logger != NULL)) {
+		struct timeval t;
+		gettimeofday(&t, NULL);
+		fprintf(sp->logger, "%ld.%06ld ", t.tv_sec, t.tv_usec);
+		fprintf(sp->logger, "rr 0x%08lx ", (unsigned long) r->ssrc);
+		fprintf(sp->logger, "loss %d ", fract_lost);
+		fprintf(sp->logger, "jitter %f ", r->jitter / 8000.0);
+		fprintf(sp->logger, "rtt %f ", e->avg_rtt);
+		fprintf(sp->logger, "\n");
+	}
 }
         
 static void
@@ -300,6 +312,16 @@ process_create(session_t *sp, uint32_t ssrc)
 }
 
 static void
+process_bye(session_t *sp, uint32_t ssrc)
+{
+	if (sp->logger != NULL) {
+		struct timeval	t;
+		gettimeofday(&t, NULL);
+		fprintf(sp->logger, "%ld.%06ld bye 0x%08lx\n", t.tv_sec, t.tv_usec, (unsigned long) ssrc);
+	}
+}
+
+static void
 process_delete(session_t *sp, uint32_t ssrc)
 {
         if (ssrc != rtp_my_ssrc(sp->rtp_session[0]) &&
@@ -315,6 +337,11 @@ process_delete(session_t *sp, uint32_t ssrc)
                         ui_send_rtp_remove(sp, sp->mbus_ui_addr, ssrc);
                 }
         }
+	if (sp->logger != NULL) {
+		struct timeval	t;
+		gettimeofday(&t, NULL);
+		fprintf(sp->logger, "%ld.%06ld source_deleted 0x%08lx\n", t.tv_sec, t.tv_usec, (unsigned long) ssrc);
+	}
 }
 
 void 
@@ -355,11 +382,12 @@ rtp_callback(struct rtp *s, rtp_event *e)
                 debug_msg("Received and ignored application specific report from %08x\n", e->ssrc);
                 break;
 	case RX_BYE:
+		process_bye(sp, e->ssrc);
+		break;
 	case SOURCE_DELETED:
                 process_delete(sp, e->ssrc);
 		break;
 	case SOURCE_CREATED:
-                debug_msg("Source create (0x%08x)\n", e->ssrc);
 		process_create(sp, e->ssrc);
 		break;
 	case RR_TIMEOUT:

@@ -45,8 +45,10 @@ static const char cvsid[] =
 #include "ui_send_rtp.h"
 #include "ui_send_audio.h"
 #include "ui_send_prefs.h"
+#include "version.h"
 
-extern int should_exit;
+extern int 	 should_exit;
+extern FILE 	*stats_file;
 
 /* Mbus command reception function type */
 typedef void (*mbus_rx_proc)(char *srce, char *args, session_t *sp);
@@ -563,6 +565,53 @@ static void rx_tool_rat_voxlet_play(char *srce, char *args, session_t *sp)
                 voxlet_create(&sp->local_file_player, sp->ms, sp->pdb, file);
 	} else {
 		debug_msg("mbus: usage \"tool.rat.voxlet.play <filename>\"\n");
+	}
+	mbus_parse_done(mp);
+}
+
+static void rx_tool_rat_logstats(char *srce, char *args, session_t *sp)
+{
+	int 		  	 i;
+	struct mbus_parser	*mp;
+
+	UNUSED(srce);
+
+	mp = mbus_parse_init(args);
+	if (mbus_parse_int(mp, &i)) {
+		if (i) {
+			struct timeval   t;
+			char             fname[100];
+			char		 hname[64];
+			char		*uname;
+			const char	*cname;
+#ifndef WIN32
+			struct passwd  *pwent;
+
+			pwent = getpwuid(getuid());
+			uname = pwent->pw_name;
+
+#else
+			if (!GetUserName(user, &size)) {
+				uname = "UNKNOWN";
+			} else {
+				uname=(char*)user;
+			}
+#endif
+			gettimeofday(&t, NULL);
+			gethostname(hname, 64);
+			sprintf(fname, "rat-%p-%ld.%06ld-%s-%s.log", sp, t.tv_sec, t.tv_usec, hname, uname);
+			cname = rtp_get_sdes(sp->rtp_session[0], rtp_my_ssrc(sp->rtp_session[0]), RTCP_SDES_CNAME);
+
+			sp->logger = fopen(fname, "w");
+			fprintf(sp->logger, "%ld.%06ld start ", t.tv_sec, t.tv_usec);
+			fprintf(sp->logger, "%s ", RAT_VERSION);
+			fprintf(sp->logger, "0x%08lx ", (unsigned long) rtp_my_ssrc(sp->rtp_session[0]));
+			fprintf(sp->logger, "\"%s\"\n", cname);
+		} else {
+			fclose(sp->logger);
+		}
+	} else {
+		debug_msg("mbus: usage \"tool.rat.logstats <boolean>\"\n");
 	}
 	mbus_parse_done(mp);
 }
@@ -1487,6 +1536,7 @@ static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 }
 
 static const mbus_cmd_tuple engine_cmds[] = {
+	{ "tool.rat.logstats",                     rx_tool_rat_logstats },
         { "tool.rat.tone.start",                   rx_tool_rat_tone_start },
         { "tool.rat.tone.stop",                    rx_tool_rat_tone_stop },
 	{ "tool.rat.voxlet.play",                  rx_tool_rat_voxlet_play },

@@ -1288,7 +1288,14 @@ v4.2.3	- Change the session struct to be a two element array in main_engine.c
 		  variables) and will have to be fixed
 	  it's probably not too bad, though. All are wrapped in #ifdef
 	  IS_TRANSCODER, for now.
-	- Rewrite auddev_oss.c
+	- Update OSS (i.e. linux) audio device detection code
+		- Attempt to pair half-duplex devices into full-duplex
+	- Workaround failure to get host IP address when setting the RTP
+	  CNAME (we use user@127.0.0.1 as the CNAME in this case). Reported 
+	  by Joe Love.
+	- Add support for "-logstats" option, to log RTP and codec statistics
+	  to a file, for Anna's experiments.
+
 
 
 TODO -- They're features not bugs dammit!

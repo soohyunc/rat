@@ -401,6 +401,10 @@ int main(int argc, char *argv[])
 	
 	mbus_exit(sp[0]->mbus_engine);
 
+	if (sp[0]->logger != NULL) {
+		fclose(sp[0]->logger);
+	}
+
 	session_validate(sp[0]);
 	session_exit(sp[0]);
         

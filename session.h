@@ -109,6 +109,7 @@ typedef struct s_session {
 	char		   	*mbus_video_addr;
 	int		    	 loopback_gain;
 	char			*encrkey;
+	FILE			*logger;
 	uint32_t		 magic;				/* Magic number for debugging purposes */
 } session_t;
 

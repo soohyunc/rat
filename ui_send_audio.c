@@ -273,6 +273,11 @@ ui_send_audio_suppress_silence(session_t *sp, char *addr)
         mbus_qmsg(sp->mbus_engine, addr, "tool.rat.silence", mbus_encode_str(name), TRUE);
         sprintf(thresh, "%d", sp->manual_sd_thresh);
         mbus_qmsg(sp->mbus_engine, addr, "tool.rat.silence.threshold", thresh, TRUE);
+	if (sp->logger != NULL) {
+		struct timeval	t;
+		gettimeofday(&t, NULL);
+		fprintf(sp->logger, "%ld.%06ld silence_suppression %s\n", t.tv_sec, t.tv_usec, name);
+	}
 }
 
 void
@@ -358,8 +363,14 @@ ui_update_redundancy(session_t *sp, char *addr)
         }
         
         scf = codec_get_format(scid);
-        out = (char*)xmalloc(clen);
 
+	if (sp->logger != NULL) {
+		struct timeval	t;
+		gettimeofday(&t, NULL);
+		fprintf(sp->logger, "%ld.%06ld channel_coding redundancy %s\n", t.tv_sec, t.tv_usec, scf->long_name);
+	}
+
+        out = (char*)xmalloc(clen);
         mbes = mbus_encode_str("redundancy");
         sprintf(out, "%s ", mbes);
         xfree(mbes);
@@ -433,6 +444,11 @@ ui_send_audio_channel_coding(session_t *sp, char *addr)
         switch(tolower(ccd->name[0])) {
         case 'n':
                 mbus_qmsg(sp->mbus_engine, addr, "audio.channel.coding", "\"none\"", TRUE);
+		if (sp->logger != NULL) {
+			struct timeval	t;
+			gettimeofday(&t, NULL);
+			fprintf(sp->logger, "%ld.%06ld channel_coding none\n", t.tv_sec, t.tv_usec);
+		}
                 break;
         case 'r':
                 ui_update_redundancy(sp, addr);
@@ -454,9 +470,16 @@ ui_send_audio_codec(session_t *sp, char *addr)
 	if (!sp->ui_on) return;
 	pri_id = codec_get_by_payload(sp->encodings[0]);
         pri_cf = codec_get_format(pri_id);
+
 	mbes = mbus_encode_str(pri_cf->short_name);
         mbus_qmsg(sp->mbus_engine, addr, "tool.rat.codec", mbes, FALSE);
         xfree(mbes);
+
+	if (sp->logger != NULL) {
+		struct timeval	t;
+		gettimeofday(&t, NULL);
+		fprintf(sp->logger, "%ld.%06ld codec %s\n", t.tv_sec, t.tv_usec, pri_cf->long_name);
+	}
 }
 
 void

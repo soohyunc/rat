@@ -264,6 +264,16 @@ static int parse_options_early(int argc, const char **argv)
 /* Late Command Line Argument Functions */
 
 static int 
+cmd_logstats(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        assert(argc == 0);
+        mbus_qmsgf(m, addr, TRUE, "tool.rat.logstats", "1");
+        UNUSED(argc);
+        UNUSED(argv);
+        return TRUE;
+}
+
+static int 
 cmd_layers(struct mbus *m, char *addr, int argc, char *argv[])
 {
         int layers;
@@ -488,6 +498,7 @@ typedef struct {
 } args_handler;
 
 static args_handler late_args[] = {
+	{ "-logstats",       cmd_logstats,     0 },
         { "-l",              cmd_layers,       1 },
         { "-allowloopback",  cmd_allowloop,    0 },
         { "-allow_loopback", cmd_allowloop,    0 },

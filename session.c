@@ -142,6 +142,7 @@ session_init(session_t *sp)
 	sp->layers                      = 1;
 	sp->ui_activated		= FALSE;
 	sp->encrkey			= NULL;
+	sp->logger                      = NULL;
 	sp->magic			= 0xcafebabe;				/* Magic number for debugging */
 
         source_list_create(&sp->active_sources);
