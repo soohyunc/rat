@@ -905,14 +905,6 @@ ui_title(session_struct *sp)
         xfree(addr);
 }
 
-#ifdef NDEF
-static void
-ui_load_settings(session_struct *sp)
-{
-	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.load.settings", "", TRUE);
-}
-#endif
-
 /* ui_final_settings: so we here we load things that get broken
  * because we open null audio device first, and it has limited no of
  * input and output ports.  

@@ -128,10 +128,6 @@ tcl_init(struct mbus *mbus_ui, int argc, char **argv, char *mbus_engine_addr)
 	Tcl_SetVar(interp, "argv0", argv[0], TCL_GLOBAL_ONLY);
 	Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
 
-	if (Tk_MainWindow(interp) != TCL_OK) {
-                fprintf(stderr, "%s\n", Tcl_GetStringResult(interp));
-                exit(-1);
-        }
 	/*
 	 * There is no easy way of preventing the Init functions from
 	 * loading the library files. Ignore error returns and load
