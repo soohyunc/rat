@@ -443,6 +443,8 @@ tx_send(session_struct *sp)
                 debug_msg("Transmitter clock wrapped %d units ready\n", n);
         }
 
+        assert((unsigned)n <= tb->alloc_cnt); 
+
         rtp_header.cc = 0;
 
 /*
