@@ -366,7 +366,7 @@ red_encode(session_struct *sp, cc_unit **coded, int num_coded, cc_unit **out, re
         /* pack data */
         while(avail-- > 0) {
                 u = red_get_unit(r, r->offset[avail], r->coding[avail]);
-                memcpy(r->last.iov + r->last.iovc, u->iov, sizeof(struct iovec) * u->iovc);
+                memmove(r->last.iov + r->last.iovc, u->iov, sizeof(struct iovec) * u->iovc);
                 r->last.iovc += u->iovc;
         }
 
@@ -507,9 +507,9 @@ red_valsplit(char *blk, unsigned int blen, cc_unit *cu, int *trailing, int *inte
         cu->data_idx = hdr_idx; 
         /* push headers and data against each other */
         cu->iovc    -= MAX_RED_LAYERS - hdr_idx;
-        memcpy(cu->iov+hdr_idx, 
-               cu->iov+MAX_RED_LAYERS, 
-               sizeof(struct iovec)*(cu->iovc - hdr_idx));
+        memmove(cu->iov+hdr_idx, 
+                cu->iov+MAX_RED_LAYERS, 
+                sizeof(struct iovec)*(cu->iovc - hdr_idx));
 
         (*trailing)      = max_off/cp->unit_len + n;
         (*inter_pkt_gap) = cp->unit_len * n; 
