@@ -27,7 +27,7 @@ CORE_OBJS    = ts.o playout.o statistics.o source.o rtcp.o rtcp_db.o rtcp_pckt.o
                mbus_engine.o audio.o cushion.o mix.o net.o parameters.o pckt_queue.o timers.o \
 	       transmit.o transcoder.o ui.o rtp_callback.o usleep.o 
 UI_OBJS      = tcltk.o mbus_ui.o main_ui.o
-CTRL_OBJS    = _main.o
+CTRL_OBJS    = _main.o mbus_control.o
 TCL_OBJS     = ui_audiotool.o ui_transcoder.o
 TCL_SRCS     = $(TCL_OBJS:%.o=%.c)
 

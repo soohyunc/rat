@@ -19,9 +19,11 @@
 #include "debug.h"
 #include "mbus.h"
 #include "version.h"
+#include "mbus_control.h"
 
-int should_exit = FALSE;
-int thread_pri  = 2; /* Time Critical */
+int done_waiting = FALSE;
+int should_exit  = FALSE;
+int thread_pri   = 2; /* Time Critical */
 
 #define UI_NAME     "rat-"##VERSION_NUM##"-ui"
 #define ENGINE_NAME "rat-"##VERSION_NUM##"-media"
@@ -40,10 +42,16 @@ static pid_t fork_process(struct mbus *m, char *proc_name, char *ctrl_name)
 		perror("Cannot execute subprocess");
 		exit(1);
 	}
-	while (1) {
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 500000;
+	/* This is the controller - we have to wait for the child to say hello */
+	/* to us, before we continue.  The variable done_waiting is updated by */
+	/* the mbus_cmd_handler function, when we get mbus.go(condition) for a */
+	/* condition we are waiting for.                                       */
+	done_waiting = FALSE;
+	while (!done_waiting) {
+		timeout.tv_sec  = 1;
+		timeout.tv_usec = 0;
 		mbus_recv(m, NULL, &timeout);
+		mbus_qmsgf(m, "()", FALSE, "mbus.waiting", "%s", "child");
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
 	}	
@@ -55,16 +63,6 @@ static void kill_process(pid_t proc)
 	kill(proc, SIGINT);
 }
 
-static void mbus_cmd_handler(char *src, char *cmd, char *arg, void *dat)
-{
-	debug_msg("%s %s %s %p\n", src, cmd, arg, dat);
-}
-
-static void mbus_err_handler(int seqnum, int reason)
-{
-	debug_msg("mbus command %s failed (reason %d)\n", seqnum, reason);
-}
-
 int main(int argc, char *argv[])
 {
 	struct mbus	*m;
@@ -74,7 +72,7 @@ int main(int argc, char *argv[])
 	UNUSED(argc);
 	UNUSED(argv);
 
-	m = mbus_init(mbus_cmd_handler, mbus_err_handler);
+	m = mbus_init(mbus_control_rx, NULL);
 	snprintf(m_addr, 60, "(media:audio module:control app:rat instance:%lu)", (u_int32) getpid());
 	mbus_addr(m, m_addr);
 
