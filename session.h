@@ -17,6 +17,7 @@
 #include "net_udp.h"
 #include "ts.h"
 #include "converter.h"
+#include "pdb.h"
 
 /* This will have to be raised in the future */
 #define MAX_LAYERS      2
@@ -91,6 +92,8 @@ typedef struct session_tag {
 	audio_desc_t	audio_device;
 	struct s_tx_buffer	            *tb;
 	struct rtp_db_tag	            *db;
+        pdb_t                               *pdb; /* persistent participant 
+                                                   * information database.  */
         struct s_source_list                *active_sources;
         ts_sequencer                         decode_sequencer;
         int                                  limit_playout;

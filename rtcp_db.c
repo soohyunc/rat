@@ -233,6 +233,8 @@ rtcp_new_dbentry(session_struct *sp, u_int32 ssrc, u_int32 cur_time)
 	rtcp_dbentry   *newdb;
 	rtcp_dbentry   *dbptr;
 
+        pdb_item_create(sp->pdb, ssrc);
+
 	newdb = rtcp_new_dbentry_noqueue(ssrc, cur_time);
 	newdb->clock = new_time(sp->clock, get_freq(sp->device_clock));
 	if (!sp->db->ssrc_db) {
@@ -274,9 +276,6 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 	if (dbptr->clock) {
 		free_time(dbptr->clock);
 	}
-        if (dbptr->render_3D_data) {
-                render_3D_free(&dbptr->render_3D_data);
-        }
 	if (dbptr->sentry != NULL) {
 		if (dbptr->sentry->cname) xfree(dbptr->sentry->cname);
 		if (dbptr->sentry->name)  xfree(dbptr->sentry->name);
@@ -322,6 +321,8 @@ rtcp_delete_dbentry(session_struct *sp, u_int32 ssrc)
 		debug_msg("Freeing database entry for SSRC %lx when the database is empty! Huh?\n", ssrc);
 		return;
 	}
+
+        pdb_item_destroy(sp->pdb, ssrc);
 
         while(dbptr != NULL) {
                 next = dbptr->next;

@@ -39,6 +39,7 @@
 #include "rtcp.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
+#include "pdb.h"
 
 #define SKEW_OFFENSES_BEFORE_CONTRACTING_BUFFER  8 
 #define SKEW_OFFENSES_BEFORE_EXPANDING_BUFFER    3
@@ -61,7 +62,9 @@ typedef struct s_source {
         u_int16                     consec_lost;
         u_int32                     mean_energy;
         ts_sequencer                seq;
-        struct s_rtcp_dbentry      *dbe;
+        struct s_rtcp_dbentry      *dbe;  /* rtcp database entry (being faded 
+                                           * out) */
+        pitem_t                    *pdbe; /* persistent database entry */
         struct s_channel_state     *channel_state;
         struct s_codec_state_store *codec_states;
         struct s_pb                *channel;
@@ -275,29 +278,29 @@ source_reconfigure(source        *src,
         if (render_3d) {
                 assert(out_channels == 2);
                 /* Rejig 3d renderer if there, else create */
-                if (src->dbe->render_3D_data) {
+                if (src->pdbe->render_3D_data) {
                         int azi3d, fil3d, len3d;
-                        render_3D_get_parameters(src->dbe->render_3D_data,
+                        render_3D_get_parameters(src->pdbe->render_3D_data,
                                                  &azi3d,
                                                  &fil3d,
                                                  &len3d);
-                        render_3D_set_parameters(src->dbe->render_3D_data,
+                        render_3D_set_parameters(src->pdbe->render_3D_data,
                                                  (int)src_rate,
                                                  azi3d,
                                                  fil3d,
                                                  len3d);
                 } else {
-                        src->dbe->render_3D_data = render_3D_init((int)src_rate);
+                        src->pdbe->render_3D_data = render_3D_init((int)src_rate);
                 }
-                assert(src->dbe->render_3D_data);
+                assert(src->pdbe->render_3D_data);
                 /* Render 3d is before sample rate/channel conversion,
                  * and output 2 channels.
                  */
                 src_channels = 2;
         } else {
                 /* Rendering is switched off so destroy info */
-                if (src->dbe->render_3D_data != NULL) {
-                        render_3D_free(&src->dbe->render_3D_data);
+                if (src->pdbe->render_3D_data != NULL) {
+                        render_3D_free(&src->pdbe->render_3D_data);
                 }
         }
 
@@ -965,7 +968,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         md->nrep++;
                 }
 
-                if (render_3d && src->dbe->render_3D_data) {
+                if (render_3d && src->pdbe->render_3D_data) {
                         /* 3d rendering necessary */
                         coded_unit *decoded, *render;
                         decoded = md->rep[md->nrep - 1];
@@ -974,7 +977,7 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                         render = (coded_unit*)block_alloc(sizeof(coded_unit));
                         memset(render, 0, sizeof(coded_unit));
                         
-                        render_3D(src->dbe->render_3D_data,decoded,render);
+                        render_3D(src->pdbe->render_3D_data,decoded,render);
                         assert(md->rep[md->nrep] == NULL);
                         md->rep[md->nrep] = render;
                         md->nrep++;

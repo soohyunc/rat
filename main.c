@@ -119,6 +119,13 @@ main(int argc, char *argv[])
 	network_init(sp[0]);
 	cname = get_cname(sp[0]->rtp_socket[0]);
 	sp[0]->db = rtcp_init(sp[0]->device_clock, cname, 0);
+
+        if (pdb_create(&sp[0]->pdb) == FALSE) {
+                debug_msg("Failed to create persistent database\n");
+                abort();
+        }
+        pdb_item_create(sp[0]->pdb, sp[0]->db->myssrc); 
+
         rtcp_clock_change(sp[0]);
 
 	network_process_mbus(sp[0]);
@@ -285,6 +292,7 @@ main(int argc, char *argv[])
 	settings_save(sp[0]);
 	tx_stop(sp[0]->tb);
 	rtcp_exit(sp[0], NULL, sp[0]->rtcp_socket);
+        pdb_destroy(&sp[0]->pdb);
 	if (sp[0]->in_file  != NULL) snd_read_close (&sp[0]->in_file);
 	if (sp[0]->out_file != NULL) snd_write_close(&sp[0]->out_file);
 	audio_device_release(sp[0], sp[0]->audio_device);

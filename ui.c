@@ -17,6 +17,7 @@
 #include "debug.h"
 #include "memory.h"
 #include "version.h"
+#include "pdb.h"
 #include "codec_types.h"
 #include "codec_state.h"
 #include "codec.h"
@@ -118,16 +119,16 @@ ui_info_deactivate(session_struct *sp, rtcp_dbentry *e)
 }
 
 void
-ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e)
+ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e, pitem_t *p)
 {
         char *filter_name;
         int   azimuth, filter_type, filter_length;
 
-        if (e->render_3D_data == NULL) {
-                e->render_3D_data = render_3D_init(get_freq(sp->device_clock));
+        if (p->render_3D_data == NULL) {
+                p->render_3D_data = render_3D_init(get_freq(sp->device_clock));
         }
 
-        render_3D_get_parameters(e->render_3D_data, &azimuth, &filter_type, &filter_length);
+        render_3D_get_parameters(p->render_3D_data, &azimuth, &filter_type, &filter_length);
         filter_name = mbus_encode_str(render_3D_filter_get_name(filter_type));
         mbus_qmsgf(sp->mbus_engine, mbus_name_ui, TRUE, "tool.rat.3d.user.settings", "\"%08lx\" %s %d %d", 
 		  e->sentry->ssrc, filter_name, filter_length, azimuth);

@@ -60,7 +60,6 @@ typedef struct s_rtcp_dbentry {
 	u_char		mute:1;
 
 	struct s_time  *clock;
-        struct s_render_3D_dbentry  *render_3D_data;
 	ts_t            last_mixed;             /* Used to check mixing */
         u_int32         ui_last_update;         /* Used for periodic update of packet counts, etc */
         u_char          update_req:1;           /* ui info needs update as format changed */
