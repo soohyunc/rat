@@ -67,7 +67,7 @@ typedef struct s_tx_unit {
 	u_int32		 time;			/* timestamp */
 } tx_unit;
 
-typedef struct s_read_buffer {
+typedef struct s_tx_buffer {
 	struct s_sd   *sd_info;
         struct s_vad  *vad;
 	struct s_time *clock;
@@ -82,7 +82,7 @@ typedef struct s_read_buffer {
         tx_unit *spare_ptr;     
         u_int32  spare_cnt;
         u_int32  alloc_cnt;
-} read_buffer;
+} tx_buffer;
 
 static sample	dummy_buf[DEVICE_REC_BUF];
 
@@ -92,24 +92,24 @@ static sample	dummy_buf[DEVICE_REC_BUF];
  */
 
 static tx_unit *
-tx_unit_get(read_buffer *rb)
+tx_unit_get(tx_buffer *tb)
 {
         tx_unit *u;
 
-        if (rb->spare_ptr) {
-                u = rb->spare_ptr;
-                rb->spare_ptr = rb->spare_ptr->next;
-                if (rb->spare_ptr) rb->spare_ptr->prev = NULL;
+        if (tb->spare_ptr) {
+                u = tb->spare_ptr;
+                tb->spare_ptr = tb->spare_ptr->next;
+                if (tb->spare_ptr) tb->spare_ptr->prev = NULL;
                 assert(u->prev == NULL);
                 u->next = NULL;
-                rb->spare_cnt--;
+                tb->spare_cnt--;
         } else {
                 u       = (tx_unit*) xmalloc (sizeof(tx_unit));
-                u->data = (sample*)  xmalloc (sizeof(sample) * rb->channels *rb->unit_dur);
-                rb->alloc_cnt++;
+                u->data = (sample*)  xmalloc (sizeof(sample) * tb->channels *tb->unit_dur);
+                tb->alloc_cnt++;
         }
 
-        u->time   = get_time(rb->clock);
+        u->time   = get_time(tb->clock);
         u->next = u->prev = NULL;
         u->dur_used = 0;
 
@@ -117,7 +117,7 @@ tx_unit_get(read_buffer *rb)
 }
 
 static void
-tx_unit_release(read_buffer *rb, tx_unit *u)
+tx_unit_release(tx_buffer *tb, tx_unit *u)
 {
         assert(u);
 
@@ -125,12 +125,12 @@ tx_unit_release(read_buffer *rb, tx_unit *u)
         if (u->prev) u->prev->next = u->next;
 
         u->prev = NULL;
-        u->next = rb->spare_ptr;
+        u->next = tb->spare_ptr;
 
-        if (rb->spare_ptr) rb->spare_ptr->prev = u;
-        rb->spare_ptr = u;
+        if (tb->spare_ptr) tb->spare_ptr->prev = u;
+        tb->spare_ptr = u;
 
-        rb->spare_cnt++;
+        tb->spare_cnt++;
 }
 
 static void
@@ -148,66 +148,66 @@ tx_unit_destroy(tx_unit *u)
 
 /* Clear and reset buffer to a starting position */
 static void
-transmit_audit(read_buffer *rb)
+transmit_audit(tx_buffer *tb)
 {
         tx_unit *u, *u_next;
 
-        u = rb->head_ptr;
+        u = tb->head_ptr;
         while(u) {
                 u_next = u->next;
-                tx_unit_release(rb, u);
+                tx_unit_release(tb, u);
                 u = u_next;
         }
-        rb->head_ptr = rb->tx_ptr = rb->silence_ptr = rb->last_ptr = NULL;
-        vad_reset(rb->vad);
+        tb->head_ptr = tb->tx_ptr = tb->silence_ptr = tb->last_ptr = NULL;
+        vad_reset(tb->vad);
 }
 
 static void
-read_buffer_trim(read_buffer *rb)
+tx_buffer_trim(tx_buffer *tb)
 {
         tx_unit *u, *end;
         int safety;
 
-        safety = vad_max_could_get(rb->vad);
+        safety = vad_max_could_get(tb->vad);
 
-        end = rb->tx_ptr;
+        end = tb->tx_ptr;
         while(end != NULL && safety != 0) {
                 end = end->prev;
                 safety --;
         }
         
         if (end) {
-                for(u = rb->head_ptr; u != end; u = rb->head_ptr) {
-                        rb->head_ptr = u->next;
-                        tx_unit_release(rb, u);
+                for(u = tb->head_ptr; u != end; u = tb->head_ptr) {
+                        tb->head_ptr = u->next;
+                        tx_unit_release(tb, u);
                 }
         }
 }
 
 /* These routines are called when the button on the interface is toggled */
 void
-start_sending(session_struct *sp)
+tx_start(session_struct *sp)
 {
-        read_buffer *rb;
+        tx_buffer *tb;
 	if (sp->sending_audio)
 		return;
 
-        rb = sp->rb;
+        tb = sp->tb;
 
         if (sp->transmit_audit_required == TRUE) {
-                transmit_audit(rb);
+                transmit_audit(tb);
                 sp->transmit_audit_required = FALSE;
         }
 
-        rb->head_ptr = rb->last_ptr = tx_unit_get(rb);
+        tb->head_ptr = tb->last_ptr = tx_unit_get(tb);
 
 	sp->sending_audio = TRUE;
 	sp->auto_lecture = 1;		/* Turn off */
-        sd_reset(rb->sd_info);
+        sd_reset(tb->sd_info);
 }
 
 void
-stop_sending(session_struct *sp)
+tx_stop(session_struct *sp)
 {
 	struct timeval tv;
 
@@ -222,117 +222,117 @@ stop_sending(session_struct *sp)
 	ui_info_deactivate(sp->db->my_dbe);
 }
 
-read_buffer *
-read_device_init(session_struct *sp, u_int16 unit_dur, u_int16 channels)
+tx_buffer *
+tx_create(session_struct *sp, u_int16 unit_dur, u_int16 channels)
 {
-	read_buffer *rb;
+	tx_buffer *tb;
 
-	rb = (read_buffer*)xmalloc(sizeof(read_buffer));
-        memset(rb, 0, sizeof(read_buffer));
+	tb = (tx_buffer*)xmalloc(sizeof(tx_buffer));
+        memset(tb, 0, sizeof(tx_buffer));
 
-	rb->clock    = sp->device_clock;
-	rb->sd_info  = sd_init(unit_dur, get_freq(rb->clock));
-        rb->vad      = vad_create(unit_dur, get_freq(rb->clock));
-        rb->unit_dur = unit_dur;
-        rb->channels = channels;
+	tb->clock    = sp->device_clock;
+	tb->sd_info  = sd_init(unit_dur, get_freq(tb->clock));
+        tb->vad      = vad_create(unit_dur, get_freq(tb->clock));
+        tb->unit_dur = unit_dur;
+        tb->channels = channels;
 
 	if (sp->mode != TRANSCODER) {
 		audio_drain(sp->audio_fd);
                 audio_read(sp->audio_fd, dummy_buf, DEVICE_REC_BUF);
 	}
 
-	return (rb);
+	return (tb);
 }
 
 void
-read_device_destroy(session_struct *sp)
+tx_destroy(session_struct *sp)
 {
-        read_buffer *rb;
+        tx_buffer *tb;
         tx_unit *u, *u_next;
 
-        rb = sp->rb;
+        tb = sp->tb;
 
-        sd_destroy(rb->sd_info);
-        vad_destroy(rb->vad);
+        sd_destroy(tb->sd_info);
+        vad_destroy(tb->vad);
 
-        u = rb->head_ptr;
+        u = tb->head_ptr;
         while(u) {
                 u_next = u->next;
                 tx_unit_destroy(u);
                 u = u_next;
         }
 
-        u = rb->spare_ptr;
+        u = tb->spare_ptr;
         while(u) {
                 u_next = u->next;
                 tx_unit_destroy(u);
                 u = u_next;
         }
 
-        xfree(rb);
-        sp->rb = NULL;
+        xfree(tb);
+        sp->tb = NULL;
 }
 
 int
-read_device(session_struct *sp)
+tx_read_audio(session_struct *sp)
 {
         tx_unit *u;
 	unsigned int	read_dur;
-	read_buffer	*rb;
+	tx_buffer	*tb;
 
-	rb = sp->rb;
+	tb = sp->tb;
         read_dur = 0;
 
 	if (sp->sending_audio == FALSE) {
-		read_dur = audio_device_read(sp, dummy_buf, DEVICE_REC_BUF) / rb->channels;
-                time_advance(sp->clock, get_freq(rb->clock), read_dur);
+		read_dur = audio_device_read(sp, dummy_buf, DEVICE_REC_BUF) / tb->channels;
+                time_advance(sp->clock, get_freq(tb->clock), read_dur);
 	} else {
                 do {
-                        u = rb->last_ptr;
+                        u = tb->last_ptr;
                         assert(u);
                         u->dur_used += audio_device_read(sp, 
-                                                     u->data + u->dur_used * rb->channels,
-                                                     (rb->unit_dur - u->dur_used) * rb->channels) / rb->channels;
-                        if (u->dur_used == rb->unit_dur) {
-                                read_dur += rb->unit_dur;
+                                                     u->data + u->dur_used * tb->channels,
+                                                     (tb->unit_dur - u->dur_used) * tb->channels) / tb->channels;
+                        if (u->dur_used == tb->unit_dur) {
+                                read_dur += tb->unit_dur;
                                 time_advance(sp->clock, 
-                                             get_freq(rb->clock), 
-                                             rb->unit_dur);
-                                rb->last_ptr = tx_unit_get(rb);
-                                u->next = rb->last_ptr;
+                                             get_freq(tb->clock), 
+                                             tb->unit_dur);
+                                tb->last_ptr = tx_unit_get(tb);
+                                u->next = tb->last_ptr;
                                 u->next->prev = u;
                         } 
-                } while (u->dur_used == rb->unit_dur);
+                } while (u->dur_used == tb->unit_dur);
         }
 
         return (read_dur);
 }
 
 int
-process_read_audio(session_struct *sp)
+tx_process_audio(session_struct *sp)
 {
         tx_unit *u, *u_mark;
         int to_send;
 
-	read_buffer *rb = sp->rb;
+	tx_buffer *tb = sp->tb;
 
-        if (rb->silence_ptr == NULL) {
-                rb->silence_ptr = rb->head_ptr;
+        if (tb->silence_ptr == NULL) {
+                tb->silence_ptr = tb->head_ptr;
         }
 
-        for(u = rb->silence_ptr; u != rb->last_ptr; u = u->next) {
+        for(u = tb->silence_ptr; u != tb->last_ptr; u = u->next) {
                 /* Audio unbias not modified for stereo yet! */
-                audio_unbias(&sp->bc, u->data, u->dur_used * rb->channels);
+                audio_unbias(&sp->bc, u->data, u->dur_used * tb->channels);
 
-		u->energy = avg_audio_energy(u->data, u->dur_used, rb->channels);
+		u->energy = avg_audio_energy(u->data, u->dur_used, tb->channels);
 
                 u->send   = FALSE;
 		if (sp->detect_silence) {
-			u->silence = sd(rb->sd_info, u->energy);
+			u->silence = sd(tb->sd_info, u->energy);
                         if (sp->lecture == TRUE) {
-                                to_send = vad_to_get(rb->vad, u->silence, VAD_MODE_LECT);           
+                                to_send = vad_to_get(tb->vad, u->silence, VAD_MODE_LECT);           
                         } else {
-                                to_send = vad_to_get(rb->vad, u->silence, VAD_MODE_CONF);           
+                                to_send = vad_to_get(tb->vad, u->silence, VAD_MODE_CONF);           
                         }
                         u_mark = u;
                         while(u_mark != NULL && to_send > 0) {
@@ -348,10 +348,10 @@ process_read_audio(session_struct *sp)
 		/* Automatic Gain Control... */
 		agc_table_update(sp, u->energy);
         }
-        rb->silence_ptr = u;
+        tb->silence_ptr = u;
 
-        if (rb->tx_ptr != NULL) {
-                read_buffer_trim(rb);
+        if (tb->tx_ptr != NULL) {
+                tx_buffer_trim(tb);
         }
 
 	return TRUE;
@@ -368,21 +368,21 @@ new_ts(u_int32 last_time, u_int32 this_time, int encoding, int upp)
         return (delta != diff);
 }  
 
-static void
-compress_transmit_audio(session_struct *sp, speaker_table *sa)
+void
+tx_send(session_struct *sp, speaker_table *sa)
 {
         int		units, i, n, ready, send;
         tx_unit		*u;
         rtp_hdr_t	rtp_header;
         cc_unit             cu;
-        read_buffer	*rb = sp->rb;
+        tx_buffer	*tb = sp->tb;
         
-        if (rb->tx_ptr == NULL) {
-                rb->tx_ptr = rb->head_ptr;
+        if (tb->tx_ptr == NULL) {
+                tb->tx_ptr = tb->head_ptr;
         }
 
-        assert(rb->silence_ptr != NULL);
-        n = (rb->silence_ptr->time - rb->tx_ptr->time) / rb->unit_dur;
+        assert(tb->silence_ptr != NULL);
+        n = (tb->silence_ptr->time - tb->tx_ptr->time) / tb->unit_dur;
 
         rtp_header.cc=0;
         if (sp->mode == TRANSCODER) {
@@ -414,15 +414,15 @@ compress_transmit_audio(session_struct *sp, speaker_table *sa)
         while(n > units) {
 
                 send = FALSE;
-                for (i = 0, u = rb->tx_ptr; i < units; i++, u = u->next) {
+                for (i = 0, u = tb->tx_ptr; i < units; i++, u = u->next) {
                         if (u->send) {
                                 send = TRUE;
                                 break;
                         }
                 }
 
-                for (i = 0, u = rb->tx_ptr; i < units; i++, u=u->next) {
-                        assert(u != rb->silence_ptr);
+                for (i = 0, u = tb->tx_ptr; i < units; i++, u=u->next) {
+                        assert(u != tb->silence_ptr);
                         if (send == FALSE) 
                                 reset_encoder(sp, sp->encodings[0]);
                         
@@ -469,29 +469,22 @@ compress_transmit_audio(session_struct *sp, speaker_table *sa)
                         
                 }
                 n -= units;
-                rb->tx_ptr = u;
+                tb->tx_ptr = u;
         }
-
 }
  
 void
-service_transmitter(session_struct *sp, speaker_table *sa)
+tx_update_ui(session_struct *sp)
 {
-	compress_transmit_audio(sp, sa);
-}
-
-void
-transmitter_update_ui(session_struct *sp)
-{
-	if (sp->meter && sp->rb->silence_ptr && sp->rb->silence_ptr->prev) {
-                if (vad_talkspurt(sp->rb->vad) == TRUE || sp->detect_silence == FALSE) {
-                        ui_input_level(lin2db(sp->rb->silence_ptr->prev->energy, 100.0));
+	if (sp->meter && sp->tb->silence_ptr && sp->tb->silence_ptr->prev) {
+                if (vad_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
+                        ui_input_level(lin2db(sp->tb->silence_ptr->prev->energy, 100.0));
                 } else {
                         ui_input_level(0);
                 }
         }
 
-	if (vad_talkspurt(sp->rb->vad) == TRUE || sp->detect_silence == FALSE) {
+	if (vad_talkspurt(sp->tb->vad) == TRUE || sp->detect_silence == FALSE) {
 		ui_info_activate(sp->db->my_dbe);
 		sp->lecture = FALSE;
 		update_lecture_mode(sp);
@@ -501,9 +494,9 @@ transmitter_update_ui(session_struct *sp)
 }
 
 void
-read_device_igain_update(session_struct *sp)
+tx_igain_update(session_struct *sp)
 {
-        sd_reset(sp->rb->sd_info);
+        sd_reset(sp->tb->sd_info);
 }
 
 

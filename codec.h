@@ -78,7 +78,8 @@ typedef void (*code_f)(sample *in, coded_unit *c, struct s_codec_state *s, struc
 typedef void (*dec_f)(struct s_coded_unit *c, sample *data, struct s_codec_state *s, struct s_codec *cp);
 
 typedef struct s_codec {
-	char	*name;
+	char	*name;           /* unique name */
+        char    *short_name;     /* short name unique for particular combination of freq and channels only */
 	int	value;		/* Value for sorting redundancy in receiver */
 	int	pt;
 
@@ -114,6 +115,6 @@ void    clear_encoder_states(struct s_codec_state **list);
 void    clear_decoder_states(struct s_codec_state **list);
 int	codec_compatible(struct s_codec *c1, struct s_codec *c2);
 int     codec_loosely_compatible(struct s_codec *c1, struct s_codec *c2);
-
+int     codec_first_with(int freq, int channels);
+int     codec_matching(char *shortname, int freq, int channels);
 #endif /* _RAT_CODEC_H_ */
-

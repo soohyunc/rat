@@ -296,25 +296,25 @@ gsm_decoding(coded_unit *c, sample *data, state_t *s, codec_t *cp)
 #define FREE NULL
 
 static codec_t codec_list[] = {
-	{"LPC-8K-MONO",     2,       7, 8000, 2, 1, 0, 160, LPCTXSIZE, NULL, lpc_encode, FREE, lpc_decode_init, lpc_decode, lpc_decode_free},
-	{"GSM-8K-MONO",     4,       3, 8000, 2, 1, 0, 160, 33, gsm_init, gsm_encoding, gsm_free, gsm_init, gsm_decoding, gsm_free},
-        {"PCMA-8K-MONO",    8,       8, 8000, 2, 1, 0, 160, 160, NULL, alaw_encode, FREE, NULL, alaw_decode, FREE},
-	{"PCMU-8K-MONO",    9,       0, 8000, 2, 1, 0, 160, 160, NULL, ulaw_encode, FREE, NULL, ulaw_decode, FREE},
-	{"DVI-8K-MONO",     7,       5, 8000, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_free, dvi_init, dvi_decode, dvi_free},
-	{"DVI-11K-MONO",   10,      16,11025, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_free, dvi_init, dvi_decode, dvi_free},
-	{"DVI-16K-MONO",   11,       6,16000, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_free, dvi_init, dvi_decode, dvi_free},
-	{"DVI-22K-MONO",   12,      17,22050, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_free, dvi_init, dvi_decode, dvi_free},
-	{"WBS-16K-MONO",   10, DYNAMIC,16000, 2, 1, WBS_STATE_SIZE, 160, WBS_UNIT_SIZE, wbs_init, wbs_encode, FREE, wbs_init, wbs_decode, FREE},
-	{"L16-8K-MONO",     9, DYNAMIC, 8000, 2, 1, 0, 160, 320, NULL, l16_encode, FREE, NULL, l16_decode, FREE},
-	{"L16-8K-STEREO",   9, DYNAMIC, 8000, 2, 2, 0, 160, 640, NULL, l16_encode, FREE, NULL, l16_decode, FREE},
-	{"L16-16K-MONO",   11, DYNAMIC,16000, 2, 1, 0, 160, 320, NULL, l16_encode, FREE, NULL, l16_decode, FREE}, 
-	{"L16-16K-STEREO", 11, DYNAMIC,16000, 2, 2, 0, 160, 640, NULL, l16_encode, FREE, NULL, l16_decode, FREE}, 
-	{"L16-32K-MONO",   12, DYNAMIC,32000, 2, 1, 0, 160, 320, NULL, l16_encode, FREE, NULL, l16_decode, FREE},
-	{"L16-32K-STEREO", 12, DYNAMIC,32000, 2, 2, 0, 160, 640, NULL, l16_encode, FREE, NULL, l16_decode, FREE},
-	{"L16-44K-MONO",   13,      11,44100, 2, 1, 0, 160, 320, NULL, l16_encode, FREE, NULL, l16_decode, FREE},
-	{"L16-44K-STEREO", 13,      10,44100, 2, 2, 0, 160, 640, NULL, l16_encode, FREE, NULL, l16_decode, FREE}, 
-	{"L16-48K-MONO",   14, DYNAMIC,48000, 2, 1, 0, 160, 320, NULL, l16_encode, FREE, NULL, l16_decode, FREE}, 
-	{"L16-48K-STEREO", 14, DYNAMIC,48000, 2, 2, 0, 160, 640, NULL, l16_encode, FREE, NULL, l16_decode, FREE}, 
+	{"LPC-8K-MONO", "LPC",           2,       7, 8000, 2, 1, 0, 160, LPCTXSIZE, NULL, lpc_encode, FREE, lpc_decode_init, lpc_decode, lpc_decode_free},
+	{"GSM-8K-MONO", "GSM",           4,       3, 8000, 2, 1, 0, 160, 33, gsm_init, gsm_encoding, gsm_free, gsm_init, gsm_decoding, gsm_free},
+        {"PCMA-8K-MONO", "A-Law",        8,       8, 8000, 2, 1, 0, 160, 160, NULL, alaw_encode, FREE, NULL, alaw_decode, FREE},
+	{"PCMU-8K-MONO", "Mu-Law",       9,       0, 8000, 2, 1, 0, 160, 160, NULL, ulaw_encode, FREE, NULL, ulaw_decode, FREE},
+	{"DVI-8K-MONO",  "DVI-ADPCM",    7,       5, 8000, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_free, dvi_init, dvi_decode, dvi_free},
+	{"DVI-11K-MONO", "DVI-ADPCM",   10,      16,11025, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_free, dvi_init, dvi_decode, dvi_free},
+	{"DVI-16K-MONO", "DVI-ADPCM",   11,       6,16000, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_free, dvi_init, dvi_decode, dvi_free},
+	{"DVI-22K-MONO", "DVI-ADPCM",   12,      17,22050, 2, 1, sizeof(struct adpcm_state), 160, 80, dvi_init, dvi_encode, dvi_free, dvi_init, dvi_decode, dvi_free},
+	{"WBS-16K-MONO", "WB-ADPCM",    10, DYNAMIC,16000, 2, 1, WBS_STATE_SIZE, 160, WBS_UNIT_SIZE, wbs_init, wbs_encode, FREE, wbs_init, wbs_decode, FREE},
+	{"L16-8K-MONO",  "Linear-16",    9, DYNAMIC, 8000, 2, 1, 0, 160, 320, NULL, l16_encode, FREE, NULL, l16_decode, FREE},
+	{"L16-8K-STEREO", "Linear-16",   9, DYNAMIC, 8000, 2, 2, 0, 160, 640, NULL, l16_encode, FREE, NULL, l16_decode, FREE},
+	{"L16-16K-MONO",  "Linear-16",  11, DYNAMIC,16000, 2, 1, 0, 160, 320, NULL, l16_encode, FREE, NULL, l16_decode, FREE}, 
+	{"L16-16K-STEREO", "Linear-16", 11, DYNAMIC,16000, 2, 2, 0, 160, 640, NULL, l16_encode, FREE, NULL, l16_decode, FREE}, 
+	{"L16-32K-MONO",   "Linear-16", 12, DYNAMIC,32000, 2, 1, 0, 160, 320, NULL, l16_encode, FREE, NULL, l16_decode, FREE},
+	{"L16-32K-STEREO", "Linear-16", 12, DYNAMIC,32000, 2, 2, 0, 160, 640, NULL, l16_encode, FREE, NULL, l16_decode, FREE},
+	{"L16-44K-MONO",   "Linear-16", 13,      11,44100, 2, 1, 0, 160, 320, NULL, l16_encode, FREE, NULL, l16_decode, FREE},
+	{"L16-44K-STEREO", "Linear-16", 13,      10,44100, 2, 2, 0, 160, 640, NULL, l16_encode, FREE, NULL, l16_decode, FREE}, 
+	{"L16-48K-MONO",   "Linear-16", 14, DYNAMIC,48000, 2, 1, 0, 160, 320, NULL, l16_encode, FREE, NULL, l16_decode, FREE}, 
+	{"L16-48K-STEREO", "Linear-16", 14, DYNAMIC,48000, 2, 2, 0, 160, 640, NULL, l16_encode, FREE, NULL, l16_decode, FREE}, 
 	{""}
 };
 
@@ -524,7 +524,6 @@ encoder(session_struct *sp, sample *data, int coding, coded_unit *c)
 	codec_t	*cp;
 	state_t *stp;
 
-
 	cp = get_codec(coding);
 	c->cp = cp;
 	stp = get_codec_state(sp, &sp->state_list, cp->pt, ENCODE);
@@ -595,5 +594,26 @@ codec_compatible(codec_t *c1, codec_t *c2)
 		(c1->sample_size == c2->sample_size));
 }
 
+int
+codec_first_with(int freq, int channels)
+{
+        int pt;
+        for(pt = 0; pt < MAX_CODEC; pt++) {
+                if (cd[pt].name && cd[pt].freq == freq && cd[pt].channels == channels) {
+                        return pt;
+                }
+        }
+        return -1;
+}
 
-
+int
+codec_matching(char *short_name, int freq, int channels)
+{
+        int pt;
+        for(pt = 0; pt < MAX_CODEC; pt++) {
+                if (cd[pt].name && cd[pt].freq == freq && cd[pt].channels == channels && !strcmp(cd[pt].short_name, short_name) ) {
+                        return pt;
+                }
+        }
+        return -1;
+}

@@ -138,7 +138,7 @@ main(int argc, char *argv[])
 	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
 
         ui_sampling_modes(sp[0]);
-	ui_codecs(sp[0]);
+	ui_codecs(sp[0]->encodings[0]);
 
 	for (i = 0; i < num_sessions; i++) {
 		network_init(sp[i]);
@@ -159,7 +159,7 @@ main(int argc, char *argv[])
 
         if (!sp[0]->sending_audio && (sp[0]->mode != AUDIO_TOOL)) {
 		for (i=0; i<num_sessions; i++) {
-                	start_sending(sp[i]);
+                	tx_start(sp[i]);
 		}
         }
 
@@ -180,7 +180,7 @@ main(int argc, char *argv[])
 			}
 			cur_time = get_time(sp[i]->device_clock);
 			network_read(sp[i], netrx_queue_p[i], rtcp_pckt_queue_p[i], cur_time);
-			process_read_audio(sp[i]);
+			tx_process_audio(sp[i]);
 
 			if (!(sp[i]->playing_audio)) {
 				receive_unit_audit(rx_unit_queue_p[i]);
@@ -188,7 +188,7 @@ main(int argc, char *argv[])
 			}
 
                         if (sp[i]->sending_audio || sp[i]->last_tx_service_productive) {
-                                service_transmitter(sp[i], sp[1-i]->speakers_active);
+                                tx_send(sp[i], sp[1-i]->speakers_active);
                         }
 
 			statistics(sp[i], netrx_queue_p[i], rx_unit_queue_p[i], sp[i]->cushion, cur_time);
@@ -227,7 +227,7 @@ main(int argc, char *argv[])
 		rtcp_exit(sp[i], sp[1-i], sp[i]->rtcp_fd, sp[i]->net_maddress, sp[i]->rtcp_port);
 		if (sp[i]->in_file  != NULL) fclose(sp[i]->in_file);
 		if (sp[i]->out_file != NULL) fclose(sp[i]->out_file);
-                read_device_destroy(sp[i]);
+                tx_destroy(sp[i]);
                 cushion_destroy(sp[i]->cushion);
                 mix_destroy(ms[i]);
 		if (sp[i]->mode != TRANSCODER) {

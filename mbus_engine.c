@@ -38,6 +38,7 @@
  */
 
 #include <stdio.h>
+#include <ctype.h>
 #include "rat_types.h"
 #include "mbus_engine.h"
 #include "mbus.h"
@@ -210,9 +211,9 @@ static void rx_input_mute(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_int(mbus_chan, &i)) {
 		if (i) {
-			stop_sending(sp);
+			tx_stop(sp);
 		} else {
-			start_sending(sp);
+			tx_start(sp);
 		}
 		ui_update_input_port(sp);
 	} else {
@@ -231,7 +232,7 @@ static void rx_input_gain(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(mbus_chan, &i)) {
 		sp->input_gain = i;
 		audio_set_gain(sp->audio_fd, sp->input_gain);
-                read_device_igain_update(sp);
+                tx_igain_update(sp);
 	} else {
 		printf("mbus: usage \"input_gain <integer>\"\n");
 	}
@@ -581,26 +582,86 @@ rx_redundancy(char *srce, char *args, session_struct *sp)
         ui_update_redundancy(sp);
 }
 
-static void rx_primary(char *srce, char *args, session_struct *sp)
+static void 
+rx_primary(char *srce, char *args, session_struct *sp)
 {
-	char	*codec;
-	codec_t *pcp;
+	char	*short_name, *sfreq, *schan;
+        int      pt, freq, channels;
+	codec_t *next_cp, *cp;
 
 	UNUSED(srce);
 
+        pt = -1;
+        next_cp = NULL;
+
 	mbus_parse_init(mbus_chan, args);
-	if (mbus_parse_str(mbus_chan, &codec)) {
-		pcp = get_codec_byname(mbus_decode_str(codec), sp);
-                if (pcp != NULL) {
-			sp->encodings[0] = pcp->pt;
+	if (mbus_parse_str(mbus_chan, &short_name) &&
+            mbus_parse_str(mbus_chan, &schan) &&
+            mbus_parse_str(mbus_chan, &sfreq)) {
+                mbus_decode_str(short_name);
+                mbus_decode_str(schan);
+                mbus_decode_str(sfreq);
+
+                if (strcasecmp(schan, "mono") == 0) {
+                        channels = 1;
+                } else if (strcasecmp(schan, "stereo") == 0) {
+                        channels = 2;
                 } else {
-			ui_update_primary(sp);
+                        channels = 0;
+                }
+                freq = atoi(sfreq) * 1000;
+		if (-1 != (pt = codec_matching(short_name, freq, channels))) {
+                        next_cp = get_codec(pt);
+                        cp      = get_codec(sp->encodings[0]);
+                        assert(next_cp != NULL);
+                        assert(cp      != NULL);
+                        if (codec_compatible(next_cp, cp)) {
+                                sp->encodings[0] = pt;
+                        } else {
+                                /* reconfigure device */
+                        }
                 }
         } else {
-		printf("mbus: usage \"primary <codec>\"\n");
-	}
+		printf("mbus: usage \"primary <codec> <freq> <channels>\"\n");
+        }
+        ui_update_frequency(sp);
+        ui_update_channels(sp);
+        ui_update_primary(sp);
         ui_update_redundancy(sp);
 	mbus_parse_done(mbus_chan);
+}
+
+static void 
+rx_sampling(char *srce, char *args, session_struct *sp)
+{
+        int channels, freq, pt;
+        char *sfreq, *schan;
+
+        UNUSED(srce);
+        UNUSED(sp);
+
+        freq = channels = 0;
+        mbus_parse_init(mbus_chan, args);
+        if (mbus_parse_str(mbus_chan, &sfreq) && 
+            mbus_parse_str(mbus_chan, &schan)) {
+                mbus_decode_str(sfreq);
+                mbus_decode_str(schan);
+                if (strcasecmp(schan, "mono") == 0) {
+                        channels = 1;
+                } else if (strcasecmp(schan, "stereo") == 0) {
+                        channels = 2;
+                } 
+                freq = atoi(sfreq) * 1000;
+        }
+
+        pt = codec_first_with(freq, channels);
+        if (pt != -1) {
+                ui_codecs(pt);
+        } else {
+                printf("mbus: usage \"sampling <freq> <channels>\"\n");
+        }
+        
+        mbus_parse_done(mbus_chan);
 }
 
 static void rx_min_playout(char *srce, char *args, session_struct *sp)
@@ -724,6 +785,7 @@ const char *rx_cmnd[] = {
         "interleaving",
 	"redundancy",
 	"primary",
+        "sampling",
         "min.playout",
         "max.playout",
         "auto.convert",
@@ -764,6 +826,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_interleaving,
 	rx_redundancy,
 	rx_primary,
+        rx_sampling,
         rx_min_playout,
         rx_max_playout,
         rx_auto_convert,

@@ -116,7 +116,6 @@ void	mix_init(void);
 void	mix2_pcmu(u_int8 *v0, u_int8 *v1, size_t len);
 void	mix2_l16(int16 *v0, int16 *v1, size_t len);
 void	mix2_l8(int8 *v0, int8 *v1, size_t len);
-int	is_audio_zero(sample *buf, int len, deve_e type);
 void	audio_zero(sample *buf, int len, deve_e type);
 int     read_write_audio(struct session_tag *spi, struct session_tag *spo, struct s_mix_info *ms);
 void	read_write_init(struct session_tag *session_pointer);

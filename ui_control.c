@@ -351,13 +351,45 @@ ui_update_interleaving(session_struct *sp)
 }
 
 void
+ui_update_frequency(session_struct *sp)
+{
+	char	 arg[80];
+	codec_t *pcp;
+
+	pcp = get_codec(sp->encodings[0]);
+	sprintf(arg, "%d-kHz", pcp->freq/1000);
+	mbus_engine_tx(TRUE, mbus_name_ui, "frequency", mbus_encode_str(arg), FALSE);
+}
+
+void
+ui_update_channels(session_struct *sp)
+{
+        char	 arg[80];
+	codec_t *pcp;
+        
+	pcp = get_codec(sp->encodings[0]);
+        switch(pcp->channels) {
+        case 1:
+                sprintf(arg, "%s", mbus_encode_str("Mono"));
+                break;
+        case 2:
+                sprintf(arg, "%s", mbus_encode_str("Stereo"));
+                break;
+        default:
+                dprintf("UI not ready for %d channels\n", pcp->channels);
+                return;
+        }
+	mbus_engine_tx(TRUE, mbus_name_ui, "channels", arg, FALSE);
+}       
+
+void
 ui_update_primary(session_struct *sp)
 {
 	char	 arg[80];
 	codec_t *pcp;
 
 	pcp = get_codec(sp->encodings[0]);
-	sprintf(arg, "%s", mbus_encode_str(pcp->name));
+	sprintf(arg, "%s", mbus_encode_str(pcp->short_name));
 	mbus_engine_tx(TRUE, mbus_name_ui, "primary", arg, FALSE);
 }
 
@@ -385,7 +417,7 @@ ui_update_redundancy(session_struct *sp)
         } else {
                 codec_t *pcp;
                 pcp   = get_codec(sp->encodings[0]);
-                codec = pcp->name;
+                codec = pcp->short_name;
                 ioff  = 1;
         } 
 
@@ -445,6 +477,9 @@ ui_update(session_struct *sp)
 
 	ui_update_output_port(sp);
 	ui_update_input_port(sp);
+        ui_codecs(sp->encodings[0]);
+        ui_update_frequency(sp);
+        ui_update_channels(sp);
 	ui_update_primary(sp);
         ui_update_redundancy(sp);
         ui_update_interleaving(sp);
@@ -486,7 +521,7 @@ ui_update_powermeters(session_struct *sp, struct s_mix_info *ms, int elapsed_tim
 	}
 	if (power_time > 400) {
 		if (sp->sending_audio) {
-			transmitter_update_ui(sp);
+			tx_update_ui(sp);
 		}
 		power_time = 0;
 	} else {
@@ -572,12 +607,12 @@ codec_bw_cmp(const void *a, const void *b)
 }
 
 static char *
-ui_get_codecs(session_struct *sp, char *buf, int loose) 
+ui_get_codecs(int pt, char *buf, int loose) 
 {
 	codec_t	*codec[10],*sel;
 	int 	 i, nc;
         
-        sel = get_codec(sp->encodings[0]);
+        sel = get_codec(pt);
         
         for (nc=i=0; i<MAX_CODEC; i++) {
                 codec[nc] = get_codec(i);
@@ -601,22 +636,21 @@ ui_get_codecs(session_struct *sp, char *buf, int loose)
         /* sort by bw as this makes handling of acceptable redundant codecs easier in ui */
         qsort(codec,nc,sizeof(codec_t*),codec_bw_cmp);
         for(i=0;i<nc;i++) {
-                sprintf(buf, " %s", codec[i]->name);
-                buf += strlen(codec[i]->name) + 1;
+                sprintf(buf, " %s", codec[i]->short_name);
+                buf += strlen(codec[i]->short_name) + 1;
         }
 
         return buf;
 }
 
-
 void 
-ui_codecs(session_struct *sp)
+ui_codecs(int pt)
 {
 	char	 arg[1000];
 
-        ui_get_codecs(sp, arg, TRUE);
+        ui_get_codecs(pt, arg, TRUE);
 	mbus_engine_tx(TRUE, mbus_name_ui, "codec.supported", arg, TRUE);
-        ui_get_codecs(sp, arg, FALSE);
+        ui_get_codecs(pt, arg, FALSE);
         mbus_engine_tx(TRUE, mbus_name_ui, "redundancy.supported", arg, TRUE);
 }
 
@@ -627,8 +661,8 @@ ui_sampling_modes(session_struct *sp)
         /* this is just a quick con job for the moment */
 	mbus_engine_tx(TRUE, 
                        mbus_name_ui, 
-                       "sampling.supported", 
-                       " 8kHz-Mono 8kHz-Stereo 16kHz-Mono 16kHz-Stereo 32kHz-Mono 32kHz-Stereo 48kHz-Mono 48kHz-Stereo", 
+                       "frequencies.supported", 
+                       "8-kHz 16-kHz 32-kHz 48-kHz", 
                        TRUE);
 }
 

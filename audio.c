@@ -58,28 +58,6 @@
 /* Zero buf used for writing zero chunks during cushion adaption */
 static sample* audio_zero_buf;
 
-/*
- * Check if buffer is filled with zero samples...
- */
-int
-is_audio_zero(sample *buf, int len, deve_e type)
-{
-	int	s;
-
-	if (type == DEV_PCMU) {
-		s = PCMU_AUDIO_ZERO;
-	} else {
-		s = 0;
-	}
-
-	for (; len > 0; len--, buf++) {
-		if (*buf != s) {
-			return FALSE;
-		}
-	}
-	return TRUE;
-}
-
 typedef struct s_bias_ctl {
         int   bias;
         int   ccnt;
@@ -230,7 +208,7 @@ audio_device_take(session_struct *sp)
 		if (sp->input_mode!=AUDIO_NO_DEVICE) {
 			audio_set_iport(sp->audio_fd, sp->input_mode);
 			audio_set_gain(sp->audio_fd, sp->input_gain);
-                        read_device_igain_update(sp);
+                        tx_igain_update(sp);
 		} else {
 			sp->input_mode=audio_get_iport(sp->audio_fd);
 			sp->input_gain=audio_get_gain(sp->audio_fd);
@@ -282,7 +260,7 @@ read_write_init(session_struct *sp)
 	sp->loop_delay = sp->loop_estimate = 20000;
 
         cp = get_codec(sp->encodings[0]);
-	sp->rb = read_device_init(sp, cp->unit_len, cp->channels);
+	sp->tb = tx_create(sp, cp->unit_len, cp->channels);
 }
 
 
@@ -318,7 +296,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 	 * length in the select in net.c for platforms where we cannot
 	 * block on read availability of the audio device.
 	 */
-	if ((read_dur = read_device(spi)) <= 0) {
+	if ((read_dur = tx_read_audio(spi)) <= 0) {
 		if (spi->last_zero == FALSE) {
 			spi->loop_estimate += 500;
 		}

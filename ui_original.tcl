@@ -88,7 +88,7 @@ proc init_source {cname} {
 }
 
 proc window_plist {cname} {
-	global fw
+    global fw
 	regsub -all {@|\.} $cname {-} foo
 	return $fw.source-$foo
 }
@@ -166,32 +166,49 @@ proc mbus_recv_load.settings {} {
     toggle_plist
 }
 
-proc change_sampling { arg } {
-    global sampling
-    set sampling $arg
+proc change_sampling { } {
+    global freq channels
+
+    mbus_send "R" "sampling" "[mbus_encode_str $freq] [mbus_encode_str $channels]"
 }
 
-proc mbus_recv_sampling.supported {args} {
-    set sample_modes [split $args]
-    .prefs.pane.transmission.dd.sampling.m.menu delete 0 last
-    foreach s $sample_modes {
-	.prefs.pane.transmission.dd.sampling.m.menu add command -label $s -command "change_sampling $s"
+proc mbus_recv_frequencies.supported {args} {
+    global freq
+
+    .prefs.pane.transmission.dd.sampling.mfreq.menu delete 0 last
+
+    set freqs [split $args]
+    foreach f $freqs {
+	.prefs.pane.transmission.dd.sampling.mfreq.menu add command -label $f -command "set freq $f; change_sampling"
     }
+    set freq [lindex $freqs 0]
 }
 
 proc mbus_recv_codec.supported {args} {
     # We now have a list of codecs which this RAT supports...
+    global prenc
+
+    .prefs.pane.transmission.dd.pri.m.menu delete 0 last
+
     set codecs [split $args]
     foreach c $codecs {
 	.prefs.pane.transmission.dd.pri.m.menu    add command -label $c -command "set prenc $c; validate_red_codecs"
     }    
+
+    set prenc [lindex $codecs 0]
 }
 
 proc mbus_recv_redundancy.supported {args} {
+    global secenc
+
+    .prefs.pane.transmission.cc.red.fc.m.menu delete 0 last
+
     set codecs [split $args]
     foreach c $codecs {
 	.prefs.pane.transmission.cc.red.fc.m.menu add command -label $c -command "set secenc $c"
     }
+
+    set secenc [lindex $codecs 0]
 }
 
 proc mbus_recv_agc {args} {
@@ -202,6 +219,16 @@ proc mbus_recv_agc {args} {
 proc mbus_recv_sync {args} {
   global sync_var
   set sync_var $args
+}
+
+proc mbus_recv_frequency {args} {
+  global freq
+  set freq $args
+}
+
+proc mbus_recv_channels {args} {
+  global channels
+  set channels $args
 }
 
 proc mbus_recv_primary {args} {
@@ -831,10 +858,19 @@ pack $i.cks -fill both -expand 1 -anchor w -pady 1
 frame $i.dd.sampling
 pack  $i.dd.sampling -side left
 label $i.dd.sampling.l -text "Sampling:"
-menubutton $i.dd.sampling.m -menu $i.dd.sampling.m.menu -indicatoron 1 -textvariable sampling -relief raised -width 13
-pack $i.dd.sampling.l $i.dd.sampling.m -side top
-# fill in sampling rates / channels
-menu $i.dd.sampling.m.menu -tearoff 0
+pack  $i.dd.sampling.l -side top -fill x
+
+menubutton $i.dd.sampling.mfreq -menu $i.dd.sampling.mfreq.menu -indicatoron 1 -textvariable freq -relief raised -width 6
+pack $i.dd.sampling.mfreq -side left
+# fill in frequency rates / channels
+menu $i.dd.sampling.mfreq.menu -tearoff 0
+
+menubutton $i.dd.sampling.mchannels -menu $i.dd.sampling.mchannels.menu -indicatoron 1 -textvariable channels -relief raised -width 6
+pack $i.dd.sampling.mchannels -side left
+menu $i.dd.sampling.mchannels.menu -tearoff 0
+$i.dd.sampling.mchannels.menu add command -label "Mono"   -command "set channels Mono; change_sampling"
+$i.dd.sampling.mchannels.menu add command -label "Stereo" -command "set channels Stereo; change_sampling"
+set channels Mono
 
 frame $i.dd.pri
 pack  $i.dd.pri -side left
@@ -1074,7 +1110,7 @@ proc sync_engine_to_ui {} {
     global prenc upp channel_var secenc red_off int_gap silence_var agc_var 
     global repair_var min_var max_var lecture_var convert_var key key_var 
     global meter_var sync_var gain volume input_port output_port 
-    global in_mute_var out_mute_var
+    global in_mute_var out_mute_var channels freq
 
     set my_cname_enc [mbus_encode_str $my_cname]
     #rtcp details
@@ -1084,7 +1120,7 @@ proc sync_engine_to_ui {} {
     mbus_qmsg "source.loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
     
     #transmission details
-    mbus_qmsg "primary"      [mbus_encode_str $prenc]
+    mbus_qmsg "primary"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
     mbus_qmsg "rate"         $upp
     mbus_qmsg "channel.code" [mbus_encode_str $channel_var]
     mbus_qmsg "redundancy"   "[mbus_encode_str $secenc] $red_off"
@@ -1152,6 +1188,8 @@ proc save_settings {} {
     save_setting $f rtpPhone    rtcp_phone
     save_setting $f rtpLoc      rtcp_loc
     # transmission
+    save_setting $f audioFrequency        freq
+    save_setting $f audioChannels         channels
     save_setting $f audioPrimary          prenc
     save_setting $f audioUnits            upp
     save_setting $f audioChannelCoding    channel_var
@@ -1234,6 +1272,8 @@ proc load_settings {} {
     load_setting attr rtpPhone rtcp_phone    ""
     load_setting attr rtpLoc   rtcp_loc      ""
     # transmission
+    load_setting attr audioFrequency        freq          "8kHz"
+    load_setting attr audioChannels         channels      "Mono"
     load_setting attr audioPrimary          prenc         "DVI-8K-MONO"
     load_setting attr audioUnits            upp           "2"
     load_setting attr audioChannelCoding    channel_var   "None"
