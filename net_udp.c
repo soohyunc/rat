@@ -223,6 +223,7 @@ int udp_send(socket_udp *s, char *buffer, int buflen)
 		case IPv6 : return udp_send6(s, buffer, buflen);
 		default   : abort();
 	}
+	return -1;
 }
 
 int udp_recv(socket_udp *s, char *buffer, int buflen)
@@ -232,5 +233,6 @@ int udp_recv(socket_udp *s, char *buffer, int buflen)
 		case IPv6 : return udp_recv6(s, buffer, buflen);
 		default   : abort();
 	}
+	return -1;
 }
 
