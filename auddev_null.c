@@ -19,6 +19,7 @@ static const char cvsid[] =
 #include "config_unix.h"
 #include "config_win32.h"
 #include "audio_types.h"
+#include "audio_util.h"
 #include "audio_fmt.h"
 #include "auddev_null.h"
 #include "memory.h"
@@ -32,7 +33,13 @@ static int avail_bytes; /* Number of bytes available because of under read */
 
 static int read_virgin = 1;
 
-static int igain = 0, ogain = 0;
+static int igain = 50, ogain = 50;
+
+
+#ifdef DEBUG
+/* Available to debug alaw conversions and check bounds etc. */
+#define ALAW_DEVICE
+#endif
 
 #ifdef WIN32
 HANDLE   hAudioWakeUp;   /* Event that gets blocked for in null_audio_wait_for on Win32 */ 
@@ -46,11 +53,11 @@ null_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
                 null_audio_close(ad);
         }
 
-#ifdef DEBUG
+#ifdef ALAW_DEVICE
         /* These are just here to check format changing code works properly */
         audio_format_change_encoding(infmt, DEV_PCMA);
         audio_format_change_encoding(outfmt, DEV_PCMA);
-#endif /* DEBUG */
+#endif /* ALAW_DEVICE */
 
         memcpy(&ifmt, infmt,  sizeof(ifmt));
         memcpy(&ofmt, outfmt, sizeof(ofmt));
@@ -189,9 +196,9 @@ null_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
         assert(avail_bytes >= 0);
 
         memcpy(&last_read_time, &curr_time, sizeof(struct timeval));
-        memset(buf, 0, read_bytes);
-        xmemchk();
+        audio_zero((sample*)buf, read_bytes * ifmt.bits_per_sample / 8, ifmt.encoding);
 
+        xmemchk();
         return read_bytes;
 }
 

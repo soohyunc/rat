@@ -62,7 +62,7 @@ typedef struct {
 
 #define BYTES_PER_SAMPLE sizeof(sample)
 #define PCMU_AUDIO_ZERO	127
-#define PCMA_AUDIO_ZERO	127
+#define PCMA_AUDIO_ZERO	213
 #define L16_AUDIO_ZERO	0
 #define MAX_AMP		100
 #define DEVICE_REC_BUF	16000
