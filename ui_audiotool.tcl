@@ -1979,7 +1979,7 @@ checkbutton $i.dd.cks.f.f.other.suppress -text "Echo Suppression"       -variabl
 checkbutton $i.dd.cks.f.f.other.tone     -text "Tone Test"              -variable tonegen        -command send_tone_cmd
 pack $i.dd.cks.f -fill x -side top -expand 1
 pack $i.dd.cks.f.f
-pack $i.dd.cks.f.f.silence -side left
+pack $i.dd.cks.f.f.silence -side left -anchor n
 pack $i.dd.cks.f.f.silence.upper -side top -anchor n
 pack $i.dd.cks.f.f.silence.lower -side bottom -anchor n
 pack $i.dd.cks.f.f.other   -side right -anchor n

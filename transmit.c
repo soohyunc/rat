@@ -222,10 +222,12 @@ tx_start(tx_buffer *tb)
 
         assert(tb->state_store == NULL);
         codec_state_store_create(&tb->state_store, ENCODER);
+        tx_update_ui(tb);
+/*
         if (tb->sp->silence_detection != SILENCE_DETECTION_OFF) {
                 ui_send_rtp_active(tb->sp, tb->sp->mbus_ui_addr, rtp_my_ssrc(tb->sp->rtp_session[0]));
         }
-
+        */
         tb->bps_last_update = tb->sp->cur_ts;
 }
 
@@ -392,7 +394,6 @@ tx_process_audio(tx_buffer *tb)
                         u->silence = FALSE;
                         u->send    = TRUE;
                 }
-                debug_msg("Silence detection %d\n", tb->sp->silence_detection);
                 pb_iterator_advance(tb->silence);
                 pb_iterator_get_at(tb->silence, (u_char**)&u, &u_len, &u_ts);
         }
@@ -648,23 +649,29 @@ tx_update_ui(tx_buffer *tb)
         }
 	/* This next routine is really inefficient - we only need do ui_info_activate() */
 	/* when the state changes, else we flood the mbus with redundant messages.      */
-        if (sp->silence_detection != SILENCE_DETECTION_OFF && vad_in_talkspurt(sp->tb->vad) == TRUE) {
-		if (!sp->ui_activated) {
-			sp->ui_activated = TRUE;
-			ui_send_rtp_active(sp, sp->mbus_ui_addr, rtp_my_ssrc(sp->rtp_session[0]));
-		}
+        if (sp->silence_detection != SILENCE_DETECTION_OFF) {
+                if (vad_in_talkspurt(sp->tb->vad) == TRUE) {
+                        if (sp->ui_activated == FALSE) {
+                                ui_send_rtp_active(sp, sp->mbus_ui_addr, rtp_my_ssrc(sp->rtp_session[0]));
+                                sp->ui_activated = TRUE;
+                        }
+                } else if (sp->ui_activated == TRUE) {
+                        ui_send_rtp_inactive(sp, sp->mbus_ui_addr, rtp_my_ssrc(sp->rtp_session[0]));
+                        sp->ui_activated = FALSE;
+                }
 		if (sp->lecture) {
 			sp->lecture = FALSE;
 			ui_send_lecture_mode(sp, sp->mbus_ui_addr);
 		}
-        } else {
-		if (sp->ui_activated) {
-			sp->ui_activated = FALSE;
-			ui_send_rtp_inactive(sp, sp->mbus_ui_addr, rtp_my_ssrc(sp->rtp_session[0]));
-        	}
-	}
-        if (tb->sending_audio == FALSE) {
-               	ui_send_rtp_inactive(sp, sp->mbus_ui_addr, rtp_my_ssrc(sp->rtp_session[0]));
+        } else if (sp->silence_detection == SILENCE_DETECTION_OFF) {
+                if (tb->sending_audio == TRUE && sp->ui_activated == FALSE) {
+                        ui_send_rtp_active(sp, sp->mbus_ui_addr, rtp_my_ssrc(sp->rtp_session[0]));
+                        sp->ui_activated = TRUE;
+                }
+        }
+        if (tb->sending_audio == FALSE && sp->ui_activated == TRUE) {
+                ui_send_rtp_inactive(sp, sp->mbus_ui_addr, rtp_my_ssrc(sp->rtp_session[0]));
+                sp->ui_activated = FALSE;
         }
 }
 

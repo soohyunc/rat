@@ -162,9 +162,6 @@ sd(sd_t *s, uint16_t energy)
                 s->gt_cnt = 0;
         }
         s->eval_cnt ++;
-
-        debug_msg("%d %d\n", energy, s->thresh);
-
         return (energy < s->thresh);
 }
 
