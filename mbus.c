@@ -194,7 +194,7 @@ struct mbus *mbus_init(unsigned short channel,
 void mbus_addr(struct mbus *m, char *addr)
 {
 	assert(m->num_addr < MBUS_MAX_ADDR);
-	mbus_parse_init(m, strdup(addr));
+	mbus_parse_init(m, xstrdup(addr));
 	if (mbus_parse_lst(m, &(m->addr[m->num_addr]))) {
 		m->num_addr++;
 	}
