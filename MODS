@@ -1430,4 +1430,11 @@ TODO -- They're features not bugs dammit!
   for me. Must be something in the environment, or a software version issue
   but I don't know what...
 - Excessive end-to-end delay on Windows? Gerry Wolfson.
+- While changing settings from 48khz GSM to 16khz L16, I got this:
+	rat-4.2.4-media: source.c:1588: source_process: Assertion `md->nrep < 5 && md->nrep > 0' failed.
+  FYI, I just triggered this same failure inadvertently at another site by 
+  transmitting at 48khz when they were set to receive at 16khz. (Bob Olson).
+- Occasional weird behaviour of the playout buffer, where sources are
+  buffered for several _minutes_ before being played out? Reported by
+  Steven Dawson on the CAIRN list.
 
