@@ -244,7 +244,7 @@ source_validate(source *s)
         assert(s->bps  >= 0);
 	assert((s->skew == SOURCE_SKEW_SLOW) || (s->skew == SOURCE_SKEW_FAST) ||( s->skew == SOURCE_SKEW_NONE));
 	assert((s->playout_mode == PLAYOUT_MODE_NORMAL) || (s->playout_mode == PLAYOUT_MODE_SPIKE));
-        assert((unsigned)e->playout.ticks < 2 * ts_get_freq(e->playout));
+        assert((unsigned)s->pdbe->playout.ticks < 2 * ts_get_freq(s->pdbe->playout));
 #endif
 }
 
