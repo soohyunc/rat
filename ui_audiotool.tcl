@@ -1241,7 +1241,6 @@ pack $i.cc.int.fc.l $i.cc.int.fc.m -fill x -expand 1
 pack $i.cc.int.zz.l $i.cc.int.zz.m -fill x -expand 1
 
 # Reception Pane ##############################################################
-set repair_schemes [list {none} {repetition} {pattern-match}]
 set i .prefs.pane.reception
 frame $i 
 frame $i.r -relief sunken
@@ -1251,7 +1250,7 @@ pack $i.r -side top -fill x -pady 0 -ipady 1
 pack $i.o -side top -fill both  -pady 1
 pack $i.c -side top -fill both  -pady 1 -expand 1
 label $i.r.l -text "Repair Scheme:"
-tk_optionCmdMenu $i.r.m repair_var $repair_schemes
+tk_optionCmdMenu $i.r.m repair_var {None}
 
 label $i.r.ls -text "Sample Rate Conversion"
 tk_optionCmdMenu $i.r.ms convert_var {None}
