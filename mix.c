@@ -171,16 +171,21 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 	 * and decompressed data at the codec output rate and channels.
 	from = el->comp_data[0].cp;
 	to   = get_codec_by_pt(sp->encodings[0]);
-        
+	to   = codec_get_by_payload((u_char)sp->encodings[0]);
 
         playout = convert_time(el->playoutpt, el->dbe_source[0]->clock, sp->device_clock);
 	if (from->freq == to->freq && from->channels == to->channels) {
 		nsamples = ms->channels * from->unit_len;
                 dur = from->unit_len;
 		nsamples = dur * ms->channels;
-		converter_format(el->dbe_source[0]->converter, el);
-                nsamples = ms->channels * from->unit_len * to->freq / from->freq ;
-                dur = nsamples / ms->channels;
+	} else {
+                if (el->dbe_source[0]->converter) {
+                        nsamples = ms->channels * from->unit_len * to->freq / from->freq ;
+                                cf_to->format.sample_rate / cf_from->format.sample_rate;
+                        dur = nsamples / ms->channels;
+                } else {
+                        el->mixed = TRUE;
+                        return;
                 }
 	}
 	if (sp->externalise_audio) {
@@ -208,7 +213,7 @@ mix_do_one_chunk(session_struct *sp, mix_struct *ms, rx_queue_element_struct *el
 
         buf = el->native_data[el->native_count - 1];
         if (el->playoutpt != playout) debug_msg("playout_pt %ld playout %ld\n", el->playoutpt, playout);
-	/* If it is too late... */
+
 
 	if (ts_gt(ms->tail_time, playout)) {
 #ifdef DEBUG_MIX

@@ -129,41 +129,6 @@ get_time(frtime_t *tp)
 	return (t);
 }
 
-/* Calculates difference between two timestamps */
-
-static int32
-ts_diff(u_int32 t1, u_int32 t2)
-{
-        u_int32 d12, d21; 
-
-        d12 = t1 - t2;
-        d21 = t2 - t1;
-
-        if (d12 == 0) {
-                return 0;
-        } else if ((t1 > t2) && d12 < HALF_TS_CYCLE) {
-                /* t1 ahead of t2 */
-                return +(t1 - t2);
-        } else if ((t1 < t2) && d21 < HALF_TS_CYCLE) {
-                /* t2 ahead of t1 */
-                return  - (int32) (t2 - t1);
-        } else if ((t1 > t2) && d12 > HALF_TS_CYCLE) {
-                /* t2 ahead of t1 */
-                return - (int32) (t2 + ~t1);
-        } else if ((t1 < t2) && d21 > HALF_TS_CYCLE) {
-                /* t1 ahead of t2 */
-                return +(t1 + ~t2);
-        } else {
-                /* shouldn't ever get this far */
-                assert(0);
-        }
-        return 0;
-}
-
-/* This function assumes that the time converted is "close" to and
- * prior to the current time 
- */
-
 u_int32
 convert_time(u_int32 ts, frtime_t *from, frtime_t *to)
 {
@@ -172,17 +137,9 @@ convert_time(u_int32 ts, frtime_t *from, frtime_t *to)
         if (from->freq == to->freq) {
                 return ts;
         } else if (from->freq < to->freq) {
-                return ts * to->freq / from->freq;
+                return ts * (to->freq / from->freq);
         } else {
-                u_int32 tod_slow_clk, tod_quick_clk;
-                int32   diff;
-
-                tod_quick_clk = get_time(from);
-                tod_slow_clk  = get_time(to);
-                
-                diff = ts_diff(ts, tod_quick_clk);
-
-                return tod_slow_clk + (diff) * (from->freq / to->freq);
+                return ts * (from->freq / to->freq);
         }
 }
 
