@@ -116,7 +116,7 @@ transcoder_read(int id, sample *buf, int buf_size)
   if (copy_size >= read_size) {
     copy_size = read_size;
   } else {
-#ifdef DEBUG
+#ifdef DEBUG_TRANSCODER
     printf("transcoder_read: underflow, silence substituted -- want %d got %d channel %d\n", read_size, copy_size, id);
 #endif
   }
