@@ -40,7 +40,9 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 
-#define HISTORY 1000
+#define HISTORY                    1000
+#define SKEW_OFFENSES_BEFORE_ADAPT    3
+#define SOURCE_YOUNG_AGE             20
 
 /* constants for skew adjustment:
  SOURCE_SKEW_SLOW - denotes source clock appears slower than ours.
@@ -68,7 +70,7 @@ typedef struct s_source {
         int8   skew_offenses;
 } source;
 
-#define SKEW_OFFENSES_BEFORE_ADAPT 3
+
 
 /* A linked list is used for sources and this is fine since we mostly
  * expect 1 or 2 sources to be simultaneously active and so efficiency
@@ -431,6 +433,15 @@ source_check_buffering(source *src, ts_t now)
                  * source is still sending. */
                 return FALSE; 
         } 
+
+        if (src->age < SOURCE_YOUNG_AGE) {
+                /* If the source is new(ish) then not enough audio
+                 * will be in the playout buffer because it hasn't
+                 * arrived yet.  This age
+                 */
+
+                return FALSE;
+        }
 
         if ((pb_get_end_ts(src->media, &buf_end) == FALSE) ||
             ts_gt(now, buf_end)) {
