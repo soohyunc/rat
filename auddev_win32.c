@@ -833,21 +833,6 @@ static HWAVEOUT	shWaveOut;         /* Handle for wave output                    
 static WAVEHDR *whWriteHdrs;       /* Pointer to blovk of wavehdr's alloced for writing  */
 static u_char  *lpWriteData;       /* Pointer to raw audio data buffer                   */
 
-void CALLBACK waveOutProc(
-  HWAVEOUT hwo,      
-  UINT uMsg,         
-  DWORD dwInstance,   
-  DWORD dwParam1,    
-  DWORD dwParam2) {
-        
-	WAVEHDR *whDone;
-        
-	switch(uMsg) {
-        case WOM_DONE:        
-		whDone = (WAVEHDR*)dwParam1;
-        }
-}
-
 static int
 w32sdk_audio_open_out(UINT uId, WAVEFORMATEX *pwfx)
 {
@@ -858,7 +843,7 @@ w32sdk_audio_open_out(UINT uId, WAVEFORMATEX *pwfx)
                 return (TRUE);
         }
         
-        mmr = waveOutOpen(&shWaveOut, uId, pwfx, (DWORD)waveOutProc, 0, CALLBACK_FUNCTION);
+        mmr = waveOutOpen(&shWaveOut, uId, pwfx, 0, 0, CALLBACK_FUNCTION);
         if (mmr != MMSYSERR_NOERROR) {
                 waveOutGetErrorText(mmr, errorText, sizeof(errorText));
                 debug_msg("waveOutOpen: (%d) %s\n", mmr, errorText);
@@ -934,7 +919,7 @@ const char *waveOutError(MMRESULT mmr)
 }
 
 WAVEHDR *
-w32sdk_audio_write_free_buffer()
+w32sdk_audio_write_get_buffer()
 {
 	int	 i;
 
@@ -961,7 +946,7 @@ w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
                
         done = 0;
         while(done < buf_bytes) {
-                whCur = w32sdk_audio_write_free_buffer();
+                whCur = w32sdk_audio_write_get_buffer();
 		if (whCur == NULL) {
 			debug_msg("Write/Right out of buffers ???\n");
 			break;
