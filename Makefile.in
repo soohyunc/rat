@@ -92,7 +92,7 @@ release:
 	cvs tag release-`cat VERSION | sed "s/\./-/g"`
 
 tgz: $(RATVER)
-	tar cvf $(RATVER)-__OSTYPE__.tar README.* MODS COPYRIGHT INSTALL.TXT VERSION $(RATVER)
+	tar cvf $(RATVER)-__OSTYPE__.tar README.* MODS COPYRIGHT INSTALL.TXT VERSION $(RATVER) $(RATVER)-ui $(RATVER)-media
 	gzip -9v $(RATVER)-__OSTYPE__.tar
 
 depend:
