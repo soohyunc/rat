@@ -40,7 +40,7 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 
-#define SKEW_OFFENSES_BEFORE_ADAPT    4 
+#define SKEW_OFFENSES_BEFORE_ADAPT    8 
 #define SKEW_ADAPT_THRESHOLD       2000
 #define SOURCE_YOUNG_AGE             20
 #define SOURCE_AUDIO_HISTORY_MS    1000
@@ -414,10 +414,53 @@ source_add_packet (source *src,
         return TRUE;
 }
 
+#define SOURCE_MERGE_LEN_SAMPLES 15
+
+static void
+conceal_dropped_samples(media_data *md, ts_t drop_dur)
+{
+        /* We are dropping drop_dur samples and want signal to be
+         * continuous.  So we blend samples that would have been
+         * played if they weren't dropped with where signal continues
+         * after the drop.
+         */
+        u_int32 drop_samples;
+        u_int16 rate, channels;
+        int32 tmp, a, b, i, merge_len;
+        sample *new_start, *old_start;
+
+        i = md->nrep - 1;
+        while(i >= 0) {
+                if (codec_get_native_info(md->rep[i]->id, &rate, &channels)) {
+                        break;
+                }
+                i--;
+        }
+
+        assert(i != -1);
+
+        drop_dur     = ts_convert(rate, drop_dur);
+        drop_samples = channels * drop_dur.ticks;
+        
+        /* new_start is what will be played by mixer */
+        new_start = (sample*)md->rep[i]->data + drop_samples;
+        old_start = (sample*)md->rep[i]->data;
+
+        merge_len = SOURCE_MERGE_LEN_SAMPLES * channels;
+        for (i = 0; i < merge_len; i++) {
+                a   = (merge_len - i) * old_start[i] / merge_len;
+                b   = i * new_start[i]/ merge_len;
+                tmp =  (sample)(a + b);
+                new_start[i] = (sample)tmp;
+        }
+        debug_msg("dropped %d samples\n", drop_samples);
+        xmemchk();
+}
+
+
 /* source_check_buffering is supposed to check amount of audio buffered
  * corresponds to what we expect from playout so we can think about
- * skew adjustment.
- */
+ * skew adjustment.  */
 
 int
 source_check_buffering(source *src, ts_t now)
@@ -506,6 +549,9 @@ source_skew_adapt(source *src, media_data *md)
         }
 
         if (i == md->nrep || e > SKEW_ADAPT_THRESHOLD) {
+                /* don't adapt if unit has not been decoded (error) or
+                 *  signal has too much energy 
+                 */
                 return FALSE;
         }
 
@@ -515,16 +561,13 @@ source_skew_adapt(source *src, media_data *md)
          * valid if no repair has taken place.
          */
 
-        if (src->skew == SOURCE_SKEW_FAST /* &&
-            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_ADAPT */) {
+        if (src->skew == SOURCE_SKEW_FAST &&
+            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_ADAPT) {
                 /* source is fast so we need to bring units forward.
                  * Should only move forward at most a single unit
                  * otherwise we might discard something we have not
                  * classified.  */
-/*
-                adjustment = ts_map32(rate, samples / (channels * 4));
-                */
-                adjustment = ts_map32(8000, 1); /* 1 ms */
+                adjustment = ts_map32(8000, samples / 8);
                 pb_shift_forward(src->media,   adjustment);
                 pb_shift_forward(src->channel, adjustment);
                 src->dbe->playout               = ts_sub(src->dbe->playout, adjustment);
@@ -540,11 +583,15 @@ source_skew_adapt(source *src, media_data *md)
                         src->last_played = ts_sub(src->last_played, adjustment);
                 }
 
+                /* Remove skew adjustment from estimate of skew outstanding */
                 if (ts_gt(src->skew_adjust, adjustment)) {
                         src->skew_adjust = ts_sub(src->skew_adjust, adjustment);
                 } else {
                         src->skew = SOURCE_SKEW_NONE;
                 }
+
+                conceal_dropped_samples(md, adjustment);
+
                 return TRUE;
         } else if (src->skew == SOURCE_SKEW_SLOW) {
                 /* Buffer going dry so just chuck it all back by however much,
