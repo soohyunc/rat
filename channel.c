@@ -209,8 +209,8 @@ _channel_coder_create(cc_id_t id, channel_state_t **ppcs, int is_encoder)
                 create_state(&pcs->state, &pcs->state_len);
         } else {
                 pcs->state     = NULL;
-                pcs->state_len = 0;
-        }
+		pcs->state_len = 0;
+	}
 
         return TRUE;
 }
@@ -365,7 +365,7 @@ channel_describe_data(cc_id_t cid,
 cc_id_t
 channel_coder_get_by_payload(uint8_t payload)
 {
-        uint32_t i;
+	uint32_t i = 0;
 
         assert((payload & 0x80) == 0);
 

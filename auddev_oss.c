@@ -21,6 +21,8 @@
 #include "auddev_oss.h"
 #include "util.h"
 
+#include <sys/soundcard.h>
+
 enum { AUDIO_SPEAKER, AUDIO_HEADPHONE, AUDIO_LINE_OUT, AUDIO_MICROPHONE, AUDIO_LINE_IN, AUDIO_CD};
 
 /* Info to match port id's to port name's */
@@ -59,7 +61,7 @@ static u_char       have_probed[OSS_MAX_DEVICES];
 static audio_format af_sup[OSS_MAX_DEVICES][OSS_MAX_SUPPORTED_FORMATS];
 static int          n_af_sup[OSS_MAX_DEVICES];
 
-static oss_probe_formats(audio_desc_t);
+static int oss_probe_formats(audio_desc_t);
 
 audio_format format;
 

@@ -1085,7 +1085,7 @@ source_check_buffering(source *src)
 static skew_t
 source_skew_adapt(source *src, media_data *md, ts_t playout)
 {
-        uint32_t i, e = 0, samples = 0;
+        uint32_t i = 0, e = 0, samples = 0;
         uint16_t rate, channels;
         ts_t adjustment, frame_dur;
 
