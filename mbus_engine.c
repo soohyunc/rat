@@ -604,11 +604,11 @@ static void rx_tool_rat_logstats(char *srce, char *args, session_t *sp)
 #endif
 			gettimeofday(&t, NULL);
 			gethostname(hname, 64);
-			sprintf(fname, "rat-%p-%ld.%06ld-%s-%s.log", sp, t.tv_sec, t.tv_usec, hname, uname);
+			sprintf(fname, "rat-%p-%ld.%06ld-%s-%s.log", sp, t.tv_sec, (long)t.tv_usec, hname, uname);
 			cname = rtp_get_sdes(sp->rtp_session[0], rtp_my_ssrc(sp->rtp_session[0]), RTCP_SDES_CNAME);
 
 			sp->logger = fopen(fname, "w");
-			fprintf(sp->logger, "tool_start %lu.%06lu ", t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec);
+			fprintf(sp->logger, "tool_start %lu.%06lu ", t.tv_sec + SECS_BETWEEN_1900_1970, (long)t.tv_usec);
 			fprintf(sp->logger, "0x%08lx\n", (unsigned long) rtp_my_ssrc(sp->rtp_session[0]));
 		} else {
 			fclose(sp->logger);

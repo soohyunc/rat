@@ -1613,6 +1613,7 @@ v4.2.21	- Fix FreeBSD support to work with 4.5-RELEASE (Orion Hodson)
 	- Assorted performance tweaks to RTP code (Colin Perkins)
 	* 15 April 2002
 
+v4.2.22	- Fix compilation on Debian/SPARC (David Martinez/Petter Reinholdsten)
 
 
 TODO -- They're features not bugs dammit!
