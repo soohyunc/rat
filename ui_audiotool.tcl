@@ -84,6 +84,8 @@ proc init_source {ssrc} {
 		set     JIT_TOGED($ssrc) 0
 		set    LOSS_TO_ME($ssrc) 0
 		set  LOSS_FROM_ME($ssrc) 0
+		set  HEARD_LOSS_TO_ME($ssrc) 0
+		set  HEARD_LOSS_FROM_ME($ssrc) 0
 		set         INDEX($ssrc) $num_ssrc
 		set          SSRC($ssrc) $ssrc
 		incr num_ssrc
@@ -888,7 +890,7 @@ proc mbus_recv_tool.rat.3d.user.settings {args} {
 }
 
 proc mbus_recv_rtp.source.packet.loss {dest srce loss} {
-	global losstimers my_ssrc LOSS_FROM_ME LOSS_TO_ME
+	global losstimers my_ssrc LOSS_FROM_ME LOSS_TO_ME HEARD_LOSS_FROM_ME HEARD_LOSS_TO_ME
 	init_source $srce
 	init_source $dest
 	catch {after cancel $losstimers($srce,$dest)}
@@ -896,9 +898,11 @@ proc mbus_recv_rtp.source.packet.loss {dest srce loss} {
 	set losstimers($srce,$dest) [after 7500 chart_set \"$srce\" \"$dest\" 101]
 	if {[string compare $dest $my_ssrc] == 0} {
 		set LOSS_TO_ME($srce) $loss
+    		set HEARD_LOSS_TO_ME($srce) 1
 	}
 	if {[string compare $srce $my_ssrc] == 0} {
 		set LOSS_FROM_ME($dest) $loss
+		set HEARD_LOSS_FROM_ME($dest) 1
 	}
 	ssrc_update $srce
 	ssrc_update $dest
@@ -931,7 +935,7 @@ proc mbus_recv_rtp.source.inactive {ssrc} {
 proc mbus_recv_rtp.source.remove {ssrc} {
     global CNAME NAME EMAIL LOC PHONE TOOL NOTE CODEC DURATION PCKTS_RECV PCKTS_LOST PCKTS_MISO \
 	    PCKTS_DUP JITTER BUFFER_SIZE PLAYOUT_DELAY LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED \
-	    num_ssrc loss_to_me_timer loss_from_me_timer GAIN MUTE
+	    num_ssrc loss_to_me_timer loss_from_me_timer GAIN MUTE HEARD_LOSS_TO_ME HEARD_LOSS_FROM_ME
 
     # Disable updating of loss diamonds. This has to be done before we destroy the
     # window representing the participant, else the background update may try to 
@@ -944,8 +948,7 @@ proc mbus_recv_rtp.source.remove {ssrc} {
 	unset CNAME($ssrc) NAME($ssrc) EMAIL($ssrc) PHONE($ssrc) LOC($ssrc) TOOL($ssrc) NOTE($ssrc)
 	unset CODEC($ssrc) DURATION($ssrc) PCKTS_RECV($ssrc) PCKTS_LOST($ssrc) PCKTS_MISO($ssrc) PCKTS_DUP($ssrc)
 	unset JITTER($ssrc) LOSS_TO_ME($ssrc) LOSS_FROM_ME($ssrc) INDEX($ssrc) JIT_TOGED($ssrc) BUFFER_SIZE($ssrc)
-	unset PLAYOUT_DELAY($ssrc) GAIN($ssrc) MUTE($ssrc)
-
+	unset PLAYOUT_DELAY($ssrc) GAIN($ssrc) MUTE($ssrc) HEARD_LOSS_TO_ME($ssrc) HEARD_LOSS_FROM_ME($ssrc)
 	incr num_ssrc -1
 	chart_redraw $num_ssrc
     }
@@ -1043,7 +1046,7 @@ proc set_loss_from_me {ssrc loss} {
 proc ssrc_update {ssrc} {
 	# This procedure updates the on-screen representation of
 	# a participant. 
-	global NAME LOSS_TO_ME LOSS_FROM_ME
+	global NAME LOSS_TO_ME LOSS_FROM_ME HEARD_LOSS_FROM_ME HEARD_LOSS_TO_ME
 	global fw iht iwd my_ssrc 
 
 	set cw [window_plist $ssrc]
@@ -1058,8 +1061,8 @@ proc ssrc_update {ssrc} {
 		set f [expr $iht + $thick]
 		canvas $cw -width $iwd -height $f -highlightthickness $thick
 		$cw create text [expr $f + 2] $h -anchor w -text $NAME($ssrc) -fill black -tag t
-		$cw create polygon $l $h $h $l $h $f -outline black -fill grey50 -tag m
-		$cw create polygon $f $h $h $l $h $f -outline black -fill grey50 -tag h
+		$cw create polygon $l $h $h $l $h $f -outline black -fill grey -tag m
+		$cw create polygon $f $h $h $l $h $f -outline black -fill grey -tag h
 
 		bind $cw <Button-1>         "toggle_stats \"$ssrc\""
 		bind $cw <Button-2>         "toggle_mute $cw \"$ssrc\""
@@ -1072,8 +1075,12 @@ proc ssrc_update {ssrc} {
 		fix_scrollbar
 	}
 
-	set_loss_to_me $ssrc $LOSS_TO_ME($ssrc)
-	set_loss_from_me $ssrc $LOSS_FROM_ME($ssrc)
+	if {[info exists HEARD_LOSS_TO_ME($ssrc)] && $HEARD_LOSS_TO_ME($ssrc) && $ssrc != $my_ssrc} {
+	    set_loss_to_me $ssrc $LOSS_TO_ME($ssrc)
+	}
+	if {[info exists HEARD_LOSS_FROM_ME($ssrc)] && $HEARD_LOSS_FROM_ME($ssrc) && $ssrc != $my_ssrc} {
+	    set_loss_from_me $ssrc $LOSS_FROM_ME($ssrc)
+	}
 }
 
 #power meters
@@ -2293,7 +2300,7 @@ proc chart_enlarge {new_size} {
 }
 
 proc chart_set {dest srce val} {
-  global INDEX chart_size chart_boxsize chart_xoffset chart_yoffset
+  global INDEX chart_size chart_boxsize chart_xoffset chart_yoffset my_ssrc
 
   if {[array names INDEX $srce] != [list $srce]} {
     return
@@ -2306,7 +2313,6 @@ proc chart_set {dest srce val} {
 
   if {($x > $chart_size) || ($x < 0)} return
   if {($y > $chart_size) || ($y < 0)} return
-  if {($val > 101) || ($val < 0)}     return
 
   set xv [expr ($x * $chart_boxsize) + $chart_xoffset + 1]
   set yv [expr ($y * $chart_boxsize) + $chart_yoffset + 1]

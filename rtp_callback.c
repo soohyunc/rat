@@ -249,6 +249,18 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
 }
 
 static void
+process_rr(session_t *sp, u_int32 ssrc, rtcp_rr *r)
+{
+        u_int32 fract_lost;
+        /* Just update loss statistic in UI for this report if there */
+        /* is somewhere to send them.                                */
+        if (sp->mbus_engine != NULL) {
+                fract_lost = (r->fract_lost * 100) >> 8;
+                ui_update_loss(sp, r->ssrc, ssrc, fract_lost);
+        }
+}
+
+static void
 process_sdes(session_t *sp, u_int32 ssrc, rtcp_sdes_item *d)
 {
         pdb_entry_t *e;
@@ -333,6 +345,7 @@ rtp_callback(struct rtp *s, rtp_event *e)
 	case RX_SR:
 		break;
 	case RX_RR:
+                process_rr(sp, e->ssrc, (rtcp_rr*)e->data);
 		break;
 	case RX_SDES:
                 process_sdes(sp, e->ssrc, (rtcp_sdes_item*)e->data);
