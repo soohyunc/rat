@@ -366,7 +366,7 @@ void settings_load(session_struct *sp)
 	sp->db->my_dbe->sentry->phone = xstrdup(setting_load_str("rtpPhone", ""));       /* and we don't want to do that yet. */
 	sp->db->my_dbe->sentry->loc   = xstrdup(setting_load_str("rtpLoc", ""));
         init_part_two();
-        sp->db->my_dbe->sentry->tool  = xstrdup(setting_load_str("audioTool", RAT_VERSION));
+        sp->db->my_dbe->sentry->tool  = xstrdup(RAT_VERSION));
 
 	ad_name = setting_load_str("audioDevice", "No Audio Device");
         for(i = 0; i < audio_get_device_count(); i++) {
