@@ -420,14 +420,11 @@ static void rx_update_key(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_play_stop(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_play_stop(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(srce);
+        UNUSED(args);
 
-	if ((strlen(args) != 1) || (args[0] != ' ')) {
-		printf("mbus: play-stop does not require parameters\n");
-		return;
-	}
 	if (sp->in_file != NULL) {
 		snd_read_close(&sp->in_file);
 	}
@@ -451,17 +448,48 @@ static void rx_audio_file_play_open(char *srce, char *args, session_struct *sp)
 		printf("mbus: usage \"audio.file.play.open <filename>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
+
+        if (sp->in_file) ui_update_playback_file(file);
+
 }
 
-static void rx_rec_stop(char *srce, char *args, session_struct *sp)
+static void rx_audio_file_play_pause(char *srce, char *args, session_struct *sp)
+{
+        int pause;
+
+        UNUSED(srce);
+
+        mbus_parse_init(mbus_chan, args);
+
+        if (mbus_parse_int(mbus_chan, &pause)) {
+                if (sp->in_file) {
+                        if (pause) {
+                                snd_pause(sp->in_file);
+                        } else {
+                                snd_resume(sp->in_file);
+                        }
+                }
+        } else {
+                printf("mbus: usage \"audio.file.play.pause <bool>\"\n");        
+        }
+        mbus_parse_done(mbus_chan);
+}
+
+
+static void rx_audio_file_play_live(char *srce, char *args, session_struct *sp)
+{
+        /* This is a request to see if file we are playing is still valid */
+        UNUSED(args);
+        UNUSED(srce);
+        ui_update_file_live("play", (sp->in_file) ? 1 : 0);
+}
+
+static void rx_audio_file_rec_stop(char *srce, char *args, session_struct *sp)
 {
 	UNUSED(srce);
+        UNUSED(args);
 
-	if ((strlen(args) != 1) || (args[0] != ' ')) {
-		printf("mbus: rec-stop does not require parameters\n");
-		return;
-	}
-	if (sp->out_file != NULL) {
+        if (sp->out_file != NULL) {
 		snd_write_close(&sp->out_file);
 	}
 }
@@ -483,6 +511,39 @@ static void rx_audio_file_rec_open(char *srce, char *args, session_struct *sp)
 		printf("mbus: usage \"audio.file.record.open <filename>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
+        
+        if (sp->out_file) ui_update_record_file(file);
+}
+
+static void rx_audio_file_rec_pause(char *srce, char *args, session_struct *sp)
+{
+        int pause;
+
+        UNUSED(srce);
+
+        mbus_parse_init(mbus_chan, args);
+
+        if (mbus_parse_int(mbus_chan, &pause)) {
+                if (sp->out_file) {
+                        if (pause) {
+                                snd_pause(sp->out_file);
+                        } else {
+                                snd_resume(sp->out_file);
+                        }
+                }
+        } else {
+                printf("mbus: usage \"audio.file.record.pause <bool>\"\n");        
+        }
+        mbus_parse_done(mbus_chan);
+}
+
+static void rx_audio_file_rec_live(char *srce, char *args, session_struct *sp)
+{
+        /* This is a request to see if file we are recording is still valid */
+        UNUSED(args);
+	UNUSED(srce);
+        debug_msg("%d\n", sp->out_file ? 1 : 0);
+        ui_update_file_live("record", (sp->out_file) ? 1 : 0);
 }
 
 static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
@@ -595,7 +656,7 @@ rx_interleaving(char *srce, char *args, session_struct *sp)
         char config[80];
 
 	UNUSED(srce);
-
+        
 	mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_int(mbus_chan, &units) &&
             mbus_parse_int(mbus_chan, &separation)) {
@@ -633,7 +694,7 @@ rx_redundancy(char *srce, char *args, session_struct *sp)
 
 	UNUSED(srce);
 
-	mbus_parse_init(mbus_chan, args);
+        mbus_parse_init(mbus_chan, args);
 	if (mbus_parse_str(mbus_chan, &codec) && 
             mbus_parse_int(mbus_chan, &offset)) {
                 if (offset<=0) offset = 0;;
@@ -878,7 +939,7 @@ static void rx_mbus_hello(char *srce, char *args, session_struct *sp)
 }
 
 const char *rx_cmnd[] = {
-	"get_audio",
+	"get_audio",              
 	"toggle.input.port",
 	"toggle.output.port",
 	"tool.rat.silence",
@@ -887,8 +948,8 @@ const char *rx_cmnd[] = {
 	"tool.rat.agc",
         "tool.rat.loopback",
         "tool.rat.echo.suppress",
-	"tool.rat.sync",
-	"tool.rat.rate",
+	"tool.rat.sync",       
+	"tool.rat.rate",          
 	"audio.input.mute",
 	"audio.input.gain",
 	"audio.input.port",
@@ -897,14 +958,10 @@ const char *rx_cmnd[] = {
 	"audio.output.port",
 	"tool.rat.powermeter",
 	"repair",
-	"update.key",
-	"play.stop",
-	"audio.file.play.open",
-	"rec.stop",
-	"audio.file.record.open",
-	"rtp.source.name",
+	"update.key",             
+        "rtp.source.name",
 	"rtp.source.email",
-	"rtp.source.phone",
+	"rtp.source.phone",       
 	"rtp.source.loc",
 	"rtp.source.mute",
 	"rtp.source.playout",
@@ -913,20 +970,28 @@ const char *rx_cmnd[] = {
 	"audio.codec",
         "sampling",
         "playout.limit",
-        "playout.min",
-        "playout.max",
+        "playout.min",            
+        "playout.max",            
         "converter",
         "audio.channel.coding",
         "settings",
 	"quit",
 	"mbus.waiting",
 	"mbus.go",
-	"mbus.hello",
+	"mbus.hello",             
+        "audio.file.play.open",   
+        "audio.file.play.pause",
+        "audio.file.play.stop",
+        "audio.file.play.live",
+	"audio.file.record.open"
+        "audio.file.record.pause",
+	"audio.file.record.stop",
+        "audio.file.record.live",
 	""
 };
 
 static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
-	rx_get_audio,
+	rx_get_audio,                  
 	rx_toggle_input_port,
 	rx_toggle_output_port,
 	rx_tool_rat_silence,
@@ -936,7 +1001,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_tool_rat_audio_loopback,
         rx_tool_rat_echo_suppress,
 	rx_tool_rat_sync,
-	rx_tool_rat_rate,
+	rx_tool_rat_rate,              
 	rx_audio_input_mute,
 	rx_audio_input_gain,
 	rx_audio_input_port,
@@ -946,13 +1011,9 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_tool_rat_powermeter,
 	rx_repair,
 	rx_update_key,
-	rx_play_stop,
-	rx_audio_file_play_open,
-	rx_rec_stop,
-	rx_audio_file_rec_open,
 	rx_rtp_source_name,
 	rx_rtp_source_email,
-	rx_rtp_source_phone,
+	rx_rtp_source_phone,            
 	rx_rtp_source_loc,
 	rx_rtp_source_mute,
 	rx_rtp_source_playout,
@@ -962,21 +1023,32 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_sampling,
         rx_playout_limit,
         rx_playout_min,
-        rx_playout_max,
+        rx_playout_max,                
         rx_converter,
         rx_audio_channel_coding,
         rx_settings,
 	rx_quit,
 	rx_mbus_waiting,
 	rx_mbus_go,
-	rx_mbus_hello
+	rx_mbus_hello,
+        rx_audio_file_play_open,       
+        rx_audio_file_play_pause,
+        rx_audio_file_play_stop,                
+        rx_audio_file_play_live,
+        rx_audio_file_rec_open,
+	rx_audio_file_rec_pause,
+        rx_audio_file_rec_stop,
+        rx_audio_file_rec_live,
+        NULL
 };
 
 void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 {
 	int i;
 
+#ifdef DEBUG_MBUS
 	debug_msg("%s %s\n", cmnd, args);
+#endif /* DEBUG_MBUS */
 	for (i=0; strlen(rx_cmnd[i]) != 0; i++) {
 		if (strcmp(rx_cmnd[i], cmnd) == 0) {
                         rx_func[i](srce, args, (session_struct *) data);

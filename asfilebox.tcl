@@ -58,6 +58,7 @@ proc asSelectFile {w value} {
     global as_cwd
     
     $w.main.entries.e delete 0 end
+
     if [file isfile $as_cwd($w)/$value] {
 	$w.main.entries.e insert 0 $value
     } 
@@ -69,26 +70,26 @@ proc asOpenFile {w value} {
     set value [string trimright $value /]
     set value [string trim $value \[\]]
     if {$value == ".."} {
-	catch {
-	    set as_cwd($w) [asUpdir $as_cwd($w)]
-	    cd $as_cwd($w)
-	}
-	asFilter $w
+		catch {
+			set as_cwd($w) [asUpdir $as_cwd($w)]
+			cd $as_cwd($w)
+		}
+		asFilter $w
     } elseif [string match "?:" $value] {
-	catch {
-	    cd $value/
-	    set as_cwd($w) [pwd]
-	}
-	asFilter $w
+		catch {
+			cd $value/
+			set as_cwd($w) [pwd]
+		}
+		asFilter $w
     } elseif [file isdirectory $as_cwd($w)/$value] {
-	set as_file($w) ""
-	catch {
-	    cd $as_cwd($w)/$value
-	    set as_cwd($w) [pwd]
-	}
-	asFilter $w
+		set as_file($w) ""
+		catch {
+		    cd $as_cwd($w)/$value
+		    set as_cwd($w) [pwd]
+		}
+		asFilter $w
     } elseif [file isfile $as_cwd($w)/$value] {
-	tkButtonInvoke $as_ok($w)
+		tkButtonInvoke $as_ok($w)
     }
 }
 
@@ -271,15 +272,47 @@ proc asFileBox {w args} {
     }
 
     set as_ext($w) $base(-defaultextension)
-    # Add listbox bindings
+    
+	# Add listbox bindings
     bind $w.main.lbf.list <1> {
-	%W activate @%x,%y
-	asSelectFile [asRootName %W] [%W get active]
+		%W activate @%x,%y
+		asSelectFile [asRootName %W] [%W get active]
     }
 
     bind $w.main.lbf.list <Double-Button-1> {
-	%W activate @%x,%y
-	asOpenFile [asRootName %W] [%W get active]
+		%W activate @%x,%y
+		asOpenFile [asRootName %W] [%W get active]
+    }
+	
+	bind $w.main.lbf.list <KeyPress-Return> {
+	
+		asOpenFile [asRootName %W] [%W get active]
+    }
+    
+	bind $w <Up> {
+		set sel [%W.main.lbf.list curselection]
+		if {$sel != {}} {
+			incr sel -1
+			if { $sel > -1 } {
+				%W.main.lbf.list selection clear 0 end
+				%W.main.lbf.list selection set $sel
+				%W.main.lbf.list yview $sel
+			asSelectFile [asRootName %W] [%W.main.lbf.list get active]
+			}
+		}
+    }
+ 
+	bind $w <Down> {
+		set sel [%W.main.lbf.list curselection]
+		if {$sel != {}} {
+			incr sel
+			if { $sel < [%W.main.lbf.list index end] } {
+				%W.main.lbf.list selection clear 0 end
+				%W.main.lbf.list selection set $sel
+				%W.main.lbf.list yview $sel
+				asSelectFile [asRootName %W] [%W.main.lbf.list get $sel]
+			}
+		}
     }
 
     asFilter $w 

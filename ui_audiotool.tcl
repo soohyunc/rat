@@ -170,12 +170,16 @@ proc mbus_recv {cmnd args} {
 		audio.output.gain  		{eval mbus_recv_audio.output.gain $args}
 		audio.output.port  		{eval mbus_recv_audio.output.port $args}
 		audio.output.mute  		{eval mbus_recv_audio.output.mute $args}
+		audio.file.play.ready   {eval mbus_recv_audio.file.play.ready   $args}
+		audio.file.play.alive   {eval mbus_recv_audio.file.play.alive $args}
+		audio.file.record.ready {eval mbus_recv_audio.file.record.ready $args}
+		audio.file.record.alive {eval mbus_recv_audio.file.record.alive $args}
 		session.title  			{eval mbus_recv_session.title $args}
 		session.address  		{eval mbus_recv_session.address $args}
 		externalise  			{eval mbus_recv_externalise $args}
 		lecture.mode  			{eval mbus_recv_lecture.mode $args}
 		detect.silence  		{eval mbus_recv_detect.silence $args}
-		rtp.cname  			{eval mbus_recv_rtp.cname $args}
+		rtp.cname  				{eval mbus_recv_rtp.cname $args}
 		rtp.source.exists  		{eval mbus_recv_rtp.source.exists $args}
 		rtp.source.name  		{eval mbus_recv_rtp.source.name $args}
 		rtp.source.email  		{eval mbus_recv_rtp.source.email $args}
@@ -560,6 +564,40 @@ proc mbus_recv_rtp.source.mute {cname val} {
 	}
 }
 
+proc mbus_recv_audio.file.play.ready {name} {
+	global play_file
+	set    play_file(name) $name
+	file_enable_play
+}
+
+proc mbus_recv_audio.file.play.alive {alive} {
+	global play_file
+	
+	puts "file_play_live"
+	if {$alive} {
+		after 200 file_play_live
+	} else {
+		set play_file(state) end
+		file_enable_play
+	}
+}
+
+proc mbus_recv_audio.file.record.ready {name} {
+	global record_file
+	set    record_file(name) $name
+	file_enable_record
+}
+
+proc mbus_recv_audio.file.record.alive {alive} {
+	global rec_file
+	if {$alive} {
+		after 200 file_play_live
+	} else {
+		set rec_file(state) end
+		file_enable_record                                          
+	}
+}
+
 proc mbus_recv_quit {} {
 	save_settings 
 	destroy .
@@ -859,11 +897,6 @@ button .r.c.gain.l2 -highlightthickness 0 -command toggle_input_port
 bargraphCreate .r.c.gain.b2
 scale .r.c.gain.s2 -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -relief raised -showvalue false -width 10 -variable gain
 label .r.c.gain.ml -text "Transmission is muted" -relief sunken
-
-#button .r.c.gain.file -bitmap disk
-#button .r.c.gain.rec -bitmap rec
-#pack   .r.c.gain.file -side right  
-#pack   .r.c.gain.rec -side right  
 
 pack .r.c.gain.l2 -side left -fill y
 pack .r.c.gain.t2 -side left -fill y
@@ -1815,77 +1848,211 @@ chart_enlarge 1
 # File Control Window 
 #
 
-toplevel .file
+catch {
+	toplevel .file
 
-frame .file.play
-frame .file.rec
-pack  .file.play -side left
-pack  .file.rec  -side right
+	frame .file.play
+	frame .file.rec
+	pack  .file.play -side left
+	pack  .file.rec  -side right
 
-label .file.play.l -text "Playback"
-pack  .file.play.l -side top -fill x
-label .file.rec.l -text "Record"
-pack  .file.rec.l -side top -fill x
+	label .file.play.l -text "Playback"
+	pack  .file.play.l -side top -fill x
+	label .file.rec.l -text "Record"
+	pack  .file.rec.l -side top -fill x
 
-wm withdraw .file
-wm title    .file "RAT File Control"
+	wm withdraw .file
+	wm title	.file "RAT File Control"
 
-foreach action { play rec } {
-    frame  .file.$action.buttons
-    pack   .file.$action.buttons
-    button .file.$action.buttons.disk -bitmap disk -command "fileDialog $action"
-    pack   .file.$action.buttons.disk -side left
-    foreach cmd "$action pause stop" {
-	button .file.$action.buttons.$cmd -bitmap $cmd -state disabled
-	pack   .file.$action.buttons.$cmd -side left
-    }
+	foreach action { play rec } {
+		frame  .file.$action.buttons
+		pack   .file.$action.buttons
+		button .file.$action.buttons.disk -bitmap disk -command "fileDialog $action"
+		pack   .file.$action.buttons.disk -side left
+		foreach cmd "$action pause stop" {
+			button .file.$action.buttons.$cmd -bitmap $cmd -state disabled -command file_$action\_$cmd
+			pack   .file.$action.buttons.$cmd -side left
+		}
+	}
+} fwinerr
+
+if {$fwinerr != {}} {
+	puts stderr $fwinerr
 }
 
 proc fileDialog {cmdbox} {
     global win32 tcl_platform
     
-    if {$win32} {
-	set defaultExtension wav
-    } else {
 	set defaultExtension au
-    }
-    
+	set defaultLocation  .
+
     switch -glob $tcl_platform(os) {
-	SunOS    { if [file exists /usr/demo/SOUND/sounds] { set defaultLocation /usr/demo/SOUND/sounds}}
-	Windows* { if [file exists C:/Windows/Media] { set defaultLocation C:/Windows/Media}}
-	default  { set defaultLocation . }
-    }
+	SunOS    { 
+		if [file exists /usr/demo/SOUND/sounds] { set defaultLocation /usr/demo/SOUND/sounds }
+		}
+	Windows* { 
+		if [file exists C:/Windows/Media]       { set defaultLocation C:/Windows/Media }
+		set defaultExtension wav
+		}
+	}
     
     set types {
-	{"NeXT/Sun Audio files"	"au"}
-	{"Microsoft RIFF files"	"wav"}
-	{"All files"		"*"}
+		{"NeXT/Sun Audio files"	"au"}
+		{"Microsoft RIFF files"	"wav"}
+		{"All files"		"*"}
     }
     
-
     if {![string compare $cmdbox "play"]} {
-	catch {  asFileBox .playfilebox  -command file_open_$cmdbox  -extensions $types }
+		catch { asFileBox .playfilebox  -defaultextension $defaultExtension -command file_open_$cmdbox -directory $defaultLocation -extensions $types } asferror
     } else {
-	catch {  asFileBox .recfilebox   -command file_open_$cmdbox  -extensions $types -force_extension 1 }
+		catch { asFileBox .recfilebox   -defaultextension $defaultExtension -command file_open_$cmdbox  -extensions $types -force_extension 1 } asferror
     }
+	
+	if {$asferror != ""} {
+		puts stderr asferror
+	}
 }
 
 proc file_show {} {
     global files_on
     
     if {$files_on} {
- 	wm deiconify .file
+	 	wm deiconify .file
     } else {
- 	wm withdraw .file
+ 		wm withdraw .file
     }
 }
 
+proc file_play_live {} {
+# Request heart beat to determine if file is valid
+	mbus_send "R" audio.file.play.live ""
+}
+
+proc file_rec_live {} {
+# Request heart beat to determine if file is valid
+	mbus_send "R" audio.file.record.live ""
+}
+
 proc file_open_play {path} {
-    mbus_send "R" "audio.file.play.open" [mbus_encode_str $path]
+    global play_file
+
+
+	mbus_send "R" "audio.file.play.open" [mbus_encode_str $path]
+	mbus_send "R" "audio.file.play.pause" 1
+	set play_file(state) paused
+	set play_file(name) $path
+
+	# Test whether file is still playing/valid
+	after 200 file_play_live
 }
 
 proc file_open_rec {path} {
+	global rec_file
+
     mbus_send "R" "audio.file.record.open" [mbus_encode_str $path]
+    mbus_send "R" "audio.file.record.pause" 1
+
+	set rec_file(state) paused
+	set rec_file(name)  $path
+
+	# Test whether file is still recording/valid
+	after 200 file_rec_live
+}
+
+proc file_enable_play { } {
+	.file.play.buttons.play   configure -state normal
+	.file.play.buttons.pause  configure -state disabled
+	.file.play.buttons.stop   configure -state disabled
+}	
+
+proc file_enable_record { } {
+	.file.rec.buttons.rec configure -state normal
+	.file.rec.buttons.pause  configure -state disabled
+	.file.rec.buttons.stop   configure -state disabled
+}
+
+proc file_play_play {} {
+	global play_file
+	
+	catch {
+		puts stderr $play_file(state)
+		if {$play_file(state) == "paused"} {
+			mbus_send "R" "audio.file.play.pause" 0
+			puts stderr "unpaused"
+		} else {
+			mbus_send "R" "audio.file.play.open" [mbus_encode_str $play_file(name)]
+			puts stderr "re-opening"
+		}
+		set play_file(state) play
+	} pferr
+
+	if { $pferr != "play" } { puts stderr "pferr: $pferr" }
+
+	.file.play.buttons.play   configure -state disabled
+	.file.play.buttons.pause  configure -state normal
+	.file.play.buttons.stop   configure -state normal
+	
+	after 200 file_play_live
+}
+
+proc file_play_pause {} {
+	global play_file
+	
+	.file.play.buttons.play   configure -state normal
+	.file.play.buttons.pause  configure -state disabled
+	.file.play.buttons.stop   configure -state normal
+
+	set play_file(state) paused
+	mbus_send "R" "audio.file.play.pause" 1
+}
+
+proc file_play_stop {} {
+	global play_file
+	
+	set play_file(state) end
+	file_enable_play
+	mbus_send "R" "audio.file.play.stop" ""
+}
+
+proc file_rec_rec {} {
+	global rec_file
+	
+	catch {
+		puts stderr $rec_file(state)
+		if {$rec_file(state) == "paused"} {
+			mbus_send "R" "audio.file.record.pause" 0
+		} else {
+			mbus_send "R" "audio.file.record.open" [mbus_encode_str $rec_file(name)]
+		}
+		set rec_file(state) record
+	} prerr
+
+	if { $prerr != "record" } { puts stderr "prerr: $prerr" }
+
+	.file.rec.buttons.rec    configure -state disabled
+	.file.rec.buttons.pause  configure -state normal
+	.file.rec.buttons.stop   configure -state normal
+
+	after 200 file_rec_live
+}
+
+proc file_rec_pause {} {
+	global rec_file
+
+	.file.rec.buttons.rec    configure -state normal
+	.file.rec.buttons.pause  configure -state disabled
+	.file.rec.buttons.stop   configure -state normal
+
+	set rec_file(state) paused
+	mbus_send "R" "audio.file.rec.pause" 1
+}
+
+proc file_rec_stop {} {
+	global rec_file
+	
+	set rec_file(state) end
+	file_enable_record
+	mbus_send "R" "audio.file.record.stop" ""
 }
 
 #

@@ -47,6 +47,7 @@
 #include "channel.h"
 #include "session.h"
 #include "audio.h"
+#include "sndfile.h"
 #include "parameters.h"
 #include "ui.h"
 #include "util.h"
@@ -286,13 +287,20 @@ tx_read_audio(session_struct *sp)
 {
         tx_unit 	*u;
         unsigned int	 read_dur = 0;
-
+        unsigned int     this_read;
         if (sp->sending_audio) {
                 do {
                         u = sp->tb->last_ptr;
                         assert(u);
-                        u->dur_used += audio_device_read(sp, u->data + u->dur_used * sp->tb->channels,
-                                                         (sp->tb->unit_dur - u->dur_used) * sp->tb->channels) / sp->tb->channels;
+                        this_read = audio_device_read(sp, u->data + u->dur_used * sp->tb->channels,
+                                                      (sp->tb->unit_dur - u->dur_used) * sp->tb->channels) / sp->tb->channels;
+                        if (sp->in_file) {
+                                snd_read_audio(&sp->in_file, 
+                                                u->data + u->dur_used * sp->tb->channels,
+                                                (u_int16)((sp->tb->unit_dur - u->dur_used) * sp->tb->channels));
+                        }
+                        
+                        u->dur_used += this_read;
                         if (u->dur_used == sp->tb->unit_dur) {
                                 read_dur += sp->tb->unit_dur;
                                 time_advance(sp->clock, get_freq(sp->tb->clock), sp->tb->unit_dur);

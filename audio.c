@@ -470,6 +470,7 @@ audio_wait_for(session_struct *sp)
         while (!audio_is_ready()) {
                 Sleep(dwPeriod);
         }
+
         return;
 #else
         fd_set rfds;

@@ -69,7 +69,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "c:\Program Files\Tcl\include" /I "c:\Program Files\Tcl\include\xlib" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "DEBUG" /D "SASR" /D "DEBUG_MEM" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "c:\Program Files\Tcl\include" /I "c:\Program Files\Tcl\include\xlib" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "DEBUG" /D "SASR" /FR /YX /FD /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x809 /d "_DEBUG"
@@ -254,6 +254,15 @@ SOURCE=.\mbus.h
 # Begin Source File
 
 SOURCE=.\mbus_engine.c
+
+!IF  "$(CFG)" == "rat - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug"
+
+# ADD CPP /W3
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -432,13 +441,15 @@ InputPath=.\ui_audiotool.tcl
 
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
 
+USERDEP__UI_AU="$(InputDir)\asfilebox.tcl"	
 # Begin Custom Build - Building audiotool ui
 InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_audiotool.tcl | tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c
-
+	copy asfilebox.tcl + ui_audiotool.tcl ui_at.tcl 
+	type $(InputDir)\ui_at.tcl | tcl2c\tcl2c ui_audiotool >                    $(InputDir)\ui_audiotool.c 
+	
 # End Custom Build
 
 !ENDIF 
@@ -458,8 +469,8 @@ SOURCE=.\ui_transcoder.tcl
 InputDir=.
 InputPath=.\ui_transcoder.tcl
 
-"$(InputDir)\ui_transocder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | tcl2c2c ui_transcoder > $(InputDir)\ui_transocder.c
+"$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	type $(InputDir)\ui_transcoder.tcl | tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
@@ -470,7 +481,7 @@ InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "$(InputDir)\ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	type $(InputDir)\ui_transcoder.tcl | tcl2c2c ui_transcoder > $(InputDir)\ui_transcoder.c
+	type $(InputDir)\ui_transcoder.tcl | tcl2c\tcl2c ui_transcoder > $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 

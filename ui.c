@@ -749,6 +749,36 @@ ui_get_codecs(int pt, char *buf, unsigned int buf_len, int loose)
         return buf;
 }
 
+void
+ui_update_playback_file(char *name)
+{
+        char *mbes;
+        mbes = mbus_encode_str(name);
+        mbus_engine_tx(TRUE, mbus_name_ui, "audio.file.play.ready", mbes, TRUE); 
+        xfree(mbes);
+}
+
+void
+ui_update_record_file(char *name)
+{
+        char *mbes;
+        mbes = mbus_encode_str(name);
+        mbus_engine_tx(TRUE, mbus_name_ui, "audio.file.record.ready", mbes, TRUE); 
+        xfree(mbes);
+}
+
+void
+ui_update_file_live(char *mode, int valid)
+{
+        char cmd[32], arg[2];
+        
+        assert(!strcmp(mode, "play") || !strcmp(mode, "record"));
+        
+        sprintf(cmd, "audio.file.%s.alive", mode);
+        sprintf(arg, "%1d", valid); 
+        mbus_engine_tx(TRUE, mbus_name_ui, cmd, arg, TRUE);
+}
+
 void 
 ui_codecs(int pt)
 {

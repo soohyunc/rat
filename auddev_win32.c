@@ -187,22 +187,22 @@ mixGetErrorText(MMRESULT mmr, char *szMsg, int cbMsg)
 {
         assert(cbMsg > 15);
         switch (mmr) {
-                case MMSYSERR_NOERROR:     sprintf(szMsg, "no error");        break; 
-                case MIXERR_INVALLINE:     sprintf(szMsg, "invalid line");    break;
-                case MIXERR_INVALCONTROL:  sprintf(szMsg, "invalid control"); break;
-                case MIXERR_INVALVALUE:    sprintf(szMsg, "invalid value");   break;
-                case MMSYSERR_BADDEVICEID: sprintf(szMsg, "bad device id");   break;
-                case MMSYSERR_INVALFLAG:   sprintf(szMsg, "invalid flag");    break;
-                case MMSYSERR_INVALHANDLE: sprintf(szMsg, "invalid handle");  break;
-                case MMSYSERR_INVALPARAM:  sprintf(szMsg, "invalid param");   break;
-                case MMSYSERR_NODRIVER:    sprintf(szMsg, "no driver!");      break;               
+                case MMSYSERR_NOERROR:     sprintf(szMsg, "no error\n");        break; 
+                case MIXERR_INVALLINE:     sprintf(szMsg, "invalid line\n");    break;
+                case MIXERR_INVALCONTROL:  sprintf(szMsg, "invalid control\n"); break;
+                case MIXERR_INVALVALUE:    sprintf(szMsg, "invalid value\n");   break;
+                case MMSYSERR_BADDEVICEID: sprintf(szMsg, "bad device id\n");   break;
+                case MMSYSERR_INVALFLAG:   sprintf(szMsg, "invalid flag\n");    break;
+                case MMSYSERR_INVALHANDLE: sprintf(szMsg, "invalid handle\n");  break;
+                case MMSYSERR_INVALPARAM:  sprintf(szMsg, "invalid param\n");   break;
+                case MMSYSERR_NODRIVER:    sprintf(szMsg, "no driver!\n");      break;               
         }
 }
 
 static int
 mixSetLoopback(char *szName)
 {
-        unsigned int i, loopCtl;
+        unsigned int i, loopCtl = 0;
         MIXERCONTROLDETAILS          mcd;
         MIXERCONTROLDETAILS_BOOLEAN  mcdbOnOff;
         MIXERCONTROLDETAILS_UNSIGNED mcduLoopGain;
@@ -404,7 +404,7 @@ mixSetup()
         MMRESULT  res;
         HMIXER    hMix;
 	
-        int i,j, nDevs, nDstIn, nDstOut;
+        int i,j, nDevs, nDstIn = 0, nDstOut = 0;
         char mixName[32];
 
         if (hMixIn)  {mixerClose(hMixIn);  hMixIn  = 0;}
@@ -418,7 +418,10 @@ mixSetup()
                 res = mixerGetDevCaps(i,  &m, sizeof(m));
                 
                 j = 0;
-                while(j < 32 && (mixName[j] = tolower(m.szPname[j]))) j++;
+                while(j < 32 && mixName[j]) {
+                        mixName[j] = (char)tolower(m.szPname[j]);
+                        j++;
+                }
                 
                 if (res == MMSYSERR_NOERROR){
                         if ((unsigned)i == uWavIn) {
@@ -439,11 +442,11 @@ mixSetup()
         /* There are fields within MIXERLINE struct that should say
          * if line is input or output.  Does not work with SB driver
          * so we give a string to match to "Rec" or "Vol", great :-( */
-
-        mixGetControls(hMixIn, "Rec", nDstIn,  mcMixIn,  &nMixIn);
-        mixGetControls(hMixIn, "Master", nDstOut,  mcMixOut,  &nMixOut);
+        
+        mixGetControls(hMixIn, "Rec", nDstIn,  mcMixIn,  (int*)&nMixIn);
+        mixGetControls(hMixIn, "Master", nDstOut,  mcMixOut, (int*)&nMixOut);
         if (nMixOut == 0) {
-                mixGetControls(hMixIn, "Vol", nDstOut,  mcMixOut,  &nMixOut);
+                mixGetControls(hMixIn, "Vol", nDstOut,  mcMixOut, (int*)&nMixOut);
         }
         mixSetIPort(nameToMixCtls("mic", mcMixIn, nMixIn));
 }
@@ -485,7 +488,7 @@ audio_open_out()
 	for (i = 0, whp = write_hdrs, bp = write_mem; i < nblks; i++, whp++, bp += blksz) {
 		whp->dwFlags        = 0;
 		whp->dwBufferLength = blksz;
-		whp->lpData         = bp;
+		whp->lpData         = (char*)bp;
 		error = waveOutPrepareHeader(shWaveOut, whp, sizeof(WAVEHDR));
 		if (error) {
 			waveOutGetErrorText(error, errorText, sizeof(errorText));
@@ -526,6 +529,8 @@ int
 audio_write(int audio_fd, sample *cp, int remain)
 {
 	int		error, len, ret;
+
+        UNUSED(audio_fd);
 
 	if (shWaveOut == 0)
 		return (remain);
@@ -591,6 +596,11 @@ waveInProc(HWAVEIN hwi,
 		   DWORD   dwParam1,
 		   DWORD   dwParam2)
 {
+        UNUSED(dwInstance);
+        UNUSED(dwParam1);
+        UNUSED(dwParam2);
+        UNUSED(hwi);
+
 	switch(uMsg) {
 	case WIM_DATA:
 		audio_ready++;
@@ -635,7 +645,7 @@ audio_open_in()
 	/* Provide buffers for reading */
         audio_ready = 0;
         for (l = 0, whp = read_hdrs, bp = read_mem; l < nblks; l++, whp++, bp += blksz) {
-		whp->lpData = bp;
+		whp->lpData = (char*)bp;
 		whp->dwBufferLength = blksz;
 		whp->dwFlags = 0;
 		error = waveInPrepareHeader(shWaveIn, whp, sizeof(WAVEHDR));
@@ -691,6 +701,8 @@ audio_read(int audio_fd, sample *buf, int samples)
 {
         static int virgin = 0;
         int len = 0;
+
+        UNUSED(audio_fd);
 
         if (!virgin) {
                 debug_msg("ready %d\n", audio_ready);
@@ -813,12 +825,12 @@ audio_open(audio_format fmt)
         }
 
         format.wFormatTag      = WAVE_FORMAT_PCM;
-	format.nChannels       = fmt.num_channels;
+	format.nChannels       = (WORD)fmt.num_channels;
 	format.nSamplesPerSec  = fmt.sample_rate;
-	format.wBitsPerSample  = fmt.bits_per_sample;
+	format.wBitsPerSample  = (WORD)fmt.bits_per_sample;
         smplsz                 = format.wBitsPerSample / 8;
         format.nAvgBytesPerSec = format.nChannels * format.nSamplesPerSec * smplsz;
-	format.nBlockAlign     = format.nChannels * smplsz;
+	format.nBlockAlign     = (WORD)(format.nChannels * smplsz);
 	format.cbSize          = 0;
         memcpy(&tfmt, &format, sizeof(format));
         /* Use 1 sec device buffer */
@@ -861,6 +873,7 @@ audio_open(audio_format fmt)
 void
 audio_close(int audio_fd)
 {
+        UNUSED(audio_fd);
         debug_msg("Closing input device.\n");
 	audio_close_in();
         debug_msg("Closing output device.\n");
@@ -870,6 +883,7 @@ audio_close(int audio_fd)
 int
 audio_duplex(int audio_fd)
 {
+        UNUSED(audio_fd);
 	return (duplex);
 }
 
@@ -877,11 +891,13 @@ audio_duplex(int audio_fd)
 void
 audio_drain(int audio_fd)
 {
+        UNUSED(audio_fd);
 }
 
 void
 audio_non_block(int audio_fd)
 {
+        UNUSED(audio_fd);
 }
 
 void
@@ -919,6 +935,7 @@ audio_set_gain(int audio_fd, int level)
 int
 audio_get_gain(int audio_fd)
 {
+        UNUSED(audio_fd);
 	return (rec_vol);
 }
 
@@ -926,6 +943,8 @@ void
 audio_set_volume(int audio_fd, int level)
 {
 	DWORD	vol;
+
+        UNUSED(audio_fd);
 
 	play_vol = level;
 
@@ -952,6 +971,8 @@ int
 audio_get_volume(int audio_fd)
 {
 	DWORD	vol;
+        
+        UNUSED(audio_fd);
 
 	if (shWaveOut == 0)
 		return (play_vol);
@@ -986,6 +1007,7 @@ audio_set_oport(int audio_fd, int port)
 /* Return selected output port */
 int audio_get_oport(int audio_fd)
 {
+        UNUSED(audio_fd);
 	return (AUDIO_SPEAKER);
 }
 
@@ -993,7 +1015,8 @@ int audio_get_oport(int audio_fd)
 int
 audio_next_oport(int audio_fd)
 {
-	return (AUDIO_SPEAKER);
+        UNUSED(audio_fd);
+        return (AUDIO_SPEAKER);
 }
 
 void 
@@ -1012,7 +1035,8 @@ audio_set_iport(int audio_fd, int port)
 int
 audio_get_iport(int audio_fd)
 {
-        int id = nameToAudioID(mcMixIn[curMixIn].szName, meInputs); 
+        int id = nameToAudioID(mcMixIn[curMixIn].szName, meInputs);
+        UNUSED(audio_fd);
 	return (id);
 }
 
@@ -1022,6 +1046,8 @@ audio_next_iport(int audio_fd)
 {
         u_int32 trialMixIn;
         int id = -1;
+
+        UNUSED(audio_fd);
 
         trialMixIn = curMixIn;
         do {

@@ -90,7 +90,8 @@ uname(struct utsname *ub)
 		  (DWORD)(HIBYTE(LOWORD(version))));
     (void)strcpy(ub->sysname, "Windows");
     if (gethostname(hostname, sizeof(hostname)) == 0) {
-	if (ptr = strchr(hostname, '.'))
+        ptr = strchr(hostname, '.');
+            if (ptr)
 	    *ptr = '\0';
     }
     else {

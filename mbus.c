@@ -219,7 +219,9 @@ static void mbus_ack_list_remove(struct mbus *m, char *srce, char *dest, int seq
 	 * list. That's not necessarily a problem, could just be a duplicate
 	 * ACK for a retransmission... We ignore it for now...
 	 */
-	debug_msg("Got an ACK for something not in our ACK list...\n");
+#ifdef DEBUG_MBUS
+        debug_msg("Got an ACK for something not in our ACK list...\n");
+#endif
 }
 
 int mbus_waiting_acks(struct mbus *m)
@@ -300,6 +302,7 @@ void mbus_retransmit(struct mbus *m)
 			debug_msg("Reliable mbus message failed!\n");
 			debug_msg("   mbus/1.0 %d R (%s) %s ()\n", curr->seqn, curr->srce, curr->dest);
 			debug_msg("   %s (%s)\n", curr->cmnd, curr->args);
+                        debug_msg("   waited (%d ms)\n", diff);
 			if (m->err_handler == NULL) {
 				abort();
 			}

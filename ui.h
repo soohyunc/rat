@@ -83,6 +83,10 @@ void	ui_update_video_playout(char *cname, int playout);
 void	ui_update_sync(int sync);
 void	ui_update_key(char *key);
 
+void    ui_update_playback_file(char *name);
+void    ui_update_record_file(char *name);
+void    ui_update_file_live(char *mode, int valid);
+
 void	ui_codecs(int pt);
 void    ui_converters(void);
 void    ui_sampling_modes(struct session_tag *sp);

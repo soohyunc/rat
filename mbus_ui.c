@@ -54,8 +54,9 @@ void mbus_ui_rx(char *srce, char *cmnd, char *args, void *data)
 
 	UNUSED(srce);
 	UNUSED(data);
-
+#ifdef DEBUG_MBUS
 	debug_msg("%s %s\n", cmnd, args);
+#endif /* DEBUG_MBUS */
 	sprintf(command, "mbus_recv %s %s", cmnd, args);
 
 	for (i = 0; i < (unsigned)strlen(command); i++) {
