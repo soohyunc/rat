@@ -161,6 +161,17 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 	char		*addr, *rx_port, *tx_port;
 	struct timeval	 timeout;
 
+	/* Parse the list of addresses/ports at the end of the command line... */
+	addr    = (char *) strtok(argv[argc-1], "/");
+	rx_port = (char *) strtok(NULL, "/");
+	tx_port = (char *) strtok(NULL, "/");
+	if (tx_port == NULL) {
+		tx_port = rx_port;
+	}
+	addr    = mbus_encode_str(addr);
+	mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, atoi(rx_port), atoi(tx_port), ttl);
+	xfree(addr);
+
 	/* Parse those command line parameters which are intended for the media engine. */
 	for (i = 1; i < argc; i++) {
 		debug_msg("argv[%d]=%s\n", i, argv[i]);
@@ -189,17 +200,8 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 		} else if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
                 }
         }
-	/* Parse the list of addresses/ports at the end of the command line... */
-	addr    = (char *) strtok(argv[argc-1], "/");
-	rx_port = (char *) strtok(NULL, "/");
-	tx_port = (char *) strtok(NULL, "/");
-	if (tx_port == NULL) {
-		tx_port = rx_port;
-	}
-	addr    = mbus_encode_str(addr);
-	mbus_qmsgf(m, e_addr, TRUE, "rtp.addr", "%s %d %d %d", addr, atoi(rx_port), atoi(tx_port), ttl);
-	xfree(addr);
 
+	/* Synchronize with the sub-processes... */
 	do {
 		mbus_send(m);
 		mbus_heartbeat(m, 1);
