@@ -81,7 +81,7 @@ static void heartbeat(u_int32 curr_time, u_int32 interval)
 	static u_int32	prev_time;
 
 	if (curr_time - prev_time > (interval << 16)) {
-		mbus_engine_tx(FALSE, "(* * * *)", "alive", "", FALSE);
+		mbus_engine_tx(FALSE, "(* * * *)", "mbus.hello", "", FALSE);
 		prev_time = curr_time;
 	}
 }
