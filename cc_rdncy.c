@@ -692,7 +692,6 @@ place_unit(media_data *md, coded_unit *cu)
         
         for (i = 0; i < md->nrep; i++) {
                 if (md->rep[i]->id == cu->id) {
-                        debug_msg("Redundancy decoder - coded_unit type already present\n");
                         return FALSE;
                 }
         }
