@@ -849,16 +849,23 @@ static void rx_quit(char *srce, char *args, session_struct *sp)
         should_exit = TRUE;
 }
 
-static void rx_init(char *srce, char *args, session_struct *sp)
+static void rx_mbus_waiting(char *srce, char *args, session_struct *sp)
 {
-	UNUSED(args);
 	UNUSED(srce);
-	sp->wait_on_startup = FALSE;
+	UNUSED(args);
+	UNUSED(sp);
 }
 
-static void rx_alive(char *srce, char *args, session_struct *sp)
+static void rx_mbus_go(char *srce, char *args, session_struct *sp)
 {
-	/* Ignore "alive" messages... */
+	UNUSED(srce);
+	UNUSED(args);
+	UNUSED(sp);
+}
+
+static void rx_mbus_hello(char *srce, char *args, session_struct *sp)
+{
+	/* Ignore "hello" messages... */
 	UNUSED(args);
 	UNUSED(srce);
 	UNUSED(sp);
@@ -906,8 +913,9 @@ const char *rx_cmnd[] = {
         "audio.channel.coding",
         "settings",
 	"quit",
-	"init",
-	"alive",
+	"mbus.waiting",
+	"mbus.go",
+	"mbus.hello",
 	""
 };
 
@@ -953,8 +961,9 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
         rx_audio_channel_coding,
         rx_settings,
 	rx_quit,
-	rx_init,
-	rx_alive
+	rx_mbus_waiting,
+	rx_mbus_go,
+	rx_mbus_hello
 };
 
 void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
