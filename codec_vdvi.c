@@ -156,6 +156,6 @@ vdvi_peek_frame_size(u_int16 idx, u_char *data, int data_len)
 
         len = vdvi_decode(data, data_len, dvi_buf, 160);
 
-        assert(len < data_len);
+        assert(len <= data_len);
         return len;
 }
