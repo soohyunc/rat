@@ -40,11 +40,9 @@
  * SUCH DAMAGE.
  */
 
-#ifndef WIN32
-#include <pwd.h>
-#endif
-
-#include "config.h"
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "util.h"
 #include "rtcp.h"
 #include "session.h"

@@ -40,12 +40,9 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-#ifndef WIN32
-#include <signal.h>
-#endif
-#include <math.h>
-
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "session.h"
 #include "receive.h"
 #include "util.h"

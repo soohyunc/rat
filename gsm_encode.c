@@ -6,6 +6,9 @@
 
 /* $Header$ */
 
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "gsm.h"
 
 void gsm_encode(gsm s, gsm_signal * source, gsm_byte * c)

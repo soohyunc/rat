@@ -49,6 +49,9 @@
  * notice appears in all copies of this software.
  */
 
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "version.h"
 #include "rat_types.h"
 #include "rtcp_pckt.h"

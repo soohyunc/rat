@@ -44,18 +44,8 @@ static char rcsid[] =
     "@(#) $Header$ (LBL)";
 #endif
 
-#include "config.h"
+#include "config-win32.h"
 #include "assert.h"
-#include <io.h>
-#include <process.h>
-#include <fcntl.h>
-#include <windows.h>
-#include <malloc.h>
-#include <string.h>
-#include <stdio.h>
-#include <time.h>
-#include <errno.h>
-#include <tk.h>
 
 int
 uname(struct utsname *ub)

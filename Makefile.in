@@ -16,7 +16,7 @@ OBJS = time.o codec.o convert.o repair.o codec_lpc.o codec_adpcm.o codec_wbs.o c
 rat: $(OBJS)
 	$(CC) $(OBJS) __LDLIBS__ __PROFILE__ __OPTIMIZE__ __CHECK_LIB__ -o rat
 
-%.o: %.c session.h
+%.o: %.c session.h config_unix.h config_win32.h
 	$(CC) $(CFLAGS) -c $*.c
 
 init_session.o: 	version.h

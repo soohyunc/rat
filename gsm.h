@@ -9,8 +9,6 @@
 #ifndef	GSM_H
 #define	GSM_H
 
-#include <stdio.h>
-
 #define	HAS_STDLIB_H	1		/* /usr/include/stdlib.h	*/
 #define	HAS_FCNTL_H	1		/* /usr/include/fcntl.h		*/
 #define	HAS_FSTAT 	1		/* fstat syscall		*/

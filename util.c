@@ -40,9 +40,9 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdarg.h>
-#include "config.h"
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "util.h"
 
 #ifdef DEBUG_MEM

@@ -44,12 +44,11 @@
 
 #if defined(OSS)||defined(Linux)
 
+#include "config_unix.h"
+#include "config_win32.h"
 #include "assert.h"
-#include "config.h"
 #include "audio.h"
 #include "util.h"
-
-#include <sys/soundcard.h>
 
 int	can_read  = FALSE;
 int	can_write = FALSE;

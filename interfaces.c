@@ -37,6 +37,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config_unix.h"
+#include "config_win32.h"
 #include "assert.h"
 #include "interfaces.h"
 #include "receive.h"

@@ -46,10 +46,10 @@
 
 
 #ifdef FreeBSD
-#include <assert.h>
-#include <machine/pcaudioio.h>
 
-#include "config.h"
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "util.h"
 #include "audio.h"
 

@@ -66,14 +66,8 @@
 
 #ifdef WIN32
 
-#include "config.h"
-#include <mmsystem.h>
-#include <mmreg.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#include "config-win32.h"
 #include "assert.h"
-
 #include "rat_types.h"
 #include "audio.h"
 #include "util.h"

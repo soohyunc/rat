@@ -40,7 +40,9 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "codec.h"
 #include "channel.h"
 #include "session.h"

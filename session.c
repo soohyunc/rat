@@ -41,8 +41,9 @@
  * SUCH DAMAGE.
  */
 
-#include <ctype.h>
-#include "config.h"
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "version.h"
 #include "session.h"
 #include "rat_time.h"

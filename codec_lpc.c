@@ -37,8 +37,8 @@
  */
 
 
-#include <sys/types.h>
-#include <math.h>
+#include "config_unix.h"
+#include "config_win32.h"
 #include "codec_lpc.h"
 
 #define MAXWINDOW	1000	/* Max analysis window length */

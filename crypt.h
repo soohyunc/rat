@@ -6,8 +6,6 @@
 #ifndef _crypt_h
 #define _crypt_h
 
-#include "config.h"
-
 int	Null_Key(void);
 int     Set_Key(char* key);
 u_char* Encrypt(u_char* in, int* len);

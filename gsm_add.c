@@ -10,10 +10,10 @@
  *  See private.h for the more commonly used macro versions.
  */
 
-#include	<stdio.h>
-#include	"config.h"
-#include	"assert.h"
-#include	"gsm.h"
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
+#include "gsm.h"
 
 #define	saturate(x) 	((x) < MIN_WORD ? MIN_WORD : (x) > MAX_WORD ? MAX_WORD: (x))
 

@@ -4,16 +4,10 @@
  * details.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "config.h"
+#include "config_unix.h"
+#include "config_win32.h"
 #include "assert.h"
 #include "gsm.h"
-
-#ifndef FreeBSD
-#include <malloc.h>
-#endif
 
 struct gsm_state *gsm_create(void)
 {

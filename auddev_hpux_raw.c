@@ -12,8 +12,9 @@
  */
 
 #ifdef HPUX
+#include "config_unix.h"
+#include "config_win32.h"
 #include "assert.h"
-#include <unistd.h>
 
 #define NSAMPLES	4096
 #define OUT_BUFFER_SIZE (NSAMPLES/sizeof(short))

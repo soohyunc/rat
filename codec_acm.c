@@ -41,12 +41,7 @@
  */
 
 #ifdef WIN32
-#include "config.h"
-#include <windows.h>
-#include <mmsystem.h>
-#include <mmreg.h>
-#include <msacm.h>
-#include <stdio.h>
+#include "config-win32.h"
 
 #include "rat_types.h"
 #include "codec_acm.h"

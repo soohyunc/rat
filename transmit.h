@@ -43,7 +43,6 @@
 #ifndef _transmit_h_
 #define _transmit_h_
 
-#include "config.h"
 #include "session.h"
 #include "codec.h"
 

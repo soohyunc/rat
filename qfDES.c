@@ -7,28 +7,9 @@ Patch for Intel/Linux courtesy of Mark Handley & George Pavlou
 Added 2 August 1996, Saleem
 *****************************************************************************/
 
-#include "config.h"
-#include <sys/types.h>
-#if defined(IRIX) || defined(WIN32)
-#include <time.h>
-#else
-#include <sys/time.h>
-#endif
-
-#ifndef WIN32 
-#include <netinet/in.h>
-#include <unistd.h>
-#endif
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <memory.h>
-#ifndef  FreeBSD
-#include <malloc.h>
-#endif
-#include <ctype.h>
-#include <errno.h>
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "qfDES.h"
 #include "crypt_random.h"
 

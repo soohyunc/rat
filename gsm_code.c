@@ -6,15 +6,10 @@
 
 /* $Header$ */
 
-#include "config.h"
-
-#ifdef WIN32
-#include <memory.h>
-#endif
-
-#include	<string.h>
-#include	<stdlib.h>
-#include	"gsm.h"
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
+#include "gsm.h"
 
 /* 
  *  4.2 FIXED POINT IMPLEMENTATION OF THE RPE-LTP CODER 

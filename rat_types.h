@@ -1,8 +1,6 @@
 #ifndef _rat_types_h_
 #define _rat_types_h_
 
-#include "config.h"
-
 typedef unsigned char	byte;
 
 /*

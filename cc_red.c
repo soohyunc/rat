@@ -39,15 +39,9 @@
  * SUCH DAMAGE.
  */
 
-#ifndef   WIN32
-#include <sys/param.h>
-#endif /* WIN32 */
-
-#include <stdlib.h>
-#include <sys/types.h>
-
+#include "config_unix.h"
+#include "config_win32.h"
 #include "assert.h"
-#include "config.h"
 #include "session.h"
 #include "codec.h"
 #include "channel.h"

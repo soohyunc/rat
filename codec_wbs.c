@@ -1,3 +1,5 @@
+#include "config_unix.h"
+#include "config_win32.h"
 #include "codec_wbs.h"
 
 int aStepsizes[]={

@@ -40,18 +40,12 @@
  * SUCH DAMAGE.
  */
 
-#include <math.h>
-#include <stdio.h>
-
+#include "config_unix.h"
+#include "config_win32.h"
 #include "assert.h"
 #include "rat_types.h"
 #include "convert.h"
 #include "util.h"
-
-#ifdef WIN32
-#include <mmreg.h>
-#include <msacm.h>
-#endif
 
 typedef struct s_converter_fmt{
         u_int16 from_channels;
@@ -1388,10 +1382,6 @@ converter_get_names(char *buf, int buf_len)
 }
 
 #ifdef DEBUG_CONVERT
-
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 
 #define SRC_LEN 160
 

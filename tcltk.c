@@ -37,18 +37,15 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "version.h"
 #include "session.h"
 #include "mbus.h"
 #include "mbus_ui.h"
 #include "util.h"
 #include "tcltk.h"
-/* The tcl/tk includes have to go after config.h, else we get warnings on
- * solaris 2.5.1, due to buggy system header files included by config.h [csp]
- */
-#include <tcl.h>
-#include <tk.h>
 
 extern char 	ui_audiotool[];
 extern char	ui_transcoder[];

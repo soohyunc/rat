@@ -40,13 +40,9 @@
  * SUCH DAMAGE.
  */
 
-#ifndef   WIN32
-#include <sys/types.h>
-#endif /* WIN32 */
-
-#include <stdlib.h>
-#include <ctype.h>
-#include "config.h"
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "session.h"
 #include "receive.h"
 #include "codec.h"

@@ -1,12 +1,12 @@
 /*
- *  config.h
+ *  config-unix.h
  *
- *  Machine/operating-system specific definitions and includes for RAT.
+ *  Unix specific definitions and includes for RAT.
  *  
  *  $Revision$
  *  $Date$
  *
- * Copyright (c) 1995,1996 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,25 +40,30 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _RAT_CONFIG_H_
-#define _RAT_CONFIG_H_
+#ifndef WIN32
+#ifndef _CONFIG_UNIX_H
+#define _CONFIG_UNIX_H
 
-#include "assert.h"
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
+#include <pwd.h>
+#include <signal.h>
+#include <ctype.h>
 #ifndef __FreeBSD__
 #include <malloc.h>
 #endif
 #include <stdio.h>
+#include <stdarg.h>
 #include <memory.h>
 #include <errno.h>
 #include <math.h>
 #include <stdlib.h>   /* abs() */
 #include <string.h>
 
-#ifdef WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else /* WIN32 */
+#include <net/if.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
@@ -75,16 +80,8 @@ extern int h_errno;
 #include <stropts.h>
 #include <sys/filio.h>  
 #endif /* HPUX */
-#endif /* WIN32 */
 
-/* Why does Windows use a different type for file descriptors than any */
-/* other platform? They're not really trying to make porting difficult */
-/* are they?                                                     [csp] */
-#ifdef WIN32
-typedef u_int	fd_t;
-#else
 typedef int	fd_t;
-#endif
 
 #ifndef TRUE
 #define FALSE	0
@@ -93,10 +90,8 @@ typedef int	fd_t;
 
 #define USERNAMELEN	8
 
-#ifndef WIN32
 #define max(a, b)	(((a) > (b))? (a): (b))
 #define min(a, b)	(((a) < (b))? (a): (b))
-#endif
 
 #ifdef FreeBSD
 #define OSNAME "FreeBSD"
@@ -109,6 +104,8 @@ typedef int	fd_t;
 #define AUDIO_MICROPHONE 1
 #define AUDIO_LINE_IN    2
 #define AUDIO_CD         4
+#include <machine/pcaudioio.h>
+#include <machine/soundcard.h>
 #endif /* FreeBSD */
 
 #ifdef SunOS_5
@@ -117,6 +114,8 @@ typedef int	fd_t;
 #include <fcntl.h>
 #include <sys/audioio.h>
 #include <multimedia/audio_encode.h>
+#include <multimedia/audio_hdr.h>
+#include <sys/sockio.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -207,106 +206,19 @@ int gethostname(char *hostname, size_t size);
 #define AUDIO_MICROPHONE 1
 #define AUDIO_LINE_IN    2
 #define AUDIO_CD         4
+#include <sys/soundcard.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 void *memcpy(void *dest, const void *src, size_t n);
 int   memcmp(const void *s1, const void *s2, size_t n);
 #endif /* Linux */
 
-#ifdef WIN32
-#define OSNAME "WIN32"
-#define DIFF_BYTE_ORDER	1
 
-#include <time.h>		/* For clock_t */
+/* The tcl/tk includes have to go after config.h, else we get warnings on
+ * solaris 2.5.1, due to buggy system header files included by config.h [csp]
+ */
+#include <tcl.h>
+#include <tk.h>
 
-#define inline
-#define __inline     
-
-#define AUDIO_MICROPHONE	1
-#define AUDIO_LINE_IN		2
-#define AUDIO_CD            4
-#define AUDIO_SPEAKER		0
-#define AUDIO_HEADPHONE		1
-#define AUDIO_LINE_OUT		4
-
-#define srand48	srand
-#define lrand48 rand
-
-#define IN_CLASSD(i)	(((long)(i) & 0xf0000000) == 0xe0000000)
-#define IN_MULTICAST(i)	IN_CLASSD(i)
-
-typedef char	*caddr_t;
-typedef int	ssize_t;
-
-typedef struct iovec {
-	caddr_t	iov_base;
-	ssize_t	iov_len;
-} iovec_t;
-
-struct msghdr {
-	caddr_t		msg_name;
-	int		msg_namelen;
-	struct iovec	*msg_iov;
-	int		msg_iovlen;
-	caddr_t		msg_accrights;
-	int		msg_accrightslen;
-};
-
-#define MAXHOSTNAMELEN	256
-
-#define _SYS_NMLN	9
-struct utsname {
-	char sysname[_SYS_NMLN];
-	char nodename[_SYS_NMLN];
-	char release[_SYS_NMLN];
-	char version[_SYS_NMLN];
-	char machine[_SYS_NMLN];
-};
-
-struct timezone {
-	int tz_minuteswest;
-	int tz_dsttime;
-};
-
-typedef int pid_t;
-typedef int uid_t;
-typedef int gid_t;
-    
-#if defined(__cplusplus)
-extern "C" {
+#endif 
 #endif
-
-int uname(struct utsname *);
-int getopt(int, char * const *, const char *);
-int strcasecmp(const char *, const char *);
-int strncasecmp(const char *, const char*, int len);
-int srandom(int);
-int random(void);
-double drand48();
-int gettimeofday(struct timeval *p, struct timezone *z);
-int gethostid(void);
-int getuid(void);
-int getgid(void);
-int getpid(void);
-int nice(int);
-time_t time(time_t *);
-
-int  RegGetValue(HKEY *, char *, char*, char*, int);
-void ShowMessage(int level, char *msg);
-
-#define bcopy(from,to,len) memcpy(to,from,len)
-
-#if defined(__cplusplus)
-}
-#endif
-
-#define ECONNREFUSED	WSAECONNREFUSED
-#define ENETUNREACH	WSAENETUNREACH
-#define EHOSTUNREACH	WSAEHOSTUNREACH
-#define EWOULDBLOCK	WSAEWOULDBLOCK
-
-#define M_PI		3.14159265358979323846
-
-#endif /* WIN32 */
-
-#endif /* _RAT_CONFIG_H_ */

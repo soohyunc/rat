@@ -41,13 +41,12 @@
  * SUCH DAMAGE.
  */
 
+#include "config_unix.h"
 #include "assert.h"
 #include "audio.h"
 #include "codec_g711.h"
 #include "cushion.h"
 #include "util.h"
-
-#include <multimedia/audio_hdr.h>
 
 typedef Audio_hdr* audio_header_pointer;
 

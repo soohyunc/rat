@@ -40,10 +40,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/types.h>
-#ifndef WIN32
-#include <netdb.h>
-#endif
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "util.h"
 #include "repair.h"
 #include "receive.h"

@@ -35,31 +35,11 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef   WIN32
-#include <strings.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
-#endif /* WIN32 */
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-
-#ifdef SunOS_5
-#include <sys/sockio.h>		/* For SIOCGIFCONF, which according the the Sun manual pages */
-#endif				/* is in <net/if.h>, but why should we believe them?         */
-
+#include "config_unix.h"
+#include "config_win32.h"
 #include "assert.h"
 #include "rat_types.h"
-#include "config.h"
 #include "util.h"
 #include "net.h"
 #include "mbus.h"

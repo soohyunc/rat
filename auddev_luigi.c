@@ -39,11 +39,11 @@
  */
 
 #ifdef FreeBSD
+#include "config_unix.h"
+#include "config_win32.h"
 #include "assert.h"
-#include "config.h"
 #include "audio.h"
 #include "util.h"
-#include <machine/soundcard.h>
 
 static int can_read = FALSE;
 static int can_write = FALSE;

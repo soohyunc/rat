@@ -41,6 +41,9 @@
  * SUCH DAMAGE.
  */
 
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "mix.h"
 #include "session.h"
 #include "util.h"

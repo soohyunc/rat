@@ -37,9 +37,9 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <ctype.h>
-#include "config.h"
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "rat_types.h"
 #include "mbus_engine.h"
 #include "mbus_ui.h"

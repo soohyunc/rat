@@ -6,11 +6,9 @@
 
 /* $Header$ */
 
-#ifndef FreeBSD
-#include <malloc.h>
-#endif
-
-#include <stdlib.h>
+#include "config_unix.h"
+#include "config_win32.h"
+#include "assert.h"
 #include "gsm.h"
 
 void gsm_destroy(gsm S)
