@@ -372,6 +372,8 @@ rtp_callback(struct rtp *s, rtp_event *e)
                 debug_msg("Source create (0x%08x)\n", e->ssrc);
 		process_create(sp, e->ssrc);
 		break;
+	case RR_TIMEOUT:
+		break;
 	default:
 		debug_msg("Unknown RTP event (type=%d)\n", e->type);
 		abort();
