@@ -110,6 +110,7 @@ _block_alloc(unsigned int size, const char *filen, int line)
 		fprintf(stderr, "block_alloc: block is too small %d %d!\n", size, *c);
 	}
 #ifdef DEBUG_MEM
+        assert(nblks_out < MAX_INDEX);
         blk_out[nblks_out].iov_base = (char*)c;
         blk_out[nblks_out].iov_len  = size;
         nblks_out++;

@@ -199,6 +199,9 @@ render_3D_set_parameters(struct s_render_3D_dbentry *p_3D_data, int sampling_rat
                                      0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 } };
         double   *filter_set[NUM_FILTERS];
 
+        debug_msg("rate %d azimuth %d filter %d length %d\n",
+                  sampling_rate, azimuth, filter_number, length);
+
         /* Identity filter */
         filter_set[0] = *(filters+0);
 
