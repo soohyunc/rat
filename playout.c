@@ -446,3 +446,43 @@ pb_relevant (struct s_pb *pb, ts_t now)
 
         return TRUE;
 }
+
+/* Timestamp info functions **************************************************/
+
+__inline int
+pb_get_start_ts(pb_t *pb, ts_t *ts)
+{
+        assert(pb);
+        assert(ts);
+
+        if (pb->sentinel.next != pb->psentinel) {
+                *ts = pb->sentinel.next->playout;
+                return TRUE;
+        }
+        return FALSE;
+}
+
+__inline int
+pb_get_end_ts(pb_t *pb, ts_t *ts)
+{
+        assert(pb);
+        assert(ts);
+
+        if (pb->sentinel.prev != pb->psentinel) {
+                *ts = pb->sentinel.prev->playout;
+                return TRUE;
+        }
+        return FALSE;
+}
+
+__inline int
+pb_iterator_get_ts(pb_iterator_t *pbi, ts_t *ts)
+{
+        assert(pbi);
+        assert(ts);
+        if (pbi->node != pbi->buffer->psentinel) {
+                *ts = pbi->node->playout;
+                return TRUE;
+        }
+        return FALSE;
+}

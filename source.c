@@ -615,17 +615,37 @@ source_get_sequencer(source *src)
 ts_t
 source_get_audio_buffered (source *src)
 {
-        /* To be written */
-        UNUSED(src);
-        return (ts_map32(8000,0));
+        ts_t start, end;
+
+        /* Total audio buffered is start of media buffer
+         * to end of channel buffer.
+         */
+
+        if (pb_get_start_ts(src->media, &start) &&
+            pb_get_end_ts(src->channel, &end)) {
+                assert(ts_gt(end, start));
+                return ts_sub(end, start);
+        }
+
+        return ts_map32(8000,0);
 }
 
 ts_t
 source_get_playout_delay (source *src)
 {
-        /* To be written */
-        UNUSED(src);
-        return (ts_map32(8000,0));
+        ts_t start, end;
+
+        /* Current playout is pretty close to src->media_pos point,
+         * delay is diff between this and last packet received.
+         */
+
+        if (pb_get_start_ts(src->channel,  &start) &&
+            pb_get_end_ts(src->channel, &end)) {
+                assert(ts_gt(end, start));
+                return ts_sub(end, start);
+        }
+
+        return ts_map32(8000,0);
 }
 
 int
