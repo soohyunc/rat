@@ -192,7 +192,7 @@ audio_device_attempt_config(session_t *sp, audio_config *config)
                 unit_len         = inf->bytes_per_block * 8 / (inf->bits_per_sample*inf->channels); 
                 tx_create(&sp->tb, sp, (uint16_t)inf->sample_rate, (uint16_t)inf->channels, (uint16_t)unit_len);
                 cushion_create(&sp->cushion, unit_len);
-		sp->cur_ts       = ts_map32(inf->sample_rate, 0);
+		sp->cur_ts = ts_convert(inf->sample_rate, sp->cur_ts);
                 mi.sample_rate   = ouf->sample_rate;
                 mi.channels      = ouf->channels;
                 mi.buffer_length = 32640;
