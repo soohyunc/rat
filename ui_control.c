@@ -718,7 +718,7 @@ codec_bw_cmp(const void *a, const void *b)
 }
 
 static char *
-ui_get_codecs(int pt, char *buf, int loose) 
+ui_get_codecs(int pt, char *buf, unsigned int buf_len, int loose) 
 {
 	codec_t	*codec[10],*sel;
 	u_int32	 i,nc, cnt;
@@ -748,10 +748,15 @@ ui_get_codecs(int pt, char *buf, int loose)
         
         /* sort by bw as this makes handling of acceptable redundant codecs easier in ui */
         qsort(codec,nc,sizeof(codec_t*),codec_bw_cmp);
-        for(i=0;i<nc;i++) {
+        for(i=0;i<nc && strlen(buf) + strlen(codec[i]->short_name) < buf_len;i++) {
                 sprintf(bp, "%s ", codec[i]->short_name);
                 bp += strlen(codec[i]->short_name) + 1;
         }
+
+        if (i != nc) {
+                debug_msg("Ran out of buffer space.\n");
+        }
+        
         if (bp != buf) *(bp-1) = 0;
         return buf;
 }
@@ -759,13 +764,13 @@ ui_get_codecs(int pt, char *buf, int loose)
 void 
 ui_codecs(int pt)
 {
-	char	args[64], *mbes;	/* Hope that's big enough... :-) */
+	char	args[256], *mbes;	/* Hope that's big enough... :-) */
 
-        ui_get_codecs(pt, args, TRUE);
+        ui_get_codecs(pt, args, 256, TRUE);
         mbes = mbus_encode_str(args);
 	mbus_engine_tx(TRUE, mbus_name_ui, "codec.supported", mbes, TRUE);
         xfree(mbes);
-        ui_get_codecs(pt, args, FALSE);
+        ui_get_codecs(pt, args, 256, FALSE);
         mbes = mbus_encode_str(args);
         mbus_engine_tx(TRUE, mbus_name_ui, "redundancy.supported", mbes, TRUE);
         xfree(mbes);
