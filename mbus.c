@@ -487,12 +487,38 @@ char *mbus_encode_str(char *s)
 
 void mbus_recv(struct mbus *m, void *data)
 {
-	char	*ver, *src, *dst, *ack, *r, *cmd, *param;
-	char	 buffer[MBUS_BUF_SIZE];
-	int	 buffer_len, seq, i, a;
+	char			*ver, *src, *dst, *ack, *r, *cmd, *param;
+	char			 buffer[MBUS_BUF_SIZE];
+	int			 buffer_len, seq, i, a;
+	struct sockaddr_in	 from;
+	int			 fromlen = sizeof(from);
+	char			 hostname[MAXHOSTNAMELEN];
+	struct hostent	 	*host;
+	u_long 	         	 inaddr = 0;
+	char			**p;
+	int			 match_addr = FALSE;
 
 	memset(buffer, 0, MBUS_BUF_SIZE);
-	if ((buffer_len = recvfrom(m->fd, buffer, MBUS_BUF_SIZE, 0, NULL, NULL)) <= 0) {
+	if ((buffer_len = recvfrom(m->fd, buffer, MBUS_BUF_SIZE, 0, (struct sockaddr *) &from, &fromlen)) <= 0) {
+		return;
+	}
+
+	/* Security: check that the source address of the packet we just
+	 * received belongs to the localhost, else someone can multicast
+	 * mbus commands with ttl 127 and cause chaos. Does this prevent
+	 * people faking the source address and attacking a single host
+	 * though? Probably, because of the rpf check in the mrouters...
+	 */
+	gethostname(hostname, MAXHOSTNAMELEN);
+	host = gethostbyname(hostname);
+	for (p = host->h_addr_list; *p != 0; p++) {
+		memcpy(&inaddr, *p, sizeof(inaddr));
+		if (from.sin_addr.s_addr == inaddr) {
+			match_addr = TRUE;
+		}
+	}
+	if (!match_addr) {
+		dprintf("Packet source address does not match local host address!\n");
 		return;
 	}
 
