@@ -61,6 +61,7 @@
 #include "rtcp_db.h"
 #include "session.h"
 #include "ui.h"
+#include "receive.h"
 #include "transmit.h"
 #include "timers.h"
 
@@ -362,6 +363,11 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
                 ui_update_stats(sp, dbe);
                 dbe->ui_last_update = get_time(dbe->clock);
                 debug_msg("Updating\n");
+                if (playout_buffer_exists(sp->playout_buf_list, dbe)) {
+                        ui_info_activate(sp, dbe);
+                } else {
+                        ui_info_deactivate(sp, dbe);
+                }
         }
 
 	rptr->ssrc     = htonl(dbe->ssrc);
