@@ -138,7 +138,7 @@ proc init_source {ssrc} {
 		set         INDEX($ssrc) $num_ssrc
 		set          SSRC($ssrc) $ssrc
 		incr num_ssrc
-		chart_add   $ssrc
+		chart::add   $ssrc
 	}
 }
 
@@ -156,12 +156,20 @@ proc window_stats {ssrc} {
 # Commands to send message over the conference bus...
 proc output_mute {state} {
     mbus_send "R" "audio.output.mute" "$state"
-    bargraphState .r.c.rx.au.pow.bar [expr ! $state]
+    if {$state} {
+    	bargraph::disable .r.c.rx.au.pow.bar
+    } else {
+        bargraph::enable .r.c.rx.au.pow.bar
+    }
 }
 
 proc input_mute {state} {
     mbus_send "R" "audio.input.mute" "$state"
-    bargraphState .r.c.tx.au.pow.bar [expr ! $state]
+    if {$state} {
+    	bargraph::disable .r.c.tx.au.pow.bar
+    } else {
+        bargraph::enable .r.c.tx.au.pow.bar
+    }
 }
 
 proc set_vol {new_vol} {
@@ -706,13 +714,11 @@ proc mbus_recv_audio.channel.repair {arg} {
 }
 
 proc mbus_recv_audio.input.powermeter {level} {
-	global bargraphTotalHeight
-	bargraphSetHeight .r.c.tx.au.pow.bar [expr ($level * $bargraphTotalHeight) / 100]
+	bargraph::setHeight .r.c.tx.au.pow.bar [expr ($level * $bargraph::totalHeight) / 100]
 }
 
 proc mbus_recv_audio.output.powermeter {level} {
-	global bargraphTotalHeight
-	bargraphSetHeight .r.c.rx.au.pow.bar  [expr ($level * $bargraphTotalHeight) / 100]
+	bargraph::setHeight .r.c.rx.au.pow.bar  [expr ($level * $bargraph::totalHeight) / 100]
 }
 
 proc mbus_recv_audio.input.gain {new_gain} {
@@ -739,7 +745,11 @@ proc mbus_recv_audio.input.port {port} {
 proc mbus_recv_audio.input.mute {val} {
     global in_mute_var
     set in_mute_var $val
-    bargraphState .r.c.tx.au.pow.bar [expr ! $val]
+    if {$val} {
+        bargraph::disable .r.c.tx.au.pow.bar 
+    } else {
+        bargraph::enable .r.c.tx.au.pow.bar 
+    }
 }
 
 proc mbus_recv_audio.output.gain {new_gain} {
@@ -823,7 +833,7 @@ proc mbus_recv_rtp.ssrc {ssrc} {
 
 proc mbus_recv_rtp.source.exists {ssrc} {
 	init_source $ssrc
-	chart_add $ssrc
+	chart::add $ssrc
 	ssrc_update $ssrc
 }
 
@@ -834,7 +844,7 @@ proc mbus_recv_rtp.source.cname {ssrc cname} {
 	if {[string compare $NAME($ssrc) $SSRC($ssrc)] == 0} {
 		set NAME($ssrc) $cname
 	}
-	chart_label $ssrc $NAME($ssrc)
+	chart::setlabel $ssrc $NAME($ssrc)
 	ssrc_update $ssrc
 }
 
@@ -842,7 +852,7 @@ proc mbus_recv_rtp.source.name {ssrc name} {
 	global NAME
 	init_source $ssrc
 	set NAME($ssrc) $name
-	chart_label $ssrc $name
+	chart::setlabel $ssrc $name
 	ssrc_update $ssrc
 }
 
@@ -975,7 +985,7 @@ proc mbus_recv_rtp.source.packet.loss {dest srce loss} {
 	global my_ssrc LOSS_FROM_ME LOSS_TO_ME HEARD_LOSS_FROM_ME HEARD_LOSS_TO_ME
 	init_source $srce
 	init_source $dest
-	chart_set $srce $dest $loss
+	chart::setvalue $srce $dest $loss
 	if {[info exists my_ssrc] && [string compare $dest $my_ssrc] == 0} {
 		set LOSS_TO_ME($srce) $loss
     		set HEARD_LOSS_TO_ME($srce) 1
@@ -1040,7 +1050,7 @@ proc mbus_recv_rtp.source.remove {ssrc} {
     }
 
     catch [destroy [window_plist $ssrc]]
-    chart_remove $ssrc
+    chart::remove $ssrc
 
     set stats_win [window_stats $ssrc]
     if { [winfo exists $stats_win] } {
@@ -1227,58 +1237,6 @@ proc ssrc_update {ssrc} {
 	if {[info exists HEARD_LOSS_FROM_ME($ssrc)] && $HEARD_LOSS_FROM_ME($ssrc) && [info exists my_ssrc] && ($ssrc != $my_ssrc)} {
 	    set_loss_from_me $ssrc $LOSS_FROM_ME($ssrc)
 	}
-}
-
-#power meters
-
-# Colors
-set bargraphLitColors [list #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #00cc00 #2ccf00 #58d200 #84d500 #b0d800 #dddd00 #ddb000 #dd8300 #dd5600 #dd2900]
-
-set bargraphUnlitColors [list #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #006600 #166700 #2c6900 #426a00 #586c00 #6e6e00 #6e5800 #6e4100 #6e2b00 #6e1400]
-set bargraphTotalHeight [llength $bargraphLitColors]
-
-proc bargraphCreate {bgraph} {
-	global oh$bgraph bargraphTotalHeight bargraphUnlitColors
-
-	frame $bgraph -bd 0 -bg black
-	for {set i 0} {$i < $bargraphTotalHeight} {incr i} {
-		frame $bgraph.inner$i -bg "[lindex $bargraphUnlitColors $i]" -width 4 -height 6
-		pack $bgraph.inner$i -side left -fill both -expand true -padx 1 -pady 1
-	}
-	set oh$bgraph 0
-}
-
-proc bargraphSetHeight {bgraph height} {
-	upvar #0 oh$bgraph oh 
-	global bargraphTotalHeight bargraphLitColors bargraphUnlitColors
-
-	if {$oh > $height} {
-		for {set i [expr $height]} {$i <= $oh} {incr i} {
-			$bgraph.inner$i config -bg "[lindex $bargraphUnlitColors $i]"
-		}
-	} else {
-	    for {set i [expr $oh]} {$i <= $height} {incr i} {
-		$bgraph.inner$i config -bg  "[lindex $bargraphLitColors $i]"
-	    }
-	}
-	set oh $height
-}
-
-proc bargraphState {bgraph state} {
-    upvar #0 oh$bgraph oh 
-    if {[winfo exists $bgraph]} {
-	global bargraphTotalHeight bargraphUnlitColors
-	if {$state} {
-	    for { set i 0 } { $i < $bargraphTotalHeight} {incr i} {
-		$bgraph.inner$i config -bg "[lindex $bargraphUnlitColors $i]"
-	    }
-	} else {
-	    for { set i 0 } { $i < $bargraphTotalHeight} {incr i} {
-		$bgraph.inner$i config -bg black
-	    }
-	}
-    }
-    set oh 0
 }
 
 proc toggle {varname} {
@@ -1538,6 +1496,15 @@ proc do_quit {} {
 	destroy .
 }
 
+proc toggle_chart {} {
+	global matrix_on
+	if {$matrix_on} {
+		chart::show
+	} else {
+		chart::hide
+	}
+}
+
 # Initialise RAT MAIN window
 frame .r 
 frame .l
@@ -1554,7 +1521,7 @@ label .l.f.addr  -bd 0 -textvariable session_address
 frame       .st -bd 0
 
 checkbutton .st.file -bitmap disk      -indicatoron 0 -variable files_on  -command file_show 
-checkbutton .st.recp -bitmap reception -indicatoron 0 -variable matrix_on -command chart_show
+checkbutton .st.recp -bitmap reception -indicatoron 0 -variable matrix_on -command toggle_chart
 checkbutton .st.help -bitmap balloon   -indicatoron 0 -variable help_on
 
 #-onvalue 1 -offvalue 0 -variable help_on -font $compfont -anchor w -padx 4
@@ -1613,7 +1580,7 @@ pack  .r.c.rx.au.port.l0 -side left -fill y
 pack   .r.c.rx.au.port.vval .r.c.rx.au.port.vlabel -side right
 
 frame  .r.c.rx.au.pow -relief sunk -bd 2
-bargraphCreate .r.c.rx.au.pow.bar
+bargraph::create .r.c.rx.au.pow.bar
 scale .r.c.rx.au.pow.sli -highlightthickness 0 -from 0 -to 99 -command set_vol -orient horizontal -showvalue false -width 8 -variable volume -resolution 4 -bd 0 -troughcolor black -sliderl 16
 pack .r.c.rx.au.pow .r.c.rx.au.pow.bar .r.c.rx.au.pow.sli -side top -fill both -expand 1 
 
@@ -1644,7 +1611,7 @@ pack   .r.c.tx.au.port.l0 -side left -fill y
 pack   .r.c.tx.au.port.vval .r.c.tx.au.port.vlabel -side right
 
 frame  .r.c.tx.au.pow -relief sunk -bd 2
-bargraphCreate .r.c.tx.au.pow.bar
+bargraph::create .r.c.tx.au.pow.bar
 scale .r.c.tx.au.pow.sli -highlightthickness 0 -from 0 -to 99 -command set_gain -orient horizontal -showvalue false -width 8 -variable gain -resolution 4 -bd 0 -sliderl 16 -troughco black
 pack .r.c.tx.au.pow .r.c.tx.au.pow.bar .r.c.tx.au.pow.sli -side top -fill both -expand 1 
 
@@ -2164,7 +2131,7 @@ pack $i.a -side top -fill both -expand 1
 pack $i.a.f -fill x -side left -expand 1
 checkbutton $i.a.f.f.power   -text "Powermeters active"       -variable meter_var
 checkbutton $i.a.f.f.balloon -text "Balloon help"             -variable help_on
-checkbutton $i.a.f.f.matrix  -text "Reception quality matrix" -variable matrix_on -command chart_show
+checkbutton $i.a.f.f.matrix  -text "Reception quality matrix" -variable matrix_on -command toggle_chart
 checkbutton $i.a.f.f.plist   -text "Participant list"         -variable plist_on  -command toggle_plist
 checkbutton $i.a.f.f.fwin    -text "File Control Window"      -variable files_on  -command file_show
 pack $i.a.f.f $i.a.f.f.l
@@ -2436,18 +2403,6 @@ proc send_silence_params {args} {
 # Routines to display the "chart" of RTCP RR statistics...
 #
 
-toplevel  .chart
-canvas    .chart.c  -xscrollcommand {.chart.sb set} -yscrollcommand {.chart.sr set} 
-frame     .chart.c.f 
-scrollbar .chart.sr -orient vertical   -command {.chart.c yview}
-scrollbar .chart.sb -orient horizontal -command {.chart.c xview}
-
-pack .chart.sb -side bottom -fill x    -expand 0 -anchor s
-pack .chart.sr -side right  -fill y    -expand 0 -anchor e
-pack .chart.c  -side left   -fill both -expand 1 -anchor n
-
-.chart.c create window 0 0 -anchor nw -window .chart.c.f
-
 proc mtrace_callback {fd src dst} {
 	if [winfo exists .mtrace-$src-$dst] {
 		.mtrace-$src-$dst.t insert end [read $fd]
@@ -2482,118 +2437,7 @@ proc mtrace {src dst} {
 	fileevent  $fd readable "mtrace_callback $fd $src $dst"
 }
 
-toplevel .chart_popup       -bg black
-label    .chart_popup.text  -bg lavender -justify left
-pack .chart_popup.text -side top -anchor w -fill x
-wm transient        .chart_popup .
-wm withdraw         .chart_popup
-wm overrideredirect .chart_popup true
-
-proc chart_popup_show {window} {
-	global chart_popup_src chart_popup_dst chart_popup_id NAME
-	.chart_popup.text  configure -text "From: $NAME($chart_popup_src($window))\nTo: $NAME($chart_popup_dst($window))"
-	# Beware! Don't put the popup under the cursor! Else we get window enter
-	# for .help and leave for $window, making us hide_help which removes the
-	# help window, giving us a window enter for $window making us popup the
-	# help again.....
-	if {[winfo width $window] > [winfo height $window]} {
-	    set xpos [expr [winfo pointerx $window] + 10]
-	    set ypos [expr [winfo rooty    $window] + [winfo height $window] + 4]
-	} else {
-	    set xpos [expr [winfo rootx    $window] + [winfo width $window] + 4]
-	    set ypos [expr [winfo pointery $window] + 10]
-	}
-	
-	wm geometry  .chart_popup +$xpos+$ypos
-	set chart_popup_id [after 100 wm deiconify .chart_popup]
-	raise .chart_popup $window
-}
-
-proc chart_popup_hide {window} {
-	global chart_popup_id 
-	if {[info exists chart_popup_id]} { 
-		after cancel $chart_popup_id
-	}
-	wm withdraw .chart_popup
-}
-
-proc chart_popup_add {window src dst} {
-	global chart_popup_src chart_popup_dst 
-	set chart_popup_src($window) $src
-	set chart_popup_dst($window) $dst
-	bind $window <Enter>    "+chart_popup_show $window"
-	bind $window <Leave>    "+chart_popup_hide $window"
-}
-
-proc chart_add {ssrc} {
-	global NAME
-	frame  .chart.c.f.$ssrc
-	frame  .chart.c.f.$ssrc.f
-	button .chart.c.f.$ssrc.l -width 25 -text $ssrc -padx 0 -pady 0 -anchor w -relief flat -command "toggle_stats $ssrc"
-	pack   .chart.c.f.$ssrc.f -expand 0 -anchor e -side right
-	pack   .chart.c.f.$ssrc.l -expand 1 -anchor w -fill x -side left
-	pack   .chart.c.f.$ssrc   -expand 1 -anchor n -fill x -side top
-	foreach s [pack slaves .chart.c.f] {
-		regsub {.chart.c.f.(.*)} $s {\1} s
-		button .chart.c.f.$s.f.$ssrc -width 4 -text "" -background white -padx 0 -pady 0 -command "mtrace $s $ssrc"
-		pack   .chart.c.f.$s.f.$ssrc -expand 0 -side left
-		chart_popup_add .chart.c.f.$s.f.$ssrc $s $ssrc
-		if {![winfo exists .chart.c.f.$ssrc.f.$s]} {
-			button .chart.c.f.$ssrc.f.$s -width 4 -text "" -background white -padx 0 -pady 0 -command "mtrace $ssrc $s"
-			pack   .chart.c.f.$ssrc.f.$s -expand 0 -side left
-			chart_popup_add .chart.c.f.$ssrc.f.$s $ssrc $s
-		}
-	}
-	update
-	.chart.c configure -scrollregion "0.0 0.0 [winfo width .chart.c.f] [winfo height .chart.c.f]"
-}
-
-proc chart_remove {ssrc} {
-	destroy .chart.c.f.$ssrc
-	foreach s [pack slaves .chart.c.f] {
-		regsub {.chart.c.f.(.*)} $s {\1} s
-		destroy .chart.c.f.$s.f.$ssrc
-	}
-	update
-	.chart.c configure -scrollregion "0.0 0.0 [winfo width .chart.c.f] [winfo height .chart.c.f]"
-}
-
-proc chart_label {ssrc label} {
-	.chart.c.f.$ssrc.l configure -text $label
-}
-
-proc chart_set {src dst val} {
-	if {$val < 5} {
-		set colour green
-		set txtval "$val%"
-	} elseif {$val < 10} {
-		set colour orange
-		set txtval "$val%"
-	} elseif {$val <= 100} {
-		set colour red
-		set txtval "$val%"
-	} else {
-		set colour white
-		set txtval { }
-	}
-	.chart.c.f.$src.f.$dst configure -background $colour -text "$txtval"
-}
-
-proc chart_show {} {
-        global matrix_on
-        if {$matrix_on} {
-                wm deiconify .chart
-        } else {
-                wm withdraw .chart
-        }
-}
-
-wm withdraw .chart
-wm title    .chart "Reception quality matrix"
-wm geometry .chart 320x200
-wm protocol .chart WM_DELETE_WINDOW    {set matrix_on 0; chart_show}
-
-chart_show
+chart::create
 
 #
 # End of RTCP RR chart routines

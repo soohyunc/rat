@@ -42,8 +42,8 @@ typedef struct _bufdevInfo {
         int avail_bytes;
         int leftover_bytes;
         int read_virgin;
-        int igain;
-        int ogain;
+        int igain;		/* Gain settings are currently ignored: a smarter */
+        int ogain;		/* implementation could scale the signal volume.  */
 } bufdevInfo;
 
 static bufdevInfo bufdev[MAXBUFDEVS];
@@ -344,11 +344,11 @@ trans_audio_block(audio_desc_t ad)
 #define TRANS_MICROPHONE 0x0201
 
 static audio_port_details_t out_ports[] = {
-        {TRANS_SPEAKER, AUDIO_PORT_SPEAKER}
+        {TRANS_SPEAKER, "Transcoder recv"}
 };
 
 static audio_port_details_t in_ports[] = {
-        {TRANS_MICROPHONE, AUDIO_PORT_MICROPHONE}
+        {TRANS_MICROPHONE, "Transcoder send"}
 };
 
 /*

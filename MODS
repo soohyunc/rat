@@ -1425,6 +1425,8 @@ v4.2.9	- Fix spurious assertions in source.c -- I think (hope?) this will fix th
 	  calls to rtp_add_csrc() and rtp_del_csrc(), which will eventually support
 	  pass through of RTCP. This changes the size of the session struct, and
 	  means that you'll have to "make clean" after updating.
+	- Modularize user interface: bargraph and chart
+	- Fix labelling of transcoder input/output ports
 
 
 
