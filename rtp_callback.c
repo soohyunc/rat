@@ -226,7 +226,12 @@ process_rtp_data(session_t *sp, u_int32 ssrc, rtp_packet *p)
 
         if ((adjust_playout && sp->over_read == 0) ||
             (adjust_playout == 0)) {
-                /* Add it to the source for processing later   */
+                /* There is some magic here...if we are recalculating the playout point */
+                /* and it looks like the application has blocked (over_read > 0) for a  */
+                /* while then our guess at the transit delay for packets that arrived   */
+                /* whilst the app was blocked will be wrong, usually causing playout    */
+                /* delay to be the blocking period.  This is not something we want so   */
+                /* discard packets that arrived during blocked period.                  */
                 u_char *u = block_alloc(p->data_len);
                 memcpy(u, p->data, p->data_len);
                 if (source_add_packet(s, u, p->data_len, 0, p->pt, playout) == FALSE) {
