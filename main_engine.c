@@ -49,8 +49,8 @@ int thread_pri  = 2; /* Time Critical */
 static void
 signal_handler(int signal)
 {
-  debug_msg("Caught signal %d\n", signal);
-  should_exit = TRUE;
+        debug_msg("Caught signal %d\n", signal);
+        exit(-1);
 }
 #endif
 
@@ -87,6 +87,10 @@ int main(int argc, char *argv[])
 	struct timeval   time;
 	struct timeval	 timeout;
         u_int8		 j;
+
+#ifndef WIN32
+ 	signal(SIGINT, signal_handler); 
+#endif
 
         seed = (gethostid() << 8) | (getpid() & 0xff);
 	srand48(seed);
@@ -130,10 +134,6 @@ int main(int argc, char *argv[])
 	debug_msg("Waiting for mbus.waiting(%s) from controller...\n", token);
 	mbus_rendezvous_go(sp->mbus_engine, token, (void *) sp->mbus_engine);
 	debug_msg("...got it\n");
-
-#ifndef WIN32
- 	signal(SIGINT, signal_handler); 
-#endif
 
 	/* At this point we know the mbus address of our controller, and have conducted */
 	/* a successful rendezvous with it. It will now send us configuration commands. */
@@ -196,6 +196,8 @@ int main(int argc, char *argv[])
 		cur_time = get_time(sp->device_clock);
 		ntp_time = ntp_time32();
 		sp->cur_ts   = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), cur_time);
+
+                debug_msg("%d %d\n", sp->cur_ts.ticks, elapsed_time);
 
                 if (tx_is_sending(sp->tb)) {
                         tx_process_audio(sp->tb);

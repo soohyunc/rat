@@ -344,6 +344,18 @@ static void terminate(struct mbus *m, char *addr)
 	}
 }
 
+#ifndef WIN32
+static void
+signal_handler(int signal)
+{
+        debug_msg("Caught signal %d\n", signal);
+	kill_process(pid_ui);
+	kill_process(pid_engine);
+        exit(-1);
+}
+#endif
+
+
 int main(int argc, char *argv[])
 {
 	struct mbus	*m;
@@ -351,6 +363,10 @@ int main(int argc, char *argv[])
 	char		*u_addr, *e_addr;
         int		 seed = (gethostid() << 8) | (getpid() & 0xff);
 	struct timeval	 timeout;
+
+#ifndef WIN32
+ 	signal(SIGINT, signal_handler); 
+#endif
 
 	srand48(seed);
 

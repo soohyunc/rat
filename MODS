@@ -926,6 +926,7 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	  from audio engine.  Was happening because scale widget invokes 
 	  -command option when created.  Now we don't send gain info until
 	  we've heard some from engine.
+	- Add signal handler to main_control.
 
 TODO -- They're features not bugs dammit!
 ----
