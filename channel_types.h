@@ -27,7 +27,7 @@ typedef struct {
  * of media_units and puts channel_units on the output playout buffer
  */
 
-#define MAX_CHANNEL_UNITS    8
+#define MAX_CHANNEL_UNITS    20
 #define MAX_UNITS_PER_PACKET 8
 
 typedef struct {

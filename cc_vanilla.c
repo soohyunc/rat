@@ -70,53 +70,49 @@ vanilla_encoder_reset(u_char *state)
         return TRUE;
 }
 
+/* vanilla_encoder_output transfers media data into channel_unit */
+
 static void
 vanilla_encoder_output(ve_state *ve, struct s_pb *out)
 {
-        u_int32 size, done, i;
-        u_char *buffer;
+        u_int32 i, used;
         channel_data *cd;
 
-        /* Find size of block to copy data into */
-        size  = ve->elem[0]->rep[0]->state_len;        
-        size += ve->elem[0]->rep[0]->data_len;
+        /* We have state for first unit and data for all others */
+        channel_data_create(&cd, ve->nelem + 1);
+        
+        /* Fill in payload */
+        cd->elem[0]->pt           = codec_get_payload(ve->codec_id);
 
-        for(i = 1; i < ve->nelem; i++) {
-                size += ve->elem[i]->rep[0]->data_len;
+        used = 0;
+
+        /* Get state for first unit if there */
+        if (ve->elem[0]->rep[0]->state) {
+                cd->elem[0]->data     = ve->elem[0]->rep[0]->state;
+                cd->elem[0]->data_len = ve->elem[0]->rep[0]->state_len;
+                ve->elem[0]->rep[0]->state     = NULL;
+                ve->elem[0]->rep[0]->state_len = 0;
+                used++;
         }
 
-        assert(size != 0);
-        
-        /* Allocate block and get ready */
-        channel_data_create(&cd, 1);
-        cd->elem[0]->pt           = codec_get_payload(ve->codec_id);
-        cd->elem[0]->data         = (u_char*)block_alloc(size);
-        cd->elem[0]->data_start   = 0;
-        cd->elem[0]->data_len     = size;
-
-        /* Copy data out of coded units and into continguous blocks */
-        buffer = cd->elem[0]->data;
-
-        done = 0;
+        /* Transfer coded data to channel_data */
         for(i = 0; i < ve->nelem; i++) {
-                if (i == 0 && ve->elem[0]->rep[0]->state_len != 0) {
-                        memcpy(buffer, ve->elem[0]->rep[0]->state, ve->elem[0]->rep[0]->state_len);
-                        buffer += ve->elem[0]->rep[0]->state_len;
-                }
-                memcpy(buffer, 
-                       ve->elem[i]->rep[0]->data, 
-                       ve->elem[i]->rep[0]->data_len);
-                buffer += ve->elem[i]->rep[0]->data_len;
-
+                cd->elem[used]->data     = ve->elem[i]->rep[0]->data;
+                cd->elem[used]->data_len = ve->elem[i]->rep[0]->data_len;
+                ve->elem[i]->rep[0]->data = NULL;
+                ve->elem[i]->rep[0]->data_len = 0;
+                used++;
                 media_data_destroy(&ve->elem[i], sizeof(media_data));
         }
-        ve->nelem = 0;
+        ve->nelem -= used;
+
+        assert(ve->nelem == 0);
+        assert(used < cd->nelem);
 
         pb_add(out, 
                (u_char*)cd, 
                sizeof(channel_data), 
                ve->playout);
-
 }
 
 int
