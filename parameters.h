@@ -55,6 +55,10 @@
 
 /*From Nevot code - Henning Schulzerinne*/
 
+#define SD_BINS   256
+#define SD_SCALE  (32768/SD_BINS)
+#define SD_COUNTS 0.25f 
+
 typedef struct {
 	int	echo_th;	/* additional energy needed if echo cancellation is on */
 	int	hyst;		/* non-silent if this much above long-term average */
@@ -62,24 +66,14 @@ typedef struct {
 	int	interval;	/* adjustment interval (packets) */
 	int	avg;		/* current average energy */
 	int	count;		/* consecutive packets above threshold */
+        u_char  sbins[SD_BINS];      /* loose measure of freq dist */
 } sd_t;
 
-typedef struct {
-	int	interval;	/* update every interval (measurements) */
-	int	hyst;		/* hysteresis */
-	int	count;		/* counts seen */
-	int	old_value;	/* old display value */
-	int     energy;         /* value to be displayed on screen VJH*/
-	int     show_flag;      /* update required indicator VJH*/
-} peakmeter_t;
-
-int	audio_energy(short *buf, size_t bytes);
+u_int16	avg_audio_energy(short *buf, int samples);
+double  lin2db(u_int16 avg_energy, double peak);
 sd_t	*sd_init(void);
 void	set_silence_params(char *s);
 int	sd(sd_t *s, int energy, int echo);
-peakmeter_t *peakmeter_init(void);
-void	peakmeter(peakmeter_t *p);
-void	zero_peakm(peakmeter_t *p);
 
 #endif /* _RAT_PARAMETERS_H_ */
 
