@@ -104,4 +104,5 @@ int kill(pid_t pid, int sig);
 #include <assert.h>
 #endif
 
-#endif
+#endif /* _CONFIG_UNIX_H */
+#endif /* NDEF WIN32 */
