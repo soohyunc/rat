@@ -1,9 +1,9 @@
 '\" t
 .\" @(#)rat.1 3.1 97/02/22 
-.\" Copyright (c) 1997-99 University College London.
+.\" Copyright (c) 1997-2000 University College London.
 .\" Written by Orion Hodson
 .\"
-.TH rat 1 "24 May 1999"
+.TH rat 1 "14 January 2000"
 .SH NAME
 rat \- unicast and multicast audio conferencing tool
 .SH SYNOPSIS
@@ -37,9 +37,6 @@ The following options are supported:
 .BI -allowloopback
 Causes rtp packets to be loopbacked during multicast
 sessions.
-.TP 
-.BI \-codecs
-List codecs supported.
 .TP
 .BI \-crypt " key"
 Enable encryption, with the specified key. Encryption is
@@ -50,33 +47,16 @@ versions of vat.
 Sets the RAT window title to 
 .I name.	
 .TP
-.BI \-f " c1/c2/../cn"
-Specifies the encodings used when transmitting audio.  The order is
-primary encoding, secondary encoding, etc.  A maximum of seven levels
-of encoding are possible, although only two are available from the
-user interface.  The allowed values are those listed using -codecs and
-the values l16, pcm, pcmu, pcma, alaw, ulaw, dvi, gsm, lpc are
-available for backwards compatibility.
+.BI \-f " codec"
+Specifies the primary encoding used when transmitting audio.
 .TP
-.B -no_ui
-Do not display user interface.
+.BI -pt " type/codec"
+Specifies the payload type to be used for 
+.I codec.
 .TP
-.BI -p " priority"
-Sets the thread priority on the Windows 32-bit version. 
-The following values are observed: 
-.RS 10n
-.nf
-.ta 5n
-1 above normal priority level
-2 time critical thread priority
-3 highest thread priority
-.fi
-.RE
-.TP
-.BI -pt " type/redundancy"
-Specifies the dynamic payload type to be used for redundancy.
-Later versions will accept configurable configurable payload
-types for the primary encoding. 
+.BI -r " codec/offset"
+Specifies the coding used for the redundant encoder and the offset
+of the redundant encoding relative to the primary in audio frames.
 .TP
 .BI -repair " method"
 Specifies the use of receiver based repair technique based on
@@ -103,13 +83,6 @@ appropriate:
 .TP
 .BI -silence " on|off"
 Turns silence suppression on or off.
-.I hysteresis.
-If the packet
-average is greater than the threshold for 
-.I interval
-packets, the minimum average value is incremented
-by one, but not beyond 
-.I max_avg.
 .TP
 .B -version
 Displays the version number.
