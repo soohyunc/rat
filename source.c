@@ -40,9 +40,10 @@
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
 
-#define HISTORY                    1000
 #define SKEW_OFFENSES_BEFORE_ADAPT    4 
+#define SKEW_ADAPT_THRESHOLD       2000
 #define SOURCE_YOUNG_AGE             20
+#define SOURCE_AUDIO_HISTORY_MS    1000
 
 /* constants for skew adjustment:
  SOURCE_SKEW_SLOW - denotes source clock appears slower than ours.
@@ -112,10 +113,6 @@ source_list_destroy(source_list **pplist)
         xfree(plist);
         *pplist = NULL;
 }
-
-/* The following two functions are provided so that we can estimate
- * the sources that have gone in to mixer for transcoding.  
- */
 
 u_int32
 source_list_source_count(source_list *plist)
@@ -487,8 +484,6 @@ source_check_buffering(source *src, ts_t now)
  * returns TRUE if adaption happened and false otherwise.
  */
 
-#define SKEW_ADAPT_THRESHOLD  500
-
 static int
 source_skew_adapt(source *src, media_data *md)
 {
@@ -508,7 +503,7 @@ source_skew_adapt(source *src, media_data *md)
                 }
         }
 
-        if (i == md->nrep) {
+        if (i == md->nrep || e > SKEW_ADAPT_THRESHOLD) {
                 return FALSE;
         }
 
@@ -518,15 +513,16 @@ source_skew_adapt(source *src, media_data *md)
          * valid if no repair has taken place.
          */
 
-        if (src->skew == SOURCE_SKEW_FAST && 
-            e < SKEW_ADAPT_THRESHOLD      &&
-            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_ADAPT) {
+        if (src->skew == SOURCE_SKEW_FAST /* &&
+            abs((int)src->skew_offenses) >= SKEW_OFFENSES_BEFORE_ADAPT */) {
                 /* source is fast so we need to bring units forward.
                  * Should only move forward at most a single unit
                  * otherwise we might discard something we have not
                  * classified.  */
+/*
                 adjustment = ts_map32(rate, samples / (channels * 4));
-
+                */
+                adjustment = ts_map32(8000, 1); /* 1 ms */
                 pb_shift_forward(src->media,   adjustment);
                 pb_shift_forward(src->channel, adjustment);
                 src->dbe->playout               = ts_sub(src->dbe->playout, adjustment);
@@ -538,6 +534,10 @@ source_skew_adapt(source *src, media_data *md)
                         src->last_repair = ts_sub(src->last_repair, adjustment);
                 }
 
+                if (ts_valid(src->last_played)) {
+                        src->last_played = ts_sub(src->last_played, adjustment);
+                }
+
                 if (ts_gt(src->skew_adjust, adjustment)) {
                         src->skew_adjust = ts_sub(src->skew_adjust, adjustment);
                 } else {
@@ -545,13 +545,11 @@ source_skew_adapt(source *src, media_data *md)
                 }
                 debug_msg("Playout buffer shifted forward 1 unit\n");
                 return TRUE;
-        } 
-
-        if (src->skew == SOURCE_SKEW_SLOW && e < SKEW_ADAPT_THRESHOLD) {
+        } else if (src->skew == SOURCE_SKEW_SLOW) {
                 /* Buffer going dry so just chuck it all back by however much,
                  * not entirely sure this is the best strategy at the moment.
                  */
-
+                
                 adjustment = src->skew_adjust;
                 pb_shift_back(src->media, adjustment);
                 pb_shift_back(src->channel, adjustment);
@@ -571,7 +569,7 @@ source_skew_adapt(source *src, media_data *md)
         return FALSE;
 }
 
-static void
+static int
 source_repair(source *src,
               int     repair_type,
               ts_t    step)
@@ -600,9 +598,8 @@ source_repair(source *src,
 
         if (!ts_eq(prev_ts, src->last_played)) {
                 debug_msg("prev_ts and last_played don't match\n");
-                return;
+                return FALSE;
         }
-        
 
         media_data_create(&fill_md, 1);
         repair(repair_type,
@@ -628,7 +625,7 @@ source_repair(source *src,
                                    &prev_ts);
                 if (ts_eq(prev_ts, fill_ts) == FALSE) {
                         debug_msg("Looks like playout point was recalculated and triggered repair\n");
-                        return;
+                        return FALSE;
                 }
                 
 #endif
@@ -637,10 +634,12 @@ source_repair(source *src,
                  * sample rate in less time than playout buffer
                  * timeout.  This should be a very very rare event...  
                  */
-                debug_msg("Repair add data failed.\n");
+                debug_msg("Repair add data failed (%d).\n", fill_ts.ticks);
                 media_data_destroy(&fill_md, sizeof(media_data));
                 src->consec_lost = 0;
+                return FALSE;
         }
+        return TRUE;
 }
 
 int
@@ -651,7 +650,13 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
         codec_state *cs;
         u_int32     md_len, src_freq;
         ts_t        playout, step, cutoff;
-        int         i, success;
+        int         i, success, hold_repair = 0;
+
+        /* Note: hold_repair is used to stop repair occuring.
+         * Occasionally, there is a race condition when the playout
+         * point is recalculated causing overlap, and when playout
+         * buffer shift occurs in middle of a loss.
+         */
 
         /* Split channel coder units up into media units */
         channel_decoder_decode(src->channel_state,
@@ -676,20 +681,26 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                  * (c) repair type is not no repair.
                  * (d) last decoded was not too long ago.
                  */
-                cutoff = ts_sub(now, ts_map32(src_freq, HISTORY));
+                cutoff = ts_sub(now, ts_map32(src_freq, SOURCE_AUDIO_HISTORY_MS));
+
                 if (ts_valid(src->last_played) && 
                     ts_eq(playout, ts_add(src->last_played, step)) == FALSE &&
                     repair_type != REPAIR_TYPE_NONE &&
-                    ts_gt(src->last_played, cutoff)) {
+                    ts_gt(src->last_played, cutoff) &&
+                    hold_repair == 0) {
                         /* If repair was successful media_pos is moved,
                          * so get data at media_pos again.
                          */
-                        source_repair(src, repair_type, step);
+                        if (source_repair(src, repair_type, step) == FALSE) {
+                                hold_repair += 2; /* 1 works, but 2 is probably better */
+                        }
                         success = pb_iterator_get_at(src->media_pos, 
                                                      (u_char**)&md, 
                                                      &md_len, 
                                                      &playout);
                         assert(success);
+                } else if (hold_repair > 0) {
+                        hold_repair --;
                 }
 
                 if (ts_gt(playout, now)) {
@@ -705,8 +716,8 @@ source_process(source *src, struct s_mix_info *ms, int render_3d, int repair_typ
                 }
 
                 if (i == md->nrep) {
-                        /* There is data to be decoded.  There may not be
-                         * when we have used repair.
+                        /* We need to decode this unit, may not have to
+                         * when repair has been used.
                          */
 #ifdef DEBUG
                         for(i = 0; i < md->nrep; i++) {
