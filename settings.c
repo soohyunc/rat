@@ -363,9 +363,9 @@ setting_load_int(char *name, int default_value)
 
 void settings_load_early(session_t *sp)
 {
-	char				*name, *primary_codec, *port;
+	char				*name, *param, *primary_codec, *port;
 	int				 freq, chan;
-        uint32_t                          i, n;
+        uint32_t                         i, n, success;
 	const cc_details_t              *ccd;
 	const audio_device_details_t    *add = NULL;
         const audio_port_details_t 	*apd = NULL;
@@ -422,24 +422,32 @@ void settings_load_early(session_t *sp)
         audio_set_ogain(sp->audio_device, setting_load_int("audioOutputGain", 75));
         audio_set_igain(sp->audio_device, setting_load_int("audioInputGain",  75));
         tx_igain_update(sp->tb);
-
-	name = setting_load_str("audioChannelCoding", "None");
-        n    = channel_get_coder_count();
-	for (i = 0; i < n; i++ ) {
-		ccd = channel_get_coder_details(i);
-		if (strcmp(ccd->name, name) == 0) {
-                        if (sp->channel_coder) {
-                                channel_encoder_destroy(&sp->channel_coder);
-                        }
-        		channel_encoder_create(ccd->descriptor, &sp->channel_coder);
-			break;
-		}
-	}
-
         setting_load_int("audioInputMute", 1);
         setting_load_int("audioOutputMute", 1);
 
-	channel_encoder_set_parameters(sp->channel_coder, setting_load_str("audioChannelParameters", "None"));
+	name  = setting_load_str("audioChannelCoding", "None");
+        param = setting_load_str("audioChannelParameters", "None");
+
+        do {
+                n    = channel_get_coder_count();
+                for (i = 0; i < n; i++ ) {
+                        ccd = channel_get_coder_details(i);
+                        if (strcmp(ccd->name, name) == 0) {
+                                if (sp->channel_coder) {
+                                        channel_encoder_destroy(&sp->channel_coder);
+                                }
+                                channel_encoder_create(ccd->descriptor, &sp->channel_coder);
+                                break;
+                        }
+                }
+                success = channel_encoder_set_parameters(sp->channel_coder, param);
+                if (success == 0) {
+                        /* Could not set parameters for channel coder, fall back to "None" */
+                        name = "None";
+                        param = "";
+                }
+        } while (success == 0);
+
 	channel_encoder_set_units_per_packet(sp->channel_coder, (uint16_t) setting_load_int("audioUnits", 1));
 
         /* Set default repair to be first available */
@@ -604,7 +612,7 @@ void settings_save(session_t *sp)
 
 	pri_id   = codec_get_by_payload(sp->encodings[0]);
         pri_cf   = codec_get_format(pri_id);
-        cc_len   = 2 * (CODEC_LONG_NAME_LEN + 4) + 1;
+        cc_len   = 3 * (CODEC_LONG_NAME_LEN + 4) + 1;
         cc_param = (char*) xmalloc(cc_len);
         channel_encoder_get_parameters(sp->channel_coder, cc_param, cc_len);
         ccd = channel_get_coder_identity(sp->channel_coder);
@@ -682,7 +690,7 @@ void settings_save(session_t *sp)
 	} else {
                 setting_save_str("audioChannelCoding", ccd->name);
         }
-	setting_save_str("audioChannelCoding",     ccd->name);
+        setting_save_str("AudioChannelParameters", cc_param);
 	setting_save_str("audioRepair",            repair->name);
 	setting_save_str("audioAutoConvert",       converter->name);
 	setting_save_int("audioLimitPlayout",      sp->limit_playout);
