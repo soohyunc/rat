@@ -151,18 +151,17 @@ void network_process_mbus(session_struct *sp)
 	do {
 		mbus_send(sp->mbus_ui); 
 		timeout.tv_sec  = 0;
-		timeout.tv_usec = 0;
+		timeout.tv_usec = 1000;
 		rc  = mbus_recv(sp->mbus_engine, (void *) sp, &timeout); 
 		mbus_send(sp->mbus_engine); 
 		timeout.tv_sec  = 0;
-		timeout.tv_usec = 0;
+		timeout.tv_usec = 1000;
                 rc |= mbus_recv(sp->mbus_ui, (void *) sp, &timeout); 
 		if (rc) {
 			c = 0;
 		} else {
 			c++;
 		}
-		usleep(10000);
-	} while (c < 10);
+	} while (c < 3);
 }
 
