@@ -823,7 +823,7 @@ frame  .prefs.buttons
 pack   .prefs.buttons       -side bottom -fill x 
 button .prefs.buttons.bye   -text "Cancel"                   -command {sync_ui_to_engine; wm withdraw .prefs} -width 10
 button .prefs.buttons.apply -text "Apply Preferences"        -command {wm withdraw .prefs; sync_engine_to_ui}
-button .prefs.buttons.save  -text "Save & Apply Preferences" -command {save_settings; wm withdraw .prefs}
+button .prefs.buttons.save  -text "Save & Apply Preferences" -command {save_settings; wm withdraw .prefs; sync_engine_to_ui}
 pack   .prefs.buttons.bye .prefs.buttons.apply .prefs.buttons.save -side left -fill x -expand 1
 
 frame .prefs.pane -relief sunken
