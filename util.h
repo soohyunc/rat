@@ -50,10 +50,10 @@
 #define xstrdup(x)     _xstrdup(x,__FILE__,__LINE__)
 
 void	xmemchk(void);
+void    xmemdmp(void);
 void	xfree(void *x);
 char   *_xmalloc(unsigned size,char *filen,int line);
 char   *_xstrdup(char *s1, char *filen, int line);
-
 char  *_block_alloc(unsigned size, char *filen, int line);
 void  block_free(void *p, int size);
 

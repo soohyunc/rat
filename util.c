@@ -85,6 +85,25 @@ void xmemchk(void)
 #endif
 }
 
+void xmemdmp(void)
+{
+#ifdef DEBUG_MEM
+	int i;
+	if (naddr > MAX_ADDRS) {
+		printf("ERROR: Too many addresses for xmemchk()!\n");
+		abort();
+	}
+        for (i=0; i<naddr; i++) {
+            printf("addr: %p", addrs[i]);   				fflush(stdout);
+            printf("  size: %6d", *addrs[i]);				fflush(stdout);
+            printf("  size: %6d", *(addrs[i] + (*addrs[i] / 4) + 2));	fflush(stdout);
+            printf("  file: %s", files[i]);					fflush(stdout);
+            printf("  line: %d", lines[i]);					fflush(stdout);
+            printf("\n");
+        }
+#endif
+}
+
 void xfree(void *y)
 {
 #ifdef DEBUG_MEM
