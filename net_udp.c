@@ -182,10 +182,12 @@ static int udp_recv4(socket_udp *s, char *buffer, int buflen)
 /* IPv6 specific functions...                                                */
 /*****************************************************************************/
 
+#ifdef NDEF
 static socket_udp *udp_init6(char *addr, int port, int ttl)
 {
 	return NULL;
 }
+#endif
 
 static int udp_send6(socket_udp *s, char *buffer, int buflen)
 {
