@@ -129,10 +129,10 @@ split_block(u_int32 playout_pt,
 		p->units_per_pckt   = units;
 		p->mixed            = FALSE;
 		p->dbe_source[0]    = src;
-                p->playoutpt        = playout_pt + i * cp->unit_len;;
+                p->playoutpt        = playout_pt + i * cp->unit_len;
+                p->src_ts           = hdr->ts + i * cp->unit_len;
                 p->comp_count       = 0;
                 p->cc_pt            = ccu->cc->pt;
-		mark_active_sender(src, sp);
 		for (j = 0, k = 1; j < hdr->cc; j++) {
 			p->dbe_source[k] = update_database(sp, ntohl(hdr->csrc[j]), cur_time);
 			if (p->dbe_source[k] != NULL) {
@@ -153,6 +153,7 @@ split_block(u_int32 playout_pt,
                 }
                 put_on_rx_queue(p, unitsrx_queue_ptr);
 	}
+        mark_active_sender(src, sp);
 	return (units);
 }
 
@@ -186,11 +187,13 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 	}
 
 	if (ts_gt(hdr->ts, src->last_ts)) {
-		/* If TS start then adjust playout delay estimation */
-		/* The 8 is the number of units in a 160ms packet (nasty hack!) */
+		/* If TS start, or we've thrown 4 packets away or ts have jumped by
+                 * 8 packets worth */
 		cp = get_codec(src->encs[0]);
-		if ((hdr->m) || src->cont_toged > 4 || (ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * cp->unit_len * 8 + 1)))) {
-                        u_int32 minv, maxv;
+		if ((hdr->m) || 
+                    src->cont_toged > 4 || 
+                    ts_gt(hdr->ts, (src->last_ts + (hdr->seq - src->last_seq) * cp->unit_len * 8 + 1))) {
+                        u_int32 minv, maxv; 
 			var = (u_int32) src->jitter * 3;
                         minv = sp->min_playout * get_freq(src->clock) / 1000;
                         maxv = sp->max_playout * get_freq(src->clock) / 1000; 
@@ -199,7 +202,6 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
                         } else if (maxv<var) {
                                 var = maxv;
                         }
-
 			var += cushion->cushion_size * get_freq(src->clock) / get_freq(sp->device_clock);
 			if (src->clock!=sp->device_clock) {
 				var += cp->unit_len;
@@ -211,6 +213,7 @@ adapt_playout(rtp_hdr_t *hdr, int arrival_ts, rtcp_dbentry *src,
 				sprintf(pargs, "%s %d", src->sentry->cname, real_playout);
 				dprintf("source_playout (%s)\n", pargs);
 				mbus_send(sp->mbus_engine_chan, sp->mbus_video_addr, "source_playout", pargs, FALSE);
+
 				/* If the video tool is slower than us, then
 				 * adjust to match it...  src->video_playout is
 				 * the delay of the video, converted to the clock 
@@ -333,6 +336,7 @@ statistics(session_struct    *sp,
 	/* Get database entry of participant that sent this packet */
 	src = update_database(sp, hdr->ssrc, cur_time);
 	if (src == NULL) {
+                dprintf("Packet from unknown participant\n");
 		/* Discard packets from unknown participant */
                 goto release;
 	}
@@ -351,17 +355,19 @@ statistics(session_struct    *sp,
         if (!(pcp = get_codec(hdr->pt))) {
                 /* this is either a channel coded block or we can't decode it */
                 if (!(pcp = get_codec(get_wrapped_payload(hdr->pt, data_ptr, len)))) {
+                        dprintf("Cannot decode data.\n");
                         goto release;
                 }
         }
 
         compat = codec_compatible(pcp, get_codec(sp->encodings[0]));
         if (!compat && !sp->auto_convert) {
+                dprintf("Format conversion not enabled.\n");
                 goto release;
         }
-
-	if (src->encs[0] == -1 || !compat);
-		receiver_change_format(src, pcp);
+        
+	if ((src->encs[0] == -1) || (compat==0))
+                receiver_change_format(src, pcp);
 
         if (src->encs[0] != pcp->pt) {
             /* we should tell update more about coded format */
