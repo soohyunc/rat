@@ -60,5 +60,6 @@ u_int32	convert_time(u_int32 ts, struct s_time *from, struct s_time *to);
 /* Horrid little routines to determine wrap around */
 int	ts_gt(u_int32 t1, u_int32 t2);
 u_int32	ts_abs_diff(u_int32 t1, u_int32 t2);
+int     ts_cmp(u_int32 t1, u_int32 t2);
 
 #endif /* _rat_time_h_ */

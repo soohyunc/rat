@@ -182,3 +182,35 @@ ts_abs_diff(u_int32 t1, u_int32 t2)
 
 	return (diff);
 }
+
+int
+ts_cmp(u_int32 ts1, u_int32 ts2)
+{
+        u_int32 d1,d2,dmin;
+
+        d1 = ts2 - ts1;
+        d2 = ts1 - ts2;
+
+        /* look for smallest difference between ts (timestamps are unsigned) */
+        if (d1<d2) {
+                dmin = d1;
+        } else if (d1>d2) {
+                dmin = d2;
+        } else {
+                dmin = 0;
+        }
+
+        /* if either d1 or d2 have wrapped dmin > HALF_TS_CYCLE */
+
+        if (dmin<HALF_TS_CYCLE) {
+                if (ts1>ts2) return  1;
+                if (ts1<ts2) return -1;
+                return 0;
+        } else if (ts1<ts2) {
+                /* Believe t1 to have been wrapped and therefore greater */
+                return 1; 
+        } else {
+                /* believe t2 to have been wrapped and therefore greater */
+                return -1;
+        }
+}
