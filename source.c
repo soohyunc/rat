@@ -636,12 +636,13 @@ source_playout_log(source *src, uint32_t ts, timestamp_t now)
                         fprintf(stderr, "Could not open playout.log\n");
                 } else {
                         atexit(source_close_log);
-                        fprintf(psf, "# <RTP timestamp> <talkstart> <jitter> <transit> <avg transit> <last transit> <playout del> <spike_var> <arr time>\n");
+                        fprintf(psf, "# <SSRC> <RTP timestamp> <talkstart> <jitter> <transit> <avg transit> <last transit> <playout del> <spike_var> <arr time>\n");
                 }
                 t0 = ts - 1000; /* -1000 in case of out of order first packet */
         }
 
-        fprintf(psf, "%.6f %5u %5u %5u %5u %5u %5u %5u %5u\n",
+        fprintf(psf, "0x%08x %.6f %5u %5u %5u %5u %5u %5u %5u %5u\n",
+		src->pdbe->ssrc,
                 (ts - t0)/8000.0,
                 timestamp_to_ms(src->talkstart),
                 timestamp_to_ms(src->pdbe->jitter),
@@ -1488,9 +1489,6 @@ source_process(session_t 	 *sp,
          * point is recalculated causing overlap, and when playout
          * buffer shift occurs in middle of a loss.
          */
-
-	debug_msg("Source 0x%08x process %d -- %d\n", 
-		  (uint32_t)src, timestamp_to_ms(start_ts), timestamp_to_ms(end_ts));
 
 	session_validate(sp);
 
