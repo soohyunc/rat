@@ -155,15 +155,18 @@ main(int argc, char *argv[])
 #endif
 	network_process_mbus(sp[0]);
 
+        i = tcl_process_all_events();
+        debug_msg("process %d events at startup %d\n", i);
+
+        /* Tcl processing can take arbitrary time and so audio accumulates */
+        /* and gives a distorted view of time and where to start sending   */
+        /* from.                                                           */
+        audio_drain(sp[0]->audio_device);
         if (tx_is_sending(sp[0]->tb)) {
                	tx_start(sp[0]->tb);
         }
 
-        i = tcl_process_all_events();
-        debug_msg("process %d events at startup %d\n", i);
-	
 	xdoneinit();
-
 	while (!should_exit) {
 		elapsed_time = audio_rw_process(sp[0], sp[0], sp[0]->ms);
 		cur_time = get_time(sp[0]->device_clock);
