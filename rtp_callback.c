@@ -41,16 +41,19 @@ typedef struct s_rtp_assoc {
 
 /* Sentinel for linked list that is used as small associative array */
 static rtp_assoc_t rtp_as;
+static int rtp_as_inited;
+
 
 void 
 rtp_callback_init(struct rtp *rtps, struct s_session *rats)
 {
         rtp_assoc_t *cur, *sentinel;
 
-        if (rtp_as.next == NULL) {
+        if (!rtp_as_inited) {
                 /* First pass sentinel initialization */
                 rtp_as.next = &rtp_as;
                 rtp_as.prev = &rtp_as;
+                rtp_as_inited = 1;
         }
 
         sentinel = &rtp_as;
@@ -96,6 +99,10 @@ static struct s_session *
 get_session(struct rtp *rtps)
 {
         rtp_assoc_t *cur, *sentinel;
+
+        if (!rtp_as_inited) {
+                return NULL;
+        }
         
         sentinel = &rtp_as;
         cur = sentinel->next;
@@ -295,7 +302,11 @@ rtp_callback(struct rtp *s, rtp_event *e)
 	assert(e != NULL);
 
         sp = get_session(s);
-        assert(sp != NULL);
+        if (sp == NULL) {
+                /* Should only happen when SOURCE_CREATED is generated in rtp_init */
+                debug_msg("Could not find session (0x%08x)\n", (u_int32)s);
+                return;
+        }
 
 	switch (e->type) {
 	case RX_RTP:
