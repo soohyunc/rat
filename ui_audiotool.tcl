@@ -1,3 +1,4 @@
+catch {
 #
 # Copyright (c) 1995-99 University College London
 # All rights reserved.
@@ -178,7 +179,6 @@ proc mbus_recv {cmnd args} {
 		tool.rat.agc  			{eval mbus_recv_tool.rat.agc $args}
 		tool.rat.sync  			{eval mbus_recv_tool.rat.sync $args}
 		tool.rat.format.in              {eval mbus_recv_tool.rat.format.in $args}
-		tool.rat.format.out              {eval mbus_recv_tool.rat.format.out $args}
 		tool.rat.codec  		{eval mbus_recv_tool.rat.codec $args}
 		tool.rat.rate  			{eval mbus_recv_tool.rat.rate $args}
 		tool.rat.lecture.mode  		{eval mbus_recv_tool.rat.lecture.mode $args}
@@ -259,14 +259,10 @@ proc update_channels_displayed {} {
 
     set m1 .prefs.pane.audio.dd.sampling.ch_in.mb.m 
     $m1 delete 0 last
-    set m2 .prefs.pane.audio.dd.sampling.ch_out.mb.m 
-    $m2 delete 0 last
-    
     set s [lsearch -glob $channel_support *$freq*]
     
     foreach i [lrange [split [lindex $channel_support $s] ","] 1 2] {
 	 $m1 add command -label "$i" -command "set ichannels $i; change_sampling"
-	 $m2 add command -label "$i" -command "set ochannels $i; change_sampling"
     }
 }
 
@@ -398,15 +394,6 @@ proc mbus_recv_tool.rat.format.in {arg} {
     set freq      [lindex $e 1]
     set ichannels [lindex $e 2]
     puts "tool.rat.format.in \"$freq\" \"$ichannels\""
-}
-
-proc mbus_recv_tool.rat.format.out {arg} {
-    global freq ochannels
-    set e [split $arg ","]
-    
-    set freq      [lindex $e 1]
-    set ochannels [lindex $e 2]
-    puts "tool.rat.format.out \"$freq\" \"$ochannels\""
 }
 
 proc mbus_recv_tool.rat.codec {arg} {
@@ -1387,13 +1374,11 @@ pack  $i.dd.sampling
 
 frame $i.dd.sampling.freq
 frame $i.dd.sampling.ch_in
-frame $i.dd.sampling.ch_out
-pack $i.dd.sampling.freq $i.dd.sampling.ch_in $i.dd.sampling.ch_out -side left -fill x
+pack $i.dd.sampling.freq $i.dd.sampling.ch_in -side left -fill x
 
 label $i.dd.sampling.freq.l   -text "Sample Rate:   "
-label $i.dd.sampling.ch_in.l  -text "Input Channels:"
-label $i.dd.sampling.ch_out.l -text "Output Channels:"
-pack $i.dd.sampling.freq.l $i.dd.sampling.ch_in.l $i.dd.sampling.ch_out.l -fill x
+label $i.dd.sampling.ch_in.l  -text "Channels:"
+pack $i.dd.sampling.freq.l $i.dd.sampling.ch_in.l -fill x
 
 menubutton $i.dd.sampling.freq.mb -menu $i.dd.sampling.freq.mb.m -indicatoron 1 \
                                   -textvariable freq -relief raised 
@@ -1404,11 +1389,6 @@ menubutton $i.dd.sampling.ch_in.mb -menu $i.dd.sampling.ch_in.mb.m -indicatoron 
                                   -textvariable ichannels -relief raised 
 pack $i.dd.sampling.ch_in.mb -side left -fill x -expand 1
 menu $i.dd.sampling.ch_in.mb.m 
-
-menubutton $i.dd.sampling.ch_out.mb -menu $i.dd.sampling.ch_out.mb.m -indicatoron 1 \
-                                  -textvariable ochannels -relief raised 
-pack $i.dd.sampling.ch_out.mb -side left -fill x -expand 1
-menu $i.dd.sampling.ch_out.mb.m 
 
 frame $i.cks -relief sunken
 pack $i.cks -fill both -expand 1 -anchor w -pady 1
@@ -1759,7 +1739,6 @@ proc save_settings {} {
     # transmission
     save_setting $f audioFrequency         freq
     save_setting $f audioChannelsIn        ichannels
-    save_setting $f audioChannelsOut       ochannels
     save_setting $f audioPrimary           prenc
     save_setting $f audioUnits             upp
     save_setting $f audioChannelCoding     channel_var
@@ -1914,7 +1893,6 @@ proc load_settings {} {
     load_setting attr audioEchoSuppress      echo_var      "0"
     load_setting attr audioFrequency         freq          "8-kHz"
     load_setting attr audioChannelsIn        ichannels     "Mono"
-    load_setting attr audioChannelsOut       ochannels     "Mono"
     load_setting attr audioPrimary           prenc         "GSM"
     load_setting attr audioUnits             upp           "2"
     load_setting attr audioChannelCoding     channel_var   "none"
@@ -2411,8 +2389,6 @@ add_help $i.dd.sampling.freq.mb \
                         "Sets the sampling rate of the audio device.\nThis changes the available codecs."
 add_help $i.dd.sampling.ch_in.mb \
                         "Changes between mono and stereo audio input."
-add_help $i.dd.sampling.ch_out.mb \
-                        "Changes between mono and stereo audio output."
 add_help $i.cks.f.f.silence\
 			 "Prevents silence from being transmitted when the speaker is silent\n\
                           and the input is unmuted."
@@ -2484,3 +2460,10 @@ add_help .chart		"This chart displays the reception quality reported\n by all se
 			 participant was\n received by all other participants in the session:\n green\
 			 is good quality, orange medium quality, and\n red poor quality audio."
 
+} script_error
+
+if { $script_error != "" } {
+    puts "Error: \"$script_error\""
+    destroy .
+    exit -1
+}

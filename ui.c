@@ -453,15 +453,6 @@ ui_update_device_config(session_struct *sp)
         } else {
                 debug_msg("Could not get ifmt\n");
         }
-        
-        af = audio_get_ofmt(sp->audio_device);
-        if (af && audio_format_name(af, fmt_buf, 64)) {
-                mbes = mbus_encode_str(fmt_buf);
-                mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.format.out", mbes, TRUE);
-                xfree(mbes);
-        } else {
-                debug_msg("Could not get ofmt\n");
-        }
 }
 
 void
