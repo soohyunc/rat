@@ -244,6 +244,7 @@ source_validate(source *s)
         assert(s->bps  >= 0);
 	assert((s->skew == SOURCE_SKEW_SLOW) || (s->skew == SOURCE_SKEW_FAST) ||( s->skew == SOURCE_SKEW_NONE));
 	assert((s->playout_mode == PLAYOUT_MODE_NORMAL) || (s->playout_mode == PLAYOUT_MODE_SPIKE));
+        assert((unsigned)e->playout.ticks < 2 * ts_get_freq(e->playout));
 #endif
 }
 
@@ -929,11 +930,12 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 if (e->last_seq > p->seq) {
                         e->misordered++;
                 }
-                e->last_seq     = p->seq;
-                e->last_ts      = p->ts;
-                e->last_arr     = now;
+                e->last_seq          = p->seq;
+                e->last_ts           = p->ts;
+                e->last_arr          = now;
                 e->last_last_transit = e->last_transit;
                 e->last_transit      = transit;
+
 		/* This would be a good place to log a histogram of loss     */
 		/* lengths, right? llhist[p->seq - e->last_seq]++ after a    */
 		/* check that this is not the first packet in a talkspurt.   */
