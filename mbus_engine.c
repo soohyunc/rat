@@ -120,7 +120,7 @@ static void rx_tool_rat_silence_thresh(char *srce, char *args, session_t *sp)
 	mp = mbus_parse_init(args);
 	if (mbus_parse_int(mp, &i)) {
 		sp->manual_sd_thresh = i;
-                manual_sd_set_thresh(sp->manual_sd, i);
+                manual_sd_set_thresh(sp->manual_sd, (uint16_t)i);
                 debug_msg("Setting threshold: %d\n", i);
 	} else {
 		debug_msg("mbus: usage \"tool.rat.silence.threshold <int>\"\n");
