@@ -928,7 +928,6 @@ fragment_spread(codec_t *cp, int len, struct iovec *iov, int iovc, rx_queue_elem
         rx_queue_element_struct *u;
         assert(cp);
 
-	debug_msg("len=%d, iov=%p, iovc=%d, start=%p\n", len, iov, iovc, start);
         u   = start;
 	cnt = 0;
         for (i = 0; i<u->ccu[0]->iovc; i++) {
