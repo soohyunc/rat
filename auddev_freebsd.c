@@ -138,8 +138,8 @@ vox_audio_open_rw(char rw)
 			printf("ERROR: Audio device doesn't support 16bit linear format!\n");
 			return -1;
 		}
-		if ((ioctl(audio_fd, SNDCTL_DSP_STEREO, &stereo) == -1) || (stereo != (format.num_channels - 1))) {
-			printf("ERROR: Audio device doesn't support %d channels!\n", format.num_channels);
+		if ((ioctl(audio_fd, SNDCTL_DSP_STEREO, &stereo) == -1) || (stereo != (format.channels - 1))) {
+			printf("ERROR: Audio device doesn't support %d channels!\n", format.channels);
 			exit(1);
 		}
 		if ((ioctl(audio_fd, SNDCTL_DSP_SPEED, &speed) == -1) || (speed != format.sample_rate)) {

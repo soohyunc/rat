@@ -87,7 +87,7 @@ pca_audio_open(audio_desc_t ad, audio_format *fmt)
 {
 	audio_info_t tmp_info;
 
-        if (fmt->sample_rate != 8000 || fmt->num_channels != 1) {
+        if (fmt->sample_rate != 8000 || fmt->channels != 1) {
                 return FALSE;
         }
 
@@ -252,10 +252,10 @@ pca_audio_read(audio_desc_t ad, sample *buf, int samples)
         /* diff from ms to samples */
         diff *= format.sample_rate / 1000;
 
-        if (diff < format.blocksize) {
+        if (diff < format.bytes_per_block) {
                 return 0;
         }
-        samples = format.blocksize / sizeof(sample);
+        samples = format.bytes_per_block / sizeof(sample);
         last_read_time.tv_usec += samples * 1000 / (format.sample_rate/1000);
         if (last_read_time.tv_usec >= 1000000) {
                 last_read_time.tv_sec += last_read_time.tv_usec / 1000000;
@@ -418,13 +418,13 @@ pca_audio_loopback(audio_desc_t ad, int gain)
 }
 
 /*
- * Get device blocksize
+ * Get device bytes_per_block
  */
 int
-pca_audio_get_blocksize(audio_desc_t ad)
+pca_audio_get_bytes_per_block(audio_desc_t ad)
 {
         UNUSED(ad);
-        return format.blocksize;
+        return format.bytes_per_block;
 }
 
 /*
@@ -434,11 +434,11 @@ int
 pca_audio_get_channels(audio_desc_t ad)
 {
         UNUSED(ad);
-        return format.num_channels;
+        return format.channels;
 }
 
 /*
- * Get device blocksize
+ * Get device bytes_per_block
  */
 int
 pca_audio_get_freq(audio_desc_t ad)
@@ -463,7 +463,7 @@ pca_audio_is_ready(audio_desc_t ad)
 	diff = (now.tv_sec  - last_read_time.tv_sec) * 1000 + (now.tv_usec - last_read_time.tv_usec)/1000;
         diff *= format.sample_rate / 1000;
 
-        if (diff >= (unsigned)format.blocksize) return diff;
+        if (diff >= (unsigned)format.bytes_per_block) return diff;
         return FALSE;
 }
 

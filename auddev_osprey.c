@@ -208,7 +208,7 @@ osprey_audio_open(audio_desc_t ad, audio_format *fmt)
                 debug_msg("Osprey device was not closed\n");
         }
 
-        if (fmt->num_channels != 1 || fmt->sample_rate != 8000 || fmt->bits_per_sample != 16) {
+        if (fmt->channels != 1 || fmt->sample_rate != 8000 || fmt->bits_per_sample != 16) {
                 return FALSE;
         }
 
@@ -255,7 +255,7 @@ osprey_audio_open(audio_desc_t ad, audio_format *fmt)
         ah_play.sample_rate      = fmt->sample_rate; 
         ah_play.samples_per_unit = 1;
         ah_play.bytes_per_unit   = 2;
-        ah_play.channels         = fmt->num_channels;
+        ah_play.channels         = fmt->channels;
         ah_play.encoding         = AUDIO_ENCODING_LINEAR;
         ah_play.endian           = AUDIO_ENDIAN_BIG;
         ah_play.data_size        = AUDIO_UNKNOWN_SIZE; /* No effect */
@@ -416,7 +416,7 @@ osprey_audio_read(audio_desc_t ad, sample *buf, int samples)
         len = samples;
         len /= BYTES_PER_SAMPLE;
 
-        if (len >= format.blocksize) {
+        if (len >= format.bytes_per_block) {
                 len = min(samples, len);
                 oti_audio_get_record_error(audio_fd, &error);
                 if (error){
@@ -573,10 +573,10 @@ osprey_audio_duplex(audio_desc_t ad)
 }
 
 int 
-osprey_audio_get_blocksize(audio_desc_t ad)
+osprey_audio_get_bytes_per_block(audio_desc_t ad)
 {
         UNUSED(ad);
-        return format.blocksize;
+        return format.bytes_per_block;
 }
 
 int
@@ -625,10 +625,10 @@ osprey_audio_wait_for(audio_desc_t ad, int delay_ms)
 
         len = osprey_audio_is_ready(ad);
         
-        if (len >= format.blocksize) return;
+        if (len >= format.bytes_per_block) return;
 
         if (len != 0) {
-                us = 1000000 * len / (format.num_channels * BYTES_PER_SAMPLE * format.sample_rate);
+                us = 1000000 * len / (format.channels * BYTES_PER_SAMPLE * format.sample_rate);
                 us= min(delay_ms * 1000, us);
         } else {
                 us = delay_ms;

@@ -59,8 +59,8 @@ typedef struct s_audio_format {
   deve_e encoding;
   int    sample_rate; 		/* Should be one of 8000, 16000, 24000, 32000, 48000 */
   int    bits_per_sample;	/* Should be 8 or 16 */
-  int    num_channels;  	/* Should be 1 or 2  */
-  int    blocksize;             /* size of unit we will read/write in */
+  int    channels;  	/* Should be 1 or 2  */
+  int    bytes_per_block;       /* size of unit we will read/write in */
 } audio_format;
 
 typedef short sample;       /* Sample representation 16 bit signed */

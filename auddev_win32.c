@@ -785,7 +785,7 @@ w32sdk_audio_get_freq(audio_desc_t ad)
 }
 
 int
-w32sdk_audio_get_blocksize(audio_desc_t ad)
+w32sdk_audio_get_bytes_per_block(audio_desc_t ad)
 {
         UNUSED(ad);
         return blksz;
@@ -808,7 +808,7 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt)
         mixSetup();
 
         format.wFormatTag      = WAVE_FORMAT_PCM;
-	format.nChannels       = (WORD)fmt->num_channels;
+	format.nChannels       = (WORD)fmt->channels;
 	format.nSamplesPerSec  = fmt->sample_rate;
 	format.wBitsPerSample  = (WORD)fmt->bits_per_sample;
         smplsz                 = format.wBitsPerSample / 8;
@@ -819,7 +819,7 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt)
         memcpy(&tfmt, &format, sizeof(format));
         /* Use 1 sec device buffer */
 	
-        blksz  = fmt->blocksize;
+        blksz  = fmt->bytes_per_block;
 	nblks  = format.nAvgBytesPerSec / blksz;
 	
         if (w32sdk_audio_open_in() == FALSE)   return FALSE;

@@ -39,7 +39,7 @@ audio_open(audio_format format)
   assert(format.encoding        == DEV_L16);
   assert(format.sample_rate     == 8000);
   assert(format.bits_per_sample == 16);
-  assert(format.num_channels    == 1);
+  assert(format.channels    == 1);
 
   /* set up input(record) and output(play) buffers */
 

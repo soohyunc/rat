@@ -82,7 +82,7 @@ sgi_audio_open(audio_desc_t ad, audio_format* fmt)
 		exit(1);
 	}
 
-        switch(fmt->num_channels) {
+        switch(fmt->channels) {
         case 1:
                 ALsetchannels(c, AL_MONO); break;
         case 2:
@@ -124,8 +124,8 @@ sgi_audio_open(audio_desc_t ad, audio_format* fmt)
 	/* Get the file descriptor to use in select */
 	audio_fd = ALgetfd(rp);
 
-	if (ALsetfillpoint(rp, format.blocksize) < 0) {
-                debug_msg("ALsetfillpoint failed (%d samples)\n", format.blocksize);
+	if (ALsetfillpoint(rp, format.bytes_per_block) < 0) {
+                debug_msg("ALsetfillpoint failed (%d samples)\n", format.bytes_per_block);
         }
         
 	/* We probably should free the config here... */
@@ -218,9 +218,9 @@ sgi_audio_read(audio_desc_t ad, sample *buf, int samples)
         UNUSED(ad); assert(audio_fd > 0);
         
 	if (non_block) {
-		if ((len = ALgetfilled(rp)) < format.blocksize)
+		if ((len = ALgetfilled(rp)) < format.bytes_per_block)
 			return (0);
-                len = min(format.blocksize, samples);
+                len = min(format.bytes_per_block, samples);
 	} else {
 		len = (long)samples;
         }
@@ -383,10 +383,10 @@ sgi_audio_get_channels(audio_desc_t ad)
 }
 
 int
-sgi_audio_get_blocksize(audio_desc_t ad)
+sgi_audio_get_bytes_per_block(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
-        return format.blocksize; /* Could use ALgetfillpoint */
+        return format.bytes_per_block; /* Could use ALgetfillpoint */
 }
 
 int
@@ -408,7 +408,7 @@ sgi_audio_is_ready(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
         
-        if (ALgetfilled(rp) >= format.blocksize) {
+        if (ALgetfilled(rp) >= format.bytes_per_block) {
                 return TRUE;
         } else {
                 return FALSE;

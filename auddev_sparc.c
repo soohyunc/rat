@@ -53,7 +53,7 @@ typedef Audio_hdr* audio_header_pointer;
 
 static audio_info_t	dev_info;
 static int 		mulaw_device = FALSE;	/* TRUE if the hardware can only do 8bit mulaw sampling */
-static int              blocksize = 0;
+static int              bytes_per_block = 0;
 
 static int audio_fd = -1; 
 
@@ -82,8 +82,8 @@ sparc_audio_open(audio_desc_t ad, audio_format* format)
 		dev_info.output_muted       = 0; /* 0==not muted */
 		dev_info.play.sample_rate   = format->sample_rate;
 		dev_info.record.sample_rate = format->sample_rate;
-		dev_info.play.channels      = format->num_channels;
-		dev_info.record.channels    = format->num_channels;
+		dev_info.play.channels      = format->channels;
+		dev_info.record.channels    = format->channels;
 		dev_info.play.precision     = format->bits_per_sample;
 		dev_info.record.precision   = format->bits_per_sample;
 		dev_info.play.gain          = (AUDIO_MAX_GAIN - AUDIO_MIN_GAIN) * 0.75;
@@ -99,7 +99,7 @@ sparc_audio_open(audio_desc_t ad, audio_format* format)
 		debug_msg("Setting device buffer_size to %d\n", dev_info.play.buffer_size);
 #endif /* DEBUG */
 #endif /* Solaris */
-                blocksize = format->blocksize;
+                bytes_per_block = format->bytes_per_block;
                 switch (format->encoding) {
 		case DEV_PCMU:
 			dev_info.record.encoding = AUDIO_ENCODING_ULAW;
@@ -449,11 +449,11 @@ sparc_audio_duplex(audio_desc_t ad)
 }
 
 int 
-sparc_audio_get_blocksize(audio_desc_t ad)
+sparc_audio_get_bytes_per_block(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
 
-        return blocksize;
+        return bytes_per_block;
 }
 
 int

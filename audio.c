@@ -228,15 +228,15 @@ audio_device_take(session_struct *sp)
 	format.encoding        = DEV_L16;
 	format.sample_rate     = cp->freq;
         format.bits_per_sample = 16;
-	format.num_channels    = cp->channels;
-        format.blocksize       = cp->unit_len * cp->channels * BYTES_PER_SAMPLE;
+	format.channels    = cp->channels;
+        format.bytes_per_block       = cp->unit_len * cp->channels * BYTES_PER_SAMPLE;
 
 	if (sp->mode == TRANSCODER) {
 		if ((sp->audio_device = transcoder_open()) == 0) {
                         return FALSE;
                 }
 	} else {
-		sp->audio_device = audio_open(&format);
+		sp->audio_device = audio_open(&format, &format);
 
                 if (!sp->audio_device) {
                         /* Maybe we cannot support this format. Try minimal
@@ -251,9 +251,9 @@ audio_device_take(session_struct *sp)
                         fallback.encoding        = DEV_L16;
                         fallback.sample_rate     = cp->freq;
                         fallback.bits_per_sample = 16;
-                        fallback.num_channels    = cp->channels;
-                        fallback.blocksize       = cp->unit_len * cp->channels * BYTES_PER_SAMPLE;
-                        sp->audio_device = audio_open(&fallback);
+                        fallback.channels    = cp->channels;
+                        fallback.bytes_per_block       = cp->unit_len * cp->channels * BYTES_PER_SAMPLE;
+                        sp->audio_device = audio_open(&fallback, &fallback);
                         
                         if (sp->audio_device) {
                                 /* Make format consistent just in case. */
@@ -268,7 +268,7 @@ audio_device_take(session_struct *sp)
                          * So now use null device with original format requested.
                          */
                         audio_set_interface(audio_get_null_interface());
-                        sp->audio_device = audio_open(&format);
+                        sp->audio_device = audio_open(&format, &format);
                         debug_msg("Using null audio device\n");
                         assert(sp->audio_device != 0);
                 }
@@ -292,8 +292,8 @@ audio_device_take(session_struct *sp)
 	}
         
         if (audio_zero_buf == NULL) {
-                audio_zero_buf = (sample*) xmalloc (format.blocksize * sizeof(sample));
-                audio_zero(audio_zero_buf, format.blocksize, DEV_L16);
+                audio_zero_buf = (sample*) xmalloc (format.bytes_per_block * sizeof(sample));
+                audio_zero(audio_zero_buf, format.bytes_per_block, DEV_L16);
         }
 
         if ((sp->audio_device != 0) && (sp->mode != TRANSCODER)) {

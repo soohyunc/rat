@@ -95,7 +95,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *fmt)
                 LUIGI_AUDIO_IOCTL(audio_fd,SNDCTL_DSP_RESET,0);
                 pa.play_rate   = pa.rec_rate   = format.sample_rate;
                 pa.play_format = pa.rec_format = AFMT_S16_LE;
-                sz.play_size   = sz.rec_size   = format.blocksize;
+                sz.play_size   = sz.rec_size   = format.bytes_per_block;
 
                 switch (soundcaps.formats & (AFMT_FULLDUPLEX | AFMT_WEIRD)) {
                 case AFMT_FULLDUPLEX:
@@ -106,7 +106,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *fmt)
                 case AFMT_FULLDUPLEX | AFMT_WEIRD:
                         /* this is the sb16... */
                         pa.play_format = AFMT_S8;
-                        sz.play_size = format.blocksize / 2;
+                        sz.play_size = format.bytes_per_block / 2;
                         break;
                 default:		/* no full duplex... */
                         fprintf(stderr, "Sorry driver does support full duplex for this soundcard\n");
@@ -114,7 +114,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *fmt)
                         return FALSE;
                 }
 
-                if (format.num_channels == 2) {
+                if (format.channels == 2) {
                         if (soundcaps.formats & AFMT_STEREO) {
                                 pa.play_format |= AFMT_STEREO;
                         } else {
@@ -447,17 +447,17 @@ luigi_audio_next_iport(audio_desc_t ad)
 }
 
 int
-luigi_audio_get_blocksize(audio_desc_t ad)
+luigi_audio_get_bytes_per_block(audio_desc_t ad)
 {
         UNUSED(ad);
-        return format.blocksize;
+        return format.bytes_per_block;
 }
 
 int
 luigi_audio_get_channels(audio_desc_t ad)
 {
         UNUSED(ad);
-        return format.num_channels;
+        return format.channels;
 }
 
 int

@@ -58,7 +58,7 @@ int	can_write = FALSE;
 int	iport     = AUDIO_MICROPHONE;
 int	is_duplex = FALSE;
 int	done_test = FALSE;
-int	blocksize;
+int	bytes_per_block;
 
 /* Magic to get device names from OSS */
 
@@ -79,7 +79,7 @@ static int
 oss_audio_open_rw(audio_desc_t ad, char rw)
 {
 	int  mode     = AFMT_S16_LE;			/* 16bit linear, little-endian */
-	int  stereo   = format.num_channels - 1;	/* 0=mono, 1=stereo            */
+	int  stereo   = format.channels - 1;	/* 0=mono, 1=stereo            */
 	int  speed    = format.sample_rate;
 	int  volume   = (100<<8)|100;
 	int  frag     = 0x7fff0000; 			/* unlimited number of fragments */
@@ -87,10 +87,10 @@ oss_audio_open_rw(audio_desc_t ad, char rw)
 	char buffer[128];				/* sigh. */
 
 	/* Calculate the size of the fragments we want... 20ms worth of audio data... */
-	blocksize = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
+	bytes_per_block = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
 	/* Round to the nearest legal frag size (next power of two lower...) */
-	frag |= (int) (log(blocksize)/log(2));
-	debug_msg("frag=%x blocksize=%d\n", frag, blocksize);
+	frag |= (int) (log(bytes_per_block)/log(2));
+	debug_msg("frag=%x bytes_per_block=%d\n", frag, bytes_per_block);
 
 	switch (rw) {
 	case O_RDONLY: 
@@ -126,8 +126,8 @@ oss_audio_open_rw(audio_desc_t ad, char rw)
 			printf("ERROR: Audio device doesn't support 16bit linear format!\n");
 			abort();
 		}
-		if ((ioctl(audio_fd, SNDCTL_DSP_STEREO, &stereo) == -1) || (stereo != (format.num_channels - 1))) {
-			printf("ERROR: Audio device doesn't support %d channels!\n", format.num_channels);
+		if ((ioctl(audio_fd, SNDCTL_DSP_STEREO, &stereo) == -1) || (stereo != (format.channels - 1))) {
+			printf("ERROR: Audio device doesn't support %d channels!\n", format.channels);
 			abort();
 		}
 		if ((ioctl(audio_fd, SNDCTL_DSP_SPEED, &speed) == -1) || (speed != format.sample_rate)) {
@@ -565,17 +565,17 @@ oss_audio_next_iport(audio_desc_t ad)
 }
 
 int
-oss_audio_get_blocksize(audio_desc_t ad)
+oss_audio_get_bytes_per_block(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
-	return blocksize;
+	return bytes_per_block;
 }
 
 int
 oss_audio_get_channels(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd > 0);
-	return format.num_channels;
+	return format.channels;
 }
 
 int
