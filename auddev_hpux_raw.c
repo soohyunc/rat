@@ -36,7 +36,7 @@ audio_open(audio_format format)
 {
   int audio_fd = -1;
 
-  assert(format.encoding        == DEV_L16);
+  assert(format.encoding        == DEV_S16);
   assert(format.sample_rate     == 8000);
   assert(format.bits_per_sample == 16);
   assert(format.channels    == 1);

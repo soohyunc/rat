@@ -171,10 +171,10 @@ audio_zero(sample *buf, int len, deve_e type)
 	case DEV_PCMU:
 		memset(buf, PCMU_AUDIO_ZERO, len);
 		break;
-	case DEV_L8:
+	case DEV_S8:
 		memset(buf, 0, len);
 		break;
-	case DEV_L16:
+	case DEV_S16:
 		memset(buf, 0, 2*len);
 		break;
 	default:
@@ -184,30 +184,19 @@ audio_zero(sample *buf, int len, deve_e type)
 }
 
 int
-audio_device_read(session_struct *sp, sample *buf, int samples)
-{
-	assert(sp->audio_device);
-	if (sp->mode == TRANSCODER) {
-		return transcoder_read(sp->audio_device, buf, samples);
-	} else {
-		return audio_read(sp->audio_device, buf, samples);
-	}
-}
-
-int
 audio_device_write(session_struct *sp, sample *buf, int dur)
 {
         codec_t *cp = get_codec_by_pt(sp->encodings[0]);
 
 	if (sp->audio_device) {
-                u_int16 channels = audio_get_channels(sp->audio_device);
+                const audio_format *ofmt = audio_get_ofmt(sp->audio_device);
                 if (sp->out_file) {
-                        snd_write_audio(&sp->out_file, buf, (u_int16)(dur * channels));
+                        snd_write_audio(&sp->out_file, buf, (u_int16)(dur * ofmt->channels));
                 }
 		if (sp->mode == TRANSCODER) {
 			return transcoder_write(sp->audio_device, buf, dur*cp->channels);
 		} else {
-			return audio_write(sp->audio_device, buf, dur * channels);
+			return audio_write(sp->audio_device, buf, dur * ofmt->channels);
 		}
         } else {
 		return (dur * cp->channels);
@@ -225,7 +214,7 @@ audio_device_take(session_struct *sp)
         }
 
 	cp = get_codec_by_pt(sp->encodings[0]);
-	format.encoding        = DEV_L16;
+	format.encoding        = DEV_S16;
 	format.sample_rate     = cp->freq;
         format.bits_per_sample = 16;
 	format.channels    = cp->channels;
@@ -248,7 +237,7 @@ audio_device_take(session_struct *sp)
 
                         sp->encodings[0] = cp->pt;
 
-                        fallback.encoding        = DEV_L16;
+                        fallback.encoding        = DEV_S16;
                         fallback.sample_rate     = cp->freq;
                         fallback.bits_per_sample = 16;
                         fallback.channels    = cp->channels;
@@ -293,7 +282,7 @@ audio_device_take(session_struct *sp)
         
         if (audio_zero_buf == NULL) {
                 audio_zero_buf = (sample*) xmalloc (format.bytes_per_block * sizeof(sample));
-                audio_zero(audio_zero_buf, format.bytes_per_block, DEV_L16);
+                audio_zero(audio_zero_buf, format.bytes_per_block, DEV_S16);
         }
 
         if ((sp->audio_device != 0) && (sp->mode != TRANSCODER)) {
@@ -386,7 +375,8 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 {
         u_int32 cushion_size, read_dur;
         struct s_cushion_struct *c;
-	int	trailing_silence, new_cushion, cushion_step, diff, channels;
+	int	trailing_silence, new_cushion, cushion_step, diff;
+        const audio_format* ofmt;
 	sample	*bufp;
 
         c = spi->cushion;
@@ -419,7 +409,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
 	 * another silence gap...
 	 */
         cushion_size = cushion_get_size(c);
-        channels = audio_get_channels(spi->audio_device);
+        ofmt         = audio_get_ofmt(spi->audio_device);
 
 	if ( cushion_size < read_dur ) {
 		/* Use a step for the cushion to keep things nicely rounded   */
@@ -438,7 +428,7 @@ read_write_audio(session_struct *spi, session_struct *spo,  struct s_mix_info *m
                         cushion_size);
                 cushion_size = new_cushion;
         } else {
-                trailing_silence = mix_get_audio(ms, read_dur * channels, &bufp);
+                trailing_silence = mix_get_audio(ms, read_dur * ofmt->channels, &bufp);
                 cushion_step = cushion_get_step(c);
                 diff  = 0;
 

@@ -68,7 +68,6 @@ void    audio_unbias (struct s_bias_ctl *bc, sample *buf, int len);
 int     read_write_audio (struct session_tag *spi, struct session_tag *spo, struct s_mix_info *ms);
 void    read_write_init  (struct session_tag *session_pointer);
 
-int     audio_device_read        (struct session_tag *sp, sample *buf, int len);
 int     audio_device_write       (struct session_tag *sp, sample *buf, int samples);
 int     audio_device_take        (struct session_tag *sp);
 void	audio_device_give        (struct session_tag *sp);

@@ -64,10 +64,15 @@ Note:      This function should perform any last minute clean up necessary befor
            shutdown.
 
 --------------------------------------------------------------------------------
-int platform_audio_open(audio_desc_t ad, audio_format* format);
+int platform_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);
 
 Arguments: A unique desciptor, requested audio format. Both defined in
-           audio_types.h.
+           audio_types.h.  If the device does not support the sample types of
+           the input or output format, it should change the format type to one
+           that it supports via the audio_format_change_encoding function and
+           use that format.  The audio device interface (auddev.c) handles
+           conversion to what the application requested.  No changes should be
+           made to any other fields in the input or output formats.
 Returns:   TRUE if device opened with requested format.  FALSE otherwise.
 Note:      It is intend the audio interface code keeps it own audio file 
            descriptors within the scope of it's file.  The descriptor ad
@@ -125,16 +130,16 @@ Note:      Not all devices support this in which case this function should
            exist but do nothing.
 
 --------------------------------------------------------------------------------
-int  platform_audio_read(audio_desc_t ad, sample *buf, int samples);
+int  platform_audio_read(audio_desc_t ad, u_char *buf, int read_bytes);
 
-Arguments: Descriptor, sample buffer, length of buffer in samples.
-Returns:   Number of samples read (bytes read / bytes_per_sample).
+Arguments: Descriptor, sample buffer, no of bytes to read.
+Returns:   Bytes read.
 
 --------------------------------------------------------------------------------
-int  platform_audio_write(audio_desc_t ad, sample *buf, int samples);
+int  platform_audio_write(audio_desc_t ad, u_char *buf, int write_bytes);
 
-Arguments: Descriptor, sample buffer,  length of buffer in samples.
-Returns:   Number of samples successfully written.
+Arguments: Descriptor, sample buffer, no of bytes to be read.
+Returns:   Number of bytes successfully written.
 
 --------------------------------------------------------------------------------
 void platform_audio_non_block(audio_desc_t ad);

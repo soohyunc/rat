@@ -45,7 +45,7 @@
 
 int pca_audio_init(void);
 
-int  pca_audio_open       (audio_desc_t ad, audio_format* format);
+int  pca_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format* ofmt);
 void pca_audio_close      (audio_desc_t ad);
 void pca_audio_drain      (audio_desc_t ad);
 int  pca_audio_duplex     (audio_desc_t ad);
@@ -54,8 +54,8 @@ int  pca_audio_get_gain   (audio_desc_t ad);
 void pca_audio_set_volume (audio_desc_t ad, int vol);
 int  pca_audio_get_volume (audio_desc_t ad);
 void pca_audio_loopback   (audio_desc_t ad, int gain);
-int  pca_audio_read       (audio_desc_t ad, sample *buf, int samples);
-int  pca_audio_write      (audio_desc_t ad, sample *buf, int samples);
+int  pca_audio_read       (audio_desc_t ad, u_char *buf, int buf_len);
+int  pca_audio_write      (audio_desc_t ad, u_char *buf, int buf_len);
 void pca_audio_non_block  (audio_desc_t ad);
 void pca_audio_block      (audio_desc_t ad);
 void pca_audio_set_oport  (audio_desc_t ad, int port);
@@ -64,9 +64,6 @@ int  pca_audio_next_oport (audio_desc_t ad);
 void pca_audio_set_iport  (audio_desc_t ad, int port);
 int  pca_audio_get_iport  (audio_desc_t ad);
 int  pca_audio_next_iport (audio_desc_t ad);
-int  pca_audio_get_bytes_per_block (audio_desc_t ad);
-int  pca_audio_get_channels  (audio_desc_t ad);
-int  pca_audio_get_freq  (audio_desc_t ad);
 int  pca_audio_is_ready  (audio_desc_t ad);
 void pca_audio_wait_for  (audio_desc_t ad, int delay_ms);
 

@@ -44,12 +44,12 @@
 #include "config_win32.h"
 #include "assert.h"
 #include "audio_types.h"
+#include "audio_fmt.h"
 #include "auddev_luigi.h"
 #include "memory.h"
 #include "debug.h"
 
 static int iport = AUDIO_MICROPHONE;
-static audio_format format;
 static snd_chan_param pa;
 static int audio_fd = -1;
 
@@ -72,7 +72,7 @@ static int ndev = 0;
 static int luigi_error;
 
 int 
-luigi_audio_open(audio_desc_t ad, audio_format *fmt)
+luigi_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
         int             volume = 100;
         int             reclb = 0;
@@ -81,9 +81,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *fmt)
         
         assert(ad >= 0 && ad < ndev); 
 	sprintf(thedev, "/dev/audio%d", dev_ids[ad]);
-        
-        memcpy(&format, fmt, sizeof(audio_format));
-        
+
         audio_fd = open(thedev, O_RDWR);
         if (audio_fd >= 0) {
                 struct snd_size sz;
@@ -93,10 +91,7 @@ luigi_audio_open(audio_desc_t ad, audio_format *fmt)
 
                 LUIGI_AUDIO_IOCTL(audio_fd, AIOGCAP, &soundcaps);
                 LUIGI_AUDIO_IOCTL(audio_fd,SNDCTL_DSP_RESET,0);
-                pa.play_rate   = pa.rec_rate   = format.sample_rate;
-                pa.play_format = pa.rec_format = AFMT_S16_LE;
-                sz.play_size   = sz.rec_size   = format.bytes_per_block;
-
+                
                 switch (soundcaps.formats & (AFMT_FULLDUPLEX | AFMT_WEIRD)) {
                 case AFMT_FULLDUPLEX:
                         /*
@@ -105,25 +100,39 @@ luigi_audio_open(audio_desc_t ad, audio_format *fmt)
                         break;
                 case AFMT_FULLDUPLEX | AFMT_WEIRD:
                         /* this is the sb16... */
-                        pa.play_format = AFMT_S8;
-                        sz.play_size = format.bytes_per_block / 2;
+                        debug_msg("Weird Hardware\n");
+                        audio_format_change_encoding(ofmt, DEV_S8);
                         break;
                 default:		/* no full duplex... */
                         fprintf(stderr, "Sorry driver does support full duplex for this soundcard\n");
                         luigi_audio_close(ad);
                         return FALSE;
                 }
-
-                if (format.channels == 2) {
-                        if (soundcaps.formats & AFMT_STEREO) {
-                                pa.play_format |= AFMT_STEREO;
-                        } else {
-                                fprintf(stderr,"Driver does not support stereo for this soundcard\n");
-                                luigi_audio_close(ad);
-                                return FALSE;
-                        }
-                }
                 
+                assert(ofmt->channels == ifmt->channels);
+                
+                if (ifmt->channels == 2 && !(soundcaps.formats & AFMT_STEREO)) {
+                        fprintf(stderr,"Driver does not support stereo for this soundcard\n");
+                        luigi_audio_close(ad);
+                        return FALSE;
+                }
+
+                switch(ifmt->encoding) {
+                case DEV_PCMU: pa.rec_format = AFMT_MU_LAW; break;
+                case DEV_S8:   pa.rec_format = AFMT_S8;     break;
+                case DEV_S16:  pa.rec_format = AFMT_S16_LE; break;
+                }
+                pa.rec_rate = ifmt->sample_rate;
+                sz.rec_size = ifmt->bytes_per_block;
+
+                switch(ofmt->encoding) {
+                case DEV_PCMU: pa.play_format = AFMT_MU_LAW; break;
+                case DEV_S8:   pa.play_format = AFMT_S8;     break;
+                case DEV_S16:  pa.play_format = AFMT_S16_LE; break;
+                }
+                pa.play_rate = ofmt->sample_rate;
+                sz.play_size = ofmt->bytes_per_block;
+
                 LUIGI_AUDIO_IOCTL(audio_fd, AIOSFMT, &pa);
                 LUIGI_AUDIO_IOCTL(audio_fd, AIOSSIZE, &sz);
                 
@@ -175,7 +184,7 @@ luigi_audio_close(audio_desc_t ad)
 void
 luigi_audio_drain(audio_desc_t ad)
 {
-        sample buf[160];
+        u_char buf[160];
         
         assert(audio_fd > 0);
         UNUSED(ad);
@@ -191,61 +200,42 @@ luigi_audio_duplex(audio_desc_t ad)
 }
 
 int
-luigi_audio_read(audio_desc_t ad, sample *buf, int samples)
+luigi_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 {
-        int             l1, len0;
-        unsigned int	len;
-        char           *base = (char *) buf;
+        int done, this_read;
+        int len;
         /* Figure out how many bytes we can read before blocking... */
 
         UNUSED(ad); assert(audio_fd > 0);
 
         LUIGI_AUDIO_IOCTL(audio_fd, FIONREAD, &len);
-        if (len > (samples * BYTES_PER_SAMPLE))
-                len = (samples * BYTES_PER_SAMPLE);
+
+        len = min(len, read_bytes);
+
         /* Read the data... */
-        for (len0 = len; len; len -= l1, base += l1) {
-                if ((l1 = read(audio_fd, base, len)) < 0) {
-                        return 0;
-                }
+        done = 0;
+        while(done < len) {
+                this_read = read(audio_fd, (void*)buf, len - done);
+                done += this_read;
+                buf  += this_read;
         }
-        return len0 / BYTES_PER_SAMPLE;
+        return done;
 }
 
-
 int
-luigi_audio_write(audio_desc_t ad, sample *buf, int samples)
+luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 {
-	int             done, len, slen;
-	char           *p;
+	int done;
 
         UNUSED(ad); assert(audio_fd > 0);
 
-        p = (char *) buf;
-        slen = BYTES_PER_SAMPLE;
-        len = samples * BYTES_PER_SAMPLE;
-        if (pa.play_format != AFMT_S16_LE) {
-                /* soundblaster... S16 -> S8 */
-                int             i;
-                short          *src = (short *) buf;
-                char           *dst = (char *) buf;
-                for (i = 0; i < samples; i++)
-                        dst[i] = src[i] >> 8;
-                len = samples;
-                slen = 1;
+        done = write(audio_fd, (void*)buf, write_bytes);
+        if (done != write_bytes && errno != EINTR) {
+                perror("Error writing device");
+                return (write_bytes - done);
         }
-        while (1) {
-                if ((done = write(audio_fd, p, len)) == len) {
-                        break;
-                }
-                if (errno != EINTR) {
-                        perror("Error writing device");
-                        return samples - ((len - done) / slen);
-                }
-                len -= done;
-                p += done;
-        }
-        return samples;
+
+        return write_bytes;
 }
 
 /* Set ops on audio device to be non-blocking */
@@ -444,27 +434,6 @@ luigi_audio_next_iport(audio_desc_t ad)
         }
 
 	return (iport);
-}
-
-int
-luigi_audio_get_bytes_per_block(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return format.bytes_per_block;
-}
-
-int
-luigi_audio_get_channels(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return format.channels;
-}
-
-int
-luigi_audio_get_freq(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return format.sample_rate;
 }
 
 static int

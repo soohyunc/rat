@@ -191,7 +191,7 @@ render_3D_init(session_struct *sp)
         char              *default_filter_name;
         render_3D_dbentry *render_3D_data;
 
-        sampling_rate = audio_get_freq(sp->audio_device);
+        sampling_rate = get_freq(sp->device_clock);
 
         azimuth = render_3D_idx2azimuth(n_users_created);
         length  = DEFAULT_RESPONSE_LENGTH;

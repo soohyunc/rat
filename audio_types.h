@@ -51,8 +51,8 @@
 
 typedef enum {
 	DEV_PCMU,
-	DEV_L8,
-	DEV_L16
+	DEV_S8,
+	DEV_S16
 } deve_e;
 
 typedef struct s_audio_format {

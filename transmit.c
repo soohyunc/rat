@@ -299,8 +299,9 @@ tx_read_audio(session_struct *sp)
                         u = sp->tb->last_ptr;
                         assert(u);
                         assert(sp->tb->channels > 0 && sp->tb->channels <= 2);
-                        this_read = audio_device_read(sp, u->data + u->dur_used * sp->tb->channels,
-                                                      (sp->tb->unit_dur - u->dur_used) * sp->tb->channels) / sp->tb->channels;
+                        this_read = audio_read(sp->audio_device, 
+                                               u->data + u->dur_used * sp->tb->channels,
+                                               (sp->tb->unit_dur - u->dur_used) * sp->tb->channels) / sp->tb->channels;
                         if (sp->in_file) {
                                 snd_read_audio(&sp->in_file, 
                                                 u->data + u->dur_used * sp->tb->channels,
@@ -320,7 +321,7 @@ tx_read_audio(session_struct *sp)
 		if (sp->audio_device) {
 			/* We're not sending, but have access to the audio device. Read the audio anyway. */
 			/* to get exact timing values, and then throw the data we've just read away...    */
-			read_dur = audio_device_read(sp, dummy_buf, DEVICE_REC_BUF) / sp->tb->channels;
+			read_dur = audio_read(sp->audio_device, dummy_buf, DEVICE_REC_BUF / 4) / sp->tb->channels;
 			time_advance(sp->clock, get_freq(sp->tb->clock), read_dur);
 	 	} else {
 			/* Fake the timing using gettimeofday... We don't have the audio device, so this */

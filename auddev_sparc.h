@@ -62,9 +62,6 @@ int  sparc_audio_next_oport (audio_desc_t ad);
 void sparc_audio_set_iport  (audio_desc_t ad, int port);
 int  sparc_audio_get_iport  (audio_desc_t ad);
 int  sparc_audio_next_iport (audio_desc_t ad);
-int  sparc_audio_get_bytes_per_block (audio_desc_t ad);
-int  sparc_audio_get_channels  (audio_desc_t ad);
-int  sparc_audio_get_freq  (audio_desc_t ad);
 int  sparc_audio_is_ready  (audio_desc_t ad);
 void sparc_audio_wait_for  (audio_desc_t ad, int delay_ms);
 #endif /* _AUDDEV_SPARC_H_ */

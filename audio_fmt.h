@@ -1,12 +1,12 @@
 /*
- * FILE:     auddev_sgi.h
- * PROGRAM:  RAT
- * AUTHOR:   Orion Hodson
+ * FILE:    audio_fmt.h
+ * PROGRAM: RAT
+ * AUTHOR:  Orion Hodson
  *
  * $Revision$
  * $Date$
  *
- * Copyright (c) 1998 University College London
+ * Copyright (c) 1995-98 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,29 +40,23 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _AUDDEV_SGI_H_
-#define _AUDDEV_SGI_H_
+#ifndef _AUDIO_FMT_H_
+#define _AUDIO_FMT_H_
 
-int  sgi_audio_open       (audio_desc_t ad, audio_format* format);
-void sgi_audio_close      (audio_desc_t ad);
-void sgi_audio_drain      (audio_desc_t ad);
-int  sgi_audio_duplex     (audio_desc_t ad);
-void sgi_audio_set_gain   (audio_desc_t ad, int gain);
-int  sgi_audio_get_gain   (audio_desc_t ad);
-void sgi_audio_set_volume (audio_desc_t ad, int vol);
-int  sgi_audio_get_volume (audio_desc_t ad);
-void sgi_audio_loopback   (audio_desc_t ad, int gain);
-int  sgi_audio_read       (audio_desc_t ad, sample *buf, int samples);
-int  sgi_audio_write      (audio_desc_t ad, sample *buf, int samples);
-void sgi_audio_non_block  (audio_desc_t ad);
-void sgi_audio_block      (audio_desc_t ad);
-void sgi_audio_set_oport  (audio_desc_t ad, int port);
-int  sgi_audio_get_oport  (audio_desc_t ad);
-int  sgi_audio_next_oport (audio_desc_t ad);
-void sgi_audio_set_iport  (audio_desc_t ad, int port);
-int  sgi_audio_get_iport  (audio_desc_t ad);
-int  sgi_audio_next_iport (audio_desc_t ad);
-int  sgi_audio_is_ready  (audio_desc_t ad);
-void sgi_audio_wait_for  (audio_desc_t ad, int delay_ms);
+int           audio_format_get_common (audio_format  *fmt1, 
+                                       audio_format  *fmt2, 
+                                       audio_format  *common_fmt);
+int           audio_format_match      (audio_format  *fmt1, 
+                                       audio_format  *fmt2);
+audio_format* audio_format_dup        (audio_format  *src);
+void          audio_format_free       (audio_format **bye);
+int           audio_format_buffer_convert (audio_format *src, 
+                                           u_char       *src_buf, 
+                                           int           src_bytes, 
+                                           audio_format *dst, 
+                                           u_char       *dst_buf,
+                                           int           dst_bytes);
+int           audio_format_change_encoding (audio_format *cur, 
+                                            deve_e        new_enc);
 
-#endif /* _AUDDEV_SGI_H_ */
+#endif _AUDIO_FMT_H_

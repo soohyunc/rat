@@ -52,21 +52,23 @@
 #include "memory.h"
 #include "debug.h"
 
-static audio_format format;
+static audio_format ifmt, ofmt;
 static int audio_fd = -1;
 static struct timeval last_read_time;
 
 static int igain = 0, ogain = 0;
 
 int
-null_audio_open(audio_desc_t ad, audio_format *fmt)
+null_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
 {
         if (audio_fd != -1) {
                 debug_msg("Warning device not closed before opening.\n");
                 null_audio_close(ad);
         }
 
-        memcpy(&format, fmt, sizeof(format));
+        memcpy(&ifmt, infmt,  sizeof(ifmt));
+        memcpy(&ofmt, outfmt, sizeof(ofmt));
+
 	return TRUE;
 }
 
@@ -145,9 +147,9 @@ null_audio_get_volume(audio_desc_t ad)
  * Record audio data.
  */
 int
-null_audio_read(audio_desc_t ad, sample *buf, int samples)
+null_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
-	int	                diff;
+	int	                read_bytes;
 	struct timeval          curr_time;
 	static int              virgin = TRUE;
 
@@ -159,36 +161,33 @@ null_audio_read(audio_desc_t ad, sample *buf, int samples)
 	}
 
 	gettimeofday(&curr_time, NULL);
-	diff = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000 + (curr_time.tv_usec - last_read_time.tv_usec) / 1000;
+	read_bytes  = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000 + (curr_time.tv_usec - last_read_time.tv_usec) / 1000;
         /* diff from ms to samples */
-        diff *= format.sample_rate / 1000;
+        read_bytes *= (ifmt.bits_per_sample / 8 ) * (ifmt.sample_rate / 1000);
 
-        if (diff < format.bytes_per_block) {
+        if (read_bytes < ifmt.bytes_per_block) {
                 return 0;
         }
-        samples = format.bytes_per_block / sizeof(sample);
-        last_read_time.tv_usec += samples * 1000 / (format.sample_rate/1000);
-        if (last_read_time.tv_usec >= 1000000) {
-                last_read_time.tv_sec += last_read_time.tv_usec / 1000000;
-                last_read_time.tv_usec = last_read_time.tv_usec % 1000000;
-        }
+        read_bytes = min(read_bytes, buf_bytes);
+
+        memcpy(&last_read_time, &curr_time, sizeof(struct timeval));
         
-        memset(buf, 0, sizeof(sample)*samples);
+        memset(buf, 0, read_bytes);
         xmemchk();
 
-        return samples;
+        return read_bytes;
 }
 
 /*
  * Playback audio data.
  */
 int
-null_audio_write(audio_desc_t ad, sample *buf, int samples)
+null_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 {
         UNUSED(buf);
         UNUSED(ad);
 
-	return samples;
+	return write_bytes;
 }
 
 /*
@@ -285,36 +284,6 @@ null_audio_loopback(audio_desc_t ad, int gain)
 }
 
 /*
- * Get device bytes_per_block
- */
-int
-null_audio_get_bytes_per_block(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return format.bytes_per_block;
-}
-
-/*
- * Get device channels
- */
-int
-null_audio_get_channels(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return format.channels;
-}
-
-/*
- * Get device bytes_per_block
- */
-int
-null_audio_get_freq(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return format.sample_rate;
-}
-
-/*
  * For external purposes this function returns non-zero
  * if audio is ready.
  */
@@ -328,9 +297,9 @@ null_audio_is_ready(audio_desc_t ad)
 
         gettimeofday(&now,NULL);
 	diff = (now.tv_sec  - last_read_time.tv_sec) * 1000 + (now.tv_usec - last_read_time.tv_usec)/1000;
-        diff *= format.sample_rate / 1000;
+        diff *= (ifmt.bits_per_sample / 8) * ifmt.sample_rate / 1000;
 
-        if (diff >= (unsigned)format.bytes_per_block) return diff;
+        if (diff >= (unsigned)ifmt.bytes_per_block) return TRUE;
         return FALSE;
 }
 

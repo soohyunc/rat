@@ -553,11 +553,11 @@ pca_audio_open(audio_format fmt)
 			assert(format.bits_per_sample == 8);
 			dev_info.play.encoding  = AUDIO_ENCODING_ULAW;
 			break;
-		case DEV_L16:
+		case DEV_S16:
 			assert(format.bits_per_sample == 16);
 			dev_info.play.encoding  = AUDIO_ENCODING_ULAW;
 			break;
-		case DEV_L8:
+		case DEV_S8:
 			assert(format.bits_per_sample == 8);
 			dev_info.play.encoding  = AUDIO_ENCODING_RAW;
 			break;
@@ -728,7 +728,7 @@ pca_audio_write(int audio_fd, sample *buf, int samples)
 		return 0;
 
 	for (nbytes = 0; nbytes < samples; nbytes++)
-		if(format.encoding == DEV_L16) 
+		if(format.encoding == DEV_S16) 
 			play_buf[nbytes] = lintomulaw[(unsigned short)buf[nbytes]];
 		else
 			play_buf[nbytes] = buf[nbytes];

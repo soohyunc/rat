@@ -97,7 +97,7 @@ mix_create(session_struct * sp, int buffer_length)
         ms->channels    = cp->channels;
         ms->buf_len     = buffer_length * ms->channels;
 	ms->mix_bur  = (sample *)xmalloc(3 * ms->buf_len * BYTES_PER_SAMPLE);
-	audio_zero(ms->mix_buffer, 3 * buffer_length , DEV_L16);
+	audio_zero(ms->mix_buffer, 3 * buffer_length , DEV_S16);
 	ms->mix_buffer += ms->buf_len;
         ms->head_time = ms->tail_time = get_time(sp->device_clock);
 	return (ms);
@@ -139,10 +139,10 @@ static void
 mix_zero(mix_struct *ms, int offset, int len)
 {
 	if (offset + len > ms->buf_len) {
-		audio_zero(ms->mix_buffer + offset, ms->buf_len - offset, DEV_L16);
-		audio_zero(ms->mix_buffer, offset + len-ms->buf_len, DEV_L16);
+		audio_zero(ms->mix_buffer + offset, ms->buf_len - offset, DEV_S16);
+		audio_zero(ms->mix_buffer, offset + len-ms->buf_len, DEV_S16);
 	} else {
-		audio_zero(ms->mix_buffer + offset, len, DEV_L16);
+		audio_zero(ms->mix_buffer + offset, len, DEV_S16);
 	}
         xmemchk();
 }
@@ -305,10 +305,10 @@ mix_get_audio(mix_struct *ms, int amount, sample **bufp)
 		if (ms->head + silence > ms->buf_len) {
 #ifdef DEBUG_MIX
 			fprintf(stderr,"Insufficient audio: zeroing end of mix buffer %d %d\n", ms->buf_len - ms->head, silence + ms->head - ms->buf_len);
-			audio_zero(ms->mix_buffer + ms->head, ms->buf_len - ms->head, DEV_L16);
-			audio_zero(ms->mix_buffer, silence + ms->head - ms->buf_len, DEV_L16);
+#endif
+			audio_zero(ms->mix_buffer + ms->head, ms->buf_len - ms->head, DEV_S16);
 			audio_zero(ms->mix_buffer, silence + ms->head - ms->buf_len, DEV_S16);
-			audio_zero(ms->mix_buffer + ms->head, silence, DEV_L16);
+		} else {
 			audio_zero(ms->mix_buffer + ms->head, silence, DEV_S16);
 		}
                 xmemchk();

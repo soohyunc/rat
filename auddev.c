@@ -46,6 +46,7 @@
 #include "memory.h"
 #include "debug.h"
 #include "audio_types.h"
+#include "audio_fmt.h"
 #include "auddev.h"
 
 #define AUDIO_INTERFACE_NAME_LEN 32
@@ -56,13 +57,13 @@ typedef struct {
         int  (*audio_if_init)(void);               /* Test and initialize audio interface (OPTIONAL) */
         int  (*audio_if_free)(void);               /* Free audio interface (OPTIONAL)                */
 
-        int  (*audio_if_open)(int, audio_format *f);       /* Open device with format (REQUIRED) */
+        int  (*audio_if_open)(int, audio_format *ifmt, audio_format *ofmt); /* Open device with formats */
         void (*audio_if_close)(int);               /* Close device (REQUIRED) */
         void (*audio_if_drain)(int);               /* Drain device (REQUIRED) */
         int  (*audio_if_duplex)(int);              /* Device full duplex (REQUIRED) */
 
-        int  (*audio_if_read) (int, sample*, int); /* Read samples (REQUIRED)  */
-        int  (*audio_if_write)(int, sample*, int); /* Write samples (REQUIRED) */
+        int  (*audio_if_read) (int, u_char*, int);   /* Read samples (REQUIRED)  */
+        int  (*audio_if_write)(int, u_char*, int);   /* Write samples (REQUIRED) */
         void (*audio_if_non_block)(int);           /* Set device non-blocking (REQUIRED) */
         void (*audio_if_block)(int);               /* Set device blocking (REQUIRED)     */
 
@@ -78,11 +79,6 @@ typedef struct {
         void (*audio_if_set_iport)(int, int);      /* Set input port (REQUIRED)         */
         int  (*audio_if_get_iport)(int);           /* Get input port (REQUIRED)         */
         int  (*audio_if_next_iport)(int);          /* Go to next itput port (REQUIRED)  */
-
-        int  (*audio_if_get_bytes_per_block)(int);      /* Get audio device block size (REQUIRED) */ 
-        int  (*audio_if_get_channels)(int);       /* Get audio device channels   (REQUIRED) */
-        int  (*audio_if_get_freq)(int);           /* Get audio device frequency  (REQUIRED) */
-
         int  (*audio_if_is_ready)(int);            /* Poll for audio availability (REQUIRED)   */
         void (*audio_if_wait_for)(int, int);       /* Wait until audio is available (REQUIRED) */
 } audio_if_t;
@@ -92,18 +88,18 @@ typedef struct {
 static audio_if_t audio_interfaces[AUDIO_MAX_INTERFACES];
 static int num_interfaces = 0;
 
-/* These are those that we have accepted, only non-null if different
- * from real format.
- */
-#define AUDDEV_INPUT_FORMAT  0
-#define AUDDEV_OUTPUT_FORMAT 1
-/* This is the actual device format that are transparently converted 
- * into the accepted ones during reads and writes.
- */
-#define AUDDEV_REAL_FORMAT   2
-#define AUDDEV_NUM_FORMATS   3
+/* These are requested device formats.  */
+#define AUDDEV_REQ_IFMT      0
+#define AUDDEV_REQ_OFMT      1
 
-static audio_format* formats[AUDIO_MAX_INTERFACES][3];
+/* These are actual device formats that are transparently converted 
+ * into the required ones during reads and writes.  */
+#define AUDDEV_ACT_IFMT      2
+#define AUDDEV_ACT_OFMT      3
+
+#define AUDDEV_NUM_FORMATS   4
+
+static audio_format* fmts[AUDIO_MAX_INTERFACES][AUDDEV_NUM_FORMATS];
 static sample      * convert_buf[AUDIO_MAX_INTERFACES]; /* used if conversions used */
 
 /* Active interfaces is a table of entries pointing to entries in
@@ -112,7 +108,7 @@ static audio_if_t *active_interfaces[AUDIO_MAX_INTERFACES];
 static int num_active_interfaces = 0; 
 
 /* This is the index of the next audio interface that audio_open */
-static int selected_interface = 0;
+static int sel_if = 0;
 
 /* This is used to store the device formats supported */
 static u_int32 if_support[AUDIO_MAX_INTERFACES];
@@ -139,7 +135,7 @@ __inline static audio_if_t *
 audio_get_active_interface(int idx)
 {
         assert(idx < num_interfaces);
-        assert(active_interfaces[selected_interface] != NULL);
+        assert(active_interfaces[sel_if] != NULL);
 
         return active_interfaces[idx];
 }
@@ -163,7 +159,7 @@ void
 audio_set_interface(int idx)
 {
         if (idx < num_interfaces) {
-                selected_interface = idx;
+                sel_if = idx;
         }
 }
 
@@ -177,83 +173,10 @@ audio_get_null_interface()
 int 
 audio_get_interface()
 {
-        return selected_interface;
+        return sel_if;
 }
 
-/* Audio Functions ******************************************************/
-
-/* If the device input and output formats are requested are not the same
- * we attempt to find a common format that it is easy to convert to.
- * We only support differences in channels and sample type, not freq.
- * The idea being if the app asks for l16 but dev only supports u8 the
- * app never knows.
- */
-
-static int
-audio_format_get_common(audio_format* ifmt, 
-                        audio_format *ofmt, 
-                        audio_format *comfmt)
-{
-        int isamples, osamples;
-
-        /* Pre-conditions for finding a common format */
-        if (ifmt->sample_rate != ofmt->sample_rate) {
-                return FALSE;
-        }
-
-        if ((ifmt->channels != 1 && ifmt->channels != 2) ||
-            (ofmt->channels != 1 && ofmt->channels != 2)) {
-                return FALSE;
-        }
-        
-        if ((ifmt->encoding != DEV_PCMU && ifmt->encoding != DEV_L16) ||
-            (ofmt->encoding != DEV_PCMU && ofmt->encoding != DEV_L16)) {
-                return FALSE;
-        }
-
-        if (ifmt->encoding == DEV_PCMU && ofmt->encoding == DEV_PCMU) {
-                comfmt->encoding = DEV_PCMU;
-        } else {
-                comfmt->encoding = DEV_L16;
-        }
-
-        comfmt->sample_rate = ifmt->sample_rate;
-
-        switch(comfmt->encoding) {
-        case DEV_PCMU: comfmt->bits_per_sample = 8;  break;
-        case DEV_L16:  comfmt->bits_per_sample = 16; break;
-        case DEV_L8:   return 0; /* not supported currently */
-        }
-        comfmt->channels = max(ifmt->channels, ofmt->channels);
-
-        isamples = ifmt->bytes_per_block * 8 / (ifmt->channels * ifmt->bits_per_sample);
-        osamples = ofmt->bytes_per_block * 8 / (ofmt->channels * ofmt->bits_per_sample);
-        
-        comfmt->bytes_per_block = min(isamples, osamples) * comfmt->channels * comfmt->bits_per_sample / 8;
-        
-        return TRUE;
-}
-
-static int
-audio_format_match(audio_format *fmt1, audio_format *fmt2)
-{
-        return !memcmp(fmt1, fmt2, sizeof(audio_format));
-}
-
-static audio_format*
-audio_format_dup(audio_format *src)
-{
-        audio_format *dst = (audio_format*)xmalloc(sizeof(audio_format));
-        memcpy(dst, src, sizeof(audio_format));
-        return dst;
-}
-
-static void
-audio_format_free(audio_format **bye)
-{
-        xfree(*bye);
-        *bye = NULL;
-}
+/* Audio Interface actions ***************************************************/
 
 audio_desc_t
 audio_open(audio_format *ifmt, audio_format *ofmt)
@@ -263,15 +186,20 @@ audio_open(audio_format *ifmt, audio_format *ofmt)
         int success;
         int r; 
 
-        UNUSED(ofmt);
+        if ((ofmt->sample_rate != ifmt->sample_rate) ||
+            (ofmt->encoding == DEV_S8 || ifmt->encoding == DEV_S8)) {
+                /* Fail on things we don't support */
+                debug_msg("Not supported\n");
+                return 0;
+        }
 
-        aif = &audio_interfaces[selected_interface];
+        aif = &audio_interfaces[sel_if];
         assert(aif->audio_if_open);
 
         /* Have we probed supported formats for this card ? */
-        if (am_probing == FALSE && AUDIO_HAVE_PROBED(if_support[selected_interface]) == AUDIO_FMT_ZERO) {
+        if (am_probing == FALSE && AUDIO_HAVE_PROBED(if_support[sel_if]) == AUDIO_FMT_ZERO) {
                 /* First time we open device expect some latency... */
-                audio_probe_support(selected_interface);
+                audio_probe_support(sel_if);
         }
 
         if (audio_format_get_common(ifmt, ofmt, &format) == FALSE) {
@@ -279,53 +207,57 @@ audio_open(audio_format *ifmt, audio_format *ofmt)
                 return 0;
         }
 
-        success = FALSE;
+        fmts[sel_if][AUDDEV_ACT_IFMT] = audio_format_dup(&format);
+        fmts[sel_if][AUDDEV_ACT_OFMT] = audio_format_dup(&format);
 
-        success = aif->audio_if_open(selected_interface, &format);
-
-        if (success == FALSE && format.encoding != DEV_PCMU) {
-                /* Try ulaw */
-                format.encoding         = DEV_PCMU;
-                format.bits_per_sample  = 8; 
-                format.bytes_per_block /= 2; 
-                success = aif->audio_if_open(selected_interface, &format);
-        }
-
-        if (success == FALSE && format.channels != 1) {
-                /* Try mono */
-                format.channels     = 1;
-                format.bytes_per_block /= 2; 
-                success = aif->audio_if_open(selected_interface, &format);
-        }
+        /* Formats can get changed in audio_if_open, but only sample
+         * type, not the number of channels or freq 
+         */
+        success = aif->audio_if_open(sel_if, 
+                                     fmts[sel_if][AUDDEV_ACT_IFMT], 
+                                     fmts[sel_if][AUDDEV_ACT_OFMT]);
 
         if (success) {
-                if (!aif->audio_if_duplex(AIF_IDX_TO_MAGIC(selected_interface))) {
+                if ((fmts[sel_if][AUDDEV_ACT_IFMT]->sample_rate != format.sample_rate) ||
+                    (fmts[sel_if][AUDDEV_ACT_OFMT]->sample_rate != format.sample_rate) ||
+                    (fmts[sel_if][AUDDEV_ACT_IFMT]->channels    != format.channels)    ||
+                    (fmts[sel_if][AUDDEV_ACT_OFMT]->channels    != format.channels)) {
+                        debug_msg("Device changed sample rate or channels - unsupported functionality.\n");
+                        aif->audio_if_close(sel_if);
+                        audio_format_free(&fmts[sel_if][AUDDEV_ACT_IFMT]);
+                        audio_format_free(&fmts[sel_if][AUDDEV_ACT_OFMT]);
+                }
+
+                if (!aif->audio_if_duplex(AIF_IDX_TO_MAGIC(sel_if))) {
                         printf("RAT v3.2.0 and later require a full duplex audio device, but \n");
                         printf("your %s only supports half-duplex operation. Sorry.\n", aif->name);
-                        aif->audio_if_close(AIF_IDX_TO_MAGIC(selected_interface));
+                        aif->audio_if_close(AIF_IDX_TO_MAGIC(sel_if));
                         return 0;
                 }
                 
-                active_interfaces[selected_interface] = &audio_interfaces[selected_interface];
+                active_interfaces[sel_if] = &audio_interfaces[sel_if];
 
-                formats[selected_interface][AUDDEV_REAL_FORMAT] = audio_format_dup(&format);
-
-                if (!audio_format_match(ifmt, &format)) {
-                        formats[selected_interface][AUDDEV_INPUT_FORMAT] = audio_format_dup(ifmt);
+                /* If we are going to need conversion between requested and 
+                 * actual device formats store requested formats */
+                if (!audio_format_match(ifmt, fmts[sel_if][AUDDEV_ACT_IFMT])) {
+                        fmts[sel_if][AUDDEV_REQ_IFMT] = audio_format_dup(ifmt);
                 }
 
-                if (!audio_format_match(ofmt, &format)) {
-                        formats[selected_interface][AUDDEV_OUTPUT_FORMAT] = audio_format_dup(ofmt);
+                if (!audio_format_match(ofmt, fmts[sel_if][AUDDEV_ACT_OFMT])) {
+                        fmts[sel_if][AUDDEV_REQ_OFMT] = audio_format_dup(ofmt);
                 }
 
-                if (formats[selected_interface][AUDDEV_INPUT_FORMAT] || formats[selected_interface][AUDDEV_OUTPUT_FORMAT]) {
-                        convert_buf[selected_interface] = (sample*)xmalloc(DEVICE_REC_BUF); /* is this in samples or bytes ? */
+                if (fmts[sel_if][AUDDEV_REQ_IFMT] || fmts[sel_if][AUDDEV_REQ_OFMT]) {
+                        convert_buf[sel_if] = (sample*)xmalloc(DEVICE_REC_BUF); /* is this in samples or bytes ? */
                 }
 
-                r = AIF_IDX_TO_MAGIC(selected_interface);
+                r = AIF_IDX_TO_MAGIC(sel_if);
                 num_active_interfaces++;
                 return r;
         }
+
+        audio_format_free(&fmts[sel_if][AUDDEV_ACT_IFMT]);
+        audio_format_free(&fmts[sel_if][AUDDEV_ACT_OFMT]);
 
         return 0;
 }
@@ -350,7 +282,7 @@ audio_close(audio_desc_t ad)
         }
 
         for(i = 0; i < AUDDEV_NUM_FORMATS; i++) {
-                if (formats[ad][i] != NULL) audio_format_free(&formats[ad][i]);
+                if (fmts[ad][i] != NULL) audio_format_free(&fmts[ad][i]);
         }
 
         if (convert_buf[ad]) {
@@ -359,6 +291,30 @@ audio_close(audio_desc_t ad)
         }
 
         num_active_interfaces--;
+}
+
+const audio_format*
+audio_get_ifmt(audio_desc_t ad)
+{
+        ad = AIF_MAGIC_TO_IDX(ad);
+
+        if (fmts[ad][AUDDEV_REQ_IFMT]) {
+                return fmts[ad][AUDDEV_REQ_IFMT];
+        }
+
+        return fmts[ad][AUDDEV_ACT_IFMT];
+}
+
+const audio_format*
+audio_get_ofmt(audio_desc_t ad)
+{
+        ad = AIF_MAGIC_TO_IDX(ad);
+
+        if (fmts[ad][AUDDEV_REQ_OFMT]) {
+                return fmts[ad][AUDDEV_REQ_OFMT];
+        }
+
+        return fmts[ad][AUDDEV_ACT_OFMT];
 }
 
 void
@@ -383,54 +339,71 @@ audio_duplex(audio_desc_t ad)
 }
 
 int
-audio_read(audio_desc_t ad, sample *buf, int len)
+audio_read(audio_desc_t ad, sample *buf, int samples)
 {
+        /* Samples is the number of samples to read * number of channels */
+        
         audio_if_t *aif;
         int read_len;
-        
+        int sample_size;
         ad = AIF_MAGIC_TO_IDX(ad);
         aif = audio_get_active_interface(ad);
 
         xmemchk();
 
-        if (formats[ad][AUDDEV_INPUT_FORMAT] == NULL) {
+        if (fmts[ad][AUDDEV_REQ_IFMT] == NULL) {
                 /* No conversion necessary as input format and real format are
                  * the same. [Input format only allocated if different from
                  * real format].
                  */
-                 read_len = aif->audio_if_read(ad, buf, len);
+                sample_size = fmts[ad][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
+                read_len    = aif->audio_if_read(ad, (u_char*)buf, samples * sample_size);
         } else {
-                
+                sample_size = fmts[ad][AUDDEV_ACT_IFMT]->bits_per_sample / 8;
+                read_len    = aif->audio_if_read(ad, (u_char*)convert_buf[ad], samples * sample_size);
+                read_len    = audio_format_buffer_convert(fmts[ad][AUDDEV_REQ_IFMT], 
+                                                          (u_char*) convert_buf[ad], 
+                                                          read_len, 
+                                                          fmts[ad][AUDDEV_ACT_IFMT], 
+                                                          (u_char*) buf,
+                                                          DEVICE_REC_BUF);
+                sample_size = fmts[ad][AUDDEV_REQ_IFMT]->bits_per_sample / 8;
         }
         xmemchk();
-        debug_msg("%d %d\n", len, read_len);
-        return read_len;
+        return read_len / sample_size;
 }
 
 int
 audio_write(audio_desc_t ad, sample *buf, int len)
 {
         audio_if_t *aif;
-        int write_len;
+        int write_len ,sample_size;
 
         ad = AIF_MAGIC_TO_IDX(ad);
         aif = audio_get_active_interface(ad);
         
         xmemchk();
 
-        if (formats[ad][AUDDEV_OUTPUT_FORMAT] == NULL) {
+        if (fmts[ad][AUDDEV_REQ_OFMT] == NULL) {
                 /* No conversion necessary as output format and real format are
                  * the same. [Output format only allocated if different from
                  * real format].
                  */
-                write_len = aif->audio_if_write(ad, buf, len);
+                sample_size = fmts[ad][AUDDEV_ACT_OFMT]->bits_per_sample / 8;
+                write_len = aif->audio_if_write(ad, (u_char*)buf, len * sample_size);
         } else {
-
+                write_len = audio_format_buffer_convert(fmts[ad][AUDDEV_REQ_OFMT],
+                                                        (u_char*)buf,
+                                                        len,
+                                                        fmts[ad][AUDDEV_ACT_OFMT],
+                                                        (u_char*) convert_buf[ad],
+                                                        DEVICE_REC_BUF);
+                aif->audio_if_write(ad, (u_char*)convert_buf[ad], write_len);
+                sample_size = fmts[ad][AUDDEV_ACT_OFMT]->bits_per_sample / 8;
         }
 
         xmemchk();
-        
-        return write_len;
+        return write_len / sample_size;
 }
 
 void
@@ -596,39 +569,6 @@ audio_next_iport(audio_desc_t ad)
 }
 
 int
-audio_get_bytes_per_block(audio_desc_t ad)
-{
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
-
-        return (aif->audio_if_get_bytes_per_block(ad));
-}
-
-int
-audio_get_channels(audio_desc_t ad)
-{
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
-
-        return (aif->audio_if_get_channels(ad));
-}
-
-int
-audio_get_freq(audio_desc_t ad)
-{
-        audio_if_t *aif;
-        
-        ad = AIF_MAGIC_TO_IDX(ad);
-        aif = audio_get_active_interface(ad);
-
-        return (aif->audio_if_get_freq(ad));
-}
-
-int
 audio_is_ready(audio_desc_t ad)
 {
         audio_if_t *aif;
@@ -667,13 +607,13 @@ audio_probe_support(int idx)
 
         am_probing = TRUE;
 
-        active_if = selected_interface;
+        active_if = sel_if;
 
         audio_set_interface(idx);
 
         debug_msg("Probing interface %s\n", audio_get_interface_name(audio_get_interface()));
 
-        format.encoding        = DEV_L16;
+        format.encoding        = DEV_S16;
         format.bits_per_sample = 16;
         format.bytes_per_block       = 320;
 
@@ -770,9 +710,6 @@ audio_init_interfaces()
                         sgi_audio_set_iport,
                         sgi_audio_get_iport,
                         sgi_audio_next_iport,
-                        sgi_audio_get_bytes_per_block,
-                        sgi_audio_get_channels,
-                        sgi_audio_get_freq,
                         sgi_audio_is_ready,
                         sgi_audio_wait_for,
                 };
@@ -805,9 +742,6 @@ audio_init_interfaces()
                         sparc_audio_set_iport,
                         sparc_audio_get_iport,
                         sparc_audio_next_iport,
-                        sparc_audio_get_bytes_per_block,
-                        sparc_audio_get_channels,
-                        sparc_audio_get_freq,
                         sparc_audio_is_ready,
                         sparc_audio_wait_for,
                 };
@@ -840,9 +774,6 @@ audio_init_interfaces()
                         osprey_audio_set_iport,
                         osprey_audio_get_iport,
                         osprey_audio_next_iport,
-                        osprey_audio_get_bytes_per_block,
-                        osprey_audio_get_channels,
-                        osprey_audio_get_freq,
                         osprey_audio_is_ready,
                         osprey_audio_wait_for,
                 };
@@ -878,9 +809,6 @@ audio_init_interfaces()
                         oss_audio_set_iport,
                         oss_audio_get_iport,
                         oss_audio_next_iport,
-                        oss_audio_get_bytes_per_block,
-                        oss_audio_get_channels,
-                        oss_audio_get_freq,
                         oss_audio_is_ready,
                         oss_audio_wait_for,
                 };
@@ -917,9 +845,6 @@ audio_init_interfaces()
                         w32sdk_audio_set_iport,
                         w32sdk_audio_get_iport,
                         w32sdk_audio_next_iport,
-                        w32sdk_audio_get_bytes_per_block,
-                        w32sdk_audio_get_channels,
-                        w32sdk_audio_get_freq,
                         w32sdk_audio_is_ready,
                         w32sdk_audio_wait_for,
                 };
@@ -955,9 +880,6 @@ audio_init_interfaces()
                         luigi_audio_set_iport,
                         luigi_audio_get_iport,
                         luigi_audio_next_iport,
-                        luigi_audio_get_bytes_per_block,
-                        luigi_audio_get_channels,
-                        luigi_audio_get_freq,
                         luigi_audio_is_ready,
                         luigi_audio_wait_for,
                 };
@@ -991,9 +913,6 @@ audio_init_interfaces()
                         pca_audio_set_iport,
                         pca_audio_get_iport,
                         pca_audio_next_iport,
-                        pca_audio_get_bytes_per_block,
-                        pca_audio_get_channels,
-                        pca_audio_get_freq,
                         pca_audio_is_ready,
                         pca_audio_wait_for,
                 };
@@ -1028,9 +947,6 @@ audio_init_interfaces()
                         null_audio_set_iport,
                         null_audio_get_iport,
                         null_audio_next_iport,
-                        null_audio_get_bytes_per_block,
-                        null_audio_get_channels,
-                        null_audio_get_freq,
                         null_audio_is_ready,
                         null_audio_wait_for,
                 };

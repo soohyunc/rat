@@ -57,7 +57,7 @@ char*   audio_get_interface_name(int idx);
 void    audio_set_interface(int idx);
 int     audio_get_interface(void);
 int     audio_get_null_interface(void); /* gets null dev interface */
-int     audio_device_supports    (audio_desc_t ad, u_int16 rate, u_int16 channels);
+int     audio_device_supports   (audio_desc_t ad, u_int16 rate, u_int16 channels);
 
 /* Audio functions implemented by device interfaces */
 audio_desc_t	audio_open  (audio_format *in_format, audio_format *out_format);
@@ -79,10 +79,10 @@ int	audio_next_oport    (audio_desc_t ad);
 void	audio_set_iport     (audio_desc_t ad, int port);
 int	audio_get_iport     (audio_desc_t ad);
 int	audio_next_iport    (audio_desc_t ad);
-int	audio_get_bytes_per_block (audio_desc_t ad);
-int	audio_get_channels  (audio_desc_t ad);
-int     audio_get_freq      (audio_desc_t ad);
 int     audio_is_ready      (audio_desc_t ad);
 void    audio_wait_for      (audio_desc_t ad, int granularity_ms);
+
+const audio_format* audio_get_ifmt (audio_desc_t ad);
+const audio_format* audio_get_ofmt (audio_desc_t ad);
 
 #endif /* _AUDDEV_H_ */

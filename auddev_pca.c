@@ -52,16 +52,17 @@
 
 #include "config_unix.h"
 #include "audio_types.h"
+#include "audio_fmt.h"
 #include "auddev_pca.h"
 #include "codec_g711.h"
 #include "assert.h"
 #include "memory.h"
 #include "debug.h"
 
-static audio_info_t dev_info;			/* For PCA device */
-static audio_format format;
-static int          audio_fd;
+static audio_info_t   dev_info;			/* For PCA device */
+static int            audio_fd;
 static struct timeval last_read_time;
+static int            bytes_per_block;
 
 #define pca_bat_to_device(x)	((x) * AUDIO_MAX_GAIN / MAX_AMP)
 #define pca_device_to_bat(x)	((x) * MAX_AMP / AUDIO_MAX_GAIN)
@@ -83,49 +84,49 @@ pca_audio_init()
  */
 
 int
-pca_audio_open(audio_desc_t ad, audio_format *fmt)
+pca_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 {
 	audio_info_t tmp_info;
 
-        if (fmt->sample_rate != 8000 || fmt->channels != 1) {
+        UNUSED(ofmt);
+        assert(audio_format_match(ifmt, ofmt));
+
+        if (ifmt->sample_rate != 8000 || ifmt->channels != 1) {
                 return FALSE;
         }
 
 	audio_fd = open("/dev/pcaudio", O_WRONLY | O_NDELAY );
 
 	if (audio_fd > 0) {
-		memcpy(&format, fmt, sizeof(format));
 		AUDIO_INITINFO(&dev_info);
 		dev_info.monitor_gain     = 0;
-		dev_info.play.sample_rate = 8000;
-		dev_info.play.channels    = 1;
-		dev_info.play.precision   = 8;
+		dev_info.play.sample_rate = ifmt->sample_rate;
+		dev_info.play.channels    = ifmt->channels;
 		dev_info.play.gain	      = (AUDIO_MAX_GAIN - AUDIO_MIN_GAIN) * 0.75;
 		dev_info.play.port	      = 0;
-		switch(fmt->encoding) {
-		case DEV_PCMU:
-			assert(format.bits_per_sample == 8);
-			dev_info.play.encoding  = AUDIO_ENCODING_ULAW;
-			break;
-		case DEV_L16:
-			assert(format.bits_per_sample == 16);
-			dev_info.play.encoding  = AUDIO_ENCODING_ULAW;
-			break;
-		case DEV_L8:
-			assert(format.bits_per_sample == 8);
-			dev_info.play.encoding  = AUDIO_ENCODING_RAW;
-			break;
-		default:
-			printf("Unknown audio encoding in pca_audio_open: %x\n", format.encoding);
-                        pca_audio_close(ad);
-                        return FALSE;
-		}
+
+                if (ifmt->encoding != DEV_PCMU) {
+                        audio_format_change_encoding(ifmt, DEV_PCMU);
+                }
+
+                if (ofmt->encoding != DEV_PCMU) {
+                        audio_format_change_encoding(ofmt, DEV_PCMU);
+                }
+
+                assert(ifmt->bits_per_sample == 8);
+                dev_info.play.encoding  = AUDIO_ENCODING_ULAW;
+                dev_info.play.precision   = 8;
+
+                bytes_per_block = ofmt->bytes_per_block;
+
 		memcpy(&tmp_info, &dev_info, sizeof(audio_info_t));
+
 		if (ioctl(audio_fd, AUDIO_SETINFO, (caddr_t)&tmp_info) < 0) {
 			perror("pca_audio_info: setting parameters");
                         pca_audio_close(ad);
 			return FALSE;
 		}
+
                 return TRUE;
 	} else {
 		/* 
@@ -230,7 +231,7 @@ pca_audio_get_volume(audio_desc_t ad)
  * Record audio data.
  */
 int
-pca_audio_read(audio_desc_t ad, sample *buf, int samples)
+pca_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 {
 	/*
 	 * Reading data from internal PC speaker is a little difficult,
@@ -250,60 +251,38 @@ pca_audio_read(audio_desc_t ad, sample *buf, int samples)
 	gettimeofday(&curr_time, NULL);
 	diff = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000 + (curr_time.tv_usec - last_read_time.tv_usec) / 1000;
         /* diff from ms to samples */
-        diff *= format.sample_rate / 1000;
-
-        if (diff < format.bytes_per_block) {
-                return 0;
-        }
-        samples = format.bytes_per_block / sizeof(sample);
-        last_read_time.tv_usec += samples * 1000 / (format.sample_rate/1000);
-        if (last_read_time.tv_usec >= 1000000) {
-                last_read_time.tv_sec += last_read_time.tv_usec / 1000000;
-                last_read_time.tv_usec = last_read_time.tv_usec % 1000000;
-        }
         
-        memset(buf, 0, sizeof(sample)*samples);
+        diff *= dev_info.play.sample_rate / 1000;
+        read_bytes = min(read_bytes, diff);
+
+        memcpy(&last_read_time, &curr_time, sizeof(struct timeval));
+        memset(buf, 0, read_bytes);
         xmemchk();
 
-        return samples;
+        return read_bytes;
 }
 
 /*
  * Playback audio data.
  */
 int
-pca_audio_write(audio_desc_t ad, sample *buf, int samples)
+pca_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 {
 	int	 nbytes;
-	int    len;
-	u_char *p;
-	u_char play_buf[DEVICE_REC_BUF];
 
         UNUSED(ad);
 
-	for (nbytes = 0; nbytes < samples; nbytes++)
-		if(format.encoding == DEV_L16) 
-			play_buf[nbytes] = lintomulaw[(unsigned short)buf[nbytes]];
-		else
-			play_buf[nbytes] = buf[nbytes];
-
-	p = play_buf;
-	len = samples;
-	while (TRUE) {
-		if ((nbytes = write(audio_fd, p, len)) == len)
-			break;
+        if ((nbytes = write(audio_fd, buf, write_bytes)) != write_bytes) {
 		if (errno == EWOULDBLOCK) {	/* XXX */
 			return 0;
 		}
 		if (errno != EINTR) {
 			perror("pca_audio_write");
-			return (samples - len);
+			return (write_bytes - nbytes);
 		}
-		len -= nbytes;
-		p += nbytes;
 	} 
     
-	return samples;
+	return write_bytes;
 }
 
 /*
@@ -418,36 +397,6 @@ pca_audio_loopback(audio_desc_t ad, int gain)
 }
 
 /*
- * Get device bytes_per_block
- */
-int
-pca_audio_get_bytes_per_block(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return format.bytes_per_block;
-}
-
-/*
- * Get device channels
- */
-int
-pca_audio_get_channels(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return format.channels;
-}
-
-/*
- * Get device bytes_per_block
- */
-int
-pca_audio_get_freq(audio_desc_t ad)
-{
-        UNUSED(ad);
-        return format.sample_rate;
-}
-
-/*
  * For external purposes this function returns non-zero
  * if audio is ready.
  */
@@ -461,9 +410,9 @@ pca_audio_is_ready(audio_desc_t ad)
 
         gettimeofday(&now,NULL);
 	diff = (now.tv_sec  - last_read_time.tv_sec) * 1000 + (now.tv_usec - last_read_time.tv_usec)/1000;
-        diff *= format.sample_rate / 1000;
+        diff *= 8; /* Only runs at 8k */
 
-        if (diff >= (unsigned)format.bytes_per_block) return diff;
+        if (diff >= (unsigned)bytes_per_block) return TRUE;
         return FALSE;
 }
 
