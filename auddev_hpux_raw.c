@@ -4,6 +4,7 @@
  * By Terje Vernly <terjeve@usit.uio.no>
  * Modifications by Geir Harald Hansen <g.h.hansen@usit.uio.no>
  * Modifications by Colin Perkins <c.perkins@cs.ucl.ac.uk>
+ * Modifications by Dirk Meersman <meersman@visiehp4.ruca.ua.ac.be>
  *
  * $Revision$
  * $Date$
