@@ -157,7 +157,7 @@ release:
 	cvs tag release-`cat VERSION | sed "s/\./-/g"`
 
 tgz: $(RATVER) $(RATVER)-ui $(RATVER)-media
-	tar cf $(RATVER)-$(OSTYPE).tar README.* MODS COPYRIGHT INSTALL.TXT VERSION $(RATVER) $(RATVER)-ui $(RATVER)-media
+	tar cf $(RATVER)-$(OSTYPE).tar README.* MODS COPYRIGHT INSTALL.TXT VERSION $(RATVER) $(RATVER)-ui $(RATVER)-media sdr2.plugin.S02.audio.rtp.-.rat-$(VERSION)
 	gzip -9 $(RATVER)-$(OSTYPE).tar
 
 rpm: tgz
