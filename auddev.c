@@ -32,6 +32,7 @@ static const char cvsid[] =
 #include "auddev_sparc.h"
 #include "auddev_win32.h"
 #include "auddev_trans.h"
+#include "auddev_macosx.h"
 
 typedef struct {
         int  (*audio_if_init)(void);                 /* Test and initialize audio interface (OPTIONAL)    */
