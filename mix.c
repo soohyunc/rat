@@ -167,9 +167,9 @@ mix_process(session_struct  *sp,
         coded_unit              *frame;
         sample                  *samples;
         u_int32                  md_len;
-        u_int32                  nticks, nsamples;
+        u_int32                  nticks, nsamples, pos;
         u_int16                  channels, rate;
-        ts_t                     playout, frame_period, expected_playout, overlap;
+        ts_t                     playout, frame_period, expected_playout, delta, new_head_time;
 
 	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);
         
@@ -207,10 +207,10 @@ mix_process(session_struct  *sp,
                 expected_playout = ts_add(dbe->last_mixed, frame_period);
                 if (!ts_eq(expected_playout, playout)) {
                         if (ts_gt(expected_playout, playout)) {
-                                overlap = ts_sub(expected_playout, playout);
+                                delta = ts_sub(expected_playout, playout);
                                 debug_msg("Overlapping units\n");
-                                if (ts_gt(frame_period, overlap)) {
-                                        u_int32  trim = overlap.ticks * ms->channels;
+                                if (ts_gt(frame_period, delta)) {
+                                        u_int32  trim = delta.ticks * ms->channels;
                                         samples  += trim;
                                         nsamples -= trim;
                                         debug_msg("Trimmed %d samples\n", trim);
@@ -221,53 +221,44 @@ mix_process(session_struct  *sp,
                         } else {
                                 debug_msg("Gap between units\n");
                         }
-
-                        /* Zero ahead if necessary */
-
-                        if (ts_gt(ts_add(playout + ts_map32(ms->freq, nsamples / ms->channels),
-                                         ms->head_time))) 
-                        {
-                                
-                        }
-                                         
-
-
                 }
 
-             
-/* 	Convert playout to position in buffer */ 
-/* 	pos = ((playout - ms->head_time)*ms->channels + ms->head) % ms->buf_len; */
-/* 	assert(pos >= 0); */
+                /* Zero ahead if necessary */
 
-/* 	 Should clear buffer before advancing... */
-/* 	 * Or better only mix if something there otherwise copy... */
-/* 	 */
+                new_head_time = ts_add(playout, ts_map32(ms->rate, nsamples / ms->channels));
+                if (ts_gt(new_head_time, ms->head_time))  {
+                        int zeros;
+                        delta = ts_sub(new_head_time, ms->head_time);
+                        zeros = delta.ticks * ms->channels;
+                        mix_zero(ms, ms->head, zeros);
+                        ms->dist += zeros;
+                        ms->head += zeros;
+                        ms->head %= ms->buf_len;
+                        ms->head_time = ts_add(ms->head_time, delta);
+                }
+                assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist);                                          
+                assert(!ts_gt(playout, ms->head_time));
 
-/* 	 */
-/* 	 * If we have not mixed this far (normal case) */
-/* 	 * we mast clear the buffer ahead (or copy) */
-/* 	 */ 
-/* 	if (ts_gt(playout + dur, ms->head_time)) { */
-/* 		diff = (playout - ms->head_time)*ms->channels + nsamples; */
-/* 		assert(diff > 0); */
-/* 		assert(diff < ms->buf_len); */
-/* 		mix_zero(ms, ms->head, diff); */
-/* 		ms->dist += diff; */
-/* 		ms->head += diff; */
-/* 		ms->head %= ms->buf_len; */
-/* 		ms->head_time += diff/ms->channels; */
-/* 	} */
-/* 	assert((ms->head + ms->buf_len - ms->tail) % ms->buf_len == ms->dist); */
-
-/* 	Do the mixing... */ 
-/* 	if (pos + nsamples > ms->buf_len) { */
-/* 		mix_audio(ms->mix_buffer + pos, buf, ms->buf_len - pos); */
-/* 		mix_audio(ms->mix_buffer, buf, pos + nsamples - ms->buf_len); */
-/* 	} else { */
-/* 		mix_audio(ms->mix_buffer + pos, buf, nsamples); */
-/* 	} */
-
-                
+                /* Work out where to write the data */
+                delta = ts_sub(ms->head_time, playout);
+                pos   = (ms->head - delta.ticks*ms->channels) % ms->buf_len;
+                assert(pos < 0x7fffffff); /* Check for pos < 0 */
+                        
+             	if (pos + nsamples > (u_int32)ms->buf_len) { 
+                        mix_audio(ms->mix_buffer + pos, 
+                                  samples, 
+                                  ms->buf_len - pos); 
+                        xmemchk();
+                        mix_audio(ms->mix_buffer, 
+                                  samples + (ms->buf_len - pos) * ms->channels, 
+                                  pos + nsamples - ms->buf_len); 
+                        xmemchk();
+                } else { 
+                        mix_audio(ms->mix_buffer + pos, 
+                                  samples, 
+                                  nsamples); 
+                        xmemchk();
+                } 
 
         process_next:
                 dbe->last_mixed = playout;
