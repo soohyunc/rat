@@ -231,6 +231,7 @@ static void rx_input_gain(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(mbus_chan, &i)) {
 		sp->input_gain = i;
 		audio_set_gain(sp->audio_fd, sp->input_gain);
+                read_device_igain_update(sp);
 	} else {
 		printf("mbus: usage \"input_gain <integer>\"\n");
 	}
