@@ -33,6 +33,7 @@ EXTERNAL_DEP = @EXTERNAL_DEP@
 prefix      = @prefix@
 exec_prefix = @exec_prefix@
 bindir      = @bindir@
+mandir      = @mandir@
 
 # Nothing below here set by configure #########################################
 
@@ -80,7 +81,7 @@ install: all
 	./install-sh -m 555 -c $(RATVER)       $(bindir)
 	./install-sh -m 555 -c $(RATVER)-media $(bindir)
 	./install-sh -m 555 -c $(RATVER)-ui    $(bindir)
-	./install-sh -m 444 -c man/man1/rat.1  $(prefix)/man/man1/rat.1
+	./install-sh -m 444 -c man/man1/rat.1  $(mandir)/man1/rat.1
 	./install-sh -m 444 -c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(prefix)/etc/sdr/plugins
 
 libuclaudio.a: $(AUDIO_OBJS)
