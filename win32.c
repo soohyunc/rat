@@ -36,7 +36,7 @@ uname(struct utsname *ub)
         osinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
         GetVersionEx(&osinfo);
         
-        strcpy(ub->sysname, "Win");
+        strcpy(ub->sysname, "Windows");
         strcpy(ub->nodename, "Unknown"); /* could use gethostbyname */
         
         /* ub->release and ub->machine*/
