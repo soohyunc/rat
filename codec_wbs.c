@@ -43,7 +43,6 @@
 #include "debug.h"
 #include "audio_types.h"
 #include "codec_types.h"
-#include "assert.h"
 #include "codec_wbs.h"
 #include "cx_wbs.h"
 

@@ -43,7 +43,6 @@
 #include "debug.h"
 #include "audio_types.h"
 #include "codec_types.h"
-#include "assert.h"
 #include "codec_vdvi.h"
 #include "cx_dvi.h"
 #include "cx_vdvi.h"

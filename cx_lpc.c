@@ -41,7 +41,6 @@
 #include "cx_lpc.h"
 /* For M_PI on W32 (euk!) */
 #include "config_win32.h"
-#include "assert.h"
 #include "debug.h"
 
 #define MAXWINDOW	1000	/* Max analysis window length */

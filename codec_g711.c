@@ -297,7 +297,6 @@ ulaw2alaw(
 #include "debug.h"
 #include "audio_types.h"
 #include "codec_types.h"
-#include "assert.h"
 #include "codec_g711.h"
 
 short         mulawtolin[256];

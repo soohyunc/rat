@@ -43,7 +43,6 @@
 #include "debug.h"
 #include "audio_types.h"
 #include "codec_types.h"
-#include "assert.h"
 #include "codec_l16.h"
 
 /* Note payload numbers are dynamic and selected so:

@@ -265,7 +265,11 @@ audio_device_reconfigure(session_struct *sp)
         }
 
         if (change_req) {
-                int iport, oport, igain, ogain, saved_ports = FALSE;
+                int iport = -1;	/* These are initialised to stop a compiler */
+		int oport = -1; /* warning... the value of -1 is never used */
+		int igain = -1;
+		int ogain = -1;
+		int saved_ports = FALSE;
 
                 /* Store current config in case it reconfig attempt fails */
                 prev_config.device    = sp->audio_device;

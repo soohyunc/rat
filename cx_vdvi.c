@@ -44,13 +44,11 @@
 #include "config_win32.h"
 
 #include "cx_vdvi.h"
-#include "assert.h"
 #include "stdio.h"
 
 #ifdef TEST_VDVI
 #define NUM_TESTS 1000
 
-#include "assert.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -318,7 +316,6 @@ vdvi_decode(unsigned char *in, int in_bytes, unsigned char *dvi_buf, int dvi_sam
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <stdio.h>
-#include "assert.h"
 #define NUM_TESTS 1000
 #define TEST_SIZE 10000
 
