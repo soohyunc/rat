@@ -83,6 +83,7 @@
 #include <sys/uio.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <stddef.h>
 #include <sys/param.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
