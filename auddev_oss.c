@@ -160,6 +160,8 @@ oss_probe_mixer_device(int i, struct oss_device *device)
 		/* We can't find a working mixer device - this is not  */
 		/* necessarily a problem, some soundcards don't have a */
 		/* corresponding mixer device.                         */
+		device->name = (char *) xmalloc(17);
+		sprintf(device->name, "%s", device->mixer_rdev);
 		debug_msg("cannot open %s - %s\n", device->mixer_rdev, strerror(errno));
 		memset(device->mixer_rdev, 0, 16);
 		memset(device->mixer_wdev, 0, 16);
