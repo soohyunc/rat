@@ -403,7 +403,12 @@ proc update_primary_list {arg} {
     foreach c $codecs {
 	.prefs.pane.transmission.dd.pri.m.menu    add command -label $c -command "set prenc $c; update_codecs_displayed"
 	lappend prencs $c
-    }    
+    }
+
+    if {[lsearch $codecs $prenc] == -1} {
+	#primary is not on list
+	set prenc [lindex $codecs 0]
+    }
 }
 
 proc update_redundancy_list {arg} {
@@ -416,6 +421,10 @@ proc update_redundancy_list {arg} {
     foreach c $codecs {
 	.prefs.pane.transmission.cc.red.fc.m.menu add command -label $c -command "set secenc \"$c\""
 	lappend secencs $c
+    }
+    if {[lsearch $codecs $secenc] == -1} {
+	#primary is not on list
+	set secenc [lindex $codecs 0]
     }
 }
 
@@ -438,6 +447,7 @@ proc update_codecs_displayed { } {
     set sample_rate [expr $sample_rate * 1000]
 
     set long_names [codecs_loosely_matching $sample_rate $sample_channels]
+
     set friendly_names {}
     foreach {n} $long_names {
 	lappend friendly_names $codec_nick_name($n)
@@ -446,7 +456,6 @@ proc update_codecs_displayed { } {
     update_primary_list $friendly_names
 
     set long_name [codec_get_name $prenc $sample_rate $sample_channels]
-
     set long_names [codecs_matching $sample_rate $sample_channels $codec_block_size($long_name)]
 
     set friendly_names {}
