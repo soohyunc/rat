@@ -3,4 +3,4 @@ INCS       = -I/usr/ucl/X11/include \
 LDLIBS     = -L/cs/research/mice/starship/common/irix/lib -ltk8.0 -ltcl8.0 \
              -L/usr/lib/X11 -lXext -lX11 \
              -laudio -lm
-OBJS = $(OBJDIR)/auddev_sgi.o
+OBJS = auddev_sgi.o

@@ -6,5 +6,5 @@ LDLIBS = /cs/research/mice/starship/common/sun4/lib/libtk80.a \
          -L/usr/openwin/lib -lXext -lX11 \
          -L/usr/demo/SOUND -laudio \
          -lm
-OBJS = $(OBJDIR)/auddev_sparc.o
+OBJS = auddev_sparc.o
 

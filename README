@@ -1,33 +1,12 @@
 
 Robust-Audio Tool (RAT)
 
-Vicky Hardman
-Isidor Kouvelas
-Colin Perkins
-Orion Hodson
+Further information, and a list of frequently asked questions (with
+answers) is available from http://www-mice.cs.ucl.ac.uk/mice/rat/
 
-Department of Computer Science
-University College London, UK.
-
-The Robust-Audio Tool has been written by Vicky Hardman, Isidor
-Kouvelas, Colin Perkins, and Orion Hodson in the Department of
-Computer Science, University College London, UK. The work was
-supported by projects:  
-
-   - MICE   (Multimedia Conferencing for Europe - an ESPRIT funded project) 
-   - ReLaTe (Remote Language Teaching for SuperJANET - a BT/JISC funded project)
-   - RAT    (Robust Audio Tool - an EPSRC funded project)
-
-Further information is available on the world-wide-web, please access URL:
-http://www.cs.ucl.ac.uk/mice/rat/
-
-Installation:
-If you're on a supported platform, type: 
+Installation: If you're on a supported platform, type
 	./Build rat
-If you're porting to a new platform, you will wish to modify the Configure
-script to generate the appropriate entries in config.h and Makefile.osdep
-automatically. It is intended that most (all?) machine dependent stuff 
-should be done using this mechanism. 
+and hopefully things will work.
 
-Please report bugs and suggestions to:
-rat-trap@cs.ucl.ac.uk
+Send comments, suggestions and bug-reports to rat-trap@cs.ucl.ac.uk
+

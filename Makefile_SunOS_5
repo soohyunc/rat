@@ -8,4 +8,4 @@ LDLIBS = -R/usr/openwin/lib \
          -L/usr/demo/SOUND/lib -laudio \
          -lsocket -ldl -lnsl -lm -lcheck
 
-OBJS = $(OBJDIR)/auddev_sparc.o
+OBJS = auddev_sparc.o

@@ -33,98 +33,95 @@ GSMFLAGS   = -DSASR -DFAST -DUSE_FLOAT_MUL
 
 include Makefile_$(OSTYPE)_$(OSMVER)
 
-SRCDIR = .
-BINDIR = .
-OBJDIR = .
-OBJS  += $(OBJDIR)/convert.o \
-	 $(OBJDIR)/time.o \
-	 $(OBJDIR)/codec.o \
-         $(OBJDIR)/repair.o \
-         $(OBJDIR)/receive.o \
-         $(OBJDIR)/transmit.o \
-         $(OBJDIR)/codec_lpc.o \
-         $(OBJDIR)/codec_adpcm.o \
-         $(OBJDIR)/codec_wbs.o \
-         $(OBJDIR)/channel.o \
-         $(OBJDIR)/cc_red.o \
-         $(OBJDIR)/cc_intl.o \
-         $(OBJDIR)/rtcp_db.o \
-         $(OBJDIR)/rtcp_pckt.o \
-         $(OBJDIR)/qfDES.o \
-         $(OBJDIR)/gsm_add.o \
-         $(OBJDIR)/gsm_create.o \
-         $(OBJDIR)/gsm_encode.o \
-         $(OBJDIR)/gsm_preprocess.o \
-         $(OBJDIR)/gsm_table.o \
-         $(OBJDIR)/gsm_code.o \
-         $(OBJDIR)/gsm_decode.o \
-         $(OBJDIR)/gsm_long_term.o \
-         $(OBJDIR)/gsm_rpe.o \
-         $(OBJDIR)/gsm_destroy.o \
-         $(OBJDIR)/gsm_lpc.o \
-         $(OBJDIR)/gsm_short_term.o \
-         $(OBJDIR)/audio.o \
-	 $(OBJDIR)/cushion.o \
-         $(OBJDIR)/session.o \
-         $(OBJDIR)/tabulaw.o \
-         $(OBJDIR)/tabalaw.o \
-         $(OBJDIR)/util.o \
-         $(OBJDIR)/interfaces.o \
-         $(OBJDIR)/statistics.o \
-         $(OBJDIR)/mix.o \
-         $(OBJDIR)/parameters.o \
-         $(OBJDIR)/ui_original.o \
-         $(OBJDIR)/tcl_libs.o \
-	 $(OBJDIR)/tcltk.o \
-         $(OBJDIR)/rtcp.o \
-         $(OBJDIR)/speaker_table.o \
-         $(OBJDIR)/net.o \
-         $(OBJDIR)/ui_control.o \
-         $(OBJDIR)/transcoder.o \
-	 $(OBJDIR)/crypt.o \
-         $(OBJDIR)/crypt_random.o \
-         $(OBJDIR)/md5.o \
-	 $(OBJDIR)/mbus.o \
-	 $(OBJDIR)/mbus_ui.o \
-	 $(OBJDIR)/mbus_engine.o \
-         $(OBJDIR)/main.o
+OBJS  += convert.o \
+	 time.o \
+	 codec.o \
+         repair.o \
+         receive.o \
+         transmit.o \
+         codec_lpc.o \
+         codec_adpcm.o \
+         codec_wbs.o \
+         channel.o \
+         cc_red.o \
+         cc_intl.o \
+         rtcp_db.o \
+         rtcp_pckt.o \
+         qfDES.o \
+         gsm_add.o \
+         gsm_create.o \
+         gsm_encode.o \
+         gsm_preprocess.o \
+         gsm_table.o \
+         gsm_code.o \
+         gsm_decode.o \
+         gsm_long_term.o \
+         gsm_rpe.o \
+         gsm_destroy.o \
+         gsm_lpc.o \
+         gsm_short_term.o \
+         audio.o \
+	 cushion.o \
+         session.o \
+         tabulaw.o \
+         tabalaw.o \
+         util.o \
+         interfaces.o \
+         statistics.o \
+         mix.o \
+         parameters.o \
+         ui_original.o \
+         tcl_libs.o \
+	 tcltk.o \
+         rtcp.o \
+         speaker_table.o \
+         net.o \
+         ui_control.o \
+         transcoder.o \
+	 crypt.o \
+         crypt_random.o \
+         md5.o \
+	 mbus.o \
+	 mbus_ui.o \
+	 mbus_engine.o \
+         main.o
 
-$(BINDIR)/rat-$(OSTYPE)-$(OSVERS): $(OBJS) $(GSMOBJS) $(RATOBJS)
-	rm -f $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
-	$(CC) $(RATOBJS) $(OBJS) $(GSMOBJS) $(LDLIBS) $(LDFLAGS) -o $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
+rat-$(OSTYPE)-$(OSVERS): $(OBJS) $(GSMOBJS) $(RATOBJS)
+	rm -f rat-$(OSTYPE)-$(OSVERS)
+	$(CC) $(RATOBJS) $(OBJS) $(GSMOBJS) $(LDLIBS) $(LDFLAGS) -o rat-$(OSTYPE)-$(OSVERS)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.c session.h
-	$(CC) $(CFLAGS) $(GSMFLAGS) -c $*.c -o $(OBJDIR)/$*.o
+%.o: %.c session.h
+	$(CC) $(CFLAGS) $(GSMFLAGS) -c $*.c -o $*.o
 
-$(OBJDIR)/init_session.o: 	version.h
-$(OBJDIR)/rtcp.o:      		version.h
-$(OBJDIR)/tcltk.o:    		version.h
-$(OBJDIR)/tcltk.o:      	xbm/ucl.xbm
-$(OBJDIR)/tcltk.o:	      	xbm/mic.xbm
-$(OBJDIR)/tcltk.o:	      	xbm/speaker.xbm
-$(OBJDIR)/tcltk.o:	      	xbm/head.xbm
-$(OBJDIR)/tcltk.o:	      	xbm/line_out.xbm
-$(OBJDIR)/tcltk.o:	      	xbm/line_in.xbm
-$(OBJDIR)/tcltk.o:	      	xbm/rat_med.xbm
-$(OBJDIR)/tcltk.o:	      	xbm/rat_small.xbm
+init_session.o: 	version.h
+rtcp.o:      		version.h
+tcltk.o:    		version.h
+tcltk.o:      		xbm/ucl.xbm
+tcltk.o:	      	xbm/mic.xbm
+tcltk.o:	      	xbm/speaker.xbm
+tcltk.o:	      	xbm/head.xbm
+tcltk.o:	      	xbm/line_out.xbm
+tcltk.o:	      	xbm/line_in.xbm
+tcltk.o:	      	xbm/rat_med.xbm
+tcltk.o:	      	xbm/rat_small.xbm
 
-$(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS): $(SRCDIR)/tcl2c.c
-	$(CC) -o $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) $(SRCDIR)/tcl2c.c
+tcl2c-$(OSTYPE)-$(OSVERS): tcl2c.c
+	$(CC) -o tcl2c-$(OSTYPE)-$(OSVERS) tcl2c.c
 
-$(OBJDIR)/ui_original.o: $(SRCDIR)/ui_original.tcl $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
-	cat $(SRCDIR)/ui_original.tcl | $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) ui_original > $(OBJDIR)/ui_original.c
-	$(CC) $(CFLAGS) -c $(OBJDIR)/ui_original.c -o $(OBJDIR)/ui_original.o
+ui_original.o: ui_original.tcl tcl2c-$(OSTYPE)-$(OSVERS)
+	cat ui_original.tcl | tcl2c-$(OSTYPE)-$(OSVERS) ui_original > ui_original.c
+	$(CC) $(CFLAGS) -c ui_original.c -o $(OBJDIR)/ui_original.o
 
-$(OBJDIR)/tcl_libs.o: $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
-	cat tcl/*.tcl tk/*.tcl | $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS) TCL_LIBS > $(OBJDIR)/tcl_libs.c
-	$(CC) $(CFLAGS) -c $(OBJDIR)/tcl_libs.c -o $(OBJDIR)/tcl_libs.o
+tcl_libs.o: tcl2c-$(OSTYPE)-$(OSVERS)
+	cat tcl/*.tcl tk/*.tcl | tcl2c-$(OSTYPE)-$(OSVERS) TCL_LIBS > tcl_libs.c
+	$(CC) $(CFLAGS) -c tcl_libs.c -o $(OBJDIR)/tcl_libs.o
 
 clean:
-	-rm -f $(OBJDIR)/*.o
-	-rm -f $(OBJDIR)/tcl_libs.c
-	-rm -f $(OBJDIR)/ui_original.c
-	-rm -f $(BINDIR)/tcl2c-$(OSTYPE)-$(OSVERS)
-	-rm -f $(BINDIR)/rat-$(OSTYPE)-$(OSVERS)
+	-rm -f *.o
+	-rm -f tcl_libs.c
+	-rm -f ui_original.c
+	-rm -f tcl2c-$(OSTYPE)-$(OSVERS)
+	-rm -f rat-$(OSTYPE)-$(OSVERS)
 
 tags:
 	ctags -e *.[ch]
