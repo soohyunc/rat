@@ -152,7 +152,6 @@ init_session(session_struct *sp)
 
 	gettimeofday(&(sp->device_time), NULL); 
 
-	strcpy(sp->maddress,    "127.0.0.2");	/* Yeuch! This value should never be used! */
 	strcpy(sp->asc_address, "127.0.0.3");	/* Yeuch! This value should never be used! */
 }
 
@@ -251,7 +250,6 @@ parse_early_options_audio_tool(int argc, char *argv[], session_struct *sp)
 
 	p = strtok(argv[argc - 1], "/");
 	strcpy(sp->asc_address, p);
-	strcpy(sp->maddress, p);
 	if ((p = strtok(NULL, "/")) != NULL) {
 		sp->rtp_port = atoi(p);
 		sp->rtp_port &= ~1;

@@ -108,19 +108,6 @@ int net_write_iov(socket_udp *s, struct iovec *iov, int len, int type)
 void 
 network_init(session_struct *sp)
 {
-	struct in_addr in;
-	struct hostent *h;
-
-	if (inet_addr(sp->asc_address) != INADDR_NONE) {
-		strcpy(sp->maddress, sp->asc_address);
-	} else if ((h = gethostbyname(sp->asc_address))!=NULL) {
-		memcpy(&in.s_addr, *(h->h_addr_list), sizeof(in.s_addr));
-		sprintf(sp->maddress, "%s", inet_ntoa(in));
-	} else {
-		fprintf(stderr, "Could not resolve hostname (h_errno = %d): %s", h_errno, sp->asc_address);
-		exit(-1);
-	}
-	
 	sp->rtp_socket  = udp_init(sp->asc_address, sp->rtp_port,  sp->ttl);
 	sp->rtcp_socket = udp_init(sp->asc_address, sp->rtcp_port, sp->ttl);
 }

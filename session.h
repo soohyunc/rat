@@ -83,7 +83,6 @@ typedef struct session_tag {
 	int		mode;                           /* audio tool, transcoder */
         char            title[SESSION_TITLE_LEN+1];
 	char            asc_address[MAXHOSTNAMELEN+1];  /* their ascii name if unicast */
-	char            maddress[16];
 	u_short		rtp_port;
 	u_short		rtcp_port;
         int             filter_loopback;
