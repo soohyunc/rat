@@ -387,7 +387,7 @@ int main(int argc, char *argv[])
 
 	inform_addrs(m, e_addr, u_addr);
         if (parse_options(m, e_addr, u_addr, argc, argv) == TRUE) {
-                mbus_rendezvous_go(m, token_ui,     (void *) m);
+                mbus_rendezvous_go(m, token_ui,     (void *) m); 
                 mbus_rendezvous_go(m, token_engine, (void *) m);
                 
                 should_exit = FALSE;
