@@ -1073,9 +1073,9 @@ proc toggle_plist {} {
 proc toggle_mute {cw ssrc} {
 	global iht
 	if {[$cw gettags a] == ""} {
-		mbus_send "R" "rtp.source.mute" "$ssrc 1"
+		mbus_send "R" "rtp.source.mute" "[mbus_encode_str $ssrc] 1"
 	} else {
-		mbus_send "R" "rtp.source.mute" "$ssrc 0"
+		mbus_send "R" "rtp.source.mute" "[mbus_encode_str $ssrc] 0"
 	}
 }
 
@@ -1235,7 +1235,7 @@ proc 3d_send_parameters {ssrc} {
     global azimuth filter_type filter_length 3d_audio_var
 
     mbus_send "R" "tool.rat.3d.enabled"   $3d_audio_var
-    mbus_send "R" "tool.rat.3d.user.settings" "$ssrc [mbus_encode_str $filter_type($ssrc)] $filter_length($ssrc) $azimuth($ssrc)"
+    mbus_send "R" "tool.rat.3d.user.settings" "[mbus_encode_str $ssrc] [mbus_encode_str $filter_type($ssrc)] $filter_length($ssrc) $azimuth($ssrc)"
 }
 
 proc 3d_delete_parameters {ssrc} {
@@ -2034,10 +2034,10 @@ proc sync_engine_to_ui {} {
     global audio_device
 
     #rtcp details
-    mbus_send "R" "rtp.source.name"  "$my_ssrc [mbus_encode_str $rtcp_name]"
-    mbus_send "R" "rtp.source.email" "$my_ssrc [mbus_encode_str $rtcp_email]"
-    mbus_send "R" "rtp.source.phone" "$my_ssrc [mbus_encode_str $rtcp_phone]"
-    mbus_send "R" "rtp.source.loc"   "$my_ssrc [mbus_encode_str $rtcp_loc]"
+    mbus_send "R" "rtp.source.name"  "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_name]"
+    mbus_send "R" "rtp.source.email" "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_email]"
+    mbus_send "R" "rtp.source.phone" "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_phone]"
+    mbus_send "R" "rtp.source.loc"   "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_loc]"
     
     #transmission details
     mbus_send "R" "tool.rat.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"

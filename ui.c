@@ -48,8 +48,8 @@ static char *mbus_name_video  = NULL;
 static void ui_info_update_sdes(session_struct *sp, char *item, char *val, u_int32 ssrc)
 {
 	char *arg   = mbus_encode_str(val);
-        char *args = (char*)xmalloc(strlen(arg) + 10);
-	sprintf(args, "%08ld %s", ssrc, arg);
+        char *args = (char*)xmalloc(strlen(arg) + 11);
+	sprintf(args, "\"%08lx\" %s", ssrc, arg);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, item, args, TRUE);
 	xfree(arg);
         xfree(args);
@@ -93,32 +93,32 @@ void ui_info_update_note(session_struct *sp, rtcp_dbentry *e)
 void
 ui_info_mute(session_struct *sp, rtcp_dbentry *e)
 {
-        char arg[10];
-        sprintf(arg, "%08ld", e->sentry->ssrc);
+        char arg[11];
+        sprintf(arg, "\"%08lx\"", e->sentry->ssrc);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.mute", arg, TRUE);
 }
 
 void
 ui_info_remove(session_struct *sp, rtcp_dbentry *e)
 {
-        char arg[10];
-        sprintf(arg, "%08ld", e->sentry->ssrc);
+        char arg[11];
+        sprintf(arg, "\"%08lx\"", e->sentry->ssrc);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.remove", arg, TRUE);
 }
 
 void
 ui_info_activate(session_struct *sp, rtcp_dbentry *e)
 {
-        char arg[10];
-        sprintf(arg, "%08ld", e->sentry->ssrc);
+        char arg[11];
+        sprintf(arg, "\"%08lx\"", e->sentry->ssrc);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.active", arg, TRUE);
 }
 
 void
 ui_info_deactivate(session_struct *sp, rtcp_dbentry *e)
 {
-        char arg[10];
-        sprintf(arg, "%08ld", e->sentry->ssrc);
+        char arg[11];
+        sprintf(arg, "\"%08lx\"", e->sentry->ssrc);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.inactive", arg, TRUE);
 }
 
@@ -135,7 +135,7 @@ ui_info_3d_settings(session_struct *sp, rtcp_dbentry *e)
         render_3D_get_parameters(e->render_3D_data, &azimuth, &filter_type, &filter_length);
         filter_name = mbus_encode_str(render_3D_filter_get_name(filter_type));
         msg = (char*)xmalloc(strlen(filter_name) + 18);
-        sprintf(msg, "%08ld %s %d %d", e->sentry->ssrc, filter_name, filter_length, azimuth);
+        sprintf(msg, "\"%08lx\" %s %d %d", e->sentry->ssrc, filter_name, filter_length, azimuth);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.3d.user.settings", msg, TRUE);
         xfree(filter_name);
         xfree(msg);
@@ -155,12 +155,12 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
 
         if (e->enc_fmt) {
 		mbes = mbus_encode_str(e->enc_fmt);
-                args = (char *) xmalloc(strlen(mbes) + 10);
-                sprintf(args, "%08ld %s", e->sentry->ssrc, mbes);
+                args = (char *) xmalloc(strlen(mbes) + 11);
+                sprintf(args, "\"%08lx\" %s", e->sentry->ssrc, mbes);
                 xfree(mbes);
         } else {
                 args = (char *) xmalloc(17);
-                sprintf(args, "%08ld unknown", e->sentry->ssrc);
+                sprintf(args, "\"%08lx\" unknown", e->sentry->ssrc);
         }
 
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.codec", args, FALSE);
@@ -182,13 +182,13 @@ ui_update_stats(session_struct *sp, rtcp_dbentry *e)
                 delay    = 0;
         }
 
-        sprintf(args, "%08ld %ld", e->sentry->ssrc, buffered);
+        sprintf(args, "\"%08lx\" %ld", e->sentry->ssrc, buffered);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.audio.buffered", args, FALSE);
         
-        sprintf(args, "%08ld %ld", e->sentry->ssrc, delay);
+        sprintf(args, "\"%08lx\" %ld", e->sentry->ssrc, delay);
         mbus_qmsg(sp->mbus_engine, mbus_name_ui, "tool.rat.audio.delay", args, FALSE);
 
-	sprintf(args, "%08ld %08ld %8ld", sp->db->my_dbe->sentry->ssrc, e->sentry->ssrc, (e->lost_frac * 100) >> 8);
+	sprintf(args, "\"%08lx\" \"%08lx\" %8ld", sp->db->my_dbe->sentry->ssrc, e->sentry->ssrc, (e->lost_frac * 100) >> 8);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
 
 	xfree(args);
@@ -677,7 +677,7 @@ ui_update_loss(session_struct *sp, u_int32 srce, u_int32 dest, int loss)
 {
 	char	args[30];
 
-	sprintf(args, "%08ld %08ld %3d", srce, dest, loss);
+	sprintf(args, "\"%08lx\" \"%08lx\" %3d", srce, dest, loss);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.packet.loss", args, FALSE);
 }
 
@@ -685,7 +685,7 @@ void
 ui_update_reception(session_struct *sp, u_int32 ssrc, u_int32 recv, u_int32 lost, u_int32 misordered, u_int32 duplicates, u_int32 jitter, int jit_tog)
 {
 	char	args[100];
-	sprintf(args, "%08ld %6ld %6ld %6ld %6ld %6ld %6d", ssrc, recv, lost, misordered, duplicates, jitter, jit_tog);
+	sprintf(args, "\"%08lx\" %6ld %6ld %6ld %6ld %6ld %6d", ssrc, recv, lost, misordered, duplicates, jitter, jit_tog);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.reception", args, FALSE);
 }
 
@@ -693,7 +693,7 @@ void
 ui_update_duration(session_struct *sp, u_int32 ssrc, int duration)
 {
 	char	args[15];
-	sprintf(args, "%08ld %3d", ssrc, duration);
+	sprintf(args, "\"%08lx\" %3d", ssrc, duration);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.source.packet.duration", args, FALSE);
 }
 
@@ -701,7 +701,7 @@ void
 ui_update_video_playout(session_struct *sp, u_int32 ssrc, int playout)
 {
 	char	args[22];
-	sprintf(args, "%08ld %12d", ssrc, playout);
+	sprintf(args, "\"%08lx\" %12d", ssrc, playout);
 	mbus_qmsg(sp->mbus_engine, mbus_name_video, "rtp.source.playout", args, FALSE);
 }
 
@@ -883,13 +883,13 @@ ui_update_repair(session_struct *sp)
 void
 ui_controller_init(session_struct *sp, u_int32 ssrc, char *name_engine, char *name_ui, char *name_video)
 {
-	char	my_ssrc[10];
+	char	my_ssrc[11];
 
 	mbus_name_engine = name_engine;
 	mbus_name_ui     = name_ui;
 	mbus_name_video  = name_video;
 
-	sprintf(my_ssrc, "%08ld", ssrc);
+	sprintf(my_ssrc, "\"%08lx\"", ssrc);
 	mbus_qmsg(sp->mbus_engine, mbus_name_ui, "rtp.ssrc", my_ssrc, TRUE);
 }
 

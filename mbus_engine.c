@@ -89,19 +89,20 @@ static void rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct 
         struct s_rtcp_dbentry 	*e;
         char 			*filter_name;
         int 			 filter_type, filter_length, azimuth, freq;
-	u_int32			 ssrc;
+	char			*ssrc;
 
         UNUSED(srce);
 
         mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) &&
+	if (mbus_parse_str(sp->mbus_engine, &ssrc) &&
             mbus_parse_str(sp->mbus_engine, &filter_name) &&
             mbus_parse_int(sp->mbus_engine, &filter_length) &&
             mbus_parse_int(sp->mbus_engine, &azimuth)) {
 
                 mbus_decode_str(filter_name);
+		ssrc = mbus_decode_str(ssrc);
 
-                e = rtcp_get_dbentry(sp, ssrc);
+                e = rtcp_get_dbentry(sp, strtoul(ssrc, 0, 16));
                 if (e != NULL) {
                         filter_type = render_3D_filter_get_by_name(filter_name);
                         freq        = get_freq(sp->device_clock);
@@ -110,7 +111,7 @@ static void rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct 
                         }
                         render_3D_set_parameters(e->render_3D_data, freq, azimuth, filter_type, filter_length);
                 } else {
-			debug_msg("Unknown source 0x%08ld\n", ssrc);
+			debug_msg("Unknown source 0x%08lx\n", ssrc);
 		}
         } else {
                 debug_msg("mbus: usage \"tool.rat.3d.user.settings <cname> <filter name> <filter len> <azimuth>\"\n");
@@ -121,14 +122,15 @@ static void rx_tool_rat_3d_user_settings(char *srce, char *args, session_struct 
 static void
 rx_tool_rat_3d_user_settings_req(char *srce, char *args, session_struct *sp)
 {
-	u_int32		 ssrc;
+	char		*ssrc;
         rtcp_dbentry 	*e = NULL;
 
 	UNUSED(srce);
 
         mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc)) {
-                e = rtcp_get_dbentry(sp, ssrc);
+	if (mbus_parse_str(sp->mbus_engine, &ssrc)) {
+		ssrc = mbus_decode_str(ssrc);
+                e = rtcp_get_dbentry(sp, strtoul(ssrc, 0, 16));
 		if (e != NULL) {
 			ui_info_3d_settings(sp, e);
 		} else {
@@ -586,81 +588,58 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(sp->mbus_engine);
 }
 
-static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
+static void rx_rtp_source_sdes(char *srce, char *args, session_struct *sp, int type)
 {
-	char	*arg;
-	u_int32	 ssrc;
+	char	*arg, *ssrc;
 
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && (ssrc == sp->db->myssrc) && mbus_parse_str(sp->mbus_engine, &arg)) {
-		rtcp_set_attribute(sp, RTCP_SDES_NAME,  mbus_decode_str(arg));
+	if (mbus_parse_str(sp->mbus_engine, &ssrc) && mbus_parse_str(sp->mbus_engine, &arg)) {
+		ssrc = mbus_decode_str(ssrc);
+		if (strtoul(ssrc, 0, 16) == sp->db->myssrc) {
+			rtcp_set_attribute(sp, type,  mbus_decode_str(arg));
+		} else {
+			debug_msg("mbus: ssrc %s (%08lx) != %08lx\n", ssrc, strtoul(ssrc, 0, 16), sp->db->myssrc);
+		}
 	} else {
-		debug_msg("mbus: usage \"rtp_source_name <ssrc> <name>\"\n");
+		debug_msg("mbus: usage \"rtp_source_<sdes_item> <ssrc> <name>\"\n");
 	}
 	mbus_parse_done(sp->mbus_engine);
+}
+
+static void rx_rtp_source_name(char *srce, char *args, session_struct *sp)
+{
+	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_NAME);
 }
 
 static void rx_rtp_source_email(char *srce, char *args, session_struct *sp)
 {
-	char	*arg;
-	u_int32	 ssrc;
-
-	UNUSED(srce);
-
-	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && (ssrc == sp->db->myssrc) && mbus_parse_str(sp->mbus_engine, &arg)) {
-		rtcp_set_attribute(sp, RTCP_SDES_EMAIL,  mbus_decode_str(arg));
-	} else {
-		debug_msg("mbus: usage \"rtp_source_email <ssrc> <email>\"\n");
-	}
-	mbus_parse_done(sp->mbus_engine);
+	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_EMAIL);
 }
 
 static void rx_rtp_source_phone(char *srce, char *args, session_struct *sp)
 {
-	char	*arg;
-	u_int32	 ssrc;
-
-	UNUSED(srce);
-
-	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && (ssrc == sp->db->myssrc) && mbus_parse_str(sp->mbus_engine, &arg)) {
-		rtcp_set_attribute(sp, RTCP_SDES_PHONE,  mbus_decode_str(arg));
-	} else {
-		debug_msg("mbus: usage \"rtp_source_phone <ssrc> <phone>\"\n");
-	}
-	mbus_parse_done(sp->mbus_engine);
+	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_PHONE);
 }
 
 static void rx_rtp_source_loc(char *srce, char *args, session_struct *sp)
 {
-	char	*arg;
-	u_int32	 ssrc;
-
-	UNUSED(srce);
-
-	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && (ssrc == sp->db->myssrc) && mbus_parse_str(sp->mbus_engine, &arg)) {
-		rtcp_set_attribute(sp, RTCP_SDES_LOC,  mbus_decode_str(arg));
-	} else {
-		debug_msg("mbus: usage \"rtp_source_loc <ssrc> <loc>\"\n");
-	}
-	mbus_parse_done(sp->mbus_engine);
+	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_LOC);
 }
 
 static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
 {
 	rtcp_dbentry	*e;
-	u_int32		 ssrc;
+	char		*ssrc;
 	int		 i;
 
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && mbus_parse_int(sp->mbus_engine, &i)) {
-                e = rtcp_get_dbentry(sp, ssrc);
+	if (mbus_parse_str(sp->mbus_engine, &ssrc) && mbus_parse_int(sp->mbus_engine, &i)) {
+		ssrc = mbus_decode_str(ssrc);
+                e = rtcp_get_dbentry(sp, strtoul(ssrc, 0, 16));
 		if (e != NULL) {
                         e->mute = i;
                         ui_info_mute(sp, e);
@@ -677,14 +656,15 @@ static void rx_rtp_source_mute(char *srce, char *args, session_struct *sp)
 static void rx_rtp_source_playout(char *srce, char *args, session_struct *sp)
 {
 	rtcp_dbentry	*e;
-	u_int32		 ssrc;
+	char		*ssrc;
 	int	 	 playout;
 
 	UNUSED(srce);
 
 	mbus_parse_init(sp->mbus_engine, args);
-	if (mbus_parse_int(sp->mbus_engine, (int *) &ssrc) && mbus_parse_int(sp->mbus_engine, &playout)) {
-                e = rtcp_get_dbentry(sp, ssrc);
+	if (mbus_parse_str(sp->mbus_engine, &ssrc) && mbus_parse_int(sp->mbus_engine, &playout)) {
+		ssrc = mbus_decode_str(ssrc);
+                e = rtcp_get_dbentry(sp, strtoul(ssrc, 0, 16));
 		if (e != NULL) {
                 	e->video_playout_received = TRUE;
 			e->video_playout          = playout;
