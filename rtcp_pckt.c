@@ -356,7 +356,13 @@ rtcp_packet_fmt_addrr(session_struct *sp, u_int8 * ptr, rtcp_dbentry * dbe)
 
         if ((dbe->ui_last_update - get_time(dbe->clock)) >= (unsigned)get_freq(sp->device_clock)) {
                 double jit;
-                ui_update_duration(sp, dbe->sentry->cname, dbe->units_per_packet * 20);
+                codec_t *cp;
+                cp = get_codec_by_pt(dbe->enc);
+                if (cp) {
+                        ui_update_duration(sp, dbe->sentry->cname, dbe->units_per_packet * 1000 * cp->unit_len / cp->freq);
+                } else {
+                        ui_update_duration(sp, dbe->sentry->cname, dbe->units_per_packet * 20);
+                }
                 ui_update_loss(sp, sp->db->my_dbe->sentry->cname, dbe->sentry->cname, (dbe->lost_frac * 100) >> 8);
                 jit = ceil(dbe->jitter * 1000/get_freq(dbe->clock));
                 ui_update_reception(sp, dbe->sentry->cname, dbe->pckts_recv, dbe->lost_tot, dbe->misordered, dbe->duplicates, (u_int32)jit, dbe->jit_TOGed);
