@@ -100,7 +100,7 @@ main(int argc, char *argv[])
 	session_struct 		*sp[2];
 	struct s_mix_info 	*ms[2];
 	struct timeval  	 time;
-	char			*mbus_engine_addr, *mbus_ui_addr, *mbus_video_addr;
+	char			 mbus_engine_addr[30], mbus_ui_addr[30], mbus_video_addr[30];
 
 #define NEW_QUEUE(T,Q) T  Q[2]; \
                        T *Q##_p[2];
@@ -124,21 +124,20 @@ main(int argc, char *argv[])
 	INIT_QUEUE(pckt_queue_struct, rtcp_pckt_queue)
 	INIT_QUEUE(rx_queue_struct,   rx_unit_queue)
 
-	thread_pri = 2;			/* TIME_CRITICAL */
-	cname      = get_cname();
-	ssrc       = get_ssrc();
+	sprintf(mbus_engine_addr, "(audio engine rat %d)", (int) getpid());
+	sprintf(mbus_ui_addr,     "(audio     ui rat %d)", (int) getpid());
+	sprintf(mbus_video_addr,  "(video engine   *  *)");
 
 	for (i = 0; i < 2;i++) {
 		sp[i] = (session_struct *) xmalloc(sizeof(session_struct));
 		init_session(sp[i]);
 	}
 	num_sessions = parse_options(argc, argv, sp);
+	thread_pri   = 2;	/* TIME_CRITICAL */
+	cname        = get_cname();
+	ssrc         = get_ssrc();
 
 	for (i = 0; i < num_sessions; i++) {
-		mbus_engine_addr = (char *) xmalloc(30); sprintf(mbus_engine_addr, "(audio engine rat %d)", (int) getpid());
-		mbus_ui_addr     = (char *) xmalloc(30); sprintf(mbus_ui_addr,     "(audio     ui rat %d)", (int) getpid());
-		mbus_video_addr  = (char *) xmalloc(30); sprintf(mbus_video_addr,  "(video engine   *  *)");
-	
 		mbus_engine_init(mbus_engine_addr, sp[i]->mbus_channel);
 		mbus_ui_init(mbus_ui_addr, sp[i]->mbus_channel);
 	}
@@ -146,16 +145,14 @@ main(int argc, char *argv[])
         if (sp[0]->ui_on) {
 		tcl_init(sp[0], argc, argv, mbus_engine_addr);
         }
-	network_process_mbus(sp, num_sessions, 20);
 	ui_controller_init(cname, mbus_engine_addr, mbus_ui_addr, mbus_video_addr);
+	ui_codecs(sp[0]);
 
 	for (i = 0; i < num_sessions; i++) {
+		network_init(sp[i]);
 		rtcp_init(sp[i], cname, ssrc, 0 /* XXX cur_time */);
 		audio_init(sp[i]);
-		network_init(sp[i]);
-		if (!audio_device_take(sp[i])) {
-			ui_show_audio_busy(sp[i]);
-		}
+		audio_device_take(sp[i]);
                 read_write_init(sp[i]);
 		ms[i] = init_mix(sp[i], 32640);
 	}
@@ -164,8 +161,6 @@ main(int argc, char *argv[])
 
 	ui_info_update_cname(sp[0]->db->my_dbe);
 	ui_info_update_tool(sp[0]->db->my_dbe);
-	ui_codecs(sp[0]);
-        ui_update(sp[0]);
 	ui_load_settings();
 	network_process_mbus(sp, num_sessions, 1000);
 
@@ -192,6 +187,7 @@ main(int argc, char *argv[])
 			}
 			cur_time = get_time(sp[i]->device_clock);
 			network_read(sp[i], netrx_queue_p[i], rtcp_pckt_queue_p[i], cur_time);
+			process_read_audio(sp[i]);
 
 			if (!(sp[i]->playing_audio)) {
 				receive_unit_audit(rx_unit_queue_p[i]);

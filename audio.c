@@ -195,7 +195,7 @@ audio_device_take(session_struct *sp)
 	audio_format    format;
 
         if (sp->have_device) {
-                return (TRUE);
+                return TRUE;
         }
 
 	cp = get_codec(sp->encodings[0]);
@@ -215,6 +215,8 @@ audio_device_take(session_struct *sp)
 	} else {
 		/* XXX should pass a pointer to format ???!!! */
 		if ((sp->audio_fd = audio_open(format)) == -1) {
+			ui_show_audio_busy(sp);
+			ui_update(sp);
 			return FALSE;
 		}
 

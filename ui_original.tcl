@@ -162,7 +162,6 @@ proc mbus_recv_load.settings {} {
     load_settings
     check_rtcp_name
     sync_engine_to_ui
-    sync_ui_to_engine
     chart_show
     toggle_plist
 }
@@ -174,10 +173,6 @@ proc mbus_recv_codec.supported {args} {
 	.prefs.pane.transmission.dd.pri.m.menu    add command -label $c -command "set prenc $c; validate_red_codecs"
 	.prefs.pane.transmission.cc.red.fc.m.menu add command -label $c -command "set secenc $c"
     }    
-}
-
-proc mbus_recv_settings {args} {
-    sync_engine_to_ui
 }
 
 proc mbus_recv_agc {args} {
@@ -1036,7 +1031,7 @@ proc sync_ui_to_engine {} {
 
 proc sync_engine_to_ui {} {
     # make audio engine concur with ui
-    global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc output_var 
+    global my_cname rtcp_name rtcp_email rtcp_phone rtcp_loc 
     global prenc upp channel_var secenc red_off int_gap silence_var agc_var 
     global repair_var min_var max_var lecture_var convert_var key key_var 
     global meter_var sync_var gain volume input_port output_port 
@@ -1050,7 +1045,6 @@ proc sync_engine_to_ui {} {
     mbus_qmsg "source.loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
     
     #transmission details
-    mbus_qmsg "output.mode"  [mbus_encode_str $output_var]
     mbus_qmsg "primary"      [mbus_encode_str $prenc]
     mbus_qmsg "rate"         $upp
     mbus_qmsg "channel.code" [mbus_encode_str $channel_var]
@@ -1119,7 +1113,6 @@ proc save_settings {} {
     save_setting $f rtpPhone    rtcp_phone
     save_setting $f rtpLoc      rtcp_loc
     # transmission
-    save_setting $f audioOutputMode       output_var
     save_setting $f audioPrimary          prenc
     save_setting $f audioUnits            upp
     save_setting $f audioChannelCoding    channel_var
@@ -1202,7 +1195,6 @@ proc load_settings {} {
     load_setting attr rtpPhone rtcp_phone    ""
     load_setting attr rtpLoc   rtcp_loc      ""
     # transmission
-    load_setting attr audioOutputMode       output_var    "Full duplex"
     load_setting attr audioPrimary          prenc         "DVI-8K-MONO"
     load_setting attr audioUnits            upp           "2"
     load_setting attr audioChannelCoding    channel_var   "None"

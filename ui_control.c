@@ -418,55 +418,33 @@ void
 ui_update(session_struct *sp)
 {
 	static   int done=0;
-	codec_t	*cp;
 
 	if (!sp->ui_on) {
 		/* UI is disabled, do nothing... */
 		return;
 	}
 
-        /* we want to dump ALL settings here to ui */
-        /* Device settings */
-
 	/*XXX solaris seems to give a different volume back to what we   */
 	/*    actually set.  So don't even ask if it's not the first time*/
 	if (done==0) {
 	        sprintf(args, "%d", audio_get_volume(sp->audio_fd)); mbus_engine_tx_queue(TRUE, "output.gain", args);
 		sprintf(args, "%d", audio_get_gain(sp->audio_fd));   mbus_engine_tx_queue(TRUE,  "input.gain", args);
+		done=1;
 	} else {
 	        sprintf(args, "%d", sp->output_gain); mbus_engine_tx_queue(TRUE, "output.gain", args);
 		sprintf(args, "%d", sp->input_gain ); mbus_engine_tx_queue(TRUE,  "input.gain", args);
 	}
 
-	ui_update_output_port(sp);
-	if (sp->playing_audio) {
-		mbus_engine_tx_queue(TRUE, "output.mute", "0");
-	} else {
-		mbus_engine_tx_queue(TRUE, "output.mute", "1");
-	}
-
-	ui_update_input_port(sp);
-	if (sp->sending_audio) {
-		mbus_engine_tx_queue(TRUE, "input.mute", "0");
-	} else {
-		mbus_engine_tx_queue(TRUE, "input.mute", "1");
-	}
-
-	cp = get_codec(sp->encodings[0]);
-	sprintf(args, "%s", mbus_encode_str(cp->name));
-	mbus_engine_tx_queue(TRUE, "primary", args);
         sprintf(args, "%d", get_units_per_packet(sp));
 	mbus_engine_tx_queue(TRUE, "rate", args);
 
-	/* The following all call mbus_send() with the correct arguments to send 
-	 * the messages we have queued here...
-	 */
+	ui_update_output_port(sp);
+	ui_update_input_port(sp);
+	ui_update_primary(sp);
         ui_update_redundancy(sp);
         ui_update_interleaving(sp);
         ui_update_channel(sp);
         ui_repair(sp);
-
-	done=1;
 }
 
 void
