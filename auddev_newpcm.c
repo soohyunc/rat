@@ -32,6 +32,7 @@ static int audio_fd = -1;
 #define DEVICE_TO_RAT(x) ((x) * MAX_AMP / 100)
 
 #define NEWPCM_AUDIO_IOCTL(fd, cmd, val) \
+	newpcm_error = 0; \
 	if (ioctl((fd), (cmd), (val)) < 0) { \
 		debug_msg("Failed %s - line %d\n",#cmd, __LINE__); \
 		newpcm_error = __LINE__; \
@@ -236,7 +237,6 @@ newpcm_audio_drain(audio_desc_t ad)
 
 	NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &pre);
 	NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_RESET, 0);
-	NEWPCM_AUDIO_IOCTL(audio_fd, SNDCTL_DSP_SYNC, 0);
 	NEWPCM_AUDIO_IOCTL(audio_fd, FIONREAD, &post);
 	debug_msg("audio drain: %d -> %d\n", pre, post);
 	read(audio_fd, buf, sizeof(buf));

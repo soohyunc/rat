@@ -1465,9 +1465,10 @@ v4.2.11	- Fix port restoration when changing device (Shirasaki Yasuhiro)
 	* Released 8 January 2001
 
 v4.2.12	- Better diagnostic message when mbus config file cannot be locked.
-
-
-
+	- Remove SNDCTL_DSP_SYNC from newpcm reset function as it can block.
+	- Change G726-32 packing to fit AVT profile.  Because of packing order
+	  difference this and future versions will not be interoperable with
+	  previous RAT releases.
 
 TODO -- They're features not bugs dammit!
 ----
@@ -1569,7 +1570,4 @@ TODO -- They're features not bugs dammit!
 	convert_sinc.c:122: failed assertion
 	rat-4.2.8-media: util.c:87: _block_alloc: Assertion `size > 0' failed.  
   reported by Greg Herlein.
-- G726-32 payload format is broken: samples are packed into octets in the 
-  wrong order. Reported by Magnus Westerlund.
- 	- this may have implications for the other rates of G726 too
  

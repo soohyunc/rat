@@ -210,7 +210,9 @@ g726_encode(uint16_t idx, u_char *encoder_state, sample *inbuf, coded_unit *c)
                 }
                 break;
         case G726_32:
-                for(i = 0; i < G726_SAMPLES_PER_FRAME; i++) {
+                for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 2) {
+                        cw = g726_32_encoder(s[i + 1], AUDIO_ENCODING_LINEAR, g->gs);
+                        bs_put(g->bs, cw, 4);
                         cw = g726_32_encoder(s[i], AUDIO_ENCODING_LINEAR, g->gs);
                         bs_put(g->bs, cw, 4);
                 }
@@ -263,7 +265,10 @@ g726_decode(uint16_t idx, u_char *decoder_state, coded_unit *c, sample *data)
                 }
                 break;
         case G726_32:
-                for(i = 0; i < G726_SAMPLES_PER_FRAME; i++) {
+                for(i = 0; i < G726_SAMPLES_PER_FRAME; i += 2) {
+                        cw = bs_get(g->bs, 4);
+                        cw = g726_32_decoder(cw, AUDIO_ENCODING_LINEAR, g->gs);
+                        dst[i + 1] = (sample)cw;
                         cw = bs_get(g->bs, 4);
                         cw = g726_32_decoder(cw, AUDIO_ENCODING_LINEAR, g->gs);
                         dst[i] = (sample)cw;
