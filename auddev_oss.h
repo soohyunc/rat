@@ -56,12 +56,19 @@ int  oss_audio_read       (audio_desc_t ad, u_char *buf, int buf_bytes);
 int  oss_audio_write      (audio_desc_t ad, u_char *buf, int buf_bytes);
 void oss_audio_non_block  (audio_desc_t ad);
 void oss_audio_block      (audio_desc_t ad);
-void oss_audio_set_oport  (audio_desc_t ad, int port);
-int  oss_audio_get_oport  (audio_desc_t ad);
-int  oss_audio_next_oport (audio_desc_t ad);
-void oss_audio_set_iport  (audio_desc_t ad, int port);
-int  oss_audio_get_iport  (audio_desc_t ad);
-int  oss_audio_next_iport (audio_desc_t ad);
+
+void         oss_audio_oport_set   (audio_desc_t ad, audio_port_t port);
+audio_port_t oss_audio_oport_get   (audio_desc_t ad);
+int          oss_audio_oport_count (audio_desc_t ad);
+const audio_port_details_t*
+             oss_audio_oport_details (audio_desc_t ad, int idx);
+
+void         oss_audio_iport_set   (audio_desc_t ad, audio_port_t port);
+audio_port_t oss_audio_iport_get   (audio_desc_t ad);
+int          oss_audio_iport_count (audio_desc_t ad);
+const audio_port_details_t*
+             oss_audio_iport_details (audio_desc_t ad, int idx);
+
 int  oss_audio_is_ready  (audio_desc_t ad);
 void oss_audio_wait_for  (audio_desc_t ad, int delay_ms);
 int  oss_audio_supports  (audio_desc_t ad, audio_format *fmt);

@@ -54,6 +54,30 @@
 #include "auddev_oss.h"
 #include "util.h"
 
+
+/* Aren't these defined in soundcard.h ? */
+#define AUDIO_SPEAKER    0
+#define AUDIO_HEADPHONE  1
+#define AUDIO_LINE_OUT   4
+#define AUDIO_MICROPHONE 1
+#define AUDIO_LINE_IN    2
+#define AUDIO_CD         4
+
+/* Info to match port id's to port name's */
+static const audio_port_details out_ports[] = {
+        {AUDIO_SPEAKER,   AUDIO_PORT_SPEAKER}
+};
+
+#define NUM_OUT_PORTS (sizeof(out_ports)/(sizeof(out_ports[0])))
+
+static const audio_port_details in_ports[] = {
+        {AUDIO_MICROPHONE, AUDIO_PORT_MICROPHONE},
+        {AUDIO_LINE_IN,    AUDIO_PORT_LINEIN},
+        {AUDIO_CD,         AUDIO_PORT_CD}
+};
+
+#define NUM_IN_PORTS (sizeof(in_ports)/(sizeof(in_ports[0])))
+
 int	iport     = AUDIO_MICROPHONE;
 int	bytes_per_block;
 
@@ -381,7 +405,7 @@ oss_audio_block(audio_desc_t ad)
 }
 
 void
-oss_audio_set_oport(audio_desc_t ad, int port)
+oss_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
 	/* There appears to be no-way to select this with OSS... */
         UNUSED(ad); assert(audio_fd[ad] > 0);
@@ -389,26 +413,35 @@ oss_audio_set_oport(audio_desc_t ad, int port)
 	return;
 }
 
-int
-oss_audio_get_oport(audio_desc_t ad)
+audio_port_t
+oss_audio_oport_get(audio_desc_t ad)
 {
 	/* There appears to be no-way to select this with OSS... */
         UNUSED(ad); assert(audio_fd[ad] > 0);
-	return AUDIO_HEADPHONE;
+	return out_ports[0]->port;
 }
 
-int
-oss_audio_next_oport(audio_desc_t ad)
+int 
+oss_audio_oport_count(audio_desc_t ad)
 {
-	/* There appears to be no-way to select this with OSS... */
-        UNUSED(ad); assert(audio_fd[ad] > 0);
-	return AUDIO_HEADPHONE;
+        UNUSED(ad);
+        return (int)NUM_OUT_PORTS;
+}
+
+const audio_port_details_t*
+oss_audio_oport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        if (idx >= 0 && idx < NUM_OUT_PORTS) {
+                return &out_ports[idx];
+        }
+        return NULL;
 }
 
 void
-oss_audio_set_iport(audio_desc_t ad, int port)
+oss_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
-	int recmask;
+	int recmask, portmask;
 	int recsrc;
 	int gain;
 
@@ -418,83 +451,53 @@ oss_audio_set_iport(audio_desc_t ad, int port)
 		debug_msg("WARNING: Unable to read recording mask!\n");
 		return;
 	}
-	switch (port) {
-	case AUDIO_MICROPHONE : 
-		if (recmask & SOUND_MASK_MIC) {
-			recsrc = SOUND_MASK_MIC;
-			if ((ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & SOUND_MASK_MIC)) {
-				debug_msg("WARNING: Unable to select recording source!\n");
-				return;
-			}
-			gain = oss_audio_get_igain(ad);
-			iport = port;
-			oss_audio_set_igain(ad, gain);
-		} else {
-			debug_msg("Audio device doesn't support recording from microphone\n");
-		}
-		break;
-	case AUDIO_LINE_IN : 
-		if (recmask & SOUND_MASK_LINE) {
-			recsrc = SOUND_MASK_LINE;
-			if ((ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & SOUND_MASK_LINE)){
-				debug_msg("WARNING: Unable to select recording source!\n");
-				return;
-			}
-			gain = oss_audio_get_igain(ad);
-			iport = port;
-			oss_audio_set_igain(ad, gain);
-		} else {
-			debug_msg("Audio device doesn't support recording from line-input\n");
-		}
-		break;
-	case AUDIO_CD:
-		if (recmask & SOUND_MASK_CD) {
-			recsrc = SOUND_MASK_CD;
-			if ((ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & SOUND_MASK_LINE)){
-				debug_msg("WARNING: Unable to select recording source!\n");
-				return;
-			}
-			gain = oss_audio_get_igain(ad);
-			iport = port;
-			oss_audio_set_igain(ad, gain);
-		} else {
-			debug_msg("Audio device doesn't support recording from CD\n");
-		}
-		break;
-	default : 
-		debug_msg("audio_set_port: unknown port!\n");
-		abort();
-	};
-	return;
+
+        switch (port) {
+        case AUDIO_MICROPHONE: recsrc = SOUND_MASK_MIC;  break;
+        case AUDIO_LINE_IN:    recsrc = SOUND_MASK_LINE; break;
+        case AUDIO_CD:         recsrc = SOUND_MASK_CD;   break;
+        default:
+                debug_msg("Port not recognized\n");
+                return;
+        }
+
+        /* Can we select chosen port ? */
+        if (recmask & recsrc) {
+                portmask = recsrc;
+                if ((ioctl(audio_fd[ad], MIXER_WRITE(SOUND_MIXER_RECSRC), &recsrc) == -1) && !(recsrc & portmask)) {
+                        debug_msg("WARNING: Unable to select recording source!\n");
+                        return;
+                }
+                gain = oss_audio_get_igain(ad);
+                iport = port;
+                oss_audio_set_igain(ad, gain);
+        } else {
+                debug_msg("Audio device doesn't support recording from port %d\n", port);
+        }
 }
 
-int
-oss_audio_get_iport(audio_desc_t ad)
+audio_port_t
+oss_audio_iport_get(audio_desc_t ad)
 {
         UNUSED(ad); assert(audio_fd[ad] > 0);
 	return iport;
 }
 
 int
-oss_audio_next_iport(audio_desc_t ad)
+oss_audio_iport_count(audio_desc_t ad)
 {
-        UNUSED(ad); assert(audio_fd[ad] > 0);
+        UNUSED(ad);
+        return (int)NUM_IN_PORTS;
+}
 
-        switch (iport) {
-	case AUDIO_MICROPHONE : 
-		oss_audio_set_iport(ad, AUDIO_LINE_IN);
-		break;
-	case AUDIO_LINE_IN : 
-		oss_audio_set_iport(ad, AUDIO_CD);
-		break;
-	case AUDIO_CD : 
-		oss_audio_set_iport(ad, AUDIO_MICROPHONE);
-		break;
-	default : 
-		debug_msg("Unknown audio source!\n");
-	}
-
-	return iport;
+const audio_port_details_t*
+oss_audio_iport_details(audio_desc_t ad, int idx)
+{
+        UNUSED(ad);
+        if (idx >= 0 && idx < NUM_IN_PORTS) {
+                return &in_ports[idx];
+        }
+        return NULL;
 }
 
 static int
