@@ -54,7 +54,7 @@ typedef void (*mix_f)(sample *buf, sample *incoming, int len);
 static mix_f audio_mix_fn;
 
 static void
-mix_verify(mixer_t *ms) 
+mix_verify(const mixer_t *ms) 
 {
 #ifdef DEBUG
         ts_t delta;
@@ -222,15 +222,16 @@ mix_put_audio(mixer_t     *ms,
                                 samples  += trim;
                                 assert(nsamples > trim);
 				nsamples -= trim;
-				debug_msg("Mixer trimmed %d samples (%d)\n", trim, playout.ticks);
+				debug_msg("Mixer trimmed %d samples (%d) ssrc (0x%08x)\n", trim, playout.ticks, pdbe->ssrc);
                         } else {
                                 debug_msg("Skipped unit\n");
                         }
                 } else {
                         if (expected_playout.ticks - playout.ticks != 0) {
-                                debug_msg("Gap between units %d %d\n", 
+                                debug_msg("Gap between units %d %d ssrc 0x%08x\n", 
                                           expected_playout.ticks, 
-                                          playout.ticks);
+                                          playout.ticks,
+                                          pdbe->ssrc);
                         }
                 }
         }
