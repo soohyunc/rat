@@ -64,7 +64,8 @@
 #include <tcl.h>
 #include <tk.h>
 
-typedef u_int	fd_t;
+typedef int		ttl_t;
+typedef u_int		fd_t;
 typedef unsigned char	byte;
 
 /*
