@@ -974,7 +974,5 @@ TODO -- They're features not bugs dammit!
   sample based frames do not have to be n * codec__peek_frame_size.
 - Should use the empty RRs coming back from receivers who are not seeing
   traffic, and display this in the loss matrix.
-- The new loading of settings isn't quite complete yet - some variables 
-  need to be activated in the user interface (they are loaded fine; it's
-  just not made evident to the user) 
+- Layering is broken (hasn't been updated for multiple processes, etc)
 
