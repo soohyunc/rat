@@ -130,7 +130,7 @@ static void rx_tool_rat_powermeter(char *srce, char *args, session_struct *sp)
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_silence(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_silence(char *srce, char *args, session_struct *sp)
 {
 	int i;
 
@@ -140,12 +140,12 @@ static void rx_silence(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(mbus_chan, &i)) {
 		sp->detect_silence = i;
 	} else {
-		printf("mbus: usage \"silence <boolean>\"\n");
+		printf("mbus: usage \"tool.rat.silence <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_externalise(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_externalise(char *srce, char *args, session_struct *sp)
 {
 	int i;
 
@@ -155,12 +155,12 @@ static void rx_externalise(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(mbus_chan, &i)) {
 		sp->externalise_audio = i;
 	} else {
-		printf("mbus: usage \"externalise <boolean>\"\n");
+		printf("mbus: usage \"tool.rat.externalise <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_lecture(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_lecture(char *srce, char *args, session_struct *sp)
 {
 	int i;
 
@@ -170,12 +170,12 @@ static void rx_lecture(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(mbus_chan, &i)) {
 		sp->lecture = i;
 	} else {
-		printf("mbus: usage \"lecture <boolean>\"\n");
+		printf("mbus: usage \"tool.rat.lecture <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_sync(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_sync(char *srce, char *args, session_struct *sp)
 {
 	int i;
 
@@ -189,12 +189,12 @@ static void rx_sync(char *srce, char *args, session_struct *sp)
 			ui_update_sync(FALSE);
 		}
 	} else {
-		printf("mbus: usage \"sync <boolean>\"\n");
+		printf("mbus: usage \"tool.rat.sync <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_agc(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_agc(char *srce, char *args, session_struct *sp)
 {
 	int i;
 
@@ -204,12 +204,12 @@ static void rx_agc(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(mbus_chan, &i)) {
 		sp->agc_on = i;
 	} else {
-		printf("mbus: usage \"agc <boolean>\"\n");
+		printf("mbus: usage \"tool.rat.agc <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_audio_loopback(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_audio_loopback(char *srce, char *args, session_struct *sp)
 {
 	int i;
 
@@ -223,12 +223,12 @@ static void rx_audio_loopback(char *srce, char *args, session_struct *sp)
                         audio_loopback(sp->audio_fd, 0);
                 }
 	} else {
-		printf("mbus: usage \"audio.loopback <boolean>\"\n");
+		printf("mbus: usage \"tool.rat.audio.loopback <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_echo_suppress(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_echo_suppress(char *srce, char *args, session_struct *sp)
 {
 	int i;
 
@@ -241,12 +241,12 @@ static void rx_echo_suppress(char *srce, char *args, session_struct *sp)
                         playout_buffers_destroy(sp, &sp->playout_buf_list);
                 }
 	} else {
-		printf("mbus: usage \"echoSuppress <boolean>\"\n");
+		printf("mbus: usage \"tool.rat.echo.suppress <boolean>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
 
-static void rx_rate(char *srce, char *args, session_struct *sp)
+static void rx_tool_rat_rate(char *srce, char *args, session_struct *sp)
 {
 	int	 i;
 
@@ -256,7 +256,7 @@ static void rx_rate(char *srce, char *args, session_struct *sp)
 	if (mbus_parse_int(mbus_chan, &i)) {
 		collator_set_units(sp->collator, i);
 	} else {
-		printf("mbus: usage \"rate <integer>\"\n");
+		printf("mbus: usage \"tool.rat.rate <integer>\"\n");
 	}
 	mbus_parse_done(mbus_chan);
 }
@@ -655,7 +655,7 @@ rx_redundancy(char *srce, char *args, session_struct *sp)
 }
 
 static void 
-rx_primary(char *srce, char *args, session_struct *sp)
+rx_audio_codec(char *srce, char *args, session_struct *sp)
 {
         static int virgin = 1;
 	char	*short_name, *sfreq, *schan;
@@ -676,7 +676,7 @@ rx_primary(char *srce, char *args, session_struct *sp)
                 mbus_decode_str(sfreq);
                 mbus_parse_done(mbus_chan);
         } else {
-		printf("mbus: usage \"primary <codec> <freq> <channels>\"\n");
+		printf("mbus: usage \"audio.codec <codec> <freq> <channels>\"\n");
                 mbus_parse_done(mbus_chan);
                 return;
         }
@@ -868,14 +868,14 @@ const char *rx_cmnd[] = {
 	"get_audio",
 	"toggle.input.port",
 	"toggle.output.port",
-	"silence",
-	"lecture",
-	"externalise",
-	"agc",
-        "loopback",
-        "echoSuppress",
-	"sync",
-	"rate",
+	"tool.rat.silence",
+	"tool.rat.lecture",
+	"tool.rat.externalise",
+	"tool.rat.agc",
+        "tool.rat.loopback",
+        "tool.rat.echo.suppress",
+	"tool.rat.sync",
+	"tool.rat.rate",
 	"audio.input.mute",
 	"audio.input.gain",
 	"audio.input.port",
@@ -897,7 +897,7 @@ const char *rx_cmnd[] = {
 	"rtp.source.playout",
         "interleaving",
 	"redundancy",
-	"primary",
+	"audio.codec",
         "sampling",
         "playout.limit",
         "playout.min",
@@ -915,14 +915,14 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_get_audio,
 	rx_toggle_input_port,
 	rx_toggle_output_port,
-	rx_silence,
-	rx_lecture,
-	rx_externalise,
-	rx_agc,
-        rx_audio_loopback,
-        rx_echo_suppress,
-	rx_sync,
-	rx_rate,
+	rx_tool_rat_silence,
+	rx_tool_rat_lecture,
+	rx_tool_rat_externalise,
+	rx_tool_rat_agc,
+        rx_tool_rat_audio_loopback,
+        rx_tool_rat_echo_suppress,
+	rx_tool_rat_sync,
+	rx_tool_rat_rate,
 	rx_audio_input_mute,
 	rx_audio_input_gain,
 	rx_audio_input_port,
@@ -944,7 +944,7 @@ static void (*rx_func[])(char *srce, char *args, session_struct *sp) = {
 	rx_rtp_source_playout,
         rx_interleaving,
 	rx_redundancy,
-	rx_primary,
+	rx_audio_codec,
         rx_sampling,
         rx_playout_limit,
         rx_playout_min,
@@ -968,7 +968,7 @@ void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 			return;
 		}
 	}
-	debug_msg("Unknown mbus command: %s %s\n", cmnd, args);
+	debug_msg("*** Unknown mbus command: %s %s\n", cmnd, args);
 }
 
 void mbus_engine_tx(int channel, char *dest, char *cmnd, char *args, int reliable)
@@ -1027,3 +1027,4 @@ int mbus_engine_waiting(void)
 {
         return mbus_waiting_acks(mbus_base) | mbus_waiting_acks(mbus_chan);
 }
+

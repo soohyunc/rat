@@ -433,7 +433,7 @@ ui_update_primary(session_struct *sp)
 
 	pcp = get_codec_by_pt(sp->encodings[0]);
 	mbes = mbus_encode_str(pcp->short_name);
-        mbus_engine_tx(TRUE, mbus_name_ui, "primary", mbes, FALSE);
+        mbus_engine_tx(TRUE, mbus_name_ui, "audio.codec", mbes, FALSE);
         xfree(mbes);
 }
 
@@ -755,11 +755,11 @@ ui_codecs(int pt)
 
         ui_get_codecs(pt, args, 256, TRUE);
         mbes = mbus_encode_str(args);
-	mbus_engine_tx(TRUE, mbus_name_ui, "codec.supported", mbes, TRUE);
+	mbus_engine_tx(TRUE, mbus_name_ui, "audio.codec.supported", mbes, TRUE);
         xfree(mbes);
         ui_get_codecs(pt, args, 256, FALSE);
         mbes = mbus_encode_str(args);
-        mbus_engine_tx(TRUE, mbus_name_ui, "redundancy.supported", mbes, TRUE);
+        mbus_engine_tx(TRUE, mbus_name_ui, "audio.redundancy.supported", mbes, TRUE);
         xfree(mbes);
 }
 

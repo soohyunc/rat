@@ -162,7 +162,7 @@ proc mbus_recv_frequencies.supported {arg} {
     set freq [lindex $freqs 0]
 }
 
-proc mbus_recv_codec.supported {arg} {
+proc mbus_recv_audio.codec.supported {arg} {
     # We now have a list of codecs which this RAT supports...
     global prenc
 
@@ -176,7 +176,7 @@ proc mbus_recv_codec.supported {arg} {
     set prenc [lindex $codecs 0]
 }
 
-proc mbus_recv_redundancy.supported {arg} {
+proc mbus_recv_audio.redundancy.supported {arg} {
     global secenc
 
     .prefs.pane.transmission.cc.red.fc.m.menu delete 0 last
@@ -226,7 +226,7 @@ proc mbus_recv_channels {arg} {
   set channels $arg
 }
 
-proc mbus_recv_primary {arg} {
+proc mbus_recv_audio.codec {arg} {
   global prenc
   set prenc $arg
 }
@@ -1302,26 +1302,26 @@ proc sync_engine_to_ui {} {
     mbus_qmsg "rtp.source.loc"   "$my_cname_enc [mbus_encode_str $rtcp_loc]"
     
     #transmission details
-    mbus_qmsg "primary"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
-    mbus_qmsg "rate"         $upp
+    mbus_qmsg "audio.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
+    mbus_qmsg "tool.rat.rate"         $upp
     mbus_qmsg "redundancy"   "[mbus_encode_str $secenc] $red_off"
     mbus_qmsg "interleaving" "$int_gap $int_units"
 
     # channel.code announcement  MUST go after config of channel coders communicated
     mbus_qmsg "audio.channel.coding" [mbus_encode_str $channel_var]
 
-    mbus_qmsg "silence"      $silence_var
-    mbus_qmsg "agc"          $agc_var
-    mbus_qmsg "loopback"     $audio_loop_var
-    mbus_qmsg "echoSuppress" $echo_var
+    mbus_qmsg "tool.rat.silence"      $silence_var
+    mbus_qmsg "tool.rat.agc"          $agc_var
+    mbus_qmsg "tool.rat.loopback"     $audio_loop_var
+    mbus_qmsg "tool.rat.echo.suppress" $echo_var
 
     #Reception Options
     mbus_qmsg "repair"       [mbus_encode_str $repair_var]
     mbus_qmsg "playout.limit" $limit_var
     mbus_qmsg "playout.min"   $min_var
     mbus_qmsg "playout.max"   $max_var
-    mbus_qmsg "lecture"       $lecture_var
-    mbus_qmsg "externalise"   $3d_audio_var
+    mbus_qmsg "tool.rat.lecture"       $lecture_var
+    mbus_qmsg "tool.rat.externalise"   $3d_audio_var
     mbus_qmsg "converter"    [mbus_encode_str $convert_var]
 
     #Security
@@ -1333,7 +1333,7 @@ proc sync_engine_to_ui {} {
 
     #Interface
     mbus_qmsg "tool.rat.powermeter"   $meter_var
-    mbus_qmsg "sync"         $sync_var
+    mbus_qmsg "tool.rat.sync"         $sync_var
 
     #device 
     mbus_qmsg "audio.input.gain"    $gain
@@ -1546,7 +1546,7 @@ proc load_settings {} {
     load_setting attr audioInterleavingUnits int_units     "4"
 	
 	global prenc channels freq
-	mbus_send "R" "primary" "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
+	mbus_send "R" "audio.codec" "[mbus_encode_str $prenc] [mbus_encode_str $channels] [mbus_encode_str $freq]"
 	
 	global      in_mute_var   out_mute_var
 	input_mute  $in_mute_var
