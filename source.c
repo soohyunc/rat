@@ -875,6 +875,29 @@ source_get_bps(source *src)
         return src->bps;
 }
 
+static uint16_t
+find_local_match(sample *buffer, uint16_t wstart, uint16_t wlen, uint16_t sstart, uint16_t send, uint16_t channels)
+{
+        uint16_t i,j, i_min = sstart;
+        uint32_t score = 0, score_min = 0xffffffff;
+
+        for (i = sstart; i < send; i += channels) {
+                score = 0;
+                for(j = 0; j < wlen; j += channels) {
+                        score += abs(buffer[wstart + j] - buffer[i + j]);
+                }
+                if (score < score_min) {
+                        score_min = score;
+                        i_min     = i;
+                }
+        }
+
+        if (score_min / wlen < MATCH_THRESHOLD) {
+                return i_min;
+        }
+        return 0;
+}
+
 /* recommend_drop_dur does quick pattern match with audio that is about to   */
 /* be played i.e. first few samples to determine how much audio can be       */
 /* dropped with causing glitch.                                              */
@@ -882,10 +905,10 @@ source_get_bps(source *src)
 static ts_t
 recommend_drop_dur(media_data *md) 
 {
-        uint32_t score, lowest_score, lowest_begin;
-        uint16_t rate, channels;
+        uint16_t matchlen;
+        uint16_t rate, channels, samples;
         sample *buffer;
-        int i, j,samples;
+        int16_t i;
 
         i = md->nrep - 1;
         while(i >= 0) {
@@ -899,24 +922,14 @@ recommend_drop_dur(media_data *md)
         buffer  = (sample*)md->rep[i]->data;
         samples = md->rep[i]->data_len / (sizeof(sample) * channels);
 
-        i = 0;
-        j = samples / 16;
-        lowest_score = 0xffffffff;
-        lowest_begin = 0;
-        while (j < samples - SOURCE_COMPARE_WINDOW_SIZE) {
-                score = 0;
-                for (i = 0; i < SOURCE_COMPARE_WINDOW_SIZE; i++) {
-                        score += abs(buffer[i * channels] - buffer[(j+i) * channels]);
-                }
-                if (score <= lowest_score) {
-                        lowest_score = score;
-                        lowest_begin = j;
-                }
-                j++;
-        }
-
-        if (lowest_score/SOURCE_COMPARE_WINDOW_SIZE < MATCH_THRESHOLD) {
-                return ts_map32(rate, lowest_begin);
+        matchlen = find_local_match((sample*)md->rep[i]->data, 
+                                    0, 
+                                    SOURCE_COMPARE_WINDOW_SIZE * channels,
+                                    SOURCE_COMPARE_WINDOW_SIZE * channels,
+                                    (samples - SOURCE_COMPARE_WINDOW_SIZE) * channels,
+                                    channels);
+        if (matchlen) {
+                return ts_map32(rate, matchlen);
         } else {
                 return zero_ts;
         }
