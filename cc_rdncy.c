@@ -58,6 +58,7 @@ typedef struct {
         struct s_pb_iterator *media_pos;
         u_int32               units_ready;
         ts_t                  history; /* How much audio history is needed for coding */
+        ts_t                  last_in;
 } red_enc_state;
 
 int
@@ -349,6 +350,7 @@ redundancy_encoder_encode (u_char      *state,
                 /* Remove element from playout buffer - it belongs to
                  * the redundancy encoder now.  */
                 pb_iterator_detach_at(pi, (u_char**)&m, &m_len, &playout);
+                debug_msg("claimed %d\n", playout.ticks);
                 assert(m != NULL);
 
                 if (m->nrep > 0) {
@@ -365,6 +367,12 @@ redundancy_encoder_encode (u_char      *state,
                         re->units_ready = 0;
                         continue;
                 }
+
+                if (re->units_ready == 0) {
+                        re->last_in = playout;
+                        re->last_in.ticks--;
+                }
+                assert(ts_gt(playout, re->last_in));
 
                 re->units_ready++;
 
