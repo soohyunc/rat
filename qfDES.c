@@ -30,8 +30,6 @@ Added 2 August 1996, Saleem
 
 typedef unsigned long Word;
 
-#include "qfDES.h"
-
 #define B00 0x80000000
 #define B01 0x40000000
 #define B02 0x20000000
