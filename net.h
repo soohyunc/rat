@@ -54,11 +54,8 @@ struct pckt_queue_tag;
 void	network_init(struct session_tag *session);
 int	net_write(socket_udp *s, unsigned char *msg, int msglen, int type);
 int	net_write_iov(socket_udp *s, struct iovec *iov, int iovlen, int type);
-void	network_read(struct session_tag    *sp,
-                     struct pckt_queue_tag *netrx_pckt_queue_ptr,
-	             struct pckt_queue_tag *rtcp_pckt_queue_ptr,
-	             u_int32            cur_time);
 void    network_process_mbus(struct session_tag *sp);
+void 	read_and_enqueue(socket_udp *s, u_int32 cur_time, struct pckt_queue_tag *queue, int type);
 
 #endif /* _RAT_NET_H_ */
 

@@ -125,7 +125,7 @@ network_init(session_struct *sp)
 	sp->rtcp_socket = udp_init(sp->asc_address, sp->rtcp_port, sp->ttl);
 }
 
-static void
+void
 read_and_enqueue(socket_udp *s, u_int32 cur_time, pckt_queue_struct *queue, int type)
 {
 	unsigned char			*data_in, *data_out, *tmp_data;
@@ -163,23 +163,6 @@ read_and_enqueue(socket_udp *s, u_int32 cur_time, pckt_queue_struct *queue, int 
 			block_free(data_out, PACKET_LENGTH);
 			return;
 		}
-	}
-}
-
-void
-network_read(session_struct    *sp,
-	     pckt_queue_struct *netrx_pckt_queue_ptr,
-	     pckt_queue_struct *rtcp_pckt_queue_ptr,
-	     u_int32       cur_time)
-{
-	read_and_enqueue(sp->rtp_socket, cur_time, netrx_pckt_queue_ptr, PACKET_RTP);
-	read_and_enqueue(sp->rtcp_socket, cur_time, rtcp_pckt_queue_ptr, PACKET_RTCP);
-
-	mbus_recv(sp->mbus_engine_base, (void *) sp);
-	mbus_recv(sp->mbus_ui_base    , (void *) sp);
-	if (sp->mbus_channel != 0) {
-		mbus_recv(sp->mbus_engine_conf, (void *) sp);
-		mbus_recv(sp->mbus_ui_conf    , (void *) sp);
 	}
 }
 

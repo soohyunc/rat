@@ -211,7 +211,10 @@ main(int argc, char *argv[])
 			}
 			cur_time = get_time(sp[i]->device_clock);
 			real_time = ntp_time32();
-			network_read(sp[i], netrx_queue_p[i], rtcp_pckt_queue_p[i], cur_time);
+
+			read_and_enqueue(sp[i]->rtp_socket , cur_time,     netrx_queue_p[i], PACKET_RTP);
+			read_and_enqueue(sp[i]->rtcp_socket, cur_time, rtcp_pckt_queue_p[i], PACKET_RTCP);
+
 			if (sp[i]->sending_audio) {
 				tx_process_audio(sp[i]);
 			}
@@ -257,8 +260,16 @@ main(int argc, char *argv[])
 				mbus_send(sp[0]->mbus_ui_base); mbus_retransmit(sp[0]->mbus_ui_base);
 				mbus_send(sp[0]->mbus_ui_conf); mbus_retransmit(sp[0]->mbus_ui_conf);
                 	}
-			mbus_send(sp[0]->mbus_engine_base); mbus_retransmit(sp[0]->mbus_engine_base);
-			mbus_send(sp[0]->mbus_engine_conf); mbus_retransmit(sp[0]->mbus_engine_conf);
+			mbus_retransmit(sp[0]->mbus_engine_base);
+			mbus_retransmit(sp[0]->mbus_engine_conf);
+			mbus_send(sp[0]->mbus_engine_base); 
+			mbus_send(sp[0]->mbus_engine_conf); 
+			mbus_recv(sp[0]->mbus_engine_base, (void *) sp[0]);
+			mbus_recv(sp[0]->mbus_ui_base    , (void *) sp[0]);
+			if (sp[0]->mbus_channel != 0) {
+				mbus_recv(sp[0]->mbus_engine_conf, (void *) sp[0]);
+				mbus_recv(sp[0]->mbus_ui_conf    , (void *) sp[0]);
+			}
 			heartbeat(sp[0], real_time, 10);
 
                         /* wait for mbus messages - closing audio device
