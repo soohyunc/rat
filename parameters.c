@@ -140,7 +140,7 @@ sd_reset(sd_t *s)
         s->lt_max      = 0;
         s->gt_cnt      = 0;
         s->gt_min      = 0xffff;
-        s->thresh      = 0xffff;
+        s->thresh      = 0;
 }
 
 void
@@ -280,7 +280,7 @@ vad_to_get(vad_t *v, u_char silence, u_char mode)
                                 v->post_cnt = 0;
                                 v->sig_cnt  = 0;
                                 return l->pre;
-                        }
+			}
                 } else {
                         v->sig_cnt = 0;
                 }
