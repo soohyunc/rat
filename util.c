@@ -172,8 +172,8 @@ void xfree(void *y)
 #endif
 }
 
-char *
-_xmalloc(unsigned size, char *filen, int line)
+void *
+_xmalloc(unsigned size, const char *filen, int line)
 {
 #ifdef DEBUG_MEM
 	int  s = (((size + 7)/8)*8) + 8;
@@ -206,16 +206,16 @@ printf("malloc %d %s %d\n", size, filen, line);
 
 	xmemchk();
 	assert(((char *) (p+2)) != NULL);
-	return (char *) (p+2);
+	return (void *) (p+2);
 #else
         UNUSED(filen);
         UNUSED(line);
         
-	return (char *) malloc(size);
+	return (void *) malloc(size);
 #endif
 }
 
-char *_xstrdup(char *s1, char *filen, int line)
+char *_xstrdup(const char *s1, const char *filen, int line)
 {
 	char 	*s2;
   
@@ -237,12 +237,12 @@ typedef struct s_block {
  
 static block  *blocks[MAX_INDEX];
  
-char *
-_block_alloc(unsigned int size, char *filen, int line)
+void *
+_block_alloc(unsigned int size, const char *filen, int line)
 {
 	int     	 i;
 	unsigned int 	*c;
-	char    	*p;
+	void    	*p;
 
 	assert(size > 0);
 	assert(size < MAX_SIZE);
@@ -269,7 +269,7 @@ _block_alloc(unsigned int size, char *filen, int line)
 	*c = size;
  
 	assert(p != NULL);
-	return (p);
+	return p;
 }
  
 void

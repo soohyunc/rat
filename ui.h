@@ -52,7 +52,7 @@ void	update_lecture_mode(struct session_tag *session_pointer);
 void    ui_send(char *command);
 void	ui_update(struct session_tag *session_pointer);
 int	ui_init(struct session_tag *session_pointer, char *cname, int argc, char **argv);
-void	usage();
+void	usage(void);
 
 void	   ui_info_update_name(struct s_rtcp_dbentry *e, struct session_tag *sp);
 void	  ui_info_update_cname(struct s_rtcp_dbentry *e, struct session_tag *sp);

@@ -47,6 +47,7 @@
 #include "channel.h"
 #include "receive.h"
 #include "util.h"
+#include "cc_intl.h"
 
 /*- code pertaining to interleaver only
  * ------------------------------------- 
@@ -338,7 +339,7 @@ intl_encode(session_struct *sp,
         return FALSE;
 }
 
-void
+static void
 intl_check_hdr(u_int32        hdr, 
                intl_coder_t  *s)
 {

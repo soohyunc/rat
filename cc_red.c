@@ -49,6 +49,7 @@
 #include "channel.h"
 #include "receive.h"
 #include "util.h"
+#include "cc_red.h"
 
 #define MAX_RED_LAYERS  3
 #define MAX_RED_OFFSET  20
@@ -72,7 +73,7 @@ typedef struct s_red_coder {
 } red_coder_t;
 
 red_coder_t *
-new_red_coder()
+new_red_coder(void)
 {
         red_coder_t *r = (red_coder_t*)xmalloc(sizeof(red_coder_t));
         memset(r,0,sizeof(red_coder_t));

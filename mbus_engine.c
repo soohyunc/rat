@@ -699,7 +699,7 @@ static void func_settings(char *srce, char *args, session_struct *sp)
         ui_update(sp);
 }
 
-char *mbus_cmnd[] = {
+const char *mbus_cmnd[] = {
 	"get_audio",
 	"toggle_input_port",
 	"toggle_output_port",

@@ -131,6 +131,7 @@ int     read_write_audio(struct session_tag *spi, struct session_tag *spo, struc
 void	read_write_init(struct s_cushion_struct *cushion, struct session_tag *session_pointer);
 void	audio_init(struct session_tag *sp, struct s_cushion_struct *cushion);
 int	audio_device_read(struct session_tag *sp, sample *buf, int len);
+int	audio_device_write(struct session_tag *sp, sample *buf, int samples);
 int	audio_device_take(struct session_tag *sp);
 void	audio_device_give(struct session_tag *sp);
 void    audio_unbias(struct s_bias_ctl **bc, sample *buf, int len);

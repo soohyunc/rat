@@ -143,7 +143,7 @@ init_session(session_struct *sp)
 	strcpy(sp->asc_address, "127.0.0.3");	/* Yeuch! This value should never be used! */
 }
 
-void 
+static void 
 parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 {
 	/* Parse command-line options common to all the modes of operation.     */
@@ -272,7 +272,7 @@ parse_options_common(int argc, char *argv[], session_struct *sp[], int sp_size)
 	}
 }
 
-void 
+static void 
 parse_options_audio_tool(int argc, char *argv[], session_struct *sp)
 {
 	/* Parse command-line options specific to the audio tool */
@@ -306,7 +306,7 @@ parse_options_audio_tool(int argc, char *argv[], session_struct *sp)
 	}
 }
 
-void 
+static void 
 parse_options_flakeaway(int argc, char *argv[], session_struct *sp)
 {
 	/* Parse command-line options specific to the flakeaway */
@@ -339,7 +339,7 @@ parse_options_flakeaway(int argc, char *argv[], session_struct *sp)
         sp->flake_os      = 2000;  
 }
 
-void 
+static void 
 parse_options_transcoder(int argc, char *argv[], session_struct *sp[])
 {
 	/* Parse command-line options specific to the transcoder */

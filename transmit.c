@@ -258,14 +258,6 @@ read_device_init(session_struct *sp, int unit_size)
 	return (rb);
 }
 
-void
-read_change_unit_size(read_buffer *rb, int unit_size)
-{
-	if (rb->lbuf->unit_size == unit_size)
-		return;
-	add_new_buf(rb, unit_size);
-}
-
 int
 read_device(session_struct *sp)
 {
@@ -370,7 +362,7 @@ process_read_audio(session_struct *sp)
 #define PREHANG_CONF		1
 #define POSTHANG		8
 
-void
+static void
 rules_based_silence(session_struct *sp)
 {
 	tx_unit	*u;

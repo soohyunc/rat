@@ -523,7 +523,8 @@ query_channel_coder(session_struct *sp, int pt, char *buf, unsigned int blen)
     if (cc->query) cc->query(sp, stp, buf, blen);
 }
 
-int
+#ifdef NDEF		/* This is never used! Is something supposed to use it? [csp] */
+static int
 get_bps(session_struct *sp, int pt)
 {
     cc_state_t *stp;
@@ -535,6 +536,7 @@ get_bps(session_struct *sp, int pt)
     else
         return -1;
 }
+#endif
 
 int
 set_cc_pt(char *name, int pt)

@@ -84,7 +84,7 @@ struct s_cushion_struct;
 struct s_participant_playout_buffer;
 
 rx_queue_element_struct*
-new_rx_unit();
+new_rx_unit(void);
 
 void playout_buffer_remove(struct s_participant_playout_buffer **playout_buf_list, struct s_rtcp_dbentry *src);
 void service_receiver(struct s_cushion_struct *cushion, struct session_tag *sp,

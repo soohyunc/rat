@@ -442,7 +442,7 @@ ui_update_redundancy(session_struct *sp)
         mbus_send(sp->mbus_engine_chan, sp->mbus_ui_addr, "redundancy", args, TRUE);
 }
 
-void 
+static void 
 ui_update_channel(session_struct *sp) 
 {
         cc_coder_t *ccp;
@@ -544,7 +544,7 @@ mbus_send_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 	session_struct *sp = (session_struct *) ttp;
 
 	if (argc != 4) {
-		i->result = "cb_send <reliable> <cmnd> <args>";
+		i->result = "mbus_send <reliable> <cmnd> <args>";
 		return TCL_ERROR;
 	}
 
@@ -596,18 +596,8 @@ static Tk_ArgvInfo argTable[] = {
 
 extern void TkCreateXEventSource(void);
 
-int
-TkPlatformInit(Tcl_Interp *interp)
-{
-        Tcl_SetVar(interp, "tk_library", ".", TCL_GLOBAL_ONLY);
-#ifndef WIN32
-        TkCreateXEventSource();
-#endif
-        return (TCL_OK);
-}
-
 void
-usage()
+usage(void)
 {
 	int	argc = 2;
 	char	*argv[3];

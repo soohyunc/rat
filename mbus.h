@@ -46,7 +46,7 @@ struct mbus *mbus_init(unsigned short channel,
 		       void  (*err_handler)(int seqnum));
 void         mbus_addr(struct mbus *m, char *addr);
 int          mbus_fd(struct mbus *m);
-int          mbus_send(struct mbus *m, char *dest, char *cmnd, char *args, int reliable);
+int          mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, int reliable);
 void         mbus_recv(struct mbus *m, void *data);
 void         mbus_parse_init(struct mbus *m, char *str);
 void         mbus_parse_done(struct mbus *m);
@@ -55,7 +55,7 @@ int          mbus_parse_str(struct mbus *m, char **s);
 int          mbus_parse_int(struct mbus *m, int *i);
 int          mbus_parse_flt(struct mbus *m, double *d);
 char        *mbus_decode_str(char *s);
-char        *mbus_encode_str(char *s);
+char        *mbus_encode_str(const char *s);
 void         mbus_retransmit(struct mbus *m);
 
 #endif

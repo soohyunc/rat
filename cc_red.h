@@ -45,14 +45,14 @@
 struct s_red_coder;
 struct rx_element_tag;
 
-struct s_red_coder * new_red_coder();
+struct s_red_coder *new_red_coder(void);
 int  red_config(struct session_tag    *sp, 
                 struct s_red_coder    *r, 
                 char                  *cmd);
 void red_qconfig(struct session_tag   *sp, 
                  struct s_red_coder   *r, 
                  char                 *cmd, 
-                 unsigned int          blen);
+                 int          	       blen);
 int  red_bps(struct session_tag       *sp, 
              struct s_red_coder       *r); 
 int  red_encode(session_struct        *sp, 

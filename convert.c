@@ -52,7 +52,7 @@ static void (*ds)(short *,short *,short *,short *, int, int, int, int);
 static void (*us)(short *,short *,short *,short *, int, int, int, int);
 
 /* Linear interpolation (sperm of the devil) */
-void
+static void
 upsample_linear(short *dst, 
                 short *src_prev, 
                 short *src, 
@@ -95,7 +95,7 @@ upsample_linear(short *dst,
     }
 }
 
-void
+static void
 downsample_linear(short *dst, 
                   short *src_prev, 
                   short *src, 

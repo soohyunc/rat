@@ -77,7 +77,7 @@ extern Tcl_Interp *interp;
 int thread_pri;
 
 #ifndef WIN32
-void
+static void
 signal_handler(int signal)
 {
   dprintf("Caught signal %d\n", signal);

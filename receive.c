@@ -61,7 +61,7 @@ typedef struct s_participant_playout_buffer {
 } ppb_t;
 
 rx_queue_element_struct *
-new_rx_unit()
+new_rx_unit(void)
 {
 	rx_queue_element_struct *u;
 	u = (rx_queue_element_struct *)block_alloc(sizeof(rx_queue_element_struct));

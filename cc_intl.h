@@ -45,7 +45,7 @@ struct s_intl_coder;
 struct session_tag;
 struct rx_element_tag;
 
-struct s_intl_coder *new_intl_coder();
+struct s_intl_coder *new_intl_coder(session_struct *sp);
 int  intl_config(struct session_tag    *sp,
                  struct s_intl_coder   *s,
                  char                  *cmd);

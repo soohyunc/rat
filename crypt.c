@@ -9,13 +9,12 @@
 /* Global variables accessible inside this module only */
 static u_int  empty_key = TRUE;
 static u_char des_key[8];
-/*u_char        crypt_buffer[8192];*/
 u_char        crypt_buffer[16532];
 u_char       *wrkbuf_ = crypt_buffer;
 static u_int  badpktlen_ = 0;
 static u_int  badpbit_ = 0;
 
-int Null_Key()
+int Null_Key(void)
 {
 	return(empty_key);
 }

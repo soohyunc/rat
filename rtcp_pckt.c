@@ -691,7 +691,7 @@ u_int32 rtcp_interval(int 	 members,
     return (u_int32) (t * (drand48() + 0.5)) * 8000;
 }
 
-u_int8 *
+static u_int8 *
 rtcp_packet_fmt_srrr(session_struct *sp, u_int8 *ptr)
 {
 	u_int8	       *packet 	= ptr;

@@ -111,7 +111,7 @@ static int mbus_addr_match(char *a, char *b)
 	return TRUE;
 }
 
-static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, char *cmnd, char *args, int seqnum)
+static void mbus_ack_list_insert(struct mbus *m, char *srce, char *dest, const char *cmnd, const char *args, int seqnum)
 {
 	struct mbus_ack	*curr = (struct mbus_ack *) xmalloc(sizeof(struct mbus_ack));
 
@@ -309,7 +309,7 @@ int mbus_fd(struct mbus *m)
 	return m->fd;
 }
 
-int mbus_send(struct mbus *m, char *dest, char *cmnd, char *args, int reliable)
+int mbus_send(struct mbus *m, char *dest, const char *cmnd, const char *args, int reliable)
 {
 	char			*buffer;
 	struct sockaddr_in	 saddr;
@@ -465,7 +465,7 @@ char *mbus_decode_str(char *s)
 	return s;
 }
 
-char *mbus_encode_str(char *s)
+char *mbus_encode_str(const char *s)
 {
 	static char	*encode_buffer = NULL;
 	static int	 encode_buflen = 0;

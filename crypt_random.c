@@ -42,6 +42,8 @@
  * Communications of the ACM, Jan 1990, Vol 33 No 1.
  */
 
+#include "crypt_random.h"
+
 static int randseed = 1;
 
 void
