@@ -98,7 +98,7 @@ init_session(session_struct *sp)
 
         source_list_create(&sp->active_sources);
 
-        strcpy(sp->title, "<Untitled Session>");
+        strcpy(sp->title, "Untitled Session");
         
 	if (gethostname(hostname, MAXHOSTNAMELEN + 1) != 0) {
 		perror("Cannot get hostname");

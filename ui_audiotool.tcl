@@ -1277,9 +1277,9 @@ canvas .l.t.list -highlightthickness 0 -bd 0 -relief sunk -width $iwd -height 16
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 
-frame .l.f -relief raised
-label .l.f.title -font $infofont  -textvariable session_title
-label .l.f.addr  -font $smallfont -textvariable session_address
+frame .l.f -relief flat
+label .l.f.title -textvariable session_title
+label .l.f.addr  -textvariable session_address
 
 frame  .st -bd 0
 label  .st.tool -textvariable tool_name 
@@ -1295,14 +1295,14 @@ pack .st -side bottom -fill x
 pack .st.tool -side left -anchor w
 pack .st.quit .st.about .st.opts -side right -anchor w -padx 2 -pady 2
 
-pack .r -side bottom -fill x 
+pack .r -side top -fill x 
 pack .r.c -side top -fill x -expand 1
 pack .r.c.vol  -side top -fill x
 pack .r.c.gain -side top -fill x
 
 pack .l -side top -fill both -expand 1
-pack .l.f -side top -fill x -padx 2 -pady 2
-pack .l.f.title .l.f.addr -side top -fill x -pady 2
+pack .l.f -side bottom -fill x -padx 2 -pady 2
+pack .l.f.title .l.f.addr -side top -pady 2 -anchor w
 pack .l.t  -side top -fill both -expand 1 -padx 2
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
