@@ -250,10 +250,12 @@ ts_convert(uint32_t new_freq, ts_t ts)
 uint32_t
 ts_to_ms(ts_t t1)
 {
-        uint32_t r;
+        double r;
+        uint32_t f;
         assert(ts_valid(t1));
-        r = t1.ticks / (ts_get_freq(t1) / 1000);
-        return r;
+        f = ts_get_freq(t1);
+        r = t1.ticks * 1000.0/(double)f;
+        return (uint32_t)r;
 }
 
 uint32_t
