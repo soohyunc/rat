@@ -1516,7 +1516,7 @@ source_process(session_t 	 *sp,
 		assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
 		for(i = 0; i < md->nrep; i++) {
 			assert(md->rep[i] != NULL);
-			assert(codec_id_is_valid(md->rep[i]->id));
+			assert(codec_is_native_coding(md->rep[i]->id) || codec_id_is_valid(md->rep[i]->id));
 		}
 
 		repair_media_stream(sp, src, md, md_len, playout);
@@ -1532,10 +1532,10 @@ source_process(session_t 	 *sp,
 		assert(md->nrep < MAX_MEDIA_UNITS && md->nrep > 0);
 		for(i = 0; i < md->nrep; i++) {
 			assert(md->rep[i] != NULL);
-			assert(codec_id_is_valid(md->rep[i]->id));
+			assert(codec_is_native_coding(md->rep[i]->id) || codec_id_is_valid(md->rep[i]->id));
 		}
 
-                if (codec_is_native_coding(md->rep[md->nrep - 1]->id) == FALSE) {
+                if (!codec_is_native_coding(md->rep[md->nrep - 1]->id)) {
 			/* If we've got to here, we have no native coding for this unit */
                         /* We need to decode this unit, may not have to when repair has */
 			/* been used.                                                   */
