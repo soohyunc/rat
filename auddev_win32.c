@@ -1553,7 +1553,7 @@ mapAudioDescToMixerID(audio_desc_t ad)
 }
 
 int
-w32sdk_audio_init()
+w32sdk_audio_init(void)
 {
         audio_format af;
         unsigned int i;
@@ -1577,8 +1577,18 @@ w32sdk_audio_init()
         return nMixersWithFullDuplex;
 }
 
+int 
+w32sdk_audio_free(void)
+{
+	debug_msg("w32sdk_audio_free\n");
+	if (n_input_ports > 0) xfree(input_ports);
+	if (n_loop_ports  > 0) xfree(loop_ports);
+	xfree(mixerIdMap);
+	return TRUE;
+}
+
 int
-w32sdk_get_device_count()
+w32sdk_get_device_count(void)
 {
         /* We are only interested in devices with mixers */
         return (int)nMixersWithFullDuplex;

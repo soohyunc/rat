@@ -204,7 +204,7 @@ audio_if_t audio_if_table[] = {
 #ifdef WIN32
         {
                 w32sdk_audio_init,
-                NULL, 
+                w32sdk_audio_free, 
                 w32sdk_get_device_count,
                 w32sdk_get_device_name,
                 w32sdk_audio_open,
@@ -1114,8 +1114,11 @@ audio_free_interfaces(void)
 {
         uint32_t i;
 
+	debug_msg("audio_free_interfaces %d\n", INITIAL_AUDIO_INTERFACES);
         for(i = 0; i < INITIAL_AUDIO_INTERFACES; i++) {
+		debug_msg("%p\n", audio_if_table[i].audio_if_free);
                 if (audio_if_table[i].audio_if_free) {
+			debug_msg("Freeing audio interface %d\n", i);
                         audio_if_table[i].audio_if_free(); 
                 }
         }
