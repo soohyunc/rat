@@ -796,41 +796,29 @@ proc mbus_recv_rtp.source.cname {ssrc cname} {
 }
 
 proc mbus_recv_rtp.source.name {ssrc name} {
-	global NAME rtcp_name my_ssrc
+	global NAME my_ssrc
 	init_source $ssrc
 	set NAME($ssrc) $name
 	chart_label $ssrc $name
 	ssrc_update $ssrc
-	if {[string compare $ssrc $my_ssrc] == 0} {
-		set rtcp_name $name
-	}
 }
 
 proc mbus_recv_rtp.source.email {ssrc email} {
-	global EMAIL rtcp_email my_ssrc
+	global EMAIL my_ssrc
 	init_source $ssrc
 	set EMAIL($ssrc) $email
-	if {[string compare $ssrc $my_ssrc] == 0} {
-		set rtcp_email $email
-	}
 }
 
 proc mbus_recv_rtp.source.phone {ssrc phone} {
-	global PHONE rtcp_phone my_ssrc
+	global PHONE my_ssrc
 	init_source $ssrc
 	set PHONE($ssrc) $phone
-	if {[string compare $ssrc $my_ssrc] == 0} {
-		set rtcp_phone $phone
-	}
 }
 
 proc mbus_recv_rtp.source.loc {ssrc loc} {
-	global LOC rtcp_loc my_ssrc
+	global LOC my_ssrc
 	init_source $ssrc
 	set LOC($ssrc) $loc
-	if {[string compare $ssrc $my_ssrc] == 0} {
-		set rtcp_loc $loc
-	}
 }
 
 proc mbus_recv_rtp.source.tool {ssrc tool} {
@@ -847,10 +835,11 @@ proc mbus_recv_rtp.source.tool {ssrc tool} {
 }
 
 proc mbus_recv_rtp.source.note {ssrc note} {
-	global NOTE
+	global NOTE my_ssrc
 	init_source $ssrc
 	set NOTE($ssrc) $note
 }
+
 
 proc mbus_recv_rtp.source.codec {ssrc codec} {
 	global CODEC
@@ -1490,7 +1479,7 @@ label .l.f.addr  -bd 0 -textvariable session_address
 
 frame  .st -bd 0
 label  .st.tool -textvariable tool_name -font $infofont -justify center -pady 0
-button .st.opts  -text "Options"   -command {wm deiconify .prefs; raise .prefs}
+button .st.opts  -text "Options"   -command {wm deiconify .prefs; update_user_panel; raise .prefs}
 button .st.about -text "About"     -command {jiggle_credits; wm deiconify .about}
 button .st.quit  -text "Quit"      -command do_quit
 
@@ -1691,17 +1680,30 @@ frame $i.a.f.f.ents
 pack  $i.a.f.f.lbls -side left -fill y
 pack  $i.a.f.f.ents -side right
 
-label $i.a.f.f.lbls.name  -text "Name:"     -anchor w
-label $i.a.f.f.lbls.email -text "Email:"    -anchor w
-label $i.a.f.f.lbls.phone -text "Phone:"    -anchor w
-label $i.a.f.f.lbls.loc   -text "Location:" -anchor w
-pack $i.a.f.f.lbls.name $i.a.f.f.lbls.email $i.a.f.f.lbls.phone $i.a.f.f.lbls.loc -fill x -anchor w -side top
+label $i.a.f.f.lbls.1  -text "Name:"     -anchor w
+label $i.a.f.f.lbls.2 -text "Email:"    -anchor w
+label $i.a.f.f.lbls.3 -text "Phone:"    -anchor w
+label $i.a.f.f.lbls.4   -text "Location:" -anchor w
+label $i.a.f.f.lbls.5  -text "Note:" -anchor w
+pack $i.a.f.f.lbls.1 $i.a.f.f.lbls.2 $i.a.f.f.lbls.3 $i.a.f.f.lbls.4 $i.a.f.f.lbls.5 -fill x -anchor w -side top
 
-entry $i.a.f.f.ents.name  -width 28 -highlightthickness 0 -textvariable rtcp_name
+entry $i.a.f.f.ents.name -width 28 -highlightthickness 0 -textvariable rtcp_name
 entry $i.a.f.f.ents.email -width 28 -highlightthickness 0 -textvariable rtcp_email
 entry $i.a.f.f.ents.phone -width 28 -highlightthickness 0 -textvariable rtcp_phone
-entry $i.a.f.f.ents.loc   -width 28 -highlightthickness 0 -textvariable rtcp_loc
-pack $i.a.f.f.ents.name $i.a.f.f.ents.email $i.a.f.f.ents.phone $i.a.f.f.ents.loc -anchor n -expand 0 
+entry $i.a.f.f.ents.loc  -width 28 -highlightthickness 0 -textvariable rtcp_loc
+entry $i.a.f.f.ents.note  -width 28 -highlightthickness 0 -textvariable rtcp_note
+pack $i.a.f.f.ents.name $i.a.f.f.ents.email $i.a.f.f.ents.phone $i.a.f.f.ents.loc $i.a.f.f.ents.note -anchor n -expand 0 
+
+proc update_user_panel {} {
+    global my_ssrc NAME EMAIL PHONE LOC NOTE
+    global rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note
+    set rtcp_name  $NAME($my_ssrc)
+    set rtcp_email $EMAIL($my_ssrc)
+    set rtcp_phone $PHONE($my_ssrc)
+    set rtcp_loc   $LOC($my_ssrc)
+    set rtcp_note  $NOTE($my_ssrc)
+
+}
 
 # Transmission Pane ###########################################################
 set i .prefs.pane.transmission
@@ -2225,7 +2227,7 @@ proc sync_ui_to_engine {} {
 
 proc sync_engine_to_ui {} {
     # make audio engine concur with ui
-    global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc 
+    global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note
     global prenc upp channel_var secenc layerenc red_off int_gap int_units
     global silence_var agc_var audio_loop_var echo_var
     global repair_var limit_var min_var max_var lecture_var 3d_audio_var convert_var  
@@ -2238,6 +2240,14 @@ proc sync_engine_to_ui {} {
     mbus_send "R" "rtp.source.email" "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_email]"
     mbus_send "R" "rtp.source.phone" "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_phone]"
     mbus_send "R" "rtp.source.loc"   "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_loc]"
+    mbus_send "R" "rtp.source.note"   "[mbus_encode_str $my_ssrc] [mbus_encode_str $rtcp_note]"
+
+    #cheat to update my details right away (it's disgusting)
+    mbus_recv_rtp.source.name  $my_ssrc "$rtcp_name"
+    mbus_recv_rtp.source.email $my_ssrc "$rtcp_email"
+    mbus_recv_rtp.source.phone $my_ssrc "$rtcp_phone"
+    mbus_recv_rtp.source.loc   $my_ssrc "$rtcp_loc"
+    mbus_recv_rtp.source.note  $my_ssrc "$rtcp_note"
     
     #transmission details
     mbus_send "R" "tool.rat.codec"      "[mbus_encode_str $prenc] [mbus_encode_str $ichannels] [mbus_encode_str $freq]"

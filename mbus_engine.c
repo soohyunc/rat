@@ -751,6 +751,11 @@ static void rx_rtp_source_loc(char *srce, char *args, session_t *sp)
 	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_LOC);
 }
 
+static void rx_rtp_source_note(char *srce, char *args, session_t *sp)
+{
+	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_NOTE);
+}
+
 static void rx_rtp_source_mute(char *srce, char *args, session_t *sp)
 {
 	pdb_entry_t *pdbe;
@@ -1253,6 +1258,7 @@ static const mbus_cmd_tuple engine_cmds[] = {
         { "rtp.source.email",                      rx_rtp_source_email },
         { "rtp.source.phone",                      rx_rtp_source_phone },
         { "rtp.source.loc",                        rx_rtp_source_loc },
+        { "rtp.source.note",                       rx_rtp_source_note },
         { "rtp.source.mute",                       rx_rtp_source_mute },
         { "rtp.source.gain",                       rx_rtp_source_gain },
         { "rtp.source.playout",                    rx_rtp_source_playout },

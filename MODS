@@ -950,6 +950,7 @@ v4.1.2	- Added echo suppression back, it fell out of code base at some point.
 	- Added skew to stats panel.
 	- Made stats panel consistent with UI.
 	- Split reception panel into Decoder and Playout.
+	- Added note field for local user.
 
 TODO -- They're features not bugs dammit!
 ----
