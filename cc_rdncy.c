@@ -32,7 +32,9 @@
 #define RED_PRIMARY 1
 #define RED_EXTRA   2
 
-#define RED_HDR32_INIT(x)      (x)  = 0x80000000
+#define RED_HDR32_PAT 0x80000000
+
+#define RED_HDR32_INIT(x)      (x)  = RED_HDR32_PAT
 #define RED_HDR32_SET_PT(x,y)  (x) |= ((y)<<24)
 #define RED_HDR32_SET_OFF(x,y) (x) |= ((y)<<10)
 #define RED_HDR32_SET_LEN(x,y) (x) |= (y)
@@ -516,28 +518,28 @@ redundancy_decoder_peek(u_int8   pkt_pt,
 {
         const codec_format_t *cf;
         codec_id_t            cid;
-        u_char               *p;
-        u_int32              hdr32, plen, blen, units;
+        u_char               *p, *data;
+        u_int32              hdr32, dlen, blen, units;
         
         assert(buf != NULL);
         assert(upp != NULL);
         assert(pt  != NULL);
 
-        /* Just check primary */
-        p   = buf;
+        /* Just check primary, so skip over other headers and
+         * advance data pointer past them.
+         */
+        p = data = buf;
         hdr32 = ntohl(*(u_int32*)p);
-        while (hdr32 & 0x8000000) {
-                p += RED_HDR32_GET_LEN(hdr32);
-                p += 4; /* hdr */
+        while ((hdr32 & RED_HDR32_PAT)) {
+                blen = RED_HDR32_GET_LEN(hdr32);
+                p    += 4; /* goto next hdr */
+                data += 4 + blen;
                 hdr32 = ntohl(*(u_int32*)p);
-                if (((u_int32)(p - buf) > len)) {
-                        debug_msg("Buffer overflow\n");
-                        return FALSE;
-                }
+                assert(((u_int32)data - (u_int32)buf) <= len);
         }
 
         *pt = *p;
-        p  += 1; /* Step over header */
+        data += 1; /* step over payload field of primary */
 
         cid = codec_get_by_payload(*pt);
         
@@ -547,25 +549,29 @@ redundancy_decoder_peek(u_int8   pkt_pt,
         }
 
         /* Primary data length */
-        plen = len - (u_int32)(p - buf);
+        dlen = len - (u_int32)(data - buf);
 
         cf = codec_get_format(cid);
         assert(cf);
 
-        p    += cf->mean_per_packet_state_size;
-        plen -= cf->mean_per_packet_state_size;
+        data += cf->mean_per_packet_state_size;
+        dlen -= cf->mean_per_packet_state_size;
+
+        assert(((u_int32)data - (u_int32)buf) <= len);
 
         units = 0;        
-        while (plen != 0) {
-                blen = codec_peek_frame_size(cid, p, plen);
+        while (dlen != 0) {
+                blen = codec_peek_frame_size(cid, p, dlen);
                 assert(blen != 0);
-                p    += blen;
-                plen -= blen;
+                data += blen;
+                dlen -= blen;
                 units ++;
-                assert(*upp < 50);
+                assert(((u_int32)data - (u_int32)buf) <= len);
         }
 
         *upp = units;
+        assert(*upp < 50);
+
         UNUSED(pkt_pt);
 
         return TRUE;
@@ -592,18 +598,18 @@ redundancy_decoder_describe (u_int8   pkt_pt,
         UNUSED(pkt_pt);
         
         *out = '\0';
-        slen = 1;
+        slen = 0;
 
         p   = data;
         hdr32 = ntohl(*((u_int32*)p));
-        while (hdr32 & 0x80000000) {
+        while (hdr32 & RED_HDR32_PAT) {
                 pt    = (u_char)RED_HDR32_GET_PT(hdr32);
                 off   = RED_HDR32_GET_OFF(hdr32);
                 blksz = RED_HDR32_GET_LEN(hdr32);
                 cid   = codec_get_by_payload(pt);
 
                 if (cid == 0) {
-                        p += 4 + blksz;
+                        p += 4;
                         hdr32 = ntohl(*((u_int32*)p));
                         continue;
                 }
@@ -617,11 +623,15 @@ redundancy_decoder_describe (u_int8   pkt_pt,
                         debug_msg("Out of buffer space\n");
                         return FALSE;
                 }
-                memmove(out, out + nlen + 1, slen);
+                if (slen != 0) {
+                        memmove(out + nlen + 1, out, slen);
+                }
                 strncpy(out, cf->long_name, nlen);
-                out[slen - 1] = '/';
-                slen += nlen + 1;
-                p += 4 + blksz;
+                slen += nlen;
+                out[nlen] = '/';
+                slen++;
+                out[nlen+1] = '\0';
+                p += 4;
                 assert((u_int32)(p - data) < data_len);
                 hdr32 = ntohl(*((u_int32*)p));
         }
@@ -641,9 +651,9 @@ redundancy_decoder_describe (u_int8   pkt_pt,
                 debug_msg("Out of buffer space\n");
                 return FALSE;
         }
-        memmove(out, out + nlen + 1, slen);
+        memmove(out + nlen + 1, out, slen);
         strncpy(out, cf->long_name, nlen);
-        out[nlen - 1] = '/';
+        out[nlen] = '/';
         slen += nlen + 1;
 
         /* Axe trailing separator */
@@ -657,7 +667,7 @@ red_get_primary_pt(u_char *p)
 {
         u_int32 hdr32;
         hdr32 = ntohl(*(u_int32*)p);
-        while(hdr32 & 0x80000000) {
+        while(hdr32 & RED_HDR32_PAT) {
                 p += 4 + RED_HDR32_GET_LEN(ntohl(hdr32));
                 hdr32 = ntohl(*(u_int32*)p);
         }
@@ -801,7 +811,7 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
          */
 
         hdr32 = ntohl(*(u_int32*)p);
-        assert(hdr32 & 0x80000000);
+        assert(hdr32 & RED_HDR32_PAT);
 
         ppt   = red_get_primary_pt(p);
         cid   = codec_get_by_payload(ppt);
@@ -816,7 +826,7 @@ redundancy_decoder_output(channel_unit *chu, struct s_pb *out, ts_t playout)
         ts_mo = ts_map32(cf->format.sample_rate, RED_HDR32_GET_OFF(hdr32));
 	blen = 0;
 
-        while (hdr32 & 0x80000000) {
+        while (hdr32 & RED_HDR32_PAT) {
                 boff  = RED_HDR32_GET_OFF(hdr32);
                 blen  = RED_HDR32_GET_LEN(hdr32);
                 bpt   = (u_char)RED_HDR32_GET_PT(hdr32);
