@@ -52,4 +52,6 @@ void	 block_release_all(void);
 void     block_trash_check(void);
 void     block_check(char *p);
 
+void purge_chars(char *src, char *to_go); /* Removes occurances of chars in to_go from src */
+
 #endif 

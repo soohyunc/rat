@@ -819,7 +819,7 @@ w32sdk_audio_open(audio_desc_t ad, audio_format *fmt)
         memcpy(&tfmt, &format, sizeof(format));
         /* Use 1 sec device buffer */
 	
-        blksz  = fmt->blocksize * smplsz;
+        blksz  = fmt->blocksize;
 	nblks  = format.nAvgBytesPerSec / blksz;
 	
         if (w32sdk_audio_open_in() == FALSE)   return FALSE;

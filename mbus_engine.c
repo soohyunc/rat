@@ -60,6 +60,7 @@
 #include "session.h"
 #include "sndfile.h"
 #include "timers.h"
+#include "util.h"
 
 extern int should_exit;
 
@@ -545,7 +546,7 @@ static void rx_audio_file_rec_live(char *srce, char *args, session_struct *sp)
 static void 
 rx_audio_device(char *srce, char *args, session_struct *sp)
 {
-        char	*s;
+        char	*s, dev_name[32];
         int next_device;
 
 	UNUSED(srce);
@@ -553,12 +554,16 @@ rx_audio_device(char *srce, char *args, session_struct *sp)
 	mbus_parse_init(sp->mbus_engine_conf, args);
 	if (mbus_parse_str(sp->mbus_engine_conf, &s)) {
 		s = mbus_decode_str(s);
+                purge_chars(s, "[]()");
                 next_device = -1;
                 if (s) {
                         int i, n;
                         n = audio_get_number_of_interfaces();
                         for(i = 0; i < n; i++) {
-                                if (!strcmp(s, audio_get_interface_name(i))) {
+                                /* Brackets are a problem so purge them */
+                                strncpy(dev_name, audio_get_interface_name(i), 31);
+                                purge_chars(dev_name, "[]()");
+                                if (!strcmp(s, dev_name)) {
                                         next_device = i;
                                         break;
                                 }

@@ -452,6 +452,7 @@ int mbus_recv(struct mbus *m, void *data)
 	rx = FALSE;
 	while (1) {
 		memset(buffer, 0, MBUS_BUF_SIZE);
+                assert(m->s != NULL);
 		buffer_len = udp_recv(m->s, buffer, MBUS_BUF_SIZE);
 		if (buffer_len > 0) {
 			rx = TRUE;

@@ -245,22 +245,32 @@ int
 audio_read(audio_desc_t ad, sample *buf, int len)
 {
         audio_if_t *aif;
+        int read_len;
         
         ad = AIF_MAGIC_TO_IDX(ad);
         aif = audio_get_active_interface(ad);
-
-        return aif->audio_if_read(ad, buf, len);
+        
+        xmemchk();
+        read_len = aif->audio_if_read(ad, buf, len);
+        xmemchk();
+        
+        return read_len;
 }
 
 int
 audio_write(audio_desc_t ad, sample *buf, int len)
 {
         audio_if_t *aif;
-        
+        int write_len;
+
         ad = AIF_MAGIC_TO_IDX(ad);
         aif = audio_get_active_interface(ad);
-
-        return aif->audio_if_write(ad, buf, len);
+        
+        xmemchk();
+        write_len = aif->audio_if_write(ad, buf, len);
+        xmemchk();
+        
+        return write_len;
 }
 
 void
