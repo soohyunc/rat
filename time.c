@@ -190,7 +190,7 @@ convert_time(u_int32 ts, frtime_t *from, frtime_t *to)
  * Compare two timestamps and return TRUE if t1 > t2 Assume that they are
  * close together (less than half a cycle) and handle wraparounds...
  */
-int
+__inline int
 ts_gt(u_int32 t1, u_int32 t2)
 {
 	u_int32         diff;
@@ -203,7 +203,7 @@ ts_gt(u_int32 t1, u_int32 t2)
  * Return the abolute difference of two timestamps. As above assume they are
  * close and handle wraprounds...
  */
-u_int32
+__inline u_int32
 ts_abs_diff(u_int32 t1, u_int32 t2)
 {
 	u_int32         diff;

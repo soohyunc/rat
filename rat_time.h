@@ -53,15 +53,15 @@ void                free_fast_time(struct s_fast_time *ft);
 struct s_time      *new_time(struct s_fast_time *ft, int freq);
 void	            free_time(struct s_time *tp);
 
-void    time_advance(struct s_fast_time *ft, int freq, u_int32 time);
-void	change_freq(struct s_time *tp, int freq);
-int	get_freq(struct s_time *tp);
-u_int32	get_time(struct s_time *tp);
+__inline void     time_advance(struct s_fast_time *ft, int freq, u_int32 time);
+__inline void     change_freq(struct s_time *tp, int freq);
+__inline int      get_freq(struct s_time *tp);
+__inline u_int32  get_time(struct s_time *tp);
+
 u_int32	convert_time(u_int32 ts, struct s_time *from, struct s_time *to);
 
 /* Horrid little routines to determine wrap around */
-int	ts_gt(u_int32 t1, u_int32 t2);
-u_int32	ts_abs_diff(u_int32 t1, u_int32 t2);
-int     ts_cmp(u_int32 t1, u_int32 t2);
+__inline int      ts_gt(u_int32 t1, u_int32 t2);
+__inline u_int32  ts_abs_diff(u_int32 t1, u_int32 t2);
 
 #endif /* _rat_time_h_ */
