@@ -216,6 +216,9 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 				printf("Usage: -silence on|off\n");
 			}
 		} else if ((strcmp(argv[i], "-repair") == 0) && (argc > i+1)) {
+			tmp = mbus_encode_str(argv[i+1]);
+			mbus_qmsgf(m, e_addr, TRUE, "audio.channel.repair", tmp);
+			xfree(tmp);
 		} else if ((strcmp(argv[i], "-f") == 0) && (argc > i+1)) {
 			/* Set primary codec: "-f codec". You cannot set the   */
 			/* redundant codec with this option, use "-r" instead. */

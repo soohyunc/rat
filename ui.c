@@ -323,25 +323,6 @@ ui_output_level(session_t *sp, int level)
 	ol = level;
 }
 
-static void
-ui_repair(session_t *sp)
-{
-        const repair_details_t *d;
-        u_int16 i, n;
-	char	*mbes;
-
-        n = repair_get_count();
-        for (i = 0; i < n; i++) {
-                d = repair_get_details(i);
-                if (d->id == sp->repair) {
-                        mbes = mbus_encode_str(d->name);
-                        mbus_qmsg(sp->mbus_engine, sp->mbus_ui_addr, "audio.channel.repair", mbes, FALSE);
-                        xfree(mbes);
-                        break;
-                }
-        }
-}
-
 void
 ui_update_device_config(session_t *sp)
 {
@@ -729,7 +710,7 @@ ui_update(session_t *sp)
         ui_update_device_config(sp);
 	ui_update_primary(sp);
         ui_update_channel(sp);
-        ui_repair(sp);
+        ui_update_repair(sp);
         ui_update_converter(sp);
         ui_update_playout_bounds(sp);
         ui_update_lecture_mode(sp);
@@ -991,7 +972,7 @@ ui_update_repair(session_t *sp)
                 r = repair_get_details(i);
                 if (sp->repair == r->id) {
                         mbes = mbus_encode_str(r->name);
-                        mbus_qmsg(sp->mbus_engine, sp->mbus_ui_addr, "tool.rat.repair", mbes, TRUE);
+                        mbus_qmsg(sp->mbus_engine, sp->mbus_ui_addr, "audio.channel.repair", mbes, TRUE);
                         xfree(mbes);
                         return;
                 }
