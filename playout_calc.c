@@ -62,13 +62,25 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t transit, int new_spurt)
 /* playout time.                                                             */
 /*****************************************************************************/
 {
+        ts_t delta_transit;
         pdb_entry_t *e;
 
         pdb_item_get(sp->pdb, ssrc, &e);
         assert(e != NULL);
 
+        delta_transit = ts_abs_diff(transit, e->avg_transit);
+        if (ts_gt(transit, e->avg_transit)) {
+                e->avg_transit = ts_add(e->avg_transit, ts_div(delta_transit,16));
+        } else {
+                e->avg_transit = ts_sub(e->avg_transit, ts_div(delta_transit,16));
+        }
+
+        if (ts_gt(ts_abs_diff(transit, e->avg_transit), ts_mul(e->jitter, 5)) && new_spurt) {
+                e->avg_transit = transit;
+        }
+
         if (new_spurt == TRUE) {
-                ts_t         hvar, jvar; /* Host and jitter components       */
+                ts_t hvar, jvar; /* Host and jitter components       */
                 debug_msg("New talkspurt\n");
                 hvar = playout_variable_component(sp, e);
                 jvar = ts_mul(e->jitter, PLAYOUT_JITTER_SCALE);
@@ -77,10 +89,8 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t transit, int new_spurt)
                 } else {
                         e->playout = jvar;
                 }
-                e->transit     = transit;
-                e->avg_transit = transit;
+                e->transit = e->avg_transit;
         } else {
-                ts_t delta_transit;
                 /* delta_transit is abs((s[j+1] - d[j+1]) - (s[j] - d[j]))  */
                 delta_transit   = ts_abs_diff(transit, e->last_transit);
                 /* Update jitter estimate using                             */
@@ -89,12 +99,6 @@ playout_calc(session_t *sp, u_int32 ssrc, ts_t transit, int new_spurt)
                 e->jitter = ts_add(e->jitter, delta_transit);     
                 e->jitter = ts_div(e->jitter, 8);
 
-                delta_transit = ts_abs_diff(transit, e->avg_transit);
-                if (ts_gt(transit, e->avg_transit)) {
-                        e->avg_transit = ts_add(e->avg_transit, ts_div(delta_transit,16));
-                } else {
-                        e->avg_transit = ts_sub(e->avg_transit, ts_div(delta_transit,16));
-                }
         }
         e->last_transit = transit;
 

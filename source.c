@@ -45,7 +45,7 @@
 #define SKEW_ADAPT_THRESHOLD       5000
 #define SOURCE_YOUNG_AGE             20
 #define SOURCE_AUDIO_HISTORY_MS    1000
-#define NO_CONT_TOGED_FOR_PLAYOUT_RECALC 2
+#define NO_CONT_TOGED_FOR_PLAYOUT_RECALC 3
 
 #define SOURCE_COMPARE_WINDOW_SIZE 8
 /* Match threshold is mean abs diff. lower score gives less noise, but less  */
@@ -70,7 +70,6 @@ typedef struct s_source {
         u_int32                     post_talkstart_units;
         u_int16                     consec_lost;
         u_int32                     mean_energy;
-        ts_sequencer                seq;
         struct s_pktbuf            *pktbuf;
         u_int32                     packets_done;
         struct s_channel_state     *channel_state;
@@ -554,6 +553,45 @@ done:
         return TRUE;
 }
 
+#ifdef SOURCE_LOG_PLAYOUT
+
+static FILE *psf; /* Playout stats file */
+static u_int32 t0;
+
+static void
+source_close_log(void)
+{
+        if (psf) {
+                fclose(psf);
+                psf = NULL;
+        }
+}
+
+static void
+source_playout_log(source *src, u_int32 ts)
+{
+        if (psf == NULL) {
+                psf = fopen("playout.log", "w");
+                if (psf == NULL) {
+                        fprintf(stderr, "Could not open playout.log\n");
+                } else {
+                        atexit(source_close_log);
+                        fprintf(psf, "# <RTP timestamp> <jitter> <transit> <avg transit> <last transit> <playout del>\n");
+                }
+                t0 = ts - 1000; /* -1000 in case of out of order first packet */
+        }
+
+        fprintf(psf, "%13lu % 5d % 5d % 5d % 5d %5d\n",
+                ts - t0,
+                src->pdbe->jitter.ticks,
+                src->pdbe->transit.ticks,
+                src->pdbe->avg_transit.ticks,
+                src->pdbe->last_transit.ticks,
+                src->pdbe->playout.ticks);
+}
+
+#endif /* SOURCE_LOG_PLAYOUT */
+
 static void
 source_process_packets(session_t *sp, source *src, ts_t now)
 {
@@ -651,7 +689,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 }
 
                 /* Calculate the playout point for this packet.              */
-                src_ts = ts_seq32_in(&src->seq, get_freq(e->clock), p->ts);
+                src_ts = ts_seq32_in(&e->seq, get_freq(e->clock), p->ts);
 
                 /* Transit delay is the difference between our local clock   */
                 /* and the packet timestamp (src_ts).  Note: we expect       */
@@ -663,7 +701,7 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                         ts_t        last_ts;
                         pktbuf_peak_last(src->pktbuf, &p);
                         assert(p != NULL);
-                        last_ts = ts_seq32_in(&src->seq, get_freq(e->clock), p->ts);
+                        last_ts = ts_seq32_in(&e->seq, get_freq(e->clock), p->ts);
                         transit = ts_sub(now, last_ts);
                         debug_msg("Used transit of last packet\n");
                 } else {
@@ -739,6 +777,9 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 e->last_ts  = p->ts;
                 e->last_arr = now;
 
+#ifdef SOURCE_LOG_PLAYOUT
+                source_playout_log(src, p->ts);
+#endif /* SOURCE_LOG_PLAYOUT */
                 src->packets_done++;
                 xfree(p);
         }
@@ -1274,9 +1315,9 @@ source_audit(source *src)
 ts_t
 source_get_audio_buffered (source *src)
 {
-        ts_t delta;
         /* Changes in avg_transit change amount of audio buffered. */
         /* It's how much transit is off from start.                */
+        ts_t delta;
         delta = ts_sub(src->pdbe->transit, src->pdbe->avg_transit);
         return ts_add(src->pdbe->playout, delta);
 }

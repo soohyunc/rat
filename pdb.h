@@ -52,7 +52,7 @@ typedef struct {
         cc_id_t         channel_coder_id;            /* channel_coder of last received packet */
 	ts_t            last_mixed;                  /* Used to check mixing */
 	ts_t            playout;                     /* Playout delay for this talkspurt */
-
+        ts_sequencer    seq;                         /* Mapper from RTP time rep to rat time rep */
 
         /* Display Info */
         ts_t            last_ui_update;              /* Used for periodic update of packet counts, etc */

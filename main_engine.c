@@ -186,6 +186,19 @@ int main(int argc, char *argv[])
 	xdoneinit();
 
 	while (!should_exit) {
+                elapsed_time = 0;
+
+                /* Process audio */
+		elapsed_time = audio_rw_process(sp, sp, sp->ms);
+		cur_time = get_time(sp->device_clock);
+		ntp_time = ntp_time32();
+		sp->cur_ts   = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), cur_time);
+
+                if (tx_is_sending(sp->tb)) {
+                        tx_process_audio(sp->tb);
+                        tx_send(sp->tb);
+                }
+
                 /* Process RTP/RTCP packets */
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 0;
@@ -204,7 +217,7 @@ int main(int argc, char *argv[])
 		mbus_heartbeat(sp->mbus_engine, 1);
 
                 /* Process audio */
-		elapsed_time = audio_rw_process(sp, sp, sp->ms);
+		elapsed_time += audio_rw_process(sp, sp, sp->ms);
 		cur_time = get_time(sp->device_clock);
 		ntp_time = ntp_time32();
 		sp->cur_ts   = ts_seq32_in(&sp->decode_sequencer, get_freq(sp->device_clock), cur_time);
@@ -236,6 +249,7 @@ int main(int argc, char *argv[])
                                         two_secs = ts_map32(8000, 16000);
                                         if (ts_gt(delta, two_secs)) {
                                                 ui_update_stats(sp, e->ssrc);
+                                                e->last_ui_update = sp->cur_ts;
                                         }
 				} else {
 					/* Remove source as stopped */
