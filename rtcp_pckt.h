@@ -193,6 +193,7 @@ typedef struct {
 
 #define RTP_SSRC_EXPIRE 	70*8000
 
+u_int32		ntp_time32(void);
 int 		rtcp_check_rtcp_pkt(u_int8 *packet, int len);
 void 		rtcp_decode_rtcp_pkt(struct session_tag *sp, struct session_tag *sp2, u_int8 *packet, int len, u_int32 addr, u_int32 cur_time);
 int 		rtcp_add_sdes_item(u_int8 * buf, int type, char * val);

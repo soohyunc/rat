@@ -65,7 +65,8 @@ void statistics(struct session_tag *session_pointer,
 		struct pckt_queue_tag *netrx_pckt_queue,
 		struct rx_queue_tag *unitsrx_queue_ptr,
 		struct s_cushion_struct *cushion,
-		u_int32 cur_time);
+		u_int32 cur_time,
+		u_int32 real_time);
 
 #endif /* _rat_statistics_h_ */
 
