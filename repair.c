@@ -125,7 +125,7 @@ repetition_plus(sample             **audio_buf,
                 int                  consec_lost)
 {
         sample  r[REVERSE_SAMPLES];
-        uint32_t i, n, samples_per_block, success;
+        uint32_t n, samples_per_block, success;
 
         n = sizeof(r)/sizeof(r[0]);
         samples_per_block = audio_fmt[missing - 1]->bytes_per_block /  
