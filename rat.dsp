@@ -77,7 +77,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib winmm.lib wsock32.lib debug.lib tclreg80.lib msacm32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"c:\src\rat32\rat" /libpath:"c:\src\tcl8.0\win"
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib winmm.lib wsock32.lib debug.lib tclreg80.lib msacm32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"c:\src\rat32\rat" /libpath:"c:\src\tcl8.0\win" /libpath:".\win32"
 
 !ENDIF 
 
@@ -85,6 +85,10 @@ LINK32=link.exe
 
 # Name "rat - Win32 Release"
 # Name "rat - Win32 Debug"
+# Begin Source File
+
+SOURCE=.\assert.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\auddev_win32.c
@@ -148,6 +152,10 @@ SOURCE=.\codec_adpcm.h
 # Begin Source File
 
 SOURCE=.\codec_g711.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_g711.h
 # End Source File
 # Begin Source File
 
@@ -418,29 +426,29 @@ SOURCE=.\tcl_libs.tcl
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
 
 # Begin Custom Build - Building Tcl/Tk script libraries
-InputDir=.\
+InputDir=.
 InputPath=.\tcl_libs.tcl
 
 "tcl_libs.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	erase $(InputDir)\tcl_libs.tcl 
 	copy $(InputDir)\tcl\init.tcl + $(InputDir)\tcl\history.tcl +\
-           $(InputDir)\tcl\ldAout.tcl + $(InputDir)\tcl\parray.tcl +\
-           $(InputDir)\tcl\word.tcl $(InputDir)\tcl_libs.tcl 
+             $(InputDir)\tcl\ldAout.tcl + $(InputDir)\tcl\parray.tcl +\
+             $(InputDir)\tcl\word.tcl $(InputDir)\tcl_libs.tcl 
 	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\aatk.tcl +\
-           $(InputDir)\tk\bgerror.tcl + $(InputDir)\tk\button.tcl +\
-           $(InputDir)\tk\clrpick.tcl + $(InputDir)\tk\comdlg.tcl $(InputDir)\tcl_libs.tcl\
+             $(InputDir)\tk\bgerror.tcl + $(InputDir)\tk\button.tcl +\
+             $(InputDir)\tk\clrpick.tcl + $(InputDir)\tk\comdlg.tcl $(InputDir)\tcl_libs.tcl\
  
 	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\dialog.tcl +\
-           $(InputDir)\tk\entry.tcl + $(InputDir)\tk\focus.tcl +\
-           $(InputDir)\tk\listbox.tcl + $(InputDir)\tk\menu.tcl $(InputDir)\tcl_libs.tcl 
+             $(InputDir)\tk\entry.tcl + $(InputDir)\tk\focus.tcl +\
+             $(InputDir)\tk\listbox.tcl + $(InputDir)\tk\menu.tcl $(InputDir)\tcl_libs.tcl 
 	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\msgbox.tcl +\
-           $(InputDir)\tk\obsolete.tcl + $(InputDir)\tk\optMenu.tcl +\
-           $(InputDir)\tk\palette.tcl + $(InputDir)\tk\scale.tcl $(InputDir)\tcl_libs.tcl 
+             $(InputDir)\tk\obsolete.tcl + $(InputDir)\tk\optMenu.tcl +\
+             $(InputDir)\tk\palette.tcl + $(InputDir)\tk\scale.tcl $(InputDir)\tcl_libs.tcl 
 	copy /Y $(InputDir)\tcl_libs.tcl + $(InputDir)\tk\scrlbar.tcl +\
-           $(InputDir)\tk\tearoff.tcl + $(InputDir)\tk\text.tcl +\
-           $(InputDir)\tk\tkfbox.tcl + $(InputDir)\tk\xmfbox.tcl $(InputDir)\tcl_libs.tcl 
+             $(InputDir)\tk\tearoff.tcl + $(InputDir)\tk\text.tcl +\
+             $(InputDir)\tk\tkfbox.tcl + $(InputDir)\tk\xmfbox.tcl $(InputDir)\tcl_libs.tcl 
 	type $(InputDir)\tcl_libs.tcl | c:\src\tcl2c\debug\tcl2c TCL_LIBS >\
-           $(InputDir)\tcl_libs.c 
+             $(InputDir)\tcl_libs.c 
 	
 # End Custom Build
 
@@ -492,12 +500,12 @@ SOURCE=.\ui_audiotool.tcl
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
 
 # Begin Custom Build - Building audiotool ui
-InputDir=.\rat
+InputDir=.
 InputPath=.\ui_audiotool.tcl
 
 "$(InputDir)\ui_audiotool.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	type $(InputDir)\ui_audiotool.tcl | c:\src\tcl2c\debug\tcl2c ui_audiotool >\
-            $(InputDir)\ui_audiotool.c
+              $(InputDir)\ui_audiotool.c
 
 # End Custom Build
 
@@ -525,12 +533,12 @@ SOURCE=.\ui_transcoder.tcl
 !ELSEIF  "$(CFG)" == "rat - Win32 Debug"
 
 # Begin Custom Build - Building transcoder ui
-InputDir=.\rat
+InputDir=.
 InputPath=.\ui_transcoder.tcl
 
 "ui_transcoder.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	type $(InputDir)\ui_transcoder.tcl | c:\src\tcl2c\debug\tcl2c ui_transcoder >\
-           $(InputDir)\ui_transcoder.c
+             $(InputDir)\ui_transcoder.c
 
 # End Custom Build
 
@@ -544,6 +552,32 @@ SOURCE=.\util.c
 # Begin Source File
 
 SOURCE=.\util.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Version
+USERDEP__VERSI="win32\echo.txt"	"win32\set.txt"	"win32\null.txt"	
+
+!IF  "$(CFG)" == "rat - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "rat - Win32 Debug"
+
+# Begin Custom Build - Generating "version.h".
+InputPath=.\Version
+
+"version.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy win32\set.txt + VERSION win32\vergen.bat 
+	copy win32\vergen.bat + win32\null.txt win32\vergen.bat 
+	copy win32\vergen.bat + win32\echo.txt win32\vergen.bat 
+	win32\vergen.bat 
+	move win32\version.h version.h 
+	erase win32\version.h 
+	erase win32\vergen.bat 
+	
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
