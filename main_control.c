@@ -330,9 +330,11 @@ static void mbus_err_handler(int seqnum, int reason)
 	/* we don't try to recover, just kill off the media engine and user  */
 	/* interface processes and exit.                                     */
 	printf("FATAL ERROR: couldn't send mbus message (%d:%d)\n", seqnum, reason);
-	kill_process(pid_ui);
-	kill_process(pid_engine);
-	abort();
+        if (should_exit == FALSE) {
+                kill_process(pid_ui);
+                kill_process(pid_engine);
+                abort();
+        }
 }
 
 static void terminate(struct mbus *m, char *addr)

@@ -1471,8 +1471,8 @@ proc do_quit {} {
 		profile off pdat
 		profrep pdat cpu
 	}
-	destroy .
 	mbus_send "R" "mbus.quit" ""
+	destroy .
 }
 
 # Initialise RAT MAIN window

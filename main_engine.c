@@ -79,6 +79,18 @@ static void parse_args(int argc, char *argv[])
 	}
 }
 
+static void 
+mbus_error_handler(int seqnum, int reason)
+{
+        debug_msg("mbus message failed (%d:%d)\n", seqnum, reason);
+        if (should_exit == FALSE) {
+                abort();
+        } 
+        UNUSED(seqnum);
+        UNUSED(reason);
+        /* Ignore error we're closing down anyway */
+}
+
 int main(int argc, char *argv[])
 {
 	u_int32		 cur_time = 0, ntp_time = 0;
@@ -109,7 +121,7 @@ int main(int argc, char *argv[])
 	parse_args(argc, argv);
 
 	/* Initialise our mbus interface... once this is done we can talk to our controller */
-	sp->mbus_engine = mbus_init(mbus_engine_rx, NULL);
+	sp->mbus_engine = mbus_init(mbus_engine_rx, mbus_error_handler);
 	sp->mbus_engine_addr = (char *) xmalloc(strlen(MBUS_ADDR_ENGINE) + 3);
 	sprintf(sp->mbus_engine_addr, MBUS_ADDR_ENGINE, (u_int32) getpid());
 	mbus_addr(sp->mbus_engine, sp->mbus_engine_addr);

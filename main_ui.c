@@ -54,6 +54,18 @@ extern int       TkWinXInit(HINSTANCE);
 extern void      TkWinXCleanup(HINSTANCE);
 #endif
 
+static void 
+mbus_error_handler(int seqnum, int reason)
+{
+        debug_msg("mbus message failed (%d:%d)\n", seqnum, reason);
+        if (should_exit == FALSE) {
+                abort();
+        } 
+        UNUSED(seqnum);
+        UNUSED(reason);
+        /* Ignore error we're closing down anyway */
+}
+
 int main(int argc, char *argv[])
 {
 	struct mbus	*m;
@@ -69,7 +81,7 @@ int main(int argc, char *argv[])
 	parse_args(argc, argv);
 	tcl_init1(argc, argv);
 
-	m = mbus_init(mbus_ui_rx, NULL);
+	m = mbus_init(mbus_ui_rx, mbus_error_handler);
 	sprintf(m_addr, "(media:audio module:ui app:rat instance:%lu)", (u_int32) getpid());
 	mbus_addr(m, m_addr);
 

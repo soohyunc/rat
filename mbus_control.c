@@ -80,9 +80,9 @@ static void rx_mbus_hello(char *srce, char *args, void *data)
 	UNUSED(data);
 }
 
-
 static const mbus_cmd_tuple control_cmds[] = {
         { "mbus.quit",                             rx_mbus_quit },
+        { "mbus.bye",                              rx_mbus_quit },
         { "mbus.waiting",                          rx_mbus_waiting },
         { "mbus.go",                               rx_mbus_go },
         { "mbus.hello",                            rx_mbus_hello },
