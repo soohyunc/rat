@@ -26,6 +26,8 @@ static audio_format ifmt, ofmt;
 static int audio_fd = -1;
 static struct timeval last_read_time;
 
+static int avail_bytes; /* Number of bytes available because of under read */
+
 static int igain = 0, ogain = 0;
 
 int
@@ -38,6 +40,8 @@ null_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
 
         memcpy(&ifmt, infmt,  sizeof(ifmt));
         memcpy(&ofmt, outfmt, sizeof(ofmt));
+
+        avail_bytes = 0;
 
 	return TRUE;
 }
@@ -61,6 +65,7 @@ void
 null_audio_drain(audio_desc_t ad)
 {
         UNUSED(ad);
+        avail_bytes = 0;
 	return;
 }
 
@@ -135,16 +140,25 @@ null_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
         /* diff from ms to samples */
         read_bytes *= (ifmt.bits_per_sample / 8 ) * (ifmt.sample_rate / 1000);
 
-        if (read_bytes < ifmt.bytes_per_block) {
+        if (read_bytes + avail_bytes < ifmt.bytes_per_block) {
                 return 0;
         }
-        read_bytes = min(read_bytes, buf_bytes);
+
+        if (buf_bytes > read_bytes + avail_bytes) {
+                /* Have requested more bytes than we read this time and
+                 * are available in reserve.
+                 */
+                read_bytes += avail_bytes;
+                avail_bytes = 0;
+        } else {
+                avail_bytes += read_bytes - buf_bytes;
+                read_bytes   = buf_bytes;
+        }
+        assert(avail_bytes >= 0);
 
         memcpy(&last_read_time, &curr_time, sizeof(struct timeval));
-        
         memset(buf, 0, read_bytes);
         xmemchk();
-
         return read_bytes;
 }
 
@@ -291,16 +305,15 @@ null_audio_is_ready(audio_desc_t ad)
 	diff = (now.tv_sec  - last_read_time.tv_sec) * 1000 + (now.tv_usec - last_read_time.tv_usec)/1000;
         diff *= (ifmt.bits_per_sample / 8) * ifmt.sample_rate / 1000;
 
-        if (diff >= (unsigned)ifmt.bytes_per_block) return TRUE;
+        if (diff + avail_bytes > (unsigned)ifmt.bytes_per_block) return TRUE;
+
         return FALSE;
 }
 
 void
 null_audio_wait_for(audio_desc_t ad, int delay_ms)
 {
-        if (null_audio_is_ready(ad)) {
-                return;
-        } else {
+        if (null_audio_is_ready(ad) == FALSE) {
                 usleep(delay_ms * 1000);
         }
 }
