@@ -774,6 +774,20 @@ source_process_packets(session_t *sp, source *src, ts_t now)
                 playout = ts_add(src_ts, playout);
 
                 if (adjust_playout) {
+                        if (ts_gt(playout, now) == FALSE) {
+                                /* This is the first packet in this spurt and */
+                                /* it would not have been played out.  Push   */
+                                /* back to point where it will...             */
+                                /* This usually happens because of VAD check  */
+                                /* above...                                   */
+                                ts_t shortfall = ts_sub(now, playout);
+                                /* And then a little more...                  */
+                                shortfall  = ts_add(shortfall, e->frame_dur);
+                                e->playout = ts_add(e->playout, shortfall);
+                                playout    = ts_add(playout, shortfall);
+                                debug_msg("Pushed back first packet - would have missed playout time\n");
+                                assert(ts_gt(playout, now));
+                        }
                         if (ts_valid(src->next_played) && ts_gt(src->next_played, playout)) {
                                 /* Talkspurts would have overlapped.  May     */
                                 /* cause problems for redundancy decoder.     */

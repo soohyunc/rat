@@ -1010,7 +1010,8 @@ v4.1.3	- Rename common library to libuclmmbase.a on unix
 	- Fix assertion failures in source.c
 	- Cleanup code for updating SDES items in the UI
 	- Remove core files & directories on "make distclean"
-
+	- Add check audio in adjusted playout point packets can be played out
+	  and correct if would be dropped.
 
 TODO -- They're features not bugs dammit!
 ----
