@@ -2806,6 +2806,7 @@ add_help .l.t		"The participants in this session with you at the top.\nClick on 
 			 and with the middle\nbutton to mute that participant (the right button\nwill\
 			 toggle the transmission mute button, as usual)." "participant_list.au"
 
+add_help .st.recp 	"Displays a chart showing the reception\nquality reported by all participants" "rqm_enable.au"
 add_help .st.help       "If you can see this, balloon help\nis enabled. If not, it isn't." "balloon_help.au"
 add_help .st.opts   	"Brings up another window allowing\nthe control of various options." "options.au"
 add_help .st.about  	"Brings up another window displaying\ncopyright & author information." "about.au"
