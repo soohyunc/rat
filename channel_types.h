@@ -37,7 +37,7 @@ typedef struct {
 } channel_data;
 
 int  channel_data_create  (channel_data **cd, int nelem);
-int  channel_data_destroy (channel_data **cd);
+void channel_data_destroy (channel_data **cd);
 
 int  media_data_create    (media_data **m, int nrep);
 void media_data_destroy   (media_data **m);
