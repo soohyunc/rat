@@ -1580,9 +1580,6 @@ w32sdk_audio_init(void)
 int 
 w32sdk_audio_free(void)
 {
-	debug_msg("w32sdk_audio_free\n");
-	if (n_input_ports > 0) xfree(input_ports);
-	if (n_loop_ports  > 0) xfree(loop_ports);
 	xfree(mixerIdMap);
 	return TRUE;
 }
