@@ -910,6 +910,13 @@ v4.1.1	- Added transcoder audio device.  Contributed by Michael Wallbaum
 	  cont_toged in rtp_callback.
 	- Added time constants and replaced lots of ts_map32 functions with
 	  them in source.c.
+	- Rewrite initialization and rendezvous code between the controller
+	  and the user interface and media engine. This should remove many
+	  race conditions and generally clean things up and make them more
+	  reliable.
+	  	- use mbus_rendezvous_waiting() and mbus_rendezvous_go()
+		- do a real handshake between controller and the subprocesses
+
 
 TODO -- They're features not bugs dammit!
 ----
@@ -966,6 +973,4 @@ TODO -- They're features not bugs dammit!
 - The new loading of settings isn't quite complete yet - some variables 
   need to be activated in the user interface (they are loaded fine; it's
   just not made evident to the user) 
-- Mbus heartbeat messages for the user interface aren't sent whilst the
-  Tcl/Tk code is initialising, which means that it can timeout on slow
-  machines.
+

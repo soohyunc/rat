@@ -127,20 +127,9 @@ int main(int argc, char *argv[])
 	/* Next, we signal to the controller that we are ready to go. It should be sending  */
 	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */
 	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
-	mbus_engine_wait_handler_init(token);
-	mbus_cmd_handler(sp->mbus_engine, mbus_engine_wait_handler);
-	while (!mbus_engine_wait_handler_done()) {
-		debug_msg("Waiting for token \"%s\" from controller\n", token);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 250000;
-		mbus_recv(sp->mbus_engine, sp->mbus_engine, &timeout);
-		mbus_send(sp->mbus_engine);
-		mbus_heartbeat(sp->mbus_engine, 1);
-		mbus_retransmit(sp->mbus_engine);
-	}
-	mbus_cmd_handler(sp->mbus_engine, mbus_engine_rx);
-	mbus_qmsgf(sp->mbus_engine, c_addr, TRUE, "mbus.go", "%s", token_e);
-	mbus_send(sp->mbus_engine);
+	debug_msg("Waiting for mbus.waiting(%s) from controller...\n", token);
+	mbus_rendezvous_go(sp->mbus_engine, token, (void *) sp->mbus_engine);
+	debug_msg("...got it\n");
 
 #ifndef WIN32
  	signal(SIGINT, signal_handler); 
@@ -148,15 +137,10 @@ int main(int argc, char *argv[])
 
 	/* At this point we know the mbus address of our controller, and have conducted */
 	/* a successful rendezvous with it. It will now send us configuration commands. */
-	while (sp->rtp_session[0] == NULL) {
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 250000;
-		mbus_recv(sp->mbus_engine, sp, &timeout);
-		mbus_send(sp->mbus_engine);
-		mbus_heartbeat(sp->mbus_engine, 1);
-		mbus_retransmit(sp->mbus_engine);
-	}
-	debug_msg("Done configuration\n");
+	debug_msg("Waiting for mbus.go(%s) from controller...\n", token);
+	mbus_rendezvous_waiting(sp->mbus_engine, c_addr, token, (void *) sp);
+	debug_msg("...got it\n");
+	assert(sp->rtp_session[0] != NULL);
 
         if (pdb_create(&sp->pdb) == FALSE) {
                 debug_msg("Failed to create persistent database\n");

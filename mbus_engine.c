@@ -39,43 +39,6 @@
 
 extern int should_exit;
 
-static char *wait_token = NULL;
-static int   wait_done  = FALSE;
-
-void mbus_engine_wait_handler_init(char *token)
-{
-	wait_token = token;
-	wait_done  = FALSE;
-}
-
-int mbus_engine_wait_handler_done(void)
-{
-	return wait_done;
-}
-
-void mbus_engine_wait_handler(char *srce, char *cmnd, char *args, void *data)
-{
-	/* This routine waits for an mbus message of the form mbus.waiting(token)    */
-	/* where the token is provided by a call to mbus_engine_wait_handler_init(). */
-	/* Other mbus commands are ignored whilst this is going on.                  */
-	struct mbus *m = (struct mbus *) data;
-
-	UNUSED(srce);
-
-	if (strcmp(cmnd, "mbus.waiting") == 0) {
-		char	*t;
-
-		mbus_parse_init(m, args);
-		mbus_parse_str(m, &t);
-		if (strcmp(mbus_decode_str(t), wait_token) == 0) {
-			wait_done = TRUE;
-		}
-		mbus_parse_done(m);
-	} else {
-		debug_msg("Ignored command \"%s\" which arrived during rendezvous\n", cmnd);
-	}
-}
-
 static void rx_tool_rat_addr_ui(char *srce, char *args, session_t *sp)
 {
 	/* tool.rat.addr.ui ("addr") */

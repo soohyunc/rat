@@ -78,32 +78,21 @@ int main(int argc, char *argv[])
 	/* Next, we signal to the controller that we are ready to go. It should be sending  */
 	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */
 	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
-	mbus_ui_wait_handler_init(token);
-	mbus_cmd_handler(m, mbus_ui_wait_handler);
-	while (!mbus_ui_wait_handler_done()) {
-		debug_msg("Waiting for token \"%s\" from controller\n", token);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 250000;
-		mbus_recv(m, m, &timeout);
-		mbus_send(m);
-		mbus_heartbeat(m, 1);
-		mbus_retransmit(m);
-	}
-	mbus_cmd_handler(m, mbus_ui_rx);
-	mbus_qmsgf(m, c_addr, TRUE, "mbus.go", "%s", token_e);
-	mbus_send(m);
+	debug_msg("Waiting for mbus.waiting(%s) from controller...\n", token);
+	mbus_rendezvous_go(m, token, (void *) m);
+	debug_msg("...got it\n");
 
-	/* At this point we know the mbus address of our controller, and have conducted */
-	/* a successful rendezvous with it. It will now send us configuration commands. */
-	while (e_addr == NULL) {
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 250000;
-		mbus_recv(m, m, &timeout);
-		mbus_send(m);
-		mbus_heartbeat(m, 1);
-		mbus_retransmit(m);
-	}
-	debug_msg("Done configuration\n");
+	/* At this point we know the mbus address of our controller, and have conducted   */
+	/* a successful rendezvous with it. It will now send us configuration commands.   */
+	/* We do mbus.waiting(foo) where "foo" is the original token. The controller will */
+	/* eventually respond with mbus.go(foo) when it has finished sending us commands. */
+	debug_msg("Waiting for mbus.go(%s) from controller...\n", token);
+	mbus_rendezvous_waiting(m, c_addr, token, m);
+	debug_msg("...got it\n");
+
+	/* At this point we should know (at least) the address of the media engine. */
+	/* We may also have been given other information too...                     */
+	assert(e_addr != NULL);
 
 	ui_active = TRUE;
 	tcl_init2(m, e_addr);

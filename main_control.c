@@ -54,21 +54,13 @@ static int snprintf(char *s, int buf_size, const char *format, ...)
 }
 #endif
 
-static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid)
+static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_t *pid, char *token)
 {
-	struct timeval		 timeout;
-	char			*token = xmalloc(100);
-	char			*token_e;
-	char			*peer_addr;
 #ifdef WIN32
 	char			 args[1024];
 	LPSTARTUPINFO		 startup_info;
 	LPPROCESS_INFORMATION	 proc_info;
-#endif
 
-	sprintf(token, "rat-controller-waiting-%ld", lrand48());
-
-#ifdef WIN32
 	startup_info = (LPSTARTUPINFO) xmalloc(sizeof(STARTUPINFO));
 	startup_info->cb              = sizeof(STARTUPINFO);
 	startup_info->lpReserved      = 0;
@@ -118,23 +110,8 @@ static char *fork_process(struct mbus *m, char *proc_name, char *ctrl_addr, pid_
 	}
 #endif
 #endif
-
 	/* This is the parent: we have to wait for the child to say hello before continuing. */
-	debug_msg("Waiting for token \"%s\" from sub-process\n", token);
-	token_e = mbus_encode_str(token);
-	mbus_control_wait_init(token);
-	while ((peer_addr = mbus_control_wait_done()) == NULL) {
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 250000;
-		mbus_heartbeat(m, 1);
-		mbus_qmsgf(m, "()", FALSE, "mbus.waiting", "%s", token_e);
-		mbus_send(m);
-		mbus_recv(m, (void *) m, &timeout);
-	}
-	debug_msg("forked %s\n", proc_name);
-	xfree(token);
-	xfree(token_e);
-	return peer_addr;
+	return mbus_rendezvous_waiting(m, "()", token, m);
 }
 
 static void kill_process(pid_t proc)
@@ -268,7 +245,7 @@ static void terminate(struct mbus *m, char *addr)
 int main(int argc, char *argv[])
 {
 	struct mbus	*m;
-	char		 m_addr[60];
+	char		 c_addr[60], token_ui[20], token_engine[20];
 	char		*u_addr, *e_addr;
         int		 seed = (gethostid() << 8) | (getpid() & 0xff);
 	struct timeval	 timeout;
@@ -276,14 +253,20 @@ int main(int argc, char *argv[])
 	srand48(seed);
 
 	m = mbus_init(mbus_control_rx, mbus_err_handler);
-	snprintf(m_addr, 60, "(media:audio module:control app:rat instance:%lu)", (u_int32) getpid());
-	mbus_addr(m, m_addr);
+	snprintf(c_addr, 60, "(media:audio module:control app:rat instance:%lu)", (u_int32) getpid());
+	mbus_addr(m, c_addr);
 
-	u_addr = fork_process(m, UI_NAME,     m_addr, &pid_ui);
-	e_addr = fork_process(m, ENGINE_NAME, m_addr, &pid_engine);
+	sprintf(token_ui,     "rat-token-%08lx", lrand48());
+	sprintf(token_engine, "rat-token-%08lx", lrand48());
+
+	u_addr = fork_process(m, UI_NAME,     c_addr, &pid_ui,     token_ui);
+	e_addr = fork_process(m, ENGINE_NAME, c_addr, &pid_engine, token_engine);
 
 	inform_addrs(m, e_addr, u_addr);
 	parse_options(m, e_addr, u_addr, argc, argv);
+
+	mbus_rendezvous_go(m, token_ui, (void *) m);
+	mbus_rendezvous_go(m, token_engine, (void *) m);
 
 	should_exit = FALSE;
 	while (!should_exit) {
