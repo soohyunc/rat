@@ -613,7 +613,8 @@ u_int32 rtcp_interval(int 	 members,
                       int 	 we_sent,
                       int 	 packet_size,
                       int 	*avg_rtcp_size,
-                      int 	 initial)
+                      int 	 initial,
+		      u_int32	 clock_freq)
 {
     double RTCP_MIN_TIME           = 5.0;				/* Min time between report, in seconds    */
     double RTCP_SENDER_BW_FRACTION = 0.25;				/* Fraction of RTCP bandwidth used for SR */
@@ -671,12 +672,10 @@ u_int32 rtcp_interval(int 	 members,
     /* To avoid traffic bursts from unintended synchronization with   */
     /* other sites, we then pick our actual next report interval as a */
     /* random number uniformly distributed between 0.5*t and 1.5*t.   */
-    /*                                                                */
-    /* Time is in 8kHz audio samples! [csp]                           */
 #ifdef DEBUG_RTCP
     printf("RTCP reporting interval is %f seconds\n", t);
 #endif
-    return (u_int32) (t * (drand48() + 0.5)) * 8000;
+    return (u_int32) (t * (drand48() + 0.5)) * clock_freq;
 }
 
 static u_int8 *
@@ -781,7 +780,7 @@ rtcp_update(session_struct *sp, int fd, u_int32 addr, u_int16 port)
 
 		/* Calculate the interval until we're due to send another RTCP packet... */
 		sp->db->report_interval = rtcp_interval(sp->db->members, sp->db->senders, sp->db->rtcp_bw, sp->db->sending, 
-                                                      	packlen, &(sp->db->avg_size), sp->db->initial_rtcp);
+                                                      	packlen, &(sp->db->avg_size), sp->db->initial_rtcp, get_freq(sp->device_clock));
 		/* Reset per-report statistics... */
 		sp->db->last_rpt     = now;
 		sp->db->initial_rtcp = FALSE;

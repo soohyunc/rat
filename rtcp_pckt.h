@@ -201,7 +201,7 @@ u_int8 	       *rtcp_packet_fmt_sr(struct session_tag *sp, u_int8 * ptr);
 u_int8 	       *rtcp_packet_fmt_rrhdr(struct session_tag *sp, u_int8 * ptr);
 u_int8         *rtcp_packet_fmt_addrr(struct session_tag *sp, u_int8 * ptr, struct s_rtcp_dbentry * dbe);
 void 		rtcp_exit(struct session_tag *sp1, struct session_tag *sp2, int fd, u_int32 addr, u_int16 port);
-u_int32  	rtcp_interval(int members, int senders, double rtcp_bw, int we_sent, int packet_size, int *avg_rtcp_size, int initial);
+u_int32  	rtcp_interval(int members, int senders, double rtcp_bw, int we_sent, int packet_size, int *avg_rtcp_size, int initial, u_int32 clock_freq);
 void 		rtcp_update(struct session_tag *sp, int fd, u_int32 addr, u_int16 port);
 void	 	rtcp_forward(rtcp_t *pckt, struct session_tag *sp1, struct session_tag *sp2);
 

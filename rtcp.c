@@ -48,6 +48,7 @@
 #include "interfaces.h"
 #include "rtcp_pckt.h"
 #include "rtcp_db.h"
+#include "rat_time.h"
 
 void 
 service_rtcp(session_struct    *sp,
@@ -64,7 +65,7 @@ service_rtcp(session_struct    *sp,
 			rtcp_decode_rtcp_pkt(sp, sp2, pckt->pckt_ptr, pckt->len, pckt->addr, cur_time);
     			sp->db->avg_size += (pckt->len - sp->db->avg_size)*RTCP_SIZE_GAIN;    /* Update the average RTCP packet size... */
 			sp->db->report_interval = rtcp_interval(sp->db->members, sp->db->senders, sp->db->rtcp_bw, sp->db->sending, 
-						       	0, &(sp->db->avg_size), sp->db->initial_rtcp);
+						       	0, &(sp->db->avg_size), sp->db->initial_rtcp, get_freq(sp->device_clock));
 		} else {
 #ifdef DEBUG
 			int i;
