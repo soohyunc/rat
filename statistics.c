@@ -541,7 +541,16 @@ statistics(session_struct          *sp,
                 data_ptr = (unsigned char *)pckt->pckt_ptr + 4 * (3 + hdr->cc) + pckt->extlen;
                 len      = pckt->len - 4 * (3 + hdr->cc) - pckt->extlen;
 
-                source_add_packet(src, data_ptr, len, pckt->playout + late_adjust);
+                if (source_add_packet(src, 
+                                      pckt_ptr, 
+                                      pckt->len, 
+                                      data_ptr, 
+                                      hdr->pt, 
+                                      pckt->playout + late_adjust) == TRUE) {
+                        /* Source is now repsonsible for packet so empty pointers */
+                        pckt->pckt_ptr = NULL;
+                        pckt->len      = 0;
+                }
 
                 block_trash_check();
                 pckt_queue_element_free(&pckt);

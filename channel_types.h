@@ -59,6 +59,10 @@ typedef struct {
 typedef struct {
         u_int8  pt;
         u_char *data;
+        u_int32 data_start; /* We use data_start to indicate offset where
+                             * channel data begins relative to data(packet)
+                             * since this saves an allocation, copy, and free.
+                             */
         u_int16 data_len;
 } channel_unit;
 

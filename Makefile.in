@@ -20,8 +20,8 @@ TOY_OBJS   = convert.o crypt.o render_3D.o repair.o sndfile.o
 CORE_OBJS  = audio.o cushion.o main.o mbus_engine.o \
              mbus_ui.o mix.o net.o parameters.o pckt_queue.o \
              playout.o receive.o rtcp.o rtcp_db.o rtcp_pckt.o session.o \
-             statistics.o tcltk.o timers.o transmit.o transcoder.o ui.o \
-             ui_audiotool.o ui_transcoder.o
+             source.o statistics.o tcltk.o timers.o transmit.o transcoder.o \
+             ui.o ui_audiotool.o ui_transcoder.o
 
 OBJS = $(AUDIO_OBJS) $(CODEC_OBJS) $(CC_OBJS) $(TOY_OBJS) $(CORE_OBJS)
 

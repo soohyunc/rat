@@ -59,6 +59,8 @@ int playout_buffer_add     (struct s_playout_buffer *pb,
                             u_int32                  datalen,
                             u_int32                  playout);
 
+void playout_buffer_flush (struct s_playout_buffer *pb);
+
 /*
  * These following three functions return data stored in the playout buffer.  
  * The playout buffer has a playout point iterator.  playout_buffer_get 

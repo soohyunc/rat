@@ -86,12 +86,21 @@ playout_buffer_create(playout_buffer **ppb, void (*datafreeproc)(u_char **data, 
 }
 
 int 
-playout_buffer_destroy (struct s_playout_buffer **ppb)
+playout_buffer_destroy (playout_buffer **ppb)
+{
+        playout_buffer_flush(*ppb);
+
+        xfree(*ppb);
+        *ppb = NULL;
+
+        return TRUE;
+}
+
+void
+playout_buffer_flush (playout_buffer *pb)
 {
         pb_node_t *curr, *next, *stop;
-        playout_buffer *pb;
-        
-        pb    = *ppb;
+
         stop  = &pb->sentinel;
         curr  =  pb->sentinel.next;
 
@@ -102,10 +111,6 @@ playout_buffer_destroy (struct s_playout_buffer **ppb)
                 block_free(curr, sizeof(pb_node_t));
                 curr = next;
         }
-        xfree(pb);
-        *ppb = NULL;
-
-        return TRUE;
 }
 
 /* Iterator functions ********************************************************/

@@ -61,9 +61,11 @@ struct s_source* source_create (struct s_source_list  *list,
 void             source_remove         (struct s_source_list *list,
                                         struct s_source      *src);
 
-void             source_add_packet     (struct s_source *src, 
+int              source_add_packet     (struct s_source *src, 
                                         u_char          *pckt, 
-                                        u_int32          pckt_len, 
+                                        u_int32          pckt_len,
+                                        u_char          *data_start,
+                                        u_int8           payload,
                                         u_int32          playout);
 
 u_int32          source_buffer_length_ms (struct s_source *src);

@@ -86,8 +86,6 @@ typedef struct s_rtcp_dbentry {
 	u_int32         jit_TOGed;		/* TOGed = Thrown on the Ground */
 	u_char		cont_toged;		/* Toged in a row */
         int             inter_pkt_gap;          /* expected time between pkt arrivals */
-        struct s_cc_state       *cc_state_list;
-	struct s_codec_state_store *state_store;
 	struct s_time		*clock;
         struct s_converter      *converter;
         struct s_render_3D_dbentry  *render_3D_data;

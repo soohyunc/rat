@@ -218,7 +218,7 @@ vanilla_decoder_output(channel_unit *cu, struct s_playout_buffer *out, u_int32 p
         assert(m->nrep == 1);
 
         /* Do first unit separately as that may have state */
-        p    = cu->data;
+        p    = cu->data + cu->data_start;
         end  = cu->data + cu->data_len;
 
         if (cf->mean_per_packet_state_size) {

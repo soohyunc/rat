@@ -42,18 +42,24 @@
 #include "playout.h"
 #include "source.h"
 
+#include "new_channel.h"
 #include "channel_types.h"
 #include "codec_types.h"
+#include "codec.h"
+#include "codec_state.h"
+#include "timers.h"
 
 #include "debug.h"
 #include "util.h"
 
 typedef struct s_source {
-        struct s_source         *next;
-        struct s_source         *prev;
-        struct s_rtcp_dbentry   *dbe;
-        struct s_playout_buffer *channel;
-        struct s_playout_buffer *media;
+        struct s_source            *next;
+        struct s_source            *prev;
+        struct s_rtcp_dbentry      *dbe;
+        struct s_channel_state     *channel_state;
+        struct s_codec_state_store *codec_states;
+        struct s_playout_buffer    *channel;
+        struct s_playout_buffer    *media;
 } source;
 
 /* A linked list is used for sources and this is fine since we mostly
@@ -151,8 +157,9 @@ source_create(source_list *plist, struct s_rtcp_dbentry *dbe)
         
         if (psrc == NULL) return NULL;
 
-        psrc->dbe = dbe;
-        
+        psrc->dbe           = dbe;
+        psrc->channel_state = NULL;        
+
         /* Allocate channel and media buffers */
         success = playout_buffer_create(&psrc->channel,
                                         (playoutfreeproc)channel_data_destroy,
@@ -171,6 +178,15 @@ source_create(source_list *plist, struct s_rtcp_dbentry *dbe)
                                         1000);
         if (!success) {
                 debug_msg("Failed to allocate media buffer\n");
+                playout_buffer_destroy(&psrc->channel);
+                block_free(psrc, sizeof(source));
+                return NULL;
+        }
+
+        success = codec_state_store_create(&psrc->codec_states, DECODER);
+        if (!success) {
+                debug_msg("Failed to allocate codec state storage\n");
+                playout_buffer_destroy(&psrc->media);
                 playout_buffer_destroy(&psrc->channel);
                 block_free(psrc, sizeof(source));
                 return NULL;
@@ -196,11 +212,126 @@ source_remove(source_list *plist, source *psrc)
         psrc->next->prev = psrc->prev;
         psrc->prev->next = psrc->next;
 
+        if (psrc->channel_state) channel_decoder_destroy(&psrc->channel_state);
         playout_buffer_destroy(&psrc->channel);
         playout_buffer_destroy(&psrc->media);
+        codec_state_store_destroy(&psrc->codec_states);
 
         plist->nsrcs--;
 
         block_free(psrc, sizeof(source));
 }
               
+/* Source Processing Routines ************************************************/
+
+/* Returns true if fn takes ownership responsibility for data */
+int
+source_add_packet (source *src, 
+                   u_char *pckt, 
+                   u_int32 pckt_len, 
+                   u_char *data_start,
+                   u_int8  payload,
+                   u_int32 playout)
+{
+        channel_data *cd;
+        channel_unit *cu;
+        cc_id_t       cid;
+
+        assert(src != NULL);
+        assert(pckt != NULL);
+        assert(data_start != NULL);
+
+        if (channel_data_create(&cd, 1) == 0) {
+                return FALSE;
+        }
+        
+        cu             = cd->elem[0];
+        cu->data       = pckt;
+        cu->data_len   = pckt_len;
+        cu->data_start = (u_int32)(data_start - pckt);
+        cu->pt         = payload;
+
+        /* Check we have state to decode this */
+        cid = channel_coder_get_by_payload(cu->pt);
+        if (src->channel_state && 
+            channel_decoder_matches(cid, src->channel_state) == FALSE) {
+                debug_msg("Channel coder changed - flushing\n");
+                channel_decoder_destroy(&src->channel_state);
+                playout_buffer_flush(src->channel);
+        }
+
+        /* Make state if not there and create decoder */
+        if (src->channel_state == NULL && 
+            channel_decoder_create(cid, &src->channel_state)) {
+                debug_msg("Cannot decode payload %d\n", cu->pt);
+                channel_data_destroy(&cd, sizeof(channel_data));
+        }
+
+        if (playout_buffer_add(src->channel, (u_char*)cd, sizeof(channel_data), playout) == FALSE) {
+                debug_msg("Packet addition failed - duplicate ?\n");
+                channel_data_destroy(&cd, sizeof(channel_data));
+        }
+
+        return TRUE;
+}
+
+int
+source_process(source *src, u_int32 render_3d, u_int32 now)
+{
+        media_data  *md;
+        coded_unit  *cu;
+        codec_state *cs;
+        u_int32     playout, md_len, curr_frame;
+
+        /* Split channel coder units up into media units */
+        channel_decoder_decode(src->channel_state,
+                               src->channel,
+                               src->media,
+                               now);
+
+        while(playout_buffer_get(src->media, (u_char**)&md, &md_len, &playout)) {
+                assert(md != NULL);
+                assert(md_len == sizeof(media_data));
+
+                if (src->age != 0 && playout != src->last_playout + src->last_unit_dur) {
+                        /* Repair necessary 
+                         * - create unit at src->last_playout + src->last_unit_dur;
+                         * - write repair data
+                         * - rewind a step
+                         * - continue
+                         * probably want to iterate forwards and do all repairs in one go.
+                         */
+
+                }
+
+                if (ts_gt(playout, now)) {
+                        /* This playout point is after now so stop */
+                        break;
+                }
+
+                playout_buffer_remove(src->media, (u_char**)&md, &md_len, &playout);
+
+                /* Decode frame */
+                assert(cu != NULL);
+                cu = (coded_unit*)block_alloc(sizeof(coded_unit));
+
+                cs = codec_state_get(src->codec_states, md->rep[0]->id);
+                codec_decode_into_coded_unit(md->rep[0], cu);
+                md->rep[md->nrep] = cu;
+                md->nrep++;
+
+                if (render_3d) {
+                        /* 3d rendering necessary */
+                }
+
+                if (conversion_necessary) {
+                        /* convert frame */
+
+                }
+
+                /* write to mixer */
+
+        }
+        
+        return TRUE;
+}

@@ -226,7 +226,6 @@ rtcp_new_dbentry_noqueue(u_int32 ssrc, u_int32 cur_time)
 	newdb->first_pckt_flag 		= TRUE;
         newdb->enc                      = -1;
         newdb->enc_fmt                  = NULL;
-        codec_state_store_create(&newdb->state_store, DECODER);
 	return (newdb);
 }
 
@@ -279,12 +278,6 @@ rtcp_free_dbentry(rtcp_dbentry *dbptr)
 	}
         if (dbptr->render_3D_data) {
                 render_3D_free(&dbptr->render_3D_data);
-        }
-        if (dbptr->state_store) {
-                codec_state_store_destroy(&dbptr->state_store);
-        }
-        if (dbptr->cc_state_list) {
-                clear_cc_decoder_states(&dbptr->cc_state_list);
         }
 	if (dbptr->sentry != NULL) {
 		if (dbptr->sentry->cname) xfree(dbptr->sentry->cname);

@@ -280,3 +280,11 @@ channel_decoder_decode(channel_state_t         *cs,
         assert(table[cs->coder].dec_decode != NULL);
         return table[cs->coder].dec_decode(cs->state, media_buffer, channel_buffer, now);
 }
+
+int
+channel_decoder_match(cc_id_t          id,
+                      channel_state_t *cs)
+{
+        u_int16 coder = CC_ID_TO_IDX(id);
+        return (coder == cs->coder);
+}

@@ -88,6 +88,8 @@ int       channel_decoder_decode (struct s_channel_state  *cs,
                                   struct s_playout_buffer *media_buffer, 
                                   u_int32                  now);
 
+int       channel_decoder_matches (cc_id_t cid, struct s_channel_state *cs);
+
 int       channel_get_compatible_codec (u_int8 pt, u_char*data, u_int32 data_len);
 int       channel_get_units_in_packet  (u_int8 pt, u_char*data, u_int32 data_len);
 
