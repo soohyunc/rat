@@ -335,12 +335,11 @@ adapt_playout(rtp_hdr_t *hdr,
                                 int offset = src->playout - src->delay_in_playout_calc;
                                 if (bufdur > cs && (bufdur - cs) > (unsigned)offset + 2u * step) {
                                         debug_msg("offset %d bufdur %d\n", offset, bufdur);
-
                                         /* We are probably here because delay changed, or src clock
-                                         * is quicker than ours. Shift by 4 ms only.
+                                         * is quicker than ours. Shift by 2 ms only and hope it is not
+                                         * noticeable.
                                          */
-
-                                        src->playout -= 4 * src_freq / 1000;
+                                        src->playout -= 2 * src_freq / 1000;
                                 } 
                         }
                 } 

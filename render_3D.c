@@ -417,7 +417,6 @@ convolve(sample *signal, sample *answer, double *overlap, double *response, int 
                         debug_msg("clipping\n");
                 }
                 /* store 'current' in answer vector. */
-                current = ceil(current-0.5);
                 *answer_rptr++ = (short)current;
         }
 }
