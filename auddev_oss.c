@@ -54,6 +54,7 @@ int	can_write = FALSE;
 int	iport     = AUDIO_MICROPHONE;
 int	is_duplex = FALSE;
 int	done_test = FALSE;
+int	blocksize;
 
 audio_format format;
 
@@ -68,16 +69,15 @@ audio_open_rw(char rw)
 	int  speed    = format.sample_rate;
 	int  volume   = (100<<8)|100;
 	int  frag     = 0x7fff0000; 			/* unlimited number of fragments */
-	int  fragsize = 0;				/* temporary, used to calculate frag */
 	int  reclb    = 0;
 	int  audio_fd = -1;
 	char buffer[128];				/* sigh. */
 
 	/* Calculate the size of the fragments we want... 20ms worth of audio data... */
-	fragsize = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
+	blocksize = DEVICE_BUF_UNIT * (format.sample_rate / 8000) * (format.bits_per_sample / 8);
 	/* Round to the nearest legal frag size (next power of two lower...) */
-	frag |= (int) (log(fragsize)/log(2));
-	dprintf("frag=%x fragsize=%d\n", frag, fragsize);
+	frag |= (int) (log(blocksize)/log(2));
+	dprintf("frag=%x blocksize=%d\n", frag, blocksize);
 
 	switch (rw) {
 	case O_RDONLY: 
@@ -516,7 +516,7 @@ audio_next_iport(int audio_fd)
 }
 
 void
-audio_switch_out(int audio_fd, cushion_struct *ap)
+audio_switch_out(int audio_fd, struct s_cushion_struct *ap)
 {
 	UNUSED(ap);
 	if (!audio_duplex(audio_fd) && !can_write) {
@@ -532,5 +532,17 @@ audio_switch_in(int audio_fd)
 		audio_close(audio_fd);
 		audio_open_rw(O_RDONLY);
 	}
+}
+
+int
+audio_blocksize(void)
+{
+	return blocksize;
+}
+
+int
+audio_get_channels()
+{
+	return format.num_channels;
 }
 

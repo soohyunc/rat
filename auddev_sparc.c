@@ -441,7 +441,7 @@ audio_blocksize(void)
 }
 
 int
-audio_get_channels(void)
+audio_get_channels()
 {
         return dev_info.play.channels;
 }
