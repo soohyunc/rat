@@ -198,6 +198,8 @@ audio_device_attempt_config(session_struct *sp, audio_config *config)
                 assert(sp->tb           == NULL);
                 assert(sp->cushion      == NULL);
 
+                audio_non_block(config->device);
+
                 /* Initialize read and write components */
                 sp->device_clock = new_time(sp->clock, inf->sample_rate);
                 sp->meter_period = inf->sample_rate / 15;
