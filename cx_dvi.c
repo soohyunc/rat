@@ -102,24 +102,27 @@ adpcm_coder(
         {
 	    int tmp = 0;
 
-	    vpdiff = step >> 3;
-	    if ( delta > step ) {
+	    vpdiff = step;
+	    delta <<= 3;
+	    step <<= 3;
+	    if ( delta >= step ) {
 		tmp = 4;
 		delta -= step;
 		vpdiff += step;
 	    }
 	    step >>= 1;
-	    if ( delta > step  ) {
+	    if ( delta >= step  ) {
 		tmp |= 2;
 		delta -= step;
 		vpdiff += step;
 	    }
 	    step >>= 1;
-	    if ( delta > step ) {
+	    if ( delta >= step ) {
 		tmp |= 1;
 		vpdiff += step;
 	    }
 	    delta = tmp;
+	    vpdiff >>= 3;
 	}
 
 	/* Step 3 - Update previous value */
