@@ -31,6 +31,9 @@
 #include "crypt.h"
 #include "source.h"
 
+#define PCKT_QUEUE_RTP_LEN  24
+#define PCKT_QUEUE_RTCP_LEN 12
+
 static void 
 usage(void)
 {

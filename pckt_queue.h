@@ -14,9 +14,6 @@
 #ifndef _pckt_queue_h_
 #define _pckt_queue_h_
 
-#define PCKT_QUEUE_RTP_LEN  64
-#define PCKT_QUEUE_RTCP_LEN 32
-
 #include "ts.h"
 
 struct s_pckt_queue;
