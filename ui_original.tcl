@@ -1203,8 +1203,8 @@ proc chart_label {ssrc} {
   if {($pos > $chart_size) || ($pos < 0)} return
 
   set ypos [expr $chart_yoffset + ($chart_boxsize * $pos) + ($chart_boxsize / 2)]
-  .chart.c delete $ssrc
-  .chart.c create text 2 $ypos -text [string range $val 0 25] -anchor w -font $chart_font -tag $ssrc
+  .chart.c delete ssrc_$ssrc
+  .chart.c create text 2 $ypos -text [string range $val 0 25] -anchor w -font $chart_font -tag ssrc_$ssrc
 }
 
 proc chart_redraw {size} {
