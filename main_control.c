@@ -37,6 +37,35 @@ int	 should_exit;
 int kill(pid_t pid, int sig);
 #endif
 
+static void 
+usage(char *szOffending)
+{
+#ifdef WIN32
+        char win_usage[] = "\
+RAT is a multicast (or unicast) audio tool. It is best to start it\n\
+using a multicast directory tool, like sdr or multikit. If desired RAT\n\
+can be launched from the command line using:\n\n\
+rat <address>/<port>\n\n\
+where <address> is machine name, or a multicast IP address, and <port> is\n\
+the connection identifier (a number between 1024-65536).\n\n\
+For more details see:\n\n\
+http://www-mice.cs.ucl.ac.uk/multimedia/software/rat/FAQ.html\
+";
+        
+        if (szOffending == NULL) {
+                szOffending = win_usage;
+        }
+
+        MessageBox(NULL, szOffending, "RAT Usage", MB_ICONINFORMATION | MB_OK);
+#else
+        printf("Usage: rat [options] -t <ttl> <addr>/<port>\n");
+        if (szOffending) {
+                printf(szOffending);
+        }
+#endif
+        
+}
+
 #ifdef NEED_SNPRINTF
 static int snprintf(char *s, int buf_size, const char *format, ...)
 {
@@ -154,12 +183,17 @@ static void inform_addrs(struct mbus *m, char *e_addr, char *u_addr)
 	} while (!mbus_sent_all(m));
 }
 
-static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[])
+static int parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, char *argv[])
 {
 	int		 i;
 	int		 ttl = 15;
 	char		*addr, *rx_port, *tx_port, *tmp;
 	struct timeval	 timeout;
+
+        if (argc < 2 || !isdigit(argv[argc-1][0])) {
+                usage(NULL);
+                return FALSE;
+        }
 
 	/* Parse the list of addresses/ports at the end of the command line... */
 	addr    = (char *) strtok(argv[argc-1], "/");
@@ -180,7 +214,8 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 			} else if (strcmp(argv[i+1], "off") == 0) {
 				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.audio.loopback", "0");
 			} else {
-				printf("Usage: -allowloopback on|off\n");
+				usage("Usage: -allowloopback on|off\n");
+                                return FALSE;
 			}
                 } else if ((strcmp(argv[i], "-C") == 0) && (argc > i+1)) {
 			tmp = mbus_encode_str(argv[i+1]);
@@ -188,9 +223,9 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 			xfree(tmp);
                 } else if ((strcmp(argv[i], "-t") == 0) && (argc > i+1)) {
                         ttl = atoi(argv[i+1]);
-                        if (ttl > 255) {
-                                fprintf(stderr, "TTL must be in the range 0 to 255.\n");
-				ttl = 255;
+                        if (ttl < 0 || ttl > 255) {
+                                usage("Usage -t 0-255.\n");
+                                return FALSE;
                         }
                         i++;
                 } else if ((strcmp(argv[i], "-pt") == 0) && (argc > i+1)) {
@@ -210,7 +245,8 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 			} else if (strcmp(argv[i+1], "off") == 0) {
 				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.sync", "0");
 			} else {
-				printf("Usage: -sync on|off\n");
+				usage("Usage: -sync on|off\n");
+                                return FALSE;
 			}
 		} else if ((strcmp(argv[i], "-agc") == 0) && (argc > i+1)) {
 			if (strcmp(argv[i+1], "on") == 0) {
@@ -218,7 +254,8 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 			} else if (strcmp(argv[i+1], "off") == 0) {
 				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.agc", "0");
 			} else {
-				printf("Usage: -agc on|off\n");
+				usage("Usage: -agc on|off\n");
+                                return FALSE;
 			}
 		} else if ((strcmp(argv[i], "-silence") == 0) && (argc > i+1)) {
 			if (strcmp(argv[i+1], "on") == 0) {
@@ -226,7 +263,8 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 			} else if (strcmp(argv[i+1], "off") == 0) {
 				mbus_qmsgf(m, e_addr, TRUE, "tool.rat.silence", "0");
 			} else {
-				printf("Usage: -silence on|off\n");
+				usage("Usage: -silence on|off\n");
+                                return FALSE;
 			}
 		} else if ((strcmp(argv[i], "-repair") == 0) && (argc > i+1)) {
 			tmp = mbus_encode_str(argv[i+1]);
@@ -273,6 +311,7 @@ static void parse_options(struct mbus *m, char *e_addr, char *u_addr, int argc, 
 	} while (!mbus_sent_all(m));
 
 	UNUSED(u_addr);
+        return TRUE;
 }
 
 static void mbus_err_handler(int seqnum, int reason)
@@ -326,26 +365,30 @@ int main(int argc, char *argv[])
 	e_addr = fork_process(m, ENGINE_NAME, c_addr, &pid_engine, token_engine);
 
 	inform_addrs(m, e_addr, u_addr);
-	parse_options(m, e_addr, u_addr, argc, argv);
-
-	mbus_rendezvous_go(m, token_ui, (void *) m);
-	mbus_rendezvous_go(m, token_engine, (void *) m);
-
-	should_exit = FALSE;
-	while (!should_exit) {
-		mbus_send(m);
-		mbus_heartbeat(m, 1);
-		mbus_retransmit(m);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = 20000;
-		mbus_recv(m, NULL, &timeout);
-	}
-
-	terminate(m, u_addr);
-	terminate(m, e_addr);
+        if (parse_options(m, e_addr, u_addr, argc, argv) == TRUE) {
+                mbus_rendezvous_go(m, token_ui, (void *) m);
+                mbus_rendezvous_go(m, token_engine, (void *) m);
+                
+                should_exit = FALSE;
+                while (!should_exit) {
+                        mbus_send(m);
+                        mbus_heartbeat(m, 1);
+                        mbus_retransmit(m);
+                        timeout.tv_sec  = 0;
+                        timeout.tv_usec = 20000;
+                        mbus_recv(m, NULL, &timeout);
+                }        
+                terminate(m, u_addr);
+                terminate(m, e_addr);
+        }
 
 	kill_process(pid_ui);
 	kill_process(pid_engine);
+
+#ifdef WIN32
+        WSACleanup();
+#endif
+
 	return 0;
 }
 
