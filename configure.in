@@ -227,6 +227,11 @@ case "$target" in
 	AU_OBJ="$AU_OBJ auddev_hpux_raw.o"
 	AC_DEFINE(HAVE_HP_AUDIO)
 	;;
+*darwin*)
+        AU_OBJ="$AU_OBJ auddev_macosx.o"
+	AU_LIB="$AU_LIB -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices "
+	AC_DEFINE(HAVE_MACOX_AUDIO)
+	;;
 esac
 
 AC_SUBST(AU_OBJ)

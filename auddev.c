@@ -76,6 +76,38 @@ typedef struct {
 } audio_if_t;
 
 audio_if_t audio_if_table[] = {
+#ifdef HAVE_MACOSX_AUDIO
+        {
+                macosx_audio_init,
+                NULL,
+                macosx_audio_device_count,
+                macosx_audio_device_name,
+                macosx_audio_open,
+                macosx_audio_close,
+                macosx_audio_drain,
+                macosx_audio_duplex,
+                macosx_audio_read,
+                macosx_audio_write,
+                macosx_audio_non_block,
+                macosx_audio_block,
+                macosx_audio_set_igain,
+                macosx_audio_get_igain,
+                macosx_audio_set_ogain,
+                macosx_audio_get_ogain,
+                macosx_audio_loopback,
+                macosx_audio_oport_set,
+                macosx_audio_oport_get,
+                macosx_audio_oport_details,
+                macosx_audio_oport_count,
+                macosx_audio_iport_set,
+                macosx_audio_iport_get,
+                macosx_audio_iport_details,
+                macosx_audio_iport_count,
+                macosx_audio_is_ready,
+                macosx_audio_wait_for,
+                macosx_audio_supports
+        },
+#endif /* HAVE_MACOSX_AUDIO */
 #ifdef HAVE_SGI_AUDIO
         {
                 NULL,
