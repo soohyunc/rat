@@ -202,8 +202,8 @@ noise_substitution(sample             **audio_buf,
 static uint16_t 
 get_match_length(sample		*buf, 
 		 const int	samples, 
-		 const uint16_t	window_length,
-		 const uint16_t	sample_rate) 
+		 const int	window_length,
+		 const int	sample_rate) 
 {
         /* Match ignores channels - treated as one continuous buffer
 	 * of samples */

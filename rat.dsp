@@ -154,10 +154,6 @@ LINK32=link.exe
 # PROP Default_Filter ".c"
 # Begin Source File
 
-SOURCE=.\process.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\cmd_parser.c
 # End Source File
 # Begin Source File
@@ -175,6 +171,10 @@ SOURCE=.\main_control.c
 # Begin Source File
 
 SOURCE=.\mbus_control.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\process.c
 # End Source File
 # Begin Source File
 
