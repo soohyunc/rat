@@ -561,7 +561,7 @@ int main(int argc, char *argv[])
 #ifdef WIN32
         WSACleanup();
 #endif
-	xfree(token_u[0]);
+	if (ui_enabled) xfree(token_u[0]);
 	xfree(token_e[0]);
 	xfree(token_e[1]);
         debug_msg("Controller exit\n");
