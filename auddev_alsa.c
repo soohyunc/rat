@@ -19,9 +19,8 @@
 #define ALSA_PCM_NEW_HW_PARAMS_API
 #define ALSA_PCM_NEW_SW_PARAMS_API
 #include <alsa/asoundlib.h>
-#include <stdio.h>
-#include <stdarg.h>
 
+#include "config.h"
 #include "config_unix.h"
 #include "audio_types.h"
 #include "auddev_alsa.h"
@@ -250,7 +249,7 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
     int err;
     size_t bsize;
     snd_pcm_uframes_t frames;
-    unsigned int rrate;
+    int rrate;
     snd_pcm_hw_params_t *hw_params;
     snd_pcm_sw_params_t *sw_params;
 
@@ -392,7 +391,7 @@ static int open_volume_ctl(char *name, snd_mixer_elem_t **ctl)
 
 static int porder(const void *a, const void *b)
 {
-    return (((port_t*)a)->priority - ((port_t*)b)->priority);
+    return (((const port_t *)a)->priority - ((const port_t *)b)->priority);
 }
 
 static int setup_mixers()
@@ -964,7 +963,7 @@ int alsa_get_device_count()
 int alsa_audio_supports(audio_desc_t ad, audio_format *fmt)
 {
     snd_pcm_hw_params_t *hw_params;
-    unsigned rmin, rmax, cmin, cmax;
+    int rmin, rmax, cmin, cmax;
     int err, dir;
 
     debug_msg("Got \"ALSA supports\" for %d\n", ad);
