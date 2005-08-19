@@ -232,6 +232,7 @@ outputRenderer(void *inRefCon, AudioUnitRenderActionFlags inActionFlags, const A
 	int requestedFrames = ioData->mDataByteSize / devices[add].mashStreamBasicDescription_.mBytesPerFrame;
        	//int requestedFrames = ioData->mDataByteSize / 2;
 	int zeroIndex = outputReadIndex_ - 1;
+	if (zeroIndex == -1) zeroIndex = writeBufferSize_ - 1;
 
 	//printf("req frames: %d\tDataByteSize %d\ndev: %d\n",requestedFrames, ioData->mDataByteSize, devices[add].mashStreamBasicDescription_.mBytesPerFrame);
 	//printf("outputRender:\n");
