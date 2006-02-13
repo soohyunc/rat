@@ -1,5 +1,5 @@
 dnl UCL RAT configure script.
-dnl $Header$
+dnl $Header: /cs/research/mice/starship/src/local/CVS_repository/rat/configure.in,v 1.54 2004/11/16 14:39:36 ucaccsp Exp $
 dnl
 dnl Process this file with GNU autoconf to generate a configure script.
 
@@ -187,9 +187,9 @@ case "$target" in
 		],AC_MSG_RESULT(missing))
 	])
 	# Do we have ALSA?
-	AC_CHECK_HEADER(alsa/asoundlib.h,[
+	AC_CHECK_HEADER(sys/asoundlib.h,[
 		AU_OBJ="$AU_OBJ auddev_alsa.o"
-		AU_LIB="$AU_LIB /usr/lib/libasound.a"
+		AU_LIB="$AU_LIB -lasound"
 		AC_DEFINE(HAVE_ALSA_AUDIO)
 		# HAVE_OSS_AUDIO is defined so that the ALSA OSS emulation
 		# works for those cards which are not supported natively

@@ -21,9 +21,9 @@
 
 /* Define some tuneables: */
 
-/* Buffer length, in fractions of a second.  This value is used to
+/* Buffer length, in milliseconds.  This value is used to
  * divide the sample-rate to define the buffer-size. */
-#define RAT_ALSA_BUFFER_DIVISOR 6
+#define RAT_ALSA_BUFFER_DIVISOR 80
 
 // External prototypes
 int  alsa_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);
