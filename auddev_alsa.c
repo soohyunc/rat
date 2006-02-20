@@ -981,9 +981,10 @@ int alsa_get_device_count()
     debug_msg("ALSA get device count\n");
 
     snd_ctl_card_info_alloca(&ctl_info);
+
     do {
         sprintf (card , "hw:%d", cindex);
-    debug_msg("ALSA for dev:%s\n",card);
+        debug_msg("ALSA for dev:%s\n",card);
         err = snd_ctl_open (&ctl_handle, card, SND_CTL_NONBLOCK);
 
         if (err == 0) {
@@ -1014,7 +1015,8 @@ int alsa_get_device_count()
         cindex++;
 
     } while (err == 0);
-        cindex--;
+
+    cindex--;
 
     // Get ALSA "default" card - so things like dsnoop etc can work
     if (!snd_ctl_open(&ctl_handle, "default", SND_CTL_NONBLOCK)) {
@@ -1032,9 +1034,9 @@ int alsa_get_device_count()
         debug_msg("Got \"default\" card %s\n", ratCard->name);
         snd_ctl_close(ctl_handle);
         cindex++;
-        cindex++;
       }
-    }
+    } 
+    cindex++;
 
     nRatCards = cindex - 1;
     debug_msg("Got %d devices\n", nRatCards);
