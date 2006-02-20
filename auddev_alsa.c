@@ -366,7 +366,7 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
 static int open_volume_ctl(char *name, snd_mixer_elem_t **ctl)
 {
   snd_mixer_selem_id_t *sid;
-  int err=NULL;
+  int err=0;
 
   snd_mixer_selem_id_alloca(&sid);
 
@@ -379,11 +379,10 @@ static int open_volume_ctl(char *name, snd_mixer_elem_t **ctl)
   //err = (int)*ctl;
   //CHECKOPENERR("Couldn't find mixer control element");
   if (*ctl == NULL ) {
-   fprintf(stderr,"ALSA:Couldn't find mixer control element (name:%s)\n",name);
+   debug_msg("Couldn't find mixer control element (name:%s)\n",name);
    return FALSE;
   }
 
-  printf("open_volume_ctl err2:%d\n",err);
   if (snd_mixer_selem_has_playback_volume(*ctl)) {
     debug_msg("Got volume control %s of type PLAY\n", name);
     // FIXME: Does this always work?
@@ -422,6 +421,7 @@ static int setup_mixers()
     snd_mixer_elem_t *elem;
     int err;
     unsigned i;
+    int need_cap_switch=1;
     
     err = snd_mixer_open (&current.mixer, 0);
     CHECKERR("Failed to open the mixer");
@@ -440,9 +440,13 @@ static int setup_mixers()
 
 
     // Get the playback and capture volume controls
-    if ((!open_volume_ctl(RAT_ALSA_MIXER_PCM_NAME, &current.txgain)) ||
+    /*if ((!open_volume_ctl(RAT_ALSA_MIXER_PCM_NAME, &current.txgain)) ||
         (!open_volume_ctl(RAT_ALSA_MIXER_CAPTURE_NAME, &current.rxgain)))
-	    return FALSE;	
+	    return FALSE;	*/
+    if (!open_volume_ctl(RAT_ALSA_MIXER_PCM_NAME, &current.txgain)) 
+	    return FALSE;
+    if (!open_volume_ctl(RAT_ALSA_MIXER_CAPTURE_NAME, &current.rxgain))
+      need_cap_switch=0;
 
     num_iports = 0;
 
@@ -453,16 +457,20 @@ static int setup_mixers()
         elem && (num_iports < MAX_RAT_DEVICES);
         elem = snd_mixer_elem_next (elem))
     {
-      if (snd_mixer_selem_is_active (elem) &&
-          snd_mixer_selem_has_capture_switch(elem) &&
-          snd_mixer_selem_has_capture_switch_exclusive(elem))
+        int gid = snd_mixer_selem_get_capture_group(elem);
+        const char *name = snd_mixer_selem_get_name(elem);
+        debug_msg("Trying CAPTURE element '%s' of group %d \n", name, gid);
+
+      if (snd_mixer_selem_has_capture_volume(elem) ||
+          snd_mixer_selem_has_capture_switch(elem) )
+      //    snd_mixer_selem_is_active (elem) &&
+      //    (snd_mixer_selem_has_capture_switch(elem)) &&
+      //    snd_mixer_selem_has_capture_switch_exclusive(elem))
       {
         // FIXME: It's theoretically possible that there would be more
         // than one capture group, but RAT isn't really equipped to handle
         // the case so we'll just ignore it for now.
-        int gid = snd_mixer_selem_get_capture_group(elem);
 
-        const char *name = snd_mixer_selem_get_name(elem);
 
         debug_msg("Got CAPTURE element '%s' of group %d\n", name, gid);
 
@@ -593,7 +601,7 @@ void alsa_audio_drain(audio_desc_t ad __attribute__((unused)))
     debug_msg("audio_drain\n");
     err = snd_pcm_drain(current.rx.handle);
     VCHECKERR("Problem draining input");
-    }
+}
     
 
 
@@ -605,6 +613,7 @@ void alsa_audio_set_igain(audio_desc_t ad, int gain)
     int err;
     debug_msg("Set igain %d %d\n", ad, gain);
 
+    //err = snd_mixer_selem_set_capture_volume_all(current.rxgain, gain);
     err = snd_mixer_selem_set_capture_volume_all(current.rxgain, gain);
     VCHECKERR("Couldn't set capture volume");
 }
@@ -619,6 +628,7 @@ int alsa_audio_get_igain(audio_desc_t ad)
     int err;
     debug_msg("Get igain %d\n", ad);
 
+    //err = snd_mixer_selem_get_capture_volume(current.rxgain,
     err = snd_mixer_selem_get_capture_volume(current.rxgain,
                                              SND_MIXER_SCHN_MONO, &igain);
     CHECKERR("Failed to get capture volume");
@@ -638,7 +648,7 @@ void alsa_audio_set_ogain(audio_desc_t ad, int vol)
 {
     int err;
 
-    debug_msg("Set igain %d %d\n", ad, vol);
+    debug_msg("Set ogain %d %d\n", ad, vol);
 
     err = snd_mixer_selem_set_playback_switch_all(current.txgain, 1);
     VCHECKERR("Failed to switch on playback volume");
@@ -657,7 +667,7 @@ alsa_audio_get_ogain(audio_desc_t ad)
     long ogain;
     int err;
 
-    debug_msg("Get igain %d\n", ad);
+    debug_msg("Get ogain %d\n", ad);
     err = snd_mixer_selem_get_playback_volume(current.txgain,
                                              SND_MIXER_SCHN_MONO, &ogain);
     CHECKERR("Failed to get capture volume");
@@ -813,6 +823,7 @@ alsa_audio_oport_set(audio_desc_t ad, audio_port_t port)
 {
     debug_msg("oport_set %d %d\n", ad, port);
 }
+
 audio_port_t
 alsa_audio_oport_get(audio_desc_t ad)
 {
@@ -827,7 +838,8 @@ alsa_audio_oport_count(audio_desc_t ad)
     return 1;
 }
 
-const audio_port_details_t* alsa_audio_oport_details(audio_desc_t ad, int idx)
+const audio_port_details_t*
+alsa_audio_oport_details(audio_desc_t ad, int idx)
 {
 	debug_msg("oport details ad=%d idx=%d\n", ad, idx);
     return &out_port;
@@ -848,6 +860,9 @@ alsa_audio_iport_set(audio_desc_t ad, audio_port_t port)
         err = snd_mixer_selem_set_capture_switch_all(
             iports[i].mixer, (i==port));
     }
+    if (err<0) 
+      current.rxgain=iports[port].mixer;
+
     VCHECKERR("Failed to set record switch");
 }
 
