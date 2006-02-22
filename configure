@@ -309,7 +309,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP RANLIB ac_ct_RANLIB EGREP VERSION MATHLIBS EXTRA_OBJ AU_OBJ AU_INC AU_LIB X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS TCL_INC TCL_LIB TK_INC TK_LIB COMMON_INC COMMON_LIB EXTERNAL_DEP G728_INC G728_LIB G728_CODEC_OBJ LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP RANLIB ac_ct_RANLIB EGREP VERSION MATHLIBS EXTRA_OBJ AUD_OBJ AUD_INC AUD_LIB X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS TCL_INC TCL_LIB TK_INC TK_LIB COMMON_INC COMMON_LIB EXTERNAL_DEP G728_INC G728_LIB G728_CODEC_OBJ LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -5188,9 +5188,9 @@ fi
 # probes devices at startup from those compiled in so this is not an issue
 # when re-distributing.
 #-----------------------------------------------------------------------------
-AU_INC=
-AU_LIB=
-AU_OBJ=
+AUD_INC=""
+AUD_LIB=""
+AUD_OBJ=""
 
 case "$target" in
 *solaris*)
@@ -5202,8 +5202,8 @@ if test "${with_sun_audio+set}" = set; then
   withval="$with_sun_audio"
   SUNAUDIOHOME=$withval
 fi;
-	AU_INC="$AU_INC -I$SUNAUDIOHOME/include"
-	AU_OBJ="$AU_OBJ auddev_sparc.o"
+	AUD_INC="$AUD_INC -I$SUNAUDIOHOME/include"
+	AUD_OBJ="$AUD_OBJ auddev_sparc.o"
 	cat >>confdefs.h <<\_ACEOF
 #define HAVE_SPARC_AUDIO 1
 _ACEOF
@@ -5353,8 +5353,8 @@ echo "${ECHO_T}`eval echo '${'$as_ac_Header'}'`" >&6
 
 fi
 if test `eval echo '${'$as_ac_Header'}'` = yes; then
-  AU_INC="$AU_INC -I$O1KHOME/include"
-		 AU_OBJ="$AU_OBJ auddev_osprey.o"
+  AUD_INC="$AUD_INC -I$O1KHOME/include"
+		 AUD_OBJ="$AUD_OBJ auddev_osprey.o"
 		 cat >>confdefs.h <<\_ACEOF
 #define HAVE_OSPREY_AUDIO 1
 _ACEOF
@@ -5520,7 +5520,7 @@ if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
 
 			echo "$as_me:$LINENO: result: present" >&5
 echo "${ECHO_T}present" >&6
-			AU_OBJ="$AU_OBJ auddev_ixj.o"
+			AUD_OBJ="$AUD_OBJ auddev_ixj.o"
 			cat >>confdefs.h <<\_ACEOF
 #define HAVE_IXJ_AUDIO 1
 _ACEOF
@@ -5537,18 +5537,18 @@ fi
 
 
 	# Do we have ALSA?
-	if test "${ac_cv_header_alsa_asoundlib_h+set}" = set; then
-  echo "$as_me:$LINENO: checking for alsa/asoundlib.h" >&5
-echo $ECHO_N "checking for alsa/asoundlib.h... $ECHO_C" >&6
-if test "${ac_cv_header_alsa_asoundlib_h+set}" = set; then
+	if test "${ac_cv_header_sys_asoundlib_h+set}" = set; then
+  echo "$as_me:$LINENO: checking for sys/asoundlib.h" >&5
+echo $ECHO_N "checking for sys/asoundlib.h... $ECHO_C" >&6
+if test "${ac_cv_header_sys_asoundlib_h+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 fi
-echo "$as_me:$LINENO: result: $ac_cv_header_alsa_asoundlib_h" >&5
-echo "${ECHO_T}$ac_cv_header_alsa_asoundlib_h" >&6
+echo "$as_me:$LINENO: result: $ac_cv_header_sys_asoundlib_h" >&5
+echo "${ECHO_T}$ac_cv_header_sys_asoundlib_h" >&6
 else
   # Is the header compilable?
-echo "$as_me:$LINENO: checking alsa/asoundlib.h usability" >&5
-echo $ECHO_N "checking alsa/asoundlib.h usability... $ECHO_C" >&6
+echo "$as_me:$LINENO: checking sys/asoundlib.h usability" >&5
+echo $ECHO_N "checking sys/asoundlib.h usability... $ECHO_C" >&6
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -5556,7 +5556,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 $ac_includes_default
-#include <alsa/asoundlib.h>
+#include <sys/asoundlib.h>
 _ACEOF
 rm -f conftest.$ac_objext
 if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
@@ -5592,15 +5592,15 @@ echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
 echo "${ECHO_T}$ac_header_compiler" >&6
 
 # Is the header present?
-echo "$as_me:$LINENO: checking alsa/asoundlib.h presence" >&5
-echo $ECHO_N "checking alsa/asoundlib.h presence... $ECHO_C" >&6
+echo "$as_me:$LINENO: checking sys/asoundlib.h presence" >&5
+echo $ECHO_N "checking sys/asoundlib.h presence... $ECHO_C" >&6
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
-#include <alsa/asoundlib.h>
+#include <sys/asoundlib.h>
 _ACEOF
 if { (eval echo "$as_me:$LINENO: \"$ac_cpp conftest.$ac_ext\"") >&5
   (eval $ac_cpp conftest.$ac_ext) 2>conftest.er1
@@ -5634,25 +5634,25 @@ echo "${ECHO_T}$ac_header_preproc" >&6
 # So?  What about this header?
 case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
   yes:no: )
-    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: accepted by the compiler, rejected by the preprocessor!" >&5
-echo "$as_me: WARNING: alsa/asoundlib.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: proceeding with the compiler's result" >&5
-echo "$as_me: WARNING: alsa/asoundlib.h: proceeding with the compiler's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: sys/asoundlib.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: proceeding with the compiler's result" >&5
+echo "$as_me: WARNING: sys/asoundlib.h: proceeding with the compiler's result" >&2;}
     ac_header_preproc=yes
     ;;
   no:yes:* )
-    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: present but cannot be compiled" >&5
-echo "$as_me: WARNING: alsa/asoundlib.h: present but cannot be compiled" >&2;}
-    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h:     check for missing prerequisite headers?" >&5
-echo "$as_me: WARNING: alsa/asoundlib.h:     check for missing prerequisite headers?" >&2;}
-    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: see the Autoconf documentation" >&5
-echo "$as_me: WARNING: alsa/asoundlib.h: see the Autoconf documentation" >&2;}
-    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h:     section \"Present But Cannot Be Compiled\"" >&5
-echo "$as_me: WARNING: alsa/asoundlib.h:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: proceeding with the preprocessor's result" >&5
-echo "$as_me: WARNING: alsa/asoundlib.h: proceeding with the preprocessor's result" >&2;}
-    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: in the future, the compiler will take precedence" >&5
-echo "$as_me: WARNING: alsa/asoundlib.h: in the future, the compiler will take precedence" >&2;}
+    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: present but cannot be compiled" >&5
+echo "$as_me: WARNING: sys/asoundlib.h: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h:     check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: sys/asoundlib.h:     check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: see the Autoconf documentation" >&5
+echo "$as_me: WARNING: sys/asoundlib.h: see the Autoconf documentation" >&2;}
+    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h:     section \"Present But Cannot Be Compiled\"" >&5
+echo "$as_me: WARNING: sys/asoundlib.h:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: sys/asoundlib.h: proceeding with the preprocessor's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: in the future, the compiler will take precedence" >&5
+echo "$as_me: WARNING: sys/asoundlib.h: in the future, the compiler will take precedence" >&2;}
     (
       cat <<\_ASBOX
 ## ------------------------------------------ ##
@@ -5663,21 +5663,21 @@ _ASBOX
       sed "s/^/$as_me: WARNING:     /" >&2
     ;;
 esac
-echo "$as_me:$LINENO: checking for alsa/asoundlib.h" >&5
-echo $ECHO_N "checking for alsa/asoundlib.h... $ECHO_C" >&6
-if test "${ac_cv_header_alsa_asoundlib_h+set}" = set; then
+echo "$as_me:$LINENO: checking for sys/asoundlib.h" >&5
+echo $ECHO_N "checking for sys/asoundlib.h... $ECHO_C" >&6
+if test "${ac_cv_header_sys_asoundlib_h+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  ac_cv_header_alsa_asoundlib_h=$ac_header_preproc
+  ac_cv_header_sys_asoundlib_h=$ac_header_preproc
 fi
-echo "$as_me:$LINENO: result: $ac_cv_header_alsa_asoundlib_h" >&5
-echo "${ECHO_T}$ac_cv_header_alsa_asoundlib_h" >&6
+echo "$as_me:$LINENO: result: $ac_cv_header_sys_asoundlib_h" >&5
+echo "${ECHO_T}$ac_cv_header_sys_asoundlib_h" >&6
 
 fi
-if test $ac_cv_header_alsa_asoundlib_h = yes; then
+if test $ac_cv_header_sys_asoundlib_h = yes; then
 
-		AU_OBJ="$AU_OBJ auddev_alsa.o"
-		AU_LIB="$AU_LIB /usr/lib/libasound.a"
+		AUD_OBJ="$AUD_OBJ auddev_alsa.o"
+		AUD_LIB="$AUD_LIB -lasound"
 		cat >>confdefs.h <<\_ACEOF
 #define HAVE_ALSA_AUDIO 1
 _ACEOF
@@ -5693,7 +5693,7 @@ fi
 
 
 	# Default is to use OSS drivers...
-	AU_OBJ="$AU_OBJ auddev_oss.o"
+	AUD_OBJ="$AUD_OBJ auddev_oss.o"
 
 
 for ac_header in sys/soundcard.h soundcard.h
@@ -6003,7 +6003,7 @@ fi
 done
 
 	if test $ac_cv_header_machine_h="yes" ; then
-		AU_OBJ="$AU_OBJ auddev_pca.o"
+		AUD_OBJ="$AUD_OBJ auddev_pca.o"
 		cat >>confdefs.h <<\_ACEOF
 #define HAVE_PCA_AUDIO 1
 _ACEOF
@@ -6012,7 +6012,7 @@ _ACEOF
 	# Note luigi and newpcm have compatible soundcard.h files but
 	# mixer behaves differently under both systems.  During runtime
 	# only one of these modules will be used.
-	AU_OBJ="$AU_OBJ auddev_luigi.o auddev_newpcm.o"
+	AUD_OBJ="$AUD_OBJ auddev_luigi.o auddev_newpcm.o"
 	cat >>confdefs.h <<\_ACEOF
 #define HAVE_LUIGI_AUDIO 1
 _ACEOF
@@ -6023,7 +6023,7 @@ _ACEOF
 
 	;;
 *netbsd*)
-	AU_OBJ="$AUDIOBJ auddev_netbsd.o auddev_oss.o"
+	AUD_OBJ="$AUDIOBJ auddev_netbsd.o auddev_oss.o"
 	cat >>confdefs.h <<\_ACEOF
 #define HAVE_NETBSD_AUDIO 1
 _ACEOF
@@ -6185,24 +6185,24 @@ _ACEOF
 
 	;;
 *irix*)
-	AU_LIB="$AU_LIB -laudio"
-	AU_OBJ="$AU_OBJ auddev_sgi.o"
+	AUD_LIB="$AUD_LIB -laudio"
+	AUD_OBJ="$AUD_OBJ auddev_sgi.o"
 	cat >>confdefs.h <<\_ACEOF
 #define HAVE_SGI_AUDIO 1
 _ACEOF
 
 	;;
 *hpux*)
-	AU_LIB="$AU_LIB -lAlib"
-	AU_OBJ="$AU_OBJ auddev_hpux_raw.o"
+	AUD_LIB="$AUD_LIB -lAlib"
+	AUD_OBJ="$AUD_OBJ auddev_hpux_raw.o"
 	cat >>confdefs.h <<\_ACEOF
 #define HAVE_HP_AUDIO 1
 _ACEOF
 
 	;;
 *darwin*)
-	AU_LIB="$AU_LIB -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices"
-        AU_OBJ="$AU_OBJ auddev_macosx.o"
+	AUD_LIB="$AUD_LIB -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices"
+        AUD_OBJ="$AUD_OBJ auddev_macosx.o"
 	cat >>confdefs.h <<\_ACEOF
 #define HAVE_MACOSX_AUDIO 1
 _ACEOF
@@ -9485,9 +9485,9 @@ s,@EGREP@,$EGREP,;t t
 s,@VERSION@,$VERSION,;t t
 s,@MATHLIBS@,$MATHLIBS,;t t
 s,@EXTRA_OBJ@,$EXTRA_OBJ,;t t
-s,@AU_OBJ@,$AU_OBJ,;t t
-s,@AU_INC@,$AU_INC,;t t
-s,@AU_LIB@,$AU_LIB,;t t
+s,@AUD_OBJ@,$AUD_OBJ,;t t
+s,@AUD_INC@,$AUD_INC,;t t
+s,@AUD_LIB@,$AUD_LIB,;t t
 s,@X_CFLAGS@,$X_CFLAGS,;t t
 s,@X_PRE_LIBS@,$X_PRE_LIBS,;t t
 s,@X_LIBS@,$X_LIBS,;t t
