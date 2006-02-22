@@ -860,6 +860,10 @@ alsa_audio_iport_set(audio_desc_t ad, audio_port_t port)
         err = snd_mixer_selem_set_capture_switch_all(
             iports[i].mixer, (i==port));
     }
+    /* If there's an error assume that capture switches don't work on 
+     * this card so let RAT try and set the levels on the currently 
+     * selected input item directly
+     */
     if (err<0) 
       current.rxgain=iports[port].mixer;
 
