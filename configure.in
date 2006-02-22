@@ -158,22 +158,22 @@ AC_SUBST(EXTRA_OBJ)
 # probes devices at startup from those compiled in so this is not an issue
 # when re-distributing.
 #-----------------------------------------------------------------------------
-AU_INC=
-AU_LIB=
-AU_OBJ=
+AUD_INC=""
+AUD_LIB=""
+AUD_OBJ=""
 
 case "$target" in
 *solaris*)
 	SUNAUDIOHOME="/usr/demo/SOUND"
 	O1KHOME="/opt/SUNWo1kp"
 	AC_ARG_WITH(sun-audio,    [  --with-sun-audio=DIR    specify Sun audio support home], SUNAUDIOHOME=$withval)
-	AU_INC="$AU_INC -I$SUNAUDIOHOME/include"
-	AU_OBJ="$AU_OBJ auddev_sparc.o" 
+	AUD_INC="$AUD_INC -I$SUNAUDIOHOME/include"
+	AUD_OBJ="$AUD_OBJ auddev_sparc.o" 
 	AC_DEFINE(HAVE_SPARC_AUDIO)
 	AC_ARG_WITH(osprey-audio, [  --with-osprey=DIR       specify Osprey (Sunvideo Plus PCI) support home], O1KHOME=$withval)
 	AC_CHECK_HEADER($O1KHOME/include/oti_audio_device.h,
-		[AU_INC="$AU_INC -I$O1KHOME/include"
-		 AU_OBJ="$AU_OBJ auddev_osprey.o"
+		[AUD_INC="$AUD_INC -I$O1KHOME/include"
+		 AUD_OBJ="$AUD_OBJ auddev_osprey.o"
 		 AC_DEFINE(HAVE_OSPREY_AUDIO)])
 	;;
 *linux*)
@@ -182,21 +182,21 @@ case "$target" in
 		AC_MSG_CHECKING([for recent telephony drivers])
 		AC_EGREP_HEADER(PHONE_CID, linux/telephony.h,[ 
 			AC_MSG_RESULT(present)
-			AU_OBJ="$AU_OBJ auddev_ixj.o"
+			AUD_OBJ="$AUD_OBJ auddev_ixj.o"
 			AC_DEFINE(HAVE_IXJ_AUDIO)
 		],AC_MSG_RESULT(missing))
 	])
 	# Do we have ALSA?
 	AC_CHECK_HEADER(sys/asoundlib.h,[
-		AU_OBJ="$AU_OBJ auddev_alsa.o"
-		AU_LIB="$AU_LIB -lasound"
+		AUD_OBJ="$AUD_OBJ auddev_alsa.o"
+		AUD_LIB="$AUD_LIB -lasound"
 		AC_DEFINE(HAVE_ALSA_AUDIO)
 		# HAVE_OSS_AUDIO is defined so that the ALSA OSS emulation
 		# works for those cards which are not supported natively
 		AC_DEFINE(HAVE_OSS_AUDIO)
 	])
 	# Default is to use OSS drivers...
-	AU_OBJ="$AU_OBJ auddev_oss.o"
+	AUD_OBJ="$AUD_OBJ auddev_oss.o"
 	AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
 	AC_DEFINE(HAVE_OSS_AUDIO)
 	;;
@@ -204,42 +204,42 @@ case "$target" in
 	# PC Speaker device on FreeBSD
 	AC_CHECK_HEADERS(machine/pcaudioio.h)
 	if test $ac_cv_header_machine_h="yes" ; then
-		AU_OBJ="$AU_OBJ auddev_pca.o"
+		AUD_OBJ="$AUD_OBJ auddev_pca.o"
 		AC_DEFINE(HAVE_PCA_AUDIO)
 	fi
 	# Note luigi and newpcm have compatible soundcard.h files but
 	# mixer behaves differently under both systems.  During runtime
 	# only one of these modules will be used.
-	AU_OBJ="$AU_OBJ auddev_luigi.o auddev_newpcm.o"
+	AUD_OBJ="$AUD_OBJ auddev_luigi.o auddev_newpcm.o"
 	AC_DEFINE(HAVE_LUIGI_AUDIO) 
   	AC_DEFINE(HAVE_NEWPCM_AUDIO) 
 	;;
 *netbsd*)
-	AU_OBJ="$AUDIOBJ auddev_netbsd.o auddev_oss.o"
+	AUD_OBJ="$AUDIOBJ auddev_netbsd.o auddev_oss.o"
 	AC_DEFINE(HAVE_NETBSD_AUDIO)
 	AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
 	AC_DEFINE(HAVE_OSS_AUDIO)
 	;;
 *irix*)
-	AU_LIB="$AU_LIB -laudio"
-	AU_OBJ="$AU_OBJ auddev_sgi.o"
+	AUD_LIB="$AUD_LIB -laudio"
+	AUD_OBJ="$AUD_OBJ auddev_sgi.o"
 	AC_DEFINE(HAVE_SGI_AUDIO)
 	;;
 *hpux*)
-	AU_LIB="$AU_LIB -lAlib"
-	AU_OBJ="$AU_OBJ auddev_hpux_raw.o"
+	AUD_LIB="$AUD_LIB -lAlib"
+	AUD_OBJ="$AUD_OBJ auddev_hpux_raw.o"
 	AC_DEFINE(HAVE_HP_AUDIO)
 	;;
 *darwin*)
-	AU_LIB="$AU_LIB -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices"
-        AU_OBJ="$AU_OBJ auddev_macosx.o"
+	AUD_LIB="$AUD_LIB -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices"
+        AUD_OBJ="$AUD_OBJ auddev_macosx.o"
 	AC_DEFINE(HAVE_MACOSX_AUDIO)
 	;;
 esac
 
-AC_SUBST(AU_OBJ)
-AC_SUBST(AU_INC)
-AC_SUBST(AU_LIB)
+AC_SUBST(AUD_OBJ)
+AC_SUBST(AUD_INC)
+AC_SUBST(AUD_LIB)
 
 # X 
 #------------------------------------------------------------------------------
