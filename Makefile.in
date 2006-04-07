@@ -9,7 +9,7 @@ DEFS    = @DEFS@ -DHIDE_SOURCE_STRINGS
 CFLAGS  = @CFLAGS@ $(DEFS)
 LIBS    = @LIBS@ @MATHLIBS@
 LDLIBS  = 
-INCLUDE = @COMMON_INC@ @AU_INC@ @TCL_INC@ @TK_INC@ @G728_INC@
+INCLUDE = @COMMON_INC@ @AUD_INC@ @TCL_INC@ @TK_INC@ @G728_INC@
 CC      = @CC@
 AR      = ar
 RANLIB  = @RANLIB@
@@ -19,9 +19,9 @@ STRIP	= strip
 VERSION = @VERSION@
 RATVER  = rat-$(VERSION)
 
-AU_OBJ  = @AU_OBJ@
-AU_INC  = @AU_INC@
-AU_LIB  = @AU_LIB@
+AUD_OBJ  = @AUD_OBJ@
+AUD_INC  = @AUD_INC@
+AUD_LIB  = @AUD_LIB@
 
 TCL_LIB    = @TCL_LIB@
 TK_LIB     = @TK_LIB@
@@ -43,7 +43,7 @@ mandir      = @mandir@
 
 # Nothing below here set by configure #########################################
 
-AUDIO_OBJS   = $(AU_OBJ) auddev_null.o audio_fmt.o audio_util.o \
+AUDIO_OBJS   = $(AUD_OBJ) auddev_null.o audio_fmt.o audio_util.o \
                auddev_trans.o auddev.o
 
 CODEC_OBJS   = codec.o codec_state.o codec_dvi.o codec_gsm.o \
@@ -100,7 +100,7 @@ libuclsndfile.a: $(SNDFILE_OBJS)
 	$(RANLIB) $@
 
 $(RATVER)-media: $(CHANNEL_OBJS) $(TOY_OBJS) $(MEDIA_OBJS) $(MEDIALIBS) $(EXTERNAL_DEP)
-	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(MEDIA_OBJS) $(MEDIALIBS) $(COMMON_LIB) $(AU_LIB) $(LIBS) $(G728_LIB) -o $(RATVER)-media
+	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(MEDIA_OBJS) $(MEDIALIBS) $(COMMON_LIB) $(AUD_LIB) $(LIBS) $(G728_LIB) -o $(RATVER)-media
 
 $(RATVER)-ui: $(TCL_OBJS) $(UI_OBJS) $(EXTERNAL_DEP)
 	$(CC) $(CFLAGS) $(TCL_OBJS) $(UI_OBJS) $(COMMON_LIB)  $(TCL_LIB) $(TK_LIB) $(X_LIB) $(LIBS) -o $(RATVER)-ui 
