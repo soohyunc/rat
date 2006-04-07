@@ -726,7 +726,7 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
                 adjust_playout = FALSE;
 
                 ccid = channel_coder_get_by_payload((u_char)p->fields.pt);
-                if (channel_verify_and_stat(ccid, (u_char)p->fields.pt, p->meta.data, p->meta.data_len, &units_per_packet, &codec_pt) == FALSE) {
+                if (channel_verify_and_stat(ccid, (u_char)p->fields.pt, (unsigned char *)p->meta.data, p->meta.data_len, &units_per_packet, &codec_pt) == FALSE) { //SV-XXX cast 3rd arg into uchar as per channel.h
                         debug_msg("Packet discarded for ssrc 0x%08lx: packet failed channel verify.\n", e->ssrc);
                         xfree(p);
                         continue;
@@ -741,7 +741,7 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
 			/* this source, and so these have not been initialized). We  */
 			/* reconfigure the source and update the user interface...   */
 			const audio_format   	*dev_fmt = audio_get_ofmt(sp->audio_device);
-                        channel_describe_data(ccid, codec_pt, p->meta.data, p->meta.data_len, src->pdbe->enc_fmt, src->pdbe->enc_fmt_len);
+                        channel_describe_data(ccid, codec_pt, (unsigned char *)p->meta.data, p->meta.data_len, src->pdbe->enc_fmt, src->pdbe->enc_fmt_len); //SV-XXX cast 3rd arg to uchar as per channel.h
                         source_reconfigure(src, ccid, codec_pt, units_per_packet, sp->converter, sp->render_3d,
                                            (uint32_t)dev_fmt->sample_rate,
                                            (uint16_t)dev_fmt->channels);

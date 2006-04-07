@@ -59,10 +59,10 @@ timestamp_t
 ts_map32(uint32_t freq, uint32_t ticks32)
 {
         uint32_t i;
-        timestamp_t out;
+        timestamp_t out = {0, 0, 0}; //SV-XXX was uninitialised
 
         /* Make invalid timestamp */
-        out.check = ~TS_CHECK_BITS;
+        out.check = ~TS_CHECK_BITS; //SV-XXX
 
         for(i = 0; i < TS_NUM_TICKERS; i++) {
                 if (tickers[i].freq == freq) {
@@ -232,7 +232,7 @@ timestamp_t
 ts_convert(uint32_t new_freq, timestamp_t ts)
 {
         uint32_t i;
-        timestamp_t out;
+        timestamp_t out = {0, 0, 0}; //SV-XXX was uninitialised
 
         out.check = 0;
 

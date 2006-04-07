@@ -229,7 +229,8 @@ layered_encoder_output(lay_state *le, struct s_pb *out)
         if (le->elem[0]->rep[0]->state) {
                 for(j=0; j<le->n_layers; j++) {
                         cd->elem[used]->data_len = le->elem[0]->rep[0]->state_len;
-                        cd->elem[used]->data = (char*)block_alloc(le->elem[0]->rep[0]->state_len);
+                        //SV-XXX cd->elem[used]->data = (char *)block_alloc(le->elem[0]->rep[0]->state_len);
+			cd->elem[used]->data = (unsigned char*)block_alloc(le->elem[0]->rep[0]->state_len);
                         memcpy(cd->elem[used]->data, le->elem[0]->rep[0]->state, le->elem[0]->rep[0]->state_len);
                         used++;
                 }
@@ -246,7 +247,8 @@ layered_encoder_output(lay_state *le, struct s_pb *out)
                 for(j = 0; j < le->n_layers; j++) {
                         codec_get_layer(le->codec_id, le->elem[i]->rep[0], j, markers, lu);
                         cd->elem[used]->data_len = lu->data_len;
-                        cd->elem[used]->data = (char*)block_alloc(lu->data_len);
+			//SV-XXX cd->elem[used]->data = (char*)block_alloc(lu->data_len);
+                        cd->elem[used]->data = (unsigned char*)block_alloc(lu->data_len);
                         memcpy(cd->elem[used]->data, lu->data, lu->data_len);
                         used++;
                         if(i==0) cd_len[j] = (uint16_t)lu->data_len;

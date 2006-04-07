@@ -317,10 +317,11 @@ tcl_init1(int argc, char **argv)
 	Tk_DefineBitmap(interp, Tk_GetUid("rec"),  rec_bits,  rec_width,  rec_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("pause"), pause_bits, pause_width, pause_height);
 	Tk_DefineBitmap(interp, Tk_GetUid("stop"),  stop_bits,  stop_width,  stop_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("left"),  left_bits,  left_width, left_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("right"), right_bits, right_width,  right_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("balloon"), balloon_bits, balloon_width,  balloon_height);
-	Tk_DefineBitmap(interp, Tk_GetUid("reception"), reception_bits, reception_width,  reception_height);
+	//SV-XXX cast 3rd argument to (char *)
+	Tk_DefineBitmap(interp, Tk_GetUid("left"),  (char *) left_bits,  left_width, left_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("right"), (char *) right_bits, right_width,  right_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("balloon"), (char *) balloon_bits, balloon_width,  balloon_height);
+	Tk_DefineBitmap(interp, Tk_GetUid("reception"), (char *) reception_bits, reception_width,  reception_height);
 
 	audiotool_obj = Tcl_NewStringObj(ui_audiotool, strlen(ui_audiotool));
 	if (Tcl_EvalObj(interp, audiotool_obj) != TCL_OK) {

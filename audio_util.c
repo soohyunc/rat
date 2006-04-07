@@ -140,7 +140,7 @@ mmx_present(void)
 
         BOOL retval = TRUE;
 
-        DWORD RegEDX;
+        DWORD RegEDX=0; //SV-XXX: initialised to 0 to avoid runtime check error
 
         __try {
                 _asm {
