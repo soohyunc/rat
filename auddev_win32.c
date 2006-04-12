@@ -37,7 +37,7 @@ static  int w32sdk_probe_formats(audio_desc_t ad);
 
 static int  error = 0;
 static char errorText[MAXERRORLENGTH];
-static int  nLoopGain = 100;
+static int  nLoopGain = 0; /* Set 0 (from 100) as in AG version */
 #define     MAX_DEV_NAME 64
 
 static UINT mapAudioDescToMixerID(audio_desc_t ad);
@@ -955,15 +955,15 @@ w32sdk_audio_write(audio_desc_t ad, u_char *buf , int buf_bytes)
         done = 0;
         while(done < buf_bytes) {
                 whCur = w32sdk_audio_write_get_buffer();
-		if (whCur == NULL) {
-			debug_msg("Write/Right out of buffers ???\n");
-			break;
-		}
-		this_write = min(buf_bytes - done, (int)blksz);
-		whCur->dwBufferLength = this_write;
-                memcpy(whCur->lpData,
-                        buf + done,
-                        this_write);
+				if (whCur == NULL) {
+					/* PO-XXX Commenting out as this may not always be a problem
+					as mentioned in AG version. It seems to happen alot in normal operation
+					debug_msg("Write/Right out of buffers ???\n");*/
+					break;
+				}
+				this_write = min(buf_bytes - done, (int)blksz);
+				whCur->dwBufferLength = this_write;
+                memcpy(whCur->lpData, buf + done, this_write);
                 done  += this_write;
                 mmr    = waveOutWrite(shWaveOut, whCur, sizeof(WAVEHDR));
                 if (mmr == WRITE_ERROR_STILL_PLAYING) {
@@ -1157,7 +1157,9 @@ w32sdk_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 			whCur->dwFlags        &= ~WHDR_DONE;
 			mmr = waveInAddBuffer(shWaveIn, whCur, sizeof(WAVEHDR));
                         assert(mmr == MMSYSERR_NOERROR);
-			assert(whCur->dwFlags & WHDR_INQUEUE);
+			/* PO-XXX: Commenting out as it appears to be too keen a check in some instances
+			   e.g. Some drivers aren't perfect.
+			assert(whCur->dwFlags & WHDR_INQUEUE);*/
                         dwBytesUsedAtReadHead = 0;
 			added++;
                 }
