@@ -129,7 +129,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "testcommon"=..\common\testcommon.dsp - Package Owner=<4>
+Project: "testcommon"=..\common\tests\testcommon.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
