@@ -1673,6 +1673,8 @@ v4.2.27	- First release under SUMOVER project includes 4.2.26 stuff as that
           Still not working perfectly.
         - Added new *.vcproj Visual Studio Project files
         - Various updates for compilation on gcc4
+	* 13 April 2006
+
 
 TODO -- They're features not bugs dammit!
 ----
