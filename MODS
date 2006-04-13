@@ -1669,13 +1669,10 @@ v4.2.27	- First release under SUMOVER project includes 4.2.26 stuff as that
           version wasn't quite properly released.
         - Fixes to ALSA driver for wider hardware support and newer style
           hardware (e.g. Emu10k style cards). Also added support for accessing
-          the 'default' ALSO device so ALSA plugins may be used (e.g. dmix etc)
+          the 'default' ALSA device so ALSA plugins may be used (e.g. dmix etc)
           Still not working perfectly.
-        - Added "AES/" in addition to (easily mistyped) "Rijndael/" keyword
-          for activating Rijndael encryption.
         - Added new *.vcproj Visual Studio Project files
         - Various updates for compilation on gcc4
-
 
 TODO -- They're features not bugs dammit!
 ----
