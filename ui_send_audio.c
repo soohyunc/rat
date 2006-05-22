@@ -279,7 +279,7 @@ ui_send_audio_suppress_silence(session_t *sp, char *addr)
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "silence    %lu.%06lu 0x%08lx %s\n", t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec,
+		fprintf(sp->logger, "silence    %ju.%06lu 0x%08lx %s\n", (intmax_t)t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec, //SV-XXX: FreeBSD
 		        (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), name);
 	}
 }
@@ -371,8 +371,8 @@ ui_update_redundancy(session_t *sp, char *addr)
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "channel    %lu.%06lu 0x%08lx redundancy %s\n",
-		        t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec,
+		fprintf(sp->logger, "channel    %ju.%06lu 0x%08lx redundancy %s\n",
+		        (intmax_t)t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec, //SV-XXX: FreeBSD
 		        (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), scf->long_name);
 	}
 
@@ -453,8 +453,8 @@ ui_send_audio_channel_coding(session_t *sp, char *addr)
 		if (sp->logger != NULL) {
 			struct timeval	t;
 			gettimeofday(&t, NULL);
-			fprintf(sp->logger, "channel    %lu.%06lu 0x%08lx none\n",
-				t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0]));
+			fprintf(sp->logger, "channel    %ju.%06lu 0x%08lx none\n",
+				(intmax_t)t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0])); //SV-XXX: FreeBSD
 		}
                 break;
         case 'r':
@@ -485,8 +485,8 @@ ui_send_audio_codec(session_t *sp, char *addr)
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
-		fprintf(sp->logger, "codec      %lu.%06lu 0x%08lx %s\n",
-			t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0]),
+		fprintf(sp->logger, "codec      %ju.%06lu 0x%08lx %s\n",
+			(intmax_t)t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), //SV-XXX: FreeBSD
 			pri_cf->long_name);
 	}
 }
