@@ -447,7 +447,7 @@ ui_send_audio_channel_coding(session_t *sp, char *addr)
 
 	if (!sp->ui_on) return;
         ccd = channel_get_coder_identity(sp->channel_coder);
-        switch(tolower(ccd->name[0])) {
+        switch(tolower((int)ccd->name[0])) { //SV-XXX: NetBSD
         case 'n':
                 mbus_qmsg(sp->mbus_engine, addr, "audio.channel.coding", "\"none\"", TRUE);
 		if (sp->logger != NULL) {

@@ -117,14 +117,14 @@ static int parse_options_early(int argc, const char **argv)
         for (i = 1; i < argc; i++) {
                 if (argv[i][0] != '-' && argv[i][0] != '/') {
                         continue;
-                } else if (tolower(argv[i][1]) == 'v') {
+                } else if (tolower((int)argv[i][1]) == 'v') { //SV-XXX: NetBSD
 #ifdef WIN32
 			MessageBox(NULL, "RAT v" RAT_VERSION, "RAT Version", MB_OK);
 #else
                         printf("%s\n", "RAT v" RAT_VERSION);
 #endif
                         return FALSE;
-                } else if (argv[i][1] == '?' || tolower(argv[i][1]) == 'h') {
+                } else if (argv[i][1] == '?' || tolower((int)argv[i][1]) == 'h') { //SV-XXX: NetBSD
                         usage(NULL);
                         return FALSE;
                 } else if (argv[i][1] == 't' && i + 1 < argc) {

@@ -5,7 +5,7 @@
  *
  * $Id$
  *
- * Copyright (c) 2002-2004 Brook Milligan
+ * Copyright (c) 2002-2006 Brook Milligan
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,9 +42,11 @@ static const char cvsid[] =
 
 #include <sys/types.h>
 #include <sys/time.h>
-#include <sys/audioio.h>
+#include <sys/audioio.h> 
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -56,7 +58,7 @@ static const char cvsid[] =
 #include "memory.h"
 #include "debug.h"
 
-#define DEBUG_MIXER 0
+#define DEBUG_MIXER 1
 
 /*
  * Path to audio/mixer devices.  In addition to the base names given
@@ -65,68 +67,150 @@ static const char cvsid[] =
  * (e.g., /dev/sound0-/dev/sound7 for min_devices=9), but continues
  * beyond that until the first failure when opening a device.
  */
-static char audio_path[MAXPATHLEN] = "/dev/sound";
-static char mixer_path[MAXPATHLEN] = "/dev/mixer";
-static int min_devices = 1 + 8;
+static char     audio_path[MAXPATHLEN] = "/dev/sound";
+static char     mixer_path[MAXPATHLEN] = "/dev/mixer";
+static int      min_devices = 1 + 8;
 
 /*
  * Information on each audio device
  */
 typedef struct audio_dinfo {
-	char *dev_name;		/* Audio device name */
-	int fd;			/* File descriptor */
-	audio_device_t audio_dev;	/* Kernel device info. */
-	int audio_props;	/* Audio device properties */
+	char           *dev_name;	/* Audio device name */
+	int             fd;	/* File descriptor */
+	int             audio_props;	/* Audio device properties */
+	audio_device_t  audio_dev;	/* Kernel device names */
+	audio_info_t    audio_info;	/* Kernel audio info. */
 	audio_encoding_t *audio_enc;	/* Supported kernel encodings */
-}           audio_dinfo_t;
+	const audio_encoding_t *play_encoding;	/* Current encodings */
+	const audio_encoding_t *record_encoding;
+}               audio_dinfo_t;
+
 /*
  * Information on each mixer device
  */
 typedef struct mixer_dinfo {
-	char *dev_name;		/* Mixer device name */
-	int fd;			/* File descriptor */
-	mixer_ctrl_t play_gain;	/* Kernel gain controls */
-	mixer_ctrl_t record_gain;
-	mixer_ctrl_t loopback_gain;
-	int max_play_gain;	/* Maximum gains */
-	int max_record_gain;
-	int max_loopback_gain;
-	int preamp_check;	/* Check if preamp is turned off? */
-}           mixer_dinfo_t;
+	char           *dev_name;	/* Mixer device name */
+	int             fd;	/* File descriptor */
+}               mixer_dinfo_t;
+
+/*
+ * Information on each record volume control port.
+ *
+ * The mixer devices provide a rich interface to the input devices.
+ * In many cases, a mute and preamp device are available in addition
+ * to the gain control device itself.  Furthermore, selection of the
+ * input device is done via the record.source mixer device.
+ * Consequently, for each record volume control, this set of four
+ * mixer devices is required.  Only the gain control is updated
+ * regularly; the other three are constants used to select the
+ * appropriate feature.
+ *
+ * Note that audio devices never provide such a rich interface, so
+ * only one "mixer control", the gain field, is used to store the
+ * required gain information.  XXX - This should really be handled by
+ * a union.
+ *
+ * Unused mixer devices are flagged with a type field equal to
+ * AUDIO_INVALID_PORT.
+ */
+typedef struct record_gain_ctrl {
+	mixer_ctrl_t    gain;
+	mixer_ctrl_t    source;
+	mixer_ctrl_t    mute;
+	mixer_ctrl_t    preamp;
+}               record_gain_ctrl_t;
+
+/*
+ * Array of available record controls.
+ */
+typedef struct record_gain {
+	int             port;	/* selected port */
+	int             n;
+	record_gain_ctrl_t *gain_ctrl;
+}               record_gain_t;
+
+/*
+ * Array of available play controls.
+ *
+ * The interface for play controls is much simpler than that for record
+ * controls, as only one is required even for mixer controls.
+ */
+typedef struct play_gain {
+	int             port;	/* selected port */
+	int             n;
+	mixer_ctrl_t   *gain_ctrl;
+}               play_gain_t;
+
 /*
  * Table of all detected audio devices and their corresponding mixer devices
  */
 typedef struct audio_devices {
-	char *full_name;
-	audio_dinfo_t audio_info;
-	mixer_dinfo_t mixer_info;
-}             audio_devices_t;
+	char           *full_name;
+	audio_dinfo_t   audio_info;
+	mixer_dinfo_t   mixer_info;
+	play_gain_t     play;
+	record_gain_t   record;
+}               audio_devices_t;
+static int      n_devices = 0;
 audio_devices_t *audio_devices = NULL;
-static int n_devices = 0;
 
 /*
- * I/O port mappings between the kernel and rat.
+ * Rat names for I/O ports.
+ *
+ * These tables map the I/O ports known to rat into the set of kernel
+ * audio/mixer devices.  XXX - These tables should be included within
+ * the device table.
  */
-static audio_port_details_t in_ports[] = {
-	{AUDIO_MICROPHONE, AUDIO_PORT_MICROPHONE},
-	{AUDIO_LINE_IN, AUDIO_PORT_LINE_IN},
-	{AUDIO_CD, AUDIO_PORT_CD}
-};
-#define NETBSD_NUM_INPORTS (sizeof(in_ports) / sizeof(in_ports[0]))
+static int      n_rat_in_ports = 0;
+static audio_port_details_t *rat_in_ports = NULL;
 
-static audio_port_details_t out_ports[] = {
-	{AUDIO_SPEAKER, AUDIO_PORT_SPEAKER},
-	{AUDIO_HEADPHONE, AUDIO_PORT_HEADPHONE},
-	{AUDIO_LINE_OUT, AUDIO_PORT_LINE_OUT}
+static int      n_rat_out_ports = 0;
+static audio_port_details_t *rat_out_ports = NULL;
+
+
+/* extra port types in addition to those defined in audio(4) */
+#define AUDIO_INVALID_PORT (-1)
+#define AUDIO_PORT (-2)
+
+#define INVALID_FD (-1)
+
+
+/*
+ * Potential kernel audio I/O ports
+ *
+ * The AUDIO_GETINFO ioctl(2) returns masks of valid I/O ports in the
+ * audio_info.play.avail_ports and audio_info.record.avail_ports
+ * fields.  These tables map each of the potential ports to a label
+ * that can be used as a rat device name.  This is unnecessary for
+ * mixer devices, because the AUDIO_MIXER_DEVINFO ioctl(2) provides
+ * access to the kernel-defined label for each mixer device.  See
+ * audio(4) for more details.
+ */
+static audio_port_details_t netbsd_in_ports[] = {
+	{AUDIO_MICROPHONE, AudioNmicrophone},
+	{AUDIO_LINE_IN, AudioNline},
+	{AUDIO_CD, AudioNcd},
+	{0, AudioNmaster}
 };
-#define NETBSD_NUM_OUTPORTS (sizeof(out_ports) / sizeof(out_ports[0]))
+#define NETBSD_NUM_INPORTS                                                    \
+	(sizeof(netbsd_in_ports) / sizeof(netbsd_in_ports[0]))
+
+static audio_port_details_t netbsd_out_ports[] = {
+	{AUDIO_SPEAKER, AudioNspeaker},
+	{AUDIO_HEADPHONE, AudioNheadphone},
+	{AUDIO_LINE_OUT, AudioNline},
+	{0, AudioNmaster}
+};
+#define NETBSD_NUM_OUTPORTS                                                   \
+	(sizeof(netbsd_out_ports) / sizeof(netbsd_out_ports[0]))
+
 
 /*
  * Encoding mappings between the kernel and rat
  */
 struct audio_encoding_match {
-	int netbsd_encoding;
-	deve_e rat_encoding;
+	int             netbsd_encoding;
+	deve_e          rat_encoding;
 };
 static struct audio_encoding_match audio_encoding_match[] = {
 	{AUDIO_ENCODING_ULAW, DEV_PCMU},
@@ -142,88 +226,114 @@ static struct audio_encoding_match audio_encoding_match[] = {
 	{AUDIO_ENCODING_SLINEAR, DEV_S16},
 	{AUDIO_ENCODING_NONE, 0}
 };
+
 /*
  * Gain control mixer devices
  */
-struct mixer_devices {
-	const char *class;
-	const char *device;
-};
+typedef struct mixer_devices {
+	const char     *class;
+	const char     *device;
+}               mixer_devices_t;
+
 /*
- * Possible mixer play gain devices
+ * Possible mixer play gain devices.
+ *
+ * Unlike the record devices which are listed by the kernel as enums
+ * in the record.source mixer device, the gain devices that
+ * potentially act to control the output level are not defined within
+ * the kernel.  This table serves as a list of devices to consider for
+ * the purpose of identifying output gain controls.
  */
-static struct mixer_devices mixer_play_gain[] = {
-	{AudioCinputs, AudioNdac},
+static mixer_devices_t mixer_play_gain[] = {
 	{AudioCoutputs, AudioNmaster},
+	{AudioCinputs, AudioNdac},
 	{NULL, NULL}
 };
+
 /*
- * Possible mixer record gain devices
+ * Possible loopback gain devices.
+ *
+ * XXX - Loopback handling is not yet supported.  However, this table
+ * plays a role similar to the previous one for output gain controls.
+ * It lists the devices to consider for the purpose of identifying
+ * loopback gain controls.
  */
-static struct mixer_devices mixer_record_gain[] = {
-	{AudioCrecord, AudioNmicrophone},
-	{AudioCinputs, AudioNmicrophone},
-	{AudioCrecord, AudioNvolume},
-	{NULL, NULL}
-};
-/*
- * Possible loopback gain devices
- */
+#if 0				/* XXX */
 static struct mixer_devices mixer_loopback_gain[] = {
 	{AudioCinputs, AudioNmixerout},
 	{AudioCinputs, AudioNspeaker},
 	{NULL, NULL}
 };
+#endif
 
 
-static int probe_device(const char *, const char *);
-static int probe_audio_device(const char *, audio_dinfo_t *);
-static int probe_mixer_device(const char *, mixer_dinfo_t *);
-static mixer_ctrl_t
-match_mixer_device(int fd,
-    mixer_devinfo_t * mixers, int n_mixers,
-    struct mixer_devices * devices);
-static void set_mode(audio_desc_t ad);
-static void set_audio_properties(audio_desc_t ad);
-static int get_mixer_gain(int fd, mixer_ctrl_t * mixer_info);
-static void set_mixer_gain(int fd, mixer_ctrl_t * mixer_info, int gain);
-static u_char average_mixer_level(mixer_ctrl_t mixer_info);
-static void check_record_preamp(int fd);
-static audio_encoding_t *get_encoding(audio_desc_t ad, audio_format * fmt);
-static audio_encoding_t *
-set_encoding(audio_desc_t ad, audio_format * ifmt,
-    audio_format * ofmt);
-static audio_encoding_t *
-set_alt_encoding(audio_desc_t ad, audio_format * ifmt,
-    audio_format * ofmt);
-static int audio_select(audio_desc_t ad, int delay_us);
+static int      probe_device(const char *, const char *);
+static int      probe_audio_device(const char *, audio_dinfo_t *);
+static int      probe_mixer_device(const char *, mixer_dinfo_t *);
+static audio_info_t set_audio_info(audio_format * ifmt, audio_format * ofmt);
+static const audio_encoding_t *match_encoding
+                (audio_format * fmt, const audio_encoding_t * encodings);
+static int      audio_select(audio_desc_t ad, int delay_us);
+static void     update_audio_info(audio_desc_t ad);
+static u_char   average_mixer_level(mixer_level_t);
 
+static void     find_gain_ctrl(audio_desc_t);
+static void     find_audio_play_ctrl(audio_desc_t);
+static void     find_audio_record_ctrl(audio_desc_t);
+static void     find_mixer_play_ctrl(audio_desc_t, mixer_devinfo_t *);
+static void     find_mixer_record_ctrl(audio_desc_t, mixer_devinfo_t *);
+
+static void     map_netbsd_ports(audio_desc_t ad);
+static void     fix_rat_names(void);
+
+static mixer_devinfo_t *mixer_devices(audio_desc_t ad);
+
+static void     append_record_gain_ctrl(record_gain_t *);
+static void
+copy_record_gain_ctrl(record_gain_t * gains,
+		      record_gain_ctrl_t * src);
+static void     copy_rat_in_port(audio_port_details_t * src);
+
+#if DEBUG_MIXER > 0
+static void     print_audio_properties(audio_desc_t ad);
+static void
+print_audio_formats(audio_desc_t ad,
+		    audio_format * ifmt, audio_format * ofmt);
+static void     print_gain_ctrl(audio_desc_t, mixer_devinfo_t *);
+#endif				/* DEBUG_MIXER */
 
 /*
- * Conversion to/from kernel device gains
+ * Conversion between rat and kernel device gains.
+ *
+ * Rat uses a scale of 0-100 for gain controls, whereas the kernel
+ * uses a scale of AUDIO_MIN_GAIN-AUDIO_MAX_GAIN.  Consequently, gains
+ * must be mapped from one scheme to the other.
  */
-#define netbsd_rat_to_device(gain,max_gain)                                 \
-	((gain) * (max_gain - AUDIO_MIN_GAIN) / MAX_AMP + AUDIO_MIN_GAIN)
-#define netbsd_device_to_rat(gain,max_gain)                                 \
-	(((gain) - AUDIO_MIN_GAIN) * MAX_AMP / (max_gain - AUDIO_MIN_GAIN))
+
+#define netbsd_rat_to_device(gain)                                            \
+	((gain) * (AUDIO_MAX_GAIN - AUDIO_MIN_GAIN) / MAX_AMP + AUDIO_MIN_GAIN)
+#define netbsd_device_to_rat(gain)                                            \
+	(((gain) - AUDIO_MIN_GAIN) * MAX_AMP / (AUDIO_MAX_GAIN - AUDIO_MIN_GAIN))
+
+#define AUDIO_MID_GAIN ((AUDIO_MIN_GAIN + AUDIO_MAX_GAIN) / 2)
 
 
 /*
  * netbsd_audio_init: initialize data structures
  *
  * Determine how many audio/mixer devices are available.  Return: TRUE
- * if number of devices is greater than 0, FALSE otherwise
+ * if number of devices is greater than 0, FALSE otherwise.
  */
 
 int
 netbsd_audio_init()
 {
-	int i, found;
-	char audio_dev_name[MAXPATHLEN];
-	char mixer_dev_name[MAXPATHLEN];
-	char dev_index[MAXPATHLEN];
+	int             i, found;
+	char            audio_dev_name[MAXPATHLEN];
+	char            mixer_dev_name[MAXPATHLEN];
+	char            dev_index[MAXPATHLEN];
 
-#if DEBUG_MIXER
+#if DEBUG_MIXER > 1
 	warnx("netbsd_audio_init()");
 #endif
 	probe_device(audio_path, mixer_path);
@@ -239,7 +349,7 @@ netbsd_audio_init()
 		found = probe_device(audio_dev_name, mixer_dev_name);
 		++i;
 	}
-#if DEBUG_MIXER
+#if DEBUG_MIXER > 1
 	warnx("netbsd_audio_init():  n_devices=%d", n_devices);
 #endif
 	return n_devices > 0;
@@ -261,7 +371,7 @@ netbsd_audio_device_count()
  * netbsd_audio_device_name: return the full audio device name
  */
 
-char *
+char           *
 netbsd_audio_device_name(audio_desc_t ad)
 {
 	assert(audio_devices && n_devices > ad);
@@ -272,111 +382,89 @@ netbsd_audio_device_name(audio_desc_t ad)
 /*
  * netbsd_audio_open: try to open the audio and mixer devices
  *
- * Return: valid file descriptor if ok, -1 otherwise.
+ * Return: valid file descriptor if ok, INVALID_FD otherwise.
  */
 
 int
 netbsd_audio_open(audio_desc_t ad, audio_format * ifmt, audio_format * ofmt)
 {
-	int fd;
-	int full_duplex = 1;
-	audio_info_t dev_info;
-	audio_encoding_t *encp;
+	int             audio_fd;
+	int             mixer_fd;
+	int             full_duplex = 1;
 
 	assert(audio_devices && n_devices > ad
-	    && audio_devices[ad].audio_info.fd == -1);
+	       && audio_devices[ad].audio_info.fd == INVALID_FD);
 
-	warnx("opening %s (audio device %s, mixer device %s)",
-	    audio_devices[ad].full_name,
-	    audio_devices[ad].audio_info.dev_name,
-	    audio_devices[ad].mixer_info.dev_name);
 	debug_msg("Opening %s (audio device %s, mixer device %s)\n",
-	    audio_devices[ad].full_name,
-	    audio_devices[ad].audio_info.dev_name,
-	    audio_devices[ad].mixer_info.dev_name);
+		  audio_devices[ad].full_name,
+		  audio_devices[ad].audio_info.dev_name,
+		  audio_devices[ad].mixer_info.dev_name);
+#if DEBUG_MIXER > 0
+	warnx("opening %s", audio_devices[ad].full_name);
+	warnx("  audio device: %s", audio_devices[ad].audio_info.dev_name);
+	if (audio_devices[ad].mixer_info.dev_name)
+		warnx("  mixer device: %s",
+		      audio_devices[ad].mixer_info.dev_name);
+	print_audio_properties(ad);
+#endif
 
-	fd = open(audio_devices[ad].audio_info.dev_name, O_RDWR | O_NONBLOCK);
-	if (fd < 0) {
-		/*
-		 * Because we opened the device with O_NONBLOCK, the
-		 * wait flag was not updated so update it manually.
-		 */
-		debug_msg("netbsd_audio_open(): setting wait flag.\n");
-		fd = open(audio_devices[ad].audio_info.dev_name, O_WRONLY);
-		if (fd < 0) {
-			AUDIO_INITINFO(&dev_info);
-			dev_info.play.waiting = 1;
-			(void) ioctl(fd, AUDIO_SETINFO, &dev_info);
-			close(fd);
-		}
-		return -1;
+	/* open audio device */
+	audio_fd = open(audio_devices[ad].audio_info.dev_name,
+			O_RDWR | O_NONBLOCK, 0);
+	if (audio_fd < 0) {
+		perror("opening audio device");
+		return INVALID_FD;
 	}
-	audio_devices[ad].audio_info.fd = fd;
+	audio_devices[ad].audio_info.fd = audio_fd;
 
-	if (!(audio_devices[ad].audio_info.audio_props
-		& AUDIO_PROP_INDEPENDENT)
-	    && !audio_format_match(ifmt, ofmt)) {
-		warnx("NetBSD audio: independent i/o formats not supported.");
-		close(fd);
-		audio_devices[ad].audio_info.fd = -1;
-		return -1;
-	}
-	if (ifmt->bytes_per_block != ofmt->bytes_per_block) {
-		warnx("NetBSD audio: "
-		    "independent i/o block sizes not supported.");
-		close(fd);
-		audio_devices[ad].audio_info.fd = -1;
-		return -1;
-	}
-	if (ioctl(fd, AUDIO_FLUSH, NULL) < 0) {
-		perror("netbsd_audio_open: flushing device");
-		close(fd);
-		audio_devices[ad].audio_info.fd = -1;
-		return -1;
-	}
-	if (ioctl(fd, AUDIO_SETFD, &full_duplex) < 0) {
+	/* set full duplex */
+	if (ioctl(audio_fd, AUDIO_SETFD, &full_duplex) < 0) {
 		perror("setting full duplex");
-		return FALSE;
+		close(audio_fd);
+		audio_devices[ad].audio_info.fd = INVALID_FD;
+		return INVALID_FD;
 	}
-	if ((encp = set_encoding(ad, ifmt, ofmt)) == NULL) {
-		if ((encp = set_alt_encoding(ad, ifmt, ofmt)) == NULL) {
-			perror("netbsd_audio_open: "
-			    "no audio encodings supported");
-			close(fd);
-			audio_devices[ad].audio_info.fd = -1;
-			return -1;
-		}
-	}
-	warnx("NetBSD audio format: "
-	    "%d Hz, %d bits/sample, %d %s, "
-	    "requested rat encoding %d, "
-	    "mapped kernel encoding %s)",
-	    ifmt->sample_rate, ifmt->bits_per_sample,
-	    ifmt->channels, ifmt->channels == 1 ? "channel" : "channels",
-	    ifmt->encoding, encp->name);
-	if (encp->flags & AUDIO_ENCODINGFLAG_EMULATED)
-		warnx("NetBSD %s support is emulated", encp->name);
+	/* set audio formats */
+	audio_devices[ad].audio_info.audio_info = set_audio_info(ifmt, ofmt);
 
-	set_mode(ad);
-	set_audio_properties(ad);
-	if (ioctl(fd, AUDIO_GETINFO, &dev_info) < 0) {
-		perror("netbsd_audio_open: getting parameters");
-		close(fd);
-		audio_devices[ad].audio_info.fd = -1;
-		return -1;
+	/* find requested encoding */
+	audio_devices[ad].audio_info.play_encoding
+		= match_encoding(ofmt, audio_devices[ad].audio_info.audio_enc);
+	audio_devices[ad].audio_info.record_encoding
+		= match_encoding(ifmt, audio_devices[ad].audio_info.audio_enc);
+	audio_devices[ad].audio_info.audio_info.play.encoding
+		= audio_devices[ad].audio_info.play_encoding->encoding;
+	audio_devices[ad].audio_info.audio_info.record.encoding
+		= audio_devices[ad].audio_info.record_encoding->encoding;
+
+	/* notify kernel */
+	if (ioctl(audio_fd, AUDIO_SETINFO,
+		  &audio_devices[ad].audio_info.audio_info) < 0) {
+		perror("setting audio info");
 	}
-	audio_devices[ad].mixer_info.fd = -1;
+#if DEBUG_MIXER > 0
+	print_audio_formats(ad, ifmt, ofmt);
+#endif
+
+	/* flush audio output */
+	if (ioctl(audio_fd, AUDIO_FLUSH, NULL) < 0) {
+		perror("flushing audio device");
+		close(audio_fd);
+		audio_devices[ad].audio_info.fd = INVALID_FD;
+		return INVALID_FD;
+	}
+	/* open mixer device (if any) */
+	audio_devices[ad].mixer_info.fd = INVALID_FD;
 	if (audio_devices[ad].mixer_info.dev_name) {
-		fd = open(audio_devices[ad].mixer_info.dev_name,
-		    O_RDWR | O_NONBLOCK);
-		if (fd >= 0 && audio_devices[ad].mixer_info.preamp_check) {
-			audio_devices[ad].mixer_info.fd = fd;
-			if (audio_devices[ad].mixer_info.record_gain.type
-			    == AUDIO_MIXER_VALUE)
-				check_record_preamp(fd);
-			audio_devices[ad].mixer_info.preamp_check = FALSE;
+		mixer_fd = open(audio_devices[ad].mixer_info.dev_name,
+				O_RDONLY | O_NONBLOCK, 0);
+		if (mixer_fd < 0) {
+			perror("ignoring mixer device");
 		}
+		audio_devices[ad].mixer_info.fd = mixer_fd;
 	}
+	find_gain_ctrl(ad);
+
 	return audio_devices[ad].audio_info.fd;
 }
 
@@ -391,26 +479,39 @@ netbsd_audio_close(audio_desc_t ad)
 	assert(audio_devices && n_devices > ad);
 
 	if (audio_devices[ad].audio_info.fd >= 0) {
-		/* Flush device first */
+		/* flush audio device first */
 		if (ioctl(audio_devices[ad].audio_info.fd, AUDIO_FLUSH,
-			NULL) < 0)
+			  NULL) < 0)
 			perror("netbsd_audio_close: flushing device");
 		(void) close(audio_devices[ad].audio_info.fd);
 	}
 	if (audio_devices[ad].mixer_info.fd >= 0) {
 		(void) close(audio_devices[ad].mixer_info.fd);
 	}
-	warnx("closing %s (audio device %s, mixer device %s)",
-	    audio_devices[ad].full_name,
-	    audio_devices[ad].audio_info.dev_name,
-	    audio_devices[ad].mixer_info.dev_name);
-	debug_msg("Closing %s (audio device %s, mixer device %s)\n",
-	    audio_devices[ad].full_name,
-	    audio_devices[ad].audio_info.dev_name,
-	    audio_devices[ad].mixer_info.dev_name);
+	free(audio_devices[ad].play.gain_ctrl);
+	audio_devices[ad].play.gain_ctrl = NULL;
+	audio_devices[ad].play.n = 0;
+	free(audio_devices[ad].record.gain_ctrl);
+	audio_devices[ad].record.gain_ctrl = NULL;
+	audio_devices[ad].record.n = 0;
 
-	audio_devices[ad].audio_info.fd = -1;
-	audio_devices[ad].mixer_info.fd = -1;
+	free(rat_in_ports);
+	rat_in_ports = NULL;
+	n_rat_in_ports = 0;
+	free(rat_in_ports);
+	rat_out_ports = NULL;
+	n_rat_out_ports = 0;
+
+#if DEBUG_MIXER > 0
+	warnx("closing %s", audio_devices[ad].full_name);
+#endif
+	debug_msg("Closing %s (audio device %s, mixer device %s)\n",
+		  audio_devices[ad].full_name,
+		  audio_devices[ad].audio_info.dev_name,
+		  audio_devices[ad].mixer_info.dev_name);
+
+	audio_devices[ad].audio_info.fd = INVALID_FD;
+	audio_devices[ad].mixer_info.fd = INVALID_FD;
 }
 
 
@@ -433,13 +534,13 @@ netbsd_audio_drain(audio_desc_t ad)
 /*
  * netbsd_audio_duplex: check duplex flag for audio device
  *
- * Return: duplex flag, or 0 on failure (shouldn't happen)
+ * Return: duplex flag, or 0 on failure (which shouldn't happen)
  */
 
 int
 netbsd_audio_duplex(audio_desc_t ad)
 {
-	int duplex;
+	int             duplex;
 
 	assert(audio_devices && n_devices > ad);
 	if (audio_devices[ad].audio_info.fd < 0)
@@ -462,9 +563,9 @@ netbsd_audio_duplex(audio_desc_t ad)
 int
 netbsd_audio_read(audio_desc_t ad, u_char * buf, int buf_bytes)
 {
-	int fd;
-	int bytes_read = 0;
-	int this_read;
+	int             fd;
+	int             bytes_read = 0;
+	int             this_read;
 
 	assert(audio_devices && n_devices > ad);
 	fd = audio_devices[ad].audio_info.fd;
@@ -473,7 +574,7 @@ netbsd_audio_read(audio_desc_t ad, u_char * buf, int buf_bytes)
 
 	while (buf_bytes > 0) {
 		this_read = read(audio_devices[ad].audio_info.fd,
-		    (char *) buf, buf_bytes);
+				 (char *) buf, buf_bytes);
 		if (this_read < 0) {
 			if (errno != EAGAIN && errno != EINTR)
 				perror("netbsd_audio_read");
@@ -496,9 +597,9 @@ netbsd_audio_read(audio_desc_t ad, u_char * buf, int buf_bytes)
 int
 netbsd_audio_write(audio_desc_t ad, u_char * buf, int buf_bytes)
 {
-	int fd;
-	int bytes_written = 0;
-	int this_write;
+	int             fd;
+	int             bytes_written = 0;
+	int             this_write;
 
 	assert(audio_devices && n_devices > ad);
 	fd = audio_devices[ad].audio_info.fd;
@@ -528,7 +629,7 @@ netbsd_audio_write(audio_desc_t ad, u_char * buf, int buf_bytes)
 void
 netbsd_audio_non_block(audio_desc_t ad)
 {
-	int on = 1;		/* Enable non-blocking I/O */
+	int             on = 1;	/* enable non-blocking I/O */
 
 	assert(audio_devices && n_devices > ad);
 	if (audio_devices[ad].audio_info.fd < 0)
@@ -546,7 +647,7 @@ netbsd_audio_non_block(audio_desc_t ad)
 void
 netbsd_audio_block(audio_desc_t ad)
 {
-	int on = 0;		/* Disable non-blocking I/O */
+	int             on = 0;	/* disable non-blocking I/O */
 
 	assert(audio_devices && n_devices > ad);
 	if (audio_devices[ad].audio_info.fd < 0)
@@ -558,265 +659,44 @@ netbsd_audio_block(audio_desc_t ad)
 
 
 /*
- * netbsd_audio_iport_set: set input port
- */
-
-void
-netbsd_audio_iport_set(audio_desc_t ad, audio_port_t port)
-{
-	int fd;
-	audio_info_t dev_info;
-
-	assert(audio_devices && n_devices > ad);
-	fd = audio_devices[ad].audio_info.fd;
-	if (fd < 0)
-		return;
-
-	AUDIO_INITINFO(&dev_info);
-	dev_info.record.port = port;
-	if (ioctl(fd, AUDIO_SETINFO, &dev_info) < 0)
-		warnx("netbsd_audio_iport_set: "
-		    "cannot set input port %d: %s",
-		    port, strerror(errno));
-}
-
-
-/*
- * netbsd_audio_iport_get: get information on input port
- */
-
-audio_port_t
-netbsd_audio_iport_get(audio_desc_t ad)
-{
-	int fd;
-	audio_info_t dev_info;
-
-	assert(audio_devices && n_devices > ad);
-	fd = audio_devices[ad].audio_info.fd;
-	if (fd < 0)
-		return 0;
-
-	if (ioctl(fd, AUDIO_GETINFO, &dev_info) < 0) {
-		perror("netbsd_audio_iport_get: getting device parameters");
-		return 0;
-	}
-	return dev_info.record.port;
-}
-
-
-/*
- * netbsd_audio_oport_set: set output port
- */
-
-void
-netbsd_audio_oport_set(audio_desc_t ad, audio_port_t port)
-{
-	int fd;
-	audio_info_t dev_info;
-
-	assert(audio_devices && n_devices > ad);
-	fd = audio_devices[ad].audio_info.fd;
-	if (fd < 0)
-		return;
-
-	/*
-	 * Some drivers report no available ports, because the mixer cannot
-	 * change output ports.
-	 */
-	if (ioctl(fd, AUDIO_GETINFO, &dev_info) < 0) {
-		perror("netbsd_audio_oport_set: getting device parameters");
-		return;
-	}
-	if (dev_info.play.avail_ports) {
-		AUDIO_INITINFO(&dev_info);
-		dev_info.play.port = port;
-		if (ioctl(fd, AUDIO_SETINFO, &dev_info) < 0) {
-			warnx("NetBSD audio driver cannot set output port");
-		}
-	}
-}
-
-
-/*
- * netbsd_audio_oport_get: get information on output port
- */
-
-audio_port_t
-netbsd_audio_oport_get(audio_desc_t ad)
-{
-	int fd;
-	audio_info_t dev_info;
-
-	assert(audio_devices && n_devices > ad);
-	fd = audio_devices[ad].audio_info.fd;
-	if (fd < 0)
-		return 0;
-
-	if (ioctl(fd, AUDIO_GETINFO, &dev_info) < 0) {
-		perror("netbsd_audio_oport_get: getting device parameters");
-		return 0;
-	}
-	return dev_info.play.port;
-}
-
-
-/*
- * netbsd_audio_set_igain: set record gain (percent (%) of maximum)
- */
-
-void
-netbsd_audio_set_igain(audio_desc_t ad, int gain)
-{
-	int fd;
-	audio_info_t audio_info;
-	mixer_ctrl_t mixer_info;
-	int max_gain;
-
-	assert(audio_devices && n_devices > ad);
-
-	fd = audio_devices[ad].mixer_info.fd;
-	if (fd >= 0) {
-		mixer_info = audio_devices[ad].mixer_info.record_gain;
-		max_gain = audio_devices[ad].mixer_info.max_record_gain;
-		set_mixer_gain(fd, &mixer_info,
-		    netbsd_rat_to_device(gain, max_gain));
-		audio_devices[ad].mixer_info.record_gain = mixer_info;
-		return;
-	}
-	fd = audio_devices[ad].audio_info.fd;
-	if (fd >= 0) {
-		AUDIO_INITINFO(&audio_info);
-		audio_info.record.gain =
-		    netbsd_rat_to_device(gain, AUDIO_MAX_GAIN);
-		if (ioctl(fd, AUDIO_SETINFO, &audio_info) < 0) {
-			perror("netbsd_audio_set_igain: "
-			    "setting audio parameters");
-			return;
-		}
-	}
-}
-
-
-/*
- * netbsd_audio_get_igain: get record gain (percent (%) of maximum)
+ * netbsd_audio_iport_count: get number of available input ports.
  */
 
 int
-netbsd_audio_get_igain(audio_desc_t ad)
+netbsd_audio_iport_count(audio_desc_t ad)
 {
-	int fd;
-	audio_info_t audio_info;
-	mixer_ctrl_t mixer_info;
-	int gain, max_gain;
+#if DEBUG_MIXER > 1
+	warnx("netbsd_audio_iport_count(%d):  "
+	      "n_rat_in_ports=%d, record_devices=%d",
+	      ad, n_rat_in_ports, audio_devices[ad].record.n);
+#endif
 
 	assert(audio_devices && n_devices > ad);
+	if (audio_devices[ad].audio_info.fd < 0)
+		return 0;
 
-	fd = audio_devices[ad].mixer_info.fd;
-	if (fd >= 0) {
-		mixer_info = audio_devices[ad].mixer_info.record_gain;
-		if (ioctl(fd, AUDIO_MIXER_READ, &mixer_info) < 0) {
-			perror("netbsd_audio_get_igain: "
-			    "getting mixer parameters");
-			return 0;
-		}
-		audio_devices[ad].mixer_info.record_gain = mixer_info;
-		gain = average_mixer_level(mixer_info);
-		max_gain = audio_devices[ad].mixer_info.max_record_gain;
-		return netbsd_device_to_rat(gain, max_gain);
-	}
-	fd = audio_devices[ad].audio_info.fd;
-	if (fd >= 0) {
-		if (ioctl(fd, AUDIO_GETINFO, &audio_info) < 0) {
-			perror("netbsd_audio_get_igain: "
-			    "getting audio parameters");
-			return 0;
-		}
-		return netbsd_device_to_rat(audio_info.record.gain,
-		    AUDIO_MAX_GAIN);
-	}
-	return 0;
+	return n_rat_in_ports;
 }
 
 
 /*
- * netbsd_audio_set_ogain: set play (output) gain (percent (%) of maximum)
- */
-
-void
-netbsd_audio_set_ogain(audio_desc_t ad, int gain)
-{
-	int fd;
-	audio_info_t audio_info;
-	mixer_ctrl_t mixer_info;
-	int max_gain;
-
-	assert(audio_devices && n_devices > ad);
-
-	fd = audio_devices[ad].mixer_info.fd;
-	if (fd >= 0) {
-		mixer_info = audio_devices[ad].mixer_info.play_gain;
-		if (mixer_info.type == AUDIO_MIXER_VALUE) {
-			max_gain = audio_devices[ad].mixer_info.max_play_gain;
-			set_mixer_gain(fd, &mixer_info,
-			    netbsd_rat_to_device(gain, max_gain));
-			audio_devices[ad].mixer_info.play_gain = mixer_info;
-			return;
-		}
-	}
-	fd = audio_devices[ad].audio_info.fd;
-	if (fd >= 0) {
-		AUDIO_INITINFO(&audio_info);
-		audio_info.play.gain =
-		    netbsd_rat_to_device(gain, AUDIO_MAX_GAIN);
-		if (ioctl(fd, AUDIO_SETINFO, &audio_info) < 0) {
-			perror("netbsd_audio_set_ogain: "
-			    "setting audio parameters");
-			return;
-		}
-	}
-}
-
-
-/*
- * netbsd_audio_get_ogain: get play (output) gain (percent (%) of maximum)
+ * netbsd_audio_oport_count: get number of available output ports
  */
 
 int
-netbsd_audio_get_ogain(audio_desc_t ad)
+netbsd_audio_oport_count(audio_desc_t ad)
 {
-	int fd;
-	audio_info_t audio_info;
-	mixer_ctrl_t mixer_info;
-	int gain, max_gain;
+#if DEBUG_MIXER > 1
+	warnx("netbsd_audio_oport_count(%d):  "
+	      "n_rat_out_ports=%d, play_devices=%d",
+	      ad, n_rat_out_ports, audio_devices[ad].play.n);
+#endif
 
 	assert(audio_devices && n_devices > ad);
+	if (audio_devices[ad].audio_info.fd < 0)
+		return 0;
 
-	fd = audio_devices[ad].mixer_info.fd;
-	if (fd >= 0) {
-		mixer_info = audio_devices[ad].mixer_info.play_gain;
-		if (mixer_info.type == AUDIO_MIXER_VALUE) {
-			if (ioctl(fd, AUDIO_MIXER_READ, &mixer_info) < 0) {
-				perror("netbsd_audio_get_ogain: "
-				    "getting mixer parameters");
-				return 0;
-			}
-			audio_devices[ad].mixer_info.play_gain = mixer_info;
-			gain = average_mixer_level(mixer_info);
-			max_gain = audio_devices[ad].mixer_info.max_play_gain;
-			return netbsd_device_to_rat(gain, max_gain);
-		}
-	}
-	fd = audio_devices[ad].audio_info.fd;
-	if (fd >= 0) {
-		if (ioctl(fd, AUDIO_GETINFO, &audio_info) < 0) {
-			perror("netbsd_audio_get_igain: "
-			    "getting audio parameters");
-			return 0;
-		}
-		return netbsd_device_to_rat(audio_info.play.gain,
-		    AUDIO_MAX_GAIN);
-	}
-	return 0;
+	return n_rat_out_ports;
 }
 
 
@@ -828,8 +708,11 @@ const audio_port_details_t *
 netbsd_audio_iport_details(audio_desc_t ad, int idx)
 {
 	assert(audio_devices && n_devices > ad);
-	assert((unsigned) idx < NETBSD_NUM_INPORTS);
-	return &in_ports[idx];
+	if (audio_devices[ad].audio_info.fd < 0)
+		return NULL;
+	assert(0 <= idx && idx < n_rat_in_ports);
+
+	return &rat_in_ports[idx];
 }
 
 
@@ -841,98 +724,357 @@ const audio_port_details_t *
 netbsd_audio_oport_details(audio_desc_t ad, int idx)
 {
 	assert(audio_devices && n_devices > ad);
-	assert((unsigned) idx < NETBSD_NUM_OUTPORTS);
-	return &out_ports[idx];
+	if (audio_devices[ad].audio_info.fd < 0)
+		return NULL;
+	assert(0 <= idx && idx < n_rat_out_ports);
+
+	return &rat_out_ports[idx];
 }
 
 
 /*
- * netbsd_audio_iport_count: get number of available input ports.
+ * netbsd_audio_get_iport: get information on input port
  */
 
-int
-netbsd_audio_iport_count(audio_desc_t ad)
+audio_port_t
+netbsd_audio_get_iport(audio_desc_t ad)
 {
-	int fd;
-	audio_info_t dev_info;
-	audio_port_t n = 0;
+	audio_port_t    port;
 
 	assert(audio_devices && n_devices > ad);
-	fd = audio_devices[ad].audio_info.fd;
-	if (fd < 0)
-		return 0;
+	if (audio_devices[ad].audio_info.fd < 0)
+		return AUDIO_INVALID_PORT;
 
-	if (ioctl(fd, AUDIO_GETINFO, &dev_info) < 0) {
-		perror("netbsd_audio_iport_count: getting parameters");
-		return 0;
-	}
-	while (dev_info.record.avail_ports != 0) {
-		if (dev_info.record.avail_ports & 1)
-			n++;
-		dev_info.record.avail_ports >>= 1;
-	}
-	return n;
+	update_audio_info(ad);
+
+	port = audio_devices[ad].record.port;
+#if DEBUG_MIXER > 1
+	warnx("netbsd_audio_get_iport(%d): iport=%d", ad, port);
+#endif
+	return port;
 }
 
 
 /*
- * netbsd_audio_oport_count: get number of available output ports
+ * netbsd_audio_get_oport: get information on output port
+ */
+
+audio_port_t
+netbsd_audio_get_oport(audio_desc_t ad)
+{
+	audio_port_t    port;
+
+	assert(audio_devices && n_devices > ad);
+	if (audio_devices[ad].audio_info.fd < 0)
+		return AUDIO_INVALID_PORT;
+
+	update_audio_info(ad);
+
+	port = audio_devices[ad].play.port;
+#if DEBUG_MIXER > 1
+	warnx("netbsd_audio_get_oport(%d):  oport=%d", ad, port);
+#endif
+	return port;
+}
+
+
+/*
+ * netbsd_audio_set_iport: set input port
+ */
+
+void
+netbsd_audio_set_iport(audio_desc_t ad, audio_port_t port)
+{
+	int             fd;
+	record_gain_ctrl_t *record_ctrl;
+	audio_info_t    audio_info;
+	mixer_ctrl_t    mixer_info;
+
+#if DEBUG_MIXER > 1
+	warnx("netbsd_audio_set_iport(%d,%d)", ad, port);
+#endif
+
+	assert(audio_devices && n_devices > ad);
+	if (audio_devices[ad].audio_info.fd < 0)
+		return;
+
+	update_audio_info(ad);
+	record_ctrl = &audio_devices[ad].record.gain_ctrl[port];
+
+	/* audio control */
+	if (record_ctrl->gain.type == AUDIO_PORT) {
+		fd = audio_devices[ad].audio_info.fd;
+		AUDIO_INITINFO(&audio_info);
+		audio_info.record.port = record_ctrl->gain.dev;
+		audio_info.record.gain
+			= average_mixer_level(record_ctrl->gain.un.value);
+		if (ioctl(fd, AUDIO_SETINFO, &audio_info) < 0) {
+			perror("netbsd_audio_set_iport: "
+			       "setting audio parameters");
+			return;
+		}
+	}
+	/* mixer controls */
+	if (record_ctrl->gain.type != AUDIO_PORT) {
+		fd = audio_devices[ad].mixer_info.fd;
+		/* source */
+		mixer_info = record_ctrl->source;
+		if (ioctl(fd, AUDIO_MIXER_WRITE, &mixer_info) < 0) {
+			perror("netbsd_audio_set_iport: "
+			       "setting mixer record source");
+			return;
+		}
+		/* mute */
+		if (record_ctrl->mute.dev != AUDIO_INVALID_PORT) {
+			mixer_info = record_ctrl->mute;
+			if (ioctl(fd, AUDIO_MIXER_WRITE, &mixer_info) < 0) {
+				perror("netbsd_audio_set_iport: "
+				       "setting mixer mute");
+				return;
+			}
+		}
+		/* preamp */
+		if (record_ctrl->preamp.dev != AUDIO_INVALID_PORT) {
+			mixer_info = record_ctrl->preamp;
+			if (ioctl(fd, AUDIO_MIXER_WRITE, &mixer_info) < 0) {
+				perror("netbsd_audio_set_iport: "
+				       "setting mixer preamp");
+				return;
+			}
+		}
+	}
+	audio_devices[ad].record.port = port;
+}
+
+
+/*
+ * netbsd_audio_set_oport: set output port
+ */
+
+void
+netbsd_audio_set_oport(audio_desc_t ad, audio_port_t port)
+{
+	int             fd;
+	mixer_ctrl_t   *play_ctrl;
+	audio_info_t    audio_info;
+
+#if DEBUG_MIXER > 1
+	warnx("netbsd_audio_set_oport(%d, %d)", ad, port);
+#endif
+
+	assert(audio_devices && n_devices > ad);
+	if (audio_devices[ad].audio_info.fd < 0)
+		return;
+
+	update_audio_info(ad);
+	play_ctrl = &audio_devices[ad].play.gain_ctrl[port];
+
+	/* inform kernel only if audio port */
+	if (play_ctrl->type == AUDIO_PORT) {
+		fd = audio_devices[ad].audio_info.fd;
+		AUDIO_INITINFO(&audio_info);
+		audio_info.play.port = play_ctrl->dev;
+		audio_info.play.gain = play_ctrl->un.value.level[0];
+		if (ioctl(fd, AUDIO_SETINFO, &audio_info) < 0) {
+			perror("netbsd_audio_set_oport: "
+			       "setting audio parameters");
+			return;
+		}
+	}
+	audio_devices[ad].play.port = port;
+}
+
+
+/*
+ * netbsd_audio_get_igain: get record gain (percent (%) of maximum)
  */
 
 int
-netbsd_audio_oport_count(audio_desc_t ad)
+netbsd_audio_get_igain(audio_desc_t ad)
 {
-	int fd;
-	audio_info_t dev_info;
-	int n = 0;
+	int             port;
+	record_gain_ctrl_t *record_ctrl;
+	int             gain;
 
 	assert(audio_devices && n_devices > ad);
-	fd = audio_devices[ad].audio_info.fd;
-	if (fd < 0)
+	if (audio_devices[ad].audio_info.fd < 0)
 		return 0;
 
-	if (ioctl(fd, AUDIO_GETINFO, &dev_info) < 0) {
-		perror("netbsd_audio_oport_count: getting parameters");
+	update_audio_info(ad);
+
+	port = audio_devices[ad].record.port;
+	record_ctrl = &audio_devices[ad].record.gain_ctrl[port];
+	gain = average_mixer_level(record_ctrl->gain.un.value);
+#if DEBUG_MIXER > 1
+	warnx("netbsd_audio_get_igain(%d):  average igain=%d", ad, gain);
+#endif
+	gain = netbsd_device_to_rat(gain);
+	return gain;
+}
+
+
+/*
+ * netbsd_audio_get_ogain: get play (output) gain (percent (%) of maximum)
+ */
+
+int
+netbsd_audio_get_ogain(audio_desc_t ad)
+{
+	int             port;
+	mixer_ctrl_t   *play_ctrl;
+	int             gain;
+
+	assert(audio_devices && n_devices > ad);
+	if (audio_devices[ad].audio_info.fd < 0)
 		return 0;
+
+	update_audio_info(ad);
+
+	port = audio_devices[ad].play.port;
+	play_ctrl = &audio_devices[ad].play.gain_ctrl[port];
+	gain = average_mixer_level(play_ctrl->un.value);
+#if DEBUG_MIXER > 1
+	warnx("netbsd_audio_get_ogain(%d):  ogain=%d", ad, gain);
+#endif
+	gain = netbsd_device_to_rat(gain);
+	return gain;
+}
+
+
+/*
+ * netbsd_audio_set_igain: set record gain (percent (%) of maximum)
+ */
+
+void
+netbsd_audio_set_igain(audio_desc_t ad, int gain)
+{
+	int             fd;
+	audio_info_t    audio_info;
+	mixer_ctrl_t    mixer_info;
+	int             port;
+	record_gain_ctrl_t *record_ctrl;
+	int             i;
+
+#if DEBUG_MIXER > 1
+	warnx("netbsd_audio_set_igain(%d,%d)", ad, gain);
+#endif
+
+	assert(audio_devices && n_devices > ad);
+	if (audio_devices[ad].audio_info.fd < 0)
+		return;
+
+	update_audio_info(ad);
+
+	gain = netbsd_rat_to_device(gain);
+	port = audio_devices[ad].record.port;
+	record_ctrl = &audio_devices[ad].record.gain_ctrl[port];
+
+	/* audio control */
+	if (record_ctrl->gain.type == AUDIO_PORT) {
+		fd = audio_devices[ad].audio_info.fd;
+		AUDIO_INITINFO(&audio_info);
+		audio_info.record.gain = gain;
+		if (ioctl(fd, AUDIO_SETINFO, &audio_info) < 0) {
+			perror("netbsd_audio_set_igain: "
+			       "setting audio parameters");
+			return;
+		}
 	}
-	while (dev_info.play.avail_ports != 0) {
-		if (dev_info.play.avail_ports & 1)
-			n++;
-		dev_info.play.avail_ports >>= 1;
+	/* mixer control */
+	if (record_ctrl->gain.type != AUDIO_PORT) {
+		fd = audio_devices[ad].mixer_info.fd;
+		mixer_info = record_ctrl->gain;
+		for (i = 0; i < record_ctrl->gain.un.value.num_channels; ++i)
+			mixer_info.un.value.level[i] = gain;
+		if (ioctl(fd, AUDIO_MIXER_WRITE, &mixer_info) < 0) {
+			perror("netbsd_audio_set_igain: "
+			       "setting mixer parameters");
+			return;
+		}
 	}
-	/*
-	 * Some drivers report no available ports, because the mixer
-	 * cannot change output ports.  Assume one port is available
-	 * in these cases.
-	 */
-	if (n == 0)
-		n = 1;
-	return n;
+	/* update record gain */
+	for (i = 0; i < record_ctrl->gain.un.value.num_channels; ++i)
+		record_ctrl->gain.un.value.level[i] = gain;
+}
+
+
+/*
+ * netbsd_audio_set_ogain: set play (output) gain (percent (%) of maximum)
+ */
+
+void
+netbsd_audio_set_ogain(audio_desc_t ad, int gain)
+{
+	int             fd;
+	audio_info_t    audio_info;
+	mixer_ctrl_t    mixer_info;
+	int             port;
+	mixer_ctrl_t   *play_ctrl;
+	int             i;
+
+#if DEBUG_MIXER > 1
+	warnx("netbsd_audio_set_ogain(%d, %d)", ad, gain);
+#endif
+
+	assert(audio_devices && n_devices > ad);
+	if (audio_devices[ad].audio_info.fd < 0)
+		return;
+
+	update_audio_info(ad);
+
+	gain = netbsd_rat_to_device(gain);
+	port = audio_devices[ad].play.port;
+	play_ctrl = &audio_devices[ad].play.gain_ctrl[port];
+
+	/* audio control */
+	if (play_ctrl->type == AUDIO_PORT) {
+		fd = audio_devices[ad].audio_info.fd;
+		AUDIO_INITINFO(&audio_info);
+		audio_info.play.gain = gain;
+		if (ioctl(fd, AUDIO_SETINFO, &audio_info) < 0) {
+			perror("netbsd_audio_set_ogain: "
+			       "setting audio parameters");
+			return;
+		}
+	}
+	/* mixer control */
+	if (play_ctrl->type != AUDIO_PORT) {
+		fd = audio_devices[ad].mixer_info.fd;
+		mixer_info = *play_ctrl;
+		for (i = 0; i < play_ctrl->un.value.num_channels; ++i)
+			mixer_info.un.value.level[i] = gain;
+		if (ioctl(fd, AUDIO_MIXER_WRITE, &mixer_info) < 0) {
+			perror("netbsd_audio_set_ogain: "
+			       "setting mixer parameters");
+			return;
+		}
+	}
+	/* update play gain */
+	for (i = 0; i < play_ctrl->un.value.num_channels; ++i)
+		play_ctrl->un.value.level[i] = gain;
 }
 
 
 /*
  * netbsd_audio_loopback: set loopback gain (percent (%) of maximum)
+ *
+ * Note:  nothing to do; loopback device is not yet supported.
  */
 
 void
 netbsd_audio_loopback(audio_desc_t ad, int gain)
 {
-	int fd;
-	mixer_ctrl_t mixer_info;
-	int max_gain;
+	int             unused_gain;
+
+#if DEBUG_MIXER > 1
+	warnx("netbsd_audio_loopback(%d, %d)", ad, gain);
+#endif
 
 	assert(audio_devices && n_devices > ad);
+	if (audio_devices[ad].audio_info.fd < 0)
+		return;
 
-	fd = audio_devices[ad].mixer_info.fd;
-	if (fd >= 0) {
-		mixer_info = audio_devices[ad].mixer_info.loopback_gain;
-		max_gain = audio_devices[ad].mixer_info.max_loopback_gain;
-		set_mixer_gain(fd, &mixer_info,
-		    netbsd_rat_to_device(gain, max_gain));
-		audio_devices[ad].mixer_info.loopback_gain = mixer_info;
-	}
-	/* Nothing to do; loopback gain is not available via audio device */
+	unused_gain = gain;	/* XXX - avoid compiler complaints */
 }
 
 
@@ -973,9 +1115,8 @@ netbsd_audio_wait_for(audio_desc_t ad, int delay_ms)
 int
 netbsd_audio_supports(audio_desc_t ad, audio_format * fmt)
 {
-	int fd;
-	audio_info_t dev_info;	/* Save state to restore later */
-	audio_encoding_t *supported;
+	int             fd;
+	const audio_encoding_t *encodings;
 
 	assert(audio_devices && n_devices > ad);
 	fd = audio_devices[ad].audio_info.fd;
@@ -992,40 +1133,8 @@ netbsd_audio_supports(audio_desc_t ad, audio_format * fmt)
 	 */
 	audio_format_change_encoding(fmt, fmt->encoding);
 
-	if (ioctl(fd, AUDIO_GETINFO, &dev_info) < 0) {
-		perror("netbsd_audio_supports: getting device parameters");
-		return FALSE;
-	}
-	supported = set_encoding(ad, fmt, fmt);
-	debug_msg("NetBSD audio: "
-	    "%d Hz, %d bits/sample, %d %s, "
-	    "requested rat encoding %d, "
-	    "mapped kernel encoding %s)",
-	    fmt->sample_rate, fmt->bits_per_sample,
-	    fmt->channels, fmt->channels == 1 ? "channel" : "channels",
-	    fmt->encoding, supported ? supported->name : "none");
-	return supported != NULL;
-}
-
-
-/*
- * auddev_netbsd_setfd: set full duplex mode
- *
- * This function is needed for OSS support, because the
- * SNDCTL_DSP_SETDUPLEX ioctl is not implemented in NetBSD.
- */
-
-int
-auddev_netbsd_setfd(int fd)
-{
-	int full_duplex = 1;
-	int error;
-
-	error = ioctl(fd, AUDIO_SETFD, &full_duplex);
-	if (error < 0)
-		perror("setting full duplex");
-
-	return error;
+	encodings = audio_devices[ad].audio_info.audio_enc;
+	return match_encoding(fmt, encodings) != NULL;
 }
 
 
@@ -1036,26 +1145,31 @@ auddev_netbsd_setfd(int fd)
 int
 probe_device(const char *audio_dev_name, const char *mixer_dev_name)
 {
-	audio_dinfo_t audio_info;
-	mixer_dinfo_t mixer_info;
+	audio_dinfo_t   audio_info;
+	mixer_dinfo_t   mixer_info;
 
 	if (!probe_audio_device(audio_dev_name, &audio_info))
 		return FALSE;
-
 	probe_mixer_device(mixer_dev_name, &mixer_info);
+
+#if DEBUG_MIXER > 1
+	warnx("  %s", audio_dev_name);
+#endif
+
 	audio_devices = (audio_devices_t *) realloc
-	    (audio_devices, (n_devices + 1) * sizeof(audio_devices_t));
+		(audio_devices, (n_devices + 1) * sizeof(audio_devices_t));
 	audio_devices[n_devices].full_name
-	    = (char *) malloc(strlen(audio_info.audio_dev.name)
-	    + strlen(audio_info.dev_name)
-	    + 4 + 1);
+		= (char *) malloc(strlen(audio_info.audio_dev.name)
+				  + strlen(audio_info.dev_name)
+				  + 4 + 1);
 	strcpy(audio_devices[n_devices].full_name,
-	    audio_info.audio_dev.name);
+	       audio_info.audio_dev.name);
 	strcat(audio_devices[n_devices].full_name, " -- ");
 	strcat(audio_devices[n_devices].full_name, audio_info.dev_name);
 	audio_devices[n_devices].audio_info = audio_info;
 	audio_devices[n_devices].mixer_info = mixer_info;
 	++n_devices;
+
 	return TRUE;
 }
 
@@ -1067,50 +1181,49 @@ probe_device(const char *audio_dev_name, const char *mixer_dev_name)
 int
 probe_audio_device(const char *dev_name, audio_dinfo_t * audio_info)
 {
-	int fd;
-	audio_device_t audio_dev;
-	int audio_props;
-	audio_encoding_t aenc;
-	audio_encoding_t *audio_enc;
-	int nenc;
-	int i;
+	int             fd;
+	audio_encoding_t encoding;
+	int             n;
+	int             i;
 
 	debug_msg("probe_audio_device(%s)\n", dev_name);
-	if ((fd = open(dev_name, O_RDONLY | O_NONBLOCK)) == -1)
+
+	if ((fd = open(dev_name, O_RDWR | O_NONBLOCK, 0)) < 0)
 		return FALSE;
 
-	if (ioctl(fd, AUDIO_GETDEV, &audio_dev) < 0) {
+	if (ioctl(fd, AUDIO_GETDEV, &audio_info->audio_dev) < 0) {
+		perror("getting audio device info");
 		close(fd);
 		return FALSE;
 	}
-	if (ioctl(fd, AUDIO_GETPROPS, &audio_props) < 0) {
+	if (ioctl(fd, AUDIO_GETPROPS, &audio_info->audio_props) < 0) {
 		perror("getting audio device properties");
 		close(fd);
 		return FALSE;
 	}
-	if (!(audio_props & AUDIO_PROP_FULLDUPLEX)) {
+	if (!(audio_info->audio_props & AUDIO_PROP_FULLDUPLEX)) {
 		warnx("skipping %s; only full duplex devices supported.",
-		    audio_info->dev_name);
+		      audio_info->dev_name);
+		close(fd);
 		return FALSE;
 	}
-	for (nenc = 0;; nenc++) {
-		aenc.index = nenc;
-		if (ioctl(fd, AUDIO_GETENC, &aenc) < 0)
+	/* get supported encodings */
+	for (n = 0;; n++) {
+		encoding.index = n;
+		if (ioctl(fd, AUDIO_GETENC, &encoding) < 0)
 			break;
 	}
-	audio_enc = calloc(nenc + 1, sizeof *audio_enc);
-
-	for (i = 0; i < nenc; i++) {
-		audio_enc[i].index = i;
-		ioctl(fd, AUDIO_GETENC, &audio_enc[i]);
+	audio_info->audio_enc = calloc(n + 1, sizeof *audio_info->audio_enc);
+	for (i = 0; i < n; i++) {
+		audio_info->audio_enc[i].index = i;
+		ioctl(fd, AUDIO_GETENC, &audio_info->audio_enc[i]);
 	}
+
 	close(fd);
 
 	audio_info->dev_name = strdup(dev_name);
-	audio_info->fd = -1;
-	audio_info->audio_dev = audio_dev;
-	audio_info->audio_props = audio_props;
-	audio_info->audio_enc = audio_enc;
+	audio_info->fd = INVALID_FD;
+	AUDIO_INITINFO(&audio_info->audio_info);
 	return TRUE;
 }
 
@@ -1122,503 +1235,98 @@ probe_audio_device(const char *dev_name, audio_dinfo_t * audio_info)
 int
 probe_mixer_device(const char *dev_name, mixer_dinfo_t * mixer_info)
 {
-	int fd;
-	mixer_devinfo_t devinfo;
-	mixer_devinfo_t *mixers;
-	int n_mixers = 0;
-	mixer_ctrl_t minfo;
-	int i;
-	int ok;
+	int             fd;
 
 	debug_msg("probe_mixer_device(%s)\n", dev_name);
-	memset(mixer_info, 1, sizeof(*mixer_info));
-	mixer_info->fd = -1;
-	mixer_info->preamp_check = TRUE;
 
-	if ((fd = open(dev_name, O_RDONLY | O_NONBLOCK)) == -1)
+	if ((fd = open(dev_name, O_RDONLY | O_NONBLOCK, 0)) < 0) {
 		return FALSE;
-
-	/* Count number of mixer devices */
-	while (1) {
-		devinfo.index = n_mixers;
-		if (ioctl(fd, AUDIO_MIXER_DEVINFO, &devinfo) < 0)
-			break;
-		++n_mixers;
 	}
-	if (n_mixers <= 0)
-		return FALSE;
-	mixers = calloc(n_mixers, sizeof(*mixers));
-
-	/* Get kernel information on mixer devices */
-	for (i = 0; i < n_mixers; i++) {
-		mixers[i].index = i;
-		ioctl(fd, AUDIO_MIXER_DEVINFO, &mixers[i]);
-	}
-
-	/* Find suitable mixer devices */
-	mixer_info->play_gain = match_mixer_device
-	    (fd, mixers, n_mixers, mixer_play_gain);
-	mixer_info->record_gain = match_mixer_device
-	    (fd, mixers, n_mixers, mixer_record_gain);
-	mixer_info->loopback_gain = match_mixer_device
-	    (fd, mixers, n_mixers, mixer_loopback_gain);
-
-	free(mixers);
-
-	ok = mixer_info->play_gain.type == AUDIO_MIXER_VALUE
-	    || mixer_info->record_gain.type == AUDIO_MIXER_VALUE
-	    || mixer_info->loopback_gain.type == AUDIO_MIXER_VALUE;
-
-	if (ok)
-		mixer_info->dev_name = strdup(dev_name);
-
-	/*
-	 * Find maximum mixer gains.  Note that the maximum gain for
-	 * any given mixer device is hardware dependent and may be
-	 * less than AUDIO_MAX_GAIN.  The maximum gain is stored so
-	 * that the rat controls will act consistently across mixer
-	 * devices.
-	 */
-	minfo = mixer_info->play_gain;
-	if (minfo.type == AUDIO_MIXER_VALUE) {
-		set_mixer_gain(fd, &minfo, AUDIO_MAX_GAIN);
-		mixer_info->max_play_gain = get_mixer_gain(fd, &minfo);
-		set_mixer_gain(fd, &minfo, AUDIO_MIN_GAIN);
-	} else
-		mixer_info->max_play_gain = 0;
-	minfo = mixer_info->record_gain;
-	if (minfo.type == AUDIO_MIXER_VALUE) {
-		set_mixer_gain(fd, &minfo, AUDIO_MAX_GAIN);
-		mixer_info->max_record_gain = get_mixer_gain(fd, &minfo);
-		set_mixer_gain(fd, &minfo, AUDIO_MIN_GAIN);
-	} else
-		mixer_info->max_record_gain = 0;
-	minfo = mixer_info->loopback_gain;
-	if (minfo.type == AUDIO_MIXER_VALUE) {
-		set_mixer_gain(fd, &minfo, AUDIO_MAX_GAIN);
-		mixer_info->max_loopback_gain = get_mixer_gain(fd, &minfo);
-		set_mixer_gain(fd, &minfo, AUDIO_MIN_GAIN);
-	} else
-		mixer_info->max_loopback_gain = 0;
-
 	close(fd);
 
-	/* Report matched mixer devices */
-	if (ok) {
-		warnx("NetBSD mixer gain controls: %s", dev_name);
-		if (mixer_info->play_gain.type == AUDIO_MIXER_VALUE) {
-			int i = mixer_info->play_gain.dev;
-#if DEBUG_MIXER
-			warnx("  output gain:   %s.%s [%d]",
-			    mixers[mixers[i].mixer_class].label.name,
-			    mixers[i].label.name, i);
-#else
-			warnx("  output gain:   %s.%s",
-			    mixers[mixers[i].mixer_class].label.name,
-			    mixers[i].label.name);
-#endif
-		}
-		if (mixer_info->record_gain.type == AUDIO_MIXER_VALUE) {
-			int i = mixer_info->record_gain.dev;
-#if DEBUG_MIXER
-			warnx("  record gain:   %s.%s [%d]",
-			    mixers[mixers[i].mixer_class].label.name,
-			    mixers[i].label.name, i);
-#else
-			warnx("  record gain:   %s.%s",
-			    mixers[mixers[i].mixer_class].label.name,
-			    mixers[i].label.name);
-#endif
-		}
-		if (mixer_info->loopback_gain.type == AUDIO_MIXER_VALUE) {
-			int i = mixer_info->loopback_gain.dev;
-#if DEBUG_MIXER
-			warnx("  loopback gain: %s.%s [%d]",
-			    mixers[mixers[i].mixer_class].label.name,
-			    mixers[i].label.name, i);
-#else
-			warnx("  loopback gain: %s.%s",
-			    mixers[mixers[i].mixer_class].label.name,
-			    mixers[i].label.name);
-#endif
-		}
-	} else
-		warnx("no NetBSD mixer gain contols found: %s", dev_name);
-
-	return ok;
+	mixer_info->dev_name = strdup(dev_name);
+	mixer_info->fd = INVALID_FD;
+	return TRUE;
 }
 
-
 /*
- * match_mixer_device
- */
-
-mixer_ctrl_t
-match_mixer_device(int fd,
-    mixer_devinfo_t * mixers, int n_mixers,
-    struct mixer_devices * devices)
-{
-	mixer_ctrl_t mixer_info;
-	mixer_devinfo_t *m;
-	struct mixer_devices *d;
-	const char *class_name;
-	const char *device_name;
-
-	for (d = devices; d->class != NULL; ++d) {
-#if DEBUG_MIXER
-		warnx("match_mixer_device():  target=%s.%s",
-		    d->class, d->device);
-#endif
-		for (m = mixers; m < mixers + n_mixers; ++m) {
-			if (m->type != AUDIO_MIXER_VALUE)
-				continue;
-			class_name = mixers[m->mixer_class].label.name;
-			device_name = m->label.name;
-#if DEBUG_MIXER
-			warnx("  %d. %s.%s", m - mixers,
-			    class_name, device_name);
-#endif
-			if (strcmp(class_name, d->class) != 0)
-				continue;
-			if (strcmp(device_name, d->device) != 0)
-				continue;
-#if DEBUG_MIXER
-			warnx("match_mixer_device():  matched");
-#endif
-			mixer_info.dev = m->index;
-			mixer_info.type = m->type;
-			mixer_info.un.value.num_channels =
-			    m->un.v.num_channels;
-			if (ioctl(fd, AUDIO_MIXER_READ, &mixer_info) < 0) {
-				perror("match_mixer_device");
-				continue;
-			}
-			return mixer_info;
-		}
-	}
-	mixer_info.dev = 0;
-	mixer_info.type = 0;
-	return mixer_info;
-}
-
-
-/*
- * set_mode: set kernel audio device mode
+ * set_audio_info: set kernel data structure
  *
- * Note that AUMODE_PLAY_ALL is critical here to ensure continuous
- * audio output.  Rat attempts to manage the timing of the output
- * audio stream; it is important that the kernel not attempt to do the
- * same.
+ * Return: initialized kernel data structure
  */
 
-void
-set_mode(audio_desc_t ad)
+audio_info_t
+set_audio_info(audio_format * ifmt, audio_format * ofmt)
 {
-	int fd = audio_devices[ad].audio_info.fd;
-	audio_info_t dev_info;
+	audio_info_t    audio_info;
+	int             blocksize;
+	int             i;
 
-	if (ioctl(fd, AUDIO_GETINFO, &dev_info) < 0) {
-		perror("set_mode: getting parameters");
-		return;
+	AUDIO_INITINFO(&audio_info);
+
+	/*
+         * Note that AUMODE_PLAY_ALL is critical here to ensure continuous
+         * audio output.  Rat attempts to manage the timing of the output
+         * audio stream; it is important that the kernel not attempt to do the
+         * same.
+         */
+	audio_info.mode = AUMODE_PLAY_ALL | AUMODE_RECORD;
+
+	audio_info.play.sample_rate = ofmt->sample_rate;
+	audio_info.play.channels = ofmt->channels;
+	audio_info.play.precision = ofmt->bits_per_sample;
+	audio_info.play.encoding = ofmt->encoding;
+
+	audio_info.record.sample_rate = ifmt->sample_rate;
+	audio_info.record.channels = ifmt->channels;
+	audio_info.record.precision = ifmt->bits_per_sample;
+	audio_info.record.encoding = ifmt->encoding;
+
+	blocksize = max(ifmt->bytes_per_block, ofmt->bytes_per_block);
+	i = 1;
+	while (blocksize) {
+		blocksize >>= 1;
+		i <<= 1;
 	}
-	if (!(dev_info.mode & AUMODE_PLAY_ALL)
-	    || !(dev_info.mode & AUMODE_RECORD)) {
-		AUDIO_INITINFO(&dev_info);
-		dev_info.mode = AUMODE_PLAY_ALL | AUMODE_RECORD;
-		if (ioctl(fd, AUDIO_SETINFO, &dev_info) < 0) {
-			perror("setting play/record mode");
-		}
-	}
+	audio_info.blocksize = i;	/* next power of 2 larger than
+					 * blocksize */
+
+	return audio_info;
 }
 
-
 /*
- * set_audio_properties: set audio device properties
- *
- * Initialize kernel audio device balance and record port.  Note that
- * audio gains remain as before.
- */
-
-void
-set_audio_properties(audio_desc_t ad)
-{
-	int fd = audio_devices[ad].audio_info.fd;
-	audio_info_t dev_info;
-
-	AUDIO_INITINFO(&dev_info);
-
-	/* Input port setup */
-	dev_info.record.port = AUDIO_MICROPHONE;
-	dev_info.record.balance = AUDIO_MID_BALANCE;
-
-	/* Output port setup */
-	dev_info.play.balance = AUDIO_MID_BALANCE;
-
-	if (ioctl(fd, AUDIO_SETINFO, &dev_info) < 0) {
-		perror("setting properties");
-		return;
-	}
-}
-
-
-/*
- * get mixer gain (kernel units)
- */
-
-int
-get_mixer_gain(int fd, mixer_ctrl_t * mixer_info)
-{
-	assert(fd >= 0);
-	assert(mixer_info->type == AUDIO_MIXER_VALUE);
-
-	if (ioctl(fd, AUDIO_MIXER_READ, mixer_info) < 0) {
-		perror("get_mixer_gain: getting mixer parameters");
-		return 0;
-	}
-	return average_mixer_level(*mixer_info);
-}
-
-
-/*
- * set_mixer_gain (kernel units)
- */
-
-void
-set_mixer_gain(int fd, mixer_ctrl_t * mixer_info, int gain)
-{
-	mixer_ctrl_t devinfo;
-	int i;
-
-	assert(fd >= 0);
-	assert(mixer_info->type == AUDIO_MIXER_VALUE);
-
-	devinfo = *mixer_info;
-	if (ioctl(fd, AUDIO_MIXER_READ, &devinfo) < 0) {
-		perror("set_mixer_gain: reading mixer parameters");
-		return;
-	}
-	for (i = 0; i < devinfo.un.value.num_channels; ++i)
-		devinfo.un.value.level[i] = gain;
-
-	if (ioctl(fd, AUDIO_MIXER_WRITE, &devinfo) < 0) {
-		perror("set_mixer_gain: setting mixer parameters");
-		return;
-	}
-	*mixer_info = devinfo;
-}
-
-
-/*
- * average_mixer_level: calculate the average across channels
- */
-
-u_char
-average_mixer_level(mixer_ctrl_t mixer_info)
-{
-	int i;
-	int num_channels = mixer_info.un.value.num_channels;
-	int sum = 0;
-
-	for (i = 0; i < num_channels; ++i)
-		sum += mixer_info.un.value.level[i];
-	return sum / num_channels;
-}
-
-
-/*
- * check_record_preamp: warn about potential preamps turned off
- *
- * Rat provides only a minimal interface to the mixer device.  Because
- * there is no control for this, users are often unaware that the
- * microphone preamp is off when it should be on.  This provides a
- * reminder.
- */
-
-void
-check_record_preamp(int fd)
-{
-	int n_mixers = 0;
-	mixer_devinfo_t *mixers;
-	mixer_devinfo_t mixer;
-	mixer_devinfo_t *m;
-	mixer_ctrl_t mixer_info;
-	const char *class_name;
-	const char *parent_name;
-	const char *device_name;
-	int i, j;
-	int off;
-
-	/* Count number of mixer devices */
-	while (1) {
-		mixer.index = n_mixers;
-		if (ioctl(fd, AUDIO_MIXER_DEVINFO, &mixer) < 0)
-			break;
-		++n_mixers;
-	}
-	if (n_mixers <= 0)
-		return;
-
-	mixers = calloc(n_mixers, sizeof(*mixers));
-
-	for (i = 0; i < n_mixers; i++) {
-		mixers[i].index = i;
-		ioctl(fd, AUDIO_MIXER_DEVINFO, &mixers[i]);
-	}
-
-	/* Search for preamp device */
-	for (m = mixers; m < mixers + n_mixers; ++m) {
-		parent_name = NULL;
-		for (j = m->prev; j != AUDIO_MIXER_LAST; j = mixers[j].prev)
-			parent_name = mixers[j].label.name;
-		class_name = mixers[m->mixer_class].label.name;
-		device_name = m->label.name;
-		if (strcmp(device_name, AudioNpreamp) != 0)
-			continue;
-		if (m->type != AUDIO_MIXER_ENUM)
-			continue;
-		mixer_info.dev = m->index;
-		mixer_info.type = m->type;
-		if (ioctl(fd, AUDIO_MIXER_READ, &mixer_info) < 0) {
-			perror("checking NetBSD preamp");
-			continue;
-		}
-		if (mixer_info.type != AUDIO_MIXER_ENUM)
-			continue;
-		for (off = 0; off < m->un.e.num_mem; ++off)
-			if (strcmp(m->un.e.member[off].label.name, AudioNoff)
-			    == 0)
-				break;
-		/* Preamp off? */
-		if (mixer_info.un.ord == m->un.e.member[off].ord) {
-			warnx("mixerctl %s.%s.%s=%s; consider setting it %s",
-			    class_name, parent_name, device_name,
-			    AudioNoff, AudioNon);
-			break;
-		}
-	}
-
-	free(mixers);
-}
-
-
-/*
- * get_encoding: get audio device encoding matching fmt
+ * match_encoding: get audio device encoding matching fmt
  *
  * Find the best match among supported encodings.  Prefer encodings
  * that are not emulated in the kernel.
  */
 
-audio_encoding_t *
-get_encoding(audio_desc_t ad, audio_format * fmt)
+const audio_encoding_t *
+match_encoding(audio_format * fmt, const audio_encoding_t * encodings)
 {
-	audio_encoding_t *best_encp = NULL;
+	const audio_encoding_t *best_encp = NULL;
 	struct audio_encoding_match *match_encp;
+	const audio_encoding_t *encp;
 
-	match_encp = audio_encoding_match;
-	while (match_encp->netbsd_encoding != AUDIO_ENCODING_NONE) {
-		if (match_encp->rat_encoding == fmt->encoding) {
-			audio_encoding_t *encp
-			= audio_devices[ad].audio_info.audio_enc;
-			while (encp->precision != 0) {
-				if (encp->encoding
-				    == match_encp->netbsd_encoding
-				    && encp->precision == fmt->bits_per_sample
-				    && (best_encp == NULL
-					|| (best_encp->flags &
-					    AUDIO_ENCODINGFLAG_EMULATED)
-					|| !(encp->flags &
-					    AUDIO_ENCODINGFLAG_EMULATED)))
-					best_encp = encp;
-				++encp;
+	for (match_encp = audio_encoding_match;
+	     match_encp->netbsd_encoding != AUDIO_ENCODING_NONE;
+	     ++match_encp) {
+
+		if (match_encp->rat_encoding != fmt->encoding)
+			continue;	/* skip mismatched encodings */
+
+		/* scan supported encodings */
+		for (encp = encodings; encp->precision != 0; ++encp) {
+			if (encp->encoding == match_encp->netbsd_encoding
+			    && encp->precision == fmt->bits_per_sample
+			    && (best_encp == NULL
+			 || (best_encp->flags & AUDIO_ENCODINGFLAG_EMULATED)
+			 || !(encp->flags & AUDIO_ENCODINGFLAG_EMULATED))) {
+				best_encp = encp;
 			}
 		}
-		++match_encp;
 	}
 	return best_encp;
-}
-
-
-/*
- * set_encoding: set audio device I/O encoding
- *
- * Inform kernel of selected input/output encodings, channels, precision, ... .
- */
-
-audio_encoding_t *
-set_encoding(audio_desc_t ad, audio_format * ifmt, audio_format * ofmt)
-{
-	int fd = audio_devices[ad].audio_info.fd;
-	audio_info_t dev_info;
-	audio_encoding_t *ienc, *oenc;
-
-	AUDIO_INITINFO(&dev_info);
-	assert(ifmt->bytes_per_block == ofmt->bytes_per_block);
-	/* XXX - driver may not set blocksize? */
-	dev_info.blocksize = ifmt->bytes_per_block;
-
-	/* Input port setup */
-	dev_info.record.sample_rate = ifmt->sample_rate;
-	dev_info.record.channels = ifmt->channels;
-	dev_info.record.precision = ifmt->bits_per_sample;
-	if ((ienc = get_encoding(ad, ifmt)) == NULL)
-		return NULL;
-	dev_info.record.encoding = ienc->encoding;
-
-	/* Output port setup */
-	dev_info.play.sample_rate = ofmt->sample_rate;
-	dev_info.play.channels = ofmt->channels;
-	dev_info.play.precision = ofmt->bits_per_sample;
-	if ((oenc = get_encoding(ad, ofmt)) == NULL)
-		return NULL;
-	dev_info.play.encoding = oenc->encoding;
-
-	if (ioctl(fd, AUDIO_SETINFO, &dev_info) < 0)
-		return NULL;
-
-	if (ienc != oenc)
-		warnx("mismatched NetBSD kernel input/output encoding: "
-		    "%s != %s", ienc->name, oenc->name);
-
-	return ienc;
-}
-
-
-/*
- * set_alt_encoding: set alternate audio device I/O encoding
- *
- * Select an alternate supported encoding and inform kernel of same.
- * Prefer encodings that are not emulated in the kernel.
- */
-
-audio_encoding_t *
-set_alt_encoding(audio_desc_t ad, audio_format * ifmt, audio_format * ofmt)
-{
-	audio_encoding_t *best_encp = NULL;
-	audio_format best_fmt, fmt;
-	struct audio_encoding_match *match_encp;
-
-	fmt = *ifmt;
-	match_encp = audio_encoding_match;
-	while (match_encp->netbsd_encoding != AUDIO_ENCODING_NONE) {
-		audio_encoding_t *encp;
-		audio_format_change_encoding(&fmt, match_encp->rat_encoding);
-		encp = get_encoding(ad, &fmt);
-		if (encp != NULL
-		    && netbsd_audio_supports(ad, &fmt)
-		    && (best_encp == NULL
-			|| (best_encp->flags & AUDIO_ENCODINGFLAG_EMULATED)
-			|| !(encp->flags & AUDIO_ENCODINGFLAG_EMULATED))) {
-			best_encp = encp;
-			best_fmt = fmt;
-		}
-		++match_encp;
-	}
-	if (best_encp != NULL) {
-		*ifmt = best_fmt;
-		*ofmt = best_fmt;
-		return set_encoding(ad, ifmt, ofmt);
-	}
-	return NULL;
 }
 
 
@@ -1629,9 +1337,9 @@ set_alt_encoding(audio_desc_t ad, audio_format * ifmt, audio_format * ofmt)
 int
 audio_select(audio_desc_t ad, int delay_us)
 {
-	int fd;
-	fd_set rfds;
-	struct timeval tv;
+	int             fd;
+	fd_set          rfds;
+	struct timeval  tv;
 
 	fd = audio_devices[ad].audio_info.fd;
 	tv.tv_sec = 0;
@@ -1644,3 +1352,919 @@ audio_select(audio_desc_t ad, int delay_us)
 
 	return FD_ISSET(fd, &rfds) ? TRUE : FALSE;
 }
+
+/*
+ * update_audio_info
+ *
+ * Update the in-memory data structures from the kernel.  This enables
+ * rat to respond to any audio or mixer device changes occuring via
+ * any other mechanism.  Always update all audio/mixer devices so they
+ * are accurate when new ports are selected.
+ */
+
+void
+update_audio_info(audio_desc_t ad)
+{
+	int             fd;
+	audio_info_t    audio_info;
+	mixer_ctrl_t    mixer_info;
+	mixer_ctrl_t   *play_ctrl;
+	record_gain_ctrl_t *record_ctrl;
+	int             i;
+	int             j;
+
+	/* audio device info */
+	fd = audio_devices[ad].audio_info.fd;
+	if (ioctl(fd, AUDIO_GETINFO, &audio_info) < 0)
+		err(1, "getting audio parameters");
+
+	/* play info */
+	for (i = 0; i < audio_devices[ad].play.n; ++i) {
+		play_ctrl = &audio_devices[ad].play.gain_ctrl[i];
+		/* audio control */
+		if (play_ctrl->type == AUDIO_PORT
+		    && play_ctrl->dev == (int) audio_info.play.port) {
+			play_ctrl->un.value.level[0] = audio_info.play.gain;
+		}
+		/* mixer control */
+		if (play_ctrl->type != AUDIO_PORT) {
+			fd = audio_devices[ad].mixer_info.fd;
+			mixer_info = *play_ctrl;
+			if (ioctl(fd, AUDIO_MIXER_READ, &mixer_info) < 0)
+				err(1, "getting mixer parameters (%d)", i);
+			play_ctrl->un.value = mixer_info.un.value;
+		}
+	}
+
+	/* record info */
+	for (i = 0; i < audio_devices[ad].record.n; ++i) {
+		record_ctrl = &audio_devices[ad].record.gain_ctrl[i];
+		if (record_ctrl->gain.type == AUDIO_PORT
+		 && record_ctrl->gain.dev == (int) audio_info.record.port) {
+			for (j = 0; j < record_ctrl->gain.un.value.num_channels;
+			     ++j) {
+				record_ctrl->gain.un.value.level[j]
+					= audio_info.record.gain;
+			}
+		}
+		/* mixer control */
+		if (record_ctrl->gain.type != AUDIO_PORT) {
+			fd = audio_devices[ad].mixer_info.fd;
+			mixer_info = record_ctrl->gain;
+			if (ioctl(fd, AUDIO_MIXER_READ, &mixer_info) < 0)
+				err(1, "getting mixer gain parameters (%d)", i);
+			record_ctrl->gain = mixer_info;
+		}
+	}
+}
+
+/*
+ * average_mixer_level: calculate the average across channels
+ */
+
+u_char
+average_mixer_level(mixer_level_t mixer_level)
+{
+	int             sum = 0;
+	int             i;
+
+	for (i = 0; i < mixer_level.num_channels; ++i)
+		sum += mixer_level.level[i];
+	return sum / mixer_level.num_channels;
+}
+
+/*
+ * find_gain_ctrl: construct dynamic lists of gain controls
+ */
+
+void
+find_gain_ctrl(audio_desc_t ad)
+{
+	mixer_devinfo_t *mixers;
+
+	mixers = mixer_devices(ad);
+
+	audio_devices[ad].play.port = AUDIO_INVALID_PORT;
+	audio_devices[ad].play.n = 0;
+	audio_devices[ad].play.gain_ctrl = NULL;
+	audio_devices[ad].record.port = AUDIO_INVALID_PORT;
+	audio_devices[ad].record.n = 0;
+	audio_devices[ad].record.gain_ctrl = NULL;
+
+	find_audio_play_ctrl(ad);
+	find_audio_record_ctrl(ad);
+	find_mixer_play_ctrl(ad, mixers);
+	find_mixer_record_ctrl(ad, mixers);
+
+	if (audio_devices[ad].play.port == AUDIO_INVALID_PORT)
+		audio_devices[ad].play.port = 0;
+	if (audio_devices[ad].record.port == AUDIO_INVALID_PORT)
+		audio_devices[ad].record.port = 0;
+
+	map_netbsd_ports(ad);
+	fix_rat_names();
+
+#if DEBUG_MIXER > 0
+	print_gain_ctrl(ad, mixers);
+#endif
+
+	free(mixers);
+}
+
+/*
+ * find_audio_play_ctrl: append audio output gain controls to list
+ */
+
+void
+find_audio_play_ctrl(audio_desc_t ad)
+{
+	int             fd;
+	audio_info_t    audio_devinfo;
+	mixer_ctrl_t   *mp;
+	audio_port_details_t *ap;
+	int             n = 0;
+
+	fd = audio_devices[ad].audio_info.fd;
+	if (ioctl(fd, AUDIO_GETINFO, &audio_devinfo) < 0) {
+		perror("reading audio device information");
+		return;
+	}
+	for (ap = netbsd_out_ports;
+	     ap < netbsd_out_ports + NETBSD_NUM_OUTPORTS;
+	     ++ap) {
+		if (audio_devinfo.play.avail_ports & ap->port) {
+			++n;
+			++audio_devices[ad].play.n;
+			audio_devices[ad].play.gain_ctrl
+				= (mixer_ctrl_t *) realloc
+				(audio_devices[ad].play.gain_ctrl,
+			   audio_devices[ad].play.n * sizeof(mixer_ctrl_t));
+			mp = audio_devices[ad].play.gain_ctrl
+				+ audio_devices[ad].play.n - 1;
+			mp->dev = ap->port;
+			mp->type = AUDIO_PORT;
+			mp->un.value.num_channels = 1;
+			mp->un.value.level[0]
+				= (audio_devinfo.play.port == ap->port ?
+				   audio_devinfo.play.gain : AUDIO_MID_GAIN);
+
+			/* set default audio play port */
+			if (ap->port == AUDIO_SPEAKER)
+				audio_devices[ad].play.port
+					= audio_devices[ad].play.n - 1;
+		}
+	}
+
+	if (n == 0) {		/* construct default output port */
+		++n;
+		++audio_devices[ad].play.n;
+		audio_devices[ad].play.gain_ctrl = (mixer_ctrl_t *) realloc
+			(audio_devices[ad].play.gain_ctrl,
+			 audio_devices[ad].play.n * sizeof(mixer_ctrl_t));
+		mp = audio_devices[ad].play.gain_ctrl
+			+ audio_devices[ad].play.n - 1;
+		mp->dev = 0;
+		mp->type = AUDIO_PORT;
+		mp->un.value.num_channels = 1;
+		mp->un.value.level[0] = audio_devinfo.play.gain;
+
+		/* set default audio play port */
+		audio_devices[ad].play.port = audio_devices[ad].play.n - 1;
+	}
+}
+
+/*
+ * find_audio_record_ctrl: append audio input gain controls to list
+ */
+
+void
+find_audio_record_ctrl(audio_desc_t ad)
+{
+	int             fd;
+	audio_info_t    audio_devinfo;
+	record_gain_ctrl_t *gp;
+	audio_port_details_t *ap;
+	int             n = 0;
+
+	fd = audio_devices[ad].audio_info.fd;
+	if (ioctl(fd, AUDIO_GETINFO, &audio_devinfo) < 0) {
+		perror("reading audio device information");
+		return;
+	}
+	for (ap = netbsd_in_ports; ap < netbsd_in_ports + NETBSD_NUM_INPORTS;
+	     ++ap) {
+		if (audio_devinfo.record.avail_ports & ap->port) {
+			++n;
+			append_record_gain_ctrl(&audio_devices[ad].record);
+			gp = audio_devices[ad].record.gain_ctrl
+				+ audio_devices[ad].record.n - 1;
+			gp->gain.dev = ap->port;
+			gp->gain.type = AUDIO_PORT;
+			gp->gain.un.value.num_channels = 1;
+			gp->gain.un.value.level[0]
+				= (audio_devinfo.record.port == ap->port ?
+				audio_devinfo.record.gain : AUDIO_MID_GAIN);
+		}
+		/* set default audio record port */
+		if (ap->port == AUDIO_MICROPHONE)
+			audio_devices[ad].record.port
+				= audio_devices[ad].record.n - 1;
+	}
+	if (n == 0) {		/* construct default output port */
+		append_record_gain_ctrl(&audio_devices[ad].record);
+		gp = audio_devices[ad].record.gain_ctrl
+			+ audio_devices[ad].record.n - 1;
+		gp->gain.dev = 0;
+		gp->gain.type = AUDIO_PORT;
+		gp->gain.un.value.num_channels = 1;
+		gp->gain.un.value.level[0] = audio_devinfo.record.gain;
+
+		/* set default audio record port */
+		audio_devices[ad].record.port = audio_devices[ad].record.n - 1;
+	}
+}
+
+/*
+ * find_mixer_play_ctrl: append mixer output gain controls to list
+ */
+
+void
+find_mixer_play_ctrl(audio_desc_t ad, mixer_devinfo_t * mixers)
+{
+	const mixer_devinfo_t *mixer;
+	audio_devices_t *ap;
+	mixer_ctrl_t   *mp;
+	int             i;
+	mixer_devices_t *dp;
+
+	ap = audio_devices + ad;
+	if (ap->mixer_info.fd < 0)
+		return;
+
+	/* find outputs.master or inputs.dac */
+	for (mixer = mixers, i = 0;
+	     mixer->type != AUDIO_INVALID_PORT; ++mixer, ++i) {
+		for (dp = mixer_play_gain; dp->class; ++dp) {
+			if (strcmp(dp->class, mixers[mixer->mixer_class].
+				   label.name) == 0
+			    && strcmp(dp->device, mixer->label.name) == 0
+			    && mixer->type == AUDIO_MIXER_VALUE) {
+				++ap->play.n;
+				ap->play.gain_ctrl = (mixer_ctrl_t *) realloc
+					(ap->play.gain_ctrl, ap->play.n
+					 * sizeof(mixer_ctrl_t));
+				mp = ap->play.gain_ctrl + ap->play.n - 1;
+				mp->dev = i;
+				mp->type = mixer->type;
+				mp->un.value.num_channels
+					= mixer->un.v.num_channels;
+
+				/* set default mixer play port */
+				audio_devices[ad].play.port = ap->play.n - 1;
+				break;
+			}
+		}
+	}
+}
+
+/*
+ * find_mixer_record_ctrl: append mixer input gain controls to list
+ */
+
+void
+find_mixer_record_ctrl(audio_desc_t ad, mixer_devinfo_t * mixers)
+{
+	const mixer_devinfo_t *rec_src;
+	int             rec_src_class;
+	const mixer_devinfo_t *rec_volume;
+	int             rec_volume_class;
+	const mixer_devinfo_t *gain;
+	int             gain_class;
+	const mixer_devinfo_t *first_child;
+	const mixer_devinfo_t *child;
+
+	audio_devices_t *ap;
+	record_gain_ctrl_t *mp;
+	int             src;
+	int             ord;
+
+	ap = audio_devices + ad;
+	if (ap->mixer_info.fd < 0)
+		return;
+
+	/* find record.source */
+	for (rec_src = mixers; rec_src->type != AUDIO_INVALID_PORT; ++rec_src) {
+		rec_src_class = rec_src->mixer_class;
+		if (strcmp(mixers[rec_src_class].label.name, AudioCrecord) == 0
+		    && strcmp(rec_src->label.name, AudioNsource) == 0
+		    && rec_src->type == AUDIO_MIXER_ENUM)
+			break;
+	}
+	if (rec_src->type == AUDIO_INVALID_PORT)	/* no record.source
+							 * found */
+		return;
+
+	/* find record.volume */
+	for (rec_volume = mixers; rec_volume->type != AUDIO_INVALID_PORT;
+	     ++rec_volume) {
+		rec_volume_class = rec_volume->mixer_class;
+		if (strcmp(mixers[rec_volume_class].label.name, AudioCrecord)
+		    == 0
+		    && strcmp(rec_volume->label.name, AudioNvolume) == 0
+		    && rec_volume->type == AUDIO_MIXER_VALUE)
+			break;
+	}
+
+	/* for each possible source */
+	for (src = 0; src < rec_src->un.e.num_mem; ++src) {
+		/* is a gain port available? */
+		for (gain = mixers; gain->type != AUDIO_INVALID_PORT; ++gain) {
+			gain_class = gain->mixer_class;
+			if (strcmp(mixers[gain_class].label.name,
+				   AudioCinputs) == 0
+			    && strcmp(gain->label.name,
+				      rec_src->un.e.member[src].label.name)
+			    == 0
+			    && gain->type == AUDIO_MIXER_VALUE)
+				break;
+		}
+		if (gain->type == AUDIO_INVALID_PORT) {	/* no gain port */
+			if (rec_volume->type != AUDIO_INVALID_PORT)
+				gain = rec_volume;	/* use record.volume
+							 * instead */
+			else
+				continue;	/* no gain port anywhere! */
+		}
+		/* extend table */
+		append_record_gain_ctrl(&ap->record);
+		mp = &ap->record.gain_ctrl[ap->record.n - 1];
+
+		/* gain info. */
+		mp->gain.dev = gain->index;
+		mp->gain.type = gain->type;
+		mp->gain.un.value.num_channels = gain->un.v.num_channels;
+
+		/* source info. */
+		mp->source.dev = rec_src->index;
+		mp->source.type = rec_src->type;
+		mp->source.un.ord = rec_src->un.e.member[src].ord;
+
+		/* find first in list */
+		first_child = gain;
+		while (first_child->prev != AUDIO_MIXER_LAST)
+			first_child = &mixers[first_child->prev];
+
+		/* mute info. */
+		for (child = first_child; child;
+		     child = child->next != AUDIO_MIXER_LAST ?
+		     &mixers[child->next] : NULL) {
+			if (strcmp(child->label.name, AudioNmute) == 0
+			    && child->type == AUDIO_MIXER_ENUM) {
+				for (ord = 0; ord < child->un.e.num_mem; ++ord) {
+					if (strcmp(child->un.e.member[ord].
+					      label.name, AudioNoff) == 0) {
+						mp->mute.dev = child->index;
+						mp->mute.type = child->type;
+						mp->mute.un.ord
+							= child->un.e.member[ord].ord;
+						break;
+					}
+				}
+				break;
+			}
+		}
+
+		/*
+		 * preamp info. XXX - this must come last, because it
+		 * duplicates the current record for each preamp state
+		 */
+		for (child = first_child; child;
+		     child = child->next != AUDIO_MIXER_LAST ?
+		     &mixers[child->next] : NULL) {
+			if (strcmp(child->label.name, AudioNpreamp) == 0
+			    && child->type == AUDIO_MIXER_ENUM) {
+				assert(child->un.e.num_mem == 2);	/* off, on */
+				mp->preamp.dev = child->index;
+				mp->preamp.type = child->type;
+				mp->preamp.un.ord = child->un.e.member[0].ord;
+				break;
+			}
+		}
+
+		/* set default mixer record port */
+		if (strcmp(mixers[gain->mixer_class].label.name,
+			   AudioCinputs) == 0
+		    && strcmp(gain->label.name, AudioNmicrophone) == 0)
+			audio_devices[ad].record.port
+				= audio_devices[ad].record.n - 1;
+	}
+}
+
+/*
+ * map_netbsd_ports
+ *
+ * Map a selected subset of the kernel audio and mixer ports to
+ * entries in the rat device mapping table.  Whenever the mixer device
+ * is available, it will duplicate ports that are also available via
+ * the audio devices much simpler interface.  Consequently, we prefer
+ * to provide access to the mixer devices if they are available.
+ * Otherwise, map the audio devices for rat.
+ */
+
+void
+map_netbsd_ports(audio_desc_t ad)
+{
+	int             mixer_fd;
+	mixer_devinfo_t mixer_info;
+	mixer_ctrl_t   *source;
+	int             i;
+	int             j;
+	int             len;
+	int             m;
+	int             n;
+	char            name[MAX_AUDIO_DEV_LEN + 3 + 1];
+
+	/* give priority to mixer devices */
+	mixer_fd = audio_devices[ad].mixer_info.fd;
+	if (mixer_fd > 0) {
+		/* mixer output ports */
+		for (i = 0; i < audio_devices[ad].play.n; ++i) {
+			if (audio_devices[ad].play.gain_ctrl[i].type
+			    == AUDIO_PORT)
+				continue;
+			mixer_info.index = audio_devices[ad].play.gain_ctrl[i].
+				dev;
+			if (ioctl(mixer_fd, AUDIO_MIXER_DEVINFO, &mixer_info) < 0) {
+				perror("map_netbsd_ports(): "
+				       "getting play mixer device info");
+				continue;
+			}
+			++n_rat_out_ports;
+			rat_out_ports = (audio_port_details_t *) realloc
+				(rat_out_ports, n_rat_out_ports
+				 * sizeof(audio_port_details_t));
+			rat_out_ports[n_rat_out_ports - 1].port = i;
+			len = AUDIO_PORT_NAME_LENGTH;
+			rat_out_ports[n_rat_out_ports - 1].name[0] = '\0';
+			strncat(rat_out_ports[n_rat_out_ports - 1].name,
+				mixer_info.label.name, len);
+		}
+
+		/* mixer input ports */
+		for (i = 0; i < audio_devices[ad].record.n; ++i) {
+			if (audio_devices[ad].record.gain_ctrl[i].gain.type
+			    == AUDIO_PORT)
+				continue;
+			source = &audio_devices[ad].record.gain_ctrl[i].source;
+			mixer_info.index = source->dev;
+			if (ioctl(mixer_fd, AUDIO_MIXER_DEVINFO, &mixer_info)
+			    < 0) {
+				perror("map_netbsd_ports(): "
+				       "getting record mixer device info");
+				continue;
+			}
+			++n_rat_in_ports;
+			rat_in_ports = (audio_port_details_t *) realloc
+				(rat_in_ports, n_rat_in_ports
+				 * sizeof(audio_port_details_t));
+			rat_in_ports[n_rat_in_ports - 1].port = i;
+			len = AUDIO_PORT_NAME_LENGTH;
+			rat_in_ports[n_rat_in_ports - 1].name[0] = '\0';
+			strncat(rat_in_ports[n_rat_in_ports - 1].name,
+				mixer_info.un.e.member[source->un.ord].label.name, len);
+		}
+
+		/* handle input ports with preamps */
+		n = audio_devices[ad].record.n;
+		for (i = 0; i < n; ++i) {
+			if (audio_devices[ad].record.gain_ctrl[i].gain.type
+			    == AUDIO_PORT)
+				continue;
+			if (audio_devices[ad].record.gain_ctrl[i].preamp.dev < 0)
+				continue;
+			mixer_info.index = audio_devices[ad].record.gain_ctrl[i].
+				preamp.dev;
+			if (ioctl(mixer_fd, AUDIO_MIXER_DEVINFO, &mixer_info)
+			    < 0) {
+				perror("map_netbsd_ports(): "
+				 "getting record mixer preamp device info");
+				continue;
+			}
+			if (strcmp(mixer_info.label.name, AudioNpreamp) != 0
+			    || mixer_info.type != AUDIO_MIXER_ENUM)
+				continue;
+			assert(mixer_info.un.e.num_mem == 2);	/* off, on */
+
+			/* update audio_devices */
+			copy_record_gain_ctrl(&audio_devices[ad].record,
+				    &audio_devices[ad].record.gain_ctrl[i]);
+			m = audio_devices[ad].record.n - 1;
+			audio_devices[ad].record.gain_ctrl[i].preamp.un.ord =
+				mixer_info.un.e.member[0].ord;
+			audio_devices[ad].record.gain_ctrl[m].preamp.un.ord =
+				mixer_info.un.e.member[1].ord;
+			/* update rat port maps */
+			for (j = 0; j < n_rat_in_ports; ++j) {
+				if ((int) rat_in_ports[j].port != i)
+					continue;
+				copy_rat_in_port(&rat_in_ports[j]);
+				m = n_rat_in_ports - 1;
+				name[0] = '\0';
+				strcat(name, " (");
+				strcat(name, mixer_info.un.e.member[0].
+				       label.name);
+				strcat(name, ")");
+				strncat(rat_in_ports[j].name, name,
+					AUDIO_PORT_NAME_LENGTH);
+				rat_in_ports[m].port
+					= audio_devices[ad].record.n - 1;
+				name[0] = '\0';
+				strcat(name, " (");
+				strcat(name, mixer_info.un.e.member[1].
+				       label.name);
+				strcat(name, ")");
+				strncat(rat_in_ports[m].name, name,
+					AUDIO_PORT_NAME_LENGTH);
+				break;
+			}
+		}
+	} else {		/* otherwise settle for audio devices */
+		/* audio output ports */
+		for (i = 0; i < audio_devices[ad].play.n; ++i) {
+			if (audio_devices[ad].play.gain_ctrl[i].type
+			    != AUDIO_PORT)
+				continue;
+			++n_rat_out_ports;
+			rat_out_ports = (audio_port_details_t *) realloc
+				(rat_out_ports, n_rat_out_ports
+				 * sizeof(audio_port_details_t));
+			rat_out_ports[n_rat_out_ports - 1].port = i;
+			len = AUDIO_PORT_NAME_LENGTH;
+			rat_out_ports[n_rat_out_ports - 1].name[0] = '\0';
+			strncat(rat_out_ports[n_rat_out_ports - 1].name,
+				netbsd_out_ports[i].name, len);
+		}
+
+		/* audio input ports */
+		for (i = 0; i < audio_devices[ad].record.n; ++i) {
+			if (audio_devices[ad].record.gain_ctrl[i].gain.type
+			    != AUDIO_PORT)
+				continue;
+			++n_rat_in_ports;
+			rat_in_ports = (audio_port_details_t *) realloc
+				(rat_in_ports, n_rat_in_ports
+				 * sizeof(audio_port_details_t));
+			rat_in_ports[n_rat_in_ports - 1].port = i;
+			len = AUDIO_PORT_NAME_LENGTH;
+			rat_in_ports[n_rat_in_ports - 1].name[0] = '\0';
+			strncat(rat_in_ports[n_rat_in_ports - 1].name,
+				netbsd_in_ports[i].name, len);
+		}
+	}
+}
+
+/*
+ * fix_rat_names
+ *
+ * Appropriately capitalize names in the rat device mapping table for
+ * the rat GUI
+ */
+
+void
+fix_rat_names()
+{
+	int             i;
+	char           *k;
+
+	/* play port names */
+	for (i = 0; i < n_rat_out_ports; ++i) {
+		k = rat_out_ports[i].name;
+		if (strcmp(k, "cd") == 0 || strcmp(k, "dac") == 0) {
+			while (*k) {
+				*k = toupper((int) *k);
+				++k;
+			}
+		} else
+			*k = toupper((int) *k);
+	}
+
+	/* record port names */
+	for (i = 0; i < n_rat_in_ports; ++i) {
+		k = rat_in_ports[i].name;
+		if (strcmp(k, "cd") == 0 || strcmp(k, "dac") == 0) {
+			while (*k) {
+				*k = toupper((int) *k);
+				++k;
+			}
+		} else
+			*k = toupper((int) *k);
+	}
+}
+
+/*
+ * mixer_devices: construct table of all mixer devices
+ */
+
+mixer_devinfo_t *
+mixer_devices(audio_desc_t ad)
+{
+	int             fd;
+	mixer_devinfo_t devinfo;
+	mixer_devinfo_t *mixers;
+	int             n;
+	int             i;
+
+	fd = audio_devices[ad].mixer_info.fd;
+	if (fd < 0)
+		return NULL;
+
+	/* count number of devices */
+	n = 0;
+	while (1) {
+		devinfo.index = n;
+		if (ioctl(fd, AUDIO_MIXER_DEVINFO, &devinfo) < 0)
+			break;
+		++n;
+	}
+
+	mixers = (mixer_devinfo_t *) malloc((n + 1) * sizeof(mixer_devinfo_t));
+
+	/* get device info. */
+	for (i = 0; i < n; ++i) {
+		mixers[i].index = i;
+		if (ioctl(fd, AUDIO_MIXER_DEVINFO, &mixers[i]) < 0)
+			break;
+	}
+
+	mixers[n].type = AUDIO_INVALID_PORT;
+
+	return mixers;
+}
+
+/*
+ * append_record_gain_ctrl: append an empty record to a record_gain_t[]
+ */
+
+void
+append_record_gain_ctrl(record_gain_t * gp)
+{
+	record_gain_ctrl_t *cp;
+
+	/* append a new record */
+	++gp->n;
+	gp->gain_ctrl = (record_gain_ctrl_t *) realloc
+		(gp->gain_ctrl, gp->n * sizeof(record_gain_ctrl_t));
+
+	/* initialize new record */
+	cp = gp->gain_ctrl + gp->n - 1;
+	cp->source.dev = AUDIO_INVALID_PORT;
+	cp->gain.dev = AUDIO_INVALID_PORT;
+	cp->mute.dev = AUDIO_INVALID_PORT;
+	cp->preamp.dev = AUDIO_INVALID_PORT;
+}
+
+/*
+ * copy_record_gain_ctrl
+ *
+ * Append a duplicate record (src) to a record_gain_t[].  This
+ * function is for creating duplicate entries for mixer controls that
+ * have preamps.  The paired records will be used to correspond to the
+ * preamp being off and on.
+ */
+
+void
+copy_record_gain_ctrl(record_gain_t * gains, record_gain_ctrl_t * src)
+{
+	/* append a new record */
+	++gains->n;
+	gains->gain_ctrl = (record_gain_ctrl_t *) realloc
+		(gains->gain_ctrl, gains->n * sizeof(*gains->gain_ctrl));
+
+	/* duplicate contents */
+	memcpy(gains->gain_ctrl + gains->n - 1, src,
+	       sizeof(*gains->gain_ctrl));
+}
+
+/*
+ * copy_rat_in_port
+ *
+ * Append a duplicate of src to the rat_in_ports array.  This function
+ * is for creating duplicate entries in the rat device mapping table
+ * for mixer controls that have preamps.  The paired records will be
+ * used to correspond to the preamp being off and on.
+ */
+
+void
+copy_rat_in_port(audio_port_details_t * src)
+{
+	/* append a new record */
+	++n_rat_in_ports;
+	rat_in_ports = (audio_port_details_t *) realloc
+		(rat_in_ports, n_rat_in_ports * sizeof(*rat_in_ports));
+
+	/* duplicate contents */
+	memcpy(rat_in_ports + n_rat_in_ports - 1, src, sizeof(*rat_in_ports));
+}
+
+#if DEBUG_MIXER > 0
+
+/*
+ * print_audio_properties: report encodings and audio properties
+ */
+
+void
+print_audio_properties(audio_desc_t ad)
+{
+	const audio_encoding_t *encp;
+
+	/* report supported encodings */
+	warnx("Supported encodings:");
+	encp = audio_devices[ad].audio_info.audio_enc;
+	while (encp->precision != 0) {
+		warnx("  %s: %d bits/sample %s",
+		      encp->name, encp->precision,
+		      encp->flags & AUDIO_ENCODINGFLAG_EMULATED ?
+		      "(emulated)" : "");
+		++encp;
+	}
+
+	/* report device properties */
+	warnx("Device properties: ");
+	if (audio_devices[ad].audio_info.audio_props & AUDIO_PROP_INDEPENDENT)
+		warnx("  independent");
+	if (audio_devices[ad].audio_info.audio_props & AUDIO_PROP_FULLDUPLEX)
+		warnx("  full duplex");
+	if (audio_devices[ad].audio_info.audio_props & AUDIO_PROP_MMAP)
+		warnx("  mmap");
+}
+
+/*
+ * print_audio_formats: report audio format types
+ */
+
+void
+print_audio_formats(audio_desc_t ad, audio_format * ifmt, audio_format * ofmt)
+{
+	warnx("NetBSD audio input format:");
+	warnx("  %d Hz, %d bits/sample, %d %s",
+	      audio_devices[ad].audio_info.audio_info.record.sample_rate,
+	      audio_devices[ad].audio_info.audio_info.record.precision,
+	      audio_devices[ad].audio_info.audio_info.record.channels,
+	      audio_devices[ad].audio_info.audio_info.record.channels == 1 ?
+	      "channel" : "channels");
+	warnx("  %d byte blocks",
+	      audio_devices[ad].audio_info.audio_info.blocksize);
+	warnx("  requested rat encoding %d", ifmt->encoding);
+	warnx("  mapped kernel encoding %d: %s",
+	      audio_devices[ad].audio_info.record_encoding->encoding,
+	      audio_devices[ad].audio_info.record_encoding->name);
+	if (audio_devices[ad].audio_info.record_encoding->flags
+	    & AUDIO_ENCODINGFLAG_EMULATED)
+		warnx("  NetBSD %s support is emulated",
+		      audio_devices[ad].audio_info.play_encoding->name);
+
+	warnx("NetBSD audio output format:");
+	warnx("  %d Hz, %d bits/sample, %d %s",
+	      audio_devices[ad].audio_info.audio_info.play.sample_rate,
+	      audio_devices[ad].audio_info.audio_info.play.precision,
+	      audio_devices[ad].audio_info.audio_info.play.channels,
+	      audio_devices[ad].audio_info.audio_info.play.channels == 1 ?
+	      "channel" : "channels");
+	warnx("  %d byte blocks",
+	      audio_devices[ad].audio_info.audio_info.blocksize);
+	warnx("  requested rat encoding %d", ofmt->encoding);
+	warnx("  mapped kernel encoding %d: %s",
+	      audio_devices[ad].audio_info.play_encoding->encoding,
+	      audio_devices[ad].audio_info.play_encoding->name);
+	if (audio_devices[ad].audio_info.play_encoding->flags
+	    & AUDIO_ENCODINGFLAG_EMULATED)
+		warnx("  NetBSD %s support is emulated",
+		      audio_devices[ad].audio_info.play_encoding->name);
+}
+
+/*
+ * print_gain_ctrl: report array of gain controls
+ */
+
+void
+print_gain_ctrl(audio_desc_t ad, mixer_devinfo_t * mixers)
+{
+	audio_port_details_t *ap = NULL;
+	int             i;
+	int             port;
+	record_gain_ctrl_t *iport;
+	mixer_ctrl_t   *oport;
+	int             gain_class;
+	int             source_class;
+	int             source;
+	int             gain;
+	int             mute;
+	int             preamp;
+	int             ord;
+
+
+	/* report audio/mixer play controls */
+	warnx("NetBSD play gain controls: %s", audio_devices[ad].full_name);
+	for (i = 0; i < n_rat_out_ports; ++i) {
+		port = rat_out_ports[i].port;
+		oport = &audio_devices[ad].play.gain_ctrl[port];
+		if (oport->type == AUDIO_PORT) {
+			for (ap = netbsd_out_ports;
+			     ap < netbsd_out_ports + NETBSD_NUM_OUTPORTS;
+			     ++ap) {
+				if ((int) ap->port == oport->dev)
+					warnx("  %2d. audio: %s%s (%d) ==> %s",
+					      port, ap->name,
+					      (port ==
+					       audio_devices[ad].play.port ?
+					       "*" : ""),
+					      oport->dev,
+					      rat_out_ports[i].name);
+			}
+		} else {	/* mixer control */
+			gain = oport->dev;
+			gain_class = mixers[gain].mixer_class;
+			warnx("  %2d. mixer: %s.%s%s (%d) ==> %s", port,
+			      mixers[gain_class].label.name,
+			      mixers[gain].label.name,
+			   (port == audio_devices[ad].play.port ? "*" : ""),
+			      gain,
+			      rat_out_ports[i].name);
+		}
+	}
+
+	/* report audio/mixer record controls */
+	warnx("NetBSD record gain controls: %s", audio_devices[ad].full_name);
+	for (i = 0; i < n_rat_in_ports; ++i) {
+		port = rat_in_ports[i].port;
+		iport = &audio_devices[ad].record.gain_ctrl[port];
+		if (iport->gain.type == AUDIO_PORT) {
+			for (ap = netbsd_in_ports;
+			     ap < netbsd_in_ports + NETBSD_NUM_INPORTS;
+			     ++ap) {
+				if ((int) ap->port
+				    == iport->gain.dev)
+					warnx("  %2d. audio: %s%s (%d) ==> %s",
+					      port, ap->name,
+					      (port ==
+					     audio_devices[ad].record.port ?
+					       "*" : ""),
+					      iport->gain.dev,
+					      rat_in_ports[i].name);
+			}
+		} else {	/* mixer control */
+			gain = iport->gain.dev;
+			gain_class = mixers[gain].mixer_class;
+			source = iport->source.dev;
+			source_class = mixers[source].mixer_class;
+			ord = iport->source.un.ord;
+			mute = iport->mute.dev;
+			preamp = iport->preamp.dev;
+			warnx("  %2d. mixer: gain=%s.%s%s (%d) ==> %s",
+			      port,
+			      mixers[gain_class].label.name,
+			      mixers[gain].label.name,
+			 (port == audio_devices[ad].record.port ? "*" : ""),
+			      gain,
+			      rat_in_ports[i].name);
+			warnx("             %s.%s=%s (%d: %d)",
+			      mixers[source_class].label.name,
+			      mixers[source].label.name,
+			      mixers[source].un.e.member[ord].label.name,
+			      source, ord);
+			if (mute != AUDIO_INVALID_PORT)
+				warnx("             mute=%s.%s.%s (%d)",
+				      mixers[gain_class].label.name,
+				      mixers[gain].label.name,
+				      mixers[mute].label.name,
+				      mute);
+			if (preamp != AUDIO_INVALID_PORT)
+				warnx("             preamp=%s.%s.%s (%d)",
+				      mixers[gain_class].label.name,
+				      mixers[gain].label.name,
+				      mixers[preamp].label.name,
+				      preamp);
+			if (preamp != AUDIO_INVALID_PORT) {
+				switch (iport->preamp.un.ord) {
+				case 0:
+					warnx("             preamp=%s (%d)",
+					      AudioNoff,
+					      iport->preamp.un.ord);
+					break;
+				case 1:
+					warnx("             preamp=%s (%d)",
+					      AudioNon,
+					      iport->preamp.un.ord);
+					break;
+				default:
+					warnx("             preamp=%s: (%d)",
+					      "unknown state",
+					      iport->preamp.un.ord);
+					break;
+				}
+			}
+		}
+	}
+}
+
+#endif				/* DEBUG_MIXER */

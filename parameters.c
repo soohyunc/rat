@@ -258,7 +258,7 @@ sd_name(int silence_detector)
 int
 sd_name_to_type(const char *name)
 {
-        switch(tolower(name[0])) {
+        switch(tolower((int)name[0])) { //SV-XXX: NetBSD
         case 'a':
                 return SILENCE_DETECTION_AUTO;
         case 'm':

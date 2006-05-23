@@ -477,6 +477,8 @@ static void rx_audio_output_port(char *srce, char *args, session_t *sp)
 	}
 	mbus_parse_done(mp);
 	ui_send_audio_output_port(sp, sp->mbus_ui_addr);
+	ui_send_audio_output_mute(sp, sp->mbus_ui_addr); //SV-XXX: NetBSD
+	ui_send_audio_output_gain(sp, sp->mbus_ui_addr); //SV-XXX: NetBSD
 }
 
 static void rx_audio_channel_repair(char *srce, char *args, session_t *sp)
@@ -1389,7 +1391,7 @@ static void rx_audio_channel_coding(char *srce, char *args, session_t *sp)
                         ccd = channel_get_coder_details(i);
                         if (strncasecmp(ccd->name, coding, 3) == 0) {
                                 debug_msg("rx_audio_channel_coding: 0x%08x, %s\n", ccd->descriptor, &ccd->name);
-                                switch(tolower(ccd->name[0])) {
+                                switch(tolower((int)ccd->name[0])) { //SV-XXX: NetBSD
                                 case 'n':   /* No channel coding */
                                         sp->num_encodings = 1;
                                         sp->layers = 1;

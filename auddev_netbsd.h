@@ -5,7 +5,7 @@
  *
  * $Id$
  *
- * Copyright (c) 2002-2004 Brook Milligan
+ * Copyright (c) 2002-2006 Brook Milligan
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,45 +40,40 @@
 
 #include "audio_types.h"
 
-int	netbsd_audio_init(void);
-int	netbsd_audio_device_count(void);
-char*	netbsd_audio_device_name (audio_desc_t ad);
-int	netbsd_audio_open        (audio_desc_t ad,
-				  audio_format* ifmt, audio_format* ofmt);
-void	netbsd_audio_close       (audio_desc_t ad);
-void	netbsd_audio_drain       (audio_desc_t ad);
-int	netbsd_audio_duplex      (audio_desc_t ad);
-int	netbsd_audio_read        (audio_desc_t ad, u_char *buf, int buf_len);
-int	netbsd_audio_write       (audio_desc_t ad, u_char *buf, int buf_len);
-void	netbsd_audio_non_block   (audio_desc_t ad);
-void	netbsd_audio_block       (audio_desc_t ad);
+int             netbsd_audio_init(void);
+int             netbsd_audio_device_count(void);
+char           *netbsd_audio_device_name(audio_desc_t);
+int             netbsd_audio_open(audio_desc_t, audio_format *, audio_format *);
+void            netbsd_audio_close(audio_desc_t);
+void            netbsd_audio_drain(audio_desc_t);
+int             netbsd_audio_duplex(audio_desc_t);
+int             netbsd_audio_read(audio_desc_t, u_char *, int);
+int             netbsd_audio_write(audio_desc_t, u_char *, int);
+void            netbsd_audio_non_block(audio_desc_t);
+void            netbsd_audio_block(audio_desc_t);
 
-void	netbsd_audio_iport_set   (audio_desc_t ad, audio_port_t port);
-audio_port_t
-	netbsd_audio_iport_get   (audio_desc_t ad);
-void	netbsd_audio_oport_set   (audio_desc_t ad, audio_port_t port);
-audio_port_t
-	netbsd_audio_oport_get   (audio_desc_t ad);
+int             netbsd_audio_iport_count(audio_desc_t);
+int             netbsd_audio_oport_count(audio_desc_t);
 
-void	netbsd_audio_set_igain   (audio_desc_t ad, int gain);
-int	netbsd_audio_get_igain   (audio_desc_t ad);
-void	netbsd_audio_set_ogain   (audio_desc_t ad, int vol);
-int	netbsd_audio_get_ogain   (audio_desc_t ad);
+const audio_port_details_t *
+                netbsd_audio_iport_details(audio_desc_t, int);
+const audio_port_details_t *
+                netbsd_audio_oport_details(audio_desc_t, int);
 
-const audio_port_details_t*
-	netbsd_audio_iport_details (audio_desc_t ad, int idx);
-const audio_port_details_t*
-	netbsd_audio_oport_details (audio_desc_t ad, int idx);
+audio_port_t    netbsd_audio_get_iport(audio_desc_t);
+audio_port_t    netbsd_audio_get_oport(audio_desc_t);
+void            netbsd_audio_set_iport(audio_desc_t, audio_port_t);
+void            netbsd_audio_set_oport(audio_desc_t, audio_port_t);
 
-int	netbsd_audio_iport_count (audio_desc_t ad);
-int	netbsd_audio_oport_count (audio_desc_t ad);
+int             netbsd_audio_get_igain(audio_desc_t);
+int             netbsd_audio_get_ogain(audio_desc_t);
+void            netbsd_audio_set_igain(audio_desc_t, int);
+void            netbsd_audio_set_ogain(audio_desc_t, int);
 
-void	netbsd_audio_loopback    (audio_desc_t ad, int gain);
+void            netbsd_audio_loopback(audio_desc_t, int);
 
-int	netbsd_audio_is_ready    (audio_desc_t ad);
-void	netbsd_audio_wait_for    (audio_desc_t ad, int delay_ms);
-int	netbsd_audio_supports    (audio_desc_t ad, audio_format *fmt);
+int             netbsd_audio_is_ready(audio_desc_t);
+void            netbsd_audio_wait_for(audio_desc_t, int);
+int             netbsd_audio_supports(audio_desc_t, audio_format *);
 
-int	auddev_netbsd_setfd      (int fd);
-
-#endif	/* _AUDDEV_NETBSD_H_ */
+#endif				/* _AUDDEV_NETBSD_H_ */
