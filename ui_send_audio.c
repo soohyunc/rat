@@ -279,8 +279,13 @@ ui_send_audio_suppress_silence(session_t *sp, char *addr)
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
+#ifdef WIN32
+		fprintf(sp->logger, "silence    %I64u.%06lu 0x%08lx %s\n", (__int64)t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec, //SV-XXX: Win32
+		        (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), name);
+#else
 		fprintf(sp->logger, "silence    %ju.%06lu 0x%08lx %s\n", (intmax_t)t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec, //SV-XXX: FreeBSD
 		        (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), name);
+#endif
 	}
 }
 
@@ -371,9 +376,15 @@ ui_update_redundancy(session_t *sp, char *addr)
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
+#ifdef WIN32
+		fprintf(sp->logger, "channel    %I64u.%06lu 0x%08lx redundancy %s\n",
+		        (__int64)t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec, //SV-XXX: Win32
+		        (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), scf->long_name);
+#else
 		fprintf(sp->logger, "channel    %ju.%06lu 0x%08lx redundancy %s\n",
 		        (intmax_t)t.tv_sec + SECS_BETWEEN_1900_1970, t.tv_usec, //SV-XXX: FreeBSD
 		        (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), scf->long_name);
+#endif
 	}
 
         out = (char*)xmalloc(clen);
@@ -453,8 +464,13 @@ ui_send_audio_channel_coding(session_t *sp, char *addr)
 		if (sp->logger != NULL) {
 			struct timeval	t;
 			gettimeofday(&t, NULL);
+#ifdef WIN32
+			fprintf(sp->logger, "channel    %I64u.%06lu 0x%08lx none\n",
+				(__int64)t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0])); //SV-XXX: Win32
+#else
 			fprintf(sp->logger, "channel    %ju.%06lu 0x%08lx none\n",
 				(intmax_t)t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0])); //SV-XXX: FreeBSD
+#endif
 		}
                 break;
         case 'r':
@@ -485,9 +501,15 @@ ui_send_audio_codec(session_t *sp, char *addr)
 	if (sp->logger != NULL) {
 		struct timeval	t;
 		gettimeofday(&t, NULL);
+#ifdef WIN32
+		fprintf(sp->logger, "codec      %I64u.%06lu 0x%08lx %s\n",
+			(__int64)t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), //SV-XXX: Win32
+			pri_cf->long_name);
+#else
 		fprintf(sp->logger, "codec      %ju.%06lu 0x%08lx %s\n",
 			(intmax_t)t.tv_sec+SECS_BETWEEN_1900_1970, t.tv_usec, (unsigned long) rtp_my_ssrc(sp->rtp_session[0]), //SV-XXX: FreeBSD
 			pri_cf->long_name);
+#endif
 	}
 }
 
