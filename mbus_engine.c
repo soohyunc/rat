@@ -606,11 +606,19 @@ static void rx_tool_rat_logstats(char *srce, char *args, session_t *sp)
 #endif
 			gettimeofday(&t, NULL);
 			gethostname(hname, 64);
+#ifdef WIN32
+			sprintf(fname, "rat-%p-%I64d.%06ld-%s-%s.log", sp, (__int64)t.tv_sec, (long)t.tv_usec, hname, uname); //SV-XXX: Win32
+#else
 			sprintf(fname, "rat-%p-%jd.%06ld-%s-%s.log", sp, (intmax_t)t.tv_sec, (long)t.tv_usec, hname, uname); //SV-XXX: FreeBSD
+#endif
 			cname = rtp_get_sdes(sp->rtp_session[0], rtp_my_ssrc(sp->rtp_session[0]), RTCP_SDES_CNAME);
 
 			sp->logger = fopen(fname, "w");
+#ifdef WIN32
+			fprintf(sp->logger, "tool_start %I64u.%06lu ", (__int64)t.tv_sec + SECS_BETWEEN_1900_1970, (long)t.tv_usec); //SV-XXX: Win32
+#else
 			fprintf(sp->logger, "tool_start %ju.%06lu ", (intmax_t)t.tv_sec + SECS_BETWEEN_1900_1970, (long)t.tv_usec); //SV-XXX: FreeBSD
+#endif
 			fprintf(sp->logger, "0x%08lx\n", (unsigned long) rtp_my_ssrc(sp->rtp_session[0]));
 		} else {
 			fclose(sp->logger);
