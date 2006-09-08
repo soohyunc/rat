@@ -506,10 +506,11 @@ int main(int argc, char *argv[])
 	token_e[0] = generate_token();
 	token_e[1] = generate_token();
         fork_process(ENGINE_NAME, c_addr, &pid_engine, num_sessions, token_e);
+        should_exit = FALSE;
 	for (i = 0; i < num_sessions; i++) {
 		debug_msg("Waiting for %s from media engine...\n", token_e[i]);
 		e_addr[i] = mbus_rendezvous_waiting(m, "()", token_e[i], m);
-		debug_msg("...got it\n");
+		debug_msg("...got it (%s)\n",e_addr[i]);
 	}
 
         if (parse_addresses(m, e_addr, argc, argv) == TRUE) {
@@ -529,7 +530,6 @@ int main(int argc, char *argv[])
 		}
 		debug_msg("Entering main loop\n");
 		final_iters = 25;
-                should_exit = FALSE;
                 while (final_iters > 0) {
                         mbus_send(m);
                         mbus_heartbeat(m, 1);
