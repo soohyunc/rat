@@ -116,59 +116,65 @@ cushion_destroy(cushion_t **ppc)
 void
 cushion_update(cushion_t *c, uint32_t read_dur, int mode)
 {
-        uint32_t idx, cnt, cover_idx, cover_cnt;
-        uint32_t lower, upper;
+	uint32_t idx, cnt, cover_idx, cover_cnt;
+	uint32_t lower, upper;
 
-        /* remove entry we are about to overwrite from histogram */
-        if (c->read_history[c->last_in] < c->histbins) {
-                c->histogram[ c->read_history[c->last_in] ]--;
+	/* remove entry we are about to overwrite from histogram */
+	if (c->read_history[c->last_in] < c->histbins) {
+		c->histogram[ c->read_history[c->last_in] ]--;
 		assert(c->histogram[ c->read_history[c->last_in] ] <= HISTORY_SIZE);
-        } else {
-                c->histogram[ c->read_history[c->histbins - 1] ]--;
+	} else {
+		c->histogram[ c->read_history[c->histbins - 1] ]--;
 		assert(c->histogram[ c->read_history[c->histbins - 1] ] <= HISTORY_SIZE);
-        }
+	}
 
-        /* slot in new entry and update histogram */
+	/* slot in new entry and update histogram */
 	c->read_history[c->last_in] = (max(read_dur, c->cushion_min) + c->cushion_step - 1) / c->cushion_step;
-        if (c->read_history[c->last_in] < c->histbins) {
-                c->histogram[ c->read_history[c->last_in] ]++;
-        } else {
-                c->histogram[ c->read_history[c->histbins - 1] ]++;
-                debug_msg("WE ARE NOT KEEPING UP IN REAL-TIME\n");
-        }
+	if (c->read_history[c->last_in] < c->histbins) {
+		if (c->histogram[ c->read_history[c->last_in] ] < HISTORY_SIZE) {
+			c->histogram[ c->read_history[c->last_in] ]++;
+		} else
+			debug_msg("Limited cushion history: %d, read_dur: %d ", c->histogram[ c->read_history[c->last_in] ], read_dur);
+	} else {
+		if (c->histogram[ c->read_history[c->histbins - 1] ] < HISTORY_SIZE) {
+			c->histogram[ c->read_history[c->histbins - 1] ]++;
+		} else 
+			debug_msg("NOT Keeping up AND Limiting cushion history: %d", c->histogram[ c->read_history[c->histbins - 1] ]);
+		debug_msg("WE ARE NOT KEEPING UP IN REAL-TIME\n");
+	}
 
 	c->last_in++;
 	if (c->last_in == HISTORY_SIZE) {
 		c->last_in = 0;
-        }
+	}
 
-        /* Find lower and upper bounds for cushion... */
-        idx = cnt = cover_idx = cover_cnt = 0;
-        while(idx < c->histbins && cnt < HISTORY_SIZE) {
-                if (cover_cnt < MIN_COVER) {
-                        cover_cnt += c->histogram[idx];
-                        cover_idx  = idx;
-                }
-                cnt += c->histogram[idx];
-                idx++;
-        }
+	/* Find lower and upper bounds for cushion... */
+	idx = cnt = cover_idx = cover_cnt = 0;
+	while(idx < c->histbins && cnt < HISTORY_SIZE) {
+		if (cover_cnt < MIN_COVER) {
+			cover_cnt += c->histogram[idx];
+			cover_idx  = idx;
+		}
+		cnt += c->histogram[idx];
+		idx++;
+	}
 
-        if (mode == CUSHION_MODE_LECTURE) {
-                lower = (cover_idx + 10);
-                upper = (idx       + 10);
-        } else {
-                lower = (cover_idx + 2);
-                upper = idx;
-        }
+	if (mode == CUSHION_MODE_LECTURE) {
+		lower = (cover_idx + 10);
+		upper = (idx       + 10);
+	} else {
+		lower = (cover_idx + 2);
+		upper = idx;
+	}
 
-        /* it's a weird world :D lower can be above upper */
-        c->cushion_estimate = min(lower,upper) * c->cushion_step;
-        c->cushion_estimate = max(c->cushion_estimate, c->cushion_min);
+	/* it's a weird world :D lower can be above upper */
+	c->cushion_estimate = min(lower,upper) * c->cushion_step;
+	c->cushion_estimate = max(c->cushion_estimate, c->cushion_min);
 
 #ifdef DEBUG_CUSHION
-        debug_msg("size % 3d cur % 3d\n", c->cushion_size, c->cushion_estimate);
+	debug_msg("size % 3d cur % 3d\n", c->cushion_size, c->cushion_estimate);
 #endif /* DEBUG_CUSHION */
-        assert(c->cushion_estimate != 0);
+	assert(c->cushion_estimate != 0);
 }
 
 static void
