@@ -47,6 +47,7 @@ typedef struct RatCardInfo_t
 
 static RatCardInfo ratCards[MAX_RAT_CARDS];
 static int nRatCards = 0;
+static int mixer_state_change = 0;
 
 /* Define ALSA mixer identifiers.  We use these to lookup the volume
  * controls on the mixer.  This feels like a bit of a hack, but
@@ -65,7 +66,8 @@ static int nRatCards = 0;
 
 typedef struct _port_t {
     audio_port_details_t details;
-    snd_mixer_elem_t* mixer;
+    snd_mixer_selem_id_t *sid;
+    snd_mixer_elem_t* smixer_elem;
     int priority;
 } port_t;
 
@@ -113,6 +115,7 @@ static void clear_current()
     current.mixer =  NULL;
     current.index = -1;
     current.info = NULL;
+    current.iport = (audio_port_t)NULL;
 }
 
 
@@ -127,28 +130,28 @@ static char *encodingToString[] = {
     "S16"
 };
 
-// Ah, exceptions, I hardly new thee ...
+// Trimmed down Error macros 
 #define CHECKERR(msg) \
 { \
   if (err < 0) \
   { \
-    fprintf(stderr, msg ": %s\n", snd_strerror(err)); \
+    debug_msg(msg); \
+    debug_msg("snd_strerror : %s\n", snd_strerror(err)); \
     return FALSE; \
   } \
-    }
-#define CHECKERRCONT(msg) \
-{ \
-  if (err < 0) \
-    fprintf(stderr, msg ": %s\n", snd_strerror(err)); \
-    }
-#define VCHECKERR(msg) \
+}
+#define CHECKOPENERR(msg) \
 { \
   if (err < 0) \
   { \
-    fprintf(stderr, msg ": %s\n", snd_strerror(err)); \
-    return; \
+    debug_msg(msg); \
+    debug_msg("snd_strerror : %s\n", snd_strerror(err)); \
+    snd_pcm_close(stream->handle); \
+    stream->handle=NULL; \
+    return FALSE; \
   } \
 }
+
 
 
 static int mapformat(deve_e encoding)
@@ -235,18 +238,6 @@ static void  __attribute__((unused)) dump_alsa_current(snd_pcm_t *handle)
 
 /* *** Alsa driver implementation. *** */
 
-#undef CHECKOPENERR
-#define CHECKOPENERR(msg) \
-{ \
-  if (err < 0) \
-  { \
-    fprintf(stderr, msg ": %s\n", snd_strerror(err)); \
-    snd_pcm_close(stream->handle); \
-    stream->handle=NULL; \
-    return FALSE; \
-  } \
-}
-
 static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
                        snd_pcm_stream_t type, audio_format *fmt)
     {
@@ -259,12 +250,13 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
     snd_pcm_sw_params_t *sw_params;
     /* Set avail min inside a software configuration container */
     /* Can we tweak this up/down?*/
-    snd_pcm_uframes_t    avail_min=4;	
+    snd_pcm_uframes_t    avail_min=100; //4	
     snd_pcm_uframes_t    xfer_align=1;	
 
     err = snd_pcm_open(&stream->handle, info->pcm_device,
                        type, SND_PCM_NONBLOCK);
-    CHECKERR("Card open failed");
+    debug_msg("ALSA:open_stream: %s\n",info->pcm_device);
+    if (err<0) { debug_msg("Card open failed"); return FALSE; }
 
     snd_pcm_hw_params_alloca (&hw_params);
 
@@ -289,8 +281,10 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
                                            &rrate, &dir);
     CHECKOPENERR("Failed to set sample rate");
     if (rrate != fmt->sample_rate) {
-        fprintf(stderr, "ALSA rate set to %d when we wanted %d\n",
+        debug_msg("Error: ALSA rate set to %d when we wanted %d\n",
                 rrate, fmt->sample_rate);
+        snd_pcm_close(stream->handle);
+        stream->handle=NULL;
         return FALSE;
     }
 
@@ -347,20 +341,6 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
 }
 
 
-// Get the mixer
-
-#undef CHECKOPENERR
-#define CHECKOPENERR(msg) \
-{ \
-  if (err < 0) \
-  { \
-    fprintf(stderr, msg ": %s\n", snd_strerror(err)); \
-    snd_mixer_close(current.mixer); \
-    current.mixer=NULL; \
-    return FALSE; \
-  } \
-}
-
 
 // Open a named mixer
 static int open_volume_ctl(char *name, snd_mixer_elem_t **ctl)
@@ -376,8 +356,6 @@ static int open_volume_ctl(char *name, snd_mixer_elem_t **ctl)
   snd_mixer_selem_id_set_name (sid, name);
 
   *ctl = snd_mixer_find_selem(current.mixer, sid);
-  //err = (int)*ctl;
-  //CHECKOPENERR("Couldn't find mixer control element");
   if (*ctl == NULL ) {
    debug_msg("Couldn't find mixer control element (name:%s)\n",name);
    return FALSE;
@@ -388,9 +366,11 @@ static int open_volume_ctl(char *name, snd_mixer_elem_t **ctl)
     // FIXME: Does this always work?
     snd_mixer_selem_set_playback_volume_range (*ctl, 0, 100);
 
-    if ( snd_mixer_selem_has_playback_switch( *ctl ) ) {
-      err = snd_mixer_selem_set_playback_switch_all(*ctl, 1);
-      CHECKOPENERR("Failed to switch on playback volume");
+    if (snd_mixer_selem_has_playback_switch( *ctl ) ) {
+      if (snd_mixer_selem_set_playback_switch_all(*ctl, 1) < 0) {
+        debug_msg("Failed to switch on playback volume");
+        return FALSE;
+      }
     } 
 
   } else if (snd_mixer_selem_has_capture_volume(*ctl)) {
@@ -398,7 +378,10 @@ static int open_volume_ctl(char *name, snd_mixer_elem_t **ctl)
     snd_mixer_selem_set_capture_volume_range (*ctl, 0, 100);
 
     err = snd_mixer_selem_set_capture_switch_all(*ctl, 1);
-    CHECKOPENERR("Failed to switch on capture volume");
+    if (err<0) {
+      debug_msg("Failed to switch on capture volume");
+      return FALSE;
+    }
 
   } else {
     debug_msg("Unknown mixer type %s set\n", name);
@@ -416,53 +399,104 @@ static int porder(const void *a, const void *b)
     return (((port_t*)a)->priority - ((port_t*)b)->priority);
 }
 
+/* Not used for now. It seems to cause problems in mbus, however it
+ * may be useful for handling mixer updates from external sources
+ *
+static int
+mixer_callback (snd_mixer_t *mixer, unsigned int mask, snd_mixer_elem_t *elem)
+{
+  mixer_state_change = 1;
+  debug_msg("mixer_callback\n");
+  return 0;
+} 
+*/
+
 static int setup_mixers()
 {
-    snd_mixer_elem_t *elem;
+    snd_mixer_elem_t *elem, *selem;
+    snd_mixer_selem_id_t *sid;
     int err;
     unsigned i;
     int need_cap_switch=1;
     
-    err = snd_mixer_open (&current.mixer, 0);
-    CHECKERR("Failed to open the mixer");
+    snd_mixer_selem_id_alloca(&sid);
 
-    // FIXME: Attach the mixer to the default card.  Is this enough?
-    //err = snd_mixer_attach(current.mixer, "default");
+    err = snd_mixer_open (&current.mixer, 0);
+    if (err < 0) { 
+      debug_msg("Failed to open the mixer(snd err: %s)",snd_strerror(err));
+      current.mixer=NULL; 
+      return FALSE; 
+    } 
+
     err = snd_mixer_attach(current.mixer, current.info->pcm_mixer);
-//  err = snd_mixer_attach(current.mixer, "hw:0,0");
-    CHECKOPENERR("Failed to attach mixer");
+    if (err < 0) { 
+      debug_msg("Failed to attach the mixer(snd err: %s)",snd_strerror(err));
+      snd_mixer_close(current.mixer); 
+      current.mixer=NULL; 
+      return FALSE; 
+    } 
 
     err = snd_mixer_selem_register(current.mixer, NULL, NULL);
-    CHECKOPENERR("Failed to register mixer");
+    if (err < 0) { 
+      debug_msg("Failed to register the mixer(snd err: %s)",snd_strerror(err));
+      snd_mixer_close(current.mixer); 
+      current.mixer=NULL; 
+      return FALSE; 
+    } 
     
+    /* Not used for now - see above */
+    /* snd_mixer_set_callback (current.mixer, mixer_callback); */
+
     err = snd_mixer_load(current.mixer);
-    CHECKOPENERR("Failed to load mixer");
+    if (err < 0) { 
+      debug_msg("Failed to load the mixer(snd err: %s)",snd_strerror(err));
+      snd_mixer_close(current.mixer); 
+      current.mixer=NULL; 
+      return FALSE; 
+    } 
 
-
-    // Get the playback and capture volume controls
-    /*if ((!open_volume_ctl(RAT_ALSA_MIXER_PCM_NAME, &current.txgain)) ||
-        (!open_volume_ctl(RAT_ALSA_MIXER_CAPTURE_NAME, &current.rxgain)))
-	    return FALSE;	*/
-    if (!open_volume_ctl(RAT_ALSA_MIXER_PCM_NAME, &current.txgain)) 
-	    return FALSE;
-    if (!open_volume_ctl(RAT_ALSA_MIXER_CAPTURE_NAME, &current.rxgain))
+    /* Get the playback and capture volume controls
+     * If Capture open fails it ptobably means we have a capture card
+     * which does not support capture_switch - in which case we set the
+     * capture level of the selected input device.
+     */
+    if (!open_volume_ctl(RAT_ALSA_MIXER_PCM_NAME, &current.txgain)) { 
+      snd_mixer_close(current.mixer); 
+      current.mixer=NULL; 
+      return FALSE;
+    }
+    if (!open_volume_ctl(RAT_ALSA_MIXER_CAPTURE_NAME, &current.rxgain)) {
       need_cap_switch=0;
+      current.rxgain=0;
+    }
 
     num_iports = 0;
 
-    // We now scan the mixer for recording controls.  We're interested in
-    // the controls that are part of a group (i.e. radio-button types) that
-    // can be flipped between.
+    /* We now scan the mixer for recording controls.  We're interested in
+     * the controls that are part of a group (i.e. radio-button types) that
+     * can be flipped between. 
+     */
     for (elem = snd_mixer_first_elem (current.mixer);
         elem && (num_iports < MAX_RAT_DEVICES);
         elem = snd_mixer_elem_next (elem))
     {
-        int gid = snd_mixer_selem_get_capture_group(elem);
-        const char *name = snd_mixer_selem_get_name(elem);
-        debug_msg("Trying CAPTURE element '%s' of group %d \n", name, gid);
+      if (!snd_mixer_selem_is_active(elem) || 
+           snd_mixer_selem_is_enumerated(elem)) 
+         continue;
 
-      if (snd_mixer_selem_has_capture_volume(elem) ||
-          snd_mixer_selem_has_capture_switch(elem) )
+      sid = (snd_mixer_selem_id_t*)malloc(snd_mixer_selem_id_sizeof());
+      snd_mixer_selem_get_id( elem, sid );
+      /* Find the Simple mixer element */
+      selem = snd_mixer_find_selem(current.mixer, sid );
+
+      int gid = snd_mixer_selem_get_capture_group(selem);
+      const char *name = snd_mixer_selem_get_name(selem);
+
+      debug_msg("Trying CAPTURE element '%s' of group %d \n", name, gid);
+
+      /* The code below is minimal so it works for card without capture switch */
+      if (snd_mixer_selem_has_capture_volume(selem) ||
+          snd_mixer_selem_has_capture_switch(selem) )
       //    snd_mixer_selem_is_active (elem) &&
       //    (snd_mixer_selem_has_capture_switch(elem)) &&
       //    snd_mixer_selem_has_capture_switch_exclusive(elem))
@@ -471,12 +505,13 @@ static int setup_mixers()
         // than one capture group, but RAT isn't really equipped to handle
         // the case so we'll just ignore it for now.
 
-
         debug_msg("Got CAPTURE element '%s' of group %d\n", name, gid);
 
         snprintf(iports[num_iports].details.name, AUDIO_PORT_NAME_LENGTH,
             "%s", name);
-        iports[num_iports].mixer = elem;
+        iports[num_iports].smixer_elem = selem;
+        //iports[num_iports].sid = sid;
+    debug_msg("Found %s selem:%d (sid:%d)\n",iports[num_iports].details.name,selem,iports[num_iports].sid );
 
         // The principle of least-surprise means that we should present
         // the ports in the same order as the other drivers.  As we're
@@ -520,39 +555,47 @@ int alsa_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
     
     //clear_current();
     if (current.tx.handle != NULL) {
-        fprintf(stderr, "Attempt to open a device while another is open\n");
+        debug_msg( "Attempt to open a device while another is open\n");
         return FALSE;
     }
     current.index = ad;
     current.info = ratCards + ad;
     current.bytes_per_block = infmt->bytes_per_block;
 
-        fprintf(stderr, "to open device for playback\n");
     if (!open_stream(current.info, &current.tx,
                      SND_PCM_STREAM_PLAYBACK, outfmt)) {
         alsa_audio_close(ad); 
-        fprintf(stderr, "Failed to open device for playback\n");
+        debug_msg( "Failed to open device for playback\n");
         return FALSE;
     }
-        fprintf(stderr, "to open device for capture\n");
+        debug_msg( "to open device for capture\n");
     if (!open_stream(current.info, &current.rx,
                      SND_PCM_STREAM_CAPTURE, infmt)) {
         alsa_audio_close(ad); 
-        fprintf(stderr, "Failed to open device for capture\n");
+        debug_msg( "Failed to open device for capture\n");
         return FALSE;
     }
 
     if (setup_mixers() == FALSE) {
       alsa_audio_close(ad); 
-        fprintf(stderr, "Failed to set mixer levels \n");
+        debug_msg( "Failed to set mixer levels \n");
       return FALSE;
     }
 
     err = snd_pcm_prepare(current.tx.handle);
-    CHECKERR("Failed to prepare playback");
+    if (err<0) {
+      debug_msg("Failed to prepare playback");
+      alsa_audio_close(ad); 
+      return FALSE;
+    }
+
 
     err = snd_pcm_start(current.rx.handle);
-    CHECKERR("Failed to start PCM capture");
+    if (err<0) {
+      debug_msg("Failed to start PCM capture");
+      alsa_audio_close(ad); 
+      return FALSE;
+    }
 
     return TRUE;
 }
@@ -574,18 +617,18 @@ void alsa_audio_close(audio_desc_t ad)
 
     if (current.tx.handle != NULL ) {
 	    err = snd_pcm_close(current.tx.handle);
-	    CHECKERRCONT("Error closing playback PCM");
+	    if (err<0) debug_msg("Error closing playback PCM");
     }
 
     if (current.rx.handle != NULL ) {
 	    err = snd_pcm_close(current.rx.handle);
-	    CHECKERRCONT("Error closing capture PCM");
+            if (err<0) debug_msg("Error closing capture PCM");
     }
 
     // Close mixer 
     if (current.mixer !=  NULL ) {
     	err = snd_mixer_close(current.mixer);
-    	CHECKERRCONT("Error closing mixer");
+    	if (err<0) debug_msg("Error closing mixer");
     }
 
     clear_current();
@@ -600,22 +643,36 @@ void alsa_audio_drain(audio_desc_t ad __attribute__((unused)))
 
     debug_msg("audio_drain\n");
     err = snd_pcm_drain(current.rx.handle);
-    VCHECKERR("Problem draining input");
+    if (err<0) debug_msg("Problem draining input\n");
 }
     
 
 
 /*
- * Set record gain.
+ * Set capture gain.
  */
 void alsa_audio_set_igain(audio_desc_t ad, int gain)
 {
     int err;
     debug_msg("Set igain %d %d\n", ad, gain);
 
-    //err = snd_mixer_selem_set_capture_volume_all(current.rxgain, gain);
-    err = snd_mixer_selem_set_capture_volume_all(current.rxgain, gain);
-    VCHECKERR("Couldn't set capture volume");
+    if (current.rxgain) {
+      if (snd_mixer_selem_has_capture_switch(current.rxgain)) {
+	err = snd_mixer_selem_set_capture_volume_all(current.rxgain, gain);
+	if (err<0) debug_msg("Failed to set capture volume\n");
+      } else {
+	// Or try setting capture level of selected input
+	debug_msg("Attempting to set input element capture volume\n");
+	err = snd_mixer_selem_set_capture_volume_all(iports[current.iport].smixer_elem, gain);
+	if(err<0) debug_msg("Failed to set capture volume\n");
+      }
+    } else {
+	// Or try setting capture level of selected input
+	debug_msg("current.rxgain=0 - Attempting to set input element capture volume\n");
+	err = snd_mixer_selem_set_capture_volume_all(iports[current.iport].smixer_elem, gain);
+	if(err<0) debug_msg("Failed to set capture volume\n");
+    }
+    mixer_state_change = 1;
 }
 
 
@@ -624,14 +681,25 @@ void alsa_audio_set_igain(audio_desc_t ad, int gain)
  */
 int alsa_audio_get_igain(audio_desc_t ad)
 {
-    long igain;
+    long igain=0;
     int err;
     debug_msg("Get igain %d\n", ad);
 
-    //err = snd_mixer_selem_get_capture_volume(current.rxgain,
-    err = snd_mixer_selem_get_capture_volume(current.rxgain,
-                                             SND_MIXER_SCHN_MONO, &igain);
-    CHECKERR("Failed to get capture volume");
+    if (current.rxgain) {
+      if (snd_mixer_selem_has_capture_switch(current.rxgain)) {
+	err = snd_mixer_selem_get_capture_volume(current.rxgain,
+						 SND_MIXER_SCHN_MONO, &igain);
+	if(err<0) debug_msg("Failed to get capture volume");
+      } else {
+	// Or try getting capture level of selected input
+	err = snd_mixer_selem_get_capture_volume(iports[current.iport].smixer_elem, SND_MIXER_SCHN_MONO, &igain);
+	if(err<0) debug_msg("Failed to get capture volume");
+      }
+    } else {
+	// Or try getting capture level of selected input
+	err = snd_mixer_selem_get_capture_volume(iports[current.iport].smixer_elem, SND_MIXER_SCHN_MONO, &igain);
+	if(err<0) debug_msg("Failed to get capture volume");
+    }
 
     return (int)igain;
 }
@@ -651,11 +719,12 @@ void alsa_audio_set_ogain(audio_desc_t ad, int vol)
     debug_msg("Set ogain %d %d\n", ad, vol);
 
     err = snd_mixer_selem_set_playback_switch_all(current.txgain, 1);
-    VCHECKERR("Failed to switch on playback volume");
+    if(err<0) debug_msg("Failed to switch on playback volume");
 
     err = snd_mixer_selem_set_playback_volume_all(current.txgain, vol);
-    VCHECKERR("Couldn't set mixer playback volume");
+    if(err<0) debug_msg("Couldn't set mixer playback volume");
 
+    mixer_state_change = 1;
 }
 
 /*
@@ -664,15 +733,65 @@ void alsa_audio_set_ogain(audio_desc_t ad, int vol)
 int
 alsa_audio_get_ogain(audio_desc_t ad)
 {
-    long ogain;
+    long ogain=0;
     int err;
 
     debug_msg("Get ogain %d\n", ad);
     err = snd_mixer_selem_get_playback_volume(current.txgain,
                                              SND_MIXER_SCHN_MONO, &ogain);
-    CHECKERR("Failed to get capture volume");
+    if(err<0) debug_msg("Failed to get capture volume");
 
     return (int)ogain;
+}
+
+static void handle_mixer_events(snd_mixer_t *mixer_handle)
+{
+  int count, err;
+  struct pollfd *fds;
+  int num_revents = 0;
+  unsigned short revents;
+
+  /* Get count of poll descriptors for mixer handle */
+  if ((count = snd_mixer_poll_descriptors_count(mixer_handle)) < 0) {
+    debug_msg("Error in snd_mixer_poll_descriptors_count(%d)\n", count);
+    return;
+  }
+
+  fds =(struct pollfd*)calloc(count, sizeof(struct pollfd));
+  if (fds == NULL) {
+    debug_msg("snd_mixer fds calloc err\n");
+    return;
+  }
+
+  if ((err = snd_mixer_poll_descriptors(mixer_handle, fds, count)) < 0){
+    debug_msg ("snd_mixer_poll_descriptors err=%d\n", err);
+  free(fds);
+    return;
+  }
+
+  if (err != count){
+    debug_msg ("snd_mixer_poll_descriptors (err(%d) != count(%d))\n",err,count);
+  free(fds);
+    return;
+  }
+
+  num_revents = poll(fds, count, 1);
+
+  /* Graceful handling of signals recvd in poll() */
+  if (num_revents < 0 && errno == EINTR)
+    num_revents = 0;
+
+  if (num_revents > 0) {
+    if (snd_mixer_poll_descriptors_revents(mixer_handle, fds, count, &revents) >= 0) {
+      if (revents & POLLNVAL)
+        debug_msg ("snd_mixer_poll_descriptors (POLLNVAL)\n");
+      if (revents & POLLERR)
+        debug_msg ("snd_mixer_poll_descriptors (POLLERR)\n");
+      if (revents & POLLIN)
+        snd_mixer_handle_events(mixer_handle);
+    }
+  }
+  free(fds);
 }
 
 /*
@@ -681,17 +800,23 @@ alsa_audio_get_ogain(audio_desc_t ad)
 
 int alsa_audio_read(audio_desc_t ad __attribute__((unused)),
                 u_char *buf, int bytes)
-	{
-    snd_pcm_sframes_t frames = snd_pcm_bytes_to_frames(current.rx.handle, bytes);
+{
     snd_pcm_sframes_t fread;
     int err;
+
+    if (mixer_state_change) {
+      mixer_state_change=0;
+      handle_mixer_events (current.mixer);
+    }
+
+    snd_pcm_sframes_t frames = snd_pcm_bytes_to_frames(current.rx.handle,bytes);
 
     fread = snd_pcm_readi(current.rx.handle, buf, frames);
 
     if (fread >= 0) {
         // Normal case
         fread = snd_pcm_frames_to_bytes(current.rx.handle, fread);
-        debug_msg("Read %d bytes\n", fread);
+        //debug_msg("Read %d bytes\n", fread);
         return fread;
     }
 
@@ -703,26 +828,26 @@ int alsa_audio_read(audio_desc_t ad __attribute__((unused)),
 	    return 0;
 
 	case -EPIPE:
-        debug_msg("Got capture XRUN\n");
-        err = snd_pcm_prepare(current.rx.handle);
-        CHECKERR("Can't recover from capture overrun");
-    err = snd_pcm_start(current.rx.handle);
-    CHECKERR("Failed to start PCM capture");
-        return FALSE;
+          debug_msg("Got capture XRUN (EPIPE)\n");
+          err = snd_pcm_prepare(current.rx.handle);
+          if (err<0) debug_msg("Failed snd_pcm_prepare from capture overrun");
+          err = snd_pcm_start(current.rx.handle);
+          if (err<0) debug_msg("Failed to re-start PCM capture from XRUN");
+          return FALSE;
 
-      case -ESTRPIPE:
-        debug_msg("Got capture ESTRPIPE\n");
-        while ((err = snd_pcm_resume(current.rx.handle)) == -EAGAIN)
-            sleep(1);       /* wait until the suspend flag is released */
-        if (err < 0) {
-            err = snd_pcm_prepare(current.rx.handle);
-            CHECKERR("Can't recovery from capture suspend");
-		}
-        return FALSE;
+        case -ESTRPIPE:
+          debug_msg("Got capture ESTRPIPE\n");
+          while ((err = snd_pcm_resume(current.rx.handle)) == -EAGAIN)
+              sleep(1);       /* wait until the suspend flag is released */
+          if (err < 0) {
+              err = snd_pcm_prepare(current.rx.handle);
+              if (err<0) debug_msg("Failed snd_pcm_prepare from capture suspend");
+          }
+          return FALSE;
 
 	default:
-        debug_msg("Write failed status=%d: %s\n", snd_strerror(fread));
-	return 0;
+          //debug_msg("Read failed status= %s\n", snd_strerror(fread));
+          return 0;
     }
 }
 
@@ -734,18 +859,18 @@ int alsa_audio_read(audio_desc_t ad __attribute__((unused)),
 int alsa_audio_write(audio_desc_t ad __attribute__((unused)),
                      u_char *buf, int bytes)
 {
-    int fwritten, err;
+    int fwritten, err, num_bytes=0;
     snd_pcm_sframes_t frames =
         snd_pcm_bytes_to_frames(current.tx.handle,bytes);
 
-    debug_msg("Audio write %d\n", bytes);
+    ///debug_msg("Audio write %d\n", bytes);
 
     fwritten = snd_pcm_writei(current.tx.handle, buf, frames);
     if (fwritten >= 0) {
         // Normal case
-        fwritten = snd_pcm_frames_to_bytes(current.tx.handle, fwritten);
-        debug_msg("Wrote %d bytes\n", fwritten);
-        return fwritten;
+        num_bytes = snd_pcm_frames_to_bytes(current.tx.handle, fwritten);
+        debug_msg("Wrote %d bytes, frames: %d\n", num_bytes, fwritten);
+        return num_bytes;
     }
 
     // Something happened
@@ -753,14 +878,22 @@ int alsa_audio_write(audio_desc_t ad __attribute__((unused)),
     {
       case -EAGAIN:
         // Normal when non-blocking
-        return FALSE;
+        return 0;
 
       case -EPIPE:
-        debug_msg("Got transmit XRUN\n");
+        debug_msg("Got transmit XRUN (EPIPE)\n");
         err = snd_pcm_prepare(current.tx.handle);
-        err = snd_pcm_writei(current.tx.handle, buf, frames);
-        CHECKERR("Can't recover from transmit overrun");
-        return TRUE;
+        if (err<0) debug_msg("Failed snd_pcm_prepare from Transmit overrun\n");
+        debug_msg("Attempting Recovery from transmit overrun: Bytes:%d Frames:%d\n",num_bytes,fwritten);
+        fwritten = snd_pcm_writei(current.tx.handle, buf, frames);
+        if (fwritten<0) {
+          debug_msg("Can't recover from transmit overrun\n");
+          return 0;
+        } else {
+          num_bytes = snd_pcm_frames_to_bytes(current.tx.handle, fwritten);
+          debug_msg("Recovered from transmit overrun: Bytes:%d Frames:%d\n",num_bytes,fwritten);
+          return num_bytes;
+        }
 
       case -ESTRPIPE:
         debug_msg("Got transmit ESTRPIPE\n");
@@ -768,19 +901,19 @@ int alsa_audio_write(audio_desc_t ad __attribute__((unused)),
             sleep(1);       /* wait until the suspend flag is released */
         if (err < 0) {
             err = snd_pcm_prepare(current.tx.handle);
-            CHECKERR("Can't recovery from transmit suspend");
-    }
-        return FALSE;
+            if (err<0) debug_msg("Can't recovery from transmit suspend\n");
+        }
+        return 0;
 
       default:
-        debug_msg("Write failed status=%d: %s\n", snd_strerror(fwritten));
-        return FALSE;
+        //debug_msg("Write failed status=%d: %s\n", fwritten, snd_strerror(fwritten));
+        return 0;
     }
 
 
-    fwritten = snd_pcm_frames_to_bytes(current.tx.handle, fwritten);
-    debug_msg("Audio wrote %d\n", fwritten);
-    return fwritten;
+    num_bytes = snd_pcm_frames_to_bytes(current.tx.handle, fwritten);
+    debug_msg("Audio wrote %d\n", num_bytes);
+    return num_bytes;
 }
 
 
@@ -793,22 +926,21 @@ void alsa_audio_non_block(audio_desc_t ad __attribute__((unused)))
     debug_msg("Set nonblocking\n");
 
     err = snd_pcm_nonblock(current.tx.handle, TRUE);
-    VCHECKERR("Error setting TX non-blocking");
+    if(err<0) debug_msg("Error setting TX non-blocking");
 
     err = snd_pcm_nonblock(current.rx.handle, TRUE);
-    VCHECKERR("Error setting RX non-blocking");
-    }
+    if(err<0) debug_msg("Error setting RX non-blocking");
+}
 
-    /*
+/*
  * Set options on audio device to be blocking.
-    */
+ */
 void alsa_audio_block(audio_desc_t ad)
     {
     int err;
     debug_msg("[%d] set blocking\n", ad);
     if ((err = snd_pcm_nonblock(current.tx.handle, FALSE)) < 0) {
-        fprintf (stderr, "Cannot set blocking: %s\n",
-                 snd_strerror (err));
+        debug_msg ("Cannot set device to be blocking: %s\n", snd_strerror(err));
     }
 }
 
@@ -852,23 +984,49 @@ void
 alsa_audio_iport_set(audio_desc_t ad, audio_port_t port)
 {
     int err = 0;
-    audio_port_t i;
-    debug_msg("iport_set %d %d\n", ad, port);
+    audio_port_t i=port;
+    snd_mixer_elem_t *selem;
+
+    ad=ad; // Silence compiler warning
     current.iport = port;
+    //The following does not seems necessary - though it does work
+    //selem = snd_mixer_find_selem(current.mixer, iports[port].sid);
+    selem = iports[port].smixer_elem;
+    debug_msg("Selecting input port: %s\n",iports[i].details.name);
 
-    for (i=0; i < num_iports; i++) {
-        err = snd_mixer_selem_set_capture_switch_all(
-            iports[i].mixer, (i==port));
+    if(selem)
+      if (snd_mixer_selem_has_capture_switch(selem)) {
+        if (snd_mixer_selem_has_capture_switch_joined(selem)){
+          snd_mixer_selem_get_capture_switch(selem,SND_MIXER_SCHN_FRONT_LEFT,&err);
+          debug_msg("Found snd_mixer_selem_has_capture_switch_joined\n");
+          err=snd_mixer_selem_set_capture_switch_all(selem,1);
+          if (err<0) {
+            debug_msg("Error encountered setting joined capture switch\n" );
+          }
+        } else  {
+          debug_msg("Found separate L+R captures levels\n" );
+          err=snd_mixer_selem_set_capture_switch(selem,SND_MIXER_SCHN_FRONT_LEFT,1);
+          if (err<0) {
+            debug_msg("Error setting Left capture switch \n" );
+          }
+          err=snd_mixer_selem_set_capture_switch(selem,SND_MIXER_SCHN_FRONT_RIGHT,1);
+          if (err<0) {
+            debug_msg("Error setting Right capture switch \n" );
+          }
+        }
     }
-    /* If there's an error assume that capture switches don't work on 
-     * this card so let RAT try and set the levels on the currently 
-     * selected input item directly
-     */
-    if (err<0) 
-      current.rxgain=iports[port].mixer;
-
-    VCHECKERR("Failed to set record switch");
+    // Make sure Capture switch is on.
+    if (current.rxgain) {
+      if (snd_mixer_selem_has_capture_switch(current.rxgain)) {
+	err=snd_mixer_selem_set_capture_switch_all(current.rxgain,1);
+	if (err<0) {
+	  debug_msg("Error setting Capture switch\n" );
+	}
+      }
+    }
+    mixer_state_change = 1;
 }
+
 
 
 /*
@@ -884,13 +1042,15 @@ alsa_audio_iport_get(audio_desc_t ad)
 int
 alsa_audio_iport_count(audio_desc_t ad)
 {
-    debug_msg("Get iport count for %d (=%d)\n", ad, num_iports);
+    debug_msg("Get iport count for %d (num=%d)\n", ad, num_iports);
     return num_iports;
 }
 
 const audio_port_details_t* alsa_audio_iport_details(audio_desc_t ad, int idx)
 {
-	debug_msg("iport details ad=%d idx=%d\n", ad, idx);
+    int err;
+    snd_mixer_selem_get_capture_switch(iports[idx].smixer_elem,SND_MIXER_SCHN_FRONT_LEFT,&err);
+    debug_msg("iport details ad=%d idx=%d : %s  (Enabled=%d)\n", ad, idx, iports[idx].details.name,err);
     return &iports[idx].details;
 }
 
@@ -907,32 +1067,34 @@ int alsa_audio_is_ready(audio_desc_t ad __attribute__((unused)))
 
     snd_pcm_status_alloca(&status);
     err = snd_pcm_status(current.rx.handle, status);
-    CHECKERR("Can't get status of rx");
+    if (err<0) {
+      debug_msg("Can't get status of rx");
+      return FALSE;
+    }
 
     avail = snd_pcm_frames_to_bytes(current.rx.handle,
                                     snd_pcm_status_get_avail(status));
-    debug_msg("Audio ready == %d\n", avail);
+    //debug_msg("Audio ready == %d\n", avail);
     return (avail >= current.bytes_per_block);
-
 }
 
 
 void alsa_audio_wait_for(audio_desc_t ad __attribute__((unused)), int delay_ms)
-	{
-    debug_msg("Audio wait %d\n", delay_ms);
+{
+    ///debug_msg("Audio wait %d\n", delay_ms);
     snd_pcm_wait(current.rx.handle, delay_ms);
-	}
+}
 
 
 char* alsa_get_device_name(audio_desc_t idx)
-	{
+{
     debug_msg("Get name for card %d: \"%s\"\n", idx, ratCards[idx].name);
     return ratCards[idx].name;
 }
 
 
 int alsa_audio_init()
-    {
+{
     int fd;
     char buf[4096];
     char *version;
@@ -971,13 +1133,13 @@ int alsa_audio_init()
 
     clear_current();
     return result;
-	    }
+}
 
 int alsa_get_device_count()
-	    {
+{
     snd_ctl_t *ctl_handle;
     snd_ctl_card_info_t *ctl_info;
-    int err, cindex = 0;
+    int err, cindex = 0, alsaDevNo=0;
     char card[128];
     // Ptr to ratCards array
     RatCardInfo *ratCard;
@@ -985,53 +1147,17 @@ int alsa_get_device_count()
     debug_msg("ALSA get device count\n");
 
     snd_ctl_card_info_alloca(&ctl_info);
-
-    do {
-        sprintf (card , "hw:%d", cindex);
-        debug_msg("ALSA for dev:%s\n",card);
-        err = snd_ctl_open (&ctl_handle, card, SND_CTL_NONBLOCK);
-
-        if (err == 0) {
-            // Grab the card info
-            ratCard = ratCards + cindex;
-            ratCard->card_number = cindex;
-            ratCard->pcm_mixer = strdup(card);
-            sprintf (card , "plughw:%d", cindex);
-            ratCard->pcm_device = strdup(card);
-
-            if ((err = snd_ctl_card_info (ctl_handle, ctl_info) < 0)) {
-                fprintf(stderr, "Card query failed: %s\n", snd_strerror(err));
-                snprintf(card, sizeof(card), "ALSA %d: Not Available", cindex);
-                ratCard->name = strdup (card);
-                debug_msg("Got failed ALSA card %s\n", ratCard->name);
-                snd_ctl_close(ctl_handle);
-                cindex++;
-                err=0;
-                continue;
-            }
-            snprintf(card, sizeof(card), "ALSA %d: %s", cindex,
-                     snd_ctl_card_info_get_name (ctl_info));
-            ratCard->name = strdup (card);
-            debug_msg("Got ALSA card %s\n", ratCard->name);
     
-            snd_ctl_close(ctl_handle);
-        }
-        cindex++;
-
-    } while (err == 0);
-
-    cindex--;
-
     // Get ALSA "default" card - so things like dsnoop etc can work
     if (!snd_ctl_open(&ctl_handle, "default", SND_CTL_NONBLOCK)) {
-      ratCard = ratCards + cindex;
-      ratCard->card_number = cindex;
-      ratCard->pcm_device = strdup("default");
-      ratCard->pcm_mixer = "default";
       if ((err = snd_ctl_card_info (ctl_handle, ctl_info) < 0)) {
-        fprintf(stderr, "ALSA default Card query failed: %s\n", snd_strerror(err));
+        debug_msg("ALSA default card query failed: %s\n", snd_strerror(err));
         snd_ctl_close(ctl_handle);
       } else {
+        ratCard = ratCards + cindex;
+        ratCard->card_number = cindex;
+        ratCard->pcm_device = strdup("default");
+        ratCard->pcm_mixer = strdup("default");
         snprintf(card, sizeof(card), "ALSA default: %s", 
                                   snd_ctl_card_info_get_name (ctl_info));
         ratCard->name = strdup (card);
@@ -1040,10 +1166,41 @@ int alsa_get_device_count()
         cindex++;
       }
     } 
-    cindex++;
+
+    do {
+        sprintf (card , "hw:%d", alsaDevNo);
+        err = snd_ctl_open (&ctl_handle, card, SND_CTL_NONBLOCK);
+
+        if (err == 0) {
+            debug_msg("Opened ALSA dev:%s\n",card);
+            // Grab the card info
+            ratCard = ratCards + cindex;
+            ratCard->card_number = cindex;
+            ratCard->pcm_mixer = strdup(card);
+            sprintf (card , "plughw:%d", alsaDevNo);
+            ratCard->pcm_device = strdup(card);
+
+            if ((err = snd_ctl_card_info (ctl_handle, ctl_info) < 0)) {
+                snprintf(card, sizeof(card), "ALSA %d: Not Available", cindex);
+                ratCard->name = strdup (card);
+                debug_msg("Got failed ALSA card %s (err:%s)\n", ratCard->name,snd_strerror(err));
+                err=0;
+            } else {
+                snprintf(card, sizeof(card), "ALSA %d: %s", cindex,
+                         snd_ctl_card_info_get_name (ctl_info));
+                ratCard->name = strdup (card);
+                debug_msg("Got card %s\n", ratCard->name);
+            } 
+            snd_ctl_close(ctl_handle);
+            
+        }
+        cindex++;
+        alsaDevNo++;
+
+    } while (err == 0);
 
     nRatCards = cindex - 1;
-    debug_msg("Got %d devices\n", nRatCards);
+    debug_msg("Got %d ALSA devices\n", nRatCards);
 
     return nRatCards;
 }
@@ -1054,9 +1211,8 @@ int alsa_audio_supports(audio_desc_t ad, audio_format *fmt)
     unsigned rmin, rmax, cmin, cmax;
     int err, dir;
 
-    debug_msg("Got \"ALSA supports\" for %d\n", ad);
+    debug_msg("ALSA support  %d\n", ad);
     dump_audio_format(fmt);
-
 
     snd_pcm_hw_params_alloca (&hw_params);
     err = snd_pcm_hw_params_any (current.tx.handle, hw_params);
