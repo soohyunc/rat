@@ -860,7 +860,7 @@ oss_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
         read_len  = read(devices[ad].audio_rfd, (char *)buf, available);
 	if (read_len < 0) {
 #ifndef HAVE_NETBSD_AUDIO
-		perror("audio_read");
+		debug_msg("audio_read %s\n", strerror(errno));
 #endif
 		return 0;
         }
