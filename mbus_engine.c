@@ -1014,8 +1014,11 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 	if (sp->rtp_session_count) {
 	  /* Existing session present - delete and recreate with new params */
           sp->rtp_session_count--;
-          settings_save(sp);
           rx_audio_input_mute(srce, "1", sp);
+	  rtp_set_encryption_key(sp->rtp_session[0], NULL);
+	  sp->encrkey = NULL;
+	  ui_send_encryption_key(sp, sp->mbus_ui_addr);
+          settings_save(sp);
           rtp_callback_exit(sp->rtp_session[sp->rtp_session_count]);
 	  /* Remove existing sources from DB and UI , then destory DB and RTP sess */
 	  pdb_get_first_id(sp->pdb, &ssrc);

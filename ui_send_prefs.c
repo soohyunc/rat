@@ -274,9 +274,10 @@ ui_send_encryption_key(session_t *sp, char *addr)
 	if (!sp->ui_on) return;
 
 	if (sp->encrkey == NULL) {
-		return;
+	  key_e = mbus_encode_str("");
+	} else {
+	  key_e = mbus_encode_str(sp->encrkey);
 	}
-	key_e = mbus_encode_str(sp->encrkey);
 	mbus_qmsgf(sp->mbus_engine, addr, TRUE, "security.encryption.key", key_e);
 	xfree(key_e);
 }

@@ -668,12 +668,12 @@ proc mbus_recv_tool.rat.agc {arg} {
 
 proc mbus_recv_security.encryption.key {new_key} {
       global key_var key
+      set key     $new_key
+
       if { [string length $key]!=0 } {
 	set key_var 1
-	set key     $new_key
       } else {
 	set key_var 0
-	set key     $new_key
       }
       update_security_indicator
 }
@@ -1553,7 +1553,11 @@ proc valid_rtp_addr {addr rx_port tx_port ttl} {
 return "\"$group_addr\" $g_rx_port $g_tx_port $g_ttl" }
             }
           }
-          return "\"$addr\" $rx_port $tx_port $ttl"
+          if {[string match \[0-9\]* $ttl]} {
+              if { $ttl >= 0 || $ttl < 256 } { 
+		return "\"$addr\" $rx_port $tx_port $ttl"
+	      }
+	  }
         }
       }
   }
