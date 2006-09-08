@@ -167,6 +167,8 @@ void
 ui_send_rtp_addr(session_t *sp, char *addr)
 {
 	char *rtp_addr = mbus_encode_str(rtp_get_addr(sp->rtp_session[0]));
+
+	if (!sp->ui_on) return;
         mbus_qmsgf(sp->mbus_engine, addr, TRUE, "rtp.addr", "%s %5d %5d %3d",
 		   rtp_addr,
 		   rtp_get_rx_port(sp->rtp_session[0]),
