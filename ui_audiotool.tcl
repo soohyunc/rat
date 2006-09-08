@@ -667,9 +667,15 @@ proc mbus_recv_tool.rat.agc {arg} {
 }
 
 proc mbus_recv_security.encryption.key {new_key} {
-	global key_var key
+      global key_var key
+      if { [string length $key]!=0 } {
 	set key_var 1
 	set key     $new_key
+      } else {
+	set key_var 0
+	set key     $new_key
+      }
+      update_security_indicator
 }
 
 proc mbus_recv_tool.rat.format.in {arg} {
@@ -791,9 +797,12 @@ proc mbus_recv_session.title {title} {
 }
 
 proc mbus_recv_rtp.addr {addr rx_port tx_port ttl} {
-    global session_address group_addr
+    global session_address group_addr g_rx_port g_tx_port g_ttl
+    set g_rx_port $rx_port
+    set g_tx_port $tx_port
+    set g_ttl $ttl
     set group_addr $addr
-    set session_address "Address: $addr Port: $rx_port TTL: $ttl"
+    set session_address "$addr/$rx_port/$ttl"
 }
 
 proc mbus_recv_tool.rat.lecture.mode {mode} {
@@ -1044,9 +1053,9 @@ proc mbus_recv_rtp.source.remove {ssrc} {
     catch {after cancel $loss_to_me_timer($ssrc)}
     catch {after cancel $loss_from_me_timer($ssrc)}
 
-    set pvars [list CNAME NAME EMAIL LOC PHONE TOOL NOTE PRIV CODEC DURATION PCKTS_RECV    \
-	    PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER BUFFER_SIZE PLAYOUT_DELAY  \
-	    LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED loss_to_me_timer \
+    set pvars [list CNAME NAME EMAIL LOC PHONE TOOL NOTE PRIV CODEC DURATION \
+	    PCKTS_RECV PCKTS_LOST PCKTS_MISO PCKTS_DUP JITTER BUFFER_SIZE \
+	    PLAYOUT_DELAY LOSS_TO_ME LOSS_FROM_ME INDEX JIT_TOGED loss_to_me_timer \
 	    loss_from_me_timer GAIN MUTE HEARD_LOSS_TO_ME HEARD_LOSS_FROM_ME  \
 	    SKEW SPIKE_EVENTS SPIKE_TOGED RTT]
 
@@ -1517,6 +1526,71 @@ proc toggle_chart {} {
 	}
 }
 
+proc update_security_indicator {} {
+ global key_var key icons
+
+ if {$key_var == 1 && [string length $key]!=0 } {
+    .r.f.f.padlock configure -image $icons(padlock) -bg lightyellow
+    .r.f.f.pad configure -bg lightyellow
+    .r.f.f.addr configure -bg lightyellow
+  } else {
+    .r.f.f.padlock configure -image "" -bg gray70
+    .r.f.f.pad configure -bg gray70
+    .r.f.f.addr configure -bg gray70 
+  }
+}
+
+proc valid_rtp_addr {addr rx_port tx_port ttl} {
+  global group_addr g_rx_port g_tx_port g_ttl
+
+  if { [string match \[0-9\]* $rx_port] && [string match \[0-9\]* $tx_port] } {
+      if { $rx_port < 65536 && $tx_port < 65536} {
+        set addrl [split $addr .]
+        if { [llength $addrl] == 4 } {
+          foreach i $addrl {
+            if {[string match \[0-9\]* $i]} {
+              if { $i < 0 || $i > 255 } { 
+return "\"$group_addr\" $g_rx_port $g_tx_port $g_ttl" }
+            }
+          }
+          return "\"$addr\" $rx_port $tx_port $ttl"
+        }
+      }
+  }
+  return "\"$group_addr\" $g_rx_port $g_tx_port $g_ttl"
+}
+
+proc change_rtp_addr {session_address} {
+  global in_mute_var my_ssrc
+  global group_addr g_rx_port g_tx_port g_ttl
+
+  focus .
+
+  # Return if session_address unchanged
+  if { $session_address == "$group_addr/$g_rx_port/$g_ttl" } return
+
+  # Create new rtp_addr string to signal to mbus_engine
+  set rtp_addrl [ split $session_address /]
+  switch  [llength $rtp_addrl]  {
+    1 
+	{ set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] $g_rx_port $g_tx_port $g_ttl]}
+    2 
+	{ set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] [lindex $rtp_addrl 1] [lindex $rtp_addrl 1] $g_ttl]}
+    3 
+	{ set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] [lindex $rtp_addrl 1] [lindex $rtp_addrl 1] [lindex $rtp_addrl 2]] }
+    4 
+	{ set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] [lindex $rtp_addrl 1] [lindex $rtp_addrl 2] [lindex $rtp_addrl 3]] }
+    default 
+	{ set rtp_addr "\"$group_addr\" $g_rx_port $g_tx_port $g_ttl"}
+  }
+  # required "rtp.addr": "\"addr\" src_port dst_port ttl" 
+  # Check if new address is valid
+  # e.g rtp.addr "224.1.2.3" 1234    1234    16
+  #               mcast      rx_port tx_port ttl
+  mbus_send "R" "rtp.addr" "$rtp_addr"
+}
+
+
 # Initialise RAT MAIN window
 frame .r
 frame .l
@@ -1526,17 +1600,27 @@ canvas .l.t.list -highlightthickness 0 -bd 0 -relief flat -width $iwd -height 12
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
 
-frame .l.f -relief groove -bd 2
-label .l.f.title -bd 0 -textvariable session_title -justify center
-label .l.f.addr  -bd 0 -textvariable session_address
+set icons(file_open) [image create photo -format gif  -data { R0lGODlhEgASAPIAAAAAAICAAMDAwPj8APj8+AAAAAAAAAAAACH5BAEAAAIALAAAAAASABIAAAM7KLrc/jAKQCUDC2N7t6JeA2YDMYDoA5hsWYZk28LfjN4b4AJB7/ue1elHDOl4RKAImQzQcDeOdEp1JAAAO///}]
+
+set icons(file_save) [image create photo -data { R0lGODlhEgASAPEAAAAAAICAAMDAwAAAACH5BAEAAAIALAAAAAASABIAAAI3lI+pywYPY0QgAHbvqVpBamHhNnqlwIkdeoJrZUlPcML0jde0DOnxxHrtJA6frLhC8YiNpnNRAAA7////}]
+
+set icons(padlock) [image create photo -format gif -data { R0lGODlhCgAMAMZaAJRpAJRtAJRtCJRxAJxtAJxxAJx1AKV1AJx9AKV5AKV9AKV9CKWCAK2GAK2GCK2KALWGAHuKjISGjK2OAISKjISKlLWOAISKnISOlLWSCIySnIyWpZSapZyelKWqlKWmraWqnK26xrW+vbW+xr2+tbXDxr3DtefLIb3Dzu/PKcbLtcbPrcbL1s7Xpe/bQtbXpc7T1u/fQt7frffnSvfnUt7jrf/rWvfrc97j597j7+frtf/va//zY/f3a/fzhPf3e//ze+/vvf/zhP/3c+fv7//7c+/3vffzvf/7hPf7nP/3nPf3vff3xv/7nPf/pf//nP/7tf//pf/7vf//tf//xv//zv//1v//3v//5///7////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////yH5BAEKAH8ALAAAAAAKAAwAAAd0gEuCKiIhJEGCgiY5REQ4HzpHSyssIxURIzAgiBwoFC01EiUaNUwbGB0yRh4XGi8ZFhMQDQwKCggLFlBZvFhYV1IGD0lWTUI+UlVKBQ9AVD88NEpTNwMNNlM7MzE9TS4EDClOUU9IRUMnAA62CQcDAQEAAoEAOw==}]
+
+
+frame .r.f -relief groove -bd 2 -width $iwd
+frame .r.f.f -relief sunk
+label .r.f.f.padlock -image "" -relief flat -bg gray70
+label .r.f.f.pad -text "" -relief flat -bg gray70
+label .r.f.addrlab -text "Addr/port/ttl: " -relief flat 
+entry .r.f.f.addr  -bd 1 -textvariable session_address -relief flat -bg gray70
+bind .r.f.f.addr <KeyPress-Return> { change_rtp_addr $session_address }
 
 frame       .st -bd 0
 
-checkbutton .st.file -bitmap disk      -indicatoron 0 -variable files_on  -command file_show
-checkbutton .st.recp -bitmap reception -indicatoron 0 -variable matrix_on -command toggle_chart
-checkbutton .st.help -bitmap balloon   -indicatoron 0 -variable help_on
+checkbutton .st.file -image $icons(file_save) -indicatoron 0 -variable files_on  -command file_show
+checkbutton .st.recp -bd 1 -bitmap reception -indicatoron 0 -variable matrix_on -command toggle_chart
+checkbutton .st.help -bitmap balloon   -indicatoron 0 -variable help_on 
 
-#-onvalue 1 -offvalue 0 -variable help_on -font $compfont -anchor w -padx 4
 button      .st.opts  -text "Options..." -pady 2 -command {wm deiconify .prefs; update_user_panel; raise .prefs}
 button      .st.about -text "About..."   -pady 2 -command {jiggle_credits; wm deiconify .about}
 button      .st.quit  -text "Quit"       -pady 2 -command do_quit
@@ -1545,19 +1629,28 @@ frame .r.c -bd 0
 frame .r.c.rx -relief groove -bd 2
 frame .r.c.tx -relief groove -bd 2
 
+#frame .s -relief groove -bd 2 -width $iwd
+#label .s.status -text "Status: " -relief flat 
+
+#pack .s -side bottom -fill x -padx 2 -pady 0
+#pack .s.status -side left -anchor e -padx 2 -pady 2
+
 pack .st -side bottom -fill x -padx 2 -pady 0
 pack .st.file .st.recp .st.help -side left -anchor e -padx 2 -pady 2
+
 
 pack .st.quit .st.about .st.opts -side right -anchor w -padx 2 -pady 2
 
 pack .r -side top -fill x -padx 2
+pack .r.f -side top -fill x -padx 0 -pady 2
+pack .r.f.addrlab .r.f.f -side left 
+pack .r.f.f.addr .r.f.f.pad .r.f.f.padlock -side left -pady 2 -anchor n -fill x
 pack .r.c -side top -fill x -expand 1
 pack .r.c.rx -side left -fill x -expand 1
 pack .r.c.tx -side left -fill x -expand 1
 
 pack .l -side top -fill both -expand 1
-pack .l.f -side bottom -fill x -padx 2 -pady 2
-pack .l.f.title .l.f.addr -side top -pady 2 -anchor w -fill x
+#pack .l.f.title -side top -pady 2 -anchor w -fill x
 pack .l.t  -side top -fill both -expand 1 -padx 2
 pack .l.t.scr -side left -fill y
 pack .l.t.list -side left -fill both -expand 1
@@ -2122,12 +2215,12 @@ frame $i
 frame $i.a -rel fl
 frame $i.a.f
 frame $i.a.f.f
-label $i.a.f.f.l -anchor w -justify left -text "Your communication can be secured with\nDES encryption.  Only conference participants\nwith the same key can receive audio data when\nencryption is enabled."
+label $i.a.f.f.l -anchor w -justify left -text "Your communication can be secured with\nDES or AES encryption.  Only conference participants\nwith the same key can receive audio data when\nencryption is enabled."
 pack $i.a.f.f.l
 pack $i.a -side top -fill both -expand 1
 label $i.a.f.f.lbl -text "Key:"
 entry $i.a.f.f.e -width 28 -textvariable key
-checkbutton $i.a.f.f.cb -text "Enabled" -variable key_var
+checkbutton $i.a.f.f.cb -text "Enabled" -variable key_var -command update_security_indicator
 pack $i.a.f -fill x -side left -expand 1
 pack $i.a.f.f
 pack $i.a.f.f.lbl $i.a.f.f.e $i.a.f.f.cb -side left -pady 4 -padx 2 -fill x
@@ -2327,8 +2420,9 @@ proc sync_ui_to_engine {} {
     mbus_send "R" "tool.rat.settings" ""
 }
 
+
 proc sync_engine_to_ui {} {
-    # make audio engine concur with ui
+    # make audio engine concur with ui - called when "Apply" button clicked
     global my_ssrc rtcp_name rtcp_email rtcp_phone rtcp_loc rtcp_note
     global prenc upp channel_var secenc layerenc red_off int_gap int_units
     global agc_var audio_loop_var echo_var
@@ -2379,8 +2473,10 @@ proc sync_engine_to_ui {} {
     #Security
     if {$key_var==1 && [string length $key]!=0} {
 	mbus_send "R" "security.encryption.key" [mbus_encode_str $key]
+	update_security_indicator 
     } else {
 	mbus_send "R" "security.encryption.key" [mbus_encode_str ""]
+	update_security_indicator 
     }
 
     #Interface
@@ -2692,7 +2788,7 @@ help::add .r.c.rx.au.port.l2  	"Click to change output device." "rx_port.au"
 help::add .r.c.rx.net.on  	"If pushed in, reception is muted." "rx_mute.au"
 help::add .r.c.rx.au.pow.bar  	"Indicates the loudness of the\nsound you are hearing." "rx_powermeter.au"
 
-help::add .l.f		"Name of the session, and the IP address, port\n&\
+help::add .r.f		"Name of the session, and the IP address, port\n&\
 		 	 TTL used to transmit the audio data." "session_title.au"
 help::add .l.t		"The participants in this session with you at the top.\nClick on a name\
                          with the left mouse button to display\ninformation on that participant,\

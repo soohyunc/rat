@@ -252,23 +252,26 @@ int main(int argc, char *argv[])
 
 	rendezvous_with_controller(sp);
 
-	/* Load saved settings, and create the participant database... */
-	/* FIXME: probably needs updating for the transcoder so we can */
-	/*        have different saved settings for each domain.       */
-	/* FIXME: this gets the wrong device name for the transcoder.  */
-	for (i = 0; i < num_sessions; i++) {
-		if (pdb_create(&sp[i]->pdb) == FALSE) {
-			debug_msg("Failed to create participant database\n");
-			abort();
-		}
-		pdb_item_create(sp[i]->pdb, (uint16_t)ts_get_freq(sp[i]->cur_ts), rtp_my_ssrc(sp[i]->rtp_session[0]));
-		settings_load_late(sp[i]);
-		session_validate(sp[i]);
-	}
+        /* Moved session[0] setup to rx_rtp_addr so one may change addr
+           binding dynamically */
+        /* Load saved settings, and create the participant database... */
+        /* FIXME: probably needs updating for the transcoder so we can */
+        /*        have different saved settings for each domain.       */
+        /* FIXME: this gets the wrong device name for the transcoder.  */
+        for (i = 0; i < num_sessions; i++) {
+                if (pdb_create(&sp[i]->pdb) == FALSE) {
+                        debug_msg("Failed to create participant database\n");
+                        abort();
+                }
+                pdb_item_create(sp[i]->pdb, (uint16_t)ts_get_freq(sp[i]->cur_ts), rtp_my_ssrc(sp[i]->rtp_session[0]));
+                settings_load_late(sp[i]);
+                session_validate(sp[i]);
+        }
 
 	xmemchk();
 	xdoneinit();
 
+	debug_msg("Entering media engine main loop\n");
 	while (!should_exit) {
 		for (i = 0; i < num_sessions; i++) {
 			elapsed_time = 0;
@@ -450,9 +453,10 @@ int main(int argc, char *argv[])
 		tx_stop(sp[i]->tb);
 
 		for (j = 0; j < sp[i]->rtp_session_count; j++) {
+	                debug_msg("Media engine exiting session: %d\n", j);
 			rtp_send_bye(sp[i]->rtp_session[j]);
-			rtp_done(sp[i]->rtp_session[j]);
 			rtp_callback_exit(sp[i]->rtp_session[j]);
+			rtp_done(sp[i]->rtp_session[j]);
 		}
 
 		/* Inform other processes that we're about to quit... */

@@ -524,16 +524,17 @@ static void rx_security_encryption_key(char *srce, char *args, session_t *sp)
 
 	mp = mbus_parse_init(args);
 	if (mbus_parse_str(mp, &key)) {
+		debug_msg("rx_security_encryption_key: key: %s\n",key);
                 key = mbus_decode_str(key);
                 for(i = 0; i < sp->rtp_session_count; i++) {
 			if (strlen(key) == 0) {
                         	rtp_set_encryption_key(sp->rtp_session[i], NULL);
-				ui_send_encryption_key(sp, sp->mbus_ui_addr);
 				sp->encrkey = NULL;
+				ui_send_encryption_key(sp, sp->mbus_ui_addr);
 			} else {
                         	rtp_set_encryption_key(sp->rtp_session[i], key);
-				ui_send_encryption_key(sp, sp->mbus_ui_addr);
 				sp->encrkey = xstrdup(key);
+				ui_send_encryption_key(sp, sp->mbus_ui_addr);
 			}
                 }
 	} else {
@@ -902,6 +903,7 @@ static void rx_rtp_query(char *srce, char *args, session_t *sp)
 	struct s_source	*s;
 
 	UNUSED(args);
+	debug_msg("mbus: rx_rtp_query\n");
 	ui_send_rtp_ssrc(sp, srce);
 	pdb_get_first_id(sp->pdb, &ssrc);
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
@@ -933,58 +935,6 @@ static void rx_rtp_addr_query(char *srce, char *args, session_t *sp)
 {
 	UNUSED(args);
 	ui_send_rtp_addr(sp, srce);
-}
-
-static void rx_rtp_addr(char *srce, char *args, session_t *sp)
-{
-	/* rtp.addr ("224.1.2.3" 1234 1234 16) */
-	char	*addr;
-	int	 rx_port, tx_port, ttl;
-	struct mbus_parser	*mp;
-
-	UNUSED(srce);
-
-	mp = mbus_parse_init(args);
-	mbus_parse_str(mp, &addr); addr = mbus_decode_str(addr);
-	mbus_parse_int(mp, &rx_port);
-	mbus_parse_int(mp, &tx_port);
-	mbus_parse_int(mp, &ttl);
-	mbus_parse_done(mp);
-
-	sp->rtp_session[sp->rtp_session_count] = rtp_init(addr, (uint16_t)rx_port, (uint16_t)tx_port, ttl, 64000, rtp_callback_proc, NULL);
-    rtp_set_option(sp->rtp_session[sp->rtp_session_count], RTP_OPT_PROMISC, sp->rtp_promiscuous_mode);
-
-    rtp_callback_init(sp->rtp_session[0], sp);
-	if(sp->rtp_session_count < sp->layers && sp->rtp_session_count > 0) {
-	       rtp_set_my_ssrc(sp->rtp_session[sp->rtp_session_count], rtp_my_ssrc(sp->rtp_session[0]));
-	}
-	sp->rtp_session_count++;
-}
-
-
-static void rx_rtp_source_name(char *srce, char *args, session_t *sp)
-{
-	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_NAME);
-}
-
-static void rx_rtp_source_email(char *srce, char *args, session_t *sp)
-{
-	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_EMAIL);
-}
-
-static void rx_rtp_source_phone(char *srce, char *args, session_t *sp)
-{
-	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_PHONE);
-}
-
-static void rx_rtp_source_loc(char *srce, char *args, session_t *sp)
-{
-	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_LOC);
-}
-
-static void rx_rtp_source_note(char *srce, char *args, session_t *sp)
-{
-	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_NOTE);
 }
 
 static void rx_rtp_source_mute(char *srce, char *args, session_t *sp)
@@ -1041,6 +991,107 @@ static void rx_rtp_source_mute(char *srce, char *args, session_t *sp)
 	}
 	mbus_parse_done(mp);
 }
+
+static void rx_rtp_addr(char *srce, char *args, session_t *sp)
+{
+	/* rtp.addr ("224.1.2.3" 1234 1234 16) */
+	char	*addr;
+	int	 rx_port, tx_port, ttl;
+	struct mbus_parser	*mp;
+        char buf[50];
+        uint32_t           ssrc;
+
+	UNUSED(srce);
+
+	mp = mbus_parse_init(args);
+	mbus_parse_str(mp, &addr); addr = mbus_decode_str(addr);
+	mbus_parse_int(mp, &rx_port);
+	mbus_parse_int(mp, &tx_port);
+	mbus_parse_int(mp, &ttl);
+	mbus_parse_done(mp);
+        debug_msg("rx_rtp_addr: New Addr:%d,rx_port:%d,tx_port:%d,ttl:%d\n",addr, rx_port, tx_port, ttl);
+
+	if (sp->rtp_session_count) {
+	  /* Existing session present - delete and recreate with new params */
+          sp->rtp_session_count--;
+          settings_save(sp);
+          rx_audio_input_mute(srce, "1", sp);
+          rtp_callback_exit(sp->rtp_session[sp->rtp_session_count]);
+	  /* Remove existing sources from DB and UI , then destory DB and RTP sess */
+	  pdb_get_first_id(sp->pdb, &ssrc);
+	  do {
+	      struct s_source *s = source_get_by_ssrc(sp->active_sources, ssrc);
+	      if (s != NULL) {
+		source_remove(sp->active_sources, s);
+	      }
+	      ui_send_rtp_remove(sp, sp->mbus_ui_addr, ssrc);
+	  } while (pdb_get_next_id(sp->pdb, ssrc, &ssrc));
+          pdb_destroy(&sp->pdb);
+          rtp_done(sp->rtp_session[sp->rtp_session_count]);
+
+          /* Perform rtp session re-creation */
+          sp->rtp_session[sp->rtp_session_count] = rtp_init(addr, (uint16_t)rx_port, (uint16_t)tx_port, ttl, 64000, rtp_callback_proc, NULL);
+          
+          rtp_set_option(sp->rtp_session[sp->rtp_session_count], RTP_OPT_PROMISC, sp->rtp_promiscuous_mode);
+          rtp_callback_init(sp->rtp_session[0], sp);
+
+          if(sp->rtp_session_count < sp->layers && sp->rtp_session_count > 0) {
+                 rtp_set_my_ssrc(sp->rtp_session[sp->rtp_session_count], rtp_my_ssrc(sp->rtp_session[0]));
+          }
+          sp->rtp_session_count++;
+          /* Load saved settings, and create the participant database... */
+          /* FIXME: probably needs updating for the transcoder so we can */
+          /*        have different saved settings for each domain.       */
+          /* FIXME: this gets the wrong device name for the transcoder.  */
+          if (pdb_create(&sp->pdb) == FALSE) {
+                    debug_msg("Failed to re-create new participant database\n");
+                    abort();
+          }
+          pdb_item_create(sp->pdb, (uint16_t)ts_get_freq(sp->cur_ts), rtp_my_ssrc(sp->rtp_session[0]));
+          settings_load_late(sp);
+          session_validate(sp);
+
+          // Update src in UI
+          rx_rtp_query(srce, args, sp);
+        } else {
+          sp->rtp_session[sp->rtp_session_count] = rtp_init(addr, (uint16_t)rx_port, (uint16_t)tx_port, ttl, 64000, rtp_callback_proc, NULL);
+          
+          rtp_set_option(sp->rtp_session[sp->rtp_session_count], RTP_OPT_PROMISC, sp->rtp_promiscuous_mode);
+          rtp_callback_init(sp->rtp_session[0], sp);
+
+          if(sp->rtp_session_count < sp->layers && sp->rtp_session_count > 0) {
+                 rtp_set_my_ssrc(sp->rtp_session[sp->rtp_session_count], rtp_my_ssrc(sp->rtp_session[0]));
+          }
+          sp->rtp_session_count++;
+        }
+}
+
+
+static void rx_rtp_source_name(char *srce, char *args, session_t *sp)
+{
+	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_NAME);
+}
+
+static void rx_rtp_source_email(char *srce, char *args, session_t *sp)
+{
+	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_EMAIL);
+}
+
+static void rx_rtp_source_phone(char *srce, char *args, session_t *sp)
+{
+	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_PHONE);
+}
+
+static void rx_rtp_source_loc(char *srce, char *args, session_t *sp)
+{
+	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_LOC);
+}
+
+static void rx_rtp_source_note(char *srce, char *args, session_t *sp)
+{
+	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_NOTE);
+}
+
 
 static void rx_rtp_source_gain(char *srce, char *args, session_t *sp)
 {
