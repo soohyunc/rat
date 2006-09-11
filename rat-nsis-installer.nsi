@@ -9,6 +9,7 @@
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 
+;Local utility macros - mostly from nsis website
 !include "win32\utility-macros.nsh"
 
 ; MUI 1.67 compatible ------
