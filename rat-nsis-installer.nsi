@@ -2,16 +2,14 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "RAT"
-!define PRODUCT_VERSION "4.2.27"
+!define PRODUCT_VERSION "4.3.00"
 !define PRODUCT_PUBLISHER "UCL"
-!define PRODUCT_WEB_SITE "http://mediatools.cs.ucl.ac.uk/mbone/mmedia"
-!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\vic.exe"
+!define PRODUCT_WEB_SITE "https://mediatools.cs.ucl.ac.uk/nets/mmedia/wiki/RatWiki"
+!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\rat.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 
-; for path manipulation
-;http://nsis.sourceforge.net/wiki/Path_Manipulation
-!include "AddToPath.nsh"
+!include "win32\utility-macros.nsh"
 
 ; MUI 1.67 compatible ------
 !include "MUI.nsh"
@@ -28,7 +26,7 @@
 ; Welcome page
 !insertmacro MUI_PAGE_WELCOME
 ; License page
-!insertmacro MUI_PAGE_LICENSE "rat\COPYRIGHT"
+!insertmacro MUI_PAGE_LICENSE "COPYRIGHT"
 ; Directory page
 !insertmacro MUI_PAGE_DIRECTORY
 ; Instfiles page
@@ -45,7 +43,7 @@
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "Setup.exe"
+OutFile "Rat-Installer.exe"
 InstallDir "$PROGRAMFILES\UCL Media Tools"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
@@ -54,35 +52,34 @@ ShowUnInstDetails show
 Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   SetOverwrite ifnewer
-  File "rat\Debug\rat.exe"
+  File "Debug\rat.exe"
+  File "Debug\ratmedia.exe"
+  File "Debug\ratui.exe"
   CreateDirectory "$SMPROGRAMS\UCL Media Tools"
-  CreateShortCut "$SMPROGRAMS\UCL Media Tools\RAT.lnk" "$INSTDIR\rat.exe"
-  CreateShortCut "$DESKTOP\Vic.lnk" "$INSTDIR\RAT.exe"
-  File "rat\Debug\ratmedia.exe"
-  File "rat\Debug\ratui.exe"
+  CreateShortCut "$SMPROGRAMS\UCL Media Tools\rat.lnk" "$INSTDIR\rat.exe"
 SectionEnd
 
 Section "Add to path"
   Push $INSTDIR
   Call AddToPath
-
-  ;likewise AddToPath could be
-  ;Push "PATH"
-  ;Push $INSTDIR
-  ;Call AddToEnvVar
+  
+  ;likewise added HOME variable
+  Push "HOME"
+  Push $INSTDIR
+  Call AddToEnvVar
 SectionEnd
 
 Section -AdditionalIcons
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
-  CreateShortCut "$SMPROGRAMS\UCL Media Tools\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
-  CreateShortCut "$SMPROGRAMS\UCL Media Tools\Uninstall.lnk" "$INSTDIR\uninst.exe"
+  CreateShortCut "$SMPROGRAMS\UCL Media Tools\Rat-Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
+  CreateShortCut "$SMPROGRAMS\UCL Media Tools\Rat-Uninstaller.lnk" "$INSTDIR\Rat-Uninstaller.exe"
 SectionEnd
 
 Section -Post
-  WriteUninstaller "$INSTDIR\uninst.exe"
-  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\vic.exe"
+  WriteUninstaller "$INSTDIR\Rat-Uninstaller.exe"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\rat.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\Rat-Uninstaller.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\rat.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
@@ -102,21 +99,34 @@ FunctionEnd
 
 Section Uninstall
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
-  Delete "$INSTDIR\uninst.exe"
   Delete "$INSTDIR\rat.exe"
   Delete "$INSTDIR\ratui.exe"
   Delete "$INSTDIR\ratmedia.exe"
-
-  Delete "$SMPROGRAMS\UCL Media Tools\Uninstall.lnk"
-  Delete "$SMPROGRAMS\UCL Media Tools\Website.lnk"
-  Delete "$DESKTOP\RAT.lnk"
+  Delete "$INSTDIR\Rat-Uninstaller.exe"
+  Delete "$SMPROGRAMS\UCL Media Tools\Rat-Uninstaller.lnk"
+  Delete "$SMPROGRAMS\UCL Media Tools\Rat-Website.lnk"
   Delete "$SMPROGRAMS\UCL Media Tools\RAT.lnk"
 
-  Push $INSTDIR
-  Call un.RemoveFromPath
+  ;StrCpy $0 "$INSTDIR"
+  ;Call un.DeleteDirIfEmpty
 
-  RMDir "$SMPROGRAMS\UCL Media Tools"
-  RMDir "$INSTDIR"
+  ;StrCpy $0 "$SMPROGRAMS\UCL Media Tools"
+  ;Call un.DeleteDirIfEmpty
+
+  ; It seems that the directories are only deleted if empty
+  ; So above code is not needed - for now
+
+  Push "$SMPROGRAMS\UCL Media Tools"
+  Call un.isEmptyDir
+  Pop $0
+  StrCmp $0 1 0 +2
+    RMDir "$SMPROGRAMS\UCL Media Tools"
+    RMDir "$INSTDIR"
+    Push $INSTDIR
+    Call un.RemoveFromPath
+    Push "HOME"
+    Push $INSTDIR
+    Call un.RemoveFromEnvVar
 
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
