@@ -30,7 +30,7 @@ static const char cvsid[] =
 #include "converter.h"
 #include "repair.h"
 #include "render_3D.h"
-#include "session.h"
+#include "settings.h"
 #include "pdb.h"
 #include "source.h"
 #include "sndfile.h"
@@ -998,7 +998,6 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 	char	*addr;
 	int	 rx_port, tx_port, ttl;
 	struct mbus_parser	*mp;
-	char buf[50];
 	uint32_t           ssrc;
 
 	UNUSED(srce);
