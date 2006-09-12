@@ -1544,48 +1544,47 @@ proc valid_rtp_addr {addr rx_port tx_port ttl} {
   global group_addr g_rx_port g_tx_port g_ttl
 
   if { [string match \[0-9\]* $rx_port] && [string match \[0-9\]* $tx_port] } {
-      if { $rx_port < 65536 && $tx_port < 65536} {
+      if { $rx_port > 1023 && $rx_port < 65535 && $tx_port > 1023 && $tx_port < 65535 } {
         set addrl [split $addr .]
         if { [llength $addrl] == 4 } {
           foreach i $addrl {
             if {[string match \[0-9\]* $i]} {
               if { $i < 0 || $i > 255 } { 
-return "\"$group_addr\" $g_rx_port $g_tx_port $g_ttl" }
-            }
-          }
+				return "\"$group_addr\" $g_rx_port $g_tx_port $g_ttl" 
+			  }
+            } else {
+				return "\"$group_addr\" $g_rx_port $g_tx_port $g_ttl"
+			}            
+		  }
           if {[string match \[0-9\]* $ttl]} {
-              if { $ttl >= 0 || $ttl < 256 } { 
-		return "\"$addr\" $rx_port $tx_port $ttl"
+              if { $ttl > -1 && $ttl < 256 } { 
+		         return "\"$addr\" $rx_port $tx_port $ttl"
+	          }
 	      }
-	  }
-        }
-      }
+       }
+     }
   }
   return "\"$group_addr\" $g_rx_port $g_tx_port $g_ttl"
 }
 
-proc change_rtp_addr {session_address} {
+proc change_rtp_addr {l_session_address} {
   global in_mute_var my_ssrc
   global group_addr g_rx_port g_tx_port g_ttl
 
   focus .
-
+  
   # Return if session_address unchanged
-  if { $session_address == "$group_addr/$g_rx_port/$g_ttl" } return
+  if { $l_session_address == "$group_addr/$g_rx_port/$g_ttl" } { return }
 
   # Create new rtp_addr string to signal to mbus_engine
-  set rtp_addrl [ split $session_address /]
+  set rtp_addrl [ split $l_session_address /]
   switch  [llength $rtp_addrl]  {
-    1 
-	{ set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] $g_rx_port $g_tx_port $g_ttl]}
-    2 
-	{ set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] [lindex $rtp_addrl 1] [lindex $rtp_addrl 1] $g_ttl]}
-    3 
-	{ set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] [lindex $rtp_addrl 1] [lindex $rtp_addrl 1] [lindex $rtp_addrl 2]] }
-    4 
-	{ set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] [lindex $rtp_addrl 1] [lindex $rtp_addrl 2] [lindex $rtp_addrl 3]] }
+    1  { set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] $g_rx_port $g_tx_port $g_ttl]}
+    2  { set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] [lindex $rtp_addrl 1] [lindex $rtp_addrl 1] $g_ttl]}
+    3  { set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] [lindex $rtp_addrl 1] [lindex $rtp_addrl 1] [lindex $rtp_addrl 2]] }
+    4  { set rtp_addr [valid_rtp_addr [lindex $rtp_addrl 0] [lindex $rtp_addrl 1] [lindex $rtp_addrl 2] [lindex $rtp_addrl 3]] }
     default 
-	{ set rtp_addr "\"$group_addr\" $g_rx_port $g_tx_port $g_ttl"}
+	   { set rtp_addr "\"$group_addr\" $g_rx_port $g_tx_port $g_ttl"}
   }
   # required "rtp.addr": "\"addr\" src_port dst_port ttl" 
   # Check if new address is valid
