@@ -91,8 +91,8 @@ address_is_valid(const char *candidate)
 		p = strtok(NULL, "/");
 		if (p != NULL) {
 			port = atoi(p);
-			if (port < 1023 || port > 65536) {
-				usage("Port must be > 1023 and <= 65536\n");
+			if (port < 1024 || port > 65534) {
+				usage("Port must be > 1023 and <= 65534 (need one more for RTCP)\n");
 				okay = FALSE;
 			}
 		}
