@@ -152,7 +152,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\common\src,..\tcl-8.0\generic,..\tk-8.0\generic,..\tk-8.0\xlib,\DDK\inc"
-				PreprocessorDefinitions="_WINDOWS;DEBUG;WIN32;_DEBUG;DEBUG_MEM;NEED_SNPRINTF"
+				PreprocessorDefinitions="STATIC_BUILD;_WINDOWS;DEBUG;WIN32;_DEBUG;DEBUG_MEM;NEED_SNPRINTF"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="5"
 				UsePrecompiledHeader="2"
