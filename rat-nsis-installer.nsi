@@ -22,7 +22,7 @@
 !define MUI_WELCOMEFINISHPAGE_BITMAP "${NSISDIR}\Contrib\Graphics\Wizard\orange.bmp"
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP  "${NSISDIR}\Contrib\Graphics\Header\orange.bmp"
-!define MUI_WELCOMEPAGE_TITLE "UCL Media Tools Installer\r\n${PRODUCT_NAME} ${PRODUCT_VERSION}"
+!define MUI_WELCOMEPAGE_TITLE "UCL Media Tools Installer for:\r\n${PRODUCT_NAME} ${PRODUCT_VERSION}"
 
 ; Welcome page
 !insertmacro MUI_PAGE_WELCOME
@@ -44,7 +44,7 @@
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "Rat-Installer.exe"
+OutFile "Rat-${PRODUCT_VERSION}_Installer.exe"
 InstallDir "$PROGRAMFILES\UCL Media Tools"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
