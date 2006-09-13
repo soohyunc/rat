@@ -3,7 +3,7 @@ MODIFICATIONS FILE
 
 $Id$
 
-Copyright (C) 1995-2002 University College London
+Copyright (C) 1995-2006 University College London
 All rights reserved.
 
 This software is distributed under license, see the file COPYRIGHT for full
@@ -1674,6 +1674,19 @@ v4.2.27	- First release under SUMOVER project includes 4.2.26 stuff as that
         - Added new *.vcproj Visual Studio Project files
         - Various updates for compilation on gcc4
 	* 13 April 2006
+
+v4.3.00	- Second release under SUMOVER project 
+	- Newish look: Modified UI so that addr/port/ttl is at top
+	- Added security padlock icon to address bar when crypto enabled
+	- Modified rx_rtp_addr() call so that rat can dynamically rebind 
+	  to new address/port without having to restart. 
+        - Further fixes to ALSA driver for newer style hardware (e.g. Emu10k
+          style cards). Updated mixer controls so they worked
+          Still not working perfectly.
+	- Created NSIS installer script for creating Windows installer
+	- Updates to auddev_win32 use CriticalSection control for driver
+	  callback accesses and audio read.
+	* 13 September 2006
 
 
 TODO -- They're features not bugs dammit!
