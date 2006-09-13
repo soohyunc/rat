@@ -874,7 +874,7 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
                 }
                 playout = ts_add(e->transit, playout);
                 playout = ts_add(src_ts, playout);
-		debug_msg("%d %d\n", timestamp_to_ms(playout), timestamp_to_ms(now));
+		//debug_msg("%d %d\n", timestamp_to_ms(playout), timestamp_to_ms(now));
 		sanity_check_playout_time(now, playout);
 
 		/* At this point we know the desired playout time for this packet, */
