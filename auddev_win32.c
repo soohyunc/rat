@@ -17,6 +17,12 @@ static const char cvsid[] =
 
 #ifdef WIN32
 
+/* Set _WIN32_WINNT to 0x500 to indicate win2000 and above 
+   Needed for TryEnterCriticalSection() */
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0500
+#endif
+
 #include "config_win32.h"
 #include "audio.h"
 #include "debug.h"
@@ -37,7 +43,7 @@ static  int w32sdk_probe_formats(audio_desc_t ad);
 
 static int  error = 0;
 static char errorText[MAXERRORLENGTH];
-static int  nLoopGain = 0;
+static int  nLoopGain = 100;
 #define     MAX_DEV_NAME 64
 
 static UINT mapAudioDescToMixerID(audio_desc_t ad);
@@ -1149,7 +1155,8 @@ w32sdk_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
         /* we do this so the device blksz does not have to match application    */
         /* blksz.  I.e. can reduce process usage by using larger blocks at      */
         /* device whilst the app operates on smaller blocks.                    */
-		EnterCriticalSection(&CriticalSection );
+		if (!TryEnterCriticalSection(&CriticalSection )) return 0; 
+		//EnterCriticalSection(&CriticalSection );
 
         while(whReadList != NULL && done < buf_bytes) {
 			whCur = whReadList;
