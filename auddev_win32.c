@@ -43,7 +43,7 @@ static  int w32sdk_probe_formats(audio_desc_t ad);
 
 static int  error = 0;
 static char errorText[MAXERRORLENGTH];
-static int  nLoopGain = 100;
+static int  nLoopGain = 0;
 #define     MAX_DEV_NAME 64
 
 static UINT mapAudioDescToMixerID(audio_desc_t ad);
@@ -1499,7 +1499,8 @@ w32sdk_audio_iport_set(audio_desc_t ad, audio_port_t port)
                 if (input_ports[i].port == port) {
                         /* save gain */
                         gain = mixerGetLineGain((HMIXEROBJ)hMixer, input_ports[iport].port);
-                        debug_msg("Gain %d\n", gain);
+						debug_msg("w32sdk_audio_iport_set: %s Old Gain %d\n", input_ports[iport].name, gain);
+						debug_msg("w32sdk_audio_iport_set: %s New Gain %d\n", input_ports[i].name, gain);
                         if (mixerGetLineName((HMIXEROBJ)hMixer, input_ports[i].port, portname, MIXER_LONG_NAME_CHARS)) {
                                 mixerEnableInputLine((HMIXEROBJ)hMixer, portname);
                         }
@@ -1509,6 +1510,7 @@ w32sdk_audio_iport_set(audio_desc_t ad, audio_port_t port)
                         for(j = 0; j < n_loop_ports && nLoopGain != 0; j++) {
                                 if (strcmp(loop_ports[j].name, input_ports[i].name) == 0) {
                                         mixerEnableOutputLine((HMIXEROBJ)hMixer, loop_ports[j].port, 1);
+										debug_msg("w32sdk_audio_iport_set: Enabling loop: %s Gain %d\n", loop_ports[j].name, 1);
 
                                         /* mixerSetLineGain((HMIXEROBJ)hMixer, loop_ports[j].port, nLoopGain); */
                                 }
