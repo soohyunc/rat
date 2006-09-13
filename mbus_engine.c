@@ -1018,6 +1018,7 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 		sp->encrkey = NULL;
 		ui_send_encryption_key(sp, sp->mbus_ui_addr);
 		settings_save(sp);
+		rtp_send_bye(sp->rtp_session[sp->rtp_session_count]);
 		rtp_callback_exit(sp->rtp_session[sp->rtp_session_count]);
 		/* Remove existing sources from DB and UI , then destory DB and RTP sess */
 		pdb_get_first_id(sp->pdb, &ssrc);
