@@ -407,7 +407,7 @@ source_reconfigure(source        *src,
          */
         src_cid = codec_get_by_payload(src->pdbe->enc);
         src_cf  = codec_get_format(src_cid);
-        src_rate     = (uint32_t)src_cf->format.sample_rate;
+        src_rate     = (uint16_t)src_cf->format.sample_rate;
         src_channels = (uint16_t)src_cf->format.channels;
 
         if (render_3d) {
@@ -743,7 +743,7 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
 			const audio_format   	*dev_fmt = audio_get_ofmt(sp->audio_device);
                         channel_describe_data(ccid, codec_pt, (unsigned char *)p->meta.data, p->meta.data_len, src->pdbe->enc_fmt, src->pdbe->enc_fmt_len); //SV-XXX cast 3rd arg to uchar as per channel.h
                         source_reconfigure(src, ccid, codec_pt, units_per_packet, sp->converter, sp->render_3d,
-                                           (uint32_t)dev_fmt->sample_rate,
+                                           (uint16_t)dev_fmt->sample_rate,
                                            (uint16_t)dev_fmt->channels);
 			if (sp->mbus_engine) {
 				ui_send_stats(sp, sp->mbus_ui_addr, src->pdbe->ssrc);
