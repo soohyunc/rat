@@ -119,7 +119,7 @@ session_init(session_t *sp, int index, int mode)
 	sp->tx_rtp_port[0] 		= 5004; /* draft-ietf-avt-profile-new-00  */
         sp->rx_rtcp_port[0]   		= 5005;
         sp->tx_rtcp_port[0]   		= 5005;
-	sp->ttl				= 16;
+	sp->ttl				= 127;
         sp->filter_loopback             = TRUE;
 	sp->playing_audio		= TRUE;
 	sp->lecture			= FALSE;

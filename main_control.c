@@ -45,7 +45,7 @@ pid_t       pid_ui, pid_engine;
 int         should_exit;
 int	    ui_enabled = TRUE;
 
-static int ttl = 15;
+static int ttl = 127;
 
 #ifdef NEED_SNPRINTF
 static int snprintf(char *s, int buf_size, const char *format, ...)

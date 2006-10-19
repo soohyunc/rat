@@ -1688,6 +1688,12 @@ v4.3.00	- Second release under SUMOVER project
 	  callback accesses and audio read.
 	* 13 September 2006
 
+v4.3.01	- Fix TTL handling for unicast connection
+	- Change default TTL to 127
+
+
+
+
 
 TODO -- They're features not bugs dammit!
 ----
