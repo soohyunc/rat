@@ -2327,7 +2327,7 @@ set_pane about_pane .about.rim.d "Credits"
 constrain_window .about $infofont 64 25
 
 .about.rim.d.copyright.f.f.blurb insert end \
-{Copyright (C) 1995-2002 University College London
+{Copyright (C) 1995-2006 University College London
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -2414,7 +2414,7 @@ proc jiggle_credits {} {
 # Software really developed by the Socialist Department of Computer Science
     .about.rim.d.credits.f.f.2 configure -text [shuffle_rats "Angela Sasse" "Vicky Hardman" "Peter Kirstein"]
     .about.rim.d.credits.f.f.4 configure -text [shuffle_rats "Colin Perkins" "Orion Hodson"]
-    .about.rim.d.credits.f.f.6 configure -text [shuffle_rats "Isidor Kouvelas" "Darren Harris" "Anna Watson" "Mark Handley" "Jon Crowcroft" "Marcus Iken" "Kris Hasler" "Tristan Henderson" "Dimitrios Miras" "Socrates Varakliotis"]
+    .about.rim.d.credits.f.f.6 configure -text [shuffle_rats "Isidor Kouvelas" "Darren Harris" "Anna Watson" "Mark Handley" "Jon Crowcroft" "Marcus Iken" "Kris Hasler" "Tristan Henderson" "Dimitrios Miras" "Socrates Varakliotis" "Piers O'Hanlon"]
 }
 
 proc sync_ui_to_engine {} {
