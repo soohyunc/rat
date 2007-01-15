@@ -1673,9 +1673,9 @@ pack .r.c.rx.net.on -side left
 pack .r.c.rx.net.bw -side right -fill x -expand 1
 
 frame  .r.c.rx.au.port -bd 0
-button .r.c.rx.au.port.l0 -highlightthickness 0 -command {incr_port oport oports -1} -font $compfont -bitmap left -relief flat
+button .r.c.rx.au.port.l0 -highlightthickness 0 -command {incr_port oport oports -1} -font $compfont -bitmap right -relief flat
 label  .r.c.rx.au.port.l1 -highlightthickness 0 -textv oport -font $compfont -width 10
-button .r.c.rx.au.port.l2 -highlightthickness 0 -command {incr_port oport oports +1} -font $compfont -bitmap right -relief flat
+button .r.c.rx.au.port.l2 -highlightthickness 0 -command {incr_port oport oports +1} -font $compfont -bitmap  left -relief flat
 label  .r.c.rx.au.port.vlabel -text "Vol"
 label  .r.c.rx.au.port.vval   -textv volume -width 3 -justify right
 pack   .r.c.rx.au.port -side top -fill x -expand 1
@@ -1707,9 +1707,9 @@ pack .r.c.tx.net.on -side left
 pack .r.c.tx.net.bw -side right -fill x -expand 1
 
 frame  .r.c.tx.au.port -bd 0
-button .r.c.tx.au.port.l0 -highlightthickness 0 -command {incr_port iport iports -1} -font $compfont -bitmap left -relief flat
+button .r.c.tx.au.port.l0 -highlightthickness 0 -command {incr_port iport iports -1} -font $compfont -bitmap right -relief flat
 label  .r.c.tx.au.port.l1 -highlightthickness 0 -textv iport -font $compfont -width 10
-button .r.c.tx.au.port.l2 -highlightthickness 0 -command {incr_port iport iports +1} -font $compfont -bitmap right -relief flat
+button .r.c.tx.au.port.l2 -highlightthickness 0 -command {incr_port iport iports +1} -font $compfont -bitmap  left -relief flat
 label  .r.c.tx.au.port.vlabel -text "Gain"
 label  .r.c.tx.au.port.vval   -textv gain -width 3 -justify right
 pack   .r.c.tx.au.port -side top -fill x -expand 1
