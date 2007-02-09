@@ -38,8 +38,7 @@
 #endif
 #endif
 
-#include <mmreg.h>
-#include <msacm.h>
+
 #include <mmsystem.h>
 #include <windows.h>
 #include <io.h>

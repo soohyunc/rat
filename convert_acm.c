@@ -24,6 +24,9 @@ static const char cvsid[] =
 
 #ifdef WIN32
 
+#include <mmreg.h> 
+#include <msacm.h>
+
 /* WINDOWS ACM CONVERSION CODE **********************************************/
 
 static HACMDRIVER hDrv;
