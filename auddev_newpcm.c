@@ -700,6 +700,7 @@ newpcm_audio_query_devices()
 		perror("opendir /dev");
 		return 0;
 	}
+        errno = 0;
 
 	while ((de = readdir(d)) != NULL && ndev < NEWPCM_MAX_AUDIO_DEVICES) {
 		if (de->d_type != DT_CHR) continue;

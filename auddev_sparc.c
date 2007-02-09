@@ -273,6 +273,7 @@ sparc_audio_write(audio_desc_t ad, u_char *buf, int buf_bytes)
 	int done, this_write;
 
         UNUSED(ad); assert(audio_fd > 0);
+        errno = 0;
 
         done = 0;
         while(done != buf_bytes) {

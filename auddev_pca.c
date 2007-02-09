@@ -273,6 +273,7 @@ pca_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 	int	 nbytes;
 
         UNUSED(ad);
+        errno = 0;
 
         if ((nbytes = write(audio_fd, buf, write_bytes)) != write_bytes) {
 		if (errno == EWOULDBLOCK) {	/* XXX */

@@ -476,6 +476,8 @@ ixj_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 
 //	debug_msg("Reading %d bytes requested\n", read_bytes);
 	read_len=0;
+        errno = 0;
+
 	if(ioctl(devices[ad].audio_fd, PHONE_HOOKSTATE) || ixjiport != 1) {
 	  read_len  = read(devices[ad].audio_fd, &mybuf[offset], devices[ad].frame_len);
 	  if (read_len < 0 && errno != EAGAIN && errno != EINTR) {

@@ -393,6 +393,7 @@ osprey_audio_write(audio_desc_t ad, u_char *buf, int buf_bytes)
         int done = 0, len = buf_bytes;
 
         UNUSED(ad); assert(audio_fd > 0);
+        errno = 0;
 
 	while (len > 0) {
 		if ((done = oti_write(audio_fd, buf, len)) == len)

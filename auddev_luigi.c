@@ -262,6 +262,8 @@ int
 luigi_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 {
 	int done;
+        
+	errno = 0;
 
         UNUSED(ad); assert(audio_fd > 0);
 

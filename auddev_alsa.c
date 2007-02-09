@@ -765,15 +765,16 @@ static void handle_mixer_events(snd_mixer_t *mixer_handle)
 
   if ((err = snd_mixer_poll_descriptors(mixer_handle, fds, count)) < 0){
     debug_msg ("snd_mixer_poll_descriptors err=%d\n", err);
-  free(fds);
+    free(fds);
     return;
   }
 
   if (err != count){
     debug_msg ("snd_mixer_poll_descriptors (err(%d) != count(%d))\n",err,count);
-  free(fds);
+    free(fds);
     return;
   }
+  errno = 0;
 
   num_revents = poll(fds, count, 1);
 

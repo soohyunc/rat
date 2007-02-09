@@ -249,6 +249,8 @@ atm_audio_read(audio_desc_t ad, u_char *buf, int buf_bytes)
 {
 	int len, avail, done = 0;
 	char cellbuf[ADA_CELL_SZ];
+	
+	errno = 0;
 
 	UNUSED(ad);
 

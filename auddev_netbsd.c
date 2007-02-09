@@ -567,6 +567,8 @@ netbsd_audio_read(audio_desc_t ad, u_char * buf, int buf_bytes)
 	int             bytes_read = 0;
 	int             this_read;
 
+        errno = 0;
+
 	assert(audio_devices && n_devices > ad);
 	fd = audio_devices[ad].audio_info.fd;
 	if (fd < 0)
@@ -600,6 +602,8 @@ netbsd_audio_write(audio_desc_t ad, u_char * buf, int buf_bytes)
 	int             fd;
 	int             bytes_written = 0;
 	int             this_write;
+        
+	errno = 0;
 
 	assert(audio_devices && n_devices > ad);
 	fd = audio_devices[ad].audio_info.fd;
