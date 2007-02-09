@@ -112,10 +112,10 @@ static void parse_args(int argc, char *argv[])
 static void
 mbus_error_handler(int seqnum, int reason)
 {
-        debug_msg("mbus message failed (%d:%d)\n", seqnum, reason);
+	debug_msg("mbus message failed (seqnum:%d - %s)\n", seqnum, mbus_errlist[reason>=MBUS_ERR_MAX?MBUS_ERR_MAX:reason]);
         if (should_exit == FALSE) {
                 char msg[64];
-                sprintf(msg, "MBUS message failed (%d:%d)\n", seqnum, reason);
+                sprintf(msg, "MBUS message failed (%d:%s)\n", seqnum, mbus_errlist[reason>=MBUS_ERR_MAX?MBUS_ERR_MAX:reason]);
                 fatal_error("RAT v" RAT_VERSION, msg);
                 abort();
         }
