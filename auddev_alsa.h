@@ -23,7 +23,7 @@
 
 /* Buffer length, in milliseconds.  This value is used to
  * divide the sample-rate to define the buffer-size. */
-#define RAT_ALSA_BUFFER_DIVISOR 40
+#define RAT_ALSA_BUFFER_DIVISOR 60
 
 // External prototypes
 int  alsa_audio_open       (audio_desc_t ad, audio_format* ifmt, audio_format *ofmt);

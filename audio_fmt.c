@@ -468,7 +468,9 @@ audio_format_change_encoding(audio_format *cur, deve_e new_enc)
                 break;
         }
 
+	debug_msg("audio_format_change_encoding,bitsPerSam = %d, bytesPerBlk = %d ,", bits_per_sample, cur->bytes_per_block);
         cur->bytes_per_block = cur->bytes_per_block * bits_per_sample / cur->bits_per_sample;
+	debug_msg("new bpb = %d\n ",cur->bytes_per_block);
         cur->bits_per_sample = bits_per_sample;
         cur->encoding        = new_enc;
 /* If this is zero something has gone wrong! */

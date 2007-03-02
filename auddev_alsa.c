@@ -250,9 +250,11 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
     snd_pcm_sw_params_t *sw_params;
     /* Set avail min inside a software configuration container */
     /* Can we tweak this up/down?*/
-    snd_pcm_uframes_t    avail_min=100; //4	
+    //snd_pcm_uframes_t    avail_min=100; //4	
+    snd_pcm_uframes_t    avail_min=4;	
     snd_pcm_uframes_t    xfer_align=1;	
 
+    // Open type (Capture or Playback)
     err = snd_pcm_open(&stream->handle, info->pcm_device,
                        type, SND_PCM_NONBLOCK);
     debug_msg("ALSA:open_stream: %s\n",info->pcm_device);
@@ -288,32 +290,38 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
         return FALSE;
     }
 
-    // Setup the buffer size. This stuff's all in frames, BTW.  We can't
-    // convert with the helper functions at this point as they require
-    // a working handle, and ours isn't setup yet. We don't actually do
-    // anything with these values anyway.
+    // Setup the buffer size. This stuff's all in frames (one frame 
+    // is number of channel * sample - e.g one stereo frame is two samples).
+    // We can't convert with the helper functions (snd_pcm_bytes_to_frames())
+    // at this point as they require a working handle, and ours isn't setup
+    // yet. We use a factor RAT_ALSA_BUFFER_DIVISOR which is buffer size in
+    // millisec(10^-3) - it seems we need 
+    // We don't actually do anything with these values anyway.
     bsize = snd_pcm_format_size (mapformat(fmt->encoding),
                                  fmt->sample_rate / RAT_ALSA_BUFFER_DIVISOR);
+    debug_msg("Bsize1 == %d\n", bsize);
     bsize = (fmt->sample_rate * (fmt->bits_per_sample/8) * fmt->channels* RAT_ALSA_BUFFER_DIVISOR)/ (1000);
-	    //* fmt->bytes_per_block 
+    debug_msg("Bsize2 == %d\n", bsize);
+    bsize = (fmt->sample_rate*RAT_ALSA_BUFFER_DIVISOR)/1000;
 
     frames = bsize;
+    debug_msg("sample_rate, bytes_per_block == %d, %d\n", fmt->sample_rate, fmt->bytes_per_block);
     debug_msg("Bsize == %d\n", bsize);
     err = snd_pcm_hw_params_set_buffer_size_near(stream->handle, hw_params,
                                                  &frames);
     CHECKOPENERR("Failed to set buffer size");
 
     stream->buffer_size = frames;
-    debug_msg("Buffer == %d\n", stream->buffer_size);
+    debug_msg("Return Bsize == %d\n", stream->buffer_size);
 
-    frames = stream->buffer_size / 2;
+    frames=  fmt->bytes_per_block / ((fmt->bits_per_sample/8)* fmt->channels);
+    frames= bsize /(RAT_ALSA_BUFFER_DIVISOR/10);
     err = snd_pcm_hw_params_set_period_size_near(stream->handle, hw_params,
                                                  &frames, &dir);
-    stream->buffer_size = frames;
     CHECKOPENERR("Failed to set period size");
 
     stream->period_size = frames;
-    debug_msg("Period == %d\n", stream->period_size);
+    debug_msg("Returned Period == %d\n", stream->period_size);
 
     err = snd_pcm_hw_params (stream->handle, hw_params);
     CHECKOPENERR("Failed to install HW parameters");
@@ -325,10 +333,10 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
     CHECKOPENERR("Failed to initialise SW params");
 
     err = snd_pcm_sw_params_set_start_threshold(stream->handle, sw_params,
-                                                stream->buffer_size);
+                                                stream->period_size);
     CHECKOPENERR("Failed to set threshold value");
 
-    err = snd_pcm_sw_params_set_avail_min(stream->handle, sw_params, avail_min);
+    err = snd_pcm_sw_params_set_avail_min(stream->handle, sw_params, stream->period_size);
     CHECKOPENERR("Failed to set min available value");
 
     err = snd_pcm_sw_params_set_xfer_align(stream->handle,sw_params,xfer_align);
@@ -337,6 +345,8 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
     err = snd_pcm_sw_params(stream->handle, sw_params);
     CHECKOPENERR("Failed to set SW params");
     
+    snd_pcm_sw_params_get_avail_min(sw_params, &avail_min);
+    debug_msg("min available value %d\n",avail_min);
     return TRUE;
 }
 
@@ -377,10 +387,12 @@ static int open_volume_ctl(char *name, snd_mixer_elem_t **ctl)
     debug_msg("Got volume control %s of type CAPTURE\n", name);
     snd_mixer_selem_set_capture_volume_range (*ctl, 0, 100);
 
-    err = snd_mixer_selem_set_capture_switch_all(*ctl, 1);
-    if (err<0) {
-      debug_msg("Failed to switch on capture volume");
-      return FALSE;
+    if (snd_mixer_selem_has_capture_switch(*ctl)) {
+      err = snd_mixer_selem_set_capture_switch_all(*ctl, 1);
+      if (err<0) {
+	debug_msg("Failed to switch on capture volume");
+	return FALSE;
+      }
     }
 
   } else {
@@ -562,13 +574,14 @@ int alsa_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
     current.info = ratCards + ad;
     current.bytes_per_block = infmt->bytes_per_block;
 
+    debug_msg( "Open device for playback\n");
     if (!open_stream(current.info, &current.tx,
                      SND_PCM_STREAM_PLAYBACK, outfmt)) {
         alsa_audio_close(ad); 
         debug_msg( "Failed to open device for playback\n");
         return FALSE;
     }
-        debug_msg( "to open device for capture\n");
+    debug_msg( "Open device for capture\n");
     if (!open_stream(current.info, &current.rx,
                      SND_PCM_STREAM_CAPTURE, infmt)) {
         alsa_audio_close(ad); 
@@ -645,7 +658,57 @@ void alsa_audio_drain(audio_desc_t ad __attribute__((unused)))
     err = snd_pcm_drain(current.rx.handle);
     if (err<0) debug_msg("Problem draining input\n");
 }
-    
+
+static void handle_mixer_events(snd_mixer_t *mixer_handle)
+{
+  int count, err;
+  struct pollfd *fds;
+  int num_revents = 0;
+  unsigned short revents;
+
+  /* Get count of poll descriptors for mixer handle */
+  if ((count = snd_mixer_poll_descriptors_count(mixer_handle)) < 0) {
+    debug_msg("Error in snd_mixer_poll_descriptors_count(%d)\n", count);
+    return;
+  }
+
+  fds =(struct pollfd*)calloc(count, sizeof(struct pollfd));
+  if (fds == NULL) {
+    debug_msg("snd_mixer fds calloc err\n");
+    return;
+  }
+
+  if ((err = snd_mixer_poll_descriptors(mixer_handle, fds, count)) < 0){
+    debug_msg ("snd_mixer_poll_descriptors err=%d\n", err);
+  free(fds);
+    return;
+  }
+
+  if (err != count){
+    debug_msg ("snd_mixer_poll_descriptors (err(%d) != count(%d))\n",err,count);
+  free(fds);
+    return;
+  }
+
+  num_revents = poll(fds, count, 1);
+
+  /* Graceful handling of signals recvd in poll() */
+  if (num_revents < 0 && errno == EINTR)
+    num_revents = 0;
+
+  if (num_revents > 0) {
+    if (snd_mixer_poll_descriptors_revents(mixer_handle, fds, count, &revents) >= 0) {
+      if (revents & POLLNVAL)
+        debug_msg ("snd_mixer_poll_descriptors (POLLNVAL)\n");
+      if (revents & POLLERR)
+        debug_msg ("snd_mixer_poll_descriptors (POLLERR)\n");
+      if (revents & POLLIN)
+        snd_mixer_handle_events(mixer_handle);
+    }
+  }
+  free(fds);
+}
+   
 
 
 /*
@@ -672,7 +735,8 @@ void alsa_audio_set_igain(audio_desc_t ad, int gain)
 	err = snd_mixer_selem_set_capture_volume_all(iports[current.iport].smixer_elem, gain);
 	if(err<0) debug_msg("Failed to set capture volume\n");
     }
-    mixer_state_change = 1;
+handle_mixer_events(current.mixer);
+//    mixer_state_change = 1;
 }
 
 
@@ -724,7 +788,8 @@ void alsa_audio_set_ogain(audio_desc_t ad, int vol)
     err = snd_mixer_selem_set_playback_volume_all(current.txgain, vol);
     if(err<0) debug_msg("Couldn't set mixer playback volume");
 
-    mixer_state_change = 1;
+handle_mixer_events(current.mixer);
+//    mixer_state_change = 1;
 }
 
 /*
@@ -744,56 +809,6 @@ alsa_audio_get_ogain(audio_desc_t ad)
     return (int)ogain;
 }
 
-static void handle_mixer_events(snd_mixer_t *mixer_handle)
-{
-  int count, err;
-  struct pollfd *fds;
-  int num_revents = 0;
-  unsigned short revents;
-
-  /* Get count of poll descriptors for mixer handle */
-  if ((count = snd_mixer_poll_descriptors_count(mixer_handle)) < 0) {
-    debug_msg("Error in snd_mixer_poll_descriptors_count(%d)\n", count);
-    return;
-  }
-
-  fds =(struct pollfd*)calloc(count, sizeof(struct pollfd));
-  if (fds == NULL) {
-    debug_msg("snd_mixer fds calloc err\n");
-    return;
-  }
-
-  if ((err = snd_mixer_poll_descriptors(mixer_handle, fds, count)) < 0){
-    debug_msg ("snd_mixer_poll_descriptors err=%d\n", err);
-    free(fds);
-    return;
-  }
-
-  if (err != count){
-    debug_msg ("snd_mixer_poll_descriptors (err(%d) != count(%d))\n",err,count);
-    free(fds);
-    return;
-  }
-  errno = 0;
-
-  num_revents = poll(fds, count, 1);
-
-  /* Graceful handling of signals recvd in poll() */
-  if (num_revents < 0 && errno == EINTR)
-    num_revents = 0;
-
-  if (num_revents > 0) {
-    if (snd_mixer_poll_descriptors_revents(mixer_handle, fds, count, &revents) >= 0) {
-      if (revents & POLLNVAL)
-        debug_msg ("snd_mixer_poll_descriptors (POLLNVAL)\n");
-      if (revents & POLLERR)
-        debug_msg ("snd_mixer_poll_descriptors (POLLERR)\n");
-      if (revents & POLLIN)
-        snd_mixer_handle_events(mixer_handle);
-    }
-  }
-  free(fds);
-}
 
 /*
  * Record audio data.
@@ -804,13 +819,24 @@ int alsa_audio_read(audio_desc_t ad __attribute__((unused)),
 {
     snd_pcm_sframes_t fread;
     int err;
+    int read_interval;
+    struct timeval          curr_time;
+    static struct timeval          last_read_time;
 
+    gettimeofday(&curr_time, NULL);
     if (mixer_state_change) {
       mixer_state_change=0;
       handle_mixer_events (current.mixer);
+        debug_msg("Handling mixer event\n");
     }
 
     snd_pcm_sframes_t frames = snd_pcm_bytes_to_frames(current.rx.handle,bytes);
+
+    read_interval = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000000 + (curr_time.tv_usec - last_read_time.tv_usec);
+    //debug_msg("Frames avail to be read=%d, time diff=%d\n",snd_pcm_avail_update(current.rx.handle), read_interval);
+    last_read_time.tv_sec=curr_time.tv_sec;
+    last_read_time.tv_usec=curr_time.tv_usec;
+
 
     fread = snd_pcm_readi(current.rx.handle, buf, frames);
 
@@ -829,7 +855,7 @@ int alsa_audio_read(audio_desc_t ad __attribute__((unused)),
 	    return 0;
 
 	case -EPIPE:
-          debug_msg("Got capture XRUN (EPIPE)\n");
+          debug_msg("Got capture overrun XRUN (EPIPE)\n");
           err = snd_pcm_prepare(current.rx.handle);
           if (err<0) debug_msg("Failed snd_pcm_prepare from capture overrun");
           err = snd_pcm_start(current.rx.handle);
@@ -860,19 +886,39 @@ int alsa_audio_read(audio_desc_t ad __attribute__((unused)),
 int alsa_audio_write(audio_desc_t ad __attribute__((unused)),
                      u_char *buf, int bytes)
 {
-    int fwritten, err, num_bytes=0;
+    int fwritten, err, num_bytes=0 ,read_interval;
+    struct timeval          curr_time;
+    static struct timeval          last_read_time;
     snd_pcm_sframes_t frames =
         snd_pcm_bytes_to_frames(current.tx.handle,bytes);
 
+    gettimeofday(&curr_time, NULL);
     ///debug_msg("Audio write %d\n", bytes);
+    switch (snd_pcm_state(current.tx.handle)) {
+    case SND_PCM_STATE_RUNNING:
+      //debug_msg("In SND_PCM_STATE_RUNNING \n");
+      break;
+    case SND_PCM_STATE_XRUN:
+      debug_msg("In SND_PCM_STATE_XRUN  - preparing audio \n");
+        err = snd_pcm_prepare(current.tx.handle);
+      break;
+    default:
+      break;
+      }
+    read_interval = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000000 + (curr_time.tv_usec - last_read_time.tv_usec);
+
+    //debug_msg("Frames avail to be written=%d, time diff=%d\n",snd_pcm_avail_update(current.tx.handle), read_interval);
+    last_read_time.tv_sec=curr_time.tv_sec;
+    last_read_time.tv_usec=curr_time.tv_usec;
 
     fwritten = snd_pcm_writei(current.tx.handle, buf, frames);
     if (fwritten >= 0) {
         // Normal case
         num_bytes = snd_pcm_frames_to_bytes(current.tx.handle, fwritten);
-        debug_msg("Wrote %d bytes, frames: %d\n", num_bytes, fwritten);
+        //debug_msg("Wrote %d bytes, frames: %d\n", num_bytes, fwritten);
         return num_bytes;
     }
+    //debug_msg("Err: Tried to Write %d bytes, frames: %d, but got: %d\n", bytes,frames, fwritten);
 
     // Something happened
     switch (fwritten)
@@ -882,17 +928,17 @@ int alsa_audio_write(audio_desc_t ad __attribute__((unused)),
         return 0;
 
       case -EPIPE:
-        debug_msg("Got transmit XRUN (EPIPE)\n");
+        debug_msg("Got transmit underun XRUN (EPIPE)\n");
         err = snd_pcm_prepare(current.tx.handle);
-        if (err<0) debug_msg("Failed snd_pcm_prepare from Transmit overrun\n");
-        debug_msg("Attempting Recovery from transmit overrun: Bytes:%d Frames:%d\n",num_bytes,fwritten);
+        if (err<0) debug_msg("Failed snd_pcm_prepare from Transmit underrun\n");
+        debug_msg("Attempting Recovery from transmit underrun: Bytes:%d Frames:%d\n",num_bytes,fwritten);
         fwritten = snd_pcm_writei(current.tx.handle, buf, frames);
         if (fwritten<0) {
-          debug_msg("Can't recover from transmit overrun\n");
+          debug_msg("Can't recover from transmit underrun\n");
           return 0;
         } else {
           num_bytes = snd_pcm_frames_to_bytes(current.tx.handle, fwritten);
-          debug_msg("Recovered from transmit overrun: Bytes:%d Frames:%d\n",num_bytes,fwritten);
+          debug_msg("Recovered from transmit underrun: Bytes:%d Frames:%d\n",num_bytes,fwritten);
           return num_bytes;
         }
 
@@ -1025,7 +1071,8 @@ alsa_audio_iport_set(audio_desc_t ad, audio_port_t port)
 	}
       }
     }
-    mixer_state_change = 1;
+handle_mixer_events(current.mixer);
+//    mixer_state_change = 1;
 }
 
 
@@ -1065,6 +1112,7 @@ int alsa_audio_is_ready(audio_desc_t ad __attribute__((unused)))
     snd_pcm_status_t *status;
     snd_pcm_uframes_t avail;
     int err;
+    snd_pcm_sframes_t frames;
 
     snd_pcm_status_alloca(&status);
     err = snd_pcm_status(current.rx.handle, status);
@@ -1073,9 +1121,11 @@ int alsa_audio_is_ready(audio_desc_t ad __attribute__((unused)))
       return FALSE;
     }
 
+    //frames= snd_pcm_avail_update(current.rx.handle);
     avail = snd_pcm_frames_to_bytes(current.rx.handle,
+//                                    frames);
                                     snd_pcm_status_get_avail(status));
-    //debug_msg("Audio ready == %d\n", avail);
+    //debug_msg("Audio Is ready == %d, frames: %d\n", avail, frames);
     return (avail >= current.bytes_per_block);
 }
 

@@ -296,6 +296,7 @@ tx_read_audio(tx_buffer *tb)
         tx_unit     *u;
 	timestamp_t  u_ts;
         uint32_t     read_dur = 0, this_read, ulen;
+	//int times=0;
 
 	tx_buffer_validate(tb);
 
@@ -318,8 +319,10 @@ tx_read_audio(tx_buffer *tb)
 
                         filled_unit = FALSE;
                         u->dur_used += this_read;
+                        //debug_msg("Reading %d to get unit dur: %d (used:%d), this read: %d\n", ++times,tb->unit_dur, u->dur_used, this_read);
                         if (u->dur_used == tb->unit_dur) {
                                 read_dur += tb->unit_dur;
+                        //debug_msg("Got %d to get unit, unit dur: %d (used:%d)\n", times,tb->unit_dur, u->dur_used);
                                 if (sp->in_file) {
 					/* Reading from a file overwrites any audio we've captured... */
                                         tx_read_sndfile(sp, tb->sample_rate, tb->channels, u);
@@ -330,7 +333,8 @@ tx_read_audio(tx_buffer *tb)
 				/* We've filled one unit, so create the next one... */
 				tx_unit_create(tb, &u, tb->unit_dur * tb->channels);
                                 pb_add(tb->audio_buffer, (u_char*)u, ulen, u_ts);
-                                pb_iterator_advance(tb->reading);
+                                if (pb_iterator_advance(tb->reading)==FALSE)
+				  debug_msg("***********************pb_iterator_advance FALSE\n");
 			}
                 } while (filled_unit == TRUE);
                 assert(pb_iterator_count(tb->audio_buffer) == 3);

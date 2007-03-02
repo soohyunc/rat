@@ -29,12 +29,12 @@ typedef enum {
 typedef struct s_audio_format {
   deve_e encoding;
   uint32_t    sample_rate; 	/* Should be one of 8000, 16000, 24000, 32000, 48000 	*/
-  int    bits_per_sample;	/* Should be 8 or 16 					*/
-  int    channels;  		/* Should be 1 or 2  					*/
-  int    bytes_per_block;       /* size of unit we will read/write in 			*/
+  int    bits_per_sample;	/* Should be 8 or 16 	*/
+  int    channels;  		/* Should be 1 or 2	*/
+  int    bytes_per_block;       /* size of unit we will read/write in - which is defined by the codec - see the codec_format_t structures in each codec - typically multiples of 20ms (160 samples at 8KHz) and bytes_per_sample */
 } audio_format;
 
-typedef int16_t sample;       	/* Sample representation 16 bit signed 			*/
+typedef int16_t sample;       	/* Sample representation 16 bit signed   */
 
 /* Macro's reserved for future work, ie internal 16bit and 32bit samples */
 typedef int16_t sample16_t;
