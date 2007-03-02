@@ -52,6 +52,8 @@ static const char cvsid[] =
 extern int 	 should_exit;
 extern FILE 	*stats_file;
 
+extern void rtp_callback_open_logfile(char *file);
+
 /* Mbus command reception function type */
 typedef void (*mbus_rx_proc)(char *srce, char *args, session_t *sp);
 
@@ -630,6 +632,32 @@ static void rx_tool_rat_logstats(char *srce, char *args, session_t *sp)
 	mbus_parse_done(mp);
 }
 
+static void rx_tool_rat_logdebug(char *srce, char *args, session_t *sp)
+{
+    int enabled;
+    char *file;
+	struct mbus_parser	*mp;
+
+	UNUSED(srce);
+	UNUSED(sp);
+	
+		printf("Logdebug '%s'\n", args);
+
+	mp = mbus_parse_init(args);
+	if (mbus_parse_int(mp, &enabled) &&
+	    mbus_parse_str(mp, &file))
+	    {
+		mbus_decode_str(file);
+		printf("enabled=%d file=%s\n", enabled, file);
+		if (enabled) {
+		    rtp_callback_open_logfile(file);
+		}
+	} else {
+		debug_msg("mbus: usage \"tool.rat.logstats <boolean>\"\n");
+	}
+	mbus_parse_done(mp);
+}
+
 static void rx_tool_rat_tone_start(char *srce, char *args, session_t *sp)
 {
 	int freq, amp;
@@ -901,6 +929,7 @@ static void rx_rtp_query(char *srce, char *args, session_t *sp)
 	/* We respond by dumping all our RTP related state to the querier.     */
 	uint32_t	 ssrc, my_ssrc;
 	struct s_source	*s;
+    pdb_entry_t *e;
 
 	UNUSED(args);
 	debug_msg("mbus: rx_rtp_query\n");
@@ -917,6 +946,13 @@ static void rx_rtp_query(char *srce, char *args, session_t *sp)
 		ui_send_rtp_tool(sp, srce, ssrc);
 		ui_send_rtp_note(sp, srce, ssrc);
 		ui_send_rtp_mute(sp, srce, ssrc);
+
+		if (pdb_item_get(sp->pdb, ssrc, &e) == TRUE) {
+		  if (e->siteid != NULL) {
+		    ui_send_rtp_app_site(sp, srce, ssrc, e->siteid);
+		  }
+		}
+
 		if (ssrc != my_ssrc) {
 			if ((s = source_get_by_ssrc(sp->active_sources, ssrc)) != NULL) {
 				ui_send_rtp_active(sp, srce, ssrc);
@@ -1098,6 +1134,45 @@ static void rx_rtp_source_note(char *srce, char *args, session_t *sp)
 	rx_rtp_source_sdes(srce, args, sp, RTCP_SDES_NOTE);
 }
 
+static void rx_rtp_source_app_site(char *srce, char *args, session_t *sp)
+{
+        char               *arg, *ss;
+        uint32_t           ssrc;
+        struct mbus_parser *mp;
+        UNUSED(srce);
+
+        mp = mbus_parse_init(args);
+        if (mbus_parse_str(mp, &ss) &&
+            mbus_parse_str(mp, &arg)) {
+                uint32_t my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
+                ss = mbus_decode_str(ss);
+                if (isalpha((int)ss[0])) {
+                        /*
+                         * Allow alpha so people can do my_src, me,
+                         * local_user, whatever.  Let the mbus police
+                         * pick something sane.
+                         */
+                        ssrc = my_ssrc;
+                } else {
+                        ssrc = strtoul(ss, 0, 16);
+                }
+                if (ssrc == my_ssrc) {
+                        char *value;
+
+                        value = mbus_decode_str(arg);
+
+                        if (sp->rtp_session_app_site != NULL) {
+                                xfree(sp->rtp_session_app_site);
+                        }
+                        sp->rtp_session_app_site = xstrdup(value);
+                } else {
+                        debug_msg("mbus: rtp_source_app_site ssrc %s (%08lx) != %08lx\n", ss, strtoul(ss, 0, 16), rtp_my_ssrc(sp->rtp_session[0]));
+                }
+        } else {
+                debug_msg("mbus: usage \"rtp_source_app_site <ssrc> <siteid>\"\n");
+        }
+        mbus_parse_done(mp);
+}
 
 static void rx_rtp_source_gain(char *srce, char *args, session_t *sp)
 {
@@ -1639,6 +1714,7 @@ static void rx_mbus_hello(char *srce, char *args, session_t *sp)
 
 static const mbus_cmd_tuple engine_cmds[] = {
 	{ "tool.rat.logstats",                     rx_tool_rat_logstats },
+	{ "tool.rat.logdebug",                     rx_tool_rat_logdebug },
 	{ "tool.rat.tone.start",                   rx_tool_rat_tone_start },
 	{ "tool.rat.tone.stop",                    rx_tool_rat_tone_stop },
 	{ "tool.rat.voxlet.play",                  rx_tool_rat_voxlet_play },
@@ -1695,6 +1771,7 @@ static const mbus_cmd_tuple engine_cmds[] = {
 	{ "rtp.source.note",                       rx_rtp_source_note },
 	{ "rtp.source.mute",                       rx_rtp_source_mute },
 	{ "rtp.source.gain",                       rx_rtp_source_gain },
+        { "rtp.source.app.site",                   rx_rtp_source_app_site },
 	{ "mbus.quit",                             rx_mbus_quit },
 	{ "mbus.bye",                              rx_mbus_bye },
 	{ "mbus.waiting",                          rx_mbus_waiting },
@@ -1716,6 +1793,7 @@ void mbus_engine_rx(char *srce, char *cmnd, char *args, void *data)
 	}
 	debug_msg("Unknown mbus command: %s (%s)\n", cmnd, args);
 #ifndef NDEBUG
+	fprintf(stderr, "Unknown mbus command: %s (%s)\n", cmnd, args);
 	abort();
 #endif
 }

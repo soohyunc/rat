@@ -58,6 +58,17 @@ cmd_logstats(struct mbus *m, char *addr, int argc, char *argv[])
 }
 
 static int
+cmd_logdebug(struct mbus *m, char *addr, int argc, char *argv[])
+{
+        assert(argc == 1);
+	printf("cmdparser logdebug\n");
+        mbus_qmsgf(m, addr, TRUE, "tool.rat.logdebug", "1 %s", mbus_encode_str(argv[0]));
+        UNUSED(argc);
+        UNUSED(argv);
+        return TRUE;
+}
+
+static int 
 cmd_layers(struct mbus *m, char *addr, int argc, char *argv[])
 {
         int layers;
@@ -273,8 +284,28 @@ cmd_sdes_loc(struct mbus *m, char *addr, int argc, char *argv[]) {
         return TRUE;
 }
 
+static int
+cmd_app_site(struct mbus *m, char *addr, int argc, char *argv[]) {
+        char *app_value, *local_user;
+	assert(argc == 1);
+	UNUSED(argc);
+        local_user = mbus_encode_str("localuser");
+        app_value = mbus_encode_str(argv[0]);
+        mbus_qmsgf(m,
+		   addr,
+		   TRUE,
+		   "rtp.source.app.site",
+		   "%s %s",
+		   local_user,
+		   app_value);
+        xfree(local_user);
+        xfree(app_value);
+        return TRUE;
+}
+  
 static args_handler late_args[] = {
 	{ "-logstats",       cmd_logstats,     0 },
+	{ "-logdebug",       cmd_logdebug,     1 },
         { "-l",              cmd_layers,       1 },
         { "-allowloopback",  cmd_allowloop,    0 },
         { "-allow_loopback", cmd_allowloop,    0 },
@@ -286,6 +317,7 @@ static args_handler late_args[] = {
         { "-L",              cmd_sdes_loc,     1 },
         { "-N",              cmd_sdes_name,    1 },
         { "-P",              cmd_sdes_phone,   1 },
+        { "-S",              cmd_app_site,     1 },
         { "-agc",            cmd_agc,          1 },
         { "-silence",        cmd_silence,      1 },
         { "-repair",         cmd_repair,       1 },

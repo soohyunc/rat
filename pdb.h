@@ -66,6 +66,9 @@ typedef struct {
         uint32_t        misordered;
         uint32_t        jit_toged;                   /* Packets discarded because late ("Thrown on ground") */
 
+  /* SiteID from RTCP APP packet. */
+        char           *siteid;
+
 	uint32_t	magic;	/* For debugging */
 } pdb_entry_t;
 

@@ -187,7 +187,7 @@ case "$target" in
 		],AC_MSG_RESULT(missing))
 	])
 	# Do we have ALSA?
-	AC_CHECK_HEADER(sys/asoundlib.h,[
+	AC_CHECK_HEADER(alsa/asoundlib.h,[
 		AUD_OBJ="$AUD_OBJ auddev_alsa.o"
 		AUD_LIB="$AUD_LIB -lasound"
 		AC_DEFINE(HAVE_ALSA_AUDIO)

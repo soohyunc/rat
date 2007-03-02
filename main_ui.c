@@ -94,9 +94,15 @@ int main(int argc, char *argv[])
 	struct timeval	 timeout;
 
 #ifdef WIN32
+	HANDLE waitHandles[2];
+
         HANDLE     hWakeUpEvent;
+	HANDLE	hParentProcess;
+	DWORD waitRet;
+
         TkWinXInit(hAppInstance);
         hWakeUpEvent = CreateEvent(NULL, FALSE, FALSE, "Local\\RAT UI WakeUp Event");
+
 #endif
 
         debug_set_core_dir(argv[0]);
@@ -104,6 +110,11 @@ int main(int argc, char *argv[])
 	debug_msg("rat-ui started argc=%d\n", argc);
 	parse_args(argc, argv);
 	tcl_init1(argc, argv);
+
+#ifdef WIN32
+	hParentProcess = OpenProcess(SYNCHRONIZE, FALSE, ppid);
+	debug_msg("OpenPRocess returns %d\n", hParentProcess);
+#endif
 
 	sprintf(m_addr, "(media:audio module:ui app:rat id:%lu)", (unsigned long) ppid);
 	m = mbus_init(mbus_ui_rx, mbus_error_handler, m_addr);
@@ -161,7 +172,17 @@ int main(int argc, char *argv[])
 		/* Throttle CPU usage */
 #ifdef WIN32
                 /* Just timeout waiting for event that never happens */
-                WaitForSingleObject(hWakeUpEvent, 30);
+                /* WaitForSingleObject(hWakeUpEvent, 30); */
+
+		waitHandles[0] = hWakeUpEvent;
+		waitHandles[1] = hParentProcess;
+		waitRet = WaitForMultipleObjects(2, waitHandles, FALSE, 30);
+		
+		if ((waitRet - WAIT_OBJECT_0) == 1)
+		{
+			debug_msg("Parent process died\n");
+			should_exit = TRUE;
+		}
 #else
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 30000;

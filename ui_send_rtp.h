@@ -27,4 +27,4 @@ void ui_send_rtp_rtt        (session_t *sp, char *addr, uint32_t ssrc, double rt
 void ui_send_rtp_ssrc       (session_t *sp, char *addr);
 void ui_send_rtp_addr       (session_t *sp, char *addr);
 void ui_send_rtp_title      (session_t *sp, char *addr);
-
+void ui_send_rtp_app_site   (session_t *sp, char *addr, uint32_t ssrc, char *siteid);

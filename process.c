@@ -47,9 +47,9 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
         proc_info = (LPPROCESS_INFORMATION) xmalloc(sizeof(PROCESS_INFORMATION));
 
 	if (num_tokens == 1) {
-		sprintf(args, "%s -ctrl \"%s\" -token %s", proc_name, ctrl_addr, token[0]);
+		_snprintf(args, sizeof(args), "%s -ctrl \"%s\" -token %s", proc_name, ctrl_addr, token[0]);
 	} else {
-		sprintf(args, "%s -T -ctrl \"%s\" -token %s -token %s", proc_name, ctrl_addr, token[0], token[1]);
+		_snprintf(args, sizeof(args), "%s -T -ctrl \"%s\" -token %s -token %s", proc_name, ctrl_addr, token[0], token[1]);
 	}
 
         if (!CreateProcess(NULL, args, NULL, NULL, TRUE, 0, NULL, NULL, startup_info, proc_info)) {

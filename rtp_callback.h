@@ -18,4 +18,9 @@ void rtp_callback_init (struct rtp *s, struct s_session *sp);
 void rtp_callback_proc (struct rtp *s, rtp_event *e);
 void rtp_callback_exit (struct rtp *s);
 
+
+rtcp_app* rtcp_app_site_callback(struct rtp *session,
+				 uint32_t rtp_ts,
+				 int max_size);
+
 #endif /* __RTP_CALLBACK_H__ */

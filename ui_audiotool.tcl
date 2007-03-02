@@ -321,6 +321,7 @@ proc mbus_recv {cmnd args} {
 		rtp.source.mute			{eval mbus_recv_rtp.source.mute $args}
 		rtp.source.gain			{eval mbus_recv_rtp.source.gain $args}
 		rtp.source.rtt			{eval mbus_recv_rtp.source.rtt $args}
+		rtp.source.app.site     {eval mbus_recv_rtp.source.app.site $args}
 		security.encryption.key 	{eval mbus_recv_security.encryption.key $args}
 		default				{bgerror "Unknown mbus command $cmnd"}
 	}
@@ -1092,6 +1093,9 @@ proc mbus_recv_rtp.source.mute {ssrc val} {
 	}
 }
 
+proc mbus_recv_rtp.source.app.site {ssrc val} {
+}
+
 proc mbus_recv_audio.file.play.ready {name} {
     global play_file
     set    play_file(name) $name
@@ -1239,6 +1243,8 @@ proc ssrc_update {ssrc} {
 		$cw create text [expr $f + 2] $h -anchor w -text $NAME($ssrc) -fill black -tag t
 		$cw create polygon $l $h $h $l $h $f -outline black -fill grey -tag m
 		$cw create polygon $f $h $h $l $h $f -outline black -fill grey -tag h
+	        scale ${cw}.gain_scale_$ssrc -showvalue 0 -orient h -from -3 -to +3 -resolution 0.25 -command "ssrc_set_gain $ssrc"
+	        $cw create window [expr $iwd + 1] $h -anchor e -window $cw.gain_scale_$ssrc 
 
 		bind $cw <Button-1>         "toggle_stats \"$ssrc\""
 		bind $cw <Button-2>         "toggle_mute $cw \"$ssrc\""
@@ -1640,7 +1646,6 @@ frame .r.c.tx -relief groove -bd 2
 
 pack .st -side bottom -fill x -padx 2 -pady 0
 pack .st.file .st.recp .st.help -side left -anchor e -padx 2 -pady 2
-
 
 pack .st.quit .st.about .st.opts -side right -anchor w -padx 2 -pady 2
 

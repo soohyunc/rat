@@ -188,3 +188,11 @@ ui_send_rtp_title(session_t *sp, char *addr)
         xfree(title);
 }
 
+void ui_send_rtp_app_site(session_t *sp, char *addr, uint32_t ssrc, char *siteid)
+{
+        char *enc_siteid;
+	if (!sp->ui_on) return;
+	enc_siteid = mbus_encode_str(siteid);
+	mbus_qmsgf(sp->mbus_engine, addr, TRUE, "rtp.source.app.site", "\"%08lx\" %s", ssrc, enc_siteid);
+	xfree(enc_siteid);
+}

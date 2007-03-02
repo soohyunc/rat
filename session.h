@@ -18,6 +18,8 @@
 #include "converter_types.h"
 #include "repair_types.h"
 
+#include "rtp.h"
+
 /* This will have to be raised in the future */
 #define MAX_LAYERS      2
 
@@ -62,6 +64,9 @@ typedef struct s_session {
 	int             	 ttl;
         struct rtp     		*rtp_session[MAX_LAYERS];
         int             	 rtp_session_count;
+        char                    *rtp_session_app_site;
+        rtcp_app                *rtcp_app_packet;
+        uint32_t                 rtcp_app_packet_ts;
 	uint8_t          	 layers; 			/* number of layers == rtp_session_count */
         int             	 filter_loopback;
         timestamp_t              cur_ts; 			/* current device time */

@@ -1,14 +1,14 @@
 /*
  * FILE:    main-engine.c
  * PROGRAM: RAT
- * AUTHOR:  Colin Perkins
+ * AUTHOR:  Colin Perkins 
  *
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
-
+ 
 #ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] =
+static const char cvsid[] = 
 	"$Id$";
 #endif /* HIDE_SOURCE_STRINGS */
 
@@ -53,7 +53,7 @@ static const char cvsid[] =
 #include "util.h"
 
 char		*c_addr, *token[2], *token_e[2]; /* Could be in the session struct */
-int         	 should_exit = FALSE;
+int         	 should_exit = FALSE; 
 int		 mbus_shutdown_error = FALSE;
 int		 num_sessions = 1;
 
@@ -72,7 +72,7 @@ signal_handler(int signal)
 
 static void parse_args(int argc, char *argv[])
 {
-	int 	i, tc;
+	int 		i, tc;
 
 	if ((argc != 5)  && (argc != 8)) {
 		printf("Usage: rat-%s-media [-T] -ctrl <addr> -token <token> [-token <token>]\n", RAT_VERSION);
@@ -109,7 +109,7 @@ static void parse_args(int argc, char *argv[])
         ppid = strtoul(&c_addr[i], NULL, 10);
 }
 
-static void
+static void 
 mbus_error_handler(int seqnum, int reason)
 {
 	debug_msg("mbus message failed (seqnum:%d - %s)\n", seqnum, mbus_errlist[reason>=MBUS_ERR_MAX?MBUS_ERR_MAX:reason]);
@@ -118,7 +118,7 @@ mbus_error_handler(int seqnum, int reason)
                 sprintf(msg, "MBUS message failed (%d:%s)\n", seqnum, mbus_errlist[reason>=MBUS_ERR_MAX?MBUS_ERR_MAX:reason]);
                 fatal_error("RAT v" RAT_VERSION, msg);
                 abort();
-        }
+        } 
 	mbus_shutdown_error = TRUE;
         UNUSED(seqnum);
         UNUSED(reason);
@@ -144,7 +144,7 @@ static void rendezvous_with_controller(session_t *sp[2])
 		for (j = 0; j < num_sessions; j++) {
 			timeout.tv_sec  = 0;
 			timeout.tv_usec = 10000;
-			mbus_send(sp[j]->mbus_engine);
+			mbus_send(sp[j]->mbus_engine); 
 			mbus_recv(sp[j]->mbus_engine, (void *) sp[j], &timeout);
 			mbus_heartbeat(sp[j]->mbus_engine, 1);
 			mbus_retransmit(sp[j]->mbus_engine);
@@ -187,7 +187,7 @@ static void rendezvous_with_controller(session_t *sp[2])
 			timeout.tv_sec  = 0;
 			timeout.tv_usec = 20000;
 			mbus_qmsgf(sp[i]->mbus_engine, c_addr, FALSE, "mbus.waiting", "%s", token_e[i]);
-			mbus_send(sp[i]->mbus_engine);
+			mbus_send(sp[i]->mbus_engine); 
 			mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
 			mbus_heartbeat(sp[i]->mbus_engine, 1);
 			mbus_retransmit(sp[i]->mbus_engine);
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
 #ifdef WIN32
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 #else
-	signal(SIGINT, signal_handler);
+	signal(SIGINT, signal_handler); 
         debug_set_core_dir(argv[0]);
 #endif
 
@@ -254,19 +254,19 @@ int main(int argc, char *argv[])
 
         /* Moved session[0] setup to rx_rtp_addr so one may change addr
            binding dynamically */
-        /* Load saved settings, and create the participant database... */
-        /* FIXME: probably needs updating for the transcoder so we can */
-        /*        have different saved settings for each domain.       */
-        /* FIXME: this gets the wrong device name for the transcoder.  */
-        for (i = 0; i < num_sessions; i++) {
-                if (pdb_create(&sp[i]->pdb) == FALSE) {
-                        debug_msg("Failed to create participant database\n");
-                        abort();
-                }
-                pdb_item_create(sp[i]->pdb, (uint16_t)ts_get_freq(sp[i]->cur_ts), rtp_my_ssrc(sp[i]->rtp_session[0]));
-                settings_load_late(sp[i]);
-                session_validate(sp[i]);
-        }
+	/* Load saved settings, and create the participant database... */
+	/* FIXME: probably needs updating for the transcoder so we can */
+	/*        have different saved settings for each domain.       */
+	/* FIXME: this gets the wrong device name for the transcoder.  */
+	for (i = 0; i < num_sessions; i++) {
+		if (pdb_create(&sp[i]->pdb) == FALSE) {
+			debug_msg("Failed to create participant database\n");
+			abort();
+		}
+		pdb_item_create(sp[i]->pdb, (uint16_t)ts_get_freq(sp[i]->cur_ts), rtp_my_ssrc(sp[i]->rtp_session[0])); 
+		settings_load_late(sp[i]);
+		session_validate(sp[i]);
+	}
 
 	xmemchk();
 	xdoneinit();
@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
 			for (j = 0; j < sp[i]->rtp_session_count; j++) {
 				rtp_time = tx_get_rtp_time(sp[i]);
 				while(rtp_recv(sp[i]->rtp_session[j], &timeout, rtp_time));
-				rtp_send_ctrl(sp[i]->rtp_session[j], rtp_time, NULL);
+				rtp_send_ctrl(sp[i]->rtp_session[j], rtp_time, rtcp_app_site_callback);
 				rtp_update(sp[i]->rtp_session[j]);
 			}
 
@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
 			mbus_recv(sp[i]->mbus_engine, (void *) sp[i], &timeout);
 			mbus_heartbeat(sp[i]->mbus_engine, 1);
 			mbus_retransmit(sp[i]->mbus_engine);
-			mbus_send(sp[i]->mbus_engine);
+			mbus_send(sp[i]->mbus_engine); 
 
 			/* Process and mix active sources */
 			if (sp[i]->playing_audio) {
@@ -430,7 +430,7 @@ int main(int argc, char *argv[])
 					}
 				}
 			}
-
+			
 			/* Choke CPU usage */
 			if (!audio_is_ready(sp[i]->audio_device)) {
 				audio_wait_for(sp[i]->audio_device, 50);
@@ -467,7 +467,7 @@ int main(int argc, char *argv[])
 		audio_device_release(sp[i], sp[i]->audio_device);
 		audio_free_interfaces();
 	}
-
+	
 	/* FIXME: This should be integrated into the previous loop, so instead of */
 	/*        sending mbus.bye() ourselves, we just call mbus_exit(...) which */
 	/*        sends a bye and shuts everything down cleanly for us.           */
@@ -475,7 +475,7 @@ int main(int argc, char *argv[])
 	if (mbus_addr_valid(sp[0]->mbus_engine, c_addr)) {
 		do {
 			struct timeval	 timeout;
-			mbus_send(sp[0]->mbus_engine);
+			mbus_send(sp[0]->mbus_engine); 
 			/* At this stage we no longer care about acks for messages */
 			/* mbus_retransmit(sp[0]->mbus_engine); */
 			timeout.tv_sec  = 0;
@@ -494,7 +494,7 @@ int main(int argc, char *argv[])
 		xfree(token[i]);
 		xfree(token_e[i]);
 	}
-
+        
 	converters_free();
 	xfree(c_addr);
 	xmemdmp();

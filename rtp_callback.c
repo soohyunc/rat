@@ -31,6 +31,8 @@ static const char cvsid[] =
 #include "rtp_callback.h"
 #include "rtp_dump.h"
 
+int rtp_get_ssrc_count(struct rtp *r);
+
 /* We need to be able to resolve the rtp session to a rat session in */
 /* order to get persistent participant information, etc.  We use a   */
 /* double linked list with sentinel for this.  We normally don't     */
@@ -47,6 +49,28 @@ typedef struct s_rtp_assoc {
 /* Sentinel for linked list that is used as small associative array */
 static rtp_assoc_t rtp_as;
 static int rtp_as_inited;
+
+static FILE *log_fp = 0;
+
+void rtp_callback_open_logfile(char *file);
+
+void rtp_callback_open_logfile(char *file)
+{
+    log_fp = fopen(file, "a");
+    if (!log_fp)
+    {
+	perror("log_fp open failed");
+    }
+    else
+    {
+        struct timeval  tv;
+        gettimeofday(&tv, 0);
+
+	printf("Opened logfile %s\n", file);
+	fprintf(log_fp, "%d.%06d 0 start\n", (int) tv.tv_sec, (int) tv.tv_usec);
+    }
+}
+
 
 void
 rtp_callback_init(struct rtp *rtps, struct s_session *rats)
@@ -86,6 +110,13 @@ void
 rtp_callback_exit(struct rtp *rtps)
 {
         rtp_assoc_t *cur, *sentinel;
+
+
+	if (log_fp != 0)
+	{
+	    fclose(log_fp);
+	    log_fp = 0;
+	}
 
         sentinel = &rtp_as;
         cur = sentinel->next;
@@ -282,6 +313,17 @@ process_sdes(session_t *sp, uint32_t ssrc, rtcp_sdes_item *d)
                 /* for us to deal with.                                      */
                 break;
         case RTCP_SDES_CNAME:
+	    if (log_fp != 0)
+	    {
+		struct timeval  tv;
+		gettimeofday(&tv, 0);
+
+		fprintf(log_fp, "%d.%06d %d cname %x %s\n", (int) tv.tv_sec, (int) tv.tv_usec,
+			(int) rtp_get_ssrc_count(sp->rtp_session[0]),
+			(int) ssrc,
+			rtp_get_sdes(sp->rtp_session[0], ssrc, RTCP_SDES_CNAME));
+		fflush(log_fp);
+	    }
                 ui_send_rtp_cname(sp, sp->mbus_ui_addr, ssrc);
                 break;
         case RTCP_SDES_NAME:
@@ -311,8 +353,41 @@ process_sdes(session_t *sp, uint32_t ssrc, rtcp_sdes_item *d)
 }
 
 static void
+process_app(session_t *sp, uint32_t ssrc, rtcp_app *app)
+{
+  if (strncmp(app->name, "site", 4) == 0) {
+    int site_id_len = 4*(app->length - 2);
+    pdb_entry_t *e;
+
+    if (pdb_item_get(sp->pdb, ssrc, &e) == FALSE) {
+      debug_msg("process_app: unknown source (0x%08x).\n", ssrc);
+      return;
+    } else {
+      if (e->siteid == NULL) {
+	e->siteid = xmalloc(site_id_len + 1);
+	strncpy(e->siteid, app->data, site_id_len);
+	e->siteid[site_id_len] = '\0';
+      }
+	
+      ui_send_rtp_app_site(sp, sp->mbus_ui_addr, ssrc, e->siteid);
+    }
+  }
+}
+
+static void
 process_create(session_t *sp, uint32_t ssrc)
 {
+	    if (log_fp != 0)
+	    {
+		struct timeval  tv;
+		gettimeofday(&tv, 0);
+
+		fprintf(log_fp, "%d.%06d %d create %x \n", (int) tv.tv_sec, (int) tv.tv_usec,
+			(int) rtp_get_ssrc_count(sp->rtp_session[0]),
+			(int) ssrc);
+		fflush(log_fp);
+	    }
+    
 	if (pdb_item_create(sp->pdb, (uint16_t)ts_get_freq(sp->cur_ts), ssrc) == FALSE) {
 		debug_msg("Unable to create source 0x%08lx\n", ssrc);
 	}
@@ -321,6 +396,25 @@ process_create(session_t *sp, uint32_t ssrc)
 static void
 process_delete(session_t *sp, rtp_event *e)
 {
+	    if (log_fp != 0)
+	    {
+		struct timeval  tv, *dead;
+		int d_sec = -1, d_usec = -1;
+
+		gettimeofday(&tv, 0);
+
+		dead = (struct timeval *) e->data;
+		if (dead != 0)
+		{
+		    d_sec = (int) dead->tv_sec;
+		    d_usec = (int) dead->tv_usec;
+		}
+		fprintf(log_fp, "%d.%06d %d delete %x %d.%06d\n", (int) tv.tv_sec, (int) tv.tv_usec,
+			rtp_get_ssrc_count(sp->rtp_session[0]),
+			e->ssrc,
+			d_sec, d_usec);
+		fflush(log_fp);
+	    }
         if (e->ssrc != rtp_my_ssrc(sp->rtp_session[0]) && sp->mbus_engine != NULL) {
                 struct s_source *s;
                 pdb_entry_t     *pdbe;
@@ -383,6 +477,8 @@ rtp_callback_proc(struct rtp *s, rtp_event *e)
 		break;
         case RX_APP:
                 debug_msg("Received and ignored application specific report from %08x\n", e->ssrc);
+	        process_app(sp, e->ssrc, (rtcp_app*)e->data);
+		xfree(e->data);
                 break;
 	case RX_BYE:
 	case SOURCE_DELETED:
@@ -404,4 +500,64 @@ rtp_callback_proc(struct rtp *s, rtp_event *e)
 		abort();
 	}
 }
+
+rtcp_app* rtcp_app_site_callback(struct rtp *session, 
+				 uint32_t rtp_ts, 
+				 int max_size)
+{
+        struct s_session *sp;
+	int len;
+	int datalen;
+	int slen;
+
+	sp = get_session(session);
+	if (sp == NULL) {
+	        /* Shouldn't happen */
+   	        return NULL;
+        }
+
+	if (sp->rtp_session_app_site == NULL) {
+	        /* Site identifier not set */
+	        return NULL;
+	}
+
+	if (sp->rtcp_app_packet_ts == rtp_ts) {
+	        /* Already sent an APP for this timestamp */
+	        return NULL;
+	}
+
+	slen = strlen(sp->rtp_session_app_site);
+	datalen = slen;
+	if (slen % 4 > 0) {
+	        datalen += 4 - (slen % 4);
+        }
+        len = datalen + sizeof(rtcp_app) - 1;
+	if (len > max_size) {
+	        /* Can't fit the site id in the current RTCP compound packet */
+	        return NULL;
+	}
+
+        if (sp->rtcp_app_packet != NULL) {
+	  xfree(sp->rtcp_app_packet);
+        }
+
+	sp->rtcp_app_packet = xmalloc(len);
+
+	sp->rtcp_app_packet->version = RTP_VERSION;
+	sp->rtcp_app_packet->p = 0;
+	sp->rtcp_app_packet->subtype = 0;
+	sp->rtcp_app_packet->pt = 204;
+
+	/* Host -> Network order is handled by common lib */
+	sp->rtcp_app_packet->length = 2 + datalen/4;
+	sp->rtcp_app_packet->ssrc = rtp_my_ssrc(session);
+
+	strncpy(sp->rtcp_app_packet->name, "site", 4);
+	memset(sp->rtcp_app_packet->data, 0, datalen);
+	strncpy(sp->rtcp_app_packet->data, sp->rtp_session_app_site, slen);
+
+	sp->rtcp_app_packet_ts = rtp_ts;
+	return sp->rtcp_app_packet;
+}
+
 

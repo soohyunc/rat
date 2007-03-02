@@ -129,6 +129,7 @@ pdb_item_create(pdb_t *p, uint16_t freq, uint32_t id)
         }
 
         /* Initialize elements of item here as necesary **********************/
+
 	item->magic             = 0xc001babe;
         item->ssrc              = id;
         item->render_3D_data    = NULL;
@@ -152,7 +153,6 @@ pdb_item_create(pdb_t *p, uint16_t freq, uint32_t id)
         item->last_arr          = zero_ts;
         item->last_rtt          = 0.0;
         item->avg_rtt           = 0.0;
-
         /* Packet stats initialization                                       */
         item->received          = 0;
         item->duplicates        = 0;
@@ -160,6 +160,8 @@ pdb_item_create(pdb_t *p, uint16_t freq, uint32_t id)
         item->jit_toged         = 0;
         item->spike_toged       = 0;
         item->spike_events      = 0;
+
+	item->siteid          = NULL;
 
 	pdb_item_validate(item);
         /*********************************************************************/

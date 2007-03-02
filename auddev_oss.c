@@ -97,6 +97,8 @@ static char *ac97_devices[] = {
 	"OSS: AudioPCI 97 (CRY13/0x43525913)",
 	"OSS: AudioPCI 97 (CS4297A)",
 	"OSS: Realtek ALC650E",
+	"OSS: Analog Devices AD1981B",
+	"OSS: Asahi Kasei AK4531",
 	0
 };
 
@@ -891,6 +893,7 @@ oss_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
                 len -= done;
                 p   += done;
         }
+	debug_msg("OSS wrote %d bytes\n",write_bytes);
         return write_bytes;
 }
 

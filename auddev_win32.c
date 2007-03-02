@@ -1449,6 +1449,7 @@ w32sdk_audio_loopback(audio_desc_t ad, int gain)
 {
         UNUSED(ad);
 
+	debug_msg("set audio_loopback gain to %d\n", gain);
         nLoopGain = gain;
 }
 

@@ -85,7 +85,7 @@ ALL_SRCS     = $(ALL_OBJS:%.o=%.c)
 
 INSTALL_OBJS = ui_installer.o installer.o binaries.o
 
-all: version.h sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec $(RATVER) $(RATVER)-ui $(RATVER)-media rat Makefile
+all: version.h sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec $(RATVER) $(RATVER)-ui $(RATVER)-media $(RATVER)-kill rat Makefile
 
 libuclaudio.a: $(AUDIO_OBJS)
 	$(AR) r $@ $(AUDIO_OBJS)
@@ -98,6 +98,9 @@ libuclcodec.a: $(CODEC_OBJS)
 libuclsndfile.a: $(SNDFILE_OBJS)
 	$(AR) r $@ $(SNDFILE_OBJS)
 	$(RANLIB) $@
+
+$(RATVER)-kill: rat-kill.o
+	$(CC) $(CFLAGS) rat-kill.o $(COMMON_LIB) $(LIBS) -o $(RATVER)-kill
 
 $(RATVER)-media: $(CHANNEL_OBJS) $(TOY_OBJS) $(MEDIA_OBJS) $(MEDIALIBS) $(EXTERNAL_DEP)
 	$(CC) $(CFLAGS) $(CHANNEL_OBJS) $(TOY_OBJS) $(MEDIA_OBJS) $(MEDIALIBS) $(COMMON_LIB) $(AUD_LIB) $(LIBS) $(G728_LIB) -o $(RATVER)-media
@@ -164,6 +167,7 @@ distclean: clean
 install: all
 	./install-sh -m 555 -c rat             $(bindir)
 	./install-sh -m 555 -c $(RATVER)       $(bindir)
+	./install-sh -m 555 -c $(RATVER)-kill  $(bindir)/rat-kill
 	./install-sh -m 555 -c $(RATVER)-media $(bindir)
 	./install-sh -m 555 -c $(RATVER)-ui    $(bindir)
 	./install-sh -m 444 -c man/man1/rat.1  $(mandir)/man1/rat.1
@@ -202,10 +206,18 @@ $(RATVER)-$(OSTYPE).tar.gz: $(RATVER) $(RATVER)-ui $(RATVER)-media rat
 
 tgz: $(RATVER)-$(OSTYPE).tar.gz
 
-rpm: tgz
+rpm: clean tgz 
 	@${ECHO} "Building $(RATVER).rpm -- this almost certainly needs to run as root on RedHat Linux"
-	install -m 644 $(RATVER)-$(OSTYPE).tar.gz /usr/src/redhat/SOURCES/rat-4.1.2.tar.gz
+#	install -m 644 $(RATVER)-$(OSTYPE).tar.gz /usr/src/redhat/SOURCES/rat-4.1.2.tar.gz
+	install -m 644 AccessGrid-rat.spec /usr/src/redhat/SPECS/AccessGrid-rat.spec
+	install -m 644 $(RATVER)-$(OSTYPE).tar.gz /usr/src/redhat/SOURCES/$(RATVER)-$(OSTYPE).tar.gz
 	rpm -bb $(RATVER).spec
+
+agrpm: clean
+	@${ECHO} "Building AG $(RATVER).rpm -- this almost certainly needs to run as root on RedHat Linux"
+	( cd ../.. ; ln -s ag-rat $(RATVER) ; tar cvfh /usr/src/redhat/SOURCES/$(RATVER).tar.gz $(RATVER) ; rm $(RATVER) )
+	install -m 644 AccessGrid-rat.spec /usr/src/redhat/SPECS/AccessGrid-rat.spec
+	rpm -ba AccessGrid-rat.spec
 
 Makefile: Makefile.in VERSION
 	$(error "Run configure again, the following file(s) are newer than Makefile: $?")
