@@ -233,7 +233,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="uclmm.lib uclaudio.lib uclcodec.lib uclsndfile.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib"
+				AdditionalDependencies="uclmm.lib uclaudio.lib uclcodec.lib uclsndfile.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib iphlpapi.lib"
 				OutputFile=".\Debug/ratmedia.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -300,7 +300,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="uclmm.lib uclaudio.lib uclcodec.lib uclsndfile.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib"
+				AdditionalDependencies="uclmm.lib uclaudio.lib uclcodec.lib uclsndfile.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib iphlpapi.lib"
 				OutputFile=".\Release/ratmedia.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"

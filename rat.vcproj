@@ -240,7 +240,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="uclmm.lib winmm.lib wsock32.lib Ws2_32.lib"
+				AdditionalDependencies="uclmm.lib winmm.lib wsock32.lib Ws2_32.lib iphlpapi.lib"
 				OutputFile=".\Debug/rat.exe"
 				Version="1984.0"
 				LinkIncremental="1"
@@ -307,7 +307,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="uclmm.lib winmm.lib wsock32.lib Ws2_32.lib"
+				AdditionalDependencies="uclmm.lib winmm.lib wsock32.lib Ws2_32.lib iphlpapi.lib"
 				OutputFile=".\Release/rat.exe"
 				Version="1984.0"
 				LinkIncremental="1"

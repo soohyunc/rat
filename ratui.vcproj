@@ -39,7 +39,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="uclmm.lib wsock32.lib Ws2_32.lib tcllib.lib tklib.lib"
+				AdditionalDependencies="uclmm.lib wsock32.lib Ws2_32.lib tcllib.lib tklib.lib iphlpapi.lib"
 				OutputFile=".\Release/ratui.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -169,7 +169,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib tklib.lib tcllib.lib"
+				AdditionalDependencies="uclmm.lib winmm.lib wsock32.lib Ws2_32.lib msacm32.lib tklib.lib tcllib.lib iphlpapi.lib"
 				OutputFile=".\Debug/ratui.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
