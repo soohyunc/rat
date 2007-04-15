@@ -7799,7 +7799,7 @@ fi;
 #-----------------------------------------------------------------------------
 # Depending on config expect tcl.h to be tcl source dir or include path
 #-----------------------------------------------------------------------------
-for i in $TCL_INC/generic $TCL_INC/include/tcl${TCLTK_VERSION} $TCL_INC/include $TCL_INC /Library/Frameworks/Tcl.framework/Headers /Library/Frameworks/Tcl.framework/PrivateHeaders
+for i in $TCL_INC/generic $TCL_INC/include/tcl${TCLTK_VERSION} $TCL_INC/include $TCL_INC /Library/Frameworks/Tcl.framework/Headers /Library/Frameworks/Tcl.framework/PrivateHeaders /System/Library/Frameworks/Tcl.framework/Headers
 do
 	if test -d $i ; then
 		TCL_INC=$i
@@ -8137,7 +8137,7 @@ fi;
 # include tcl.h, Xlib.h, Xutil.h before tk.h.
 #-----------------------------------------------------------------------------
 FOUND_TK_INC=0
-for i in $TK_INC/generic $TK_INC/include/tk${TCLTK_VERSION} $TK_INC/include $TK_INC /Library/Frameworks/Tk.framework/Headers /Library/Frameworks/Tk.framework/PrivateHeaders
+for i in $TK_INC/generic $TK_INC/include/tk${TCLTK_VERSION} $TK_INC/include $TK_INC /Library/Frameworks/Tk.framework/Headers /Library/Frameworks/Tk.framework/PrivateHeaders /System/Library/Frameworks/Tk.framework/Headers
 do
 	echo "$as_me:$LINENO: checking for $i/tk.h" >&5
 echo $ECHO_N "checking for $i/tk.h... $ECHO_C" >&6
