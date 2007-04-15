@@ -378,8 +378,13 @@ int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 	// so that's 160 bytes. Mash uses 8-bit mu-law internally, so we need to convert
 	// to 16-bit linear before using the audio data.
 	devices[ad].mashStreamBasicDescription_.mSampleRate = 8000.0;
+	//devices[ad].mashStreamBasicDescription_.mSampleRate = ifmt->sample_rate;
 	devices[ad].mashStreamBasicDescription_.mFormatID = kAudioFormatLinearPCM;
+#ifdef WORDS_BIGENDIAN
 	devices[ad].mashStreamBasicDescription_.mFormatFlags =kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsBigEndian |kLinearPCMFormatFlagIsPacked;
+#else
+	devices[ad].mashStreamBasicDescription_.mFormatFlags =kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked;
+#endif
 	devices[ad].mashStreamBasicDescription_.mBytesPerPacket = 2;
 	devices[ad].mashStreamBasicDescription_.mFramesPerPacket = 1;
 	devices[ad].mashStreamBasicDescription_.mBytesPerFrame = 2;
@@ -711,7 +716,7 @@ void macosx_audio_wait_for(audio_desc_t ad, int delay_ms) {
 int  macosx_audio_supports(audio_desc_t ad, audio_format *fmt)
 {
 	UNUSED(ad);
-	if (fmt->encoding != DEV_S16) {
+	if (fmt->encoding != DEV_S16 || fmt->channels != 1 || fmt->sample_rate != 8000 ) {
 		return 0;
 	}
 	return 1;
@@ -748,7 +753,7 @@ char *macosx_audio_device_name(audio_desc_t idx)	/* Then this one tells us the n
     UInt32 s = sizeof(char)*128;
     AudioDeviceGetProperty( theDevice, 0, 0, kAudioDevicePropertyDeviceName, &s, name);
     */
-    name = "Default Sound Device";
+    name = "Default OSX Sound Device";
     return name;
 };
 
