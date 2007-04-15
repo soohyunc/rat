@@ -28,6 +28,7 @@ case "$host_os" in
 	*freebsd* ) OSTYPE=FreeBSD  ;;
 	*netbsd*  ) OSTYPE=NetBSD   ;;
 	*irix*    ) OSTYPE=Irix     ;;
+	*darwin*  ) OSTYPE=Darwin   ;;
 	*         ) OSTYPE=$host_os ;;
 esac
 dnl AC_SUBST(OSTYPE)
@@ -334,7 +335,7 @@ AC_ARG_WITH(tcl,
 #-----------------------------------------------------------------------------
 # Depending on config expect tcl.h to be tcl source dir or include path
 #-----------------------------------------------------------------------------
-for i in $TCL_INC/generic $TCL_INC/include/tcl${TCLTK_VERSION} $TCL_INC/include $TCL_INC
+for i in $TCL_INC/generic $TCL_INC/include/tcl${TCLTK_VERSION} $TCL_INC/include $TCL_INC /Library/Frameworks/Tcl.framework/Headers /Library/Frameworks/Tcl.framework/PrivateHeaders
 do
 	if test -d $i ; then
 		TCL_INC=$i
@@ -379,11 +380,17 @@ LIBS=$SAVED_LIBS
 
 if test $FOUND_TCL_LIB = no
 then
+  if test "$OSTYPE" = Darwin
+  then
+    TCL_LIB="-framework Tcl -framework Carbon"
+    echo "Using Aqua Tcl"
+  else  
 	echo "Could not find Tcl library.  One of the following halted progess:"
 	echo "   (a) Tcl is not installed."
 	echo "   (b) Library is not built or not in expected location (--with-tcl=DIR)."
 	echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
 	exit
+  fi
 fi
 
 TK_INC=${PARENT}/tk-${TCLTK_VERSION}
@@ -399,7 +406,7 @@ AC_ARG_WITH(tk,
 # include tcl.h, Xlib.h, Xutil.h before tk.h.
 #-----------------------------------------------------------------------------
 FOUND_TK_INC=0
-for i in $TK_INC/generic $TK_INC/include/tk${TCLTK_VERSION} $TK_INC/include $TK_INC
+for i in $TK_INC/generic $TK_INC/include/tk${TCLTK_VERSION} $TK_INC/include $TK_INC /Library/Frameworks/Tk.framework/Headers /Library/Frameworks/Tk.framework/PrivateHeaders
 do
 	AC_MSG_CHECKING(for $i/tk.h)
 	if test -r $i/tk.h ; then
@@ -440,11 +447,17 @@ LIBS=$SAVED_LIBS
 
 if test $FOUND_TK_LIB = no
 then
+  if test "$OSTYPE" = Darwin
+  then
+    TK_LIB="-framework Tk"
+    echo "Using Aqua Tk"
+  else  
 	echo "Could not find Tk library.  One of the following halted progess:"
 	echo "   (a) Tk is not installed."
 	echo "   (b) Library is not built or not in expected location (--with-tk=DIR)."
 	echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
 	exit
+  fi
 fi
 
 AC_SUBST(TCL_INC)

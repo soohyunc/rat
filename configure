@@ -3181,6 +3181,7 @@ case "$host_os" in
 	*freebsd* ) OSTYPE=FreeBSD  ;;
 	*netbsd*  ) OSTYPE=NetBSD   ;;
 	*irix*    ) OSTYPE=Irix     ;;
+	*darwin*  ) OSTYPE=Darwin   ;;
 	*         ) OSTYPE=$host_os ;;
 esac
 
@@ -5537,18 +5538,18 @@ fi
 
 
 	# Do we have ALSA?
-	if test "${ac_cv_header_sys_asoundlib_h+set}" = set; then
-  echo "$as_me:$LINENO: checking for sys/asoundlib.h" >&5
-echo $ECHO_N "checking for sys/asoundlib.h... $ECHO_C" >&6
-if test "${ac_cv_header_sys_asoundlib_h+set}" = set; then
+	if test "${ac_cv_header_alsa_asoundlib_h+set}" = set; then
+  echo "$as_me:$LINENO: checking for alsa/asoundlib.h" >&5
+echo $ECHO_N "checking for alsa/asoundlib.h... $ECHO_C" >&6
+if test "${ac_cv_header_alsa_asoundlib_h+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 fi
-echo "$as_me:$LINENO: result: $ac_cv_header_sys_asoundlib_h" >&5
-echo "${ECHO_T}$ac_cv_header_sys_asoundlib_h" >&6
+echo "$as_me:$LINENO: result: $ac_cv_header_alsa_asoundlib_h" >&5
+echo "${ECHO_T}$ac_cv_header_alsa_asoundlib_h" >&6
 else
   # Is the header compilable?
-echo "$as_me:$LINENO: checking sys/asoundlib.h usability" >&5
-echo $ECHO_N "checking sys/asoundlib.h usability... $ECHO_C" >&6
+echo "$as_me:$LINENO: checking alsa/asoundlib.h usability" >&5
+echo $ECHO_N "checking alsa/asoundlib.h usability... $ECHO_C" >&6
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -5556,7 +5557,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 $ac_includes_default
-#include <sys/asoundlib.h>
+#include <alsa/asoundlib.h>
 _ACEOF
 rm -f conftest.$ac_objext
 if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
@@ -5592,15 +5593,15 @@ echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
 echo "${ECHO_T}$ac_header_compiler" >&6
 
 # Is the header present?
-echo "$as_me:$LINENO: checking sys/asoundlib.h presence" >&5
-echo $ECHO_N "checking sys/asoundlib.h presence... $ECHO_C" >&6
+echo "$as_me:$LINENO: checking alsa/asoundlib.h presence" >&5
+echo $ECHO_N "checking alsa/asoundlib.h presence... $ECHO_C" >&6
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
-#include <sys/asoundlib.h>
+#include <alsa/asoundlib.h>
 _ACEOF
 if { (eval echo "$as_me:$LINENO: \"$ac_cpp conftest.$ac_ext\"") >&5
   (eval $ac_cpp conftest.$ac_ext) 2>conftest.er1
@@ -5634,25 +5635,25 @@ echo "${ECHO_T}$ac_header_preproc" >&6
 # So?  What about this header?
 case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
   yes:no: )
-    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: accepted by the compiler, rejected by the preprocessor!" >&5
-echo "$as_me: WARNING: sys/asoundlib.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: proceeding with the compiler's result" >&5
-echo "$as_me: WARNING: sys/asoundlib.h: proceeding with the compiler's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: alsa/asoundlib.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: proceeding with the compiler's result" >&5
+echo "$as_me: WARNING: alsa/asoundlib.h: proceeding with the compiler's result" >&2;}
     ac_header_preproc=yes
     ;;
   no:yes:* )
-    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: present but cannot be compiled" >&5
-echo "$as_me: WARNING: sys/asoundlib.h: present but cannot be compiled" >&2;}
-    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h:     check for missing prerequisite headers?" >&5
-echo "$as_me: WARNING: sys/asoundlib.h:     check for missing prerequisite headers?" >&2;}
-    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: see the Autoconf documentation" >&5
-echo "$as_me: WARNING: sys/asoundlib.h: see the Autoconf documentation" >&2;}
-    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h:     section \"Present But Cannot Be Compiled\"" >&5
-echo "$as_me: WARNING: sys/asoundlib.h:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: proceeding with the preprocessor's result" >&5
-echo "$as_me: WARNING: sys/asoundlib.h: proceeding with the preprocessor's result" >&2;}
-    { echo "$as_me:$LINENO: WARNING: sys/asoundlib.h: in the future, the compiler will take precedence" >&5
-echo "$as_me: WARNING: sys/asoundlib.h: in the future, the compiler will take precedence" >&2;}
+    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: present but cannot be compiled" >&5
+echo "$as_me: WARNING: alsa/asoundlib.h: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h:     check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: alsa/asoundlib.h:     check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: see the Autoconf documentation" >&5
+echo "$as_me: WARNING: alsa/asoundlib.h: see the Autoconf documentation" >&2;}
+    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h:     section \"Present But Cannot Be Compiled\"" >&5
+echo "$as_me: WARNING: alsa/asoundlib.h:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: alsa/asoundlib.h: proceeding with the preprocessor's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: alsa/asoundlib.h: in the future, the compiler will take precedence" >&5
+echo "$as_me: WARNING: alsa/asoundlib.h: in the future, the compiler will take precedence" >&2;}
     (
       cat <<\_ASBOX
 ## ------------------------------------------ ##
@@ -5663,18 +5664,18 @@ _ASBOX
       sed "s/^/$as_me: WARNING:     /" >&2
     ;;
 esac
-echo "$as_me:$LINENO: checking for sys/asoundlib.h" >&5
-echo $ECHO_N "checking for sys/asoundlib.h... $ECHO_C" >&6
-if test "${ac_cv_header_sys_asoundlib_h+set}" = set; then
+echo "$as_me:$LINENO: checking for alsa/asoundlib.h" >&5
+echo $ECHO_N "checking for alsa/asoundlib.h... $ECHO_C" >&6
+if test "${ac_cv_header_alsa_asoundlib_h+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  ac_cv_header_sys_asoundlib_h=$ac_header_preproc
+  ac_cv_header_alsa_asoundlib_h=$ac_header_preproc
 fi
-echo "$as_me:$LINENO: result: $ac_cv_header_sys_asoundlib_h" >&5
-echo "${ECHO_T}$ac_cv_header_sys_asoundlib_h" >&6
+echo "$as_me:$LINENO: result: $ac_cv_header_alsa_asoundlib_h" >&5
+echo "${ECHO_T}$ac_cv_header_alsa_asoundlib_h" >&6
 
 fi
-if test $ac_cv_header_sys_asoundlib_h = yes; then
+if test $ac_cv_header_alsa_asoundlib_h = yes; then
 
 		AUD_OBJ="$AUD_OBJ auddev_alsa.o"
 		AUD_LIB="$AUD_LIB -lasound"
@@ -7798,7 +7799,7 @@ fi;
 #-----------------------------------------------------------------------------
 # Depending on config expect tcl.h to be tcl source dir or include path
 #-----------------------------------------------------------------------------
-for i in $TCL_INC/generic $TCL_INC/include/tcl${TCLTK_VERSION} $TCL_INC/include $TCL_INC
+for i in $TCL_INC/generic $TCL_INC/include/tcl${TCLTK_VERSION} $TCL_INC/include $TCL_INC /Library/Frameworks/Tcl.framework/Headers /Library/Frameworks/Tcl.framework/PrivateHeaders
 do
 	if test -d $i ; then
 		TCL_INC=$i
@@ -8107,11 +8108,17 @@ LIBS=$SAVED_LIBS
 
 if test $FOUND_TCL_LIB = no
 then
+  if test "$OSTYPE" = Darwin
+  then
+    TCL_LIB="-framework Tcl -framework Carbon"
+    echo "Using Aqua Tcl"
+  else
 	echo "Could not find Tcl library.  One of the following halted progess:"
 	echo "   (a) Tcl is not installed."
 	echo "   (b) Library is not built or not in expected location (--with-tcl=DIR)."
 	echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
 	exit
+  fi
 fi
 
 TK_INC=${PARENT}/tk-${TCLTK_VERSION}
@@ -8130,7 +8137,7 @@ fi;
 # include tcl.h, Xlib.h, Xutil.h before tk.h.
 #-----------------------------------------------------------------------------
 FOUND_TK_INC=0
-for i in $TK_INC/generic $TK_INC/include/tk${TCLTK_VERSION} $TK_INC/include $TK_INC
+for i in $TK_INC/generic $TK_INC/include/tk${TCLTK_VERSION} $TK_INC/include $TK_INC /Library/Frameworks/Tk.framework/Headers /Library/Frameworks/Tk.framework/PrivateHeaders
 do
 	echo "$as_me:$LINENO: checking for $i/tk.h" >&5
 echo $ECHO_N "checking for $i/tk.h... $ECHO_C" >&6
@@ -8296,11 +8303,17 @@ LIBS=$SAVED_LIBS
 
 if test $FOUND_TK_LIB = no
 then
+  if test "$OSTYPE" = Darwin
+  then
+    TK_LIB="-framework Tk"
+    echo "Using Aqua Tk"
+  else
 	echo "Could not find Tk library.  One of the following halted progess:"
 	echo "   (a) Tk is not installed."
 	echo "   (b) Library is not built or not in expected location (--with-tk=DIR)."
 	echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
 	exit
+  fi
 fi
 
 
