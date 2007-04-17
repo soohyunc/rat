@@ -78,11 +78,11 @@ namespace eval chart {
 		pack   .chart.c.f.$ssrc   -expand 1 -anchor n -fill x -side top
 		foreach s [pack slaves .chart.c.f] {
 			regsub {.chart.c.f.(.*)} $s {\1} s
-			button .chart.c.f.$s.f.$ssrc -width 4 -text "" -background white -padx 0 -pady 0 -command "mtrace $s $ssrc"
+			button .chart.c.f.$s.f.$ssrc -width 5 -text "" -background white -padx 0 -pady 0 -command "mtrace $s $ssrc"
 			pack   .chart.c.f.$s.f.$ssrc -expand 0 -side left
 			chart::popup_add .chart.c.f.$s.f.$ssrc $s $ssrc
 			if {![winfo exists .chart.c.f.$ssrc.f.$s]} {
-				button .chart.c.f.$ssrc.f.$s -width 4 -text "" -background white -padx 0 -pady 0 -command "mtrace $ssrc $s"
+				button .chart.c.f.$ssrc.f.$s -width 5 -text "" -background white -padx 0 -pady 0 -command "mtrace $ssrc $s"
 				pack   .chart.c.f.$ssrc.f.$s -expand 0 -side left
 				chart::popup_add .chart.c.f.$ssrc.f.$s $ssrc $s
 			}
@@ -119,7 +119,7 @@ namespace eval chart {
 			set colour white
 			set txtval { }
 		}
-		.chart.c.f.$src.f.$dst configure -background $colour -text "$txtval"
+		.chart.c.f.$src.f.$dst configure -highlightbackground $colour -bg $colour -text "$txtval"
 	}
 
 	proc show {} {
