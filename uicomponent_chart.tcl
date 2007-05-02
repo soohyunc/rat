@@ -38,9 +38,9 @@ namespace eval chart {
 		# help again.....
 		if {[winfo width $window] > [winfo height $window]} {
 		    set xpos [expr [winfo pointerx $window] + 10]
-		    set ypos [expr [winfo rooty    $window] + [winfo height $window] + 4]
+		    set ypos [expr [winfo rooty    $window] + [winfo height $window] + 5]
 		} else {
-		    set xpos [expr [winfo rootx    $window] + [winfo width $window] + 4]
+		    set xpos [expr [winfo rootx    $window] + [winfo width $window] + 5]
 		    set ypos [expr [winfo pointery $window] + 10]
 		}
 
