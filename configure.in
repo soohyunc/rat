@@ -331,11 +331,17 @@ AC_ARG_WITH(tcl,
 	[  --with-tcl=DIR          specify location of Tcl installation],
 	[TCL_INC=$withval
 	 TCL_LIB=$withval])
+AC_ARG_WITH(tcllib,           
+	[  --with-tcl=DIR          specify location of Tcl library installation],
+	[TCL_LIB=$withval])
+AC_ARG_WITH(tclinc,           
+	[  --with-tcl=DIR          specify location of Tcl include installation],
+	[TCL_INC=$withval])
 
 #-----------------------------------------------------------------------------
 # Depending on config expect tcl.h to be tcl source dir or include path
 #-----------------------------------------------------------------------------
-for i in $TCL_INC/generic $TCL_INC/include/tcl${TCLTK_VERSION} $TCL_INC/include $TCL_INC /Library/Frameworks/Tcl.framework/Headers /Library/Frameworks/Tcl.framework/PrivateHeaders /System/Library/Frameworks/Tcl.framework/Headers
+for i in $TCL_INC/generic $TCL_INC/include/tcl${TCLTK_VERSION} $TCL_INC/include $TCL_INC /Library/Frameworks/Tcl.framework/Headers /Library/Frameworks/Tcl.framework/PrivateHeaders /System/Library/Frameworks/Tcl.framework/Headers 
 do
 	if test -d $i ; then
 		TCL_INC=$i
@@ -360,7 +366,7 @@ fi
 # Guess most probable tcl lib location
 #-----------------------------------------------------------------------------
 
-for i in $TCL_LIB/unix $TCL_LIB/lib $TCL_LIB
+for i in $TCL_LIB/unix $TCL_LIB/lib $TCL_LIB 
 do
 	if test -d $i ; then
 		TCL_LIB=$i
@@ -400,6 +406,12 @@ AC_ARG_WITH(tk,
 	[  --with-tk=DIR           specify location of Tk installation],
 	[TK_INC=$withval
 	 TK_LIB=$withval])
+AC_ARG_WITH(tklib,           
+	[  --with-tklib=DIR          specify location of Tk library installation],
+	[TK_LIB=$withval])
+AC_ARG_WITH(tkinc,           
+	[  --with-tkinc=DIR          specify location of Tk include installation],
+	[TK_INC=$withval])
 #-----------------------------------------------------------------------------
 # Depending on config expect tk.h to be tk source dir or include path
 # AC_CHECK_HEADER(S) are totally inadequate since it is necessary to
