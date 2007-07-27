@@ -1044,7 +1044,7 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 	mbus_parse_int(mp, &tx_port);
 	mbus_parse_int(mp, &ttl);
 	mbus_parse_done(mp);
-	debug_msg("rx_rtp_addr: New Addr:%d,rx_port:%d,tx_port:%d,ttl:%d\n",addr, rx_port, tx_port, ttl);
+	debug_msg("rx_rtp_addr: New Addr:%s,rx_port:%d,tx_port:%d,ttl:%d\n",addr, rx_port, tx_port, ttl);
 
 	if (sp->rtp_session_count) {
 		/* Existing session present - delete and recreate with new params */

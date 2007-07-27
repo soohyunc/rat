@@ -74,11 +74,11 @@ ui_send_stats(session_t *sp, char *addr, uint32_t ssrc)
                 skew_rate = 1.0;
         }
 
-        mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.audio.buffered", "\"%08lx\" %ld", pdbe->ssrc, buffered);
-        mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", pdbe->ssrc, delay);
-        mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.audio.skew", "\"%08lx\" %.5f", pdbe->ssrc, skew_rate);
-        mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.spike.events", "\"%08lx\" %ld", pdbe->ssrc, pdbe->spike_events);
-        mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.spike.toged", "\"%08lx\" %ld",  pdbe->ssrc, pdbe->spike_toged);
+        mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.audio.buffered", "\"%08lx\" %ld", (unsigned long)pdbe->ssrc, buffered);
+        mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.audio.delay", "\"%08lx\" %ld", (unsigned long)pdbe->ssrc, delay);
+        mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.audio.skew", "\"%08lx\" %.5f", (unsigned long)pdbe->ssrc, skew_rate);
+        mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.spike.events", "\"%08lx\" %ld", (unsigned long)pdbe->ssrc, pdbe->spike_events);
+        mbus_qmsgf(sp->mbus_engine, addr, FALSE, "tool.rat.spike.toged", "\"%08lx\" %ld",  (unsigned long)pdbe->ssrc, pdbe->spike_toged);
         my_ssrc = rtp_my_ssrc(sp->rtp_session[0]);
         rr = rtp_get_rr(sp->rtp_session[0], my_ssrc, pdbe->ssrc);
         if (rr != NULL) {
@@ -92,9 +92,9 @@ ui_send_stats(session_t *sp, char *addr, uint32_t ssrc)
 
         ui_send_rtp_packet_loss(sp, addr, my_ssrc, pdbe->ssrc, fract_lost);
 	mbus_qmsgf(sp->mbus_engine, addr, FALSE, "rtp.source.reception", "\"%08lx\" %6ld %6ld %6ld %6ld %6ld %6d",
-		  pdbe->ssrc, pdbe->received, total_lost, pdbe->misordered, pdbe->duplicates, timestamp_to_ms(pdbe->jitter), pdbe->jit_toged);
+		  (unsigned long)pdbe->ssrc, pdbe->received, total_lost, pdbe->misordered, pdbe->duplicates, timestamp_to_ms(pdbe->jitter), pdbe->jit_toged);
 	mbus_qmsgf(sp->mbus_engine, addr, FALSE, "rtp.source.packet.duration", "\"%08lx\" %3d",
-	           pdbe->ssrc, pdbe->inter_pkt_gap * 1000 / pdbe->sample_rate);
+	           (unsigned long)pdbe->ssrc, pdbe->inter_pkt_gap * 1000 / pdbe->sample_rate);
 }
 
 void

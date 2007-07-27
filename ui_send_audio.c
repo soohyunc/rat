@@ -606,7 +606,7 @@ ui_send_audio_3d_settings(session_t *sp, char *addr, uint32_t ssrc)
 
         render_3D_get_parameters(p->render_3D_data, &azimuth, &filter_type, &filter_length);
         filter_name = mbus_encode_str(render_3D_filter_get_name(filter_type));
-        mbus_qmsgf(sp->mbus_engine, addr, TRUE, "audio.3d.user.settings", "\"%08lx\" %s %d %d", ssrc, filter_name, filter_length, azimuth);
+        mbus_qmsgf(sp->mbus_engine, addr, TRUE, "audio.3d.user.settings", "\"%08lx\" %s %d %d", (unsigned long) ssrc, filter_name, filter_length, azimuth);
         xfree(filter_name);
 }
 
