@@ -332,10 +332,10 @@ AC_ARG_WITH(tcl,
 	[TCL_INC=$withval
 	 TCL_LIB=$withval])
 AC_ARG_WITH(tcllib,           
-	[  --with-tcl=DIR          specify location of Tcl library installation],
+	[  --with-tcllib=DIR       specify location of Tcl library installation],
 	[TCL_LIB=$withval])
 AC_ARG_WITH(tclinc,           
-	[  --with-tcl=DIR          specify location of Tcl include installation],
+	[  --with-tclinc=DIR       specify location of Tcl include installation],
 	[TCL_INC=$withval])
 
 #-----------------------------------------------------------------------------
@@ -366,7 +366,7 @@ fi
 # Guess most probable tcl lib location
 #-----------------------------------------------------------------------------
 
-for i in $TCL_LIB/unix $TCL_LIB/lib $TCL_LIB 
+for i in $TCL_LIB/unix $TCL_LIB/lib64 $TCL_LIB/lib $TCL_LIB 
 do
 	if test -d $i ; then
 		TCL_LIB=$i
@@ -407,10 +407,10 @@ AC_ARG_WITH(tk,
 	[TK_INC=$withval
 	 TK_LIB=$withval])
 AC_ARG_WITH(tklib,           
-	[  --with-tklib=DIR          specify location of Tk library installation],
+	[  --with-tklib=DIR        specify location of Tk library installation],
 	[TK_LIB=$withval])
 AC_ARG_WITH(tkinc,           
-	[  --with-tkinc=DIR          specify location of Tk include installation],
+	[  --with-tkinc=DIR        specify location of Tk include installation],
 	[TK_INC=$withval])
 #-----------------------------------------------------------------------------
 # Depending on config expect tk.h to be tk source dir or include path
@@ -439,7 +439,7 @@ if test $FOUND_TK_INC = 0 ; then
 fi
 
 # Guess most probable tk lib location
-for i in $TK_LIB/unix $TK_LIB/lib $TK_LIB
+for i in $TK_LIB/unix $TK_LIB/lib64 $TK_LIB/lib $TK_LIB
 do
 	if test -d $i ; then
 		TK_LIB=$i

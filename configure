@@ -1300,11 +1300,11 @@ Optional Packages:
   --with-x                use the X Window System
   --with-tcltk-version=M.m specify preferred Tcl/Tk version
   --with-tcl=DIR          specify location of Tcl installation
-  --with-tcl=DIR          specify location of Tcl library installation
-  --with-tcl=DIR          specify location of Tcl include installation
+  --with-tcllib=DIR       specify location of Tcl library installation
+  --with-tclinc=DIR       specify location of Tcl include installation
   --with-tk=DIR           specify location of Tk installation
-  --with-tklib=DIR          specify location of Tk library installation
-  --with-tkinc=DIR          specify location of Tk include installation
+  --with-tklib=DIR        specify location of Tk library installation
+  --with-tkinc=DIR        specify location of Tk include installation
   --with-common=DIR       specify location of UCL's common library
 
 Some influential environment variables:
@@ -8244,7 +8244,7 @@ fi
 # Guess most probable tcl lib location
 #-----------------------------------------------------------------------------
 
-for i in $TCL_LIB/unix $TCL_LIB/lib $TCL_LIB
+for i in $TCL_LIB/unix $TCL_LIB/lib64 $TCL_LIB/lib $TCL_LIB
 do
 	if test -d $i ; then
 		TCL_LIB=$i
@@ -8408,7 +8408,7 @@ if test $FOUND_TK_INC = 0 ; then
 fi
 
 # Guess most probable tk lib location
-for i in $TK_LIB/unix $TK_LIB/lib $TK_LIB
+for i in $TK_LIB/unix $TK_LIB/lib64 $TK_LIB/lib $TK_LIB
 do
 	if test -d $i ; then
 		TK_LIB=$i
