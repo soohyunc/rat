@@ -53,6 +53,7 @@ static int mixer_state_change = 0;
  * controls on the mixer.  This feels like a bit of a hack, but
  * appears to be what everybody else uses. */
 #define RAT_ALSA_MIXER_PCM_NAME "PCM"
+#define RAT_ALSA_MIXER_MASTER_NAME "Master"
 #define RAT_ALSA_MIXER_CAPTURE_NAME "Capture"
 #define RAT_ALSA_MIXER_LINE_NAME "Line"
 #define RAT_ALSA_MIXER_MIC_NAME "Mic"
@@ -75,14 +76,16 @@ static port_t iports[MAX_RAT_DEVICES];
 static unsigned num_iports;
 
 /*
- * All output passes through the pcm device, so we only have a single port
- * here.
- * FIXME: There are some cards that don't have a PCM control, only a master.
- * It is assumed that these are unlikely to occur in real RAT usage.
+ * The list of output ports to choose between.
  */
-static audio_port_details_t out_port = {
-    0, RAT_ALSA_MIXER_PCM_NAME
+static audio_port_details_t out_ports[] = {
+    {0, RAT_ALSA_MIXER_PCM_NAME},
+    {1, RAT_ALSA_MIXER_MASTER_NAME}
 };
+
+static audio_port_t oport = 0;
+
+#define NUM_OUT_PORTS (sizeof(out_ports)/(sizeof(out_ports[0])))
 
 /*
  * Current open audio device
@@ -472,10 +475,15 @@ static int setup_mixers()
      * which does not support capture_switch - in which case we set the
      * capture level of the selected input device.
      */
-    if (!open_volume_ctl(RAT_ALSA_MIXER_PCM_NAME, &current.txgain)) { 
-      snd_mixer_close(current.mixer); 
-      current.mixer=NULL; 
-      return FALSE;
+    oport = 0;
+    if (!open_volume_ctl(RAT_ALSA_MIXER_PCM_NAME, &current.txgain)) {
+      oport = 1;
+      if (!open_volume_ctl(RAT_ALSA_MIXER_MASTER_NAME, &current.txgain)) {
+        oport = 0;
+        snd_mixer_close(current.mixer); 
+        current.mixer=NULL; 
+        return FALSE;
+      }
     }
     if (!open_volume_ctl(RAT_ALSA_MIXER_CAPTURE_NAME, &current.rxgain)) {
       need_cap_switch=0;
@@ -995,7 +1003,7 @@ void alsa_audio_block(audio_desc_t ad)
 
 /*
  * Output port controls.  In our case there is only one output port, the
- * PCM control, so this is a dummy.
+ * PCM control (or Master if PCM fails), so this is a dummy.
  */
 void
 alsa_audio_oport_set(audio_desc_t ad, audio_port_t port)
@@ -1007,21 +1015,24 @@ audio_port_t
 alsa_audio_oport_get(audio_desc_t ad)
 {
     debug_msg("oport_get %d\n", ad);
-    return 0;
+    return oport;
 }
 
 int
 alsa_audio_oport_count(audio_desc_t ad)
 {
-    debug_msg("Get oport count for %d\n", ad);
-    return 1;
+    debug_msg("Get oport count for %d (num=%d)\n", ad, NUM_OUT_PORTS);
+    return NUM_OUT_PORTS;
 }
 
 const audio_port_details_t*
 alsa_audio_oport_details(audio_desc_t ad, int idx)
 {
-	debug_msg("oport details ad=%d idx=%d\n", ad, idx);
-    return &out_port;
+    debug_msg("oport details ad=%d idx=%d\n", ad, idx);
+    if (idx >= 0 && idx < NUM_OUT_PORTS) {
+        return &out_ports[idx];
+    }
+    return NULL;
 }
 
 /*
