@@ -6,6 +6,10 @@
  * Assorted fixes and multilingual comments from Michael Wallbaum
  * <wallbaum@informatik.rwth-aachen.de>
  *
+ * Added support for sound devices that pose as seperate input and output
+ * mixers, like the Realtek HD on WinXP
+ * Douglas Kosovic <douglask@itee.uq.edu.au> sponsored by VPAC.org
+ *
  * Copyright (c) 1995-2001 University College London
  * All rights reserved.
  */
@@ -33,6 +37,13 @@ static const char cvsid[] =
 #include "util.h"
 #include "mmsystem.h"
 
+#ifndef DRV_QUERYDEVICEINTERFACE 
+#define DRV_QUERYDEVICEINTERFACE     (DRV_RESERVED + 12) 
+#endif 
+#ifndef DRV_QUERYDEVICEINTERFACESIZE 
+#define DRV_QUERYDEVICEINTERFACESIZE (DRV_RESERVED + 13) 
+#endif 
+
 #define MAX_DEVICE_GAIN 0xffff
 #define rat_to_device(x)	(((x) * MAX_DEVICE_GAIN / MAX_AMP) << 16 | ((x) * MAX_DEVICE_GAIN / MAX_AMP))
 #define device_to_rat(x)	((x & 0xffff) * MAX_AMP / MAX_DEVICE_GAIN)
@@ -40,6 +51,7 @@ static const char cvsid[] =
 #define W32SDK_MAX_DEVICES 20
 static  int have_probed[W32SDK_MAX_DEVICES];
 static  int w32sdk_probe_formats(audio_desc_t ad);
+static  UINT mixerMapInputToOutput[W32SDK_MAX_DEVICES];
 
 static int  error = 0;
 static char errorText[MAXERRORLENGTH];
@@ -47,6 +59,7 @@ static int  nLoopGain = 0;
 #define     MAX_DEV_NAME 64
 
 static UINT mapAudioDescToMixerID(audio_desc_t ad);
+static UINT mapInputMixIDToOutputMixerID(UINT uMix);
 
 /* mcd_elem_t is a node used to store control state so
  * we can restore mixer controls when device closes.
@@ -57,20 +70,25 @@ typedef struct s_mcd_elem {
         struct s_mcd_elem   *next;
 } mcd_elem_t;
 
-static mcd_elem_t *control_list;
+static mcd_elem_t *control_list_in;
+static mcd_elem_t *control_list_out;
 
 #define MIX_ERR_LEN 32
 #define MIX_MAX_CTLS 8
 #define MIX_MAX_GAIN 100
 
 static int32_t	play_vol, rec_vol;
-static HMIXER   hMixer;
+static HMIXER   hMixerIn;
+static HMIXER   hMixerOut;
 
 static DWORD    dwRecLineID, dwVolLineID;
 
 static audio_port_details_t *input_ports, *loop_ports;
 static int                   n_input_ports, n_loop_ports;
 static int iport; /* Current input port */
+
+static int   nSuitableMixers = 0;
+static UINT *mixerIdMap;
 
 /* Macro to convert macro name to string so we diagnose controls and error  */
 /* codes.                                                                   */
@@ -183,7 +201,7 @@ mixerDumpLineInfo(HMIXEROBJ hMix, DWORD dwLineID)
  * config when we release the device.  Lots of request for this
  */
 
-int
+static int
 mcd_elem_add_control(mcd_elem_t **pplist, MIXERCONTROLDETAILS *pmcd)
 {
         mcd_elem_t *elem;
@@ -198,7 +216,7 @@ mcd_elem_add_control(mcd_elem_t **pplist, MIXERCONTROLDETAILS *pmcd)
         return FALSE;
 }
 
-MIXERCONTROLDETAILS*
+static MIXERCONTROLDETAILS*
 mcd_elem_get_control(mcd_elem_t **pplist)
 {
         MIXERCONTROLDETAILS *pmcd;
@@ -214,7 +232,7 @@ mcd_elem_get_control(mcd_elem_t **pplist)
         return NULL;
 }
 
-void
+static void
 mixRestoreControls(UINT uMix, mcd_elem_t **pplist)
 {
         MIXERCONTROLDETAILS *pmcd;
@@ -234,7 +252,7 @@ mixRestoreControls(UINT uMix, mcd_elem_t **pplist)
         assert(*pplist == NULL);
 }
 
-void
+static void
 mixSaveLine(UINT uMix, MIXERLINE *pml, mcd_elem_t **pplist)
 {
         MIXERCONTROLDETAILS *pmcd;
@@ -300,7 +318,7 @@ mixSaveLine(UINT uMix, MIXERLINE *pml, mcd_elem_t **pplist)
 }
 
 
-void
+static void
 mixSaveControls(UINT uMix, mcd_elem_t **pplist)
 {
         MIXERLINE ml, sml;
@@ -357,7 +375,7 @@ mixSaveControls(UINT uMix, mcd_elem_t **pplist)
 * Returns TRUE if successful.
 */
 
-int mixGetInputInfo(UINT uMix, UINT *puWavIn, DWORD *pdwLineID)
+static int mixGetInputInfo(UINT uMix, UINT *puWavIn, DWORD *pdwLineID)
 {
         UINT i, nWavIn;
         MIXERLINE  ml;
@@ -403,7 +421,7 @@ int mixGetInputInfo(UINT uMix, UINT *puWavIn, DWORD *pdwLineID)
  * and corresponding destination line of mixer.  Returns TRUE if
  * successful.
  */
-int
+static int
 mixGetOutputInfo(UINT uMix, UINT *puWavOut, DWORD *pdwLineID)
 {
         UINT i, nWavOut;
@@ -442,6 +460,102 @@ mixGetOutputInfo(UINT uMix, UINT *puWavOut, DWORD *pdwLineID)
         }
         return FALSE;
 }
+
+
+
+/* mixerPairInputMixerToOutputMixer -Some sound drivers appear as seperate input and output mixers,
+ * so pair up each input mixer to an output mixer for the same audio device
+ */
+static int
+mixerPairInputMixerToOutputMixer()
+{
+		UINT i, j;
+		UINT uWavIn, uWavOut;
+		UINT isOutputMixer;
+		UINT isInputMixer;
+		MMRESULT  mmr;
+
+		DWORD devicePathSize;
+        LPWSTR devicePath;
+		LPWSTR pWstr;
+
+		LPWSTR *inputMixerDeviceInterfaces = (LPWSTR *)xmalloc(sizeof(LPWSTR) * mixerGetNumDevs());
+		LPWSTR *outputMixerDeviceInterfaces = (LPWSTR *)xmalloc(sizeof(LPWSTR) * mixerGetNumDevs());
+
+        for(i = 0; i < mixerGetNumDevs(); i++) {
+				mixerMapInputToOutput[i] = i;
+				inputMixerDeviceInterfaces[i] = NULL;
+				outputMixerDeviceInterfaces[i] = NULL;
+				isOutputMixer = 0;
+				isInputMixer = 0;
+
+				if (mixGetInputInfo(i, &uWavIn, &dwRecLineID) == TRUE) {
+					isInputMixer = 1;
+				}
+
+				if (mixGetOutputInfo(i, &uWavOut, &dwVolLineID) == TRUE) {
+					isOutputMixer = 1;
+				}
+
+				/*  For only input or only output mixers, obtain the sound device interface string */ 
+				if (isInputMixer ^ isOutputMixer) {
+					mmr = mixerMessage(i, DRV_QUERYDEVICEINTERFACESIZE, (DWORD_PTR)&devicePathSize, 0);
+					if (mmr != MMSYSERR_NOERROR) {
+						debug_msg("mixerMessage: %s\n", mixGetErrorText(mmr));
+						continue;
+					}
+					devicePath = xmalloc(devicePathSize);
+
+					mmr = mixerMessage(i, DRV_QUERYDEVICEINTERFACE, (DWORD_PTR)devicePath, devicePathSize);
+					if (mmr != MMSYSERR_NOERROR) {
+						debug_msg("mixerMessage: %s\n", mixGetErrorText(mmr));
+						continue;
+					}
+					/* strip everything after the last slash ('\'), which might be unique for each mixer */ 
+					pWstr = wcsrchr(devicePath, '}');
+					if (pWstr && pWstr[1] == '\\') {
+						pWstr[1] = (WCHAR)NULL;
+					}
+					if (isInputMixer) {
+						inputMixerDeviceInterfaces[i] = devicePath;
+					} else {
+						outputMixerDeviceInterfaces[i] = devicePath;
+					}
+				}
+        }
+
+        for(i = 0; i < mixerGetNumDevs(); i++) {
+			if (inputMixerDeviceInterfaces[i] == NULL) {
+				continue;
+			}
+
+			for(j = 0; j < mixerGetNumDevs(); j++) {
+				if (outputMixerDeviceInterfaces[j] == NULL) {
+					continue;
+				}
+				if (i == j) {
+					continue;
+				}
+				if (wcscmp(inputMixerDeviceInterfaces[i], outputMixerDeviceInterfaces[j]) == 0) {
+					    mixerMapInputToOutput[i] = j;
+					break;
+				}
+			}
+		}
+
+        for(i = 0; i < mixerGetNumDevs(); i++) {
+			if (inputMixerDeviceInterfaces[i] != NULL) {
+				xfree(inputMixerDeviceInterfaces[i]);
+			}
+			if (outputMixerDeviceInterfaces[i] != NULL) {
+				xfree(outputMixerDeviceInterfaces[i]);
+			}
+		}
+		xfree(inputMixerDeviceInterfaces);
+		xfree(outputMixerDeviceInterfaces);
+
+}
+
 
 /* mixerEnableInputLine - enables the input line whose name starts with beginning of portname.
  * We cannot just use the port index like we do for volume because the mute controls are
@@ -741,7 +855,7 @@ mixQueryControls(HMIXEROBJ hMix, DWORD dwLineID, audio_port_details_t** ppapd)
         for(i = 0; i < mlt.cConnections; i++) {
                 memcpy(&mlc, &mlt, sizeof(mlc));
                 mlc.dwSource = i;
-                mmr = mixerGetLineInfo((HMIXEROBJ)hMixer, &mlc, MIXER_GETLINEINFOF_SOURCE|MIXER_OBJECTF_HMIXER);
+                mmr = mixerGetLineInfo((HMIXEROBJ)hMix, &mlc, MIXER_GETLINEINFOF_SOURCE|MIXER_OBJECTF_HMIXER);
                 if (mmr != MMSYSERR_NOERROR) {
                         xfree(papd);
                         return 0;
@@ -783,22 +897,32 @@ mixSetup(UINT uMixer)
 {
         MIXERCAPS mc;
         MMRESULT  res;
+        UINT uMixerIn = uMixer;
+        UINT uMixerOut = mapInputMixIDToOutputMixerID(uMixerIn);
 
-        if (hMixer)  {mixerClose(hMixer);  hMixer  = 0;}
+        if (hMixerIn)  {mixerClose(hMixerIn);  hMixerIn  = 0;}
+        if (hMixerOut) {mixerClose(hMixerOut);  hMixerOut  = 0;}
 
-        res = mixerOpen(&hMixer, uMixer, (unsigned long)NULL, (unsigned long)NULL, MIXER_OBJECTF_MIXER);
+        if (uMixerIn != uMixerOut) {
+                res = mixerOpen(&hMixerOut, uMixerOut, (unsigned long)NULL, (unsigned long)NULL, MIXER_OBJECTF_MIXER);
+                if (res != MMSYSERR_NOERROR) {
+                        debug_msg("mixerOpen failed: %s\n", mixGetErrorText(res));
+                        return FALSE;
+                }
+        }
+        res = mixerOpen(&hMixerIn, uMixerIn, (unsigned long)NULL, (unsigned long)NULL, MIXER_OBJECTF_MIXER);
         if (res != MMSYSERR_NOERROR) {
                 debug_msg("mixerOpen failed: %s\n", mixGetErrorText(res));
                 return FALSE;
         }
 
-        res = mixerGetDevCaps((UINT)hMixer, &mc, sizeof(mc));
+        res = mixerGetDevCaps((UINT)hMixerIn, &mc, sizeof(mc));
         if (res != MMSYSERR_NOERROR) {
                 debug_msg("mixerGetDevCaps failed: %s\n", mixGetErrorText(res));
                 return FALSE;
         }
 
-        if (mc.cDestinations < 2) {
+        if (mc.cDestinations < 2 && uMixerIn == uMixerOut) {
                 debug_msg("mixer does not have 2 destinations?\n");
                 return FALSE;
         }
@@ -809,7 +933,7 @@ mixSetup(UINT uMixer)
                 n_input_ports = 0;
         }
 
-        n_input_ports = mixQueryControls((HMIXEROBJ)hMixer, dwRecLineID, &input_ports);
+        n_input_ports = mixQueryControls((HMIXEROBJ)hMixerIn, dwRecLineID, &input_ports);
         debug_msg("Input ports %d\n", n_input_ports);
         if (n_input_ports == 0) {
                 return FALSE;
@@ -823,7 +947,7 @@ mixSetup(UINT uMixer)
                 n_loop_ports = 0;
         }
 
-        n_loop_ports = mixQueryControls((HMIXEROBJ)hMixer, dwVolLineID, &loop_ports);
+        n_loop_ports = mixQueryControls((HMIXEROBJ)hMixerOut, dwVolLineID, &loop_ports);
         debug_msg("Loop ports %d\n", n_loop_ports);
         if (n_loop_ports == 0) {
                 return 0;
@@ -1259,6 +1383,9 @@ w32sdk_audio_open_mixer_probe(audio_desc_t ad, audio_format *fmt, audio_format *
         static int virgin;
         WAVEFORMATEX owfx, wfx;
         UINT uWavIn, uWavOut;
+        UINT uMixIn = ad;
+        UINT uMixOut = mapInputMixIDToOutputMixerID(uMixIn);
+        OSVERSIONINFO osinfo;
 
         if (audio_dev_open) {
                 debug_msg("Device not closed! Fix immediately");
@@ -1270,13 +1397,13 @@ w32sdk_audio_open_mixer_probe(audio_desc_t ad, audio_format *fmt, audio_format *
                 return FALSE; /* Only support L16 for time being */
         }
 
-        if (mixGetInputInfo(ad, &uWavIn, &dwRecLineID) != TRUE) {
-                debug_msg("Could not get wave in or mixer destination for mix %u\n", ad);
+        if (mixGetInputInfo(uMixIn, &uWavIn, &dwRecLineID) != TRUE) {
+                debug_msg("Could not get wave in or mixer destination for mix %u\n", uMixIn);
                 return FALSE;
         }
 
-        if (mixGetOutputInfo(ad, &uWavOut, &dwVolLineID) != TRUE) {
-                debug_msg("Could not get wave out or mixer destination for mix %u\n", ad);
+        if (mixGetOutputInfo(uMixOut, &uWavOut, &dwVolLineID) != TRUE) {
+                debug_msg("Could not get wave out or mixer destination for mix %u\n", uMixOut);
                 return FALSE;
         }
 
@@ -1284,7 +1411,10 @@ w32sdk_audio_open_mixer_probe(audio_desc_t ad, audio_format *fmt, audio_format *
                 return FALSE; /* Could not secure mixer */
         }
 
-        mixSaveControls(ad, &control_list);
+        mixSaveControls(uMixIn, &control_list_in);
+        if (uMixIn != uMixOut) {
+                mixSaveControls(uMixOut, &control_list_out);
+        }
 
         wfx.wFormatTag      = WAVE_FORMAT_PCM;
         wfx.nChannels       = (WORD)fmt->channels;
@@ -1297,9 +1427,17 @@ w32sdk_audio_open_mixer_probe(audio_desc_t ad, audio_format *fmt, audio_format *
 
         memcpy(&owfx, &wfx, sizeof(wfx));
 
-        /* Use 1/8 sec device buffer */
         blksz  = fmt->bytes_per_block;
-        nblks  = (wfx.nAvgBytesPerSec / blksz) / 8;
+
+        osinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+        GetVersionEx(&osinfo);
+        if (osinfo.dwPlatformId == VER_PLATFORM_WIN32_NT && osinfo.dwMajorVersion >= 6) {
+                /* Use 1/5 sec device buffer on Vista (or later) */
+                nblks  = (wfx.nAvgBytesPerSec / blksz) / 5;
+        } else {
+                /* Use 1/8 sec device buffer */
+                nblks  = (wfx.nAvgBytesPerSec / blksz) / 8;
+        }
 
         if (w32sdk_audio_open_in_probe(uWavIn, &wfx, probe) == FALSE){
                 debug_msg("Open input failed\n");
@@ -1334,7 +1472,7 @@ w32sdk_audio_open_mixer_probe(audio_desc_t ad, audio_format *fmt, audio_format *
 static int
 w32sdk_audio_open_mixer(audio_desc_t ad, audio_format *fmt, audio_format *ofmt)
 {
-  return w32sdk_audio_open_mixer_probe(ad, fmt, ofmt, 0);
+        return w32sdk_audio_open_mixer_probe(ad, fmt, ofmt, 0);
 }
 
 int
@@ -1348,6 +1486,8 @@ static void
 w32sdk_audio_close_mixer(audio_desc_t ad)
 {
         MMRESULT mmr;
+        UINT uMixIn = ad;
+        UINT uMixOut = mapInputMixIDToOutputMixerID(uMixIn);
 
         debug_msg("Closing input device.\n");
         w32sdk_audio_close_in();
@@ -1365,10 +1505,21 @@ w32sdk_audio_close_mixer(audio_desc_t ad)
                 loop_ports = NULL;
         }
 
-        mixRestoreControls(ad, &control_list);
-        mmr = mixerClose(hMixer); hMixer = 0;
-        if (mmr != MMSYSERR_NOERROR) {
-                debug_msg("mixerClose failed: %s\n", mixGetErrorText(mmr));
+        mixRestoreControls(uMixIn, &control_list_in);
+        if (uMixIn != uMixOut) {
+                mixRestoreControls(uMixOut, &control_list_out);
+        }
+        if (hMixerIn) {
+                mmr = mixerClose(hMixerIn); hMixerIn = 0;
+                if (mmr != MMSYSERR_NOERROR) {
+                        debug_msg("mixerClose failed: %s\n", mixGetErrorText(mmr));
+                }
+        }
+        if (hMixerOut) {
+                mmr = mixerClose(hMixerOut); hMixerOut = 0;
+                if (mmr != MMSYSERR_NOERROR) {
+                        debug_msg("mixerClose failed: %s\n", mixGetErrorText(mmr));
+                }
         }
 
         audio_dev_open = FALSE;
@@ -1499,21 +1650,21 @@ w32sdk_audio_iport_set(audio_desc_t ad, audio_port_t port)
         for(i = 0; i < n_input_ports; i++) {
                 if (input_ports[i].port == port) {
                         /* save gain */
-                        gain = mixerGetLineGain((HMIXEROBJ)hMixer, input_ports[iport].port);
+                        gain = mixerGetLineGain((HMIXEROBJ)hMixerIn, input_ports[iport].port);
 						debug_msg("w32sdk_audio_iport_set: %s Old Gain %d\n", input_ports[iport].name, gain);
 						debug_msg("w32sdk_audio_iport_set: %s New Gain %d\n", input_ports[i].name, gain);
-                        if (mixerGetLineName((HMIXEROBJ)hMixer, input_ports[i].port, portname, MIXER_LONG_NAME_CHARS)) {
-                                mixerEnableInputLine((HMIXEROBJ)hMixer, portname);
+                        if (mixerGetLineName((HMIXEROBJ)hMixerIn, input_ports[i].port, portname, MIXER_LONG_NAME_CHARS)) {
+                                mixerEnableInputLine((HMIXEROBJ)hMixerIn, portname);
                         }
-                        mixerSetLineGain((HMIXEROBJ)hMixer, input_ports[i].port, gain);
+                        mixerSetLineGain((HMIXEROBJ)hMixerIn, input_ports[i].port, gain);
 
                         /* Do loopback */
                         for(j = 0; j < n_loop_ports && nLoopGain != 0; j++) {
                                 if (strcmp(loop_ports[j].name, input_ports[i].name) == 0) {
-                                        mixerEnableOutputLine((HMIXEROBJ)hMixer, loop_ports[j].port, 1);
+                                        mixerEnableOutputLine((HMIXEROBJ)hMixerOut, loop_ports[j].port, 1);
 										debug_msg("w32sdk_audio_iport_set: Enabling loop: %s Gain %d\n", loop_ports[j].name, 1);
 
-                                        /* mixerSetLineGain((HMIXEROBJ)hMixer, loop_ports[j].port, nLoopGain); */
+                                        /* mixerSetLineGain((HMIXEROBJ)hMixerOut, loop_ports[j].port, nLoopGain); */
                                 }
                         }
                         iport = i;
@@ -1551,7 +1702,7 @@ w32sdk_audio_set_igain(audio_desc_t ad, int level)
 {
         UNUSED(ad);
         assert(iport >= 0 && iport < n_input_ports);
-        mixerSetLineGain((HMIXEROBJ)hMixer, input_ports[iport].port, level);
+        mixerSetLineGain((HMIXEROBJ)hMixerIn, input_ports[iport].port, level);
 }
 
 int
@@ -1559,7 +1710,7 @@ w32sdk_audio_get_igain(audio_desc_t ad)
 {
         UNUSED(ad);
         assert(iport >= 0 && iport < n_input_ports);
-        return mixerGetLineGain((HMIXEROBJ)hMixer, input_ports[iport].port);
+        return mixerGetLineGain((HMIXEROBJ)hMixerIn, input_ports[iport].port);
 }
 
 /* Probing support */
@@ -1624,13 +1775,16 @@ w32sdk_audio_supports(audio_desc_t ad, audio_format *paf)
         return FALSE;
 }
 
-static int   nMixersWithFullDuplex = 0;
-static UINT *mixerIdMap;
-
 static UINT
 mapAudioDescToMixerID(audio_desc_t ad)
 {
         return mixerIdMap[ad];
+}
+
+static UINT
+mapInputMixIDToOutputMixerID(UINT uMix)
+{
+        return mixerMapInputToOutput[uMix];
 }
 
 int
@@ -1641,21 +1795,25 @@ w32sdk_audio_init(void)
 
         mixerIdMap = (UINT*)xmalloc(sizeof(UINT) * mixerGetNumDevs());
 
+        for (i = 0; i < W32SDK_MAX_DEVICES; i++) {
+                mixerMapInputToOutput[i] = i;
+        }
+
         af.bits_per_sample = 16;
         af.bytes_per_block = 320;
         af.channels        = 1;
         af.encoding        = DEV_S16;
         af.sample_rate     = 8000;
 
+        mixerPairInputMixerToOutputMixer();
         for(i = 0; i < mixerGetNumDevs(); i++) {
                 if (w32sdk_audio_open_mixer_probe(i, &af, &af, 1)) {
                         w32sdk_audio_close_mixer(i);
-                        mixerIdMap[nMixersWithFullDuplex] = i;
-                        nMixersWithFullDuplex++;
+                        mixerIdMap[nSuitableMixers] = i;
+                        nSuitableMixers++;
                 }
         }
-
-        return nMixersWithFullDuplex;
+        return nSuitableMixers;
 }
 
 int
@@ -1669,7 +1827,7 @@ int
 w32sdk_get_device_count(void)
 {
         /* We are only interested in devices with mixers */
-        return (int)nMixersWithFullDuplex;
+        return (int)nSuitableMixers;
 }
 
 static char tmpname[MAXPNAMELEN];
