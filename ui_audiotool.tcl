@@ -2922,3 +2922,5 @@ proc rendezvous_with_media_engine {} {
 if {$script_error != 0} {
         bgerror "$script_evaluation_error"
 }
+
+catch {console hide}
