@@ -121,7 +121,8 @@ typedef struct s_session {
 	int			 mbus_go;
 	char			*mbus_go_token;
 	uint32_t		 magic;				/* Magic number for debugging purposes */
-    int             rtp_promiscuous_mode;
+	int             	 rtp_promiscuous_mode; 		/* Recieve and decode RTP packets without waiting for RTCP nor probation period (in sequence sequence RTP numbers).  WARNING: Can lead to crashes with encrypted sessions as erroneous packets pass the relatively simple rtp_validation*/
+	int             	 rtp_wait_for_rtcp;		/* Wait for RTCP and probation before decoding RTP packets in a session, if unset decode packets once they have passed probation (a number of RTP packets in sequence) */
 } session_t;
 
 void session_init(session_t *sp, int index, int mode);

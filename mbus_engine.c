@@ -1075,6 +1075,7 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 				assert(sp->rtp_session[sp->rtp_session_count]);
 		}
 		rtp_set_option(sp->rtp_session[sp->rtp_session_count], RTP_OPT_PROMISC, sp->rtp_promiscuous_mode);
+		rtp_set_option(sp->rtp_session[sp->rtp_session_count], RTP_OPT_WAIT_FOR_RTCP, sp->rtp_wait_for_rtcp);
 		rtp_callback_init(sp->rtp_session[0], sp);
 
 		if(sp->rtp_session_count < sp->layers && sp->rtp_session_count > 0) {
@@ -1099,6 +1100,7 @@ static void rx_rtp_addr(char *srce, char *args, session_t *sp)
 		sp->rtp_session[sp->rtp_session_count] = rtp_init(addr, (uint16_t)rx_port, (uint16_t)tx_port, ttl, 64000, rtp_callback_proc, NULL);
 
 		rtp_set_option(sp->rtp_session[sp->rtp_session_count], RTP_OPT_PROMISC, sp->rtp_promiscuous_mode);
+		rtp_set_option(sp->rtp_session[sp->rtp_session_count], RTP_OPT_WAIT_FOR_RTCP, sp->rtp_wait_for_rtcp);
 		rtp_callback_init(sp->rtp_session[0], sp);
 
 		if(sp->rtp_session_count < sp->layers && sp->rtp_session_count > 0) {

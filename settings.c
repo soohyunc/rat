@@ -410,7 +410,8 @@ void settings_load_early(session_t *sp)
         audio_loopback(sp->audio_device, sp->loopback_gain);
 	sp->echo_suppress     = setting_load_int("audioEchoSuppress", 0);
 	sp->meter             = setting_load_int("audioPowermeters", 1);
-    sp->rtp_promiscuous_mode     = setting_load_int("rtpPromiscuousMode", 1);
+        sp->rtp_promiscuous_mode   = setting_load_int("rtpPromiscuousMode", 0); 
+        sp->rtp_wait_for_rtcp = setting_load_int("rtpWaitForRTCP", 1);
 
 /* Ignore saved render_3d setting.  Break initial device config stuff.  V.fiddly to fix. */
 /*	sp->render_3d      = setting_load_int("audio3dRendering", 0);                    */
