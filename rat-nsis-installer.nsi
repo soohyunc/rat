@@ -2,7 +2,8 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "RAT"
-!define PRODUCT_VERSION "4.3.00"
+;!define PRODUCT_VERSION "4.4.01"
+!include "version.nsh"
 !define PRODUCT_PUBLISHER "UCL"
 !define PRODUCT_WEB_SITE "https://mediatools.cs.ucl.ac.uk/nets/mmedia/wiki/RatWiki"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\rat.exe"
