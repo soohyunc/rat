@@ -3,7 +3,7 @@
 .\" Copyright (c) 1997-2000 University College London.
 .\" Written by Orion Hodson
 .\"
-.TH rat 1 "14 January 2000"
+.TH rat 1 "28 March 2008"
 .SH NAME
 rat \- unicast and multicast audio conferencing tool
 .SH SYNOPSIS
@@ -58,10 +58,21 @@ address transmitted to remote participants.
 .BI \-f " codec"
 Specifies the primary encoding used when transmitting audio.
 .TP
+.BI -logstats
+Enables logging of statistics to a file (named "rat-SESSIONID-TIME-USERNAME-HOSTNAME.log" in a new sub-directory named "core-rat-VERSION")
+.TP
+.BI -logdebug " filename"
+Enables logging of some debug info to 
+.I filename
+which is located in a new sub-directory named "core-rat-VERSION"
+.TP
 .BI -L " location"
 Sets the 
 .I location
 description transmitted to remote participants.
+.TP
+.BI -noui
+RAT runs without a User Interface
 .TP
 .BI -N " username"
 Sets the 
@@ -87,12 +98,8 @@ Specifies the use of receiver based repair technique based on
 This can currently be none or repeat.   
 .TP
 .BI -t " ttl"
-Specifies the TTL (time to live) 
-value set in the packet 
-headers.  This limits 
-the scope of the packets. 
-The following 
-values are generally considered	
+Specifies the TTL (time to live) value set in the packet headers.  This limits 
+the scope of the packets.  The following values are generally considered	
 appropriate:  
 .RS 10n
 .nf
@@ -103,6 +110,11 @@ appropriate:
 127 planet
 .fi
 .RE
+.TP
+.BI -S " siteid"
+Enables sending of 
+.I siteide  
+which is an arbitrary string to provide for automated site identification.
 .TP
 .BI -silence " on|off"
 Turns silence suppression on or off.
@@ -202,6 +214,10 @@ Saleem Bhatti <S.Bhatti@cs.ucl.ac.uk> and integrated by Darren Harris.
 RAT has been supported by the following projects:
 
 .IP
+AVATS	 AccessGrid Video and Audio Tools Support (OMII-UK)
+
+SUMOVER	 SUpport for MbOne VidEoconferencing for the Research community (JISC)
+
 MICE	 Multimedia Conferencing in Europe (ESPRIT)
 
 MERCI	 Multimedia European Research Conferencing Integration
@@ -252,7 +268,6 @@ MD5 Message-Digest Algorithm.
 Please send comments, bug-reports, patches, and suggestions to
 rat-trap@cs.ucl.ac.uk.
 
-Please check http://www-mice.cs.ucl.ac.uk/multimedia/software for
-latest release information.
+Please check http://mediatools.cs.ucl.ac.uk/ for latest release information.
 
 
