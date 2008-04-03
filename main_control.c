@@ -511,7 +511,7 @@ int main(int argc, char *argv[])
 	if (ui_enabled) {
 		token_u[0] = generate_token();
 		fork_process(UI_NAME, c_addr, &pid_ui, 1, token_u);
-                if ((u_addr = mbus_rendezvous_waiting(m, "()", token_u[0], m, 300000000)) == NULL) {
+                if ((u_addr = mbus_rendezvous_waiting(m, "()", token_u[0], m, 20000000)) == NULL) {
                     fatal_error("RAT v" RAT_VERSION, "MBUS Failed to rendezvous with UI - Likely firewall/VPN issue");
                     return FALSE;
                 }
@@ -523,7 +523,7 @@ int main(int argc, char *argv[])
         should_exit = FALSE;
 	for (i = 0; i < num_sessions; i++) {
 		debug_msg("Waiting for %s from media engine...\n", token_e[i]);
-                if ((e_addr[i] = mbus_rendezvous_waiting(m, "()", token_e[i], m, 200000000)) == NULL ) {
+                if ((e_addr[i] = mbus_rendezvous_waiting(m, "()", token_e[i], m, 20000000)) == NULL ) {
                     fatal_error("RAT v" RAT_VERSION, "Failed to rendezvous with UI - Likely firewall/VPN issue");
                     return FALSE;
                 }
@@ -534,14 +534,14 @@ int main(int argc, char *argv[])
 		char	*peer;
 
 		if (ui_enabled) {
-                    if ((peer = mbus_rendezvous_go(m, token_u[0], (void *) m, 200000000)) == NULL) {
+                    if ((peer = mbus_rendezvous_go(m, token_u[0], (void *) m, 20000000)) == NULL) {
                                fatal_error("RAT v" RAT_VERSION, "Failed to rendezvous with UI - Likely firewall/VPN issue");
                                return FALSE;
                     }
                     debug_msg("User interface is %s\n", peer);
 		}
 		for (i = 0; i < num_sessions; i++) {
-                    if ((peer = mbus_rendezvous_go(m, token_e[i], (void *) m, 200000000)) == NULL) {
+                    if ((peer = mbus_rendezvous_go(m, token_e[i], (void *) m, 20000000)) == NULL) {
                                fatal_error("RAT v" RAT_VERSION, "Failed to rendezvous with UI - Likely firewall/VPN issue");
                                return FALSE;
                     }

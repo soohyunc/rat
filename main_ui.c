@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */
 	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
 	debug_msg("Waiting for mbus.waiting(%s) from controller...\n", token);
-        if (mbus_rendezvous_go(m, token, (void *) m, 200000000) == NULL) {
+        if (mbus_rendezvous_go(m, token, (void *) m, 20000000) == NULL) {
             fatal_error("RAT v" RAT_VERSION, "UI failed mbus.waiting rendezvous with controller");
             return FALSE;
         }
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 	/* We do mbus.waiting(foo) where "foo" is the original token. The controller will */
 	/* eventually respond with mbus.go(foo) when it has finished sending us commands. */
 	debug_msg("Waiting for mbus.go(%s) from controller...\n", token);
-        if ((mbus_rendezvous_waiting(m, c_addr, token, (void *) m, 200000000)) == NULL) {
+        if ((mbus_rendezvous_waiting(m, c_addr, token, (void *) m, 20000000)) == NULL) {
             fatal_error("RAT v" RAT_VERSION, "UI failed mbus.go rendezvous with controller");
             return FALSE;
         }

@@ -215,8 +215,6 @@ int main(int argc, char *argv[])
 
         debug_msg("Ratmedia started\n");
 
-        Sleep(10000);
-
 #ifdef WIN32
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 #else
