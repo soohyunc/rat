@@ -127,16 +127,23 @@ int main(int argc, char *argv[])
 	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */
 	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
 	debug_msg("Waiting for mbus.waiting(%s) from controller...\n", token);
-	mbus_rendezvous_go(m, token, (void *) m);
-	debug_msg("...got it\n");
+        if (mbus_rendezvous_go(m, token, (void *) m, 200000000) == NULL) {
+            fatal_error("RAT v" RAT_VERSION, "UI failed mbus.waiting rendezvous with controller");
+            return FALSE;
+        }
+
+        debug_msg("...got it\n");
 
 	/* At this point we know the mbus address of our controller, and have conducted   */
 	/* a successful rendezvous with it. It will now send us configuration commands.   */
 	/* We do mbus.waiting(foo) where "foo" is the original token. The controller will */
 	/* eventually respond with mbus.go(foo) when it has finished sending us commands. */
 	debug_msg("Waiting for mbus.go(%s) from controller...\n", token);
-	mbus_rendezvous_waiting(m, c_addr, token, (void *) m);
-	debug_msg("...got it\n");
+        if ((mbus_rendezvous_waiting(m, c_addr, token, (void *) m, 200000000)) == NULL) {
+            fatal_error("RAT v" RAT_VERSION, "UI failed mbus.go rendezvous with controller");
+            return FALSE;
+        }
+        debug_msg("...got it\n");
 
 	/* Okay, we wait for the media engine to solicit for a user interface... */
 	debug_msg("Waiting for mbus.waiting(rat-ui-requested) from media engine...\n");

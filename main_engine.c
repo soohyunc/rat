@@ -125,9 +125,9 @@ mbus_error_handler(int seqnum, int reason)
         /* Ignore error we're closing down anyway */
 }
 
-static void rendezvous_with_controller(session_t *sp[2])
+int rendezvous_with_controller(session_t *sp[2])
 {
-	int		i, j, done;
+	int		i, j, done, waiting_limitcount=0;
 	struct timeval	timeout;
 
 	/* Signal to the controller that we are ready to go. It should be sending us an     */
@@ -153,6 +153,9 @@ static void rendezvous_with_controller(session_t *sp[2])
 				debug_msg("Sending mbus.go(%s) to controller...\n", token[j]);
 				mbus_qmsgf(sp[j]->mbus_engine, c_addr, TRUE, "mbus.go", "%s", token_e[j]);
 			}
+                        /* Wait till 3000*10000 (20secs) - otherwise it is an error */
+                        if (waiting_limitcount++>2000)
+                                return FALSE;
 		}
 	} while (!done);
 	debug_msg("Got all needed mbus.waiting() messages from controller\n");
@@ -199,6 +202,7 @@ static void rendezvous_with_controller(session_t *sp[2])
 	for (i = 0; i < num_sessions; i++) {
 		assert(sp[i]->rtp_session[0] != NULL);
 	}
+        return TRUE;
 }
 
 int main(int argc, char *argv[])
@@ -208,6 +212,10 @@ int main(int argc, char *argv[])
 	session_t 	*sp[2];
 	struct timeval	 timeout;
         uint8_t		 i, j;
+
+        debug_msg("Ratmedia started\n");
+
+        Sleep(10000);
 
 #ifdef WIN32
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
@@ -250,7 +258,10 @@ int main(int argc, char *argv[])
 		sp[1]->other_session = sp[0];
 	}
 
-	rendezvous_with_controller(sp);
+        if (rendezvous_with_controller(sp)==NULL) {
+		fatal_error("RAT v" RAT_VERSION, "RATmedia could not rendezvous_with_controller - Firewall/VPN problem");
+                return FALSE;
+        }
 
         /* Moved session[0] setup to rx_rtp_addr so one may change addr
            binding dynamically */
