@@ -44,6 +44,7 @@ char       *u_addr, *e_addr[2];
 pid_t       pid_ui, pid_engine;
 int         should_exit;
 int	    ui_enabled = TRUE;
+int	    continuing_from_stop=0;
 
 static int ttl = 127;
 
@@ -327,10 +328,19 @@ static void
 sigchld_handler(int signal)
 {
         UNUSED(signal);
-        /* Child has terminated or stopped.  Try to shutdown nicely... */
         debug_msg("Caught signal SIGCHLD: %d\n", signal);
-        should_exit = TRUE;
-	wait(NULL);	/* Buffy, the zombie slayer... */
+	if (signal == SIGCONT)  {
+	  continuing_from_stop=2;
+          debug_msg("Ignoring signal SIGCONT as we've probably just come back from being suspended(SIGTSTP/SIGSTOP): %d\n", signal);
+	} else {
+	  if (--continuing_from_stop==-1) {
+          /* Child has terminated or stopped.  Try to shutdown nicely... */
+		should_exit = TRUE;
+          	wait(NULL);	/* Buffy, the zombie slayer... */
+		return;
+	  }
+	  debug_msg("Ignoring signal SIGCHLD as we've probably just come back from being suspended(SIGTSTP/SIGSTOP): %d\n", signal);
+	}
 }
 
 #else
@@ -469,6 +479,7 @@ int main(int argc, char *argv[])
 #ifdef WIN32
         win32_create_null_window(); /* Needed to listen to messages */
 #else
+        signal(SIGCONT, sigchld_handler);
         signal(SIGCHLD, sigchld_handler);
         signal(SIGINT, sigint_handler);
 	signal(SIGTERM, sigint_handler);
