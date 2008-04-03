@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
 		sp[1]->other_session = sp[0];
 	}
 
-        if (rendezvous_with_controller(sp)==NULL) {
+        if (rendezvous_with_controller(sp) == FALSE) {
 		fatal_error("RAT v" RAT_VERSION, "RATmedia could not rendezvous_with_controller - Firewall/VPN problem");
                 return FALSE;
         }
