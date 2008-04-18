@@ -156,6 +156,7 @@ rat: VERSION Makefile
 clean:
 	-rm -f $(CTRL_OBJS) $(AUDIO_OBJS) $(CODEC_OBJS) $(SNDFILE_OBJS) $(CHANNEL_OBJS) $(TOY_OBJS) $(MEDIA_OBJS) $(UI_OBJS) $(TCL_OBJS)
 	-rm -f $(MEDIALIBS)
+	-rm -f rat-kill.o
 	-rm -f tcl_libs.c ui_audiotool.c ui_transcoder.c ui_installer.c version.h
 	-rm -f tcl2c/tcl2c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec
 	-rm -f bin2c bin2c.o binaries.c $(INSTALL_OBJS) $(RATVER)-installer
