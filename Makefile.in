@@ -159,8 +159,8 @@ clean:
 	-rm -f rat-kill.o
 	-rm -f tcl_libs.c ui_audiotool.c ui_transcoder.c ui_installer.c version.h
 	-rm -f tcl2c/tcl2c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(RATVER).spec
-	-rm -f bin2c bin2c.o binaries.c $(INSTALL_OBJS) $(RATVER)-installer
-	-rm -f rat $(RATVER)-media $(RATVER)-ui $(RATVER)
+	-rm -f bin2c bin2c.o binaries.c rat-kill.o $(INSTALL_OBJS) $(RATVER)-installer
+	-rm -f rat $(RATVER)-media $(RATVER)-ui $(RATVER)-kill $(RATVER)
 
 distclean: clean
 	-rm -rf config.cache config.log config.status ratconf.h Makefile
