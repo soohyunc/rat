@@ -38,6 +38,7 @@ WBS_CODEC_OBJ = codec_wbs.o cx_wbs.o
 
 prefix      = @prefix@
 exec_prefix = @exec_prefix@
+datarootdir = @datarootdir@
 bindir      = @bindir@
 mandir      = @mandir@
 sysconfdir  = @sysconfdir@

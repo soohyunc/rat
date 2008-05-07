@@ -263,7 +263,7 @@ elif test "${TCL_VERSION}" == "8.0" ; then
     fi
 
 else
-    AC_MSG_ERROR([Tcl $TCL_VERSION, compatible Tcl for VIC not found
+    AC_MSG_ERROR([Tcl $TCL_VERSION, compatible Tcl for RAT not found
 Use --with-tcl= option to indicate location of tclConfig.sh file for Tcl.])
 fi
 
@@ -289,6 +289,7 @@ if test -f "${TCL_BIN_DIR}/Makefile" ; then
 
 else
     # dealing with a Tcl full installation
+
     if test -d "${TK_BIN_DIR}/Headers" ; then
         # Darwin / MacOS X
         TCL_INC=-I${TCL_BIN_DIR}/Headers
@@ -307,6 +308,7 @@ if test -f "${TK_BIN_DIR}/Makefile" ; then
 
 else
     # dealing with a Tk full installation
+
     if test -d "${TK_BIN_DIR}/Headers" ; then
         # Darwin / MacOS X
         TK_INC=-I${TK_BIN_DIR}/Headers
