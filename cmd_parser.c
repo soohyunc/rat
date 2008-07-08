@@ -326,6 +326,7 @@ static args_handler late_args[] = {
         { "-t",              NULL,             1 }, /* handled in parse early args  */
 	{ "-noui",           NULL,             0 }, /* handled in parse early args  */
 	{ "-T",	             NULL,             0 }, /* transcoder: special handling */
+	{ "-X",	             NULL,             1 }, /* tcl resource handling */
 };
 
 static uint32_t late_args_cnt = sizeof(late_args)/sizeof(late_args[0]);

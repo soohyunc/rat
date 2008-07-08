@@ -74,7 +74,6 @@ address_is_valid(const char *candidate)
 {
 	char *addr, *p;
 	int   i, port, okay = TRUE;
-
 	addr = xstrdup(candidate);
 
         addr = strtok(addr, "/");
@@ -251,7 +250,7 @@ parse_addresses(struct mbus *m, char *e_addr[2], int argc, char *argv[])
         argc -= 1; /* Skip process name */
         argv += 1;
 
-        naddr = address_count(argc, argv);
+        naddr = 1; /* address_count(argc, argv); */
         if (naddr < 1) {
                 usage(NULL);
                 return FALSE;
@@ -475,6 +474,8 @@ int main(int argc, char *argv[])
         int		 seed = (gethostid() << 8) | (getpid() & 0xff), final_iters;
         struct timeval	 timeout;
 	int		 i, num_sessions = 0;
+		char **xargv = xmalloc(argc);
+		int  xargc=0;
 
 #ifdef WIN32
         win32_create_null_window(); /* Needed to listen to messages */
@@ -507,10 +508,19 @@ int main(int argc, char *argv[])
                 fatal_error("RAT v" RAT_VERSION, "Could not initialize Mbus: Is multicast enabled?");
                 return FALSE;
         }
+        
+    /* pull out -X arguments */
+    for(i=0; i<argc; i++) {
+    	if( strcmp(argv[i],"-X") == 0 ) {
+    		xargv[xargc] = argv[i]; xargc++; i++;
+    		xargv[xargc] = argv[i]; xargc++;
+    	}
+    }
+        
 
 	if (ui_enabled) {
 		token_u[0] = generate_token();
-		fork_process(UI_NAME, c_addr, &pid_ui, 1, token_u);
+		fork_process(UI_NAME, c_addr, &pid_ui, 1, token_u, xargc, xargv);
                 if ((u_addr = mbus_rendezvous_waiting(m, "()", token_u[0], m, 20000000)) == NULL) {
                     fatal_error("RAT v" RAT_VERSION, "MBUS Failed to rendezvous with UI - Likely firewall/VPN issue");
                     return FALSE;
@@ -519,7 +529,7 @@ int main(int argc, char *argv[])
 
 	token_e[0] = generate_token();
 	token_e[1] = generate_token();
-        fork_process(ENGINE_NAME, c_addr, &pid_engine, num_sessions, token_e);
+        fork_process(ENGINE_NAME, c_addr, &pid_engine, num_sessions, token_e, xargc, xargv);
         should_exit = FALSE;
 	for (i = 0; i < num_sessions; i++) {
 		debug_msg("Waiting for %s from media engine...\n", token_e[i]);
@@ -529,7 +539,7 @@ int main(int argc, char *argv[])
                 }
 		debug_msg("...got it (%s)\n",e_addr[i]);
 	}
-
+		
         if (parse_addresses(m, e_addr, argc, argv) == TRUE) {
 		char	*peer;
 
@@ -587,6 +597,7 @@ int main(int argc, char *argv[])
 	if (ui_enabled) xfree(token_u[0]);
 	xfree(token_e[0]);
 	xfree(token_e[1]);
+	xfree(xargv);
         debug_msg("Controller exit\n");
         return 0;
 }

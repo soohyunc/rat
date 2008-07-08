@@ -38,22 +38,22 @@ int got_detach  = FALSE;
 int got_quit    = FALSE;
 static int mbus_shutdown_error = FALSE;
 
+
 static void parse_args(int argc, char *argv[])
 {
 	int 	i;
-
-	if (argc != 5) {
-		printf("UI usage: %s -ctrl <addr> -token <token>\n", argv[0]);
-		exit(1);
-	}
 	for (i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-ctrl") == 0) {
 			c_addr = xstrdup(argv[++i]);
 		} else if (strcmp(argv[i], "-token") == 0) {
 			token   = xstrdup(argv[++i]);
 			token_e = mbus_encode_str(token);
+		} else if (strcmp(argv[i], "-X") == 0) {
+			/* accept -X arguments, but only because they get passed to tcl */
+			i++;
 		} else {
-			printf("Unknown argument \"%s\"\n", argv[i]);
+			printf("Unknown argument to %s: \"%s\"\n", argv[0], argv[i]);
+			printf("UI usage: %s -ctrl <addr> -token <token> [-X arg=value]\n", argv[0]);
 			abort();
 		}
 	}

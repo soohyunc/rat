@@ -272,11 +272,23 @@ mbus_encode_cmd(ClientData ttp, Tcl_Interp *i, int argc, char *argv[])
 #include "xbm/balloon.xbm"
 #include "xbm/reception.xbm"
 
+static char*
+parse_assignment(char* cp)
+{
+	cp = strchr(cp, '=');
+	if (cp != 0) {
+		*cp = 0;
+		return (cp + 1);
+	} else
+		return ("true");
+}
+
 int
 tcl_init1(int argc, char **argv)
 {
 	char		*cmd_line_args, buffer[10];
 	Tcl_Obj 	*audiotool_obj;
+	int 		i;
 
 	Tcl_FindExecutable(argv[0]);
 	interp        = Tcl_CreateInterp();
@@ -289,6 +301,12 @@ tcl_init1(int argc, char **argv)
 	Tcl_SetVar(interp, "argc", buffer, TCL_GLOBAL_ONLY);
 	Tcl_SetVar(interp, "argv0", argv[0], TCL_GLOBAL_ONLY);
 	Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
+	for(i=1; i<argc; i++ ) {
+		if( strcmp(argv[i],"-X") == 0) {
+			const char* value = parse_assignment(argv[++i]);
+			Tcl_SetVar(interp, argv[i], value, TCL_GLOBAL_ONLY);
+		}
+	}
 
 	/*
 	 * There is no easy way of preventing the Init functions from

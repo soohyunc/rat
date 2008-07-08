@@ -17,9 +17,11 @@ static const char cvsid[] = "$Id";
 #include "mbus.h"
 #include "process.h"
 
-void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, char *token[2])
+
+void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, char *token[2], int argc, char **argv)
 {
 #ifdef WIN32
+        int                      i;
         char			 args[1024];
         LPSTARTUPINFO		 startup_info;
         LPPROCESS_INFORMATION	 proc_info;
@@ -51,6 +53,9 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
 	} else {
 		_snprintf(args, sizeof(args), "%s -T -ctrl \"%s\" -token %s -token %s", proc_name, ctrl_addr, token[0], token[1]);
 	}
+        for(i=0;i<argc;i++) {
+                _snprintf(args, sizeof(args), "%s %s", args, argv[i]);
+        }
 
         if (!CreateProcess(NULL, args, NULL, NULL, TRUE, 0, NULL, NULL, startup_info, proc_info)) {
                 perror("Couldn't create process");
@@ -60,7 +65,7 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
         debug_msg("Forked %s\n", proc_name);
 #else /* ...we're on unix */
 	char *path, *path_env;
-
+	int i;
 #ifdef DEBUG_FORK
 	if (num_tokens == 1) {
         	debug_msg("%s -ctrl '%s' -token %s\n", proc_name, ctrl_addr, token[0]);
@@ -88,24 +93,34 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
 	} else {
 		debug_msg("Running as root? PATH unmodified\n");
 	}
-
 	/* Fork off the sub-process... */
+		char **args = xmalloc(argc);
+		int numargs=0;
         *pid = fork();
         if (*pid == -1) {
                 perror("Cannot fork");
                 abort();
         } else if (*pid == 0) {
-		if (num_tokens == 1) {
-			execlp(proc_name, proc_name, "-ctrl", ctrl_addr, "-token", token[0], NULL);
-		} else {
-			execlp(proc_name, proc_name, "-T", "-ctrl", ctrl_addr, "-token", token[0], "-token", token[1], NULL);
-		}
-                perror("Cannot execute subprocess");
-                /* Note: this MUST NOT be exit() or abort(), since they affect the standard */
-                /* IO channels in the parent process (fork duplicates file descriptors, but */
-                /* they still point to the same underlying file).                           */
-                _exit(1);
+			args[numargs++] = proc_name;
+			args[numargs++] = "-ctrl";
+			args[numargs++] = ctrl_addr;
+			for(i=0;i<num_tokens;i++) {
+				args[numargs++] = "-token";
+				args[numargs++] = token[i];
+			}
+			for(i=0;i<argc;i++) {
+				args[numargs++] = argv[i];
+			}
+			args[numargs++] = NULL;
+			execvp( proc_name, args );
+		
+            perror("Cannot execute subprocess");
+            /* Note: this MUST NOT be exit() or abort(), since they affect the standard */
+            /* IO channels in the parent process (fork duplicates file descriptors, but */
+            /* they still point to the same underlying file).                           */
+            _exit(1);
         }
+        xfree(args);
 #endif
 #endif
 }

@@ -74,10 +74,6 @@ static void parse_args(int argc, char *argv[])
 {
 	int 		i, tc;
 
-	if ((argc != 5)  && (argc != 8)) {
-		printf("Usage: rat-%s-media [-T] -ctrl <addr> -token <token> [-token <token>]\n", RAT_VERSION);
-		exit(1);
-	}
 	tc = 0;
 	for (i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-ctrl") == 0) {
@@ -91,8 +87,12 @@ static void parse_args(int argc, char *argv[])
 			/* Enable transcoder... */
 			debug_msg("Enabled transcoder support\n");
 			num_sessions = 2;
+		} else if (strcmp(argv[i], "-X") == 0) {
+			/* accept -X arguments, but only because they get passed to tcl */
+			i++;
 		} else {
-			printf("Unknown argument \"%s\"\n", argv[i]);
+			printf("Unknown argument to %s: \"%s\"\n", argv[0], argv[i]);
+			printf("Usage: rat-%s-media [-T] -ctrl <addr> -token <token> [-token <token>] [-X arg=value]\n", RAT_VERSION);
 			abort();
 		}
 	}
