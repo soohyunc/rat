@@ -93,9 +93,9 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
 	} else {
 		debug_msg("Running as root? PATH unmodified\n");
 	}
-	/* Fork off the sub-process... */
-		char **args = xmalloc(argc);
-		int numargs=0;
+        /* Fork off the sub-process... */
+        char **args = xmalloc((2 * num_tokens) + argc + 4);
+        int numargs=0;
         *pid = fork();
         if (*pid == -1) {
                 perror("Cannot fork");
