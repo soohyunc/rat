@@ -95,32 +95,33 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
 	}
         /* Fork off the sub-process... */
         *pid = fork();
-        char **args = xmalloc((2 * num_tokens) + argc + 4);
-        int numargs=0;
         if (*pid == -1) {
                 perror("Cannot fork");
                 abort();
         } else if (*pid == 0) {
-			args[numargs++] = proc_name;
-			args[numargs++] = "-ctrl";
-			args[numargs++] = ctrl_addr;
-			for(i=0;i<num_tokens;i++) {
-				args[numargs++] = "-token";
-				args[numargs++] = xstrdup(token[i]);
-			}
-			for(i=0;i<argc;i++) {
-				args[numargs++] = argv[i];
-			}
-			args[numargs++] = NULL;
-			execvp( proc_name, args );
-		
-            perror("Cannot execute subprocess");
-            /* Note: this MUST NOT be exit() or abort(), since they affect the standard */
-            /* IO channels in the parent process (fork duplicates file descriptors, but */
-            /* they still point to the same underlying file).                           */
-            _exit(1);
+                char **args = xmalloc((2 * num_tokens) + argc + 4);
+                int numargs=0;
+
+                args[numargs++] = proc_name;
+                args[numargs++] = "-ctrl";
+                args[numargs++] = ctrl_addr;
+                for(i=0;i<num_tokens;i++) {
+                        args[numargs++] = "-token";
+                        args[numargs++] = token[i];
+                }
+                for(i=0;i<argc;i++) {
+                        args[numargs++] = argv[i];
+                }
+                args[numargs++] = NULL;
+                execvp( proc_name, args );
+	
+                perror("Cannot execute subprocess");
+                xfree(args);
+            	/* Note: this MUST NOT be exit() or abort(), since they affect the standard */
+  	        /* IO channels in the parent process (fork duplicates file descriptors, but */
+                /* they still point to the same underlying file).                           */
+                _exit(1);
         }
-        xfree(args);
 #endif
 #endif
 }
