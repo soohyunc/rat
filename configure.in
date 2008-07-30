@@ -188,14 +188,22 @@ case "$target" in
 		],AC_MSG_RESULT(missing))
 	])
 	# Do we have ALSA?
-	AC_CHECK_HEADER(alsa/asoundlib.h,[
-		AUD_OBJ="$AUD_OBJ auddev_alsa.o"
-		AUD_LIB="$AUD_LIB -lasound"
-		AC_DEFINE(HAVE_ALSA_AUDIO)
-		# HAVE_OSS_AUDIO is defined so that the ALSA OSS emulation
-		# works for those cards which are not supported natively
-		AC_DEFINE(HAVE_OSS_AUDIO)
-	])
+	AC_MSG_CHECKING([for ALSA driver])
+	AC_ARG_ENABLE(alsa,
+	[  --disable-alsa          disable ALSA driver],
+	[alsa=$enableval],[alsa=yes])
+	if test $alsa = yes ; then
+	    AC_CHECK_HEADER(alsa/asoundlib.h,[
+		    AUD_OBJ="$AUD_OBJ auddev_alsa.o"
+		    AUD_LIB="$AUD_LIB -lasound"
+		    AC_DEFINE(HAVE_ALSA_AUDIO)
+		    # HAVE_OSS_AUDIO is defined so that the ALSA OSS emulation
+		    # works for those cards which are not supported natively
+		    AC_DEFINE(HAVE_OSS_AUDIO)
+	    ])
+	else
+            AC_MSG_RESULT(Disabled by configure)
+	fi
 	# Default is to use OSS drivers...
 	AUD_OBJ="$AUD_OBJ auddev_oss.o"
 	AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)

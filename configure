@@ -1295,6 +1295,7 @@ if test -n "$ac_init_help"; then
 Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --disable-alsa          disable ALSA driver
   --enable-ipv6           enable ipv6
   --enable-kame-ipv6      enable kame implementation of ipv6
   --enable-optimize       enable optimization
@@ -5943,7 +5944,17 @@ fi
 
 
 	# Do we have ALSA?
-	if test "${ac_cv_header_alsa_asoundlib_h+set}" = set; then
+	{ echo "$as_me:$LINENO: checking for ALSA driver" >&5
+echo $ECHO_N "checking for ALSA driver... $ECHO_C" >&6; }
+	# Check whether --enable-alsa was given.
+if test "${enable_alsa+set}" = set; then
+  enableval=$enable_alsa; alsa=$enableval
+else
+  alsa=yes
+fi
+
+	if test $alsa = yes ; then
+	    if test "${ac_cv_header_alsa_asoundlib_h+set}" = set; then
   { echo "$as_me:$LINENO: checking for alsa/asoundlib.h" >&5
 echo $ECHO_N "checking for alsa/asoundlib.h... $ECHO_C" >&6; }
 if test "${ac_cv_header_alsa_asoundlib_h+set}" = set; then
@@ -6070,15 +6081,15 @@ echo "${ECHO_T}$ac_cv_header_alsa_asoundlib_h" >&6; }
 fi
 if test $ac_cv_header_alsa_asoundlib_h = yes; then
 
-		AUD_OBJ="$AUD_OBJ auddev_alsa.o"
-		AUD_LIB="$AUD_LIB -lasound"
-		cat >>confdefs.h <<\_ACEOF
+		    AUD_OBJ="$AUD_OBJ auddev_alsa.o"
+		    AUD_LIB="$AUD_LIB -lasound"
+		    cat >>confdefs.h <<\_ACEOF
 #define HAVE_ALSA_AUDIO 1
 _ACEOF
 
-		# HAVE_OSS_AUDIO is defined so that the ALSA OSS emulation
-		# works for those cards which are not supported natively
-		cat >>confdefs.h <<\_ACEOF
+		    # HAVE_OSS_AUDIO is defined so that the ALSA OSS emulation
+		    # works for those cards which are not supported natively
+		    cat >>confdefs.h <<\_ACEOF
 #define HAVE_OSS_AUDIO 1
 _ACEOF
 
@@ -6086,6 +6097,10 @@ _ACEOF
 fi
 
 
+	else
+            { echo "$as_me:$LINENO: result: Disabled by configure" >&5
+echo "${ECHO_T}Disabled by configure" >&6; }
+	fi
 	# Default is to use OSS drivers...
 	AUD_OBJ="$AUD_OBJ auddev_oss.o"
 
