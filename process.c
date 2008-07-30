@@ -93,13 +93,22 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
 	} else {
 		debug_msg("Running as root? PATH unmodified\n");
 	}
+        /* some glibc versions have issues with malloc/free when used inside or
+           in some cases outside a fork/exec, so we now use a args[64] array instead of
+           xmalloc'ing it. In the unlikely event the array needs to hold more
+           command-line arguments, print a error message */
+        if ((2 * num_tokens) + argc + 4 >= 64) {
+                fprintf(stderr, "Exceeded max of %i command-line arguments\n",
+                        64 - (2 * num_tokens) + 4);
+                exit(1);
+        }
         /* Fork off the sub-process... */
         *pid = fork();
         if (*pid == -1) {
                 perror("Cannot fork");
                 abort();
         } else if (*pid == 0) {
-                char **args = xmalloc((2 * num_tokens) + argc + 4);
+                char *args[64];
                 int numargs=0;
 
                 args[numargs++] = proc_name;
@@ -114,11 +123,10 @@ void fork_process(char *proc_name, char *ctrl_addr, pid_t *pid, int num_tokens, 
                 }
                 args[numargs++] = NULL;
                 execvp( proc_name, args );
-	
+
                 perror("Cannot execute subprocess");
-                xfree(args);
-            	/* Note: this MUST NOT be exit() or abort(), since they affect the standard */
-  	        /* IO channels in the parent process (fork duplicates file descriptors, but */
+                /* Note: this MUST NOT be exit() or abort(), since they affect the standard */
+                /* IO channels in the parent process (fork duplicates file descriptors, but */
                 /* they still point to the same underlying file).                           */
                 _exit(1);
         }
