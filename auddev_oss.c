@@ -547,7 +547,7 @@ oss_audio_open(audio_desc_t ad, audio_format *ifmt, audio_format *ofmt)
 			assert(strcmp(devices[ad].audio_rdev, devices[ad].audio_wdev) == 0);
 
 			devices[ad].audio_rfd = open(devices[ad].audio_rdev, O_RDWR | O_NDELAY);
-			if (devices[ad].audio_rfd == 0) {
+			if (devices[ad].audio_rfd <= 0) {
 				debug_msg("unable to open %s\n", devices[ad].audio_rdev);
 				return FALSE;
 			}
