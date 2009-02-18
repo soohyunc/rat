@@ -269,6 +269,10 @@ audio_device_reconfigure(session_t *sp)
 
                 if (sp->audio_device) {
                         audio_device_release(sp, sp->audio_device);
+			if (strcasestr(audio_get_dev_name(prev_config.device),"PulseAudio")){
+			    debug_msg("Sleeping for PulseAudio release.\n");
+			    usleep(1100000);
+			}
                 }
 
                 if (audio_device_attempt_config(sp, new_config)) {
