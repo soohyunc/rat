@@ -1156,6 +1156,19 @@ audio_get_iport_count(audio_desc_t ad)
         return audio_if_table[iface].audio_if_get_iport_count(device);
 }
 
+char *
+audio_get_dev_name(audio_desc_t ad)
+{
+        int iface, device;
+
+        assert(AIF_VALID_INTERFACE(ad) && AIF_VALID_DEVICE_NO(ad));
+
+        iface  = AIF_GET_INTERFACE(ad);
+        device = AIF_GET_DEVICE_NO(ad);
+
+        return audio_if_table[iface].audio_if_dev_name(device);
+}
+
 int
 audio_is_ready(audio_desc_t ad)
 {
