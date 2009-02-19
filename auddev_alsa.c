@@ -260,8 +260,11 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
     // Open type (Capture or Playback)
     err = snd_pcm_open(&stream->handle, info->pcm_device,
                        type, SND_PCM_NONBLOCK);
-    debug_msg("ALSA:open_stream: %s\n",info->pcm_device);
-    if (err<0) { debug_msg("Card open failed"); return FALSE; }
+    if (err<0) { 
+      debug_msg("snd_pcm_open failed for: \n",info->pcm_device);
+      return FALSE;
+    } 
+    debug_msg("snd_pcm_open ok for: %s\n",info->pcm_device);
 
     snd_pcm_hw_params_alloca (&hw_params);
 
@@ -297,7 +300,7 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
     // is number of channel * sample - e.g one stereo frame is two samples).
     // We can't convert with the helper functions (snd_pcm_bytes_to_frames())
     // at this point as they require a working handle, and ours isn't setup
-    // yet. We use a factor RAT_ALSA_BUFFER_DIVISOR which is buffer size in
+    // yet. We use a factor RAT_ALSA_BUFFER_DIVISOR(60) which is buffer size in
     // millisec(10^-3) - it seems we need 
     // We don't actually do anything with these values anyway.
     bsize = snd_pcm_format_size (mapformat(fmt->encoding),
@@ -348,8 +351,20 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
     err = snd_pcm_sw_params(stream->handle, sw_params);
     CHECKOPENERR("Failed to set SW params");
     
+    snd_pcm_sw_params_get_boundary(sw_params, &avail_min);
+    debug_msg("snd_pcm_sw_params_get_boundary %d\n",avail_min);
+    snd_pcm_sw_params_set_stop_threshold(stream->handle,sw_params, avail_min);
+    snd_pcm_sw_params_get_stop_threshold(sw_params, &avail_min);
+    debug_msg("snd_pcm_sw_params_get_stop_threshold %d\n",avail_min);
+    snd_pcm_sw_params_get_silence_size(sw_params, &avail_min);
+    debug_msg("snd_pcm_sw_params_get_silence_size %d\n",avail_min);
     snd_pcm_sw_params_get_avail_min(sw_params, &avail_min);
     debug_msg("min available value %d\n",avail_min);
+
+    snd_output_t *output = NULL;
+    snd_output_stdio_attach(&output, stdout, 0);
+    snd_pcm_dump_setup(stream->handle, output);
+    snd_pcm_dump(stream->handle, output);
     return TRUE;
 }
 
@@ -582,20 +597,21 @@ int alsa_audio_open(audio_desc_t ad, audio_format *infmt, audio_format *outfmt)
     current.info = ratCards + ad;
     current.bytes_per_block = infmt->bytes_per_block;
 
-    debug_msg( "Open device for playback\n");
     if (!open_stream(current.info, &current.tx,
                      SND_PCM_STREAM_PLAYBACK, outfmt)) {
         alsa_audio_close(ad); 
         debug_msg( "Failed to open device for playback\n");
         return FALSE;
     }
-    debug_msg( "Open device for capture\n");
+    debug_msg( "Opened device for playback\n");
+
     if (!open_stream(current.info, &current.rx,
                      SND_PCM_STREAM_CAPTURE, infmt)) {
         alsa_audio_close(ad); 
         debug_msg( "Failed to open device for capture\n");
         return FALSE;
     }
+    debug_msg( "Opened device for capture\n");
 
     if (setup_mixers() == FALSE) {
       alsa_audio_close(ad); 
@@ -825,9 +841,9 @@ alsa_audio_get_ogain(audio_desc_t ad)
 int alsa_audio_read(audio_desc_t ad __attribute__((unused)),
                 u_char *buf, int bytes)
 {
-    snd_pcm_sframes_t fread;
+    snd_pcm_sframes_t fread, bread, avail;
     int err;
-    int read_interval;
+    long read_interval;
     struct timeval          curr_time;
     static struct timeval          last_read_time;
 
@@ -838,29 +854,37 @@ int alsa_audio_read(audio_desc_t ad __attribute__((unused)),
         debug_msg("Handling mixer event\n");
     }
 
-    snd_pcm_sframes_t frames = snd_pcm_bytes_to_frames(current.rx.handle,bytes);
-
+    snd_pcm_sframes_t frames = snd_pcm_bytes_to_frames(current.rx.handle,current.bytes_per_block);
     read_interval = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000000 + (curr_time.tv_usec - last_read_time.tv_usec);
-    //debug_msg("Frames avail to be read=%d, time diff=%d\n",snd_pcm_avail_update(current.rx.handle), read_interval);
+    avail = snd_pcm_avail_update(current.rx.handle);
+    //debug_msg("Frames avail to be read=%d, time diff=%ld, want: %d frames, %d bytes (bytepb %d\n",avail, read_interval, frames, bytes, current.bytes_per_block);
     last_read_time.tv_sec=curr_time.tv_sec;
     last_read_time.tv_usec=curr_time.tv_usec;
 
+    if (avail < frames)
+      return 0;
 
+    frames = snd_pcm_bytes_to_frames(current.rx.handle,bytes);
     fread = snd_pcm_readi(current.rx.handle, buf, frames);
 
     if (fread >= 0) {
         // Normal case
-        fread = snd_pcm_frames_to_bytes(current.rx.handle, fread);
-        //debug_msg("Read %d bytes\n", fread);
-        return fread;
+        bread = snd_pcm_frames_to_bytes(current.rx.handle, fread);
+        gettimeofday(&curr_time, NULL);
+        read_interval = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000000 + (curr_time.tv_usec - last_read_time.tv_usec);
+        //debug_msg("Read %d bytes (%d frames) took %ld usecs\n", bread, fread, read_interval);
+        return bread;
     }
 
-    // Something happened
+   // Something happened
     switch (fread)
 	{
 	case -EAGAIN:
-        // Normal when non-blocking
-	    return 0;
+          // Normal when non-blocking
+    gettimeofday(&curr_time, NULL);
+    read_interval = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000000 + (curr_time.tv_usec - last_read_time.tv_usec);
+    debug_msg("failed %d Read %d bytes (%d frames) took %ld usecs\n", fread, bread, fread, read_interval);
+ 	  return 0;
 
 	case -EPIPE:
           debug_msg("Got capture overrun XRUN (EPIPE)\n");
@@ -881,7 +905,7 @@ int alsa_audio_read(audio_desc_t ad __attribute__((unused)),
           return FALSE;
 
 	default:
-          //debug_msg("Read failed status= %s\n", snd_strerror(fread));
+          debug_msg("Read failed status= %s\n", snd_strerror(fread));
           return 0;
     }
 }
@@ -897,8 +921,19 @@ int alsa_audio_write(audio_desc_t ad __attribute__((unused)),
     int fwritten, err, num_bytes=0 ,read_interval;
     struct timeval          curr_time;
     static struct timeval          last_read_time;
+    snd_pcm_sframes_t delay;
     snd_pcm_sframes_t frames =
         snd_pcm_bytes_to_frames(current.tx.handle,bytes);
+    snd_output_t *output = NULL;
+    snd_output_stdio_attach(&output, stdout, 0);
+
+    snd_pcm_status_t *status;
+    snd_pcm_status_alloca(&status);
+    err = snd_pcm_status(current.tx.handle, status);
+    if (err<0) {
+      debug_msg("Can't get status of tx");
+      return FALSE;
+    }
 
     gettimeofday(&curr_time, NULL);
     ///debug_msg("Audio write %d\n", bytes);
@@ -912,10 +947,12 @@ int alsa_audio_write(audio_desc_t ad __attribute__((unused)),
       break;
     default:
       break;
-      }
+    }
     read_interval = (curr_time.tv_sec  - last_read_time.tv_sec) * 1000000 + (curr_time.tv_usec - last_read_time.tv_usec);
+    snd_pcm_delay(current.tx.handle, &delay);
 
-    //debug_msg("Frames avail to be written=%d, time diff=%d\n",snd_pcm_avail_update(current.tx.handle), read_interval);
+    //debug_msg("Frames avail to be written=%d, time diff=%d, Trying to write %d frames, Curr delay %d \n",snd_pcm_avail_update(current.tx.handle), read_interval, frames, delay);
+    //snd_pcm_status_dump(status, output);
     last_read_time.tv_sec=curr_time.tv_sec;
     last_read_time.tv_usec=curr_time.tv_usec;
 
@@ -924,9 +961,11 @@ int alsa_audio_write(audio_desc_t ad __attribute__((unused)),
         // Normal case
         num_bytes = snd_pcm_frames_to_bytes(current.tx.handle, fwritten);
         //debug_msg("Wrote %d bytes, frames: %d\n", num_bytes, fwritten);
+        err = snd_pcm_status(current.tx.handle, status);
+        //snd_pcm_status_dump(status, output);
         return num_bytes;
     }
-    //debug_msg("Err: Tried to Write %d bytes, frames: %d, but got: %d\n", bytes,frames, fwritten);
+    debug_msg("Err: Tried to Write %d bytes, frames: %d, but got: %d\n", bytes,frames, fwritten);
 
     // Something happened
     switch (fwritten)
@@ -936,7 +975,7 @@ int alsa_audio_write(audio_desc_t ad __attribute__((unused)),
         return 0;
 
       case -EPIPE:
-        debug_msg("Got transmit underun XRUN (EPIPE)\n");
+        debug_msg("Got transmit underun XRUN(EPIPE) when trying to write audio\n");
         err = snd_pcm_prepare(current.tx.handle);
         if (err<0) debug_msg("Failed snd_pcm_prepare from Transmit underrun\n");
         debug_msg("Attempting Recovery from transmit underrun: Bytes:%d Frames:%d\n",num_bytes,fwritten);
@@ -947,6 +986,8 @@ int alsa_audio_write(audio_desc_t ad __attribute__((unused)),
         } else {
           num_bytes = snd_pcm_frames_to_bytes(current.tx.handle, fwritten);
           debug_msg("Recovered from transmit underrun: Bytes:%d Frames:%d\n",num_bytes,fwritten);
+    err = snd_pcm_status(current.tx.handle, status);
+    snd_pcm_status_dump(status, output);
           return num_bytes;
         }
 
@@ -1124,19 +1165,34 @@ int alsa_audio_is_ready(audio_desc_t ad __attribute__((unused)))
     snd_pcm_uframes_t avail;
     int err;
     snd_pcm_sframes_t frames;
+    snd_output_t *output = NULL;
 
+    snd_output_stdio_attach(&output, stdout, 0);
     snd_pcm_status_alloca(&status);
+
     err = snd_pcm_status(current.rx.handle, status);
     if (err<0) {
       debug_msg("Can't get status of rx");
       return FALSE;
     }
 
-    //frames= snd_pcm_avail_update(current.rx.handle);
-    avail = snd_pcm_frames_to_bytes(current.rx.handle,
-//                                    frames);
+
+    if (!snd_pcm_status_get_avail_max(status)) {
+      debug_msg("Resetting audio as statusmaxframes is zero\n");
+      err = snd_pcm_prepare(current.rx.handle);
+      if (err<0) debug_msg("Failed snd_pcm_prepare in audio_ready");
+      err = snd_pcm_start(current.rx.handle);
+      if (err<0) debug_msg("Failed to re-start in audio_ready");
+      //dump status
+      snd_pcm_status_dump(status, output);
+      frames= snd_pcm_avail_update(current.rx.handle);
+      debug_msg("audio_is_ready: snd_pcm_avail_update(current.rx.handle);: %d\n",  snd_pcm_avail_update(current.rx.handle));
+      debug_msg("audio_is_ready: %d bytes (btye per blk %d), frames: %d\n", avail, current.bytes_per_block, frames);
+    }
+
+    avail = snd_pcm_frames_to_bytes(current.rx.handle, //frames
                                     snd_pcm_status_get_avail(status));
-    //debug_msg("Audio Is ready == %d, frames: %d\n", avail, frames);
+  
     return (avail >= current.bytes_per_block);
 }
 
