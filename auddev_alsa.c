@@ -261,10 +261,10 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
     err = snd_pcm_open(&stream->handle, info->pcm_device,
                        type, SND_PCM_NONBLOCK);
     if (err<0) { 
-      debug_msg("snd_pcm_open failed for: \n",info->pcm_device);
+      debug_msg("snd_pcm_open failed for: %s\n",info->pcm_device);
       return FALSE;
     } 
-    debug_msg("snd_pcm_open ok for: %s\n",info->pcm_device);
+    debug_msg("ALSA:snd_pcm_open ok for: %s\n",info->pcm_device);
 
     snd_pcm_hw_params_alloca (&hw_params);
 
@@ -300,7 +300,7 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
     // is number of channel * sample - e.g one stereo frame is two samples).
     // We can't convert with the helper functions (snd_pcm_bytes_to_frames())
     // at this point as they require a working handle, and ours isn't setup
-    // yet. We use a factor RAT_ALSA_BUFFER_DIVISOR(60) which is buffer size in
+    // yet. We use a factor RAT_ALSA_BUFFER_DIVISOR which is buffer size in
     // millisec(10^-3) - it seems we need 
     // We don't actually do anything with these values anyway.
     bsize = snd_pcm_format_size (mapformat(fmt->encoding),
@@ -363,8 +363,8 @@ static int open_stream(RatCardInfo *info, pcm_stream_t *stream,
 
     snd_output_t *output = NULL;
     snd_output_stdio_attach(&output, stdout, 0);
-    snd_pcm_dump_setup(stream->handle, output);
-    snd_pcm_dump(stream->handle, output);
+    //snd_pcm_dump_setup(stream->handle, output);
+    //snd_pcm_dump(stream->handle, output);
     return TRUE;
 }
 
@@ -986,8 +986,8 @@ int alsa_audio_write(audio_desc_t ad __attribute__((unused)),
         } else {
           num_bytes = snd_pcm_frames_to_bytes(current.tx.handle, fwritten);
           debug_msg("Recovered from transmit underrun: Bytes:%d Frames:%d\n",num_bytes,fwritten);
-    err = snd_pcm_status(current.tx.handle, status);
-    snd_pcm_status_dump(status, output);
+          err = snd_pcm_status(current.tx.handle, status);
+          //snd_pcm_status_dump(status, output);
           return num_bytes;
         }
 
@@ -1176,6 +1176,8 @@ int alsa_audio_is_ready(audio_desc_t ad __attribute__((unused)))
       return FALSE;
     }
 
+    avail = snd_pcm_frames_to_bytes(current.rx.handle, //frames
+                                    snd_pcm_status_get_avail(status));
 
     if (!snd_pcm_status_get_avail_max(status)) {
       debug_msg("Resetting audio as statusmaxframes is zero\n");
@@ -1184,14 +1186,11 @@ int alsa_audio_is_ready(audio_desc_t ad __attribute__((unused)))
       err = snd_pcm_start(current.rx.handle);
       if (err<0) debug_msg("Failed to re-start in audio_ready");
       //dump status
-      snd_pcm_status_dump(status, output);
-      frames= snd_pcm_avail_update(current.rx.handle);
+      //snd_pcm_status_dump(status, output);
+      //frames= snd_pcm_avail_update(current.rx.handle);
       debug_msg("audio_is_ready: snd_pcm_avail_update(current.rx.handle);: %d\n",  snd_pcm_avail_update(current.rx.handle));
-      debug_msg("audio_is_ready: %d bytes (btye per blk %d), frames: %d\n", avail, current.bytes_per_block, frames);
+      debug_msg("audio_is_ready: %d bytes (bytes per blk %d)\n", avail, current.bytes_per_block);
     }
-
-    avail = snd_pcm_frames_to_bytes(current.rx.handle, //frames
-                                    snd_pcm_status_get_avail(status));
   
     return (avail >= current.bytes_per_block);
 }
