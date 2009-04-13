@@ -170,7 +170,7 @@ distclean: clean
 	-rm -rf core core-$(RATVER)-media core-$(RATVER)-ui
 
 install: all
-	test -d $(DESTDIR)$(bindir || \
+	test -d $(DESTDIR)$(bindir) || \
 		$(INSTALL) -d $(DESTDIR)$(bindir)
 	test -d $(DESTDIR)$(mandir)/man1 || \
 		$(INSTALL) -d $(DESTDIR)$(mandir)/man1

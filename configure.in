@@ -366,10 +366,31 @@ AC_ARG_WITH(common,
 	[ COMMON_INC=${DEFAULT_COMMON_INC}
 	  COMMON_LIB=${DEFAULT_COMMON_LIB} ])
 
+# dirs in order of preference of where to find UCL common header files 
+dirs="$COMMON_INC $COMMON_INC/include \ 
+	${prefix}/include/uclmmbase \
+	${prefix}/include/common-mml \
+	/usr/include/uclmmbase \
+	/usr/include/common-mml \
+	/usr/local/include/uclmmbase \
+	/usr/local/include/common-mml"
+
+FOUND_DIR=no
+for d in $dirs ; do
+	if test -d "$d" ; then
+		hdirs="$hdirs $d"
+		FOUND_DIR=yes
+	fi
+done
+
+if test x$FOUND_DIR = xno
+then
+	hdirs=$COMMON_INC/include
+fi
+
 FOUND_COMMON_H=no
-for h in ${COMMON_INC} ${COMMON_INC}/include ${COMMON_INC}/include/common-mml ${COMMON_INC}/include/uclmmbase /usr/include/uclmmbase
-do
-AC_CHECK_HEADER($h/mbus.h,
+for h in $hdirs ; do
+	AC_CHECK_HEADER($h/mbus.h,
 	[
 		COMMON_INC="${h}"
 		FOUND_COMMON_H=yes
@@ -386,43 +407,56 @@ then
 	exit
 fi
 
-# Check if installed it on it's own...
-if test ! -d ${COMMON_LIB}
+AC_MSG_NOTICE([using UCL common library header files found in $COMMON_INC])
+
+COMMON_INC="-I${COMMON_INC}"
+AC_SUBST(COMMON_INC)
+
+# Check in a few install locations for libuclmmbase
+for f in `ls -d ${COMMON_LIB}/libuclmmbase.* 2>/dev/null` \
+	`ls -d ${COMMON_LIB}/lib64/libuclmmbase.* 2>/dev/null` \
+	`ls -d ${COMMON_LIB}/lib/libuclmmbase.* 2>/dev/null` \
+	`ls -d ${prefix}/lib64/libuclmmbase.* 2>/dev/null` \
+	`ls -d ${prefix}/lib/libuclmmbase.* 2>/dev/null` \
+	`ls -d /usr/lib64/libuclmmbase.* 2>/dev/null` \
+	`ls -d /usr/lib/libuclmmbase.* 2>/dev/null` \
+	`ls -d /usr/local/lib64/libuclmmbase.* 2>/dev/null` \
+	`ls -d /usr/local/lib/libuclmmbase.* 2>/dev/null` 
+do
+	if test -f "$f" ; then
+		COMMON_LIB=`dirname $f`
+		COMMON_LIB=`(cd $COMMON_LIB ; pwd)`
+		break
+	fi
+done
+
+FOUND_COMMON_LIB=no
+AC_CHECK_LIB(uclmmbase, mbus_init, FOUND_COMMON_LIB=yes, , -L${COMMON_LIB})
+
+if test x$FOUND_COMMON_LIB = xno
 then
-	COMMON_LIB=${COMMON_LIB}/lib
+	echo "Could not find libuclmmbase.  RAT may not build because:"
+	echo "   (a) Library is not installed."
+	echo "   (b) Library is not built or not in expected location (--with-common=DIR)."
+	echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
+	exit
 fi
 
-COMMON_DEP="${COMMON_LIB}/libuclmmbase.a"
-
-AC_CHECK_LIB(uclmmbase,
-	    mbus_init,
-	    COMMON_LIB=${COMMON_LIB},
-	    [
-		    echo "Could not find libuclmmbase.a.  RAT may not build because:"
-		    echo "   (a) Library is not installed."
-		    echo "   (b) Library is not built or not in expected location (--with-common=DIR)."
-		    echo "   (c) this script failed to see it (please inform rat-trap@cs.ucl.ac.uk)."
-		    echo "$COMMON_INC $DEFAULT_COMMON_INC"
-		    if test ${COMMON_INC} = ${DEFAULT_COMMON_INC} 
-		    then
-			COMMON_LIB="${DEFAULT_COMMON_LIB}"
-		    else 
-			exit
-		    fi
-], -L${COMMON_LIB})
+AC_MSG_NOTICE([using libuclmmbase found in $COMMON_LIB])
 
 # Convert paths into compiler arguments
 
-if test "${COMMON_INC}" = "/usr/include/uclmmbase"
+if test "${COMMON_LIB}" = "/usr/lib64"
+then
+	COMMON_LIB="-luclmmbase"
+elif test "${COMMON_LIB}" = "/usr/lib"
 then
 	COMMON_LIB="-luclmmbase"
 else
 	COMMON_LIB="-L${COMMON_LIB} -luclmmbase"
-	EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_DEP}"
 fi
-COMMON_INC="-I${COMMON_INC}"
-AC_SUBST(COMMON_INC)
 AC_SUBST(COMMON_LIB)
+
 AC_SUBST(EXTERNAL_DEP)
 
 
