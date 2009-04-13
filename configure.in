@@ -264,7 +264,7 @@ if test "${TCL_MAJOR_VERSION}" -gt 8  \
   -o \( "${TCL_MAJOR_VERSION}" -eq 8 -a "${TCL_MINOR_VERSION}" -ge 4 \); then
     AC_MSG_RESULT([Tcl ${TCL_VERSION}${TCL_PATCH_LEVEL}])
 
-elif test "${TCL_VERSION}" == "8.0" ; then
+elif test "${TCL_VERSION}" = "8.0" ; then
     if test -f "${TCL_SRC_DIR}/generic/tcl2c.c" ; then
         AC_MSG_RESULT([UCL Tcl ${TCL_VERSION}${TCL_PATCH_LEVEL}])
     else
@@ -280,7 +280,7 @@ SC_PATH_TKCONFIG
 SC_LOAD_TKCONFIG
 
 AC_MSG_CHECKING([for a compatible version of Tk])
-if test "${TCL_VERSION}" == "${TK_VERSION}"; then
+if test "${TCL_VERSION}" = "${TK_VERSION}"; then
     AC_MSG_RESULT([Tk ${TK_VERSION}${TK_PATCH_LEVEL}])
 
 else

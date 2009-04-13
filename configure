@@ -6883,7 +6883,7 @@ if test "${TCL_MAJOR_VERSION}" -gt 8  \
     { echo "$as_me:$LINENO: result: Tcl ${TCL_VERSION}${TCL_PATCH_LEVEL}" >&5
 echo "${ECHO_T}Tcl ${TCL_VERSION}${TCL_PATCH_LEVEL}" >&6; }
 
-elif test "${TCL_VERSION}" == "8.0" ; then
+elif test "${TCL_VERSION}" = "8.0" ; then
     if test -f "${TCL_SRC_DIR}/generic/tcl2c.c" ; then
         { echo "$as_me:$LINENO: result: UCL Tcl ${TCL_VERSION}${TCL_PATCH_LEVEL}" >&5
 echo "${ECHO_T}UCL Tcl ${TCL_VERSION}${TCL_PATCH_LEVEL}" >&6; }
@@ -7097,7 +7097,7 @@ echo "${ECHO_T}could not find ${TK_BIN_DIR}/tkConfig.sh" >&6; }
 
 { echo "$as_me:$LINENO: checking for a compatible version of Tk" >&5
 echo $ECHO_N "checking for a compatible version of Tk... $ECHO_C" >&6; }
-if test "${TCL_VERSION}" == "${TK_VERSION}"; then
+if test "${TCL_VERSION}" = "${TK_VERSION}"; then
     { echo "$as_me:$LINENO: result: Tk ${TK_VERSION}${TK_PATCH_LEVEL}" >&5
 echo "${ECHO_T}Tk ${TK_VERSION}${TK_PATCH_LEVEL}" >&6; }
 
