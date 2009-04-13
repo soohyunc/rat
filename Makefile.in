@@ -15,6 +15,7 @@ AR      = ar
 RANLIB  = @RANLIB@
 ECHO    = echo
 STRIP	= strip
+INSTALL	= @INSTALL@
 
 VERSION = @VERSION@
 RATVER  = rat-$(VERSION)
@@ -164,17 +165,24 @@ clean:
 	-rm -f rat $(RATVER)-media $(RATVER)-ui $(RATVER)-kill $(RATVER)
 
 distclean: clean
-	-rm -rf config.cache config.log config.status ratconf.h Makefile
+	-rm -rf autom4te.cache config.cache config.log config.status
+	-rm -rf ratconf.h Makefile
 	-rm -rf core core-$(RATVER)-media core-$(RATVER)-ui
 
 install: all
-	./install-sh -m 555 -c rat             $(bindir)
-	./install-sh -m 555 -c $(RATVER)       $(bindir)
-	./install-sh -m 555 -c $(RATVER)-kill  $(bindir)/rat-kill
-	./install-sh -m 555 -c $(RATVER)-media $(bindir)
-	./install-sh -m 555 -c $(RATVER)-ui    $(bindir)
-	./install-sh -m 444 -c man/man1/rat.1  $(mandir)/man1/rat.1
-	./install-sh -m 444 -c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(sysconfdir)/sdr/plugins
+	test -d $(DESTDIR)$(bindir || \
+		$(INSTALL) -d $(DESTDIR)$(bindir)
+	test -d $(DESTDIR)$(mandir)/man1 || \
+		$(INSTALL) -d $(DESTDIR)$(mandir)/man1
+	test -d $(DESTDIR)$(sysconfdir)/sdr/plugins || \
+		$(INSTALL) -d $(DESTDIR)$(sysconfdir)/sdr/plugins
+	$(INSTALL) -m 555 -c rat             $(DESTDIR)$(bindir)
+	$(INSTALL) -m 555 -c $(RATVER)       $(DESTDIR)$(bindir)
+	$(INSTALL) -m 555 -c $(RATVER)-kill  $(DESTDIR)$(bindir)/rat-kill
+	$(INSTALL) -m 555 -c $(RATVER)-media $(DESTDIR)$(bindir)
+	$(INSTALL) -m 555 -c $(RATVER)-ui    $(DESTDIR)$(bindir)
+	$(INSTALL) -m 444 -c man/man1/rat.1  $(DESTDIR)$(mandir)/man1/rat.1
+	$(INSTALL) -m 444 -c sdr2.plugin.S02.audio.rtp.-.$(RATVER) $(DESTDIR)$(sysconfdir)/sdr/plugins
 
 installer: $(RATVER)-installer
 	mkdir release
@@ -211,16 +219,8 @@ tgz: $(RATVER)-$(OSTYPE).tar.gz
 
 rpm: clean tgz 
 	@${ECHO} "Building $(RATVER).rpm -- this almost certainly needs to run as root on RedHat Linux"
-#	install -m 644 $(RATVER)-$(OSTYPE).tar.gz /usr/src/redhat/SOURCES/rat-4.1.2.tar.gz
-	install -m 644 AccessGrid-rat.spec /usr/src/redhat/SPECS/AccessGrid-rat.spec
 	install -m 644 $(RATVER)-$(OSTYPE).tar.gz /usr/src/redhat/SOURCES/$(RATVER)-$(OSTYPE).tar.gz
 	rpm -bb $(RATVER).spec
-
-agrpm: clean
-	@${ECHO} "Building AG $(RATVER).rpm -- this almost certainly needs to run as root on RedHat Linux"
-	( cd ../.. ; ln -s ag-rat $(RATVER) ; tar cvfh /usr/src/redhat/SOURCES/$(RATVER).tar.gz $(RATVER) ; rm $(RATVER) )
-	install -m 644 AccessGrid-rat.spec /usr/src/redhat/SPECS/AccessGrid-rat.spec
-	rpm -ba AccessGrid-rat.spec
 
 Makefile: Makefile.in VERSION
 	$(error "Run configure again, the following file(s) are newer than Makefile: $?")

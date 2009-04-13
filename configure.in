@@ -10,6 +10,7 @@ AC_CANONICAL_SYSTEM
 AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_RANLIB
+AC_PROG_INSTALL
 
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
@@ -366,7 +367,7 @@ AC_ARG_WITH(common,
 	  COMMON_LIB=${DEFAULT_COMMON_LIB} ])
 
 FOUND_COMMON_H=no
-for h in ${COMMON_INC} ${COMMON_INC}/include ${COMMON_INC}/include/common-mml
+for h in ${COMMON_INC} ${COMMON_INC}/include ${COMMON_INC}/include/common-mml ${COMMON_INC}/include/uclmmbase /usr/include/uclmmbase
 do
 AC_CHECK_HEADER($h/mbus.h,
 	[
@@ -386,7 +387,7 @@ then
 fi
 
 # Check if installed it on it's own...
-if test ! -d ${COMMON_LIB} 
+if test ! -d ${COMMON_LIB}
 then
 	COMMON_LIB=${COMMON_LIB}/lib
 fi
@@ -411,14 +412,19 @@ AC_CHECK_LIB(uclmmbase,
 ], -L${COMMON_LIB})
 
 # Convert paths into compiler arguments
+
+if test "${COMMON_INC}" = "/usr/include/uclmmbase"
+then
+	COMMON_LIB="-luclmmbase"
+else
+	COMMON_LIB="-L${COMMON_LIB} -luclmmbase"
+	EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_DEP}"
+fi
 COMMON_INC="-I${COMMON_INC}"
 AC_SUBST(COMMON_INC)
-
-COMMON_LIB="-L${COMMON_LIB} -luclmmbase"
 AC_SUBST(COMMON_LIB)
-
-EXTERNAL_DEP="${EXTERNAL_DEP} ${COMMON_DEP}"
 AC_SUBST(EXTERNAL_DEP)
+
 
 # GSM flag checks
 #-----------------------------------------------------------------------------
