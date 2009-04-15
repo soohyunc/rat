@@ -7,6 +7,13 @@
 # Full terms and conditions of the copyright appear below.
 #
 
+package require Tk
+
+if {$::tk_version > 8.4} {
+    package require Ttk
+    ttk::style theme use clam
+}
+
 set script_error [ catch {
 
 wm withdraw .
@@ -15,10 +22,12 @@ if {[string compare [info commands registry] "registry"] == 0} {
     set win32 1
 } else {
     set win32 0
-    option add *Menu*selectColor 		forestgreen
-    option add *Radiobutton*selectColor 	forestgreen
-    option add *Checkbutton*selectColor 	forestgreen
-    option add *Entry.background 		gray70
+    if {$::tk_version < 8.5} {
+	option add *Menu*selectColor		forestgreen
+	option add *Radiobutton*selectColor	forestgreen
+	option add *Checkbutton*selectColor	forestgreen
+	option add *Entry.background		gray70
+    }
 }
 
 set statsfont     [font actual {helvetica 10}]
@@ -114,18 +123,18 @@ proc init_source {ssrc} {
 		set         PHONE($ssrc) ""
 		set           LOC($ssrc) ""
 		set          TOOL($ssrc) ""
-		set 	     NOTE($ssrc) ""
-		set 	     PRIV($ssrc) ""
+		set          NOTE($ssrc) ""
+		set          PRIV($ssrc) ""
 		set         CODEC($ssrc) unknown
 		set          GAIN($ssrc) 1.0
 		set          MUTE($ssrc) 0
 		set      DURATION($ssrc) ""
-                set   BUFFER_SIZE($ssrc) 0
-                set PLAYOUT_DELAY($ssrc) 0
-                set          SKEW($ssrc) 1.000
-		set   SPIKE_EVENTS($ssrc) 0
+		set   BUFFER_SIZE($ssrc) 0
+		set PLAYOUT_DELAY($ssrc) 0
+		set          SKEW($ssrc) 1.000
+		set  SPIKE_EVENTS($ssrc) 0
 		set   SPIKE_TOGED($ssrc) 0
-	        set           RTT($ssrc) ""
+		set           RTT($ssrc) ""
 		set    PCKTS_RECV($ssrc) 0
 		set    PCKTS_LOST($ssrc) 0
 		set    PCKTS_MISO($ssrc) 0
@@ -1456,7 +1465,7 @@ proc toggle_stats {ssrc} {
 	    radiobutton $win.df.3d.opts.filters.$cnt \
 		    -value "$i" -variable filter_type($ssrc) \
 		    -text "$i"
- 		pack $win.df.3d.opts.filters.$cnt -side top -anchor w
+		pack $win.df.3d.opts.filters.$cnt -side top -anchor w
 	    incr cnt
 	}
 
@@ -1604,7 +1613,20 @@ proc change_rtp_addr {l_session_address} {
 frame .r
 frame .l
 frame .l.t -relief groove -bd 2
-scrollbar .l.t.scr -relief flat -highlightthickness 0 -command ".l.t.list yview"
+if {$::tk_version < 8.5} {
+    scrollbar .l.t.scr -relief flat -highlightthickness 0 -command ".l.t.list yview"
+} else {
+    scrollbar .l.t.tmp
+    ttk::style configure TScrollbar \
+	-background  [.l.t.tmp cget -background] \
+	-troughcolor [.l.t.tmp cget -troughcolor] \
+	;
+    ttk::style map TScrollbar \
+	-background [list disabled [.l.t.tmp cget -background]] \
+	;
+
+    ttk::scrollbar .l.t.scr -command ".l.t.list yview"
+}
 canvas .l.t.list -highlightthickness 0 -bd 0 -relief flat -width $iwd -height 120 -yscrollcommand ".l.t.scr set" -yscrollincrement $iht
 frame .l.t.list.f -highlightthickness 0 -bd 0
 .l.t.list create window 0 0 -anchor nw -window .l.t.list.f
@@ -1660,7 +1682,11 @@ pack .r.c.tx -side left -fill x -expand 1
 pack .l -side top -fill both -expand 1
 #pack .l.f.title -side top -pady 2 -anchor w -fill x
 pack .l.t  -side top -fill both -expand 1 -padx 2
-pack .l.t.scr -side left -fill y
+if {$::tk_version < 8.5} {
+    pack .l.t.scr -side left -fill y
+} else {
+    pack .l.t.scr -side right -fill y
+}
 pack .l.t.list -side left -fill both -expand 1
 bind .l.t.list <Configure> {fix_scrollbar}
 
@@ -2090,9 +2116,17 @@ pack    $i.of.codecs -side left -padx 2 -fill y
 frame   $i.of.codecs.l -rel raised
 label   $i.of.codecs.l.l -text "Codec"
 listbox $i.of.codecs.lb -width 20 -yscrollcommand "$i.of.codecs.scroll set" -relief fl -bg white
-scrollbar $i.of.codecs.scroll -command "$i.of.codecs.lb yview" -rel fl
-pack    $i.of.codecs.l $i.of.codecs.l.l -side top -fill x
-pack    $i.of.codecs.scroll $i.of.codecs.lb -side left -fill both
+if {$::tk_version < 8.5} {
+    scrollbar $i.of.codecs.scroll -command "$i.of.codecs.lb yview" -rel fl
+
+    pack    $i.of.codecs.l $i.of.codecs.l.l -side top -fill x
+    pack    $i.of.codecs.scroll $i.of.codecs.lb -side left -fill both
+} else {
+    ttk::scrollbar $i.of.codecs.scroll -command "$i.of.codecs.lb yview"
+
+    pack    $i.of.codecs.l $i.of.codecs.l.l -side top -fill x
+    pack    $i.of.codecs.scroll $i.of.codecs.lb -side right -fill both
+}
 
 frame   $i.of.details -bd 0
 pack    $i.of.details -side left -fill both -expand 1 -anchor n
@@ -2283,11 +2317,18 @@ frame     .about.rim.d.copyright
 frame     .about.rim.d.copyright.f -relief flat
 frame     .about.rim.d.copyright.f.f
 text      .about.rim.d.copyright.f.f.blurb -height 14 -yscrollcommand ".about.rim.d.copyright.f.f.scroll set" -relief flat -bg white
-scrollbar .about.rim.d.copyright.f.f.scroll -command ".about.rim.d.copyright.f.f.blurb yview" -relief flat
-
+if {$::tk_version < 8.5} {
+    scrollbar .about.rim.d.copyright.f.f.scroll -command ".about.rim.d.copyright.f.f.blurb yview" -relief flat
+} else {
+    ttk::scrollbar .about.rim.d.copyright.f.f.scroll -command ".about.rim.d.copyright.f.f.blurb yview"
+}
 pack      .about.rim.d.copyright.f -expand 1 -fill both
 pack      .about.rim.d.copyright.f.f -expand 1 -fill both
-pack      .about.rim.d.copyright.f.f.scroll -side left -fill y -expand 1
+if {$::tk_version < 8.5} {
+    pack  .about.rim.d.copyright.f.f.scroll -side left -fill y -expand 1
+} else {
+    pack  .about.rim.d.copyright.f.f.scroll -side right -fill y -expand 1
+}
 pack      .about.rim.d.copyright.f.f.blurb -side left -fill y -expand 1
 
 frame     .about.rim.d.credits
@@ -2540,8 +2581,13 @@ proc mtrace {src dst} {
 	text      .mtrace-$src-$dst.t -background white -font "Courier 8" -wrap none \
 	                              -yscrollcommand ".mtrace-$src-$dst.sr set" \
 	                              -xscrollcommand ".mtrace-$src-$dst.sb set"
-	scrollbar .mtrace-$src-$dst.sb -command ".mtrace-$src-$dst.t xview" -orient horizontal
-	scrollbar .mtrace-$src-$dst.sr -command ".mtrace-$src-$dst.t yview" -orient vertical
+	if {$::tk_version < 8.5} {
+		scrollbar .mtrace-$src-$dst.sb -command ".mtrace-$src-$dst.t xview" -orient horizontal
+		scrollbar .mtrace-$src-$dst.sr -command ".mtrace-$src-$dst.t yview" -orient vertical
+	} else {
+		ttk::scrollbar .mtrace-$src-$dst.sb -command ".mtrace-$src-$dst.t xview" -orient horizontal
+		ttk::scrollbar .mtrace-$src-$dst.sr -command ".mtrace-$src-$dst.t yview" -orient vertical
+	}
 	pack .mtrace-$src-$dst.sb -fill x    -expand 0 -side bottom -anchor s
 	pack .mtrace-$src-$dst.sr -fill y    -expand 0 -side right  -anchor e
 	pack .mtrace-$src-$dst.t  -fill both -expand 1 -side left   -anchor w
@@ -2605,18 +2651,8 @@ if {$fwinerr != {}} {
 proc fileDialog {cmdbox} {
     global win32 tcl_platform
 
-	set defaultExtension au
-	set defaultLocation  .
-
-    switch -glob $tcl_platform(os) {
-	SunOS    {
-		if [file exists /usr/demo/SOUND/sounds] { set defaultLocation /usr/demo/SOUND/sounds }
-		}
-	Windows* {
-		if [file exists C:/Windows/Media]       { set defaultLocation C:/Windows/Media }
-		set defaultExtension wav
-		}
-	}
+	set defaultExtension wav
+	set defaultLocation  [file nativename "~/"]
 
     set types {
 		{"NeXT/Sun Audio files"	"au"}

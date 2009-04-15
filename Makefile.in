@@ -152,7 +152,7 @@ rat: VERSION Makefile
 	@${ECHO} "#!/bin/sh" > $@
 	@${ECHO} "# Generated automatically from RAT Makefile.  Edit there." >> $@
 	@${ECHO} 'PATH=$${PATH}:.' >> $@
-	@${ECHO} "exec rat-$(VERSION)" '$$*' >> $@
+	@${ECHO} "exec rat-$(VERSION)" \"'$$@'\" >> $@
 	@chmod a+x rat
 
 clean:

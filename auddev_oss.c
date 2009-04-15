@@ -846,8 +846,8 @@ oss_audio_loopback(audio_desc_t ad, int gain)
 int
 oss_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
 {
-        int 		read_len, available;
-	audio_buf_info	info;
+        int		read_len, available;
+        audio_buf_info	info;
 
         assert(devices[ad].audio_rfd > 0);
 
@@ -855,12 +855,13 @@ oss_audio_read(audio_desc_t ad, u_char *buf, int read_bytes)
         ioctl(devices[ad].audio_rfd, SNDCTL_DSP_GETISPACE, &info);
         available = min(info.bytes, read_bytes);
 
+        errno = 0;
         read_len  = read(devices[ad].audio_rfd, (char *)buf, available);
-	if (read_len < 0) {
-#ifndef HAVE_NETBSD_AUDIO
-		debug_msg("audio_read %s\n", strerror(errno));
-#endif
-		return 0;
+        if (read_len < 0) {
+                if (errno != EINTR && errno != EAGAIN) {
+                        debug_msg("audio_read %s\n", strerror(errno));
+                }
+                return 0;
         }
 
         return read_len;
@@ -876,20 +877,20 @@ oss_audio_write(audio_desc_t ad, u_char *buf, int write_bytes)
 
         p   = (char *) buf;
         len = write_bytes;
-	errno = 0;
         while (1) {
+                errno = 0;
                 if ((done = write(devices[ad].audio_wfd, p, len)) == len) {
                         break;
                 }
-		if (errno != EINTR && errno != EAGAIN) {
-			perror("audio_write");
-			if(done < 0) done=0;
-			return write_bytes - (len - done);
+                if (errno != EINTR && errno != EAGAIN) {
+                        debug_msg("audio_write %s\n", strerror(errno));
+                        if(done < 0) done=0;
+                        return write_bytes - (len - done);
                 }
                 len -= done;
                 p   += done;
         }
-	debug_msg("OSS wrote %d bytes\n",write_bytes);
+        debug_msg("OSS wrote %d bytes\n",write_bytes);
         return write_bytes;
 }
 

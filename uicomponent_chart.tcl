@@ -3,9 +3,13 @@ namespace eval chart {
 		toplevel  .chart
 		canvas    .chart.c  -xscrollcommand {.chart.sb set} -yscrollcommand {.chart.sr set}
 		frame     .chart.c.f
-		scrollbar .chart.sr -orient vertical   -command {.chart.c yview}
-		scrollbar .chart.sb -orient horizontal -command {.chart.c xview}
-
+		if {$::tk_version < 8.5} {
+			scrollbar .chart.sr -orient vertical   -command {.chart.c yview}
+			scrollbar .chart.sb -orient horizontal -command {.chart.c xview}
+		} else {
+			ttk::scrollbar .chart.sr -orient vertical   -command {.chart.c yview}
+			ttk::scrollbar .chart.sb -orient horizontal -command {.chart.c xview}
+		}
 		pack .chart.sb -side bottom -fill x    -expand 0 -anchor s
 		pack .chart.sr -side right  -fill y    -expand 0 -anchor e
 		pack .chart.c  -side left   -fill both -expand 1 -anchor n
@@ -37,11 +41,11 @@ namespace eval chart {
 		# help window, giving us a window enter for $window making us popup the
 		# help again.....
 		if {[winfo width $window] > [winfo height $window]} {
-		    set xpos [expr [winfo pointerx $window] + 10]
-		    set ypos [expr [winfo rooty    $window] + [winfo height $window] + 5]
+			set xpos [expr [winfo pointerx $window] + 10]
+			set ypos [expr [winfo rooty    $window] + [winfo height $window] + 5]
 		} else {
-		    set xpos [expr [winfo rootx    $window] + [winfo width $window] + 5]
-		    set ypos [expr [winfo pointery $window] + 10]
+			set xpos [expr [winfo rootx    $window] + [winfo width $window] + 5]
+			set ypos [expr [winfo pointery $window] + 10]
 		}
 
 		wm geometry  .chart_popup +$xpos+$ypos
@@ -130,4 +134,3 @@ namespace eval chart {
 		wm withdraw .chart
 	}
 }
-

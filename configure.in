@@ -227,13 +227,14 @@ case "$target" in
 *netbsd*)
 	AC_CHECK_LIB(ossaudio, main)
 	if test "$ac_cv_lib_ossaudio_main"="yes"; then
+		AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
 		AUDIOBJ="$AUDIOBJ auddev_oss.o"
 		AUD_LIB="$AUD_LIB -lossaudio"
 		AC_DEFINE(HAVE_OSS_AUDIO)
 	fi
+	AC_CHECK_HEADERS(sys/audioio.h)
 	AUD_OBJ="$AUDIOBJ auddev_netbsd.o"
 	AC_DEFINE(HAVE_NETBSD_AUDIO)
-	AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
 	;;
 *irix*)
 	AUD_LIB="$AUD_LIB -laudio"

@@ -205,7 +205,7 @@ proc asFileBox {w args} {
     # Create Window
     toplevel $w
     wm title $w $base(-title)
-    wm geometry $w 400x300
+    wm geometry $w 400x320
     wm resizable $w 0 0
 
     frame $w.main
@@ -221,7 +221,11 @@ proc asFileBox {w args} {
 
     # Create file list
     frame $w.main.lbf
-    scrollbar $w.main.lbf.scroll -command "$w.main.lbf.list yview"
+    if {$::tk_version < 8.5} {
+	scrollbar $w.main.lbf.scroll -command "$w.main.lbf.list yview"
+    } else {
+	ttk::scrollbar $w.main.lbf.scroll -command "$w.main.lbf.list yview"
+    }
     set as_list($w) [listbox $w.main.lbf.list -yscroll "$w.main.lbf.scroll set" -bg white]
     pack $w.main.lbf -side top -expand 1 -fill both
     pack $w.main.lbf.scroll -side right -fill y
