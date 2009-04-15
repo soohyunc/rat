@@ -213,7 +213,7 @@ case "$target" in
 *freebsd*)
 	# PC Speaker device on FreeBSD
 	AC_CHECK_HEADERS(machine/pcaudioio.h)
-	if test $ac_cv_header_machine_h="yes" ; then
+	if test "$ac_cv_header_machine_h"="yes" ; then
 		AUD_OBJ="$AUD_OBJ auddev_pca.o"
 		AC_DEFINE(HAVE_PCA_AUDIO)
 	fi
@@ -225,10 +225,15 @@ case "$target" in
   	AC_DEFINE(HAVE_NEWPCM_AUDIO) 
 	;;
 *netbsd*)
-	AUD_OBJ="$AUDIOBJ auddev_netbsd.o auddev_oss.o"
+	AC_CHECK_LIB(ossaudio, main)
+	if test "$ac_cv_lib_ossaudio_main"="yes"; then
+		AUDIOBJ="$AUDIOBJ auddev_oss.o"
+		AUD_LIB="$AUD_LIB -lossaudio"
+		AC_DEFINE(HAVE_OSS_AUDIO)
+	fi
+	AUD_OBJ="$AUDIOBJ auddev_netbsd.o"
 	AC_DEFINE(HAVE_NETBSD_AUDIO)
 	AC_CHECK_HEADERS(sys/soundcard.h soundcard.h)
-	AC_DEFINE(HAVE_OSS_AUDIO)
 	;;
 *irix*)
 	AUD_LIB="$AUD_LIB -laudio"

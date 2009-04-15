@@ -120,11 +120,7 @@ deve2oss(deve_e encoding)
 static int
 oss_setfd(int fd)
 {
-#if HAVE_NETBSD_AUDIO
-	return auddev_netbsd_setfd(fd);
-#else
 	return ioctl(fd, SNDCTL_DSP_SETDUPLEX, 0);
-#endif
 }
 
 static int
