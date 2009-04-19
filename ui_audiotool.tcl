@@ -2594,7 +2594,12 @@ proc mtrace {src dst} {
 
 	wm title .mtrace-$src-$dst "mtrace from $src_addr to $dst_addr via group $group_addr"
 
-	set fd [open "|mtrace $src_addr $dst_addr $group_addr" "r"]
+	if [file executable /usr/sbin/mtrace] {
+		set mtrace_prog /usr/sbin/mtrace
+	} else {
+		set mtrace_prog mtrace
+	}
+	set fd [open "|$mtrace_prog $src_addr $dst_addr $group_addr" "r"]
 	fconfigure $fd -blocking 0
 	fileevent  $fd readable "mtrace_callback $fd $src $dst"
 }
