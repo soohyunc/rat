@@ -1616,14 +1616,7 @@ frame .l.t -relief groove -bd 2
 if {$::tk_version < 8.5} {
     scrollbar .l.t.scr -relief flat -highlightthickness 0 -command ".l.t.list yview"
 } else {
-    scrollbar .l.t.tmp
-    ttk::style configure TScrollbar \
-	-background  [.l.t.tmp cget -background] \
-	-troughcolor [.l.t.tmp cget -troughcolor] \
-	;
-    ttk::style map TScrollbar \
-	-background [list disabled [.l.t.tmp cget -background]] \
-	;
+    ttk::style map TScrollbar -background [list disabled [.l.t cget -bg]]
 
     ttk::scrollbar .l.t.scr -command ".l.t.list yview"
 }
