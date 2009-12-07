@@ -1691,7 +1691,7 @@ frame .r.c.rx.au
 pack .r.c.rx.net -side top -anchor n -fill both
 pack .r.c.rx.au -side bottom -expand 1 -fill both
 
-checkbutton .r.c.rx.net.on -highlightthickness 0 -text "Listen" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $compfont -width 5 -anchor w -padx 4
+checkbutton .r.c.rx.net.on -highlightthickness 0 -text "Listen" -onvalue 0 -offvalue 1 -variable out_mute_var -command {output_mute $out_mute_var} -font $compfont -width 7 -anchor w -padx 4
 label       .r.c.rx.net.bw -textv bps_in -font $compfont -anchor e -width 8
 pack .r.c.rx.net.on -side left
 pack .r.c.rx.net.bw -side right -fill x -expand 1
@@ -1725,7 +1725,7 @@ frame .r.c.tx.au
 pack .r.c.tx.net -side top -anchor n  -fill both
 pack .r.c.tx.au -side bottom -expand 1 -fill both
 
-checkbutton .r.c.tx.net.on -highlightthickness 0 -text "Talk" -onvalue 0 -offvalue 1 -variable in_mute_var -command {input_mute $in_mute_var} -font $compfont -width 5 -anchor w -padx 4
+checkbutton .r.c.tx.net.on -highlightthickness 0 -text "Talk" -onvalue 0 -offvalue 1 -variable in_mute_var -command {input_mute $in_mute_var} -font $compfont -width 7 -anchor w -padx 4
 label       .r.c.tx.net.bw -textv bps_out -font $compfont -anchor e -width 8
 pack .r.c.tx.net.on -side left
 pack .r.c.tx.net.bw -side right -fill x -expand 1
