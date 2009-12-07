@@ -21,17 +21,25 @@
 #include <AudioToolbox/DefaultAudioOutput.h>
 #include <AudioToolbox/AudioConverter.h>
 #include <CoreAudio/CoreAudio.h>
+#include <CoreServices/CoreServices.h>
+
+#if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
+#import <AudioUnit/AUComponent.h>
+#else
+#import <AudioUnit/AUNTComponent.h>
+#endif
 
 struct device {
 	char *name;							// The input device name
 	AudioUnit outputUnit_;						// The output audio unit
 	AudioStreamBasicDescription inputStreamBasicDescription_;	// The input stream description
 	AudioStreamBasicDescription mashStreamBasicDescription_;	// The Mash stream description
-	AudioUnitInputCallback input;					// callback function to privde output data
+	AURenderCallbackStruct input;					// callback function to privde output data
 	Float32 inputGain_, outputGain_;				// Input and output volume gain values. 
 	audio_format suported_formats[14];
 	int num_supported_format;
 	AudioDeviceID inputDeviceID_;					// The input device ID.
+	AudioDeviceIOProcID inputDeviceProcID_;
 };
 
 // used for testing
@@ -137,7 +145,9 @@ resamp(int interp_factor_L, int decim_factor_M, int num_taps_per_phase,
     *p_num_out = num_out;
 }
 
+// Takes audio input from Mic and passes it to Rat media for transmission
 static OSStatus 
+//AudioDeviceIOProc
 audioIOProc(AudioDeviceID inDevice, const AudioTimeStamp* inNow, 
             const AudioBufferList* inInputData, const AudioTimeStamp* inInputTime, 
 	    AudioBufferList* outOutputData, const AudioTimeStamp* inOutputTime, 
@@ -218,52 +228,54 @@ audioIOProc(AudioDeviceID inDevice, const AudioTimeStamp* inNow,
 };
 
 static OSStatus 
-outputRenderer(void *inRefCon, AudioUnitRenderActionFlags inActionFlags, const AudioTimeStamp *inTimeStamp, 
-               UInt32 inBusNumber, AudioBuffer *ioData) 
+outputRenderer(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags, const AudioTimeStamp *inTimeStamp, 
+               UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) 
 {
-	int i;
-	SInt16* ip = (SInt16*)ioData->mData;
+	unsigned int i, j;
 
 	UNUSED(inRefCon);
-	UNUSED(inActionFlags);
+	UNUSED(ioActionFlags);
 	UNUSED(inTimeStamp);
 	UNUSED(inBusNumber);
+	UNUSED(inNumberFrames);
 
-	int requestedFrames = ioData->mDataByteSize / devices[add].mashStreamBasicDescription_.mBytesPerFrame;
-       	//int requestedFrames = ioData->mDataByteSize / 2;
 	int zeroIndex = outputReadIndex_ - 1;
 	if (zeroIndex == -1) zeroIndex = writeBufferSize_ - 1;
 
-	//printf("req frames: %d\tDataByteSize %d\ndev: %d\n",requestedFrames, ioData->mDataByteSize, devices[add].mashStreamBasicDescription_.mBytesPerFrame);
-	//printf("outputRender:\n");
-	for (i = 0; i < requestedFrames; i++)
-	{
-		// Copy the requested amount of data into the output buffer.
-		//if (muteOutput_)
-		//{	
-			//ip[i] = 0;
-			//outputReadIndex_++;
-		//}
-		//else
-		//{
-			//*ip++ = 10000;
-			ip[i] = writeBuffer_[outputReadIndex_];
-			//memcpy(ip + i, writeBuffer_ + outputReadIndex_, 2);
-			outputReadIndex_++;
+    for (i = 0; i < ioData->mNumberBuffers; i++) {
+		SInt16* ip = (SInt16*)ioData->mBuffers[i].mData;
+	
+		unsigned int requestedFrames = ioData->mBuffers[i].mDataByteSize / devices[add].mashStreamBasicDescription_.mBytesPerFrame;
+		//int requestedFrames = ioData->mBuffers[i].mDataByteSize / 2;
 
-			//printf("%d\n", ip[i]);
-			//printf("outputReadIndex: %d\n",outputReadIndex_);
-			//printf("%d",*(ip + i));
-		//};
-	//	 Zero out the previous frames to avoid replaying the contents of the ring buffer.
-		 writeBuffer_[zeroIndex--] = 0;
-	//	 Wrap around the indices if necessary.
-		if (zeroIndex == -1) zeroIndex = writeBufferSize_ - 1;
-		if (outputReadIndex_ == writeBufferSize_) outputReadIndex_ = 0;
+		//printf("req frames: %d\tDataByteSize %d\ndev: %d\n",requestedFrames, ioData->mDataByteSize, devices[add].mashStreamBasicDescription_.mBytesPerFrame);
+		//printf("outputRender:\n");
+		for (j = 0; j < requestedFrames; j++)
+		{
+			// Copy the requested amount of data into the output buffer.
+			//if (muteOutput_)
+			//{	
+				//ip[j] = 0;
+				//outputReadIndex_++;
+			//}
+			//else
+			//{
+				//*ip++ = 10000;
+				ip[j] = writeBuffer_[outputReadIndex_];
+				//memcpy(ip + j, writeBuffer_ + outputReadIndex_, 2);
+				outputReadIndex_++;
+
+				//printf("%d\n", ip[j]);
+				//printf("outputReadIndex: %d\n",outputReadIndex_);
+				//printf("%d",*(ip + j));
+			//};
+			//	 Zero out the previous frames to avoid replaying the contents of the ring buffer.
+			writeBuffer_[zeroIndex--] = 0;
+			//	 Wrap around the indices if necessary.
+			if (zeroIndex == -1) zeroIndex = writeBufferSize_ - 1;
+			if (outputReadIndex_ == writeBufferSize_) outputReadIndex_ = 0;
+		};
 	};
-	//printf("write data: \n");
-	//for (i = 0; i < blksize_; i++)
-	//printf("\n");	
 
 
     // Return success.
@@ -283,7 +295,7 @@ int macosx_audio_init(void)/* Test and initialize audio interface */
 	return 1; 
 };
 
-int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
+int macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 {
 	OSStatus err = noErr;
 	UInt32   propertySize;
@@ -347,30 +359,58 @@ int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 	UInt32 theSize = sizeof(theAnswer);
 	err = AudioDeviceSetProperty(devices[ad].inputDeviceID_, NULL, inChannel, IsInput,
                                 kAudioDevicePropertyNominalSampleRate, theSize, &theAnswer);
-	
-	// Register the AudioDeviceIOProc.
-	err = AudioDeviceAddIOProc(devices[ad].inputDeviceID_, audioIOProc,NULL);
+
 	if (err != noErr) {
-		debug_msg("error AudioDeviceAddIOProc");
+		debug_msg("error AudioDeviceSetProperty\n");
+		return 0;
+	}
+	debug_msg("Sample rate, %f\n", theAnswer);
+#if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
+	err = AudioDeviceCreateIOProcID(devices[ad].inputDeviceID_, audioIOProc, (void*)NULL, &devices[ad].inputDeviceProcID_);
+	if (err != noErr) {
+		debug_msg("error AudioDeviceCreateIOProcID, %s\n", GetMacOSStatusCommentString(err));
+		return 0;
+	}
+	err = OpenADefaultComponent(kAudioUnitType_Output, kAudioUnitSubType_DefaultOutput, &(devices[ad].outputUnit_));
+	// The HAL AU maybe a better way to in the future...
+	//err = OpenADefaultComponent(kAudioUnitType_Output, kAudioUnitSubType_HALOutput, &(devices[ad].outputUnit_));
+	if (err != noErr) {
+		debug_msg("error OpenADefaultComponent\n");
+		return 0;
+	}
+#else
+	// Register the AudioDeviceIOProc.
+	err = AudioDeviceAddIOProc(devices[ad].inputDeviceID_, audioIOProc, NULL);
+	if (err != noErr) {
+		debug_msg("error AudioDeviceAddIOProc\n");
 		return 0;
 	}
 	err = OpenDefaultAudioOutput(&(devices[ad].outputUnit_));
 	if (err != noErr) {
-		debug_msg("error OpenDefaultAudioOutput");
+		debug_msg("error OpenDefaultAudioOutput\n");
 		return 0;
 	}
-	err = AudioUnitInitialize(devices[ad].outputUnit_);
-	if (err != noErr) {
-		debug_msg("error AudioUnitInitialize");
-		return 0;
-	}
+#endif
 	// Register a callback function to provide output data to the unit.
 	devices[ad].input.inputProc = outputRenderer;
 	devices[ad].input.inputProcRefCon = 0;
-	err = AudioUnitSetProperty(devices[ad].outputUnit_, kAudioUnitProperty_SetInputCallback, kAudioUnitScope_Global, 0, &(devices[ad].input), sizeof(devices[ad].input));
+	/* These would be needed if HAL used
+	 * UInt32 enableIO =1; 
+	err = AudioUnitSetProperty(devices[ad].outputUnit_, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output, 0, (const void*)&enableIO, sizeof(UInt32));
+	enableIO=0;
+	err = AudioUnitSetProperty(devices[ad].outputUnit_, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, 1, (const void*)&enableIO, sizeof(UInt32));
+	if (err != noErr) {
+		debug_msg("error AudioUnitSetProperty EnableIO with error %ld: %s\n", err, GetMacOSStatusErrorString(err));
+		return 0;
+	}*/
+#if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
+	err = AudioUnitSetProperty(devices[ad].outputUnit_, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Global, 0, &(devices[ad].input), sizeof(AURenderCallbackStruct));
+#else
+	err = AudioUnitSetProperty(devices[ad].outputUnit_, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, 0, &(devices[ad].input), sizeof(AURenderCallbackStruct));
+#endif
 
 	if (err != noErr) {
-		debug_msg("error AudioUnitSetProperty1");
+		debug_msg("error AudioUnitSetProperty1 with error %ld: %s\n", err, GetMacOSStatusErrorString(err));
 		return 0;
 	}
 	// Define the Mash stream description. Mash puts 20ms of data into each read
@@ -443,6 +483,11 @@ int  macosx_audio_open(audio_desc_t ad, audio_format* ifmt, audio_format *ofmt)
 	outputReadIndex_ = 0; outputWriteIndex_ = 0;
 	//outputWriteIndex_ = -1;
     	// Start audio processing.
+	err = AudioUnitInitialize(devices[ad].outputUnit_);
+	if (err != noErr) {
+		debug_msg("error AudioUnitInitialize\n");
+		return 0;
+	}
 	err = AudioDeviceStart(devices[ad].inputDeviceID_, audioIOProc);
 	if (err != noErr) {
 		fprintf(stderr, "Input device error: AudioDeviceStart\n");
@@ -473,8 +518,14 @@ void macosx_audio_close(audio_desc_t ad)
 	err = AudioOutputUnitStop(devices[ad].outputUnit_);
 	if (err != noErr) fprintf(stderr, "Output device error: AudioOutputUnitStop\n");
 	// Unregister the AudioDeviceIOProc.
-	err = AudioDeviceRemoveIOProc(devices[ad].inputDeviceID_,audioIOProc);
+#if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED>=MAC_OS_X_VERSION_10_5)
+	err = AudioDeviceDestroyIOProcID(devices[ad].inputDeviceID_, devices[ad].inputDeviceProcID_);
+	if (err != noErr) fprintf(stderr, "Input device error: AudioDeviceDestroyIOProcID\n");
+#else
+	// deprecated in favor of AudioDeviceDestroyIOProcID();
+	err = AudioDeviceRemoveIOProc(devices[ad].inputDeviceID_, audioIOProc);
 	if (err != noErr) fprintf(stderr, "Input device error: AudioDeviceRemoveIOProc\n");
+#endif
 	CloseComponent(devices[ad].outputUnit_);
 	if (readBuffer_ != NULL) free(readBuffer_); readBuffer_ = NULL;
 	if (writeBuffer_ != NULL) free(writeBuffer_); writeBuffer_ = NULL;
@@ -699,7 +750,7 @@ const audio_port_details_t* macosx_audio_iport_details(audio_desc_t ad, int idx)
 int  macosx_audio_is_ready(audio_desc_t ad)
 {
 	UNUSED(ad);
-	return (availableInput_ != NULL);
+	return (availableInput_ != 0);
 }
 
 void macosx_audio_wait_for(audio_desc_t ad, int delay_ms) {
