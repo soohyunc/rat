@@ -1290,6 +1290,17 @@ proc toggle_plist {} {
 	wm deiconify .
 }
 
+proc toggle_status {} {
+	global status_on
+	if {$status_on} {
+                pack .s -before .st -side bottom -fill x -padx 2 -pady 0
+	} else {
+		pack forget .s
+	}
+	update
+	wm deiconify .
+}
+
 proc toggle_mute {cw ssrc} {
 	global iht
 	if {[$cw gettags a] == ""} {
@@ -1653,16 +1664,21 @@ frame .r.c -bd 0
 frame .r.c.rx -relief groove -bd 2
 frame .r.c.tx -relief groove -bd 2
 
-#frame .s -relief groove -bd 2 -width $iwd
-#label .s.status -text "Status: " -relief flat 
-
-#pack .s -side bottom -fill x -padx 2 -pady 0
-#pack .s.status -side left -anchor e -padx 2 -pady 2
+frame .s -relief groove -bd 2 -width $iwd
+label .s.status -text "Audio Status: " -relief flat -font $compfont
+label .s.statustxt -text "wwwww" -relief flat -textvariable audio_device -font $compfont
 
 pack .st -side bottom -fill x -padx 2 -pady 0
 pack .st.file .st.recp .st.help -side left -anchor e -padx 2 -pady 2
 
 pack .st.quit .st.about .st.opts -side right -anchor w -padx 2 -pady 2
+
+pack .s -before .st -side bottom -fill x -padx 2 -pady 0
+pack .s.status -side left -anchor e -padx 2 -pady 2
+pack .s.statustxt -side left -anchor e -padx 2 -pady 2
+
+# hide status bar as Default
+pack forget .s
 
 pack .r -side top -fill x -padx 2
 pack .r.f -side top -fill x -padx 0 -pady 2
@@ -2274,8 +2290,9 @@ checkbutton $i.a.f.f.balloon -text "Balloon help"             -variable help_on
 checkbutton $i.a.f.f.matrix  -text "Reception quality matrix" -variable matrix_on -command toggle_chart
 checkbutton $i.a.f.f.plist   -text "Participant list"         -variable plist_on  -command toggle_plist
 checkbutton $i.a.f.f.fwin    -text "File Control Window"      -variable files_on  -command file_show
+checkbutton $i.a.f.f.status  -text "Status bar"               -variable status_on  -command toggle_status
 pack $i.a.f.f $i.a.f.f.l
-pack $i.a.f.f.power $i.a.f.f.balloon $i.a.f.f.matrix $i.a.f.f.plist $i.a.f.f.fwin -side top -anchor w
+pack $i.a.f.f.power $i.a.f.f.balloon $i.a.f.f.matrix $i.a.f.f.plist $i.a.f.f.fwin $i.a.f.f.status -side top -anchor w
 
 proc set_pane {p base desc} {
     upvar 1 $p pane
