@@ -469,7 +469,7 @@ static char *generate_token(void)
 
 int main(int argc, char *argv[])
 {
-        struct mbus	*m;
+    struct mbus	*m;
         char		 c_addr[60], *token_u[2], *token_e[2];
         int		 seed = (gethostid() << 8) | (getpid() & 0xff), final_iters;
         struct timeval	 timeout;
@@ -478,14 +478,16 @@ int main(int argc, char *argv[])
 		int  xargc=0;
 
 #ifdef WIN32
-        win32_create_null_window(); /* Needed to listen to messages */
+    win32_create_null_window(); /* Needed to listen to messages */
 #else
-        signal(SIGCONT, sigchld_handler);
-        signal(SIGCHLD, sigchld_handler);
-        signal(SIGINT, sigint_handler);
+    signal(SIGCONT, sigchld_handler);
+    signal(SIGCHLD, sigchld_handler);
+    signal(SIGINT, sigint_handler);
 	signal(SIGTERM, sigint_handler);
 	signal(SIGHUP, sigint_handler);
 #endif
+
+	debug_msg("rat-%s started argc=%d\n", RAT_VERSION, argc);
 
 	/* We have two modes: one for operation as a transcoder, one */
 	/* when working as a normal end-system audio tool. We choose */
@@ -496,18 +498,18 @@ int main(int argc, char *argv[])
 		num_sessions = 1;
 	}
 
-        if (parse_options_early(argc, (const char**)argv) == FALSE) {
-                return FALSE;
-        }
+    if (parse_options_early(argc, (const char**)argv) == FALSE) {
+            return FALSE;
+    }
 
-        srand48(seed);
-        snprintf(c_addr, 60, "(media:audio module:control app:rat id:%lu)", (unsigned long) getpid());
-        debug_msg("c_addr = %s\n", c_addr);
-        m = mbus_init(mbus_control_rx, mbus_err_handler, c_addr);
-        if (m == NULL) {
-                fatal_error("RAT v" RAT_VERSION, "Could not initialize Mbus: Is multicast enabled?");
-                return FALSE;
-        }
+    srand48(seed);
+    snprintf(c_addr, 60, "(media:audio module:control app:rat id:%lu)", (unsigned long) getpid());
+    debug_msg("c_addr = %s\n", c_addr);
+    m = mbus_init(mbus_control_rx, mbus_err_handler, c_addr);
+    if (m == NULL) {
+            fatal_error("RAT v" RAT_VERSION, "Could not initialize Mbus: Is multicast enabled?");
+            return FALSE;
+    }
         
     /* pull out -X arguments */
     for(i=0; i<argc; i++) {
@@ -521,10 +523,12 @@ int main(int argc, char *argv[])
 	if (ui_enabled) {
 		token_u[0] = generate_token();
 		fork_process(UI_NAME, c_addr, &pid_ui, 1, token_u, xargc, xargv);
-                if ((u_addr = mbus_rendezvous_waiting(m, "()", token_u[0], m, 20000000)) == NULL) {
-                    fatal_error("RAT v" RAT_VERSION, "MBUS Failed to rendezvous with UI - Likely firewall/VPN issue");
-                    return FALSE;
-                }
+  		debug_msg("Controller waiting for %s from UI...\n", token_u[0]);
+        if ((u_addr = mbus_rendezvous_waiting(m, "()", token_u[0], m, 20000000)) == NULL) {
+                fatal_error("RAT v" RAT_VERSION, "MBUS Failed to rendezvous with UI - Likely firewall/VPN issue");
+                return FALSE;
+        }
+		debug_msg("Controller has rendezvous'd with UI (%s)\n",u_addr);
 	}
 
 	token_e[0] = generate_token();
@@ -532,15 +536,15 @@ int main(int argc, char *argv[])
         fork_process(ENGINE_NAME, c_addr, &pid_engine, num_sessions, token_e, xargc, xargv);
         should_exit = FALSE;
 	for (i = 0; i < num_sessions; i++) {
-		debug_msg("Waiting for %s from media engine...\n", token_e[i]);
-                if ((e_addr[i] = mbus_rendezvous_waiting(m, "()", token_e[i], m, 20000000)) == NULL ) {
-                    fatal_error("RAT v" RAT_VERSION, "Failed to rendezvous with UI - Likely firewall/VPN issue");
-                    return FALSE;
-                }
-		debug_msg("...got it (%s)\n",e_addr[i]);
+		debug_msg("Controller waiting for %s from media engine...\n", token_e[i]);
+        if ((e_addr[i] = mbus_rendezvous_waiting(m, "()", token_e[i], m, 20000000)) == NULL ) {
+                fatal_error("RAT v" RAT_VERSION, "Failed to rendezvous with media engine - Likely firewall/VPN issue");
+                return FALSE;
+        }
+		debug_msg("Controller rendezvous'd with media engine (%s)\n",e_addr[i]);
 	}
 		
-        if (parse_addresses(m, e_addr, argc, argv) == TRUE) {
+    if (parse_addresses(m, e_addr, argc, argv) == TRUE) {
 		char	*peer;
 
 		if (ui_enabled) {
@@ -584,7 +588,7 @@ int main(int argc, char *argv[])
 		for (i = 0; i < num_sessions; i++) {
 			terminate(m, e_addr[i], &pid_engine);
 		}
-        }
+    }
 
 	if (ui_enabled) {
 		kill_process(pid_ui);

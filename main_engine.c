@@ -211,9 +211,9 @@ int main(int argc, char *argv[])
 	int            	 seed, elapsed_time, alc = 0, scnt = 0;
 	session_t 	*sp[2];
 	struct timeval	 timeout;
-        uint8_t		 i, j;
+    uint8_t		 i, j;
 
-	debug_msg("rat-media started argc=%d\n", argc);
+    debug_msg("rat-media-%s started argc=%d\n", RAT_VERSION, argc);
 
 #ifdef WIN32
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);

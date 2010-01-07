@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
 
         debug_set_core_dir(argv[0]);
 
-	debug_msg("rat-ui started argc=%d\n", argc);
+	debug_msg("rat-ui-%s started argc=%d\n", RAT_VERSION, argc);
 	parse_args(argc, argv);
 	tcl_init1(argc, argv);
 
