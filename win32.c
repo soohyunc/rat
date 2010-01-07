@@ -138,6 +138,35 @@ ShowMessage(int level, char *msg)
 
 static char szTemp[256];
 
+#ifndef strcasestr
+#include <ctype.h>
+char *strcasestr(const char *haystack, const char *needle)
+{
+        int i=-1;
+        while (haystack[++i] != '\0') {
+                if (tolower(haystack[i]) == tolower(needle[0])) {
+                        int j=i, k=0, match=0;
+                        while (tolower(haystack[++j]) == tolower(needle[++k])) {
+                                match=1;
+                            // Catch case when they match at the end
+                                  printf("j:%d, k:%d\n",j,k);
+                                if (haystack[j] == '\0' && needle[k] == '\0') {
+                                  printf("Mj:%d, k:%d\n",j,k);
+                                        return &haystack[i];
+                                }
+                        }
+                        // Catch normal case
+                        if (match && needle[k] == '\0'){
+                                  printf("Norm j:%d, k:%d\n",j,k);
+                                return &haystack[i];
+                        }
+                }
+        }
+        return NULL;
+}
+#endif
+
+#if 0
 int
 printf(const char *fmt, ...)
 {
@@ -151,6 +180,7 @@ printf(const char *fmt, ...)
 
 	return retval;
 }
+#endif
 
 int
 fprintf(FILE *f, const char *fmt, ...)
@@ -215,10 +245,12 @@ WinMain(
     char *p;
     WSADATA WSAdata;
     int r;
-    if (WSAStartup(WS_VERSION_TWO, &WSAdata) != 0 &&
-        WSAStartup(WS_VERSION_ONE, &WSAdata) != 0) {
-    	MessageBox(NULL, "Windows Socket initialization failed. TCP/IP stack\nis not installed or is damaged.", "Network Error", MB_OK | MB_ICONERROR);
-        exit(-1);
+	if (WSAStartup(WS_VERSION_TWO, &WSAdata) != 0) {
+		if (WSAStartup(WS_VERSION_ONE, &WSAdata) != 0) {
+    		MessageBox(NULL, "Windows Socket initialization failed. TCP/IP stack\nis not installed or is damaged.", "Network Error", MB_OK | MB_ICONERROR);
+			exit(-1);
+		}
+   		MessageBox(NULL, "Windows Socket initialization only found version One of TCP/IP stack\n Functionality may be limited.", "Network Error", MB_OK | MB_ICONERROR);
     }
 
     debug_msg("WSAStartup OK: %sz\nStatus:%s\n", WSAdata.szDescription, WSAdata.szSystemStatus);
