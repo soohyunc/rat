@@ -115,7 +115,7 @@ typedef struct s_session {
 	char		   	*mbus_video_addr;
 	int		    	 loopback_gain;
 	char			*encrkey;
-	FILE			*logger;
+	FILE			*logger;			/*logstats file*/
 	int			 mbus_waiting;
 	char			*mbus_waiting_token;
 	int			 mbus_go;
