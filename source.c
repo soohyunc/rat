@@ -923,7 +923,7 @@ source_process_packets(session_t *sp, source *src, timestamp_t now)
 
                 if (ts_gt(now, playout)) {
                         /* Packet being decoded is before start of current   */
-                        /* so there is now way it's audio will be played     */
+                        /* so there is no way its audio will be played       */
                         /* Playout recalculation gets triggered in           */
                         /* rtp_callback if toged_cont hits a critical        */
                         /* threshold.  It signifies current playout delay    */
