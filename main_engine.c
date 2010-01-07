@@ -135,7 +135,7 @@ int rendezvous_with_controller(session_t *sp[2])
 	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
 	/* This gets complicated, because we may have two instances of the mbus active.     */
 	for (i = 0; i < num_sessions; i++) {
-		debug_msg("Need mbus.waiting(%s) from controller...\n", token[i]);
+		debug_msg("MediaEngine Need mbus.waiting(%s) from controller...\n", token[i]);
 		sp[i]->mbus_waiting       = TRUE;
 		sp[i]->mbus_waiting_token = token[i];
 	}
@@ -150,7 +150,7 @@ int rendezvous_with_controller(session_t *sp[2])
 			mbus_retransmit(sp[j]->mbus_engine);
 			done &= !sp[j]->mbus_waiting;
 			if (!sp[j]->mbus_waiting) {
-				debug_msg("Sending mbus.go(%s) to controller...\n", token[j]);
+				debug_msg("MediaEngine Sending mbus.go(%s) to controller...\n", token[j]);
 				mbus_qmsgf(sp[j]->mbus_engine, c_addr, TRUE, "mbus.go", "%s", token_e[j]);
 			}
                         /* Wait till 3000*10000 (20secs) - otherwise it is an error */
@@ -158,7 +158,7 @@ int rendezvous_with_controller(session_t *sp[2])
                                 return FALSE;
 		}
 	} while (!done);
-	debug_msg("Got all needed mbus.waiting() messages from controller\n");
+	debug_msg("MediaEngine Got all needed mbus.waiting() messages from controller\n");
 
 	for (i = 0; i < num_sessions; i++) {
 		do {
@@ -174,12 +174,12 @@ int rendezvous_with_controller(session_t *sp[2])
 			}
 		} while (!done);
 	}
-	debug_msg("Sent all mbus.go() messages to controller\n");
+	debug_msg("MediaEngine Sent all mbus.go() messages to controller\n");
 
 	/* At this point we know the mbus address of our controller, and have conducted */
 	/* a successful rendezvous with it. It will now send us configuration commands. */
 	for (i = 0; i < num_sessions; i++) {
-		debug_msg("Need mbus.go(%s) from controller...\n", token_e[i]);
+		debug_msg("MediaEngine needs mbus.go(%s) from controller...\n", token_e[i]);
 		sp[i]->mbus_go       = TRUE;
 		sp[i]->mbus_go_token = token[i];
 	}
@@ -197,7 +197,7 @@ int rendezvous_with_controller(session_t *sp[2])
 			done &= !sp[i]->mbus_go;
 		}
 	} while (!done);
-	debug_msg("Got all needed mbus.go() messages from controller\n");
+	debug_msg("MediaEngine got all needed mbus.go() messages from controller\n");
 
 	for (i = 0; i < num_sessions; i++) {
 		assert(sp[i]->rtp_session[0] != NULL);
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 	struct timeval	 timeout;
         uint8_t		 i, j;
 
-        debug_msg("Ratmedia started\n");
+	debug_msg("rat-media started argc=%d\n", argc);
 
 #ifdef WIN32
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);

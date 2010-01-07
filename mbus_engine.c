@@ -641,14 +641,12 @@ static void rx_tool_rat_logdebug(char *srce, char *args, session_t *sp)
 	UNUSED(srce);
 	UNUSED(sp);
 	
-		printf("Logdebug '%s'\n", args);
-
 	mp = mbus_parse_init(args);
 	if (mbus_parse_int(mp, &enabled) &&
 	    mbus_parse_str(mp, &file))
 	    {
 		mbus_decode_str(file);
-		printf("enabled=%d file=%s\n", enabled, file);
+		debug_msg("Logstats enabled=%d file=%s\n", enabled, file);
 		if (enabled) {
 		    rtp_callback_open_logfile(file);
 		}

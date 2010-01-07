@@ -126,27 +126,27 @@ int main(int argc, char *argv[])
 	/* Next, we signal to the controller that we are ready to go. It should be sending  */
 	/* us an mbus.waiting(foo) where "foo" is the same as the "-token" argument we were */
 	/* passed on startup. We respond with mbus.go(foo) sent reliably to the controller. */
-	debug_msg("Waiting for mbus.waiting(%s) from controller...\n", token);
+	debug_msg("UI waiting for mbus.waiting(%s) from controller...\n", token);
         if (mbus_rendezvous_go(m, token, (void *) m, 20000000) == NULL) {
             fatal_error("RAT v" RAT_VERSION, "UI failed mbus.waiting rendezvous with controller");
             return FALSE;
         }
 
-        debug_msg("...got it\n");
+	debug_msg("UI got mbus.waiting(%s) from controller...\n", token);
 
 	/* At this point we know the mbus address of our controller, and have conducted   */
 	/* a successful rendezvous with it. It will now send us configuration commands.   */
 	/* We do mbus.waiting(foo) where "foo" is the original token. The controller will */
 	/* eventually respond with mbus.go(foo) when it has finished sending us commands. */
-	debug_msg("Waiting for mbus.go(%s) from controller...\n", token);
+	debug_msg("UI waiting for mbus.go(%s) from controller...\n", token);
         if ((mbus_rendezvous_waiting(m, c_addr, token, (void *) m, 20000000)) == NULL) {
             fatal_error("RAT v" RAT_VERSION, "UI failed mbus.go rendezvous with controller");
             return FALSE;
         }
-        debug_msg("...got it\n");
+	debug_msg("UI got mbus.go(%s) from controller...\n", token);
 
 	/* Okay, we wait for the media engine to solicit for a user interface... */
-	debug_msg("Waiting for mbus.waiting(rat-ui-requested) from media engine...\n");
+	debug_msg("UI waiting for mbus.waiting(rat-ui-requested) from media engine...\n");
 	do {
 		mbus_heartbeat(m, 1);
 		mbus_retransmit(m);
@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
 		}
 	} while (e_addr == NULL);
 	mbus_qmsgf(m, e_addr, TRUE, "mbus.go", "\"rat-ui-requested\"");
-	debug_msg("...got it\n");
+	debug_msg("UI got mbus.waiting(%s) from media engine...\n", token);
 
 	tcl_init2(m, e_addr);
 	ui_active = TRUE;
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
 		
 		if ((waitRet - WAIT_OBJECT_0) == 1)
 		{
-			debug_msg("Parent process died\n");
+			debug_msg("UI: Parent process died\n");
 			should_exit = TRUE;
 		}
 #else
@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
                  */
                 if (mbus_addr_valid(m, c_addr) == FALSE) {
                         should_exit = TRUE;
-                        debug_msg("Controller address is no longer valid.  Assuming it exited.\n");
+                        debug_msg("UI: Controller address is no longer valid.  Assuming it exited.\n");
                 }
 	}
 
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
                 /* Close things down nicely... Tell the media engine we wish to detach... */
                 mbus_qmsgf(m, e_addr, TRUE, "tool.rat.ui.detach.request", "");
                 mbus_send(m);
-		debug_msg("Waiting for tool.rat.ui.detach() from media engine...\n");
+		debug_msg("UI Waiting for tool.rat.ui.detach() from media engine...\n");
                 while (!got_detach  && mbus_addr_valid(m, e_addr) && mbus_shutdown_error == FALSE) {
                         mbus_heartbeat(m, 1);
                         mbus_retransmit(m);
@@ -218,9 +218,9 @@ int main(int argc, char *argv[])
                         timeout.tv_usec = 10000;
                         mbus_recv(m, (void *) m, &timeout);
                 }
-                debug_msg("...got it\n");
+		debug_msg("UI Got tool.rat.ui.detach() from media engine...\n");
         } else {
-                debug_msg("Engine looks like it has exited already.\n");
+                debug_msg("UI: Engine looks like it has exited already.\n");
         }
 
         if (mbus_addr_valid(m, c_addr)) {
@@ -234,7 +234,7 @@ int main(int argc, char *argv[])
                         mbus_recv(m, NULL, &timeout);
                 } while (!mbus_sent_all(m) && mbus_shutdown_error == FALSE);
 
-                debug_msg("Waiting for mbus.quit() from controller...\n");
+                debug_msg("UI Waiting for mbus.quit() from controller...\n");
                 while (got_quit == FALSE && mbus_shutdown_error == FALSE) {
                         mbus_heartbeat(m, 1);
                         mbus_retransmit(m);
@@ -243,9 +243,9 @@ int main(int argc, char *argv[])
                         timeout.tv_usec = 10000;
                         mbus_recv(m, (void *) m, &timeout);
                 }
-                debug_msg("...got it\n");
+                debug_msg("UI Got mbus.quit() from controller...\n");
         } else {
-                debug_msg("Controller appears to have exited already.\n");
+                debug_msg("UI: Controller appears to have exited already.\n");
         }
 
 	mbus_qmsgf(m, "()", FALSE, "mbus.bye", "");
