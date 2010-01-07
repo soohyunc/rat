@@ -66,7 +66,7 @@ void rtp_callback_open_logfile(char *file)
         struct timeval  tv;
         gettimeofday(&tv, 0);
 
-	printf("Opened logfile %s\n", file);
+	debug_msg("Opened logfile %s\n", file);
 	fprintf(log_fp, "%d.%06d 0 start\n", (int) tv.tv_sec, (int) tv.tv_usec);
     }
 }
@@ -476,7 +476,7 @@ rtp_callback_proc(struct rtp *s, rtp_event *e)
                 process_sdes(sp, e->ssrc, (rtcp_sdes_item*)e->data);
 		break;
         case RX_APP:
-                debug_msg("Received and ignored application specific report from %08x\n", e->ssrc);
+                debug_msg("Received application specific report from %08x - and processing it - possible siteid packet\n", e->ssrc);
 	        process_app(sp, e->ssrc, (rtcp_app*)e->data);
 		xfree(e->data);
                 break;
