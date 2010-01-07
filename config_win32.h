@@ -149,7 +149,9 @@ const char * w32_make_version_info(char * rat_verion);
 #define strcasecmp  _stricmp
 #define strncasecmp _strnicmp
 
+#ifndef RegGetValue
 int  RegGetValue(HKEY *, char *, char*, char*, int);
+#endif
 void ShowMessage(int level, char *msg);
 
 #define bcopy(from,to,len) memcpy(to,from,len)

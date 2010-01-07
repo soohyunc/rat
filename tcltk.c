@@ -189,6 +189,7 @@ WinReg(ClientData clientdata, Tcl_Interp *interp, int argc, char **argv)
         return TCL_OK;
 }
 
+#ifndef RegGetValue
 int
 RegGetValue(HKEY* key, char *subkey, char *value, char *dst, int dlen)
 {
@@ -216,6 +217,7 @@ RegGetValue(HKEY* key, char *subkey, char *value, char *dst, int dlen)
         RegCloseKey(lkey);
         return TRUE;
 }
+#endif
 #endif
 
 Tcl_Interp 	*interp;	/* Interpreter for application. */
