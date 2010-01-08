@@ -54,6 +54,7 @@ ticker tickers[] = {
 #define TS_NUM_TICKERS (sizeof(tickers)/sizeof(ticker))
 
 #define TS_CHECK_BITS 0x03
+#define TS_CHECK_BITS_Z 0x00
 
 timestamp_t
 ts_map32(uint32_t freq, uint32_t ticks32)
@@ -62,7 +63,7 @@ ts_map32(uint32_t freq, uint32_t ticks32)
         timestamp_t out = {0, 0, 0}; //SV-XXX was uninitialised
 
         /* Make invalid timestamp */
-        out.check = ~TS_CHECK_BITS; //SV-XXX
+        out.check = TS_CHECK_BITS_Z; 
 
         for(i = 0; i < TS_NUM_TICKERS; i++) {
                 if (tickers[i].freq == freq) {
