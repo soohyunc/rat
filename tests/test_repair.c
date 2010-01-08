@@ -242,12 +242,11 @@ test_repair(struct s_sndfile *sf_out,
 static void
 usage(void)
 {
-        fprintf(stderr, "test_repair [options] -c <codec> -r <repair> -d <rate> <src_file> <dst_file>
-where options are:
-\t-codecs to list available codecs
-\t-repairs to list available repair schemes
-\t-n to disable codec specific repair (default csra permitted)
-\t-s <seed> to set seed of rng (default 0)
+        fprintf(stderr, "test_repair [options] -c <codec> -r <repair> -d <rate> <src_file> <dst_file> where options are:\
+\t-codecs to list available codecs\
+\t-repairs to list available repair schemes\
+\t-n to disable codec specific repair (default csra permitted)\
+\t-s <seed> to set seed of rng (default 0)\
 \t-u <units> set audio frames per packet (default 1 == 20ms)\n");
         exit(-1);
 }
@@ -418,14 +417,14 @@ main(int argc, char *argv[])
                 exit(-1);
         }
 
-        printf("# Parameters
-#\tseed: %ld
-#\tdrop: %.2f
-#\tcodec:  %s
-#\tunits per packet: %d
-#\trepair: %s
-#\tcodec specific repair (when available): %d
-#\tsource file: %s
+        printf("# Parameters \
+#\tseed: %ld \
+#\tdrop: %.2f \
+#\tcodec:  %s \
+#\tunits per packet: %d \
+#\trepair: %s \
+#\tcodec specific repair (when available): %d \
+#\tsource file: %s \
 #\tdestination file %s\n",
 seed, drop, codec_name, units_per_packet, repair_name, csra, argv[argc - 2], argv[argc - 1]);
 

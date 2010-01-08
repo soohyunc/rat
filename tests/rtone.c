@@ -157,18 +157,16 @@ tv_diff(struct timeval *delta, struct timeval *a, struct timeval *b)
 static void
 usage()
 {
-	fprintf(stderr, "\
-rtone [-c <codec>] [-f freq] [-g gain] [-l] [-s sp] [-t ttl] [-u <upp>] addr/port
-where:
-\t-c selects the codec used.
-\t-f sets the tone frequency.
-\t-F <filename> stream file.
-\t-g sets the gain (0-32767).
-\t-j <jitter> set jitter in ms.
-\t-l lists available codecs.
-\t-s sets the speed relative to real time (>1.0 == faster).
-\t-S set rtp SSRC.
-\t-t sets ttl.
+	fprintf(stderr, "rtone [-c <codec>] [-f freq] [-g gain] [-l] [-s sp] [-t ttl] [-u <upp>] addr/port where:\
+\t-c selects the codec used.\
+\t-f sets the tone frequency.\
+\t-F <filename> stream file.\
+\t-g sets the gain (0-32767).\
+\t-j <jitter> set jitter in ms.\
+\t-l lists available codecs.\
+\t-s sets the speed relative to real time (>1.0 == faster).\
+\t-S set rtp SSRC.\
+\t-t sets ttl.\
 \t-u sets units per packet.\n");
 	exit(-1);
 }
@@ -212,7 +210,7 @@ tone_gen	(sample *buffer, int samples, int tone_gain, int tone_rate, int sample_
 }
 
 static void
-rtp_callback(struct rtp *session, rtp_event *e)
+rtone_rtp_callback(struct rtp *session, rtp_event *e)
 {
 	UNUSED(session);
 	if (e->type == RX_RTP) {
@@ -309,7 +307,7 @@ main(int argc, char* argv[])
 		usage();
 	}
 
-	session = rtp_init(addr, atoi(port), atoi(port), ttl, 64000, rtp_callback, NULL);
+	session = rtp_init(addr, atoi(port), atoi(port), ttl, 64000, rtone_rtp_callback, NULL);
 	if (session == NULL) {
 		fprintf(stderr, "Failed with -t %d %s/%s\n", ttl, addr, port);
 		exit(-1);
@@ -323,9 +321,7 @@ main(int argc, char* argv[])
 	packet_us = 1000000 * upp * cf->format.bytes_per_block / (cf->format.channels * cf->format.sample_rate * (cf->format.bits_per_sample / 8));
 
 	printf("%s port %s ttl %d\n", addr, port, ttl);
-	printf("Codec: %s %d units per packet
-Tone freq: %d gain: %d (%f dBov)
-Packets every %ld us\n",
+	printf("Codec: %s %d units per packet Tone freq: %d gain: %d (%f dBov) Packets every %ld us\n",
 	       cf->long_name, upp,
 	       freq, gain, -20 * log(32767.0/(double)gain),
 	       packet_us);

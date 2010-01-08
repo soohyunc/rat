@@ -98,7 +98,8 @@ parse_fmt(char *fmt, uint16_t *channels, uint16_t *rate)
 static void
 dump_frame(coded_unit *cu, int offset)
 {
-        uint16_t rate, channels;
+        uint16_t channels;
+        uint32_t rate;
         sample *src;
         int i, j, n;
         codec_get_native_info( cu->id, &rate, &channels);

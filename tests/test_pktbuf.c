@@ -43,7 +43,7 @@ int main() {
 		n = lrand48() % 16;
 		for(j = 0; j <= n; j++) {
 			pp = (rtp_packet*)xmalloc(sizeof(rtp_packet));
-			pp->ts = ts ++;
+			pp->fields.ts = ts ++;
 			add_thing(pb, pp);
 		}
 		n = lrand48() % 16;
